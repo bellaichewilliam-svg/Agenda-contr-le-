@@ -21,7 +21,7 @@ function defaultState() {
     lang: detectLang(),
     theme: "auto",     // "auto" | "light" | "dark"
     shoppingMode: false,
-    mode: "single",
+    mode: "optimized", // "optimized" (défaut, classement auto) | "single"
     activeCategory: null,
     searchQuery: "",
     hideDone: false
@@ -96,6 +96,169 @@ function tProduct(p) {
 function tCat(cat) {
   const dict = I18N[state.lang] || I18N.fr;
   return (dict.cat && dict.cat[cat]) || cat;
+}
+
+// ========== ICÔNES PRODUITS ==========
+// Mapping id-prefix -> emoji. Si pas de match, fallback sur la catégorie.
+// (Emojis natifs : marche hors-ligne, multiplateforme.)
+const ICON_BY_PREFIX = {
+  // Laitiers
+  "milk-skim": "🥛", "milk-soya": "🥛", "milk-almond": "🥛", "milk-oat": "🥛", "milk-": "🥛",
+  "chocolate-milk": "🍫", "cottage": "🧀", "yogurt": "🥣", "skyr": "🥣", "leben": "🥣",
+  "labane": "🧀", "white-cheese": "🧀", "butter": "🧈", "margarine": "🧈",
+  "cream-cooking": "🥛", "sour-cream": "🥛", "whipping-cream": "🥛",
+  "cream-cheese": "🧀", "cheese-yellow": "🧀", "gouda": "🧀", "edam": "🧀",
+  "mozzarella": "🧀", "parmesan": "🧀", "feta": "🧀", "halloumi": "🧀",
+  "ricotta": "🧀", "camembert": "🧀", "brie": "🧀", "blue-cheese": "🧀",
+  // Œufs
+  "eggs-": "🥚",
+  // Viande / Volaille
+  "chicken-breast": "🍗", "chicken-thigh": "🍗", "chicken-wings": "🍗",
+  "chicken-whole": "🍗", "chicken-liver": "🥩", "schnitzel": "🍗",
+  "ground-chicken": "🍗", "turkey-breast": "🦃", "turkey-ground": "🦃",
+  "ground-beef": "🥩", "entrecote": "🥩", "rib-eye": "🥩", "beef-stew": "🥩",
+  "lamb": "🍖", "kebab": "🍢", "merguez": "🌭", "hot-dog": "🌭",
+  "salami": "🥓", "pastrami": "🥓",
+  // Poisson
+  "salmon": "🐟", "tuna-fresh": "🐟", "white-fish": "🐟", "tilapia": "🐟",
+  "denis": "🐟", "sardines": "🐟", "herring": "🐟",
+  // Boulangerie
+  "bread-rye": "🍞", "bread-multi": "🍞", "bread-": "🍞", "baguette": "🥖",
+  "pita": "🫓", "lafa": "🫓", "challah": "🥖", "bagel": "🥯",
+  "tortilla": "🌮", "burger-bun": "🍔", "hot-dog-bun": "🌭", "matza": "🫓",
+  "breadcrumbs": "🌾",
+  // Gâteaux
+  "marble-cake": "🍰", "chocolate-cake": "🎂", "cheesecake": "🍰",
+  "honey-cake": "🍰", "sponge-cake": "🍰", "babka": "🍞",
+  "rugelach": "🥐", "muffins": "🧁", "brownies": "🍫",
+  "croissant": "🥐", "danish": "🥐", "donuts": "🍩",
+  "burekas": "🥐", "tart-fruit": "🥧",
+  "biscuits": "🍪", "wafers": "🍪", "cookies": "🍪", "halva": "🍯",
+  // Fruits
+  "apple-": "🍎", "banana": "🍌", "orange": "🍊", "clementine": "🍊",
+  "grapefruit": "🍊", "lemon": "🍋", "lime": "🍋", "pear": "🍐",
+  "peach": "🍑", "nectarine": "🍑", "plum": "🍑", "cherry": "🍒",
+  "strawberry": "🍓", "blueberry": "🫐", "raspberry": "🍓",
+  "grape-": "🍇", "watermelon": "🍉", "melon": "🍈",
+  "pineapple": "🍍", "mango": "🥭", "avocado": "🥑", "kiwi": "🥝",
+  "pomegranate": "🥭", "fig": "🍇", "persimmon": "🍅", "date": "🌰",
+  // Légumes
+  "tomato-paste": "🥫", "tomato-crushed": "🥫", "tomato-sauce": "🥫",
+  "tomato-cherry": "🍅", "tomato-grape": "🍅", "tomato": "🍅",
+  "cucumber": "🥒", "potato": "🥔", "sweet-potato": "🍠",
+  "onion": "🧅", "shallot": "🧅", "leek": "🥬",
+  "carrot": "🥕", "pepper-hot": "🌶️", "pepper-mini": "🫑", "pepper-": "🫑",
+  "zucchini": "🥒", "eggplant": "🍆",
+  "lettuce": "🥬", "spinach": "🥬", "kale": "🥬", "arugula": "🌿",
+  "cabbage": "🥬", "cauliflower": "🥦", "broccoli": "🥦",
+  "celery-root": "🥬", "celery": "🥬", "radish": "🌶️", "beet": "🍎",
+  "turnip": "🥕", "pumpkin": "🎃", "corn": "🌽",
+  "mushroom": "🍄", "garlic": "🧄", "ginger": "🫚",
+  "parsley": "🌿", "cilantro": "🌿", "dill": "🌿", "mint": "🌿", "basil": "🌿",
+  "olives": "🫒",
+  // Épicerie
+  "rice-": "🍚", "pasta-spaghetti": "🍝", "pasta-penne": "🍝",
+  "pasta-fusilli": "🍝", "pasta-lasagna": "🍝", "pasta-noodles": "🍜",
+  "pasta-": "🍝", "couscous": "🍚", "bulgur": "🌾", "quinoa": "🌾",
+  "lentils": "🫘", "chickpeas": "🫘", "beans": "🫘",
+  "corn-can": "🌽", "peas-can": "🟢",
+  "pesto": "🌿", "soy-sauce": "🥫", "teriyaki": "🥫",
+  "vinegar": "🧴", "oil-olive": "🫒", "oil-": "🫒",
+  "tahini": "🥜", "humus": "🫘", "matbucha": "🥫", "harissa": "🌶️",
+  "schug": "🌶️", "amba": "🥫",
+  "tuna-can": "🥫", "tuna-oil": "🥫", "anchovies": "🥫",
+  "ketchup": "🍅", "mustard": "🌭", "mayo": "🥚",
+  "bbq-sauce": "🍖", "salsa": "🌶️",
+  "soup-mix": "🍜", "stock-": "🍜",
+  "salt": "🧂", "pepper": "🧂", "paprika-": "🌶️", "cumin": "🧂",
+  "turmeric": "🧂", "cinnamon": "🧂", "oregano": "🌿", "zaatar": "🌿",
+  // Petit-déj
+  "flour": "🌾", "sugar-vanilla": "🍯", "sugar": "🍬",
+  "honey": "🍯", "silan": "🍯", "maple": "🍁",
+  "jam-": "🫐", "nutella": "🍫",
+  "peanut-butter": "🥜", "almond-butter": "🥜",
+  "cereal-": "🥣", "muesli": "🥣", "granola": "🥣", "oats": "🥣",
+  // Boissons
+  "water-": "💧", "coke-": "🥤", "sprite": "🥤", "fanta": "🥤", "schweppes": "🥤",
+  "ice-tea": "🧋", "energy-drink": "⚡", "redbull": "⚡",
+  "juice-": "🧃", "lemonade": "🍋",
+  "coffee-": "☕", "tea-": "🍵",
+  "beer-": "🍺", "wine-": "🍷", "vodka": "🥃", "arak": "🥃",
+  // Surgelés
+  "frozen-pizza": "🍕", "frozen-fries": "🍟", "frozen-wedges": "🥔",
+  "frozen-veggies": "🥦", "frozen-peas": "🟢", "frozen-corn": "🌽",
+  "frozen-broccoli": "🥦", "frozen-cauliflower": "🥦",
+  "frozen-spinach": "🥬", "frozen-stir-fry": "🥡",
+  "frozen-fish": "🐟", "frozen-shrimp": "🦐",
+  "frozen-schnitzel": "🍗", "frozen-burger": "🍔",
+  "frozen-nuggets": "🍗", "frozen-meatballs": "🍖",
+  "frozen-puff": "🥐", "frozen-filo": "🥐",
+  "ice-cream-": "🍦", "popsicles": "🍡",
+  // Snacks
+  "bamba": "🥜", "bisli": "🥨", "doritos": "🌽",
+  "chips-tapuchips": "🥔", "chips-pringles": "🥔", "chips-": "🥔",
+  "popcorn": "🍿", "pretzel": "🥨", "crackers": "🍪",
+  "rice-cakes": "🍘", "nuts-mixed": "🥜", "almonds": "🥜",
+  "cashew": "🥜", "pistachio": "🥜", "peanut": "🥜",
+  "sunflower-seeds": "🌻", "pumpkin-seeds": "🎃",
+  "dried-fruit": "🍇", "raisins": "🍇",
+  "chocolate-elite": "🍫", "chocolate-dark": "🍫", "chocolate-milka": "🍫",
+  "chocolate-toblerone": "🍫", "chocolate-kinder": "🍫", "chocolate-bueno": "🍫",
+  "chocolate-mars": "🍫", "chocolate-snickers": "🍫", "chocolate-twix": "🍫",
+  "kitkat": "🍫", "pesek-zman": "🍫", "krembo": "🍫",
+  "candy-": "🍬", "gum-": "🍬",
+  // Bébé
+  "diapers-": "👶", "wipes": "🧻",
+  "baby-formula": "🍼", "baby-cereal": "🥣", "baby-puree": "🥣",
+  "baby-bottle": "🍼", "baby-pacifier": "🍼", "baby-shampoo": "🧴",
+  // Hygiène
+  "toilet-paper-": "🧻", "tissues-": "🤧", "paper-towel": "🧻",
+  "shampoo-": "🧴", "conditioner": "🧴",
+  "soap-liquid": "🧼", "soap-bar": "🧼", "shower-gel": "🚿",
+  "toothpaste": "🪥", "toothbrush": "🪥", "mouthwash": "🌿",
+  "deodorant-": "🧴", "razor": "🪒", "shaving-cream": "🧴",
+  "tampons": "🩸", "pads": "🩸", "cotton": "☁️", "qtips": "🦴",
+  "sunscreen": "☀️", "moisturizer": "🧴",
+  // Entretien
+  "dish-soap": "🧽", "dish-tab": "🧽",
+  "laundry-": "🧺", "softener": "🌸", "stain-remover": "🧼",
+  "bleach": "🧴", "floor-cleaner": "🧹", "glass-cleaner": "🧴",
+  "kitchen-cleaner": "🧴", "bathroom-cleaner": "🚿", "toilet-cleaner": "🚽",
+  "drain-cleaner": "🧴", "trash-bags-": "🗑️",
+  "aluminum-foil": "📜", "plastic-wrap": "📜", "baking-paper": "📜",
+  "sponges": "🧽", "rubber-gloves": "🧤", "air-freshener": "🌸",
+  "matches": "🔥", "candles": "🕯️", "batteries-": "🔋", "lightbulb": "💡",
+  // Animaux
+  "dog-food-": "🐕", "cat-food-": "🐈", "cat-litter": "🐈"
+};
+const ICON_BY_CAT = {
+  "Laitiers": "🥛", "Œufs": "🥚", "Viande": "🥩", "Poisson": "🐟",
+  "Boulangerie": "🍞", "Gâteaux": "🍰", "Fruits": "🍎", "Légumes": "🥕",
+  "Épicerie": "🥫", "Petit-déj": "🥣", "Boissons": "🥤", "Surgelés": "❄️",
+  "Snacks": "🍿", "Bébé": "👶", "Hygiène": "🧼", "Entretien": "🧴", "Animaux": "🐾"
+};
+// Couleur de fond du chip selon catégorie
+const CAT_TINT = {
+  "Laitiers": "#fef3c7", "Œufs": "#fef9c3", "Viande": "#fee2e2", "Poisson": "#dbeafe",
+  "Boulangerie": "#fed7aa", "Gâteaux": "#fce7f3", "Fruits": "#fee2e2", "Légumes": "#dcfce7",
+  "Épicerie": "#fef3c7", "Petit-déj": "#fed7aa", "Boissons": "#dbeafe", "Surgelés": "#cffafe",
+  "Snacks": "#fde68a", "Bébé": "#fce7f3", "Hygiène": "#e0e7ff", "Entretien": "#e0e7ff", "Animaux": "#fef3c7"
+};
+function productIcon(p) {
+  if (!p) return "🛒";
+  // Cherche le préfixe le plus long qui matche
+  let bestKey = null;
+  for (const k of Object.keys(ICON_BY_PREFIX)) {
+    if (p.id === k || p.id.startsWith(k)) {
+      if (!bestKey || k.length > bestKey.length) bestKey = k;
+    }
+  }
+  if (bestKey) return ICON_BY_PREFIX[bestKey];
+  return ICON_BY_CAT[p.category] || "🛒";
+}
+function productTint(p) {
+  if (!p) return "#e0e7ff";
+  return CAT_TINT[p.category] || "#e0e7ff";
 }
 
 // ========== HELPERS ==========
@@ -224,7 +387,7 @@ function renderStaticTexts() {
   document.getElementById("my-list-title").textContent = "📝 " + t("my_list");
   document.getElementById("comparison-title").textContent = "💸 " + t("comparison");
   document.getElementById("mode-single").textContent = t("single_store");
-  document.getElementById("mode-multi").textContent = t("multi_store") + " ✨";
+  document.getElementById("mode-multi").textContent = "🎯 " + t("multi_store");
   document.getElementById("share-btn-text").textContent = "📤 " + t("share");
   document.getElementById("clear-btn").title = t("clear");
   document.getElementById("share-modal-title").textContent = "📤 " + t("share_modal_title");
@@ -277,6 +440,7 @@ function renderSearchResults() {
     const cartTag = qty ? `<span style="color:var(--success);font-weight:600">✓ ${formatQty(qty)}×</span>` : "";
     return `
       <div class="search-result-item" data-id="${p.id}">
+        <div class="prod-icon" style="background:${productTint(p)}">${productIcon(p)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px">${tProduct(p)} ${cartTag}</div>
           <div class="meta">${tCat(p.category)} · ${p.unit} · ${t("starting_at")} <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong> ${t("at_store")} ${STORES[cheapest.store].name}</div>
@@ -431,7 +595,7 @@ function renderSuggestions() {
   wrap.innerHTML = `
     <div class="sugg-head">⭐ ${t("suggestions")}</div>
     <div class="sugg-list">
-      ${top.map(p => `<button class="sugg-chip" data-id="${p.id}">${tProduct(p)} <span>+</span></button>`).join("")}
+      ${top.map(p => `<button class="sugg-chip" data-id="${p.id}"><span class="sugg-icon" style="background:${productTint(p)}">${productIcon(p)}</span>${tProduct(p)} <span>+</span></button>`).join("")}
     </div>`;
   wrap.querySelectorAll(".sugg-chip").forEach(el => {
     el.addEventListener("click", () => addToCart(el.dataset.id));
@@ -564,6 +728,7 @@ function renderCartItemHTML(id, big = false) {
       <button class="check-btn ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-label="✓">
         ${item.done ? "✓" : ""}
       </button>
+      <div class="prod-icon" style="background:${productTint(p)}">${productIcon(p)}</div>
       <div class="cart-item-info">
         <div class="cart-item-name">${tProduct(p)}</div>
         <div class="cart-item-meta">
@@ -706,7 +871,7 @@ function renderOptimized(wrap) {
           <button class="export-store-btn" data-export-store="${storeId}">📥 ${t("new_list")}</button>
           <div class="opti-store-total">${formatPrice(subtotal)}</div>
         </div>
-        ${items.map(it => `<div class="opti-item"><span class="name">${formatQty(it.qty)}× ${tProduct(it.product)}</span><span class="price">${formatPrice(it.lineTotal)}</span></div>`).join("")}
+        ${items.map(it => `<div class="opti-item"><span class="prod-icon mini" style="background:${productTint(it.product)}">${productIcon(it.product)}</span><span class="name">${formatQty(it.qty)}× ${tProduct(it.product)}</span><span class="price">${formatPrice(it.lineTotal)}</span></div>`).join("")}
       </div>`;
   });
   // Save assignments for export
