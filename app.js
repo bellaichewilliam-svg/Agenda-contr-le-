@@ -490,7 +490,7 @@ function renderStoreBadges() {
     const liveCount = liveSummary[id] || 0;
     const isLive = liveCount > 0;
     const status = isLive ? `<span class="badge-status live">🟢</span>` : `<span class="badge-status mock">⚪</span>`;
-    const tip = isLive ? `${liveCount} prix réels` : "Prix estimés";
+    const tip = isLive ? `${liveCount} ${t("live_ready")}` : t("live_waiting");
     return `<span class="store-badge ${isLive ? "live" : ""}" title="${tip}"><span class="dot" style="background:${s.color}"></span>${s.name}${status}</span>`;
   }).join("");
 }
@@ -925,10 +925,14 @@ function showProductDetail(pid) {
         const diff = price - sortedPrices[0][1];
         const diffPct = sortedPrices[0][1] > 0 ? Math.round((diff / sortedPrices[0][1]) * 100) : 0;
         const isChosen = chosen === storeId || (!chosen && isCheapest);
+        const brand = (typeof getStoreBrand !== "undefined") ? getStoreBrand(pid, storeId) : null;
         return `
           <button class="pm-price-row ${isChosen ? "chosen" : ""} ${isCheapest ? "cheapest" : ""}" data-pick-store="${storeId}">
             <span class="store-icon" style="background:${store.color};width:28px;height:28px;font-size:11px">${store.icon}</span>
-            <span class="pm-store-name">${store.name}</span>
+            <div class="pm-store-block">
+              <span class="pm-store-name">${store.name}</span>
+              ${brand ? `<span class="pm-store-brand">📦 ${brand}</span>` : ""}
+            </div>
             ${isCheapest ? `<span class="cheapest-badge">🏆</span>` : `<span class="pm-diff">+${diffPct}%</span>`}
             <span class="pm-price">${formatPrice(price)}</span>
             ${isChosen ? `<span class="pm-check">✓</span>` : ""}
