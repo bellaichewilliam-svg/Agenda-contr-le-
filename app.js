@@ -2022,8 +2022,30 @@ function showNearbyStores() {
               <span class="nearby-pill">🕐 ${store.hours}</span>
             </div>
             <div class="nearby-actions">
-              <a href="${wazeURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn waze">🗺️ Waze</a>
-              <a href="${googleMapsURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn gmaps">🗺️ Maps</a>
+              <a href="${wazeURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn waze">
+                <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
+                  <circle cx="24" cy="24" r="20" fill="#fff"/>
+                  <path d="M24 8C14.06 8 6 16.06 6 26c0 4.5 1.66 8.62 4.4 11.78-.5 1.18-1.4 2.5-2.4 3.22 1.5.4 4.2 0 6-1.4 2.6 1.5 5.7 2.4 9 2.4h1c10.5 0 18-8 18-18S33.94 8 24 8z" fill="#33CCFF"/>
+                  <circle cx="18" cy="22" r="2.2" fill="#fff"/>
+                  <circle cx="30" cy="22" r="2.2" fill="#fff"/>
+                  <path d="M14 28c1.5 3 5 5.5 10 5.5s8.5-2.5 10-5.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                </svg>
+                Waze
+              </a>
+              <a href="${googleMapsURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn gmaps">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="gmpin" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#EA4335"/>
+                      <stop offset="1" stop-color="#C5221F"/>
+                    </linearGradient>
+                  </defs>
+                  <path d="M12 1C7.03 1 3 5.03 3 10c0 6.5 9 13 9 13s9-6.5 9-13c0-4.97-4.03-9-9-9z" fill="url(#gmpin)"/>
+                  <circle cx="12" cy="10" r="3.5" fill="#fff"/>
+                  <circle cx="12" cy="10" r="2.2" fill="#1A73E8"/>
+                </svg>
+                Google Maps
+              </a>
               ${website ? `<a href="${website}" target="_blank" rel="noopener" class="nearby-btn site">🛒 Commander</a>` : ""}
             </div>
           </div>`;
