@@ -918,6 +918,16 @@ function renderBrowsePanel() {
         const sp = priceSpread(p);
         const inCart = getQty(p.id);
         const cs = STORES[cheapest.store];
+        // Liste des prix par magasin triés (pour les mini-tags)
+        const sortedPrices = Object.entries(p.prices)
+          .map(([s, v]) => ({ store: s, price: v }))
+          .sort((a, b) => {
+            if (a.price == null && b.price == null) return 0;
+            if (a.price == null) return 1;
+            if (b.price == null) return -1;
+            return a.price - b.price;
+          });
+        const availCount = sortedPrices.filter(x => x.price != null).length;
         return `
           <div class="prod-card" data-pid="${p.id}">
             <div class="prod-icon big" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
@@ -930,6 +940,13 @@ function renderBrowsePanel() {
                 <span class="prod-card-store-icon">${cs.icon}</span>${cs.name}
               </span>
               <span class="prod-card-spread">→ ${formatPrice(sp.max)} <span class="spread-pct">−${sp.pct}%</span></span>
+            </div>
+            <div class="prod-card-stores" title="Tap pour voir les ${availCount} prix">
+              ${sortedPrices.map((x, i) => {
+                const s = STORES[x.store];
+                if (x.price == null) return `<span class="mini-store off" title="${s.name} : indisponible">${s.icon}</span>`;
+                return `<span class="mini-store ${i === 0 ? "best" : ""}" style="background:${s.color}" title="${s.name} : ${formatPrice(x.price)}">${s.icon}</span>`;
+              }).join("")}
             </div>
             ${inCart ? `<div class="prod-card-incart">✓ ${formatQty(inCart)}× ${STORES[chosenStoreFor(p.id) || cheapest.store]?.name || ""}</div>` : ""}
             <button class="prod-card-add" data-add-pid="${p.id}" aria-label="Add">+</button>
