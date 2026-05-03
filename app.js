@@ -2,7 +2,8 @@
 // Dépend de : data/products.js (STORES, PRODUCTS, LAST_UPDATED)
 //             data/i18n.js (I18N, PRODUCT_I18N)
 
-const STORAGE_KEY = "prixmalin.state.v3";
+const STORAGE_KEY = "prixmalin.state.v4";
+const STORAGE_KEY_V3 = "prixmalin.state.v3";
 const STORAGE_KEY_V2 = "prixmalin.cart.v2";
 const STORAGE_KEY_V1 = "prixmalin.cart.v1";
 
@@ -45,23 +46,35 @@ function loadState() {
       s.frequency = s.frequency || {};
       s.lang = (s.lang && I18N[s.lang]) ? s.lang : detectLang();
       s.theme = s.theme || "auto";
-      s.mode = s.mode || "single";
+      s.mode = s.mode || "optimized";
       return s;
     }
-    // migration v2 -> v3 : ancien panier devient liste unique
+    // migration v3 -> v4 : ajoute "store" à chaque item
+    const v3 = localStorage.getItem(STORAGE_KEY_V3);
+    if (v3) {
+      const s = JSON.parse(v3);
+      if (s.lists) {
+        Object.values(s.lists).forEach(list => {
+          Object.values(list.cart).forEach(item => {
+            if (item.store === undefined) item.store = null;
+          });
+        });
+        return s;
+      }
+    }
     const v2 = localStorage.getItem(STORAGE_KEY_V2);
     if (v2) {
       const cart = JSON.parse(v2);
+      Object.values(cart).forEach(it => { if (it.store === undefined) it.store = null; });
       const id = newId();
       return { ...defaultState(), activeListId: id,
                lists: { [id]: { name: "", cart, createdAt: Date.now() } } };
     }
-    // migration v1
     const v1 = localStorage.getItem(STORAGE_KEY_V1);
     if (v1) {
       const old = JSON.parse(v1);
       const cart = {};
-      Object.entries(old).forEach(([id, qty]) => { cart[id] = { qty, done: false }; });
+      Object.entries(old).forEach(([id, qty]) => { cart[id] = { qty, done: false, store: null }; });
       const id = newId();
       return { ...defaultState(), activeListId: id,
                lists: { [id]: { name: "", cart, createdAt: Date.now() } } };
@@ -262,8 +275,8 @@ function productTint(p) {
 
 // ========== PHOTOS PRODUITS (Open Food Facts + Wikimedia) ==========
 // Recherche async en ligne, cache localStorage permanent, fallback emoji
-const IMG_CACHE = {};   // mémoire
-const IMG_LOADING = {}; // promesses en cours
+const IMG_CACHE = {};
+const IMG_LOADING = {};
 const IMG_PREFIX = "pm.img.";
 
 function imgFromCache(pid) {
@@ -276,28 +289,24 @@ function imgFromCache(pid) {
       return url;
     }
   } catch {}
-  return undefined; // pas en cache
+  return undefined;
 }
-
 function imgSetCache(pid, url) {
   IMG_CACHE[pid] = url || null;
   try { localStorage.setItem(IMG_PREFIX + pid, url || ""); } catch {}
 }
-
-// Pour les requêtes : utilise le nom anglais si dispo (meilleur taux de match sur OFF)
 function searchTermsFor(p) {
   const tr = (typeof PRODUCT_I18N !== "undefined") ? PRODUCT_I18N[p.id] : null;
   let q = (tr && tr.en) || p.name;
-  // Garde les premiers mots significatifs, retire les unités/parenthèses
   q = q.replace(/\([^)]*\)/g, "").replace(/[0-9]+\s*(g|kg|ml|l|u|×).*$/i, "").trim();
   return q.split(/\s+/).slice(0, 3).join(" ");
 }
-
 async function tryOpenFoodFacts(p) {
   try {
     const q = encodeURIComponent(searchTermsFor(p));
     const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=3&fields=image_front_small_url,image_front_thumb_url,image_url`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(url, { signal: ctrl.signal });
     if (!r.ok) return null;
     const j = await r.json();
     for (const item of (j.products || [])) {
@@ -307,12 +316,12 @@ async function tryOpenFoodFacts(p) {
   } catch {}
   return null;
 }
-
 async function tryWikimedia(p) {
   try {
-    const q = encodeURIComponent(searchTermsFor(p).split(" ")[0]);
+    const q = encodeURIComponent(searchTermsFor(p));
     const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url&iiurlwidth=200&generator=search&gsrnamespace=6&gsrsearch=${q}&gsrlimit=1&origin=*`;
-    const r = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(url, { signal: ctrl.signal });
     if (!r.ok) return null;
     const j = await r.json();
     const pages = j.query?.pages;
@@ -324,7 +333,6 @@ async function tryWikimedia(p) {
   } catch {}
   return null;
 }
-
 async function fetchProductImage(pid) {
   if (IMG_LOADING[pid]) return IMG_LOADING[pid];
   IMG_LOADING[pid] = (async () => {
@@ -338,8 +346,6 @@ async function fetchProductImage(pid) {
   })();
   return IMG_LOADING[pid];
 }
-
-// Lance le chargement pour les éléments visibles avec data-pid
 let imgObserver = null;
 function setupImageObserver() {
   if (imgObserver) imgObserver.disconnect();
@@ -352,27 +358,16 @@ function setupImageObserver() {
       if (!pid) return;
       imgObserver.unobserve(el);
       const cached = imgFromCache(pid);
-      if (typeof cached === "string" && cached) {
-        applyImage(el, cached);
-      } else if (cached === null) {
-        // déjà tenté, pas de photo trouvée
-      } else {
-        fetchProductImage(pid).then(url => { if (url) applyImage(el, url); });
-      }
+      if (typeof cached === "string" && cached) applyImage(el, cached);
+      else if (cached === undefined) fetchProductImage(pid).then(url => { if (url) applyImage(el, url); });
     });
-  }, { rootMargin: "100px" });
+  }, { rootMargin: "200px" });
 }
 function applyImage(el, url) {
   const img = document.createElement("img");
-  img.src = url;
-  img.alt = "";
-  img.loading = "lazy";
-  img.onerror = () => { img.remove(); }; // garde l'emoji
-  img.onload = () => {
-    el.classList.add("has-img");
-    el.innerHTML = "";
-    el.appendChild(img);
-  };
+  img.src = url; img.alt = ""; img.loading = "lazy";
+  img.onerror = () => { img.remove(); };
+  img.onload = () => { el.classList.add("has-img"); el.innerHTML = ""; el.appendChild(img); };
 }
 function observeProductIcons(container) {
   if (!imgObserver) return;
@@ -382,6 +377,68 @@ function observeProductIcons(container) {
     if (typeof cached === "string" && cached) applyImage(el, cached);
     else if (cached === undefined) imgObserver.observe(el);
   });
+}
+
+// ========== DESCRIPTIONS ==========
+const PRODUCT_DESC = {
+  "milk-3": "Lait entier 3% de matière grasse, brique 1L. Le classique pour le café et la cuisine.",
+  "milk-1": "Lait demi-écrémé 1% MG, plus léger. Brique 1L Tara.",
+  "milk-skim": "Lait écrémé 0% MG. Tnuva, brique 1L.",
+  "cottage": "Fromage frais granuleux 5% MG. Idéal pour le petit-déjeuner ou les salades.",
+  "yogurt-greek": "Yaourt grec épais et crémeux. Riche en protéines.",
+  "feta": "Feta bulgare au lait de brebis. Pour salades et pâtisseries salées.",
+  "eggs-12-l": "Œufs taille L, boîte de 12. Calibre standard pour la plupart des recettes.",
+  "chicken-breast": "Blanc de poulet frais désossé. Au kg, à cuire le jour-même.",
+  "ground-beef-17": "Bœuf haché frais 17% MG. Pour boulettes, sauces, hamburgers maison.",
+  "salmon-fillet": "Filet de saumon Atlantique, frais. Sans peau, prêt à cuire.",
+  "bread-white": "Pain blanc tranché Angel, 750g. Conservation 5 jours.",
+  "challah": "Pain tressé traditionnel pour Shabbat. Cuit le vendredi.",
+  "tomato": "Tomates fraîches, au kg. Variété ronde, mûres à point.",
+  "cucumber": "Concombres israéliens (small/baby). Croquants, sans graines.",
+  "potato": "Pommes de terre tout-usage, au kg. Convient à toutes les cuissons.",
+  "onion": "Oignons jaunes au kg. Base de toute cuisine.",
+  "pepper-red": "Poivrons rouges au kg. Parfaits crus ou grillés.",
+  "avocado": "Avocats Hass au kg. Vendus presque mûrs.",
+  "rice-white": "Riz blanc long grain Sugat, 1kg. Le riz quotidien.",
+  "rice-basmati": "Riz basmati premium, 1kg. Pour les plats indiens et iraniens.",
+  "pasta-spaghetti": "Spaghetti Osem, 500g. Pâtes italiennes classiques.",
+  "oil-olive": "Huile d'olive extra vierge 750ml. Pour assaisonnement et cuisson douce.",
+  "tahini": "Tahini Achva 100% sésame, 500g. Base pour sauces et houmous maison.",
+  "humus": "Houmous Sabra prêt à servir, 400g. Avec un filet d'huile d'olive.",
+  "honey": "Miel pur 500g. Conservation indéfinie.",
+  "nutella": "Pâte à tartiner choco-noisettes 350g.",
+  "pepper": "Poivre noir moulu, 100g. Pour assaisonnement quotidien.",
+  "pepper-white": "Poivre blanc moulu, 100g. Plus doux, idéal pour sauces blanches.",
+  "salt": "Sel de table fin, 1kg. Iodé.",
+  "yeast": "Levure de boulanger sèche, 50g. Pour pains et brioches maison.",
+  "baking-powder": "Levure chimique, 200g. Pour gâteaux et pâtes à frire.",
+  "baking-soda": "Bicarbonate de soude, 500g. Pâtisserie et nettoyage.",
+  "vanilla-extract": "Extrait de vanille pur, 30ml. Quelques gouttes suffisent.",
+  "cocoa-powder": "Cacao non sucré, 200g. Pour pâtisseries et boissons.",
+  "diapers-4": "Couches Huggies taille 4 (9-14kg), pack 60. Absorption 12h.",
+  "wipes": "Lingettes bébé Huggies, 4 paquets de 80. Sans alcool, hypoallergéniques.",
+  "toilet-paper-32": "Papier toilette Lily 3 plis, pack 32 rouleaux. Format économique.",
+  "shampoo-pantene": "Shampoing Pantene Pro-V, 400ml. Tous types de cheveux.",
+  "toothpaste": "Dentifrice Colgate Total, 100ml. Protection 12h.",
+  "dish-soap": "Liquide vaisselle Sano concentré, 750ml. Anti-graisse.",
+  "laundry-ariel": "Lessive liquide Ariel 3L. ~60 lavages.",
+  "coffee-turkish": "Café moulu Elite Turkish, 200g. Pour café à la turque.",
+  "coke-1.5": "Coca-Cola bouteille 1.5L. Vendu à l'unité.",
+  "water-6pack": "Eau minérale Mei Eden, pack de 6 bouteilles 1.5L (9L total).",
+  "tea-wissotzky": "Thé noir Wissotzky, boîte de 100 sachets.",
+  "beer-goldstar": "Bière Goldstar, pack 6 canettes 500ml. Bière israélienne classique.",
+  "wine-carmel": "Vin rouge Carmel Selected, 750ml. Cabernet Sauvignon. Cacher.",
+  "frozen-pizza": "Pizza surgelée Maadanot, 400g. 12-15min au four.",
+  "ice-cream-bens": "Glace Ben & Jerry's, pot 500ml. À conserver à -18°C.",
+  "bamba": "Bamba Osem cacahuètes, 80g. Le snack israélien iconique.",
+  "chocolate-elite": "Chocolat au lait Elite, tablette 100g.",
+  "krembo": "Krembo (mousse de marshmallow chocolatée), pack 9. Hiver uniquement."
+};
+function getDescription(p) {
+  if (!p) return "";
+  if (PRODUCT_DESC[p.id]) return PRODUCT_DESC[p.id];
+  // Auto-génère
+  return `${tCat(p.category)} · ${p.unit}`;
 }
 
 // ========== HELPERS ==========
@@ -618,16 +675,35 @@ function renderQuickCategories() {
 }
 
 // ========== PANIER ==========
-function addToCart(id, qty) {
+function addToCart(id, qty, store) {
   const p = findProduct(id);
   if (!p) return;
   if (qty == null) qty = defaultQty(p);
   const cart = activeCart();
-  if (cart[id]) { cart[id].qty += qty; cart[id].done = false; }
-  else { cart[id] = { qty, done: false }; }
+  if (cart[id]) { cart[id].qty += qty; cart[id].done = false; if (store !== undefined) cart[id].store = store; }
+  else { cart[id] = { qty, done: false, store: store === undefined ? null : store }; }
   state.frequency[id] = (state.frequency[id] || 0) + 1;
   state.lists[state.activeListId].updatedAt = Date.now();
   saveState(); renderAll();
+}
+// Magasin choisi pour cet item (null = auto = le moins cher)
+function chosenStoreFor(id) {
+  const it = activeCart()[id];
+  return it?.store || null;
+}
+function setItemStore(id, store) {
+  const cart = activeCart();
+  if (cart[id]) { cart[id].store = store; saveState(); renderAll(); }
+}
+// Prix effectif selon le magasin choisi (ou cheapest)
+function effectivePrice(p, item) {
+  if (!p) return 0;
+  if (item?.store && p.prices[item.store] != null) return p.prices[item.store];
+  return cheapestStoreFor(p).price;
+}
+function effectiveStore(p, item) {
+  if (item?.store && p.prices[item.store] != null) return item.store;
+  return cheapestStoreFor(p).store;
 }
 function setQty(id, qty) {
   const cart = activeCart();
@@ -742,10 +818,248 @@ function renderSuggestions() {
 // ========== RENDER GLOBAL ==========
 function renderAll() {
   renderListsTabs();
+  renderBrowsePanel();
   renderSuggestions();
   renderCart();
+  renderPromos();
   renderComparison();
   renderMobileCTA();
+}
+
+// ========== BROWSE PANEL (catégorie -> grille) ==========
+function renderBrowsePanel() {
+  const wrap = document.getElementById("browse-grid");
+  if (!wrap) return;
+  if (!state.activeCategory && !state.searchQuery) {
+    wrap.hidden = true;
+    return;
+  }
+  wrap.hidden = false;
+  const products = filterProducts(state.searchQuery, state.activeCategory).slice(0, 60);
+  if (products.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><span class="emoji">🔍</span>${t("search_none")}</div>`;
+    return;
+  }
+  const titleHTML = state.activeCategory
+    ? `<div class="browse-head"><span class="browse-title">${tCat(state.activeCategory)}</span><span class="browse-count">${products.length}</span><button class="link-btn" data-clear-cat>×</button></div>`
+    : "";
+  wrap.innerHTML = titleHTML + `
+    <div class="prod-grid">
+      ${products.map(p => {
+        const cheapest = cheapestStoreFor(p);
+        const inCart = getQty(p.id);
+        return `
+          <div class="prod-card" data-pid="${p.id}">
+            <div class="prod-icon big" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
+            <div class="prod-card-name">${tProduct(p)}</div>
+            <div class="prod-card-meta">${p.unit}</div>
+            <div class="prod-card-price">
+              <span class="prod-card-from">${t("starting_at")}</span>
+              <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong>
+              <span class="prod-card-store">${STORES[cheapest.store].name}</span>
+            </div>
+            ${inCart ? `<div class="prod-card-incart">✓ ${formatQty(inCart)}× ${t("at_store")} ${STORES[chosenStoreFor(p.id) || cheapest.store]?.name || ""}</div>` : ""}
+            <button class="prod-card-add" data-add-pid="${p.id}">+ ${t("add") || "Ajouter"}</button>
+          </div>`;
+      }).join("")}
+    </div>`;
+  // Click handlers
+  wrap.querySelectorAll(".prod-card").forEach(el => {
+    el.addEventListener("click", e => {
+      if (e.target.closest("[data-add-pid]")) return;
+      showProductDetail(el.dataset.pid);
+    });
+  });
+  wrap.querySelectorAll("[data-add-pid]").forEach(el => {
+    el.addEventListener("click", e => { e.stopPropagation(); addToCart(el.dataset.addPid); });
+  });
+  const clearBtn = wrap.querySelector("[data-clear-cat]");
+  if (clearBtn) clearBtn.addEventListener("click", () => {
+    state.activeCategory = null;
+    state.searchQuery = "";
+    document.getElementById("search-input").value = "";
+    renderQuickCategories();
+    renderBrowsePanel();
+  });
+  observeProductIcons(wrap);
+}
+
+// ========== MODAL DÉTAIL PRODUIT ==========
+function showProductDetail(pid) {
+  const p = findProduct(pid);
+  if (!p) return;
+  const modal = document.getElementById("product-modal");
+  const inCart = getQty(pid);
+  const chosen = chosenStoreFor(pid);
+  const sortedPrices = Object.entries(p.prices)
+    .filter(([, price]) => price != null)
+    .sort((a, b) => a[1] - b[1]);
+  const cheapestStore = sortedPrices[0]?.[0];
+  const mostExpensive = sortedPrices[sortedPrices.length - 1]?.[1] || 0;
+
+  // Promos liées à ce produit
+  const allPromos = (typeof PROMOTIONS !== "undefined" ? PROMOTIONS : []).filter(promo => {
+    if (promo.products && promo.products.includes(pid)) return true;
+    if (promo.category && promo.category === p.category) return true;
+    if (promo.requiredAny) return promo.requiredAny.some(axis => axis.includes(pid));
+    return false;
+  });
+
+  modal.querySelector(".pm-content").innerHTML = `
+    <div class="pm-head">
+      <div class="prod-icon huge" data-pid="${pid}" style="background:${productTint(p)}">${productIcon(p)}</div>
+      <div class="pm-info">
+        <h3>${tProduct(p)}</h3>
+        <div class="pm-cat">${tCat(p.category)} · ${p.unit}</div>
+      </div>
+      <button class="modal-close" data-pm-close>×</button>
+    </div>
+    <p class="pm-desc">${getDescription(p)}</p>
+    <div class="pm-section-title">📊 Prix dans les ${sortedPrices.length} magasins</div>
+    <div class="pm-prices">
+      ${sortedPrices.map(([storeId, price], i) => {
+        const store = STORES[storeId];
+        const isCheapest = i === 0;
+        const diff = price - sortedPrices[0][1];
+        const diffPct = sortedPrices[0][1] > 0 ? Math.round((diff / sortedPrices[0][1]) * 100) : 0;
+        const isChosen = chosen === storeId || (!chosen && isCheapest);
+        return `
+          <button class="pm-price-row ${isChosen ? "chosen" : ""} ${isCheapest ? "cheapest" : ""}" data-pick-store="${storeId}">
+            <span class="store-icon" style="background:${store.color};width:28px;height:28px;font-size:11px">${store.icon}</span>
+            <span class="pm-store-name">${store.name}</span>
+            ${isCheapest ? `<span class="cheapest-badge">🏆</span>` : `<span class="pm-diff">+${diffPct}%</span>`}
+            <span class="pm-price">${formatPrice(price)}</span>
+            ${isChosen ? `<span class="pm-check">✓</span>` : ""}
+          </button>`;
+      }).join("")}
+    </div>
+    ${allPromos.length > 0 ? `
+      <div class="pm-section-title">🎁 Promotions</div>
+      <div class="pm-promos">
+        ${allPromos.map(promo => `
+          <div class="pm-promo">
+            <div class="pm-promo-store">
+              <span class="store-icon" style="background:${STORES[promo.chain].color};width:22px;height:22px;font-size:10px">${STORES[promo.chain].icon}</span>
+              ${STORES[promo.chain].name}
+            </div>
+            <div class="pm-promo-title">${promo.title}</div>
+            <div class="pm-promo-desc">${promo.desc || ""}</div>
+          </div>
+        `).join("")}
+      </div>
+    ` : ""}
+    <div class="pm-actions">
+      ${inCart > 0 ? `
+        <div class="qty-controls">
+          <button class="qty-btn" data-pm-dec>−</button>
+          <input class="qty-input" data-pm-qty type="text" inputmode="decimal" value="${formatQty(inCart)}" />
+          <button class="qty-btn" data-pm-inc>+</button>
+        </div>
+        <button class="btn primary big" data-pm-close>OK</button>
+      ` : `
+        <button class="btn primary big" data-pm-add>+ ${t("add") || "Ajouter au panier"}</button>
+      `}
+    </div>
+  `;
+  modal.classList.add("visible");
+  observeProductIcons(modal);
+
+  modal.querySelectorAll("[data-pm-close]").forEach(b => b.addEventListener("click", hideProductModal));
+  modal.querySelectorAll("[data-pick-store]").forEach(b => {
+    b.addEventListener("click", () => {
+      const storeId = b.dataset.pickStore;
+      if (inCart > 0) setItemStore(pid, storeId);
+      else addToCart(pid, undefined, storeId);
+      showProductDetail(pid);
+    });
+  });
+  const addBtn = modal.querySelector("[data-pm-add]");
+  if (addBtn) addBtn.addEventListener("click", () => { addToCart(pid); showProductDetail(pid); });
+  const decBtn = modal.querySelector("[data-pm-dec]");
+  if (decBtn) decBtn.addEventListener("click", () => { bumpQty(pid, -1); showProductDetail(pid); });
+  const incBtn = modal.querySelector("[data-pm-inc]");
+  if (incBtn) incBtn.addEventListener("click", () => { bumpQty(pid, +1); showProductDetail(pid); });
+  const qtyInp = modal.querySelector("[data-pm-qty]");
+  if (qtyInp) qtyInp.addEventListener("change", () => {
+    const v = parseFloat(qtyInp.value.replace(",", "."));
+    if (!isNaN(v)) { setQty(pid, v); showProductDetail(pid); }
+  });
+}
+function hideProductModal() {
+  document.getElementById("product-modal").classList.remove("visible");
+}
+
+// ========== PROMOS BANNER ==========
+function renderPromos() {
+  const wrap = document.getElementById("promos-banner");
+  if (!wrap) return;
+  if (typeof analyzePromos === "undefined") { wrap.hidden = true; return; }
+  const cart = activeCart();
+  const totals = computeStoreTotals();
+  // Trouve le magasin le moins cher actuel pour cibler les promos
+  const bestStore = Object.values(totals).filter(s => s.missing.length === 0).sort((a, b) => a.total - b.total)[0];
+  if (!bestStore || Object.keys(cart).length === 0) { wrap.hidden = true; wrap.innerHTML = ""; return; }
+
+  // Analyse pour TOUS les magasins, regroupe par chaîne
+  const byChain = {};
+  Object.keys(STORES).forEach(c => {
+    const r = analyzePromos(cart, PRODUCTS, c);
+    if (r.applied.length > 0 || r.suggestions.length > 0) byChain[c] = r;
+  });
+
+  if (Object.keys(byChain).length === 0) { wrap.hidden = true; wrap.innerHTML = ""; return; }
+
+  const totalApplied = Object.values(byChain).reduce((s, r) => s + r.totalSaving, 0);
+  let html = "";
+  if (totalApplied > 0.1) {
+    html += `<div class="promo-summary">💸 Vos promos actives : <strong>−${formatPrice(totalApplied)}</strong></div>`;
+  }
+
+  const allSuggestions = [];
+  Object.entries(byChain).forEach(([chain, r]) => {
+    r.suggestions.forEach(s => allSuggestions.push({ ...s, chain }));
+    r.applied.forEach(a => allSuggestions.push({ ...a, chain, _applied: true }));
+  });
+  // Top 4 (priorité aux suggestions presque déclenchées)
+  allSuggestions.sort((a, b) => {
+    if (a._applied !== b._applied) return a._applied ? 1 : -1;
+    return (b.potentialSaving || b.saving || 0) - (a.potentialSaving || a.saving || 0);
+  });
+
+  html += `<div class="promo-list">`;
+  allSuggestions.slice(0, 4).forEach(p => {
+    const store = STORES[p.chain];
+    if (p._applied) {
+      html += `
+        <div class="promo-item applied">
+          <span class="store-icon" style="background:${store.color};width:24px;height:24px;font-size:10px">${store.icon}</span>
+          <div class="promo-text">
+            <div class="promo-title">✅ ${p.title}</div>
+            <div class="promo-saved">Économies : <strong>−${formatPrice(p.saving || 0)}</strong> chez ${store.name}</div>
+          </div>
+        </div>`;
+    } else {
+      const missingTxt = p.isAmount
+        ? `Encore ${formatPrice(p.missing)} d'achats`
+        : (p.suggest ? `Ajoute "${tProduct(findProduct(p.suggest.id) || { name: p.suggest.name, id: p.suggest.id })}" (${formatPrice(p.suggest.price)})` : `Ajoute ${p.missing}× plus`);
+      html += `
+        <div class="promo-item">
+          <span class="store-icon" style="background:${store.color};width:24px;height:24px;font-size:10px">${store.icon}</span>
+          <div class="promo-text">
+            <div class="promo-title">💡 ${p.title} chez ${store.name}</div>
+            <div class="promo-hint">${missingTxt} → ${p.potentialSaving > 0 ? `gagne ${formatPrice(p.potentialSaving)}` : "déclenche la promo"}</div>
+          </div>
+          ${p.suggest ? `<button class="promo-add" data-add="${p.suggest.id}" data-store="${p.chain}">+</button>` : ""}
+        </div>`;
+    }
+  });
+  html += `</div>`;
+
+  wrap.hidden = false;
+  wrap.innerHTML = html;
+  wrap.querySelectorAll("[data-add]").forEach(b => {
+    b.addEventListener("click", () => addToCart(b.dataset.add, undefined, b.dataset.store));
+  });
 }
 
 function renderCart() {
@@ -799,11 +1113,14 @@ function renderCart() {
 
   wrap.querySelectorAll("[data-action]").forEach(el => {
     el.addEventListener("click", e => {
+      e.stopPropagation();
       const id = el.dataset.id, action = el.dataset.action;
       if (action === "inc") bumpQty(id, +1);
       else if (action === "dec") bumpQty(id, -1);
       else if (action === "rm") removeFromCart(id);
       else if (action === "toggle") toggleDone(id);
+      else if (action === "detail") showProductDetail(id);
+      else if (action === "pick") showProductDetail(id);
     });
   });
   wrap.querySelectorAll(".qty-input").forEach(inp => {
@@ -858,29 +1175,37 @@ function renderCartItemHTML(id, big = false) {
   if (!p) return "";
   const item = cart[id];
   if (state.hideDone && item.done) return "";
-  const cheapest = cheapestStoreFor(p);
-  const cheapestStore = STORES[cheapest.store];
+  const effStore = effectiveStore(p, item);
+  const effPrice = effectivePrice(p, item);
+  const store = STORES[effStore];
+  const cheapestS = cheapestStoreFor(p);
+  const isAuto = !item.store;
+  const isCheapest = effStore === cheapestS.store;
   const qtyStr = formatQty(item.qty);
+  const lineTotal = effPrice * item.qty;
   return `
     <div class="cart-item ${item.done ? "done" : ""} ${big ? "big" : ""}">
       <button class="check-btn ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-label="✓">
         ${item.done ? "✓" : ""}
       </button>
-      <div class="prod-icon" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
-      <div class="cart-item-info">
+      <div class="prod-icon" data-pid="${p.id}" style="background:${productTint(p)}" data-action="detail" data-id="${id}">${productIcon(p)}</div>
+      <div class="cart-item-info" data-action="detail" data-id="${id}">
         <div class="cart-item-name">${tProduct(p)}</div>
         <div class="cart-item-meta">
-          <span>${p.unit}</span>
-          <span class="dot">·</span>
-          <span class="cart-item-best" style="color:${cheapestStore.color}">
-            ${t("starting_at")} ${formatPrice(cheapest.price)} (${cheapestStore.name})
-          </span>
+          <button class="store-pick" data-action="pick" data-id="${id}" title="${t("at_store")} ${store.name}">
+            <span class="store-mini" style="background:${store.color}">${store.icon}</span>
+            <span style="color:${store.color};font-weight:600">${formatPrice(effPrice)}</span>
+            ${!isCheapest ? `<span class="alt-cheaper" title="Moins cher chez ${STORES[cheapestS.store].name}">⚠ ${formatPrice(cheapestS.price)}</span>` : ""}
+          </button>
         </div>
       </div>
-      <div class="qty-controls">
-        <button class="qty-btn" data-action="dec" data-id="${id}" aria-label="−">−</button>
-        <input class="qty-input" data-id="${id}" type="text" inputmode="decimal" value="${qtyStr}" />
-        <button class="qty-btn" data-action="inc" data-id="${id}" aria-label="+">+</button>
+      <div class="cart-item-right">
+        <div class="qty-controls compact">
+          <button class="qty-btn" data-action="dec" data-id="${id}">−</button>
+          <input class="qty-input" data-id="${id}" type="text" inputmode="decimal" value="${qtyStr}" />
+          <button class="qty-btn" data-action="inc" data-id="${id}">+</button>
+        </div>
+        <div class="cart-item-total">${formatPrice(lineTotal)}</div>
       </div>
       <button class="remove-btn" data-action="rm" data-id="${id}" aria-label="×">×</button>
     </div>`;
@@ -906,6 +1231,37 @@ function computeStoreTotals() {
   return totals;
 }
 
+// Décompte des économies : compare le total payé (selon les magasins choisis
+// par item) au total min (cheapest auto), max (most expensive) et moyen.
+function computeSavingsTracker() {
+  const cart = activeCart();
+  let chosenTotal = 0, cheapestTotal = 0, expensiveTotal = 0, avgTotal = 0;
+  let nItems = 0;
+  Object.entries(cart).forEach(([id, item]) => {
+    if (item.done) return;
+    const p = findProduct(id);
+    if (!p) return;
+    const prices = Object.values(p.prices).filter(x => x != null);
+    if (prices.length === 0) return;
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    const avg = prices.reduce((s, x) => s + x, 0) / prices.length;
+    const eff = effectivePrice(p, item);
+    const qty = item.qty;
+    chosenTotal += eff * qty;
+    cheapestTotal += min * qty;
+    expensiveTotal += max * qty;
+    avgTotal += avg * qty;
+    nItems++;
+  });
+  return {
+    chosenTotal, cheapestTotal, expensiveTotal, avgTotal,
+    savedVsExpensive: expensiveTotal - chosenTotal,
+    missedVsCheapest: chosenTotal - cheapestTotal,
+    nItems
+  };
+}
+
 function renderComparison() {
   const wrap = document.getElementById("comparison");
   const optiWrap = document.getElementById("optimization");
@@ -916,11 +1272,35 @@ function renderComparison() {
     optiWrap.hidden = true; optiWrap.innerHTML = "";
     return;
   }
+  // Bandeau "Mes économies" en haut
+  const sv = computeSavingsTracker();
+  const savingsHTML = `
+    <div class="savings-tracker">
+      <div class="st-row">
+        <span class="st-label">🛒 Total à payer</span>
+        <span class="st-value primary">${formatPrice(sv.chosenTotal)}</span>
+      </div>
+      <div class="st-row good">
+        <span class="st-label">💚 Vous économisez vs panier le plus cher</span>
+        <span class="st-value">−${formatPrice(sv.savedVsExpensive)}</span>
+      </div>
+      ${sv.missedVsCheapest > 0.05 ? `
+        <div class="st-row warn">
+          <span class="st-label">⚠️ Économies manquées (vs optimal)</span>
+          <span class="st-value">+${formatPrice(sv.missedVsCheapest)}</span>
+        </div>` : `
+        <div class="st-row good">
+          <span class="st-label">✨ Vous payez le minimum possible</span>
+          <span class="st-value">✓</span>
+        </div>`}
+    </div>`;
+
   if (state.mode === "single") {
+    wrap.innerHTML = savingsHTML;
     renderSingleStore(wrap);
     optiWrap.hidden = true; optiWrap.innerHTML = "";
   } else {
-    wrap.innerHTML = "";
+    wrap.innerHTML = savingsHTML;
     optiWrap.hidden = false;
     renderOptimized(optiWrap);
   }
@@ -928,6 +1308,10 @@ function renderComparison() {
 
 function renderSingleStore(wrap) {
   const totals = computeStoreTotals();
+  const innerWrap = document.createElement("div");
+  innerWrap.className = "store-list";
+  wrap.appendChild(innerWrap);
+  const target = innerWrap;
   const sorted = Object.values(totals).sort((a, b) => {
     const ac = a.missing.length === 0 ? 0 : 1, bc = b.missing.length === 0 ? 0 : 1;
     if (ac !== bc) return ac - bc;
@@ -937,7 +1321,7 @@ function renderSingleStore(wrap) {
   const cheapest = completes[0];
   const mostExpensive = completes[completes.length - 1];
 
-  wrap.innerHTML = sorted.map(s => {
+  target.innerHTML = sorted.map(s => {
     const store = STORES[s.store];
     const isComplete = s.missing.length === 0;
     const isCheapest = cheapest && s.store === cheapest.store;
@@ -956,7 +1340,7 @@ function renderSingleStore(wrap) {
       ? `<div class="store-meta warning">⚠️ ${s.missing.length} ${t("products_unavailable")}</div>`
       : `<div class="store-meta">✓ ${t("products_available")}</div>`;
     return `
-      <div class="store-card ${isCheapest ? "cheapest" : ""} ${!isComplete ? "unavailable" : ""}">
+      <div class="store-card ${isCheapest ? "cheapest" : ""} ${!isComplete ? "unavailable" : ""}" data-pick-store-all="${s.store}">
         <div class="store-info">
           <div class="store-icon" style="background:${store.color}">${store.icon}</div>
           <div style="min-width:0">
@@ -970,6 +1354,19 @@ function renderSingleStore(wrap) {
         </div>
       </div>`;
   }).join("");
+  // Click sur une carte magasin = définit ce magasin pour TOUS les items
+  target.querySelectorAll("[data-pick-store-all]").forEach(el => {
+    el.addEventListener("click", () => {
+      const sid = el.dataset.pickStoreAll;
+      const cart = activeCart();
+      Object.keys(cart).forEach(id => {
+        const p = findProduct(id);
+        if (p && p.prices[sid] != null) cart[id].store = sid;
+      });
+      saveState(); renderAll();
+      showToast(`✓ Tout assigné à ${STORES[sid].name}`);
+    });
+  });
 }
 
 function renderOptimized(wrap) {
@@ -1245,6 +1642,15 @@ function setupEvents() {
   });
   document.getElementById("share-close").addEventListener("click", hideShareModal);
   document.getElementById("share-modal").addEventListener("click", e => { if (e.target.id === "share-modal") hideShareModal(); });
+  // Product modal : fermer en cliquant à l'extérieur ou Escape
+  document.getElementById("product-modal").addEventListener("click", e => { if (e.target.id === "product-modal") hideProductModal(); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      hideProductModal();
+      hideShareModal();
+      document.getElementById("settings-drawer").classList.remove("visible");
+    }
+  });
   document.getElementById("share-copy").addEventListener("click", async () => {
     const inp = document.getElementById("share-url");
     try { await navigator.clipboard.writeText(inp.value); showToast("✓ " + t("copied")); }

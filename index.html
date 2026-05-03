@@ -56,7 +56,11 @@
 
       <div class="quick-categories" id="quick-categories"></div>
 
+      <div id="browse-grid" class="browse-grid" hidden></div>
+
       <div id="suggestions" class="suggestions" hidden></div>
+
+      <div id="promos-banner" class="promos-banner" hidden></div>
 
       <div id="cart-progress" class="cart-progress" hidden></div>
 
@@ -152,10 +156,18 @@
     </div>
   </div>
 
+  <!-- Modal détail produit -->
+  <div id="product-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="pm-content"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <script src="data/i18n.js"></script>
   <script src="data/products.js"></script>
+  <script src="data/promotions.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
