@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#4f46e5" />
-  <meta name="description" content="Comparateur de prix entre Rami Levy, Carrefour, Shufersal, Yochananof, Victory, Boom, Osher Ad, Hatzi Hinam et Tiv Taam. Trouvez le panier le moins cher en Israël." />
+  <meta name="description" content="Comparateur de prix entre Rami Levy, Carrefour, Shufersal, Yochananof, Victory, Boom, Osher Ad, Hatzi Hinam et Tiv Taam. Liste de courses à cocher, partageable." />
   <title>PrixMalin - Comparateur de prix supermarchés Israël</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
@@ -13,7 +13,7 @@
   <header class="topbar">
     <div class="container topbar-inner">
       <h1 class="logo"><span class="logo-emoji">🛒</span> PrixMalin</h1>
-      <p class="tagline">Trouvez la liste de courses la moins chère en Israël</p>
+      <p class="tagline">Liste de courses à cocher, partageable, et au prix le moins cher en Israël</p>
       <div class="store-badges" id="store-badges"></div>
     </div>
   </header>
@@ -23,9 +23,9 @@
       <span class="pulse"></span>
       <span>Prix mis à jour le <strong id="last-updated"></strong></span>
       <span style="color:var(--border-strong)">·</span>
-      <span><span id="product-count"></span> produits suivis</span>
+      <span><span id="product-count"></span> produits</span>
       <span style="color:var(--border-strong)">·</span>
-      <span>📡 Source : flux officiels (loi de transparence des prix 2014)</span>
+      <span>📡 Source : flux officiels</span>
     </div>
   </div>
 
@@ -38,7 +38,7 @@
         <input
           type="text"
           id="search-input"
-          placeholder="Rechercher un produit (lait, tomates...)"
+          placeholder="Rechercher un produit (lait, poivron...)"
           autocomplete="off"
           enterkeyhint="search"
         />
@@ -46,6 +46,8 @@
       </div>
 
       <div class="quick-categories" id="quick-categories"></div>
+
+      <div id="cart-progress" class="cart-progress" hidden></div>
 
       <div id="cart" class="cart">
         <div class="empty-state">
@@ -56,7 +58,8 @@
       </div>
 
       <div class="cart-actions" id="cart-actions" hidden>
-        <button class="btn ghost" id="clear-cart">🗑️ Vider la liste</button>
+        <button class="btn primary" id="share-list">📤 Partager la liste</button>
+        <button class="btn ghost" id="clear-cart" aria-label="Vider">🗑️</button>
         <span class="cart-count" id="cart-count"></span>
       </div>
     </section>
@@ -83,9 +86,8 @@
 
   <footer class="footer">
     <div class="container">
-      <p>💡 <strong>PrixMalin</strong> compare les prix entre 9 enseignes : Rami Levy, Osher Ad, Boom, Hatzi Hinam, Carrefour, Shufersal, Yochananof, Victory, Tiv Taam.</p>
-      <p>Les prix sont indicatifs et peuvent varier selon le magasin et les promotions du jour.</p>
-      <p style="margin-top:8px">🔄 Mise à jour automatique à venir via les flux <a class="footer-link" href="https://www.gov.il/he/departments/legalInfo/cpfta_prices_regulations" target="_blank" rel="noopener">officiels du Ministère de l'Économie</a>.</p>
+      <p>💡 <strong>PrixMalin</strong> · 9 enseignes : Rami Levy, Osher Ad, Boom, Hatzi Hinam, Carrefour, Shufersal, Yochananof, Victory, Tiv Taam.</p>
+      <p>Partagez votre liste : la personne qui ouvre votre lien voit la même liste, peut cocher au fur et à mesure et ajouter des produits, puis vous renvoyer le lien mis à jour.</p>
     </div>
   </footer>
 
@@ -97,6 +99,40 @@
     </div>
     <button id="mobile-cta-btn">Voir détails ↑</button>
   </div>
+
+  <!-- Modal partage -->
+  <div id="share-modal" class="modal">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>📤 Partager ma liste</h3>
+        <button class="modal-close" id="share-close" aria-label="Fermer">×</button>
+      </div>
+      <p class="modal-text">
+        La personne qui ouvre ce lien verra votre liste, pourra la <strong>cocher au fur et à mesure</strong> dans les rayons, et pourra <strong>ajouter des produits</strong>. Elle pourra ensuite vous renvoyer un lien mis à jour.
+      </p>
+      <div class="share-url-box">
+        <input type="text" id="share-url" readonly />
+        <button class="btn primary" id="share-copy">Copier</button>
+      </div>
+      <div class="share-channels">
+        <a id="share-wa" class="share-channel" target="_blank" rel="noopener">
+          <span class="share-icon" style="background:#25D366">📱</span>
+          <span>WhatsApp</span>
+        </a>
+        <a id="share-sms" class="share-channel">
+          <span class="share-icon" style="background:#3b82f6">💬</span>
+          <span>SMS</span>
+        </a>
+        <a id="share-mail" class="share-channel">
+          <span class="share-icon" style="background:#ef4444">✉️</span>
+          <span>Email</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast"></div>
 
   <script src="data/products.js"></script>
   <script src="app.js"></script>
