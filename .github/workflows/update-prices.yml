@@ -1,0 +1,48 @@
+name: Update prices daily
+
+on:
+  schedule:
+    # Tous les jours à 06:00 UTC (= 09:00 Israël)
+    - cron: "0 6 * * *"
+  workflow_dispatch:  # déclenchement manuel depuis l'onglet Actions
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run scraper
+        working-directory: scripts
+        run: python fetch_prices.py --out ../data --verbose
+        continue-on-error: true
+
+      - name: Rebuild prixmalin.html
+        run: ./build.sh
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/live-prices.json data/raw-prices/ prixmalin.html
+          if git diff --cached --quiet; then
+            echo "Pas de changement de prix."
+          else
+            git commit -m "chore(prices): mise à jour quotidienne $(date +%F)"
+            git push
+          fi

@@ -4,6 +4,43 @@
 const STORAGE_KEY = "prixmalin.cart.v2";
 const STORAGE_KEY_OLD = "prixmalin.cart.v1";
 
+// Prix réels chargés depuis data/live-prices.json (si dispo).
+// Format : { product_id: { chain: price } }. Mis à jour chaque matin
+// par le workflow GitHub Actions qui scrape les flux officiels.
+let LIVE_PRICES = {};
+let LIVE_META = null;
+
+async function loadLivePrices() {
+  try {
+    const res = await fetch("data/live-prices.json", { cache: "no-cache" });
+    if (!res.ok) return;
+    const data = await res.json();
+    LIVE_PRICES = data.prices || {};
+    LIVE_META = {
+      chains: data.chains || [],
+      summary: data.summary || {},
+      matched: Object.keys(LIVE_PRICES).length
+    };
+    // Superpose les prix vrais sur les estimations
+    PRODUCTS.forEach(p => {
+      const live = LIVE_PRICES[p.id];
+      if (!live) return;
+      p.live = {};  // marque les magasins ayant un prix vrai
+      Object.entries(live).forEach(([chain, price]) => {
+        if (p.prices.hasOwnProperty(chain) && typeof price === "number") {
+          p.prices[chain] = price;
+          p.live[chain] = true;
+        }
+      });
+    });
+    renderUpdateBanner();
+    renderAll();
+  } catch (e) {
+    // Pas grave : on reste sur les estimations
+    console.warn("Live prices indisponibles, fallback sur estimations.", e);
+  }
+}
+
 // ---------- État global ----------
 // Format cart: { [productId]: { qty: number, done: boolean } }
 const state = {
@@ -68,6 +105,16 @@ function activeItems() {
 function renderUpdateBanner() {
   document.getElementById("last-updated").textContent = formatDate(LAST_UPDATED);
   document.getElementById("product-count").textContent = PRODUCTS.length;
+  const liveEl = document.getElementById("live-status");
+  if (liveEl) {
+    if (LIVE_META && LIVE_META.matched > 0) {
+      liveEl.innerHTML = `🟢 <strong>${LIVE_META.matched}</strong> produits en prix réels (flux officiels)`;
+      liveEl.classList.add("live");
+    } else {
+      liveEl.innerHTML = `🟡 Prix estimés (en attente du 1er run du scraper quotidien)`;
+      liveEl.classList.remove("live");
+    }
+  }
 }
 function renderStoreBadges() {
   const wrap = document.getElementById("store-badges");
@@ -728,3 +775,4 @@ renderStoreBadges();
 renderQuickCategories();
 checkIncomingList();
 renderAll();
+loadLivePrices();

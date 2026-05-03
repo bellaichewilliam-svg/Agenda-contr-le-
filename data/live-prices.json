@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "chains": [],
+  "prices": {},
+  "summary": {
+    "note": "Fichier vide en attente du 1er run du workflow GitHub Actions. Une fois le scraper exécuté, ce fichier sera rempli avec les prix réels.",
+    "matched": 0
+  }
+}
