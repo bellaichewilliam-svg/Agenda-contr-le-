@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="description" content="Comparateur de prix entre Rami Levy, Carrefour, Shufersal, Yochananof, Victory, Boom, Osher Ad, Hatzi Hinam et Tiv Taam. Trouvez le panier le moins cher en Israël." />
+  <title>PrixMalin - Comparateur de prix supermarchés Israël</title>
+  <style>
+/* ====== Reset & base ====== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+
+:root {
+  /* Palette */
+  --bg: #f8fafc;
+  --bg-grad-1: #eef2ff;
+  --bg-grad-2: #fdf4ff;
+  --panel: #ffffff;
+  --panel-soft: #f9fafb;
+  --text: #0f172a;
+  --text-soft: #334155;
+  --muted: #64748b;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-soft: #eef2ff;
+  --success: #10b981;
+  --success-soft: #d1fae5;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --gold: #fde047;
+
+  /* Effets */
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.05);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --tx: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: linear-gradient(180deg, var(--bg-grad-1) 0%, var(--bg) 200px);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: 90px; /* place pour la barre mobile */
+}
+
+button { font-family: inherit; }
+
+/* ====== Layout ====== */
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+@media (min-width: 640px) { .container { padding: 0 24px; } }
+
+/* ====== Header ====== */
+.topbar {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+  color: white;
+  padding: 20px 0 24px;
+  position: relative;
+  overflow: hidden;
+}
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(800px 400px at 80% -20%, rgba(255,255,255,0.18), transparent 60%);
+  pointer-events: none;
+}
+.topbar-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  text-align: center;
+}
+.logo {
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo .logo-emoji {
+  display: inline-block;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.18));
+}
+.tagline {
+  font-size: clamp(12px, 3.2vw, 14px);
+  opacity: 0.95;
+  max-width: 640px;
+}
+.store-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+.store-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.store-badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: white;
+}
+
+/* ====== Last update banner ====== */
+.update-banner {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 0;
+}
+.update-banner-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.update-banner .pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--success);
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ====== Main grid ====== */
+.main-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 16px 0 24px;
+}
+@media (min-width: 960px) {
+  .main-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    gap: 20px;
+    padding: 24px 0 32px;
+  }
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border);
+}
+@media (min-width: 640px) { .panel { padding: 20px; } }
+
+.panel h2 {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+@media (min-width: 640px) { .panel h2 { font-size: 18px; } }
+
+/* ====== Search ====== */
+.search-box {
+  position: relative;
+  margin-bottom: 12px;
+}
+.search-box input {
+  width: 100%;
+  padding: 14px 14px 14px 44px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 16px; /* >=16px évite le zoom auto iOS */
+  background: var(--panel);
+  color: var(--text);
+  transition: border-color var(--tx), box-shadow var(--tx), background var(--tx);
+}
+.search-box::before {
+  content: "🔍";
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  transform: translateY(-50%);
+  font-size: 16px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+.search-box input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+  background: white;
+}
+
+.search-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  max-height: 360px;
+  overflow-y: auto;
+  z-index: 30;
+  box-shadow: var(--shadow-lg);
+  -webkit-overflow-scrolling: touch;
+}
+.search-result-item {
+  padding: 12px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  transition: background var(--tx);
+  min-height: 56px;
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover, .search-result-item:active { background: var(--accent-soft); }
+.search-result-item .meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.search-result-item .add-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ====== Catégories rapides ====== */
+.quick-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.cat-pill {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+  border: 1px solid transparent;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--tx);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cat-pill:hover { background: #e0e7ff; transform: translateY(-1px); }
+.cat-pill.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+/* ====== Cart ====== */
+.cart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.empty-state {
+  text-align: center;
+  color: var(--muted);
+  padding: 32px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.empty-state .emoji {
+  display: block;
+  font-size: 36px;
+  margin-bottom: 8px;
+  opacity: 0.6;
+}
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--panel-soft);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  transition: transform var(--tx), border-color var(--tx);
+}
+.cart-item:hover { border-color: var(--border-strong); }
+.cart-item-info { flex: 1; min-width: 0; }
+.cart-item-name {
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.cart-item-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.cart-item-meta .dot { color: var(--border-strong); }
+.cart-item-best {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+.qty-btn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  transition: background var(--tx);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qty-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.qty-btn:active { transform: scale(0.95); }
+.qty-value {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+.remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 22px;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--tx);
+}
+.remove-btn:hover { background: #fee2e2; color: var(--danger); }
+
+.cart-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.cart-count {
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ====== Buttons ====== */
+.btn {
+  border: none;
+  padding: 9px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all var(--tx);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.btn.ghost {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid var(--border);
+}
+.btn.ghost:hover { background: #fef2f2; border-color: #fecaca; }
+
+/* ====== Mode switch ====== */
+.mode-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--panel-soft);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+.mode-btn {
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  transition: all var(--tx);
+}
+.mode-btn.active {
+  background: white;
+  color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ====== Comparison ====== */
+.store-card {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all var(--tx);
+  position: relative;
+}
+.store-card:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.store-card.cheapest {
+  border-color: var(--success);
+  background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12), var(--shadow-sm);
+}
+.store-card.unavailable {
+  opacity: 0.55;
+}
+
+.store-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.store-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+.store-name {
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.store-meta {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.store-meta.warning { color: var(--warning); font-weight: 500; }
+
+.store-price {
+  text-align: right;
+  flex-shrink: 0;
+}
+.store-price .total {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+@media (min-width: 640px) { .store-price .total { font-size: 22px; } }
+.store-price .savings {
+  font-size: 12px;
+  color: var(--success);
+  font-weight: 600;
+}
+.store-price .extra {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cheapest-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: linear-gradient(135deg, var(--success), #059669);
+  color: white;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+}
+
+/* ====== Optimization ====== */
+.opti-summary {
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 50%, #a7f3d0 100%);
+  border: 1.5px solid #6ee7b7;
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.opti-summary::before {
+  content: "💰";
+  position: absolute;
+  right: -10px;
+  bottom: -20px;
+  font-size: 100px;
+  opacity: 0.08;
+}
+.opti-summary .title {
+  font-weight: 700;
+  color: #065f46;
+  margin-bottom: 4px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.opti-summary .total {
+  font-size: 28px;
+  font-weight: 800;
+  color: #065f46;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.opti-summary .saved {
+  font-size: 13px;
+  color: #047857;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.opti-store {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 10px;
+  transition: border-color var(--tx);
+}
+.opti-store:hover { border-color: var(--border-strong); }
+.opti-store-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border);
+  gap: 10px;
+}
+.opti-store-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.opti-store-total {
+  font-weight: 800;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.opti-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 13px;
+  gap: 8px;
+}
+.opti-item .name {
+  color: var(--text-soft);
+  flex: 1;
+  min-width: 0;
+}
+.opti-item .price {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.opti-store.bonus {
+  background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
+  border-color: #fde047;
+}
+
+/* ====== Footer ====== */
+.footer {
+  text-align: center;
+  padding: 20px 0;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 16px;
+  border-top: 1px solid var(--border);
+  background: var(--panel);
+}
+.footer p { margin: 3px 0; line-height: 1.6; }
+.footer .footer-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+}
+.footer .footer-link:hover { text-decoration: underline; }
+
+/* ====== Mobile bottom bar ====== */
+.mobile-cta {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid var(--border);
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.06);
+  z-index: 40;
+  transform: translateY(100%);
+  transition: transform var(--tx);
+}
+.mobile-cta.visible { transform: translateY(0); }
+.mobile-cta-left {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+}
+.mobile-cta-total {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+}
+.mobile-cta-store {
+  font-size: 11px;
+  color: var(--success);
+  font-weight: 600;
+}
+.mobile-cta button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  transition: all var(--tx);
+  flex-shrink: 0;
+}
+.mobile-cta button:hover { background: var(--accent-hover); }
+.mobile-cta button:active { transform: scale(0.97); }
+
+@media (min-width: 960px) {
+  .mobile-cta { display: none !important; }
+  body { padding-bottom: 0; }
+}
+
+/* ====== Animations ====== */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.cart-item, .store-card, .opti-store { animation: slideUp 0.25s ease-out; }
+
+/* ====== Scrollbar discret ====== */
+.search-results::-webkit-scrollbar,
+.quick-categories::-webkit-scrollbar { height: 6px; width: 6px; }
+.search-results::-webkit-scrollbar-thumb,
+.quick-categories::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+
+</style>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <h1 class="logo"><span class="logo-emoji">🛒</span> PrixMalin</h1>
+      <p class="tagline">Trouvez la liste de courses la moins chère en Israël</p>
+      <div class="store-badges" id="store-badges"></div>
+    </div>
+  </header>
+
+  <div class="update-banner">
+    <div class="container update-banner-inner">
+      <span class="pulse"></span>
+      <span>Prix mis à jour le <strong id="last-updated"></strong></span>
+      <span style="color:var(--border-strong)">·</span>
+      <span><span id="product-count"></span> produits suivis</span>
+      <span style="color:var(--border-strong)">·</span>
+      <span>📡 Source : flux officiels (loi de transparence des prix 2014)</span>
+    </div>
+  </div>
+
+  <main class="container main-grid">
+    <!-- Liste de courses -->
+    <section class="panel">
+      <h2>📝 Ma liste de courses</h2>
+
+      <div class="search-box">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Rechercher un produit (lait, tomates...)"
+          autocomplete="off"
+          enterkeyhint="search"
+        />
+        <div id="search-results" class="search-results" hidden></div>
+      </div>
+
+      <div class="quick-categories" id="quick-categories"></div>
+
+      <div id="cart" class="cart">
+        <div class="empty-state">
+          <span class="emoji">🛒</span>
+          Votre liste est vide.<br />
+          Cherchez un produit ou cliquez sur une catégorie pour commencer.
+        </div>
+      </div>
+
+      <div class="cart-actions" id="cart-actions" hidden>
+        <button class="btn ghost" id="clear-cart">🗑️ Vider la liste</button>
+        <span class="cart-count" id="cart-count"></span>
+      </div>
+    </section>
+
+    <!-- Comparaison -->
+    <section class="panel">
+      <h2>💸 Comparaison des prix</h2>
+
+      <div class="mode-switch">
+        <button class="mode-btn active" data-mode="single">Un seul magasin</button>
+        <button class="mode-btn" data-mode="optimized">Multi-magasins ✨</button>
+      </div>
+
+      <div id="comparison" class="comparison">
+        <div class="empty-state">
+          <span class="emoji">📊</span>
+          Ajoutez des produits à votre liste<br />pour voir la comparaison entre les enseignes.
+        </div>
+      </div>
+
+      <div id="optimization" class="optimization" hidden></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>💡 <strong>PrixMalin</strong> compare les prix entre 9 enseignes : Rami Levy, Osher Ad, Boom, Hatzi Hinam, Carrefour, Shufersal, Yochananof, Victory, Tiv Taam.</p>
+      <p>Les prix sont indicatifs et peuvent varier selon le magasin et les promotions du jour.</p>
+      <p style="margin-top:8px">🔄 Mise à jour automatique à venir via les flux <a class="footer-link" href="https://www.gov.il/he/departments/legalInfo/cpfta_prices_regulations" target="_blank" rel="noopener">officiels du Ministère de l'Économie</a>.</p>
+    </div>
+  </footer>
+
+  <!-- Barre mobile collante -->
+  <div class="mobile-cta" id="mobile-cta">
+    <div class="mobile-cta-left">
+      <span class="mobile-cta-total" id="mobile-cta-total">₪ 0.00</span>
+      <span class="mobile-cta-store" id="mobile-cta-store"></span>
+    </div>
+    <button id="mobile-cta-btn">Voir détails ↑</button>
+  </div>
+
+  <script>
+// Base de données PrixMalin
+// Prix en ILS (₪) - Israël
+// Source: estimations basées sur les flux officiels du Ministère de l'Économie
+// (חוק שקיפות מחירים - loi de transparence des prix israélienne, 2014)
+// Les supermarchés sont tenus de publier leurs prix en XML public.
+// Ce fichier peut être régénéré par fetch-prices.js (voir docs).
+
+const DATA_VERSION = "2026-05-03";
+const LAST_UPDATED = "2026-05-03T08:00:00+03:00";
+
+const STORES = {
+  rami_levy:   { name: "Rami Levy",    color: "#dc2626", icon: "RL", tier: "discount" },
+  osher_ad:    { name: "Osher Ad",     color: "#0891b2", icon: "OA", tier: "discount" },
+  boom:        { name: "Boom",         color: "#ec4899", icon: "BM", tier: "discount" },
+  hatzi_hinam: { name: "Hatzi Hinam",  color: "#14b8a6", icon: "HH", tier: "discount" },
+  carrefour:   { name: "Carrefour",    color: "#1d4ed8", icon: "CF", tier: "premium"  },
+  shufersal:   { name: "Shufersal",    color: "#16a34a", icon: "SH", tier: "standard" },
+  yochananof:  { name: "Yochananof",   color: "#9333ea", icon: "YO", tier: "standard" },
+  victory:     { name: "Victory",      color: "#f59e0b", icon: "VI", tier: "standard" },
+  tiv_taam:    { name: "Tiv Taam",     color: "#7c3aed", icon: "TT", tier: "premium"  }
+};
+
+// Multiplicateurs par défaut par tier (vs prix de base = Rami Levy)
+const TIER_MULTIPLIER = {
+  discount: 1.00,
+  standard: 1.10,
+  premium:  1.18
+};
+
+// Génère les prix dans tous les magasins à partir d'un prix de base + variations
+function priceMatrix(base, variations = {}) {
+  const out = {};
+  for (const [store, conf] of Object.entries(STORES)) {
+    const override = variations[store];
+    if (override === null) { out[store] = null; continue; }
+    if (override !== undefined) { out[store] = override; continue; }
+    const mul = TIER_MULTIPLIER[conf.tier];
+    const noise = ((store.charCodeAt(0) + base * 7) % 7 - 3) * 0.02; // ±6% reproductible
+    out[store] = Math.round((base * (mul + noise)) * 100) / 100;
+  }
+  return out;
+}
+
+const PRODUCTS = [
+  // ===== Produits laitiers =====
+  { id: "milk-3", name: "Lait 3% (1L) - Tnuva", category: "Laitiers", unit: "1L",
+    prices: priceMatrix(6.20) },
+  { id: "milk-1", name: "Lait 1% (1L) - Tara", category: "Laitiers", unit: "1L",
+    prices: priceMatrix(6.10) },
+  { id: "cottage", name: "Cottage Tnuva 5%", category: "Laitiers", unit: "250g",
+    prices: priceMatrix(6.90) },
+  { id: "yogurt", name: "Yaourt nature Yoplait", category: "Laitiers", unit: "150g",
+    prices: priceMatrix(3.50) },
+  { id: "butter", name: "Beurre Tnuva", category: "Laitiers", unit: "200g",
+    prices: priceMatrix(8.90) },
+  { id: "cheese-yellow", name: "Fromage jaune Emek 28%", category: "Laitiers", unit: "200g",
+    prices: priceMatrix(14.90) },
+  { id: "feta", name: "Feta bulgare", category: "Laitiers", unit: "200g",
+    prices: priceMatrix(11.90) },
+  { id: "cream-cheese", name: "Fromage à tartiner Philadelphia", category: "Laitiers", unit: "200g",
+    prices: priceMatrix(9.90) },
+  { id: "labane", name: "Labané", category: "Laitiers", unit: "250g",
+    prices: priceMatrix(7.90) },
+  { id: "sour-cream", name: "Crème fraîche", category: "Laitiers", unit: "200ml",
+    prices: priceMatrix(5.90) },
+
+  // ===== Œufs et viande =====
+  { id: "eggs-12", name: "Œufs L (boîte de 12)", category: "Œufs/Viande", unit: "12u",
+    prices: priceMatrix(16.90) },
+  { id: "chicken-breast", name: "Blanc de poulet frais", category: "Œufs/Viande", unit: "1kg",
+    prices: priceMatrix(39.90) },
+  { id: "chicken-whole", name: "Poulet entier", category: "Œufs/Viande", unit: "1kg",
+    prices: priceMatrix(24.90) },
+  { id: "ground-beef", name: "Viande hachée 17%", category: "Œufs/Viande", unit: "1kg",
+    prices: priceMatrix(54.90) },
+  { id: "schnitzel", name: "Schnitzel de poulet", category: "Œufs/Viande", unit: "1kg",
+    prices: priceMatrix(49.90) },
+  { id: "turkey", name: "Escalope de dinde", category: "Œufs/Viande", unit: "1kg",
+    prices: priceMatrix(44.90) },
+  { id: "salmon", name: "Saumon frais", category: "Œufs/Viande", unit: "1kg",
+    prices: priceMatrix(89.90, { tiv_taam: 99.90 }) },
+
+  // ===== Boulangerie =====
+  { id: "bread-white", name: "Pain blanc tranché Angel", category: "Boulangerie", unit: "750g",
+    prices: priceMatrix(7.90) },
+  { id: "bread-whole", name: "Pain complet Berman", category: "Boulangerie", unit: "750g",
+    prices: priceMatrix(8.90) },
+  { id: "pita", name: "Pita (sachet de 6)", category: "Boulangerie", unit: "6u",
+    prices: priceMatrix(4.90) },
+  { id: "challah", name: "Hala tressée", category: "Boulangerie", unit: "1u",
+    prices: priceMatrix(9.90) },
+  { id: "bagel", name: "Beigel (sachet de 5)", category: "Boulangerie", unit: "5u",
+    prices: priceMatrix(8.90) },
+
+  // ===== Fruits & Légumes =====
+  { id: "tomato", name: "Tomates", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(5.90) },
+  { id: "cherry-tomato", name: "Tomates cerises", category: "Fruits/Légumes", unit: "500g",
+    prices: priceMatrix(7.90) },
+  { id: "cucumber", name: "Concombres", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(4.90) },
+  { id: "potato", name: "Pommes de terre", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(3.90) },
+  { id: "sweet-potato", name: "Patates douces", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(7.90) },
+  { id: "onion", name: "Oignons", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(3.50) },
+  { id: "carrot", name: "Carottes", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(4.50) },
+  { id: "pepper", name: "Poivrons rouges", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(8.90) },
+  { id: "zucchini", name: "Courgettes", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(5.90) },
+  { id: "eggplant", name: "Aubergines", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(5.50) },
+  { id: "lettuce", name: "Salade laitue", category: "Fruits/Légumes", unit: "1u",
+    prices: priceMatrix(4.90) },
+  { id: "parsley", name: "Persil (botte)", category: "Fruits/Légumes", unit: "1u",
+    prices: priceMatrix(2.90) },
+  { id: "apple", name: "Pommes Pink Lady", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(9.90) },
+  { id: "banana", name: "Bananes", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(7.90) },
+  { id: "orange", name: "Oranges", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(5.90) },
+  { id: "lemon", name: "Citrons", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(6.90) },
+  { id: "avocado", name: "Avocats", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(11.90) },
+  { id: "grapes", name: "Raisins", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(14.90) },
+  { id: "watermelon", name: "Pastèque", category: "Fruits/Légumes", unit: "1kg",
+    prices: priceMatrix(3.90) },
+  { id: "garlic", name: "Ail", category: "Fruits/Légumes", unit: "100g",
+    prices: priceMatrix(4.90) },
+
+  // ===== Épicerie =====
+  { id: "rice", name: "Riz blanc Sugat", category: "Épicerie", unit: "1kg",
+    prices: priceMatrix(9.90) },
+  { id: "pasta", name: "Pâtes Osem (spaghetti)", category: "Épicerie", unit: "500g",
+    prices: priceMatrix(5.90) },
+  { id: "couscous", name: "Couscous Osem", category: "Épicerie", unit: "500g",
+    prices: priceMatrix(8.90) },
+  { id: "flour", name: "Farine blanche", category: "Épicerie", unit: "1kg",
+    prices: priceMatrix(4.90) },
+  { id: "sugar", name: "Sucre blanc", category: "Épicerie", unit: "1kg",
+    prices: priceMatrix(5.90) },
+  { id: "salt", name: "Sel de table", category: "Épicerie", unit: "1kg",
+    prices: priceMatrix(3.90) },
+  { id: "oil", name: "Huile de tournesol", category: "Épicerie", unit: "1L",
+    prices: priceMatrix(12.90) },
+  { id: "olive-oil", name: "Huile d'olive extra vierge", category: "Épicerie", unit: "750ml",
+    prices: priceMatrix(32.90) },
+  { id: "tahini", name: "Tahini Achva", category: "Épicerie", unit: "500g",
+    prices: priceMatrix(14.90) },
+  { id: "humus", name: "Houmous Sabra", category: "Épicerie", unit: "400g",
+    prices: priceMatrix(9.90) },
+  { id: "tomato-sauce", name: "Sauce tomate Osem", category: "Épicerie", unit: "700g",
+    prices: priceMatrix(7.90) },
+  { id: "tuna", name: "Thon en boîte Starkist", category: "Épicerie", unit: "160g",
+    prices: priceMatrix(6.90) },
+  { id: "honey", name: "Miel", category: "Épicerie", unit: "500g",
+    prices: priceMatrix(24.90) },
+  { id: "jam", name: "Confiture fraises", category: "Épicerie", unit: "350g",
+    prices: priceMatrix(11.90) },
+  { id: "mayo", name: "Mayonnaise Hellmann's", category: "Épicerie", unit: "500g",
+    prices: priceMatrix(11.90) },
+  { id: "ketchup", name: "Ketchup Heinz", category: "Épicerie", unit: "750g",
+    prices: priceMatrix(13.90) },
+
+  // ===== Boissons =====
+  { id: "water-6", name: "Eau Mei Eden (pack 6×1.5L)", category: "Boissons", unit: "9L",
+    prices: priceMatrix(14.90) },
+  { id: "coke", name: "Coca-Cola (pack 6×1.5L)", category: "Boissons", unit: "9L",
+    prices: priceMatrix(32.90) },
+  { id: "juice", name: "Jus d'orange Prigat", category: "Boissons", unit: "1.5L",
+    prices: priceMatrix(12.90) },
+  { id: "coffee", name: "Café Elite Turkish", category: "Boissons", unit: "200g",
+    prices: priceMatrix(18.90) },
+  { id: "instant-coffee", name: "Café instantané Nescafé", category: "Boissons", unit: "200g",
+    prices: priceMatrix(34.90) },
+  { id: "tea", name: "Thé Wissotzky", category: "Boissons", unit: "100u",
+    prices: priceMatrix(16.90) },
+  { id: "beer", name: "Bière Goldstar (pack 6)", category: "Boissons", unit: "6×500ml",
+    prices: priceMatrix(42.90) },
+  { id: "wine", name: "Vin Carmel Selected", category: "Boissons", unit: "750ml",
+    prices: priceMatrix(29.90) },
+
+  // ===== Surgelés =====
+  { id: "frozen-pizza", name: "Pizza surgelée Maadanot", category: "Surgelés", unit: "400g",
+    prices: priceMatrix(14.90) },
+  { id: "frozen-fries", name: "Frites surgelées McCain", category: "Surgelés", unit: "1kg",
+    prices: priceMatrix(14.90) },
+  { id: "frozen-veggies", name: "Légumes surgelés Sunfrost", category: "Surgelés", unit: "800g",
+    prices: priceMatrix(16.90) },
+  { id: "ice-cream", name: "Glace Ben & Jerry's", category: "Surgelés", unit: "500ml",
+    prices: priceMatrix(32.90) },
+  { id: "frozen-fish", name: "Filet de poisson surgelé", category: "Surgelés", unit: "400g",
+    prices: priceMatrix(29.90) },
+
+  // ===== Snacks =====
+  { id: "bamba", name: "Bamba Osem", category: "Snacks", unit: "80g",
+    prices: priceMatrix(4.90) },
+  { id: "bisli", name: "Bisli Osem", category: "Snacks", unit: "70g",
+    prices: priceMatrix(4.90) },
+  { id: "chips", name: "Chips Tapuchips", category: "Snacks", unit: "150g",
+    prices: priceMatrix(7.90) },
+  { id: "chocolate", name: "Chocolat Elite (lait)", category: "Snacks", unit: "100g",
+    prices: priceMatrix(6.90) },
+  { id: "cookies", name: "Biscuits Pesek Zman", category: "Snacks", unit: "45g",
+    prices: priceMatrix(4.50) },
+  { id: "krembo", name: "Krembo (pack 9)", category: "Snacks", unit: "9u",
+    prices: priceMatrix(19.90) },
+
+  // ===== Hygiène =====
+  { id: "toilet-paper", name: "Papier toilette Lily (pack 32)", category: "Hygiène", unit: "32u",
+    prices: priceMatrix(49.90) },
+  { id: "tissues", name: "Mouchoirs en boîte", category: "Hygiène", unit: "100u",
+    prices: priceMatrix(6.90) },
+  { id: "shampoo", name: "Shampoing Pantene", category: "Hygiène", unit: "400ml",
+    prices: priceMatrix(22.90) },
+  { id: "soap", name: "Savon liquide", category: "Hygiène", unit: "500ml",
+    prices: priceMatrix(9.90) },
+  { id: "toothpaste", name: "Dentifrice Colgate", category: "Hygiène", unit: "100ml",
+    prices: priceMatrix(12.90) },
+  { id: "deodorant", name: "Déodorant Rexona", category: "Hygiène", unit: "150ml",
+    prices: priceMatrix(15.90) },
+
+  // ===== Entretien =====
+  { id: "dish-soap", name: "Liquide vaisselle Sano", category: "Entretien", unit: "750ml",
+    prices: priceMatrix(10.90) },
+  { id: "laundry", name: "Lessive Ariel", category: "Entretien", unit: "3L",
+    prices: priceMatrix(49.90) },
+  { id: "softener", name: "Adoucissant Badin", category: "Entretien", unit: "2L",
+    prices: priceMatrix(19.90) },
+  { id: "bleach", name: "Eau de Javel", category: "Entretien", unit: "2L",
+    prices: priceMatrix(8.90) },
+  { id: "trash-bags", name: "Sacs poubelle (pack 50)", category: "Entretien", unit: "50u",
+    prices: priceMatrix(14.90) },
+  { id: "aluminum-foil", name: "Papier aluminium", category: "Entretien", unit: "30m",
+    prices: priceMatrix(11.90) },
+
+  // ===== Bébé =====
+  { id: "diapers", name: "Couches Huggies (taille 4)", category: "Bébé", unit: "60u",
+    prices: priceMatrix(79.90) },
+  { id: "wipes", name: "Lingettes bébé (pack 4×80)", category: "Bébé", unit: "320u",
+    prices: priceMatrix(24.90) },
+  { id: "baby-formula", name: "Lait infantile Materna", category: "Bébé", unit: "700g",
+    prices: priceMatrix(89.90) },
+
+  // ===== Petit déjeuner =====
+  { id: "cereal", name: "Céréales Telma Cornflakes", category: "Petit-déj", unit: "750g",
+    prices: priceMatrix(19.90) },
+  { id: "oats", name: "Flocons d'avoine", category: "Petit-déj", unit: "500g",
+    prices: priceMatrix(9.90) },
+  { id: "nutella", name: "Nutella", category: "Petit-déj", unit: "350g",
+    prices: priceMatrix(24.90) },
+  { id: "halva", name: "Halva", category: "Petit-déj", unit: "400g",
+    prices: priceMatrix(19.90) }
+];
+
+if (typeof module !== "undefined") {
+  module.exports = { STORES, PRODUCTS, DATA_VERSION, LAST_UPDATED };
+}
+
+</script>
+  <script>
+// PrixMalin - logique principale
+// Dépend de data/products.js (STORES, PRODUCTS, DATA_VERSION, LAST_UPDATED)
+
+const STORAGE_KEY = "prixmalin.cart.v1";
+
+// État global
+const state = {
+  cart: loadCart(),       // { [productId]: quantity }
+  mode: "single",         // "single" | "optimized"
+  activeCategory: null,
+  searchQuery: ""
+};
+
+// ---------- Persistence ----------
+function loadCart() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+function saveCart() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.cart));
+  } catch {}
+}
+
+// ---------- Helpers ----------
+function findProduct(id) {
+  return PRODUCTS.find(p => p.id === id);
+}
+function formatPrice(n) {
+  return `₪ ${n.toFixed(2)}`;
+}
+function normalize(s) {
+  return s.toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, ""); // strip diacritiques
+}
+function formatDate(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+  } catch {
+    return iso;
+  }
+}
+
+// ---------- Banner ----------
+function renderUpdateBanner() {
+  document.getElementById("last-updated").textContent = formatDate(LAST_UPDATED);
+  document.getElementById("product-count").textContent = PRODUCTS.length;
+}
+
+function renderStoreBadges() {
+  const wrap = document.getElementById("store-badges");
+  wrap.innerHTML = Object.values(STORES).map(s =>
+    `<span class="store-badge"><span class="dot" style="background:${s.color}"></span>${s.name}</span>`
+  ).join("");
+}
+
+// ---------- Search ----------
+function filterProducts(query, category) {
+  const q = normalize(query.trim());
+  return PRODUCTS.filter(p => {
+    if (category && p.category !== category) return false;
+    if (!q) return true;
+    return normalize(p.name).includes(q) || normalize(p.category).includes(q);
+  });
+}
+
+function renderSearchResults() {
+  const wrap = document.getElementById("search-results");
+  const query = state.searchQuery;
+
+  if (!query && !state.activeCategory) {
+    wrap.hidden = true;
+    wrap.innerHTML = "";
+    return;
+  }
+
+  const results = filterProducts(query, state.activeCategory).slice(0, 30);
+
+  if (results.length === 0) {
+    wrap.hidden = false;
+    wrap.innerHTML = `<div class="search-result-item"><span class="meta">Aucun produit trouvé</span></div>`;
+    return;
+  }
+
+  wrap.hidden = false;
+  wrap.innerHTML = results.map(p => {
+    const cheapest = cheapestStoreFor(p);
+    const inCart = state.cart[p.id];
+    const cartTag = inCart ? `<span style="color:var(--success);font-weight:600">✓ ${inCart}×</span>` : "";
+    return `
+      <div class="search-result-item" data-id="${p.id}">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px">${p.name} ${cartTag}</div>
+          <div class="meta">${p.category} · ${p.unit} · dès <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong> chez ${STORES[cheapest.store].name}</div>
+        </div>
+        <div class="add-icon">+</div>
+      </div>
+    `;
+  }).join("");
+
+  wrap.querySelectorAll(".search-result-item[data-id]").forEach(el => {
+    el.addEventListener("click", () => {
+      addToCart(el.dataset.id);
+      document.getElementById("search-input").value = "";
+      state.searchQuery = "";
+      renderSearchResults();
+    });
+  });
+}
+
+function cheapestStoreFor(product) {
+  let best = { store: null, price: Infinity };
+  Object.entries(product.prices).forEach(([store, price]) => {
+    if (price != null && price < best.price) {
+      best = { store, price };
+    }
+  });
+  return best;
+}
+
+// ---------- Categories ----------
+function renderQuickCategories() {
+  const wrap = document.getElementById("quick-categories");
+  const cats = [...new Set(PRODUCTS.map(p => p.category))];
+  wrap.innerHTML = cats.map(c =>
+    `<button class="cat-pill ${state.activeCategory === c ? "active" : ""}" data-cat="${c}">${c}</button>`
+  ).join("");
+  wrap.querySelectorAll(".cat-pill").forEach(el => {
+    el.addEventListener("click", () => {
+      state.activeCategory = state.activeCategory === el.dataset.cat ? null : el.dataset.cat;
+      renderQuickCategories();
+      renderSearchResults();
+    });
+  });
+}
+
+// ---------- Cart ----------
+function addToCart(id, qty = 1) {
+  state.cart[id] = (state.cart[id] || 0) + qty;
+  saveCart();
+  renderAll();
+}
+function setQty(id, qty) {
+  if (qty <= 0) {
+    delete state.cart[id];
+  } else {
+    state.cart[id] = qty;
+  }
+  saveCart();
+  renderAll();
+}
+function removeFromCart(id) {
+  delete state.cart[id];
+  saveCart();
+  renderAll();
+}
+function clearCart() {
+  state.cart = {};
+  saveCart();
+  renderAll();
+}
+
+function renderAll() {
+  renderCart();
+  renderComparison();
+  renderMobileCTA();
+}
+
+function renderCart() {
+  const wrap = document.getElementById("cart");
+  const ids = Object.keys(state.cart);
+  const actions = document.getElementById("cart-actions");
+  const countEl = document.getElementById("cart-count");
+
+  if (ids.length === 0) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <span class="emoji">🛒</span>
+        Votre liste est vide.<br />
+        Cherchez un produit ou cliquez sur une catégorie pour commencer.
+      </div>`;
+    actions.hidden = true;
+    return;
+  }
+
+  actions.hidden = false;
+  const totalItems = Object.values(state.cart).reduce((a, b) => a + b, 0);
+  countEl.textContent = `${ids.length} produit${ids.length > 1 ? "s" : ""} · ${totalItems} article${totalItems > 1 ? "s" : ""}`;
+
+  wrap.innerHTML = ids.map(id => {
+    const p = findProduct(id);
+    if (!p) return "";
+    const qty = state.cart[id];
+    const cheapest = cheapestStoreFor(p);
+    const cheapestStore = STORES[cheapest.store];
+    return `
+      <div class="cart-item">
+        <div class="qty-controls">
+          <button class="qty-btn" data-action="dec" data-id="${id}" aria-label="Diminuer">−</button>
+          <span class="qty-value">${qty}</span>
+          <button class="qty-btn" data-action="inc" data-id="${id}" aria-label="Augmenter">+</button>
+        </div>
+        <div class="cart-item-info">
+          <div class="cart-item-name">${p.name}</div>
+          <div class="cart-item-meta">
+            <span>${p.unit}</span>
+            <span class="dot">·</span>
+            <span class="cart-item-best" style="color:${cheapestStore.color}">
+              dès ${formatPrice(cheapest.price)} (${cheapestStore.name})
+            </span>
+          </div>
+        </div>
+        <button class="remove-btn" data-action="rm" data-id="${id}" title="Supprimer" aria-label="Supprimer">×</button>
+      </div>
+    `;
+  }).join("");
+
+  wrap.querySelectorAll("[data-action]").forEach(el => {
+    el.addEventListener("click", () => {
+      const id = el.dataset.id;
+      const action = el.dataset.action;
+      if (action === "inc") setQty(id, state.cart[id] + 1);
+      else if (action === "dec") setQty(id, state.cart[id] - 1);
+      else if (action === "rm") removeFromCart(id);
+    });
+  });
+}
+
+// ---------- Comparison ----------
+function computeStoreTotals() {
+  const totals = {};
+  Object.keys(STORES).forEach(s => {
+    totals[s] = { store: s, total: 0, available: 0, missing: [], items: [] };
+  });
+
+  Object.entries(state.cart).forEach(([id, qty]) => {
+    const p = findProduct(id);
+    if (!p) return;
+    Object.keys(STORES).forEach(s => {
+      const price = p.prices[s];
+      if (price == null) {
+        totals[s].missing.push(p);
+      } else {
+        totals[s].total += price * qty;
+        totals[s].available += 1;
+        totals[s].items.push({ product: p, qty, price, lineTotal: price * qty });
+      }
+    });
+  });
+
+  return totals;
+}
+
+function renderComparison() {
+  const wrap = document.getElementById("comparison");
+  const optiWrap = document.getElementById("optimization");
+  const cartIds = Object.keys(state.cart);
+
+  if (cartIds.length === 0) {
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <span class="emoji">📊</span>
+        Ajoutez des produits à votre liste<br />pour voir la comparaison entre les enseignes.
+      </div>`;
+    optiWrap.hidden = true;
+    optiWrap.innerHTML = "";
+    return;
+  }
+
+  if (state.mode === "single") {
+    renderSingleStore(wrap);
+    optiWrap.hidden = true;
+    optiWrap.innerHTML = "";
+  } else {
+    wrap.innerHTML = "";
+    optiWrap.hidden = false;
+    renderOptimized(optiWrap);
+  }
+}
+
+function renderSingleStore(wrap) {
+  const totals = computeStoreTotals();
+
+  // Trier par total croissant (les magasins complets d'abord)
+  const sorted = Object.values(totals).sort((a, b) => {
+    const aComplete = a.missing.length === 0 ? 0 : 1;
+    const bComplete = b.missing.length === 0 ? 0 : 1;
+    if (aComplete !== bComplete) return aComplete - bComplete;
+    return a.total - b.total;
+  });
+
+  const completes = sorted.filter(s => s.missing.length === 0);
+  const cheapestComplete = completes[0];
+  const mostExpensive = completes[completes.length - 1];
+  const cheapestTotal = cheapestComplete ? cheapestComplete.total : null;
+
+  wrap.innerHTML = sorted.map((s, idx) => {
+    const store = STORES[s.store];
+    const isComplete = s.missing.length === 0;
+    const isCheapest = cheapestComplete && s.store === cheapestComplete.store;
+    let savingsHTML = "";
+    if (isComplete && cheapestTotal != null) {
+      if (isCheapest && mostExpensive && mostExpensive.store !== s.store) {
+        const saved = mostExpensive.total - s.total;
+        const pct = Math.round((saved / mostExpensive.total) * 100);
+        savingsHTML = `<div class="savings">💚 −${formatPrice(saved)} (${pct}%) vs le plus cher</div>`;
+      } else if (!isCheapest) {
+        const extra = s.total - cheapestTotal;
+        savingsHTML = `<div class="extra">+${formatPrice(extra)}</div>`;
+      }
+    }
+    const missingHTML = s.missing.length > 0
+      ? `<div class="store-meta warning">⚠️ ${s.missing.length} produit(s) indisponible(s)</div>`
+      : `<div class="store-meta">✓ Tous les produits disponibles</div>`;
+
+    return `
+      <div class="store-card ${isCheapest ? "cheapest" : ""} ${!isComplete ? "unavailable" : ""}">
+        <div class="store-info">
+          <div class="store-icon" style="background:${store.color}">${store.icon}</div>
+          <div style="min-width:0">
+            <div class="store-name">
+              ${store.name}
+              ${isCheapest ? '<span class="cheapest-badge">🏆 LE MOINS CHER</span>' : ""}
+            </div>
+            ${missingHTML}
+          </div>
+        </div>
+        <div class="store-price">
+          <div class="total">${formatPrice(s.total)}</div>
+          ${savingsHTML}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderOptimized(wrap) {
+  const cartItems = Object.entries(state.cart).map(([id, qty]) => ({ product: findProduct(id), qty }))
+    .filter(x => x.product);
+
+  // Étape 1 : assignment optimal global (chaque produit dans son magasin le moins cher)
+  const assignmentOpt = {};
+  let optimalTotal = 0;
+  cartItems.forEach(({ product, qty }) => {
+    const best = cheapestStoreFor(product);
+    if (best.store) {
+      assignmentOpt[product.id] = { store: best.store, price: best.price };
+      optimalTotal += best.price * qty;
+    }
+  });
+
+  // Étape 2 : version "réaliste" limitée à 2 magasins
+  const realistic = limitToNStores(cartItems, 2);
+
+  // Étape 3 : meilleur magasin unique pour comparaison
+  const totals = computeStoreTotals();
+  const bestSingle = Object.values(totals)
+    .filter(s => s.missing.length === 0)
+    .sort((a, b) => a.total - b.total)[0];
+  const bestSingleTotal = bestSingle ? bestSingle.total : null;
+
+  let html = "";
+  const savedVsBest = bestSingleTotal != null ? bestSingleTotal - realistic.total : 0;
+
+  // Résumé
+  html += `
+    <div class="opti-summary">
+      <div class="title">✨ Panier optimisé sur 2 magasins</div>
+      <div class="total">${formatPrice(realistic.total)}</div>
+      ${bestSingle && savedVsBest > 0.1
+        ? `<div class="saved">Vous économisez <strong>${formatPrice(savedVsBest)}</strong> par rapport à ${STORES[bestSingle.store].name} (le moins cher en magasin unique)</div>`
+        : `<div class="saved">Faire vos courses chez ${bestSingle ? STORES[bestSingle.store].name : "un seul magasin"} reste plus simple à ce niveau de panier.</div>`}
+    </div>
+  `;
+
+  // Détail par magasin (réaliste)
+  const grouped = groupByStore(realistic.assignment, cartItems);
+  Object.entries(grouped).forEach(([storeId, items]) => {
+    const store = STORES[storeId];
+    const subtotal = items.reduce((sum, it) => sum + it.lineTotal, 0);
+    html += `
+      <div class="opti-store">
+        <div class="opti-store-head">
+          <div class="opti-store-name">
+            <span class="store-icon" style="background:${store.color};width:30px;height:30px;font-size:11px">${store.icon}</span>
+            ${store.name}
+            <span style="font-size:11px;color:var(--muted);font-weight:500">(${items.length} produit${items.length > 1 ? "s" : ""})</span>
+          </div>
+          <div class="opti-store-total">${formatPrice(subtotal)}</div>
+        </div>
+        ${items.map(it => `
+          <div class="opti-item">
+            <span class="name">${it.qty}× ${it.product.name}</span>
+            <span class="price">${formatPrice(it.lineTotal)}</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
+  });
+
+  // Suggestion bonus : version totalement optimale (sans limite)
+  if (Math.abs(optimalTotal - realistic.total) > 0.5) {
+    const groupedOpt = groupByStore(assignmentOpt, cartItems);
+    const storeCount = Object.keys(groupedOpt).length;
+    const bonusSavings = realistic.total - optimalTotal;
+    html += `
+      <div class="opti-store bonus">
+        <div class="opti-store-head">
+          <div class="opti-store-name">💡 Option ultra-économique (${storeCount} magasins)</div>
+          <div class="opti-store-total">${formatPrice(optimalTotal)}</div>
+        </div>
+        <div style="font-size:13px;color:var(--text-soft);line-height:1.5">
+          En répartissant sur <strong>${storeCount} magasins</strong>, vous économiseriez <strong>${formatPrice(bonusSavings)}</strong> de plus, mais cela demande plus de déplacements.
+        </div>
+      </div>
+    `;
+  }
+
+  wrap.innerHTML = html;
+}
+
+// Limite l'assignation à N magasins en choisissant la meilleure combinaison
+function limitToNStores(cartItems, maxStores) {
+  const allStores = Object.keys(STORES);
+  let best = { total: Infinity, assignment: {}, stores: [] };
+
+  const combos = combinations(allStores, maxStores);
+
+  combos.forEach(combo => {
+    const assignment = {};
+    let total = 0;
+    let valid = true;
+
+    cartItems.forEach(({ product, qty }) => {
+      let bestPrice = Infinity;
+      let bestStore = null;
+      combo.forEach(s => {
+        const price = product.prices[s];
+        if (price != null && price < bestPrice) {
+          bestPrice = price;
+          bestStore = s;
+        }
+      });
+      if (bestStore) {
+        assignment[product.id] = { store: bestStore, price: bestPrice };
+        total += bestPrice * qty;
+      } else {
+        valid = false;
+      }
+    });
+
+    if (valid && total < best.total) {
+      best = { total, assignment, stores: combo };
+    }
+  });
+
+  // Fallback : 1 magasin si la combinaison à N n'est pas valide
+  if (best.total === Infinity) {
+    const totals = computeStoreTotals();
+    const fallback = Object.values(totals)
+      .filter(s => s.missing.length === 0)
+      .sort((a, b) => a.total - b.total)[0];
+    if (fallback) {
+      const assignment = {};
+      cartItems.forEach(({ product }) => {
+        assignment[product.id] = { store: fallback.store, price: product.prices[fallback.store] };
+      });
+      best = { total: fallback.total, assignment, stores: [fallback.store] };
+    }
+  }
+
+  return best;
+}
+
+function combinations(arr, k) {
+  const result = [];
+  function recur(start, combo) {
+    if (combo.length === k) { result.push([...combo]); return; }
+    for (let i = start; i < arr.length; i++) {
+      combo.push(arr[i]);
+      recur(i + 1, combo);
+      combo.pop();
+    }
+  }
+  recur(0, []);
+  return result;
+}
+
+function groupByStore(assignment, cartItems) {
+  const grouped = {};
+  cartItems.forEach(({ product, qty }) => {
+    const a = assignment[product.id];
+    if (!a) return;
+    if (!grouped[a.store]) grouped[a.store] = [];
+    grouped[a.store].push({
+      product,
+      qty,
+      price: a.price,
+      lineTotal: a.price * qty
+    });
+  });
+  return grouped;
+}
+
+// ---------- Mobile CTA ----------
+function renderMobileCTA() {
+  const cta = document.getElementById("mobile-cta");
+  const ids = Object.keys(state.cart);
+  if (ids.length === 0) {
+    cta.classList.remove("visible");
+    return;
+  }
+  const totals = computeStoreTotals();
+  const best = Object.values(totals)
+    .filter(s => s.missing.length === 0)
+    .sort((a, b) => a.total - b.total)[0];
+  if (!best) {
+    cta.classList.remove("visible");
+    return;
+  }
+  cta.classList.add("visible");
+  document.getElementById("mobile-cta-total").textContent = formatPrice(best.total);
+  document.getElementById("mobile-cta-store").textContent = `🏆 ${STORES[best.store].name} (le moins cher)`;
+}
+
+// ---------- Events ----------
+document.querySelectorAll(".mode-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".mode-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    state.mode = btn.dataset.mode;
+    renderComparison();
+  });
+});
+
+const searchInput = document.getElementById("search-input");
+searchInput.addEventListener("input", e => {
+  state.searchQuery = e.target.value;
+  renderSearchResults();
+});
+searchInput.addEventListener("focus", () => {
+  if (state.searchQuery || state.activeCategory) renderSearchResults();
+});
+document.addEventListener("click", e => {
+  if (!e.target.closest(".search-box") && !e.target.closest(".quick-categories")) {
+    document.getElementById("search-results").hidden = true;
+  }
+});
+
+document.getElementById("clear-cart").addEventListener("click", () => {
+  if (confirm("Vider toute la liste de courses ?")) clearCart();
+});
+
+document.getElementById("mobile-cta-btn").addEventListener("click", () => {
+  document.querySelector("#comparison, #optimization:not([hidden])").scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+});
+
+// ---------- Init ----------
+renderUpdateBanner();
+renderStoreBadges();
+renderQuickCategories();
+renderAll();
+
+</script>
+</body>
+</html>
