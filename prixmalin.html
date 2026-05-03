@@ -1108,7 +1108,7 @@ button { font-family: inherit; color: inherit; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 1px;
   font-size: 13px;
   margin-bottom: 4px;
   width: 100%;
@@ -1118,6 +1118,25 @@ button { font-family: inherit; color: inherit; }
 .prod-card-from, .prod-card-store {
   font-size: 9px; color: var(--muted);
 }
+.prod-card-spread {
+  font-size: 9px;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.spread-pct {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 9px;
+}
+.spread-info { font-size: 10px; color: var(--muted); }
+/* Store badge avec statut live */
+.badge-status { font-size: 8px; margin-inline-start: 2px; }
+.store-badge.live { background: rgba(16, 185, 129, 0.25); border-color: rgba(16, 185, 129, 0.5); }
 .prod-card-incart {
   background: var(--success);
   color: white;
@@ -3251,7 +3270,18 @@ async function loadLivePrices() {
     if (!res.ok) return;
     const data = await res.json();
     LIVE_PRICES = data.prices || {};
-    LIVE_META = { chains: data.chains || [], summary: data.summary || {}, matched: Object.keys(LIVE_PRICES).length };
+    // summary peut être soit { chain: count } soit { chain: { items, status } }
+    const rawSummary = (data.summary && data.summary.chains) ? data.summary.chains : (data.summary || {});
+    const cleanSummary = {};
+    Object.entries(rawSummary).forEach(([k, v]) => {
+      cleanSummary[k] = typeof v === "object" ? (v.items || 0) : v;
+    });
+    LIVE_META = {
+      chains: data.chains || Object.keys(cleanSummary),
+      summary: cleanSummary,
+      matched: Object.keys(LIVE_PRICES).length,
+      generatedAt: data.generated_at || data.summary?.generated_at
+    };
     PRODUCTS.forEach(p => {
       const live = LIVE_PRICES[p.id];
       if (!live) return;
@@ -3262,7 +3292,9 @@ async function loadLivePrices() {
         }
       });
     });
-    renderUpdateBanner(); renderAll();
+    renderUpdateBanner();
+    renderStoreBadges();
+    renderAll();
   } catch {}
 }
 
@@ -3288,9 +3320,14 @@ function renderUpdateBanner() {
 
 function renderStoreBadges() {
   const wrap = document.getElementById("store-badges");
-  wrap.innerHTML = Object.values(STORES).map(s =>
-    `<span class="store-badge"><span class="dot" style="background:${s.color}"></span>${s.name}</span>`
-  ).join("");
+  const liveSummary = (LIVE_META && LIVE_META.summary) || {};
+  wrap.innerHTML = Object.entries(STORES).map(([id, s]) => {
+    const liveCount = liveSummary[id] || 0;
+    const isLive = liveCount > 0;
+    const status = isLive ? `<span class="badge-status live">🟢</span>` : `<span class="badge-status mock">⚪</span>`;
+    const tip = isLive ? `${liveCount} prix réels` : "Prix estimés";
+    return `<span class="store-badge ${isLive ? "live" : ""}" title="${tip}"><span class="dot" style="background:${s.color}"></span>${s.name}${status}</span>`;
+  }).join("");
 }
 
 function renderLangPicker() {
@@ -3406,12 +3443,27 @@ function renderSearchResults() {
     });
   });
 }
+// Étendue des prix d'un produit (le moins cher, le plus cher, % d'écart)
+function priceSpread(product) {
+  const vals = Object.values(product.prices).filter(p => p != null);
+  if (vals.length === 0) return { min: 0, max: 0, range: 0, pct: 0 };
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  return { min, max, range: max - min, pct: min > 0 ? Math.round(((max - min) / max) * 100) : 0 };
+}
 function cheapestStoreFor(product) {
   let best = { store: null, price: Infinity };
   Object.entries(product.prices).forEach(([store, price]) => {
     if (price != null && price < best.price) best = { store, price };
   });
   return best;
+}
+function mostExpensiveStoreFor(product) {
+  let worst = { store: null, price: -Infinity };
+  Object.entries(product.prices).forEach(([store, price]) => {
+    if (price != null && price > worst.price) worst = { store, price };
+  });
+  return worst;
 }
 
 // ========== CATÉGORIES ==========
@@ -3615,6 +3667,7 @@ function renderBrowsePanel() {
     <div class="prod-grid">
       ${products.map(p => {
         const cheapest = cheapestStoreFor(p);
+        const sp = priceSpread(p);
         const inCart = getQty(p.id);
         return `
           <div class="prod-card" data-pid="${p.id}">
@@ -3624,7 +3677,7 @@ function renderBrowsePanel() {
             <div class="prod-card-price">
               <span class="prod-card-from">${t("starting_at")}</span>
               <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong>
-              <span class="prod-card-store">${STORES[cheapest.store].name}</span>
+              <span class="prod-card-spread">→ ${formatPrice(sp.max)} <span class="spread-pct">−${sp.pct}%</span></span>
             </div>
             ${inCart ? `<div class="prod-card-incart">✓ ${formatQty(inCart)}× ${STORES[chosenStoreFor(p.id) || cheapest.store]?.name || ""}</div>` : ""}
             <button class="prod-card-add" data-add-pid="${p.id}" aria-label="Add">+</button>
@@ -3961,7 +4014,7 @@ function renderCartItemHTML(id, big = false) {
   const effPrice = effectivePrice(p, item);
   const store = STORES[effStore];
   const cheapestS = cheapestStoreFor(p);
-  const isAuto = !item.store;
+  const sp = priceSpread(p);
   const isCheapest = effStore === cheapestS.store;
   const qtyStr = formatQty(item.qty);
   const lineTotal = effPrice * item.qty;
@@ -3974,10 +4027,12 @@ function renderCartItemHTML(id, big = false) {
       <div class="cart-item-info" data-action="detail" data-id="${id}">
         <div class="cart-item-name">${tProduct(p)}</div>
         <div class="cart-item-meta">
-          <button class="store-pick" data-action="pick" data-id="${id}" title="${t("at_store")} ${store.name}">
+          <button class="store-pick" data-action="pick" data-id="${id}" title="Choisir un magasin">
             <span class="store-mini" style="background:${store.color}">${store.icon}</span>
             <span style="color:${store.color};font-weight:600">${formatPrice(effPrice)}</span>
-            ${!isCheapest ? `<span class="alt-cheaper" title="Moins cher chez ${STORES[cheapestS.store].name}">⚠ ${formatPrice(cheapestS.price)}</span>` : ""}
+            ${!isCheapest
+              ? `<span class="alt-cheaper" title="Moins cher chez ${STORES[cheapestS.store].name}">↓ ${formatPrice(cheapestS.price)} (−${formatPrice(effPrice - cheapestS.price)})</span>`
+              : `<span class="spread-info">↑ ${formatPrice(sp.max)}</span>`}
           </button>
         </div>
       </div>
@@ -4219,28 +4274,33 @@ function renderOptimized(wrap) {
   observeProductIcons(wrap);
 }
 
-// Crée une nouvelle liste contenant uniquement les produits assignés au magasin donné
+// Crée une nouvelle liste contenant uniquement les produits assignés au magasin donné.
+// Chaque item est pré-paramétré sur ce magasin pour cohérence.
 function exportStoreAsNewList(storeId) {
   const assignment = state._lastAssignment || {};
   const cart = activeCart();
   const newCart = {};
   Object.entries(assignment).forEach(([pid, a]) => {
     if (a.store === storeId && cart[pid]) {
-      newCart[pid] = { qty: cart[pid].qty, done: false };
+      newCart[pid] = { qty: cart[pid].qty, done: false, store: storeId };
     }
   });
-  if (Object.keys(newCart).length === 0) return;
+  if (Object.keys(newCart).length === 0) {
+    showToast("⚠️ Aucun produit assigné à " + STORES[storeId].name);
+    return;
+  }
   const id = newId();
   const storeName = STORES[storeId].name;
   state.lists[id] = {
     name: `🛒 ${storeName}`,
     cart: newCart,
-    createdAt: Date.now()
+    createdAt: Date.now(),
+    sourceStore: storeId
   };
   state.activeListId = id;
   saveState();
   renderAll();
-  showToast(`✓ ${t("new_list")}: ${storeName} (${Object.keys(newCart).length})`);
+  showToast(`✓ Liste créée : ${storeName} (${Object.keys(newCart).length} produits)`);
 }
 
 function limitToNStores(cartItems, maxStores) {
@@ -4554,6 +4614,30 @@ if (new URLSearchParams(location.search).has("reset")) {
   throw new Error("Resetting...");
 }
 
+// ========== NOUVELLES PROMOS ==========
+// Détecte les promos qui n'ont jamais été vues (depuis la dernière visite)
+// et affiche un toast d'alerte.
+function detectNewPromos() {
+  if (typeof PROMOTIONS === "undefined") return;
+  let seen = {};
+  try { seen = JSON.parse(localStorage.getItem("pm.seenPromos") || "{}"); } catch {}
+  const newOnes = PROMOTIONS.filter(p => !seen[p.id]);
+  if (newOnes.length === 0) return;
+  // Affiche après 1.5s pour laisser l'app se charger
+  setTimeout(() => {
+    if (newOnes.length === 1) {
+      const p = newOnes[0];
+      showToast(`🎁 Nouvelle promo : ${p.title} chez ${STORES[p.chain].name}`);
+    } else {
+      showToast(`🎁 ${newOnes.length} nouvelles promos disponibles ! Voir le bandeau jaune dans la liste.`);
+    }
+    // Marque comme vues
+    const updated = { ...seen };
+    newOnes.forEach(p => { updated[p.id] = Date.now(); });
+    try { localStorage.setItem("pm.seenPromos", JSON.stringify(updated)); } catch {}
+  }, 1500);
+}
+
 // ========== INIT ==========
 // Nettoyage des photos cachées de l'ancienne version
 try {
@@ -4565,6 +4649,7 @@ applyLang();
 applyTheme();
 setupImageObserver();
 renderLangPicker();
+detectNewPromos();
 renderUpdateBanner();
 renderStaticTexts();
 renderStoreBadges();

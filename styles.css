@@ -1094,7 +1094,7 @@ button { font-family: inherit; color: inherit; }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0;
+  gap: 1px;
   font-size: 13px;
   margin-bottom: 4px;
   width: 100%;
@@ -1104,6 +1104,25 @@ button { font-family: inherit; color: inherit; }
 .prod-card-from, .prod-card-store {
   font-size: 9px; color: var(--muted);
 }
+.prod-card-spread {
+  font-size: 9px;
+  color: var(--muted);
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+.spread-pct {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--success);
+  font-weight: 700;
+  padding: 0 4px;
+  border-radius: 999px;
+  font-size: 9px;
+}
+.spread-info { font-size: 10px; color: var(--muted); }
+/* Store badge avec statut live */
+.badge-status { font-size: 8px; margin-inline-start: 2px; }
+.store-badge.live { background: rgba(16, 185, 129, 0.25); border-color: rgba(16, 185, 129, 0.5); }
 .prod-card-incart {
   background: var(--success);
   color: white;
