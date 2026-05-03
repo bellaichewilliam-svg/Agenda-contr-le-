@@ -21,10 +21,8 @@
         <h1 class="logo"><span class="logo-emoji">🛒</span> <span id="logo-text">PrixMalin</span></h1>
         <div class="top-actions">
           <div class="lang-picker" id="lang-picker"></div>
-          <button class="icon-btn" id="recipes-btn" title="Recettes">👨‍🍳</button>
-          <button class="icon-btn" id="nearby-btn" title="Magasins proches">📍</button>
           <button class="icon-btn" id="install-btn" hidden title="Install">⬇️</button>
-          <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
+          <button class="icon-btn" id="settings-btn" title="Menu">☰</button>
         </div>
       </div>
       <p class="tagline" id="tagline"></p>
@@ -141,8 +139,25 @@
   <div id="settings-drawer" class="drawer">
     <div class="drawer-card">
       <div class="drawer-head">
-        <h3>⚙️ Settings</h3>
+        <h3>☰ Menu</h3>
         <button class="modal-close" id="settings-close">×</button>
+      </div>
+      <!-- Quick actions -->
+      <div class="drawer-actions">
+        <button class="drawer-action" id="recipes-btn">
+          <span class="drawer-action-icon">👨‍🍳</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title">Recettes</div>
+            <div class="drawer-action-hint">Ajoute les ingrédients d'un menu</div>
+          </span>
+        </button>
+        <button class="drawer-action" id="nearby-btn">
+          <span class="drawer-action-icon">📍</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title">Magasins proches</div>
+            <div class="drawer-action-hint">Géoloc + Waze + livraison</div>
+          </span>
+        </button>
       </div>
       <div class="setting-row">
         <div>

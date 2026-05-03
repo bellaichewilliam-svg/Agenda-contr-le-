@@ -1085,6 +1085,122 @@ button { font-family: inherit; color: inherit; }
 .nearby-btn.gmaps { background: #4285f4; color: white; }
 .nearby-btn.site { background: var(--success); color: white; }
 
+/* ====== Drawer quick actions ====== */
+.drawer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.drawer-action {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  width: 100%;
+  text-align: start;
+  font-family: inherit;
+  transition: all var(--tx);
+}
+.drawer-action:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.drawer-action-icon { font-size: 28px; }
+.drawer-action-text { flex: 1; }
+.drawer-action-title { font-weight: 700; font-size: 14px; color: var(--text); }
+.drawer-action-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ====== Composition produit dans le modal détail ====== */
+.pm-comp {
+  padding: 0 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+.pm-comp-row {
+  display: flex;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.pm-comp-row:last-child { border-bottom: none; }
+.pm-comp-label {
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  min-width: 80px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.pm-comp-val { flex: 1; color: var(--text-soft); line-height: 1.45; }
+
+/* ====== Recipe detail (preview avec checkbox) ====== */
+.recipe-detail-toolbar {
+  display: flex;
+  gap: 12px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel-soft);
+}
+.recipe-ingredients {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.ing-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--tx);
+}
+.ing-row:hover { border-color: var(--border-strong); }
+.ing-row.unchecked { opacity: 0.5; background: transparent; }
+.ing-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.ing-info { flex: 1; min-width: 0; }
+.ing-name {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ing-meta { font-size: 11px; color: var(--muted); margin-top: 1px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ing-qty {
+  width: 50px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  flex-shrink: 0;
+}
+
 /* ====== Recipes modal ====== */
 .recipes-content { display: flex; flex-direction: column; max-height: 90vh; }
 .recipes-head {
@@ -1621,10 +1737,8 @@ button { font-family: inherit; color: inherit; }
         <h1 class="logo"><span class="logo-emoji">🛒</span> <span id="logo-text">PrixMalin</span></h1>
         <div class="top-actions">
           <div class="lang-picker" id="lang-picker"></div>
-          <button class="icon-btn" id="recipes-btn" title="Recettes">👨‍🍳</button>
-          <button class="icon-btn" id="nearby-btn" title="Magasins proches">📍</button>
           <button class="icon-btn" id="install-btn" hidden title="Install">⬇️</button>
-          <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
+          <button class="icon-btn" id="settings-btn" title="Menu">☰</button>
         </div>
       </div>
       <p class="tagline" id="tagline"></p>
@@ -1741,8 +1855,25 @@ button { font-family: inherit; color: inherit; }
   <div id="settings-drawer" class="drawer">
     <div class="drawer-card">
       <div class="drawer-head">
-        <h3>⚙️ Settings</h3>
+        <h3>☰ Menu</h3>
         <button class="modal-close" id="settings-close">×</button>
+      </div>
+      <!-- Quick actions -->
+      <div class="drawer-actions">
+        <button class="drawer-action" id="recipes-btn">
+          <span class="drawer-action-icon">👨‍🍳</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title">Recettes</div>
+            <div class="drawer-action-hint">Ajoute les ingrédients d'un menu</div>
+          </span>
+        </button>
+        <button class="drawer-action" id="nearby-btn">
+          <span class="drawer-action-icon">📍</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title">Magasins proches</div>
+            <div class="drawer-action-hint">Géoloc + Waze + livraison</div>
+          </span>
+        </button>
       </div>
       <div class="setting-row">
         <div>
@@ -3859,8 +3990,49 @@ const PRODUCT_DESC = {
 function getDescription(p) {
   if (!p) return "";
   if (PRODUCT_DESC[p.id]) return PRODUCT_DESC[p.id];
-  // Auto-génère
   return `${tCat(p.category)} · ${p.unit}`;
+}
+
+// Composition / ingrédients pour les produits manufacturés
+const PRODUCT_COMPOSITION = {
+  "milk-3":         { brand: "Tnuva", origin: "Israël", ingredients: "Lait entier pasteurisé homogénéisé.", nutrition: "Énergie 64 kcal · Protéines 3.3g · MG 3% · Glucides 4.7g · Calcium 120mg / 100ml" },
+  "milk-1":         { brand: "Tara",  origin: "Israël", ingredients: "Lait demi-écrémé pasteurisé.", nutrition: "Énergie 46 kcal · Protéines 3.4g · MG 1% · Glucides 4.8g / 100ml" },
+  "cottage":        { brand: "Tnuva", origin: "Israël", ingredients: "Fromage frais (lait pasteurisé, ferments lactiques, sel), crème.", nutrition: "Énergie 105 kcal · Protéines 11g · MG 5% / 100g" },
+  "yogurt-greek":   { brand: "Tnuva", origin: "Israël", ingredients: "Lait pasteurisé, crème, ferments lactiques.", nutrition: "Énergie 95 kcal · Protéines 7g · MG 5% / 100g" },
+  "feta":           { brand: "Bulgare", origin: "Bulgarie", ingredients: "Lait de brebis et chèvre pasteurisé, sel, présure, ferments lactiques.", nutrition: "Énergie 264 kcal · Protéines 14g · MG 21% · Sel 3.7g / 100g" },
+  "humus":          { brand: "Sabra", origin: "Israël", ingredients: "Pois chiches, tahini (sésame), huile de tournesol, ail, sel, jus de citron, acide citrique.", nutrition: "Énergie 305 kcal · Protéines 8g · MG 24g · Glucides 12g · Fibres 6g / 100g" },
+  "tahini":         { brand: "Achva", origin: "Israël", ingredients: "100% graines de sésame moulu (sans additifs).", nutrition: "Énergie 600 kcal · Protéines 18g · MG 53g · Glucides 21g · Calcium 426mg / 100g" },
+  "oil-olive":      { brand: "Yad Mordechai", origin: "Israël", ingredients: "Huile d'olive vierge extra 100%, première pression à froid.", nutrition: "Énergie 884 kcal · MG 100g (sat 14g) / 100ml" },
+  "honey":          { brand: "Lin's Farm", origin: "Israël", ingredients: "100% miel naturel.", nutrition: "Énergie 304 kcal · Glucides 82g (sucres 82g) / 100g" },
+  "nutella":        { brand: "Ferrero", origin: "Italie", ingredients: "Sucre, huile de palme, NOISETTES (13%), cacao maigre (7.4%), LAIT écrémé en poudre (6.6%), petit-LAIT en poudre, émulsifiants (lécithines), arôme vanilline. Sans gluten.", nutrition: "Énergie 539 kcal · MG 30g · Glucides 57g (sucres 56g) · Protéines 6g / 100g" },
+  "bamba":          { brand: "Osem", origin: "Israël", ingredients: "Maïs (50%), CACAHUÈTES (50%), huile de palme, sel.", nutrition: "Énergie 565 kcal · Protéines 14g · MG 36g · Glucides 47g / 100g · ⚠️ Allergène arachides" },
+  "bisli":          { brand: "Osem", origin: "Israël", ingredients: "Farine de BLÉ, huile de palme, amidon de pomme de terre, sel, exhausteur de goût (E621).", nutrition: "Énergie 478 kcal · Protéines 8g · MG 18g · Glucides 70g / 100g" },
+  "coke-1.5":       { brand: "Coca-Cola", origin: "Israël (sous licence)", ingredients: "Eau gazéifiée, sucre, dioxyde de carbone, colorant E150d, acidifiant E338, extraits végétaux, caféine.", nutrition: "Énergie 42 kcal · Glucides 10.6g (sucres 10.6g) / 100ml" },
+  "coffee-turkish": { brand: "Elite", origin: "Israël", ingredients: "Café 100% Arabica torréfié et moulu finement.", nutrition: "Énergie 2 kcal / tasse" },
+  "tea-wissotzky":  { brand: "Wissotzky", origin: "Israël", ingredients: "Thé noir d'Inde, Sri Lanka et Kenya. Sachets en filtre papier.", nutrition: "Énergie 2 kcal / tasse" },
+  "wine-carmel":    { brand: "Carmel", origin: "Israël (Galilée)", ingredients: "Cabernet Sauvignon. Sulfites (E220). Vin cacher mevushal.", nutrition: "Alcool 13% vol · Énergie 80 kcal / 100ml" },
+  "beer-goldstar":  { brand: "Tempo", origin: "Israël", ingredients: "Eau, malt d'ORGE, houblon, levure de bière. Brassée à Netanya.", nutrition: "Alcool 4.9% vol · Énergie 41 kcal / 100ml" },
+  "diapers-4":      { brand: "Huggies (Kimberly-Clark)", origin: "Pologne", ingredients: "Voile non-tissé polypropylène, polymère super absorbant, cellulose, élastomère, lotion à l'aloe vera. Sans parabène, sans parfum, sans chlore.", nutrition: "Taille 4 (9-14kg) · Pack 60 · Indicateur d'humidité" },
+  "shampoo-pantene":{ brand: "Pantene Pro-V (P&G)", origin: "France", ingredients: "Aqua, Sodium Laureth Sulfate, Cocamidopropyl Betaine, Glycol Distearate, Parfum, Panthénol, Histidine, Vitamine B5...", nutrition: "Convient à tous types de cheveux" },
+  "toothpaste":     { brand: "Colgate-Palmolive", origin: "Pologne", ingredients: "Aqua, Sorbitol, Hydrated Silica, Sodium Lauryl Sulfate, Sodium Monofluorophosphate (1450 ppm F), Aroma, Cellulose Gum, Sodium Saccharin.", nutrition: "Protection 12h · Fluor 1450ppm" },
+  "eggs-12-l":      { brand: "Tnuva", origin: "Israël", ingredients: "Œufs frais de poules en cage. Calibre L (63-73g).", nutrition: "Énergie 143 kcal · Protéines 13g · MG 10g · Glucides 0.7g · Cholestérol 372mg / 100g" },
+  "chicken-breast": { brand: "Off Tov", origin: "Israël", ingredients: "Viande de poulet fraîche (100%). Élevage en Israël. Cacher Mehadrin.", nutrition: "Énergie 165 kcal · Protéines 31g · MG 3.6g / 100g" },
+  "salmon-fillet":  { brand: "Élevé en Norvège", origin: "Norvège", ingredients: "Saumon Atlantique (Salmo salar). Élevé en aquaculture. Sans additifs.", nutrition: "Énergie 208 kcal · Protéines 20g · MG 13g · Oméga-3 2.3g / 100g" },
+  "bread-white":    { brand: "Angel", origin: "Israël", ingredients: "Farine de BLÉ, eau, levure, sel, sucre, huile végétale. Peut contenir des traces de SOJA et SÉSAME.", nutrition: "Énergie 265 kcal · Protéines 9g · Glucides 49g · Fibres 2.7g / 100g" },
+  "challah":        { brand: "Boulangerie", origin: "Israël", ingredients: "Farine de BLÉ, ŒUFS, sucre, huile, levure, sel. Cuite le vendredi pour Shabbat.", nutrition: "Énergie 280 kcal · Protéines 8g · Glucides 50g · Sucres 8g / 100g" },
+  "pasta-spaghetti":{ brand: "Osem (Nestlé)", origin: "Israël", ingredients: "Semoule de BLÉ dur 100%.", nutrition: "Énergie 358 kcal · Protéines 13g · Glucides 71g · Fibres 3g / 100g" },
+  "rice-basmati":   { brand: "Sugat", origin: "Inde", ingredients: "Riz basmati 100% grains longs vieilli 12 mois.", nutrition: "Énergie 360 kcal · Protéines 8g · Glucides 78g · Fibres 1g / 100g" },
+  "frozen-pizza":   { brand: "Maadanot", origin: "Israël", ingredients: "Pâte (BLÉ, eau, huile, levure, sel), sauce tomate, mozzarella (LAIT), origan. Cuire 12-15min à 220°C.", nutrition: "Énergie 245 kcal · Protéines 11g · MG 8g · Glucides 32g / 100g" },
+  "ice-cream-bens": { brand: "Ben & Jerry's (Unilever)", origin: "Pays-Bas", ingredients: "LAIT, sucre, CRÈME, eau, jaunes d'ŒUFS, cacao maigre, chocolat, beurre de cacao, vanille. Sans OGM.", nutrition: "Énergie 270 kcal · Protéines 4g · MG 16g · Sucres 24g / 100ml" },
+  "potato":         { brand: "Israël", origin: "Israël (Néguev)", ingredients: "Pommes de terre fraîches, variété tout-usage.", nutrition: "Énergie 77 kcal · Protéines 2g · Glucides 17g · Vitamine C 19mg / 100g" },
+  "tomato":         { brand: "Israël", origin: "Israël (Aravah)", ingredients: "Tomates fraîches, variété ronde grappe.", nutrition: "Énergie 18 kcal · Protéines 0.9g · Glucides 3.9g · Lycopène 2.6mg / 100g" },
+  "cucumber":       { brand: "Israël", origin: "Israël", ingredients: "Concombres israéliens (variété baby), 96% eau.", nutrition: "Énergie 15 kcal · Glucides 3.6g · Vitamine K 16µg / 100g" },
+  "avocado":        { brand: "Israël/Mexique", origin: "Variable selon saison", ingredients: "Avocats Hass.", nutrition: "Énergie 160 kcal · MG 15g (mono-insat 10g) · Fibres 7g / 100g" },
+  "apple-pink":     { brand: "Israël/import", origin: "Israël ou France", ingredients: "Pommes Pink Lady (Cripps Pink).", nutrition: "Énergie 52 kcal · Glucides 14g (sucres 10g) · Fibres 2.4g / 100g" }
+};
+function getComposition(p) {
+  if (!p) return null;
+  return PRODUCT_COMPOSITION[p.id] || null;
 }
 
 // ========== HELPERS ==========
@@ -4380,6 +4552,18 @@ function showProductDetail(pid) {
       <button class="modal-close" data-pm-close>×</button>
     </div>
     <p class="pm-desc">${getDescription(p)}</p>
+    ${(() => {
+      const comp = getComposition(p);
+      if (!comp) return "";
+      return `
+        <div class="pm-section-title">🏷️ Marque & composition</div>
+        <div class="pm-comp">
+          ${comp.brand ? `<div class="pm-comp-row"><span class="pm-comp-label">Marque</span><span class="pm-comp-val">${comp.brand}</span></div>` : ""}
+          ${comp.origin ? `<div class="pm-comp-row"><span class="pm-comp-label">Origine</span><span class="pm-comp-val">${comp.origin}</span></div>` : ""}
+          ${comp.ingredients ? `<div class="pm-comp-row"><span class="pm-comp-label">Ingrédients</span><span class="pm-comp-val">${comp.ingredients}</span></div>` : ""}
+          ${comp.nutrition ? `<div class="pm-comp-row"><span class="pm-comp-label">Nutrition</span><span class="pm-comp-val">${comp.nutrition}</span></div>` : ""}
+        </div>`;
+    })()}
     <div class="pm-section-title">📊 Prix dans les ${sortedPrices.length} magasins</div>
     <div class="pm-prices">
       ${sortedPrices.map(([storeId, price], i) => {
@@ -5169,11 +5353,17 @@ function setupEvents() {
   document.getElementById("product-modal").addEventListener("click", e => { if (e.target.id === "product-modal") hideProductModal(); });
   // Nearby stores button
   const nearbyBtn = document.getElementById("nearby-btn");
-  if (nearbyBtn) nearbyBtn.addEventListener("click", showNearbyStores);
+  if (nearbyBtn) nearbyBtn.addEventListener("click", () => {
+    document.getElementById("settings-drawer").classList.remove("visible");
+    showNearbyStores();
+  });
   document.getElementById("nearby-modal").addEventListener("click", e => { if (e.target.id === "nearby-modal") hideNearbyModal(); });
   // Recipes button
   const recipesBtn = document.getElementById("recipes-btn");
-  if (recipesBtn) recipesBtn.addEventListener("click", showRecipesModal);
+  if (recipesBtn) recipesBtn.addEventListener("click", () => {
+    document.getElementById("settings-drawer").classList.remove("visible");
+    showRecipesModal();
+  });
   document.getElementById("recipes-modal").addEventListener("click", e => { if (e.target.id === "recipes-modal") hideRecipesModal(); });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") {
@@ -5303,9 +5493,88 @@ function showRecipesModal() {
   modal.querySelectorAll(".recipe-card").forEach(el => {
     el.addEventListener("click", () => {
       const recipe = RECIPES.find(r => r.id === el.dataset.recipeId);
-      if (!recipe) return;
+      if (recipe) showRecipeDetail(recipe);
+    });
+  });
+}
+function showRecipeDetail(recipe) {
+  const modal = document.getElementById("recipes-modal");
+  const lang = state.lang;
+  const cart = activeCart();
+  // par défaut : tous cochés sauf ceux déjà au panier
+  const checkedState = {};
+  recipe.ingredients.forEach(ing => {
+    checkedState[ing.id] = !cart[ing.id];
+  });
+
+  const render = () => {
+    modal.querySelector(".recipes-content").innerHTML = `
+      <div class="recipes-head">
+        <button class="modal-close" data-back-recipes title="Retour" style="font-size:22px">←</button>
+        <h3 style="flex:1;text-align:center">${recipe.emoji} ${recipe.names[lang] || recipe.names.fr}</h3>
+        <button class="modal-close" data-recipes-close>×</button>
+      </div>
+      <p class="recipes-intro">${recipe.descs[lang] || recipe.descs.fr}</p>
+      <div class="recipe-detail-toolbar">
+        <button class="link-btn" data-check-all>Tout cocher</button>
+        <button class="link-btn" data-uncheck-all>Tout décocher</button>
+      </div>
+      <div class="recipe-ingredients">
+        ${recipe.ingredients.map(ing => {
+          const p = findProduct(ing.id);
+          if (!p) return "";
+          const cheapest = cheapestStoreFor(p);
+          const inCartTxt = cart[ing.id] ? `<span style="color:var(--success);font-size:10px">✓ déjà au panier</span>` : "";
+          return `
+            <label class="ing-row ${checkedState[ing.id] ? "" : "unchecked"}">
+              <input type="checkbox" data-ing-id="${ing.id}" ${checkedState[ing.id] ? "checked" : ""} />
+              <div class="prod-icon mini" style="background:${productTint(p)}">${productIcon(p)}</div>
+              <div class="ing-info">
+                <div class="ing-name">${tProduct(p)}</div>
+                <div class="ing-meta">${formatQty(ing.qty)}× ${p.unit} · ${formatPrice(cheapest.price * ing.qty)} ${inCartTxt}</div>
+              </div>
+              <input type="text" inputmode="decimal" class="ing-qty" data-ing-qty="${ing.id}" value="${formatQty(ing.qty)}" />
+            </label>`;
+        }).join("")}
+      </div>
+      <div class="pm-actions">
+        <button class="btn ghost" data-back-recipes>← Annuler</button>
+        <button class="btn primary big" data-add-recipe>+ Ajouter <span id="ing-count">${Object.values(checkedState).filter(Boolean).length}</span> au panier</button>
+      </div>`;
+
+    modal.querySelectorAll("[data-back-recipes]").forEach(b =>
+      b.addEventListener("click", () => showRecipesModal()));
+    modal.querySelector("[data-recipes-close]").addEventListener("click", hideRecipesModal);
+    modal.querySelector("[data-check-all]").addEventListener("click", () => {
+      Object.keys(checkedState).forEach(k => checkedState[k] = true);
+      render();
+    });
+    modal.querySelector("[data-uncheck-all]").addEventListener("click", () => {
+      Object.keys(checkedState).forEach(k => checkedState[k] = false);
+      render();
+    });
+    modal.querySelectorAll("[data-ing-id]").forEach(cb => {
+      cb.addEventListener("change", () => {
+        checkedState[cb.dataset.ingId] = cb.checked;
+        cb.closest(".ing-row").classList.toggle("unchecked", !cb.checked);
+        document.getElementById("ing-count").textContent =
+          Object.values(checkedState).filter(Boolean).length;
+      });
+    });
+    modal.querySelectorAll("[data-ing-qty]").forEach(inp => {
+      inp.addEventListener("change", () => {
+        const v = parseFloat(inp.value.replace(",", "."));
+        if (!isNaN(v) && v > 0) {
+          const id = inp.dataset.ingQty;
+          const ing = recipe.ingredients.find(i => i.id === id);
+          if (ing) ing.qty = v;
+        }
+      });
+    });
+    modal.querySelector("[data-add-recipe]").addEventListener("click", () => {
       let added = 0, updated = 0;
       recipe.ingredients.forEach(ing => {
+        if (!checkedState[ing.id]) return;
         const p = findProduct(ing.id);
         if (!p) return;
         const cart = activeCart();
@@ -5320,9 +5589,14 @@ function showRecipesModal() {
       saveState();
       renderAll();
       hideRecipesModal();
-      showToast(`✓ ${recipe.names[lang] || recipe.names.fr} : ${added} ajoutés, ${updated} mis à jour`);
+      if (added + updated === 0) {
+        showToast("ℹ️ Aucun ingrédient sélectionné", "warn");
+      } else {
+        showToast(`✓ ${recipe.names[lang] || recipe.names.fr} : ${added} ajoutés${updated > 0 ? ", " + updated + " maj" : ""}`);
+      }
     });
-  });
+  };
+  render();
 }
 function hideRecipesModal() {
   document.getElementById("recipes-modal").classList.remove("visible");
