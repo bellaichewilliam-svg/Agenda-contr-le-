@@ -1,19 +1,28 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#4f46e5" />
-  <meta name="description" content="Comparateur de prix entre Rami Levy, Carrefour, Shufersal, Yochananof, Victory, Boom, Osher Ad, Hatzi Hinam et Tiv Taam. Liste de courses à cocher, partageable." />
-  <title>PrixMalin - Comparateur de prix supermarchés Israël</title>
+  <meta name="description" content="PrixMalin : comparateur de prix multilingue (FR/HE/EN/RU) entre les supermarchés en Israël. Liste de courses partageable, mode sombre, installable hors-ligne." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
+  <title>PrixMalin · Israel grocery price comparator</title>
   <link rel="stylesheet" href="styles.css" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
 </head>
 <body>
   <header class="topbar">
     <div class="container topbar-inner">
-      <h1 class="logo"><span class="logo-emoji">🛒</span> PrixMalin</h1>
-      <p class="tagline">Liste de courses à cocher, partageable, et au prix le moins cher en Israël</p>
+      <div class="top-row">
+        <h1 class="logo"><span class="logo-emoji">🛒</span> <span id="logo-text">PrixMalin</span></h1>
+        <div class="top-actions">
+          <div class="lang-picker" id="lang-picker"></div>
+          <button class="icon-btn" id="install-btn" hidden title="Install">⬇️</button>
+          <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
+        </div>
+      </div>
+      <p class="tagline" id="tagline"></p>
       <div class="store-badges" id="store-badges"></div>
     </div>
   </header>
@@ -21,119 +30,131 @@
   <div class="update-banner">
     <div class="container update-banner-inner">
       <span class="pulse"></span>
-      <span>Prix mis à jour le <strong id="last-updated"></strong></span>
-      <span style="color:var(--border-strong)">·</span>
-      <span><span id="product-count"></span> produits</span>
-      <span style="color:var(--border-strong)">·</span>
-      <span id="live-status">🟡 Prix estimés en cours…</span>
+      <span><span id="last-updated-label">Prix mis à jour le</span> <strong id="last-updated"></strong></span>
+      <span class="dot-sep">·</span>
+      <span><span id="product-count"></span> products</span>
+      <span class="dot-sep">·</span>
+      <span id="source-label">📡 Source</span>
+      <span class="dot-sep">·</span>
+      <span id="live-status">🟡 …</span>
     </div>
   </div>
 
   <main class="container main-grid">
-    <!-- Liste de courses -->
     <section class="panel">
-      <h2>📝 Ma liste de courses</h2>
+      <div class="panel-head">
+        <h2 id="my-list-title">📝 Ma liste</h2>
+      </div>
+
+      <!-- Onglets listes multiples -->
+      <div class="lists-tabs" id="lists-tabs"></div>
 
       <div class="search-box">
-        <input
-          type="text"
-          id="search-input"
-          placeholder="Rechercher un produit (lait, poivron...)"
-          autocomplete="off"
-          enterkeyhint="search"
-        />
+        <input type="text" id="search-input" placeholder="…" autocomplete="off" enterkeyhint="search" />
         <div id="search-results" class="search-results" hidden></div>
       </div>
 
       <div class="quick-categories" id="quick-categories"></div>
+
+      <div id="suggestions" class="suggestions" hidden></div>
 
       <div id="cart-progress" class="cart-progress" hidden></div>
 
       <div id="cart" class="cart">
         <div class="empty-state">
           <span class="emoji">🛒</span>
-          Votre liste est vide.<br />
-          Cherchez un produit ou cliquez sur une catégorie pour commencer.
+          Votre liste est vide.
         </div>
       </div>
 
       <div class="cart-actions" id="cart-actions" hidden>
-        <button class="btn primary" id="share-list">📤 Partager la liste</button>
-        <button class="btn ghost" id="clear-cart" aria-label="Vider">🗑️</button>
+        <button class="btn primary" id="share-list">📤 <span id="share-btn-text">Partager</span></button>
+        <button class="btn ghost" id="clear-btn" aria-label="Clear">🗑️</button>
         <span class="cart-count" id="cart-count"></span>
       </div>
     </section>
 
-    <!-- Comparaison -->
     <section class="panel">
-      <h2>💸 Comparaison des prix</h2>
-
+      <h2 id="comparison-title">💸 Comparaison</h2>
       <div class="mode-switch">
-        <button class="mode-btn active" data-mode="single">Un seul magasin</button>
-        <button class="mode-btn" data-mode="optimized">Multi-magasins ✨</button>
+        <button class="mode-btn active" data-mode="single" id="mode-single">Un seul magasin</button>
+        <button class="mode-btn" data-mode="optimized" id="mode-multi">Multi-magasins ✨</button>
       </div>
-
       <div id="comparison" class="comparison">
-        <div class="empty-state">
-          <span class="emoji">📊</span>
-          Ajoutez des produits à votre liste<br />pour voir la comparaison entre les enseignes.
-        </div>
+        <div class="empty-state"><span class="emoji">📊</span></div>
       </div>
-
       <div id="optimization" class="optimization" hidden></div>
     </section>
   </main>
 
   <footer class="footer">
     <div class="container">
-      <p>💡 <strong>PrixMalin</strong> · 9 enseignes : Rami Levy, Osher Ad, Boom, Hatzi Hinam, Carrefour, Shufersal, Yochananof, Victory, Tiv Taam.</p>
-      <p>Partagez votre liste : la personne qui ouvre votre lien voit la même liste, peut cocher au fur et à mesure et ajouter des produits, puis vous renvoyer le lien mis à jour.</p>
+      <p>💡 PrixMalin · Rami Levy · Osher Ad · Boom · Hatzi Hinam · Carrefour · Shufersal · Yochananof · Victory · Tiv Taam</p>
     </div>
   </footer>
 
-  <!-- Barre mobile collante -->
+  <!-- Mobile bottom CTA -->
   <div class="mobile-cta" id="mobile-cta">
     <div class="mobile-cta-left">
       <span class="mobile-cta-total" id="mobile-cta-total">₪ 0.00</span>
       <span class="mobile-cta-store" id="mobile-cta-store"></span>
     </div>
-    <button id="mobile-cta-btn">Voir détails ↑</button>
+    <button id="mobile-cta-btn">↑</button>
   </div>
 
   <!-- Modal partage -->
   <div id="share-modal" class="modal">
     <div class="modal-card">
       <div class="modal-head">
-        <h3>📤 Partager ma liste</h3>
-        <button class="modal-close" id="share-close" aria-label="Fermer">×</button>
+        <h3 id="share-modal-title">📤</h3>
+        <button class="modal-close" id="share-close" aria-label="×">×</button>
       </div>
-      <p class="modal-text">
-        La personne qui ouvre ce lien verra votre liste, pourra la <strong>cocher au fur et à mesure</strong> dans les rayons, et pourra <strong>ajouter des produits</strong>. Elle pourra ensuite vous renvoyer un lien mis à jour.
-      </p>
+      <p class="modal-text" id="share-modal-text"></p>
       <div class="share-url-box">
         <input type="text" id="share-url" readonly />
-        <button class="btn primary" id="share-copy">Copier</button>
+        <button class="btn primary" id="share-copy">Copy</button>
       </div>
       <div class="share-channels">
         <a id="share-wa" class="share-channel" target="_blank" rel="noopener">
-          <span class="share-icon" style="background:#25D366">📱</span>
-          <span>WhatsApp</span>
+          <span class="share-icon" style="background:#25D366">📱</span><span>WhatsApp</span>
         </a>
         <a id="share-sms" class="share-channel">
-          <span class="share-icon" style="background:#3b82f6">💬</span>
-          <span>SMS</span>
+          <span class="share-icon" style="background:#3b82f6">💬</span><span>SMS</span>
         </a>
         <a id="share-mail" class="share-channel">
-          <span class="share-icon" style="background:#ef4444">✉️</span>
-          <span>Email</span>
+          <span class="share-icon" style="background:#ef4444">✉️</span><span>Email</span>
         </a>
       </div>
     </div>
   </div>
 
-  <!-- Toast -->
+  <!-- Settings drawer -->
+  <div id="settings-drawer" class="drawer">
+    <div class="drawer-card">
+      <div class="drawer-head">
+        <h3>⚙️ Settings</h3>
+        <button class="modal-close" id="settings-close">×</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" id="settings-shopping-label">Mode courses</div>
+          <div class="setting-hint" id="settings-shopping-hint">Vue groupée par rayon</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="settings-shopping" /><span></span></label>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="setting-label" id="settings-theme-label">Mode sombre</div>
+          <div class="setting-hint">🌙 / ☀️</div>
+        </div>
+        <label class="toggle"><input type="checkbox" id="settings-theme" /><span></span></label>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
+  <script src="data/i18n.js"></script>
   <script src="data/products.js"></script>
   <script src="app.js"></script>
 </body>
