@@ -518,15 +518,12 @@ function filterProducts(query, category) {
   matches.sort((a, b) => b.score - a.score || a.p.name.localeCompare(b.p.name));
   return matches.map(m => m.p);
 }
+// Dropdown (raccourci pendant la frappe seulement, désactivé sinon)
 function renderSearchResults() {
   const wrap = document.getElementById("search-results");
-  if (!state.searchQuery && !state.activeCategory) { wrap.hidden = true; wrap.innerHTML = ""; return; }
-  const results = filterProducts(state.searchQuery, state.activeCategory).slice(0, 30);
-  if (results.length === 0) {
-    wrap.hidden = false;
-    wrap.innerHTML = `<div class="search-result-item"><span class="meta">${t("search_none")}</span></div>`;
-    return;
-  }
+  if (!state.searchQuery) { wrap.hidden = true; wrap.innerHTML = ""; return; }
+  const results = filterProducts(state.searchQuery, null).slice(0, 6);
+  if (results.length === 0) { wrap.hidden = true; wrap.innerHTML = ""; return; }
   wrap.hidden = false;
   wrap.innerHTML = results.map(p => {
     const cheapest = cheapestStoreFor(p);
@@ -534,10 +531,10 @@ function renderSearchResults() {
     const cartTag = qty ? `<span style="color:var(--success);font-weight:600">✓ ${formatQty(qty)}×</span>` : "";
     return `
       <div class="search-result-item" data-id="${p.id}">
-        <div class="prod-icon" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
+        <div class="prod-icon mini" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
         <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px">${tProduct(p)} ${cartTag}</div>
-          <div class="meta">${tCat(p.category)} · ${p.unit} · ${t("starting_at")} <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong> ${t("at_store")} ${STORES[cheapest.store].name}</div>
+          <div style="font-weight:600;font-size:13px;display:flex;align-items:center;gap:6px">${tProduct(p)} ${cartTag}</div>
+          <div class="meta">${tCat(p.category)} · ${formatPrice(cheapest.price)}</div>
         </div>
         <div class="add-icon">+</div>
       </div>`;
@@ -548,9 +545,9 @@ function renderSearchResults() {
       document.getElementById("search-input").value = "";
       state.searchQuery = "";
       renderSearchResults();
+      renderBrowsePanel();
     });
   });
-  observeProductIcons(wrap);
 }
 function cheapestStoreFor(product) {
   let best = { store: null, price: Infinity };
@@ -570,8 +567,20 @@ function renderQuickCategories() {
   wrap.querySelectorAll(".cat-pill").forEach(el => {
     el.addEventListener("click", () => {
       state.activeCategory = state.activeCategory === el.dataset.cat ? null : el.dataset.cat;
+      // Si on active une catégorie, on vide la recherche pour éviter le conflit
+      if (state.activeCategory) {
+        state.searchQuery = "";
+        const si = document.getElementById("search-input");
+        if (si) si.value = "";
+        document.getElementById("search-results").hidden = true;
+      }
       renderQuickCategories();
-      renderSearchResults();
+      renderBrowsePanel();
+      // Scrolle vers la grille
+      const grid = document.getElementById("browse-grid");
+      if (grid && state.activeCategory) {
+        setTimeout(() => grid.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+      }
     });
   });
 }
@@ -1544,10 +1553,19 @@ function setupEvents() {
     });
   });
   const search = document.getElementById("search-input");
-  search.addEventListener("input", e => { state.searchQuery = e.target.value; renderSearchResults(); });
-  search.addEventListener("focus", () => { if (state.searchQuery || state.activeCategory) renderSearchResults(); });
+  search.addEventListener("input", e => {
+    state.searchQuery = e.target.value;
+    // Recherche désactive le filtre catégorie pour ne pas conflit
+    if (state.searchQuery && state.activeCategory) {
+      state.activeCategory = null;
+      renderQuickCategories();
+    }
+    renderBrowsePanel();
+    renderSearchResults();
+  });
+  search.addEventListener("focus", () => { if (state.searchQuery) renderSearchResults(); });
   document.addEventListener("click", e => {
-    if (!e.target.closest(".search-box") && !e.target.closest(".quick-categories")) {
+    if (!e.target.closest(".search-box")) {
       document.getElementById("search-results").hidden = true;
     }
   });
@@ -1605,7 +1623,7 @@ function setupPWA() {
   }
   // Détection de version pour les visiteurs avec cache navigateur agressif
   const VERSION_KEY = "prixmalin.version";
-  const CURRENT_VERSION = "v6";
+  const CURRENT_VERSION = "v7";
   const stored = (() => { try { return localStorage.getItem(VERSION_KEY); } catch { return null; } })();
   if (stored !== CURRENT_VERSION) {
     try { localStorage.setItem(VERSION_KEY, CURRENT_VERSION); } catch {}
