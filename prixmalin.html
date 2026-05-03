@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#4f46e5" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <meta name="description" content="PrixMalin : comparateur de prix multilingue (FR/HE/EN/RU) entre les supermarchés en Israël. Liste de courses partageable, mode sombre, installable hors-ligne." />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
@@ -1540,6 +1543,12 @@ button { font-family: inherit; color: inherit; }
           <div class="setting-hint">🌙 / ☀️</div>
         </div>
         <label class="toggle"><input type="checkbox" id="settings-theme" /><span></span></label>
+      </div>
+      <div class="setting-row" style="border-bottom: none; flex-direction: column; align-items: stretch; gap: 8px;">
+        <div class="setting-label">🔄 Forcer la mise à jour</div>
+        <div class="setting-hint">Vide le cache et recharge la dernière version</div>
+        <button class="btn primary" id="settings-reset" style="margin-top: 6px;">Mettre à jour maintenant</button>
+        <div class="setting-hint" id="app-version" style="text-align:center;margin-top:4px"></div>
       </div>
     </div>
   </div>
@@ -4362,6 +4371,16 @@ function setupSettings() {
   const th = document.getElementById("settings-theme");
   th.checked = state.theme === "dark";
   th.addEventListener("change", () => { setTheme(th.checked ? "dark" : "light"); });
+  // Force update button
+  const resetBtn = document.getElementById("settings-reset");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      showToast("⏳ Vidage du cache en cours...");
+      setTimeout(() => nukeCacheAndReload(), 500);
+    });
+  }
+  const verEl = document.getElementById("app-version");
+  if (verEl) verEl.textContent = "Version " + (window.PRIXMALIN_VERSION || "v8") + " · " + DATA_VERSION;
 }
 
 // ========== EVENTS ==========
@@ -4444,8 +4463,9 @@ function setupPWA() {
     });
   }
   // Détection de version pour les visiteurs avec cache navigateur agressif
+  window.PRIXMALIN_VERSION = "v8";
   const VERSION_KEY = "prixmalin.version";
-  const CURRENT_VERSION = "v7";
+  const CURRENT_VERSION = "v8";
   const stored = (() => { try { return localStorage.getItem(VERSION_KEY); } catch { return null; } })();
   if (stored !== CURRENT_VERSION) {
     try { localStorage.setItem(VERSION_KEY, CURRENT_VERSION); } catch {}
@@ -4473,8 +4493,33 @@ function setupPWA() {
   });
 }
 
+// ========== KILL SWITCH ==========
+// Purge totale (caches + service workers + flag de session) si ?reset=1
+async function nukeCacheAndReload() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch {}
+  // Recharge sans cache navigateur
+  const url = new URL(location.href);
+  url.searchParams.delete("reset");
+  url.searchParams.set("_v", Date.now());
+  location.replace(url.toString());
+}
+if (new URLSearchParams(location.search).has("reset")) {
+  nukeCacheAndReload();
+  // empêche le reste du script de tourner
+  throw new Error("Resetting...");
+}
+
 // ========== INIT ==========
-// Nettoyage des photos cachées de l'ancienne version (matches faussés OFF/Wikimedia)
+// Nettoyage des photos cachées de l'ancienne version
 try {
   const keys = Object.keys(localStorage);
   keys.filter(k => k.startsWith("pm.img.")).forEach(k => localStorage.removeItem(k));

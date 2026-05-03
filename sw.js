@@ -3,7 +3,7 @@
 // quand en ligne), CACHE-FIRST seulement pour les assets statiques rares.
 // Le but : éviter que la version cachée bloque les mises à jour.
 
-const CACHE = "prixmalin-v7";
+const CACHE = "prixmalin-v8";
 const ASSETS = [
   "./",
   "./index.html",

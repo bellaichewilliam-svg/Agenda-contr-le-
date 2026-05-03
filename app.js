@@ -1540,6 +1540,16 @@ function setupSettings() {
   const th = document.getElementById("settings-theme");
   th.checked = state.theme === "dark";
   th.addEventListener("change", () => { setTheme(th.checked ? "dark" : "light"); });
+  // Force update button
+  const resetBtn = document.getElementById("settings-reset");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      showToast("⏳ Vidage du cache en cours...");
+      setTimeout(() => nukeCacheAndReload(), 500);
+    });
+  }
+  const verEl = document.getElementById("app-version");
+  if (verEl) verEl.textContent = "Version " + (window.PRIXMALIN_VERSION || "v8") + " · " + DATA_VERSION;
 }
 
 // ========== EVENTS ==========
@@ -1622,8 +1632,9 @@ function setupPWA() {
     });
   }
   // Détection de version pour les visiteurs avec cache navigateur agressif
+  window.PRIXMALIN_VERSION = "v8";
   const VERSION_KEY = "prixmalin.version";
-  const CURRENT_VERSION = "v7";
+  const CURRENT_VERSION = "v8";
   const stored = (() => { try { return localStorage.getItem(VERSION_KEY); } catch { return null; } })();
   if (stored !== CURRENT_VERSION) {
     try { localStorage.setItem(VERSION_KEY, CURRENT_VERSION); } catch {}
@@ -1651,8 +1662,33 @@ function setupPWA() {
   });
 }
 
+// ========== KILL SWITCH ==========
+// Purge totale (caches + service workers + flag de session) si ?reset=1
+async function nukeCacheAndReload() {
+  try {
+    if ("serviceWorker" in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch {}
+  // Recharge sans cache navigateur
+  const url = new URL(location.href);
+  url.searchParams.delete("reset");
+  url.searchParams.set("_v", Date.now());
+  location.replace(url.toString());
+}
+if (new URLSearchParams(location.search).has("reset")) {
+  nukeCacheAndReload();
+  // empêche le reste du script de tourner
+  throw new Error("Resetting...");
+}
+
 // ========== INIT ==========
-// Nettoyage des photos cachées de l'ancienne version (matches faussés OFF/Wikimedia)
+// Nettoyage des photos cachées de l'ancienne version
 try {
   const keys = Object.keys(localStorage);
   keys.filter(k => k.startsWith("pm.img.")).forEach(k => localStorage.removeItem(k));
