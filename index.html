@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#4f46e5" />
+  <meta name="description" content="Comparateur de prix entre Rami Levy, Carrefour, Shufersal, Yochananof, Victory, Boom, Osher Ad, Hatzi Hinam et Tiv Taam. Trouvez le panier le moins cher en Israël." />
+  <title>PrixMalin - Comparateur de prix supermarchés Israël</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛒</text></svg>" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <h1 class="logo"><span class="logo-emoji">🛒</span> PrixMalin</h1>
+      <p class="tagline">Trouvez la liste de courses la moins chère en Israël</p>
+      <div class="store-badges" id="store-badges"></div>
+    </div>
+  </header>
+
+  <div class="update-banner">
+    <div class="container update-banner-inner">
+      <span class="pulse"></span>
+      <span>Prix mis à jour le <strong id="last-updated"></strong></span>
+      <span style="color:var(--border-strong)">·</span>
+      <span><span id="product-count"></span> produits suivis</span>
+      <span style="color:var(--border-strong)">·</span>
+      <span>📡 Source : flux officiels (loi de transparence des prix 2014)</span>
+    </div>
+  </div>
+
+  <main class="container main-grid">
+    <!-- Liste de courses -->
+    <section class="panel">
+      <h2>📝 Ma liste de courses</h2>
+
+      <div class="search-box">
+        <input
+          type="text"
+          id="search-input"
+          placeholder="Rechercher un produit (lait, tomates...)"
+          autocomplete="off"
+          enterkeyhint="search"
+        />
+        <div id="search-results" class="search-results" hidden></div>
+      </div>
+
+      <div class="quick-categories" id="quick-categories"></div>
+
+      <div id="cart" class="cart">
+        <div class="empty-state">
+          <span class="emoji">🛒</span>
+          Votre liste est vide.<br />
+          Cherchez un produit ou cliquez sur une catégorie pour commencer.
+        </div>
+      </div>
+
+      <div class="cart-actions" id="cart-actions" hidden>
+        <button class="btn ghost" id="clear-cart">🗑️ Vider la liste</button>
+        <span class="cart-count" id="cart-count"></span>
+      </div>
+    </section>
+
+    <!-- Comparaison -->
+    <section class="panel">
+      <h2>💸 Comparaison des prix</h2>
+
+      <div class="mode-switch">
+        <button class="mode-btn active" data-mode="single">Un seul magasin</button>
+        <button class="mode-btn" data-mode="optimized">Multi-magasins ✨</button>
+      </div>
+
+      <div id="comparison" class="comparison">
+        <div class="empty-state">
+          <span class="emoji">📊</span>
+          Ajoutez des produits à votre liste<br />pour voir la comparaison entre les enseignes.
+        </div>
+      </div>
+
+      <div id="optimization" class="optimization" hidden></div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>💡 <strong>PrixMalin</strong> compare les prix entre 9 enseignes : Rami Levy, Osher Ad, Boom, Hatzi Hinam, Carrefour, Shufersal, Yochananof, Victory, Tiv Taam.</p>
+      <p>Les prix sont indicatifs et peuvent varier selon le magasin et les promotions du jour.</p>
+      <p style="margin-top:8px">🔄 Mise à jour automatique à venir via les flux <a class="footer-link" href="https://www.gov.il/he/departments/legalInfo/cpfta_prices_regulations" target="_blank" rel="noopener">officiels du Ministère de l'Économie</a>.</p>
+    </div>
+  </footer>
+
+  <!-- Barre mobile collante -->
+  <div class="mobile-cta" id="mobile-cta">
+    <div class="mobile-cta-left">
+      <span class="mobile-cta-total" id="mobile-cta-total">₪ 0.00</span>
+      <span class="mobile-cta-store" id="mobile-cta-store"></span>
+    </div>
+    <button id="mobile-cta-btn">Voir détails ↑</button>
+  </div>
+
+  <script src="data/products.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
