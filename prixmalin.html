@@ -333,27 +333,33 @@ button { font-family: inherit; color: inherit; }
   flex-shrink: 0;
 }
 
-/* ====== Categories ====== */
+/* ====== Categories - rangée horizontale scrollable (style Wolt/Instacart) ====== */
 .quick-categories {
   display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 14px;
+  flex-wrap: nowrap;            /* une seule ligne */
+  gap: 6px;
+  margin: 0 -14px 12px;          /* déborde sur les bords pour le scroll */
+  padding: 2px 14px 6px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
 }
+.quick-categories::-webkit-scrollbar { display: none; }
 .cat-pill {
   background: var(--accent-soft);
   color: var(--accent-hover);
   border: 1px solid transparent;
-  padding: 5px 10px;
+  padding: 7px 14px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--tx);
   white-space: nowrap;
   flex-shrink: 0;
+  scroll-snap-align: start;
 }
 .cat-pill:hover { background: #e0e7ff; }
 [data-theme="dark"] .cat-pill:hover { background: #3730a3; }
@@ -361,7 +367,7 @@ button { font-family: inherit; color: inherit; }
   background: var(--accent);
   color: white;
   border-color: var(--accent);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.35);
 }
 
 /* ====== Suggestions ====== */
@@ -1036,17 +1042,17 @@ button { font-family: inherit; color: inherit; }
 }
 .prod-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 8px;
 }
 @media (min-width: 640px) {
-  .prod-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .prod-grid { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); }
 }
 .prod-card {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 10px;
+  padding: 8px 6px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1061,67 +1067,83 @@ button { font-family: inherit; color: inherit; }
   box-shadow: var(--shadow-md);
 }
 .prod-icon.big {
-  width: 64px; height: 64px;
-  min-width: 64px;
-  font-size: 30px;
-  margin-bottom: 8px;
+  width: 52px; height: 52px;
+  min-width: 52px;
+  font-size: 26px;
+  margin-bottom: 6px;
 }
 .prod-icon.huge {
-  width: 88px; height: 88px;
-  min-width: 88px;
-  font-size: 44px;
+  width: 76px; height: 76px;
+  min-width: 76px;
+  font-size: 38px;
 }
 .prod-card-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.25;
-  margin-bottom: 2px;
+  line-height: 1.2;
+  margin-bottom: 1px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 32px;
+  min-height: 28px;
+  width: 100%;
 }
 .prod-card-meta {
   font-size: 10px;
   color: var(--muted);
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
 .prod-card-price {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: center;
-  gap: 3px;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
   font-size: 13px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   width: 100%;
+  line-height: 1.15;
 }
-.prod-card-from { font-size: 10px; color: var(--muted); }
-.prod-card-store { font-size: 10px; color: var(--muted); width: 100%; }
+.prod-card-price strong { font-size: 14px; font-weight: 800; }
+.prod-card-from, .prod-card-store {
+  font-size: 9px; color: var(--muted);
+}
 .prod-card-incart {
   background: var(--success);
   color: white;
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 6px;
   border-radius: 999px;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 .prod-card-add {
+  position: absolute;
+  top: 6px; right: 6px;
   background: var(--accent);
   color: white;
   border: none;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 12px;
-  font-weight: 600;
+  width: 26px; height: 26px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  width: 100%;
-  transition: background var(--tx);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--tx), transform var(--tx);
+  padding: 0;
+  line-height: 1;
 }
-.prod-card-add:hover { background: var(--accent-hover); }
+[dir="rtl"] .prod-card-add { right: auto; left: 6px; }
+.prod-card-add:hover { background: var(--accent-hover); transform: scale(1.08); }
+.prod-card-add:active { transform: scale(0.95); }
 
 /* ====== Product modal ====== */
 .pm-card {
@@ -1234,55 +1256,75 @@ button { font-family: inherit; color: inherit; }
 .st-value.primary { font-size: 18px; font-weight: 800; }
 .st-label { color: var(--text-soft); }
 
-/* ====== Promos banner ====== */
+/* ====== Promos banner - compact + collapsible ====== */
 .promos-banner {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  border: 1.5px solid #fbbf24;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  border: 1px solid #fbbf24;
   border-radius: var(--radius-md);
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  overflow: hidden;
 }
 [data-theme="dark"] .promos-banner {
-  background: linear-gradient(135deg, #422006 0%, #78350f 100%);
-  border-color: #d97706;
+  background: linear-gradient(135deg, #292008, #3a2a09);
+  border-color: #b45309;
 }
-.promo-summary {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: #78350f;
+.promo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: start;
+  font-family: inherit;
 }
-[data-theme="dark"] .promo-summary { color: #fcd34d; }
-.promo-summary strong { color: var(--success); }
-.promo-list { display: flex; flex-direction: column; gap: 6px; }
+.promo-toggle-text { flex: 1; font-size: 12px; font-weight: 600; color: #92400e; line-height: 1.3; }
+[data-theme="dark"] .promo-toggle-text { color: #fcd34d; }
+.promo-toggle-text strong { color: var(--success); font-size: 13px; }
+.promo-toggle-arrow {
+  font-size: 12px; color: var(--muted);
+  transition: transform var(--tx);
+}
+.promos-banner.expanded .promo-toggle-arrow { transform: rotate(180deg); }
+.promo-list {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 8px 8px;
+}
+.promos-banner.expanded .promo-list { display: flex; }
 .promo-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.65);
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 11px;
 }
-[data-theme="dark"] .promo-item { background: rgba(0, 0, 0, 0.3); }
-.promo-item.applied { background: rgba(16, 185, 129, 0.15); }
+[data-theme="dark"] .promo-item { background: rgba(0, 0, 0, 0.25); }
+.promo-item.applied { background: rgba(16, 185, 129, 0.18); }
 .promo-text { flex: 1; min-width: 0; }
-.promo-title { font-weight: 700; line-height: 1.3; }
-.promo-saved { font-size: 11px; margin-top: 2px; color: var(--success); }
-.promo-saved strong { color: var(--success); }
-.promo-hint { font-size: 11px; margin-top: 2px; color: var(--text-soft); }
+.promo-title { font-weight: 700; line-height: 1.25; font-size: 11px; }
+.promo-saved { font-size: 10px; margin-top: 1px; color: var(--success); font-weight: 600; }
+.promo-hint { font-size: 10px; margin-top: 1px; color: var(--text-soft); }
 .promo-add {
   background: var(--accent);
   color: white;
   border: none;
-  width: 30px; height: 30px;
+  width: 24px; height: 24px;
   border-radius: 999px;
-  font-size: 18px;
+  font-size: 15px;
   cursor: pointer;
   flex-shrink: 0;
   font-weight: 700;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.promo-add:hover { background: var(--accent-hover); }
 
 /* ====== Store picker on cart item ====== */
 .store-pick {
@@ -3046,111 +3088,13 @@ function productTint(p) {
   return CAT_TINT[p.category] || "#e0e7ff";
 }
 
-// ========== PHOTOS PRODUITS (Open Food Facts + Wikimedia) ==========
-// Recherche async en ligne, cache localStorage permanent, fallback emoji
-const IMG_CACHE = {};
-const IMG_LOADING = {};
-const IMG_PREFIX = "pm.img.";
-
-function imgFromCache(pid) {
-  if (IMG_CACHE[pid] !== undefined) return IMG_CACHE[pid];
-  try {
-    const v = localStorage.getItem(IMG_PREFIX + pid);
-    if (v !== null) {
-      const url = v || null;
-      IMG_CACHE[pid] = url;
-      return url;
-    }
-  } catch {}
-  return undefined;
-}
-function imgSetCache(pid, url) {
-  IMG_CACHE[pid] = url || null;
-  try { localStorage.setItem(IMG_PREFIX + pid, url || ""); } catch {}
-}
-function searchTermsFor(p) {
-  const tr = (typeof PRODUCT_I18N !== "undefined") ? PRODUCT_I18N[p.id] : null;
-  let q = (tr && tr.en) || p.name;
-  q = q.replace(/\([^)]*\)/g, "").replace(/[0-9]+\s*(g|kg|ml|l|u|×).*$/i, "").trim();
-  return q.split(/\s+/).slice(0, 3).join(" ");
-}
-async function tryOpenFoodFacts(p) {
-  try {
-    const q = encodeURIComponent(searchTermsFor(p));
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=3&fields=image_front_small_url,image_front_thumb_url,image_url`;
-    const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 6000);
-    const r = await fetch(url, { signal: ctrl.signal });
-    if (!r.ok) return null;
-    const j = await r.json();
-    for (const item of (j.products || [])) {
-      const img = item.image_front_small_url || item.image_front_thumb_url || item.image_url;
-      if (img && img.startsWith("http")) return img;
-    }
-  } catch {}
-  return null;
-}
-async function tryWikimedia(p) {
-  try {
-    const q = encodeURIComponent(searchTermsFor(p));
-    const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url&iiurlwidth=200&generator=search&gsrnamespace=6&gsrsearch=${q}&gsrlimit=1&origin=*`;
-    const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 6000);
-    const r = await fetch(url, { signal: ctrl.signal });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const pages = j.query?.pages;
-    if (!pages) return null;
-    for (const page of Object.values(pages)) {
-      const thumb = page?.imageinfo?.[0]?.thumburl;
-      if (thumb && thumb.startsWith("http")) return thumb;
-    }
-  } catch {}
-  return null;
-}
-async function fetchProductImage(pid) {
-  if (IMG_LOADING[pid]) return IMG_LOADING[pid];
-  IMG_LOADING[pid] = (async () => {
-    const p = findProduct(pid);
-    if (!p) { imgSetCache(pid, null); return null; }
-    let url = await tryOpenFoodFacts(p);
-    if (!url) url = await tryWikimedia(p);
-    imgSetCache(pid, url);
-    delete IMG_LOADING[pid];
-    return url;
-  })();
-  return IMG_LOADING[pid];
-}
-let imgObserver = null;
-function setupImageObserver() {
-  if (imgObserver) imgObserver.disconnect();
-  if (typeof IntersectionObserver === "undefined") return;
-  imgObserver = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (!e.isIntersecting) return;
-      const el = e.target;
-      const pid = el.dataset.pid;
-      if (!pid) return;
-      imgObserver.unobserve(el);
-      const cached = imgFromCache(pid);
-      if (typeof cached === "string" && cached) applyImage(el, cached);
-      else if (cached === undefined) fetchProductImage(pid).then(url => { if (url) applyImage(el, url); });
-    });
-  }, { rootMargin: "200px" });
-}
-function applyImage(el, url) {
-  const img = document.createElement("img");
-  img.src = url; img.alt = ""; img.loading = "lazy";
-  img.onerror = () => { img.remove(); };
-  img.onload = () => { el.classList.add("has-img"); el.innerHTML = ""; el.appendChild(img); };
-}
-function observeProductIcons(container) {
-  if (!imgObserver) return;
-  container.querySelectorAll(".prod-icon[data-pid]").forEach(el => {
-    const pid = el.dataset.pid;
-    const cached = imgFromCache(pid);
-    if (typeof cached === "string" && cached) applyImage(el, cached);
-    else if (cached === undefined) imgObserver.observe(el);
-  });
-}
+// ========== PHOTOS PRODUITS (DÉSACTIVÉES) ==========
+// L'auto-fetch via OFF/Wikimedia donnait trop de faux positifs
+// (ex : "camembert" affiché pour "lait d'amande"). On garde uniquement
+// l'icône emoji jusqu'à ce que le scraper officiel fournisse les vraies
+// photos depuis les flux des supermarchés.
+function setupImageObserver() {}
+function observeProductIcons() {}
 
 // ========== DESCRIPTIONS ==========
 const PRODUCT_DESC = {
@@ -3631,8 +3575,8 @@ function renderBrowsePanel() {
               <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong>
               <span class="prod-card-store">${STORES[cheapest.store].name}</span>
             </div>
-            ${inCart ? `<div class="prod-card-incart">✓ ${formatQty(inCart)}× ${t("at_store")} ${STORES[chosenStoreFor(p.id) || cheapest.store]?.name || ""}</div>` : ""}
-            <button class="prod-card-add" data-add-pid="${p.id}">+ ${t("add") || "Ajouter"}</button>
+            ${inCart ? `<div class="prod-card-incart">✓ ${formatQty(inCart)}× ${STORES[chosenStoreFor(p.id) || cheapest.store]?.name || ""}</div>` : ""}
+            <button class="prod-card-add" data-add-pid="${p.id}" aria-label="Add">+</button>
           </div>`;
       }).join("")}
     </div>`;
@@ -3783,44 +3727,52 @@ function renderPromos() {
   if (Object.keys(byChain).length === 0) { wrap.hidden = true; wrap.innerHTML = ""; return; }
 
   const totalApplied = Object.values(byChain).reduce((s, r) => s + r.totalSaving, 0);
-  let html = "";
-  if (totalApplied > 0.1) {
-    html += `<div class="promo-summary">💸 Vos promos actives : <strong>−${formatPrice(totalApplied)}</strong></div>`;
-  }
-
-  const allSuggestions = [];
+  const allItems = [];
   Object.entries(byChain).forEach(([chain, r]) => {
-    r.suggestions.forEach(s => allSuggestions.push({ ...s, chain }));
-    r.applied.forEach(a => allSuggestions.push({ ...a, chain, _applied: true }));
+    r.suggestions.forEach(s => allItems.push({ ...s, chain }));
+    r.applied.forEach(a => allItems.push({ ...a, chain, _applied: true }));
   });
-  // Top 4 (priorité aux suggestions presque déclenchées)
-  allSuggestions.sort((a, b) => {
+  allItems.sort((a, b) => {
     if (a._applied !== b._applied) return a._applied ? 1 : -1;
     return (b.potentialSaving || b.saving || 0) - (a.potentialSaving || a.saving || 0);
   });
 
-  html += `<div class="promo-list">`;
-  allSuggestions.slice(0, 4).forEach(p => {
+  const appliedCount = allItems.filter(i => i._applied).length;
+  const sugCount = allItems.length - appliedCount;
+  const summaryParts = [];
+  if (totalApplied > 0.1) summaryParts.push(`💸 <strong>−${formatPrice(totalApplied)}</strong> en promos`);
+  if (sugCount > 0) summaryParts.push(`💡 ${sugCount} suggestion${sugCount > 1 ? "s" : ""}`);
+  const summary = summaryParts.length ? summaryParts.join(" · ") : `${allItems.length} promo${allItems.length > 1 ? "s" : ""}`;
+
+  let html = `
+    <button class="promo-toggle" data-promo-toggle>
+      <span class="promo-toggle-text">${summary}</span>
+      <span class="promo-toggle-arrow">▼</span>
+    </button>
+    <div class="promo-list">`;
+  allItems.slice(0, 6).forEach(p => {
     const store = STORES[p.chain];
     if (p._applied) {
       html += `
         <div class="promo-item applied">
-          <span class="store-icon" style="background:${store.color};width:24px;height:24px;font-size:10px">${store.icon}</span>
+          <span class="store-icon" style="background:${store.color};width:22px;height:22px;font-size:10px">${store.icon}</span>
           <div class="promo-text">
             <div class="promo-title">✅ ${p.title}</div>
-            <div class="promo-saved">Économies : <strong>−${formatPrice(p.saving || 0)}</strong> chez ${store.name}</div>
+            <div class="promo-saved">−${formatPrice(p.saving || 0)} chez ${store.name}</div>
           </div>
         </div>`;
     } else {
+      const sugProd = p.suggest ? findProduct(p.suggest.id) : null;
       const missingTxt = p.isAmount
-        ? `Encore ${formatPrice(p.missing)} d'achats`
-        : (p.suggest ? `Ajoute "${tProduct(findProduct(p.suggest.id) || { name: p.suggest.name, id: p.suggest.id })}" (${formatPrice(p.suggest.price)})` : `Ajoute ${p.missing}× plus`);
+        ? `Encore ${formatPrice(p.missing)}`
+        : (sugProd ? `Ajoute ${tProduct(sugProd)}` : `Ajoute ${p.missing}× plus`);
+      const gain = p.potentialSaving > 0 ? ` → −${formatPrice(p.potentialSaving)}` : "";
       html += `
         <div class="promo-item">
-          <span class="store-icon" style="background:${store.color};width:24px;height:24px;font-size:10px">${store.icon}</span>
+          <span class="store-icon" style="background:${store.color};width:22px;height:22px;font-size:10px">${store.icon}</span>
           <div class="promo-text">
-            <div class="promo-title">💡 ${p.title} chez ${store.name}</div>
-            <div class="promo-hint">${missingTxt} → ${p.potentialSaving > 0 ? `gagne ${formatPrice(p.potentialSaving)}` : "déclenche la promo"}</div>
+            <div class="promo-title">${p.title} · ${store.name}</div>
+            <div class="promo-hint">${missingTxt}${gain}</div>
           </div>
           ${p.suggest ? `<button class="promo-add" data-add="${p.suggest.id}" data-store="${p.chain}">+</button>` : ""}
         </div>`;
@@ -3830,8 +3782,14 @@ function renderPromos() {
 
   wrap.hidden = false;
   wrap.innerHTML = html;
+  wrap.querySelector("[data-promo-toggle]").addEventListener("click", () => {
+    wrap.classList.toggle("expanded");
+  });
   wrap.querySelectorAll("[data-add]").forEach(b => {
-    b.addEventListener("click", () => addToCart(b.dataset.add, undefined, b.dataset.store));
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      addToCart(b.dataset.add, undefined, b.dataset.store);
+    });
   });
 }
 
@@ -4458,6 +4416,12 @@ function setupPWA() {
 }
 
 // ========== INIT ==========
+// Nettoyage des photos cachées de l'ancienne version (matches faussés OFF/Wikimedia)
+try {
+  const keys = Object.keys(localStorage);
+  keys.filter(k => k.startsWith("pm.img.")).forEach(k => localStorage.removeItem(k));
+} catch {}
+
 applyLang();
 applyTheme();
 setupImageObserver();

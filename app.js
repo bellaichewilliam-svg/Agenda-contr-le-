@@ -273,111 +273,13 @@ function productTint(p) {
   return CAT_TINT[p.category] || "#e0e7ff";
 }
 
-// ========== PHOTOS PRODUITS (Open Food Facts + Wikimedia) ==========
-// Recherche async en ligne, cache localStorage permanent, fallback emoji
-const IMG_CACHE = {};
-const IMG_LOADING = {};
-const IMG_PREFIX = "pm.img.";
-
-function imgFromCache(pid) {
-  if (IMG_CACHE[pid] !== undefined) return IMG_CACHE[pid];
-  try {
-    const v = localStorage.getItem(IMG_PREFIX + pid);
-    if (v !== null) {
-      const url = v || null;
-      IMG_CACHE[pid] = url;
-      return url;
-    }
-  } catch {}
-  return undefined;
-}
-function imgSetCache(pid, url) {
-  IMG_CACHE[pid] = url || null;
-  try { localStorage.setItem(IMG_PREFIX + pid, url || ""); } catch {}
-}
-function searchTermsFor(p) {
-  const tr = (typeof PRODUCT_I18N !== "undefined") ? PRODUCT_I18N[p.id] : null;
-  let q = (tr && tr.en) || p.name;
-  q = q.replace(/\([^)]*\)/g, "").replace(/[0-9]+\s*(g|kg|ml|l|u|×).*$/i, "").trim();
-  return q.split(/\s+/).slice(0, 3).join(" ");
-}
-async function tryOpenFoodFacts(p) {
-  try {
-    const q = encodeURIComponent(searchTermsFor(p));
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=3&fields=image_front_small_url,image_front_thumb_url,image_url`;
-    const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 6000);
-    const r = await fetch(url, { signal: ctrl.signal });
-    if (!r.ok) return null;
-    const j = await r.json();
-    for (const item of (j.products || [])) {
-      const img = item.image_front_small_url || item.image_front_thumb_url || item.image_url;
-      if (img && img.startsWith("http")) return img;
-    }
-  } catch {}
-  return null;
-}
-async function tryWikimedia(p) {
-  try {
-    const q = encodeURIComponent(searchTermsFor(p));
-    const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url&iiurlwidth=200&generator=search&gsrnamespace=6&gsrsearch=${q}&gsrlimit=1&origin=*`;
-    const ctrl = new AbortController(); setTimeout(() => ctrl.abort(), 6000);
-    const r = await fetch(url, { signal: ctrl.signal });
-    if (!r.ok) return null;
-    const j = await r.json();
-    const pages = j.query?.pages;
-    if (!pages) return null;
-    for (const page of Object.values(pages)) {
-      const thumb = page?.imageinfo?.[0]?.thumburl;
-      if (thumb && thumb.startsWith("http")) return thumb;
-    }
-  } catch {}
-  return null;
-}
-async function fetchProductImage(pid) {
-  if (IMG_LOADING[pid]) return IMG_LOADING[pid];
-  IMG_LOADING[pid] = (async () => {
-    const p = findProduct(pid);
-    if (!p) { imgSetCache(pid, null); return null; }
-    let url = await tryOpenFoodFacts(p);
-    if (!url) url = await tryWikimedia(p);
-    imgSetCache(pid, url);
-    delete IMG_LOADING[pid];
-    return url;
-  })();
-  return IMG_LOADING[pid];
-}
-let imgObserver = null;
-function setupImageObserver() {
-  if (imgObserver) imgObserver.disconnect();
-  if (typeof IntersectionObserver === "undefined") return;
-  imgObserver = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (!e.isIntersecting) return;
-      const el = e.target;
-      const pid = el.dataset.pid;
-      if (!pid) return;
-      imgObserver.unobserve(el);
-      const cached = imgFromCache(pid);
-      if (typeof cached === "string" && cached) applyImage(el, cached);
-      else if (cached === undefined) fetchProductImage(pid).then(url => { if (url) applyImage(el, url); });
-    });
-  }, { rootMargin: "200px" });
-}
-function applyImage(el, url) {
-  const img = document.createElement("img");
-  img.src = url; img.alt = ""; img.loading = "lazy";
-  img.onerror = () => { img.remove(); };
-  img.onload = () => { el.classList.add("has-img"); el.innerHTML = ""; el.appendChild(img); };
-}
-function observeProductIcons(container) {
-  if (!imgObserver) return;
-  container.querySelectorAll(".prod-icon[data-pid]").forEach(el => {
-    const pid = el.dataset.pid;
-    const cached = imgFromCache(pid);
-    if (typeof cached === "string" && cached) applyImage(el, cached);
-    else if (cached === undefined) imgObserver.observe(el);
-  });
-}
+// ========== PHOTOS PRODUITS (DÉSACTIVÉES) ==========
+// L'auto-fetch via OFF/Wikimedia donnait trop de faux positifs
+// (ex : "camembert" affiché pour "lait d'amande"). On garde uniquement
+// l'icône emoji jusqu'à ce que le scraper officiel fournisse les vraies
+// photos depuis les flux des supermarchés.
+function setupImageObserver() {}
+function observeProductIcons() {}
 
 // ========== DESCRIPTIONS ==========
 const PRODUCT_DESC = {
@@ -858,8 +760,8 @@ function renderBrowsePanel() {
               <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong>
               <span class="prod-card-store">${STORES[cheapest.store].name}</span>
             </div>
-            ${inCart ? `<div class="prod-card-incart">✓ ${formatQty(inCart)}× ${t("at_store")} ${STORES[chosenStoreFor(p.id) || cheapest.store]?.name || ""}</div>` : ""}
-            <button class="prod-card-add" data-add-pid="${p.id}">+ ${t("add") || "Ajouter"}</button>
+            ${inCart ? `<div class="prod-card-incart">✓ ${formatQty(inCart)}× ${STORES[chosenStoreFor(p.id) || cheapest.store]?.name || ""}</div>` : ""}
+            <button class="prod-card-add" data-add-pid="${p.id}" aria-label="Add">+</button>
           </div>`;
       }).join("")}
     </div>`;
@@ -1010,44 +912,52 @@ function renderPromos() {
   if (Object.keys(byChain).length === 0) { wrap.hidden = true; wrap.innerHTML = ""; return; }
 
   const totalApplied = Object.values(byChain).reduce((s, r) => s + r.totalSaving, 0);
-  let html = "";
-  if (totalApplied > 0.1) {
-    html += `<div class="promo-summary">💸 Vos promos actives : <strong>−${formatPrice(totalApplied)}</strong></div>`;
-  }
-
-  const allSuggestions = [];
+  const allItems = [];
   Object.entries(byChain).forEach(([chain, r]) => {
-    r.suggestions.forEach(s => allSuggestions.push({ ...s, chain }));
-    r.applied.forEach(a => allSuggestions.push({ ...a, chain, _applied: true }));
+    r.suggestions.forEach(s => allItems.push({ ...s, chain }));
+    r.applied.forEach(a => allItems.push({ ...a, chain, _applied: true }));
   });
-  // Top 4 (priorité aux suggestions presque déclenchées)
-  allSuggestions.sort((a, b) => {
+  allItems.sort((a, b) => {
     if (a._applied !== b._applied) return a._applied ? 1 : -1;
     return (b.potentialSaving || b.saving || 0) - (a.potentialSaving || a.saving || 0);
   });
 
-  html += `<div class="promo-list">`;
-  allSuggestions.slice(0, 4).forEach(p => {
+  const appliedCount = allItems.filter(i => i._applied).length;
+  const sugCount = allItems.length - appliedCount;
+  const summaryParts = [];
+  if (totalApplied > 0.1) summaryParts.push(`💸 <strong>−${formatPrice(totalApplied)}</strong> en promos`);
+  if (sugCount > 0) summaryParts.push(`💡 ${sugCount} suggestion${sugCount > 1 ? "s" : ""}`);
+  const summary = summaryParts.length ? summaryParts.join(" · ") : `${allItems.length} promo${allItems.length > 1 ? "s" : ""}`;
+
+  let html = `
+    <button class="promo-toggle" data-promo-toggle>
+      <span class="promo-toggle-text">${summary}</span>
+      <span class="promo-toggle-arrow">▼</span>
+    </button>
+    <div class="promo-list">`;
+  allItems.slice(0, 6).forEach(p => {
     const store = STORES[p.chain];
     if (p._applied) {
       html += `
         <div class="promo-item applied">
-          <span class="store-icon" style="background:${store.color};width:24px;height:24px;font-size:10px">${store.icon}</span>
+          <span class="store-icon" style="background:${store.color};width:22px;height:22px;font-size:10px">${store.icon}</span>
           <div class="promo-text">
             <div class="promo-title">✅ ${p.title}</div>
-            <div class="promo-saved">Économies : <strong>−${formatPrice(p.saving || 0)}</strong> chez ${store.name}</div>
+            <div class="promo-saved">−${formatPrice(p.saving || 0)} chez ${store.name}</div>
           </div>
         </div>`;
     } else {
+      const sugProd = p.suggest ? findProduct(p.suggest.id) : null;
       const missingTxt = p.isAmount
-        ? `Encore ${formatPrice(p.missing)} d'achats`
-        : (p.suggest ? `Ajoute "${tProduct(findProduct(p.suggest.id) || { name: p.suggest.name, id: p.suggest.id })}" (${formatPrice(p.suggest.price)})` : `Ajoute ${p.missing}× plus`);
+        ? `Encore ${formatPrice(p.missing)}`
+        : (sugProd ? `Ajoute ${tProduct(sugProd)}` : `Ajoute ${p.missing}× plus`);
+      const gain = p.potentialSaving > 0 ? ` → −${formatPrice(p.potentialSaving)}` : "";
       html += `
         <div class="promo-item">
-          <span class="store-icon" style="background:${store.color};width:24px;height:24px;font-size:10px">${store.icon}</span>
+          <span class="store-icon" style="background:${store.color};width:22px;height:22px;font-size:10px">${store.icon}</span>
           <div class="promo-text">
-            <div class="promo-title">💡 ${p.title} chez ${store.name}</div>
-            <div class="promo-hint">${missingTxt} → ${p.potentialSaving > 0 ? `gagne ${formatPrice(p.potentialSaving)}` : "déclenche la promo"}</div>
+            <div class="promo-title">${p.title} · ${store.name}</div>
+            <div class="promo-hint">${missingTxt}${gain}</div>
           </div>
           ${p.suggest ? `<button class="promo-add" data-add="${p.suggest.id}" data-store="${p.chain}">+</button>` : ""}
         </div>`;
@@ -1057,8 +967,14 @@ function renderPromos() {
 
   wrap.hidden = false;
   wrap.innerHTML = html;
+  wrap.querySelector("[data-promo-toggle]").addEventListener("click", () => {
+    wrap.classList.toggle("expanded");
+  });
   wrap.querySelectorAll("[data-add]").forEach(b => {
-    b.addEventListener("click", () => addToCart(b.dataset.add, undefined, b.dataset.store));
+    b.addEventListener("click", e => {
+      e.stopPropagation();
+      addToCart(b.dataset.add, undefined, b.dataset.store);
+    });
   });
 }
 
@@ -1685,6 +1601,12 @@ function setupPWA() {
 }
 
 // ========== INIT ==========
+// Nettoyage des photos cachées de l'ancienne version (matches faussés OFF/Wikimedia)
+try {
+  const keys = Object.keys(localStorage);
+  keys.filter(k => k.startsWith("pm.img.")).forEach(k => localStorage.removeItem(k));
+} catch {}
+
 applyLang();
 applyTheme();
 setupImageObserver();
