@@ -246,7 +246,6 @@ const CAT_TINT = {
 };
 function productIcon(p) {
   if (!p) return "🛒";
-  // Cherche le préfixe le plus long qui matche
   let bestKey = null;
   for (const k of Object.keys(ICON_BY_PREFIX)) {
     if (p.id === k || p.id.startsWith(k)) {
@@ -259,6 +258,130 @@ function productIcon(p) {
 function productTint(p) {
   if (!p) return "#e0e7ff";
   return CAT_TINT[p.category] || "#e0e7ff";
+}
+
+// ========== PHOTOS PRODUITS (Open Food Facts + Wikimedia) ==========
+// Recherche async en ligne, cache localStorage permanent, fallback emoji
+const IMG_CACHE = {};   // mémoire
+const IMG_LOADING = {}; // promesses en cours
+const IMG_PREFIX = "pm.img.";
+
+function imgFromCache(pid) {
+  if (IMG_CACHE[pid] !== undefined) return IMG_CACHE[pid];
+  try {
+    const v = localStorage.getItem(IMG_PREFIX + pid);
+    if (v !== null) {
+      const url = v || null;
+      IMG_CACHE[pid] = url;
+      return url;
+    }
+  } catch {}
+  return undefined; // pas en cache
+}
+
+function imgSetCache(pid, url) {
+  IMG_CACHE[pid] = url || null;
+  try { localStorage.setItem(IMG_PREFIX + pid, url || ""); } catch {}
+}
+
+// Pour les requêtes : utilise le nom anglais si dispo (meilleur taux de match sur OFF)
+function searchTermsFor(p) {
+  const tr = (typeof PRODUCT_I18N !== "undefined") ? PRODUCT_I18N[p.id] : null;
+  let q = (tr && tr.en) || p.name;
+  // Garde les premiers mots significatifs, retire les unités/parenthèses
+  q = q.replace(/\([^)]*\)/g, "").replace(/[0-9]+\s*(g|kg|ml|l|u|×).*$/i, "").trim();
+  return q.split(/\s+/).slice(0, 3).join(" ");
+}
+
+async function tryOpenFoodFacts(p) {
+  try {
+    const q = encodeURIComponent(searchTermsFor(p));
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=3&fields=image_front_small_url,image_front_thumb_url,image_url`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    for (const item of (j.products || [])) {
+      const img = item.image_front_small_url || item.image_front_thumb_url || item.image_url;
+      if (img && img.startsWith("http")) return img;
+    }
+  } catch {}
+  return null;
+}
+
+async function tryWikimedia(p) {
+  try {
+    const q = encodeURIComponent(searchTermsFor(p).split(" ")[0]);
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url&iiurlwidth=200&generator=search&gsrnamespace=6&gsrsearch=${q}&gsrlimit=1&origin=*`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const pages = j.query?.pages;
+    if (!pages) return null;
+    for (const page of Object.values(pages)) {
+      const thumb = page?.imageinfo?.[0]?.thumburl;
+      if (thumb && thumb.startsWith("http")) return thumb;
+    }
+  } catch {}
+  return null;
+}
+
+async function fetchProductImage(pid) {
+  if (IMG_LOADING[pid]) return IMG_LOADING[pid];
+  IMG_LOADING[pid] = (async () => {
+    const p = findProduct(pid);
+    if (!p) { imgSetCache(pid, null); return null; }
+    let url = await tryOpenFoodFacts(p);
+    if (!url) url = await tryWikimedia(p);
+    imgSetCache(pid, url);
+    delete IMG_LOADING[pid];
+    return url;
+  })();
+  return IMG_LOADING[pid];
+}
+
+// Lance le chargement pour les éléments visibles avec data-pid
+let imgObserver = null;
+function setupImageObserver() {
+  if (imgObserver) imgObserver.disconnect();
+  if (typeof IntersectionObserver === "undefined") return;
+  imgObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      const pid = el.dataset.pid;
+      if (!pid) return;
+      imgObserver.unobserve(el);
+      const cached = imgFromCache(pid);
+      if (typeof cached === "string" && cached) {
+        applyImage(el, cached);
+      } else if (cached === null) {
+        // déjà tenté, pas de photo trouvée
+      } else {
+        fetchProductImage(pid).then(url => { if (url) applyImage(el, url); });
+      }
+    });
+  }, { rootMargin: "100px" });
+}
+function applyImage(el, url) {
+  const img = document.createElement("img");
+  img.src = url;
+  img.alt = "";
+  img.loading = "lazy";
+  img.onerror = () => { img.remove(); }; // garde l'emoji
+  img.onload = () => {
+    el.classList.add("has-img");
+    el.innerHTML = "";
+    el.appendChild(img);
+  };
+}
+function observeProductIcons(container) {
+  if (!imgObserver) return;
+  container.querySelectorAll(".prod-icon[data-pid]").forEach(el => {
+    const pid = el.dataset.pid;
+    const cached = imgFromCache(pid);
+    if (typeof cached === "string" && cached) applyImage(el, cached);
+    else if (cached === undefined) imgObserver.observe(el);
+  });
 }
 
 // ========== HELPERS ==========
@@ -415,14 +538,26 @@ function setTheme(t) { state.theme = t; saveState(); applyTheme(); }
 // ========== RECHERCHE ==========
 function filterProducts(query, category) {
   const q = normalize(query.trim());
-  return PRODUCTS.filter(p => {
-    if (category && p.category !== category) return false;
-    if (!q) return true;
+  const matches = [];
+  PRODUCTS.forEach(p => {
+    if (category && p.category !== category) return;
+    if (!q) { matches.push({ p, score: 0 }); return; }
     const name_fr = normalize(p.name);
     const name_other = normalize(tProduct(p));
     const cat_local = normalize(tCat(p.category));
-    return name_fr.includes(q) || name_other.includes(q) || cat_local.includes(q);
+    let score = -1;
+    // Score décroissant selon la qualité du match
+    if (name_fr === q || name_other === q) score = 100;
+    else if (name_fr.startsWith(q) || name_other.startsWith(q)) score = 80;
+    else if (new RegExp(`\\b${q}`, "i").test(name_fr) || new RegExp(`\\b${q}`, "i").test(name_other)) score = 60;
+    else if (name_fr.includes(q) || name_other.includes(q)) score = 40;
+    else if (cat_local === q) score = 30;
+    else if (cat_local.includes(q)) score = 20;
+    if (score >= 0) matches.push({ p, score });
   });
+  // Tri par score décroissant, puis par nom alphabétique
+  matches.sort((a, b) => b.score - a.score || a.p.name.localeCompare(b.p.name));
+  return matches.map(m => m.p);
 }
 function renderSearchResults() {
   const wrap = document.getElementById("search-results");
@@ -440,7 +575,7 @@ function renderSearchResults() {
     const cartTag = qty ? `<span style="color:var(--success);font-weight:600">✓ ${formatQty(qty)}×</span>` : "";
     return `
       <div class="search-result-item" data-id="${p.id}">
-        <div class="prod-icon" style="background:${productTint(p)}">${productIcon(p)}</div>
+        <div class="prod-icon" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px">${tProduct(p)} ${cartTag}</div>
           <div class="meta">${tCat(p.category)} · ${p.unit} · ${t("starting_at")} <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong> ${t("at_store")} ${STORES[cheapest.store].name}</div>
@@ -456,6 +591,7 @@ function renderSearchResults() {
       renderSearchResults();
     });
   });
+  observeProductIcons(wrap);
 }
 function cheapestStoreFor(product) {
   let best = { store: null, price: Infinity };
@@ -595,11 +731,12 @@ function renderSuggestions() {
   wrap.innerHTML = `
     <div class="sugg-head">⭐ ${t("suggestions")}</div>
     <div class="sugg-list">
-      ${top.map(p => `<button class="sugg-chip" data-id="${p.id}"><span class="sugg-icon" style="background:${productTint(p)}">${productIcon(p)}</span>${tProduct(p)} <span>+</span></button>`).join("")}
+      ${top.map(p => `<button class="sugg-chip" data-id="${p.id}"><span class="prod-icon mini" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</span>${tProduct(p)} <span>+</span></button>`).join("")}
     </div>`;
   wrap.querySelectorAll(".sugg-chip").forEach(el => {
     el.addEventListener("click", () => addToCart(el.dataset.id));
   });
+  observeProductIcons(wrap);
 }
 
 // ========== RENDER GLOBAL ==========
@@ -677,6 +814,7 @@ function renderCart() {
     });
     inp.addEventListener("focus", () => inp.select());
   });
+  observeProductIcons(wrap);
 }
 
 function renderFlatList(wrap, ids) {
@@ -728,7 +866,7 @@ function renderCartItemHTML(id, big = false) {
       <button class="check-btn ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-label="✓">
         ${item.done ? "✓" : ""}
       </button>
-      <div class="prod-icon" style="background:${productTint(p)}">${productIcon(p)}</div>
+      <div class="prod-icon" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
       <div class="cart-item-info">
         <div class="cart-item-name">${tProduct(p)}</div>
         <div class="cart-item-meta">
@@ -871,7 +1009,7 @@ function renderOptimized(wrap) {
           <button class="export-store-btn" data-export-store="${storeId}">📥 ${t("new_list")}</button>
           <div class="opti-store-total">${formatPrice(subtotal)}</div>
         </div>
-        ${items.map(it => `<div class="opti-item"><span class="prod-icon mini" style="background:${productTint(it.product)}">${productIcon(it.product)}</span><span class="name">${formatQty(it.qty)}× ${tProduct(it.product)}</span><span class="price">${formatPrice(it.lineTotal)}</span></div>`).join("")}
+        ${items.map(it => `<div class="opti-item"><span class="prod-icon mini" data-pid="${it.product.id}" style="background:${productTint(it.product)}">${productIcon(it.product)}</span><span class="name">${formatQty(it.qty)}× ${tProduct(it.product)}</span><span class="price">${formatPrice(it.lineTotal)}</span></div>`).join("")}
       </div>`;
   });
   // Save assignments for export
@@ -899,6 +1037,7 @@ function renderOptimized(wrap) {
       exportStoreAsNewList(btn.dataset.exportStore);
     });
   });
+  observeProductIcons(wrap);
 }
 
 // Crée une nouvelle liste contenant uniquement les produits assignés au magasin donné
@@ -1142,6 +1281,7 @@ function setupPWA() {
 // ========== INIT ==========
 applyLang();
 applyTheme();
+setupImageObserver();
 renderLangPicker();
 renderUpdateBanner();
 renderStaticTexts();

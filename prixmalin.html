@@ -420,7 +420,7 @@ button { font-family: inherit; color: inherit; }
   transition: all var(--tx);
 }
 
-/* Icône produit (rond coloré avec emoji) */
+/* Icône produit (rond coloré avec emoji, ou vraie photo si dispo) */
 .prod-icon {
   width: 44px; height: 44px;
   min-width: 44px;
@@ -433,11 +433,22 @@ button { font-family: inherit; color: inherit; }
   box-shadow: var(--shadow-sm);
   background: #e0e7ff;
   line-height: 1;
+  overflow: hidden;
+  position: relative;
+}
+.prod-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.prod-icon.has-img {
+  background: var(--panel-soft) !important;
 }
 .prod-icon.mini {
-  width: 28px; height: 28px;
-  min-width: 28px;
-  font-size: 16px;
+  width: 26px; height: 26px;
+  min-width: 26px;
+  font-size: 15px;
   border-radius: 50%;
 }
 [data-theme="dark"] .prod-icon { box-shadow: 0 1px 2px rgba(0,0,0,0.5); }
@@ -445,15 +456,6 @@ button { font-family: inherit; color: inherit; }
 .search-result-item .prod-icon {
   width: 38px; height: 38px; min-width: 38px;
   font-size: 20px;
-}
-.sugg-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  font-size: 13px;
-  margin-inline-end: 2px;
 }
 .cart-item.big { padding: 14px 12px; }
 .cart-item.big .cart-item-name { font-size: 16px; }
@@ -1757,14 +1759,49 @@ const PRODUCTS = [
   { id: "stock-beef", name: "Bouillon de bœuf", category: "Épicerie", unit: "400g", prices: P(11.90) },
   { id: "salt", name: "Sel de table", category: "Épicerie", unit: "1kg", prices: P(3.90) },
   { id: "salt-sea", name: "Sel de mer", category: "Épicerie", unit: "500g", prices: P(8.90) },
+  { id: "salt-coarse", name: "Gros sel", category: "Épicerie", unit: "1kg", prices: P(5.90) },
   { id: "pepper", name: "Poivre noir moulu", category: "Épicerie", unit: "100g", prices: P(8.90) },
+  { id: "pepper-white", name: "Poivre blanc moulu", category: "Épicerie", unit: "100g", prices: P(11.90) },
+  { id: "pepper-whole", name: "Poivre noir en grains", category: "Épicerie", unit: "100g", prices: P(12.90) },
   { id: "paprika-sweet", name: "Paprika doux", category: "Épicerie", unit: "100g", prices: P(7.90) },
   { id: "paprika-hot", name: "Paprika fort", category: "Épicerie", unit: "100g", prices: P(7.90) },
   { id: "cumin", name: "Cumin moulu", category: "Épicerie", unit: "100g", prices: P(8.90) },
   { id: "turmeric", name: "Curcuma", category: "Épicerie", unit: "100g", prices: P(7.90) },
   { id: "cinnamon", name: "Cannelle moulue", category: "Épicerie", unit: "100g", prices: P(8.90) },
+  { id: "nutmeg", name: "Muscade", category: "Épicerie", unit: "50g", prices: P(11.90) },
+  { id: "cardamom", name: "Cardamome", category: "Épicerie", unit: "50g", prices: P(14.90) },
+  { id: "cloves", name: "Clous de girofle", category: "Épicerie", unit: "50g", prices: P(11.90) },
+  { id: "curry", name: "Curry en poudre", category: "Épicerie", unit: "100g", prices: P(9.90) },
+  { id: "ginger-powder", name: "Gingembre en poudre", category: "Épicerie", unit: "50g", prices: P(8.90) },
+  { id: "hawaij", name: "Hawaij", category: "Épicerie", unit: "100g", prices: P(11.90) },
+  { id: "baharat", name: "Baharat", category: "Épicerie", unit: "100g", prices: P(11.90) },
   { id: "oregano", name: "Origan séché", category: "Épicerie", unit: "50g", prices: P(7.90) },
+  { id: "thyme", name: "Thym séché", category: "Épicerie", unit: "50g", prices: P(7.90) },
+  { id: "rosemary", name: "Romarin séché", category: "Épicerie", unit: "50g", prices: P(7.90) },
+  { id: "bay-leaves", name: "Feuilles de laurier", category: "Épicerie", unit: "20g", prices: P(6.90) },
   { id: "zaatar", name: "Zaatar", category: "Épicerie", unit: "200g", prices: P(11.90) },
+  { id: "sesame-seeds", name: "Graines de sésame", category: "Épicerie", unit: "200g", prices: P(11.90) },
+  { id: "vanilla-extract", name: "Extrait de vanille", category: "Épicerie", unit: "30ml", prices: P(14.90) },
+  { id: "cocoa-powder", name: "Cacao en poudre", category: "Épicerie", unit: "200g", prices: P(14.90) },
+  { id: "yeast", name: "Levure de boulanger sèche", category: "Épicerie", unit: "50g", prices: P(8.90) },
+  { id: "baking-powder", name: "Levure chimique", category: "Épicerie", unit: "200g", prices: P(7.90) },
+  { id: "baking-soda", name: "Bicarbonate de soude", category: "Épicerie", unit: "500g", prices: P(8.90) },
+  { id: "gelatin", name: "Gélatine", category: "Épicerie", unit: "10 feuilles", prices: P(11.90) },
+  { id: "coconut-flakes", name: "Noix de coco râpée", category: "Épicerie", unit: "200g", prices: P(11.90) },
+  { id: "coconut-milk", name: "Lait de coco", category: "Épicerie", unit: "400ml", prices: P(11.90) },
+  { id: "capers", name: "Câpres", category: "Épicerie", unit: "100g", prices: P(11.90) },
+  { id: "pickles", name: "Cornichons", category: "Épicerie", unit: "700g", prices: P(13.90) },
+  { id: "sun-dried-tomato", name: "Tomates séchées à l'huile", category: "Épicerie", unit: "200g", prices: P(19.90) },
+  { id: "artichoke-hearts", name: "Cœurs d'artichaut", category: "Épicerie", unit: "400g", prices: P(15.90) },
+  { id: "walnuts", name: "Noix", category: "Épicerie", unit: "200g", prices: P(24.90) },
+  { id: "hazelnuts", name: "Noisettes", category: "Épicerie", unit: "200g", prices: P(22.90) },
+  { id: "polenta", name: "Polenta", category: "Épicerie", unit: "500g", prices: P(11.90) },
+  { id: "falafel-mix", name: "Mix falafel Osem", category: "Épicerie", unit: "200g", prices: P(8.90) },
+  { id: "sushi-rice", name: "Riz à sushi", category: "Épicerie", unit: "1kg", prices: P(19.90) },
+  { id: "nori", name: "Feuilles nori", category: "Épicerie", unit: "10u", prices: P(14.90) },
+  { id: "wasabi", name: "Wasabi en pâte", category: "Épicerie", unit: "43g", prices: P(11.90) },
+  { id: "dijon-mustard", name: "Moutarde de Dijon", category: "Épicerie", unit: "200g", prices: P(13.90) },
+  { id: "worcestershire", name: "Sauce Worcestershire", category: "Épicerie", unit: "150ml", prices: P(15.90) },
 
   // ============ PETIT-DÉJEUNER ============
   { id: "flour-white", name: "Farine blanche", category: "Petit-déj", unit: "1kg", prices: P(4.90) },
@@ -1820,8 +1857,14 @@ const PRODUCTS = [
   { id: "beer-corona", name: "Bière Corona (pack 6)", category: "Boissons", unit: "6×330ml", prices: P(54.90) },
   { id: "wine-carmel", name: "Vin Carmel Selected", category: "Boissons", unit: "750ml", prices: P(29.90) },
   { id: "wine-yarden", name: "Vin Yarden Cabernet", category: "Boissons", unit: "750ml", prices: P(89.90) },
+  { id: "wine-rose", name: "Vin rosé", category: "Boissons", unit: "750ml", prices: P(34.90) },
+  { id: "wine-white", name: "Vin blanc Carmel", category: "Boissons", unit: "750ml", prices: P(29.90) },
+  { id: "wine-kiddush", name: "Vin Kiddush", category: "Boissons", unit: "750ml", prices: P(24.90) },
   { id: "vodka", name: "Vodka Absolut", category: "Boissons", unit: "750ml", prices: P(99.00) },
+  { id: "whiskey", name: "Whiskey Jack Daniel's", category: "Boissons", unit: "700ml", prices: P(159.00) },
   { id: "arak", name: "Arak Elit", category: "Boissons", unit: "750ml", prices: P(74.90) },
+  { id: "milkshake", name: "Milkshake chocolat", category: "Boissons", unit: "1L", prices: P(13.90) },
+  { id: "almond-milk-drink", name: "Boisson amande Alpro", category: "Boissons", unit: "1L", prices: P(14.90) },
 
   // ============ SURGELÉS ============
   { id: "frozen-pizza", name: "Pizza surgelée Maadanot", category: "Surgelés", unit: "400g", prices: P(14.90) },
@@ -1924,6 +1967,12 @@ const PRODUCTS = [
   { id: "qtips", name: "Cotons-tiges (200u)", category: "Hygiène", unit: "200u", prices: P(8.90) },
   { id: "sunscreen", name: "Crème solaire SPF50", category: "Hygiène", unit: "200ml", prices: P(49.90) },
   { id: "moisturizer", name: "Crème hydratante Nivea", category: "Hygiène", unit: "300ml", prices: P(24.90) },
+  { id: "hand-cream", name: "Crème mains", category: "Hygiène", unit: "75ml", prices: P(14.90) },
+  { id: "lip-balm", name: "Baume à lèvres", category: "Hygiène", unit: "1u", prices: P(11.90) },
+  { id: "hair-gel", name: "Gel coiffant", category: "Hygiène", unit: "250ml", prices: P(17.90) },
+  { id: "perfume-deo", name: "Parfum déodorant", category: "Hygiène", unit: "100ml", prices: P(34.90) },
+  { id: "bandages", name: "Pansements (20u)", category: "Hygiène", unit: "20u", prices: P(11.90) },
+  { id: "antiseptic", name: "Antiseptique", category: "Hygiène", unit: "100ml", prices: P(13.90) },
 
   // ============ ENTRETIEN ============
   { id: "dish-soap", name: "Liquide vaisselle Sano", category: "Entretien", unit: "750ml", prices: P(10.90) },
@@ -1951,6 +2000,14 @@ const PRODUCTS = [
   { id: "candles", name: "Bougies Shabbat", category: "Entretien", unit: "72u", prices: P(19.90) },
   { id: "batteries-aa", name: "Piles AA (4u)", category: "Entretien", unit: "4u", prices: P(19.90) },
   { id: "lightbulb", name: "Ampoule LED", category: "Entretien", unit: "1u", prices: P(14.90) },
+  { id: "paper-plates", name: "Assiettes jetables (50u)", category: "Entretien", unit: "50u", prices: P(14.90) },
+  { id: "paper-cups", name: "Gobelets jetables (50u)", category: "Entretien", unit: "50u", prices: P(11.90) },
+  { id: "plastic-cutlery", name: "Couverts jetables (50u)", category: "Entretien", unit: "50u", prices: P(13.90) },
+  { id: "napkins", name: "Serviettes papier (200u)", category: "Entretien", unit: "200u", prices: P(11.90) },
+  { id: "shopping-bags", name: "Sacs réutilisables (3u)", category: "Entretien", unit: "3u", prices: P(9.90) },
+  { id: "ziplock-bags", name: "Sachets zip (50u)", category: "Entretien", unit: "50u", prices: P(13.90) },
+  { id: "charcoal", name: "Charbon de bois BBQ", category: "Entretien", unit: "3kg", prices: P(29.90) },
+  { id: "insecticide", name: "Insecticide spray", category: "Entretien", unit: "300ml", prices: P(19.90) },
 
   // ============ ANIMAUX ============
   { id: "dog-food-dry", name: "Croquettes chien", category: "Animaux", unit: "3kg", prices: P(54.90) },
@@ -2214,7 +2271,6 @@ const CAT_TINT = {
 };
 function productIcon(p) {
   if (!p) return "🛒";
-  // Cherche le préfixe le plus long qui matche
   let bestKey = null;
   for (const k of Object.keys(ICON_BY_PREFIX)) {
     if (p.id === k || p.id.startsWith(k)) {
@@ -2227,6 +2283,130 @@ function productIcon(p) {
 function productTint(p) {
   if (!p) return "#e0e7ff";
   return CAT_TINT[p.category] || "#e0e7ff";
+}
+
+// ========== PHOTOS PRODUITS (Open Food Facts + Wikimedia) ==========
+// Recherche async en ligne, cache localStorage permanent, fallback emoji
+const IMG_CACHE = {};   // mémoire
+const IMG_LOADING = {}; // promesses en cours
+const IMG_PREFIX = "pm.img.";
+
+function imgFromCache(pid) {
+  if (IMG_CACHE[pid] !== undefined) return IMG_CACHE[pid];
+  try {
+    const v = localStorage.getItem(IMG_PREFIX + pid);
+    if (v !== null) {
+      const url = v || null;
+      IMG_CACHE[pid] = url;
+      return url;
+    }
+  } catch {}
+  return undefined; // pas en cache
+}
+
+function imgSetCache(pid, url) {
+  IMG_CACHE[pid] = url || null;
+  try { localStorage.setItem(IMG_PREFIX + pid, url || ""); } catch {}
+}
+
+// Pour les requêtes : utilise le nom anglais si dispo (meilleur taux de match sur OFF)
+function searchTermsFor(p) {
+  const tr = (typeof PRODUCT_I18N !== "undefined") ? PRODUCT_I18N[p.id] : null;
+  let q = (tr && tr.en) || p.name;
+  // Garde les premiers mots significatifs, retire les unités/parenthèses
+  q = q.replace(/\([^)]*\)/g, "").replace(/[0-9]+\s*(g|kg|ml|l|u|×).*$/i, "").trim();
+  return q.split(/\s+/).slice(0, 3).join(" ");
+}
+
+async function tryOpenFoodFacts(p) {
+  try {
+    const q = encodeURIComponent(searchTermsFor(p));
+    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${q}&search_simple=1&action=process&json=1&page_size=3&fields=image_front_small_url,image_front_thumb_url,image_url`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    for (const item of (j.products || [])) {
+      const img = item.image_front_small_url || item.image_front_thumb_url || item.image_url;
+      if (img && img.startsWith("http")) return img;
+    }
+  } catch {}
+  return null;
+}
+
+async function tryWikimedia(p) {
+  try {
+    const q = encodeURIComponent(searchTermsFor(p).split(" ")[0]);
+    const url = `https://commons.wikimedia.org/w/api.php?action=query&format=json&prop=imageinfo&iiprop=url&iiurlwidth=200&generator=search&gsrnamespace=6&gsrsearch=${q}&gsrlimit=1&origin=*`;
+    const r = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const pages = j.query?.pages;
+    if (!pages) return null;
+    for (const page of Object.values(pages)) {
+      const thumb = page?.imageinfo?.[0]?.thumburl;
+      if (thumb && thumb.startsWith("http")) return thumb;
+    }
+  } catch {}
+  return null;
+}
+
+async function fetchProductImage(pid) {
+  if (IMG_LOADING[pid]) return IMG_LOADING[pid];
+  IMG_LOADING[pid] = (async () => {
+    const p = findProduct(pid);
+    if (!p) { imgSetCache(pid, null); return null; }
+    let url = await tryOpenFoodFacts(p);
+    if (!url) url = await tryWikimedia(p);
+    imgSetCache(pid, url);
+    delete IMG_LOADING[pid];
+    return url;
+  })();
+  return IMG_LOADING[pid];
+}
+
+// Lance le chargement pour les éléments visibles avec data-pid
+let imgObserver = null;
+function setupImageObserver() {
+  if (imgObserver) imgObserver.disconnect();
+  if (typeof IntersectionObserver === "undefined") return;
+  imgObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const el = e.target;
+      const pid = el.dataset.pid;
+      if (!pid) return;
+      imgObserver.unobserve(el);
+      const cached = imgFromCache(pid);
+      if (typeof cached === "string" && cached) {
+        applyImage(el, cached);
+      } else if (cached === null) {
+        // déjà tenté, pas de photo trouvée
+      } else {
+        fetchProductImage(pid).then(url => { if (url) applyImage(el, url); });
+      }
+    });
+  }, { rootMargin: "100px" });
+}
+function applyImage(el, url) {
+  const img = document.createElement("img");
+  img.src = url;
+  img.alt = "";
+  img.loading = "lazy";
+  img.onerror = () => { img.remove(); }; // garde l'emoji
+  img.onload = () => {
+    el.classList.add("has-img");
+    el.innerHTML = "";
+    el.appendChild(img);
+  };
+}
+function observeProductIcons(container) {
+  if (!imgObserver) return;
+  container.querySelectorAll(".prod-icon[data-pid]").forEach(el => {
+    const pid = el.dataset.pid;
+    const cached = imgFromCache(pid);
+    if (typeof cached === "string" && cached) applyImage(el, cached);
+    else if (cached === undefined) imgObserver.observe(el);
+  });
 }
 
 // ========== HELPERS ==========
@@ -2383,14 +2563,26 @@ function setTheme(t) { state.theme = t; saveState(); applyTheme(); }
 // ========== RECHERCHE ==========
 function filterProducts(query, category) {
   const q = normalize(query.trim());
-  return PRODUCTS.filter(p => {
-    if (category && p.category !== category) return false;
-    if (!q) return true;
+  const matches = [];
+  PRODUCTS.forEach(p => {
+    if (category && p.category !== category) return;
+    if (!q) { matches.push({ p, score: 0 }); return; }
     const name_fr = normalize(p.name);
     const name_other = normalize(tProduct(p));
     const cat_local = normalize(tCat(p.category));
-    return name_fr.includes(q) || name_other.includes(q) || cat_local.includes(q);
+    let score = -1;
+    // Score décroissant selon la qualité du match
+    if (name_fr === q || name_other === q) score = 100;
+    else if (name_fr.startsWith(q) || name_other.startsWith(q)) score = 80;
+    else if (new RegExp(`\\b${q}`, "i").test(name_fr) || new RegExp(`\\b${q}`, "i").test(name_other)) score = 60;
+    else if (name_fr.includes(q) || name_other.includes(q)) score = 40;
+    else if (cat_local === q) score = 30;
+    else if (cat_local.includes(q)) score = 20;
+    if (score >= 0) matches.push({ p, score });
   });
+  // Tri par score décroissant, puis par nom alphabétique
+  matches.sort((a, b) => b.score - a.score || a.p.name.localeCompare(b.p.name));
+  return matches.map(m => m.p);
 }
 function renderSearchResults() {
   const wrap = document.getElementById("search-results");
@@ -2408,7 +2600,7 @@ function renderSearchResults() {
     const cartTag = qty ? `<span style="color:var(--success);font-weight:600">✓ ${formatQty(qty)}×</span>` : "";
     return `
       <div class="search-result-item" data-id="${p.id}">
-        <div class="prod-icon" style="background:${productTint(p)}">${productIcon(p)}</div>
+        <div class="prod-icon" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
         <div style="flex:1;min-width:0">
           <div style="font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px">${tProduct(p)} ${cartTag}</div>
           <div class="meta">${tCat(p.category)} · ${p.unit} · ${t("starting_at")} <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong> ${t("at_store")} ${STORES[cheapest.store].name}</div>
@@ -2424,6 +2616,7 @@ function renderSearchResults() {
       renderSearchResults();
     });
   });
+  observeProductIcons(wrap);
 }
 function cheapestStoreFor(product) {
   let best = { store: null, price: Infinity };
@@ -2563,11 +2756,12 @@ function renderSuggestions() {
   wrap.innerHTML = `
     <div class="sugg-head">⭐ ${t("suggestions")}</div>
     <div class="sugg-list">
-      ${top.map(p => `<button class="sugg-chip" data-id="${p.id}"><span class="sugg-icon" style="background:${productTint(p)}">${productIcon(p)}</span>${tProduct(p)} <span>+</span></button>`).join("")}
+      ${top.map(p => `<button class="sugg-chip" data-id="${p.id}"><span class="prod-icon mini" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</span>${tProduct(p)} <span>+</span></button>`).join("")}
     </div>`;
   wrap.querySelectorAll(".sugg-chip").forEach(el => {
     el.addEventListener("click", () => addToCart(el.dataset.id));
   });
+  observeProductIcons(wrap);
 }
 
 // ========== RENDER GLOBAL ==========
@@ -2645,6 +2839,7 @@ function renderCart() {
     });
     inp.addEventListener("focus", () => inp.select());
   });
+  observeProductIcons(wrap);
 }
 
 function renderFlatList(wrap, ids) {
@@ -2696,7 +2891,7 @@ function renderCartItemHTML(id, big = false) {
       <button class="check-btn ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-label="✓">
         ${item.done ? "✓" : ""}
       </button>
-      <div class="prod-icon" style="background:${productTint(p)}">${productIcon(p)}</div>
+      <div class="prod-icon" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
       <div class="cart-item-info">
         <div class="cart-item-name">${tProduct(p)}</div>
         <div class="cart-item-meta">
@@ -2839,7 +3034,7 @@ function renderOptimized(wrap) {
           <button class="export-store-btn" data-export-store="${storeId}">📥 ${t("new_list")}</button>
           <div class="opti-store-total">${formatPrice(subtotal)}</div>
         </div>
-        ${items.map(it => `<div class="opti-item"><span class="prod-icon mini" style="background:${productTint(it.product)}">${productIcon(it.product)}</span><span class="name">${formatQty(it.qty)}× ${tProduct(it.product)}</span><span class="price">${formatPrice(it.lineTotal)}</span></div>`).join("")}
+        ${items.map(it => `<div class="opti-item"><span class="prod-icon mini" data-pid="${it.product.id}" style="background:${productTint(it.product)}">${productIcon(it.product)}</span><span class="name">${formatQty(it.qty)}× ${tProduct(it.product)}</span><span class="price">${formatPrice(it.lineTotal)}</span></div>`).join("")}
       </div>`;
   });
   // Save assignments for export
@@ -2867,6 +3062,7 @@ function renderOptimized(wrap) {
       exportStoreAsNewList(btn.dataset.exportStore);
     });
   });
+  observeProductIcons(wrap);
 }
 
 // Crée une nouvelle liste contenant uniquement les produits assignés au magasin donné
@@ -3110,6 +3306,7 @@ function setupPWA() {
 // ========== INIT ==========
 applyLang();
 applyTheme();
+setupImageObserver();
 renderLangPicker();
 renderUpdateBanner();
 renderStaticTexts();
