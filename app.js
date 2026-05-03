@@ -1580,8 +1580,41 @@ function setupEvents() {
 function setupPWA() {
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
+      navigator.serviceWorker.register("sw.js").then(reg => {
+        // Force la vérification de mise à jour
+        reg.update().catch(() => {});
+        // Recharge automatique quand un nouveau SW prend le contrôle
+        reg.addEventListener("updatefound", () => {
+          const nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener("statechange", () => {
+            if (nw.state === "installed" && navigator.serviceWorker.controller) {
+              showToast("✨ Mise à jour disponible, rechargement...");
+              setTimeout(() => location.reload(), 1500);
+            }
+          });
+        });
+      }).catch(() => {});
+      // Reload sur message du SW
+      navigator.serviceWorker.addEventListener("message", e => {
+        if (e.data && e.data.type === "sw-updated") {
+          setTimeout(() => location.reload(), 800);
+        }
+      });
     });
+  }
+  // Détection de version pour les visiteurs avec cache navigateur agressif
+  const VERSION_KEY = "prixmalin.version";
+  const CURRENT_VERSION = "v6";
+  const stored = (() => { try { return localStorage.getItem(VERSION_KEY); } catch { return null; } })();
+  if (stored !== CURRENT_VERSION) {
+    try { localStorage.setItem(VERSION_KEY, CURRENT_VERSION); } catch {}
+    // Si on a un SW actif et version différente, force update
+    if ("serviceWorker" in navigator && navigator.serviceWorker.controller && stored) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.update());
+      });
+    }
   }
   let deferredPrompt = null;
   window.addEventListener("beforeinstallprompt", e => {
