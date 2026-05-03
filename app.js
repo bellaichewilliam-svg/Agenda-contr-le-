@@ -1438,9 +1438,12 @@ function renderMobileCTA() {
 }
 
 // ========== PARTAGE ==========
+// Format encodé : id:qty:done:store (store optionnel)
 function encodeCart() {
   const cart = activeCart();
-  const parts = Object.entries(cart).map(([id, item]) => `${id}:${item.qty}:${item.done ? 1 : 0}`);
+  const parts = Object.entries(cart).map(([id, item]) =>
+    `${id}:${item.qty}:${item.done ? 1 : 0}${item.store ? ":" + item.store : ""}`
+  );
   return btoa(unescape(encodeURIComponent(parts.join(",")))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 function decodeCart(enc) {
@@ -1451,8 +1454,15 @@ function decodeCart(enc) {
     if (!str) return {};
     const cart = {};
     str.split(",").forEach(part => {
-      const [id, qty, done] = part.split(":");
-      if (id && findProduct(id)) cart[id] = { qty: parseFloat(qty) || 1, done: done === "1" };
+      const tokens = part.split(":");
+      const [id, qty, done, store] = tokens;
+      if (id && findProduct(id)) {
+        cart[id] = {
+          qty: parseFloat(qty) || 1,
+          done: done === "1",
+          store: (store && STORES[store]) ? store : null
+        };
+      }
     });
     return cart;
   } catch { return null; }

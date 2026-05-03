@@ -17,27 +17,45 @@ const STORES = {
   tiv_taam:    { name: "Tiv Taam",     color: "#7c3aed", icon: "TT", tier: "premium"  }
 };
 
-const TIER_MULTIPLIER = {
-  discount: 1.00,
-  standard: 1.10,
-  premium:  1.18
+// Multiplicateurs différenciés par magasin × catégorie
+// Chaque enseigne a ses points forts (catégories où elle est moins chère)
+// Cela donne une variation réaliste : le "moins cher" change selon le produit.
+const STORE_CAT = {
+  rami_levy: {   default: 1.00, "Laitiers": 0.95, "Œufs": 0.95, "Boulangerie": 1.02, "Boissons": 1.04, "Bébé": 1.05 },
+  osher_ad:  {   default: 1.02, "Hygiène": 0.92, "Entretien": 0.92, "Bébé": 0.94, "Petit-déj": 0.97 },
+  boom:      {   default: 1.04, "Snacks": 0.92, "Boissons": 0.95, "Surgelés": 0.96 },
+  hatzi_hinam: { default: 1.03, "Entretien": 0.90, "Animaux": 0.94, "Hygiène": 0.95, "Boulangerie": 0.98 },
+  carrefour: {   default: 1.18, "Petit-déj": 1.00, "Fromages": 1.05, "Boissons": 1.05, "Snacks": 1.08 },
+  shufersal: {   default: 1.08, "Boulangerie": 0.96, "Surgelés": 1.00, "Œufs": 1.00, "Fruits": 1.04 },
+  yochananof: {  default: 1.10, "Épicerie": 0.95, "Viande": 1.00, "Légumes": 1.02 },
+  victory:   {   default: 1.10, "Boissons": 0.94, "Fruits": 0.98, "Légumes": 1.04, "Viande": 1.05 },
+  tiv_taam:  {   default: 1.20, "Poisson": 0.98, "Snacks": 1.05, "Gâteaux": 1.00 }
 };
 
-function priceMatrix(base, variations = {}) {
+function _hash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+// Stockage paresseux : on garde le base+variations, on calcule après que
+// PRODUCTS soit défini (pour avoir accès à category et id).
+function P(base, variations) { return { _base: base, _variations: variations || {} }; }
+function _computePrices(base, variations, category, productId) {
   const out = {};
-  for (const [store, conf] of Object.entries(STORES)) {
+  for (const store of Object.keys(STORES)) {
     const override = variations[store];
     if (override === null) { out[store] = null; continue; }
     if (override !== undefined) { out[store] = override; continue; }
-    const mul = TIER_MULTIPLIER[conf.tier];
-    const noise = ((store.charCodeAt(0) + base * 7) % 7 - 3) * 0.02;
-    out[store] = Math.round((base * (mul + noise)) * 100) / 100;
+    const catMult = (STORE_CAT[store] && (STORE_CAT[store][category] || STORE_CAT[store].default)) || 1.0;
+    const noise = ((_hash(store + productId) % 9) - 4) * 0.012;
+    let price = base * (catMult + noise);
+    // Promo locale aléatoire : ~6% des couples produit×magasin ont -15%
+    const promoSeed = _hash(store + productId + "p") % 100;
+    if (promoSeed < 6) price *= 0.85;
+    out[store] = Math.round(price * 100) / 100;
   }
   return out;
 }
-
-// Helper court pour réduire la verbosité
-const P = priceMatrix;
 
 const PRODUCTS = [
   // ============ LAITIERS ============
@@ -557,6 +575,14 @@ const PRODUCTS = [
   { id: "cat-food-wet", name: "Pâtée chat (12u)", category: "Animaux", unit: "12×85g", prices: P(39.90) },
   { id: "cat-litter", name: "Litière chat", category: "Animaux", unit: "10kg", prices: P(34.90) }
 ];
+
+// Calcule les prix réels après définition de PRODUCTS (chaque produit
+// a ainsi un magasin "le moins cher" différent selon sa catégorie)
+PRODUCTS.forEach(p => {
+  if (p.prices && p.prices._base !== undefined) {
+    p.prices = _computePrices(p.prices._base, p.prices._variations || {}, p.category, p.id);
+  }
+});
 
 if (typeof module !== "undefined") {
   module.exports = { STORES, PRODUCTS, DATA_VERSION, LAST_UPDATED };
