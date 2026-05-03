@@ -21,6 +21,7 @@
         <h1 class="logo"><span class="logo-emoji">🛒</span> <span id="logo-text">PrixMalin</span></h1>
         <div class="top-actions">
           <div class="lang-picker" id="lang-picker"></div>
+          <button class="icon-btn" id="recipes-btn" title="Recettes">👨‍🍳</button>
           <button class="icon-btn" id="nearby-btn" title="Magasins proches">📍</button>
           <button class="icon-btn" id="install-btn" hidden title="Install">⬇️</button>
           <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
@@ -180,12 +181,20 @@
     </div>
   </div>
 
+  <!-- Modal recettes -->
+  <div id="recipes-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="recipes-content"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
 
   <script src="data/i18n.js"></script>
   <script src="data/products.js"></script>
   <script src="data/promotions.js"></script>
   <script src="data/stores-locations.js"></script>
+  <script src="data/recipes.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

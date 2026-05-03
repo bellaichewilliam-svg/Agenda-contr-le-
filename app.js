@@ -1651,6 +1651,10 @@ function setupEvents() {
   const nearbyBtn = document.getElementById("nearby-btn");
   if (nearbyBtn) nearbyBtn.addEventListener("click", showNearbyStores);
   document.getElementById("nearby-modal").addEventListener("click", e => { if (e.target.id === "nearby-modal") hideNearbyModal(); });
+  // Recipes button
+  const recipesBtn = document.getElementById("recipes-btn");
+  if (recipesBtn) recipesBtn.addEventListener("click", showRecipesModal);
+  document.getElementById("recipes-modal").addEventListener("click", e => { if (e.target.id === "recipes-modal") hideRecipesModal(); });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") {
       hideProductModal();
@@ -1748,6 +1752,60 @@ if (new URLSearchParams(location.search).has("reset")) {
   nukeCacheAndReload();
   // empêche le reste du script de tourner
   throw new Error("Resetting...");
+}
+
+// ========== RECETTES ==========
+function showRecipesModal() {
+  if (typeof RECIPES === "undefined") return;
+  const modal = document.getElementById("recipes-modal");
+  const lang = state.lang;
+  modal.querySelector(".recipes-content").innerHTML = `
+    <div class="recipes-head">
+      <h3>👨‍🍳 ${lang === "he" ? "מתכונים" : (lang === "en" ? "Recipes" : (lang === "ru" ? "Рецепты" : "Recettes"))}</h3>
+      <button class="modal-close" data-recipes-close>×</button>
+    </div>
+    <p class="recipes-intro">${lang === "fr" ? "Un clic ajoute tous les ingrédients à ta liste" : (lang === "he" ? "לחיצה אחת מוסיפה את כל המרכיבים לרשימה" : (lang === "en" ? "One click adds all ingredients to your list" : "Один клик добавляет все ингредиенты в список"))}</p>
+    <div class="recipes-grid">
+      ${RECIPES.map(r => {
+        const name = r.names[lang] || r.names.fr;
+        const desc = r.descs[lang] || r.descs.fr;
+        return `
+          <button class="recipe-card" data-recipe-id="${r.id}">
+            <div class="recipe-emoji">${r.emoji}</div>
+            <div class="recipe-name">${name}</div>
+            <div class="recipe-count">${r.ingredients.length} ${lang === "he" ? "פריטים" : (lang === "en" ? "items" : "ingrédients")}</div>
+            <div class="recipe-desc">${desc}</div>
+          </button>`;
+      }).join("")}
+    </div>`;
+  modal.classList.add("visible");
+  modal.querySelector("[data-recipes-close]").addEventListener("click", hideRecipesModal);
+  modal.querySelectorAll(".recipe-card").forEach(el => {
+    el.addEventListener("click", () => {
+      const recipe = RECIPES.find(r => r.id === el.dataset.recipeId);
+      if (!recipe) return;
+      let added = 0, updated = 0;
+      recipe.ingredients.forEach(ing => {
+        const p = findProduct(ing.id);
+        if (!p) return;
+        const cart = activeCart();
+        if (cart[ing.id]) {
+          cart[ing.id].qty = Math.max(cart[ing.id].qty, ing.qty);
+          updated++;
+        } else {
+          cart[ing.id] = { qty: ing.qty, done: false, store: null };
+          added++;
+        }
+      });
+      saveState();
+      renderAll();
+      hideRecipesModal();
+      showToast(`✓ ${recipe.names[lang] || recipe.names.fr} : ${added} ajoutés, ${updated} mis à jour`);
+    });
+  });
+}
+function hideRecipesModal() {
+  document.getElementById("recipes-modal").classList.remove("visible");
 }
 
 // ========== MAGASINS PROCHES (géolocalisation) ==========
