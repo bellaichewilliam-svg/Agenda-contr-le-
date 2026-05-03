@@ -1788,7 +1788,29 @@ button { font-family: inherit; color: inherit; }
 }
 .qty-controls.compact { padding: 1px; }
 .qty-controls.compact .qty-btn { width: 24px; height: 24px; font-size: 14px; }
-.qty-controls.compact .qty-input { width: 32px; font-size: 12px; }
+.qty-controls.compact .qty-input { width: 48px; font-size: 12px; }
+.qty-hint {
+  font-size: 9px;
+  color: var(--muted);
+  text-align: end;
+  margin-top: 1px;
+}
+
+/* Sentinel scroll infini */
+.browse-sentinel {
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+.browse-end {
+  text-align: center;
+  padding: 12px;
+  font-size: 11px;
+  color: var(--success);
+  font-weight: 600;
+}
 
 .store-list { display: flex; flex-direction: column; gap: 8px; }
 
@@ -2570,6 +2592,22 @@ const PRODUCTS = [
   { id: "brie", name: "Brie", category: "Laitiers", unit: "200g", prices: P(24.90) },
   { id: "blue-cheese", name: "Roquefort", category: "Laitiers", unit: "100g", prices: P(19.90) },
 
+  { id: "milk-3-tara", name: "Lait 3% (1L) - Tara", category: "Laitiers", unit: "1L", prices: P(6.30) },
+  { id: "milk-3-yotvata", name: "Lait 3% (1L) - Yotvata", category: "Laitiers", unit: "1L", prices: P(7.20) },
+  { id: "milk-3-strauss", name: "Lait 3% (1L) - Strauss", category: "Laitiers", unit: "1L", prices: P(6.50) },
+  { id: "milk-1-tnuva", name: "Lait 1% (1L) - Tnuva", category: "Laitiers", unit: "1L", prices: P(6.20) },
+  { id: "milk-rice", name: "Lait de riz", category: "Laitiers", unit: "1L", prices: P(13.90) },
+  { id: "milk-lactose-free", name: "Lait sans lactose Tnuva", category: "Laitiers", unit: "1L", prices: P(8.90) },
+  { id: "yogurt-vanilla", name: "Yaourt vanille", category: "Laitiers", unit: "150g", prices: P(3.90) },
+  { id: "yogurt-strawberry", name: "Yaourt fraise", category: "Laitiers", unit: "150g", prices: P(3.90) },
+  { id: "yogurt-mango", name: "Yaourt mangue", category: "Laitiers", unit: "150g", prices: P(3.90) },
+  { id: "yogurt-honey", name: "Yaourt grec au miel", category: "Laitiers", unit: "150g", prices: P(5.90) },
+  { id: "cheese-emek", name: "Emek 28% Tnuva (tranches)", category: "Laitiers", unit: "200g", prices: P(15.90) },
+  { id: "cheese-gilboa", name: "Gilboa Tnuva", category: "Laitiers", unit: "200g", prices: P(16.90) },
+  { id: "cheese-noam", name: "Noam Strauss", category: "Laitiers", unit: "200g", prices: P(15.90) },
+  { id: "cheese-gad", name: "Fromage blanc Gad", category: "Laitiers", unit: "250g", prices: P(7.90) },
+  { id: "cream-fresh", name: "Crème fraîche épaisse", category: "Laitiers", unit: "200ml", prices: P(7.90) },
+
   // ============ ŒUFS ============
   { id: "eggs-12-l", name: "Œufs L (boîte de 12)", category: "Œufs", unit: "12u", prices: P(16.90) },
   { id: "eggs-12-xl", name: "Œufs XL (boîte de 12)", category: "Œufs", unit: "12u", prices: P(19.90) },
@@ -2599,6 +2637,16 @@ const PRODUCTS = [
   { id: "salami", name: "Salami", category: "Viande", unit: "200g", prices: P(17.90) },
   { id: "pastrami", name: "Pastrami de dinde", category: "Viande", unit: "200g", prices: P(19.90) },
 
+  { id: "chicken-drumstick", name: "Pilons de poulet", category: "Viande", unit: "1kg", prices: P(22.90) },
+  { id: "chicken-tenders", name: "Aiguillettes de poulet", category: "Viande", unit: "1kg", prices: P(44.90) },
+  { id: "chicken-marinated", name: "Poulet mariné", category: "Viande", unit: "1kg", prices: P(54.90) },
+  { id: "beef-stew-meat", name: "Viande à pot-au-feu", category: "Viande", unit: "1kg", prices: P(69.90) },
+  { id: "beef-roast", name: "Rôti de bœuf", category: "Viande", unit: "1kg", prices: P(99.90) },
+  { id: "veal-cutlet", name: "Escalope de veau", category: "Viande", unit: "1kg", prices: P(129.00) },
+  { id: "lamb-chops", name: "Côtelettes d'agneau", category: "Viande", unit: "1kg", prices: P(129.00) },
+  { id: "lamb-ground", name: "Agneau haché", category: "Viande", unit: "1kg", prices: P(89.90) },
+  { id: "duck-breast", name: "Magret de canard", category: "Viande", unit: "500g", prices: P(64.90) },
+
   // ============ POISSON ============
   { id: "salmon-fillet", name: "Filet de saumon frais", category: "Poisson", unit: "1kg", prices: P(89.90) },
   { id: "salmon-smoked", name: "Saumon fumé", category: "Poisson", unit: "100g", prices: P(19.90) },
@@ -2608,6 +2656,14 @@ const PRODUCTS = [
   { id: "denis", name: "Daurade entière (Denise)", category: "Poisson", unit: "1kg", prices: P(64.90) },
   { id: "sardines", name: "Sardines en boîte", category: "Poisson", unit: "125g", prices: P(8.90) },
   { id: "herring", name: "Hareng mariné", category: "Poisson", unit: "200g", prices: P(14.90) },
+
+  { id: "shrimp-fresh", name: "Crevettes fraîches", category: "Poisson", unit: "500g", prices: P(64.90, { rami_levy: null, hatzi_hinam: null, shufersal: null, yochananof: null, victory: null, boom: null }) },
+  { id: "carp", name: "Carpe (Karpion)", category: "Poisson", unit: "1kg", prices: P(39.90) },
+  { id: "trout", name: "Truite", category: "Poisson", unit: "1kg", prices: P(54.90) },
+  { id: "calamari", name: "Calamars", category: "Poisson", unit: "500g", prices: P(34.90, { rami_levy: null, hatzi_hinam: null }) },
+  { id: "fish-balls", name: "Boulettes de poisson", category: "Poisson", unit: "500g", prices: P(29.90) },
+  { id: "tuna-can-oil", name: "Thon à l'huile (boîte)", category: "Poisson", unit: "160g", prices: P(7.90) },
+  { id: "salmon-can", name: "Saumon en boîte", category: "Poisson", unit: "200g", prices: P(19.90) },
 
   // ============ BOULANGERIE ============
   { id: "bread-white", name: "Pain blanc tranché Angel", category: "Boulangerie", unit: "750g", prices: P(7.90) },
@@ -2625,6 +2681,13 @@ const PRODUCTS = [
   { id: "hot-dog-bun", name: "Pains à hot-dog (6u)", category: "Boulangerie", unit: "6u", prices: P(9.90) },
   { id: "matza", name: "Matza Aviv", category: "Boulangerie", unit: "1kg", prices: P(14.90) },
   { id: "breadcrumbs", name: "Chapelure", category: "Boulangerie", unit: "500g", prices: P(7.90) },
+
+  { id: "bread-toast", name: "Pain de mie Angel", category: "Boulangerie", unit: "750g", prices: P(8.90) },
+  { id: "bread-seeds", name: "Pain aux graines", category: "Boulangerie", unit: "500g", prices: P(13.90) },
+  { id: "bread-sliced", name: "Pain pré-tranché", category: "Boulangerie", unit: "500g", prices: P(7.90) },
+  { id: "rolls", name: "Petits pains (8u)", category: "Boulangerie", unit: "8u", prices: P(11.90) },
+  { id: "wraps", name: "Wraps souples (8u)", category: "Boulangerie", unit: "8u", prices: P(13.90) },
+  { id: "english-muffin", name: "English muffins (6u)", category: "Boulangerie", unit: "6u", prices: P(11.90) },
 
   // ============ GÂTEAUX & PÂTISSERIES ============
   { id: "marble-cake", name: "Gâteau marbré", category: "Gâteaux", unit: "500g", prices: P(19.90) },
@@ -2648,6 +2711,14 @@ const PRODUCTS = [
   { id: "wafers", name: "Gaufrettes Elite", category: "Gâteaux", unit: "200g", prices: P(9.90) },
   { id: "cookies-choc", name: "Cookies pépites chocolat", category: "Gâteaux", unit: "300g", prices: P(14.90) },
   { id: "halva", name: "Halva", category: "Gâteaux", unit: "400g", prices: P(19.90) },
+
+  { id: "tiramisu", name: "Tiramisu (préparation)", category: "Gâteaux", unit: "400g", prices: P(29.90) },
+  { id: "eclair", name: "Éclairs au chocolat (4u)", category: "Gâteaux", unit: "4u", prices: P(19.90) },
+  { id: "macarons", name: "Macarons (12u)", category: "Gâteaux", unit: "12u", prices: P(34.90) },
+  { id: "fruit-cake", name: "Cake aux fruits", category: "Gâteaux", unit: "500g", prices: P(24.90) },
+  { id: "carrot-cake", name: "Carrot cake", category: "Gâteaux", unit: "500g", prices: P(29.90) },
+  { id: "lemon-cake", name: "Cake citron", category: "Gâteaux", unit: "500g", prices: P(22.90) },
+  { id: "shortbread", name: "Sablés", category: "Gâteaux", unit: "200g", prices: P(11.90) },
 
   // ============ FRUITS ============
   { id: "apple-pink", name: "Pommes Pink Lady", category: "Fruits", unit: "1kg", prices: P(9.90) },
@@ -2680,6 +2751,14 @@ const PRODUCTS = [
   { id: "fig", name: "Figues", category: "Fruits", unit: "1kg", prices: P(19.90) },
   { id: "persimmon", name: "Kakis", category: "Fruits", unit: "1kg", prices: P(9.90) },
   { id: "date", name: "Dattes Medjool", category: "Fruits", unit: "500g", prices: P(34.90) },
+
+  { id: "apricot", name: "Abricots", category: "Fruits", unit: "1kg", prices: P(14.90) },
+  { id: "papaya", name: "Papaye", category: "Fruits", unit: "1kg", prices: P(14.90) },
+  { id: "passion-fruit", name: "Fruits de la passion", category: "Fruits", unit: "500g", prices: P(19.90) },
+  { id: "guava", name: "Goyave", category: "Fruits", unit: "1kg", prices: P(11.90) },
+  { id: "loquat", name: "Nèfles", category: "Fruits", unit: "1kg", prices: P(11.90) },
+  { id: "prickly-pear", name: "Figues de Barbarie (Sabra)", category: "Fruits", unit: "1kg", prices: P(11.90) },
+  { id: "grape-black", name: "Raisins noirs", category: "Fruits", unit: "1kg", prices: P(15.90) },
 
   // ============ LÉGUMES ============
   { id: "tomato", name: "Tomates", category: "Légumes", unit: "1kg", prices: P(5.90) },
@@ -2733,6 +2812,19 @@ const PRODUCTS = [
   { id: "basil", name: "Basilic (pot)", category: "Légumes", unit: "1u", prices: P(7.90) },
   { id: "olives-green", name: "Olives vertes", category: "Légumes", unit: "300g", prices: P(11.90) },
   { id: "olives-black", name: "Olives noires", category: "Légumes", unit: "300g", prices: P(12.90) },
+
+  { id: "tomato-roma", name: "Tomates Roma", category: "Légumes", unit: "1kg", prices: P(7.90) },
+  { id: "tomato-yellow", name: "Tomates jaunes", category: "Légumes", unit: "1kg", prices: P(11.90) },
+  { id: "fennel", name: "Fenouil", category: "Légumes", unit: "1kg", prices: P(8.90) },
+  { id: "kohlrabi", name: "Chou-rave", category: "Légumes", unit: "1kg", prices: P(6.90) },
+  { id: "okra", name: "Bamia (gombo)", category: "Légumes", unit: "500g", prices: P(11.90) },
+  { id: "swiss-chard", name: "Bettes (mangold)", category: "Légumes", unit: "1 botte", prices: P(7.90) },
+  { id: "cilantro-fresh", name: "Coriandre fraîche", category: "Légumes", unit: "1 botte", prices: P(2.90) },
+  { id: "scallion", name: "Cébettes", category: "Légumes", unit: "1 botte", prices: P(3.90) },
+  { id: "horseradish", name: "Raifort frais", category: "Légumes", unit: "200g", prices: P(8.90) },
+  { id: "sprouts", name: "Pousses (alfalfa)", category: "Légumes", unit: "100g", prices: P(7.90) },
+  { id: "endive", name: "Endives", category: "Légumes", unit: "1kg", prices: P(14.90) },
+  { id: "asparagus", name: "Asperges vertes", category: "Légumes", unit: "500g", prices: P(19.90) },
 
   // ============ ÉPICERIE SALÉE ============
   { id: "rice-white", name: "Riz blanc Sugat", category: "Épicerie", unit: "1kg", prices: P(9.90) },
@@ -4564,6 +4656,50 @@ function formatDate(iso) {
 }
 function getCartItem(id) { return activeCart()[id]; }
 function getQty(id) { return activeCart()[id]?.qty || 0; }
+// Parse "500g" / "0.5kg" / "2L" / "300ml" -> nombre de fois l'unité produit
+// Ex : pour un produit vendu en "1kg", "500g" -> 0.5
+//      pour un produit vendu en "1L", "250ml" -> 0.25
+//      pour "1u", "3" -> 3
+function parseQtyInput(value, productUnit) {
+  if (!value) return null;
+  const v = String(value).toLowerCase().replace(",", ".").trim();
+  const m = v.match(/^(\d+(?:\.\d+)?)\s*(g|kg|ml|l|u|×|x)?$/);
+  if (!m) return null;
+  const num = parseFloat(m[1]);
+  const unit = m[2];
+  if (!unit) return num;
+  const pu = (productUnit || "").toLowerCase();
+  // Détecte l'unité produit (poids vs volume vs pièces)
+  if (pu.includes("kg") || pu.match(/^\d+\s*g/) || pu.endsWith("g")) {
+    // Produit pesé : convertir tout en kg
+    let kg = num;
+    if (unit === "g") kg = num / 1000;
+    else if (unit === "kg") kg = num;
+    // Diviser par la taille de l'unité produit
+    const puMatch = pu.match(/(\d+(?:\.\d+)?)\s*(g|kg)/);
+    if (puMatch) {
+      const puNum = parseFloat(puMatch[1]);
+      const puUnit = puMatch[2];
+      const puKg = puUnit === "g" ? puNum / 1000 : puNum;
+      return puKg > 0 ? kg / puKg : num;
+    }
+    return kg;
+  }
+  if (pu.includes("l") || pu.endsWith("ml")) {
+    let l = num;
+    if (unit === "ml") l = num / 1000;
+    else if (unit === "l") l = num;
+    const puMatch = pu.match(/(\d+(?:\.\d+)?)\s*(ml|l)/);
+    if (puMatch) {
+      const puNum = parseFloat(puMatch[1]);
+      const puUnit = puMatch[2];
+      const puL = puUnit === "ml" ? puNum / 1000 : puNum;
+      return puL > 0 ? l / puL : num;
+    }
+    return l;
+  }
+  return num;
+}
 function isDone(id) { return activeCart()[id]?.done || false; }
 function activeItems() {
   const out = {};
@@ -4971,7 +5107,10 @@ function renderAll() {
   renderMobileCTA();
 }
 
-// ========== BROWSE PANEL (catégorie -> grille) ==========
+// ========== BROWSE PANEL (catégorie -> grille avec scroll infini) ==========
+const PAGE_SIZE = 30;
+let _browsePage = 1;
+let _browseObserver = null;
 function renderBrowsePanel() {
   const wrap = document.getElementById("browse-grid");
   if (!wrap) return;
@@ -4980,14 +5119,19 @@ function renderBrowsePanel() {
     return;
   }
   wrap.hidden = false;
-  const products = filterProducts(state.searchQuery, state.activeCategory).slice(0, 60);
-  if (products.length === 0) {
+  const all = filterProducts(state.searchQuery, state.activeCategory);
+  const products = all.slice(0, _browsePage * PAGE_SIZE);
+  if (all.length === 0) {
     wrap.innerHTML = `<div class="empty-state"><span class="emoji">🔍</span>${t("search_none")}</div>`;
     return;
   }
   const titleHTML = state.activeCategory
-    ? `<div class="browse-head"><span class="browse-title">${tCat(state.activeCategory)}</span><span class="browse-count">${products.length}</span><button class="link-btn" data-clear-cat>×</button></div>`
-    : "";
+    ? `<div class="browse-head"><span class="browse-title">${tCat(state.activeCategory)}</span><span class="browse-count">${all.length}</span><button class="link-btn" data-clear-cat>×</button></div>`
+    : `<div class="browse-head"><span class="browse-title">"${state.searchQuery}"</span><span class="browse-count">${all.length}</span></div>`;
+  const remaining = all.length - products.length;
+  const sentinelHTML = remaining > 0
+    ? `<div class="browse-sentinel" id="browse-sentinel">⏳ ${remaining} de plus à charger…</div>`
+    : (all.length > PAGE_SIZE ? `<div class="browse-end">✓ ${all.length} produits affichés</div>` : "");
   wrap.innerHTML = titleHTML + `
     <div class="prod-grid">
       ${products.map(p => {
@@ -5012,7 +5156,8 @@ function renderBrowsePanel() {
             <button class="prod-card-add" data-add-pid="${p.id}" aria-label="Add">+</button>
           </div>`;
       }).join("")}
-    </div>`;
+    </div>
+    ${sentinelHTML}`;
   // Click handlers
   wrap.querySelectorAll(".prod-card").forEach(el => {
     el.addEventListener("click", e => {
@@ -5027,11 +5172,29 @@ function renderBrowsePanel() {
   if (clearBtn) clearBtn.addEventListener("click", () => {
     state.activeCategory = null;
     state.searchQuery = "";
+    _browsePage = 1;
     document.getElementById("search-input").value = "";
     renderQuickCategories();
     renderBrowsePanel();
   });
+  // Scroll infini : observe le sentinel et charge la page suivante
+  if (_browseObserver) _browseObserver.disconnect();
+  const sentinel = document.getElementById("browse-sentinel");
+  if (sentinel && typeof IntersectionObserver !== "undefined") {
+    _browseObserver = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        _browsePage++;
+        renderBrowsePanel();
+      }
+    }, { rootMargin: "200px" });
+    _browseObserver.observe(sentinel);
+  }
   observeProductIcons(wrap);
+}
+// Reset pagination quand la catégorie ou la recherche change
+const _origRenderQuickCategories = renderQuickCategories;
+function _wrapResetPage() {
+  // pour reset _browsePage on le fait à l'appel
 }
 
 // ========== MODAL DÉTAIL PRODUIT ==========
@@ -5147,8 +5310,8 @@ function showProductDetail(pid) {
   if (incBtn) incBtn.addEventListener("click", () => { bumpQty(pid, +1); showProductDetail(pid); });
   const qtyInp = modal.querySelector("[data-pm-qty]");
   if (qtyInp) qtyInp.addEventListener("change", () => {
-    const v = parseFloat(qtyInp.value.replace(",", "."));
-    if (!isNaN(v)) { setQty(pid, v); showProductDetail(pid); }
+    const v = parseQtyInput(qtyInp.value, p.unit);
+    if (v != null && !isNaN(v) && v > 0) { setQty(pid, v); showProductDetail(pid); }
   });
 }
 function hideProductModal() {
@@ -5314,8 +5477,9 @@ function renderCart() {
   wrap.querySelectorAll(".qty-input").forEach(inp => {
     inp.addEventListener("change", () => {
       const id = inp.dataset.id;
-      const v = parseFloat(inp.value.replace(",", "."));
-      if (!isNaN(v)) setQty(id, v);
+      const p = findProduct(id);
+      const v = parseQtyInput(inp.value, p?.unit);
+      if (v != null && !isNaN(v) && v > 0) setQty(id, v);
     });
     inp.addEventListener("focus", () => inp.select());
   });
@@ -5371,6 +5535,11 @@ function renderCartItemHTML(id, big = false) {
   const isCheapest = effStore === cheapestS.store;
   const qtyStr = formatQty(item.qty);
   const lineTotal = effPrice * item.qty;
+  // Hint pour produits pesés ou liquides
+  const pu = (p.unit || "").toLowerCase();
+  const isWeighed = pu.includes("kg") || pu.endsWith("g");
+  const isLiquid = pu.includes("l") || pu.endsWith("ml");
+  const qtyHint = isWeighed ? "ex: 500g, 2kg" : (isLiquid ? "ex: 500ml, 1.5l" : "");
   return `
     <div class="cart-item ${item.done ? "done" : ""} ${big ? "big" : ""}">
       <button class="check-btn ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-label="✓">
@@ -5392,10 +5561,11 @@ function renderCartItemHTML(id, big = false) {
       <div class="cart-item-right">
         <div class="qty-controls compact">
           <button class="qty-btn" data-action="dec" data-id="${id}">−</button>
-          <input class="qty-input" data-id="${id}" type="text" inputmode="decimal" value="${qtyStr}" />
+          <input class="qty-input" data-id="${id}" type="text" inputmode="decimal" value="${qtyStr}" placeholder="${qtyHint || '1'}" title="${qtyHint || ''}" />
           <button class="qty-btn" data-action="inc" data-id="${id}">+</button>
         </div>
         <div class="cart-item-total">${formatPrice(lineTotal)}</div>
+        ${isWeighed || isLiquid ? `<div class="qty-hint">${p.unit}</div>` : ""}
       </div>
       <button class="remove-btn" data-action="rm" data-id="${id}" aria-label="×">×</button>
     </div>`;
@@ -6111,12 +6281,11 @@ function showRecipeDetail(recipe) {
     });
     modal.querySelectorAll("[data-ing-qty]").forEach(inp => {
       inp.addEventListener("change", () => {
-        const v = parseFloat(inp.value.replace(",", "."));
-        if (!isNaN(v) && v > 0) {
-          const id = inp.dataset.ingQty;
-          const ing = recipe.ingredients.find(i => i.id === id);
-          if (ing) ing.qty = v;
-        }
+        const id = inp.dataset.ingQty;
+        const ing = recipe.ingredients.find(i => i.id === id);
+        const p = findProduct(id);
+        const v = parseQtyInput(inp.value, p?.unit);
+        if (ing && v != null && !isNaN(v) && v > 0) ing.qty = v;
       });
     });
     modal.querySelector("[data-add-recipe]").addEventListener("click", () => {

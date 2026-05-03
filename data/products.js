@@ -150,6 +150,22 @@ const PRODUCTS = [
   { id: "brie", name: "Brie", category: "Laitiers", unit: "200g", prices: P(24.90) },
   { id: "blue-cheese", name: "Roquefort", category: "Laitiers", unit: "100g", prices: P(19.90) },
 
+  { id: "milk-3-tara", name: "Lait 3% (1L) - Tara", category: "Laitiers", unit: "1L", prices: P(6.30) },
+  { id: "milk-3-yotvata", name: "Lait 3% (1L) - Yotvata", category: "Laitiers", unit: "1L", prices: P(7.20) },
+  { id: "milk-3-strauss", name: "Lait 3% (1L) - Strauss", category: "Laitiers", unit: "1L", prices: P(6.50) },
+  { id: "milk-1-tnuva", name: "Lait 1% (1L) - Tnuva", category: "Laitiers", unit: "1L", prices: P(6.20) },
+  { id: "milk-rice", name: "Lait de riz", category: "Laitiers", unit: "1L", prices: P(13.90) },
+  { id: "milk-lactose-free", name: "Lait sans lactose Tnuva", category: "Laitiers", unit: "1L", prices: P(8.90) },
+  { id: "yogurt-vanilla", name: "Yaourt vanille", category: "Laitiers", unit: "150g", prices: P(3.90) },
+  { id: "yogurt-strawberry", name: "Yaourt fraise", category: "Laitiers", unit: "150g", prices: P(3.90) },
+  { id: "yogurt-mango", name: "Yaourt mangue", category: "Laitiers", unit: "150g", prices: P(3.90) },
+  { id: "yogurt-honey", name: "Yaourt grec au miel", category: "Laitiers", unit: "150g", prices: P(5.90) },
+  { id: "cheese-emek", name: "Emek 28% Tnuva (tranches)", category: "Laitiers", unit: "200g", prices: P(15.90) },
+  { id: "cheese-gilboa", name: "Gilboa Tnuva", category: "Laitiers", unit: "200g", prices: P(16.90) },
+  { id: "cheese-noam", name: "Noam Strauss", category: "Laitiers", unit: "200g", prices: P(15.90) },
+  { id: "cheese-gad", name: "Fromage blanc Gad", category: "Laitiers", unit: "250g", prices: P(7.90) },
+  { id: "cream-fresh", name: "Crème fraîche épaisse", category: "Laitiers", unit: "200ml", prices: P(7.90) },
+
   // ============ ŒUFS ============
   { id: "eggs-12-l", name: "Œufs L (boîte de 12)", category: "Œufs", unit: "12u", prices: P(16.90) },
   { id: "eggs-12-xl", name: "Œufs XL (boîte de 12)", category: "Œufs", unit: "12u", prices: P(19.90) },
@@ -179,6 +195,16 @@ const PRODUCTS = [
   { id: "salami", name: "Salami", category: "Viande", unit: "200g", prices: P(17.90) },
   { id: "pastrami", name: "Pastrami de dinde", category: "Viande", unit: "200g", prices: P(19.90) },
 
+  { id: "chicken-drumstick", name: "Pilons de poulet", category: "Viande", unit: "1kg", prices: P(22.90) },
+  { id: "chicken-tenders", name: "Aiguillettes de poulet", category: "Viande", unit: "1kg", prices: P(44.90) },
+  { id: "chicken-marinated", name: "Poulet mariné", category: "Viande", unit: "1kg", prices: P(54.90) },
+  { id: "beef-stew-meat", name: "Viande à pot-au-feu", category: "Viande", unit: "1kg", prices: P(69.90) },
+  { id: "beef-roast", name: "Rôti de bœuf", category: "Viande", unit: "1kg", prices: P(99.90) },
+  { id: "veal-cutlet", name: "Escalope de veau", category: "Viande", unit: "1kg", prices: P(129.00) },
+  { id: "lamb-chops", name: "Côtelettes d'agneau", category: "Viande", unit: "1kg", prices: P(129.00) },
+  { id: "lamb-ground", name: "Agneau haché", category: "Viande", unit: "1kg", prices: P(89.90) },
+  { id: "duck-breast", name: "Magret de canard", category: "Viande", unit: "500g", prices: P(64.90) },
+
   // ============ POISSON ============
   { id: "salmon-fillet", name: "Filet de saumon frais", category: "Poisson", unit: "1kg", prices: P(89.90) },
   { id: "salmon-smoked", name: "Saumon fumé", category: "Poisson", unit: "100g", prices: P(19.90) },
@@ -188,6 +214,14 @@ const PRODUCTS = [
   { id: "denis", name: "Daurade entière (Denise)", category: "Poisson", unit: "1kg", prices: P(64.90) },
   { id: "sardines", name: "Sardines en boîte", category: "Poisson", unit: "125g", prices: P(8.90) },
   { id: "herring", name: "Hareng mariné", category: "Poisson", unit: "200g", prices: P(14.90) },
+
+  { id: "shrimp-fresh", name: "Crevettes fraîches", category: "Poisson", unit: "500g", prices: P(64.90, { rami_levy: null, hatzi_hinam: null, shufersal: null, yochananof: null, victory: null, boom: null }) },
+  { id: "carp", name: "Carpe (Karpion)", category: "Poisson", unit: "1kg", prices: P(39.90) },
+  { id: "trout", name: "Truite", category: "Poisson", unit: "1kg", prices: P(54.90) },
+  { id: "calamari", name: "Calamars", category: "Poisson", unit: "500g", prices: P(34.90, { rami_levy: null, hatzi_hinam: null }) },
+  { id: "fish-balls", name: "Boulettes de poisson", category: "Poisson", unit: "500g", prices: P(29.90) },
+  { id: "tuna-can-oil", name: "Thon à l'huile (boîte)", category: "Poisson", unit: "160g", prices: P(7.90) },
+  { id: "salmon-can", name: "Saumon en boîte", category: "Poisson", unit: "200g", prices: P(19.90) },
 
   // ============ BOULANGERIE ============
   { id: "bread-white", name: "Pain blanc tranché Angel", category: "Boulangerie", unit: "750g", prices: P(7.90) },
@@ -205,6 +239,13 @@ const PRODUCTS = [
   { id: "hot-dog-bun", name: "Pains à hot-dog (6u)", category: "Boulangerie", unit: "6u", prices: P(9.90) },
   { id: "matza", name: "Matza Aviv", category: "Boulangerie", unit: "1kg", prices: P(14.90) },
   { id: "breadcrumbs", name: "Chapelure", category: "Boulangerie", unit: "500g", prices: P(7.90) },
+
+  { id: "bread-toast", name: "Pain de mie Angel", category: "Boulangerie", unit: "750g", prices: P(8.90) },
+  { id: "bread-seeds", name: "Pain aux graines", category: "Boulangerie", unit: "500g", prices: P(13.90) },
+  { id: "bread-sliced", name: "Pain pré-tranché", category: "Boulangerie", unit: "500g", prices: P(7.90) },
+  { id: "rolls", name: "Petits pains (8u)", category: "Boulangerie", unit: "8u", prices: P(11.90) },
+  { id: "wraps", name: "Wraps souples (8u)", category: "Boulangerie", unit: "8u", prices: P(13.90) },
+  { id: "english-muffin", name: "English muffins (6u)", category: "Boulangerie", unit: "6u", prices: P(11.90) },
 
   // ============ GÂTEAUX & PÂTISSERIES ============
   { id: "marble-cake", name: "Gâteau marbré", category: "Gâteaux", unit: "500g", prices: P(19.90) },
@@ -228,6 +269,14 @@ const PRODUCTS = [
   { id: "wafers", name: "Gaufrettes Elite", category: "Gâteaux", unit: "200g", prices: P(9.90) },
   { id: "cookies-choc", name: "Cookies pépites chocolat", category: "Gâteaux", unit: "300g", prices: P(14.90) },
   { id: "halva", name: "Halva", category: "Gâteaux", unit: "400g", prices: P(19.90) },
+
+  { id: "tiramisu", name: "Tiramisu (préparation)", category: "Gâteaux", unit: "400g", prices: P(29.90) },
+  { id: "eclair", name: "Éclairs au chocolat (4u)", category: "Gâteaux", unit: "4u", prices: P(19.90) },
+  { id: "macarons", name: "Macarons (12u)", category: "Gâteaux", unit: "12u", prices: P(34.90) },
+  { id: "fruit-cake", name: "Cake aux fruits", category: "Gâteaux", unit: "500g", prices: P(24.90) },
+  { id: "carrot-cake", name: "Carrot cake", category: "Gâteaux", unit: "500g", prices: P(29.90) },
+  { id: "lemon-cake", name: "Cake citron", category: "Gâteaux", unit: "500g", prices: P(22.90) },
+  { id: "shortbread", name: "Sablés", category: "Gâteaux", unit: "200g", prices: P(11.90) },
 
   // ============ FRUITS ============
   { id: "apple-pink", name: "Pommes Pink Lady", category: "Fruits", unit: "1kg", prices: P(9.90) },
@@ -260,6 +309,14 @@ const PRODUCTS = [
   { id: "fig", name: "Figues", category: "Fruits", unit: "1kg", prices: P(19.90) },
   { id: "persimmon", name: "Kakis", category: "Fruits", unit: "1kg", prices: P(9.90) },
   { id: "date", name: "Dattes Medjool", category: "Fruits", unit: "500g", prices: P(34.90) },
+
+  { id: "apricot", name: "Abricots", category: "Fruits", unit: "1kg", prices: P(14.90) },
+  { id: "papaya", name: "Papaye", category: "Fruits", unit: "1kg", prices: P(14.90) },
+  { id: "passion-fruit", name: "Fruits de la passion", category: "Fruits", unit: "500g", prices: P(19.90) },
+  { id: "guava", name: "Goyave", category: "Fruits", unit: "1kg", prices: P(11.90) },
+  { id: "loquat", name: "Nèfles", category: "Fruits", unit: "1kg", prices: P(11.90) },
+  { id: "prickly-pear", name: "Figues de Barbarie (Sabra)", category: "Fruits", unit: "1kg", prices: P(11.90) },
+  { id: "grape-black", name: "Raisins noirs", category: "Fruits", unit: "1kg", prices: P(15.90) },
 
   // ============ LÉGUMES ============
   { id: "tomato", name: "Tomates", category: "Légumes", unit: "1kg", prices: P(5.90) },
@@ -313,6 +370,19 @@ const PRODUCTS = [
   { id: "basil", name: "Basilic (pot)", category: "Légumes", unit: "1u", prices: P(7.90) },
   { id: "olives-green", name: "Olives vertes", category: "Légumes", unit: "300g", prices: P(11.90) },
   { id: "olives-black", name: "Olives noires", category: "Légumes", unit: "300g", prices: P(12.90) },
+
+  { id: "tomato-roma", name: "Tomates Roma", category: "Légumes", unit: "1kg", prices: P(7.90) },
+  { id: "tomato-yellow", name: "Tomates jaunes", category: "Légumes", unit: "1kg", prices: P(11.90) },
+  { id: "fennel", name: "Fenouil", category: "Légumes", unit: "1kg", prices: P(8.90) },
+  { id: "kohlrabi", name: "Chou-rave", category: "Légumes", unit: "1kg", prices: P(6.90) },
+  { id: "okra", name: "Bamia (gombo)", category: "Légumes", unit: "500g", prices: P(11.90) },
+  { id: "swiss-chard", name: "Bettes (mangold)", category: "Légumes", unit: "1 botte", prices: P(7.90) },
+  { id: "cilantro-fresh", name: "Coriandre fraîche", category: "Légumes", unit: "1 botte", prices: P(2.90) },
+  { id: "scallion", name: "Cébettes", category: "Légumes", unit: "1 botte", prices: P(3.90) },
+  { id: "horseradish", name: "Raifort frais", category: "Légumes", unit: "200g", prices: P(8.90) },
+  { id: "sprouts", name: "Pousses (alfalfa)", category: "Légumes", unit: "100g", prices: P(7.90) },
+  { id: "endive", name: "Endives", category: "Légumes", unit: "1kg", prices: P(14.90) },
+  { id: "asparagus", name: "Asperges vertes", category: "Légumes", unit: "500g", prices: P(19.90) },
 
   // ============ ÉPICERIE SALÉE ============
   { id: "rice-white", name: "Riz blanc Sugat", category: "Épicerie", unit: "1kg", prices: P(9.90) },

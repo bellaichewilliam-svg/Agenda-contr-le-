@@ -404,6 +404,50 @@ function formatDate(iso) {
 }
 function getCartItem(id) { return activeCart()[id]; }
 function getQty(id) { return activeCart()[id]?.qty || 0; }
+// Parse "500g" / "0.5kg" / "2L" / "300ml" -> nombre de fois l'unité produit
+// Ex : pour un produit vendu en "1kg", "500g" -> 0.5
+//      pour un produit vendu en "1L", "250ml" -> 0.25
+//      pour "1u", "3" -> 3
+function parseQtyInput(value, productUnit) {
+  if (!value) return null;
+  const v = String(value).toLowerCase().replace(",", ".").trim();
+  const m = v.match(/^(\d+(?:\.\d+)?)\s*(g|kg|ml|l|u|×|x)?$/);
+  if (!m) return null;
+  const num = parseFloat(m[1]);
+  const unit = m[2];
+  if (!unit) return num;
+  const pu = (productUnit || "").toLowerCase();
+  // Détecte l'unité produit (poids vs volume vs pièces)
+  if (pu.includes("kg") || pu.match(/^\d+\s*g/) || pu.endsWith("g")) {
+    // Produit pesé : convertir tout en kg
+    let kg = num;
+    if (unit === "g") kg = num / 1000;
+    else if (unit === "kg") kg = num;
+    // Diviser par la taille de l'unité produit
+    const puMatch = pu.match(/(\d+(?:\.\d+)?)\s*(g|kg)/);
+    if (puMatch) {
+      const puNum = parseFloat(puMatch[1]);
+      const puUnit = puMatch[2];
+      const puKg = puUnit === "g" ? puNum / 1000 : puNum;
+      return puKg > 0 ? kg / puKg : num;
+    }
+    return kg;
+  }
+  if (pu.includes("l") || pu.endsWith("ml")) {
+    let l = num;
+    if (unit === "ml") l = num / 1000;
+    else if (unit === "l") l = num;
+    const puMatch = pu.match(/(\d+(?:\.\d+)?)\s*(ml|l)/);
+    if (puMatch) {
+      const puNum = parseFloat(puMatch[1]);
+      const puUnit = puMatch[2];
+      const puL = puUnit === "ml" ? puNum / 1000 : puNum;
+      return puL > 0 ? l / puL : num;
+    }
+    return l;
+  }
+  return num;
+}
 function isDone(id) { return activeCart()[id]?.done || false; }
 function activeItems() {
   const out = {};
@@ -811,7 +855,10 @@ function renderAll() {
   renderMobileCTA();
 }
 
-// ========== BROWSE PANEL (catégorie -> grille) ==========
+// ========== BROWSE PANEL (catégorie -> grille avec scroll infini) ==========
+const PAGE_SIZE = 30;
+let _browsePage = 1;
+let _browseObserver = null;
 function renderBrowsePanel() {
   const wrap = document.getElementById("browse-grid");
   if (!wrap) return;
@@ -820,14 +867,19 @@ function renderBrowsePanel() {
     return;
   }
   wrap.hidden = false;
-  const products = filterProducts(state.searchQuery, state.activeCategory).slice(0, 60);
-  if (products.length === 0) {
+  const all = filterProducts(state.searchQuery, state.activeCategory);
+  const products = all.slice(0, _browsePage * PAGE_SIZE);
+  if (all.length === 0) {
     wrap.innerHTML = `<div class="empty-state"><span class="emoji">🔍</span>${t("search_none")}</div>`;
     return;
   }
   const titleHTML = state.activeCategory
-    ? `<div class="browse-head"><span class="browse-title">${tCat(state.activeCategory)}</span><span class="browse-count">${products.length}</span><button class="link-btn" data-clear-cat>×</button></div>`
-    : "";
+    ? `<div class="browse-head"><span class="browse-title">${tCat(state.activeCategory)}</span><span class="browse-count">${all.length}</span><button class="link-btn" data-clear-cat>×</button></div>`
+    : `<div class="browse-head"><span class="browse-title">"${state.searchQuery}"</span><span class="browse-count">${all.length}</span></div>`;
+  const remaining = all.length - products.length;
+  const sentinelHTML = remaining > 0
+    ? `<div class="browse-sentinel" id="browse-sentinel">⏳ ${remaining} de plus à charger…</div>`
+    : (all.length > PAGE_SIZE ? `<div class="browse-end">✓ ${all.length} produits affichés</div>` : "");
   wrap.innerHTML = titleHTML + `
     <div class="prod-grid">
       ${products.map(p => {
@@ -852,7 +904,8 @@ function renderBrowsePanel() {
             <button class="prod-card-add" data-add-pid="${p.id}" aria-label="Add">+</button>
           </div>`;
       }).join("")}
-    </div>`;
+    </div>
+    ${sentinelHTML}`;
   // Click handlers
   wrap.querySelectorAll(".prod-card").forEach(el => {
     el.addEventListener("click", e => {
@@ -867,11 +920,29 @@ function renderBrowsePanel() {
   if (clearBtn) clearBtn.addEventListener("click", () => {
     state.activeCategory = null;
     state.searchQuery = "";
+    _browsePage = 1;
     document.getElementById("search-input").value = "";
     renderQuickCategories();
     renderBrowsePanel();
   });
+  // Scroll infini : observe le sentinel et charge la page suivante
+  if (_browseObserver) _browseObserver.disconnect();
+  const sentinel = document.getElementById("browse-sentinel");
+  if (sentinel && typeof IntersectionObserver !== "undefined") {
+    _browseObserver = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        _browsePage++;
+        renderBrowsePanel();
+      }
+    }, { rootMargin: "200px" });
+    _browseObserver.observe(sentinel);
+  }
   observeProductIcons(wrap);
+}
+// Reset pagination quand la catégorie ou la recherche change
+const _origRenderQuickCategories = renderQuickCategories;
+function _wrapResetPage() {
+  // pour reset _browsePage on le fait à l'appel
 }
 
 // ========== MODAL DÉTAIL PRODUIT ==========
@@ -987,8 +1058,8 @@ function showProductDetail(pid) {
   if (incBtn) incBtn.addEventListener("click", () => { bumpQty(pid, +1); showProductDetail(pid); });
   const qtyInp = modal.querySelector("[data-pm-qty]");
   if (qtyInp) qtyInp.addEventListener("change", () => {
-    const v = parseFloat(qtyInp.value.replace(",", "."));
-    if (!isNaN(v)) { setQty(pid, v); showProductDetail(pid); }
+    const v = parseQtyInput(qtyInp.value, p.unit);
+    if (v != null && !isNaN(v) && v > 0) { setQty(pid, v); showProductDetail(pid); }
   });
 }
 function hideProductModal() {
@@ -1154,8 +1225,9 @@ function renderCart() {
   wrap.querySelectorAll(".qty-input").forEach(inp => {
     inp.addEventListener("change", () => {
       const id = inp.dataset.id;
-      const v = parseFloat(inp.value.replace(",", "."));
-      if (!isNaN(v)) setQty(id, v);
+      const p = findProduct(id);
+      const v = parseQtyInput(inp.value, p?.unit);
+      if (v != null && !isNaN(v) && v > 0) setQty(id, v);
     });
     inp.addEventListener("focus", () => inp.select());
   });
@@ -1211,6 +1283,11 @@ function renderCartItemHTML(id, big = false) {
   const isCheapest = effStore === cheapestS.store;
   const qtyStr = formatQty(item.qty);
   const lineTotal = effPrice * item.qty;
+  // Hint pour produits pesés ou liquides
+  const pu = (p.unit || "").toLowerCase();
+  const isWeighed = pu.includes("kg") || pu.endsWith("g");
+  const isLiquid = pu.includes("l") || pu.endsWith("ml");
+  const qtyHint = isWeighed ? "ex: 500g, 2kg" : (isLiquid ? "ex: 500ml, 1.5l" : "");
   return `
     <div class="cart-item ${item.done ? "done" : ""} ${big ? "big" : ""}">
       <button class="check-btn ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-label="✓">
@@ -1232,10 +1309,11 @@ function renderCartItemHTML(id, big = false) {
       <div class="cart-item-right">
         <div class="qty-controls compact">
           <button class="qty-btn" data-action="dec" data-id="${id}">−</button>
-          <input class="qty-input" data-id="${id}" type="text" inputmode="decimal" value="${qtyStr}" />
+          <input class="qty-input" data-id="${id}" type="text" inputmode="decimal" value="${qtyStr}" placeholder="${qtyHint || '1'}" title="${qtyHint || ''}" />
           <button class="qty-btn" data-action="inc" data-id="${id}">+</button>
         </div>
         <div class="cart-item-total">${formatPrice(lineTotal)}</div>
+        ${isWeighed || isLiquid ? `<div class="qty-hint">${p.unit}</div>` : ""}
       </div>
       <button class="remove-btn" data-action="rm" data-id="${id}" aria-label="×">×</button>
     </div>`;
@@ -1951,12 +2029,11 @@ function showRecipeDetail(recipe) {
     });
     modal.querySelectorAll("[data-ing-qty]").forEach(inp => {
       inp.addEventListener("change", () => {
-        const v = parseFloat(inp.value.replace(",", "."));
-        if (!isNaN(v) && v > 0) {
-          const id = inp.dataset.ingQty;
-          const ing = recipe.ingredients.find(i => i.id === id);
-          if (ing) ing.qty = v;
-        }
+        const id = inp.dataset.ingQty;
+        const ing = recipe.ingredients.find(i => i.id === id);
+        const p = findProduct(id);
+        const v = parseQtyInput(inp.value, p?.unit);
+        if (ing && v != null && !isNaN(v) && v > 0) ing.qty = v;
       });
     });
     modal.querySelector("[data-add-recipe]").addEventListener("click", () => {

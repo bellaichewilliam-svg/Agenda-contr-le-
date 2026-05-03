@@ -1774,7 +1774,29 @@ button { font-family: inherit; color: inherit; }
 }
 .qty-controls.compact { padding: 1px; }
 .qty-controls.compact .qty-btn { width: 24px; height: 24px; font-size: 14px; }
-.qty-controls.compact .qty-input { width: 32px; font-size: 12px; }
+.qty-controls.compact .qty-input { width: 48px; font-size: 12px; }
+.qty-hint {
+  font-size: 9px;
+  color: var(--muted);
+  text-align: end;
+  margin-top: 1px;
+}
+
+/* Sentinel scroll infini */
+.browse-sentinel {
+  text-align: center;
+  padding: 16px;
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+}
+.browse-end {
+  text-align: center;
+  padding: 12px;
+  font-size: 11px;
+  color: var(--success);
+  font-weight: 600;
+}
 
 .store-list { display: flex; flex-direction: column; gap: 8px; }
 
