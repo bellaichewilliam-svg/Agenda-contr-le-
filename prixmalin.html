@@ -1354,6 +1354,48 @@ button { font-family: inherit; color: inherit; }
 .browse-grid {
   margin-bottom: 14px;
 }
+.subcat-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.subcat-row::-webkit-scrollbar { display: none; }
+.subcat-pill {
+  background: var(--panel-soft);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--tx);
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+}
+.subcat-pill:hover { border-color: var(--accent); color: var(--accent); }
+.subcat-pill.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.subcat-count {
+  background: rgba(0,0,0,0.12);
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.subcat-pill.active .subcat-count { background: rgba(255,255,255,0.3); }
 .browse-head {
   display: flex;
   align-items: center;
@@ -2102,6 +2144,33 @@ const I18N = {
       "Boulangerie": "Boulangerie", "Gâteaux": "Gâteaux", "Fruits": "Fruits", "Légumes": "Légumes",
       "Épicerie": "Épicerie", "Petit-déj": "Petit-déj", "Boissons": "Boissons", "Surgelés": "Surgelés",
       "Snacks": "Snacks", "Bébé": "Bébé", "Hygiène": "Hygiène", "Entretien": "Entretien", "Animaux": "Animaux"
+    },
+    subcat: {
+      "Lait": "Lait", "Yaourt": "Yaourt", "Fromage": "Fromage", "Fromage frais": "Fromage frais", "Beurre": "Beurre", "Crème": "Crème",
+      "Standard": "Standard", "Bio": "Bio", "Plein air": "Plein air",
+      "Poulet": "Poulet", "Dinde": "Dinde", "Bœuf": "Bœuf", "Veau": "Veau", "Agneau": "Agneau", "Canard": "Canard", "Charcuterie": "Charcuterie",
+      "Frais": "Frais", "Fumé": "Fumé", "En boîte": "En boîte", "Préparé": "Préparé",
+      "Pain": "Pain", "Petits pains": "Petits pains", "Pita & Tortilla": "Pita & Tortilla", "Hala": "Hala", "Matza": "Matza", "Préparation": "Préparation",
+      "Gâteaux": "Gâteaux", "Viennoiseries": "Viennoiseries", "Biscuits": "Biscuits", "Bourekas": "Bourekas", "Spécialités": "Spécialités",
+      "Pommes & Poires": "Pommes & Poires", "Agrumes": "Agrumes", "Fruits rouges": "Fruits rouges", "Tropicaux": "Tropicaux",
+      "Raisins & Melons": "Raisins & Melons", "Saison": "Saison", "Fruits secs": "Fruits secs",
+      "Salades & Choux": "Salades & Choux", "Tomates & Concombres": "Tomates & Concombres", "Pommes de terre": "Pommes de terre",
+      "Oignons & Ail": "Oignons & Ail", "Racines": "Racines", "Légumes du soleil": "Légumes du soleil",
+      "Herbes & Pousses": "Herbes & Pousses", "Champignons": "Champignons", "Olives": "Olives", "Spéciaux": "Spéciaux", "Autres": "Autres",
+      "Riz": "Riz", "Pâtes & Céréales": "Pâtes & Céréales", "Légumineuses": "Légumineuses", "Conserves": "Conserves",
+      "Sauces": "Sauces", "Huiles & Vinaigres": "Huiles & Vinaigres", "Tahini & Houmous": "Tahini & Houmous",
+      "Épices": "Épices", "Conserves poisson": "Conserves poisson", "Pâtisserie": "Pâtisserie", "Lait de coco": "Lait de coco",
+      "Bocaux": "Bocaux", "Noix": "Noix", "Préparations": "Préparations",
+      "Farines & Sucres": "Farines & Sucres", "Miel & Confitures": "Miel & Confitures", "Pâtes à tartiner": "Pâtes à tartiner", "Céréales": "Céréales",
+      "Eaux": "Eaux", "Sodas": "Sodas", "Jus": "Jus", "Café": "Café", "Thés": "Thés", "Bières": "Bières",
+      "Vins": "Vins", "Spiritueux": "Spiritueux", "Boissons lactées": "Boissons lactées",
+      "Pizzas": "Pizzas", "Légumes": "Légumes", "Viandes": "Viandes", "Poissons & Fruits de mer": "Poissons & Fruits de mer",
+      "Pâtes feuilletées": "Pâtes feuilletées", "Glaces": "Glaces",
+      "Israéliens": "Israéliens", "Salés": "Salés", "Noix & Graines": "Noix & Graines", "Chocolat": "Chocolat", "Bonbons": "Bonbons",
+      "Couches": "Couches", "Lingettes": "Lingettes", "Lait & Repas": "Lait & Repas", "Accessoires": "Accessoires", "Hygiène": "Hygiène",
+      "Cheveux": "Cheveux", "Corps": "Corps", "Bouche": "Bouche", "Rasage": "Rasage", "Hygiène féminine": "Hygiène féminine", "Soins": "Soins",
+      "Vaisselle": "Vaisselle", "Lessive": "Lessive", "Nettoyants": "Nettoyants", "Cuisine": "Cuisine", "Maison": "Maison",
+      "Chien": "Chien", "Chat": "Chat"
     }
   },
   he: {
@@ -2178,6 +2247,33 @@ const I18N = {
       "Boulangerie": "מאפים", "Gâteaux": "עוגות", "Fruits": "פירות", "Légumes": "ירקות",
       "Épicerie": "מכולת", "Petit-déj": "ארוחת בוקר", "Boissons": "משקאות", "Surgelés": "קפואים",
       "Snacks": "חטיפים", "Bébé": "תינוקות", "Hygiène": "טואלטיקה", "Entretien": "ניקיון", "Animaux": "חיות מחמד"
+    },
+    subcat: {
+      "Lait": "חלב", "Yaourt": "יוגורט", "Fromage": "גבינה", "Fromage frais": "גבינה לבנה", "Beurre": "חמאה", "Crème": "שמנת",
+      "Standard": "רגיל", "Bio": "אורגני", "Plein air": "חופש",
+      "Poulet": "עוף", "Dinde": "הודו", "Bœuf": "בקר", "Veau": "עגל", "Agneau": "כבש", "Canard": "ברווז", "Charcuterie": "נקניקיות",
+      "Frais": "טרי", "Fumé": "מעושן", "En boîte": "שימורים", "Préparé": "מוכן",
+      "Pain": "לחם", "Petits pains": "לחמניות", "Pita & Tortilla": "פיתה וטורטיה", "Hala": "חלה", "Matza": "מצה", "Préparation": "תערובת",
+      "Gâteaux": "עוגות", "Viennoiseries": "מאפים מתוקים", "Biscuits": "עוגיות", "Bourekas": "בורקס", "Spécialités": "מיוחדים",
+      "Pommes & Poires": "תפוחים ואגסים", "Agrumes": "הדרים", "Fruits rouges": "פירות יער", "Tropicaux": "טרופיים",
+      "Raisins & Melons": "ענבים ומלונים", "Saison": "עונה", "Fruits secs": "פירות יבשים",
+      "Salades & Choux": "סלטים וכרובים", "Tomates & Concombres": "עגבניות ומלפפונים", "Pommes de terre": "תפוחי אדמה",
+      "Oignons & Ail": "בצל ושום", "Racines": "שורשים", "Légumes du soleil": "ירקות שמש",
+      "Herbes & Pousses": "עשבי תיבול ונבטים", "Champignons": "פטריות", "Olives": "זיתים", "Spéciaux": "מיוחדים", "Autres": "אחר",
+      "Riz": "אורז", "Pâtes & Céréales": "פסטה ודגנים", "Légumineuses": "קטניות", "Conserves": "שימורים",
+      "Sauces": "רטבים", "Huiles & Vinaigres": "שמנים וחומץ", "Tahini & Houmous": "טחינה וחומוס",
+      "Épices": "תבלינים", "Conserves poisson": "דגים בשימור", "Pâtisserie": "אפייה", "Lait de coco": "חלב קוקוס",
+      "Bocaux": "צנצנות", "Noix": "אגוזים", "Préparations": "תערובות",
+      "Farines & Sucres": "קמח וסוכר", "Miel & Confitures": "דבש וריבות", "Pâtes à tartiner": "ממרחים", "Céréales": "דגני בוקר",
+      "Eaux": "מים", "Sodas": "משקאות מוגזים", "Jus": "מיצים", "Café": "קפה", "Thés": "תה", "Bières": "בירה",
+      "Vins": "יין", "Spiritueux": "אלכוהול", "Boissons lactées": "משקאות חלביים",
+      "Pizzas": "פיצות", "Légumes": "ירקות", "Viandes": "בשרים", "Poissons & Fruits de mer": "דגים ופירות ים",
+      "Pâtes feuilletées": "בצק עלים", "Glaces": "גלידות",
+      "Israéliens": "ישראלים", "Salés": "מלוחים", "Noix & Graines": "אגוזים וזרעים", "Chocolat": "שוקולד", "Bonbons": "סוכריות",
+      "Couches": "חיתולים", "Lingettes": "מגבונים", "Lait & Repas": "פורמולה ומזון", "Accessoires": "אביזרים", "Hygiène": "היגיינה",
+      "Cheveux": "שיער", "Corps": "גוף", "Bouche": "פה", "Rasage": "גילוח", "Hygiène féminine": "היגיינה נשית", "Soins": "טיפוח",
+      "Vaisselle": "כלים", "Lessive": "כביסה", "Nettoyants": "ניקיון", "Cuisine": "מטבח", "Maison": "בית",
+      "Chien": "כלב", "Chat": "חתול"
     }
   },
   en: {
@@ -2254,6 +2350,33 @@ const I18N = {
       "Boulangerie": "Bakery", "Gâteaux": "Cakes", "Fruits": "Fruits", "Légumes": "Vegetables",
       "Épicerie": "Pantry", "Petit-déj": "Breakfast", "Boissons": "Drinks", "Surgelés": "Frozen",
       "Snacks": "Snacks", "Bébé": "Baby", "Hygiène": "Hygiene", "Entretien": "Cleaning", "Animaux": "Pets"
+    },
+    subcat: {
+      "Lait": "Milk", "Yaourt": "Yogurt", "Fromage": "Cheese", "Fromage frais": "Soft cheese", "Beurre": "Butter", "Crème": "Cream",
+      "Standard": "Standard", "Bio": "Organic", "Plein air": "Free range",
+      "Poulet": "Chicken", "Dinde": "Turkey", "Bœuf": "Beef", "Veau": "Veal", "Agneau": "Lamb", "Canard": "Duck", "Charcuterie": "Cold cuts",
+      "Frais": "Fresh", "Fumé": "Smoked", "En boîte": "Canned", "Préparé": "Prepared",
+      "Pain": "Bread", "Petits pains": "Rolls", "Pita & Tortilla": "Pita & Tortilla", "Hala": "Challah", "Matza": "Matza", "Préparation": "Preparation",
+      "Gâteaux": "Cakes", "Viennoiseries": "Pastries", "Biscuits": "Cookies", "Bourekas": "Bourekas", "Spécialités": "Specialties",
+      "Pommes & Poires": "Apples & Pears", "Agrumes": "Citrus", "Fruits rouges": "Berries", "Tropicaux": "Tropical",
+      "Raisins & Melons": "Grapes & Melons", "Saison": "Seasonal", "Fruits secs": "Dried fruits",
+      "Salades & Choux": "Salads & Cabbage", "Tomates & Concombres": "Tomatoes & Cucumbers", "Pommes de terre": "Potatoes",
+      "Oignons & Ail": "Onions & Garlic", "Racines": "Roots", "Légumes du soleil": "Sun vegetables",
+      "Herbes & Pousses": "Herbs & Sprouts", "Champignons": "Mushrooms", "Olives": "Olives", "Spéciaux": "Special", "Autres": "Other",
+      "Riz": "Rice", "Pâtes & Céréales": "Pasta & Grains", "Légumineuses": "Legumes", "Conserves": "Canned",
+      "Sauces": "Sauces", "Huiles & Vinaigres": "Oils & Vinegars", "Tahini & Houmous": "Tahini & Hummus",
+      "Épices": "Spices", "Conserves poisson": "Canned fish", "Pâtisserie": "Baking", "Lait de coco": "Coconut milk",
+      "Bocaux": "Jars", "Noix": "Nuts", "Préparations": "Mixes",
+      "Farines & Sucres": "Flour & Sugar", "Miel & Confitures": "Honey & Jam", "Pâtes à tartiner": "Spreads", "Céréales": "Cereals",
+      "Eaux": "Water", "Sodas": "Sodas", "Jus": "Juices", "Café": "Coffee", "Thés": "Teas", "Bières": "Beer",
+      "Vins": "Wine", "Spiritueux": "Spirits", "Boissons lactées": "Dairy drinks",
+      "Pizzas": "Pizzas", "Légumes": "Vegetables", "Viandes": "Meats", "Poissons & Fruits de mer": "Fish & Seafood",
+      "Pâtes feuilletées": "Puff pastry", "Glaces": "Ice cream",
+      "Israéliens": "Israeli", "Salés": "Savory", "Noix & Graines": "Nuts & Seeds", "Chocolat": "Chocolate", "Bonbons": "Candy",
+      "Couches": "Diapers", "Lingettes": "Wipes", "Lait & Repas": "Formula & Food", "Accessoires": "Accessories", "Hygiène": "Hygiene",
+      "Cheveux": "Hair", "Corps": "Body", "Bouche": "Mouth", "Rasage": "Shaving", "Hygiène féminine": "Feminine care", "Soins": "Care",
+      "Vaisselle": "Dishes", "Lessive": "Laundry", "Nettoyants": "Cleaners", "Cuisine": "Kitchen", "Maison": "Home",
+      "Chien": "Dog", "Chat": "Cat"
     }
   },
   ru: {
@@ -2330,6 +2453,33 @@ const I18N = {
       "Boulangerie": "Хлеб", "Gâteaux": "Выпечка", "Fruits": "Фрукты", "Légumes": "Овощи",
       "Épicerie": "Бакалея", "Petit-déj": "Завтрак", "Boissons": "Напитки", "Surgelés": "Заморозка",
       "Snacks": "Снеки", "Bébé": "Дети", "Hygiène": "Гигиена", "Entretien": "Бытовая химия", "Animaux": "Питомцы"
+    },
+    subcat: {
+      "Lait": "Молоко", "Yaourt": "Йогурт", "Fromage": "Сыр", "Fromage frais": "Творог", "Beurre": "Масло", "Crème": "Сливки",
+      "Standard": "Обычные", "Bio": "Био", "Plein air": "Свободный выгул",
+      "Poulet": "Курица", "Dinde": "Индейка", "Bœuf": "Говядина", "Veau": "Телятина", "Agneau": "Баранина", "Canard": "Утка", "Charcuterie": "Колбасы",
+      "Frais": "Свежий", "Fumé": "Копчёный", "En boîte": "Консервы", "Préparé": "Готовый",
+      "Pain": "Хлеб", "Petits pains": "Булочки", "Pita & Tortilla": "Пита и Тортилья", "Hala": "Хала", "Matza": "Маца", "Préparation": "Смесь",
+      "Gâteaux": "Торты", "Viennoiseries": "Выпечка", "Biscuits": "Печенье", "Bourekas": "Бурекас", "Spécialités": "Специальное",
+      "Pommes & Poires": "Яблоки и груши", "Agrumes": "Цитрусовые", "Fruits rouges": "Ягоды", "Tropicaux": "Тропические",
+      "Raisins & Melons": "Виноград и дыни", "Saison": "Сезонные", "Fruits secs": "Сухофрукты",
+      "Salades & Choux": "Салаты и капуста", "Tomates & Concombres": "Помидоры и огурцы", "Pommes de terre": "Картофель",
+      "Oignons & Ail": "Лук и чеснок", "Racines": "Корнеплоды", "Légumes du soleil": "Овощи",
+      "Herbes & Pousses": "Травы и ростки", "Champignons": "Грибы", "Olives": "Оливки", "Spéciaux": "Особые", "Autres": "Другое",
+      "Riz": "Рис", "Pâtes & Céréales": "Паста и крупы", "Légumineuses": "Бобовые", "Conserves": "Консервы",
+      "Sauces": "Соусы", "Huiles & Vinaigres": "Масла и уксус", "Tahini & Houmous": "Тхина и хумус",
+      "Épices": "Специи", "Conserves poisson": "Консервы рыба", "Pâtisserie": "Выпечка", "Lait de coco": "Кокосовое молоко",
+      "Bocaux": "Банки", "Noix": "Орехи", "Préparations": "Смеси",
+      "Farines & Sucres": "Мука и сахар", "Miel & Confitures": "Мёд и варенье", "Pâtes à tartiner": "Намазки", "Céréales": "Хлопья",
+      "Eaux": "Вода", "Sodas": "Газировка", "Jus": "Соки", "Café": "Кофе", "Thés": "Чай", "Bières": "Пиво",
+      "Vins": "Вино", "Spiritueux": "Крепкие напитки", "Boissons lactées": "Молочные напитки",
+      "Pizzas": "Пицца", "Légumes": "Овощи", "Viandes": "Мясо", "Poissons & Fruits de mer": "Рыба и морепродукты",
+      "Pâtes feuilletées": "Слоёное тесто", "Glaces": "Мороженое",
+      "Israéliens": "Израильские", "Salés": "Солёные", "Noix & Graines": "Орехи и семена", "Chocolat": "Шоколад", "Bonbons": "Конфеты",
+      "Couches": "Подгузники", "Lingettes": "Влажные салфетки", "Lait & Repas": "Смеси и питание", "Accessoires": "Аксессуары", "Hygiène": "Гигиена",
+      "Cheveux": "Волосы", "Corps": "Тело", "Bouche": "Рот", "Rasage": "Бритьё", "Hygiène féminine": "Женская гигиена", "Soins": "Уход",
+      "Vaisselle": "Посуда", "Lessive": "Стирка", "Nettoyants": "Чистящие", "Cuisine": "Кухня", "Maison": "Дом",
+      "Chien": "Собака", "Chat": "Кошка"
     }
   }
 };
@@ -3139,13 +3289,172 @@ const PRODUCTS = [
   { id: "cat-litter", name: "Litière chat", category: "Animaux", unit: "10kg", prices: P(34.90) }
 ];
 
-// Calcule les prix réels après définition de PRODUCTS (chaque produit
-// a ainsi un magasin "le moins cher" différent selon sa catégorie)
+// Calcule les prix réels après définition de PRODUCTS
 PRODUCTS.forEach(p => {
   if (p.prices && p.prices._base !== undefined) {
     p.prices = _computePrices(p.prices._base, p.prices._variations || {}, p.category, p.id);
   }
 });
+
+// ============ SOUS-CATÉGORIES ============
+// Auto-derive sub-categories from product id/name patterns.
+// Standard organisation des supermarchés israéliens.
+function _deriveSubcategory(p) {
+  const id = p.id;
+  const cat = p.category;
+
+  if (cat === "Laitiers") {
+    if (/^milk-/.test(id) || id === "chocolate-milk") return "Lait";
+    if (/^yogurt-|^skyr|^leben/.test(id)) return "Yaourt";
+    if (/cottage|white-cheese|labane|^cream-cheese/.test(id)) return "Fromage frais";
+    if (/^butter|margarine/.test(id)) return "Beurre";
+    if (/cream/.test(id)) return "Crème";
+    return "Fromage";
+  }
+  if (cat === "Œufs") return id.includes("organic") ? "Bio" : (id.includes("free-range") ? "Plein air" : "Standard");
+  if (cat === "Viande") {
+    if (/chicken|schnitzel|ground-chicken/.test(id)) return "Poulet";
+    if (/turkey/.test(id)) return "Dinde";
+    if (/lamb/.test(id)) return "Agneau";
+    if (/duck/.test(id)) return "Canard";
+    if (/kebab|merguez|hot-dog|salami|pastrami/.test(id)) return "Charcuterie";
+    if (/veal/.test(id)) return "Veau";
+    return "Bœuf";
+  }
+  if (cat === "Poisson") {
+    if (/can|sardines|herring|tuna-can|salmon-can/.test(id)) return "En boîte";
+    if (/smoked/.test(id)) return "Fumé";
+    if (/fish-balls|carp|trout|fish/.test(id) && id !== "white-fish") return "Préparé";
+    return "Frais";
+  }
+  if (cat === "Boulangerie") {
+    if (/pita|lafa|tortilla/.test(id)) return "Pita & Tortilla";
+    if (/challah/.test(id)) return "Hala";
+    if (/bagel|burger-bun|hot-dog-bun|rolls|english/.test(id)) return "Petits pains";
+    if (/matza/.test(id)) return "Matza";
+    if (/breadcrumbs/.test(id)) return "Préparation";
+    return "Pain";
+  }
+  if (cat === "Gâteaux") {
+    if (/burekas/.test(id)) return "Bourekas";
+    if (/biscuits|cookies|wafers|shortbread/.test(id)) return "Biscuits";
+    if (/croissant|danish|donuts|rugelach|babka/.test(id)) return "Viennoiseries";
+    if (/halva/.test(id)) return "Spécialités";
+    return "Gâteaux";
+  }
+  if (cat === "Fruits") {
+    if (/apple|pear/.test(id)) return "Pommes & Poires";
+    if (/orange|clementine|grapefruit|lemon|lime/.test(id)) return "Agrumes";
+    if (/strawberry|blueberry|raspberry|cherry/.test(id)) return "Fruits rouges";
+    if (/banana|pineapple|mango|avocado|kiwi|papaya|passion|guava/.test(id)) return "Tropicaux";
+    if (/grape|watermelon|melon/.test(id)) return "Raisins & Melons";
+    if (/peach|nectarine|plum|apricot|fig|persimmon|pomegranate|loquat|prickly/.test(id)) return "Saison";
+    if (/date/.test(id)) return "Fruits secs";
+    return "Autres";
+  }
+  if (cat === "Légumes") {
+    if (/lettuce|spinach|kale|arugula|cabbage|cauliflower|broccoli|chard/.test(id)) return "Salades & Choux";
+    if (/tomato|cucumber/.test(id)) return "Tomates & Concombres";
+    if (/potato|sweet-potato/.test(id)) return "Pommes de terre";
+    if (/onion|shallot|garlic|leek|scallion/.test(id)) return "Oignons & Ail";
+    if (/carrot|beet|turnip|radish|kohlrabi/.test(id)) return "Racines";
+    if (/pepper|zucchini|eggplant|pumpkin|corn|fennel|okra/.test(id)) return "Légumes du soleil";
+    if (/parsley|cilantro|dill|mint|basil|sprouts/.test(id)) return "Herbes & Pousses";
+    if (/mushroom/.test(id)) return "Champignons";
+    if (/olives/.test(id)) return "Olives";
+    if (/asparagus|endive|celery/.test(id)) return "Spéciaux";
+    return "Autres";
+  }
+  if (cat === "Épicerie") {
+    if (/^rice-/.test(id)) return "Riz";
+    if (/^pasta-|noodles|couscous|bulgur|quinoa/.test(id)) return "Pâtes & Céréales";
+    if (/lentils|chickpeas|beans/.test(id)) return "Légumineuses";
+    if (/tomato-paste|tomato-sauce|tomato-crushed|peas-can|corn-can/.test(id)) return "Conserves";
+    if (/sauce|ketchup|mustard|mayo|teriyaki|soy-sauce|salsa|harissa|amba|schug|matbucha|pesto|wasabi|worcestershire/.test(id)) return "Sauces";
+    if (/oil-|vinegar/.test(id)) return "Huiles & Vinaigres";
+    if (/tahini|humus|halva/.test(id)) return "Tahini & Houmous";
+    if (/salt|pepper|paprika|cumin|turmeric|cinnamon|nutmeg|cardamom|cloves|curry|ginger-powder|hawaij|baharat|oregano|thyme|rosemary|bay-leaves|zaatar|sesame/.test(id)) return "Épices";
+    if (/tuna-can|tuna-oil|anchovies|fish/.test(id)) return "Conserves poisson";
+    if (/yeast|baking-powder|baking-soda|gelatin|vanilla-extract|cocoa-powder|coconut-flakes/.test(id)) return "Pâtisserie";
+    if (/coconut-milk/.test(id)) return "Lait de coco";
+    if (/capers|pickles|sun-dried-tomato|artichoke|olives/.test(id)) return "Bocaux";
+    if (/walnuts|hazelnuts|almonds|cashew|pistachio|peanut|nuts|raisins|dried-fruit/.test(id)) return "Noix";
+    if (/falafel-mix|polenta|sushi-rice|nori|stock|soup-mix/.test(id)) return "Préparations";
+    return "Autres";
+  }
+  if (cat === "Petit-déj") {
+    if (/^flour|^sugar/.test(id)) return "Farines & Sucres";
+    if (/honey|silan|maple|jam-/.test(id)) return "Miel & Confitures";
+    if (/nutella|peanut-butter|almond-butter/.test(id)) return "Pâtes à tartiner";
+    if (/cereal|muesli|granola|oats/.test(id)) return "Céréales";
+    return "Autres";
+  }
+  if (cat === "Boissons") {
+    if (/water/.test(id)) return "Eaux";
+    if (/coke|sprite|fanta|schweppes|ice-tea|energy|redbull/.test(id)) return "Sodas";
+    if (/juice|lemonade/.test(id)) return "Jus";
+    if (/coffee/.test(id)) return "Café";
+    if (/tea-/.test(id)) return "Thés";
+    if (/beer/.test(id)) return "Bières";
+    if (/wine/.test(id)) return "Vins";
+    if (/vodka|whiskey|arak/.test(id)) return "Spiritueux";
+    if (/milkshake|almond-milk-drink/.test(id)) return "Boissons lactées";
+    return "Autres";
+  }
+  if (cat === "Surgelés") {
+    if (/pizza/.test(id)) return "Pizzas";
+    if (/fries|wedges/.test(id)) return "Pommes de terre";
+    if (/veggies|peas|corn|broccoli|cauliflower|spinach|stir-fry/.test(id)) return "Légumes";
+    if (/fish|shrimp/.test(id)) return "Poissons & Fruits de mer";
+    if (/schnitzel|burger|nuggets|meatballs/.test(id)) return "Viandes";
+    if (/puff|filo/.test(id)) return "Pâtes feuilletées";
+    if (/ice-cream|popsicles/.test(id)) return "Glaces";
+    return "Autres";
+  }
+  if (cat === "Snacks") {
+    if (/bamba|bisli/.test(id)) return "Israéliens";
+    if (/chips|doritos|pringles|popcorn|pretzel|crackers|rice-cakes/.test(id)) return "Salés";
+    if (/almonds|cashew|pistachio|peanut|nuts-mixed|sunflower|pumpkin-seeds/.test(id)) return "Noix & Graines";
+    if (/dried-fruit|raisins/.test(id)) return "Fruits secs";
+    if (/chocolate|nutella|kitkat|pesek-zman|krembo/.test(id)) return "Chocolat";
+    if (/candy|gum-/.test(id)) return "Bonbons";
+    return "Autres";
+  }
+  if (cat === "Bébé") {
+    if (/diapers/.test(id)) return "Couches";
+    if (/wipes/.test(id)) return "Lingettes";
+    if (/baby-formula|baby-cereal|baby-puree/.test(id)) return "Lait & Repas";
+    if (/baby-bottle|baby-pacifier/.test(id)) return "Accessoires";
+    if (/baby-shampoo/.test(id)) return "Hygiène";
+    return "Autres";
+  }
+  if (cat === "Hygiène") {
+    if (/shampoo|conditioner|hair-/.test(id)) return "Cheveux";
+    if (/soap|shower-gel|sunscreen|moisturizer|hand-cream|lip-balm|perfume|deodorant/.test(id)) return "Corps";
+    if (/toothpaste|toothbrush|mouthwash/.test(id)) return "Bouche";
+    if (/razor|shaving/.test(id)) return "Rasage";
+    if (/tampons|pads/.test(id)) return "Hygiène féminine";
+    if (/cotton|qtips|tissues|paper-towel|toilet-paper|bandages|antiseptic/.test(id)) return "Soins";
+    return "Autres";
+  }
+  if (cat === "Entretien") {
+    if (/dish-/.test(id)) return "Vaisselle";
+    if (/laundry|softener|stain/.test(id)) return "Lessive";
+    if (/bleach|floor|glass|kitchen-cleaner|bathroom|toilet-cleaner|drain/.test(id)) return "Nettoyants";
+    if (/sponges|rubber-gloves/.test(id)) return "Accessoires";
+    if (/aluminum|plastic-wrap|baking-paper|trash-bags|napkins|paper-plates|paper-cups|plastic-cutlery|ziplock|shopping-bags/.test(id)) return "Cuisine";
+    if (/matches|candles|batteries|lightbulb|charcoal|insecticide|air-freshener/.test(id)) return "Maison";
+    return "Autres";
+  }
+  if (cat === "Animaux") {
+    if (/dog/.test(id)) return "Chien";
+    if (/cat/.test(id)) return "Chat";
+    return "Autres";
+  }
+  return "Autres";
+}
+
+PRODUCTS.forEach(p => { if (!p.subcategory) p.subcategory = _deriveSubcategory(p); });
 
 if (typeof module !== "undefined") {
   module.exports = { STORES, PRODUCTS, DATA_VERSION, LAST_UPDATED };
@@ -4276,6 +4585,7 @@ function defaultState() {
     shoppingMode: false,
     mode: "optimized", // "optimized" (défaut, classement auto) | "single"
     activeCategory: null,
+    activeSubcat: null,
     searchQuery: "",
     hideDone: false
   };
@@ -4361,6 +4671,10 @@ function tProduct(p) {
 function tCat(cat) {
   const dict = I18N[state.lang] || I18N.fr;
   return (dict.cat && dict.cat[cat]) || cat;
+}
+function tSubcat(sub) {
+  const dict = I18N[state.lang] || I18N.fr;
+  return (dict.subcat && dict.subcat[sub]) || sub;
 }
 
 // ========== ICÔNES PRODUITS ==========
@@ -4850,11 +5164,12 @@ function applyTheme() {
 function setTheme(t) { state.theme = t; saveState(); applyTheme(); }
 
 // ========== RECHERCHE ==========
-function filterProducts(query, category) {
+function filterProducts(query, category, subcat) {
   const q = normalize(query.trim());
   const matches = [];
   PRODUCTS.forEach(p => {
     if (category && p.category !== category) return;
+    if (subcat && p.subcategory !== subcat) return;
     if (!q) { matches.push({ p, score: 0 }); return; }
     const name_fr = normalize(p.name);
     const name_other = normalize(tProduct(p));
@@ -4937,6 +5252,8 @@ function renderQuickCategories() {
   wrap.querySelectorAll(".cat-pill").forEach(el => {
     el.addEventListener("click", () => {
       state.activeCategory = state.activeCategory === el.dataset.cat ? null : el.dataset.cat;
+      state.activeSubcat = null; // reset à chaque changement de catégorie
+      _browsePage = 1;
       // Si on active une catégorie, on vide la recherche pour éviter le conflit
       if (state.activeCategory) {
         state.searchQuery = "";
@@ -5119,15 +5436,38 @@ function renderBrowsePanel() {
     return;
   }
   wrap.hidden = false;
-  const all = filterProducts(state.searchQuery, state.activeCategory);
+  const all = filterProducts(state.searchQuery, state.activeCategory, state.activeSubcat);
   const products = all.slice(0, _browsePage * PAGE_SIZE);
   if (all.length === 0) {
     wrap.innerHTML = `<div class="empty-state"><span class="emoji">🔍</span>${t("search_none")}</div>`;
     return;
   }
-  const titleHTML = state.activeCategory
-    ? `<div class="browse-head"><span class="browse-title">${tCat(state.activeCategory)}</span><span class="browse-count">${all.length}</span><button class="link-btn" data-clear-cat>×</button></div>`
-    : `<div class="browse-head"><span class="browse-title">"${state.searchQuery}"</span><span class="browse-count">${all.length}</span></div>`;
+  let titleHTML = "";
+  if (state.activeCategory) {
+    // Compte produits par sous-catégorie pour la catégorie active
+    const subcounts = {};
+    PRODUCTS.forEach(p => {
+      if (p.category === state.activeCategory) {
+        subcounts[p.subcategory] = (subcounts[p.subcategory] || 0) + 1;
+      }
+    });
+    const subs = Object.entries(subcounts).sort((a, b) => b[1] - a[1]);
+    const breadcrumb = state.activeSubcat
+      ? `${tCat(state.activeCategory)} <span style="color:var(--muted)">›</span> ${tSubcat(state.activeSubcat)}`
+      : tCat(state.activeCategory);
+    titleHTML = `
+      <div class="browse-head">
+        <span class="browse-title">${breadcrumb}</span>
+        <span class="browse-count">${all.length}</span>
+        <button class="link-btn" data-clear-cat>×</button>
+      </div>
+      <div class="subcat-row">
+        <button class="subcat-pill ${!state.activeSubcat ? "active" : ""}" data-subcat="">Tous</button>
+        ${subs.map(([s, n]) => `<button class="subcat-pill ${state.activeSubcat === s ? "active" : ""}" data-subcat="${s}">${tSubcat(s)} <span class="subcat-count">${n}</span></button>`).join("")}
+      </div>`;
+  } else {
+    titleHTML = `<div class="browse-head"><span class="browse-title">"${state.searchQuery}"</span><span class="browse-count">${all.length}</span></div>`;
+  }
   const remaining = all.length - products.length;
   const sentinelHTML = remaining > 0
     ? `<div class="browse-sentinel" id="browse-sentinel">⏳ ${remaining} de plus à charger…</div>`
@@ -5171,11 +5511,21 @@ function renderBrowsePanel() {
   const clearBtn = wrap.querySelector("[data-clear-cat]");
   if (clearBtn) clearBtn.addEventListener("click", () => {
     state.activeCategory = null;
+    state.activeSubcat = null;
     state.searchQuery = "";
     _browsePage = 1;
     document.getElementById("search-input").value = "";
     renderQuickCategories();
     renderBrowsePanel();
+  });
+  // Sous-catégorie pills
+  wrap.querySelectorAll(".subcat-pill").forEach(el => {
+    el.addEventListener("click", () => {
+      const s = el.dataset.subcat || null;
+      state.activeSubcat = state.activeSubcat === s ? null : (s || null);
+      _browsePage = 1;
+      renderBrowsePanel();
+    });
   });
   // Scroll infini : observe le sentinel et charge la page suivante
   if (_browseObserver) _browseObserver.disconnect();

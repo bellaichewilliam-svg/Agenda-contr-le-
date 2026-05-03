@@ -1340,6 +1340,48 @@ button { font-family: inherit; color: inherit; }
 .browse-grid {
   margin-bottom: 14px;
 }
+.subcat-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  overflow-x: auto;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.subcat-row::-webkit-scrollbar { display: none; }
+.subcat-pill {
+  background: var(--panel-soft);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--tx);
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: inherit;
+}
+.subcat-pill:hover { border-color: var(--accent); color: var(--accent); }
+.subcat-pill.active {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.subcat-count {
+  background: rgba(0,0,0,0.12);
+  padding: 0 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.subcat-pill.active .subcat-count { background: rgba(255,255,255,0.3); }
 .browse-head {
   display: flex;
   align-items: center;

@@ -697,13 +697,172 @@ const PRODUCTS = [
   { id: "cat-litter", name: "Litière chat", category: "Animaux", unit: "10kg", prices: P(34.90) }
 ];
 
-// Calcule les prix réels après définition de PRODUCTS (chaque produit
-// a ainsi un magasin "le moins cher" différent selon sa catégorie)
+// Calcule les prix réels après définition de PRODUCTS
 PRODUCTS.forEach(p => {
   if (p.prices && p.prices._base !== undefined) {
     p.prices = _computePrices(p.prices._base, p.prices._variations || {}, p.category, p.id);
   }
 });
+
+// ============ SOUS-CATÉGORIES ============
+// Auto-derive sub-categories from product id/name patterns.
+// Standard organisation des supermarchés israéliens.
+function _deriveSubcategory(p) {
+  const id = p.id;
+  const cat = p.category;
+
+  if (cat === "Laitiers") {
+    if (/^milk-/.test(id) || id === "chocolate-milk") return "Lait";
+    if (/^yogurt-|^skyr|^leben/.test(id)) return "Yaourt";
+    if (/cottage|white-cheese|labane|^cream-cheese/.test(id)) return "Fromage frais";
+    if (/^butter|margarine/.test(id)) return "Beurre";
+    if (/cream/.test(id)) return "Crème";
+    return "Fromage";
+  }
+  if (cat === "Œufs") return id.includes("organic") ? "Bio" : (id.includes("free-range") ? "Plein air" : "Standard");
+  if (cat === "Viande") {
+    if (/chicken|schnitzel|ground-chicken/.test(id)) return "Poulet";
+    if (/turkey/.test(id)) return "Dinde";
+    if (/lamb/.test(id)) return "Agneau";
+    if (/duck/.test(id)) return "Canard";
+    if (/kebab|merguez|hot-dog|salami|pastrami/.test(id)) return "Charcuterie";
+    if (/veal/.test(id)) return "Veau";
+    return "Bœuf";
+  }
+  if (cat === "Poisson") {
+    if (/can|sardines|herring|tuna-can|salmon-can/.test(id)) return "En boîte";
+    if (/smoked/.test(id)) return "Fumé";
+    if (/fish-balls|carp|trout|fish/.test(id) && id !== "white-fish") return "Préparé";
+    return "Frais";
+  }
+  if (cat === "Boulangerie") {
+    if (/pita|lafa|tortilla/.test(id)) return "Pita & Tortilla";
+    if (/challah/.test(id)) return "Hala";
+    if (/bagel|burger-bun|hot-dog-bun|rolls|english/.test(id)) return "Petits pains";
+    if (/matza/.test(id)) return "Matza";
+    if (/breadcrumbs/.test(id)) return "Préparation";
+    return "Pain";
+  }
+  if (cat === "Gâteaux") {
+    if (/burekas/.test(id)) return "Bourekas";
+    if (/biscuits|cookies|wafers|shortbread/.test(id)) return "Biscuits";
+    if (/croissant|danish|donuts|rugelach|babka/.test(id)) return "Viennoiseries";
+    if (/halva/.test(id)) return "Spécialités";
+    return "Gâteaux";
+  }
+  if (cat === "Fruits") {
+    if (/apple|pear/.test(id)) return "Pommes & Poires";
+    if (/orange|clementine|grapefruit|lemon|lime/.test(id)) return "Agrumes";
+    if (/strawberry|blueberry|raspberry|cherry/.test(id)) return "Fruits rouges";
+    if (/banana|pineapple|mango|avocado|kiwi|papaya|passion|guava/.test(id)) return "Tropicaux";
+    if (/grape|watermelon|melon/.test(id)) return "Raisins & Melons";
+    if (/peach|nectarine|plum|apricot|fig|persimmon|pomegranate|loquat|prickly/.test(id)) return "Saison";
+    if (/date/.test(id)) return "Fruits secs";
+    return "Autres";
+  }
+  if (cat === "Légumes") {
+    if (/lettuce|spinach|kale|arugula|cabbage|cauliflower|broccoli|chard/.test(id)) return "Salades & Choux";
+    if (/tomato|cucumber/.test(id)) return "Tomates & Concombres";
+    if (/potato|sweet-potato/.test(id)) return "Pommes de terre";
+    if (/onion|shallot|garlic|leek|scallion/.test(id)) return "Oignons & Ail";
+    if (/carrot|beet|turnip|radish|kohlrabi/.test(id)) return "Racines";
+    if (/pepper|zucchini|eggplant|pumpkin|corn|fennel|okra/.test(id)) return "Légumes du soleil";
+    if (/parsley|cilantro|dill|mint|basil|sprouts/.test(id)) return "Herbes & Pousses";
+    if (/mushroom/.test(id)) return "Champignons";
+    if (/olives/.test(id)) return "Olives";
+    if (/asparagus|endive|celery/.test(id)) return "Spéciaux";
+    return "Autres";
+  }
+  if (cat === "Épicerie") {
+    if (/^rice-/.test(id)) return "Riz";
+    if (/^pasta-|noodles|couscous|bulgur|quinoa/.test(id)) return "Pâtes & Céréales";
+    if (/lentils|chickpeas|beans/.test(id)) return "Légumineuses";
+    if (/tomato-paste|tomato-sauce|tomato-crushed|peas-can|corn-can/.test(id)) return "Conserves";
+    if (/sauce|ketchup|mustard|mayo|teriyaki|soy-sauce|salsa|harissa|amba|schug|matbucha|pesto|wasabi|worcestershire/.test(id)) return "Sauces";
+    if (/oil-|vinegar/.test(id)) return "Huiles & Vinaigres";
+    if (/tahini|humus|halva/.test(id)) return "Tahini & Houmous";
+    if (/salt|pepper|paprika|cumin|turmeric|cinnamon|nutmeg|cardamom|cloves|curry|ginger-powder|hawaij|baharat|oregano|thyme|rosemary|bay-leaves|zaatar|sesame/.test(id)) return "Épices";
+    if (/tuna-can|tuna-oil|anchovies|fish/.test(id)) return "Conserves poisson";
+    if (/yeast|baking-powder|baking-soda|gelatin|vanilla-extract|cocoa-powder|coconut-flakes/.test(id)) return "Pâtisserie";
+    if (/coconut-milk/.test(id)) return "Lait de coco";
+    if (/capers|pickles|sun-dried-tomato|artichoke|olives/.test(id)) return "Bocaux";
+    if (/walnuts|hazelnuts|almonds|cashew|pistachio|peanut|nuts|raisins|dried-fruit/.test(id)) return "Noix";
+    if (/falafel-mix|polenta|sushi-rice|nori|stock|soup-mix/.test(id)) return "Préparations";
+    return "Autres";
+  }
+  if (cat === "Petit-déj") {
+    if (/^flour|^sugar/.test(id)) return "Farines & Sucres";
+    if (/honey|silan|maple|jam-/.test(id)) return "Miel & Confitures";
+    if (/nutella|peanut-butter|almond-butter/.test(id)) return "Pâtes à tartiner";
+    if (/cereal|muesli|granola|oats/.test(id)) return "Céréales";
+    return "Autres";
+  }
+  if (cat === "Boissons") {
+    if (/water/.test(id)) return "Eaux";
+    if (/coke|sprite|fanta|schweppes|ice-tea|energy|redbull/.test(id)) return "Sodas";
+    if (/juice|lemonade/.test(id)) return "Jus";
+    if (/coffee/.test(id)) return "Café";
+    if (/tea-/.test(id)) return "Thés";
+    if (/beer/.test(id)) return "Bières";
+    if (/wine/.test(id)) return "Vins";
+    if (/vodka|whiskey|arak/.test(id)) return "Spiritueux";
+    if (/milkshake|almond-milk-drink/.test(id)) return "Boissons lactées";
+    return "Autres";
+  }
+  if (cat === "Surgelés") {
+    if (/pizza/.test(id)) return "Pizzas";
+    if (/fries|wedges/.test(id)) return "Pommes de terre";
+    if (/veggies|peas|corn|broccoli|cauliflower|spinach|stir-fry/.test(id)) return "Légumes";
+    if (/fish|shrimp/.test(id)) return "Poissons & Fruits de mer";
+    if (/schnitzel|burger|nuggets|meatballs/.test(id)) return "Viandes";
+    if (/puff|filo/.test(id)) return "Pâtes feuilletées";
+    if (/ice-cream|popsicles/.test(id)) return "Glaces";
+    return "Autres";
+  }
+  if (cat === "Snacks") {
+    if (/bamba|bisli/.test(id)) return "Israéliens";
+    if (/chips|doritos|pringles|popcorn|pretzel|crackers|rice-cakes/.test(id)) return "Salés";
+    if (/almonds|cashew|pistachio|peanut|nuts-mixed|sunflower|pumpkin-seeds/.test(id)) return "Noix & Graines";
+    if (/dried-fruit|raisins/.test(id)) return "Fruits secs";
+    if (/chocolate|nutella|kitkat|pesek-zman|krembo/.test(id)) return "Chocolat";
+    if (/candy|gum-/.test(id)) return "Bonbons";
+    return "Autres";
+  }
+  if (cat === "Bébé") {
+    if (/diapers/.test(id)) return "Couches";
+    if (/wipes/.test(id)) return "Lingettes";
+    if (/baby-formula|baby-cereal|baby-puree/.test(id)) return "Lait & Repas";
+    if (/baby-bottle|baby-pacifier/.test(id)) return "Accessoires";
+    if (/baby-shampoo/.test(id)) return "Hygiène";
+    return "Autres";
+  }
+  if (cat === "Hygiène") {
+    if (/shampoo|conditioner|hair-/.test(id)) return "Cheveux";
+    if (/soap|shower-gel|sunscreen|moisturizer|hand-cream|lip-balm|perfume|deodorant/.test(id)) return "Corps";
+    if (/toothpaste|toothbrush|mouthwash/.test(id)) return "Bouche";
+    if (/razor|shaving/.test(id)) return "Rasage";
+    if (/tampons|pads/.test(id)) return "Hygiène féminine";
+    if (/cotton|qtips|tissues|paper-towel|toilet-paper|bandages|antiseptic/.test(id)) return "Soins";
+    return "Autres";
+  }
+  if (cat === "Entretien") {
+    if (/dish-/.test(id)) return "Vaisselle";
+    if (/laundry|softener|stain/.test(id)) return "Lessive";
+    if (/bleach|floor|glass|kitchen-cleaner|bathroom|toilet-cleaner|drain/.test(id)) return "Nettoyants";
+    if (/sponges|rubber-gloves/.test(id)) return "Accessoires";
+    if (/aluminum|plastic-wrap|baking-paper|trash-bags|napkins|paper-plates|paper-cups|plastic-cutlery|ziplock|shopping-bags/.test(id)) return "Cuisine";
+    if (/matches|candles|batteries|lightbulb|charcoal|insecticide|air-freshener/.test(id)) return "Maison";
+    return "Autres";
+  }
+  if (cat === "Animaux") {
+    if (/dog/.test(id)) return "Chien";
+    if (/cat/.test(id)) return "Chat";
+    return "Autres";
+  }
+  return "Autres";
+}
+
+PRODUCTS.forEach(p => { if (!p.subcategory) p.subcategory = _deriveSubcategory(p); });
 
 if (typeof module !== "undefined") {
   module.exports = { STORES, PRODUCTS, DATA_VERSION, LAST_UPDATED };

@@ -24,6 +24,7 @@ function defaultState() {
     shoppingMode: false,
     mode: "optimized", // "optimized" (défaut, classement auto) | "single"
     activeCategory: null,
+    activeSubcat: null,
     searchQuery: "",
     hideDone: false
   };
@@ -109,6 +110,10 @@ function tProduct(p) {
 function tCat(cat) {
   const dict = I18N[state.lang] || I18N.fr;
   return (dict.cat && dict.cat[cat]) || cat;
+}
+function tSubcat(sub) {
+  const dict = I18N[state.lang] || I18N.fr;
+  return (dict.subcat && dict.subcat[sub]) || sub;
 }
 
 // ========== ICÔNES PRODUITS ==========
@@ -598,11 +603,12 @@ function applyTheme() {
 function setTheme(t) { state.theme = t; saveState(); applyTheme(); }
 
 // ========== RECHERCHE ==========
-function filterProducts(query, category) {
+function filterProducts(query, category, subcat) {
   const q = normalize(query.trim());
   const matches = [];
   PRODUCTS.forEach(p => {
     if (category && p.category !== category) return;
+    if (subcat && p.subcategory !== subcat) return;
     if (!q) { matches.push({ p, score: 0 }); return; }
     const name_fr = normalize(p.name);
     const name_other = normalize(tProduct(p));
@@ -685,6 +691,8 @@ function renderQuickCategories() {
   wrap.querySelectorAll(".cat-pill").forEach(el => {
     el.addEventListener("click", () => {
       state.activeCategory = state.activeCategory === el.dataset.cat ? null : el.dataset.cat;
+      state.activeSubcat = null; // reset à chaque changement de catégorie
+      _browsePage = 1;
       // Si on active une catégorie, on vide la recherche pour éviter le conflit
       if (state.activeCategory) {
         state.searchQuery = "";
@@ -867,15 +875,38 @@ function renderBrowsePanel() {
     return;
   }
   wrap.hidden = false;
-  const all = filterProducts(state.searchQuery, state.activeCategory);
+  const all = filterProducts(state.searchQuery, state.activeCategory, state.activeSubcat);
   const products = all.slice(0, _browsePage * PAGE_SIZE);
   if (all.length === 0) {
     wrap.innerHTML = `<div class="empty-state"><span class="emoji">🔍</span>${t("search_none")}</div>`;
     return;
   }
-  const titleHTML = state.activeCategory
-    ? `<div class="browse-head"><span class="browse-title">${tCat(state.activeCategory)}</span><span class="browse-count">${all.length}</span><button class="link-btn" data-clear-cat>×</button></div>`
-    : `<div class="browse-head"><span class="browse-title">"${state.searchQuery}"</span><span class="browse-count">${all.length}</span></div>`;
+  let titleHTML = "";
+  if (state.activeCategory) {
+    // Compte produits par sous-catégorie pour la catégorie active
+    const subcounts = {};
+    PRODUCTS.forEach(p => {
+      if (p.category === state.activeCategory) {
+        subcounts[p.subcategory] = (subcounts[p.subcategory] || 0) + 1;
+      }
+    });
+    const subs = Object.entries(subcounts).sort((a, b) => b[1] - a[1]);
+    const breadcrumb = state.activeSubcat
+      ? `${tCat(state.activeCategory)} <span style="color:var(--muted)">›</span> ${tSubcat(state.activeSubcat)}`
+      : tCat(state.activeCategory);
+    titleHTML = `
+      <div class="browse-head">
+        <span class="browse-title">${breadcrumb}</span>
+        <span class="browse-count">${all.length}</span>
+        <button class="link-btn" data-clear-cat>×</button>
+      </div>
+      <div class="subcat-row">
+        <button class="subcat-pill ${!state.activeSubcat ? "active" : ""}" data-subcat="">Tous</button>
+        ${subs.map(([s, n]) => `<button class="subcat-pill ${state.activeSubcat === s ? "active" : ""}" data-subcat="${s}">${tSubcat(s)} <span class="subcat-count">${n}</span></button>`).join("")}
+      </div>`;
+  } else {
+    titleHTML = `<div class="browse-head"><span class="browse-title">"${state.searchQuery}"</span><span class="browse-count">${all.length}</span></div>`;
+  }
   const remaining = all.length - products.length;
   const sentinelHTML = remaining > 0
     ? `<div class="browse-sentinel" id="browse-sentinel">⏳ ${remaining} de plus à charger…</div>`
@@ -919,11 +950,21 @@ function renderBrowsePanel() {
   const clearBtn = wrap.querySelector("[data-clear-cat]");
   if (clearBtn) clearBtn.addEventListener("click", () => {
     state.activeCategory = null;
+    state.activeSubcat = null;
     state.searchQuery = "";
     _browsePage = 1;
     document.getElementById("search-input").value = "";
     renderQuickCategories();
     renderBrowsePanel();
+  });
+  // Sous-catégorie pills
+  wrap.querySelectorAll(".subcat-pill").forEach(el => {
+    el.addEventListener("click", () => {
+      const s = el.dataset.subcat || null;
+      state.activeSubcat = state.activeSubcat === s ? null : (s || null);
+      _browsePage = 1;
+      renderBrowsePanel();
+    });
   });
   // Scroll infini : observe le sentinel et charge la page suivante
   if (_browseObserver) _browseObserver.disconnect();
