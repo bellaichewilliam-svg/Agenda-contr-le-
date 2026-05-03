@@ -37,19 +37,70 @@ function _hash(str) {
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
   return Math.abs(h);
 }
-// Stockage paresseux : on garde le base+variations, on calcule après que
-// PRODUCTS soit défini (pour avoir accès à category et id).
+
+// Indisponibilités réalistes par enseigne
+// Boom = discount minimaliste, pas de gourmet/premium/fruits de mer
+// Hatzi Hinam = ultra cacher, pas de crustacés/non-cacher
+// Osher Ad = discount, gamme limitée
+const NOT_AVAILABLE = {
+  boom: new Set([
+    // Pas de fruits de mer / poisson premium
+    "frozen-shrimp", "salmon-fillet", "salmon-smoked", "denis", "tilapia", "frozen-fish",
+    "tuna-fresh", "white-fish", "herring",
+    // Pas d'alcool premium
+    "wine-yarden", "wine-rose", "wine-white", "wine-kiddush", "whiskey", "vodka", "arak",
+    "beer-corona",
+    // Pas de fromages gourmet
+    "camembert", "brie", "blue-cheese", "halloumi", "ricotta", "parmesan",
+    // Viande premium absente
+    "rib-eye", "entrecote", "lamb-shoulder",
+    // Spécialités absentes
+    "vanilla-extract", "saffron", "wasabi", "nori", "sushi-rice", "polenta",
+    "artichoke-hearts", "anchovies", "capers"
+  ]),
+  hatzi_hinam: new Set([
+    // Pas de crustacés (cacheroute)
+    "frozen-shrimp"
+  ]),
+  osher_ad: new Set([
+    // Gamme limitée sur premium
+    "whiskey", "wine-yarden", "blue-cheese", "rib-eye", "lamb-shoulder",
+    "saffron", "wasabi", "nori"
+  ]),
+  rami_levy: new Set([
+    // Pas de crustacés (cacheroute)
+    "frozen-shrimp"
+  ]),
+  victory: new Set([
+    // Crustacés selon la branche, on dit non par défaut
+    "frozen-shrimp"
+  ]),
+  yochananof: new Set([
+    "frozen-shrimp"
+  ]),
+  shufersal: new Set([
+    "frozen-shrimp"
+  ]),
+  carrefour: new Set([]),
+  tiv_taam: new Set([])
+};
+
 function P(base, variations) { return { _base: base, _variations: variations || {} }; }
 function _computePrices(base, variations, category, productId) {
   const out = {};
   for (const store of Object.keys(STORES)) {
+    // Indisponible dans ce magasin ?
+    const exclusions = NOT_AVAILABLE[store];
+    if (exclusions && exclusions.has(productId)) {
+      out[store] = null;
+      continue;
+    }
     const override = variations[store];
     if (override === null) { out[store] = null; continue; }
     if (override !== undefined) { out[store] = override; continue; }
     const catMult = (STORE_CAT[store] && (STORE_CAT[store][category] || STORE_CAT[store].default)) || 1.0;
     const noise = ((_hash(store + productId) % 9) - 4) * 0.012;
     let price = base * (catMult + noise);
-    // Promo locale aléatoire : ~6% des couples produit×magasin ont -15%
     const promoSeed = _hash(store + productId + "p") % 100;
     if (promoSeed < 6) price *= 0.85;
     out[store] = Math.round(price * 100) / 100;

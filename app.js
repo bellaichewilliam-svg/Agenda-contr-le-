@@ -960,7 +960,14 @@ function renderPromos() {
     r.suggestions.forEach(s => allItems.push({ ...s, chain }));
     r.applied.forEach(a => allItems.push({ ...a, chain, _applied: true }));
   });
+  // Détecte les "super promos" : économie > 15₪ ou >25% du prix d'origine
+  allItems.forEach(p => {
+    const saving = p.potentialSaving || p.saving || 0;
+    p._super = saving > 15 || (p.pct && p.pct >= 25) || (p.type === "n_for_m" && p.n - p.m >= 2);
+  });
   allItems.sort((a, b) => {
+    // Super promos en premier, puis appliquées, puis suggestions
+    if (a._super !== b._super) return a._super ? -1 : 1;
     if (a._applied !== b._applied) return a._applied ? 1 : -1;
     return (b.potentialSaving || b.saving || 0) - (a.potentialSaving || a.saving || 0);
   });
@@ -980,12 +987,13 @@ function renderPromos() {
     <div class="promo-list">`;
   allItems.slice(0, 6).forEach(p => {
     const store = STORES[p.chain];
+    const superBadge = p._super ? `<span class="super-promo-badge">🔥 SUPER</span>` : "";
     if (p._applied) {
       html += `
-        <div class="promo-item applied">
+        <div class="promo-item applied ${p._super ? "super" : ""}">
           <span class="store-icon" style="background:${store.color};width:22px;height:22px;font-size:10px">${store.icon}</span>
           <div class="promo-text">
-            <div class="promo-title">✅ ${p.title}</div>
+            <div class="promo-title">✅ ${p.title}${superBadge}</div>
             <div class="promo-saved">−${formatPrice(p.saving || 0)} chez ${store.name}</div>
           </div>
         </div>`;
@@ -996,10 +1004,10 @@ function renderPromos() {
         : (sugProd ? `Ajoute ${tProduct(sugProd)}` : `Ajoute ${p.missing}× plus`);
       const gain = p.potentialSaving > 0 ? ` → −${formatPrice(p.potentialSaving)}` : "";
       html += `
-        <div class="promo-item">
+        <div class="promo-item ${p._super ? "super" : ""}">
           <span class="store-icon" style="background:${store.color};width:22px;height:22px;font-size:10px">${store.icon}</span>
           <div class="promo-text">
-            <div class="promo-title">${p.title} · ${store.name}</div>
+            <div class="promo-title">${p.title} · ${store.name}${superBadge}</div>
             <div class="promo-hint">${missingTxt}${gain}</div>
           </div>
           ${p.suggest ? `<button class="promo-add" data-add="${p.suggest.id}" data-store="${p.chain}">+</button>` : ""}
@@ -1639,6 +1647,10 @@ function setupEvents() {
   document.getElementById("share-modal").addEventListener("click", e => { if (e.target.id === "share-modal") hideShareModal(); });
   // Product modal : fermer en cliquant à l'extérieur ou Escape
   document.getElementById("product-modal").addEventListener("click", e => { if (e.target.id === "product-modal") hideProductModal(); });
+  // Nearby stores button
+  const nearbyBtn = document.getElementById("nearby-btn");
+  if (nearbyBtn) nearbyBtn.addEventListener("click", showNearbyStores);
+  document.getElementById("nearby-modal").addEventListener("click", e => { if (e.target.id === "nearby-modal") hideNearbyModal(); });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") {
       hideProductModal();
@@ -1738,7 +1750,99 @@ if (new URLSearchParams(location.search).has("reset")) {
   throw new Error("Resetting...");
 }
 
-// ========== NOUVELLES PROMOS ==========
+// ========== MAGASINS PROCHES (géolocalisation) ==========
+let userLocation = null;
+function loadCachedLocation() {
+  try {
+    const v = localStorage.getItem("pm.userLocation");
+    if (v) userLocation = JSON.parse(v);
+  } catch {}
+}
+function saveLocation(loc) {
+  userLocation = loc;
+  try { localStorage.setItem("pm.userLocation", JSON.stringify(loc)); } catch {}
+}
+
+function showNearbyStores() {
+  const modal = document.getElementById("nearby-modal");
+  const content = modal.querySelector(".nearby-content");
+  if (!userLocation) {
+    content.innerHTML = `
+      <div class="nearby-head">
+        <h3>📍 Magasins proches</h3>
+        <button class="modal-close" data-nearby-close>×</button>
+      </div>
+      <div class="nearby-perm">
+        <div class="emoji" style="font-size:48px">📍</div>
+        <p>Pour trouver les magasins les plus proches et les itinéraires, autorise la localisation.</p>
+        <button class="btn primary big" data-locate>Activer la localisation</button>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px">Tes coordonnées restent sur ton téléphone, jamais envoyées.</p>
+      </div>`;
+    modal.classList.add("visible");
+    modal.querySelector("[data-locate]").addEventListener("click", () => {
+      navigator.geolocation.getCurrentPosition(pos => {
+        saveLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        showNearbyStores();
+      }, err => {
+        showToast("Localisation refusée. Tu peux la modifier dans les paramètres du navigateur.", "warn");
+      }, { timeout: 10000, enableHighAccuracy: false });
+    });
+    modal.querySelector("[data-nearby-close]").addEventListener("click", hideNearbyModal);
+    return;
+  }
+
+  const nearby = nearestStores(userLocation.lat, userLocation.lon, 1);
+  const sortedChains = Object.entries(nearby)
+    .map(([chain, stores]) => ({ chain, store: stores[0] }))
+    .filter(x => x.store)
+    .sort((a, b) => a.store.distance - b.store.distance);
+
+  content.innerHTML = `
+    <div class="nearby-head">
+      <h3>📍 Magasins proches de toi</h3>
+      <button class="modal-close" data-nearby-close>×</button>
+    </div>
+    <div class="nearby-stores">
+      ${sortedChains.map(({ chain, store }) => {
+        const s = STORES[chain];
+        const website = STORE_WEBSITES[chain];
+        return `
+          <div class="nearby-store">
+            <div class="nearby-store-head">
+              <span class="store-icon" style="background:${s.color};width:32px;height:32px;font-size:12px">${s.icon}</span>
+              <div class="nearby-store-name-block">
+                <div class="nearby-store-name">${store.name}</div>
+                <div class="nearby-store-meta">${store.address}</div>
+              </div>
+              <div class="nearby-store-dist">${store.distance} km</div>
+            </div>
+            <div class="nearby-store-info">
+              <span class="nearby-pill">${store.delivery ? "🚚 Livraison" : "🚫 Retrait magasin"}</span>
+              <span class="nearby-pill">🕐 ${store.hours}</span>
+            </div>
+            <div class="nearby-actions">
+              <a href="${wazeURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn waze">🗺️ Waze</a>
+              <a href="${googleMapsURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn gmaps">🗺️ Maps</a>
+              ${website ? `<a href="${website}" target="_blank" rel="noopener" class="nearby-btn site">🛒 Commander</a>` : ""}
+            </div>
+          </div>`;
+      }).join("")}
+    </div>
+    <div style="text-align:center;padding:8px;font-size:11px;color:var(--muted)">
+      📍 Position : ${userLocation.lat.toFixed(3)}, ${userLocation.lon.toFixed(3)}
+      · <button class="link-btn" data-relocate>Mettre à jour</button>
+    </div>`;
+  modal.classList.add("visible");
+  modal.querySelector("[data-nearby-close]").addEventListener("click", hideNearbyModal);
+  modal.querySelector("[data-relocate]").addEventListener("click", () => {
+    userLocation = null;
+    try { localStorage.removeItem("pm.userLocation"); } catch {}
+    showNearbyStores();
+  });
+}
+function hideNearbyModal() {
+  document.getElementById("nearby-modal").classList.remove("visible");
+}
 // Détecte les promos qui n'ont jamais été vues (depuis la dernière visite)
 // et affiche un toast d'alerte.
 function detectNewPromos() {
@@ -1773,6 +1877,7 @@ applyLang();
 applyTheme();
 setupImageObserver();
 renderLangPicker();
+loadCachedLocation();
 detectNewPromos();
 renderUpdateBanner();
 renderStaticTexts();

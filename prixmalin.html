@@ -992,6 +992,99 @@ button { font-family: inherit; color: inherit; }
 .toggle input:checked + span::before { transform: translateX(20px); }
 [dir="rtl"] .toggle input:checked + span::before { transform: translateX(-20px); }
 
+/* ====== Nearby stores modal ====== */
+.nearby-content { display: flex; flex-direction: column; }
+.nearby-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.nearby-head h3 { font-size: 17px; font-weight: 700; }
+.nearby-perm {
+  padding: 24px 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.nearby-perm p { font-size: 14px; color: var(--text-soft); line-height: 1.5; }
+.nearby-stores {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.nearby-store {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+}
+.nearby-store-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.nearby-store-name-block { flex: 1; min-width: 0; }
+.nearby-store-name {
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nearby-store-meta { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.nearby-store-dist {
+  background: var(--accent);
+  color: white;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+.nearby-store-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+.nearby-pill {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--text-soft);
+}
+.nearby-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.nearby-btn {
+  flex: 1;
+  min-width: 90px;
+  text-align: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  transition: transform var(--tx);
+}
+.nearby-btn:hover { transform: translateY(-1px); }
+.nearby-btn.waze { background: #33ccff; color: white; }
+.nearby-btn.gmaps { background: #4285f4; color: white; }
+.nearby-btn.site { background: var(--success); color: white; }
+
 /* ====== Toast ====== */
 .toast {
   position: fixed;
@@ -1335,6 +1428,30 @@ button { font-family: inherit; color: inherit; }
 }
 [data-theme="dark"] .promo-item { background: rgba(0, 0, 0, 0.25); }
 .promo-item.applied { background: rgba(16, 185, 129, 0.18); }
+.promo-item.super {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.15), rgba(251, 146, 60, 0.15));
+  border-left: 3px solid #ef4444;
+}
+[data-theme="dark"] .promo-item.super {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.25), rgba(251, 146, 60, 0.25));
+}
+.super-promo-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-inline-start: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.04em;
+  animation: pulse-super 2s infinite;
+}
+@keyframes pulse-super {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+}
 .promo-text { flex: 1; min-width: 0; }
 .promo-title { font-weight: 700; line-height: 1.25; font-size: 11px; }
 .promo-saved { font-size: 10px; margin-top: 1px; color: var(--success); font-weight: 600; }
@@ -1428,6 +1545,7 @@ button { font-family: inherit; color: inherit; }
         <h1 class="logo"><span class="logo-emoji">🛒</span> <span id="logo-text">PrixMalin</span></h1>
         <div class="top-actions">
           <div class="lang-picker" id="lang-picker"></div>
+          <button class="icon-btn" id="nearby-btn" title="Magasins proches">📍</button>
           <button class="icon-btn" id="install-btn" hidden title="Install">⬇️</button>
           <button class="icon-btn" id="settings-btn" title="Settings">⚙️</button>
         </div>
@@ -1576,6 +1694,13 @@ button { font-family: inherit; color: inherit; }
   <div id="product-modal" class="modal">
     <div class="modal-card pm-card">
       <div class="pm-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal magasins proches -->
+  <div id="nearby-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="nearby-content"></div>
     </div>
   </div>
 
@@ -1913,19 +2038,70 @@ function _hash(str) {
   for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) | 0;
   return Math.abs(h);
 }
-// Stockage paresseux : on garde le base+variations, on calcule après que
-// PRODUCTS soit défini (pour avoir accès à category et id).
+
+// Indisponibilités réalistes par enseigne
+// Boom = discount minimaliste, pas de gourmet/premium/fruits de mer
+// Hatzi Hinam = ultra cacher, pas de crustacés/non-cacher
+// Osher Ad = discount, gamme limitée
+const NOT_AVAILABLE = {
+  boom: new Set([
+    // Pas de fruits de mer / poisson premium
+    "frozen-shrimp", "salmon-fillet", "salmon-smoked", "denis", "tilapia", "frozen-fish",
+    "tuna-fresh", "white-fish", "herring",
+    // Pas d'alcool premium
+    "wine-yarden", "wine-rose", "wine-white", "wine-kiddush", "whiskey", "vodka", "arak",
+    "beer-corona",
+    // Pas de fromages gourmet
+    "camembert", "brie", "blue-cheese", "halloumi", "ricotta", "parmesan",
+    // Viande premium absente
+    "rib-eye", "entrecote", "lamb-shoulder",
+    // Spécialités absentes
+    "vanilla-extract", "saffron", "wasabi", "nori", "sushi-rice", "polenta",
+    "artichoke-hearts", "anchovies", "capers"
+  ]),
+  hatzi_hinam: new Set([
+    // Pas de crustacés (cacheroute)
+    "frozen-shrimp"
+  ]),
+  osher_ad: new Set([
+    // Gamme limitée sur premium
+    "whiskey", "wine-yarden", "blue-cheese", "rib-eye", "lamb-shoulder",
+    "saffron", "wasabi", "nori"
+  ]),
+  rami_levy: new Set([
+    // Pas de crustacés (cacheroute)
+    "frozen-shrimp"
+  ]),
+  victory: new Set([
+    // Crustacés selon la branche, on dit non par défaut
+    "frozen-shrimp"
+  ]),
+  yochananof: new Set([
+    "frozen-shrimp"
+  ]),
+  shufersal: new Set([
+    "frozen-shrimp"
+  ]),
+  carrefour: new Set([]),
+  tiv_taam: new Set([])
+};
+
 function P(base, variations) { return { _base: base, _variations: variations || {} }; }
 function _computePrices(base, variations, category, productId) {
   const out = {};
   for (const store of Object.keys(STORES)) {
+    // Indisponible dans ce magasin ?
+    const exclusions = NOT_AVAILABLE[store];
+    if (exclusions && exclusions.has(productId)) {
+      out[store] = null;
+      continue;
+    }
     const override = variations[store];
     if (override === null) { out[store] = null; continue; }
     if (override !== undefined) { out[store] = override; continue; }
     const catMult = (STORE_CAT[store] && (STORE_CAT[store][category] || STORE_CAT[store].default)) || 1.0;
     const noise = ((_hash(store + productId) % 9) - 4) * 0.012;
     let price = base * (catMult + noise);
-    // Promo locale aléatoire : ~6% des couples produit×magasin ont -15%
     const promoSeed = _hash(store + productId + "p") % 100;
     if (promoSeed < 6) price *= 0.85;
     out[store] = Math.round(price * 100) / 100;
@@ -2871,6 +3047,112 @@ function checkPromo(promo, cart, products) {
 }
 
 if (typeof module !== "undefined") module.exports = { PROMOTIONS, analyzePromos, checkPromo };
+
+</script>
+  <script>
+// Magasins physiques par enseigne (échantillon représentatif des principales villes israéliennes)
+// Format : { name, lat, lon, address, delivery: bool, hours: "..." }
+//
+// Note : données indicatives basées sur les implantations connues. Pour une
+// précision parfaite, le scraper officiel pourra récupérer la liste complète
+// depuis les sites des enseignes.
+
+const STORE_LOCATIONS = {
+  rami_levy: [
+    { name: "Rami Levy Bnei Brak", lat: 32.0832, lon: 34.8338, address: "Rabbi Akiva 90, Bnei Brak", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 6h-15h" },
+    { name: "Rami Levy Talpiot", lat: 31.7497, lon: 35.2192, address: "HaUman 8, Jérusalem", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 6h-15h" },
+    { name: "Rami Levy Rishon LeZion", lat: 31.9730, lon: 34.7925, address: "Sakharov 31, Rishon LeZion", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
+    { name: "Rami Levy Ashdod", lat: 31.7996, lon: 34.6437, address: "HaShita 12, Ashdod", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
+    { name: "Rami Levy Haïfa", lat: 32.7940, lon: 35.0423, address: "Hutzot HaMifratz, Haïfa", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
+    { name: "Rami Levy Beersheba", lat: 31.2589, lon: 34.7980, address: "HaPlada 25, Beersheba", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" }
+  ],
+  shufersal: [
+    { name: "Shufersal Deal Dizengoff", lat: 32.0826, lon: 34.7740, address: "Dizengoff 50, Tel Aviv", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 7h-16h" },
+    { name: "Shufersal Big Givat Shaul", lat: 31.7867, lon: 35.1853, address: "Beit HaDfus 12, Jérusalem", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 6h-15h" },
+    { name: "Shufersal Sheli Carmel", lat: 32.8050, lon: 34.9819, address: "HaNassi 124, Haïfa", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-16h" },
+    { name: "Shufersal Express Ramat Aviv", lat: 32.1108, lon: 34.7919, address: "Einstein 40, Tel Aviv", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 7h-16h" },
+    { name: "Shufersal Deal Petah Tikva", lat: 32.0878, lon: 34.8867, address: "Hatkuma 25, Petah Tikva", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" }
+  ],
+  carrefour: [
+    { name: "Carrefour Hyper Petah Tikva", lat: 32.0878, lon: 34.8867, address: "Em HaMoshavot 94, Petah Tikva", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Carrefour Bnei Brak", lat: 32.0832, lon: 34.8338, address: "Jabotinsky 35, Bnei Brak", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Carrefour Rishon LeZion", lat: 31.9730, lon: 34.7925, address: "HaArbaa 10, Rishon LeZion", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Carrefour Ashdod", lat: 31.7996, lon: 34.6437, address: "Sderot Tagor 1, Ashdod", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" }
+  ],
+  yochananof: [
+    { name: "Yochananof Tel Aviv", lat: 32.0644, lon: 34.7700, address: "Yehuda HaLevi 28, Tel Aviv", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 7h-15h" },
+    { name: "Yochananof Holon", lat: 32.0117, lon: 34.7794, address: "Sokolov 41, Holon", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-15h" },
+    { name: "Yochananof Petah Tikva", lat: 32.0878, lon: 34.8867, address: "Hatkuma 14, Petah Tikva", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-15h" },
+    { name: "Yochananof Beersheba", lat: 31.2589, lon: 34.7980, address: "Tuviahu 29, Beersheba", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-15h" }
+  ],
+  victory: [
+    { name: "Victory Tel Aviv", lat: 32.0853, lon: 34.7818, address: "Allenby 37, Tel Aviv", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-16h" },
+    { name: "Victory Ramat Gan", lat: 32.0683, lon: 34.8248, address: "Bialik 70, Ramat Gan", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Victory Netanya", lat: 32.3215, lon: 34.8533, address: "Herzl 60, Netanya", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" }
+  ],
+  tiv_taam: [
+    { name: "Tiv Taam Tel Aviv", lat: 32.0664, lon: 34.7702, address: "Allenby 99, Tel Aviv", delivery: true, hours: "Lun-Sam 9h-22h, Dim 9h-23h" },
+    { name: "Tiv Taam Ramat Gan", lat: 32.0683, lon: 34.8248, address: "Hashalom 23, Ramat Gan", delivery: true, hours: "Lun-Sam 9h-22h" },
+    { name: "Tiv Taam Herzliya", lat: 32.1640, lon: 34.8489, address: "Sokolov 6, Herzliya", delivery: true, hours: "Lun-Sam 9h-22h" }
+  ],
+  osher_ad: [
+    { name: "Osher Ad Bnei Brak", lat: 32.0832, lon: 34.8338, address: "Hashniayim 4, Bnei Brak", delivery: false, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
+    { name: "Osher Ad Modiin Illit", lat: 31.9344, lon: 35.0464, address: "Yehuda HaNasi 8, Modiin Illit", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
+    { name: "Osher Ad Beit Shemesh", lat: 31.7510, lon: 34.9885, address: "Nahar HaYarden 2, Beit Shemesh", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
+    { name: "Osher Ad Jérusalem Givat Shaul", lat: 31.7867, lon: 35.1853, address: "Avraham Stern 16, Jérusalem", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
+    { name: "Osher Ad Ashdod", lat: 31.7996, lon: 34.6437, address: "HaMelacha 18, Ashdod", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" }
+  ],
+  boom: [
+    { name: "Boom Lod", lat: 31.9510, lon: 34.8956, address: "Hertzl 50, Lod", delivery: false, hours: "Dim-Jeu 8h-21h, Ven 7h-14h" },
+    { name: "Boom Ashdod", lat: 31.7996, lon: 34.6437, address: "Hapardes 12, Ashdod", delivery: false, hours: "Dim-Jeu 8h-21h, Ven 7h-14h" },
+    { name: "Boom Beersheba", lat: 31.2589, lon: 34.7980, address: "Hashlomim 8, Beersheba", delivery: false, hours: "Dim-Jeu 8h-21h, Ven 7h-14h" }
+  ],
+  hatzi_hinam: [
+    { name: "Hatzi Hinam Bnei Brak", lat: 32.0832, lon: 34.8338, address: "Hashomer 3, Bnei Brak", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
+    { name: "Hatzi Hinam Modiin Illit", lat: 31.9344, lon: 35.0464, address: "Acharei HaNevi'im 16, Modiin Illit", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
+    { name: "Hatzi Hinam Jérusalem Sanhedria", lat: 31.7997, lon: 35.2003, address: "Bar Ilan 64, Jérusalem", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
+    { name: "Hatzi Hinam Beitar Illit", lat: 31.6939, lon: 35.1183, address: "Ahi Akiva 6, Beitar Illit", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" }
+  ]
+};
+
+// Sites en ligne pour chaque enseigne (commande/livraison)
+const STORE_WEBSITES = {
+  rami_levy:   "https://www.rami-levy.co.il",
+  shufersal:   "https://www.shufersal.co.il",
+  carrefour:   "https://www.carrefour.co.il",
+  yochananof:  "https://www.yochananof.co.il",
+  victory:     "https://www.victoryonline.co.il",
+  tiv_taam:    "https://tivtaam.co.il",
+  osher_ad:    "https://www.osherad.co.il",
+  boom:        null,
+  hatzi_hinam: "https://www.hazi-hinam.co.il"
+};
+
+// Distance Haversine entre 2 coordonnées (km)
+function haversineKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+}
+
+function nearestStores(userLat, userLon, perChain = 1) {
+  const out = {};
+  Object.entries(STORE_LOCATIONS).forEach(([chain, stores]) => {
+    const withDist = stores.map(s => ({ ...s, distance: haversineKm(userLat, userLon, s.lat, s.lon) }));
+    withDist.sort((a, b) => a.distance - b.distance);
+    out[chain] = withDist.slice(0, perChain);
+  });
+  return out;
+}
+
+function wazeURL(lat, lon) { return `https://waze.com/ul?ll=${lat},${lon}&navigate=yes`; }
+function googleMapsURL(lat, lon) { return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; }
+
+if (typeof module !== "undefined") {
+  module.exports = { STORE_LOCATIONS, STORE_WEBSITES, haversineKm, nearestStores, wazeURL, googleMapsURL };
+}
 
 </script>
   <script>
@@ -3836,7 +4118,14 @@ function renderPromos() {
     r.suggestions.forEach(s => allItems.push({ ...s, chain }));
     r.applied.forEach(a => allItems.push({ ...a, chain, _applied: true }));
   });
+  // Détecte les "super promos" : économie > 15₪ ou >25% du prix d'origine
+  allItems.forEach(p => {
+    const saving = p.potentialSaving || p.saving || 0;
+    p._super = saving > 15 || (p.pct && p.pct >= 25) || (p.type === "n_for_m" && p.n - p.m >= 2);
+  });
   allItems.sort((a, b) => {
+    // Super promos en premier, puis appliquées, puis suggestions
+    if (a._super !== b._super) return a._super ? -1 : 1;
     if (a._applied !== b._applied) return a._applied ? 1 : -1;
     return (b.potentialSaving || b.saving || 0) - (a.potentialSaving || a.saving || 0);
   });
@@ -3856,12 +4145,13 @@ function renderPromos() {
     <div class="promo-list">`;
   allItems.slice(0, 6).forEach(p => {
     const store = STORES[p.chain];
+    const superBadge = p._super ? `<span class="super-promo-badge">🔥 SUPER</span>` : "";
     if (p._applied) {
       html += `
-        <div class="promo-item applied">
+        <div class="promo-item applied ${p._super ? "super" : ""}">
           <span class="store-icon" style="background:${store.color};width:22px;height:22px;font-size:10px">${store.icon}</span>
           <div class="promo-text">
-            <div class="promo-title">✅ ${p.title}</div>
+            <div class="promo-title">✅ ${p.title}${superBadge}</div>
             <div class="promo-saved">−${formatPrice(p.saving || 0)} chez ${store.name}</div>
           </div>
         </div>`;
@@ -3872,10 +4162,10 @@ function renderPromos() {
         : (sugProd ? `Ajoute ${tProduct(sugProd)}` : `Ajoute ${p.missing}× plus`);
       const gain = p.potentialSaving > 0 ? ` → −${formatPrice(p.potentialSaving)}` : "";
       html += `
-        <div class="promo-item">
+        <div class="promo-item ${p._super ? "super" : ""}">
           <span class="store-icon" style="background:${store.color};width:22px;height:22px;font-size:10px">${store.icon}</span>
           <div class="promo-text">
-            <div class="promo-title">${p.title} · ${store.name}</div>
+            <div class="promo-title">${p.title} · ${store.name}${superBadge}</div>
             <div class="promo-hint">${missingTxt}${gain}</div>
           </div>
           ${p.suggest ? `<button class="promo-add" data-add="${p.suggest.id}" data-store="${p.chain}">+</button>` : ""}
@@ -4515,6 +4805,10 @@ function setupEvents() {
   document.getElementById("share-modal").addEventListener("click", e => { if (e.target.id === "share-modal") hideShareModal(); });
   // Product modal : fermer en cliquant à l'extérieur ou Escape
   document.getElementById("product-modal").addEventListener("click", e => { if (e.target.id === "product-modal") hideProductModal(); });
+  // Nearby stores button
+  const nearbyBtn = document.getElementById("nearby-btn");
+  if (nearbyBtn) nearbyBtn.addEventListener("click", showNearbyStores);
+  document.getElementById("nearby-modal").addEventListener("click", e => { if (e.target.id === "nearby-modal") hideNearbyModal(); });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") {
       hideProductModal();
@@ -4614,7 +4908,99 @@ if (new URLSearchParams(location.search).has("reset")) {
   throw new Error("Resetting...");
 }
 
-// ========== NOUVELLES PROMOS ==========
+// ========== MAGASINS PROCHES (géolocalisation) ==========
+let userLocation = null;
+function loadCachedLocation() {
+  try {
+    const v = localStorage.getItem("pm.userLocation");
+    if (v) userLocation = JSON.parse(v);
+  } catch {}
+}
+function saveLocation(loc) {
+  userLocation = loc;
+  try { localStorage.setItem("pm.userLocation", JSON.stringify(loc)); } catch {}
+}
+
+function showNearbyStores() {
+  const modal = document.getElementById("nearby-modal");
+  const content = modal.querySelector(".nearby-content");
+  if (!userLocation) {
+    content.innerHTML = `
+      <div class="nearby-head">
+        <h3>📍 Magasins proches</h3>
+        <button class="modal-close" data-nearby-close>×</button>
+      </div>
+      <div class="nearby-perm">
+        <div class="emoji" style="font-size:48px">📍</div>
+        <p>Pour trouver les magasins les plus proches et les itinéraires, autorise la localisation.</p>
+        <button class="btn primary big" data-locate>Activer la localisation</button>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px">Tes coordonnées restent sur ton téléphone, jamais envoyées.</p>
+      </div>`;
+    modal.classList.add("visible");
+    modal.querySelector("[data-locate]").addEventListener("click", () => {
+      navigator.geolocation.getCurrentPosition(pos => {
+        saveLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+        showNearbyStores();
+      }, err => {
+        showToast("Localisation refusée. Tu peux la modifier dans les paramètres du navigateur.", "warn");
+      }, { timeout: 10000, enableHighAccuracy: false });
+    });
+    modal.querySelector("[data-nearby-close]").addEventListener("click", hideNearbyModal);
+    return;
+  }
+
+  const nearby = nearestStores(userLocation.lat, userLocation.lon, 1);
+  const sortedChains = Object.entries(nearby)
+    .map(([chain, stores]) => ({ chain, store: stores[0] }))
+    .filter(x => x.store)
+    .sort((a, b) => a.store.distance - b.store.distance);
+
+  content.innerHTML = `
+    <div class="nearby-head">
+      <h3>📍 Magasins proches de toi</h3>
+      <button class="modal-close" data-nearby-close>×</button>
+    </div>
+    <div class="nearby-stores">
+      ${sortedChains.map(({ chain, store }) => {
+        const s = STORES[chain];
+        const website = STORE_WEBSITES[chain];
+        return `
+          <div class="nearby-store">
+            <div class="nearby-store-head">
+              <span class="store-icon" style="background:${s.color};width:32px;height:32px;font-size:12px">${s.icon}</span>
+              <div class="nearby-store-name-block">
+                <div class="nearby-store-name">${store.name}</div>
+                <div class="nearby-store-meta">${store.address}</div>
+              </div>
+              <div class="nearby-store-dist">${store.distance} km</div>
+            </div>
+            <div class="nearby-store-info">
+              <span class="nearby-pill">${store.delivery ? "🚚 Livraison" : "🚫 Retrait magasin"}</span>
+              <span class="nearby-pill">🕐 ${store.hours}</span>
+            </div>
+            <div class="nearby-actions">
+              <a href="${wazeURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn waze">🗺️ Waze</a>
+              <a href="${googleMapsURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn gmaps">🗺️ Maps</a>
+              ${website ? `<a href="${website}" target="_blank" rel="noopener" class="nearby-btn site">🛒 Commander</a>` : ""}
+            </div>
+          </div>`;
+      }).join("")}
+    </div>
+    <div style="text-align:center;padding:8px;font-size:11px;color:var(--muted)">
+      📍 Position : ${userLocation.lat.toFixed(3)}, ${userLocation.lon.toFixed(3)}
+      · <button class="link-btn" data-relocate>Mettre à jour</button>
+    </div>`;
+  modal.classList.add("visible");
+  modal.querySelector("[data-nearby-close]").addEventListener("click", hideNearbyModal);
+  modal.querySelector("[data-relocate]").addEventListener("click", () => {
+    userLocation = null;
+    try { localStorage.removeItem("pm.userLocation"); } catch {}
+    showNearbyStores();
+  });
+}
+function hideNearbyModal() {
+  document.getElementById("nearby-modal").classList.remove("visible");
+}
 // Détecte les promos qui n'ont jamais été vues (depuis la dernière visite)
 // et affiche un toast d'alerte.
 function detectNewPromos() {
@@ -4649,6 +5035,7 @@ applyLang();
 applyTheme();
 setupImageObserver();
 renderLangPicker();
+loadCachedLocation();
 detectNewPromos();
 renderUpdateBanner();
 renderStaticTexts();
