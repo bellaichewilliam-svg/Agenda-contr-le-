@@ -5,6 +5,11 @@ on:
     # Tous les jours à 06:00 UTC (= 09:00 Israël)
     - cron: "0 6 * * *"
   workflow_dispatch:  # déclenchement manuel depuis l'onglet Actions
+  push:
+    branches: [main]
+    paths:
+      - "scripts/**"
+      - ".github/workflows/update-prices.yml"
 
 permissions:
   contents: write
