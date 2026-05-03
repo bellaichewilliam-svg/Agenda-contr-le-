@@ -834,6 +834,7 @@ function renderBrowsePanel() {
         const cheapest = cheapestStoreFor(p);
         const sp = priceSpread(p);
         const inCart = getQty(p.id);
+        const cs = STORES[cheapest.store];
         return `
           <div class="prod-card" data-pid="${p.id}">
             <div class="prod-icon big" data-pid="${p.id}" style="background:${productTint(p)}">${productIcon(p)}</div>
@@ -841,7 +842,10 @@ function renderBrowsePanel() {
             <div class="prod-card-meta">${p.unit}</div>
             <div class="prod-card-price">
               <span class="prod-card-from">${t("starting_at")}</span>
-              <strong style="color:${STORES[cheapest.store].color}">${formatPrice(cheapest.price)}</strong>
+              <strong style="color:${cs.color}">${formatPrice(cheapest.price)}</strong>
+              <span class="prod-card-store-pill" style="background:${cs.color}">
+                <span class="prod-card-store-icon">${cs.icon}</span>${cs.name}
+              </span>
               <span class="prod-card-spread">→ ${formatPrice(sp.max)} <span class="spread-pct">−${sp.pct}%</span></span>
             </div>
             ${inCart ? `<div class="prod-card-incart">✓ ${formatQty(inCart)}× ${STORES[chosenStoreFor(p.id) || cheapest.store]?.name || ""}</div>` : ""}
@@ -905,12 +909,12 @@ function showProductDetail(pid) {
       const comp = getComposition(p);
       if (!comp) return "";
       return `
-        <div class="pm-section-title">🏷️ Marque & composition</div>
+        <div class="pm-section-title">🏷️ ${t("brand_origin")}</div>
         <div class="pm-comp">
-          ${comp.brand ? `<div class="pm-comp-row"><span class="pm-comp-label">Marque</span><span class="pm-comp-val">${comp.brand}</span></div>` : ""}
-          ${comp.origin ? `<div class="pm-comp-row"><span class="pm-comp-label">Origine</span><span class="pm-comp-val">${comp.origin}</span></div>` : ""}
-          ${comp.ingredients ? `<div class="pm-comp-row"><span class="pm-comp-label">Ingrédients</span><span class="pm-comp-val">${comp.ingredients}</span></div>` : ""}
-          ${comp.nutrition ? `<div class="pm-comp-row"><span class="pm-comp-label">Nutrition</span><span class="pm-comp-val">${comp.nutrition}</span></div>` : ""}
+          ${comp.brand ? `<div class="pm-comp-row"><span class="pm-comp-label">${t("brand")}</span><span class="pm-comp-val">${comp.brand}</span></div>` : ""}
+          ${comp.origin ? `<div class="pm-comp-row"><span class="pm-comp-label">${t("origin")}</span><span class="pm-comp-val">${comp.origin}</span></div>` : ""}
+          ${comp.ingredients ? `<div class="pm-comp-row"><span class="pm-comp-label">${t("ingredients")}</span><span class="pm-comp-val">${comp.ingredients}</span></div>` : ""}
+          ${comp.nutrition ? `<div class="pm-comp-row"><span class="pm-comp-label">${t("nutrition")}</span><span class="pm-comp-val">${comp.nutrition}</span></div>` : ""}
         </div>`;
     })()}
     <div class="pm-section-title">📊 Prix dans les ${sortedPrices.length} magasins</div>
@@ -1330,14 +1334,29 @@ function renderComparison() {
 
 function renderSingleStore(wrap) {
   const totals = computeStoreTotals();
+  // Calcule économies promo par magasin et trie sur le total APRÈS promos
+  const cart = activeCart();
+  Object.values(totals).forEach(s => {
+    if (typeof analyzePromos !== "undefined") {
+      const r = analyzePromos(cart, PRODUCTS, s.store);
+      s.promoSaving = r.totalSaving || 0;
+      s.appliedPromos = r.applied || [];
+      s.finalTotal = Math.max(0, s.total - s.promoSaving);
+    } else {
+      s.promoSaving = 0;
+      s.appliedPromos = [];
+      s.finalTotal = s.total;
+    }
+  });
   const innerWrap = document.createElement("div");
   innerWrap.className = "store-list";
   wrap.appendChild(innerWrap);
   const target = innerWrap;
+  // TRI sur le finalTotal (après promos) - c'est le vrai gagnant
   const sorted = Object.values(totals).sort((a, b) => {
     const ac = a.missing.length === 0 ? 0 : 1, bc = b.missing.length === 0 ? 0 : 1;
     if (ac !== bc) return ac - bc;
-    return a.total - b.total;
+    return a.finalTotal - b.finalTotal;
   });
   const completes = sorted.filter(s => s.missing.length === 0);
   const cheapest = completes[0];
@@ -1347,32 +1366,48 @@ function renderSingleStore(wrap) {
     const store = STORES[s.store];
     const isComplete = s.missing.length === 0;
     const isCheapest = cheapest && s.store === cheapest.store;
+    const hasPromo = s.promoSaving > 0.05;
     let savingsHTML = "";
     if (isComplete && cheapest) {
       if (isCheapest && mostExpensive && mostExpensive.store !== s.store) {
-        const saved = mostExpensive.total - s.total;
-        const pct = Math.round((saved / mostExpensive.total) * 100);
+        const saved = mostExpensive.finalTotal - s.finalTotal;
+        const pct = Math.round((saved / mostExpensive.finalTotal) * 100);
         savingsHTML = `<div class="savings">💚 −${formatPrice(saved)} (${pct}%) ${t("saved_vs_max")}</div>`;
       } else if (!isCheapest) {
-        const extra = s.total - cheapest.total;
+        const extra = s.finalTotal - cheapest.finalTotal;
         savingsHTML = `<div class="extra">+${formatPrice(extra)}</div>`;
       }
     }
     const missingHTML = s.missing.length > 0
       ? `<div class="store-meta warning">⚠️ ${s.missing.length} ${t("products_unavailable")}</div>`
       : `<div class="store-meta">✓ ${t("products_available")}</div>`;
+    // Bloc prix avec avant/après promo
+    let priceBlock;
+    if (hasPromo) {
+      priceBlock = `
+        <div class="price-with-promo">
+          <div class="price-before">${formatPrice(s.total)} <span class="strike-label">${t("before_promo")}</span></div>
+          <div class="total promo-final">${formatPrice(s.finalTotal)}</div>
+          <div class="promo-saving">🎁 −${formatPrice(s.promoSaving)} ${t("after_promo")}</div>
+          ${savingsHTML}
+        </div>`;
+    } else {
+      priceBlock = `
+        <div class="total">${formatPrice(s.finalTotal)}</div>
+        ${savingsHTML}`;
+    }
     return `
-      <div class="store-card ${isCheapest ? "cheapest" : ""} ${!isComplete ? "unavailable" : ""}" data-pick-store-all="${s.store}">
+      <div class="store-card ${isCheapest ? "cheapest" : ""} ${!isComplete ? "unavailable" : ""} ${hasPromo ? "has-promo" : ""}" data-pick-store-all="${s.store}">
         <div class="store-info">
           <div class="store-icon" style="background:${store.color}">${store.icon}</div>
           <div style="min-width:0">
             <div class="store-name">${store.name} ${isCheapest ? `<span class="cheapest-badge">🏆 ${t("cheapest_badge")}</span>` : ""}</div>
             ${missingHTML}
+            ${hasPromo ? `<div class="store-promo-count">🎁 ${s.appliedPromos.length} promo${s.appliedPromos.length > 1 ? "s" : ""} active${s.appliedPromos.length > 1 ? "s" : ""}</div>` : ""}
           </div>
         </div>
         <div class="store-price">
-          <div class="total">${formatPrice(s.total)}</div>
-          ${savingsHTML}
+          ${priceBlock}
         </div>
       </div>`;
   }).join("");
@@ -1820,10 +1855,10 @@ function showRecipesModal() {
   const lang = state.lang;
   modal.querySelector(".recipes-content").innerHTML = `
     <div class="recipes-head">
-      <h3>👨‍🍳 ${lang === "he" ? "מתכונים" : (lang === "en" ? "Recipes" : (lang === "ru" ? "Рецепты" : "Recettes"))}</h3>
+      <h3>👨‍🍳 ${t("recipes")}</h3>
       <button class="modal-close" data-recipes-close>×</button>
     </div>
-    <p class="recipes-intro">${lang === "fr" ? "Un clic ajoute tous les ingrédients à ta liste" : (lang === "he" ? "לחיצה אחת מוסיפה את כל המרכיבים לרשימה" : (lang === "en" ? "One click adds all ingredients to your list" : "Один клик добавляет все ингредиенты в список"))}</p>
+    <p class="recipes-intro">${t("one_click_recipe")}</p>
     <div class="recipes-grid">
       ${RECIPES.map(r => {
         const name = r.names[lang] || r.names.fr;
@@ -1832,7 +1867,7 @@ function showRecipesModal() {
           <button class="recipe-card" data-recipe-id="${r.id}">
             <div class="recipe-emoji">${r.emoji}</div>
             <div class="recipe-name">${name}</div>
-            <div class="recipe-count">${r.ingredients.length} ${lang === "he" ? "פריטים" : (lang === "en" ? "items" : "ingrédients")}</div>
+            <div class="recipe-count">${r.ingredients.length} ${t("ingredients").toLowerCase()}</div>
             <div class="recipe-desc">${desc}</div>
           </button>`;
       }).join("")}
@@ -1859,21 +1894,21 @@ function showRecipeDetail(recipe) {
   const render = () => {
     modal.querySelector(".recipes-content").innerHTML = `
       <div class="recipes-head">
-        <button class="modal-close" data-back-recipes title="Retour" style="font-size:22px">←</button>
+        <button class="modal-close" data-back-recipes title="${t("back")}" style="font-size:22px">←</button>
         <h3 style="flex:1;text-align:center">${recipe.emoji} ${recipe.names[lang] || recipe.names.fr}</h3>
         <button class="modal-close" data-recipes-close>×</button>
       </div>
       <p class="recipes-intro">${recipe.descs[lang] || recipe.descs.fr}</p>
       <div class="recipe-detail-toolbar">
-        <button class="link-btn" data-check-all>Tout cocher</button>
-        <button class="link-btn" data-uncheck-all>Tout décocher</button>
+        <button class="link-btn" data-check-all>${t("check_all")}</button>
+        <button class="link-btn" data-uncheck-all>${t("uncheck_all_btn")}</button>
       </div>
       <div class="recipe-ingredients">
         ${recipe.ingredients.map(ing => {
           const p = findProduct(ing.id);
           if (!p) return "";
           const cheapest = cheapestStoreFor(p);
-          const inCartTxt = cart[ing.id] ? `<span style="color:var(--success);font-size:10px">✓ déjà au panier</span>` : "";
+          const inCartTxt = cart[ing.id] ? `<span style="color:var(--success);font-size:10px">✓ ${t("already_in_cart")}</span>` : "";
           return `
             <label class="ing-row ${checkedState[ing.id] ? "" : "unchecked"}">
               <input type="checkbox" data-ing-id="${ing.id}" ${checkedState[ing.id] ? "checked" : ""} />
@@ -1887,8 +1922,8 @@ function showRecipeDetail(recipe) {
         }).join("")}
       </div>
       <div class="pm-actions">
-        <button class="btn ghost" data-back-recipes>← Annuler</button>
-        <button class="btn primary big" data-add-recipe>+ Ajouter <span id="ing-count">${Object.values(checkedState).filter(Boolean).length}</span> au panier</button>
+        <button class="btn ghost" data-back-recipes>← ${t("cancel")}</button>
+        <button class="btn primary big" data-add-recipe>+ ${t("add_n_to_cart", { n: '<span id="ing-count">' + Object.values(checkedState).filter(Boolean).length + '</span>' })}</button>
       </div>`;
 
     modal.querySelectorAll("[data-back-recipes]").forEach(b =>
@@ -1939,9 +1974,9 @@ function showRecipeDetail(recipe) {
       renderAll();
       hideRecipesModal();
       if (added + updated === 0) {
-        showToast("ℹ️ Aucun ingrédient sélectionné", "warn");
+        showToast("ℹ️ " + t("nothing_selected"), "warn");
       } else {
-        showToast(`✓ ${recipe.names[lang] || recipe.names.fr} : ${added} ajoutés${updated > 0 ? ", " + updated + " maj" : ""}`);
+        showToast(`✓ ${recipe.names[lang] || recipe.names.fr} : ${t("merge_done", { a: added, u: updated })}`);
       }
     });
   };
@@ -1970,14 +2005,14 @@ function showNearbyStores() {
   if (!userLocation) {
     content.innerHTML = `
       <div class="nearby-head">
-        <h3>📍 Magasins proches</h3>
+        <h3>📍 ${t("nearby_stores")}</h3>
         <button class="modal-close" data-nearby-close>×</button>
       </div>
       <div class="nearby-perm">
         <div class="emoji" style="font-size:48px">📍</div>
-        <p>Pour trouver les magasins les plus proches et les itinéraires, autorise la localisation.</p>
-        <button class="btn primary big" data-locate>Activer la localisation</button>
-        <p style="font-size:11px;color:var(--muted);margin-top:8px">Tes coordonnées restent sur ton téléphone, jamais envoyées.</p>
+        <p>${t("nearby_perm_text")}</p>
+        <button class="btn primary big" data-locate>${t("enable_location")}</button>
+        <p style="font-size:11px;color:var(--muted);margin-top:8px">${t("location_privacy")}</p>
       </div>`;
     modal.classList.add("visible");
     modal.querySelector("[data-locate]").addEventListener("click", () => {
@@ -1985,7 +2020,7 @@ function showNearbyStores() {
         saveLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
         showNearbyStores();
       }, err => {
-        showToast("Localisation refusée. Tu peux la modifier dans les paramètres du navigateur.", "warn");
+        showToast(t("location_denied"), "warn");
       }, { timeout: 10000, enableHighAccuracy: false });
     });
     modal.querySelector("[data-nearby-close]").addEventListener("click", hideNearbyModal);
@@ -2000,7 +2035,7 @@ function showNearbyStores() {
 
   content.innerHTML = `
     <div class="nearby-head">
-      <h3>📍 Magasins proches de toi</h3>
+      <h3>📍 ${t("nearby_title")}</h3>
       <button class="modal-close" data-nearby-close>×</button>
     </div>
     <div class="nearby-stores">
@@ -2018,7 +2053,7 @@ function showNearbyStores() {
               <div class="nearby-store-dist">${store.distance} km</div>
             </div>
             <div class="nearby-store-info">
-              <span class="nearby-pill">${store.delivery ? "🚚 Livraison" : "🚫 Retrait magasin"}</span>
+              <span class="nearby-pill">${store.delivery ? t("delivery_yes") : t("delivery_no")}</span>
               <span class="nearby-pill">🕐 ${store.hours}</span>
             </div>
             <div class="nearby-actions">
@@ -2046,14 +2081,14 @@ function showNearbyStores() {
                 </svg>
                 Google Maps
               </a>
-              ${website ? `<a href="${website}" target="_blank" rel="noopener" class="nearby-btn site">🛒 Commander</a>` : ""}
+              ${website ? `<a href="${website}" target="_blank" rel="noopener" class="nearby-btn site">🛒 ${t("order_online")}</a>` : ""}
             </div>
           </div>`;
       }).join("")}
     </div>
     <div style="text-align:center;padding:8px;font-size:11px;color:var(--muted)">
-      📍 Position : ${userLocation.lat.toFixed(3)}, ${userLocation.lon.toFixed(3)}
-      · <button class="link-btn" data-relocate>Mettre à jour</button>
+      📍 ${userLocation.lat.toFixed(3)}, ${userLocation.lon.toFixed(3)}
+      · <button class="link-btn" data-relocate>${t("refresh_location")}</button>
     </div>`;
   modal.classList.add("visible");
   modal.querySelector("[data-nearby-close]").addEventListener("click", hideNearbyModal);
