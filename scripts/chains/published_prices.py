@@ -34,19 +34,45 @@ BASE = "https://url.publishedprices.co.il"
 
 
 def _login(sess: requests.Session, user: str, password: str = "") -> bool:
-    """Effectue le login et garde le cookie de session."""
-    # 1) GET la page de login pour récupérer le cookie initial + csrf
-    r = sess.get(f"{BASE}/login", timeout=30)
+    """Effectue le login et garde le cookie de session.
+    Logue précisément à chaque étape pour debug."""
+    log.info("[%s] Étape 1 : GET login page", user)
+    try:
+        r = sess.get(f"{BASE}/login", timeout=30)
+        log.info("[%s] login GET status=%d, content-len=%d", user, r.status_code, len(r.text))
+        if not r.ok:
+            log.warning("[%s] login GET failed", user)
+            return False
+    except Exception as e:
+        log.error("[%s] login GET exception: %s", user, e)
+        return False
+
     csrf = ""
-    m = re.search(r'name="csrftoken"\s+value="([^"]+)"', r.text)
+    m = re.search(r'name=["\']csrftoken["\']\s+value=["\']([^"\']+)["\']', r.text)
     if m:
         csrf = m.group(1)
-    # 2) POST des credentials
+        log.info("[%s] csrf token trouvé: %s", user, csrf[:16] + "...")
+    else:
+        log.warning("[%s] csrf token NON trouvé dans la page", user)
+
+    log.info("[%s] Étape 2 : POST credentials", user)
     payload = {"username": user, "password": password, "csrftoken": csrf}
-    r = sess.post(f"{BASE}/login/user", data=payload, timeout=30, allow_redirects=True)
-    # 3) Vérifier qu'on a accès en interrogeant la liste
-    r = sess.get(f"{BASE}/file/json/dir?iDisplayLength=1&cd=%2F", timeout=30)
-    return r.ok and "aaData" in r.text
+    try:
+        r = sess.post(f"{BASE}/login/user", data=payload, timeout=30, allow_redirects=True)
+        log.info("[%s] login POST status=%d, final URL=%s", user, r.status_code, r.url)
+    except Exception as e:
+        log.error("[%s] login POST exception: %s", user, e)
+        return False
+
+    log.info("[%s] Étape 3 : test accès liste fichiers", user)
+    try:
+        r = sess.get(f"{BASE}/file/json/dir?iDisplayLength=1&cd=%2F", timeout=30)
+        ok = r.ok and "aaData" in r.text
+        log.info("[%s] file/json/dir status=%d, ok=%s, sample=%s", user, r.status_code, ok, r.text[:200])
+        return ok
+    except Exception as e:
+        log.error("[%s] file/json/dir exception: %s", user, e)
+        return False
 
 
 def _list_files_pattern(sess: requests.Session, pattern: str) -> List[str]:

@@ -1,44 +1,104 @@
 """Scraper Shufersal.
 
 Endpoint public, sans login : http://prices.shufersal.co.il/
-Les fichiers sont listés sur la page d'accueil. On cherche les
-PriceFull (catalogue complet) le plus récent, on prend un magasin
-représentatif (Tel-Aviv) pour avoir un échantillon.
+
+Le site a 2 modes :
+1. Page HTML avec table des fichiers (URL relatives via ?download=)
+2. Endpoint JSON /FileObject/UpdateCategory?catID=N&storeId=0 (DataTables)
+
+On essaie plusieurs combinaisons pour maximiser les chances.
+
+catID typiques :
+- 0 : tous
+- 1 : Stores
+- 2 : Prices (PriceFull)
+- 3 : Promos (PromoFull)
+- 4 : PriceFullAll
+- 5 : PromoFullAll
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
 from typing import Iterator, List
+from urllib.parse import urljoin
 
 from ._base import PriceItem, PromoItem, decompress, fetch, parse_xml_items, parse_xml_promos, session
 
 log = logging.getLogger(__name__)
 
-INDEX_URL = "http://prices.shufersal.co.il/FileObject/UpdateCategory?catID=2&storeId=0"
-HOME_URL = "http://prices.shufersal.co.il/"
+BASE = "https://prices.shufersal.co.il"
+HOME_URL = f"{BASE}/"
 
 CHAIN = "shufersal"
 
 
-def _list_files() -> List[str]:
-    """Liste les fichiers PriceFull sur l'index. Le HTML contient des
-    liens directs vers les .gz."""
+def _list_files_for_pattern(pattern: str, cat_id: int) -> List[str]:
+    """Liste les fichiers matchant le pattern (PriceFull / PromoFull)
+    en essayant plusieurs endpoints connus."""
     sess = session()
-    try:
-        html = fetch(INDEX_URL, sess=sess).decode("utf-8", errors="ignore")
-    except Exception:
-        html = fetch(HOME_URL, sess=sess).decode("utf-8", errors="ignore")
-    # liens absolus vers les .gz
-    urls = re.findall(r'https?://[^\s"\']+PriceFull[^\s"\']+\.gz', html)
-    return list(dict.fromkeys(urls))  # dédup en préservant l'ordre
+    urls: List[str] = []
+
+    # Essai 1 : endpoint JSON DataTables
+    json_urls = [
+        f"{BASE}/FileObject/UpdateCategory?catID={cat_id}&storeId=0",
+        f"{BASE}/FileObject/GetFileObjects?catID={cat_id}",
+    ]
+    for jurl in json_urls:
+        try:
+            r = sess.get(jurl, timeout=30)
+            if not r.ok:
+                continue
+            text = r.text
+            # Cherche tous les noms de fichiers .gz dans la réponse
+            matches = re.findall(rf'({pattern}[\w.\-]+\.gz)', text)
+            for fname in matches:
+                # Construit l'URL de téléchargement
+                full_url = f"{BASE}/FileObject/Download/{fname}"
+                if full_url not in urls:
+                    urls.append(full_url)
+            # Cherche aussi des liens HTML/JSON avec href
+            href_matches = re.findall(r'href=["\']([^"\']+\.gz)["\']', text, re.IGNORECASE)
+            for href in href_matches:
+                if pattern in href:
+                    full_url = href if href.startswith("http") else urljoin(BASE, href)
+                    if full_url not in urls:
+                        urls.append(full_url)
+            # JSON-style "url"
+            url_matches = re.findall(r'"(https?://[^"]+\.gz)"', text)
+            for u in url_matches:
+                if pattern in u and u not in urls:
+                    urls.append(u)
+            if urls:
+                log.info("Shufersal: %d fichiers via %s", len(urls), jurl)
+                break
+        except Exception as e:
+            log.debug("Shufersal endpoint %s failed: %s", jurl, e)
+
+    # Essai 2 : page HTML accueil
+    if not urls:
+        try:
+            r = sess.get(HOME_URL, timeout=30)
+            if r.ok:
+                text = r.text
+                matches = re.findall(rf'(?:href=["\']|"|=)([^"\'\s<>]*{pattern}[\w.\-]+\.gz)', text)
+                for m in matches:
+                    full_url = m if m.startswith("http") else urljoin(BASE, m)
+                    if full_url not in urls:
+                        urls.append(full_url)
+                log.info("Shufersal home page: %d urls trouvées", len(urls))
+        except Exception as e:
+            log.error("Shufersal home page failed: %s", e)
+
+    return urls
 
 
 def fetch_items(max_files: int = 1) -> Iterator[PriceItem]:
     """Renvoie les items des `max_files` premiers PriceFull trouvés."""
-    files = _list_files()
+    files = _list_files_for_pattern("PriceFull", 2)
     if not files:
-        log.warning("Shufersal : aucun fichier PriceFull trouvé sur l'index")
+        log.warning("Shufersal : aucun fichier PriceFull trouvé")
         return
     sess = session()
     for url in files[:max_files]:
@@ -54,20 +114,9 @@ def fetch_items(max_files: int = 1) -> Iterator[PriceItem]:
             log.error("Shufersal : échec sur %s : %s", url, e)
 
 
-def _list_promo_files() -> list:
-    """Liste les fichiers PromoFull (promotions complètes) sur l'index."""
-    sess = session()
-    try:
-        html = fetch(HOME_URL, sess=sess).decode("utf-8", errors="ignore")
-    except Exception:
-        return []
-    urls = re.findall(r'https?://[^\s"\']+PromoFull[^\s"\']+\.gz', html)
-    return list(dict.fromkeys(urls))
-
-
 def fetch_promos(max_files: int = 1) -> Iterator[PromoItem]:
     """Renvoie les promotions des `max_files` premiers PromoFull."""
-    files = _list_promo_files()
+    files = _list_files_for_pattern("PromoFull", 3)
     if not files:
         log.warning("Shufersal : aucun fichier PromoFull trouvé")
         return
