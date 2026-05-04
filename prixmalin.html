@@ -5074,9 +5074,8 @@ const STORE_LOCATIONS = {
   ],
   victory: [
     { name: "Victory Tel Aviv Ahad Ha'Am", lat: 32.0664, lon: 34.7702, address: "Ahad Ha'Am 13, Tel Aviv", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-16h" },
-    { name: "Victory Ramat Gan", lat: 32.0683, lon: 34.8248, address: "Bialik 70, Ramat Gan", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
-    { name: "Victory Netanya", lat: 32.3215, lon: 34.8533, address: "Herzl 60, Netanya", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
-    { name: "Victory Netanya Sela", lat: 32.3140, lon: 34.8645, address: "HaTzoran 12, Netanya", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Victory Ramat Gan", lat: 32.0683, lon: 34.8248, address: "Herzl 42, Ramat Gan", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Victory Netanya", lat: 32.3140, lon: 34.8645, address: "HaOrzim 4, Netanya", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
     { name: "Victory Hadera", lat: 32.4340, lon: 34.9196, address: "Rothschild 89, Hadera", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
     { name: "Victory Herzliya", lat: 32.1640, lon: 34.8489, address: "Sapir 16, Herzliya", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
     { name: "Victory Holon", lat: 32.0117, lon: 34.7794, address: "Pinchas Lavon 5, Holon", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" }
@@ -6495,7 +6494,7 @@ function renderStoreBadges() {
     const isLive = liveCount > 0;
     const status = isLive ? `<span class="badge-status live">🟢</span>` : `<span class="badge-status mock">⚪</span>`;
     const tip = isLive ? `${liveCount} ${t("live_ready")}` : t("live_waiting");
-    return `<span class="store-badge ${isLive ? "live" : ""}" title="${tip}"><span class="dot" style="background:${s.color}"></span>${s.name}${status}</span>`;
+    return `<span class="store-badge ${isLive ? "live" : ""}" title="${tip}" translate="no"><span class="dot" style="background:${s.color}"></span>${s.name}${status}</span>`;
   }).join("");
 }
 
@@ -8811,8 +8810,8 @@ function showNearbyStores() {
             <div class="nearby-store-head">
               <span class="store-icon" style="background:${color};width:32px;height:32px;font-size:12px">${icon}</span>
               <div class="nearby-store-name-block">
-                <div class="nearby-store-name">${store.name}</div>
-                <div class="nearby-store-meta">${store.address}</div>
+                <div class="nearby-store-name" translate="no">${store.name}</div>
+                <div class="nearby-store-meta" translate="no">${store.address}</div>
                 <div class="nearby-store-note">${note}</div>
               </div>
               <div class="nearby-store-dist">${store.distance} km</div>
@@ -8849,8 +8848,8 @@ function showNearbyStores() {
             <div class="nearby-store-head">
               <span class="store-icon" style="background:${s.color};width:32px;height:32px;font-size:12px">${s.icon}</span>
               <div class="nearby-store-name-block">
-                <div class="nearby-store-name">${store.name}</div>
-                <div class="nearby-store-meta">${store.address}</div>
+                <div class="nearby-store-name" translate="no">${store.name}</div>
+                <div class="nearby-store-meta" translate="no">${store.address}</div>
               </div>
               <div class="nearby-store-dist">${store.distance} km</div>
             </div>

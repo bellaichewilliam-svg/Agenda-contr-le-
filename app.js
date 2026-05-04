@@ -710,7 +710,7 @@ function renderStoreBadges() {
     const isLive = liveCount > 0;
     const status = isLive ? `<span class="badge-status live">🟢</span>` : `<span class="badge-status mock">⚪</span>`;
     const tip = isLive ? `${liveCount} ${t("live_ready")}` : t("live_waiting");
-    return `<span class="store-badge ${isLive ? "live" : ""}" title="${tip}"><span class="dot" style="background:${s.color}"></span>${s.name}${status}</span>`;
+    return `<span class="store-badge ${isLive ? "live" : ""}" title="${tip}" translate="no"><span class="dot" style="background:${s.color}"></span>${s.name}${status}</span>`;
   }).join("");
 }
 
@@ -3026,8 +3026,8 @@ function showNearbyStores() {
             <div class="nearby-store-head">
               <span class="store-icon" style="background:${color};width:32px;height:32px;font-size:12px">${icon}</span>
               <div class="nearby-store-name-block">
-                <div class="nearby-store-name">${store.name}</div>
-                <div class="nearby-store-meta">${store.address}</div>
+                <div class="nearby-store-name" translate="no">${store.name}</div>
+                <div class="nearby-store-meta" translate="no">${store.address}</div>
                 <div class="nearby-store-note">${note}</div>
               </div>
               <div class="nearby-store-dist">${store.distance} km</div>
@@ -3064,8 +3064,8 @@ function showNearbyStores() {
             <div class="nearby-store-head">
               <span class="store-icon" style="background:${s.color};width:32px;height:32px;font-size:12px">${s.icon}</span>
               <div class="nearby-store-name-block">
-                <div class="nearby-store-name">${store.name}</div>
-                <div class="nearby-store-meta">${store.address}</div>
+                <div class="nearby-store-name" translate="no">${store.name}</div>
+                <div class="nearby-store-meta" translate="no">${store.address}</div>
               </div>
               <div class="nearby-store-dist">${store.distance} km</div>
             </div>
