@@ -868,12 +868,131 @@ function renderSuggestions() {
 // ========== RENDER GLOBAL ==========
 function renderAll() {
   renderListsTabs();
+  renderTopPromos();
   renderBrowsePanel();
   renderSuggestions();
   renderCart();
   renderPromos();
   renderComparison();
   renderMobileCTA();
+}
+
+// Bandeau promos toujours visible en haut, style Circl :
+// scroll horizontal de cartes attrayantes (image, prix barré,
+// badge "économies", logo magasin)
+function renderTopPromos() {
+  const wrap = document.getElementById("promos-top");
+  if (!wrap || typeof PROMOTIONS === "undefined") return;
+
+  function isSuper(p) {
+    return (p.fixed && p.fixed >= 15) || (p.pct && p.pct >= 25) || (p.type === "n_for_m" && (p.n - p.m) >= 2);
+  }
+
+  // Top 8 promos triées par attractivité
+  const top = [...PROMOTIONS].sort((a, b) => {
+    const sa = isSuper(a) ? 1 : 0;
+    const sb = isSuper(b) ? 1 : 0;
+    if (sa !== sb) return sb - sa;
+    return (b.pct || b.fixed || 0) - (a.pct || a.fixed || 0);
+  }).slice(0, 8);
+
+  if (top.length === 0) { wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+
+  const lang = state.lang;
+  const labels = {
+    fr: { title: "🔥 Promos du moment", all: "Voir tout", saving: "économies" },
+    he: { title: "🔥 המבצעים החמים", all: "לכל המבצעים", saving: "חיסכון" },
+    en: { title: "🔥 Hot deals", all: "See all", saving: "savings" },
+    ru: { title: "🔥 Горячие акции", all: "Все акции", saving: "экономия" }
+  };
+  const L = labels[lang] || labels.fr;
+
+  wrap.innerHTML = `
+    <div class="promos-top-head">
+      <span class="promos-top-title">${L.title}</span>
+      <button class="promos-top-all" data-promos-all>${L.all} →</button>
+    </div>
+    <div class="promos-top-scroll">
+      ${top.map(p => {
+        const store = STORES[p.chain];
+        const _super = isSuper(p);
+        // Produit représentatif
+        let firstProd = null;
+        if (p.products && p.products.length) firstProd = findProduct(p.products[0]);
+        else if (p.requiredAny && p.requiredAny[0]) firstProd = findProduct(p.requiredAny[0][0]);
+        else if (p.category) firstProd = PRODUCTS.find(x => x.category === p.category);
+
+        // Badge type promo (type "2ème à moitié prix")
+        let typeBadge = "";
+        if (p.type === "n_for_m" && p.n === 2 && p.m === 1) typeBadge = lang === "he" ? "1+1" : (lang === "fr" ? "1+1" : "Buy 1 get 1");
+        else if (p.type === "n_for_m") typeBadge = `${p.n}=${p.m}`;
+        else if (p.type === "second_pct") typeBadge = lang === "he" ? `2-י −${p.pct}%` : (lang === "fr" ? `2ème −${p.pct}%` : `2nd −${p.pct}%`);
+        else if (p.type === "n_for_price") typeBadge = `${p.n} = ${formatPrice(p.price)}`;
+        else if (p.pct) typeBadge = `−${p.pct}%`;
+        else if (p.fixed) typeBadge = `−${formatPrice(p.fixed)}`;
+
+        // Prix : si on a un produit, calcule prix avant/après
+        let pricesHTML = "";
+        let savingHTML = "";
+        if (firstProd) {
+          const baseP = firstProd.prices[p.chain];
+          if (baseP) {
+            let newP = baseP;
+            let savedAmount = 0;
+            if (p.pct) { newP = baseP * (1 - p.pct/100); savedAmount = baseP - newP; }
+            else if (p.type === "n_for_m") { newP = baseP * p.m / p.n; savedAmount = baseP - newP; }
+            else if (p.type === "second_pct") { newP = baseP * (1 - p.pct/200); savedAmount = baseP - newP; }
+            else if (p.fixed) { savedAmount = p.fixed; newP = Math.max(0, baseP - p.fixed); }
+            pricesHTML = `
+              <div class="ptop-prices">
+                <span class="ptop-price-old">${formatPrice(baseP)}</span>
+                <span class="ptop-price-new">${formatPrice(newP)}</span>
+              </div>`;
+            if (savedAmount > 0.5) {
+              savingHTML = `<div class="ptop-saving-pill">💚 ${formatPrice(savedAmount)} ${L.saving}</div>`;
+            }
+          }
+        }
+
+        return `
+          <div class="ptop-card ${_super ? "super" : ""}" data-promo-card="${p.id}" data-add-pid="${firstProd ? firstProd.id : ""}" data-add-store="${p.chain}">
+            <div class="ptop-card-top">
+              ${typeBadge ? `<span class="ptop-type">${typeBadge}</span>` : ""}
+              <div class="ptop-store-logo" style="background:${store.color}">
+                <span>${store.icon}</span>
+              </div>
+            </div>
+            <div class="ptop-image" style="background:${firstProd ? productTint(firstProd) : 'var(--accent-soft)'}">
+              <span class="ptop-image-emoji">${firstProd ? productIcon(firstProd) : "🎁"}</span>
+            </div>
+            <div class="ptop-info">
+              <div class="ptop-title">${firstProd ? tProduct(firstProd) : p.title}</div>
+              <div class="ptop-meta">${firstProd ? firstProd.unit : ""}</div>
+              ${pricesHTML}
+              ${savingHTML}
+              <div class="ptop-store-name">${store.name}</div>
+            </div>
+          </div>`;
+      }).join("")}
+    </div>`;
+
+  wrap.querySelector("[data-promos-all]").addEventListener("click", showPromosHub);
+  wrap.querySelectorAll("[data-promo-card]").forEach(card => {
+    card.addEventListener("click", e => {
+      const pid = card.dataset.addPid;
+      const store = card.dataset.addStore;
+      if (pid) {
+        addToCart(pid, undefined, store);
+        // Petit feedback visuel
+        card.style.transform = "scale(0.96)";
+        setTimeout(() => card.style.transform = "", 150);
+      } else {
+        showPromosHub();
+      }
+    });
+  });
+  attachWheelHorizontalScroll(wrap.querySelector(".promos-top-scroll"));
 }
 
 // ========== BROWSE PANEL (catégorie -> grille avec scroll infini) ==========
@@ -1855,12 +1974,13 @@ function setupSettings() {
 }
 
 // ========== EVENTS ==========
-// Convertit le scroll vertical molette en scroll horizontal sur les rangées
+// Convertit le scroll vertical molette en scroll horizontal +
+// supporte le drag-to-scroll à la souris (pratique sur desktop).
 function attachWheelHorizontalScroll(el) {
   if (!el || el._wheelHandlerAttached) return;
   el._wheelHandlerAttached = true;
+  // Wheel -> horizontal
   el.addEventListener("wheel", e => {
-    // Ne convertit que si pas de scroll horizontal natif
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
       const max = el.scrollWidth - el.clientWidth;
       if (max > 0) {
@@ -1869,6 +1989,23 @@ function attachWheelHorizontalScroll(el) {
       }
     }
   }, { passive: false });
+  // Drag à la souris (desktop)
+  let isDown = false, startX = 0, startScroll = 0;
+  el.addEventListener("mousedown", e => {
+    if (e.target.closest("button, a")) return; // pas drag si click sur un bouton
+    isDown = true;
+    el.style.cursor = "grabbing";
+    startX = e.pageX - el.offsetLeft;
+    startScroll = el.scrollLeft;
+  });
+  el.addEventListener("mouseleave", () => { isDown = false; el.style.cursor = ""; });
+  el.addEventListener("mouseup", () => { isDown = false; el.style.cursor = ""; });
+  el.addEventListener("mousemove", e => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    el.scrollLeft = startScroll - (x - startX);
+  });
 }
 
 function setupEvents() {

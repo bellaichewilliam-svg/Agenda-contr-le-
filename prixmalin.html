@@ -367,20 +367,15 @@ button { font-family: inherit; color: inherit; }
 @media (min-width: 960px) {
   .quick-categories, .subcat-row {
     scroll-behavior: smooth;
-    cursor: grab;
   }
-  .quick-categories::after, .subcat-row::after {
-    content: "›";
-    position: sticky;
-    inset-inline-end: 0;
-    color: var(--accent);
-    font-size: 22px;
-    line-height: 1;
-    pointer-events: none;
-    background: linear-gradient(90deg, transparent, var(--panel) 60%);
-    padding: 4px 10px 4px 24px;
-    flex-shrink: 0;
-    align-self: center;
+  /* Scrollbar fine et discrète sur desktop pour montrer qu'on peut scroller */
+  .quick-categories, .subcat-row { scrollbar-width: thin; }
+  .quick-categories::-webkit-scrollbar,
+  .subcat-row::-webkit-scrollbar { display: block; height: 4px; }
+  .quick-categories::-webkit-scrollbar-thumb,
+  .subcat-row::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 4px;
   }
 }
 .cat-pill {
@@ -1385,6 +1380,157 @@ button { font-family: inherit; color: inherit; }
   overflow: hidden;
 }
 
+/* ====== Promos top sticky (style Circl) ====== */
+.promos-top {
+  margin: 0 -16px 12px;
+  padding: 10px 0 10px;
+  background: linear-gradient(180deg, rgba(251, 146, 60, 0.06), rgba(251, 146, 60, 0));
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-bottom: 1px solid rgba(251, 146, 60, 0.2);
+}
+.promos-top-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 16px 8px;
+}
+.promos-top-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #b45309;
+}
+[data-theme="dark"] .promos-top-title { color: #fbbf24; }
+.promos-top-all {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.promos-top-scroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 16px 4px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.promos-top-scroll::-webkit-scrollbar { display: none; }
+.ptop-card {
+  flex-shrink: 0;
+  width: 160px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px;
+  cursor: pointer;
+  transition: transform var(--tx), box-shadow var(--tx);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.ptop-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+}
+.ptop-card.super {
+  border-color: #ef4444;
+  border-left-width: 3px;
+  background: linear-gradient(135deg, var(--panel) 60%, rgba(239, 68, 68, 0.06));
+}
+.ptop-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 22px;
+}
+.ptop-type {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #78350f;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.ptop-card.super .ptop-type {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+  color: white;
+}
+.ptop-store-logo {
+  display: flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.ptop-image {
+  width: 100%;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  margin: 2px 0;
+}
+.ptop-image-emoji { font-size: 38px; }
+.ptop-info { display: flex; flex-direction: column; gap: 2px; }
+.ptop-title {
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.25;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 30px;
+}
+.ptop-meta { font-size: 10px; color: var(--muted); }
+.ptop-prices {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.ptop-price-old {
+  font-size: 11px;
+  color: var(--muted);
+  text-decoration: line-through;
+  font-variant-numeric: tabular-nums;
+}
+.ptop-price-new {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.ptop-saving-pill {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  align-self: flex-start;
+  margin-top: 2px;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.25);
+}
+.ptop-store-name {
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
 /* ====== Promos hub ====== */
 .promos-head {
   display: flex; justify-content: space-between; align-items: center;
@@ -2155,6 +2301,9 @@ button { font-family: inherit; color: inherit; }
 
       <!-- Onglets listes multiples -->
       <div class="lists-tabs" id="lists-tabs"></div>
+
+      <!-- Promos sticky toujours visibles en haut -->
+      <div id="promos-top" class="promos-top"></div>
 
       <div class="search-box">
         <input type="text" id="search-input" placeholder="…" autocomplete="off" enterkeyhint="search" />
@@ -2959,7 +3108,181 @@ const PRODUCT_I18N = {
   "merguez":        { he: "מרגז",                    en: "Merguez",                 ru: "Мергез" },
   "hot-dog":        { he: "נקניקיות",                en: "Hot dogs",                ru: "Сосиски" },
   "salami":         { he: "סלמי",                    en: "Salami",                  ru: "Салями" },
-  "pastrami":       { he: "פסטרמה הודו",             en: "Turkey pastrami",         ru: "Пастрома из индейки" }
+  "pastrami":       { he: "פסטרמה הודו",             en: "Turkey pastrami",         ru: "Пастрома из индейки" },
+
+  // Viande - batch 3 (produits visibles dans les screenshots utilisateur)
+  "chicken-cut":         { he: "עוף בחלקים",          en: "Chicken cuts",            ru: "Курица кусками" },
+  "chicken-organic":     { he: "עוף אורגני",          en: "Organic chicken",         ru: "Био-курица" },
+  "chicken-shawarma":    { he: "שווארמה עוף",         en: "Chicken shawarma",        ru: "Куриная шаурма" },
+  "chicken-drumstick":   { he: "שוקיים עוף",          en: "Chicken drumsticks",      ru: "Куриные голени" },
+  "chicken-tenders":     { he: "אצבעות עוף",          en: "Chicken tenders",         ru: "Куриные стрипы" },
+  "chicken-marinated":   { he: "עוף מתובל",           en: "Marinated chicken",       ru: "Маринованная курица" },
+  "chicken-livers-marinated":{ he: "כבד עוף מתובל",  en: "Marinated chicken liver", ru: "Маринованная куриная печень" },
+  "ground-turkey-organic":{ he: "הודו טחון אורגני",   en: "Organic ground turkey",   ru: "Био-фарш индейки" },
+  "beef-stew":           { he: "בקר לבישול",          en: "Beef stew meat",          ru: "Говядина для тушения" },
+  "beef-stew-meat":      { he: "בשר לסיר",            en: "Pot-au-feu beef",         ru: "Говядина для супа" },
+  "beef-roast":          { he: "צלי בקר",             en: "Beef roast",              ru: "Жаркое из говядины" },
+  "beef-shawarma":       { he: "שווארמה בקר",         en: "Beef shawarma",           ru: "Говяжья шаурма" },
+  "beef-fillet":         { he: "פילה בקר",            en: "Beef fillet",             ru: "Говяжья вырезка" },
+  "beef-tenderloin":     { he: "סינטה",                en: "Sirloin",                 ru: "Стейк сирлойн" },
+  "beef-tongue":         { he: "לשון בקר",            en: "Beef tongue",             ru: "Говяжий язык" },
+  "beef-osso-buco":      { he: "אוסו בוקו עגל",       en: "Veal osso buco",          ru: "Оссобуко из телятины" },
+  "veal-cutlet":         { he: "סטייק עגל",           en: "Veal cutlet",             ru: "Телячий шницель" },
+  "lamb-chops":          { he: "צלעות כבש",           en: "Lamb chops",              ru: "Бараньи отбивные" },
+  "lamb-ground":         { he: "כבש טחון",            en: "Ground lamb",             ru: "Фарш баранины" },
+  "lamb-leg":            { he: "ירך כבש",             en: "Leg of lamb",             ru: "Нога ягнёнка" },
+  "lamb-rack":           { he: "צלעות כבש שלם",       en: "Rack of lamb",            ru: "Каре ягнёнка" },
+  "duck-breast":         { he: "חזה ברווז",           en: "Duck breast",             ru: "Утиная грудка" },
+  "merguez-spicy":       { he: "מרגז חריף",           en: "Spicy merguez",           ru: "Острый мергез" },
+  "kefta":               { he: "קפתה",                 en: "Kefta",                   ru: "Кефта" },
+  "schwarma-marinated":  { he: "שיפודים מתובלים",     en: "Marinated skewers",       ru: "Маринованные шашлыки" },
+
+  // Poisson - batch
+  "salmon-organic":      { he: "סלמון אורגני",        en: "Organic salmon",          ru: "Био-лосось" },
+  "salmon-fresh-fillet": { he: "פילה סלמון טרי",      en: "Fresh salmon fillet",     ru: "Свежее филе лосося" },
+  "salmon-smoked":       { he: "סלמון מעושן",         en: "Smoked salmon",           ru: "Копчёный лосось" },
+  "white-fish":          { he: "בורי",                 en: "Mullet (Bouri)",          ru: "Кефаль (Бури)" },
+  "white-fish-mullet":   { he: "בורי טרי",             en: "Fresh mullet",            ru: "Свежая кефаль" },
+  "tilapia":             { he: "אמנון (טילפיה)",       en: "Tilapia",                 ru: "Тилапия" },
+  "denis":               { he: "דניס",                 en: "Sea bream (Denise)",      ru: "Дорада" },
+  "tuna-fresh":          { he: "טונה טרייה",           en: "Fresh tuna",              ru: "Свежий тунец" },
+  "tuna-can":            { he: "טונה בשימור",          en: "Canned tuna",             ru: "Тунец в банке" },
+  "tuna-can-light":      { he: "טונה לייט",           en: "Light canned tuna",       ru: "Лёгкий тунец" },
+  "tuna-can-oil":        { he: "טונה בשמן",           en: "Tuna in oil",             ru: "Тунец в масле" },
+  "salmon-can":          { he: "סלמון בשימור",         en: "Canned salmon",           ru: "Лосось в банке" },
+  "sardines":            { he: "סרדינים",              en: "Sardines",                ru: "Сардины" },
+  "herring":             { he: "הרינג מלוח",           en: "Pickled herring",         ru: "Маринованная сельдь" },
+  "anchovies":           { he: "אנשובי",               en: "Anchovies",               ru: "Анчоусы" },
+  "fish-grouper":        { he: "לוקוס",                en: "Grouper",                 ru: "Морской окунь" },
+  "fish-mackerel":       { he: "מקרל",                 en: "Mackerel",                ru: "Скумбрия" },
+  "fish-cod":            { he: "קוד",                  en: "Cod",                     ru: "Треска" },
+  "carp":                { he: "קרפיון",               en: "Carp",                    ru: "Карп" },
+  "trout":               { he: "פורל",                 en: "Trout",                   ru: "Форель" },
+  "calamari":            { he: "קלמרי",                en: "Calamari",                ru: "Кальмары" },
+  "fish-balls":          { he: "קציצות דגים",          en: "Fish balls",              ru: "Рыбные котлеты" },
+  "smoked-fish-platter": { he: "מגש דגים מעושנים",    en: "Smoked fish platter",     ru: "Ассорти копчёной рыбы" },
+  "shrimp-fresh":        { he: "שרימפס טרי",           en: "Fresh shrimp",            ru: "Свежие креветки" },
+
+  // Boulangerie - batch
+  "bread-rye":           { he: "לחם שיפון",            en: "Rye bread",               ru: "Ржаной хлеб" },
+  "bread-multi":         { he: "לחם רב-דגנים",         en: "Multigrain bread",        ru: "Многозерновой хлеб" },
+  "bread-toast":         { he: "לחם טוסט אנג'ל",       en: "Toast bread",             ru: "Хлеб для тостов" },
+  "bread-seeds":         { he: "לחם זרעים",            en: "Seed bread",              ru: "Хлеб с семенами" },
+  "bread-sliced":        { he: "לחם פרוס",             en: "Pre-sliced bread",        ru: "Нарезной хлеб" },
+  "bread-sourdough":     { he: "לחם מחמצת",            en: "Sourdough bread",         ru: "Хлеб на закваске" },
+  "bread-gluten-free":   { he: "לחם ללא גלוטן",        en: "Gluten-free bread",       ru: "Безглютеновый хлеб" },
+  "bread-spelt":         { he: "לחם כוסמין",           en: "Spelt bread",             ru: "Хлеб полбяной" },
+  "baguette":            { he: "בגט",                  en: "Baguette",                ru: "Багет" },
+  "ciabatta":            { he: "צ'בטה",                en: "Ciabatta",                ru: "Чабатта" },
+  "pain-paysan":         { he: "לחם כפרי",             en: "Country bread",           ru: "Деревенский хлеб" },
+  "pita-whole":          { he: "פיתה מלאה (6)",        en: "Whole wheat pita",        ru: "Цельнозерновая пита" },
+  "lafa":                { he: "לאפה",                 en: "Lafa",                    ru: "Лафа" },
+  "tortilla":            { he: "טורטיה (8)",           en: "Tortillas (8)",           ru: "Тортильи (8)" },
+  "naan":                { he: "נאן הודי",             en: "Indian naan",             ru: "Индийский наан" },
+  "burger-bun":          { he: "לחמניות המבורגר",      en: "Burger buns",             ru: "Булочки для бургеров" },
+  "hot-dog-bun":         { he: "לחמניות נקניקיה",      en: "Hot dog buns",            ru: "Булочки для хот-догов" },
+  "matza":               { he: "מצה",                  en: "Matza",                   ru: "Маца" },
+  "breadcrumbs":         { he: "פירורי לחם",           en: "Breadcrumbs",             ru: "Панировочные сухари" },
+  "rolls":               { he: "לחמניות (8)",          en: "Small rolls",             ru: "Булочки" },
+  "wraps":               { he: "טורטיות רכות",         en: "Soft wraps",              ru: "Лаваш мягкий" },
+  "english-muffin":      { he: "מאפינס אנגלי",         en: "English muffins",         ru: "Английские маффины" },
+
+  // Légumes - batch
+  "tomato-cherry":       { he: "עגבנייה שרי",          en: "Cherry tomatoes",         ru: "Помидоры черри" },
+  "tomato-grape":        { he: "עגבנייה אשכולות",      en: "Grape tomatoes",          ru: "Помидоры на ветке" },
+  "tomato-roma":         { he: "עגבנייה רומא",         en: "Roma tomatoes",           ru: "Помидоры Рома" },
+  "tomato-yellow":       { he: "עגבנייה צהובה",        en: "Yellow tomatoes",         ru: "Жёлтые помидоры" },
+  "tomato-vine":         { he: "עגבנייה על הגפן",      en: "Vine tomatoes",           ru: "Помидоры на ветке" },
+  "tomato-baby":         { he: "עגבניות קוקטייל",      en: "Cocktail tomatoes",       ru: "Коктейльные помидоры" },
+  "cucumber-mini":       { he: "מלפפון בייבי",         en: "Mini cucumbers",          ru: "Мини-огурцы" },
+  "onion-red":           { he: "בצל סגול",             en: "Red onions",              ru: "Красный лук" },
+  "onion-spring":        { he: "בצל ירוק",             en: "Spring onions",           ru: "Зелёный лук" },
+  "onion-pearl":         { he: "בצל פנינה",            en: "Pearl onions",            ru: "Жемчужный лук" },
+  "shallot":             { he: "שאלוט",                en: "Shallots",                ru: "Шалот" },
+  "leek":                { he: "כרישה",                en: "Leeks",                   ru: "Лук-порей" },
+  "leek-baby":           { he: "כרישה בייבי",          en: "Baby leeks",              ru: "Молодой лук-порей" },
+  "carrot-baby":         { he: "גזר בייבי",            en: "Baby carrots",            ru: "Мини-морковь" },
+  "carrot-rainbow":      { he: "גזר צבעוני",           en: "Rainbow carrots",         ru: "Цветная морковь" },
+  "pepper-green":        { he: "פלפל ירוק",            en: "Green peppers",           ru: "Зелёный перец" },
+  "pepper-yellow":       { he: "פלפל צהוב",            en: "Yellow peppers",          ru: "Жёлтый перец" },
+  "pepper-orange":       { he: "פלפל כתום",            en: "Orange peppers",          ru: "Оранжевый перец" },
+  "pepper-mini":         { he: "מיני פלפלים",          en: "Mini peppers",            ru: "Мини-перцы" },
+  "pepper-hot":          { he: "פלפל חריף",            en: "Hot peppers",             ru: "Острый перец" },
+  "chili-green":         { he: "צ'ילי ירוק",           en: "Green chili",             ru: "Зелёный чили" },
+  "chili-red":           { he: "צ'ילי אדום",           en: "Red chili",               ru: "Красный чили" },
+  "eggplant-mini":       { he: "חציל בייבי",           en: "Baby eggplants",          ru: "Мини-баклажаны" },
+  "lettuce-iceberg":     { he: "חסה אייסברג",          en: "Iceberg lettuce",         ru: "Айсберг" },
+  "lettuce-romaine":     { he: "חסה רומיין",           en: "Romaine lettuce",         ru: "Романо" },
+  "kale":                { he: "קייל",                 en: "Kale",                    ru: "Капуста кейл" },
+  "arugula":             { he: "רוקט",                 en: "Arugula",                 ru: "Руккола" },
+  "salad-mesclun":       { he: "סלט מסקלן",            en: "Mesclun salad",           ru: "Месклан" },
+  "salad-baby-leaves":   { he: "עלים אורגנים",         en: "Baby leaves bio",         ru: "Молодые листья" },
+  "salad-mixed-bag":     { he: "סלט בשקית",            en: "Mixed salad bag",         ru: "Смешанный салат" },
+  "watercress":          { he: "גרגיר נחלים",          en: "Watercress",              ru: "Кресс-салат" },
+  "cabbage-red":         { he: "כרוב סגול",            en: "Red cabbage",             ru: "Краснокочанная" },
+  "celery":              { he: "סלרי",                 en: "Celery",                  ru: "Сельдерей" },
+  "celery-root":         { he: "סלרי שורש",            en: "Celery root",             ru: "Сельдерей корневой" },
+  "fennel":              { he: "שומר",                 en: "Fennel",                  ru: "Фенхель" },
+  "kohlrabi":            { he: "קולרבי",               en: "Kohlrabi",                ru: "Кольраби" },
+  "okra":                { he: "במיה",                 en: "Okra",                    ru: "Бамия" },
+  "swiss-chard":         { he: "מנגולד",               en: "Swiss chard",             ru: "Мангольд" },
+  "scallion":            { he: "בצל ירוק",             en: "Scallions",               ru: "Зелёный лук перо" },
+  "horseradish":         { he: "חזרת",                 en: "Horseradish",             ru: "Хрен" },
+  "sprouts":             { he: "נבטים אלפלפא",         en: "Alfalfa sprouts",         ru: "Ростки люцерны" },
+  "endive":              { he: "אנדיב",                en: "Endive",                  ru: "Эндивий" },
+  "asparagus":           { he: "אספרגוס",              en: "Asparagus",               ru: "Спаржа" },
+  "artichoke-fresh":     { he: "ארטישוק טרי",          en: "Fresh artichoke",         ru: "Свежий артишок" },
+  "ginger-fresh":        { he: "ג'ינג'ר טרי",          en: "Fresh ginger",            ru: "Свежий имбирь" },
+  "turmeric-fresh":      { he: "כורכום טרי",           en: "Fresh turmeric",          ru: "Свежая куркума" },
+  "lemongrass":          { he: "לימונית",              en: "Lemongrass",              ru: "Лимонная трава" },
+  "radish":              { he: "צנון",                 en: "Radish",                  ru: "Редис" },
+  "beet":                { he: "סלק",                  en: "Beets",                   ru: "Свёкла" },
+  "turnip":              { he: "לפת",                  en: "Turnips",                 ru: "Репа" },
+  "pumpkin":             { he: "דלעת",                 en: "Pumpkin",                 ru: "Тыква" },
+  "corn":                { he: "תירס",                 en: "Corn",                    ru: "Кукуруза" },
+  "mushroom-portobello": { he: "פטריות פורטובלו",      en: "Portobello mushrooms",    ru: "Грибы портобелло" },
+  "olives-green":        { he: "זיתים ירוקים",         en: "Green olives",            ru: "Зелёные оливки" },
+  "olives-black":        { he: "זיתים שחורים",         en: "Black olives",            ru: "Чёрные оливки" },
+  "olives-kalamata":     { he: "זיתי קלמטה",           en: "Kalamata olives",         ru: "Оливки Каламата" },
+  "garlic":              { he: "שום",                  en: "Garlic",                  ru: "Чеснок" },
+  "ginger":              { he: "ג'ינג'ר",              en: "Ginger",                  ru: "Имбирь" },
+
+  // Fruits - batch
+  "apple-golden":        { he: "תפוח גולדן",           en: "Golden apples",           ru: "Яблоки Голден" },
+  "apple-red":           { he: "תפוח אדום",            en: "Red apples",              ru: "Красные яблоки" },
+  "apple-green":         { he: "תפוח גרני סמית",        en: "Granny Smith",            ru: "Гренни Смит" },
+  "apple-fuji":          { he: "תפוח פוג'י",           en: "Fuji apples",             ru: "Яблоки Фуджи" },
+  "apple-gala":          { he: "תפוח גאלה",            en: "Gala apples",             ru: "Яблоки Гала" },
+  "pear":                { he: "אגס",                  en: "Pears",                   ru: "Груши" },
+  "pear-conference":     { he: "אגס קונפרנס",          en: "Conference pears",        ru: "Груши Конференция" },
+  "pear-williams":       { he: "אגס וויליאמס",         en: "Williams pears",          ru: "Груши Вильямс" },
+  "tangerine":           { he: "מנדרינות",             en: "Tangerines",              ru: "Мандарины" },
+  "grapefruit":          { he: "אשכולית",              en: "Grapefruit",              ru: "Грейпфрут" },
+  "lime":                { he: "ליים",                 en: "Lime",                    ru: "Лайм" },
+  "peach":               { he: "אפרסק",                en: "Peaches",                 ru: "Персики" },
+  "nectarine":           { he: "נקטרינה",              en: "Nectarines",              ru: "Нектарины" },
+  "plum":                { he: "שזיף",                 en: "Plums",                   ru: "Сливы" },
+  "cherry":              { he: "דובדבן",               en: "Cherries",                ru: "Черешня" },
+  "blueberry":           { he: "אוכמניות",             en: "Blueberries",             ru: "Черника" },
+  "raspberry":           { he: "פטל",                  en: "Raspberries",             ru: "Малина" },
+  "blackberry":          { he: "פטל שחור",             en: "Blackberries",            ru: "Ежевика" },
+  "grape-red":           { he: "ענבים אדומים",         en: "Red grapes",              ru: "Красный виноград" },
+  "grape-black":         { he: "ענבים שחורים",         en: "Black grapes",            ru: "Чёрный виноград" },
+  "kiwi":                { he: "קיווי",                en: "Kiwi",                    ru: "Киви" },
+  "lychee":              { he: "ליצ'י",                en: "Lychee",                  ru: "Личи" },
+  "dragon-fruit":        { he: "פיטאיה",               en: "Dragon fruit",            ru: "Питахайя" },
+  "starfruit":           { he: "קרמבולה",              en: "Star fruit",              ru: "Карамбола" },
+  "fig":                 { he: "תאנים",                en: "Figs",                    ru: "Инжир" },
+  "persimmon":           { he: "אפרסמון",              en: "Persimmons",              ru: "Хурма" },
+  "pomegranate":         { he: "רימונים",              en: "Pomegranates",            ru: "Гранаты" },
+  "guava":               { he: "גויאבה",               en: "Guava",                   ru: "Гуава" },
+  "loquat":              { he: "שסק",                  en: "Loquats",                 ru: "Локва" },
+  "prickly-pear":        { he: "צבר",                  en: "Prickly pear",            ru: "Опунция" },
+  "papaya":              { he: "פפאיה",                en: "Papaya",                  ru: "Папайя" },
+  "passion-fruit":       { he: "פסיפלורה",             en: "Passion fruit",           ru: "Маракуйя" },
+  "apricot":             { he: "משמש",                 en: "Apricots",                ru: "Абрикосы" },
+  "coconut-fresh":       { he: "קוקוס טרי",            en: "Fresh coconut",           ru: "Свежий кокос" },
+  "berries-mix":         { he: "תערובת פירות יער",     en: "Mixed berries",           ru: "Ягодное ассорти" }
 };
 
 if (typeof module !== "undefined") module.exports = { I18N, PRODUCT_I18N };
@@ -6087,12 +6410,131 @@ function renderSuggestions() {
 // ========== RENDER GLOBAL ==========
 function renderAll() {
   renderListsTabs();
+  renderTopPromos();
   renderBrowsePanel();
   renderSuggestions();
   renderCart();
   renderPromos();
   renderComparison();
   renderMobileCTA();
+}
+
+// Bandeau promos toujours visible en haut, style Circl :
+// scroll horizontal de cartes attrayantes (image, prix barré,
+// badge "économies", logo magasin)
+function renderTopPromos() {
+  const wrap = document.getElementById("promos-top");
+  if (!wrap || typeof PROMOTIONS === "undefined") return;
+
+  function isSuper(p) {
+    return (p.fixed && p.fixed >= 15) || (p.pct && p.pct >= 25) || (p.type === "n_for_m" && (p.n - p.m) >= 2);
+  }
+
+  // Top 8 promos triées par attractivité
+  const top = [...PROMOTIONS].sort((a, b) => {
+    const sa = isSuper(a) ? 1 : 0;
+    const sb = isSuper(b) ? 1 : 0;
+    if (sa !== sb) return sb - sa;
+    return (b.pct || b.fixed || 0) - (a.pct || a.fixed || 0);
+  }).slice(0, 8);
+
+  if (top.length === 0) { wrap.style.display = "none"; return; }
+  wrap.style.display = "block";
+
+  const lang = state.lang;
+  const labels = {
+    fr: { title: "🔥 Promos du moment", all: "Voir tout", saving: "économies" },
+    he: { title: "🔥 המבצעים החמים", all: "לכל המבצעים", saving: "חיסכון" },
+    en: { title: "🔥 Hot deals", all: "See all", saving: "savings" },
+    ru: { title: "🔥 Горячие акции", all: "Все акции", saving: "экономия" }
+  };
+  const L = labels[lang] || labels.fr;
+
+  wrap.innerHTML = `
+    <div class="promos-top-head">
+      <span class="promos-top-title">${L.title}</span>
+      <button class="promos-top-all" data-promos-all>${L.all} →</button>
+    </div>
+    <div class="promos-top-scroll">
+      ${top.map(p => {
+        const store = STORES[p.chain];
+        const _super = isSuper(p);
+        // Produit représentatif
+        let firstProd = null;
+        if (p.products && p.products.length) firstProd = findProduct(p.products[0]);
+        else if (p.requiredAny && p.requiredAny[0]) firstProd = findProduct(p.requiredAny[0][0]);
+        else if (p.category) firstProd = PRODUCTS.find(x => x.category === p.category);
+
+        // Badge type promo (type "2ème à moitié prix")
+        let typeBadge = "";
+        if (p.type === "n_for_m" && p.n === 2 && p.m === 1) typeBadge = lang === "he" ? "1+1" : (lang === "fr" ? "1+1" : "Buy 1 get 1");
+        else if (p.type === "n_for_m") typeBadge = `${p.n}=${p.m}`;
+        else if (p.type === "second_pct") typeBadge = lang === "he" ? `2-י −${p.pct}%` : (lang === "fr" ? `2ème −${p.pct}%` : `2nd −${p.pct}%`);
+        else if (p.type === "n_for_price") typeBadge = `${p.n} = ${formatPrice(p.price)}`;
+        else if (p.pct) typeBadge = `−${p.pct}%`;
+        else if (p.fixed) typeBadge = `−${formatPrice(p.fixed)}`;
+
+        // Prix : si on a un produit, calcule prix avant/après
+        let pricesHTML = "";
+        let savingHTML = "";
+        if (firstProd) {
+          const baseP = firstProd.prices[p.chain];
+          if (baseP) {
+            let newP = baseP;
+            let savedAmount = 0;
+            if (p.pct) { newP = baseP * (1 - p.pct/100); savedAmount = baseP - newP; }
+            else if (p.type === "n_for_m") { newP = baseP * p.m / p.n; savedAmount = baseP - newP; }
+            else if (p.type === "second_pct") { newP = baseP * (1 - p.pct/200); savedAmount = baseP - newP; }
+            else if (p.fixed) { savedAmount = p.fixed; newP = Math.max(0, baseP - p.fixed); }
+            pricesHTML = `
+              <div class="ptop-prices">
+                <span class="ptop-price-old">${formatPrice(baseP)}</span>
+                <span class="ptop-price-new">${formatPrice(newP)}</span>
+              </div>`;
+            if (savedAmount > 0.5) {
+              savingHTML = `<div class="ptop-saving-pill">💚 ${formatPrice(savedAmount)} ${L.saving}</div>`;
+            }
+          }
+        }
+
+        return `
+          <div class="ptop-card ${_super ? "super" : ""}" data-promo-card="${p.id}" data-add-pid="${firstProd ? firstProd.id : ""}" data-add-store="${p.chain}">
+            <div class="ptop-card-top">
+              ${typeBadge ? `<span class="ptop-type">${typeBadge}</span>` : ""}
+              <div class="ptop-store-logo" style="background:${store.color}">
+                <span>${store.icon}</span>
+              </div>
+            </div>
+            <div class="ptop-image" style="background:${firstProd ? productTint(firstProd) : 'var(--accent-soft)'}">
+              <span class="ptop-image-emoji">${firstProd ? productIcon(firstProd) : "🎁"}</span>
+            </div>
+            <div class="ptop-info">
+              <div class="ptop-title">${firstProd ? tProduct(firstProd) : p.title}</div>
+              <div class="ptop-meta">${firstProd ? firstProd.unit : ""}</div>
+              ${pricesHTML}
+              ${savingHTML}
+              <div class="ptop-store-name">${store.name}</div>
+            </div>
+          </div>`;
+      }).join("")}
+    </div>`;
+
+  wrap.querySelector("[data-promos-all]").addEventListener("click", showPromosHub);
+  wrap.querySelectorAll("[data-promo-card]").forEach(card => {
+    card.addEventListener("click", e => {
+      const pid = card.dataset.addPid;
+      const store = card.dataset.addStore;
+      if (pid) {
+        addToCart(pid, undefined, store);
+        // Petit feedback visuel
+        card.style.transform = "scale(0.96)";
+        setTimeout(() => card.style.transform = "", 150);
+      } else {
+        showPromosHub();
+      }
+    });
+  });
+  attachWheelHorizontalScroll(wrap.querySelector(".promos-top-scroll"));
 }
 
 // ========== BROWSE PANEL (catégorie -> grille avec scroll infini) ==========
@@ -7074,12 +7516,13 @@ function setupSettings() {
 }
 
 // ========== EVENTS ==========
-// Convertit le scroll vertical molette en scroll horizontal sur les rangées
+// Convertit le scroll vertical molette en scroll horizontal +
+// supporte le drag-to-scroll à la souris (pratique sur desktop).
 function attachWheelHorizontalScroll(el) {
   if (!el || el._wheelHandlerAttached) return;
   el._wheelHandlerAttached = true;
+  // Wheel -> horizontal
   el.addEventListener("wheel", e => {
-    // Ne convertit que si pas de scroll horizontal natif
     if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
       const max = el.scrollWidth - el.clientWidth;
       if (max > 0) {
@@ -7088,6 +7531,23 @@ function attachWheelHorizontalScroll(el) {
       }
     }
   }, { passive: false });
+  // Drag à la souris (desktop)
+  let isDown = false, startX = 0, startScroll = 0;
+  el.addEventListener("mousedown", e => {
+    if (e.target.closest("button, a")) return; // pas drag si click sur un bouton
+    isDown = true;
+    el.style.cursor = "grabbing";
+    startX = e.pageX - el.offsetLeft;
+    startScroll = el.scrollLeft;
+  });
+  el.addEventListener("mouseleave", () => { isDown = false; el.style.cursor = ""; });
+  el.addEventListener("mouseup", () => { isDown = false; el.style.cursor = ""; });
+  el.addEventListener("mousemove", e => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    el.scrollLeft = startScroll - (x - startX);
+  });
 }
 
 function setupEvents() {
