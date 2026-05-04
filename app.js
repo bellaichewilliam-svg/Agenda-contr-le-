@@ -1443,20 +1443,20 @@ function renderComparison() {
   const savingsHTML = `
     <div class="savings-tracker">
       <div class="st-row">
-        <span class="st-label">🛒 Total à payer</span>
+        <span class="st-label">🛒 ${t("total_to_pay")}</span>
         <span class="st-value primary">${formatPrice(sv.chosenTotal)}</span>
       </div>
       <div class="st-row good">
-        <span class="st-label">💚 Vous économisez vs panier le plus cher</span>
+        <span class="st-label">💚 ${t("saved_vs_basket")}</span>
         <span class="st-value">−${formatPrice(sv.savedVsExpensive)}</span>
       </div>
       ${sv.missedVsCheapest > 0.05 ? `
         <div class="st-row warn">
-          <span class="st-label">⚠️ Économies manquées (vs optimal)</span>
+          <span class="st-label">⚠️ ${t("missed_savings")}</span>
           <span class="st-value">+${formatPrice(sv.missedVsCheapest)}</span>
         </div>` : `
         <div class="st-row good">
-          <span class="st-label">✨ Vous payez le minimum possible</span>
+          <span class="st-label">✨ ${t("paying_minimum")}</span>
           <span class="st-value">✓</span>
         </div>`}
     </div>`;
