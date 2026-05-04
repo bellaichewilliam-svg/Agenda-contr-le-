@@ -144,6 +144,27 @@
       </div>
       <!-- Quick actions -->
       <div class="drawer-actions">
+        <button class="drawer-action" id="promos-hub-btn">
+          <span class="drawer-action-icon">🎁</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title" data-i18n="promotions">Promotions</div>
+            <div class="drawer-action-hint">Toutes les promos en cours</div>
+          </span>
+        </button>
+        <button class="drawer-action" id="savings-btn">
+          <span class="drawer-action-icon">📈</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title">Mes économies</div>
+            <div class="drawer-action-hint">Cumul mois & année</div>
+          </span>
+        </button>
+        <button class="drawer-action" id="fridge-btn">
+          <span class="drawer-action-icon">🗓️</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title">Calendrier frigo</div>
+            <div class="drawer-action-hint">Anti-gaspillage</div>
+          </span>
+        </button>
         <button class="drawer-action" id="recipes-btn">
           <span class="drawer-action-icon">👨‍🍳</span>
           <span class="drawer-action-text">
@@ -200,6 +221,27 @@
   <div id="recipes-modal" class="modal">
     <div class="modal-card pm-card">
       <div class="recipes-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal hub promotions -->
+  <div id="promos-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="promos-hub-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal économies cumulées -->
+  <div id="savings-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="savings-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal frigo / anti-gaspillage -->
+  <div id="fridge-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="fridge-content"></div>
     </div>
   </div>
 

@@ -1352,6 +1352,152 @@ button { font-family: inherit; color: inherit; }
   overflow: hidden;
 }
 
+/* ====== Promos hub ====== */
+.promos-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.promos-head h3 { font-size: 17px; font-weight: 700; }
+.promos-filters {
+  display: flex; gap: 6px; flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  -webkit-overflow-scrolling: touch;
+}
+.promos-filters::-webkit-scrollbar { display: none; }
+.promos-hub-list {
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+.promo-hub-card {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  transition: border-color var(--tx);
+}
+.promo-hub-card.super {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(251, 146, 60, 0.05));
+  border-color: #f97316;
+  border-left: 3px solid #ef4444;
+}
+.promo-hub-icon {
+  width: 50px; height: 50px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.promo-hub-body { flex: 1; min-width: 0; }
+.promo-hub-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; line-height: 1.3; }
+.promo-hub-desc { font-size: 11px; color: var(--text-soft); margin-bottom: 4px; line-height: 1.3; }
+.promo-hub-store {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 4px;
+  flex-wrap: wrap;
+}
+.promo-hub-valid { color: var(--muted); }
+.promo-hub-action {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+.promo-hub-saving {
+  background: var(--success);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 50px;
+  text-align: center;
+}
+.promo-hub-card.super .promo-hub-saving {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+}
+
+/* ====== Savings hub ====== */
+.savings-content { display: flex; flex-direction: column; max-height: 90vh; }
+.savings-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px 14px;
+}
+.savings-stat {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 8px;
+  text-align: center;
+}
+.savings-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.savings-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.savings-stat-value.good { color: var(--success); }
+.savings-stat-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+.savings-history {
+  padding: 0 12px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.savings-trip {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+}
+.savings-trip-info { flex: 1; min-width: 0; }
+.savings-trip-name { font-weight: 700; font-size: 13px; }
+.savings-trip-date { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.savings-trip-amounts { text-align: end; flex-shrink: 0; }
+.savings-trip-total { font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
+.savings-trip-saved { font-size: 11px; color: var(--success); font-weight: 600; }
+
+/* ====== Fridge / anti-gaspillage ====== */
+.fridge-content { display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto; }
+.fridge-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin: 0 12px 4px;
+}
+.fridge-item.expired {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--danger);
+  border-left: 3px solid var(--danger);
+}
+.fridge-item.expired .ing-name { text-decoration: line-through; color: var(--danger); }
+.fridge-item.today {
+  background: rgba(245, 158, 11, 0.15);
+  border-left: 3px solid var(--warning);
+}
+.fridge-item.soon {
+  background: rgba(245, 158, 11, 0.07);
+  border-left: 3px solid var(--warning);
+}
+.fridge-item.later .ing-meta { color: var(--success); }
+
 /* ====== Toast ====== */
 .toast {
   position: fixed;

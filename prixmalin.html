@@ -1366,6 +1366,152 @@ button { font-family: inherit; color: inherit; }
   overflow: hidden;
 }
 
+/* ====== Promos hub ====== */
+.promos-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.promos-head h3 { font-size: 17px; font-weight: 700; }
+.promos-filters {
+  display: flex; gap: 6px; flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  -webkit-overflow-scrolling: touch;
+}
+.promos-filters::-webkit-scrollbar { display: none; }
+.promos-hub-list {
+  padding: 10px;
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+.promo-hub-card {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+  transition: border-color var(--tx);
+}
+.promo-hub-card.super {
+  background: linear-gradient(90deg, rgba(239, 68, 68, 0.08), rgba(251, 146, 60, 0.05));
+  border-color: #f97316;
+  border-left: 3px solid #ef4444;
+}
+.promo-hub-icon {
+  width: 50px; height: 50px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+.promo-hub-body { flex: 1; min-width: 0; }
+.promo-hub-title { font-weight: 700; font-size: 13px; margin-bottom: 2px; line-height: 1.3; }
+.promo-hub-desc { font-size: 11px; color: var(--text-soft); margin-bottom: 4px; line-height: 1.3; }
+.promo-hub-store {
+  font-size: 11px;
+  color: var(--muted);
+  display: flex; align-items: center; gap: 4px;
+  flex-wrap: wrap;
+}
+.promo-hub-valid { color: var(--muted); }
+.promo-hub-action {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  flex-shrink: 0;
+}
+.promo-hub-saving {
+  background: var(--success);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  min-width: 50px;
+  text-align: center;
+}
+.promo-hub-card.super .promo-hub-saving {
+  background: linear-gradient(135deg, #ef4444, #f97316);
+}
+
+/* ====== Savings hub ====== */
+.savings-content { display: flex; flex-direction: column; max-height: 90vh; }
+.savings-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 10px 14px;
+}
+.savings-stat {
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 8px;
+  text-align: center;
+}
+.savings-stat-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.savings-stat-value {
+  font-size: 18px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.savings-stat-value.good { color: var(--success); }
+.savings-stat-meta { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+.savings-history {
+  padding: 0 12px 14px;
+  display: flex; flex-direction: column; gap: 6px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.savings-trip {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 10px;
+}
+.savings-trip-info { flex: 1; min-width: 0; }
+.savings-trip-name { font-weight: 700; font-size: 13px; }
+.savings-trip-date { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.savings-trip-amounts { text-align: end; flex-shrink: 0; }
+.savings-trip-total { font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
+.savings-trip-saved { font-size: 11px; color: var(--success); font-weight: 600; }
+
+/* ====== Fridge / anti-gaspillage ====== */
+.fridge-content { display: flex; flex-direction: column; max-height: 90vh; overflow-y: auto; }
+.fridge-item {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  margin: 0 12px 4px;
+}
+.fridge-item.expired {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: var(--danger);
+  border-left: 3px solid var(--danger);
+}
+.fridge-item.expired .ing-name { text-decoration: line-through; color: var(--danger); }
+.fridge-item.today {
+  background: rgba(245, 158, 11, 0.15);
+  border-left: 3px solid var(--warning);
+}
+.fridge-item.soon {
+  background: rgba(245, 158, 11, 0.07);
+  border-left: 3px solid var(--warning);
+}
+.fridge-item.later .ing-meta { color: var(--success); }
+
 /* ====== Toast ====== */
 .toast {
   position: fixed;
@@ -2083,6 +2229,27 @@ button { font-family: inherit; color: inherit; }
       </div>
       <!-- Quick actions -->
       <div class="drawer-actions">
+        <button class="drawer-action" id="promos-hub-btn">
+          <span class="drawer-action-icon">🎁</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title" data-i18n="promotions">Promotions</div>
+            <div class="drawer-action-hint">Toutes les promos en cours</div>
+          </span>
+        </button>
+        <button class="drawer-action" id="savings-btn">
+          <span class="drawer-action-icon">📈</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title">Mes économies</div>
+            <div class="drawer-action-hint">Cumul mois & année</div>
+          </span>
+        </button>
+        <button class="drawer-action" id="fridge-btn">
+          <span class="drawer-action-icon">🗓️</span>
+          <span class="drawer-action-text">
+            <div class="drawer-action-title">Calendrier frigo</div>
+            <div class="drawer-action-hint">Anti-gaspillage</div>
+          </span>
+        </button>
         <button class="drawer-action" id="recipes-btn">
           <span class="drawer-action-icon">👨‍🍳</span>
           <span class="drawer-action-text">
@@ -2139,6 +2306,27 @@ button { font-family: inherit; color: inherit; }
   <div id="recipes-modal" class="modal">
     <div class="modal-card pm-card">
       <div class="recipes-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal hub promotions -->
+  <div id="promos-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="promos-hub-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal économies cumulées -->
+  <div id="savings-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="savings-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal frigo / anti-gaspillage -->
+  <div id="fridge-modal" class="modal">
+    <div class="modal-card pm-card">
+      <div class="fridge-content"></div>
     </div>
   </div>
 
@@ -5759,6 +5947,10 @@ function toggleDone(id) {
   const cart = activeCart();
   if (!cart[id]) return;
   cart[id].done = !cart[id].done;
+  // Auto-add au frigo quand l'item est coché (= acheté)
+  if (cart[id].done) {
+    try { addToFridge(id); } catch {}
+  }
   saveState(); renderAll();
 }
 function removeFromCart(id) {
@@ -6889,6 +7081,33 @@ function setupEvents() {
     showRecipesModal();
   });
   document.getElementById("recipes-modal").addEventListener("click", e => { if (e.target.id === "recipes-modal") hideRecipesModal(); });
+
+  // Promos hub button
+  const promosBtn = document.getElementById("promos-hub-btn");
+  if (promosBtn) promosBtn.addEventListener("click", () => {
+    document.getElementById("settings-drawer").classList.remove("visible");
+    showPromosHub();
+  });
+  const promosModal = document.getElementById("promos-modal");
+  if (promosModal) promosModal.addEventListener("click", e => { if (e.target.id === "promos-modal") hidePromosHub(); });
+
+  // Savings hub
+  const savingsBtn = document.getElementById("savings-btn");
+  if (savingsBtn) savingsBtn.addEventListener("click", () => {
+    document.getElementById("settings-drawer").classList.remove("visible");
+    showSavingsHub();
+  });
+  const savingsModal = document.getElementById("savings-modal");
+  if (savingsModal) savingsModal.addEventListener("click", e => { if (e.target.id === "savings-modal") hideSavingsHub(); });
+
+  // Fridge / anti-gaspillage
+  const fridgeBtn = document.getElementById("fridge-btn");
+  if (fridgeBtn) fridgeBtn.addEventListener("click", () => {
+    document.getElementById("settings-drawer").classList.remove("visible");
+    showFridgeModal();
+  });
+  const fridgeModal = document.getElementById("fridge-modal");
+  if (fridgeModal) fridgeModal.addEventListener("click", e => { if (e.target.id === "fridge-modal") hideFridgeModal(); });
   document.addEventListener("keydown", e => {
     if (e.key === "Escape") {
       hideProductModal();
@@ -6986,6 +7205,311 @@ if (new URLSearchParams(location.search).has("reset")) {
   nukeCacheAndReload();
   // empêche le reste du script de tourner
   throw new Error("Resetting...");
+}
+
+// ========== HUB PROMOTIONS ==========
+// Vue dédiée listant toutes les promos actives, triées par meilleure
+// économie, avec filtres par enseigne / catégorie.
+function showPromosHub() {
+  if (typeof PROMOTIONS === "undefined") return;
+  const modal = document.getElementById("promos-modal");
+  if (!modal) return;
+  const lang = state.lang;
+  const labels = {
+    fr: { title: "Promotions", intro: "Toutes les promos actives en ce moment", filter_all: "Toutes", filter_super: "🔥 Super", add: "Ajouter", validity: "Valable jusqu'au", until: "Jusqu'au" },
+    he: { title: "מבצעים", intro: "כל המבצעים הפעילים כעת", filter_all: "הכל", filter_super: "🔥 מבצעים מיוחדים", add: "הוסף", validity: "בתוקף עד", until: "עד" },
+    en: { title: "Promotions", intro: "All active deals right now", filter_all: "All", filter_super: "🔥 Super", add: "Add", validity: "Valid until", until: "Until" },
+    ru: { title: "Акции", intro: "Все активные акции прямо сейчас", filter_all: "Все", filter_super: "🔥 Супер", add: "Добавить", validity: "Действует до", until: "До" }
+  };
+  const L = labels[lang] || labels.fr;
+  let activeFilter = "all"; // all | super | <chain>
+
+  function isSuper(p) {
+    return (p.fixed && p.fixed >= 15) || (p.pct && p.pct >= 25) || (p.type === "n_for_m" && (p.n - p.m) >= 2);
+  }
+
+  function render() {
+    let promos = [...PROMOTIONS];
+    if (activeFilter === "super") promos = promos.filter(isSuper);
+    else if (activeFilter !== "all") promos = promos.filter(p => p.chain === activeFilter);
+
+    // Trier : super d'abord, puis par % de réduction estimée
+    promos.sort((a, b) => {
+      const sa = isSuper(a) ? 1 : 0;
+      const sb = isSuper(b) ? 1 : 0;
+      if (sa !== sb) return sb - sa;
+      const pcta = a.pct || (a.fixed ? a.fixed : 0);
+      const pctb = b.pct || (b.fixed ? b.fixed : 0);
+      return pctb - pcta;
+    });
+
+    // Compteur par chaîne
+    const chainCounts = {};
+    PROMOTIONS.forEach(p => { chainCounts[p.chain] = (chainCounts[p.chain] || 0) + 1; });
+
+    modal.querySelector(".promos-hub-content").innerHTML = `
+      <div class="promos-head">
+        <h3>🎁 ${L.title}</h3>
+        <button class="modal-close" data-promos-hub-close>×</button>
+      </div>
+      <p class="recipes-intro">${L.intro}</p>
+      <div class="promos-filters">
+        <button class="cat-pill ${activeFilter === "all" ? "active" : ""}" data-pf="all">${L.filter_all} (${PROMOTIONS.length})</button>
+        <button class="cat-pill ${activeFilter === "super" ? "active" : ""}" data-pf="super" style="background:linear-gradient(135deg,#ef4444,#f97316);color:white;border-color:transparent">${L.filter_super}</button>
+        ${Object.entries(chainCounts).sort((a, b) => b[1] - a[1]).map(([c, n]) =>
+          `<button class="cat-pill ${activeFilter === c ? "active" : ""}" data-pf="${c}"><span class="store-mini" style="background:${STORES[c].color}">${STORES[c].icon}</span> ${STORES[c].name} (${n})</button>`
+        ).join("")}
+      </div>
+      <div class="promos-hub-list">
+        ${promos.map(p => {
+          const store = STORES[p.chain];
+          const _super = isSuper(p);
+          // Trouver un produit représentatif pour illustrer
+          let firstProd = null;
+          if (p.products && p.products.length) firstProd = findProduct(p.products[0]);
+          else if (p.requiredAny && p.requiredAny[0]) firstProd = findProduct(p.requiredAny[0][0]);
+          else if (p.category) firstProd = PRODUCTS.find(x => x.category === p.category);
+
+          // Badge déduction
+          let savingBadge = "";
+          if (p.pct) savingBadge = `−${p.pct}%`;
+          else if (p.fixed) savingBadge = `−${formatPrice(p.fixed)}`;
+          else if (p.type === "n_for_m") savingBadge = `${p.n}=${p.m}`;
+          else if (p.type === "n_for_price") savingBadge = `${p.n} = ${formatPrice(p.price)}`;
+          else if (p.type === "second_pct") savingBadge = `2ème −${p.pct}%`;
+
+          return `
+            <div class="promo-hub-card ${_super ? "super" : ""}">
+              <div class="promo-hub-icon" style="background:${firstProd ? productTint(firstProd) : 'var(--accent-soft)'}">
+                ${firstProd ? productIcon(firstProd) : "🎁"}
+              </div>
+              <div class="promo-hub-body">
+                ${_super ? `<span class="super-promo-badge">🔥 SUPER</span>` : ""}
+                <div class="promo-hub-title">${p.title}</div>
+                <div class="promo-hub-desc">${p.desc || ""}</div>
+                <div class="promo-hub-store">
+                  <span class="store-icon" style="background:${store.color};width:18px;height:18px;font-size:9px">${store.icon}</span>
+                  ${store.name}
+                  ${p.validUntil ? `<span class="promo-hub-valid">· ${L.until} ${new Date(p.validUntil).toLocaleDateString(lang === "he" ? "he-IL" : (lang === "ru" ? "ru-RU" : "fr-FR"), { day: "2-digit", month: "short" })}</span>` : ""}
+                </div>
+              </div>
+              <div class="promo-hub-action">
+                <div class="promo-hub-saving">${savingBadge}</div>
+                ${firstProd ? `<button class="prod-card-add" data-promo-add="${firstProd.id}" data-promo-store="${p.chain}" style="position:static">+</button>` : ""}
+              </div>
+            </div>`;
+        }).join("")}
+      </div>`;
+    modal.classList.add("visible");
+    modal.querySelector("[data-promos-hub-close]").addEventListener("click", hidePromosHub);
+    modal.querySelectorAll("[data-pf]").forEach(b => b.addEventListener("click", () => { activeFilter = b.dataset.pf; render(); }));
+    modal.querySelectorAll("[data-promo-add]").forEach(b => b.addEventListener("click", e => {
+      e.stopPropagation();
+      addToCart(b.dataset.promoAdd, undefined, b.dataset.promoStore);
+      showToast("✓ " + (findProduct(b.dataset.promoAdd) ? tProduct(findProduct(b.dataset.promoAdd)) : ""));
+    }));
+  }
+  render();
+}
+function hidePromosHub() {
+  const m = document.getElementById("promos-modal");
+  if (m) m.classList.remove("visible");
+}
+
+// ========== TRACKER D'ÉCONOMIES CUMULÉES ==========
+// Sauvegarde les économies de chaque session de courses, affiche
+// le cumul mois/année.
+function getSavingsHistory() {
+  try { return JSON.parse(localStorage.getItem("pm.savingsHistory") || "[]"); } catch { return []; }
+}
+function saveSavingsHistory(arr) {
+  try { localStorage.setItem("pm.savingsHistory", JSON.stringify(arr)); } catch {}
+}
+function recordCurrentTrip() {
+  const sv = computeSavingsTracker();
+  if (sv.chosenTotal < 1) { showToast("Liste vide", "warn"); return; }
+  const list = state.lists[state.activeListId];
+  const entry = {
+    date: Date.now(),
+    listName: list.name || t("list_default_name"),
+    items: Object.keys(activeCart()).length,
+    total: sv.chosenTotal,
+    saved: sv.savedVsExpensive,
+    missed: sv.missedVsCheapest
+  };
+  const hist = getSavingsHistory();
+  hist.push(entry);
+  saveSavingsHistory(hist);
+  showToast("✓ " + (state.lang === "he" ? "סיבוב נשמר" : (state.lang === "en" ? "Trip saved" : (state.lang === "ru" ? "Поход сохранён" : "Course enregistrée"))) + " · −" + formatPrice(sv.savedVsExpensive));
+}
+function showSavingsHub() {
+  const modal = document.getElementById("savings-modal");
+  if (!modal) return;
+  const lang = state.lang;
+  const L = {
+    fr: { title: "Mes économies", intro: "Suivez ce que vous économisez à chaque course", month: "Ce mois", year: "Cette année", total: "Total cumulé", record: "📥 Enregistrer la course actuelle", history: "Historique", empty: "Aucune course enregistrée. Cliquez sur le bouton ci-dessus après vos courses.", trips: "courses", saved: "économisé" },
+    he: { title: "החיסכונות שלי", intro: "עקוב אחרי כמה אתה חוסך בכל קנייה", month: "החודש", year: "השנה", total: "סה\"כ", record: "📥 שמור את הקנייה הנוכחית", history: "היסטוריה", empty: "אין קניות שמורות. לחץ על הכפתור למעלה אחרי קניות.", trips: "קניות", saved: "נחסך" },
+    en: { title: "My savings", intro: "Track how much you save on each shopping trip", month: "This month", year: "This year", total: "All-time", record: "📥 Record current trip", history: "History", empty: "No trip saved yet. Click button above after shopping.", trips: "trips", saved: "saved" },
+    ru: { title: "Моя экономия", intro: "Отслеживайте экономию при каждом походе в магазин", month: "Этот месяц", year: "Этот год", total: "Всего", record: "📥 Сохранить текущий поход", history: "История", empty: "Нет сохранённых походов. Нажмите кнопку выше после покупок.", trips: "походов", saved: "сэкономлено" }
+  }[lang] || {};
+
+  const hist = getSavingsHistory();
+  const now = new Date();
+  const monthEntries = hist.filter(h => { const d = new Date(h.date); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+  const yearEntries = hist.filter(h => new Date(h.date).getFullYear() === now.getFullYear());
+  const monthSaved = monthEntries.reduce((s, h) => s + (h.saved || 0), 0);
+  const yearSaved = yearEntries.reduce((s, h) => s + (h.saved || 0), 0);
+  const totalSaved = hist.reduce((s, h) => s + (h.saved || 0), 0);
+
+  modal.querySelector(".savings-content").innerHTML = `
+    <div class="recipes-head">
+      <h3>📈 ${L.title}</h3>
+      <button class="modal-close" data-savings-close>×</button>
+    </div>
+    <p class="recipes-intro">${L.intro}</p>
+    <div class="savings-stats">
+      <div class="savings-stat">
+        <div class="savings-stat-label">${L.month}</div>
+        <div class="savings-stat-value good">−${formatPrice(monthSaved)}</div>
+        <div class="savings-stat-meta">${monthEntries.length} ${L.trips}</div>
+      </div>
+      <div class="savings-stat">
+        <div class="savings-stat-label">${L.year}</div>
+        <div class="savings-stat-value good">−${formatPrice(yearSaved)}</div>
+        <div class="savings-stat-meta">${yearEntries.length} ${L.trips}</div>
+      </div>
+      <div class="savings-stat">
+        <div class="savings-stat-label">${L.total}</div>
+        <div class="savings-stat-value good">−${formatPrice(totalSaved)}</div>
+        <div class="savings-stat-meta">${hist.length} ${L.trips}</div>
+      </div>
+    </div>
+    <div style="padding: 0 16px 16px">
+      <button class="btn primary big" data-record-trip style="width:100%">${L.record}</button>
+    </div>
+    <div class="recipes-section-title">${L.history}</div>
+    <div class="savings-history">
+      ${hist.length === 0 ? `<div class="empty-state">${L.empty}</div>` :
+        hist.slice().reverse().slice(0, 50).map((h, i) => {
+          const realIdx = hist.length - 1 - i;
+          const d = new Date(h.date);
+          return `
+            <div class="savings-trip">
+              <div class="savings-trip-info">
+                <div class="savings-trip-name">${h.listName}</div>
+                <div class="savings-trip-date">${d.toLocaleDateString(lang === "he" ? "he-IL" : (lang === "ru" ? "ru-RU" : "fr-FR"), { day: "2-digit", month: "short", year: "numeric" })} · ${h.items || 0} ${t("products")}</div>
+              </div>
+              <div class="savings-trip-amounts">
+                <div class="savings-trip-total">${formatPrice(h.total)}</div>
+                <div class="savings-trip-saved">−${formatPrice(h.saved)} ${L.saved}</div>
+              </div>
+              <button class="remove-btn" data-trip-del="${realIdx}">×</button>
+            </div>`;
+        }).join("")}
+    </div>`;
+  modal.classList.add("visible");
+  modal.querySelector("[data-savings-close]").addEventListener("click", hideSavingsHub);
+  modal.querySelector("[data-record-trip]").addEventListener("click", () => { recordCurrentTrip(); showSavingsHub(); });
+  modal.querySelectorAll("[data-trip-del]").forEach(b => b.addEventListener("click", () => {
+    const idx = parseInt(b.dataset.tripDel, 10);
+    const arr = getSavingsHistory();
+    arr.splice(idx, 1);
+    saveSavingsHistory(arr);
+    showSavingsHub();
+  }));
+}
+function hideSavingsHub() {
+  const m = document.getElementById("savings-modal");
+  if (m) m.classList.remove("visible");
+}
+
+// ========== CALENDRIER ANTI-GASPILLAGE ==========
+// Durée de conservation typique par catégorie (jours)
+const SHELF_LIFE_DAYS = {
+  "Laitiers": 10, "Œufs": 21, "Viande": 3, "Poisson": 2,
+  "Boulangerie": 4, "Gâteaux": 5, "Fruits": 5, "Légumes": 7,
+  "Épicerie": 365, "Petit-déj": 180, "Boissons": 365, "Surgelés": 90,
+  "Snacks": 180, "Bébé": 180, "Hygiène": 365, "Entretien": 365, "Animaux": 365
+};
+function getFridge() {
+  try { return JSON.parse(localStorage.getItem("pm.fridge") || "{}"); } catch { return {}; }
+}
+function saveFridge(o) {
+  try { localStorage.setItem("pm.fridge", JSON.stringify(o)); } catch {}
+}
+function addToFridge(productId, days) {
+  const fridge = getFridge();
+  const p = findProduct(productId);
+  if (!p) return;
+  const shelfDays = days || SHELF_LIFE_DAYS[p.category] || 30;
+  const expireAt = Date.now() + shelfDays * 86400000;
+  fridge[productId] = { addedAt: Date.now(), expireAt };
+  saveFridge(fridge);
+}
+function showFridgeModal() {
+  const modal = document.getElementById("fridge-modal");
+  if (!modal) return;
+  const lang = state.lang;
+  const L = {
+    fr: { title: "Calendrier frigo", intro: "Vos produits par date de péremption — fini les oublis", expired: "Périmé", expires_today: "Périme aujourd'hui", expires_in: "Périme dans", days: "jours", remove: "Sortir du frigo", empty: "Frigo vide. Cochez des produits dans votre liste, ils apparaîtront ici avec leur date de péremption estimée.", auto: "Ajouter automatiquement quand un produit est coché" },
+    he: { title: "לוח שנה מקרר", intro: "המוצרים שלך לפי תאריך תפוגה", expired: "פג תוקף", expires_today: "פג היום", expires_in: "תוקף בעוד", days: "ימים", remove: "הוצא מהמקרר", empty: "המקרר ריק. סמן מוצרים מהרשימה, הם יופיעו כאן עם תאריך התוקף.", auto: "הוסף אוטומטית כאשר מוצר מסומן" },
+    en: { title: "Fridge calendar", intro: "Your products by expiration date — no more forgetting", expired: "Expired", expires_today: "Expires today", expires_in: "Expires in", days: "days", remove: "Remove from fridge", empty: "Fridge is empty. Check items in your list and they'll appear here with their expiration date.", auto: "Auto-add when item is checked" },
+    ru: { title: "Календарь холодильника", intro: "Ваши продукты по сроку годности", expired: "Просрочено", expires_today: "Истекает сегодня", expires_in: "Истекает через", days: "дней", remove: "Убрать из холодильника", empty: "Холодильник пуст. Отметьте товары в списке и они появятся здесь.", auto: "Автодобавление при отметке" }
+  }[lang] || {};
+
+  const fridge = getFridge();
+  const items = Object.entries(fridge)
+    .map(([pid, info]) => ({ pid, ...info, product: findProduct(pid) }))
+    .filter(x => x.product)
+    .sort((a, b) => a.expireAt - b.expireAt);
+
+  const now = Date.now();
+  const groups = { expired: [], today: [], soon: [], later: [] };
+  items.forEach(it => {
+    const days = Math.ceil((it.expireAt - now) / 86400000);
+    if (days < 0) groups.expired.push({ ...it, days });
+    else if (days === 0) groups.today.push({ ...it, days });
+    else if (days <= 3) groups.soon.push({ ...it, days });
+    else groups.later.push({ ...it, days });
+  });
+
+  function renderItem(it, label) {
+    const days = it.days;
+    const tone = days < 0 ? "expired" : (days === 0 ? "today" : (days <= 3 ? "soon" : "later"));
+    return `
+      <div class="fridge-item ${tone}">
+        <div class="prod-icon mini" style="background:${productTint(it.product)}">${productIcon(it.product)}</div>
+        <div class="ing-info">
+          <div class="ing-name">${tProduct(it.product)}</div>
+          <div class="ing-meta">${label}</div>
+        </div>
+        <button class="remove-btn" data-fridge-del="${it.pid}" title="${L.remove}">×</button>
+      </div>`;
+  }
+
+  modal.querySelector(".fridge-content").innerHTML = `
+    <div class="recipes-head">
+      <h3>🗓️ ${L.title}</h3>
+      <button class="modal-close" data-fridge-close>×</button>
+    </div>
+    <p class="recipes-intro">${L.intro}</p>
+    ${items.length === 0 ? `<div class="empty-state" style="padding:24px"><span class="emoji">🗓️</span>${L.empty}</div>` : ""}
+    ${groups.expired.length > 0 ? `<div class="recipes-section-title" style="color:var(--danger)">⚠️ ${L.expired} (${groups.expired.length})</div>${groups.expired.map(it => renderItem(it, L.expired + " " + (-it.days) + " " + L.days)).join("")}` : ""}
+    ${groups.today.length > 0 ? `<div class="recipes-section-title" style="color:var(--warning)">📅 ${L.expires_today} (${groups.today.length})</div>${groups.today.map(it => renderItem(it, L.expires_today)).join("")}` : ""}
+    ${groups.soon.length > 0 ? `<div class="recipes-section-title" style="color:var(--warning)">📆 1-3 ${L.days} (${groups.soon.length})</div>${groups.soon.map(it => renderItem(it, L.expires_in + " " + it.days + " " + L.days)).join("")}` : ""}
+    ${groups.later.length > 0 ? `<div class="recipes-section-title">✓ ${L.expires_in} 4+ ${L.days} (${groups.later.length})</div>${groups.later.map(it => renderItem(it, L.expires_in + " " + it.days + " " + L.days)).join("")}` : ""}`;
+  modal.classList.add("visible");
+  modal.querySelector("[data-fridge-close]").addEventListener("click", hideFridgeModal);
+  modal.querySelectorAll("[data-fridge-del]").forEach(b => b.addEventListener("click", () => {
+    const fridge = getFridge();
+    delete fridge[b.dataset.fridgeDel];
+    saveFridge(fridge);
+    showFridgeModal();
+  }));
+}
+function hideFridgeModal() {
+  const m = document.getElementById("fridge-modal");
+  if (m) m.classList.remove("visible");
 }
 
 // ========== RECETTES ==========
