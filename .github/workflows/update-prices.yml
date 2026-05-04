@@ -28,9 +28,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: scripts/requirements.txt
 
       - name: Install dependencies
-        run: pip install requests
+        run: pip install -r scripts/requirements.txt
 
       - name: Run scraper
         working-directory: scripts
@@ -38,13 +39,14 @@ jobs:
         continue-on-error: true
 
       - name: Rebuild prixmalin.html
-        run: ./build.sh
+        run: bash build.sh
 
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/live-prices.json data/raw-prices/ prixmalin.html
+          mkdir -p data/raw-prices
+          git add data/live-prices.json data/live-promotions.json data/raw-prices/ prixmalin.html 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Pas de changement de prix."
           else
