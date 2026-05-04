@@ -5647,7 +5647,126 @@ function t(key, vars = {}) {
 function tProduct(p) {
   if (state.lang === "fr") return p.name;
   const tr = (typeof PRODUCT_I18N !== "undefined") ? PRODUCT_I18N[p.id] : null;
-  return (tr && tr[state.lang]) || p.name;
+  if (tr && tr[state.lang]) return tr[state.lang];
+  // Fallback automatique basé sur l'id du produit
+  return autoTranslateName(p);
+}
+
+// Fallback automatique : traduit le nom français à partir de patterns dans l'id.
+// Permet de couvrir les ~700 produits sans avoir à tout traduire à la main.
+const AUTO_NAME_FR = {
+  // L1 : prefix d'id -> { he, en, ru }
+  prefixes: [
+    // Laitiers
+    ["milk-", { he: "חלב", en: "Milk", ru: "Молоко" }],
+    ["yogurt-", { he: "יוגורט", en: "Yogurt", ru: "Йогурт" }],
+    ["cheese-emek", { he: "גבינת עמק", en: "Emek cheese", ru: "Сыр Эмек" }],
+    ["cheese-gilboa", { he: "גבינת גלבוע תנובה", en: "Gilboa Tnuva", ru: "Сыр Гильбоа" }],
+    ["cheese-noam", { he: "גבינת נועם", en: "Noam cheese", ru: "Сыр Ноам" }],
+    ["cheese-gad", { he: "גבינת גד", en: "Gad cheese", ru: "Сыр Гад" }],
+    ["cheese-yellow", { he: "גבינה צהובה", en: "Yellow cheese", ru: "Жёлтый сыр" }],
+    ["cheese-", { he: "גבינה", en: "Cheese", ru: "Сыр" }],
+    ["cream-fresh", { he: "שמנת חמוצה סמיכה", en: "Thick sour cream", ru: "Густая сметана" }],
+    // Œufs
+    ["eggs-", { he: "ביצים", en: "Eggs", ru: "Яйца" }],
+    // Viande
+    ["chicken-", { he: "עוף", en: "Chicken", ru: "Курица" }],
+    ["turkey-", { he: "הודו", en: "Turkey", ru: "Индейка" }],
+    ["beef-", { he: "בקר", en: "Beef", ru: "Говядина" }],
+    ["lamb-", { he: "כבש", en: "Lamb", ru: "Баранина" }],
+    ["veal-", { he: "עגל", en: "Veal", ru: "Телятина" }],
+    ["duck-", { he: "ברווז", en: "Duck", ru: "Утка" }],
+    ["ground-beef-", { he: "בקר טחון", en: "Ground beef", ru: "Фарш говяжий" }],
+    // Boulangerie
+    ["bread-", { he: "לחם", en: "Bread", ru: "Хлеб" }],
+    ["pita-", { he: "פיתה", en: "Pita", ru: "Пита" }],
+    // Fruits
+    ["apple-", { he: "תפוח", en: "Apple", ru: "Яблоко" }],
+    ["pear-", { he: "אגס", en: "Pear", ru: "Груша" }],
+    ["grape-", { he: "ענבים", en: "Grapes", ru: "Виноград" }],
+    // Tomates
+    ["tomato-", { he: "עגבניות", en: "Tomatoes", ru: "Помидоры" }],
+    ["onion-", { he: "בצל", en: "Onion", ru: "Лук" }],
+    ["pepper-", { he: "פלפל", en: "Pepper", ru: "Перец" }],
+    ["carrot-", { he: "גזר", en: "Carrot", ru: "Морковь" }],
+    ["chili-", { he: "צ'ילי", en: "Chili", ru: "Чили" }],
+    ["lettuce-", { he: "חסה", en: "Lettuce", ru: "Салат" }],
+    ["salad-", { he: "סלט", en: "Salad", ru: "Салат" }],
+    ["mushroom-", { he: "פטריות", en: "Mushrooms", ru: "Грибы" }],
+    ["olives-", { he: "זיתים", en: "Olives", ru: "Оливки" }],
+    // Épicerie
+    ["rice-", { he: "אורז", en: "Rice", ru: "Рис" }],
+    ["pasta-", { he: "פסטה", en: "Pasta", ru: "Паста" }],
+    ["lentils-", { he: "עדשים", en: "Lentils", ru: "Чечевица" }],
+    ["chickpeas-", { he: "חומוס", en: "Chickpeas", ru: "Нут" }],
+    ["beans-", { he: "שעועית", en: "Beans", ru: "Фасоль" }],
+    ["oil-", { he: "שמן", en: "Oil", ru: "Масло" }],
+    ["vinegar-", { he: "חומץ", en: "Vinegar", ru: "Уксус" }],
+    ["paprika-", { he: "פפריקה", en: "Paprika", ru: "Паприка" }],
+    ["jam-", { he: "ריבת", en: "Jam", ru: "Варенье" }],
+    ["sugar-", { he: "סוכר", en: "Sugar", ru: "Сахар" }],
+    ["flour-", { he: "קמח", en: "Flour", ru: "Мука" }],
+    ["cereal-", { he: "דגני בוקר", en: "Cereal", ru: "Хлопья" }],
+    ["coffee-", { he: "קפה", en: "Coffee", ru: "Кофе" }],
+    ["tea-", { he: "תה", en: "Tea", ru: "Чай" }],
+    ["wine-", { he: "יין", en: "Wine", ru: "Вино" }],
+    ["beer-", { he: "בירה", en: "Beer", ru: "Пиво" }],
+    ["water-", { he: "מים", en: "Water", ru: "Вода" }],
+    ["coke-", { he: "קוקה קולה", en: "Coca-Cola", ru: "Кока-Кола" }],
+    ["juice-", { he: "מיץ", en: "Juice", ru: "Сок" }],
+    ["soda-", { he: "משקה מוגז", en: "Soda", ru: "Газировка" }],
+    // Surgelés
+    ["frozen-", { he: "קפוא", en: "Frozen", ru: "Замороженный" }],
+    ["ice-cream-", { he: "גלידה", en: "Ice cream", ru: "Мороженое" }],
+    // Snacks
+    ["chocolate-", { he: "שוקולד", en: "Chocolate", ru: "Шоколад" }],
+    ["chips-", { he: "צ'יפס", en: "Chips", ru: "Чипсы" }],
+    ["candy-", { he: "סוכריות", en: "Candy", ru: "Конфеты" }],
+    ["nuts-", { he: "אגוזים", en: "Nuts", ru: "Орехи" }],
+    ["snack-", { he: "חטיף", en: "Snack", ru: "Снек" }],
+    // Bébé
+    ["diapers-", { he: "חיתולים", en: "Diapers", ru: "Подгузники" }],
+    ["baby-", { he: "תינוק", en: "Baby", ru: "Детское" }],
+    ["training-pants", { he: "תחתוני אימון", en: "Training pants", ru: "Трусики" }],
+    // Hygiène
+    ["shampoo-", { he: "שמפו", en: "Shampoo", ru: "Шампунь" }],
+    ["soap-", { he: "סבון", en: "Soap", ru: "Мыло" }],
+    ["deodorant-", { he: "דאודורנט", en: "Deodorant", ru: "Дезодорант" }],
+    ["toilet-paper-", { he: "נייר טואלט", en: "Toilet paper", ru: "Туалетная бумага" }],
+    ["tissues-", { he: "ממחטות", en: "Tissues", ru: "Салфетки" }],
+    // Entretien
+    ["laundry-", { he: "אבקת כביסה", en: "Laundry", ru: "Стиральный порошок" }],
+    ["dish-", { he: "סבון כלים", en: "Dish soap", ru: "Средство для посуды" }],
+    ["trash-bags-", { he: "שקיות אשפה", en: "Trash bags", ru: "Мусорные пакеты" }],
+    // Animaux
+    ["dog-", { he: "כלבים", en: "Dog", ru: "Собаки" }],
+    ["cat-", { he: "חתולים", en: "Cat", ru: "Кошки" }]
+  ]
+};
+function autoTranslateName(p) {
+  if (!p) return "";
+  const lang = state.lang;
+  // Cherche le préfixe le plus long qui matche
+  let bestMatch = null;
+  for (const [prefix, names] of AUTO_NAME_FR.prefixes) {
+    if (p.id === prefix || p.id.startsWith(prefix)) {
+      if (!bestMatch || prefix.length > bestMatch.prefix.length) {
+        bestMatch = { prefix, names };
+      }
+    }
+  }
+  if (bestMatch && bestMatch.names[lang]) {
+    // Suffixe : extrait du nom français ce qui suit le mot principal
+    let suffix = "";
+    const m = p.name.match(/\(([^)]+)\)/);
+    if (m) suffix = " (" + m[1] + ")";
+    // Ajoute marque si présente dans le nom
+    const brandMatch = p.name.match(/(Tnuva|Tara|Yotvata|Strauss|Osem|Sugat|Telma|Achva|Sabra|Elite|Wissotzky|Carmel|Coca|Pepsi|Pantene|Colgate|Sano|Ariel|Tnuva|Yoplait|Danone|Heinz|Pringles|Doritos|Lindt|Milka|Nutella|Bonzo|Whiskas|Materna|Huggies|Pampers|Lily|Berman|Angel|Maadanot|McCain|Sunfrost)/i);
+    if (brandMatch) suffix += " " + brandMatch[0];
+    return bestMatch.names[lang] + suffix;
+  }
+  // Aucun fallback : on garde le français
+  return p.name;
 }
 function tCat(cat) {
   const dict = I18N[state.lang] || I18N.fr;
