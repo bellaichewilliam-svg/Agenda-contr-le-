@@ -11,7 +11,7 @@ import logging
 import re
 from typing import Iterator, List
 
-from ._base import PriceItem, decompress, fetch, parse_xml_items, session
+from ._base import PriceItem, PromoItem, decompress, fetch, parse_xml_items, parse_xml_promos, session
 
 log = logging.getLogger(__name__)
 
@@ -52,3 +52,34 @@ def fetch_items(max_files: int = 1) -> Iterator[PriceItem]:
             log.info("Shufersal : %d items parsés depuis %s", count, url)
         except Exception as e:
             log.error("Shufersal : échec sur %s : %s", url, e)
+
+
+def _list_promo_files() -> list:
+    """Liste les fichiers PromoFull (promotions complètes) sur l'index."""
+    sess = session()
+    try:
+        html = fetch(HOME_URL, sess=sess).decode("utf-8", errors="ignore")
+    except Exception:
+        return []
+    urls = re.findall(r'https?://[^\s"\']+PromoFull[^\s"\']+\.gz', html)
+    return list(dict.fromkeys(urls))
+
+
+def fetch_promos(max_files: int = 1) -> Iterator[PromoItem]:
+    """Renvoie les promotions des `max_files` premiers PromoFull."""
+    files = _list_promo_files()
+    if not files:
+        log.warning("Shufersal : aucun fichier PromoFull trouvé")
+        return
+    sess = session()
+    for url in files[:max_files]:
+        try:
+            data = fetch(url, sess=sess)
+            xml = decompress(data, url)
+            count = 0
+            for it in parse_xml_promos(xml, CHAIN):
+                count += 1
+                yield it
+            log.info("Shufersal : %d promos parsées depuis %s", count, url)
+        except Exception as e:
+            log.error("Shufersal promos : échec sur %s : %s", url, e)

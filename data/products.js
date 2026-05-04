@@ -903,7 +903,189 @@ const PRODUCTS = [
   { id: "carpet-cleaner", name: "Shampoing tapis", category: "Entretien", unit: "500ml", prices: P(29.90) },
   { id: "drain-clog", name: "Déboucheur granulés", category: "Entretien", unit: "500g", prices: P(24.90) },
   { id: "scrub-pads", name: "Tampons abrasifs", category: "Entretien", unit: "10u", prices: P(8.90) },
-  { id: "microfiber-cloths", name: "Chiffons microfibre (pack 5)", category: "Entretien", unit: "5u", prices: P(15.90) }
+  { id: "microfiber-cloths", name: "Chiffons microfibre (pack 5)", category: "Entretien", unit: "5u", prices: P(15.90) },
+
+  // ============ BATCH 3 : +150 produits supplémentaires ============
+  // Laitiers - variétés Tnuva/Tara/Yotvata + spécialités
+  { id: "milk-2-tnuva",      name: "Lait 2% Tnuva", category: "Laitiers", unit: "1L", prices: P(6.50) },
+  { id: "milk-fortified",    name: "Lait enrichi calcium", category: "Laitiers", unit: "1L", prices: P(7.50) },
+  { id: "milk-chocolate-mini", name: "Choco Tnuva (200ml)", category: "Laitiers", unit: "200ml", prices: P(3.90) },
+  { id: "yogurt-aroma",      name: "Yaourt aromatisé Yoplait", category: "Laitiers", unit: "150g", prices: P(3.90) },
+  { id: "yogurt-bio-tnuva",  name: "Yaourt bio Tnuva", category: "Laitiers", unit: "150g", prices: P(5.90) },
+  { id: "yogurt-go",         name: "Yaourt Yoplait Go", category: "Laitiers", unit: "8×80g", prices: P(19.90) },
+  { id: "yogurt-prune",      name: "Yaourt aux pruneaux", category: "Laitiers", unit: "150g", prices: P(4.50) },
+  { id: "milk-shake-vanilla", name: "Milkshake vanille", category: "Laitiers", unit: "250ml", prices: P(7.90) },
+  { id: "cottage-9",         name: "Cottage 9% Tnuva", category: "Laitiers", unit: "250g", prices: P(7.50) },
+  { id: "cheese-spread-garlic", name: "Fromage à tartiner ail", category: "Laitiers", unit: "200g", prices: P(11.90) },
+  { id: "cheese-spread-herbs", name: "Fromage tartiner fines herbes", category: "Laitiers", unit: "200g", prices: P(11.90) },
+  { id: "mascarpone",        name: "Mascarpone", category: "Laitiers", unit: "250g", prices: P(17.90) },
+  { id: "burrata",           name: "Burrata", category: "Laitiers", unit: "200g", prices: P(24.90) },
+  { id: "cheddar",           name: "Cheddar fort", category: "Laitiers", unit: "200g", prices: P(19.90) },
+  { id: "emmental",          name: "Emmental râpé", category: "Laitiers", unit: "200g", prices: P(15.90) },
+
+  // Viande - cuts spécifiques
+  { id: "chicken-cubes",     name: "Émincé de poulet", category: "Viande", unit: "1kg", prices: P(44.90) },
+  { id: "chicken-spice",     name: "Brochettes poulet épicées", category: "Viande", unit: "500g", prices: P(34.90) },
+  { id: "beef-carpaccio",    name: "Carpaccio de bœuf", category: "Viande", unit: "100g", prices: P(34.90) },
+  { id: "beef-tartar",       name: "Tartare de bœuf", category: "Viande", unit: "200g", prices: P(44.90) },
+  { id: "veal-cutlet-milanese", name: "Escalope milanaise", category: "Viande", unit: "1kg", prices: P(139.00) },
+  { id: "lamb-kebab",        name: "Kebab d'agneau", category: "Viande", unit: "500g", prices: P(64.90) },
+  { id: "ground-mix",        name: "Mix viande hachée", category: "Viande", unit: "1kg", prices: P(64.90) },
+  { id: "sausage-fresh",     name: "Saucisse fraîche", category: "Viande", unit: "500g", prices: P(34.90) },
+
+  // Poisson
+  { id: "salmon-burger",     name: "Burger de saumon", category: "Poisson", unit: "300g", prices: P(34.90) },
+  { id: "fish-skewers",      name: "Brochettes de poisson", category: "Poisson", unit: "400g", prices: P(39.90) },
+  { id: "octopus",           name: "Poulpe", category: "Poisson", unit: "500g", prices: P(54.90, { rami_levy: null, hatzi_hinam: null, shufersal: null, yochananof: null, victory: null, boom: null, osher_ad: null }) },
+
+  // Boulangerie + viennoiseries
+  { id: "pain-aux-noix",     name: "Pain aux noix", category: "Boulangerie", unit: "500g", prices: P(19.90) },
+  { id: "pain-aux-olives",   name: "Pain aux olives", category: "Boulangerie", unit: "400g", prices: P(17.90) },
+  { id: "focaccia",          name: "Focaccia", category: "Boulangerie", unit: "300g", prices: P(13.90) },
+  { id: "pretzel-bread",     name: "Bretzel allemand", category: "Boulangerie", unit: "150g", prices: P(8.90) },
+  { id: "rusks",             name: "Biscottes (Tzimukim)", category: "Boulangerie", unit: "200g", prices: P(9.90) },
+
+  // Gâteaux - viennoiseries
+  { id: "pain-au-chocolat",  name: "Pain au chocolat (4u)", category: "Gâteaux", unit: "4u", prices: P(14.90) },
+  { id: "chausson-pomme",    name: "Chausson aux pommes", category: "Gâteaux", unit: "4u", prices: P(14.90) },
+  { id: "millefeuille",      name: "Mille-feuille", category: "Gâteaux", unit: "1u", prices: P(19.90) },
+  { id: "opera",             name: "Opéra", category: "Gâteaux", unit: "1u", prices: P(34.90) },
+  { id: "kataif",            name: "Kataif", category: "Gâteaux", unit: "300g", prices: P(24.90) },
+  { id: "baklava",           name: "Baklava", category: "Gâteaux", unit: "300g", prices: P(29.90) },
+
+  // Fruits - emballés
+  { id: "salade-fruits",     name: "Salade de fruits préparée", category: "Fruits", unit: "500g", prices: P(24.90) },
+  { id: "fruits-coupes",     name: "Coupelle de fruits frais", category: "Fruits", unit: "300g", prices: P(15.90) },
+
+  // Légumes - préparés
+  { id: "veggies-mix-stir-fry", name: "Mix légumes wok", category: "Légumes", unit: "500g", prices: P(11.90) },
+  { id: "veggies-soup-mix",  name: "Légumes pour soupe", category: "Légumes", unit: "1kg", prices: P(13.90) },
+  { id: "salade-cesar",      name: "Salade César préparée", category: "Légumes", unit: "300g", prices: P(17.90) },
+  { id: "salade-grecque",    name: "Salade grecque préparée", category: "Légumes", unit: "300g", prices: P(17.90) },
+  { id: "tabouleh",          name: "Taboulé prêt", category: "Légumes", unit: "300g", prices: P(15.90) },
+  { id: "coleslaw",          name: "Coleslaw préparé", category: "Légumes", unit: "300g", prices: P(11.90) },
+
+  // Épicerie - variétés
+  { id: "rice-paella",       name: "Riz paella", category: "Épicerie", unit: "500g", prices: P(15.90) },
+  { id: "couscous-fin",      name: "Couscous fin", category: "Épicerie", unit: "500g", prices: P(8.90) },
+  { id: "couscous-medium",   name: "Couscous moyen", category: "Épicerie", unit: "500g", prices: P(8.90) },
+  { id: "lasagna-sheets",    name: "Feuilles de lasagne", category: "Épicerie", unit: "500g", prices: P(11.90) },
+  { id: "ravioli-can",       name: "Raviolis en boîte", category: "Épicerie", unit: "400g", prices: P(11.90) },
+  { id: "soup-noodle",       name: "Soupe ramen instantanée", category: "Épicerie", unit: "85g", prices: P(4.90) },
+  { id: "rice-cakes-plain",  name: "Galettes riz nature", category: "Épicerie", unit: "100g", prices: P(7.90) },
+  { id: "crackers-water",    name: "Crackers eau", category: "Épicerie", unit: "200g", prices: P(11.90) },
+  { id: "tomato-cherries-jar", name: "Tomates séchées jar", category: "Épicerie", unit: "200g", prices: P(15.90) },
+  { id: "anchovies-jar",     name: "Anchois en bocal", category: "Épicerie", unit: "100g", prices: P(13.90) },
+  { id: "pickles-mini",      name: "Mini cornichons", category: "Épicerie", unit: "350g", prices: P(11.90) },
+  { id: "pickles-spicy",     name: "Cornichons épicés", category: "Épicerie", unit: "700g", prices: P(15.90) },
+  { id: "honey-bio",         name: "Miel bio", category: "Épicerie", unit: "500g", prices: P(34.90) },
+  { id: "molasses",          name: "Mélasse de caroube", category: "Épicerie", unit: "400g", prices: P(19.90) },
+  { id: "tahini-raw",        name: "Tahini cru", category: "Épicerie", unit: "500g", prices: P(19.90) },
+  { id: "spice-curry",       name: "Mélange curry", category: "Épicerie", unit: "100g", prices: P(11.90) },
+  { id: "spice-zaatar-bag",  name: "Mélange zaatar", category: "Épicerie", unit: "100g", prices: P(8.90) },
+  { id: "spice-bbq",         name: "Mélange BBQ", category: "Épicerie", unit: "100g", prices: P(11.90) },
+  { id: "spice-italian",     name: "Herbes de Provence", category: "Épicerie", unit: "50g", prices: P(9.90) },
+  { id: "salt-pink",         name: "Sel rose Himalaya", category: "Épicerie", unit: "500g", prices: P(15.90) },
+  { id: "stevia",            name: "Stévia (sucre)", category: "Épicerie", unit: "200g", prices: P(19.90) },
+  { id: "agave",             name: "Sirop d'agave", category: "Épicerie", unit: "500ml", prices: P(24.90) },
+  { id: "coconut-sugar",     name: "Sucre de coco", category: "Épicerie", unit: "500g", prices: P(22.90) },
+  { id: "almond-flour",      name: "Farine d'amande", category: "Épicerie", unit: "500g", prices: P(34.90) },
+  { id: "tapioca",           name: "Tapioca", category: "Épicerie", unit: "500g", prices: P(11.90) },
+  { id: "chickpea-flour",    name: "Farine de pois chiche", category: "Épicerie", unit: "500g", prices: P(13.90) },
+
+  // Petit-déj
+  { id: "spread-tahini-honey", name: "Tahini-miel à tartiner", category: "Petit-déj", unit: "350g", prices: P(19.90) },
+  { id: "spread-date",       name: "Pâte de dattes", category: "Petit-déj", unit: "400g", prices: P(15.90) },
+  { id: "muesli-fruits",     name: "Muesli aux fruits", category: "Petit-déj", unit: "500g", prices: P(24.90) },
+  { id: "granola-bio",       name: "Granola bio", category: "Petit-déj", unit: "500g", prices: P(29.90) },
+  { id: "cereal-rice-puffs", name: "Riz soufflé", category: "Petit-déj", unit: "500g", prices: P(15.90) },
+  { id: "oat-bran",          name: "Son d'avoine", category: "Petit-déj", unit: "500g", prices: P(13.90) },
+
+  // Boissons
+  { id: "water-large",       name: "Eau Mei Eden 6L", category: "Boissons", unit: "6L", prices: P(15.90) },
+  { id: "water-flavored-lemon", name: "Eau aromatisée citron", category: "Boissons", unit: "1.5L", prices: P(8.90) },
+  { id: "soda-pepsi",        name: "Pepsi", category: "Boissons", unit: "1.5L", prices: P(8.90) },
+  { id: "soda-mountain-dew", name: "Mountain Dew", category: "Boissons", unit: "1.5L", prices: P(8.90) },
+  { id: "soda-rc",           name: "RC Cola", category: "Boissons", unit: "1.5L", prices: P(7.90) },
+  { id: "tonic-water",       name: "Tonic Schweppes", category: "Boissons", unit: "1L", prices: P(8.90) },
+  { id: "ginger-ale",        name: "Ginger Ale Schweppes", category: "Boissons", unit: "1L", prices: P(8.90) },
+  { id: "juice-pomegranate", name: "Jus de grenade", category: "Boissons", unit: "1L", prices: P(19.90) },
+  { id: "juice-tomato",      name: "Jus de tomate", category: "Boissons", unit: "1L", prices: P(11.90) },
+  { id: "juice-multi",       name: "Jus multifruits", category: "Boissons", unit: "1.5L", prices: P(13.90) },
+  { id: "tea-earl-grey",     name: "Earl Grey Wissotzky", category: "Boissons", unit: "25u", prices: P(13.90) },
+  { id: "tea-fruit",         name: "Tisane fruits rouges", category: "Boissons", unit: "25u", prices: P(11.90) },
+  { id: "matcha",            name: "Matcha en poudre", category: "Boissons", unit: "100g", prices: P(54.90) },
+  { id: "wine-prosecco",     name: "Prosecco", category: "Boissons", unit: "750ml", prices: P(64.90) },
+  { id: "wine-merlot",       name: "Merlot", category: "Boissons", unit: "750ml", prices: P(34.90) },
+  { id: "wine-chardonnay",   name: "Chardonnay", category: "Boissons", unit: "750ml", prices: P(39.90) },
+  { id: "tequila",           name: "Tequila Jose Cuervo", category: "Boissons", unit: "750ml", prices: P(149.00) },
+
+  // Surgelés
+  { id: "frozen-lasagna",    name: "Lasagnes surgelées", category: "Surgelés", unit: "400g", prices: P(19.90) },
+  { id: "frozen-gnocchi",    name: "Gnocchis surgelés", category: "Surgelés", unit: "500g", prices: P(15.90) },
+  { id: "frozen-ratatouille", name: "Ratatouille surgelée", category: "Surgelés", unit: "600g", prices: P(17.90) },
+  { id: "frozen-curry",      name: "Curry végétarien surgelé", category: "Surgelés", unit: "400g", prices: P(22.90) },
+  { id: "frozen-paella",     name: "Paella surgelée", category: "Surgelés", unit: "600g", prices: P(29.90) },
+  { id: "frozen-spring-rolls", name: "Rouleaux de printemps", category: "Surgelés", unit: "10u", prices: P(19.90) },
+  { id: "frozen-dim-sum",    name: "Dim sum", category: "Surgelés", unit: "300g", prices: P(24.90) },
+  { id: "frozen-edamame",    name: "Edamame", category: "Surgelés", unit: "400g", prices: P(15.90) },
+  { id: "frozen-asparagus",  name: "Asperges surgelées", category: "Surgelés", unit: "500g", prices: P(17.90) },
+  { id: "frozen-berries",    name: "Mélange fruits rouges surgelé", category: "Surgelés", unit: "500g", prices: P(22.90) },
+  { id: "ice-cream-vanilla", name: "Glace vanille familiale", category: "Surgelés", unit: "1L", prices: P(24.90) },
+  { id: "ice-cream-strudel", name: "Glace pomme strudel", category: "Surgelés", unit: "500ml", prices: P(29.90) },
+  { id: "frozen-yogurt",     name: "Yaourt glacé", category: "Surgelés", unit: "500ml", prices: P(24.90) },
+
+  // Snacks
+  { id: "chocolate-toblerone-dark", name: "Toblerone noir", category: "Snacks", unit: "100g", prices: P(15.90) },
+  { id: "chocolate-after-eight", name: "After Eight", category: "Snacks", unit: "200g", prices: P(22.90) },
+  { id: "chocolate-ferrero-rocher", name: "Ferrero Rocher", category: "Snacks", unit: "16u", prices: P(34.90) },
+  { id: "chocolate-raffaello", name: "Raffaello", category: "Snacks", unit: "150g", prices: P(24.90) },
+  { id: "biscuits-petit-ecolier", name: "Petit Écolier", category: "Snacks", unit: "150g", prices: P(13.90) },
+  { id: "biscuits-mikado",   name: "Mikado", category: "Snacks", unit: "75g", prices: P(11.90) },
+  { id: "popcorn-microwave", name: "Pop-corn micro-ondes", category: "Snacks", unit: "3×100g", prices: P(13.90) },
+  { id: "chips-cheetos",     name: "Cheetos", category: "Snacks", unit: "200g", prices: P(13.90) },
+  { id: "chips-tortilla",    name: "Chips tortilla", category: "Snacks", unit: "200g", prices: P(13.90) },
+  { id: "olives-snacks",     name: "Olives en sachet", category: "Snacks", unit: "100g", prices: P(8.90) },
+  { id: "edamame-snack",     name: "Edamame torréfié", category: "Snacks", unit: "100g", prices: P(13.90) },
+  { id: "candy-mentos-rolls", name: "Mentos rouleaux", category: "Snacks", unit: "5u", prices: P(11.90) },
+  { id: "marshmallow",       name: "Guimauves", category: "Snacks", unit: "200g", prices: P(13.90) },
+
+  // Bébé
+  { id: "baby-fruit-pouch",  name: "Gourde fruits bébé", category: "Bébé", unit: "100g", prices: P(7.90) },
+  { id: "baby-rice-cereal",  name: "Bouillie de riz bébé", category: "Bébé", unit: "200g", prices: P(15.90) },
+  { id: "baby-cereal-mixed", name: "Céréales bébé multifruits", category: "Bébé", unit: "200g", prices: P(17.90) },
+  { id: "diapers-7",         name: "Couches Huggies T7", category: "Bébé", unit: "40u", prices: P(84.90) },
+  { id: "wipes-fragrance",   name: "Lingettes parfumées", category: "Bébé", unit: "320u", prices: P(29.90) },
+
+  // Hygiène
+  { id: "shampoo-loreal",    name: "Shampoing L'Oréal", category: "Hygiène", unit: "400ml", prices: P(34.90) },
+  { id: "shampoo-anti-dandruff", name: "Shampoing antipelliculaire", category: "Hygiène", unit: "400ml", prices: P(29.90) },
+  { id: "hair-mask",         name: "Masque cheveux", category: "Hygiène", unit: "300ml", prices: P(34.90) },
+  { id: "soap-natural",      name: "Savon naturel olive", category: "Hygiène", unit: "100g", prices: P(8.90) },
+  { id: "exfoliant",         name: "Gommage corps", category: "Hygiène", unit: "200g", prices: P(34.90) },
+  { id: "perfume-women",     name: "Eau de parfum femme", category: "Hygiène", unit: "50ml", prices: P(149.00) },
+  { id: "perfume-men",       name: "Eau de parfum homme", category: "Hygiène", unit: "100ml", prices: P(149.00) },
+  { id: "vitamin-d",         name: "Vitamine D", category: "Hygiène", unit: "60u", prices: P(34.90) },
+  { id: "vitamin-b12",       name: "Vitamine B12", category: "Hygiène", unit: "60u", prices: P(34.90) },
+  { id: "magnesium",         name: "Magnésium", category: "Hygiène", unit: "60u", prices: P(39.90) },
+  { id: "ibuprofen",         name: "Ibuprofène Advil", category: "Hygiène", unit: "20u", prices: P(19.90) },
+  { id: "first-aid-spray",   name: "Spray antiseptique", category: "Hygiène", unit: "100ml", prices: P(17.90) },
+
+  // Entretien
+  { id: "all-purpose-cleaner", name: "Nettoyant multi-surfaces", category: "Entretien", unit: "750ml", prices: P(13.90) },
+  { id: "oven-cleaner",      name: "Nettoyant four", category: "Entretien", unit: "500ml", prices: P(19.90) },
+  { id: "stainless-steel",   name: "Nettoyant inox", category: "Entretien", unit: "500ml", prices: P(22.90) },
+  { id: "fabric-freshener",  name: "Spray textile Febreze", category: "Entretien", unit: "500ml", prices: P(24.90) },
+  { id: "shoe-polish",       name: "Cirage chaussures", category: "Entretien", unit: "75ml", prices: P(15.90) },
+  { id: "iron-water",        name: "Eau pour fer", category: "Entretien", unit: "1L", prices: P(8.90) },
+  { id: "vacuum-bags",       name: "Sacs aspirateur (5u)", category: "Entretien", unit: "5u", prices: P(29.90) },
+  { id: "freezer-bags",      name: "Sachets congélation", category: "Entretien", unit: "50u", prices: P(14.90) },
+
+  // Animaux
+  { id: "dog-shampoo",       name: "Shampoing chien", category: "Animaux", unit: "500ml", prices: P(24.90) },
+  { id: "cat-toy",           name: "Jouet pour chat", category: "Animaux", unit: "1u", prices: P(11.90) },
+  { id: "dog-leash",         name: "Laisse chien", category: "Animaux", unit: "1u", prices: P(34.90) },
+  { id: "bird-cage-cleaner", name: "Nettoyant cage", category: "Animaux", unit: "500ml", prices: P(15.90) }
 ];
 
 // Calcule les prix réels après définition de PRODUCTS

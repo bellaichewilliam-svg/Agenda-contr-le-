@@ -597,6 +597,51 @@ function qtyStep(p) {
 // ========== PRIX EN DIRECT ==========
 let LIVE_PRICES = {}, LIVE_META = null;
 
+// Charge les vraies promos depuis live-promotions.json (généré par scraper)
+let LIVE_PROMOS = null;
+async function loadLivePromos() {
+  try {
+    const res = await fetch("data/live-promotions.json", { cache: "no-cache" });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.promos || Object.keys(data.promos).length === 0) return;
+    // Convertit le format scraper -> format app PROMOTIONS
+    const newPromos = [];
+    Object.entries(data.promos).forEach(([id, p]) => {
+      // Détecter type et paramètres
+      let type = "discount_pct", n = 0, m = 0, pct = 0, fixed = 0, price = 0;
+      if (p.type === "n_for_price" && p.min_qty >= 2 && p.discounted_price > 0) {
+        type = "n_for_price"; n = Math.round(p.min_qty); price = p.discounted_price;
+      } else if (p.type === "buy_one_get_one") {
+        type = "n_for_m"; n = 2; m = 1;
+      } else if (p.discount_rate > 0) {
+        type = "category_pct"; pct = Math.round(p.discount_rate);
+      } else {
+        type = "discount_pct"; pct = 10;
+      }
+      newPromos.push({
+        id: "live-" + id,
+        chain: p.chain,
+        type,
+        title: p.title || p.description || "",
+        desc: p.title || "",
+        products: p.products || [],
+        n, m, pct, fixed, price,
+        validUntil: p.valid_until,
+        _live: true
+      });
+    });
+    if (newPromos.length > 0 && typeof PROMOTIONS !== "undefined") {
+      // Remplace les mocks par les vraies promos
+      PROMOTIONS.length = 0;
+      newPromos.forEach(p => PROMOTIONS.push(p));
+      LIVE_PROMOS = data;
+      renderTopPromos();
+      renderPromos();
+    }
+  } catch {}
+}
+
 async function loadLivePrices() {
   try {
     const res = await fetch("data/live-prices.json", { cache: "no-cache" });
@@ -3116,3 +3161,4 @@ setupSettings();
 setupEvents();
 setupPWA();
 loadLivePrices();
+loadLivePromos();

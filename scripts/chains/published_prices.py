@@ -26,7 +26,7 @@ from typing import Iterator, List
 
 import requests
 
-from ._base import PriceItem, decompress, parse_xml_items, session
+from ._base import PriceItem, PromoItem, decompress, parse_xml_items, parse_xml_promos, session
 
 log = logging.getLogger(__name__)
 
@@ -49,10 +49,9 @@ def _login(sess: requests.Session, user: str, password: str = "") -> bool:
     return r.ok and "aaData" in r.text
 
 
-def _list_price_full(sess: requests.Session) -> List[str]:
-    """Liste les fichiers PriceFull dispo dans le compte connecté."""
+def _list_files_pattern(sess: requests.Session, pattern: str) -> List[str]:
+    """Liste les fichiers matchant un pattern (PriceFull ou PromoFull)."""
     out = []
-    # On itère par pages au cas où il y en a beaucoup
     for start in range(0, 500, 100):
         r = sess.get(
             f"{BASE}/file/json/dir",
@@ -65,13 +64,22 @@ def _list_price_full(sess: requests.Session) -> List[str]:
         if not rows:
             break
         for row in rows:
-            # Le 1er champ est typiquement un lien HTML <a href="..." ou juste le nom
             html = row[0] if isinstance(row, list) and row else ""
-            m = re.search(r'href="([^"]+)"', html) or re.search(r"(PriceFull[\w.\-]+)", html)
+            m = re.search(r'href="([^"]+)"', html) or re.search(rf"({pattern}[\w.\-]+)", html)
             fname = m.group(1) if m else (html if isinstance(html, str) else "")
-            if "PriceFull" in fname and (fname.endswith(".gz") or fname.endswith(".zip")):
+            if pattern in fname and (fname.endswith(".gz") or fname.endswith(".zip")):
                 out.append(fname.split("/")[-1])
     return out
+
+
+def _list_price_full(sess: requests.Session) -> List[str]:
+    """Liste les fichiers PriceFull."""
+    return _list_files_pattern(sess, "PriceFull")
+
+
+def _list_promo_full(sess: requests.Session) -> List[str]:
+    """Liste les fichiers PromoFull."""
+    return _list_files_pattern(sess, "PromoFull")
 
 
 def fetch_items(chain: str, user: str, password: str = "", max_files: int = 1) -> Iterator[PriceItem]:
@@ -107,3 +115,38 @@ def fetch_items(chain: str, user: str, password: str = "", max_files: int = 1) -
             log.info("%s : %d items parsés depuis %s", chain, count, fname)
         except Exception as e:
             log.error("%s : échec sur %s : %s", chain, fname, e)
+
+
+def fetch_promos(chain: str, user: str, password: str = "", max_files: int = 1) -> Iterator[PromoItem]:
+    """Connecte au compte `user` et yield les promos du 1er PromoFull."""
+    sess = session()
+    try:
+        if not _login(sess, user, password):
+            log.warning("%s promos : login échoué", chain)
+            return
+    except Exception as e:
+        log.error("%s promos : exception login : %s", chain, e)
+        return
+
+    try:
+        files = _list_promo_full(sess)
+    except Exception as e:
+        log.error("%s : impossible de lister les PromoFull : %s", chain, e)
+        return
+
+    if not files:
+        log.warning("%s : aucun PromoFull trouvé", chain)
+        return
+
+    for fname in files[:max_files]:
+        try:
+            r = sess.get(f"{BASE}/file/d/{fname}", timeout=120)
+            r.raise_for_status()
+            xml = decompress(r.content, fname)
+            count = 0
+            for it in parse_xml_promos(xml, chain):
+                count += 1
+                yield it
+            log.info("%s : %d promos parsées depuis %s", chain, count, fname)
+        except Exception as e:
+            log.error("%s promos : échec sur %s : %s", chain, fname, e)
