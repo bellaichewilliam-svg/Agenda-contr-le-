@@ -1,9 +1,58 @@
 {
-  "version": 1,
-  "chains": [],
-  "prices": {},
-  "summary": {
-    "note": "Fichier vide en attente du 1er run du workflow GitHub Actions. Une fois le scraper exécuté, ce fichier sera rempli avec les prix réels.",
-    "matched": 0
-  }
+ "version": 1,
+ "generated_at": "2026-05-04T09:16:40.868687+00:00",
+ "chains": [
+  "shufersal",
+  "rami_levy",
+  "tiv_taam",
+  "carrefour",
+  "osher_ad",
+  "hatzi_hinam",
+  "yochananof",
+  "victory",
+  "boom"
+ ],
+ "prices": {},
+ "summary": {
+  "chains": {
+   "shufersal": {
+    "items": 0,
+    "status": "empty"
+   },
+   "rami_levy": {
+    "items": 0,
+    "status": "empty"
+   },
+   "tiv_taam": {
+    "items": 0,
+    "status": "empty"
+   },
+   "carrefour": {
+    "items": 0,
+    "status": "empty"
+   },
+   "osher_ad": {
+    "items": 0,
+    "status": "empty"
+   },
+   "hatzi_hinam": {
+    "items": 0,
+    "status": "empty"
+   },
+   "yochananof": {
+    "items": 0,
+    "status": "empty"
+   },
+   "victory": {
+    "items": 0,
+    "status": "empty"
+   },
+   "boom": {
+    "items": 0,
+    "status": "empty"
+   }
+  },
+  "products_matched": 0,
+  "products_total": 871
+ }
 }
