@@ -1117,6 +1117,31 @@ button { font-family: inherit; color: inherit; }
   font-size: 11px;
   color: var(--text-soft);
 }
+.nearby-pill.delivery-yes {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+  font-weight: 700;
+}
+.nearby-pill.delivery-far {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--warning);
+  color: var(--warning);
+  font-weight: 600;
+}
+.nearby-pill.delivery-no {
+  background: rgba(100, 116, 139, 0.15);
+  border-color: var(--border-strong);
+  color: var(--muted);
+  font-weight: 600;
+}
+.nearby-filter {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
 .nearby-actions {
   display: flex;
   gap: 6px;

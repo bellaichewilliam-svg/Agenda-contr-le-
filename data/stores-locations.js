@@ -139,12 +139,34 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
 }
 
+// Distance maximale typique de livraison par enseigne (en km)
+// Au-delà, on considère que le magasin ne livre pas chez toi.
+// Basé sur les zones de livraison annoncées par les enseignes.
+const DELIVERY_RADIUS_KM = {
+  rami_levy:   12,   // Rami Levy livre dans sa ville + cités voisines
+  shufersal:   10,   // Shufersal livre dans la zone urbaine
+  carrefour:   15,   // Carrefour Hyper a une grande zone
+  yochananof:  10,
+  victory:     8,    // Victory zone limitée
+  tiv_taam:    12,
+  osher_ad:    8,
+  hatzi_hinam: 10,
+  boom:        0     // Boom = retrait magasin uniquement
+};
+
+function deliversToUser(chain, store, distanceKm) {
+  if (!store.delivery) return false;
+  const radius = DELIVERY_RADIUS_KM[chain] || 10;
+  return distanceKm <= radius;
+}
+
 function nearestStores(userLat, userLon, perChain = 1, maxDistanceKm = 30) {
   const out = {};
   Object.entries(STORE_LOCATIONS).forEach(([chain, stores]) => {
     const withDist = stores
       .map(s => ({ ...s, distance: haversineKm(userLat, userLon, s.lat, s.lon) }))
       .filter(s => s.distance <= maxDistanceKm);
+    withDist.forEach(s => { s.deliversHere = deliversToUser(chain, s, s.distance); });
     withDist.sort((a, b) => a.distance - b.distance);
     if (withDist.length > 0) out[chain] = withDist.slice(0, perChain);
   });
@@ -170,6 +192,6 @@ function wazeURL(lat, lon) { return `https://waze.com/ul?ll=${lat},${lon}&naviga
 function googleMapsURL(lat, lon) { return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; }
 
 if (typeof module !== "undefined") {
-  module.exports = { STORE_LOCATIONS, STORE_LOCATIONS_EXTRA, STORE_WEBSITES, STORE_FINDERS, haversineKm, nearestStores, nearestExtraStores, wazeURL, googleMapsURL };
+  module.exports = { STORE_LOCATIONS, STORE_LOCATIONS_EXTRA, STORE_WEBSITES, STORE_FINDERS, DELIVERY_RADIUS_KM, haversineKm, nearestStores, nearestExtraStores, deliversToUser, wazeURL, googleMapsURL };
 }
 
