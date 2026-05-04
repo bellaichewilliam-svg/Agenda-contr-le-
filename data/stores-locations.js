@@ -17,7 +17,10 @@ const STORE_LOCATIONS = {
     { name: "Rami Levy Beersheba", lat: 31.2589, lon: 34.7980, address: "HaPlada 25, Beersheba", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
     { name: "Rami Levy Petah Tikva", lat: 32.0878, lon: 34.8867, address: "HaHistadrut 21, Petah Tikva", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
     { name: "Rami Levy Netanya", lat: 32.3215, lon: 34.8533, address: "Pinchas Sapir 4, Netanya", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
-    { name: "Rami Levy Modiin", lat: 31.8951, lon: 35.0102, address: "Yitzhak Rabin 36, Modiin", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" }
+    { name: "Rami Levy Hadera", lat: 32.4340, lon: 34.9196, address: "HaNassi 50, Hadera", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
+    { name: "Rami Levy Modiin", lat: 31.8951, lon: 35.0102, address: "Yitzhak Rabin 36, Modiin", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
+    { name: "Rami Levy Ra'anana", lat: 32.1847, lon: 34.8703, address: "Ahuza 91, Ra'anana", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
+    { name: "Rami Levy Kfar Saba", lat: 32.1782, lon: 34.9075, address: "Weizmann 162, Kfar Saba", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" }
   ],
   shufersal: [
     { name: "Shufersal Deal Dizengoff", lat: 32.0826, lon: 34.7740, address: "Dizengoff 50, Tel Aviv", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 7h-16h" },
@@ -26,7 +29,11 @@ const STORE_LOCATIONS = {
     { name: "Shufersal Express Ramat Aviv", lat: 32.1108, lon: 34.7919, address: "Einstein 40, Tel Aviv", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 7h-16h" },
     { name: "Shufersal Deal Petah Tikva", lat: 32.0878, lon: 34.8867, address: "Hatkuma 25, Petah Tikva", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-15h" },
     { name: "Shufersal Deal Rishon LeZion", lat: 31.9730, lon: 34.7925, address: "Rothschild 10, Rishon LeZion", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-16h" },
-    { name: "Shufersal Yesh Beersheba", lat: 31.2589, lon: 34.7980, address: "Henrietta Szold 11, Beersheba", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-16h" }
+    { name: "Shufersal Yesh Beersheba", lat: 31.2589, lon: 34.7980, address: "Henrietta Szold 11, Beersheba", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-16h" },
+    { name: "Shufersal Deal Netanya", lat: 32.3215, lon: 34.8533, address: "HaNotea 5, Netanya", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 7h-16h" },
+    { name: "Shufersal Deal Hadera", lat: 32.4340, lon: 34.9196, address: "HaGdud HaIvri 1, Hadera", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-16h" },
+    { name: "Shufersal Deal Herzliya", lat: 32.1640, lon: 34.8489, address: "Sokolov 36, Herzliya", delivery: true, hours: "Dim-Jeu 7h-23h, Ven 7h-16h" },
+    { name: "Shufersal Deal Ra'anana", lat: 32.1847, lon: 34.8703, address: "Ahuza 121, Ra'anana", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 7h-16h" }
   ],
   carrefour: [
     { name: "Carrefour Hyper Petah Tikva", lat: 32.0878, lon: 34.8867, address: "Em HaMoshavot 94, Petah Tikva", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
@@ -46,6 +53,9 @@ const STORE_LOCATIONS = {
     { name: "Victory Tel Aviv Ahad Ha'Am", lat: 32.0664, lon: 34.7702, address: "Ahad Ha'Am 13, Tel Aviv", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-16h" },
     { name: "Victory Ramat Gan", lat: 32.0683, lon: 34.8248, address: "Bialik 70, Ramat Gan", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
     { name: "Victory Netanya", lat: 32.3215, lon: 34.8533, address: "Herzl 60, Netanya", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Victory Netanya Sela", lat: 32.3140, lon: 34.8645, address: "HaTzoran 12, Netanya", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Victory Hadera", lat: 32.4340, lon: 34.9196, address: "Rothschild 89, Hadera", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
+    { name: "Victory Herzliya", lat: 32.1640, lon: 34.8489, address: "Sapir 16, Herzliya", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" },
     { name: "Victory Holon", lat: 32.0117, lon: 34.7794, address: "Pinchas Lavon 5, Holon", delivery: true, hours: "Dim-Jeu 8h-22h, Ven 7h-15h" }
   ],
   tiv_taam: [
@@ -71,6 +81,29 @@ const STORE_LOCATIONS = {
     { name: "Hatzi Hinam Jérusalem Sanhedria", lat: 31.7997, lon: 35.2003, address: "Bar Ilan 64, Jérusalem", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
     { name: "Hatzi Hinam Beitar Illit", lat: 31.6939, lon: 35.1183, address: "Ahi Akiva 6, Beitar Illit", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" }
   ]
+};
+
+// Magasins de proximité (24/7 ou convenience) - seulement géoloc, pas de
+// comparaison de prix car gamme limitée et premium par nature.
+const STORE_LOCATIONS_EXTRA = {
+  ampm: {
+    name: "AM:PM",
+    color: "#0ea5e9",
+    icon: "AM",
+    note: "24/7 · Tel Aviv & alentours · Convenience",
+    locations: [
+      { name: "AM:PM Dizengoff", lat: 32.0826, lon: 34.7740, address: "Dizengoff 99, Tel Aviv", delivery: true, hours: "24/7" },
+      { name: "AM:PM Ibn Gvirol", lat: 32.0780, lon: 34.7825, address: "Ibn Gvirol 80, Tel Aviv", delivery: true, hours: "24/7" },
+      { name: "AM:PM Allenby", lat: 32.0664, lon: 34.7702, address: "Allenby 60, Tel Aviv", delivery: true, hours: "24/7" },
+      { name: "AM:PM Florentin", lat: 32.0556, lon: 34.7686, address: "Florentin 26, Tel Aviv", delivery: true, hours: "24/7" },
+      { name: "AM:PM Rothschild", lat: 32.0633, lon: 34.7714, address: "Rothschild 35, Tel Aviv", delivery: true, hours: "24/7" },
+      { name: "AM:PM Ramat Aviv", lat: 32.1108, lon: 34.7919, address: "Brodetsky 41, Tel Aviv", delivery: true, hours: "24/7" },
+      { name: "AM:PM Neve Tzedek", lat: 32.0631, lon: 34.7642, address: "Yehuda HaLevi 14, Tel Aviv", delivery: true, hours: "24/7" },
+      { name: "AM:PM Yafo", lat: 32.0500, lon: 34.7561, address: "Yefet 23, Yafo", delivery: true, hours: "24/7" },
+      { name: "AM:PM Herzliya", lat: 32.1640, lon: 34.8489, address: "Sokolov 28, Herzliya", delivery: true, hours: "24/7" },
+      { name: "AM:PM Ramat Gan", lat: 32.0683, lon: 34.8248, address: "Bialik 30, Ramat Gan", delivery: true, hours: "24/7" }
+    ]
+  }
 };
 
 // URLs des store locators officiels (pour trouver TOUS les magasins de chaque chaîne)
@@ -107,12 +140,29 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
 }
 
-function nearestStores(userLat, userLon, perChain = 1) {
+function nearestStores(userLat, userLon, perChain = 1, maxDistanceKm = 30) {
   const out = {};
   Object.entries(STORE_LOCATIONS).forEach(([chain, stores]) => {
-    const withDist = stores.map(s => ({ ...s, distance: haversineKm(userLat, userLon, s.lat, s.lon) }));
+    const withDist = stores
+      .map(s => ({ ...s, distance: haversineKm(userLat, userLon, s.lat, s.lon) }))
+      .filter(s => s.distance <= maxDistanceKm);
     withDist.sort((a, b) => a.distance - b.distance);
-    out[chain] = withDist.slice(0, perChain);
+    if (withDist.length > 0) out[chain] = withDist.slice(0, perChain);
+  });
+  return out;
+}
+
+// Magasins de proximité dans le rayon de l'utilisateur
+function nearestExtraStores(userLat, userLon, maxDistanceKm = 15) {
+  const out = {};
+  Object.entries(STORE_LOCATIONS_EXTRA).forEach(([chainId, info]) => {
+    const withDist = info.locations
+      .map(s => ({ ...s, distance: haversineKm(userLat, userLon, s.lat, s.lon) }))
+      .filter(s => s.distance <= maxDistanceKm);
+    withDist.sort((a, b) => a.distance - b.distance);
+    if (withDist.length > 0) {
+      out[chainId] = { name: info.name, color: info.color, icon: info.icon, note: info.note, store: withDist[0] };
+    }
   });
   return out;
 }
@@ -121,6 +171,6 @@ function wazeURL(lat, lon) { return `https://waze.com/ul?ll=${lat},${lon}&naviga
 function googleMapsURL(lat, lon) { return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`; }
 
 if (typeof module !== "undefined") {
-  module.exports = { STORE_LOCATIONS, STORE_WEBSITES, STORE_FINDERS, haversineKm, nearestStores, wazeURL, googleMapsURL };
+  module.exports = { STORE_LOCATIONS, STORE_LOCATIONS_EXTRA, STORE_WEBSITES, STORE_FINDERS, haversineKm, nearestStores, nearestExtraStores, wazeURL, googleMapsURL };
 }
 

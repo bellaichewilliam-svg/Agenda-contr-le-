@@ -901,7 +901,7 @@ function renderBrowsePanel() {
         <button class="link-btn" data-clear-cat>×</button>
       </div>
       <div class="subcat-row">
-        <button class="subcat-pill ${!state.activeSubcat ? "active" : ""}" data-subcat="">Tous</button>
+        <button class="subcat-pill ${!state.activeSubcat ? "active" : ""}" data-subcat="">${t("cat_all")}</button>
         ${subs.map(([s, n]) => `<button class="subcat-pill ${state.activeSubcat === s ? "active" : ""}" data-subcat="${s}">${tSubcat(s)} <span class="subcat-count">${n}</span></button>`).join("")}
       </div>`;
   } else {
@@ -1355,7 +1355,7 @@ function renderCartItemHTML(id, big = false) {
       <div class="cart-item-info" data-action="detail" data-id="${id}">
         <div class="cart-item-name">${tProduct(p)}</div>
         <div class="cart-item-meta">
-          <button class="store-pick" data-action="pick" data-id="${id}" title="Choisir un magasin">
+          <button class="store-pick" data-action="pick" data-id="${id}" title="${t("pick_a_store")}">
             <span class="store-mini" style="background:${store.color}">${store.icon}</span>
             <span style="color:${store.color};font-weight:600">${formatPrice(effPrice)}</span>
             ${!isCheapest
@@ -1646,7 +1646,7 @@ function exportStoreAsNewList(storeId) {
     }
   });
   if (Object.keys(newCart).length === 0) {
-    showToast("⚠️ Aucun produit assigné à " + STORES[storeId].name);
+    showToast("⚠️ " + t("no_products_assigned") + " " + STORES[storeId].name);
     return;
   }
   const id = newId();
@@ -1989,16 +1989,39 @@ if (new URLSearchParams(location.search).has("reset")) {
 }
 
 // ========== RECETTES ==========
+function getUserRecipes() {
+  try { return JSON.parse(localStorage.getItem("pm.userRecipes") || "[]"); } catch { return []; }
+}
+function saveUserRecipes(arr) {
+  try { localStorage.setItem("pm.userRecipes", JSON.stringify(arr)); } catch {}
+}
+
 function showRecipesModal() {
   if (typeof RECIPES === "undefined") return;
   const modal = document.getElementById("recipes-modal");
   const lang = state.lang;
+  const userRecipes = getUserRecipes();
   modal.querySelector(".recipes-content").innerHTML = `
     <div class="recipes-head">
       <h3>👨‍🍳 ${t("recipes")}</h3>
       <button class="modal-close" data-recipes-close>×</button>
     </div>
     <p class="recipes-intro">${t("one_click_recipe")}</p>
+    <div style="padding: 0 12px 8px;">
+      <button class="btn primary big" data-new-recipe style="width:100%">+ ${lang === "he" ? "מתכון חדש" : (lang === "en" ? "New recipe" : (lang === "ru" ? "Новый рецепт" : "Nouvelle recette personnalisée"))}</button>
+    </div>
+    ${userRecipes.length > 0 ? `
+    <div class="recipes-section-title">⭐ ${lang === "he" ? "המתכונים שלי" : (lang === "en" ? "My recipes" : (lang === "ru" ? "Мои рецепты" : "Mes recettes"))}</div>
+    <div class="recipes-grid">
+      ${userRecipes.map(r => `
+          <button class="recipe-card user-recipe" data-recipe-id="user:${r.id}">
+            <div class="recipe-emoji">${r.emoji || "📝"}</div>
+            <div class="recipe-name">${r.name}</div>
+            <div class="recipe-count">${r.ingredients.length} ${t("ingredients").toLowerCase()}</div>
+            <button class="recipe-delete" data-delete-recipe="${r.id}" title="${t("delete_list")}">×</button>
+          </button>`).join("")}
+    </div>` : ""}
+    <div class="recipes-section-title">📚 ${lang === "he" ? "מתכונים מוכנים" : (lang === "en" ? "Built-in" : (lang === "ru" ? "Готовые" : "Recettes prêtes"))}</div>
     <div class="recipes-grid">
       ${RECIPES.map(r => {
         const name = r.names[lang] || r.names.fr;
@@ -2015,11 +2038,157 @@ function showRecipesModal() {
   modal.classList.add("visible");
   modal.querySelector("[data-recipes-close]").addEventListener("click", hideRecipesModal);
   modal.querySelectorAll(".recipe-card").forEach(el => {
-    el.addEventListener("click", () => {
-      const recipe = RECIPES.find(r => r.id === el.dataset.recipeId);
+    el.addEventListener("click", e => {
+      // Ne pas déclencher si on clique sur le bouton supprimer
+      if (e.target.closest("[data-delete-recipe]")) return;
+      const id = el.dataset.recipeId;
+      let recipe;
+      if (id.startsWith("user:")) {
+        const userId = id.slice(5);
+        const userR = getUserRecipes().find(r => r.id === userId);
+        if (userR) recipe = { id: "user:" + userR.id, emoji: userR.emoji || "📝",
+          names: { fr: userR.name, he: userR.name, en: userR.name, ru: userR.name },
+          descs: { fr: userR.description || "", he: userR.description || "", en: userR.description || "", ru: userR.description || "" },
+          ingredients: userR.ingredients };
+      } else {
+        recipe = RECIPES.find(r => r.id === id);
+      }
       if (recipe) showRecipeDetail(recipe);
     });
   });
+  // Supprimer une recette utilisateur
+  modal.querySelectorAll("[data-delete-recipe]").forEach(btn => {
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      if (!confirm(t("list_delete_confirm"))) return;
+      const userR = getUserRecipes().filter(r => r.id !== btn.dataset.deleteRecipe);
+      saveUserRecipes(userR);
+      showRecipesModal();
+    });
+  });
+  // Nouvelle recette
+  const newBtn = modal.querySelector("[data-new-recipe]");
+  if (newBtn) newBtn.addEventListener("click", showNewRecipeForm);
+}
+
+function showNewRecipeForm(existingRecipe) {
+  const modal = document.getElementById("recipes-modal");
+  const lang = state.lang;
+  const editing = !!existingRecipe;
+  const recipe = existingRecipe || { id: "u" + Date.now().toString(36), emoji: "📝", name: "", description: "", ingredients: [] };
+  const labels = {
+    fr: { title: "Nouvelle recette", name: "Nom de la recette", emoji: "Emoji", desc: "Description", ingredients: "Ingrédients", search: "Rechercher un produit à ajouter…", save: "Enregistrer", cancel: "Annuler", placeholder: "Ex: Pasta carbonara", emojiPlaceholder: "🍝" },
+    he: { title: "מתכון חדש", name: "שם המתכון", emoji: "אימוג'י", desc: "תיאור", ingredients: "מרכיבים", search: "חיפוש מוצר להוספה…", save: "שמור", cancel: "ביטול", placeholder: "לדוגמה: פסטה קרבונרה", emojiPlaceholder: "🍝" },
+    en: { title: "New recipe", name: "Recipe name", emoji: "Emoji", desc: "Description", ingredients: "Ingredients", search: "Search a product to add…", save: "Save", cancel: "Cancel", placeholder: "e.g. Pasta carbonara", emojiPlaceholder: "🍝" },
+    ru: { title: "Новый рецепт", name: "Название рецепта", emoji: "Эмодзи", desc: "Описание", ingredients: "Ингредиенты", search: "Найти продукт для добавления…", save: "Сохранить", cancel: "Отмена", placeholder: "Напр. Паста карбонара", emojiPlaceholder: "🍝" }
+  }[lang] || labels?.fr;
+  const L = labels;
+
+  function render() {
+    modal.querySelector(".recipes-content").innerHTML = `
+      <div class="recipes-head">
+        <button class="modal-close" data-back-newrecipe style="font-size:22px">←</button>
+        <h3 style="flex:1;text-align:center">${editing ? recipe.emoji + " " + recipe.name : "📝 " + L.title}</h3>
+        <button class="modal-close" data-recipes-close>×</button>
+      </div>
+      <div style="padding: 14px; display: flex; flex-direction: column; gap: 12px;">
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="rcp-emoji" value="${recipe.emoji}" placeholder="${L.emojiPlaceholder}" style="width:60px; text-align:center; font-size:24px; padding:8px; border:1px solid var(--border); border-radius:8px; background:var(--panel-soft); color:var(--text); font-family:inherit;" />
+          <input type="text" id="rcp-name" value="${recipe.name}" placeholder="${L.placeholder}" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--panel-soft); color:var(--text); font-family:inherit; font-size:14px;" />
+        </div>
+        <textarea id="rcp-desc" placeholder="${L.desc}" style="padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--panel-soft); color:var(--text); font-family:inherit; font-size:13px; min-height:50px; resize:vertical;">${recipe.description || ""}</textarea>
+        <div>
+          <div style="font-weight:700; font-size:13px; margin-bottom:6px;">${L.ingredients} (${recipe.ingredients.length})</div>
+          <div id="rcp-ingredients" style="display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto; margin-bottom:8px;">
+            ${recipe.ingredients.map((ing, idx) => {
+              const p = findProduct(ing.id);
+              if (!p) return "";
+              return `
+                <div class="ing-row" style="cursor:default">
+                  <div class="prod-icon mini" style="background:${productTint(p)}">${productIcon(p)}</div>
+                  <div class="ing-info">
+                    <div class="ing-name">${tProduct(p)}</div>
+                    <div class="ing-meta">${formatQty(ing.qty)}× ${p.unit}</div>
+                  </div>
+                  <input type="text" inputmode="decimal" data-rcp-qty="${idx}" value="${formatQty(ing.qty)}" style="width:50px; padding:4px; border:1px solid var(--border); border-radius:6px; text-align:center; font-size:12px; background:var(--panel); color:var(--text); font-family:inherit;" />
+                  <button class="remove-btn" data-rcp-remove="${idx}">×</button>
+                </div>`;
+            }).join("")}
+          </div>
+          <input type="text" id="rcp-search" placeholder="${L.search}" style="width:100%; padding:10px; border:1.5px solid var(--accent); border-radius:8px; background:var(--panel); color:var(--text); font-family:inherit; font-size:14px;" />
+          <div id="rcp-search-results" style="margin-top:6px; max-height:180px; overflow-y:auto;"></div>
+        </div>
+      </div>
+      <div class="pm-actions">
+        <button class="btn ghost" data-back-newrecipe>← ${L.cancel}</button>
+        <button class="btn primary big" data-save-recipe>💾 ${L.save}</button>
+      </div>`;
+
+    modal.querySelectorAll("[data-back-newrecipe]").forEach(b => b.addEventListener("click", () => showRecipesModal()));
+    modal.querySelector("[data-recipes-close]").addEventListener("click", hideRecipesModal);
+
+    // Recherche d'ingrédients
+    const search = modal.querySelector("#rcp-search");
+    const results = modal.querySelector("#rcp-search-results");
+    search.addEventListener("input", () => {
+      const q = search.value.trim();
+      if (!q) { results.innerHTML = ""; return; }
+      const matches = filterProducts(q, null, null).slice(0, 6);
+      results.innerHTML = matches.map(p => `
+        <div class="search-result-item" data-add-ing="${p.id}" style="border:1px solid var(--border); border-radius:8px; margin-bottom:4px;">
+          <div class="prod-icon mini" style="background:${productTint(p)}">${productIcon(p)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:13px">${tProduct(p)}</div>
+            <div class="meta">${tCat(p.category)} · ${p.unit}</div>
+          </div>
+          <div class="add-icon">+</div>
+        </div>`).join("");
+      results.querySelectorAll("[data-add-ing]").forEach(el => {
+        el.addEventListener("click", () => {
+          const pid = el.dataset.addIng;
+          if (recipe.ingredients.find(i => i.id === pid)) return;
+          const p = findProduct(pid);
+          recipe.ingredients.push({ id: pid, qty: defaultQty(p) });
+          search.value = "";
+          render();
+        });
+      });
+    });
+
+    // Quantité ingrédient
+    modal.querySelectorAll("[data-rcp-qty]").forEach(inp => {
+      inp.addEventListener("change", () => {
+        const idx = parseInt(inp.dataset.rcpQty, 10);
+        const v = parseQtyInput(inp.value, findProduct(recipe.ingredients[idx].id)?.unit);
+        if (v != null && !isNaN(v) && v > 0) recipe.ingredients[idx].qty = v;
+      });
+    });
+    modal.querySelectorAll("[data-rcp-remove]").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const idx = parseInt(btn.dataset.rcpRemove, 10);
+        recipe.ingredients.splice(idx, 1);
+        render();
+      });
+    });
+
+    // Sauvegarder
+    modal.querySelector("[data-save-recipe]").addEventListener("click", () => {
+      const name = modal.querySelector("#rcp-name").value.trim();
+      if (!name) { showToast("⚠️ " + L.name, "warn"); return; }
+      if (recipe.ingredients.length === 0) { showToast("⚠️ " + L.ingredients, "warn"); return; }
+      recipe.name = name;
+      recipe.emoji = modal.querySelector("#rcp-emoji").value.trim() || "📝";
+      recipe.description = modal.querySelector("#rcp-desc").value.trim();
+      const userRecipes = getUserRecipes();
+      const existing = userRecipes.findIndex(r => r.id === recipe.id);
+      if (existing >= 0) userRecipes[existing] = recipe;
+      else userRecipes.push(recipe);
+      saveUserRecipes(userRecipes);
+      showToast("✓ " + L.save);
+      showRecipesModal();
+    });
+  }
+  render();
 }
 function showRecipeDetail(recipe) {
   const modal = document.getElementById("recipes-modal");
@@ -2166,18 +2335,59 @@ function showNearbyStores() {
     return;
   }
 
-  const nearby = nearestStores(userLocation.lat, userLocation.lon, 1);
+  const nearby = nearestStores(userLocation.lat, userLocation.lon, 1, 30);
+  const extras = (typeof nearestExtraStores !== "undefined") ? nearestExtraStores(userLocation.lat, userLocation.lon, 15) : {};
   const sortedChains = Object.entries(nearby)
     .map(([chain, stores]) => ({ chain, store: stores[0] }))
     .filter(x => x.store)
     .sort((a, b) => a.store.distance - b.store.distance);
+  const extraList = Object.entries(extras)
+    .map(([id, x]) => ({ id, ...x }))
+    .sort((a, b) => a.store.distance - b.store.distance);
 
+  const noStores = sortedChains.length === 0 && extraList.length === 0;
   content.innerHTML = `
     <div class="nearby-head">
       <h3>📍 ${t("nearby_title")}</h3>
       <button class="modal-close" data-nearby-close>×</button>
     </div>
+    ${noStores ? `<div class="empty-state" style="padding:24px"><span class="emoji">📍</span>${state.lang === "he" ? "אין חנויות במרחק 30 ק\"מ ממך" : (state.lang === "en" ? "No store within 30km" : (state.lang === "ru" ? "Нет магазинов в радиусе 30 км" : "Aucun magasin à moins de 30 km de toi"))}</div>` : ""}
     <div class="nearby-stores">
+      ${extraList.map(({ id, name, color, icon, note, store }) => `
+          <div class="nearby-store extra">
+            <div class="nearby-store-head">
+              <span class="store-icon" style="background:${color};width:32px;height:32px;font-size:12px">${icon}</span>
+              <div class="nearby-store-name-block">
+                <div class="nearby-store-name">${store.name}</div>
+                <div class="nearby-store-meta">${store.address}</div>
+                <div class="nearby-store-note">${note}</div>
+              </div>
+              <div class="nearby-store-dist">${store.distance} km</div>
+            </div>
+            <div class="nearby-store-info">
+              <span class="nearby-pill">🕐 ${store.hours}</span>
+            </div>
+            <div class="nearby-actions">
+              <a href="${wazeURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn waze">
+                <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true">
+                  <circle cx="24" cy="24" r="20" fill="#fff"/>
+                  <path d="M24 8C14.06 8 6 16.06 6 26c0 4.5 1.66 8.62 4.4 11.78-.5 1.18-1.4 2.5-2.4 3.22 1.5.4 4.2 0 6-1.4 2.6 1.5 5.7 2.4 9 2.4h1c10.5 0 18-8 18-18S33.94 8 24 8z" fill="#33CCFF"/>
+                  <circle cx="18" cy="22" r="2.2" fill="#fff"/>
+                  <circle cx="30" cy="22" r="2.2" fill="#fff"/>
+                  <path d="M14 28c1.5 3 5 5.5 10 5.5s8.5-2.5 10-5.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+                </svg>Waze
+              </a>
+              <a href="${googleMapsURL(store.lat, store.lon)}" target="_blank" rel="noopener" class="nearby-btn gmaps">
+                <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <defs><linearGradient id="gmpin-extra-${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EA4335"/><stop offset="1" stop-color="#C5221F"/></linearGradient></defs>
+                  <path d="M12 1C7.03 1 3 5.03 3 10c0 6.5 9 13 9 13s9-6.5 9-13c0-4.97-4.03-9-9-9z" fill="url(#gmpin-extra-${id})"/>
+                  <circle cx="12" cy="10" r="3.5" fill="#fff"/>
+                  <circle cx="12" cy="10" r="2.2" fill="#1A73E8"/>
+                </svg>Google Maps
+              </a>
+            </div>
+          </div>
+      `).join("")}
       ${sortedChains.map(({ chain, store }) => {
         const s = STORES[chain];
         const website = STORE_WEBSITES[chain];
@@ -2221,7 +2431,7 @@ function showNearbyStores() {
                 Google Maps
               </a>
               ${website ? `<a href="${website}" target="_blank" rel="noopener" class="nearby-btn site">🛒 ${t("order_online")}</a>` : ""}
-              ${(typeof STORE_FINDERS !== "undefined" && STORE_FINDERS[chain]) ? `<a href="${STORE_FINDERS[chain]}" target="_blank" rel="noopener" class="nearby-btn finder">📋 Tous</a>` : ""}
+              ${(typeof STORE_FINDERS !== "undefined" && STORE_FINDERS[chain]) ? `<a href="${STORE_FINDERS[chain]}" target="_blank" rel="noopener" class="nearby-btn finder">📋 ${state.lang === "he" ? "כל החנויות" : (state.lang === "en" ? "All stores" : (state.lang === "ru" ? "Все" : "Tous"))}</a>` : ""}
             </div>
           </div>`;
       }).join("")}
@@ -2253,9 +2463,9 @@ function detectNewPromos() {
   setTimeout(() => {
     if (newOnes.length === 1) {
       const p = newOnes[0];
-      showToast(`🎁 Nouvelle promo : ${p.title} chez ${STORES[p.chain].name}`);
+      showToast("🎁 " + t("new_promos_one", { title: p.title, store: STORES[p.chain].name }));
     } else {
-      showToast(`🎁 ${newOnes.length} nouvelles promos disponibles ! Voir le bandeau jaune dans la liste.`);
+      showToast("🎁 " + t("new_promos_many", { n: newOnes.length }));
     }
     // Marque comme vues
     const updated = { ...seen };

@@ -1051,6 +1051,19 @@ button { font-family: inherit; color: inherit; }
   border-radius: var(--radius-md);
   padding: 10px;
 }
+.nearby-store.extra {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.08), rgba(14, 165, 233, 0.02));
+  border-color: #0ea5e9;
+  border-left: 3px solid #0ea5e9;
+}
+.nearby-store-note {
+  font-size: 10px;
+  color: #0ea5e9;
+  margin-top: 1px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 .nearby-store-head {
   display: flex;
   align-items: center;
@@ -1283,6 +1296,35 @@ button { font-family: inherit; color: inherit; }
   border-color: var(--accent);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+.recipe-card.user-recipe {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.02));
+  border-color: var(--accent);
+  position: relative;
+}
+.recipe-delete {
+  position: absolute;
+  top: 4px; right: 4px;
+  width: 22px; height: 22px;
+  border: none;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border-radius: 50%;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+[dir="rtl"] .recipe-delete { right: auto; left: 4px; }
+.recipes-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 12px 16px 4px;
 }
 .recipe-emoji { font-size: 36px; margin-bottom: 4px; }
 .recipe-name {
