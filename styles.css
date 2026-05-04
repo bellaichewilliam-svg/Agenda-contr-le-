@@ -1116,6 +1116,7 @@ button { font-family: inherit; color: inherit; }
 .nearby-btn.gmaps { background: white; color: #1A73E8; border: 1px solid #1A73E8; }
 [data-theme="dark"] .nearby-btn.gmaps { background: #1e293b; color: #93c5fd; border-color: #1A73E8; }
 .nearby-btn.site { background: var(--success); color: white; border: 1px solid var(--success); }
+.nearby-btn.finder { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
 
 /* ====== Drawer quick actions ====== */
 .drawer-actions {

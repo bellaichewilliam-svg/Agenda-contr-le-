@@ -2221,6 +2221,7 @@ function showNearbyStores() {
                 Google Maps
               </a>
               ${website ? `<a href="${website}" target="_blank" rel="noopener" class="nearby-btn site">🛒 ${t("order_online")}</a>` : ""}
+              ${(typeof STORE_FINDERS !== "undefined" && STORE_FINDERS[chain]) ? `<a href="${STORE_FINDERS[chain]}" target="_blank" rel="noopener" class="nearby-btn finder">📋 Tous</a>` : ""}
             </div>
           </div>`;
       }).join("")}
