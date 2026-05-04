@@ -350,6 +350,25 @@ button { font-family: inherit; color: inherit; }
   max-width: 100%;
 }
 .quick-categories::-webkit-scrollbar { display: none; }
+@media (min-width: 960px) {
+  .quick-categories, .subcat-row {
+    scroll-behavior: smooth;
+    cursor: grab;
+  }
+  .quick-categories::after, .subcat-row::after {
+    content: "›";
+    position: sticky;
+    inset-inline-end: 0;
+    color: var(--accent);
+    font-size: 22px;
+    line-height: 1;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--panel) 60%);
+    padding: 4px 10px 4px 24px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+}
 .cat-pill {
   background: var(--accent-soft);
   color: var(--accent-hover);

@@ -364,6 +364,25 @@ button { font-family: inherit; color: inherit; }
   max-width: 100%;
 }
 .quick-categories::-webkit-scrollbar { display: none; }
+@media (min-width: 960px) {
+  .quick-categories, .subcat-row {
+    scroll-behavior: smooth;
+    cursor: grab;
+  }
+  .quick-categories::after, .subcat-row::after {
+    content: "›";
+    position: sticky;
+    inset-inline-end: 0;
+    color: var(--accent);
+    font-size: 22px;
+    line-height: 1;
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, var(--panel) 60%);
+    padding: 4px 10px 4px 24px;
+    flex-shrink: 0;
+    align-self: center;
+  }
+}
 .cat-pill {
   background: var(--accent-soft);
   color: var(--accent-hover);
@@ -2232,36 +2251,36 @@ button { font-family: inherit; color: inherit; }
         <button class="drawer-action" id="promos-hub-btn">
           <span class="drawer-action-icon">🎁</span>
           <span class="drawer-action-text">
-            <div class="drawer-action-title" data-i18n="promotions">Promotions</div>
-            <div class="drawer-action-hint">Toutes les promos en cours</div>
+            <div class="drawer-action-title" data-i18n="promotions"></div>
+            <div class="drawer-action-hint" data-i18n="promo_active_hint"></div>
           </span>
         </button>
         <button class="drawer-action" id="savings-btn">
           <span class="drawer-action-icon">📈</span>
           <span class="drawer-action-text">
-            <div class="drawer-action-title">Mes économies</div>
-            <div class="drawer-action-hint">Cumul mois & année</div>
+            <div class="drawer-action-title" data-i18n="my_savings"></div>
+            <div class="drawer-action-hint" data-i18n="my_savings_hint"></div>
           </span>
         </button>
         <button class="drawer-action" id="fridge-btn">
           <span class="drawer-action-icon">🗓️</span>
           <span class="drawer-action-text">
-            <div class="drawer-action-title">Calendrier frigo</div>
-            <div class="drawer-action-hint">Anti-gaspillage</div>
+            <div class="drawer-action-title" data-i18n="fridge_calendar"></div>
+            <div class="drawer-action-hint" data-i18n="fridge_calendar_hint"></div>
           </span>
         </button>
         <button class="drawer-action" id="recipes-btn">
           <span class="drawer-action-icon">👨‍🍳</span>
           <span class="drawer-action-text">
-            <div class="drawer-action-title">Recettes</div>
-            <div class="drawer-action-hint">Ajoute les ingrédients d'un menu</div>
+            <div class="drawer-action-title" data-i18n="recipes"></div>
+            <div class="drawer-action-hint" data-i18n="recipes_hint"></div>
           </span>
         </button>
         <button class="drawer-action" id="nearby-btn">
           <span class="drawer-action-icon">📍</span>
           <span class="drawer-action-text">
-            <div class="drawer-action-title">Magasins proches</div>
-            <div class="drawer-action-hint">Géoloc + Waze + livraison</div>
+            <div class="drawer-action-title" data-i18n="nearby_stores"></div>
+            <div class="drawer-action-hint" data-i18n="nearby_hint"></div>
           </span>
         </button>
       </div>
@@ -2280,9 +2299,9 @@ button { font-family: inherit; color: inherit; }
         <label class="toggle"><input type="checkbox" id="settings-theme" /><span></span></label>
       </div>
       <div class="setting-row" style="border-bottom: none; flex-direction: column; align-items: stretch; gap: 8px;">
-        <div class="setting-label">🔄 Forcer la mise à jour</div>
-        <div class="setting-hint">Vide le cache et recharge la dernière version</div>
-        <button class="btn primary" id="settings-reset" style="margin-top: 6px;">Mettre à jour maintenant</button>
+        <div class="setting-label" data-i18n="force_update_label"></div>
+        <div class="setting-hint" data-i18n="force_update_hint"></div>
+        <button class="btn primary" id="settings-reset" style="margin-top: 6px;" data-i18n="update_now"></button>
         <div class="setting-hint" id="app-version" style="text-align:center;margin-top:4px"></div>
       </div>
     </div>
@@ -2386,7 +2405,10 @@ const I18N = {
     refresh_location: "Mettre à jour la position",
     order_online: "Commander", brand_origin: "Marque & composition",
     brand: "Marque", origin: "Origine", ingredients: "Ingrédients", nutrition: "Nutrition",
-    promotions: "Promotions", promo_active: "Vos promos actives", promo_suggestion: "suggestion",
+    promotions: "Promotions", promo_active: "Vos promos actives", promo_active_hint: "Toutes les promos en cours",
+    my_savings: "Mes économies", my_savings_hint: "Cumul mois & année",
+    fridge_calendar: "Calendrier frigo", fridge_calendar_hint: "Anti-gaspillage",
+    promo_suggestion: "suggestion",
     promo_suggestions: "suggestions", super_promo: "SUPER",
     almost_amount: "Encore {amount}", add_x_more: "Ajoute {name}", add_n_more: "Ajoute {n}× plus",
     triggers_promo: "déclenche la promo", you_save: "tu gagnes",
@@ -2491,7 +2513,10 @@ const I18N = {
     refresh_location: "עדכן מיקום",
     order_online: "להזמין", brand_origin: "מותג והרכב",
     brand: "מותג", origin: "מקור", ingredients: "רכיבים", nutrition: "ערכים תזונתיים",
-    promotions: "מבצעים", promo_active: "המבצעים הפעילים שלך", promo_suggestion: "הצעה",
+    promotions: "מבצעים", promo_active: "המבצעים הפעילים שלך", promo_active_hint: "כל המבצעים העכשוויים",
+    my_savings: "החיסכונות שלי", my_savings_hint: "סכום חודשי ושנתי",
+    fridge_calendar: "לוח שנה מקרר", fridge_calendar_hint: "נגד בזבוז",
+    promo_suggestion: "הצעה",
     promo_suggestions: "הצעות", super_promo: "סופר",
     almost_amount: "עוד {amount}", add_x_more: "הוסף {name}", add_n_more: "הוסף {n}× עוד",
     triggers_promo: "מפעיל את המבצע", you_save: "אתה חוסך",
@@ -2596,7 +2621,10 @@ const I18N = {
     refresh_location: "Refresh location",
     order_online: "Order", brand_origin: "Brand & ingredients",
     brand: "Brand", origin: "Origin", ingredients: "Ingredients", nutrition: "Nutrition",
-    promotions: "Promotions", promo_active: "Your active promos", promo_suggestion: "suggestion",
+    promotions: "Promotions", promo_active: "Your active promos", promo_active_hint: "All current promotions",
+    my_savings: "My savings", my_savings_hint: "Month & year totals",
+    fridge_calendar: "Fridge calendar", fridge_calendar_hint: "Anti-waste",
+    promo_suggestion: "suggestion",
     promo_suggestions: "suggestions", super_promo: "SUPER",
     almost_amount: "{amount} more needed", add_x_more: "Add {name}", add_n_more: "Add {n}× more",
     triggers_promo: "triggers the promo", you_save: "you save",
@@ -2701,7 +2729,10 @@ const I18N = {
     refresh_location: "Обновить местоположение",
     order_online: "Заказать", brand_origin: "Бренд и состав",
     brand: "Бренд", origin: "Происхождение", ingredients: "Состав", nutrition: "Пищевая ценность",
-    promotions: "Акции", promo_active: "Ваши активные акции", promo_suggestion: "предложение",
+    promotions: "Акции", promo_active: "Ваши активные акции", promo_active_hint: "Все текущие акции",
+    my_savings: "Моя экономия", my_savings_hint: "За месяц и год",
+    fridge_calendar: "Календарь холодильника", fridge_calendar_hint: "Против потерь",
+    promo_suggestion: "предложение",
     promo_suggestions: "предложений", super_promo: "СУПЕР",
     almost_amount: "Ещё {amount}", add_x_more: "Добавьте {name}", add_n_more: "Добавьте {n}× ещё",
     triggers_promo: "активирует акцию", you_save: "вы сэкономите",
@@ -5703,7 +5734,9 @@ async function loadLivePrices() {
 // ========== RENDER : BANNER + HEADER ==========
 function renderUpdateBanner() {
   document.getElementById("last-updated-label").textContent = t("last_updated");
-  document.getElementById("last-updated").textContent = formatDate(LAST_UPDATED);
+  // Si live-prices.json a été chargé avec une date, l'utiliser, sinon date du jour
+  const dateToShow = (LIVE_META && LIVE_META.generatedAt) ? LIVE_META.generatedAt : new Date().toISOString();
+  document.getElementById("last-updated").textContent = formatDate(dateToShow);
   document.getElementById("product-count").textContent = PRODUCTS.length;
   document.getElementById("source-label").textContent = "📡 " + t("source_official");
   const liveEl = document.getElementById("live-status");
@@ -5776,6 +5809,12 @@ function renderStaticTexts() {
   document.getElementById("settings-shopping-label").textContent = t("shopping_mode");
   document.getElementById("settings-shopping-hint").textContent = t("shopping_mode_hint");
   document.getElementById("settings-theme-label").textContent = t("dark_mode");
+  // Tous les éléments avec data-i18n
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    const txt = t(key);
+    if (typeof txt === "string" && txt && txt !== key) el.textContent = txt;
+  });
 }
 
 // ========== THEME ==========
@@ -5876,6 +5915,7 @@ function renderQuickCategories() {
   wrap.innerHTML = cats.map(c =>
     `<button class="cat-pill ${state.activeCategory === c ? "active" : ""}" data-cat="${c}">${tCat(c)}</button>`
   ).join("");
+  attachWheelHorizontalScroll(wrap);
   wrap.querySelectorAll(".cat-pill").forEach(el => {
     el.addEventListener("click", () => {
       state.activeCategory = state.activeCategory === el.dataset.cat ? null : el.dataset.cat;
@@ -6175,6 +6215,8 @@ function renderBrowsePanel() {
       renderBrowsePanel();
     });
   });
+  const subcatRow = wrap.querySelector(".subcat-row");
+  if (subcatRow) attachWheelHorizontalScroll(subcatRow);
   // Scroll infini : observe le sentinel et charge la page suivante
   if (_browseObserver) _browseObserver.disconnect();
   const sentinel = document.getElementById("browse-sentinel");
@@ -7032,6 +7074,22 @@ function setupSettings() {
 }
 
 // ========== EVENTS ==========
+// Convertit le scroll vertical molette en scroll horizontal sur les rangées
+function attachWheelHorizontalScroll(el) {
+  if (!el || el._wheelHandlerAttached) return;
+  el._wheelHandlerAttached = true;
+  el.addEventListener("wheel", e => {
+    // Ne convertit que si pas de scroll horizontal natif
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
+      const max = el.scrollWidth - el.clientWidth;
+      if (max > 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    }
+  }, { passive: false });
+}
+
 function setupEvents() {
   document.querySelectorAll(".mode-btn").forEach(btn => {
     btn.addEventListener("click", () => {

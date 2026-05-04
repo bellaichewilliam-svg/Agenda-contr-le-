@@ -515,7 +515,9 @@ async function loadLivePrices() {
 // ========== RENDER : BANNER + HEADER ==========
 function renderUpdateBanner() {
   document.getElementById("last-updated-label").textContent = t("last_updated");
-  document.getElementById("last-updated").textContent = formatDate(LAST_UPDATED);
+  // Si live-prices.json a été chargé avec une date, l'utiliser, sinon date du jour
+  const dateToShow = (LIVE_META && LIVE_META.generatedAt) ? LIVE_META.generatedAt : new Date().toISOString();
+  document.getElementById("last-updated").textContent = formatDate(dateToShow);
   document.getElementById("product-count").textContent = PRODUCTS.length;
   document.getElementById("source-label").textContent = "📡 " + t("source_official");
   const liveEl = document.getElementById("live-status");
@@ -588,6 +590,12 @@ function renderStaticTexts() {
   document.getElementById("settings-shopping-label").textContent = t("shopping_mode");
   document.getElementById("settings-shopping-hint").textContent = t("shopping_mode_hint");
   document.getElementById("settings-theme-label").textContent = t("dark_mode");
+  // Tous les éléments avec data-i18n
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    const txt = t(key);
+    if (typeof txt === "string" && txt && txt !== key) el.textContent = txt;
+  });
 }
 
 // ========== THEME ==========
@@ -688,6 +696,7 @@ function renderQuickCategories() {
   wrap.innerHTML = cats.map(c =>
     `<button class="cat-pill ${state.activeCategory === c ? "active" : ""}" data-cat="${c}">${tCat(c)}</button>`
   ).join("");
+  attachWheelHorizontalScroll(wrap);
   wrap.querySelectorAll(".cat-pill").forEach(el => {
     el.addEventListener("click", () => {
       state.activeCategory = state.activeCategory === el.dataset.cat ? null : el.dataset.cat;
@@ -987,6 +996,8 @@ function renderBrowsePanel() {
       renderBrowsePanel();
     });
   });
+  const subcatRow = wrap.querySelector(".subcat-row");
+  if (subcatRow) attachWheelHorizontalScroll(subcatRow);
   // Scroll infini : observe le sentinel et charge la page suivante
   if (_browseObserver) _browseObserver.disconnect();
   const sentinel = document.getElementById("browse-sentinel");
@@ -1844,6 +1855,22 @@ function setupSettings() {
 }
 
 // ========== EVENTS ==========
+// Convertit le scroll vertical molette en scroll horizontal sur les rangées
+function attachWheelHorizontalScroll(el) {
+  if (!el || el._wheelHandlerAttached) return;
+  el._wheelHandlerAttached = true;
+  el.addEventListener("wheel", e => {
+    // Ne convertit que si pas de scroll horizontal natif
+    if (Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaY !== 0) {
+      const max = el.scrollWidth - el.clientWidth;
+      if (max > 0) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    }
+  }, { passive: false });
+}
+
 function setupEvents() {
   document.querySelectorAll(".mode-btn").forEach(btn => {
     btn.addEventListener("click", () => {
