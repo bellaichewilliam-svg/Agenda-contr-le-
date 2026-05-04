@@ -178,6 +178,10 @@ const AUTO_NAME_FR = {
     ["ice-cream-", { he: "גלידה", en: "Ice cream", ru: "Мороженое" }],
     // Snacks
     ["chocolate-", { he: "שוקולד", en: "Chocolate", ru: "Шоколад" }],
+    ["burekas-", { he: "בורקס", en: "Bourekas", ru: "Бурекас" }],
+    ["cake-", { he: "עוגה", en: "Cake", ru: "Кекс" }],
+    ["biscuits-", { he: "ביסקוויטים", en: "Biscuits", ru: "Печенье" }],
+    ["cookies-", { he: "עוגיות", en: "Cookies", ru: "Печенье" }],
     ["chips-", { he: "צ'יפס", en: "Chips", ru: "Чипсы" }],
     ["candy-", { he: "סוכריות", en: "Candy", ru: "Конфеты" }],
     ["nuts-", { he: "אגוזים", en: "Nuts", ru: "Орехи" }],
