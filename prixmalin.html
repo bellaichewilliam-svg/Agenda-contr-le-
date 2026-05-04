@@ -8132,17 +8132,25 @@ function setupPWA() {
     });
   }
   // Détection de version pour les visiteurs avec cache navigateur agressif
-  window.PRIXMALIN_VERSION = "v8";
+  window.PRIXMALIN_VERSION = "v9";
   const VERSION_KEY = "prixmalin.version";
-  const CURRENT_VERSION = "v8";
+  const CURRENT_VERSION = "v9";
   const stored = (() => { try { return localStorage.getItem(VERSION_KEY); } catch { return null; } })();
   if (stored !== CURRENT_VERSION) {
     try { localStorage.setItem(VERSION_KEY, CURRENT_VERSION); } catch {}
-    // Si on a un SW actif et version différente, force update
-    if ("serviceWorker" in navigator && navigator.serviceWorker.controller && stored) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(r => r.update());
-      });
+    // Si version différente : purge totale + reload (pas besoin de ?reset=1)
+    if (stored && "serviceWorker" in navigator) {
+      (async () => {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+          if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+          location.reload();
+        } catch {}
+      })();
     }
   }
   let deferredPrompt = null;
