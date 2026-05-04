@@ -39,7 +39,7 @@ import requests
 
 log = logging.getLogger(__name__)
 
-UA = "Mozilla/5.0 (compatible; PrixMalinBot/1.0; +https://github.com/bellaichewilliam-svg/Agenda-contr-le-)"
+UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
 TIMEOUT = 60
 
 
@@ -70,7 +70,14 @@ class PriceItem:
 
 def session() -> requests.Session:
     s = requests.Session()
-    s.headers.update({"User-Agent": UA, "Accept-Language": "he,en;q=0.5"})
+    s.headers.update({
+        "User-Agent": UA,
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "he-IL,he;q=0.9,en;q=0.7,fr;q=0.6",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+    })
     return s
 
 

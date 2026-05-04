@@ -14,19 +14,19 @@ const PROMOTIONS = [
   // ===== Rami Levy =====
   { id: "rl-yogurt-3-2", chain: "rami_levy", type: "n_for_m",
     title: "3 yaourts au prix de 2",
-    desc: "Sur tous les yaourts Yoplait, Tnuva, Danone, Skyr",
+    desc: "Yoplait nature/fruits · Tnuva Pro · Danone Activia · Skyr 0% · Leben",
     products: ["yogurt-nat", "yogurt-fruit", "yogurt-greek", "yogurt-drink", "skyr", "leben"],
     n: 3, m: 2, validUntil: "2026-05-31" },
 
   { id: "rl-fruits-15", chain: "rami_levy", type: "category_pct",
     title: "−15% sur les fruits",
-    desc: "Tous les fruits frais (au moins 30₪)",
+    desc: "Pommes Pink Lady/Gala · Bananes · Oranges Israël · Avocats Hass · Fraises (min 30₪)",
     category: "Fruits", pct: 15, minTotal: 30,
     validUntil: "2026-05-15" },
 
   { id: "rl-bbq", chain: "rami_levy", type: "bundle",
     title: "Pack BBQ : −20%",
-    desc: "Achetez les 4 produits ensemble",
+    desc: "Off Tov poulet/schnitzel · Soglowek bœuf/merguez · Pita Berman/Lafa · Sabra/Achla houmous · Coca-Cola/Goldstar",
     requiredAny: [
       ["chicken-breast", "schnitzel", "ground-beef-17", "merguez", "kebab"],
       ["bread-white", "pita", "lafa"],
@@ -37,91 +37,91 @@ const PROMOTIONS = [
 
   { id: "rl-baby-bundle", chain: "rami_levy", type: "bundle",
     title: "Pack Bébé : −25₪",
-    desc: "Couches + lingettes ensemble",
+    desc: "Couches Huggies T3/T4/T5/T6 + Lingettes Huggies (pack 4×80)",
     requiredAny: [["diapers-3", "diapers-4", "diapers-5", "diapers-6"], ["wipes"]],
     fixed: 25, validUntil: "2026-05-31" },
 
   // ===== Shufersal =====
   { id: "sh-pasta-2nd-50", chain: "shufersal", type: "second_pct",
     title: "2ème paquet de pâtes à −50%",
-    desc: "Sur toute la gamme Osem",
+    desc: "Osem Spaghetti/Penne/Fusilli/Lasagne/Nouilles aux œufs · 500g",
     products: ["pasta-spaghetti", "pasta-penne", "pasta-fusilli", "pasta-lasagna", "pasta-noodles"],
     pct: 50, validUntil: "2026-05-20" },
 
   { id: "sh-coca-3-25", chain: "shufersal", type: "n_for_price",
     title: "3 Coca-Cola pour 25₪",
-    desc: "Bouteilles 1.5L, panaché autorisé",
+    desc: "Coca-Cola classique · Sprite · Fanta orange — bouteilles 1.5L, panaché autorisé",
     products: ["coke-1.5", "sprite", "fanta"],
     n: 3, price: 25, validUntil: "2026-05-25" },
 
   { id: "sh-cleaning-thresh", chain: "shufersal", type: "threshold",
     title: "−15₪ dès 100₪ de produits d'entretien",
-    desc: "Lessive, vaisselle, nettoyants...",
+    desc: "Ariel lessive · Sano vaisselle · Sano sols · Vanish détachant · Eau de Javel · Sacs poubelle",
     category: "Entretien", minTotal: 100, fixed: 15,
     validUntil: "2026-05-31" },
 
   { id: "sh-cheese-2-1", chain: "shufersal", type: "n_for_m",
     title: "1 fromage acheté = 1 offert",
-    desc: "Sur les fromages Tnuva sélectionnés",
+    desc: "Tnuva Emek 28% · Tnuva Light 9% · Feta bulgare · Mozzarella râpée — barquettes 200g",
     products: ["cheese-yellow-28", "cheese-yellow-9", "feta", "mozzarella"],
     n: 2, m: 1, validUntil: "2026-05-15" },
 
   // ===== Carrefour =====
   { id: "cf-veggies-20", chain: "carrefour", type: "category_pct",
     title: "−20% sur les légumes frais",
-    desc: "Tous les légumes (au moins 25₪)",
+    desc: "Tomates · Concombres · Poivrons · Courgettes · Aubergines · Salades — origine Israël (min 25₪)",
     category: "Légumes", pct: 20, minTotal: 25,
     validUntil: "2026-05-18" },
 
   { id: "cf-frozen-3-2", chain: "carrefour", type: "n_for_m",
     title: "3 surgelés au prix de 2",
-    desc: "Toute la gamme surgelée",
+    desc: "Maadanot pizza · McCain frites · Sunfrost légumes · Ben & Jerry's glaces — toute la gamme",
     category: "Surgelés", n: 3, m: 2,
     validUntil: "2026-05-31" },
 
   { id: "cf-coffee-bundle", chain: "carrefour", type: "bundle",
     title: "Pack café : −18%",
-    desc: "Café + lait + sucre",
+    desc: "Elite Turkish/Nescafé Gold + Lait Tnuva 3% + Sucre blanc Sugat",
     requiredAny: [["coffee-turkish", "coffee-instant", "coffee-beans"], ["milk-3", "milk-1"], ["sugar-white", "sugar-brown"]],
     pct: 18, validUntil: "2026-06-15" },
 
   // ===== Yochananof =====
   { id: "yo-chicken-pct", chain: "yochananof", type: "category_pct",
     title: "−10% sur la volaille",
-    desc: "Tous les poulets et dindes",
+    desc: "Off Tov blanc/cuisses/ailes · Off Tov entier · Off Tov foies · Schnitzel · Hod Hefer dinde",
     products: ["chicken-breast", "chicken-thigh", "chicken-wings", "chicken-whole", "chicken-liver",
                "schnitzel", "ground-chicken", "turkey-breast", "turkey-ground"],
     pct: 10, validUntil: "2026-05-25" },
 
   { id: "yo-snacks-2-1", chain: "yochananof", type: "n_for_m",
     title: "Bamba/Bisli : 2ème gratuit",
-    desc: "Sur tous les Osem",
+    desc: "Bamba 80g · Bamba familial 200g · Bisli 70g — Osem 100% cacher",
     products: ["bamba", "bamba-family", "bisli"],
     n: 2, m: 1, validUntil: "2026-05-20" },
 
   // ===== Victory =====
   { id: "vi-wine-3-100", chain: "victory", type: "n_for_price",
     title: "3 vins pour 100₪",
-    desc: "Sélection de vins israéliens",
+    desc: "Carmel Selected Cabernet · Yarden Mt. Hermon · Recanati Yasmin Rouge — sélection cachère mevushal",
     products: ["wine-carmel", "wine-rose", "wine-white", "wine-kiddush"],
     n: 3, price: 100, validUntil: "2026-05-31" },
 
   { id: "vi-thresh-200", chain: "victory", type: "threshold",
     title: "−25₪ dès 200₪ d'achats",
-    desc: "Sur tout le panier",
+    desc: "Sur tout le panier — cumulable carte de fidélité Victory Plus",
     minTotal: 200, fixed: 25,
     validUntil: "2026-05-31" },
 
   // ===== Osher Ad =====
   { id: "oa-eggs-2-15", chain: "osher_ad", type: "n_for_price",
     title: "2 boîtes d'œufs pour 30₪",
-    desc: "L ou XL, 12 ou 30",
+    desc: "Tnuva Mehadrin œufs L (12 ou 30) ou XL (12) — œufs de poules en cage cacher Mehadrin",
     products: ["eggs-12-l", "eggs-12-xl", "eggs-30"],
     n: 2, price: 30, validUntil: "2026-05-22" },
 
   { id: "oa-spices", chain: "osher_ad", type: "n_for_m",
     title: "3 épices pour le prix de 2",
-    desc: "Sur toutes les épices",
+    desc: "Pereg : poivre noir/blanc · paprika doux/fort · cumin · curcuma · cannelle · muscade · cardamome · clous girofle · curry · gingembre · hawaij · baharat · origan · thym · romarin · laurier · zaatar",
     products: ["pepper", "pepper-white", "pepper-whole", "paprika-sweet", "paprika-hot",
                "cumin", "turmeric", "cinnamon", "nutmeg", "cardamom", "cloves",
                "curry", "ginger-powder", "hawaij", "baharat", "oregano", "thyme",
@@ -131,14 +131,14 @@ const PROMOTIONS = [
   // ===== Boom =====
   { id: "boom-cleaning-pct", chain: "boom", type: "category_pct",
     title: "−12% sur l'entretien",
-    desc: "Toute la gamme nettoyage",
+    desc: "Sano vaisselle/sols · Ariel lessive · Adoucissant · Eau de Javel · Sacs poubelle · Aluminium",
     category: "Entretien", pct: 12,
     validUntil: "2026-06-01" },
 
   // ===== Hatzi Hinam =====
   { id: "hh-bakery-thresh", chain: "hatzi_hinam", type: "threshold",
     title: "Hala offerte dès 80₪ de boulangerie",
-    desc: "Offre spéciale shabbat",
+    desc: "Hala tressée Mehadrin offerte (valeur 9.90₪) — pour Shabbat. Sur achat de pain Berman/Angel/Davidovich, pita, lafa, beigels.",
     category: "Boulangerie", minTotal: 80,
     bonusItem: "challah", bonusValue: 9.90,
     validUntil: "2026-05-31" },
@@ -146,7 +146,7 @@ const PROMOTIONS = [
   // ===== Tiv Taam =====
   { id: "tt-fish-15", chain: "tiv_taam", type: "category_pct",
     title: "−15% sur les poissons frais",
-    desc: "Saumon, daurade, tilapia...",
+    desc: "Saumon Norvège · Daurade Israël · Tilapia · Mulet · Cabillaud · Maquereau — élevé en mer ouverte, sans hormones",
     category: "Poisson", pct: 15,
     validUntil: "2026-05-23" }
 ];
