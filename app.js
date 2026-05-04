@@ -2972,7 +2972,7 @@ function hideRecipesModal() {
 
 // ========== MAGASINS PROCHES (géolocalisation) ==========
 let userLocation = null;
-let nearbyShowAll = false; // false = uniquement ceux qui livrent, true = tous
+let nearbyShowAll = true; // true = tous accessibles (livraison + retrait), false = livraison only
 function loadCachedLocation() {
   try {
     const v = localStorage.getItem("pm.userLocation");
@@ -3033,10 +3033,10 @@ function showNearbyStores() {
   const hiddenPickup = allCount - deliveryCount;
   const lang = state.lang;
   const filterLabels = {
-    fr: { delivery_only: "🚚 Livraison ici", show_all: "Voir tous (+ retrait)", hidden_msg: hiddenPickup + " sans livraison ici" },
-    he: { delivery_only: "🚚 משלוח לאזור", show_all: "הראה הכל (+ איסוף)", hidden_msg: hiddenPickup + " ללא משלוח" },
-    en: { delivery_only: "🚚 Delivery here", show_all: "Show all (+ pickup)", hidden_msg: hiddenPickup + " without delivery" },
-    ru: { delivery_only: "🚚 С доставкой", show_all: "Все (+ самовывоз)", hidden_msg: hiddenPickup + " без доставки" }
+    fr: { all: "🛒 Tous les magasins", delivery_only: "🚚 Livraison ici" },
+    he: { all: "🛒 כל החנויות", delivery_only: "🚚 רק משלוח" },
+    en: { all: "🛒 All stores", delivery_only: "🚚 Delivery only" },
+    ru: { all: "🛒 Все магазины", delivery_only: "🚚 Только доставка" }
   };
   const FL = filterLabels[lang] || filterLabels.fr;
   content.innerHTML = `
@@ -3046,8 +3046,8 @@ function showNearbyStores() {
     </div>
     ${(allCount > 0) ? `
       <div class="nearby-filter">
-        <button class="cat-pill ${!nearbyShowAll ? "active" : ""}" data-toggle-all="0">${FL.delivery_only} (${deliveryCount})</button>
-        ${hiddenPickup > 0 ? `<button class="cat-pill ${nearbyShowAll ? "active" : ""}" data-toggle-all="1">${FL.show_all} (${allCount})</button>` : ""}
+        <button class="cat-pill ${nearbyShowAll ? "active" : ""}" data-toggle-all="1">${FL.all} (${allCount})</button>
+        ${deliveryCount > 0 && deliveryCount < allCount ? `<button class="cat-pill ${!nearbyShowAll ? "active" : ""}" data-toggle-all="0">${FL.delivery_only} (${deliveryCount})</button>` : ""}
       </div>` : ""}
     ${noStores ? `<div class="empty-state" style="padding:24px"><span class="emoji">📍</span>${lang === "he" ? "אין חנויות במרחק 30 ק\"מ ממך" : (lang === "en" ? "No store within 30km" : (lang === "ru" ? "Нет магазинов в радиусе 30 км" : "Aucun magasin à moins de 30 km de toi"))}</div>` : ""}
     ${(!noStores && sortedChains.length === 0 && hiddenPickup > 0) ? `<div class="empty-state" style="padding:16px;font-size:13px"><span class="emoji">🚚</span>${lang === "he" ? "אין חנות שמספקת לאזור שלך. לחץ על \"הראה הכל\" לאפשרויות איסוף." : (lang === "en" ? "No store delivers here. Click 'Show all' for pickup options." : (lang === "ru" ? "Нет доставки. Нажмите 'Все' для вариантов самовывоза." : "Aucun magasin ne livre ici. Clique \"Voir tous\" pour les options retrait."))}</div>` : ""}

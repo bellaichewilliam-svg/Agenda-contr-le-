@@ -68,6 +68,7 @@ const STORE_LOCATIONS = {
     { name: "Tiv Taam Herzliya", lat: 32.1640, lon: 34.8489, address: "Sokolov 6, Herzliya", delivery: true, hours: "Lun-Sam 9h-22h" }
   ],
   osher_ad: [
+    { name: "Osher Ad Netanya", lat: 32.3093, lon: 34.8780, address: "Tom Lantos 60, Netanya (Naimi Mall)", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
     { name: "Osher Ad Bnei Brak", lat: 32.0832, lon: 34.8338, address: "Hashniayim 4, Bnei Brak", delivery: false, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
     { name: "Osher Ad Modiin Illit", lat: 31.9344, lon: 35.0464, address: "Yehuda HaNasi 8, Modiin Illit", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
     { name: "Osher Ad Beit Shemesh", lat: 31.7510, lon: 34.9885, address: "Nahar HaYarden 2, Beit Shemesh", delivery: true, hours: "Dim-Jeu 7h-22h, Ven 6h-14h" },
