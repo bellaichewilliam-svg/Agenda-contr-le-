@@ -332,9 +332,147 @@
     renderHero();
     renderTopPromos();
     renderStoreChips();
+    renderDealCategories();
+    renderBigDeals();
     renderAllPromos();
   }
   window.renderPromosView = renderPromosView;
+
+  // ---- Big Deals (non-alimentaire) ----------------------------------------
+  let _activeDealCat = null;
+
+  function renderDealCategories() {
+    const el = document.getElementById("deal-categories");
+    if (!el || typeof BIG_CATEGORIES === "undefined") return;
+    const counts = (typeof countBigDealsByCategory === "function") ? countBigDealsByCategory() : {};
+    const total = (typeof BIG_DEALS !== "undefined") ? BIG_DEALS.length : 0;
+
+    const allBtn = `<button class="deal-cat-pill ${_activeDealCat === null ? "active" : ""}" data-deal-cat="">✨ Tout <span class="cat-count">${total}</span></button>`;
+    const cats = Object.entries(BIG_CATEGORIES).map(([id, c]) => {
+      const n = counts[id] || 0;
+      if (n === 0) return "";
+      return `<button class="deal-cat-pill ${_activeDealCat === id ? "active" : ""}" data-deal-cat="${id}">${c.name} <span class="cat-count">${n}</span></button>`;
+    }).filter(Boolean).join("");
+
+    el.innerHTML = allBtn + cats;
+    el.querySelectorAll(".deal-cat-pill").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const cat = btn.dataset.dealCat;
+        _activeDealCat = cat || null;
+        renderDealCategories();
+        renderBigDeals();
+      });
+    });
+  }
+
+  function renderBigDeals() {
+    const el = document.getElementById("big-deals-grid");
+    const count = document.getElementById("big-deals-count");
+    if (!el || typeof BIG_DEALS === "undefined") return;
+    const deals = _activeDealCat ? BIG_DEALS.filter(d => d.category === _activeDealCat) : BIG_DEALS;
+    if (count) count.textContent = `${deals.length} offres`;
+
+    if (deals.length === 0) {
+      el.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><span class="emoji">🎁</span><div>Aucune offre dans cette catégorie</div></div>`;
+      return;
+    }
+
+    el.innerHTML = deals.map(d => {
+      const store = (window.BIG_STORES || {})[d.store] || { name: d.store, color: "#FF6B35", icon: "🏪" };
+      const cat = (window.BIG_CATEGORIES || {})[d.category] || { color: "#FF6B35" };
+      const savePct = d.discount_rate ? Math.round(d.discount_rate * 100) : 0;
+      const validDate = d.valid_until ? new Date(d.valid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
+
+      // Use real image if provided, otherwise fake card with emoji + brand
+      const imgHtml = d.image
+        ? `<img class="deal-card-img-real" src="${d.image}" alt="${d.name}" loading="lazy" />`
+        : `<div class="deal-card-img-fake" style="background:linear-gradient(135deg, ${cat.color} 0%, ${shade(cat.color, -20)} 100%)">
+             <span class="deal-card-img-emoji">${d.emoji || "🎁"}</span>
+             ${d.brand ? `<span class="deal-card-img-brand">${d.brand}</span>` : ""}
+           </div>`;
+
+      return `
+        <div class="deal-card" data-deal-id="${d.id}">
+          <div class="deal-card-img">
+            ${imgHtml}
+            ${savePct > 0 ? `<span class="deal-card-discount">-${savePct}%</span>` : ""}
+          </div>
+          <div class="deal-card-body">
+            <div class="deal-card-store">
+              <span class="store-dot" style="background:${store.color}"></span>
+              <span translate="no">${store.name}</span>
+            </div>
+            <div class="deal-card-name">${d.name}</div>
+            <div class="deal-card-prices">
+              <span class="deal-card-new">₪${d.discounted_price}</span>
+              ${d.original_price > d.discounted_price ? `<span class="deal-card-old">₪${d.original_price}</span>` : ""}
+            </div>
+            ${validDate ? `<div class="deal-card-until">⏰ Jusqu'au ${validDate}</div>` : ""}
+          </div>
+        </div>`;
+    }).join("");
+
+    el.querySelectorAll(".deal-card").forEach(card => {
+      card.addEventListener("click", () => {
+        const id = card.dataset.dealId;
+        const deal = BIG_DEALS.find(d => d.id === id);
+        if (deal) openBigDealModal(deal);
+      });
+    });
+  }
+
+  // Utility: shade a hex color by percentage
+  function shade(hex, percent) {
+    if (!hex || hex[0] !== "#") return hex;
+    const num = parseInt(hex.slice(1), 16);
+    const amt = Math.round(2.55 * percent);
+    const R = Math.min(255, Math.max(0, ((num >> 16) & 0xff) + amt));
+    const G = Math.min(255, Math.max(0, ((num >> 8)  & 0xff) + amt));
+    const B = Math.min(255, Math.max(0, ( num        & 0xff) + amt));
+    return "#" + ((R << 16) | (G << 8) | B).toString(16).padStart(6, "0");
+  }
+
+  function openBigDealModal(deal) {
+    const modal = document.getElementById("product-modal");
+    const content = modal && modal.querySelector(".pm-content");
+    if (!content) return;
+    const store = (window.BIG_STORES || {})[deal.store] || { name: deal.store, color: "#FF6B35", icon: "🏪" };
+    const cat = (window.BIG_CATEGORIES || {})[deal.category] || { color: "#FF6B35", name: deal.category };
+    const savePct = deal.discount_rate ? Math.round(deal.discount_rate * 100) : 0;
+    const saving = deal.original_price - deal.discounted_price;
+
+    content.innerHTML = `
+      <div class="modal-head">
+        <h3>${deal.emoji || "🎁"} ${deal.name}</h3>
+        <button class="modal-close" onclick="document.getElementById('product-modal').classList.remove('open')">×</button>
+      </div>
+      <div style="padding:20px 24px;">
+        <div style="height:180px; border-radius:16px; background:linear-gradient(135deg,${cat.color},${shade(cat.color,-20)}); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; margin-bottom:16px;">
+          <span style="font-size:96px; line-height:1; filter: drop-shadow(0 4px 12px rgba(0,0,0,.2));">${deal.emoji || "🎁"}</span>
+          ${deal.brand ? `<span style="background:rgba(0,0,0,.35); color:white; font-size:12px; font-weight:800; padding:4px 12px; border-radius:999px; letter-spacing:.1em; text-transform:uppercase;">${deal.brand}</span>` : ""}
+        </div>
+        <div class="pm-cat" style="background:${cat.color}22; color:${cat.color};">${cat.name}</div>
+        <div style="display:flex; align-items:baseline; gap:12px; margin:14px 0;">
+          <span style="font-size:32px; font-weight:900; color:var(--brand); font-variant-numeric:tabular-nums;">₪${deal.discounted_price}</span>
+          <span style="font-size:16px; color:var(--muted); text-decoration:line-through;">₪${deal.original_price}</span>
+          ${savePct > 0 ? `<span class="ptop-saving-pill">-${savePct}%</span>` : ""}
+        </div>
+        ${deal.description ? `<p class="pm-desc">${deal.description}</p>` : ""}
+        <div class="pm-section-title">Disponible chez</div>
+        <div class="pm-price-row" style="cursor:default;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="store-mini" style="background:${store.color}; min-width:32px; height:32px; font-size:14px;">${store.icon || "🏪"}</span>
+            <div>
+              <div class="pm-store-name" translate="no">${store.name}</div>
+              <div style="font-size:11px;color:var(--muted);">Économie ₪${saving.toFixed(0)}</div>
+            </div>
+          </div>
+          <button class="btn primary sm" onclick="document.getElementById('product-modal').classList.remove('open');" style="margin-left:auto;">OK</button>
+        </div>
+        ${deal.valid_until ? `<div class="setting-hint" style="margin-top:14px; text-align:center;">⏰ Offre valable jusqu'au ${new Date(deal.valid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}</div>` : ""}
+      </div>`;
+    modal.classList.add("open");
+  }
 
   // ---- Favs view -------------------------------------------------------------
   function renderFavsView() {
