@@ -194,30 +194,55 @@
   }
   window.applyTabsI18n = applyTabsI18n;
 
-  // ---- Hero block ------------------------------------------------------------
+  // ---- Hero : LE DEAL DU JOUR (1 grosse carte centrée) -----------------------
   function renderHero() {
     const el = document.getElementById("promo-hero");
     if (!el) return;
-    const l = L();
     const promos = (typeof PROMOTIONS !== "undefined") ? PROMOTIONS : [];
-    const numStores = Object.keys((typeof STORES !== "undefined" ? STORES : {}) || {}).length || 9;
-    // Calcule l'économie max parmi les promos
-    let maxSaving = 0;
-    promos.forEach(p => {
-      if (p.discount_rate && p.discount_rate > maxSaving) maxSaving = p.discount_rate;
-    });
-    const maxSavingPct = Math.round(maxSaving * 100);
+    const stores = (typeof STORES !== "undefined" ? STORES : {});
+    if (promos.length === 0) { el.style.display = "none"; return; }
 
+    // Choisit le BEST deal = celui avec le savedPct le plus haut
+    let best = null;
+    let bestScore = -1;
+    promos.forEach(p => {
+      const i = promoInfo(p);
+      let score = i.savedPct || 0;
+      if (i.isSuper) score += 20;
+      if (score > bestScore) { bestScore = score; best = { p, info: i }; }
+    });
+    if (!best) { el.style.display = "none"; return; }
+
+    const i = best.info;
+    const validUntil = best.p.validUntil ? new Date(best.p.validUntil).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
+
+    el.style.display = "block";
     el.innerHTML = `
-      <div class="promo-hero-eyebrow">${l.heroEyebrow}</div>
-      <div class="promo-hero-title">${l.heroTitle}</div>
-      <div class="promo-hero-sub">${l.heroSub}</div>
-      <div class="promo-hero-stats">
-        <div class="promo-hero-stat"><strong>${promos.length}</strong>${l.heroStatsPromos}</div>
-        <div class="promo-hero-stat"><strong>${numStores}</strong>${l.heroStatsStores}</div>
-        ${maxSavingPct > 0 ? `<div class="promo-hero-stat"><strong>-${maxSavingPct}%</strong>${l.heroStatsSaving}</div>` : ""}
+      <div class="hero-day-eyebrow">🔥 LE DEAL DU JOUR</div>
+      <div class="hero-day-card">
+        <div class="hero-day-img">
+          <span class="hero-day-emoji">${i.emoji}</span>
+          ${i.savedPct > 0 ? `<span class="hero-day-pct">-${i.savedPct}%</span>` : ""}
+        </div>
+        <div class="hero-day-body">
+          <div class="hero-day-store"><span class="store-dot" style="background:${i.store.color}"></span><span translate="no">${i.store.name}</span></div>
+          <div class="hero-day-title">${i.name}</div>
+          ${i.desc ? `<div class="hero-day-desc">${i.desc}</div>` : ""}
+          ${i.baseP ? `
+            <div class="hero-day-prices">
+              <span class="hero-day-new">${formatPriceSafe(i.newP)}</span>
+              <span class="hero-day-old">${formatPriceSafe(i.baseP)}</span>
+            </div>` : (i.typeBadge ? `<div class="hero-day-prices"><span class="hero-day-badge">${i.typeBadge}</span></div>` : "")}
+          ${validUntil ? `<div class="hero-day-until">⏰ Jusqu'au ${validUntil}</div>` : ""}
+        </div>
       </div>
     `;
+    // Click → open product detail
+    const card = el.querySelector(".hero-day-card");
+    if (card) card.addEventListener("click", () => {
+      const pid = best.p.products && best.p.products[0];
+      if (pid && window.openProductDetail) window.openProductDetail(pid);
+    });
   }
 
   // ---- Store chips ----------------------------------------------------------
