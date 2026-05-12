@@ -358,7 +358,7 @@
           <button class="profile-row"><span>🔒</span> Confidentialité<span class="row-arrow">›</span></button>
           <button class="profile-row"><span>📄</span> CGU & Mentions<span class="row-arrow">›</span></button>
           <button class="profile-row"><span>💬</span> Aide & support<span class="row-arrow">›</span></button>
-          <button class="profile-row"><span>📱</span> À propos · v25 démo<span class="row-arrow">›</span></button>
+          <button class="profile-row"><span>📱</span> À propos · v29 démo<span class="row-arrow">›</span></button>
         </div>
         <div class="profile-foot">Membre depuis ${FAKE_USER.member_since}</div>
       </div>`;
@@ -546,9 +546,11 @@
   }
 
   // ============== CART GRAND TOTAL (fix: app.js renderCart pas sur window) =====
+  let _lastCartSig = "";
+  let _cachedCartEl = null, _cachedActionsEl = null;
   function ensureCartTotal() {
-    const cart = document.getElementById("cart");
-    const actions = document.getElementById("cart-actions");
+    const cart = _cachedCartEl || (_cachedCartEl = document.getElementById("cart"));
+    const actions = _cachedActionsEl || (_cachedActionsEl = document.getElementById("cart-actions"));
     if (!cart || !actions) return;
     let bar = document.getElementById("cart-total-bar");
     // Calcule le total : on lit le state si dispo, sinon on additionne les .cart-item-total visibles
@@ -586,9 +588,13 @@
     }
 
     if (count === 0 || total === 0) {
-      if (bar) bar.remove();
+      if (bar) { bar.remove(); _lastCartSig = ""; }
       return;
     }
+
+    const sig = `${count}|${total.toFixed(2)}|${storeName}`;
+    if (sig === _lastCartSig && bar) return;  // change detection: skip redundant writes
+    _lastCartSig = sig;
 
     if (!bar) {
       bar = document.createElement("div");
@@ -615,9 +621,25 @@
     injectStoriesBar();
     injectGlobalSearchInTopbar();
     setupPullToRefresh();
-    const tryFavs = () => injectFavoriteButtons();
-    tryFavs();
-    setInterval(tryFavs, 1500);
+    // MutationObserver scoped — réagit aux nouveaux prod-card sans polling
+    const setupFavObserver = () => {
+      const containers = [
+        document.getElementById("promos-list"),
+        document.getElementById("big-deals-grid"),
+        document.getElementById("browse-grid"),
+        document.getElementById("favs-list"),
+      ].filter(Boolean);
+      if (containers.length === 0) { setTimeout(setupFavObserver, 400); return; }
+      let scheduled = false;
+      const obs = new MutationObserver(() => {
+        if (scheduled) return;
+        scheduled = true;
+        requestAnimationFrame(() => { scheduled = false; injectFavoriteButtons(); });
+      });
+      containers.forEach(c => obs.observe(c, { childList: true, subtree: false }));
+      injectFavoriteButtons();
+    };
+    setupFavObserver();
     if (!FEAT.onboardingDone) setTimeout(showOnboarding, 800);
   }
 
@@ -631,12 +653,14 @@
   window.openOnboarding = () => { setLS("kedai.onboarded", ""); FEAT.onboardingDone = false; showOnboarding(); };
 })();
 
-// ============== v26 — Render BIG_STORES (non-food) chips =====================
+// ============== v29 — Render BIG_STORES once (no polling) ====================
 (function () {
+  let rendered = false;
   function renderBigStoreChips() {
+    if (rendered) return true;
     const el = document.getElementById("big-store-chips");
-    if (!el) return;
-    const stores = (typeof BIG_STORES !== "undefined") ? BIG_STORES : {};
+    if (!el || typeof BIG_STORES === "undefined") return false;
+    const stores = BIG_STORES;
     const deals = (typeof BIG_DEALS !== "undefined") ? BIG_DEALS : [];
     const counts = {};
     deals.forEach(d => { counts[d.store] = (counts[d.store] || 0) + 1; });
@@ -649,14 +673,25 @@
           ${n > 0 ? `<div class="store-chip-promos">${n} deals</div>` : ""}
         </button>`;
     }).join("");
-    el.querySelectorAll(".store-chip").forEach(b => {
-      b.addEventListener("click", () => {
-        const id = b.dataset.bigStore;
-        if (typeof window.showToast === "function") window.showToast("Catalogue " + (stores[id]?.name || id) + " (démo)");
-      });
+    // Event delegation — un seul listener au lieu de N
+    el.addEventListener("click", e => {
+      const btn = e.target.closest(".store-chip[data-big-store]");
+      if (!btn) return;
+      const id = btn.dataset.bigStore;
+      if (typeof window.showToast === "function") window.showToast("Catalogue " + (stores[id]?.name || id) + " (démo)");
     });
+    rendered = true;
+    return true;
   }
-  // Re-render every 1.5s in case BIG_STORES loads later
-  setInterval(renderBigStoreChips, 1500);
-  setTimeout(renderBigStoreChips, 300);
+  // One-shot avec retry exponentiel jusqu'à 5s max (au cas où DOM/data pas prêts)
+  function retry(delays) {
+    if (renderBigStoreChips()) return;
+    const d = delays.shift();
+    if (d != null) setTimeout(() => retry(delays), d);
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => retry([100, 300, 800, 2000]));
+  } else {
+    retry([100, 300, 800, 2000]);
+  }
 })();
