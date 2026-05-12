@@ -213,9 +213,9 @@
     if (!el || !window.STORES) return;
     const stores = window.STORES;
     const promos = (typeof PROMOTIONS !== "undefined") ? PROMOTIONS : [];
-    // Count promos per store
+    // Count promos per store (PROMOTIONS uses `chain` not `store`)
     const promosByStore = {};
-    promos.forEach(p => { promosByStore[p.store] = (promosByStore[p.store] || 0) + 1; });
+    promos.forEach(p => { promosByStore[p.chain] = (promosByStore[p.chain] || 0) + 1; });
 
     el.innerHTML = Object.entries(stores).map(([id, s]) => {
       const count = promosByStore[id] || 0;
@@ -237,56 +237,56 @@
     });
   }
 
-  // ---- Top promos carousel --------------------------------------------------
-  function renderTopPromos() {
-    const el = document.getElementById("promos-top");
-    if (!el || typeof PROMOTIONS === "undefined") return;
-    // Top 6 promos (sorted by discount_rate desc)
-    const top = [...PROMOTIONS].sort((a, b) => (b.discount_rate || 0) - (a.discount_rate || 0)).slice(0, 6);
-    el.innerHTML = top.map(p => renderPromoCard(p)).join("");
-    el.querySelectorAll(".ptop-card").forEach(c => {
-      c.addEventListener("click", () => {
-        if (window.openPromosModal) window.openPromosModal();
-      });
-    });
-  }
-
-  function renderPromoCard(p) {
-    const store = (window.STORES || {})[p.store] || { name: p.store, color: "#FF6B35", icon: "🏪" };
-    const product = (typeof PRODUCTS !== "undefined") ? PRODUCTS.find(x => x.id === p.product_id) : null;
+  // ---- Helper: extract usable info from a real PROMOTIONS entry --------------
+  // PROMOTIONS uses: chain, type, products[], pct, fixed, n, m, price, title, desc, validUntil
+  function promoInfo(p) {
+    const store = (window.STORES || {})[p.chain] || { name: p.chain || "Magasin", color: "#FF6B35", icon: "🏪" };
+    let product = null;
+    if (p.products && p.products.length && typeof PRODUCTS !== "undefined") {
+      product = PRODUCTS.find(x => x.id === p.products[0]);
+    } else if (p.category && typeof PRODUCTS !== "undefined") {
+      product = PRODUCTS.find(x => x.category === p.category);
+    }
     const emoji = (product && product.icon) || "🎁";
-    const oldPrice = p.original_price || (product ? product.basePrice : 0);
-    const newPrice = p.discounted_price || oldPrice;
-    const savingPct = p.discount_rate ? Math.round(p.discount_rate * 100) : 0;
-    const name = product ? product.name : (p.title || "Promo");
-    const desc = p.description || "";
+    const name = p.title || (product ? product.name : "Promo");
 
-    return `
-      <div class="ptop-card">
-        <div class="ptop-card-top">
-          <span class="ptop-store-logo" style="background:${store.color}22; color:${store.color}">${store.icon || "🏪"}</span>
-          <span class="ptop-store-name" translate="no">${store.name}</span>
-          ${savingPct > 0 ? `<span class="ptop-type">-${savingPct}%</span>` : ""}
-        </div>
-        <div class="ptop-image"><span class="ptop-image-emoji">${emoji}</span></div>
-        <div class="ptop-info">
-          <div class="ptop-title">${name}</div>
-          ${desc ? `<div class="ptop-meta">${desc}</div>` : ""}
-          <div class="ptop-prices">
-            <span class="ptop-price-new">₪${newPrice.toFixed(2)}</span>
-            ${oldPrice > newPrice ? `<span class="ptop-price-old">₪${oldPrice.toFixed(2)}</span>` : ""}
-          </div>
-        </div>
-      </div>`;
+    // Compute prices when we know the base
+    let baseP = product && product.prices ? product.prices[p.chain] : null;
+    let newP = baseP;
+    let savedAmount = 0;
+    let savedPct = 0;
+    if (baseP) {
+      if (p.pct) { newP = baseP * (1 - p.pct / 100); savedAmount = baseP - newP; savedPct = p.pct; }
+      else if (p.type === "n_for_m" && p.n && p.m) { newP = baseP * p.m / p.n; savedAmount = baseP - newP; savedPct = Math.round((1 - p.m / p.n) * 100); }
+      else if (p.type === "second_pct" && p.pct) { newP = baseP * (1 - p.pct / 200); savedAmount = baseP - newP; savedPct = Math.round(p.pct / 2); }
+      else if (p.fixed) { savedAmount = p.fixed; newP = Math.max(0, baseP - p.fixed); savedPct = Math.round((p.fixed / baseP) * 100); }
+      else if (p.type === "n_for_price" && p.n && p.price) { newP = p.price / p.n; savedAmount = baseP - newP; savedPct = Math.round((1 - newP / baseP) * 100); }
+    } else if (p.pct) {
+      savedPct = p.pct;
+    } else if (p.type === "n_for_m" && p.n && p.m) {
+      savedPct = Math.round((1 - p.m / p.n) * 100);
+    }
+
+    let typeBadge = "";
+    if (p.type === "n_for_m" && p.n === 2 && p.m === 1) typeBadge = "1+1";
+    else if (p.type === "n_for_m") typeBadge = `${p.n}=${p.m}`;
+    else if (p.type === "second_pct") typeBadge = `2ème −${p.pct}%`;
+    else if (p.type === "n_for_price") typeBadge = `${p.n} = ₪${p.price}`;
+    else if (p.pct) typeBadge = `−${p.pct}%`;
+    else if (p.fixed) typeBadge = `−₪${p.fixed}`;
+
+    const isSuper = (p.fixed && p.fixed >= 15) || (p.pct && p.pct >= 25) || (p.type === "n_for_m" && (p.n - p.m) >= 2);
+
+    return { store, product, emoji, name, baseP, newP, savedAmount, savedPct, typeBadge, isSuper, desc: p.desc };
   }
 
-  // ---- All promos list -------------------------------------------------------
-  function renderAllPromos(filterStore) {
+  // ---- All promos list (alimentaires) ---------------------------------------
+  function renderAllPromos(filterChain) {
     const el = document.getElementById("promos-list");
     const count = document.getElementById("all-promos-count");
     if (!el || typeof PROMOTIONS === "undefined") return;
     let list = PROMOTIONS;
-    if (filterStore) list = list.filter(p => p.store === filterStore);
+    if (filterChain) list = list.filter(p => p.chain === filterChain);
 
     const l = L();
     if (count) count.textContent = l.promosCount(list.length);
@@ -297,26 +297,21 @@
     }
 
     el.innerHTML = list.map(p => {
-      const store = (window.STORES || {})[p.store] || { name: p.store, color: "#FF6B35", icon: "🏪" };
-      const product = (typeof PRODUCTS !== "undefined") ? PRODUCTS.find(x => x.id === p.product_id) : null;
-      const emoji = (product && product.icon) || "🎁";
-      const oldPrice = p.original_price || (product ? product.basePrice : 0);
-      const newPrice = p.discounted_price || oldPrice;
-      const savingPct = p.discount_rate ? Math.round(p.discount_rate * 100) : 0;
-      const name = product ? product.name : (p.title || "Promo");
-      const isSuper = savingPct >= 30 || (p.discount_rate && p.discount_rate >= 0.3);
+      const info = promoInfo(p);
+      const pricesHTML = info.baseP ? `
+        <div style="display:flex; align-items:baseline; gap:8px; margin-top:8px;">
+          <span class="ptop-price-new">${formatPriceSafe(info.newP)}</span>
+          <span class="ptop-price-old">${formatPriceSafe(info.baseP)}</span>
+          ${info.savedPct > 0 ? `<span class="ptop-saving-pill">−${info.savedPct}%</span>` : ""}
+        </div>` : (info.typeBadge ? `<div style="margin-top:8px"><span class="ptop-saving-pill">${info.typeBadge}</span></div>` : "");
 
       return `
-        <div class="promo-card ${isSuper ? "super" : ""}" data-promo-store="${p.store}" data-promo-pid="${p.product_id || ""}">
-          <div class="promo-store" translate="no">${store.icon || "🏪"} ${store.name}</div>
-          <div class="promo-title">${emoji} ${name}</div>
-          ${p.description ? `<div class="promo-desc">${p.description}</div>` : ""}
-          <div style="display:flex; align-items:baseline; gap:8px; margin-top:8px;">
-            <span class="ptop-price-new">₪${newPrice.toFixed(2)}</span>
-            ${oldPrice > newPrice ? `<span class="ptop-price-old">₪${oldPrice.toFixed(2)}</span>` : ""}
-            ${savingPct > 0 ? `<span class="ptop-saving-pill">-${savingPct}%</span>` : ""}
-          </div>
-          <div class="promo-badge">${isSuper ? "🔥 " : ""}${l.promoFor}</div>
+        <div class="promo-card ${info.isSuper ? "super" : ""}" data-promo-pid="${(p.products && p.products[0]) || ""}">
+          <div class="promo-store"><span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:${info.store.color};vertical-align:middle;margin-right:4px"></span><span translate="no">${info.store.name}</span></div>
+          <div class="promo-title">${info.emoji} ${info.name}</div>
+          ${info.desc ? `<div class="promo-desc">${info.desc}</div>` : ""}
+          ${pricesHTML}
+          <div class="promo-badge">${info.isSuper ? "🔥 SUPER " : ""}${l.promoFor}</div>
         </div>`;
     }).join("");
 
@@ -328,9 +323,15 @@
     });
   }
 
+  function formatPriceSafe(n) {
+    if (typeof window.formatPrice === "function") return window.formatPrice(n);
+    return "₪" + (Math.round(n * 100) / 100).toFixed(2);
+  }
+
   function renderPromosView() {
     renderHero();
-    renderTopPromos();
+    // NOTE: renderTopPromos is defined in app.js — let it run there
+    if (typeof window.renderTopPromos === "function") window.renderTopPromos();
     renderStoreChips();
     renderDealCategories();
     renderBigDeals();
