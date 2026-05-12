@@ -385,9 +385,10 @@
       const validDate = d.valid_until ? new Date(d.valid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
 
       // Use real image if provided, otherwise fake card with emoji + brand
+      const c1 = cat.color, c2 = shade(cat.color, -20);
       const imgHtml = d.image
         ? `<img class="deal-card-img-real" src="${d.image}" alt="${d.name}" loading="lazy" />`
-        : `<div class="deal-card-img-fake" style="background:linear-gradient(135deg, ${cat.color} 0%, ${shade(cat.color, -20)} 100%)">
+        : `<div class="deal-card-img-fake" style="--cat-color:${c1}; --cat-color-2:${c2}; background:linear-gradient(135deg,${c1} 0%,${c2} 100%);">
              <span class="deal-card-img-emoji">${d.emoji || "🎁"}</span>
              ${d.brand ? `<span class="deal-card-img-brand">${d.brand}</span>` : ""}
            </div>`;
