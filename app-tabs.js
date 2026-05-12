@@ -151,17 +151,16 @@
     showView(last);
   }
 
-  // ---- Force logo to stay "כדאי" même si app.js écrase via i18n ------------
+  // ---- Force logo "כדאי" en hébreu permanent ----------------------------
   function forceLogoHebrew() {
     const logo = document.getElementById("logo-text");
-    if (logo && logo.textContent !== "כדאי") {
+    if (logo && logo.textContent.trim() !== "כדאי") {
       logo.textContent = "כדאי";
       logo.setAttribute("dir", "rtl");
       logo.setAttribute("lang", "he");
     }
   }
   window.forceLogoHebrew = forceLogoHebrew;
-  // Re-force every 500ms in case app.js runs i18n after we're done
   setInterval(forceLogoHebrew, 500);
 
   // ---- Translate tab labels --------------------------------------------------
