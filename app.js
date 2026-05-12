@@ -2270,12 +2270,32 @@ function setupEvents() {
 
 // ========== PWA ==========
 function setupPWA() {
+  window.PRIXMALIN_VERSION = "v11";
+  const VERSION_KEY = "prixmalin.version";
+  const CURRENT_VERSION = "v11";
+  const stored = (() => { try { return localStorage.getItem(VERSION_KEY); } catch { return null; } })();
+
   if ("serviceWorker" in navigator) {
+    if (stored !== CURRENT_VERSION) {
+      // Purge totale : unregister tous les SW + vider tous les caches + reload
+      (async () => {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(regs.map(r => r.unregister()));
+          if (window.caches) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+        } catch {}
+        try { localStorage.setItem(VERSION_KEY, CURRENT_VERSION); } catch {}
+        location.reload();
+      })();
+      return;
+    }
+
     window.addEventListener("load", () => {
-      navigator.serviceWorker.register("sw.js").then(reg => {
-        // Force la vérification de mise à jour
+      navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then(reg => {
         reg.update().catch(() => {});
-        // Recharge automatique quand un nouveau SW prend le contrôle
         reg.addEventListener("updatefound", () => {
           const nw = reg.installing;
           if (!nw) return;
@@ -2287,35 +2307,14 @@ function setupPWA() {
           });
         });
       }).catch(() => {});
-      // Reload sur message du SW
       navigator.serviceWorker.addEventListener("message", e => {
         if (e.data && e.data.type === "sw-updated") {
           setTimeout(() => location.reload(), 800);
         }
       });
     });
-  }
-  // Détection de version pour les visiteurs avec cache navigateur agressif
-  window.PRIXMALIN_VERSION = "v10";
-  const VERSION_KEY = "prixmalin.version";
-  const CURRENT_VERSION = "v10";
-  const stored = (() => { try { return localStorage.getItem(VERSION_KEY); } catch { return null; } })();
-  if (stored !== CURRENT_VERSION) {
+  } else {
     try { localStorage.setItem(VERSION_KEY, CURRENT_VERSION); } catch {}
-    // Si version différente : purge totale + reload (pas besoin de ?reset=1)
-    if (stored && "serviceWorker" in navigator) {
-      (async () => {
-        try {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          await Promise.all(regs.map(r => r.unregister()));
-          if (window.caches) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map(k => caches.delete(k)));
-          }
-          location.reload();
-        } catch {}
-      })();
-    }
   }
   let deferredPrompt = null;
   window.addEventListener("beforeinstallprompt", e => {
