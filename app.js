@@ -2296,9 +2296,9 @@ function setupPWA() {
     });
   }
   // Détection de version pour les visiteurs avec cache navigateur agressif
-  window.PRIXMALIN_VERSION = "v9";
+  window.PRIXMALIN_VERSION = "v10";
   const VERSION_KEY = "prixmalin.version";
-  const CURRENT_VERSION = "v9";
+  const CURRENT_VERSION = "v10";
   const stored = (() => { try { return localStorage.getItem(VERSION_KEY); } catch { return null; } })();
   if (stored !== CURRENT_VERSION) {
     try { localStorage.setItem(VERSION_KEY, CURRENT_VERSION); } catch {}
