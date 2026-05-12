@@ -2388,3 +2388,403 @@ box-shadow:0 4px 12px rgba(124,58,237,.35);
 body{background:linear-gradient(180deg,#FFE0CC 0%,#FFCAB1 100%) !important;background-attachment:fixed !important;}
 .view-title,.view-subtitle{color:var(--text) !important;text-shadow:none !important;}
 .section-head h3{color:var(--text) !important;}
+
+/* ====== v27 — PRODUCT CARDS PREMIUM (vraies fiches produit) ====== */
+.ptop-card{
+position:relative;
+flex:0 0 240px;
+background:white !important;
+border-radius:20px !important;
+border:none !important;
+padding:0 !important;
+box-shadow:0 2px 4px rgba(15,23,42,.06),0 12px 28px -8px rgba(15,23,42,.12) !important;
+overflow:hidden;
+transition:all 240ms cubic-bezier(.34,1.56,.64,1);
+cursor:pointer;
+}
+[data-theme="dark"] .ptop-card{background:var(--panel) !important;}
+.ptop-card:hover{
+transform:translateY(-4px);
+box-shadow:0 4px 8px rgba(255,107,53,.12),0 20px 40px -10px rgba(255,107,53,.30) !important;
+}
+.ptop-card::before{
+content:"";
+position:absolute;
+left:0;top:0;bottom:0;
+width:4px;
+background:linear-gradient(180deg,var(--brand),var(--rose));
+z-index:1;
+}
+
+/* Header de la carte (logo magasin + badge promo) */
+.ptop-card-top{
+display:flex !important;
+justify-content:space-between;
+align-items:flex-start;
+padding:12px 12px 0 16px;
+gap:6px;
+position:relative;
+z-index:3;
+margin-bottom:0 !important;
+}
+.ptop-store-logo{
+width:36px !important;
+height:36px !important;
+border-radius:10px !important;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white !important;
+font-size:12px !important;
+font-weight:900 !important;
+letter-spacing:-.02em;
+box-shadow:0 4px 10px rgba(0,0,0,.15);
+flex-shrink:0;
+order:2;
+}
+.ptop-store-name{display:none !important;}
+.ptop-type{
+order:1;
+background:linear-gradient(135deg,#DC2626,#F97316) !important;
+color:white !important;
+padding:5px 11px !important;
+border-radius:999px !important;
+font-size:11px !important;
+font-weight:900 !important;
+letter-spacing:.02em;
+box-shadow:0 4px 10px rgba(220,38,38,.40),inset 0 1px 0 rgba(255,255,255,.25);
+margin-left:0 !important;
+text-transform:uppercase;
+}
+
+/* Zone image plein cadre — pas de fond fade */
+.ptop-image{
+position:relative;
+height:140px !important;
+margin:8px 12px 0 16px !important;
+border-radius:14px !important;
+background:linear-gradient(135deg,#FFF4E6 0%,#FFE0CC 100%) !important;
+display:flex;
+align-items:center;
+justify-content:center;
+overflow:hidden;
+}
+.ptop-image::before{
+content:"";
+position:absolute;
+inset:0;
+background:radial-gradient(ellipse at 30% 30%,rgba(255,255,255,.40),transparent 60%);
+}
+.ptop-image::after{
+content:"";
+position:absolute;
+inset:0;
+background:radial-gradient(ellipse at 70% 80%,rgba(0,0,0,.05),transparent 60%);
+}
+.ptop-image-emoji{
+font-size:80px !important;
+line-height:1 !important;
+filter:drop-shadow(0 8px 16px rgba(0,0,0,.20));
+position:relative;
+z-index:1;
+transform:rotate(-4deg);
+}
+
+/* Info text bloc */
+.ptop-info{
+padding:14px 16px 16px !important;
+display:flex;
+flex-direction:column;
+gap:4px;
+}
+.ptop-title{
+font-size:14px !important;
+font-weight:800 !important;
+color:var(--text) !important;
+letter-spacing:-.01em;
+line-height:1.3;
+display:-webkit-box;
+-webkit-line-clamp:2;
+-webkit-box-orient:vertical;
+overflow:hidden;
+}
+.ptop-meta{
+font-size:11px !important;
+color:var(--muted) !important;
+font-weight:500;
+}
+
+/* Prix bloc avec hiérarchie claire */
+.ptop-prices{
+display:flex !important;
+align-items:baseline;
+gap:8px;
+margin-top:6px !important;
+}
+.ptop-price-old{
+font-size:13px !important;
+color:var(--muted) !important;
+text-decoration:line-through;
+font-weight:500;
+order:1;
+}
+.ptop-price-new{
+font-size:24px !important;
+font-weight:900 !important;
+color:var(--brand) !important;
+font-variant-numeric:tabular-nums;
+letter-spacing:-.03em;
+line-height:1;
+order:2;
+}
+
+/* Pill économies — propre, pas chevauché */
+.ptop-saving-pill{
+display:inline-flex !important;
+align-items:center;
+gap:4px;
+background:var(--emerald-soft) !important;
+color:var(--emerald-dark) !important;
+font-size:11px !important;
+font-weight:800 !important;
+padding:4px 10px !important;
+border-radius:999px !important;
+margin-top:6px !important;
+align-self:flex-start;
+border:1px solid rgba(16,185,129,.20);
+text-transform:none !important;
+letter-spacing:0 !important;
+}
+
+/* Variantes super promo */
+.ptop-card.super{
+background:linear-gradient(180deg,white 0%,#FFFBF5 100%) !important;
+}
+[data-theme="dark"] .ptop-card.super{background:linear-gradient(180deg,var(--panel) 0%,#2A1A12 100%) !important;}
+
+/* ====== Carousel head plus joli ====== */
+.promos-top-head{
+display:flex !important;
+align-items:center;
+justify-content:space-between;
+margin:0 4px 12px;
+gap:10px;
+}
+.promos-top-title{
+font-size:15px !important;
+font-weight:900 !important;
+letter-spacing:-.01em;
+color:var(--text) !important;
+display:inline-flex;
+align-items:center;
+gap:6px;
+}
+.promos-top-title::before{display:none !important;}
+.promos-top-all{
+display:inline-flex !important;
+align-items:center;
+gap:4px;
+background:var(--brand-tint) !important;
+border:1.5px solid var(--brand-soft) !important;
+color:var(--brand) !important;
+padding:6px 14px !important;
+border-radius:999px !important;
+font-size:12px !important;
+font-weight:800 !important;
+cursor:pointer;
+font-family:inherit !important;
+transition:all 180ms ease;
+box-shadow:0 2px 6px rgba(255,107,53,.12) !important;
+}
+.promos-top-all:hover{
+background:var(--brand) !important;
+color:white !important;
+border-color:transparent !important;
+transform:translateY(-1px);
+}
+
+/* ====== Hero deal du jour — fix prix 0,00 ₪ ====== */
+.hero-day-prices .hero-day-new:empty,
+.hero-day-prices .hero-day-new[data-empty="1"]{display:none;}
+.promo-hero{padding:18px 20px 20px !important;border-radius:22px !important;}
+.promo-hero-title,.hero-day-title{
+display:-webkit-box;
+-webkit-line-clamp:2;
+-webkit-box-orient:vertical;
+overflow:hidden;
+}
+
+/* ====== v28 — Fond moderne propre (fini le beige) ====== */
+body{
+background:#F8FAFC !important;
+background-attachment:scroll !important;
+}
+[data-theme="dark"] body{
+background:#0A0E1A !important;
+}
+
+/* Mega-sections : white avec ombre douce et bordure légère */
+.mega-section{
+background:white !important;
+border:1px solid #E2E8F0 !important;
+box-shadow:0 1px 3px rgba(15,23,42,.04),0 8px 24px -8px rgba(15,23,42,.08) !important;
+border-radius:24px !important;
+}
+[data-theme="dark"] .mega-section{
+background:#131C31 !important;
+border-color:#1E2D45 !important;
+}
+.food-section{border-top:none !important;}
+.nonfood-section{border-top:none !important;}
+
+/* Bandeau d'icône en haut de chaque mega-section */
+.food-section::before{
+content:"";
+position:absolute;
+top:0;left:0;right:0;
+height:4px;
+background:linear-gradient(90deg,var(--brand),var(--rose));
+border-radius:24px 24px 0 0;
+}
+.nonfood-section::before{
+content:"";
+position:absolute;
+top:0;left:0;right:0;
+height:4px;
+background:linear-gradient(90deg,var(--plum),var(--rose));
+border-radius:24px 24px 0 0;
+}
+
+/* Update banner : blanc propre */
+.update-banner{
+background:white !important;
+border-bottom:1px solid #E2E8F0 !important;
+}
+[data-theme="dark"] .update-banner{
+background:#131C31 !important;
+border-color:#1E2D45 !important;
+}
+.update-banner-inner{color:#64748B !important;}
+.update-banner-inner span,
+.update-banner-inner strong{color:#475569 !important;}
+[data-theme="dark"] .update-banner-inner span,
+[data-theme="dark"] .update-banner-inner strong{color:#94A3B8 !important;}
+
+/* View titles : dark sur fond clair */
+.view-title{color:#0F172A !important;text-shadow:none !important;}
+[data-theme="dark"] .view-title{color:#F1F5F9 !important;}
+.view-subtitle{color:#64748B !important;}
+[data-theme="dark"] .view-subtitle{color:#94A3B8 !important;}
+
+/* Section heads sombres */
+.section-head h3{color:#0F172A !important;}
+[data-theme="dark"] .section-head h3{color:#F1F5F9 !important;}
+.section-head h3::before{
+background:linear-gradient(180deg,var(--brand),var(--rose)) !important;
+border-radius:2px;
+}
+
+/* Topbar reste sobre */
+.topbar{
+background:rgba(255,255,255,.92) !important;
+backdrop-filter:blur(20px) saturate(150%);
+border-bottom:1px solid #E2E8F0 !important;
+box-shadow:0 1px 3px rgba(15,23,42,.04) !important;
+}
+[data-theme="dark"] .topbar{
+background:rgba(10,14,26,.85) !important;
+border-color:#1E2D45 !important;
+}
+
+/* Cart total bar reste orange punchy */
+.cart-total-bar{
+background:linear-gradient(135deg,#FF6B35 0%,#EC4899 100%) !important;
+box-shadow:0 8px 28px rgba(255,107,53,.45) !important;
+}
+
+/* Empty states : fond très subtil */
+.empty-state{
+background:linear-gradient(180deg,transparent,#F8FAFC 60%) !important;
+color:#64748B !important;
+border:1px dashed #E2E8F0;
+border-radius:20px;
+}
+[data-theme="dark"] .empty-state{
+background:linear-gradient(180deg,transparent,#131C31 60%) !important;
+color:#94A3B8 !important;
+border-color:#1E2D45;
+}
+
+/* Cards et pills : palette claire */
+.cat-pill,.subcat-pill,.list-tab{
+background:white !important;
+border:1.5px solid #E2E8F0 !important;
+color:#475569 !important;
+}
+.cat-pill.active,.subcat-pill.active,.list-tab.active{
+background:#0F172A !important;
+border-color:#0F172A !important;
+color:white !important;
+}
+[data-theme="dark"] .cat-pill,
+[data-theme="dark"] .subcat-pill,
+[data-theme="dark"] .list-tab{
+background:#131C31 !important;
+border-color:#1E2D45 !important;
+color:#CBD5E1 !important;
+}
+
+/* Premier .deal-cat-pill (Tout) reste orange */
+.deal-cat-pill.active{
+background:linear-gradient(135deg,var(--brand),var(--brand-dark)) !important;
+border-color:transparent !important;
+}
+
+/* Footer bottom nav reste pure */
+.bottom-nav{
+background:rgba(255,255,255,.95) !important;
+border-top:1px solid #E2E8F0 !important;
+}
+[data-theme="dark"] .bottom-nav{
+background:rgba(10,14,26,.92) !important;
+border-top-color:#1E2D45 !important;
+}
+
+/* Search input bien net */
+.search-box input,.search-results,.qty-input{
+background:white !important;
+}
+[data-theme="dark"] .search-box input,
+[data-theme="dark"] .search-results,
+[data-theme="dark"] .qty-input{background:#131C31 !important;}
+
+/* Promo hero garde son orange punchy au-dessus du fond clair */
+.promo-hero{
+box-shadow:0 12px 40px -10px rgba(255,107,53,.35) !important;
+}
+
+/* Espacement plus aéré entre mega-sections */
+.mega-section{margin:24px 0 !important;}
+
+/* Premium feel : icônes section plus sobres */
+.mega-section-icon{
+background:white !important;
+border:1.5px solid #E2E8F0 !important;
+box-shadow:0 1px 3px rgba(15,23,42,.06) !important;
+}
+[data-theme="dark"] .mega-section-icon{
+background:#131C31 !important;
+border-color:#1E2D45 !important;
+}
+.mega-section-head{border-bottom:1px solid #E2E8F0 !important;border-style:solid !important;}
+[data-theme="dark"] .mega-section-head{border-color:#1E2D45 !important;}
+
+/* Store chips : fond blanc subtil */
+.store-chip{
+background:white !important;
+border:1px solid #E2E8F0 !important;
+}
+[data-theme="dark"] .store-chip{background:#131C31 !important;border-color:#1E2D45 !important;}
+
+/* Update banner badge live mieux contrastée */
+.pulse{box-shadow:0 0 0 0 rgba(16,185,129,.6);}
