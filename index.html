@@ -11,6 +11,37 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎁</text></svg>" />
   <title>כדאי · Promos en Israël</title>
+  <script>
+    // Nuke any old service worker + caches BEFORE the rest loads.
+    // Runs once per version. Bullet-proof against stuck v15/v16 caches.
+    (function () {
+      var APP_VERSION = "v17";
+      var KEY = "prixmalin.installed.version";
+      try {
+        var installed = localStorage.getItem(KEY);
+        if (installed !== APP_VERSION) {
+          if ("serviceWorker" in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              return Promise.all(regs.map(function (r) { return r.unregister(); }));
+            }).then(function () {
+              if (window.caches && caches.keys) {
+                return caches.keys().then(function (keys) {
+                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                });
+              }
+            }).then(function () {
+              try { localStorage.setItem(KEY, APP_VERSION); } catch (e) {}
+              location.reload();
+            }).catch(function () {
+              try { localStorage.setItem(KEY, APP_VERSION); } catch (e) {}
+            });
+          } else {
+            try { localStorage.setItem(KEY, APP_VERSION); } catch (e) {}
+          }
+        }
+      } catch (e) {}
+    })();
+  </script>
   <link rel="stylesheet" href="styles.css?v=17" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎁</text></svg>" />
 </head>
