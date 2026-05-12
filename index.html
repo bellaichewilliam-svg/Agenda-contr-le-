@@ -7,374 +7,253 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <meta name="description" content="PrixMalin — Promos & catalogues des supermarchés en Israël. Trouve les meilleures offres près de chez toi." />
+  <meta name="description" content="כדאי — Promos & catalogues des supermarchés en Israël. Économise jusqu'à 250₪/mois." />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset=".55" stop-color="%23FF8C42"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(%23g)"/><rect width="180" height="180" rx="40" fill="white" fill-opacity=".12" style="mask:radial-gradient(circle at 30%% 25%%,black 0,transparent 60%%)"/><text x="90" y="118" text-anchor="middle" font-family="-apple-system,system-ui,Heebo,Rubik,Arial" font-weight="900" font-size="72" fill="white" letter-spacing="-2">כדאי</text><circle cx="142" cy="40" r="6" fill="white"/><circle cx="142" cy="40" r="14" fill="white" fill-opacity=".25"/></svg>' />
+  <link rel="apple-touch-icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset=".55" stop-color="%23FF8C42"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(%23g)"/><text x="90" y="118" text-anchor="middle" font-family="-apple-system,Heebo,Arial" font-weight="900" font-size="72" fill="white" letter-spacing="-2">כדאי</text></svg>' />
+  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(%23g)"/><text x="32" y="44" text-anchor="middle" font-family="-apple-system,Heebo,Arial" font-weight="900" font-size="28" fill="white">כדאי</text></svg>' />
   <title>כדאי · Promos en Israël</title>
   <script>
-    // Nuke any old service worker + caches BEFORE the rest loads.
-    // Runs once per version. Bullet-proof against stuck v15/v16 caches.
-    (function () {
-      var APP_VERSION = "v29";
-      var KEY = "prixmalin.installed.version";
+    // Bullet-proof cache nuke on version mismatch (runs once per version)
+    (function(){
+      var V = "v31";
       try {
-        var installed = localStorage.getItem(KEY);
-        if (installed !== APP_VERSION) {
+        if (localStorage.getItem("kedai.v") !== V) {
           if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (regs) {
-              return Promise.all(regs.map(function (r) { return r.unregister(); }));
-            }).then(function () {
+            navigator.serviceWorker.getRegistrations().then(function(rs){
+              return Promise.all(rs.map(function(r){ return r.unregister(); }));
+            }).then(function(){
               if (window.caches && caches.keys) {
-                return caches.keys().then(function (keys) {
-                  return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+                return caches.keys().then(function(ks){
+                  return Promise.all(ks.map(function(k){ return caches.delete(k); }));
                 });
               }
-            }).then(function () {
-              try { localStorage.setItem(KEY, APP_VERSION); } catch (e) {}
+            }).then(function(){
+              localStorage.setItem("kedai.v", V);
               location.reload();
-            }).catch(function () {
-              try { localStorage.setItem(KEY, APP_VERSION); } catch (e) {}
-            });
+            }).catch(function(){ try{ localStorage.setItem("kedai.v", V);}catch(e){} });
           } else {
-            try { localStorage.setItem(KEY, APP_VERSION); } catch (e) {}
+            localStorage.setItem("kedai.v", V);
           }
         }
-      } catch (e) {}
+      } catch(e) {}
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=29" />
-  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(%23g)"/><text x="32" y="44" text-anchor="middle" font-family="-apple-system,system-ui,Heebo,Arial" font-weight="900" font-size="28" fill="white" letter-spacing="-1">כדאי</text></svg>' />
+  <link rel="stylesheet" href="styles.css?v=31" />
 </head>
-<body>
-  <header class="topbar">
-    <div class="container topbar-inner">
-      <div class="top-row">
-        <h1 class="logo" translate="no">
-          <svg class="logo-mark" viewBox="0 0 64 64" width="40" height="40" aria-hidden="true">
-            <defs>
-              <linearGradient id="logoG" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#FF6B35"/>
-                <stop offset=".55" stop-color="#FF8C42"/>
-                <stop offset="1" stop-color="#EC4899"/>
-              </linearGradient>
-            </defs>
-            <rect width="64" height="64" rx="14" fill="url(#logoG)"/>
-            <text x="32" y="44" text-anchor="middle" font-family="-apple-system,system-ui,Heebo,Rubik,Arial" font-weight="900" font-size="28" fill="white" letter-spacing="-1">כדאי</text>
-            <circle cx="50" cy="14" r="2.5" fill="white"/>
-            <circle cx="50" cy="14" r="5" fill="white" fill-opacity=".25"/>
-          </svg>
-          <span id="logo-text" dir="rtl" lang="he">כדאי</span>
-        </h1>
-        <div class="top-actions">
-          <div class="lang-picker" id="lang-picker"></div>
-          <button class="icon-btn" id="install-btn" hidden title="Install">⬇️</button>
-          <button class="icon-btn" id="nearby-quick-btn" title="Magasins proches">📍</button>
-        </div>
-      </div>
-      <p class="tagline" id="tagline"></p>
-      <div class="store-badges" id="store-badges"></div>
-    </div>
-  </header>
+<body data-theme="light">
 
-  <div class="update-banner">
-    <div class="container update-banner-inner">
-      <span class="pulse"></span>
-      <span><span id="last-updated-label">Promos mises à jour le</span> <strong id="last-updated"></strong></span>
-      <span class="dot-sep">·</span>
-      <span><span id="product-count"></span> produits</span>
-      <span class="dot-sep">·</span>
-      <span id="source-label">📡 Source</span>
-      <span class="dot-sep">·</span>
-      <span id="live-status">🟡 …</span>
+<!-- ============ HEADER ============ -->
+<header class="topbar">
+  <div class="container topbar-row">
+    <h1 class="brand" translate="no">
+      <svg class="brand-mark" viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
+        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF6B35"/><stop offset=".55" stop-color="#FF8C42"/><stop offset="1" stop-color="#EC4899"/></linearGradient></defs>
+        <rect width="64" height="64" rx="14" fill="url(#bg)"/>
+        <text x="32" y="44" text-anchor="middle" font-family="-apple-system,Heebo,Arial" font-weight="900" font-size="28" fill="white" letter-spacing="-1">כדאי</text>
+        <circle cx="50" cy="14" r="2.5" fill="white"/>
+      </svg>
+      <span class="brand-text" dir="rtl" lang="he">כדאי</span>
+    </h1>
+    <div class="header-actions">
+      <button class="icon-btn" id="btn-search-toggle" aria-label="Rechercher">🔍</button>
+      <button class="icon-btn" id="btn-notifs" aria-label="Notifications">
+        🔔<span class="notif-dot" id="notif-dot" hidden></span>
+      </button>
+      <button class="icon-btn" id="btn-profile" aria-label="Profil">👩</button>
     </div>
   </div>
+  <div class="lang-row container">
+    <div class="lang-picker">
+      <button class="lang-btn active" data-lang="fr">FR</button>
+      <button class="lang-btn" data-lang="he">עב</button>
+      <button class="lang-btn" data-lang="en">EN</button>
+      <button class="lang-btn" data-lang="ru">RU</button>
+    </div>
+    <div class="update-info" id="update-info">📡 20 promos actives · 9 magasins</div>
+  </div>
+</header>
 
-  <main class="container app-views">
+<!-- ============ GLOBAL SEARCH (hidden by default, toggle from header) ============ -->
+<div class="global-search" id="global-search" hidden>
+  <div class="container">
+    <div class="gs-box">
+      <span class="gs-icon">🔍</span>
+      <input type="text" id="gs-input" placeholder="Cherche un produit ou un magasin..." autocomplete="off" />
+      <button class="gs-close" id="gs-close" aria-label="Fermer">×</button>
+    </div>
+    <div class="gs-results" id="gs-results"></div>
+  </div>
+</div>
 
-    <section class="view view-promos active" id="view-promos">
-      <h1 class="view-title" id="view-promos-title">🎁 Promos du jour</h1>
-      <p class="view-subtitle" id="view-promos-sub">Les meilleurs deals près de chez toi</p>
+<!-- ============ MAIN VIEWS ============ -->
+<main class="container app-main">
 
-      <div class="promo-hero" id="promo-hero"></div>
+  <!-- VIEW 1: PROMOS (default) -->
+  <section class="view view-promos active" data-view="promos">
+    <!-- Deal du jour hero -->
+    <div class="hero" id="hero-deal"></div>
 
-      <!-- ============ SECTION 1 : COURSES ALIMENTAIRES ============ -->
-      <div class="mega-section food-section">
-        <div class="mega-section-head">
-          <span class="mega-section-icon">🛒</span>
-          <div>
-            <h2 class="mega-section-title">Courses alimentaires</h2>
-            <p class="mega-section-sub">Supermarchés & promos du quotidien</p>
-          </div>
-        </div>
-
-        <h3 class="sub-section">🔥 Promos du moment</h3>
-        <div class="promos-top" id="promos-top"></div>
-
-        <div class="section-head">
-          <h3 id="stores-section-title">Tes supermarchés</h3>
-          <button class="link-btn" id="see-all-stores-btn">📍 Près de moi</button>
-        </div>
-        <div class="store-chips" id="store-chips"></div>
-
-        <div class="section-head">
-          <h3 id="all-promos-title">Toutes les promos alimentaires</h3>
-          <span class="badge-status" id="all-promos-count"></span>
-        </div>
-        <div id="promos-banner" class="promos-banner" hidden></div>
-        <div id="promos-list" class="promos-list"></div>
+    <!-- Stories: catalogues du jour par magasin -->
+    <section class="block">
+      <div class="block-head">
+        <h2 id="hd-stories">📰 Catalogues du jour</h2>
       </div>
-
-      <!-- ============ SECTION 2 : NON-ALIMENTAIRE ============ -->
-      <div class="mega-section nonfood-section">
-        <div class="mega-section-head">
-          <span class="mega-section-icon">🏠</span>
-          <div>
-            <h2 class="mega-section-title">Électroménager & autres</h2>
-            <p class="mega-section-sub">Meubles, multimédia, mode, beauté, bricolage…</p>
-          </div>
-        </div>
-
-        <div class="section-head">
-          <h3 id="big-stores-title">Magasins spécialisés</h3>
-        </div>
-        <div class="store-chips" id="big-store-chips"></div>
-
-        <div class="section-head">
-          <h3 id="big-deals-title">Promos électroménager & +</h3>
-          <span class="badge-status" id="big-deals-count"></span>
-        </div>
-        <div class="deal-categories" id="deal-categories"></div>
-        <div class="big-deals-grid" id="big-deals-grid"></div>
-      </div>
+      <div class="stories" id="stories"></div>
     </section>
 
-    <section class="view view-favs" id="view-favs">
-      <h1 class="view-title" id="view-favs-title">❤️ Mes favoris</h1>
-      <p class="view-subtitle" id="view-favs-sub">Tes produits préférés et leurs promos en cours</p>
-      <div id="favs-list" class="favs-list"></div>
+    <!-- Magasins -->
+    <section class="block">
+      <div class="block-head">
+        <h2 id="hd-stores">🏪 Magasins</h2>
+        <button class="link" id="see-nearby">📍 Près de moi</button>
+      </div>
+      <div class="stores-grid" id="stores-grid"></div>
     </section>
 
-    <section class="view view-list" id="view-list">
-      <h1 class="view-title" id="view-list-title">📝 Ma liste</h1>
-      <p class="view-subtitle" id="view-list-sub">Prépare ta prochaine sortie courses</p>
-
-      <div class="lists-tabs" id="lists-tabs"></div>
-
-      <div class="search-box">
-        <input type="text" id="search-input" placeholder="Rechercher un produit…" autocomplete="off" enterkeyhint="search" />
-        <div id="search-results" class="search-results" hidden></div>
+    <!-- Promos alimentaires top -->
+    <section class="block">
+      <div class="block-head">
+        <h2 id="hd-food">🛒 Promos alimentaires</h2>
+        <span class="badge-count" id="food-count"></span>
       </div>
-
-      <div class="quick-categories" id="quick-categories"></div>
-
-      <div id="browse-grid" class="browse-grid" hidden></div>
-
-      <div id="suggestions" class="suggestions" hidden></div>
-
-      <div id="cart-progress" class="cart-progress" hidden></div>
-
-      <div id="cart" class="cart">
-        <div class="empty-state">
-          <span class="emoji">🛒</span>
-          <div id="cart-empty-text">Ta liste est vide.<br>Ajoute des produits depuis les catégories ou la recherche.</div>
-        </div>
-      </div>
-
-      <div id="comparison-summary" class="comparison-card" hidden></div>
-
-      <div class="cart-actions" id="cart-actions" hidden>
-        <button class="btn primary" id="share-list">📤 <span id="share-btn-text">Partager</span></button>
-        <button class="btn ghost" id="clear-btn" aria-label="Clear">🗑️</button>
-        <span class="cart-count" id="cart-count"></span>
-      </div>
-
-      <div id="comparison" class="comparison" hidden></div>
-      <div id="optimization" class="optimization" hidden></div>
+      <div class="promo-carousel" id="food-carousel"></div>
     </section>
 
-    <section class="view view-more" id="view-more">
-      <h1 class="view-title" id="view-more-title">⋯ Plus</h1>
-      <p class="view-subtitle" id="view-more-sub">Outils, économies et préférences</p>
-
-      <div class="drawer-actions" style="grid-template-columns:1fr 1fr; gap:10px;">
-        <button class="drawer-action" id="promos-hub-btn">
-          <span class="drawer-action-icon">🎁</span>
-          <span class="drawer-action-text">
-            <div class="drawer-action-title" data-i18n="promotions">Promotions</div>
-            <div class="drawer-action-hint" data-i18n="promo_active_hint">Toutes les offres</div>
-          </span>
-        </button>
-        <button class="drawer-action" id="savings-btn">
-          <span class="drawer-action-icon">📈</span>
-          <span class="drawer-action-text">
-            <div class="drawer-action-title" data-i18n="my_savings">Mes économies</div>
-            <div class="drawer-action-hint" data-i18n="my_savings_hint">Suivi cumulé</div>
-          </span>
-        </button>
-        <button class="drawer-action" id="fridge-btn">
-          <span class="drawer-action-icon">🗓️</span>
-          <span class="drawer-action-text">
-            <div class="drawer-action-title" data-i18n="fridge_calendar">Frigo</div>
-            <div class="drawer-action-hint" data-i18n="fridge_calendar_hint">Anti-gaspillage</div>
-          </span>
-        </button>
-        <button class="drawer-action" id="recipes-btn">
-          <span class="drawer-action-icon">👨‍🍳</span>
-          <span class="drawer-action-text">
-            <div class="drawer-action-title" data-i18n="recipes">Recettes</div>
-            <div class="drawer-action-hint" data-i18n="recipes_hint">14 recettes</div>
-          </span>
-        </button>
-        <button class="drawer-action" id="nearby-btn">
-          <span class="drawer-action-icon">📍</span>
-          <span class="drawer-action-text">
-            <div class="drawer-action-title" data-i18n="nearby_stores">Magasins proches</div>
-            <div class="drawer-action-hint" data-i18n="nearby_hint">Géolocalisation</div>
-          </span>
-        </button>
-        <button class="drawer-action" id="settings-btn">
-          <span class="drawer-action-icon">⚙️</span>
-          <span class="drawer-action-text">
-            <div class="drawer-action-title">Réglages</div>
-            <div class="drawer-action-hint">Mode sombre, etc.</div>
-          </span>
-        </button>
+    <!-- Big deals catégories filtrables -->
+    <section class="block">
+      <div class="block-head">
+        <h2 id="hd-big">🏠 Électroménager, mode, meubles…</h2>
+        <span class="badge-count" id="big-count"></span>
       </div>
+      <div class="deal-cats" id="deal-cats"></div>
+      <div class="deals-grid" id="big-deals"></div>
+    </section>
+  </section>
 
-      <div class="setting-row" style="margin-top:14px;">
-        <div>
-          <div class="setting-label" id="settings-shopping-label">Mode courses</div>
-          <div class="setting-hint" id="settings-shopping-hint">Vue groupée par rayon</div>
-        </div>
-        <label class="toggle"><input type="checkbox" id="settings-shopping" /><span></span></label>
+  <!-- VIEW 2: LISTE -->
+  <section class="view view-list" data-view="list">
+    <h1 class="view-title" id="vt-list">📝 Ma liste de courses</h1>
+    <p class="view-sub" id="vs-list">Prépare ta prochaine sortie</p>
+
+    <div class="lists-tabs" id="lists-tabs"></div>
+
+    <div class="search-bar">
+      <span class="sb-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Ajouter un produit (ex: lait, pâtes)..." />
+    </div>
+
+    <div class="categories-row" id="cats-row"></div>
+
+    <div class="suggestions" id="suggestions" hidden></div>
+    <div class="search-results" id="search-results" hidden></div>
+    <div class="browse-grid" id="browse-grid" hidden></div>
+
+    <div class="cart-section">
+      <h3 class="cart-title" id="cart-title">🛒 Mes articles</h3>
+      <div class="cart" id="cart"></div>
+    </div>
+
+    <div class="cart-summary" id="cart-summary" hidden></div>
+
+    <div class="cart-actions" id="cart-actions" hidden>
+      <button class="btn primary" id="btn-share">📤 Partager la liste</button>
+      <button class="btn ghost" id="btn-clear">🗑️ Vider</button>
+    </div>
+  </section>
+
+  <!-- VIEW 3: FAVORIS -->
+  <section class="view view-favs" data-view="favs">
+    <h1 class="view-title" id="vt-favs">❤️ Mes favoris</h1>
+    <p class="view-sub" id="vs-favs">Produits suivis · alertes prix quand ils baissent</p>
+    <div class="favs-list" id="favs-list"></div>
+  </section>
+
+  <!-- VIEW 4: PLUS -->
+  <section class="view view-more" data-view="more">
+    <h1 class="view-title" id="vt-more">⋯ Plus</h1>
+    <p class="view-sub" id="vs-more">Outils, économies, paramètres</p>
+
+    <!-- Stats utilisateur -->
+    <div class="user-summary" id="user-summary"></div>
+
+    <!-- Premium teaser -->
+    <button class="premium-teaser" id="btn-premium">
+      <span class="pt-crown">👑</span>
+      <span class="pt-info">
+        <span class="pt-title">Passe Premium</span>
+        <span class="pt-sub">Alertes illimitées · pas de pub · 10₪/mois</span>
+      </span>
+      <span class="pt-arrow">›</span>
+    </button>
+
+    <!-- Tools -->
+    <div class="tools-grid">
+      <button class="tool" data-tool="savings"><span>📈</span><b>Mes économies</b><small>1 850₪ total</small></button>
+      <button class="tool" data-tool="recipes"><span>👨‍🍳</span><b>Recettes</b><small>14 recettes</small></button>
+      <button class="tool" data-tool="fridge"><span>🗓️</span><b>Frigo</b><small>Anti-gaspillage</small></button>
+      <button class="tool" data-tool="nearby"><span>📍</span><b>Magasins proches</b><small>Géolocalisation</small></button>
+      <button class="tool" data-tool="achievements"><span>🏆</span><b>Achievements</b><small>5/8 obtenus</small></button>
+      <button class="tool" data-tool="referral"><span>🎁</span><b>Parrainage</b><small>1 mois gratuit/ami</small></button>
+    </div>
+
+    <!-- Settings -->
+    <div class="settings-card">
+      <div class="setting-row">
+        <div><b>Mode sombre</b><small>🌙 / ☀️</small></div>
+        <label class="toggle"><input type="checkbox" id="set-dark" /><span></span></label>
       </div>
       <div class="setting-row">
-        <div>
-          <div class="setting-label" id="settings-theme-label">Mode sombre</div>
-          <div class="setting-hint">🌙 / ☀️</div>
-        </div>
-        <label class="toggle"><input type="checkbox" id="settings-theme" /><span></span></label>
+        <div><b>Mode courses</b><small>Grouper par rayon</small></div>
+        <label class="toggle"><input type="checkbox" id="set-shopping" /><span></span></label>
       </div>
-      <div class="setting-row" style="border-bottom: none; flex-direction: column; align-items: stretch; gap: 8px;">
-        <div class="setting-label" data-i18n="force_update_label">Forcer la mise à jour</div>
-        <div class="setting-hint" data-i18n="force_update_hint">Vider le cache et recharger</div>
-        <button class="btn primary" id="settings-reset" data-i18n="update_now">Mettre à jour</button>
-        <div class="setting-hint" id="app-version" style="text-align:center;margin-top:6px"></div>
-      </div>
-    </section>
-
-  </main>
-
-  <nav class="bottom-nav">
-    <button class="tab active" data-view="promos">
-      <span class="tab-icon">🎁</span>
-      <span class="tab-label" id="tab-label-promos">Promos</span>
-    </button>
-    <button class="tab" data-view="favs">
-      <span class="tab-icon">❤️</span>
-      <span class="tab-label" id="tab-label-favs">Favoris</span>
-    </button>
-    <button class="tab" data-view="list">
-      <span class="tab-icon">📝</span>
-      <span class="tab-label" id="tab-label-list">Liste</span>
-      <span class="tab-badge" id="cart-tab-badge" hidden></span>
-    </button>
-    <button class="tab" data-view="more">
-      <span class="tab-icon">⋯</span>
-      <span class="tab-label" id="tab-label-more">Plus</span>
-    </button>
-  </nav>
-
-  <div id="share-modal" class="modal">
-    <div class="modal-card">
-      <div class="modal-head">
-        <h3 id="share-modal-title">📤 Partager</h3>
-        <button class="modal-close" id="share-close" aria-label="×">×</button>
-      </div>
-      <p class="modal-text" id="share-modal-text"></p>
-      <div class="share-url-box">
-        <input type="text" id="share-url" readonly />
-        <button class="btn primary" id="share-copy">Copy</button>
-      </div>
-      <div class="share-channels">
-        <a id="share-wa" class="share-channel" target="_blank" rel="noopener">
-          <span class="share-icon" style="background:#25D366">📱</span><span>WhatsApp</span>
-        </a>
-        <a id="share-sms" class="share-channel">
-          <span class="share-icon" style="background:#3b82f6">💬</span><span>SMS</span>
-        </a>
-        <a id="share-mail" class="share-channel">
-          <span class="share-icon" style="background:#ef4444">✉️</span><span>Email</span>
-        </a>
+      <div class="setting-row">
+        <div><b>Notifications</b><small>Alertes promos sur tes favoris</small></div>
+        <label class="toggle"><input type="checkbox" id="set-notifs" checked /><span></span></label>
       </div>
     </div>
-  </div>
 
-  <div id="settings-drawer" class="drawer" hidden>
-    <div class="drawer-card">
-      <div class="drawer-head">
-        <h3>⚙️ Réglages</h3>
-        <button class="modal-close" id="settings-close">×</button>
-      </div>
+    <!-- Legal -->
+    <div class="legal-list">
+      <button class="legal-row" data-legal="about"><span>📱</span> À propos<span class="lr-arrow">›</span></button>
+      <button class="legal-row" data-legal="terms"><span>📄</span> CGU<span class="lr-arrow">›</span></button>
+      <button class="legal-row" data-legal="privacy"><span>🔒</span> Confidentialité<span class="lr-arrow">›</span></button>
+      <button class="legal-row" data-legal="contact"><span>💬</span> Contact<span class="lr-arrow">›</span></button>
     </div>
-  </div>
 
-  <div id="product-modal" class="modal">
-    <div class="modal-card pm-card">
-      <div class="pm-content"></div>
-    </div>
-  </div>
-  <div id="nearby-modal" class="modal">
-    <div class="modal-card pm-card">
-      <div class="nearby-content"></div>
-    </div>
-  </div>
-  <div id="recipes-modal" class="modal">
-    <div class="modal-card pm-card">
-      <div class="recipes-content"></div>
-    </div>
-  </div>
-  <div id="promos-modal" class="modal">
-    <div class="modal-card pm-card">
-      <div class="promos-hub-content"></div>
-    </div>
-  </div>
-  <div id="savings-modal" class="modal">
-    <div class="modal-card pm-card">
-      <div class="savings-content"></div>
-    </div>
-  </div>
-  <div id="fridge-modal" class="modal">
-    <div class="modal-card pm-card">
-      <div class="fridge-content"></div>
-    </div>
-  </div>
+    <div class="version-foot">כדאי v31 démo · made with ❤️ in Israel</div>
+  </section>
 
-  <div id="toast" class="toast"></div>
+</main>
 
-  <div class="mobile-cta" id="mobile-cta" hidden>
-    <div class="mobile-cta-left">
-      <span class="mobile-cta-total" id="mobile-cta-total">₪ 0.00</span>
-      <span class="mobile-cta-store" id="mobile-cta-store"></span>
-    </div>
-    <button id="mobile-cta-btn">↑</button>
-  </div>
+<!-- ============ BOTTOM NAV ============ -->
+<nav class="nav-bottom">
+  <button class="nav-tab active" data-view="promos"><span class="nt-ico">🎁</span><span class="nt-lab">Promos</span></button>
+  <button class="nav-tab" data-view="list"><span class="nt-ico">📝</span><span class="nt-lab">Liste</span><span class="nt-badge" id="cart-badge" hidden></span></button>
+  <button class="nav-tab" data-view="favs"><span class="nt-ico">❤️</span><span class="nt-lab">Favoris</span></button>
+  <button class="nav-tab" data-view="more"><span class="nt-ico">⋯</span><span class="nt-lab">Plus</span></button>
+</nav>
 
-  <footer class="footer">
-    <div class="container">
-      <p>💡 PrixMalin · Rami Levy · Osher Ad · Boom · Hatzi Hinam · Carrefour · Shufersal · Yochananof · Victory · Tiv Taam</p>
-    </div>
-  </footer>
+<!-- ============ FLOATING CHAT IA BUTTON ============ -->
+<button class="fab-chat" id="btn-chat" aria-label="Assistant IA">
+  💬
+  <span class="fab-pulse"></span>
+</button>
 
-  <script src="data/i18n.js?v=29"></script>
-  <script src="data/products.js?v=29"></script>
-  <script src="data/promotions.js?v=29"></script>
-  <script src="data/stores-locations.js?v=29"></script>
-  <script src="data/recipes.js?v=29"></script>
-  <script src="data/store-brands.js?v=29"></script>
-  <script src="data/big-deals.js?v=29"></script>
-  <script src="app.js?v=29"></script>
-  <script src="app-tabs.js?v=29"></script>
-  <script src="app-features.js?v=29"></script>
+<!-- ============ PANELS / MODALS (créés dynamiquement par JS) ============ -->
+<div id="panels-root"></div>
+
+<!-- Toast notifications -->
+<div class="toast" id="toast"></div>
+
+<!-- ============ SCRIPTS ============ -->
+<script src="data/i18n.js?v=31"></script>
+<script src="data/products.js?v=31"></script>
+<script src="data/promotions.js?v=31"></script>
+<script src="data/stores-locations.js?v=31"></script>
+<script src="data/recipes.js?v=31"></script>
+<script src="data/store-brands.js?v=31"></script>
+<script src="data/big-deals.js?v=31"></script>
+<script src="app.js?v=31"></script>
+
 </body>
 </html>
