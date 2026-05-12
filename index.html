@@ -10,15 +10,15 @@
   <meta name="description" content="PrixMalin — Promos & catalogues des supermarchés en Israël. Trouve les meilleures offres près de chez toi." />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎁</text></svg>" />
-  <title>PrixMalin · Promos en Israël</title>
-  <link rel="stylesheet" href="styles.css?v=15" />
+  <title>כדאי · Promos en Israël</title>
+  <link rel="stylesheet" href="styles.css?v=17" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎁</text></svg>" />
 </head>
 <body>
   <header class="topbar">
     <div class="container topbar-inner">
       <div class="top-row">
-        <h1 class="logo"><span class="logo-emoji">🎁</span> <span id="logo-text">PrixMalin</span></h1>
+        <h1 class="logo" translate="no"><span class="logo-emoji">🎁</span> <span id="logo-text" dir="rtl" lang="he">כדאי</span></h1>
         <div class="top-actions">
           <div class="lang-picker" id="lang-picker"></div>
           <button class="icon-btn" id="install-btn" hidden title="Install">⬇️</button>
@@ -34,6 +34,8 @@
     <div class="container update-banner-inner">
       <span class="pulse"></span>
       <span><span id="last-updated-label">Promos mises à jour le</span> <strong id="last-updated"></strong></span>
+      <span class="dot-sep">·</span>
+      <span><span id="product-count"></span> produits</span>
       <span class="dot-sep">·</span>
       <span id="source-label">📡 Source</span>
       <span class="dot-sep">·</span>
@@ -58,7 +60,14 @@
       <div class="store-chips" id="store-chips"></div>
 
       <div class="section-head">
-        <h3 id="all-promos-title">🔥 Toutes les promos</h3>
+        <h3 id="big-deals-title">💥 Promos électroménager & + </h3>
+        <span class="badge-status" id="big-deals-count"></span>
+      </div>
+      <div class="deal-categories" id="deal-categories"></div>
+      <div class="big-deals-grid" id="big-deals-grid"></div>
+
+      <div class="section-head">
+        <h3 id="all-promos-title">🛒 Promos alimentaires</h3>
         <span class="badge-status" id="all-promos-count"></span>
       </div>
       <div id="promos-banner" class="promos-banner" hidden></div>
@@ -283,13 +292,14 @@
     </div>
   </footer>
 
-  <script src="data/i18n.js?v=15"></script>
-  <script src="data/products.js?v=15"></script>
-  <script src="data/promotions.js?v=15"></script>
-  <script src="data/stores-locations.js?v=15"></script>
-  <script src="data/recipes.js?v=15"></script>
-  <script src="data/store-brands.js?v=15"></script>
-  <script src="app.js?v=15"></script>
-  <script src="app-tabs.js?v=15"></script>
+  <script src="data/i18n.js?v=17"></script>
+  <script src="data/products.js?v=17"></script>
+  <script src="data/promotions.js?v=17"></script>
+  <script src="data/stores-locations.js?v=17"></script>
+  <script src="data/recipes.js?v=17"></script>
+  <script src="data/store-brands.js?v=17"></script>
+  <script src="data/big-deals.js?v=17"></script>
+  <script src="app.js?v=17"></script>
+  <script src="app-tabs.js?v=17"></script>
 </body>
 </html>
