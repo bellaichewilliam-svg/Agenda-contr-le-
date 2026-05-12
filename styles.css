@@ -3251,3 +3251,393 @@ a { color: inherit; }
   left: auto;
   right: 0;
 }
+
+/* ====================================================================
+   v18 — CART ITEM LAYOUT FIX FINAL (override total des règles précédentes)
+==================================================================== */
+
+.cart-item {
+  display: grid !important;
+  grid-template-columns: auto auto 1fr auto auto !important;
+  grid-template-areas:
+    "check icon info right remove"
+    ".     .    meta meta  ." !important;
+  column-gap: 10px !important;
+  row-gap: 4px !important;
+  align-items: center !important;
+  padding: 10px 12px !important;
+  background: var(--panel) !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: 14px !important;
+  margin-bottom: 8px !important;
+}
+
+.cart-item > .check-btn       { grid-area: check; }
+.cart-item > .prod-icon       { grid-area: icon; }
+.cart-item > .cart-item-info  { grid-area: info; min-width: 0; }
+.cart-item > .cart-item-right { grid-area: right; }
+.cart-item > .remove-btn      { grid-area: remove; }
+
+/* La meta (store-pick + alt-cheaper) passe en 2e ligne, sous le nom */
+.cart-item-info {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  min-width: 0 !important;
+}
+.cart-item-name {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+.cart-item-meta {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-wrap: wrap !important;
+  margin-top: 0 !important;
+}
+
+/* Right column : qty + total + hint en COLONNE bien serrée */
+.cart-item-right {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-end !important;
+  gap: 3px !important;
+  flex-shrink: 0 !important;
+}
+.cart-item-right .qty-controls,
+.cart-item-right .qty-controls.compact {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 4px !important;
+}
+.cart-item-right .qty-btn {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  border-radius: 8px !important;
+  border: 1.5px solid var(--border) !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.cart-item-right .qty-input {
+  width: 36px !important;
+  height: 26px !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: 8px !important;
+  background: var(--panel) !important;
+  color: var(--text) !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.cart-item-total {
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  color: var(--brand) !important;
+  font-variant-numeric: tabular-nums !important;
+  white-space: nowrap !important;
+}
+.qty-hint {
+  font-size: 10px !important;
+  color: var(--muted) !important;
+}
+
+/* Check et prod-icon : taille fixe */
+.cart-item .check-btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  border-radius: 50% !important;
+  border: 2px solid var(--border-strong) !important;
+  background: var(--panel) !important;
+  padding: 0 !important;
+  font-size: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+.cart-item .prod-icon {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 10px !important;
+  font-size: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  background: linear-gradient(135deg, var(--brand-tint), white) !important;
+}
+.cart-item .remove-btn {
+  width: 26px !important;
+  height: 26px !important;
+  border: none !important;
+  background: transparent !important;
+  color: var(--muted) !important;
+  font-size: 18px !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Store-pick : badge compact pill */
+.cart-item .store-pick {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  background: var(--panel-soft) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 999px !important;
+  padding: 2px 8px 2px 3px !important;
+  font-size: 11px !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  font-family: inherit !important;
+  color: var(--text) !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+.cart-item .store-mini {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 18px !important;
+  height: 16px !important;
+  border-radius: 999px !important;
+  color: white !important;
+  font-size: 8px !important;
+  font-weight: 800 !important;
+  padding: 0 4px !important;
+}
+
+/* Alt-cheaper : si présent, va sous la ligne meta */
+.cart-item .alt-cheaper {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  color: var(--emerald-dark) !important;
+  background: var(--emerald-soft) !important;
+  padding: 1px 7px !important;
+  border-radius: 999px !important;
+  white-space: nowrap !important;
+}
+.cart-item .spread-info {
+  font-size: 10px !important;
+  color: var(--muted) !important;
+}
+
+/* En mobile, encore plus tight */
+@media (max-width: 420px) {
+  .cart-item {
+    column-gap: 6px !important;
+    padding: 8px 10px !important;
+  }
+  .cart-item-right .qty-input {
+    width: 30px !important;
+  }
+  .cart-item-name { font-size: 13px !important; }
+  .cart-item-total { font-size: 13px !important; }
+}
+
+/* ====== v19 — LOGO SVG header ====== */
+.logo {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.logo-mark {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, .35);
+  flex-shrink: 0;
+}
+.logo-mark rect { rx: 14; }
+#logo-text {
+  font-size: clamp(20px, 5vw, 26px);
+  font-weight: 900;
+  letter-spacing: -.02em;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--rose) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.logo-emoji { display: none !important; }  /* le SVG remplace */
+
+/* ====================================================================
+   v20 — COMPAT app.js : .visible class (drawer, modal, toast, mobile-cta)
+==================================================================== */
+.modal.visible { opacity: 1 !important; pointer-events: all !important; }
+.modal.visible .modal-card { transform: scale(1) translateY(0) !important; }
+.drawer.visible { opacity: 1 !important; pointer-events: all !important; }
+.drawer.visible .drawer-card { transform: translateY(0) !important; }
+@media (min-width: 600px) {
+  .drawer.visible .drawer-card { transform: translateX(0) !important; }
+}
+.toast.visible { opacity: 1 !important; transform: translateX(-50%) translateY(0) !important; }
+.mobile-cta { display: none !important; }
+.mobile-cta.visible { display: flex !important; }
+/* Fallback: si user clique sur le bouton mobile-cta-btn, ne pas show la div hidden */
+[hidden] { display: none !important; }
+
+/* ====================================================================
+   v20 — DEAL CARDS PREMIUM avec photo + design boutique haut de gamme
+==================================================================== */
+.deal-card {
+  background: white !important;
+  border: none !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+  box-shadow:
+    0 1px 2px rgba(15,23,42,.06),
+    0 8px 20px -6px rgba(15,23,42,.10) !important;
+  position: relative;
+}
+[data-theme="dark"] .deal-card { background: var(--panel) !important; }
+.deal-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow:
+    0 2px 4px rgba(255,107,53,.10),
+    0 24px 48px -12px rgba(255,107,53,.30) !important;
+}
+
+/* Zone image plus haute et plus visuelle */
+.deal-card-img {
+  height: 160px !important;
+  position: relative;
+  background: linear-gradient(135deg, #FFE0CC 0%, #FFF4EE 100%);
+}
+.deal-card-img-fake {
+  background: linear-gradient(135deg, var(--cat-color, var(--brand)) 0%, var(--cat-color-2, var(--rose)) 100%) !important;
+}
+.deal-card-img-fake::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 30% 30%, rgba(255,255,255,.35), transparent 50%),
+    radial-gradient(ellipse at 70% 70%, rgba(0,0,0,.10), transparent 50%);
+}
+.deal-card-img-emoji {
+  font-size: 80px !important;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,.25)) !important;
+  z-index: 2;
+  position: relative;
+}
+.deal-card-img-brand {
+  position: relative;
+  z-index: 2;
+  background: rgba(0,0,0,.55) !important;
+  backdrop-filter: blur(10px);
+  color: white !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: .12em !important;
+  margin-top: 8px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,.20), inset 0 1px 0 rgba(255,255,255,.15);
+}
+
+.deal-card-img-real {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Discount badge plus voyant */
+.deal-card-discount {
+  position: absolute;
+  top: 12px !important;
+  right: 12px !important;
+  background: linear-gradient(135deg, #DC2626, #F97316) !important;
+  color: white !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  box-shadow:
+    0 4px 14px rgba(220,38,38,.45),
+    inset 0 1px 0 rgba(255,255,255,.25) !important;
+  letter-spacing: -.01em;
+  z-index: 3;
+}
+
+/* Body padding plus aéré */
+.deal-card-body {
+  padding: 14px 16px 16px !important;
+  gap: 8px !important;
+}
+.deal-card-store {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: .08em !important;
+}
+.deal-card-store .store-dot {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px white;
+}
+.deal-card-name {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+}
+.deal-card-prices {
+  margin-top: 4px;
+}
+.deal-card-new {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  letter-spacing: -.03em !important;
+}
+.deal-card-old {
+  font-size: 13px !important;
+  text-decoration: line-through;
+}
+.deal-card-until {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px;
+  background: var(--brand-tint);
+  color: var(--brand) !important;
+  padding: 3px 10px !important;
+  border-radius: 999px !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* Grid plus aéré */
+.big-deals-grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+  gap: 14px !important;
+}
+
+/* En mobile : 2 cards par ligne max */
+@media (max-width: 480px) {
+  .big-deals-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .deal-card-img { height: 130px !important; }
+  .deal-card-img-emoji { font-size: 60px !important; }
+  .deal-card-new { font-size: 18px !important; }
+}
