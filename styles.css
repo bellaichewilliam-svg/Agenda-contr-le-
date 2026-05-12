@@ -471,7 +471,7 @@ margin-top:2px;
 }
 .search-box{position:relative;margin-bottom:14px;}
 .search-box::before{
-content:"\1F50D";
+content:"🔍";
 position:absolute;
 left:14px;top:50%;
 transform:translateY(-50%);
@@ -2267,3 +2267,124 @@ letter-spacing:-.01em;
 box-shadow:0 2px 8px rgba(220,38,38,.35);
 }
 .deal-card-body{
+
+/* ====== v25.1 — CART GRAND TOTAL bar (le total qui manquait) ====== */
+.cart-total-bar{
+display:flex;
+align-items:center;
+justify-content:space-between;
+gap:14px;
+padding:14px 18px;
+margin:16px 0 10px;
+background:linear-gradient(135deg,var(--brand) 0%,var(--brand-dark) 100%);
+color:white;
+border-radius:18px;
+box-shadow:0 8px 24px rgba(255,107,53,.35);
+position:sticky;
+bottom:calc(78px + env(safe-area-inset-bottom) + 10px);
+z-index:40;
+}
+.ctb-left{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.ctb-label{
+font-size:11px;
+font-weight:700;
+opacity:.85;
+letter-spacing:.02em;
+}
+.ctb-store{
+font-size:14px;
+font-weight:800;
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+.ctb-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;}
+.ctb-amount{
+font-size:24px;
+font-weight:900;
+letter-spacing:-.03em;
+font-variant-numeric:tabular-nums;
+line-height:1;
+}
+.ctb-hint{
+font-size:10px;
+font-weight:700;
+opacity:.75;
+letter-spacing:.04em;
+text-transform:uppercase;
+}
+
+/* ====== v26 — Mega sections (Courses vs Non-alimentaire) ====== */
+.mega-section{
+background:white;
+border-radius:24px;
+padding:18px 16px 20px;
+margin:20px 0;
+box-shadow:0 8px 28px rgba(15,23,42,.08);
+position:relative;
+overflow:hidden;
+}
+[data-theme="dark"] .mega-section{background:var(--panel);}
+.food-section{
+border-top:4px solid var(--brand);
+}
+.nonfood-section{
+border-top:4px solid var(--plum);
+}
+.mega-section-head{
+display:flex;
+align-items:center;
+gap:14px;
+padding:4px 4px 16px;
+border-bottom:2px dashed var(--border);
+margin-bottom:16px;
+}
+.mega-section-icon{
+font-size:38px;
+width:56px;
+height:56px;
+display:flex;
+align-items:center;
+justify-content:center;
+background:linear-gradient(135deg,var(--brand-tint),white);
+border-radius:16px;
+box-shadow:0 4px 12px rgba(255,107,53,.15);
+flex-shrink:0;
+}
+.nonfood-section .mega-section-icon{
+background:linear-gradient(135deg,#F3E8FF,white);
+box-shadow:0 4px 12px rgba(124,58,237,.15);
+}
+.mega-section-title{
+font-size:20px;
+font-weight:900;
+letter-spacing:-.02em;
+color:var(--text);
+line-height:1.1;
+}
+.mega-section-sub{
+font-size:12px;
+color:var(--muted);
+margin-top:2px;
+}
+.sub-section{
+font-size:13px;
+font-weight:800;
+color:var(--text-soft);
+text-transform:uppercase;
+letter-spacing:.06em;
+margin:14px 0 10px;
+}
+.food-section .section-head h3::before{background:var(--brand);}
+.nonfood-section .section-head h3::before{background:var(--plum);}
+.nonfood-section .deal-cat-pill.active{
+background:linear-gradient(135deg,var(--plum),var(--rose));
+box-shadow:0 4px 12px rgba(124,58,237,.35);
+}
+.food-section .store-chip::before{background:var(--brand);}
+.nonfood-section .store-chip::before{background:var(--plum);}
+
+/* Sur fond coral, les mega-sections ressortent en blanc */
+body{background:linear-gradient(180deg,#FFE0CC 0%,#FFCAB1 100%) !important;background-attachment:fixed !important;}
+.view-title,.view-subtitle{color:var(--text) !important;text-shadow:none !important;}
+.section-head h3{color:var(--text) !important;}

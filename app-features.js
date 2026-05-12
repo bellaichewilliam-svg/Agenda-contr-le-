@@ -545,6 +545,69 @@
     showToast._t = setTimeout(() => t.classList.remove("show", "visible"), 2800);
   }
 
+  // ============== CART GRAND TOTAL (fix: app.js renderCart pas sur window) =====
+  function ensureCartTotal() {
+    const cart = document.getElementById("cart");
+    const actions = document.getElementById("cart-actions");
+    if (!cart || !actions) return;
+    let bar = document.getElementById("cart-total-bar");
+    // Calcule le total : on lit le state si dispo, sinon on additionne les .cart-item-total visibles
+    let total = 0;
+    let count = 0;
+    let storeName = "";
+    try {
+      const state = window.state;
+      const list = state?.lists?.[state?.activeListId];
+      if (list?.cart) {
+        const items = Object.entries(list.cart);
+        count = items.filter(([, it]) => it && it.qty > 0).length;
+        if (typeof window.computeStoreTotals === "function") {
+          const totals = window.computeStoreTotals();
+          // computeStoreTotals returns map {storeId: {store,total,...}}
+          const arr = Object.values(totals || {}).filter(t => t.total > 0 && t.available > 0);
+          arr.sort((a, b) => a.total - b.total);
+          if (arr[0]) {
+            total = arr[0].total;
+            const S = (typeof STORES !== "undefined") ? STORES[arr[0].store] : null;
+            storeName = S?.name || arr[0].store;
+          }
+        }
+      }
+    } catch {}
+
+    // Fallback : somme des .cart-item-total visibles
+    if (total === 0) {
+      const totals = cart.querySelectorAll(".cart-item-total");
+      totals.forEach(el => {
+        const m = (el.textContent || "").match(/[\d.,]+/);
+        if (m) total += parseFloat(m[0].replace(",", ".")) || 0;
+      });
+      count = cart.querySelectorAll(".cart-item:not(.done)").length;
+    }
+
+    if (count === 0 || total === 0) {
+      if (bar) bar.remove();
+      return;
+    }
+
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "cart-total-bar";
+      bar.className = "cart-total-bar";
+      actions.parentNode.insertBefore(bar, actions);
+    }
+    bar.innerHTML = `
+      <div class="ctb-left">
+        <div class="ctb-label">${count} article${count > 1 ? "s" : ""} ${storeName ? "· moins cher chez" : ""}</div>
+        ${storeName ? `<div class="ctb-store" translate="no">🏪 ${storeName}</div>` : ""}
+      </div>
+      <div class="ctb-right">
+        <div class="ctb-amount">₪${total.toFixed(2)}</div>
+        <div class="ctb-hint">Total estimé</div>
+      </div>`;
+  }
+  setInterval(ensureCartTotal, 600);
+
   // ============== BOOT ======================================================
   function boot() {
     injectTopActions();
@@ -566,4 +629,34 @@
 
   window.KEDAI_FEAT = FEAT;
   window.openOnboarding = () => { setLS("kedai.onboarded", ""); FEAT.onboardingDone = false; showOnboarding(); };
+})();
+
+// ============== v26 — Render BIG_STORES (non-food) chips =====================
+(function () {
+  function renderBigStoreChips() {
+    const el = document.getElementById("big-store-chips");
+    if (!el) return;
+    const stores = (typeof BIG_STORES !== "undefined") ? BIG_STORES : {};
+    const deals = (typeof BIG_DEALS !== "undefined") ? BIG_DEALS : [];
+    const counts = {};
+    deals.forEach(d => { counts[d.store] = (counts[d.store] || 0) + 1; });
+    el.innerHTML = Object.entries(stores).map(([id, s]) => {
+      const n = counts[id] || 0;
+      return `
+        <button class="store-chip" data-big-store="${id}" style="color:${s.color}">
+          <div class="store-chip-logo" style="background:${s.color}">${s.icon || "🏪"}</div>
+          <div class="store-chip-name" translate="no">${s.name}</div>
+          ${n > 0 ? `<div class="store-chip-promos">${n} deals</div>` : ""}
+        </button>`;
+    }).join("");
+    el.querySelectorAll(".store-chip").forEach(b => {
+      b.addEventListener("click", () => {
+        const id = b.dataset.bigStore;
+        if (typeof window.showToast === "function") window.showToast("Catalogue " + (stores[id]?.name || id) + " (démo)");
+      });
+    });
+  }
+  // Re-render every 1.5s in case BIG_STORES loads later
+  setInterval(renderBigStoreChips, 1500);
+  setTimeout(renderBigStoreChips, 300);
 })();
