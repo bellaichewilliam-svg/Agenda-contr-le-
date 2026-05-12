@@ -15,7 +15,7 @@
     // Nuke any old service worker + caches BEFORE the rest loads.
     // Runs once per version. Bullet-proof against stuck v15/v16 caches.
     (function () {
-      var APP_VERSION = "v22";
+      var APP_VERSION = "v24";
       var KEY = "prixmalin.installed.version";
       try {
         var installed = localStorage.getItem(KEY);
@@ -42,7 +42,7 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="stylesheet" href="styles.css?v=21" />
   <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(%23g)"/><text x="32" y="44" text-anchor="middle" font-family="-apple-system,system-ui,Heebo,Arial" font-weight="900" font-size="28" fill="white" letter-spacing="-1">כדאי</text></svg>' />
 </head>
 <body>
@@ -338,14 +338,14 @@
     </div>
   </footer>
 
-  <script src="data/i18n.js?v=20"></script>
-  <script src="data/products.js?v=20"></script>
-  <script src="data/promotions.js?v=20"></script>
-  <script src="data/stores-locations.js?v=20"></script>
-  <script src="data/recipes.js?v=20"></script>
-  <script src="data/store-brands.js?v=20"></script>
-  <script src="data/big-deals.js?v=20"></script>
-  <script src="app.js?v=20"></script>
-  <script src="app-tabs.js?v=20"></script>
+  <script src="data/i18n.js?v=21"></script>
+  <script src="data/products.js?v=21"></script>
+  <script src="data/promotions.js?v=21"></script>
+  <script src="data/stores-locations.js?v=21"></script>
+  <script src="data/recipes.js?v=21"></script>
+  <script src="data/store-brands.js?v=21"></script>
+  <script src="data/big-deals.js?v=21"></script>
+  <script src="app.js?v=21"></script>
+  <script src="app-tabs.js?v=21"></script>
 </body>
 </html>
