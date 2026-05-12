@@ -151,8 +151,22 @@
     showView(last);
   }
 
+  // ---- Force logo to stay "כדאי" même si app.js écrase via i18n ------------
+  function forceLogoHebrew() {
+    const logo = document.getElementById("logo-text");
+    if (logo && logo.textContent !== "כדאי") {
+      logo.textContent = "כדאי";
+      logo.setAttribute("dir", "rtl");
+      logo.setAttribute("lang", "he");
+    }
+  }
+  window.forceLogoHebrew = forceLogoHebrew;
+  // Re-force every 500ms in case app.js runs i18n after we're done
+  setInterval(forceLogoHebrew, 500);
+
   // ---- Translate tab labels --------------------------------------------------
   function applyTabsI18n() {
+    forceLogoHebrew();
     const l = L();
     const ids = {
       "tab-label-promos": l.tabs.promos,
@@ -187,7 +201,7 @@
     if (!el) return;
     const l = L();
     const promos = (typeof PROMOTIONS !== "undefined") ? PROMOTIONS : [];
-    const numStores = Object.keys(window.STORES || {}).length || 9;
+    const numStores = Object.keys((typeof STORES !== "undefined" ? STORES : {}) || {}).length || 9;
     // Calcule l'économie max parmi les promos
     let maxSaving = 0;
     promos.forEach(p => {
@@ -210,8 +224,8 @@
   // ---- Store chips ----------------------------------------------------------
   function renderStoreChips() {
     const el = document.getElementById("store-chips");
-    if (!el || !window.STORES) return;
-    const stores = window.STORES;
+    if (!el || !(typeof STORES !== "undefined" ? STORES : {})) return;
+    const stores = (typeof STORES !== "undefined" ? STORES : {});
     const promos = (typeof PROMOTIONS !== "undefined") ? PROMOTIONS : [];
     // Count promos per store (PROMOTIONS uses `chain` not `store`)
     const promosByStore = {};
@@ -240,7 +254,7 @@
   // ---- Helper: extract usable info from a real PROMOTIONS entry --------------
   // PROMOTIONS uses: chain, type, products[], pct, fixed, n, m, price, title, desc, validUntil
   function promoInfo(p) {
-    const store = (window.STORES || {})[p.chain] || { name: p.chain || "Magasin", color: "#FF6B35", icon: "🏪" };
+    const store = ((typeof STORES !== "undefined" ? STORES : {}) || {})[p.chain] || { name: p.chain || "Magasin", color: "#FF6B35", icon: "🏪" };
     let product = null;
     if (p.products && p.products.length && typeof PRODUCTS !== "undefined") {
       product = PRODUCTS.find(x => x.id === p.products[0]);
@@ -379,8 +393,8 @@
     }
 
     el.innerHTML = deals.map(d => {
-      const store = (window.BIG_STORES || {})[d.store] || { name: d.store, color: "#FF6B35", icon: "🏪" };
-      const cat = (window.BIG_CATEGORIES || {})[d.category] || { color: "#FF6B35" };
+      const store = ((typeof BIG_STORES !== "undefined" ? BIG_STORES : {}) || {})[d.store] || { name: d.store, color: "#FF6B35", icon: "🏪" };
+      const cat = ((typeof BIG_CATEGORIES !== "undefined" ? BIG_CATEGORIES : {}) || {})[d.category] || { color: "#FF6B35" };
       const savePct = d.discount_rate ? Math.round(d.discount_rate * 100) : 0;
       const validDate = d.valid_until ? new Date(d.valid_until).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
 
@@ -438,8 +452,8 @@
     const modal = document.getElementById("product-modal");
     const content = modal && modal.querySelector(".pm-content");
     if (!content) return;
-    const store = (window.BIG_STORES || {})[deal.store] || { name: deal.store, color: "#FF6B35", icon: "🏪" };
-    const cat = (window.BIG_CATEGORIES || {})[deal.category] || { color: "#FF6B35", name: deal.category };
+    const store = ((typeof BIG_STORES !== "undefined" ? BIG_STORES : {}) || {})[deal.store] || { name: deal.store, color: "#FF6B35", icon: "🏪" };
+    const cat = ((typeof BIG_CATEGORIES !== "undefined" ? BIG_CATEGORIES : {}) || {})[deal.category] || { color: "#FF6B35", name: deal.category };
     const savePct = deal.discount_rate ? Math.round(deal.discount_rate * 100) : 0;
     const saving = deal.original_price - deal.discounted_price;
 
@@ -499,7 +513,7 @@
       if (entries.length === 0) return "";
       entries.sort((a, b) => a[1] - b[1]);
       const [bestStore, bestPrice] = entries[0];
-      const store = (window.STORES || {})[bestStore] || { name: bestStore };
+      const store = ((typeof STORES !== "undefined" ? STORES : {}) || {})[bestStore] || { name: bestStore };
       // Has promo?
       const promo = (typeof PROMOTIONS !== "undefined") ? PROMOTIONS.find(pr => pr.product_id === pid) : null;
 
@@ -560,7 +574,7 @@
       const totals = window.computeStoreTotals();
       if (!totals || totals.length === 0) { el.hidden = true; return; }
       const cheapest = totals[0];
-      const store = (window.STORES || {})[cheapest.store] || { name: cheapest.store };
+      const store = ((typeof STORES !== "undefined" ? STORES : {}) || {})[cheapest.store] || { name: cheapest.store };
       const next = totals[1];
       const saving = next ? (next.total - cheapest.total) : 0;
       el.hidden = false;
@@ -568,7 +582,7 @@
         <div class="comparison-card-title">💸 Le moins cher</div>
         <div class="comparison-card-store" translate="no">${store.icon || "🏪"} ${store.name}</div>
         <div class="comparison-card-amount">₪${cheapest.total.toFixed(2)}</div>
-        ${saving > 0 ? `<div class="comparison-card-saving">+ Économie estimée : ₪${saving.toFixed(2)} vs ${(window.STORES || {})[next.store]?.name || next.store}</div>` : ""}`;
+        ${saving > 0 ? `<div class="comparison-card-saving">+ Économie estimée : ₪${saving.toFixed(2)} vs ${((typeof STORES !== "undefined" ? STORES : {}) || {})[next.store]?.name || next.store}</div>` : ""}`;
     } catch {
       el.hidden = true;
     }
