@@ -2042,3 +2042,1212 @@ a { color: inherit; }
     transition-duration: .01ms !important;
   }
 }
+
+/* ====================================================================
+   v15.1 — FIX: cart-item layout cassé, search dropdown qui déborde
+   Tous les sous-éléments du panier qui n'étaient pas stylés
+==================================================================== */
+
+/* ----- cart-item: layout en flex row propre ----- */
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  transition: all var(--tx);
+}
+.cart-item:hover { border-color: var(--brand-light); box-shadow: var(--shadow-sm); }
+.cart-item.done { opacity: .55; }
+.cart-item.done .cart-item-name { text-decoration: line-through; }
+
+/* Icône produit dans le panier : petit carré 40px */
+.cart-item .prod-icon {
+  width: 40px; height: 40px;
+  border-radius: 10px;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* Bloc info nom + meta */
+.cart-item-info {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.cart-item-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cart-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+
+/* Bouton "store-pick" cliquable qui montre magasin + prix */
+.store-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel-soft);
+  border: 1.5px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 8px 3px 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 11px;
+  transition: all var(--tx);
+}
+.store-pick:hover { border-color: var(--brand); }
+.store-mini {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 18px;
+  border-radius: 999px;
+  color: white;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 0 5px;
+  letter-spacing: -.02em;
+}
+.alt-cheaper {
+  font-size: 10px;
+  color: var(--emerald-dark);
+  font-weight: 700;
+  background: var(--emerald-soft);
+  padding: 1px 6px;
+  border-radius: 999px;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+.spread-info {
+  font-size: 10px;
+  color: var(--muted);
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+/* Bloc droit : qty + total + unité (colonne) */
+.cart-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+/* Qty controls : compact horizontal */
+.qty-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.qty-controls.compact .qty-btn {
+  width: 26px;
+  height: 26px;
+  font-size: 14px;
+}
+.qty-controls.compact .qty-input {
+  width: 40px;
+  height: 26px;
+  font-size: 13px;
+}
+.qty-btn {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  transition: all var(--tx-fast, 100ms ease);
+}
+.qty-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+  background: var(--brand-tint);
+}
+.qty-input {
+  width: 44px;
+  height: 28px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  font-family: inherit;
+  outline: none;
+  padding: 0;
+}
+.qty-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.cart-item-total {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  letter-spacing: -.02em;
+}
+.qty-hint {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.remove-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--tx);
+}
+.remove-btn:hover { background: #FEE2E2; color: var(--danger); }
+[data-theme="dark"] .remove-btn:hover { background: rgba(239,68,68,.15); }
+
+/* ----- Search dropdown : ne PAS déborder ----- */
+.search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 100;
+  max-height: 360px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--tx);
+  width: 100%;
+  box-sizing: border-box;
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover { background: var(--brand-tint); }
+
+/* Icône miniature 32px dans search */
+.search-result-item .prod-icon,
+.search-result-item .prod-icon.mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.search-result-item .meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.search-result-item .add-icon {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--brand);
+  flex-shrink: 0;
+}
+
+/* ----- prod-card dans browse-grid : taille fixe et icône bien dimensionnée ----- */
+.prod-card .prod-icon {
+  width: 100%;
+  max-width: 60px;
+  height: 60px;
+  border-radius: 10px;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+
+/* ----- Aisle headers en mode courses : un peu plus tasses ----- */
+.aisle-group { margin-bottom: 12px; }
+
+/* ====================================================================
+   v15.1 — BIG DEALS visual cards (non-alimentaire)
+==================================================================== */
+
+/* Filtres catégorie en haut de la vue Promos */
+.deal-categories {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+  margin: 14px 0 16px;
+}
+.deal-categories::-webkit-scrollbar { display: none; }
+.deal-cat-pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 2px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-soft);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--tx);
+}
+.deal-cat-pill:hover { border-color: var(--brand-light); }
+.deal-cat-pill.active {
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  border-color: var(--brand);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 107, 53, .35);
+}
+.deal-cat-pill .cat-count {
+  background: rgba(0,0,0,.1);
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+.deal-cat-pill.active .cat-count { background: rgba(255,255,255,.25); }
+
+/* Grille des big deals */
+.big-deals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+/* Carte big deal : visuelle, photo + prix */
+.deal-card {
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--tx);
+  display: flex;
+  flex-direction: column;
+  animation: cardIn 320ms ease both;
+}
+.deal-card:hover {
+  border-color: var(--brand);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Zone "image" du produit (fond coloré + emoji géant ou vraie photo) */
+.deal-card-img {
+  position: relative;
+  width: 100%;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.deal-card-img-fake {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.deal-card-img-emoji {
+  font-size: 56px;
+  line-height: 1;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,.15));
+}
+.deal-card-img-brand {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: rgba(255,255,255,.95);
+  background: rgba(0,0,0,.35);
+  padding: 2px 9px;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+.deal-card-img-real {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+  background: white;
+}
+.deal-card-discount {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(135deg, #DC2626, #F97316);
+  color: white;
+  font-size: 11px;
+  font-weight: 900;
+  padding: 4px 9px;
+  border-radius: 999px;
+  letter-spacing: -.01em;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, .35);
+}
+
+/* Bloc info sous l'image */
+.deal-card-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+.deal-card-store {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--text-soft);
+}
+.deal-card-store .store-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+.deal-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+.deal-card-prices {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: auto;
+}
+.deal-card-new {
+  font-size: 17px;
+  font-weight: 900;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+.deal-card-old {
+  font-size: 12px;
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.deal-card-until {
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Liste plate (alternative à la grille) */
+.big-deal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all var(--tx);
+}
+.big-deal-row:hover { border-color: var(--brand); box-shadow: var(--shadow-sm); }
+.big-deal-row-img {
+  width: 64px; height: 64px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  flex-shrink: 0;
+}
+
+/* ====================================================================
+   v15.1 — Empty state messages plus parlants
+==================================================================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.empty-state .emoji {
+  font-size: 52px;
+  filter: grayscale(.25);
+  display: block;
+}
+
+/* ====================================================================
+   v16.1 — PRO POLISH : illustrations, patterns, animations, profondeur
+   Pour donner un vrai look d'app native, pas un site web bricolé.
+==================================================================== */
+
+/* ----- HERO : pattern décoratif + dépth ----- */
+.promo-hero {
+  position: relative;
+  background:
+    linear-gradient(135deg, var(--brand) 0%, #FF8C42 50%, var(--rose) 100%);
+  overflow: hidden;
+}
+.promo-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255,255,255,.18) 0, transparent 30%),
+    radial-gradient(circle at 80% 70%, rgba(255,255,255,.12) 0, transparent 25%),
+    radial-gradient(circle at 60% 20%, rgba(255,255,255,.10) 0, transparent 20%);
+  pointer-events: none;
+}
+.promo-hero::after {
+  content: "";
+  position: absolute;
+  bottom: -30px;
+  right: -30px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,.18) 0, transparent 65%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.promo-hero-eyebrow,
+.promo-hero-title,
+.promo-hero-sub,
+.promo-hero-stats { position: relative; z-index: 1; }
+
+.promo-hero-stat {
+  background: rgba(255,255,255,.20);
+  border: 1px solid rgba(255,255,255,.32);
+  box-shadow: 0 4px 16px rgba(0,0,0,.10), inset 0 1px 0 rgba(255,255,255,.20);
+  transition: transform var(--tx);
+}
+.promo-hero-stat:hover { transform: translateY(-2px); }
+.promo-hero-stat strong {
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+  display: block;
+}
+
+/* ----- SECTION HEAD : icône + ligne fine ----- */
+.section-head {
+  position: relative;
+}
+.section-head h3 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ----- STORE CHIPS : style "tile" propre, ombre + couleur marque ----- */
+.store-chips {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 10px;
+}
+.store-chip {
+  position: relative;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  padding: 16px 8px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--tx);
+  box-shadow: var(--shadow-xs);
+}
+.store-chip::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 4px;
+  background: currentColor;
+  opacity: .8;
+}
+.store-chip:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+  border-color: transparent;
+}
+.store-chip-logo {
+  width: 42px;
+  height: 42px;
+  margin: 0 auto 6px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: currentColor;
+  color: white !important;
+  font-weight: 900;
+  letter-spacing: -.02em;
+  box-shadow: 0 4px 12px rgba(0,0,0,.12);
+  position: relative;
+  z-index: 1;
+}
+.store-chip-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -.01em;
+}
+.store-chip-promos {
+  display: inline-block;
+  margin-top: 4px;
+  background: var(--brand-tint);
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+/* ----- DEAL CARD : effet "carte de jeu", profondeur réelle ----- */
+.deal-card {
+  position: relative;
+  border-radius: 20px;
+  border: none;
+  box-shadow:
+    0 1px 2px rgba(15,23,42,.06),
+    0 8px 24px -8px rgba(15,23,42,.10);
+}
+.deal-card:hover {
+  box-shadow:
+    0 2px 4px rgba(15,23,42,.08),
+    0 20px 40px -10px rgba(255,107,53,.30),
+    0 0 0 2px var(--brand);
+}
+.deal-card-img-fake {
+  background-blend-mode: normal;
+}
+.deal-card-img-fake::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,255,255,.25), transparent 50%),
+    radial-gradient(circle at 70% 80%, rgba(0,0,0,.10), transparent 50%);
+  pointer-events: none;
+}
+.deal-card-img-emoji {
+  position: relative;
+  z-index: 1;
+  transition: transform var(--tx-spring);
+}
+.deal-card:hover .deal-card-img-emoji {
+  transform: scale(1.1) rotate(-5deg);
+}
+.deal-card-discount {
+  animation: discountPulse 2s ease-in-out infinite;
+}
+@keyframes discountPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+/* ----- PROMO HUB CARDS : plus de matière ----- */
+.promo-card {
+  position: relative;
+  overflow: hidden;
+  transition: all var(--tx);
+  box-shadow: var(--shadow-xs);
+}
+.promo-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--brand);
+  border-radius: 2px;
+}
+.promo-card.super::before {
+  background: linear-gradient(180deg, var(--brand), #FF8C42, var(--rose));
+  width: 5px;
+}
+.promo-card:hover {
+  transform: translateX(2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ----- PTOP CARDS (carrousel) : effet card empilées ----- */
+.ptop-card {
+  position: relative;
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-soft) 100%);
+}
+.ptop-card::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand), var(--rose));
+  border-radius: 2px 2px 0 0;
+  opacity: 0;
+  transition: opacity var(--tx);
+}
+.ptop-card:hover::after { opacity: 1; }
+
+/* ----- CART : empty state plus chaleureux avec illustration ----- */
+.empty-state {
+  background: linear-gradient(180deg, transparent, var(--brand-tint) 80%);
+  border-radius: 20px;
+  padding: 48px 24px 56px;
+  position: relative;
+  overflow: hidden;
+}
+.empty-state::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(255,107,53,.08), transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.empty-state .emoji {
+  font-size: 64px;
+  filter: drop-shadow(0 8px 16px rgba(255,107,53,.20));
+  animation: emptyFloat 3s ease-in-out infinite;
+}
+@keyframes emptyFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ----- COMPARISON CARD : effet "ticket de caisse" élégant ----- */
+.comparison-card {
+  position: relative;
+  background:
+    radial-gradient(circle at 0 50%, transparent 8px, var(--panel) 8px),
+    radial-gradient(circle at 100% 50%, transparent 8px, var(--panel) 8px);
+  background-position: left, right;
+  background-size: 50% 100%;
+  background-repeat: no-repeat;
+  border: 1.5px solid var(--brand-soft);
+  border-left: 6px solid var(--brand);
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin: 18px 0;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.comparison-card::before {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 60px;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 4px,
+      var(--border) 4px,
+      var(--border) 5px
+    );
+  opacity: .3;
+  pointer-events: none;
+}
+
+/* ----- LIST TABS : badge "actif" avec dot animé ----- */
+.list-tab.active {
+  position: relative;
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+}
+.list-tab.active::before {
+  content: "";
+  position: absolute;
+  top: -2px; left: -2px; right: -2px; bottom: -2px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--brand), var(--rose));
+  z-index: -1;
+  filter: blur(8px);
+  opacity: .4;
+}
+
+/* ----- BUTTONS : effet ripple subtil ----- */
+.btn.primary {
+  position: relative;
+  overflow: hidden;
+}
+.btn.primary::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  background: rgba(255,255,255,.4);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width .5s ease, height .5s ease;
+}
+.btn.primary:active::after {
+  width: 300px; height: 300px;
+}
+
+/* ----- DRAWER ACTIONS : cards avec effet glass ----- */
+.drawer-action {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, var(--panel) 0%, var(--brand-tint) 200%);
+  border: 1.5px solid var(--border);
+}
+.drawer-action::before {
+  content: "";
+  position: absolute;
+  top: -50%; right: -50%;
+  width: 100%; height: 100%;
+  background: radial-gradient(circle, var(--brand-soft), transparent 70%);
+  opacity: 0;
+  transition: opacity var(--tx);
+}
+.drawer-action:hover::before { opacity: .6; }
+.drawer-action-icon {
+  font-size: 28px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.08));
+  position: relative;
+  z-index: 1;
+}
+
+/* ----- BOTTOM NAV : raffinement, effet "platforme flottante" ----- */
+.bottom-nav {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.95) 0%, var(--panel) 100%);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-top: 1px solid var(--brand-soft);
+  box-shadow:
+    0 -4px 20px rgba(255,107,53,.08),
+    0 -1px 0 rgba(255,255,255,.5) inset;
+}
+[data-theme="dark"] .bottom-nav {
+  background: linear-gradient(180deg, rgba(15,15,15,.92) 0%, var(--panel) 100%);
+}
+.tab {
+  position: relative;
+}
+.tab::before {
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand), var(--rose));
+  border-radius: 2px;
+  transition: width var(--tx-spring), left var(--tx-spring);
+}
+.tab.active::before {
+  width: 24px;
+  left: calc(50% - 12px);
+}
+.tab-icon {
+  filter: grayscale(.3);
+  transition: filter var(--tx), transform var(--tx-spring);
+}
+.tab.active .tab-icon {
+  filter: grayscale(0);
+  animation: tabPop .4s cubic-bezier(.34, 1.56, .64, 1);
+}
+@keyframes tabPop {
+  0%   { transform: translateY(0) scale(1); }
+  40%  { transform: translateY(-4px) scale(1.2); }
+  100% { transform: translateY(-2px) scale(1.1); }
+}
+
+/* ----- CARTE PRODUITS GRID : effet "boutique" ----- */
+.prod-card {
+  position: relative;
+  overflow: hidden;
+}
+.prod-card::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
+  transition: left .6s ease;
+  pointer-events: none;
+}
+.prod-card:hover::after { left: 100%; }
+.prod-card .prod-icon {
+  background: linear-gradient(135deg, var(--brand-tint), var(--bg)) !important;
+  transition: transform var(--tx-spring);
+}
+.prod-card:hover .prod-icon {
+  transform: scale(1.08) rotate(-3deg);
+}
+
+/* ----- CART ITEM : effet "swipe" subtil ----- */
+.cart-item {
+  position: relative;
+  transition: all var(--tx), transform var(--tx-spring);
+}
+.cart-item:hover {
+  transform: translateX(2px);
+}
+.cart-item.done {
+  background: var(--brand-tint);
+  border-color: var(--brand-soft);
+}
+.cart-item .prod-icon {
+  background: linear-gradient(135deg, var(--brand-tint), white) !important;
+  box-shadow: 0 2px 6px rgba(255,107,53,.10);
+}
+.check-btn {
+  transition: all var(--tx-spring);
+}
+.check-btn.checked,
+.cart-item.done .check-btn {
+  animation: checkPop .35s cubic-bezier(.34, 1.56, .64, 1);
+}
+@keyframes checkPop {
+  0%   { transform: scale(.5); }
+  60%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* ----- FAV CARDS : style premium ----- */
+.fav-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--panel) 0%, var(--brand-tint) 200%);
+  box-shadow: var(--shadow-xs);
+  transition: all var(--tx);
+}
+.fav-card:hover {
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand);
+}
+.fav-card-icon {
+  background: linear-gradient(135deg, var(--brand-tint), white) !important;
+  box-shadow: 0 4px 12px rgba(255,107,53,.12);
+}
+.fav-heart {
+  filter: drop-shadow(0 2px 4px rgba(255,107,53,.30));
+  transition: transform var(--tx-spring);
+}
+.fav-heart:hover { transform: scale(1.2); }
+.fav-heart:active { transform: scale(.9); }
+
+/* ----- TOAST : style "Apple" plus poli ----- */
+.toast {
+  background: rgba(15,23,42,.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  color: white;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow:
+    0 8px 32px rgba(0,0,0,.30),
+    0 1px 0 rgba(255,255,255,.10) inset;
+}
+
+/* ----- MODAL : sortie avec scale spring ----- */
+.modal-card {
+  box-shadow:
+    0 24px 48px -12px rgba(0,0,0,.40),
+    0 0 0 1px rgba(0,0,0,.06);
+}
+
+/* ----- SKELETON LOADER (pour async) ----- */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--border) 0%,
+    var(--brand-tint) 50%,
+    var(--border) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes skeletonShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ----- BADGES status : plus arrondis avec pulse ----- */
+.badge-status {
+  background: linear-gradient(135deg, var(--brand-tint), white);
+  border: 1px solid var(--brand-soft);
+  box-shadow: 0 2px 4px rgba(255,107,53,.08);
+}
+.super-promo-badge {
+  background: linear-gradient(135deg, var(--brand) 0%, #FF8C42 50%, var(--rose) 100%);
+  box-shadow:
+    0 4px 12px rgba(255,107,53,.35),
+    0 1px 0 rgba(255,255,255,.20) inset;
+  letter-spacing: .04em;
+}
+
+/* ----- ANIMATIONS d'entrée pour les views ----- */
+.view {
+  animation: viewIn 360ms cubic-bezier(.16, 1, .3, 1) both;
+}
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ----- SCROLL SNAP pour les carrousels ----- */
+.promos-top,
+.deal-categories,
+.quick-categories,
+.subcat-row,
+.store-badges {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+.ptop-card,
+.deal-cat-pill,
+.cat-pill,
+.subcat-pill,
+.store-badge {
+  scroll-snap-align: start;
+}
+
+/* ----- INPUTS : focus ring plus joli ----- */
+.search-box input:focus,
+.qty-input:focus {
+  border-color: var(--brand);
+  box-shadow:
+    0 0 0 4px var(--brand-soft),
+    0 4px 12px rgba(255,107,53,.10);
+}
+
+/* ----- PROD-ICON tailles cohérentes par contexte ----- */
+.suggestions .prod-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 18px;
+}
+
+/* ----- TOPBAR : ligne dégradée + reflet ----- */
+.topbar::before {
+  background: linear-gradient(90deg, var(--brand) 0%, var(--rose) 50%, var(--plum) 100%);
+  box-shadow: 0 1px 8px rgba(255,107,53,.40);
+}
+
+/* ----- ICONS : drop-shadow pour relief ----- */
+.icon-btn,
+.lang-btn.active,
+.qty-btn:hover {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,.05));
+}
+
+/* ----- Logo : effet "burning" au hover ----- */
+.logo {
+  position: relative;
+  cursor: default;
+  user-select: none;
+}
+.logo-emoji {
+  display: inline-block;
+  animation: logoIdle 4s ease-in-out infinite;
+}
+@keyframes logoIdle {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(8deg); }
+}
+
+/* ----- Sections : titre avec barre dégradée ----- */
+.section-head h3::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 18px;
+  background: linear-gradient(180deg, var(--brand), var(--rose));
+  border-radius: 2px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+[dir="rtl"] .section-head h3::before {
+  margin-right: 0;
+  margin-left: 8px;
+}
+
+/* ----- Quick categories pills : palette varié ----- */
+.cat-pill {
+  background: linear-gradient(135deg, var(--panel), var(--panel-soft));
+  font-weight: 700;
+}
+.cat-pill.active {
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  border-color: transparent;
+  box-shadow:
+    0 4px 12px rgba(255,107,53,.35),
+    0 1px 0 rgba(255,255,255,.25) inset;
+}
+
+/* ----- Comparison summary : header avec icône ----- */
+.comparison-card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: white;
+  border-radius: 999px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  letter-spacing: .05em;
+  box-shadow: 0 2px 8px rgba(255,107,53,.30);
+}
+.comparison-card-amount {
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ----- Brand badge inside cards : reflet brillant ----- */
+.deal-card-img-brand,
+.ptop-saving-pill {
+  background: rgba(0,0,0,.5);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.20);
+  box-shadow: 0 2px 8px rgba(0,0,0,.20);
+}
+
+/* ----- Recipe / drawer cards : aspect "tile" coloré ----- */
+.recipe-card {
+  position: relative;
+  overflow: hidden;
+  transition: all var(--tx);
+}
+.recipe-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 60%, var(--brand-tint));
+  opacity: 0;
+  transition: opacity var(--tx);
+}
+.recipe-card:hover::before { opacity: 1; }
+.recipe-emoji {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.10));
+  transition: transform var(--tx-spring);
+}
+.recipe-card:hover .recipe-emoji {
+  transform: scale(1.15) rotate(-5deg);
+}
+
+/* ----- Search dropdown : header + result count subtle ----- */
+.search-results {
+  border-radius: 16px;
+  box-shadow:
+    0 12px 48px -12px rgba(0,0,0,.20),
+    0 0 0 1px var(--border);
+  animation: dropIn 240ms cubic-bezier(.16, 1, .3, 1);
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.search-result-item .prod-icon {
+  background: linear-gradient(135deg, var(--brand-tint), white) !important;
+}
+
+/* ----- Loading dots pour update-banner ----- */
+.update-banner .pulse {
+  position: relative;
+}
+.update-banner .pulse::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--emerald);
+  opacity: 0;
+  animation: pulseRing 2s ease-out infinite;
+}
+@keyframes pulseRing {
+  0%   { transform: scale(.6); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ----- Cosmétique RTL pour hébreu ----- */
+[dir="rtl"] .promo-hero::after {
+  right: auto;
+  left: -30px;
+}
+[dir="rtl"] .cart-item:hover { transform: translateX(-2px); }
+[dir="rtl"] .promo-card::before {
+  left: auto;
+  right: 0;
+}
