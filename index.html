@@ -9,13 +9,13 @@
   <meta http-equiv="Expires" content="0" />
   <meta name="description" content="PrixMalin — Promos & catalogues des supermarchés en Israël. Trouve les meilleures offres près de chez toi." />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎁</text></svg>" />
+  <link rel="apple-touch-icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset=".55" stop-color="%23FF8C42"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(%23g)"/><rect width="180" height="180" rx="40" fill="white" fill-opacity=".12" style="mask:radial-gradient(circle at 30%% 25%%,black 0,transparent 60%%)"/><text x="90" y="118" text-anchor="middle" font-family="-apple-system,system-ui,Heebo,Rubik,Arial" font-weight="900" font-size="72" fill="white" letter-spacing="-2">כדאי</text><circle cx="142" cy="40" r="6" fill="white"/><circle cx="142" cy="40" r="14" fill="white" fill-opacity=".25"/></svg>' />
   <title>כדאי · Promos en Israël</title>
   <script>
     // Nuke any old service worker + caches BEFORE the rest loads.
     // Runs once per version. Bullet-proof against stuck v15/v16 caches.
     (function () {
-      var APP_VERSION = "v18";
+      var APP_VERSION = "v20";
       var KEY = "prixmalin.installed.version";
       try {
         var installed = localStorage.getItem(KEY);
@@ -42,14 +42,29 @@
       } catch (e) {}
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=18" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎁</text></svg>" />
+  <link rel="stylesheet" href="styles.css?v=20" />
+  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(%23g)"/><text x="32" y="44" text-anchor="middle" font-family="-apple-system,system-ui,Heebo,Arial" font-weight="900" font-size="28" fill="white" letter-spacing="-1">כדאי</text></svg>' />
 </head>
 <body>
   <header class="topbar">
     <div class="container topbar-inner">
       <div class="top-row">
-        <h1 class="logo" translate="no"><span class="logo-emoji">🎁</span> <span id="logo-text" dir="rtl" lang="he">כדאי</span></h1>
+        <h1 class="logo" translate="no">
+          <svg class="logo-mark" viewBox="0 0 64 64" width="40" height="40" aria-hidden="true">
+            <defs>
+              <linearGradient id="logoG" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#FF6B35"/>
+                <stop offset=".55" stop-color="#FF8C42"/>
+                <stop offset="1" stop-color="#EC4899"/>
+              </linearGradient>
+            </defs>
+            <rect width="64" height="64" rx="14" fill="url(#logoG)"/>
+            <text x="32" y="44" text-anchor="middle" font-family="-apple-system,system-ui,Heebo,Rubik,Arial" font-weight="900" font-size="28" fill="white" letter-spacing="-1">כדאי</text>
+            <circle cx="50" cy="14" r="2.5" fill="white"/>
+            <circle cx="50" cy="14" r="5" fill="white" fill-opacity=".25"/>
+          </svg>
+          <span id="logo-text" dir="rtl" lang="he">כדאי</span>
+        </h1>
         <div class="top-actions">
           <div class="lang-picker" id="lang-picker"></div>
           <button class="icon-btn" id="install-btn" hidden title="Install">⬇️</button>
@@ -323,14 +338,14 @@
     </div>
   </footer>
 
-  <script src="data/i18n.js?v=18"></script>
-  <script src="data/products.js?v=18"></script>
-  <script src="data/promotions.js?v=18"></script>
-  <script src="data/stores-locations.js?v=18"></script>
-  <script src="data/recipes.js?v=18"></script>
-  <script src="data/store-brands.js?v=18"></script>
-  <script src="data/big-deals.js?v=18"></script>
-  <script src="app.js?v=18"></script>
-  <script src="app-tabs.js?v=18"></script>
+  <script src="data/i18n.js?v=20"></script>
+  <script src="data/products.js?v=20"></script>
+  <script src="data/promotions.js?v=20"></script>
+  <script src="data/stores-locations.js?v=20"></script>
+  <script src="data/recipes.js?v=20"></script>
+  <script src="data/store-brands.js?v=20"></script>
+  <script src="data/big-deals.js?v=20"></script>
+  <script src="app.js?v=20"></script>
+  <script src="app-tabs.js?v=20"></script>
 </body>
 </html>
