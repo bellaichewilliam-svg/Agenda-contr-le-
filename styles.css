@@ -2179,6 +2179,469 @@ h1, h2, h3 { letter-spacing: -.025em; }
 }
 
 /* ============================================================================
+   v34 — Visual refonte
+   SVG icons replace OS emojis on action buttons. Hierarchy + contrast tuned.
+   Desktop 2-col layouts where it earns its keep.
+============================================================================ */
+
+/* Better semantic contrast token used by v34 (older --muted-soft is for separators only). */
+:root, [data-theme="light"] {
+  --text-muted: #475569; /* ratio ~7:1 on white — safe for any text size */
+}
+[data-theme="dark"] {
+  --text-muted: #94A3B8;
+}
+
+/* ---- SVG icon base ---- */
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -0.18em;
+}
+.icon-sm { width: 16px; height: 16px; }
+.icon-lg { width: 24px; height: 24px; }
+.icon-missing {
+  width: 16px;
+  height: 16px;
+  font-size: 11px;
+  color: var(--danger);
+  font-weight: 900;
+}
+
+/* Block (section) icon: inline with h2 */
+.block-icon {
+  color: var(--brand);
+  margin-right: 6px;
+  vertical-align: -0.22em;
+}
+
+/* ---- Header buttons (icon-btn) — drop emoji font-size ---- */
+.icon-btn {
+  font-size: 0;
+  color: var(--text);
+}
+.icon-btn .icon { width: 20px; height: 20px; }
+.icon-btn:hover .icon { color: var(--brand); }
+
+/* Global search input ---- */
+.gs-box .icon { color: var(--brand); margin-right: 4px; }
+.gs-close .icon { color: var(--muted); }
+
+/* Bottom nav icons */
+.nav-tab .nt-ico .icon,
+.nav-tab .nt-ico > svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Cart row controls */
+.check {
+  font-size: 0;
+}
+.check .icon { width: 14px; height: 14px; }
+.q-btn {
+  font-size: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.q-btn .icon { width: 14px; height: 14px; }
+.ci-rm {
+  font-size: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.ci-rm .icon { width: 16px; height: 16px; }
+
+/* Favorites & product detail hearts */
+.fav-heart {
+  font-size: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+  filter: none;
+}
+.fav-heart.filled { color: var(--brand); }
+.fav-heart .icon { width: 22px; height: 22px; }
+.pd-heart {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+}
+.pd-heart.on { color: var(--brand); border-color: var(--brand-soft); background: var(--brand-tint); }
+
+/* Search-bar (liste view) */
+.search-bar .icon { color: var(--muted); }
+
+/* Section heading line-height with icon */
+.block-head h2 {
+  display: inline-flex;
+  align-items: center;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -.02em;
+}
+
+/* Hero refinements: smaller emoji, slower pulse */
+.hero-emoji { font-size: 108px; }
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero-eyebrow .icon { width: 12px; height: 12px; }
+.hero-until {
+  background: var(--panel-soft);
+  color: var(--text-muted);
+}
+.hero-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hero-save .icon { width: 12px; height: 12px; }
+.hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero-cta .icon { width: 16px; height: 16px; }
+
+/* Promo super band */
+.pt-super-band {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pt-super-band .icon { width: 10px; height: 10px; }
+
+/* Promo & deal "valid until" no longer has emoji */
+.dc-until, .hero-until {
+  font-weight: 700;
+}
+
+/* Cart summary save line */
+.cs-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.cs-save .icon { width: 14px; height: 14px; }
+
+/* Fav promo badge */
+.fav-promo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.fav-promo .icon { width: 12px; height: 12px; }
+
+/* User summary (Plus view) */
+.us-loc, .us-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.us-loc .icon, .us-level .icon { color: var(--brand); }
+
+/* Premium teaser crown */
+.pt-crown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+}
+.pt-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,.65);
+}
+.pt-arrow .icon { width: 16px; height: 16px; }
+
+/* Premium row in profile */
+.pr-crown {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+}
+
+/* Premium modal hero & checks */
+.prem-crown { font-size: 0; display: inline-flex; justify-content: center; }
+.prem-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prem-features li svg { flex-shrink: 0; }
+
+/* Premium plan reco badge — center it */
+.prem-plan { position: relative; }
+.pp-badge { right: -6px; }
+
+/* Tools — center icon, place "Bientôt" badge nicely */
+.tool {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-height: 112px;
+  position: relative;
+}
+.tool-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--brand-tint);
+  color: var(--brand);
+  margin-bottom: 4px;
+  transition: all var(--tx);
+}
+.tool:not([aria-disabled="true"]):hover .tool-ico {
+  background: var(--brand);
+  color: white;
+}
+.tool b { font-size: 13px; font-weight: 800; color: var(--text); }
+.tool small { font-size: 11px; color: var(--text-muted); }
+.tool[aria-disabled="true"] .tool-ico {
+  background: var(--panel-soft);
+  color: var(--muted);
+}
+
+/* Legal rows — SVG icons left + chevron right */
+.legal-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 14px;
+}
+.legal-row > span:first-child,
+.legal-ico {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand);
+}
+.legal-row .badge-soon.inline {
+  margin: 0;
+  font-size: 9px;
+}
+.legal-row .lr-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  width: 20px;
+  height: 20px;
+}
+
+/* Chat avatar SVG */
+.chat-avatar svg { color: white; }
+
+/* Send button (chat) icon centering */
+.chat-input .btn.primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+}
+.chat-input .btn.primary .icon { width: 18px; height: 18px; }
+
+/* Onboarding nav buttons inline icons */
+.onb-nav .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Product detail */
+.pd-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.pd-add .icon { width: 16px; height: 16px; }
+.pd-promo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pd-promo .icon { width: 12px; height: 12px; }
+.pd-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pd-tag .icon { width: 12px; height: 12px; }
+
+/* Achievement check icon */
+.ach-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.ach-meta .icon { width: 10px; height: 10px; }
+
+/* Toast still looks clean */
+.toast { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Btn primary with leading/trailing icons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn .icon { color: currentColor; }
+
+/* Cart action buttons */
+.cart-actions .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* See-nearby link button on Promos */
+.link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.link .icon { color: var(--brand); }
+
+/* FAB chat (SVG centered) */
+.fab-chat {
+  font-size: 0;
+}
+.fab-chat .icon {
+  width: 26px;
+  height: 26px;
+  color: white;
+}
+
+/* Cart title sans emoji */
+.cart-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* Update info pulse dot */
+.update-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.update-pulse {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: var(--emerald);
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(16,185,129,.7);
+  animation: updatePulse 2s ease-in-out infinite;
+}
+@keyframes updatePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,.65); }
+  50%      { box-shadow: 0 0 0 6px rgba(16,185,129,0); }
+}
+
+/* View titles : remove giant size mismatch, keep weighty */
+.view-title {
+  font-size: clamp(22px, 4vw, 28px);
+  font-weight: 900;
+  letter-spacing: -.03em;
+  margin: 8px 0 4px;
+}
+.view-sub { color: var(--text-muted); }
+
+/* Hero card refined shadow on mobile (less heavy) */
+@media (max-width: 540px) {
+  .hero-emoji { font-size: 84px; }
+  .hero-img { height: 168px; }
+}
+
+/* ---- Desktop layout (>=960px) ---- */
+@media (min-width: 960px) {
+  .view-more {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    grid-template-areas:
+      "title  title"
+      "sub    sub"
+      "user   premium"
+      "tools  settings"
+      "tools  legal"
+      "foot   foot";
+    column-gap: 32px;
+  }
+  .view-more > .view-title  { grid-area: title; }
+  .view-more > .view-sub    { grid-area: sub; }
+  .view-more > #user-summary{ grid-area: user;     align-self: start; }
+  .view-more > #btn-premium { grid-area: premium;  align-self: start; margin-bottom: 0; }
+  .view-more > .tools-grid  { grid-area: tools; }
+  .view-more > .settings-card{ grid-area: settings; align-self: start; }
+  .view-more > .legal-list  { grid-area: legal;   align-self: start; margin-top: 4px; }
+  .view-more > .version-foot{ grid-area: foot; }
+
+  .tools-grid { grid-template-columns: repeat(3, 1fr); }
+
+  .deals-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+
+  .view-list {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    grid-template-areas:
+      "title  cart-summary"
+      "sub    cart-summary"
+      "tabs   cart-summary"
+      "search cart-summary"
+      "cats   cart-summary"
+      "sugg   cart-summary"
+      "results cart-summary"
+      "browse cart-summary"
+      "cart   cart-summary"
+      "actions actions";
+    column-gap: 32px;
+  }
+  .view-list > .view-title       { grid-area: title; }
+  .view-list > .view-sub         { grid-area: sub; }
+  .view-list > .lists-tabs       { grid-area: tabs; }
+  .view-list > .search-bar       { grid-area: search; }
+  .view-list > .categories-row   { grid-area: cats; }
+  .view-list > .suggestions      { grid-area: sugg; }
+  .view-list > .search-results   { grid-area: results; }
+  .view-list > .browse-grid      { grid-area: browse; }
+  .view-list > .cart-section     { grid-area: cart; }
+  .view-list > .cart-summary     { grid-area: cart-summary; position: sticky; top: 88px; align-self: start; }
+  .view-list > .cart-actions     { grid-area: actions; }
+}
+
+/* Tablet: tools 3-col earlier */
+@media (min-width: 640px) and (max-width: 959px) {
+  .tools-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ============================================================================
    v33 — A11y & UX fixes
    Screen-reader utilities, focus rings, "coming soon" states, confirm dialog
 ============================================================================ */
