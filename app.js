@@ -390,24 +390,25 @@ function renderCart() {
     const best = cheapestStoreFor(p);
     const store = getStores()[best.store] || {};
     const lineTotal = best.price * item.qty;
+    const safeName = String(p.name || "");
     return `
       <div class="cart-row ${item.done ? "done" : ""}">
-        <button class="check ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}">${item.done ? "✓" : ""}</button>
-        <div class="ci-icon">${p.icon || "📦"}</div>
+        <button class="check ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-pressed="${item.done ? "true" : "false"}" aria-label="${item.done ? "Décocher" : "Marquer comme acheté"} ${safeName}">${item.done ? "✓" : ""}</button>
+        <div class="ci-icon" aria-hidden="true">${p.icon || "📦"}</div>
         <div class="ci-info">
           <div class="ci-name">${p.name}</div>
           <div class="ci-meta">
-            <span class="ci-store" style="background:${store.color || '#FF6B35'}" translate="no">${store.icon || "🏪"} ${store.name || "—"}</span>
+            <span class="ci-store" style="background:${store.color || '#FF6B35'}" translate="no"><span aria-hidden="true">${store.icon || "🏪"}</span> ${store.name || "—"}</span>
             <span class="ci-price">${fmtPrice(best.price)}</span>
           </div>
         </div>
         <div class="ci-qty">
-          <button class="q-btn" data-action="dec" data-id="${id}">−</button>
-          <span class="q-val">${item.qty}</span>
-          <button class="q-btn" data-action="inc" data-id="${id}">+</button>
+          <button class="q-btn" data-action="dec" data-id="${id}" aria-label="Diminuer la quantité de ${safeName}">−</button>
+          <span class="q-val" aria-live="polite" aria-label="Quantité : ${item.qty}">${item.qty}</span>
+          <button class="q-btn" data-action="inc" data-id="${id}" aria-label="Augmenter la quantité de ${safeName}">+</button>
         </div>
         <div class="ci-total">${fmtPrice(lineTotal)}</div>
-        <button class="ci-rm" data-action="remove" data-id="${id}">×</button>
+        <button class="ci-rm" data-action="remove" data-id="${id}" aria-label="Retirer ${safeName} de la liste">×</button>
       </div>`;
   }).join("");
 }
@@ -478,11 +479,19 @@ function toggleCart(pid) {
 }
 
 function clearCart() {
-  if (!confirm("Vider toute la liste ?")) return;
-  state.cart = {};
-  saveState();
-  renderCart(); renderCartSummary(); updateCartBadge();
-  toast("🗑️ Liste vidée");
+  openConfirm({
+    title: "Vider toute la liste ?",
+    text: "Tous les articles seront supprimés. Cette action est irréversible.",
+    danger: true,
+    confirmLabel: "Oui, vider",
+    cancelLabel: "Annuler",
+    onConfirm() {
+      state.cart = {};
+      saveState();
+      renderCart(); renderCartSummary(); updateCartBadge();
+      toast("🗑️ Liste vidée");
+    }
+  });
 }
 
 // ============================================================================
@@ -501,15 +510,16 @@ function renderFavs() {
     const best = cheapestStoreFor(p);
     const store = getStores()[best.store] || {};
     const promo = getPromos().find(pr => pr.products && pr.products.includes(pid));
+    const safeName = String(p.name || "");
     return `
       <div class="fav-row" data-pid="${pid}">
-        <div class="fav-icon">${p.icon || "📦"}</div>
+        <div class="fav-icon" aria-hidden="true">${p.icon || "📦"}</div>
         <div class="fav-info">
           <div class="fav-name">${p.name}</div>
           <div class="fav-meta">Le - cher chez <b translate="no">${store.name}</b> à ${fmtPrice(best.price)}</div>
           ${promo ? `<div class="fav-promo">🔥 Promo active</div>` : ""}
         </div>
-        <button class="fav-heart" data-action="unfav" data-id="${pid}" aria-label="Retirer">❤️</button>
+        <button class="fav-heart" data-action="unfav" data-id="${pid}" aria-label="Retirer ${safeName} des favoris"><span aria-hidden="true">❤️</span></button>
       </div>`;
   }).join("");
 }
@@ -545,51 +555,135 @@ function renderMore() {
 }
 
 // ============================================================================
-// 8. PANELS / MODALS
+// 8. PANELS / MODALS  (v33: role=dialog, focus-trap, scroll-lock, restore-focus)
 // ============================================================================
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled]):not([type=hidden])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])'
+].join(",");
+
+const _panelStack = [];
+
 function openPanel(html, type = "side") {
   closePanels();
   const root = $("#panels-root");
+  const previousFocus = document.activeElement;
+  const previousOverflow = document.body.style.overflow;
+  document.body.style.overflow = "hidden";
+
   const overlay = document.createElement("div");
   overlay.className = "panel-overlay";
   overlay.addEventListener("click", e => { if (e.target === overlay) closePanels(); });
+
   const panel = document.createElement("div");
   panel.className = `panel panel-${type}`;
+  panel.setAttribute("role", "dialog");
+  panel.setAttribute("aria-modal", "true");
+  panel.tabIndex = -1;
   panel.innerHTML = html;
+
+  // Auto-wire aria-labelledby to the first heading inside the panel.
+  const heading = panel.querySelector("h2, h3, h4, .chat-name, .pd-name, .confirm-title");
+  if (heading) {
+    if (!heading.id) heading.id = "panel-h-" + Math.random().toString(36).slice(2, 8);
+    panel.setAttribute("aria-labelledby", heading.id);
+  }
+
+  // Focus trap on Tab / Shift+Tab.
+  const trapHandler = (e) => {
+    if (e.key !== "Tab") return;
+    const list = panel.querySelectorAll(FOCUSABLE_SELECTOR);
+    if (!list.length) { e.preventDefault(); panel.focus(); return; }
+    const first = list[0];
+    const last = list[list.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  document.addEventListener("keydown", trapHandler);
+
   overlay.appendChild(panel);
   root.appendChild(overlay);
-  // animation
-  requestAnimationFrame(() => overlay.classList.add("show"));
+
+  _panelStack.push({ overlay, previousFocus, previousOverflow, trapHandler });
+
+  // Animate in + move focus inside the panel on the next frame.
+  requestAnimationFrame(() => {
+    overlay.classList.add("show");
+    const first = panel.querySelector(FOCUSABLE_SELECTOR);
+    (first || panel).focus({ preventScroll: true });
+  });
   return panel;
 }
 
 function closePanels() {
+  while (_panelStack.length) {
+    const { overlay, previousFocus, previousOverflow, trapHandler } = _panelStack.pop();
+    document.removeEventListener("keydown", trapHandler);
+    overlay.classList.remove("show");
+    setTimeout(() => overlay.remove(), 280);
+    document.body.style.overflow = previousOverflow || "";
+    if (previousFocus && typeof previousFocus.focus === "function") {
+      try { previousFocus.focus({ preventScroll: true }); } catch (e) {}
+    }
+  }
+  // Fallback: clean any orphan overlays not in the stack.
   const root = $("#panels-root");
-  [...root.children].forEach(c => {
+  if (root) [...root.children].forEach(c => {
     c.classList.remove("show");
     setTimeout(() => c.remove(), 280);
   });
 }
 window.kedai.closePanels = closePanels;
 
+// Custom confirm dialog (replaces native confirm()).
+function openConfirm({ title, text, danger = false, confirmLabel = "Confirmer", cancelLabel = "Annuler", onConfirm }) {
+  const html = `
+    <div class="confirm-card">
+      <div class="confirm-icon" aria-hidden="true">${danger ? "🗑️" : "❓"}</div>
+      <h3 class="confirm-title">${title}</h3>
+      <p class="confirm-text">${text || ""}</p>
+      <div class="confirm-actions">
+        <button class="btn ghost" data-confirm-cancel>${cancelLabel}</button>
+        <button class="btn ${danger ? "danger" : "primary"}" data-confirm-ok>${confirmLabel}</button>
+      </div>
+    </div>
+  `;
+  const p = openPanel(html, "modal");
+  p.querySelector("[data-confirm-cancel]").addEventListener("click", () => closePanels());
+  p.querySelector("[data-confirm-ok]").addEventListener("click", () => {
+    closePanels();
+    if (typeof onConfirm === "function") onConfirm();
+  });
+}
+window.kedai.openConfirm = openConfirm;
+
 // Notifications
 function openNotifs() {
   const html = `
     <div class="p-head">
-      <h3>🔔 Notifications</h3>
-      <button class="p-close" data-close>×</button>
+      <h3><span aria-hidden="true">🔔</span> Notifications</h3>
+      <button class="p-close" data-close aria-label="Fermer le panneau notifications">×</button>
     </div>
     <div class="p-actions"><button class="link" id="mark-all">Tout marquer comme lu</button></div>
     <div class="p-body">
       ${NOTIFS.map(n => {
         const unread = n.unread && !state.notifs_read.includes(n.id);
         return `
-          <div class="notif ${unread ? "unread" : ""}" data-notif="${n.id}">
-            <div class="n-icon">${n.icon}</div>
+          <div class="notif ${unread ? "unread" : ""}" data-notif="${n.id}" tabindex="0" role="button" aria-label="${unread ? "Non lue : " : ""}${n.title}, ${n.text}, il y a ${n.time}">
+            <div class="n-icon" aria-hidden="true">${n.icon}</div>
             <div class="n-info">
               <div class="n-title">${n.title}</div>
               <div class="n-text">${n.text}</div>
-              <div class="n-time">${n.time}</div>
+              <time class="n-time">${n.time}</time>
             </div>
           </div>`;
       }).join("")}
@@ -600,11 +694,17 @@ function openNotifs() {
     NOTIFS.forEach(n => { if (!state.notifs_read.includes(n.id)) state.notifs_read.push(n.id); });
     saveState(); updateNotifDot(); closePanels();
   });
-  p.querySelectorAll("[data-notif]").forEach(r => r.addEventListener("click", () => {
-    const id = +r.dataset.notif;
-    if (!state.notifs_read.includes(id)) state.notifs_read.push(id);
-    saveState(); updateNotifDot(); r.classList.remove("unread");
-  }));
+  p.querySelectorAll("[data-notif]").forEach(r => {
+    const markRead = () => {
+      const id = +r.dataset.notif;
+      if (!state.notifs_read.includes(id)) state.notifs_read.push(id);
+      saveState(); updateNotifDot(); r.classList.remove("unread");
+    };
+    r.addEventListener("click", markRead);
+    r.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); markRead(); }
+    });
+  });
 }
 
 function updateNotifDot() {
@@ -619,16 +719,16 @@ function openProfile() {
   const earned = ACHIEVEMENTS.filter(a => a.earned).length;
   const html = `
     <div class="p-head">
-      <h3>👩 Profil</h3>
-      <button class="p-close" data-close>×</button>
+      <h3><span aria-hidden="true">👩</span> Profil</h3>
+      <button class="p-close" data-close aria-label="Fermer le panneau profil">×</button>
     </div>
     <div class="p-body">
       <div class="prof-hero">
-        <div class="prof-avatar">${FAKE_USER.avatar}</div>
+        <div class="prof-avatar" aria-hidden="true">${FAKE_USER.avatar}</div>
         <div class="prof-info">
           <div class="prof-name">${FAKE_USER.name}</div>
-          <div class="prof-loc">📍 ${FAKE_USER.location}</div>
-          <div class="prof-level">⭐ Niveau ${FAKE_USER.level}</div>
+          <div class="prof-loc"><span aria-hidden="true">📍</span> ${FAKE_USER.location}</div>
+          <div class="prof-level"><span aria-hidden="true">⭐</span> Niveau ${FAKE_USER.level}</div>
         </div>
       </div>
       <div class="prof-stats">
@@ -660,28 +760,28 @@ function openProfile() {
 function openPremium() {
   const html = `
     <div class="prem-card">
-      <button class="p-close prem-close" data-close>×</button>
+      <button class="p-close prem-close" data-close aria-label="Fermer la fenêtre Premium">×</button>
       <div class="prem-hero">
-        <div class="prem-crown">👑</div>
-        <h2>כדאי <span>Premium</span></h2>
+        <div class="prem-crown" aria-hidden="true">👑</div>
+        <h2 lang="he">כדאי <span lang="fr">Premium</span></h2>
         <p>Économise encore plus, sans limite.</p>
       </div>
       <ul class="prem-features">
-        <li>✅ Alertes illimitées sur tes favoris</li>
-        <li>✅ Comparateur de prix temps réel</li>
-        <li>✅ Pas de publicités</li>
-        <li>✅ Analyse de tes habitudes</li>
-        <li>✅ Mode famille (5 comptes)</li>
-        <li>✅ Cashback bonus +1%</li>
-        <li>✅ Support prioritaire</li>
+        <li><span aria-hidden="true">✅</span> Alertes illimitées sur tes favoris</li>
+        <li><span aria-hidden="true">✅</span> Comparateur de prix temps réel</li>
+        <li><span aria-hidden="true">✅</span> Pas de publicités</li>
+        <li><span aria-hidden="true">✅</span> Analyse de tes habitudes</li>
+        <li><span aria-hidden="true">✅</span> Mode famille (5 comptes)</li>
+        <li><span aria-hidden="true">✅</span> Cashback bonus +1%</li>
+        <li><span aria-hidden="true">✅</span> Support prioritaire</li>
       </ul>
       <div class="prem-plans">
-        <button class="prem-plan" data-plan="monthly">
+        <button class="prem-plan" data-plan="monthly" aria-label="Plan mensuel 10₪ par mois sans engagement">
           <div class="pp-name">Mensuel</div>
           <div class="pp-price">10₪<span>/mois</span></div>
           <div class="pp-sub">Sans engagement</div>
         </button>
-        <button class="prem-plan reco" data-plan="yearly">
+        <button class="prem-plan reco" data-plan="yearly" aria-label="Plan annuel 89₪ par an, économie de 31₪">
           <span class="pp-badge">−25%</span>
           <div class="pp-name">Annuel</div>
           <div class="pp-price">89₪<span>/an</span></div>
@@ -702,16 +802,17 @@ function openChat() {
   const html = `
     <div class="chat-head">
       <div class="chat-meta">
-        <div class="chat-avatar">🤖</div>
-        <div><div class="chat-name">Assistant כדאי</div><div class="chat-status"><span class="chat-dot"></span> En ligne</div></div>
+        <div class="chat-avatar" aria-hidden="true">🤖</div>
+        <div><div class="chat-name">Assistant כדאי</div><div class="chat-status"><span class="chat-dot" aria-hidden="true"></span> En ligne</div></div>
       </div>
-      <button class="p-close" data-close>×</button>
+      <button class="p-close" data-close aria-label="Fermer la conversation">×</button>
     </div>
-    <div class="chat-body" id="chat-body"></div>
-    <div class="chat-sugg" id="chat-sugg"></div>
+    <div class="chat-body" id="chat-body" role="log" aria-live="polite" aria-atomic="false"></div>
+    <div class="chat-sugg" id="chat-sugg" aria-label="Suggestions de questions"></div>
     <div class="chat-input">
-      <input id="chat-text" type="text" placeholder="Pose-moi une question..." />
-      <button class="btn primary" id="chat-send">→</button>
+      <label for="chat-text" class="sr-only">Écrire un message à l'assistant</label>
+      <input id="chat-text" type="text" placeholder="Pose-moi une question..." autocomplete="off" />
+      <button class="btn primary" id="chat-send" aria-label="Envoyer le message">→</button>
     </div>
   `;
   const p = openPanel(html, "chat");
@@ -765,28 +866,30 @@ function showOnboarding() {
   const stores = getStores();
   const html = `
     <div class="onb-card">
-      <div class="onb-screens">
+      <div class="onb-screens" role="region" aria-label="Onboarding">
         <div class="onb-screen active" data-step="0">
-          <div class="onb-emoji">🎁</div>
-          <h2>Bienvenue sur כדאי</h2>
+          <div class="onb-emoji" aria-hidden="true">🎁</div>
+          <h2>Bienvenue sur <span lang="he">כדאי</span></h2>
           <p>Économise jusqu'à <strong>250₪/mois</strong> grâce aux meilleures promos vérifiées chaque jour en Israël.</p>
         </div>
         <div class="onb-screen" data-step="1">
-          <div class="onb-emoji">🏪</div>
+          <div class="onb-emoji" aria-hidden="true">🏪</div>
           <h2>Tes magasins préférés</h2>
           <p>Sélectionne 2-3 enseignes que tu fréquentes — on personnalise ton feed.</p>
-          <div class="onb-stores">
-            ${Object.entries(stores).map(([id, s]) => `<button class="onb-store" data-store-id="${id}"><span class="oss" style="background:${s.color}">${s.icon || "🏪"}</span><span>${s.name}</span></button>`).join("")}
+          <div class="onb-stores" role="group" aria-label="Choix des magasins">
+            ${Object.entries(stores).map(([id, s]) => `<button class="onb-store" data-store-id="${id}" aria-pressed="false"><span class="oss" style="background:${s.color}" aria-hidden="true">${s.icon || "🏪"}</span><span>${s.name}</span></button>`).join("")}
           </div>
         </div>
         <div class="onb-screen" data-step="2">
-          <div class="onb-emoji">🔔</div>
+          <div class="onb-emoji" aria-hidden="true">🔔</div>
           <h2>Reçois les alertes</h2>
           <p>Active les notifs pour être prévenu quand TES produits sont en promo.</p>
         </div>
       </div>
-      <div class="onb-dots">
-        <span class="onb-dot active"></span><span class="onb-dot"></span><span class="onb-dot"></span>
+      <div class="onb-dots" role="tablist" aria-label="Progression onboarding">
+        <span class="onb-dot active" role="tab" aria-selected="true" aria-label="Étape 1 sur 3"></span>
+        <span class="onb-dot" role="tab" aria-selected="false" aria-label="Étape 2 sur 3"></span>
+        <span class="onb-dot" role="tab" aria-selected="false" aria-label="Étape 3 sur 3"></span>
       </div>
       <div class="onb-nav">
         <button class="btn ghost" id="onb-prev" hidden>← Préc.</button>
@@ -803,7 +906,10 @@ function showOnboarding() {
   function go(to) {
     step = Math.max(0, Math.min(2, to));
     screens.forEach((s, i) => s.classList.toggle("active", i === step));
-    dots.forEach((d, i) => d.classList.toggle("active", i === step));
+    dots.forEach((d, i) => {
+      d.classList.toggle("active", i === step);
+      d.setAttribute("aria-selected", i === step ? "true" : "false");
+    });
     prev.hidden = step === 0;
     next.textContent = step === 2 ? "Commencer 🎉" : "Suivant →";
   }
@@ -816,7 +922,10 @@ function showOnboarding() {
     } else go(step + 1);
   });
   prev.addEventListener("click", () => go(step - 1));
-  p.querySelectorAll(".onb-store").forEach(b => b.addEventListener("click", () => b.classList.toggle("selected")));
+  p.querySelectorAll(".onb-store").forEach(b => b.addEventListener("click", () => {
+    const pressed = b.classList.toggle("selected");
+    b.setAttribute("aria-pressed", pressed ? "true" : "false");
+  }));
 }
 
 // Product detail
@@ -826,26 +935,33 @@ function openProductDetail(pid) {
   const sortedPrices = Object.entries(p.prices).filter(([, v]) => v != null).sort((a, b) => a[1] - b[1]);
   const inFavs = state.favorites.includes(pid);
   const promo = getPromos().find(pr => pr.products && pr.products.includes(pid));
+  const safeName = String(p.name || "");
   const html = `
     <div class="pd-card">
-      <button class="p-close pd-close" data-close>×</button>
+      <button class="p-close pd-close" data-close aria-label="Fermer la fiche produit">×</button>
       <div class="pd-head">
-        <div class="pd-emoji">${p.icon || "📦"}</div>
+        <div class="pd-emoji" aria-hidden="true">${p.icon || "📦"}</div>
         <div class="pd-info">
           <div class="pd-name">${p.name}</div>
           <div class="pd-cat">${p.category}${p.unit ? " · " + p.unit : ""}</div>
-          ${promo ? `<div class="pd-promo">🔥 En promo : ${promo.title}</div>` : ""}
+          ${promo ? `<div class="pd-promo"><span aria-hidden="true">🔥</span> En promo : ${promo.title}</div>` : ""}
         </div>
-        <button class="pd-heart ${inFavs ? "on" : ""}" data-action="fav-detail" data-id="${pid}">${inFavs ? "❤️" : "🤍"}</button>
+        <button
+          class="pd-heart ${inFavs ? "on" : ""}"
+          data-action="fav-detail"
+          data-id="${pid}"
+          aria-pressed="${inFavs ? "true" : "false"}"
+          aria-label="${inFavs ? "Retirer" : "Ajouter"} ${safeName} ${inFavs ? "des" : "aux"} favoris"
+        ><span aria-hidden="true">${inFavs ? "❤️" : "🤍"}</span></button>
       </div>
       <h4 class="pd-section">Prix par magasin</h4>
       <div class="pd-prices">
         ${sortedPrices.map(([s, price], i) => {
           const store = getStores()[s] || {};
           return `<div class="pd-row ${i === 0 ? "best" : ""}">
-            <span class="pd-store"><span class="pd-dot" style="background:${store.color}"></span><span translate="no">${store.name}</span></span>
+            <span class="pd-store"><span class="pd-dot" style="background:${store.color}" aria-hidden="true"></span><span translate="no">${store.name}</span></span>
             <span class="pd-price">${fmtPrice(price)}</span>
-            ${i === 0 ? `<span class="pd-tag">🏆 Le moins cher</span>` : ""}
+            ${i === 0 ? `<span class="pd-tag"><span aria-hidden="true">🏆</span> Le moins cher</span>` : ""}
           </div>`;
         }).join("")}
       </div>
@@ -898,23 +1014,38 @@ function setupGlobalSearch() {
   const gs = $("#global-search");
   const inp = $("#gs-input");
   const res = $("#gs-results");
-  $("#btn-search-toggle").addEventListener("click", () => {
-    gs.hidden = false;
-    requestAnimationFrame(() => gs.classList.add("open"));
-    setTimeout(() => inp.focus(), 50);
-  });
-  $("#gs-close").addEventListener("click", () => {
-    gs.classList.remove("open");
-    setTimeout(() => { gs.hidden = true; inp.value = ""; res.innerHTML = ""; }, 200);
-  });
+  const trigger = $("#btn-search-toggle");
+
+  const setOpen = (open) => {
+    if (open) {
+      gs.hidden = false;
+      requestAnimationFrame(() => gs.classList.add("open"));
+      trigger.setAttribute("aria-expanded", "true");
+      setTimeout(() => inp.focus(), 50);
+    } else {
+      gs.classList.remove("open");
+      trigger.setAttribute("aria-expanded", "false");
+      setTimeout(() => {
+        gs.hidden = true;
+        inp.value = "";
+        res.innerHTML = "";
+        trigger.focus();
+      }, 200);
+    }
+  };
+
+  trigger.addEventListener("click", () => setOpen(true));
+  $("#gs-close").addEventListener("click", () => setOpen(false));
+  inp.addEventListener("keydown", (e) => { if (e.key === "Escape") setOpen(false); });
+
   inp.addEventListener("input", () => {
     const q = inp.value.trim().toLowerCase();
     if (!q) { res.innerHTML = ""; return; }
     const prods = getProducts().filter(p => p.name.toLowerCase().includes(q)).slice(0, 10);
     const promos = getPromos().filter(p => (p.title || "").toLowerCase().includes(q) || (p.desc || "").toLowerCase().includes(q)).slice(0, 5);
     res.innerHTML = `
-      ${promos.length ? `<div class="gs-section">🔥 Promos</div>${promos.map(pm => `<button class="gs-row" data-promo-pid="${(pm.products && pm.products[0]) || ""}"><span>🎁</span><span><b>${pm.title}</b><small>${getStores()[pm.chain]?.name || ""}</small></span></button>`).join("")}` : ""}
-      ${prods.length ? `<div class="gs-section">📦 Produits</div>${prods.map(p => `<button class="gs-row" data-pid="${p.id}"><span>${p.icon || "📦"}</span><span><b>${p.name}</b><small>${p.category}</small></span></button>`).join("")}` : ""}
+      ${promos.length ? `<div class="gs-section" role="presentation"><span aria-hidden="true">🔥</span> Promos</div>${promos.map(pm => `<button class="gs-row" role="option" data-promo-pid="${(pm.products && pm.products[0]) || ""}"><span aria-hidden="true">🎁</span><span><b>${pm.title}</b><small>${getStores()[pm.chain]?.name || ""}</small></span></button>`).join("")}` : ""}
+      ${prods.length ? `<div class="gs-section" role="presentation"><span aria-hidden="true">📦</span> Produits</div>${prods.map(p => `<button class="gs-row" role="option" data-pid="${p.id}"><span aria-hidden="true">${p.icon || "📦"}</span><span><b>${p.name}</b><small>${p.category}</small></span></button>`).join("")}` : ""}
       ${(!prods.length && !promos.length) ? `<div class="empty">Aucun résultat pour "${q}"</div>` : ""}
     `;
   });
@@ -1015,16 +1146,17 @@ function bindEvents() {
   // Premium teaser
   $("#btn-premium").addEventListener("click", openPremium);
 
-  // Tools
+  // Tools — disabled tools are visually marked and inert.
   $$(".tool").forEach(t => t.addEventListener("click", () => {
+    if (t.getAttribute("aria-disabled") === "true") return;
     const id = t.dataset.tool;
     if (id === "achievements") openProfile();
-    else if (id === "savings") toast("💰 Mes économies : 1 850₪ total · 247₪ ce mois");
-    else toast(`${t.querySelector("b").textContent} (démo)`);
   }));
 
-  // Legal rows
-  $$(".legal-row").forEach(r => r.addEventListener("click", () => toast("📄 Bientôt disponible")));
+  // Legal rows — all currently disabled (aria-disabled), so we no-op.
+  $$(".legal-row").forEach(r => r.addEventListener("click", () => {
+    if (r.getAttribute("aria-disabled") === "true") return;
+  }));
 
   // Hero CTA
   document.addEventListener("click", e => {
@@ -1117,18 +1249,30 @@ function renderBrowseGrid() {
 // 14. INIT
 // ============================================================================
 function init() {
+  // Sync theme with system preference on first launch (when user never chose).
+  try {
+    const hasUserChoice = localStorage.getItem(LS_KEY) && (state.theme === "dark" || state.theme === "light");
+    if (!hasUserChoice && typeof window.matchMedia === "function") {
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      state.theme = prefersDark ? "dark" : "light";
+    }
+  } catch (e) {}
+
   applyTheme();
   bindEvents();
   showView(state.view || "promos");
   updateNotifDot();
   updateCartBadge();
-  // Show onboarding on first visit
-  if (!state.onboarded) setTimeout(showOnboarding, 600);
-  // Set lang on root
+
+  // Show onboarding immediately on first visit (no flash).
+  if (!state.onboarded) showOnboarding();
+
+  // Sync language picker UI (the picker is hidden in v33 but we keep state in sync).
   document.documentElement.lang = state.lang;
   document.documentElement.dir = (state.lang === "he") ? "rtl" : "ltr";
   $$(".lang-btn").forEach(b => b.classList.toggle("active", b.dataset.lang === state.lang));
-  // Register service worker
+
+  // Register service worker after first paint.
   if ("serviceWorker" in navigator) {
     setTimeout(() => navigator.serviceWorker.register("sw.js").catch(() => {}), 1000);
   }
