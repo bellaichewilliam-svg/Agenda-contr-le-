@@ -26,7 +26,7 @@
   <script>
     // Bullet-proof cache nuke on version mismatch (runs once per version)
     (function(){
-      var V = "v36";
+      var V = "v37";
       try {
         if (localStorage.getItem("kedai.v") !== V) {
           if ("serviceWorker" in navigator) {
@@ -49,7 +49,7 @@
       } catch(e) {}
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=36" />
+  <link rel="stylesheet" href="styles.css?v=37" />
 </head>
 <body data-theme="light">
 
@@ -232,64 +232,66 @@
     <div class="favs-list" id="favs-list"></div>
   </section>
 
-  <!-- VIEW 5: PROFIL -->
+  <!-- VIEW 5: PROFIL — version simplifiée Shopmium-style -->
   <section class="view view-more" data-view="more">
-    <h1 class="view-title" id="vt-more">Mon compte</h1>
+    <div class="profile-head">
+      <h1 class="view-title" id="vt-more">Mon compte</h1>
+      <button class="settings-btn" id="btn-settings" aria-label="Réglages">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      </button>
+    </div>
 
     <div class="user-summary" id="user-summary"></div>
 
+    <!-- Stats card type Shopmium "Mes achats" -->
+    <div class="stats-card">
+      <div class="stat-row">
+        <span class="stat-label">
+          <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 2"/></svg>
+          Bonus
+        </span>
+        <span class="stat-value tnum">0 ₪</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">
+          <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="m22 7-8.5 8.5-5-5L2 17M16 7h6v6"/></svg>
+          Mes économies
+        </span>
+        <span class="stat-value green tnum">1 850 ₪</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">
+          <svg class="icon icon-sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l2.7 6.5L22 9.3l-5.5 4.8L18 21l-6-3.5L6 21l1.5-6.9L2 9.3l7.3-.8L12 2Z"/></svg>
+          Achievements
+        </span>
+        <span class="stat-value tnum">5 / 8</span>
+      </div>
+    </div>
+
+    <!-- Premium teaser compact -->
     <button class="premium-teaser" id="btn-premium">
       <span class="pt-crown" aria-hidden="true">
         <svg class="icon" viewBox="0 0 24 24"><path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 16h14"/></svg>
       </span>
       <span class="pt-info">
         <span class="pt-title">Passe Premium</span>
-        <span class="pt-sub">Alertes illimitées · pas de pub · 10₪/mois</span>
+        <span class="pt-sub">10 ₪/mois · sans engagement</span>
       </span>
       <span class="pt-arrow" aria-hidden="true">
         <svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
       </span>
     </button>
 
-    <div class="tools-grid">
-      <button class="tool" data-tool="savings" aria-disabled="true">
-        <span class="tool-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="m22 7-8.5 8.5-5-5L2 17M16 7h6v6"/></svg></span>
-        <b>Mes économies</b>
-        <small>1 850₪ total</small>
-        <span class="badge-soon">Bientôt</span>
-      </button>
-      <button class="tool" data-tool="recipes" aria-disabled="true">
-        <span class="tool-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/></svg></span>
-        <b>Recettes</b>
-        <small>14 recettes</small>
-        <span class="badge-soon">Bientôt</span>
-      </button>
-      <button class="tool" data-tool="fridge" aria-disabled="true">
-        <span class="tool-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
-        <b>Frigo</b>
-        <small>Anti-gaspillage</small>
-        <span class="badge-soon">Bientôt</span>
-      </button>
-      <button class="tool" data-tool="nearby" aria-disabled="true">
-        <span class="tool-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg></span>
-        <b>Magasins proches</b>
-        <small>Géolocalisation</small>
-        <span class="badge-soon">Bientôt</span>
-      </button>
-      <button class="tool" data-tool="achievements">
-        <span class="tool-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0Z"/></svg></span>
-        <b>Achievements</b>
-        <small>5/8 obtenus</small>
-      </button>
-      <button class="tool" data-tool="referral" aria-disabled="true">
-        <span class="tool-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H8a2.5 2.5 0 0 1 0-5C12 2 12 7 12 7M12 7h4a2.5 2.5 0 0 0 0-5C12 2 12 7 12 7"/></svg></span>
-        <b>Parrainage</b>
-        <small>1 mois gratuit/ami</small>
-        <span class="badge-soon">Bientôt</span>
-      </button>
-    </div>
+    <!-- 1 seul lien fonctionnel : Achievements -->
+    <button class="profile-row" data-tool="achievements">
+      <span class="legal-ico" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0Z"/></svg></span>
+      <span class="profile-row-label">Mes Achievements</span>
+      <span class="profile-row-meta">5 / 8</span>
+      <span class="lr-arrow" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span>
+    </button>
 
-    <div class="settings-card">
+    <!-- Hidden settings/legal lists kept in markup for the gear panel -->
+    <div class="settings-card" hidden>
       <div class="setting-row">
         <label for="set-dark" class="setting-label">
           <b>Mode sombre</b>
@@ -322,7 +324,7 @@
       </div>
     </div>
 
-    <div class="legal-list">
+    <div class="legal-list" hidden>
       <button class="legal-row" data-legal="about" aria-disabled="true">
         <span class="legal-ico" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
         <span class="legal-label">À propos</span>
@@ -349,7 +351,7 @@
       </button>
     </div>
 
-    <div class="version-foot">כדאי v36 démo · made with care in Israel</div>
+    <div class="version-foot">כדאי v37 démo · made with care in Israel</div>
   </section>
 
 </main>
@@ -402,14 +404,14 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ============ SCRIPTS ============ -->
-<script src="data/i18n.js?v=36"></script>
-<script src="data/products.js?v=36"></script>
-<script src="data/promotions.js?v=36"></script>
-<script src="data/stores-locations.js?v=36"></script>
-<script src="data/recipes.js?v=36"></script>
-<script src="data/store-brands.js?v=36"></script>
-<script src="data/big-deals.js?v=36"></script>
-<script src="app.js?v=36"></script>
+<script src="data/i18n.js?v=37"></script>
+<script src="data/products.js?v=37"></script>
+<script src="data/promotions.js?v=37"></script>
+<script src="data/stores-locations.js?v=37"></script>
+<script src="data/recipes.js?v=37"></script>
+<script src="data/store-brands.js?v=37"></script>
+<script src="data/big-deals.js?v=37"></script>
+<script src="app.js?v=37"></script>
 
 </body>
 </html>

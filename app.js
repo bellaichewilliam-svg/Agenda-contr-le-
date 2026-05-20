@@ -905,6 +905,92 @@ function openPremium() {
   }));
 }
 
+// Settings + Legal (gear icon panel)
+function openSettingsPanel() {
+  const html = `
+    <div class="p-head">
+      <h3>Réglages</h3>
+      <button class="p-close" data-close aria-label="Fermer">${kedaiIcon("x", 18)}</button>
+    </div>
+    <div class="p-body">
+      <h4 class="p-section">Préférences</h4>
+      <div class="settings-card" style="margin-bottom:18px">
+        <div class="setting-row">
+          <label for="set-dark-modal" class="setting-label">
+            <b>Mode sombre</b><small>Adapte l'interface à la pénombre</small>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="set-dark-modal" ${state.theme === "dark" ? "checked" : ""} />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <label for="set-shopping-modal" class="setting-label">
+            <b>Mode courses</b><small>Grouper par rayon</small>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="set-shopping-modal" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <label for="set-notifs-modal" class="setting-label">
+            <b>Notifications</b><small>Alertes promos sur tes favoris</small>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="set-notifs-modal" checked />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </label>
+        </div>
+      </div>
+
+      <h4 class="p-section">Informations</h4>
+      <div class="legal-list">
+        <button class="legal-row" aria-disabled="true">
+          <span class="legal-ico" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></span>
+          <span class="legal-label">À propos</span>
+          <span class="badge-soon inline">Bientôt</span>
+          <span class="lr-arrow" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+        <button class="legal-row" aria-disabled="true">
+          <span class="legal-ico" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8ZM14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg></span>
+          <span class="legal-label">CGU</span>
+          <span class="badge-soon inline">Bientôt</span>
+          <span class="lr-arrow" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+        <button class="legal-row" aria-disabled="true">
+          <span class="legal-ico" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <span class="legal-label">Confidentialité</span>
+          <span class="badge-soon inline">Bientôt</span>
+          <span class="lr-arrow" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+        <button class="legal-row" aria-disabled="true">
+          <span class="legal-ico" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-7.6-4.7L3 21l1.9-5.6A8.5 8.5 0 0 1 12.5 3a8.38 8.38 0 0 1 8.5 8.5Z"/></svg></span>
+          <span class="legal-label">Contact</span>
+          <span class="badge-soon inline">Bientôt</span>
+          <span class="lr-arrow" aria-hidden="true"><svg class="icon icon-sm" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
+      </div>
+      <div class="p-foot">v37 démo · made with care in Israel</div>
+    </div>
+  `;
+  const p = openPanel(html, "side");
+  // Wire toggles
+  const darkInput = p.querySelector("#set-dark-modal");
+  if (darkInput) darkInput.addEventListener("change", e => {
+    state.theme = e.target.checked ? "dark" : "light";
+    saveState();
+    applyTheme();
+    const main = $("#set-dark");
+    if (main) main.checked = e.target.checked;
+  });
+  const shoppingInput = p.querySelector("#set-shopping-modal");
+  if (shoppingInput) shoppingInput.addEventListener("change", () => toast("Mode courses (démo)"));
+  const notifsInput = p.querySelector("#set-notifs-modal");
+  if (notifsInput) notifsInput.addEventListener("change", () => toast("Préférence sauvegardée"));
+}
+window.kedai.openSettingsPanel = openSettingsPanel;
+
 // Chat IA
 function openChat() {
   const html = `
@@ -1253,6 +1339,15 @@ function bindEvents() {
 
   // Premium teaser
   $("#btn-premium").addEventListener("click", openPremium);
+
+  // Settings gear (replaces inline settings/legal lists)
+  const btnSettings = $("#btn-settings");
+  if (btnSettings) btnSettings.addEventListener("click", openSettingsPanel);
+
+  // Profile row "Mes Achievements"
+  $$(".profile-row[data-tool='achievements']").forEach(b =>
+    b.addEventListener("click", () => openProfile()),
+  );
 
   // Tools — disabled tools are visually marked and inert.
   $$(".tool").forEach(t => t.addEventListener("click", () => {
