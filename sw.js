@@ -2,7 +2,7 @@
 // Strategie: NETWORK-FIRST pour HTML/CSS/JS (toujours frais quand en ligne)
 // CACHE-FIRST seulement pour les assets statiques.
 
-const CACHE = "kedai-v35";
+const CACHE = "kedai-v36";
 const ASSETS = [
   "./",
   "./index.html",

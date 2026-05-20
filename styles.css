@@ -1489,6 +1489,99 @@ input:focus-visible,
 }
 
 /* ============================================================================
+   16bis. CATEGORIES VIEW
+============================================================================ */
+.cat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+@media (min-width: 640px) { .cat-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 960px) { .cat-grid { grid-template-columns: repeat(4, 1fr); } }
+
+.cat-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--panel);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 18px 16px;
+  font-family: inherit;
+  text-align: left;
+  transition: all var(--tx-fast);
+  cursor: pointer;
+}
+.cat-tile:hover {
+  border-color: var(--pink-soft);
+  background: var(--pink-tint);
+  transform: translateY(-2px);
+}
+.cat-tile-emoji {
+  font-size: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--bg-soft);
+  margin-bottom: 4px;
+}
+.cat-tile:hover .cat-tile-emoji {
+  background: white;
+}
+.cat-tile b {
+  display: block;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+}
+.cat-tile small {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pink-deep);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cat-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cat-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--bg-soft);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--tx-fast);
+  flex-shrink: 0;
+}
+.cat-back:hover { background: var(--pink-soft); color: var(--pink); }
+.cat-back .icon { width: 18px; height: 18px; }
+.cat-detail-head h2 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.cat-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+/* ============================================================================
    17. BOTTOM NAV
 ============================================================================ */
 .nav-bottom {
@@ -1498,13 +1591,39 @@ input:focus-visible,
   right: 0;
   z-index: 80;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-top: 1px solid var(--border);
   padding: 10px 4px max(10px, env(safe-area-inset-bottom));
 }
+
+/* Central tab: pink fill highlight even when inactive (like Shopmium "Rembourser") */
+.nav-tab-center .nt-ico {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--pink-soft);
+  color: var(--pink);
+  margin-bottom: -2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--tx-fast);
+  position: relative;
+  z-index: 1;
+}
+.nav-tab-center .nt-ico .icon { stroke-width: 2; }
+.nav-tab-center.active .nt-ico {
+  background: var(--pink);
+  color: white;
+  box-shadow: var(--shadow-pink);
+  transform: translateY(-4px);
+}
+.nav-tab-center.active::before { display: none; }
+.nav-tab-center .nt-lab { color: var(--ink); font-weight: 800; }
+.nav-tab-center.active .nt-lab { color: var(--pink); }
 [data-theme="dark"] .nav-bottom { background: rgba(19, 28, 45, 0.92); }
 .nav-tab {
   background: none;
