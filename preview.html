@@ -3,1563 +3,1013 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Kdai v35 · Preview direction</title>
+<title>Kdai · Comparaison directions visuelles</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Instrument+Serif&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 <style>
 /* ============================================================================
-   TOKENS v35 — Warm sophisticated. Cream + ink + terracotta + sage.
-   "Un cran au-dessus" des concurrents (Honey/Rakuten/ShopBack).
+   Page chrome (compare layout). Not the app — just the comparison tool.
 ============================================================================ */
-:root {
-  --cream:        #FAF7F2;
-  --cream-deep:   #F2EEE6;
-  --surface:      #FFFFFF;
-  --border:       #E7E2D8;
-  --border-strong:#D4CDBD;
-
-  --ink:          #0F0E0C;
-  --ink-2:        #2A2823;
-  --muted:        #5C5852;
-  --subtle:       #8A8680;
-
-  --accent:       #E55934;
-  --accent-deep:  #B3431F;
-  --accent-soft:  #FCE9E2;
-  --accent-tint:  #FFF4EF;
-
-  --sage:         #607a59;
-  --sage-deep:    #3F5239;
-  --sage-soft:    #E4ECDE;
-
-  --amber:        #B07A35;
-  --amber-soft:   #F4E9DE;
-
-  --plum:         #5B3A4F;
-  --plum-soft:    #EFE2EB;
-
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --r-xl: 24px;
-  --r-pill: 999px;
-
-  --shadow-1: 0 1px 2px rgba(15, 14, 12, 0.04);
-  --shadow-2: 0 4px 12px -2px rgba(15, 14, 12, 0.06), 0 1px 2px rgba(15, 14, 12, 0.04);
-  --shadow-3: 0 12px 32px -8px rgba(15, 14, 12, 0.10), 0 2px 6px rgba(15, 14, 12, 0.04);
-
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
-}
-
-/* RESET */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { -webkit-text-size-adjust: 100%; }
 body {
-  font-family: var(--font-sans);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
-  background: var(--cream);
-  color: var(--ink);
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  background: #F4F4F5;
+  color: #18181B;
   line-height: 1.5;
-  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
 }
 img, svg { display: block; max-width: 100%; }
 button { font-family: inherit; cursor: pointer; border: 0; background: transparent; color: inherit; }
 .tnum { font-variant-numeric: tabular-nums; }
 
-/* ============================================================================
-   PREVIEW SHELL (this page only, not part of the app)
-============================================================================ */
-.preview-shell {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 56px 32px 96px;
-}
-.preview-banner {
+.shell { max-width: 1200px; margin: 0 auto; padding: 48px 24px 96px; }
+
+.top-banner {
   position: sticky;
   top: 16px;
-  z-index: 50;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   padding: 14px 18px;
-  background: var(--ink);
-  color: var(--cream);
-  border-radius: var(--r-lg);
-  box-shadow: var(--shadow-3);
-  margin-bottom: 48px;
+  background: #18181B;
+  color: white;
+  border-radius: 12px;
+  margin-bottom: 40px;
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.18);
 }
-.preview-banner b { font-size: 14px; font-weight: 700; }
-.preview-banner small { font-size: 12px; opacity: .7; }
-.preview-banner .pb-actions { display: flex; gap: 8px; }
-.preview-banner .pb-btn {
+.top-banner b { font-size: 14px; font-weight: 700; }
+.top-banner small { font-size: 12px; opacity: .65; display: block; margin-top: 2px; }
+.top-banner .actions { display: flex; gap: 8px; }
+.top-banner .pb-btn {
   padding: 6px 12px;
   border: 1px solid rgba(255,255,255,.15);
-  border-radius: var(--r-pill);
+  border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--cream);
-  transition: all 180ms ease;
-}
-.preview-banner .pb-btn:hover { background: rgba(255,255,255,.10); }
-
-h1.preview-title {
-  font-family: var(--font-serif);
-  font-size: clamp(36px, 4vw, 56px);
-  font-weight: 400;
-  line-height: 1.05;
-  letter-spacing: -0.025em;
-  margin-bottom: 12px;
-}
-h1.preview-title em { font-style: italic; color: var(--accent-deep); }
-p.preview-lead {
-  font-size: 17px;
-  color: var(--muted);
-  max-width: 64ch;
-  margin-bottom: 56px;
-}
-
-.section {
-  margin-top: 72px;
-  padding-top: 32px;
-  border-top: 1px solid var(--border);
-}
-.section:first-of-type { border-top: 0; padding-top: 0; }
-.section-eyebrow {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-deep);
-  margin-bottom: 8px;
-}
-.section-title {
-  font-family: var(--font-serif);
-  font-size: 36px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
-}
-.section-sub {
-  font-size: 15px;
-  color: var(--muted);
-  max-width: 60ch;
-  margin-bottom: 28px;
-}
-
-/* ============================================================================
-   SECTION : TOKENS — couleurs / typo
-============================================================================ */
-.tokens-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
-@media (max-width: 880px) { .tokens-grid { grid-template-columns: 1fr; } }
-.tk-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 24px;
-}
-.tk-card h3 {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink);
-  margin-bottom: 16px;
-}
-
-.swatch-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.swatch {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-}
-.sw-chip {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--r-sm);
-  flex-shrink: 0;
-  border: 1px solid rgba(15,14,12,.08);
-}
-.sw-info { min-width: 0; }
-.sw-name { font-size: 12px; font-weight: 700; color: var(--ink); }
-.sw-hex { font-size: 11px; color: var(--muted); font-family: ui-monospace, monospace; }
-
-.type-row { display: flex; flex-direction: column; gap: 14px; }
-.type-sample { display: flex; align-items: baseline; gap: 12px; }
-.type-sample b { width: 60px; flex-shrink: 0; font-size: 11px; color: var(--subtle); font-weight: 600; }
-.type-d1 { font-family: var(--font-serif); font-size: 48px; line-height: 1; letter-spacing: -0.03em; }
-.type-d2 { font-family: var(--font-serif); font-size: 32px; line-height: 1.1; }
-.type-h  { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
-.type-b  { font-size: 15px; color: var(--ink); }
-.type-s  { font-size: 13px; color: var(--muted); }
-.type-c  { font-size: 11px; color: var(--subtle); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
-
-/* ============================================================================
-   SECTION : MOBILE PREVIEW
-============================================================================ */
-.mobile-row {
-  display: grid;
-  grid-template-columns: 380px 1fr;
-  gap: 56px;
-  align-items: start;
-}
-@media (max-width: 880px) { .mobile-row { grid-template-columns: 1fr; gap: 32px; } }
-
-.phone-frame {
-  width: 380px;
-  height: 760px;
-  background: var(--ink);
-  border-radius: 44px;
-  padding: 12px;
-  box-shadow: var(--shadow-3);
-  margin: 0 auto;
-}
-.phone-screen {
-  width: 100%;
-  height: 100%;
-  background: var(--cream);
-  border-radius: 32px;
-  overflow: hidden;
-  position: relative;
-  font-size: 14px;
-}
-.phone-notch {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 96px;
-  height: 24px;
-  background: var(--ink);
-  border-radius: 0 0 16px 16px;
-  z-index: 10;
-}
-
-/* App header (mobile) */
-.app-header {
-  position: sticky;
-  top: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 36px 20px 16px;
-  background: rgba(250, 247, 242, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid var(--border);
-  z-index: 5;
-}
-.app-brand {
-  font-family: var(--font-serif);
-  font-size: 24px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-.app-brand em { font-style: italic; color: var(--accent-deep); }
-.app-header-actions { display: flex; gap: 6px; }
-.icon-button {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--r-pill);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--ink);
-  background: transparent;
-  transition: background 180ms ease;
-}
-.icon-button:hover { background: var(--cream-deep); }
-.icon-button svg { width: 20px; height: 20px; stroke-width: 1.6; }
-.icon-button.with-dot { position: relative; }
-.icon-button .dot {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 7px;
-  height: 7px;
-  background: var(--accent);
-  border-radius: 50%;
-  border: 2px solid var(--cream);
-}
-
-.app-body {
-  height: calc(100% - 80px - 72px);
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.app-body::-webkit-scrollbar { display: none; }
-
-.section-block { padding: 20px 20px 0; }
-.section-block + .section-block { padding-top: 28px; }
-.block-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.block-title {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-.block-link {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent-deep);
-}
-.block-link:hover { text-decoration: underline; }
-
-/* Hero deal card (mobile) — typographic, no giant emoji */
-.hero-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  padding: 24px;
-  position: relative;
-  overflow: hidden;
-}
-.hero-card::after {
-  content: "";
-  position: absolute;
-  top: -40%;
-  right: -20%;
-  width: 70%;
-  aspect-ratio: 1;
-  background: radial-gradient(circle, var(--accent-tint), transparent 60%);
-  pointer-events: none;
-}
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-deep);
-  margin-bottom: 18px;
-}
-.hero-eyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  background: var(--accent);
-  border-radius: 50%;
-  box-shadow: 0 0 0 0 rgba(229, 89, 52, 0.5);
-  animation: pulse-soft 2.4s ease-in-out infinite;
-}
-@keyframes pulse-soft {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(229,89,52,.6); }
-  50%      { box-shadow: 0 0 0 6px rgba(229,89,52,0); }
-}
-.hero-name {
-  font-family: var(--font-serif);
-  font-size: 28px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  color: var(--ink);
-  margin-bottom: 4px;
-}
-.hero-store {
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 18px;
-}
-.hero-store b { color: var(--ink); font-weight: 600; }
-.hero-prices {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.hero-new {
-  font-family: var(--font-serif);
-  font-size: 44px;
-  font-weight: 400;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-}
-.hero-old {
-  font-size: 16px;
-  color: var(--subtle);
-  text-decoration: line-through;
-}
-.hero-save {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--sage-deep);
-  background: var(--sage-soft);
-  padding: 3px 10px;
-  border-radius: var(--r-pill);
-}
-.hero-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--ink);
-  color: var(--cream);
-  padding: 12px 20px;
-  border-radius: var(--r-pill);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  transition: all 180ms ease;
-}
-.hero-cta:hover {
-  background: var(--ink-2);
-  transform: translateY(-1px);
-}
-.hero-cta svg { width: 14px; height: 14px; stroke-width: 2; }
-
-/* Stories ribbon (mobile) */
-.stories {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  margin-right: -20px;
-  padding-right: 20px;
-  scrollbar-width: none;
-}
-.stories::-webkit-scrollbar { display: none; }
-.story {
-  flex-shrink: 0;
-  width: 76px;
-  text-align: center;
-}
-.story-disc {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  border: 1.5px solid var(--border);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-serif);
-  font-size: 22px;
-  color: var(--ink);
-  margin: 0 auto 8px;
-  transition: all 180ms ease;
-}
-.story.featured .story-disc {
-  border-color: var(--accent);
-  color: var(--accent-deep);
-  background: var(--accent-tint);
-}
-.story-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Deal cards list (mobile) — 1 card = 1 décision */
-.deal-list { display: flex; flex-direction: column; gap: 10px; }
-.deal {
-  display: grid;
-  grid-template-columns: 56px 1fr auto;
-  gap: 14px;
-  align-items: center;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 14px;
-  transition: border-color 180ms ease;
-}
-.deal:hover { border-color: var(--border-strong); }
-.deal-thumb {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--r-md);
-  background: var(--cream-deep);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-serif);
-  font-size: 24px;
-  color: var(--ink);
-}
-.deal-thumb.tint-accent { background: var(--accent-tint); color: var(--accent-deep); }
-.deal-thumb.tint-sage { background: var(--sage-soft); color: var(--sage-deep); }
-.deal-thumb.tint-plum { background: var(--plum-soft); color: var(--plum); }
-.deal-info { min-width: 0; }
-.deal-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 3px;
-}
-.deal-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--muted);
-}
-.deal-meta .dot {
-  width: 3px;
-  height: 3px;
-  background: var(--subtle);
-  border-radius: 50%;
-}
-.deal-price {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-}
-.deal-price-new {
-  font-family: var(--font-serif);
-  font-size: 18px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-.deal-price-old {
-  font-size: 11px;
-  color: var(--subtle);
-  text-decoration: line-through;
-}
-
-/* Pill */
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  border-radius: var(--r-pill);
-  white-space: nowrap;
-}
-.pill-accent  { background: var(--accent-soft); color: var(--accent-deep); }
-.pill-sage    { background: var(--sage-soft); color: var(--sage-deep); }
-.pill-amber   { background: var(--amber-soft); color: var(--amber); }
-.pill-plum    { background: var(--plum-soft); color: var(--plum); }
-.pill-ghost   { background: var(--cream-deep); color: var(--muted); }
-
-/* Bottom nav (mobile) */
-.bottom-nav {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  padding: 12px 8px 22px;
-  background: rgba(250, 247, 242, 0.94);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid var(--border);
-}
-.tab {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--subtle);
-  letter-spacing: -0.01em;
-}
-.tab.active { color: var(--ink); }
-.tab svg { width: 22px; height: 22px; stroke-width: 1.6; }
-.tab.active svg { fill: var(--accent-tint); stroke: var(--accent-deep); }
-
-/* Caption next to phone */
-.mobile-notes {
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-.note h4 {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--accent-deep);
-  margin-bottom: 6px;
-}
-.note p { font-size: 15px; color: var(--muted); max-width: 50ch; line-height: 1.55; }
-
-/* ============================================================================
-   SECTION : DESKTOP PREVIEW
-============================================================================ */
-.desktop-frame {
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
-  background: var(--cream);
-  overflow: hidden;
-  box-shadow: var(--shadow-3);
-}
-.desktop-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: var(--cream-deep);
-  border-bottom: 1px solid var(--border);
-}
-.desktop-bar .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border-strong); }
-.desktop-bar .url {
-  flex: 1;
-  text-align: center;
-  font-size: 12px;
-  color: var(--muted);
-  font-family: ui-monospace, monospace;
-}
-
-.desktop-app {
-  display: grid;
-  grid-template-columns: 220px 1fr 320px;
-  min-height: 640px;
-}
-.dsk-sidebar {
-  background: var(--cream);
-  border-right: 1px solid var(--border);
-  padding: 24px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-.dsk-brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 4px;
-}
-.dsk-brand-mark {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--ink);
-  color: var(--cream);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-serif);
-  font-size: 16px;
-  font-weight: 400;
-}
-.dsk-brand-name {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-}
-.dsk-nav { display: flex; flex-direction: column; gap: 2px; }
-.dsk-nav-section {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--subtle);
-  padding: 0 10px 8px;
-  margin-top: 12px;
-}
-.dsk-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
-  border-radius: var(--r-md);
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--ink-2);
+  color: white;
   text-decoration: none;
 }
-.dsk-nav-item:hover { background: var(--cream-deep); }
-.dsk-nav-item.active {
-  background: var(--ink);
-  color: var(--cream);
+.top-banner .pb-btn:hover { background: rgba(255,255,255,.08); }
+
+.intro h1 {
+  font-size: clamp(32px, 4vw, 44px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  margin-bottom: 12px;
+  color: #09090B;
 }
-.dsk-nav-item svg { width: 18px; height: 18px; stroke-width: 1.6; }
-.dsk-nav-item .nav-count {
-  margin-left: auto;
-  font-size: 11px;
-  font-weight: 700;
-  background: rgba(255,255,255,0.12);
-  color: inherit;
-  padding: 1px 7px;
-  border-radius: var(--r-pill);
-}
-.dsk-nav-item:not(.active) .nav-count {
-  background: var(--cream-deep);
-  color: var(--muted);
+.intro p {
+  font-size: 16px;
+  color: #52525B;
+  max-width: 64ch;
+  margin-bottom: 48px;
 }
 
-.dsk-main {
-  padding: 32px 36px 40px;
-  overflow-y: auto;
+/* Sample container */
+.sample {
+  background: white;
+  border: 1px solid #E4E4E7;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 32px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
-.dsk-header {
+.sample-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 28px;
+  padding: 20px 24px;
+  border-bottom: 1px solid #E4E4E7;
+  background: #FAFAFA;
 }
-.dsk-h1 {
-  font-family: var(--font-serif);
-  font-size: 38px;
-  font-weight: 400;
-  letter-spacing: -0.025em;
+.sample-head-left h2 {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: #09090B;
 }
-.dsk-h1 em { font-style: italic; color: var(--accent-deep); }
-.dsk-sub { font-size: 14px; color: var(--muted); margin-top: 4px; }
-
-.dsk-toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 24px;
-}
-.dsk-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-pill);
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-2);
-  background: var(--surface);
-  transition: all 180ms ease;
-}
-.dsk-chip:hover { border-color: var(--border-strong); }
-.dsk-chip.active {
-  background: var(--ink);
-  color: var(--cream);
-  border-color: var(--ink);
-}
-
-/* Desktop deal grid */
-.dsk-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 16px;
-}
-.dsk-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  overflow: hidden;
-  transition: all 180ms ease;
-}
-.dsk-card:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-2);
-}
-.dsk-card-img {
-  height: 140px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-serif);
-  font-size: 56px;
-  color: var(--ink);
-  position: relative;
-}
-.dsk-card-img.tint-accent { background: var(--accent-tint); color: var(--accent-deep); }
-.dsk-card-img.tint-sage { background: var(--sage-soft); color: var(--sage-deep); }
-.dsk-card-img.tint-plum { background: var(--plum-soft); color: var(--plum); }
-.dsk-card-img.tint-amber { background: var(--amber-soft); color: var(--amber); }
-.dsk-card-img.tint-cream { background: var(--cream-deep); color: var(--ink-2); }
-
-.dsk-card-pill {
-  position: absolute;
-  top: 12px;
-  left: 12px;
-}
-.dsk-card-discount {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  font-family: var(--font-serif);
-  font-size: 22px;
-  color: var(--ink);
-  background: var(--cream);
-  padding: 2px 10px;
-  border-radius: var(--r-pill);
-  letter-spacing: -0.02em;
-}
-
-.dsk-card-body { padding: 14px 16px 16px; }
-.dsk-card-store {
+.sample-head-left .tag {
+  display: inline-block;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--muted);
-  margin-bottom: 6px;
+  color: #71717A;
+  margin-right: 8px;
 }
-.dsk-card-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-  line-height: 1.35;
-  margin-bottom: 12px;
-  min-height: 38px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.dsk-card-row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-.dsk-price {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-.dsk-price-new {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-.dsk-price-old {
-  font-size: 12px;
-  color: var(--subtle);
-  text-decoration: line-through;
-}
-
-/* Right rail (cart summary / list) */
-.dsk-rail {
-  border-left: 1px solid var(--border);
-  background: var(--cream);
-  padding: 32px 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.rail-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 20px;
-}
-.rail-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-deep);
-  margin-bottom: 8px;
-}
-.rail-store {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-.rail-store b {
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  color: var(--ink);
-}
-.rail-store .store-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
-.rail-total {
-  font-family: var(--font-serif);
-  font-size: 48px;
-  font-weight: 400;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-  line-height: 1;
-  margin-bottom: 6px;
-}
-.rail-saving {
-  font-size: 12px;
-  color: var(--sage-deep);
-  font-weight: 600;
-}
-.rail-items {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
-}
-.rail-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-  align-items: center;
+.sample-head-left p {
   font-size: 13px;
+  color: #71717A;
+  margin-top: 4px;
 }
-.rail-item .ri-name { color: var(--ink-2); }
-.rail-item .ri-qty {
-  font-size: 11px;
-  color: var(--subtle);
-  margin-left: 4px;
-}
-.rail-item .ri-price { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
-
-.rail-cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: var(--accent);
-  color: white;
-  padding: 14px;
-  border-radius: var(--r-md);
-  font-size: 14px;
+.sample-pick {
+  padding: 8px 16px;
+  border: 1px solid #D4D4D8;
+  border-radius: 8px;
+  background: white;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  width: 100%;
-  margin-top: 12px;
-  transition: all 180ms ease;
+  color: #18181B;
 }
-.rail-cta:hover {
-  background: var(--accent-deep);
-  transform: translateY(-1px);
+.sample-pick:hover { background: #FAFAFA; border-color: #A1A1AA; }
+
+.sample-body {
+  padding: 32px;
+  background: var(--bg, white);
 }
 
 /* ============================================================================
-   SECTION : COMPONENTS LIBRARY
+   SAMPLE A — Linear/Vercel minimaliste
+   Pure white, near-black, single subtle accent (purple)
 ============================================================================ */
-.components-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+.A {
+  --bg: #FFFFFF;
+  --fg: #09090B;
+  --muted: #52525B;
+  --subtle: #A1A1AA;
+  --border: #E4E4E7;
+  --accent: #6D28D9;
+  --accent-soft: #F5F3FF;
 }
-@media (max-width: 880px) { .components-grid { grid-template-columns: 1fr; } }
-.comp-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  padding: 24px;
-}
-.comp-card h3 {
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink);
-  margin-bottom: 16px;
-}
-.comp-row {
+.A .app-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
   align-items: center;
-  margin-bottom: 12px;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
 }
+.A .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+}
+.A .brand-mark {
+  width: 28px;
+  height: 28px;
+  background: var(--fg);
+  color: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+.A .nav-icons { display: flex; gap: 4px; }
+.A .ibtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: all 150ms ease;
+}
+.A .ibtn:hover { background: #F4F4F5; color: var(--fg); }
+.A .ibtn svg { width: 18px; height: 18px; stroke-width: 1.5; }
 
-/* Buttons */
-.btn {
+.A .hero {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+.A .hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.A .hero-eyebrow::before {
+  content: ""; width: 5px; height: 5px;
+  background: var(--accent); border-radius: 50%;
+}
+.A .hero h3 {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  margin-bottom: 4px;
+  color: var(--fg);
+}
+.A .hero .hsub { font-size: 14px; color: var(--muted); }
+.A .hero .prices { display: flex; align-items: baseline; gap: 10px; margin-top: 12px; }
+.A .hero .new { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; color: var(--fg); }
+.A .hero .old { font-size: 14px; color: var(--subtle); text-decoration: line-through; }
+.A .hero .badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+.A .cta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 10px 18px;
-  border-radius: var(--r-md);
+  background: var(--fg);
+  color: white;
+  border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.01em;
-  transition: all 180ms ease;
+  white-space: nowrap;
 }
-.btn svg { width: 16px; height: 16px; stroke-width: 2; }
-.btn.solid { background: var(--ink); color: var(--cream); }
-.btn.solid:hover { background: var(--ink-2); transform: translateY(-1px); }
-.btn.accent { background: var(--accent); color: white; }
-.btn.accent:hover { background: var(--accent-deep); transform: translateY(-1px); }
-.btn.outline { border: 1px solid var(--border-strong); color: var(--ink); background: var(--surface); }
-.btn.outline:hover { background: var(--cream-deep); }
-.btn.ghost { color: var(--ink); }
-.btn.ghost:hover { background: var(--cream-deep); }
-.btn.danger { background: #B83227; color: white; }
-.btn.danger:hover { background: #91291F; }
-.btn.pill { border-radius: var(--r-pill); padding: 10px 22px; }
+.A .cta:hover { background: #27272A; }
+.A .cta svg { width: 14px; height: 14px; stroke-width: 2; }
 
-/* Inputs */
-.input {
+.A .deals { display: flex; flex-direction: column; gap: 8px; }
+.A .deal {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  transition: border-color 150ms ease;
+}
+.A .deal:hover { border-color: #A1A1AA; }
+.A .deal-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: #F4F4F5;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+.A .deal-info b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 2px;
+}
+.A .deal-info small { font-size: 12px; color: var(--muted); }
+.A .deal-info small .sep { color: var(--subtle); margin: 0 4px; }
+.A .deal-info small .pill {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+}
+.A .deal-price {
+  text-align: right;
+}
+.A .deal-price b {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.A .deal-price small {
+  font-size: 11px;
+  color: var(--subtle);
+  text-decoration: line-through;
+}
+
+/* ============================================================================
+   SAMPLE B — Fintech bold (Cash App / Revolut)
+   White, MASSIVE numbers, saturated green/red, confident
+============================================================================ */
+.B {
+  --bg: #FFFFFF;
+  --fg: #0A0A0A;
+  --muted: #525252;
+  --subtle: #A3A3A3;
+  --border: #EDEDED;
+  --green: #00C260;
+  --green-soft: #E6F8EE;
+  --red: #F23535;
+  --red-soft: #FDEAEA;
+  --blue: #1A56FF;
+  --blue-soft: #E5EDFF;
+}
+.B .app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+}
+.B .brand {
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+}
+.B .brand .dot { color: var(--green); }
+.B .nav-icons { display: flex; gap: 4px; }
+.B .ibtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg);
+  background: #F5F5F5;
+  transition: all 150ms ease;
+}
+.B .ibtn:hover { background: #E5E5E5; }
+.B .ibtn svg { width: 18px; height: 18px; stroke-width: 2; }
+
+.B .hero {
+  background: var(--fg);
+  color: white;
+  border-radius: 24px;
+  padding: 32px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.B .hero::after {
+  content: "";
+  position: absolute;
+  bottom: -60px;
+  right: -40px;
+  width: 240px;
+  height: 240px;
+  background: radial-gradient(circle, rgba(0, 194, 96, 0.20), transparent 60%);
+  pointer-events: none;
+}
+.B .hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--green);
+  margin-bottom: 16px;
+}
+.B .hero h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 4px;
+}
+.B .hero .name {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: white;
+  margin-bottom: 16px;
+}
+.B .hero .huge {
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 1;
+  color: white;
+}
+.B .hero .huge .currency { font-size: 32px; font-weight: 700; opacity: .6; vertical-align: top; margin-left: 4px; }
+.B .hero .saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--green);
+}
+.B .hero .saved::before {
+  content: "↓"; font-size: 16px;
+}
+.B .hero .actions { display: flex; gap: 8px; margin-top: 20px; }
+.B .hero .cta {
+  background: white;
+  color: var(--fg);
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.B .hero .cta:hover { background: #F5F5F5; }
+.B .hero .cta-ghost {
+  background: rgba(255,255,255,0.1);
+  color: white;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.B .hero .cta-ghost:hover { background: rgba(255,255,255,0.15); }
+
+.B .deals { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--border); }
+.B .deal {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  gap: 14px;
+  align-items: center;
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.B .deal-mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--green-soft);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+.B .deal-mark.red { background: var(--red-soft); color: var(--red); }
+.B .deal-mark.blue { background: var(--blue-soft); color: var(--blue); }
+.B .deal-info b {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.B .deal-info small {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.B .deal-price {
+  text-align: right;
+}
+.B .deal-price b {
+  display: block;
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+.B .deal-price small {
+  font-size: 11px;
+  color: var(--green);
+  font-weight: 700;
+}
+
+/* ============================================================================
+   SAMPLE C — SaaS pro doux (Stripe / Notion / le screenshot user)
+   White + violet primary + soft pastel pills, sans-serif clean
+============================================================================ */
+.C {
+  --bg: #FAFAFA;
+  --fg: #111827;
+  --muted: #6B7280;
+  --subtle: #9CA3AF;
+  --border: #E5E7EB;
+  --surface: #FFFFFF;
+  --violet: #7C3AED;
+  --violet-deep: #5B21B6;
+  --violet-soft: #EDE9FE;
+  --green: #059669;
+  --green-soft: #D1FAE5;
+  --amber-soft: #FEF3C7;
+  --amber-deep: #92400E;
+  --rose-soft: #FCE7F3;
+  --rose-deep: #9D174D;
+}
+.C .app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+.C .brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 14px;
-  height: 42px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-md);
-  transition: all 180ms ease;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg);
 }
-.input:focus-within {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 4px rgba(15, 14, 12, 0.06);
-}
-.input svg { width: 16px; height: 16px; stroke-width: 1.6; color: var(--subtle); }
-.input input {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  font-family: inherit;
+.C .brand-mark {
+  width: 30px;
+  height: 30px;
+  background: linear-gradient(135deg, var(--violet), var(--violet-deep));
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 14px;
-  color: var(--ink);
-  outline: none;
+  font-weight: 800;
 }
-.input input::placeholder { color: var(--subtle); }
+.C .nav-icons { display: flex; gap: 4px; }
+.C .ibtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: all 150ms ease;
+}
+.C .ibtn:hover { background: var(--violet-soft); color: var(--violet); }
+.C .ibtn svg { width: 18px; height: 18px; stroke-width: 1.8; }
 
-/* ============================================================================
-   FOOTER MESSAGE
-============================================================================ */
-.preview-footer {
-  margin-top: 96px;
-  padding: 32px;
-  background: var(--ink);
-  color: var(--cream);
-  border-radius: var(--r-xl);
+.C .hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: 64px 1fr auto;
+  gap: 20px;
+  align-items: center;
 }
-.preview-footer h2 {
-  font-family: var(--font-serif);
-  font-size: 28px;
-  font-weight: 400;
-  margin-bottom: 12px;
+.C .hero-thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: var(--rose-soft);
+  color: var(--rose-deep);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 800;
 }
-.preview-footer p { font-size: 15px; opacity: .8; max-width: 60ch; }
+.C .hero-info b {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 4px;
+}
+.C .hero-info .pills {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.C .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 999px;
+  letter-spacing: -0.005em;
+}
+.C .pill::before {
+  content: ""; width: 5px; height: 5px; border-radius: 50%;
+}
+.C .pill.violet { background: var(--violet-soft); color: var(--violet-deep); }
+.C .pill.violet::before { background: var(--violet); }
+.C .pill.green { background: var(--green-soft); color: var(--green); }
+.C .pill.green::before { background: var(--green); }
+.C .pill.amber { background: var(--amber-soft); color: var(--amber-deep); }
+.C .pill.amber::before { background: #D97706; }
+.C .pill.rose { background: var(--rose-soft); color: var(--rose-deep); }
+.C .pill.rose::before { background: #DB2777; }
+
+.C .hero-info small {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+}
+.C .hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.C .hero-side .new {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--fg);
+  letter-spacing: -0.02em;
+}
+.C .hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--violet);
+  color: white;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.C .hero-cta:hover { background: var(--violet-deep); }
+.C .hero-cta svg { width: 14px; height: 14px; stroke-width: 2.5; }
+
+.C .row-cards { display: flex; flex-direction: column; gap: 8px; }
+.C .row-card {
+  display: grid;
+  grid-template-columns: 44px 1fr auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: all 150ms ease;
+}
+.C .row-card:hover {
+  border-color: var(--violet-soft);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+.C .row-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--green-soft);
+  color: var(--green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+.C .row-thumb.violet { background: var(--violet-soft); color: var(--violet); }
+.C .row-thumb.amber { background: var(--amber-soft); color: var(--amber-deep); }
+.C .row-thumb.rose { background: var(--rose-soft); color: var(--rose-deep); }
+.C .row-info b {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 4px;
+}
+.C .row-info .pills { display: flex; gap: 6px; }
+.C .row-price b {
+  display: block;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg);
+  text-align: right;
+}
+.C .row-price small {
+  font-size: 11px;
+  color: var(--subtle);
+  text-decoration: line-through;
+}
+.C .row-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  background: white;
+}
+.C .row-action:hover { color: var(--violet); border-color: var(--violet-soft); }
+.C .row-action svg { width: 14px; height: 14px; stroke-width: 2; }
+
+/* Bottom selector */
+.selector-bar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 50;
+  margin-top: 56px;
+  padding: 16px 20px;
+  background: white;
+  border: 1px solid #E4E4E7;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px -8px rgba(0,0,0,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.selector-bar b { font-size: 14px; font-weight: 700; }
+.selector-bar small { font-size: 13px; color: #71717A; }
+.selector-bar .picks { display: flex; gap: 6px; }
+.selector-bar .pick {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #D4D4D8;
+  background: white;
+}
+.selector-bar .pick:hover { background: #FAFAFA; }
+.selector-bar .pick.A:hover { color: #6D28D9; border-color: #C4B5FD; }
+.selector-bar .pick.B:hover { color: #00C260; border-color: #86EFAC; }
+.selector-bar .pick.C:hover { color: #7C3AED; border-color: #C4B5FD; }
+.selector-bar .pick.none:hover { color: #DC2626; border-color: #FCA5A5; }
 </style>
 </head>
 <body>
 
-<div class="preview-shell">
+<div class="shell">
 
-  <div class="preview-banner">
+  <div class="top-banner">
     <div>
-      <b>Kdai · Preview v35</b>
-      <small style="display:block;margin-top:2px;">Mockup statique de direction. Ne reflète pas l'app live.</small>
+      <b>Kdai · Comparaison de directions visuelles</b>
+      <small>Choisis A, B ou C ci-dessous. (Ou dis "aucune" et on recommence.)</small>
     </div>
-    <div class="pb-actions">
-      <button class="pb-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">Haut</button>
+    <div class="actions">
       <a class="pb-btn" href="index.html">Voir l'app live (v33)</a>
     </div>
   </div>
 
-  <h1 class="preview-title">Une app de promos qui se prend<br><em>au sérieux</em>.</h1>
-  <p class="preview-lead">
-    Mockup d'une direction visuelle pour Kdai. L'idée : sortir du langage générique "rouge-orange-criard" des comparateurs concurrents
-    (Honey, Rakuten, ShopBack) et viser un cran au-dessus. Vocabulaire chaud-sophistiqué : cream + ink + terracotta + sage,
-    typographie éditoriale (Instrument Serif pour les titres, Inter pour le corps), composants restreints et lisibles.
-  </p>
+  <div class="intro">
+    <h1>3 directions, même contenu.</h1>
+    <p>
+      Tout en Inter (la typo qu'on voit dans 90% des SaaS pro modernes — pas de fioriture). Même fake-data dans les 3 samples
+      (Nutella en deal du jour, 3 lignes de promos). La différence est purement visuelle : palette, échelle typo, intensité.
+      Lequel te parle ?
+    </p>
+  </div>
 
-  <!-- ============ TOKENS ============ -->
-  <section class="section" id="tokens">
-    <div class="section-eyebrow">01 — Système</div>
-    <h2 class="section-title">Tokens</h2>
-    <p class="section-sub">Palette restreinte, typographie à deux familles, 4 paliers de radius, 3 ombres.</p>
+  <!-- ============ SAMPLE A — MINIMAL ============ -->
+  <section class="sample A">
+    <header class="sample-head">
+      <div class="sample-head-left">
+        <span class="tag">A — Minimal</span>
+        <h2 style="display:inline-block">Linear / Vercel</h2>
+        <p>Blanc pur, noir profond, 1 seul accent violet en touche. Sobre, pro, intemporel. Vise des produits comme Linear, Vercel, Things.</p>
+      </div>
+    </header>
+    <div class="sample-body">
 
-    <div class="tokens-grid">
-      <div class="tk-card">
-        <h3>Palette</h3>
-        <div class="swatch-row">
-          <div class="swatch"><div class="sw-chip" style="background:var(--cream)"></div><div class="sw-info"><div class="sw-name">Cream</div><div class="sw-hex">#FAF7F2 — fond</div></div></div>
-          <div class="swatch"><div class="sw-chip" style="background:var(--surface);border-color:var(--border-strong)"></div><div class="sw-info"><div class="sw-name">Surface</div><div class="sw-hex">#FFFFFF — cartes</div></div></div>
-          <div class="swatch"><div class="sw-chip" style="background:var(--ink)"></div><div class="sw-info"><div class="sw-name">Ink</div><div class="sw-hex">#0F0E0C — texte/CTA</div></div></div>
-          <div class="swatch"><div class="sw-chip" style="background:var(--muted)"></div><div class="sw-info"><div class="sw-name">Muted</div><div class="sw-hex">#5C5852 — secondaire</div></div></div>
-          <div class="swatch"><div class="sw-chip" style="background:var(--accent)"></div><div class="sw-info"><div class="sw-name">Accent</div><div class="sw-hex">#E55934 — terracotta</div></div></div>
-          <div class="swatch"><div class="sw-chip" style="background:var(--accent-soft)"></div><div class="sw-info"><div class="sw-name">Accent soft</div><div class="sw-hex">#FCE9E2 — badges</div></div></div>
-          <div class="swatch"><div class="sw-chip" style="background:var(--sage-soft)"></div><div class="sw-info"><div class="sw-name">Sage soft</div><div class="sw-hex">#E4ECDE — économies</div></div></div>
-          <div class="swatch"><div class="sw-chip" style="background:var(--plum-soft)"></div><div class="sw-info"><div class="sw-name">Plum soft</div><div class="sw-hex">#EFE2EB — premium</div></div></div>
+      <div class="app-header">
+        <div class="brand">
+          <span class="brand-mark">k</span>
+          kdai
+        </div>
+        <div class="nav-icons">
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
         </div>
       </div>
 
-      <div class="tk-card">
-        <h3>Typographie</h3>
-        <div class="type-row">
-          <div class="type-sample"><b>Display</b><span class="type-d1">39,90 ₪</span></div>
-          <div class="type-sample"><b>Title</b><span class="type-d2">Promos du jour</span></div>
-          <div class="type-sample"><b>Heading</b><span class="type-h">Casque audio sans fil</span></div>
-          <div class="type-sample"><b>Body</b><span class="type-b">Le moins cher chez Rami Levy</span></div>
-          <div class="type-sample"><b>Caption</b><span class="type-s">Mis à jour il y a 14 minutes</span></div>
-          <div class="type-sample"><b>Eyebrow</b><span class="type-c">Promo limitée</span></div>
+      <div class="hero">
+        <div>
+          <div class="hero-eyebrow">Deal du jour</div>
+          <h3>Nutella 800 g — Osher Ad</h3>
+          <div class="hsub">Pâte à tartiner · jusqu'à dimanche 25 mai</div>
+          <div class="prices">
+            <span class="new tnum">17,90 ₪</span>
+            <span class="old tnum">25,90 ₪</span>
+            <span class="badge">−31 %</span>
+          </div>
+        </div>
+        <button class="cta">
+          Voir l'offre
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+
+      <div class="deals">
+        <div class="deal">
+          <div class="deal-mark">P</div>
+          <div class="deal-info">
+            <b>Pâtes Osem fusilli 500 g</b>
+            <small><span class="pill">1+1</span>Shufersal<span class="sep">·</span>jusqu'au 22 mai</small>
+          </div>
+          <div class="deal-price">
+            <b class="tnum">3,22 ₪</b>
+            <small class="tnum">6,45 ₪</small>
+          </div>
+        </div>
+        <div class="deal">
+          <div class="deal-mark">B</div>
+          <div class="deal-info">
+            <b>Barilla pesto al basilico 190 g</b>
+            <small><span class="pill">−25 %</span>Rami Levy<span class="sep">·</span>stock élevé</small>
+          </div>
+          <div class="deal-price">
+            <b class="tnum">12,90 ₪</b>
+            <small class="tnum">17,20 ₪</small>
+          </div>
+        </div>
+        <div class="deal">
+          <div class="deal-mark">C</div>
+          <div class="deal-info">
+            <b>Café Elite Turkish 200 g</b>
+            <small><span class="pill">3 × 30 ₪</span>Victory<span class="sep">·</span>3 jours restants</small>
+          </div>
+          <div class="deal-price">
+            <b class="tnum">10,00 ₪</b>
+            <small class="tnum">14,90 ₪</small>
+          </div>
         </div>
       </div>
+
     </div>
   </section>
 
-  <!-- ============ MOBILE PREVIEW ============ -->
-  <section class="section" id="mobile">
-    <div class="section-eyebrow">02 — Mobile</div>
-    <h2 class="section-title">L'app dans le pouce</h2>
-    <p class="section-sub">Le format principal. Header glassmorphism, hero card typographique (plus d'emoji géant qui écrase), feed de cards-décisions au lieu d'un mur de tuiles. Bottom nav restreinte.</p>
+  <!-- ============ SAMPLE B — FINTECH BOLD ============ -->
+  <section class="sample B">
+    <header class="sample-head">
+      <div class="sample-head-left">
+        <span class="tag">B — Fintech bold</span>
+        <h2 style="display:inline-block">Cash App / Revolut / Robinhood</h2>
+        <p>Hero noir, gros chiffres, vert pour l'économie. L'argent est l'événement. Adapté à une promesse "ne plus jamais payer trop".</p>
+      </div>
+    </header>
+    <div class="sample-body" style="background:#FAFAFA">
 
-    <div class="mobile-row">
-      <div class="phone-frame">
-        <div class="phone-screen">
-          <div class="phone-notch"></div>
+      <div class="app-header">
+        <div class="brand">kdai<span class="dot">.</span></div>
+        <div class="nav-icons">
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+        </div>
+      </div>
 
-          <!-- App header -->
-          <header class="app-header">
-            <div class="app-brand">k<em>d</em>ai</div>
-            <div class="app-header-actions">
-              <button class="icon-button" aria-label="Rechercher">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              </button>
-              <button class="icon-button with-dot" aria-label="Notifications">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-                <span class="dot"></span>
-              </button>
-            </div>
-          </header>
+      <div class="hero">
+        <div class="hero-eyebrow">● Deal du jour · Osher Ad</div>
+        <h3>Nutella 800 g</h3>
+        <div class="name">Prix actuel</div>
+        <div class="huge tnum">17,90<span class="currency">₪</span></div>
+        <div class="saved">Économie 8,00 ₪ vs prix moyen</div>
+        <div class="actions">
+          <button class="cta">Voir l'offre</button>
+          <button class="cta-ghost">Ajouter à la liste</button>
+        </div>
+      </div>
 
-          <div class="app-body">
-            <!-- Hero deal -->
-            <div class="section-block">
-              <div class="hero-card">
-                <div class="hero-eyebrow">Deal du jour</div>
-                <div class="hero-name">Nutella<br>800 g</div>
-                <div class="hero-store">chez <b>Osher Ad</b> · jusqu'à dimanche</div>
-                <div class="hero-prices">
-                  <span class="hero-new tnum">17,90 ₪</span>
-                  <span class="hero-old tnum">25,90 ₪</span>
-                  <span class="hero-save">−31 %</span>
-                </div>
-                <button class="hero-cta">
-                  Voir l'offre
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- Stories ribbon -->
-            <div class="section-block">
-              <div class="block-head">
-                <div class="block-title">Catalogues</div>
-                <a href="#" class="block-link">Tout voir</a>
-              </div>
-              <div class="stories">
-                <div class="story featured"><div class="story-disc">RL</div><div class="story-name">Rami Levy</div></div>
-                <div class="story"><div class="story-disc">Sh</div><div class="story-name">Shufersal</div></div>
-                <div class="story"><div class="story-disc">OA</div><div class="story-name">Osher Ad</div></div>
-                <div class="story"><div class="story-disc">Vi</div><div class="story-name">Victory</div></div>
-                <div class="story"><div class="story-disc">Yo</div><div class="story-name">Yochananof</div></div>
-                <div class="story"><div class="story-disc">Bo</div><div class="story-name">Boom</div></div>
-                <div class="story"><div class="story-disc">Cr</div><div class="story-name">Carrefour</div></div>
-              </div>
-            </div>
-
-            <!-- Deal cards list -->
-            <div class="section-block">
-              <div class="block-head">
-                <div class="block-title">À ne pas rater</div>
-                <a href="#" class="block-link">Filtrer</a>
-              </div>
-              <div class="deal-list">
-                <div class="deal">
-                  <div class="deal-thumb tint-accent">P</div>
-                  <div class="deal-info">
-                    <div class="deal-name">Pâtes Osem 500 g</div>
-                    <div class="deal-meta">
-                      <span class="pill pill-accent">1+1</span>
-                      <span>Shufersal</span>
-                    </div>
-                  </div>
-                  <div class="deal-price">
-                    <span class="deal-price-new tnum">3,22 ₪</span>
-                    <span class="deal-price-old tnum">6,45 ₪</span>
-                  </div>
-                </div>
-                <div class="deal">
-                  <div class="deal-thumb tint-sage">B</div>
-                  <div class="deal-info">
-                    <div class="deal-name">Barilla pesto 190 g</div>
-                    <div class="deal-meta">
-                      <span class="pill pill-sage">−25 %</span>
-                      <span>Rami Levy</span>
-                    </div>
-                  </div>
-                  <div class="deal-price">
-                    <span class="deal-price-new tnum">12,90 ₪</span>
-                    <span class="deal-price-old tnum">17,20 ₪</span>
-                  </div>
-                </div>
-                <div class="deal">
-                  <div class="deal-thumb tint-plum">C</div>
-                  <div class="deal-info">
-                    <div class="deal-name">Café Elite Turkish 200 g</div>
-                    <div class="deal-meta">
-                      <span class="pill pill-plum">3 × 30 ₪</span>
-                      <span>Victory</span>
-                    </div>
-                  </div>
-                  <div class="deal-price">
-                    <span class="deal-price-new tnum">10,00 ₪</span>
-                    <span class="deal-price-old tnum">14,90 ₪</span>
-                  </div>
-                </div>
-                <div class="deal">
-                  <div class="deal-thumb tint-cream">L</div>
-                  <div class="deal-info">
-                    <div class="deal-name">Lait Tnuva 1 L</div>
-                    <div class="deal-meta">
-                      <span class="pill pill-amber">Stock bas</span>
-                      <span>Yochananof</span>
-                    </div>
-                  </div>
-                  <div class="deal-price">
-                    <span class="deal-price-new tnum">5,90 ₪</span>
-                    <span class="deal-price-old tnum">6,90 ₪</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div style="height:80px"></div>
+      <div class="deals">
+        <div class="deal">
+          <div class="deal-mark">P</div>
+          <div class="deal-info">
+            <b>Pâtes Osem 500 g</b>
+            <small>1+1 chez Shufersal</small>
           </div>
-
-          <!-- Bottom nav -->
-          <nav class="bottom-nav">
-            <button class="tab active">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 12 3l9 9M5 10v10h14V10"/></svg>
-              <span>Promos</span>
-            </button>
-            <button class="tab">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h12M9 12h12M9 19h12M4 5h.01M4 12h.01M4 19h.01"/></svg>
-              <span>Liste</span>
-            </button>
-            <button class="tab">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg>
-              <span>Favoris</span>
-            </button>
-            <button class="tab">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>
-              <span>Plus</span>
-            </button>
-          </nav>
-
+          <div class="deal-price">
+            <b class="tnum">3,22 ₪</b>
+            <small>↓ −3,23 ₪</small>
+          </div>
+        </div>
+        <div class="deal">
+          <div class="deal-mark red">B</div>
+          <div class="deal-info">
+            <b>Barilla pesto 190 g</b>
+            <small>−25% chez Rami Levy</small>
+          </div>
+          <div class="deal-price">
+            <b class="tnum">12,90 ₪</b>
+            <small>↓ −4,30 ₪</small>
+          </div>
+        </div>
+        <div class="deal">
+          <div class="deal-mark blue">C</div>
+          <div class="deal-info">
+            <b>Café Elite Turkish 200 g</b>
+            <small>3 × 30 ₪ chez Victory</small>
+          </div>
+          <div class="deal-price">
+            <b class="tnum">10,00 ₪</b>
+            <small>↓ −4,90 ₪</small>
+          </div>
         </div>
       </div>
 
-      <div class="mobile-notes">
-        <div class="note">
-          <h4>Ce qui change</h4>
-          <p>Plus d'emoji géant écrasant au centre du hero. La typo (Instrument Serif pour les titres et les prix) porte l'identité. Le hero raconte une histoire en 3 lignes : produit, prix, action.</p>
-        </div>
-        <div class="note">
-          <h4>1 ligne = 1 décision</h4>
-          <p>Les cartes "deal" sont compactes, comparables d'un coup d'œil. Pill colorée pour le type d'offre (1+1, −25 %, Stock bas), prix nouveau vs ancien à droite. Tap = fiche détail. Pas de second clic pour comparer.</p>
-        </div>
-        <div class="note">
-          <h4>Header & nav minimalistes</h4>
-          <p>Plus de bandeau "📡 20 promos actives · 9 magasins" qui se voulait vivant mais bruyant. Le pulse-dot dans le hero (Deal du jour) communique la fraîcheur sans l'imposer. Bottom-nav 4 onglets, icônes 1.6 stroke, label en dessous.</p>
-        </div>
-        <div class="note">
-          <h4>Couleurs comme signal, pas comme décor</h4>
-          <p>Le terracotta n'apparaît que sur les actions principales et les badges promo. Le sage = économies déjà acquises. Le plum = premium/spécial. L'amber = urgence (stock, dates). Chaque couleur dit quelque chose.</p>
-        </div>
-      </div>
     </div>
   </section>
 
-  <!-- ============ DESKTOP PREVIEW ============ -->
-  <section class="section" id="desktop">
-    <div class="section-eyebrow">03 — Desktop</div>
-    <h2 class="section-title">Vraie console desktop</h2>
-    <p class="section-sub">Sur écran large, l'app prend une vraie sidebar. Le rail droit affiche le panier optimisé en sticky. Plus de "mobile agrandi".</p>
-
-    <div class="desktop-frame">
-      <div class="desktop-bar">
-        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
-        <div class="url">kdai.app / promos</div>
+  <!-- ============ SAMPLE C — SAAS DOUX (le screenshot user) ============ -->
+  <section class="sample C">
+    <header class="sample-head">
+      <div class="sample-head-left">
+        <span class="tag">C — SaaS doux</span>
+        <h2 style="display:inline-block">Stripe / Notion / Yousign (ton screenshot)</h2>
+        <p>Blanc cassé, violet primary, pills pastels par statut, sans-serif posée. Vise la confiance et la lisibilité métier.</p>
       </div>
-      <div class="desktop-app">
+    </header>
+    <div class="sample-body" style="background:#FAFAFA">
 
-        <!-- Sidebar -->
-        <aside class="dsk-sidebar">
-          <div class="dsk-brand">
-            <div class="dsk-brand-mark">k</div>
-            <div class="dsk-brand-name">kdai</div>
-          </div>
-          <nav class="dsk-nav">
-            <div class="dsk-nav-section">Navigation</div>
-            <a class="dsk-nav-item active" href="#">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12 12 3l9 9M5 10v10h14V10"/></svg>
-              Promos du jour
-              <span class="nav-count">24</span>
-            </a>
-            <a class="dsk-nav-item" href="#">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h12M9 12h12M9 19h12M4 5h.01M4 12h.01M4 19h.01"/></svg>
-              Ma liste
-              <span class="nav-count">7</span>
-            </a>
-            <a class="dsk-nav-item" href="#">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg>
-              Favoris
-            </a>
-            <a class="dsk-nav-item" href="#">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 4 4a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1l1 5M3 9v11a1 1 0 0 0 1 1h4v-7h8v7h4a1 1 0 0 0 1-1V9M3 9h18"/></svg>
-              Magasins
-            </a>
-
-            <div class="dsk-nav-section">Outils</div>
-            <a class="dsk-nav-item" href="#">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m22 7-8.5 8.5-5-5L2 17M16 7h6v6"/></svg>
-              Mes économies
-            </a>
-            <a class="dsk-nav-item" href="#">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13.87A4 4 0 0 1 7.41 6a5.11 5.11 0 0 1 1.05-1.54 5 5 0 0 1 7.08 0A5.11 5.11 0 0 1 16.59 6 4 4 0 0 1 18 13.87V21H6Z"/></svg>
-              Recettes
-            </a>
-          </nav>
-        </aside>
-
-        <!-- Main -->
-        <main class="dsk-main">
-          <div class="dsk-header">
-            <div>
-              <div class="dsk-h1">Promos <em>du jour</em></div>
-              <div class="dsk-sub">24 offres actives · mis à jour il y a 14 minutes</div>
-            </div>
-          </div>
-
-          <div class="dsk-toolbar">
-            <button class="dsk-chip active">Tout</button>
-            <button class="dsk-chip">Alimentaire</button>
-            <button class="dsk-chip">Frais</button>
-            <button class="dsk-chip">Boissons</button>
-            <button class="dsk-chip">Maison</button>
-            <button class="dsk-chip">Hygiène</button>
-          </div>
-
-          <div class="dsk-grid">
-            <div class="dsk-card">
-              <div class="dsk-card-img tint-accent">
-                <span class="dsk-card-pill"><span class="pill pill-ghost">1+1</span></span>
-                <span class="dsk-card-discount tnum">−50 %</span>
-                P
-              </div>
-              <div class="dsk-card-body">
-                <div class="dsk-card-store">Shufersal</div>
-                <div class="dsk-card-name">Pâtes Osem fusilli 500 g</div>
-                <div class="dsk-card-row">
-                  <div class="dsk-price">
-                    <span class="dsk-price-new tnum">3,22 ₪</span>
-                    <span class="dsk-price-old tnum">6,45 ₪</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="dsk-card">
-              <div class="dsk-card-img tint-sage">
-                <span class="dsk-card-discount tnum">−25 %</span>
-                B
-              </div>
-              <div class="dsk-card-body">
-                <div class="dsk-card-store">Rami Levy</div>
-                <div class="dsk-card-name">Barilla pesto al basilico 190 g</div>
-                <div class="dsk-card-row">
-                  <div class="dsk-price">
-                    <span class="dsk-price-new tnum">12,90 ₪</span>
-                    <span class="dsk-price-old tnum">17,20 ₪</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="dsk-card">
-              <div class="dsk-card-img tint-plum">
-                <span class="dsk-card-pill"><span class="pill pill-ghost">3 × 30 ₪</span></span>
-                C
-              </div>
-              <div class="dsk-card-body">
-                <div class="dsk-card-store">Victory</div>
-                <div class="dsk-card-name">Café Elite Turkish 200 g — pack 3 boîtes</div>
-                <div class="dsk-card-row">
-                  <div class="dsk-price">
-                    <span class="dsk-price-new tnum">30,00 ₪</span>
-                    <span class="dsk-price-old tnum">44,70 ₪</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="dsk-card">
-              <div class="dsk-card-img tint-amber">
-                <span class="dsk-card-pill"><span class="pill pill-amber">Stock bas</span></span>
-                <span class="dsk-card-discount tnum">−14 %</span>
-                L
-              </div>
-              <div class="dsk-card-body">
-                <div class="dsk-card-store">Yochananof</div>
-                <div class="dsk-card-name">Lait Tnuva 1 L 3%</div>
-                <div class="dsk-card-row">
-                  <div class="dsk-price">
-                    <span class="dsk-price-new tnum">5,90 ₪</span>
-                    <span class="dsk-price-old tnum">6,90 ₪</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="dsk-card">
-              <div class="dsk-card-img tint-cream">
-                <span class="dsk-card-discount tnum">−18 %</span>
-                T
-              </div>
-              <div class="dsk-card-body">
-                <div class="dsk-card-store">Osher Ad</div>
-                <div class="dsk-card-name">Tomates en grappe 1 kg origine Israël</div>
-                <div class="dsk-card-row">
-                  <div class="dsk-price">
-                    <span class="dsk-price-new tnum">6,80 ₪</span>
-                    <span class="dsk-price-old tnum">8,29 ₪</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="dsk-card">
-              <div class="dsk-card-img tint-accent">
-                <span class="dsk-card-discount tnum">−31 %</span>
-                N
-              </div>
-              <div class="dsk-card-body">
-                <div class="dsk-card-store">Osher Ad</div>
-                <div class="dsk-card-name">Nutella 800 g</div>
-                <div class="dsk-card-row">
-                  <div class="dsk-price">
-                    <span class="dsk-price-new tnum">17,90 ₪</span>
-                    <span class="dsk-price-old tnum">25,90 ₪</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
-
-        <!-- Right rail -->
-        <aside class="dsk-rail">
-          <div class="rail-card">
-            <div class="rail-title">Le moins cher pour ta liste</div>
-            <div class="rail-store">
-              <span class="store-dot"></span>
-              <b>Osher Ad Netanya</b>
-            </div>
-            <div class="rail-total tnum">128 ₪</div>
-            <div class="rail-saving">−24 ₪ vs Shufersal</div>
-
-            <div class="rail-items">
-              <div class="rail-item"><span class="ri-name">Nutella 800 g <span class="ri-qty">×1</span></span><span class="ri-price tnum">17,90</span></div>
-              <div class="rail-item"><span class="ri-name">Pâtes Osem <span class="ri-qty">×2</span></span><span class="ri-price tnum">6,44</span></div>
-              <div class="rail-item"><span class="ri-name">Tomates 1 kg <span class="ri-qty">×2</span></span><span class="ri-price tnum">13,60</span></div>
-              <div class="rail-item"><span class="ri-name">Lait Tnuva <span class="ri-qty">×3</span></span><span class="ri-price tnum">17,70</span></div>
-              <div class="rail-item"><span class="ri-name">Café Elite <span class="ri-qty">×1</span></span><span class="ri-price tnum">10,00</span></div>
-              <div class="rail-item"><span class="ri-name">Barilla pesto <span class="ri-qty">×2</span></span><span class="ri-price tnum">25,80</span></div>
-            </div>
-
-            <button class="rail-cta">
-              Itinéraire vers Osher Ad
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-            </button>
-          </div>
-        </aside>
-
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ COMPONENTS ============ -->
-  <section class="section" id="components">
-    <div class="section-eyebrow">04 — Composants</div>
-    <h2 class="section-title">Bibliothèque</h2>
-    <p class="section-sub">Boutons, pills, inputs. Les briques. Si on valide cette page, l'app se construit avec exactement ces composants — pas de un-off.</p>
-
-    <div class="components-grid">
-
-      <div class="comp-card">
-        <h3>Boutons</h3>
-        <div class="comp-row">
-          <button class="btn solid">Voir l'offre</button>
-          <button class="btn solid pill">Voir l'offre</button>
-          <button class="btn accent">Ajouter à la liste</button>
+      <div class="app-header">
+        <div class="brand">
+          <span class="brand-mark">k</span>
+          kdai
         </div>
-        <div class="comp-row">
-          <button class="btn outline">Détail</button>
-          <button class="btn ghost">Annuler</button>
-          <button class="btn danger">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            Supprimer
+        <div class="nav-icons">
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+          <button class="ibtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="hero-thumb">N</div>
+        <div class="hero-info">
+          <b>Nutella 800 g</b>
+          <div class="pills">
+            <span class="pill violet">En promo</span>
+            <span class="pill green">−31 %</span>
+            <span class="pill amber">3 j restants</span>
+          </div>
+          <small>Osher Ad · mis à jour il y a 12 min</small>
+        </div>
+        <div class="hero-side">
+          <span class="new tnum">17,90 ₪</span>
+          <button class="hero-cta">
+            Voir
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </button>
         </div>
       </div>
 
-      <div class="comp-card">
-        <h3>Pills / Statuts</h3>
-        <div class="comp-row">
-          <span class="pill pill-accent">Promo · −31%</span>
-          <span class="pill pill-sage">Économie 78 ₪</span>
-          <span class="pill pill-amber">Stock bas</span>
-          <span class="pill pill-plum">Premium</span>
-          <span class="pill pill-ghost">Neutre</span>
-        </div>
-      </div>
-
-      <div class="comp-card">
-        <h3>Input</h3>
-        <label class="input">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="text" placeholder="Cherche un produit ou un magasin" />
-        </label>
-      </div>
-
-      <div class="comp-card">
-        <h3>Carte produit (mini)</h3>
-        <div class="deal">
-          <div class="deal-thumb tint-sage">F</div>
-          <div class="deal-info">
-            <div class="deal-name">Fromage Tnuva 500g</div>
-            <div class="deal-meta">
-              <span class="pill pill-sage">−18 %</span>
-              <span>Rami Levy</span>
+      <div class="row-cards">
+        <div class="row-card">
+          <div class="row-thumb">P</div>
+          <div class="row-info">
+            <b>Pâtes Osem fusilli 500 g</b>
+            <div class="pills">
+              <span class="pill violet">1+1</span>
+              <span class="pill">Shufersal</span>
             </div>
           </div>
-          <div class="deal-price">
-            <span class="deal-price-new tnum">22,90 ₪</span>
-            <span class="deal-price-old tnum">27,90 ₪</span>
+          <div class="row-price">
+            <b class="tnum">3,22 ₪</b>
+            <small class="tnum">6,45 ₪</small>
           </div>
+          <button class="row-action">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="row-card">
+          <div class="row-thumb violet">B</div>
+          <div class="row-info">
+            <b>Barilla pesto 190 g</b>
+            <div class="pills">
+              <span class="pill green">−25 %</span>
+              <span class="pill">Rami Levy</span>
+            </div>
+          </div>
+          <div class="row-price">
+            <b class="tnum">12,90 ₪</b>
+            <small class="tnum">17,20 ₪</small>
+          </div>
+          <button class="row-action">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+        <div class="row-card">
+          <div class="row-thumb amber">C</div>
+          <div class="row-info">
+            <b>Café Elite Turkish 200 g</b>
+            <div class="pills">
+              <span class="pill amber">3 × 30 ₪</span>
+              <span class="pill">Victory</span>
+            </div>
+          </div>
+          <div class="row-price">
+            <b class="tnum">10,00 ₪</b>
+            <small class="tnum">14,90 ₪</small>
+          </div>
+          <button class="row-action">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
         </div>
       </div>
 
     </div>
   </section>
 
-  <!-- ============ FOOTER ============ -->
-  <div class="preview-footer">
-    <h2>Si on valide cette direction</h2>
-    <p>
-      L'app entière (les 4 vues, modals, panneaux) sera refondue dans ce langage : cream + ink, Instrument Serif pour les prix
-      et titres, Inter pour le corps, palette de pills sage / amber / plum / accent / ghost. Les emojis disparaissent des UI
-      d'action, ne restent que sur les illustrations produit. Les SVG sont stroke 1.6 (plus fin qu'avant), sortis d'un set
-      cohérent. Bottom nav restreinte sur mobile, sidebar + rail sur desktop. Pas de gradient agressif, pas de pulse infini,
-      pas de "made with ❤️". L'app prend l'air d'un produit qu'on assume.
-    </p>
+  <!-- ============ SELECTOR ============ -->
+  <div class="selector-bar">
+    <div>
+      <b>Quelle direction ?</b>
+      <small>Dis-moi A, B ou C dans le chat (ou « aucune »).</small>
+    </div>
+    <div class="picks">
+      <button class="pick A">A · Minimal</button>
+      <button class="pick B">B · Fintech</button>
+      <button class="pick C">C · SaaS doux</button>
+      <button class="pick none">Aucune</button>
+    </div>
   </div>
 
 </div>
