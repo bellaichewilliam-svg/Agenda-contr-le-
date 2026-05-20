@@ -8,6 +8,12 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <meta name="description" content="כדאי — Promos & catalogues des supermarchés en Israël. Économise jusqu'à 250₪/mois." />
+  <meta property="og:title" content="כדאי · Promos en Israël" />
+  <meta property="og:description" content="Économise jusqu'à 250₪/mois sur tes courses grâce aux meilleures promos vérifiées chaque jour." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://bellaichewilliam-svg.github.io/Agenda-contr-le-/" />
+  <meta property="og:image" content='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset=".55" stop-color="%23FF8C42"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="1200" height="630" fill="url(%23g)"/><text x="600" y="370" text-anchor="middle" font-family="-apple-system,Heebo,Arial" font-weight="900" font-size="220" fill="white">כדאי</text></svg>' />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="apple-touch-icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset=".55" stop-color="%23FF8C42"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="180" height="180" rx="40" fill="url(%23g)"/><text x="90" y="118" text-anchor="middle" font-family="-apple-system,Heebo,Arial" font-weight="900" font-size="72" fill="white" letter-spacing="-2">כדאי</text></svg>' />
   <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="%23FF6B35"/><stop offset="1" stop-color="%23EC4899"/></linearGradient></defs><rect width="64" height="64" rx="14" fill="url(%23g)"/><text x="32" y="44" text-anchor="middle" font-family="-apple-system,Heebo,Arial" font-weight="900" font-size="28" fill="white">כדאי</text></svg>' />
@@ -15,7 +21,7 @@
   <script>
     // Bullet-proof cache nuke on version mismatch (runs once per version)
     (function(){
-      var V = "v32";
+      var V = "v33";
       try {
         if (localStorage.getItem("kedai.v") !== V) {
           if ("serviceWorker" in navigator) {
@@ -38,7 +44,7 @@
       } catch(e) {}
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=32" />
+  <link rel="stylesheet" href="styles.css?v=33" />
 </head>
 <body data-theme="light">
 
@@ -55,7 +61,13 @@
       <span class="brand-text" dir="rtl" lang="he">כדאי</span>
     </h1>
     <div class="header-actions">
-      <button class="icon-btn" id="btn-search-toggle" aria-label="Rechercher">🔍</button>
+      <button
+        class="icon-btn"
+        id="btn-search-toggle"
+        aria-label="Rechercher un produit ou un magasin"
+        aria-expanded="false"
+        aria-controls="global-search"
+      >🔍</button>
       <button class="icon-btn" id="btn-notifs" aria-label="Notifications">
         🔔<span class="notif-dot" id="notif-dot" hidden></span>
       </button>
@@ -63,7 +75,13 @@
     </div>
   </div>
   <div class="lang-row container">
-    <div class="lang-picker">
+    <!--
+      Language picker disabled: i18n dictionary (data/i18n.js) is not wired to
+      the v33 rendering path yet. Showing it would mislead users into thinking
+      they can switch languages. Re-enable once t() helper is integrated into
+      every render function. See README for the migration plan.
+    -->
+    <div class="lang-picker" hidden aria-hidden="true">
       <button class="lang-btn active" data-lang="fr">FR</button>
       <button class="lang-btn" data-lang="he">עב</button>
       <button class="lang-btn" data-lang="en">EN</button>
@@ -74,14 +92,34 @@
 </header>
 
 <!-- ============ GLOBAL SEARCH (hidden by default, toggle from header) ============ -->
-<div class="global-search" id="global-search" hidden>
+<div
+  class="global-search"
+  id="global-search"
+  role="search"
+  aria-label="Recherche globale"
+  hidden
+>
   <div class="container">
     <div class="gs-box">
-      <span class="gs-icon">🔍</span>
-      <input type="text" id="gs-input" placeholder="Cherche un produit ou un magasin..." autocomplete="off" />
-      <button class="gs-close" id="gs-close" aria-label="Fermer">×</button>
+      <span class="gs-icon" aria-hidden="true">🔍</span>
+      <label class="sr-only" for="gs-input">Cherche un produit ou un magasin</label>
+      <input
+        type="search"
+        id="gs-input"
+        placeholder="Cherche un produit ou un magasin..."
+        autocomplete="off"
+        aria-autocomplete="list"
+        aria-controls="gs-results"
+      />
+      <button class="gs-close" id="gs-close" aria-label="Fermer la recherche">×</button>
     </div>
-    <div class="gs-results" id="gs-results"></div>
+    <div
+      class="gs-results"
+      id="gs-results"
+      role="listbox"
+      aria-live="polite"
+      aria-label="Résultats de recherche"
+    ></div>
   </div>
 </div>
 
@@ -89,7 +127,7 @@
 <main class="container app-main">
 
   <!-- VIEW 1: PROMOS (default) -->
-  <section class="view view-promos active" data-view="promos">
+  <section class="view view-promos active" data-view="promos" aria-labelledby="hd-stories">
     <!-- Deal du jour hero -->
     <div class="hero" id="hero-deal"></div>
 
@@ -138,14 +176,15 @@
     <div class="lists-tabs" id="lists-tabs"></div>
 
     <div class="search-bar">
-      <span class="sb-icon">🔍</span>
-      <input type="text" id="search-input" placeholder="Ajouter un produit (ex: lait, pâtes)..." />
+      <span class="sb-icon" aria-hidden="true">🔍</span>
+      <label class="sr-only" for="search-input">Ajouter un produit à la liste</label>
+      <input type="search" id="search-input" placeholder="Ajouter un produit (ex: lait, pâtes)..." />
     </div>
 
     <div class="categories-row" id="cats-row"></div>
 
     <div class="suggestions" id="suggestions" hidden></div>
-    <div class="search-results" id="search-results" hidden></div>
+    <div class="search-results" id="search-results" hidden role="listbox" aria-label="Résultats de recherche"></div>
     <div class="browse-grid" id="browse-grid" hidden></div>
 
     <div class="cart-section">
@@ -178,82 +217,158 @@
 
     <!-- Premium teaser -->
     <button class="premium-teaser" id="btn-premium">
-      <span class="pt-crown">👑</span>
+      <span class="pt-crown" aria-hidden="true">👑</span>
       <span class="pt-info">
         <span class="pt-title">Passe Premium</span>
         <span class="pt-sub">Alertes illimitées · pas de pub · 10₪/mois</span>
       </span>
-      <span class="pt-arrow">›</span>
+      <span class="pt-arrow" aria-hidden="true">›</span>
     </button>
 
     <!-- Tools -->
     <div class="tools-grid">
-      <button class="tool" data-tool="savings"><span>📈</span><b>Mes économies</b><small>1 850₪ total</small></button>
-      <button class="tool" data-tool="recipes"><span>👨‍🍳</span><b>Recettes</b><small>14 recettes</small></button>
-      <button class="tool" data-tool="fridge"><span>🗓️</span><b>Frigo</b><small>Anti-gaspillage</small></button>
-      <button class="tool" data-tool="nearby"><span>📍</span><b>Magasins proches</b><small>Géolocalisation</small></button>
-      <button class="tool" data-tool="achievements"><span>🏆</span><b>Achievements</b><small>5/8 obtenus</small></button>
-      <button class="tool" data-tool="referral"><span>🎁</span><b>Parrainage</b><small>1 mois gratuit/ami</small></button>
+      <button class="tool" data-tool="savings" aria-disabled="true">
+        <span aria-hidden="true">📈</span>
+        <b>Mes économies</b>
+        <small>1 850₪ total</small>
+        <span class="badge-soon">Bientôt</span>
+      </button>
+      <button class="tool" data-tool="recipes" aria-disabled="true">
+        <span aria-hidden="true">👨‍🍳</span>
+        <b>Recettes</b>
+        <small>14 recettes</small>
+        <span class="badge-soon">Bientôt</span>
+      </button>
+      <button class="tool" data-tool="fridge" aria-disabled="true">
+        <span aria-hidden="true">🗓️</span>
+        <b>Frigo</b>
+        <small>Anti-gaspillage</small>
+        <span class="badge-soon">Bientôt</span>
+      </button>
+      <button class="tool" data-tool="nearby" aria-disabled="true">
+        <span aria-hidden="true">📍</span>
+        <b>Magasins proches</b>
+        <small>Géolocalisation</small>
+        <span class="badge-soon">Bientôt</span>
+      </button>
+      <button class="tool" data-tool="achievements">
+        <span aria-hidden="true">🏆</span>
+        <b>Achievements</b>
+        <small>5/8 obtenus</small>
+      </button>
+      <button class="tool" data-tool="referral" aria-disabled="true">
+        <span aria-hidden="true">🎁</span>
+        <b>Parrainage</b>
+        <small>1 mois gratuit/ami</small>
+        <span class="badge-soon">Bientôt</span>
+      </button>
     </div>
 
     <!-- Settings -->
     <div class="settings-card">
       <div class="setting-row">
-        <div><b>Mode sombre</b><small>🌙 / ☀️</small></div>
-        <label class="toggle"><input type="checkbox" id="set-dark" /><span></span></label>
+        <label for="set-dark" class="setting-label">
+          <b>Mode sombre</b>
+          <small><span aria-hidden="true">🌙 / ☀️</span> Adapte l'interface à la pénombre</small>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="set-dark" />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
       </div>
       <div class="setting-row">
-        <div><b>Mode courses</b><small>Grouper par rayon</small></div>
-        <label class="toggle"><input type="checkbox" id="set-shopping" /><span></span></label>
+        <label for="set-shopping" class="setting-label">
+          <b>Mode courses</b>
+          <small>Grouper par rayon</small>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="set-shopping" />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
       </div>
       <div class="setting-row">
-        <div><b>Notifications</b><small>Alertes promos sur tes favoris</small></div>
-        <label class="toggle"><input type="checkbox" id="set-notifs" checked /><span></span></label>
+        <label for="set-notifs" class="setting-label">
+          <b>Notifications</b>
+          <small>Alertes promos sur tes favoris</small>
+        </label>
+        <label class="toggle">
+          <input type="checkbox" id="set-notifs" checked />
+          <span class="toggle-track" aria-hidden="true"></span>
+        </label>
       </div>
     </div>
 
     <!-- Legal -->
     <div class="legal-list">
-      <button class="legal-row" data-legal="about"><span>📱</span> À propos<span class="lr-arrow">›</span></button>
-      <button class="legal-row" data-legal="terms"><span>📄</span> CGU<span class="lr-arrow">›</span></button>
-      <button class="legal-row" data-legal="privacy"><span>🔒</span> Confidentialité<span class="lr-arrow">›</span></button>
-      <button class="legal-row" data-legal="contact"><span>💬</span> Contact<span class="lr-arrow">›</span></button>
+      <button class="legal-row" data-legal="about" aria-disabled="true">
+        <span aria-hidden="true">📱</span> À propos
+        <span class="badge-soon inline">Bientôt</span>
+        <span class="lr-arrow" aria-hidden="true">›</span>
+      </button>
+      <button class="legal-row" data-legal="terms" aria-disabled="true">
+        <span aria-hidden="true">📄</span> CGU
+        <span class="badge-soon inline">Bientôt</span>
+        <span class="lr-arrow" aria-hidden="true">›</span>
+      </button>
+      <button class="legal-row" data-legal="privacy" aria-disabled="true">
+        <span aria-hidden="true">🔒</span> Confidentialité
+        <span class="badge-soon inline">Bientôt</span>
+        <span class="lr-arrow" aria-hidden="true">›</span>
+      </button>
+      <button class="legal-row" data-legal="contact" aria-disabled="true">
+        <span aria-hidden="true">💬</span> Contact
+        <span class="badge-soon inline">Bientôt</span>
+        <span class="lr-arrow" aria-hidden="true">›</span>
+      </button>
     </div>
 
-    <div class="version-foot">כדאי v31 démo · made with ❤️ in Israel</div>
+    <div class="version-foot">כדאי v33 démo · made with ❤️ in Israel</div>
   </section>
 
 </main>
 
 <!-- ============ BOTTOM NAV ============ -->
-<nav class="nav-bottom">
-  <button class="nav-tab active" data-view="promos"><span class="nt-ico">🎁</span><span class="nt-lab">Promos</span></button>
-  <button class="nav-tab" data-view="list"><span class="nt-ico">📝</span><span class="nt-lab">Liste</span><span class="nt-badge" id="cart-badge" hidden></span></button>
-  <button class="nav-tab" data-view="favs"><span class="nt-ico">❤️</span><span class="nt-lab">Favoris</span></button>
-  <button class="nav-tab" data-view="more"><span class="nt-ico">⋯</span><span class="nt-lab">Plus</span></button>
+<nav class="nav-bottom" aria-label="Navigation principale">
+  <button class="nav-tab active" data-view="promos">
+    <span class="nt-ico" aria-hidden="true">🎁</span>
+    <span class="nt-lab">Promos</span>
+  </button>
+  <button class="nav-tab" data-view="list">
+    <span class="nt-ico" aria-hidden="true">📝</span>
+    <span class="nt-lab">Liste</span>
+    <span class="nt-badge" id="cart-badge" hidden></span>
+  </button>
+  <button class="nav-tab" data-view="favs">
+    <span class="nt-ico" aria-hidden="true">❤️</span>
+    <span class="nt-lab">Favoris</span>
+  </button>
+  <button class="nav-tab" data-view="more">
+    <span class="nt-ico" aria-hidden="true">⋯</span>
+    <span class="nt-lab">Plus</span>
+  </button>
 </nav>
 
 <!-- ============ FLOATING CHAT IA BUTTON ============ -->
-<button class="fab-chat" id="btn-chat" aria-label="Assistant IA">
-  💬
-  <span class="fab-pulse"></span>
+<button class="fab-chat" id="btn-chat" aria-label="Ouvrir l'assistant IA">
+  <span aria-hidden="true">💬</span>
+  <span class="fab-pulse" aria-hidden="true"></span>
 </button>
 
 <!-- ============ PANELS / MODALS (créés dynamiquement par JS) ============ -->
 <div id="panels-root"></div>
 
 <!-- Toast notifications -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ============ SCRIPTS ============ -->
-<script src="data/i18n.js?v=32"></script>
-<script src="data/products.js?v=32"></script>
-<script src="data/promotions.js?v=32"></script>
-<script src="data/stores-locations.js?v=32"></script>
-<script src="data/recipes.js?v=32"></script>
-<script src="data/store-brands.js?v=32"></script>
-<script src="data/big-deals.js?v=32"></script>
-<script src="app.js?v=32"></script>
+<script src="data/i18n.js?v=33"></script>
+<script src="data/products.js?v=33"></script>
+<script src="data/promotions.js?v=33"></script>
+<script src="data/stores-locations.js?v=33"></script>
+<script src="data/recipes.js?v=33"></script>
+<script src="data/store-brands.js?v=33"></script>
+<script src="data/big-deals.js?v=33"></script>
+<script src="app.js?v=33"></script>
 
 </body>
 </html>
