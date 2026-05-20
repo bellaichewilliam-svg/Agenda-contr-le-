@@ -216,11 +216,79 @@ function showView(name) {
   window.scrollTo({ top: 0, behavior: "instant" });
 
   if (name === "promos") renderPromos();
+  else if (name === "categories") renderCategoriesView();
   else if (name === "list") renderList();
   else if (name === "favs") renderFavs();
   else if (name === "more") renderMore();
 }
 window.kedai.showView = showView;
+
+// ============================================================================
+// 3bis. RENDU : VUE CATÉGORIES (nouvelle)
+// ============================================================================
+const CAT_EMOJI = {
+  "Laitiers": "🥛", "Œufs": "🥚", "Viande": "🥩", "Poisson": "🐟",
+  "Fruits": "🍎", "Légumes": "🥦", "Boulangerie": "🥖", "Gâteaux": "🍰",
+  "Surgelés": "❄️", "Petit-déj": "🥣", "Épicerie": "🍝", "Boissons": "🥤",
+  "Snacks": "🍪", "Hygiène": "🧴", "Bébé": "👶", "Entretien": "🧽",
+  "Animaux": "🐾", "Conserves": "🥫",
+};
+
+function renderCategoriesView() {
+  const el = $("#cat-grid");
+  const detail = $("#cat-detail");
+  if (!el) return;
+
+  // back to grid
+  detail.hidden = true;
+  el.hidden = false;
+
+  // Build categories map from products
+  const counts = {};
+  getProducts().forEach(p => {
+    if (p.category) counts[p.category] = (counts[p.category] || 0) + 1;
+  });
+
+  const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+
+  el.innerHTML = sorted.map(cat => {
+    const emoji = CAT_EMOJI[cat] || "📦";
+    const n = counts[cat];
+    return `
+      <button class="cat-tile" data-cat-open="${cat}">
+        <span class="cat-tile-emoji" aria-hidden="true">${emoji}</span>
+        <b>${cat}</b>
+        <small>${n} produit${n > 1 ? "s" : ""}</small>
+      </button>`;
+  }).join("");
+}
+
+function openCategoryDetail(cat) {
+  const grid = $("#cat-grid");
+  const detail = $("#cat-detail");
+  const title = $("#cat-detail-title");
+  const detailGrid = $("#cat-detail-grid");
+  if (!grid || !detail || !detailGrid) return;
+
+  grid.hidden = true;
+  detail.hidden = false;
+  if (title) title.textContent = (CAT_EMOJI[cat] || "") + " " + cat;
+
+  const prods = getProducts().filter(p => p.category === cat).slice(0, 60);
+  if (!prods.length) {
+    detailGrid.innerHTML = `<div class="empty" style="grid-column:1/-1"><div class="empty-emoji">🔍</div>Aucun produit dans cette catégorie.</div>`;
+    return;
+  }
+  detailGrid.innerHTML = prods.map(p => {
+    const best = cheapestStoreFor(p);
+    return `<button class="browse-tile" data-pid="${p.id}">
+      <div class="bt-icon" aria-hidden="true">${p.icon || "📦"}</div>
+      <div class="bt-name">${p.name}</div>
+      <div class="bt-price">${fmtPrice(best.price)}</div>
+      <div class="bt-add" aria-hidden="true">${kedaiIcon("plus", 14)}</div>
+    </button>`;
+  }).join("");
+}
 
 // ============================================================================
 // 4. RENDU : VUE PROMOS
@@ -1221,6 +1289,17 @@ function bindEvents() {
       saveState();
       renderCatsRow();
       renderBrowseGrid();
+      return;
+    }
+    // Click on cat-tile (Catégories view) → open detail
+    const catTile = e.target.closest("[data-cat-open]");
+    if (catTile) {
+      openCategoryDetail(catTile.dataset.catOpen);
+      return;
+    }
+    // Click on cat-back → return to grid
+    if (e.target.closest("#cat-back")) {
+      renderCategoriesView();
       return;
     }
     // Click on deal-cat-pill
