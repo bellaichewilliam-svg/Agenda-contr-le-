@@ -2536,19 +2536,21 @@ input:focus-visible,
    24. DESKTOP (>=960px) 2-col on Plus, broader tools grid
 ============================================================================ */
 @media (min-width: 960px) {
-  .view-more {
+  .view-more.active {
     display: grid;
     grid-template-columns: 1.1fr 1fr;
     column-gap: 32px;
   }
-  .view-more > .view-title,
-  .view-more > .view-sub { grid-column: 1 / -1; }
-  .view-more > .user-summary,
-  .view-more > #btn-premium { grid-column: 1; align-self: start; }
-  .view-more > .tools-grid,
-  .view-more > .settings-card,
-  .view-more > .legal-list { grid-column: 2; align-self: start; }
-  .view-more > .version-foot { grid-column: 1 / -1; }
+  .view-more.active > .view-title,
+  .view-more.active > .view-sub,
+  .view-more.active > .profile-head { grid-column: 1 / -1; }
+  .view-more.active > .user-summary,
+  .view-more.active > .stats-card,
+  .view-more.active > #btn-premium { grid-column: 1; align-self: start; }
+  .view-more.active > .profile-row,
+  .view-more.active > .settings-card,
+  .view-more.active > .legal-list { grid-column: 2; align-self: start; }
+  .view-more.active > .version-foot { grid-column: 1 / -1; }
   .tools-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (min-width: 640px) and (max-width: 959px) {
