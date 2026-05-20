@@ -103,6 +103,46 @@ window.kedai.state = state;
 window.kedai.saveState = saveState;
 
 // ============================================================================
+// 1bis. SVG ICONS (inline library, replaces OS-dependent emojis on actions)
+// ============================================================================
+const ICONS = {
+  x:             'M18 6 6 18M6 6l12 12',
+  check:         'M5 12l5 5L20 7',
+  plus:          'M12 5v14M5 12h14',
+  minus:         'M5 12h14',
+  "arrow-right": 'M5 12h14M13 5l7 7-7 7',
+  "arrow-left":  'M19 12H5M11 19l-7-7 7-7',
+  "chevron-right": 'm9 6 6 6-6 6',
+  send:          'M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z',
+  flame:         'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5Z',
+  heart:         'M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z',
+  bell:          'M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0',
+  user:          'M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z',
+  crown:         'm2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zM5 16h14',
+  trophy:        'M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22M18 2H6v7a6 6 0 0 0 12 0Z',
+  "map-pin":     'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0ZM12 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
+  star:          'M12 2l2.7 6.5L22 9.3l-5.5 4.8L18 21l-6-3.5L6 21l1.5-6.9L2 9.3l7.3-.8L12 2Z',
+  "trending-down": 'm22 17-8.5-8.5-5 5L2 7M16 17h6v-6',
+  "badge-check": 'M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76ZM9 12l2 2 4-4',
+  trash:         'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6',
+  "chat-bot":    'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',
+};
+
+function kedaiIcon(name, size, opts) {
+  size = size || 20;
+  opts = opts || {};
+  const path = ICONS[name];
+  if (!path) return '';
+  const stroke = opts.stroke || 'currentColor';
+  const fill = opts.fill || 'none';
+  const sw = opts.strokeWidth || 1.8;
+  return '<svg class="icon" viewBox="0 0 24 24" width="' + size + '" height="' + size +
+         '" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + sw +
+         '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="' + path + '"/></svg>';
+}
+window.kedaiIcon = kedaiIcon;
+
+// ============================================================================
 // 2. DATA HELPERS
 // ============================================================================
 function getStores() { return (typeof STORES !== "undefined") ? STORES : {}; }
@@ -214,7 +254,7 @@ function renderHeroDeal() {
   const valid = i.validUntil ? new Date(i.validUntil).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "";
 
   el.innerHTML = `
-    <div class="hero-eyebrow">🔥 LE DEAL DU JOUR</div>
+    <div class="hero-eyebrow">Le deal du jour</div>
     <div class="hero-card" data-promo-pid="${(best.p.products && best.p.products[0]) || ""}">
       <div class="hero-img">
         <span class="hero-emoji">${i.emoji}</span>
@@ -228,10 +268,10 @@ function renderHeroDeal() {
           <div class="hero-prices">
             <span class="hero-new">${fmtPrice(i.newP)}</span>
             <span class="hero-old">${fmtPrice(i.baseP)}</span>
-            ${i.saved > 0.5 ? `<span class="hero-save">💚 ${fmtPrice(i.saved)} éco</span>` : ""}
+            ${i.saved > 0.5 ? `<span class="hero-save">${kedaiIcon("trending-down", 12)} ${fmtPrice(i.saved)} éco</span>` : ""}
           </div>` : (i.typeBadge ? `<div class="hero-prices"><span class="hero-badge-big">${i.typeBadge}</span></div>` : "")}
-        ${valid ? `<div class="hero-until">⏰ Jusqu'au ${valid}</div>` : ""}
-        <button class="btn primary hero-cta">Voir l'offre →</button>
+        ${valid ? `<div class="hero-until">Jusqu'au ${valid}</div>` : ""}
+        <button class="btn primary hero-cta">Voir l'offre ${kedaiIcon("arrow-right", 16)}</button>
       </div>
     </div>
   `;
@@ -283,7 +323,7 @@ function renderFoodCarousel() {
     const i = promoInfo(p);
     return `
       <div class="promo-tile ${i.isSuper ? "super" : ""}" data-promo-pid="${(p.products && p.products[0]) || ""}">
-        ${i.isSuper ? `<div class="pt-super-band">🔥 SUPER</div>` : ""}
+        ${i.isSuper ? `<div class="pt-super-band">${kedaiIcon("flame", 10)} Super</div>` : ""}
         <div class="pt-img"><span>${i.emoji}</span>${i.savedPct > 0 ? `<div class="pt-pct">-${i.savedPct}%</div>` : ""}</div>
         <div class="pt-body">
           <div class="pt-store"><span class="pt-dot" style="background:${i.store.color}"></span><span translate="no">${i.store.name}</span></div>
@@ -343,7 +383,7 @@ function renderBigDeals() {
             <span class="dc-new">${fmtPrice(d.discounted_price)}</span>
             ${d.original_price > d.discounted_price ? `<span class="dc-old">${fmtPrice(d.original_price)}</span>` : ""}
           </div>
-          ${valid ? `<div class="dc-until">⏰ ${valid}</div>` : ""}
+          ${valid ? `<div class="dc-until">Jusqu'au ${valid}</div>` : ""}
         </div>
       </div>`;
   }).join("");
@@ -376,11 +416,11 @@ function renderCart() {
   const ids = Object.keys(state.cart);
   if (!ids.length) {
     el.innerHTML = `<div class="empty"><div class="empty-emoji">🛒</div>Ta liste est vide. Cherche un produit ou clique sur une catégorie pour ajouter.</div>`;
-    if (title) title.textContent = "🛒 Mes articles";
+    if (title) title.textContent = "Mes articles";
     if (actions) actions.hidden = true;
     return;
   }
-  if (title) title.textContent = `🛒 Mes articles (${ids.length})`;
+  if (title) title.textContent = `Mes articles (${ids.length})`;
   if (actions) actions.hidden = false;
 
   el.innerHTML = ids.map(id => {
@@ -393,22 +433,22 @@ function renderCart() {
     const safeName = String(p.name || "");
     return `
       <div class="cart-row ${item.done ? "done" : ""}">
-        <button class="check ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-pressed="${item.done ? "true" : "false"}" aria-label="${item.done ? "Décocher" : "Marquer comme acheté"} ${safeName}">${item.done ? "✓" : ""}</button>
+        <button class="check ${item.done ? "checked" : ""}" data-action="toggle" data-id="${id}" aria-pressed="${item.done ? "true" : "false"}" aria-label="${item.done ? "Décocher" : "Marquer comme acheté"} ${safeName}">${item.done ? kedaiIcon("check", 14) : ""}</button>
         <div class="ci-icon" aria-hidden="true">${p.icon || "📦"}</div>
         <div class="ci-info">
           <div class="ci-name">${p.name}</div>
           <div class="ci-meta">
-            <span class="ci-store" style="background:${store.color || '#FF6B35'}" translate="no"><span aria-hidden="true">${store.icon || "🏪"}</span> ${store.name || "—"}</span>
+            <span class="ci-store" style="background:${store.color || '#FF1A6B'}" translate="no"><span aria-hidden="true">${store.icon || "🏪"}</span> ${store.name || "—"}</span>
             <span class="ci-price">${fmtPrice(best.price)}</span>
           </div>
         </div>
         <div class="ci-qty">
-          <button class="q-btn" data-action="dec" data-id="${id}" aria-label="Diminuer la quantité de ${safeName}">−</button>
+          <button class="q-btn" data-action="dec" data-id="${id}" aria-label="Diminuer la quantité de ${safeName}">${kedaiIcon("minus", 14)}</button>
           <span class="q-val" aria-live="polite" aria-label="Quantité : ${item.qty}">${item.qty}</span>
-          <button class="q-btn" data-action="inc" data-id="${id}" aria-label="Augmenter la quantité de ${safeName}">+</button>
+          <button class="q-btn" data-action="inc" data-id="${id}" aria-label="Augmenter la quantité de ${safeName}">${kedaiIcon("plus", 14)}</button>
         </div>
         <div class="ci-total">${fmtPrice(lineTotal)}</div>
-        <button class="ci-rm" data-action="remove" data-id="${id}" aria-label="Retirer ${safeName} de la liste">×</button>
+        <button class="ci-rm" data-action="remove" data-id="${id}" aria-label="Retirer ${safeName} de la liste">${kedaiIcon("x", 16)}</button>
       </div>`;
   }).join("");
 }
@@ -440,10 +480,10 @@ function renderCartSummary() {
   const store = stores[best.s];
   el.hidden = false;
   el.innerHTML = `
-    <div class="cs-title">💸 Le moins cher pour ta liste</div>
+    <div class="cs-title">Le moins cher pour ta liste</div>
     <div class="cs-store"><span class="cs-dot" style="background:${store.color}"></span><b translate="no">${store.name}</b></div>
     <div class="cs-total">${fmtPrice(best.t)}</div>
-    ${saving > 0 ? `<div class="cs-save">📉 Économie ${fmtPrice(saving)} vs ${stores[next.s].name}</div>` : ""}
+    ${saving > 0 ? `<div class="cs-save">${kedaiIcon("trending-down", 14)} Économie ${fmtPrice(saving)} vs ${stores[next.s].name}</div>` : ""}
   `;
 }
 
@@ -517,9 +557,9 @@ function renderFavs() {
         <div class="fav-info">
           <div class="fav-name">${p.name}</div>
           <div class="fav-meta">Le - cher chez <b translate="no">${store.name}</b> à ${fmtPrice(best.price)}</div>
-          ${promo ? `<div class="fav-promo">🔥 Promo active</div>` : ""}
+          ${promo ? `<div class="fav-promo">${kedaiIcon("flame", 11)} Promo active</div>` : ""}
         </div>
-        <button class="fav-heart" data-action="unfav" data-id="${pid}" aria-label="Retirer ${safeName} des favoris"><span aria-hidden="true">❤️</span></button>
+        <button class="fav-heart" data-action="unfav" data-id="${pid}" aria-label="Retirer ${safeName} des favoris">${kedaiIcon("heart", 22, { fill: "currentColor" })}</button>
       </div>`;
   }).join("");
 }
@@ -542,8 +582,8 @@ function renderMore() {
     <div class="us-avatar">${FAKE_USER.avatar}</div>
     <div class="us-info">
       <div class="us-name">${FAKE_USER.name}</div>
-      <div class="us-loc">📍 ${FAKE_USER.location}</div>
-      <div class="us-level">⭐ Niveau ${FAKE_USER.level} · ${FAKE_USER.next_in} deals avant niveau ${FAKE_USER.level + 1}</div>
+      <div class="us-loc">${kedaiIcon("map-pin", 12)} ${FAKE_USER.location}</div>
+      <div class="us-level">${kedaiIcon("star", 12)} Niveau ${FAKE_USER.level} · ${FAKE_USER.next_in} deals avant niveau ${FAKE_USER.level + 1}</div>
       <div class="us-progress"><div class="us-progress-fill" style="width:${100 - FAKE_USER.next_in * 10}%"></div></div>
     </div>
     <div class="us-stats">
@@ -647,8 +687,8 @@ window.kedai.closePanels = closePanels;
 // Custom confirm dialog (replaces native confirm()).
 function openConfirm({ title, text, danger = false, confirmLabel = "Confirmer", cancelLabel = "Annuler", onConfirm }) {
   const html = `
-    <div class="confirm-card">
-      <div class="confirm-icon" aria-hidden="true">${danger ? "🗑️" : "❓"}</div>
+    <div class="confirm-card ${danger ? "danger" : ""}">
+      <div class="confirm-icon" aria-hidden="true">${kedaiIcon(danger ? "trash" : "bell", 28)}</div>
       <h3 class="confirm-title">${title}</h3>
       <p class="confirm-text">${text || ""}</p>
       <div class="confirm-actions">
@@ -670,8 +710,8 @@ window.kedai.openConfirm = openConfirm;
 function openNotifs() {
   const html = `
     <div class="p-head">
-      <h3><span aria-hidden="true">🔔</span> Notifications</h3>
-      <button class="p-close" data-close aria-label="Fermer le panneau notifications">×</button>
+      <h3>${kedaiIcon("bell", 20)} Notifications</h3>
+      <button class="p-close" data-close aria-label="Fermer le panneau notifications">${kedaiIcon("x", 18)}</button>
     </div>
     <div class="p-actions"><button class="link" id="mark-all">Tout marquer comme lu</button></div>
     <div class="p-body">
@@ -719,35 +759,35 @@ function openProfile() {
   const earned = ACHIEVEMENTS.filter(a => a.earned).length;
   const html = `
     <div class="p-head">
-      <h3><span aria-hidden="true">👩</span> Profil</h3>
-      <button class="p-close" data-close aria-label="Fermer le panneau profil">×</button>
+      <h3>${kedaiIcon("user", 20)} Profil</h3>
+      <button class="p-close" data-close aria-label="Fermer le panneau profil">${kedaiIcon("x", 18)}</button>
     </div>
     <div class="p-body">
       <div class="prof-hero">
         <div class="prof-avatar" aria-hidden="true">${FAKE_USER.avatar}</div>
         <div class="prof-info">
           <div class="prof-name">${FAKE_USER.name}</div>
-          <div class="prof-loc"><span aria-hidden="true">📍</span> ${FAKE_USER.location}</div>
-          <div class="prof-level"><span aria-hidden="true">⭐</span> Niveau ${FAKE_USER.level}</div>
+          <div class="prof-loc">${kedaiIcon("map-pin", 12)} ${FAKE_USER.location}</div>
+          <div class="prof-level">${kedaiIcon("star", 12)} Niveau ${FAKE_USER.level}</div>
         </div>
       </div>
       <div class="prof-stats">
         <div class="ps"><b>${FAKE_USER.savings_month}₪</b><small>ce mois</small></div>
         <div class="ps"><b>${FAKE_USER.savings_total}₪</b><small>total</small></div>
         <div class="ps"><b>${FAKE_USER.deals_used}</b><small>deals</small></div>
-        <div class="ps"><b>🔥${FAKE_USER.streak}j</b><small>streak</small></div>
+        <div class="ps"><b>${FAKE_USER.streak} j</b><small>streak</small></div>
       </div>
       <button class="premium-row" data-open-premium>
-        <span>👑</span><b>Passe Premium</b><small>10₪/mois</small>
+        <span class="pr-crown" aria-hidden="true">${kedaiIcon("crown", 22, { fill: "currentColor" })}</span><b>Passe Premium</b><small>10₪/mois</small>
       </button>
-      <h4 class="p-section">🏆 Achievements (${earned}/${ACHIEVEMENTS.length})</h4>
+      <h4 class="p-section">${kedaiIcon("trophy", 14)} Achievements (${earned}/${ACHIEVEMENTS.length})</h4>
       <div class="ach-grid">
         ${ACHIEVEMENTS.map(a => `
           <div class="ach ${a.earned ? "earned" : "locked"}">
-            <div class="ach-icon">${a.icon}</div>
+            <div class="ach-icon" aria-hidden="true">${a.icon}</div>
             <div class="ach-title">${a.title}</div>
             <div class="ach-desc">${a.desc}</div>
-            <div class="ach-meta">${a.earned ? `✓ ${a.date}` : a.progress || ""}</div>
+            <div class="ach-meta">${a.earned ? kedaiIcon("check", 10) + " " + a.date : a.progress || ""}</div>
           </div>`).join("")}
       </div>
       <div class="p-foot">Membre depuis Mars 2026</div>
@@ -760,20 +800,20 @@ function openProfile() {
 function openPremium() {
   const html = `
     <div class="prem-card">
-      <button class="p-close prem-close" data-close aria-label="Fermer la fenêtre Premium">×</button>
+      <button class="p-close prem-close" data-close aria-label="Fermer la fenêtre Premium">${kedaiIcon("x", 18)}</button>
       <div class="prem-hero">
-        <div class="prem-crown" aria-hidden="true">👑</div>
-        <h2 lang="he">כדאי <span lang="fr">Premium</span></h2>
+        <div class="prem-crown" aria-hidden="true">${kedaiIcon("crown", 64, { fill: "currentColor", stroke: "rgba(255,255,255,0.3)", strokeWidth: 1.2 })}</div>
+        <h2><span lang="he">כדאי</span> <span>Premium</span></h2>
         <p>Économise encore plus, sans limite.</p>
       </div>
       <ul class="prem-features">
-        <li><span aria-hidden="true">✅</span> Alertes illimitées sur tes favoris</li>
-        <li><span aria-hidden="true">✅</span> Comparateur de prix temps réel</li>
-        <li><span aria-hidden="true">✅</span> Pas de publicités</li>
-        <li><span aria-hidden="true">✅</span> Analyse de tes habitudes</li>
-        <li><span aria-hidden="true">✅</span> Mode famille (5 comptes)</li>
-        <li><span aria-hidden="true">✅</span> Cashback bonus +1%</li>
-        <li><span aria-hidden="true">✅</span> Support prioritaire</li>
+        <li>${kedaiIcon("check", 16)} Alertes illimitées sur tes favoris</li>
+        <li>${kedaiIcon("check", 16)} Comparateur de prix temps réel</li>
+        <li>${kedaiIcon("check", 16)} Pas de publicités</li>
+        <li>${kedaiIcon("check", 16)} Analyse de tes habitudes</li>
+        <li>${kedaiIcon("check", 16)} Mode famille (5 comptes)</li>
+        <li>${kedaiIcon("check", 16)} Cashback bonus +1%</li>
+        <li>${kedaiIcon("check", 16)} Support prioritaire</li>
       </ul>
       <div class="prem-plans">
         <button class="prem-plan" data-plan="monthly" aria-label="Plan mensuel 10₪ par mois sans engagement">
@@ -802,17 +842,17 @@ function openChat() {
   const html = `
     <div class="chat-head">
       <div class="chat-meta">
-        <div class="chat-avatar" aria-hidden="true">🤖</div>
+        <div class="chat-avatar" aria-hidden="true">${kedaiIcon("chat-bot", 22)}</div>
         <div><div class="chat-name">Assistant כדאי</div><div class="chat-status"><span class="chat-dot" aria-hidden="true"></span> En ligne</div></div>
       </div>
-      <button class="p-close" data-close aria-label="Fermer la conversation">×</button>
+      <button class="p-close" data-close aria-label="Fermer la conversation">${kedaiIcon("x", 18)}</button>
     </div>
     <div class="chat-body" id="chat-body" role="log" aria-live="polite" aria-atomic="false"></div>
     <div class="chat-sugg" id="chat-sugg" aria-label="Suggestions de questions"></div>
     <div class="chat-input">
       <label for="chat-text" class="sr-only">Écrire un message à l'assistant</label>
       <input id="chat-text" type="text" placeholder="Pose-moi une question..." autocomplete="off" />
-      <button class="btn primary" id="chat-send" aria-label="Envoyer le message">→</button>
+      <button class="btn primary" id="chat-send" aria-label="Envoyer le message">${kedaiIcon("send", 18)}</button>
     </div>
   `;
   const p = openPanel(html, "chat");
@@ -892,8 +932,8 @@ function showOnboarding() {
         <span class="onb-dot" role="tab" aria-selected="false" aria-label="Étape 3 sur 3"></span>
       </div>
       <div class="onb-nav">
-        <button class="btn ghost" id="onb-prev" hidden>← Préc.</button>
-        <button class="btn primary" id="onb-next">Suivant →</button>
+        <button class="btn ghost" id="onb-prev" hidden>${kedaiIcon("arrow-left", 14)} Préc.</button>
+        <button class="btn primary" id="onb-next">Suivant ${kedaiIcon("arrow-right", 14)}</button>
       </div>
     </div>
   `;
@@ -911,7 +951,7 @@ function showOnboarding() {
       d.setAttribute("aria-selected", i === step ? "true" : "false");
     });
     prev.hidden = step === 0;
-    next.textContent = step === 2 ? "Commencer 🎉" : "Suivant →";
+    next.innerHTML = step === 2 ? "Commencer" : `Suivant ${kedaiIcon("arrow-right", 14)}`;
   }
   next.addEventListener("click", () => {
     if (step === 2) {
@@ -938,13 +978,13 @@ function openProductDetail(pid) {
   const safeName = String(p.name || "");
   const html = `
     <div class="pd-card">
-      <button class="p-close pd-close" data-close aria-label="Fermer la fiche produit">×</button>
+      <button class="p-close pd-close" data-close aria-label="Fermer la fiche produit">${kedaiIcon("x", 18)}</button>
       <div class="pd-head">
         <div class="pd-emoji" aria-hidden="true">${p.icon || "📦"}</div>
         <div class="pd-info">
           <div class="pd-name">${p.name}</div>
           <div class="pd-cat">${p.category}${p.unit ? " · " + p.unit : ""}</div>
-          ${promo ? `<div class="pd-promo"><span aria-hidden="true">🔥</span> En promo : ${promo.title}</div>` : ""}
+          ${promo ? `<div class="pd-promo">${kedaiIcon("flame", 11)} En promo : ${promo.title}</div>` : ""}
         </div>
         <button
           class="pd-heart ${inFavs ? "on" : ""}"
@@ -952,7 +992,7 @@ function openProductDetail(pid) {
           data-id="${pid}"
           aria-pressed="${inFavs ? "true" : "false"}"
           aria-label="${inFavs ? "Retirer" : "Ajouter"} ${safeName} ${inFavs ? "des" : "aux"} favoris"
-        ><span aria-hidden="true">${inFavs ? "❤️" : "🤍"}</span></button>
+        >${kedaiIcon("heart", 18, inFavs ? { fill: "currentColor" } : {})}</button>
       </div>
       <h4 class="pd-section">Prix par magasin</h4>
       <div class="pd-prices">
@@ -961,12 +1001,12 @@ function openProductDetail(pid) {
           return `<div class="pd-row ${i === 0 ? "best" : ""}">
             <span class="pd-store"><span class="pd-dot" style="background:${store.color}" aria-hidden="true"></span><span translate="no">${store.name}</span></span>
             <span class="pd-price">${fmtPrice(price)}</span>
-            ${i === 0 ? `<span class="pd-tag"><span aria-hidden="true">🏆</span> Le moins cher</span>` : ""}
+            ${i === 0 ? `<span class="pd-tag">${kedaiIcon("badge-check", 11)} Le moins cher</span>` : ""}
           </div>`;
         }).join("")}
       </div>
       <div class="pd-actions">
-        <button class="btn primary pd-add" data-action="add-cart" data-id="${pid}">+ Ajouter à ma liste</button>
+        <button class="btn primary pd-add" data-action="add-cart" data-id="${pid}">${kedaiIcon("plus", 16)} Ajouter à ma liste</button>
       </div>
     </div>
   `;
@@ -1002,7 +1042,7 @@ function setupSearch() {
         return `<button class="sr-row" data-pid="${p.id}">
           <span class="sr-icon">${p.icon || "📦"}</span>
           <span class="sr-info"><b>${p.name}</b><small>${p.category} · dès ${fmtPrice(best.price)}</small></span>
-          <span class="sr-add">+</span>
+          <span class="sr-add" aria-hidden="true">${kedaiIcon("plus", 16)}</span>
         </button>`;
       }).join("");
     }, 120);
@@ -1240,7 +1280,7 @@ function renderBrowseGrid() {
       <div class="bt-icon">${p.icon || "📦"}</div>
       <div class="bt-name">${p.name}</div>
       <div class="bt-price">${fmtPrice(best.price)}</div>
-      <div class="bt-add">+</div>
+      <div class="bt-add" aria-hidden="true">${kedaiIcon("plus", 14)}</div>
     </button>`;
   }).join("");
 }
