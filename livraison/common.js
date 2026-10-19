@@ -102,14 +102,30 @@ async function notify(title, opts) {
 }
 // « En service » : une notification qui reste dans la barre tant que le service est en cours
 async function dutyNotice(on, text) {
-  const reg = await swReady.catch(() => null);
+  // iPhone : la permission doit être demandée tout de suite, dans le geste (avant toute attente)
+  const ask = on && window.Notification && Notification.permission === "default" ? Notification.requestPermission().catch(() => null) : null;
   if (!on) {
+    const reg = await swReady.catch(() => null);
     if (reg && reg.getNotifications) (await reg.getNotifications({ tag: "hop-duty" })).forEach(n => n.close());
     return;
   }
-  if (window.Notification && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) { /* ignore */ } }
+  if (ask) await ask;
   return notify("🟢 HOP! · En service", { body: text || "Vous recevez les courses. Touchez ici pour revenir dans HOP!.", tag: "hop-duty",
     requireInteraction: true, silent: true, renotify: false });
+}
+
+// iPhone : alertes, notification « En service » et son ne marchent que si HOP! est sur l'écran d'accueil.
+// On l'explique une fois (bandeau à fermer), seulement sur iPhone et dans le navigateur.
+function iosInstallHint(appName) {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  let seen = false; try { seen = localStorage.getItem("livraison.iosHint.v1") === "1"; } catch (e) { /* ignore */ }
+  if (!ios || standalone || seen || document.getElementById("iosHint")) return;
+  const d = document.createElement("div");
+  d.id = "iosHint"; d.className = "ios-hint";
+  d.innerHTML = `<div><b>📲 Sur iPhone : installez ${esc(appName || "HOP!")}</b><span>Touchez <b>Partager</b> <i>⬆️</i> puis <b>« Sur l'écran d'accueil »</b>, et ouvrez HOP! depuis l'icône : vous recevrez les alertes de courses et la notification « En service ».</span></div><button type="button" aria-label="Fermer">✕</button>`;
+  d.querySelector("button").onclick = () => { d.remove(); try { localStorage.setItem("livraison.iosHint.v1", "1"); } catch (e) { /* ignore */ } };
+  document.body.appendChild(d);
 }
 
 // Lien à partager : toujours vers l'adresse officielle (sauf en test sur l'ordinateur)
@@ -275,7 +291,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

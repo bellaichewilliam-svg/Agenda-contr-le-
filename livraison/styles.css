@@ -979,3 +979,45 @@ body.in-home .eta-bubble { display: none; }
 .adult-box { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--bg); }
 .near-store { font-weight: 600; }
 .near-hide { display: none !important; }
+/* Finances du livreur, façon appli */
+.fin-hero { display: grid; gap: 4px; padding: 18px; border-radius: 18px; background: var(--rd-panel, var(--panel)); border: 1px solid var(--border); }
+.fin-hero small { font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.fin-hero b { font: 800 40px/1.1 "Fredoka", "Rubik", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.fin-hero span { color: var(--muted); font-size: 14px; }
+.fin-balance { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 10px; padding: 12px 16px; border-radius: 14px; background: var(--bg-2); }
+.fin-balance div { display: grid; }
+.fin-balance small { color: var(--muted); font-size: 12.5px; }
+.fin-balance b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.fin-balance.due b { color: var(--amber-ink); }
+.fin-balance.owed b { color: var(--green-ink); }
+.fin-title { margin: 22px 0 6px; font-size: 22px; }
+.fin-ops { display: grid; }
+.fin-op { border-bottom: 1px solid var(--border); }
+.fin-op summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 2px; }
+.fin-op summary::-webkit-details-marker { display: none; }
+.fin-op summary::after { content: "›"; color: var(--muted); font-size: 22px; }
+.fin-op[open] summary::after { content: "⌄"; }
+.fin-op summary > div { display: grid; gap: 2px; min-width: 0; }
+.fin-op summary small { font-weight: 700; color: var(--ink); }
+.fin-op summary b { font-weight: 700; }
+.fin-amount { margin-inline-start: auto; font-size: 18px; font-variant-numeric: tabular-nums; color: var(--muted); white-space: nowrap; }
+.fin-detail { display: grid; gap: 4px; padding: 0 2px 14px; }
+.fin-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding: 3px 0; }
+.fin-row b { font-variant-numeric: tabular-nums; }
+.fin-row.total { border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; font-weight: 800; }
+.fin-more { margin-top: 14px; padding: 12px 14px; border-radius: 14px; background: var(--bg-2); }
+.fin-more summary { cursor: pointer; font-weight: 700; }
+/* Paiements de la semaine (patron) : lisibles sur téléphone */
+.table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 14px; }
+.week-sum { display: grid; gap: 2px; padding: 14px 16px; border-radius: 16px; background: var(--panel); border: 1px solid var(--border); margin-top: 10px; }
+.week-sum small { color: var(--muted); font-weight: 700; text-transform: uppercase; font-size: 12px; letter-spacing: .04em; }
+.week-sum b { font-size: 30px; font-variant-numeric: tabular-nums; }
+.week-sum span { color: var(--muted); font-size: 13px; }
+
+/* iPhone : comment installer HOP! sur l'écran d'accueil */
+.ios-hint { position: fixed; z-index: 70; inset-inline: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); display: flex; gap: 10px; align-items: flex-start;
+  background: var(--navy); color: #fff; border-radius: 16px; padding: 12px 14px; box-shadow: 0 10px 30px rgba(0,0,0,.35); font-size: 14px; }
+.ios-hint div { display: grid; gap: 4px; }
+.ios-hint span { opacity: .9; line-height: 1.4; }
+.ios-hint i { font-style: normal; }
+.ios-hint button { border: 0; background: rgba(255,255,255,.15); color: #fff; width: 30px; height: 30px; border-radius: 50%; flex: none; }

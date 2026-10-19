@@ -77,6 +77,7 @@ async function submit(e) {
     });
     history.replaceState(null, "", location.pathname + "?k=" + r.token);
     await openSpace(r.token);
+    if (r.ref_other_city) alert(t("shRefCity", { city: I18N.cityName(r.ref_other_city) }));
     window.scrollTo(0, 0);
   } catch (ex) {
     // Déjà inscrit : pas de doublon (le commerce garde son parrain et son espace)

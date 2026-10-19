@@ -10,8 +10,11 @@
   <meta property="og:type" content="website" />
   <title>HOP! Livraison · הופ! משלוחים</title>
   <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="HOP!" />
   <link rel="icon" href="logo.svg" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -45,7 +48,7 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610192210" />
+  <link rel="stylesheet" href="styles.css?v=202610192224" />
 </head>
 <body>
 
@@ -265,7 +268,7 @@
         <fieldset>
           <legend data-i18n="s4"></legend>
           <div class="choices three">
-            <label class="choice"><input type="radio" name="urgency" value="asap" checked /><span><i>🕐</i><b data-i18n="w_asap"></b><small data-i18n="w_asap_d"></small></span></label>
+            <label class="choice"><input type="radio" name="urgency" value="asap" checked /><span><i>🕐</i><b data-i18n="w_asap"></b><small id="asapSmall" data-i18n="w_asap_d"></small></span></label>
             <label class="choice"><input type="radio" name="urgency" value="express" /><span><i>⚡</i><b data-i18n="w_express"></b><small id="expressSmall"></small></span></label>
             <label class="choice"><input type="radio" name="urgency" value="programmee" /><span><i>🗓️</i><b data-i18n="w_sched"></b><small data-i18n="w_sched_d"></small></span></label>
           </div>
@@ -570,14 +573,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610192210"></script>
-<script src="i18n.js?v=202610192210"></script>
-<script src="pricing.js?v=202610192210"></script>
-<script src="store.js?v=202610192210"></script>
-<script src="chat.js?v=202610192210"></script>
-<script src="common.js?v=202610192210"></script>
-<script src="enseignes.js?v=202610192210"></script>
-<script src="places.js?v=202610192210"></script>
-<script src="client.js?v=202610192210"></script>
+<script src="config.js?v=202610192224"></script>
+<script src="i18n.js?v=202610192224"></script>
+<script src="pricing.js?v=202610192224"></script>
+<script src="store.js?v=202610192224"></script>
+<script src="chat.js?v=202610192224"></script>
+<script src="common.js?v=202610192224"></script>
+<script src="enseignes.js?v=202610192224"></script>
+<script src="places.js?v=202610192224"></script>
+<script src="client.js?v=202610192224"></script>
 </body>
 </html>

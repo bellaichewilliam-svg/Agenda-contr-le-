@@ -1536,6 +1536,35 @@ $$;
 revoke execute on function public.couriers_nearby() from public;
 grant execute on function public.couriers_nearby() to anon, authenticated;
 
+-- Partenariat commerce ↔ livreur : seulement dans la ville du livreur
+create or replace function public.shop_signup(p jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+declare r shops; ref uuid; ref_city text; other_city text; c text;
+begin
+  if coalesce(trim(p->>'name'), '') = '' or coalesce(trim(p->>'phone'), '') = '' then raise exception 'missing'; end if;
+  -- Déjà inscrit (même téléphone, ou même nom dans la même ville) : pas de doublon, le parrain ne change pas
+  if exists (select 1 from shops where norm_phone(phone) = norm_phone(p->>'phone')
+               or (lower(trim(name)) = lower(trim(p->>'name')) and coalesce(city, '') = coalesce(p->>'city', ''))) then
+    raise exception 'shop_exists';
+  end if;
+  select id, city into ref, ref_city from couriers where ref_code = upper(trim(coalesce(p->>'ref_code', ''))) and status = 'actif';
+  -- Partenariat seulement dans la ville du livreur (pour assurer les livraisons) ; sinon inscrit sans parrain
+  if ref is not null and ref_city is not null and coalesce(p->>'city', '') <> ref_city then
+    other_city := ref_city; ref := null;
+  end if;
+  loop
+    c := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+    exit when not exists (select 1 from shops where code = c);
+  end loop;
+  insert into shops (code, name, kind, city, address, lat, lon, contact_name, phone, email, lang, referrer_id)
+  values (c, left(trim(p->>'name'), 80), left(p->>'kind', 20), left(p->>'city', 60), left(p->>'address', 200),
+          (p->>'lat')::double precision, (p->>'lon')::double precision, left(p->>'contact_name', 80),
+          left(p->>'phone', 30), left(p->>'email', 120), case when p->>'lang' = 'fr' then 'fr' else 'he' end, ref)
+  returning * into r;
+  return json_build_object('code', r.code, 'token', r.token, 'referred', ref is not null, 'ref_other_city', other_city);
+end;
+$$;
+
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)

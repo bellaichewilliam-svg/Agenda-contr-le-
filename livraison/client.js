@@ -56,6 +56,7 @@ function renderStatic() {
   $("#availText").textContent = (state.settings.message || "").trim() || t("closedBanner");
   renderOpenBadge();
   $("#expressSmall").textContent = `${t("w_express_d")} · +${money(P.express)}`;
+  renderWhenHints();
   $("#bitSmall").textContent = t("pay_bit_d", { phone: CONFIG.bitPhone });
   $("#footerContact").innerHTML = `<a href="#" data-support="1">💬 ${UI.esc(t("chatFab"))}</a>`;
 
@@ -469,6 +470,7 @@ function onPlacePicked(which, p, quiet) {
   renderShopBanner();
   renderSaveBtns();
   if (which === "to" && form.nearest_store.checked) applyNearest();
+  if (which === "from") renderWhenHints();
 }
 
 // --- Arrêts en plus (au plus CONFIG.pricing.stop.maxStops) : moitié prix s'ils sont sur le chemin ---------
@@ -1231,7 +1233,30 @@ const home = { map: null, pins: {}, line: null, scoots: [], ac: {}, pos: null, n
 // Ouvert : aux horaires, et à toute heure dès qu'un livreur libre est en ligne (le patron compris)
 const courierFree = () => (home.nearby || []).some(c => c.free);
 function openNow() { return !!state.settings.accepting && (Pricing.isOpenNow(CONFIG) || courierFree()); }
+// « Dès que possible » / « Express » : une vraie estimation selon les livreurs libres près du départ
+// (pas de « dans les 3 heures » pour un repas : soit un livreur arrive vite, soit on le dit)
+function etaToPickup() {
+  const free = (home.nearby || []).filter(c => c.free);
+  if (!free.length) return null;
+  const c0 = Pricing.cityById(CONFIG, cityOf("from")) || Pricing.cityById(CONFIG, CONFIG.homeCity);
+  const target = state.fromPoint || home.pos || { lat: c0.lat, lon: c0.lon };
+  return Math.max(3, Math.min(...free.map(c => Pricing.etaMinutes({ lat: Number(c.lat), lon: Number(c.lon) }, target))));
+}
+function renderWhenHints() {
+  if (!$("#asapSmall")) return;
+  const eta = etaToPickup(), online = (home.nearby || []).length, food = val("service") === "repas";
+  const asap = eta != null ? t(food ? "wEtaFood" : "wEta", { min: eta })
+    : online ? t("wBusy") : food || !Pricing.isOpenNow(CONFIG) ? t("wNone") : t("w_asap_d");
+  $("#asapSmall").textContent = asap;
+  const ex = $("#expressSmall"), exInput = form.querySelector('input[name=urgency][value=express]');
+  const exOk = eta != null;
+  ex.textContent = exOk ? `${t("wEta", { min: eta })} · +${money(P.express)}` : t("wExpressNone");
+  exInput.disabled = !exOk;
+  exInput.closest(".choice").classList.toggle("disabled", !exOk);
+  if (!exOk && exInput.checked) form.querySelector('input[name=urgency][value=asap]').checked = true;
+}
 function renderOpenBadge() {
+  renderWhenHints();
   const open = openNow(), online = (home.nearby || []).length;
   // Fermé : on dit pourquoi (tous en course, ou personne de connecté) plutôt qu'un simple « Fermé »
   const key = !state.settings.accepting ? "closedNow"
@@ -1805,6 +1830,7 @@ form.addEventListener("change", e => { const m = /^(pickup|dropoff)_kind$/.exec(
 form.addEventListener("change", e => {
   if (e.target.name === "nearest_store" || e.target.name === "service") applyNearest();
   if (["has_tobacco", "has_alcohol", "service", "urgency", "date", "time"].includes(e.target.name)) syncAdult();
+  if (e.target.name === "service") renderWhenHints();
 });
 form.shopping_list.addEventListener("input", () => {
   const v = form.shopping_list.value;

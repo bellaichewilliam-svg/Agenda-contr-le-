@@ -588,9 +588,11 @@ function renderWeek(view) {
       <button class="btn btn-sm" data-week="-1">◀</button>
       <b>Semaine du ${fmtKey(start)} au ${fmtKey(end)}</b>
       <button class="btn btn-sm" data-week="1" ${weekOffset >= 0 ? "disabled" : ""}>▶</button>
-      <span class="small muted">Les livreurs encaissent les clients en espèces et vous versent leur commission une fois par semaine : ${UI.commissionText()}, ou ${UI.networkText()} sur les courses des commerces qu'ils ont amenés. Vous leur reversez : les courses payées à HOP (Bit, programmées, carnets), la part des commerces Pro, les codes promo, les pourboires reçus, leurs bonus réseau et ${CONFIG.pro.referrerPercent} % des abonnements Pro qu'ils ont fait signer. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</span>
+
     </div>
-    <table class="bill">
+    <div class="week-sum"><small>Solde total de la semaine</small><b>${UI.money(Math.abs(total))}</b><span>${total > 0 ? "à recevoir des livreurs" : total < 0 ? "à verser aux livreurs" : "rien à régler"}</span></div>
+    <details class="fin-more" style="margin:10px 0"><summary>ℹ️ Comment c'est calculé</summary><p class="small muted" style="margin-top:8px">Les livreurs encaissent les clients en espèces et vous versent leur commission une fois par semaine : ${UI.commissionText()}, ou ${UI.networkText()} sur les courses des commerces qu'ils ont amenés. Vous leur reversez : les courses payées à HOP (Bit, programmées, carnets), la part des commerces Pro, les codes promo, les pourboires reçus, leurs bonus réseau et ${CONFIG.pro.referrerPercent} % des abonnements Pro qu'ils ont fait signer. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</p></details>
+    <div class="table-scroll"><table class="bill">
       <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">🎁 Pro, promos, 💝, ⭐</th><th class="num">Solde</th><th></th></tr></thead>
       <tbody>${rows.map(r => `<tr data-courier="${UI.esc(r.c.id)}"><td><b>${UI.esc(r.c.name)}</b><br><span class="small muted">${UI.esc(r.c.phone)}</span></td>
         <td class="num">${r.list.length}</td><td class="num">${UI.money(r.collected)}</td><td class="num">${r.hopPaid.length ? "−" + UI.money(sum(r.hopPaid)) : "—"}</td><td class="num">${UI.money(r.commission)}</td>
@@ -602,7 +604,7 @@ function renderWeek(view) {
           ${r.dueAmount || r.bonusDue || r.hopDue || r.extra ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
         </td></tr>`).join("") || `<tr><td colspan="9" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
       <tfoot><tr><th>Solde total</th><th></th><th></th><th></th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
-    </table>`;
+    </table></div>`;
   view.dataset.weekStart = start;
 }
 
@@ -649,7 +651,7 @@ function renderShops(view) {
         <div class="kv">
           <div><span>🏷️</span><span>${UI.esc(SHOP_KIND[x.kind] || SHOP_KIND.autre)} · ${UI.esc(x.address || "")}${x.city ? ", " + UI.esc(UI.cityFr(x.city)) : ""}</span></div>
           <div><span>👤</span><span>${tel(x.contact_name, x.phone)}${x.email ? " · " + UI.esc(x.email) : ""} · ${x.lang === "fr" ? "🇫🇷" : "🇮🇱"}</span></div>
-          <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name)}</option>`).join("")}</select>
+          <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name + (c.city && x.city && c.city !== x.city ? " · autre ville (" + UI.cityFr(c.city) + ")" : ""))}</option>`).join("")}</select>
             · bonus générés ${UI.money(sum(done, o => Number(o.referral_bonus || 0)))}</span></div>
           <div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
             ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>
@@ -1153,6 +1155,7 @@ if (Store.session()) start(); else showLogin();
 try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); } catch (e) { /* ignore */ }
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
+UI.iosInstallHint("HOP! Patron");
 window.hopReady = true;
 
 })();

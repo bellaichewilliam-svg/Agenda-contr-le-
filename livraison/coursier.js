@@ -369,6 +369,53 @@ function card(o, kind) {
   </article>`;
 }
 
+// --- Finances, façon appli : gains de la semaine en gros, puis l'historique semaine par semaine ---------
+const shortDate = (k, year) => new Date(k + "T12:00:00").toLocaleDateString("fr-FR", year ? { day: "numeric", month: "short", year: "numeric" } : { day: "numeric", month: "short" });
+function weekGain(s) {
+  const e = UI.addDays(s, 6), inW = d => UI.dayKey(d) >= s && UI.dayKey(d) <= e;
+  const list = weekOrders(s);
+  const courses = sum(list, Store.courierGain);
+  const tips = sum(list.filter(o => ["recu", "verse"].includes(o.tip_status)), o => Number(o.tip || 0));
+  const bonus = sum(refDelivered().filter(o => inW(o.pickup_at)), o => Number(o.referral_bonus || 0));
+  const plans = sum((refs.plans || []).filter(p => inW(p.created_at)), p => Number(p.share || 0));
+  return { s, e, list, courses, tips, bonus, plans, total: courses + tips + bonus + plans,
+    settled: list.length > 0 && list.every(o => o.commission_status === "regle"), cash: sum(list.filter(o => o.paid_to !== "hop")),
+    commission: sum(list, o => Number(o.commission || 0)) };
+}
+function financesView(start, week, d) {
+  const cur = weekGain(start);
+  const payDay = UI.addDays(start, 7 + Number(CONFIG.platform.settlementDay || 0));
+  const past = [1, 2, 3, 4, 5, 6, 7, 8].map(i => weekGain(UI.addDays(start, -7 * i))).filter(w => w.list.length || w.total);
+  const line = (label, v, sign) => v ? `<div class="fin-row"><span>${label}</span><b>${sign || ""}${UI.money(v)}</b></div>` : "";
+  const weekItem = w => `<details class="fin-op">
+      <summary><div><small>${UI.esc(shortDate(w.e))}</small><b>Semaine du ${UI.esc(shortDate(w.s))} au ${UI.esc(shortDate(w.e, true))}</b>
+        <span class="muted small">${w.list.length} course(s) · ${w.settled ? "✓ Réglé" : "⏳ À régler"} · ID HOP-${w.s.replace(/-/g, "")}</span></div>
+        <b class="fin-amount">${UI.money(w.total)}</b></summary>
+      <div class="fin-detail">
+        ${line("Courses (après commission)", w.courses)}${line("💝 Pourboires", w.tips, "+")}${line("🤝 Bonus réseau", w.bonus, "+")}${line("⭐ Abonnements Pro", w.plans, "+")}
+        ${line("Encaissé auprès des clients", w.cash)}${line("Commission HOP", w.commission)}
+      </div></details>`;
+  return `<div class="fin-hero">
+      <small>Gains de la semaine ›</small>
+      <b>${UI.money(cur.total)}</b>
+      <span>${cur.list.length} course(s) · prochain règlement le ${UI.esc(new Date(payDay + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" }))}</span>
+    </div>
+    <div class="fin-balance ${balance > 0 ? "due" : balance < 0 ? "owed" : ""}">
+      <div><small>${balance > 0 ? "À verser à HOP" : balance < 0 ? "HOP vous verse" : "Solde"}</small><b>${UI.money(Math.abs(balance))}</b></div>
+      ${balance > 0 ? `<button type="button" class="btn btn-sm btn-wa" data-boss="${UI.esc(`Bonjour, je viens de verser mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé</button>` : ""}
+      ${balance < 0 ? `<button type="button" class="btn btn-sm btn-wa" data-boss="${UI.esc(`Bonjour, HOP me doit ${UI.money(-balance)} cette semaine : merci de me les verser sur mon Bit ${me.bit_phone || me.phone}.`)}">Demander mon versement</button>` : ""}
+    </div>
+    <h3 class="fin-title">Opérations récentes</h3>
+    <div class="fin-ops">${weekItem(cur).replace("<details", "<details open")}${past.map(weekItem).join("") || `<p class="muted small">Pas encore d'autre semaine.</p>`}</div>
+    <details class="fin-more"><summary>Détail du solde</summary>
+      ${line("Commission due (toutes semaines)", d.amountDue)}${line("Courses payées à HOP (reversées)", d.hopDue, "−")}
+      ${line("Part des commerces Pro et codes promo", d.hopAdds, "−")}${line("💝 Pourboires reçus par HOP", d.tipsDue, "−")}
+      ${line("🤝 Bonus réseau pas encore réglés", d.bDue, "−")}${line("⭐ Part des abonnements Pro", d.plansDue, "−")}
+      <div class="fin-row total"><span>${balance >= 0 ? "Reste à verser" : "HOP vous verse"}</span><b>${UI.money(Math.abs(balance))}</b></div>
+      <p class="muted small">Règlement une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Au-delà de ${UI.money(settings.max_debt)} dus, plus de nouvelles courses jusqu'au règlement.</p>
+    </details>`;
+}
+
 function render() {
   const start = UI.weekStart(today());
   const week = weekOrders(start);
@@ -404,26 +451,7 @@ function render() {
     const hopAdds = sum(due, o => Number(o.shop_share || 0) - Number(o.hop_share || 0) + Number(o.discount || 0));
     const tipsDue = sum(orders.filter(o => o.courier_id === me.id && o.tip_status === "recu"), o => Number(o.tip || 0));
     const plansDue = sum((refs.plans || []).filter(p => p.status !== "regle"), p => Number(p.share || 0));
-    view.innerHTML = `<div class="card">
-        <h3>Semaine du ${UI.fmtKey(start)} au ${UI.fmtKey(UI.addDays(start, 6))}</h3>
-        <table class="prices" style="margin-top:8px">
-          <tr><td>Courses livrées</td><td>${week.length}</td></tr>
-          <tr><td>Encaissé auprès des clients</td><td>${UI.money(sum(week.filter(o => o.paid_to !== "hop")))}</td></tr>
-          <tr><td>Commission de la semaine</td><td>${UI.money(sum(week, o => Number(o.commission || 0)))}</td></tr>
-          <tr><td>Vous gagnez cette semaine</td><td>${UI.money(sum(week, Store.courierGain))}</td></tr>
-          <tr><td>🤝 Bonus réseau de la semaine</td><td>+${UI.money(weekBonus)}</td></tr>
-          <tr><td>Commission due (toutes semaines)</td><td>${UI.money(amountDue)}</td></tr>
-          <tr><td>Courses payées à HOP (reversées)</td><td>−${UI.money(hopDue)}</td></tr>
-          ${hopAdds ? `<tr><td>Part des commerces Pro et codes promo (payés par HOP)</td><td>−${UI.money(hopAdds)}</td></tr>` : ""}
-          ${tipsDue ? `<tr><td>💝 Pourboires reçus par HOP</td><td>−${UI.money(tipsDue)}</td></tr>` : ""}
-          <tr><td>Bonus réseau pas encore réglés</td><td>−${UI.money(bDue)}</td></tr>
-          ${plansDue ? `<tr><td>⭐ Votre part des abonnements HOP! Pro</td><td>−${UI.money(plansDue)}</td></tr>` : ""}
-          <tr><td><b>${balance >= 0 ? "Reste à verser" : "HOP! vous verse"}</b></td><td><b>${UI.money(Math.abs(balance))}</b></td></tr>
-        </table>
-        <p class="muted small" style="margin:10px 0">Le règlement se fait une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Les courses payées d'avance à HOP (courses programmées, carnets pro) et vos bonus de parrainage sont déduits de votre commission. Au-delà de ${UI.money(settings.max_debt)} dus, vous ne recevez plus de nouvelles courses jusqu'au règlement.</p>
-        ${balance > 0 ? `<button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, je viens de verser mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé mon solde</button>` : ""}
-        ${balance < 0 ? `<button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, HOP me doit ${UI.money(-balance)} cette semaine : merci de me les verser sur mon Bit ${me.bit_phone || me.phone}.`)}">Demander mon versement</button>` : ""}
-      </div>`;
+    view.innerHTML = financesView(start, week, { amountDue, weekBonus, bDue, hopDue, hopAdds, tipsDue, plansDue });
   } else if (tab === "stats") {
     renderStats(view);
   } else if (tab === "settings") {
@@ -727,7 +755,7 @@ function renderRef(view) {
     <div class="card ref-hero">
       <h3>🤝 Amenez un commerce, gagnez à chaque livraison</h3>
       <ol class="ref-steps">
-        <li><b>Proposez HOP!</b> à un restaurant, une boutique, une pharmacie… surtout ceux qui n'ont pas de livreur.</li>
+        <li><b>Proposez HOP!</b> à un restaurant, une boutique, une pharmacie… <b>de votre ville${me.city ? " (" + UI.esc(UI.cityFr(me.city)) + ")" : ""}</b>, surtout ceux qui n'ont pas de livreur. Un partenariat se fait seulement dans votre ville, pour que vous puissiez assurer leurs livraisons.</li>
         <li><b>Il s'inscrit avec votre lien</b> ou en scannant votre QR code (1 minute, gratuit).</li>
         <li><b>Ses courses vous sont proposées ${Number(settings.priority_minutes)} min avant</b> les autres livreurs, et quand vous les faites, la commission n'est que de <b>${UI.esc(UI.networkText())}</b>.</li>
         <li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses quand un autre livreur la fait, <b>tant que vous livrez avec nous</b>.</li>
@@ -1303,6 +1331,7 @@ Store.adoptLinkSession().catch(() => false).then(async () => {
 });
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
+UI.iosInstallHint("HOP! Livreur");
 window.hopReady = true;
 
 })();

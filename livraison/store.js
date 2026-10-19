@@ -865,7 +865,10 @@ async function shopSignup(data) {
     const same = x => phoneKey(x.phone) === phoneKey(data.phone)
       || (String(x.name).trim().toLowerCase() === String(data.name).trim().toLowerCase() && (x.city || "") === (data.city || ""));
     if (list.some(same)) throw new Error("shop_exists");
-    const ref = localCouriers().find(c => c.ref_code && c.ref_code === String(data.ref_code || "").trim().toUpperCase() && c.status === "actif");
+    let ref = localCouriers().find(c => c.ref_code && c.ref_code === String(data.ref_code || "").trim().toUpperCase() && c.status === "actif");
+    // Partenariat seulement dans la ville du livreur
+    let otherCity = null;
+    if (ref && ref.city && (data.city || "") !== ref.city) { otherCity = ref.city; ref = null; }
     const shop = {
       id: uuid(), created_at: new Date().toISOString(), code: newCode(6, list.map(x => x.code)), token: uuid(), status: "en_attente",
       name: data.name, kind: data.kind, city: data.city, address: data.address, lat: data.lat, lon: data.lon,
@@ -873,7 +876,7 @@ async function shopSignup(data) {
     };
     list.push(shop);
     writeJSON(LS.shops, list);
-    r = { code: shop.code, token: shop.token, referred: !!ref };
+    r = { code: shop.code, token: shop.token, referred: !!ref, ref_other_city: otherCity };
   }
   rememberShopToken(r.token, r.code);
   return r;
