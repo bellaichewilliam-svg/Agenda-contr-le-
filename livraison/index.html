@@ -31,7 +31,7 @@
       console.error(e.message);
     });
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610191506" />
+  <link rel="stylesheet" href="styles.css?v=202610191540" />
 </head>
 <body>
 
@@ -84,16 +84,32 @@
   <!-- Petit scooter de livraison qui se balade -->
   <div class="hero-road" aria-hidden="true">
     <div class="rider">
-      <svg class="scooter" viewBox="0 0 140 90" width="96" height="62">
-        <rect x="6" y="14" width="40" height="34" rx="6" fill="#FF6A13"/>
-        <rect x="22" y="14" width="8" height="34" fill="#FFC7A3"/>
-        <path d="M44 52 H86 L100 30 H110" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M30 56 Q 40 44 60 46 H84 Q 96 46 104 60" fill="#FF8A3D"/>
-        <rect x="52" y="38" width="26" height="8" rx="4" fill="#0F1F3D"/>
-        <path d="M104 26 l8 -6" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
-        <circle cx="114" cy="40" r="4" fill="#FFE08A"/>
-        <g class="wheel"><circle cx="34" cy="68" r="15" fill="#0F1F3D"/><circle cx="34" cy="68" r="6" fill="#98A2B3"/><path d="M34 56 V80 M22 68 H46" stroke="#5B6476" stroke-width="2"/></g>
-        <g class="wheel"><circle cx="106" cy="68" r="15" fill="#0F1F3D"/><circle cx="106" cy="68" r="6" fill="#98A2B3"/><path d="M106 56 V80 M94 68 H118" stroke="#5B6476" stroke-width="2"/></g>
+      <svg class="scooter" viewBox="0 0 160 112" width="118" height="83">
+        <!-- caisse de livraison -->
+        <rect x="8" y="22" width="36" height="31" rx="6" fill="#FF6A13" stroke="#fff" stroke-width="1.5"/>
+        <rect x="8" y="34" width="36" height="7" fill="#FFC7A3"/>
+        <text x="26" y="31" text-anchor="middle" font-family="Fredoka, Arial" font-weight="700" font-size="9" fill="#fff">HOP!</text>
+        <path d="M10 55 H50" stroke="#E4E7EC" stroke-width="4" stroke-linecap="round"/>
+        <!-- pilote -->
+        <path d="M67 50 L90 56 L100 80" fill="none" stroke="#475467" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M100 80 h9" stroke="#0F1F3D" stroke-width="7" stroke-linecap="round"/>
+        <path d="M66 50 L80 26" stroke="#F2F4F7" stroke-width="15" stroke-linecap="round"/>
+        <path d="M81 30 L101 34 L113 26" fill="none" stroke="#F2F4F7" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="84" cy="13" r="11" fill="#FF6A13" stroke="#fff" stroke-width="1.5"/>
+        <path d="M86 9 h9 a3 3 0 0 1 0 8 h-9 z" fill="#0F1F3D"/>
+        <path d="M74 17 q10 4 20 0" stroke="#fff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- scooter -->
+        <path d="M14 88 C14 66 30 56 54 56 L84 58 C90 59 92 64 90 70 L87 80 L62 82 C54 72 28 72 24 88 Z" fill="#FF8A3D"/>
+        <rect x="42" y="47" width="36" height="10" rx="5" fill="#0F1F3D"/>
+        <rect x="60" y="78" width="48" height="7" rx="3" fill="#0F1F3D"/>
+        <path d="M102 85 L112 44 C114 37 120 35 124 39 L120 52 L114 85 Z" fill="#FF6A13"/>
+        <path d="M113 40 L120 22" stroke="#E4E7EC" stroke-width="5" stroke-linecap="round"/>
+        <path d="M112 22 h14" stroke="#E4E7EC" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="125" cy="32" r="4.5" fill="#FFE08A"/>
+        <path d="M112 80 Q130 68 146 80 L143 84 Q130 75 116 85 Z" fill="#E0520A"/>
+        <!-- roues -->
+        <g class="wheel"><circle cx="40" cy="94" r="15" fill="#0F1F3D" stroke="#E4E7EC" stroke-width="2.5"/><circle cx="40" cy="94" r="7" fill="#98A2B3"/><path d="M40 81 V107 M27 94 H53" stroke="#5B6476" stroke-width="2"/></g>
+        <g class="wheel"><circle cx="130" cy="94" r="15" fill="#0F1F3D" stroke="#E4E7EC" stroke-width="2.5"/><circle cx="130" cy="94" r="7" fill="#98A2B3"/><path d="M130 81 V107 M117 94 H143" stroke="#5B6476" stroke-width="2"/></g>
       </svg>
       <span class="puff p1"></span><span class="puff p2"></span><span class="puff p3"></span>
     </div>
@@ -299,7 +315,8 @@
             <label class="f"><span data-i18n="yourName"></span><input name="contact_name" autocomplete="name" /></label>
             <label class="f"><span data-i18n="yourPhone"></span><input name="contact_phone" type="tel" autocomplete="tel" /></label>
             <label class="f"><span data-i18n="company"></span><input name="company" autocomplete="organization" /></label>
-            <label class="f"><span data-i18n="email"></span><input name="contact_email" type="email" autocomplete="email" /></label>
+            <!-- Email retiré pour un formulaire plus court : le reçu est dans « Mes courses » -->
+            <input type="hidden" name="contact_email" />
           </div>
           <p class="muted small" style="margin-top:10px" data-i18n="remember"></p>
         </fieldset>
@@ -364,8 +381,8 @@
   </div>
 </footer>
 
-<!-- Bouton WhatsApp toujours visible : les clients vous écrivent directement -->
-<a class="wa-fab" id="waFab" target="_blank" rel="noopener"><span>💬</span><b data-i18n="chatFab"></b></a>
+<!-- Bouton « Nous écrire » toujours visible : messagerie dans l'application -->
+<button type="button" class="wa-fab chat-fab" id="waFab"><span>💬</span><b data-i18n="chatFab"></b><i class="chat-badge hidden" id="fabBadge"></i></button>
 
 <!-- Demande de devis : tournée quotidienne, carnet… (pro ou particulier) -->
 <div class="modal hidden" id="reqModal" role="dialog" aria-modal="true">
@@ -412,12 +429,13 @@
   </div>
 </div>
 
-<script src="config.js?v=202610191506"></script>
-<script src="i18n.js?v=202610191506"></script>
-<script src="pricing.js?v=202610191506"></script>
-<script src="store.js?v=202610191506"></script>
-<script src="common.js?v=202610191506"></script>
-<script src="places.js?v=202610191506"></script>
-<script src="client.js?v=202610191506"></script>
+<script src="config.js?v=202610191540"></script>
+<script src="i18n.js?v=202610191540"></script>
+<script src="pricing.js?v=202610191540"></script>
+<script src="store.js?v=202610191540"></script>
+<script src="chat.js?v=202610191540"></script>
+<script src="common.js?v=202610191540"></script>
+<script src="places.js?v=202610191540"></script>
+<script src="client.js?v=202610191540"></script>
 </body>
 </html>

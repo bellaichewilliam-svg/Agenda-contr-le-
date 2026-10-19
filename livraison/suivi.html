@@ -28,7 +28,7 @@
       console.error(e.message);
     });
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610191506" />
+  <link rel="stylesheet" href="styles.css?v=202610191540" />
 </head>
 <body>
 
@@ -53,10 +53,8 @@
       <h3 data-i18n="chatTitle"></h3>
       <p class="muted small hidden" id="noCourier" data-i18n="chatNoCourier"></p>
       <div class="chat-grid">
-        <a class="btn btn-wa hidden" id="waCourier" target="_blank" rel="noopener"></a>
+        <button type="button" class="btn btn-wa" id="chatBtn"><span data-i18n="chOpen"></span> <i class="chat-badge hidden" id="chatBadge"></i></button>
         <a class="btn hidden" id="callCourier"></a>
-        <a class="btn btn-wa" id="waAdmin" target="_blank" rel="noopener" data-i18n="chatAdmin"></a>
-        <a class="btn" id="callAdmin" data-i18n="callAdmin"></a>
       </div>
       <a class="btn btn-sm btn-link" id="shareBtn" target="_blank" rel="noopener" data-i18n="trShare" style="margin-top:6px"></a>
     </div>
@@ -64,11 +62,12 @@
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610191506"></script>
-<script src="i18n.js?v=202610191506"></script>
-<script src="pricing.js?v=202610191506"></script>
-<script src="store.js?v=202610191506"></script>
-<script src="common.js?v=202610191506"></script>
-<script src="suivi.js?v=202610191506"></script>
+<script src="config.js?v=202610191540"></script>
+<script src="i18n.js?v=202610191540"></script>
+<script src="pricing.js?v=202610191540"></script>
+<script src="store.js?v=202610191540"></script>
+  <script src="chat.js?v=202610191540"></script>
+<script src="common.js?v=202610191540"></script>
+<script src="suivi.js?v=202610191540"></script>
 </body>
 </html>

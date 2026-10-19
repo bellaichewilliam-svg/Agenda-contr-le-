@@ -118,8 +118,8 @@ function wordmark(sub) {
   return `<b>${he ? "הופ" : "HOP"}<i>!</i></b><small>${esc(small)}</small>`;
 }
 
-// Numéro Bit à payer : HOP si la course est payée d'avance, sinon le coursier
-function bitFor(o) { return o.paid_to === "hop" || o.prepaid_required ? CONFIG.bitPhone : (o.courier_bit || CONFIG.bitPhone); }
+// Numéro Bit à payer : toujours celui de HOP (le livreur n'encaisse que les espèces)
+function bitFor() { return CONFIG.bitPhone; }
 
 function clientMessage(o) {
   const l = o.lang || "fr";
@@ -137,6 +137,7 @@ function clientMessage(o) {
 }
 
 function receiptUrl(o) { return appUrl("recu.html") + "?t=" + o.token; }
+function carnetReceiptUrl(sale) { return appUrl("recu.html") + "?c=" + sale.token; }
 
 // Semaines (dimanche → samedi) sur des clés de jour AAAA-MM-JJ
 function weekStart(key) {
@@ -183,7 +184,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  receiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
+  receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
   esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

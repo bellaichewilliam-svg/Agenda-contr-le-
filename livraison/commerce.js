@@ -21,7 +21,6 @@ function phoneOk(v) { return /^0(5\d{8}|7\d{8}|[2-489]\d{7})$/.test(phoneDigits(
 function renderStatic() {
   I18N.apply();
   $("#brandName").innerHTML = UI.wordmark(I18N.lang === "he" ? "לעסקים" : "Pro");
-  $("#waFab").href = UI.waLink(CONFIG.whatsapp, t("chatMsg") + " ");
   const price = UI.money(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || CONFIG.pricing.base);
   $("#shopPerks").innerHTML = ["shPerk1", "shPerk2", "shPerk3", "shPerk4", "shPerk5"]
     .map(k => `<li>${UI.esc(t(k, { price }))}</li>`).join("");
@@ -109,6 +108,7 @@ async function openSpace(token) {
 
 function renderSpace() {
   const { shop, orders } = state.dash;
+  const sales = state.dash.sales || [];
   $("#spTitle").textContent = t("shWelcome", { name: shop.name });
   $("#spStatus").textContent = shop.status === "actif" ? t("shActive") : t("shPending");
   $("#spOrder").href = clientLink(shop) + "#commander";
@@ -119,7 +119,6 @@ function renderSpace() {
   const C = CONFIG.partners.carnet, home = CONFIG.homeCity;
   const unit = UI.money(CONFIG.pricing.fixedFromHome[home]);
   const left = Number(shop.credits || 0);
-  const buyMsg = t("shCarnetMsg", { name: shop.name, code: shop.code, price: UI.money(C.price) });
   $("#spPro").innerHTML = `<h3>${UI.esc(t("shProTitle"))}</h3>
     <div class="pro-grid">
       <div><small>${UI.esc(t("shProUnit", { city: I18N.cityName(home) }))}</small><b>${unit}</b></div>
@@ -127,8 +126,10 @@ function renderSpace() {
       <div><small>${UI.esc(t("shCarnetLeft"))}</small><b>🎟️ ${left}</b></div>
     </div>
     <p class="muted small" style="margin:10px 0">${UI.esc(t("shCarnetHow", { price: UI.money(C.price), phone: CONFIG.bitPhone, code: shop.code, n: C.courses }))}</p>
+    ${sales.length ? `<p class="small" style="margin:6px 0 10px">${UI.esc(t("shReceipts"))} ${sales.map(v =>
+      `<a href="${UI.esc(UI.carnetReceiptUrl(v))}">🧾 ${UI.esc(t("shReceiptNo", { n: v.receipt_number }))}</a>`).join(" · ")}</p>` : ""}
     <div class="btns" style="justify-content:flex-start">
-      <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, buyMsg)}">${UI.esc(t("shCarnetBuy", { price: UI.money(C.price) }))}</a>
+      <button type="button" class="btn btn-wa" data-buy="1">${UI.esc(t("shCarnetBuy", { price: UI.money(C.price) }))}</button>
       <a class="btn" href="index.html#devis">${UI.esc(t("offPro_cta"))} · ${UI.esc(t("rqTournee"))}</a>
     </div>`;
   const qr = $("#spQr");
@@ -151,6 +152,34 @@ function renderSpace() {
         ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<br><a class="small" href="${UI.trackUrl(o)}">${UI.esc(t("shTrack"))}</a>` : ""}</div>
     </div>`).join("") : `<p class="muted small">${UI.esc(t("shNoOrders"))}</p>`;
 }
+
+// --- Messagerie : le commerce parle à HOP dans l'application --------------------------------
+function openShopChat(prefill) {
+  if (!state.dash) {
+    // Pas encore inscrit : service client
+    return Chat.open({ thread: "u:" + Store.deviceId(), title: t("chSupport"), sub: t("chSupportSub"), me: "client", prefill,
+      fetch: () => Store.chatSupport(), send: (b, i) => Store.chatSupportSend(null, b, i), onClose: checkChat });
+  }
+  const { shop } = state.dash, token = shop.token;
+  Chat.open({ thread: "s:" + shop.id, title: t("chShop"), sub: shop.name, me: "shop", prefill,
+    fetch: () => Store.chatShop(token), send: (b, i) => Store.chatShopSend(token, b, i), onClose: checkChat });
+}
+async function checkChat() {
+  try {
+    const msgs = state.dash ? await Store.chatShop(state.dash.shop.token) : await Store.chatSupport();
+    const n = Object.values(Chat.unread(msgs, state.dash ? "shop" : "client")).reduce((s, x) => s + x, 0);
+    $("#fabBadge").textContent = n;
+    $("#fabBadge").classList.toggle("hidden", !n);
+  } catch (e) { /* nouvel essai */ }
+}
+$("#waFab").addEventListener("click", () => openShopChat());
+$("#spPro").addEventListener("click", e => {
+  if (!e.target.closest("[data-buy]")) return;
+  const { shop } = state.dash;
+  openShopChat(t("shCarnetMsg", { name: shop.name, code: shop.code, price: UI.money(CONFIG.partners.carnet.price) }));
+});
+setTimeout(checkChat, 1500);
+setInterval(checkChat, 20000);
 
 // --- Démarrage ------------------------------------------------------------------------
 renderStatic();

@@ -35,7 +35,7 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **Facturation mensuelle** par client, avec export CSV.
 
 ### Livreurs partenaires (`coursier.html`)
-- **Inscription :** coordonnées, véhicule, permis, assurance, numéro d'עוסק, et **8 engagements à cocher** (permis valide, assurance, statut d'indépendant, responsabilité des colis et de l'argent, sécurité, commission hebdomadaire…).
+- **Inscription :** coordonnées, véhicule, permis, assurance, numéro d'עוסק, et **9 engagements à cocher** (permis valide, assurance, statut d’indépendant, responsabilité des colis et de l’argent, « Livré » validé seulement sur place, sécurité, commission hebdomadaire…). Le bouton « Livré » vérifie la position GPS : à plus de 200 m de l’adresse (`platform.deliverRadius`), la livraison est refusée.
 - **Fenêtre « Nouvelle course ! »** avec un son, dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte » ou « Plus tard ».
 - **Après votre validation :** courses disponibles (le premier qui accepte la prend), ses courses, GPS, encaissement, « Je ne peux plus ».
 - **Onglet « Ma semaine » :** courses, encaissé, commission à verser par Bit une fois par semaine (`platform.commissionPerCourse` = 3 ₪ par course dans `config.js`).
@@ -48,8 +48,15 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - Niveaux (🌱 → 👑) et classement des parrains du mois.
 - Côté patron : onglet « 🏪 Commerces » (vérifier, suspendre, changer le parrain, envoyer ses liens au commerce).
 
+### Messagerie dans l'application (aucun dialogue par WhatsApp)
+- **Client :** bouton « 💬 Nous écrire » sur toutes les pages → la conversation de sa course (lui, son livreur et vous) ou le service client. Texte et photos (réduites automatiquement). Les étapes de la course (acceptée, récupérée, livrée, refusée) s'affichent toutes seules dans la conversation.
+- **Livreur :** « 💬 Client » sur chaque course, « 📷 Photo du dépôt », « 💬 Écrire à HOP » (documents d'inscription en photo, « J'ai payé mon solde »…).
+- **Commerce :** bouton « Nous écrire » de son espace pro (achat de carnet, questions). Le reçu du carnet lui arrive ici.
+- **Vous :** onglet « 💬 Messagerie » (toutes les conversations, messages non lus, son et alerte), et un bouton « 💬 » sur chaque course, livreur, commerce et demande de devis.
+- Le message de refus d'une course (avec la raison, dans la langue du client) part tout seul dans sa conversation.
+
 ### Argent : tout est carré
-- **Qui encaisse :** course immédiate → le livreur (espèces ou son Bit, son numéro est sur la page de suivi). Course programmée ou carnet pro → HOP, d'avance (Bit au 052-779-0361).
+- **Qui encaisse :** le livreur n'encaisse **que les espèces**. Le **Bit va toujours à HOP** (052-779-0361), comme les courses programmées et les carnets pro : vous reversez ces courses au livreur dans la semaine.
 - **Chaque semaine :** le livreur vous doit ses commissions (3 ₪ par course), moins les courses payées à HOP (vous les lui reversez) et moins ses bonus de parrainage. « ✓ Réglé » remet le compteur à zéro.
 - **Plafond :** au-delà de `platform.maxDebt` (50 ₪) dus, le livreur ne peut plus accepter de course tant qu'il n'a pas réglé.
 - Sur une course, le bouton « Payée au livreur ⇄ Payée à HOP » corrige le cas d'un client qui a payé le mauvais numéro.
@@ -58,10 +65,13 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 Le livreur en service le plus proche du départ la reçoit en premier, le 2e plus proche après 45 s (`platform.waveSeconds`), puis tous les autres après 90 s. Pour une course d'un commerce partenaire, son parrain passe d'abord (3 min). Côté patron, « Donner à un livreur » classe les livreurs du plus proche au plus loin.
 
 ### Espace pro et carnet
-L'espace du commerce (`commerce.html`) montre le tarif pro (25 ₪ dans Netanya) et le carnet de 10 courses (200 ₪). Le commerce paie par Bit, puis vous ajoutez les courses dans l'onglet « 🏪 Commerces ». Il choisit ensuite « Carnet pro » au paiement : rien à payer au livreur. Un commerce déjà inscrit (même téléphone ou même nom dans la même ville) ne peut pas se réinscrire.
+L'espace du commerce (`commerce.html`) montre le tarif pro (25 ₪ dans Netanya) et le carnet de 10 courses (200 ₪). Le commerce paie par Bit, puis vous cliquez « 🎟️ Carnet payé » dans l'onglet « 🏪 Commerces » : les 10 courses sont ajoutées et un **reçu (קבלה) numéroté** est créé (même numérotation que vos autres reçus) et envoyé au commerce dans sa messagerie ; il le retrouve aussi dans son espace pro. Il choisit ensuite « Carnet pro » au paiement : rien à payer au livreur. Un commerce déjà inscrit (même téléphone ou même nom dans la même ville) ne peut pas se réinscrire.
 
 ### Messages aux livreurs
 Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et d'autres messages prêts, à tous ou à un seul livreur. Le message s'ouvre en grand chez eux, avec un son, et ils répondent « J'arrive » ou « Pas dispo ».
+
+### Gros colis (voiture)
+Pas encore de voiture : l'option « Gros colis » est cachée. Pour l'ouvrir, mettez `pricing.carAvailable: true` dans `config.js` (les prix voiture du Sharon sont déjà dans `fixedCarFromHome`).
 
 ## 1. Personnaliser — `config.js`
 

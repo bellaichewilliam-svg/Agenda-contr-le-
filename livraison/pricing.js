@@ -148,7 +148,7 @@ async function geocode(address, countryCode, timeoutMs) {
 }
 
 // Prix voiture (gros colis) entre la ville principale et une ville, ou null
-function carPrice(cfg, fromId, toId) { return fixedPrice(cfg, fromId, toId, true); }
+function carPrice(cfg, fromId, toId) { return cfg.pricing.carAvailable === false ? null : fixedPrice(cfg, fromId, toId, true); }
 
 const api = { computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode };
 if (typeof module !== "undefined" && module.exports) module.exports = api;

@@ -52,13 +52,12 @@ function renderStatic() {
   const avail = state.settings.accepting;
   $("#availBanner").classList.toggle("hidden", avail);
   $("#availText").textContent = (state.settings.message || "").trim() || t("closedBanner");
-  $("#waFab").href = UI.waLink(CONFIG.whatsapp, t("chatMsg") + " ");
   const open = Pricing.isOpenNow(CONFIG) && avail;
   $("#openBadge").textContent = t(open ? "openNow" : "closedNow");
   $("#openBadge").classList.toggle("closed", !open);
   $("#expressSmall").textContent = `${t("w_express_d")} · +${money(P.express)}`;
-  $("#bitSmall").textContent = val("urgency") === "programmee" ? t("pay_bit_d", { phone: CONFIG.bitPhone }) : t("pay_bit_courier");
-  $("#footerContact").innerHTML = `📞 <a href="tel:${UI.esc(CONFIG.phoneDisplay)}" dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</a> · <a href="${UI.waLink(CONFIG.whatsapp, "")}" target="_blank" rel="noopener">WhatsApp</a>`;
+  $("#bitSmall").textContent = t("pay_bit_d", { phone: CONFIG.bitPhone });
+  $("#footerContact").innerHTML = `<a href="#" data-support="1">💬 ${UI.esc(t("chatFab"))}</a>`;
 
   const home = CONFIG.homeCity;
   $("#examples").innerHTML = EXAMPLES.map(ex => {
@@ -89,7 +88,7 @@ function renderStatic() {
       ? ` <small class="muted" title="${UI.esc(t("xBig"))}">🚗 ${money(Pricing.carPrice(CONFIG, home, r.c.id))}</small>` : ""}</b></div>`).join("");
 
   const extras = [["xExpress", "+ " + money(P.express)], ["xPickup", "+ " + money(P.pickupPoint)], ["xPurchase", "+ " + money(P.purchase)],
-    ["xMedium", "+ " + money(P.sizes.moyen)], ["xBig", t("xBigCar")], ["xStop", "+ " + money(P.extraStop)], ["xReturn", `+ ${P.returnTripPercent} %`]];
+    ["xMedium", "+ " + money(P.sizes.moyen)], ...(P.carAvailable === false ? [] : [["xBig", t("xBigCar")]]), ["xStop", "+ " + money(P.extraStop)], ["xReturn", `+ ${P.returnTripPercent} %`]];
   $("#extrasTable").innerHTML = extras.map(e => `<tr><td>${UI.esc(t(e[0]))}</td><td>${e[1]}</td></tr>`).join("");
 
   const days = t("days");
@@ -156,6 +155,10 @@ function fillDefaults() {
 
 function syncVisibility() {
   const svc = val("service");
+  // Gros colis (voiture) : seulement quand une voiture est disponible
+  const gros = form.querySelector('input[name=size][value=gros]');
+  gros.closest(".choice").classList.toggle("hidden", P.carAvailable === false);
+  if (P.carAvailable === false && gros.checked) form.querySelector('input[name=size][value=moyen]').checked = true;
   form.classList.remove("svc-colis", "svc-retrait", "svc-achat", "svc-repas", "place-poste");
   form.classList.add("svc-" + svc);
   if (svc === "retrait" && val("place_kind") === "poste") form.classList.add("place-poste");
@@ -176,7 +179,7 @@ function syncVisibility() {
   const carnetOn = carnet && val("payment_method") === "carnet";
   if (!carnet && val("payment_method") === "carnet") form.querySelector('input[name=payment_method][value=cash]').checked = !sched;
   if (!carnet && sched) form.querySelector('input[name=payment_method][value=bit]').checked = true;
-  $("#bitSmall").textContent = sched ? t("pay_bit_d", { phone: CONFIG.bitPhone }) : t("pay_bit_courier");
+  $("#bitSmall").textContent = t("pay_bit_d", { phone: CONFIG.bitPhone });
   $("#prepayNote").classList.toggle("hidden", !sched || carnetOn);
   document.querySelectorAll(".other-city").forEach(el => {
     el.classList.toggle("hidden", val(el.dataset.for + "_city") !== OTHER);
@@ -341,7 +344,7 @@ function renderQuote() {
   if (val("service") === "achat") notes.push(t("qPurchaseNote"));
   const sched = val("urgency") === "programmee";
   notes.push(val("payment_method") === "carnet" ? t("payNoteCarnet")
-    : val("payment_method") === "bit" ? (sched ? t("payNoteBit", { phone: CONFIG.bitPhone }) : t("payNoteBitCourier")) : t("payNoteCash"));
+    : val("payment_method") === "bit" ? t(sched ? "payNoteBit" : "payNoteBitNow", { phone: CONFIG.bitPhone }) : t("payNoteCash"));
   $("#quoteNote").textContent = notes.join(" ");
   updateProgress();
   const err = scheduleError();
@@ -768,8 +771,7 @@ function renderMine() {
         <div class="mo-actions">
           ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<a class="btn btn-sm btn-primary" href="${UI.trackUrl(o)}">${t("track")}</a>` : ""}
           ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${t("receiptLink")}</a>` : ""}
-          ${o.courier_phone && ["confirmee", "recuperee"].includes(o.status) ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.courier_phone, t("orderNo", { ref: o.ref }) + " — ")}">${UI.esc(t("chatCourier", { name: (o.courier_name || "").split(" ")[0] }))}</a>` : ""}
-          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, t("orderNo", { ref: o.ref }) + " — ")}">${t("chatAdmin")}</a>
+          <button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.token)}">${UI.esc(t("chOpen"))}${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>
           ${o.status === "nouvelle" ? `<button class="btn btn-sm btn-link" data-cancel="${UI.esc(o.token)}">${t("cancel")}</button>` : ""}
         </div>
       </div>
@@ -777,7 +779,47 @@ function renderMine() {
     </article>`).join("");
 }
 
+// --- Messagerie : la course (livreur + service client) ou le service client -----------------
+let chatUnread = {};
+let chatTotal = 0;
+function openOrderChat(o) {
+  Chat.open({ thread: "o:" + o.id, title: t("chOrder", { ref: o.ref }), sub: t("chOrderSub"), me: "client",
+    fetch: () => Store.chatOrder(o.token), send: (b, i) => Store.chatOrderSend(o.token, b, i), onClose: checkChats });
+}
+function openSupport(prefill) {
+  const p = Store.getProfile();
+  Chat.open({ thread: "u:" + Store.deviceId(), title: t("chSupport"), sub: t("chSupportSub"), me: "client", prefill,
+    fetch: () => Store.chatSupport(),
+    send: (b, i) => Store.chatSupportSend([p.contact_name, p.contact_phone].filter(Boolean).join(" · "), b, i), onClose: checkChats });
+}
+// Courses à suivre dans la messagerie : en cours, ou terminées depuis moins de 2 jours
+const chatOrders = () => state.mine.filter(o => !["annulee"].includes(o.status)
+  && (["nouvelle", "confirmee", "recuperee"].includes(o.status) || Date.now() - new Date(o.pickup_at) < 2 * 86400000));
+function openChatMenu() {
+  const list = chatOrders();
+  if (!list.length) return openSupport();
+  Chat.choose(t("chWho"), [
+    ...list.map(o => ({ label: t("chMyOrder", { ref: o.ref }), badge: chatUnread["o:" + o.id], onClick: () => openOrderChat(o) })),
+    { label: "💬 " + t("chSupport"), badge: chatUnread["u:" + Store.deviceId()], onClick: () => openSupport() }
+  ]);
+}
+// Messages non lus : pastille sur le bouton « Nous écrire », vibration à l'arrivée
+async function checkChats() {
+  try {
+    const lists = await Promise.all([Store.chatSupport(), ...chatOrders().map(o => Store.chatOrder(o.token))]);
+    chatUnread = Chat.unread(lists.flat(), "client");
+  } catch (e) { return; }
+  const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
+  $("#fabBadge").textContent = total;
+  $("#fabBadge").classList.toggle("hidden", !total);
+  if (total > chatTotal && navigator.vibrate) navigator.vibrate([150, 80, 150]);
+  chatTotal = total;
+  renderMine();
+}
+
 async function onListClick(e) {
+  const chat = e.target.closest("[data-chat]");
+  if (chat) { const o = state.mine.find(x => x.token === chat.dataset.chat); if (o) openOrderChat(o); return; }
   const token = e.target.dataset.cancel;
   if (!token || !confirm(t("cancelConfirm"))) return;
   try { await Store.cancelMyOrder(token); } catch (ex) { alert(t("cancelFail")); }
@@ -990,6 +1032,10 @@ $("#langBtn").addEventListener("click", () => {
 $("#doneClose").addEventListener("click", () => { $("#doneModal").classList.add("hidden"); location.hash = "mes-courses"; });
 $("#refreshMine").addEventListener("click", loadMine);
 $("#myOrders").addEventListener("click", onListClick);
+$("#waFab").addEventListener("click", openChatMenu);
+document.addEventListener("click", e => { if (e.target.closest("[data-support]")) { e.preventDefault(); openSupport(); } });
+setTimeout(checkChats, 1500);
+setInterval(checkChats, 20000);
 $("#mobileGo").addEventListener("click", e => { e.preventDefault(); $("#summary").scrollIntoView({ behavior: "smooth", block: "center" }); });
 
 // Barre du bas : visible dans le formulaire, cachée quand le récapitulatif est à l'écran

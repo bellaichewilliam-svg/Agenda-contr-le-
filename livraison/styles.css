@@ -448,23 +448,23 @@ table.bill .num { text-align: end; }
 
 /* --- Scooter qui se balade sur l'accueil -------------------------------------------- */
 .hero { position: relative; overflow: hidden; }
-.hero > .wrap { position: relative; z-index: 1; padding-top: 66px; }
-.hero-road { position: absolute; inset-inline: 0; top: 4px; height: 70px; pointer-events: none; }
+.hero > .wrap { position: relative; z-index: 1; padding-top: 88px; }
+.hero-road { position: absolute; inset-inline: 0; top: 0; height: 92px; pointer-events: none; }
 .hero-road::after { content: ""; position: absolute; inset-inline: 0; bottom: 6px; border-bottom: 3px dashed rgba(255,255,255,.18); }
 .rider { position: absolute; bottom: 4px; left: 0; animation: ride 11s linear infinite; }
 .scooter { display: block; animation: bump .5s ease-in-out infinite alternate; filter: drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
 .scooter .wheel { transform-box: fill-box; transform-origin: center; animation: spin .45s linear infinite; }
-.puff { position: absolute; left: -6px; bottom: 10px; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.35); animation: puff 1s ease-out infinite; }
+.puff { position: absolute; left: 2px; bottom: 16px; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.35); animation: puff 1s ease-out infinite; }
 .puff.p2 { animation-delay: .33s; } .puff.p3 { animation-delay: .66s; }
-@keyframes ride { from { transform: translateX(-140px); } to { transform: translateX(calc(100vw + 40px)); } }
+@keyframes ride { from { transform: translateX(-160px); } to { transform: translateX(calc(100vw + 40px)); } }
 @keyframes bump { from { transform: translateY(0); } to { transform: translateY(-2px); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes puff { from { transform: translate(0, 0) scale(.6); opacity: .8; } to { transform: translate(-26px, -8px) scale(1.6); opacity: 0; } }
 /* En hébreu, il roule de droite à gauche */
 [dir="rtl"] .rider { left: auto; right: 0; animation-name: ride-rtl; }
 [dir="rtl"] .scooter { transform: scaleX(-1); animation: none; }
-[dir="rtl"] .puff { left: auto; right: -6px; animation-name: puff-rtl; }
-@keyframes ride-rtl { from { transform: translateX(140px); } to { transform: translateX(calc(-100vw - 40px)); } }
+[dir="rtl"] .puff { left: auto; right: 2px; animation-name: puff-rtl; }
+@keyframes ride-rtl { from { transform: translateX(160px); } to { transform: translateX(calc(-100vw - 40px)); } }
 @keyframes puff-rtl { from { transform: translate(0, 0) scale(.6); opacity: .8; } to { transform: translate(26px, -8px) scale(1.6); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .rider { animation: none; left: 16px; } [dir="rtl"] .rider { right: 16px; }
@@ -601,3 +601,30 @@ body.print-poster .print-only { display: grid; }
 .act-off { background: var(--red-soft); color: #912018; }
 .req-box { text-align: start; max-height: 92vh; overflow-y: auto; }
 .req-seg { margin-top: 12px; }
+
+/* --- Messagerie dans l'application ----------------------------------------------- */
+.chat-modal { z-index: 60; }
+.chat-box { display: flex; flex-direction: column; width: min(560px, 100%); height: min(640px, 88vh); padding: 0; overflow: hidden; text-align: start; }
+.chat-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; background: var(--navy); color: #fff; }
+.chat-head > div { display: grid; gap: 2px; min-width: 0; }
+.chat-head small { opacity: .75; font-size: 12px; }
+.chat-x { border: 0; background: rgba(255,255,255,.15); color: #fff; width: 34px; height: 34px; border-radius: 50%; font-size: 16px; flex: none; }
+.chat-list { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 8px; background: var(--bg); }
+.chat-empty { color: var(--muted); text-align: center; margin: auto; max-width: 280px; }
+.chat-msg { max-width: 82%; align-self: flex-start; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 8px 11px; display: grid; gap: 4px; }
+.chat-msg.mine { align-self: flex-end; background: var(--brand-soft); border-color: transparent; }
+.chat-msg.from-admin:not(.mine) { background: #E9EEF8; border-color: transparent; }
+.chat-msg small { color: var(--muted); font-size: 11px; }
+.chat-msg p { overflow-wrap: anywhere; }
+.chat-msg img { display: block; max-width: 100%; max-height: 260px; border-radius: 10px; }
+.chat-sys { align-self: center; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--panel); border: 1px solid var(--border); border-radius: 99px; padding: 4px 12px; }
+.chat-form { display: flex; gap: 8px; align-items: flex-end; padding: 10px; border-top: 1px solid var(--border); background: var(--panel); }
+.chat-form textarea { flex: 1; resize: none; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; max-height: 120px; font: inherit; background: var(--bg); }
+.chat-photo { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border); font-size: 20px; cursor: pointer; flex: none; }
+.chat-send { width: 48px; height: 44px; padding: 0; flex: none; }
+.chat-err { color: var(--red); font-size: 13px; padding: 0 12px 6px; }
+.chat-choose { display: grid; gap: 8px; text-align: start; }
+.chat-badge { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--red); color: #fff; font-size: 12px; font-weight: 800; }
+.chat-fab { border: 0; cursor: pointer; font: inherit; }
+.chat-fab .chat-badge { position: absolute; top: -4px; inset-inline-end: -4px; }
+@media (max-width: 600px) { .chat-modal:has(.chat-box) { place-items: end center; padding: 0; } .chat-box { height: 92vh; border-radius: 18px 18px 0 0; } }
