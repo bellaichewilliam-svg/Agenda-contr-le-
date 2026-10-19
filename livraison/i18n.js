@@ -58,7 +58,15 @@ fr: {
   address: "Adresse", addressPh: "Rue et numéro",
   addrSearch: "Adresse ou enseigne", addrSearchPh: "Tapez puis choisissez : rue ou enseigne (ex. Herzl Netanya, Super-Pharm)",
   addrNone: "Aucun résultat : vérifiez l'orthographe ou ajoutez la ville", errAddrPick: "Choisissez chaque adresse dans la liste proposée (adresses vérifiées sur la carte).",
-  addrNote: "Remarque sur l'adresse", addrNotePh: "Étage, code d'entrée, bâtiment, interphone…",
+  addrNote: "Remarque", addrNotePh: "Ex. bâtiment B, sonner deux fois, attention au chien…",
+  floor: "Étage", floorPh: "Ex. 3", aptShort: "appt", apt: "Appt / porte", aptPh: "Ex. 12", entryCode: "Code d'entrée", codePh: "Ex. 1234#",
+  leaveDoor: "🚪 Déposer devant la porte (sans contact)", leaveDoorNote: "Le livreur dépose le colis devant votre porte et vous envoie une photo sur WhatsApp.",
+  doorTag: "🚪 Devant la porte, sans contact",
+  savedTitle: "Mes adresses :", accTitle: "👤 Mon compte", accSaved: "Votre compte est enregistré sur ce téléphone : vos coordonnées et adresses sont remplies automatiquement.",
+  accAddrs: "Mes adresses enregistrées", accNoAddr: "Elles apparaîtront ici après votre première commande.", accEdit: "✏️ Modifier", accOrders: "{n} course(s)",
+  accDelete: "Supprimer", hello: "👤 {name}",
+  doneAccount: "✅ Votre compte est créé : la prochaine fois, vos coordonnées et vos adresses seront déjà enregistrées. Touchez-les pour commander en quelques secondes.",
+  msg_door: "Bonjour {name}, votre colis (course n° {ref}) a été déposé devant votre porte 🚪 Voici la photo :",
   placeKind: "Lieu", place_poste: "Bureau de poste (Doar)", place_superpharm: "Super-Pharm", place_relais: "Point relais / locker", place_autre: "Autre magasin",
   placeAddrPh: "Ex. Doar, Herzl 59",
   tracking: "N° de suivi / de commande", trackingPh: "Ex. RR123456789IL",
@@ -220,7 +228,15 @@ he: {
   address: "כתובת", addressPh: "רחוב ומספר",
   addrSearch: "כתובת או שם עסק", addrSearchPh: "הקלידו ובחרו: רחוב או שם עסק (לדוגמה: הרצל נתניה, סופר-פארם)",
   addrNone: "לא נמצאו תוצאות: בדקו את האיות או הוסיפו את העיר", errAddrPick: "בחרו כל כתובת מתוך הרשימה המוצעת (כתובות מאומתות במפה).",
-  addrNote: "הערה לכתובת", addrNotePh: "קומה, קוד כניסה, בניין, אינטרקום…",
+  addrNote: "הערה", addrNotePh: "לדוגמה: בניין ב', לצלצל פעמיים, יש כלב…",
+  floor: "קומה", floorPh: "לדוגמה 3", aptShort: "דירה", apt: "דירה / דלת", aptPh: "לדוגמה 12", entryCode: "קוד כניסה", codePh: "לדוגמה 1234#",
+  leaveDoor: "🚪 להשאיר ליד הדלת (ללא מגע)", leaveDoorNote: "השליח משאיר את החבילה ליד הדלת ושולח לכם תמונה בוואטסאפ.",
+  doorTag: "🚪 ליד הדלת, ללא מגע",
+  savedTitle: "הכתובות שלי:", accTitle: "👤 החשבון שלי", accSaved: "החשבון שלכם שמור בטלפון הזה: הפרטים והכתובות ממולאים אוטומטית.",
+  accAddrs: "הכתובות השמורות שלי", accNoAddr: "הן יופיעו כאן אחרי ההזמנה הראשונה.", accEdit: "✏️ עריכה", accOrders: "{n} משלוחים",
+  accDelete: "מחיקה", hello: "👤 {name}",
+  doneAccount: "✅ החשבון שלכם נוצר: בפעם הבאה הפרטים והכתובות כבר יהיו שמורים. לחיצה אחת ומזמינים תוך שניות.",
+  msg_door: "שלום {name}, החבילה (משלוח מס' {ref}) הושארה ליד הדלת 🚪 הנה התמונה:",
   placeKind: "מקום", place_poste: "סניף דואר", place_superpharm: "סופר-פארם", place_relais: "נקודת איסוף / לוקר", place_autre: "חנות אחרת",
   placeAddrPh: "לדוגמה: דואר, הרצל 59",
   tracking: "מספר מעקב / הזמנה", trackingPh: "לדוגמה RR123456789IL",
@@ -348,6 +364,8 @@ function t(key, vars) {
   let s = DICT[lang][key];
   if (s == null) s = DICT.fr[key];
   if (s == null) return key;
+  // Français : espace insécable avant ? ! : ; » et après « (le signe ne part jamais seul à la ligne)
+  if (typeof s === "string" && (DICT[lang][key] == null || lang === "fr")) s = s.replace(/ ([?!:;»])/g, "\u00A0$1").replace(/« /g, "«\u00A0");
   if (vars && typeof s === "string") s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
   return s;
 }

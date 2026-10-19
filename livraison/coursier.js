@@ -179,6 +179,7 @@ function card(o, kind) {
         : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré</button>`)
       + (o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
       + `<a class="btn btn-sm btn-wa" data-wa="client" target="_blank" rel="noopener" href="${UI.waLink(o.contact_phone, UI.clientMessage(o))}">💬 Client</a>`
+      + (o.leave_at_door && o.status === "recuperee" ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone || o.contact_phone, I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }))}">📷 Photo du dépôt</a>` : "")
       + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
   }
 
@@ -189,8 +190,8 @@ function card(o, kind) {
       <span class="order-price">${UI.money(o.price)}</span>
     </div>
     <div class="legs">
-      <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.pickup_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
-      <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.dropoff_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.to_city))}</b>${kind === "mine" ? UI.addrNote(o.dropoff_note) : ""}${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
+      <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.pickup_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrDetails(o, "pickup") + UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
+      <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.dropoff_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.to_city))}</b>${kind === "mine" ? UI.addrDetails(o, "dropoff") + UI.addrNote(o.dropoff_note) : ""}${UI.doorTag(o)}${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
     </div>
     <div class="meta">
       <span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>

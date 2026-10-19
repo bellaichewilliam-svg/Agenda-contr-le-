@@ -236,8 +236,8 @@ function card(o, withDay) {
       <span class="order-price">${UI.money(o.price)}</span>
     </div>
     <div class="legs">
-      <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b><bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</b>${UI.addrNote(o.pickup_note)}${pickupExtra}<span class="small muted">${tel(o.pickup_contact, o.pickup_phone)}</span>${nav("pickup")}</div></div>
-      <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b><bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}</b>${UI.addrNote(o.dropoff_note)}<span class="small muted">${tel(o.dropoff_contact, o.dropoff_phone)}</span>${nav("dropoff")}</div></div>
+      <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b><bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</b>${UI.addrDetails(o, "pickup")}${UI.addrNote(o.pickup_note)}${pickupExtra}<span class="small muted">${tel(o.pickup_contact, o.pickup_phone)}</span>${nav("pickup")}</div></div>
+      <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b><bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}</b>${UI.addrDetails(o, "dropoff")}${UI.addrNote(o.dropoff_note)}${UI.doorTag(o)}<span class="small muted">${tel(o.dropoff_contact, o.dropoff_phone)}</span>${nav("dropoff")}</div></div>
     </div>
     <div class="meta">${meta.join("")}</div>
     ${o.notes ? `<p class="notice" style="margin-top:10px">📝 ${UI.esc(o.notes)}</p>` : ""}
@@ -247,6 +247,7 @@ function card(o, withDay) {
       <a class="btn btn-sm btn-wa" data-wa="client" href="${UI.waLink(o.contact_phone, clientMessage(o))}" target="_blank" rel="noopener">💬 Client</a>
       ${o.dropoff_phone && !["annulee", "refusee"].includes(o.status) ? `<a class="btn btn-sm btn-wa" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}" target="_blank" rel="noopener">💬 Destinataire</a>` : ""}
       ${o.courier_phone && !isMine(o) ? `<a class="btn btn-sm btn-wa" href="${UI.waLink(o.courier_phone, `Course n° ${o.ref} — `)}" target="_blank" rel="noopener">💬 Livreur</a>` : ""}
+      ${o.leave_at_door && ["recuperee", "livree"].includes(o.status) ? `<a class="btn btn-sm btn-wa" href="${UI.waLink(o.dropoff_phone || o.contact_phone, I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }))}" target="_blank" rel="noopener">📷 Photo du dépôt</a>` : ""}
       <a class="btn btn-sm" href="${UI.trackUrl(o)}" target="_blank" rel="noopener">📍 Suivi</a>
       ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}" target="_blank" rel="noopener">🧾 Reçu n° ${o.receipt_number}</a>` : ""}
       ${o.receipt_number && o.contact_email ? `<a class="btn btn-sm" href="mailto:${UI.esc(o.contact_email)}?subject=${encodeURIComponent(`Reçu n° ${o.receipt_number} · קבלה מס' ${o.receipt_number}`)}&body=${encodeURIComponent(UI.clientMessage(o))}">✉️ Reçu par mail</a>` : ""}
