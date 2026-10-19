@@ -250,6 +250,10 @@ function card(o, withDay) {
   if (o.courier_id && !isMine(o) && !["annulee", "refusee"].includes(o.status)) {
     meta.push(`<button class="pill pill-btn ${o.paid_to === "hop" ? "paid" : ""}" data-act="paidto" title="Qui a reçu l'argent du client ?">${o.paid_to === "hop" ? "💳 Payée à HOP (reversée au livreur)" : "🛵 Payée au livreur"} ⇄</button>`);
   }
+  // HOP! Pro : préparation chez le commerce, et sa part de la livraison
+  if (o.shop_status && o.shop_status !== "refusee") meta.push(`<span class="pill">${o.shop_status === "attente" ? "🍳 Attente du commerce"
+    : o.shop_status === "prete" ? "✅ Prête au commerce" : `🍳 Prête à ${UI.esc(new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}`}${Number(o.shop_share) > 0 ? ` · commerce ${UI.money(o.shop_share)}` : ""}</span>`);
+  if (o.shop_order) meta.push(`<span class="pill">🧾 ${UI.esc(o.shop_order.slice(0, 80))}</span>`);
   if (Number(o.wait_fee) > 0) meta.push(`<span class="pill unpaid">⏱️ Attente ${o.wait_minutes} min · +${UI.money(o.wait_fee)} (au livreur)</span>`);
   else if (o.arrived_at && o.status === "confirmee") meta.push(`<span class="pill">⏱️ Livreur au départ depuis ${Math.floor((Date.now() - new Date(o.arrived_at)) / 60000)} min</span>`);
   if (o.rating != null) meta.push(`<span class="pill ${o.rating <= 3 ? "st-annulee" : "paid"}" title="${UI.esc(o.rating_note || "")}">${UI.esc(UI.ratingText(o))}${o.rating_note ? " 💬" : ""}</span>`);
@@ -601,11 +605,21 @@ function renderShops(view) {
           <div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
             ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>
           <div><span>📅</span><span>Inscrit le ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))}</span></div>
+          <div><span>⭐</span><span>${(() => {
+            // HOP! Pro : abonnement, et ce que le commerce doit ce mois-ci (abonnement + sa part des livraisons)
+            const on = Store.planActive(x), month = new Date().toISOString().slice(0, 7);
+            const mine = done.filter(o => o.status === "livree" && Number(o.shop_share) > 0 && String(o.pickup_at).slice(0, 7) === month);
+            const shares = sum(mine, o => Number(o.shop_share));
+            return on ? `<b>HOP! Pro</b> jusqu'au ${UI.esc(UI.fmtKey(x.plan_until))} · ce mois : ${UI.money(settings.pro_monthly)} + ${mine.length} livraison(s) ${UI.money(shares)} = <b>${UI.money(Number(settings.pro_monthly) + shares)}</b>`
+              : x.plan_until ? `HOP! Pro terminé le ${UI.esc(UI.fmtKey(x.plan_until))}` : "Pas d'abonnement HOP! Pro";
+          })()}</span></div>
         </div>
         <div class="actions">
           ${x.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-sact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-sact="suspendu">⛔ Suspendre</button>`}
           <button class="btn btn-sm" data-sact="carnet">🎟️ Carnet payé (${UI.money(CONFIG.partners.carnet.price)}) → +${CONFIG.partners.carnet.courses} et reçu</button>
           <button class="btn btn-sm" data-sact="credits">✏️ Courses du carnet</button>
+          <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan">⭐ HOP! Pro : +1 mois</button>
+          ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl("commerce.html") + "?k=" + x.token)}">🔑 Son espace</a>
@@ -823,7 +837,7 @@ function orderOf(el) {
 
 async function assignTo(o, courier) {
   try {
-    await Store.assignOrder(o.id, courier, o.price);
+    await Store.assignOrder(o.id, courier, Number(o.price) + Number(o.shop_share || 0));
     await load();
 
   } catch (e) { alert("Attribution impossible, vérifiez la connexion."); }
@@ -870,6 +884,13 @@ async function onViewClick(e) {
         await load();
       } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
       return;
+    } else if (el.dataset.sact === "plan" || el.dataset.sact === "planoff") {
+      // +1 mois à partir de la fin en cours (ou d'aujourd'hui) ; payé ou offert, c'est vous qui décidez
+      const base = Store.planActive(shop) ? new Date(shop.plan_until + "T12:00:00") : new Date();
+      const end = new Date(base); end.setMonth(end.getMonth() + 1);
+      const until = el.dataset.sact === "planoff" ? UI.addDays(UI.dayKey(new Date()), -1) : UI.dayKey(end);
+      if (!confirm(el.dataset.sact === "planoff" ? `Arrêter HOP! Pro pour ${shop.name} ?` : `HOP! Pro pour ${shop.name} jusqu'au ${UI.fmtKey(until)} ?`)) return;
+      changes = { plan_until: until };
     } else if (el.dataset.sact === "credits") {
       const v = prompt(`Courses restantes sur le carnet de ${shop.name}`, shop.credits || 0);
       const n = parseInt(v, 10);

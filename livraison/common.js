@@ -142,7 +142,15 @@ function wordmark(sub) {
 // Minutes avant la livraison (position du livreur connue), sinon null.
 // Course acceptée : trajet jusqu'au départ + 5 min sur place + trajet jusqu'à l'arrivée.
 function deliveryEta(o) {
-  if (!o || o.courier_lat == null || o.dropoff_lat == null) return null;
+  if (!o) return null;
+  // HOP! Pro : commande en préparation → l'heure annoncée par le commerce + le trajet
+  const readyIn = o.ready_at && ["acceptee", "prete"].includes(o.shop_status) && ["nouvelle", "confirmee"].includes(o.status)
+    ? Math.max(0, Math.ceil((new Date(o.ready_at) - Date.now()) / 60000)) : 0;
+  if (readyIn > 0 && o.pickup_lat != null && o.dropoff_lat != null) {
+    const p = { lat: Number(o.pickup_lat), lon: Number(o.pickup_lon) }, d = { lat: Number(o.dropoff_lat), lon: Number(o.dropoff_lon) };
+    return readyIn + Pricing.etaMinutes(p, d);
+  }
+  if (o.courier_lat == null || o.dropoff_lat == null) return null;
   const c = { lat: Number(o.courier_lat), lon: Number(o.courier_lon) }, d = { lat: Number(o.dropoff_lat), lon: Number(o.dropoff_lon) };
   if (o.status === "recuperee") return Pricing.etaMinutes(c, d);
   if (o.status === "confirmee" && o.pickup_lat != null) {

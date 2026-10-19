@@ -274,6 +274,12 @@ function carnetOk() {
 const carnetUnit = () => Number(state.settings.carnet_unit || CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses);
 
 function currentQuote() {
+  const q = baseQuote();
+  if (!proShopOn()) return q;
+  const share = Math.min(q.total, Number(state.shop.shop_share || CONFIG.pro.shopShare));
+  return Object.assign({}, q, { total: q.total - share, lines: q.lines.concat([{ key: "qShopShare", vars: { name: state.shop.name }, amount: -share, discount: true }]) });
+}
+function baseQuote() {
   if (val("payment_method") === "carnet" && carnetOk()) {
     return { total: carnetUnit(), known: true, distanceKm: 0, lines: [{ key: "qCarnet", vars: { n: state.pro.credits - 1 }, amount: carnetUnit() }] };
   }
@@ -305,7 +311,8 @@ function stepStates() {
     [fieldsetOf('legend[data-i18n="s4"]'), !scheduleError()],
     [fieldsetOf("#pickupLegend"), filled("pickup_address") && (filled("pickup_number") || !!(state.pick.from && state.pick.from.brand))],
     [fieldsetOf('legend[data-i18n="s3"]'), filled("dropoff_address") && (filled("dropoff_number") || !!(state.pick.to && state.pick.to.brand))],
-    [$("#coordsBox"), filled("contact_name") && phoneOk(val("contact_phone"))]
+    [$("#coordsBox"), filled("contact_name") && phoneOk(val("contact_phone"))],
+    ...(proShopOn() ? [[$("#shopOrderBox"), filled("shop_order")]] : [])
   ];
 }
 function updateProgress() {
@@ -336,6 +343,7 @@ function confetti() {
 }
 
 function renderQuote() {
+  renderShopBanner();
   const q = currentQuote();
   $("#quoteLines").innerHTML = q.lines.map(l =>
     `<li class="${l.discount ? "disc" : ""}"><span>${UI.esc(lineLabel(l))}</span><span dir="ltr">${l.amount < 0 ? "−" : ""}${money(Math.abs(l.amount))}</span></li>`).join("");
@@ -701,6 +709,7 @@ async function submit(e) {
   if (missingNo) { form.elements[missingNo[1]].focus(); return showError(t("errHouseNo")); }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
+  if (proShopOn() && !val("shop_order").trim()) { form.shop_order.focus(); return showError(t("errShopOrder", { name: state.shop.name })); }
   // Zones pas encore ouvertes (ex. Tel Aviv) : « bientôt »
   const closedCity = [fromCity, toCity].find(c => !UI.cityActive(c));
   if (closedCity) return showError(t("errZone", { city: cityLabel(closedCity) }));
@@ -780,6 +789,7 @@ async function submit(e) {
       payment_method: val("payment_method"),
       payer: val("payer"),
       notes: val("notes").trim() || null,
+      shop_order: proShopOn() ? val("shop_order").trim() : null,
       company: val("company").trim() || null,
       contact_name: val("contact_name").trim(),
       contact_phone: formatPhone(val("contact_phone").trim()),
@@ -810,7 +820,7 @@ async function submit(e) {
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
+    ["notes", "shop_order", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     state.promo = null;
     $("#promoMsg").textContent = "";
@@ -1011,10 +1021,19 @@ async function loadSettings() {
 }
 
 // --- Commerce partenaire (lien index.html?c=CODE) : départ rempli depuis le commerce ----------
+// HOP! Pro : le départ est un commerce abonné → le client écrit sa commande, le commerce la prépare
+const shopPicked = () => !!(state.shop && state.pick.from && state.pick.from.shopId === state.shop.id);
+const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method") !== "carnet";
 function renderShopBanner() {
-  const on = !!(state.shop && state.pick.from && state.pick.from.shopId === state.shop.id);
+  const on = shopPicked();
   $("#shopBanner").classList.toggle("hidden", !on);
   if (on) $("#shopBannerText").textContent = t("shBanner", { name: state.shop.name });
+  const pro = proShopOn();
+  $("#shopOrderBox").classList.toggle("hidden", !pro);
+  if (pro) {
+    $("#shopOrderLabel").textContent = t("spOrderLabel", { name: state.shop.name });
+    $("#shopOrderNote").textContent = t("spOrderNote", { name: state.shop.name });
+  }
 }
 
 function applyShop() {
