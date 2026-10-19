@@ -900,3 +900,7 @@ body.in-home .eta-bubble { display: none; }
 .shop-order { background: var(--brand-soft); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
 .shop-order textarea { width: 100%; }
 .pro-line { background: var(--bg-2); border-radius: 10px; padding: 8px 10px; margin-top: 6px; line-height: 1.5; }
+.ch-zoom { position: absolute; z-index: 2; bottom: 84px; inset-inline-end: 16px; display: grid; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(15,31,61,.22); }
+.ch-zoom button { width: 48px; height: 44px; border: 0; background: var(--panel); color: var(--ink); font-size: 24px; font-weight: 600; line-height: 1; }
+.ch-zoom button + button { border-top: 1px solid var(--border); }
+@media (max-width: 860px) { .ch-zoom { bottom: auto; top: calc(max(40vh, 250px) - 168px); } }
