@@ -433,7 +433,10 @@ function setBrandMode(which, on) {
 }
 
 function onPlacePicked(which, p, quiet) {
+  if (which === "from" && p.partnerCode) { loadShop(p.partnerCode, true); return; }
   state.pick[which] = p;
+  // Le champ du formulaire porte l'adresse choisie avant le calcul du prix
+  if (ac[which] && form.elements[prefixOf(which) + "_address"].value !== p.label) ac[which].setPicked(p.label);
   setBrandMode(which, !!p.brand);
   const sel = form.elements[which + "_city"];
   if (p.cityId) sel.value = p.cityId;
@@ -457,7 +460,7 @@ function attachPlaces() {
   ["from", "to"].forEach(which => {
     ac[which] = Places.attach(form.elements[which === "from" ? "pickup_address" : "dropoff_address"], {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner") }),
       onPick: p => onPlacePicked(which, p),
       onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
     });
@@ -521,7 +524,7 @@ function myPosition() {
 async function locateInto(which) {
   let pos;
   try { pos = await myPosition(); } catch (e) { return "geoDenied"; }
-  home.pos = pos;
+  setHomePos(pos);
   let list = [];
   try { list = await Places.reverse(pos.lat, pos.lon, I18N.lang); } catch (e) { /* message ci-dessous */ }
   const p = list[0];
@@ -1022,7 +1025,7 @@ function applyShop() {
   renderShopBanner();
 }
 
-async function loadShop(code) {
+async function loadShop(code, stay) {
   try { state.shop = await Store.shopByCode(code); } catch (e) { state.shop = null; }
   if (!state.shop) return;
   // Sur le téléphone du commerce : son carnet pro
@@ -1034,7 +1037,7 @@ async function loadShop(code) {
     } catch (e) { /* pas de carnet */ }
   }
   applyShop();
-  setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);
+  if (!stay) setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);
 }
 
 // --- Demande de devis (tournée quotidienne, carnet…) : pro ou particulier, dans l'application --
@@ -1094,7 +1097,7 @@ function initHome() {
     const input = homeInput(which), pre = prefixOf(which);
     home.ac[which] = Places.attach(input, {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner") }),
       onPick: p => {
         onPlacePicked(which, p, true);
         if (ac[which]) ac[which].setPicked(p.label);
@@ -1116,7 +1119,7 @@ function initHome() {
   $("#homeSwap").addEventListener("click", swapRoute);
   $("#homeGo").addEventListener("click", homeGo);
   $("#homeLocate").addEventListener("click", async () => {
-    try { home.pos = await myPosition(); renderHomeMap(true); renderLive(); } catch (e) { showHomeErr(t("geoDenied")); }
+    try { setHomePos(await myPosition()); renderHomeMap(true); renderLive(); } catch (e) { showHomeErr(t("geoDenied")); }
   });
   $("#homeSheet").addEventListener("click", async e => {
     const g = e.target.closest("[data-hgeo]");
@@ -1137,12 +1140,23 @@ function initHome() {
       return;
     }
     if (e.target.closest("#homeRepeatBtn")) repeatLast();
+    const en = e.target.closest("[data-ens]");
+    if (en) openEns(en.dataset.ens);
   });
+  $("#ensCats").addEventListener("click", e => { const b = e.target.closest("[data-ens]"); if (b) openEns(b.dataset.ens); });
+  $("#ensFilter").addEventListener("input", renderEnsList);
+  $("#ensClose").addEventListener("click", () => $("#ensModal").classList.add("hidden"));
+  $("#ensModal").addEventListener("click", e => {
+    if (e.target.id === "ensModal") return $("#ensModal").classList.add("hidden");
+    const b = e.target.closest("[data-ens-pick]");
+    if (b) pickEnseigne(b.dataset.ensPick, ens.shown[Number(b.dataset.i)]);
+  });
+  loadPartners();
   initHomeMap();
   // Position déjà autorisée : on centre la carte sur le client (sans rien lui demander)
   if (navigator.permissions && navigator.geolocation) {
     navigator.permissions.query({ name: "geolocation" }).then(r => {
-      if (r.state === "granted") myPosition().then(pos => { home.pos = pos; renderHomeMap(true); renderLive(); }, () => {});
+      if (r.state === "granted") myPosition().then(pos => { setHomePos(pos); renderHomeMap(true); renderLive(); }, () => {});
     }).catch(() => {});
   }
   loadNearby();
@@ -1164,6 +1178,8 @@ function renderHomeStatic() {
   const list = Store.getAddresses().slice(0, 5);
   $("#homeChips").innerHTML = list.map((a, i) => `<button type="button" class="ch-chip" data-haddr="${i}">${a.brand ? "🏪" : "⭐"} ${UI.esc(addrLabel(a))}</button>`).join("");
   renderWhen();
+  $("#homeEns").innerHTML = Enseignes.CATS.filter(c => c.id !== "hop" || state.partners.length)
+    .map(c => `<button type="button" class="ch-chip" data-ens="${c.id}">${UI.esc(t("ens_" + c.id))}</button>`).join("");
 }
 
 // Raccourcis d'heure : maintenant, dans 1 h, ce soir, demain matin (seulement s'ils sont possibles)
@@ -1223,6 +1239,9 @@ function applyKind(id) {
   syncVisibility();
   renderQuote();
   renderHomeStatic();
+  // Poste, Super-Pharm, restaurant… sans départ choisi : on propose tout de suite les plus proches
+  const cat = { poste: "post", pharm: "pharm", resto: "food", shop: "super", gift: "flower" }[id];
+  if (state.homeKind && cat && !state.pick.from) openEns(cat);
 }
 
 // Inverser départ et arrivée
@@ -1402,6 +1421,78 @@ function renderLive() {
     el.textContent = t("hmLive", { n: home.nearby.length, min: Math.max(3, min) });
   } else el.textContent = t(home.nearby.length ? "hmLiveBusy" : "hmLiveNone", { n: home.nearby.length });
   el.classList.remove("hidden");
+}
+
+// --- Enseignes : commerces partenaires en tête, puis pharmacies, poste… les plus proches d'abord -----
+const ens = { cat: null, items: [], shown: [], seq: 0 };
+state.partners = [];
+function setHomePos(pos) { home.pos = pos; Places.setNear(pos); }
+const norm = v => String(v || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s'’"\-־.]/g, "");
+const cityIdOf = (city, pt) => (CONFIG.cities.some(c => c.id === city) ? city : Places.matchCity(city))
+  || (pt && pt.lat != null ? CONFIG.cities.slice().sort((a, b) => Places.km(a, pt) - Places.km(b, pt))[0].id : null);
+function partnerPlace(sh) {
+  const cityId = cityIdOf(sh.city, sh);
+  return { lat: Number(sh.lat), lon: Number(sh.lon), brand: sh.name, partner: true, partnerCode: sh.code, streetName: sh.address || "",
+    housenumber: "", street: sh.address || "", city: cityLabel(cityId || sh.city), cityId, exact: true,
+    label: [sh.name, sh.address, cityLabel(cityId || sh.city)].filter(Boolean).join(", ") };
+}
+async function loadPartners() {
+  try { state.partners = ((await Store.shopsDirectory()) || []).filter(x => x.lat != null); } catch (e) { state.partners = []; }
+  // En tapant « Fal… », le commerce partenaire Falafel Haim sort en premier
+  Places.setLocal(q => {
+    const n = norm(q);
+    return n.length < 2 ? [] : state.partners.filter(x => norm(x.name).includes(n)).slice(0, 3).map(partnerPlace);
+  });
+  renderHomeStatic();
+}
+async function openEns(catId) {
+  ens.cat = catId;
+  const mine = ++ens.seq;
+  const c0 = Pricing.cityById(CONFIG, CONFIG.homeCity);
+  const at = home.pos || { lat: c0.lat, lon: c0.lon };
+  $("#ensModal").dir = document.documentElement.dir;
+  $("#ensModal").classList.remove("hidden");
+  $("#ensSub").textContent = home.pos ? t("ensNearYou") : t("ensNearCity", { city: I18N.cityName(CONFIG.homeCity) });
+  $("#ensCats").innerHTML = Enseignes.CATS.filter(c => c.id !== "hop" || state.partners.length)
+    .map(c => `<button type="button" class="ch-chip${c.id === catId ? " on" : ""}" data-ens="${c.id}">${UI.esc(t("ens_" + c.id))}</button>`).join("");
+  $("#ensFilter").value = "";
+  $("#ensList").innerHTML = `<p class="ens-empty">⏳ ${UI.esc(t("ensLoading"))}</p>`;
+  try { ens.items = await Enseignes.list(catId, at, I18N.lang); }
+  catch (e) { if (mine === ens.seq) $("#ensList").innerHTML = `<p class="ens-empty">⚠️ ${UI.esc(t("ensDown"))}</p>`; return; }
+  if (mine === ens.seq) renderEnsList();
+}
+function renderEnsList() {
+  const n = norm($("#ensFilter").value);
+  ens.shown = ens.items.filter(x => !n || norm(x.name + " " + x.street).includes(n));
+  const dist = x => (x.km < 1 ? `${Math.max(50, Math.round(x.km * 20) * 50)} m` : `${x.km.toFixed(1).replace(".", ",")} km`);
+  $("#ensList").innerHTML = ens.shown.length ? ens.shown.map((x, i) => {
+    const addr = [`${x.street} ${x.number}`.trim(), x.city ? cityLabel(cityIdOf(x.city) || x.city) : ""].filter(Boolean).join(", ");
+    return `<div class="ens-item">
+      <span class="ens-ico">${x.icon}</span>
+      <div class="ens-main"><b>${UI.esc(x.name)}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>
+        <small>${UI.esc(addr || t("ensAddrLater"))} · ${dist(x)}</small></div>
+      <div class="ens-act"><button type="button" class="btn btn-sm btn-primary" data-ens-pick="from" data-i="${i}">${UI.esc(t("ensFrom"))}</button>
+        <button type="button" class="btn btn-sm" data-ens-pick="to" data-i="${i}">${UI.esc(t("ensTo"))}</button></div>
+    </div>`;
+  }).join("") : `<p class="ens-empty">${UI.esc(t("ensNone"))}</p>`;
+}
+// Enseigne choisie : adresse complétée par la carte si OpenStreetMap ne la connaît pas
+async function pickEnseigne(which, x) {
+  if (!x) return;
+  $("#ensModal").classList.add("hidden");
+  if (x.partner && which === "from") { loadShop(x.code, true); return; }
+  let { street, number, city } = x;
+  if (!street) {
+    try { const r = (await Places.reverse(x.lat, x.lon, I18N.lang))[0]; if (r) { street = r.streetName; number = number || r.housenumber; city = city || r.city; } }
+    catch (e) { /* on garde le nom et le point exact */ }
+  }
+  const cityId = cityIdOf(city, x);
+  const p = { lat: x.lat, lon: x.lon, brand: x.name, streetName: street || "", housenumber: number || "", city: city || cityLabel(cityId),
+    cityId, street: [street, number].filter(Boolean).join(" "), exact: true,
+    label: [x.name, [street, number].filter(Boolean).join(" "), cityLabel(cityId || city)].filter(Boolean).join(", ") };
+  onPlacePicked(which, p, true);
+  if (ac[which]) ac[which].setPicked(p.label);
+  if (which === "from" && !state.pick.to) setTimeout(() => homeInput("to").focus(), 80);
 }
 
 // « HOP! » en grand quand la commande part

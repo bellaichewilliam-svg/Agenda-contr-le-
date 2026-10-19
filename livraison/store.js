@@ -545,6 +545,13 @@ async function couriersNearby() {
     .map(c => ({ lat: Math.round(c.lat * 200) / 200, lon: Math.round(c.lon * 200) / 200, free: !busy.has(c.id) }));
 }
 
+// Clients : l'annuaire des commerces partenaires vérifiés (sans téléphone ni clé)
+async function shopsDirectory() {
+  if (ONLINE) return rest("/rest/v1/rpc/shops_directory", { method: "POST", body: {} });
+  return localShops().filter(x => x.status === "actif")
+    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, address: x.address, lat: x.lat, lon: x.lon }));
+}
+
 // Client : noter sa livraison (une fois, dans les 7 jours) ; une note basse arrive chez le patron
 async function rateOrder(token, stars, tags, note) {
   if (ONLINE) return rest("/rest/v1/rpc/rate_order", { method: "POST", body: { p_token: token, p_stars: stars, p_tags: tags || [], p_note: note || null } });
@@ -875,7 +882,7 @@ window.Store = {
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, myAcceptance, demandForecast, commissionFor,
-  couriersNearby, rateOrder,
+  couriersNearby, rateOrder, shopsDirectory,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,

@@ -15,6 +15,19 @@ const POI_KEYS = ["amenity", "shop", "office", "tourism", "healthcare", "leisure
 
 let lastOk = false;   // le service a répondu au moins une fois
 const cache = {};
+let near = null;      // position du client (pour classer les enseignes de la plus proche à la plus loin)
+let local = null;     // enseignes connues de HOP (commerces partenaires), proposées en premier
+
+function km(a, b) {
+  const R = 6371, r = x => x * Math.PI / 180;
+  const h = Math.sin(r(b.lat - a.lat) / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(r(b.lon - a.lon) / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function distText(p) {
+  if (!near || p.lat == null) return "";
+  const d = km(near, p);
+  return d < 1 ? `${Math.max(50, Math.round(d * 20) * 50)} m` : `${d.toFixed(1).replace(".", ",")} km`;
+}
 
 function normalize(s) {
   return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s'’"\-־.]/g, "");
@@ -46,15 +59,23 @@ function toPlace(f) {
     street: streetLine || p.name || "",
     exact: !!(p.housenumber || isPoi),
     // Le numéro a sa propre case : il n'est pas répété dans le libellé
-    label: [isPoi ? p.name : null, p.street || (!isPoi ? p.name : ""), city].filter(Boolean).join(", ")
+    // (sauf pour une enseigne : son adresse complète est affichée telle quelle)
+    label: [isPoi ? p.name : null, isPoi ? streetLine : p.street || p.name, city].filter(Boolean).join(", ")
   };
 }
 
 async function search(q, lang) {
-  const key = lang + "|" + q.trim().toLowerCase();
-  if (cache[key]) return cache[key];
+  const extra = local ? local(q) : [];
+  const list = await searchMap(q, lang).catch(e => { if (!extra.length) throw e; return []; });
+  const seen = new Set(extra.map(p => normalize(p.brand)));
+  return extra.concat(list.filter(p => !(p.brand && seen.has(normalize(p.brand)) && near && km(near, p) < 0.15)));
+}
+async function searchMap(q, lang) {
   const home = CONFIG.cities.find(c => c.id === CONFIG.homeCity);
-  const url = `${API}?limit=7&bbox=${BBOX}&lat=${home.lat}&lon=${home.lon}`
+  const at = near || home;
+  const key = lang + "|" + q.trim().toLowerCase() + "|" + at.lat.toFixed(2) + "," + at.lon.toFixed(2);
+  if (cache[key]) return cache[key];
+  const url = `${API}?limit=10&bbox=${BBOX}&lat=${at.lat}&lon=${at.lon}`
     + (lang === "fr" ? "&lang=fr" : "") + "&q=" + encodeURIComponent(q);
   const res = await fetch(url);
   if (!res.ok) throw new Error("photon " + res.status);
@@ -69,6 +90,13 @@ async function search(q, lang) {
     seen.add(p.label);
     return true;
   });
+  // Enseigne d'une chaîne (Super-Pharm, poste…) : l'agence la plus proche du client d'abord
+  // (les rues gardent leur place : seules les enseignes sont reclassées entre elles)
+  if (near) {
+    const slots = list.map((p, i) => (p.brand ? i : -1)).filter(i => i >= 0);
+    const brands = slots.map(i => list[i]).sort((a, b) => km(near, a) - km(near, b));
+    slots.forEach((i, k) => { list[i] = brands[k]; });
+  }
   cache[key] = list;
   return list;
 }
@@ -97,8 +125,8 @@ function attach(input, opts) {
   const render = () => {
     box.innerHTML = items.length
       ? items.map((p, i) => `<button type="button" class="ac-item${i === active ? " on" : ""}" data-i="${i}">
-          <span class="ac-ico">${p.brand ? "🏪" : "📍"}</span>
-          <span><b>${UI.esc(p.brand || p.street || p.city)}</b><small>${UI.esc(p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city)}</small></span>
+          <span class="ac-ico">${p.partner ? "⭐" : p.brand ? "🏪" : "📍"}</span>
+          <span><b>${UI.esc(p.brand || p.street || p.city)}</b><small>${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
         </button>`).join("")
       : `<div class="ac-empty">${UI.esc(opts.texts().none)}</div>`;
     box.classList.remove("hidden");
@@ -156,6 +184,12 @@ function attach(input, opts) {
   };
 }
 
-window.Places = { attach, search, reverse, matchCity, get serviceOk() { return lastOk; } };
+window.Places = {
+  attach, search, reverse, matchCity, km, distText,
+  setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
+  setLocal(fn) { local = fn; },
+  get near() { return near; },
+  get serviceOk() { return lastOk; }
+};
 
 })();
