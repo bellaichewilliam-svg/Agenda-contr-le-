@@ -132,6 +132,8 @@ fr: {
   msg_refusee: "Désolé {name}, nous ne pouvons pas prendre la course n° {ref} : {reason}. Vous pouvez choisir un autre horaire ici : {url}",
   reason_full: "nous sommes complets à cet horaire", reason_zone: "l'adresse est hors de notre zone",
   reason_closed: "nous sommes fermés à cet horaire", reason_size: "le colis est trop volumineux pour nous",
+  chatCourier: "💬 Écrire à {name}", callCourier: "📞 Appeler {name}", chatAdmin: "💬 Service client", callAdmin: "📞 Service client",
+  chatTitle: "Une question ? Parlez-nous en direct", chatNoCourier: "Un livreur va être attribué : en attendant, écrivez au service client.",
   msg_receipt: "🧾 Votre reçu : {url}", receiptLink: "🧾 Reçu",
   // Messages WhatsApp du coursier au client
   msg_nouvelle: "Bonjour {name}, j'ai bien reçu votre course {ref} 👍",
@@ -284,6 +286,8 @@ he: {
   msg_refusee: "מצטערים {name}, לא נוכל לבצע את המשלוח מס' {ref}: {reason}. אפשר לבחור מועד אחר כאן: {url}",
   reason_full: "אנחנו מלאים בשעה הזו", reason_zone: "הכתובת מחוץ לאזור השירות שלנו",
   reason_closed: "אנחנו סגורים בשעה הזו", reason_size: "החבילה גדולה מדי עבורנו",
+  chatCourier: "💬 לכתוב ל{name}", callCourier: "📞 להתקשר ל{name}", chatAdmin: "💬 שירות לקוחות", callAdmin: "📞 שירות לקוחות",
+  chatTitle: "יש שאלה? דברו איתנו ישירות", chatNoCourier: "שליח ישובץ בקרוב: בינתיים אפשר לכתוב לשירות הלקוחות.",
   msg_receipt: "🧾 הקבלה שלכם: {url}", receiptLink: "🧾 קבלה",
   msg_nouvelle: "שלום {name}, קיבלתי את המשלוח {ref} 👍",
   msg_confirmee: "שלום {name}, המשלוח מס' {ref} אושר ✅ {when}\nמחיר: {price} ({pay})\nמעקב בזמן אמת: {url}",

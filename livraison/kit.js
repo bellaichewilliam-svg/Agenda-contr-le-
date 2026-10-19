@@ -152,7 +152,7 @@ document.addEventListener("click", e => {
 // Flyer bilingue imprimable
 $("#flyer").innerHTML = `
   <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start">
-    <div><img src="logo.svg" alt="" style="width:64px;height:64px;margin-bottom:6px"><h2>${UI.esc(nameFr)}</h2><h2 dir="rtl" style="font-family:Heebo,Arial">${UI.esc(nameHe)}</h2></div>
+    <div><img src="logo.svg" alt="" style="width:64px;height:64px;margin-bottom:6px"><h2>${UI.esc(nameFr)}</h2><h2 dir="rtl" style="font-family:Rubik,Arial">${UI.esc(nameHe)}</h2></div>
     <div class="qr" id="flyerQr"></div>
   </div>
   <div class="two">
@@ -163,7 +163,7 @@ $("#flyer").innerHTML = `
         <li>→ Herzliya : <b>${price("herzliya")}</b></li>
         <li>→ Tel Aviv : <b>${price("tel-aviv")}</b></li>
       </ul></div>
-    <div dir="rtl" style="font-family:Heebo,Arial"><b>חבילות · דואר · סופר-פארם · מסעדות · מסמכים</b>
+    <div dir="rtl" style="font-family:Rubik,Arial"><b>חבילות · דואר · סופר-פארם · מסעדות · מסמכים</b>
       <ul style="margin-top:8px">
         <li>בתוך ${UI.esc(heHome)}: <b>${price(home)}</b></li>
         <li>לרעננה: <b>${price("raanana")}</b></li>
@@ -173,7 +173,7 @@ $("#flyer").innerHTML = `
   </div>
   <div class="two">
     <p><b>📍 Suivi en direct · 💵 Espèces / Bit</b><br><span style="font-size:19px">🎁 1re course <b>-50 %</b> : code <b>BIENVENUE</b></span></p>
-    <p dir="rtl" style="font-family:Heebo,Arial"><b>📍 מעקב בזמן אמת · 💵 מזומן / ביט</b><br><span style="font-size:19px">🎁 משלוח ראשון <b>ב-50% הנחה</b>: קוד <b>BRUCHIM</b></span></p>
+    <p dir="rtl" style="font-family:Rubik,Arial"><b>📍 מעקב בזמן אמת · 💵 מזומן / ביט</b><br><span style="font-size:19px">🎁 משלוח ראשון <b>ב-50% הנחה</b>: קוד <b>BRUCHIM</b></span></p>
   </div>
   <p style="margin-top:6px;font-size:18px"><b>Et hop, c'est livré ! · <span dir="rtl">הופ, וזה אצלך!</span></b></p>
   <p style="margin-top:10px">📞 <b dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</b> · <span dir="ltr">${UI.esc(url)}</span></p>`;

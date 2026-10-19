@@ -15,16 +15,17 @@ Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. El
 | Kit de lancement | Vous | `…/livraison/kit.html` |
 
 ### Clients (`index.html`, `suivi.html`, `recu.html`)
-- **Prix fixe affiché tout de suite.** Les prix depuis Netanya sont fixés à la main dans `config.js` : 25 ₪ en ville, 65 ₪ pour Ra'anana, 90 ₪ pour Tel Aviv…
+- **Prix fixe affiché tout de suite.** Les prix depuis Netanya sont fixés à la main dans `config.js` : 25 ₪ en ville, 80 ₪ pour Ra'anana, 85 ₪ pour Herzliya, 120 ₪ pour Tel Aviv… Pour les autres trajets : 25 ₪ + 3,5 ₪ par km.
 - **9 exemples cliquables** (poste, Super-Pharm, restaurant, Yad2, documents…) et **« Pourquoi nous plutôt qu'une grande plateforme ? »**.
 - **Commande immédiate, express ou programmée** au jour et à l'heure près. Si vous êtes complet ou ne pouvez pas prendre une course, le client est prévenu, avec la raison dans sa langue.
 - **Paiement en espèces ou par Bit.** Un numéro de commande est affiché partout.
-- **Suivi en direct** sur la carte, avec le nom et le WhatsApp du livreur.
+- **Suivi en direct** sur la carte. Le client peut **écrire ou téléphoner directement à son livreur** ou **au service client** (vous).
 - **Bouton WhatsApp** sur chaque page pour vous écrire directement.
 - **Reçu (קבלה)** bilingue, numéroté, imprimable, et **envoyé automatiquement par mail** (voir `email/README-mail.md`).
 - **Offres :** codes promo, parrainage, carte de fidélité.
 
 ### Vous (`admin.html`)
+- **Carte « En direct »** : tous les livreurs en service, chaque point de récupération (🍔 restaurant, 📮 poste, 🛒 achat, 📦 colis) et de livraison (🏁), le trajet restant et l'étape de chaque course avec le temps estimé.
 - **Courses :** agenda, alertes, « Je la prends », « Donner à un livreur », « 🚫 Je ne peux pas » (raison envoyée au client), « Je suis complet ».
 - **Sur la route :** mode « En service » avec position GPS, encaissé / à encaisser, messages WhatsApp dans la langue du client, itinéraire, reçus.
 - **Onglet Livreurs :** validation des inscriptions, dates du permis et de l'assurance (en rouge si expirées), suspension.
@@ -33,6 +34,7 @@ Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. El
 
 ### Livreurs partenaires (`coursier.html`)
 - **Inscription :** coordonnées, véhicule, permis, assurance, numéro d'עוסק, et **8 engagements à cocher** (permis valide, assurance, statut d'indépendant, responsabilité des colis et de l'argent, sécurité, commission hebdomadaire…).
+- **Fenêtre « Nouvelle course ! »** avec un son, dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte » ou « Plus tard ».
 - **Après votre validation :** courses disponibles (le premier qui accepte la prend), ses courses, GPS, encaissement, « Je ne peux plus ».
 - **Onglet « Ma semaine » :** courses, encaissé, commission à verser par Bit une fois par semaine (`platform.commissionPerCourse` = 3 ₪ par course dans `config.js`).
 

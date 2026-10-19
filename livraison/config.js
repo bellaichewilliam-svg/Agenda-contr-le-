@@ -70,14 +70,14 @@ window.CONFIG = {
   pricing: {
     fixedFromHome: {
       "netanya": 25,
-      "even-yehuda": 40, "kadima": 40, "pardesia": 40, "kfar-yona": 40,
-      "hadera": 60,
-      "raanana": 65, "kfar-saba": 65, "herzliya": 70, "hod-hasharon": 70, "ramat-hasharon": 70,
-      "tel-aviv": 90, "ramat-gan": 90, "givatayim": 90, "bnei-brak": 90, "petah-tikva": 85,
-      "holon": 110, "bat-yam": 110, "rishon": 115
+      "pardesia": 45, "even-yehuda": 45, "kadima": 50, "kfar-yona": 50,
+      "hadera": 75,
+      "raanana": 80, "kfar-saba": 85, "herzliya": 85, "hod-hasharon": 90, "ramat-hasharon": 95,
+      "tel-aviv": 120, "ramat-gan": 120, "givatayim": 120, "bnei-brak": 120, "petah-tikva": 120,
+      "holon": 145, "bat-yam": 145, "rishon": 160
     },
     base: 25,
-    perKm: 2.4,
+    perKm: 3.5,
     roundTo: 5,
     minimum: 25,
     sizes: {

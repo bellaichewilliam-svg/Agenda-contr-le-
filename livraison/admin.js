@@ -289,8 +289,12 @@ function render() {
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   const view = $("#view");
   const empty = msg => `<div class="empty card">${msg}</div>`;
+  $("#liveWrap").classList.toggle("hidden", tab !== "carte");
 
-  if (tab === "agenda") {
+  if (tab === "carte") {
+    view.innerHTML = "";
+    updateLiveMap();
+  } else if (tab === "agenda") {
     const list = agendaList();
     view.innerHTML = list.length ? groupedByDay(list) : empty('Aucune course à venir. Partagez votre page avec le <a href="kit.html">kit pub</a> !');
   } else if (tab === "nouvelles") {
@@ -314,6 +318,82 @@ function render() {
   } else {
     renderBilling(view);
   }
+}
+
+// --- Carte en direct : livreurs, points de récupération et de livraison -----------------
+const live = { map: null, layer: null, fitted: false };
+const SERVICE_PIN = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" };
+
+function livePin(emoji, cls) {
+  return L.divIcon({ className: "", html: `<div class="map-pin ${cls || ""}">${emoji}</div>`, iconSize: [32, 32], iconAnchor: [16, 28] });
+}
+
+const point = (lat, lon) => lat != null && lon != null ? { lat: Number(lat), lon: Number(lon) } : null;
+const fresh = c => c.position_at && Date.now() - new Date(c.position_at) < 30 * 60000;
+const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? "à l'instant" : `il y a ${m} min`; };
+
+// Où en est la course : étape, prochaine destination et temps estimé
+function progressOf(o) {
+  const c = couriers.find(x => x.id === o.courier_id);
+  const pos = c && fresh(c) ? point(c.lat, c.lon) : null;
+  const target = o.status === "confirmee" ? point(o.pickup_lat, o.pickup_lon) : point(o.dropoff_lat, o.dropoff_lon);
+  const eta = pos && target ? Pricing.etaMinutes(pos, target) : null;
+  const step = { nouvelle: 0, confirmee: 1, recuperee: 2, livree: 3 }[o.status] || 0;
+  const text = o.status === "nouvelle" ? "🆕 En attente d'un livreur"
+    : o.status === "confirmee" ? `🛵 En route vers la récupération${eta ? ` · ≈ ${eta} min` : ""}`
+    : `📦 Colis récupéré, en route vers la livraison${eta ? ` · ≈ ${eta} min` : ""}`;
+  return { c, pos, target, eta, step, text };
+}
+
+function updateLiveMap() {
+  if (!window.L) { $("#liveMap").innerHTML = '<p class="empty">Carte indisponible (connexion).</p>'; return; }
+  if (!live.map) {
+    const home = Pricing.cityById(CONFIG, CONFIG.homeCity);
+    live.map = L.map("liveMap").setView([home.lat, home.lon], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(live.map);
+    live.layer = L.layerGroup().addTo(live.map);
+  }
+  live.map.invalidateSize();
+  live.layer.clearLayers();
+  const pts = [];
+  const add = (p, emoji, html, cls) => { if (!p) return; pts.push([p.lat, p.lon]); L.marker([p.lat, p.lon], { icon: livePin(emoji, cls) }).bindPopup(html).addTo(live.layer); };
+
+  const list = orders.filter(o => ["nouvelle", "confirmee", "recuperee"].includes(o.status)).sort(byTime);
+  list.forEach(o => {
+    const pr = progressOf(o);
+    const pick = point(o.pickup_lat, o.pickup_lon), drop = point(o.dropoff_lat, o.dropoff_lon);
+    const label = `<b>N° ${UI.esc(o.ref)}</b> · ${UI.money(o.price)}<br>${UI.esc(pr.text)}`;
+    if (o.status !== "recuperee") add(pick, o.status === "nouvelle" ? "🆕" : SERVICE_PIN[o.service] || "📍", `${label}<br>📍 ${UI.esc(UI.placeQuery(o, "pickup"))}`, o.status === "nouvelle" ? "pin-wait" : "");
+    add(drop, "🏁", `${label}<br>🏁 ${UI.esc(UI.placeQuery(o, "dropoff"))}`);
+    if (pick && drop) L.polyline([[pick.lat, pick.lon], [drop.lat, drop.lon]], { color: "#98A2B3", weight: 2, dashArray: "4 6" }).addTo(live.layer);
+    if (pr.pos && pr.target) L.polyline([[pr.pos.lat, pr.pos.lon], [pr.target.lat, pr.target.lon]], { color: "#FF6A13", weight: 4 }).addTo(live.layer);
+  });
+  couriers.filter(fresh).forEach(c => {
+    const n = list.filter(o => o.courier_id === c.id).length;
+    add(point(c.lat, c.lon), "🛵", `<b>${UI.esc(c.name)}</b>${c.role === "admin" ? " (vous)" : ""}<br>${n} course(s) en cours · position ${ago(c.position_at)}`, "pin-courier");
+  });
+  if (!live.fitted && pts.length) { live.map.fitBounds(pts, { padding: [40, 40], maxZoom: 15 }); live.fitted = true; }
+  live.points = pts;
+
+  const onDuty = couriers.filter(fresh);
+  $("#liveList").innerHTML = `<p class="small muted" style="margin-bottom:6px">🛵 En service : ${onDuty.length ? onDuty.map(c => UI.esc(c.name)).join(", ") : "personne pour l'instant"}</p>`
+    + (list.length ? list.map(o => {
+      const pr = progressOf(o);
+      return `<div class="order live-item" data-focus="${UI.esc(o.id)}">
+        <div class="order-head"><span class="order-time">${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))}</span><span class="order-price">${UI.money(o.price)}</span></div>
+        <div class="small">N° ${UI.esc(o.ref)} · ${pr.c ? "🛵 " + UI.esc(pr.c.name) : "sans livreur"}${pr.c && !pr.pos ? " · position inconnue" : ""}</div>
+        <div class="small"><b>${UI.esc(pr.text)}</b></div>
+        <div class="progress">${[0, 1, 2, 3].map(i => `<i class="${i <= pr.step ? "on" : ""}"></i>`).join("")}</div>
+      </div>`;
+    }).join("") : `<div class="empty card">Aucune course en cours.</div>`);
+}
+
+function focusOrder(id) {
+  const o = orders.find(x => x.id === id);
+  if (!o || !live.map) return;
+  const pr = progressOf(o);
+  const pts = [pr.pos, point(o.pickup_lat, o.pickup_lon), point(o.dropoff_lat, o.dropoff_lon)].filter(Boolean).map(p => [p.lat, p.lon]);
+  if (pts.length) live.map.fitBounds(pts, { padding: [50, 50], maxZoom: 16 });
 }
 
 // --- Livreurs partenaires ----------------------------------------------------------
@@ -606,7 +686,7 @@ async function start() {
   renderDuty();
   load();
   clearInterval(pollTimer);
-  pollTimer = setInterval(load, 15000);
+  pollTimer = setInterval(load, 10000);
 }
 
 $("#loginForm").addEventListener("submit", onLogin);
@@ -627,6 +707,8 @@ $("#notifBtn").addEventListener("click", () => {
   });
 });
 $("#view").addEventListener("click", onViewClick);
+$("#liveList").addEventListener("click", e => { const it = e.target.closest("[data-focus]"); if (it) focusOrder(it.dataset.focus); });
+$("#liveFit").addEventListener("click", () => { if (live.map && live.points && live.points.length) live.map.fitBounds(live.points, { padding: [40, 40], maxZoom: 15 }); });
 $("#view").addEventListener("change", onViewChange);
 $("#view").addEventListener("input", onViewInput);
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers)/.test(e.key || "") && Store.session()) load(); });
