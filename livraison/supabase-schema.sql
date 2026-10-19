@@ -444,6 +444,18 @@ alter table public.settings add column if not exists wait_max numeric not null d
 alter table public.orders add column if not exists arrived_at timestamptz;
 alter table public.orders add column if not exists wait_minutes int;
 alter table public.orders add column if not exists wait_fee numeric(10, 2) not null default 0;
+-- HOP! Pro : abonnement mensuel du commerce ; ses clients commandent dans l'appli, le commerce
+-- accepte avec un temps de préparation, le livreur est envoyé pour arriver quand c'est prêt.
+-- Le commerce paie une part fixe de chaque livraison (shop_share) : le client paie moins.
+alter table public.shops add column if not exists plan_until date;
+alter table public.settings add column if not exists pro_monthly numeric not null default 199;
+alter table public.settings add column if not exists pro_shop_share numeric not null default 10;
+alter table public.settings add column if not exists pro_lead_min int not null default 8;
+alter table public.orders add column if not exists shop_order text check (length(shop_order) <= 1000);
+alter table public.orders add column if not exists shop_status text check (shop_status in ('attente', 'acceptee', 'prete', 'refusee'));
+alter table public.orders add column if not exists prep_minutes int;
+alter table public.orders add column if not exists ready_at timestamptz;
+alter table public.orders add column if not exists shop_share numeric(10, 2) not null default 0;
 create table if not exists public.order_declines (
   order_id    uuid not null references public.orders(id) on delete cascade,
   courier_id  uuid not null references public.couriers(id),
@@ -488,6 +500,7 @@ begin
   new.shop_name := null; new.referrer_id := null; new.referral_bonus := 0; new.referral_status := 'du';
   new.rating := null; new.rating_tags := null; new.rating_note := null; new.rated_at := null;
   new.arrived_at := null; new.wait_minutes := null; new.wait_fee := 0;
+  new.shop_status := null; new.prep_minutes := null; new.ready_at := null; new.shop_share := 0;
   -- Bit (et carnet, courses programmées) : toujours payé à HOP ; le livreur n'encaisse que les espèces
   new.paid_to := case when new.prepaid_required or new.payment_method in ('bit', 'carnet') then 'hop' else 'livreur' end;
   -- Carnet pro : seulement le commerce lui-même (sa clé secrète), dans Netanya, s'il lui reste des courses
@@ -512,8 +525,14 @@ begin
       if exists (select 1 from couriers where id = s.referrer_id and role = 'coursier') then
         new.referral_bonus := (select referral_bonus from settings where id = 1);
       end if;
+      -- HOP! Pro : commande d'un client (abonnement en cours) → le commerce la confirme et la prépare
+      if s.plan_until >= current_date and nullif(trim(new.shop_order), '') is not null and new.payment_method <> 'carnet' then
+        new.shop_status := 'attente';
+        new.shop_share := (select pro_shop_share from settings where id = 1);
+      end if;
     end if;
   end if;
+  if new.shop_status is null then new.shop_order := null; end if;
   return new;
 end;
 $$;
@@ -536,6 +555,9 @@ language sql stable security definer set search_path = public as $$
      -- hors ligne ou course refusée : on ne la voit plus
      and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
      and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = auth.uid())
+     -- HOP! Pro : proposée quand le commerce a accepté, pour arriver au moment où c'est prêt
+     and (o.shop_status is null
+          or (o.shop_status in ('acceptee', 'prete') and now() >= o.ready_at - make_interval(mins => (select pro_lead_min from st))))
      and (o.referrer_id = auth.uid()
           or now() >= o.created_at
                + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
@@ -544,10 +566,10 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif), sur les courses pas encore réglées :
--- commissions − courses payées à HOP (reversées au livreur) − bonus de parrainage
+-- commissions − courses payées à HOP (reversées au livreur) − part du commerce (HOP! Pro) − bonus de parrainage
 create or replace function public.courier_balance(p_id uuid) returns numeric
 language sql stable security definer set search_path = public as $$
-  select coalesce((select sum(commission - case when paid_to = 'hop' and payment_status = 'paye' then price else 0 end)
+  select coalesce((select sum(commission - shop_share - case when paid_to = 'hop' and payment_status = 'paye' then price else 0 end)
                      from orders where courier_id = p_id and status = 'livree' and commission_status <> 'regle'), 0)
        - coalesce((select sum(referral_bonus) from orders
                     where referrer_id = p_id and status = 'livree' and referral_status <> 'regle'), 0);
@@ -574,7 +596,7 @@ begin
   if c.role = 'coursier' and not public.courier_online(c) then raise exception 'offline'; end if;
   update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
          courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
-         commission = case when c.role = 'admin' then 0 else public.commission_for(o.price) end
+         commission = case when c.role = 'admin' then 0 else public.commission_for(o.price + o.shop_share) end
    where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
   return found;
 end;
@@ -653,7 +675,9 @@ grant execute on function public.carnet_receipt(uuid) to anon, authenticated;
 create or replace function public.shop_public(p_code text) returns json
 language sql stable security definer set search_path = public as $$
   select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
-                           'address', address, 'lat', lat, 'lon', lon, 'status', status)
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'shop_share', (select pro_shop_share from settings where id = 1))
     from shops where code = upper(p_code) and status <> 'suspendu';
 $$;
 
@@ -666,8 +690,9 @@ language sql stable security definer set search_path = public as $$
                                                          'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
                          from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
     'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
-        select o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
-               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes
           from orders o join shops s on s.id = o.shop_id
          where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json));
 $$;
@@ -725,14 +750,16 @@ begin
   elsif p_action = 'recuperee' then
     -- Attente / achats au-delà des minutes offertes : supplément par tranche commencée, ajouté au prix.
     -- Course déjà payée (Bit, carnet) : le supplément reste à régler.
+    -- HOP! Pro : l'attente compte à partir de l'heure annoncée par le commerce, et c'est le commerce qui la paie.
     update orders o set status = 'recuperee',
            wait_minutes = w.mins,
            wait_fee = w.fee,
-           price = o.price + w.fee,
-           payment_status = case when w.fee > 0 and o.payment_status = 'paye' then 'en_attente' else o.payment_status end
-      from (select x.id, coalesce(floor(extract(epoch from now() - x.arrived_at) / 60), 0)::int as mins,
+           price = o.price + case when o.shop_status is null then w.fee else 0 end,
+           shop_share = o.shop_share + case when o.shop_status is null then 0 else w.fee end,
+           payment_status = case when w.fee > 0 and o.shop_status is null and o.payment_status = 'paye' then 'en_attente' else o.payment_status end
+      from (select x.id, coalesce(floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60), 0)::int as mins,
                    case when x.arrived_at is null then 0
-                        else least(st.wait_max, ceil(greatest(0, floor(extract(epoch from now() - x.arrived_at) / 60) - st.wait_free_min)
+                        else least(st.wait_max, ceil(greatest(0, floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60) - st.wait_free_min)
                                                      / st.wait_step_min) * st.wait_step_price) end as fee
               from orders x, settings st where x.id = p_id and st.id = 1) w
      where o.id = w.id and o.courier_id = auth.uid() and o.status = 'confirmee';
@@ -1086,7 +1113,7 @@ grant execute on function public.couriers_nearby() to anon, authenticated;
 create or replace function public.shops_directory() returns json
 language sql stable security definer set search_path = public as $$
   select coalesce(json_agg(json_build_object('code', code, 'name', name, 'kind', kind, 'city', city,
-           'address', address, 'lat', lat, 'lon', lon) order by name), '[]'::json)
+           'address', address, 'lat', lat, 'lon', lon, 'pro', coalesce(plan_until >= current_date, false)) order by name), '[]'::json)
     from shops where status = 'actif';
 $$;
 revoke execute on function public.shops_directory() from public;
@@ -1119,6 +1146,33 @@ end;
 $$;
 revoke execute on function public.rate_order(uuid, int, text[], text) from public;
 grant execute on function public.rate_order(uuid, int, text[], text) to anon, authenticated;
+
+-- HOP! Pro : le commerce accepte la commande avec un temps de préparation, la marque prête, ou la refuse
+-- (avec sa clé secrète). Le client et le livreur le voient tout de suite dans la conversation.
+create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_action text, p_minutes int, p_reason text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders;
+begin
+  select o2.* into o from orders o2 join shops s on s.id = o2.shop_id where o2.id = p_id and s.token = p_token;
+  if not found then return false; end if;
+  if p_action = 'accepter' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    update orders set shop_status = 'acceptee', prep_minutes = least(greatest(coalesce(p_minutes, 15), 5), 90),
+           ready_at = now() + make_interval(mins => least(greatest(coalesce(p_minutes, 15), 5), 90))
+     where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:shop_ok');
+  elsif p_action = 'prete' and o.shop_status = 'acceptee' then
+    update orders set shop_status = 'prete', ready_at = least(ready_at, now()) where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:prete');
+  elsif p_action = 'refuser' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    update orders set shop_status = 'refusee', status = 'refusee', admin_note = left(nullif(trim(p_reason), ''), 300) where id = p_id;
+  else
+    return false;
+  end if;
+  return true;
+end;
+$$;
+revoke execute on function public.shop_order_action(uuid, uuid, text, int, text) from public;
+grant execute on function public.shop_order_action(uuid, uuid, text, int, text) to anon, authenticated;
 
 -- Fonctions internes : pas appelables depuis l'API (les déclencheurs et règles continuent de marcher)
 revoke execute on function public.assign_receipt(), public.courier_photo_at(), public.orders_chat_status(),

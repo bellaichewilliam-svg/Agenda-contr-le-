@@ -137,6 +137,7 @@ const DEFAULT_SETTINGS = {
   carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
   referral_active_days: CONFIG.partners.activeDays,
   deliver_radius: CONFIG.platform.deliverRadius,
+  pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare, pro_lead_min: CONFIG.pro.leadMinutes,
   wait_free_min: CONFIG.pricing.waiting.freeMinutes, wait_step_min: CONFIG.pricing.waiting.stepMinutes,
   wait_step_price: CONFIG.pricing.waiting.stepPrice, wait_max: CONFIG.pricing.waiting.max,
   commission_pct: CONFIG.platform.commissionPercent, commission_min: CONFIG.platform.commissionPerCourse
@@ -212,6 +213,11 @@ async function createOrder(order) {
       Object.assign(order, { price: Number(settings.carnet_unit), payment_status: "paye", paid_to: "hop", promo_code: null, discount: 0 });
     }
     delete order.shop_token;
+    // HOP! Pro : commande d'un client chez un commerce abonné → le commerce la confirme et la prépare
+    Object.assign(order, { shop_status: null, prep_minutes: null, ready_at: null, shop_share: 0, arrived_at: null, wait_fee: 0 });
+    if (shop && planActive(shop) && String(order.shop_order || "").trim() && order.payment_method !== "carnet") {
+      Object.assign(order, { shop_status: "attente", shop_share: Number(settings.pro_shop_share), shop_order: String(order.shop_order).trim().slice(0, 1000) });
+    } else order.shop_order = null;
     order.id = uuid();
     order.created_at = new Date().toISOString();
     order.commission = 0;
@@ -353,6 +359,8 @@ function canSeeNew(o, id, st) {
   if (o.status !== "nouvelle" || o.courier_id) return false;
   // Hors ligne, ou course déjà refusée : on ne la voit plus
   if (!onlineNow(localCouriers().find(c => c.id === id)) || declined(o.id, id)) return false;
+  // HOP! Pro : proposée quand le commerce a accepté, pour arriver au moment où c'est prêt
+  if (o.shop_status && !(["acceptee", "prete"].includes(o.shop_status) && Date.now() >= new Date(o.ready_at) - Number(st.pro_lead_min) * 60000)) return false;
   if (o.referrer_id && o.referrer_id === id) return true;
   const ranked = o.pickup_lat == null ? [] : localCouriers()
     .filter(c => c.status === "actif" && c.role === "coursier" && c.lat != null && onlineNow(c) && !declined(o.id, c.id))
@@ -367,7 +375,7 @@ function canSeeNew(o, id, st) {
 // Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif), courses pas encore réglées
 function balanceOf(id, all) {
   return all.filter(o => o.courier_id === id && o.status === "livree" && o.commission_status !== "regle")
-      .reduce((s, o) => s + Number(o.commission || 0) - (o.paid_to === "hop" && o.payment_status === "paye" ? Number(o.price) : 0), 0)
+      .reduce((s, o) => s + Number(o.commission || 0) - Number(o.shop_share || 0) - (o.paid_to === "hop" && o.payment_status === "paye" ? Number(o.price) : 0), 0)
     - all.filter(o => o.referrer_id === id && o.status === "livree" && o.referral_status !== "regle")
       .reduce((s, o) => s + Number(o.referral_bonus || 0), 0);
 }
@@ -462,7 +470,7 @@ async function acceptOrder(id) {
   }
   if (c.role === "coursier" && !onlineNow(c)) throw new Error("offline");
   const was = o.status;
-  Object.assign(o, await courierFields(c, o.price));
+  Object.assign(o, await courierFields(c, Number(o.price) + Number(o.shop_share || 0)));
   chatStatus(o, was);
   saveLocalOrders(all);
   return true;
@@ -487,9 +495,14 @@ async function courierAction(id, action) {
     o.arrived_at = new Date().toISOString();
     chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:arrivee" });
   } else if (action === "recuperee" && o.status === "confirmee") {
+    // HOP! Pro : c'est le commerce qui paie l'attente (sa part de la livraison augmente)
     const w = waitFee(o, st);
-    Object.assign(o, { status: "recuperee", wait_minutes: w.mins, wait_fee: w.fee, price: Number(o.price) + w.fee });
-    if (w.fee > 0 && o.payment_status === "paye") o.payment_status = "en_attente";
+    Object.assign(o, { status: "recuperee", wait_minutes: w.mins, wait_fee: w.fee });
+    if (o.shop_status) o.shop_share = Number(o.shop_share || 0) + w.fee;
+    else {
+      o.price = Number(o.price) + w.fee;
+      if (w.fee > 0 && o.payment_status === "paye") o.payment_status = "en_attente";
+    }
   }
   else if (action === "livree" && o.status === "recuperee") {
     // Même règle qu'en ligne : sur place seulement (position de moins de 3 min, dans le rayon)
@@ -515,7 +528,9 @@ async function courierAction(id, action) {
 // Supplément d'attente / d'achats (même calcul qu'en ligne)
 function waitFee(o, st) {
   if (!o.arrived_at) return { mins: 0, fee: 0 };
-  const mins = Math.floor((Date.now() - new Date(o.arrived_at)) / 60000);
+  // Commande d'un commerce HOP! Pro : l'attente compte à partir de l'heure annoncée par le commerce
+  const from = Math.max(new Date(o.arrived_at), o.ready_at ? new Date(o.ready_at) : 0);
+  const mins = Math.max(0, Math.floor((Date.now() - from) / 60000));
   const fee = Math.min(Number(st.wait_max), Math.ceil(Math.max(0, mins - Number(st.wait_free_min)) / Number(st.wait_step_min)) * Number(st.wait_step_price));
   return { mins, fee };
 }
@@ -577,7 +592,30 @@ async function couriersNearby() {
 async function shopsDirectory() {
   if (ONLINE) return rest("/rest/v1/rpc/shops_directory", { method: "POST", body: {} });
   return localShops().filter(x => x.status === "actif")
-    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, address: x.address, lat: x.lat, lon: x.lon }));
+    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, address: x.address, lat: x.lat, lon: x.lon, pro: planActive(x) }));
+}
+
+// HOP! Pro : le commerce accepte une commande avec un temps de préparation, la marque prête, ou la refuse
+async function shopOrderAction(token, id, action, minutes, reason) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_order_action", { method: "POST", body: { p_token: token, p_id: id, p_action: action, p_minutes: minutes || null, p_reason: reason || null } });
+  const shop = localShops().find(x => x.token === token);
+  const all = localOrders();
+  const o = shop && all.find(x => x.id === id && x.shop_id === shop.id);
+  if (!o) return false;
+  const was = o.status;
+  if (action === "accepter" && o.shop_status === "attente" && o.status === "nouvelle") {
+    const m = Math.min(90, Math.max(5, Number(minutes) || 15));
+    Object.assign(o, { shop_status: "acceptee", prep_minutes: m, ready_at: new Date(Date.now() + m * 60000).toISOString() });
+    chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:shop_ok" });
+  } else if (action === "prete" && o.shop_status === "acceptee") {
+    Object.assign(o, { shop_status: "prete", ready_at: new Date(Math.min(Date.now(), new Date(o.ready_at))).toISOString() });
+    chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:prete" });
+  } else if (action === "refuser" && o.shop_status === "attente" && o.status === "nouvelle") {
+    Object.assign(o, { shop_status: "refusee", status: "refusee", admin_note: String(reason || "").trim().slice(0, 300) || null });
+    chatStatus(o, was);
+  } else return false;
+  saveLocalOrders(all);
+  return true;
 }
 
 // Client : noter sa livraison (une fois, dans les 7 jours) ; une note basse arrive chez le patron
@@ -704,8 +742,11 @@ function rememberShopToken(token, code) {
 }
 function shopTokenFor(code) { return readJSON(LS.shopCodes, {})[String(code || "").toUpperCase()] || null; }
 
+// Abonnement HOP! Pro en cours (jusqu'au plan_until inclus)
+const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISOString().slice(0, 10));
 const publicShop = s => s && s.status !== "suspendu"
-  ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status } : null;
+  ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
+      pro: planActive(s), shop_share: DEFAULT_SETTINGS.pro_shop_share } : null;
 
 async function shopByCode(code) {
   if (!code) return null;
@@ -924,7 +965,7 @@ window.Store = {
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, myAcceptance, demandForecast, commissionFor,
-  couriersNearby, rateOrder, shopsDirectory, sendTopcase, courierTopcase, waitFee,
+  couriersNearby, rateOrder, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,

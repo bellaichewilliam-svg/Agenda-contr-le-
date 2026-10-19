@@ -884,3 +884,19 @@ body.in-home .eta-bubble { display: none; }
 .photo-view img { max-width: 94vw; max-height: 86vh; border-radius: 14px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
 .photo-view .ens-x { position: fixed; top: 16px; inset-inline-end: 16px; }
 .wait-live { flex-basis: 100%; margin: 0 0 4px; font-size: 14px; background: var(--amber-soft); color: var(--amber-ink); border-radius: 10px; padding: 8px 10px; }
+/* HOP! Pro : commandes à préparer (espace commerce), suivi côté livreur */
+.prep-card { margin-bottom: 14px; border: 2px solid var(--brand); }
+.prep-item { border-top: 1px solid var(--border); padding: 12px 0; display: grid; gap: 6px; }
+.prep-item:first-of-type { border-top: 0; }
+.prep-item.is-new { background: var(--brand-soft); margin: 0 -16px; padding: 12px 16px; border-radius: 12px; animation: prepPulse 1.4s ease-in-out infinite alternate; }
+@keyframes prepPulse { from { box-shadow: 0 0 0 0 rgba(255,106,19,.0); } to { box-shadow: 0 0 0 4px rgba(255,106,19,.35); } }
+.prep-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.prep-new { color: var(--brand-deep); }
+.prep-late { color: var(--red); }
+.prep-order { margin: 0; font-size: 16px; font-weight: 600; white-space: pre-wrap; }
+.prep-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.prep-btns .btn-primary { min-width: 74px; }
+.plan-list { margin: 8px 0 12px; padding-inline-start: 18px; display: grid; gap: 6px; }
+.shop-order { background: var(--brand-soft); border-radius: 14px; padding: 12px; margin-bottom: 14px; }
+.shop-order textarea { width: 100%; }
+.pro-line { background: var(--bg-2); border-radius: 10px; padding: 8px 10px; margin-top: 6px; line-height: 1.5; }

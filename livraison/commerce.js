@@ -106,8 +106,116 @@ async function openSpace(token) {
   renderSpace();
 }
 
+// --- HOP! Pro : commandes des clients à préparer (avec sonnerie), abonnement et facture du mois ---
+const PREP = ["attente", "acceptee", "prete"];
+const today = () => new Date().toISOString().slice(0, 10);
+const planOn = shop => !!(shop.plan_until && shop.plan_until >= today());
+let audioCtx = null;
+function audio() {
+  try { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); if (audioCtx.state === "suspended") audioCtx.resume(); }
+  catch (e) { audioCtx = null; }
+  return audioCtx;
+}
+["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, audio, { once: true, passive: true }));
+function note(ctx, freq, at, vol, len) {
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(vol, at + 0.015);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + len);
+  o.connect(g).connect(ctx.destination);
+  o.start(at); o.stop(at + len + 0.05);
+}
+// Sonnerie douce tant qu'une commande attend d'être acceptée
+const ring = { timer: null };
+function ringOnce() {
+  const ctx = audio();
+  if (ctx) try { const t0 = ctx.currentTime + 0.03; [[880, 0], [1109, 0.15], [1319, 0.3], [1760, 0.48]].forEach(([f, d]) => note(ctx, f, t0 + d, 0.25, 0.8)); } catch (e) { /* audio indisponible */ }
+  if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
+}
+function setRing(on) {
+  if (on && !ring.timer) { ringOnce(); ring.timer = setInterval(ringOnce, 3000); }
+  if (!on && ring.timer) { clearInterval(ring.timer); ring.timer = null; }
+}
+function renderPrep() {
+  const { shop, orders } = state.dash;
+  const list = orders.filter(o => PREP.includes(o.shop_status) && ["nouvelle", "confirmee"].includes(o.status))
+    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  const box = $("#spPrep");
+  box.classList.toggle("hidden", !planOn(shop) && !list.length);
+  setRing(list.some(o => o.shop_status === "attente"));
+  if (box.classList.contains("hidden")) return;
+  const time = d => new Date(d).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" });
+  box.innerHTML = `<h3>${UI.esc(t("spPrepTitle"))}</h3>` + (list.length ? list.map(o => {
+    const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
+    const courier = o.status === "confirmee" && o.courier_name ? t("spCourier", { name: o.courier_name.split(" ")[0] }) : t("spNoCourier");
+    const head = o.shop_status === "attente" ? `<b class="prep-new">${UI.esc(t("spNew"))}</b> · ${time(o.created_at)}`
+      : o.shop_status === "prete" ? `<b>${UI.esc(t("spIsReady"))}</b> · ${UI.esc(courier)}`
+      : `<b class="${left < 0 ? "prep-late" : ""}">${UI.esc(left < 0 ? t("spLate", { min: -left }) : t("spReadyIn", { min: Math.max(0, left) }))}</b> · ${UI.esc(courier)}`;
+    const act = o.shop_status === "attente"
+      ? `<small class="muted">${UI.esc(t("spAcceptIn"))}</small><div class="prep-btns">${CONFIG.pro.prepChoices.map(m =>
+          `<button type="button" class="btn btn-primary" data-prep="${m}" data-id="${UI.esc(o.id)}">${UI.esc(t("spMin", { n: m }))}</button>`).join("")}
+          <button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
+      : o.shop_status === "acceptee" ? `<button type="button" class="btn btn-primary btn-block" data-ready="${UI.esc(o.id)}">${UI.esc(t("spReadyBtn"))}</button>` : "";
+    return `<div class="prep-item${o.shop_status === "attente" ? " is-new" : ""}">
+      <div class="prep-head">${head}<small class="muted">${UI.esc(t("orderNo", { ref: o.ref }))}</small></div>
+      <p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>
+      <small class="muted">${UI.esc(t("spClient", { name: (o.dropoff_contact || o.contact_name || "").split(" ")[0], city: I18N.cityName(o.to_city) }))}</small>
+      ${act}
+    </div>`;
+  }).join("") : `<p class="muted small">${UI.esc(t("spPrepNone"))}</p>`);
+}
+function renderPlan() {
+  const { shop, orders } = state.dash;
+  const st = Object.assign({ pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare }, state.settings || {});
+  const box = $("#spPlan");
+  if (planOn(shop)) {
+    const month = today().slice(0, 7);
+    const done = orders.filter(o => o.status === "livree" && Number(o.shop_share) > 0 && String(o.pickup_at).slice(0, 7) === month);
+    const shares = done.reduce((x, o) => x + Number(o.shop_share), 0);
+    box.innerHTML = `<h3>${UI.esc(t("spPlanOn", { date: UI.fmtKey(shop.plan_until) }))}</h3>
+      <p class="small" style="margin:6px 0 0">${UI.esc(t("spBill", { monthly: UI.money(st.pro_monthly), shares: UI.money(shares), n: done.length,
+        total: UI.money(Number(st.pro_monthly) + shares), phone: CONFIG.bitPhone }))}</p>`;
+    return;
+  }
+  const client = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - Number(st.pro_shop_share)));
+  box.innerHTML = `<h3>${UI.esc(t("spPlanTitle"))}</h3>
+    <ul class="plan-list">${["spPlan1", "spPlan2", "spPlan3", "spPlan4"].map(k => `<li>${UI.esc(t(k, { monthly: UI.money(st.pro_monthly), client, share: UI.money(st.pro_shop_share) }))}</li>`).join("")}</ul>
+    <button type="button" class="btn btn-primary" data-plan="1">${UI.esc(t("spPlanBtn"))}</button>`;
+}
+async function refreshSpace() {
+  if (!state.dash) return;
+  try {
+    const d = await Store.shopDashboard(state.dash.shop.token);
+    if (d && d.shop) { state.dash = d; renderSpace(); }
+  } catch (e) { /* nouvel essai au prochain tour */ }
+}
+async function prepAction(id, action, minutes, reason) {
+  try {
+    const ok = await Store.shopOrderAction(state.dash.shop.token, id, action, minutes, reason);
+    if (!ok) alert(t("spErr"));
+  } catch (e) { alert(t("spErr")); }
+  refreshSpace();
+}
+$("#spPrep").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.prep) return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep));
+  if (b.dataset.ready) return prepAction(b.dataset.ready, "prete");
+  if (b.dataset.refuse) { const why = prompt(t("spRefuseWhy")); if (why !== null) prepAction(b.dataset.refuse, "refuser", null, why); }
+});
+$("#spPlan").addEventListener("click", e => {
+  if (!e.target.closest("[data-plan]")) return;
+  const { shop } = state.dash;
+  openShopChat(t("spPlanMsg", { name: shop.name, code: shop.code }));
+});
+setInterval(() => { if (state.dash && !document.hidden) refreshSpace(); }, 15000);
+Store.getSettings().then(s => { state.settings = s; if (state.dash) renderPlan(); }).catch(() => {});
+
 function renderSpace() {
   const { shop, orders } = state.dash;
+  renderPrep();
+  renderPlan();
   const sales = state.dash.sales || [];
   $("#spTitle").textContent = t("shWelcome", { name: shop.name });
   $("#spStatus").textContent = shop.status === "actif" ? t("shActive") : t("shPending");

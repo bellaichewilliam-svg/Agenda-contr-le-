@@ -182,6 +182,12 @@ window.CONFIG = {
     carnet: { courses: 10, price: 200 }
   },
 
+  // HOP! Pro : abonnement mensuel des commerces (0 % de commission sur leurs ventes). Leurs clients
+  // commandent dans l'appli ; le commerce paie une part fixe de chaque livraison (shopShare), le client
+  // paie le reste (15 ₪ dans Netanya) ; le livreur est envoyé leadMinutes avant que ce soit prêt.
+  // (En ligne : pro_monthly, pro_shop_share, pro_lead_min dans la table settings.)
+  pro: { monthly: 199, shopShare: 10, leadMinutes: 8, prepChoices: [10, 15, 20, 30] },
+
   // Messages prêts à envoyer aux livreurs depuis l'espace patron
   courierMessages: [
     { kind: "rush", text: "🔥 Ça vaut le coup de sortir : beaucoup de commandes en ce moment !" },

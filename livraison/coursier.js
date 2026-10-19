@@ -185,6 +185,15 @@ function note(ctx, freq, at, vol, len) {
   });
 }
 
+// HOP! Pro : où en est la préparation chez le commerce, ce que le client a commandé, la part du commerce
+function proLine(o) {
+  const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
+  const state = o.shop_status === "prete" || (left != null && left <= 0) ? "✅ <b>Commande prête</b>"
+    : left != null ? `🍳 <b>Prête dans ${left} min</b> chez ${UI.esc(o.shop_name || "le commerce")}` : "🍳 En attente du commerce";
+  return `<div class="small pro-line">${state}${o.shop_order ? `<br>🧾 ${UI.esc(o.shop_order)}` : ""}
+    ${Number(o.shop_share) > 0 ? `<br>🏪 Le commerce paie ${UI.money(o.shop_share)} de la livraison : HOP vous le reverse` : ""}</div>`;
+}
+
 function beep() {
   const ctx = riderSet.sound !== false && audio();
   if (ctx) try { const t = ctx.currentTime + 0.02; note(ctx, 1046.5, t, 0.22, 0.5); note(ctx, 1318.5, t + 0.12, 0.2, 0.6); }
@@ -247,7 +256,7 @@ async function load() {
   if (!firstLoad && fresh.length && isOnline()) {
     if (!offerShown) beep();
     if (window.Notification && Notification.permission === "granted") {
-      fresh.forEach(o => new Notification(`🆕 Course dispo n° ${o.ref} — ${UI.money(o.price)}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}` }));
+      fresh.forEach(o => new Notification(`🆕 Course dispo n° ${o.ref} — ${UI.money(Number(o.price) + Number(o.shop_share || 0))}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}` }));
     }
   }
   pool().forEach(o => seenPool.add(o.id));
@@ -274,7 +283,10 @@ function card(o, kind) {
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
   extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
     : kind === "pool" || o.status === "confirmee" ? `<div class="small muted">⏱️ Attente ou achats sur place : ${UI.esc(UI.waitRule(settings))}, pour vous</div>` : "";
-  const net = Number(o.price) - (kind === "pool" ? Store.commissionFor(o.price, settings) : Number(o.commission || 0));
+  // HOP! Pro : le commerce paie une part de la livraison, que HOP reverse au livreur
+  const total = Number(o.price) + Number(o.shop_share || 0);
+  const net = total - (kind === "pool" ? Store.commissionFor(total, settings) : Number(o.commission || 0));
+  if (o.shop_status) extra += proLine(o);
   const mineShop = o.referrer_id && o.referrer_id === me.id;
   const hopPaid = o.paid_to === "hop";
 
@@ -303,7 +315,7 @@ function card(o, kind) {
     <div class="order-head">
       <span class="order-time">${UI.esc(when)}</span>
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
-      <span class="order-price">${UI.money(o.price)}</span>
+      <span class="order-price">${UI.money(total)}</span>
     </div>
     <div class="legs">
       <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.pickup_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrDetails(o, "pickup") + UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
@@ -832,10 +844,11 @@ function showNextOffer() {
   const toPickup = roadKm(lastPos, pick);
   const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : moins d'une heure" : "Dès que possible";
   $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
-  $("#offerPrice").textContent = UI.money(o.price);
+  const total = Number(o.price) + Number(o.shop_share || 0);
+  $("#offerPrice").textContent = UI.money(total);
   const star = o.referrer_id && o.referrer_id === me.id;
-  const com = Store.commissionFor(o.price, settings);
-  $("#offerGain").textContent = `Vous gagnez ${UI.money(Number(o.price) - com + (star ? Number(o.referral_bonus || 0) : 0))} (commission ${UI.money(com)}${star ? `, bonus parrainage +${UI.money(o.referral_bonus || 0)} inclus` : ""})`;
+  const com = Store.commissionFor(total, settings);
+  $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com + (star ? Number(o.referral_bonus || 0) : 0))} (commission ${UI.money(com)}${star ? `, bonus parrainage +${UI.money(o.referral_bonus || 0)} inclus` : ""})`;
   // Proposée d'abord aux livreurs en service les plus proches (vagues de wave_seconds)
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
   $("#offerStar").innerHTML = star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
@@ -848,9 +861,10 @@ function showNextOffer() {
     toPickup != null ? `🛵 À ≈ ${toPickup.toFixed(1)} km de vous` : "",
     `🕐 ${UI.esc(when)}`,
     o.paid_to === "hop" ? (o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
-      : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant") : "💵 Espèces : vous encaissez le client",
+      : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant") : `💵 Espèces : vous encaissez ${UI.money(o.price)} auprès du client`,
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
-    `⏱️ Attente / achats payés : ${UI.esc(UI.waitRule(settings))}`
+    o.shop_status ? proLine(o) : "",
+    `⏱️ Attente / achats payés : ${UI.esc(UI.waitRule(settings))}${o.shop_status ? " (après l'heure annoncée, payés par le commerce)" : ""}`
   ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
   $("#offerModal").classList.remove("hidden");
   startRing();
@@ -1013,8 +1027,8 @@ function updateRiderMap() {
     if (popup) m.bindPopup(popup);
     pts.push([Number(lat), Number(lon)]);
   };
-  pool().forEach(o => add(o.pickup_lat, o.pickup_lon, rpin({ repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦", "", UI.money(o.price)),
-    `<b>Course n° ${UI.esc(o.ref)}</b><br>${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))} · ${UI.money(o.price)}`));
+  pool().forEach(o => add(o.pickup_lat, o.pickup_lon, rpin({ repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦", "", UI.money(Number(o.price) + Number(o.shop_share || 0))),
+    `<b>Course n° ${UI.esc(o.ref)}</b><br>${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))} · ${UI.money(Number(o.price) + Number(o.shop_share || 0))}`));
   mine().forEach(o => {
     add(o.pickup_lat, o.pickup_lon, rpin("📍"), `Récupération · n° ${UI.esc(o.ref)}`);
     add(o.dropoff_lat, o.dropoff_lon, rpin("🏁", "drop"), `Livraison · n° ${UI.esc(o.ref)}`);

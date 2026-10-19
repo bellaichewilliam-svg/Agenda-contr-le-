@@ -105,7 +105,16 @@ function etaBox(o) {
     if (live && o.dropoff_lat != null) main = t("trEtaDrop", { min: Pricing.etaMinutes(courier, { lat: o.dropoff_lat, lon: o.dropoff_lon }) });
     else { main = t("trStep3"); sub = t("trNoGps"); }
   }
-  if (live && o.courier_at && ["confirmee", "recuperee"].includes(o.status) && !(o.status === "confirmee" && o.arrived_at)) {
+  // HOP! Pro : où en est la préparation chez le commerce
+  if (o.shop_status && ["nouvelle", "confirmee"].includes(o.status)) {
+    const name = o.shop_name || "";
+    const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
+    if (o.shop_status === "attente") { main = t("trShopWait", { name }); sub = ""; }
+    else if (o.shop_status === "acceptee" && left > 0) { sub = o.status === "confirmee" ? main : ""; main = t("trShopPrep", { name, min: left }); }
+    else if (o.shop_status === "prete" || (o.shop_status === "acceptee" && left <= 0)) { if (o.status === "nouvelle") main = t("trShopReady"); else sub = t("trShopReady"); }
+  }
+  if (o.status === "refusee" && o.shop_status === "refusee") main = t("trShopRefused", { name: o.shop_name || "" });
+  if (live && o.courier_at && ["confirmee", "recuperee"].includes(o.status) && !(o.status === "confirmee" && o.arrived_at) && !sub) {
     const s = Math.max(0, Math.round((Date.now() - new Date(o.courier_at)) / 1000));
     sub = t("trUpdated", { s });
   }

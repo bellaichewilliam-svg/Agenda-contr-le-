@@ -32,7 +32,7 @@
     });
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610191812" />
+  <link rel="stylesheet" href="styles.css?v=202610191828" />
 </head>
 <body>
 
@@ -227,6 +227,11 @@
     <form id="orderForm" class="order-layout" action="javascript:void(0)" novalidate>
       <div>
         <div class="shop-banner hidden" id="shopBanner"><span id="shopBannerText"></span><button type="button" class="btn btn-sm" id="shopBannerOff" data-i18n="shBannerOff"></button></div>
+        <!-- HOP! Pro : le client écrit sa commande, le commerce la prépare -->
+        <div class="shop-order hidden" id="shopOrderBox">
+          <label class="f"><span id="shopOrderLabel"></span><textarea name="shop_order" rows="3" maxlength="1000" data-i18n-ph="spOrderPh"></textarea></label>
+          <p class="small muted" id="shopOrderNote"></p>
+        </div>
         <div class="form-progress" id="formProgress">
           <div class="fp-track"><div class="fp-fill" id="fpFill"></div><span class="fp-scooter" id="fpScooter">🛵</span><span class="fp-flag">🏁</span></div>
           <small id="fpText"></small>
@@ -502,14 +507,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610191812"></script>
-<script src="i18n.js?v=202610191812"></script>
-<script src="pricing.js?v=202610191812"></script>
-<script src="store.js?v=202610191812"></script>
-<script src="chat.js?v=202610191812"></script>
-<script src="common.js?v=202610191812"></script>
-<script src="enseignes.js?v=202610191812"></script>
-<script src="places.js?v=202610191812"></script>
-<script src="client.js?v=202610191812"></script>
+<script src="config.js?v=202610191828"></script>
+<script src="i18n.js?v=202610191828"></script>
+<script src="pricing.js?v=202610191828"></script>
+<script src="store.js?v=202610191828"></script>
+<script src="chat.js?v=202610191828"></script>
+<script src="common.js?v=202610191828"></script>
+<script src="enseignes.js?v=202610191828"></script>
+<script src="places.js?v=202610191828"></script>
+<script src="client.js?v=202610191828"></script>
 </body>
 </html>

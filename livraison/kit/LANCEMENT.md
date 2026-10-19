@@ -74,6 +74,19 @@ Avec `shop-post-fr.png` / `shop-post-he.png`, ou en message direct au commerçan
 > 🛵 שליח תוך פחות משעה · 📱 קוד QR ללקוחות · 🧾 קבלה על כל משלוח.
 > 👈 הרשמה בחינם תוך דקה: https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/commerce.html
 
+### HOP! Pro (abonnement des commerces) : à envoyer aux restaurants et boutiques
+> ⭐ **HOP! Pro : vos clients commandent chez vous, on livre.**
+> 💸 **0 % de commission sur vos ventes** : 199 ₪ par mois, sans engagement. **Premier mois offert.**
+> 🛵 Vos clients ne paient que **15 ₪ de livraison dans Netanya**, sans frais de service.
+> 🍳 Vous acceptez la commande avec un temps de préparation : **le livreur arrive quand c'est prêt**.
+> 👉 https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/commerce.html
+
+> ⭐ **הופ! Pro: הלקוחות מזמינים אצלכם, אנחנו מביאים.**
+> 💸 **0% עמלה על המכירות**: 199 ₪ לחודש, בלי התחייבות. **החודש הראשון במתנה.**
+> 🛵 הלקוחות משלמים רק **15 ₪ משלוח בתוך נתניה**, בלי דמי שירות.
+> 🍳 אתם מאשרים את ההזמנה עם זמן הכנה: **השליח מגיע כשהיא מוכנה**.
+> 👈 https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/commerce.html
+
 ## 6. Recrutement des livreurs
 Avec `rider-post-fr.png` / `rider-post-he.png` (groupes d'emploi, étudiants, olim).
 

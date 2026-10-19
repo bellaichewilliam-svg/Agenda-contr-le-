@@ -75,6 +75,15 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **Plafond :** au-delà de `platform.maxDebt` (50 ₪) dus, le livreur ne peut plus accepter de course tant qu'il n'a pas réglé.
 - Sur une course, le bouton « Payée au livreur ⇄ Payée à HOP » corrige le cas d'un client qui a payé le mauvais numéro.
 
+### HOP! Pro : l'abonnement des commerces (moins cher qu'une grande plateforme, des deux côtés)
+- **Le commerce paie un abonnement fixe** (`pro.monthly` = 199 ₪ / mois, sans engagement, premier mois offert) **et 0 % de commission sur ses ventes**. Il ajoute une part fixe à chaque livraison (`pro.shopShare` = 10 ₪) : **le client ne paie que 15 ₪ de livraison dans Netanya**, sans frais de service, et le livreur touche toujours sa course complète (25 ₪ − commission). En ligne : `pro_monthly`, `pro_shop_share`, `pro_lead_min` dans `settings`.
+- **Le client commande depuis la page du commerce** (son QR / son lien `?c=CODE`) : il écrit sa commande (« 2 shawarma, 1 Coca ») ; il paie ses articles directement au commerce.
+- **Le commerce reçoit la commande avec une sonnerie** dans son espace pro, l'accepte avec un temps de préparation (10, 15, 20 ou 30 min) ou la refuse (la raison part au client), puis appuie sur **« ✅ Commande prête »**.
+- **Le livreur est envoyé au bon moment** : la course est proposée `pro.leadMinutes` (8 min) avant l'heure annoncée, pour qu'il arrive quand c'est prêt. Il voit « 🍳 Prête dans 5 min », la commande et la part payée par le commerce (HOP la lui reverse).
+- **Pas prêt à l'heure ?** L'attente du livreur ne compte qu'à partir de l'heure annoncée, et **c'est le commerce qui la paie**, pas le client.
+- Le client suit tout en direct (« Shawarma Nona prépare votre commande · prête dans ≈ 12 min », puis « ✅ prête »).
+- **Vous** : dans l'onglet Commerces, « ⭐ HOP! Pro : +1 mois » (payé ou offert) ou « Arrêter », et ce que chaque commerce vous doit ce mois-ci (abonnement + sa part des livraisons). Le commerce voit la même facture dans son espace pro.
+
 ### Commande prête ou attente : un prix juste
 - **Commande prête : prix fixe**, affiché avant de commander.
 - **Le livreur doit attendre** (commande pas prête) **ou faire les achats** : au point de récupération, il appuie sur **« 📍 Je suis arrivé »** (seulement sur place, vérifié au GPS) ; le compteur démarre. **10 min offertes**, puis **+5 ₪ par tranche de 10 min commencée**, **60 ₪ au maximum** (`pricing.waiting` dans `config.js`, `wait_free_min`, `wait_step_min`, `wait_step_price`, `wait_max` dans la table `settings` en ligne).
