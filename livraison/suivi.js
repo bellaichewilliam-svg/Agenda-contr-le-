@@ -76,7 +76,7 @@ function etaBox(o) {
 function render() {
   const o = order;
   I18N.apply();
-  $("#brandName").textContent = I18N.businessName();
+  $("#brandName").innerHTML = UI.wordmark();
   if (!o) {
     $("#eta").innerHTML = `<b>${UI.esc(t("trNotFound"))}</b>`;
     ["#steps", "#details"].forEach(s => { $(s).closest(".card").classList.add("hidden"); });
@@ -98,7 +98,7 @@ function render() {
 
   const pay = $("#payBox");
   pay.classList.toggle("hidden", o.status === "annulee" || o.status === "refusee");
-  const bit = o.courier_bit || CONFIG.bitPhone;
+  const bit = UI.bitFor(o);
   const copy = `<button class="btn btn-sm" id="copyBit">${UI.esc(t("trCopy"))}</button>`;
   pay.innerHTML = `<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>

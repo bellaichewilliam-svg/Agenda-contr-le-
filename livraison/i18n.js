@@ -41,7 +41,7 @@ fr: {
   within: "Dans {city}",
   extrasTitle: "Options",
   xExpress: "Express (moins d'une heure)", xPickup: "Retrait poste / Super-Pharm / point relais", xPurchase: "J'achète pour vous",
-  xMedium: "Colis moyen (5–15 kg)", xBig: "Gros colis (15–30 kg)", xStop: "Arrêt supplémentaire", xReturn: "Aller-retour",
+  xMedium: "Colis moyen (5–15 kg)", xBig: "Gros colis (15–30 kg)", xBigCar: "🚗 prix voiture", xStop: "Arrêt supplémentaire", xReturn: "Aller-retour",
   hoursTitle: "Horaires", closed: "Fermé",
   days: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"],
   howTitle: "Comment ça marche ?",
@@ -108,7 +108,12 @@ fr: {
   qPromo: "Code {code}", qReferral: "Parrainage", qLoyalty: "Course fidélité offerte 🎉",
   qPurchaseNote: "+ montant des achats, remboursé à la livraison",
   qUnknown: "Ville hors zone : le coursier vous confirmera le prix.",
-  payNoteCash: "Paiement en espèces au coursier.", payNoteBit: "Paiement par Bit au {phone}.",
+  payNoteCash: "Paiement en espèces au coursier.", payNoteBit: "Paiement d'avance par Bit au {phone}.",
+  payNoteBitCourier: "Paiement par Bit au coursier : son numéro s'affiche sur la page de suivi.",
+  pay_bit_courier: "Au coursier", pay_carnet: "Carnet pro", pay_carnet_d: "Il vous reste {n} course(s)",
+  payNoteCarnet: "Course payée avec votre carnet pro : rien à payer au coursier.",
+  qCarnet: "🎟️ Course du carnet pro (il en restera {n})",
+  errCarnet: "Le carnet pro ne peut pas servir pour cette course (plus de courses, ou course hors Netanya). Choisissez espèces ou Bit.",
   errPhone: "Numéro de téléphone invalide : 10 chiffres pour un portable (ex. 052-123-4567).",
   errRequired: "Merci de remplir les champs obligatoires (villes, adresses, nom, téléphone).",
   errSend: "La commande n'a pas pu être envoyée. Appelez-nous au {phone}.",
@@ -215,7 +220,13 @@ fr: {
   shTrack: "Suivi", shKeep: "🔑 Gardez cette page dans vos favoris : c'est votre espace commerce.",
   shCta: "Vous êtes commerçant ?", shCtaSub: "Livrez vos clients sans commission sur vos ventes. Inscription gratuite.", shCtaBtn: "Inscrire mon commerce",
   shBanner: "🏪 Course au départ de {name}", shBannerOff: "Changer",
-  shUnknown: "Ce lien de commerce n'est plus valable."
+  shUnknown: "Ce lien de commerce n'est plus valable.",
+  shExists: "Ce commerce est déjà inscrit chez HOP! (même téléphone ou même nom). Pour retrouver votre espace pro, écrivez-nous sur WhatsApp au {phone}.",
+  shProTitle: "⭐ Votre espace pro",
+  shProUnit: "Course dans {city}", shProCarnet: "Carnet de {n} courses", shCarnetLeft: "Courses restantes",
+  shCarnetHow: "Payez {price} par Bit au {phone} en indiquant « CARNET {code} » : vos {n} courses sont ajoutées ici, puis choisissez « Carnet pro » au paiement. Rien à payer au livreur.",
+  shCarnetBuy: "🎟️ Acheter un carnet ({price})",
+  shCarnetMsg: "Bonjour, je viens de payer {price} par Bit pour un carnet de courses : {name} (CARNET {code})."
 },
 
 he: {
@@ -252,7 +263,7 @@ he: {
   within: "בתוך {city}",
   extrasTitle: "תוספות",
   xExpress: "אקספרס (פחות משעה)", xPickup: "איסוף מהדואר / סופר-פארם / נקודת איסוף", xPurchase: "קונים בשבילכם",
-  xMedium: "חבילה בינונית (5–15 ק\"ג)", xBig: "חבילה גדולה (15–30 ק\"ג)", xStop: "עצירה נוספת", xReturn: "הלוך-חזור",
+  xMedium: "חבילה בינונית (5–15 ק\"ג)", xBig: "חבילה גדולה (15–30 ק\"ג)", xBigCar: "🚗 מחיר רכב", xStop: "עצירה נוספת", xReturn: "הלוך-חזור",
   hoursTitle: "שעות פעילות", closed: "סגור",
   days: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"],
   howTitle: "איך זה עובד?",
@@ -319,7 +330,12 @@ he: {
   qPromo: "קוד {code}", qReferral: "הבא חבר", qLoyalty: "משלוח מועדון במתנה 🎉",
   qPurchaseNote: "+ סכום הקניות, מוחזר במסירה",
   qUnknown: "עיר מחוץ לאזור: השליח יאשר לכם את המחיר.",
-  payNoteCash: "תשלום במזומן לשליח.", payNoteBit: "תשלום בביט למספר {phone}.",
+  payNoteCash: "תשלום במזומן לשליח.", payNoteBit: "תשלום מראש בביט למספר {phone}.",
+  payNoteBitCourier: "תשלום בביט לשליח: המספר שלו מופיע בדף המעקב.",
+  pay_bit_courier: "לשליח", pay_carnet: "כרטיסייה לעסקים", pay_carnet_d: "נשארו לכם {n} משלוחים",
+  payNoteCarnet: "המשלוח שולם מהכרטיסייה: אין מה לשלם לשליח.",
+  qCarnet: "🎟️ משלוח מהכרטיסייה (יישארו {n})",
+  errCarnet: "אי אפשר להשתמש בכרטיסייה למשלוח הזה (נגמרו המשלוחים, או משלוח מחוץ לנתניה). בחרו מזומן או ביט.",
   errPhone: "מספר טלפון לא תקין: 10 ספרות לנייד (לדוגמה 052-123-4567).",
   errRequired: "נא למלא את שדות החובה (ערים, כתובות, שם, טלפון).",
   errSend: "לא הצלחנו לשלוח את ההזמנה. התקשרו אלינו: {phone}.",
@@ -423,7 +439,13 @@ he: {
   shTrack: "מעקב", shKeep: "🔑 שמרו את הדף הזה במועדפים: זה האזור של העסק שלכם.",
   shCta: "יש לכם עסק?", shCtaSub: "משלוחים ללקוחות בלי עמלה על המכירות. הרשמה בחינם.", shCtaBtn: "לרשום את העסק",
   shBanner: "🏪 משלוח מ{name}", shBannerOff: "לשנות",
-  shUnknown: "הקישור של העסק כבר לא בתוקף."
+  shUnknown: "הקישור של העסק כבר לא בתוקף.",
+  shExists: "העסק הזה כבר רשום בהופ! (אותו טלפון או אותו שם). כדי לקבל שוב את האזור שלכם, כתבו לנו בוואטסאפ: {phone}.",
+  shProTitle: "⭐ האזור העסקי שלכם",
+  shProUnit: "משלוח בתוך {city}", shProCarnet: "כרטיסייה של {n} משלוחים", shCarnetLeft: "משלוחים שנשארו",
+  shCarnetHow: "שלמו {price} בביט למספר {phone} וציינו « CARNET {code} »: {n} המשלוחים יתווספו כאן, ובתשלום בחרו « כרטיסייה לעסקים ». אין מה לשלם לשליח.",
+  shCarnetBuy: "🎟️ לקנות כרטיסייה ({price})",
+  shCarnetMsg: "שלום, שילמתי {price} בביט על כרטיסיית משלוחים: {name} (CARNET {code})."
 }
 };
 

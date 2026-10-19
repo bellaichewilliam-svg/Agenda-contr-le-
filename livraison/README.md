@@ -48,6 +48,18 @@ Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. El
 - Niveaux (🌱 → 👑) et classement des parrains du mois.
 - Côté patron : onglet « 🏪 Commerces » (vérifier, suspendre, changer le parrain, envoyer ses liens au commerce).
 
+### Argent : tout est carré
+- **Qui encaisse :** course immédiate → le livreur (espèces ou son Bit, son numéro est sur la page de suivi). Course programmée ou carnet pro → HOP, d'avance (Bit au 052-779-0361).
+- **Chaque semaine :** le livreur vous doit ses commissions (3 ₪ par course), moins les courses payées à HOP (vous les lui reversez) et moins ses bonus de parrainage. « ✓ Réglé » remet le compteur à zéro.
+- **Plafond :** au-delà de `platform.maxDebt` (50 ₪) dus, le livreur ne peut plus accepter de course tant qu'il n'a pas réglé.
+- Sur une course, le bouton « Payée au livreur ⇄ Payée à HOP » corrige le cas d'un client qui a payé le mauvais numéro.
+
+### Qui reçoit la course
+Le livreur en service le plus proche du départ la reçoit en premier, le 2e plus proche après 45 s (`platform.waveSeconds`), puis tous les autres après 90 s. Pour une course d'un commerce partenaire, son parrain passe d'abord (3 min). Côté patron, « Donner à un livreur » classe les livreurs du plus proche au plus loin.
+
+### Espace pro et carnet
+L'espace du commerce (`commerce.html`) montre le tarif pro (25 ₪ dans Netanya) et le carnet de 10 courses (200 ₪). Le commerce paie par Bit, puis vous ajoutez les courses dans l'onglet « 🏪 Commerces ». Il choisit ensuite « Carnet pro » au paiement : rien à payer au livreur. Un commerce déjà inscrit (même téléphone ou même nom dans la même ville) ne peut pas se réinscrire.
+
 ### Messages aux livreurs
 Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et d'autres messages prêts, à tous ou à un seul livreur. Le message s'ouvre en grand chez eux, avec un son, et ils répondent « J'arrive » ou « Pas dispo ».
 

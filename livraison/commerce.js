@@ -20,7 +20,7 @@ function phoneOk(v) { return /^0(5\d{8}|7\d{8}|[2-489]\d{7})$/.test(phoneDigits(
 
 function renderStatic() {
   I18N.apply();
-  $("#brandName").textContent = I18N.businessName();
+  $("#brandName").innerHTML = UI.wordmark(I18N.lang === "he" ? "לעסקים" : "Pro");
   $("#waFab").href = UI.waLink(CONFIG.whatsapp, t("chatMsg") + " ");
   const price = UI.money(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || CONFIG.pricing.base);
   $("#shopPerks").innerHTML = ["shPerk1", "shPerk2", "shPerk3", "shPerk4", "shPerk5"]
@@ -80,7 +80,8 @@ async function submit(e) {
     await openSpace(r.token);
     window.scrollTo(0, 0);
   } catch (ex) {
-    err(t("shErrSend", { phone: CONFIG.phoneDisplay }));
+    // Déjà inscrit : pas de doublon (le commerce garde son parrain et son espace)
+    err(/shop_exists/.test(ex.message) ? t("shExists", { phone: CONFIG.phoneDisplay }) : t("shErrSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;
     btn.textContent = t("shSubmit");
@@ -98,7 +99,7 @@ async function openSpace(token) {
     $("#shopSignup").classList.remove("hidden");
     return;
   }
-  Store.rememberShopToken(token);
+  Store.rememberShopToken(token, d.shop.code);
   state.dash = d;
   $("#shopSignup").classList.add("hidden");
   $("#shopGone").classList.add("hidden");
@@ -114,6 +115,19 @@ function renderSpace() {
   $("#spLink").value = clientLink(shop);
   $("#spShare").href = UI.waShare(t("shShareMsg", { name: shop.name, url: clientLink(shop) }));
   $("#posterName").textContent = shop.name;
+  // Espace pro : tarif, carnet de courses payé d'avance
+  const C = CONFIG.partners.carnet, home = CONFIG.homeCity;
+  const unit = UI.money(CONFIG.pricing.fixedFromHome[home]);
+  const left = Number(shop.credits || 0);
+  const buyMsg = t("shCarnetMsg", { name: shop.name, code: shop.code, price: UI.money(C.price) });
+  $("#spPro").innerHTML = `<h3>${UI.esc(t("shProTitle"))}</h3>
+    <div class="pro-grid">
+      <div><small>${UI.esc(t("shProUnit", { city: I18N.cityName(home) }))}</small><b>${unit}</b></div>
+      <div class="pro-best"><small>${UI.esc(t("shProCarnet", { n: C.courses }))}</small><b>${UI.money(C.price)}</b><s>${UI.money(CONFIG.pricing.fixedFromHome[home] * C.courses)}</s></div>
+      <div><small>${UI.esc(t("shCarnetLeft"))}</small><b>🎟️ ${left}</b></div>
+    </div>
+    <p class="muted small" style="margin:10px 0">${UI.esc(t("shCarnetHow", { price: UI.money(C.price), phone: CONFIG.bitPhone, code: shop.code, n: C.courses }))}</p>
+    <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, buyMsg)}">${UI.esc(t("shCarnetBuy", { price: UI.money(C.price) }))}</a>`;
   const qr = $("#spQr");
   if (window.QRCode && qr.dataset.url !== clientLink(shop)) {
     qr.innerHTML = "";

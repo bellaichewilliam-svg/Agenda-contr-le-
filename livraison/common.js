@@ -67,7 +67,7 @@ function trackUrl(o) { return appUrl("suivi.html") + "?t=" + o.token; }
 const SERVICE_FR = { colis: "Envoi de colis", retrait: "Retrait de colis", achat: "Achat pour le client", repas: "Repas / restaurant" };
 const PLACE_FR = { poste: "Bureau de poste", superpharm: "Super-Pharm", relais: "Point relais", autre: "Magasin" };
 const SIZE_FR = { petit: "Petit colis", moyen: "Colis moyen (5–15 kg)", gros: "Gros colis (15–30 kg)" };
-const PAY_FR = { cash: "💵 Espèces", bit: "📱 Bit" };
+const PAY_FR = { cash: "💵 Espèces", bit: "📱 Bit", carnet: "🎟️ Carnet pro" };
 
 function whenFr(o) {
   if (o.urgency === "express") return "⚡ EXPRESS (moins d'une heure)";
@@ -111,12 +111,23 @@ function referralCode(phone) {
 }
 
 // Message WhatsApp au client selon le statut de sa course, dans SA langue
+// Nom de la marque en haut des pages clients : « HOP! » + « Livraison » (ou « Pro »)
+function wordmark(sub) {
+  const he = window.I18N && I18N.lang === "he";
+  const small = sub || (he ? "משלוחים" : "Livraison");
+  return `<b>${he ? "הופ" : "HOP"}<i>!</i></b><small>${esc(small)}</small>`;
+}
+
+// Numéro Bit à payer : HOP si la course est payée d'avance, sinon le coursier
+function bitFor(o) { return o.paid_to === "hop" || o.prepaid_required ? CONFIG.bitPhone : (o.courier_bit || CONFIG.bitPhone); }
+
 function clientMessage(o) {
   const l = o.lang || "fr";
   const f = (k, v) => I18N.forLang(l, k, v);
   const city = id => { const c = CONFIG.cities.find(x => x.id === id); return c ? c[l] || c.fr : id; };
   const when = o.urgency === "programmee" ? f("msg_when_at", { when: whenFr(o) }) : f("msg_when_asap");
-  const pay = o.payment_method === "bit" ? f("pay_bit_short", { phone: o.courier_bit || CONFIG.bitPhone }) : f("pay_cash_short");
+  const pay = o.payment_method === "carnet" ? f("pay_carnet")
+    : o.payment_method === "bit" ? f("pay_bit_short", { phone: bitFor(o) }) : f("pay_cash_short");
   const msg = f("msg_" + o.status, {
     name: o.contact_name || "", ref: o.ref, when, price: money(o.price), pay, reason: o.admin_note || "",
     url: o.status === "refusee" ? appUrl() + "#commander" : trackUrl(o),
@@ -172,7 +183,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  receiptUrl, referralCode, clientMessage, weekStart, addDays, fmtKey,
+  receiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
   esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
