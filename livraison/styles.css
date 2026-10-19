@@ -613,7 +613,7 @@ body.print-poster .print-only { display: grid; }
 .chat-empty { color: var(--muted); text-align: center; margin: auto; max-width: 280px; }
 .chat-msg { max-width: 82%; align-self: flex-start; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 8px 11px; display: grid; gap: 4px; }
 .chat-msg.mine { align-self: flex-end; background: var(--brand-soft); border-color: transparent; }
-.chat-msg.from-admin:not(.mine) { background: #E9EEF8; border-color: transparent; }
+.chat-msg.from-admin:not(.mine) { background: var(--blue-soft); border-color: transparent; }
 .chat-msg small { color: var(--muted); font-size: 11px; }
 .chat-msg p { overflow-wrap: anywhere; }
 .chat-msg img { display: block; max-width: 100%; max-height: 260px; border-radius: 10px; }
@@ -1021,3 +1021,26 @@ body.in-home .eta-bubble { display: none; }
 .ios-hint span { opacity: .9; line-height: 1.4; }
 .ios-hint i { font-style: normal; }
 .ios-hint button { border: 0; background: rgba(255,255,255,.15); color: #fff; width: 30px; height: 30px; border-radius: 50%; flex: none; }
+
+/* Tableaux du patron sur téléphone : une fiche par ligne, rien de coupé */
+@media (max-width: 760px) {
+  table.bill, table.bill tbody, table.bill tfoot, table.bill tr { display: block; width: 100%; }
+  table.bill thead { display: none; }
+  table.bill tr { border-bottom: 1px solid var(--border); padding: 8px 0; }
+  table.bill td, table.bill th { display: flex; justify-content: space-between; align-items: center; gap: 12px; border: 0; padding: 5px 14px; text-align: end; flex-wrap: wrap; }
+  table.bill td:first-child, table.bill th:first-child { justify-content: flex-start; text-align: start; font-size: 15px; }
+  table.bill td[data-label]:not(:first-child)::before, table.bill th[data-label]:not(:first-child)::before { content: attr(data-label); color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; text-align: start; }
+  table.bill .cell-empty { display: none; }
+  table.bill td[colspan] { display: block; text-align: start; }
+  .table-scroll { overflow: visible; }
+}
+
+/* Payer par Bit tout de suite */
+.bit-pay p { margin: 6px 0; }
+.bit-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.btn-bit { background: var(--bit); color: #fff; border-color: transparent; }
+
+/* Enregistrer une adresse : Maison, Travail, autre nom */
+.save-tags { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+
+.forgot-link { margin-top: 8px; width: 100%; }

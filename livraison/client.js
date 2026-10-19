@@ -569,13 +569,20 @@ function addrLabel(a) {
   return [a.brand, `${a.street} ${a.number}`.trim(), city].filter(Boolean).join(", ") + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : "");
 }
 
+// 🏠 Maison, 💼 Travail, ⭐ un nom choisi, 🏪 une enseigne, 📍 une adresse
+function addrIcon(a) { return a.tag === "home" ? "🏠" : a.tag === "work" ? "💼" : a.tag ? "⭐" : a.brand ? "🏪" : "📍"; }
+function addrChip(a) {
+  const name = a.tag === "home" ? t("tagHome") : a.tag === "work" ? t("tagWork") : a.tag ? a.name : "";
+  return `${addrIcon(a)} ${name ? `<b>${UI.esc(name)}</b> · ` : ""}${UI.esc(addrLabel(a))}`;
+}
+
 function renderSavedAddrs() {
   const list = Store.getAddresses();
   if (home.ac.from) renderHomeStatic();
   document.querySelectorAll(".saved-addrs").forEach(box => {
     box.classList.toggle("hidden", !list.length);
     box.innerHTML = list.length ? `<small>${UI.esc(t("savedTitle"))}</small>` + list.slice(0, 5).map((a, i) =>
-      `<button type="button" class="addr-chip" data-addr="${i}">${a.brand ? "🏪" : "📍"} ${UI.esc(addrLabel(a))}</button>`).join("") : "";
+      `<button type="button" class="addr-chip" data-addr="${i}">${addrChip(a)}</button>`).join("") : "";
   });
 }
 
@@ -653,8 +660,24 @@ async function useMyPosition(which, btn) {
     btn.textContent = t("useMyPos");
   }
 }
-function saveCurrentAddress(which, btn) {
+// « ⭐ Enregistrer » : on choisit Maison, Travail ou un autre nom
+function askSaveTag(which, btn) {
+  const tools = btn.parentNode;
+  tools.querySelectorAll(".save-tags").forEach(x => x.remove());
+  const box = document.createElement("span");
+  box.className = "save-tags";
+  box.innerHTML = [["home", "🏠 " + t("tagHome")], ["work", "💼 " + t("tagWork")], ["other", "⭐ " + t("tagOther")]]
+    .map(([k, l]) => `<button type="button" class="btn btn-sm" data-save-tag="${k}" data-for="${which}">${UI.esc(l)}</button>`).join("");
+  btn.classList.add("hidden");
+  tools.appendChild(box);
+}
+function saveCurrentAddress(which, btn, tag) {
   const p = state.pick[which];
+  let name = null;
+  if (tag === "other") {
+    name = (prompt(t("tagNamePh")) || "").trim().slice(0, 30);
+    if (!name) return;
+  }
   if (!p) return;
   const pre = prefixOf(which), cityId = cityOf(which);
   Store.saveAddress({
@@ -663,9 +686,14 @@ function saveCurrentAddress(which, btn) {
     lat: p.lat, lon: p.lon, exact: !!p.exact,
     building: val(pre + "_building").trim() || null, floor: val(pre + "_floor").trim() || null,
     apt: val(pre + "_apt").trim() || null, code: val(pre + "_code").trim() || null, note: val(pre + "_note").trim() || null,
-    kind: kindOf(pre)
+    kind: kindOf(pre), tag: tag || null, name
   });
-  btn.textContent = t("addrSaved");
+  const tools = btn.closest(".addr-tools");
+  if (tools) {
+    tools.querySelectorAll(".save-tags").forEach(x => x.remove());
+    const b = tools.querySelector("[data-save-addr]");
+    if (b) { b.classList.remove("hidden"); b.textContent = t("addrSaved"); }
+  }
   renderSavedAddrs();
   renderAccount();
 }
@@ -755,7 +783,7 @@ function renderAccount() {
     <p style="margin-top:8px"><b>${UI.esc(p.contact_name)}</b> · <span dir="ltr">${UI.esc(p.contact_phone)}</span>${p.contact_email ? " · " + UI.esc(p.contact_email) : ""}
       · ${UI.esc(t("accOrders", { n: activeOrders().length }))}</p>
     <b style="display:block;margin-top:10px">${UI.esc(t("accAddrs"))}</b>
-    ${addrs.length ? `<ul>${addrs.map((a, i) => `<li><span>${a.brand ? "🏪" : "📍"} ${UI.esc(addrLabel(a))}</span>
+    ${addrs.length ? `<ul>${addrs.map((a, i) => `<li><span>${addrChip(a)}</span>
         <button type="button" class="btn btn-sm btn-link" data-del-addr="${i}">✕ ${UI.esc(t("accDelete"))}</button></li>`).join("")}</ul>`
       : `<p class="muted small">${UI.esc(t("accNoAddr"))}</p>`}`;
 }
@@ -923,8 +951,11 @@ async function submit(e) {
     const firstOrder = activeOrders().length === 0;
     const saved = await Store.createOrder(order);
     rememberAddresses(saved, pf, pt);
-    $("#donePrepay").textContent = t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref });
-    $("#donePrepay").classList.toggle("hidden", !saved.prepaid_required || saved.payment_method === "carnet");
+    // Bit : on paie tout de suite, depuis cet écran (créneau réservé : obligatoire)
+    $("#donePrepay").innerHTML = saved.payment_method === "bit"
+      ? (saved.prepaid_required ? `<p class="promo-msg bad">${UI.esc(t("trPrepay"))}</p>` : "") + UI.bitPay(saved)
+      : UI.esc(t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref }));
+    $("#donePrepay").classList.toggle("hidden", saved.payment_method === "carnet" || (saved.payment_method !== "bit" && !saved.prepaid_required));
     if (saved.payment_method === "carnet" && state.pro) state.pro.credits--;
     confetti();
     hopBurst(t("hopSent"));
@@ -1310,11 +1341,13 @@ function initHome() {
       g.disabled = true;
       g.classList.add("busy");
       try {
-        const err = await locateInto(g.dataset.hgeo);
+        // « 📍 Ma position » des raccourcis : le départ s'il est vide, sinon l'arrivée
+        const which = g.dataset.hgeo === "auto" ? (!state.pick.from ? "from" : "to") : g.dataset.hgeo;
+        const err = await locateInto(which);
         if (err) showHomeErr(t(err));
         else {
           renderLive();
-          if (!val(prefixOf(g.dataset.hgeo) + "_number").trim()) { showHomeErr(t("hmNeedNo")); homeNo(g.dataset.hgeo).focus(); }
+          if (!val(prefixOf(which) + "_number").trim()) { showHomeErr(t("hmNeedNo")); homeNo(which).focus(); }
         }
       } finally { g.disabled = false; g.classList.remove("busy"); }
       return;
@@ -1350,7 +1383,9 @@ function initHome() {
     }).catch(() => {});
   }
   loadNearby();
-  setInterval(() => { if (!document.hidden) loadNearby(); }, 30000);
+  // Livreurs en ligne : vérifié toutes les 5 s (un livreur qui se déconnecte disparaît tout de suite)
+  setInterval(() => { if (!document.hidden) loadNearby(); }, 5000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) loadNearby(); });
   // Sur téléphone, la bulle « Nous écrire » remonte au-dessus du bouton Commander
   if ("IntersectionObserver" in window) new IntersectionObserver(es => document.body.classList.toggle("in-home", es[0].isIntersecting)).observe($("#homeSheet"));
 }
@@ -1365,7 +1400,8 @@ function renderHomeStatic() {
     return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}"><i>${ex.icon}</i><b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
   }).join("");
   const list = Store.getAddresses().slice(0, 5);
-  $("#homeChips").innerHTML = list.map((a, i) => `<button type="button" class="ch-chip" data-haddr="${i}">${a.brand ? "🏪" : "⭐"} ${UI.esc(addrLabel(a))}</button>`).join("");
+  $("#homeChips").innerHTML = `<button type="button" class="ch-chip" data-hgeo="auto">${UI.esc(t("myPosChip"))}</button>`
+    + list.map((a, i) => `<button type="button" class="ch-chip" data-haddr="${i}">${addrChip(a)}</button>`).join("");
   renderWhen();
   $("#homeEns").innerHTML = Enseignes.CATS.filter(c => c.id !== "hop" || state.partners.length)
     .map(c => `<button type="button" class="ch-chip" data-ens="${c.id}">${UI.esc(t("ens_" + c.id))}</button>`).join("");
@@ -1857,7 +1893,9 @@ form.addEventListener("click", e => {
   const g = e.target.closest("[data-geo]");
   if (g) return useMyPosition(g.dataset.geo, g);
   const s = e.target.closest("[data-save-addr]");
-  if (s) saveCurrentAddress(s.dataset.saveAddr, s);
+  if (s) return askSaveTag(s.dataset.saveAddr, s);
+  const tg = e.target.closest("[data-save-tag]");
+  if (tg) saveCurrentAddress(tg.dataset.for, tg, tg.dataset.saveTag);
 });
 document.addEventListener("click", e => { if (e.target.closest("[data-support]")) { e.preventDefault(); openSupport(); } });
 setTimeout(checkChats, 1500);

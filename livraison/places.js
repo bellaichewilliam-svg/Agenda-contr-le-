@@ -75,7 +75,8 @@ async function searchMap(q, lang) {
   const at = near || home;
   const key = lang + "|" + q.trim().toLowerCase() + "|" + at.lat.toFixed(2) + "," + at.lon.toFixed(2);
   if (cache[key]) return cache[key];
-  const url = `${API}?limit=10&bbox=${BBOX}&lat=${at.lat}&lon=${at.lon}`
+  // Priorité forte à la distance : « Golda » donne d'abord la Golda du quartier, pas la plus connue du pays
+  const url = `${API}?limit=15&bbox=${BBOX}&lat=${at.lat}&lon=${at.lon}&location_bias_scale=0.1&zoom=14`
     + (lang === "fr" ? "&lang=fr" : "") + "&q=" + encodeURIComponent(q);
   const res = await fetch(url);
   if (!res.ok) throw new Error("photon " + res.status);
@@ -97,8 +98,54 @@ async function searchMap(q, lang) {
     const brands = slots.map(i => list[i]).sort((a, b) => km(near, a) - km(near, b));
     slots.forEach((i, k) => { list[i] = brands[k]; });
   }
+  // Aucune enseigne de ce nom près du client : on cherche le nom autour de lui sur OpenStreetMap
+  // (Photon ne renvoie parfois que les agences les plus connues, loin du client)
+  if (near && q.trim().length >= 3 && !list.some(p => p.brand && km(near, p) < 4)) {
+    const extra = await nearbyByName(q, lang, near).catch(() => []);
+    const seenAt = new Set(list.filter(p => p.brand).map(p => normalize(p.brand) + "|" + p.lat.toFixed(3) + "," + p.lon.toFixed(3)));
+    const add = extra.filter(p => !seenAt.has(normalize(p.brand) + "|" + p.lat.toFixed(3) + "," + p.lon.toFixed(3)));
+    list.unshift(...add);
+  }
   cache[key] = list;
   return list;
+}
+
+// Enseignes dont le nom (français, hébreu, anglais ou marque) contient le texte, à moins de 6 km
+const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+function nearestCity(lat, lon) {
+  const c = CONFIG.cities.filter(c => c.lat != null).sort((a, b) => km({ lat, lon }, a) - km({ lat, lon }, b))[0];
+  return c && km({ lat, lon }, c) < 8 ? c.id : null;
+}
+async function nearbyByName(q, lang, at) {
+  const rx = q.trim().replace(/[\\^$.*+?()[\]{}|"]/g, ".");
+  const query = `[out:json][timeout:8];nwr[~"^(name|brand)(:(he|en|fr|ru))?$"~"${rx}",i](around:6000,${at.lat},${at.lon});out center tags 8;`;
+  let data = null;
+  for (const url of OVERPASS) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 6000);
+    try {
+      const res = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(query), signal: ctl.signal,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+      if (res.ok) { data = await res.json(); break; }
+    } catch (e) { /* serveur suivant */ } finally { clearTimeout(timer); }
+  }
+  if (!data) return [];
+  const out = [];
+  for (const e of data.elements || []) {
+    const g = e.tags || {};
+    const lat = e.lat != null ? e.lat : e.center && e.center.lat, lon = e.lon != null ? e.lon : e.center && e.center.lon;
+    const name = g["name:" + lang] || (lang === "fr" && g["name:en"]) || g.name || g["name:he"] || g["name:en"] || g.brand;
+    if (!name || lat == null || !(g.amenity || g.shop || g.office || g.tourism || g.healthcare || g.leisure || g.craft)) continue;
+    const streetName = g["addr:street"] || "", housenumber = g["addr:housenumber"] || "";
+    const city = g["addr:city"] || "";
+    const streetLine = [streetName, housenumber].filter(Boolean).join(" ");
+    out.push({
+      lat, lon, city, type: "house", streetName, housenumber,
+      cityId: matchCity(city) || nearestCity(lat, lon), brand: name, street: streetLine || name, exact: true,
+      label: [name, streetLine, city].filter(Boolean).join(", ")
+    });
+  }
+  return out.sort((a, b) => km(at, a) - km(at, b));
 }
 
 // Adresse la plus proche d'une position GPS (« 📍 Ma position »)

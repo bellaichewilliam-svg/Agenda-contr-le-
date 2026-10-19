@@ -148,14 +148,18 @@ function render() {
   const pay = $("#payBox");
   pay.classList.toggle("hidden", o.status === "annulee" || o.status === "refusee");
   const bit = UI.bitFor(o);
+  // Trompé de moyen de paiement : on change tant que rien n'est payé
+  const canSwitch = o.payment_status !== "paye" && ["cash", "bit"].includes(o.payment_method)
+    && ["nouvelle", "confirmee", "recuperee"].includes(o.status) && !(o.payment_method === "bit" && o.prepaid_required);
   const copy = `<button class="btn btn-sm" id="copyBit">${UI.esc(t("trCopy"))}</button>`;
   pay.innerHTML = `<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>`
       : o.payment_method === "bit"
-        ? `${o.prepaid_required ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}<p style="margin:6px 0">${UI.esc(t("trPayBit", { phone: bit, ref: o.ref }))}</p>${copy}`
-        : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}`;
+        ? `${o.prepaid_required ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}${UI.bitPay(o)}`
+        : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}
+    ${canSwitch ? `<button class="btn btn-sm btn-link" id="switchPay">${UI.esc(t(o.payment_method === "bit" ? "trToCash" : "trToBit"))}</button>` : ""}`;
 
   // Discussion directe : avec le livreur attribué, ou avec l'administration
   const hasCourier = !!o.courier_phone && ["confirmee", "recuperee"].includes(o.status);
@@ -285,7 +289,13 @@ async function load() {
 }
 
 $("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); render(); });
-$("#payBox").addEventListener("click", e => {
+$("#payBox").addEventListener("click", async e => {
+  if (e.target.id === "switchPay") {
+    e.target.disabled = true;
+    const ok = await Store.setPayment(token, order.payment_method === "bit" ? "cash" : "bit").catch(() => false);
+    if (!ok) { e.target.disabled = false; e.target.textContent = t("trSwitchErr"); return; }
+    return load();
+  }
   if (e.target.id !== "copyBit") return;
   const done = () => { e.target.textContent = t("trCopied"); };
   const bit = CONFIG.bitPhone;

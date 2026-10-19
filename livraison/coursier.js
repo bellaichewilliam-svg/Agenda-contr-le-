@@ -166,6 +166,7 @@ async function route() {
   }
   $("#work").classList.remove("hidden");
   document.body.classList.add("rider-on");
+  UI.pushSubscribe();
   $("#drawerName").textContent = me.name;
   applyRiderSettings();
   initRiderMap();
@@ -860,7 +861,7 @@ function onWorkClick(e) {
   if (el.dataset.soundTest) { const s = riderSet.sound; riderSet.sound = true; ringOnce(); riderSet.sound = s; return; }
   if (el.dataset.notif) {
     if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
-    return Notification.requestPermission().then(() => render());
+    return Notification.requestPermission().then(() => { UI.pushSubscribe(); render(); });
   }
   if (el.dataset.logout) return $("#drawerLogout").click();
   if (el.dataset.issue) return reportIssue(orders.find(x => x.id === el.dataset.issue));
@@ -1321,7 +1322,9 @@ $("#autoOffChat").addEventListener("click", () => { $("#autoOffModal").classList
 
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|messages|shops)/.test(e.key || "") && me && me.status === "actif") load(); });
 // Arrivée depuis le lien du mail de confirmation : session reprise, sinon on invite à se connecter
-Store.adoptLinkSession().catch(() => false).then(async () => {
+UI.forgotLink($("#loginForm"), $("#loginError"));
+Store.adoptLinkSession().catch(() => false).then(async how => {
+  if (how === "recovery") await UI.askNewPassword();
   await route();
   if (!Store.session() && /confirme=1/.test(location.search)) {
     showAuth("login");

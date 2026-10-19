@@ -296,6 +296,7 @@ function card(o, withDay) {
     meta.push(`<button class="pill pill-btn ${o.unlocked ? "paid" : ""}" data-act="unlock" title="Laisser le livreur valider « Livré » sans GPS ni photo">${o.unlocked ? "🔓 Débloquée (cliquer pour rebloquer)" : "🔓 Débloquer la course"}</button>`);
   }
   if (o.payment_method === "carnet") meta.push(`<span class="pill paid">🎟️ Carnet pro</span>`);
+  if (o.payment_method === "bit" && o.payment_status !== "paye" && o.client_paid_at) meta.push(`<span class="pill unpaid" title="Vérifiez votre Bit, puis marquez la course payée">💳 Le client dit avoir payé par Bit · à vérifier</span>`);
   if (o.prepaid_required) meta.push(`<span class="pill ${o.payment_status === "paye" ? "paid" : "st-annulee"}">💳 Payée d'avance : ${o.payment_status === "paye" ? "reçu ✓" : "EN ATTENTE"}</span>`);
   if (o.shop_name) {
     const ref = couriers.find(c => c.id === o.referrer_id);
@@ -391,6 +392,16 @@ function renderStats() {
   $("#reqBadge").textContent = newReqs ? `(${newReqs})` : "";
 }
 
+// Tableaux sur téléphone : chaque ligne devient une fiche (libellé de la colonne à gauche, valeur à droite)
+function labelTables(root) {
+  root.querySelectorAll("table.bill").forEach(tb => {
+    const heads = [...tb.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    tb.querySelectorAll("tbody tr, tfoot tr").forEach(tr => [...tr.children].forEach((td, i) => {
+      if (heads[i] && !td.hasAttribute("colspan")) td.setAttribute("data-label", heads[i]);
+      if (!td.textContent.trim() && !td.querySelector("button, a, select")) td.classList.add("cell-empty");
+    }));
+  });
+}
 function render() {
   renderStats();
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
@@ -433,6 +444,7 @@ function render() {
   } else {
     renderBilling(view);
   }
+  labelTables($("#view"));
 }
 
 // --- Carte en direct : livreurs, points de récupération et de livraison -----------------
@@ -1104,6 +1116,8 @@ async function start() {
   $("#logoutBtn").classList.remove("hidden");
   try { me = await Store.me(); } catch (e) { /* rechargé par load() */ }
   $("#demoNotice").classList.toggle("hidden", Store.ONLINE);
+  // Alertes déjà autorisées : nouvelles commandes et messages aussi quand HOP! est fermé
+  UI.pushSubscribe();
   renderDuty();
   load();
   clearInterval(pollTimer);
@@ -1132,7 +1146,7 @@ $("#notifBtn").addEventListener("click", () => {
   if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
   Notification.requestPermission().then(p => {
     $("#notifBtn").textContent = p === "granted" ? "🔔 Alertes activées" : "🔕 Alertes refusées";
-    if (p === "granted") beep();
+    if (p === "granted") { beep(); UI.pushSubscribe(); }
   });
 });
 $("#view").addEventListener("click", onViewClick);
@@ -1150,7 +1164,12 @@ document.addEventListener("visibilitychange", async () => {
 });
 
 if (window.Notification && Notification.permission === "granted") $("#notifBtn").textContent = "🔔 Alertes activées";
-if (Store.session()) start(); else showLogin();
+UI.forgotLink($("#loginForm"), $("#loginError"));
+// Lien « Mot de passe oublié » : session reprise, nouveau mot de passe, puis l'espace patron
+Store.adoptLinkSession().catch(() => false).then(async how => {
+  if (how === "recovery") await UI.askNewPassword();
+  if (Store.session()) start(); else showLogin();
+});
 // Le service était en cours avant de recharger la page : on le reprend
 try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); } catch (e) { /* ignore */ }
 

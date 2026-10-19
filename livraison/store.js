@@ -278,13 +278,20 @@ function getProfile() { return readJSON(LS.profile, {}); }
 
 // Carnet d'adresses du client (sur son téléphone), les plus utilisées en premier
 function getAddresses() { return readJSON(LS.addresses, []); }
+// tag : "home" (Maison), "work" (Travail) ou "other" (avec un nom) ; une seule Maison et un seul Travail.
+// Une adresse nommée garde son nom quand elle resservira dans une commande.
+const TAG_RANK = { home: 0, work: 1, other: 2 };
 function saveAddress(a) {
   const key = [a.street, a.number, a.city, a.apt].join("|").toLowerCase();
-  const list = getAddresses().filter(x => [x.street, x.number, x.city, x.apt].join("|").toLowerCase() !== key);
+  let list = getAddresses().filter(x => [x.street, x.number, x.city, x.apt].join("|").toLowerCase() !== key);
   const old = getAddresses().find(x => [x.street, x.number, x.city, x.apt].join("|").toLowerCase() === key);
-  list.unshift(Object.assign({}, a, { uses: ((old && old.uses) || 0) + 1, at: Date.now() }));
-  list.sort((x, y) => (y.uses - x.uses) || (y.at - x.at));
-  writeJSON(LS.addresses, list.slice(0, 8));
+  const tag = a.tag || (old && old.tag) || null;
+  const name = a.tag ? a.name || null : (old && old.name) || null;
+  if (tag === "home" || tag === "work") list = list.map(x => (x.tag === tag ? Object.assign({}, x, { tag: null, name: null }) : x));
+  list.unshift(Object.assign({}, a, { tag, name, uses: ((old && old.uses) || 0) + 1, at: Date.now() }));
+  const rank = x => (x.tag in TAG_RANK ? TAG_RANK[x.tag] : 9);
+  list.sort((x, y) => (rank(x) - rank(y)) || (y.uses - x.uses) || (y.at - x.at));
+  writeJSON(LS.addresses, list.slice(0, 10));
 }
 function deleteAddress(i) { const list = getAddresses(); list.splice(i, 1); writeJSON(LS.addresses, list); }
 function saveProfile(p) { writeJSON(LS.profile, p); }
@@ -320,11 +327,23 @@ async function login(email, password) {
 
 function logout() { removeKey(sessionKey); }
 
+// Mot de passe oublié : Supabase envoie un lien ; en revenant, la page demande le nouveau mot de passe
+async function resetPassword(email) {
+  if (!ONLINE) throw new Error("Indisponible en mode démo.");
+  const back = location.origin + location.pathname + "?reset=1";
+  await rest("/auth/v1/recover?redirect_to=" + encodeURIComponent(back), { method: "POST", body: { email: email.toLowerCase() } });
+}
+async function setPassword(password) {
+  if (!ONLINE) throw new Error("Indisponible en mode démo.");
+  await authRest("/auth/v1/user", { method: "PUT", body: { password } });
+}
+
 // Retour du lien de confirmation du mail : Supabase met la session dans l'adresse (#access_token=…).
 // On la garde, on crée la fiche préparée à l'inscription (même téléphone), puis on nettoie l'adresse.
 async function adoptLinkSession() {
   if (!ONLINE || !/access_token=/.test(location.hash)) return false;
   const h = new URLSearchParams(location.hash.slice(1));
+  const recovery = h.get("type") === "recovery";
   history.replaceState(null, "", location.pathname);
   let claims = {};
   try { claims = JSON.parse(atob(h.get("access_token").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch (e) { return false; }
@@ -336,7 +355,7 @@ async function adoptLinkSession() {
     if (pending.topcase) await sendTopcase(pending.topcase).catch(() => {});
     removeKey(LS.pendingCourier);
   }
-  return true;
+  return recovery ? "recovery" : true;
 }
 
 // Compte connecté sans fiche (inscription commencée sur un autre téléphone) : on complète la fiche
@@ -378,6 +397,11 @@ async function signupCourier(email, password, profile, topcase) {
   const back = location.origin + location.pathname + "?confirme=1";
   const data = await rest("/auth/v1/signup?redirect_to=" + encodeURIComponent(back), { method: "POST", body: { email, password } })
     .catch(e => { throw new Error(/registered|exists/i.test(e.message) ? "Un compte existe déjà avec cet email." : "Inscription impossible : " + e.message); });
+  // Email déjà inscrit : Supabase répond « OK » sans rien envoyer (compte sans identité) ; on le dit
+  const u = data.user || data;
+  if (!data.access_token && Array.isArray(u.identities) && !u.identities.length) {
+    throw new Error("Un compte existe déjà avec cet email : touchez « J'ai déjà un compte » (ou « Mot de passe oublié ? »).");
+  }
   if (!data.access_token) {
     // Supabase demande de confirmer l'email : la fiche sera créée à la 1re connexion
     writeJSON(LS.pendingCourier, { email, profile, topcase });
@@ -725,6 +749,37 @@ async function tipOrder(token, amount) {
   Object.assign(o, { tip: n, tip_status: "promis" });
   saveLocalOrders(all);
   chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:tip" });
+  return true;
+}
+
+// Notifications push : le téléphone connecté (patron ou livreur) s'abonne
+async function pushSubscribe(endpoint, p256dh, auth) {
+  if (!ONLINE || !session()) return false;
+  return authRest("/rest/v1/rpc/push_subscribe", { method: "POST", body: { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth } });
+}
+
+// Le client a payé par Bit (il le déclare) : le patron vérifie son Bit
+async function clientPaid(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_client_paid", { method: "POST", body: { p_token: token } });
+  const all = localOrders();
+  const o = all.find(x => x.token === token && x.payment_method === "bit" && x.payment_status === "en_attente" && !x.client_paid_at && !["annulee", "refusee"].includes(x.status));
+  if (!o) return false;
+  o.client_paid_at = new Date().toISOString();
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:client_paid" });
+  return true;
+}
+
+// Le client change son moyen de paiement (espèces ↔ Bit) tant que rien n'est payé
+async function setPayment(token, method) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_set_payment", { method: "POST", body: { p_token: token, p_method: method } });
+  const all = localOrders();
+  const o = all.find(x => x.token === token && ["cash", "bit"].includes(x.payment_method) && x.payment_method !== method
+    && x.payment_status === "en_attente" && ["nouvelle", "confirmee", "recuperee"].includes(x.status) && !(method === "cash" && x.prepaid_required));
+  if (!o) return false;
+  Object.assign(o, { payment_method: method, paid_to: method === "bit" ? "hop" : "livreur", client_paid_at: null });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:pay_" + method });
   return true;
 }
 
@@ -1113,10 +1168,10 @@ window.Store = {
   getSettings, saveSettings,
   welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
-  useSpace, session, login, logout, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
+  useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  couriersNearby, rateOrder, tipOrder, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
