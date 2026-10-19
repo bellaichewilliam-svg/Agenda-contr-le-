@@ -66,10 +66,10 @@ const T = {
     link: APP + 'commerce.html'
   },
   rider: {
-    fr: { h1: 'Deviens livreur<br><em>partenaire HOP!</em>', sub: 'Scooter, voiture ou vélo · Netanya et le Sharon', chips: ['✅ Tu choisis tes courses', '💵 Tu encaisses les espèces', '🎯 Les courses proches de toi d\'abord', '🤝 +1 ₪ par commerce amené'],
-      price: '<span>Commission HOP!</span><span><b>3 ₪</b> <small style="font-size:.4em;color:#5B6476">/ course</small></span>', badge: '🛵 Pas d\'abonnement', scan: 'Inscris-toi', url: 'Permis, assurance, עוסק' },
-    he: { h1: 'בואו להיות<br><em>שליחים בהופ!</em>', sub: 'קטנוע, רכב או אופניים · נתניה והשרון', chips: ['✅ בוחרים את המשלוחים', '💵 מקבלים את המזומן', '🎯 משלוחים קרובים אליכם קודם', '🤝 ‎+1 ₪ על כל עסק שמביאים'],
-      price: '<span>העמלה של הופ!</span><span><b>3 ₪</b> <small style="font-size:.4em;color:#5B6476">/ משלוח</small></span>', badge: '🛵 בלי מנוי', scan: 'להרשמה', url: 'רישיון, ביטוח, עוסק' },
+    fr: { h1: 'Deviens livreur<br><em>partenaire HOP!</em>', sub: 'Scooter, voiture ou vélo · Netanya et le Sharon', chips: ['✅ Tu choisis tes courses', '🟢 En ligne quand tu veux', '🎯 Les courses proches de toi d\'abord', '🤝 +1 ₪ par commerce amené'],
+      price: '<span>Commission HOP! par course</span><span><b>12 %</b> <small style="font-size:.45em;color:#5B6476">· min 3 ₪</small></span>', badge: '🛵 Pas d\'abonnement', scan: 'Inscris-toi', url: 'Permis, assurance, עוסק' },
+    he: { h1: 'בואו להיות<br><em>שליחים בהופ!</em>', sub: 'קטנוע, רכב או אופניים · נתניה והשרון', chips: ['✅ בוחרים את המשלוחים', '🟢 מתחברים מתי שרוצים', '🎯 משלוחים קרובים אליכם קודם', '🤝 ‎+1 ₪ על כל עסק שמביאים'],
+      price: '<span>העמלה של הופ! למשלוח</span><span><b>12%</b> <small style="font-size:.45em;color:#5B6476">· מינ׳ 3 ₪</small></span>', badge: '🛵 בלי מנוי', scan: 'להרשמה', url: 'רישיון, ביטוח, עוסק' },
     link: APP + 'coursier.html'
   }
 };

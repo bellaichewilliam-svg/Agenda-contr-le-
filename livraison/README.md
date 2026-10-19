@@ -22,14 +22,15 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **Commande immédiate, express ou programmée** au jour et à l'heure près. Si vous êtes complet ou ne pouvez pas prendre une course, le client est prévenu, avec la raison dans sa langue.
 - **Paiement en espèces ou par Bit.** Un numéro de commande est affiché partout.
 - **Suivi en direct** sur la carte. Le client peut **écrire ou téléphoner directement à son livreur** ou **au service client** (vous).
-- **Bouton WhatsApp** sur chaque page pour vous écrire directement.
+- **Messagerie dans l'application** (« 💬 Nous écrire ») sur chaque page : aucun échange par WhatsApp.
+- **Bulle ronde du temps restant** : pendant une course, une bulle reste ouverte en bas de l'écran avec les minutes restantes ; en la touchant, le client voit le scooter avancer sur la carte.
 - **Reçu (קבלה)** bilingue, numéroté, imprimable, et **envoyé automatiquement par mail** (voir `email/README-mail.md`).
 - **Offres :** codes promo, parrainage, carte de fidélité.
 
 ### Vous (`admin.html`)
 - **Carte « En direct »** : tous les livreurs en service, chaque point de récupération (🍔 restaurant, 📮 poste, 🛒 achat, 📦 colis) et de livraison (🏁), le trajet restant et l'étape de chaque course avec le temps estimé.
 - **Courses :** agenda, alertes, « Je la prends », « Donner à un livreur », « 🚫 Je ne peux pas » (raison envoyée au client), « Je suis complet ».
-- **Sur la route :** mode « En service » avec position GPS, encaissé / à encaisser, messages WhatsApp dans la langue du client, itinéraire, reçus.
+- **Sur la route :** mode « En ligne » avec position GPS, encaissé / à encaisser, messages dans la langue du client, itinéraire, reçus.
 - **Onglet Livreurs :** validation des inscriptions, dates du permis et de l'assurance (en rouge si expirées), suspension.
 - **Onglet Paiements de la semaine :** commission de chaque livreur, message récapitulatif, « ✓ Réglé ».
 - **Facturation mensuelle** par client, avec export CSV.
@@ -37,14 +38,16 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 ### Livreurs partenaires (`coursier.html`) : une vraie appli de livreur
 - **Carte plein écran** (sombre ou claire) avec votre position, les courses disponibles (avec leur prix) et votre course en cours.
 - **Panneau du bas** : la demande en direct (« C'est calme », « Ça roule », « 🔥 Ça vaut le coup de sortir »), la course en cours, les courses disponibles, « Gagnez plus ».
-- **Glisser pour passer en service** (impossible de se connecter par erreur).
+- **En ligne / hors ligne :** on glisse le bouton « HOP! » jusqu'au bout pour passer en ligne (impossible par erreur). Hors ligne, le livreur ne reçoit aucune course, ni fenêtre ni son. L'appli se souvient de l'état et reprend en ligne toute seule après un rechargement.
+- **Refuser une course :** « ✖ Refuser » dans la fenêtre de la course (40 s pour répondre). Elle passe tout de suite au livreur suivant. Le taux d'acceptation s'affiche dans les statistiques.
+- **Prévisions de demande** (Zones et demande) : les commandes heure par heure des 4 dernières semaines pour le même jour, pour savoir quand sortir.
 - **Menu** : Mes courses, Courses disponibles, Zones et demande, Finances, Statistiques, Gagner plus, Engagements et assurance, Assistance HOP!, Réglages (Waze ou Google Maps, mode de déplacement, apparence, son), Centre d'aide.
 - **🔔** : les annonces de HOP et la conversation avec HOP.
 
 - **Inscription :** coordonnées, véhicule, permis, assurance, numéro d'עוסק, et **9 engagements à cocher** (permis valide, assurance, statut d’indépendant, responsabilité des colis et de l’argent, « Livré » validé seulement sur place, sécurité, commission hebdomadaire…). Le bouton « Livré » vérifie la position GPS : à plus de 200 m de l’adresse (`platform.deliverRadius`), la livraison est refusée.
-- **Fenêtre « Nouvelle course ! »** avec un son, dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte » ou « Plus tard ».
+- **Fenêtre « Nouvelle course ! »** avec un son, dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte », « Plus tard » ou « ✖ Refuser ».
 - **Après votre validation :** courses disponibles (le premier qui accepte la prend), ses courses, GPS, encaissement, « Je ne peux plus ».
-- **Onglet « Ma semaine » :** courses, encaissé, commission à verser par Bit une fois par semaine (`platform.commissionPerCourse` = 3 ₪ par course dans `config.js`).
+- **Onglet « Ma semaine » :** courses, encaissé, commission à verser par Bit une fois par semaine.
 
 ### Commerces partenaires et parrainage (`commerce.html`)
 - **Le livreur amène un commerce** : onglet « 🤝 Parrainage » de son espace (son code, son lien, son QR code, un message prêt à envoyer en hébreu et en français).
@@ -63,12 +66,13 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 
 ### Argent : tout est carré
 - **Qui encaisse :** le livreur n'encaisse **que les espèces**. Le **Bit va toujours à HOP** (052-779-0361), comme les courses programmées et les carnets pro : vous reversez ces courses au livreur dans la semaine.
-- **Chaque semaine :** le livreur vous doit ses commissions (3 ₪ par course), moins les courses payées à HOP (vous les lui reversez) et moins ses bonus de parrainage. « ✓ Réglé » remet le compteur à zéro.
+- **Commission :** 12 % du prix de la course, au minimum 3 ₪, arrondie au demi-shekel (25 ₪ → 3 ₪, 50 ₪ → 6 ₪, 100 ₪ → 12 ₪, 120 ₪ → 14,50 ₪). Réglage : `commission_pct` et `commission_min` dans la table `settings` (et `platform.commissionPercent` / `commissionPerCourse` dans `config.js` pour le mode démo).
+- **Chaque semaine :** le livreur vous doit ses commissions, moins les courses payées à HOP (vous les lui reversez) et moins ses bonus de parrainage. « ✓ Réglé » remet le compteur à zéro.
 - **Plafond :** au-delà de `platform.maxDebt` (50 ₪) dus, le livreur ne peut plus accepter de course tant qu'il n'a pas réglé.
 - Sur une course, le bouton « Payée au livreur ⇄ Payée à HOP » corrige le cas d'un client qui a payé le mauvais numéro.
 
 ### Qui reçoit la course
-Le livreur en service le plus proche du départ la reçoit en premier, le 2e plus proche après 45 s (`platform.waveSeconds`), puis tous les autres après 90 s. Pour une course d'un commerce partenaire, son parrain passe d'abord (3 min). Côté patron, « Donner à un livreur » classe les livreurs du plus proche au plus loin.
+Seuls les livreurs en ligne reçoivent des courses. Le livreur en ligne le plus proche du départ la reçoit en premier, le 2e plus proche après 45 s (`platform.waveSeconds`), puis tous les autres après 90 s. Pour une course d'un commerce partenaire, son parrain passe d'abord (3 min). Côté patron, « Donner à un livreur » classe les livreurs du plus proche au plus loin.
 
 ### Espace pro et carnet
 L'espace du commerce (`commerce.html`) montre le tarif pro (25 ₪ dans Netanya) et le carnet de 10 courses (200 ₪). Le commerce paie par Bit, puis vous cliquez « 🎟️ Carnet payé » dans l'onglet « 🏪 Commerces » : les 10 courses sont ajoutées et un **reçu (קבלה) numéroté** est créé (même numérotation que vos autres reçus) et envoyé au commerce dans sa messagerie ; il le retrouve aussi dans son espace pro. Il choisit ensuite « Carnet pro » au paiement : rien à payer au livreur. Un commerce déjà inscrit (même téléphone ou même nom dans la même ville) ne peut pas se réinscrire.
@@ -100,7 +104,7 @@ Pas encore de voiture : l'option « Gros colis » est cachée. Pour l'ouvrir, me
 | `business` | Vos informations légales pour les reçus (עוסק פטור) |
 | `pricing.fixedFromHome` | **Prix depuis/vers Netanya, ville par ville** |
 | `pricing.base`, `perKm` | Prix des autres trajets (entre deux autres villes) |
-| `platform.commissionPerCourse` | Votre commission par course de livreur |
+| `platform.commissionPercent`, `commissionPerCourse` | Votre commission : 12 % du prix, minimum 3 ₪ |
 | `hours`, `cities`, `promos` | Horaires, villes, offres |
 | `demoAdminPin` | Code de l'espace patron en mode démo : **changez-le** |
 
@@ -125,7 +129,7 @@ Après chaque modification d'un fichier, lancez `./bump-version.sh` : il change 
 ## 3. Conseils
 
 - Installez l'espace patron sur votre téléphone (« Ajouter à l'écran d'accueil ») et activez les alertes 🔔.
-- En tournée, « Passer en service » et **gardez l'écran allumé, page ouverte** : les téléphones coupent le GPS en arrière-plan.
+- En tournée, passez en ligne et **gardez l'écran allumé, page ouverte** : les téléphones coupent le GPS en arrière-plan.
 - Faites relire par un avocat ou un comptable :
   - les engagements des livreurs (statut d'indépendant, assurance de transport de marchandises, responsabilité en cas de perte) ;
   - le format de vos reçus.

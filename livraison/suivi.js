@@ -33,12 +33,42 @@ function setMarker(key, lat, lon, emoji) {
   else markers[key] = L.marker([lat, lon], { icon: pin(emoji), zIndexOffset: key === "courier" ? 1000 : 0 }).addTo(map);
 }
 
+// Le scooter du livreur glisse en douceur d'une position à la suivante (pas de saut)
+let anim = null;
+const scooterIcon = () => L.divIcon({ className: "", iconSize: [46, 46], iconAnchor: [23, 23], html: `<div class="trk-scooter">🛵</div>` });
+function moveCourier(lat, lon) {
+  if (!map) return;
+  if (!markers.courier) { markers.courier = L.marker([lat, lon], { icon: scooterIcon(), zIndexOffset: 1000 }).addTo(map); return; }
+  const from = markers.courier.getLatLng(), to = L.latLng(lat, lon);
+  if (from.equals(to)) return;
+  cancelAnimationFrame(anim);
+  const t0 = performance.now(), dur = 9000;   // jusqu'à la prochaine mise à jour (10 s)
+  const step = now => {
+    const k = Math.min(1, (now - t0) / dur);
+    markers.courier.setLatLng([from.lat + (to.lat - from.lat) * k, from.lng + (to.lng - from.lng) * k]);
+    if (k < 1) anim = requestAnimationFrame(step);
+  };
+  anim = requestAnimationFrame(step);
+}
+
+// Anneau du temps restant avant la livraison
+function renderRing(o) {
+  const min = UI.deliveryEta(o);
+  const show = ["nouvelle", "confirmee", "recuperee"].includes(o.status);
+  $("#etaRing").classList.toggle("hidden", !show);
+  if (!show) return;
+  $("#etaMin").textContent = min != null ? min : o.status === "nouvelle" ? "⏳" : "🛵";
+  $("#etaUnit").textContent = min != null ? "min" : "";
+  const len = 2 * Math.PI * 44;
+  $("#etaArc").style.strokeDasharray = `${len * (UI.PROGRESS[o.status] || 0)} ${len}`;
+}
+
 function updateMap(o) {
   if (!map) return;
   setMarker("pickup", o.pickup_lat, o.pickup_lon, "📍");
   setMarker("drop", o.dropoff_lat, o.dropoff_lon, "🏁");
   const live = o.courier_lat != null;
-  if (live) setMarker("courier", o.courier_lat, o.courier_lon, "🛵");
+  if (live) moveCourier(Number(o.courier_lat), Number(o.courier_lon));
   else if (markers.courier) { map.removeLayer(markers.courier); delete markers.courier; }
   // Recentrer au premier affichage et quand le coursier apparaît
   if (!fitted || (live && !courierSeen)) {
@@ -83,6 +113,7 @@ function render() {
     return;
   }
   etaBox(o);
+  renderRing(o);
 
   const step = FLOW.indexOf(o.status);
   const labels = ["trStep1", "trStep2", "trStep3", "trStep4"];

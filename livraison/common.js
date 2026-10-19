@@ -126,6 +126,24 @@ function wordmark(sub) {
   return `<b>${he ? "הופ" : "HOP"}<i>!</i></b><small>${esc(small)}</small>`;
 }
 
+// Minutes avant la livraison (position du livreur connue), sinon null.
+// Course acceptée : trajet jusqu'au départ + 5 min sur place + trajet jusqu'à l'arrivée.
+function deliveryEta(o) {
+  if (!o || o.courier_lat == null || o.dropoff_lat == null) return null;
+  const c = { lat: Number(o.courier_lat), lon: Number(o.courier_lon) }, d = { lat: Number(o.dropoff_lat), lon: Number(o.dropoff_lon) };
+  if (o.status === "recuperee") return Pricing.etaMinutes(c, d);
+  if (o.status === "confirmee" && o.pickup_lat != null) {
+    const p = { lat: Number(o.pickup_lat), lon: Number(o.pickup_lon) };
+    return Pricing.etaMinutes(c, p) + 5 + Pricing.etaMinutes(p, d);
+  }
+  return null;
+}
+// Avancement de la course pour l'anneau (0 à 1)
+const PROGRESS = { nouvelle: 0.12, confirmee: 0.4, recuperee: 0.72, livree: 1 };
+
+// Commission HOP d'une course de livreur : 12 % du prix, au moins 3 ₪ (voir config.js)
+function commissionText() { return `${CONFIG.platform.commissionPercent} % du prix (au moins ${money(CONFIG.platform.commissionPerCourse)})`; }
+
 // Numéro Bit à payer : toujours celui de HOP (le livreur n'encaisse que les espèces)
 function bitFor() { return CONFIG.bitPhone; }
 
@@ -192,7 +210,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
   esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

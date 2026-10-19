@@ -22,6 +22,7 @@ const LS = {
   messages: "livraison.messages.v1",
   replies: "livraison.replies.v1",
   requests: "livraison.requests.v1",
+  declines: "livraison.declines.v1",
   sales: "livraison.carnetSales.v1",
   chat: "livraison.chat.v1"
 };
@@ -135,8 +136,15 @@ const DEFAULT_SETTINGS = {
   wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt,
   carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
   referral_active_days: CONFIG.partners.activeDays,
-  deliver_radius: CONFIG.platform.deliverRadius
+  deliver_radius: CONFIG.platform.deliverRadius,
+  commission_pct: CONFIG.platform.commissionPercent, commission_min: CONFIG.platform.commissionPerCourse
 };
+
+// Commission d'une course : pourcentage du prix, au moins le minimum, arrondie au demi-shekel
+function commissionFor(price, st) {
+  st = st || DEFAULT_SETTINGS;
+  return Math.max(Number(st.commission_min), Math.round(Number(price || 0) * Number(st.commission_pct) / 100 * 2) / 2);
+}
 
 async function getSettings() {
   if (ONLINE) {
@@ -334,12 +342,15 @@ async function listOrders() {
 
 // Course libre visible (même règle que la base en ligne) : tout de suite pour le parrain du
 // commerce ; sinon par vagues, le livreur en service le plus proche du départ d'abord.
+const onlineNow = c => !!(c && c.online && c.position_at && Date.now() - new Date(c.position_at) < 15 * 60000);
+const declined = (orderId, courierId) => readJSON(LS.declines, []).some(d => d.order_id === orderId && d.courier_id === courierId);
 function canSeeNew(o, id, st) {
   if (o.status !== "nouvelle" || o.courier_id) return false;
+  // Hors ligne, ou course déjà refusée : on ne la voit plus
+  if (!onlineNow(localCouriers().find(c => c.id === id)) || declined(o.id, id)) return false;
   if (o.referrer_id && o.referrer_id === id) return true;
-  const fresh = Date.now() - 10 * 60000;
   const ranked = o.pickup_lat == null ? [] : localCouriers()
-    .filter(c => c.status === "actif" && c.role === "coursier" && c.lat != null && new Date(c.position_at) > fresh)
+    .filter(c => c.status === "actif" && c.role === "coursier" && c.lat != null && onlineNow(c) && !declined(o.id, c.id))
     .map(c => ({ id: c.id, d: (c.lat - o.pickup_lat) ** 2 + ((c.lon - o.pickup_lon) * Math.cos(o.pickup_lat * Math.PI / 180)) ** 2 }))
     .sort((a, b) => a.d - b.d);
   const rank = ranked.findIndex(x => x.id === id);
@@ -419,17 +430,17 @@ function refundCarnet(o) {
 }
 
 // Champs à copier sur la course quand un livreur la prend
-async function courierFields(c) {
+async function courierFields(c, price) {
   const settings = await getSettings();
   return {
     status: "confirmee", courier_id: c.id, courier_name: c.name, courier_phone: c.phone,
-    courier_bit: c.bit_phone || c.phone, commission: c.role === "admin" ? 0 : Number(settings.commission)
+    courier_bit: c.bit_phone || c.phone, commission: c.role === "admin" ? 0 : commissionFor(price, settings)
   };
 }
 
 // Le patron attribue une course à un livreur (ou à lui-même)
-async function assignOrder(id, courier) {
-  return updateOrder(id, await courierFields(courier));
+async function assignOrder(id, courier, price) {
+  return updateOrder(id, await courierFields(courier, price));
 }
 
 // Un livreur accepte une course libre (le premier qui accepte la prend)
@@ -444,8 +455,9 @@ async function acceptOrder(id) {
     if (balanceOf(c.id, all) > Number(st.max_debt)) throw new Error("debt");
     if (all.some(x => x.courier_id === c.id && x.status === "recuperee")) throw new Error("busy");
   }
+  if (c.role === "coursier" && !onlineNow(c)) throw new Error("offline");
   const was = o.status;
-  Object.assign(o, await courierFields(c));
+  Object.assign(o, await courierFields(c, o.price));
   chatStatus(o, was);
   saveLocalOrders(all);
   return true;
@@ -480,6 +492,38 @@ async function courierAction(id, action) {
   return true;
 }
 
+// Livreur : en ligne / hors ligne
+async function setOnline(on) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_set_online", { method: "POST", body: { p_on: !!on } });
+  const list = localCouriers();
+  const c = list.find(x => x.id === myId());
+  if (c) c.online = !!on;
+  writeJSON(LS.couriers, list);
+}
+// Livreur : refuser une course (elle passe tout de suite au livreur suivant)
+async function declineOrder(id) {
+  if (ONLINE) return authRest("/rest/v1/rpc/decline_order", { method: "POST", body: { p_id: id } });
+  const list = readJSON(LS.declines, []).filter(d => !(d.order_id === id && d.courier_id === myId()));
+  list.push({ order_id: id, courier_id: myId(), created_at: new Date().toISOString() });
+  writeJSON(LS.declines, list.slice(-500));
+  return true;
+}
+// Livreur : taux d'acceptation (30 jours) et prévisions de demande par heure
+async function myAcceptance() {
+  if (ONLINE) return authRest("/rest/v1/rpc/my_acceptance", { method: "POST", body: {} });
+  const since = Date.now() - 30 * 86400000;
+  return { accepted: localOrders().filter(o => o.courier_id === myId() && new Date(o.created_at) > since).length,
+    declined: readJSON(LS.declines, []).filter(d => d.courier_id === myId() && new Date(d.created_at) > since).length };
+}
+async function demandForecast() {
+  if (ONLINE) return authRest("/rest/v1/rpc/demand_forecast", { method: "POST", body: {} });
+  const dow = new Date().getDay(), since = Date.now() - 28 * 86400000;
+  const h = Array(24).fill(0);
+  localOrders().filter(o => new Date(o.created_at) > since && new Date(o.created_at).getDay() === dow && !["annulee", "refusee"].includes(o.status))
+    .forEach(o => { h[new Date(o.created_at).getHours()] += 0.25; });
+  return h;
+}
+
 // Livreurs : demande en direct (courses en attente, commandes de la dernière heure, livreurs en service)
 async function zoneDemand() {
   if (ONLINE) return authRest("/rest/v1/rpc/zone_demand", { method: "POST", body: {} });
@@ -487,7 +531,7 @@ async function zoneDemand() {
   return {
     waiting: all.filter(o => o.status === "nouvelle" && !o.courier_id).length,
     last_hour: all.filter(o => new Date(o.created_at) > hour && !["annulee", "refusee"].includes(o.status)).length,
-    on_duty: localCouriers().filter(c => c.status === "actif" && c.position_at && new Date(c.position_at) > ten).length
+    on_duty: localCouriers().filter(c => c.status === "actif" && onlineNow(c)).length
   };
 }
 
@@ -804,6 +848,7 @@ window.Store = {
   createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
+  setOnline, declineOrder, myAcceptance, demandForecast, commissionFor,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,

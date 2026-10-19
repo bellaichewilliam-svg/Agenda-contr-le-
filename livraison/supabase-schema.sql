@@ -400,6 +400,32 @@ alter table public.couriers add column if not exists unlocked_until timestamptz;
 -- Souci signalé par le livreur pendant la course (client absent, adresse introuvable…)
 alter table public.orders add column if not exists issue text;
 alter table public.orders add column if not exists issue_at timestamptz;
+-- En ligne / hors ligne (le livreur glisse le bouton) ; refus de course ; commission en pourcentage
+alter table public.couriers add column if not exists online boolean not null default false;
+alter table public.settings add column if not exists commission_pct numeric not null default 12;
+alter table public.settings add column if not exists commission_min numeric not null default 3;
+create table if not exists public.order_declines (
+  order_id    uuid not null references public.orders(id) on delete cascade,
+  courier_id  uuid not null references public.couriers(id),
+  created_at  timestamptz not null default now(),
+  primary key (order_id, courier_id)
+);
+create index if not exists order_declines_courier_idx on public.order_declines (courier_id);
+alter table public.order_declines enable row level security;
+drop policy if exists "refus patron" on public.order_declines;
+create policy "refus patron" on public.order_declines for select to authenticated using (public.is_admin());
+
+-- Commission d'une course : un pourcentage du prix, avec un minimum, arrondi au demi-shekel
+create or replace function public.commission_for(p_price numeric) returns numeric
+language sql stable security definer set search_path = public as $$
+  select greatest(st.commission_min, round(coalesce(p_price, 0) * st.commission_pct / 100 * 2) / 2)::numeric(10, 2) from settings st where st.id = 1;
+$$;
+
+-- Livreur en ligne : bouton « en ligne » et position GPS de moins de 15 minutes
+create or replace function public.courier_online(c couriers) returns boolean
+language sql stable as $$
+  select c.online and c.position_at > now() - interval '15 minutes';
+$$;
 create index if not exists orders_referrer_idx on public.orders (referrer_id);
 
 -- Nouvelle commande : IP, offre de bienvenue, et commerce / parrain (jamais fournis par le client)
@@ -460,9 +486,14 @@ language sql stable security definer set search_path = public as $$
     select c.id, row_number() over (order by (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
       from couriers c
      where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
-       and c.position_at > now() - interval '10 minutes'
+       and public.courier_online(c)
+       -- un livreur qui a refusé laisse sa place : la course passe tout de suite au suivant
+       and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = c.id)
   )
   select o.status = 'nouvelle' and o.courier_id is null
+     -- hors ligne ou course refusée : on ne la voit plus
+     and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
+     and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = auth.uid())
      and (o.referrer_id = auth.uid()
           or now() >= o.created_at
                + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
@@ -498,9 +529,10 @@ begin
     -- Une course récupérée doit être livrée (et validée) avant d'en prendre une autre
     if exists (select 1 from orders where courier_id = c.id and status = 'recuperee') then raise exception 'busy'; end if;
   end if;
+  if c.role = 'coursier' and not public.courier_online(c) then raise exception 'offline'; end if;
   update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
          courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
-         commission = case when c.role = 'admin' then 0 else (select commission from settings where id = 1) end
+         commission = case when c.role = 'admin' then 0 else public.commission_for(o.price) end
    where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
   return found;
 end;
@@ -861,11 +893,47 @@ language sql stable security definer set search_path = public as $$
   select json_build_object(
     'waiting',   (select count(*) from orders where status = 'nouvelle' and courier_id is null),
     'last_hour', (select count(*) from orders where created_at > now() - interval '1 hour' and status not in ('annulee', 'refusee')),
-    'on_duty',   (select count(*) from couriers where status = 'actif' and position_at > now() - interval '10 minutes'))
+    'on_duty',   (select count(*) from couriers c where c.status = 'actif' and public.courier_online(c)))
   where public.is_active_courier();
 $$;
 revoke execute on function public.zone_demand() from public, anon;
 grant execute on function public.zone_demand() to authenticated;
+
+-- Le livreur passe en ligne / hors ligne
+create or replace function public.courier_set_online(p_on boolean) returns void
+language sql security definer set search_path = public as $$
+  update couriers set online = p_on where id = auth.uid();
+$$;
+-- Refuser une course : elle passe tout de suite au livreur suivant
+create or replace function public.decline_order(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() then return false; end if;
+  insert into order_declines (order_id, courier_id) values (p_id, auth.uid()) on conflict do nothing;
+  return true;
+end;
+$$;
+-- Taux d'acceptation du livreur (30 derniers jours)
+create or replace function public.my_acceptance() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'accepted', (select count(*) from orders where courier_id = auth.uid() and created_at > now() - interval '30 days'),
+    'declined', (select count(*) from order_declines where courier_id = auth.uid() and created_at > now() - interval '30 days'));
+$$;
+-- Prévisions : commandes moyennes par heure, pour ce jour de la semaine (4 dernières semaines)
+create or replace function public.demand_forecast() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(x.n order by x.h), '[]'::json) from (
+    select h, round(count(o.id)::numeric / 4, 1) as n
+      from generate_series(0, 23) h
+      left join orders o on extract(hour from o.created_at at time zone 'Asia/Jerusalem') = h
+        and extract(dow from o.created_at at time zone 'Asia/Jerusalem') = extract(dow from now() at time zone 'Asia/Jerusalem')
+        and o.created_at > now() - interval '28 days' and o.status not in ('annulee', 'refusee')
+     group by h) x
+  where public.is_active_courier();
+$$;
+revoke execute on function public.courier_set_online(boolean), public.decline_order(uuid), public.my_acceptance(), public.demand_forecast() from public, anon;
+grant execute on function public.courier_set_online(boolean), public.decline_order(uuid), public.my_acceptance(), public.demand_forecast() to authenticated;
 
 -- Chaque étape de la course s'affiche toute seule dans sa conversation
 create or replace function public.orders_chat_status() returns trigger
