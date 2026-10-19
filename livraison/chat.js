@@ -33,7 +33,7 @@ const tr = (lang, key, vars) => I18N.forLang(lang, key, vars);
 function ensureDom() {
   if (dom) return dom;
   const wrap = document.createElement("div");
-  wrap.className = "modal hidden chat-modal";
+  wrap.className = "modal hidden chat-modal chat-wrap";
   wrap.setAttribute("role", "dialog");
   wrap.setAttribute("aria-modal", "true");
   wrap.innerHTML = `<div class="modal-box chat-box">
