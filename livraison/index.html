@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <meta name="description" content="Commandez et programmez vos courses de livraison en ligne : prix immédiat, retrait de colis à la poste, suivi en direct." />
+  <title>Coursier Express · Commander une course</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%23FF6A13"/><text x="32" y="44" text-anchor="middle" font-size="34">🛵</text></svg>' />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="#accueil"><span class="logo-mark">🛵</span><span class="logo-name" data-bind="businessName"></span></a>
+    <nav class="nav">
+      <a class="hide-sm" href="#services">Services</a>
+      <a class="hide-sm" href="#tarifs">Tarifs</a>
+      <a href="#mes-courses">Mes courses</a>
+      <a href="#commander" style="background:var(--brand);opacity:1">Commander</a>
+    </nav>
+  </div>
+</header>
+
+<div id="demoBanner" class="mode-banner hidden">
+  <div class="wrap">Mode démonstration : les commandes sont envoyées au livreur par WhatsApp. Activez la base en ligne pour le suivi automatique (voir README).</div>
+</div>
+
+<!-- ============ PRÉSENTATION ============ -->
+<section class="hero" id="accueil">
+  <div class="wrap">
+    <div>
+      <span class="badge-open" id="openBadge">Ouvert</span>
+      <h1>Vos courses de livraison, <span>programmées en 1 minute.</span></h1>
+      <p class="lead" data-bind="slogan"></p>
+      <p class="lead small" style="margin-top:8px">Entreprises, commerces, cabinets : commandez une course, connaissez le prix tout de suite, suivez la livraison.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary" href="#commander">📦 Commander une course</a>
+        <a class="btn btn-ghost" href="#tarifs">Voir les tarifs</a>
+      </div>
+    </div>
+    <div class="hero-card">
+      <div class="row"><span class="dot">1</span><div><strong>Vous indiquez le trajet</strong><small>Adresse de récupération, adresse de livraison, horaire.</small></div></div>
+      <div class="row"><span class="dot">2</span><div><strong>Le prix s'affiche immédiatement</strong><small>Calculé selon la distance et les options. Pas de surprise.</small></div></div>
+      <div class="row"><span class="dot">3</span><div><strong>Le livreur est prévenu</strong><small>Il confirme, récupère et livre. Vous suivez chaque étape.</small></div></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="services">
+  <div class="wrap">
+    <h2>Nos services</h2>
+    <p class="sub">Pour les professionnels et les particuliers.</p>
+    <div class="grid-4">
+      <div class="card"><div class="ico">🗓️</div><h3>Course programmée</h3><p>Choisissez le jour et l'heure : on récupère et on livre à l'adresse indiquée.</p></div>
+      <div class="card"><div class="ico">⚡</div><h3>Course express</h3><p>Un envoi urgent ? On part dès que possible, dans les horaires d'ouverture.</p></div>
+      <div class="card"><div class="ico">📮</div><h3>Retrait à la poste</h3><p>On va chercher votre colis au bureau de poste et on vous l'apporte.</p></div>
+      <div class="card"><div class="ico">🔁</div><h3>Aller-retour & tournées</h3><p>Retour de documents signés, plusieurs arrêts sur le même trajet.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="block" id="tarifs" style="padding-top:0">
+  <div class="wrap">
+    <h2>Tarifs</h2>
+    <p class="sub">Le prix exact est calculé automatiquement au moment de la commande.</p>
+    <div class="grid-3">
+      <div class="card" style="grid-column: span 2"><table class="prices" id="priceTable"></table></div>
+      <div class="card">
+        <h3>Horaires</h3>
+        <table class="prices" id="hoursTable"></table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMMANDE ============ -->
+<section class="block" id="commander" style="padding-top:0">
+  <div class="wrap">
+    <h2>Commander une course</h2>
+    <p class="sub">Remplissez le formulaire, le prix se met à jour en direct.</p>
+
+    <form id="orderForm" class="order-layout" novalidate>
+      <div>
+        <fieldset>
+          <legend>1. Type de course</legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="service" value="course" checked /><span><b>🛵 Course</b><small>Récupérer à une adresse, livrer à une autre</small></span></label>
+            <label class="choice"><input type="radio" name="service" value="poste" /><span><b>📮 Retrait à la poste</b><small>Aller chercher un colis au bureau de poste</small></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>2. Quand ?</legend>
+          <div class="choices" style="margin-bottom:12px">
+            <label class="choice"><input type="radio" name="urgency" value="programmee" checked /><span><b>🗓️ À une heure précise</b><small>Vous choisissez le jour et l'heure</small></span></label>
+            <label class="choice"><input type="radio" name="urgency" value="express" /><span><b>⚡ Express</b><small>Dès que possible</small></span></label>
+          </div>
+          <div class="fields" id="whenFields">
+            <label class="f">Jour de récupération<input type="date" name="date" required /></label>
+            <label class="f">Heure de récupération<input type="time" name="time" step="900" required /></label>
+          </div>
+          <p class="notice err hidden" id="scheduleError" style="margin-top:12px"></p>
+        </fieldset>
+
+        <fieldset>
+          <legend id="pickupLegend">3. Récupération</legend>
+          <div class="fields">
+            <label class="f full"><span id="pickupLabel">Adresse de récupération</span><input name="pickup_address" required placeholder="Rue, numéro, ville" autocomplete="street-address" /></label>
+            <div class="full hidden" id="posteFields">
+              <div class="fields">
+                <label class="f">N° de suivi / avis de passage<input name="tracking_number" placeholder="Ex. RR123456789IL" /></label>
+                <label class="f">Colis au nom de<input name="parcel_name" placeholder="Nom inscrit sur l'avis" /></label>
+                <label class="check full"><input type="checkbox" name="has_proxy" /> J'ai une procuration signée + copie de la pièce d'identité à remettre au livreur</label>
+                <p class="notice warn full">La poste exige une procuration et la copie de la pièce d'identité du destinataire. Envoyez-les en photo au livreur sur WhatsApp après la commande.</p>
+              </div>
+            </div>
+            <label class="f" id="pickupContactWrap">Personne sur place<input name="pickup_contact" placeholder="Nom" /></label>
+            <label class="f" id="pickupPhoneWrap">Téléphone sur place<input name="pickup_phone" type="tel" placeholder="05x-xxx-xxxx" /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>4. Livraison</legend>
+          <div class="fields">
+            <label class="f full">Adresse de livraison<input name="dropoff_address" required placeholder="Rue, numéro, ville" /></label>
+            <label class="f">Destinataire<input name="dropoff_contact" placeholder="Nom" /></label>
+            <label class="f">Téléphone du destinataire<input name="dropoff_phone" type="tel" placeholder="05x-xxx-xxxx" /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>5. Colis & options</legend>
+          <div class="fields">
+            <label class="f">Taille du colis<select name="size" id="sizeSelect"></select></label>
+            <label class="f">Arrêts supplémentaires<input name="extra_stops" type="number" min="0" max="10" value="0" /></label>
+            <label class="check full"><input type="checkbox" name="round_trip" /> Aller-retour (ex. rapporter un document signé)</label>
+            <label class="f full">Instructions pour le livreur<textarea name="notes" rows="3" placeholder="Code d'entrée, étage, fragile, paiement à la livraison…"></textarea></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>6. Votre entreprise</legend>
+          <div class="fields">
+            <label class="f">Entreprise<input name="company" required autocomplete="organization" /></label>
+            <label class="f">Votre nom<input name="contact_name" required autocomplete="name" /></label>
+            <label class="f">Téléphone<input name="contact_phone" type="tel" required autocomplete="tel" /></label>
+            <label class="f">Email (facultatif)<input name="contact_email" type="email" autocomplete="email" /></label>
+          </div>
+          <p class="muted small" style="margin-top:10px">Ces informations sont mémorisées sur cet appareil pour vos prochaines commandes.</p>
+        </fieldset>
+      </div>
+
+      <aside class="summary card">
+        <h3 style="margin-bottom:8px">Votre prix</h3>
+        <div class="route-info" id="routeInfo">Saisissez les deux adresses pour calculer la distance.</div>
+        <ul id="quoteLines"></ul>
+        <div class="total"><span>Total</span><b id="quoteTotal">—</b></div>
+        <p class="muted small" id="quoteNote" style="margin:8px 0 14px"></p>
+        <p class="notice err hidden" id="formError" style="margin-bottom:12px"></p>
+        <button class="btn btn-primary btn-block" type="submit" id="submitBtn">Valider la commande</button>
+        <p class="muted small" style="margin-top:10px;text-align:center">Paiement à la livraison ou sur facture mensuelle.</p>
+      </aside>
+    </form>
+  </div>
+</section>
+
+<!-- ============ MES COURSES ============ -->
+<section class="block" id="mes-courses" style="padding-top:0">
+  <div class="wrap">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <h2>Mes courses</h2>
+      <button class="btn btn-sm" id="refreshMine" style="margin-left:auto">↻ Actualiser</button>
+    </div>
+    <p class="sub">Les courses commandées depuis cet appareil.</p>
+    <div class="orders" id="myOrders"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div><b data-bind="businessName" style="color:#fff"></b><br /><span id="footerContact"></span></div>
+    <div><a href="admin.html">Espace livreur →</a></div>
+  </div>
+</footer>
+
+<div class="modal hidden" id="doneModal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="big">✅</div>
+    <h3>Commande enregistrée</h3>
+    <p class="muted" id="doneText"></p>
+    <div class="btns">
+      <a class="btn btn-wa" id="doneWa" target="_blank" rel="noopener">Envoyer au livreur sur WhatsApp</a>
+      <button class="btn" id="doneClose">Voir mes courses</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="pricing.js"></script>
+<script src="store.js"></script>
+<script src="common.js"></script>
+<script src="client.js"></script>
+</body>
+</html>

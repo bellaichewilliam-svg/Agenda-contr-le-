@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <meta name="robots" content="noindex" />
+  <title>Coursier Express · Espace livreur</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%230F1F3D"/><text x="32" y="44" text-anchor="middle" font-size="34">🛵</text></svg>' />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="index.html"><span class="logo-mark">🛵</span><span data-bind="businessName"></span></a>
+    <nav class="nav">
+      <a href="index.html" class="hide-sm">Page client</a>
+      <a href="#" id="logoutBtn" class="hidden">Déconnexion</a>
+    </nav>
+  </div>
+</header>
+
+<!-- Connexion -->
+<div class="wrap">
+  <form class="login card hidden" id="loginForm">
+    <h2 style="margin-bottom:6px">Espace livreur</h2>
+    <p class="muted small" id="loginHint" style="margin-bottom:16px"></p>
+    <div style="display:grid;gap:12px">
+      <label class="f" id="emailWrap">Email<input name="email" type="email" autocomplete="username" /></label>
+      <label class="f"><span id="pwLabel">Mot de passe</span><input name="password" type="password" autocomplete="current-password" required /></label>
+      <p class="notice err hidden" id="loginError"></p>
+      <button class="btn btn-primary btn-block" type="submit">Se connecter</button>
+    </div>
+  </form>
+</div>
+
+<!-- Tableau de bord -->
+<main class="wrap hidden" id="dashboard" style="padding-bottom:40px">
+  <div class="stats">
+    <div class="stat"><small>À confirmer</small><b id="stNew">0</b></div>
+    <div class="stat"><small>Courses aujourd'hui</small><b id="stToday">0</b></div>
+    <div class="stat"><small>Chiffre du jour</small><b id="stTodayRev">0</b></div>
+    <div class="stat"><small>Chiffre du mois</small><b id="stMonthRev">0</b></div>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-tab="agenda">🗓️ Agenda</button>
+    <button class="tab" data-tab="nouvelles">🆕 À confirmer</button>
+    <button class="tab" data-tab="historique">📚 Historique</button>
+    <button class="tab" data-tab="facturation">🧾 Facturation</button>
+  </div>
+
+  <div class="toolbar">
+    <span class="muted small" id="lastSync"></span>
+    <button class="btn btn-sm" id="notifBtn">🔔 Activer les alertes</button>
+    <button class="btn btn-sm" id="icsBtn">📅 Ajouter à mon agenda (.ics)</button>
+    <button class="btn btn-sm" id="reloadBtn" style="margin-left:auto">↻ Actualiser</button>
+  </div>
+
+  <div id="view"></div>
+</main>
+
+<script src="config.js"></script>
+<script src="pricing.js"></script>
+<script src="store.js"></script>
+<script src="common.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

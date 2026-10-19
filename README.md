@@ -1,5 +1,7 @@
 # 🛒 PrixMalin
 
+> 🛵 **Nouveau :** application de commande de courses de livraison dans [`livraison/`](livraison/README.md).
+
 Comparateur de prix pour 9 supermarchés israéliens : **Rami Levy, Osher Ad, Boom, Hatzi Hinam, Carrefour, Shufersal, Yochananof, Victory, Tiv Taam**.
 
 - 428 produits suivis (laitiers, viande, fruits, légumes, gâteaux, boissons, hygiène, entretien…)
