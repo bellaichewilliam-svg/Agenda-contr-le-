@@ -20,7 +20,8 @@ const LS = {
   shopTokens: "livraison.shopTokens.v1",
   shopCodes: "livraison.shopCodes.v1",
   messages: "livraison.messages.v1",
-  replies: "livraison.replies.v1"
+  replies: "livraison.replies.v1",
+  requests: "livraison.requests.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -130,7 +131,8 @@ const DEFAULT_SETTINGS = {
   accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse,
   referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes,
   wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt,
-  carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses
+  carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
+  referral_active_days: CONFIG.partners.activeDays
 };
 
 async function getSettings() {
@@ -374,10 +376,21 @@ async function updateOrder(id, changes) {
   if (o) {
     const was = o.status;
     Object.assign(o, changes);
+    referralCheck(o, was, all, await getSettings());
     localReceipt(o);
     if (!["annulee", "refusee"].includes(was)) refundCarnet(o);
   }
   saveLocalOrders(all);
+}
+
+// Bonus de parrainage seulement si le parrain livre encore avec nous (même règle qu'en ligne)
+function referralCheck(o, was, all, st) {
+  if (o.status !== "livree" || was === "livree" || !(Number(o.referral_bonus) > 0) || o.courier_id === o.referrer_id) return;
+  const since = Date.now() - Number(st.referral_active_days) * 86400000;
+  const c = localCouriers().find(x => x.id === o.referrer_id);
+  const active = c && (new Date(c.created_at || 0) > since
+    || all.some(x => x.courier_id === c.id && x.status === "livree" && new Date(x.pickup_at) > since));
+  if (!active) o.referral_bonus = 0;
 }
 
 // Course de carnet annulée ou refusée : la course est rendue au commerce
@@ -423,7 +436,7 @@ async function courierAction(id, action) {
   const o = all.find(x => x.id === id && x.courier_id === myId());
   if (!o) return false;
   if (action === "recuperee" && o.status === "confirmee") o.status = "recuperee";
-  else if (action === "livree" && o.status === "recuperee") o.status = "livree";
+  else if (action === "livree" && o.status === "recuperee") { o.status = "livree"; referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
     Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
@@ -570,6 +583,26 @@ async function myReferrals() {
   };
 }
 
+// --- Demandes de devis (tournée quotidienne, carnet…) --------------------------------------
+async function createRequest(r) {
+  r = Object.assign({ status: "nouvelle" }, r);
+  if (ONLINE) return rest("/rest/v1/requests", { method: "POST", body: r, prefer: "return=minimal" });
+  const list = readJSON(LS.requests, []);
+  list.push(Object.assign({ id: uuid(), created_at: new Date().toISOString() }, r));
+  writeJSON(LS.requests, list);
+}
+async function listRequests() {
+  if (ONLINE) return authRest("/rest/v1/requests?select=*&order=created_at.desc&limit=200");
+  return readJSON(LS.requests, []).slice().reverse();
+}
+async function updateRequest(id, changes) {
+  if (ONLINE) return authRest("/rest/v1/requests?id=eq." + encodeURIComponent(id), { method: "PATCH", body: changes, prefer: "return=minimal" });
+  const list = readJSON(LS.requests, []);
+  const r = list.find(x => x.id === id);
+  if (r) Object.assign(r, changes);
+  writeJSON(LS.requests, list);
+}
+
 // --- Messages du patron aux livreurs ------------------------------------------------------
 async function sendMessage(body, kind, toCourier) {
   const m = { body, kind: kind || "info", to_courier: toCourier || null };
@@ -615,7 +648,7 @@ window.Store = {
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, ping,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
-  sendMessage, listMessages, replyMessage
+  sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };
 
 })();

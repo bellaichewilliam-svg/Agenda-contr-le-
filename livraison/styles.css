@@ -594,3 +594,10 @@ body.print-poster .print-only { display: grid; }
 @media (max-width: 430px) { .logo-name.wordmark { display: flex; } .wordmark b { font-size: 27px; } }
 @media (max-width: 360px) { .wordmark small { display: none; } }
 [dir="rtl"] .wordmark small { letter-spacing: .03em; font-size: 12px; }
+.act-box { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; margin: 4px 0 14px; }
+.act-box small { opacity: .85; }
+.act-on { background: var(--green-soft); color: var(--green-ink); }
+.act-warn { background: var(--amber-soft); color: var(--amber-ink); }
+.act-off { background: var(--red-soft); color: #912018; }
+.req-box { text-align: start; max-height: 92vh; overflow-y: auto; }
+.req-seg { margin-top: 12px; }

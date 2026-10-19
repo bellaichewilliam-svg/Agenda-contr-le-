@@ -120,7 +120,7 @@ window.CONFIG = {
     returnTripPercent: 50
   },
 
-  // --- Livreurs partenaires (comme Wolt) ---------------------------------------
+  // --- Livreurs partenaires --------------------------------------------------
   platform: {
     commissionPerCourse: 3,   // ce que vous prenez sur chaque course d'un livreur
     // Au-delà de ce solde dû (commissions − courses payées à HOP − bonus), le livreur ne
@@ -134,13 +134,17 @@ window.CONFIG = {
 
   // --- Commerces partenaires amenés par les livreurs ---------------------------
   // Le livreur qui amène un commerce gagne bonusPerDelivery à chaque course livrée
-  // au départ de ce commerce (même si un autre livreur la fait), à vie, et a
+  // au départ de ce commerce (même si un autre livreur la fait), tant qu'il reste
+  // actif (au moins une livraison dans les activeDays derniers jours), et a
   // priorityMinutes d'avance pour prendre ces courses. Le bonus est déduit de sa
   // commission chaque semaine. (En ligne : colonnes referral_bonus et
   // priority_minutes de la table settings.)
   partners: {
     bonusPerDelivery: 1,
     priorityMinutes: 3,
+    // Bonus versés seulement si le parrain a livré au moins une course ces N derniers jours
+    // (en ligne : settings.referral_active_days)
+    activeDays: 21,
     // Niveaux du livreur selon le nombre de commerces amenés
     levels: [
       { min: 1, name: "🌱 Premier commerce" },

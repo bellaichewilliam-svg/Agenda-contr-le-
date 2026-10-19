@@ -1,5 +1,5 @@
 // ============================================================================
-// Page client : accueil façon Wolt, exemples, offres, commande avec prix en direct,
+// Page client : accueil, exemples, offres, commande avec prix en direct,
 // codes promo / parrainage / fidélité, suivi des courses.
 // ============================================================================
 
@@ -80,7 +80,7 @@ function renderStatic() {
     <div class="card offer"><div class="ico">🤝</div><h3>${t("offRef_t")}</h3><p>${UI.esc(t("offRef_d", { amount: money(PROMOS.referral.amount) }))}</p></div>
     <div class="card offer"><div class="ico">⭐</div><h3>${t("offLoyal_t")}</h3><p>${UI.esc(t("offLoyal_d", { every: PROMOS.loyalty.every, max: money(PROMOS.loyalty.max) }))}</p></div>
     <div class="card offer"><div class="ico">🏢</div><h3>${t("offPro_t")}</h3><ul class="pro-list">${pro}</ul>
-      <a class="btn btn-sm btn-wa" style="margin-top:10px" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, t("offPro_t") + " — ")}">${t("offPro_cta")}</a></div>`;
+      <button type="button" class="btn btn-sm btn-primary" style="margin-top:10px" data-devis="tournee">${t("offPro_cta")}</button></div>`;
 
   const rows = CONFIG.cities.map(c => ({ c, price: Pricing.cityToCity(CONFIG, home, c.id) })).sort((a, b) => a.price - b.price);
   $("#priceGrid").innerHTML = rows.map(r => `<div class="pg-row"><span>${r.c.id === home
@@ -836,6 +836,49 @@ async function loadShop(code) {
   setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);
 }
 
+// --- Demande de devis (tournée quotidienne, carnet…) : pro ou particulier, dans l'application --
+let reqKind = "pro";
+function openRequest(topic) {
+  const f = $("#reqForm");
+  $("#reqCity").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(c[I18N.lang])}</option>`).join("");
+  $("#reqCity").value = CONFIG.homeCity;
+  const p = Store.getProfile();
+  if (!f.name.value && p.contact_name) f.name.value = p.contact_name;
+  if (!f.phone.value && p.contact_phone) f.phone.value = p.contact_phone;
+  if (!f.company.value && p.company) f.company.value = p.company;
+  f.topic.value = topic || "tournee";
+  $("#reqError").classList.add("hidden");
+  $("#reqDone").classList.add("hidden");
+  $("#reqSend").classList.remove("hidden");
+  $("#reqModal").classList.remove("hidden");
+}
+function setReqKind(k) {
+  reqKind = k;
+  document.querySelectorAll("#reqKind [data-kind]").forEach(b => b.classList.toggle("on", b.dataset.kind === k));
+  $("#reqCompany").classList.toggle("hidden", k !== "pro");
+}
+async function sendRequest(e) {
+  e.preventDefault();
+  const f = e.target, v = k => f.elements[k].value.trim();
+  const err = $("#reqError");
+  if (!v("name") || !phoneOk(v("phone")) || (reqKind === "pro" && !v("company"))) {
+    err.textContent = t("rqErr"); err.classList.remove("hidden"); return;
+  }
+  err.classList.add("hidden");
+  const btn = $("#reqSend");
+  btn.disabled = true;
+  try {
+    await Store.createRequest({ kind: reqKind, topic: v("topic"), name: v("name"), company: reqKind === "pro" ? v("company") : null,
+      phone: formatPhone(v("phone")), city: v("city"), frequency: v("frequency") || null, message: v("message") || null, lang: I18N.lang });
+    $("#reqDone").textContent = t("rqDone");
+    $("#reqDone").classList.remove("hidden");
+    btn.classList.add("hidden");
+    f.frequency.value = f.message.value = "";
+  } catch (ex) {
+    err.textContent = t("errSend", { phone: CONFIG.phoneDisplay }); err.classList.remove("hidden");
+  } finally { btn.disabled = false; }
+}
+
 // --- Démarrage ---------------------------------------------------------------------
 // Lien d'un commerce partenaire (lu avant de nettoyer l'adresse)
 const shopCode = new URLSearchParams(location.search).get("c");
@@ -906,6 +949,12 @@ document.querySelectorAll(".saved-addrs").forEach(box => box.addEventListener("c
   const a = Store.getAddresses()[Number(b.dataset.addr)];
   if (a) applySavedAddr(box.dataset.for, a);
 }));
+document.addEventListener("click", e => { const b = e.target.closest("[data-devis]"); if (b) openRequest(b.dataset.devis); });
+$("#reqKind").addEventListener("click", e => { const b = e.target.closest("[data-kind]"); if (b) setReqKind(b.dataset.kind); });
+$("#reqForm").addEventListener("submit", sendRequest);
+$("#reqClose").addEventListener("click", () => $("#reqModal").classList.add("hidden"));
+// Lien direct vers la demande de devis (ex. depuis l'espace pro : index.html#devis)
+if (location.hash === "#devis") setTimeout(() => openRequest("tournee"), 300);
 $("#shopBannerOff").addEventListener("click", () => {
   state.shop = null;
   state.pick.from = null;
@@ -929,7 +978,7 @@ document.querySelector(".seg").addEventListener("click", e => {
   const b = e.target.closest("[data-when]");
   if (!b) return;
   quickWhen = b.dataset.when;
-  document.querySelectorAll(".seg-btn").forEach(x => x.classList.toggle("on", x === b));
+  b.parentNode.querySelectorAll(".seg-btn").forEach(x => x.classList.toggle("on", x === b));
   $("#quickWhen").classList.toggle("hidden", quickWhen !== "later");
   $("#quickGo").textContent = t(quickWhen === "later" ? "quickCtaLater" : "quickCta");
 });

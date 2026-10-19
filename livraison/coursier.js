@@ -37,7 +37,7 @@ function renderWelcome() {
     "Vous choisissez vos courses, quand vous voulez.",
     "Vous encaissez le client directement (espèces ou Bit).",
     `Seulement ${UI.money(COMMISSION)} de commission par course livrée, réglés une fois par semaine.`,
-    `Amenez un commerce : ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous sur chacune de ses livraisons, à vie, et ses courses vous sont proposées en premier.`,
+    `Amenez un commerce : ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous sur chacune de ses livraisons, tant que vous livrez avec nous, et ses courses vous sont proposées en premier.`,
     "Pas d'abonnement, pas de frais d'inscription."
   ].map(x => `<li>✅ ${UI.esc(x)}</li>`).join("");
   $("#citySelect").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(c.fr)}</option>`).join("");
@@ -321,6 +321,25 @@ const levelOf = n => CONFIG.partners.levels.filter(l => n >= l.min).pop();
 const nextLevel = n => CONFIG.partners.levels.find(l => n < l.min);
 const shareLink = () => UI.appUrl("commerce.html") + "?p=" + encodeURIComponent(me.ref_code || "");
 
+// Règle d'activité : les bonus ne sont versés que si vous avez livré au moins une course
+// ces activeDays derniers jours (ou si vous êtes inscrit depuis moins longtemps)
+function activity() {
+  const days = Number(settings.referral_active_days || CONFIG.partners.activeDays);
+  const last = orders.filter(o => o.courier_id === me.id && o.status === "livree").map(o => new Date(o.pickup_at).getTime()).sort((a, b) => b - a)[0];
+  const from = Math.max(last || 0, new Date(me.created_at || 0).getTime());
+  const left = Math.ceil(days - (Date.now() - from) / 86400000);
+  return { days, left, active: left > 0, last };
+}
+function activityBox() {
+  const a = activity();
+  const rule = `Règle : vos bonus sont versés tant que vous livrez. Après ${a.days} jours (${Math.round(a.days / 7)} semaines) sans aucune livraison, ils s'arrêtent, et reprennent dès votre prochaine livraison.`;
+  const cls = !a.active ? "act-off" : a.left <= 7 ? "act-warn" : "act-on";
+  const head = !a.active ? "⛔ Bonus en pause : faites une livraison pour les réactiver"
+    : a.left <= 7 ? `⚠️ Plus que ${a.left} jour(s) pour faire une livraison, sinon vos bonus s'arrêtent`
+    : `✅ Vous êtes actif : vous touchez vos bonus (encore ${a.left} jours sans livraison possibles)`;
+  return `<div class="act-box ${cls}"><b>${head}</b><small>${rule}</small></div>`;
+}
+
 // Temps d'avance restant sur une course de son commerce (les autres ne la voient pas encore)
 function priorityLeft(o) {
   const left = Math.ceil((new Date(o.created_at).getTime() + Number(settings.priority_minutes) * 60000 - Date.now()) / 60000);
@@ -331,12 +350,12 @@ function pitch() {
   const price = UI.money(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || CONFIG.pricing.base);
   const first = String(me.name || "").split(" ")[0];
   return `שלום! אני ${first}, שליח של ${CONFIG.businessNameHe} 🛵
-משלוחים לעסק שלך החל מ-${price} בנתניה, מחיר קבוע, בלי עמלה על המכירות שלך (לא כמו וולט).
+משלוחים לעסק שלך החל מ-${price} בנתניה, מחיר קבוע, בלי עמלה על המכירות שלך.
 מזומן או ביט, מעקב חי, קבלה.
 הרשמה בחינם תוך דקה: ${shareLink()}
 
 Bonjour ! Je suis ${first}, livreur ${CONFIG.businessName} 🛵
-Vos livraisons dès ${price} dans Netanya, prix fixe, sans commission sur vos ventes (contrairement à Wolt).
+Vos livraisons dès ${price} dans Netanya, prix fixe, sans commission sur vos ventes.
 Espèces ou Bit, suivi en direct, reçu.
 Inscription gratuite en 1 minute : ${shareLink()}`;
 }
@@ -354,10 +373,11 @@ function renderRef(view) {
     <div class="card ref-hero">
       <h3>🤝 Amenez un commerce, gagnez à chaque livraison</h3>
       <ol class="ref-steps">
-        <li><b>Proposez HOP!</b> à un restaurant, une boutique, une pharmacie… surtout ceux qui ne sont pas sur Wolt.</li>
+        <li><b>Proposez HOP!</b> à un restaurant, une boutique, une pharmacie… surtout ceux qui n'ont pas de livreur.</li>
         <li><b>Il s'inscrit avec votre lien</b> ou en scannant votre QR code (1 minute, gratuit).</li>
-        <li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses livrées, à vie, même si un autre livreur la fait. Et ses courses vous sont proposées <b>${Number(settings.priority_minutes)} min avant</b> les autres livreurs.</li>
+        <li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses livrées, même si un autre livreur la fait, <b>tant que vous livrez avec nous</b>. Et ses courses vous sont proposées <b>${Number(settings.priority_minutes)} min avant</b> les autres livreurs.</li>
       </ol>
+      ${activityBox()}
       <div class="ref-code"><small>Votre code</small><b>${UI.esc(me.ref_code || "—")}</b></div>
       <div class="promo-row"><input readonly value="${UI.esc(shareLink())}" dir="ltr" /><button class="btn btn-sm" data-copy="${UI.esc(shareLink())}">Copier</button></div>
       <div class="btns" style="margin-top:10px">

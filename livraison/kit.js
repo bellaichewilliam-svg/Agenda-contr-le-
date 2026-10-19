@@ -43,10 +43,10 @@ const POSTS = [
 🛒 J'achète pour vous et je livre
 
 💰 Dans ${UI.cityFr(home)} : ${price(home)} · Ra'anana : ${price("raanana")} · Herzliya : ${price("herzliya")} · Tel Aviv : ${price("tel-aviv")}
-📍 Vous suivez la course en direct sur la carte, comme sur Wolt
+📍 Vous suivez la course en direct sur la carte
 💵 Paiement en espèces ou par Bit
 
-🏪 Même les magasins qui ne sont pas sur Wolt : on y va pour vous !
+🏪 Tous les magasins, même les petits : on y va pour vous !
 🎁 Votre première course dans ${UI.cityFr(home)} à ${welcome} avec le code BIENVENUE
 👉 Commandez en 1 minute : ${url}` },
 
@@ -60,10 +60,10 @@ const POSTS = [
 🛒 קונים בשבילכם ומביאים
 
 💰 בתוך ${heHome}: ${price(home)} · לרעננה: ${price("raanana")} · להרצליה: ${price("herzliya")} · לתל אביב: ${price("tel-aviv")}
-📍 מעקב אחרי השליח על המפה בזמן אמת, כמו בוולט
+📍 מעקב אחרי השליח על המפה בזמן אמת
 💵 תשלום במזומן או בביט
 
-🏪 גם חנויות שלא נמצאות בוולט: אנחנו מגיעים בשבילכם!
+🏪 כל החנויות, גם הקטנות: אנחנו מגיעים בשבילכם!
 🎁 משלוח ראשון בתוך ${heHome} ב-${welcome} עם הקוד BRUCHIM
 👈 להזמנה תוך דקה: ${url}` },
 

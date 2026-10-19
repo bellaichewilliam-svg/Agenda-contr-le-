@@ -127,7 +127,10 @@ function renderSpace() {
       <div><small>${UI.esc(t("shCarnetLeft"))}</small><b>🎟️ ${left}</b></div>
     </div>
     <p class="muted small" style="margin:10px 0">${UI.esc(t("shCarnetHow", { price: UI.money(C.price), phone: CONFIG.bitPhone, code: shop.code, n: C.courses }))}</p>
-    <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, buyMsg)}">${UI.esc(t("shCarnetBuy", { price: UI.money(C.price) }))}</a>`;
+    <div class="btns" style="justify-content:flex-start">
+      <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, buyMsg)}">${UI.esc(t("shCarnetBuy", { price: UI.money(C.price) }))}</a>
+      <a class="btn" href="index.html#devis">${UI.esc(t("offPro_cta"))} · ${UI.esc(t("rqTournee"))}</a>
+    </div>`;
   const qr = $("#spQr");
   if (window.QRCode && qr.dataset.url !== clientLink(shop)) {
     qr.innerHTML = "";

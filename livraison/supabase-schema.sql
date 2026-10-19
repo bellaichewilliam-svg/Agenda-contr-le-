@@ -392,6 +392,7 @@ alter table public.shops add column if not exists credits int not null default 0
 alter table public.settings add column if not exists wave_seconds int not null default 45;
 alter table public.settings add column if not exists max_debt numeric not null default 50;
 alter table public.settings add column if not exists carnet_unit numeric not null default 20;
+alter table public.settings add column if not exists referral_active_days int not null default 21;
 create index if not exists orders_referrer_idx on public.orders (referrer_id);
 
 -- Nouvelle commande : IP, offre de bienvenue, et commerce / parrain (jamais fournis par le client)
@@ -609,6 +610,30 @@ begin
 end;
 $$;
 
+-- Bonus de parrainage : seulement tant que le parrain livre avec nous. Au moment où la course
+-- est livrée, il doit avoir livré au moins une course ces referral_active_days derniers jours
+-- (ou être inscrit depuis moins longtemps), sinon pas de bonus pour cette course.
+create or replace function public.referrer_active(p_id uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from couriers c, settings st where st.id = 1 and c.id = p_id
+                   and (c.created_at > now() - make_interval(days => st.referral_active_days)
+                        or exists (select 1 from orders o where o.courier_id = p_id and o.status = 'livree'
+                                     and o.pickup_at > now() - make_interval(days => st.referral_active_days))));
+$$;
+create or replace function public.orders_referral_check() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'livree' and old.status <> 'livree' and new.referral_bonus > 0
+     and new.courier_id is distinct from new.referrer_id and not public.referrer_active(new.referrer_id) then
+    new.referral_bonus := 0;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_referral_check on public.orders;
+create trigger orders_referral_check before update on public.orders
+  for each row execute function public.orders_referral_check();
+
 -- Course de carnet annulée ou refusée : la course est rendue au commerce
 create or replace function public.orders_refund() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -622,6 +647,31 @@ $$;
 drop trigger if exists orders_refund on public.orders;
 create trigger orders_refund after update on public.orders
   for each row execute function public.orders_refund();
+
+-- --- Demandes de devis (tournée quotidienne, carnet…) envoyées depuis l'application ----
+create table if not exists public.requests (
+  id          uuid primary key default gen_random_uuid(),
+  created_at  timestamptz not null default now(),
+  kind        text not null check (kind in ('pro', 'particulier')),
+  topic       text not null default 'tournee' check (topic in ('tournee', 'carnet', 'autre')),
+  name        text not null check (length(name) <= 80),
+  company     text check (length(company) <= 80),
+  phone       text not null check (length(phone) <= 30),
+  email       text check (length(email) <= 120),
+  city        text check (length(city) <= 60),
+  frequency   text check (length(frequency) <= 80),
+  message     text check (length(message) <= 1000),
+  lang        text not null default 'fr',
+  status      text not null default 'nouvelle' check (status in ('nouvelle', 'traitee')),
+  admin_note  text
+);
+alter table public.requests enable row level security;
+drop policy if exists "demandes clients" on public.requests;
+create policy "demandes clients" on public.requests for insert to anon, authenticated
+  with check (status = 'nouvelle' and admin_note is null);
+drop policy if exists "demandes patron" on public.requests;
+create policy "demandes patron" on public.requests for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
 
 -- ============================================================================
 -- MESSAGES DU PATRON AUX LIVREURS (« ça vaut le coup de sortir ! »)
