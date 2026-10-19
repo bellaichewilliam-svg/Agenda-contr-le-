@@ -232,6 +232,34 @@ drop policy if exists "patron gere livreurs" on public.couriers;
 create policy "patron gere livreurs" on public.couriers for update to authenticated
   using (public.is_admin()) with check (public.is_admin());
 
+-- Photo du top case (la caisse du scooter), obligatoire à l'inscription : à part, pour ne pas
+-- alourdir la liste des livreurs ; le patron l'ouvre à la demande.
+alter table public.couriers add column if not exists topcase_at timestamptz;
+create table if not exists public.courier_photos (
+  courier_id uuid primary key references public.couriers(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  topcase    text not null check (length(topcase) <= 700000 and topcase ~ '^data:image/(jpeg|png|webp);base64,')
+);
+alter table public.courier_photos enable row level security;
+drop policy if exists "top case envoi" on public.courier_photos;
+create policy "top case envoi" on public.courier_photos for insert to authenticated with check (courier_id = auth.uid());
+drop policy if exists "top case maj" on public.courier_photos;
+create policy "top case maj" on public.courier_photos for update to authenticated
+  using (courier_id = auth.uid()) with check (courier_id = auth.uid());
+drop policy if exists "top case lecture" on public.courier_photos;
+create policy "top case lecture" on public.courier_photos for select to authenticated
+  using (courier_id = auth.uid() or public.is_admin());
+create or replace function public.courier_photo_at() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update couriers set topcase_at = now() where id = new.courier_id;
+  return new;
+end;
+$$;
+drop trigger if exists courier_photo_at on public.courier_photos;
+create trigger courier_photo_at after insert or update on public.courier_photos
+  for each row execute function public.courier_photo_at();
+
 -- Les clients créent seulement des commandes neuves, non attribuées, non payées.
 drop policy if exists "clients creent" on public.orders;
 create policy "clients creent" on public.orders for insert to anon
@@ -408,6 +436,14 @@ alter table public.orders add column if not exists issue_at timestamptz;
 alter table public.couriers add column if not exists online boolean not null default false;
 alter table public.settings add column if not exists commission_pct numeric not null default 12;
 alter table public.settings add column if not exists commission_min numeric not null default 3;
+-- Attente sur place / achats : minutes offertes, puis supplément par tranche (plafonné), au livreur
+alter table public.settings add column if not exists wait_free_min int not null default 10;
+alter table public.settings add column if not exists wait_step_min int not null default 10;
+alter table public.settings add column if not exists wait_step_price numeric not null default 5;
+alter table public.settings add column if not exists wait_max numeric not null default 60;
+alter table public.orders add column if not exists arrived_at timestamptz;
+alter table public.orders add column if not exists wait_minutes int;
+alter table public.orders add column if not exists wait_fee numeric(10, 2) not null default 0;
 create table if not exists public.order_declines (
   order_id    uuid not null references public.orders(id) on delete cascade,
   courier_id  uuid not null references public.couriers(id),
@@ -451,6 +487,7 @@ begin
   end if;
   new.shop_name := null; new.referrer_id := null; new.referral_bonus := 0; new.referral_status := 'du';
   new.rating := null; new.rating_tags := null; new.rating_note := null; new.rated_at := null;
+  new.arrived_at := null; new.wait_minutes := null; new.wait_fee := 0;
   -- Bit (et carnet, courses programmées) : toujours payé à HOP ; le livreur n'encaisse que les espèces
   new.paid_to := case when new.prepaid_required or new.payment_method in ('bit', 'carnet') then 'hop' else 'livreur' end;
   -- Carnet pro : seulement le commerce lui-même (sa clé secrète), dans Netanya, s'il lui reste des courses
@@ -671,8 +708,34 @@ create or replace function public.courier_update(p_id uuid, p_action text) retur
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_active_courier() then return false; end if;
-  if p_action = 'recuperee' then
-    update orders set status = 'recuperee' where id = p_id and courier_id = auth.uid() and status = 'confirmee';
+  if p_action = 'arrivee' then
+    -- « Je suis arrivé » au départ : le compteur d'attente démarre (sur place seulement, sauf déblocage)
+    if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()
+                    and (o.unlocked or coalesce(c.unlocked_until > now(), false)))
+       and exists (select 1 from orders o, couriers c, settings st
+                    where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.pickup_lat is not null
+                      and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                           or 6371000 * sqrt(radians(c.lat - o.pickup_lat) ^ 2
+                                + (radians(c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) > st.deliver_radius * 1.5)) then
+      raise exception 'too_far_pickup';
+    end if;
+    update orders set arrived_at = now()
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee' and arrived_at is null;
+    if found then insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:arrivee'); end if;
+  elsif p_action = 'recuperee' then
+    -- Attente / achats au-delà des minutes offertes : supplément par tranche commencée, ajouté au prix.
+    -- Course déjà payée (Bit, carnet) : le supplément reste à régler.
+    update orders o set status = 'recuperee',
+           wait_minutes = w.mins,
+           wait_fee = w.fee,
+           price = o.price + w.fee,
+           payment_status = case when w.fee > 0 and o.payment_status = 'paye' then 'en_attente' else o.payment_status end
+      from (select x.id, coalesce(floor(extract(epoch from now() - x.arrived_at) / 60), 0)::int as mins,
+                   case when x.arrived_at is null then 0
+                        else least(st.wait_max, ceil(greatest(0, floor(extract(epoch from now() - x.arrived_at) / 60) - st.wait_free_min)
+                                                     / st.wait_step_min) * st.wait_step_price) end as fee
+              from orders x, settings st where x.id = p_id and st.id = 1) w
+     where o.id = w.id and o.courier_id = auth.uid() and o.status = 'confirmee';
   elsif p_action = 'livree' then
     -- Sauf course ou livreur débloqué par le patron
     if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()

@@ -346,6 +346,8 @@ function renderQuote() {
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
   if (val("service") === "achat") notes.push(t("qPurchaseNote"));
+  const st = state.settings;
+  if (st.wait_step_price != null) notes.push(t("qWait", { free: st.wait_free_min, step: st.wait_step_min, price: money(st.wait_step_price), max: money(st.wait_max) }));
   const sched = val("urgency") === "programmee";
   notes.push(val("payment_method") === "carnet" ? t("payNoteCarnet")
     : val("payment_method") === "bit" ? t(sched ? "payNoteBit" : "payNoteBitNow", { phone: CONFIG.bitPhone }) : t("payNoteCash"));

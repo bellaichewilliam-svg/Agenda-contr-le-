@@ -10,6 +10,9 @@ const t = I18N.t;
 const token = new URLSearchParams(location.search).get("t");
 const FLOW = ["nouvelle", "confirmee", "recuperee", "livree"];
 let order = null;
+const W = CONFIG.pricing.waiting;
+let settings = { wait_free_min: W.freeMinutes, wait_step_min: W.stepMinutes, wait_step_price: W.stepPrice, wait_max: W.max };
+Store.getSettings().then(s => { Object.assign(settings, s); if (order) render(); }).catch(() => {});
 let map = null, markers = {}, fitted = false, courierSeen = false;
 
 function cityLabel(id) { return CONFIG.cities.some(c => c.id === id) ? I18N.cityName(id) : id; }
@@ -89,6 +92,12 @@ function etaBox(o) {
   else if (o.status === "nouvelle") {
     main = t("trWaiting");
     if (o.urgency === "programmee") sub = t("trPlanned", { when: UI.fmtDateTime(o.pickup_at) });
+  } else if (o.status === "confirmee" && o.arrived_at) {
+    // Le livreur attend au départ (commande pas prête) ou fait les achats : le temps compte
+    const st = settings, w = Store.waitFee(o, st);
+    main = t("trArrived");
+    sub = w.fee ? t("trWaitNow", { min: w.mins, fee: UI.money(w.fee) })
+      : t("trWaitLeft", { min: w.mins, left: Math.max(0, st.wait_free_min - w.mins), price: UI.money(st.wait_step_price), step: st.wait_step_min });
   } else if (o.status === "confirmee") {
     if (live && o.pickup_lat != null) main = t("trEtaPickup", { min: Pricing.etaMinutes(courier, { lat: o.pickup_lat, lon: o.pickup_lon }) });
     else { main = t("trStep2"); sub = o.urgency === "programmee" ? t("trPlanned", { when: UI.fmtDateTime(o.pickup_at) }) : t("trNoGps"); }
@@ -96,7 +105,7 @@ function etaBox(o) {
     if (live && o.dropoff_lat != null) main = t("trEtaDrop", { min: Pricing.etaMinutes(courier, { lat: o.dropoff_lat, lon: o.dropoff_lon }) });
     else { main = t("trStep3"); sub = t("trNoGps"); }
   }
-  if (live && o.courier_at && ["confirmee", "recuperee"].includes(o.status)) {
+  if (live && o.courier_at && ["confirmee", "recuperee"].includes(o.status) && !(o.status === "confirmee" && o.arrived_at)) {
     const s = Math.max(0, Math.round((Date.now() - new Date(o.courier_at)) / 1000));
     sub = t("trUpdated", { s });
   }
@@ -134,6 +143,7 @@ function render() {
   const copy = `<button class="btn btn-sm" id="copyBit">${UI.esc(t("trCopy"))}</button>`;
   pay.innerHTML = `<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
+    ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>`
       : o.payment_method === "bit"
         ? `${o.prepaid_required ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}<p style="margin:6px 0">${UI.esc(t("trPayBit", { phone: bit, ref: o.ref }))}</p>${copy}`
