@@ -1120,6 +1120,17 @@ $$;
 revoke execute on function public.rate_order(uuid, int, text[], text) from public;
 grant execute on function public.rate_order(uuid, int, text[], text) to anon, authenticated;
 
+-- Fonctions internes : pas appelables depuis l'API (les déclencheurs et règles continuent de marcher)
+revoke execute on function public.assign_receipt(), public.courier_photo_at(), public.orders_chat_status(),
+  public.orders_guard(), public.orders_referral_check(), public.orders_refund(), public.courier_code() from public, anon, authenticated;
+revoke execute on function public.referrer_active(uuid) from public, anon, authenticated;
+revoke execute on function public.can_see_new(public.orders), public.commission_for(numeric),
+  public.is_admin(), public.is_active_courier() from public, anon;
+grant execute on function public.can_see_new(public.orders), public.commission_for(numeric),
+  public.is_admin(), public.is_active_courier() to authenticated;
+alter function public.norm_phone(text) set search_path = public;
+alter function public.courier_online(public.couriers) set search_path = public;
+
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
