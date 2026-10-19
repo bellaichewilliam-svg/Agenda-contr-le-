@@ -48,6 +48,7 @@ function renderStatic() {
   $("#brandName").textContent = I18N.businessName();
   $("#footerName").textContent = I18N.businessName();
   document.title = `${I18N.businessName()} · ${t("orderTitle")}`;
+  $("#perkWelcome").textContent = t("perkWelcome", { price: money(welcomePrice()) });
   const avail = state.settings.accepting;
   $("#availBanner").classList.toggle("hidden", avail);
   $("#availText").textContent = (state.settings.message || "").trim() || t("closedBanner");
@@ -75,7 +76,7 @@ function renderStatic() {
 
   const pro = PROMOS.business.map(b => `<li><span>${UI.esc(b[I18N.lang] || b.fr)}</span><b>${UI.esc(typeof b.price === "object" ? b.price[I18N.lang] || b.price.fr : b.price)}</b></li>`).join("");
   $("#offers").innerHTML = `
-    <div class="card offer hot"><div class="ico">🎁</div><h3>${t("offWelcome_t")}</h3><p>${UI.esc(t("offWelcome_d", { max: money(PROMOS.codes.BIENVENUE.max) }))}</p></div>
+    <div class="card offer hot"><div class="ico">🎁</div><h3>${UI.esc(t("offWelcome_t", { price: money(welcomePrice()) }))}</h3><p>${UI.esc(t("offWelcome_d", { amount: money(PROMOS.codes.BIENVENUE.amount) }))}</p></div>
     <div class="card offer"><div class="ico">🤝</div><h3>${t("offRef_t")}</h3><p>${UI.esc(t("offRef_d", { amount: money(PROMOS.referral.amount) }))}</p></div>
     <div class="card offer"><div class="ico">⭐</div><h3>${t("offLoyal_t")}</h3><p>${UI.esc(t("offLoyal_d", { every: PROMOS.loyalty.every, max: money(PROMOS.loyalty.max) }))}</p></div>
     <div class="card offer"><div class="ico">🏢</div><h3>${t("offPro_t")}</h3><ul class="pro-list">${pro}</ul>
@@ -97,6 +98,12 @@ function renderStatic() {
   }).join("");
 }
 
+// Prix d'une course dans la ville principale avec l'offre de bienvenue (15 ₪)
+function welcomePrice() {
+  return Pricing.computeQuote({ fromCity: CONFIG.homeCity, toCity: CONFIG.homeCity, size: "petit",
+    discount: Object.assign({ kind: "promo", code: "BIENVENUE" }, PROMOS.codes.BIENVENUE) }, CONFIG).total;
+}
+
 // Code de bienvenue selon la langue (BIENVENUE / BRUCHIM)
 function welcomeCode() { return I18N.lang === "he" ? "BRUCHIM" : "BIENVENUE"; }
 
@@ -104,7 +111,7 @@ function welcomeCode() { return I18N.lang === "he" ? "BRUCHIM" : "BIENVENUE"; }
 function renderQuick() {
   const from = $("#quickFrom").value, to = $("#quickTo").value;
   const full = Pricing.cityToCity(CONFIG, from, to);
-  const first = activeOrders().length === 0;
+  const first = activeOrders().length === 0 && !state.welcomeUsed;
   const code = welcomeCode();
   const promo = Object.assign({ kind: "promo", code }, PROMOS.codes[code]);
   const withPromo = first ? Pricing.computeQuote({ fromCity: from, toCity: to, size: "petit", discount: promo }, CONFIG).total : full;
@@ -154,6 +161,14 @@ function syncVisibility() {
   $("#pickupLegend").textContent = t(svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
+  const sched = val("urgency") === "programmee";
+  const cash = form.querySelector('input[name=payment_method][value=cash]');
+  cash.disabled = sched;
+  cash.closest(".choice").classList.toggle("disabled", sched);
+  if (sched && cash.checked) form.querySelector('input[name=payment_method][value=bit]').checked = true;
+  form.payer.querySelector('option[value=destinataire]').disabled = sched;
+  if (sched) form.payer.value = "moi";
+  $("#prepayNote").classList.toggle("hidden", !sched);
   document.querySelectorAll(".other-city").forEach(el => {
     el.classList.toggle("hidden", val(el.dataset.for + "_city") !== OTHER);
   });
@@ -198,6 +213,7 @@ function validatePromo(raw) {
   const def = PROMOS.codes[code];
   if (def) {
     if (def.firstOrderOnly && !first) return { promo: null, msg: t("promoFirstOnly"), bad: true };
+    if (def.welcome && state.welcomeUsed) return { promo: null, msg: t("errWelcomeUsed"), bad: true };
     return { promo: Object.assign({ kind: "promo", code }, def), msg: t("promoOk") };
   }
   const ref = PROMOS.referral;
@@ -207,6 +223,15 @@ function validatePromo(raw) {
     return { promo: { kind: "referral", code, amount: ref.amount }, msg: t("promoOk") };
   }
   return { promo: null, msg: t("promoBad"), bad: true };
+}
+
+function refuseWelcome() {
+  state.promo = null;
+  $("#promoMsg").textContent = t("errWelcomeUsed");
+  $("#promoMsg").className = "promo-msg bad";
+  renderQuote();
+  renderQuick();
+  showError(t("errWelcomeUsed"));
 }
 
 function applyPromo() {
@@ -242,6 +267,45 @@ function lineLabel(l) {
   return s;
 }
 
+// --- Remplissage rapide et fun : progression, ✅ par étape, défilement automatique ---
+const fieldsetOf = sel => { const el = form.querySelector(sel); return el && el.closest("fieldset"); };
+function stepStates() {
+  const filled = n => !!val(n).trim();
+  return [
+    [fieldsetOf('legend[data-i18n="s1"]'), true],
+    [fieldsetOf('legend[data-i18n="s4"]'), !scheduleError()],
+    [fieldsetOf("#pickupLegend"), filled("pickup_address") && (filled("pickup_number") || !!(state.pick.from && state.pick.from.brand))],
+    [fieldsetOf('legend[data-i18n="s3"]'), filled("dropoff_address") && (filled("dropoff_number") || !!(state.pick.to && state.pick.to.brand))],
+    [$("#coordsBox"), filled("contact_name") && phoneOk(val("contact_phone"))]
+  ];
+}
+function updateProgress() {
+  const steps = stepStates();
+  steps.forEach(([fs, ok]) => fs && fs.classList.toggle("step-done", ok));
+  const done = steps.filter(s => s[1]).length, left = steps.length - done;
+  const pct = Math.round(done / steps.length * 100);
+  $("#fpFill").style.width = pct + "%";
+  $("#fpScooter").style.insetInlineStart = `calc(${pct}% - 14px)`;
+  $("#fpText").textContent = left ? t("fpLeft", { n: left }) : t("fpDone");
+  $("#formProgress").classList.toggle("complete", !left);
+}
+function goNext(fs) {
+  let next = fs && fs.nextElementSibling;
+  while (next && next.tagName !== "FIELDSET") next = next.nextElementSibling;
+  if (next) setTimeout(() => next.scrollIntoView({ behavior: "smooth", block: "start" }), 180);
+}
+
+// Pluie d'emojis quand la commande part
+function confetti() {
+  const box = $("#confetti");
+  if (!box || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  box.innerHTML = Array.from({ length: 36 }, () => {
+    const e = ["🎉", "📦", "🛵", "✨", "🧡", "🎁"][Math.floor(Math.random() * 6)];
+    return `<i style="left:${Math.random() * 100}%;animation-delay:${(Math.random() * .6).toFixed(2)}s;animation-duration:${(1.6 + Math.random()).toFixed(2)}s">${e}</i>`;
+  }).join("");
+  setTimeout(() => { box.innerHTML = ""; }, 3200);
+}
+
 function renderQuote() {
   const q = currentQuote();
   $("#quoteLines").innerHTML = q.lines.map(l =>
@@ -255,6 +319,7 @@ function renderQuote() {
   if (val("service") === "achat") notes.push(t("qPurchaseNote"));
   notes.push(val("payment_method") === "bit" ? t("payNoteBit", { phone: CONFIG.bitPhone }) : t("payNoteCash"));
   $("#quoteNote").textContent = notes.join(" ");
+  updateProgress();
   const err = scheduleError();
   $("#scheduleError").textContent = err ? t(err.key, err.vars) : "";
   $("#scheduleError").classList.toggle("hidden", !err);
@@ -328,16 +393,24 @@ function detectPlaceKind(brand) {
   return null;
 }
 
+// Enseigne (magasin, restaurant, poste…) : pas de bâtiment / étage / appt / code, N° facultatif
+function setBrandMode(which, on) {
+  const pre = prefixOf(which);
+  form.elements[pre + "_address"].closest(".fields").classList.toggle("brand-mode", !!on);
+  if (on) DETAIL.forEach(k => { form.elements[pre + "_" + k].value = ""; });
+}
+
 function onPlacePicked(which, p) {
   state.pick[which] = p;
+  setBrandMode(which, !!p.brand);
   const sel = form.elements[which + "_city"];
   if (p.cityId) sel.value = p.cityId;
   else if (p.city) { sel.value = OTHER; form.elements[which + "_other"].value = p.city; }
   state[which + "Point"] = { lat: p.lat, lon: p.lon };
-  // Numéro de rue : rempli si la carte le connaît, sinon on invite à le saisir
+  // Numéro de rue : rempli si la carte le connaît, sinon on invite à le saisir (sauf enseigne)
   const num = form.elements[which === "from" ? "pickup_number" : "dropoff_number"];
   num.value = p.housenumber || "";
-  if (!p.housenumber) setTimeout(() => num.focus(), 50);
+  if (!p.housenumber && !p.brand) setTimeout(() => num.focus(), 50);
   if (which === "from" && val("service") === "retrait" && p.brand) {
     const kind = detectPlaceKind(p.brand);
     if (kind) form.place_kind.value = kind;
@@ -352,13 +425,13 @@ function attachPlaces() {
       lang: () => I18N.lang,
       texts: () => ({ none: t("addrNone"), down: t("addrDown") }),
       onPick: p => onPlacePicked(which, p),
-      onClear: () => { state.pick[which] = null; renderQuote(); }
+      onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); }
     });
   });
 }
 
 // --- Carnet d'adresses et compte client (enregistrés sur le téléphone) -----------------
-const DETAIL = ["floor", "apt", "code"];
+const DETAIL = ["building", "floor", "apt", "code"];
 const prefixOf = which => (which === "from" ? "pickup" : "dropoff");
 
 function addrLabel(a) {
@@ -384,6 +457,7 @@ function applySavedAddr(which, a) {
   DETAIL.forEach(k => { form.elements[pre + "_" + k].value = a[k] || ""; });
   form.elements[pre + "_note"].value = a.note || "";
   state.pick[which] = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, label, exact: a.exact };
+  setBrandMode(which, !!a.brand);
   state[which + "Point"] = a.lat != null ? { lat: a.lat, lon: a.lon } : null;
   if (ac[which]) ac[which].setPicked(label);
   syncVisibility();
@@ -399,7 +473,7 @@ function rememberAddresses(o, pf, pt) {
       number, brand: p ? p.brand : null, city: p ? p.city || cityId : cityId,
       cityId: CONFIG.cities.some(c => c.id === cityId) ? cityId : null,
       lat: o[pre + "_lat"], lon: o[pre + "_lon"], exact: o[pre + "_exact"],
-      floor: o[pre + "_floor"], apt: o[pre + "_apt"], code: o[pre + "_code"], note: o[pre + "_note"]
+      building: o[pre + "_building"], floor: o[pre + "_floor"], apt: o[pre + "_apt"], code: o[pre + "_code"], note: o[pre + "_note"]
     });
   };
   save("from", pf, o.from_city);
@@ -484,13 +558,19 @@ async function submit(e) {
   const badPhone = ["contact_phone", "dropoff_phone", val("service") !== "retrait" ? "pickup_phone" : null]
     .find(k => k && val(k).trim() && !phoneOk(val(k)));
   if (badPhone) { form.elements[badPhone].focus(); return showError(t("errPhone")); }
-  const missingNo = ["pickup_number", "dropoff_number"].find(k => !val(k).trim());
-  if (missingNo) { form.elements[missingNo].focus(); return showError(t("errHouseNo")); }
+  const isBrand = w => !!(state.pick[w] && state.pick[w].brand);
+  const missingNo = [["from", "pickup_number"], ["to", "dropoff_number"]].find(([w, k]) => !isBrand(w) && !val(k).trim());
+  if (missingNo) { form.elements[missingNo[1]].focus(); return showError(t("errHouseNo")); }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
   if (state.promo) {
     const r = validatePromo(val("promo"));
     state.promo = r.promo;
+  }
+  // Bienvenue : vérifiée aussi sur le numéro et cet appareil (et l'IP côté base en ligne)
+  if (state.promo && state.promo.welcome) {
+    try { state.welcomeUsed = await Store.welcomeUsed(val("contact_phone")); } catch (e) { /* la base vérifiera */ }
+    if (state.welcomeUsed) { refuseWelcome(); return; }
   }
 
   const btn = $("#submitBtn");
@@ -516,6 +596,7 @@ async function submit(e) {
       from_city: fromCity,
       pickup_address: pAddr,
       pickup_place: pf ? pf.brand : null,
+      pickup_building: svc !== "retrait" ? val("pickup_building").trim() || null : null,
       pickup_floor: svc !== "retrait" ? val("pickup_floor").trim() || null : null,
       pickup_apt: svc !== "retrait" ? val("pickup_apt").trim() || null : null,
       pickup_code: svc !== "retrait" ? val("pickup_code").trim() || null : null,
@@ -533,10 +614,12 @@ async function submit(e) {
       to_city: toCity,
       dropoff_address: dAddr,
       dropoff_place: pt ? pt.brand : null,
+      dropoff_building: val("dropoff_building").trim() || null,
       dropoff_floor: val("dropoff_floor").trim() || null,
       dropoff_apt: val("dropoff_apt").trim() || null,
       dropoff_code: val("dropoff_code").trim() || null,
       leave_at_door: form.leave_at_door.checked,
+      prepaid_required: val("urgency") === "programmee",
       dropoff_exact: !!(drop && drop.exact),
       dropoff_note: val("dropoff_note").trim() || null,
       dropoff_lat: drop ? drop.lat : null, dropoff_lon: drop ? drop.lon : null,
@@ -560,6 +643,9 @@ async function submit(e) {
     const firstOrder = activeOrders().length === 0;
     const saved = await Store.createOrder(order);
     rememberAddresses(saved, pf, pt);
+    $("#donePrepay").textContent = t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref });
+    $("#donePrepay").classList.toggle("hidden", !saved.prepaid_required);
+    confetti();
     $("#doneAccount").textContent = t("doneAccount");
     $("#doneAccount").classList.toggle("hidden", !firstOrder);
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
@@ -572,7 +658,7 @@ async function submit(e) {
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
+    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     state.promo = null;
     $("#promoMsg").textContent = "";
@@ -582,6 +668,7 @@ async function submit(e) {
     renderSavedAddrs();
     await loadMine();
   } catch (ex) {
+    if (/welcome_used/.test(ex.message)) { state.welcomeUsed = true; refuseWelcome(); return; }
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;
@@ -593,6 +680,9 @@ async function submit(e) {
 async function loadMine() {
   try { state.mine = await Store.myOrders(); state.mineError = false; }
   catch (e) { state.mineError = true; }
+  // Offre de bienvenue déjà utilisée avec ce numéro / cet appareil ?
+  const phone = Store.getProfile().contact_phone;
+  try { state.welcomeUsed = await Store.welcomeUsed(phone || ""); } catch (e) { /* vérifié à l'envoi */ }
   renderMine();
   renderQuote();
   renderQuick();
@@ -695,6 +785,10 @@ form.addEventListener("input", e => {
   syncVisibility();
   renderQuote();
 });
+// Choix d'un service ou d'un moment (hors « programmer ») : on passe à l'étape suivante
+form.addEventListener("change", e => {
+  if (e.target.name === "service" || (e.target.name === "urgency" && e.target.value !== "programmee")) goNext(e.target.closest("fieldset"));
+});
 form.addEventListener("change", e => {
   if (/_city$/.test(e.target.name)) scheduleOtherGeocode();
   syncVisibility();
@@ -724,7 +818,7 @@ $("#quickGo").addEventListener("click", () => {
   form.from_city.value = $("#quickFrom").value;
   form.to_city.value = $("#quickTo").value;
   // Première commande : le code de bienvenue est déjà appliqué
-  if (activeOrders().length === 0 && !state.promo) { form.promo.value = welcomeCode(); applyPromo(); }
+  if (activeOrders().length === 0 && !state.welcomeUsed && !state.promo) { form.promo.value = welcomeCode(); applyPromo(); }
   if (quickWhen === "later") {
     form.elements.urgency.value = "programmee";
     form.date.value = $("#quickDate").value;

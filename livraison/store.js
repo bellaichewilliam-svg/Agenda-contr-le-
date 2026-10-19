@@ -14,7 +14,8 @@ const LS = {
   couriers: "livraison.couriers.v1",
   settings: "livraison.settings.v1",
   pendingCourier: "livraison.pendingCourier.v1",
-  addresses: "livraison.addresses.v1"
+  addresses: "livraison.addresses.v1",
+  device: "livraison.device.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -125,9 +126,35 @@ async function saveSettings(changes) {
   writeJSON(LS.settings, Object.assign(readJSON(LS.settings, {}), changes));
 }
 
+// --- Offre de bienvenue : une seule fois par numéro / téléphone / IP ------------------
+// Identifiant de cet appareil (gardé aussi en cookie, plus difficile à effacer par erreur)
+function deviceId() {
+  let id = readJSON(LS.device, null);
+  const m = document.cookie.match(/(?:^|; )hop_did=([^;]+)/);
+  if (!id && m) id = m[1];
+  if (!id) id = uuid();
+  writeJSON(LS.device, id);
+  document.cookie = `hop_did=${id}; max-age=${60 * 60 * 24 * 730}; path=/; SameSite=Lax`;
+  return id;
+}
+const phoneKey = p => { let d = String(p || "").replace(/\D/g, ""); if (d.startsWith("972")) d = "0" + d.slice(3); return d; };
+const isWelcome = code => !!(code && (CONFIG.promos.codes[code] || {}).welcome);
+
+// true si l'offre a déjà servi pour ce numéro ou cet appareil
+async function welcomeUsed(phone) {
+  const key = phoneKey(phone);
+  if (ONLINE) {
+    return !!(await rest("/rest/v1/rpc/welcome_used", { method: "POST", body: { p_phone: key, p_device: deviceId() } }));
+  }
+  const dev = deviceId();
+  return localOrders().some(o => isWelcome(o.promo_code) && !["annulee", "refusee"].includes(o.status)
+    && (phoneKey(o.contact_phone) === key || o.device_id === dev));
+}
+
 // --- Côté client -----------------------------------------------------------------
 async function createOrder(order) {
-  order = Object.assign({ token: uuid(), ref: newRef(), status: "nouvelle", payment_status: "en_attente" }, order);
+  order = Object.assign({ token: uuid(), ref: newRef(), status: "nouvelle", payment_status: "en_attente", device_id: deviceId() }, order);
+  if (!ONLINE && isWelcome(order.promo_code) && await welcomeUsed(order.contact_phone)) throw new Error("welcome_used");
   if (ONLINE) {
     await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" });
   } else {
@@ -360,6 +387,7 @@ async function settleOrders(ids) {
 window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
+  welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, ping,

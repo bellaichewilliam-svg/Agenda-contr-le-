@@ -13,6 +13,7 @@ const P = CONFIG.pricing;
 const PR = CONFIG.promos;
 const nameFr = CONFIG.businessName, nameHe = CONFIG.businessNameHe;
 const heHome = CONFIG.cities.find(c => c.id === home).he;
+const welcome = UI.money(Pricing.cityToCity(CONFIG, home, home) - PR.codes.BIENVENUE.amount);
 const pickupFrom = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.pickupPoint);
 
 $("#appLink").textContent = url;
@@ -24,7 +25,7 @@ $("#kitPrices").innerHTML = `<tr><th>Trajet</th><th>Prix</th></tr>` + featured.m
   + `<tr><td>Suppléments</td><td>express +${UI.money(P.express)} · poste/Super-Pharm +${UI.money(P.pickupPoint)} · achat +${UI.money(P.purchase)} · colis moyen +${UI.money(P.sizes.moyen)}</td></tr>`;
 
 $("#kitOffers").innerHTML = [
-  `<b>BIENVENUE</b> (français) / <b>BRUCHIM</b> (hébreu) : première course à -${PR.codes.BIENVENUE.percent} % (max ${UI.money(PR.codes.BIENVENUE.max)}).`,
+  `<b>BIENVENUE</b> (français) / <b>BRUCHIM</b> (hébreu) : -${UI.money(PR.codes.BIENVENUE.amount)} sur la première course (${welcome} dans ${UI.cityFr(home)}), une seule fois par numéro, téléphone et IP.`,
   `<b>NETANYA</b> : -${UI.money(PR.codes.NETANYA.amount)} sur n'importe quelle course — à imprimer comme « bon de réduction » sur les flyers laissés chez les commerçants.`,
   `<b>Parrainage</b> : chaque client a son code ${PR.referral.prefix} + 4 chiffres (-${UI.money(PR.referral.amount)} pour le filleul ; offrez aussi ${UI.money(PR.referral.amount)} au parrain sur sa course suivante en ajustant le prix ✏️).`,
   `<b>Fidélité</b> : la ${PR.loyalty.every}e course est offerte automatiquement (max ${UI.money(PR.loyalty.max)}).`,
@@ -45,7 +46,8 @@ const POSTS = [
 📍 Vous suivez la course en direct sur la carte, comme sur Wolt
 💵 Paiement en espèces ou par Bit
 
-🎁 Votre première course à -50 % avec le code BIENVENUE
+🏪 Même les magasins qui ne sont pas sur Wolt : on y va pour vous !
+🎁 Votre première course dans ${UI.cityFr(home)} à ${welcome} avec le code BIENVENUE
 👉 Commandez en 1 minute : ${url}` },
 
   { title: "פוסט לקבוצות פייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
@@ -61,7 +63,8 @@ const POSTS = [
 📍 מעקב אחרי השליח על המפה בזמן אמת, כמו בוולט
 💵 תשלום במזומן או בביט
 
-🎁 משלוח ראשון ב-50% הנחה עם הקוד BRUCHIM
+🏪 גם חנויות שלא נמצאות בוולט: אנחנו מגיעים בשבילכם!
+🎁 משלוח ראשון בתוך ${heHome} ב-${welcome} עם הקוד BRUCHIM
 👈 להזמנה תוך דקה: ${url}` },
 
   { title: "Message direct à un commerce (français)", dir: "ltr", text:
@@ -172,8 +175,8 @@ $("#flyer").innerHTML = `
       </ul></div>
   </div>
   <div class="two">
-    <p><b>📍 Suivi en direct · 💵 Espèces / Bit</b><br><span style="font-size:19px">🎁 Première course <b>-50 %</b> : code <b>BIENVENUE</b></span></p>
-    <p dir="rtl" style="font-family:Rubik,Arial"><b>📍 מעקב בזמן אמת · 💵 מזומן / ביט</b><br><span style="font-size:19px">🎁 משלוח ראשון <b>ב-50% הנחה</b>: קוד <b>BRUCHIM</b></span></p>
+    <p><b>📍 Suivi en direct · 💵 Espèces / Bit</b><br><span style="font-size:19px">🎁 Première course dans ${UI.esc(UI.cityFr(home))} : <b>${welcome}</b> · code <b>BIENVENUE</b></span></p>
+    <p dir="rtl" style="font-family:Rubik,Arial"><b>📍 מעקב בזמן אמת · 💵 מזומן / ביט</b><br><span style="font-size:19px">🎁 משלוח ראשון בתוך ${UI.esc(heHome)}: <b>${welcome}</b> · קוד <b>BRUCHIM</b></span></p>
   </div>
   <p style="margin-top:6px;font-size:18px"><b>Et hop, c'est livré ! · <span dir="rtl">הופ, וזה אצלך!</span></b></p>
   <p style="margin-top:10px">📞 <b dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</b> · <span dir="ltr">${UI.esc(url)}</span></p>`;

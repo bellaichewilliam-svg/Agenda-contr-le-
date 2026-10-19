@@ -104,7 +104,7 @@ function render() {
     <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>`
       : o.payment_method === "bit"
-        ? `<p style="margin:6px 0">${UI.esc(t("trPayBit", { phone: bit, ref: o.ref }))}</p>${copy}`
+        ? `${o.prepaid_required ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}<p style="margin:6px 0">${UI.esc(t("trPayBit", { phone: bit, ref: o.ref }))}</p>${copy}`
         : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}`;
 
   // Discussion directe : avec le livreur attribué, ou avec l'administration

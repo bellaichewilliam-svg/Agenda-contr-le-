@@ -209,6 +209,7 @@ function card(o, withDay) {
     `<span class="pill">${UI.esc(UI.SIZE_FR[o.size] || o.size)}</span>`,
     `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${UI.PAY_FR[o.payment_method] || ""} · ${o.payment_status === "paye" ? "encaissé" : "à encaisser"}${o.payer === "destinataire" ? " (par le destinataire)" : ""}</span>`
   ];
+  if (o.prepaid_required) meta.push(`<span class="pill ${o.payment_status === "paye" ? "paid" : "st-annulee"}">💳 Payée d'avance : ${o.payment_status === "paye" ? "reçu ✓" : "EN ATTENTE"}</span>`);
   if (o.courier_id && !isMine(o)) meta.push(`<span class="pill courier-pill">🛵 ${UI.esc(o.courier_name || "Livreur")} · commission ${UI.money(o.commission || 0)}</span>`);
   if (o.round_trip) meta.push(`<span class="pill">🔁 Aller-retour</span>`);
   if (o.extra_stops) meta.push(`<span class="pill">+${o.extra_stops} arrêt(s)</span>`);

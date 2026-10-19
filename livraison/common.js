@@ -98,7 +98,7 @@ function orderText(o) {
   if (o.dropoff_contact || o.dropoff_phone) L.push(`   ${[o.dropoff_contact, o.dropoff_phone].filter(Boolean).join(" · ")}`);
   L.push(``, `${SIZE_FR[o.size] || o.size}${o.round_trip ? " · aller-retour" : ""}${o.extra_stops ? ` · +${o.extra_stops} arrêt(s)` : ""}`);
   if (o.notes) L.push(`📝 ${o.notes}`);
-  L.push(``, `💰 ${money(o.price)} — ${PAY_FR[o.payment_method] || ""} — payé par ${o.payer === "destinataire" ? "le destinataire" : "le client"}`);
+  L.push(``, `💰 ${money(o.price)} — ${PAY_FR[o.payment_method] || ""} — payé par ${o.payer === "destinataire" ? "le destinataire" : "le client"}${o.prepaid_required ? " — 💳 À PAYER D'AVANCE" : ""}`);
   if (o.promo_code) L.push(`🎁 ${o.promo_code} (-${money(o.discount || 0)})`);
   L.push(`👤 ${o.contact_name}${o.company ? " (" + o.company + ")" : ""} — ${o.contact_phone}`);
   if (o.token) L.push(``, `Suivi : ${trackUrl(o)}`);
@@ -146,6 +146,7 @@ function fmtKey(key) {
 // Étage / appartement / code d'une adresse, en texte (pour WhatsApp et l'agenda)
 function addrDetailsText(o, which) {
   const p = [];
+  if (o[which + "_building"]) p.push(`bâtiment ${o[which + "_building"]}`);
   if (o[which + "_floor"]) p.push(`étage ${o[which + "_floor"]}`);
   if (o[which + "_apt"]) p.push(`appt ${o[which + "_apt"]}`);
   if (o[which + "_code"]) p.push(`code ${o[which + "_code"]}`);
@@ -154,6 +155,7 @@ function addrDetailsText(o, which) {
 function addrDetails(o, which, lang) {
   const t = k => window.I18N ? I18N.forLang(lang || "fr", k) : k;
   const p = [];
+  if (o[which + "_building"]) p.push(`<span><small>${esc(t("building"))}</small><b>${esc(o[which + "_building"])}</b></span>`);
   if (o[which + "_floor"]) p.push(`<span><small>${esc(t("floor"))}</small><b>${esc(o[which + "_floor"])}</b></span>`);
   if (o[which + "_apt"]) p.push(`<span><small>${esc(t("apt"))}</small><b>${esc(o[which + "_apt"])}</b></span>`);
   if (o[which + "_code"]) p.push(`<span><small>${esc(t("entryCode"))}</small><b dir="ltr">${esc(o[which + "_code"])}</b></span>`);

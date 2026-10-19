@@ -102,8 +102,9 @@ window.CONFIG = {
   promos: {
     // Codes promo : percent (avec max) ou amount ; firstOrderOnly = 1re commande
     codes: {
-      BIENVENUE: { percent: 50, max: 20, firstOrderOnly: true },
-      BRUCHIM:   { percent: 50, max: 20, firstOrderOnly: true },  // « Bienvenue » en hébreu
+      // Bienvenue : -10 ₪ (Netanya → Netanya à 15 ₪), une seule fois par numéro / téléphone / IP
+      BIENVENUE: { amount: 10, firstOrderOnly: true, welcome: true },
+      BRUCHIM:   { amount: 10, firstOrderOnly: true, welcome: true },  // « Bienvenue » en hébreu
       NETANYA:   { amount: 5 }
     },
     // Parrainage : chaque client a un code AMI + 4 derniers chiffres de son téléphone

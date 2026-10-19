@@ -55,6 +55,7 @@ create table if not exists public.orders (
   pickup_note      text,
   pickup_place     text,
   pickup_exact     boolean not null default false,
+  pickup_building  text,
   pickup_floor     text,
   pickup_apt       text,
   pickup_code      text,
@@ -73,10 +74,14 @@ create table if not exists public.orders (
   dropoff_note     text,
   dropoff_place    text,
   dropoff_exact    boolean not null default false,
+  dropoff_building text,
   dropoff_floor    text,
   dropoff_apt      text,
   dropoff_code     text,
   leave_at_door    boolean not null default false,
+  prepaid_required boolean not null default false,
+  device_id        text,
+  client_ip        text,
   dropoff_lat      double precision,
   dropoff_lon      double precision,
   dropoff_contact  text,
@@ -121,6 +126,11 @@ alter table public.orders add column if not exists dropoff_floor text;
 alter table public.orders add column if not exists dropoff_apt text;
 alter table public.orders add column if not exists dropoff_code text;
 alter table public.orders add column if not exists leave_at_door boolean not null default false;
+alter table public.orders add column if not exists prepaid_required boolean not null default false;
+alter table public.orders add column if not exists device_id text;
+alter table public.orders add column if not exists client_ip text;
+alter table public.orders add column if not exists pickup_building text;
+alter table public.orders add column if not exists dropoff_building text;
 
 create index if not exists orders_pickup_at_idx on public.orders (pickup_at);
 create index if not exists orders_courier_idx on public.orders (courier_id);
@@ -145,6 +155,46 @@ $$;
 drop trigger if exists orders_receipt on public.orders;
 create trigger orders_receipt before update on public.orders
   for each row execute function public.assign_receipt();
+
+-- --- Offre de bienvenue : une seule fois par numéro, appareil ou IP -------------------
+create or replace function public.norm_phone(p text) returns text
+language sql immutable as $$
+  select case when d like '972%' then '0' || substr(d, 4) else d end
+    from (select regexp_replace(coalesce(p, ''), '\D', '', 'g') as d) x;
+$$;
+
+create or replace function public.welcome_used(p_phone text, p_device text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from orders
+    where promo_code in ('BIENVENUE', 'BRUCHIM') and status not in ('annulee', 'refusee')
+      and (norm_phone(contact_phone) = norm_phone(p_phone) or (p_device is not null and device_id = p_device)));
+$$;
+
+-- À chaque nouvelle commande : on note l'IP, et on refuse une 2e offre de bienvenue
+-- (même numéro, même appareil, ou même IP dans les dernières 24 h)
+create or replace function public.orders_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare ip text;
+begin
+  begin
+    ip := split_part(current_setting('request.headers', true)::json->>'x-forwarded-for', ',', 1);
+  exception when others then ip := null;
+  end;
+  new.client_ip := nullif(trim(ip), '');
+  if new.promo_code in ('BIENVENUE', 'BRUCHIM') and (
+       welcome_used(new.contact_phone, new.device_id)
+       or (new.client_ip is not null and exists (select 1 from orders
+             where promo_code in ('BIENVENUE', 'BRUCHIM') and status not in ('annulee', 'refusee')
+               and client_ip = new.client_ip and created_at > now() - interval '24 hours'))) then
+    raise exception 'welcome_used';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists orders_guard on public.orders;
+create trigger orders_guard before insert on public.orders
+  for each row execute function public.orders_guard();
 
 -- --- Fonctions d'aide pour les règles ---------------------------------------
 create or replace function public.is_admin() returns boolean
@@ -249,7 +299,7 @@ $$;
 create or replace function public.track_order(p_token uuid)
 returns json
 language sql security definer set search_path = public as $$
-  select (to_jsonb(o) - 'contact_email' - 'commission' - 'commission_status'
+  select (to_jsonb(o) - 'contact_email' - 'commission' - 'commission_status' - 'client_ip' - 'device_id'
     || case when o.status in ('confirmee','recuperee') and c.position_at > now() - interval '30 minutes'
          then jsonb_build_object('courier_lat', c.lat, 'courier_lon', c.lon, 'courier_at', c.position_at)
          else '{}'::jsonb end)::json
@@ -272,7 +322,7 @@ revoke execute on function public.accept_order(uuid), public.courier_update(uuid
   public.courier_ping(double precision, double precision) from public, anon;
 grant execute on function public.accept_order(uuid), public.courier_update(uuid, text),
   public.courier_ping(double precision, double precision) to authenticated;
-grant execute on function public.orders_by_tokens(uuid[]), public.track_order(uuid), public.cancel_order(uuid) to anon;
+grant execute on function public.orders_by_tokens(uuid[]), public.track_order(uuid), public.cancel_order(uuid), public.welcome_used(text, text) to anon;
 
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
