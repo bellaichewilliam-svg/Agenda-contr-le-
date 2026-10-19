@@ -126,7 +126,9 @@ Après chaque modification d'un fichier, lancez `./bump-version.sh` : il change 
 
 ## 2. Mode démo ou mode en ligne
 
-**Mode démo (par défaut) :** tout est enregistré sur le téléphone. Le client vous envoie sa commande par WhatsApp. Le suivi à distance et les livreurs partenaires ne fonctionnent pas entre plusieurs téléphones.
+**Ce site est en mode en ligne** : il est branché sur le projet Supabase « hop-livraison » (`config.js`), et la base est installée. Les étapes ci-dessous servent pour une nouvelle installation (par exemple pour un autre groupe de livraison).
+
+**Mode démo (`supabase.url` vide) :** tout est enregistré sur le téléphone. Le client vous envoie sa commande par WhatsApp. Le suivi à distance et les livreurs partenaires ne fonctionnent pas entre plusieurs téléphones.
 
 **Mode en ligne (Supabase, gratuit) :** indispensable pour le suivi en direct, les livreurs et les reçus par mail.
 
