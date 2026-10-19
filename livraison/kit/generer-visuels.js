@@ -3,7 +3,7 @@ const { chromium } = require(require('child_process').execSync('npm root -g').to
 const fs = require('fs');
 // Usage : node generer-visuels.js <dossier des polices et de qrcodejs> (voir README)
 const L = process.argv[2] || __dirname + '/libs', OUT = __dirname + '/visuels';
-const APP = 'https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/';
+const APP = 'https://hop-livraison.vercel.app/';
 // Polices intégrées (les fichiers locaux ne se chargent pas depuis une page générée)
 const font = (fam, file, w, range) => `@font-face{font-family:'${fam}';font-weight:${w};src:url(data:font/woff2;base64,${fs.readFileSync(`${L}/${fam === 'Fredoka' ? 'fr' : 'ru'}/package/files/${file}`).toString('base64')}) format('woff2');unicode-range:${range}}`;
 const LAT = 'U+0000-024F,U+20AA,U+2013-2019,U+00A0', HEB = 'U+0590-05FF';

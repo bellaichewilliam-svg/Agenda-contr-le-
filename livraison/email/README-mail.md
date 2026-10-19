@@ -38,8 +38,8 @@ Il vous faut d'abord le mode en ligne (Supabase, voir `../README.md`). Ensuite, 
 
 Dans Supabase : **Authentication → URL Configuration**.
 
-- **Site URL** : `https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html`
-- **Redirect URLs → Add URL** : `https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/**`
+- **Site URL** : `https://hop-livraison.vercel.app/coursier.html`
+- **Redirect URLs → Add URL** : `https://hop-livraison.vercel.app/**`
 - **Save**.
 
 ## 2. Le mail HOP!

@@ -9,7 +9,7 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 
 | Page | Pour qui | Adresse (après mise en ligne) |
 |---|---|---|
-| Commande et suivi | Clients | `https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/` |
+| Commande et suivi | Clients | `https://hop-livraison.vercel.app/` |
 | Espace patron | Vous | `…/livraison/admin.html` |
 | Espace livreur | Livreurs partenaires | `…/livraison/coursier.html` |
 | Kit de lancement | Vous | `…/livraison/kit.html` |
