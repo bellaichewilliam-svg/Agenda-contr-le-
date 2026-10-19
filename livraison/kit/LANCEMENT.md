@@ -1,6 +1,6 @@
 # 🚀 Lancement HOP! : textes et visuels prêts à publier
 
-Lien de l'application : https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/
+Lien de l'application : https://hop-livraison.vercel.app/
 
 Visuels (dossier `kit/visuels/`) :
 
@@ -29,7 +29,7 @@ Chaque visuel a son QR code : clients → l'application, commerces → l'inscrip
 > 💵 Espèces ou Bit · 🗓️ Programmable à l'heure près.
 > 🏪 Tous les magasins, même les petits.
 >
-> 👉 Commandez en 1 minute : https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/
+> 👉 Commandez en 1 minute : https://hop-livraison.vercel.app/
 
 ## 2. Clients : groupes en hébreu
 À publier avec `client-post-he.png`.
@@ -46,7 +46,7 @@ Chaque visuel a son QR code : clients → l'application, commerces → l'inscrip
 > 💵 מזומן או ביט · 🗓️ אפשר לתזמן לשעה מדויקת.
 > 🏪 כל החנויות, גם הקטנות.
 >
-> 👈 מזמינים תוך דקה: https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/
+> 👈 מזמינים תוך דקה: https://hop-livraison.vercel.app/
 
 ## 3. Instagram (légende du post, bilingue)
 > Et hop, c'est livré ! 🛵 · הופ, וזה אצלך!
@@ -57,7 +57,7 @@ Chaque visuel a son QR code : clients → l'application, commerces → l'inscrip
 > #נתניה #שליחויות #משלוחים #השרון #Netanya #livraison #coursier #olim #francaisenisrael
 
 ## 4. Statut WhatsApp / bio Instagram
-> 🛵 HOP! Livraison · tout le Sharon · prix du magasin + livraison, 0 frais cachés · suivi en direct · espèces/Bit · https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/
+> 🛵 HOP! Livraison · tout le Sharon · prix du magasin + livraison, 0 frais cachés · suivi en direct · espèces/Bit · https://hop-livraison.vercel.app/
 >
 > 🛵 הופ! משלוחים · בכל השרון · מחיר החנות + משלוח, 0 עמלות נסתרות · מעקב בזמן אמת · מזומן/ביט
 
@@ -68,26 +68,26 @@ Avec `shop-post-fr.png` / `shop-post-he.png`, ou en message direct au commerçan
 > 💸 **0 % de commission sur vos ventes** : vous payez seulement la course, **25 ₪ dans Netanya**.
 > 🎟️ Carnet pro : **10 courses pour 200 ₪**.
 > 🛵 Un livreur en moins d'une heure · 📱 votre QR code pour vos clients · 🧾 un reçu pour chaque course.
-> 👉 Inscription gratuite en 1 minute : https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/commerce.html
+> 👉 Inscription gratuite en 1 minute : https://hop-livraison.vercel.app/commerce.html
 
 > 🏪 **העסק שלכם שולח עם הופ!**
 > 💸 **0% עמלה על המכירות**: משלמים רק על המשלוח, **25 ₪ בתוך נתניה**.
 > 🎟️ כרטיסייה לעסקים: **10 משלוחים ב-200 ₪**.
 > 🛵 שליח תוך פחות משעה · 📱 קוד QR ללקוחות · 🧾 קבלה על כל משלוח.
-> 👈 הרשמה בחינם תוך דקה: https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/commerce.html
+> 👈 הרשמה בחינם תוך דקה: https://hop-livraison.vercel.app/commerce.html
 
 ### HOP! Pro (abonnement des commerces) : à envoyer aux restaurants et boutiques
 > ⭐ **HOP! Pro : vos clients commandent chez vous, on livre.**
 > 💸 **0 % de commission sur vos ventes** : 199 ₪ par mois, sans engagement. **Premier mois offert.**
 > 🛵 Vos clients ne paient que **15 ₪ de livraison dans Netanya**, sans frais de service.
 > 🍳 Vous acceptez la commande avec un temps de préparation : **le livreur arrive quand c'est prêt**.
-> 👉 https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/commerce.html
+> 👉 https://hop-livraison.vercel.app/commerce.html
 
 > ⭐ **הופ! Pro: הלקוחות מזמינים אצלכם, אנחנו מביאים.**
 > 💸 **0% עמלה על המכירות**: 199 ₪ לחודש, בלי התחייבות. **החודש הראשון במתנה.**
 > 🛵 הלקוחות משלמים רק **15 ₪ משלוח בתוך נתניה**, בלי דמי שירות.
 > 🍳 אתם מאשרים את ההזמנה עם זמן הכנה: **השליח מגיע כשהיא מוכנה**.
-> 👈 https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/commerce.html
+> 👈 https://hop-livraison.vercel.app/commerce.html
 
 ## 6. Recrutement des livreurs
 Avec `rider-post-fr.png` / `rider-post-he.png` (groupes d'emploi, étudiants, olim).
@@ -99,7 +99,7 @@ Avec `rider-post-fr.png` / `rider-post-he.png` (groupes d'emploi, étudiants, ol
 > 🤝 Amène un commerce : **+2 ₪ quand un autre livreur fait ses courses**, et **20 % de son abonnement HOP! Pro** pendant 12 mois.
 > 💝 Les **pourboires sont 100 % pour toi**, et les codes promo sont payés par HOP.
 > Demandé : permis valide, véhicule assuré (simple déclaration), **un top case** (photo à l'inscription), עוסק פטור ou מורשה.
-> 👉 Inscription : https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html
+> 👉 Inscription : https://hop-livraison.vercel.app/coursier.html
 
 > 🛵 **בואו להיות שליחים בהופ!** (קטנוע, רכב או אופניים)
 > ✅ בוחרים את המשלוחים · 💵 מקבלים את המזומן · 🎯 משלוחים קרובים אליכם קודם.
@@ -108,7 +108,7 @@ Avec `rider-post-fr.png` / `rider-post-he.png` (groupes d'emploi, étudiants, ol
 > 🤝 מביאים עסק: **‎+2 ₪ כששליח אחר עושה את המשלוחים שלו**, ו-**20% מהמנוי של HOP! Pro** במשך 12 חודשים.
 > 💝 **הטיפים 100% שלכם**, וקודי ההנחה על חשבון הופ.
 > דרוש: רישיון בתוקף, רכב מבוטח (הצהרה בלבד), **ארגז (טופ קייס)** (תמונה בהרשמה), עוסק פטור או מורשה.
-> 👈 להרשמה: https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html
+> 👈 להרשמה: https://hop-livraison.vercel.app/coursier.html
 
 ---
 
