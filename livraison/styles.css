@@ -649,3 +649,6 @@ body.print-poster .print-only { display: grid; }
 .dbars i { width: 4px; border-radius: 2px; background: var(--border); }
 .dbars i:nth-child(1) { height: 7px; } .dbars i:nth-child(2) { height: 11px; } .dbars i:nth-child(3) { height: 16px; }
 .dbars.lo i.on { background: var(--red); } .dbars.mid i.on { background: #F79009; } .dbars.hi i.on { background: var(--green); }
+.vis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 8px; }
+.vis-grid a { display: grid; gap: 4px; text-decoration: none; text-align: center; }
+.vis-grid img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: top; border-radius: 10px; border: 1px solid var(--border); background: var(--navy); }
