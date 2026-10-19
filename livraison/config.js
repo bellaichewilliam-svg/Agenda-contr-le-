@@ -122,8 +122,9 @@ window.CONFIG = {
   // --- Base de données en ligne (Supabase, gratuit) --------------------------
   // Vide = mode démo (commandes envoyées par WhatsApp, pas de suivi à distance).
   supabase: {
-    url: "",
-    anonKey: ""
+    url: "https://qwabzgmlpkazzvwhzfki.supabase.co",
+    // Clé publique (anon) : faite pour être dans la page, protégée par les règles de la base
+    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3YWJ6Z21scGthenp2d2h6ZmtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MTQ3MDAsImV4cCI6MjEwNzk5MDcwMH0.O-MhDJnHp8h8XamlgwEL_Bxm3EIzQufySPwAiGLRrOs"
   },
   demoAdminPin: "1234"
 };
