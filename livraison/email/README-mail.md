@@ -29,3 +29,26 @@ Il vous faut d'abord le mode en ligne (Supabase, voir `../README.md`). Ensuite, 
 - Les courses des **livreurs partenaires** n'ont pas de reçu à votre nom : c'est le livreur qui encaisse, c'est donc à lui de remettre son propre reçu.
 - Sans email client, ou en mode démo, utilisez le bouton **✉️ Reçu par mail** ou **💬 Client** dans votre espace patron.
 - Faites valider le format du reçu par votre comptable (mentions obligatoires, numérotation, conservation des copies).
+
+# ✉️ Mail « Confirmez votre email » aux couleurs HOP!
+
+À l'inscription d'un livreur, Supabase envoie un mail de confirmation. Pour qu'il soit à l'image de HOP! et que le lien ramène sur le site :
+
+## 1. L'adresse du site (sinon le lien ouvre « localhost:3000 »)
+
+Dans Supabase : **Authentication → URL Configuration**.
+
+- **Site URL** : `https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html`
+- **Redirect URLs → Add URL** : `https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/**`
+- **Save**.
+
+## 2. Le mail HOP!
+
+**Authentication → Emails → Templates → Confirm signup** :
+
+- **Subject** : `HOP! · Confirmez votre email pour finir votre inscription`
+- **Message body** : effacez tout, collez le contenu du fichier `confirmation-inscription.html`, puis **Save**.
+
+## 3. (Facultatif) Expéditeur « HOP! Livraison »
+
+Sans réglage, l'expéditeur reste « Supabase Auth » et Supabase n'envoie que quelques mails par heure. Pour afficher « HOP! Livraison » et envoyer sans limite gênante, branchez un service d'envoi gratuit (par exemple Brevo, 300 mails par jour) dans **Authentication → Emails → SMTP Settings** : nom de l'expéditeur `HOP! Livraison`, et l'adresse, le serveur et le mot de passe donnés par le service.
