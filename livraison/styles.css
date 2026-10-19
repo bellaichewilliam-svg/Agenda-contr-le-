@@ -592,7 +592,7 @@ body.print-poster .print-only { display: grid; }
 @keyframes hop-bang { 0%, 86%, 100% { transform: rotate(10deg) translateY(0); } 92% { transform: rotate(10deg) translateY(-5px); } }
 @media (prefers-reduced-motion: reduce) { .wordmark b i { animation: none; } }
 @media (max-width: 430px) { .logo-name.wordmark { display: flex; } .wordmark b { font-size: 27px; } }
-@media (max-width: 360px) { .wordmark small { display: none; } }
+@media (max-width: 430px) { .wordmark small { display: none; } }
 [dir="rtl"] .wordmark small { letter-spacing: .03em; font-size: 12px; }
 .act-box { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; margin: 4px 0 14px; }
 .act-box small { opacity: .85; }
@@ -1044,3 +1044,15 @@ body.in-home .eta-bubble { display: none; }
 .save-tags { display: inline-flex; flex-wrap: wrap; gap: 6px; }
 
 .forgot-link { margin-top: 8px; width: 100%; }
+
+/* Sonnerie des commandes à prendre (patron) */
+.ring-bar { position: sticky; top: 8px; z-index: 30; margin-top: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between;
+  background: var(--brand); color: #fff; border-radius: 14px; padding: 10px 12px; box-shadow: 0 6px 20px rgba(0,0,0,.25); animation: ring-pulse 1.2s ease-in-out infinite; }
+.ring-bar span { display: flex; gap: 6px; }
+@keyframes ring-pulse { 50% { box-shadow: 0 0 0 6px rgba(255,107,26,.35), 0 6px 20px rgba(0,0,0,.25); } }
+@media (max-width: 760px) { table.prices td:last-child { white-space: normal; overflow-wrap: anywhere; } }
+
+/* Accès livreur depuis l'appli principale */
+.nav-rider { font-size: 18px; line-height: 1; padding: 6px 8px; border-radius: 10px; text-decoration: none; }
+.nav-rider.mine { background: var(--brand); color: #fff; }
+@media (max-width: 480px) { .nav-rider { padding: 4px 6px; font-size: 16px; } }

@@ -1,0 +1,12 @@
+{
+  "redirects": [
+    { "source": "/livreur", "destination": "/livreur/", "permanent": false },
+    { "source": "/patron", "destination": "/patron/", "permanent": false }
+  ],
+  "rewrites": [
+    { "source": "/livreur/", "destination": "/coursier.html" },
+    { "source": "/livreur/:path*", "destination": "/:path*" },
+    { "source": "/patron/", "destination": "/admin.html" },
+    { "source": "/patron/:path*", "destination": "/:path*" }
+  ]
+}

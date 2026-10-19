@@ -78,9 +78,13 @@ function writeSeen(ids) {
   try { localStorage.setItem(LS_SEEN, JSON.stringify([...ids])); } catch (e) { /* ignore */ }
 }
 
+// Un seul contexte audio (le navigateur en limite le nombre), réveillé si besoin
+let actx = null;
 function beep() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = actx;
+    if (ctx.state === "suspended") ctx.resume();
     [0, 0.25, 0.5].forEach(t => {
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.frequency.value = 880;
@@ -91,6 +95,27 @@ function beep() {
       o.stop(ctx.currentTime + t + 0.2);
     });
   } catch (e) { /* audio indisponible */ }
+}
+
+// Sonnerie des commandes : elle revient toutes les 3 s tant qu'une commande attend d'être prise
+// (par un livreur ou par vous) ; « 🔕 Couper » la fait taire pour les commandes déjà là, pas pour les suivantes
+const ringA = { timer: null, muted: new Set() };
+function waitingOrders() {
+  // Commande Pro ou par téléphone : elle sonne quand on peut l'envoyer aux livreurs (quelques min avant « prête »)
+  const lead = Number(settings.pro_lead_min || 8) * 60000;
+  return orders.filter(o => o.status === "nouvelle" && !o.courier_id && !["attente", "refusee"].includes(o.shop_status)
+    && !((o.shop_status || o.phone_order) && o.ready_at && new Date(o.ready_at) - lead > Date.now()));
+}
+function syncRing() {
+  const list = waitingOrders().filter(o => !ringA.muted.has(o.id));
+  $("#ringBar").classList.toggle("hidden", !list.length);
+  if (list.length) $("#ringBar b").textContent = list.length === 1 ? `🔔 Commande n° ${list[0].ref} à prendre · ${UI.money(list[0].price)}` : `🔔 ${list.length} commandes à prendre`;
+  if (list.length && !ringA.timer) {
+    const ringNow = () => { beep(); if (navigator.vibrate) navigator.vibrate([200, 100, 200]); };
+    ringNow();
+    ringA.timer = setInterval(ringNow, 3000);
+  }
+  if (!list.length && ringA.timer) { clearInterval(ringA.timer); ringA.timer = null; }
 }
 
 function alertNew(list, title) {
@@ -141,6 +166,7 @@ async function load() {
   orders.filter(o => o.issue && o.issue_at).forEach(o => seen.add("issue:" + o.id + o.issue_at));
   writeSeen(seen);
   firstLoad = false;
+  syncRing();
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   await refreshChats();
   renderAvail();
@@ -287,6 +313,7 @@ function card(o, withDay) {
   if (o.shop_status && o.shop_status !== "refusee") meta.push(`<span class="pill">${o.shop_status === "attente" ? "🍳 Attente du commerce"
     : o.shop_status === "prete" ? "✅ Prête au commerce" : `🍳 Prête à ${UI.esc(new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}`}${Number(o.shop_share) > 0 ? ` · commerce ${UI.money(o.shop_share)}` : ""}</span>`);
   if (o.shop_order) meta.push(`<span class="pill">🧾 ${UI.esc(o.shop_order.slice(0, 80))}</span>`);
+  if (o.phone_order) meta.push(`<span class="pill star-pill">📞 Commandée par tél. au nom de ${UI.esc(o.pickup_name || "")}${o.phone_ref ? " · n° " + UI.esc(o.phone_ref) : ""} · prête ${o.ready_at ? UI.fmtTime(o.ready_at) : ""}</span>`);
   if (Number(o.wait_fee) > 0) meta.push(`<span class="pill unpaid">⏱️ Attente ${o.wait_minutes} min · +${UI.money(o.wait_fee)} (au livreur)</span>`);
   else if (o.arrived_at && o.status === "confirmee") meta.push(`<span class="pill">⏱️ Livreur au départ depuis ${Math.floor((Date.now() - new Date(o.arrived_at)) / 60000)} min</span>`);
   if (o.rating != null) meta.push(`<span class="pill ${o.rating <= 3 ? "st-annulee" : "paid"}" title="${UI.esc(o.rating_note || "")}">${UI.esc(UI.ratingText(o))}${o.rating_note ? " 💬" : ""}</span>`);
@@ -1142,6 +1169,8 @@ $("#availBtn").addEventListener("click", toggleAvail);
 $("#refuseForm").addEventListener("submit", onRefuse);
 $("#refuseCancel").addEventListener("click", () => $("#refuseModal").classList.add("hidden"));
 $("#icsBtn").addEventListener("click", () => exportIcs(agendaList().filter(o => active(o) && isMine(o)).sort(byTime)));
+$("#ringStop").addEventListener("click", () => { waitingOrders().forEach(o => ringA.muted.add(o.id)); syncRing(); });
+$("#ringSee").addEventListener("click", () => { tab = "nouvelles"; render(); window.scrollTo({ top: $("#tabs").offsetTop - 10, behavior: "smooth" }); });
 $("#installBtn").classList.toggle("hidden", UI.isStandalone());
 $("#installBtn").addEventListener("click", () => UI.installApp("HOP! Patron").then(ok => { if (ok) $("#installBtn").classList.add("hidden"); }));
 $("#notifBtn").addEventListener("click", () => {

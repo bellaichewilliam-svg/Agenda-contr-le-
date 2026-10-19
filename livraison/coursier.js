@@ -211,6 +211,15 @@ function note(ctx, freq, at, vol, len) {
   });
 }
 
+// Commande passée par téléphone par le client (commerce pas sur HOP!) : au nom de qui, prête à quelle heure
+function phoneLine(o) {
+  const at = o.ready_at ? new Date(o.ready_at) : null;
+  const left = at ? Math.ceil((at - Date.now()) / 60000) : null;
+  const hh = at ? at.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
+  return `<div class="small pro-line">📞 Commande au nom de <b>${UI.esc(o.pickup_name || "")}</b>${o.phone_ref ? ` · n° <b>${UI.esc(o.phone_ref)}</b>` : ""} · déjà payée au commerce
+    <br>${left != null && left > 0 ? `⏱️ Prête à <b>${hh}</b> (dans ${left} min) : arrivez à l'heure, pas avant` : "✅ <b>Prête</b> : allez-y"}</div>`;
+}
+
 // HOP! Pro : où en est la préparation chez le commerce, ce que le client a commandé, la part du commerce
 function proLine(o) {
   const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
@@ -314,6 +323,7 @@ function card(o, kind) {
   const total = Store.courseValue(o);
   const net = total - (kind === "pool" ? Store.commissionFor(total, settings, mineShop) : Number(o.commission || 0));
   if (o.shop_status) extra += proLine(o);
+  if (o.phone_order) extra += phoneLine(o);
   if (o.adult_items) extra += `<div class="small adult-line">🔞 ${/tabac/.test(o.adult_items) ? "Tabac" : ""}${/tabac/.test(o.adult_items) && /alcool/.test(o.adult_items) ? " et " : ""}${/alcool/.test(o.adult_items) ? "alcool" : ""} : vérifiez la pièce d'identité du client (18 ans et plus) avant de donner.</div>`;
   if (o.shop_ref) extra += `<div class="bag-line">🛍️ Sac n° <b>${UI.esc(o.shop_ref)}</b> : demandez ce numéro${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}</div>`;
   if (o.rules_accepted_at) extra += `<div class="small muted">📋 Le client a accepté les conditions : max 40 × 40 × 35 cm, 15 kg, 500 ₪, rien de dangereux ni d'illégal. Colis non conforme ? Vous pouvez refuser : « ⚠️ Un souci ».</div>`;
@@ -552,7 +562,10 @@ async function checkChats() {
   if (!me) return;
   let recent;
   try { recent = await Store.chatRecent(); } catch (e) { return; }
-  chatUnread = Chat.unread(recent, "courier");
+  // Seulement les conversations du livreur (HOP et ses courses) : le compte patron voit aussi celles
+  // des autres, qu'on ne peut pas ouvrir d'ici
+  const mineThreads = new Set(["c:" + me.id].concat(orders.filter(o => o.courier_id === me.id).map(o => "o:" + o.id)));
+  chatUnread = Chat.unread((recent || []).filter(m => mineThreads.has(m.thread)), "courier");
   const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
   const boss = chatUnread["c:" + me.id] || 0;
   $("#bossBadge").textContent = boss;
@@ -935,10 +948,11 @@ function showNextOffer() {
       : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant") : `💵 Espèces : vous encaissez ${UI.money(o.price)} auprès du client`,
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
     o.shop_status ? proLine(o) : "",
+    o.phone_order ? phoneLine(o) : "",
     o.shop_ref ? `🛍️ Sac n° <b>${UI.esc(o.shop_ref)}</b>` : "",
     o.adult_items ? "🔞 Tabac / alcool : pièce d'identité à vérifier (18 ans +)" : "",
     Array.isArray(o.stops) && o.stops.length ? `📌 ${o.stops.length} arrêt(s) en plus sur la course` : "",
-    `⏱️ Attente / achats payés : ${UI.esc(UI.waitRule(settings))}${o.shop_status ? " (après l'heure annoncée, payés par le commerce)" : ""}`
+    `⏱️ Attente / achats payés : ${UI.esc(UI.waitRule(settings))}${o.shop_status ? " (après l'heure annoncée, payés par le commerce)" : o.phone_order ? " (après l'heure annoncée, payés par le client)" : ""}`
   ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
   $("#offerModal").classList.remove("hidden");
   startRing();

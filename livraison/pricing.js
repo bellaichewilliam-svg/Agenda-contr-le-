@@ -39,6 +39,14 @@ function cityToCity(cfg, fromId, toId) {
     : tripPrice(cityById(cfg, fromId), cityById(cfg, toId), cfg.pricing).price;
 }
 
+// Zone industrielle d'un point (config.pricing.areas), ou null
+function areaOf(cfg, cityId, p) {
+  const A = cfg.pricing.areas;
+  if (!A || !p || p.lat == null) return null;
+  const z = A.list.find(a => a.city === cityId && p.lat >= a.box[0] && p.lat <= a.box[1] && p.lon >= a.box[2] && p.lon <= a.box[3]);
+  return z ? z.id : null;
+}
+
 // opts : { fromCity, toCity, fromPoint, toPoint, service, urgency, size, roundTrip,
 //          extraStops, discount: { kind: "promo"|"referral"|"loyalty", code, percent, max, amount } }
 function computeQuote(opts, cfg) {
@@ -52,7 +60,13 @@ function computeQuote(opts, cfg) {
   const trip = same || !known ? tripPrice(null, null, P) : tripPrice(from, to, P);
   const fixed = fixedPrice(cfg, opts.fromCity, opts.toCity);
   if (fixed != null) trip.price = fixed;
-  lines.push(same
+  // Dans la même ville : la ville ↔ une zone industrielle (ou une zone ↔ l'autre) a son propre prix
+  const zf = same ? areaOf(cfg, opts.fromCity, opts.fromPoint) : null, zt = same ? areaOf(cfg, opts.toCity, opts.toPoint) : null;
+  const area = same && (zf || zt) && zf !== zt && opts.fromPoint && opts.toPoint ? cfg.pricing.areas.list.find(a => a.id === (zf || zt)) : null;
+  if (area) trip.price = Math.max(trip.price, cfg.pricing.areas.price);
+  lines.push(area
+    ? { key: "qBaseArea", vars: { city: opts.fromCity, area: area.id }, amount: trip.price }
+    : same
     ? { key: "qBaseSame", vars: { city: opts.fromCity }, amount: trip.price }
     : { key: "qBase", vars: { from: opts.fromCity, to: opts.toCity, km: Math.round(trip.km) }, amount: trip.price });
 
@@ -165,7 +179,7 @@ async function geocode(address, countryCode, timeoutMs) {
 // Prix voiture (gros colis) entre la ville principale et une ville, ou null
 function carPrice(cfg, fromId, toId) { return cfg.pricing.carAvailable === false ? null : fixedPrice(cfg, fromId, toId, true); }
 
-const api = { computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
+const api = { areaOf, computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.Pricing = api;
 

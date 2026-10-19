@@ -48,7 +48,7 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610192314" />
+  <link rel="stylesheet" href="styles.css?v=202610192341" />
 </head>
 <body>
 
@@ -59,6 +59,7 @@
       <a class="hide-sm" href="#idees" data-i18n="navIdeas"></a>
       <a class="hide-sm" href="#tarifs" data-i18n="navPrices"></a>
       <a href="#mes-courses" id="navMine" data-i18n="navMine"></a>
+      <a href="coursier.html" class="nav-rider" id="navRider" data-i18n-title="navRider" aria-label="🛵">🛵</a>
       <button class="lang-btn" id="langBtn" data-i18n="langSwitch"></button>
     </nav>
   </div>
@@ -262,6 +263,20 @@
             <label class="choice"><input type="radio" name="service" value="retrait" /><span><i>📮</i><b data-i18n="svc_retrait"></b><small data-i18n="svc_retrait_d"></small></span></label>
             <label class="choice"><input type="radio" name="service" value="achat" /><span><i>🛒</i><b data-i18n="svc_achat"></b><small data-i18n="svc_achat_d"></small></span></label>
             <label class="choice"><input type="radio" name="service" value="repas" /><span><i>🍔</i><b data-i18n="svc_repas"></b><small data-i18n="svc_repas_d"></small></span></label>
+          </div>
+          <!-- Commande passée par téléphone chez un commerce qui n'est pas sur HOP! -->
+          <div class="phone-order hidden" id="phoneBox">
+            <label class="check full"><input type="checkbox" name="phone_order" /> <span><b data-i18n="phOrder"></b><br><small class="muted" data-i18n="phOrderSub"></small></span></label>
+            <div class="phone-fields hidden" id="phoneFields">
+              <div class="fields">
+                <label class="f"><span data-i18n="phName"></span><input name="pickup_name" maxlength="60" autocomplete="name" data-i18n-ph="phNamePh" /></label>
+                <label class="f"><span data-i18n="phRef"></span><input name="phone_ref" maxlength="20" autocomplete="off" data-i18n-ph="phRefPh" /></label>
+              </div>
+              <small class="muted" data-i18n="phReady"></small>
+              <div class="rate-tags" id="phReadyChips"></div>
+              <label class="check full"><input type="checkbox" name="phone_paid" /> <span data-i18n="phPaid"></span></label>
+              <p class="small muted" data-i18n="phRule"></p>
+            </div>
           </div>
         </fieldset>
 
@@ -573,14 +588,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610192314"></script>
-<script src="i18n.js?v=202610192314"></script>
-<script src="pricing.js?v=202610192314"></script>
-<script src="store.js?v=202610192314"></script>
-<script src="chat.js?v=202610192314"></script>
-<script src="common.js?v=202610192314"></script>
-<script src="enseignes.js?v=202610192314"></script>
-<script src="places.js?v=202610192314"></script>
-<script src="client.js?v=202610192314"></script>
+<script src="config.js?v=202610192341"></script>
+<script src="i18n.js?v=202610192341"></script>
+<script src="pricing.js?v=202610192341"></script>
+<script src="store.js?v=202610192341"></script>
+<script src="chat.js?v=202610192341"></script>
+<script src="common.js?v=202610192341"></script>
+<script src="enseignes.js?v=202610192341"></script>
+<script src="places.js?v=202610192341"></script>
+<script src="client.js?v=202610192341"></script>
 </body>
 </html>

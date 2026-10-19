@@ -235,6 +235,15 @@ async function createOrder(order) {
       network: false, tip: 0, tip_status: null,
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
     });
+    // Commande passée par téléphone (commerce pas sur HOP!) : nom, déjà payée, heure « prête » (au plus 3 h)
+    if (order.phone_order && !order.shop_id && order.service !== "achat") {
+      if (!String(order.pickup_name || "").trim()) throw new Error("phone_name_required");
+      if (!order.phone_paid) throw new Error("phone_unpaid");
+      const ready = new Date(Math.min(Math.max(new Date(order.phone_ready_at || Date.now()).getTime(), Date.now()), Date.now() + 3 * 3600000));
+      Object.assign(order, { pickup_name: String(order.pickup_name).trim().slice(0, 60), phone_ref: String(order.phone_ref || "").trim().slice(0, 20) || null,
+        phone_ready_at: ready.toISOString(), ready_at: ready.toISOString(),
+        pickup_at: new Date(Math.max(new Date(order.pickup_at).getTime(), ready.getTime())).toISOString() });
+    } else Object.assign(order, { phone_order: false, pickup_name: null, phone_ref: null, phone_ready_at: null, phone_paid: false });
     order.id = uuid();
     order.created_at = new Date().toISOString();
     order.commission = 0;
@@ -430,12 +439,18 @@ async function listOrders() {
 // En ligne : bouton « en ligne » et position de moins de duty_grace_min minutes (Waze en avant-plan, GPS en pause)
 const onlineNow = c => !!(c && c.online && c.position_at && Date.now() - new Date(c.position_at) < (CONFIG.platform.dutyGraceMinutes || 60) * 60000);
 const declined = (orderId, courierId) => readJSON(LS.declines, []).some(d => d.order_id === orderId && d.courier_id === courierId);
+// Quand la course devient visible : commande Pro ou par téléphone → pro_lead_min min avant l'heure « prête »
+function offerFrom(o, st) {
+  const created = new Date(o.created_at).getTime();
+  return (o.shop_status || o.phone_order) && o.ready_at ? Math.max(created, new Date(o.ready_at) - Number(st.pro_lead_min) * 60000) : created;
+}
 function canSeeNew(o, id, st) {
   if (o.status !== "nouvelle" || o.courier_id) return false;
   // Hors ligne, ou course déjà refusée : on ne la voit plus
   if (!onlineNow(localCouriers().find(c => c.id === id)) || declined(o.id, id)) return false;
   // HOP! Pro : proposée quand le commerce a accepté, pour arriver au moment où c'est prêt
-  if (o.shop_status && !(["acceptee", "prete"].includes(o.shop_status) && Date.now() >= new Date(o.ready_at) - Number(st.pro_lead_min) * 60000)) return false;
+  if (o.shop_status && !["acceptee", "prete"].includes(o.shop_status)) return false;
+  if (Date.now() < offerFrom(o, st)) return false;
   if (o.referrer_id && o.referrer_id === id) return true;
   const ranked = o.pickup_lat == null ? [] : localCouriers()
     .filter(c => c.status === "actif" && c.role === "coursier" && c.lat != null && onlineNow(c) && !declined(o.id, c.id))
@@ -444,7 +459,7 @@ function canSeeNew(o, id, st) {
   const rank = ranked.findIndex(x => x.id === id);
   // Hors service : après les livreurs en service (tout de suite s'il n'y en a aucun)
   const wait = (o.referrer_id ? Number(st.priority_minutes) * 60000 : 0) + Number(st.wave_seconds) * 1000 * Math.min(rank < 0 ? ranked.length : rank, 2);
-  return Date.now() - new Date(o.created_at) >= wait;
+  return Date.now() - offerFrom(o, st) >= wait;
 }
 
 // Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif), même calcul que la base :

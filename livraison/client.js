@@ -156,8 +156,19 @@ function fillDefaults() {
   ["company", "contact_name", "contact_phone", "contact_email"].forEach(k => { if (p[k]) form[k].value = p[k]; });
 }
 
+// Commande par téléphone chez un commerce pas sur HOP! : repas, ou départ d'une enseigne (pas pour les achats)
+const PH_READY = [0, 10, 15, 20, 30, 45, 60];
+function phoneOrderOk() { return !proShopOn() && val("service") !== "achat" && (val("service") === "repas" || !!(state.pick.from && state.pick.from.brand)); }
+function phoneOn() { return phoneOrderOk() && form.phone_order.checked; }
+function renderPhone() {
+  $("#phoneBox").classList.toggle("hidden", !phoneOrderOk());
+  $("#phoneFields").classList.toggle("hidden", !phoneOn());
+  $("#phReadyChips").innerHTML = PH_READY.map(n => `<button type="button" class="ch-chip${state.phoneReady === n ? " on" : ""}" data-ready="${n}">${UI.esc(n ? t("phMin", { n }) : t("phNow"))}</button>`).join("");
+}
+
 function syncVisibility() {
   const svc = val("service");
+  renderPhone();
   // Gros colis (voiture) : seulement quand une voiture est disponible
   const gros = form.querySelector('input[name=size][value=gros]');
   gros.closest(".choice").classList.toggle("hidden", P.carAvailable === false);
@@ -296,6 +307,7 @@ function lineLabel(l) {
   if (v.from) v.from = cityLabel(v.from);
   if (v.to) v.to = cityLabel(v.to);
   if (v.city) v.city = cityLabel(v.city);
+  if (v.area) { const z = (CONFIG.pricing.areas.list || []).find(x => x.id === v.area); v.area = z ? z[I18N.lang] || z.fr : v.area; }
   let s = t(l.key, v);
   if (l.key === "qBase" && l.vars.km) s += ` · ${t("qDist", { km: l.vars.km })}`;
   return s;
@@ -766,6 +778,11 @@ function isReturning() {
 
 // Client connu : ses coordonnées sont repliées en une ligne « Marc · 052-… ✏️ »
 function renderAccount() {
+  // Un livreur connecté sur ce téléphone : son espace en un geste depuis l'appli principale
+  let rider = false;
+  try { rider = !!localStorage.getItem("livraison.session.coursier.v1"); } catch (e) { /* ignore */ }
+  $("#navRider").classList.toggle("mine", rider);
+  $("#navRider").title = rider ? t("navRiderMine") : t("navRider");
   const p = Store.getProfile();
   const known = isReturning();
   $("#navMine").textContent = known ? t("hello", { name: p.contact_name.split(" ")[0] }) : t("navMine");
@@ -845,6 +862,11 @@ async function submit(e) {
   if (err) return showError(t(err.key, err.vars));
   if (proShopOn() && !val("shop_order").trim()) { form.shop_order.focus(); return showError(t("errShopOrder", { name: state.shop.name })); }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showError(t("errShopRef")); }
+  if (phoneOn()) {
+    if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showError(t("errPhoneName")); }
+    if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showError(t("errPhoneReady")); }
+    if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
+  }
   if (val("service") === "achat" && adultItems().length) {
     if (!form.adult_ok.checked) { form.adult_ok.focus(); return showError(t("errAdult")); }
     if (form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())) return showError(t("errAlcoholHours"));
@@ -938,6 +960,11 @@ async function submit(e) {
       notes: val("notes").trim() || null,
       shop_order: proShopOn() ? val("shop_order").trim() : null,
       shop_ref: shopSelf() ? val("shop_ref").trim() : null,
+      phone_order: phoneOn(),
+      pickup_name: phoneOn() ? val("pickup_name").trim() : null,
+      phone_ref: phoneOn() ? val("phone_ref").trim() || null : null,
+      phone_paid: phoneOn() && form.phone_paid.checked,
+      phone_ready_at: phoneOn() ? new Date(Date.now() + state.phoneReady * 60000).toISOString() : null,
       company: val("company").trim() || null,
       contact_name: val("contact_name").trim(),
       contact_phone: formatPhone(val("contact_phone").trim()),
@@ -971,7 +998,7 @@ async function submit(e) {
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "shop_order", "shop_ref", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
+    ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     setKind("pickup", null); setKind("dropoff", null);
     state.stops = []; renderStops();
@@ -980,6 +1007,7 @@ async function submit(e) {
     resetPlaces();
     applyShop();
     form.leave_at_door.checked = false;
+    form.phone_order.checked = false; form.phone_paid.checked = false; state.phoneReady = null;
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
     await loadMine();
@@ -987,6 +1015,8 @@ async function submit(e) {
     if (/welcome_used/.test(ex.message)) { state.welcomeUsed = true; refuseWelcome(); return; }
     if (/carnet_/.test(ex.message)) { if (state.pro) state.pro.credits = 0; syncVisibility(); return showError(t("errCarnet")); }
     if (/alcohol_hours/.test(ex.message)) return showError(t("errAlcoholHours"));
+    if (/phone_name_required/.test(ex.message)) return showError(t("errPhoneName"));
+    if (/phone_unpaid/.test(ex.message)) return showError(t("errPhonePaid"));
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;
@@ -1890,6 +1920,8 @@ document.addEventListener("click", e => { if (e.target.closest("[data-rules]")) 
 $("#rulesClose").addEventListener("click", () => $("#rulesModal").classList.add("hidden"));
 $("#rulesModal").addEventListener("click", e => { if (e.target.id === "rulesModal") $("#rulesModal").classList.add("hidden"); });
 form.addEventListener("click", e => {
+  const rd = e.target.closest("[data-ready]");
+  if (rd) { state.phoneReady = Number(rd.dataset.ready); return renderPhone(); }
   const g = e.target.closest("[data-geo]");
   if (g) return useMyPosition(g.dataset.geo, g);
   const s = e.target.closest("[data-save-addr]");
