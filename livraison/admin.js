@@ -13,6 +13,7 @@ Store.useSpace("admin");
 let orders = [];
 let couriers = [];
 let shops = [];
+let requests = [];
 let msgs = { messages: [], replies: [] };
 let me = null;
 let settings = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
@@ -91,8 +92,9 @@ async function load() {
   try {
     [orders, couriers, settings] = await Promise.all([Store.listOrders(), Store.listCouriers(), Store.getSettings()]);
     // Commerces et messages : un souci ici ne doit pas bloquer les courses
-    const [sh, m] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null)]);
+    const [sh, m, rq] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null), Store.listRequests().catch(() => null)]);
     if (sh) shops = sh;
+    if (rq) requests = rq;
     if (m) msgs = m;
     me = couriers.find(c => c.id === (Store.session() || {}).user_id) || me;
   } catch (e) {
@@ -104,6 +106,7 @@ async function load() {
   const freshOrders = orders.filter(o => !seen.has(o.id) && o.status === "nouvelle");
   const freshCouriers = couriers.filter(c => !seen.has(c.id) && c.status === "en_attente");
   const freshShops = shops.filter(x => !seen.has(x.id) && x.status === "en_attente");
+  const freshReqs = requests.filter(x => !seen.has(x.id) && x.status === "nouvelle");
   if (!firstLoad && freshOrders.length) {
     alertNew(freshOrders.map(o => ({ ref: o.ref, price: o.price, body: `${UI.whenFr(o)}\n${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)}` })),
       x => `🆕 Commande n° ${x.ref} — ${UI.money(x.price)}`);
@@ -113,6 +116,8 @@ async function load() {
   orders.forEach(o => seen.add(o.id));
   couriers.forEach(c => seen.add(c.id));
   shops.forEach(x => seen.add(x.id));
+  requests.forEach(x => seen.add(x.id));
+  if (!firstLoad && freshReqs.length) alertNew(freshReqs, x => `📝 Demande de devis : ${x.company || x.name}`);
   writeSeen(seen);
   firstLoad = false;
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -313,6 +318,8 @@ function renderStats() {
   $("#pendingBadge").textContent = pending ? `(${pending})` : "";
   const pendingShops = shops.filter(x => x.status === "en_attente").length;
   $("#shopsBadge").textContent = pendingShops ? `(${pendingShops})` : "";
+  const newReqs = requests.filter(x => x.status === "nouvelle").length;
+  $("#reqBadge").textContent = newReqs ? `(${newReqs})` : "";
 }
 
 function render() {
@@ -339,6 +346,8 @@ function render() {
     renderShops(view);
   } else if (tab === "messages") {
     renderMessages(view);
+  } else if (tab === "demandes") {
+    renderRequests(view);
   } else if (tab === "historique") {
     const q = histFilter.q.toLowerCase();
     const list = orders
@@ -535,7 +544,7 @@ function renderShops(view) {
   view.innerHTML = `
     <div class="card" style="margin-bottom:14px">
       <b>🤝 Commerces amenés par les livreurs</b>
-      <p class="muted small" style="margin:4px 0 8px">Chaque livreur a son lien d'inscription pour les commerces (onglet « Parrainage » de son espace). Il gagne ${UI.money(settings.referral_bonus)} sur chaque course livrée au départ de ses commerces, à vie, déduit de sa commission chaque semaine, et voit leurs courses ${Number(settings.priority_minutes)} min avant les autres. Les courses peuvent être commandées dès l'inscription ; vérifiez ici que le commerce existe.</p>
+      <p class="muted small" style="margin:4px 0 8px">Chaque livreur a son lien d'inscription pour les commerces (onglet « Parrainage » de son espace). Il gagne ${UI.money(settings.referral_bonus)} sur chaque course livrée au départ de ses commerces, tant qu'il livre avec nous (plus de bonus après ${Number(settings.referral_active_days || CONFIG.partners.activeDays)} jours sans livraison), déduit de sa commission chaque semaine, et voit leurs courses ${Number(settings.priority_minutes)} min avant les autres. Les courses peuvent être commandées dès l'inscription ; vérifiez ici que le commerce existe.</p>
       <div class="promo-row"><input readonly value="${UI.esc(signup)}" dir="ltr" /><button class="btn btn-sm" data-copy="${UI.esc(signup)}">Copier</button><a class="btn btn-sm" href="${UI.esc(signup)}" target="_blank" rel="noopener">➕ Inscrire un commerce</a></div>
     </div>
     <div class="stats">
@@ -572,6 +581,31 @@ function renderShops(view) {
         </div>
       </article>`;
     }).join("")}</div>` : `<div class="empty card">Aucun commerce inscrit pour l'instant. Envoyez votre lien à un restaurant ou une boutique !</div>`}`;
+}
+
+// --- Demandes de devis (tournée quotidienne, carnet…) -------------------------------------
+function renderRequests(view) {
+  const topic = { tournee: "🗓️ Tournée quotidienne", carnet: "🎟️ Carnet de courses", autre: "📝 Autre besoin" };
+  const list = requests.slice().sort((a, b) => (a.status === "nouvelle" ? 0 : 1) - (b.status === "nouvelle" ? 0 : 1));
+  view.innerHTML = list.length ? `<div class="orders">${list.map(r => `
+    <article class="order${r.status === "nouvelle" ? " is-new" : ""}" data-req="${UI.esc(r.id)}">
+      <div class="order-head">
+        <span class="order-time">${UI.esc(r.company || r.name)}</span>
+        <span class="pill">${r.kind === "pro" ? "🏢 Pro" : "🏠 Particulier"}</span>
+        <span class="pill">${topic[r.topic] || r.topic}</span>
+        <span class="order-ref">${UI.esc(UI.fmtDateTime(r.created_at))}</span>
+      </div>
+      <div class="kv">
+        <div><span>👤</span><span>${tel(r.name, r.phone)}${r.city ? " · " + UI.esc(UI.cityFr(r.city)) : ""} · ${r.lang === "he" ? "🇮🇱 hébreu" : "🇫🇷 français"}</span></div>
+        ${r.frequency ? `<div><span>🔁</span><span>${UI.esc(r.frequency)}</span></div>` : ""}
+        ${r.message ? `<div><span>📝</span><span>${UI.esc(r.message)}</span></div>` : ""}
+      </div>
+      <div class="actions">
+        <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(r.phone, r.lang === "he" ? `שלום ${r.name}, קיבלנו את הבקשה שלכם ב${CONFIG.businessNameHe}. ` : `Bonjour ${r.name}, merci pour votre demande chez ${CONFIG.businessName}. `)}">💬 Répondre</a>
+        ${r.status === "nouvelle" ? `<button class="btn btn-sm btn-primary" data-ract="traitee">✓ Traitée</button>` : `<button class="btn btn-sm" data-ract="nouvelle">↩︎ À traiter</button>`}
+        <textarea class="admin-note" data-ract="note" rows="1" placeholder="Note (prix proposé, suite…)">${UI.esc(r.admin_note || "")}</textarea>
+      </div>
+    </article>`).join("")}</div>` : `<div class="empty card">Aucune demande pour l'instant. Les clients et les commerces demandent un devis depuis l'application (bouton « Demander un devis »).</div>`;
 }
 
 // --- Messages aux livreurs --------------------------------------------------------------
@@ -733,6 +767,11 @@ async function onViewClick(e) {
     try { await Store.settleOrders(ids); await Store.settleReferrals(bonusIds); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
   }
+  if (el.dataset.ract && el.dataset.ract !== "note") {
+    const id = el.closest("[data-req]").dataset.req;
+    try { await Store.updateRequest(id, { status: el.dataset.ract }); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
   if (el.dataset.sact) {
     const id = el.closest("[data-shop]").dataset.shop;
     const shop = shops.find(x => x.id === id);
@@ -833,6 +872,8 @@ async function onViewChange(e) {
     const o = orderOf(t);
     const c = couriers.find(x => x.id === t.value);
     if (o && c) assignTo(o, c);
+  } else if (t.dataset.ract === "note") {
+    Store.updateRequest(t.closest("[data-req]").dataset.req, { admin_note: t.value.trim() || null }).catch(() => alert("Note non enregistrée."));
   } else if (t.dataset.sact === "note" || t.dataset.sact === "referrer") {
     const id = t.closest("[data-shop]").dataset.shop;
     const changes = t.dataset.sact === "note" ? { admin_note: t.value.trim() || null } : { referrer_id: t.value || null };
@@ -890,7 +931,7 @@ $("#liveList").addEventListener("click", e => { const it = e.target.closest("[da
 $("#liveFit").addEventListener("click", () => { if (live.map && live.points && live.points.length) live.map.fitBounds(live.points, { padding: [40, 40], maxZoom: 15 }); });
 $("#view").addEventListener("change", onViewChange);
 $("#view").addEventListener("input", onViewInput);
-window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|shops|replies)/.test(e.key || "") && Store.session()) load(); });
+window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|shops|replies|requests)/.test(e.key || "") && Store.session()) load(); });
 document.addEventListener("visibilitychange", async () => {
   // Le verrou d'écran est relâché quand on quitte la page : le reprendre au retour
   if (document.visibilityState === "visible" && duty.watch != null && navigator.wakeLock) {

@@ -1,6 +1,6 @@
 # 🛵 HOP! Livraison · הופ! משלוחים — « Et hop, c'est livré ! »
 
-Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. Elle fonctionne sur téléphone et ordinateur et s'installe comme une application.
+Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionne sur téléphone et ordinateur et s'installe comme une application.
 
 - **Côté clients :** en français et en hébreu.
 - **Côté patron et livreurs :** en français.
@@ -43,7 +43,7 @@ Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. El
 ### Commerces partenaires et parrainage (`commerce.html`)
 - **Le livreur amène un commerce** : onglet « 🤝 Parrainage » de son espace (son code, son lien, son QR code, un message prêt à envoyer en hébreu et en français).
 - **Le commerce s'inscrit gratuitement** (FR/HE) et reçoit son espace : bouton « Commander une course » avec le départ déjà rempli, lien et affiche QR pour ses clients, historique de ses courses.
-- **Le parrain gagne 1 ₪** (`partners.bonusPerDelivery`) sur chaque course livrée au départ de ses commerces, à vie, même si un autre livreur la fait. Le bonus est déduit de sa commission chaque semaine.
+- **Le parrain gagne 1 ₪** (`partners.bonusPerDelivery`) sur chaque course livrée au départ de ses commerces, même si un autre livreur la fait, **tant qu'il reste actif** : après 3 semaines sans aucune livraison (`partners.activeDays`), ses bonus s'arrêtent jusqu'à sa prochaine livraison. Le bonus est déduit de sa commission chaque semaine.
 - **Le parrain a 3 minutes d'avance** (`partners.priorityMinutes`) : les autres livreurs voient ces courses après lui.
 - Niveaux (🌱 → 👑) et classement des parrains du mois.
 - Côté patron : onglet « 🏪 Commerces » (vérifier, suspendre, changer le parrain, envoyer ses liens au commerce).
