@@ -87,7 +87,9 @@ function cityActive(id) {
   return !z || z.active !== false;
 }
 
-function appUrl(page) { return new URL(page || "./", location.href).href; }
+// Lien à partager : toujours vers l'adresse officielle (sauf en test sur l'ordinateur)
+const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === "file:";
+function appUrl(page) { return new URL(page || "./", CONFIG.siteUrl && !LOCAL ? CONFIG.siteUrl : location.href).href; }
 function trackUrl(o) { return appUrl("suivi.html") + "?t=" + o.token; }
 
 const SERVICE_FR = { colis: "Envoi de colis", retrait: "Retrait de colis", achat: "Achat pour le client", repas: "Repas / restaurant" };

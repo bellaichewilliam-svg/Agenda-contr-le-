@@ -167,7 +167,7 @@ function render() {
     $("#callCourier").textContent = t("callCourier", { name: first });
     $("#callCourier").href = "tel:" + o.courier_phone;
   }
-  $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: location.href }));
+  $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: UI.appUrl("suivi.html") + location.search }));
   updateMap(o);
 }
 

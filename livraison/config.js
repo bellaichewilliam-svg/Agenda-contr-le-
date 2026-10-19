@@ -6,6 +6,9 @@ window.CONFIG = {
   // --- Identité --------------------------------------------------------------
   businessName: "HOP! Livraison",
   businessNameHe: "הופ! משלוחים",
+  // Adresse officielle du site : tous les liens et QR codes partagés y mènent
+  // (même si l'appli est ouverte depuis l'ancienne adresse GitHub)
+  siteUrl: "https://hop-livraison.vercel.app/",
   // Numéro WhatsApp du coursier, format international SANS "+" ni espaces.
   whatsapp: "972527790361",
   phoneDisplay: "052-779-0361",
