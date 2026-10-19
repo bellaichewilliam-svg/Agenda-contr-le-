@@ -73,7 +73,7 @@ function renderStatic() {
     </button>`;
   }).join("");
 
-  const pro = PROMOS.business.map(b => `<li><span>${UI.esc(b[I18N.lang] || b.fr)}</span><b>${UI.esc(b.price)}</b></li>`).join("");
+  const pro = PROMOS.business.map(b => `<li><span>${UI.esc(b[I18N.lang] || b.fr)}</span><b>${UI.esc(typeof b.price === "object" ? b.price[I18N.lang] || b.price.fr : b.price)}</b></li>`).join("");
   $("#offers").innerHTML = `
     <div class="card offer hot"><div class="ico">🎁</div><h3>${t("offWelcome_t")}</h3><p>${UI.esc(t("offWelcome_d", { max: money(PROMOS.codes.BIENVENUE.max) }))}</p></div>
     <div class="card offer"><div class="ico">🤝</div><h3>${t("offRef_t")}</h3><p>${UI.esc(t("offRef_d", { amount: money(PROMOS.referral.amount) }))}</p></div>
@@ -97,8 +97,24 @@ function renderStatic() {
   }).join("");
 }
 
+// Code de bienvenue selon la langue (BIENVENUE / BRUCHIM)
+function welcomeCode() { return I18N.lang === "he" ? "BRUCHIM" : "BIENVENUE"; }
+
+// Prix d'appel : prix barré + prix de la première course si le client n'a encore rien commandé
 function renderQuick() {
-  $("#quickPrice").textContent = money(Pricing.cityToCity(CONFIG, $("#quickFrom").value, $("#quickTo").value));
+  const from = $("#quickFrom").value, to = $("#quickTo").value;
+  const full = Pricing.cityToCity(CONFIG, from, to);
+  const first = activeOrders().length === 0;
+  const code = welcomeCode();
+  const promo = Object.assign({ kind: "promo", code }, PROMOS.codes[code]);
+  const withPromo = first ? Pricing.computeQuote({ fromCity: from, toCity: to, size: "petit", discount: promo }, CONFIG).total : full;
+  const priceEl = $("#quickPrice");
+  priceEl.textContent = money(withPromo);
+  priceEl.classList.remove("pop"); void priceEl.offsetWidth; priceEl.classList.add("pop");
+  $("#quickOld").textContent = money(full);
+  $("#quickOld").classList.toggle("hidden", withPromo === full);
+  $("#quickWelcome").textContent = t("quickWelcome", { code });
+  $("#quickWelcome").classList.toggle("hidden", withPromo === full);
 }
 
 // --- Formulaire -----------------------------------------------------------------
@@ -122,7 +138,7 @@ function fillDefaults() {
   form.time.value = `${pad(slot.getHours())}:${pad(slot.getMinutes())}`;
   form.from_city.value = form.to_city.value = CONFIG.homeCity;
   $("#quickFrom").value = CONFIG.homeCity;
-  $("#quickTo").value = "tel-aviv";
+  $("#quickTo").value = CONFIG.homeCity;
   const p = Store.getProfile();
   ["company", "contact_name", "contact_phone", "contact_email"].forEach(k => { if (p[k]) form[k].value = p[k]; });
 }
@@ -272,6 +288,29 @@ function applyExample(id) {
   $("#commander").scrollIntoView({ behavior: "smooth" });
 }
 
+// --- Téléphones israéliens : vérification et mise en forme ---------------------------
+// Accepte 05X-XXX-XXXX (portable), 0X-XXX-XXXX (fixe), 07X… et +972…
+function phoneDigits(v) {
+  let d = String(v || "").replace(/\D/g, "");
+  if (d.startsWith("972")) d = "0" + d.slice(3);
+  return d;
+}
+function phoneOk(v) { return /^0(5\d{8}|7\d{8}|[2-489]\d{7})$/.test(phoneDigits(v)); }
+function formatPhone(v) {
+  const d = phoneDigits(v);
+  if (/^0[57]\d{8}$/.test(d)) return `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`;
+  if (/^0\d{8}$/.test(d)) return `${d.slice(0, 2)}-${d.slice(2, 5)}-${d.slice(5)}`;
+  return v;
+}
+
+// Coordonnées mémorisées dès la saisie (pas seulement après une commande réussie)
+const PROFILE_FIELDS = ["company", "contact_name", "contact_phone", "contact_email"];
+function rememberProfile() {
+  const p = Store.getProfile();
+  PROFILE_FIELDS.forEach(k => { p[k] = val(k).trim(); });
+  Store.saveProfile(p);
+}
+
 function showError(msg) {
   $("#formError").textContent = msg || "";
   $("#formError").classList.toggle("hidden", !msg);
@@ -337,6 +376,9 @@ async function submit(e) {
     form.elements[!ac.from.isPicked() ? "pickup_address" : "dropoff_address"].focus();
     return showError(t("errAddrPick"));
   }
+  const badPhone = ["contact_phone", "dropoff_phone", val("service") !== "retrait" ? "pickup_phone" : null]
+    .find(k => k && val(k).trim() && !phoneOk(val(k)));
+  if (badPhone) { form.elements[badPhone].focus(); return showError(t("errPhone")); }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
   if (state.promo) {
@@ -368,7 +410,7 @@ async function submit(e) {
       pickup_note: val("pickup_note").trim() || null,
       pickup_lat: pick ? pick.lat : null, pickup_lon: pick ? pick.lon : null,
       pickup_contact: svc !== "retrait" ? val("pickup_contact").trim() || null : null,
-      pickup_phone: svc !== "retrait" ? val("pickup_phone").trim() || null : null,
+      pickup_phone: svc !== "retrait" && val("pickup_phone").trim() ? formatPhone(val("pickup_phone").trim()) : null,
       place_kind: svc === "retrait" ? val("place_kind") : null,
       tracking_number: svc === "retrait" ? val("tracking_number").trim() || null : null,
       parcel_name: svc === "retrait" ? val("parcel_name").trim() || null : null,
@@ -382,7 +424,7 @@ async function submit(e) {
       dropoff_note: val("dropoff_note").trim() || null,
       dropoff_lat: drop ? drop.lat : null, dropoff_lon: drop ? drop.lon : null,
       dropoff_contact: val("dropoff_contact").trim() || null,
-      dropoff_phone: val("dropoff_phone").trim() || null,
+      dropoff_phone: val("dropoff_phone").trim() ? formatPhone(val("dropoff_phone").trim()) : null,
       size: val("size"),
       round_trip: form.round_trip.checked,
       extra_stops: parseInt(val("extra_stops"), 10) || 0,
@@ -395,7 +437,7 @@ async function submit(e) {
       notes: val("notes").trim() || null,
       company: val("company").trim() || null,
       contact_name: val("contact_name").trim(),
-      contact_phone: val("contact_phone").trim(),
+      contact_phone: formatPhone(val("contact_phone").trim()),
       contact_email: val("contact_email").trim() || null
     };
     const saved = await Store.createOrder(order);
@@ -429,6 +471,7 @@ async function loadMine() {
   catch (e) { state.mineError = true; }
   renderMine();
   renderQuote();
+  renderQuick();
 }
 
 function renderClub() {
@@ -441,7 +484,7 @@ function renderClub() {
   $("#clubCards").innerHTML = `
     <div class="card club"><h3>⭐ ${t("loyaltyTitle")}</h3>
       <div class="stamps">${stamps}</div>
-      <p class="muted small">${loyaltyDue() ? t("loyaltyNext") : UI.esc(t("loyaltyText", { n, every: L.every }))}</p></div>
+      <p class="muted small">${loyaltyDue() ? t("loyaltyNext") : UI.esc(t("loyaltyText", { n, every: L.every, left: L.every - 1 - n }))}</p></div>
     ${code ? `<div class="card club"><h3>🤝 ${t("refTitle")}</h3>
       <div class="ref-code" dir="ltr">${code}</div>
       <p class="muted small">${UI.esc(t("refText", { amount: money(PROMOS.referral.amount) }))}</p>
@@ -529,6 +572,14 @@ form.addEventListener("change", e => {
   renderQuote();
 });
 form.addEventListener("submit", submit);
+form.addEventListener("input", e => { if (PROFILE_FIELDS.includes(e.target.name)) rememberProfile(); });
+// Mise en forme du numéro quand on quitte le champ (052-123-4567)
+form.addEventListener("focusout", e => {
+  if (!/_phone$/.test(e.target.name || "") || !e.target.value.trim()) return;
+  e.target.value = formatPhone(e.target.value);
+  e.target.classList.toggle("field-bad", !phoneOk(e.target.value));
+  if (e.target.name === "contact_phone") rememberProfile();
+});
 form.promo.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); applyPromo(); } });
 $("#promoBtn").addEventListener("click", applyPromo);
 $("#examples").addEventListener("click", e => { const b = e.target.closest("[data-ex]"); if (b) applyExample(b.dataset.ex); });
@@ -543,9 +594,12 @@ $("#quickSwap").addEventListener("click", () => {
 $("#quickGo").addEventListener("click", () => {
   form.from_city.value = $("#quickFrom").value;
   form.to_city.value = $("#quickTo").value;
+  // Première commande : le code de bienvenue est déjà appliqué
+  if (activeOrders().length === 0 && !state.promo) { form.promo.value = welcomeCode(); applyPromo(); }
   syncVisibility();
   renderQuote();
   $("#commander").scrollIntoView({ behavior: "smooth" });
+  setTimeout(() => form.pickup_address.focus({ preventScroll: true }), 600);
 });
 $("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); renderAll(); });
 $("#doneClose").addEventListener("click", () => { $("#doneModal").classList.add("hidden"); location.hash = "mes-courses"; });

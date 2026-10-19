@@ -53,6 +53,8 @@ Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. El
 
 ⚠️ `config.js` est public : n'y mettez rien de secret.
 
+Après chaque modification d'un fichier, lancez `./bump-version.sh` : il change le numéro de version des fichiers pour que les téléphones rechargent tout d'un coup (sinon un ancien fichier gardé en cache peut casser la page).
+
 ## 2. Mode démo ou mode en ligne
 
 **Mode démo (par défaut) :** tout est enregistré sur le téléphone. Le client vous envoie sa commande par WhatsApp. Le suivi à distance et les livreurs partenaires ne fonctionnent pas entre plusieurs téléphones.

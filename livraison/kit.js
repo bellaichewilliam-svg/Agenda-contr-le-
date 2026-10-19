@@ -24,11 +24,11 @@ $("#kitPrices").innerHTML = `<tr><th>Trajet</th><th>Prix</th></tr>` + featured.m
   + `<tr><td>Suppléments</td><td>express +${UI.money(P.express)} · poste/Super-Pharm +${UI.money(P.pickupPoint)} · achat +${UI.money(P.purchase)} · colis moyen +${UI.money(P.sizes.moyen)}</td></tr>`;
 
 $("#kitOffers").innerHTML = [
-  `<b>BIENVENUE</b> (français) / <b>BRUCHIM</b> (hébreu) : 1re course à -${PR.codes.BIENVENUE.percent} % (max ${UI.money(PR.codes.BIENVENUE.max)}).`,
+  `<b>BIENVENUE</b> (français) / <b>BRUCHIM</b> (hébreu) : première course à -${PR.codes.BIENVENUE.percent} % (max ${UI.money(PR.codes.BIENVENUE.max)}).`,
   `<b>NETANYA</b> : -${UI.money(PR.codes.NETANYA.amount)} sur n'importe quelle course — à imprimer comme « bon de réduction » sur les flyers laissés chez les commerçants.`,
   `<b>Parrainage</b> : chaque client a son code ${PR.referral.prefix} + 4 chiffres (-${UI.money(PR.referral.amount)} pour le filleul ; offrez aussi ${UI.money(PR.referral.amount)} au parrain sur sa course suivante en ajustant le prix ✏️).`,
   `<b>Fidélité</b> : la ${PR.loyalty.every}e course est offerte automatiquement (max ${UI.money(PR.loyalty.max)}).`,
-  ...PR.business.map(b => `<b>Pro</b> : ${UI.esc(b.fr)} — ${UI.esc(b.price)}`)
+  ...PR.business.map(b => `<b>Pro</b> : ${UI.esc(b.fr)} — ${UI.esc(typeof b.price === "object" ? b.price.fr : b.price)}`)
 ].map(x => `<li>${x}</li>`).join("");
 
 const POSTS = [
@@ -45,7 +45,7 @@ const POSTS = [
 📍 Vous suivez la course en direct sur la carte, comme sur Wolt
 💵 Paiement en espèces ou par Bit
 
-🎁 Votre 1re course à -50 % avec le code BIENVENUE
+🎁 Votre première course à -50 % avec le code BIENVENUE
 👉 Commandez en 1 minute : ${url}` },
 
   { title: "פוסט לקבוצות פייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
@@ -172,7 +172,7 @@ $("#flyer").innerHTML = `
       </ul></div>
   </div>
   <div class="two">
-    <p><b>📍 Suivi en direct · 💵 Espèces / Bit</b><br><span style="font-size:19px">🎁 1re course <b>-50 %</b> : code <b>BIENVENUE</b></span></p>
+    <p><b>📍 Suivi en direct · 💵 Espèces / Bit</b><br><span style="font-size:19px">🎁 Première course <b>-50 %</b> : code <b>BIENVENUE</b></span></p>
     <p dir="rtl" style="font-family:Rubik,Arial"><b>📍 מעקב בזמן אמת · 💵 מזומן / ביט</b><br><span style="font-size:19px">🎁 משלוח ראשון <b>ב-50% הנחה</b>: קוד <b>BRUCHIM</b></span></p>
   </div>
   <p style="margin-top:6px;font-size:18px"><b>Et hop, c'est livré ! · <span dir="rtl">הופ, וזה אצלך!</span></b></p>

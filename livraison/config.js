@@ -34,7 +34,7 @@ window.CONFIG = {
 
   // --- Horaires (0 = dimanche … 6 = samedi) : [ouverture, fermeture] ou null --
   hours: {
-    0: [8, 21], 1: [8, 21], 2: [8, 21], 3: [8, 21], 4: [8, 21],
+    0: [8, 23], 1: [8, 23], 2: [8, 23], 3: [8, 23], 4: [8, 23],
     5: [8, 14],
     6: null
   },
@@ -112,9 +112,9 @@ window.CONFIG = {
     loyalty: { every: 10, max: 30 },
     // Offres professionnelles affichées sur la page (commande par WhatsApp)
     business: [
-      { fr: "Restaurants : livraison de repas dans Netanya", he: "מסעדות: משלוח אוכל בתוך נתניה", price: "18 ₪" },
-      { fr: "Carnet de 10 courses dans une même ville", he: "כרטיסייה של 10 משלוחים בתוך אותה עיר", price: "200 ₪" },
-      { fr: "Tournée quotidienne fixe (avocats, comptables, labos)", he: "סבב יומי קבוע (עורכי דין, רואי חשבון, מעבדות)", price: "sur devis · בהצעת מחיר" }
+      { fr: "Restaurants : livraison de repas dans Netanya (dès 10 livraisons par semaine)", he: "מסעדות: משלוח אוכל בתוך נתניה (החל מ-10 משלוחים בשבוע)", price: { fr: "18 ₪", he: "18 ₪" } },
+      { fr: "Carnet de 10 courses dans Netanya : 18 ₪ la course au lieu de 25 ₪", he: "כרטיסייה של 10 משלוחים בתוך נתניה: 18 ₪ למשלוח במקום 25 ₪", price: { fr: "180 ₪", he: "180 ₪" } },
+      { fr: "Tournée quotidienne fixe (avocats, comptables, labos)", he: "סבב יומי קבוע (עורכי דין, רואי חשבון, מעבדות)", price: { fr: "sur devis", he: "בהצעת מחיר" } }
     ]
   },
 
