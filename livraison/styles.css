@@ -517,3 +517,58 @@ fieldset.step-done > legend::after { content: " ✅"; }
 .confetti i { position: absolute; top: -40px; font-style: normal; font-size: 22px; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(560px) rotate(540deg); opacity: .2; } }
 .brand-mode .fields4 { display: none !important; }
+
+/* --- Commerces partenaires, parrainage, messages aux livreurs ------------------- */
+.promo-row input[readonly] { text-transform: none; min-width: 0; flex: 1; }
+.f.wide { grid-column: 1 / -1; }
+.pill.star-pill { background: #FFF6D6; color: #8A5A00; border-color: #F5D77A; white-space: normal; }
+.offer-star { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: #FFF6D6; color: #8A5A00; font-size: 14px; }
+.btn-dark { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+.shop-page { padding: 20px 16px 80px; max-width: 760px; }
+.shop-hero { padding: 8px 0 18px; }
+.shop-hero h1 { font-family: "Fredoka", "Rubik", sans-serif; font-size: clamp(26px, 6vw, 38px); line-height: 1.15; color: var(--navy); }
+.shop-hero p { color: var(--muted); margin-top: 8px; font-size: 16px; }
+.shop-hero .perks-list li { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; font-weight: 600; }
+.shop-list { display: grid; gap: 8px; margin-top: 10px; }
+.shop-row { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.shop-row:last-child { border-bottom: 0; }
+.shop-row > div:first-child { display: grid; gap: 2px; min-width: 0; }
+.shop-row .num { text-align: end; white-space: nowrap; }
+.poster { display: grid; justify-items: center; gap: 8px; text-align: center; margin: 16px auto; padding: 20px; border: 3px dashed var(--brand); border-radius: 20px; max-width: 320px; }
+.poster > b { font-family: "Fredoka", "Rubik", sans-serif; font-size: 26px; color: var(--navy); }
+.poster-logo { width: 56px; height: 56px; }
+.poster #posterName { font-weight: 800; font-size: 18px; }
+@media print {
+  body.print-poster * { visibility: hidden; }
+  body.print-poster .poster, body.print-poster .poster * { visibility: visible; }
+  body.print-poster .poster { position: absolute; inset-inline: 0; top: 60px; max-width: 420px; padding: 40px; }
+  body.print-poster .poster > b { font-size: 40px; }
+}
+
+.ref-hero h3 { font-size: 18px; }
+.ref-steps { margin: 10px 0 14px; padding-inline-start: 20px; display: grid; gap: 6px; }
+.ref-code { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.ref-code b { font-family: "Fredoka", "Rubik", sans-serif; font-size: 30px; letter-spacing: 3px; color: var(--brand); }
+#refQr { margin: 14px auto 0; width: 216px; height: 216px; }
+.level-card { display: grid; gap: 6px; }
+.level-bar { height: 10px; border-radius: 99px; background: var(--bg-2); overflow: hidden; }
+.level-bar span { display: block; height: 100%; background: linear-gradient(90deg, var(--brand), #FFB020); border-radius: 99px; }
+.board { list-style: none; display: grid; gap: 6px; margin-top: 10px; }
+.board li { display: grid; grid-template-columns: 32px 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; border-radius: 10px; background: var(--bg); }
+.board li.me { background: var(--brand-soft); }
+.board small { color: var(--muted); }
+
+.msg-card { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 14px; margin: 0 0 12px; border-radius: var(--r); background: var(--navy); color: #fff; }
+.msg-card > div:first-child { display: grid; gap: 2px; }
+.msg-card small { opacity: .75; }
+.msg-card.msg-rush { background: linear-gradient(120deg, var(--brand), #FF3D6E); }
+.msg-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.msg-card .btn:not(.btn-primary):not(.btn-dark) { background: rgba(255,255,255,.15); color: #fff; border-color: rgba(255,255,255,.35); }
+.msg-card .btn-primary { background: #fff; color: var(--brand-ink); border-color: #fff; }
+.msg-box .msg-body { font-size: 20px; font-weight: 700; margin: 14px 0; }
+.msg-box .msg-btns { justify-content: center; }
+.tpl-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+
+.shop-banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 14px; padding: 12px 14px; border-radius: 12px; background: #FFF6D6; color: #8A5A00; font-weight: 700; }
+.shop-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }

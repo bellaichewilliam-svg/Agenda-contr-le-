@@ -12,7 +12,7 @@ const form = $("#orderForm");
 const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
-const state = { promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null } };
+const state = { shop: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null } };
 const ac = {};
 
 // Exemples cliquables : ils pré-remplissent le formulaire
@@ -417,6 +417,7 @@ function onPlacePicked(which, p) {
   }
   syncVisibility();
   renderQuote();
+  renderShopBanner();
 }
 
 function attachPlaces() {
@@ -425,7 +426,7 @@ function attachPlaces() {
       lang: () => I18N.lang,
       texts: () => ({ none: t("addrNone"), down: t("addrDown") }),
       onPick: p => onPlacePicked(which, p),
-      onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); }
+      onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); }
     });
   });
 }
@@ -462,6 +463,7 @@ function applySavedAddr(which, a) {
   if (ac[which]) ac[which].setPicked(label);
   syncVisibility();
   renderQuote();
+  renderShopBanner();
 }
 
 function rememberAddresses(o, pf, pt) {
@@ -516,6 +518,7 @@ function resetPlaces() {
 // Coordonnées exactes de « rue + numéro » choisis (sinon celles de la rue)
 async function exactPoint(p, number, cityName) {
   if (!p) return null;
+  if (p.shopId && p.lat != null) return { lat: p.lat, lon: p.lon, exact: true };
   if (p.housenumber && p.housenumber === number) return { lat: p.lat, lon: p.lon, exact: p.exact !== false };
   if (p.streetName) {
     try {
@@ -638,7 +641,9 @@ async function submit(e) {
       company: val("company").trim() || null,
       contact_name: val("contact_name").trim(),
       contact_phone: formatPhone(val("contact_phone").trim()),
-      contact_email: val("contact_email").trim() || null
+      contact_email: val("contact_email").trim() || null,
+      // Départ = le commerce du lien : la course compte pour lui (et pour le livreur qui l'a amené)
+      shop_id: state.shop && pf && pf.shopId === state.shop.id ? state.shop.id : null
     };
     const firstOrder = activeOrders().length === 0;
     const saved = await Store.createOrder(order);
@@ -663,6 +668,7 @@ async function submit(e) {
     state.promo = null;
     $("#promoMsg").textContent = "";
     resetPlaces();
+    applyShop();
     form.leave_at_door.checked = false;
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
@@ -760,6 +766,7 @@ function renderAll() {
   renderMine();
   renderSavedAddrs();
   renderAccount();
+  renderShopBanner();
 }
 
 async function loadSettings() {
@@ -768,7 +775,33 @@ async function loadSettings() {
   renderQuote();
 }
 
+// --- Commerce partenaire (lien index.html?c=CODE) : départ rempli depuis le commerce ----------
+function renderShopBanner() {
+  const on = !!(state.shop && state.pick.from && state.pick.from.shopId === state.shop.id);
+  $("#shopBanner").classList.toggle("hidden", !on);
+  if (on) $("#shopBannerText").textContent = t("shBanner", { name: state.shop.name });
+}
+
+function applyShop() {
+  const s = state.shop;
+  if (!s) return;
+  applySavedAddr("from", { brand: s.name, street: s.address || "", number: "", cityId: CONFIG.cities.some(c => c.id === s.city) ? s.city : null,
+    city: s.city, lat: s.lat, lon: s.lon, exact: s.lat != null });
+  state.pick.from.shopId = s.id;
+  if (s.kind === "restaurant") { form.elements.service.value = "repas"; syncVisibility(); renderQuote(); }
+  renderShopBanner();
+}
+
+async function loadShop(code) {
+  try { state.shop = await Store.shopByCode(code); } catch (e) { state.shop = null; }
+  if (!state.shop) return;
+  applyShop();
+  setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);
+}
+
 // --- Démarrage ---------------------------------------------------------------------
+// Lien d'un commerce partenaire (lu avant de nettoyer l'adresse)
+const shopCode = new URLSearchParams(location.search).get("c");
 // Adresse nettoyée (paramètres laissés par une ancienne version ou un rechargement forcé)
 if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 I18N.apply();
@@ -776,6 +809,7 @@ fillCitySelects();
 fillDefaults();
 renderAll();
 attachPlaces();
+if (shopCode) loadShop(shopCode);
 loadMine();
 loadSettings();
 
@@ -835,6 +869,16 @@ document.querySelectorAll(".saved-addrs").forEach(box => box.addEventListener("c
   const a = Store.getAddresses()[Number(b.dataset.addr)];
   if (a) applySavedAddr(box.dataset.for, a);
 }));
+$("#shopBannerOff").addEventListener("click", () => {
+  state.shop = null;
+  state.pick.from = null;
+  if (ac.from) ac.from.reset();
+  form.pickup_address.value = "";
+  setBrandMode("from", false);
+  renderShopBanner();
+  renderQuote();
+  form.pickup_address.focus();
+});
 $("#coordsEdit").addEventListener("click", () => { $("#coordsBox").dataset.editing = "1"; renderAccount(); form.contact_name.focus(); });
 $("#accountCard").addEventListener("click", e => {
   const b = e.target.closest("[data-del-addr]");

@@ -98,6 +98,34 @@ window.CONFIG = {
     settlementDay: 0          // jour du paiement hebdomadaire (0 = dimanche)
   },
 
+  // --- Commerces partenaires amenés par les livreurs ---------------------------
+  // Le livreur qui amène un commerce gagne bonusPerDelivery à chaque course livrée
+  // au départ de ce commerce (même si un autre livreur la fait), à vie, et a
+  // priorityMinutes d'avance pour prendre ces courses. Le bonus est déduit de sa
+  // commission chaque semaine. (En ligne : colonnes referral_bonus et
+  // priority_minutes de la table settings.)
+  partners: {
+    bonusPerDelivery: 1,
+    priorityMinutes: 3,
+    // Niveaux du livreur selon le nombre de commerces amenés
+    levels: [
+      { min: 1, name: "🌱 Premier commerce" },
+      { min: 3, name: "🔥 Chasseur" },
+      { min: 5, name: "🚀 Ambassadeur" },
+      { min: 10, name: "👑 Légende HOP!" }
+    ],
+    kinds: ["restaurant", "boutique", "pharmacie", "bureau", "autre"]
+  },
+
+  // Messages prêts à envoyer aux livreurs depuis l'espace patron
+  courierMessages: [
+    { kind: "rush", text: "🔥 Ça vaut le coup de sortir : beaucoup de commandes en ce moment !" },
+    { kind: "rush", text: "🍔 Rush du soir à Netanya : passez en service maintenant !" },
+    { kind: "info", text: "🌧️ Il pleut : prudence sur la route, prenez votre temps." },
+    { kind: "info", text: "📍 Des courses attendent au centre-ville de Netanya." },
+    { kind: "info", text: "😴 Calme pour le moment, pas besoin de sortir." }
+  ],
+
   // --- Offres de lancement ----------------------------------------------------
   promos: {
     // Codes promo : percent (avec max) ou amount ; firstOrderOnly = 1re commande
@@ -114,7 +142,7 @@ window.CONFIG = {
     // Offres professionnelles affichées sur la page (commande par WhatsApp)
     business: [
       { fr: "Restaurants : livraison de repas dans Netanya (dès 10 livraisons par semaine)", he: "מסעדות: משלוח אוכל בתוך נתניה (החל מ-10 משלוחים בשבוע)", price: { fr: "18 ₪", he: "18 ₪" } },
-      { fr: "Carnet de 10 courses dans Netanya : 18 ₪ la course au lieu de 25 ₪", he: "כרטיסייה של 10 משלוחים בתוך נתניה: 18 ₪ למשלוח במקום 25 ₪", price: { fr: "180 ₪", he: "180 ₪" } },
+      { fr: "Carnet de 10 courses dans Netanya, au lieu de 250 ₪ (25 ₪ × 10)", he: "כרטיסייה של 10 משלוחים בתוך נתניה, במקום 250 ₪ (25 ₪ × 10)", price: { fr: "180 ₪ les 10", he: "180 ₪ ל-10" } },
       { fr: "Tournée quotidienne fixe (avocats, comptables, labos)", he: "סבב יומי קבוע (עורכי דין, רואי חשבון, מעבדות)", price: { fr: "sur devis", he: "בהצעת מחיר" } }
     ]
   },
@@ -122,9 +150,8 @@ window.CONFIG = {
   // --- Base de données en ligne (Supabase, gratuit) --------------------------
   // Vide = mode démo (commandes envoyées par WhatsApp, pas de suivi à distance).
   supabase: {
-    url: "https://qwabzgmlpkazzvwhzfki.supabase.co",
-    // Clé publique (anon) : faite pour être dans la page, protégée par les règles de la base
-    anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF3YWJ6Z21scGthenp2d2h6ZmtpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MTQ3MDAsImV4cCI6MjEwNzk5MDcwMH0.O-MhDJnHp8h8XamlgwEL_Bxm3EIzQufySPwAiGLRrOs"
+    url: "",
+    anonKey: ""
   },
   demoAdminPin: "1234"
 };
