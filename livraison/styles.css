@@ -940,3 +940,8 @@ body.in-home .eta-bubble { display: none; }
 .kind-chips .ch-chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
 /* Maison : pas d'étage ni d'appartement */
 .fields4.is-house label:nth-child(2), .fields4.is-house label:nth-child(3) { display: none; }
+/* Refus : pourquoi ? (un geste) */
+.decline-why { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.decline-why small { font-weight: 400; color: var(--muted); }
+.why-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.why-chips .ch-chip { cursor: pointer; }

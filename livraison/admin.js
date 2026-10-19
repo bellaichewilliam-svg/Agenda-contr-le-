@@ -25,7 +25,8 @@ function showPhoto(src) {
 let shops = [];
 let requests = [];
 let sales = [];
-let planSales = [];   // abonnements HOP! Pro payés (part du livreur qui a amené le commerce)
+let planSales = [];
+let declines = [];    // refus des 30 derniers jours (avec la raison)   // abonnements HOP! Pro payés (part du livreur qui a amené le commerce)
 let msgs = { messages: [], replies: [] };
 let me = null;
 let settings = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
@@ -107,6 +108,7 @@ async function load() {
     const [sh, m, rq, sa] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null),
       Store.listRequests().catch(() => null), Store.listCarnetSales().catch(() => null)]);
     planSales = (await Store.listPlanSales().catch(() => null)) || planSales;
+    declines = (await Store.listDeclines().catch(() => null)) || declines;
     if (sh) shops = sh;
     if (sa) sales = sa;
     if (rq) requests = rq;
@@ -219,6 +221,22 @@ const partners = () => couriers.filter(c => c.role !== "admin");
 // Solde d'un livreur (même calcul que la base) : commissions − courses payées à HOP − part Pro et promos
 // payées par HOP − pourboires reçus − bonus réseau − part des abonnements Pro, pas encore réglés
 const balanceOf = id => Store.balanceOf(id, orders, planSales);
+// Refus d'un livreur (30 jours) : taux d'acceptation, raisons, et s'il a été passé hors ligne pour trop de refus
+const WHY_FR = { loin: "trop loin", prix: "pas assez payé", taille: "trop gros", occupe: "occupé", fin: "fin de service", autre: "autre", sans_reponse: "sans réponse" };
+function declineStats(c) {
+  const mine = declines.filter(d => d.courier_id === c.id);
+  if (!mine.length && !c.auto_offline_at) return "";
+  const since = Date.now() - 30 * 86400000;
+  const taken = orders.filter(o => o.courier_id === c.id && new Date(o.created_at) > since).length;
+  const rate = taken + mine.length ? Math.round(100 * taken / (taken + mine.length)) : null;
+  const why = {};
+  mine.forEach(d => { why[d.reason || "autre"] = (why[d.reason || "autre"] || 0) + 1; });
+  const top = Object.entries(why).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${WHY_FR[k] || k} ×${n}`).join(", ");
+  const bad = rate != null && rate < 60;
+  const off = c.auto_offline_at && Date.now() - new Date(c.auto_offline_at) < 7 * 86400000
+    ? ` · ⏸️ passé hors ligne pour refus le ${UI.esc(UI.fmtDateTime(c.auto_offline_at))}` : "";
+  return `<p class="small ${bad ? "notice warn" : "muted"}" style="margin:6px 0 0">🚫 ${mine.length} refus en 30 jours${rate != null ? ` · acceptation ${rate} %` : ""}${top ? ` · ${UI.esc(top)}` : ""}${off}${bad ? " · à voir avec lui" : ""}</p>`;
+}
 const TIP_FR = { promis: "promis (attendre son Bit)", recu: "reçu, à reverser", verse: "reversé ✓" };
 
 const { clientMessage, weekStart, addDays, fmtKey } = UI;
@@ -495,12 +513,14 @@ function renderCouriers(view) {
     ${list.length ? `<div class="orders">${list.map(c => {
       const done = orders.filter(o => o.courier_id === c.id && o.status === "livree").length;
       const rating = UI.ratingOf(orders.filter(o => o.courier_id === c.id));
+      const refus = declineStats(c);
       return `<article class="order${c.status === "en_attente" ? " is-new" : ""}" data-courier="${UI.esc(c.id)}">
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name)}</span>
           <span class="pill">${statusLabel[c.status] || c.status}</span>
           <span class="order-ref">${done} course(s) livrée(s)${rating ? ` · ⭐ ${rating.avg.toFixed(1).replace(".", ",")} (${rating.n} avis)` : ""}</span>
         </div>
+        ${refus}
         <div class="kv">
           <div><span>📞</span><span>${tel("", c.phone)}${c.bit_phone ? ` · Bit ${UI.esc(c.bit_phone)}` : ""}${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
           <div><span>🛵</span><span>${UI.esc(c.vehicle || "—")} · permis n° ${UI.esc(c.license_number || "—")} · assurance ${c.insurance ? UI.esc(c.insurance) : "déclarée"}${c.business_number ? ` · n° d'entreprise ${UI.esc(c.business_number)}` : ""}</span></div>
