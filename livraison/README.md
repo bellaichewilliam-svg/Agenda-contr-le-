@@ -116,6 +116,17 @@ Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et
 - **⚠️ Un souci :** le livreur signale un problème (client absent, adresse introuvable, retard, panne…). Il s'affiche sur la course, dans la conversation, et vous recevez une alerte.
 - **Vous débloquez tout :** « 🔓 Débloquer la course » (livrer sans GPS ni photo) ou « 🔓 Débloquer 24 h » sur un livreur (plus aucun blocage pendant 24 h).
 
+### Commande passée par téléphone (commerce pas sur HOP!)
+- Repas, ou départ d'une enseigne : le client coche **« 📞 J'ai déjà commandé par téléphone »**, donne le **nom de la commande** (et le n° s'il en a un), **dans combien de temps c'est prêt** (déjà prête, 10 à 60 min) et confirme que **c'est déjà payé au commerce** (sinon : « J'achète pour vous »).
+- La course n'est proposée aux livreurs que **quelques minutes avant l'heure « prête »** (`pro_lead_min`, 8 min), avec une notification à ce moment-là : le livreur arrive quand c'est prêt, pas avant. Il voit « 📞 Commande au nom de David · n° 57 · prête à 20:45 ».
+- **Attente** comptée à partir de l'heure « prête » : 10 min offertes, puis payée par le client. **Si la commande n'existe pas ou a été annulée, la course reste due** (écrit au client avant de commander).
+
+### Prix dans Netanya : zones industrielles
+Dans Netanya : 25 ₪. **Entre la ville et une zone industrielle (ancienne ou nouvelle), dans les deux sens, ou d'une zone à l'autre : 30 ₪** (`pricing.areas` dans `config.js` : le prix et les rectangles des zones, à vérifier et ajuster).
+
+### Sonnerie du patron
+Tant qu'une commande attend un livreur, **ça sonne toutes les 3 s** avec un bandeau orange « 🔔 Commande à prendre » (**Voir** / **🔕 Couper** : coupe pour les commandes déjà là, pas pour les suivantes).
+
 ### Paiement Bit
 - Le client qui choisit Bit **paie tout de suite** depuis l'écran « Commande envoyée » ou le suivi : montant, numéro, n° de commande, bouton **Ouvrir Bit** (Android), **Copier le numéro** et **✅ J'ai payé**. Vous voyez « 💳 Le client dit avoir payé par Bit · à vérifier » et vous recevez une alerte : vérifiez votre Bit, puis marquez la course payée.
 - **Trompé de moyen de paiement ?** Sur le suivi, « Je préfère payer par Bit / en espèces » tant que rien n'est payé ; le livreur est prévenu dans la conversation.
@@ -126,7 +137,7 @@ Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et
 - Fonctionnement : la base appelle la fonction Supabase `hop-push` (`supabase/functions/hop-push`) ; les clés sont dans la table `push_config` (invisible depuis l'application ; la clé publique est aussi dans `config.js`, `push.publicKey`).
 
 ### Trois applis, trois icônes
-Client (orange), **HOP! Livreur** (bleue « LIVREUR ») et **HOP! Patron** (noire « PATRON »). Le livreur a un bouton « 📲 Mettre HOP! Livreur sur l'écran d'accueil », le patron « 📲 Installer HOP! Patron ». Le patron et les livreurs ont aussi « Mot de passe oublié ? » sous la connexion.
+Client (orange), **HOP! Livreur** (bleue « LIVREUR ») et **HOP! Patron** (noire « PATRON »). Sur le site, l'espace livreur est à **/livreur/** et l'espace patron à **/patron/** (`vercel.json`) : chaque appli s'installe à part sur Android. Depuis l'appli client, le bouton **🛵** en haut ouvre l'espace livreur. Le livreur a un bouton « 📲 Mettre HOP! Livreur sur l'écran d'accueil », le patron « 📲 Installer HOP! Patron ». Le patron et les livreurs ont aussi « Mot de passe oublié ? » sous la connexion.
 
 ### Zones
 Seulement le Sharon est ouvert (`zones` dans `config.js`). Tel Aviv – Gush Dan, Petah Tikva et Rishon apparaissent « bientôt » chez les clients et dans l'écran « 📍 Zones » des livreurs, qui montre aussi la demande en direct. Mettez `active: true` pour ouvrir une zone.

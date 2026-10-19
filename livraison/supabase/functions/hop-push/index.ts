@@ -60,17 +60,22 @@ Deno.serve(async req => {
       .toLocaleString("fr-FR", { timeZone: "Asia/Jerusalem", weekday: "short", hour: "2-digit", minute: "2-digit" });
     if (ev.event === "new") {
       sent += await sendTo(await admins(), { title: `🆕 Nouvelle commande · ${money(o.price)}`,
-        body: `${o.ref} · ${when}\n${route}\n👤 ${o.contact_name}`, url: "admin.html", tag: "o-" + o.id }, site);
+        body: `${o.ref} · ${when}\n${route}\n👤 ${o.contact_name}`, url: "patron/", tag: "o-" + o.id }, site);
     } else if (ev.event === "again") {
       sent += await sendTo(await admins(), { title: `↩️ Course remise en attente · ${o.ref}`,
-        body: route, url: "admin.html", tag: "o-" + o.id }, site);
+        body: route, url: "patron/", tag: "o-" + o.id }, site);
     }
     // Les livreurs en service : seulement une course qu'on peut prendre maintenant
     // (une commande HOP! Pro attend d'abord que le commerce l'accepte)
-    const open = o.status === "nouvelle" && !o.courier_id && (!o.shop_status || o.shop_status === "acceptee" || o.shop_status === "prete");
-    if (open && ["new", "again", "shop_ok"].includes(ev.event)) {
+    // (commande Pro ou par téléphone : seulement quand elle devient visible, quelques minutes avant l'heure « prête »)
+    const { data: st } = await db.from("settings").select("pro_lead_min").eq("id", 1).single();
+    const delayed = !!(o.shop_status || o.phone_order) && o.ready_at
+      && new Date(o.ready_at).getTime() - Number((st && st.pro_lead_min) || 8) * 60000 > Date.now();
+    const open = o.status === "nouvelle" && !o.courier_id && !delayed
+      && (!o.shop_status || o.shop_status === "acceptee" || o.shop_status === "prete");
+    if (open && ["new", "again", "shop_ok", "ready"].includes(ev.event)) {
       sent += await sendTo(await onDuty(), { title: `🛵 Nouvelle course · ${money(o.price)}`,
-        body: `${when} · ${route}`, url: "coursier.html", tag: "o-" + o.id }, site);
+        body: `${when} · ${route}`, url: "livreur/", tag: "o-" + o.id }, site);
     }
   } else if (ev.thread) {
     // Messagerie : le client, un commerce ou un livreur écrit → le patron ; le patron écrit → le livreur
@@ -81,7 +86,7 @@ Deno.serve(async req => {
       if (ev.body === "status:client_paid") {
         const { data: o } = await db.from("orders").select("ref, price").eq("id", id).single();
         sent += await sendTo(await admins(), { title: "💳 Paiement Bit à vérifier",
-          body: `Le client dit avoir payé ${o ? money(o.price) + " · " + o.ref : ""}`, url: "admin.html", tag: "pay-" + id }, site);
+          body: `Le client dit avoir payé ${o ? money(o.price) + " · " + o.ref : ""}`, url: "patron/", tag: "pay-" + id }, site);
       }
     } else if (ev.author === "admin") {
       let to: string[] = [];
@@ -90,14 +95,14 @@ Deno.serve(async req => {
         const { data: o } = await db.from("orders").select("courier_id").eq("id", id).single();
         if (o && o.courier_id) to = [o.courier_id];
       }
-      sent += await sendTo(to, { title: "💬 HOP!", body: text, url: "coursier.html", tag: "m-" + ev.thread }, site);
+      sent += await sendTo(to, { title: "💬 HOP!", body: text, url: "livreur/", tag: "m-" + ev.thread }, site);
     } else {
-      sent += await sendTo(await admins(), { title: `💬 ${who}`, body: text, url: "admin.html", tag: "m-" + ev.thread }, site);
+      sent += await sendTo(await admins(), { title: `💬 ${who}`, body: text, url: "patron/", tag: "m-" + ev.thread }, site);
       if (kind === "o" && ev.author === "client") {
         const { data: o } = await db.from("orders").select("courier_id, status").eq("id", id).single();
         if (o && o.courier_id && ["confirmee", "recuperee"].includes(o.status)) {
           const { data: a } = await db.from("couriers").select("role").eq("id", o.courier_id).single();
-          if (a && a.role !== "admin") sent += await sendTo([o.courier_id], { title: `💬 ${who}`, body: text, url: "coursier.html", tag: "m-" + ev.thread }, site);
+          if (a && a.role !== "admin") sent += await sendTo([o.courier_id], { title: `💬 ${who}`, body: text, url: "livreur/", tag: "m-" + ev.thread }, site);
         }
       }
     }

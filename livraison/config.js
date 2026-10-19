@@ -143,7 +143,19 @@ window.CONFIG = {
     // Arrêt en plus, avec son adresse : sur le chemin (détour d'au plus onWayKm km) → onWayPercent % du
     // prix d'une course ; sinon le prix d'une course (base). Au plus maxStops arrêts.
     stop: { onWayKm: 1.5, onWayPercent: 50, maxStops: 2 },
-    returnTripPercent: 50
+    returnTripPercent: 50,
+    // Zones industrielles de Netanya : une course entre la ville et une zone (ou d'une zone à l'autre)
+    // coûte price au lieu du prix « dans Netanya », dans les deux sens ; dans la même zone, prix normal.
+    // Rectangles approximatifs (sud, nord, ouest, est) : à vérifier sur la carte, et à ajuster ici.
+    areas: {
+      price: 30,
+      list: [
+        { id: "ezor-hadash", city: "netanya", fr: "zone industrielle nouvelle (Poleg)", he: "אזור התעשייה החדש",
+          box: [32.268, 32.292, 34.852, 34.876] },
+        { id: "ezor-yashan", city: "netanya", fr: "zone industrielle ancienne", he: "אזור התעשייה הישן",
+          box: [32.326, 32.345, 34.866, 34.890] }
+      ]
+    }
   },
 
   // --- Livreurs partenaires --------------------------------------------------

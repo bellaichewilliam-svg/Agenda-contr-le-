@@ -1698,6 +1698,98 @@ create or replace trigger chat_push after insert on public.chat_messages
   for each row execute function public.push_chat_event();
 
 -- ============================================================================
+-- COMMANDE PASSÉE PAR TÉLÉPHONE chez une enseigne qui n'est pas sur HOP! : le client donne l'heure où
+-- ce sera prêt et le nom de la commande ; la course n'est proposée aux livreurs que pro_lead_min minutes
+-- avant, pour qu'ils arrivent quand c'est prêt (pas avant). L'attente compte à partir de l'heure « prête »
+-- (10 min offertes, puis payée par le client). La commande doit être déjà payée au commerce.
+-- ============================================================================
+alter table public.orders add column if not exists phone_order boolean not null default false;
+alter table public.orders add column if not exists pickup_name text check (length(pickup_name) <= 60);
+alter table public.orders add column if not exists phone_ref text check (length(phone_ref) <= 20);
+alter table public.orders add column if not exists phone_ready_at timestamptz;
+alter table public.orders add column if not exists phone_paid boolean not null default false;
+alter table public.orders add column if not exists ready_push_at timestamptz;
+
+-- Après orders_guard (ordre alphabétique des déclencheurs) : contrôle et heure « prête »
+create or replace function public.orders_phone_order() returns trigger
+language plpgsql set search_path = public as $$
+declare ready timestamptz;
+begin
+  new.ready_push_at := null;
+  if not coalesce(new.phone_order, false) or new.shop_id is not null or new.service = 'achat' then
+    new.phone_order := false; new.pickup_name := null; new.phone_ref := null; new.phone_ready_at := null; new.phone_paid := false;
+    return new;
+  end if;
+  if nullif(trim(coalesce(new.pickup_name, '')), '') is null then raise exception 'phone_name_required'; end if;
+  if not coalesce(new.phone_paid, false) then raise exception 'phone_unpaid'; end if;
+  ready := least(greatest(coalesce(new.phone_ready_at, now()), now()), now() + interval '3 hours');
+  new.pickup_name := left(trim(new.pickup_name), 60);
+  new.phone_ref := left(nullif(trim(coalesce(new.phone_ref, '')), ''), 20);
+  new.phone_ready_at := ready;
+  new.ready_at := ready;
+  new.pickup_at := greatest(new.pickup_at, ready);
+  return new;
+end;
+$$;
+create or replace trigger orders_phone_order before insert on public.orders
+  for each row execute function public.orders_phone_order();
+
+-- Quand la course devient visible pour les livreurs (commande HOP! Pro acceptée ou commande par téléphone :
+-- pro_lead_min minutes avant l'heure « prête » ; sinon tout de suite)
+create or replace function public.offer_from(o orders) returns timestamptz
+language sql stable set search_path = public as $$
+  select case when o.shop_status is not null or o.phone_order
+              then greatest(o.created_at, o.ready_at - make_interval(mins => coalesce((select pro_lead_min from settings where id = 1), 8)))
+              else o.created_at end;
+$$;
+
+create or replace function public.can_see_new(o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with st as (select * from settings where id = 1),
+  ranked as (
+    select c.id, row_number() over (order by (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
+      from couriers c
+     where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
+       and public.courier_online(c)
+       and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = c.id)
+  )
+  select o.status = 'nouvelle' and o.courier_id is null
+     and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
+     and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = auth.uid())
+     -- HOP! Pro : quand le commerce a accepté ; Pro et téléphone : pour arriver au moment où c'est prêt
+     and (o.shop_status is null or o.shop_status in ('acceptee', 'prete'))
+     and now() >= public.offer_from(o)
+     and (o.referrer_id = auth.uid()
+          or now() >= public.offer_from(o)
+               + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), (select count(*) from ranked)), 2)));
+$$;
+
+-- Notification push « nouvelle course » aux livreurs quand une course retardée devient visible (chaque minute)
+create or replace function public.push_ready_orders() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0;
+begin
+  for o in select id from orders
+            where status = 'nouvelle' and courier_id is null and ready_push_at is null
+              and (phone_order or shop_status in ('acceptee', 'prete'))
+              and now() >= public.offer_from(orders) and created_at < now() - interval '1 minute'
+  loop
+    update orders set ready_push_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'ready'));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.push_ready_orders() from public, anon, authenticated;
+do $$ begin
+  create extension if not exists pg_cron;
+  perform cron.schedule('hop-push-ready', '* * * * *', 'select public.push_ready_orders()');
+exception when others then raise notice 'pg_cron indisponible : pas de rappel des courses prêtes';
+end $$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
