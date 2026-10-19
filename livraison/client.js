@@ -1362,8 +1362,11 @@ function homeGo() {
 function initHomeMap() {
   if (home.map || !window.L) return;
   const c = Pricing.cityById(CONFIG, CONFIG.homeCity);
-  home.map = L.map("homeMap", { zoomControl: false, attributionControl: true, scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false })
+  // Carte vivante : on la déplace au doigt, on zoome à deux doigts ou avec + / − (pas avec la molette : la page défile)
+  home.map = L.map("homeMap", { zoomControl: false, attributionControl: true, scrollWheelZoom: false, dragging: true, touchZoom: true, doubleClickZoom: true })
     .setView([c.lat, c.lon], 13);
+  $("#homeZoomIn").addEventListener("click", () => home.map.zoomIn());
+  $("#homeZoomOut").addEventListener("click", () => home.map.zoomOut());
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
   L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}{r}.png`,
     { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO" }).addTo(home.map);
