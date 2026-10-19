@@ -36,7 +36,7 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **Carte « En direct »** : tous les livreurs en service, chaque point de récupération (🍔 restaurant, 📮 poste, 🛒 achat, 📦 colis) et de livraison (🏁), le trajet restant et l'étape de chaque course avec le temps estimé.
 - **Courses :** agenda, alertes, « Je la prends », « Donner à un livreur », « 🚫 Je ne peux pas » (raison envoyée au client), « Je suis complet ».
 - **Sur la route :** mode « En ligne » avec position GPS, encaissé / à encaisser, messages dans la langue du client, itinéraire, reçus.
-- **Onglet Livreurs :** validation des inscriptions, dates du permis et de l'assurance (en rouge si expirées), suspension.
+- **Onglet Livreurs :** validation des inscriptions, date du permis (en rouge si expiré), assurance déclarée, suspension.
 - **Onglet Paiements de la semaine :** commission de chaque livreur, message récapitulatif, « ✓ Réglé ».
 - **Facturation mensuelle** par client, avec export CSV.
 
@@ -49,7 +49,7 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **Menu** : Mes courses, Courses disponibles, Zones et demande, Finances, Statistiques, Gagner plus, Engagements et assurance, Assistance HOP!, Réglages (Waze ou Google Maps, mode de déplacement, apparence, son), Centre d'aide.
 - **🔔** : les annonces de HOP et la conversation avec HOP.
 
-- **Inscription :** coordonnées, véhicule, permis, assurance, numéro d'עוסק, et **9 engagements à cocher** (permis valide, assurance, statut d’indépendant, responsabilité des colis et de l’argent, « Livré » validé seulement sur place, sécurité, commission hebdomadaire…). Le bouton « Livré » vérifie la position GPS : à plus de 200 m de l’adresse (`platform.deliverRadius`), la livraison est refusée.
+- **Inscription :** coordonnées, véhicule, permis, numéro d'עוסק, photo du top case, et **10 engagements à cocher** (permis valide, **déclaration d'assurance** (pas d'attestation demandée), **HOP n'est pas responsable** des accidents, dommages ou pertes, statut d’indépendant, responsabilité des colis et de l’argent, « Livré » validé seulement sur place, sécurité, commission hebdomadaire…). Le bouton « Livré » vérifie la position GPS : à plus de 200 m de l’adresse (`platform.deliverRadius`), la livraison est refusée.
 - **Fenêtre « Nouvelle course ! »** avec une **sonnerie douce qui revient toutes les 2,5 s, de plus en plus fort, et fait vibrer le téléphone jusqu'à ce que le livreur accepte, refuse ou laisse passer la course** (elle s'arrête aussi si un autre livreur la prend), dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte », « Plus tard » ou « ✖ Refuser ».
 - **Après votre validation :** courses disponibles (le premier qui accepte la prend), ses courses, GPS, encaissement, « Je ne peux plus ».
 - **Onglet « Ma semaine » :** courses, encaissé, commission à verser par Bit une fois par semaine.
@@ -57,7 +57,7 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 ### Commerces partenaires et parrainage (`commerce.html`)
 - **Le livreur amène un commerce** : onglet « 🤝 Parrainage » de son espace (son code, son lien, son QR code, un message prêt à envoyer en hébreu et en français).
 - **Le commerce s'inscrit gratuitement** (FR/HE) et reçoit son espace : bouton « Commander une course » avec le départ déjà rempli, lien et affiche QR pour ses clients, historique de ses courses.
-- **Le parrain gagne 1 ₪** (`partners.bonusPerDelivery`) sur chaque course livrée au départ de ses commerces, même si un autre livreur la fait, **tant qu'il reste actif** : après 3 semaines sans aucune livraison (`partners.activeDays`), ses bonus s'arrêtent jusqu'à sa prochaine livraison. Le bonus est déduit de sa commission chaque semaine.
+- **Le parrain paie seulement 8 % de commission** (`platform.networkPercent`, au moins 2 ₪) sur les courses de ses commerces qu'il livre lui-même, et **gagne 2 ₪** (`partners.bonusPerDelivery`) quand un autre livreur les fait, **tant qu'il reste actif** : après 3 semaines sans aucune livraison (`partners.activeDays`), ses bonus s'arrêtent jusqu'à sa prochaine livraison. Le bonus est déduit de sa commission chaque semaine.
 - **Le parrain a 3 minutes d'avance** (`partners.priorityMinutes`) : les autres livreurs voient ces courses après lui.
 - Niveaux (🌱 → 👑) et classement des parrains du mois.
 - Côté patron : onglet « 🏪 Commerces » (vérifier, suspendre, changer le parrain, envoyer ses liens au commerce).
@@ -71,13 +71,15 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 
 ### Argent : tout est carré
 - **Qui encaisse :** le livreur n'encaisse **que les espèces**. Le **Bit va toujours à HOP** (052-779-0361), comme les courses programmées et les carnets pro : vous reversez ces courses au livreur dans la semaine.
-- **Commission :** 12 % du prix de la course, au minimum 3 ₪, arrondie au demi-shekel (25 ₪ → 3 ₪, 50 ₪ → 6 ₪, 100 ₪ → 12 ₪, 120 ₪ → 14,50 ₪). Réglage : `commission_pct` et `commission_min` dans la table `settings` (et `platform.commissionPercent` / `commissionPerCourse` dans `config.js` pour le mode démo).
+- **Commission :** 15 % du prix sur les courses que l'appli apporte, au minimum 3,50 ₪ (25 ₪ → 4 ₪, 100 ₪ → 15 ₪) ; **8 % (au moins 2 ₪) sur les courses du réseau du livreur** (commerces qu'il a amenés). Arrondie au demi-shekel, calculée sur la valeur de la course (prix + code promo, payé par HOP + part du commerce Pro). Réglage : `commission_pct`, `commission_min`, `network_pct`, `network_min` dans `settings` (et `platform.*` dans `config.js` pour le mode démo).
+- **Codes promo payés par HOP :** le livreur est payé comme si le client avait payé le prix complet.
+- **Pourboires :** après la livraison, le client choisit 5, 10 ou 15 ₪ (`platform.tips`) et les paie par Bit à HOP. Le patron touche « ✅ Pourboire reçu » quand le Bit arrive, et le pourboire est reversé en entier au livreur avec son solde.
 - **Chaque semaine :** le livreur vous doit ses commissions, moins les courses payées à HOP (vous les lui reversez) et moins ses bonus de parrainage. « ✓ Réglé » remet le compteur à zéro.
 - **Plafond :** au-delà de `platform.maxDebt` (50 ₪) dus, le livreur ne peut plus accepter de course tant qu'il n'a pas réglé.
 - Sur une course, le bouton « Payée au livreur ⇄ Payée à HOP » corrige le cas d'un client qui a payé le mauvais numéro.
 
 ### HOP! Pro : l'abonnement des commerces (moins cher qu'une grande plateforme, des deux côtés)
-- **Le commerce paie un abonnement fixe** (`pro.monthly` = 199 ₪ / mois, sans engagement, premier mois offert) **et 0 % de commission sur ses ventes**. Il ajoute une part fixe à chaque livraison (`pro.shopShare` = 10 ₪) : **le client ne paie que 15 ₪ de livraison dans Netanya**, sans frais de service, et le livreur touche toujours sa course complète (25 ₪ − commission). En ligne : `pro_monthly`, `pro_shop_share`, `pro_lead_min` dans `settings`.
+- **Le commerce paie un abonnement fixe** (`pro.monthly` = 199 ₪ / mois, sans engagement, premier mois offert) **et 0 % de commission sur ses ventes**. Il ajoute une part fixe à chaque livraison (`pro.shopShare` = 12 ₪, dont `pro.hopShare` = 2 ₪ pour HOP) : **le client ne paie que 15 ₪ de livraison dans Netanya**, sans frais de service, et le livreur touche toujours sa course complète (25 ₪ − commission). Le patron enregistre chaque mois payé (« ⭐ +1 mois payé ») : **20 % pour le livreur qui a amené le commerce**, ses 12 premiers mois (`pro.referrerPercent`, `pro.referrerMonths`). En ligne : `pro_monthly`, `pro_shop_share`, `pro_hop_share`, `pro_lead_min`, `pro_referrer_pct`, `pro_referrer_months` dans `settings`.
 - **Le client commande depuis la page du commerce** (son QR / son lien `?c=CODE`) : il écrit sa commande (« 2 shawarma, 1 Coca ») ; il paie ses articles directement au commerce.
 - **Le commerce reçoit la commande avec une sonnerie** dans son espace pro, l'accepte avec un temps de préparation (10, 15, 20 ou 30 min) ou la refuse (la raison part au client), puis appuie sur **« ✅ Commande prête »**.
 - **Le livreur est envoyé au bon moment** : la course est proposée `pro.leadMinutes` (8 min) avant l'heure annoncée, pour qu'il arrive quand c'est prêt. Il voit « 🍳 Prête dans 5 min », la commande et la part payée par le commerce (HOP la lui reverse).
@@ -126,7 +128,8 @@ Pas encore de voiture : l'option « Gros colis » est cachée. Pour l'ouvrir, me
 | `business` | Vos informations légales pour les reçus (עוסק פטור) |
 | `pricing.fixedFromHome` | **Prix depuis/vers Netanya, ville par ville** |
 | `pricing.base`, `perKm` | Prix des autres trajets (entre deux autres villes) |
-| `platform.commissionPercent`, `commissionPerCourse` | Votre commission : 12 % du prix, minimum 3 ₪ |
+| `platform.commissionPercent`, `commissionPerCourse` | Votre commission : 15 % du prix, minimum 3,50 ₪ |
+| `platform.networkPercent`, `networkMin` | Commission sur les courses du réseau du livreur : 8 %, minimum 2 ₪ |
 | `hours`, `cities`, `promos` | Horaires, villes, offres |
 | `demoAdminPin` | Code de l'espace patron en mode démo : **changez-le** |
 

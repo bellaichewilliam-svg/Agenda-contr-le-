@@ -94,18 +94,20 @@ Avec `rider-post-fr.png` / `rider-post-he.png` (groupes d'emploi, étudiants, ol
 
 > 🛵 **Deviens livreur partenaire HOP!** (scooter, voiture ou vélo)
 > ✅ Tu choisis tes courses · 💵 tu encaisses les espèces · 🎯 les courses proches de toi d'abord.
-> 💸 Commission de **12 % par course** (3 ₪ pour une course de 25 ₪), réglée une fois par semaine. Pas d'abonnement.
+> 💸 Fais ton marketing, gagne plus : **8 % de commission seulement sur les courses des commerces que tu amènes** (15 % sur les courses de l'appli), réglée une fois par semaine. Pas d'abonnement.
 > ⏱️ Attente ou achats sur place : **payés en plus** (10 min offertes, puis +5 ₪ par 10 min), 100 % pour toi.
-> 🤝 Amène un commerce : **+1 ₪ sur chacune de ses livraisons**, tant que tu livres avec nous.
-> Demandé : permis valide, véhicule assuré, **un top case** (photo à l'inscription), עוסק פטור ou מורשה.
+> 🤝 Amène un commerce : **+2 ₪ quand un autre livreur fait ses courses**, et **20 % de son abonnement HOP! Pro** pendant 12 mois.
+> 💝 Les **pourboires sont 100 % pour toi**, et les codes promo sont payés par HOP.
+> Demandé : permis valide, véhicule assuré (simple déclaration), **un top case** (photo à l'inscription), עוסק פטור ou מורשה.
 > 👉 Inscription : https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html
 
 > 🛵 **בואו להיות שליחים בהופ!** (קטנוע, רכב או אופניים)
 > ✅ בוחרים את המשלוחים · 💵 מקבלים את המזומן · 🎯 משלוחים קרובים אליכם קודם.
-> 💸 עמלה של **12% למשלוח** (3 ₪ על משלוח של 25 ₪), תשלום פעם בשבוע. בלי מנוי.
+> 💸 עושים שיווק ומרוויחים יותר: **רק 8% עמלה על משלוחים של עסקים שהבאתם** (15% על משלוחים מהאפליקציה), תשלום פעם בשבוע. בלי מנוי.
 > ⏱️ המתנה או קניות במקום: **משולמים בנוסף** (10 דק׳ ראשונות חינם, ואז ‎+5 ₪ לכל 10 דק׳), 100% אליכם.
-> 🤝 מביאים עסק: **‎+1 ₪ על כל משלוח שלו**, כל עוד אתם שולחים איתנו.
-> דרוש: רישיון בתוקף, רכב מבוטח, **ארגז (טופ קייס)** (תמונה בהרשמה), עוסק פטור או מורשה.
+> 🤝 מביאים עסק: **‎+2 ₪ כששליח אחר עושה את המשלוחים שלו**, ו-**20% מהמנוי של HOP! Pro** במשך 12 חודשים.
+> 💝 **הטיפים 100% שלכם**, וקודי ההנחה על חשבון הופ.
+> דרוש: רישיון בתוקף, רכב מבוטח (הצהרה בלבד), **ארגז (טופ קייס)** (תמונה בהרשמה), עוסק פטור או מורשה.
 > 👈 להרשמה: https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html
 
 ---

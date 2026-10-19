@@ -131,6 +131,7 @@ function render() {
   etaBox(o);
   renderRing(o);
   renderRate(o);
+  renderTip(o);
 
   const step = FLOW.indexOf(o.status);
   const labels = ["trStep1", "trStep2", "trStep3", "trStep4"];
@@ -226,6 +227,43 @@ $("#rateBox").addEventListener("click", async e => {
     }
   }
 });
+// --- Pourboire : 100 % pour le livreur (payé à HOP par Bit, reversé au livreur) ----------------
+const tip = { pick: null };
+function renderTip(o) {
+  const box = $("#tipBox");
+  const first = (o.courier_name || "").split(" ")[0];
+  const amount = UI.money(o.tip);
+  if (o.tip_status) {
+    box.innerHTML = o.tip_status === "promis"
+      ? `<p class="rate-thanks">${UI.esc(t("tpPay", { amount, phone: UI.bitFor(o), ref: o.ref }))}</p><button class="btn btn-sm" id="copyTipBit">${UI.esc(t("trCopy"))}</button>`
+      : `<p class="rate-thanks">${UI.esc(t("tpDone", { amount }))}</p>`;
+    box.classList.remove("hidden");
+    return;
+  }
+  const can = o.status === "livree" && o.courier_id && Date.now() - new Date(o.pickup_at) < 7 * 86400000;
+  box.classList.toggle("hidden", !can);
+  if (!can) return;
+  box.innerHTML = `<h3>${UI.esc(first ? t("tpTitle", { name: first }) : t("tpTitleAnon"))}</h3><p class="muted small">${UI.esc(t("tpSub"))}</p>
+    <div class="rate-tags">${(CONFIG.platform.tips || [5, 10, 15]).map(n => `<button type="button" class="ch-chip${tip.pick === n ? " on" : ""}" data-tip="${n}">${UI.money(n)}</button>`).join("")}</div>
+    <p class="notice err hidden" id="tipErr"></p>
+    ${tip.pick ? `<button type="button" class="btn btn-primary btn-block" id="tipSend">${UI.esc(t("tpSend", { amount: UI.money(tip.pick) }))}</button>` : ""}`;
+}
+$("#tipBox").addEventListener("click", async e => {
+  const b = e.target.closest("[data-tip]");
+  if (b) { tip.pick = Number(b.dataset.tip); return renderTip(order); }
+  if (e.target.id === "copyTipBit") { navigator.clipboard && navigator.clipboard.writeText(String(UI.bitFor(order))).catch(() => {}); return; }
+  if (e.target.id !== "tipSend") return;
+  e.target.disabled = true;
+  try {
+    if (!(await Store.tipOrder(token, tip.pick))) throw new Error("refused");
+    await load();
+  } catch (ex) {
+    $("#tipErr").textContent = t("tpErr");
+    $("#tipErr").classList.remove("hidden");
+    e.target.disabled = false;
+  }
+});
+
 // Pluie d'emojis à la livraison (et pour une belle note)
 function celebrate() {
   const box = $("#confetti");

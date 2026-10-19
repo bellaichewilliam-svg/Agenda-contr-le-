@@ -25,6 +25,7 @@ function showPhoto(src) {
 let shops = [];
 let requests = [];
 let sales = [];
+let planSales = [];   // abonnements HOP! Pro payés (part du livreur qui a amené le commerce)
 let msgs = { messages: [], replies: [] };
 let me = null;
 let settings = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
@@ -105,6 +106,7 @@ async function load() {
     // Commerces et messages : un souci ici ne doit pas bloquer les courses
     const [sh, m, rq, sa] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null),
       Store.listRequests().catch(() => null), Store.listCarnetSales().catch(() => null)]);
+    planSales = (await Store.listPlanSales().catch(() => null)) || planSales;
     if (sh) shops = sh;
     if (sa) sales = sa;
     if (rq) requests = rq;
@@ -214,12 +216,10 @@ const active = o => ["nouvelle", "confirmee", "recuperee"].includes(o.status);
 const sum = (list, f = o => Number(o.price)) => list.reduce((s, o) => s + f(o), 0);
 const isMine = o => me && o.courier_id === me.id;
 const partners = () => couriers.filter(c => c.role !== "admin");
-// Solde d'un livreur (même calcul que la base) : commissions − courses payées à HOP − bonus, non réglés
-function balanceOf(id) {
-  return sum(orders.filter(o => o.courier_id === id && o.status === "livree" && o.commission_status !== "regle"),
-      o => Number(o.commission || 0) - (o.paid_to === "hop" && o.payment_status === "paye" ? Number(o.price) : 0))
-    - sum(orders.filter(o => o.referrer_id === id && o.status === "livree" && o.referral_status !== "regle"), o => Number(o.referral_bonus || 0));
-}
+// Solde d'un livreur (même calcul que la base) : commissions − courses payées à HOP − part Pro et promos
+// payées par HOP − pourboires reçus − bonus réseau − part des abonnements Pro, pas encore réglés
+const balanceOf = id => Store.balanceOf(id, orders, planSales);
+const TIP_FR = { promis: "promis (attendre son Bit)", recu: "reçu, à reverser", verse: "reversé ✓" };
 
 const { clientMessage, weekStart, addDays, fmtKey } = UI;
 
@@ -268,7 +268,9 @@ function card(o, withDay) {
     const ref = couriers.find(c => c.id === o.referrer_id);
     meta.push(`<span class="pill star-pill">🏪 ${UI.esc(o.shop_name)}${ref && ref.role !== "admin" ? ` · parrain ${UI.esc(ref.name)} +${UI.money(o.referral_bonus || 0)}` : ""}</span>`);
   }
-  if (o.courier_id && !isMine(o)) meta.push(`<span class="pill courier-pill">🛵 ${UI.esc(o.courier_name || "Livreur")} · commission ${UI.money(o.commission || 0)}</span>`);
+  if (o.courier_id && !isMine(o)) meta.push(`<span class="pill courier-pill">🛵 ${UI.esc(o.courier_name || "Livreur")} · commission ${o.network ? "réseau " : ""}${UI.money(o.commission || 0)}${Number(o.hop_share) > 0 ? ` + part Pro ${UI.money(o.hop_share)}` : ""}</span>`);
+  if (Number(o.tip) > 0) meta.push(`<span class="pill ${o.tip_status === "promis" ? "unpaid" : "paid"}">💝 Pourboire ${UI.money(o.tip)} · ${TIP_FR[o.tip_status] || ""}</span>`
+    + (o.tip_status === "promis" ? `<button class="pill pill-btn paid" data-act="tipok" title="Le Bit du client est arrivé : le pourboire sera reversé au livreur avec son solde">✅ Pourboire reçu</button>` : ""));
   if (o.round_trip) meta.push(`<span class="pill">🔁 Aller-retour</span>`);
   if (o.extra_stops) meta.push(`<span class="pill">+${o.extra_stops} arrêt(s)</span>`);
   if (o.distance_km) meta.push(`<span class="pill">${Number(o.distance_km).toFixed(0)} km</span>`);
@@ -340,9 +342,11 @@ function renderStats() {
   $("#stNew").textContent = orders.filter(o => o.status === "nouvelle").length;
   $("#stToday").textContent = orders.filter(o => UI.dayKey(o.pickup_at) === t && !["annulee", "refusee"].includes(o.status)).length;
   $("#stUnpaid").textContent = UI.money(sum(orders.filter(o => isMine(o) && o.payment_status !== "paye" && ["confirmee", "recuperee", "livree"].includes(o.status))));
-  // Chiffre du mois = vos courses + les commissions des livreurs
+  // Chiffre du mois = vos courses + les commissions des livreurs + la part HOP des commandes Pro + les abonnements payés
   const delivered = orders.filter(o => o.status === "livree" && UI.dayKey(o.pickup_at).startsWith(month));
-  $("#stMonthRev").textContent = UI.money(sum(delivered.filter(isMine)) + sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0)));
+  $("#stMonthRev").textContent = UI.money(sum(delivered.filter(isMine), o => Number(o.price) + Number(o.shop_share || 0))
+    + sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
+    + sum(planSales.filter(p => String(p.created_at).startsWith(month)), p => Number(p.amount) - Number(p.referrer_share || 0)));
   const pending = couriers.filter(c => c.status === "en_attente").length;
   $("#pendingBadge").textContent = pending ? `(${pending})` : "";
   const pendingShops = shops.filter(x => x.status === "en_attente").length;
@@ -485,7 +489,7 @@ function renderCouriers(view) {
   view.innerHTML = `
     <div class="card" style="margin-bottom:14px">
       <b>Recruter des livreurs</b>
-      <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance…), puis vous les validez ici après avoir vu leurs documents. Vous prenez ${UI.commissionText()} par course livrée, réglés chaque semaine.</p>
+      <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance déclarée, HOP pas responsable…), puis vous les validez ici après avoir vu leurs documents. Vous prenez ${UI.commissionText()} par course livrée, réglés chaque semaine.</p>
       <div class="promo-row"><input readonly value="${UI.esc(invite)}" dir="ltr" /><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(`Tu as un scooter, une voiture ou un vélo ? Deviens livreur partenaire chez ${CONFIG.businessName} : tu choisis tes courses, tu encaisses directement le client, et seulement ${UI.commissionText()} de commission par course. Inscription : ${invite}`)}">Partager</a></div>
     </div>
     ${list.length ? `<div class="orders">${list.map(c => {
@@ -499,10 +503,10 @@ function renderCouriers(view) {
         </div>
         <div class="kv">
           <div><span>📞</span><span>${tel("", c.phone)}${c.bit_phone ? ` · Bit ${UI.esc(c.bit_phone)}` : ""}${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
-          <div><span>🛵</span><span>${UI.esc(c.vehicle || "—")} · permis n° ${UI.esc(c.license_number || "—")} · assurance ${UI.esc(c.insurance || "—")}${c.business_number ? ` · n° d'entreprise ${UI.esc(c.business_number)}` : ""}</span></div>
+          <div><span>🛵</span><span>${UI.esc(c.vehicle || "—")} · permis n° ${UI.esc(c.license_number || "—")} · assurance ${c.insurance ? UI.esc(c.insurance) : "déclarée"}${c.business_number ? ` · n° d'entreprise ${UI.esc(c.business_number)}` : ""}</span></div>
           <div><span>📝</span><span>Conditions acceptées le ${c.accepted_terms_at ? UI.esc(new Date(c.accepted_terms_at).toLocaleDateString("fr-FR")) : "—"}</span></div>
         </div>
-        <div class="meta">${c.topcase_at ? `<button type="button" class="pill pill-btn paid" data-topcase="1">📷 Voir le top case</button>` : `<span class="pill st-annulee">📷 Pas de photo du top case</span>`}${expiryPill("Permis", c.license_expiry)}${expiryPill("Assurance", c.insurance_expiry)}
+        <div class="meta">${c.topcase_at ? `<button type="button" class="pill pill-btn paid" data-topcase="1">📷 Voir le top case</button>` : `<span class="pill st-annulee">📷 Pas de photo du top case</span>`}${expiryPill("Permis", c.license_expiry)}${c.insurance_expiry ? expiryPill("Assurance", c.insurance_expiry) : ""}
           ${(() => { const b = balanceOf(c.id); return b > Number(settings.max_debt) ? `<span class="pill st-annulee">🔒 Bloqué : doit ${UI.money(b)}</span>` : b > 0 ? `<span class="pill unpaid">Doit ${UI.money(b)}</span>` : b < 0 ? `<span class="pill paid">Vous lui devez ${UI.money(-b)}</span>` : ""; })()}</div>
         <div class="actions">
           ${c.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-cact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-cact="suspendu">⛔ Suspendre</button>`}
@@ -510,7 +514,7 @@ function renderCouriers(view) {
             ? `<button class="btn btn-sm" data-unlock="off">🔒 Rebloquer (débloqué jusqu'au ${UI.esc(UI.fmtDateTime(c.unlocked_until))})</button>`
             : `<button class="btn btn-sm" data-unlock="on" title="Solde, course en cours, GPS et photo : plus aucun blocage pendant 24 h">🔓 Débloquer 24 h</button>`}
           ${chatBtn("c:" + c.id, `Livreur : ${c.name}`, c.phone, "💬 Message", c.status === "en_attente"
-            ? `Bonjour ${c.name}, merci pour ton inscription chez ${CONFIG.businessName} ! Pour valider ton compte, envoie-moi ici en photo : permis de conduire, carte grise, attestation d'assurance et carte d'identité.`
+            ? `Bonjour ${c.name}, merci pour ton inscription chez ${CONFIG.businessName} ! Pour valider ton compte, envoie-moi ici en photo : permis de conduire, carte grise et carte d'identité.`
             : `Bonjour ${c.name}, `)}
           <textarea class="admin-note" data-cact="note" rows="1" placeholder="Note interne (documents vérifiés, remarques…)">${UI.esc(c.admin_note || "")}</textarea>
         </div>
@@ -527,32 +531,39 @@ function renderWeek(view) {
     const list = orders.filter(o => o.courier_id === c.id && inWeek(o));
     const due = list.filter(o => o.commission_status !== "regle");
     // Bonus de parrainage : courses livrées au départ de ses commerces (déduits de sa commission)
-    const bonusList = orders.filter(o => o.referrer_id === c.id && Number(o.referral_bonus) > 0 && inWeek(o));
+    // (une course de son commerce qu'il livre lui-même : commission réseau, pas de bonus)
+    const bonusList = orders.filter(o => o.referrer_id === c.id && o.courier_id !== c.id && Number(o.referral_bonus) > 0 && inWeek(o));
     const bonusDue = sum(bonusList.filter(o => o.referral_status !== "regle"), o => Number(o.referral_bonus || 0));
     const dueAmount = sum(due, o => Number(o.commission || 0));
     // Courses payées à HOP (programmées, carnets) : l'argent est chez vous, vous le reversez au livreur
     const hopPaid = list.filter(o => o.paid_to === "hop" && o.payment_status === "paye");
     const hopDue = sum(due.filter(o => o.paid_to === "hop" && o.payment_status === "paye"));
-    return { c, list, due, bonusList, bonusDue, hopPaid, hopDue, collected: sum(list.filter(o => o.paid_to !== "hop")), commission: sum(list, o => Number(o.commission || 0)), dueAmount, balance: dueAmount - bonusDue - hopDue };
-  }).filter(r => r.list.length || r.bonusList.length);
+    // Payé par HOP au livreur : part des commerces Pro et codes promo, pourboires reçus, part des abonnements Pro
+    const addsDue = sum(due, o => Number(o.shop_share || 0) - Number(o.hop_share || 0) + Number(o.discount || 0));
+    const tips = orders.filter(o => o.courier_id === c.id && o.tip_status === "recu");
+    const plans = planSales.filter(p => p.referrer_id === c.id && p.referrer_status !== "regle" && Number(p.referrer_share) > 0);
+    const extra = addsDue + sum(tips, o => Number(o.tip || 0)) + sum(plans, p => Number(p.referrer_share));
+    return { c, list, due, bonusList, bonusDue, hopPaid, hopDue, tips, plans, extra, collected: sum(list.filter(o => o.paid_to !== "hop")), commission: sum(list, o => Number(o.commission || 0)), dueAmount, balance: dueAmount - bonusDue - hopDue - extra };
+  }).filter(r => r.list.length || r.bonusList.length || r.tips.length || r.plans.length);
   const total = rows.reduce((s, r) => s + r.balance, 0);
   view.innerHTML = `<div class="toolbar">
       <button class="btn btn-sm" data-week="-1">◀</button>
       <b>Semaine du ${fmtKey(start)} au ${fmtKey(end)}</b>
       <button class="btn btn-sm" data-week="1" ${weekOffset >= 0 ? "disabled" : ""}>▶</button>
-      <span class="small muted">Les livreurs encaissent les clients (espèces ou leur Bit) et vous versent ${UI.commissionText()} par course livrée, une fois par semaine. Les courses payées à HOP (programmées, carnets) leur sont reversées, et leurs bonus de parrainage déduits. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</span>
+      <span class="small muted">Les livreurs encaissent les clients en espèces et vous versent leur commission une fois par semaine : ${UI.commissionText()}, ou ${UI.networkText()} sur les courses des commerces qu'ils ont amenés. Vous leur reversez : les courses payées à HOP (Bit, programmées, carnets), la part des commerces Pro, les codes promo, les pourboires reçus, leurs bonus réseau et ${CONFIG.pro.referrerPercent} % des abonnements Pro qu'ils ont fait signer. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</span>
     </div>
     <table class="bill">
-      <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">Solde</th><th></th></tr></thead>
+      <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">🎁 Pro, promos, 💝, ⭐</th><th class="num">Solde</th><th></th></tr></thead>
       <tbody>${rows.map(r => `<tr data-courier="${UI.esc(r.c.id)}"><td><b>${UI.esc(r.c.name)}</b><br><span class="small muted">${UI.esc(r.c.phone)}</span></td>
         <td class="num">${r.list.length}</td><td class="num">${UI.money(r.collected)}</td><td class="num">${r.hopPaid.length ? "−" + UI.money(sum(r.hopPaid)) : "—"}</td><td class="num">${UI.money(r.commission)}</td>
         <td class="num">${r.bonusList.length ? `−${UI.money(sum(r.bonusList, o => Number(o.referral_bonus || 0)))}<br><span class="small muted">${r.bonusList.length} livraison(s)</span>` : "—"}</td>
-        <td class="num"><b>${r.dueAmount || r.bonusDue || r.hopDue ? (r.balance >= 0 ? UI.money(r.balance) + " à recevoir" : UI.money(-r.balance) + " à lui verser") : "✓ réglé"}</b></td>
+        <td class="num">${r.extra ? "−" + UI.money(r.extra) : "—"}</td>
+        <td class="num"><b>${r.dueAmount || r.bonusDue || r.hopDue || r.extra ? (r.balance >= 0 ? UI.money(r.balance) + " à recevoir" : UI.money(-r.balance) + " à lui verser") : "✓ réglé"}</b></td>
         <td class="num" style="white-space:nowrap">
           ${chatBtn("c:" + r.c.id, `Livreur : ${r.c.name}`, "Récapitulatif de la semaine", "Envoyer", `Bonjour ${r.c.name}, récapitulatif de la semaine du ${fmtKey(start)} au ${fmtKey(end)} : ${r.list.length} course(s) livrée(s), ${UI.money(r.collected)} encaissés, commission ${UI.money(r.dueAmount)}${r.hopDue ? `, courses payées à HOP ${UI.money(r.hopDue)} déduites` : ""}${r.bonusDue ? `, bonus parrainage ${UI.money(r.bonusDue)} déduit` : ""}. ${r.balance >= 0 ? `À me verser : ${UI.money(r.balance)} (Bit au ${CONFIG.bitPhone})` : `Je te verse ${UI.money(-r.balance)} sur ton Bit`}. Merci et bravo !`)}
-          ${r.dueAmount || r.bonusDue || r.hopDue ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
-        </td></tr>`).join("") || `<tr><td colspan="8" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
-      <tfoot><tr><th>Solde total</th><th></th><th></th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
+          ${r.dueAmount || r.bonusDue || r.hopDue || r.extra ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
+        </td></tr>`).join("") || `<tr><td colspan="9" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
+      <tfoot><tr><th>Solde total</th><th></th><th></th><th></th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
     </table>`;
   view.dataset.weekStart = start;
 }
@@ -618,7 +629,8 @@ function renderShops(view) {
           ${x.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-sact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-sact="suspendu">⛔ Suspendre</button>`}
           <button class="btn btn-sm" data-sact="carnet">🎟️ Carnet payé (${UI.money(CONFIG.partners.carnet.price)}) → +${CONFIG.partners.carnet.courses} et reçu</button>
           <button class="btn btn-sm" data-sact="credits">✏️ Courses du carnet</button>
-          <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan">⭐ HOP! Pro : +1 mois</button>
+          <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan" title="Le commerce a payé ${UI.esc(UI.money(settings.pro_monthly))} : ${Number(settings.pro_referrer_pct || CONFIG.pro.referrerPercent)} % pour son parrain livreur (12 premiers mois)">⭐ HOP! Pro : +1 mois payé</button>
+          <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
@@ -837,7 +849,7 @@ function orderOf(el) {
 
 async function assignTo(o, courier) {
   try {
-    await Store.assignOrder(o.id, courier, Number(o.price) + Number(o.shop_share || 0));
+    await Store.assignOrder(o, courier);
     await load();
 
   } catch (e) { alert("Attribution impossible, vérifiez la connexion."); }
@@ -855,7 +867,13 @@ async function onViewClick(e) {
     const inWeek = o => o.status === "livree" && UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= end;
     const ids = orders.filter(o => o.courier_id === el.dataset.settle && inWeek(o) && o.commission_status !== "regle").map(o => o.id);
     const bonusIds = orders.filter(o => o.referrer_id === el.dataset.settle && inWeek(o) && o.referral_status !== "regle").map(o => o.id);
-    try { await Store.settleOrders(ids); await Store.settleReferrals(bonusIds); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    const tipIds = orders.filter(o => o.courier_id === el.dataset.settle && o.tip_status === "recu").map(o => o.id);
+    const planIds = planSales.filter(p => p.referrer_id === el.dataset.settle && p.referrer_status !== "regle").map(p => p.id);
+    try {
+      await Store.settleOrders(ids); await Store.settleReferrals(bonusIds);
+      await Store.settleTips(tipIds); await Store.settlePlanShares(planIds);
+      await load();
+    } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
   }
   if (el.dataset.ract && el.dataset.ract !== "note") {
@@ -884,13 +902,21 @@ async function onViewClick(e) {
         await load();
       } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
       return;
-    } else if (el.dataset.sact === "plan" || el.dataset.sact === "planoff") {
-      // +1 mois à partir de la fin en cours (ou d'aujourd'hui) ; payé ou offert, c'est vous qui décidez
+    } else if (el.dataset.sact === "plan" || el.dataset.sact === "plangift") {
+      // +1 mois à partir de la fin en cours (ou d'aujourd'hui). Payé : la part du parrain livreur est enregistrée.
+      const paid = el.dataset.sact === "plan";
       const base = Store.planActive(shop) ? new Date(shop.plan_until + "T12:00:00") : new Date();
       const end = new Date(base); end.setMonth(end.getMonth() + 1);
-      const until = el.dataset.sact === "planoff" ? UI.addDays(UI.dayKey(new Date()), -1) : UI.dayKey(end);
-      if (!confirm(el.dataset.sact === "planoff" ? `Arrêter HOP! Pro pour ${shop.name} ?` : `HOP! Pro pour ${shop.name} jusqu'au ${UI.fmtKey(until)} ?`)) return;
-      changes = { plan_until: until };
+      if (!confirm(`HOP! Pro pour ${shop.name} jusqu'au ${UI.fmtKey(UI.dayKey(end))}, ${paid ? `payé ${UI.money(settings.pro_monthly)}` : "offert"} ?`)) return;
+      try {
+        const r = await Store.planExtend(id, paid);
+        if (r && Number(r.referrer_share) > 0) alert(`Enregistré. ${UI.money(r.referrer_share)} pour le livreur qui a amené ce commerce, versés avec son solde.`);
+        await load();
+      } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+      return;
+    } else if (el.dataset.sact === "planoff") {
+      if (!confirm(`Arrêter HOP! Pro pour ${shop.name} ?`)) return;
+      changes = { plan_until: UI.addDays(UI.dayKey(new Date()), -1) };
     } else if (el.dataset.sact === "credits") {
       const v = prompt(`Courses restantes sur le carnet de ${shop.name}`, shop.credits || 0);
       const n = parseInt(v, 10);
@@ -965,6 +991,8 @@ async function onViewClick(e) {
     change(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
   } else if (el.dataset.act === "issue") {
     if (confirm(`Le souci de la course n° ${o.ref} est-il réglé ?`)) change(o, { issue: null, issue_at: null });
+  } else if (el.dataset.act === "tipok") {
+    if (confirm(`Le pourboire de ${UI.money(o.tip)} (course n° ${o.ref}) est bien arrivé sur votre Bit ? Il sera reversé à ${o.courier_name || "votre livreur"} avec son solde.`)) change(o, { tip_status: "recu" });
   } else if (el.dataset.act === "unlock") {
     if (!o.unlocked && !confirm(`Débloquer la course n° ${o.ref} ? Le livreur pourra valider « Livré » sans être à l'adresse et sans photo.`)) return;
     change(o, { unlocked: !o.unlocked });
