@@ -54,9 +54,7 @@ function renderStatic() {
   const avail = state.settings.accepting;
   $("#availBanner").classList.toggle("hidden", avail);
   $("#availText").textContent = (state.settings.message || "").trim() || t("closedBanner");
-  const open = Pricing.isOpenNow(CONFIG) && avail;
-  $("#openBadge").textContent = t(open ? "openNow" : "closedNow");
-  $("#openBadge").classList.toggle("closed", !open);
+  renderOpenBadge();
   $("#expressSmall").textContent = `${t("w_express_d")} · +${money(P.express)}`;
   $("#bitSmall").textContent = t("pay_bit_d", { phone: CONFIG.bitPhone });
   $("#footerContact").innerHTML = `<a href="#" data-support="1">💬 ${UI.esc(t("chatFab"))}</a>`;
@@ -198,7 +196,7 @@ function cityOf(which) {
 function pickupDate() {
   const u = val("urgency");
   if (u === "express") return new Date();
-  if (u === "asap") return Pricing.isOpenNow(CONFIG) ? new Date() : firstSlot();
+  if (u === "asap") return openNow() ? new Date() : firstSlot();
   const [y, m, d] = val("date").split("-").map(Number);
   const [hh, mm] = val("time").split(":").map(Number);
   if (!y || isNaN(hh)) return null;
@@ -209,7 +207,7 @@ function scheduleError() {
   const u = val("urgency");
   if (!state.settings.accepting && u !== "programmee") return { key: "errNotAccepting" };
   if (u === "asap") return null;
-  if (u === "express") return Pricing.isOpenNow(CONFIG) ? null : { key: "errExpressClosed" };
+  if (u === "express") return openNow() ? null : { key: "errExpressClosed" };
   return Pricing.checkSchedule(pickupDate(), CONFIG);
 }
 
@@ -1140,6 +1138,15 @@ async function sendRequest(e) {
 
 // --- Accueil façon appli : carte, « Où on livre ? », livreurs autour, raccourcis ------------
 const home = { map: null, pins: {}, line: null, scoots: [], ac: {}, pos: null, nearby: [], key: "", when: "now" };
+// Ouvert : aux horaires, et à toute heure dès qu'un livreur libre est en ligne (le patron compris)
+const courierFree = () => (home.nearby || []).some(c => c.free);
+function openNow() { return !!state.settings.accepting && (Pricing.isOpenNow(CONFIG) || courierFree()); }
+function renderOpenBadge() {
+  const open = openNow();
+  $("#openBadge").textContent = t(open ? "openNow" : "closedNow");
+  $("#openBadge").classList.toggle("closed", !open);
+  return open;
+}
 const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city);
 const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
 const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
@@ -1248,7 +1255,7 @@ function whenOptions() {
   const lead = CONFIG.minLeadMinutes * 60000;
   const ok = d => d - Date.now() >= lead && !Pricing.checkSchedule(d, CONFIG);
   const out = [];
-  if (Pricing.isOpenNow(CONFIG) && state.settings.accepting) out.push({ id: "now" });
+  if (openNow()) out.push({ id: "now" });
   const in1 = new Date(Date.now() + 3600000); in1.setSeconds(0, 0); in1.setMinutes(Math.ceil(in1.getMinutes() / 15) * 15);
   if (ok(in1)) out.push({ id: "in1h", d: in1 });
   const eve = new Date(); eve.setHours(19, 0, 0, 0);
@@ -1451,7 +1458,10 @@ function homeFit() {
 // Livreurs en ligne autour : un scooter par livreur, à sa position (arrondie à ≈ 200 m).
 // Il ne bouge que quand le livreur bouge vraiment : il glisse alors jusqu'à sa nouvelle place.
 async function loadNearby() {
+  const wasOpen = openNow();
   try { home.nearby = (await Store.couriersNearby()) || []; } catch (e) { return; }
+  // Un livreur passe en ligne (ou hors ligne) en dehors des horaires : « Ouvert » et « Maintenant » suivent
+  if (renderOpenBadge() !== wasOpen) { renderWhen(); renderQuote(); }
   if (home.map) {
     // Deux livreurs dans le même carré : on les écarte un peu (≈ 30 m) pour voir les deux
     const seen = {};
@@ -1489,8 +1499,7 @@ function glideScooter(s, to) {
 }
 function renderLive() {
   const el = $("#homeLive");
-  const open = Pricing.isOpenNow(CONFIG) && state.settings.accepting;
-  if (!open) { el.classList.add("hidden"); return; }
+  if (!openNow()) { el.classList.add("hidden"); return; }
   const free = home.nearby.filter(c => c.free);
   const c0 = Pricing.cityById(CONFIG, CONFIG.homeCity);
   const target = state.fromPoint || home.pos || { lat: c0.lat, lon: c0.lon };
