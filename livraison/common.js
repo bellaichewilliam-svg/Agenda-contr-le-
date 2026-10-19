@@ -38,6 +38,15 @@ function waLink(phone, text) {
   return "https://wa.me/" + intlPhone(phone) + "?text=" + encodeURIComponent(text);
 }
 // Lien WhatsApp sans destinataire : l'utilisateur choisit le contact
+// Notes des clients : moyenne et nombre d'avis d'une liste de courses
+function ratingOf(list) {
+  const r = (list || []).filter(o => o.rating != null);
+  return r.length ? { avg: r.reduce((x, o) => x + Number(o.rating), 0) / r.length, n: r.length } : null;
+}
+const RATING_FR = { fast: "Rapide", nice: "Sympa", care: "Soigneux", found: "Bien trouvé", late: "En retard", damaged: "Colis abîmé", rude: "Pas aimable", lost: "Colis perdu" };
+function ratingText(o) {
+  return o.rating == null ? "" : "⭐".repeat(o.rating) + ` ${o.rating}/5` + ((o.rating_tags || []).length ? " · " + o.rating_tags.map(x => RATING_FR[x] || x).join(", ") : "");
+}
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 function placeQuery(o, which) {
   const brand = o[which + "_place"];
@@ -211,7 +220,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
   deliveryEta, PROGRESS, commissionText, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
-  esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
+  ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 

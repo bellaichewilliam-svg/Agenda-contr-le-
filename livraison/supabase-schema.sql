@@ -114,6 +114,10 @@ create table if not exists public.orders (
 
 -- Pour une base déjà créée avec une version précédente
 alter table public.orders add column if not exists pickup_note text;
+alter table public.orders add column if not exists rating smallint check (rating between 1 and 5);
+alter table public.orders add column if not exists rating_tags text[];
+alter table public.orders add column if not exists rating_note text;
+alter table public.orders add column if not exists rated_at timestamptz;
 alter table public.orders add column if not exists dropoff_note text;
 alter table public.orders add column if not exists pickup_place text;
 alter table public.orders add column if not exists dropoff_place text;
@@ -446,6 +450,7 @@ begin
     raise exception 'welcome_used';
   end if;
   new.shop_name := null; new.referrer_id := null; new.referral_bonus := 0; new.referral_status := 'du';
+  new.rating := null; new.rating_tags := null; new.rating_note := null; new.rated_at := null;
   -- Bit (et carnet, courses programmées) : toujours payé à HOP ; le livreur n'encaisse que les espèces
   new.paid_to := case when new.prepaid_required or new.payment_method in ('bit', 'carnet') then 'hop' else 'livreur' end;
   -- Carnet pro : seulement le commerce lui-même (sa clé secrète), dans Netanya, s'il lui reste des courses
@@ -995,6 +1000,52 @@ create policy "reponses modif" on public.message_replies for update to authentic
 revoke execute on function public.my_shops(), public.my_referral_orders(), public.referral_leaderboard() from public, anon;
 grant execute on function public.my_shops(), public.my_referral_orders(), public.referral_leaderboard() to authenticated;
 grant execute on function public.shop_signup(jsonb), public.shop_public(text), public.shop_dashboard(uuid) to anon, authenticated;
+
+-- ============================================================================
+-- CLIENTS : LIVREURS AUTOUR DE SOI ET NOTE DE LA LIVRAISON
+-- ============================================================================
+-- Les livreurs en ligne, pour la carte de l'accueil : position arrondie (≈ 500 m),
+-- sans nom ni identifiant ; « free » = pas de course en cours
+create or replace function public.couriers_nearby() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object(
+           'lat', round(c.lat::numeric * 200) / 200, 'lon', round(c.lon::numeric * 200) / 200,
+           'free', not exists (select 1 from orders o where o.courier_id = c.id and o.status in ('confirmee', 'recuperee'))
+         )), '[]'::json)
+    from couriers c
+   where c.status = 'actif' and c.lat is not null
+     and (public.courier_online(c) or (c.role = 'admin' and c.position_at > now() - interval '15 minutes'));
+$$;
+revoke execute on function public.couriers_nearby() from public;
+grant execute on function public.couriers_nearby() to anon, authenticated;
+
+-- Le client note sa livraison (une seule fois, dans les 7 jours) avec la clé secrète de sa course.
+-- Une note basse (ou un mot) arrive aussi dans la conversation de la course, chez le patron.
+create or replace function public.rate_order(p_token uuid, p_stars int, p_tags text[], p_note text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders; tags text[];
+begin
+  if p_stars is null or p_stars < 1 or p_stars > 5 then raise exception 'bad_rating'; end if;
+  select array_agg(x) into tags from unnest(coalesce(p_tags, '{}')) x
+   where x in ('fast', 'nice', 'care', 'found', 'late', 'damaged', 'rude', 'lost');
+  update orders set rating = p_stars, rating_tags = tags, rating_note = left(nullif(trim(p_note), ''), 300), rated_at = now()
+   where token = p_token and status = 'livree' and rating is null and pickup_at > now() - interval '7 days'
+   returning * into o;
+  if not found then return false; end if;
+  if p_stars <= 3 or o.rating_note is not null then
+    insert into chat_messages (thread, author, author_name, body)
+    values ('o:' || o.id::text, 'client', o.contact_name,
+            repeat('⭐', p_stars) || ' ' || p_stars || '/5'
+              || coalesce(' · ' || (select string_agg(case x when 'fast' then 'Rapide' when 'nice' then 'Sympa' when 'care' then 'Soigneux'
+                   when 'found' then 'Bien trouvé' when 'late' then 'En retard' when 'damaged' then 'Colis abîmé' when 'rude' then 'Pas aimable'
+                   else 'Colis perdu' end, ', ') from unnest(tags) x), '')
+              || coalesce(E'\n' || o.rating_note, ''));
+  end if;
+  return true;
+end;
+$$;
+revoke execute on function public.rate_order(uuid, int, text[], text) from public;
+grant execute on function public.rate_order(uuid, int, text[], text) to anon, authenticated;
 
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md

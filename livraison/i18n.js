@@ -251,6 +251,26 @@ fr: {
   chOrder: "Course n° {ref}", chOrderSub: "Votre livreur et le service client",
   chWho: "À qui voulez-vous écrire ?", chMyOrder: "🛵 Ma course n° {ref}", chOpen: "💬 Écrire au livreur ou au service client",
   chShop: "HOP! · votre espace pro", chNew: "💬 Nouveau message",
+  // Accueil façon appli
+  hmFrom: "Récupérer à", hmTo: "Livrer à", hmFromPh: "Adresse, magasin, restaurant…", hmToPh: "Où on livre ?", hmNo: "N°",
+  hmHello: "Bonjour {name} 👋", hmHelloNew: "Bienvenue chez HOP! 👋", hmWhat: "Qu'est-ce qu'on livre ?",
+  hmLive: "🛵 {n} livreur(s) dans le coin · au départ en ~{min} min", hmLiveBusy: "🛵 {n} livreur(s) en course dans le coin",
+  hmLiveNone: "🛵 Commandez : on vous trouve un livreur très vite",
+  hmNow: "⚡ Maintenant", hmIn1h: "🕐 Dans 1 h", hmTonight: "🌆 Ce soir {h}", hmTomorrow: "🌅 Demain {h}", hmOther: "🗓️ Autre heure",
+  hmPlanned: "🗓️ Programmée pour {when} · paiement par Bit à l'avance",
+  hmGo: "Commander", hmGoNext: "Continuer", hmGoSub: "Prix fixe, tout compris",
+  hmGoFirst: "Première course : {price} 🎁", hmGoKm: "{from} → {to} · prix fixe",
+  hmRepeat: "Refaire la dernière course", hmRepeatSub: "{from} → {to}", hmNeedNo: "Ajoutez le numéro de la rue 👆",
+  heroPriceTitle: "Un prix fixe, affiché tout de suite",
+  hopSent: "Commande envoyée !",
+  // Note de la livraison
+  rtTitle: "Comment s'est passée la livraison ?", rtSub: "Votre avis aide votre livreur et HOP! 💛",
+  rt_fast: "⚡ Rapide", rt_nice: "😊 Sympa", rt_care: "📦 Soigneux", rt_found: "📍 Bien trouvé",
+  rt_late: "⏰ En retard", rt_damaged: "💔 Colis abîmé", rt_rude: "😕 Pas aimable", rt_lost: "❓ Colis perdu",
+  rtNotePh: "Un mot pour votre livreur (facultatif)", rtSend: "Envoyer ma note", rtThanks: "Merci ! Votre note est bien envoyée 💛",
+  rtLowThanks: "Merci, et désolés 🙏 Le service client a reçu votre message et revient vers vous ici.",
+  rtYours: "Votre note : {stars}", rtCta: "⭐ Notez votre livraison", rtErr: "Note non envoyée. Réessayez dans un instant.",
+  rtPick: "Touchez les étoiles", deliveredYay: "🎉 Et hop, c'est livré !",
   shCarnetMsg: "Bonjour, je viens de payer {price} par Bit pour un carnet de courses : {name} (CARNET {code})."
 },
 
@@ -493,6 +513,26 @@ he: {
   chOrder: "משלוח מס' {ref}", chOrderSub: "השליח שלכם ושירות הלקוחות",
   chWho: "למי לכתוב?", chMyOrder: "🛵 המשלוח שלי מס' {ref}", chOpen: "💬 לכתוב לשליח או לשירות הלקוחות",
   chShop: "הופ! · האזור העסקי", chNew: "💬 הודעה חדשה",
+  // Accueil façon appli
+  hmFrom: "נקודת איסוף", hmTo: "יעד", hmFromPh: "כתובת, חנות, מסעדה…", hmToPh: "לאן משלוח?", hmNo: "מס׳",
+  hmHello: "שלום {name} 👋", hmHelloNew: "ברוכים הבאים להופ! 👋", hmWhat: "מה שולחים?",
+  hmLive: "🛵 {n} שליחים באזור · באיסוף תוך כ-{min} דק׳", hmLiveBusy: "🛵 {n} שליחים במשלוח באזור",
+  hmLiveNone: "🛵 הזמינו: נמצא לכם שליח מהר",
+  hmNow: "⚡ עכשיו", hmIn1h: "🕐 בעוד שעה", hmTonight: "🌆 הערב {h}", hmTomorrow: "🌅 מחר {h}", hmOther: "🗓️ שעה אחרת",
+  hmPlanned: "🗓️ מתוזמן ל-{when} · תשלום מראש בביט",
+  hmGo: "להזמנה", hmGoNext: "המשך", hmGoSub: "מחיר קבוע, הכל כלול",
+  hmGoFirst: "משלוח ראשון: {price} 🎁", hmGoKm: "{from} ← {to} · מחיר קבוע",
+  hmRepeat: "להזמין שוב את המשלוח האחרון", hmRepeatSub: "{from} ← {to}", hmNeedNo: "הוסיפו מספר בית 👆",
+  heroPriceTitle: "מחיר קבוע, מוצג מיד",
+  hopSent: "ההזמנה נשלחה!",
+  // דירוג המשלוח
+  rtTitle: "איך היה המשלוח?", rtSub: "הדעה שלכם עוזרת לשליח ולהופ! 💛",
+  rt_fast: "⚡ מהיר", rt_nice: "😊 נחמד", rt_care: "📦 זהיר", rt_found: "📍 מצא בקלות",
+  rt_late: "⏰ איחור", rt_damaged: "💔 החבילה נפגעה", rt_rude: "😕 לא אדיב", rt_lost: "❓ החבילה אבדה",
+  rtNotePh: "מילה לשליח (לא חובה)", rtSend: "שליחת הדירוג", rtThanks: "תודה! הדירוג נשלח 💛",
+  rtLowThanks: "תודה, ומצטערים 🙏 שירות הלקוחות קיבל את ההודעה ויחזור אליכם כאן.",
+  rtYours: "הדירוג שלכם: {stars}", rtCta: "⭐ דרגו את המשלוח", rtErr: "הדירוג לא נשלח. נסו שוב בעוד רגע.",
+  rtPick: "געו בכוכבים", deliveredYay: "🎉 הופ, וזה אצלך!",
   shCarnetMsg: "שלום, שילמתי {price} בביט על כרטיסיית משלוחים: {name} (CARNET {code})."
 }
 };
@@ -526,6 +566,7 @@ function apply() {
   document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
 }
 
 function setLang(l) {

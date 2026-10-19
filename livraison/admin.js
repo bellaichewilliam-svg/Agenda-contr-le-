@@ -240,6 +240,7 @@ function card(o, withDay) {
   if (o.courier_id && !isMine(o) && !["annulee", "refusee"].includes(o.status)) {
     meta.push(`<button class="pill pill-btn ${o.paid_to === "hop" ? "paid" : ""}" data-act="paidto" title="Qui a reçu l'argent du client ?">${o.paid_to === "hop" ? "💳 Payée à HOP (reversée au livreur)" : "🛵 Payée au livreur"} ⇄</button>`);
   }
+  if (o.rating != null) meta.push(`<span class="pill ${o.rating <= 3 ? "st-annulee" : "paid"}" title="${UI.esc(o.rating_note || "")}">${UI.esc(UI.ratingText(o))}${o.rating_note ? " 💬" : ""}</span>`);
   if (o.issue) meta.push(`<button class="pill pill-btn st-annulee" data-act="issue" title="Cliquer quand le souci est réglé">⚠️ Souci signalé par le livreur : ${UI.esc(o.issue)} · ✓ réglé ?</button>`);
   if (o.leave_at_door) meta.push(`<span class="pill">🚪 Devant la porte : photo obligatoire</span>`);
   if (o.courier_id && !isMine(o) && ["confirmee", "recuperee"].includes(o.status)) {
@@ -473,11 +474,12 @@ function renderCouriers(view) {
     </div>
     ${list.length ? `<div class="orders">${list.map(c => {
       const done = orders.filter(o => o.courier_id === c.id && o.status === "livree").length;
+      const rating = UI.ratingOf(orders.filter(o => o.courier_id === c.id));
       return `<article class="order${c.status === "en_attente" ? " is-new" : ""}" data-courier="${UI.esc(c.id)}">
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name)}</span>
           <span class="pill">${statusLabel[c.status] || c.status}</span>
-          <span class="order-ref">${done} course(s) livrée(s)</span>
+          <span class="order-ref">${done} course(s) livrée(s)${rating ? ` · ⭐ ${rating.avg.toFixed(1).replace(".", ",")} (${rating.n} avis)` : ""}</span>
         </div>
         <div class="kv">
           <div><span>📞</span><span>${tel("", c.phone)}${c.bit_phone ? ` · Bit ${UI.esc(c.bit_phone)}` : ""}${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>

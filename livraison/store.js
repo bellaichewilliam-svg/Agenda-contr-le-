@@ -535,6 +535,32 @@ async function zoneDemand() {
   };
 }
 
+// Clients : les livreurs en ligne autour (position arrondie à ≈ 500 m, sans nom)
+const RATING_TAGS = { fast: "Rapide", nice: "Sympa", care: "Soigneux", found: "Bien trouvé", late: "En retard", damaged: "Colis abîmé", rude: "Pas aimable", lost: "Colis perdu" };
+async function couriersNearby() {
+  if (ONLINE) return rest("/rest/v1/rpc/couriers_nearby", { method: "POST", body: {} });
+  const busy = new Set(localOrders().filter(o => ["confirmee", "recuperee"].includes(o.status)).map(o => o.courier_id));
+  const fresh = c => c.position_at && Date.now() - new Date(c.position_at) < 15 * 60000;
+  return localCouriers().filter(c => c.status === "actif" && c.lat != null && (onlineNow(c) || (c.role === "admin" && fresh(c))))
+    .map(c => ({ lat: Math.round(c.lat * 200) / 200, lon: Math.round(c.lon * 200) / 200, free: !busy.has(c.id) }));
+}
+
+// Client : noter sa livraison (une fois, dans les 7 jours) ; une note basse arrive chez le patron
+async function rateOrder(token, stars, tags, note) {
+  if (ONLINE) return rest("/rest/v1/rpc/rate_order", { method: "POST", body: { p_token: token, p_stars: stars, p_tags: tags || [], p_note: note || null } });
+  const all = localOrders();
+  const o = all.find(x => x.token === token && x.status === "livree" && x.rating == null && Date.now() - new Date(x.pickup_at) < 7 * 86400000);
+  if (!o || !(stars >= 1 && stars <= 5)) return false;
+  const ok = (tags || []).filter(x => RATING_TAGS[x]);
+  Object.assign(o, { rating: stars, rating_tags: ok, rating_note: String(note || "").trim().slice(0, 300) || null, rated_at: new Date().toISOString() });
+  saveLocalOrders(all);
+  if (stars <= 3 || o.rating_note) {
+    chatLocalAdd({ thread: "o:" + o.id, author: "client", author_name: o.contact_name,
+      body: "⭐".repeat(stars) + ` ${stars}/5` + (ok.length ? " · " + ok.map(x => RATING_TAGS[x]).join(", ") : "") + (o.rating_note ? "\n" + o.rating_note : "") });
+  }
+  return true;
+}
+
 // Livreur : signaler un souci sur sa course (écrit aussi dans la conversation de la course)
 async function courierIssue(id, reason) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_issue", { method: "POST", body: { p_id: id, p_reason: reason } });
@@ -849,6 +875,7 @@ window.Store = {
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, myAcceptance, demandForecast, commissionFor,
+  couriersNearby, rateOrder,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
