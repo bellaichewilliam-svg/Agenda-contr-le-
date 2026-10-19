@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0F1F3D" />
   <meta name="description" content="Coursier à Netanya, Sharon et Tel Aviv : colis, poste, Super-Pharm, restaurants, documents. Prix fixe immédiat, suivi en direct, paiement espèces ou Bit. שליחויות בנתניה, השרון ותל אביב." />
   <meta property="og:title" content="HOP! Livraison · הופ! משלוחים" />
-  <meta property="og:description" content="Et hop, c'est livré ! Colis, poste, Super-Pharm, restaurants… Netanya ⇄ Tel Aviv. Prix fixe, suivi en direct, espèces ou Bit. 1re course -50 %." />
+  <meta property="og:description" content="Et hop, c'est livré ! Colis, poste, Super-Pharm, restaurants… Netanya ⇄ Tel Aviv. Prix fixe, suivi en direct, espèces ou Bit. Première course à -50 %." />
   <meta property="og:type" content="website" />
   <title>HOP! Livraison · הופ! משלוחים</title>
   <link rel="manifest" href="manifest.webmanifest" />
@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=202610191340" />
 </head>
 <body>
 
@@ -40,17 +40,36 @@
       <span class="badge-open" id="openBadge"></span>
       <h1><span data-i18n="heroTitle1"></span> <span class="accent" data-i18n="heroTitle2"></span></h1>
       <p class="lead" data-i18n="heroLead"></p>
-      <div class="perks">
-        <span data-i18n="perkCash"></span><span data-i18n="perkLive"></span>
-        <span data-i18n="perkExpress"></span><span data-i18n="perkWelcome"></span>
-      </div>
+    </div>
+    <div class="perks hero-perks">
+      <span data-i18n="perkCash"></span><span data-i18n="perkLive"></span>
+      <span data-i18n="perkExpress"></span><span data-i18n="perkWelcome"></span>
     </div>
     <div class="quick card">
+      <h3 class="quick-title" data-i18n="quickTitle"></h3>
       <label class="f"><span data-i18n="quickFrom"></span><select id="quickFrom" class="city-select"></select></label>
       <button type="button" class="swap" id="quickSwap" aria-label="⇅">⇅</button>
       <label class="f"><span data-i18n="quickTo"></span><select id="quickTo" class="city-select"></select></label>
-      <div class="quick-price"><span data-i18n="quickPrice"></span><b id="quickPrice"></b></div>
+      <div class="quick-price"><span data-i18n="quickPrice"></span><span class="qp-val"><s id="quickOld" class="hidden"></s><b id="quickPrice"></b></span></div>
+      <p class="quick-welcome hidden" id="quickWelcome"></p>
       <button class="btn btn-primary btn-block btn-lg" id="quickGo" data-i18n="quickCta"></button>
+    </div>
+  </div>
+  <!-- Petit scooter de livraison qui se balade -->
+  <div class="hero-road" aria-hidden="true">
+    <div class="rider">
+      <svg class="scooter" viewBox="0 0 140 90" width="96" height="62">
+        <rect x="6" y="14" width="40" height="34" rx="6" fill="#FF6A13"/>
+        <rect x="22" y="14" width="8" height="34" fill="#FFC7A3"/>
+        <path d="M44 52 H86 L100 30 H110" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M30 56 Q 40 44 60 46 H84 Q 96 46 104 60" fill="#FF8A3D"/>
+        <rect x="52" y="38" width="26" height="8" rx="4" fill="#0F1F3D"/>
+        <path d="M104 26 l8 -6" stroke="#fff" stroke-width="6" stroke-linecap="round"/>
+        <circle cx="114" cy="40" r="4" fill="#FFE08A"/>
+        <g class="wheel"><circle cx="34" cy="68" r="15" fill="#0F1F3D"/><circle cx="34" cy="68" r="6" fill="#98A2B3"/><path d="M34 56 V80 M22 68 H46" stroke="#5B6476" stroke-width="2"/></g>
+        <g class="wheel"><circle cx="106" cy="68" r="15" fill="#0F1F3D"/><circle cx="106" cy="68" r="6" fill="#98A2B3"/><path d="M106 56 V80 M94 68 H118" stroke="#5B6476" stroke-width="2"/></g>
+      </svg>
+      <span class="puff p1"></span><span class="puff p2"></span><span class="puff p3"></span>
     </div>
   </div>
 </section>
@@ -297,12 +316,12 @@
   </div>
 </div>
 
-<script src="config.js"></script>
-<script src="i18n.js"></script>
-<script src="pricing.js"></script>
-<script src="store.js"></script>
-<script src="common.js"></script>
-<script src="places.js"></script>
-<script src="client.js"></script>
+<script src="config.js?v=202610191340"></script>
+<script src="i18n.js?v=202610191340"></script>
+<script src="pricing.js?v=202610191340"></script>
+<script src="store.js?v=202610191340"></script>
+<script src="common.js?v=202610191340"></script>
+<script src="places.js?v=202610191340"></script>
+<script src="client.js?v=202610191340"></script>
 </body>
 </html>

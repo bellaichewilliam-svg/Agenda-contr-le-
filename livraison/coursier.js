@@ -160,7 +160,7 @@ function weekOrders(start) {
 }
 
 function card(o, kind) {
-  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS (moins d'1 h)" : "Dès que possible";
+  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS (moins d'une heure)" : "Dès que possible";
   const nav = which => kind === "mine" ? `<div class="links">
       <a class="btn btn-sm" href="${UI.wazeLink(o, which)}" target="_blank" rel="noopener">Waze</a>
       <a class="btn btn-sm" href="${UI.mapsLink(o, which)}" target="_blank" rel="noopener">Maps</a></div>` : "";
@@ -295,7 +295,7 @@ function showNextOffer() {
   const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon);
   const trip = roadKm(pick, drop) ?? (o.distance_km != null ? Number(o.distance_km) * 1.3 : null);
   const toPickup = roadKm(lastPos, pick);
-  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : moins d'1 h" : "Dès que possible";
+  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : moins d'une heure" : "Dès que possible";
   $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
   $("#offerPrice").textContent = UI.money(o.price);
   $("#offerGain").textContent = `Vous gagnez ${UI.money(Number(o.price) - COMMISSION)} (commission ${UI.money(COMMISSION)})`;

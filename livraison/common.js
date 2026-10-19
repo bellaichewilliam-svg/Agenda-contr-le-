@@ -70,7 +70,7 @@ const SIZE_FR = { petit: "Petit colis", moyen: "Colis moyen (5–15 kg)", gros: 
 const PAY_FR = { cash: "💵 Espèces", bit: "📱 Bit" };
 
 function whenFr(o) {
-  if (o.urgency === "express") return "⚡ EXPRESS (moins d'1 h)";
+  if (o.urgency === "express") return "⚡ EXPRESS (moins d'une heure)";
   if (o.urgency === "asap") return "Dès que possible (dans les 3 h)";
   return new Date(o.pickup_at).toLocaleString("fr-FR", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", timeZone: CONFIG.timezone });
 }

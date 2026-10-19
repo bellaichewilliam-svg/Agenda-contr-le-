@@ -114,7 +114,10 @@ section[id] { scroll-margin-top: 64px; }
 
 /* --- Accueil --------------------------------------------------------------- */
 .hero { background: radial-gradient(900px 400px at 85% 0%, #24427E 0%, transparent 60%), linear-gradient(160deg, var(--navy) 0%, var(--navy-2) 100%); color: #fff; padding: 44px 0 56px; }
-.hero .wrap { display: grid; grid-template-columns: 1.15fr 1fr; gap: 36px; align-items: center; }
+.hero .wrap { display: grid; grid-template-columns: 1.15fr 1fr; grid-template-areas: "text quick" "perks quick"; gap: 20px 36px; align-items: center; }
+.hero .wrap > div:first-child { grid-area: text; align-self: end; }
+.hero .quick { grid-area: quick; }
+.hero-perks { grid-area: perks; align-self: start; margin-top: 0; }
 .hero h1 { font-size: clamp(32px, 5.4vw, 52px); line-height: 1.08; letter-spacing: -.02em; margin: 14px 0; }
 .hero h1 .accent { color: var(--brand); display: block; }
 .hero .lead { font-size: 17px; opacity: .88; max-width: 540px; }
@@ -127,7 +130,20 @@ section[id] { scroll-margin-top: 64px; }
 .quick .swap { justify-self: center; width: 34px; height: 34px; margin: -6px 0 -12px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); font-weight: 800; }
 .quick-price { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 2px; font-weight: 700; color: var(--muted); }
 .quick-price b { font-size: 34px; color: var(--brand-deep); letter-spacing: -.02em; }
-@media (max-width: 860px) { .hero .wrap { grid-template-columns: 1fr; } .hero { padding-top: 28px; } }
+@media (max-width: 860px) {
+  .hero .wrap { grid-template-columns: 1fr; grid-template-areas: "text" "quick" "perks"; }
+  .hero { padding-top: 24px; }
+  .hero .lead { font-size: 15px; }
+}
+.quick-title { font-size: 20px; margin-bottom: 2px; }
+.qp-val { display: flex; align-items: baseline; gap: 10px; }
+.qp-val s { color: var(--subtle); font-size: 20px; font-weight: 600; }
+.quick-welcome { background: var(--brand-soft); color: var(--brand-ink); border-radius: 10px; padding: 8px 10px; font-size: 13px; font-weight: 700; margin-top: -4px; }
+#quickPrice.pop { animation: pricepop .35s ease-out; }
+@keyframes pricepop { 0% { transform: scale(.8); opacity: .3; } 70% { transform: scale(1.08); } 100% { transform: scale(1); } }
+#quickGo { animation: ctapulse 2.4s ease-in-out infinite; }
+@keyframes ctapulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,106,19,.45); } 50% { box-shadow: 0 0 0 10px rgba(255,106,19,0); } }
+@media (prefers-reduced-motion: reduce) { #quickGo, #quickPrice.pop { animation: none; } }
 
 section.block { padding: 48px 0; }
 section.block.alt { background: var(--bg-2); }
@@ -427,3 +443,29 @@ table.bill .num { text-align: end; }
 .ac-empty { padding: 12px; color: var(--muted); font-size: 13px; }
 .f input.ac-ok { border-color: var(--green); background-image: linear-gradient(transparent, transparent); box-shadow: inset 0 0 0 1px var(--green); }
 .brand-tag { display: inline-block; font-weight: 700; font-size: 13px; color: var(--brand-ink); background: var(--brand-soft); border-radius: 8px; padding: 2px 8px; margin-bottom: 3px; }
+
+/* --- Scooter qui se balade sur l'accueil -------------------------------------------- */
+.hero { position: relative; overflow: hidden; }
+.hero > .wrap { position: relative; z-index: 1; padding-top: 66px; }
+.hero-road { position: absolute; inset-inline: 0; top: 4px; height: 70px; pointer-events: none; }
+.hero-road::after { content: ""; position: absolute; inset-inline: 0; bottom: 6px; border-bottom: 3px dashed rgba(255,255,255,.18); }
+.rider { position: absolute; bottom: 4px; left: 0; animation: ride 11s linear infinite; }
+.scooter { display: block; animation: bump .5s ease-in-out infinite alternate; filter: drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
+.scooter .wheel { transform-box: fill-box; transform-origin: center; animation: spin .45s linear infinite; }
+.puff { position: absolute; left: -6px; bottom: 10px; width: 12px; height: 12px; border-radius: 50%; background: rgba(255,255,255,.35); animation: puff 1s ease-out infinite; }
+.puff.p2 { animation-delay: .33s; } .puff.p3 { animation-delay: .66s; }
+@keyframes ride { from { transform: translateX(-140px); } to { transform: translateX(calc(100vw + 40px)); } }
+@keyframes bump { from { transform: translateY(0); } to { transform: translateY(-2px); } }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes puff { from { transform: translate(0, 0) scale(.6); opacity: .8; } to { transform: translate(-26px, -8px) scale(1.6); opacity: 0; } }
+/* En hébreu, il roule de droite à gauche */
+[dir="rtl"] .rider { left: auto; right: 0; animation-name: ride-rtl; }
+[dir="rtl"] .scooter { transform: scaleX(-1); animation: none; }
+[dir="rtl"] .puff { left: auto; right: -6px; animation-name: puff-rtl; }
+@keyframes ride-rtl { from { transform: translateX(140px); } to { transform: translateX(calc(-100vw - 40px)); } }
+@keyframes puff-rtl { from { transform: translate(0, 0) scale(.6); opacity: .8; } to { transform: translate(26px, -8px) scale(1.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rider { animation: none; left: 16px; } [dir="rtl"] .rider { right: 16px; }
+  .scooter, .scooter .wheel, .puff { animation: none; } .puff { display: none; }
+}
+.f input.field-bad { border-color: var(--red); box-shadow: inset 0 0 0 1px var(--red); }
