@@ -106,7 +106,8 @@ L'espace du commerce (`commerce.html`) montre le tarif pro (25 ₪ dans Netanya)
 Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et d'autres messages prêts, à tous ou à un seul livreur. Le message s'ouvre en grand chez eux, avec un son, et ils répondent « J'arrive » ou « Pas dispo ».
 
 ### Adresses
-- **📍 Ma position** remplit l'adresse depuis le GPS du téléphone, et **⭐ Enregistrer cette adresse** l'ajoute au carnet du client.
+- **📍 Ma position** remplit l'adresse depuis le GPS du téléphone (aussi en raccourci sur l'accueil), et **⭐ Enregistrer cette adresse** l'ajoute au carnet du client en **🏠 Maison**, **💼 Travail** ou sous un nom choisi (« Maman »…). Ces adresses passent en premier dans les raccourcis.
+- **Enseignes :** « Golda », « Super-Pharm »… donnent d'abord l'agence la plus proche du client (si la carte n'en trouve aucune à moins de 4 km, on cherche le nom sur OpenStreetMap autour de lui).
 - Avant chaque commande, le client **vérifie ses adresses sur une carte** et peut faire glisser l'épingle au bon endroit, par exemple s'il commande pour une autre adresse que la sienne.
 
 ### Déposer devant la porte, blocages et déblocages
@@ -114,6 +115,18 @@ Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et
 - **Une course à la fois :** tant qu'une course récupérée n'est pas validée, le livreur ne peut pas en prendre une autre.
 - **⚠️ Un souci :** le livreur signale un problème (client absent, adresse introuvable, retard, panne…). Il s'affiche sur la course, dans la conversation, et vous recevez une alerte.
 - **Vous débloquez tout :** « 🔓 Débloquer la course » (livrer sans GPS ni photo) ou « 🔓 Débloquer 24 h » sur un livreur (plus aucun blocage pendant 24 h).
+
+### Paiement Bit
+- Le client qui choisit Bit **paie tout de suite** depuis l'écran « Commande envoyée » ou le suivi : montant, numéro, n° de commande, bouton **Ouvrir Bit** (Android), **Copier le numéro** et **✅ J'ai payé**. Vous voyez « 💳 Le client dit avoir payé par Bit · à vérifier » et vous recevez une alerte : vérifiez votre Bit, puis marquez la course payée.
+- **Trompé de moyen de paiement ?** Sur le suivi, « Je préfère payer par Bit / en espèces » tant que rien n'est payé ; le livreur est prévenu dans la conversation.
+
+### Notifications push (même quand HOP! est fermé)
+- Patron : nouvelle commande, course remise en attente, message d'un client / commerce / livreur, paiement Bit à vérifier. Livreurs en service : nouvelle course qu'ils peuvent prendre, message du patron ou du client.
+- Il suffit d'**autoriser les alertes** (« 🔔 Activer les alertes », ou « Passer en service »). Sur iPhone, seulement avec HOP! **sur l'écran d'accueil**.
+- Fonctionnement : la base appelle la fonction Supabase `hop-push` (`supabase/functions/hop-push`) ; les clés sont dans la table `push_config` (invisible depuis l'application ; la clé publique est aussi dans `config.js`, `push.publicKey`).
+
+### Trois applis, trois icônes
+Client (orange), **HOP! Livreur** (bleue « LIVREUR ») et **HOP! Patron** (noire « PATRON »). Le livreur a un bouton « 📲 Mettre HOP! Livreur sur l'écran d'accueil », le patron « 📲 Installer HOP! Patron ». Le patron et les livreurs ont aussi « Mot de passe oublié ? » sous la connexion.
 
 ### Zones
 Seulement le Sharon est ouvert (`zones` dans `config.js`). Tel Aviv – Gush Dan, Petah Tikva et Rishon apparaissent « bientôt » chez les clients et dans l'écran « 📍 Zones » des livreurs, qui montre aussi la demande en direct. Mettez `active: true` pour ouvrir une zone.

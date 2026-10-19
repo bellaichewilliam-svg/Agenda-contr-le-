@@ -1053,6 +1053,7 @@ function renderHome() {
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
+    ${UI.isStandalone() ? "" : `<button type="button" class="rd-card" data-install><span>📲 Mettre HOP! Livreur sur l'écran d'accueil<small>Son icône « LIVREUR », et les alertes même appli fermée</small></span><span class="go">›</span></button>`}
     <button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>`;
   const h = $("#sheet").offsetHeight;
   if (h) $("#work").style.setProperty("--sheet-h", h + "px");
@@ -1297,7 +1298,11 @@ $("#bellBtn").addEventListener("click", () => openPage("inbox"));
 $("#pageBack").addEventListener("click", closePage);
 $("#drawerLogout").addEventListener("click", () => { if (confirm("Se déconnecter ?")) endAndLogout(); });
 $("#locateBtn").addEventListener("click", () => { if (rmap.map && lastPos) rmap.map.setView([lastPos.lat, lastPos.lon], 15); else fitRiderMap(); });
-$("#sheetBody").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) openPage(b.dataset.tab); });
+$("#sheetBody").addEventListener("click", e => {
+  if (e.target.closest("[data-install]")) return UI.installApp("HOP! Livreur").then(ok => { if (ok) renderHome(); });
+  const b = e.target.closest("[data-tab]");
+  if (b) openPage(b.dataset.tab);
+});
 initSlider();
 $("#view").addEventListener("click", onViewClick);
 $("#view").addEventListener("change", e => {

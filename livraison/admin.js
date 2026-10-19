@@ -1142,6 +1142,8 @@ $("#availBtn").addEventListener("click", toggleAvail);
 $("#refuseForm").addEventListener("submit", onRefuse);
 $("#refuseCancel").addEventListener("click", () => $("#refuseModal").classList.add("hidden"));
 $("#icsBtn").addEventListener("click", () => exportIcs(agendaList().filter(o => active(o) && isMine(o)).sort(byTime)));
+$("#installBtn").classList.toggle("hidden", UI.isStandalone());
+$("#installBtn").addEventListener("click", () => UI.installApp("HOP! Patron").then(ok => { if (ok) $("#installBtn").classList.add("hidden"); }));
 $("#notifBtn").addEventListener("click", () => {
   if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
   Notification.requestPermission().then(p => {

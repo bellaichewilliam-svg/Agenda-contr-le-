@@ -98,16 +98,22 @@ async function searchMap(q, lang) {
     const brands = slots.map(i => list[i]).sort((a, b) => km(near, a) - km(near, b));
     slots.forEach((i, k) => { list[i] = brands[k]; });
   }
-  // Aucune enseigne de ce nom près du client : on cherche le nom autour de lui sur OpenStreetMap
-  // (Photon ne renvoie parfois que les agences les plus connues, loin du client)
-  if (near && q.trim().length >= 3 && !list.some(p => p.brand && km(near, p) < 4)) {
-    const extra = await nearbyByName(q, lang, near).catch(() => []);
-    const seenAt = new Set(list.filter(p => p.brand).map(p => normalize(p.brand) + "|" + p.lat.toFixed(3) + "," + p.lon.toFixed(3)));
-    const add = extra.filter(p => !seenAt.has(normalize(p.brand) + "|" + p.lat.toFixed(3) + "," + p.lon.toFixed(3)));
-    list.unshift(...add);
-  }
   cache[key] = list;
   return list;
+}
+
+// Aucune enseigne de ce nom près du client : on cherche le nom autour de lui sur OpenStreetMap
+// (Photon ne renvoie parfois que les agences les plus connues, loin du client). Plus lent : la liste
+// s'affiche d'abord, ces enseignes proches s'ajoutent en tête quand elles arrivent.
+const nearCache = {};
+async function moreNearby(q, lang, list) {
+  if (!near || q.trim().length < 3 || list.some(p => p.brand && p.lat != null && km(near, p) < 4)) return [];
+  const key = lang + "|" + q.trim().toLowerCase() + "|" + near.lat.toFixed(2) + "," + near.lon.toFixed(2);
+  if (!nearCache[key]) nearCache[key] = nearbyByName(q, lang, near).catch(() => []);
+  const extra = await nearCache[key];
+  const at = p => normalize(p.brand) + "|" + p.lat.toFixed(3) + "," + p.lon.toFixed(3);
+  const seen = new Set(list.filter(p => p.brand && p.lat != null).map(at));
+  return extra.filter(p => !seen.has(at(p)));
 }
 
 // Enseignes dont le nom (français, hébreu, anglais ou marque) contient le texte, à moins de 6 km
@@ -232,6 +238,11 @@ function attach(input, opts) {
         const list = await search(q, opts.lang());
         if (mine !== seq) return;
         items = list; active = -1; render();
+        const extra = await moreNearby(q, opts.lang(), list);
+        if (mine !== seq || !extra.length) return;
+        items = extra.concat(items);
+        if (active >= 0) active += extra.length;
+        render();
       } catch (e) {
         // Service injoignable : on le dit, et l'adresse tapée sera acceptée telle quelle
         if (mine !== seq) return;
@@ -261,7 +272,7 @@ function attach(input, opts) {
 }
 
 window.Places = {
-  attach, search, reverse, matchCity, km, distText,
+  attach, search, moreNearby, reverse, matchCity, km, distText,
   setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
   setLocal(fn) { local = fn; },
   get near() { return near; },

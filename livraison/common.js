@@ -160,6 +160,26 @@ async function dutyNotice(on, text) {
     requireInteraction: true, silent: true, renotify: false });
 }
 
+// Installer l'appli sur l'écran d'accueil (icône propre à chaque espace : client, LIVREUR, PATRON)
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; });
+function isStandalone() {
+  return !!(navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches));
+}
+async function installApp(appName) {
+  if (installEvt) {
+    installEvt.prompt();
+    const r = await installEvt.userChoice.catch(() => null);
+    installEvt = null;
+    return !!(r && r.outcome === "accepted");
+  }
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  alert(ios
+    ? `Sur iPhone, dans Safari : touchez Partager ⬆️ en bas de l'écran, puis « Sur l'écran d'accueil ». L'icône « ${appName} » apparaît sur votre téléphone, et les alertes marchent.`
+    : `Touchez le menu ⋮ du navigateur, puis « Ajouter à l'écran d'accueil » (ou « Installer l'application »). L'icône « ${appName} » apparaît sur votre téléphone.`);
+  return false;
+}
+
 // iPhone : alertes, notification « En service » et son ne marchent que si HOP! est sur l'écran d'accueil.
 // On l'explique une fois (bandeau à fermer), seulement sur iPhone et dans le navigateur.
 function iosInstallHint(appName) {
@@ -371,7 +391,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
