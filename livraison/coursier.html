@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <meta name="description" content="Devenez livreur partenaire : choisissez vos courses, encaissez directement vos clients, commission fixe par course." />
+  <title>Espace livreur</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="index.html"><img class="logo-mark" src="logo.svg" alt="" /><span class="logo-name">Espace livreur</span></a>
+    <nav class="nav"><a href="#" id="logoutBtn" class="hidden">Sortir</a></nav>
+  </div>
+</header>
+
+<main class="wrap" style="padding:20px 16px 60px">
+
+  <!-- Présentation + inscription / connexion -->
+  <section id="welcome" class="hidden">
+    <div class="card" style="margin-bottom:14px">
+      <h2>🛵 Devenez livreur partenaire</h2>
+      <ul class="perks-list" id="perks"></ul>
+    </div>
+    <div class="tabs">
+      <button class="tab on" data-auth="signup">Je m'inscris</button>
+      <button class="tab" data-auth="login">J'ai déjà un compte</button>
+    </div>
+
+    <form class="card" id="loginForm" style="display:none">
+      <div class="fields">
+        <label class="f">Email<input name="email" type="email" autocomplete="username" required /></label>
+        <label class="f">Mot de passe<input name="password" type="password" autocomplete="current-password" required /></label>
+      </div>
+      <p class="notice err hidden" id="loginError" style="margin-top:12px"></p>
+      <button class="btn btn-primary btn-block" style="margin-top:12px">Se connecter</button>
+    </form>
+
+    <form id="signupForm">
+      <fieldset>
+        <legend>1. Vous</legend>
+        <div class="fields">
+          <label class="f">Nom et prénom<input name="name" required autocomplete="name" /></label>
+          <label class="f">Téléphone (WhatsApp)<input name="phone" type="tel" required autocomplete="tel" /></label>
+          <label class="f">Numéro Bit pour être payé (si différent)<input name="bit_phone" type="tel" /></label>
+          <label class="f">Ville où vous travaillez<select name="city" id="citySelect"></select></label>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>2. Véhicule, permis et assurance</legend>
+        <div class="fields">
+          <label class="f">Véhicule
+            <select name="vehicle">
+              <option>Scooter / moto</option><option>Voiture</option><option>Vélo électrique</option><option>Vélo</option><option>À pied</option>
+            </select>
+          </label>
+          <label class="f">N° de permis de conduire<input name="license_number" /></label>
+          <label class="f">Permis valable jusqu'au<input name="license_expiry" type="date" /></label>
+          <label class="f">Assurance (compagnie et n° de police)<input name="insurance" /></label>
+          <label class="f">Assurance valable jusqu'au<input name="insurance_expiry" type="date" /></label>
+          <label class="f">N° d'עוסק (פטור ou מורשה)<input name="business_number" inputmode="numeric" /></label>
+        </div>
+        <p class="notice" style="margin-top:12px">Après l'inscription, envoyez en photo sur WhatsApp : permis, carte grise, attestation d'assurance, carte d'identité et attestation d'עוסק. Votre compte est validé après vérification.</p>
+      </fieldset>
+      <fieldset>
+        <legend>3. Vos engagements</legend>
+        <div id="terms" style="display:grid;gap:10px"></div>
+      </fieldset>
+      <fieldset>
+        <legend>4. Votre compte</legend>
+        <div class="fields">
+          <label class="f">Email<input name="email" type="email" required autocomplete="username" /></label>
+          <label class="f">Mot de passe (6 caractères minimum)<input name="password" type="password" minlength="6" required autocomplete="new-password" /></label>
+        </div>
+        <p class="notice err hidden" id="signupError" style="margin-top:12px"></p>
+        <button class="btn btn-primary btn-block btn-lg" style="margin-top:12px">Envoyer mon inscription</button>
+      </fieldset>
+    </form>
+  </section>
+
+  <!-- Compte en attente / suspendu -->
+  <section id="waiting" class="hidden">
+    <div class="card" style="text-align:center;padding:32px 20px">
+      <div style="font-size:48px" id="waitIcon">⏳</div>
+      <h2 id="waitTitle">Inscription reçue !</h2>
+      <p class="muted" id="waitText" style="margin:8px 0 16px"></p>
+      <a class="btn btn-wa" id="waitWa" target="_blank" rel="noopener">Envoyer mes documents sur WhatsApp</a>
+      <button class="btn btn-link" id="waitRefresh">↻ Vérifier</button>
+    </div>
+  </section>
+
+  <!-- Livreur actif -->
+  <section id="work" class="hidden">
+    <div class="stats">
+      <div class="stat"><small>Courses dispo</small><b id="stPool">0</b></div>
+      <div class="stat"><small>Mes courses</small><b id="stMine">0</b></div>
+      <div class="stat"><small>Encaissé (semaine)</small><b id="stWeek">0</b></div>
+      <div class="stat"><small>Commission à verser</small><b id="stDue">0</b></div>
+    </div>
+    <div class="duty" id="duty">
+      <div><b id="dutyTitle">⚪ Hors service</b><br><span class="small muted" id="dutyText">Passez en service pendant vos courses : le client vous suit sur la carte.</span></div>
+      <button class="btn btn-primary" id="dutyBtn">Passer en service</button>
+    </div>
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-tab="pool">🆕 Courses disponibles</button>
+      <button class="tab" data-tab="mine">🛵 Mes courses</button>
+      <button class="tab" data-tab="week">💸 Ma semaine</button>
+      <button class="tab" data-tab="rules">📜 Mes engagements</button>
+    </div>
+    <div class="toolbar">
+      <span class="muted small" id="lastSync"></span>
+      <button class="btn btn-sm" id="notifBtn">🔔 Activer les alertes</button>
+    </div>
+    <div id="view"></div>
+  </section>
+</main>
+
+<script src="config.js"></script>
+<script src="i18n.js"></script>
+<script src="pricing.js"></script>
+<script src="store.js"></script>
+<script src="common.js"></script>
+<script src="coursier.js"></script>
+</body>
+</html>

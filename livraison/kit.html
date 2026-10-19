@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <meta name="robots" content="noindex" />
+  <title>Kit de lancement</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="kit-page">
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="admin.html"><img class="logo-mark" src="logo.svg" alt="" /><span class="logo-name">Kit de lancement</span></a>
+    <nav class="nav"><a href="admin.html">Espace coursier</a><a href="index.html" class="hide-sm">Page client</a></nav>
+  </div>
+</header>
+
+<main class="wrap narrow kit" style="padding:24px 16px 60px">
+
+  <section class="card">
+    <h2>🎯 La stratégie en une phrase</h2>
+    <p style="margin-top:8px"><b>« Le coursier de Netanya qui parle français et hébreu : prix fixe affiché, suivi en direct comme Wolt, espèces ou Bit. »</b></p>
+    <p class="muted" style="margin-top:8px">Vous ne pouvez pas battre Wolt sur les repas (ils ont des milliers de livreurs). Vous gagnez là où Wolt n'est pas : <b>la poste, Super-Pharm, les documents, les objets de Yad2, les commerces sans livreur, les courses entre villes</b>, et la confiance de la communauté francophone.</p>
+  </section>
+
+  <section class="card">
+    <h2>🥊 Pourquoi vous plutôt que Wolt ?</h2>
+    <p class="muted small" style="margin:6px 0 10px">Vos arguments face aux grandes plateformes. Restez factuel et poli : on ne dénigre jamais un concurrent, on montre ce qu'on fait mieux.</p>
+    <table>
+      <tr><th></th><th>HOP!</th><th>Grandes plateformes</th></tr>
+      <tr><td>Regroupement</td><td><b>1 course = 1 client</b>, départ direct</td><td>Plusieurs commandes souvent groupées : plus d'attente, repas qui refroidit</td></tr>
+      <tr><td>Prix client</td><td><b>Prix fixe affiché</b>, rien d'autre</td><td>Frais de livraison + frais de service, parfois majorés (pluie, heures de pointe)</td></tr>
+      <tr><td>Commerçants</td><td><b>0 % de commission</b>, prix fixe par course</td><td>Pourcentage prélevé sur chaque commande</td></tr>
+      <tr><td>Ce qu'on livre</td><td><b>Tout</b> : poste, Super-Pharm, documents, Yad2, clés…</td><td>Surtout les commerces partenaires</td></tr>
+      <tr><td>Horaire</td><td><b>Programmé à l'heure près</b>, et on prévient si on ne peut pas</td><td>Surtout « maintenant »</td></tr>
+      <tr><td>Contact</td><td><b>WhatsApp direct</b>, en français ou en hébreu</td><td>Support via l'application</td></tr>
+    </table>
+    <p class="muted small" style="margin-top:8px">Avant de citer un chiffre (commission, frais), vérifiez-le : les conditions des plateformes changent souvent.</p>
+  </section>
+
+  <section class="card">
+    <h2>🔗 Votre lien et votre QR code</h2>
+    <p class="muted small" style="margin:6px 0 12px">À mettre partout : statut WhatsApp, bio Instagram/Facebook, flyers, autocollant sur le scooter.</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+      <div class="qr" id="qr"></div>
+      <div style="flex:1;min-width:220px">
+        <div class="post" id="appLink" dir="ltr"></div>
+        <button class="btn btn-sm" data-copy="appLink">Copier le lien</button>
+        <button class="btn btn-sm" onclick="window.print()">🖨️ Imprimer le flyer</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>💰 Vos prix de lancement</h2>
+    <p class="muted small" style="margin:6px 0 10px">Calculés automatiquement depuis <code>config.js</code> (petit colis). Raisonnables pour démarrer : moins chers qu'un coursier moto classique, assez pour être rentable sur des courses groupées. Appelez 2 ou 3 sociétés de coursiers (שליחויות) de Netanya pour comparer, puis ajustez <code>base</code> et <code>perKm</code> si besoin.</p>
+    <table id="kitPrices"></table>
+    <h3>Offres déjà intégrées dans l'application</h3>
+    <ul id="kitOffers"></ul>
+  </section>
+
+  <section class="card">
+    <h2>🗓️ Plan des 30 premiers jours (gratuit)</h2>
+    <h3>Semaine 1 — Se préparer</h3>
+    <ol>
+      <li>Mettre votre numéro WhatsApp, votre numéro Bit et vos horaires dans <code>config.js</code>.</li>
+      <li>Passer à <b>WhatsApp Business</b> (gratuit) : photo de profil avec le logo 🛵, description, message d'accueil automatique avec le lien de commande.</li>
+      <li>Créer une fiche <b>Google Business Profile</b> (gratuit) « שליחויות נתניה · Coursier Netanya » : c'est ce qui fait apparaître votre numéro quand quelqu'un cherche « שליח נתניה » sur Google Maps.</li>
+      <li>Faire 3 courses test avec des proches pour roder l'application, le suivi et le paiement Bit.</li>
+      <li>Imprimer 100 flyers (bas de cette page) et un autocollant QR pour le scooter ou la voiture.</li>
+    </ol>
+    <h3>Semaine 2 — Les groupes (Facebook et WhatsApp)</h3>
+    <ol>
+      <li>Rejoindre les groupes de la ville. Recherches à faire sur Facebook : « Netanya francophone », « Français de Netanya », « Olim Netanya », « Bons plans Israël », « נתניה », « יד שנייה נתניה », « אמהות נתניה », « עסקים בנתניה ».</li>
+      <li>Lire les règles de chaque groupe. Si la pub est interdite, écrire d'abord à l'administrateur et lui offrir une course.</li>
+      <li>Publier le post ci-dessous <b>une fois par semaine maximum</b> par groupe, de préférence le soir (20h–22h) ou le dimanche matin, avec une <b>vraie photo</b> de vous et de votre scooter : ça rassure beaucoup plus qu'un logo.</li>
+      <li>Répondre à chaque commentaire dans l'heure. Chaque « merci, livraison parfaite ! » sous votre post vaut plus qu'une pub.</li>
+      <li>Dans les groupes Yad2 / Marketplace : proposer « vendu ? je livre dans l'heure » en commentaire quand quelqu'un vend un meuble ou un objet (sans spammer).</li>
+    </ol>
+    <h3>Semaine 3 — Le terrain : 20 commerces en 5 jours</h3>
+    <ol>
+      <li><b>Restaurants sans livreur</b> (falafel, shawarma, pizzerias, boulangeries françaises, traiteurs de Shabbat) : « pas de commission comme Wolt, prix fixe par course ».</li>
+      <li><b>Pharmacies indépendantes, opticiens, pressings, fleuristes, imprimeries</b> : ils ont tous des clients qui ne peuvent pas se déplacer.</li>
+      <li><b>Avocats, notaires, comptables, agents immobiliers</b> (surtout francophones) : documents à signer en aller-retour, clés à remettre.</li>
+      <li>Proposer <b>3 courses d'essai à moitié prix</b>, laisser 20 flyers et un QR près de la caisse.</li>
+      <li>Revenir une semaine plus tard avec un café : c'est la 2e visite qui signe.</li>
+    </ol>
+    <h3>Semaine 4 — Le bouche-à-oreille</h3>
+    <ol>
+      <li>Après chaque course livrée, envoyer le message « livrée » (bouton 💬 Client) : il contient le code de parrainage du client.</li>
+      <li>Demander un avis Google aux clients contents.</li>
+      <li>Publier des stories/Reels courts : la queue à la poste « pendant que vous restez au frais », Netanya → Tel Aviv en accéléré, un client content.</li>
+      <li>Objectif réaliste : <b>20 à 30 courses par semaine</b> à la fin du mois, et 3 commerces réguliers.</li>
+    </ol>
+    <h3>Les moments forts de l'année à ne pas rater</h3>
+    <ul>
+      <li><b>Pourim</b> : livraison de michloah manot (énorme demande, plusieurs adresses = arrêts supplémentaires).</li>
+      <li><b>Roch Hachana, Pessah</b> : cadeaux, paniers, fleurs, courses de dernière minute.</li>
+      <li><b>Chaque vendredi</b> : fleurs et gâteaux avant Shabbat, plats des traiteurs.</li>
+      <li><b>Périodes de soldes en ligne</b> (novembre) : explosion des colis à la poste et dans les points relais.</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>✍️ Messages prêts à copier</h2>
+    <p class="muted small">Les prix et le lien sont remplis automatiquement. Touchez « Copier » puis collez dans le groupe ou sur WhatsApp.</p>
+    <div id="posts"></div>
+  </section>
+
+  <section class="card">
+    <h2>👥 Grandir avec des livreurs partenaires</h2>
+    <ol>
+      <li>Envoyez le lien d'inscription (<a href="coursier.html">coursier.html</a>) avec l'annonce de recrutement ci-dessus.</li>
+      <li>Chaque livreur s'inscrit et accepte ses engagements : permis valide, assurance, statut d'עוסק, responsabilité des colis et de l'argent, commission hebdomadaire.</li>
+      <li>Vous vérifiez ses documents (photos sur WhatsApp) puis vous le validez dans l'onglet <b>Livreurs</b>.</li>
+      <li>Les courses que vous ne prenez pas apparaissent chez les livreurs : le premier qui accepte la prend. Vous pouvez aussi attribuer une course à un livreur précis.</li>
+      <li>Le livreur encaisse le client et vous verse sa commission chaque semaine (onglet <b>Paiements de la semaine</b>).</li>
+      <li>⚠️ Faites relire les engagements des livreurs par un avocat ou un comptable avant de recruter : statut d'indépendant, assurance de transport de marchandises, responsabilité en cas de perte.</li>
+    </ol>
+  </section>
+
+  <section class="card">
+    <h2>📏 Suivre ce qui marche</h2>
+    <ul>
+      <li>Demandez à chaque nouveau client « Comment vous nous avez connus ? » et notez-le dans le message pour le client (espace coursier).</li>
+      <li>Chaque dimanche : regardez l'onglet <b>Facturation</b> (courses, chiffre, qui revient). Gardez ce qui marche, arrêtez le reste.</li>
+      <li>Quand un client revient 3 fois : proposez-lui le carnet de 10 courses.</li>
+    </ul>
+  </section>
+</main>
+
+<!-- Flyer imprimable (seul élément imprimé) -->
+<div class="print-area wrap narrow" style="padding:0 16px 60px">
+  <div class="flyer" id="flyer"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="config.js"></script>
+<script src="i18n.js"></script>
+<script src="pricing.js"></script>
+<script src="common.js"></script>
+<script src="kit.js"></script>
+</body>
+</html>

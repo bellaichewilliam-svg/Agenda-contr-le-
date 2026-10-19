@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <meta name="robots" content="noindex" />
+  <title>Suivi · מעקב</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="index.html"><img class="logo-mark" src="logo.svg" alt="" /><span class="logo-name" id="brandName"></span></a>
+    <nav class="nav">
+      <a href="index.html#mes-courses" data-i18n="navMine"></a>
+      <button class="lang-btn" id="langBtn" data-i18n="langSwitch"></button>
+    </nav>
+  </div>
+</header>
+
+<main class="track-page">
+  <div id="map"></div>
+  <div class="track-panel">
+    <div class="eta" id="eta"><b data-i18n="trTitle"></b></div>
+    <div class="card"><ol class="steps" id="steps"></ol></div>
+    <div class="card kv" id="details"></div>
+    <div class="card pay-box hidden" id="payBox"></div>
+    <div class="card" id="courierBox">
+      <h3 id="courierTitle" data-i18n="trCourier"></h3>
+      <div class="mo-actions">
+        <a class="btn btn-sm" id="callBtn" data-i18n="trCall"></a>
+        <a class="btn btn-sm btn-wa" id="waBtn" target="_blank" rel="noopener" data-i18n="trWa"></a>
+        <a class="btn btn-sm" id="shareBtn" target="_blank" rel="noopener" data-i18n="trShare"></a>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="config.js"></script>
+<script src="i18n.js"></script>
+<script src="pricing.js"></script>
+<script src="store.js"></script>
+<script src="common.js"></script>
+<script src="suivi.js"></script>
+</body>
+</html>

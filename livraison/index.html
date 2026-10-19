@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <meta name="description" content="Coursier à Netanya, Sharon et Tel Aviv : colis, poste, Super-Pharm, restaurants, documents. Prix fixe immédiat, suivi en direct, paiement espèces ou Bit. שליחויות בנתניה, השרון ותל אביב." />
+  <meta property="og:title" content="HOP! Livraison · הופ! משלוחים" />
+  <meta property="og:description" content="Et hop, c'est livré ! Colis, poste, Super-Pharm, restaurants… Netanya ⇄ Tel Aviv. Prix fixe, suivi en direct, espèces ou Bit. 1re course -50 %." />
+  <meta property="og:type" content="website" />
+  <title>HOP! Livraison · הופ! משלוחים</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="#accueil"><img class="logo-mark" src="logo.svg" alt="" /><span class="logo-name" id="brandName"></span></a>
+    <nav class="nav">
+      <a class="hide-sm" href="#idees" data-i18n="navIdeas"></a>
+      <a class="hide-sm" href="#tarifs" data-i18n="navPrices"></a>
+      <a href="#mes-courses" data-i18n="navMine"></a>
+      <button class="lang-btn" id="langBtn" data-i18n="langSwitch"></button>
+    </nav>
+  </div>
+</header>
+
+<div id="demoBanner" class="mode-banner hidden"><div class="wrap" data-i18n="demoBanner"></div></div>
+<div id="availBanner" class="mode-banner closed-banner hidden"><div class="wrap" id="availText"></div></div>
+
+<!-- ============ ACCUEIL ============ -->
+<section class="hero" id="accueil">
+  <div class="wrap">
+    <div>
+      <span class="badge-open" id="openBadge"></span>
+      <h1><span data-i18n="heroTitle1"></span> <span class="accent" data-i18n="heroTitle2"></span></h1>
+      <p class="lead" data-i18n="heroLead"></p>
+      <div class="perks">
+        <span data-i18n="perkCash"></span><span data-i18n="perkLive"></span>
+        <span data-i18n="perkExpress"></span><span data-i18n="perkWelcome"></span>
+      </div>
+    </div>
+    <div class="quick card">
+      <label class="f"><span data-i18n="quickFrom"></span><select id="quickFrom" class="city-select"></select></label>
+      <button type="button" class="swap" id="quickSwap" aria-label="⇅">⇅</button>
+      <label class="f"><span data-i18n="quickTo"></span><select id="quickTo" class="city-select"></select></label>
+      <div class="quick-price"><span data-i18n="quickPrice"></span><b id="quickPrice"></b></div>
+      <button class="btn btn-primary btn-block btn-lg" id="quickGo" data-i18n="quickCta"></button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EXEMPLES ============ -->
+<section class="block" id="idees">
+  <div class="wrap">
+    <h2 data-i18n="ideasTitle"></h2>
+    <p class="sub" data-i18n="ideasSub"></p>
+    <div class="examples" id="examples"></div>
+  </div>
+</section>
+
+<!-- ============ POURQUOI NOUS ============ -->
+<section class="block alt" id="pourquoi">
+  <div class="wrap">
+    <h2 data-i18n="whyTitle"></h2>
+    <p class="sub" data-i18n="whySub"></p>
+    <div class="grid-3">
+      <div class="card why"><div class="ico">🔥</div><h3 data-i18n="why1_t"></h3><p data-i18n="why1_d"></p></div>
+      <div class="card why"><div class="ico">💰</div><h3 data-i18n="why2_t"></h3><p data-i18n="why2_d"></p></div>
+      <div class="card why"><div class="ico">🏪</div><h3 data-i18n="why3_t"></h3><p data-i18n="why3_d"></p></div>
+      <div class="card why"><div class="ico">📮</div><h3 data-i18n="why4_t"></h3><p data-i18n="why4_d"></p></div>
+      <div class="card why"><div class="ico">🗓️</div><h3 data-i18n="why5_t"></h3><p data-i18n="why5_d"></p></div>
+      <div class="card why"><div class="ico">💬</div><h3 data-i18n="why6_t"></h3><p data-i18n="why6_d"></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ OFFRES ============ -->
+<section class="block" id="offres">
+  <div class="wrap">
+    <h2 data-i18n="offersTitle"></h2>
+    <p class="sub" data-i18n="offersSub"></p>
+    <div class="grid-4" id="offers"></div>
+  </div>
+</section>
+
+<!-- ============ TARIFS ============ -->
+<section class="block" id="tarifs">
+  <div class="wrap">
+    <h2 data-i18n="pricesTitle"></h2>
+    <p class="sub" data-i18n="pricesSub"></p>
+    <div class="grid-3">
+      <div class="card"><div class="price-grid" id="priceGrid"></div></div>
+      <div class="card"><h3 data-i18n="extrasTitle"></h3><table class="prices" id="extrasTable"></table></div>
+      <div class="card"><h3 data-i18n="hoursTitle"></h3><table class="prices" id="hoursTable"></table></div>
+    </div>
+  </div>
+</section>
+
+<section class="block alt">
+  <div class="wrap">
+    <h2 data-i18n="howTitle"></h2>
+    <div class="grid-3" style="margin-top:20px">
+      <div class="card"><div class="step-n">1</div><h3 data-i18n="how1_t"></h3><p data-i18n="how1_d"></p></div>
+      <div class="card"><div class="step-n">2</div><h3 data-i18n="how2_t"></h3><p data-i18n="how2_d"></p></div>
+      <div class="card"><div class="step-n">3</div><h3 data-i18n="how3_t"></h3><p data-i18n="how3_d"></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMMANDE ============ -->
+<section class="block" id="commander">
+  <div class="wrap">
+    <h2 data-i18n="orderTitle"></h2>
+    <p class="sub" data-i18n="orderSub"></p>
+
+    <form id="orderForm" class="order-layout" novalidate>
+      <div>
+        <fieldset>
+          <legend data-i18n="s1"></legend>
+          <div class="choices four">
+            <label class="choice"><input type="radio" name="service" value="colis" checked /><span><i>📦</i><b data-i18n="svc_colis"></b><small data-i18n="svc_colis_d"></small></span></label>
+            <label class="choice"><input type="radio" name="service" value="retrait" /><span><i>📮</i><b data-i18n="svc_retrait"></b><small data-i18n="svc_retrait_d"></small></span></label>
+            <label class="choice"><input type="radio" name="service" value="achat" /><span><i>🛒</i><b data-i18n="svc_achat"></b><small data-i18n="svc_achat_d"></small></span></label>
+            <label class="choice"><input type="radio" name="service" value="repas" /><span><i>🍔</i><b data-i18n="svc_repas"></b><small data-i18n="svc_repas_d"></small></span></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend id="pickupLegend" data-i18n="s2"></legend>
+          <div class="fields">
+            <label class="f full show-retrait"><span data-i18n="placeKind"></span>
+              <select name="place_kind">
+                <option value="poste" data-i18n="place_poste"></option>
+                <option value="superpharm" data-i18n="place_superpharm"></option>
+                <option value="relais" data-i18n="place_relais"></option>
+                <option value="autre" data-i18n="place_autre"></option>
+              </select>
+            </label>
+            <label class="f"><span data-i18n="city"></span><select name="from_city" class="city-select with-other"></select></label>
+            <label class="f other-city hidden" data-for="from"><span data-i18n="otherCityName"></span><input name="from_other" /></label>
+            <label class="f"><span data-i18n="address"></span><input name="pickup_address" data-i18n-ph="addressPh" autocomplete="street-address" /></label>
+            <label class="f show-retrait"><span data-i18n="tracking"></span><input name="tracking_number" data-i18n-ph="trackingPh" /></label>
+            <label class="f show-retrait"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
+            <label class="check full show-poste"><input type="checkbox" name="has_proxy" /> <span data-i18n="proxy"></span></label>
+            <p class="notice warn full show-poste" data-i18n="proxyNote"></p>
+            <label class="f full show-achat"><span data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
+            <label class="f show-achat"><span data-i18n="budget"></span><input name="budget" type="number" min="0" step="10" inputmode="numeric" /></label>
+            <p class="notice full show-achat" data-i18n="budgetNote"></p>
+            <label class="f hide-retrait"><span data-i18n="contactThere"></span><input name="pickup_contact" data-i18n-ph="namePh" /></label>
+            <label class="f hide-retrait"><span data-i18n="phoneThere"></span><input name="pickup_phone" type="tel" data-i18n-ph="phonePh" /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="s3"></legend>
+          <div class="fields">
+            <label class="f"><span data-i18n="city"></span><select name="to_city" class="city-select with-other"></select></label>
+            <label class="f other-city hidden" data-for="to"><span data-i18n="otherCityName"></span><input name="to_other" /></label>
+            <label class="f"><span data-i18n="address"></span><input name="dropoff_address" data-i18n-ph="addressPh" /></label>
+            <label class="f"><span data-i18n="recipient"></span><input name="dropoff_contact" data-i18n-ph="namePh" /></label>
+            <label class="f"><span data-i18n="recipientPhone"></span><input name="dropoff_phone" type="tel" data-i18n-ph="phonePh" /></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="s4"></legend>
+          <div class="choices three">
+            <label class="choice"><input type="radio" name="urgency" value="asap" checked /><span><i>🕐</i><b data-i18n="w_asap"></b><small data-i18n="w_asap_d"></small></span></label>
+            <label class="choice"><input type="radio" name="urgency" value="express" /><span><i>⚡</i><b data-i18n="w_express"></b><small id="expressSmall"></small></span></label>
+            <label class="choice"><input type="radio" name="urgency" value="programmee" /><span><i>🗓️</i><b data-i18n="w_sched"></b><small data-i18n="w_sched_d"></small></span></label>
+          </div>
+          <div class="fields hidden" id="whenFields" style="margin-top:12px">
+            <label class="f"><span data-i18n="date"></span><input type="date" name="date" /></label>
+            <label class="f"><span data-i18n="time"></span><input type="time" name="time" step="900" /></label>
+          </div>
+          <p class="notice err hidden" id="scheduleError" style="margin-top:12px"></p>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="s5"></legend>
+          <div class="choices three">
+            <label class="choice"><input type="radio" name="size" value="petit" checked /><span><i>✉️</i><b data-i18n="sz_petit"></b><small data-i18n="sz_petit_d"></small></span></label>
+            <label class="choice"><input type="radio" name="size" value="moyen" /><span><i>📦</i><b data-i18n="sz_moyen"></b><small data-i18n="sz_moyen_d"></small></span></label>
+            <label class="choice"><input type="radio" name="size" value="gros" /><span><i>🧳</i><b data-i18n="sz_gros"></b><small data-i18n="sz_gros_d"></small></span></label>
+          </div>
+          <div class="fields" style="margin-top:12px">
+            <label class="check full"><input type="checkbox" name="round_trip" /> <span data-i18n="roundTrip"></span></label>
+            <label class="f"><span data-i18n="stops"></span><input name="extra_stops" type="number" min="0" max="10" value="0" inputmode="numeric" /></label>
+            <label class="f full"><span data-i18n="notes"></span><textarea name="notes" rows="2" data-i18n-ph="notesPh"></textarea></label>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="s6"></legend>
+          <div class="choices">
+            <label class="choice"><input type="radio" name="payment_method" value="cash" checked /><span><i>💵</i><b data-i18n="pay_cash"></b><small data-i18n="pay_cash_d"></small></span></label>
+            <label class="choice"><input type="radio" name="payment_method" value="bit" /><span><i class="bit-logo">bit</i><b data-i18n="pay_bit"></b><small id="bitSmall"></small></span></label>
+          </div>
+          <div class="fields" style="margin-top:12px">
+            <label class="f full"><span data-i18n="payer"></span>
+              <select name="payer"><option value="moi" data-i18n="payer_moi"></option><option value="destinataire" data-i18n="payer_dest"></option></select>
+            </label>
+            <div class="f full">
+              <span data-i18n="promo"></span>
+              <div class="promo-row">
+                <input name="promo" data-i18n-ph="promoPh" autocapitalize="characters" />
+                <button type="button" class="btn btn-sm" id="promoBtn" data-i18n="promoApply"></button>
+              </div>
+              <small id="promoMsg" class="promo-msg"></small>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="s7"></legend>
+          <div class="fields">
+            <label class="f"><span data-i18n="yourName"></span><input name="contact_name" autocomplete="name" /></label>
+            <label class="f"><span data-i18n="yourPhone"></span><input name="contact_phone" type="tel" autocomplete="tel" /></label>
+            <label class="f"><span data-i18n="company"></span><input name="company" autocomplete="organization" /></label>
+            <label class="f"><span data-i18n="email"></span><input name="contact_email" type="email" autocomplete="email" /></label>
+          </div>
+          <p class="muted small" style="margin-top:10px" data-i18n="remember"></p>
+        </fieldset>
+      </div>
+
+      <aside class="summary card" id="summary">
+        <h3 style="margin-bottom:8px" data-i18n="summary"></h3>
+        <ul id="quoteLines"></ul>
+        <div class="total"><span data-i18n="total"></span><b id="quoteTotal">—</b></div>
+        <p class="muted small" id="quoteNote" style="margin:8px 0 14px"></p>
+        <p class="notice err hidden" id="formError" style="margin-bottom:12px"></p>
+        <button class="btn btn-primary btn-block btn-lg" type="submit" id="submitBtn"></button>
+      </aside>
+    </form>
+  </div>
+</section>
+
+<!-- Barre fixe en bas sur mobile -->
+<div class="mobile-bar" id="mobileBar">
+  <div><small data-i18n="total"></small><b id="mobileTotal"></b></div>
+  <a class="btn btn-primary" href="#commander" id="mobileGo" data-i18n="navOrder"></a>
+</div>
+
+<!-- ============ MES COURSES ============ -->
+<section class="block alt" id="mes-courses">
+  <div class="wrap">
+    <div class="title-row">
+      <h2 data-i18n="mineTitle"></h2>
+      <button class="btn btn-sm" id="refreshMine" data-i18n="refresh"></button>
+    </div>
+    <p class="sub" data-i18n="mineSub"></p>
+    <div class="grid-2" id="clubCards"></div>
+    <div class="orders" id="myOrders" style="margin-top:16px"></div>
+  </div>
+</section>
+
+<section class="block" id="faq">
+  <div class="wrap narrow">
+    <h2 data-i18n="faqTitle"></h2>
+    <details class="faq"><summary data-i18n="faq1_q"></summary><p data-i18n="faq1_a"></p></details>
+    <details class="faq"><summary data-i18n="faq2_q"></summary><p data-i18n="faq2_a"></p></details>
+    <details class="faq"><summary data-i18n="faq3_q"></summary><p data-i18n="faq3_a"></p></details>
+    <details class="faq"><summary data-i18n="faq4_q"></summary><p data-i18n="faq4_a"></p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div><b id="footerName" style="color:#fff"></b><br /><span id="footerContact"></span></div>
+    <div style="display:grid;gap:6px"><a href="coursier.html" data-i18n="becomeCourier"></a><a href="admin.html" data-i18n="footerPro"></a></div>
+  </div>
+</footer>
+
+<!-- Bouton WhatsApp toujours visible : les clients vous écrivent directement -->
+<a class="wa-fab" id="waFab" target="_blank" rel="noopener"><span>💬</span><b data-i18n="chatFab"></b></a>
+
+<div class="modal hidden" id="doneModal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="big">🛵</div>
+    <h3 data-i18n="doneTitle"></h3>
+    <p id="doneText"></p>
+    <p class="muted small" id="doneSub"></p>
+    <div class="btns">
+      <a class="btn btn-wa hidden" id="doneWa" target="_blank" rel="noopener" data-i18n="doneWa"></a>
+      <a class="btn btn-primary" id="doneTrack" data-i18n="doneTrack"></a>
+      <a class="btn" id="doneShare" target="_blank" rel="noopener" data-i18n="doneShare"></a>
+      <button class="btn btn-link" id="doneClose" data-i18n="doneClose"></button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="i18n.js"></script>
+<script src="pricing.js"></script>
+<script src="store.js"></script>
+<script src="common.js"></script>
+<script src="client.js"></script>
+</body>
+</html>
