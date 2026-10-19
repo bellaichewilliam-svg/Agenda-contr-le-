@@ -618,7 +618,8 @@ async function couriersNearby() {
   const busy = new Set(localOrders().filter(o => ["confirmee", "recuperee"].includes(o.status)).map(o => o.courier_id));
   const fresh = c => c.position_at && Date.now() - new Date(c.position_at) < 15 * 60000;
   return localCouriers().filter(c => c.status === "actif" && c.lat != null && (onlineNow(c) || (c.role === "admin" && fresh(c))))
-    .map(c => ({ lat: Math.round(c.lat * 200) / 200, lon: Math.round(c.lon * 200) / 200, free: !busy.has(c.id) }));
+    .sort((a, b) => (a.id < b.id ? -1 : 1))
+    .map(c => ({ lat: Math.round(c.lat * 500) / 500, lon: Math.round(c.lon * 500) / 500, free: !busy.has(c.id) }));
 }
 
 // Clients : l'annuaire des commerces partenaires vérifiés (sans téléphone ni clé)

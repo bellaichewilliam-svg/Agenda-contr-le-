@@ -1198,7 +1198,6 @@ function initHome() {
   setInterval(() => { if (!document.hidden) loadNearby(); }, 30000);
   // Sur téléphone, la bulle « Nous écrire » remonte au-dessus du bouton Commander
   if ("IntersectionObserver" in window) new IntersectionObserver(es => document.body.classList.toggle("in-home", es[0].isIntersecting)).observe($("#homeSheet"));
-  setInterval(wanderScooters, 2500);
 }
 
 function showHomeErr(msg) { $("#homeErr").textContent = msg || ""; $("#homeErr").classList.toggle("hidden", !msg); }
@@ -1422,33 +1421,44 @@ function homeFit() {
   }
 }
 
-// Livreurs en ligne autour : petits scooters qui bougent, et temps pour arriver au départ
+// Livreurs en ligne autour : un scooter par livreur, à sa position (arrondie à ≈ 200 m).
+// Il ne bouge que quand le livreur bouge vraiment : il glisse alors jusqu'à sa nouvelle place.
 async function loadNearby() {
   try { home.nearby = (await Store.couriersNearby()) || []; } catch (e) { return; }
   if (home.map) {
-    home.scoots.forEach(s => home.map.removeLayer(s.m));
-    home.scoots = home.nearby.slice(0, 25).map((c, i) => {
-      // Décalage fixe pour que deux livreurs du même quartier ne se cachent pas
-      const base = { lat: Number(c.lat) + ((i * 37) % 11 - 5) * 0.0004, lon: Number(c.lon) + ((i * 53) % 11 - 5) * 0.0005 };
-      const m = L.marker([base.lat, base.lon], { icon: divIcon(`<div class="ch-scoot${c.free ? "" : " busy"}">🛵</div>`, 34), interactive: false }).addTo(home.map);
-      return { m, base, cur: Object.assign({}, base) };
+    // Deux livreurs dans le même carré : on les écarte un peu (≈ 30 m) pour voir les deux
+    const seen = {};
+    const pts = home.nearby.slice(0, 25).map(c => {
+      const lat = Number(c.lat), lon = Number(c.lon), k = lat + "," + lon, n = seen[k] = (seen[k] || 0) + 1;
+      const a = n * 2.4, r = n > 1 ? 0.0003 : 0;
+      return { lat: lat + Math.sin(a) * r, lon: lon + Math.cos(a) * r * 1.2, free: !!c.free };
+    });
+    while (home.scoots.length > pts.length) home.map.removeLayer(home.scoots.pop().m);
+    pts.forEach((p, i) => {
+      const icon = () => divIcon(`<div class="ch-scoot${p.free ? "" : " busy"}">🛵</div>`, 34);
+      const s = home.scoots[i];
+      if (!s) {
+        home.scoots.push({ m: L.marker([p.lat, p.lon], { icon: icon(), interactive: false }).addTo(home.map), cur: p, free: p.free });
+        return;
+      }
+      if (s.free !== p.free) { s.m.setIcon(icon()); s.free = p.free; }
+      glideScooter(s, p);
     });
   }
   renderLive();
 }
-function wanderScooters() {
-  if (document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  home.scoots.forEach(s => {
-    const to = { lat: s.base.lat + (Math.random() - .5) * 0.003, lon: s.base.lon + (Math.random() - .5) * 0.004 };
-    const from = s.cur, t0 = performance.now();
-    const step = now => {
-      const k = Math.min(1, (now - t0) / 2300);
-      s.cur = { lat: from.lat + (to.lat - from.lat) * k, lon: from.lon + (to.lon - from.lon) * k };
-      s.m.setLatLng([s.cur.lat, s.cur.lon]);
-      if (k < 1) requestAnimationFrame(step);
-    };
-    requestAnimationFrame(step);
-  });
+function glideScooter(s, to) {
+  const from = s.cur;
+  s.cur = { lat: to.lat, lon: to.lon };
+  if (from.lat === to.lat && from.lon === to.lon) return;
+  if (document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) { s.m.setLatLng([to.lat, to.lon]); return; }
+  const t0 = performance.now();
+  const step = now => {
+    const k = Math.min(1, (now - t0) / 1500), e = k * (2 - k);
+    s.m.setLatLng([from.lat + (to.lat - from.lat) * e, from.lon + (to.lon - from.lon) * e]);
+    if (k < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 function renderLive() {
   const el = $("#homeLive");

@@ -1094,14 +1094,15 @@ grant execute on function public.shop_signup(jsonb), public.shop_public(text), p
 -- ============================================================================
 -- CLIENTS : LIVREURS AUTOUR DE SOI ET NOTE DE LA LIVRAISON
 -- ============================================================================
--- Les livreurs en ligne, pour la carte de l'accueil : position arrondie (≈ 500 m),
--- sans nom ni identifiant ; « free » = pas de course en cours
+-- Les livreurs en ligne, pour la carte de l'accueil : position arrondie (≈ 200 m),
+-- sans nom ni identifiant ; « free » = pas de course en cours. Ordre stable (même livreur =
+-- même place dans la liste) pour que la carte fasse glisser chaque scooter sans le mélanger.
 create or replace function public.couriers_nearby() returns json
 language sql stable security definer set search_path = public as $$
   select coalesce(json_agg(json_build_object(
-           'lat', round(c.lat::numeric * 200) / 200, 'lon', round(c.lon::numeric * 200) / 200,
+           'lat', round(c.lat::numeric * 500) / 500, 'lon', round(c.lon::numeric * 500) / 500,
            'free', not exists (select 1 from orders o where o.courier_id = c.id and o.status in ('confirmee', 'recuperee'))
-         )), '[]'::json)
+         ) order by c.id), '[]'::json)
     from couriers c
    where c.status = 'actif' and c.lat is not null
      and (public.courier_online(c) or (c.role = 'admin' and c.position_at > now() - interval '15 minutes'));
