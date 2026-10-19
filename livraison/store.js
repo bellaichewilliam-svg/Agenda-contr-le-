@@ -15,7 +15,11 @@ const LS = {
   settings: "livraison.settings.v1",
   pendingCourier: "livraison.pendingCourier.v1",
   addresses: "livraison.addresses.v1",
-  device: "livraison.device.v1"
+  device: "livraison.device.v1",
+  shops: "livraison.shops.v1",
+  shopTokens: "livraison.shopTokens.v1",
+  messages: "livraison.messages.v1",
+  replies: "livraison.replies.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -97,21 +101,34 @@ async function authRest(path, opts = {}) {
 }
 
 // --- Démo : tables locales ------------------------------------------------------
+function newCode(len, taken) {
+  let c;
+  do { c = Array.from(crypto.getRandomValues(new Uint8Array(len)), b => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[b % 31]).join(""); }
+  while (taken.includes(c));
+  return c;
+}
 function localCouriers() {
   const list = readJSON(LS.couriers, []);
+  let changed = false;
   if (!list.some(c => c.id === DEMO_ADMIN_ID)) {
     list.push({ id: DEMO_ADMIN_ID, role: "admin", status: "actif", name: CONFIG.businessName,
       phone: CONFIG.phoneDisplay, bit_phone: CONFIG.bitPhone, accepted_terms_at: new Date().toISOString() });
-    writeJSON(LS.couriers, list);
+    changed = true;
   }
+  list.forEach(c => { if (!c.ref_code) { c.ref_code = newCode(5, list.map(x => x.ref_code)); changed = true; } });
+  if (changed) writeJSON(LS.couriers, list);
   return list;
 }
+function localShops() { return readJSON(LS.shops, []); }
 function localOrders() { return readJSON(LS.orders, []); }
 function saveLocalOrders(list) { writeJSON(LS.orders, list); }
 function myId() { const s = session(); return s && s.user_id; }
 
 // --- Réglages (disponibilité, commission) -----------------------------------------
-const DEFAULT_SETTINGS = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
+const DEFAULT_SETTINGS = {
+  accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse,
+  referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes
+};
 
 async function getSettings() {
   if (ONLINE) {
@@ -158,6 +175,13 @@ async function createOrder(order) {
   if (ONLINE) {
     await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" });
   } else {
+    // Même règle que la base en ligne : commerce et parrain retrouvés ici, jamais fournis par le client
+    const shop = order.shop_id && localShops().find(x => x.id === order.shop_id && x.status !== "suspendu");
+    const referrer = shop && localCouriers().find(c => c.id === shop.referrer_id);
+    Object.assign(order, {
+      shop_id: shop ? shop.id : null, shop_name: shop ? shop.name : null, referrer_id: referrer ? referrer.id : null,
+      referral_bonus: referrer && referrer.role === "coursier" ? Number((await getSettings()).referral_bonus) : 0, referral_status: "du"
+    });
     order.id = uuid();
     order.created_at = new Date().toISOString();
     order.commission = 0;
@@ -284,7 +308,14 @@ async function listOrders() {
   if (!c) return [];
   if (c.role === "admin") return all;
   if (c.status !== "actif") return [];
-  return all.filter(o => o.courier_id === c.id || (o.status === "nouvelle" && !o.courier_id));
+  const prio = Number((await getSettings()).priority_minutes) * 60000;
+  return all.filter(o => o.courier_id === c.id || canSeeNew(o, c.id, prio));
+}
+
+// Course libre visible : tout de suite pour le parrain du commerce, après quelques minutes pour les autres
+function canSeeNew(o, id, prio) {
+  return o.status === "nouvelle" && !o.courier_id
+    && (!o.referrer_id || o.referrer_id === id || Date.now() - new Date(o.created_at) >= prio);
 }
 
 // Démo : même règle que la base en ligne pour numéroter les reçus
@@ -325,8 +356,9 @@ async function assignOrder(id, courier) {
 async function acceptOrder(id) {
   if (ONLINE) return authRest("/rest/v1/rpc/accept_order", { method: "POST", body: { p_id: id } });
   const all = localOrders();
-  const o = all.find(x => x.id === id && x.status === "nouvelle" && !x.courier_id);
   const c = localCouriers().find(x => x.id === myId() && x.status === "actif");
+  const prio = Number((await getSettings()).priority_minutes) * 60000;
+  const o = c && all.find(x => x.id === id && (c.role === "admin" || canSeeNew(x, c.id, prio)));
   if (!o || !c) return false;
   Object.assign(o, await courierFields(c));
   saveLocalOrders(all);
@@ -384,6 +416,141 @@ async function settleOrders(ids) {
   saveLocalOrders(all);
 }
 
+// --- Paiement hebdomadaire des bonus de parrainage (patron) ------------------------------
+async function settleReferrals(ids) {
+  if (!ids.length) return;
+  if (ONLINE) {
+    return authRest("/rest/v1/orders?id=in.(" + ids.map(encodeURIComponent).join(",") + ")",
+      { method: "PATCH", body: { referral_status: "regle" }, prefer: "return=minimal" });
+  }
+  const all = localOrders();
+  all.forEach(o => { if (ids.includes(o.id)) o.referral_status = "regle"; });
+  saveLocalOrders(all);
+}
+
+// --- Commerces partenaires ---------------------------------------------------------------
+// Inscription d'un commerce (sans compte) : renvoie { code, token } et garde le lien secret sur l'appareil
+async function shopSignup(data) {
+  let r;
+  if (ONLINE) r = await rest("/rest/v1/rpc/shop_signup", { method: "POST", body: { p: data } });
+  else {
+    const list = localShops();
+    const ref = localCouriers().find(c => c.ref_code && c.ref_code === String(data.ref_code || "").trim().toUpperCase() && c.status === "actif");
+    const shop = {
+      id: uuid(), created_at: new Date().toISOString(), code: newCode(6, list.map(x => x.code)), token: uuid(), status: "en_attente",
+      name: data.name, kind: data.kind, city: data.city, address: data.address, lat: data.lat, lon: data.lon,
+      contact_name: data.contact_name, phone: data.phone, email: data.email, lang: data.lang, referrer_id: ref ? ref.id : null
+    };
+    list.push(shop);
+    writeJSON(LS.shops, list);
+    r = { code: shop.code, token: shop.token, referred: !!ref };
+  }
+  const tokens = readJSON(LS.shopTokens, []).filter(x => x !== r.token);
+  tokens.unshift(r.token);
+  writeJSON(LS.shopTokens, tokens);
+  return r;
+}
+
+function myShopTokens() { return readJSON(LS.shopTokens, []); }
+function rememberShopToken(token) {
+  const tokens = myShopTokens().filter(x => x !== token);
+  tokens.unshift(token);
+  writeJSON(LS.shopTokens, tokens);
+}
+
+const publicShop = s => s && s.status !== "suspendu"
+  ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status } : null;
+
+async function shopByCode(code) {
+  if (!code) return null;
+  if (ONLINE) return rest("/rest/v1/rpc/shop_public", { method: "POST", body: { p_code: code } });
+  return publicShop(localShops().find(x => x.code === String(code).toUpperCase()));
+}
+
+// Espace du commerce : sa fiche et ses courses
+async function shopDashboard(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_dashboard", { method: "POST", body: { p_token: token } });
+  const shop = localShops().find(x => x.token === token);
+  if (!shop) return { shop: null, orders: [] };
+  const x = Object.assign({}, shop); delete x.referrer_id; delete x.admin_note;
+  return { shop: x, orders: localOrders().filter(o => o.shop_id === shop.id).sort((a, b) => new Date(b.pickup_at) - new Date(a.pickup_at)) };
+}
+
+// Patron : tous les commerces
+async function listShops() {
+  if (ONLINE) return authRest("/rest/v1/shops?select=*&order=created_at.desc");
+  return localShops().slice().reverse();
+}
+async function updateShop(id, changes) {
+  if (ONLINE) return authRest("/rest/v1/shops?id=eq." + encodeURIComponent(id), { method: "PATCH", body: changes, prefer: "return=minimal" });
+  const list = localShops();
+  const s = list.find(x => x.id === id);
+  if (s) Object.assign(s, changes);
+  writeJSON(LS.shops, list);
+}
+
+// Livreur : ses commerces, les courses qui lui rapportent un bonus, le classement du mois
+async function myReferrals() {
+  if (ONLINE) {
+    const [shops, orders, board] = await Promise.all([
+      authRest("/rest/v1/rpc/my_shops", { method: "POST", body: {} }),
+      authRest("/rest/v1/rpc/my_referral_orders", { method: "POST", body: {} }),
+      authRest("/rest/v1/rpc/referral_leaderboard", { method: "POST", body: {} })
+    ]);
+    return { shops: shops || [], orders: orders || [], board: board || [] };
+  }
+  const id = myId();
+  const month = new Date().toISOString().slice(0, 7);
+  const shops = localShops();
+  const orders = localOrders();
+  const board = localCouriers().filter(c => c.role === "coursier" && c.status === "actif").map(c => ({
+    name: String(c.name || "").split(" ")[0], me: c.id === id,
+    shops: shops.filter(s => s.referrer_id === c.id && s.status !== "suspendu").length,
+    deliveries: orders.filter(o => o.referrer_id === c.id && o.status === "livree" && String(o.pickup_at).slice(0, 7) === month).length
+  })).filter(x => x.shops > 0 || x.me).sort((a, b) => (b.shops - a.shops) || (b.deliveries - a.deliveries)).slice(0, 10);
+  return {
+    shops: shops.filter(s => s.referrer_id === id).reverse().map(s => ({ id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, status: s.status, created_at: s.created_at })),
+    orders: orders.filter(o => o.referrer_id === id).map(o => ({ id: o.id, shop_id: o.shop_id, pickup_at: o.pickup_at, status: o.status, referral_bonus: o.referral_bonus, referral_status: o.referral_status })),
+    board
+  };
+}
+
+// --- Messages du patron aux livreurs ------------------------------------------------------
+async function sendMessage(body, kind, toCourier) {
+  const m = { body, kind: kind || "info", to_courier: toCourier || null };
+  if (ONLINE) return authRest("/rest/v1/messages", { method: "POST", body: m, prefer: "return=minimal" });
+  const list = readJSON(LS.messages, []);
+  list.push(Object.assign({ id: uuid(), created_at: new Date().toISOString() }, m));
+  writeJSON(LS.messages, list.slice(-100));
+}
+
+// Messages des dernières 48 h (patron : tous ; livreur : ceux pour lui ou pour tous)
+async function listMessages() {
+  const since = new Date(Date.now() - 48 * 3600000).toISOString();
+  if (ONLINE) {
+    const [messages, replies] = await Promise.all([
+      authRest("/rest/v1/messages?select=*&order=created_at.desc&created_at=gte." + encodeURIComponent(since)),
+      authRest("/rest/v1/message_replies?select=*&created_at=gte." + encodeURIComponent(since))
+    ]);
+    return { messages: messages || [], replies: replies || [] };
+  }
+  const id = myId();
+  const admin = id === DEMO_ADMIN_ID;
+  const messages = readJSON(LS.messages, []).filter(m => m.created_at >= since && (admin || !m.to_courier || m.to_courier === id)).reverse();
+  const replies = readJSON(LS.replies, []).filter(r => admin || r.courier_id === id);
+  return { messages, replies };
+}
+
+async function replyMessage(messageId, answer) {
+  if (ONLINE) {
+    return authRest("/rest/v1/message_replies?on_conflict=message_id,courier_id", { method: "POST",
+      body: { message_id: messageId, courier_id: myId(), answer }, prefer: "resolution=merge-duplicates,return=minimal" });
+  }
+  const list = readJSON(LS.replies, []).filter(r => !(r.message_id === messageId && r.courier_id === myId()));
+  list.push({ message_id: messageId, courier_id: myId(), answer, created_at: new Date().toISOString() });
+  writeJSON(LS.replies, list);
+}
+
 window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
@@ -391,7 +558,9 @@ window.Store = {
   createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, ping,
-  listCouriers, updateCourier, settleOrders
+  listCouriers, updateCourier, settleOrders, settleReferrals,
+  shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, listShops, updateShop, myReferrals,
+  sendMessage, listMessages, replyMessage
 };
 
 })();

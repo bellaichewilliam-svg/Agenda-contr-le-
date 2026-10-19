@@ -12,6 +12,8 @@ Store.useSpace("admin");
 
 let orders = [];
 let couriers = [];
+let shops = [];
+let msgs = { messages: [], replies: [] };
 let me = null;
 let settings = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
 let tab = "agenda";
@@ -88,6 +90,10 @@ function alertNew(list, title) {
 async function load() {
   try {
     [orders, couriers, settings] = await Promise.all([Store.listOrders(), Store.listCouriers(), Store.getSettings()]);
+    // Commerces et messages : un souci ici ne doit pas bloquer les courses
+    const [sh, m] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null)]);
+    if (sh) shops = sh;
+    if (m) msgs = m;
     me = couriers.find(c => c.id === (Store.session() || {}).user_id) || me;
   } catch (e) {
     if (e.status === 401 || /Session/.test(e.message)) { Store.logout(); return showLogin(); }
@@ -97,13 +103,16 @@ async function load() {
   const seen = readSeen();
   const freshOrders = orders.filter(o => !seen.has(o.id) && o.status === "nouvelle");
   const freshCouriers = couriers.filter(c => !seen.has(c.id) && c.status === "en_attente");
+  const freshShops = shops.filter(x => !seen.has(x.id) && x.status === "en_attente");
   if (!firstLoad && freshOrders.length) {
     alertNew(freshOrders.map(o => ({ ref: o.ref, price: o.price, body: `${UI.whenFr(o)}\n${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)}` })),
       x => `🆕 Commande n° ${x.ref} — ${UI.money(x.price)}`);
   }
   if (!firstLoad && freshCouriers.length) alertNew(freshCouriers, c => `👤 Nouveau livreur : ${c.name}`);
+  if (!firstLoad && freshShops.length) alertNew(freshShops, x => `🏪 Nouveau commerce : ${x.name}`);
   orders.forEach(o => seen.add(o.id));
   couriers.forEach(c => seen.add(c.id));
+  shops.forEach(x => seen.add(x.id));
   writeSeen(seen);
   firstLoad = false;
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -210,6 +219,10 @@ function card(o, withDay) {
     `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${UI.PAY_FR[o.payment_method] || ""} · ${o.payment_status === "paye" ? "encaissé" : "à encaisser"}${o.payer === "destinataire" ? " (par le destinataire)" : ""}</span>`
   ];
   if (o.prepaid_required) meta.push(`<span class="pill ${o.payment_status === "paye" ? "paid" : "st-annulee"}">💳 Payée d'avance : ${o.payment_status === "paye" ? "reçu ✓" : "EN ATTENTE"}</span>`);
+  if (o.shop_name) {
+    const ref = couriers.find(c => c.id === o.referrer_id);
+    meta.push(`<span class="pill star-pill">🏪 ${UI.esc(o.shop_name)}${ref && ref.role !== "admin" ? ` · parrain ${UI.esc(ref.name)} +${UI.money(o.referral_bonus || 0)}` : ""}</span>`);
+  }
   if (o.courier_id && !isMine(o)) meta.push(`<span class="pill courier-pill">🛵 ${UI.esc(o.courier_name || "Livreur")} · commission ${UI.money(o.commission || 0)}</span>`);
   if (o.round_trip) meta.push(`<span class="pill">🔁 Aller-retour</span>`);
   if (o.extra_stops) meta.push(`<span class="pill">+${o.extra_stops} arrêt(s)</span>`);
@@ -284,6 +297,8 @@ function renderStats() {
   $("#stMonthRev").textContent = UI.money(sum(delivered.filter(isMine)) + sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0)));
   const pending = couriers.filter(c => c.status === "en_attente").length;
   $("#pendingBadge").textContent = pending ? `(${pending})` : "";
+  const pendingShops = shops.filter(x => x.status === "en_attente").length;
+  $("#shopsBadge").textContent = pendingShops ? `(${pendingShops})` : "";
 }
 
 function render() {
@@ -306,6 +321,10 @@ function render() {
     renderCouriers(view);
   } else if (tab === "hebdo") {
     renderWeek(view);
+  } else if (tab === "commerces") {
+    renderShops(view);
+  } else if (tab === "messages") {
+    renderMessages(view);
   } else if (tab === "historique") {
     const q = histFilter.q.toLowerCase();
     const list = orders
@@ -448,9 +467,13 @@ function renderWeek(view) {
   const rows = partners().map(c => {
     const list = orders.filter(o => o.courier_id === c.id && inWeek(o));
     const due = list.filter(o => o.commission_status !== "regle");
-    return { c, list, due, collected: sum(list), commission: sum(list, o => Number(o.commission || 0)), dueAmount: sum(due, o => Number(o.commission || 0)) };
-  }).filter(r => r.list.length);
-  const total = rows.reduce((s, r) => s + r.dueAmount, 0);
+    // Bonus de parrainage : courses livrées au départ de ses commerces (déduits de sa commission)
+    const bonusList = orders.filter(o => o.referrer_id === c.id && Number(o.referral_bonus) > 0 && inWeek(o));
+    const bonusDue = sum(bonusList.filter(o => o.referral_status !== "regle"), o => Number(o.referral_bonus || 0));
+    const dueAmount = sum(due, o => Number(o.commission || 0));
+    return { c, list, due, bonusList, bonusDue, collected: sum(list), commission: sum(list, o => Number(o.commission || 0)), dueAmount, balance: dueAmount - bonusDue };
+  }).filter(r => r.list.length || r.bonusList.length);
+  const total = rows.reduce((s, r) => s + r.balance, 0);
   view.innerHTML = `<div class="toolbar">
       <button class="btn btn-sm" data-week="-1">◀</button>
       <b>Semaine du ${fmtKey(start)} au ${fmtKey(end)}</b>
@@ -458,17 +481,104 @@ function renderWeek(view) {
       <span class="small muted">Les livreurs encaissent les clients directement et vous versent ${UI.money(settings.commission)} par course livrée, une fois par semaine.</span>
     </div>
     <table class="bill">
-      <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">Commission</th><th class="num">Reste à verser</th><th></th></tr></thead>
+      <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">Solde</th><th></th></tr></thead>
       <tbody>${rows.map(r => `<tr data-courier="${UI.esc(r.c.id)}"><td><b>${UI.esc(r.c.name)}</b><br><span class="small muted">${UI.esc(r.c.phone)}</span></td>
         <td class="num">${r.list.length}</td><td class="num">${UI.money(r.collected)}</td><td class="num">${UI.money(r.commission)}</td>
-        <td class="num"><b>${r.dueAmount ? UI.money(r.dueAmount) : "✓ réglé"}</b></td>
+        <td class="num">${r.bonusList.length ? `−${UI.money(sum(r.bonusList, o => Number(o.referral_bonus || 0)))}<br><span class="small muted">${r.bonusList.length} livraison(s)</span>` : "—"}</td>
+        <td class="num"><b>${r.dueAmount || r.bonusDue ? (r.balance >= 0 ? UI.money(r.balance) + " à recevoir" : UI.money(-r.balance) + " à lui verser") : "✓ réglé"}</b></td>
         <td class="num" style="white-space:nowrap">
-          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(r.c.phone, `Bonjour ${r.c.name}, récapitulatif de la semaine du ${fmtKey(start)} au ${fmtKey(end)} : ${r.list.length} course(s) livrée(s), ${UI.money(r.collected)} encaissés. Commission à me verser : ${UI.money(r.dueAmount)} (Bit au ${CONFIG.bitPhone}). Merci et bravo !`)}">Envoyer</a>
-          ${r.dueAmount ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
-        </td></tr>`).join("") || `<tr><td colspan="6" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
-      <tfoot><tr><th>Total à recevoir</th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
+          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(r.c.phone, `Bonjour ${r.c.name}, récapitulatif de la semaine du ${fmtKey(start)} au ${fmtKey(end)} : ${r.list.length} course(s) livrée(s), ${UI.money(r.collected)} encaissés, commission ${UI.money(r.dueAmount)}${r.bonusDue ? `, bonus parrainage ${UI.money(r.bonusDue)} déduit` : ""}. ${r.balance >= 0 ? `À me verser : ${UI.money(r.balance)} (Bit au ${CONFIG.bitPhone})` : `Je te verse ${UI.money(-r.balance)} sur ton Bit`}. Merci et bravo !`)}">Envoyer</a>
+          ${r.dueAmount || r.bonusDue ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
+        </td></tr>`).join("") || `<tr><td colspan="7" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
+      <tfoot><tr><th>Solde total</th><th></th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
     </table>`;
   view.dataset.weekStart = start;
+}
+
+// --- Commerces partenaires --------------------------------------------------------------
+const SHOP_KIND = { restaurant: "🍔 Restaurant", boutique: "🛍️ Boutique", pharmacie: "💊 Pharmacie / beauté", bureau: "💼 Bureau", autre: "🏪 Commerce" };
+
+// Message au commerce avec ses deux liens, dans sa langue
+function shopWelcome(x) {
+  const order = UI.appUrl() + "?c=" + x.code, space = UI.appUrl("commerce.html") + "?k=" + x.token;
+  return x.lang === "fr"
+    ? `Bonjour ${x.contact_name || ""}, bienvenue chez ${CONFIG.businessName} ! 🛵\nPour commander une course depuis ${x.name} : ${order}\nVotre espace (vos courses, votre QR code pour vos clients) : ${space}\nÀ très vite !`
+    : `שלום ${x.contact_name || ""}, ברוכים הבאים ל${CONFIG.businessNameHe}! 🛵\nלהזמנת שליח מ${x.name}: ${order}\nהאזור שלכם (המשלוחים, קוד QR ללקוחות): ${space}\nנתראה בקרוב!`;
+}
+
+function renderShops(view) {
+  const month = today().slice(0, 7);
+  const viaShop = orders.filter(o => o.shop_id && o.status === "livree");
+  const order = ["en_attente", "actif", "suspendu"];
+  const list = shops.slice().sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  const signup = UI.appUrl("commerce.html") + (me && me.ref_code ? "?p=" + me.ref_code : "");
+  const statusLabel = { en_attente: "⏳ À vérifier", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
+  const bonusDue = sum(orders.filter(o => o.status === "livree" && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
+  view.innerHTML = `
+    <div class="card" style="margin-bottom:14px">
+      <b>🤝 Commerces amenés par les livreurs</b>
+      <p class="muted small" style="margin:4px 0 8px">Chaque livreur a son lien d'inscription pour les commerces (onglet « Parrainage » de son espace). Il gagne ${UI.money(settings.referral_bonus)} sur chaque course livrée au départ de ses commerces, à vie, déduit de sa commission chaque semaine, et voit leurs courses ${Number(settings.priority_minutes)} min avant les autres. Les courses peuvent être commandées dès l'inscription ; vérifiez ici que le commerce existe.</p>
+      <div class="promo-row"><input readonly value="${UI.esc(signup)}" dir="ltr" /><button class="btn btn-sm" data-copy="${UI.esc(signup)}">Copier</button><a class="btn btn-sm" href="${UI.esc(signup)}" target="_blank" rel="noopener">➕ Inscrire un commerce</a></div>
+    </div>
+    <div class="stats">
+      <div class="stat"><small>Commerces</small><b>${shops.filter(x => x.status !== "suspendu").length}</b></div>
+      <div class="stat"><small>À vérifier</small><b>${shops.filter(x => x.status === "en_attente").length}</b></div>
+      <div class="stat"><small>Courses ce mois</small><b>${viaShop.filter(o => UI.dayKey(o.pickup_at).startsWith(month)).length}</b></div>
+      <div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>
+    </div>
+    ${list.length ? `<div class="orders">${list.map(x => {
+      const done = viaShop.filter(o => o.shop_id === x.id);
+      return `<article class="order${x.status === "en_attente" ? " is-new" : ""}" data-shop="${UI.esc(x.id)}">
+        <div class="order-head">
+          <span class="order-time">${UI.esc(x.name)}</span>
+          <span class="pill">${statusLabel[x.status] || x.status}</span>
+          <span class="order-ref">Code ${UI.esc(x.code)}</span>
+          <span class="order-price">${done.length} course(s)</span>
+        </div>
+        <div class="kv">
+          <div><span>🏷️</span><span>${UI.esc(SHOP_KIND[x.kind] || SHOP_KIND.autre)} · ${UI.esc(x.address || "")}${x.city ? ", " + UI.esc(UI.cityFr(x.city)) : ""}</span></div>
+          <div><span>👤</span><span>${tel(x.contact_name, x.phone)}${x.email ? " · " + UI.esc(x.email) : ""} · ${x.lang === "fr" ? "🇫🇷" : "🇮🇱"}</span></div>
+          <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name)}</option>`).join("")}</select>
+            · bonus générés ${UI.money(sum(done, o => Number(o.referral_bonus || 0)))}</span></div>
+          <div><span>📅</span><span>Inscrit le ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))}</span></div>
+        </div>
+        <div class="actions">
+          ${x.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-sact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-sact="suspendu">⛔ Suspendre</button>`}
+          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(x.phone, shopWelcome(x))}">💬 Envoyer ses liens</a>
+          <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
+          <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl("commerce.html") + "?k=" + x.token)}">🔑 Son espace</a>
+          <textarea class="admin-note" data-sact="note" rows="1" placeholder="Note interne (vérifié sur place, horaires…)">${UI.esc(x.admin_note || "")}</textarea>
+        </div>
+      </article>`;
+    }).join("")}</div>` : `<div class="empty card">Aucun commerce inscrit pour l'instant. Envoyez votre lien à un restaurant ou une boutique !</div>`}`;
+}
+
+// --- Messages aux livreurs --------------------------------------------------------------
+function renderMessages(view) {
+  const act = partners().filter(c => c.status === "actif");
+  const onDuty = act.filter(c => c.position_at && Date.now() - new Date(c.position_at) < 10 * 60000);
+  const name = id => (couriers.find(c => c.id === id) || {}).name || "?";
+  const typed = $("#msgText") ? $("#msgText").value : "";
+  view.innerHTML = `
+    <div class="card">
+      <b>📣 Prévenir vos livreurs</b>
+      <p class="muted small" style="margin:4px 0 10px">Le message s'ouvre en grand sur leur téléphone, avec un son, et ils répondent « J'arrive » ou « Pas dispo ». ${act.length} livreur(s) actif(s), ${onDuty.length} en service en ce moment${onDuty.length ? " : " + onDuty.map(c => UI.esc(c.name)).join(", ") : ""}.</p>
+      <div class="tpl-list">${CONFIG.courierMessages.map((m, i) => `<button class="addr-chip" data-tpl="${i}">${UI.esc(m.text)}</button>`).join("")}</div>
+      <textarea id="msgText" rows="3" placeholder="Votre message…" style="width:100%;margin-top:10px">${UI.esc(typed)}</textarea>
+      <div class="promo-row" style="margin-top:8px">
+        <select id="msgTo"><option value="">À tous les livreurs actifs</option>${act.map(c => `<option value="${UI.esc(c.id)}">À ${UI.esc(c.name)} seulement</option>`).join("")}</select>
+        <button class="btn btn-primary" id="msgSend">📣 Envoyer</button>
+      </div>
+    </div>
+    <h3 style="margin:18px 0 8px">Derniers messages (48 h)</h3>
+    ${msgs.messages.length ? `<div class="orders">${msgs.messages.map(m => {
+      const r = msgs.replies.filter(x => x.message_id === m.id);
+      const yes = r.filter(x => x.answer === "jarrive").map(x => UI.esc(name(x.courier_id)));
+      const no = r.filter(x => x.answer === "pas_dispo").map(x => UI.esc(name(x.courier_id)));
+      return `<article class="order"><div class="order-head"><span class="order-time">${UI.esc(UI.fmtDateTime(m.created_at))}</span><span class="pill">${m.to_courier ? "👤 " + UI.esc(name(m.to_courier)) : "👥 Tous"}</span></div>
+        <p style="margin:8px 0"><b>${UI.esc(m.body)}</b></p>
+        <div class="meta"><span class="pill paid">🛵 J'arrive : ${yes.length ? yes.join(", ") : "personne pour l'instant"}</span>${no.length ? `<span class="pill">😴 Pas dispo : ${no.join(", ")}</span>` : ""}</div></article>`;
+    }).join("")}</div>` : `<div class="empty card">Aucun message envoyé ces dernières 48 h.</div>`}`;
 }
 
 // --- Facturation clients -------------------------------------------------------------
@@ -596,9 +706,37 @@ async function onViewClick(e) {
   if (el.dataset.week) { weekOffset = Math.min(0, weekOffset + Number(el.dataset.week)); return render(); }
   if (el.dataset.settle) {
     const start = $("#view").dataset.weekStart, end = addDays(start, 6);
-    const ids = orders.filter(o => o.courier_id === el.dataset.settle && o.status === "livree" && o.commission_status !== "regle"
-      && UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= end).map(o => o.id);
-    try { await Store.settleOrders(ids); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    const inWeek = o => o.status === "livree" && UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= end;
+    const ids = orders.filter(o => o.courier_id === el.dataset.settle && inWeek(o) && o.commission_status !== "regle").map(o => o.id);
+    const bonusIds = orders.filter(o => o.referrer_id === el.dataset.settle && inWeek(o) && o.referral_status !== "regle").map(o => o.id);
+    try { await Store.settleOrders(ids); await Store.settleReferrals(bonusIds); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
+  if (el.dataset.sact) {
+    const id = el.closest("[data-shop]").dataset.shop;
+    try { await Store.updateShop(id, { status: el.dataset.sact }); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
+  if (el.dataset.tpl != null) {
+    const ta = $("#msgText");
+    ta.value = CONFIG.courierMessages[Number(el.dataset.tpl)].text;
+    ta.dataset.kind = CONFIG.courierMessages[Number(el.dataset.tpl)].kind;
+    ta.focus();
+    return;
+  }
+  if (el.id === "msgSend") {
+    const body = $("#msgText").value.trim();
+    if (!body) return $("#msgText").focus();
+    el.disabled = true;
+    try {
+      await Store.sendMessage(body, $("#msgText").dataset.kind || "info", $("#msgTo").value || null);
+      $("#msgText").value = "";
+      await load();
+    } catch (ex) { el.disabled = false; alert("Message non envoyé, vérifiez la connexion."); }
+    return;
+  }
+  if (el.dataset.copy) {
+    if (navigator.clipboard) navigator.clipboard.writeText(el.dataset.copy).then(() => { el.textContent = "✓ Copié"; }, () => {});
     return;
   }
   if (el.dataset.cact) {
@@ -661,6 +799,10 @@ async function onViewChange(e) {
     const o = orderOf(t);
     const c = couriers.find(x => x.id === t.value);
     if (o && c) assignTo(o, c);
+  } else if (t.dataset.sact === "note" || t.dataset.sact === "referrer") {
+    const id = t.closest("[data-shop]").dataset.shop;
+    const changes = t.dataset.sact === "note" ? { admin_note: t.value.trim() || null } : { referrer_id: t.value || null };
+    Store.updateShop(id, changes).then(load, () => alert("Non enregistré, vérifiez la connexion."));
   } else if (t.dataset.cact === "note") {
     const id = t.closest("[data-courier]").dataset.courier;
     Store.updateCourier(id, { admin_note: t.value.trim() || null }).catch(() => alert("Note non enregistrée."));
@@ -714,7 +856,7 @@ $("#liveList").addEventListener("click", e => { const it = e.target.closest("[da
 $("#liveFit").addEventListener("click", () => { if (live.map && live.points && live.points.length) live.map.fitBounds(live.points, { padding: [40, 40], maxZoom: 15 }); });
 $("#view").addEventListener("change", onViewChange);
 $("#view").addEventListener("input", onViewInput);
-window.addEventListener("storage", e => { if (/livraison\.(orders|couriers)/.test(e.key || "") && Store.session()) load(); });
+window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|shops|replies)/.test(e.key || "") && Store.session()) load(); });
 document.addEventListener("visibilitychange", async () => {
   // Le verrou d'écran est relâché quand on quitte la page : le reprendre au retour
   if (document.visibilityState === "visible" && duty.watch != null && navigator.wakeLock) {

@@ -13,6 +13,7 @@ Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. El
 | Espace patron | Vous | `…/livraison/admin.html` |
 | Espace livreur | Livreurs partenaires | `…/livraison/coursier.html` |
 | Kit de lancement | Vous | `…/livraison/kit.html` |
+| Commerces partenaires | Restaurants, boutiques… | `…/livraison/commerce.html` |
 
 ### Clients (`index.html`, `suivi.html`, `recu.html`)
 - **Adresses vérifiées sur la carte** : le client tape une adresse ou une enseigne (Super-Pharm, restaurant, poste…) et choisit dans les suggestions ; la ville se remplit seule, le nom de l'enseigne apparaît sur la course et Waze guide au point GPS exact (recherche gratuite Photon / OpenStreetMap).
@@ -38,6 +39,17 @@ Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. El
 - **Fenêtre « Nouvelle course ! »** avec un son, dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte » ou « Plus tard ».
 - **Après votre validation :** courses disponibles (le premier qui accepte la prend), ses courses, GPS, encaissement, « Je ne peux plus ».
 - **Onglet « Ma semaine » :** courses, encaissé, commission à verser par Bit une fois par semaine (`platform.commissionPerCourse` = 3 ₪ par course dans `config.js`).
+
+### Commerces partenaires et parrainage (`commerce.html`)
+- **Le livreur amène un commerce** : onglet « 🤝 Parrainage » de son espace (son code, son lien, son QR code, un message prêt à envoyer en hébreu et en français).
+- **Le commerce s'inscrit gratuitement** (FR/HE) et reçoit son espace : bouton « Commander une course » avec le départ déjà rempli, lien et affiche QR pour ses clients, historique de ses courses.
+- **Le parrain gagne 1 ₪** (`partners.bonusPerDelivery`) sur chaque course livrée au départ de ses commerces, à vie, même si un autre livreur la fait. Le bonus est déduit de sa commission chaque semaine.
+- **Le parrain a 3 minutes d'avance** (`partners.priorityMinutes`) : les autres livreurs voient ces courses après lui.
+- Niveaux (🌱 → 👑) et classement des parrains du mois.
+- Côté patron : onglet « 🏪 Commerces » (vérifier, suspendre, changer le parrain, envoyer ses liens au commerce).
+
+### Messages aux livreurs
+Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et d'autres messages prêts, à tous ou à un seul livreur. Le message s'ouvre en grand chez eux, avec un son, et ils répondent « J'arrive » ou « Pas dispo ».
 
 ## 1. Personnaliser — `config.js`
 
@@ -87,6 +99,7 @@ livraison/
 ├── admin.html / admin.js      # Espace patron
 ├── coursier.html / coursier.js# Espace livreur partenaire
 ├── kit.html / kit.js          # Kit de lancement (stratégie, messages FR/HE, QR, flyer)
+├── commerce.html / commerce.js# Commerces partenaires : inscription, espace, QR clients
 ├── config.js                  # ← vos réglages
 ├── i18n.js                    # Textes français / hébreu
 ├── pricing.js                 # Prix, horaires, distances, temps estimé

@@ -325,6 +325,237 @@ grant execute on function public.accept_order(uuid), public.courier_update(uuid,
 grant execute on function public.orders_by_tokens(uuid[]), public.track_order(uuid), public.cancel_order(uuid), public.welcome_used(text, text) to anon;
 
 -- ============================================================================
+-- COMMERCES PARTENAIRES ET PARRAINAGE DES LIVREURS
+--   Un livreur amène un commerce (lien commerce.html?p=SONCODE). À chaque course
+--   livrée au départ de ce commerce, il gagne settings.referral_bonus (1 ₪),
+--   même si c'est un autre livreur qui livre, et il a quelques minutes d'avance
+--   (settings.priority_minutes) pour prendre ces courses.
+-- ============================================================================
+alter table public.settings add column if not exists referral_bonus numeric not null default 1;
+alter table public.settings add column if not exists priority_minutes int not null default 3;
+
+alter table public.couriers add column if not exists ref_code text unique;
+update public.couriers set ref_code = upper(substr(md5(random()::text || id::text), 1, 5)) where ref_code is null;
+
+create or replace function public.courier_code() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.ref_code is null then
+    loop
+      new.ref_code := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 5));
+      exit when not exists (select 1 from couriers where ref_code = new.ref_code);
+    end loop;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists couriers_code on public.couriers;
+create trigger couriers_code before insert on public.couriers
+  for each row execute function public.courier_code();
+
+create table if not exists public.shops (
+  id           uuid primary key default gen_random_uuid(),
+  created_at   timestamptz not null default now(),
+  code         text not null unique,
+  token        uuid not null unique default gen_random_uuid(),
+  status       text not null default 'en_attente' check (status in ('en_attente','actif','suspendu')),
+  name         text not null,
+  kind         text,
+  city         text,
+  address      text,
+  lat          double precision,
+  lon          double precision,
+  contact_name text,
+  phone        text not null,
+  email        text,
+  lang         text not null default 'he',
+  referrer_id  uuid references public.couriers(id),
+  admin_note   text
+);
+alter table public.shops enable row level security;
+drop policy if exists "commerces patron" on public.shops;
+create policy "commerces patron" on public.shops for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+
+alter table public.orders add column if not exists shop_id uuid references public.shops(id);
+alter table public.orders add column if not exists shop_name text;
+alter table public.orders add column if not exists referrer_id uuid references public.couriers(id);
+alter table public.orders add column if not exists referral_bonus numeric not null default 0;
+alter table public.orders add column if not exists referral_status text not null default 'du';
+create index if not exists orders_referrer_idx on public.orders (referrer_id);
+
+-- Nouvelle commande : IP, offre de bienvenue, et commerce / parrain (jamais fournis par le client)
+create or replace function public.orders_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare ip text; s shops;
+begin
+  begin
+    ip := split_part(current_setting('request.headers', true)::json->>'x-forwarded-for', ',', 1);
+  exception when others then ip := null;
+  end;
+  new.client_ip := nullif(trim(ip), '');
+  if new.promo_code in ('BIENVENUE', 'BRUCHIM') and (
+       welcome_used(new.contact_phone, new.device_id)
+       or (new.client_ip is not null and exists (select 1 from orders
+             where promo_code in ('BIENVENUE', 'BRUCHIM') and status not in ('annulee', 'refusee')
+               and client_ip = new.client_ip and created_at > now() - interval '24 hours'))) then
+    raise exception 'welcome_used';
+  end if;
+  new.shop_name := null; new.referrer_id := null; new.referral_bonus := 0; new.referral_status := 'du';
+  if new.shop_id is not null then
+    select * into s from shops where id = new.shop_id and status <> 'suspendu';
+    if not found then
+      new.shop_id := null;
+    else
+      new.shop_name := s.name;
+      new.referrer_id := s.referrer_id;
+      -- Pas de bonus quand c'est le patron qui a amené le commerce
+      if exists (select 1 from couriers where id = s.referrer_id and role = 'coursier') then
+        new.referral_bonus := (select referral_bonus from settings where id = 1);
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- Le parrain a quelques minutes d'avance sur les courses de ses commerces
+create or replace function public.can_see_new(o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  select o.status = 'nouvelle' and o.courier_id is null
+     and (o.referrer_id is null or o.referrer_id = auth.uid()
+          or o.created_at < now() - make_interval(mins => (select priority_minutes from settings where id = 1)));
+$$;
+
+drop policy if exists "lecture courses" on public.orders;
+create policy "lecture courses" on public.orders for select to authenticated
+  using (public.is_admin()
+         or (public.is_active_courier() and (courier_id = auth.uid() or public.can_see_new(orders))));
+
+create or replace function public.accept_order(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare c couriers;
+begin
+  select * into c from couriers where id = auth.uid() and status = 'actif';
+  if not found then return false; end if;
+  update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
+         courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
+         commission = case when c.role = 'admin' then 0 else (select commission from settings where id = 1) end
+   where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
+  return found;
+end;
+$$;
+
+-- Inscription d'un commerce (depuis commerce.html, sans compte)
+create or replace function public.shop_signup(p jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+declare r shops; ref uuid; c text;
+begin
+  if coalesce(trim(p->>'name'), '') = '' or coalesce(trim(p->>'phone'), '') = '' then raise exception 'missing'; end if;
+  select id into ref from couriers where ref_code = upper(trim(coalesce(p->>'ref_code', ''))) and status = 'actif';
+  loop
+    c := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+    exit when not exists (select 1 from shops where code = c);
+  end loop;
+  insert into shops (code, name, kind, city, address, lat, lon, contact_name, phone, email, lang, referrer_id)
+  values (c, left(trim(p->>'name'), 80), left(p->>'kind', 20), left(p->>'city', 60), left(p->>'address', 200),
+          (p->>'lat')::double precision, (p->>'lon')::double precision, left(p->>'contact_name', 80),
+          left(p->>'phone', 30), left(p->>'email', 120), case when p->>'lang' = 'fr' then 'fr' else 'he' end, ref)
+  returning * into r;
+  return json_build_object('code', r.code, 'token', r.token, 'referred', ref is not null);
+end;
+$$;
+
+-- Infos publiques d'un commerce (pour pré-remplir le départ de la course)
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status)
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;
+
+-- Espace du commerce (lien secret) : sa fiche et ses dernières courses
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json));
+$$;
+
+-- Livreur : ses commerces et les courses qui lui rapportent un bonus
+create or replace function public.my_shops() returns setof json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'status', status, 'created_at', created_at)
+    from shops where referrer_id = auth.uid() order by created_at desc;
+$$;
+
+create or replace function public.my_referral_orders() returns setof json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'shop_id', shop_id, 'pickup_at', pickup_at, 'status', status,
+                           'referral_bonus', referral_bonus, 'referral_status', referral_status)
+    from orders where referrer_id = auth.uid() order by pickup_at desc limit 2000;
+$$;
+
+-- Classement des parrains du mois (prénoms seulement)
+create or replace function public.referral_leaderboard() returns setof json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('name', split_part(c.name, ' ', 1), 'me', c.id = auth.uid(), 'shops', x.shops, 'deliveries', x.deliveries)
+    from couriers c,
+    lateral (select (select count(*) from shops s where s.referrer_id = c.id and s.status <> 'suspendu') as shops,
+                    (select count(*) from orders o where o.referrer_id = c.id and o.status = 'livree'
+                        and o.pickup_at >= date_trunc('month', now())) as deliveries) x
+   where public.is_active_courier() and c.status = 'actif' and c.role = 'coursier' and (x.shops > 0 or c.id = auth.uid())
+   order by x.shops desc, x.deliveries desc
+   limit 10;
+$$;
+
+-- ============================================================================
+-- MESSAGES DU PATRON AUX LIVREURS (« ça vaut le coup de sortir ! »)
+-- ============================================================================
+create table if not exists public.messages (
+  id          uuid primary key default gen_random_uuid(),
+  created_at  timestamptz not null default now(),
+  to_courier  uuid references public.couriers(id),   -- vide = tous les livreurs
+  kind        text not null default 'info',
+  body        text not null
+);
+create table if not exists public.message_replies (
+  message_id  uuid not null references public.messages(id) on delete cascade,
+  courier_id  uuid not null references public.couriers(id) default auth.uid(),
+  answer      text not null check (answer in ('jarrive', 'pas_dispo')),
+  created_at  timestamptz not null default now(),
+  primary key (message_id, courier_id)
+);
+alter table public.messages enable row level security;
+alter table public.message_replies enable row level security;
+
+drop policy if exists "messages patron" on public.messages;
+create policy "messages patron" on public.messages for all to authenticated
+  using (public.is_admin()) with check (public.is_admin());
+drop policy if exists "messages livreur" on public.messages;
+create policy "messages livreur" on public.messages for select to authenticated
+  using (public.is_active_courier() and (to_courier is null or to_courier = auth.uid()));
+
+drop policy if exists "reponses lecture" on public.message_replies;
+create policy "reponses lecture" on public.message_replies for select to authenticated
+  using (courier_id = auth.uid() or public.is_admin());
+drop policy if exists "reponses livreur" on public.message_replies;
+create policy "reponses livreur" on public.message_replies for insert to authenticated
+  with check (courier_id = auth.uid() and public.is_active_courier());
+drop policy if exists "reponses modif" on public.message_replies;
+create policy "reponses modif" on public.message_replies for update to authenticated
+  using (courier_id = auth.uid()) with check (courier_id = auth.uid());
+
+revoke execute on function public.my_shops(), public.my_referral_orders(), public.referral_leaderboard() from public, anon;
+grant execute on function public.my_shops(), public.my_referral_orders(), public.referral_leaderboard() to authenticated;
+grant execute on function public.shop_signup(jsonb), public.shop_public(text), public.shop_dashboard(uuid) to anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

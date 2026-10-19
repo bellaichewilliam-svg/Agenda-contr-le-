@@ -23,6 +23,9 @@ const TERMS = [
 
 let me = null;
 let orders = [];
+let settings = { referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes };
+let refs = { shops: [], orders: [], board: [] };
+let msgs = { messages: [], replies: [] };
 let tab = "pool";
 let firstLoad = true;
 const seenPool = new Set();
@@ -33,6 +36,7 @@ function renderWelcome() {
     "Vous choisissez vos courses, quand vous voulez.",
     "Vous encaissez le client directement (espèces ou Bit).",
     `Seulement ${UI.money(COMMISSION)} de commission par course livrée, réglés une fois par semaine.`,
+    `Amenez un commerce : ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous sur chacune de ses livraisons, à vie, et ses courses vous sont proposées en premier.`,
     "Pas d'abonnement, pas de frais d'inscription."
   ].map(x => `<li>✅ ${UI.esc(x)}</li>`).join("");
   $("#citySelect").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(c.fr)}</option>`).join("");
@@ -132,7 +136,13 @@ function beep() {
 }
 
 async function load() {
-  try { orders = await Store.listOrders(); }
+  try {
+    [orders, settings] = await Promise.all([Store.listOrders(), Store.getSettings()]);
+    // Parrainage et messages : un souci ici ne doit pas bloquer les courses
+    const [r, m] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null)]);
+    if (r) refs = r;
+    if (m) { msgs = m; checkNewMessages(); }
+  }
   catch (e) {
     if (e.status === 401 || /Session/.test(e.message)) { Store.logout(); return route(); }
     $("#lastSync").textContent = "⚠️ Erreur de connexion, nouvel essai bientôt.";
@@ -169,6 +179,7 @@ function card(o, kind) {
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")} · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌"}` : ""}</div>`;
   if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ${UI.money(o.budget)} à avancer` : ""}</div>`;
   const net = Number(o.price) - (kind === "pool" ? COMMISSION : Number(o.commission || 0));
+  const mineShop = o.referrer_id && o.referrer_id === me.id;
 
   let actions = "";
   if (kind === "pool") {
@@ -197,7 +208,8 @@ function card(o, kind) {
       <span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>
       <span class="pill">${UI.esc(UI.SIZE_FR[o.size] || o.size)}</span>
       <span class="pill">${UI.PAY_FR[o.payment_method] || ""}${o.payer === "destinataire" ? " · payé par le destinataire" : ""}</span>
-      <span class="pill paid">Vous gagnez ${UI.money(net)}</span>
+      <span class="pill paid">Vous gagnez ${UI.money(net + (mineShop ? Number(o.referral_bonus || 0) : 0))}</span>
+      ${mineShop ? `<span class="pill star-pill">⭐ Votre commerce${o.shop_name ? " : " + UI.esc(o.shop_name) : ""}${kind === "pool" ? priorityLeft(o) : ""} · +${UI.money(o.referral_bonus || 0)}</span>` : o.shop_name ? `<span class="pill">🏪 Partenaire : ${UI.esc(o.shop_name)}</span>` : ""}
       ${o.prepaid_required ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">💳 ${o.payment_status === "paye" ? "Déjà payée" : "Paiement d'avance en attente"}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
     </div>
@@ -213,7 +225,9 @@ function render() {
   $("#stPool").textContent = pool().length;
   $("#stMine").textContent = mine().length;
   $("#stWeek").textContent = UI.money(sum(week));
-  $("#stDue").textContent = UI.money(sum(due, o => Number(o.commission || 0)));
+  const balance = sum(due, o => Number(o.commission || 0)) - bonusDue();
+  $("#stDue").textContent = balance >= 0 ? UI.money(balance) : "+" + UI.money(-balance);
+  $("#stDueLabel").textContent = balance >= 0 ? "Commission à verser" : "HOP! vous doit";
   document.querySelectorAll("#tabs .tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   const view = $("#view");
   const empty = msg => `<div class="empty card">${msg}</div>`;
@@ -228,6 +242,9 @@ function render() {
     view.innerHTML = list.length ? `<div class="orders">${list.map(o => card(o, "mine")).join("")}</div>` : empty("Aucune course en cours.");
   } else if (tab === "week") {
     const amountDue = sum(due, o => Number(o.commission || 0));
+    const weekBonus = sum(refDelivered().filter(o => UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= UI.addDays(start, 6)), o => Number(o.referral_bonus || 0));
+    const bDue = bonusDue();
+    const balance = amountDue - bDue;
     view.innerHTML = `<div class="card">
         <h3>Semaine du ${UI.fmtKey(start)} au ${UI.fmtKey(UI.addDays(start, 6))}</h3>
         <table class="prices" style="margin-top:8px">
@@ -235,11 +252,17 @@ function render() {
           <tr><td>Encaissé auprès des clients</td><td>${UI.money(sum(week))}</td></tr>
           <tr><td>Commission de la semaine</td><td>${UI.money(sum(week, o => Number(o.commission || 0)))}</td></tr>
           <tr><td>Vous gagnez cette semaine</td><td>${UI.money(sum(week) - sum(week, o => Number(o.commission || 0)))}</td></tr>
-          <tr><td><b>Reste à verser (toutes semaines)</b></td><td><b>${UI.money(amountDue)}</b></td></tr>
+          <tr><td>🤝 Bonus parrainage de la semaine</td><td>+${UI.money(weekBonus)}</td></tr>
+          <tr><td>Commission due (toutes semaines)</td><td>${UI.money(amountDue)}</td></tr>
+          <tr><td>Bonus parrainage pas encore réglés</td><td>−${UI.money(bDue)}</td></tr>
+          <tr><td><b>${balance >= 0 ? "Reste à verser" : "HOP! vous verse"}</b></td><td><b>${UI.money(Math.abs(balance))}</b></td></tr>
         </table>
-        <p class="muted small" style="margin:10px 0">Le paiement se fait une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}.</p>
-        ${amountDue ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Je viens de verser ma commission de ${UI.money(amountDue)} par Bit.`)}">J'ai payé ma commission</a>` : ""}
+        <p class="muted small" style="margin:10px 0">Le règlement se fait une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Vos bonus de parrainage sont déduits de votre commission.</p>
+        ${balance > 0 ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Je viens de verser ma commission de ${UI.money(balance)} par Bit (bonus de parrainage déduits).`)}">J'ai payé ma commission</a>` : ""}
+        ${balance < 0 ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Mes bonus de parrainage dépassent ma commission : ${UI.money(-balance)} à recevoir sur mon Bit ${me.bit_phone || me.phone}. Merci !`)}">Demander mon versement</a>` : ""}
       </div>`;
+  } else if (tab === "ref") {
+    renderRef(view);
   } else {
     view.innerHTML = `<div class="card"><h3>Vos engagements (acceptés le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString("fr-FR") : "—"})</h3>
       <ol style="margin-top:10px;padding-inline-start:20px;display:grid;gap:6px">${TERMS.map(t => `<li>${UI.esc(t)}</li>`).join("")}</ol></div>`;
@@ -276,6 +299,148 @@ async function onViewClick(e) {
   }
 }
 
+// --- Parrainage des commerces ------------------------------------------------------------
+const refDelivered = () => refs.orders.filter(o => o.status === "livree");
+const bonusDue = () => sum(refDelivered().filter(o => o.referral_status !== "regle"), o => Number(o.referral_bonus || 0));
+const levelOf = n => CONFIG.partners.levels.filter(l => n >= l.min).pop();
+const nextLevel = n => CONFIG.partners.levels.find(l => n < l.min);
+const shareLink = () => UI.appUrl("commerce.html") + "?p=" + encodeURIComponent(me.ref_code || "");
+
+// Temps d'avance restant sur une course de son commerce (les autres ne la voient pas encore)
+function priorityLeft(o) {
+  const left = Math.ceil((new Date(o.created_at).getTime() + Number(settings.priority_minutes) * 60000 - Date.now()) / 60000);
+  return left > 0 ? ` · encore ${left} min rien que pour vous` : "";
+}
+
+function pitch() {
+  const price = UI.money(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || CONFIG.pricing.base);
+  const first = String(me.name || "").split(" ")[0];
+  return `שלום! אני ${first}, שליח של ${CONFIG.businessNameHe} 🛵
+משלוחים לעסק שלך החל מ-${price} בנתניה, מחיר קבוע, בלי עמלה על המכירות שלך (לא כמו וולט).
+מזומן או ביט, מעקב חי, קבלה.
+הרשמה בחינם תוך דקה: ${shareLink()}
+
+Bonjour ! Je suis ${first}, livreur ${CONFIG.businessName} 🛵
+Vos livraisons dès ${price} dans Netanya, prix fixe, sans commission sur vos ventes (contrairement à Wolt).
+Espèces ou Bit, suivi en direct, reçu.
+Inscription gratuite en 1 minute : ${shareLink()}`;
+}
+
+function renderRef(view) {
+  const bonus = Number(settings.referral_bonus);
+  const delivered = refDelivered();
+  const month = today().slice(0, 7);
+  const monthList = delivered.filter(o => UI.dayKey(o.pickup_at).startsWith(month));
+  const active = refs.shops.filter(s => s.status !== "suspendu");
+  const lv = levelOf(active.length), nx = nextLevel(active.length);
+  const statusLabel = { en_attente: "⏳ En vérification", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
+  const medals = ["🥇", "🥈", "🥉"];
+  view.innerHTML = `
+    <div class="card ref-hero">
+      <h3>🤝 Amenez un commerce, gagnez à chaque livraison</h3>
+      <ol class="ref-steps">
+        <li><b>Proposez HOP!</b> à un restaurant, une boutique, une pharmacie… surtout ceux qui ne sont pas sur Wolt.</li>
+        <li><b>Il s'inscrit avec votre lien</b> ou en scannant votre QR code (1 minute, gratuit).</li>
+        <li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses livrées, à vie, même si un autre livreur la fait. Et ses courses vous sont proposées <b>${Number(settings.priority_minutes)} min avant</b> les autres livreurs.</li>
+      </ol>
+      <div class="ref-code"><small>Votre code</small><b>${UI.esc(me.ref_code || "—")}</b></div>
+      <div class="promo-row"><input readonly value="${UI.esc(shareLink())}" dir="ltr" /><button class="btn btn-sm" data-copy="${UI.esc(shareLink())}">Copier</button></div>
+      <div class="btns" style="margin-top:10px">
+        <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waShare(pitch())}">💬 Envoyer à un commerce</a>
+        <button class="btn" data-qr="1">📱 Montrer mon QR code</button>
+      </div>
+      <div class="qr hidden" id="refQr"></div>
+    </div>
+    <div class="stats" style="margin-top:14px">
+      <div class="stat"><small>Mes commerces</small><b>${active.length}</b></div>
+      <div class="stat"><small>Livraisons ce mois</small><b>${monthList.length}</b></div>
+      <div class="stat"><small>Gagné ce mois</small><b>${UI.money(sum(monthList, o => Number(o.referral_bonus || 0)))}</b></div>
+      <div class="stat"><small>Gagné au total</small><b>${UI.money(sum(delivered, o => Number(o.referral_bonus || 0)))}</b></div>
+    </div>
+    <div class="card level-card">
+      <b>${lv ? UI.esc(lv.name) : "Pas encore de niveau"}</b>
+      ${nx ? `<div class="level-bar"><span style="width:${Math.round(100 * active.length / nx.min)}%"></span></div>
+        <small class="muted">Plus que ${nx.min - active.length} commerce(s) pour devenir ${UI.esc(nx.name)}</small>` : `<small class="muted">Niveau maximum atteint, bravo !</small>`}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>Mes commerces</h3>
+      ${refs.shops.length ? `<div class="shop-list">${refs.shops.map(sh => {
+        const list = delivered.filter(o => o.shop_id === sh.id);
+        return `<div class="shop-row"><div><b>${UI.esc(sh.name)}</b><small class="muted">${UI.esc(UI.cityFr(sh.city || ""))} · ${statusLabel[sh.status] || ""}</small></div>
+          <div class="num"><b>${list.length}</b> livraison(s)<br><small class="muted">+${UI.money(sum(list, o => Number(o.referral_bonus || 0)))}</small></div></div>`;
+      }).join("")}</div>` : `<p class="muted small" style="margin-top:6px">Aucun commerce pour l'instant. Commencez par le restaurant ou la boutique où vous passez le plus souvent !</p>`}
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h3>🏆 Classement des parrains du mois</h3>
+      ${refs.board.length ? `<ol class="board">${refs.board.map((b, i) => `<li class="${b.me ? "me" : ""}"><span>${medals[i] || i + 1 + "."}</span><b>${UI.esc(b.name)}${b.me ? " (vous)" : ""}</b><small>${b.shops} commerce(s) · ${b.deliveries} livraison(s)</small></li>`).join("")}</ol>`
+        : `<p class="muted small">Soyez le premier du classement !</p>`}
+    </div>`;
+}
+
+// --- Messages du patron ------------------------------------------------------------------
+const LS_MSG_SEEN = "livraison.msgSeen.v1";
+function seenMsgs() { try { return new Set(JSON.parse(localStorage.getItem(LS_MSG_SEEN)) || []); } catch (e) { return new Set(); } }
+let msgShown = null;
+
+function myReply(id) { const r = msgs.replies.find(x => x.message_id === id && x.courier_id === me.id); return r && r.answer; }
+const msgTime = m => new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const replyBtns = m => `<div class="msg-btns">
+    <button class="btn btn-sm ${myReply(m.id) === "jarrive" ? "btn-primary" : ""}" data-reply="jarrive" data-msg="${UI.esc(m.id)}">🛵 J'arrive</button>
+    <button class="btn btn-sm ${myReply(m.id) === "pas_dispo" ? "btn-dark" : ""}" data-reply="pas_dispo" data-msg="${UI.esc(m.id)}">😴 Pas dispo</button></div>`;
+
+function renderMsgs() {
+  const list = msgs.messages.filter(m => Date.now() - new Date(m.created_at) < 12 * 3600000).slice(0, 3);
+  $("#msgs").innerHTML = list.map(m => `<div class="msg-card msg-${UI.esc(m.kind)}">
+      <div><small>📣 ${m.to_courier ? "Message pour vous" : "Message du patron"} · ${msgTime(m)}</small><b>${UI.esc(m.body)}</b></div>
+      ${replyBtns(m)}</div>`).join("");
+}
+
+function checkNewMessages() {
+  const seen = seenMsgs();
+  const fresh = msgs.messages.filter(m => !seen.has(m.id) && Date.now() - new Date(m.created_at) < 3 * 3600000);
+  msgs.messages.forEach(m => seen.add(m.id));
+  try { localStorage.setItem(LS_MSG_SEEN, JSON.stringify([...seen].slice(-200))); } catch (e) { /* ignore */ }
+  renderMsgs();
+  if (!fresh.length) return;
+  const m = fresh[0];
+  beep();
+  if (window.Notification && Notification.permission === "granted") new Notification("📣 " + CONFIG.businessName, { body: m.body });
+  msgShown = m.id;
+  $("#msgBody").textContent = m.body;
+  $("#msgTime").textContent = (m.to_courier ? "Message pour vous" : "Message du patron") + " · " + msgTime(m);
+  $("#msgModalBtns").innerHTML = replyBtns(m);
+  $("#msgModal").classList.remove("hidden");
+}
+
+async function onReply(el) {
+  const id = el.dataset.msg, answer = el.dataset.reply;
+  el.disabled = true;
+  try { await Store.replyMessage(id, answer); } catch (e) { el.disabled = false; return alert("Réponse non envoyée, vérifiez la connexion."); }
+  const r = msgs.replies.find(x => x.message_id === id && x.courier_id === me.id);
+  if (r) r.answer = answer; else msgs.replies.push({ message_id: id, courier_id: me.id, answer });
+  $("#msgModal").classList.add("hidden");
+  renderMsgs();
+  if (answer === "jarrive" && duty.watch == null && confirm("Super ! Passer en service maintenant ?")) toggleDuty();
+}
+
+function onWorkClick(e) {
+  const el = e.target.closest("button");
+  if (!el) return;
+  if (el.dataset.reply) return onReply(el);
+  if (el.dataset.copy) {
+    navigator.clipboard && navigator.clipboard.writeText(el.dataset.copy).then(() => { el.textContent = "✓ Copié"; }, () => {});
+    return;
+  }
+  if (el.dataset.qr) {
+    const box = $("#refQr");
+    box.classList.toggle("hidden");
+    if (!box.dataset.done && window.QRCode) {
+      new QRCode(box, { text: shareLink(), width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
+      box.dataset.done = "1";
+    }
+  }
+}
+
 // --- Fenêtre « nouvelle course » : montant, trajet, kilomètres ------------------------
 const offerQueue = [];
 let offerShown = null;
@@ -300,7 +465,10 @@ function showNextOffer() {
   const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : moins d'une heure" : "Dès que possible";
   $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
   $("#offerPrice").textContent = UI.money(o.price);
-  $("#offerGain").textContent = `Vous gagnez ${UI.money(Number(o.price) - COMMISSION)} (commission ${UI.money(COMMISSION)})`;
+  const star = o.referrer_id && o.referrer_id === me.id;
+  $("#offerGain").textContent = `Vous gagnez ${UI.money(Number(o.price) - COMMISSION + (star ? Number(o.referral_bonus || 0) : 0))} (commission ${UI.money(COMMISSION)}${star ? `, bonus parrainage +${UI.money(o.referral_bonus || 0)} inclus` : ""})`;
+  $("#offerStar").innerHTML = star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}` : "";
+  $("#offerStar").classList.toggle("hidden", !star);
   $("#offerFrom").textContent = UI.cityFr(o.from_city);
   $("#offerTo").textContent = UI.cityFr(o.to_city);
   $("#offerFacts").innerHTML = [
@@ -383,6 +551,9 @@ $("#logoutBtn").addEventListener("click", e => { e.preventDefault(); clearInterv
 $("#waitRefresh").addEventListener("click", route);
 $("#tabs").addEventListener("click", e => { if (e.target.dataset.tab) { tab = e.target.dataset.tab; render(); } });
 $("#view").addEventListener("click", onViewClick);
+$("#work").addEventListener("click", onWorkClick);
+$("#msgModal").addEventListener("click", e => { const el = e.target.closest("button"); if (el && el.dataset.reply) onReply(el); });
+$("#msgClose").addEventListener("click", () => $("#msgModal").classList.add("hidden"));
 $("#dutyBtn").addEventListener("click", toggleDuty);
 $("#offerAccept").addEventListener("click", acceptOffer);
 $("#offerSkip").addEventListener("click", closeOffer);
@@ -390,7 +561,7 @@ $("#notifBtn").addEventListener("click", () => {
   if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
   Notification.requestPermission().then(p => { $("#notifBtn").textContent = p === "granted" ? "🔔 Alertes activées" : "🔕 Alertes refusées"; });
 });
-window.addEventListener("storage", e => { if (/livraison\.(orders|couriers)/.test(e.key || "") && me && me.status === "actif") load(); });
+window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|messages|shops)/.test(e.key || "") && me && me.status === "actif") load(); });
 route();
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
