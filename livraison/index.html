@@ -32,7 +32,7 @@
     });
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610191636" />
+  <link rel="stylesheet" href="styles.css?v=202610191652" />
 </head>
 <body>
 
@@ -51,11 +51,52 @@
 <div id="availBanner" class="mode-banner closed-banner hidden"><div class="wrap" id="availText"></div></div>
 
 <!-- ============ ACCUEIL ============ -->
-<section class="hero" id="accueil">
+<!-- ============ ACCUEIL FAÇON APPLI : carte + « Où on livre ? » ============ -->
+<section class="ch" id="accueil">
+  <div class="ch-map" id="homeMap" aria-hidden="true"></div>
+  <div class="ch-top">
+    <span class="badge-open" id="openBadge"></span>
+    <span class="ch-live hidden" id="homeLive"></span>
+  </div>
+  <button type="button" class="ch-locate" id="homeLocate" data-i18n-title="useMyPos" aria-label="◎">◎</button>
+  <div class="ch-sheet" id="homeSheet">
+    <p class="ch-hello" id="homeHello"></p>
+    <a class="ch-eta hidden" id="homeEta"></a>
+    <h1 class="ch-title"><span data-i18n="heroTitle1"></span> <span class="accent" data-i18n="heroTitle2"></span></h1>
+    <div class="ch-route">
+      <div class="ch-line" data-line="from">
+        <i class="ch-dot from"></i>
+        <label class="ch-in"><small data-i18n="hmFrom"></small><input id="homeFrom" data-i18n-ph="hmFromPh" enterkeyhint="next" /></label>
+        <input class="ch-no hidden" id="homeFromNo" data-i18n-ph="hmNo" inputmode="numeric" autocomplete="off" />
+        <button type="button" class="ch-gps" data-hgeo="from" data-i18n-title="useMyPos" aria-label="◎">◎</button>
+      </div>
+      <button type="button" class="ch-swap" id="homeSwap" aria-label="⇅">⇅</button>
+      <div class="ch-line" data-line="to">
+        <i class="ch-dot to"></i>
+        <label class="ch-in"><small data-i18n="hmTo"></small><input id="homeTo" data-i18n-ph="hmToPh" enterkeyhint="done" /></label>
+        <input class="ch-no hidden" id="homeToNo" data-i18n-ph="hmNo" inputmode="numeric" autocomplete="off" />
+        <button type="button" class="ch-gps" data-hgeo="to" data-i18n-title="useMyPos" aria-label="◎">◎</button>
+      </div>
+    </div>
+    <div class="ch-chips" id="homeChips"></div>
+    <div class="ch-when" id="homeWhen"></div>
+    <p class="ch-note hidden" id="homeWhenNote"></p>
+    <h3 class="ch-h" data-i18n="hmWhat"></h3>
+    <div class="ch-kinds" id="homeKinds"></div>
+    <div id="homeRepeat"></div>
+    <ul class="ch-perks"><li data-i18n="perkCash"></li><li data-i18n="perkLive"></li><li data-i18n="perkExpress"></li><li data-i18n="perkAll"></li></ul>
+    <p class="ch-err hidden" id="homeErr"></p>
+    <div class="ch-go">
+      <div class="ch-go-price"><small id="homeGoSub"></small><b id="homeGoPrice"></b></div>
+      <button type="button" class="btn btn-primary btn-lg" id="homeGo"></button>
+    </div>
+  </div>
+</section>
+
+<section class="hero" id="prix-rapide">
   <div class="wrap">
     <div>
-      <span class="badge-open" id="openBadge"></span>
-      <h1><span data-i18n="heroTitle1"></span> <span class="accent" data-i18n="heroTitle2"></span></h1>
+      <h2 class="hero-h2" data-i18n="heroPriceTitle"></h2>
       <p class="lead" data-i18n="heroLead"></p>
     </div>
     <div class="perks hero-perks">
@@ -449,13 +490,13 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610191636"></script>
-<script src="i18n.js?v=202610191636"></script>
-<script src="pricing.js?v=202610191636"></script>
-<script src="store.js?v=202610191636"></script>
-<script src="chat.js?v=202610191636"></script>
-<script src="common.js?v=202610191636"></script>
-<script src="places.js?v=202610191636"></script>
-<script src="client.js?v=202610191636"></script>
+<script src="config.js?v=202610191652"></script>
+<script src="i18n.js?v=202610191652"></script>
+<script src="pricing.js?v=202610191652"></script>
+<script src="store.js?v=202610191652"></script>
+<script src="chat.js?v=202610191652"></script>
+<script src="common.js?v=202610191652"></script>
+<script src="places.js?v=202610191652"></script>
+<script src="client.js?v=202610191652"></script>
 </body>
 </html>

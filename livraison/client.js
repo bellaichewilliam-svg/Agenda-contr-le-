@@ -354,6 +354,7 @@ function renderQuote() {
   const err = scheduleError();
   $("#scheduleError").textContent = err ? t(err.key, err.vars) : "";
   $("#scheduleError").classList.toggle("hidden", !err);
+  syncHome();
 }
 
 // Ville hors liste : on géolocalise le nom de la ville pour estimer le prix
@@ -431,7 +432,7 @@ function setBrandMode(which, on) {
   if (on) DETAIL.forEach(k => { form.elements[pre + "_" + k].value = ""; });
 }
 
-function onPlacePicked(which, p) {
+function onPlacePicked(which, p, quiet) {
   state.pick[which] = p;
   setBrandMode(which, !!p.brand);
   const sel = form.elements[which + "_city"];
@@ -441,7 +442,7 @@ function onPlacePicked(which, p) {
   // Numéro de rue : rempli si la carte le connaît, sinon on invite à le saisir (sauf enseigne)
   const num = form.elements[which === "from" ? "pickup_number" : "dropoff_number"];
   num.value = p.housenumber || "";
-  if (!p.housenumber && !p.brand) setTimeout(() => num.focus(), 50);
+  if (!quiet && !p.housenumber && !p.brand) setTimeout(() => num.focus(), 50);
   if (which === "from" && val("service") === "retrait" && p.brand) {
     const kind = detectPlaceKind(p.brand);
     if (kind) form.place_kind.value = kind;
@@ -474,6 +475,7 @@ function addrLabel(a) {
 
 function renderSavedAddrs() {
   const list = Store.getAddresses();
+  if (home.ac.from) renderHomeStatic();
   document.querySelectorAll(".saved-addrs").forEach(box => {
     box.classList.toggle("hidden", !list.length);
     box.innerHTML = list.length ? `<small>${UI.esc(t("savedTitle"))}</small>` + list.slice(0, 5).map((a, i) =>
@@ -515,21 +517,28 @@ function myPosition() {
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 });
   });
 }
+// Adresse à la position du téléphone ; renvoie la clé du message d'erreur, ou null
+async function locateInto(which) {
+  let pos;
+  try { pos = await myPosition(); } catch (e) { return "geoDenied"; }
+  home.pos = pos;
+  let list = [];
+  try { list = await Places.reverse(pos.lat, pos.lon, I18N.lang); } catch (e) { /* message ci-dessous */ }
+  const p = list[0];
+  if (!p) return "geoNone";
+  // Le point exact est celui du téléphone (plus précis que le centre de la rue)
+  Object.assign(p, { lat: pos.lat, lon: pos.lon, exact: true, gps: true });
+  onPlacePicked(which, p, true);
+  if (ac[which]) ac[which].setPicked(p.label);
+  return null;
+}
 async function useMyPosition(which, btn) {
   btn.disabled = true;
   btn.textContent = t("geoLocating");
   showError("");
   try {
-    let pos;
-    try { pos = await myPosition(); } catch (e) { return showError(t("geoDenied")); }
-    let list = [];
-    try { list = await Places.reverse(pos.lat, pos.lon, I18N.lang); } catch (e) { /* message ci-dessous */ }
-    const p = list[0];
-    if (!p) return showError(t("geoNone"));
-    // Le point exact est celui du téléphone (plus précis que le centre de la rue)
-    Object.assign(p, { lat: pos.lat, lon: pos.lon, exact: true, gps: true });
-    onPlacePicked(which, p);
-    if (ac[which]) ac[which].setPicked(p.label);
+    const err = await locateInto(which);
+    if (err) showError(t(err));
   } finally {
     btn.disabled = false;
     btn.textContent = t("useMyPos");
@@ -783,6 +792,7 @@ async function submit(e) {
     $("#donePrepay").classList.toggle("hidden", !saved.prepaid_required || saved.payment_method === "carnet");
     if (saved.payment_method === "carnet" && state.pro) state.pro.credits--;
     confetti();
+    hopBurst(t("hopSent"));
     $("#doneAccount").textContent = t("doneAccount");
     $("#doneAccount").classList.toggle("hidden", !firstOrder);
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
@@ -871,6 +881,8 @@ function renderMine() {
           : o.admin_note ? `<p class="notice" style="margin-top:6px">💬 ${UI.esc(o.admin_note)}</p>` : ""}
         <div class="mo-actions">
           ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<a class="btn btn-sm btn-primary" href="${UI.trackUrl(o)}">${t("track")}</a>` : ""}
+          ${o.status === "livree" && o.rating == null && Date.now() - new Date(o.pickup_at) < 7 * 86400000 ? `<a class="btn btn-sm btn-primary" href="${UI.trackUrl(o)}">${UI.esc(t("rtCta"))}</a>` : ""}
+          ${o.rating != null ? `<span class="pill paid">${"⭐".repeat(o.rating)}</span>` : ""}
           ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${t("receiptLink")}</a>` : ""}
           <button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.token)}">${UI.esc(t("chOpen"))}${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>
           ${o.status === "nouvelle" ? `<button class="btn btn-sm btn-link" data-cancel="${UI.esc(o.token)}">${t("cancel")}</button>` : ""}
@@ -905,12 +917,34 @@ function openChatMenu() {
   ]);
 }
 // --- Bulle ronde de la course en cours : temps restant avant la livraison -----------------------
+// La bulle se retrouve aussi en haut du panneau de l'accueil (sans rien cacher)
+function mirrorEtaBubble() {
+  const el = $("#etaBubble"), card = $("#homeEta");
+  card.classList.toggle("hidden", el.classList.contains("hidden"));
+  card.href = el.getAttribute("href") || "#";
+  card.innerHTML = el.innerHTML.replace(/ id="[^"]*"/g, "");
+}
 async function renderEtaBubble() {
+  await renderEtaBubbleInner();
+  mirrorEtaBubble();
+}
+async function renderEtaBubbleInner() {
   const live = state.mine.filter(o => ["nouvelle", "confirmee", "recuperee"].includes(o.status))
     .sort((a, b) => ["recuperee", "confirmee", "nouvelle"].indexOf(a.status) - ["recuperee", "confirmee", "nouvelle"].indexOf(b.status))[0];
   const el = $("#etaBubble");
-  el.classList.toggle("hidden", !live);
-  document.body.classList.toggle("has-eta", !!live);
+  const toRate = !live && state.mine.filter(o => o.status === "livree" && o.rating == null && Date.now() - new Date(o.pickup_at) < 6 * 3600000)
+    .sort((a, b) => new Date(b.pickup_at) - new Date(a.pickup_at))[0];
+  el.classList.toggle("hidden", !live && !toRate);
+  document.body.classList.toggle("has-eta", !!(live || toRate));
+  if (toRate) {
+    el.href = UI.trackUrl(toRate);
+    $("#ebMin").textContent = "⭐";
+    $("#ebUnit").textContent = "";
+    $("#ebTitle").textContent = t("rtCta");
+    $("#ebSub").textContent = t("orderNo", { ref: toRate.ref });
+    $("#ebArc").style.strokeDasharray = `${2 * Math.PI * 42} ${2 * Math.PI * 42}`;
+    return;
+  }
   if (!live) return;
   let o = live;
   try { o = (await Store.trackOrder(live.token)) || live; } catch (e) { /* on garde la course connue */ }
@@ -960,6 +994,9 @@ function renderAll() {
   renderSavedAddrs();
   renderAccount();
   renderShopBanner();
+  renderHomeStatic();
+  syncHome();
+  renderLive();
 }
 
 async function loadSettings() {
@@ -1043,6 +1080,340 @@ async function sendRequest(e) {
   } finally { btn.disabled = false; }
 }
 
+// --- Accueil façon appli : carte, « Où on livre ? », livreurs autour, raccourcis ------------
+const home = { map: null, pins: {}, line: null, scoots: [], ac: {}, pos: null, nearby: [], key: "", when: "now" };
+const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city);
+const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
+const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
+const isRtl = () => document.documentElement.dir === "rtl";
+const addrReady = which => { const pre = prefixOf(which); const p = state.pick[which];
+  return !!val(pre + "_address").trim() && (!!val(pre + "_number").trim() || !!(p && p.brand)); };
+
+function initHome() {
+  ["from", "to"].forEach(which => {
+    const input = homeInput(which), pre = prefixOf(which);
+    home.ac[which] = Places.attach(input, {
+      lang: () => I18N.lang,
+      texts: () => ({ none: t("addrNone"), down: t("addrDown") }),
+      onPick: p => {
+        onPlacePicked(which, p, true);
+        if (ac[which]) ac[which].setPicked(p.label);
+        // Rue sans numéro : on le demande tout de suite, sur place
+        if (!p.housenumber && !p.brand) setTimeout(() => homeNo(which).focus(), 60);
+        else if (which === "from" && !state.pick.to) setTimeout(() => homeInput("to").focus(), 60);
+      },
+      onClear: () => {
+        state.pick[which] = null;
+        if (ac[which]) ac[which].reset();
+        setBrandMode(which, false);
+        renderQuote(); renderShopBanner(); renderSaveBtns();
+      }
+    });
+    // Adresse tapée sans la choisir dans la liste : elle part telle quelle dans le formulaire
+    input.addEventListener("input", () => { form.elements[pre + "_address"].value = input.value; renderQuote(); });
+    homeNo(which).addEventListener("input", e => { form.elements[pre + "_number"].value = e.target.value; $("#homeErr").classList.add("hidden"); renderQuote(); });
+  });
+  $("#homeSwap").addEventListener("click", swapRoute);
+  $("#homeGo").addEventListener("click", homeGo);
+  $("#homeLocate").addEventListener("click", async () => {
+    try { home.pos = await myPosition(); renderHomeMap(true); renderLive(); } catch (e) { showHomeErr(t("geoDenied")); }
+  });
+  $("#homeSheet").addEventListener("click", async e => {
+    const g = e.target.closest("[data-hgeo]");
+    if (g) {
+      g.disabled = true;
+      try { const err = await locateInto(g.dataset.hgeo); if (err) showHomeErr(t(err)); else renderLive(); }
+      finally { g.disabled = false; }
+      return;
+    }
+    const k = e.target.closest("[data-kind]");
+    if (k) return applyKind(k.dataset.kind);
+    const w = e.target.closest("[data-when]");
+    if (w) return applyWhen(w.dataset.when);
+    const a = e.target.closest("[data-haddr]");
+    if (a) {
+      const addr = Store.getAddresses()[Number(a.dataset.haddr)];
+      if (addr) applySavedAddr(!state.pick.from ? "from" : "to", addr);
+      return;
+    }
+    if (e.target.closest("#homeRepeatBtn")) repeatLast();
+  });
+  initHomeMap();
+  // Position déjà autorisée : on centre la carte sur le client (sans rien lui demander)
+  if (navigator.permissions && navigator.geolocation) {
+    navigator.permissions.query({ name: "geolocation" }).then(r => {
+      if (r.state === "granted") myPosition().then(pos => { home.pos = pos; renderHomeMap(true); renderLive(); }, () => {});
+    }).catch(() => {});
+  }
+  loadNearby();
+  setInterval(() => { if (!document.hidden) loadNearby(); }, 30000);
+  // Sur téléphone, la bulle « Nous écrire » remonte au-dessus du bouton Commander
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => document.body.classList.toggle("in-home", es[0].isIntersecting)).observe($("#homeSheet"));
+  setInterval(wanderScooters, 2500);
+}
+
+function showHomeErr(msg) { $("#homeErr").textContent = msg || ""; $("#homeErr").classList.toggle("hidden", !msg); }
+
+// Types de course, raccourcis d'heure et adresses enregistrées (selon la langue)
+function renderHomeStatic() {
+  const homeCity = CONFIG.homeCity;
+  $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
+    const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip }, CONFIG);
+    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}"><i>${ex.icon}</i><b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
+  }).join("");
+  const list = Store.getAddresses().slice(0, 5);
+  $("#homeChips").innerHTML = list.map((a, i) => `<button type="button" class="ch-chip" data-haddr="${i}">${a.brand ? "🏪" : "⭐"} ${UI.esc(addrLabel(a))}</button>`).join("");
+  renderWhen();
+}
+
+// Raccourcis d'heure : maintenant, dans 1 h, ce soir, demain matin (seulement s'ils sont possibles)
+function whenOptions() {
+  const lead = CONFIG.minLeadMinutes * 60000;
+  const ok = d => d - Date.now() >= lead && !Pricing.checkSchedule(d, CONFIG);
+  const out = [];
+  if (Pricing.isOpenNow(CONFIG) && state.settings.accepting) out.push({ id: "now" });
+  const in1 = new Date(Date.now() + 3600000); in1.setSeconds(0, 0); in1.setMinutes(Math.ceil(in1.getMinutes() / 15) * 15);
+  if (ok(in1)) out.push({ id: "in1h", d: in1 });
+  const eve = new Date(); eve.setHours(19, 0, 0, 0);
+  if (ok(eve) && eve - in1 > 1800000) out.push({ id: "tonight", d: eve });
+  const tm = new Date(); tm.setDate(tm.getDate() + 1); tm.setHours(9, 0, 0, 0);
+  for (let i = 0; i < 12 && !ok(tm); i++) tm.setMinutes(tm.getMinutes() + 30);
+  if (ok(tm)) out.push({ id: "tomorrow", d: tm });
+  out.push({ id: "other" });
+  return out;
+}
+const hhmm = d => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function currentWhen() {
+  if (val("urgency") !== "programmee") return "now";
+  const opt = whenOptions().find(o => o.d && `${o.d.getFullYear()}-${pad(o.d.getMonth() + 1)}-${pad(o.d.getDate())}` === val("date") && hhmm(o.d) === val("time"));
+  return opt ? opt.id : "other";
+}
+function renderWhen() {
+  const cur = currentWhen();
+  $("#homeWhen").innerHTML = whenOptions().map(o => `<button type="button" class="ch-chip${cur === o.id ? " on" : ""}" data-when="${o.id}">${UI.esc(t({ now: "hmNow", in1h: "hmIn1h", tonight: "hmTonight", tomorrow: "hmTomorrow", other: "hmOther" }[o.id], { h: o.d ? hhmm(o.d) : "" }))}</button>`).join("");
+  const planned = val("urgency") === "programmee" && pickupDate();
+  $("#homeWhenNote").textContent = planned ? t("hmPlanned", { when: UI.fmtDateTime(planned) }) : "";
+  $("#homeWhenNote").classList.toggle("hidden", !planned);
+}
+function applyWhen(id) {
+  const opt = whenOptions().find(o => o.id === id);
+  if (!opt) return;
+  if (id === "now") form.elements.urgency.value = "asap";
+  else {
+    form.elements.urgency.value = "programmee";
+    if (opt.d) { form.date.value = `${opt.d.getFullYear()}-${pad(opt.d.getMonth() + 1)}-${pad(opt.d.getDate())}`; form.time.value = hhmm(opt.d); }
+  }
+  syncVisibility();
+  renderQuote();
+  if (id === "other") fieldsetOf('legend[data-i18n="s4"]').scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+// Type de course choisi d'un geste (un 2e appui revient au colis simple), sans toucher aux adresses
+function applyKind(id) {
+  const ex = EXAMPLES.find(e => e.id === id);
+  state.homeKind = state.homeKind === id ? null : id;
+  form.elements.service.value = "colis";
+  form.elements.size.value = "petit";
+  form.round_trip.checked = false;
+  if (state.homeKind) Object.entries(ex.set).forEach(([k, v]) => {
+    if (k === "urgency") return;   // l'heure se choisit avec les raccourcis
+    const el = form.elements[k];
+    if (el && el.type === "checkbox") el.checked = v; else if (el) el.value = v;
+  });
+  syncVisibility();
+  renderQuote();
+  renderHomeStatic();
+}
+
+// Inverser départ et arrivée
+function swapRoute() {
+  ["address", "number", "building", "floor", "apt", "code", "note"].forEach(k => {
+    const a = form.elements["pickup_" + k], b = form.elements["dropoff_" + k];
+    [a.value, b.value] = [b.value, a.value];
+  });
+  [form.from_city.value, form.to_city.value] = [form.to_city.value, form.from_city.value];
+  [form.from_other.value, form.to_other.value] = [form.to_other.value, form.from_other.value];
+  [state.pick.from, state.pick.to] = [state.pick.to, state.pick.from];
+  [state.fromPoint, state.toPoint] = [state.toPoint, state.fromPoint];
+  ["from", "to"].forEach(w => {
+    const p = state.pick[w];
+    if (p) { ac[w].setPicked(p.label); home.ac[w].setPicked(p.label); } else { ac[w].reset(); home.ac[w].reset(); }
+    form.elements[prefixOf(w) + "_address"].closest(".fields").classList.toggle("brand-mode", !!(p && p.brand));
+  });
+  syncVisibility();
+  renderQuote();
+  renderShopBanner();
+  renderSaveBtns();
+}
+
+// « Refaire » la dernière course : mêmes adresses, même type, d'un seul geste
+function lastTrip() {
+  const o = state.mine.filter(x => !["annulee", "refusee"].includes(x.status))
+    .sort((a, b) => new Date(b.created_at || b.pickup_at) - new Date(a.created_at || a.pickup_at))[0];
+  if (!o) return null;
+  const list = Store.getAddresses();
+  const near = (a, lat, lon) => a.lat != null && lat != null && Math.abs(a.lat - lat) < 1e-5 && Math.abs(a.lon - lon) < 1e-5;
+  const from = list.find(a => near(a, Number(o.pickup_lat), Number(o.pickup_lon)));
+  const to = list.find(a => near(a, Number(o.dropoff_lat), Number(o.dropoff_lon)));
+  return from && to ? { o, from, to } : null;
+}
+function repeatLast() {
+  const r = lastTrip();
+  if (!r) return;
+  applySavedAddr("from", r.from);
+  applySavedAddr("to", r.to);
+  if (r.o.service) form.elements.service.value = r.o.service;
+  if (r.o.size && !(r.o.size === "gros" && P.carAvailable === false)) form.elements.size.value = r.o.size;
+  syncVisibility();
+  renderQuote();
+}
+
+// Le formulaire et l'accueil restent synchronisés (adresses, numéro, heure, prix, carte)
+function syncHome() {
+  if (!home.ac.from) return;
+  ["from", "to"].forEach(which => {
+    const input = homeInput(which), p = state.pick[which], pre = prefixOf(which);
+    if (document.activeElement !== input) {
+      if (p) { if (input.value !== p.label) home.ac[which].setPicked(p.label); }
+      else { home.ac[which].reset(); input.value = val(pre + "_address"); }
+    }
+    const no = homeNo(which);
+    const needNo = !!p && !p.brand && !p.housenumber;
+    no.classList.toggle("hidden", !needNo);
+    if (document.activeElement !== no) no.value = val(pre + "_number");
+    no.classList.toggle("need", needNo && !val(pre + "_number").trim());
+  });
+  const name = (Store.getProfile().contact_name || "").trim().split(" ")[0];
+  $("#homeHello").textContent = name ? t("hmHello", { name }) : t("hmHelloNew");
+  renderWhen();
+  const ready = addrReady("from") && addrReady("to");
+  const first = activeOrders().length === 0 && !state.welcomeUsed;
+  if (ready) {
+    const q = currentQuote();
+    $("#homeGoPrice").textContent = (q.known ? "" : t("from") + " ") + money(q.total);
+    $("#homeGoSub").textContent = t("hmGoKm", { from: cityLabel(cityOf("from")), to: cityLabel(cityOf("to")) });
+  } else {
+    $("#homeGoPrice").textContent = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity));
+    $("#homeGoSub").textContent = first ? t("hmGoFirst", { price: money(welcomePrice()) }) : t("hmGoKm", { from: I18N.cityName(CONFIG.homeCity), to: I18N.cityName(CONFIG.homeCity) });
+  }
+  $("#homeGo").textContent = t(ready ? "hmGoNext" : "hmGo");
+  const r = lastTrip();
+  $("#homeRepeat").innerHTML = r && !ready ? `<button type="button" class="ch-repeat" id="homeRepeatBtn"><span>🔁</span><div><b>${UI.esc(t("hmRepeat"))}</b>
+      <small>${UI.esc(t("hmRepeatSub", { from: r.from.brand || `${r.from.street} ${r.from.number}`.trim(), to: r.to.brand || `${r.to.street} ${r.to.number}`.trim() }))}</small></div><b>${money(r.o.price)}</b></button>` : "";
+  const key = JSON.stringify([state.fromPoint, state.toPoint]);
+  if (key !== home.key) { home.key = key; renderHomeMap(true); renderLive(); }
+}
+
+function homeGo() {
+  showHomeErr("");
+  for (const which of ["from", "to"]) {
+    if (addrReady(which)) continue;
+    const typed = !!val(prefixOf(which) + "_address").trim();
+    if (typed && state.pick[which]) { showHomeErr(t("hmNeedNo")); homeNo(which).focus(); }
+    else homeInput(which).focus();
+    return;
+  }
+  // Tout est prêt pour les adresses : on continue là où il manque quelque chose
+  const missing = stepStates().find(([fs, ok]) => fs && !ok);
+  (missing ? missing[0] : $("#summary")).scrollIntoView({ behavior: "smooth", block: missing ? "start" : "center" });
+}
+
+// --- Carte de l'accueil -----------------------------------------------------------------
+function initHomeMap() {
+  if (home.map || !window.L) return;
+  const c = Pricing.cityById(CONFIG, CONFIG.homeCity);
+  home.map = L.map("homeMap", { zoomControl: false, attributionControl: true, scrollWheelZoom: false, dragging: !L.Browser.mobile, tap: false })
+    .setView([c.lat, c.lon], 13);
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}{r}.png`,
+    { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO" }).addTo(home.map);
+  addEventListener("resize", () => home.map.invalidateSize());
+}
+const divIcon = (html, size) => L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
+function renderHomeMap(refit) {
+  if (!home.map) return;
+  const place = (key, pt, html, size, anchorBottom) => {
+    if (!pt) { if (home.pins[key]) { home.map.removeLayer(home.pins[key]); delete home.pins[key]; } return; }
+    const icon = anchorBottom ? L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size] }) : divIcon(html, size);
+    if (home.pins[key]) home.pins[key].setLatLng([pt.lat, pt.lon]);
+    else home.pins[key] = L.marker([pt.lat, pt.lon], { icon, zIndexOffset: 500, interactive: false }).addTo(home.map);
+  };
+  place("me", home.pos, `<div class="ch-me"></div>`, 24);
+  place("from", state.fromPoint, `<div class="ch-pin">📍</div>`, 32, true);
+  place("to", state.toPoint, `<div class="ch-pin">🏁</div>`, 32, true);
+  if (home.line) { home.map.removeLayer(home.line); home.line = null; }
+  if (state.fromPoint && state.toPoint) {
+    home.line = L.polyline([[state.fromPoint.lat, state.fromPoint.lon], [state.toPoint.lat, state.toPoint.lon]],
+      { color: "#FF6A13", weight: 4, dashArray: "8 10", opacity: .9 }).addTo(home.map);
+  }
+  if (refit) homeFit();
+}
+function homeFit() {
+  const pts = [state.fromPoint, state.toPoint].filter(Boolean);
+  if (!pts.length && home.pos) pts.push(home.pos);
+  if (!pts.length) return;
+  const mobile = innerWidth <= 860;
+  const side = mobile ? 0 : $("#homeSheet").offsetWidth + 40;
+  const pad = isRtl() ? { paddingTopLeft: [50, 90], paddingBottomRight: [side + 50, 50] } : { paddingTopLeft: [side + 50, 90], paddingBottomRight: [50, 50] };
+  if (pts.length > 1) home.map.fitBounds(L.latLngBounds(pts.map(p => [p.lat, p.lon])), Object.assign({ maxZoom: 15 }, pad));
+  else {
+    home.map.setView([pts[0].lat, pts[0].lon], 15, { animate: false });
+    if (side) home.map.panBy([isRtl() ? side / 2 : -side / 2, 0], { animate: false });
+  }
+}
+
+// Livreurs en ligne autour : petits scooters qui bougent, et temps pour arriver au départ
+async function loadNearby() {
+  try { home.nearby = (await Store.couriersNearby()) || []; } catch (e) { return; }
+  if (home.map) {
+    home.scoots.forEach(s => home.map.removeLayer(s.m));
+    home.scoots = home.nearby.slice(0, 25).map((c, i) => {
+      // Décalage fixe pour que deux livreurs du même quartier ne se cachent pas
+      const base = { lat: Number(c.lat) + ((i * 37) % 11 - 5) * 0.0004, lon: Number(c.lon) + ((i * 53) % 11 - 5) * 0.0005 };
+      const m = L.marker([base.lat, base.lon], { icon: divIcon(`<div class="ch-scoot${c.free ? "" : " busy"}">🛵</div>`, 34), interactive: false }).addTo(home.map);
+      return { m, base, cur: Object.assign({}, base) };
+    });
+  }
+  renderLive();
+}
+function wanderScooters() {
+  if (document.hidden || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  home.scoots.forEach(s => {
+    const to = { lat: s.base.lat + (Math.random() - .5) * 0.003, lon: s.base.lon + (Math.random() - .5) * 0.004 };
+    const from = s.cur, t0 = performance.now();
+    const step = now => {
+      const k = Math.min(1, (now - t0) / 2300);
+      s.cur = { lat: from.lat + (to.lat - from.lat) * k, lon: from.lon + (to.lon - from.lon) * k };
+      s.m.setLatLng([s.cur.lat, s.cur.lon]);
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
+}
+function renderLive() {
+  const el = $("#homeLive");
+  const open = Pricing.isOpenNow(CONFIG) && state.settings.accepting;
+  if (!open) { el.classList.add("hidden"); return; }
+  const free = home.nearby.filter(c => c.free);
+  const c0 = Pricing.cityById(CONFIG, CONFIG.homeCity);
+  const target = state.fromPoint || home.pos || { lat: c0.lat, lon: c0.lon };
+  if (free.length) {
+    const min = Math.min(...free.map(c => Pricing.etaMinutes({ lat: Number(c.lat), lon: Number(c.lon) }, target)));
+    el.textContent = t("hmLive", { n: home.nearby.length, min: Math.max(3, min) });
+  } else el.textContent = t(home.nearby.length ? "hmLiveBusy" : "hmLiveNone", { n: home.nearby.length });
+  el.classList.remove("hidden");
+}
+
+// « HOP! » en grand quand la commande part
+function hopBurst(text) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const el = document.createElement("div");
+  el.className = "hop-burst";
+  el.innerHTML = `<b>HOP!</b><span>${UI.esc(text || "")}</span>`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1500);
+}
+
 // --- Démarrage ---------------------------------------------------------------------
 // Lien d'un commerce partenaire (lu avant de nettoyer l'adresse)
 const shopCode = new URLSearchParams(location.search).get("c");
@@ -1051,8 +1422,9 @@ if (location.search) history.replaceState(null, "", location.pathname + location
 I18N.apply();
 fillCitySelects();
 fillDefaults();
-renderAll();
 attachPlaces();
+initHome();
+renderAll();
 if (shopCode) loadShop(shopCode);
 loadMine();
 loadSettings();

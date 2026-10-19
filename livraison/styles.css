@@ -762,3 +762,98 @@ body.rider-on > main { padding: 0 !important; max-width: none; }
 @media (max-width: 960px) { .mobile-bar.show ~ .eta-bubble { bottom: 84px; } }
 @media (min-width: 861px) { [dir="ltr"] .eta-ring { right: 414px; } [dir="rtl"] .eta-ring { left: 414px; } }
 body.has-eta { padding-bottom: 96px; }
+
+/* ===== Accueil client façon appli : carte + « Où on livre ? » ===== */
+.ch { position: relative; min-height: 640px; height: min(82vh, 760px); background: var(--bg-2); overflow: hidden; }
+.ch-map, .ch-map.leaflet-container { position: absolute; inset: 0; z-index: 0; background: linear-gradient(160deg, #DCE6F5, #EEF1F7); }
+.ch-perks { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 2px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); font-weight: 600; }
+@media (max-width: 860px) { body.in-home .wa-fab { bottom: 96px; } }
+.ch-top { position: absolute; z-index: 2; top: 14px; inset-inline-end: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: calc(100% - 32px); pointer-events: none; }
+.ch-top > * { pointer-events: auto; box-shadow: 0 4px 16px rgba(15,31,61,.18); }
+.ch .badge-open { background: var(--navy); color: #fff; }
+.ch-live { background: var(--panel); color: var(--ink); font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 99px; }
+.ch-locate { position: absolute; z-index: 2; bottom: 24px; inset-inline-end: 16px; width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--panel); color: var(--ink); font-size: 22px; box-shadow: 0 4px 16px rgba(15,31,61,.22); }
+.ch-sheet { position: absolute; z-index: 3; top: 20px; bottom: 20px; inset-inline-start: max(16px, calc((100vw - 1160px) / 2)); width: 430px; overflow-y: auto; background: var(--panel); color: var(--ink); border-radius: 24px; padding: 22px 22px 0; box-shadow: 0 18px 50px rgba(15,31,61,.28); display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; }
+.ch-hello { color: var(--muted); font-weight: 600; font-size: 14px; margin: 0; }
+.ch-title { font-size: 34px; line-height: 1.05; letter-spacing: -.02em; margin: -6px 0 2px; }
+.ch-title .accent { color: var(--brand); }
+.ch-route { position: relative; background: var(--bg); border: 1px solid var(--border); border-radius: 18px; }
+.ch-line { display: flex; align-items: center; gap: 10px; padding: 6px 8px 6px 14px; min-height: 60px; }
+[dir="rtl"] .ch-line { padding: 6px 14px 6px 8px; }
+.ch-line + .ch-swap + .ch-line { border-top: 1px solid var(--border); }
+.ch-dot { flex: none; width: 12px; height: 12px; border-radius: 50%; background: var(--brand); box-shadow: 0 0 0 4px var(--brand-soft); }
+.ch-dot.to { border-radius: 3px; background: var(--navy); box-shadow: 0 0 0 4px var(--bg-2); }
+.ch-in { flex: 1; min-width: 0; display: grid; gap: 1px; margin: 0; }
+.ch-in small { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.ch-in input { border: 0; background: none; padding: 2px 0; font-size: 16px; font-weight: 600; color: var(--ink); width: 100%; outline: none; box-shadow: none; }
+.ch-in input.ac-ok { color: var(--ink); }
+.ch-in .ac-list { inset-inline: -14px -60px; }
+.ch-no { flex: none; width: 64px; border: 1px solid var(--border); border-radius: 10px; padding: 8px; font-size: 15px; font-weight: 700; text-align: center; background: var(--panel); color: var(--ink); }
+.ch-no.need { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.ch-gps { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--panel); color: var(--muted); font-size: 18px; }
+.ch-gps:disabled { opacity: .5; }
+.ch-swap { position: absolute; z-index: 1; top: 50%; inset-inline-end: 54px; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); font-weight: 800; color: var(--ink); }
+.ch-chips, .ch-when, .ch-kinds { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -22px; padding: 2px 22px; }
+.ch-chips::-webkit-scrollbar, .ch-when::-webkit-scrollbar, .ch-kinds::-webkit-scrollbar { display: none; }
+.ch-chips:empty { display: none; }
+.ch-chip { flex: none; border: 1px solid var(--border); background: var(--panel); color: var(--ink); border-radius: 99px; padding: 8px 12px; font-size: 13px; font-weight: 600; max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.ch-note { margin: -4px 0 0; font-size: 12px; color: var(--amber-ink); background: var(--amber-soft); padding: 6px 10px; border-radius: 10px; }
+.ch-h { font-size: 16px; margin: 4px 0 -2px; }
+.ch-kind { flex: none; width: 92px; display: grid; justify-items: center; gap: 4px; padding: 12px 6px 10px; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); color: var(--ink); text-align: center; transition: transform .15s; }
+.ch-kind:active { transform: scale(.95); }
+.ch-kind i { font-style: normal; font-size: 30px; line-height: 1; }
+.ch-kind b { font-size: 12px; line-height: 1.2; }
+.ch-kind small { font-size: 11px; color: var(--muted); font-weight: 700; }
+.ch-kind.on { border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 0 0 2px var(--brand) inset; }
+.ch-kind.on i { animation: kindHop .45s cubic-bezier(.2, 1.8, .4, 1); }
+@keyframes kindHop { 0% { transform: translateY(0); } 40% { transform: translateY(-8px) rotate(-8deg); } 100% { transform: none; } }
+.ch-repeat { display: flex; align-items: center; gap: 12px; width: 100%; text-align: start; border: 1px dashed var(--brand); background: var(--brand-soft); color: var(--ink); border-radius: 16px; padding: 10px 14px; }
+.ch-repeat span:first-child { font-size: 22px; }
+.ch-repeat div { flex: 1; min-width: 0; display: grid; }
+.ch-repeat small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-err { margin: 0; font-size: 13px; color: var(--red); font-weight: 600; }
+.ch-go { position: sticky; bottom: 0; margin: auto -22px 0; padding: 12px 22px 16px; background: linear-gradient(to top, var(--panel) 75%, transparent); display: flex; align-items: center; gap: 12px; }
+.ch-go-price { flex: 1; min-width: 0; display: grid; }
+.ch-go-price small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ch-go-price b { font-family: "Fredoka", "Rubik", sans-serif; font-size: 26px; color: var(--brand-deep); line-height: 1.1; }
+.ch-go .btn { flex: none; min-width: 150px; }
+.ch-me { width: 18px; height: 18px; border-radius: 50%; background: #2E90FA; border: 3px solid #fff; box-shadow: 0 0 0 8px rgba(46,144,250,.22); }
+.ch-pin { font-size: 26px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.3)); }
+.ch-scoot { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); border: 2px solid #fff; font-size: 17px; box-shadow: 0 4px 10px rgba(15,31,61,.3); }
+.ch-scoot.busy { background: #98A2B3; }
+.hero-h2 { font-size: clamp(26px, 4vw, 40px); line-height: 1.1; margin: 0 0 10px; color: #fff; }
+@media (max-width: 860px) {
+  .ch { height: auto; min-height: 0; overflow: visible; }
+  .ch-map, .ch-map.leaflet-container { position: relative; height: 40vh; min-height: 250px; }
+  .ch-top { top: 12px; }
+  .ch-locate { top: calc(max(40vh, 250px) - 64px); bottom: auto; }
+  .ch-sheet { position: relative; top: auto; bottom: auto; inset-inline-start: auto; width: auto; margin-top: -26px; border-radius: 24px 24px 0 0; padding: 20px 16px 0; overflow: visible; box-shadow: 0 -8px 30px rgba(15,31,61,.14); }
+  .ch-sheet::before { content: ""; align-self: center; width: 44px; height: 5px; border-radius: 9px; background: var(--border); margin: -8px 0 2px; }
+  .ch-title { font-size: 30px; }
+  .ch-chips, .ch-when, .ch-kinds { margin: 0 -16px; padding: 2px 16px; }
+  .ch-go { margin: 4px -16px 0; padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -6px 16px rgba(15,31,61,.06); background: var(--panel); }
+  .ch-go .btn { min-width: 0; }
+}
+.hop-burst { position: fixed; inset: 0; z-index: 90; display: grid; place-content: center; justify-items: center; gap: 6px; pointer-events: none; background: radial-gradient(circle, rgba(255,106,19,.94), rgba(15,31,61,.97) 72%); animation: rdHopFade 1.5s ease forwards; }
+.hop-burst b { font-family: "Fredoka", "Rubik", sans-serif; font-weight: 700; font-size: 88px; color: #fff; direction: ltr; text-shadow: 0 6px 24px rgba(0,0,0,.4); animation: rdHopPop .6s cubic-bezier(.2, 1.6, .4, 1) both; }
+.hop-burst span { color: #fff; font-weight: 700; font-size: 19px; }
+body.in-home .eta-bubble { display: none; }
+.track-page .confetti { position: fixed; z-index: 80; }
+.rate-card h3 { margin: 0 0 2px; }
+.rate-stars { display: flex; justify-content: center; gap: 6px; margin: 12px 0 10px; direction: ltr; }
+.rate-stars button { border: 0; background: none; font-size: 42px; line-height: 1; color: var(--border); padding: 2px; transition: transform .15s, color .15s; }
+.rate-stars button.on { color: #FDB022; transform: scale(1.08); }
+.rate-stars button:active { transform: scale(.9); }
+.rate-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.rate-card textarea { width: 100%; margin-bottom: 10px; }
+.rate-thanks { margin: 0; font-weight: 700; text-align: center; font-size: 16px; }
+.ch-eta { display: flex; align-items: center; gap: 12px; text-decoration: none; background: var(--navy); color: #fff; border-radius: 18px; padding: 8px 14px 8px 8px; }
+[dir="rtl"] .ch-eta { padding: 8px 8px 8px 14px; }
+.ch-eta .eb-ring { position: relative; flex: none; width: 54px; height: 54px; border-radius: 50%; background: #fff; display: grid; place-items: center; align-content: center; }
+.ch-eta .eb-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.ch-eta circle { fill: none; stroke-width: 8; } .ch-eta .bg { stroke: var(--bg-2); } .ch-eta .fg { stroke: var(--brand); stroke-linecap: round; }
+.ch-eta .eb-ring b { position: relative; font-family: "Fredoka", "Rubik", sans-serif; font-size: 19px; line-height: 1; color: var(--navy); }
+.ch-eta .eb-ring small { position: relative; font-size: 10px; font-weight: 700; color: var(--muted); }
+.ch-eta .eb-text { display: grid; min-width: 0; line-height: 1.25; } .ch-eta .eb-text small { opacity: .75; font-size: 12px; }
+.ch-eta.hidden { display: none; }

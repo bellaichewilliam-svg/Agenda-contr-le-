@@ -16,6 +16,9 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 | Commerces partenaires | Restaurants, boutiques… | `…/livraison/commerce.html` |
 
 ### Clients (`index.html`, `suivi.html`, `recu.html`)
+- **Accueil façon appli** : une carte en grand avec les **livreurs en ligne autour** (petits scooters, position arrondie à ≈ 500 m, sans nom) et le temps pour qu'un livreur arrive au départ. Par-dessus, le panneau **« Où on livre ? »** : départ et arrivée (avec 📍 ma position et ⇅ pour inverser), adresses enregistrées en un geste, raccourcis d'heure (**Maintenant · Dans 1 h · Ce soir · Demain matin**, seulement quand c'est possible), **« Qu'est-ce qu'on livre ? »** (poste, Super-Pharm, repas, documents…), **🔁 Refaire la dernière course**, et le prix tout de suite. « Continuer » mène droit à ce qui manque dans le formulaire.
+- **« HOP! » en grand** et une pluie d'emojis quand la commande part, puis à la livraison.
+- **Note de la livraison** : après la livraison, le client donne de 1 à 5 étoiles, choisit des petits mots (⚡ Rapide, 😊 Sympa, ⏰ En retard…) et peut laisser un mot au livreur. Une note de 3 ou moins (ou un mot) arrive tout de suite dans la conversation de la course, chez vous. Le livreur voit sa note moyenne et les mots des clients dans ses statistiques ; vous la voyez sur chaque course et sur chaque livreur.
 - **Adresses vérifiées sur la carte** : le client tape une adresse ou une enseigne (Super-Pharm, restaurant, poste…) et choisit dans les suggestions ; la ville se remplit seule, le nom de l'enseigne apparaît sur la course et Waze guide au point GPS exact (recherche gratuite Photon / OpenStreetMap).
 - **Prix fixe affiché tout de suite.** Les prix depuis Netanya sont fixés à la main dans `config.js` : 25 ₪ en ville, 80 ₪ pour Ra'anana, 85 ₪ pour Herzliya, 120 ₪ pour Tel Aviv… Pour les autres trajets : 25 ₪ + 3,5 ₪ par km.
 - **9 exemples cliquables** (poste, Super-Pharm, restaurant, Yad2, documents…) et **« Pourquoi nous plutôt qu'une grande plateforme ? »**.
@@ -23,7 +26,7 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **Paiement en espèces ou par Bit.** Un numéro de commande est affiché partout.
 - **Suivi en direct** sur la carte. Le client peut **écrire ou téléphoner directement à son livreur** ou **au service client** (vous).
 - **Messagerie dans l'application** (« 💬 Nous écrire ») sur chaque page : aucun échange par WhatsApp.
-- **Bulle ronde du temps restant** : pendant une course, une bulle reste ouverte en bas de l'écran avec les minutes restantes ; en la touchant, le client voit le scooter avancer sur la carte.
+- **Bulle ronde du temps restant** : pendant une course, une bulle reste ouverte avec les minutes restantes (en haut du panneau sur l'accueil, en bas de l'écran ailleurs) ; en la touchant, le client voit le scooter avancer sur la carte. Après la livraison, elle invite à noter la course.
 - **Reçu (קבלה)** bilingue, numéroté, imprimable, et **envoyé automatiquement par mail** (voir `email/README-mail.md`).
 - **Offres :** codes promo, parrainage, carte de fidélité.
 

@@ -966,9 +966,14 @@ function renderStats(view) {
       <tr><td>Meilleur jour</td><td>${best ? UI.esc(best[0]) + " (" + best[1] + " course(s))" : "—"}</td></tr>
       <tr><td>Distance parcourue (estimée)</td><td>≈ ${Math.round(km)} km</td></tr>
       <tr><td>Commerces amenés</td><td>${refs.shops.length}</td></tr>
+      <tr><td>Note des clients</td><td>${(r => r ? `⭐ ${r.avg.toFixed(1).replace(".", ",")} / 5 (${r.n} avis)` : "Pas encore d'avis")(UI.ratingOf(done))}</td></tr>
       <tr><td>Taux d'acceptation (30 jours)</td><td>${acceptance && acceptance.accepted + acceptance.declined
         ? Math.round(100 * acceptance.accepted / (Number(acceptance.accepted) + Number(acceptance.declined))) + " % (" + acceptance.declined + " refus)" : "—"}</td></tr>
-    </table></div>`;
+    </table></div>
+    ${(() => {
+      const notes = done.filter(o => o.rating != null && (o.rating_note || (o.rating_tags || []).length)).sort((a, b) => new Date(b.rated_at) - new Date(a.rated_at)).slice(0, 5);
+      return notes.length ? `<div class="card" style="margin-top:14px"><h3>Ce que disent vos clients</h3>${notes.map(o => `<p class="small" style="margin:8px 0">${UI.esc(UI.ratingText(o))}${o.rating_note ? `<br><span class="muted">« ${UI.esc(o.rating_note)} »</span>` : ""}</p>`).join("")}</div>` : "";
+    })()}`;
 }
 function renderSettings(view) {
   const opt = (k, v, label) => `<option value="${v}" ${riderSet[k] === v ? "selected" : ""}>${label}</option>`;

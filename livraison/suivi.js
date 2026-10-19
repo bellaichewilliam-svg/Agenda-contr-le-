@@ -18,8 +18,8 @@ function initMap() {
   if (!window.L) { $("#map").classList.add("hidden"); return; }
   const home = Pricing.cityById(CONFIG, CONFIG.homeCity);
   map = L.map("map", { zoomControl: true }).setView([home.lat, home.lon], 12);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19, attribution: "© OpenStreetMap"
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+    maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO"
   }).addTo(map);
 }
 
@@ -85,7 +85,7 @@ function etaBox(o) {
   let main, sub = "";
   if (o.status === "annulee") main = t("trCancelled");
   else if (o.status === "refusee") { main = t("trRefused"); sub = o.admin_note ? t("trReason", { r: o.admin_note }) : ""; }
-  else if (o.status === "livree") { main = t("trStep4") + " 📦"; sub = t("trThanks"); }
+  else if (o.status === "livree") { main = t("deliveredYay"); sub = t("trThanks"); }
   else if (o.status === "nouvelle") {
     main = t("trWaiting");
     if (o.urgency === "programmee") sub = t("trPlanned", { when: UI.fmtDateTime(o.pickup_at) });
@@ -114,6 +114,7 @@ function render() {
   }
   etaBox(o);
   renderRing(o);
+  renderRate(o);
 
   const step = FLOW.indexOf(o.status);
   const labels = ["trStep1", "trStep2", "trStep3", "trStep4"];
@@ -150,6 +151,73 @@ function render() {
   }
   $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: location.href }));
   updateMap(o);
+}
+
+// --- Note de la livraison : étoiles, petits mots, et un message pour le livreur ----------------
+const GOOD = ["fast", "nice", "care", "found"], BAD = ["late", "damaged", "rude", "lost"];
+const rate = { stars: 0, tags: new Set(), sent: null, celebrated: false };
+function renderRate(o) {
+  const box = $("#rateBox");
+  const canRate = o.status === "livree" && o.rating == null && Date.now() - new Date(o.pickup_at) < 7 * 86400000;
+  if (o.status === "livree" && !rate.celebrated) { rate.celebrated = true; celebrate(); }
+  if (rate.sent) { box.innerHTML = `<p class="rate-thanks">${UI.esc(t(rate.sent <= 3 ? "rtLowThanks" : "rtThanks"))}</p>`; box.classList.remove("hidden"); return; }
+  if (o.rating != null) {
+    box.innerHTML = `<p class="rate-thanks">${UI.esc(t("rtYours", { stars: "⭐".repeat(o.rating) }))}</p>`;
+    box.classList.remove("hidden");
+    return;
+  }
+  box.classList.toggle("hidden", !canRate);
+  if (!canRate || box.dataset.ready) return;
+  box.dataset.ready = "1";
+  drawRate();
+}
+function drawRate() {
+  const box = $("#rateBox");
+  const tags = rate.stars && rate.stars <= 3 ? BAD : GOOD;
+  const first = (order.courier_name || "").split(" ")[0];
+  box.innerHTML = `<h3>${UI.esc(t("rtTitle"))}</h3><p class="muted small">${UI.esc(t("rtSub"))}${first ? " · 🛵 " + UI.esc(first) : ""}</p>
+    <div class="rate-stars" role="radiogroup">${[1, 2, 3, 4, 5].map(n => `<button type="button" class="${n <= rate.stars ? "on" : ""}" data-star="${n}" aria-label="${n}/5">★</button>`).join("")}</div>
+    ${rate.stars ? `<div class="rate-tags">${tags.map(k => `<button type="button" class="ch-chip${rate.tags.has(k) ? " on" : ""}" data-tag="${k}">${UI.esc(t("rt_" + k))}</button>`).join("")}</div>
+      <textarea id="rateNote" rows="2" maxlength="300" placeholder="${UI.esc(t("rtNotePh"))}">${UI.esc(rate.note || "")}</textarea>
+      <p class="notice err hidden" id="rateErr"></p>
+      <button type="button" class="btn btn-primary btn-block" id="rateSend">${UI.esc(t("rtSend"))}</button>` : `<p class="muted small" style="text-align:center">${UI.esc(t("rtPick"))}</p>`}`;
+}
+$("#rateBox").addEventListener("input", e => { if (e.target.id === "rateNote") rate.note = e.target.value; });
+$("#rateBox").addEventListener("click", async e => {
+  const star = e.target.closest("[data-star]");
+  if (star) {
+    const was = rate.stars;
+    rate.stars = Number(star.dataset.star);
+    if ((was <= 3) !== (rate.stars <= 3)) rate.tags.clear();   // on change de liste de mots
+    drawRate();
+    return;
+  }
+  const tag = e.target.closest("[data-tag]");
+  if (tag) { rate.tags.has(tag.dataset.tag) ? rate.tags.delete(tag.dataset.tag) : rate.tags.add(tag.dataset.tag); drawRate(); return; }
+  if (e.target.id === "rateSend") {
+    e.target.disabled = true;
+    try {
+      const ok = await Store.rateOrder(token, rate.stars, [...rate.tags], rate.note);
+      if (!ok) throw new Error("refused");
+      rate.sent = rate.stars;
+      if (rate.stars >= 4) celebrate();
+      load();
+    } catch (ex) {
+      $("#rateErr").textContent = t("rtErr");
+      $("#rateErr").classList.remove("hidden");
+      e.target.disabled = false;
+    }
+  }
+});
+// Pluie d'emojis à la livraison (et pour une belle note)
+function celebrate() {
+  const box = $("#confetti");
+  if (!box || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  box.innerHTML = Array.from({ length: 30 }, () => {
+    const e = ["🎉", "📦", "🛵", "✨", "🧡", "⭐"][Math.floor(Math.random() * 6)];
+    return `<i style="left:${Math.random() * 100}%;animation-delay:${(Math.random() * .6).toFixed(2)}s;animation-duration:${(1.6 + Math.random()).toFixed(2)}s">${e}</i>`;
+  }).join("");
+  setTimeout(() => { box.innerHTML = ""; }, 3200);
 }
 
 async function load() {
