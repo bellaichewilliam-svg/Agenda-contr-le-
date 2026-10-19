@@ -281,7 +281,7 @@ async function load() {
   if (!firstLoad && fresh.length && isOnline()) {
     if (!offerShown) beep();
     if (window.Notification && Notification.permission === "granted") {
-      fresh.forEach(o => new Notification(`🆕 Course dispo n° ${o.ref} — ${UI.money(Store.courseValue(o))}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}` }));
+      fresh.forEach(o => UI.notify(`🆕 Course dispo n° ${o.ref} — ${UI.money(Store.courseValue(o))}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}`, tag: "hop-o-" + o.id, vibrate: [300, 150, 300], requireInteraction: true }));
     }
   }
   pool().forEach(o => seenPool.add(o.id));
@@ -313,6 +313,7 @@ function card(o, kind) {
   const total = Store.courseValue(o);
   const net = total - (kind === "pool" ? Store.commissionFor(total, settings, mineShop) : Number(o.commission || 0));
   if (o.shop_status) extra += proLine(o);
+  if (o.adult_items) extra += `<div class="small adult-line">🔞 ${/tabac/.test(o.adult_items) ? "Tabac" : ""}${/tabac/.test(o.adult_items) && /alcool/.test(o.adult_items) ? " et " : ""}${/alcool/.test(o.adult_items) ? "alcool" : ""} : vérifiez la pièce d'identité du client (18 ans et plus) avant de donner.</div>`;
   if (o.shop_ref) extra += `<div class="bag-line">🛍️ Sac n° <b>${UI.esc(o.shop_ref)}</b> : demandez ce numéro${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}</div>`;
   if (o.rules_accepted_at) extra += `<div class="small muted">📋 Le client a accepté les conditions : max 40 × 40 × 35 cm, 15 kg, 500 ₪, rien de dangereux ni d'illégal. Colis non conforme ? Vous pouvez refuser : « ⚠️ Un souci ».</div>`;
   if (Number(o.discount) > 0) extra += `<div class="small">🎁 Code promo du client : ${UI.money(o.discount)}, payé par HOP (pas par vous)</div>`;
@@ -347,6 +348,7 @@ function card(o, kind) {
     </div>
     <div class="legs">
       <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.pickup_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrDetails(o, "pickup") + UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
+      ${UI.stopsLegs(o, kind === "mine")}
       <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.dropoff_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.to_city))}</b>${kind === "mine" ? UI.addrDetails(o, "dropoff") + UI.addrNote(o.dropoff_note) : ""}${UI.doorTag(o)}${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
     </div>
     <div class="meta">
@@ -532,7 +534,7 @@ async function checkChats() {
   $("#menuBadge").classList.toggle("hidden", !total);
   if (total > chatTotal && Chat.openThread == null) {
     beep();
-    if (window.Notification && Notification.permission === "granted") new Notification("💬 Nouveau message", { body: "Ouvrez votre espace livreur pour répondre." });
+    UI.notify("💬 Nouveau message", { body: "Ouvrez votre espace livreur pour répondre.", tag: "hop-chat" });
   }
   chatTotal = total;
 }
@@ -803,7 +805,7 @@ function checkNewMessages() {
   if (!fresh.length) return;
   const m = fresh[0];
   beep();
-  if (window.Notification && Notification.permission === "granted") new Notification("📣 " + CONFIG.businessName, { body: m.body });
+  UI.notify("📣 " + CONFIG.businessName, { body: m.body, tag: "hop-msg" });
   msgShown = m.id;
   $("#msgBody").textContent = m.body;
   $("#msgTime").textContent = (m.to_courier ? "Message pour vous" : "Message du patron") + " · " + msgTime(m);
@@ -905,6 +907,8 @@ function showNextOffer() {
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
     o.shop_status ? proLine(o) : "",
     o.shop_ref ? `🛍️ Sac n° <b>${UI.esc(o.shop_ref)}</b>` : "",
+    o.adult_items ? "🔞 Tabac / alcool : pièce d'identité à vérifier (18 ans +)" : "",
+    Array.isArray(o.stops) && o.stops.length ? `📌 ${o.stops.length} arrêt(s) en plus sur la course` : "",
     `⏱️ Attente / achats payés : ${UI.esc(UI.waitRule(settings))}${o.shop_status ? " (après l'heure annoncée, payés par le commerce)" : ""}`
   ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
   $("#offerModal").classList.remove("hidden");
@@ -1191,7 +1195,7 @@ async function sendPosition(pos) {
     await Store.ping(pos.coords.latitude, pos.coords.longitude);
     // Première position après le passage en ligne : les courses arrivent tout de suite
     if (duty.fresh) { duty.fresh = false; Promise.resolve(duty.onlineP).catch(() => {}).then(() => setTimeout(load, 1200)); }
-    $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR")} · gardez cette page ouverte.`;
+    $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR")} · vous pouvez passer sur Waze : vous restez en ligne.`;
   } catch (e) {
     duty.lastSent = 0;
     $("#dutyText").textContent = "⚠️ Position non envoyée (connexion). Nouvel essai automatique.";
@@ -1221,6 +1225,8 @@ async function toggleDuty(quiet) {
   }
   // En ligne / hors ligne pour HOP : seules les personnes en ligne reçoivent des courses
   duty.onlineP = Store.setOnline(duty.watch != null).then(() => { if (duty.watch == null) load(); }).catch(() => {});
+  // Notification « En service » qui reste affichée : on peut passer sur Waze et revenir en un geste
+  UI.dutyNotice(duty.watch != null, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
   if (duty.watch != null && !quiet) hopBurst();
   try { localStorage.setItem("livraison.online.v1", duty.watch != null ? "1" : ""); } catch (e) { /* ignore */ }
   renderDuty();
@@ -1234,7 +1240,23 @@ $("#signupForm").addEventListener("submit", onSignup);
 $("#signupForm [name=topcase]").addEventListener("change", onTopcasePicked);
 $("#waitTopcaseFile").addEventListener("change", onWaitTopcase);
 $("#loginForm").addEventListener("submit", onLogin);
-$("#logoutBtn").addEventListener("click", e => { e.preventDefault(); clearInterval(pollTimer); Store.logout(); route(); });
+// Se déconnecter termine aussi le service : plus de courses proposées, plus visible sur la carte
+async function endAndLogout() {
+  clearInterval(pollTimer);
+  if (duty.watch != null) toggleDuty(true);
+  await Store.setOnline(false).catch(() => {});
+  try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }
+  UI.dutyNotice(false);
+  Store.logout(); route();
+}
+$("#logoutBtn").addEventListener("click", e => { e.preventDefault(); endAndLogout(); });
+// De retour dans HOP! (après Waze) : position tout de suite et notification « En service » remise
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || duty.watch == null) return;
+  duty.lastSent = 0;
+  navigator.geolocation.getCurrentPosition(sendPosition, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+  UI.dutyNotice(true, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
+});
 $("#waitRefresh").addEventListener("click", route);
 $("#drawerNav").addEventListener("click", e => {
   const b = e.target.closest("[data-tab]");
@@ -1244,7 +1266,7 @@ $("#menuBtn").addEventListener("click", () => $("#drawer").classList.remove("hid
 $("#drawer").addEventListener("click", e => { if (e.target.id === "drawer") closeDrawer(); });
 $("#bellBtn").addEventListener("click", () => openPage("inbox"));
 $("#pageBack").addEventListener("click", closePage);
-$("#drawerLogout").addEventListener("click", () => { if (!confirm("Se déconnecter ?")) return; if (duty.watch != null) toggleDuty(); clearInterval(pollTimer); Store.logout(); route(); });
+$("#drawerLogout").addEventListener("click", () => { if (confirm("Se déconnecter ?")) endAndLogout(); });
 $("#locateBtn").addEventListener("click", () => { if (rmap.map && lastPos) rmap.map.setView([lastPos.lat, lastPos.lon], 15); else fitRiderMap(); });
 $("#sheetBody").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) openPage(b.dataset.tab); });
 initSlider();

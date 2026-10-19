@@ -87,6 +87,31 @@ function cityActive(id) {
   return !z || z.active !== false;
 }
 
+// --- Notifications : par le service worker (seule façon qui marche sur Android), sinon classiques -------
+const swReady = "serviceWorker" in navigator && location.protocol !== "file:"
+  ? navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).catch(() => null) : Promise.resolve(null);
+async function notify(title, opts) {
+  if (!window.Notification || Notification.permission !== "granted") return false;
+  const o = Object.assign({ icon: "logo.svg", badge: "logo.svg", data: { url: location.href } }, opts || {});
+  try {
+    const reg = await swReady;
+    if (reg && reg.showNotification) { await reg.showNotification(title, o); return true; }
+    new Notification(title, o);
+    return true;
+  } catch (e) { return false; }
+}
+// « En service » : une notification qui reste dans la barre tant que le service est en cours
+async function dutyNotice(on, text) {
+  const reg = await swReady.catch(() => null);
+  if (!on) {
+    if (reg && reg.getNotifications) (await reg.getNotifications({ tag: "hop-duty" })).forEach(n => n.close());
+    return;
+  }
+  if (window.Notification && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) { /* ignore */ } }
+  return notify("🟢 HOP! · En service", { body: text || "Vous recevez les courses. Touchez ici pour revenir dans HOP!.", tag: "hop-duty",
+    requireInteraction: true, silent: true, renotify: false });
+}
+
 // Lien à partager : toujours vers l'adresse officielle (sauf en test sur l'ordinateur)
 const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === "file:";
 function appUrl(page) { return new URL(page || "./", CONFIG.siteUrl && !LOCAL ? CONFIG.siteUrl : location.href).href; }
@@ -231,6 +256,14 @@ function addrDetails(o, which, lang) {
   if (o[which + "_code"]) p.push(`<span><small>${esc(t("entryCode"))}</small><b dir="ltr">${esc(o[which + "_code"])}</b></span>`);
   return p.length ? `<div class="addr-details">${p.join("")}</div>` : "";
 }
+// Arrêts en plus, entre le départ et l'arrivée (avec lien Waze quand l'adresse est sur la carte)
+const STOP_DO_FR = { deposer: "📦 Déposer", recuperer: "📥 Récupérer", acheter: "🛒 Acheter" };
+function stopsLegs(o, full) {
+  const list = Array.isArray(o.stops) ? o.stops : [];
+  return list.map((s, i) => `<div class="leg leg-stop"><span>📌</span><div><small>Arrêt ${i + 1} · ${esc(STOP_DO_FR[s.todo] || STOP_DO_FR.deposer)}${s.on_way ? " · sur le chemin" : ""}</small>
+      <b>${full ? `<bdi>${esc(s.address || "")}</bdi>` : esc(s.city || "")}</b>${s.note ? `<div class="addr-note">📝 ${esc(s.note)}</div>` : ""}
+      ${full && s.lat != null ? `<div class="links"><a class="btn btn-sm" href="https://waze.com/ul?ll=${encodeURIComponent(s.lat + "," + s.lon)}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>` : ""}</div></div>`).join("");
+}
 function doorTag(o, lang) {
   return o.leave_at_door ? `<div class="door-tag">${esc(window.I18N ? I18N.forLang(lang || "fr", "doorTag") : "🚪")}</div>` : "";
 }
@@ -242,7 +275,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  deliveryEta, PROGRESS, commissionText, networkText, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

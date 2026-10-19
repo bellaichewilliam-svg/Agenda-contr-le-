@@ -403,7 +403,8 @@ async function listOrders() {
 
 // Course libre visible (même règle que la base en ligne) : tout de suite pour le parrain du
 // commerce ; sinon par vagues, le livreur en service le plus proche du départ d'abord.
-const onlineNow = c => !!(c && c.online && c.position_at && Date.now() - new Date(c.position_at) < 15 * 60000);
+// En ligne : bouton « en ligne » et position de moins de duty_grace_min minutes (Waze en avant-plan, GPS en pause)
+const onlineNow = c => !!(c && c.online && c.position_at && Date.now() - new Date(c.position_at) < (CONFIG.platform.dutyGraceMinutes || 60) * 60000);
 const declined = (orderId, courierId) => readJSON(LS.declines, []).some(d => d.order_id === orderId && d.courier_id === courierId);
 function canSeeNew(o, id, st) {
   if (o.status !== "nouvelle" || o.courier_id) return false;
@@ -660,8 +661,7 @@ const RATING_TAGS = { fast: "Rapide", nice: "Sympa", care: "Soigneux", found: "B
 async function couriersNearby() {
   if (ONLINE) return rest("/rest/v1/rpc/couriers_nearby", { method: "POST", body: {} });
   const busy = new Set(localOrders().filter(o => ["confirmee", "recuperee"].includes(o.status)).map(o => o.courier_id));
-  const fresh = c => c.position_at && Date.now() - new Date(c.position_at) < 15 * 60000;
-  return localCouriers().filter(c => c.status === "actif" && c.lat != null && (onlineNow(c) || (c.role === "admin" && fresh(c))))
+  return localCouriers().filter(c => c.status === "actif" && c.lat != null && onlineNow(c))
     .sort((a, b) => (a.id < b.id ? -1 : 1))
     .map(c => ({ lat: Math.round(c.lat * 500) / 500, lon: Math.round(c.lon * 500) / 500, free: !busy.has(c.id) }));
 }

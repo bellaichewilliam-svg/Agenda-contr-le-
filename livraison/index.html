@@ -45,7 +45,7 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610192155" />
+  <link rel="stylesheet" href="styles.css?v=202610192210" />
 </head>
 <body>
 
@@ -310,7 +310,14 @@
             <label class="f show-retrait"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
             <label class="check full show-poste"><input type="checkbox" name="has_proxy" /> <span data-i18n="proxy"></span></label>
             <p class="notice warn full show-poste" data-i18n="proxyNote"></p>
+            <label class="check full show-achat near-store"><input type="checkbox" name="nearest_store" /> <span data-i18n="nearStore"></span></label>
             <label class="f full show-achat"><span data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
+            <div class="adult-box full show-achat">
+              <label class="check"><input type="checkbox" name="has_tobacco" /> <span data-i18n="hasTobacco"></span></label>
+              <label class="check"><input type="checkbox" name="has_alcohol" /> <span data-i18n="hasAlcohol"></span></label>
+              <label class="check adult-ok hidden" id="adultOkBox"><input type="checkbox" name="adult_ok" /> <span data-i18n="adultOk"></span></label>
+              <p class="notice warn small hidden" id="alcoholNote" data-i18n="alcoholNote"></p>
+            </div>
             <label class="f show-achat"><span data-i18n="budget"></span><input name="budget" type="number" min="0" step="10" inputmode="numeric" /></label>
             <p class="notice full show-achat" data-i18n="budgetNote"></p>
             <label class="f hide-retrait"><span data-i18n="contactThere"></span><input name="pickup_contact" data-i18n-ph="namePh" /></label>
@@ -357,7 +364,13 @@
           <button type="button" class="btn btn-link rules-link" data-rules data-i18n="rlLink"></button>
           <div class="fields" style="margin-top:12px">
             <label class="check full"><input type="checkbox" name="round_trip" /> <span data-i18n="roundTrip"></span></label>
-            <label class="f"><span data-i18n="stops"></span><input name="extra_stops" type="number" min="0" max="10" value="0" inputmode="numeric" /></label>
+            <input type="hidden" name="extra_stops" value="0" />
+            <div class="stops-box full" id="stopsBox">
+              <b data-i18n="stTitle"></b>
+              <small class="muted" data-i18n="stSub"></small>
+              <div id="stopsList"></div>
+              <button type="button" class="btn btn-sm" id="addStop" data-i18n="stAdd"></button>
+            </div>
             <label class="f full"><span data-i18n="notes"></span><textarea name="notes" rows="2" data-i18n-ph="notesPh"></textarea></label>
           </div>
         </fieldset>
@@ -531,6 +544,7 @@
       <li><i>💎</i><div><b data-i18n="rlValue"></b><small data-i18n="rlValue_d"></small></div></li>
       <li><i>🔥</i><div><b data-i18n="rlDanger"></b><small data-i18n="rlDanger_d"></small></div></li>
       <li><i>🚫</i><div><b data-i18n="rlIllegal"></b></div></li>
+      <li><i>🔞</i><div><b data-i18n="rlAdult"></b><small data-i18n="rlAdult_d"></small></div></li>
       <li><i>🐾</i><div><b data-i18n="rlAnimal"></b></div></li>
     </ul>
     <p class="muted small" data-i18n="rlRefuse"></p>
@@ -556,14 +570,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610192155"></script>
-<script src="i18n.js?v=202610192155"></script>
-<script src="pricing.js?v=202610192155"></script>
-<script src="store.js?v=202610192155"></script>
-<script src="chat.js?v=202610192155"></script>
-<script src="common.js?v=202610192155"></script>
-<script src="enseignes.js?v=202610192155"></script>
-<script src="places.js?v=202610192155"></script>
-<script src="client.js?v=202610192155"></script>
+<script src="config.js?v=202610192210"></script>
+<script src="i18n.js?v=202610192210"></script>
+<script src="pricing.js?v=202610192210"></script>
+<script src="store.js?v=202610192210"></script>
+<script src="chat.js?v=202610192210"></script>
+<script src="common.js?v=202610192210"></script>
+<script src="enseignes.js?v=202610192210"></script>
+<script src="places.js?v=202610192210"></script>
+<script src="client.js?v=202610192210"></script>
 </body>
 </html>

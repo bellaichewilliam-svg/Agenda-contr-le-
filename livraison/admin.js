@@ -97,7 +97,7 @@ function alertNew(list, title) {
   beep();
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
   if (window.Notification && Notification.permission === "granted") {
-    list.forEach(x => new Notification(title(x), { body: x.body || "" }));
+    list.forEach(x => UI.notify(title(x), { body: x.body || "", tag: "hop-" + (x.ref || x.id || Math.random()) }));
   }
 }
 
@@ -177,18 +177,23 @@ async function sendPosition(pos) {
   duty.lastSent = now;
   try {
     await Store.ping(pos.coords.latitude, pos.coords.longitude);
-    $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · gardez cette page ouverte pendant la tournée.`;
+    $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · vous pouvez passer sur Waze : vous restez en service (notification « En service »).`;
   } catch (e) {
     $("#dutyText").textContent = "⚠️ Position non envoyée (connexion). Nouvel essai automatique.";
     duty.lastSent = 0;
   }
 }
 
+// En service : reste actif quand on passe sur Waze (ou qu'on recharge la page), jusqu'à « Terminer le service »
+const LS_DUTY = "livraison.adminDuty.v1";
 async function toggleDuty() {
   if (duty.watch != null) {
     navigator.geolocation.clearWatch(duty.watch);
     duty.watch = null;
     if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
+    try { localStorage.removeItem(LS_DUTY); } catch (e) { /* ignore */ }
+    Store.setOnline(false).catch(() => {});
+    UI.dutyNotice(false);
     renderDuty();
     return;
   }
@@ -200,7 +205,17 @@ async function toggleDuty() {
   }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
   // Garder l'écran allumé : les navigateurs coupent le GPS quand l'écran s'éteint
   try { if (navigator.wakeLock) duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* facultatif */ }
+  try { localStorage.setItem(LS_DUTY, "1"); } catch (e) { /* ignore */ }
+  Store.setOnline(true).catch(() => {});
+  UI.dutyNotice(true, "Vos clients vous voient sur la carte. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
   renderDuty();
+}
+// De retour dans HOP! (après Waze) : position tout de suite, écran allumé, notification « En service » remise
+async function dutyBack() {
+  if (duty.watch == null) return;
+  duty.lastSent = 0;
+  navigator.geolocation.getCurrentPosition(sendPosition, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
+  UI.dutyNotice(true, "Vos clients vous voient sur la carte. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
 }
 
 function renderDuty() {
@@ -287,11 +302,12 @@ function card(o, withDay) {
     meta.push(`<span class="pill star-pill">🏪 ${UI.esc(o.shop_name)}${ref && ref.role !== "admin" ? ` · parrain ${UI.esc(ref.name)} +${UI.money(o.referral_bonus || 0)}` : ""}</span>`);
   }
   if (o.courier_id && !isMine(o)) meta.push(`<span class="pill courier-pill">🛵 ${UI.esc(o.courier_name || "Livreur")} · commission ${o.network ? "réseau " : ""}${UI.money(o.commission || 0)}${Number(o.hop_share) > 0 ? ` + part Pro ${UI.money(o.hop_share)}` : ""}</span>`);
+  if (o.adult_items) meta.push(`<span class="pill unpaid">🔞 ${UI.esc(o.adult_items.replace(",", " + "))} · pièce d'identité</span>`);
   if (o.shop_ref) meta.push(`<span class="pill star-pill">🛍️ Sac n° ${UI.esc(o.shop_ref)}</span>`);
   if (Number(o.tip) > 0) meta.push(`<span class="pill ${o.tip_status === "promis" ? "unpaid" : "paid"}">💝 Pourboire ${UI.money(o.tip)} · ${TIP_FR[o.tip_status] || ""}</span>`
     + (o.tip_status === "promis" ? `<button class="pill pill-btn paid" data-act="tipok" title="Le Bit du client est arrivé : le pourboire sera reversé au livreur avec son solde">✅ Pourboire reçu</button>` : ""));
   if (o.round_trip) meta.push(`<span class="pill">🔁 Aller-retour</span>`);
-  if (o.extra_stops) meta.push(`<span class="pill">+${o.extra_stops} arrêt(s)</span>`);
+  if (o.extra_stops && !(o.stops || []).length) meta.push(`<span class="pill">+${o.extra_stops} arrêt(s)</span>`);
   if (o.distance_km) meta.push(`<span class="pill">${Number(o.distance_km).toFixed(0)} km</span>`);
   if (o.promo_code) meta.push(`<span class="pill">🎁 ${UI.esc(o.promo_code)} −${UI.money(o.discount || 0)}</span>`);
   meta.push(`<span class="pill">👤 ${tel(o.contact_name, o.contact_phone)}${o.company ? " · " + UI.esc(o.company) : ""}</span>`);
@@ -321,6 +337,7 @@ function card(o, withDay) {
     </div>
     <div class="legs">
       <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b><bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</b>${UI.addrDetails(o, "pickup")}${UI.addrNote(o.pickup_note)}${pickupExtra}<span class="small muted">${tel(o.pickup_contact, o.pickup_phone)}</span>${nav("pickup")}</div></div>
+      ${UI.stopsLegs(o, true)}
       <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b><bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}</b>${UI.addrDetails(o, "dropoff")}${UI.addrNote(o.dropoff_note)}${UI.doorTag(o)}<span class="small muted">${tel(o.dropoff_contact, o.dropoff_phone)}</span>${nav("dropoff")}</div></div>
     </div>
     <div class="meta">${meta.join("")}</div>
@@ -843,7 +860,7 @@ async function refreshChats() {
   $("#chatTabBadge").textContent = total ? `(${total})` : "";
   if (!firstLoad && total > chatTotal && Chat.openThread == null) {
     beep();
-    if (window.Notification && Notification.permission === "granted") new Notification("💬 Nouveau message", { body: "Ouvrez la messagerie de l'espace patron." });
+    UI.notify("💬 Nouveau message", { body: "Ouvrez la messagerie de l'espace patron.", tag: "hop-chat" });
   }
   chatTotal = total;
 }
@@ -1092,7 +1109,15 @@ async function start() {
 }
 
 $("#loginForm").addEventListener("submit", onLogin);
-$("#logoutBtn").addEventListener("click", e => { e.preventDefault(); clearInterval(pollTimer); Store.logout(); showLogin(); });
+$("#logoutBtn").addEventListener("click", async e => {
+  e.preventDefault(); clearInterval(pollTimer);
+  // Se déconnecter termine aussi le service : plus visible sur la carte des clients
+  if (duty.watch != null) await toggleDuty();
+  else await Store.setOnline(false).catch(() => {});
+  try { localStorage.removeItem(LS_DUTY); } catch (ex) { /* ignore */ }
+  UI.dutyNotice(false);
+  Store.logout(); showLogin();
+});
 $("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; render(); } });
 $("#reloadBtn").addEventListener("click", load);
 $("#routeBtn").addEventListener("click", openRoute);
@@ -1119,10 +1144,13 @@ document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible" && duty.watch != null && navigator.wakeLock) {
     try { duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* ignore */ }
   }
+  if (document.visibilityState === "visible") dutyBack();
 });
 
 if (window.Notification && Notification.permission === "granted") $("#notifBtn").textContent = "🔔 Alertes activées";
 if (Store.session()) start(); else showLogin();
+// Le service était en cours avant de recharger la page : on le reprend
+try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); } catch (e) { /* ignore */ }
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;

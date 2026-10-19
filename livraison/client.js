@@ -12,7 +12,7 @@ const form = $("#orderForm");
 const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
-const state = { shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null } };
+const state = { shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null }, stops: [] };
 const ac = {};
 
 // Exemples cliquables : ils pré-remplissent le formulaire
@@ -266,7 +266,7 @@ function carnetOk() {
   const pf = state.pick.from;
   return !!(state.pro && state.pro.credits > 0 && state.shop && pf && pf.shopId === state.shop.id
     && cityOf("from") === CONFIG.homeCity && cityOf("to") === CONFIG.homeCity && val("size") === "petit"
-    && val("urgency") !== "express" && !form.round_trip.checked && !(parseInt(val("extra_stops"), 10) > 0)
+    && val("urgency") !== "express" && !form.round_trip.checked && !state.stops.length
     && ["colis", "repas"].includes(val("service")));
 }
 const carnetUnit = () => Number(state.settings.carnet_unit || CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses);
@@ -285,7 +285,7 @@ function baseQuote() {
     fromCity: cityOf("from"), toCity: cityOf("to"),
     fromPoint: state.fromPoint, toPoint: state.toPoint,
     service: val("service"), urgency: val("urgency"), size: val("size"),
-    roundTrip: form.round_trip.checked, extraStops: val("extra_stops"),
+    roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
   }, CONFIG);
 }
@@ -468,6 +468,83 @@ function onPlacePicked(which, p, quiet) {
   renderQuote();
   renderShopBanner();
   renderSaveBtns();
+  if (which === "to" && form.nearest_store.checked) applyNearest();
+}
+
+// --- Arrêts en plus (au plus CONFIG.pricing.stop.maxStops) : moitié prix s'ils sont sur le chemin ---------
+const STOP = CONFIG.pricing.stop || { onWayKm: 1.5, onWayPercent: 50, maxStops: 2 };
+const stopPoint = s => (s.place && s.place.lat != null ? { lat: Number(s.place.lat), lon: Number(s.place.lon) } : null);
+function stopDetour(s) {
+  const c = city => { const x = Pricing.cityById(CONFIG, city); return x ? { lat: x.lat, lon: x.lon } : null; };
+  return Pricing.stopDetourKm(state.fromPoint || c(cityOf("from")), stopPoint(s), state.toPoint || c(cityOf("to")));
+}
+function stopOnWay(s) { const d = stopDetour(s); return d != null && d <= STOP.onWayKm; }
+function renderStopInfo() {
+  state.stops.forEach((s, i) => {
+    const el = $(`#stopsList [data-stop="${i}"] .stop-way`);
+    if (!el) return;
+    const d = stopDetour(s);
+    el.textContent = d == null ? "" : stopOnWay(s) ? t("stOnWay") : t("stOffWay", { km: d.toFixed(1).replace(".", I18N.lang === "he" ? "." : ",") });
+    el.classList.toggle("off", d != null && !stopOnWay(s));
+  });
+  $("#addStop").classList.toggle("hidden", state.stops.length >= STOP.maxStops);
+  form.extra_stops.value = state.stops.length;
+}
+function renderStops() {
+  $("#stopsList").innerHTML = state.stops.map((s, i) => `<div class="stop-row" data-stop="${i}">
+      <div class="stop-head"><b>📌 ${UI.esc(t("stN", { n: i + 1 }))}</b><span class="stop-way"></span><button type="button" class="btn btn-link btn-sm" data-stop-del="${i}">${UI.esc(t("stRemove"))}</button></div>
+      <div class="stop-fields">
+        <label class="f"><input data-stop-addr="${i}" value="${UI.esc(s.label || "")}" placeholder="${UI.esc(t("stAddrPh"))}" /></label>
+        <label class="f stop-no"><input data-stop-no="${i}" value="${UI.esc(s.number || "")}" placeholder="${UI.esc(t("stNoPh"))}" autocomplete="off" /></label>
+      </div>
+      <div class="stop-do">${["deposer", "recuperer", "acheter"].map(k => `<button type="button" class="ch-chip${s.todo === k ? " on" : ""}" data-stop-do="${i}" data-v="${k}">${UI.esc(t("stDo_" + k))}</button>`).join("")}</div>
+      <label class="f"><input data-stop-note="${i}" value="${UI.esc(s.note || "")}" placeholder="${UI.esc(t("stNotePh"))}" /></label>
+    </div>`).join("");
+  state.stops.forEach((s, i) => {
+    Places.attach($(`#stopsList [data-stop-addr="${i}"]`), {
+      lang: () => I18N.lang,
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner") }),
+      onPick: p => { s.place = p; s.label = p.label; renderStopInfo(); renderQuote(); },
+      onClear: () => { s.place = null; s.label = ""; renderStopInfo(); renderQuote(); }
+    });
+  });
+  renderStopInfo();
+}
+function stopsForOrder() {
+  return state.stops.map(s => ({
+    address: [s.place ? (s.place.brand ? s.place.brand + ", " : "") + (s.place.streetName || s.place.street || "") : s.label, s.number].filter(Boolean).join(" ").trim(),
+    city: s.place ? s.place.city || null : null, lat: s.place ? s.place.lat : null, lon: s.place ? s.place.lon : null,
+    todo: s.todo || "deposer", note: (s.note || "").trim() || null, on_way: stopOnWay(s)
+  }));
+}
+
+// --- Tabac et alcool : 18 ans et plus, pas d'alcool entre 23 h et 6 h ; achat au plus près du client ---------
+const TOBACCO_RE = /cigar|clope|tabac|marlboro|winston|camel|נובלס|סיגרי|טבק|סיגר/i;
+const ALCOHOL_RE = /alcool|bi[eè]re|\bvins?\b|vodka|whisk|arak|rhum|champagne|tequila|\bgin\b|liqueur|בירה|יין|וודקה|ערק|ויסקי|אלכוהול|שמפניה/i;
+const adultItems = () => [form.has_tobacco.checked && "tabac", form.has_alcohol.checked && "alcool"].filter(Boolean);
+function alcoholForbiddenAt(d) { if (!d) return false; const h = Pricing.localParts(d, CONFIG.timezone).hour; return h >= 23 || h < 6; }
+function syncAdult() {
+  const achat = val("service") === "achat";
+  const any = achat && adultItems().length > 0;
+  $("#adultOkBox").classList.toggle("hidden", !any);
+  $("#alcoholNote").classList.toggle("hidden", !(achat && form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())));
+}
+// « Le plus proche de chez moi » : le départ devient l'adresse du client, le livreur choisit le magasin
+function applyNearest() {
+  const on = val("service") === "achat" && form.nearest_store.checked;
+  form.classList.toggle("near-on", on);
+  // Plus besoin de l'adresse du magasin, ni de contact sur place
+  [form.pickup_address, form.pickup_number, form.from_city, form.pickup_contact, form.pickup_phone].forEach(el => el && el.closest("label").classList.toggle("hidden", on));
+  ['.saved-addrs[data-for="from"]', '[data-geo="from"]', '[data-kind="pickup"]', '[data-details="pickup"]'].forEach(q => {
+    const el = form.querySelector(q); if (el) (el.closest(".addr-tools") || el).classList.toggle("near-hide", on);
+  });
+  if (!on && state.pick.from && state.pick.from.nearest) {
+    state.pick.from = null; state.fromPoint = null; form.pickup_address.value = ""; setBrandMode("from", false); renderQuote();
+  }
+  if (!on || !state.pick.to) return;
+  const p = Object.assign({}, state.pick.to, { brand: t("nearBrand"), partnerCode: null, nearest: true });
+  p.label = [p.brand, cityLabel(p.cityId || p.city)].filter(Boolean).join(", ");
+  onPlacePicked("from", p, true);
 }
 
 function attachPlaces() {
@@ -738,6 +815,12 @@ async function submit(e) {
   if (err) return showError(t(err.key, err.vars));
   if (proShopOn() && !val("shop_order").trim()) { form.shop_order.focus(); return showError(t("errShopOrder", { name: state.shop.name })); }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showError(t("errShopRef")); }
+  if (val("service") === "achat" && adultItems().length) {
+    if (!form.adult_ok.checked) { form.adult_ok.focus(); return showError(t("errAdult")); }
+    if (form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())) return showError(t("errAlcoholHours"));
+  }
+  const badStop = state.stops.findIndex(s => !stopPoint(s));
+  if (badStop >= 0) { $(`#stopsList [data-stop-addr="${badStop}"]`).focus(); return showError(t("errStopPick")); }
   // Zones pas encore ouvertes (ex. Tel Aviv) : « bientôt »
   const closedCity = [fromCity, toCity].find(c => !UI.cityActive(c));
   if (closedCity) return showError(t("errZone", { city: cityLabel(closedCity) }));
@@ -813,7 +896,9 @@ async function submit(e) {
       dropoff_phone: val("dropoff_phone").trim() ? formatPhone(val("dropoff_phone").trim()) : null,
       size: val("size"),
       round_trip: form.round_trip.checked,
-      extra_stops: parseInt(val("extra_stops"), 10) || 0,
+      extra_stops: state.stops.length,
+      stops: state.stops.length ? stopsForOrder() : null,
+      adult_items: svc === "achat" && adultItems().length ? adultItems().join(",") : null,
       distance_km: q.distanceKm,
       price: q.total,
       promo_code: disc ? (disc.key === "qLoyalty" ? "FIDELITE" : disc.vars.code) : null,
@@ -856,6 +941,7 @@ async function submit(e) {
     ["notes", "shop_order", "shop_ref", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     setKind("pickup", null); setKind("dropoff", null);
+    state.stops = []; renderStops();
     state.promo = null;
     $("#promoMsg").textContent = "";
     resetPlaces();
@@ -867,6 +953,7 @@ async function submit(e) {
   } catch (ex) {
     if (/welcome_used/.test(ex.message)) { state.welcomeUsed = true; refuseWelcome(); return; }
     if (/carnet_/.test(ex.message)) { if (state.pro) state.pro.credits = 0; syncVisibility(); return showError(t("errCarnet")); }
+    if (/alcohol_hours/.test(ex.message)) return showError(t("errAlcoholHours"));
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;
@@ -1715,6 +1802,28 @@ $("#refreshMine").addEventListener("click", loadMine);
 $("#myOrders").addEventListener("click", onListClick);
 $("#waFab").addEventListener("click", openChatMenu);
 form.addEventListener("change", e => { const m = /^(pickup|dropoff)_kind$/.exec(e.target.name || ""); if (m) setKind(m[1], e.target.value); });
+form.addEventListener("change", e => {
+  if (e.target.name === "nearest_store" || e.target.name === "service") applyNearest();
+  if (["has_tobacco", "has_alcohol", "service", "urgency", "date", "time"].includes(e.target.name)) syncAdult();
+});
+form.shopping_list.addEventListener("input", () => {
+  const v = form.shopping_list.value;
+  if (TOBACCO_RE.test(v)) form.has_tobacco.checked = true;
+  if (ALCOHOL_RE.test(v)) form.has_alcohol.checked = true;
+  syncAdult();
+});
+$("#addStop").addEventListener("click", () => { if (state.stops.length < STOP.maxStops) { state.stops.push({ todo: "deposer" }); renderStops(); renderQuote(); $(`#stopsList [data-stop-addr="${state.stops.length - 1}"]`).focus(); } });
+$("#stopsList").addEventListener("click", e => {
+  const del = e.target.closest("[data-stop-del]");
+  if (del) { state.stops.splice(Number(del.dataset.stopDel), 1); renderStops(); return renderQuote(); }
+  const d = e.target.closest("[data-stop-do]");
+  if (d) { state.stops[Number(d.dataset.stopDo)].todo = d.dataset.v; d.parentNode.querySelectorAll(".ch-chip").forEach(c => c.classList.toggle("on", c === d)); }
+});
+$("#stopsList").addEventListener("input", e => {
+  const n = e.target.dataset.stopNo, note = e.target.dataset.stopNote;
+  if (n != null) state.stops[Number(n)].number = e.target.value;
+  if (note != null) state.stops[Number(note)].note = e.target.value;
+});
 document.addEventListener("click", e => { if (e.target.closest("[data-rules]")) { e.preventDefault(); openRules(); } });
 $("#rulesClose").addEventListener("click", () => $("#rulesModal").classList.add("hidden"));
 $("#rulesModal").addEventListener("click", e => { if (e.target.id === "rulesModal") $("#rulesModal").classList.add("hidden"); });

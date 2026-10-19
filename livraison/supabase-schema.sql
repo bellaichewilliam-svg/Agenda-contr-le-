@@ -1446,6 +1446,9 @@ revoke execute on function public.orders_reset_streak() from public, anon, authe
 -- Obligatoire quand le commerce accepte une commande HOP! Pro.
 -- ============================================================================
 alter table public.orders add column if not exists shop_ref text check (shop_ref ~ '^[0-9]{3}$');
+-- Arrêts en plus (adresse, quoi faire, sur le chemin ou non) et achats réservés aux 18 ans et plus
+alter table public.orders add column if not exists stops jsonb;
+alter table public.orders add column if not exists adult_items text check (adult_items in ('tabac', 'alcool', 'tabac,alcool'));
 
 create or replace function public.orders_money_guard() returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -1456,6 +1459,11 @@ begin
   new.network := false; new.tip := 0; new.tip_status := null;
   -- N° de commande du commerce (3 chiffres), seulement pour une course au départ d'un commerce
   new.shop_ref := case when new.shop_id is not null and new.shop_ref ~ '^[0-9]{3}$' then new.shop_ref end;
+  -- Alcool : la loi interdit la vente entre 23 h et 6 h
+  if new.adult_items like '%alcool%' and (extract(hour from new.pickup_at at time zone 'Asia/Jerusalem') >= 23
+                                          or extract(hour from new.pickup_at at time zone 'Asia/Jerusalem') < 6) then
+    raise exception 'alcohol_hours';
+  end if;
   return new;
 end;
 $$;
@@ -1505,6 +1513,28 @@ create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_a
 language sql security definer set search_path = public as $$
   select public.shop_order_action(p_token, p_id, p_action, p_minutes, p_reason, null::text);
 $$;
+
+-- ============================================================================
+-- EN SERVICE : on reste en ligne en passant sur Waze. La position peut dater de duty_grace_min minutes
+-- (le téléphone coupe le GPS quand HOP! n'est pas à l'écran) ; « Terminer le service » met hors ligne
+-- tout de suite, le patron compris.
+-- ============================================================================
+alter table public.settings add column if not exists duty_grace_min int not null default 60;
+create or replace function public.courier_online(c couriers) returns boolean
+language sql stable set search_path = public as $$
+  select c.online and c.position_at > now() - make_interval(mins => coalesce((select duty_grace_min from settings where id = 1), 60));
+$$;
+create or replace function public.couriers_nearby() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object(
+           'lat', round(c.lat::numeric * 500) / 500, 'lon', round(c.lon::numeric * 500) / 500,
+           'free', not exists (select 1 from orders o where o.courier_id = c.id and o.status in ('confirmee', 'recuperee'))
+         ) order by c.id), '[]'::json)
+    from couriers c
+   where c.status = 'actif' and c.lat is not null and public.courier_online(c);
+$$;
+revoke execute on function public.couriers_nearby() from public;
+grant execute on function public.couriers_nearby() to anon, authenticated;
 
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md

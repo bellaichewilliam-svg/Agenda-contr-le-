@@ -63,8 +63,16 @@ function computeQuote(opts, cfg) {
   if (opts.urgency === "express") lines.push({ key: "qExpress", amount: P.express });
   if (opts.service === "retrait" && P.pickupPoint) lines.push({ key: "qPickup", amount: P.pickupPoint });
   if (opts.service === "achat" && P.purchase) lines.push({ key: "qPurchase", amount: P.purchase });
-  const stops = Math.max(0, parseInt(opts.extraStops, 10) || 0);
-  if (stops) lines.push({ key: "qStops", vars: { n: stops }, amount: stops * P.extraStop });
+  // Arrêts en plus : sur le chemin → moitié prix d'une course, sinon prix d'une course
+  if (Array.isArray(opts.stops) && opts.stops.length) {
+    const S = P.stop || { onWayPercent: 50 };
+    opts.stops.forEach((s, i) => lines.push(s.onWay
+      ? { key: "qStopOnWay", vars: { n: i + 1, p: S.onWayPercent }, amount: Math.round(P.base * S.onWayPercent / 100 * 2) / 2 }
+      : { key: "qStopFull", vars: { n: i + 1 }, amount: P.base }));
+  } else {
+    const stops = Math.max(0, parseInt(opts.extraStops, 10) || 0);
+    if (stops) lines.push({ key: "qStops", vars: { n: stops }, amount: stops * P.extraStop });
+  }
 
   let subtotal = lines.reduce((s, l) => s + l.amount, 0);
   if (opts.roundTrip) {
@@ -116,6 +124,13 @@ function isOpenNow(cfg, now) {
   return !!slot && hour >= slot[0] && hour < slot[1];
 }
 
+// Un arrêt est « sur le chemin » si le détour (départ → arrêt → arrivée, au lieu de départ → arrivée)
+// fait au plus onWayKm km à vol d'oiseau
+function stopDetourKm(from, stop, to) {
+  if (!from || !stop || !to) return null;
+  return Math.max(0, haversineKm(from, stop) + haversineKm(stop, to) - haversineKm(from, to));
+}
+
 // Minutes estimées : distance par la route ≈ ×1,3 ; 25 km/h en ville, 50 km/h entre villes
 function etaMinutes(a, b) {
   const road = haversineKm(a, b) * 1.3;
@@ -150,7 +165,7 @@ async function geocode(address, countryCode, timeoutMs) {
 // Prix voiture (gros colis) entre la ville principale et une ville, ou null
 function carPrice(cfg, fromId, toId) { return cfg.pricing.carAvailable === false ? null : fixedPrice(cfg, fromId, toId, true); }
 
-const api = { computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode };
+const api = { computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.Pricing = api;
 

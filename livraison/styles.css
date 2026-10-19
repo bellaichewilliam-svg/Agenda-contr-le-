@@ -962,3 +962,20 @@ body.in-home .eta-bubble { display: none; }
 .guide-card ol { margin: 12px 0 0; padding-inline-start: 0; list-style: none; display: grid; gap: 10px; counter-reset: g; }
 .guide-card li { counter-increment: g; display: grid; grid-template-columns: 26px 1fr; gap: 8px; font-size: 14.5px; line-height: 1.45; }
 .guide-card li::before { content: counter(g); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-ink); font-weight: 800; font-size: 13px; }
+
+/* Arrêts en plus sur le chemin */
+.stops-box { display: grid; gap: 8px; padding: 12px; border: 1px dashed var(--border); border-radius: 14px; background: var(--bg); }
+.stop-row { display: grid; gap: 8px; padding: 10px; border-radius: 12px; background: var(--panel); border: 1px solid var(--border); }
+.stop-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.stop-head .btn-link { margin-inline-start: auto; }
+.stop-way { font-size: 12.5px; font-weight: 700; color: var(--green-ink); }
+.stop-way.off { color: var(--amber-ink); }
+.stop-fields { display: grid; grid-template-columns: 1fr 90px; gap: 8px; }
+.stop-do { display: flex; flex-wrap: wrap; gap: 6px; }
+.stop-do .ch-chip { cursor: pointer; }
+#addStop { justify-self: start; }
+.leg-stop small { color: var(--muted); font-weight: 600; }
+/* Achat : tabac / alcool, magasin le plus proche */
+.adult-box { display: grid; gap: 8px; padding: 10px 12px; border-radius: 12px; background: var(--bg); }
+.near-store { font-weight: 600; }
+.near-hide { display: none !important; }
