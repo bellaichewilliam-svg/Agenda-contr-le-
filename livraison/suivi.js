@@ -21,9 +21,7 @@ function initMap() {
   if (!window.L) { $("#map").classList.add("hidden"); return; }
   const home = Pricing.cityById(CONFIG, CONFIG.homeCity);
   map = L.map("map", { zoomControl: true }).setView([home.lat, home.lon], 12);
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-    maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO"
-  }).addTo(map);
+  UI.mapTiles(map, false);
 }
 
 function pin(emoji) {

@@ -590,7 +590,7 @@ function confirmAddresses(pick, drop, pAddr, dAddr, fromCity, toCity) {
     if (hasMap) {
       if (!checkMap) {
         checkMap = L.map("checkMap", { zoomControl: true, attributionControl: false });
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(checkMap);
+        UI.mapTiles(checkMap, false);
       }
       checkMap.eachLayer(l => { if (l instanceof L.Marker) checkMap.removeLayer(l); });
       const pin = e => L.divIcon({ className: "", html: `<div class="check-pin">${e}</div>`, iconSize: [30, 30], iconAnchor: [15, 28] });
@@ -1368,8 +1368,7 @@ function initHomeMap() {
   $("#homeZoomIn").addEventListener("click", () => home.map.zoomIn());
   $("#homeZoomOut").addEventListener("click", () => home.map.zoomOut());
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-  L.tileLayer(`https://{s}.basemaps.cartocdn.com/${dark ? "dark_all" : "rastertiles/voyager"}/{z}/{x}/{y}{r}.png`,
-    { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO" }).addTo(home.map);
+  UI.mapTiles(home.map, dark);
   addEventListener("resize", () => home.map.invalidateSize());
 }
 const divIcon = (html, size) => L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });

@@ -425,7 +425,7 @@ function updateLiveMap() {
   if (!live.map) {
     const home = Pricing.cityById(CONFIG, CONFIG.homeCity);
     live.map = L.map("liveMap").setView([home.lat, home.lon], 12);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(live.map);
+    UI.mapTiles(live.map, false);
     live.layer = L.layerGroup().addTo(live.map);
   }
   live.map.invalidateSize();

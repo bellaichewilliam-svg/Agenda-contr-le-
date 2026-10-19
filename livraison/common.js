@@ -51,6 +51,11 @@ function ratingText(o) {
 function waitRule(st) {
   return `${st.wait_free_min} min offertes, puis +${money(st.wait_step_price)} par ${st.wait_step_min} min (max ${money(st.wait_max)})`;
 }
+// Fond de carte OpenStreetMap (gratuit, sans clé) ; version sombre par un filtre sur les tuiles
+function mapTiles(map, dark) {
+  return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    { maxZoom: 19, attribution: "© OpenStreetMap", className: dark ? "tiles-dark" : "" }).addTo(map);
+}
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 function placeQuery(o, which) {
   const brand = o[which + "_place"];
@@ -232,7 +237,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
   deliveryEta, PROGRESS, commissionText, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
-  waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
+  mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 
