@@ -423,7 +423,8 @@ function renderMine() {
         <div class="mo-actions">
           ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<a class="btn btn-sm btn-primary" href="${UI.trackUrl(o)}">${t("track")}</a>` : ""}
           ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${t("receiptLink")}</a>` : ""}
-          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.courier_phone || CONFIG.whatsapp, t("orderNo", { ref: o.ref }) + " — ")}">${t("contact")}</a>
+          ${o.courier_phone && ["confirmee", "recuperee"].includes(o.status) ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.courier_phone, t("orderNo", { ref: o.ref }) + " — ")}">${UI.esc(t("chatCourier", { name: (o.courier_name || "").split(" ")[0] }))}</a>` : ""}
+          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, t("orderNo", { ref: o.ref }) + " — ")}">${t("chatAdmin")}</a>
           ${o.status === "nouvelle" ? `<button class="btn btn-sm btn-link" data-cancel="${UI.esc(o.token)}">${t("cancel")}</button>` : ""}
         </div>
       </div>

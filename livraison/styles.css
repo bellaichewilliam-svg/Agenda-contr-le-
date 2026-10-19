@@ -59,13 +59,18 @@ a { color: inherit; }
 }
 
 body {
-  font-family: "Plus Jakarta Sans", "Heebo", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: "Rubik", -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   background: var(--bg);
   color: var(--ink);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
-html[lang="he"] body { font-family: "Heebo", "Plus Jakarta Sans", -apple-system, Arial, sans-serif; }
+/* Police d'affichage ronde et joyeuse (latin + hébreu) pour les titres et la marque */
+h1, h2, h3, .logo, .order-time, .quick-price b, .summary .total b, .stat b, .ref-code, .btn-lg, .lang-btn, .rc-head h1, .rc-title b, .eta b, .pay-box .amount, .flyer h2, .popup-price {
+  font-family: "Fredoka", "Rubik", -apple-system, Arial, sans-serif;
+  font-weight: 600;
+}
+.hero h1 { font-weight: 700; letter-spacing: -.01em; }
 .wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
 .wrap.narrow { max-width: 760px; }
 .hidden { display: none !important; }
@@ -346,7 +351,7 @@ table.bill .num { text-align: end; }
 
 /* --- Kit marketing ------------------------------------------------------------ */
 .post { white-space: pre-wrap; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 12px; font-size: 14px; margin: 8px 0; }
-.post[dir="rtl"] { font-family: "Heebo", Arial, sans-serif; }
+.post[dir="rtl"] { font-family: "Rubik", Arial, sans-serif; }
 .kit section { margin-bottom: 18px; }
 .kit h3 { margin: 14px 0 6px; }
 .kit ol, .kit ul { padding-inline-start: 20px; display: grid; gap: 6px; font-size: 15px; }
@@ -364,7 +369,7 @@ table.bill .num { text-align: end; }
 }
 
 /* --- Reçu (קבלה) ---------------------------------------------------------------- */
-.receipt-page { font-family: "Heebo", Arial, sans-serif; }
+.receipt-page { font-family: "Rubik", Arial, sans-serif; }
 .receipt { background: #fff; color: #101828; padding: 28px; }
 .rc-head { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; border-bottom: 3px solid var(--brand); padding-bottom: 14px; font-size: 14px; }
 .rc-head h1 { font-size: 24px; }
@@ -383,3 +388,29 @@ table.bill .num { text-align: end; }
   .receipt-page .no-print { display: none !important; }
   .receipt-page .receipt { border: 0; box-shadow: none; }
 }
+
+/* --- Carte en direct (espace patron) ----------------------------------------------- */
+.live-layout { display: grid; grid-template-columns: 1fr 360px; gap: 14px; }
+#liveMap { height: 68vh; min-height: 380px; border-radius: var(--r); border: 1px solid var(--border); z-index: 1; }
+.live-item { cursor: pointer; padding: 12px; }
+.live-item:hover { border-color: var(--brand); }
+.map-pin.pin-wait { filter: grayscale(.6) drop-shadow(0 2px 3px rgba(0,0,0,.35)); }
+.map-pin.pin-courier { font-size: 34px; }
+.progress { display: flex; gap: 4px; margin-top: 8px; }
+.progress i { flex: 1; height: 5px; border-radius: 4px; background: var(--border); }
+.progress i.on { background: var(--green); }
+@media (max-width: 900px) { .live-layout { grid-template-columns: 1fr; } #liveMap { height: 52vh; } }
+.chat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.chat-grid .btn { padding: 11px 10px; font-size: 14px; }
+
+/* --- Fenêtre « nouvelle course » (livreur) -------------------------------------------- */
+.offer-box { border-top: 6px solid var(--brand); animation: pop .25s ease-out; }
+@keyframes pop { from { transform: scale(.9); opacity: 0; } }
+.offer-top { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; }
+.offer-top span { font-size: 28px; }
+.popup-price { font-size: 52px; color: var(--brand-deep); line-height: 1.1; margin-top: 6px; }
+.offer-gain { color: var(--green-ink); font-weight: 700; font-size: 14px; }
+.offer-route { text-align: start; margin: 16px auto 10px; max-width: 280px; }
+.offer-route > div:not(.offer-line) { display: flex; gap: 10px; align-items: center; font-size: 18px; }
+.offer-line { border-inline-start: 3px dotted var(--brand); height: 18px; margin-inline-start: 9px; }
+.offer-facts { display: grid; gap: 4px; font-size: 14px; color: var(--muted); background: var(--bg); border-radius: 12px; padding: 10px; }

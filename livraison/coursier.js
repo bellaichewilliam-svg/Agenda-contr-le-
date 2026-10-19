@@ -139,6 +139,9 @@ async function load() {
     return;
   }
   const fresh = pool().filter(o => !seenPool.has(o.id));
+  // Toute course disponible encore jamais montrée s'ouvre en fenêtre (dès la 1re connexion aussi)
+  fresh.forEach(o => offerQueue.push(o.id));
+  showNextOffer();
   if (!firstLoad && fresh.length) {
     beep();
     if (window.Notification && Notification.permission === "granted") {
@@ -271,10 +274,74 @@ async function onViewClick(e) {
   }
 }
 
+// --- Fenêtre « nouvelle course » : montant, trajet, kilomètres ------------------------
+const offerQueue = [];
+let offerShown = null;
+let lastPos = null;
+
+// Distance par la route estimée (vol d'oiseau × 1,3) entre deux points connus
+function roadKm(a, b) { return a && b ? Pricing.haversineKm(a, b) * 1.3 : null; }
+function pt(lat, lon) { return lat != null && lon != null ? { lat: Number(lat), lon: Number(lon) } : null; }
+
+function showNextOffer() {
+  if (offerShown) return;
+  let o;
+  while (offerQueue.length && !o) {
+    const id = offerQueue.shift();
+    o = pool().find(x => x.id === id);
+  }
+  if (!o) return;
+  offerShown = o.id;
+  const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon);
+  const trip = roadKm(pick, drop) ?? (o.distance_km != null ? Number(o.distance_km) * 1.3 : null);
+  const toPickup = roadKm(lastPos, pick);
+  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : moins d'1 h" : "Dès que possible";
+  $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
+  $("#offerPrice").textContent = UI.money(o.price);
+  $("#offerGain").textContent = `Vous gagnez ${UI.money(Number(o.price) - COMMISSION)} (commission ${UI.money(COMMISSION)})`;
+  $("#offerFrom").textContent = UI.cityFr(o.from_city);
+  $("#offerTo").textContent = UI.cityFr(o.to_city);
+  $("#offerFacts").innerHTML = [
+    `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
+    toPickup != null ? `🛵 À ≈ ${toPickup.toFixed(1)} km de vous` : "",
+    `🕐 ${UI.esc(when)}`,
+    `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`
+  ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
+  $("#offerModal").classList.remove("hidden");
+  // Position pas encore connue : on la demande une fois pour afficher « à X km de vous »
+  if (!lastPos && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(p => {
+      lastPos = { lat: p.coords.latitude, lon: p.coords.longitude };
+      if (offerShown === o.id) { offerShown = null; offerQueue.unshift(o.id); showNextOffer(); }
+    }, () => {}, { maximumAge: 60000, timeout: 8000 });
+  }
+}
+
+function closeOffer() {
+  $("#offerModal").classList.add("hidden");
+  offerShown = null;
+  setTimeout(showNextOffer, 300);
+}
+
+async function acceptOffer() {
+  const id = offerShown;
+  $("#offerAccept").disabled = true;
+  const ok = await Store.acceptOrder(id).catch(() => false);
+  $("#offerAccept").disabled = false;
+  closeOffer();
+  if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
+  else {
+    tab = "mine";
+    if (duty.watch == null && confirm("Course acceptée ! Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
+  }
+  load();
+}
+
 // --- En service : position GPS ------------------------------------------------------
 const duty = { watch: null, lastSent: 0, wakeLock: null };
 
 async function sendPosition(pos) {
+  lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
   if (Date.now() - duty.lastSent < 15000) return;
   duty.lastSent = Date.now();
   try {
@@ -315,6 +382,8 @@ $("#waitRefresh").addEventListener("click", route);
 $("#tabs").addEventListener("click", e => { if (e.target.dataset.tab) { tab = e.target.dataset.tab; render(); } });
 $("#view").addEventListener("click", onViewClick);
 $("#dutyBtn").addEventListener("click", toggleDuty);
+$("#offerAccept").addEventListener("click", acceptOffer);
+$("#offerSkip").addEventListener("click", closeOffer);
 $("#notifBtn").addEventListener("click", () => {
   if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
   Notification.requestPermission().then(p => { $("#notifBtn").textContent = p === "granted" ? "🔔 Alertes activées" : "🔕 Alertes refusées"; });

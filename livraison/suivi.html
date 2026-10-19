@@ -10,7 +10,7 @@
   <link rel="apple-touch-icon" href="logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -34,12 +34,15 @@
     <div class="card kv" id="details"></div>
     <div class="card pay-box hidden" id="payBox"></div>
     <div class="card" id="courierBox">
-      <h3 id="courierTitle" data-i18n="trCourier"></h3>
-      <div class="mo-actions">
-        <a class="btn btn-sm" id="callBtn" data-i18n="trCall"></a>
-        <a class="btn btn-sm btn-wa" id="waBtn" target="_blank" rel="noopener" data-i18n="trWa"></a>
-        <a class="btn btn-sm" id="shareBtn" target="_blank" rel="noopener" data-i18n="trShare"></a>
+      <h3 data-i18n="chatTitle"></h3>
+      <p class="muted small hidden" id="noCourier" data-i18n="chatNoCourier"></p>
+      <div class="chat-grid">
+        <a class="btn btn-wa hidden" id="waCourier" target="_blank" rel="noopener"></a>
+        <a class="btn hidden" id="callCourier"></a>
+        <a class="btn btn-wa" id="waAdmin" target="_blank" rel="noopener" data-i18n="chatAdmin"></a>
+        <a class="btn" id="callAdmin" data-i18n="callAdmin"></a>
       </div>
+      <a class="btn btn-sm btn-link" id="shareBtn" target="_blank" rel="noopener" data-i18n="trShare" style="margin-top:6px"></a>
     </div>
   </div>
 </main>

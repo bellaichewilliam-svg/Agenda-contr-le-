@@ -107,10 +107,20 @@ function render() {
         ? `<p style="margin:6px 0">${UI.esc(t("trPayBit", { phone: bit, ref: o.ref }))}</p>${copy}`
         : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}`;
 
-  const phone = o.courier_phone || CONFIG.phoneDisplay;
-  $("#courierTitle").textContent = o.courier_name ? t("trCourierName", { name: o.courier_name }) : t("trCourier");
-  $("#callBtn").href = "tel:" + phone;
-  $("#waBtn").href = UI.waLink(o.courier_phone || CONFIG.whatsapp, t("orderNo", { ref: o.ref }) + " — ");
+  // Discussion directe : avec le livreur attribué, ou avec l'administration
+  const hasCourier = !!o.courier_phone && ["confirmee", "recuperee"].includes(o.status);
+  const first = (o.courier_name || "").split(" ")[0];
+  const about = t("orderNo", { ref: o.ref }) + " — ";
+  $("#noCourier").classList.toggle("hidden", hasCourier || o.status !== "nouvelle");
+  ["#waCourier", "#callCourier"].forEach(s => $(s).classList.toggle("hidden", !hasCourier));
+  if (hasCourier) {
+    $("#waCourier").textContent = t("chatCourier", { name: first });
+    $("#waCourier").href = UI.waLink(o.courier_phone, about);
+    $("#callCourier").textContent = t("callCourier", { name: first });
+    $("#callCourier").href = "tel:" + o.courier_phone;
+  }
+  $("#waAdmin").href = UI.waLink(CONFIG.whatsapp, about);
+  $("#callAdmin").href = "tel:" + CONFIG.phoneDisplay;
   $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: location.href }));
   updateMap(o);
 }

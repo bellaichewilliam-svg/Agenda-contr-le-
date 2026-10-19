@@ -11,7 +11,8 @@
   <link rel="apple-touch-icon" href="logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -62,6 +63,7 @@
   <div class="tabs" id="tabs">
     <button class="tab on" data-tab="agenda">🗓️ Agenda</button>
     <button class="tab" data-tab="nouvelles">🆕 À accepter</button>
+    <button class="tab" data-tab="carte">🗺️ En direct</button>
     <button class="tab" data-tab="livreurs">👥 Livreurs <span id="pendingBadge"></span></button>
     <button class="tab" data-tab="hebdo">💸 Paiements de la semaine</button>
     <button class="tab" data-tab="historique">📚 Historique</button>
@@ -77,6 +79,17 @@
   </div>
 
   <div id="view"></div>
+
+  <!-- Carte en direct : gardée en dehors de #view pour ne pas perdre le zoom à chaque mise à jour -->
+  <div id="liveWrap" class="hidden">
+    <div class="live-layout">
+      <div id="liveMap"></div>
+      <div>
+        <div class="toolbar"><b>Courses en cours</b><button class="btn btn-sm" id="liveFit">🎯 Recentrer</button></div>
+        <div class="orders" id="liveList"></div>
+      </div>
+    </div>
+  </div>
 </main>
 
 <!-- Refus d'une course avec la raison envoyée au client -->
@@ -99,6 +112,7 @@
   </form>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="config.js"></script>
 <script src="i18n.js"></script>
 <script src="pricing.js"></script>
