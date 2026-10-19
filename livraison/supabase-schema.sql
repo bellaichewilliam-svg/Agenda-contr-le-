@@ -1442,6 +1442,101 @@ create or replace trigger orders_reset_streak after update on public.orders
 revoke execute on function public.orders_reset_streak() from public, anon, authenticated;
 
 -- ============================================================================
+-- N° DE COMMANDE DU COMMERCE (3 chiffres) : écrit sur le sac, le livreur prend le bon
+-- Obligatoire quand le commerce accepte une commande HOP! Pro.
+-- ============================================================================
+alter table public.orders add column if not exists shop_ref text check (shop_ref ~ '^[0-9]{3}$');
+-- Arrêts en plus (adresse, quoi faire, sur le chemin ou non) et achats réservés aux 18 ans et plus
+alter table public.orders add column if not exists stops jsonb;
+alter table public.orders add column if not exists adult_items text check (adult_items in ('tabac', 'alcool', 'tabac,alcool'));
+
+create or replace function public.orders_money_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.discount := case when new.promo_code is null then 0 else least(greatest(coalesce(new.discount, 0), 0), 30) end;
+  new.hop_share := case when coalesce(new.shop_share, 0) > 0
+                        then least(new.shop_share, (select pro_hop_share from settings where id = 1)) else 0 end;
+  new.network := false; new.tip := 0; new.tip_status := null;
+  -- N° de commande du commerce (3 chiffres), seulement pour une course au départ d'un commerce
+  new.shop_ref := case when new.shop_id is not null and new.shop_ref ~ '^[0-9]{3}$' then new.shop_ref end;
+  -- Alcool : la loi interdit la vente entre 23 h et 6 h
+  if new.adult_items like '%alcool%' and (extract(hour from new.pickup_at at time zone 'Asia/Jerusalem') >= 23
+                                          or extract(hour from new.pickup_at at time zone 'Asia/Jerusalem') < 6) then
+    raise exception 'alcohol_hours';
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes, o.shop_ref
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json));
+$$;
+
+create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_action text, p_minutes int, p_reason text, p_ref text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders; v_ref text := nullif(trim(coalesce(p_ref, '')), '');
+begin
+  select o2.* into o from orders o2 join shops s on s.id = o2.shop_id where o2.id = p_id and s.token = p_token;
+  if not found then return false; end if;
+  if p_action = 'accepter' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    if v_ref is null or v_ref !~ '^[0-9]{3}$' then raise exception 'shop_ref_required'; end if;
+    update orders set shop_status = 'acceptee', shop_ref = v_ref, prep_minutes = least(greatest(coalesce(p_minutes, 15), 5), 90),
+           ready_at = now() + make_interval(mins => least(greatest(coalesce(p_minutes, 15), 5), 90))
+     where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:shop_ok');
+  elsif p_action = 'prete' and o.shop_status = 'acceptee' then
+    update orders set shop_status = 'prete', ready_at = least(ready_at, now()) where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:prete');
+  elsif p_action = 'refuser' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    update orders set shop_status = 'refusee', status = 'refusee', admin_note = left(nullif(trim(p_reason), ''), 300) where id = p_id;
+  else
+    return false;
+  end if;
+  return true;
+end;
+$$;
+revoke execute on function public.shop_order_action(uuid, uuid, text, int, text, text) from public;
+grant execute on function public.shop_order_action(uuid, uuid, text, int, text, text) to anon, authenticated;
+-- Ancienne version (sans numéro) : une acceptation demande maintenant le numéro
+create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_action text, p_minutes int, p_reason text) returns boolean
+language sql security definer set search_path = public as $$
+  select public.shop_order_action(p_token, p_id, p_action, p_minutes, p_reason, null::text);
+$$;
+
+-- ============================================================================
+-- EN SERVICE : on reste en ligne en passant sur Waze. La position peut dater de duty_grace_min minutes
+-- (le téléphone coupe le GPS quand HOP! n'est pas à l'écran) ; « Terminer le service » met hors ligne
+-- tout de suite, le patron compris.
+-- ============================================================================
+alter table public.settings add column if not exists duty_grace_min int not null default 60;
+create or replace function public.courier_online(c couriers) returns boolean
+language sql stable set search_path = public as $$
+  select c.online and c.position_at > now() - make_interval(mins => coalesce((select duty_grace_min from settings where id = 1), 60));
+$$;
+create or replace function public.couriers_nearby() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object(
+           'lat', round(c.lat::numeric * 500) / 500, 'lon', round(c.lon::numeric * 500) / 500,
+           'free', not exists (select 1 from orders o where o.courier_id = c.id and o.status in ('confirmee', 'recuperee'))
+         ) order by c.id), '[]'::json)
+    from couriers c
+   where c.status = 'actif' and c.lat is not null and public.courier_online(c);
+$$;
+revoke execute on function public.couriers_nearby() from public;
+grant execute on function public.couriers_nearby() to anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

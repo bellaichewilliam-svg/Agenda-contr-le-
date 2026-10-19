@@ -137,7 +137,10 @@ window.CONFIG = {
     express: 20,        // en moins d'une heure
     pickupPoint: 0,     // retrait à la poste / Super-Pharm / point relais : plus de supplément fixe (l'attente au-delà de 10 min est payée au temps, voir waiting)
     purchase: 0,        // « J'achète pour vous » : plus de supplément fixe (le temps des achats au-delà de 10 min est payé au temps)
-    extraStop: 10,      // par arrêt supplémentaire
+    extraStop: 10,      // (ancien) par arrêt supplémentaire sans adresse
+    // Arrêt en plus, avec son adresse : sur le chemin (détour d'au plus onWayKm km) → onWayPercent % du
+    // prix d'une course ; sinon le prix d'une course (base). Au plus maxStops arrêts.
+    stop: { onWayKm: 1.5, onWayPercent: 50, maxStops: 2 },
     returnTripPercent: 50
   },
 
@@ -157,6 +160,9 @@ window.CONFIG = {
     // Après ce nombre de courses refusées d'affilée (refus ou pas de réponse en 40 s), le livreur passe
     // hors ligne tout seul ; il repasse en ligne quand il est prêt (en ligne : settings.decline_streak_max)
     declineStreakMax: 3,
+    // En service : on reste en ligne ce nombre de minutes sans nouvelle position (le temps d'être sur Waze)
+    // ; « Terminer le service » met hors ligne tout de suite (en ligne : settings.duty_grace_min)
+    dutyGraceMinutes: 60,
     // Au-delà de ce solde dû (commissions − courses payées à HOP − bonus), le livreur ne
     // peut plus accepter de course tant qu'il n'a pas réglé (en ligne : settings.max_debt)
     maxDebt: 50,
