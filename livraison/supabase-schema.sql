@@ -331,7 +331,7 @@ $$;
 create or replace function public.track_order(p_token uuid)
 returns json
 language sql security definer set search_path = public as $$
-  select (to_jsonb(o) - 'contact_email' - 'commission' - 'commission_status' - 'client_ip' - 'device_id'
+  select (to_jsonb(o) - 'contact_email' - 'commission' - 'commission_status' - 'client_ip' - 'device_id' - 'hop_share' - 'network'
     || case when o.status in ('confirmee','recuperee') and c.position_at > now() - interval '30 minutes'
          then jsonb_build_object('courier_lat', c.lat, 'courier_lon', c.lon, 'courier_at', c.position_at)
          else '{}'::jsonb end)::json
@@ -707,8 +707,10 @@ $$;
 
 create or replace function public.my_referral_orders() returns setof json
 language sql stable security definer set search_path = public as $$
+  -- « mine » : course de son commerce qu'il a livrée lui-même (commission réseau, pas de bonus)
   select json_build_object('id', id, 'shop_id', shop_id, 'pickup_at', pickup_at, 'status', status,
-                           'referral_bonus', referral_bonus, 'referral_status', referral_status)
+                           'referral_bonus', referral_bonus, 'referral_status', referral_status,
+                           'mine', coalesce(courier_id = auth.uid(), false))
     from orders where referrer_id = auth.uid() order by pickup_at desc limit 2000;
 $$;
 
@@ -1185,6 +1187,199 @@ grant execute on function public.can_see_new(public.orders), public.commission_f
   public.is_admin(), public.is_active_courier() to authenticated;
 alter function public.norm_phone(text) set search_path = public;
 alter function public.courier_online(public.couriers) set search_path = public;
+
+-- ============================================================================
+-- RÈGLES DE RÉMUNÉRATION (octobre 2026) : les livreurs qui font leur marketing gagnent plus
+--   · commission 8 % (min 2 ₪) sur les courses de son réseau (commerce qu'il a amené),
+--     15 % (min 3,50 ₪) sur les courses que l'appli lui apporte
+--   · bonus réseau 2 ₪ par course d'un de ses commerces livrée par un autre
+--   · HOP! Pro : le commerce paie 12 ₪ par livraison, dont 2 ₪ pour HOP (le client paie 15 ₪)
+--   · 20 % des abonnements HOP! Pro payés, pendant 12 mois, au livreur qui a amené le commerce
+--   · codes promo payés par HOP (le livreur est payé sur le prix sans réduction)
+--   · pourboire : 100 % pour le livreur (payé à HOP par Bit, reversé au livreur)
+-- ============================================================================
+alter table public.settings add column if not exists network_pct numeric not null default 8;
+alter table public.settings add column if not exists network_min numeric not null default 2;
+alter table public.settings add column if not exists pro_hop_share numeric not null default 2;
+alter table public.settings add column if not exists pro_referrer_pct numeric not null default 20;
+alter table public.settings add column if not exists pro_referrer_months int not null default 12;
+alter table public.settings alter column commission_pct set default 15;
+alter table public.settings alter column commission_min set default 3.5;
+alter table public.settings alter column referral_bonus set default 2;
+alter table public.settings alter column pro_shop_share set default 12;
+-- Passage aux nouvelles règles (seulement si les anciennes valeurs n'ont pas été changées à la main)
+update public.settings set commission_pct = 15 where id = 1 and commission_pct = 12;
+update public.settings set commission_min = 3.5 where id = 1 and commission_min = 3;
+update public.settings set referral_bonus = 2 where id = 1 and referral_bonus = 1;
+update public.settings set pro_shop_share = 12 where id = 1 and pro_shop_share = 10;
+
+alter table public.orders add column if not exists hop_share numeric not null default 0;   -- part du commerce Pro gardée par HOP
+alter table public.orders add column if not exists network boolean not null default false;  -- course du réseau du livreur
+alter table public.orders add column if not exists tip numeric not null default 0;
+alter table public.orders add column if not exists tip_status text check (tip_status in ('promis', 'recu', 'verse'));
+
+-- Commission sur une course du réseau du livreur
+create or replace function public.commission_network(p_price numeric) returns numeric
+language sql stable security definer set search_path = public as $$
+  select greatest(st.network_min, round(coalesce(p_price, 0) * st.network_pct / 100 * 2) / 2)::numeric(10, 2) from settings st where st.id = 1;
+$$;
+revoke execute on function public.commission_network(numeric) from public, anon;
+grant execute on function public.commission_network(numeric) to authenticated;
+
+-- Valeur de la course pour le livreur : prix payé + réduction (payée par HOP) + part du commerce − part de HOP
+create or replace function public.course_value(o orders) returns numeric
+language sql stable set search_path = public as $$
+  select coalesce(o.price, 0) + coalesce(o.discount, 0) + coalesce(o.shop_share, 0) - coalesce(o.hop_share, 0);
+$$;
+
+-- Nouvelle commande : réduction seulement avec un code (au plus 30 ₪), part HOP du Pro, pas de pourboire
+create or replace function public.orders_money_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.discount := case when new.promo_code is null then 0 else least(greatest(coalesce(new.discount, 0), 0), 30) end;
+  new.hop_share := case when coalesce(new.shop_share, 0) > 0
+                        then least(new.shop_share, (select pro_hop_share from settings where id = 1)) else 0 end;
+  new.network := false; new.tip := 0; new.tip_status := null;
+  return new;
+end;
+$$;
+create or replace trigger orders_money_guard before insert on public.orders
+  for each row execute function public.orders_money_guard();
+revoke execute on function public.orders_money_guard() from public, anon, authenticated;
+
+-- Infos publiques d'un commerce : « shop_share » = ce que le commerce enlève au prix du client (12 − 2 = 10 ₪)
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'shop_share', (select pro_shop_share - pro_hop_share from settings where id = 1))
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;
+
+-- Abonnements HOP! Pro payés : 20 % pour le livreur qui a amené le commerce, ses 12 premiers mois
+create table if not exists public.plan_sales (
+  id               uuid primary key default gen_random_uuid(),
+  created_at       timestamptz not null default now(),
+  shop_id          uuid not null references public.shops(id),
+  months           int not null default 1,
+  amount           numeric not null,
+  referrer_id      uuid references public.couriers(id),
+  referrer_share   numeric not null default 0,
+  referrer_status  text not null default 'du' check (referrer_status in ('du', 'regle'))
+);
+create index if not exists plan_sales_referrer_idx on public.plan_sales (referrer_id);
+alter table public.plan_sales enable row level security;
+do $pol$ begin
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'plan_sales' and policyname = 'abonnements patron') then
+    alter policy "abonnements patron" on public.plan_sales to authenticated using (public.is_admin()) with check (public.is_admin());
+  else
+    create policy "abonnements patron" on public.plan_sales for all to authenticated using (public.is_admin()) with check (public.is_admin());
+  end if;
+end $pol$;
+do $pol$ begin
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'plan_sales' and policyname = 'abonnements parrain') then
+    alter policy "abonnements parrain" on public.plan_sales to authenticated using (referrer_id = auth.uid());
+  else
+    create policy "abonnements parrain" on public.plan_sales for select to authenticated using (referrer_id = auth.uid());
+  end if;
+end $pol$;
+
+-- Le patron prolonge HOP! Pro d'un mois (payé ou offert). Payé : la part du parrain est enregistrée.
+create or replace function public.shop_plan_extend(p_shop uuid, p_paid boolean) returns json
+language plpgsql security definer set search_path = public as $$
+declare s shops; st settings; until date; first_paid timestamptz; share numeric := 0; ref uuid;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  select * into s from shops where id = p_shop for update;
+  if not found then raise exception 'not_found'; end if;
+  select * into st from settings where id = 1;
+  until := (greatest(coalesce(s.plan_until, current_date - 1), current_date - 1) + interval '1 month')::date;
+  update shops set plan_until = until where id = p_shop;
+  if p_paid then
+    select min(created_at) into first_paid from plan_sales where shop_id = p_shop;
+    if exists (select 1 from couriers where id = s.referrer_id and role = 'coursier')
+       and coalesce(first_paid, now()) > now() - make_interval(months => st.pro_referrer_months) then
+      ref := s.referrer_id;
+      share := round(st.pro_monthly * st.pro_referrer_pct / 100, 2);
+    end if;
+    insert into plan_sales (shop_id, months, amount, referrer_id, referrer_share)
+    values (p_shop, 1, st.pro_monthly, ref, share);
+  end if;
+  return json_build_object('plan_until', until, 'referrer_share', share);
+end;
+$$;
+revoke execute on function public.shop_plan_extend(uuid, boolean) from public, anon;
+grant execute on function public.shop_plan_extend(uuid, boolean) to authenticated;
+
+-- Le client laisse un pourboire après la livraison (une fois, dans les 7 jours) : 100 % pour le livreur
+create or replace function public.tip_order(p_token uuid, p_amount numeric) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare oid uuid;
+begin
+  if p_amount is null or p_amount < 1 or p_amount > 100 then raise exception 'bad_tip'; end if;
+  update orders set tip = round(p_amount), tip_status = 'promis'
+   where token = p_token and status = 'livree' and courier_id is not null and tip_status is null
+     and pickup_at > now() - interval '7 days'
+   returning id into oid;
+  if oid is null then return false; end if;
+  insert into chat_messages (thread, author, body) values ('o:' || oid::text, 'system', 'status:tip');
+  return true;
+end;
+$$;
+revoke execute on function public.tip_order(uuid, numeric) from public;
+grant execute on function public.tip_order(uuid, numeric) to anon, authenticated;
+
+-- Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif) :
+--   courses pas réglées : commission − part du commerce pour lui − réduction payée par HOP − course payée à HOP
+--   − pourboires reçus par HOP − bonus réseau − part des abonnements Pro
+create or replace function public.courier_balance(p_id uuid) returns numeric
+language sql stable security definer set search_path = public as $$
+  select coalesce((select sum(commission - (shop_share - hop_share) - discount
+                              - case when paid_to = 'hop' and payment_status = 'paye' then price else 0 end)
+                     from orders where courier_id = p_id and status = 'livree' and commission_status <> 'regle'), 0)
+       - coalesce((select sum(tip) from orders where courier_id = p_id and tip_status = 'recu'), 0)
+       -- (une course de son réseau qu'il livre lui-même : pas de bonus, il a déjà la commission réseau)
+       - coalesce((select sum(referral_bonus) from orders
+                    where referrer_id = p_id and courier_id is distinct from p_id and status = 'livree' and referral_status <> 'regle'), 0)
+       - coalesce((select sum(referrer_share) from plan_sales where referrer_id = p_id and referrer_status <> 'regle'), 0);
+$$;
+revoke execute on function public.courier_balance(uuid) from public, anon, authenticated;
+
+-- Accepter une course : commission « réseau » si la course vient d'un commerce qu'il a amené
+create or replace function public.accept_order(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare c couriers;
+begin
+  select * into c from couriers where id = auth.uid() and status = 'actif';
+  if not found then return false; end if;
+  if c.role = 'coursier' and not coalesce(c.unlocked_until > now(), false) then
+    -- Trop de commission en retard : plus de nouvelles courses tant que ce n'est pas réglé
+    if public.courier_balance(c.id) > (select max_debt from settings where id = 1) then raise exception 'debt'; end if;
+    -- Une course récupérée doit être livrée (et validée) avant d'en prendre une autre
+    if exists (select 1 from orders where courier_id = c.id and status = 'recuperee') then raise exception 'busy'; end if;
+  end if;
+  if c.role = 'coursier' and not public.courier_online(c) then raise exception 'offline'; end if;
+  update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
+         courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
+         network = coalesce(o.referrer_id = c.id, false),
+         commission = case when c.role = 'admin' then 0
+                           when o.referrer_id = c.id then public.commission_network(public.course_value(o))
+                           else public.commission_for(public.course_value(o)) end
+   where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
+  return found;
+end;
+$$;
+
+-- Livreur : ses abonnements Pro (part qui lui revient)
+create or replace function public.my_plan_shares() returns setof json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('created_at', p.created_at, 'shop', s.name, 'share', p.referrer_share, 'status', p.referrer_status)
+    from plan_sales p join shops s on s.id = p.shop_id
+   where p.referrer_id = auth.uid() and p.referrer_share > 0 order by p.created_at desc limit 200;
+$$;
+revoke execute on function public.my_plan_shares() from public, anon;
+grant execute on function public.my_plan_shares() to authenticated;
 
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md

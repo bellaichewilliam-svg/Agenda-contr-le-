@@ -1,5 +1,5 @@
 // ============================================================================
-// Espace livreur partenaire : inscription (engagements permis/assurance…),
+// Espace livreur partenaire : inscription (engagements, assurance déclarée…),
 // courses disponibles, ses courses, position GPS, commission hebdomadaire.
 // ============================================================================
 
@@ -9,20 +9,21 @@
 const $ = s => document.querySelector(s);
 Store.useSpace("coursier");
 
-const COMMISSION = CONFIG.platform.commissionPerCourse;
 const TERMS = [
   "Je possède un permis de conduire valide pour mon véhicule et je le garde valide.",
-  "Mon véhicule est assuré (assurance obligatoire et responsabilité civile / tiers). Je préviens immédiatement si mon assurance change ou expire.",
+  "Je déclare que mon véhicule est assuré (assurance obligatoire et responsabilité civile / tiers) et que je reste assuré tant que je livre avec HOP.",
+  "HOP met en relation des clients et des livreurs indépendants : HOP n'est pas responsable des accidents, dommages, amendes, pertes ou vols survenus pendant mes courses. Je les assume, avec mon assurance.",
   "Je travaille comme indépendant : je suis enregistré comme עוסק (פטור ou מורשה), je déclare moi-même mes revenus et je remets un reçu aux clients que j'encaisse.",
   "Je suis responsable des colis qui me sont confiés, de leur état et de l'argent encaissé, de la récupération jusqu'à la livraison.",
   "Je valide « Livré » seulement une fois sur place, à l'adresse du client : l'application vérifie ma position GPS.",
   "Je respecte le code de la route et les règles de sécurité (casque, pas de téléphone en main en conduisant).",
-  `Je verse à HOP une commission de ${UI.commissionText()} par course livrée, chaque semaine, par Bit.`,
+  `Je verse à HOP une commission par course livrée (${UI.commissionText()} ; ${UI.networkText()} sur les courses de mes commerces), réglée chaque semaine.`,
   "Je suis poli et ponctuel. Si je ne peux plus faire une course acceptée, je la remets en attente tout de suite.",
   "Mon compte peut être suspendu si un de ces engagements n'est pas respecté."
 ];
 
 let me = null;
+const TIP_FR = { promis: "promis, en attente du Bit du client", recu: "reçu par HOP, versé avec votre solde", verse: "versé ✓" };
 let orders = [];
 let settings = { referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes };
 let refs = { shops: [], orders: [], board: [] };
@@ -37,8 +38,10 @@ function renderWelcome() {
   $("#perks").innerHTML = [
     "Vous choisissez vos courses, quand vous voulez.",
     "Vous encaissez le client directement (espèces ou Bit).",
-    `Commission de ${UI.commissionText()} par course livrée (3 ₪ pour une course de 25 ₪), réglée une fois par semaine.`,
-    `Amenez un commerce : ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous sur chacune de ses livraisons, tant que vous livrez avec nous, et ses courses vous sont proposées en premier.`,
+    `Commission de ${UI.commissionText()} sur les courses que l'appli vous apporte, réglée une fois par semaine.`,
+    `Faites votre marketing : sur les courses des commerces que vous amenez, seulement ${UI.networkText()}, et ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous quand un autre livreur les fait.`,
+    `${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`,
+    "Les pourboires sont 100 % pour vous, et les codes promo sont payés par HOP, pas par vous.",
     "Pas d'abonnement, pas de frais d'inscription."
   ].map(x => `<li>✅ ${UI.esc(x)}</li>`).join("");
   $("#citySelect").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(c.fr)}</option>`).join("");
@@ -100,7 +103,6 @@ async function onSignup(e) {
   const profile = {
     name: v("name"), phone: v("phone"), bit_phone: v("bit_phone") || null, city: v("city"), vehicle: v("vehicle"),
     license_number: v("license_number") || null, license_expiry: v("license_expiry") || null,
-    insurance: v("insurance") || null, insurance_expiry: v("insurance_expiry") || null,
     business_number: v("business_number") || null
   };
   try {
@@ -153,7 +155,7 @@ async function route() {
     $("#waitTitle").textContent = suspended ? "Compte suspendu" : `Merci ${me.name}, inscription reçue !`;
     $("#waitText").textContent = suspended
       ? "Écrivez-nous dans l'application pour en savoir plus."
-      : "Envoyez vos documents en photo dans l'application (permis, carte grise, assurance, carte d'identité, attestation d'עוסק) : votre compte sera validé après vérification.";
+      : "Envoyez vos documents en photo dans l'application (permis, carte grise, carte d'identité, attestation d'עוסק) : votre compte sera validé après vérification.";
     $("#waitWa").textContent = suspended ? "💬 Écrire à HOP" : "📷 Envoyer mes documents";
     $("#waitTopcase").classList.toggle("hidden", suspended || !!me.topcase_at);
     $("#waitWa").onclick = () => openBossChat(suspended
@@ -214,7 +216,7 @@ function proLine(o) {
   const state = o.shop_status === "prete" || (left != null && left <= 0) ? "✅ <b>Commande prête</b>"
     : left != null ? `🍳 <b>Prête dans ${left} min</b> chez ${UI.esc(o.shop_name || "le commerce")}` : "🍳 En attente du commerce";
   return `<div class="small pro-line">${state}${o.shop_order ? `<br>🧾 ${UI.esc(o.shop_order)}` : ""}
-    ${Number(o.shop_share) > 0 ? `<br>🏪 Le commerce paie ${UI.money(o.shop_share)} de la livraison : HOP vous le reverse` : ""}</div>`;
+    ${Number(o.shop_share) > Number(o.hop_share || 0) ? `<br>🏪 Le commerce paie ${UI.money(Number(o.shop_share) - Number(o.hop_share || 0))} de votre course : HOP vous le reverse` : ""}</div>`;
 }
 
 function beep() {
@@ -279,7 +281,7 @@ async function load() {
   if (!firstLoad && fresh.length && isOnline()) {
     if (!offerShown) beep();
     if (window.Notification && Notification.permission === "granted") {
-      fresh.forEach(o => new Notification(`🆕 Course dispo n° ${o.ref} — ${UI.money(Number(o.price) + Number(o.shop_share || 0))}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}` }));
+      fresh.forEach(o => new Notification(`🆕 Course dispo n° ${o.ref} — ${UI.money(Store.courseValue(o))}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}` }));
     }
   }
   pool().forEach(o => seenPool.add(o.id));
@@ -306,11 +308,12 @@ function card(o, kind) {
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
   extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
     : kind === "pool" || o.status === "confirmee" ? `<div class="small muted">⏱️ Attente ou achats sur place : ${UI.esc(UI.waitRule(settings))}, pour vous</div>` : "";
-  // HOP! Pro : le commerce paie une part de la livraison, que HOP reverse au livreur
-  const total = Number(o.price) + Number(o.shop_share || 0);
-  const net = total - (kind === "pool" ? Store.commissionFor(total, settings) : Number(o.commission || 0));
+  // Valeur de la course : prix + réduction promo (payée par HOP) + part du commerce Pro pour le livreur
+  const mineShop = !!o.referrer_id && o.referrer_id === me.id;
+  const total = Store.courseValue(o);
+  const net = total - (kind === "pool" ? Store.commissionFor(total, settings, mineShop) : Number(o.commission || 0));
   if (o.shop_status) extra += proLine(o);
-  const mineShop = o.referrer_id && o.referrer_id === me.id;
+  if (Number(o.discount) > 0) extra += `<div class="small">🎁 Code promo du client : ${UI.money(o.discount)}, payé par HOP (pas par vous)</div>`;
   const hopPaid = o.paid_to === "hop";
 
   let actions = "";
@@ -348,8 +351,9 @@ function card(o, kind) {
       <span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>
       <span class="pill">${UI.esc(UI.SIZE_FR[o.size] || o.size)}</span>
       <span class="pill">${UI.PAY_FR[o.payment_method] || ""}${o.payer === "destinataire" ? " · payé par le destinataire" : ""}</span>
-      <span class="pill paid">Vous gagnez ${UI.money(net + (mineShop ? Number(o.referral_bonus || 0) : 0))}</span>
-      ${mineShop ? `<span class="pill star-pill">⭐ Votre commerce${o.shop_name ? " : " + UI.esc(o.shop_name) : ""}${kind === "pool" ? priorityLeft(o) : ""} · +${UI.money(o.referral_bonus || 0)}</span>` : o.shop_name ? `<span class="pill">🏪 Partenaire : ${UI.esc(o.shop_name)}</span>` : ""}
+      <span class="pill paid">Vous gagnez ${UI.money(net)}</span>
+      ${Number(o.tip) > 0 ? `<span class="pill paid">💝 Pourboire ${UI.money(o.tip)} · ${TIP_FR[o.tip_status] || ""}</span>` : ""}
+      ${mineShop ? `<span class="pill star-pill">⭐ Votre commerce${o.shop_name ? " : " + UI.esc(o.shop_name) : ""}${kind === "pool" ? priorityLeft(o) : ""} · commission réseau ${UI.esc(UI.networkText())}</span>` : o.shop_name ? `<span class="pill">🏪 Partenaire : ${UI.esc(o.shop_name)}</span>` : ""}
       ${o.issue && kind === "mine" ? `<span class="pill st-annulee">⚠️ Souci signalé : ${UI.esc(o.issue)}</span>` : ""}
       ${o.unlocked ? `<span class="pill paid">🔓 Débloquée par HOP : « Livré » possible sans GPS ni photo</span>` : ""}
       ${o.leave_at_door && !o.unlocked && kind === "mine" ? `<span class="pill unpaid">📷 Devant la porte : photo obligatoire avant « Livré »</span>` : ""}
@@ -392,17 +396,24 @@ function render() {
     const weekBonus = sum(refDelivered().filter(o => UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= UI.addDays(start, 6)), o => Number(o.referral_bonus || 0));
     const bDue = bonusDue();
     const hopDue = sum(due.filter(o => o.paid_to === "hop" && o.payment_status === "paye"));
+    // Ce que HOP ajoute : part des commerces Pro et codes promo, pourboires reçus, abonnements Pro
+    const hopAdds = sum(due, o => Number(o.shop_share || 0) - Number(o.hop_share || 0) + Number(o.discount || 0));
+    const tipsDue = sum(orders.filter(o => o.courier_id === me.id && o.tip_status === "recu"), o => Number(o.tip || 0));
+    const plansDue = sum((refs.plans || []).filter(p => p.status !== "regle"), p => Number(p.share || 0));
     view.innerHTML = `<div class="card">
         <h3>Semaine du ${UI.fmtKey(start)} au ${UI.fmtKey(UI.addDays(start, 6))}</h3>
         <table class="prices" style="margin-top:8px">
           <tr><td>Courses livrées</td><td>${week.length}</td></tr>
           <tr><td>Encaissé auprès des clients</td><td>${UI.money(sum(week.filter(o => o.paid_to !== "hop")))}</td></tr>
           <tr><td>Commission de la semaine</td><td>${UI.money(sum(week, o => Number(o.commission || 0)))}</td></tr>
-          <tr><td>Vous gagnez cette semaine</td><td>${UI.money(sum(week) - sum(week, o => Number(o.commission || 0)))}</td></tr>
-          <tr><td>🤝 Bonus parrainage de la semaine</td><td>+${UI.money(weekBonus)}</td></tr>
+          <tr><td>Vous gagnez cette semaine</td><td>${UI.money(sum(week, Store.courierGain))}</td></tr>
+          <tr><td>🤝 Bonus réseau de la semaine</td><td>+${UI.money(weekBonus)}</td></tr>
           <tr><td>Commission due (toutes semaines)</td><td>${UI.money(amountDue)}</td></tr>
           <tr><td>Courses payées à HOP (reversées)</td><td>−${UI.money(hopDue)}</td></tr>
-          <tr><td>Bonus parrainage pas encore réglés</td><td>−${UI.money(bDue)}</td></tr>
+          ${hopAdds ? `<tr><td>Part des commerces Pro et codes promo (payés par HOP)</td><td>−${UI.money(hopAdds)}</td></tr>` : ""}
+          ${tipsDue ? `<tr><td>💝 Pourboires reçus par HOP</td><td>−${UI.money(tipsDue)}</td></tr>` : ""}
+          <tr><td>Bonus réseau pas encore réglés</td><td>−${UI.money(bDue)}</td></tr>
+          ${plansDue ? `<tr><td>⭐ Votre part des abonnements HOP! Pro</td><td>−${UI.money(plansDue)}</td></tr>` : ""}
           <tr><td><b>${balance >= 0 ? "Reste à verser" : "HOP! vous verse"}</b></td><td><b>${UI.money(Math.abs(balance))}</b></td></tr>
         </table>
         <p class="muted small" style="margin:10px 0">Le règlement se fait une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Les courses payées d'avance à HOP (courses programmées, carnets pro) et vos bonus de parrainage sont déduits de votre commission. Au-delà de ${UI.money(settings.max_debt)} dus, vous ne recevez plus de nouvelles courses jusqu'au règlement.</p>
@@ -426,10 +437,10 @@ function render() {
     view.innerHTML = `<div class="card"><h3>🛡️ Permis et assurance</h3>
         <table class="prices" style="margin-top:8px">
           <tr><td>Permis n° ${UI.esc(me.license_number || "—")}</td><td>${exp(me.license_expiry)}</td></tr>
-          <tr><td>Assurance ${UI.esc(me.insurance || "")}</td><td>${exp(me.insurance_expiry)}</td></tr>
+          <tr><td>Assurance</td><td>✅ déclarée le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString("fr-FR") : "—"}</td></tr>
           <tr><td>N° d'עוסק</td><td>${UI.esc(me.business_number || "—")}</td></tr>
         </table>
-        <p class="muted small" style="margin-top:8px">Votre assurance doit couvrir le véhicule et la responsabilité civile. Un changement ? Envoyez le nouveau document à HOP dans l'Assistance.</p></div>
+        <p class="muted small" style="margin-top:8px">Vous avez déclaré être assuré (véhicule et responsabilité civile). Vous êtes indépendant : HOP n'est pas responsable des accidents, dommages ou pertes pendant vos courses.</p></div>
       <div class="card" style="margin-top:14px"><h3>📜 Vos engagements (acceptés le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString("fr-FR") : "—"})</h3>
       <ol style="margin-top:10px;padding-inline-start:20px;display:grid;gap:6px">${TERMS.map(t => `<li>${UI.esc(t)}</li>`).join("")}</ol></div>`;
   }
@@ -653,7 +664,8 @@ function renderLock() {
 }
 
 // --- Parrainage des commerces ------------------------------------------------------------
-const refDelivered = () => refs.orders.filter(o => o.status === "livree");
+// Bonus réseau : courses de ses commerces livrées par un autre livreur (les siennes ont la commission réseau)
+const refDelivered = () => refs.orders.filter(o => o.status === "livree" && !o.mine);
 const bonusDue = () => sum(refDelivered().filter(o => o.referral_status !== "regle"), o => Number(o.referral_bonus || 0));
 const levelOf = n => CONFIG.partners.levels.filter(l => n >= l.min).pop();
 const nextLevel = n => CONFIG.partners.levels.find(l => n < l.min);
@@ -713,8 +725,11 @@ function renderRef(view) {
       <ol class="ref-steps">
         <li><b>Proposez HOP!</b> à un restaurant, une boutique, une pharmacie… surtout ceux qui n'ont pas de livreur.</li>
         <li><b>Il s'inscrit avec votre lien</b> ou en scannant votre QR code (1 minute, gratuit).</li>
-        <li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses livrées, même si un autre livreur la fait, <b>tant que vous livrez avec nous</b>. Et ses courses vous sont proposées <b>${Number(settings.priority_minutes)} min avant</b> les autres livreurs.</li>
+        <li><b>Ses courses vous sont proposées ${Number(settings.priority_minutes)} min avant</b> les autres livreurs, et quand vous les faites, la commission n'est que de <b>${UI.esc(UI.networkText())}</b>.</li>
+        <li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses quand un autre livreur la fait, <b>tant que vous livrez avec nous</b>.</li>
+        <li><b>${CONFIG.pro.referrerPercent} % de son abonnement HOP! Pro</b> (${UI.money(CONFIG.pro.monthly * CONFIG.pro.referrerPercent / 100)} par mois) pendant ses ${CONFIG.pro.referrerMonths} premiers mois.</li>
       </ol>
+      ${(refs.plans || []).length ? `<p class="small">⭐ Abonnements Pro : <b>${UI.money(sum(refs.plans, p => Number(p.share || 0)))}</b> gagnés au total, dont ${UI.money(sum(refs.plans.filter(p => p.status !== "regle"), p => Number(p.share || 0)))} pas encore versés.</p>` : ""}
       ${activityBox()}
       <div class="ref-code"><small>Votre code</small><b>${UI.esc(me.ref_code || "—")}</b></div>
       <div class="promo-row"><input readonly value="${UI.esc(shareLink())}" dir="ltr" /><button class="btn btn-sm" data-copy="${UI.esc(shareLink())}">Copier</button></div>
@@ -867,11 +882,11 @@ function showNextOffer() {
   const toPickup = roadKm(lastPos, pick);
   const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : moins d'une heure" : "Dès que possible";
   $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
-  const total = Number(o.price) + Number(o.shop_share || 0);
+  const total = Store.courseValue(o);
   $("#offerPrice").textContent = UI.money(total);
-  const star = o.referrer_id && o.referrer_id === me.id;
-  const com = Store.commissionFor(total, settings);
-  $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com + (star ? Number(o.referral_bonus || 0) : 0))} (commission ${UI.money(com)}${star ? `, bonus parrainage +${UI.money(o.referral_bonus || 0)} inclus` : ""})`;
+  const star = !!o.referrer_id && o.referrer_id === me.id;
+  const com = Store.commissionFor(total, settings, star);
+  $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com)} (commission ${star ? "réseau " : ""}${UI.money(com)}${star ? " : c'est votre commerce ⭐" : ""})`;
   // Proposée d'abord aux livreurs en service les plus proches (vagues de wave_seconds)
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
   $("#offerStar").innerHTML = star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
@@ -1049,8 +1064,8 @@ function updateRiderMap() {
     if (popup) m.bindPopup(popup);
     pts.push([Number(lat), Number(lon)]);
   };
-  pool().forEach(o => add(o.pickup_lat, o.pickup_lon, rpin({ repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦", "", UI.money(Number(o.price) + Number(o.shop_share || 0))),
-    `<b>Course n° ${UI.esc(o.ref)}</b><br>${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))} · ${UI.money(Number(o.price) + Number(o.shop_share || 0))}`));
+  pool().forEach(o => add(o.pickup_lat, o.pickup_lon, rpin({ repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦", "", UI.money(Store.courseValue(o))),
+    `<b>Course n° ${UI.esc(o.ref)}</b><br>${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))} · ${UI.money(Store.courseValue(o))}`));
   mine().forEach(o => {
     add(o.pickup_lat, o.pickup_lon, rpin("📍"), `Récupération · n° ${UI.esc(o.ref)}`);
     add(o.dropoff_lat, o.dropoff_lon, rpin("🏁", "drop"), `Livraison · n° ${UI.esc(o.ref)}`);
@@ -1068,7 +1083,7 @@ function fitRiderMap() {
 // --- Pages : statistiques, réglages, aide, messages -----------------------------------------
 function renderStats(view) {
   const done = orders.filter(o => o.courier_id === me.id && o.status === "livree");
-  const gain = list => sum(list) - sum(list, o => Number(o.commission || 0));
+  const gain = list => sum(list, o => Store.courierGain(o) + (["recu", "verse"].includes(o.tip_status) ? Number(o.tip || 0) : 0));
   const start = UI.weekStart(today());
   const weeks = [5, 4, 3, 2, 1, 0].map(i => {
     const s = UI.addDays(start, -7 * i), e = UI.addDays(s, 6);
@@ -1090,7 +1105,7 @@ function renderStats(view) {
     </div>
     <div class="card"><h3>Vos gains des 6 dernières semaines</h3>
       <div class="stat-bars">${weeks.map(w => `<div><b>${w.g ? UI.money(w.g) : ""}</b><i style="height:${Math.round(110 * w.g / top) + 4}px"></i><span>${UI.esc(UI.fmtKey(w.s).replace(/\s\d{4}$/, ""))}</span></div>`).join("")}</div>
-      <p class="muted small">Gains = prix des courses − commission HOP (hors bonus de parrainage).</p></div>
+      <p class="muted small">Gains = courses − commission HOP + pourboires reçus (hors bonus réseau et abonnements Pro).</p></div>
     <div class="card" style="margin-top:14px"><table class="prices">
       <tr><td>Meilleur jour</td><td>${best ? UI.esc(best[0]) + " (" + best[1] + " course(s))" : "—"}</td></tr>
       <tr><td>Distance parcourue (estimée)</td><td>≈ ${Math.round(km)} km</td></tr>
@@ -1127,11 +1142,12 @@ function renderSettings(view) {
 function renderHelp(view) {
   const faq = [
     ["Comment je reçois des courses ?", "Passez en ligne : glissez le bouton « HOP! » jusqu’au bout. Les courses arrivent d’abord au livreur en ligne le plus proche du départ, puis aux autres. Une fenêtre s'ouvre avec le prix, votre gain et les kilomètres."],
-    ["Comment je suis payé ?", `Vous encaissez le client en espèces. Le Bit, les courses programmées et les carnets pro sont payés à HOP, qui vous les reverse. Chaque semaine : vous versez à HOP ${UI.commissionText()} par course (moins vos bonus), ou HOP vous verse la différence. Voir « Finances ».`],
+    ["Comment je suis payé ?", `Vous encaissez le client en espèces. Le Bit, les courses programmées et les carnets pro sont payés à HOP, qui vous les reverse. Chaque semaine : vous versez à HOP sa commission (${UI.commissionText()}, ou ${UI.networkText()} sur vos commerces), moins vos bonus, pourboires et parts d'abonnement, ou HOP vous verse la différence. Voir « Finances ».`],
     ["Pourquoi je ne peux pas valider « Livré » ?", `Il faut être à moins de ${deliverRadius()} m de l'adresse de livraison. Pour « déposer devant la porte », envoyez d'abord la photo du colis dans la conversation de la course.`],
     ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre solde dû dépasse ${UI.money(settings.max_debt)}. Le bandeau rouge vous dit quoi faire. Un souci ? HOP peut vous débloquer.`],
     ["Le client est absent, l'adresse est introuvable…", "Touchez « ⚠️ Un souci » sur la course : HOP et le client sont prévenus tout de suite, et vous continuez dans la conversation."],
-    ["Comment gagner plus ?", `Amenez des commerces avec votre code (menu « Gagner plus ») : +${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons, tant que vous livrez avec nous, et vous voyez leurs courses en premier.`],
+    ["Comment gagner plus ?", `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier, vous ne payez que ${UI.networkText()} de commission dessus, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro pendant ${CONFIG.pro.referrerMonths} mois.`],
+    ["Et les pourboires ?", "Après la livraison, le client peut laisser un pourboire : il le paie à HOP par Bit, et HOP vous le reverse en entier avec votre solde de la semaine."],
     ["Le GPS se coupe ?", "Gardez l'application ouverte pendant le service : les téléphones coupent la position quand la page est fermée."]
   ];
   view.innerHTML = `<div class="card help">${faq.map(([q, a]) => `<details><summary>${UI.esc(q)}</summary><p>${UI.esc(a)}</p></details>`).join("")}

@@ -276,7 +276,7 @@ const carnetUnit = () => Number(state.settings.carnet_unit || CONFIG.partners.ca
 function currentQuote() {
   const q = baseQuote();
   if (!proShopOn()) return q;
-  const share = Math.min(q.total, Number(state.shop.shop_share || CONFIG.pro.shopShare));
+  const share = Math.min(q.total, Number(state.shop.shop_share || CONFIG.pro.shopShare - CONFIG.pro.hopShare));
   return Object.assign({}, q, { total: q.total - share, lines: q.lines.concat([{ key: "qShopShare", vars: { name: state.shop.name }, amount: -share, discount: true }]) });
 }
 function baseQuote() {
@@ -735,7 +735,8 @@ async function submit(e) {
   btn.textContent = t("sending");
   try {
     const q = currentQuote();
-    const disc = q.lines.find(l => l.discount);
+    // Réduction du client (code promo, fidélité, parrainage) : pas la part payée par le commerce Pro
+    const disc = q.lines.find(l => l.discount && l.key !== "qShopShare");
     const svc = val("service");
     const pf = state.pick.from, pt = state.pick.to;
     const pNo = val("pickup_number").trim(), dNo = val("dropoff_number").trim();

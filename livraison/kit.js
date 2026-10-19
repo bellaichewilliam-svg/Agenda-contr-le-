@@ -118,18 +118,20 @@ On essaie avec 3 livraisons à moitié prix ? ${url}` },
 `🛵 ${nameFr} recrute des livreurs indépendants à ${UI.cityFr(home)} et environs !
 ✅ Vous choisissez vos courses, quand vous voulez
 ✅ Vous encaissez le client directement (espèces ou Bit)
-✅ Commission de ${CONFIG.platform.commissionPercent} % par course (3 ₪ pour une course de 25 ₪), réglée une fois par semaine
+✅ Faites votre marketing, gagnez plus : seulement ${CONFIG.platform.networkPercent} % de commission sur les courses des commerces que vous amenez (${CONFIG.platform.commissionPercent} % sur les autres)
+✅ ${CONFIG.pro.referrerPercent} % des abonnements HOP! Pro que vous faites signer, et les pourboires 100 % pour vous
 ✅ Pas d'abonnement, pas de frais d'inscription
-Il faut : permis valide, véhicule assuré, statut d'עוסק פטור ou מורשה.
+Il faut : permis valide, véhicule assuré (simple déclaration), un top case, statut d'עוסק פטור ou מורשה.
 👉 Inscription : ${UI.appUrl("coursier.html")}` },
 
   { title: "גיוס שליחים (עברית)", dir: "rtl", text:
 `🛵 ${nameHe} מגייסת שליחים עצמאיים ב${heHome} והסביבה!
 ✅ בוחרים משלוחים מתי שרוצים
 ✅ גובים ישירות מהלקוח (מזומן או ביט)
-✅ עמלה של ${CONFIG.platform.commissionPercent}% למשלוח (3 ₪ על משלוח של 25 ₪), תשלום פעם בשבוע
+✅ עושים שיווק ומרוויחים יותר: רק ${CONFIG.platform.networkPercent}% עמלה על משלוחים של עסקים שהבאתם (${CONFIG.platform.commissionPercent}% על השאר)
+✅ ${CONFIG.pro.referrerPercent}% מהמנוי של HOP! Pro של עסקים שהחתמתם, והטיפים 100% שלכם
 ✅ בלי מנוי ובלי דמי הרשמה
-דרוש: רישיון נהיגה בתוקף, רכב מבוטח, עוסק פטור או מורשה.
+דרוש: רישיון נהיגה בתוקף, רכב מבוטח (הצהרה בלבד), ארגז, עוסק פטור או מורשה.
 👈 להרשמה: ${UI.appUrl("coursier.html")}` },
 
   { title: "Statut WhatsApp / bio Instagram", dir: "ltr", text:

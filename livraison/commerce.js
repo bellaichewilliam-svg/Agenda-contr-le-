@@ -167,7 +167,7 @@ function renderPrep() {
 }
 function renderPlan() {
   const { shop, orders } = state.dash;
-  const st = Object.assign({ pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare }, state.settings || {});
+  const st = Object.assign({ pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare, pro_hop_share: CONFIG.pro.hopShare }, state.settings || {});
   const box = $("#spPlan");
   if (planOn(shop)) {
     const month = today().slice(0, 7);
@@ -178,7 +178,8 @@ function renderPlan() {
         total: UI.money(Number(st.pro_monthly) + shares), phone: CONFIG.bitPhone }))}</p>`;
     return;
   }
-  const client = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - Number(st.pro_shop_share)));
+  // Le client paie la course moins la part du commerce (hors les 2 ₪ de service HOP)
+  const client = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - (Number(st.pro_shop_share) - Number(st.pro_hop_share || 0))));
   box.innerHTML = `<h3>${UI.esc(t("spPlanTitle"))}</h3>
     <ul class="plan-list">${["spPlan1", "spPlan2", "spPlan3", "spPlan4"].map(k => `<li>${UI.esc(t(k, { monthly: UI.money(st.pro_monthly), client, share: UI.money(st.pro_shop_share) }))}</li>`).join("")}</ul>
     <button type="button" class="btn btn-primary" data-plan="1">${UI.esc(t("spPlanBtn"))}</button>`;

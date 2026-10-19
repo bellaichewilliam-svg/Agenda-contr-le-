@@ -24,6 +24,7 @@ const LS = {
   requests: "livraison.requests.v1",
   declines: "livraison.declines.v1",
   sales: "livraison.carnetSales.v1",
+  planSales: "livraison.planSales.v1",
   chat: "livraison.chat.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
@@ -138,16 +139,24 @@ const DEFAULT_SETTINGS = {
   referral_active_days: CONFIG.partners.activeDays,
   deliver_radius: CONFIG.platform.deliverRadius,
   pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare, pro_lead_min: CONFIG.pro.leadMinutes,
+  pro_hop_share: CONFIG.pro.hopShare, pro_referrer_pct: CONFIG.pro.referrerPercent, pro_referrer_months: CONFIG.pro.referrerMonths,
+  network_pct: CONFIG.platform.networkPercent, network_min: CONFIG.platform.networkMin,
   wait_free_min: CONFIG.pricing.waiting.freeMinutes, wait_step_min: CONFIG.pricing.waiting.stepMinutes,
   wait_step_price: CONFIG.pricing.waiting.stepPrice, wait_max: CONFIG.pricing.waiting.max,
   commission_pct: CONFIG.platform.commissionPercent, commission_min: CONFIG.platform.commissionPerCourse
 };
 
-// Commission d'une course : pourcentage du prix, au moins le minimum, arrondie au demi-shekel
-function commissionFor(price, st) {
-  st = st || DEFAULT_SETTINGS;
-  return Math.max(Number(st.commission_min), Math.round(Number(price || 0) * Number(st.commission_pct) / 100 * 2) / 2);
+// Commission d'une course : pourcentage du prix, au moins le minimum, arrondie au demi-shekel.
+// Course du réseau du livreur (commerce qu'il a amené) : taux réseau, plus bas.
+function commissionFor(price, st, network) {
+  st = Object.assign({}, DEFAULT_SETTINGS, st || {});
+  const pct = Number(network ? st.network_pct : st.commission_pct), min = Number(network ? st.network_min : st.commission_min);
+  return Math.max(min, Math.round(Number(price || 0) * pct / 100 * 2) / 2);
 }
+// Valeur de la course pour le livreur : prix payé + réduction (payée par HOP) + part du commerce − part de HOP
+const courseValue = o => Number(o.price || 0) + Number(o.discount || 0) + Number(o.shop_share || 0) - Number(o.hop_share || 0);
+// Ce que le livreur gagne sur une course (avant pourboire)
+const courierGain = o => courseValue(o) - Number(o.commission || 0);
 
 async function getSettings() {
   if (ONLINE) {
@@ -218,6 +227,12 @@ async function createOrder(order) {
     if (shop && planActive(shop) && String(order.shop_order || "").trim() && order.payment_method !== "carnet") {
       Object.assign(order, { shop_status: "attente", shop_share: Number(settings.pro_shop_share), shop_order: String(order.shop_order).trim().slice(0, 1000) });
     } else order.shop_order = null;
+    // Réduction seulement avec un code (au plus 30 ₪, payée par HOP), part HOP du Pro, pas de pourboire
+    Object.assign(order, {
+      discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
+      hop_share: order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share)) : 0,
+      network: false, tip: 0, tip_status: null
+    });
     order.id = uuid();
     order.created_at = new Date().toISOString();
     order.commission = 0;
@@ -405,12 +420,17 @@ function canSeeNew(o, id, st) {
   return Date.now() - new Date(o.created_at) >= wait;
 }
 
-// Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif), courses pas encore réglées
-function balanceOf(id, all) {
-  return all.filter(o => o.courier_id === id && o.status === "livree" && o.commission_status !== "regle")
-      .reduce((s, o) => s + Number(o.commission || 0) - Number(o.shop_share || 0) - (o.paid_to === "hop" && o.payment_status === "paye" ? Number(o.price) : 0), 0)
-    - all.filter(o => o.referrer_id === id && o.status === "livree" && o.referral_status !== "regle")
-      .reduce((s, o) => s + Number(o.referral_bonus || 0), 0);
+// Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif), même calcul que la base :
+// courses pas réglées (commission − part du commerce pour lui − réduction payée par HOP − course payée à HOP)
+// − pourboires reçus par HOP − bonus réseau − part des abonnements Pro
+const add = (list, f) => list.reduce((s, o) => s + f(o), 0);
+function balanceOf(id, all, plans) {
+  return add(all.filter(o => o.courier_id === id && o.status === "livree" && o.commission_status !== "regle"),
+      o => Number(o.commission || 0) - (Number(o.shop_share || 0) - Number(o.hop_share || 0)) - Number(o.discount || 0)
+        - (o.paid_to === "hop" && o.payment_status === "paye" ? Number(o.price) : 0))
+    - add(all.filter(o => o.courier_id === id && o.tip_status === "recu"), o => Number(o.tip || 0))
+    - add(all.filter(o => o.referrer_id === id && o.courier_id !== id && o.status === "livree" && o.referral_status !== "regle"), o => Number(o.referral_bonus || 0))
+    - add((plans || (ONLINE ? [] : readJSON(LS.planSales, []))).filter(p => p.referrer_id === id && p.referrer_status !== "regle"), p => Number(p.referrer_share || 0));
 }
 
 async function myBalance() {
@@ -475,18 +495,19 @@ function refundCarnet(o) {
   if (s) { s.credits = (s.credits || 0) + 1; writeJSON(LS.shops, shops); }
 }
 
-// Champs à copier sur la course quand un livreur la prend
-async function courierFields(c, price) {
+// Champs à copier sur la course quand un livreur la prend (commission réseau si le commerce est à lui)
+async function courierFields(c, o) {
   const settings = await getSettings();
+  const network = !!o.referrer_id && o.referrer_id === c.id;
   return {
-    status: "confirmee", courier_id: c.id, courier_name: c.name, courier_phone: c.phone,
-    courier_bit: c.bit_phone || c.phone, commission: c.role === "admin" ? 0 : commissionFor(price, settings)
+    status: "confirmee", courier_id: c.id, courier_name: c.name, courier_phone: c.phone, network,
+    courier_bit: c.bit_phone || c.phone, commission: c.role === "admin" ? 0 : commissionFor(courseValue(o), settings, network)
   };
 }
 
 // Le patron attribue une course à un livreur (ou à lui-même)
-async function assignOrder(id, courier, price) {
-  return updateOrder(id, await courierFields(courier, price));
+async function assignOrder(o, courier) {
+  return updateOrder(o.id, await courierFields(courier, o));
 }
 
 // Un livreur accepte une course libre (le premier qui accepte la prend)
@@ -503,7 +524,7 @@ async function acceptOrder(id) {
   }
   if (c.role === "coursier" && !onlineNow(c)) throw new Error("offline");
   const was = o.status;
-  Object.assign(o, await courierFields(c, Number(o.price) + Number(o.shop_share || 0)));
+  Object.assign(o, await courierFields(c, o));
   chatStatus(o, was);
   saveLocalOrders(all);
   return true;
@@ -668,6 +689,74 @@ async function rateOrder(token, stars, tags, note) {
   return true;
 }
 
+// Pourboire du client après la livraison (une fois, dans les 7 jours) : 100 % pour le livreur,
+// payé à HOP par Bit puis reversé au livreur quand HOP l'a reçu
+async function tipOrder(token, amount) {
+  if (ONLINE) return rest("/rest/v1/rpc/tip_order", { method: "POST", body: { p_token: token, p_amount: amount } });
+  const n = Math.round(Number(amount));
+  if (!(n >= 1 && n <= 100)) return false;
+  const all = localOrders();
+  const o = all.find(x => x.token === token && x.status === "livree" && x.courier_id && !x.tip_status && Date.now() - new Date(x.pickup_at) < 7 * 86400000);
+  if (!o) return false;
+  Object.assign(o, { tip: n, tip_status: "promis" });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:tip" });
+  return true;
+}
+
+// HOP! Pro : le patron prolonge d'un mois (payé ou offert) ; payé → 20 % pour le livreur qui a amené le commerce
+async function planExtend(shopId, paid) {
+  if (ONLINE) return authRest("/rest/v1/rpc/shop_plan_extend", { method: "POST", body: { p_shop: shopId, p_paid: !!paid } });
+  const st = await getSettings();
+  const shops = localShops(), s = shops.find(x => x.id === shopId);
+  if (!s) throw new Error("not_found");
+  const today = new Date().toISOString().slice(0, 10);
+  const base = new Date((planActive(s) ? s.plan_until : today) + "T12:00:00");
+  base.setMonth(base.getMonth() + 1);
+  s.plan_until = base.toISOString().slice(0, 10);
+  writeJSON(LS.shops, shops);
+  let share = 0;
+  if (paid) {
+    const sales = readJSON(LS.planSales, []);
+    const first = sales.filter(x => x.shop_id === shopId).map(x => x.created_at).sort()[0];
+    const ref = localCouriers().find(c => c.id === s.referrer_id && c.role === "coursier");
+    const limit = new Date(); limit.setMonth(limit.getMonth() - Number(st.pro_referrer_months));
+    if (ref && (!first || new Date(first) > limit)) share = Math.round(Number(st.pro_monthly) * Number(st.pro_referrer_pct)) / 100;
+    sales.push({ id: uuid(), created_at: new Date().toISOString(), shop_id: shopId, months: 1, amount: Number(st.pro_monthly),
+      referrer_id: share ? ref.id : null, referrer_share: share, referrer_status: "du" });
+    writeJSON(LS.planSales, sales);
+  }
+  return { plan_until: s.plan_until, referrer_share: share };
+}
+async function listPlanSales() {
+  if (ONLINE) return authRest("/rest/v1/plan_sales?select=*&order=created_at.desc");
+  return readJSON(LS.planSales, []);
+}
+// Livreur : sa part des abonnements Pro des commerces qu'il a amenés
+async function myPlanShares() {
+  if (ONLINE) return authRest("/rest/v1/rpc/my_plan_shares", { method: "POST", body: {} });
+  const shops = localShops();
+  return readJSON(LS.planSales, []).filter(p => p.referrer_id === myId() && p.referrer_share > 0)
+    .map(p => ({ created_at: p.created_at, shop: (shops.find(x => x.id === p.shop_id) || {}).name, share: p.referrer_share, status: p.referrer_status }));
+}
+// Patron : pourboires reversés et parts d'abonnement payées au livreur
+async function settleTips(ids) {
+  if (!ids.length) return;
+  if (ONLINE) return authRest("/rest/v1/orders?id=in.(" + ids.map(encodeURIComponent).join(",") + ")",
+    { method: "PATCH", body: { tip_status: "verse" }, prefer: "return=minimal" });
+  const all = localOrders();
+  all.forEach(o => { if (ids.includes(o.id)) o.tip_status = "verse"; });
+  saveLocalOrders(all);
+}
+async function settlePlanShares(ids) {
+  if (!ids.length) return;
+  if (ONLINE) return authRest("/rest/v1/plan_sales?id=in.(" + ids.map(encodeURIComponent).join(",") + ")",
+    { method: "PATCH", body: { referrer_status: "regle" }, prefer: "return=minimal" });
+  const sales = readJSON(LS.planSales, []);
+  sales.forEach(p => { if (ids.includes(p.id)) p.referrer_status = "regle"; });
+  writeJSON(LS.planSales, sales);
+}
+
 // Livreur : signaler un souci sur sa course (écrit aussi dans la conversation de la course)
 async function courierIssue(id, reason) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_issue", { method: "POST", body: { p_id: id, p_reason: reason } });
@@ -780,7 +869,7 @@ function shopTokenFor(code) { return readJSON(LS.shopCodes, {})[String(code || "
 const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISOString().slice(0, 10));
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
-      pro: planActive(s), shop_share: DEFAULT_SETTINGS.pro_shop_share } : null;
+      pro: planActive(s), shop_share: DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
 async function shopByCode(code) {
   if (!code) return null;
@@ -851,7 +940,8 @@ async function myReferrals() {
       authRest("/rest/v1/rpc/my_referral_orders", { method: "POST", body: {} }),
       authRest("/rest/v1/rpc/referral_leaderboard", { method: "POST", body: {} })
     ]);
-    return { shops: shops || [], orders: orders || [], board: board || [] };
+    const plans = await myPlanShares().catch(() => []);
+    return { shops: shops || [], orders: orders || [], board: board || [], plans: plans || [] };
   }
   const id = myId();
   const month = new Date().toISOString().slice(0, 7);
@@ -864,8 +954,8 @@ async function myReferrals() {
   })).filter(x => x.shops > 0 || x.me).sort((a, b) => (b.shops - a.shops) || (b.deliveries - a.deliveries)).slice(0, 10);
   return {
     shops: shops.filter(s => s.referrer_id === id).reverse().map(s => ({ id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, status: s.status, created_at: s.created_at })),
-    orders: orders.filter(o => o.referrer_id === id).map(o => ({ id: o.id, shop_id: o.shop_id, pickup_at: o.pickup_at, status: o.status, referral_bonus: o.referral_bonus, referral_status: o.referral_status })),
-    board
+    orders: orders.filter(o => o.referrer_id === id).map(o => ({ id: o.id, shop_id: o.shop_id, pickup_at: o.pickup_at, status: o.status, referral_bonus: o.referral_bonus, referral_status: o.referral_status, mine: o.courier_id === id })),
+    board, plans: await myPlanShares()
   };
 }
 
@@ -999,7 +1089,8 @@ window.Store = {
   useSpace, session, login, logout, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, myAcceptance, demandForecast, commissionFor,
-  couriersNearby, rateOrder, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
+  couriersNearby, rateOrder, tipOrder, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,

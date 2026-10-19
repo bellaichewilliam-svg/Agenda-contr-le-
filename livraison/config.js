@@ -140,11 +140,17 @@ window.CONFIG = {
 
   // --- Livreurs partenaires --------------------------------------------------
   platform: {
-    commissionPerCourse: 3,   // commission minimum par course d'un livreur
-    // Commission = commissionPercent % du prix de la course, au moins commissionPerCourse,
-    // arrondie au demi-shekel : 25 ₪ → 3 ₪, 50 ₪ → 6 ₪, 100 ₪ → 12 ₪, 120 ₪ → 14,50 ₪
+    // Commission sur les courses que l'appli apporte au livreur : commissionPercent % du prix,
+    // au moins commissionPerCourse, arrondie au demi-shekel : 25 ₪ → 4 ₪, 50 ₪ → 7,50 ₪, 100 ₪ → 15 ₪
     // (en ligne : settings.commission_pct et settings.commission_min)
-    commissionPercent: 12,
+    commissionPerCourse: 3.5,
+    commissionPercent: 15,
+    // Courses de son réseau (un commerce qu'il a amené) : networkPercent %, au moins networkMin
+    // 25 ₪ → 2 ₪, 100 ₪ → 8 ₪ (en ligne : settings.network_pct et settings.network_min)
+    networkPercent: 8,
+    networkMin: 2,
+    // Pourboires proposés au client après la livraison : 100 % pour le livreur
+    tips: [5, 10, 15],
     // Au-delà de ce solde dû (commissions − courses payées à HOP − bonus), le livreur ne
     // peut plus accepter de course tant qu'il n'a pas réglé (en ligne : settings.max_debt)
     maxDebt: 50,
@@ -165,7 +171,7 @@ window.CONFIG = {
   // commission chaque semaine. (En ligne : colonnes referral_bonus et
   // priority_minutes de la table settings.)
   partners: {
-    bonusPerDelivery: 1,
+    bonusPerDelivery: 2,
     priorityMinutes: 3,
     // Bonus versés seulement si le parrain a livré au moins une course ces N derniers jours
     // (en ligne : settings.referral_active_days)
@@ -183,10 +189,12 @@ window.CONFIG = {
   },
 
   // HOP! Pro : abonnement mensuel des commerces (0 % de commission sur leurs ventes). Leurs clients
-  // commandent dans l'appli ; le commerce paie une part fixe de chaque livraison (shopShare), le client
-  // paie le reste (15 ₪ dans Netanya) ; le livreur est envoyé leadMinutes avant que ce soit prêt.
-  // (En ligne : pro_monthly, pro_shop_share, pro_lead_min dans la table settings.)
-  pro: { monthly: 199, shopShare: 10, leadMinutes: 8, prepChoices: [10, 15, 20, 30] },
+  // commandent dans l'appli ; le commerce paie une part fixe de chaque livraison (shopShare, dont hopShare
+  // pour HOP), le client paie le reste (25 − 10 = 15 ₪ dans Netanya) ; le livreur est envoyé leadMinutes
+  // avant que ce soit prêt. Le livreur qui a amené le commerce touche referrerPercent % de chaque mois
+  // d'abonnement payé, pendant referrerMonths mois.
+  // (En ligne : pro_monthly, pro_shop_share, pro_hop_share, pro_lead_min, pro_referrer_pct, pro_referrer_months.)
+  pro: { monthly: 199, shopShare: 12, hopShare: 2, leadMinutes: 8, prepChoices: [10, 15, 20, 30], referrerPercent: 20, referrerMonths: 12 },
 
   // Messages prêts à envoyer aux livreurs depuis l'espace patron
   courierMessages: [

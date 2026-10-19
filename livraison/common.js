@@ -169,6 +169,7 @@ const PROGRESS = { nouvelle: 0.12, confirmee: 0.4, recuperee: 0.72, livree: 1 };
 
 // Commission HOP d'une course de livreur : 12 % du prix, au moins 3 ₪ (voir config.js)
 function commissionText() { return `${CONFIG.platform.commissionPercent} % du prix (au moins ${money(CONFIG.platform.commissionPerCourse)})`; }
+function networkText() { return `${CONFIG.platform.networkPercent} % (au moins ${money(CONFIG.platform.networkMin)})`; }
 
 // Numéro Bit à payer : toujours celui de HOP (le livreur n'encaisse que les espèces)
 function bitFor() { return CONFIG.bitPhone; }
@@ -236,7 +237,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  deliveryEta, PROGRESS, commissionText, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, networkText, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
