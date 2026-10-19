@@ -552,6 +552,7 @@ async function useMyPosition(which, btn) {
   try {
     const err = await locateInto(which);
     if (err) showError(t(err));
+    else if (!val(prefixOf(which) + "_number").trim()) { form.elements[prefixOf(which) + "_number"].focus(); showError(t("errHouseNo")); }
   } finally {
     btn.disabled = false;
     btn.textContent = t("useMyPos");
@@ -1146,8 +1147,15 @@ function initHome() {
     const g = e.target.closest("[data-hgeo]");
     if (g) {
       g.disabled = true;
-      try { const err = await locateInto(g.dataset.hgeo); if (err) showHomeErr(t(err)); else renderLive(); }
-      finally { g.disabled = false; }
+      g.classList.add("busy");
+      try {
+        const err = await locateInto(g.dataset.hgeo);
+        if (err) showHomeErr(t(err));
+        else {
+          renderLive();
+          if (!val(prefixOf(g.dataset.hgeo) + "_number").trim()) { showHomeErr(t("hmNeedNo")); homeNo(g.dataset.hgeo).focus(); }
+        }
+      } finally { g.disabled = false; g.classList.remove("busy"); }
       return;
     }
     const k = e.target.closest("[data-kind]");
@@ -1318,10 +1326,11 @@ function syncHome() {
       else { home.ac[which].reset(); input.value = val(pre + "_address"); }
     }
     const no = homeNo(which);
-    const needNo = !!p && !p.brand && !p.housenumber;
-    no.classList.toggle("hidden", !needNo);
+    // Une rue (pas une enseigne) : la case N° est toujours là, pré-remplie si la carte connaît le numéro
+    const street = !!p && !p.brand;
+    no.classList.toggle("hidden", !street);
     if (document.activeElement !== no) no.value = val(pre + "_number");
-    no.classList.toggle("need", needNo && !val(pre + "_number").trim());
+    no.classList.toggle("need", street && !val(pre + "_number").trim());
   });
   const name = (Store.getProfile().contact_name || "").trim().split(" ")[0];
   $("#homeHello").textContent = name ? t("hmHello", { name }) : t("hmHelloNew");

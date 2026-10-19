@@ -102,12 +102,41 @@ async function searchMap(q, lang) {
 }
 
 // Adresse la plus proche d'une position GPS (« 📍 Ma position »)
+// « Ma position » : d'abord l'adresse avec numéro la plus proche, sinon la rue la plus proche
+// (si aucune n'a de numéro, on demande à Nominatim, qui le connaît plus souvent)
 async function reverse(lat, lon, lang) {
-  const res = await fetch(`${API.replace("/api/", "/reverse")}?lat=${lat}&lon=${lon}&limit=5` + (lang === "fr" ? "&lang=fr" : ""));
+  const res = await fetch(`${API.replace("/api/", "/reverse")}?lat=${lat}&lon=${lon}&limit=10&radius=0.15` + (lang === "fr" ? "&lang=fr" : ""));
   if (!res.ok) throw new Error("photon " + res.status);
   const data = await res.json();
   lastOk = true;
-  return (data.features || []).map(toPlace).filter(p => p.streetName || p.brand);
+  const here = { lat, lon };
+  const list = (data.features || []).map(toPlace).filter(p => p.streetName || p.brand)
+    .map(p => Object.assign(p, { d: km(here, p) }))
+    .sort((a, b) => (!!b.housenumber - !!a.housenumber) || (!!a.brand - !!b.brand) || a.d - b.d);
+  const best = list.find(p => !p.brand) || list[0];
+  if (best && !best.brand && (!best.housenumber || best.d > 0.08)) {
+    const n = await houseNumberAt(lat, lon, lang).catch(() => null);
+    if (n && (!n.street || !best.streetName || n.street === best.streetName || !best.housenumber)) {
+      if (n.street) best.streetName = n.street;
+      best.housenumber = n.number;
+      best.street = [best.streetName, n.number].join(" ");
+      best.label = [best.streetName, best.city].filter(Boolean).join(", ");
+      best.exact = true;
+    }
+  }
+  return best ? [best].concat(list.filter(p => p !== best)) : list;
+}
+
+// Numéro de rue à une position (Nominatim, OpenStreetMap)
+async function houseNumberAt(lat, lon, lang) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 5000);
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&lat=${lat}&lon=${lon}&accept-language=${lang === "fr" ? "fr" : "he"}`, { signal: ctl.signal });
+    if (!res.ok) return null;
+    const a = (await res.json()).address || {};
+    return a.house_number ? { number: a.house_number, street: a.road || null } : null;
+  } finally { clearTimeout(timer); }
 }
 
 // Branche la recherche sur un champ texte.

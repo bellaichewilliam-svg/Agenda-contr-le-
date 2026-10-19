@@ -792,7 +792,7 @@ body.has-eta { padding-bottom: 96px; }
 .ch-no.need { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
 .ch-gps { flex: none; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--panel); color: var(--muted); font-size: 18px; }
 .ch-gps:disabled { opacity: .5; }
-.ch-swap { position: absolute; z-index: 1; top: 50%; inset-inline-end: 54px; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); font-weight: 800; color: var(--ink); }
+.ch-swap { position: absolute; z-index: 1; top: 50%; inset-inline-start: 4px; transform: translateY(-50%); width: 28px; height: 28px; font-size: 13px; border-radius: 50%; border: 1px solid var(--border); background: var(--panel); font-weight: 800; color: var(--ink); }
 .ch-chips, .ch-when, .ch-kinds { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -22px; padding: 2px 22px; }
 .ch-chips::-webkit-scrollbar, .ch-when::-webkit-scrollbar, .ch-kinds::-webkit-scrollbar { display: none; }
 .ch-chips:empty { display: none; }
@@ -906,3 +906,5 @@ body.in-home .eta-bubble { display: none; }
 @media (max-width: 860px) { .ch-zoom { bottom: auto; top: calc(max(40vh, 250px) - 168px); } }
 /* Carte sombre : tuiles OpenStreetMap inversées (gratuit, sans clé) */
 .tiles-dark { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.88) saturate(.55); }
+.ch-gps.busy { animation: gpsSpin 1s linear infinite; }
+@keyframes gpsSpin { to { transform: rotate(360deg); } }
