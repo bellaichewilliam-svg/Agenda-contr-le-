@@ -132,8 +132,8 @@ window.CONFIG = {
       gros: 25      // 15 à 30 kg (voiture) — remplacé par fixedCarFromHome quand il existe
     },
     express: 20,        // en moins d'une heure
-    pickupPoint: 10,    // retrait à la poste / Super-Pharm / point relais (attente)
-    purchase: 15,       // « J'achète pour vous » (pharmacie, courses…)
+    pickupPoint: 0,     // retrait à la poste / Super-Pharm / point relais : plus de supplément fixe (l'attente au-delà de 10 min est payée au temps, voir waiting)
+    purchase: 0,        // « J'achète pour vous » : plus de supplément fixe (le temps des achats au-delà de 10 min est payé au temps)
     extraStop: 10,      // par arrêt supplémentaire
     returnTripPercent: 50
   },

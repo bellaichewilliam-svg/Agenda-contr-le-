@@ -32,7 +32,7 @@
     });
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610191853" />
+  <link rel="stylesheet" href="styles.css?v=202610191903" />
 </head>
 <body>
 
@@ -87,7 +87,8 @@
     <h3 class="ch-h" data-i18n="ensTitle"></h3>
     <div class="ch-chips ch-ens" id="homeEns"></div>
     <div id="homeRepeat"></div>
-    <ul class="ch-perks"><li data-i18n="perkCash"></li><li data-i18n="perkLive"></li><li data-i18n="perkExpress"></li><li data-i18n="perkAll"></li></ul>
+    <div class="ch-fair"><b>🧾 <span data-i18n="fairTitle"></span></b><span id="homeFair"></span><small data-i18n="fairZero"></small><small class="ch-fair-wait" data-i18n="fairWait"></small></div>
+    <ul class="ch-perks"><li data-i18n="perkFair"></li><li data-i18n="perkCash"></li><li data-i18n="perkLive"></li><li data-i18n="perkExpress"></li><li data-i18n="perkAll"></li></ul>
     <p class="ch-err hidden" id="homeErr"></p>
     <div class="ch-go">
       <div class="ch-go-price"><small id="homeGoSub"></small><b id="homeGoPrice"></b></div>
@@ -103,7 +104,7 @@
       <p class="lead" data-i18n="heroLead"></p>
     </div>
     <div class="perks hero-perks">
-      <span data-i18n="perkCash"></span><span data-i18n="perkLive"></span>
+      <span data-i18n="perkFair"></span><span data-i18n="perkCash"></span><span data-i18n="perkLive"></span>
       <span data-i18n="perkExpress"></span><span data-i18n="perkSched"></span><span data-i18n="perkAll"></span><span id="perkWelcome"></span>
     </div>
     <div class="quick card">
@@ -422,6 +423,7 @@
     <details class="faq"><summary data-i18n="faq1_q"></summary><p data-i18n="faq1_a"></p></details>
     <details class="faq"><summary data-i18n="faq2_q"></summary><p data-i18n="faq2_a"></p></details>
     <details class="faq"><summary data-i18n="faq3_q"></summary><p data-i18n="faq3_a"></p></details>
+    <details class="faq" open><summary data-i18n="faq5_q"></summary><p data-i18n="faq5_a"></p></details>
     <details class="faq"><summary data-i18n="faq4_q"></summary><p data-i18n="faq4_a"></p></details>
   </div>
 </section>
@@ -508,14 +510,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610191853"></script>
-<script src="i18n.js?v=202610191853"></script>
-<script src="pricing.js?v=202610191853"></script>
-<script src="store.js?v=202610191853"></script>
-<script src="chat.js?v=202610191853"></script>
-<script src="common.js?v=202610191853"></script>
-<script src="enseignes.js?v=202610191853"></script>
-<script src="places.js?v=202610191853"></script>
-<script src="client.js?v=202610191853"></script>
+<script src="config.js?v=202610191903"></script>
+<script src="i18n.js?v=202610191903"></script>
+<script src="pricing.js?v=202610191903"></script>
+<script src="store.js?v=202610191903"></script>
+<script src="chat.js?v=202610191903"></script>
+<script src="common.js?v=202610191903"></script>
+<script src="enseignes.js?v=202610191903"></script>
+<script src="places.js?v=202610191903"></script>
+<script src="client.js?v=202610191903"></script>
 </body>
 </html>

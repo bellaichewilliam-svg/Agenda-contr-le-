@@ -908,3 +908,10 @@ body.in-home .eta-bubble { display: none; }
 .tiles-dark { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.88) saturate(.55); }
 .ch-gps.busy { animation: gpsSpin 1s linear infinite; }
 @keyframes gpsSpin { to { transform: rotate(360deg); } }
+/* Prix honnête : prix du magasin + livraison, 0 frais cachés */
+.ch-fair { display: grid; gap: 2px; background: var(--green-soft); color: var(--green-ink); border-radius: 14px; padding: 10px 12px; font-size: 13px; }
+.ch-fair b { font-size: 14px; }
+.ch-fair small { font-weight: 700; opacity: .85; }
+#quoteLines li.zero span:last-child { color: var(--green-ink); font-weight: 700; }
+#quoteLines li.goods { color: var(--muted); font-size: 13px; }
+.ch-fair .ch-fair-wait { font-weight: 600; opacity: .75; }
