@@ -26,6 +26,7 @@ let orders = [];
 let settings = { referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes };
 let refs = { shops: [], orders: [], board: [] };
 let msgs = { messages: [], replies: [] };
+let balance = 0;   // ce que le livreur doit à HOP (négatif : HOP lui doit)
 let tab = "pool";
 let firstLoad = true;
 const seenPool = new Set();
@@ -139,8 +140,9 @@ async function load() {
   try {
     [orders, settings] = await Promise.all([Store.listOrders(), Store.getSettings()]);
     // Parrainage et messages : un souci ici ne doit pas bloquer les courses
-    const [r, m] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null)]);
+    const [r, m, bal] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null), Store.myBalance().catch(() => null)]);
     if (r) refs = r;
+    if (bal != null) balance = bal;
     if (m) { msgs = m; checkNewMessages(); }
   }
   catch (e) {
@@ -150,7 +152,7 @@ async function load() {
   }
   const fresh = pool().filter(o => !seenPool.has(o.id));
   // Toute course disponible encore jamais montrée s'ouvre en fenêtre (dès la 1re connexion aussi)
-  fresh.forEach(o => offerQueue.push(o.id));
+  if (!locked()) fresh.forEach(o => offerQueue.push(o.id));
   showNextOffer();
   if (!firstLoad && fresh.length) {
     beep();
@@ -180,15 +182,17 @@ function card(o, kind) {
   if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ${UI.money(o.budget)} à avancer` : ""}</div>`;
   const net = Number(o.price) - (kind === "pool" ? COMMISSION : Number(o.commission || 0));
   const mineShop = o.referrer_id && o.referrer_id === me.id;
+  const hopPaid = o.paid_to === "hop";
 
   let actions = "";
   if (kind === "pool") {
-    actions = `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button>`;
+    actions = locked() ? `<span class="pill st-annulee">🔒 Réglez votre solde pour accepter</span>`
+      : `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button>`;
   } else {
     actions = (o.status === "confirmee"
         ? `<button class="btn btn-sm btn-primary" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré</button>`)
-      + (o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
+      + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
       + `<a class="btn btn-sm btn-wa" data-wa="client" target="_blank" rel="noopener" href="${UI.waLink(o.contact_phone, UI.clientMessage(o))}">💬 Client</a>`
       + (o.leave_at_door && o.status === "recuperee" ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone || o.contact_phone, I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }))}">📷 Photo du dépôt</a>` : "")
       + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
@@ -210,7 +214,7 @@ function card(o, kind) {
       <span class="pill">${UI.PAY_FR[o.payment_method] || ""}${o.payer === "destinataire" ? " · payé par le destinataire" : ""}</span>
       <span class="pill paid">Vous gagnez ${UI.money(net + (mineShop ? Number(o.referral_bonus || 0) : 0))}</span>
       ${mineShop ? `<span class="pill star-pill">⭐ Votre commerce${o.shop_name ? " : " + UI.esc(o.shop_name) : ""}${kind === "pool" ? priorityLeft(o) : ""} · +${UI.money(o.referral_bonus || 0)}</span>` : o.shop_name ? `<span class="pill">🏪 Partenaire : ${UI.esc(o.shop_name)}</span>` : ""}
-      ${o.prepaid_required ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">💳 ${o.payment_status === "paye" ? "Déjà payée" : "Paiement d'avance en attente"}</span>` : ""}
+      ${hopPaid ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${o.payment_status === "paye" ? `✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse ${UI.money(net)}` : "💳 Paiement d'avance à HOP en attente : n'encaissez rien"}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
     </div>
     ${o.notes && kind === "mine" ? `<p class="notice" style="margin-top:10px">📝 ${UI.esc(o.notes)}</p>` : ""}
@@ -224,10 +228,10 @@ function render() {
   const due = orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.commission_status !== "regle");
   $("#stPool").textContent = pool().length;
   $("#stMine").textContent = mine().length;
-  $("#stWeek").textContent = UI.money(sum(week));
-  const balance = sum(due, o => Number(o.commission || 0)) - bonusDue();
-  $("#stDue").textContent = balance >= 0 ? UI.money(balance) : "+" + UI.money(-balance);
-  $("#stDueLabel").textContent = balance >= 0 ? "Commission à verser" : "HOP! vous doit";
+  $("#stWeek").textContent = UI.money(sum(week.filter(o => o.paid_to !== "hop")));
+  $("#stDue").textContent = UI.money(Math.abs(balance));
+  $("#stDueLabel").textContent = balance >= 0 ? "Solde à verser à HOP" : "HOP vous doit";
+  renderLock();
   document.querySelectorAll("#tabs .tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
   const view = $("#view");
   const empty = msg => `<div class="empty card">${msg}</div>`;
@@ -244,20 +248,21 @@ function render() {
     const amountDue = sum(due, o => Number(o.commission || 0));
     const weekBonus = sum(refDelivered().filter(o => UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= UI.addDays(start, 6)), o => Number(o.referral_bonus || 0));
     const bDue = bonusDue();
-    const balance = amountDue - bDue;
+    const hopDue = sum(due.filter(o => o.paid_to === "hop" && o.payment_status === "paye"));
     view.innerHTML = `<div class="card">
         <h3>Semaine du ${UI.fmtKey(start)} au ${UI.fmtKey(UI.addDays(start, 6))}</h3>
         <table class="prices" style="margin-top:8px">
           <tr><td>Courses livrées</td><td>${week.length}</td></tr>
-          <tr><td>Encaissé auprès des clients</td><td>${UI.money(sum(week))}</td></tr>
+          <tr><td>Encaissé auprès des clients</td><td>${UI.money(sum(week.filter(o => o.paid_to !== "hop")))}</td></tr>
           <tr><td>Commission de la semaine</td><td>${UI.money(sum(week, o => Number(o.commission || 0)))}</td></tr>
           <tr><td>Vous gagnez cette semaine</td><td>${UI.money(sum(week) - sum(week, o => Number(o.commission || 0)))}</td></tr>
           <tr><td>🤝 Bonus parrainage de la semaine</td><td>+${UI.money(weekBonus)}</td></tr>
           <tr><td>Commission due (toutes semaines)</td><td>${UI.money(amountDue)}</td></tr>
+          <tr><td>Courses payées à HOP (reversées)</td><td>−${UI.money(hopDue)}</td></tr>
           <tr><td>Bonus parrainage pas encore réglés</td><td>−${UI.money(bDue)}</td></tr>
           <tr><td><b>${balance >= 0 ? "Reste à verser" : "HOP! vous verse"}</b></td><td><b>${UI.money(Math.abs(balance))}</b></td></tr>
         </table>
-        <p class="muted small" style="margin:10px 0">Le règlement se fait une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Vos bonus de parrainage sont déduits de votre commission.</p>
+        <p class="muted small" style="margin:10px 0">Le règlement se fait une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Les courses payées d'avance à HOP (courses programmées, carnets pro) et vos bonus de parrainage sont déduits de votre commission. Au-delà de ${UI.money(settings.max_debt)} dus, vous ne recevez plus de nouvelles courses jusqu'au règlement.</p>
         ${balance > 0 ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Je viens de verser ma commission de ${UI.money(balance)} par Bit (bonus de parrainage déduits).`)}">J'ai payé ma commission</a>` : ""}
         ${balance < 0 ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Mes bonus de parrainage dépassent ma commission : ${UI.money(-balance)} à recevoir sur mon Bit ${me.bit_phone || me.phone}. Merci !`)}">Demander mon versement</a>` : ""}
       </div>`;
@@ -288,7 +293,7 @@ async function onViewClick(e) {
     const o = orders.find(x => x.id === id);
     const ok = await Store.courierAction(id, el.dataset.act).catch(() => false);
     if (!ok) alert("Action impossible, actualisez la page.");
-    else if (el.dataset.act === "livree" && o && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(o.price)} ?`)) {
+    else if (el.dataset.act === "livree" && o && o.paid_to !== "hop" && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(o.price)} ?`)) {
       await Store.courierAction(id, "paye").catch(() => alert("Encaissement non enregistré, réessayez."));
     }
     await load();
@@ -297,6 +302,16 @@ async function onViewClick(e) {
       if (a) a.style.outline = "3px solid var(--brand)";
     }
   }
+}
+
+// --- Solde : au-delà du plafond, plus de nouvelles courses jusqu'au règlement -------------
+const locked = () => balance > Number(settings.max_debt);
+function renderLock() {
+  const box = $("#lockBox");
+  box.classList.toggle("hidden", !locked());
+  if (!locked()) return;
+  box.innerHTML = `<div><b>🔒 Vous devez ${UI.money(balance)} à HOP</b><br><span class="small">Réglez par Bit au ${UI.esc(CONFIG.bitPhone)} pour recevoir à nouveau des courses (plafond ${UI.money(settings.max_debt)}).</span></div>
+    <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Je viens de régler mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé</a>`;
 }
 
 // --- Parrainage des commerces ------------------------------------------------------------
@@ -348,8 +363,17 @@ function renderRef(view) {
       <div class="btns" style="margin-top:10px">
         <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waShare(pitch())}">💬 Envoyer à un commerce</a>
         <button class="btn" data-qr="1">📱 Montrer mon QR code</button>
+        <button class="btn" data-print="1">🖨️ Imprimer mon affiche</button>
       </div>
       <div class="qr hidden" id="refQr"></div>
+      <div class="poster print-only" id="refPoster">
+        <img src="logo.svg" alt="" class="poster-logo" />
+        <b>Votre commerce sur HOP!</b>
+        <span>העסק שלכם בהופ!</span>
+        <div class="qr" id="refPosterQr"></div>
+        <span>0 % de commission sur vos ventes · 0% עמלה על המכירות</span>
+        <small>Scannez pour vous inscrire · סרקו להרשמה<br>Présenté par ${UI.esc(String(me.name || "").split(" ")[0])} · code ${UI.esc(me.ref_code || "")}</small>
+      </div>
     </div>
     <div class="stats" style="margin-top:14px">
       <div class="stat"><small>Mes commerces</small><b>${active.length}</b></div>
@@ -431,6 +455,13 @@ function onWorkClick(e) {
     navigator.clipboard && navigator.clipboard.writeText(el.dataset.copy).then(() => { el.textContent = "✓ Copié"; }, () => {});
     return;
   }
+  if (el.dataset.print) {
+    const box = $("#refPosterQr");
+    if (!box.dataset.done && window.QRCode) { new QRCode(box, { text: shareLink(), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M }); box.dataset.done = "1"; }
+    document.body.classList.add("print-poster");
+    setTimeout(() => { window.print(); document.body.classList.remove("print-poster"); }, 200);
+    return;
+  }
   if (el.dataset.qr) {
     const box = $("#refQr");
     box.classList.toggle("hidden");
@@ -467,14 +498,18 @@ function showNextOffer() {
   $("#offerPrice").textContent = UI.money(o.price);
   const star = o.referrer_id && o.referrer_id === me.id;
   $("#offerGain").textContent = `Vous gagnez ${UI.money(Number(o.price) - COMMISSION + (star ? Number(o.referral_bonus || 0) : 0))} (commission ${UI.money(COMMISSION)}${star ? `, bonus parrainage +${UI.money(o.referral_bonus || 0)} inclus` : ""})`;
-  $("#offerStar").innerHTML = star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}` : "";
-  $("#offerStar").classList.toggle("hidden", !star);
+  // Proposée d'abord aux livreurs en service les plus proches (vagues de wave_seconds)
+  const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
+  $("#offerStar").innerHTML = star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
+    : early ? "🎯 Vous êtes parmi les plus proches : elle vous est proposée en premier" : "";
+  $("#offerStar").classList.toggle("hidden", !star && !early);
   $("#offerFrom").textContent = UI.cityFr(o.from_city);
   $("#offerTo").textContent = UI.cityFr(o.to_city);
   $("#offerFacts").innerHTML = [
     `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
     toPickup != null ? `🛵 À ≈ ${toPickup.toFixed(1)} km de vous` : "",
     `🕐 ${UI.esc(when)}`,
+    o.paid_to === "hop" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant" : "",
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`
   ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
   $("#offerModal").classList.remove("hidden");

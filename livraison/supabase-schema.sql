@@ -231,7 +231,7 @@ create policy "patron gere livreurs" on public.couriers for update to authentica
 -- Les clients créent seulement des commandes neuves, non attribuées, non payées.
 drop policy if exists "clients creent" on public.orders;
 create policy "clients creent" on public.orders for insert to anon
-  with check (status = 'nouvelle' and payment_status = 'en_attente' and admin_note is null
+  with check (status = 'nouvelle' and (payment_status = 'en_attente' or payment_method = 'carnet') and admin_note is null
               and courier_id is null and commission = 0 and receipt_number is null);
 
 -- Livreur validé : courses libres + les siennes. Patron : tout.
@@ -382,6 +382,16 @@ alter table public.orders add column if not exists shop_name text;
 alter table public.orders add column if not exists referrer_id uuid references public.couriers(id);
 alter table public.orders add column if not exists referral_bonus numeric not null default 0;
 alter table public.orders add column if not exists referral_status text not null default 'du';
+-- Qui a reçu l'argent du client : le livreur (espèces ou son Bit) ou HOP (payé d'avance, carnet)
+alter table public.orders add column if not exists paid_to text not null default 'livreur';
+-- Clé secrète du commerce, envoyée seulement pour utiliser son carnet (effacée aussitôt)
+alter table public.orders add column if not exists shop_token uuid;
+alter table public.orders drop constraint if exists orders_payment_method_check;
+alter table public.orders add constraint orders_payment_method_check check (payment_method in ('cash','bit','carnet'));
+alter table public.shops add column if not exists credits int not null default 0;
+alter table public.settings add column if not exists wave_seconds int not null default 45;
+alter table public.settings add column if not exists max_debt numeric not null default 50;
+alter table public.settings add column if not exists carnet_unit numeric not null default 20;
 create index if not exists orders_referrer_idx on public.orders (referrer_id);
 
 -- Nouvelle commande : IP, offre de bienvenue, et commerce / parrain (jamais fournis par le client)
@@ -402,6 +412,18 @@ begin
     raise exception 'welcome_used';
   end if;
   new.shop_name := null; new.referrer_id := null; new.referral_bonus := 0; new.referral_status := 'du';
+  new.paid_to := case when new.prepaid_required then 'hop' else 'livreur' end;
+  -- Carnet pro : seulement le commerce lui-même (sa clé secrète), dans Netanya, s'il lui reste des courses
+  if new.payment_method = 'carnet' then
+    if new.shop_id is null or new.shop_token is null or new.from_city <> 'netanya' or new.to_city <> 'netanya' then
+      raise exception 'carnet_invalid';
+    end if;
+    update shops set credits = credits - 1 where id = new.shop_id and token = new.shop_token and credits > 0;
+    if not found then raise exception 'carnet_empty'; end if;
+    new.price := (select carnet_unit from settings where id = 1);
+    new.payment_status := 'paye'; new.paid_to := 'hop'; new.promo_code := null; new.discount := 0;
+  end if;
+  new.shop_token := null;
   if new.shop_id is not null then
     select * into s from shops where id = new.shop_id and status <> 'suspendu';
     if not found then
@@ -420,12 +442,34 @@ end;
 $$;
 
 -- Le parrain a quelques minutes d'avance sur les courses de ses commerces
+-- puis la course est proposée par vagues : le livreur en service le plus proche du départ
+-- d'abord, le 2e plus proche après wave_seconds, tous les autres après 2 × wave_seconds.
 create or replace function public.can_see_new(o orders) returns boolean
 language sql stable security definer set search_path = public as $$
+  with st as (select * from settings where id = 1),
+  ranked as (
+    select c.id, row_number() over (order by (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
+      from couriers c
+     where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
+       and c.position_at > now() - interval '10 minutes'
+  )
   select o.status = 'nouvelle' and o.courier_id is null
-     and (o.referrer_id is null or o.referrer_id = auth.uid()
-          or o.created_at < now() - make_interval(mins => (select priority_minutes from settings where id = 1)));
+     and (o.referrer_id = auth.uid()
+          or now() >= o.created_at
+               + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), 2), 2)));
 $$;
+
+-- Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif), sur les courses pas encore réglées :
+-- commissions − courses payées à HOP (reversées au livreur) − bonus de parrainage
+create or replace function public.courier_balance(p_id uuid) returns numeric
+language sql stable security definer set search_path = public as $$
+  select coalesce((select sum(commission - case when paid_to = 'hop' and payment_status = 'paye' then price else 0 end)
+                     from orders where courier_id = p_id and status = 'livree' and commission_status <> 'regle'), 0)
+       - coalesce((select sum(referral_bonus) from orders
+                    where referrer_id = p_id and status = 'livree' and referral_status <> 'regle'), 0);
+$$;
+revoke execute on function public.courier_balance(uuid) from public, anon, authenticated;
 
 drop policy if exists "lecture courses" on public.orders;
 create policy "lecture courses" on public.orders for select to authenticated
@@ -438,6 +482,8 @@ declare c couriers;
 begin
   select * into c from couriers where id = auth.uid() and status = 'actif';
   if not found then return false; end if;
+  -- Trop de commission en retard : plus de nouvelles courses tant que ce n'est pas réglé
+  if c.role = 'coursier' and public.courier_balance(c.id) > (select max_debt from settings where id = 1) then return false; end if;
   update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
          courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
          commission = case when c.role = 'admin' then 0 else (select commission from settings where id = 1) end
@@ -452,6 +498,11 @@ language plpgsql security definer set search_path = public as $$
 declare r shops; ref uuid; c text;
 begin
   if coalesce(trim(p->>'name'), '') = '' or coalesce(trim(p->>'phone'), '') = '' then raise exception 'missing'; end if;
+  -- Déjà inscrit (même téléphone, ou même nom dans la même ville) : pas de doublon, le parrain ne change pas
+  if exists (select 1 from shops where norm_phone(phone) = norm_phone(p->>'phone')
+               or (lower(trim(name)) = lower(trim(p->>'name')) and coalesce(city, '') = coalesce(p->>'city', ''))) then
+    raise exception 'shop_exists';
+  end if;
   select id into ref from couriers where ref_code = upper(trim(coalesce(p->>'ref_code', ''))) and status = 'actif';
   loop
     c := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
@@ -513,6 +564,64 @@ language sql stable security definer set search_path = public as $$
    order by x.shops desc, x.deliveries desc
    limit 10;
 $$;
+
+-- --- Argent : tout est carré --------------------------------------------------------
+-- Le livreur n'encaisse jamais une course déjà payée à HOP
+create or replace function public.courier_update(p_id uuid, p_action text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() then return false; end if;
+  if p_action = 'recuperee' then
+    update orders set status = 'recuperee' where id = p_id and courier_id = auth.uid() and status = 'confirmee';
+  elsif p_action = 'livree' then
+    update orders set status = 'livree' where id = p_id and courier_id = auth.uid() and status = 'recuperee';
+  elsif p_action = 'paye' then
+    update orders set payment_status = 'paye' where id = p_id and courier_id = auth.uid() and paid_to = 'livreur';
+  elsif p_action = 'liberer' then
+    update orders set status = 'nouvelle', courier_id = null, courier_name = null, courier_phone = null,
+           courier_bit = null, commission = 0
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee';
+  else
+    return false;
+  end if;
+  return found;
+end;
+$$;
+
+-- Solde du livreur connecté (affiché dans son espace)
+create or replace function public.my_balance() returns numeric
+language sql stable security definer set search_path = public as $$
+  select public.courier_balance(auth.uid());
+$$;
+revoke execute on function public.my_balance() from public, anon;
+grant execute on function public.my_balance() to authenticated;
+
+-- Reçus : pas pour une course de carnet (le reçu est celui de l'achat du carnet)
+create or replace function public.assign_receipt() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'livree' and new.payment_status = 'paye' and new.receipt_number is null and new.payment_method <> 'carnet'
+     and exists (select 1 from couriers where id = new.courier_id and role = 'admin') then
+    new.receipt_number := nextval('public.receipt_seq');
+    new.receipt_at := now();
+  end if;
+  return new;
+end;
+$$;
+
+-- Course de carnet annulée ou refusée : la course est rendue au commerce
+create or replace function public.orders_refund() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.payment_method = 'carnet' and new.status in ('annulee', 'refusee') and old.status not in ('annulee', 'refusee') then
+    update shops set credits = credits + 1 where id = new.shop_id;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_refund on public.orders;
+create trigger orders_refund after update on public.orders
+  for each row execute function public.orders_refund();
 
 -- ============================================================================
 -- MESSAGES DU PATRON AUX LIVREURS (« ça vaut le coup de sortir ! »)

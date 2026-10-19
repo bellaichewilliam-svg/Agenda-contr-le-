@@ -43,11 +43,27 @@ window.CONFIG = {
   // --- Villes desservies : le prix se calcule entre les centres-villes -------
   cities: [
     { id: "netanya",      fr: "Netanya",        he: "נתניה",        lat: 32.3215, lon: 34.8532 },
+    // Sharon (grille de prix du groupe, colonnes moto / voiture)
+    { id: "nordia",       fr: "Nordia",         he: "נורדיה",       lat: 32.3122, lon: 34.8935 },
+    { id: "havatselet",   fr: "Havatselet HaSharon", he: "חבצלת השרון", lat: 32.3600, lon: 34.8640, aliases: ["Havatselet Hasharon"] },
+    { id: "beit-yitzhak", fr: "Beit Yitzhak",   he: "בית יצחק",     lat: 32.3280, lon: 34.8870, aliases: ["בית יצחק-שער חפר", "Beit Yitzhak-Sha'ar Hefer"] },
+    { id: "yakum",        fr: "Yakum",          he: "יקום",         lat: 32.2490, lon: 34.8410, aliases: ["Yaqum"] },
+    { id: "wingate",      fr: "Wingate",        he: "וינגייט",      lat: 32.2770, lon: 34.8340, aliases: ["מכון וינגייט", "Wingate Institute"] },
     { id: "even-yehuda",  fr: "Even Yehuda",    he: "אבן יהודה",    lat: 32.2700, lon: 34.8870, aliases: ["Even Yehuda"] },
     { id: "kadima",       fr: "Kadima-Tzoran",  he: "קדימה-צורן",   lat: 32.2780, lon: 34.9150, aliases: ["Kadima Zoran", "Kadima"] },
     { id: "pardesia",     fr: "Pardesia",       he: "פרדסיה",       lat: 32.3060, lon: 34.9090 },
     { id: "kfar-yona",    fr: "Kfar Yona",      he: "כפר יונה",     lat: 32.3170, lon: 34.9350 },
-    { id: "hadera",       fr: "Hadera",         he: "חדרה",         lat: 32.4340, lon: 34.9190 },
+    { id: "tel-mond",     fr: "Tel Mond",       he: "תל מונד",      lat: 32.2550, lon: 34.9180 },
+    { id: "beit-yanai",   fr: "Beit Yanai / Kfar Vitkin", he: "בית ינאי / כפר ויתקין", lat: 32.3820, lon: 34.8680, aliases: ["בית ינאי", "Beit Yanai", "כפר ויתקין", "Kfar Vitkin"] },
+    { id: "shefayim",     fr: "Shefayim",       he: "שפיים",        lat: 32.2230, lon: 34.8240 },
+    { id: "emek-hefer",   fr: "Emek Hefer",     he: "עמק חפר",      lat: 32.3700, lon: 34.9000, aliases: ["מועצה אזורית עמק חפר", "Emek Hefer Regional Council", "Hefer Valley"] },
+    { id: "nitzanei-oz",  fr: "Nitzanei Oz",    he: "ניצני עוז",    lat: 32.3060, lon: 35.0090 },
+    { id: "shaar-efraim", fr: "Sha'ar Efraim",  he: "שער אפרים",    lat: 32.2650, lon: 35.0000, aliases: ["Shaar Efraim", "שער אפריים"] },
+    { id: "hadera",       fr: "Hadera",         he: "חדרה",         lat: 32.4340, lon: 34.9190, aliases: ["גבעת אולגה", "אולגה", "Givat Olga", "Olga"] },
+    { id: "or-akiva",     fr: "Or Akiva",       he: "אור עקיבא",    lat: 32.5080, lon: 34.9200, aliases: ["Or Aqiva"] },
+    { id: "caesarea",     fr: "Césarée",        he: "קיסריה",       lat: 32.5190, lon: 34.9040, aliases: ["Caesarea", "Qesarya"] },
+    { id: "kalansawe",    fr: "Kalansawe",      he: "קלנסווה",      lat: 32.2850, lon: 34.9810, aliases: ["Qalansawe", "קלנסואה"] },
+    { id: "tira",         fr: "Tira",           he: "טירה",         lat: 32.2340, lon: 34.9500, aliases: ["At-Tira", "Et Tira"] },
     { id: "raanana",      fr: "Ra'anana",       he: "רעננה",        lat: 32.1848, lon: 34.8713, aliases: ["Raanana"] },
     { id: "kfar-saba",    fr: "Kfar Saba",      he: "כפר סבא",      lat: 32.1750, lon: 34.9070, aliases: ["Kefar Sava", "Kfar Sava"] },
     { id: "hod-hasharon", fr: "Hod HaSharon",   he: "הוד השרון",    lat: 32.1500, lon: 34.8880, aliases: ["Hod Hasharon"] },
@@ -65,16 +81,28 @@ window.CONFIG = {
   homeCity: "netanya",
 
   // --- Tarifs ----------------------------------------------------------------
-  // Prix depuis/vers votre ville : fixés à la main ci-dessous (petit colis).
-  // Pour les autres trajets : base + perKm × distance à vol d'oiseau, arrondi à 5 ₪.
+  // Prix depuis/vers votre ville : fixés à la main ci-dessous.
+  // fixedFromHome = scooter / moto (petit et moyen colis), fixedCarFromHome = voiture
+  // (gros colis). Sharon : grille de prix du groupe. Autres trajets : base + perKm
+  // × distance à vol d'oiseau, arrondi à 5 ₪.
   pricing: {
     fixedFromHome: {
       "netanya": 25,
-      "pardesia": 45, "even-yehuda": 45, "kadima": 50, "kfar-yona": 50,
-      "hadera": 75,
-      "raanana": 80, "kfar-saba": 85, "herzliya": 85, "hod-hasharon": 90, "ramat-hasharon": 95,
+      "nordia": 35, "havatselet": 40, "beit-yitzhak": 40, "yakum": 40,
+      "wingate": 50, "even-yehuda": 50, "kadima": 50, "kfar-yona": 50, "pardesia": 50, "tel-mond": 50, "beit-yanai": 50,
+      "shefayim": 60, "emek-hefer": 70, "nitzanei-oz": 80,
+      "shaar-efraim": 100, "hadera": 100, "raanana": 100, "kfar-saba": 100, "herzliya": 100, "hod-hasharon": 100,
+      "ramat-hasharon": 110, "or-akiva": 120, "caesarea": 120, "kalansawe": 130, "tira": 150,
       "tel-aviv": 120, "ramat-gan": 120, "givatayim": 120, "bnei-brak": 120, "petah-tikva": 120,
       "holon": 145, "bat-yam": 145, "rishon": 160
+    },
+    fixedCarFromHome: {
+      "netanya": 40,
+      "nordia": 50, "havatselet": 50, "beit-yitzhak": 50, "yakum": 50,
+      "wingate": 80, "even-yehuda": 60, "kadima": 60, "kfar-yona": 60, "pardesia": 70, "tel-mond": 60, "beit-yanai": 60,
+      "shefayim": 80, "emek-hefer": 80, "nitzanei-oz": 100,
+      "shaar-efraim": 120, "hadera": 120, "raanana": 120, "kfar-saba": 120, "herzliya": 120, "hod-hasharon": 120,
+      "ramat-hasharon": 130, "or-akiva": 140, "caesarea": 140, "kalansawe": 150, "tira": 170
     },
     base: 25,
     perKm: 3.5,
@@ -83,7 +111,7 @@ window.CONFIG = {
     sizes: {
       petit: 0,     // enveloppe, sac, petit colis (< 5 kg)
       moyen: 10,    // 5 à 15 kg
-      gros: 25      // 15 à 30 kg
+      gros: 25      // 15 à 30 kg (voiture) — remplacé par fixedCarFromHome quand il existe
     },
     express: 20,        // en moins d'une heure
     pickupPoint: 10,    // retrait à la poste / Super-Pharm / point relais (attente)
@@ -95,6 +123,12 @@ window.CONFIG = {
   // --- Livreurs partenaires (comme Wolt) ---------------------------------------
   platform: {
     commissionPerCourse: 3,   // ce que vous prenez sur chaque course d'un livreur
+    // Au-delà de ce solde dû (commissions − courses payées à HOP − bonus), le livreur ne
+    // peut plus accepter de course tant qu'il n'a pas réglé (en ligne : settings.max_debt)
+    maxDebt: 50,
+    // Courses proposées d'abord au livreur en service le plus proche, puis au 2e après
+    // ces secondes, puis à tous (en ligne : settings.wave_seconds)
+    waveSeconds: 45,
     settlementDay: 0          // jour du paiement hebdomadaire (0 = dimanche)
   },
 
@@ -114,7 +148,9 @@ window.CONFIG = {
       { min: 5, name: "🚀 Ambassadeur" },
       { min: 10, name: "👑 Légende HOP!" }
     ],
-    kinds: ["restaurant", "boutique", "pharmacie", "bureau", "autre"]
+    kinds: ["restaurant", "boutique", "pharmacie", "bureau", "autre"],
+    // Carnet pro : 10 courses dans Netanya payées d'avance (en ligne : settings.carnet_unit = price / courses)
+    carnet: { courses: 10, price: 200 }
   },
 
   // Messages prêts à envoyer aux livreurs depuis l'espace patron
@@ -141,8 +177,8 @@ window.CONFIG = {
     loyalty: { every: 10, max: 30 },
     // Offres professionnelles affichées sur la page (commande par WhatsApp)
     business: [
-      { fr: "Restaurants : livraison de repas dans Netanya (dès 10 livraisons par semaine)", he: "מסעדות: משלוח אוכל בתוך נתניה (החל מ-10 משלוחים בשבוע)", price: { fr: "18 ₪", he: "18 ₪" } },
-      { fr: "Carnet de 10 courses dans Netanya, au lieu de 250 ₪ (25 ₪ × 10)", he: "כרטיסייה של 10 משלוחים בתוך נתניה, במקום 250 ₪ (25 ₪ × 10)", price: { fr: "180 ₪ les 10", he: "180 ₪ ל-10" } },
+      { fr: "Commerces et restaurants : course dans Netanya, sans abonnement, 0 % sur vos ventes", he: "עסקים ומסעדות: משלוח בתוך נתניה, בלי מנוי, 0% מהמכירות", price: { fr: "25 ₪", he: "25 ₪" } },
+      { fr: "Carnet pro de 10 courses dans Netanya, au lieu de 250 ₪ (25 ₪ × 10)", he: "כרטיסייה לעסקים: 10 משלוחים בתוך נתניה, במקום 250 ₪ (25 ₪ × 10)", price: { fr: "200 ₪ les 10", he: "200 ₪ ל-10" } },
       { fr: "Tournée quotidienne fixe (avocats, comptables, labos)", he: "סבב יומי קבוע (עורכי דין, רואי חשבון, מעבדות)", price: { fr: "sur devis", he: "בהצעת מחיר" } }
     ]
   },

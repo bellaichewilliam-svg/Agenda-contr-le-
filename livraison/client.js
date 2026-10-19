@@ -12,7 +12,7 @@ const form = $("#orderForm");
 const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
-const state = { shop: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null } };
+const state = { shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null } };
 const ac = {};
 
 // Exemples cliquables : ils pré-remplissent le formulaire
@@ -45,7 +45,7 @@ function fillCitySelects() {
 
 // --- Sections d'accueil ----------------------------------------------------------
 function renderStatic() {
-  $("#brandName").textContent = I18N.businessName();
+  $("#brandName").innerHTML = UI.wordmark();
   $("#footerName").textContent = I18N.businessName();
   document.title = `${I18N.businessName()} · ${t("orderTitle")}`;
   $("#perkWelcome").textContent = t("perkWelcome", { price: money(welcomePrice()) });
@@ -57,7 +57,7 @@ function renderStatic() {
   $("#openBadge").textContent = t(open ? "openNow" : "closedNow");
   $("#openBadge").classList.toggle("closed", !open);
   $("#expressSmall").textContent = `${t("w_express_d")} · +${money(P.express)}`;
-  $("#bitSmall").textContent = t("pay_bit_d", { phone: CONFIG.bitPhone });
+  $("#bitSmall").textContent = val("urgency") === "programmee" ? t("pay_bit_d", { phone: CONFIG.bitPhone }) : t("pay_bit_courier");
   $("#footerContact").innerHTML = `📞 <a href="tel:${UI.esc(CONFIG.phoneDisplay)}" dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</a> · <a href="${UI.waLink(CONFIG.whatsapp, "")}" target="_blank" rel="noopener">WhatsApp</a>`;
 
   const home = CONFIG.homeCity;
@@ -85,10 +85,11 @@ function renderStatic() {
   const rows = CONFIG.cities.map(c => ({ c, price: Pricing.cityToCity(CONFIG, home, c.id) })).sort((a, b) => a.price - b.price);
   $("#priceGrid").innerHTML = rows.map(r => `<div class="pg-row"><span>${r.c.id === home
     ? UI.esc(t("within", { city: I18N.cityName(home) }))
-    : `${UI.esc(I18N.cityName(home))} ⇄ ${UI.esc(r.c[I18N.lang])}`}</span><b>${money(r.price)}</b></div>`).join("");
+    : `${UI.esc(I18N.cityName(home))} ⇄ ${UI.esc(r.c[I18N.lang])}`}</span><b>${money(r.price)}${Pricing.carPrice(CONFIG, home, r.c.id) != null
+      ? ` <small class="muted" title="${UI.esc(t("xBig"))}">🚗 ${money(Pricing.carPrice(CONFIG, home, r.c.id))}</small>` : ""}</b></div>`).join("");
 
   const extras = [["xExpress", "+ " + money(P.express)], ["xPickup", "+ " + money(P.pickupPoint)], ["xPurchase", "+ " + money(P.purchase)],
-    ["xMedium", "+ " + money(P.sizes.moyen)], ["xBig", "+ " + money(P.sizes.gros)], ["xStop", "+ " + money(P.extraStop)], ["xReturn", `+ ${P.returnTripPercent} %`]];
+    ["xMedium", "+ " + money(P.sizes.moyen)], ["xBig", t("xBigCar")], ["xStop", "+ " + money(P.extraStop)], ["xReturn", `+ ${P.returnTripPercent} %`]];
   $("#extrasTable").innerHTML = extras.map(e => `<tr><td>${UI.esc(t(e[0]))}</td><td>${e[1]}</td></tr>`).join("");
 
   const days = t("days");
@@ -168,7 +169,15 @@ function syncVisibility() {
   if (sched && cash.checked) form.querySelector('input[name=payment_method][value=bit]').checked = true;
   form.payer.querySelector('option[value=destinataire]').disabled = sched;
   if (sched) form.payer.value = "moi";
-  $("#prepayNote").classList.toggle("hidden", !sched);
+  // Carnet pro proposé seulement quand il s'applique
+  const carnet = carnetOk();
+  $("#carnetChoice").classList.toggle("hidden", !carnet);
+  if (carnet) $("#carnetSmall").textContent = t("pay_carnet_d", { n: state.pro.credits });
+  const carnetOn = carnet && val("payment_method") === "carnet";
+  if (!carnet && val("payment_method") === "carnet") form.querySelector('input[name=payment_method][value=cash]').checked = !sched;
+  if (!carnet && sched) form.querySelector('input[name=payment_method][value=bit]').checked = true;
+  $("#bitSmall").textContent = sched ? t("pay_bit_d", { phone: CONFIG.bitPhone }) : t("pay_bit_courier");
+  $("#prepayNote").classList.toggle("hidden", !sched || carnetOn);
   document.querySelectorAll(".other-city").forEach(el => {
     el.classList.toggle("hidden", val(el.dataset.for + "_city") !== OTHER);
   });
@@ -247,7 +256,20 @@ function currentDiscount() {
   return state.promo;
 }
 
+// Carnet pro : le commerce lui-même (sa clé sur cet appareil), course simple dans Netanya
+function carnetOk() {
+  const pf = state.pick.from;
+  return !!(state.pro && state.pro.credits > 0 && state.shop && pf && pf.shopId === state.shop.id
+    && cityOf("from") === CONFIG.homeCity && cityOf("to") === CONFIG.homeCity && val("size") === "petit"
+    && val("urgency") !== "express" && !form.round_trip.checked && !(parseInt(val("extra_stops"), 10) > 0)
+    && ["colis", "repas"].includes(val("service")));
+}
+const carnetUnit = () => Number(state.settings.carnet_unit || CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses);
+
 function currentQuote() {
+  if (val("payment_method") === "carnet" && carnetOk()) {
+    return { total: carnetUnit(), known: true, distanceKm: 0, lines: [{ key: "qCarnet", vars: { n: state.pro.credits - 1 }, amount: carnetUnit() }] };
+  }
   return Pricing.computeQuote({
     fromCity: cityOf("from"), toCity: cityOf("to"),
     fromPoint: state.fromPoint, toPoint: state.toPoint,
@@ -317,7 +339,9 @@ function renderQuote() {
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
   if (val("service") === "achat") notes.push(t("qPurchaseNote"));
-  notes.push(val("payment_method") === "bit" ? t("payNoteBit", { phone: CONFIG.bitPhone }) : t("payNoteCash"));
+  const sched = val("urgency") === "programmee";
+  notes.push(val("payment_method") === "carnet" ? t("payNoteCarnet")
+    : val("payment_method") === "bit" ? (sched ? t("payNoteBit", { phone: CONFIG.bitPhone }) : t("payNoteBitCourier")) : t("payNoteCash"));
   $("#quoteNote").textContent = notes.join(" ");
   updateProgress();
   const err = scheduleError();
@@ -643,13 +667,17 @@ async function submit(e) {
       contact_phone: formatPhone(val("contact_phone").trim()),
       contact_email: val("contact_email").trim() || null,
       // Départ = le commerce du lien : la course compte pour lui (et pour le livreur qui l'a amené)
-      shop_id: state.shop && pf && pf.shopId === state.shop.id ? state.shop.id : null
+      shop_id: state.shop && pf && pf.shopId === state.shop.id ? state.shop.id : null,
+      // Clé du commerce, seulement pour payer avec son carnet (la base la vérifie puis l'efface)
+      shop_token: val("payment_method") === "carnet" && carnetOk() ? state.pro.token : null
     };
+    if (!order.shop_token) delete order.shop_token;
     const firstOrder = activeOrders().length === 0;
     const saved = await Store.createOrder(order);
     rememberAddresses(saved, pf, pt);
     $("#donePrepay").textContent = t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref });
-    $("#donePrepay").classList.toggle("hidden", !saved.prepaid_required);
+    $("#donePrepay").classList.toggle("hidden", !saved.prepaid_required || saved.payment_method === "carnet");
+    if (saved.payment_method === "carnet" && state.pro) state.pro.credits--;
     confetti();
     $("#doneAccount").textContent = t("doneAccount");
     $("#doneAccount").classList.toggle("hidden", !firstOrder);
@@ -675,6 +703,7 @@ async function submit(e) {
     await loadMine();
   } catch (ex) {
     if (/welcome_used/.test(ex.message)) { state.welcomeUsed = true; refuseWelcome(); return; }
+    if (/carnet_/.test(ex.message)) { if (state.pro) state.pro.credits = 0; syncVisibility(); return showError(t("errCarnet")); }
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;
@@ -795,6 +824,14 @@ function applyShop() {
 async function loadShop(code) {
   try { state.shop = await Store.shopByCode(code); } catch (e) { state.shop = null; }
   if (!state.shop) return;
+  // Sur le téléphone du commerce : son carnet pro
+  const token = Store.shopTokenFor(state.shop.code);
+  if (token) {
+    try {
+      const d = await Store.shopDashboard(token);
+      if (d && d.shop) state.pro = { token, credits: Number(d.shop.credits || 0) };
+    } catch (e) { /* pas de carnet */ }
+  }
   applyShop();
   setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);
 }

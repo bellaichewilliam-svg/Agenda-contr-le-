@@ -18,6 +18,7 @@ const LS = {
   device: "livraison.device.v1",
   shops: "livraison.shops.v1",
   shopTokens: "livraison.shopTokens.v1",
+  shopCodes: "livraison.shopCodes.v1",
   messages: "livraison.messages.v1",
   replies: "livraison.replies.v1"
 };
@@ -127,7 +128,9 @@ function myId() { const s = session(); return s && s.user_id; }
 // --- Réglages (disponibilité, commission) -----------------------------------------
 const DEFAULT_SETTINGS = {
   accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse,
-  referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes
+  referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes,
+  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt,
+  carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses
 };
 
 async function getSettings() {
@@ -176,12 +179,24 @@ async function createOrder(order) {
     await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" });
   } else {
     // Même règle que la base en ligne : commerce et parrain retrouvés ici, jamais fournis par le client
-    const shop = order.shop_id && localShops().find(x => x.id === order.shop_id && x.status !== "suspendu");
+    const settings = await getSettings();
+    const shops = localShops();
+    const shop = order.shop_id && shops.find(x => x.id === order.shop_id && x.status !== "suspendu");
     const referrer = shop && localCouriers().find(c => c.id === shop.referrer_id);
     Object.assign(order, {
       shop_id: shop ? shop.id : null, shop_name: shop ? shop.name : null, referrer_id: referrer ? referrer.id : null,
-      referral_bonus: referrer && referrer.role === "coursier" ? Number((await getSettings()).referral_bonus) : 0, referral_status: "du"
+      referral_bonus: referrer && referrer.role === "coursier" ? Number(settings.referral_bonus) : 0, referral_status: "du",
+      paid_to: order.prepaid_required ? "hop" : "livreur"
     });
+    // Carnet pro : seulement le commerce lui-même (sa clé), dans Netanya, s'il lui reste des courses
+    if (order.payment_method === "carnet") {
+      if (!shop || shop.token !== order.shop_token || order.from_city !== "netanya" || order.to_city !== "netanya") throw new Error("carnet_invalid");
+      if (!(shop.credits > 0)) throw new Error("carnet_empty");
+      shop.credits--;
+      writeJSON(LS.shops, shops);
+      Object.assign(order, { price: Number(settings.carnet_unit), payment_status: "paye", paid_to: "hop", promo_code: null, discount: 0 });
+    }
+    delete order.shop_token;
     order.id = uuid();
     order.created_at = new Date().toISOString();
     order.commission = 0;
@@ -207,7 +222,7 @@ async function cancelMyOrder(token) {
   if (ONLINE) return rest("/rest/v1/rpc/cancel_order", { method: "POST", body: { p_token: token } });
   const all = localOrders();
   const o = all.find(x => x.token === token && x.status === "nouvelle");
-  if (o) { o.status = "annulee"; saveLocalOrders(all); }
+  if (o) { o.status = "annulee"; refundCarnet(o); saveLocalOrders(all); }
   return !!o;
 }
 
@@ -308,20 +323,42 @@ async function listOrders() {
   if (!c) return [];
   if (c.role === "admin") return all;
   if (c.status !== "actif") return [];
-  const prio = Number((await getSettings()).priority_minutes) * 60000;
-  return all.filter(o => o.courier_id === c.id || canSeeNew(o, c.id, prio));
+  const st = await getSettings();
+  return all.filter(o => o.courier_id === c.id || canSeeNew(o, c.id, st));
 }
 
-// Course libre visible : tout de suite pour le parrain du commerce, après quelques minutes pour les autres
-function canSeeNew(o, id, prio) {
-  return o.status === "nouvelle" && !o.courier_id
-    && (!o.referrer_id || o.referrer_id === id || Date.now() - new Date(o.created_at) >= prio);
+// Course libre visible (même règle que la base en ligne) : tout de suite pour le parrain du
+// commerce ; sinon par vagues, le livreur en service le plus proche du départ d'abord.
+function canSeeNew(o, id, st) {
+  if (o.status !== "nouvelle" || o.courier_id) return false;
+  if (o.referrer_id && o.referrer_id === id) return true;
+  const fresh = Date.now() - 10 * 60000;
+  const ranked = o.pickup_lat == null ? [] : localCouriers()
+    .filter(c => c.status === "actif" && c.role === "coursier" && c.lat != null && new Date(c.position_at) > fresh)
+    .map(c => ({ id: c.id, d: (c.lat - o.pickup_lat) ** 2 + ((c.lon - o.pickup_lon) * Math.cos(o.pickup_lat * Math.PI / 180)) ** 2 }))
+    .sort((a, b) => a.d - b.d);
+  const rank = ranked.findIndex(x => x.id === id);
+  const wait = (o.referrer_id ? Number(st.priority_minutes) * 60000 : 0) + Number(st.wave_seconds) * 1000 * Math.min(rank < 0 ? 2 : rank, 2);
+  return Date.now() - new Date(o.created_at) >= wait;
+}
+
+// Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif), courses pas encore réglées
+function balanceOf(id, all) {
+  return all.filter(o => o.courier_id === id && o.status === "livree" && o.commission_status !== "regle")
+      .reduce((s, o) => s + Number(o.commission || 0) - (o.paid_to === "hop" && o.payment_status === "paye" ? Number(o.price) : 0), 0)
+    - all.filter(o => o.referrer_id === id && o.status === "livree" && o.referral_status !== "regle")
+      .reduce((s, o) => s + Number(o.referral_bonus || 0), 0);
+}
+
+async function myBalance() {
+  if (ONLINE) return Number(await authRest("/rest/v1/rpc/my_balance", { method: "POST", body: {} })) || 0;
+  return balanceOf(myId(), localOrders());
 }
 
 // Démo : même règle que la base en ligne pour numéroter les reçus
 function localReceipt(o) {
   const c = localCouriers().find(x => x.id === o.courier_id);
-  if (o.status === "livree" && o.payment_status === "paye" && !o.receipt_number && c && c.role === "admin") {
+  if (o.status === "livree" && o.payment_status === "paye" && !o.receipt_number && o.payment_method !== "carnet" && c && c.role === "admin") {
     o.receipt_number = localOrders().reduce((m, x) => Math.max(m, x.receipt_number || 0), 0) + 1;
     o.receipt_at = new Date().toISOString();
   }
@@ -334,8 +371,21 @@ async function updateOrder(id, changes) {
   }
   const all = localOrders();
   const o = all.find(x => x.id === id);
-  if (o) { Object.assign(o, changes); localReceipt(o); }
+  if (o) {
+    const was = o.status;
+    Object.assign(o, changes);
+    localReceipt(o);
+    if (!["annulee", "refusee"].includes(was)) refundCarnet(o);
+  }
   saveLocalOrders(all);
+}
+
+// Course de carnet annulée ou refusée : la course est rendue au commerce
+function refundCarnet(o) {
+  if (o.payment_method !== "carnet" || !["annulee", "refusee"].includes(o.status)) return;
+  const shops = localShops();
+  const s = shops.find(x => x.id === o.shop_id);
+  if (s) { s.credits = (s.credits || 0) + 1; writeJSON(LS.shops, shops); }
 }
 
 // Champs à copier sur la course quand un livreur la prend
@@ -357,9 +407,10 @@ async function acceptOrder(id) {
   if (ONLINE) return authRest("/rest/v1/rpc/accept_order", { method: "POST", body: { p_id: id } });
   const all = localOrders();
   const c = localCouriers().find(x => x.id === myId() && x.status === "actif");
-  const prio = Number((await getSettings()).priority_minutes) * 60000;
-  const o = c && all.find(x => x.id === id && (c.role === "admin" || canSeeNew(x, c.id, prio)));
+  const st = await getSettings();
+  const o = c && all.find(x => x.id === id && (c.role === "admin" || canSeeNew(x, c.id, st)));
   if (!o || !c) return false;
+  if (c.role === "coursier" && balanceOf(c.id, all) > Number(st.max_debt)) return false;
   Object.assign(o, await courierFields(c));
   saveLocalOrders(all);
   return true;
@@ -373,7 +424,7 @@ async function courierAction(id, action) {
   if (!o) return false;
   if (action === "recuperee" && o.status === "confirmee") o.status = "recuperee";
   else if (action === "livree" && o.status === "recuperee") o.status = "livree";
-  else if (action === "paye") o.payment_status = "paye";
+  else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
     Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
   } else return false;
@@ -435,28 +486,32 @@ async function shopSignup(data) {
   if (ONLINE) r = await rest("/rest/v1/rpc/shop_signup", { method: "POST", body: { p: data } });
   else {
     const list = localShops();
+    const same = x => phoneKey(x.phone) === phoneKey(data.phone)
+      || (String(x.name).trim().toLowerCase() === String(data.name).trim().toLowerCase() && (x.city || "") === (data.city || ""));
+    if (list.some(same)) throw new Error("shop_exists");
     const ref = localCouriers().find(c => c.ref_code && c.ref_code === String(data.ref_code || "").trim().toUpperCase() && c.status === "actif");
     const shop = {
       id: uuid(), created_at: new Date().toISOString(), code: newCode(6, list.map(x => x.code)), token: uuid(), status: "en_attente",
       name: data.name, kind: data.kind, city: data.city, address: data.address, lat: data.lat, lon: data.lon,
-      contact_name: data.contact_name, phone: data.phone, email: data.email, lang: data.lang, referrer_id: ref ? ref.id : null
+      contact_name: data.contact_name, phone: data.phone, email: data.email, lang: data.lang, referrer_id: ref ? ref.id : null, credits: 0
     };
     list.push(shop);
     writeJSON(LS.shops, list);
     r = { code: shop.code, token: shop.token, referred: !!ref };
   }
-  const tokens = readJSON(LS.shopTokens, []).filter(x => x !== r.token);
-  tokens.unshift(r.token);
-  writeJSON(LS.shopTokens, tokens);
+  rememberShopToken(r.token, r.code);
   return r;
 }
 
 function myShopTokens() { return readJSON(LS.shopTokens, []); }
-function rememberShopToken(token) {
+// Clé secrète gardée sur l'appareil du commerce (pour son espace et son carnet)
+function rememberShopToken(token, code) {
   const tokens = myShopTokens().filter(x => x !== token);
   tokens.unshift(token);
   writeJSON(LS.shopTokens, tokens);
+  if (code) writeJSON(LS.shopCodes, Object.assign(readJSON(LS.shopCodes, {}), { [code]: token }));
 }
+function shopTokenFor(code) { return readJSON(LS.shopCodes, {})[String(code || "").toUpperCase()] || null; }
 
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status } : null;
@@ -559,7 +614,7 @@ window.Store = {
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, ping,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, listShops, updateShop, myReferrals,
+  myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sendMessage, listMessages, replyMessage
 };
 

@@ -24,8 +24,8 @@ function tripPrice(a, b, pricing) {
 }
 
 // Prix fixé à la main dans config.js pour un trajet depuis/vers la ville principale
-function fixedPrice(cfg, fromId, toId) {
-  const table = cfg.pricing.fixedFromHome || {};
+function fixedPrice(cfg, fromId, toId, car) {
+  const table = (car ? cfg.pricing.fixedCarFromHome : cfg.pricing.fixedFromHome) || {};
   if (fromId === cfg.homeCity && toId in table) return table[toId];
   if (toId === cfg.homeCity && fromId in table) return table[fromId];
   return null;
@@ -56,7 +56,9 @@ function computeQuote(opts, cfg) {
     ? { key: "qBaseSame", vars: { city: opts.fromCity }, amount: trip.price }
     : { key: "qBase", vars: { from: opts.fromCity, to: opts.toCity, km: Math.round(trip.km) }, amount: trip.price });
 
-  const size = P.sizes[opts.size];
+  // Gros colis : prix voiture de la grille quand il existe, sinon supplément fixe
+  const car = opts.size === "gros" && fixed != null ? fixedPrice(cfg, opts.fromCity, opts.toCity, true) : null;
+  const size = car != null ? Math.max(0, car - trip.price) : P.sizes[opts.size];
   if (size) lines.push({ key: "qSize_" + opts.size, amount: size });
   if (opts.urgency === "express") lines.push({ key: "qExpress", amount: P.express });
   if (opts.service === "retrait") lines.push({ key: "qPickup", amount: P.pickupPoint });
@@ -145,7 +147,10 @@ async function geocode(address, countryCode, timeoutMs) {
   }
 }
 
-const api = { computeQuote, cityToCity, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode };
+// Prix voiture (gros colis) entre la ville principale et une ville, ou null
+function carPrice(cfg, fromId, toId) { return fixedPrice(cfg, fromId, toId, true); }
+
+const api = { computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.Pricing = api;
 
