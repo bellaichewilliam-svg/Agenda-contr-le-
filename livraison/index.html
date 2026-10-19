@@ -31,7 +31,7 @@
       console.error(e.message);
     });
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610191401" />
+  <link rel="stylesheet" href="styles.css?v=202610191410" />
 </head>
 <body>
 
@@ -59,7 +59,7 @@
     </div>
     <div class="perks hero-perks">
       <span data-i18n="perkCash"></span><span data-i18n="perkLive"></span>
-      <span data-i18n="perkExpress"></span><span data-i18n="perkSched"></span><span data-i18n="perkWelcome"></span>
+      <span data-i18n="perkExpress"></span><span data-i18n="perkSched"></span><span data-i18n="perkNotWolt"></span><span id="perkWelcome"></span>
     </div>
     <div class="quick card">
       <h3 class="quick-title" data-i18n="quickTitle"></h3>
@@ -166,6 +166,10 @@
 
     <form id="orderForm" class="order-layout" action="javascript:void(0)" novalidate>
       <div>
+        <div class="form-progress" id="formProgress">
+          <div class="fp-track"><div class="fp-fill" id="fpFill"></div><span class="fp-scooter" id="fpScooter">🛵</span><span class="fp-flag">🏁</span></div>
+          <small id="fpText"></small>
+        </div>
         <fieldset>
           <legend data-i18n="s1"></legend>
           <div class="choices four">
@@ -206,7 +210,8 @@
             <label class="f"><span data-i18n="houseNo"></span><input name="pickup_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
             <label class="f"><span data-i18n="city"></span><select name="from_city" class="city-select with-other"></select></label>
             <label class="f other-city hidden" data-for="from"><span data-i18n="otherCityName"></span><input name="from_other" /></label>
-            <div class="fields3 full hide-retrait">
+            <div class="fields4 full hide-retrait">
+              <label class="f"><span data-i18n="building"></span><input name="pickup_building" data-i18n-ph="buildingPh" /></label>
               <label class="f"><span data-i18n="floor"></span><input name="pickup_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="pickup_apt" data-i18n-ph="aptPh" /></label>
               <label class="f"><span data-i18n="entryCode"></span><input name="pickup_code" data-i18n-ph="codePh" /></label>
@@ -232,7 +237,8 @@
             <label class="f"><span data-i18n="houseNo"></span><input name="dropoff_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
             <label class="f"><span data-i18n="city"></span><select name="to_city" class="city-select with-other"></select></label>
             <label class="f other-city hidden" data-for="to"><span data-i18n="otherCityName"></span><input name="to_other" /></label>
-            <div class="fields3 full">
+            <div class="fields4 full">
+              <label class="f"><span data-i18n="building"></span><input name="dropoff_building" data-i18n-ph="buildingPh" /></label>
               <label class="f"><span data-i18n="floor"></span><input name="dropoff_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="dropoff_apt" data-i18n-ph="aptPh" /></label>
               <label class="f"><span data-i18n="entryCode"></span><input name="dropoff_code" data-i18n-ph="codePh" /></label>
@@ -265,6 +271,7 @@
             <label class="choice"><input type="radio" name="payment_method" value="cash" checked /><span><i>💵</i><b data-i18n="pay_cash"></b><small data-i18n="pay_cash_d"></small></span></label>
             <label class="choice"><input type="radio" name="payment_method" value="bit" /><span><i class="bit-logo">bit</i><b data-i18n="pay_bit"></b><small id="bitSmall"></small></span></label>
           </div>
+          <p class="notice warn hidden" id="prepayNote" data-i18n="prepayNote" style="margin-top:10px"></p>
           <div class="fields" style="margin-top:12px">
             <label class="f full"><span data-i18n="payer"></span>
               <select name="payer"><option value="moi" data-i18n="payer_moi"></option><option value="destinataire" data-i18n="payer_dest"></option></select>
@@ -354,7 +361,9 @@
     <h3 data-i18n="doneTitle"></h3>
     <p id="doneText"></p>
     <p class="muted small" id="doneSub"></p>
+    <div class="pay-box hidden" id="donePrepay" style="margin-top:12px;text-align:start"></div>
     <p class="notice hidden" id="doneAccount" style="margin-top:10px;text-align:start"></p>
+    <div class="confetti" id="confetti" aria-hidden="true"></div>
     <div class="btns">
       <a class="btn btn-wa hidden" id="doneWa" target="_blank" rel="noopener" data-i18n="doneWa"></a>
       <a class="btn btn-primary" id="doneTrack" data-i18n="doneTrack"></a>
@@ -364,12 +373,12 @@
   </div>
 </div>
 
-<script src="config.js?v=202610191401"></script>
-<script src="i18n.js?v=202610191401"></script>
-<script src="pricing.js?v=202610191401"></script>
-<script src="store.js?v=202610191401"></script>
-<script src="common.js?v=202610191401"></script>
-<script src="places.js?v=202610191401"></script>
-<script src="client.js?v=202610191401"></script>
+<script src="config.js?v=202610191410"></script>
+<script src="i18n.js?v=202610191410"></script>
+<script src="pricing.js?v=202610191410"></script>
+<script src="store.js?v=202610191410"></script>
+<script src="common.js?v=202610191410"></script>
+<script src="places.js?v=202610191410"></script>
+<script src="client.js?v=202610191410"></script>
 </body>
 </html>

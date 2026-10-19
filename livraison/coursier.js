@@ -198,6 +198,7 @@ function card(o, kind) {
       <span class="pill">${UI.esc(UI.SIZE_FR[o.size] || o.size)}</span>
       <span class="pill">${UI.PAY_FR[o.payment_method] || ""}${o.payer === "destinataire" ? " · payé par le destinataire" : ""}</span>
       <span class="pill paid">Vous gagnez ${UI.money(net)}</span>
+      ${o.prepaid_required ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">💳 ${o.payment_status === "paye" ? "Déjà payée" : "Paiement d'avance en attente"}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
     </div>
     ${o.notes && kind === "mine" ? `<p class="notice" style="margin-top:10px">📝 ${UI.esc(o.notes)}</p>` : ""}
