@@ -911,6 +911,7 @@ body.in-home .eta-bubble { display: none; }
 /* Prix honnête : prix du magasin + livraison, 0 frais cachés */
 .ch-fair { display: grid; gap: 2px; background: var(--green-soft); color: var(--green-ink); border-radius: 14px; padding: 10px 12px; font-size: 13px; }
 .ch-fair b { font-size: 14px; }
+.ch-fair span { font-weight: 600; }
 .ch-fair small { font-weight: 700; opacity: .85; }
 #quoteLines li.zero span:last-child { color: var(--green-ink); font-weight: 700; }
 #quoteLines li.goods { color: var(--muted); font-size: 13px; }

@@ -52,9 +52,9 @@ const qr = (id, size) => `<div class="qrbox"><div id="${id}"></div><span style="
 // --- Contenus ------------------------------------------------------------------------
 const T = {
   client: {
-    fr: { h1: 'Et hop,<br><em>c\'est livré !</em>', sub: 'Colis · Poste · Super-Pharm · Restaurants · Courses', chips: ['🛵 Dans tout le Sharon', '📍 Suivi en direct', '💵 Espèces ou Bit', '🧾 Prix du magasin, 0 frais cachés'],
+    fr: { h1: 'Et hop,<br><em>c\'est livré !</em>', sub: 'Colis · Poste · Super-Pharm · Restaurants · Courses', chips: ['🛵 Dans tout le Sharon', '📍 Suivi en direct', '💵 Espèces ou Bit', '🧾 0 frais cachés'],
       price: '<span>Course dans Netanya</span><span><s>25 ₪</s> <b>15 ₪</b></span>', badge: '🎁 Première course', scan: 'Scannez et commandez', url: 'Commandez en 1 minute' },
-    he: { h1: 'הופ,<br><em>וזה אצלך!</em>', sub: 'חבילות · דואר · סופר-פארם · מסעדות · קניות', chips: ['🛵 בכל השרון', '📍 מעקב בזמן אמת', '💵 מזומן או ביט', '🧾 מחיר החנות, 0 עמלות נסתרות'],
+    he: { h1: 'הופ,<br><em>וזה אצלך!</em>', sub: 'חבילות · דואר · סופר-פארם · מסעדות · קניות', chips: ['🛵 בכל השרון', '📍 מעקב בזמן אמת', '💵 מזומן או ביט', '🧾 0 עמלות נסתרות'],
       price: '<span>משלוח בתוך נתניה</span><span><s>25 ₪</s> <b>15 ₪</b></span>', badge: '🎁 משלוח ראשון', scan: 'סורקים ומזמינים', url: 'מזמינים תוך דקה' },
     link: APP
   },

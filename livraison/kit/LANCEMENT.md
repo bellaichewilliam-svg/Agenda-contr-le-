@@ -22,7 +22,7 @@ Chaque visuel a son QR code : clients → l'application, commerces → l'inscrip
 > 📦 Un colis, un document, une commande Super-Pharm, un paquet à la poste, un repas, des courses… On récupère et on livre **dans tout le Sharon**.
 >
 > 💰 **25 ₪ dans Netanya**, prix fixe affiché avant de commander.
-> 🧾 **Vos articles au prix réel du magasin + la livraison. C'est tout** : 0 frais de service, 0 frais de petite commande, 0 prix gonflé.
+> 🛒 **On fait vos courses : le prix réel du magasin + 25 ₪ de livraison**. 0 frais de service, 0 frais de petite commande, 0 prix gonflé.
 > 🎁 **Votre première course dans Netanya à 15 ₪** (code BIENVENUE appliqué tout seul).
 > 📍 Vous suivez le livreur en direct sur la carte, avec le temps qui reste.
 > 🏪 Super-Pharm, poste, restaurant… trouvez l'enseigne la plus proche en un geste.
@@ -39,7 +39,7 @@ Chaque visuel a son QR code : clients → l'application, commerces → l'inscrip
 > 📦 חבילה, מסמך, הזמנה מסופר-פארם, חבילה מהדואר, ארוחה, קניות… אוספים ומביאים **בכל השרון**.
 >
 > 💰 **25 ₪ בתוך נתניה**, מחיר קבוע לפני ההזמנה.
-> 🧾 **המוצרים במחיר האמיתי של החנות + המשלוח. וזהו**: 0 דמי שירות, 0 דמי הזמנה קטנה, 0 מחיר מנופח.
+> 🛒 **אנחנו עושים לכם קניות: המחיר האמיתי של החנות + 25 ₪ משלוח**. 0 דמי שירות, 0 דמי הזמנה קטנה, 0 מחיר מנופח.
 > 🎁 **המשלוח הראשון בתוך נתניה ב-15 ₪** (הקוד BRUCHIM נכנס לבד).
 > 📍 עוקבים אחרי השליח על המפה בזמן אמת, עם הזמן שנשאר.
 > 🏪 סופר-פארם, דואר, מסעדה… מוצאים את הסניף הקרוב בנגיעה.
