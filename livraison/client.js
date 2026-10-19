@@ -139,6 +139,9 @@ function fillDefaults() {
   form.from_city.value = form.to_city.value = CONFIG.homeCity;
   $("#quickFrom").value = CONFIG.homeCity;
   $("#quickTo").value = CONFIG.homeCity;
+  $("#quickDate").value = form.date.value;
+  $("#quickDate").min = form.date.min;
+  $("#quickTime").value = form.time.value;
   const p = Store.getProfile();
   ["company", "contact_name", "contact_phone", "contact_email"].forEach(k => { if (p[k]) form[k].value = p[k]; });
 }
@@ -331,6 +334,10 @@ function onPlacePicked(which, p) {
   if (p.cityId) sel.value = p.cityId;
   else if (p.city) { sel.value = OTHER; form.elements[which + "_other"].value = p.city; }
   state[which + "Point"] = { lat: p.lat, lon: p.lon };
+  // Numéro de rue : rempli si la carte le connaît, sinon on invite à le saisir
+  const num = form.elements[which === "from" ? "pickup_number" : "dropoff_number"];
+  num.value = p.housenumber || "";
+  if (!p.housenumber) setTimeout(() => num.focus(), 50);
   if (which === "from" && val("service") === "retrait" && p.brand) {
     const kind = detectPlaceKind(p.brand);
     if (kind) form.place_kind.value = kind;
@@ -343,7 +350,7 @@ function attachPlaces() {
   ["from", "to"].forEach(which => {
     ac[which] = Places.attach(form.elements[which === "from" ? "pickup_address" : "dropoff_address"], {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown") }),
       onPick: p => onPlacePicked(which, p),
       onClear: () => { state.pick[which] = null; renderQuote(); }
     });
@@ -352,6 +359,26 @@ function attachPlaces() {
 
 function resetPlaces() {
   ["from", "to"].forEach(w => { state.pick[w] = null; if (ac[w]) ac[w].reset(); });
+}
+
+// Coordonnées exactes de « rue + numéro » choisis (sinon celles de la rue)
+async function exactPoint(p, number, cityName) {
+  if (!p) return null;
+  if (p.housenumber && p.housenumber === number) return { lat: p.lat, lon: p.lon, exact: true };
+  if (p.streetName) {
+    try {
+      const list = await Places.search(`${p.streetName} ${number} ${cityName}`, I18N.lang);
+      const hit = list.find(x => x.housenumber === number && x.streetName === p.streetName);
+      if (hit) return { lat: hit.lat, lon: hit.lon, exact: true };
+    } catch (e) { /* on garde la position de la rue */ }
+  }
+  return { lat: p.lat, lon: p.lon, exact: !!p.brand && !p.streetName };
+}
+
+// Adresse enregistrée : rue (ou texte tapé) + numéro
+function fullAddress(p, typed, number) {
+  const street = p ? (p.streetName || p.brand || p.label) : typed.replace(/\s+\d+[^\s,]*$/, "");
+  return `${street} ${number}`.trim();
 }
 
 async function locate(address, cityId, point) {
@@ -379,6 +406,8 @@ async function submit(e) {
   const badPhone = ["contact_phone", "dropoff_phone", val("service") !== "retrait" ? "pickup_phone" : null]
     .find(k => k && val(k).trim() && !phoneOk(val(k)));
   if (badPhone) { form.elements[badPhone].focus(); return showError(t("errPhone")); }
+  const missingNo = ["pickup_number", "dropoff_number"].find(k => !val(k).trim());
+  if (missingNo) { form.elements[missingNo].focus(); return showError(t("errHouseNo")); }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
   if (state.promo) {
@@ -394,9 +423,12 @@ async function submit(e) {
     const disc = q.lines.find(l => l.discount);
     const svc = val("service");
     const pf = state.pick.from, pt = state.pick.to;
+    const pNo = val("pickup_number").trim(), dNo = val("dropoff_number").trim();
+    const pAddr = fullAddress(pf, val("pickup_address").trim(), pNo);
+    const dAddr = fullAddress(pt, val("dropoff_address").trim(), dNo);
     const [pick, drop] = await Promise.all([
-      pf ? { lat: pf.lat, lon: pf.lon } : locate(val("pickup_address").trim(), fromCity, state.fromPoint),
-      pt ? { lat: pt.lat, lon: pt.lon } : locate(val("dropoff_address").trim(), toCity, state.toPoint)
+      pf ? exactPoint(pf, pNo, UI.cityFr(fromCity)) : locate(pAddr, fromCity, state.fromPoint),
+      pt ? exactPoint(pt, dNo, UI.cityFr(toCity)) : locate(dAddr, toCity, state.toPoint)
     ]);
     const order = {
       lang: I18N.lang,
@@ -404,9 +436,9 @@ async function submit(e) {
       urgency: val("urgency"),
       pickup_at: pickupDate().toISOString(),
       from_city: fromCity,
-      pickup_address: pf ? (pf.street || pf.label) : val("pickup_address").trim(),
+      pickup_address: pAddr,
       pickup_place: pf ? pf.brand : null,
-      pickup_exact: !!(pf && pf.exact),
+      pickup_exact: !!(pick && pick.exact),
       pickup_note: val("pickup_note").trim() || null,
       pickup_lat: pick ? pick.lat : null, pickup_lon: pick ? pick.lon : null,
       pickup_contact: svc !== "retrait" ? val("pickup_contact").trim() || null : null,
@@ -418,9 +450,9 @@ async function submit(e) {
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       to_city: toCity,
-      dropoff_address: pt ? (pt.street || pt.label) : val("dropoff_address").trim(),
+      dropoff_address: dAddr,
       dropoff_place: pt ? pt.brand : null,
-      dropoff_exact: !!(pt && pt.exact),
+      dropoff_exact: !!(drop && drop.exact),
       dropoff_note: val("dropoff_note").trim() || null,
       dropoff_lat: drop ? drop.lat : null, dropoff_lon: drop ? drop.lon : null,
       dropoff_contact: val("dropoff_contact").trim() || null,
@@ -451,7 +483,7 @@ async function submit(e) {
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_note", "dropoff_address", "dropoff_note", "dropoff_contact", "dropoff_phone"]
+    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     state.promo = null;
     $("#promoMsg").textContent = "";
@@ -596,12 +628,30 @@ $("#quickGo").addEventListener("click", () => {
   form.to_city.value = $("#quickTo").value;
   // Première commande : le code de bienvenue est déjà appliqué
   if (activeOrders().length === 0 && !state.promo) { form.promo.value = welcomeCode(); applyPromo(); }
+  if (quickWhen === "later") {
+    form.elements.urgency.value = "programmee";
+    form.date.value = $("#quickDate").value;
+    form.time.value = $("#quickTime").value;
+  }
   syncVisibility();
   renderQuote();
   $("#commander").scrollIntoView({ behavior: "smooth" });
   setTimeout(() => form.pickup_address.focus({ preventScroll: true }), 600);
 });
-$("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); renderAll(); });
+let quickWhen = "now";
+document.querySelector(".seg").addEventListener("click", e => {
+  const b = e.target.closest("[data-when]");
+  if (!b) return;
+  quickWhen = b.dataset.when;
+  document.querySelectorAll(".seg-btn").forEach(x => x.classList.toggle("on", x === b));
+  $("#quickWhen").classList.toggle("hidden", quickWhen !== "later");
+  $("#quickGo").textContent = t(quickWhen === "later" ? "quickCtaLater" : "quickCta");
+});
+$("#langBtn").addEventListener("click", () => {
+  I18N.setLang(I18N.other());
+  renderAll();
+  $("#quickGo").textContent = t(quickWhen === "later" ? "quickCtaLater" : "quickCta");
+});
 $("#doneClose").addEventListener("click", () => { $("#doneModal").classList.add("hidden"); location.hash = "mes-courses"; });
 $("#refreshMine").addEventListener("click", loadMine);
 $("#myOrders").addEventListener("click", onListClick);

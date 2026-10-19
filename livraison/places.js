@@ -38,12 +38,15 @@ function toPlace(f) {
   const streetLine = [p.street || (!isPoi && p.type !== "city" ? p.name : ""), p.housenumber].filter(Boolean).join(" ");
   const city = p.city || p.town || p.village || p.locality || p.district || p.county || "";
   return {
-    lat, lon, city,
+    lat, lon, city, type: p.type,
+    streetName: p.street || (!isPoi ? p.name : "") || "",
+    housenumber: p.housenumber || "",
     cityId: matchCity(city) || matchCity(p.district) || matchCity(p.county),
     brand: isPoi ? p.name : null,
     street: streetLine || p.name || "",
     exact: !!(p.housenumber || isPoi),
-    label: [isPoi ? p.name : null, streetLine, city].filter(Boolean).join(", ")
+    // Le numéro a sa propre case : il n'est pas répété dans le libellé
+    label: [isPoi ? p.name : null, p.street || (!isPoi ? p.name : ""), city].filter(Boolean).join(", ")
   };
 }
 
@@ -60,6 +63,8 @@ async function search(q, lang) {
   // Pas de doublons (même libellé), pas de pays/régions entières
   const seen = new Set();
   const list = (data.features || []).map(toPlace).filter(p => {
+    // Seulement des rues, adresses ou enseignes (pas des villes ou régions entières)
+    if (!p.brand && (!p.streetName || ["city", "district", "county", "state", "country", "locality"].includes(p.type))) return false;
     if (!p.label || seen.has(p.label)) return false;
     seen.add(p.label);
     return true;
@@ -115,7 +120,11 @@ function attach(input, opts) {
         if (mine !== seq) return;
         items = list; active = -1; render();
       } catch (e) {
-        close(); // service injoignable : l'adresse tapée sera acceptée telle quelle
+        // Service injoignable : on le dit, et l'adresse tapée sera acceptée telle quelle
+        if (mine !== seq) return;
+        items = [];
+        box.innerHTML = `<div class="ac-empty">⚠️ ${UI.esc(opts.texts().down)}</div>`;
+        box.classList.remove("hidden");
       }
     }, 300);
   });
@@ -136,6 +145,6 @@ function attach(input, opts) {
   };
 }
 
-window.Places = { attach, matchCity, get serviceOk() { return lastOk; } };
+window.Places = { attach, search, matchCity, get serviceOk() { return lastOk; } };
 
 })();
