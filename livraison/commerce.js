@@ -137,8 +137,12 @@ function setRing(on) {
   if (on && !ring.timer) { ringOnce(); ring.timer = setInterval(ringOnce, 3000); }
   if (!on && ring.timer) { clearInterval(ring.timer); ring.timer = null; }
 }
+// N° de commande tapé mais pas encore validé : gardé quand l'écran se rafraîchit
+const refDraft = {};
 function renderPrep() {
   const { shop, orders } = state.dash;
+  // On ne redessine pas pendant que le commerce tape son n° de commande
+  if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#spPrep [data-ref-for]")) return;
   const list = orders.filter(o => PREP.includes(o.shop_status) && ["nouvelle", "confirmee"].includes(o.status))
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const box = $("#spPrep");
@@ -153,12 +157,13 @@ function renderPrep() {
       : o.shop_status === "prete" ? `<b>${UI.esc(t("spIsReady"))}</b> · ${UI.esc(courier)}`
       : `<b class="${left < 0 ? "prep-late" : ""}">${UI.esc(left < 0 ? t("spLate", { min: -left }) : t("spReadyIn", { min: Math.max(0, left) }))}</b> · ${UI.esc(courier)}`;
     const act = o.shop_status === "attente"
-      ? `<small class="muted">${UI.esc(t("spAcceptIn"))}</small><div class="prep-btns">${CONFIG.pro.prepChoices.map(m =>
+      ? `<label class="f prep-ref"><span>${UI.esc(t("spRefLabel"))}</span><input inputmode="numeric" maxlength="3" autocomplete="off" data-ref-for="${UI.esc(o.id)}" value="${UI.esc(refDraft[o.id] || "")}" placeholder="${UI.esc(t("spRefPh"))}" /></label>
+        <small class="muted">${UI.esc(t("spAcceptIn"))}</small><div class="prep-btns">${CONFIG.pro.prepChoices.map(m =>
           `<button type="button" class="btn btn-primary" data-prep="${m}" data-id="${UI.esc(o.id)}">${UI.esc(t("spMin", { n: m }))}</button>`).join("")}
           <button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
       : o.shop_status === "acceptee" ? `<button type="button" class="btn btn-primary btn-block" data-ready="${UI.esc(o.id)}">${UI.esc(t("spReadyBtn"))}</button>` : "";
     return `<div class="prep-item${o.shop_status === "attente" ? " is-new" : ""}">
-      <div class="prep-head">${head}<small class="muted">${UI.esc(t("orderNo", { ref: o.ref }))}</small></div>
+      <div class="prep-head">${head}${o.shop_ref ? `<b class="bag-no">${UI.esc(t("spRefShow", { n: o.shop_ref }))}</b>` : ""}<small class="muted">${UI.esc(t("orderNo", { ref: o.ref }))}</small></div>
       <p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>
       <small class="muted">${UI.esc(t("spClient", { name: (o.dropoff_contact || o.contact_name || "").split(" ")[0], city: I18N.cityName(o.to_city) }))}</small>
       ${act}
@@ -191,17 +196,28 @@ async function refreshSpace() {
     if (d && d.shop) { state.dash = d; renderSpace(); }
   } catch (e) { /* nouvel essai au prochain tour */ }
 }
-async function prepAction(id, action, minutes, reason) {
+async function prepAction(id, action, minutes, reason, ref) {
   try {
-    const ok = await Store.shopOrderAction(state.dash.shop.token, id, action, minutes, reason);
+    const ok = await Store.shopOrderAction(state.dash.shop.token, id, action, minutes, reason, ref);
     if (!ok) alert(t("spErr"));
-  } catch (e) { alert(t("spErr")); }
+    else if (action === "accepter") delete refDraft[id];
+  } catch (e) { alert(/shop_ref/.test(e.message || "") ? t("spRefNeed") : t("spErr")); }
   refreshSpace();
 }
+$("#spPrep").addEventListener("input", e => {
+  const i = e.target.closest("[data-ref-for]");
+  if (!i) return;
+  i.value = i.value.replace(/\D/g, "").slice(0, 3);
+  refDraft[i.dataset.refFor] = i.value;
+});
 $("#spPrep").addEventListener("click", e => {
   const b = e.target.closest("button");
   if (!b) return;
-  if (b.dataset.prep) return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep));
+  if (b.dataset.prep) {
+    const input = $(`#spPrep [data-ref-for="${b.dataset.id}"]`), ref = input ? input.value.trim() : "";
+    if (!/^[0-9]{3}$/.test(ref)) { alert(t("spRefNeed")); if (input) input.focus(); return; }
+    return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep), null, ref);
+  }
   if (b.dataset.ready) return prepAction(b.dataset.ready, "prete");
   if (b.dataset.refuse) { const why = prompt(t("spRefuseWhy")); if (why !== null) prepAction(b.dataset.refuse, "refuser", null, why); }
 });

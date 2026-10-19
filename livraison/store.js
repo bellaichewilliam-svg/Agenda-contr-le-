@@ -232,7 +232,8 @@ async function createOrder(order) {
     Object.assign(order, {
       discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
       hop_share: order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share)) : 0,
-      network: false, tip: 0, tip_status: null
+      network: false, tip: 0, tip_status: null,
+      shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
     });
     order.id = uuid();
     order.created_at = new Date().toISOString();
@@ -673,16 +674,17 @@ async function shopsDirectory() {
 }
 
 // HOP! Pro : le commerce accepte une commande avec un temps de préparation, la marque prête, ou la refuse
-async function shopOrderAction(token, id, action, minutes, reason) {
-  if (ONLINE) return rest("/rest/v1/rpc/shop_order_action", { method: "POST", body: { p_token: token, p_id: id, p_action: action, p_minutes: minutes || null, p_reason: reason || null } });
+async function shopOrderAction(token, id, action, minutes, reason, ref) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_order_action", { method: "POST", body: { p_token: token, p_id: id, p_action: action, p_minutes: minutes || null, p_reason: reason || null, p_ref: ref || null } });
   const shop = localShops().find(x => x.token === token);
   const all = localOrders();
   const o = shop && all.find(x => x.id === id && x.shop_id === shop.id);
   if (!o) return false;
   const was = o.status;
   if (action === "accepter" && o.shop_status === "attente" && o.status === "nouvelle") {
+    if (!/^[0-9]{3}$/.test(String(ref || "").trim())) throw new Error("shop_ref_required");
     const m = Math.min(90, Math.max(5, Number(minutes) || 15));
-    Object.assign(o, { shop_status: "acceptee", prep_minutes: m, ready_at: new Date(Date.now() + m * 60000).toISOString() });
+    Object.assign(o, { shop_status: "acceptee", shop_ref: String(ref).trim(), prep_minutes: m, ready_at: new Date(Date.now() + m * 60000).toISOString() });
     chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:shop_ok" });
   } else if (action === "prete" && o.shop_status === "acceptee") {
     Object.assign(o, { shop_status: "prete", ready_at: new Date(Math.min(Date.now(), new Date(o.ready_at))).toISOString() });

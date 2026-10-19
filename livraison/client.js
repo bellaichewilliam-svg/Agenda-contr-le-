@@ -737,6 +737,7 @@ async function submit(e) {
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
   if (proShopOn() && !val("shop_order").trim()) { form.shop_order.focus(); return showError(t("errShopOrder", { name: state.shop.name })); }
+  if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showError(t("errShopRef")); }
   // Zones pas encore ouvertes (ex. Tel Aviv) : « bientôt »
   const closedCity = [fromCity, toCity].find(c => !UI.cityActive(c));
   if (closedCity) return showError(t("errZone", { city: cityLabel(closedCity) }));
@@ -821,6 +822,7 @@ async function submit(e) {
       payer: val("payer"),
       notes: val("notes").trim() || null,
       shop_order: proShopOn() ? val("shop_order").trim() : null,
+      shop_ref: shopSelf() ? val("shop_ref").trim() : null,
       company: val("company").trim() || null,
       contact_name: val("contact_name").trim(),
       contact_phone: formatPhone(val("contact_phone").trim()),
@@ -851,7 +853,7 @@ async function submit(e) {
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "shop_order", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
+    ["notes", "shop_order", "shop_ref", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     setKind("pickup", null); setKind("dropoff", null);
     state.promo = null;
@@ -1062,6 +1064,7 @@ function renderShopBanner() {
   if (on) $("#shopBannerText").textContent = t("shBanner", { name: state.shop.name });
   const pro = proShopOn();
   $("#shopOrderBox").classList.toggle("hidden", !pro);
+  $("#shopRefBox").classList.toggle("hidden", !shopSelf());
   if (pro) {
     $("#shopOrderLabel").textContent = t("spOrderLabel", { name: state.shop.name });
     $("#shopOrderNote").textContent = t("spOrderNote", { name: state.shop.name });
@@ -1142,11 +1145,17 @@ const home = { map: null, pins: {}, line: null, scoots: [], ac: {}, pos: null, n
 const courierFree = () => (home.nearby || []).some(c => c.free);
 function openNow() { return !!state.settings.accepting && (Pricing.isOpenNow(CONFIG) || courierFree()); }
 function renderOpenBadge() {
-  const open = openNow();
-  $("#openBadge").textContent = t(open ? "openNow" : "closedNow");
+  const open = openNow(), online = (home.nearby || []).length;
+  // Fermé : on dit pourquoi (tous en course, ou personne de connecté) plutôt qu'un simple « Fermé »
+  const key = !state.settings.accepting ? "closedNow"
+    : open ? (courierFree() || !online ? "openNow" : "openBusy")
+    : online ? "allBusy" : "allOff";
+  $("#openBadge").textContent = t(key);
   $("#openBadge").classList.toggle("closed", !open);
   return open;
 }
+// Le commerce commande lui-même une course (son téléphone) : n° de commande à 3 chiffres pour le sac
+const shopSelf = () => shopPicked() && !!state.pro && !proShopOn();
 const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city);
 const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
 const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
