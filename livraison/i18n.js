@@ -1,0 +1,323 @@
+// ============================================================================
+// Traductions français / hébreu des pages clients (index + suivi).
+// Pour ajouter un texte : même clé dans "fr" et "he".
+// ============================================================================
+
+(function () {
+"use strict";
+
+const DICT = {
+fr: {
+  langSwitch: "עברית",
+  navIdeas: "Idées", navPrices: "Tarifs", navMine: "Mes courses", navOrder: "Commander",
+  demoBanner: "Mode démonstration : les commandes sont envoyées au coursier par WhatsApp.",
+  openNow: "Ouvert · départ possible maintenant", closedNow: "Fermé pour le moment · programmez votre course",
+  heroTitle1: "Tout ce que vous voulez,", heroTitle2: "livré en un clin d'œil.",
+  heroLead: "Colis, poste, Super-Pharm, restaurant, documents… On récupère et on livre de Netanya à Tel Aviv. Prix fixe affiché tout de suite, suivi en direct.",
+  quickFrom: "Départ", quickTo: "Arrivée", quickPrice: "Prix de la course", quickCta: "Commander maintenant",
+  perkCash: "💵 Espèces ou Bit", perkLive: "📍 Suivi en direct", perkExpress: "⚡ Express en moins d'1 h", perkWelcome: "🎁 1re course à -50 %",
+  ideasTitle: "Que peut-on faire pour vous ?", ideasSub: "Touchez un exemple : le formulaire se remplit tout seul.",
+  from: "dès",
+  ex_poste_t: "Colis à la poste", ex_poste_d: "Votre avis de passage ? On fait la queue à votre place et on vous l'apporte.",
+  ex_pharm_t: "Commande Super-Pharm", ex_pharm_d: "Click & collect, ordonnance prête : on récupère au magasin.",
+  ex_resto_t: "Repas de restaurant", ex_resto_d: "Restaurants sans livreur : on livre vos clients, chaud et vite.",
+  ex_docs_t: "Documents à signer", ex_docs_d: "Avocat, comptable, banque : aller-retour le jour même.",
+  ex_yad2_t: "Vente Yad2 / Marketplace", ex_yad2_d: "Vous avez vendu un objet ? On le livre à l'acheteur.",
+  ex_keys_t: "Clés ou objet oublié", ex_keys_d: "Clés, chargeur, portefeuille oublié : on vous le ramène.",
+  ex_shop_t: "J'achète pour vous", ex_shop_d: "Pharmacie, supermarché, boulangerie : on achète et on livre.",
+  ex_gift_t: "Fleurs & cadeaux", ex_gift_d: "Surprise d'anniversaire ou fête : livré à l'heure choisie.",
+  ex_ta_t: "Netanya → Tel Aviv", ex_ta_d: "Une course entre villes ? Prix fixe, sans surprise.",
+  offersTitle: "Offres de lancement", offersSub: "On démarre : profitez-en !",
+  offWelcome_t: "1re course à -50 %", offWelcome_d: "Avec le code BIENVENUE (jusqu'à {max} de réduction).",
+  offRef_t: "Parrainez vos amis", offRef_d: "Votre ami gagne {amount} sur sa 1re course, et vous aussi sur la suivante.",
+  offLoyal_t: "Carte de fidélité", offLoyal_d: "Votre {every}e course est offerte (jusqu'à {max}).",
+  offPro_t: "Offres professionnelles", offPro_cta: "Demander sur WhatsApp",
+  pricesTitle: "Tarifs simples et fixes", pricesSub: "Prix pour un petit colis. Pas de frais cachés.",
+  within: "Dans {city}",
+  extrasTitle: "Options",
+  xExpress: "Express (moins d'1 h)", xPickup: "Retrait poste / Super-Pharm / point relais", xPurchase: "J'achète pour vous",
+  xMedium: "Colis moyen (5–15 kg)", xBig: "Gros colis (15–30 kg)", xStop: "Arrêt supplémentaire", xReturn: "Aller-retour",
+  hoursTitle: "Horaires", closed: "Fermé",
+  days: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"],
+  howTitle: "Comment ça marche ?",
+  how1_t: "Vous commandez", how1_d: "Départ, arrivée, horaire : le prix s'affiche immédiatement.",
+  how2_t: "On récupère", how2_d: "Le coursier confirme et part chercher le colis.",
+  how3_t: "Vous suivez en direct", how3_d: "Comme sur Wolt : position du coursier sur la carte, jusqu'à la livraison.",
+  orderTitle: "Commander une course", orderSub: "1 minute, le prix se met à jour en direct.",
+  s1: "Que faut-il faire ?",
+  svc_colis: "Envoyer un colis", svc_colis_d: "Colis, documents, objet",
+  svc_retrait: "Récupérer un colis", svc_retrait_d: "Poste, Super-Pharm, point relais",
+  svc_achat: "Acheter pour moi", svc_achat_d: "Pharmacie, courses, magasin",
+  svc_repas: "Repas / restaurant", svc_repas_d: "Livraison de commandes",
+  s2: "Où récupérer ?", s2_retrait: "Où est le colis ?", s2_achat: "Où acheter ?",
+  city: "Ville", otherCity: "Autre ville…", otherCityName: "Nom de la ville",
+  address: "Adresse", addressPh: "Rue et numéro",
+  placeKind: "Lieu", place_poste: "Bureau de poste (Doar)", place_superpharm: "Super-Pharm", place_relais: "Point relais / locker", place_autre: "Autre magasin",
+  placeAddrPh: "Ex. Doar, Herzl 59",
+  tracking: "N° de suivi / de commande", trackingPh: "Ex. RR123456789IL",
+  parcelName: "Au nom de", parcelNamePh: "Nom sur l'avis",
+  proxy: "J'ai une procuration + copie de la pièce d'identité à donner au coursier",
+  proxyNote: "La poste demande une procuration et la copie de la carte d'identité : envoyez-les en photo sur WhatsApp après la commande.",
+  shoppingList: "Liste d'achats", shoppingListPh: "Ex. Doliprane 500, 2 bouteilles d'eau…",
+  budget: "Budget approximatif des achats (₪)", budgetNote: "Le coursier avance l'argent : vous le remboursez à la livraison (espèces ou Bit).",
+  contactThere: "Contact sur place", phoneThere: "Téléphone sur place", namePh: "Nom", phonePh: "05x-xxx-xxxx",
+  s3: "Où livrer ?",
+  recipient: "Destinataire", recipientPhone: "Téléphone du destinataire",
+  s4: "Quand ?",
+  w_asap: "Dès que possible", w_asap_d: "Dans les 3 heures",
+  w_express: "Express", w_express_d: "Moins d'1 heure",
+  w_sched: "Programmer", w_sched_d: "Jour et heure au choix",
+  date: "Jour", time: "Heure",
+  s5: "Le colis",
+  sz_petit: "Petit", sz_petit_d: "Enveloppe, sac, < 5 kg", sz_moyen: "Moyen", sz_moyen_d: "5 à 15 kg", sz_gros: "Gros", sz_gros_d: "15 à 30 kg",
+  stops: "Arrêts supplémentaires", roundTrip: "Aller-retour (ex. rapporter un document signé)",
+  notes: "Instructions pour le coursier", notesPh: "Code, étage, fragile, à encaisser…",
+  s6: "Paiement",
+  pay_cash: "Espèces", pay_cash_d: "Au coursier", pay_bit: "Bit", pay_bit_d: "Au {phone}",
+  payer: "Qui paie la course ?", payer_moi: "Moi", payer_dest: "Le destinataire, à la livraison",
+  promo: "Code promo ou de parrainage", promoPh: "Ex. BIENVENUE", promoApply: "Appliquer",
+  promoOk: "✓ Code appliqué", promoBad: "Code inconnu", promoFirstOnly: "Valable seulement pour la 1re commande", promoOwn: "Vous ne pouvez pas utiliser votre propre code",
+  s7: "Vos coordonnées",
+  yourName: "Votre nom", yourPhone: "Votre téléphone", company: "Entreprise (facultatif)", email: "Email (facultatif)",
+  remember: "Mémorisé sur cet appareil pour la prochaine fois.",
+  summary: "Votre prix", total: "Total", submit: "Commander · {total}", sending: "Envoi…",
+  qBase: "Course {from} → {to}", qBaseSame: "Course dans {city}", qDist: "{km} km",
+  qSize_moyen: "Colis moyen", qSize_gros: "Gros colis", qExpress: "Express (moins d'1 h)", qPickup: "Retrait au point de collecte",
+  qPurchase: "Service d'achat", qStops: "{n} arrêt(s) supplémentaire(s)", qReturn: "Aller-retour (+{p} %)",
+  qPromo: "Code {code}", qReferral: "Parrainage", qLoyalty: "Course fidélité offerte 🎉",
+  qPurchaseNote: "+ montant des achats, remboursé à la livraison",
+  qUnknown: "Ville hors zone : le coursier vous confirmera le prix.",
+  payNoteCash: "Paiement en espèces au coursier.", payNoteBit: "Paiement par Bit au {phone}.",
+  errRequired: "Merci de remplir les champs obligatoires (villes, adresses, nom, téléphone).",
+  errSend: "La commande n'a pas pu être envoyée. Appelez-nous au {phone}.",
+  errExpressClosed: "L'express n'est possible que pendant les horaires d'ouverture. Choisissez « Programmer ».",
+  errDate: "Choisissez un jour et une heure.",
+  errLead: "Merci de réserver au moins {min} minutes à l'avance.",
+  errClosedDay: "Nous sommes fermés ce jour-là.",
+  errHours: "Ce jour-là, nous travaillons de {open}h à {close}h.",
+  doneTitle: "Commande envoyée ! 🎉", doneText: "Référence {ref} · {total}",
+  doneOnline: "Le coursier a reçu votre commande et va la confirmer.",
+  doneDemo: "Dernière étape : envoyez-la au coursier sur WhatsApp.",
+  doneTrack: "📍 Suivre ma course", doneWa: "Envoyer au coursier sur WhatsApp", doneShare: "Envoyer le suivi au destinataire", doneClose: "Fermer",
+  mineTitle: "Mes courses", mineSub: "Les courses commandées depuis ce téléphone.", refresh: "↻ Actualiser",
+  mineEmpty: "Aucune course pour l'instant.", mineFirst: "Commander la première →",
+  loyaltyTitle: "Carte de fidélité", loyaltyText: "{n}/{every} courses · la {every}e est offerte !", loyaltyNext: "🎉 Votre prochaine course est offerte !",
+  refTitle: "Votre code de parrainage", refText: "Partagez-le : votre ami gagne {amount} et vous aussi.", refShare: "Partager sur WhatsApp",
+  refMsg: "Je te conseille {name} pour tes livraisons (colis, poste, Super-Pharm, Tel Aviv…). Avec mon code {code} tu as {amount} de réduction sur ta 1re course : {url}",
+  track: "📍 Suivre", contact: "💬 Contacter", cancel: "Annuler", cancelConfirm: "Annuler cette course ?", cancelFail: "Annulation impossible, contactez le coursier.",
+  loadFail: "Impossible de charger vos courses pour le moment.",
+  st_nouvelle: "Envoyée", st_confirmee: "Acceptée", st_recuperee: "En route", st_livree: "Livrée", st_annulee: "Annulée",
+  asapLabel: "Dès que possible", expressLabel: "⚡ Express",
+  faqTitle: "Questions fréquentes",
+  faq1_q: "Comment je paie ?", faq1_a: "En espèces au coursier ou par Bit, à la récupération ou à la livraison. Le destinataire peut aussi payer.",
+  faq2_q: "Quelles villes ?", faq2_a: "Netanya et environs, Sharon (Ra'anana, Kfar Saba, Herzliya, Hod HaSharon) et Gush Dan (Tel Aviv, Ramat Gan, Petah Tikva…). Ailleurs : demandez-nous !",
+  faq3_q: "Comment suivre ma course ?", faq3_a: "Après la commande, touchez « Suivre ma course » : vous voyez le coursier sur la carte en direct, comme sur Wolt.",
+  faq4_q: "Vous êtes une entreprise ?", faq4_a: "Restaurants, cabinets, commerces : tarifs dégressifs et facture mensuelle. Écrivez-nous sur WhatsApp.",
+  footerPro: "Espace coursier",
+  // Messages WhatsApp du coursier au client
+  msg_nouvelle: "Bonjour {name}, j'ai bien reçu votre course {ref} 👍",
+  msg_confirmee: "Bonjour {name}, votre course {ref} est acceptée ✅ {when}\nPrix : {price} ({pay})\nSuivi en direct : {url}",
+  msg_recuperee: "Bonjour {name}, colis récupéré 🛵 Je suis en route vers {to}.\nSuivi en direct : {url}",
+  msg_livree: "Bonjour {name}, la course {ref} est livrée 📦 Merci ! Votre code parrainage pour vos amis : {code}",
+  msg_annulee: "Bonjour {name}, la course {ref} est annulée.",
+  msg_when_asap: "Je pars dès que possible.", msg_when_at: "Récupération {when}.",
+  pay_cash_short: "espèces", pay_bit_short: "Bit au {phone}",
+  // Suivi
+  trTitle: "Suivi de la course", trNotFound: "Course introuvable. Vérifiez le lien.",
+  trStep1: "Commande envoyée", trStep2: "Acceptée par le coursier", trStep3: "Colis récupéré, en route", trStep4: "Livrée !",
+  trCancelled: "Cette course a été annulée.",
+  trEtaPickup: "Le coursier arrive au point de récupération dans ≈ {min} min",
+  trEtaDrop: "Arrivée prévue dans ≈ {min} min",
+  trWaiting: "En attente de confirmation du coursier…",
+  trPlanned: "Récupération prévue {when}",
+  trNoGps: "Position du coursier bientôt disponible.",
+  trUpdated: "Position mise à jour il y a {s} s",
+  trCourier: "Votre coursier", trCall: "📞 Appeler", trWa: "💬 WhatsApp",
+  trPay: "À payer", trPayBit: "Payez avec Bit au {phone} (indiquez {ref})", trPayCash: "En espèces au coursier", trPaid: "✓ Payé, merci !",
+  trCopy: "Copier le numéro", trCopied: "Copié ✓",
+  trShare: "Partager le suivi", trShareMsg: "Suis ta livraison en direct : {url}",
+  trPickup: "Récupération", trDrop: "Livraison",
+  trThanks: "Merci ! Votre avis compte : recommandez-nous à un ami avec votre code de parrainage 🙏"
+},
+
+he: {
+  langSwitch: "Français",
+  navIdeas: "רעיונות", navPrices: "מחירים", navMine: "המשלוחים שלי", navOrder: "להזמנה",
+  demoBanner: "מצב הדגמה: ההזמנות נשלחות לשליח בוואטסאפ.",
+  openNow: "פתוח · אפשר לצאת עכשיו", closedNow: "סגור כרגע · אפשר לתזמן משלוח",
+  heroTitle1: "כל מה שצריך,", heroTitle2: "נמסר כהרף עין.",
+  heroLead: "חבילות, דואר, סופר-פארם, מסעדות, מסמכים… אוספים ומוסרים מנתניה ועד תל אביב. מחיר קבוע מוצג מיד, מעקב בזמן אמת.",
+  quickFrom: "מאיפה", quickTo: "לאן", quickPrice: "מחיר המשלוח", quickCta: "להזמנה עכשיו",
+  perkCash: "💵 מזומן או ביט", perkLive: "📍 מעקב בזמן אמת", perkExpress: "⚡ אקספרס תוך פחות משעה", perkWelcome: "🎁 משלוח ראשון ב-50% הנחה",
+  ideasTitle: "במה אפשר לעזור?", ideasSub: "לחצו על דוגמה והטופס יתמלא לבד.",
+  from: "החל מ-",
+  ex_poste_t: "חבילה בדואר", ex_poste_d: "קיבלתם הודעה? אנחנו עומדים בתור במקומכם ומביאים לכם.",
+  ex_pharm_t: "הזמנה מסופר-פארם", ex_pharm_d: "איסוף עצמי או מרשם מוכן: אנחנו אוספים מהסניף.",
+  ex_resto_t: "אוכל ממסעדה", ex_resto_d: "מסעדה בלי שליח? אנחנו מוסרים ללקוחות, חם ומהר.",
+  ex_docs_t: "מסמכים לחתימה", ex_docs_d: "עורך דין, רואה חשבון, בנק: הלוך-חזור באותו יום.",
+  ex_yad2_t: "מכירה ביד2 / מרקטפלייס", ex_yad2_d: "מכרתם משהו? אנחנו מביאים לקונה.",
+  ex_keys_t: "מפתחות או חפץ ששכחתם", ex_keys_d: "מפתחות, מטען, ארנק: אנחנו מחזירים לכם.",
+  ex_shop_t: "קונים בשבילכם", ex_shop_d: "בית מרקחת, סופר, מאפייה: קונים ומביאים.",
+  ex_gift_t: "פרחים ומתנות", ex_gift_d: "הפתעה ליום הולדת או לחג: בשעה שבחרתם.",
+  ex_ta_t: "נתניה ← תל אביב", ex_ta_d: "משלוח בין ערים? מחיר קבוע, בלי הפתעות.",
+  offersTitle: "מבצעי פתיחה", offersSub: "רק התחלנו: תיהנו!",
+  offWelcome_t: "משלוח ראשון ב-50% הנחה", offWelcome_d: "עם הקוד BRUCHIM (עד {max} הנחה).",
+  offRef_t: "הביאו חבר", offRef_d: "החבר מקבל {amount} הנחה על המשלוח הראשון, וגם אתם על הבא.",
+  offLoyal_t: "כרטיסיית מועדון", offLoyal_d: "המשלוח ה-{every} עלינו (עד {max}).",
+  offPro_t: "הצעות לעסקים", offPro_cta: "לבירור בוואטסאפ",
+  pricesTitle: "מחירים פשוטים וקבועים", pricesSub: "מחיר לחבילה קטנה. בלי עמלות נסתרות.",
+  within: "בתוך {city}",
+  extrasTitle: "תוספות",
+  xExpress: "אקספרס (פחות משעה)", xPickup: "איסוף מהדואר / סופר-פארם / נקודת איסוף", xPurchase: "קונים בשבילכם",
+  xMedium: "חבילה בינונית (5–15 ק\"ג)", xBig: "חבילה גדולה (15–30 ק\"ג)", xStop: "עצירה נוספת", xReturn: "הלוך-חזור",
+  hoursTitle: "שעות פעילות", closed: "סגור",
+  days: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"],
+  howTitle: "איך זה עובד?",
+  how1_t: "מזמינים", how1_d: "מאיפה, לאן ומתי: המחיר מופיע מיד.",
+  how2_t: "אנחנו אוספים", how2_d: "השליח מאשר ויוצא לאסוף את החבילה.",
+  how3_t: "עוקבים בזמן אמת", how3_d: "כמו בוולט: רואים את השליח על המפה עד המסירה.",
+  orderTitle: "הזמנת משלוח", orderSub: "דקה אחת, והמחיר מתעדכן בזמן אמת.",
+  s1: "מה צריך לעשות?",
+  svc_colis: "לשלוח חבילה", svc_colis_d: "חבילה, מסמכים, חפץ",
+  svc_retrait: "לאסוף חבילה", svc_retrait_d: "דואר, סופר-פארם, נקודת איסוף",
+  svc_achat: "לקנות בשבילי", svc_achat_d: "בית מרקחת, סופר, חנות",
+  svc_repas: "אוכל / מסעדה", svc_repas_d: "משלוח הזמנות",
+  s2: "מאיפה לאסוף?", s2_retrait: "איפה החבילה?", s2_achat: "איפה לקנות?",
+  city: "עיר", otherCity: "עיר אחרת…", otherCityName: "שם העיר",
+  address: "כתובת", addressPh: "רחוב ומספר",
+  placeKind: "מקום", place_poste: "סניף דואר", place_superpharm: "סופר-פארם", place_relais: "נקודת איסוף / לוקר", place_autre: "חנות אחרת",
+  placeAddrPh: "לדוגמה: דואר, הרצל 59",
+  tracking: "מספר מעקב / הזמנה", trackingPh: "לדוגמה RR123456789IL",
+  parcelName: "על שם", parcelNamePh: "השם שעל ההודעה",
+  proxy: "יש לי ייפוי כוח + צילום תעודת זהות למסור לשליח",
+  proxyNote: "הדואר דורש ייפוי כוח וצילום תעודת זהות: שלחו אותם בתמונה בוואטסאפ אחרי ההזמנה.",
+  shoppingList: "רשימת קניות", shoppingListPh: "לדוגמה: אקמול, 2 בקבוקי מים…",
+  budget: "תקציב משוער לקניות (₪)", budgetNote: "השליח משלם מראש ואתם מחזירים לו במסירה (מזומן או ביט).",
+  contactThere: "איש קשר במקום", phoneThere: "טלפון במקום", namePh: "שם", phonePh: "05x-xxx-xxxx",
+  s3: "לאן למסור?",
+  recipient: "שם המקבל", recipientPhone: "טלפון המקבל",
+  s4: "מתי?",
+  w_asap: "בהקדם", w_asap_d: "תוך 3 שעות",
+  w_express: "אקספרס", w_express_d: "פחות משעה",
+  w_sched: "לתזמן", w_sched_d: "יום ושעה לבחירה",
+  date: "יום", time: "שעה",
+  s5: "החבילה",
+  sz_petit: "קטנה", sz_petit_d: "מעטפה, שקית, עד 5 ק\"ג", sz_moyen: "בינונית", sz_moyen_d: "5 עד 15 ק\"ג", sz_gros: "גדולה", sz_gros_d: "15 עד 30 ק\"ג",
+  stops: "עצירות נוספות", roundTrip: "הלוך-חזור (למשל להחזיר מסמך חתום)",
+  notes: "הוראות לשליח", notesPh: "קוד, קומה, שביר, לגבות תשלום…",
+  s6: "תשלום",
+  pay_cash: "מזומן", pay_cash_d: "לשליח", pay_bit: "ביט", pay_bit_d: "למספר {phone}",
+  payer: "מי משלם על המשלוח?", payer_moi: "אני", payer_dest: "המקבל, במסירה",
+  promo: "קוד הנחה או קוד חבר", promoPh: "לדוגמה BRUCHIM", promoApply: "הפעלה",
+  promoOk: "✓ הקוד הופעל", promoBad: "קוד לא מוכר", promoFirstOnly: "תקף רק להזמנה הראשונה", promoOwn: "אי אפשר להשתמש בקוד שלכם",
+  s7: "הפרטים שלכם",
+  yourName: "השם שלכם", yourPhone: "הטלפון שלכם", company: "עסק (לא חובה)", email: "אימייל (לא חובה)",
+  remember: "נשמר במכשיר הזה לפעם הבאה.",
+  summary: "המחיר שלכם", total: "סה\"כ", submit: "להזמנה · {total}", sending: "שולח…",
+  qBase: "משלוח {from} ← {to}", qBaseSame: "משלוח בתוך {city}", qDist: "{km} ק\"מ",
+  qSize_moyen: "חבילה בינונית", qSize_gros: "חבילה גדולה", qExpress: "אקספרס (פחות משעה)", qPickup: "איסוף מנקודת איסוף",
+  qPurchase: "שירות קנייה", qStops: "{n} עצירות נוספות", qReturn: "הלוך-חזור (+{p}%)",
+  qPromo: "קוד {code}", qReferral: "הבא חבר", qLoyalty: "משלוח מועדון במתנה 🎉",
+  qPurchaseNote: "+ סכום הקניות, מוחזר במסירה",
+  qUnknown: "עיר מחוץ לאזור: השליח יאשר לכם את המחיר.",
+  payNoteCash: "תשלום במזומן לשליח.", payNoteBit: "תשלום בביט למספר {phone}.",
+  errRequired: "נא למלא את שדות החובה (ערים, כתובות, שם, טלפון).",
+  errSend: "לא הצלחנו לשלוח את ההזמנה. התקשרו אלינו: {phone}.",
+  errExpressClosed: "אקספרס אפשרי רק בשעות הפעילות. בחרו \"לתזמן\".",
+  errDate: "בחרו יום ושעה.",
+  errLead: "נא להזמין לפחות {min} דקות מראש.",
+  errClosedDay: "אנחנו סגורים ביום הזה.",
+  errHours: "ביום הזה אנחנו עובדים בין {open}:00 ל-{close}:00.",
+  doneTitle: "ההזמנה נשלחה! 🎉", doneText: "מספר הזמנה {ref} · {total}",
+  doneOnline: "השליח קיבל את ההזמנה ויאשר אותה בקרוב.",
+  doneDemo: "שלב אחרון: שלחו אותה לשליח בוואטסאפ.",
+  doneTrack: "📍 מעקב אחרי המשלוח", doneWa: "לשלוח לשליח בוואטסאפ", doneShare: "לשלוח קישור מעקב למקבל", doneClose: "סגירה",
+  mineTitle: "המשלוחים שלי", mineSub: "משלוחים שהוזמנו מהטלפון הזה.", refresh: "↻ רענון",
+  mineEmpty: "עדיין אין משלוחים.", mineFirst: "להזמנה הראשונה ←",
+  loyaltyTitle: "כרטיסיית מועדון", loyaltyText: "{n}/{every} משלוחים · ה-{every} במתנה!", loyaltyNext: "🎉 המשלוח הבא שלכם במתנה!",
+  refTitle: "קוד החבר שלכם", refText: "שתפו אותו: החבר מקבל {amount} הנחה, וגם אתם.", refShare: "לשתף בוואטסאפ",
+  refMsg: "ממליץ/ה על {name} למשלוחים (חבילות, דואר, סופר-פארם, תל אביב…). עם הקוד שלי {code} מקבלים {amount} הנחה על המשלוח הראשון: {url}",
+  track: "📍 מעקב", contact: "💬 לשליח", cancel: "ביטול", cancelConfirm: "לבטל את המשלוח?", cancelFail: "לא ניתן לבטל, פנו לשליח.",
+  loadFail: "לא ניתן לטעון את המשלוחים כרגע.",
+  st_nouvelle: "נשלחה", st_confirmee: "אושרה", st_recuperee: "בדרך", st_livree: "נמסרה", st_annulee: "בוטלה",
+  asapLabel: "בהקדם", expressLabel: "⚡ אקספרס",
+  faqTitle: "שאלות נפוצות",
+  faq1_q: "איך משלמים?", faq1_a: "במזומן לשליח או בביט, באיסוף או במסירה. גם המקבל יכול לשלם.",
+  faq2_q: "לאילו ערים?", faq2_a: "נתניה והסביבה, השרון (רעננה, כפר סבא, הרצליה, הוד השרון) וגוש דן (תל אביב, רמת גן, פתח תקווה…). למקום אחר: שאלו אותנו!",
+  faq3_q: "איך עוקבים אחרי המשלוח?", faq3_a: "אחרי ההזמנה לוחצים על \"מעקב אחרי המשלוח\" ורואים את השליח על המפה בזמן אמת, כמו בוולט.",
+  faq4_q: "יש לכם עסק?", faq4_a: "מסעדות, משרדים, חנויות: מחירים מיוחדים וחשבונית חודשית. כתבו לנו בוואטסאפ.",
+  footerPro: "כניסת שליח",
+  msg_nouvelle: "שלום {name}, קיבלתי את המשלוח {ref} 👍",
+  msg_confirmee: "שלום {name}, המשלוח {ref} אושר ✅ {when}\nמחיר: {price} ({pay})\nמעקב בזמן אמת: {url}",
+  msg_recuperee: "שלום {name}, החבילה נאספה 🛵 אני בדרך ל{to}.\nמעקב בזמן אמת: {url}",
+  msg_livree: "שלום {name}, המשלוח {ref} נמסר 📦 תודה! קוד החבר שלכם לחברים: {code}",
+  msg_annulee: "שלום {name}, המשלוח {ref} בוטל.",
+  msg_when_asap: "יוצא בהקדם.", msg_when_at: "איסוף: {when}.",
+  pay_cash_short: "מזומן", pay_bit_short: "ביט למספר {phone}",
+  trTitle: "מעקב משלוח", trNotFound: "המשלוח לא נמצא. בדקו את הקישור.",
+  trStep1: "ההזמנה נשלחה", trStep2: "השליח אישר", trStep3: "החבילה נאספה, בדרך", trStep4: "נמסרה!",
+  trCancelled: "המשלוח הזה בוטל.",
+  trEtaPickup: "השליח יגיע לנקודת האיסוף בעוד כ-{min} דק'",
+  trEtaDrop: "הגעה משוערת בעוד כ-{min} דק'",
+  trWaiting: "ממתינים לאישור השליח…",
+  trPlanned: "איסוף מתוכנן: {when}",
+  trNoGps: "מיקום השליח יופיע בקרוב.",
+  trUpdated: "המיקום עודכן לפני {s} שניות",
+  trCourier: "השליח שלכם", trCall: "📞 להתקשר", trWa: "💬 וואטסאפ",
+  trPay: "לתשלום", trPayBit: "שלמו בביט למספר {phone} (ציינו {ref})", trPayCash: "במזומן לשליח", trPaid: "✓ שולם, תודה!",
+  trCopy: "העתקת המספר", trCopied: "הועתק ✓",
+  trShare: "לשתף מעקב", trShareMsg: "אפשר לעקוב אחרי המשלוח בזמן אמת: {url}",
+  trPickup: "איסוף", trDrop: "מסירה",
+  trThanks: "תודה! ממליצים עלינו לחבר עם קוד החבר שלכם 🙏"
+}
+};
+
+const LS_LANG = "livraison.lang.v1";
+
+function detectLang() {
+  try {
+    const saved = localStorage.getItem(LS_LANG);
+    if (saved && DICT[saved]) return saved;
+  } catch (e) { /* ignore */ }
+  const nav = (navigator.language || "").slice(0, 2);
+  if (nav === "he" || nav === "iw") return "he";
+  return CONFIG.defaultLang || "fr";
+}
+
+let lang = detectLang();
+
+function t(key, vars) {
+  let s = DICT[lang][key];
+  if (s == null) s = DICT.fr[key];
+  if (s == null) return key;
+  if (vars && typeof s === "string") s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+  return s;
+}
+
+function apply() {
+  document.documentElement.lang = lang;
+  document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+}
+
+function setLang(l) {
+  lang = l;
+  try { localStorage.setItem(LS_LANG, l); } catch (e) { /* ignore */ }
+  apply();
+}
+
+function cityName(id) {
+  const c = CONFIG.cities.find(x => x.id === id);
+  return c ? c[lang] : id;
+}
+
+window.I18N = {
+  t, apply, setLang, cityName,
+  get lang() { return lang; },
+  other() { return lang === "he" ? "fr" : "he"; },
+  businessName() { return lang === "he" ? CONFIG.businessNameHe : CONFIG.businessName; },
+  forLang(l, key, vars) { const prev = lang; lang = DICT[l] ? l : "fr"; const s = t(key, vars); lang = prev; return s; }
+};
+
+})();

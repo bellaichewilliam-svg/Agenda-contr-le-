@@ -1,54 +1,77 @@
 // ============================================================================
-// Calcul du prix d'une course + horaires + géolocalisation des adresses.
-// Fonctions pures (testables avec Node) + appels OpenStreetMap côté navigateur.
+// Calcul du prix d'une course, horaires, distances et adresses (OpenStreetMap).
+// Les lignes du devis portent une clé de traduction (voir i18n.js).
 // ============================================================================
 
 (function (root) {
 "use strict";
 
-function round(value, step) {
-  return Math.round(value / step) * step;
+function roundTo(value, step) { return Math.round(value / step) * step; }
+
+function haversineKm(a, b) {
+  const R = 6371, rad = x => x * Math.PI / 180;
+  const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
 }
 
-// opts : { distanceKm, size, service: "course"|"poste", urgency: "programmee"|"express",
-//          roundTrip, extraStops }
-function computeQuote(opts, pricing) {
+function cityById(cfg, id) { return cfg.cities.find(c => c.id === id) || null; }
+
+// Prix de base entre deux points (centres-villes ou adresses géolocalisées)
+function tripPrice(a, b, pricing) {
+  const km = a && b ? haversineKm(a, b) : 0;
+  return { km, price: Math.max(pricing.minimum, roundTo(pricing.base + pricing.perKm * km, pricing.roundTo)) };
+}
+
+// Prix « petit colis » entre deux villes, pour les grilles de tarifs
+function cityToCity(cfg, fromId, toId) {
+  return fromId === toId ? tripPrice(null, null, cfg.pricing).price
+    : tripPrice(cityById(cfg, fromId), cityById(cfg, toId), cfg.pricing).price;
+}
+
+// opts : { fromCity, toCity, fromPoint, toPoint, service, urgency, size, roundTrip,
+//          extraStops, discount: { kind: "promo"|"referral"|"loyalty", code, percent, max, amount } }
+function computeQuote(opts, cfg) {
+  const P = cfg.pricing;
   const lines = [];
-  const distanceKnown = typeof opts.distanceKm === "number" && isFinite(opts.distanceKm);
-  const km = distanceKnown ? opts.distanceKm : 0;
+  const from = cityById(cfg, opts.fromCity) || opts.fromPoint;
+  const to = cityById(cfg, opts.toCity) || opts.toPoint;
+  const same = opts.fromCity && opts.fromCity === opts.toCity;
+  const known = same || !!(from && to);
 
-  lines.push({ label: `Prise en charge (${pricing.includedKm} km inclus)`, amount: pricing.base });
+  const trip = same || !known ? tripPrice(null, null, P) : tripPrice(from, to, P);
+  lines.push(same
+    ? { key: "qBaseSame", vars: { city: opts.fromCity }, amount: trip.price }
+    : { key: "qBase", vars: { from: opts.fromCity, to: opts.toCity, km: Math.round(trip.km) }, amount: trip.price });
 
-  const extraKm = Math.max(0, km - pricing.includedKm);
-  if (extraKm > 0) {
-    lines.push({ label: `Distance : ${extraKm.toFixed(1)} km supplémentaires`, amount: extraKm * pricing.perKm });
-  }
-
-  const size = pricing.sizes[opts.size];
-  if (size && size.extra) lines.push({ label: size.label, amount: size.extra });
-
-  if (opts.service === "poste") {
-    lines.push({ label: "Retrait du colis à la poste", amount: pricing.postOfficeExtra });
-  }
-
+  const size = P.sizes[opts.size];
+  if (size) lines.push({ key: "qSize_" + opts.size, amount: size });
+  if (opts.urgency === "express") lines.push({ key: "qExpress", amount: P.express });
+  if (opts.service === "retrait") lines.push({ key: "qPickup", amount: P.pickupPoint });
+  if (opts.service === "achat") lines.push({ key: "qPurchase", amount: P.purchase });
   const stops = Math.max(0, parseInt(opts.extraStops, 10) || 0);
-  if (stops) lines.push({ label: `${stops} arrêt(s) supplémentaire(s)`, amount: stops * pricing.extraStop });
+  if (stops) lines.push({ key: "qStops", vars: { n: stops }, amount: stops * P.extraStop });
 
   let subtotal = lines.reduce((s, l) => s + l.amount, 0);
-
   if (opts.roundTrip) {
-    const amount = subtotal * pricing.returnTripPercent / 100;
-    lines.push({ label: `Aller-retour (+${pricing.returnTripPercent} %)`, amount });
-    subtotal += amount;
-  }
-  if (opts.urgency === "express") {
-    const amount = subtotal * pricing.expressPercent / 100;
-    lines.push({ label: `Express — dès que possible (+${pricing.expressPercent} %)`, amount });
+    const amount = roundTo(subtotal * P.returnTripPercent / 100, P.roundTo);
+    lines.push({ key: "qReturn", vars: { p: P.returnTripPercent }, amount });
     subtotal += amount;
   }
 
-  const total = Math.max(pricing.minimum, round(subtotal, pricing.roundTo));
-  return { total, lines, distanceKnown, distanceKm: distanceKnown ? km : null };
+  const d = opts.discount;
+  if (d) {
+    let amount = 0, key = "qPromo";
+    if (d.kind === "loyalty") { amount = Math.min(subtotal, d.max); key = "qLoyalty"; }
+    else if (d.kind === "referral") { amount = d.amount; key = "qReferral"; }
+    else if (d.percent) amount = Math.min(Math.round(subtotal * d.percent / 100), d.max || Infinity);
+    else amount = d.amount || 0;
+    amount = Math.min(amount, subtotal);
+    if (amount > 0) lines.push({ key, vars: { code: d.code }, amount: -amount, discount: true });
+    subtotal -= amount;
+  }
+
+  return { total: Math.max(0, subtotal), lines, known, distanceKm: known && !same ? Math.round(trip.km * 10) / 10 : (same ? 0 : null) };
 }
 
 // Jour (0-6) et heure décimale d'une date dans le fuseau de l'entreprise
@@ -61,19 +84,15 @@ function localParts(date, timezone) {
   return { day, hour: parseInt(get("hour"), 10) + parseInt(get("minute"), 10) / 60 };
 }
 
-// Renvoie null si l'horaire est accepté, sinon un message d'erreur
+// null si l'horaire est accepté, sinon { key, vars } (message à traduire)
 function checkSchedule(date, cfg, now) {
   now = now || new Date();
-  if (!(date instanceof Date) || isNaN(date)) return "Choisissez une date et une heure.";
-  if (date - now < cfg.minLeadMinutes * 60000) {
-    return `Merci de réserver au moins ${cfg.minLeadMinutes} minutes à l'avance (ou choisissez « Express »).`;
-  }
+  if (!(date instanceof Date) || isNaN(date)) return { key: "errDate" };
+  if (date - now < cfg.minLeadMinutes * 60000) return { key: "errLead", vars: { min: cfg.minLeadMinutes } };
   const { day, hour } = localParts(date, cfg.timezone);
   const slot = cfg.hours[day];
-  if (!slot) return "Nous sommes fermés ce jour-là.";
-  if (hour < slot[0] || hour > slot[1]) {
-    return `Ce jour-là, nous travaillons de ${slot[0]}h à ${slot[1]}h.`;
-  }
+  if (!slot) return { key: "errClosedDay" };
+  if (hour < slot[0] || hour > slot[1]) return { key: "errHours", vars: { open: slot[0], close: slot[1] } };
   return null;
 }
 
@@ -83,42 +102,38 @@ function isOpenNow(cfg, now) {
   return !!slot && hour >= slot[0] && hour < slot[1];
 }
 
-function haversineKm(a, b) {
-  const R = 6371, rad = x => x * Math.PI / 180;
-  const dLat = rad(b.lat - a.lat), dLon = rad(b.lon - a.lon);
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLon / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(h));
+// Minutes estimées : distance par la route ≈ ×1,3 ; 25 km/h en ville, 50 km/h entre villes
+function etaMinutes(a, b) {
+  const road = haversineKm(a, b) * 1.3;
+  return Math.max(1, Math.round(road / (road < 6 ? 25 : 50) * 60 + 2));
 }
 
-// --- OpenStreetMap (gratuit, sans clé) --------------------------------------
+// --- OpenStreetMap Nominatim (gratuit, sans clé) ------------------------------
 const geoCache = {};
 
-async function geocode(address, countryCode) {
+async function geocode(address, countryCode, timeoutMs) {
   const key = countryCode + "|" + address.trim().toLowerCase();
   if (key in geoCache) return geoCache[key];
-  const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=fr"
+  const url = "https://nominatim.openstreetmap.org/search?format=json&limit=1"
     + (countryCode ? "&countrycodes=" + countryCode : "")
     + "&q=" + encodeURIComponent(address);
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error("geocode " + res.status);
-  const data = await res.json();
-  const point = data.length ? { lat: +data[0].lat, lon: +data[0].lon, label: data[0].display_name } : null;
-  geoCache[key] = point;
-  return point;
-}
-
-// Distance par la route (OSRM), à défaut à vol d'oiseau × 1,35
-async function routeKm(a, b) {
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timer = ctrl && setTimeout(() => ctrl.abort(), timeoutMs || 4000);
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?overview=false`;
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: { Accept: "application/json" }, signal: ctrl && ctrl.signal });
+    if (!res.ok) return null;
     const data = await res.json();
-    if (data.routes && data.routes.length) return data.routes[0].distance / 1000;
-  } catch (e) { /* repli ci-dessous */ }
-  return haversineKm(a, b) * 1.35;
+    const point = data.length ? { lat: +data[0].lat, lon: +data[0].lon } : null;
+    geoCache[key] = point;
+    return point;
+  } catch (e) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-const api = { computeQuote, checkSchedule, isOpenNow, localParts, haversineKm, geocode, routeKm };
+const api = { computeQuote, cityToCity, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.Pricing = api;
 

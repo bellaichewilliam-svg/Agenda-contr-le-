@@ -1,5 +1,6 @@
 // ============================================================================
-// Espace livreur : agenda des courses, changements de statut, alertes, facturation.
+// Espace coursier : agenda, statuts, position GPS en direct, encaissements,
+// messages WhatsApp aux clients, itinéraire, facturation.
 // ============================================================================
 
 (function () {
@@ -23,7 +24,7 @@ function showLogin() {
     $("#pwLabel").textContent = "Code d'accès";
     $("#loginHint").textContent = "Mode démo : le code est défini dans config.js (demoAdminPin). Seules les commandes passées sur cet appareil sont visibles.";
   } else {
-    $("#loginHint").textContent = "Connectez-vous avec le compte livreur créé dans Supabase.";
+    $("#loginHint").textContent = "Connectez-vous avec le compte coursier créé dans Supabase.";
   }
 }
 
@@ -52,10 +53,10 @@ function writeSeen(ids) {
 function beep() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    [0, 0.25].forEach(t => {
+    [0, 0.25, 0.5].forEach(t => {
       const o = ctx.createOscillator(), g = ctx.createGain();
       o.frequency.value = 880;
-      g.gain.setValueAtTime(0.2, ctx.currentTime + t);
+      g.gain.setValueAtTime(0.25, ctx.currentTime + t);
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.2);
       o.connect(g).connect(ctx.destination);
       o.start(ctx.currentTime + t);
@@ -66,9 +67,10 @@ function beep() {
 
 function alertNew(list) {
   beep();
+  if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
   if (window.Notification && Notification.permission === "granted") {
-    list.forEach(o => new Notification(`🆕 Course ${o.ref} — ${UI.money(o.price)}`, {
-      body: `${o.urgency === "express" ? "EXPRESS" : UI.fmtDateTime(o.pickup_at)}\n${o.pickup_address} → ${o.dropoff_address}\n${o.company}`
+    list.forEach(o => new Notification(`🆕 ${o.ref} — ${UI.money(o.price)}`, {
+      body: `${UI.whenFr(o)}\n${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)}\n${o.contact_name}`
     }));
   }
 }
@@ -87,56 +89,151 @@ async function load() {
   orders.forEach(o => seen.add(o.id));
   writeSeen(seen);
   firstLoad = false;
-  $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString(CONFIG.locale, { hour: "2-digit", minute: "2-digit" });
+  $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   // Ne pas effacer un champ en cours de saisie
   const typing = document.activeElement && $("#view").contains(document.activeElement)
     && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
   if (typing) renderStats(); else render();
 }
 
+// --- En service : partage de la position GPS --------------------------------------
+const duty = { watch: null, lastSent: 0, wakeLock: null };
+
+async function sendPosition(pos) {
+  const now = Date.now();
+  if (now - duty.lastSent < 15000) return;
+  duty.lastSent = now;
+  try {
+    await Store.setCourierPosition(pos.coords.latitude, pos.coords.longitude);
+    $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })} · gardez cette page ouverte pendant la tournée.`;
+  } catch (e) {
+    $("#dutyText").textContent = "⚠️ Position non envoyée (connexion). Nouvel essai automatique.";
+    duty.lastSent = 0;
+  }
+}
+
+async function toggleDuty() {
+  if (duty.watch != null) {
+    navigator.geolocation.clearWatch(duty.watch);
+    duty.watch = null;
+    if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
+    renderDuty();
+    return;
+  }
+  if (!navigator.geolocation) return alert("La géolocalisation n'est pas disponible sur ce téléphone.");
+  duty.watch = navigator.geolocation.watchPosition(sendPosition, err => {
+    $("#dutyText").textContent = err.code === 1
+      ? "⚠️ Autorisez la localisation pour ce site dans les réglages du navigateur."
+      : "⚠️ Position GPS introuvable pour le moment…";
+  }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
+  // Garder l'écran allumé : les navigateurs coupent le GPS quand l'écran s'éteint
+  try { if (navigator.wakeLock) duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* facultatif */ }
+  renderDuty();
+}
+
+function renderDuty() {
+  const on = duty.watch != null;
+  $("#duty").classList.toggle("on", on);
+  $("#dutyTitle").textContent = on ? "🟢 En service — vos clients vous suivent sur la carte" : "⚪ Hors service";
+  $("#dutyBtn").textContent = on ? "Terminer le service" : "Passer en service";
+  if (!on) $("#dutyText").textContent = "Passez « en service » pour que vos clients vous voient sur la carte.";
+}
+
 // --- Rendu ----------------------------------------------------------------------
 const today = () => UI.dayKey(new Date().toISOString());
 const byTime = (a, b) => new Date(a.pickup_at) - new Date(b.pickup_at);
 const active = o => ["nouvelle", "confirmee", "recuperee"].includes(o.status);
+const sum = list => list.reduce((s, o) => s + Number(o.price), 0);
 
 function renderStats() {
   const t = today(), month = t.slice(0, 7);
-  const todays = orders.filter(o => UI.dayKey(o.pickup_at) === t && o.status !== "annulee");
-  const sum = list => list.reduce((s, o) => s + Number(o.price), 0);
   $("#stNew").textContent = orders.filter(o => o.status === "nouvelle").length;
-  $("#stToday").textContent = todays.length;
-  $("#stTodayRev").textContent = UI.money(sum(todays.filter(o => o.status === "livree")));
+  $("#stToday").textContent = orders.filter(o => UI.dayKey(o.pickup_at) === t && o.status !== "annulee").length;
+  $("#stUnpaid").textContent = UI.money(sum(orders.filter(o => o.payment_status !== "paye" && ["confirmee", "recuperee", "livree"].includes(o.status))));
   $("#stMonthRev").textContent = UI.money(sum(orders.filter(o => o.status === "livree" && UI.dayKey(o.pickup_at).startsWith(month))));
 }
 
-function clientMessage(o) {
-  const name = o.contact_name ? `Bonjour ${o.contact_name}, ` : "Bonjour, ";
-  switch (o.status) {
-    case "confirmee": return `${name}votre course ${o.ref} est confirmée ✅\n${o.urgency === "express" ? "Je pars dès que possible." : "Récupération " + UI.fmtDateTime(o.pickup_at) + "."}\nPrix : ${UI.money(o.price)}`;
-    case "recuperee": return `${name}le colis de la course ${o.ref} est récupéré 🛵 Je suis en route vers ${o.dropoff_address}.`;
-    case "livree": return `${name}la course ${o.ref} a bien été livrée 📦 Merci pour votre confiance !`;
-    case "annulee": return `${name}la course ${o.ref} est annulée.`;
-    default: return `${name}j'ai bien reçu votre course ${o.ref}.`;
-  }
+function referralCode(phone) {
+  const d = String(phone || "").replace(/\D/g, "");
+  return d.length >= 4 ? CONFIG.promos.referral.prefix + d.slice(-4) : "";
 }
 
-function actionsFor(o) {
+// Message WhatsApp au client, dans sa langue
+function clientMessage(o) {
+  const l = o.lang || "fr";
+  const f = (k, v) => I18N.forLang(l, k, v);
+  const city = id => { const c = CONFIG.cities.find(x => x.id === id); return c ? c[l] || c.fr : id; };
+  const when = o.urgency === "programmee" ? f("msg_when_at", { when: UI.whenFr(o) }) : f("msg_when_asap");
+  const pay = o.payment_method === "bit" ? f("pay_bit_short", { phone: CONFIG.bitPhone }) : f("pay_cash_short");
+  return f("msg_" + o.status, {
+    name: o.contact_name || "", ref: o.ref, when, price: UI.money(o.price), pay,
+    url: UI.trackUrl(o), to: `${o.dropoff_address}, ${city(o.to_city)}`, code: referralCode(o.contact_phone)
+  });
+}
+
+function tel(name, phone) {
+  return phone ? `${UI.esc(name || "")} · <a href="tel:${UI.esc(phone)}">${UI.esc(phone)}</a>` : UI.esc(name || "");
+}
+
+function card(o, withDay) {
+  const st = Store.STATUSES[o.status] || { label: o.status, icon: "" };
+  const when = o.urgency === "programmee" ? UI.fmtTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS" : "Dès que possible";
+  const nav = which => `<div class="links">
+      <a class="btn btn-sm" href="${UI.wazeLink(o, which)}" target="_blank" rel="noopener">Waze</a>
+      <a class="btn btn-sm" href="${UI.mapsLink(o, which)}" target="_blank" rel="noopener">Maps</a></div>`;
+
+  let pickupExtra = "";
+  if (o.service === "retrait") {
+    pickupExtra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° <b style="display:inline">${UI.esc(o.tracking_number || "—")}</b> · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌ à demander"}` : ""}</div>`;
+  } else if (o.service === "achat") {
+    pickupExtra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ${UI.money(o.budget)} (à avancer)` : ""}</div>`;
+  }
+
+  const meta = [
+    `<span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>`,
+    `<span class="pill">${UI.esc(UI.SIZE_FR[o.size] || o.size)}</span>`,
+    `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${UI.PAY_FR[o.payment_method] || ""} · ${o.payment_status === "paye" ? "encaissé" : "à encaisser"}${o.payer === "destinataire" ? " (par le destinataire)" : ""}</span>`
+  ];
+  if (o.round_trip) meta.push(`<span class="pill">🔁 Aller-retour</span>`);
+  if (o.extra_stops) meta.push(`<span class="pill">+${o.extra_stops} arrêt(s)</span>`);
+  if (o.distance_km) meta.push(`<span class="pill">${Number(o.distance_km).toFixed(0)} km</span>`);
+  if (o.promo_code) meta.push(`<span class="pill">🎁 ${UI.esc(o.promo_code)} −${UI.money(o.discount || 0)}</span>`);
+  meta.push(`<span class="pill">👤 ${tel(o.contact_name, o.contact_phone)}${o.company ? " · " + UI.esc(o.company) : ""}</span>`);
+  meta.push(`<span class="pill">${o.lang === "he" ? "🇮🇱 hébreu" : "🇫🇷 français"}</span>`);
+
   const b = (status, label, cls = "") => `<button class="btn btn-sm ${cls}" data-status="${status}">${label}</button>`;
   const steps = {
-    nouvelle: b("confirmee", "✅ Confirmer", "btn-primary") + b("annulee", "✖ Refuser"),
+    nouvelle: b("confirmee", "✅ Accepter", "btn-primary") + b("annulee", "✖ Refuser"),
     confirmee: b("recuperee", "🛵 Colis récupéré", "btn-primary") + b("annulee", "✖ Annuler"),
     recuperee: b("livree", "📦 Livré", "btn-primary")
   };
-  return `<div class="actions">
-    ${steps[o.status] || ""}
-    <a class="btn btn-sm btn-wa" href="${UI.waLink(o.contact_phone, clientMessage(o))}" target="_blank" rel="noopener">💬 Prévenir le client</a>
-    <button class="btn btn-sm" data-act="price">✏️ Prix</button>
-    <button class="btn btn-sm" data-act="ics">📅</button>
-    <textarea class="admin-note" data-act="note" rows="1" placeholder="Message visible par le client (ex. retard, prix ajusté)…">${UI.esc(o.admin_note || "")}</textarea>
-  </div>`;
-}
 
-const card = o => UI.orderCard(o, { admin: true, actions: actionsFor(o) });
+  return `
+  <article class="order${o.status === "nouvelle" ? " is-new" : ""}" data-id="${UI.esc(o.id)}">
+    <div class="order-head">
+      <span class="order-time">${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}${when}</span>
+      <span class="pill st-${UI.esc(o.status)}">${st.icon} ${st.label}</span>
+      <span class="order-ref">${UI.esc(o.ref)}</span>
+      <span class="order-price">${UI.money(o.price)}</span>
+    </div>
+    <div class="legs">
+      <div class="leg"><span>📍</span><div><b>${UI.esc(o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</b>${pickupExtra}<span class="small muted">${tel(o.pickup_contact, o.pickup_phone)}</span>${nav("pickup")}</div></div>
+      <div class="leg"><span>🏁</span><div><b>${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</b><span class="small muted">${tel(o.dropoff_contact, o.dropoff_phone)}</span>${nav("dropoff")}</div></div>
+    </div>
+    <div class="meta">${meta.join("")}</div>
+    ${o.notes ? `<p class="notice" style="margin-top:10px">📝 ${UI.esc(o.notes)}</p>` : ""}
+    <div class="actions">
+      ${steps[o.status] || ""}
+      ${o.status !== "annulee" ? `<button class="btn btn-sm" data-act="paid">${o.payment_status === "paye" ? "↩︎ Non encaissé" : "💵 Encaissé"}</button>` : ""}
+      <a class="btn btn-sm btn-wa" href="${UI.waLink(o.contact_phone, clientMessage(o))}" target="_blank" rel="noopener">💬 Client</a>
+      ${o.dropoff_phone ? `<a class="btn btn-sm btn-wa" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}" target="_blank" rel="noopener">💬 Destinataire</a>` : ""}
+      <a class="btn btn-sm" href="${UI.trackUrl(o)}" target="_blank" rel="noopener">📍 Suivi</a>
+      <button class="btn btn-sm" data-act="price">✏️ Prix</button>
+      <button class="btn btn-sm" data-act="ics">📅</button>
+      <textarea class="admin-note" data-act="note" rows="1" placeholder="Message visible par le client sur la page de suivi…">${UI.esc(o.admin_note || "")}</textarea>
+    </div>
+  </article>`;
+}
 
 function groupedByDay(list) {
   const groups = {};
@@ -144,7 +241,7 @@ function groupedByDay(list) {
   const t = today();
   return Object.keys(groups).sort().map(k => {
     const label = k === t ? "Aujourd'hui" : k < t ? `En retard — ${UI.fmtDay(groups[k][0].pickup_at)}` : UI.fmtDay(groups[k][0].pickup_at);
-    return `<div class="day-title">${label} · ${groups[k].length} course(s)</div><div class="orders">${groups[k].sort(byTime).map(card).join("")}</div>`;
+    return `<div class="day-title">${label} · ${groups[k].length} course(s) · ${UI.money(sum(groups[k]))}</div><div class="orders">${groups[k].sort(byTime).map(o => card(o)).join("")}</div>`;
   }).join("");
 }
 
@@ -161,21 +258,21 @@ function render() {
 
   if (tab === "agenda") {
     const list = agendaList();
-    view.innerHTML = list.length ? groupedByDay(list) : empty("Aucune course à venir. Partagez votre page de commande à vos clients !");
+    view.innerHTML = list.length ? groupedByDay(list) : empty('Aucune course à venir. Partagez votre page avec le <a href="kit.html">kit pub</a> !');
   } else if (tab === "nouvelles") {
     const list = orders.filter(o => o.status === "nouvelle").sort(byTime);
-    view.innerHTML = list.length ? `<div class="orders">${list.map(card).join("")}</div>` : empty("Aucune course à confirmer 👍");
+    view.innerHTML = list.length ? `<div class="orders">${list.map(o => card(o, true)).join("")}</div>` : empty("Aucune course à accepter 👍");
   } else if (tab === "historique") {
     const q = histFilter.q.toLowerCase();
     const list = orders
       .filter(o => !histFilter.status || o.status === histFilter.status)
-      .filter(o => !q || [o.ref, o.company, o.contact_name, o.pickup_address, o.dropoff_address].join(" ").toLowerCase().includes(q))
+      .filter(o => !q || [o.ref, o.company, o.contact_name, o.contact_phone, o.pickup_address, o.dropoff_address].join(" ").toLowerCase().includes(q))
       .sort((a, b) => byTime(b, a));
     view.innerHTML = `<div class="toolbar">
         <select id="histStatus"><option value="">Tous les statuts</option>${Object.entries(Store.STATUSES).map(([k, s]) => `<option value="${k}" ${histFilter.status === k ? "selected" : ""}>${s.label}</option>`).join("")}</select>
-        <input id="histQ" type="search" placeholder="Rechercher (client, adresse, réf.)" value="${UI.esc(histFilter.q)}" />
+        <input id="histQ" type="search" placeholder="Rechercher (client, téléphone, adresse, réf.)" value="${UI.esc(histFilter.q)}" />
       </div>
-      ${list.length ? `<div class="orders">${list.map(o => card(o).replace('class="order-time">', `class="order-time">${UI.fmtDay(o.pickup_at)} · `)).join("")}</div>` : empty("Aucune course.")}`;
+      ${list.length ? `<div class="orders">${list.map(o => card(o, true)).join("")}</div>` : empty("Aucune course.")}`;
   } else {
     renderBilling(view);
   }
@@ -187,28 +284,30 @@ function monthOrders() {
 
 function renderBilling(view) {
   const list = monthOrders();
-  const byCompany = {};
+  const byClient = {};
   list.forEach(o => {
-    const c = byCompany[o.company] = byCompany[o.company] || { n: 0, total: 0, phone: o.contact_phone, email: o.contact_email };
+    const key = o.company || o.contact_name;
+    const c = byClient[key] = byClient[key] || { n: 0, total: 0, unpaid: 0, phone: o.contact_phone };
     c.n++; c.total += Number(o.price);
+    if (o.payment_status !== "paye") c.unpaid += Number(o.price);
   });
-  const rows = Object.entries(byCompany).sort((a, b) => b[1].total - a[1].total);
-  const total = rows.reduce((s, r) => s + r[1].total, 0);
+  const rows = Object.entries(byClient).sort((a, b) => b[1].total - a[1].total);
+  const bit = sum(list.filter(o => o.payment_method === "bit")), cash = sum(list.filter(o => o.payment_method === "cash"));
   view.innerHTML = `<div class="toolbar">
       <label class="small muted">Mois <input type="month" id="billMonth" value="${billMonth}" /></label>
-      <button class="btn btn-sm" id="csvBtn" ${list.length ? "" : "disabled"}>⬇️ Exporter le détail (CSV)</button>
+      <button class="btn btn-sm" id="csvBtn" ${list.length ? "" : "disabled"}>⬇️ Export CSV</button>
+      <span class="small muted">💵 Espèces ${UI.money(cash)} · 📱 Bit ${UI.money(bit)}</span>
     </div>
-    <p class="muted small" style="margin-bottom:10px">Courses livrées pendant le mois, par client.</p>
     <table class="bill">
-      <thead><tr><th>Client</th><th class="num">Courses</th><th class="num">Montant</th><th></th></tr></thead>
-      <tbody>${rows.map(([name, c]) => `<tr><td><b>${UI.esc(name)}</b><br><span class="small muted">${UI.esc(c.phone || "")} ${UI.esc(c.email || "")}</span></td><td class="num">${c.n}</td><td class="num"><b>${UI.money(c.total)}</b></td>
-        <td class="num"><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(c.phone, `Bonjour, voici le récapitulatif de vos courses pour ${billMonth} : ${c.n} course(s), total ${UI.money(c.total)}. Merci !`)}">Envoyer</a></td></tr>`).join("")
-        || `<tr><td colspan="4" class="muted">Aucune course livrée ce mois-ci.</td></tr>`}</tbody>
-      <tfoot><tr><th>Total</th><th class="num">${list.length}</th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
+      <thead><tr><th>Client</th><th class="num">Courses</th><th class="num">Montant</th><th class="num">Reste dû</th><th></th></tr></thead>
+      <tbody>${rows.map(([name, c]) => `<tr><td><b>${UI.esc(name)}</b><br><span class="small muted">${UI.esc(c.phone || "")}</span></td><td class="num">${c.n}</td><td class="num"><b>${UI.money(c.total)}</b></td><td class="num">${c.unpaid ? UI.money(c.unpaid) : "✓"}</td>
+        <td class="num"><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(c.phone, `Bonjour, récapitulatif de vos courses ${billMonth} : ${c.n} course(s), total ${UI.money(c.total)}${c.unpaid ? `, reste à régler ${UI.money(c.unpaid)} (espèces ou Bit au ${CONFIG.bitPhone})` : ""}. Merci !`)}">Envoyer</a></td></tr>`).join("")
+        || `<tr><td colspan="5" class="muted">Aucune course livrée ce mois-ci.</td></tr>`}</tbody>
+      <tfoot><tr><th>Total</th><th class="num">${list.length}</th><th class="num">${UI.money(sum(list))}</th><th class="num">${UI.money(rows.reduce((s, r) => s + r[1].unpaid, 0))}</th><th></th></tr></tfoot>
     </table>`;
 }
 
-// --- Exports --------------------------------------------------------------------
+// --- Exports et itinéraire ---------------------------------------------------------
 function download(name, content, type) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([content], { type }));
@@ -218,10 +317,10 @@ function download(name, content, type) {
 }
 
 function exportCsv() {
-  const cols = ["ref", "pickup_at", "company", "contact_name", "contact_phone", "service", "pickup_address", "dropoff_address", "distance_km", "price"];
+  const cols = ["ref", "pickup_at", "company", "contact_name", "contact_phone", "service", "from_city", "to_city", "price", "promo_code", "payment_method", "payment_status"];
   const cell = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
   const lines = [cols.join(";")].concat(monthOrders().sort(byTime).map(o =>
-    cols.map(c => cell(c === "pickup_at" ? UI.fmtDateTime(o[c]) : o[c])).join(";")));
+    cols.map(c => cell(c === "pickup_at" ? UI.fmtDateTime(o[c]) : c.endsWith("_city") ? UI.cityFr(o[c]) : o[c])).join(";")));
   download(`courses-${billMonth}.csv`, "﻿" + lines.join("\r\n"), "text/csv;charset=utf-8");
 }
 
@@ -235,8 +334,8 @@ function icsEvent(o) {
     `DTSTAMP:${stamp(new Date())}`,
     `DTSTART:${stamp(start)}`,
     `DTEND:${stamp(start.getTime() + 60 * 60000)}`,
-    `SUMMARY:${escTxt(`🛵 ${o.ref} · ${o.company} · ${UI.money(o.price)}`)}`,
-    `LOCATION:${escTxt(o.pickup_address)}`,
+    `SUMMARY:${escTxt(`🛵 ${o.ref} · ${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.money(o.price)}`)}`,
+    `LOCATION:${escTxt(UI.placeQuery(o, "pickup"))}`,
     `DESCRIPTION:${escTxt(UI.orderText(o))}`,
     "END:VEVENT"
   ].join("\r\n");
@@ -246,6 +345,21 @@ function exportIcs(list) {
   if (!list.length) return alert("Aucune course à exporter.");
   const body = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Livraison//FR", ...list.map(icsEvent), "END:VCALENDAR"].join("\r\n");
   download(list.length === 1 ? `${list[0].ref}.ics` : "courses.ics", body, "text/calendar");
+}
+
+// Google Maps : tous les arrêts restants du jour, dans l'ordre des horaires
+function openRoute() {
+  const t = today();
+  const stops = [];
+  orders.filter(o => ["confirmee", "recuperee"].includes(o.status) && UI.dayKey(o.pickup_at) <= t).sort(byTime).forEach(o => {
+    if (o.status === "confirmee") stops.push(UI.placeQuery(o, "pickup"));
+    stops.push(UI.placeQuery(o, "dropoff"));
+  });
+  if (!stops.length) return alert("Aucune course acceptée à faire aujourd'hui.");
+  const dest = stops.pop();
+  const url = "https://www.google.com/maps/dir/?api=1&travelmode=driving&destination=" + encodeURIComponent(dest)
+    + (stops.length ? "&waypoints=" + encodeURIComponent(stops.slice(0, 9).join("|")) : "");
+  window.open(url, "_blank", "noopener");
 }
 
 // --- Actions sur une course -----------------------------------------------------
@@ -272,7 +386,19 @@ function onViewClick(e) {
   if (!o) return;
   if (el.dataset.status) {
     if (el.dataset.status === "annulee" && !confirm(`Annuler la course ${o.ref} ?`)) return;
-    change(o, { status: el.dataset.status });
+    const changes = { status: el.dataset.status };
+    if (changes.status === "confirmee" && duty.watch == null) {
+      if (confirm("Course acceptée. Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
+    }
+    change(o, changes).then(() => {
+      // Proposer d'informer le client tout de suite
+      if (["confirmee", "recuperee", "livree"].includes(changes.status)) {
+        const a = document.querySelector(`article[data-id="${o.id}"] .btn-wa`);
+        if (a) { a.style.outline = "3px solid var(--brand)"; a.scrollIntoView({ block: "nearest" }); }
+      }
+    });
+  } else if (el.dataset.act === "paid") {
+    change(o, { payment_status: o.payment_status === "paye" ? "en_attente" : "paye" });
   } else if (el.dataset.act === "price") {
     const v = prompt(`Nouveau prix pour ${o.ref} (${CONFIG.currency})`, o.price);
     const n = parseFloat(String(v).replace(",", "."));
@@ -307,16 +433,18 @@ function start() {
   $("#loginForm").classList.add("hidden");
   $("#dashboard").classList.remove("hidden");
   $("#logoutBtn").classList.remove("hidden");
+  renderDuty();
   load();
   clearInterval(pollTimer);
-  pollTimer = setInterval(load, 20000);
+  pollTimer = setInterval(load, 15000);
 }
 
-UI.bindConfigText();
 $("#loginForm").addEventListener("submit", onLogin);
 $("#logoutBtn").addEventListener("click", e => { e.preventDefault(); clearInterval(pollTimer); Store.adminLogout(); showLogin(); });
 $("#tabs").addEventListener("click", e => { if (e.target.dataset.tab) { tab = e.target.dataset.tab; render(); } });
 $("#reloadBtn").addEventListener("click", load);
+$("#routeBtn").addEventListener("click", openRoute);
+$("#dutyBtn").addEventListener("click", toggleDuty);
 $("#icsBtn").addEventListener("click", () => exportIcs(agendaList().filter(active).sort(byTime)));
 $("#notifBtn").addEventListener("click", () => {
   if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
@@ -329,6 +457,12 @@ $("#view").addEventListener("click", onViewClick);
 $("#view").addEventListener("change", onViewChange);
 $("#view").addEventListener("input", onViewInput);
 window.addEventListener("storage", e => { if (e.key === "livraison.orders.v1" && Store.session()) load(); });
+document.addEventListener("visibilitychange", async () => {
+  // Le verrou d'écran est relâché quand on quitte la page : le reprendre au retour
+  if (document.visibilityState === "visible" && duty.watch != null && navigator.wakeLock) {
+    try { duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* ignore */ }
+  }
+});
 
 if (window.Notification && Notification.permission === "granted") $("#notifBtn").textContent = "🔔 Alertes activées";
 if (Store.session()) start(); else showLogin();

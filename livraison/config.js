@@ -3,62 +3,100 @@
 // ============================================================================
 
 window.CONFIG = {
-  // --- Identité de l'entreprise de livraison ---------------------------------
+  // --- Identité --------------------------------------------------------------
   businessName: "Coursier Express",
-  slogan: "Vos colis récupérés et livrés, à l'heure.",
-  city: "Israël",
-  // Numéro WhatsApp du livreur, format international SANS "+" ni espaces.
-  // Les nouvelles commandes vous sont envoyées sur ce numéro.
+  businessNameHe: "שליח אקספרס",
+  // Numéro WhatsApp du coursier, format international SANS "+" ni espaces.
   whatsapp: "972500000000",
   phoneDisplay: "050-000-0000",
+  // Numéro de téléphone sur lequel les clients paient avec Bit
+  bitPhone: "050-000-0000",
   email: "contact@exemple.com",
 
   // --- Monnaie / pays --------------------------------------------------------
   currency: "₪",
-  locale: "fr-FR",
   timezone: "Asia/Jerusalem",
-  // Code pays utilisé pour chercher les adresses (OpenStreetMap)
-  countryCode: "il",
-  // Indicatif ajouté aux numéros locaux (05x…) pour les liens WhatsApp
-  phoneCountryPrefix: "972",
+  countryCode: "il",          // pour chercher les adresses (OpenStreetMap)
+  phoneCountryPrefix: "972",  // ajouté aux numéros 05x… pour WhatsApp
+  defaultLang: "fr",          // "fr" ou "he" (sinon langue du téléphone)
 
-  // --- Horaires d'ouverture (0 = dimanche … 6 = samedi) ----------------------
-  // [heure d'ouverture, heure de fermeture] ou null = fermé
+  // --- Horaires (0 = dimanche … 6 = samedi) : [ouverture, fermeture] ou null --
   hours: {
-    0: [8, 19], 1: [8, 19], 2: [8, 19], 3: [8, 19], 4: [8, 19],
-    5: [8, 13],
+    0: [8, 21], 1: [8, 21], 2: [8, 21], 3: [8, 21], 4: [8, 21],
+    5: [8, 14],
     6: null
   },
-  // Délai minimum entre la commande et la récupération (minutes)
-  minLeadMinutes: 60,
+  minLeadMinutes: 30,         // délai minimum pour une course programmée
+
+  // --- Villes desservies : le prix se calcule entre les centres-villes -------
+  cities: [
+    { id: "netanya",      fr: "Netanya",        he: "נתניה",        lat: 32.3215, lon: 34.8532 },
+    { id: "even-yehuda",  fr: "Even Yehuda",    he: "אבן יהודה",    lat: 32.2700, lon: 34.8870 },
+    { id: "kadima",       fr: "Kadima-Tzoran",  he: "קדימה-צורן",   lat: 32.2780, lon: 34.9150 },
+    { id: "pardesia",     fr: "Pardesia",       he: "פרדסיה",       lat: 32.3060, lon: 34.9090 },
+    { id: "kfar-yona",    fr: "Kfar Yona",      he: "כפר יונה",     lat: 32.3170, lon: 34.9350 },
+    { id: "hadera",       fr: "Hadera",         he: "חדרה",         lat: 32.4340, lon: 34.9190 },
+    { id: "raanana",      fr: "Ra'anana",       he: "רעננה",        lat: 32.1848, lon: 34.8713 },
+    { id: "kfar-saba",    fr: "Kfar Saba",      he: "כפר סבא",      lat: 32.1750, lon: 34.9070 },
+    { id: "hod-hasharon", fr: "Hod HaSharon",   he: "הוד השרון",    lat: 32.1500, lon: 34.8880 },
+    { id: "herzliya",     fr: "Herzliya",       he: "הרצליה",       lat: 32.1624, lon: 34.8443 },
+    { id: "ramat-hasharon", fr: "Ramat HaSharon", he: "רמת השרון",  lat: 32.1460, lon: 34.8390 },
+    { id: "tel-aviv",     fr: "Tel Aviv",       he: "תל אביב",      lat: 32.0853, lon: 34.7818 },
+    { id: "ramat-gan",    fr: "Ramat Gan",      he: "רמת גן",       lat: 32.0823, lon: 34.8107 },
+    { id: "givatayim",    fr: "Givatayim",      he: "גבעתיים",      lat: 32.0722, lon: 34.8120 },
+    { id: "bnei-brak",    fr: "Bnei Brak",      he: "בני ברק",      lat: 32.0807, lon: 34.8338 },
+    { id: "petah-tikva",  fr: "Petah Tikva",    he: "פתח תקווה",    lat: 32.0840, lon: 34.8878 },
+    { id: "holon",        fr: "Holon",          he: "חולון",        lat: 32.0158, lon: 34.7874 },
+    { id: "bat-yam",      fr: "Bat Yam",        he: "בת ים",        lat: 32.0171, lon: 34.7454 },
+    { id: "rishon",       fr: "Rishon LeZion",  he: "ראשון לציון",  lat: 31.9730, lon: 34.7925 }
+  ],
+  homeCity: "netanya",
 
   // --- Tarifs ----------------------------------------------------------------
+  // Prix = base + perKm × distance à vol d'oiseau, arrondi à 5 ₪.
+  // Ex. : dans Netanya 25 ₪ · Netanya→Ra'anana 45 ₪ · →Herzliya 50 ₪ · →Tel Aviv 65 ₪
   pricing: {
-    base: 35,               // Prise en charge (inclut les premiers km)
-    includedKm: 5,          // km inclus dans la prise en charge
-    perKm: 3.5,             // Prix par km au-delà
-    minimum: 35,            // Prix minimum d'une course
-    roundTo: 1,             // Arrondi du prix final
-    sizes: {                // Supplément selon la taille du colis
-      enveloppe: { label: "Enveloppe / document", extra: 0 },
-      petit:     { label: "Petit colis (< 5 kg)", extra: 0 },
-      moyen:     { label: "Colis moyen (5–15 kg)", extra: 15 },
-      gros:      { label: "Gros colis (15–30 kg)", extra: 35 }
+    base: 25,
+    perKm: 1.4,
+    roundTo: 5,
+    minimum: 25,
+    sizes: {
+      petit: 0,     // enveloppe, sac, petit colis (< 5 kg)
+      moyen: 10,    // 5 à 15 kg
+      gros: 25      // 15 à 30 kg
     },
-    expressPercent: 50,     // Course express (dès que possible) : +50 %
-    postOfficeExtra: 25,    // Retrait à la poste (file d'attente, démarches)
-    returnTripPercent: 70,  // Aller-retour : +70 %
-    extraStop: 15           // Par arrêt supplémentaire
+    express: 20,        // en moins d'une heure
+    pickupPoint: 10,    // retrait à la poste / Super-Pharm / point relais (attente)
+    purchase: 15,       // « J'achète pour vous » (pharmacie, courses…)
+    extraStop: 10,      // par arrêt supplémentaire
+    returnTripPercent: 50
+  },
+
+  // --- Offres de lancement ----------------------------------------------------
+  promos: {
+    // Codes promo : percent (avec max) ou amount ; firstOrderOnly = 1re commande
+    codes: {
+      BIENVENUE: { percent: 50, max: 20, firstOrderOnly: true },
+      BRUCHIM:   { percent: 50, max: 20, firstOrderOnly: true },  // « Bienvenue » en hébreu
+      NETANYA:   { amount: 5 }
+    },
+    // Parrainage : chaque client a un code AMI + 4 derniers chiffres de son téléphone
+    referral: { prefix: "AMI", amount: 10 },
+    // Carte de fidélité : la Nième course est offerte (jusqu'à max ₪)
+    loyalty: { every: 10, max: 30 },
+    // Offres professionnelles affichées sur la page (commande par WhatsApp)
+    business: [
+      { fr: "Restaurants : livraison de repas dans Netanya", he: "מסעדות: משלוח אוכל בתוך נתניה", price: "18 ₪" },
+      { fr: "Carnet de 10 courses dans une même ville", he: "כרטיסייה של 10 משלוחים בתוך אותה עיר", price: "200 ₪" },
+      { fr: "Tournée quotidienne fixe (avocats, comptables, labos)", he: "סבב יומי קבוע (עורכי דין, רואי חשבון, מעבדות)", price: "sur devis · בהצעת מחיר" }
+    ]
   },
 
   // --- Base de données en ligne (Supabase, gratuit) --------------------------
-  // Laisser vide = mode démo : les commandes restent sur l'appareil et vous
-  // sont transmises par WhatsApp. Voir livraison/README.md pour l'activer.
+  // Vide = mode démo (commandes envoyées par WhatsApp, pas de suivi à distance).
   supabase: {
     url: "",
     anonKey: ""
   },
-
-  // Code d'accès à l'espace livreur en mode démo (sans Supabase)
   demoAdminPin: "1234"
 };

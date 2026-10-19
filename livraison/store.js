@@ -11,17 +11,20 @@ const LS_ORDERS = "livraison.orders.v1";
 const LS_TOKENS = "livraison.myTokens.v1";
 const LS_PROFILE = "livraison.profile.v1";
 const LS_SESSION = "livraison.adminSession.v1";
+const LS_COURIER = "livraison.courier.v1";
 
 const sb = CONFIG.supabase || {};
 const ONLINE = !!(sb.url && sb.anonKey);
 
 const STATUSES = {
   nouvelle:  { label: "Nouvelle",       icon: "🆕" },
-  confirmee: { label: "Confirmée",      icon: "✅" },
-  recuperee: { label: "Colis récupéré", icon: "🛵" },
+  confirmee: { label: "Acceptée",       icon: "✅" },
+  recuperee: { label: "En route",       icon: "🛵" },
   livree:    { label: "Livrée",         icon: "📦" },
   annulee:   { label: "Annulée",        icon: "✖️" }
 };
+// Position du coursier montrée au client seulement pendant ces statuts
+const LIVE = ["confirmee", "recuperee"];
 
 function readJSON(key, fallback) {
   try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; }
@@ -65,7 +68,7 @@ async function rest(path, { method = "GET", body, token, prefer } = {}) {
 
 // --- Côté client (entreprise) --------------------------------------------------
 async function createOrder(order) {
-  order = Object.assign({ token: uuid(), ref: newRef(), status: "nouvelle" }, order);
+  order = Object.assign({ token: uuid(), ref: newRef(), status: "nouvelle", payment_status: "en_attente" }, order);
   if (ONLINE) {
     await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" });
   } else {
@@ -94,6 +97,16 @@ async function cancelMyOrder(token) {
   const o = all.find(x => x.token === token && x.status === "nouvelle");
   if (o) { o.status = "annulee"; writeJSON(LS_ORDERS, all); }
   return !!o;
+}
+
+// Suivi d'une course (page suivi.html) : commande + position du coursier
+async function trackOrder(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/track_order", { method: "POST", body: { p_token: token } });
+  const order = readJSON(LS_ORDERS, []).find(o => o.token === token);
+  if (!order) return null;
+  const c = readJSON(LS_COURIER, null);
+  return Object.assign({}, order, LIVE.includes(order.status) && c
+    ? { courier_lat: c.lat, courier_lon: c.lon, courier_at: c.at } : {});
 }
 
 function getProfile() { return readJSON(LS_PROFILE, {}); }
@@ -148,10 +161,17 @@ async function updateOrder(id, changes) {
   writeJSON(LS_ORDERS, all);
 }
 
+// Le coursier partage sa position GPS (une seule ligne, id = 1)
+async function setCourierPosition(lat, lon) {
+  const at = new Date().toISOString();
+  if (ONLINE) return adminRest("/rest/v1/courier?id=eq.1", { method: "PATCH", body: { lat, lon, updated_at: at }, prefer: "return=minimal" });
+  writeJSON(LS_COURIER, { lat, lon, at });
+}
+
 window.Store = {
-  ONLINE, STATUSES,
-  createOrder, myOrders, cancelMyOrder, getProfile, saveProfile,
-  session, adminLogin, adminLogout, allOrders, updateOrder
+  ONLINE, STATUSES, LIVE,
+  createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile,
+  session, adminLogin, adminLogout, allOrders, updateOrder, setCourierPosition
 };
 
 })();

@@ -5,30 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0F1F3D" />
   <meta name="robots" content="noindex" />
-  <title>Coursier Express · Espace livreur</title>
+  <title>Espace coursier</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%230F1F3D"/><text x="32" y="44" text-anchor="middle" font-size="34">🛵</text></svg>' />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
 <header class="topbar">
   <div class="wrap">
-    <a class="logo" href="index.html"><span class="logo-mark">🛵</span><span data-bind="businessName"></span></a>
+    <a class="logo" href="index.html"><span class="logo-mark">🛵</span><span class="logo-name">Espace coursier</span></a>
     <nav class="nav">
+      <a href="kit.html">📣 Kit pub</a>
       <a href="index.html" class="hide-sm">Page client</a>
-      <a href="#" id="logoutBtn" class="hidden">Déconnexion</a>
+      <a href="#" id="logoutBtn" class="hidden">Sortir</a>
     </nav>
   </div>
 </header>
 
-<!-- Connexion -->
 <div class="wrap">
   <form class="login card hidden" id="loginForm">
-    <h2 style="margin-bottom:6px">Espace livreur</h2>
+    <h2 style="margin-bottom:6px">Espace coursier</h2>
     <p class="muted small" id="loginHint" style="margin-bottom:16px"></p>
     <div style="display:grid;gap:12px">
       <label class="f" id="emailWrap">Email<input name="email" type="email" autocomplete="username" /></label>
@@ -39,33 +39,39 @@
   </form>
 </div>
 
-<!-- Tableau de bord -->
 <main class="wrap hidden" id="dashboard" style="padding-bottom:40px">
   <div class="stats">
-    <div class="stat"><small>À confirmer</small><b id="stNew">0</b></div>
+    <div class="stat"><small>À accepter</small><b id="stNew">0</b></div>
     <div class="stat"><small>Courses aujourd'hui</small><b id="stToday">0</b></div>
-    <div class="stat"><small>Chiffre du jour</small><b id="stTodayRev">0</b></div>
+    <div class="stat"><small>À encaisser</small><b id="stUnpaid">0</b></div>
     <div class="stat"><small>Chiffre du mois</small><b id="stMonthRev">0</b></div>
+  </div>
+
+  <div class="duty" id="duty">
+    <div><b id="dutyTitle">⚪ Hors service</b><br><span class="small muted" id="dutyText">Passez « en service » pour que vos clients vous voient sur la carte.</span></div>
+    <button class="btn btn-primary" id="dutyBtn">Passer en service</button>
   </div>
 
   <div class="tabs" id="tabs">
     <button class="tab on" data-tab="agenda">🗓️ Agenda</button>
-    <button class="tab" data-tab="nouvelles">🆕 À confirmer</button>
+    <button class="tab" data-tab="nouvelles">🆕 À accepter</button>
     <button class="tab" data-tab="historique">📚 Historique</button>
     <button class="tab" data-tab="facturation">🧾 Facturation</button>
   </div>
 
   <div class="toolbar">
     <span class="muted small" id="lastSync"></span>
+    <button class="btn btn-sm" id="routeBtn">🗺️ Itinéraire de la tournée</button>
     <button class="btn btn-sm" id="notifBtn">🔔 Activer les alertes</button>
-    <button class="btn btn-sm" id="icsBtn">📅 Ajouter à mon agenda (.ics)</button>
-    <button class="btn btn-sm" id="reloadBtn" style="margin-left:auto">↻ Actualiser</button>
+    <button class="btn btn-sm" id="icsBtn">📅 Agenda (.ics)</button>
+    <button class="btn btn-sm" id="reloadBtn">↻</button>
   </div>
 
   <div id="view"></div>
 </main>
 
 <script src="config.js"></script>
+<script src="i18n.js"></script>
 <script src="pricing.js"></script>
 <script src="store.js"></script>
 <script src="common.js"></script>
