@@ -15,6 +15,7 @@ Application web de livraison façon Wolt pour Netanya, le Sharon et Tel Aviv. El
 | Kit de lancement | Vous | `…/livraison/kit.html` |
 
 ### Clients (`index.html`, `suivi.html`, `recu.html`)
+- **Adresses vérifiées sur la carte** : le client tape une adresse ou une enseigne (Super-Pharm, restaurant, poste…) et choisit dans les suggestions ; la ville se remplit seule, le nom de l'enseigne apparaît sur la course et Waze guide au point GPS exact (recherche gratuite Photon / OpenStreetMap).
 - **Prix fixe affiché tout de suite.** Les prix depuis Netanya sont fixés à la main dans `config.js` : 25 ₪ en ville, 80 ₪ pour Ra'anana, 85 ₪ pour Herzliya, 120 ₪ pour Tel Aviv… Pour les autres trajets : 25 ₪ + 3,5 ₪ par km.
 - **9 exemples cliquables** (poste, Super-Pharm, restaurant, Yad2, documents…) et **« Pourquoi nous plutôt qu'une grande plateforme ? »**.
 - **Commande immédiate, express ou programmée** au jour et à l'heure près. Si vous êtes complet ou ne pouvez pas prendre une course, le client est prévenu, avec la raison dans sa langue.
