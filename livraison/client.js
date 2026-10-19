@@ -584,6 +584,8 @@ async function loadSettings() {
 }
 
 // --- Démarrage ---------------------------------------------------------------------
+// Adresse nettoyée (paramètres laissés par une ancienne version ou un rechargement forcé)
+if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 I18N.apply();
 fillCitySelects();
 fillDefaults();
@@ -666,5 +668,8 @@ if ("IntersectionObserver" in window) {
   new IntersectionObserver(es => { summaryVisible = es[0].isIntersecting; update(); }).observe($("#summary"));
 }
 if (Store.ONLINE) setInterval(() => { loadMine(); loadSettings(); }, 60000);
+
+// L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
+window.hopReady = true;
 
 })();

@@ -61,6 +61,8 @@ self.addEventListener("fetch", e => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
+  // L'application de livraison (livraison/) gère son propre chargement : ne jamais la servir depuis le cache
+  if (url.pathname.indexOf("/livraison/") !== -1) return;
   if (/\.(html|css|js|json|webmanifest)$/.test(url.pathname) || url.pathname.endsWith("/")) {
     e.respondWith(networkFirst(req));
     return;
