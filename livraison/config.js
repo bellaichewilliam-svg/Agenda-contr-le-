@@ -7,10 +7,10 @@ window.CONFIG = {
   businessName: "HOP! Livraison",
   businessNameHe: "הופ! משלוחים",
   // Numéro WhatsApp du coursier, format international SANS "+" ni espaces.
-  whatsapp: "972500000000",
-  phoneDisplay: "050-000-0000",
+  whatsapp: "972527790361",
+  phoneDisplay: "052-779-0361",
   // Numéro de téléphone sur lequel les clients paient avec Bit
-  bitPhone: "050-000-0000",
+  bitPhone: "052-779-0361",
   email: "contact@exemple.com",
 
   // --- Reçus (קבלה) : vos informations légales ------------------------------

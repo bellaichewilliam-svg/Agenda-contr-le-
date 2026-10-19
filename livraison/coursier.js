@@ -189,8 +189,8 @@ function card(o, kind) {
       <span class="order-price">${UI.money(o.price)}</span>
     </div>
     <div class="legs">
-      <div class="leg"><span>📍</span><div><b>${kind === "mine" ? UI.esc(o.pickup_address) + ", " : ""}${UI.esc(UI.cityFr(o.from_city))}</b>${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
-      <div class="leg"><span>🏁</span><div><b>${kind === "mine" ? UI.esc(o.dropoff_address) + ", " : ""}${UI.esc(UI.cityFr(o.to_city))}</b>${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
+      <div class="leg"><span>📍</span><div><b>${kind === "mine" ? UI.esc(o.pickup_address) + ", " : ""}${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
+      <div class="leg"><span>🏁</span><div><b>${kind === "mine" ? UI.esc(o.dropoff_address) + ", " : ""}${UI.esc(UI.cityFr(o.to_city))}</b>${kind === "mine" ? UI.addrNote(o.dropoff_note) : ""}${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
     </div>
     <div class="meta">
       <span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>

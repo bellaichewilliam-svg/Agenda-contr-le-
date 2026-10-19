@@ -92,8 +92,8 @@ function render() {
     : labels.map((k, i) => `<li class="${i < step || (i === step && i === 3) ? "done" : i === step ? "current" : ""}">${UI.esc(t(k))}</li>`).join("");
 
   $("#details").innerHTML = `
-    <div><span>📍</span><span><b>${UI.esc(t("trPickup"))}</b><br>${UI.esc(o.pickup_address)}, ${UI.esc(cityLabel(o.from_city))}</span></div>
-    <div><span>🏁</span><span><b>${UI.esc(t("trDrop"))}</b><br>${UI.esc(o.dropoff_address)}, ${UI.esc(cityLabel(o.to_city))}</span></div>
+    <div><span>📍</span><span><b>${UI.esc(t("trPickup"))}</b><br>${UI.esc(o.pickup_address)}, ${UI.esc(cityLabel(o.from_city))}${UI.addrNote(o.pickup_note)}</span></div>
+    <div><span>🏁</span><span><b>${UI.esc(t("trDrop"))}</b><br>${UI.esc(o.dropoff_address)}, ${UI.esc(cityLabel(o.to_city))}${UI.addrNote(o.dropoff_note)}</span></div>
     ${o.admin_note && o.status !== "refusee" ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
 
   const pay = $("#payBox");
