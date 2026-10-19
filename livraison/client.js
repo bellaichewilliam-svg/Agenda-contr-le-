@@ -502,6 +502,17 @@ function renderSavedAddrs() {
   });
 }
 
+// --- Type de lieu (maison, appartement, bureau, commerce) : une maison n'a pas d'étage ni d'appartement ---
+function kindOf(pre) { const r = form.querySelector(`input[name="${pre}_kind"]:checked`); return r ? r.value : null; }
+function setKind(pre, v) {
+  form.querySelectorAll(`input[name="${pre}_kind"]`).forEach(r => { r.checked = r.value === v; r.closest(".ch-chip").classList.toggle("on", r.checked); });
+  const box = form.querySelector(`[data-details="${pre}"]`);
+  if (box) box.classList.toggle("is-house", v === "maison");
+}
+// Conditions de livraison d'objets : pour tout envoi, sauf un repas ou une commande chez un commerce HOP! Pro
+const needsRules = () => val("service") !== "repas" && !proShopOn();
+function openRules() { $("#rulesModal").classList.remove("hidden"); }
+
 function applySavedAddr(which, a) {
   const pre = prefixOf(which);
   const label = [a.brand, a.street, cityLabel(a.cityId || a.city)].filter(Boolean).join(", ");
@@ -510,6 +521,7 @@ function applySavedAddr(which, a) {
   form.elements[pre + "_number"].value = a.number || "";
   DETAIL.forEach(k => { form.elements[pre + "_" + k].value = a[k] || ""; });
   form.elements[pre + "_note"].value = a.note || "";
+  setKind(pre, a.kind || null);
   state.pick[which] = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, label, exact: a.exact };
   setBrandMode(which, !!a.brand);
   state[which + "Point"] = a.lat != null ? { lat: a.lat, lon: a.lon } : null;
@@ -573,7 +585,8 @@ function saveCurrentAddress(which, btn) {
     city: p.city || cityId, cityId: CONFIG.cities.some(c => c.id === cityId) ? cityId : null,
     lat: p.lat, lon: p.lon, exact: !!p.exact,
     building: val(pre + "_building").trim() || null, floor: val(pre + "_floor").trim() || null,
-    apt: val(pre + "_apt").trim() || null, code: val(pre + "_code").trim() || null, note: val(pre + "_note").trim() || null
+    apt: val(pre + "_apt").trim() || null, code: val(pre + "_code").trim() || null, note: val(pre + "_note").trim() || null,
+    kind: kindOf(pre)
   });
   btn.textContent = t("addrSaved");
   renderSavedAddrs();
@@ -591,6 +604,10 @@ function confirmAddresses(pick, drop, pAddr, dAddr, fromCity, toCity) {
         <div><b>${UI.esc(t("ckTo"))}</b> · <bdi>${UI.esc(dAddr)}</bdi>, ${UI.esc(cityLabel(toCity))} ${moved.drop ? `<small>${UI.esc(t("ckMoved"))}</small>` : ""}</div>`;
     };
     renderLegs();
+    const rules = needsRules();
+    $("#rulesOkBox").classList.toggle("hidden", !rules);
+    $("#rulesOk").checked = false;
+    $("#rulesErr").classList.add("hidden");
     $("#checkModal").classList.remove("hidden");
     const hasMap = window.L && legs.pick && legs.drop && legs.pick.lat != null && legs.drop.lat != null;
     $("#checkMap").classList.toggle("hidden", !hasMap);
@@ -611,7 +628,11 @@ function confirmAddresses(pick, drop, pAddr, dAddr, fromCity, toCity) {
       }, 60);
     }
     const done = ok => { $("#checkModal").classList.add("hidden"); $("#checkOk").onclick = $("#checkBack").onclick = null; resolve(ok ? legs : null); };
-    $("#checkOk").onclick = () => done(true);
+    $("#checkOk").onclick = () => {
+      if (rules && !$("#rulesOk").checked) { $("#rulesErr").classList.remove("hidden"); return; }
+      legs.rulesOk = rules;
+      done(true);
+    };
     $("#checkBack").onclick = () => done(false);
   });
 }
@@ -625,7 +646,8 @@ function rememberAddresses(o, pf, pt) {
       number, brand: p ? p.brand : null, city: p ? p.city || cityId : cityId,
       cityId: CONFIG.cities.some(c => c.id === cityId) ? cityId : null,
       lat: o[pre + "_lat"], lon: o[pre + "_lon"], exact: o[pre + "_exact"],
-      building: o[pre + "_building"], floor: o[pre + "_floor"], apt: o[pre + "_apt"], code: o[pre + "_code"], note: o[pre + "_note"]
+      building: o[pre + "_building"], floor: o[pre + "_floor"], apt: o[pre + "_apt"], code: o[pre + "_code"], note: o[pre + "_note"],
+      kind: o[pre + "_kind"]
     });
   };
   save("from", pf, o.from_city);
@@ -758,6 +780,9 @@ async function submit(e) {
       from_city: fromCity,
       pickup_address: pAddr,
       pickup_place: pf ? pf.brand : null,
+      pickup_kind: svc !== "retrait" ? kindOf("pickup") : null,
+      dropoff_kind: kindOf("dropoff"),
+      rules_accepted_at: checked.rulesOk ? new Date().toISOString() : null,
       pickup_building: svc !== "retrait" ? val("pickup_building").trim() || null : null,
       pickup_floor: svc !== "retrait" ? val("pickup_floor").trim() || null : null,
       pickup_apt: svc !== "retrait" ? val("pickup_apt").trim() || null : null,
@@ -830,6 +855,7 @@ async function submit(e) {
     $("#doneModal").classList.remove("hidden");
     ["notes", "shop_order", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
+    setKind("pickup", null); setKind("dropoff", null);
     state.promo = null;
     $("#promoMsg").textContent = "";
     resetPlaces();
@@ -1670,6 +1696,10 @@ $("#doneClose").addEventListener("click", () => { $("#doneModal").classList.add(
 $("#refreshMine").addEventListener("click", loadMine);
 $("#myOrders").addEventListener("click", onListClick);
 $("#waFab").addEventListener("click", openChatMenu);
+form.addEventListener("change", e => { const m = /^(pickup|dropoff)_kind$/.exec(e.target.name || ""); if (m) setKind(m[1], e.target.value); });
+document.addEventListener("click", e => { if (e.target.closest("[data-rules]")) { e.preventDefault(); openRules(); } });
+$("#rulesClose").addEventListener("click", () => $("#rulesModal").classList.add("hidden"));
+$("#rulesModal").addEventListener("click", e => { if (e.target.id === "rulesModal") $("#rulesModal").classList.add("hidden"); });
 form.addEventListener("click", e => {
   const g = e.target.closest("[data-geo]");
   if (g) return useMyPosition(g.dataset.geo, g);

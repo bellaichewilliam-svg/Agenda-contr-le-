@@ -916,3 +916,27 @@ body.in-home .eta-bubble { display: none; }
 #quoteLines li.zero span:last-child { color: var(--green-ink); font-weight: 700; }
 #quoteLines li.goods { color: var(--muted); font-size: 13px; }
 .ch-fair .ch-fair-wait { font-weight: 600; opacity: .75; }
+
+/* --- Conditions de livraison d'objets ------------------------------------------- */
+.rules-link { margin-top: 8px; padding-inline: 0; font-size: 14px; }
+.rules-modal { z-index: 65; }
+.rules-box { width: min(520px, 100%); max-width: 520px; text-align: start; max-height: 88vh; max-height: 88dvh; overflow-y: auto; display: grid; gap: 12px; }
+.rules-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rules-head h3 { margin: 0; }
+.rules-head .ens-x { background: var(--bg-2); color: var(--ink); }
+.rules-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
+.rules-list li { display: grid; grid-template-columns: 32px 1fr; gap: 10px; align-items: start; }
+.rules-list i { font-style: normal; font-size: 22px; line-height: 1.2; }
+.rules-list div { display: grid; gap: 2px; }
+.rules-list small { color: var(--muted); font-size: 13.5px; }
+.rules-ok { margin-top: 12px; align-items: flex-start; font-size: 14px; }
+.btn-link-inline { border: 0; background: none; padding: 0 2px; font-size: 16px; cursor: pointer; }
+
+/* Type de lieu (maison, appartement, bureau, commerce) */
+.kind-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.kind-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.kind-chips .ch-chip { cursor: pointer; }
+.kind-chips .ch-chip:has(input:checked) { background: var(--brand); color: #fff; border-color: var(--brand); }
+.kind-chips .ch-chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+/* Maison : pas d'étage ni d'appartement */
+.fields4.is-house label:nth-child(2), .fields4.is-house label:nth-child(3) { display: none; }
