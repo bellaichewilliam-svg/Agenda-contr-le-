@@ -28,7 +28,7 @@ let settings = { referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minu
 let refs = { shops: [], orders: [], board: [] };
 let msgs = { messages: [], replies: [] };
 let balance = 0;   // ce que le livreur doit à HOP (négatif : HOP lui doit)
-let tab = "pool";
+let tab = "home";   // "home" = carte + panneau du bas ; sinon une page du menu
 let firstLoad = true;
 const seenPool = new Set();
 
@@ -94,6 +94,7 @@ async function onLogin(e) {
 // --- Aiguillage selon l'état du compte ----------------------------------------------
 async function route() {
   ["#welcome", "#waiting", "#work"].forEach(s => $(s).classList.add("hidden"));
+  document.body.classList.remove("rider-on");
   $("#logoutBtn").classList.toggle("hidden", !Store.session());
   if (!Store.session()) { $("#welcome").classList.remove("hidden"); return; }
   try { me = await Store.me(); } catch (e) { me = null; }
@@ -113,6 +114,10 @@ async function route() {
     return;
   }
   $("#work").classList.remove("hidden");
+  document.body.classList.add("rider-on");
+  $("#drawerName").textContent = me.name;
+  applyRiderSettings();
+  initRiderMap();
   load();
   clearInterval(pollTimer);
   pollTimer = setInterval(load, 15000);
@@ -126,7 +131,7 @@ const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id).
 const mine = () => orders.filter(o => o.courier_id === me.id && ["confirmee", "recuperee"].includes(o.status)).sort(byTime);
 
 function beep() {
-  try {
+  if (riderSet.sound !== false) try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.frequency.value = 880;
@@ -181,9 +186,9 @@ function weekOrders(start) {
 
 function card(o, kind) {
   const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS (moins d'une heure)" : "Dès que possible";
+  // Navigation avec l'application choisie dans les réglages
   const nav = which => kind === "mine" ? `<div class="links">
-      <a class="btn btn-sm" href="${UI.wazeLink(o, which)}" target="_blank" rel="noopener">Waze</a>
-      <a class="btn btn-sm" href="${UI.mapsLink(o, which)}" target="_blank" rel="noopener">Maps</a></div>` : "";
+      <a class="btn btn-sm btn-primary" href="${navLink(o, which)}" target="_blank" rel="noopener">🧭 Y aller (${riderSet.nav === "maps" ? "Maps" : "Waze"})</a></div>` : "";
   const telLink = (name, phone) => kind === "mine" && phone ? `<span class="small muted">${UI.esc(name || "")} · <a href="tel:${UI.esc(phone)}">${UI.esc(phone)}</a></span>` : "";
   let extra = "";
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")} · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌"}` : ""}</div>`;
@@ -245,7 +250,10 @@ function render() {
   $("#stDue").textContent = UI.money(Math.abs(balance));
   $("#stDueLabel").textContent = balance >= 0 ? "Solde à verser à HOP" : "HOP vous doit";
   renderLock();
-  document.querySelectorAll("#tabs .tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  renderHome();
+  updateRiderMap();
+  $("#pageStats").classList.toggle("hidden", !["mine", "pool", "week"].includes(tab));
+  if (tab === "home") return;
   const view = $("#view");
   const empty = msg => `<div class="empty card">${msg}</div>`;
 
@@ -279,12 +287,28 @@ function render() {
         ${balance > 0 ? `<button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, je viens de verser mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé mon solde</button>` : ""}
         ${balance < 0 ? `<button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, HOP me doit ${UI.money(-balance)} cette semaine : merci de me les verser sur mon Bit ${me.bit_phone || me.phone}.`)}">Demander mon versement</button>` : ""}
       </div>`;
+  } else if (tab === "stats") {
+    renderStats(view);
+  } else if (tab === "settings") {
+    renderSettings(view);
+  } else if (tab === "help") {
+    renderHelp(view);
+  } else if (tab === "inbox") {
+    renderInbox(view);
   } else if (tab === "zones") {
     renderZones(view);
   } else if (tab === "ref") {
     renderRef(view);
   } else {
-    view.innerHTML = `<div class="card"><h3>Vos engagements (acceptés le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString("fr-FR") : "—"})</h3>
+    const exp = d => d ? `${new Date(d) < new Date() ? "⛔ expiré le" : "✅ valable jusqu'au"} ${new Date(d).toLocaleDateString("fr-FR")}` : "— (envoyez-le à HOP)";
+    view.innerHTML = `<div class="card"><h3>🛡️ Permis et assurance</h3>
+        <table class="prices" style="margin-top:8px">
+          <tr><td>Permis n° ${UI.esc(me.license_number || "—")}</td><td>${exp(me.license_expiry)}</td></tr>
+          <tr><td>Assurance ${UI.esc(me.insurance || "")}</td><td>${exp(me.insurance_expiry)}</td></tr>
+          <tr><td>N° d'עוסק</td><td>${UI.esc(me.business_number || "—")}</td></tr>
+        </table>
+        <p class="muted small" style="margin-top:8px">Votre assurance doit couvrir le véhicule et la responsabilité civile. Un changement ? Envoyez le nouveau document à HOP dans l'Assistance.</p></div>
+      <div class="card" style="margin-top:14px"><h3>📜 Vos engagements (acceptés le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString("fr-FR") : "—"})</h3>
       <ol style="margin-top:10px;padding-inline-start:20px;display:grid;gap:6px">${TERMS.map(t => `<li>${UI.esc(t)}</li>`).join("")}</ol></div>`;
   }
 }
@@ -298,7 +322,7 @@ async function onViewClick(e) {
     if (ok === "shown") { /* message déjà affiché */ }
     else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
     else {
-      tab = "mine";
+      openPage("mine");
       if (duty.watch == null && confirm("Course acceptée ! Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
     }
     return load();
@@ -351,6 +375,10 @@ async function checkChats() {
   const boss = chatUnread["c:" + me.id] || 0;
   $("#bossBadge").textContent = boss;
   $("#bossBadge").classList.toggle("hidden", !boss);
+  $("#bellBadge").textContent = boss;
+  $("#bellBadge").classList.toggle("hidden", !boss);
+  $("#menuBadge").textContent = total;
+  $("#menuBadge").classList.toggle("hidden", !total);
   if (total > chatTotal && Chat.openThread == null) {
     beep();
     if (window.Notification && Notification.permission === "granted") new Notification("💬 Nouveau message", { body: "Ouvrez votre espace livreur pour répondre." });
@@ -623,7 +651,14 @@ async function onReply(el) {
 function onWorkClick(e) {
   const el = e.target.closest("button");
   if (!el) return;
-  if (el.dataset.boss) return openBossChat(el.dataset.boss);
+  if (el.dataset.boss != null) return openBossChat(el.dataset.boss);
+  if (el.dataset.open) return openPage(el.dataset.open);
+  if (el.dataset.soundTest) { const s = riderSet.sound; riderSet.sound = true; beep(); riderSet.sound = s; return; }
+  if (el.dataset.notif) {
+    if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
+    return Notification.requestPermission().then(() => render());
+  }
+  if (el.dataset.logout) return $("#drawerLogout").click();
   if (el.dataset.issue) return reportIssue(orders.find(x => x.id === el.dataset.issue));
   if (el.dataset.chat) {
     const o = orders.find(x => x.id === el.dataset.chat);
@@ -718,10 +753,206 @@ async function acceptOffer() {
   if (ok === "shown") { /* message déjà affiché */ }
   else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
   else {
-    tab = "mine";
+    openPage("mine");
     if (duty.watch == null && confirm("Course acceptée ! Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
   }
   load();
+}
+
+// --- Appli livreur : réglages, pages du menu, panneau du bas, glisser pour se connecter -----
+const LS_RIDER = "livraison.riderSettings.v1";
+const riderSet = Object.assign({ nav: "waze", mode: "scooter", theme: "dark", sound: true },
+  (() => { try { return JSON.parse(localStorage.getItem(LS_RIDER)) || {}; } catch (e) { return {}; } })());
+function saveRiderSet() { try { localStorage.setItem(LS_RIDER, JSON.stringify(riderSet)); } catch (e) { /* ignore */ } }
+function applyRiderSettings() {
+  $("#work").classList.toggle("light", riderSet.theme === "light");
+  if (rmap.tiles) rmap.tiles.setUrl(tileUrl());
+}
+const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Zones et demande", week: "Finances", stats: "Statistiques",
+  ref: "Gagner plus", rules: "Engagements et assurance", settings: "Réglages", help: "Centre d'aide", inbox: "Messages de HOP!" };
+function openPage(t) {
+  tab = t;
+  $("#pageTitle").textContent = PAGE_TITLES[t] || "";
+  $("#page").classList.remove("hidden");
+  $("#view").innerHTML = "";
+  render();
+}
+function closePage() { tab = "home"; $("#page").classList.add("hidden"); render(); }
+function closeDrawer() { $("#drawer").classList.add("hidden"); }
+
+// Lien de navigation selon l'application choisie dans les réglages
+const TRAVEL = { scooter: "driving", car: "driving", bike: "bicycling", walk: "walking" };
+function navLink(o, which) {
+  if (riderSet.nav === "maps") {
+    const ll = (which === "pickup" ? [o.pickup_lat, o.pickup_lon] : [o.dropoff_lat, o.dropoff_lon]).filter(x => x != null).join(",");
+    return "https://www.google.com/maps/dir/?api=1&travelmode=" + TRAVEL[riderSet.mode] + "&destination=" + encodeURIComponent(ll || UI.placeQuery(o, which));
+  }
+  return UI.wazeLink(o, which);
+}
+
+// Panneau du bas : demande, course en cours, courses disponibles, « gagner plus »
+function renderHome() {
+  const lv = demandLevel(demand);
+  const title = !lv ? "Bonjour " + String(me.name || "").split(" ")[0] + " !" : lv.n === 3 ? "🔥 Ça vaut le coup de sortir !" : lv.n === 2 ? "Ça roule tranquille" : "C'est calme pour l'instant";
+  const cur = mine();
+  const p = pool();
+  $("#sheetBody").innerHTML = `
+    <div class="rd-title">${UI.esc(title)}</div>
+    <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
+    ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
+        <span>🛵 Course n° ${UI.esc(o.ref)} · ${o.status === "confirmee" ? "à récupérer" : "à livrer"}
+          <small>${UI.esc(o.status === "confirmee" ? (o.pickup_place || o.pickup_address) : o.dropoff_address)}, ${UI.esc(UI.cityFr(o.status === "confirmee" ? o.from_city : o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
+    ${p.length || !cur.length ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
+      : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
+    <button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>`;
+  const h = $("#sheet").offsetHeight;
+  if (h) $("#work").style.setProperty("--sheet-h", h + "px");
+}
+
+// État « en service » : glissière, menu, texte
+function renderDuty() {
+  const on = duty.watch != null;
+  $("#slide").classList.toggle("on", on);
+  $("#slideText").textContent = on ? "En service · glisser pour arrêter" : "Glisser pour passer en service";
+  $("#drawerStatus").textContent = on ? "🟢 En service" : "Hors service";
+  $("#drawerStatus").classList.toggle("on", on);
+  if (!on) $("#dutyText").textContent = "En service, vous recevez en premier les courses proches de vous, et le client vous suit sur la carte.";
+  updateRiderMap();
+}
+// Glisser le bouton jusqu'au bout pour passer en service (ou terminer) : pas de clic par erreur
+function initSlider() {
+  const slide = $("#slide"), knob = $("#knob");
+  let startX = null, dx = 0;
+  const rtl = () => document.documentElement.dir === "rtl";
+  const max = () => slide.clientWidth - knob.offsetWidth - 12;
+  slide.addEventListener("pointerdown", e => { startX = e.clientX; dx = 0; slide.classList.add("dragging"); slide.setPointerCapture(e.pointerId); });
+  slide.addEventListener("pointermove", e => {
+    if (startX == null) return;
+    dx = Math.max(0, Math.min(max(), (e.clientX - startX) * (rtl() ? -1 : 1)));
+    knob.style.transform = `translateX(${rtl() ? -dx : dx}px)`;
+  });
+  const end = () => {
+    if (startX == null) return;
+    startX = null;
+    slide.classList.remove("dragging");
+    knob.style.transform = "";
+    if (dx > max() * 0.75) toggleDuty();
+  };
+  slide.addEventListener("pointerup", end);
+  slide.addEventListener("pointercancel", end);
+  slide.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleDuty(); } });
+}
+
+// --- Carte plein écran : ma position, courses disponibles, ma course ---------------------
+const rmap = { map: null, tiles: null, layer: null, fitted: false };
+const tileUrl = () => `https://{s}.basemaps.cartocdn.com/${riderSet.theme === "light" ? "light_all" : "dark_all"}/{z}/{x}/{y}{r}.png`;
+function initRiderMap() {
+  if (rmap.map || !window.L) return;
+  const home = CONFIG.cities.find(c => c.id === CONFIG.homeCity);
+  rmap.map = L.map("riderMap", { zoomControl: false, attributionControl: true }).setView([home.lat, home.lon], 13);
+  rmap.tiles = L.tileLayer(tileUrl(), { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap · © CARTO" }).addTo(rmap.map);
+  rmap.layer = L.layerGroup().addTo(rmap.map);
+  setTimeout(() => rmap.map.invalidateSize(), 100);
+}
+const rpin = (emoji, cls, label) => L.divIcon({ className: "", iconSize: [36, 36], iconAnchor: [18, 18],
+  html: `<div class="rd-pin ${cls || ""}">${emoji}${label ? `<span class="pin-price">${UI.esc(label)}</span>` : ""}</div>` });
+function updateRiderMap() {
+  if (!rmap.map || !me) return;
+  rmap.layer.clearLayers();
+  const pts = [];
+  const add = (lat, lon, icon, popup) => {
+    if (lat == null || lon == null) return;
+    const m = L.marker([Number(lat), Number(lon)], { icon }).addTo(rmap.layer);
+    if (popup) m.bindPopup(popup);
+    pts.push([Number(lat), Number(lon)]);
+  };
+  pool().forEach(o => add(o.pickup_lat, o.pickup_lon, rpin({ repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦", "", UI.money(o.price)),
+    `<b>Course n° ${UI.esc(o.ref)}</b><br>${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))} · ${UI.money(o.price)}`));
+  mine().forEach(o => {
+    add(o.pickup_lat, o.pickup_lon, rpin("📍"), `Récupération · n° ${UI.esc(o.ref)}`);
+    add(o.dropoff_lat, o.dropoff_lon, rpin("🏁", "drop"), `Livraison · n° ${UI.esc(o.ref)}`);
+    if (o.pickup_lat != null && o.dropoff_lat != null) L.polyline([[o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon]], { color: "#FF6A13", weight: 4, dashArray: "8 8" }).addTo(rmap.layer);
+  });
+  if (lastPos) add(lastPos.lat, lastPos.lon, rpin("🛵", duty.watch != null ? "me" : "off"), "Vous êtes ici");
+  rmap.pts = pts;
+  if (!rmap.fitted && pts.length) { fitRiderMap(); rmap.fitted = true; }
+}
+function fitRiderMap() {
+  if (!rmap.map || !rmap.pts || !rmap.pts.length) return;
+  rmap.map.fitBounds(rmap.pts, { padding: [60, 60], maxZoom: 15, paddingBottomRight: [0, 260] });
+}
+
+// --- Pages : statistiques, réglages, aide, messages -----------------------------------------
+function renderStats(view) {
+  const done = orders.filter(o => o.courier_id === me.id && o.status === "livree");
+  const gain = list => sum(list) - sum(list, o => Number(o.commission || 0));
+  const start = UI.weekStart(today());
+  const weeks = [5, 4, 3, 2, 1, 0].map(i => {
+    const s = UI.addDays(start, -7 * i), e = UI.addDays(s, 6);
+    const list = done.filter(o => UI.dayKey(o.pickup_at) >= s && UI.dayKey(o.pickup_at) <= e);
+    return { s, n: list.length, g: gain(list) };
+  });
+  const top = Math.max(1, ...weeks.map(w => w.g));
+  const month = today().slice(0, 7);
+  const mList = done.filter(o => UI.dayKey(o.pickup_at).startsWith(month));
+  const days = {};
+  done.forEach(o => { const d = new Date(o.pickup_at).toLocaleDateString("fr-FR", { weekday: "long" }); days[d] = (days[d] || 0) + 1; });
+  const best = Object.entries(days).sort((a, b) => b[1] - a[1])[0];
+  const km = sum(done, o => Number(o.distance_km || 0) * 1.3);
+  view.innerHTML = `<div class="stats">
+      <div class="stat"><small>Courses ce mois</small><b>${mList.length}</b></div>
+      <div class="stat"><small>Gagné ce mois</small><b>${UI.money(gain(mList))}</b></div>
+      <div class="stat"><small>Courses au total</small><b>${done.length}</b></div>
+      <div class="stat"><small>Moyenne par course</small><b>${UI.money(done.length ? gain(done) / done.length : 0)}</b></div>
+    </div>
+    <div class="card"><h3>Vos gains des 6 dernières semaines</h3>
+      <div class="stat-bars">${weeks.map(w => `<div><b>${w.g ? UI.money(w.g) : ""}</b><i style="height:${Math.round(110 * w.g / top) + 4}px"></i><span>${UI.esc(UI.fmtKey(w.s).replace(/\s\d{4}$/, ""))}</span></div>`).join("")}</div>
+      <p class="muted small">Gains = prix des courses − commission HOP (hors bonus de parrainage).</p></div>
+    <div class="card" style="margin-top:14px"><table class="prices">
+      <tr><td>Meilleur jour</td><td>${best ? UI.esc(best[0]) + " (" + best[1] + " course(s))" : "—"}</td></tr>
+      <tr><td>Distance parcourue (estimée)</td><td>≈ ${Math.round(km)} km</td></tr>
+      <tr><td>Commerces amenés</td><td>${refs.shops.length}</td></tr>
+    </table></div>`;
+}
+function renderSettings(view) {
+  const opt = (k, v, label) => `<option value="${v}" ${riderSet[k] === v ? "selected" : ""}>${label}</option>`;
+  const notif = window.Notification ? (Notification.permission === "granted" ? "🔔 Activées" : "Activer") : "Indisponible";
+  view.innerHTML = `<div class="card set-list">
+      <h3>Navigation</h3>
+      <div class="set-row"><span>Application de navigation</span><select data-set="nav">${opt("nav", "waze", "Waze")}${opt("nav", "maps", "Google Maps")}</select></div>
+      <div class="set-row"><span>Mode de déplacement</span><select data-set="mode">${opt("mode", "scooter", "Scooter / moto")}${opt("mode", "car", "Voiture")}${opt("mode", "bike", "Vélo")}${opt("mode", "walk", "À pied")}</select></div>
+      <h3>Affichage et sons</h3>
+      <div class="set-row"><span>Apparence</span><select data-set="theme">${opt("theme", "dark", "Sombre")}${opt("theme", "light", "Clair")}</select></div>
+      <div class="set-row"><span>Son des nouvelles courses</span><select data-set="sound"><option value="1" ${riderSet.sound !== false ? "selected" : ""}>Activé</option><option value="0" ${riderSet.sound === false ? "selected" : ""}>Coupé</option></select></div>
+      <div class="set-row"><span>Tester le son</span><button type="button" class="btn btn-sm" data-sound-test="1">🔊 Tester</button></div>
+      <div class="set-row"><span>Alertes sur le téléphone</span><button type="button" class="btn btn-sm" data-notif="1">${notif}</button></div>
+      <div class="set-row"><span>La semaine commence le</span><b>Dimanche</b></div>
+      <h3>Communication</h3>
+      <div class="set-row"><span>Nous envoyer un commentaire</span><button type="button" class="btn btn-sm btn-wa" data-boss="Mon avis sur l'application : ">💬 Écrire</button></div>
+      <h3>Compte</h3>
+      <div class="set-row"><span>${UI.esc(me.name)} · ${UI.esc(me.phone || "")}</span><button type="button" class="btn btn-sm" data-logout="1">Se déconnecter</button></div>
+      <div class="set-row"><span>Engagements et assurance</span><button type="button" class="btn btn-sm" data-open="rules">Voir</button></div>
+    </div>`;
+}
+function renderHelp(view) {
+  const faq = [
+    ["Comment je reçois des courses ?", "Passez en service (glissez le bouton orange). Les courses arrivent d'abord au livreur en service le plus proche du départ, puis aux autres. Une fenêtre s'ouvre avec le prix, votre gain et les kilomètres."],
+    ["Comment je suis payé ?", `Vous encaissez le client en espèces. Le Bit, les courses programmées et les carnets pro sont payés à HOP, qui vous les reverse. Chaque semaine : vous versez ${UI.money(settings.commission || COMMISSION)} par course à HOP (moins vos bonus), ou HOP vous verse la différence. Voir « Finances ».`],
+    ["Pourquoi je ne peux pas valider « Livré » ?", `Il faut être à moins de ${deliverRadius()} m de l'adresse de livraison. Pour « déposer devant la porte », envoyez d'abord la photo du colis dans la conversation de la course.`],
+    ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre solde dû dépasse ${UI.money(settings.max_debt)}. Le bandeau rouge vous dit quoi faire. Un souci ? HOP peut vous débloquer.`],
+    ["Le client est absent, l'adresse est introuvable…", "Touchez « ⚠️ Un souci » sur la course : HOP et le client sont prévenus tout de suite, et vous continuez dans la conversation."],
+    ["Comment gagner plus ?", `Amenez des commerces avec votre code (menu « Gagner plus ») : +${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons, tant que vous livrez avec nous, et vous voyez leurs courses en premier.`],
+    ["Le GPS se coupe ?", "Gardez l'application ouverte pendant le service : les téléphones coupent la position quand la page est fermée."]
+  ];
+  view.innerHTML = `<div class="card help">${faq.map(([q, a]) => `<details><summary>${UI.esc(q)}</summary><p>${UI.esc(a)}</p></details>`).join("")}
+    <button type="button" class="btn btn-wa" style="margin-top:14px" data-boss="Bonjour, j'ai une question : ">💬 Poser une question à HOP</button></div>`;
+}
+function renderInbox(view) {
+  const list = msgs.messages;
+  view.innerHTML = `<button type="button" class="btn btn-wa btn-block" data-boss="">💬 Écrire à HOP${chatUnread["c:" + me.id] ? ` <span class="chat-badge">${chatUnread["c:" + me.id]}</span>` : ""}</button>
+    <h3 style="margin:16px 0 8px">📣 Annonces (48 h)</h3>
+    ${list.length ? list.map(m => `<div class="msg-card msg-${UI.esc(m.kind)}"><div><small>${UI.esc(UI.fmtDateTime(m.created_at))}</small><b>${UI.esc(m.body)}</b></div>${replyBtns(m)}</div>`).join("")
+      : `<div class="empty card">Pas d'annonce en ce moment.</div>`}`;
 }
 
 // --- En service : position GPS ------------------------------------------------------
@@ -729,6 +960,7 @@ const duty = { watch: null, lastSent: 0, wakeLock: null };
 
 async function sendPosition(pos) {
   lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, at: Date.now() };
+  updateRiderMap();
   if (Date.now() - duty.lastSent < 15000) return;
   duty.lastSent = Date.now();
   try {
@@ -752,10 +984,7 @@ async function toggleDuty() {
     }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
     try { if (navigator.wakeLock) duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* facultatif */ }
   }
-  const on = duty.watch != null;
-  $("#duty").classList.toggle("on", on);
-  $("#dutyTitle").textContent = on ? "🟢 En service — vos clients vous suivent" : "⚪ Hors service";
-  $("#dutyBtn").textContent = on ? "Terminer le service" : "Passer en service";
+  renderDuty();
 }
 
 // --- Démarrage ------------------------------------------------------------------
@@ -766,19 +995,34 @@ $("#signupForm").addEventListener("submit", onSignup);
 $("#loginForm").addEventListener("submit", onLogin);
 $("#logoutBtn").addEventListener("click", e => { e.preventDefault(); clearInterval(pollTimer); Store.logout(); route(); });
 $("#waitRefresh").addEventListener("click", route);
-$("#tabs").addEventListener("click", e => { if (e.target.dataset.tab) { tab = e.target.dataset.tab; render(); } });
+$("#drawerNav").addEventListener("click", e => {
+  const b = e.target.closest("[data-tab]");
+  if (b) { closeDrawer(); openPage(b.dataset.tab); }
+});
+$("#menuBtn").addEventListener("click", () => $("#drawer").classList.remove("hidden"));
+$("#drawer").addEventListener("click", e => { if (e.target.id === "drawer") closeDrawer(); });
+$("#bellBtn").addEventListener("click", () => openPage("inbox"));
+$("#pageBack").addEventListener("click", closePage);
+$("#drawerLogout").addEventListener("click", () => { if (!confirm("Se déconnecter ?")) return; if (duty.watch != null) toggleDuty(); clearInterval(pollTimer); Store.logout(); route(); });
+$("#locateBtn").addEventListener("click", () => { if (rmap.map && lastPos) rmap.map.setView([lastPos.lat, lastPos.lon], 15); else fitRiderMap(); });
+$("#sheetBody").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) openPage(b.dataset.tab); });
+initSlider();
 $("#view").addEventListener("click", onViewClick);
+$("#view").addEventListener("change", e => {
+  const k = e.target.dataset.set;
+  if (!k) return;
+  riderSet[k] = k === "sound" ? e.target.value === "1" : e.target.value;
+  saveRiderSet();
+  applyRiderSettings();
+  render();
+});
 $("#work").addEventListener("click", onWorkClick);
-$("#bossChat").addEventListener("click", () => openBossChat());
+$("#bossChat").addEventListener("click", () => { closeDrawer(); openBossChat(); });
 $("#msgModal").addEventListener("click", e => { const el = e.target.closest("button"); if (el && el.dataset.reply) onReply(el); });
 $("#msgClose").addEventListener("click", () => $("#msgModal").classList.add("hidden"));
-$("#dutyBtn").addEventListener("click", toggleDuty);
 $("#offerAccept").addEventListener("click", acceptOffer);
 $("#offerSkip").addEventListener("click", closeOffer);
-$("#notifBtn").addEventListener("click", () => {
-  if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
-  Notification.requestPermission().then(p => { $("#notifBtn").textContent = p === "granted" ? "🔔 Alertes activées" : "🔕 Alertes refusées"; });
-});
+
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|messages|shops)/.test(e.key || "") && me && me.status === "actif") load(); });
 route();
 
