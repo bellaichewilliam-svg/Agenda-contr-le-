@@ -34,7 +34,13 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **Onglet Paiements de la semaine :** commission de chaque livreur, message récapitulatif, « ✓ Réglé ».
 - **Facturation mensuelle** par client, avec export CSV.
 
-### Livreurs partenaires (`coursier.html`)
+### Livreurs partenaires (`coursier.html`) : une vraie appli de livreur
+- **Carte plein écran** (sombre ou claire) avec votre position, les courses disponibles (avec leur prix) et votre course en cours.
+- **Panneau du bas** : la demande en direct (« C'est calme », « Ça roule », « 🔥 Ça vaut le coup de sortir »), la course en cours, les courses disponibles, « Gagnez plus ».
+- **Glisser pour passer en service** (impossible de se connecter par erreur).
+- **Menu** : Mes courses, Courses disponibles, Zones et demande, Finances, Statistiques, Gagner plus, Engagements et assurance, Assistance HOP!, Réglages (Waze ou Google Maps, mode de déplacement, apparence, son), Centre d'aide.
+- **🔔** : les annonces de HOP et la conversation avec HOP.
+
 - **Inscription :** coordonnées, véhicule, permis, assurance, numéro d'עוסק, et **9 engagements à cocher** (permis valide, assurance, statut d’indépendant, responsabilité des colis et de l’argent, « Livré » validé seulement sur place, sécurité, commission hebdomadaire…). Le bouton « Livré » vérifie la position GPS : à plus de 200 m de l’adresse (`platform.deliverRadius`), la livraison est refusée.
 - **Fenêtre « Nouvelle course ! »** avec un son, dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte » ou « Plus tard ».
 - **Après votre validation :** courses disponibles (le premier qui accepte la prend), ses courses, GPS, encaissement, « Je ne peux plus ».

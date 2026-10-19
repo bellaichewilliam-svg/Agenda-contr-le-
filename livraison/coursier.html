@@ -27,7 +27,8 @@
       console.error(e.message);
     });
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610191558" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <link rel="stylesheet" href="styles.css?v=202610191609" />
 </head>
 <body>
 
@@ -113,34 +114,54 @@
     </div>
   </section>
 
-  <!-- Livreur actif -->
-  <section id="work" class="hidden">
-    <div class="stats">
-      <div class="stat"><small>Courses dispo</small><b id="stPool">0</b></div>
-      <div class="stat"><small>Mes courses</small><b id="stMine">0</b></div>
-      <div class="stat"><small>Encaissé (semaine)</small><b id="stWeek">0</b></div>
-      <div class="stat"><small id="stDueLabel">Commission à verser</small><b id="stDue">0</b></div>
+  <!-- Livreur actif : carte plein écran, panneau du bas, menu -->
+  <section id="work" class="hidden rd-app">
+    <div id="riderMap" class="rider-map"></div>
+    <button type="button" class="rd-fab rd-menu" id="menuBtn" aria-label="Menu">☰<i class="chat-badge hidden" id="menuBadge"></i></button>
+    <button type="button" class="rd-fab rd-bell" id="bellBtn" aria-label="Messages">🔔<i class="chat-badge hidden" id="bellBadge"></i></button>
+    <button type="button" class="rd-fab rd-locate" id="locateBtn" aria-label="Me centrer">◎</button>
+
+    <div class="rd-sheet" id="sheet">
+      <div class="rd-handle"></div>
+      <div class="lock-box hidden" id="lockBox"></div>
+      <div id="msgs"></div>
+      <div id="sheetBody"></div>
+      <p class="small rd-duty-text" id="dutyText">En service, vous recevez en premier les courses proches de vous, et le client vous suit sur la carte.</p>
+      <div class="rd-slide" id="slide" role="button" tabindex="0" aria-label="Glisser pour passer en service">
+        <span class="rd-knob" id="knob">›</span><b id="slideText">Glisser pour passer en service</b>
+      </div>
     </div>
-    <div class="lock-box hidden" id="lockBox"></div>
-    <div id="msgs"></div>
-    <div class="duty" id="duty">
-      <div><b id="dutyTitle">⚪ Hors service</b><br><span class="small muted" id="dutyText">En service, vous recevez en premier les courses proches de vous, et le client vous suit sur la carte.</span></div>
-      <button class="btn btn-primary" id="dutyBtn">Passer en service</button>
+
+    <div class="rd-drawer hidden" id="drawer">
+      <div class="rd-drawer-box">
+        <div class="rd-me"><span class="rd-avatar">🛵</span><div><b id="drawerName"></b><small id="drawerStatus">Hors service</small></div></div>
+        <nav id="drawerNav">
+          <button type="button" data-tab="mine"><span>🛵</span>Mes courses <em id="stMine">0</em></button>
+          <button type="button" data-tab="pool"><span>🆕</span>Courses disponibles <em id="stPool">0</em></button>
+          <button type="button" data-tab="zones"><span>📍</span>Zones et demande</button>
+          <button type="button" data-tab="week"><span>💸</span>Finances</button>
+          <button type="button" data-tab="stats"><span>📊</span>Statistiques</button>
+          <button type="button" data-tab="ref"><span>🏆</span>Gagner plus</button>
+          <button type="button" data-tab="rules"><span>🛡️</span>Engagements et assurance</button>
+          <button type="button" id="bossChat"><span>💬</span>Assistance HOP! <i class="chat-badge hidden" id="bossBadge"></i></button>
+          <button type="button" data-tab="settings"><span>⚙️</span>Réglages</button>
+          <button type="button" data-tab="help"><span>❓</span>Centre d'aide</button>
+          <button type="button" id="drawerLogout"><span>🚪</span>Se déconnecter</button>
+        </nav>
+        <small class="rd-foot">HOP! Livreur · <span id="lastSync"></span></small>
+      </div>
     </div>
-    <div class="tabs" id="tabs">
-      <button class="tab on" data-tab="pool">🆕 Courses disponibles</button>
-      <button class="tab" data-tab="mine">🛵 Mes courses</button>
-      <button class="tab" data-tab="week">💸 Ma semaine</button>
-      <button class="tab" data-tab="zones">📍 Zones</button>
-      <button class="tab" data-tab="ref">🤝 Parrainage</button>
-      <button class="tab" data-tab="rules">📜 Mes engagements</button>
+
+    <div class="rd-page hidden" id="page">
+      <header class="rd-page-head"><button type="button" id="pageBack" aria-label="Retour">←</button><b id="pageTitle"></b></header>
+      <div class="rd-page-body">
+        <div class="stats hidden" id="pageStats">
+          <div class="stat"><small>Encaissé (semaine)</small><b id="stWeek">0</b></div>
+          <div class="stat"><small id="stDueLabel">Commission à verser</small><b id="stDue">0</b></div>
+        </div>
+        <div id="view"></div>
+      </div>
     </div>
-    <div class="toolbar">
-      <span class="muted small" id="lastSync"></span>
-      <button class="btn btn-sm btn-wa" id="bossChat">💬 Écrire à HOP <i class="chat-badge hidden" id="bossBadge"></i></button>
-      <button class="btn btn-sm" id="notifBtn">🔔 Activer les alertes</button>
-    </div>
-    <div id="view"></div>
   </section>
 </main>
 
@@ -174,13 +195,14 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610191558"></script>
-<script src="i18n.js?v=202610191558"></script>
-<script src="pricing.js?v=202610191558"></script>
-<script src="store.js?v=202610191558"></script>
-<script src="chat.js?v=202610191558"></script>
-<script src="common.js?v=202610191558"></script>
-<script src="coursier.js?v=202610191558"></script>
+<script src="config.js?v=202610191609"></script>
+<script src="i18n.js?v=202610191609"></script>
+<script src="pricing.js?v=202610191609"></script>
+<script src="store.js?v=202610191609"></script>
+<script src="chat.js?v=202610191609"></script>
+<script src="common.js?v=202610191609"></script>
+<script src="coursier.js?v=202610191609"></script>
 </body>
 </html>
