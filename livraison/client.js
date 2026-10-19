@@ -91,7 +91,7 @@ function renderStatic() {
     : `${UI.esc(I18N.cityName(home))} ⇄ ${UI.esc(r.c[I18N.lang])}`}</span><b>${!UI.cityActive(r.c.id) ? `<small class="muted">${UI.esc(t("soon"))}</small>` : money(r.price)}${Pricing.carPrice(CONFIG, home, r.c.id) != null
       ? ` <small class="muted" title="${UI.esc(t("xBig"))}">🚗 ${money(Pricing.carPrice(CONFIG, home, r.c.id))}</small>` : ""}</b></div>`).join("");
 
-  const extras = [["xExpress", "+ " + money(P.express)], ["xPickup", "+ " + money(P.pickupPoint)], ["xPurchase", "+ " + money(P.purchase)],
+  const extras = [["xExpress", "+ " + money(P.express)], ...(P.pickupPoint ? [["xPickup", "+ " + money(P.pickupPoint)]] : []), ...(P.purchase ? [["xPurchase", "+ " + money(P.purchase)]] : []),
     ["xMedium", "+ " + money(P.sizes.moyen)], ...(P.carAvailable === false ? [] : [["xBig", t("xBigCar")]]), ["xStop", "+ " + money(P.extraStop)], ["xReturn", `+ ${P.returnTripPercent} %`]];
   $("#extrasTable").innerHTML = extras.map(e => `<tr><td>${UI.esc(t(e[0]))}</td><td>${e[1]}</td></tr>`).join("");
 
@@ -345,8 +345,13 @@ function confetti() {
 function renderQuote() {
   renderShopBanner();
   const q = currentQuote();
+  const goods = ["achat", "repas"].includes(val("service")) || proShopOn();
   $("#quoteLines").innerHTML = q.lines.map(l =>
-    `<li class="${l.discount ? "disc" : ""}"><span>${UI.esc(lineLabel(l))}</span><span dir="ltr">${l.amount < 0 ? "−" : ""}${money(Math.abs(l.amount))}</span></li>`).join("");
+    `<li class="${l.discount ? "disc" : ""}"><span>${UI.esc(lineLabel(l))}</span><span dir="ltr">${l.amount < 0 ? "−" : ""}${money(Math.abs(l.amount))}</span></li>`).join("")
+    // Pas de frais cachés : on le montre noir sur blanc
+    + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
+    + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
+    + (goods ? `<li class="goods"><span>${UI.esc(t("qGoods"))}</span></li>` : "");
   const total = (q.known ? "" : t("from") + " ") + money(q.total);
   $("#quoteTotal").textContent = total;
   $("#mobileTotal").textContent = total;
@@ -1346,6 +1351,7 @@ function syncHome() {
     $("#homeGoSub").textContent = first ? t("hmGoFirst", { price: money(welcomePrice()) }) : t("hmGoKm", { from: I18N.cityName(CONFIG.homeCity), to: I18N.cityName(CONFIG.homeCity) });
   }
   $("#homeGo").textContent = t(ready ? "hmGoNext" : "hmGo");
+  $("#homeFair").textContent = t("fairText", { price: ready ? money(currentQuote().total) : money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity) - (proShopOn() ? Number(state.shop.shop_share || CONFIG.pro.shopShare) : 0)) });
   const r = lastTrip();
   $("#homeRepeat").innerHTML = r && !ready ? `<button type="button" class="ch-repeat" id="homeRepeatBtn"><span>🔁</span><div><b>${UI.esc(t("hmRepeat"))}</b>
       <small>${UI.esc(t("hmRepeatSub", { from: r.from.brand || `${r.from.street} ${r.from.number}`.trim(), to: r.to.brand || `${r.to.street} ${r.to.number}`.trim() }))}</small></div><b>${money(r.o.price)}</b></button>` : "";

@@ -44,6 +44,7 @@ const POSTS = [
 🛒 J'achète pour vous et je livre
 
 💰 Dans ${UI.cityFr(home)} : ${price(home)} · Even Yehuda : ${price("even-yehuda")} · Ra'anana, Kfar Saba, Herzliya : ${price("raanana")}
+🧾 Vos articles au prix réel du magasin + la livraison. C'est tout : 0 frais de service, 0 frais de petite commande
 📍 Vous suivez la course en direct sur la carte
 💵 Paiement en espèces ou par Bit
 
@@ -61,6 +62,7 @@ const POSTS = [
 🛒 קונים בשבילכם ומביאים
 
 💰 בתוך ${heHome}: ${price(home)} · לאבן יהודה: ${price("even-yehuda")} · לרעננה, כפר סבא, הרצליה: ${price("raanana")}
+🧾 המוצרים במחיר האמיתי של החנות + המשלוח. וזהו: 0 דמי שירות, 0 דמי הזמנה קטנה
 📍 מעקב אחרי השליח על המפה בזמן אמת
 💵 תשלום במזומן או בביט
 

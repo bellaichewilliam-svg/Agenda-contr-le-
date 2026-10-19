@@ -61,8 +61,8 @@ function computeQuote(opts, cfg) {
   const size = car != null ? Math.max(0, car - trip.price) : P.sizes[opts.size];
   if (size) lines.push({ key: "qSize_" + opts.size, amount: size });
   if (opts.urgency === "express") lines.push({ key: "qExpress", amount: P.express });
-  if (opts.service === "retrait") lines.push({ key: "qPickup", amount: P.pickupPoint });
-  if (opts.service === "achat") lines.push({ key: "qPurchase", amount: P.purchase });
+  if (opts.service === "retrait" && P.pickupPoint) lines.push({ key: "qPickup", amount: P.pickupPoint });
+  if (opts.service === "achat" && P.purchase) lines.push({ key: "qPurchase", amount: P.purchase });
   const stops = Math.max(0, parseInt(opts.extraStops, 10) || 0);
   if (stops) lines.push({ key: "qStops", vars: { n: stops }, amount: stops * P.extraStop });
 
