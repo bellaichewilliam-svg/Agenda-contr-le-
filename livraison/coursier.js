@@ -452,7 +452,7 @@ async function onViewClick(e) {
   if (!el) return;
   if (el.dataset.decline) {
     el.disabled = true;
-    await Store.declineOrder(el.dataset.decline).catch(() => {});
+    afterDecline(await Store.declineOrder(el.dataset.decline, "autre").catch(() => null));
     return load();
   }
   if (el.dataset.accept) {
@@ -914,7 +914,7 @@ function showNextOffer() {
   offerTick = setInterval(() => {
     left--;
     $("#offerTimer").textContent = left > 0 ? `· ${left} s` : "";
-    if (left <= 0 && offerShown === o.id) declineOffer();
+    if (left <= 0 && offerShown === o.id) declineOffer("sans_reponse");
   }, 1000);
   // Position pas encore connue : on la demande une fois pour afficher « à X km de vous »
   if (!lastPos && navigator.geolocation) {
@@ -929,17 +929,32 @@ let offerTick = null;
 function closeOffer() {
   clearInterval(offerTick);
   stopRing();
+  $("#declineWhy").classList.add("hidden");
   $("#offerModal").classList.add("hidden");
   offerShown = null;
   setTimeout(showNextOffer, 300);
 }
 
-// Refuser : la course passe tout de suite au livreur suivant
-async function declineOffer() {
+// Refuser : on demande pourquoi (un geste), puis la course passe tout de suite au livreur suivant
+function askWhy() {
+  clearInterval(offerTick);
+  stopRing();
+  $("#offerTimer").textContent = "";
+  $("#declineWhy").classList.remove("hidden");
+}
+async function declineOffer(reason) {
   const id = offerShown;
   closeOffer();
-  if (id) await Store.declineOrder(id).catch(() => {});
+  if (id) afterDecline(await Store.declineOrder(id, reason).catch(() => null));
   load();
+}
+// Trop de refus d'affilée : HOP l'a passé hors ligne (pour ne pas faire attendre les clients)
+function afterDecline(r) {
+  if (!r || !r.offline) return;
+  if (duty.watch != null) toggleDuty(true);
+  try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }
+  $("#autoOffText").textContent = `${r.max || 3} courses refusées ou sans réponse d'affilée : on vous a passé hors ligne pour ne pas faire attendre les clients. Repassez en ligne dès que vous êtes prêt à accepter des courses.`;
+  $("#autoOffModal").classList.remove("hidden");
 }
 
 async function acceptOffer() {
@@ -1246,7 +1261,11 @@ $("#msgModal").addEventListener("click", e => { const el = e.target.closest("but
 $("#msgClose").addEventListener("click", () => $("#msgModal").classList.add("hidden"));
 $("#offerAccept").addEventListener("click", acceptOffer);
 $("#offerSkip").addEventListener("click", closeOffer);
-$("#offerDecline").addEventListener("click", declineOffer);
+$("#offerDecline").addEventListener("click", askWhy);
+$("#declineWhy").addEventListener("click", e => { const b = e.target.closest("[data-why]"); if (b) declineOffer(b.dataset.why); });
+$("#autoOffBack").addEventListener("click", () => { $("#autoOffModal").classList.add("hidden"); if (duty.watch == null) toggleDuty(); });
+$("#autoOffClose").addEventListener("click", () => $("#autoOffModal").classList.add("hidden"));
+$("#autoOffChat").addEventListener("click", () => { $("#autoOffModal").classList.add("hidden"); openBossChat("Bonjour, j'ai refusé plusieurs courses parce que "); });
 
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|messages|shops)/.test(e.key || "") && me && me.status === "actif") load(); });
 // Arrivée depuis le lien du mail de confirmation : session reprise, sinon on invite à se connecter

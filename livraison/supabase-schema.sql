@@ -1387,6 +1387,61 @@ alter table public.orders add column if not exists dropoff_kind text check (drop
 alter table public.orders add column if not exists rules_accepted_at timestamptz;
 
 -- ============================================================================
+-- REFUS DE COURSES : on demande pourquoi, et après decline_streak_max refus d'affilée
+-- (refus ou pas de réponse), le livreur passe hors ligne tout seul. Il repasse en ligne quand il veut.
+-- ============================================================================
+alter table public.order_declines add column if not exists reason text
+  check (reason in ('loin', 'prix', 'taille', 'occupe', 'fin', 'autre', 'sans_reponse'));
+alter table public.couriers add column if not exists decline_streak int not null default 0;
+alter table public.couriers add column if not exists auto_offline_at timestamptz;
+alter table public.settings add column if not exists decline_streak_max int not null default 3;
+
+-- Passer en ligne (en revenant d'hors ligne) remet le compteur de refus à zéro
+create or replace function public.courier_set_online(p_on boolean) returns void
+language sql security definer set search_path = public as $$
+  update couriers set decline_streak = case when p_on and not online then 0 else decline_streak end,
+         online = p_on
+   where id = auth.uid();
+$$;
+
+-- Refuser une course (avec la raison) : elle passe au livreur suivant. Trop de refus d'affilée : hors ligne.
+create or replace function public.decline_offer(p_id uuid, p_reason text) returns json
+language plpgsql security definer set search_path = public as $$
+declare c couriers; mx int; r text := case when p_reason in ('loin', 'prix', 'taille', 'occupe', 'fin', 'autre', 'sans_reponse') then p_reason else 'autre' end;
+begin
+  select * into c from couriers where id = auth.uid() and status = 'actif';
+  if not found then return json_build_object('ok', false); end if;
+  insert into order_declines (order_id, courier_id, reason) values (p_id, c.id, r) on conflict do nothing;
+  if not found then return json_build_object('ok', true, 'streak', c.decline_streak, 'offline', false); end if;
+  if c.role = 'admin' then return json_build_object('ok', true, 'streak', 0, 'offline', false); end if;
+  select decline_streak_max into mx from settings where id = 1;
+  update couriers set decline_streak = decline_streak + 1 where id = c.id returning * into c;
+  if c.decline_streak >= mx then
+    update couriers set online = false, decline_streak = 0, auto_offline_at = now() where id = c.id;
+    insert into chat_messages (thread, author, body) values ('c:' || c.id::text, 'system', 'status:autooff');
+    return json_build_object('ok', true, 'streak', mx, 'offline', true, 'max', mx);
+  end if;
+  return json_build_object('ok', true, 'streak', c.decline_streak, 'offline', false, 'max', mx);
+end;
+$$;
+revoke execute on function public.decline_offer(uuid, text) from public, anon;
+grant execute on function public.decline_offer(uuid, text) to authenticated;
+
+-- Une course acceptée remet le compteur de refus à zéro
+create or replace function public.orders_reset_streak() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.courier_id is not null and new.courier_id is distinct from old.courier_id then
+    update couriers set decline_streak = 0 where id = new.courier_id and decline_streak <> 0;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_reset_streak after update on public.orders
+  for each row execute function public.orders_reset_streak();
+revoke execute on function public.orders_reset_streak() from public, anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

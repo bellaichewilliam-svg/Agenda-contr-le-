@@ -141,6 +141,7 @@ const DEFAULT_SETTINGS = {
   pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare, pro_lead_min: CONFIG.pro.leadMinutes,
   pro_hop_share: CONFIG.pro.hopShare, pro_referrer_pct: CONFIG.pro.referrerPercent, pro_referrer_months: CONFIG.pro.referrerMonths,
   network_pct: CONFIG.platform.networkPercent, network_min: CONFIG.platform.networkMin,
+  decline_streak_max: CONFIG.platform.declineStreakMax || 3,
   wait_free_min: CONFIG.pricing.waiting.freeMinutes, wait_step_min: CONFIG.pricing.waiting.stepMinutes,
   wait_step_price: CONFIG.pricing.waiting.stepPrice, wait_max: CONFIG.pricing.waiting.max,
   commission_pct: CONFIG.platform.commissionPercent, commission_min: CONFIG.platform.commissionPerCourse
@@ -594,16 +595,37 @@ async function setOnline(on) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_set_online", { method: "POST", body: { p_on: !!on } });
   const list = localCouriers();
   const c = list.find(x => x.id === myId());
-  if (c) c.online = !!on;
+  if (c) { if (on && !c.online) c.decline_streak = 0; c.online = !!on; }
   writeJSON(LS.couriers, list);
 }
-// Livreur : refuser une course (elle passe tout de suite au livreur suivant)
-async function declineOrder(id) {
-  if (ONLINE) return authRest("/rest/v1/rpc/decline_order", { method: "POST", body: { p_id: id } });
-  const list = readJSON(LS.declines, []).filter(d => !(d.order_id === id && d.courier_id === myId()));
-  list.push({ order_id: id, courier_id: myId(), created_at: new Date().toISOString() });
+// Livreur : refuser une course, avec la raison (elle passe tout de suite au livreur suivant).
+// Trop de refus d'affilée (settings.decline_streak_max) : il passe hors ligne → { offline: true }
+const DECLINE_REASONS = ["loin", "prix", "taille", "occupe", "fin", "autre", "sans_reponse"];
+async function declineOrder(id, reason) {
+  const r = DECLINE_REASONS.includes(reason) ? reason : "autre";
+  if (ONLINE) return authRest("/rest/v1/rpc/decline_offer", { method: "POST", body: { p_id: id, p_reason: r } });
+  const list = readJSON(LS.declines, []);
+  if (list.some(d => d.order_id === id && d.courier_id === myId())) return { ok: true, offline: false };
+  list.push({ order_id: id, courier_id: myId(), reason: r, created_at: new Date().toISOString() });
   writeJSON(LS.declines, list.slice(-500));
-  return true;
+  const st = await getSettings(), max = Number(st.decline_streak_max || 3);
+  const all = localCouriers(), c = all.find(x => x.id === myId());
+  if (!c || c.role === "admin") return { ok: true, offline: false };
+  c.decline_streak = Number(c.decline_streak || 0) + 1;
+  let offline = false;
+  if (c.decline_streak >= max) {
+    Object.assign(c, { online: false, decline_streak: 0, auto_offline_at: new Date().toISOString() });
+    chatLocalAdd({ thread: "c:" + c.id, author: "system", body: "status:autooff" });
+    offline = true;
+  }
+  writeJSON(LS.couriers, all);
+  return { ok: true, offline, streak: offline ? max : c.decline_streak, max };
+}
+// Patron : les refus des 30 derniers jours (raisons), pour voir qui refuse trop et pourquoi
+async function listDeclines() {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  if (ONLINE) return authRest("/rest/v1/order_declines?select=*&created_at=gte." + encodeURIComponent(since) + "&order=created_at.desc&limit=2000");
+  return readJSON(LS.declines, []).filter(d => d.created_at >= since);
 }
 // Livreur : taux d'acceptation (30 jours) et prévisions de demande par heure
 async function myAcceptance() {
@@ -1088,7 +1110,7 @@ window.Store = {
   createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
   useSpace, session, login, logout, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
-  setOnline, declineOrder, myAcceptance, demandForecast, commissionFor,
+  setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   couriersNearby, rateOrder, tipOrder, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
