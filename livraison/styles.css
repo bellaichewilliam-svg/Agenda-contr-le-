@@ -952,3 +952,13 @@ body.in-home .eta-bubble { display: none; }
 .bag-no { margin-inline-start: 8px; }
 .prep-ref input { font-size: 22px; font-weight: 800; letter-spacing: .25em; text-align: center; max-width: 140px; }
 .shop-ref input { font-size: 20px; font-weight: 700; letter-spacing: .2em; max-width: 160px; }
+
+/* Marche à suivre du commerce */
+.guide-card { margin-bottom: 14px; }
+.guide-card summary { cursor: pointer; font-weight: 800; font-size: 16px; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.guide-card summary::after { content: "▾"; color: var(--muted); }
+.guide-card[open] summary::after { content: "▴"; }
+.guide-card summary::-webkit-details-marker { display: none; }
+.guide-card ol { margin: 12px 0 0; padding-inline-start: 0; list-style: none; display: grid; gap: 10px; counter-reset: g; }
+.guide-card li { counter-increment: g; display: grid; grid-template-columns: 26px 1fr; gap: 8px; font-size: 14.5px; line-height: 1.45; }
+.guide-card li::before { content: counter(g); display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-ink); font-weight: 800; font-size: 13px; }

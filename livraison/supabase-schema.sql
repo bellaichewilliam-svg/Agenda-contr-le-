@@ -1477,13 +1477,13 @@ $$;
 
 create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_action text, p_minutes int, p_reason text, p_ref text) returns boolean
 language plpgsql security definer set search_path = public as $$
-declare o orders; ref text := nullif(trim(coalesce(p_ref, '')), '');
+declare o orders; v_ref text := nullif(trim(coalesce(p_ref, '')), '');
 begin
   select o2.* into o from orders o2 join shops s on s.id = o2.shop_id where o2.id = p_id and s.token = p_token;
   if not found then return false; end if;
   if p_action = 'accepter' and o.shop_status = 'attente' and o.status = 'nouvelle' then
-    if ref is null or ref !~ '^[0-9]{3}$' then raise exception 'shop_ref_required'; end if;
-    update orders set shop_status = 'acceptee', shop_ref = ref, prep_minutes = least(greatest(coalesce(p_minutes, 15), 5), 90),
+    if v_ref is null or v_ref !~ '^[0-9]{3}$' then raise exception 'shop_ref_required'; end if;
+    update orders set shop_status = 'acceptee', shop_ref = v_ref, prep_minutes = least(greatest(coalesce(p_minutes, 15), 5), 90),
            ready_at = now() + make_interval(mins => least(greatest(coalesce(p_minutes, 15), 5), 90))
      where id = p_id;
     insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:shop_ok');

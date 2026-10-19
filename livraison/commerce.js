@@ -229,8 +229,27 @@ $("#spPlan").addEventListener("click", e => {
 setInterval(() => { if (state.dash && !document.hidden) refreshSpace(); }, 15000);
 Store.getSettings().then(s => { state.settings = s; if (state.dash) renderPlan(); }).catch(() => {});
 
+// Marche à suivre : ouverte aux premières visites (et quand le commerce passe à HOP! Pro), repliable ensuite
+function renderGuide(shop) {
+  const pro = planOn(shop);
+  const st = Object.assign({ pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare, pro_hop_share: CONFIG.pro.hopShare }, state.settings || {});
+  const client = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - (Number(st.pro_shop_share) - Number(st.pro_hop_share || 0))));
+  const vars = { monthly: UI.money(st.pro_monthly), share: UI.money(st.pro_shop_share), phone: CONFIG.bitPhone, client,
+    n: CONFIG.partners.carnet.courses, price: UI.money(CONFIG.partners.carnet.price) };
+  const keys = pro ? ["gdPro1", "gdPro2", "gdPro3", "gdPro4", "gdPro5", "gdPro6", "gdPro7"] : ["gdBase1", "gdBase2", "gdBase3", "gdBase4"];
+  $("#spGuideTitle").textContent = t(pro ? "gdTitlePro" : "gdTitle");
+  $("#spGuideSteps").innerHTML = keys.map(k => `<li>${UI.esc(t(k, vars))}</li>`).join("");
+  const box = $("#spGuide"), key = "livraison.guideSeen." + shop.code + (pro ? ".pro" : "");
+  if (!box.dataset.init) {
+    box.dataset.init = "1";
+    let seen = 0;
+    try { seen = Number(localStorage.getItem(key)) || 0; localStorage.setItem(key, String(seen + 1)); } catch (e) { /* ignore */ }
+    box.open = seen < 3;
+  }
+}
 function renderSpace() {
   const { shop, orders } = state.dash;
+  renderGuide(shop);
   renderPrep();
   renderPlan();
   const sales = state.dash.sales || [];
