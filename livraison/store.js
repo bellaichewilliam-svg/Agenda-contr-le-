@@ -21,7 +21,9 @@ const LS = {
   shopCodes: "livraison.shopCodes.v1",
   messages: "livraison.messages.v1",
   replies: "livraison.replies.v1",
-  requests: "livraison.requests.v1"
+  requests: "livraison.requests.v1",
+  sales: "livraison.carnetSales.v1",
+  chat: "livraison.chat.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -132,7 +134,8 @@ const DEFAULT_SETTINGS = {
   referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes,
   wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt,
   carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
-  referral_active_days: CONFIG.partners.activeDays
+  referral_active_days: CONFIG.partners.activeDays,
+  deliver_radius: CONFIG.platform.deliverRadius
 };
 
 async function getSettings() {
@@ -188,7 +191,7 @@ async function createOrder(order) {
     Object.assign(order, {
       shop_id: shop ? shop.id : null, shop_name: shop ? shop.name : null, referrer_id: referrer ? referrer.id : null,
       referral_bonus: referrer && referrer.role === "coursier" ? Number(settings.referral_bonus) : 0, referral_status: "du",
-      paid_to: order.prepaid_required ? "hop" : "livreur"
+      paid_to: order.prepaid_required || ["bit", "carnet"].includes(order.payment_method) ? "hop" : "livreur"
     });
     // Carnet pro : seulement le commerce lui-même (sa clé), dans Netanya, s'il lui reste des courses
     if (order.payment_method === "carnet") {
@@ -224,7 +227,7 @@ async function cancelMyOrder(token) {
   if (ONLINE) return rest("/rest/v1/rpc/cancel_order", { method: "POST", body: { p_token: token } });
   const all = localOrders();
   const o = all.find(x => x.token === token && x.status === "nouvelle");
-  if (o) { o.status = "annulee"; refundCarnet(o); saveLocalOrders(all); }
+  if (o) { o.status = "annulee"; refundCarnet(o); chatStatus(o, "nouvelle"); saveLocalOrders(all); }
   return !!o;
 }
 
@@ -357,11 +360,16 @@ async function myBalance() {
   return balanceOf(myId(), localOrders());
 }
 
+// Démo : numéro suivant, commun aux reçus des courses et des carnets (comme receipt_seq en ligne)
+function nextLocalReceipt() {
+  return [...localOrders(), ...readJSON(LS.sales, [])].reduce((m, x) => Math.max(m, x.receipt_number || 0), 0) + 1;
+}
+
 // Démo : même règle que la base en ligne pour numéroter les reçus
 function localReceipt(o) {
   const c = localCouriers().find(x => x.id === o.courier_id);
   if (o.status === "livree" && o.payment_status === "paye" && !o.receipt_number && o.payment_method !== "carnet" && c && c.role === "admin") {
-    o.receipt_number = localOrders().reduce((m, x) => Math.max(m, x.receipt_number || 0), 0) + 1;
+    o.receipt_number = nextLocalReceipt();
     o.receipt_at = new Date().toISOString();
   }
 }
@@ -379,8 +387,16 @@ async function updateOrder(id, changes) {
     referralCheck(o, was, all, await getSettings());
     localReceipt(o);
     if (!["annulee", "refusee"].includes(was)) refundCarnet(o);
+    chatStatus(o, was);
   }
   saveLocalOrders(all);
+}
+
+// Démo : chaque étape de la course s'affiche dans sa conversation (comme en ligne)
+function chatStatus(o, was) {
+  if (o.status !== was && ["confirmee", "recuperee", "livree", "refusee", "annulee"].includes(o.status)) {
+    chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:" + o.status });
+  }
 }
 
 // Bonus de parrainage seulement si le parrain livre encore avec nous (même règle qu'en ligne)
@@ -424,7 +440,9 @@ async function acceptOrder(id) {
   const o = c && all.find(x => x.id === id && (c.role === "admin" || canSeeNew(x, c.id, st)));
   if (!o || !c) return false;
   if (c.role === "coursier" && balanceOf(c.id, all) > Number(st.max_debt)) return false;
+  const was = o.status;
   Object.assign(o, await courierFields(c));
+  chatStatus(o, was);
   saveLocalOrders(all);
   return true;
 }
@@ -435,12 +453,22 @@ async function courierAction(id, action) {
   const all = localOrders();
   const o = all.find(x => x.id === id && x.courier_id === myId());
   if (!o) return false;
+  const was = o.status;
   if (action === "recuperee" && o.status === "confirmee") o.status = "recuperee";
-  else if (action === "livree" && o.status === "recuperee") { o.status = "livree"; referralCheck(o, "recuperee", all, await getSettings()); }
+  else if (action === "livree" && o.status === "recuperee") {
+    // Même règle qu'en ligne : sur place seulement (position de moins de 3 min, dans le rayon)
+    const c = localCouriers().find(x => x.id === myId());
+    const st = await getSettings();
+    if (o.dropoff_lat != null && (!c || c.lat == null || Date.now() - new Date(c.position_at) > 180000
+      || Pricing.haversineKm({ lat: c.lat, lon: c.lon }, { lat: o.dropoff_lat, lon: o.dropoff_lon }) * 1000 > Number(st.deliver_radius))) {
+      throw new Error("too_far");
+    }
+    o.status = "livree"; referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
     Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
   } else return false;
+  chatStatus(o, was);
   saveLocalOrders(all);
   return true;
 }
@@ -541,7 +569,40 @@ async function shopDashboard(token) {
   const shop = localShops().find(x => x.token === token);
   if (!shop) return { shop: null, orders: [] };
   const x = Object.assign({}, shop); delete x.referrer_id; delete x.admin_note;
-  return { shop: x, orders: localOrders().filter(o => o.shop_id === shop.id).sort((a, b) => new Date(b.pickup_at) - new Date(a.pickup_at)) };
+  return {
+    shop: x,
+    orders: localOrders().filter(o => o.shop_id === shop.id).sort((a, b) => new Date(b.pickup_at) - new Date(a.pickup_at)),
+    sales: readJSON(LS.sales, []).filter(v => v.shop_id === shop.id).reverse()
+  };
+}
+
+// Patron : carnet payé → reçu numéroté + courses ajoutées au commerce. Renvoie { token, receipt_number }
+async function sellCarnet(shopId, method) {
+  const C = CONFIG.partners.carnet;
+  if (ONLINE) return authRest("/rest/v1/rpc/sell_carnet", { method: "POST", body: { p_shop: shopId, p_courses: C.courses, p_amount: C.price, p_method: method } });
+  const sale = { id: uuid(), token: uuid(), shop_id: shopId, courses: C.courses, amount: C.price, payment_method: method === "cash" ? "cash" : "bit",
+    receipt_number: nextLocalReceipt(), receipt_at: new Date().toISOString(), created_at: new Date().toISOString() };
+  const sales = readJSON(LS.sales, []);
+  sales.push(sale);
+  writeJSON(LS.sales, sales);
+  const shops = localShops();
+  const s = shops.find(x => x.id === shopId);
+  if (s) { s.credits = (s.credits || 0) + C.courses; writeJSON(LS.shops, shops); }
+  return { token: sale.token, receipt_number: sale.receipt_number };
+}
+
+// Reçu d'un carnet (lien secret)
+async function carnetReceipt(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/carnet_receipt", { method: "POST", body: { p_token: token } });
+  const v = readJSON(LS.sales, []).find(x => x.token === token);
+  const s = v && localShops().find(x => x.id === v.shop_id);
+  return v ? Object.assign({}, v, { shop_name: s && s.name, contact_name: s && s.contact_name, phone: s && s.phone }) : null;
+}
+
+// Patron : ventes de carnets (reçus)
+async function listCarnetSales() {
+  if (ONLINE) return authRest("/rest/v1/carnet_sales?select=*&order=receipt_at.desc&limit=500");
+  return readJSON(LS.sales, []).slice().reverse();
 }
 
 // Patron : tous les commerces
@@ -585,7 +646,7 @@ async function myReferrals() {
 
 // --- Demandes de devis (tournée quotidienne, carnet…) --------------------------------------
 async function createRequest(r) {
-  r = Object.assign({ status: "nouvelle" }, r);
+  r = Object.assign({ status: "nouvelle", device_id: deviceId() }, r);
   if (ONLINE) return rest("/rest/v1/requests", { method: "POST", body: r, prefer: "return=minimal" });
   const list = readJSON(LS.requests, []);
   list.push(Object.assign({ id: uuid(), created_at: new Date().toISOString() }, r));
@@ -601,6 +662,72 @@ async function updateRequest(id, changes) {
   const r = list.find(x => x.id === id);
   if (r) Object.assign(r, changes);
   writeJSON(LS.requests, list);
+}
+
+// --- Messagerie dans l'application ----------------------------------------------------------
+// Fils : "o:<course>" (client + livreur + patron), "u:<appareil>" (service client),
+//        "c:<livreur>" (livreur ↔ patron), "s:<commerce>" (commerce ↔ patron)
+const chatLocal = () => readJSON(LS.chat, []);
+function chatLocalAdd(m) {
+  const list = chatLocal();
+  list.push(Object.assign({ id: uuid(), created_at: new Date().toISOString() }, m));
+  // Démo : on garde les 400 derniers messages (photos comprises) pour ne pas remplir le téléphone
+  writeJSON(LS.chat, list.slice(-400));
+  return true;
+}
+const byDate = list => list.slice().sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+const clean = s => (s && String(s).trim()) || null;
+
+// Client : conversation de sa course (jeton secret)
+async function chatOrder(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/chat_order", { method: "POST", body: { p_token: token } });
+  const o = localOrders().find(x => x.token === token);
+  return o ? byDate(chatLocal().filter(m => m.thread === "o:" + o.id)) : [];
+}
+async function chatOrderSend(token, body, image) {
+  if (ONLINE) return rest("/rest/v1/rpc/chat_order_send", { method: "POST", body: { p_token: token, p_body: body || null, p_image: image || null } });
+  const o = localOrders().find(x => x.token === token);
+  return !!o && chatLocalAdd({ thread: "o:" + o.id, author: "client", author_name: o.contact_name, body: clean(body), image: image || null });
+}
+// Client : service client (identifiant de cet appareil)
+async function chatSupport() {
+  if (ONLINE) return rest("/rest/v1/rpc/chat_support", { method: "POST", body: { p_device: deviceId() } });
+  return byDate(chatLocal().filter(m => m.thread === "u:" + deviceId()));
+}
+async function chatSupportSend(name, body, image) {
+  if (ONLINE) return rest("/rest/v1/rpc/chat_support_send", { method: "POST", body: { p_device: deviceId(), p_name: name || null, p_body: body || null, p_image: image || null } });
+  return chatLocalAdd({ thread: "u:" + deviceId(), author: "client", author_name: clean(name), body: clean(body), image: image || null });
+}
+// Commerce : sa conversation avec le patron (clé secrète)
+async function chatShop(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/chat_shop", { method: "POST", body: { p_token: token } });
+  const s = localShops().find(x => x.token === token);
+  return s ? byDate(chatLocal().filter(m => m.thread === "s:" + s.id)) : [];
+}
+async function chatShopSend(token, body, image) {
+  if (ONLINE) return rest("/rest/v1/rpc/chat_shop_send", { method: "POST", body: { p_token: token, p_body: body || null, p_image: image || null } });
+  const s = localShops().find(x => x.token === token);
+  return !!s && chatLocalAdd({ thread: "s:" + s.id, author: "shop", author_name: s.name, body: clean(body), image: image || null });
+}
+// Patron et livreurs (connectés) : lire un fil, écrire, et la liste des derniers messages
+async function chatThread(thread) {
+  if (ONLINE) return authRest("/rest/v1/chat_messages?select=*&order=created_at.asc&limit=300&thread=eq." + encodeURIComponent(thread));
+  return byDate(chatLocal().filter(m => m.thread === thread));
+}
+async function chatSend(thread, author, authorName, body, image) {
+  const m = { thread, author, author_name: authorName || null, body: clean(body), image: image || null };
+  if (ONLINE) return authRest("/rest/v1/chat_messages", { method: "POST", body: m, prefer: "return=minimal" });
+  return chatLocalAdd(m);
+}
+// Derniers messages visibles (sans les photos, plus léger) : boîte de réception, badges
+async function chatRecent() {
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  if (ONLINE) return authRest("/rest/v1/chat_messages?select=id,created_at,thread,author,author_name,body&order=created_at.desc&limit=1000&created_at=gte." + encodeURIComponent(since));
+  const id = myId();
+  const me = localCouriers().find(c => c.id === id);
+  const mine = me && me.role !== "admin" ? new Set(["c:" + id, ...localOrders().filter(o => o.courier_id === id).map(o => "o:" + o.id)]) : null;
+  return chatLocal().filter(m => m.created_at >= since && (!mine || mine.has(m.thread)))
+    .map(m => Object.assign({}, m, { image: undefined, has_image: !!m.image })).reverse();
 }
 
 // --- Messages du patron aux livreurs ------------------------------------------------------
@@ -648,6 +775,8 @@ window.Store = {
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, ping,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  sellCarnet, carnetReceipt, listCarnetSales,
+  chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };
 

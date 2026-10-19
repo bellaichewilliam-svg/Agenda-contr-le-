@@ -14,6 +14,7 @@ let orders = [];
 let couriers = [];
 let shops = [];
 let requests = [];
+let sales = [];
 let msgs = { messages: [], replies: [] };
 let me = null;
 let settings = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
@@ -92,8 +93,10 @@ async function load() {
   try {
     [orders, couriers, settings] = await Promise.all([Store.listOrders(), Store.listCouriers(), Store.getSettings()]);
     // Commerces et messages : un souci ici ne doit pas bloquer les courses
-    const [sh, m, rq] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null), Store.listRequests().catch(() => null)]);
+    const [sh, m, rq, sa] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null),
+      Store.listRequests().catch(() => null), Store.listCarnetSales().catch(() => null)]);
     if (sh) shops = sh;
+    if (sa) sales = sa;
     if (rq) requests = rq;
     if (m) msgs = m;
     me = couriers.find(c => c.id === (Store.session() || {}).user_id) || me;
@@ -121,6 +124,7 @@ async function load() {
   writeSeen(seen);
   firstLoad = false;
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  await refreshChats();
   renderAvail();
   // Ne pas effacer un champ en cours de saisie
   const typing = document.activeElement && $("#view").contains(document.activeElement)
@@ -277,10 +281,9 @@ function card(o, withDay) {
     <div class="actions">
       ${steps[o.status] || ""}
       ${!["annulee", "refusee"].includes(o.status) ? `<button class="btn btn-sm" data-act="paid">${o.payment_status === "paye" ? "↩︎ Non encaissé" : "💵 Encaissé"}</button>` : ""}
-      <a class="btn btn-sm btn-wa" data-wa="client" href="${UI.waLink(o.contact_phone, clientMessage(o))}" target="_blank" rel="noopener">💬 Client</a>
-      ${o.dropoff_phone && !["annulee", "refusee"].includes(o.status) ? `<a class="btn btn-sm btn-wa" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}" target="_blank" rel="noopener">💬 Destinataire</a>` : ""}
-      ${o.courier_phone && !isMine(o) ? `<a class="btn btn-sm btn-wa" href="${UI.waLink(o.courier_phone, `Course n° ${o.ref} — `)}" target="_blank" rel="noopener">💬 Livreur</a>` : ""}
-      ${o.leave_at_door && ["recuperee", "livree"].includes(o.status) ? `<a class="btn btn-sm btn-wa" href="${UI.waLink(o.dropoff_phone || o.contact_phone, I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }))}" target="_blank" rel="noopener">📷 Photo du dépôt</a>` : ""}
+      ${chatBtn("o:" + o.id, `Course n° ${o.ref}`, `${o.contact_name || "Client"} · ${o.lang === "he" ? "hébreu 🇮🇱" : "français 🇫🇷"}${o.courier_name && !isMine(o) ? " · livreur " + o.courier_name : ""}`, "💬 Client")}
+      ${o.courier_id && !isMine(o) ? chatBtn("c:" + o.courier_id, `Livreur : ${o.courier_name || ""}`, "Vos messages avec ce livreur", "💬 Livreur", `Course n° ${o.ref} — `) : ""}
+      ${o.leave_at_door && ["recuperee", "livree"].includes(o.status) ? chatBtn("o:" + o.id, `Course n° ${o.ref}`, "Photo du dépôt devant la porte", "📷 Photo du dépôt", I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }), true) : ""}
       <a class="btn btn-sm" href="${UI.trackUrl(o)}" target="_blank" rel="noopener">📍 Suivi</a>
       ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}" target="_blank" rel="noopener">🧾 Reçu n° ${o.receipt_number}</a>` : ""}
       ${o.receipt_number && o.contact_email ? `<a class="btn btn-sm" href="mailto:${UI.esc(o.contact_email)}?subject=${encodeURIComponent(`Reçu n° ${o.receipt_number} · קבלה מס' ${o.receipt_number}`)}&body=${encodeURIComponent(UI.clientMessage(o))}">✉️ Reçu par mail</a>` : ""}
@@ -348,6 +351,8 @@ function render() {
     renderMessages(view);
   } else if (tab === "demandes") {
     renderRequests(view);
+  } else if (tab === "messagerie") {
+    renderInbox(view);
   } else if (tab === "historique") {
     const q = histFilter.q.toLowerCase();
     const list = orders
@@ -474,9 +479,9 @@ function renderCouriers(view) {
           ${(() => { const b = balanceOf(c.id); return b > Number(settings.max_debt) ? `<span class="pill st-annulee">🔒 Bloqué : doit ${UI.money(b)}</span>` : b > 0 ? `<span class="pill unpaid">Doit ${UI.money(b)}</span>` : b < 0 ? `<span class="pill paid">Vous lui devez ${UI.money(-b)}</span>` : ""; })()}</div>
         <div class="actions">
           ${c.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-cact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-cact="suspendu">⛔ Suspendre</button>`}
-          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(c.phone, c.status === "en_attente"
-            ? `Bonjour ${c.name}, merci pour ton inscription chez ${CONFIG.businessName} ! Pour valider ton compte, envoie-moi en photo : permis de conduire, carte grise, attestation d'assurance et carte d'identité.`
-            : `Bonjour ${c.name}, `)}">💬 WhatsApp</a>
+          ${chatBtn("c:" + c.id, `Livreur : ${c.name}`, c.phone, "💬 Message", c.status === "en_attente"
+            ? `Bonjour ${c.name}, merci pour ton inscription chez ${CONFIG.businessName} ! Pour valider ton compte, envoie-moi ici en photo : permis de conduire, carte grise, attestation d'assurance et carte d'identité.`
+            : `Bonjour ${c.name}, `)}
           <textarea class="admin-note" data-cact="note" rows="1" placeholder="Note interne (documents vérifiés, remarques…)">${UI.esc(c.admin_note || "")}</textarea>
         </div>
       </article>`;
@@ -514,7 +519,7 @@ function renderWeek(view) {
         <td class="num">${r.bonusList.length ? `−${UI.money(sum(r.bonusList, o => Number(o.referral_bonus || 0)))}<br><span class="small muted">${r.bonusList.length} livraison(s)</span>` : "—"}</td>
         <td class="num"><b>${r.dueAmount || r.bonusDue || r.hopDue ? (r.balance >= 0 ? UI.money(r.balance) + " à recevoir" : UI.money(-r.balance) + " à lui verser") : "✓ réglé"}</b></td>
         <td class="num" style="white-space:nowrap">
-          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(r.c.phone, `Bonjour ${r.c.name}, récapitulatif de la semaine du ${fmtKey(start)} au ${fmtKey(end)} : ${r.list.length} course(s) livrée(s), ${UI.money(r.collected)} encaissés, commission ${UI.money(r.dueAmount)}${r.hopDue ? `, courses payées à HOP ${UI.money(r.hopDue)} déduites` : ""}${r.bonusDue ? `, bonus parrainage ${UI.money(r.bonusDue)} déduit` : ""}. ${r.balance >= 0 ? `À me verser : ${UI.money(r.balance)} (Bit au ${CONFIG.bitPhone})` : `Je te verse ${UI.money(-r.balance)} sur ton Bit`}. Merci et bravo !`)}">Envoyer</a>
+          ${chatBtn("c:" + r.c.id, `Livreur : ${r.c.name}`, "Récapitulatif de la semaine", "Envoyer", `Bonjour ${r.c.name}, récapitulatif de la semaine du ${fmtKey(start)} au ${fmtKey(end)} : ${r.list.length} course(s) livrée(s), ${UI.money(r.collected)} encaissés, commission ${UI.money(r.dueAmount)}${r.hopDue ? `, courses payées à HOP ${UI.money(r.hopDue)} déduites` : ""}${r.bonusDue ? `, bonus parrainage ${UI.money(r.bonusDue)} déduit` : ""}. ${r.balance >= 0 ? `À me verser : ${UI.money(r.balance)} (Bit au ${CONFIG.bitPhone})` : `Je te verse ${UI.money(-r.balance)} sur ton Bit`}. Merci et bravo !`)}
           ${r.dueAmount || r.bonusDue || r.hopDue ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
         </td></tr>`).join("") || `<tr><td colspan="8" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
       <tfoot><tr><th>Solde total</th><th></th><th></th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
@@ -567,14 +572,15 @@ function renderShops(view) {
           <div><span>👤</span><span>${tel(x.contact_name, x.phone)}${x.email ? " · " + UI.esc(x.email) : ""} · ${x.lang === "fr" ? "🇫🇷" : "🇮🇱"}</span></div>
           <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name)}</option>`).join("")}</select>
             · bonus générés ${UI.money(sum(done, o => Number(o.referral_bonus || 0)))}</span></div>
-          <div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)</span></div>
+          <div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
+            ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>
           <div><span>📅</span><span>Inscrit le ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))}</span></div>
         </div>
         <div class="actions">
           ${x.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-sact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-sact="suspendu">⛔ Suspendre</button>`}
-          <button class="btn btn-sm" data-sact="carnet">🎟️ +${CONFIG.partners.carnet.courses} (carnet payé ${UI.money(CONFIG.partners.carnet.price)})</button>
+          <button class="btn btn-sm" data-sact="carnet">🎟️ Carnet payé (${UI.money(CONFIG.partners.carnet.price)}) → +${CONFIG.partners.carnet.courses} et reçu</button>
           <button class="btn btn-sm" data-sact="credits">✏️ Courses du carnet</button>
-          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(x.phone, shopWelcome(x))}">💬 Envoyer ses liens</a>
+          ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl("commerce.html") + "?k=" + x.token)}">🔑 Son espace</a>
           <textarea class="admin-note" data-sact="note" rows="1" placeholder="Note interne (vérifié sur place, horaires…)">${UI.esc(x.admin_note || "")}</textarea>
@@ -601,7 +607,8 @@ function renderRequests(view) {
         ${r.message ? `<div><span>📝</span><span>${UI.esc(r.message)}</span></div>` : ""}
       </div>
       <div class="actions">
-        <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(r.phone, r.lang === "he" ? `שלום ${r.name}, קיבלנו את הבקשה שלכם ב${CONFIG.businessNameHe}. ` : `Bonjour ${r.name}, merci pour votre demande chez ${CONFIG.businessName}. `)}">💬 Répondre</a>
+        ${r.device_id ? chatBtn("u:" + r.device_id, `${r.company || r.name}`, `${r.name} · ${r.phone}`, "💬 Répondre", r.lang === "he" ? `שלום ${r.name}, קיבלנו את הבקשה שלכם ב${CONFIG.businessNameHe}. ` : `Bonjour ${r.name}, merci pour votre demande chez ${CONFIG.businessName}. `)
+          : `<a class="btn btn-sm" href="tel:${UI.esc(r.phone)}">📞 Rappeler</a>`}
         ${r.status === "nouvelle" ? `<button class="btn btn-sm btn-primary" data-ract="traitee">✓ Traitée</button>` : `<button class="btn btn-sm" data-ract="nouvelle">↩︎ À traiter</button>`}
         <textarea class="admin-note" data-ract="note" rows="1" placeholder="Note (prix proposé, suite…)">${UI.esc(r.admin_note || "")}</textarea>
       </div>
@@ -646,7 +653,7 @@ function renderBilling(view) {
   const byClient = {};
   list.forEach(o => {
     const key = o.company || o.contact_name;
-    const c = byClient[key] = byClient[key] || { n: 0, total: 0, unpaid: 0, phone: o.contact_phone };
+    const c = byClient[key] = byClient[key] || { n: 0, total: 0, unpaid: 0, phone: o.contact_phone, device: o.device_id };
     c.n++; c.total += Number(o.price);
     if (o.payment_status !== "paye") c.unpaid += Number(o.price);
   });
@@ -660,7 +667,7 @@ function renderBilling(view) {
     <table class="bill">
       <thead><tr><th>Client</th><th class="num">Courses</th><th class="num">Montant</th><th class="num">Reste dû</th><th></th></tr></thead>
       <tbody>${rows.map(([name, c]) => `<tr><td><b>${UI.esc(name)}</b><br><span class="small muted">${UI.esc(c.phone || "")}</span></td><td class="num">${c.n}</td><td class="num"><b>${UI.money(c.total)}</b></td><td class="num">${c.unpaid ? UI.money(c.unpaid) : "✓"}</td>
-        <td class="num"><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(c.phone, `Bonjour, récapitulatif de vos courses ${billMonth} : ${c.n} course(s), total ${UI.money(c.total)}${c.unpaid ? `, reste à régler ${UI.money(c.unpaid)} (espèces ou Bit au ${CONFIG.bitPhone})` : ""}. Merci !`)}">Envoyer</a></td></tr>`).join("")
+        <td class="num">${c.device ? chatBtn("u:" + c.device, name, c.phone || "", "Envoyer", `Bonjour, récapitulatif de vos courses ${billMonth} : ${c.n} course(s), total ${UI.money(c.total)}${c.unpaid ? `, reste à régler ${UI.money(c.unpaid)} (espèces ou Bit au ${CONFIG.bitPhone})` : ""}. Merci !`) : ""}</td></tr>`).join("")
         || `<tr><td colspan="5" class="muted">Aucune course livrée ce mois-ci.</td></tr>`}</tbody>
       <tfoot><tr><th>Total</th><th class="num">${list.length}</th><th class="num">${UI.money(sum(list))}</th><th class="num">${UI.money(rows.reduce((s, r) => s + r[1].unpaid, 0))}</th><th></th></tr></tfoot>
     </table>`;
@@ -734,10 +741,53 @@ async function change(o, changes) {
   }
 }
 
-// Met en avant le bouton WhatsApp « Client » après un changement à annoncer
-function highlightClientWa(o) {
-  const a = document.querySelector(`article[data-id="${o.id}"] [data-wa="client"]`);
-  if (a) { a.style.outline = "3px solid var(--brand)"; a.scrollIntoView({ block: "nearest" }); }
+// --- Messagerie dans l'application (le patron répond en tant que « HOP! ») -------------------
+let chatRecentList = [];
+let chatTotal = 0;
+let chatUnread = {};
+function chatBtn(thread, title, sub, label, prefill, photo) {
+  const n = chatUnread[thread];
+  return `<button type="button" class="btn btn-sm btn-wa" data-thread="${UI.esc(thread)}" data-ctitle="${UI.esc(title)}" data-csub="${UI.esc(sub || "")}"
+    ${prefill ? `data-prefill="${UI.esc(prefill)}"` : ""} ${photo ? `data-photo="1"` : ""}>${label}${n ? ` <span class="chat-badge">${n}</span>` : ""}</button>`;
+}
+function openAdminChat(thread, title, sub, prefill, photo) {
+  Chat.open({ thread, title, sub, me: "admin", lang: "fr", prefill, photo,
+    fetch: () => Store.chatThread(thread), send: (b, i) => Store.chatSend(thread, "admin", "HOP!", b, i), onClose: refreshChats });
+}
+// Nom d'une conversation pour la boîte de réception
+function threadLabel(thread, msgs) {
+  const [kind, id] = thread.split(":");
+  if (kind === "o") { const o = orders.find(x => x.id === id); return o ? `🛵 Course n° ${o.ref} · ${o.contact_name}` : "🛵 Course"; }
+  if (kind === "c") { const c = couriers.find(x => x.id === id); return `👤 Livreur : ${c ? c.name : "?"}`; }
+  if (kind === "s") { const x = shops.find(v => v.id === id); return `🏪 Commerce : ${x ? x.name : "?"}`; }
+  const m = msgs.find(v => v.author === "client" && v.author_name);
+  return `💬 Client : ${m ? m.author_name : "sans nom"}`;
+}
+async function refreshChats() {
+  try { chatRecentList = await Store.chatRecent(); } catch (e) { return; }
+  chatUnread = Chat.unread(chatRecentList, "admin");
+  const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
+  $("#chatTabBadge").textContent = total ? `(${total})` : "";
+  if (!firstLoad && total > chatTotal && Chat.openThread == null) {
+    beep();
+    if (window.Notification && Notification.permission === "granted") new Notification("💬 Nouveau message", { body: "Ouvrez la messagerie de l'espace patron." });
+  }
+  chatTotal = total;
+}
+function renderInbox(view) {
+  const threads = {};
+  chatRecentList.forEach(m => { (threads[m.thread] = threads[m.thread] || []).push(m); });
+  const list = Object.entries(threads).map(([thread, msgs]) => ({ thread, msgs, last: msgs[0] }))
+    .sort((a, b) => new Date(b.last.created_at) - new Date(a.last.created_at));
+  view.innerHTML = list.length ? `<div class="orders">${list.map(t => {
+    const n = chatUnread[t.thread] || 0;
+    const lastText = t.last.author === "system" ? I18N.forLang("fr", "cs_" + String(t.last.body).replace("status:", "")) : (t.last.body || "📷 Photo");
+    const label = threadLabel(t.thread, t.msgs);
+    return `<article class="order inbox-row${n ? " is-new" : ""}" data-thread="${UI.esc(t.thread)}" data-ctitle="${UI.esc(label)}">
+      <div class="order-head"><span class="order-time">${UI.esc(label)}</span>${n ? `<span class="chat-badge">${n}</span>` : ""}<span class="order-ref">${UI.esc(UI.fmtDateTime(t.last.created_at))}</span></div>
+      <p class="small muted" style="margin-top:4px">${t.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(lastText).slice(0, 120))}</p>
+    </article>`;
+  }).join("")}</div>` : `<div class="empty card">Aucun message ces 30 derniers jours. Les clients, livreurs et commerces vous écrivent ici, dans l'application.</div>`;
 }
 
 function orderOf(el) {
@@ -749,12 +799,13 @@ async function assignTo(o, courier) {
   try {
     await Store.assignOrder(o.id, courier);
     await load();
-    const fresh = orders.find(x => x.id === o.id);
-    if (fresh) highlightClientWa(fresh);
+
   } catch (e) { alert("Attribution impossible, vérifiez la connexion."); }
 }
 
 async function onViewClick(e) {
+  const th = e.target.closest("[data-thread]");
+  if (th) return openAdminChat(th.dataset.thread, th.dataset.ctitle, th.dataset.csub, th.dataset.prefill, !!th.dataset.photo);
   const el = e.target.closest("button");
   if (!el) return;
   if (el.id === "csvBtn") return exportCsv();
@@ -777,8 +828,22 @@ async function onViewClick(e) {
     const shop = shops.find(x => x.id === id);
     let changes = { status: el.dataset.sact };
     if (el.dataset.sact === "carnet") {
-      if (!confirm(`Avez-vous bien reçu ${UI.money(CONFIG.partners.carnet.price)} de ${shop.name} ? (pensez à lui faire un reçu)`)) return;
-      changes = { credits: Number(shop.credits || 0) + CONFIG.partners.carnet.courses };
+      // Carnet payé : reçu numéroté, courses ajoutées, et le reçu part au commerce dans l'application
+      const price = UI.money(CONFIG.partners.carnet.price);
+      const method = confirm(`Avez-vous reçu ${price} de ${shop.name} par Bit ?\n(Annuler si c'était en espèces)`) ? "bit"
+        : confirm(`Avez-vous reçu ${price} de ${shop.name} en espèces ?`) ? "cash" : null;
+      if (!method) return;
+      try {
+        const r = await Store.sellCarnet(id, method);
+        const url = UI.carnetReceiptUrl(r);
+        const msg = shop.lang === "fr"
+          ? `Bonjour ${shop.contact_name || ""}, merci ! Votre carnet de ${CONFIG.partners.carnet.courses} courses est actif. Votre reçu n° ${r.receipt_number} : ${url}`
+          : `שלום ${shop.contact_name || ""}, תודה! הכרטיסייה של ${CONFIG.partners.carnet.courses} משלוחים פעילה. הקבלה מס' ${r.receipt_number}: ${url}`;
+        // Le reçu part dans la conversation du commerce (son espace pro)
+        await Store.chatSend("s:" + id, "admin", "HOP!", msg).catch(() => alert(`Carnet enregistré, mais le message n'est pas parti. Reçu : ${url}`));
+        await load();
+      } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+      return;
     } else if (el.dataset.sact === "credits") {
       const v = prompt(`Courses restantes sur le carnet de ${shop.name}`, shop.credits || 0);
       const n = parseInt(v, 10);
@@ -824,7 +889,7 @@ async function onViewClick(e) {
     if (changes.status === "livree" && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(o.price)} ?`)) changes.payment_status = "paye";
     if (await change(o, changes)) {
       if (changes.payment_status) await load();
-      highlightClientWa(orders.find(x => x.id === o.id) || o);
+
     }
   } else if (el.dataset.act === "take") {
     if (duty.watch == null && confirm("Course prise. Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
@@ -856,11 +921,11 @@ async function onRefuse(e) {
   const reason = key === "autre" ? f.other.value.trim() : I18N.forLang(o.lang || "fr", key);
   if (!reason) return f.other.focus();
   $("#refuseModal").classList.add("hidden");
-  // La course quitte l'agenda : on ouvre tout de suite WhatsApp avec le message au client
-  const wa = window.open("", "_blank");
+  // Le client reçoit la raison dans la conversation de sa course (dans sa langue)
   if (await change(o, { status: "refusee", admin_note: reason })) {
-    if (wa) wa.location.href = UI.waLink(o.contact_phone, clientMessage(o));
-  } else if (wa) wa.close();
+    Store.chatSend("o:" + o.id, "admin", "HOP!", clientMessage(Object.assign({}, o, { status: "refusee", admin_note: reason })))
+      .catch(() => alert("La course est refusée, mais le message au client n'est pas parti."));
+  }
 }
 
 async function onViewChange(e) {

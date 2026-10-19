@@ -86,6 +86,9 @@ window.CONFIG = {
   // (gros colis). Sharon : grille de prix du groupe. Autres trajets : base + perKm
   // × distance à vol d'oiseau, arrondi à 5 ₪.
   pricing: {
+    // Pas encore de voiture : l'option « Gros colis » est cachée. Mettez true pour l'ouvrir
+    // (les prix voiture ci-dessous sont déjà prêts).
+    carAvailable: false,
     fixedFromHome: {
       "netanya": 25,
       "nordia": 35, "havatselet": 40, "beit-yitzhak": 40, "yakum": 40,
@@ -129,6 +132,9 @@ window.CONFIG = {
     // Courses proposées d'abord au livreur en service le plus proche, puis au 2e après
     // ces secondes, puis à tous (en ligne : settings.wave_seconds)
     waveSeconds: 45,
+    // « Livré » accepté seulement si le livreur est à moins de ces mètres de l'adresse
+    // de livraison (position GPS du téléphone ; en ligne : settings.deliver_radius)
+    deliverRadius: 200,
     settlementDay: 0          // jour du paiement hebdomadaire (0 = dimanche)
   },
 

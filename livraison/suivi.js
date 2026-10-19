@@ -110,17 +110,13 @@ function render() {
   // Discussion directe : avec le livreur attribué, ou avec l'administration
   const hasCourier = !!o.courier_phone && ["confirmee", "recuperee"].includes(o.status);
   const first = (o.courier_name || "").split(" ")[0];
-  const about = t("orderNo", { ref: o.ref }) + " — ";
   $("#noCourier").classList.toggle("hidden", hasCourier || o.status !== "nouvelle");
-  ["#waCourier", "#callCourier"].forEach(s => $(s).classList.toggle("hidden", !hasCourier));
+  // Pendant la course, on peut aussi appeler son livreur ; tout le reste passe par la messagerie
+  $("#callCourier").classList.toggle("hidden", !hasCourier);
   if (hasCourier) {
-    $("#waCourier").textContent = t("chatCourier", { name: first });
-    $("#waCourier").href = UI.waLink(o.courier_phone, about);
     $("#callCourier").textContent = t("callCourier", { name: first });
     $("#callCourier").href = "tel:" + o.courier_phone;
   }
-  $("#waAdmin").href = UI.waLink(CONFIG.whatsapp, about);
-  $("#callAdmin").href = "tel:" + CONFIG.phoneDisplay;
   $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: location.href }));
   updateMap(o);
 }
@@ -138,16 +134,36 @@ $("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); rend
 $("#payBox").addEventListener("click", e => {
   if (e.target.id !== "copyBit") return;
   const done = () => { e.target.textContent = t("trCopied"); };
-  const bit = (order && order.courier_bit) || CONFIG.bitPhone;
+  const bit = CONFIG.bitPhone;
   if (navigator.clipboard) navigator.clipboard.writeText(bit.replace(/\D/g, "")).then(done, done);
   else done();
 });
 window.addEventListener("storage", e => { if (/livraison\.(orders|courier)/.test(e.key || "")) load(); });
 
+// Messagerie de la course : le client, son livreur et le service client
+function openChat() {
+  if (!order) return;
+  Chat.open({ thread: "o:" + order.id, title: t("chOrder", { ref: order.ref }), sub: t("chOrderSub"), me: "client",
+    fetch: () => Store.chatOrder(token), send: (b, i) => Store.chatOrderSend(token, b, i), onClose: checkChat });
+}
+let lastUnread = 0;
+async function checkChat() {
+  if (!order) return;
+  try {
+    const n = Chat.unread(await Store.chatOrder(token), "client")["o:" + order.id] || 0;
+    $("#chatBadge").textContent = n;
+    $("#chatBadge").classList.toggle("hidden", !n);
+    if (n > lastUnread && navigator.vibrate) navigator.vibrate([150, 80, 150]);
+    lastUnread = n;
+  } catch (e) { /* nouvel essai */ }
+}
+$("#chatBtn").addEventListener("click", openChat);
+
 I18N.apply();
 initMap();
-load();
+load().then(checkChat);
 setInterval(load, 10000);
+setInterval(checkChat, 15000);
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;

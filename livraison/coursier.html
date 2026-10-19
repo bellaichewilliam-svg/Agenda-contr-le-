@@ -27,7 +27,7 @@
       console.error(e.message);
     });
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610191506" />
+  <link rel="stylesheet" href="styles.css?v=202610191540" />
 </head>
 <body>
 
@@ -65,7 +65,7 @@
         <legend>1. Vous</legend>
         <div class="fields">
           <label class="f">Nom et prénom<input name="name" required autocomplete="name" /></label>
-          <label class="f">Téléphone (WhatsApp)<input name="phone" type="tel" required autocomplete="tel" /></label>
+          <label class="f">Téléphone<input name="phone" type="tel" required autocomplete="tel" /></label>
           <label class="f">Numéro Bit pour être payé (si différent)<input name="bit_phone" type="tel" /></label>
           <label class="f">Ville où vous travaillez<select name="city" id="citySelect"></select></label>
         </div>
@@ -84,7 +84,7 @@
           <label class="f">Assurance valable jusqu'au<input name="insurance_expiry" type="date" /></label>
           <label class="f">N° d'עוסק (פטור ou מורשה)<input name="business_number" inputmode="numeric" /></label>
         </div>
-        <p class="notice" style="margin-top:12px">Après l'inscription, envoyez en photo sur WhatsApp : permis, carte grise, attestation d'assurance, carte d'identité et attestation d'עוסק. Votre compte est validé après vérification.</p>
+        <p class="notice" style="margin-top:12px">Après l'inscription, envoyez en photo dans l'application : permis, carte grise, attestation d'assurance, carte d'identité et attestation d'עוסק. Votre compte est validé après vérification.</p>
       </fieldset>
       <fieldset>
         <legend>3. Vos engagements</legend>
@@ -108,7 +108,7 @@
       <div style="font-size:48px" id="waitIcon">⏳</div>
       <h2 id="waitTitle">Inscription reçue !</h2>
       <p class="muted" id="waitText" style="margin:8px 0 16px"></p>
-      <a class="btn btn-wa" id="waitWa" target="_blank" rel="noopener">Envoyer mes documents sur WhatsApp</a>
+      <button type="button" class="btn btn-wa" id="waitWa">📷 Envoyer mes documents</button>
       <button class="btn btn-link" id="waitRefresh">↻ Vérifier</button>
     </div>
   </section>
@@ -136,6 +136,7 @@
     </div>
     <div class="toolbar">
       <span class="muted small" id="lastSync"></span>
+      <button class="btn btn-sm btn-wa" id="bossChat">💬 Écrire à HOP <i class="chat-badge hidden" id="bossBadge"></i></button>
       <button class="btn btn-sm" id="notifBtn">🔔 Activer les alertes</button>
     </div>
     <div id="view"></div>
@@ -173,11 +174,12 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610191506"></script>
-<script src="i18n.js?v=202610191506"></script>
-<script src="pricing.js?v=202610191506"></script>
-<script src="store.js?v=202610191506"></script>
-<script src="common.js?v=202610191506"></script>
-<script src="coursier.js?v=202610191506"></script>
+<script src="config.js?v=202610191540"></script>
+<script src="i18n.js?v=202610191540"></script>
+<script src="pricing.js?v=202610191540"></script>
+<script src="store.js?v=202610191540"></script>
+<script src="chat.js?v=202610191540"></script>
+<script src="common.js?v=202610191540"></script>
+<script src="coursier.js?v=202610191540"></script>
 </body>
 </html>

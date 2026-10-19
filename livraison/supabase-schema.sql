@@ -382,7 +382,7 @@ alter table public.orders add column if not exists shop_name text;
 alter table public.orders add column if not exists referrer_id uuid references public.couriers(id);
 alter table public.orders add column if not exists referral_bonus numeric not null default 0;
 alter table public.orders add column if not exists referral_status text not null default 'du';
--- Qui a reçu l'argent du client : le livreur (espèces ou son Bit) ou HOP (payé d'avance, carnet)
+-- Qui a reçu l'argent du client : le livreur (espèces) ou HOP (Bit, payé d'avance, carnet)
 alter table public.orders add column if not exists paid_to text not null default 'livreur';
 -- Clé secrète du commerce, envoyée seulement pour utiliser son carnet (effacée aussitôt)
 alter table public.orders add column if not exists shop_token uuid;
@@ -393,6 +393,7 @@ alter table public.settings add column if not exists wave_seconds int not null d
 alter table public.settings add column if not exists max_debt numeric not null default 50;
 alter table public.settings add column if not exists carnet_unit numeric not null default 20;
 alter table public.settings add column if not exists referral_active_days int not null default 21;
+alter table public.settings add column if not exists deliver_radius int not null default 200;
 create index if not exists orders_referrer_idx on public.orders (referrer_id);
 
 -- Nouvelle commande : IP, offre de bienvenue, et commerce / parrain (jamais fournis par le client)
@@ -413,7 +414,8 @@ begin
     raise exception 'welcome_used';
   end if;
   new.shop_name := null; new.referrer_id := null; new.referral_bonus := 0; new.referral_status := 'du';
-  new.paid_to := case when new.prepaid_required then 'hop' else 'livreur' end;
+  -- Bit (et carnet, courses programmées) : toujours payé à HOP ; le livreur n'encaisse que les espèces
+  new.paid_to := case when new.prepaid_required or new.payment_method in ('bit', 'carnet') then 'hop' else 'livreur' end;
   -- Carnet pro : seulement le commerce lui-même (sa clé secrète), dans Netanya, s'il lui reste des courses
   if new.payment_method = 'carnet' then
     if new.shop_id is null or new.shop_token is null or new.from_city <> 'netanya' or new.to_city <> 'netanya' then
@@ -518,6 +520,50 @@ begin
 end;
 $$;
 
+-- --- Vente d'un carnet pro : reçu (קבלה) numéroté dans la même suite que les courses -----
+create table if not exists public.carnet_sales (
+  id              uuid primary key default gen_random_uuid(),
+  created_at      timestamptz not null default now(),
+  token           uuid not null unique default gen_random_uuid(),
+  shop_id         uuid not null references public.shops(id),
+  courses         int not null,
+  amount          numeric not null,
+  payment_method  text not null default 'bit' check (payment_method in ('bit', 'cash')),
+  receipt_number  int unique,
+  receipt_at      timestamptz
+);
+create index if not exists carnet_sales_shop_idx on public.carnet_sales (shop_id);
+alter table public.carnet_sales enable row level security;
+drop policy if exists "carnets patron" on public.carnet_sales;
+create policy "carnets patron" on public.carnet_sales for select to authenticated using (public.is_admin());
+
+-- Le patron enregistre un carnet payé : reçu + courses ajoutées au commerce, en une fois
+create or replace function public.sell_carnet(p_shop uuid, p_courses int, p_amount numeric, p_method text) returns json
+language plpgsql security definer set search_path = public as $$
+declare r carnet_sales;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  insert into carnet_sales (shop_id, courses, amount, payment_method, receipt_number, receipt_at)
+  values (p_shop, p_courses, p_amount, case when p_method = 'cash' then 'cash' else 'bit' end, nextval('public.receipt_seq'), now())
+  returning * into r;
+  update shops set credits = credits + p_courses where id = p_shop;
+  return json_build_object('token', r.token, 'receipt_number', r.receipt_number);
+end;
+$$;
+
+-- Reçu d'un carnet (lien secret envoyé au commerce)
+create or replace function public.carnet_receipt(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('receipt_number', c.receipt_number, 'receipt_at', c.receipt_at, 'amount', c.amount,
+                           'courses', c.courses, 'payment_method', c.payment_method,
+                           'shop_name', s.name, 'contact_name', s.contact_name, 'phone', s.phone)
+    from carnet_sales c join shops s on s.id = c.shop_id where c.token = p_token;
+$$;
+
+revoke execute on function public.sell_carnet(uuid, int, numeric, text) from public, anon;
+grant execute on function public.sell_carnet(uuid, int, numeric, text) to authenticated;
+grant execute on function public.carnet_receipt(uuid) to anon, authenticated;
+
 -- Infos publiques d'un commerce (pour pré-remplir le départ de la course)
 create or replace function public.shop_public(p_code text) returns json
 language sql stable security definer set search_path = public as $$
@@ -531,6 +577,9 @@ create or replace function public.shop_dashboard(p_token uuid) returns json
 language sql stable security definer set search_path = public as $$
   select json_build_object(
     'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
     'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
         select o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
                o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name
@@ -567,7 +616,9 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- --- Argent : tout est carré --------------------------------------------------------
--- Le livreur n'encaisse jamais une course déjà payée à HOP
+-- Le livreur n'encaisse jamais une course déjà payée à HOP.
+-- « Livré » seulement sur place : sa position GPS (envoyée il y a moins de 3 min) doit être à
+-- moins de deliver_radius mètres de l'adresse de livraison (si l'adresse est connue sur la carte).
 create or replace function public.courier_update(p_id uuid, p_action text) returns boolean
 language plpgsql security definer set search_path = public as $$
 begin
@@ -575,6 +626,13 @@ begin
   if p_action = 'recuperee' then
     update orders set status = 'recuperee' where id = p_id and courier_id = auth.uid() and status = 'confirmee';
   elsif p_action = 'livree' then
+    if exists (select 1 from orders o, couriers c, settings st
+                where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.dropoff_lat is not null
+                  and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                       or 6371000 * sqrt(radians(c.lat - o.dropoff_lat) ^ 2
+                            + (radians(c.lon - o.dropoff_lon) * cos(radians(o.dropoff_lat))) ^ 2) > st.deliver_radius)) then
+      raise exception 'too_far';
+    end if;
     update orders set status = 'livree' where id = p_id and courier_id = auth.uid() and status = 'recuperee';
   elsif p_action = 'paye' then
     update orders set payment_status = 'paye' where id = p_id and courier_id = auth.uid() and paid_to = 'livreur';
@@ -672,6 +730,113 @@ create policy "demandes clients" on public.requests for insert to anon, authenti
 drop policy if exists "demandes patron" on public.requests;
 create policy "demandes patron" on public.requests for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
+
+alter table public.requests add column if not exists device_id text;
+
+-- ============================================================================
+-- MESSAGERIE DANS L'APPLICATION (aucun dialogue par WhatsApp)
+--   o:<course>   client + livreur de la course + patron
+--   u:<appareil> client ↔ patron (service client)
+--   c:<livreur>  livreur ↔ patron
+--   s:<commerce> commerce ↔ patron
+-- Texte et photos (photo réduite, envoyée en data:image/…).
+-- ============================================================================
+create table if not exists public.chat_messages (
+  id           uuid primary key default gen_random_uuid(),
+  created_at   timestamptz not null default now(),
+  thread       text not null check (thread ~ '^[oucs]:[0-9a-f-]{36}$'),
+  author       text not null check (author in ('client', 'courier', 'admin', 'shop', 'system')),
+  author_name  text check (length(author_name) <= 80),
+  body         text check (length(body) <= 2000),
+  image        text check (length(image) <= 700000 and image ~ '^data:image/(jpeg|png|webp);base64,'),
+  check (body is not null or image is not null)
+);
+create index if not exists chat_thread_idx on public.chat_messages (thread, created_at);
+create index if not exists chat_created_idx on public.chat_messages (created_at);
+alter table public.chat_messages enable row level security;
+
+-- Livreur : sa conversation avec le patron (même en attente de validation, pour ses documents)
+-- et celles de ses courses
+create or replace function public.courier_can_chat(p_thread text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from couriers where id = auth.uid())
+     and (p_thread = 'c:' || auth.uid()::text
+          or (public.is_active_courier() and exists (select 1 from orders o where p_thread = 'o:' || o.id::text and o.courier_id = auth.uid())));
+$$;
+
+drop policy if exists "messagerie patron" on public.chat_messages;
+create policy "messagerie patron" on public.chat_messages for all to authenticated
+  using (public.is_admin()) with check (public.is_admin() and author = 'admin');
+drop policy if exists "messagerie livreur lecture" on public.chat_messages;
+create policy "messagerie livreur lecture" on public.chat_messages for select to authenticated
+  using (public.courier_can_chat(thread));
+drop policy if exists "messagerie livreur envoi" on public.chat_messages;
+create policy "messagerie livreur envoi" on public.chat_messages for insert to authenticated
+  with check (author = 'courier' and public.courier_can_chat(thread));
+
+-- Client : la conversation de sa course (jeton secret de la course)
+create or replace function public.chat_order(p_token uuid) returns setof public.chat_messages
+language sql stable security definer set search_path = public as $$
+  select m.* from chat_messages m join orders o on m.thread = 'o:' || o.id::text
+   where o.token = p_token order by m.created_at limit 300;
+$$;
+create or replace function public.chat_order_send(p_token uuid, p_body text, p_image text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into chat_messages (thread, author, author_name, body, image)
+  select 'o:' || id::text, 'client', left(contact_name, 80), nullif(trim(p_body), ''), p_image from orders where token = p_token;
+  return found;
+end;
+$$;
+
+-- Client : service client (identifiant secret de son appareil)
+create or replace function public.chat_support(p_device uuid) returns setof public.chat_messages
+language sql stable security definer set search_path = public as $$
+  select * from chat_messages where thread = 'u:' || p_device::text order by created_at limit 300;
+$$;
+create or replace function public.chat_support_send(p_device uuid, p_name text, p_body text, p_image text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into chat_messages (thread, author, author_name, body, image)
+  values ('u:' || p_device::text, 'client', left(nullif(trim(p_name), ''), 80), nullif(trim(p_body), ''), p_image);
+  return true;
+end;
+$$;
+
+-- Commerce : sa conversation avec le patron (clé secrète du commerce)
+create or replace function public.chat_shop(p_token uuid) returns setof public.chat_messages
+language sql stable security definer set search_path = public as $$
+  select m.* from chat_messages m join shops s on m.thread = 's:' || s.id::text
+   where s.token = p_token order by m.created_at limit 300;
+$$;
+create or replace function public.chat_shop_send(p_token uuid, p_body text, p_image text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into chat_messages (thread, author, author_name, body, image)
+  select 's:' || id::text, 'shop', left(name, 80), nullif(trim(p_body), ''), p_image from shops where token = p_token;
+  return found;
+end;
+$$;
+
+-- Chaque étape de la course s'affiche toute seule dans sa conversation
+create or replace function public.orders_chat_status() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status is distinct from old.status and new.status in ('confirmee', 'recuperee', 'livree', 'refusee', 'annulee') then
+    insert into chat_messages (thread, author, body) values ('o:' || new.id::text, 'system', 'status:' || new.status);
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_chat_status on public.orders;
+create trigger orders_chat_status after update on public.orders
+  for each row execute function public.orders_chat_status();
+
+revoke execute on function public.courier_can_chat(text) from public, anon;
+grant execute on function public.courier_can_chat(text) to authenticated;
+grant execute on function public.chat_order(uuid), public.chat_order_send(uuid, text, text),
+  public.chat_support(uuid), public.chat_support_send(uuid, text, text, text),
+  public.chat_shop(uuid), public.chat_shop_send(uuid, text, text) to anon, authenticated;
 
 -- ============================================================================
 -- MESSAGES DU PATRON AUX LIVREURS (« ça vaut le coup de sortir ! »)

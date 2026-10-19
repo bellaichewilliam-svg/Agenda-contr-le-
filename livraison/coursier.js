@@ -15,6 +15,7 @@ const TERMS = [
   "Mon véhicule est assuré (assurance obligatoire et responsabilité civile / tiers). Je préviens immédiatement si mon assurance change ou expire.",
   "Je travaille comme indépendant : je suis enregistré comme עוסק (פטור ou מורשה), je déclare moi-même mes revenus et je remets un reçu aux clients que j'encaisse.",
   "Je suis responsable des colis qui me sont confiés, de leur état et de l'argent encaissé, de la récupération jusqu'à la livraison.",
+  "Je valide « Livré » seulement une fois sur place, à l'adresse du client : l'application vérifie ma position GPS.",
   "Je respecte le code de la route et les règles de sécurité (casque, pas de téléphone en main en conduisant).",
   `Je verse ${UI.money(COMMISSION)} de commission par course livrée, chaque semaine, par Bit.`,
   "Je suis poli et ponctuel. Si je ne peux plus faire une course acceptée, je la remets en attente tout de suite.",
@@ -102,11 +103,12 @@ async function route() {
     $("#waitIcon").textContent = suspended ? "⛔" : "⏳";
     $("#waitTitle").textContent = suspended ? "Compte suspendu" : `Merci ${me.name}, inscription reçue !`;
     $("#waitText").textContent = suspended
-      ? "Contactez-nous sur WhatsApp pour en savoir plus."
-      : "Envoyez vos documents (permis, carte grise, assurance, carte d'identité, attestation d'עוסק) : votre compte sera validé après vérification.";
-    $("#waitWa").href = UI.waLink(CONFIG.whatsapp, suspended
-      ? `Bonjour, c'est ${me.name} (livreur). Mon compte est suspendu, pouvez-vous m'expliquer ?`
-      : `Bonjour, c'est ${me.name}, je viens de m'inscrire comme livreur. Voici mes documents :`);
+      ? "Écrivez-nous dans l'application pour en savoir plus."
+      : "Envoyez vos documents en photo dans l'application (permis, carte grise, assurance, carte d'identité, attestation d'עוסק) : votre compte sera validé après vérification.";
+    $("#waitWa").textContent = suspended ? "💬 Écrire à HOP" : "📷 Envoyer mes documents";
+    $("#waitWa").onclick = () => openBossChat(suspended
+      ? "Bonjour, mon compte est suspendu, pouvez-vous m'expliquer ?"
+      : "Bonjour, voici mes documents :", !suspended);
     $("#waiting").classList.remove("hidden");
     return;
   }
@@ -163,6 +165,7 @@ async function load() {
   pool().forEach(o => seenPool.add(o.id));
   firstLoad = false;
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  await checkChats();
   render();
 }
 
@@ -191,10 +194,10 @@ function card(o, kind) {
   } else {
     actions = (o.status === "confirmee"
         ? `<button class="btn btn-sm btn-primary" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
-        : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré</button>`)
+        : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
       + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
-      + `<a class="btn btn-sm btn-wa" data-wa="client" target="_blank" rel="noopener" href="${UI.waLink(o.contact_phone, UI.clientMessage(o))}">💬 Client</a>`
-      + (o.leave_at_door && o.status === "recuperee" ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone || o.contact_phone, I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }))}">📷 Photo du dépôt</a>` : "")
+      + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
+      + (o.leave_at_door && o.status === "recuperee" ? `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}" data-photo="1">📷 Photo du dépôt</button>` : "")
       + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
   }
 
@@ -214,7 +217,7 @@ function card(o, kind) {
       <span class="pill">${UI.PAY_FR[o.payment_method] || ""}${o.payer === "destinataire" ? " · payé par le destinataire" : ""}</span>
       <span class="pill paid">Vous gagnez ${UI.money(net + (mineShop ? Number(o.referral_bonus || 0) : 0))}</span>
       ${mineShop ? `<span class="pill star-pill">⭐ Votre commerce${o.shop_name ? " : " + UI.esc(o.shop_name) : ""}${kind === "pool" ? priorityLeft(o) : ""} · +${UI.money(o.referral_bonus || 0)}</span>` : o.shop_name ? `<span class="pill">🏪 Partenaire : ${UI.esc(o.shop_name)}</span>` : ""}
-      ${hopPaid ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${o.payment_status === "paye" ? `✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse ${UI.money(net)}` : "💳 Paiement d'avance à HOP en attente : n'encaissez rien"}</span>` : ""}
+      ${hopPaid ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${o.payment_status === "paye" ? `✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse ${UI.money(net)}` : (o.payment_method === "bit" ? "📱 Le client paie par Bit à HOP : n'encaissez rien" : "💳 Paiement d'avance à HOP en attente : n'encaissez rien")}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
     </div>
     ${o.notes && kind === "mine" ? `<p class="notice" style="margin-top:10px">📝 ${UI.esc(o.notes)}</p>` : ""}
@@ -263,8 +266,8 @@ function render() {
           <tr><td><b>${balance >= 0 ? "Reste à verser" : "HOP! vous verse"}</b></td><td><b>${UI.money(Math.abs(balance))}</b></td></tr>
         </table>
         <p class="muted small" style="margin:10px 0">Le règlement se fait une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Les courses payées d'avance à HOP (courses programmées, carnets pro) et vos bonus de parrainage sont déduits de votre commission. Au-delà de ${UI.money(settings.max_debt)} dus, vous ne recevez plus de nouvelles courses jusqu'au règlement.</p>
-        ${balance > 0 ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Je viens de verser ma commission de ${UI.money(balance)} par Bit (bonus de parrainage déduits).`)}">J'ai payé ma commission</a>` : ""}
-        ${balance < 0 ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Mes bonus de parrainage dépassent ma commission : ${UI.money(-balance)} à recevoir sur mon Bit ${me.bit_phone || me.phone}. Merci !`)}">Demander mon versement</a>` : ""}
+        ${balance > 0 ? `<button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, je viens de verser mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé mon solde</button>` : ""}
+        ${balance < 0 ? `<button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, HOP me doit ${UI.money(-balance)} cette semaine : merci de me les verser sur mon Bit ${me.bit_phone || me.phone}.`)}">Demander mon versement</button>` : ""}
       </div>`;
   } else if (tab === "ref") {
     renderRef(view);
@@ -291,17 +294,81 @@ async function onViewClick(e) {
     const id = el.closest("article").dataset.id;
     if (el.dataset.act === "liberer" && !confirm("Remettre cette course en attente pour un autre livreur ?")) return;
     const o = orders.find(x => x.id === id);
-    const ok = await Store.courierAction(id, el.dataset.act).catch(() => false);
+    // « Livré » : seulement sur place, à l'adresse de livraison (vérifié aussi par la base)
+    if (el.dataset.act === "livree") {
+      el.disabled = true;
+      el.textContent = "📍 Vérification de votre position…";
+      const here = await checkAtDropoff(o);
+      if (!here.ok) { render(); return alert(here.msg); }
+    }
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far/.test(e.message) ? "far" : false);
+    if (ok === "far") { render(); return alert(`📍 Vous n'êtes pas à l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).`); }
     if (!ok) alert("Action impossible, actualisez la page.");
     else if (el.dataset.act === "livree" && o && o.paid_to !== "hop" && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(o.price)} ?`)) {
       await Store.courierAction(id, "paye").catch(() => alert("Encaissement non enregistré, réessayez."));
     }
     await load();
-    if (["recuperee", "livree"].includes(el.dataset.act)) {
-      const a = document.querySelector(`article[data-id="${id}"] [data-wa="client"]`);
-      if (a) a.style.outline = "3px solid var(--brand)";
-    }
   }
+}
+
+// --- Messagerie : avec HOP, et avec le client de chaque course -------------------------------
+let chatUnread = {};
+let chatTotal = 0;
+function openBossChat(prefill, photo) {
+  Chat.open({ thread: "c:" + me.id, title: "💬 HOP! · le patron", sub: "Vos messages avec HOP", me: "courier", lang: "fr", prefill, photo,
+    fetch: () => Store.chatThread("c:" + me.id), send: (b, i) => Store.chatSend("c:" + me.id, "courier", me.name, b, i), onClose: checkChats });
+}
+function openOrderChat(o, photo) {
+  Chat.open({ thread: "o:" + o.id, title: `Course n° ${o.ref}`, sub: `${o.contact_name || "Client"} · ${o.lang === "he" ? "parle hébreu 🇮🇱" : "parle français 🇫🇷"} · HOP voit aussi`,
+    me: "courier", lang: "fr", photo,
+    prefill: photo ? I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }) : "",
+    fetch: () => Store.chatThread("o:" + o.id), send: (b, i) => Store.chatSend("o:" + o.id, "courier", me.name, b, i), onClose: checkChats });
+}
+// Messages non lus : pastilles, son et notification à l'arrivée
+async function checkChats() {
+  if (!me) return;
+  let recent;
+  try { recent = await Store.chatRecent(); } catch (e) { return; }
+  chatUnread = Chat.unread(recent, "courier");
+  const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
+  const boss = chatUnread["c:" + me.id] || 0;
+  $("#bossBadge").textContent = boss;
+  $("#bossBadge").classList.toggle("hidden", !boss);
+  if (total > chatTotal && Chat.openThread == null) {
+    beep();
+    if (window.Notification && Notification.permission === "granted") new Notification("💬 Nouveau message", { body: "Ouvrez votre espace livreur pour répondre." });
+  }
+  chatTotal = total;
+}
+
+// --- « Livré » seulement sur place ---------------------------------------------------------
+const deliverRadius = () => Number(settings.deliver_radius || CONFIG.platform.deliverRadius);
+function currentPos() {
+  if (!navigator.geolocation) return Promise.reject(new Error("nogeo"));
+  // En service : la position suivie en continu, si elle a moins de 20 s
+  if (duty.watch != null && lastPos && Date.now() - lastPos.at < 20000) return Promise.resolve({ coords: { latitude: lastPos.lat, longitude: lastPos.lon } });
+  const ask = opts => new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("timeout")), opts.timeout + 1000);
+    navigator.geolocation.getCurrentPosition(p => { clearTimeout(timer); resolve(p); }, e => { clearTimeout(timer); reject(e); }, opts);
+  });
+  // GPS précis d'abord, sinon la position réseau récente
+  return ask({ enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 })
+    .catch(() => ask({ enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }));
+}
+async function checkAtDropoff(o) {
+  if (!o || o.dropoff_lat == null) return { ok: true };
+  let p;
+  try { p = await currentPos(); }
+  catch (e) { return { ok: false, msg: "📍 Activez la localisation de votre téléphone : la livraison ne peut être validée que sur place, à l'adresse du client." }; }
+  lastPos = { lat: p.coords.latitude, lon: p.coords.longitude, at: Date.now() };
+  // La base vérifie la dernière position envoyée : on l'envoie tout de suite
+  try { await Store.ping(lastPos.lat, lastPos.lon); duty.lastSent = Date.now(); } catch (e) { /* la base refusera si besoin */ }
+  const m = Pricing.haversineKm(lastPos, { lat: Number(o.dropoff_lat), lon: Number(o.dropoff_lon) }) * 1000;
+  if (m > deliverRadius()) {
+    const d = m < 1000 ? `${Math.round(m)} m` : `${(m / 1000).toFixed(1)} km`;
+    return { ok: false, msg: `📍 Vous êtes à ${d} de l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).` };
+  }
+  return { ok: true };
 }
 
 // --- Solde : au-delà du plafond, plus de nouvelles courses jusqu'au règlement -------------
@@ -311,7 +378,7 @@ function renderLock() {
   box.classList.toggle("hidden", !locked());
   if (!locked()) return;
   box.innerHTML = `<div><b>🔒 Vous devez ${UI.money(balance)} à HOP</b><br><span class="small">Réglez par Bit au ${UI.esc(CONFIG.bitPhone)} pour recevoir à nouveau des courses (plafond ${UI.money(settings.max_debt)}).</span></div>
-    <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, `Bonjour, c'est ${me.name}. Je viens de régler mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé</a>`;
+    <button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, je viens de régler mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé</button>`;
 }
 
 // --- Parrainage des commerces ------------------------------------------------------------
@@ -470,6 +537,12 @@ async function onReply(el) {
 function onWorkClick(e) {
   const el = e.target.closest("button");
   if (!el) return;
+  if (el.dataset.boss) return openBossChat(el.dataset.boss);
+  if (el.dataset.chat) {
+    const o = orders.find(x => x.id === el.dataset.chat);
+    if (o) openOrderChat(o, !!el.dataset.photo);
+    return;
+  }
   if (el.dataset.reply) return onReply(el);
   if (el.dataset.copy) {
     navigator.clipboard && navigator.clipboard.writeText(el.dataset.copy).then(() => { el.textContent = "✓ Copié"; }, () => {});
@@ -529,7 +602,8 @@ function showNextOffer() {
     `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
     toPickup != null ? `🛵 À ≈ ${toPickup.toFixed(1)} km de vous` : "",
     `🕐 ${UI.esc(when)}`,
-    o.paid_to === "hop" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant" : "",
+    o.paid_to === "hop" ? (o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
+      : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant") : "💵 Espèces : vous encaissez le client",
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`
   ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
   $("#offerModal").classList.remove("hidden");
@@ -566,7 +640,7 @@ async function acceptOffer() {
 const duty = { watch: null, lastSent: 0, wakeLock: null };
 
 async function sendPosition(pos) {
-  lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+  lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, at: Date.now() };
   if (Date.now() - duty.lastSent < 15000) return;
   duty.lastSent = Date.now();
   try {
@@ -607,6 +681,7 @@ $("#waitRefresh").addEventListener("click", route);
 $("#tabs").addEventListener("click", e => { if (e.target.dataset.tab) { tab = e.target.dataset.tab; render(); } });
 $("#view").addEventListener("click", onViewClick);
 $("#work").addEventListener("click", onWorkClick);
+$("#bossChat").addEventListener("click", () => openBossChat());
 $("#msgModal").addEventListener("click", e => { const el = e.target.closest("button"); if (el && el.dataset.reply) onReply(el); });
 $("#msgClose").addEventListener("click", () => $("#msgModal").classList.add("hidden"));
 $("#dutyBtn").addEventListener("click", toggleDuty);
