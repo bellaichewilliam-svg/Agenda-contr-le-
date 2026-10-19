@@ -13,7 +13,8 @@ const LS = {
   profile: "livraison.profile.v1",
   couriers: "livraison.couriers.v1",
   settings: "livraison.settings.v1",
-  pendingCourier: "livraison.pendingCourier.v1"
+  pendingCourier: "livraison.pendingCourier.v1",
+  addresses: "livraison.addresses.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -170,6 +171,18 @@ async function trackOrder(token) {
 }
 
 function getProfile() { return readJSON(LS.profile, {}); }
+
+// Carnet d'adresses du client (sur son téléphone), les plus utilisées en premier
+function getAddresses() { return readJSON(LS.addresses, []); }
+function saveAddress(a) {
+  const key = [a.street, a.number, a.city, a.apt].join("|").toLowerCase();
+  const list = getAddresses().filter(x => [x.street, x.number, x.city, x.apt].join("|").toLowerCase() !== key);
+  const old = getAddresses().find(x => [x.street, x.number, x.city, x.apt].join("|").toLowerCase() === key);
+  list.unshift(Object.assign({}, a, { uses: ((old && old.uses) || 0) + 1, at: Date.now() }));
+  list.sort((x, y) => (y.uses - x.uses) || (y.at - x.at));
+  writeJSON(LS.addresses, list.slice(0, 8));
+}
+function deleteAddress(i) { const list = getAddresses(); list.splice(i, 1); writeJSON(LS.addresses, list); }
 function saveProfile(p) { writeJSON(LS.profile, p); }
 
 // --- Connexion (patron et livreurs) ---------------------------------------------
@@ -347,7 +360,7 @@ async function settleOrders(ids) {
 window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
-  createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile,
+  createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, ping,
   listCouriers, updateCourier, settleOrders

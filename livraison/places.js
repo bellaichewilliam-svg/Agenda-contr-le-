@@ -141,6 +141,8 @@ function attach(input, opts) {
 
   return {
     isPicked: () => !!input.dataset.picked,
+    // Adresse reprise du carnet : considérée comme choisie sur la carte
+    setPicked(label) { input.value = label; input.dataset.picked = label; input.classList.add("ac-ok"); close(); },
     reset() { delete input.dataset.picked; input.classList.remove("ac-ok"); close(); }
   };
 }

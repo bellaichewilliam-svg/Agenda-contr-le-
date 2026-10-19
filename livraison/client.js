@@ -357,6 +357,84 @@ function attachPlaces() {
   });
 }
 
+// --- Carnet d'adresses et compte client (enregistrés sur le téléphone) -----------------
+const DETAIL = ["floor", "apt", "code"];
+const prefixOf = which => (which === "from" ? "pickup" : "dropoff");
+
+function addrLabel(a) {
+  const city = cityLabel(a.cityId || a.city);
+  return [a.brand, `${a.street} ${a.number}`.trim(), city].filter(Boolean).join(", ") + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : "");
+}
+
+function renderSavedAddrs() {
+  const list = Store.getAddresses();
+  document.querySelectorAll(".saved-addrs").forEach(box => {
+    box.classList.toggle("hidden", !list.length);
+    box.innerHTML = list.length ? `<small>${UI.esc(t("savedTitle"))}</small>` + list.slice(0, 5).map((a, i) =>
+      `<button type="button" class="addr-chip" data-addr="${i}">${a.brand ? "🏪" : "📍"} ${UI.esc(addrLabel(a))}</button>`).join("") : "";
+  });
+}
+
+function applySavedAddr(which, a) {
+  const pre = prefixOf(which);
+  const label = [a.brand, a.street, cityLabel(a.cityId || a.city)].filter(Boolean).join(", ");
+  const sel = form.elements[which + "_city"];
+  if (a.cityId) sel.value = a.cityId; else { sel.value = OTHER; form.elements[which + "_other"].value = a.city || ""; }
+  form.elements[pre + "_number"].value = a.number || "";
+  DETAIL.forEach(k => { form.elements[pre + "_" + k].value = a[k] || ""; });
+  form.elements[pre + "_note"].value = a.note || "";
+  state.pick[which] = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, label, exact: a.exact };
+  state[which + "Point"] = a.lat != null ? { lat: a.lat, lon: a.lon } : null;
+  if (ac[which]) ac[which].setPicked(label);
+  syncVisibility();
+  renderQuote();
+}
+
+function rememberAddresses(o, pf, pt) {
+  const save = (which, p, cityId) => {
+    const pre = prefixOf(which);
+    const number = val(pre + "_number").trim();
+    Store.saveAddress({
+      street: p ? (p.streetName || p.brand || "") : val(pre + "_address").trim().replace(/\s+\d+[^\s,]*$/, ""),
+      number, brand: p ? p.brand : null, city: p ? p.city || cityId : cityId,
+      cityId: CONFIG.cities.some(c => c.id === cityId) ? cityId : null,
+      lat: o[pre + "_lat"], lon: o[pre + "_lon"], exact: o[pre + "_exact"],
+      floor: o[pre + "_floor"], apt: o[pre + "_apt"], code: o[pre + "_code"], note: o[pre + "_note"]
+    });
+  };
+  save("from", pf, o.from_city);
+  save("to", pt, o.to_city);
+}
+
+function isReturning() {
+  const p = Store.getProfile();
+  return !!(p.contact_name && phoneOk(p.contact_phone));
+}
+
+// Client connu : ses coordonnées sont repliées en une ligne « Marc · 052-… ✏️ »
+function renderAccount() {
+  const p = Store.getProfile();
+  const known = isReturning();
+  $("#navMine").textContent = known ? t("hello", { name: p.contact_name.split(" ")[0] }) : t("navMine");
+  const editing = $("#coordsBox").dataset.editing === "1";
+  $("#coordsSummary").classList.toggle("hidden", !known || editing);
+  $("#coordsFields").classList.toggle("hidden", known && !editing);
+  $("#coordsText").textContent = known ? `${p.contact_name} · ${p.contact_phone}${p.company ? " · " + p.company : ""}` : "";
+
+  const card = $("#accountCard");
+  card.classList.toggle("hidden", !known);
+  if (!known) return;
+  const addrs = Store.getAddresses();
+  card.innerHTML = `<h3>${UI.esc(t("accTitle"))}</h3>
+    <p class="muted small">${UI.esc(t("accSaved"))}</p>
+    <p style="margin-top:8px"><b>${UI.esc(p.contact_name)}</b> · <span dir="ltr">${UI.esc(p.contact_phone)}</span>${p.contact_email ? " · " + UI.esc(p.contact_email) : ""}
+      · ${UI.esc(t("accOrders", { n: activeOrders().length }))}</p>
+    <b style="display:block;margin-top:10px">${UI.esc(t("accAddrs"))}</b>
+    ${addrs.length ? `<ul>${addrs.map((a, i) => `<li><span>${a.brand ? "🏪" : "📍"} ${UI.esc(addrLabel(a))}</span>
+        <button type="button" class="btn btn-sm btn-link" data-del-addr="${i}">✕ ${UI.esc(t("accDelete"))}</button></li>`).join("")}</ul>`
+      : `<p class="muted small">${UI.esc(t("accNoAddr"))}</p>`}`;
+}
+
 function resetPlaces() {
   ["from", "to"].forEach(w => { state.pick[w] = null; if (ac[w]) ac[w].reset(); });
 }
@@ -364,7 +442,7 @@ function resetPlaces() {
 // Coordonnées exactes de « rue + numéro » choisis (sinon celles de la rue)
 async function exactPoint(p, number, cityName) {
   if (!p) return null;
-  if (p.housenumber && p.housenumber === number) return { lat: p.lat, lon: p.lon, exact: true };
+  if (p.housenumber && p.housenumber === number) return { lat: p.lat, lon: p.lon, exact: p.exact !== false };
   if (p.streetName) {
     try {
       const list = await Places.search(`${p.streetName} ${number} ${cityName}`, I18N.lang);
@@ -438,6 +516,9 @@ async function submit(e) {
       from_city: fromCity,
       pickup_address: pAddr,
       pickup_place: pf ? pf.brand : null,
+      pickup_floor: svc !== "retrait" ? val("pickup_floor").trim() || null : null,
+      pickup_apt: svc !== "retrait" ? val("pickup_apt").trim() || null : null,
+      pickup_code: svc !== "retrait" ? val("pickup_code").trim() || null : null,
       pickup_exact: !!(pick && pick.exact),
       pickup_note: val("pickup_note").trim() || null,
       pickup_lat: pick ? pick.lat : null, pickup_lon: pick ? pick.lon : null,
@@ -452,6 +533,10 @@ async function submit(e) {
       to_city: toCity,
       dropoff_address: dAddr,
       dropoff_place: pt ? pt.brand : null,
+      dropoff_floor: val("dropoff_floor").trim() || null,
+      dropoff_apt: val("dropoff_apt").trim() || null,
+      dropoff_code: val("dropoff_code").trim() || null,
+      leave_at_door: form.leave_at_door.checked,
       dropoff_exact: !!(drop && drop.exact),
       dropoff_note: val("dropoff_note").trim() || null,
       dropoff_lat: drop ? drop.lat : null, dropoff_lon: drop ? drop.lon : null,
@@ -472,7 +557,11 @@ async function submit(e) {
       contact_phone: formatPhone(val("contact_phone").trim()),
       contact_email: val("contact_email").trim() || null
     };
+    const firstOrder = activeOrders().length === 0;
     const saved = await Store.createOrder(order);
+    rememberAddresses(saved, pf, pt);
+    $("#doneAccount").textContent = t("doneAccount");
+    $("#doneAccount").classList.toggle("hidden", !firstOrder);
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
 
     $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(saved.price) }));
@@ -483,11 +572,14 @@ async function submit(e) {
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_contact", "dropoff_phone"]
+    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     state.promo = null;
     $("#promoMsg").textContent = "";
     resetPlaces();
+    form.leave_at_door.checked = false;
+    $("#coordsBox").dataset.editing = "";
+    renderSavedAddrs();
     await loadMine();
   } catch (ex) {
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
@@ -504,6 +596,7 @@ async function loadMine() {
   renderMine();
   renderQuote();
   renderQuick();
+  renderAccount();
 }
 
 function renderClub() {
@@ -575,6 +668,8 @@ function renderAll() {
   syncVisibility();
   renderQuote();
   renderMine();
+  renderSavedAddrs();
+  renderAccount();
 }
 
 async function loadSettings() {
@@ -639,6 +734,20 @@ $("#quickGo").addEventListener("click", () => {
   renderQuote();
   $("#commander").scrollIntoView({ behavior: "smooth" });
   setTimeout(() => form.pickup_address.focus({ preventScroll: true }), 600);
+});
+document.querySelectorAll(".saved-addrs").forEach(box => box.addEventListener("click", e => {
+  const b = e.target.closest("[data-addr]");
+  if (!b) return;
+  const a = Store.getAddresses()[Number(b.dataset.addr)];
+  if (a) applySavedAddr(box.dataset.for, a);
+}));
+$("#coordsEdit").addEventListener("click", () => { $("#coordsBox").dataset.editing = "1"; renderAccount(); form.contact_name.focus(); });
+$("#accountCard").addEventListener("click", e => {
+  const b = e.target.closest("[data-del-addr]");
+  if (!b) return;
+  Store.deleteAddress(Number(b.dataset.delAddr));
+  renderSavedAddrs();
+  renderAccount();
 });
 let quickWhen = "now";
 document.querySelector(".seg").addEventListener("click", e => {

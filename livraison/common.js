@@ -79,6 +79,7 @@ function whenFr(o) {
 function orderText(o) {
   const L = [`📦 Commande ${o.ref} — ${SERVICE_FR[o.service]}`, `🕐 ${whenFr(o)}`, ``];
   L.push(`📍 ${o.service === "retrait" ? PLACE_FR[o.place_kind] || "Récupération" : "Récupération"} : ${o.pickup_place ? "🏪 " + o.pickup_place + ", " : ""}${o.pickup_address}, ${cityFr(o.from_city)}`);
+  if (addrDetailsText(o, "pickup")) L.push(`   🏢 ${addrDetailsText(o, "pickup")}`);
   if (o.pickup_note) L.push(`   📝 ${o.pickup_note}`);
   if (o.pickup_contact || o.pickup_phone) L.push(`   ${[o.pickup_contact, o.pickup_phone].filter(Boolean).join(" · ")}`);
   if (o.service === "retrait") {
@@ -91,7 +92,9 @@ function orderText(o) {
     if (o.budget) L.push(`   Budget : ${money(o.budget)} (avancé, remboursé à la livraison)`);
   }
   L.push(`🏁 Livraison : ${o.dropoff_place ? "🏪 " + o.dropoff_place + ", " : ""}${o.dropoff_address}, ${cityFr(o.to_city)}`);
+  if (addrDetailsText(o, "dropoff")) L.push(`   🏢 ${addrDetailsText(o, "dropoff")}`);
   if (o.dropoff_note) L.push(`   📝 ${o.dropoff_note}`);
+  if (o.leave_at_door) L.push(`   🚪 DÉPOSER DEVANT LA PORTE (sans contact) + photo au client`);
   if (o.dropoff_contact || o.dropoff_phone) L.push(`   ${[o.dropoff_contact, o.dropoff_phone].filter(Boolean).join(" · ")}`);
   L.push(``, `${SIZE_FR[o.size] || o.size}${o.round_trip ? " · aller-retour" : ""}${o.extra_stops ? ` · +${o.extra_stops} arrêt(s)` : ""}`);
   if (o.notes) L.push(`📝 ${o.notes}`);
@@ -140,13 +143,33 @@ function fmtKey(key) {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
 }
 
+// Étage / appartement / code d'une adresse, en texte (pour WhatsApp et l'agenda)
+function addrDetailsText(o, which) {
+  const p = [];
+  if (o[which + "_floor"]) p.push(`étage ${o[which + "_floor"]}`);
+  if (o[which + "_apt"]) p.push(`appt ${o[which + "_apt"]}`);
+  if (o[which + "_code"]) p.push(`code ${o[which + "_code"]}`);
+  return p.join(" · ");
+}
+function addrDetails(o, which, lang) {
+  const t = k => window.I18N ? I18N.forLang(lang || "fr", k) : k;
+  const p = [];
+  if (o[which + "_floor"]) p.push(`<span><small>${esc(t("floor"))}</small><b>${esc(o[which + "_floor"])}</b></span>`);
+  if (o[which + "_apt"]) p.push(`<span><small>${esc(t("apt"))}</small><b>${esc(o[which + "_apt"])}</b></span>`);
+  if (o[which + "_code"]) p.push(`<span><small>${esc(t("entryCode"))}</small><b dir="ltr">${esc(o[which + "_code"])}</b></span>`);
+  return p.length ? `<div class="addr-details">${p.join("")}</div>` : "";
+}
+function doorTag(o, lang) {
+  return o.leave_at_door ? `<div class="door-tag">${esc(window.I18N ? I18N.forLang(lang || "fr", "doorTag") : "🚪")}</div>` : "";
+}
+
 // Remarque sur une adresse (étage, code…), affichée sous l'adresse
 // Nom de l'enseigne (Super-Pharm, restaurant…) au-dessus de l'adresse
 function brand(name) { return name ? `<span class="brand-tag">🏪 <bdi>${esc(name)}</bdi></span>` : ""; }
 function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)}</div>` : ""; }
 
 window.UI = {
-  addrNote, brand,
+  addrNote, brand, addrDetails, addrDetailsText, doorTag,
   receiptUrl, referralCode, clientMessage, weekStart, addDays, fmtKey,
   esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
