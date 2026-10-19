@@ -137,6 +137,8 @@ const DEFAULT_SETTINGS = {
   carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
   referral_active_days: CONFIG.partners.activeDays,
   deliver_radius: CONFIG.platform.deliverRadius,
+  wait_free_min: CONFIG.pricing.waiting.freeMinutes, wait_step_min: CONFIG.pricing.waiting.stepMinutes,
+  wait_step_price: CONFIG.pricing.waiting.stepPrice, wait_max: CONFIG.pricing.waiting.max,
   commission_pct: CONFIG.platform.commissionPercent, commission_min: CONFIG.platform.commissionPerCourse
 };
 
@@ -288,6 +290,7 @@ async function login(email, password) {
   const pending = readJSON(LS.pendingCourier, null);
   if (pending && pending.email === email.toLowerCase() && !(await me())) {
     await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, pending.profile, { id: data.user.id }), prefer: "return=minimal" });
+    if (pending.topcase) await sendTopcase(pending.topcase).catch(() => {});
     removeKey(LS.pendingCourier);
   }
 }
@@ -304,13 +307,14 @@ async function me() {
 }
 
 // Inscription d'un livreur (en attente de validation)
-async function signupCourier(email, password, profile) {
+async function signupCourier(email, password, profile, topcase) {
   email = email.toLowerCase();
   profile = Object.assign({}, profile, { accepted_terms_at: new Date().toISOString() });
   if (!ONLINE) {
     const list = localCouriers();
     if (list.some(c => c.email === email)) throw new Error("Un compte existe déjà avec cet email.");
-    const c = Object.assign({ id: uuid(), email, password, role: "coursier", status: "en_attente", created_at: new Date().toISOString() }, profile);
+    const c = Object.assign({ id: uuid(), email, password, role: "coursier", status: "en_attente", created_at: new Date().toISOString() }, profile,
+      topcase ? { topcase, topcase_at: new Date().toISOString() } : {});
     list.push(c);
     writeJSON(LS.couriers, list);
     writeJSON(sessionKey, { demo: true, user_id: c.id });
@@ -320,11 +324,12 @@ async function signupCourier(email, password, profile) {
     .catch(e => { throw new Error(/registered|exists/i.test(e.message) ? "Un compte existe déjà avec cet email." : "Inscription impossible : " + e.message); });
   if (!data.access_token) {
     // Supabase demande de confirmer l'email : la fiche sera créée à la 1re connexion
-    writeJSON(LS.pendingCourier, { email, profile });
+    writeJSON(LS.pendingCourier, { email, profile, topcase });
     return { needsConfirmation: true };
   }
   writeJSON(sessionKey, { access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id });
   await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, profile, { id: data.user.id }), prefer: "return=minimal" });
+  if (topcase) await sendTopcase(topcase);
   return { needsConfirmation: false };
 }
 
@@ -470,7 +475,22 @@ async function courierAction(id, action) {
   const o = all.find(x => x.id === id && x.courier_id === myId());
   if (!o) return false;
   const was = o.status;
-  if (action === "recuperee" && o.status === "confirmee") o.status = "recuperee";
+  const st = await getSettings();
+  const cr = localCouriers().find(x => x.id === myId());
+  const freeOf = () => o.unlocked || (cr && cr.unlocked_until && new Date(cr.unlocked_until) > new Date());
+  if (action === "arrivee" && o.status === "confirmee" && !o.arrived_at) {
+    // Même règle qu'en ligne : au départ seulement (le compteur d'attente démarre)
+    if (!freeOf() && o.pickup_lat != null && (!cr || cr.lat == null || Date.now() - new Date(cr.position_at) > 180000
+      || Pricing.haversineKm({ lat: cr.lat, lon: cr.lon }, { lat: o.pickup_lat, lon: o.pickup_lon }) * 1000 > Number(st.deliver_radius) * 1.5)) {
+      throw new Error("too_far_pickup");
+    }
+    o.arrived_at = new Date().toISOString();
+    chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:arrivee" });
+  } else if (action === "recuperee" && o.status === "confirmee") {
+    const w = waitFee(o, st);
+    Object.assign(o, { status: "recuperee", wait_minutes: w.mins, wait_fee: w.fee, price: Number(o.price) + w.fee });
+    if (w.fee > 0 && o.payment_status === "paye") o.payment_status = "en_attente";
+  }
   else if (action === "livree" && o.status === "recuperee") {
     // Même règle qu'en ligne : sur place seulement (position de moins de 3 min, dans le rayon)
     const c = localCouriers().find(x => x.id === myId());
@@ -490,6 +510,14 @@ async function courierAction(id, action) {
   chatStatus(o, was);
   saveLocalOrders(all);
   return true;
+}
+
+// Supplément d'attente / d'achats (même calcul qu'en ligne)
+function waitFee(o, st) {
+  if (!o.arrived_at) return { mins: 0, fee: 0 };
+  const mins = Math.floor((Date.now() - new Date(o.arrived_at)) / 60000);
+  const fee = Math.min(Number(st.wait_max), Math.ceil(Math.max(0, mins - Number(st.wait_free_min)) / Number(st.wait_step_min)) * Number(st.wait_step_price));
+  return { mins, fee };
 }
 
 // Livreur : en ligne / hors ligne
@@ -593,7 +621,21 @@ async function ping(lat, lon) {
 // --- Gestion des livreurs (patron) ------------------------------------------------
 async function listCouriers() {
   if (ONLINE) return authRest("/rest/v1/couriers?select=*&order=created_at.desc");
-  return localCouriers().map(c => { const x = Object.assign({}, c); delete x.password; return x; });
+  return localCouriers().map(c => { const x = Object.assign({}, c); delete x.password; delete x.topcase; return x; });
+}
+
+// Photo du top case : le livreur l'envoie (ou la remplace), le patron l'ouvre à la demande
+async function sendTopcase(dataUrl) {
+  if (ONLINE) return authRest("/rest/v1/courier_photos", { method: "POST", body: { courier_id: myId(), topcase: dataUrl }, prefer: "resolution=merge-duplicates,return=minimal" });
+  const list = localCouriers();
+  const c = list.find(x => x.id === myId());
+  if (c) Object.assign(c, { topcase: dataUrl, topcase_at: new Date().toISOString() });
+  writeJSON(LS.couriers, list);
+}
+async function courierTopcase(id) {
+  if (ONLINE) { const r = await authRest(`/rest/v1/courier_photos?courier_id=eq.${encodeURIComponent(id)}&select=topcase,created_at`); return r && r[0] ? r[0].topcase : null; }
+  const c = localCouriers().find(x => x.id === id);
+  return c ? c.topcase || null : null;
 }
 
 async function updateCourier(id, changes) {
@@ -882,7 +924,7 @@ window.Store = {
   useSpace, session, login, logout, me, signupCourier,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, myAcceptance, demandForecast, commissionFor,
-  couriersNearby, rateOrder, shopsDirectory,
+  couriersNearby, rateOrder, shopsDirectory, sendTopcase, courierTopcase, waitFee,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,

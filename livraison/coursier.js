@@ -53,6 +53,29 @@ function showAuth(which) {
   $("#loginForm").style.display = which === "login" ? "" : "none";
 }
 
+// Photo du top case : réduite sur le téléphone avant l'envoi
+let signupTopcase = null;
+async function readTopcase(file) {
+  try { return await Chat.compress(file); }
+  catch (e) { alert(e.message === "too_big" ? "Photo trop lourde : reprenez-la de plus près." : "Cette image ne s'ouvre pas : essayez une autre photo."); return null; }
+}
+async function onTopcasePicked(e) {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  signupTopcase = await readTopcase(f);
+  $("#topcasePreview").classList.toggle("hidden", !signupTopcase);
+  if (signupTopcase) { $("#topcasePreview").src = signupTopcase; $("#topcaseLabel").textContent = "✅ Photo ajoutée · la changer"; }
+}
+async function onWaitTopcase(e) {
+  const f = e.target.files[0];
+  e.target.value = "";
+  if (!f) return;
+  const data = await readTopcase(f);
+  if (!data) return;
+  try { await Store.sendTopcase(data); route(); } catch (ex) { alert("Photo non envoyée, vérifiez la connexion."); }
+}
+
 async function onSignup(e) {
   e.preventDefault();
   const f = e.target;
@@ -60,6 +83,8 @@ async function onSignup(e) {
   err("");
   if (!f.reportValidity()) return;
   const v = k => f.elements[k].value.trim();
+  // Photo du top case obligatoire
+  if (!signupTopcase) { err("📷 Ajoutez la photo de votre top case (la caisse sur votre scooter) : elle est obligatoire."); $(".topcase-f").scrollIntoView({ behavior: "smooth", block: "center" }); return; }
   const profile = {
     name: v("name"), phone: v("phone"), bit_phone: v("bit_phone") || null, city: v("city"), vehicle: v("vehicle"),
     license_number: v("license_number") || null, license_expiry: v("license_expiry") || null,
@@ -67,7 +92,7 @@ async function onSignup(e) {
     business_number: v("business_number") || null
   };
   try {
-    const r = await Store.signupCourier(v("email"), f.password.value, profile);
+    const r = await Store.signupCourier(v("email"), f.password.value, profile, signupTopcase);
     if (r.needsConfirmation) {
       showAuth("login");
       $("#loginError").textContent = "Inscription enregistrée ! Confirmez votre email (lien reçu par mail), puis connectez-vous ici.";
@@ -107,6 +132,7 @@ async function route() {
       ? "Écrivez-nous dans l'application pour en savoir plus."
       : "Envoyez vos documents en photo dans l'application (permis, carte grise, assurance, carte d'identité, attestation d'עוסק) : votre compte sera validé après vérification.";
     $("#waitWa").textContent = suspended ? "💬 Écrire à HOP" : "📷 Envoyer mes documents";
+    $("#waitTopcase").classList.toggle("hidden", suspended || !!me.topcase_at);
     $("#waitWa").onclick = () => openBossChat(suspended
       ? "Bonjour, mon compte est suspendu, pouvez-vous m'expliquer ?"
       : "Bonjour, voici mes documents :", !suspended);
@@ -200,6 +226,9 @@ function card(o, kind) {
   let extra = "";
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")} · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌"}` : ""}</div>`;
   if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ${UI.money(o.budget)} à avancer` : ""}</div>`;
+  // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
+  extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
+    : kind === "pool" || o.status === "confirmee" ? `<div class="small muted">⏱️ Attente ou achats sur place : ${UI.esc(UI.waitRule(settings))}, pour vous</div>` : "";
   const net = Number(o.price) - (kind === "pool" ? Store.commissionFor(o.price, settings) : Number(o.commission || 0));
   const mineShop = o.referrer_id && o.referrer_id === me.id;
   const hopPaid = o.paid_to === "hop";
@@ -210,8 +239,13 @@ function card(o, kind) {
       : busy() ? `<span class="pill st-annulee">🔒 Livrez d'abord votre course en cours</span>`
       : `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button><button class="btn" data-decline="${UI.esc(o.id)}">✖ Refuser</button>`;
   } else {
+    // Au départ : « Je suis arrivé » lance le compteur d'attente (payée au-delà des minutes offertes)
+    const w = Store.waitFee(o, settings);
     actions = (o.status === "confirmee"
-        ? `<button class="btn btn-sm btn-primary" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
+        ? (o.arrived_at
+            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : ` · ${Math.max(0, Number(settings.wait_free_min) - w.mins)} min encore offertes`}</p>`
+            : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
+          + `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
@@ -344,6 +378,16 @@ async function onViewClick(e) {
     const id = el.closest("article").dataset.id;
     if (el.dataset.act === "liberer" && !confirm("Remettre cette course en attente pour un autre livreur ?")) return;
     const o = orders.find(x => x.id === id);
+    // « Je suis arrivé » : la base vérifie la dernière position, on l'envoie tout de suite
+    if (el.dataset.act === "arrivee" && !o.unlocked && !freeNow()) {
+      el.disabled = true;
+      el.textContent = "📍 Vérification de votre position…";
+      try {
+        const p = await currentPos();
+        lastPos = { lat: p.coords.latitude, lon: p.coords.longitude, at: Date.now() };
+        await Store.ping(lastPos.lat, lastPos.lon); duty.lastSent = Date.now();
+      } catch (e) { /* la base refusera si besoin */ }
+    }
     // « Livré » : seulement sur place, à l'adresse de livraison (vérifié aussi par la base)
     if (el.dataset.act === "livree") {
       el.disabled = true;
@@ -354,7 +398,8 @@ async function onViewClick(e) {
         if (o.leave_at_door && !(await hasDoorPhoto(o))) { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : false);
+    if (ok === "farpick") { render(); return alert("📍 Vous n'êtes pas encore au point de récupération : appuyez sur « Je suis arrivé » une fois sur place (le compteur d'attente démarre à ce moment-là)."); }
     if (ok === "photo") { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
     if (ok === "far") { render(); return alert(`📍 Vous n'êtes pas à l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).`); }
     if (!ok) alert("Action impossible, actualisez la page.");
@@ -759,7 +804,8 @@ function showNextOffer() {
     `🕐 ${UI.esc(when)}`,
     o.paid_to === "hop" ? (o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
       : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant") : "💵 Espèces : vous encaissez le client",
-    `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`
+    `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
+    `⏱️ Attente / achats payés : ${UI.esc(UI.waitRule(settings))}`
   ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
   $("#offerModal").classList.remove("hidden");
   // 40 secondes pour répondre, ensuite la course est proposée à un autre livreur
@@ -1068,6 +1114,8 @@ let pollTimer;
 renderWelcome();
 document.querySelectorAll("[data-auth]").forEach(b => b.addEventListener("click", () => showAuth(b.dataset.auth)));
 $("#signupForm").addEventListener("submit", onSignup);
+$("#signupForm [name=topcase]").addEventListener("change", onTopcasePicked);
+$("#waitTopcaseFile").addEventListener("change", onWaitTopcase);
 $("#loginForm").addEventListener("submit", onLogin);
 $("#logoutBtn").addEventListener("click", e => { e.preventDefault(); clearInterval(pollTimer); Store.logout(); route(); });
 $("#waitRefresh").addEventListener("click", route);

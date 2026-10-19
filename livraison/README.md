@@ -75,6 +75,14 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **Plafond :** au-delà de `platform.maxDebt` (50 ₪) dus, le livreur ne peut plus accepter de course tant qu'il n'a pas réglé.
 - Sur une course, le bouton « Payée au livreur ⇄ Payée à HOP » corrige le cas d'un client qui a payé le mauvais numéro.
 
+### Commande prête ou attente : un prix juste
+- **Commande prête : prix fixe**, affiché avant de commander.
+- **Le livreur doit attendre** (commande pas prête) **ou faire les achats** : au point de récupération, il appuie sur **« 📍 Je suis arrivé »** (seulement sur place, vérifié au GPS) ; le compteur démarre. **10 min offertes**, puis **+5 ₪ par tranche de 10 min commencée**, **60 ₪ au maximum** (`pricing.waiting` dans `config.js`, `wait_free_min`, `wait_step_min`, `wait_step_price`, `wait_max` dans la table `settings` en ligne).
+- À « Colis récupéré », le supplément est ajouté au prix de la course et **versé en entier au livreur** (la commission HOP ne change pas). Le client le voit en direct sur son suivi (« arrivé au départ, sur place depuis 12 min ») puis dans le montant à payer ; la course reste à régler si elle était déjà payée (Bit, carnet). Vous le voyez sur la course (« ⏱️ Attente 27 min · +10 ₪ »).
+
+### Inscription des livreurs : photo du top case
+- **Photo du top case obligatoire** (la caisse sur le scooter) pour s'inscrire. Un livreur déjà inscrit sans photo la voit demandée sur sa page d'attente. Vous l'ouvrez en grand depuis sa fiche (« 📷 Voir le top case ») ; valider un livreur sans photo demande une confirmation.
+
 ### Qui reçoit la course
 Seuls les livreurs en ligne reçoivent des courses. Le livreur en ligne le plus proche du départ la reçoit en premier, le 2e plus proche après 45 s (`platform.waveSeconds`), puis tous les autres après 90 s. Pour une course d'un commerce partenaire, son parrain passe d'abord (3 min). Côté patron, « Donner à un livreur » classe les livreurs du plus proche au plus loin.
 

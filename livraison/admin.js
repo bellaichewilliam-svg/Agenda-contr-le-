@@ -12,6 +12,16 @@ Store.useSpace("admin");
 
 let orders = [];
 let couriers = [];
+
+// Photo en grand (top case d'un livreur)
+function showPhoto(src) {
+  if (!src) return alert("Pas encore de photo.");
+  const d = document.createElement("div");
+  d.className = "modal photo-view";
+  d.innerHTML = `<img src="${UI.esc(src)}" alt="Top case" /><button type="button" class="ens-x" aria-label="Fermer">✕</button>`;
+  d.addEventListener("click", () => d.remove());
+  document.body.appendChild(d);
+}
 let shops = [];
 let requests = [];
 let sales = [];
@@ -240,6 +250,8 @@ function card(o, withDay) {
   if (o.courier_id && !isMine(o) && !["annulee", "refusee"].includes(o.status)) {
     meta.push(`<button class="pill pill-btn ${o.paid_to === "hop" ? "paid" : ""}" data-act="paidto" title="Qui a reçu l'argent du client ?">${o.paid_to === "hop" ? "💳 Payée à HOP (reversée au livreur)" : "🛵 Payée au livreur"} ⇄</button>`);
   }
+  if (Number(o.wait_fee) > 0) meta.push(`<span class="pill unpaid">⏱️ Attente ${o.wait_minutes} min · +${UI.money(o.wait_fee)} (au livreur)</span>`);
+  else if (o.arrived_at && o.status === "confirmee") meta.push(`<span class="pill">⏱️ Livreur au départ depuis ${Math.floor((Date.now() - new Date(o.arrived_at)) / 60000)} min</span>`);
   if (o.rating != null) meta.push(`<span class="pill ${o.rating <= 3 ? "st-annulee" : "paid"}" title="${UI.esc(o.rating_note || "")}">${UI.esc(UI.ratingText(o))}${o.rating_note ? " 💬" : ""}</span>`);
   if (o.issue) meta.push(`<button class="pill pill-btn st-annulee" data-act="issue" title="Cliquer quand le souci est réglé">⚠️ Souci signalé par le livreur : ${UI.esc(o.issue)} · ✓ réglé ?</button>`);
   if (o.leave_at_door) meta.push(`<span class="pill">🚪 Devant la porte : photo obligatoire</span>`);
@@ -486,7 +498,7 @@ function renderCouriers(view) {
           <div><span>🛵</span><span>${UI.esc(c.vehicle || "—")} · permis n° ${UI.esc(c.license_number || "—")} · assurance ${UI.esc(c.insurance || "—")}${c.business_number ? ` · n° d'entreprise ${UI.esc(c.business_number)}` : ""}</span></div>
           <div><span>📝</span><span>Conditions acceptées le ${c.accepted_terms_at ? UI.esc(new Date(c.accepted_terms_at).toLocaleDateString("fr-FR")) : "—"}</span></div>
         </div>
-        <div class="meta">${expiryPill("Permis", c.license_expiry)}${expiryPill("Assurance", c.insurance_expiry)}
+        <div class="meta">${c.topcase_at ? `<button type="button" class="pill pill-btn paid" data-topcase="1">📷 Voir le top case</button>` : `<span class="pill st-annulee">📷 Pas de photo du top case</span>`}${expiryPill("Permis", c.license_expiry)}${expiryPill("Assurance", c.insurance_expiry)}
           ${(() => { const b = balanceOf(c.id); return b > Number(settings.max_debt) ? `<span class="pill st-annulee">🔒 Bloqué : doit ${UI.money(b)}</span>` : b > 0 ? `<span class="pill unpaid">Doit ${UI.money(b)}</span>` : b < 0 ? `<span class="pill paid">Vous lui devez ${UI.money(-b)}</span>` : ""; })()}</div>
         <div class="actions">
           ${c.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-cact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-cact="suspendu">⛔ Suspendre</button>`}
@@ -524,7 +536,7 @@ function renderWeek(view) {
       <button class="btn btn-sm" data-week="-1">◀</button>
       <b>Semaine du ${fmtKey(start)} au ${fmtKey(end)}</b>
       <button class="btn btn-sm" data-week="1" ${weekOffset >= 0 ? "disabled" : ""}>▶</button>
-      <span class="small muted">Les livreurs encaissent les clients (espèces ou leur Bit) et vous versent ${UI.commissionText()} par course livrée, une fois par semaine. Les courses payées à HOP (programmées, carnets) leur sont reversées, et leurs bonus de parrainage déduits. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course.</span>
+      <span class="small muted">Les livreurs encaissent les clients (espèces ou leur Bit) et vous versent ${UI.commissionText()} par course livrée, une fois par semaine. Les courses payées à HOP (programmées, carnets) leur sont reversées, et leurs bonus de parrainage déduits. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</span>
     </div>
     <table class="bill">
       <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">Solde</th><th></th></tr></thead>
@@ -898,8 +910,15 @@ async function onViewClick(e) {
     catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
   }
+  if (el.dataset.topcase) {
+    const id = el.closest("[data-courier]").dataset.courier;
+    try { showPhoto(await Store.courierTopcase(id)); } catch (ex) { alert("Photo introuvable, vérifiez la connexion."); }
+    return;
+  }
   if (el.dataset.cact) {
     const id = el.closest("[data-courier]").dataset.courier;
+    const cr = couriers.find(x => x.id === id);
+    if (el.dataset.cact === "actif" && cr && !cr.topcase_at && !confirm(`${cr.name} n'a pas encore envoyé la photo de son top case. Valider quand même ?`)) return;
     try { await Store.updateCourier(id, { status: el.dataset.cact }); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
   }

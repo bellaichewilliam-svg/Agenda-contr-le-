@@ -47,6 +47,10 @@ const RATING_FR = { fast: "Rapide", nice: "Sympa", care: "Soigneux", found: "Bie
 function ratingText(o) {
   return o.rating == null ? "" : "⭐".repeat(o.rating) + ` ${o.rating}/5` + ((o.rating_tags || []).length ? " · " + o.rating_tags.map(x => RATING_FR[x] || x).join(", ") : "");
 }
+// Barème d'attente / d'achats en clair (patron, livreurs)
+function waitRule(st) {
+  return `${st.wait_free_min} min offertes, puis +${money(st.wait_step_price)} par ${st.wait_step_min} min (max ${money(st.wait_max)})`;
+}
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 function placeQuery(o, which) {
   const brand = o[which + "_place"];
@@ -220,7 +224,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
   deliveryEta, PROGRESS, commissionText, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
-  ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
+  waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 

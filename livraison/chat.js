@@ -197,6 +197,6 @@ function choose(title, items) {
   });
 }
 
-window.Chat = { open, close, choose, unread, markSeen, get openThread() { return cur && cur.opts.thread; } };
+window.Chat = { open, close, choose, unread, markSeen, compress, get openThread() { return cur && cur.opts.thread; } };
 
 })();
