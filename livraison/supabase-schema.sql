@@ -1536,6 +1536,167 @@ $$;
 revoke execute on function public.couriers_nearby() from public;
 grant execute on function public.couriers_nearby() to anon, authenticated;
 
+-- Partenariat commerce ↔ livreur : seulement dans la ville du livreur
+create or replace function public.shop_signup(p jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+declare r shops; ref uuid; ref_city text; other_city text; c text;
+begin
+  if coalesce(trim(p->>'name'), '') = '' or coalesce(trim(p->>'phone'), '') = '' then raise exception 'missing'; end if;
+  -- Déjà inscrit (même téléphone, ou même nom dans la même ville) : pas de doublon, le parrain ne change pas
+  if exists (select 1 from shops where norm_phone(phone) = norm_phone(p->>'phone')
+               or (lower(trim(name)) = lower(trim(p->>'name')) and coalesce(city, '') = coalesce(p->>'city', ''))) then
+    raise exception 'shop_exists';
+  end if;
+  select id, city into ref, ref_city from couriers where ref_code = upper(trim(coalesce(p->>'ref_code', ''))) and status = 'actif';
+  -- Partenariat seulement dans la ville du livreur (pour assurer les livraisons) ; sinon inscrit sans parrain
+  if ref is not null and ref_city is not null and coalesce(p->>'city', '') <> ref_city then
+    other_city := ref_city; ref := null;
+  end if;
+  loop
+    c := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+    exit when not exists (select 1 from shops where code = c);
+  end loop;
+  insert into shops (code, name, kind, city, address, lat, lon, contact_name, phone, email, lang, referrer_id)
+  values (c, left(trim(p->>'name'), 80), left(p->>'kind', 20), left(p->>'city', 60), left(p->>'address', 200),
+          (p->>'lat')::double precision, (p->>'lon')::double precision, left(p->>'contact_name', 80),
+          left(p->>'phone', 30), left(p->>'email', 120), case when p->>'lang' = 'fr' then 'fr' else 'he' end, ref)
+  returning * into r;
+  return json_build_object('code', r.code, 'token', r.token, 'referred', ref is not null, 'ref_other_city', other_city);
+end;
+$$;
+
+-- Le client paie par Bit tout de suite et touche « J'ai payé » : le patron vérifie son Bit puis valide
+alter table public.orders add column if not exists client_paid_at timestamptz;
+create or replace function public.orders_client_paid_guard() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  new.client_paid_at := null;
+  return new;
+end;
+$$;
+create or replace trigger orders_client_paid_guard before insert on public.orders
+  for each row execute function public.orders_client_paid_guard();
+create or replace function public.order_client_paid(p_token uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare oid uuid;
+begin
+  update orders set client_paid_at = now()
+   where token = p_token and payment_method = 'bit' and payment_status = 'en_attente' and client_paid_at is null
+     and status not in ('annulee', 'refusee')
+   returning id into oid;
+  if oid is null then return false; end if;
+  insert into chat_messages (thread, author, body) values ('o:' || oid::text, 'system', 'status:client_paid');
+  return true;
+end;
+$$;
+revoke execute on function public.order_client_paid(uuid) from public;
+grant execute on function public.order_client_paid(uuid) to anon, authenticated;
+
+-- ============================================================================
+-- MOYEN DE PAIEMENT CHANGÉ PAR LE CLIENT (il s'est trompé) : espèces ↔ Bit, tant que rien n'est payé
+-- Bit → payé à HOP (le livreur n'encaisse rien) ; espèces → au livreur. Le livreur est prévenu.
+-- ============================================================================
+create or replace function public.order_set_payment(p_token uuid, p_method text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare oid uuid;
+begin
+  if p_method not in ('cash', 'bit') then raise exception 'bad_method'; end if;
+  update orders set payment_method = p_method, paid_to = case when p_method = 'bit' then 'hop' else 'livreur' end,
+         client_paid_at = null
+   where token = p_token and payment_method in ('cash', 'bit') and payment_method <> p_method
+     and payment_status = 'en_attente' and status in ('nouvelle', 'confirmee', 'recuperee')
+     and not (p_method = 'cash' and prepaid_required)
+   returning id into oid;
+  if oid is null then return false; end if;
+  insert into chat_messages (thread, author, body) values ('o:' || oid::text, 'system', 'status:pay_' || p_method);
+  return true;
+end;
+$$;
+revoke execute on function public.order_set_payment(uuid, text) from public;
+grant execute on function public.order_set_payment(uuid, text) to anon, authenticated;
+
+-- ============================================================================
+-- NOTIFICATIONS PUSH : elles arrivent même quand HOP! est fermé (Android, et iPhone avec HOP! sur l'écran d'accueil)
+-- Le téléphone s'abonne (push_subscribe) ; à chaque nouvelle commande ou message, la base appelle la
+-- fonction hop-push (supabase/functions/hop-push) qui envoie la notification. Les clés sont dans
+-- push_config, illisible depuis l'application (voir README : « Notifications push »).
+-- ============================================================================
+do $$ begin
+  create extension if not exists pg_net with schema extensions;
+exception when others then raise notice 'pg_net indisponible : pas de notifications push';
+end $$;
+
+create table if not exists public.push_subs (
+  endpoint    text primary key check (endpoint ~ '^https://'),
+  courier_id  uuid not null references public.couriers(id) on delete cascade,
+  p256dh      text not null check (length(p256dh) <= 200),
+  auth        text not null check (length(auth) <= 100),
+  created_at  timestamptz not null default now()
+);
+alter table public.push_subs enable row level security;
+revoke all on public.push_subs from anon, authenticated;
+
+create table if not exists public.push_config (
+  id            int primary key default 1 check (id = 1),
+  function_url  text, hook_key text, site_url text,
+  vapid_public  text, vapid_private text, vapid_subject text
+);
+alter table public.push_config enable row level security;
+revoke all on public.push_config from anon, authenticated;
+
+create or replace function public.push_subscribe(p_endpoint text, p_p256dh text, p_auth text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null or not exists (select 1 from couriers where id = auth.uid()) then return false; end if;
+  insert into push_subs (endpoint, courier_id, p256dh, auth) values (p_endpoint, auth.uid(), p_p256dh, p_auth)
+  on conflict (endpoint) do update set courier_id = excluded.courier_id, p256dh = excluded.p256dh, auth = excluded.auth;
+  return true;
+end;
+$$;
+revoke execute on function public.push_subscribe(text, text, text) from public, anon;
+grant execute on function public.push_subscribe(text, text, text) to authenticated;
+
+-- Appel de la fonction d'envoi (sans jamais bloquer la commande ou le message si l'envoi échoue)
+create or replace function public.push_call(p_body jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare cfg push_config;
+begin
+  select * into cfg from push_config where id = 1;
+  if cfg.function_url is null or cfg.hook_key is null then return; end if;
+  perform net.http_post(url := cfg.function_url, body := p_body,
+    headers := jsonb_build_object('Content-Type', 'application/json', 'x-hop-key', cfg.hook_key));
+exception when others then return;
+end;
+$$;
+revoke execute on function public.push_call(jsonb) from public, anon, authenticated;
+
+create or replace function public.push_order_event() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare ev text;
+begin
+  if tg_op = 'INSERT' then ev := 'new';
+  elsif new.shop_status = 'acceptee' and old.shop_status is distinct from 'acceptee' then ev := 'shop_ok';
+  elsif new.status = 'nouvelle' and old.status <> 'nouvelle' then ev := 'again';
+  else return new; end if;
+  perform public.push_call(jsonb_build_object('order_id', new.id, 'event', ev));
+  return new;
+end;
+$$;
+create or replace trigger orders_push after insert or update of status, shop_status on public.orders
+  for each row execute function public.push_order_event();
+
+create or replace function public.push_chat_event() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.author = 'system' and new.body is distinct from 'status:client_paid' then return new; end if;
+  perform public.push_call(jsonb_build_object('thread', new.thread, 'author', new.author,
+    'author_name', new.author_name, 'body', new.body));
+  return new;
+end;
+$$;
+create or replace trigger chat_push after insert on public.chat_messages
+  for each row execute function public.push_chat_event();
+
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)

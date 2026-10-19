@@ -75,7 +75,8 @@ async function searchMap(q, lang) {
   const at = near || home;
   const key = lang + "|" + q.trim().toLowerCase() + "|" + at.lat.toFixed(2) + "," + at.lon.toFixed(2);
   if (cache[key]) return cache[key];
-  const url = `${API}?limit=10&bbox=${BBOX}&lat=${at.lat}&lon=${at.lon}`
+  // Priorité forte à la distance : « Golda » donne d'abord la Golda du quartier, pas la plus connue du pays
+  const url = `${API}?limit=15&bbox=${BBOX}&lat=${at.lat}&lon=${at.lon}&location_bias_scale=0.1&zoom=14`
     + (lang === "fr" ? "&lang=fr" : "") + "&q=" + encodeURIComponent(q);
   const res = await fetch(url);
   if (!res.ok) throw new Error("photon " + res.status);
@@ -99,6 +100,58 @@ async function searchMap(q, lang) {
   }
   cache[key] = list;
   return list;
+}
+
+// Aucune enseigne de ce nom près du client : on cherche le nom autour de lui sur OpenStreetMap
+// (Photon ne renvoie parfois que les agences les plus connues, loin du client). Plus lent : la liste
+// s'affiche d'abord, ces enseignes proches s'ajoutent en tête quand elles arrivent.
+const nearCache = {};
+async function moreNearby(q, lang, list) {
+  if (!near || q.trim().length < 3 || list.some(p => p.brand && p.lat != null && km(near, p) < 4)) return [];
+  const key = lang + "|" + q.trim().toLowerCase() + "|" + near.lat.toFixed(2) + "," + near.lon.toFixed(2);
+  if (!nearCache[key]) nearCache[key] = nearbyByName(q, lang, near).catch(() => []);
+  const extra = await nearCache[key];
+  const at = p => normalize(p.brand) + "|" + p.lat.toFixed(3) + "," + p.lon.toFixed(3);
+  const seen = new Set(list.filter(p => p.brand && p.lat != null).map(at));
+  return extra.filter(p => !seen.has(at(p)));
+}
+
+// Enseignes dont le nom (français, hébreu, anglais ou marque) contient le texte, à moins de 6 km
+const OVERPASS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+function nearestCity(lat, lon) {
+  const c = CONFIG.cities.filter(c => c.lat != null).sort((a, b) => km({ lat, lon }, a) - km({ lat, lon }, b))[0];
+  return c && km({ lat, lon }, c) < 8 ? c.id : null;
+}
+async function nearbyByName(q, lang, at) {
+  const rx = q.trim().replace(/[\\^$.*+?()[\]{}|"]/g, ".");
+  const query = `[out:json][timeout:8];nwr[~"^(name|brand)(:(he|en|fr|ru))?$"~"${rx}",i](around:6000,${at.lat},${at.lon});out center tags 8;`;
+  let data = null;
+  for (const url of OVERPASS) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 6000);
+    try {
+      const res = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(query), signal: ctl.signal,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" } });
+      if (res.ok) { data = await res.json(); break; }
+    } catch (e) { /* serveur suivant */ } finally { clearTimeout(timer); }
+  }
+  if (!data) return [];
+  const out = [];
+  for (const e of data.elements || []) {
+    const g = e.tags || {};
+    const lat = e.lat != null ? e.lat : e.center && e.center.lat, lon = e.lon != null ? e.lon : e.center && e.center.lon;
+    const name = g["name:" + lang] || (lang === "fr" && g["name:en"]) || g.name || g["name:he"] || g["name:en"] || g.brand;
+    if (!name || lat == null || !(g.amenity || g.shop || g.office || g.tourism || g.healthcare || g.leisure || g.craft)) continue;
+    const streetName = g["addr:street"] || "", housenumber = g["addr:housenumber"] || "";
+    const city = g["addr:city"] || "";
+    const streetLine = [streetName, housenumber].filter(Boolean).join(" ");
+    out.push({
+      lat, lon, city, type: "house", streetName, housenumber,
+      cityId: matchCity(city) || nearestCity(lat, lon), brand: name, street: streetLine || name, exact: true,
+      label: [name, streetLine, city].filter(Boolean).join(", ")
+    });
+  }
+  return out.sort((a, b) => km(at, a) - km(at, b));
 }
 
 // Adresse la plus proche d'une position GPS (« 📍 Ma position »)
@@ -185,6 +238,11 @@ function attach(input, opts) {
         const list = await search(q, opts.lang());
         if (mine !== seq) return;
         items = list; active = -1; render();
+        const extra = await moreNearby(q, opts.lang(), list);
+        if (mine !== seq || !extra.length) return;
+        items = extra.concat(items);
+        if (active >= 0) active += extra.length;
+        render();
       } catch (e) {
         // Service injoignable : on le dit, et l'adresse tapée sera acceptée telle quelle
         if (mine !== seq) return;
@@ -214,7 +272,7 @@ function attach(input, opts) {
 }
 
 window.Places = {
-  attach, search, reverse, matchCity, km, distText,
+  attach, search, moreNearby, reverse, matchCity, km, distText,
   setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
   setLocal(fn) { local = fn; },
   get near() { return near; },

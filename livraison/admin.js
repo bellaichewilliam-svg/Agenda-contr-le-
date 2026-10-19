@@ -296,6 +296,7 @@ function card(o, withDay) {
     meta.push(`<button class="pill pill-btn ${o.unlocked ? "paid" : ""}" data-act="unlock" title="Laisser le livreur valider « Livré » sans GPS ni photo">${o.unlocked ? "🔓 Débloquée (cliquer pour rebloquer)" : "🔓 Débloquer la course"}</button>`);
   }
   if (o.payment_method === "carnet") meta.push(`<span class="pill paid">🎟️ Carnet pro</span>`);
+  if (o.payment_method === "bit" && o.payment_status !== "paye" && o.client_paid_at) meta.push(`<span class="pill unpaid" title="Vérifiez votre Bit, puis marquez la course payée">💳 Le client dit avoir payé par Bit · à vérifier</span>`);
   if (o.prepaid_required) meta.push(`<span class="pill ${o.payment_status === "paye" ? "paid" : "st-annulee"}">💳 Payée d'avance : ${o.payment_status === "paye" ? "reçu ✓" : "EN ATTENTE"}</span>`);
   if (o.shop_name) {
     const ref = couriers.find(c => c.id === o.referrer_id);
@@ -391,6 +392,16 @@ function renderStats() {
   $("#reqBadge").textContent = newReqs ? `(${newReqs})` : "";
 }
 
+// Tableaux sur téléphone : chaque ligne devient une fiche (libellé de la colonne à gauche, valeur à droite)
+function labelTables(root) {
+  root.querySelectorAll("table.bill").forEach(tb => {
+    const heads = [...tb.querySelectorAll("thead th")].map(th => th.textContent.trim());
+    tb.querySelectorAll("tbody tr, tfoot tr").forEach(tr => [...tr.children].forEach((td, i) => {
+      if (heads[i] && !td.hasAttribute("colspan")) td.setAttribute("data-label", heads[i]);
+      if (!td.textContent.trim() && !td.querySelector("button, a, select")) td.classList.add("cell-empty");
+    }));
+  });
+}
 function render() {
   renderStats();
   document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
@@ -433,6 +444,7 @@ function render() {
   } else {
     renderBilling(view);
   }
+  labelTables($("#view"));
 }
 
 // --- Carte en direct : livreurs, points de récupération et de livraison -----------------
@@ -588,9 +600,11 @@ function renderWeek(view) {
       <button class="btn btn-sm" data-week="-1">◀</button>
       <b>Semaine du ${fmtKey(start)} au ${fmtKey(end)}</b>
       <button class="btn btn-sm" data-week="1" ${weekOffset >= 0 ? "disabled" : ""}>▶</button>
-      <span class="small muted">Les livreurs encaissent les clients en espèces et vous versent leur commission une fois par semaine : ${UI.commissionText()}, ou ${UI.networkText()} sur les courses des commerces qu'ils ont amenés. Vous leur reversez : les courses payées à HOP (Bit, programmées, carnets), la part des commerces Pro, les codes promo, les pourboires reçus, leurs bonus réseau et ${CONFIG.pro.referrerPercent} % des abonnements Pro qu'ils ont fait signer. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</span>
+
     </div>
-    <table class="bill">
+    <div class="week-sum"><small>Solde total de la semaine</small><b>${UI.money(Math.abs(total))}</b><span>${total > 0 ? "à recevoir des livreurs" : total < 0 ? "à verser aux livreurs" : "rien à régler"}</span></div>
+    <details class="fin-more" style="margin:10px 0"><summary>ℹ️ Comment c'est calculé</summary><p class="small muted" style="margin-top:8px">Les livreurs encaissent les clients en espèces et vous versent leur commission une fois par semaine : ${UI.commissionText()}, ou ${UI.networkText()} sur les courses des commerces qu'ils ont amenés. Vous leur reversez : les courses payées à HOP (Bit, programmées, carnets), la part des commerces Pro, les codes promo, les pourboires reçus, leurs bonus réseau et ${CONFIG.pro.referrerPercent} % des abonnements Pro qu'ils ont fait signer. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</p></details>
+    <div class="table-scroll"><table class="bill">
       <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">🎁 Pro, promos, 💝, ⭐</th><th class="num">Solde</th><th></th></tr></thead>
       <tbody>${rows.map(r => `<tr data-courier="${UI.esc(r.c.id)}"><td><b>${UI.esc(r.c.name)}</b><br><span class="small muted">${UI.esc(r.c.phone)}</span></td>
         <td class="num">${r.list.length}</td><td class="num">${UI.money(r.collected)}</td><td class="num">${r.hopPaid.length ? "−" + UI.money(sum(r.hopPaid)) : "—"}</td><td class="num">${UI.money(r.commission)}</td>
@@ -602,7 +616,7 @@ function renderWeek(view) {
           ${r.dueAmount || r.bonusDue || r.hopDue || r.extra ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
         </td></tr>`).join("") || `<tr><td colspan="9" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
       <tfoot><tr><th>Solde total</th><th></th><th></th><th></th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
-    </table>`;
+    </table></div>`;
   view.dataset.weekStart = start;
 }
 
@@ -649,7 +663,7 @@ function renderShops(view) {
         <div class="kv">
           <div><span>🏷️</span><span>${UI.esc(SHOP_KIND[x.kind] || SHOP_KIND.autre)} · ${UI.esc(x.address || "")}${x.city ? ", " + UI.esc(UI.cityFr(x.city)) : ""}</span></div>
           <div><span>👤</span><span>${tel(x.contact_name, x.phone)}${x.email ? " · " + UI.esc(x.email) : ""} · ${x.lang === "fr" ? "🇫🇷" : "🇮🇱"}</span></div>
-          <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name)}</option>`).join("")}</select>
+          <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name + (c.city && x.city && c.city !== x.city ? " · autre ville (" + UI.cityFr(c.city) + ")" : ""))}</option>`).join("")}</select>
             · bonus générés ${UI.money(sum(done, o => Number(o.referral_bonus || 0)))}</span></div>
           <div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
             ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>
@@ -1102,6 +1116,8 @@ async function start() {
   $("#logoutBtn").classList.remove("hidden");
   try { me = await Store.me(); } catch (e) { /* rechargé par load() */ }
   $("#demoNotice").classList.toggle("hidden", Store.ONLINE);
+  // Alertes déjà autorisées : nouvelles commandes et messages aussi quand HOP! est fermé
+  UI.pushSubscribe();
   renderDuty();
   load();
   clearInterval(pollTimer);
@@ -1126,11 +1142,13 @@ $("#availBtn").addEventListener("click", toggleAvail);
 $("#refuseForm").addEventListener("submit", onRefuse);
 $("#refuseCancel").addEventListener("click", () => $("#refuseModal").classList.add("hidden"));
 $("#icsBtn").addEventListener("click", () => exportIcs(agendaList().filter(o => active(o) && isMine(o)).sort(byTime)));
+$("#installBtn").classList.toggle("hidden", UI.isStandalone());
+$("#installBtn").addEventListener("click", () => UI.installApp("HOP! Patron").then(ok => { if (ok) $("#installBtn").classList.add("hidden"); }));
 $("#notifBtn").addEventListener("click", () => {
   if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
   Notification.requestPermission().then(p => {
     $("#notifBtn").textContent = p === "granted" ? "🔔 Alertes activées" : "🔕 Alertes refusées";
-    if (p === "granted") beep();
+    if (p === "granted") { beep(); UI.pushSubscribe(); }
   });
 });
 $("#view").addEventListener("click", onViewClick);
@@ -1148,11 +1166,17 @@ document.addEventListener("visibilitychange", async () => {
 });
 
 if (window.Notification && Notification.permission === "granted") $("#notifBtn").textContent = "🔔 Alertes activées";
-if (Store.session()) start(); else showLogin();
+UI.forgotLink($("#loginForm"), $("#loginError"));
+// Lien « Mot de passe oublié » : session reprise, nouveau mot de passe, puis l'espace patron
+Store.adoptLinkSession().catch(() => false).then(async how => {
+  if (how === "recovery") await UI.askNewPassword();
+  if (Store.session()) start(); else showLogin();
+});
 // Le service était en cours avant de recharger la page : on le reprend
 try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); } catch (e) { /* ignore */ }
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
+UI.iosInstallHint("HOP! Patron");
 window.hopReady = true;
 
 })();

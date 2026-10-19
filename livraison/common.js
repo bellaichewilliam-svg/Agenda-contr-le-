@@ -100,16 +100,98 @@ async function notify(title, opts) {
     return true;
   } catch (e) { return false; }
 }
+// Notifications push (même quand HOP! est fermé) : on abonne ce téléphone au compte connecté.
+// Rien à faire si les alertes ne sont pas autorisées, en mode démo ou sans clé (config.js).
+let pushDone = false;
+async function pushSubscribe() {
+  const key = CONFIG.push && CONFIG.push.publicKey;
+  if (pushDone || !key || !window.Notification || Notification.permission !== "granted" || !Store.ONLINE || !Store.session()) return false;
+  try {
+    const reg = await swReady;
+    if (!reg || !reg.pushManager) return false;
+    const raw = atob(key.replace(/-/g, "+").replace(/_/g, "/"));
+    const appKey = Uint8Array.from(raw, ch => ch.charCodeAt(0));
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+    const j = sub.toJSON();
+    pushDone = !!(await Store.pushSubscribe(j.endpoint, j.keys.p256dh, j.keys.auth));
+    return pushDone;
+  } catch (e) { return false; }
+}
+// Retour du lien « Mot de passe oublié » : on demande le nouveau mot de passe
+async function askNewPassword() {
+  for (;;) {
+    const pw = prompt("Choisissez votre nouveau mot de passe (6 caractères minimum) :");
+    if (pw == null) return false;
+    if (pw.length < 6) { alert("6 caractères minimum."); continue; }
+    try { await Store.setPassword(pw); alert("✅ Mot de passe changé."); return true; }
+    catch (e) { alert("Impossible de changer le mot de passe : " + e.message); return false; }
+  }
+}
+// « Mot de passe oublié ? » sous un formulaire de connexion (email dans le champ name=email)
+function forgotLink(form, errEl) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "btn btn-link btn-sm forgot-link";
+  b.textContent = "Mot de passe oublié ?";
+  b.addEventListener("click", async () => {
+    const email = form.elements.email.value.trim();
+    const show = (msg, ok) => { errEl.textContent = msg; errEl.className = ok ? "notice" : "notice err"; };
+    if (!email) { show("Écrivez votre email ci-dessus, puis touchez « Mot de passe oublié ? »."); form.elements.email.focus(); return; }
+    b.disabled = true;
+    try { await Store.resetPassword(email); show("📧 Si un compte existe avec " + email + ", un lien pour changer le mot de passe vient d'être envoyé (regardez aussi les spams).", true); }
+    catch (e) { show("Envoi impossible : " + e.message); }
+    finally { b.disabled = false; }
+  });
+  form.appendChild(b);
+}
 // « En service » : une notification qui reste dans la barre tant que le service est en cours
 async function dutyNotice(on, text) {
-  const reg = await swReady.catch(() => null);
+  // iPhone : la permission doit être demandée tout de suite, dans le geste (avant toute attente)
+  const ask = on && window.Notification && Notification.permission === "default" ? Notification.requestPermission().catch(() => null) : null;
   if (!on) {
+    const reg = await swReady.catch(() => null);
     if (reg && reg.getNotifications) (await reg.getNotifications({ tag: "hop-duty" })).forEach(n => n.close());
     return;
   }
-  if (window.Notification && Notification.permission === "default") { try { await Notification.requestPermission(); } catch (e) { /* ignore */ } }
+  if (ask) await ask;
+  pushSubscribe();
   return notify("🟢 HOP! · En service", { body: text || "Vous recevez les courses. Touchez ici pour revenir dans HOP!.", tag: "hop-duty",
     requireInteraction: true, silent: true, renotify: false });
+}
+
+// Installer l'appli sur l'écran d'accueil (icône propre à chaque espace : client, LIVREUR, PATRON)
+let installEvt = null;
+window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); installEvt = e; });
+function isStandalone() {
+  return !!(navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches));
+}
+async function installApp(appName) {
+  if (installEvt) {
+    installEvt.prompt();
+    const r = await installEvt.userChoice.catch(() => null);
+    installEvt = null;
+    return !!(r && r.outcome === "accepted");
+  }
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  alert(ios
+    ? `Sur iPhone, dans Safari : touchez Partager ⬆️ en bas de l'écran, puis « Sur l'écran d'accueil ». L'icône « ${appName} » apparaît sur votre téléphone, et les alertes marchent.`
+    : `Touchez le menu ⋮ du navigateur, puis « Ajouter à l'écran d'accueil » (ou « Installer l'application »). L'icône « ${appName} » apparaît sur votre téléphone.`);
+  return false;
+}
+
+// iPhone : alertes, notification « En service » et son ne marchent que si HOP! est sur l'écran d'accueil.
+// On l'explique une fois (bandeau à fermer), seulement sur iPhone et dans le navigateur.
+function iosInstallHint(appName) {
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const standalone = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  let seen = false; try { seen = localStorage.getItem("livraison.iosHint.v1") === "1"; } catch (e) { /* ignore */ }
+  if (!ios || standalone || seen || document.getElementById("iosHint")) return;
+  const d = document.createElement("div");
+  d.id = "iosHint"; d.className = "ios-hint";
+  d.innerHTML = `<div><b>📲 Sur iPhone : installez ${esc(appName || "HOP!")}</b><span>Touchez <b>Partager</b> <i>⬆️</i> puis <b>« Sur l'écran d'accueil »</b>, et ouvrez HOP! depuis l'icône : vous recevrez les alertes de courses et la notification « En service ».</span></div><button type="button" aria-label="Fermer">✕</button>`;
+  d.querySelector("button").onclick = () => { d.remove(); try { localStorage.setItem("livraison.iosHint.v1", "1"); } catch (e) { /* ignore */ } };
+  document.body.appendChild(d);
 }
 
 // Lien à partager : toujours vers l'adresse officielle (sauf en test sur l'ordinateur)
@@ -201,6 +283,40 @@ function networkText() { return `${CONFIG.platform.networkPercent} % (au moins $
 // Numéro Bit à payer : toujours celui de HOP (le livreur n'encaisse que les espèces)
 function bitFor() { return CONFIG.bitPhone; }
 
+// Payer par Bit tout de suite : montant, numéro, n° de commande, « Ouvrir Bit », « Copier », « J'ai payé »
+// (sur Android, le bouton ouvre l'application Bit ; sur iPhone, on copie le numéro puis on ouvre Bit)
+const ANDROID = /Android/i.test(navigator.userAgent);
+const BIT_APP = "intent://#Intent;package=com.bnhp.payments.paymentsapp;S.browser_fallback_url="
+  + encodeURIComponent("https://play.google.com/store/apps/details?id=com.bnhp.payments.paymentsapp") + ";end";
+function bitPay(o) {
+  const t = (k, v) => I18N.t(k, v);
+  if (o.client_paid_at) return `<p class="promo-msg ok bit-pay">${esc(t("bpThanks"))}</p>`;
+  const phone = bitFor(o);
+  return `<div class="bit-pay">
+    <p>${esc(t("bpSend", { total: money(o.price), phone, ref: o.ref }))}</p>
+    <div class="bit-btns">
+      ${ANDROID ? `<a class="btn btn-sm btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}
+      <button type="button" class="btn btn-sm" data-bit-copy="${esc(String(phone).replace(/\D/g, ""))}">${esc(t("bpCopy"))}</button>
+      <button type="button" class="btn btn-sm btn-primary" data-bit-paid="${esc(o.token)}">${esc(t("bpPaid"))}</button>
+    </div>
+  </div>`;
+}
+document.addEventListener("click", async e => {
+  const c = e.target.closest("[data-bit-copy]");
+  if (c) {
+    const done = () => { c.textContent = I18N.t("bpCopied"); };
+    if (navigator.clipboard) navigator.clipboard.writeText(c.dataset.bitCopy).then(done, done); else done();
+    return;
+  }
+  const p = e.target.closest("[data-bit-paid]");
+  if (!p) return;
+  p.disabled = true;
+  const ok = await Store.clientPaid(p.dataset.bitPaid).catch(() => false);
+  const box = p.closest(".bit-pay");
+  if (ok && box) box.outerHTML = `<p class="promo-msg ok bit-pay">${esc(I18N.t("bpThanks"))}</p>`;
+  else p.disabled = false;
+});
+
 function clientMessage(o) {
   const l = o.lang || "fr";
   const f = (k, v) => I18N.forLang(l, k, v);
@@ -275,7 +391,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

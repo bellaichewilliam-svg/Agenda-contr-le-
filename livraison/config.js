@@ -14,6 +14,8 @@ window.CONFIG = {
   phoneDisplay: "052-779-0361",
   // Numéro de téléphone sur lequel les clients paient avec Bit
   bitPhone: "052-779-0361",
+  // Notifications push (même appli fermée) : clé publique VAPID (la clé privée est dans Supabase, table push_config)
+  push: { publicKey: "BD0sjiF6QaklSSq7MN4CBXrpBUUQdA_P6ux42nXBDg2Fjgr6U8NEgY3CVo9bI7BDFHGqOfMPw_lIaWwfdhdKHiA" },
   email: "contact@exemple.com",
 
   // --- Reçus (קבלה) : vos informations légales ------------------------------
