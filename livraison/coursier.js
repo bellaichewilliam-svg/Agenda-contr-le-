@@ -17,7 +17,7 @@ const TERMS = [
   "Je suis responsable des colis qui me sont confiés, de leur état et de l'argent encaissé, de la récupération jusqu'à la livraison.",
   "Je valide « Livré » seulement une fois sur place, à l'adresse du client : l'application vérifie ma position GPS.",
   "Je respecte le code de la route et les règles de sécurité (casque, pas de téléphone en main en conduisant).",
-  `Je verse ${UI.money(COMMISSION)} de commission par course livrée, chaque semaine, par Bit.`,
+  `Je verse à HOP une commission de ${UI.commissionText()} par course livrée, chaque semaine, par Bit.`,
   "Je suis poli et ponctuel. Si je ne peux plus faire une course acceptée, je la remets en attente tout de suite.",
   "Mon compte peut être suspendu si un de ces engagements n'est pas respecté."
 ];
@@ -37,7 +37,7 @@ function renderWelcome() {
   $("#perks").innerHTML = [
     "Vous choisissez vos courses, quand vous voulez.",
     "Vous encaissez le client directement (espèces ou Bit).",
-    `Seulement ${UI.money(COMMISSION)} de commission par course livrée, réglés une fois par semaine.`,
+    `Commission de ${UI.commissionText()} par course livrée (3 ₪ pour une course de 25 ₪), réglée une fois par semaine.`,
     `Amenez un commerce : ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous sur chacune de ses livraisons, tant que vous livrez avec nous, et ses courses vous sont proposées en premier.`,
     "Pas d'abonnement, pas de frais d'inscription."
   ].map(x => `<li>✅ ${UI.esc(x)}</li>`).join("");
@@ -118,6 +118,10 @@ async function route() {
   $("#drawerName").textContent = me.name;
   applyRiderSettings();
   initRiderMap();
+  // Après un rechargement : on reste en ligne si on l'était
+  let wasOnline = false;
+  try { wasOnline = localStorage.getItem("livraison.online.v1") === "1"; } catch (e) { /* ignore */ }
+  if (wasOnline && duty.watch == null) toggleDuty(true); else if (duty.watch == null) Store.setOnline(false).catch(() => {});
   load();
   clearInterval(pollTimer);
   pollTimer = setInterval(load, 15000);
@@ -150,9 +154,11 @@ async function load() {
     // Fiche à jour (déblocage par HOP, suspension…)
     if (card) me = card;
     // Parrainage et messages : un souci ici ne doit pas bloquer les courses
-    const [r, m, bal, dem] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
-      Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null)]);
+    const [r, m, bal, dem, acc, fc] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
+      Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null), Store.myAcceptance().catch(() => null), Store.demandForecast().catch(() => null)]);
     if (dem) demand = dem;
+    if (acc) acceptance = acc;
+    if (fc) forecast = fc;
     if (r) refs = r;
     if (bal != null) balance = bal;
     if (m) { msgs = m; checkNewMessages(); }
@@ -164,9 +170,10 @@ async function load() {
   }
   const fresh = pool().filter(o => !seenPool.has(o.id));
   // Toute course disponible encore jamais montrée s'ouvre en fenêtre (dès la 1re connexion aussi)
-  if (!blocked()) fresh.forEach(o => offerQueue.push(o.id));
+  // Hors ligne : ni fenêtre, ni son (la base ne montre d'ailleurs plus les courses)
+  if (!blocked() && isOnline()) fresh.forEach(o => offerQueue.push(o.id));
   showNextOffer();
-  if (!firstLoad && fresh.length) {
+  if (!firstLoad && fresh.length && isOnline()) {
     beep();
     if (window.Notification && Notification.permission === "granted") {
       fresh.forEach(o => new Notification(`🆕 Course dispo n° ${o.ref} — ${UI.money(o.price)}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}` }));
@@ -193,7 +200,7 @@ function card(o, kind) {
   let extra = "";
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")} · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌"}` : ""}</div>`;
   if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ${UI.money(o.budget)} à avancer` : ""}</div>`;
-  const net = Number(o.price) - (kind === "pool" ? COMMISSION : Number(o.commission || 0));
+  const net = Number(o.price) - (kind === "pool" ? Store.commissionFor(o.price, settings) : Number(o.commission || 0));
   const mineShop = o.referrer_id && o.referrer_id === me.id;
   const hopPaid = o.paid_to === "hop";
 
@@ -201,7 +208,7 @@ function card(o, kind) {
   if (kind === "pool") {
     actions = locked() ? `<span class="pill st-annulee">🔒 Réglez votre solde pour accepter</span>`
       : busy() ? `<span class="pill st-annulee">🔒 Livrez d'abord votre course en cours</span>`
-      : `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button>`;
+      : `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button><button class="btn" data-decline="${UI.esc(o.id)}">✖ Refuser</button>`;
   } else {
     actions = (o.status === "confirmee"
         ? `<button class="btn btn-sm btn-primary" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
@@ -261,7 +268,8 @@ function render() {
     const list = pool();
     view.innerHTML = list.length
       ? `<p class="muted small" style="margin-bottom:10px">L'adresse exacte et le contact du client s'affichent une fois la course acceptée. Le premier qui accepte la prend.</p><div class="orders">${list.map(o => card(o, "pool")).join("")}</div>`
-      : empty("Pas de course disponible pour l'instant. Activez les alertes 🔔 : vous serez prévenu dès qu'une course arrive.");
+      : empty(isOnline() ? "Pas de course disponible pour l'instant. Activez les alertes 🔔 : vous serez prévenu dès qu'une course arrive."
+        : "Vous êtes hors ligne : glissez le bouton « HOP! » pour passer en ligne et recevoir des courses.");
   } else if (tab === "mine") {
     const list = mine();
     view.innerHTML = list.length ? `<div class="orders">${list.map(o => card(o, "mine")).join("")}</div>` : empty("Aucune course en cours.");
@@ -316,6 +324,11 @@ function render() {
 async function onViewClick(e) {
   const el = e.target.closest("button");
   if (!el) return;
+  if (el.dataset.decline) {
+    el.disabled = true;
+    await Store.declineOrder(el.dataset.decline).catch(() => {});
+    return load();
+  }
   if (el.dataset.accept) {
     el.disabled = true;
     const ok = await Store.acceptOrder(el.dataset.accept).catch(e => acceptError(e));
@@ -323,7 +336,7 @@ async function onViewClick(e) {
     else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
     else {
       openPage("mine");
-      if (duty.watch == null && confirm("Course acceptée ! Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
+      if (duty.watch == null && confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?")) toggleDuty();
     }
     return load();
   }
@@ -388,6 +401,8 @@ async function checkChats() {
 
 // --- Zones de livraison : demande en direct (seulement le Sharon ouvert pour l'instant) ------
 let demand = null;
+let acceptance = null;   // { accepted, declined } sur 30 jours
+let forecast = null;     // commandes moyennes par heure (aujourd'hui, d'après les 4 dernières semaines)
 function demandLevel(d) {
   if (!d) return null;
   const score = (Number(d.waiting) + Number(d.last_hour) / 2) / Math.max(1, Number(d.on_duty));
@@ -404,9 +419,23 @@ function renderZones(view) {
           <span class="zone-radio${z.active ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
           <span class="zone-dem">${z.active ? (lv ? `${lv.label} ${bars(lv)}` : "…") : "Bientôt"}</span>
         </div>`).join("")}
-      ${demand ? `<p class="small" style="margin-top:12px">En ce moment : <b>${demand.waiting}</b> course(s) en attente · <b>${demand.last_hour}</b> commande(s) cette dernière heure · <b>${demand.on_duty}</b> livreur(s) en service.</p>` : ""}
+      ${demand ? `<p class="small" style="margin-top:12px">En ce moment : <b>${demand.waiting}</b> course(s) en attente · <b>${demand.last_hour}</b> commande(s) cette dernière heure · <b>${demand.on_duty}</b> livreur(s) en ligne.</p>` : ""}
       <p class="muted small" style="margin-top:6px">Heures de pointe habituelles : ${UI.esc(CONFIG.peakHours.fr)}.</p>
-    </div>`;
+    </div>
+    ${forecastCard()}`;
+}
+
+// Prévisions de la journée : commandes moyennes par heure (même jour de la semaine, 4 semaines)
+function forecastCard() {
+  if (!forecast || !forecast.length) return "";
+  const hours = forecast.map((n, h) => ({ h, n: Number(n) })).filter(x => x.h >= 8 && x.h <= 23);
+  const top = Math.max(0.5, ...hours.map(x => x.n));
+  const now = new Date().getHours();
+  const any = hours.some(x => x.n > 0);
+  return `<div class="card" style="margin-top:14px"><h3>📈 Prévisions de demande aujourd'hui</h3>
+    <div class="fc-bars">${hours.map(x => `<div class="${x.h === now ? "now" : ""}"><i style="height:${Math.round(90 * x.n / top) + 3}px" class="${x.n / top > 0.66 ? "hi" : x.n / top > 0.33 ? "mid" : "lo"}"></i><span>${x.h}</span></div>`).join("")}</div>
+    <p class="muted small">${any ? "Commandes moyennes par heure, d'après les 4 derniers " + new Date().toLocaleDateString("fr-FR", { weekday: "long" }) + "s. Les barres hautes : le meilleur moment pour être en ligne."
+      : "Pas encore assez de commandes pour une prévision : elle se remplit avec les premières semaines."}</p></div>`;
 }
 
 // --- Signaler un souci pendant la course (HOP est prévenu, le client le voit) ----------------
@@ -456,6 +485,9 @@ async function checkAtDropoff(o) {
   }
   return { ok: true };
 }
+
+// En ligne = bouton glissé et position GPS envoyée
+const isOnline = () => duty.watch != null;
 
 // --- Blocages (le patron peut tout débloquer) ----------------------------------------------
 const PHOTO_MSG = "📷 Course « déposer devant la porte » : envoyez d'abord la photo du colis devant la porte dans la conversation, puis validez « Livré ».";
@@ -645,7 +677,7 @@ async function onReply(el) {
   if (r) r.answer = answer; else msgs.replies.push({ message_id: id, courier_id: me.id, answer });
   $("#msgModal").classList.add("hidden");
   renderMsgs();
-  if (answer === "jarrive" && duty.watch == null && confirm("Super ! Passer en service maintenant ?")) toggleDuty();
+  if (answer === "jarrive" && duty.watch == null && confirm("Super ! Passer en ligne maintenant ?")) toggleDuty();
 }
 
 function onWorkClick(e) {
@@ -712,7 +744,8 @@ function showNextOffer() {
   $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
   $("#offerPrice").textContent = UI.money(o.price);
   const star = o.referrer_id && o.referrer_id === me.id;
-  $("#offerGain").textContent = `Vous gagnez ${UI.money(Number(o.price) - COMMISSION + (star ? Number(o.referral_bonus || 0) : 0))} (commission ${UI.money(COMMISSION)}${star ? `, bonus parrainage +${UI.money(o.referral_bonus || 0)} inclus` : ""})`;
+  const com = Store.commissionFor(o.price, settings);
+  $("#offerGain").textContent = `Vous gagnez ${UI.money(Number(o.price) - com + (star ? Number(o.referral_bonus || 0) : 0))} (commission ${UI.money(com)}${star ? `, bonus parrainage +${UI.money(o.referral_bonus || 0)} inclus` : ""})`;
   // Proposée d'abord aux livreurs en service les plus proches (vagues de wave_seconds)
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
   $("#offerStar").innerHTML = star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
@@ -729,6 +762,15 @@ function showNextOffer() {
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`
   ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
   $("#offerModal").classList.remove("hidden");
+  // 40 secondes pour répondre, ensuite la course est proposée à un autre livreur
+  clearInterval(offerTick);
+  let left = 40;
+  $("#offerTimer").textContent = `· ${left} s`;
+  offerTick = setInterval(() => {
+    left--;
+    $("#offerTimer").textContent = left > 0 ? `· ${left} s` : "";
+    if (left <= 0 && offerShown === o.id) declineOffer();
+  }, 1000);
   // Position pas encore connue : on la demande une fois pour afficher « à X km de vous »
   if (!lastPos && navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(p => {
@@ -738,10 +780,20 @@ function showNextOffer() {
   }
 }
 
+let offerTick = null;
 function closeOffer() {
+  clearInterval(offerTick);
   $("#offerModal").classList.add("hidden");
   offerShown = null;
   setTimeout(showNextOffer, 300);
+}
+
+// Refuser : la course passe tout de suite au livreur suivant
+async function declineOffer() {
+  const id = offerShown;
+  closeOffer();
+  if (id) await Store.declineOrder(id).catch(() => {});
+  load();
 }
 
 async function acceptOffer() {
@@ -754,7 +806,7 @@ async function acceptOffer() {
   else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
   else {
     openPage("mine");
-    if (duty.watch == null && confirm("Course acceptée ! Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
+    if (duty.watch == null && confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?")) toggleDuty();
   }
   load();
 }
@@ -793,7 +845,7 @@ function navLink(o, which) {
 // Panneau du bas : demande, course en cours, courses disponibles, « gagner plus »
 function renderHome() {
   const lv = demandLevel(demand);
-  const title = !lv ? "Bonjour " + String(me.name || "").split(" ")[0] + " !" : lv.n === 3 ? "🔥 Ça vaut le coup de sortir !" : lv.n === 2 ? "Ça roule tranquille" : "C'est calme pour l'instant";
+  const title = !isOnline() ? "Vous êtes hors ligne" : !lv ? "Bonjour " + String(me.name || "").split(" ")[0] + " !" : lv.n === 3 ? "🔥 Ça vaut le coup de sortir !" : lv.n === 2 ? "Ça roule tranquille" : "C'est calme pour l'instant";
   const cur = mine();
   const p = pool();
   $("#sheetBody").innerHTML = `
@@ -802,7 +854,8 @@ function renderHome() {
     ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
         <span>🛵 Course n° ${UI.esc(o.ref)} · ${o.status === "confirmee" ? "à récupérer" : "à livrer"}
           <small>${UI.esc(o.status === "confirmee" ? (o.pickup_place || o.pickup_address) : o.dropoff_address)}, ${UI.esc(UI.cityFr(o.status === "confirmee" ? o.from_city : o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
-    ${p.length || !cur.length ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
+    ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
+    ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
     <button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>`;
   const h = $("#sheet").offsetHeight;
@@ -813,10 +866,11 @@ function renderHome() {
 function renderDuty() {
   const on = duty.watch != null;
   $("#slide").classList.toggle("on", on);
-  $("#slideText").textContent = on ? "En service · glisser pour arrêter" : "Glisser pour passer en service";
-  $("#drawerStatus").textContent = on ? "🟢 En service" : "Hors service";
+  $("#slideText").textContent = on ? "En ligne · glisser pour finir" : "Glisser pour passer en ligne";
+  $("#drawerStatus").textContent = on ? "🟢 En ligne" : "Hors ligne";
   $("#drawerStatus").classList.toggle("on", on);
-  if (!on) $("#dutyText").textContent = "En service, vous recevez en premier les courses proches de vous, et le client vous suit sur la carte.";
+  if (!on) $("#dutyText").textContent = "Hors ligne : vous ne recevez pas de course. En ligne, les courses proches de vous arrivent d'abord chez vous.";
+  if (me) renderHome();
   updateRiderMap();
 }
 // Glisser le bouton jusqu'au bout pour passer en service (ou terminer) : pas de clic par erreur
@@ -912,6 +966,8 @@ function renderStats(view) {
       <tr><td>Meilleur jour</td><td>${best ? UI.esc(best[0]) + " (" + best[1] + " course(s))" : "—"}</td></tr>
       <tr><td>Distance parcourue (estimée)</td><td>≈ ${Math.round(km)} km</td></tr>
       <tr><td>Commerces amenés</td><td>${refs.shops.length}</td></tr>
+      <tr><td>Taux d'acceptation (30 jours)</td><td>${acceptance && acceptance.accepted + acceptance.declined
+        ? Math.round(100 * acceptance.accepted / (Number(acceptance.accepted) + Number(acceptance.declined))) + " % (" + acceptance.declined + " refus)" : "—"}</td></tr>
     </table></div>`;
 }
 function renderSettings(view) {
@@ -936,8 +992,8 @@ function renderSettings(view) {
 }
 function renderHelp(view) {
   const faq = [
-    ["Comment je reçois des courses ?", "Passez en service (glissez le bouton orange). Les courses arrivent d'abord au livreur en service le plus proche du départ, puis aux autres. Une fenêtre s'ouvre avec le prix, votre gain et les kilomètres."],
-    ["Comment je suis payé ?", `Vous encaissez le client en espèces. Le Bit, les courses programmées et les carnets pro sont payés à HOP, qui vous les reverse. Chaque semaine : vous versez ${UI.money(settings.commission || COMMISSION)} par course à HOP (moins vos bonus), ou HOP vous verse la différence. Voir « Finances ».`],
+    ["Comment je reçois des courses ?", "Passez en ligne : glissez le bouton « HOP! » jusqu’au bout. Les courses arrivent d’abord au livreur en ligne le plus proche du départ, puis aux autres. Une fenêtre s'ouvre avec le prix, votre gain et les kilomètres."],
+    ["Comment je suis payé ?", `Vous encaissez le client en espèces. Le Bit, les courses programmées et les carnets pro sont payés à HOP, qui vous les reverse. Chaque semaine : vous versez à HOP ${UI.commissionText()} par course (moins vos bonus), ou HOP vous verse la différence. Voir « Finances ».`],
     ["Pourquoi je ne peux pas valider « Livré » ?", `Il faut être à moins de ${deliverRadius()} m de l'adresse de livraison. Pour « déposer devant la porte », envoyez d'abord la photo du colis dans la conversation de la course.`],
     ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre solde dû dépasse ${UI.money(settings.max_debt)}. Le bandeau rouge vous dit quoi faire. Un souci ? HOP peut vous débloquer.`],
     ["Le client est absent, l'adresse est introuvable…", "Touchez « ⚠️ Un souci » sur la course : HOP et le client sont prévenus tout de suite, et vous continuez dans la conversation."],
@@ -965,6 +1021,8 @@ async function sendPosition(pos) {
   duty.lastSent = Date.now();
   try {
     await Store.ping(pos.coords.latitude, pos.coords.longitude);
+    // Première position après le passage en ligne : les courses arrivent tout de suite
+    if (duty.fresh) { duty.fresh = false; Promise.resolve(duty.onlineP).catch(() => {}).then(() => setTimeout(load, 1200)); }
     $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR")} · gardez cette page ouverte.`;
   } catch (e) {
     duty.lastSent = 0;
@@ -972,18 +1030,31 @@ async function sendPosition(pos) {
   }
 }
 
-async function toggleDuty() {
+// « HOP! » en grand quand on passe en ligne
+function hopBurst() {
+  const el = document.createElement("div");
+  el.className = "rd-hop";
+  el.innerHTML = `<b>HOP!</b><span>🟢 Vous êtes en ligne</span>`;
+  $("#work").appendChild(el);
+  setTimeout(() => el.remove(), 1600);
+}
+async function toggleDuty(quiet) {
   if (duty.watch != null) {
     navigator.geolocation.clearWatch(duty.watch);
     duty.watch = null;
     if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
   } else {
     if (!navigator.geolocation) return alert("La géolocalisation n'est pas disponible sur ce téléphone.");
+    duty.fresh = true; duty.lastSent = 0;
     duty.watch = navigator.geolocation.watchPosition(sendPosition, err => {
       $("#dutyText").textContent = err.code === 1 ? "⚠️ Autorisez la localisation pour ce site." : "⚠️ Position GPS introuvable pour le moment…";
     }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
     try { if (navigator.wakeLock) duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* facultatif */ }
   }
+  // En ligne / hors ligne pour HOP : seules les personnes en ligne reçoivent des courses
+  duty.onlineP = Store.setOnline(duty.watch != null).then(() => { if (duty.watch == null) load(); }).catch(() => {});
+  if (duty.watch != null && !quiet) hopBurst();
+  try { localStorage.setItem("livraison.online.v1", duty.watch != null ? "1" : ""); } catch (e) { /* ignore */ }
   renderDuty();
 }
 
@@ -1022,6 +1093,7 @@ $("#msgModal").addEventListener("click", e => { const el = e.target.closest("but
 $("#msgClose").addEventListener("click", () => $("#msgModal").classList.add("hidden"));
 $("#offerAccept").addEventListener("click", acceptOffer);
 $("#offerSkip").addEventListener("click", closeOffer);
+$("#offerDecline").addEventListener("click", declineOffer);
 
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|messages|shops)/.test(e.key || "") && me && me.status === "actif") load(); });
 route();

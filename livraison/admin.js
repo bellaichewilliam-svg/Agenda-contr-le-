@@ -468,8 +468,8 @@ function renderCouriers(view) {
   view.innerHTML = `
     <div class="card" style="margin-bottom:14px">
       <b>Recruter des livreurs</b>
-      <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance…), puis vous les validez ici après avoir vu leurs documents. Vous prenez ${UI.money(settings.commission)} par course livrée, réglés chaque semaine.</p>
-      <div class="promo-row"><input readonly value="${UI.esc(invite)}" dir="ltr" /><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(`Tu as un scooter, une voiture ou un vélo ? Deviens livreur partenaire chez ${CONFIG.businessName} : tu choisis tes courses, tu encaisses directement le client, et seulement ${UI.money(settings.commission)} de commission par course. Inscription : ${invite}`)}">Partager</a></div>
+      <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance…), puis vous les validez ici après avoir vu leurs documents. Vous prenez ${UI.commissionText()} par course livrée, réglés chaque semaine.</p>
+      <div class="promo-row"><input readonly value="${UI.esc(invite)}" dir="ltr" /><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(`Tu as un scooter, une voiture ou un vélo ? Deviens livreur partenaire chez ${CONFIG.businessName} : tu choisis tes courses, tu encaisses directement le client, et seulement ${UI.commissionText()} de commission par course. Inscription : ${invite}`)}">Partager</a></div>
     </div>
     ${list.length ? `<div class="orders">${list.map(c => {
       const done = orders.filter(o => o.courier_id === c.id && o.status === "livree").length;
@@ -522,7 +522,7 @@ function renderWeek(view) {
       <button class="btn btn-sm" data-week="-1">◀</button>
       <b>Semaine du ${fmtKey(start)} au ${fmtKey(end)}</b>
       <button class="btn btn-sm" data-week="1" ${weekOffset >= 0 ? "disabled" : ""}>▶</button>
-      <span class="small muted">Les livreurs encaissent les clients (espèces ou leur Bit) et vous versent ${UI.money(settings.commission)} par course livrée, une fois par semaine. Les courses payées à HOP (programmées, carnets) leur sont reversées, et leurs bonus de parrainage déduits. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course.</span>
+      <span class="small muted">Les livreurs encaissent les clients (espèces ou leur Bit) et vous versent ${UI.commissionText()} par course livrée, une fois par semaine. Les courses payées à HOP (programmées, carnets) leur sont reversées, et leurs bonus de parrainage déduits. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course.</span>
     </div>
     <table class="bill">
       <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">Solde</th><th></th></tr></thead>
@@ -636,7 +636,7 @@ function renderMessages(view) {
   view.innerHTML = `
     <div class="card">
       <b>📣 Prévenir vos livreurs</b>
-      <p class="muted small" style="margin:4px 0 10px">Le message s'ouvre en grand sur leur téléphone, avec un son, et ils répondent « J'arrive » ou « Pas dispo ». ${act.length} livreur(s) actif(s), ${onDuty.length} en service en ce moment${onDuty.length ? " : " + onDuty.map(c => UI.esc(c.name)).join(", ") : ""}.</p>
+      <p class="muted small" style="margin:4px 0 10px">Le message s'ouvre en grand sur leur téléphone, avec un son, et ils répondent « J'arrive » ou « Pas dispo ». ${act.length} livreur(s) actif(s), ${onDuty.length} en ligne en ce moment${onDuty.length ? " : " + onDuty.map(c => UI.esc(c.name)).join(", ") : ""}.</p>
       <div class="tpl-list">${CONFIG.courierMessages.map((m, i) => `<button class="addr-chip" data-tpl="${i}">${UI.esc(m.text)}</button>`).join("")}</div>
       <textarea id="msgText" rows="3" placeholder="Votre message…" style="width:100%;margin-top:10px">${UI.esc(typed)}</textarea>
       <div class="promo-row" style="margin-top:8px">
@@ -809,7 +809,7 @@ function orderOf(el) {
 
 async function assignTo(o, courier) {
   try {
-    await Store.assignOrder(o.id, courier);
+    await Store.assignOrder(o.id, courier, o.price);
     await load();
 
   } catch (e) { alert("Attribution impossible, vérifiez la connexion."); }

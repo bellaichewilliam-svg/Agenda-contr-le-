@@ -904,6 +904,26 @@ function openChatMenu() {
     { label: "💬 " + t("chSupport"), badge: chatUnread["u:" + Store.deviceId()], onClick: () => openSupport() }
   ]);
 }
+// --- Bulle ronde de la course en cours : temps restant avant la livraison -----------------------
+async function renderEtaBubble() {
+  const live = state.mine.filter(o => ["nouvelle", "confirmee", "recuperee"].includes(o.status))
+    .sort((a, b) => ["recuperee", "confirmee", "nouvelle"].indexOf(a.status) - ["recuperee", "confirmee", "nouvelle"].indexOf(b.status))[0];
+  const el = $("#etaBubble");
+  el.classList.toggle("hidden", !live);
+  document.body.classList.toggle("has-eta", !!live);
+  if (!live) return;
+  let o = live;
+  try { o = (await Store.trackOrder(live.token)) || live; } catch (e) { /* on garde la course connue */ }
+  const min = UI.deliveryEta(o);
+  el.href = UI.trackUrl(o);
+  $("#ebMin").textContent = min != null ? min : o.status === "nouvelle" ? "⏳" : "🛵";
+  $("#ebUnit").textContent = min != null ? "min" : "";
+  $("#ebTitle").innerHTML = `<span class="eb-scoot">🛵</span> ${UI.esc(t(o.status === "nouvelle" ? "trWaiting" : o.status === "confirmee" ? "trStep2" : "trStep3"))}`;
+  $("#ebSub").textContent = t("orderNo", { ref: o.ref });
+  const len = 2 * Math.PI * 42;
+  $("#ebArc").style.strokeDasharray = `${len * (UI.PROGRESS[o.status] || 0)} ${len}`;
+}
+
 // Messages non lus : pastille sur le bouton « Nous écrire », vibration à l'arrivée
 async function checkChats() {
   try {
@@ -916,6 +936,7 @@ async function checkChats() {
   if (total > chatTotal && navigator.vibrate) navigator.vibrate([150, 80, 150]);
   chatTotal = total;
   renderMine();
+  renderEtaBubble();
 }
 
 async function onListClick(e) {

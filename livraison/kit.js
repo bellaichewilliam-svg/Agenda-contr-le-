@@ -116,7 +116,7 @@ On essaie avec 3 livraisons à moitié prix ? ${url}` },
 `🛵 ${nameFr} recrute des livreurs indépendants à ${UI.cityFr(home)} et environs !
 ✅ Vous choisissez vos courses, quand vous voulez
 ✅ Vous encaissez le client directement (espèces ou Bit)
-✅ Seulement ${UI.money(CONFIG.platform.commissionPerCourse)} de commission par course, réglés une fois par semaine
+✅ Commission de ${CONFIG.platform.commissionPercent} % par course (3 ₪ pour une course de 25 ₪), réglée une fois par semaine
 ✅ Pas d'abonnement, pas de frais d'inscription
 Il faut : permis valide, véhicule assuré, statut d'עוסק פטור ou מורשה.
 👉 Inscription : ${UI.appUrl("coursier.html")}` },
@@ -125,7 +125,7 @@ Il faut : permis valide, véhicule assuré, statut d'עוסק פטור ou מור
 `🛵 ${nameHe} מגייסת שליחים עצמאיים ב${heHome} והסביבה!
 ✅ בוחרים משלוחים מתי שרוצים
 ✅ גובים ישירות מהלקוח (מזומן או ביט)
-✅ רק ${UI.money(CONFIG.platform.commissionPerCourse)} עמלה למשלוח, תשלום פעם בשבוע
+✅ עמלה של ${CONFIG.platform.commissionPercent}% למשלוח (3 ₪ על משלוח של 25 ₪), תשלום פעם בשבוע
 ✅ בלי מנוי ובלי דמי הרשמה
 דרוש: רישיון נהיגה בתוקף, רכב מבוטח, עוסק פטור או מורשה.
 👈 להרשמה: ${UI.appUrl("coursier.html")}` },

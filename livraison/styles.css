@@ -682,10 +682,14 @@ body.rider-on > main { padding: 0 !important; max-width: none; }
 .rd-duty-text { color: var(--rd-mute); margin: 4px 2px 10px; }
 .rd-slide { position: relative; height: 64px; border-radius: 99px; background: var(--brand); color: #fff; display: grid; place-items: center; user-select: none; touch-action: none; overflow: hidden; }
 .rd-slide b { font-family: "Fredoka", "Rubik", sans-serif; font-weight: 600; font-size: 18px; padding-inline: 64px 14px; text-align: center; }
-.rd-knob { position: absolute; inset-inline-start: 6px; top: 6px; width: 52px; height: 52px; border-radius: 50%; background: #0F1F3D; color: #fff; display: grid; place-items: center; font-size: 30px; transition: transform .25s; z-index: 1; }
+.rd-knob { position: absolute; inset-inline-start: 6px; top: 6px; width: 52px; height: 52px; border-radius: 50%; background: #0F1F3D; color: #fff; display: grid; place-items: center; font-family: "Fredoka", "Rubik", sans-serif; font-weight: 700; font-size: 15px; letter-spacing: -.3px; direction: ltr; transition: transform .25s; z-index: 1; }
 .rd-slide.on { background: #12B76A; }
 .rd-slide.dragging .rd-knob { transition: none; }
-[dir="rtl"] .rd-knob { transform: scaleX(-1); }
+.rd-hop { position: fixed; inset: 0; z-index: 70; display: grid; place-content: center; justify-items: center; gap: 6px; pointer-events: none; background: radial-gradient(circle, rgba(18, 183, 106, .92), rgba(15, 31, 61, .97) 72%); animation: rdHopFade 1.6s ease forwards; }
+.rd-hop b { font-family: "Fredoka", "Rubik", sans-serif; font-weight: 700; font-size: 84px; color: #fff; direction: ltr; text-shadow: 0 6px 24px rgba(0, 0, 0, .45); animation: rdHopPop .6s cubic-bezier(.2, 1.6, .4, 1) both; }
+.rd-hop span { color: #fff; font-weight: 600; font-size: 18px; text-shadow: 0 2px 10px rgba(0, 0, 0, .5); }
+@keyframes rdHopPop { from { transform: scale(.3) rotate(-8deg); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rdHopFade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
 .rd-drawer { position: absolute; inset: 0; z-index: 20; background: rgba(0,0,0,.5); }
 .rd-drawer-box { position: absolute; inset-block: 0; inset-inline-start: 0; width: min(330px, 86vw); background: var(--rd-bg); padding: calc(24px + env(safe-area-inset-top)) 0 20px; display: flex; flex-direction: column; overflow-y: auto; }
 .rd-me { display: flex; gap: 14px; align-items: center; padding: 0 20px 18px; border-bottom: 1px solid var(--rd-line); }
@@ -720,3 +724,41 @@ body.rider-on > main { padding: 0 !important; max-width: none; }
 .rd-pin.me { background: #12B76A; border-color: #fff; }
 .rd-pin.off { background: #98A2B3; border-color: #fff; }
 .pin-price { position: absolute; top: -10px; inset-inline-start: 22px; background: #fff; color: #0F1F3D; border-radius: 99px; padding: 1px 7px; font: 700 11px Rubik, Arial; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+.fc-bars { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; align-items: end; height: 120px; margin: 12px 0 6px; }
+.fc-bars div { display: grid; gap: 3px; justify-items: center; align-self: end; font-size: 10px; color: var(--muted); }
+.fc-bars i { display: block; width: 100%; border-radius: 4px 4px 2px 2px; background: var(--border); }
+.fc-bars i.lo { background: #F04438; } .fc-bars i.mid { background: #F79009; } .fc-bars i.hi { background: #12B76A; }
+.fc-bars .now span { color: var(--brand); font-weight: 800; }
+.fc-bars .now i { outline: 2px solid var(--brand); }
+
+/* Suivi : anneau du temps restant et scooter qui se déplace */
+.track-page { position: relative; }
+.eta-ring { position: absolute; top: 14px; inset-inline-end: 14px; z-index: 500; width: 92px; height: 92px; border-radius: 50%; background: #fff; box-shadow: 0 6px 18px rgba(15,31,61,.3); display: grid; place-items: center; align-content: center; }
+.eta-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.eta-ring circle { fill: none; stroke-width: 7; }
+.eta-ring .bg { stroke: var(--bg-2); }
+.eta-ring .fg { stroke: var(--brand); stroke-linecap: round; transition: stroke-dasharray .8s; }
+.eta-ring b { position: relative; font-family: "Fredoka", "Rubik", sans-serif; font-size: 30px; line-height: 1; color: var(--navy); }
+.eta-ring small { position: relative; font-weight: 700; color: var(--muted); font-size: 12px; }
+.trk-scooter { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; background: var(--brand); border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,.35); animation: trk-bob 1s ease-in-out infinite alternate; }
+@keyframes trk-bob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
+@media (prefers-reduced-motion: reduce) { .trk-scooter { animation: none; } }
+
+/* Accueil : bulle ronde de la course en cours (temps restant), toujours visible */
+.eta-bubble { position: fixed; bottom: 18px; inset-inline-start: 16px; z-index: 40; max-width: calc(100vw - 110px); display: flex; align-items: center; gap: 10px; text-decoration: none; background: var(--navy); color: #fff; border-radius: 99px; padding: 6px 16px 6px 6px; box-shadow: 0 8px 24px rgba(15,31,61,.35); }
+[dir="rtl"] .eta-bubble { padding: 6px 6px 6px 16px; }
+.eta-bubble .eb-ring { position: relative; width: 58px; height: 58px; border-radius: 50%; background: #fff; display: grid; place-items: center; align-content: center; }
+.eta-bubble .eb-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.eta-bubble circle { fill: none; stroke-width: 8; }
+.eta-bubble .bg { stroke: var(--bg-2); } .eta-bubble .fg { stroke: var(--brand); stroke-linecap: round; }
+.eta-bubble .eb-ring b { position: relative; font-family: "Fredoka", "Rubik", sans-serif; font-size: 21px; line-height: 1; color: var(--navy); }
+.eta-bubble .eb-ring small { position: relative; font-size: 10px; font-weight: 700; color: var(--muted); }
+.eta-bubble .eb-ring { flex: none; }
+.eta-bubble .eb-text { display: grid; line-height: 1.2; min-width: 0; }
+.eta-bubble .eb-text > * { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eta-bubble .eb-text b { font-size: 15px; } .eta-bubble .eb-text small { opacity: .75; font-size: 12px; }
+.eta-bubble .eb-scoot { display: inline-block; animation: eb-ride 1.6s ease-in-out infinite alternate; }
+@keyframes eb-ride { from { transform: translateX(-3px); } to { transform: translateX(3px); } }
+@media (max-width: 960px) { .mobile-bar.show ~ .eta-bubble { bottom: 84px; } }
+@media (min-width: 861px) { [dir="ltr"] .eta-ring { right: 414px; } [dir="rtl"] .eta-ring { left: 414px; } }
+body.has-eta { padding-bottom: 96px; }

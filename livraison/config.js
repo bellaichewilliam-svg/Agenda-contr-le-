@@ -136,7 +136,11 @@ window.CONFIG = {
 
   // --- Livreurs partenaires --------------------------------------------------
   platform: {
-    commissionPerCourse: 3,   // ce que vous prenez sur chaque course d'un livreur
+    commissionPerCourse: 3,   // commission minimum par course d'un livreur
+    // Commission = commissionPercent % du prix de la course, au moins commissionPerCourse,
+    // arrondie au demi-shekel : 25 ₪ → 3 ₪, 50 ₪ → 6 ₪, 100 ₪ → 12 ₪, 120 ₪ → 14,50 ₪
+    // (en ligne : settings.commission_pct et settings.commission_min)
+    commissionPercent: 12,
     // Au-delà de ce solde dû (commissions − courses payées à HOP − bonus), le livreur ne
     // peut plus accepter de course tant qu'il n'a pas réglé (en ligne : settings.max_debt)
     maxDebt: 50,
@@ -177,7 +181,7 @@ window.CONFIG = {
   // Messages prêts à envoyer aux livreurs depuis l'espace patron
   courierMessages: [
     { kind: "rush", text: "🔥 Ça vaut le coup de sortir : beaucoup de commandes en ce moment !" },
-    { kind: "rush", text: "🍔 Rush du soir à Netanya : passez en service maintenant !" },
+    { kind: "rush", text: "🍔 Rush du soir à Netanya : passez en ligne maintenant !" },
     { kind: "info", text: "🌧️ Il pleut : prudence sur la route, prenez votre temps." },
     { kind: "info", text: "📍 Des courses attendent au centre-ville de Netanya." },
     { kind: "info", text: "😴 Calme pour le moment, pas besoin de sortir." }

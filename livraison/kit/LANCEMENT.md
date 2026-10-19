@@ -77,14 +77,14 @@ Avec `rider-post-fr.png` / `rider-post-he.png` (groupes d'emploi, étudiants, ol
 
 > 🛵 **Deviens livreur partenaire HOP!** (scooter, voiture ou vélo)
 > ✅ Tu choisis tes courses · 💵 tu encaisses les espèces · 🎯 les courses proches de toi d'abord.
-> 💸 Seulement **3 ₪ de commission par course**, réglés une fois par semaine. Pas d'abonnement.
+> 💸 Commission de **12 % par course** (3 ₪ pour une course de 25 ₪), réglée une fois par semaine. Pas d'abonnement.
 > 🤝 Amène un commerce : **+1 ₪ sur chacune de ses livraisons**, tant que tu livres avec nous.
 > Demandé : permis valide, véhicule assuré, עוסק פטור ou מורשה.
 > 👉 Inscription : https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html
 
 > 🛵 **בואו להיות שליחים בהופ!** (קטנוע, רכב או אופניים)
 > ✅ בוחרים את המשלוחים · 💵 מקבלים את המזומן · 🎯 משלוחים קרובים אליכם קודם.
-> 💸 רק **3 ₪ עמלה למשלוח**, תשלום פעם בשבוע. בלי מנוי.
+> 💸 עמלה של **12% למשלוח** (3 ₪ על משלוח של 25 ₪), תשלום פעם בשבוע. בלי מנוי.
 > 🤝 מביאים עסק: **‎+1 ₪ על כל משלוח שלו**, כל עוד אתם שולחים איתנו.
 > דרוש: רישיון בתוקף, רכב מבוטח, עוסק פטור או מורשה.
 > 👈 להרשמה: https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html
