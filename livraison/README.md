@@ -70,6 +70,19 @@ L'espace du commerce (`commerce.html`) montre le tarif pro (25 ₪ dans Netanya)
 ### Messages aux livreurs
 Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et d'autres messages prêts, à tous ou à un seul livreur. Le message s'ouvre en grand chez eux, avec un son, et ils répondent « J'arrive » ou « Pas dispo ».
 
+### Adresses
+- **📍 Ma position** remplit l'adresse depuis le GPS du téléphone, et **⭐ Enregistrer cette adresse** l'ajoute au carnet du client.
+- Avant chaque commande, le client **vérifie ses adresses sur une carte** et peut faire glisser l'épingle au bon endroit, par exemple s'il commande pour une autre adresse que la sienne.
+
+### Déposer devant la porte, blocages et déblocages
+- **Devant la porte :** le livreur doit envoyer la photo du colis dans la conversation **et** être sur place pour valider « Livré ».
+- **Une course à la fois :** tant qu'une course récupérée n'est pas validée, le livreur ne peut pas en prendre une autre.
+- **⚠️ Un souci :** le livreur signale un problème (client absent, adresse introuvable, retard, panne…). Il s'affiche sur la course, dans la conversation, et vous recevez une alerte.
+- **Vous débloquez tout :** « 🔓 Débloquer la course » (livrer sans GPS ni photo) ou « 🔓 Débloquer 24 h » sur un livreur (plus aucun blocage pendant 24 h).
+
+### Zones
+Seulement le Sharon est ouvert (`zones` dans `config.js`). Tel Aviv – Gush Dan, Petah Tikva et Rishon apparaissent « bientôt » chez les clients et dans l'écran « 📍 Zones » des livreurs, qui montre aussi la demande en direct. Mettez `active: true` pour ouvrir une zone.
+
 ### Gros colis (voiture)
 Pas encore de voiture : l'option « Gros colis » est cachée. Pour l'ouvrir, mettez `pricing.carAvailable: true` dans `config.js` (les prix voiture du Sharon sont déjà dans `fixedCarFromHome`).
 

@@ -140,9 +140,14 @@ function beep() {
 
 async function load() {
   try {
-    [orders, settings] = await Promise.all([Store.listOrders(), Store.getSettings()]);
+    let card;
+    [orders, settings, card] = await Promise.all([Store.listOrders(), Store.getSettings(), Store.me().catch(() => null)]);
+    // Fiche à jour (déblocage par HOP, suspension…)
+    if (card) me = card;
     // Parrainage et messages : un souci ici ne doit pas bloquer les courses
-    const [r, m, bal] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null), Store.myBalance().catch(() => null)]);
+    const [r, m, bal, dem] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
+      Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null)]);
+    if (dem) demand = dem;
     if (r) refs = r;
     if (bal != null) balance = bal;
     if (m) { msgs = m; checkNewMessages(); }
@@ -154,7 +159,7 @@ async function load() {
   }
   const fresh = pool().filter(o => !seenPool.has(o.id));
   // Toute course disponible encore jamais montrée s'ouvre en fenêtre (dès la 1re connexion aussi)
-  if (!locked()) fresh.forEach(o => offerQueue.push(o.id));
+  if (!blocked()) fresh.forEach(o => offerQueue.push(o.id));
   showNextOffer();
   if (!firstLoad && fresh.length) {
     beep();
@@ -190,11 +195,13 @@ function card(o, kind) {
   let actions = "";
   if (kind === "pool") {
     actions = locked() ? `<span class="pill st-annulee">🔒 Réglez votre solde pour accepter</span>`
+      : busy() ? `<span class="pill st-annulee">🔒 Livrez d'abord votre course en cours</span>`
       : `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button>`;
   } else {
     actions = (o.status === "confirmee"
         ? `<button class="btn btn-sm btn-primary" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
+      + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
       + (o.leave_at_door && o.status === "recuperee" ? `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}" data-photo="1">📷 Photo du dépôt</button>` : "")
@@ -217,6 +224,9 @@ function card(o, kind) {
       <span class="pill">${UI.PAY_FR[o.payment_method] || ""}${o.payer === "destinataire" ? " · payé par le destinataire" : ""}</span>
       <span class="pill paid">Vous gagnez ${UI.money(net + (mineShop ? Number(o.referral_bonus || 0) : 0))}</span>
       ${mineShop ? `<span class="pill star-pill">⭐ Votre commerce${o.shop_name ? " : " + UI.esc(o.shop_name) : ""}${kind === "pool" ? priorityLeft(o) : ""} · +${UI.money(o.referral_bonus || 0)}</span>` : o.shop_name ? `<span class="pill">🏪 Partenaire : ${UI.esc(o.shop_name)}</span>` : ""}
+      ${o.issue && kind === "mine" ? `<span class="pill st-annulee">⚠️ Souci signalé : ${UI.esc(o.issue)}</span>` : ""}
+      ${o.unlocked ? `<span class="pill paid">🔓 Débloquée par HOP : « Livré » possible sans GPS ni photo</span>` : ""}
+      ${o.leave_at_door && !o.unlocked && kind === "mine" ? `<span class="pill unpaid">📷 Devant la porte : photo obligatoire avant « Livré »</span>` : ""}
       ${hopPaid ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${o.payment_status === "paye" ? `✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse ${UI.money(net)}` : (o.payment_method === "bit" ? "📱 Le client paie par Bit à HOP : n'encaissez rien" : "💳 Paiement d'avance à HOP en attente : n'encaissez rien")}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
     </div>
@@ -269,6 +279,8 @@ function render() {
         ${balance > 0 ? `<button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, je viens de verser mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé mon solde</button>` : ""}
         ${balance < 0 ? `<button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, HOP me doit ${UI.money(-balance)} cette semaine : merci de me les verser sur mon Bit ${me.bit_phone || me.phone}.`)}">Demander mon versement</button>` : ""}
       </div>`;
+  } else if (tab === "zones") {
+    renderZones(view);
   } else if (tab === "ref") {
     renderRef(view);
   } else {
@@ -282,8 +294,9 @@ async function onViewClick(e) {
   if (!el) return;
   if (el.dataset.accept) {
     el.disabled = true;
-    const ok = await Store.acceptOrder(el.dataset.accept).catch(() => false);
-    if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
+    const ok = await Store.acceptOrder(el.dataset.accept).catch(e => acceptError(e));
+    if (ok === "shown") { /* message déjà affiché */ }
+    else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
     else {
       tab = "mine";
       if (duty.watch == null && confirm("Course acceptée ! Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
@@ -298,10 +311,14 @@ async function onViewClick(e) {
     if (el.dataset.act === "livree") {
       el.disabled = true;
       el.textContent = "📍 Vérification de votre position…";
-      const here = await checkAtDropoff(o);
-      if (!here.ok) { render(); return alert(here.msg); }
+      if (!o.unlocked && !freeNow()) {
+        const here = await checkAtDropoff(o);
+        if (!here.ok) { render(); return alert(here.msg); }
+        if (o.leave_at_door && !(await hasDoorPhoto(o))) { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
+      }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far/.test(e.message) ? "far" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : false);
+    if (ok === "photo") { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
     if (ok === "far") { render(); return alert(`📍 Vous n'êtes pas à l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).`); }
     if (!ok) alert("Action impossible, actualisez la page.");
     else if (el.dataset.act === "livree" && o && o.paid_to !== "hop" && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(o.price)} ?`)) {
@@ -341,6 +358,47 @@ async function checkChats() {
   chatTotal = total;
 }
 
+// --- Zones de livraison : demande en direct (seulement le Sharon ouvert pour l'instant) ------
+let demand = null;
+function demandLevel(d) {
+  if (!d) return null;
+  const score = (Number(d.waiting) + Number(d.last_hour) / 2) / Math.max(1, Number(d.on_duty));
+  return score >= 2.5 ? { label: "Forte", n: 3, cls: "hi" } : score >= 1 ? { label: "Moyenne", n: 2, cls: "mid" } : { label: "Faible", n: 1, cls: "lo" };
+}
+const bars = lv => `<span class="dbars ${lv.cls}">${[1, 2, 3].map(i => `<i class="${i <= lv.n ? "on" : ""}"></i>`).join("")}</span>`;
+function renderZones(view) {
+  const lv = demandLevel(demand);
+  view.innerHTML = `<div class="card">
+      <h3>Zone de livraison</h3>
+      <p class="muted small" style="margin:4px 0 12px">Regardez la demande en direct et sortez quand ça vaut le coup. Pour l'instant, HOP! livre seulement dans le Sharon ; les autres zones arrivent bientôt.</p>
+      <div class="zone-head"><b>Zone</b><b>Demande</b></div>
+      ${CONFIG.zones.map(z => `<div class="zone-row${z.active ? "" : " off"}">
+          <span class="zone-radio${z.active ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
+          <span class="zone-dem">${z.active ? (lv ? `${lv.label} ${bars(lv)}` : "…") : "Bientôt"}</span>
+        </div>`).join("")}
+      ${demand ? `<p class="small" style="margin-top:12px">En ce moment : <b>${demand.waiting}</b> course(s) en attente · <b>${demand.last_hour}</b> commande(s) cette dernière heure · <b>${demand.on_duty}</b> livreur(s) en service.</p>` : ""}
+      <p class="muted small" style="margin-top:6px">Heures de pointe habituelles : ${UI.esc(CONFIG.peakHours.fr)}.</p>
+    </div>`;
+}
+
+// --- Signaler un souci pendant la course (HOP est prévenu, le client le voit) ----------------
+const ISSUES = ["Client absent / ne répond pas", "Adresse introuvable", "Colis pas prêt au départ", "Colis abîmé",
+  "Retard (circulation, attente)", "Panne ou accident", "Le client refuse le colis"];
+function reportIssue(o) {
+  if (!o) return;
+  const send = async reason => {
+    const extra = prompt(`« ${reason} » : un détail à ajouter ? (facultatif)`, "");
+    if (extra === null) return;
+    const text = extra.trim() ? `${reason} : ${extra.trim()}` : reason;
+    const ok = await Store.courierIssue(o.id, text).catch(() => false);
+    if (!ok) return alert("Souci non envoyé, vérifiez la connexion.");
+    await load();
+    // La conversation s'ouvre : photo ou précision pour HOP et le client
+    openOrderChat(orders.find(x => x.id === o.id) || o);
+  };
+  Chat.choose(`⚠️ Un souci sur la course n° ${o.ref} ?`, [...ISSUES, "Autre souci"].map(r => ({ label: r, onClick: () => send(r) })));
+}
+
 // --- « Livré » seulement sur place ---------------------------------------------------------
 const deliverRadius = () => Number(settings.deliver_radius || CONFIG.platform.deliverRadius);
 function currentPos() {
@@ -371,11 +429,39 @@ async function checkAtDropoff(o) {
   return { ok: true };
 }
 
-// --- Solde : au-delà du plafond, plus de nouvelles courses jusqu'au règlement -------------
-const locked = () => balance > Number(settings.max_debt);
+// --- Blocages (le patron peut tout débloquer) ----------------------------------------------
+const PHOTO_MSG = "📷 Course « déposer devant la porte » : envoyez d'abord la photo du colis devant la porte dans la conversation, puis validez « Livré ».";
+// Livreur débloqué par HOP jusqu'à une date
+const freeNow = () => !!(me && me.unlocked_until && new Date(me.unlocked_until) > new Date());
+// Solde : au-delà du plafond, plus de nouvelles courses jusqu'au règlement
+const locked = () => !freeNow() && balance > Number(settings.max_debt);
+// Une course récupérée doit être livrée et validée avant d'en prendre une autre
+const busyOrder = () => orders.find(o => o.courier_id === me.id && o.status === "recuperee");
+const busy = () => !freeNow() && !!busyOrder();
+const blocked = () => locked() || busy();
+function acceptError(e) {
+  if (/busy/.test(e.message)) { const b = busyOrder(); alert(`🔒 Livrez d'abord votre course en cours${b ? " n° " + b.ref : ""} : validez « Livré » sur place${b && b.leave_at_door ? ", avec la photo devant la porte" : ""}. Un souci ? Écrivez à HOP.`); return "shown"; }
+  if (/debt/.test(e.message)) { alert(`🔒 Vous devez ${UI.money(balance)} à HOP : réglez votre solde pour recevoir des courses.`); return "shown"; }
+  return false;
+}
+async function hasDoorPhoto(o) {
+  try { return (await Store.chatThread("o:" + o.id)).some(m => m.author === "courier" && m.image); } catch (e) { return true; /* la base vérifiera */ }
+}
 function renderLock() {
   const box = $("#lockBox");
-  box.classList.toggle("hidden", !locked());
+  const b = busy() && busyOrder();
+  box.classList.toggle("hidden", !locked() && !b && !freeNow());
+  if (freeNow()) {
+    box.className = "lock-box free";
+    box.innerHTML = `<div><b>🔓 Débloqué par HOP</b><br><span class="small">jusqu'au ${UI.esc(UI.fmtDateTime(me.unlocked_until))}</span></div>`;
+    return;
+  }
+  box.className = "lock-box" + (locked() || b ? "" : " hidden");
+  if (!locked() && b) {
+    box.innerHTML = `<div><b>🔒 Course n° ${UI.esc(b.ref)} en cours</b><br><span class="small">Validez « Livré » à l'adresse du client${b.leave_at_door ? " avec la photo devant la porte" : ""} pour prendre une autre course.</span></div>
+      <button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, j'ai un souci avec la course n° ${b.ref} :`)}">💬 Un souci ? Écrire à HOP</button>`;
+    return;
+  }
   if (!locked()) return;
   box.innerHTML = `<div><b>🔒 Vous devez ${UI.money(balance)} à HOP</b><br><span class="small">Réglez par Bit au ${UI.esc(CONFIG.bitPhone)} pour recevoir à nouveau des courses (plafond ${UI.money(settings.max_debt)}).</span></div>
     <button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, je viens de régler mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé</button>`;
@@ -538,6 +624,7 @@ function onWorkClick(e) {
   const el = e.target.closest("button");
   if (!el) return;
   if (el.dataset.boss) return openBossChat(el.dataset.boss);
+  if (el.dataset.issue) return reportIssue(orders.find(x => x.id === el.dataset.issue));
   if (el.dataset.chat) {
     const o = orders.find(x => x.id === el.dataset.chat);
     if (o) openOrderChat(o, !!el.dataset.photo);
@@ -625,10 +712,11 @@ function closeOffer() {
 async function acceptOffer() {
   const id = offerShown;
   $("#offerAccept").disabled = true;
-  const ok = await Store.acceptOrder(id).catch(() => false);
+  const ok = await Store.acceptOrder(id).catch(e => acceptError(e));
   $("#offerAccept").disabled = false;
   closeOffer();
-  if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
+  if (ok === "shown") { /* message déjà affiché */ }
+  else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
   else {
     tab = "mine";
     if (duty.watch == null && confirm("Course acceptée ! Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();

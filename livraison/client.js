@@ -25,7 +25,7 @@ const EXAMPLES = [
   { id: "keys",  icon: "🔑", set: { service: "colis", urgency: "express" } },
   { id: "shop",  icon: "🛒", set: { service: "achat" } },
   { id: "gift",  icon: "💐", set: { service: "colis", urgency: "programmee" } },
-  { id: "ta",    icon: "🏙️", set: { service: "colis", from_city: CONFIG.homeCity, to_city: "tel-aviv" } }
+  { id: "ta",    icon: "🏙️", set: { service: "colis", from_city: CONFIG.homeCity, to_city: "raanana" } }
 ];
 
 function val(name) { const el = form.elements[name]; return el ? el.value : ""; }
@@ -36,7 +36,9 @@ function cityLabel(id) { return CONFIG.cities.some(c => c.id === id) ? I18N.city
 function fillCitySelects() {
   document.querySelectorAll(".city-select").forEach(sel => {
     const current = sel.value;
-    const opts = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(c[I18N.lang])}</option>`);
+    // Villes des zones pas encore ouvertes : visibles mais « bientôt »
+    const opts = CONFIG.cities.map(c => UI.cityActive(c.id) ? `<option value="${c.id}">${UI.esc(c[I18N.lang])}</option>`
+      : `<option value="${c.id}" disabled>${UI.esc(c[I18N.lang])} · ${UI.esc(t("soon"))}</option>`);
     if (sel.classList.contains("with-other")) opts.push(`<option value="${OTHER}">${UI.esc(t("otherCity"))}</option>`);
     sel.innerHTML = opts.join("");
     sel.value = current || CONFIG.homeCity;
@@ -81,10 +83,12 @@ function renderStatic() {
     <div class="card offer"><div class="ico">🏢</div><h3>${t("offPro_t")}</h3><ul class="pro-list">${pro}</ul>
       <button type="button" class="btn btn-sm btn-primary" style="margin-top:10px" data-devis="tournee">${t("offPro_cta")}</button></div>`;
 
-  const rows = CONFIG.cities.map(c => ({ c, price: Pricing.cityToCity(CONFIG, home, c.id) })).sort((a, b) => a.price - b.price);
+  // Zones ouvertes d'abord (par prix), puis les villes « bientôt »
+  const rows = CONFIG.cities.map(c => ({ c, price: Pricing.cityToCity(CONFIG, home, c.id), open: UI.cityActive(c.id) }))
+    .sort((a, b) => (b.open - a.open) || (a.price - b.price));
   $("#priceGrid").innerHTML = rows.map(r => `<div class="pg-row"><span>${r.c.id === home
     ? UI.esc(t("within", { city: I18N.cityName(home) }))
-    : `${UI.esc(I18N.cityName(home))} ⇄ ${UI.esc(r.c[I18N.lang])}`}</span><b>${money(r.price)}${Pricing.carPrice(CONFIG, home, r.c.id) != null
+    : `${UI.esc(I18N.cityName(home))} ⇄ ${UI.esc(r.c[I18N.lang])}`}</span><b>${!UI.cityActive(r.c.id) ? `<small class="muted">${UI.esc(t("soon"))}</small>` : money(r.price)}${Pricing.carPrice(CONFIG, home, r.c.id) != null
       ? ` <small class="muted" title="${UI.esc(t("xBig"))}">🚗 ${money(Pricing.carPrice(CONFIG, home, r.c.id))}</small>` : ""}</b></div>`).join("");
 
   const extras = [["xExpress", "+ " + money(P.express)], ["xPickup", "+ " + money(P.pickupPoint)], ["xPurchase", "+ " + money(P.purchase)],
@@ -445,6 +449,7 @@ function onPlacePicked(which, p) {
   syncVisibility();
   renderQuote();
   renderShopBanner();
+  renderSaveBtns();
 }
 
 function attachPlaces() {
@@ -453,7 +458,7 @@ function attachPlaces() {
       lang: () => I18N.lang,
       texts: () => ({ none: t("addrNone"), down: t("addrDown") }),
       onPick: p => onPlacePicked(which, p),
-      onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); }
+      onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
     });
   });
 }
@@ -491,6 +496,95 @@ function applySavedAddr(which, a) {
   syncVisibility();
   renderQuote();
   renderShopBanner();
+  renderSaveBtns();
+}
+
+// --- « 📍 Ma position » et « ⭐ Enregistrer cette adresse » -----------------------------------
+function renderSaveBtns() {
+  ["from", "to"].forEach(w => {
+    const b = form.querySelector(`[data-save-addr="${w}"]`);
+    if (!b) return;
+    b.classList.toggle("hidden", !state.pick[w]);
+    b.textContent = t("saveAddr");
+  });
+}
+function myPosition() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject(new Error("nogeo"));
+    navigator.geolocation.getCurrentPosition(p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }), reject,
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 });
+  });
+}
+async function useMyPosition(which, btn) {
+  btn.disabled = true;
+  btn.textContent = t("geoLocating");
+  showError("");
+  try {
+    let pos;
+    try { pos = await myPosition(); } catch (e) { return showError(t("geoDenied")); }
+    let list = [];
+    try { list = await Places.reverse(pos.lat, pos.lon, I18N.lang); } catch (e) { /* message ci-dessous */ }
+    const p = list[0];
+    if (!p) return showError(t("geoNone"));
+    // Le point exact est celui du téléphone (plus précis que le centre de la rue)
+    Object.assign(p, { lat: pos.lat, lon: pos.lon, exact: true, gps: true });
+    onPlacePicked(which, p);
+    if (ac[which]) ac[which].setPicked(p.label);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t("useMyPos");
+  }
+}
+function saveCurrentAddress(which, btn) {
+  const p = state.pick[which];
+  if (!p) return;
+  const pre = prefixOf(which), cityId = cityOf(which);
+  Store.saveAddress({
+    street: p.streetName || p.brand || "", number: val(pre + "_number").trim(), brand: p.brand || null,
+    city: p.city || cityId, cityId: CONFIG.cities.some(c => c.id === cityId) ? cityId : null,
+    lat: p.lat, lon: p.lon, exact: !!p.exact,
+    building: val(pre + "_building").trim() || null, floor: val(pre + "_floor").trim() || null,
+    apt: val(pre + "_apt").trim() || null, code: val(pre + "_code").trim() || null, note: val(pre + "_note").trim() || null
+  });
+  btn.textContent = t("addrSaved");
+  renderSavedAddrs();
+  renderAccount();
+}
+
+// --- Vérification des adresses sur la carte avant d'envoyer la commande ------------------------
+let checkMap = null;
+function confirmAddresses(pick, drop, pAddr, dAddr, fromCity, toCity) {
+  return new Promise(resolve => {
+    const legs = { pick: Object.assign({}, pick), drop: Object.assign({}, drop) };
+    const moved = { pick: false, drop: false };
+    const renderLegs = () => {
+      $("#checkLegs").innerHTML = `<div><b>${UI.esc(t("ckFrom"))}</b> · <bdi>${UI.esc(pAddr)}</bdi>, ${UI.esc(cityLabel(fromCity))} ${moved.pick ? `<small>${UI.esc(t("ckMoved"))}</small>` : ""}</div>
+        <div><b>${UI.esc(t("ckTo"))}</b> · <bdi>${UI.esc(dAddr)}</bdi>, ${UI.esc(cityLabel(toCity))} ${moved.drop ? `<small>${UI.esc(t("ckMoved"))}</small>` : ""}</div>`;
+    };
+    renderLegs();
+    $("#checkModal").classList.remove("hidden");
+    const hasMap = window.L && legs.pick && legs.drop && legs.pick.lat != null && legs.drop.lat != null;
+    $("#checkMap").classList.toggle("hidden", !hasMap);
+    if (hasMap) {
+      if (!checkMap) {
+        checkMap = L.map("checkMap", { zoomControl: true, attributionControl: false });
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(checkMap);
+      }
+      checkMap.eachLayer(l => { if (l instanceof L.Marker) checkMap.removeLayer(l); });
+      const pin = e => L.divIcon({ className: "", html: `<div class="check-pin">${e}</div>`, iconSize: [30, 30], iconAnchor: [15, 28] });
+      [["pick", "📍"], ["drop", "🏁"]].forEach(([k, e]) => {
+        const m = L.marker([legs[k].lat, legs[k].lon], { draggable: true, icon: pin(e) }).addTo(checkMap);
+        m.on("dragend", () => { const ll = m.getLatLng(); Object.assign(legs[k], { lat: ll.lat, lon: ll.lng, exact: true }); moved[k] = true; renderLegs(); });
+      });
+      setTimeout(() => {
+        checkMap.invalidateSize();
+        checkMap.fitBounds([[legs.pick.lat, legs.pick.lon], [legs.drop.lat, legs.drop.lon]], { padding: [40, 40], maxZoom: 17 });
+      }, 60);
+    }
+    const done = ok => { $("#checkModal").classList.add("hidden"); $("#checkOk").onclick = $("#checkBack").onclick = null; resolve(ok ? legs : null); };
+    $("#checkOk").onclick = () => done(true);
+    $("#checkBack").onclick = () => done(false);
+  });
 }
 
 function rememberAddresses(o, pf, pt) {
@@ -545,7 +639,7 @@ function resetPlaces() {
 // Coordonnées exactes de « rue + numéro » choisis (sinon celles de la rue)
 async function exactPoint(p, number, cityName) {
   if (!p) return null;
-  if (p.shopId && p.lat != null) return { lat: p.lat, lon: p.lon, exact: true };
+  if ((p.shopId || p.gps) && p.lat != null) return { lat: p.lat, lon: p.lon, exact: true };
   if (p.housenumber && p.housenumber === number) return { lat: p.lat, lon: p.lon, exact: p.exact !== false };
   if (p.streetName) {
     try {
@@ -593,6 +687,9 @@ async function submit(e) {
   if (missingNo) { form.elements[missingNo[1]].focus(); return showError(t("errHouseNo")); }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
+  // Zones pas encore ouvertes (ex. Tel Aviv) : « bientôt »
+  const closedCity = [fromCity, toCity].find(c => !UI.cityActive(c));
+  if (closedCity) return showError(t("errZone", { city: cityLabel(closedCity) }));
   if (state.promo) {
     const r = validatePromo(val("promo"));
     state.promo = r.promo;
@@ -614,10 +711,14 @@ async function submit(e) {
     const pNo = val("pickup_number").trim(), dNo = val("dropoff_number").trim();
     const pAddr = fullAddress(pf, val("pickup_address").trim(), pNo);
     const dAddr = fullAddress(pt, val("dropoff_address").trim(), dNo);
-    const [pick, drop] = await Promise.all([
+    const [pick0, drop0] = await Promise.all([
       pf ? exactPoint(pf, pNo, UI.cityFr(fromCity)) : locate(pAddr, fromCity, state.fromPoint),
       pt ? exactPoint(pt, dNo, UI.cityFr(toCity)) : locate(dAddr, toCity, state.toPoint)
     ]);
+    // Le client vérifie ses adresses sur la carte (et corrige l'épingle s'il le faut)
+    const checked = await confirmAddresses(pick0, drop0, pAddr, dAddr, fromCity, toCity);
+    if (!checked) return;
+    const pick = checked.pick, drop = checked.drop;
     const order = {
       lang: I18N.lang,
       service: svc,
@@ -1033,6 +1134,12 @@ $("#doneClose").addEventListener("click", () => { $("#doneModal").classList.add(
 $("#refreshMine").addEventListener("click", loadMine);
 $("#myOrders").addEventListener("click", onListClick);
 $("#waFab").addEventListener("click", openChatMenu);
+form.addEventListener("click", e => {
+  const g = e.target.closest("[data-geo]");
+  if (g) return useMyPosition(g.dataset.geo, g);
+  const s = e.target.closest("[data-save-addr]");
+  if (s) saveCurrentAddress(s.dataset.saveAddr, s);
+});
 document.addEventListener("click", e => { if (e.target.closest("[data-support]")) { e.preventDefault(); openSupport(); } });
 setTimeout(checkChats, 1500);
 setInterval(checkChats, 20000);

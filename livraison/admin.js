@@ -110,6 +110,8 @@ async function load() {
   const freshCouriers = couriers.filter(c => !seen.has(c.id) && c.status === "en_attente");
   const freshShops = shops.filter(x => !seen.has(x.id) && x.status === "en_attente");
   const freshReqs = requests.filter(x => !seen.has(x.id) && x.status === "nouvelle");
+  // Souci signalé par un livreur : alerte une seule fois par souci
+  const freshIssues = orders.filter(o => o.issue && o.issue_at && !seen.has("issue:" + o.id + o.issue_at));
   if (!firstLoad && freshOrders.length) {
     alertNew(freshOrders.map(o => ({ ref: o.ref, price: o.price, body: `${UI.whenFr(o)}\n${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)}` })),
       x => `🆕 Commande n° ${x.ref} — ${UI.money(x.price)}`);
@@ -121,6 +123,8 @@ async function load() {
   shops.forEach(x => seen.add(x.id));
   requests.forEach(x => seen.add(x.id));
   if (!firstLoad && freshReqs.length) alertNew(freshReqs, x => `📝 Demande de devis : ${x.company || x.name}`);
+  if (!firstLoad && freshIssues.length) alertNew(freshIssues, o => `⚠️ Souci course n° ${o.ref} : ${o.issue}`);
+  orders.filter(o => o.issue && o.issue_at).forEach(o => seen.add("issue:" + o.id + o.issue_at));
   writeSeen(seen);
   firstLoad = false;
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -235,6 +239,11 @@ function card(o, withDay) {
   ];
   if (o.courier_id && !isMine(o) && !["annulee", "refusee"].includes(o.status)) {
     meta.push(`<button class="pill pill-btn ${o.paid_to === "hop" ? "paid" : ""}" data-act="paidto" title="Qui a reçu l'argent du client ?">${o.paid_to === "hop" ? "💳 Payée à HOP (reversée au livreur)" : "🛵 Payée au livreur"} ⇄</button>`);
+  }
+  if (o.issue) meta.push(`<button class="pill pill-btn st-annulee" data-act="issue" title="Cliquer quand le souci est réglé">⚠️ Souci signalé par le livreur : ${UI.esc(o.issue)} · ✓ réglé ?</button>`);
+  if (o.leave_at_door) meta.push(`<span class="pill">🚪 Devant la porte : photo obligatoire</span>`);
+  if (o.courier_id && !isMine(o) && ["confirmee", "recuperee"].includes(o.status)) {
+    meta.push(`<button class="pill pill-btn ${o.unlocked ? "paid" : ""}" data-act="unlock" title="Laisser le livreur valider « Livré » sans GPS ni photo">${o.unlocked ? "🔓 Débloquée (cliquer pour rebloquer)" : "🔓 Débloquer la course"}</button>`);
   }
   if (o.payment_method === "carnet") meta.push(`<span class="pill paid">🎟️ Carnet pro</span>`);
   if (o.prepaid_required) meta.push(`<span class="pill ${o.payment_status === "paye" ? "paid" : "st-annulee"}">💳 Payée d'avance : ${o.payment_status === "paye" ? "reçu ✓" : "EN ATTENTE"}</span>`);
@@ -479,6 +488,9 @@ function renderCouriers(view) {
           ${(() => { const b = balanceOf(c.id); return b > Number(settings.max_debt) ? `<span class="pill st-annulee">🔒 Bloqué : doit ${UI.money(b)}</span>` : b > 0 ? `<span class="pill unpaid">Doit ${UI.money(b)}</span>` : b < 0 ? `<span class="pill paid">Vous lui devez ${UI.money(-b)}</span>` : ""; })()}</div>
         <div class="actions">
           ${c.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-cact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-cact="suspendu">⛔ Suspendre</button>`}
+          ${c.unlocked_until && new Date(c.unlocked_until) > new Date()
+            ? `<button class="btn btn-sm" data-unlock="off">🔒 Rebloquer (débloqué jusqu'au ${UI.esc(UI.fmtDateTime(c.unlocked_until))})</button>`
+            : `<button class="btn btn-sm" data-unlock="on" title="Solde, course en cours, GPS et photo : plus aucun blocage pendant 24 h">🔓 Débloquer 24 h</button>`}
           ${chatBtn("c:" + c.id, `Livreur : ${c.name}`, c.phone, "💬 Message", c.status === "en_attente"
             ? `Bonjour ${c.name}, merci pour ton inscription chez ${CONFIG.businessName} ! Pour valider ton compte, envoie-moi ici en photo : permis de conduire, carte grise, attestation d'assurance et carte d'identité.`
             : `Bonjour ${c.name}, `)}
@@ -875,6 +887,15 @@ async function onViewClick(e) {
     if (navigator.clipboard) navigator.clipboard.writeText(el.dataset.copy).then(() => { el.textContent = "✓ Copié"; }, () => {});
     return;
   }
+  if (el.dataset.unlock) {
+    const id = el.closest("[data-courier]").dataset.courier;
+    const c = couriers.find(x => x.id === id);
+    const on = el.dataset.unlock === "on";
+    if (on && !confirm(`Débloquer ${c.name} pendant 24 h ? Plus aucun blocage (solde dû, course en cours, GPS, photo).`)) return;
+    try { await Store.updateCourier(id, { unlocked_until: on ? new Date(Date.now() + 86400000).toISOString() : null }); await load(); }
+    catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
   if (el.dataset.cact) {
     const id = el.closest("[data-courier]").dataset.courier;
     try { await Store.updateCourier(id, { status: el.dataset.cact }); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
@@ -900,6 +921,11 @@ async function onViewClick(e) {
     $("#refuseModal").classList.remove("hidden");
   } else if (el.dataset.act === "release") {
     change(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
+  } else if (el.dataset.act === "issue") {
+    if (confirm(`Le souci de la course n° ${o.ref} est-il réglé ?`)) change(o, { issue: null, issue_at: null });
+  } else if (el.dataset.act === "unlock") {
+    if (!o.unlocked && !confirm(`Débloquer la course n° ${o.ref} ? Le livreur pourra valider « Livré » sans être à l'adresse et sans photo.`)) return;
+    change(o, { unlocked: !o.unlocked });
   } else if (el.dataset.act === "paidto") {
     change(o, { paid_to: o.paid_to === "hop" ? "livreur" : "hop" });
   } else if (el.dataset.act === "paid") {

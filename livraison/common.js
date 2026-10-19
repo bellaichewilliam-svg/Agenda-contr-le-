@@ -61,6 +61,14 @@ function cityFr(id) {
 }
 
 // Adresse de base de l'app (pour les liens de suivi et de partage)
+// Zone d'une ville (Sharon par défaut) et zone ouverte ou « bientôt »
+function cityZone(id) { const c = CONFIG.cities.find(x => x.id === id); return (c && c.zone) || "sharon"; }
+function cityActive(id) {
+  if (!CONFIG.cities.some(x => x.id === id)) return true;  // autre ville tapée : vérifiée par l'adresse
+  const z = (CONFIG.zones || []).find(x => x.id === cityZone(id));
+  return !z || z.active !== false;
+}
+
 function appUrl(page) { return new URL(page || "./", location.href).href; }
 function trackUrl(o) { return appUrl("suivi.html") + "?t=" + o.token; }
 
@@ -184,7 +192,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
+  cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, wordmark, weekStart, addDays, fmtKey,
   esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

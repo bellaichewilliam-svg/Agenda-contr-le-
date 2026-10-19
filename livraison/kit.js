@@ -19,7 +19,8 @@ const pickupFrom = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.pickupPoi
 $("#appLink").textContent = url;
 if (window.QRCode) new QRCode($("#qr"), { text: url, width: 164, height: 164, correctLevel: QRCode.CorrectLevel.M });
 
-const featured = ["netanya", "even-yehuda", "hadera", "raanana", "kfar-saba", "herzliya", "tel-aviv", "ramat-gan", "petah-tikva"];
+// Seulement le Sharon pour l'instant (Tel Aviv et Gush Dan : bientôt)
+const featured = ["netanya", "nordia", "even-yehuda", "kadima", "kfar-yona", "hadera", "raanana", "kfar-saba", "herzliya"];
 $("#kitPrices").innerHTML = `<tr><th>Trajet</th><th>Prix</th></tr>` + featured.map(id =>
   `<tr><td>${id === home ? "Dans " + UI.cityFr(home) : `${UI.cityFr(home)} ⇄ ${UI.cityFr(id)}`}</td><td><b>${price(id)}</b></td></tr>`).join("")
   + `<tr><td>Suppléments</td><td>express +${UI.money(P.express)} · poste/Super-Pharm +${UI.money(P.pickupPoint)} · achat +${UI.money(P.purchase)} · colis moyen +${UI.money(P.sizes.moyen)}</td></tr>`;
@@ -42,7 +43,7 @@ const POSTS = [
 🍔 Livraisons pour les restaurants et commerces
 🛒 J'achète pour vous et je livre
 
-💰 Dans ${UI.cityFr(home)} : ${price(home)} · Ra'anana : ${price("raanana")} · Herzliya : ${price("herzliya")} · Tel Aviv : ${price("tel-aviv")}
+💰 Dans ${UI.cityFr(home)} : ${price(home)} · Even Yehuda : ${price("even-yehuda")} · Ra'anana, Kfar Saba, Herzliya : ${price("raanana")}
 📍 Vous suivez la course en direct sur la carte
 💵 Paiement en espèces ou par Bit
 
@@ -59,7 +60,7 @@ const POSTS = [
 🍔 משלוחים למסעדות ולעסקים
 🛒 קונים בשבילכם ומביאים
 
-💰 בתוך ${heHome}: ${price(home)} · לרעננה: ${price("raanana")} · להרצליה: ${price("herzliya")} · לתל אביב: ${price("tel-aviv")}
+💰 בתוך ${heHome}: ${price(home)} · לאבן יהודה: ${price("even-yehuda")} · לרעננה, כפר סבא, הרצליה: ${price("raanana")}
 📍 מעקב אחרי השליח על המפה בזמן אמת
 💵 תשלום במזומן או בביט
 
@@ -130,12 +131,12 @@ Il faut : permis valide, véhicule assuré, statut d'עוסק פטור ou מור
 👈 להרשמה: ${UI.appUrl("coursier.html")}` },
 
   { title: "Statut WhatsApp / bio Instagram", dir: "ltr", text:
-`🛵 Coursier ${UI.cityFr(home)} ⇄ Tel Aviv · prix fixe · suivi en direct · espèces/Bit · ${url}
-🛵 שליח ${heHome} ⇄ תל אביב · מחיר קבוע · מעקב בזמן אמת · מזומן/ביט` },
+`🛵 Coursier dans tout le Sharon · prix fixe · suivi en direct · espèces/Bit · ${url}
+🛵 שליחויות בכל השרון · מחיר קבוע · מעקב בזמן אמת · מזומן/ביט` },
 
   { title: "Description Google Business Profile", dir: "ltr", text:
-`${nameHe} | ${nameFr} – שירותי שליחויות בנתניה, השרון ותל אביב: חבילות, מסמכים, איסוף מהדואר ומסופר-פארם, משלוחים למסעדות ולעסקים. מחיר קבוע, מעקב בזמן אמת, תשלום במזומן או בביט.
-Coursier à Netanya, dans le Sharon et à Tel Aviv : colis, documents, retrait à la poste et chez Super-Pharm, livraisons pour restaurants et commerces. Prix fixe, suivi en direct, espèces ou Bit. On parle français.` }
+`${nameHe} | ${nameFr} – שירותי שליחויות בנתניה ובכל השרון: חבילות, מסמכים, איסוף מהדואר ומסופר-פארם, משלוחים למסעדות ולעסקים. מחיר קבוע, מעקב בזמן אמת, תשלום במזומן או בביט.
+Coursier à Netanya et dans tout le Sharon : colis, documents, retrait à la poste et chez Super-Pharm, livraisons pour restaurants et commerces. Prix fixe, suivi en direct, espèces ou Bit. On parle français.` }
 ];
 
 $("#posts").innerHTML = POSTS.map((p, i) => `
@@ -164,14 +165,14 @@ $("#flyer").innerHTML = `
         <li>Dans ${UI.esc(UI.cityFr(home))} : <b>${price(home)}</b></li>
         <li>→ Ra'anana : <b>${price("raanana")}</b></li>
         <li>→ Herzliya : <b>${price("herzliya")}</b></li>
-        <li>→ Tel Aviv : <b>${price("tel-aviv")}</b></li>
+        <li>→ Hadera : <b>${price("hadera")}</b></li>
       </ul></div>
     <div dir="rtl" style="font-family:Rubik,Arial"><b>חבילות · דואר · סופר-פארם · מסעדות · מסמכים</b>
       <ul style="margin-top:8px">
         <li>בתוך ${UI.esc(heHome)}: <b>${price(home)}</b></li>
         <li>לרעננה: <b>${price("raanana")}</b></li>
         <li>להרצליה: <b>${price("herzliya")}</b></li>
-        <li>לתל אביב: <b>${price("tel-aviv")}</b></li>
+        <li>לחדרה: <b>${price("hadera")}</b></li>
       </ul></div>
   </div>
   <div class="two">

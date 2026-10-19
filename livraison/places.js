@@ -73,6 +73,15 @@ async function search(q, lang) {
   return list;
 }
 
+// Adresse la plus proche d'une position GPS (« 📍 Ma position »)
+async function reverse(lat, lon, lang) {
+  const res = await fetch(`${API.replace("/api/", "/reverse")}?lat=${lat}&lon=${lon}&limit=5` + (lang === "fr" ? "&lang=fr" : ""));
+  if (!res.ok) throw new Error("photon " + res.status);
+  const data = await res.json();
+  lastOk = true;
+  return (data.features || []).map(toPlace).filter(p => p.streetName || p.brand);
+}
+
 // Branche la recherche sur un champ texte.
 // opts : { lang(): "fr"|"he", onPick(place), onClear(), texts: { none, pick } }
 function attach(input, opts) {
@@ -147,6 +156,6 @@ function attach(input, opts) {
   };
 }
 
-window.Places = { attach, search, matchCity, get serviceOk() { return lastOk; } };
+window.Places = { attach, search, reverse, matchCity, get serviceOk() { return lastOk; } };
 
 })();

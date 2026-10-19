@@ -343,7 +343,8 @@ function canSeeNew(o, id, st) {
     .map(c => ({ id: c.id, d: (c.lat - o.pickup_lat) ** 2 + ((c.lon - o.pickup_lon) * Math.cos(o.pickup_lat * Math.PI / 180)) ** 2 }))
     .sort((a, b) => a.d - b.d);
   const rank = ranked.findIndex(x => x.id === id);
-  const wait = (o.referrer_id ? Number(st.priority_minutes) * 60000 : 0) + Number(st.wave_seconds) * 1000 * Math.min(rank < 0 ? 2 : rank, 2);
+  // Hors service : après les livreurs en service (tout de suite s'il n'y en a aucun)
+  const wait = (o.referrer_id ? Number(st.priority_minutes) * 60000 : 0) + Number(st.wave_seconds) * 1000 * Math.min(rank < 0 ? ranked.length : rank, 2);
   return Date.now() - new Date(o.created_at) >= wait;
 }
 
@@ -439,7 +440,10 @@ async function acceptOrder(id) {
   const st = await getSettings();
   const o = c && all.find(x => x.id === id && (c.role === "admin" || canSeeNew(x, c.id, st)));
   if (!o || !c) return false;
-  if (c.role === "coursier" && balanceOf(c.id, all) > Number(st.max_debt)) return false;
+  if (c.role === "coursier" && !(c.unlocked_until && new Date(c.unlocked_until) > new Date())) {
+    if (balanceOf(c.id, all) > Number(st.max_debt)) throw new Error("debt");
+    if (all.some(x => x.courier_id === c.id && x.status === "recuperee")) throw new Error("busy");
+  }
   const was = o.status;
   Object.assign(o, await courierFields(c));
   chatStatus(o, was);
@@ -459,10 +463,13 @@ async function courierAction(id, action) {
     // Même règle qu'en ligne : sur place seulement (position de moins de 3 min, dans le rayon)
     const c = localCouriers().find(x => x.id === myId());
     const st = await getSettings();
-    if (o.dropoff_lat != null && (!c || c.lat == null || Date.now() - new Date(c.position_at) > 180000
+    const free = o.unlocked || (c && c.unlocked_until && new Date(c.unlocked_until) > new Date());
+    if (!free && o.dropoff_lat != null && (!c || c.lat == null || Date.now() - new Date(c.position_at) > 180000
       || Pricing.haversineKm({ lat: c.lat, lon: c.lon }, { lat: o.dropoff_lat, lon: o.dropoff_lon }) * 1000 > Number(st.deliver_radius))) {
       throw new Error("too_far");
     }
+    // « Déposer devant la porte » : photo du colis obligatoire dans la conversation
+    if (!free && o.leave_at_door && !chatLocal().some(m => m.thread === "o:" + o.id && m.author === "courier" && m.image)) throw new Error("photo_required");
     o.status = "livree"; referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
@@ -470,6 +477,30 @@ async function courierAction(id, action) {
   } else return false;
   chatStatus(o, was);
   saveLocalOrders(all);
+  return true;
+}
+
+// Livreurs : demande en direct (courses en attente, commandes de la dernière heure, livreurs en service)
+async function zoneDemand() {
+  if (ONLINE) return authRest("/rest/v1/rpc/zone_demand", { method: "POST", body: {} });
+  const all = localOrders(), hour = Date.now() - 3600000, ten = Date.now() - 600000;
+  return {
+    waiting: all.filter(o => o.status === "nouvelle" && !o.courier_id).length,
+    last_hour: all.filter(o => new Date(o.created_at) > hour && !["annulee", "refusee"].includes(o.status)).length,
+    on_duty: localCouriers().filter(c => c.status === "actif" && c.position_at && new Date(c.position_at) > ten).length
+  };
+}
+
+// Livreur : signaler un souci sur sa course (écrit aussi dans la conversation de la course)
+async function courierIssue(id, reason) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_issue", { method: "POST", body: { p_id: id, p_reason: reason } });
+  const all = localOrders();
+  const o = all.find(x => x.id === id && x.courier_id === myId() && ["confirmee", "recuperee"].includes(x.status));
+  const c = localCouriers().find(x => x.id === myId());
+  if (!o || !reason) return false;
+  Object.assign(o, { issue: String(reason).slice(0, 300), issue_at: new Date().toISOString() });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + id, author: "courier", author_name: c && c.name, body: "⚠️ " + o.issue });
   return true;
 }
 
@@ -772,7 +803,7 @@ window.Store = {
   welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
   useSpace, session, login, logout, me, signupCourier,
-  listOrders, updateOrder, assignOrder, acceptOrder, courierAction, ping,
+  listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
