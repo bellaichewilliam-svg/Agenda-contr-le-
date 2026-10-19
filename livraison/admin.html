@@ -14,22 +14,35 @@
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script>
-    // Si un fichier ne charge pas (ancien cache, réseau), afficher un bandeau pour recharger
-    window.addEventListener("error", function (e) {
-      if (window.hopReady || document.getElementById("loadError") || !document.body) return;
-      var d = document.createElement("div");
-      d.id = "loadError";
-      d.style.cssText = "position:fixed;inset-inline:0;top:0;z-index:99;background:#F04438;color:#fff;padding:12px 16px;font:600 14px Arial;display:flex;gap:10px;align-items:center;justify-content:space-between";
-      d.innerHTML = "<span>⚠️ Mise à jour en cours · עדכון בתהליך</span><button style='border:0;border-radius:10px;padding:8px 12px;font-weight:700'>↻ Recharger · רענון</button>";
-      d.querySelector("button").onclick = function () {
-        var go = function () { location.replace(location.pathname + "?r=" + Date.now() + location.hash); };
-        if (window.caches && caches.keys) caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }).then(go, go); else go();
-      };
-      document.body.appendChild(d);
-      console.error(e.message);
-    });
+    // Si l'application ne démarre pas (ancien cache, fichier manquant pendant une mise à jour),
+    // afficher un bandeau pour recharger. Les erreurs venues d'ailleurs (scripts ajoutés par le
+    // navigateur, extensions) n'affichent rien tant que l'application a bien démarré.
+    (function () {
+      var first = "";
+      function show() {
+        if (window.hopReady || document.getElementById("loadError") || !document.body) return;
+        var d = document.createElement("div");
+        d.id = "loadError";
+        d.style.cssText = "position:fixed;inset-inline:0;top:0;z-index:99;background:#F04438;color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;font:600 14px Arial;display:flex;gap:10px;align-items:center;justify-content:space-between";
+        d.innerHTML = "<span>⚠️ Mise à jour en cours · עדכון בתהליך<small style='display:block;font-weight:400;opacity:.8;font-size:11px;margin-top:2px'></small></span><button style='border:0;border-radius:10px;padding:8px 12px;font-weight:700;color:#0F1F3D;background:#fff'>↻ Recharger · רענון</button>";
+        d.querySelector("small").textContent = first;
+        d.querySelector("button").onclick = function () {
+          var go = function () { location.replace(location.pathname + "?r=" + Date.now() + location.hash); };
+          if (window.caches && caches.keys) caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }).then(go, go); else go();
+        };
+        document.body.appendChild(d);
+      }
+      function later() { setTimeout(show, 2500); }
+      window.addEventListener("error", function (e) {
+        if (window.hopReady) return;
+        if (!first) first = String(e.message || "erreur").slice(0, 120) + (e.filename ? " · " + String(e.filename).split("/").pop().split("?")[0] + ":" + (e.lineno || 0) : "");
+        console.error(e.message);
+        if (document.readyState === "complete") later();
+      });
+      window.addEventListener("load", function () { if (first) later(); });
+    })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610191912" />
+  <link rel="stylesheet" href="styles.css?v=202610191921" />
 </head>
 <body>
 
@@ -134,12 +147,12 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610191912"></script>
-<script src="i18n.js?v=202610191912"></script>
-<script src="pricing.js?v=202610191912"></script>
-<script src="store.js?v=202610191912"></script>
-<script src="chat.js?v=202610191912"></script>
-<script src="common.js?v=202610191912"></script>
-<script src="admin.js?v=202610191912"></script>
+<script src="config.js?v=202610191921"></script>
+<script src="i18n.js?v=202610191921"></script>
+<script src="pricing.js?v=202610191921"></script>
+<script src="store.js?v=202610191921"></script>
+<script src="chat.js?v=202610191921"></script>
+<script src="common.js?v=202610191921"></script>
+<script src="admin.js?v=202610191921"></script>
 </body>
 </html>
