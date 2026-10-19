@@ -303,6 +303,37 @@ async function login(email, password) {
 
 function logout() { removeKey(sessionKey); }
 
+// Retour du lien de confirmation du mail : Supabase met la session dans l'adresse (#access_token=…).
+// On la garde, on crée la fiche préparée à l'inscription (même téléphone), puis on nettoie l'adresse.
+async function adoptLinkSession() {
+  if (!ONLINE || !/access_token=/.test(location.hash)) return false;
+  const h = new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null, "", location.pathname);
+  let claims = {};
+  try { claims = JSON.parse(atob(h.get("access_token").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch (e) { return false; }
+  if (!claims.sub) return false;
+  writeJSON(sessionKey, { access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), user_id: claims.sub });
+  const pending = readJSON(LS.pendingCourier, null);
+  if (pending && pending.email === String(claims.email || "").toLowerCase() && !(await me())) {
+    await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, pending.profile, { id: claims.sub }), prefer: "return=minimal" });
+    if (pending.topcase) await sendTopcase(pending.topcase).catch(() => {});
+    removeKey(LS.pendingCourier);
+  }
+  return true;
+}
+
+// Compte connecté sans fiche (inscription commencée sur un autre téléphone) : on complète la fiche
+async function completeCourier(profile, topcase) {
+  if (!ONLINE) throw new Error("Indisponible en mode démo.");
+  await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, profile, { id: myId() }), prefer: "return=minimal" });
+  if (topcase) await sendTopcase(topcase);
+  removeKey(LS.pendingCourier);
+}
+function sessionEmail() {
+  const s = session();
+  try { return JSON.parse(atob(s.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))).email || ""; } catch (e) { return ""; }
+}
+
 // Fiche du compte connecté (null si pas encore inscrit)
 async function me() {
   const id = myId();
@@ -326,7 +357,9 @@ async function signupCourier(email, password, profile, topcase) {
     writeJSON(sessionKey, { demo: true, user_id: c.id });
     return { needsConfirmation: false };
   }
-  const data = await rest("/auth/v1/signup", { method: "POST", body: { email, password } })
+  // Le lien du mail de confirmation ramène sur cette page (et non sur l'adresse par défaut du projet)
+  const back = location.origin + location.pathname + "?confirme=1";
+  const data = await rest("/auth/v1/signup?redirect_to=" + encodeURIComponent(back), { method: "POST", body: { email, password } })
     .catch(e => { throw new Error(/registered|exists/i.test(e.message) ? "Un compte existe déjà avec cet email." : "Inscription impossible : " + e.message); });
   if (!data.access_token) {
     // Supabase demande de confirmer l'email : la fiche sera créée à la 1re connexion
@@ -962,7 +995,7 @@ window.Store = {
   getSettings, saveSettings,
   welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
-  useSpace, session, login, logout, me, signupCourier,
+  useSpace, session, login, logout, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, myAcceptance, demandForecast, commissionFor,
   couriersNearby, rateOrder, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,

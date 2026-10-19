@@ -76,6 +76,18 @@ async function onWaitTopcase(e) {
   try { await Store.sendTopcase(data); route(); } catch (ex) { alert("Photo non envoyée, vérifiez la connexion."); }
 }
 
+// Mode « compléter ma fiche » : le compte existe déjà (email confirmé), il manque la fiche livreur
+let completing = false;
+function setCompleting(on) {
+  completing = on;
+  const f = $("#signupForm");
+  ["email", "password"].forEach(k => { f.elements[k].disabled = on; f.elements[k].closest("label").classList.toggle("hidden", on); });
+  document.querySelector("#welcome .tabs").classList.toggle("hidden", on);
+  $("#completeNote").classList.toggle("hidden", !on);
+  if (on) $("#completeNote").textContent = `✅ Email confirmé${Store.sessionEmail() ? " (" + Store.sessionEmail() + ")" : ""}. Il reste à remplir votre fiche et la photo du top case pour finir l'inscription.`;
+  $("#signupSubmit").textContent = on ? "Terminer mon inscription" : "Envoyer mon inscription";
+}
+
 async function onSignup(e) {
   e.preventDefault();
   const f = e.target;
@@ -92,6 +104,7 @@ async function onSignup(e) {
     business_number: v("business_number") || null
   };
   try {
+    if (completing) { await Store.completeCourier(profile, signupTopcase); return route(); }
     const r = await Store.signupCourier(v("email"), f.password.value, profile, signupTopcase);
     if (r.needsConfirmation) {
       showAuth("login");
@@ -122,8 +135,18 @@ async function route() {
   document.body.classList.remove("rider-on");
   $("#logoutBtn").classList.toggle("hidden", !Store.session());
   if (!Store.session()) { $("#welcome").classList.remove("hidden"); return; }
-  try { me = await Store.me(); } catch (e) { me = null; }
-  if (!me) { Store.logout(); return route(); }
+  let meErr = false;
+  try { me = await Store.me(); } catch (e) { me = null; meErr = true; }
+  if (!me && meErr) {
+    $("#welcome").classList.remove("hidden");
+    showAuth("login");
+    $("#loginError").textContent = "Connexion au serveur impossible : vérifiez le réseau, puis rechargez la page.";
+    $("#loginError").className = "notice err";
+    return;
+  }
+  // Connecté mais sans fiche (inscription commencée sur un autre téléphone) : compléter la fiche
+  setCompleting(!me);
+  if (!me) { $("#welcome").classList.remove("hidden"); showAuth("signup"); return; }
   if (me.status !== "actif") {
     const suspended = me.status === "suspendu";
     $("#waitIcon").textContent = suspended ? "⛔" : "⏳";
@@ -1209,7 +1232,15 @@ $("#offerSkip").addEventListener("click", closeOffer);
 $("#offerDecline").addEventListener("click", declineOffer);
 
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|messages|shops)/.test(e.key || "") && me && me.status === "actif") load(); });
-route();
+// Arrivée depuis le lien du mail de confirmation : session reprise, sinon on invite à se connecter
+Store.adoptLinkSession().catch(() => false).then(async () => {
+  await route();
+  if (!Store.session() && /confirme=1/.test(location.search)) {
+    showAuth("login");
+    $("#loginError").textContent = "✅ Email confirmé ! Connectez-vous avec votre email et votre mot de passe.";
+    $("#loginError").className = "notice";
+  }
+});
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;
