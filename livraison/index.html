@@ -45,7 +45,7 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610192047" />
+  <link rel="stylesheet" href="styles.css?v=202610192111" />
 </head>
 <body>
 
@@ -292,7 +292,13 @@
             <label class="f"><span data-i18n="houseNo"></span><input name="pickup_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
             <label class="f"><span data-i18n="city"></span><select name="from_city" class="city-select with-other"></select></label>
             <label class="f other-city hidden" data-for="from"><span data-i18n="otherCityName"></span><input name="from_other" /></label>
-            <div class="fields4 full hide-retrait">
+            <div class="kind-chips full hide-retrait" role="radiogroup" data-kind="pickup"><span class="kind-label" data-i18n="kindLabel"></span>
+              <label class="ch-chip"><input type="radio" name="pickup_kind" value="maison" hidden /><span data-i18n="kind_maison"></span></label>
+              <label class="ch-chip"><input type="radio" name="pickup_kind" value="appartement" hidden /><span data-i18n="kind_appartement"></span></label>
+              <label class="ch-chip"><input type="radio" name="pickup_kind" value="bureau" hidden /><span data-i18n="kind_bureau"></span></label>
+              <label class="ch-chip"><input type="radio" name="pickup_kind" value="commerce" hidden /><span data-i18n="kind_commerce"></span></label>
+            </div>
+            <div class="fields4 full hide-retrait" data-details="pickup">
               <label class="f"><span data-i18n="building"></span><input name="pickup_building" data-i18n-ph="buildingPh" /></label>
               <label class="f"><span data-i18n="floor"></span><input name="pickup_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="pickup_apt" data-i18n-ph="aptPh" /></label>
@@ -320,7 +326,13 @@
             <label class="f"><span data-i18n="houseNo"></span><input name="dropoff_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
             <label class="f"><span data-i18n="city"></span><select name="to_city" class="city-select with-other"></select></label>
             <label class="f other-city hidden" data-for="to"><span data-i18n="otherCityName"></span><input name="to_other" /></label>
-            <div class="fields4 full">
+            <div class="kind-chips full" role="radiogroup" data-kind="dropoff"><span class="kind-label" data-i18n="kindLabel"></span>
+              <label class="ch-chip"><input type="radio" name="dropoff_kind" value="maison" hidden /><span data-i18n="kind_maison"></span></label>
+              <label class="ch-chip"><input type="radio" name="dropoff_kind" value="appartement" hidden /><span data-i18n="kind_appartement"></span></label>
+              <label class="ch-chip"><input type="radio" name="dropoff_kind" value="bureau" hidden /><span data-i18n="kind_bureau"></span></label>
+              <label class="ch-chip"><input type="radio" name="dropoff_kind" value="commerce" hidden /><span data-i18n="kind_commerce"></span></label>
+            </div>
+            <div class="fields4 full" data-details="dropoff">
               <label class="f"><span data-i18n="building"></span><input name="dropoff_building" data-i18n-ph="buildingPh" /></label>
               <label class="f"><span data-i18n="floor"></span><input name="dropoff_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="dropoff_apt" data-i18n-ph="aptPh" /></label>
@@ -341,6 +353,7 @@
             <label class="choice"><input type="radio" name="size" value="moyen" /><span><i>📦</i><b data-i18n="sz_moyen"></b><small data-i18n="sz_moyen_d"></small></span></label>
             <label class="choice"><input type="radio" name="size" value="gros" /><span><i>🧳</i><b data-i18n="sz_gros"></b><small data-i18n="sz_gros_d"></small></span></label>
           </div>
+          <button type="button" class="btn btn-link rules-link" data-rules data-i18n="rlLink"></button>
           <div class="fields" style="margin-top:12px">
             <label class="check full"><input type="checkbox" name="round_trip" /> <span data-i18n="roundTrip"></span></label>
             <label class="f"><span data-i18n="stops"></span><input name="extra_stops" type="number" min="0" max="10" value="0" inputmode="numeric" /></label>
@@ -497,10 +510,29 @@
     <p class="muted small" data-i18n="ckSub"></p>
     <div id="checkMap"></div>
     <div class="check-legs" id="checkLegs"></div>
+    <label class="check rules-ok hidden" id="rulesOkBox"><input type="checkbox" id="rulesOk" /> <span><span data-i18n="rlAccept"></span> · <button type="button" class="btn-link-inline" data-rules>📋</button></span></label>
+    <p class="notice err hidden" id="rulesErr" data-i18n="rlNeed"></p>
     <div class="btns">
       <button type="button" class="btn btn-primary btn-lg" id="checkOk" data-i18n="ckOk"></button>
       <button type="button" class="btn btn-link" id="checkBack" data-i18n="ckBack"></button>
     </div>
+  </div>
+</div>
+
+<!-- Conditions de livraison d'objets -->
+<div class="modal hidden rules-modal" id="rulesModal" role="dialog" aria-modal="true">
+  <div class="modal-box rules-box">
+    <div class="rules-head"><h3 data-i18n="rlTitle"></h3><button type="button" class="ens-x" id="rulesClose" aria-label="Fermer">✕</button></div>
+    <ul class="rules-list">
+      <li><i>📦</i><div><b data-i18n="rlPack"></b><small data-i18n="rlPack_d"></small></div></li>
+      <li><i>📏</i><div><b data-i18n="rlSize"></b><small data-i18n="rlSize_d"></small></div></li>
+      <li><i>⚖️</i><div><b data-i18n="rlKg"></b></div></li>
+      <li><i>💎</i><div><b data-i18n="rlValue"></b><small data-i18n="rlValue_d"></small></div></li>
+      <li><i>🔥</i><div><b data-i18n="rlDanger"></b><small data-i18n="rlDanger_d"></small></div></li>
+      <li><i>🚫</i><div><b data-i18n="rlIllegal"></b></div></li>
+      <li><i>🐾</i><div><b data-i18n="rlAnimal"></b></div></li>
+    </ul>
+    <p class="muted small" data-i18n="rlRefuse"></p>
   </div>
 </div>
 
@@ -523,14 +555,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610192047"></script>
-<script src="i18n.js?v=202610192047"></script>
-<script src="pricing.js?v=202610192047"></script>
-<script src="store.js?v=202610192047"></script>
-<script src="chat.js?v=202610192047"></script>
-<script src="common.js?v=202610192047"></script>
-<script src="enseignes.js?v=202610192047"></script>
-<script src="places.js?v=202610192047"></script>
-<script src="client.js?v=202610192047"></script>
+<script src="config.js?v=202610192111"></script>
+<script src="i18n.js?v=202610192111"></script>
+<script src="pricing.js?v=202610192111"></script>
+<script src="store.js?v=202610192111"></script>
+<script src="chat.js?v=202610192111"></script>
+<script src="common.js?v=202610192111"></script>
+<script src="enseignes.js?v=202610192111"></script>
+<script src="places.js?v=202610192111"></script>
+<script src="client.js?v=202610192111"></script>
 </body>
 </html>

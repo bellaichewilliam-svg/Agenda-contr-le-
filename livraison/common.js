@@ -211,8 +211,10 @@ function fmtKey(key) {
 }
 
 // Étage / appartement / code d'une adresse, en texte (pour WhatsApp et l'agenda)
+const KIND_FR = { maison: "maison", appartement: "appartement", bureau: "bureau", commerce: "commerce" };
 function addrDetailsText(o, which) {
   const p = [];
+  if (o[which + "_kind"]) p.push(KIND_FR[o[which + "_kind"]] || o[which + "_kind"]);
   if (o[which + "_building"]) p.push(`bâtiment ${o[which + "_building"]}`);
   if (o[which + "_floor"]) p.push(`étage ${o[which + "_floor"]}`);
   if (o[which + "_apt"]) p.push(`appt ${o[which + "_apt"]}`);
@@ -222,6 +224,7 @@ function addrDetailsText(o, which) {
 function addrDetails(o, which, lang) {
   const t = k => window.I18N ? I18N.forLang(lang || "fr", k) : k;
   const p = [];
+  if (o[which + "_kind"]) p.push(`<span><b>${esc(t("kind_" + o[which + "_kind"]))}</b></span>`);
   if (o[which + "_building"]) p.push(`<span><small>${esc(t("building"))}</small><b>${esc(o[which + "_building"])}</b></span>`);
   if (o[which + "_floor"]) p.push(`<span><small>${esc(t("floor"))}</small><b>${esc(o[which + "_floor"])}</b></span>`);
   if (o[which + "_apt"]) p.push(`<span><small>${esc(t("apt"))}</small><b>${esc(o[which + "_apt"])}</b></span>`);

@@ -1381,6 +1381,11 @@ $$;
 revoke execute on function public.my_plan_shares() from public, anon;
 grant execute on function public.my_plan_shares() to authenticated;
 
+-- Type de lieu (maison, appartement, bureau, commerce) et conditions de livraison d'objets acceptées
+alter table public.orders add column if not exists pickup_kind text check (pickup_kind in ('maison', 'appartement', 'bureau', 'commerce'));
+alter table public.orders add column if not exists dropoff_kind text check (dropoff_kind in ('maison', 'appartement', 'bureau', 'commerce'));
+alter table public.orders add column if not exists rules_accepted_at timestamptz;
+
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
