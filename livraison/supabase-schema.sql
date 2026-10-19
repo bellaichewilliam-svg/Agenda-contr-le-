@@ -1019,6 +1019,16 @@ $$;
 revoke execute on function public.couriers_nearby() from public;
 grant execute on function public.couriers_nearby() to anon, authenticated;
 
+-- Annuaire des commerces partenaires (vérifiés) pour les clients : nom, type, adresse, position
+create or replace function public.shops_directory() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', code, 'name', name, 'kind', kind, 'city', city,
+           'address', address, 'lat', lat, 'lon', lon) order by name), '[]'::json)
+    from shops where status = 'actif';
+$$;
+revoke execute on function public.shops_directory() from public;
+grant execute on function public.shops_directory() to anon, authenticated;
+
 -- Le client note sa livraison (une seule fois, dans les 7 jours) avec la clé secrète de sa course.
 -- Une note basse (ou un mot) arrive aussi dans la conversation de la course, chez le patron.
 create or replace function public.rate_order(p_token uuid, p_stars int, p_tags text[], p_note text) returns boolean
