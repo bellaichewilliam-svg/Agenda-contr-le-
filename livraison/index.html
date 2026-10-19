@@ -31,7 +31,6 @@
   </div>
 </header>
 
-<div id="demoBanner" class="mode-banner hidden"><div class="wrap" data-i18n="demoBanner"></div></div>
 <div id="availBanner" class="mode-banner closed-banner hidden"><div class="wrap" id="availText"></div></div>
 
 <!-- ============ ACCUEIL ============ -->
@@ -143,9 +142,9 @@
                 <option value="autre" data-i18n="place_autre"></option>
               </select>
             </label>
+            <label class="f full"><span data-i18n="addrSearch"></span><input name="pickup_address" data-i18n-ph="addrSearchPh" /></label>
             <label class="f"><span data-i18n="city"></span><select name="from_city" class="city-select with-other"></select></label>
             <label class="f other-city hidden" data-for="from"><span data-i18n="otherCityName"></span><input name="from_other" /></label>
-            <label class="f"><span data-i18n="address"></span><input name="pickup_address" data-i18n-ph="addressPh" autocomplete="street-address" /></label>
             <label class="f full"><span data-i18n="addrNote"></span><input name="pickup_note" data-i18n-ph="addrNotePh" /></label>
             <label class="f show-retrait"><span data-i18n="tracking"></span><input name="tracking_number" data-i18n-ph="trackingPh" /></label>
             <label class="f show-retrait"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
@@ -162,9 +161,9 @@
         <fieldset>
           <legend data-i18n="s3"></legend>
           <div class="fields">
+            <label class="f full"><span data-i18n="addrSearch"></span><input name="dropoff_address" data-i18n-ph="addrSearchPh" /></label>
             <label class="f"><span data-i18n="city"></span><select name="to_city" class="city-select with-other"></select></label>
             <label class="f other-city hidden" data-for="to"><span data-i18n="otherCityName"></span><input name="to_other" /></label>
-            <label class="f"><span data-i18n="address"></span><input name="dropoff_address" data-i18n-ph="addressPh" /></label>
             <label class="f full"><span data-i18n="addrNote"></span><input name="dropoff_note" data-i18n-ph="addrNotePh" /></label>
             <label class="f"><span data-i18n="recipient"></span><input name="dropoff_contact" data-i18n-ph="namePh" /></label>
             <label class="f"><span data-i18n="recipientPhone"></span><input name="dropoff_phone" type="tel" data-i18n-ph="phonePh" /></label>
@@ -303,6 +302,7 @@
 <script src="pricing.js"></script>
 <script src="store.js"></script>
 <script src="common.js"></script>
+<script src="places.js"></script>
 <script src="client.js"></script>
 </body>
 </html>

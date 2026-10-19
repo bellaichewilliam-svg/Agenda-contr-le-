@@ -415,3 +415,15 @@ table.bill .num { text-align: end; }
 .offer-line { border-inline-start: 3px dotted var(--brand); height: 18px; margin-inline-start: 9px; }
 .offer-facts { display: grid; gap: 4px; font-size: 14px; color: var(--muted); background: var(--bg); border-radius: 12px; padding: 10px; }
 .addr-note { font-size: 13px; color: var(--amber-ink); background: var(--amber-soft); border-radius: 8px; padding: 3px 8px; margin: 4px 0; display: inline-block; }
+
+/* --- Recherche d'adresse / enseigne -------------------------------------------------- */
+.ac-list { position: absolute; inset-inline: 0; top: 100%; z-index: 40; margin-top: 4px; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(16,24,40,.18); overflow: hidden; max-height: 320px; overflow-y: auto; }
+.ac-item { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: start; background: none; border: 0; border-bottom: 1px solid var(--border); padding: 10px 12px; color: var(--ink); }
+.ac-item:last-child { border-bottom: 0; }
+.ac-item.on, .ac-item:hover { background: var(--brand-soft); }
+.ac-item b { display: block; font-size: 15px; }
+.ac-item small { color: var(--muted); font-size: 12px; }
+.ac-ico { font-size: 18px; }
+.ac-empty { padding: 12px; color: var(--muted); font-size: 13px; }
+.f input.ac-ok { border-color: var(--green); background-image: linear-gradient(transparent, transparent); box-shadow: inset 0 0 0 1px var(--green); }
+.brand-tag { display: inline-block; font-weight: 700; font-size: 13px; color: var(--brand-ink); background: var(--brand-soft); border-radius: 8px; padding: 2px 8px; margin-bottom: 3px; }

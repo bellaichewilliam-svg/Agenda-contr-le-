@@ -40,10 +40,20 @@ function waLink(phone, text) {
 // Lien WhatsApp sans destinataire : l'utilisateur choisit le contact
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 function placeQuery(o, which) {
-  return which === "pickup" ? `${o.pickup_address}, ${cityFr(o.from_city)}` : `${o.dropoff_address}, ${cityFr(o.to_city)}`;
+  const brand = o[which + "_place"];
+  return (brand ? brand + ", " : "") + (which === "pickup" ? `${o.pickup_address}, ${cityFr(o.from_city)}` : `${o.dropoff_address}, ${cityFr(o.to_city)}`);
 }
-function wazeLink(o, which) { return "https://waze.com/ul?navigate=yes&q=" + encodeURIComponent(placeQuery(o, which)); }
-function mapsLink(o, which) { return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(placeQuery(o, which)); }
+// Adresse choisie sur la carte : on navigue vers ses coordonnées exactes
+function exactPoint(o, which) {
+  return o[which + "_exact"] && o[which + "_lat"] != null ? `${o[which + "_lat"]},${o[which + "_lon"]}` : null;
+}
+function wazeLink(o, which) {
+  const ll = exactPoint(o, which);
+  return ll ? `https://waze.com/ul?ll=${ll}&navigate=yes` : "https://waze.com/ul?navigate=yes&q=" + encodeURIComponent(placeQuery(o, which));
+}
+function mapsLink(o, which) {
+  return "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(exactPoint(o, which) || placeQuery(o, which));
+}
 
 function cityFr(id) {
   const c = CONFIG.cities.find(x => x.id === id);
@@ -68,7 +78,7 @@ function whenFr(o) {
 // Texte complet d'une course pour le coursier (WhatsApp, agenda)
 function orderText(o) {
   const L = [`📦 Commande ${o.ref} — ${SERVICE_FR[o.service]}`, `🕐 ${whenFr(o)}`, ``];
-  L.push(`📍 ${o.service === "retrait" ? PLACE_FR[o.place_kind] || "Récupération" : "Récupération"} : ${o.pickup_address}, ${cityFr(o.from_city)}`);
+  L.push(`📍 ${o.service === "retrait" ? PLACE_FR[o.place_kind] || "Récupération" : "Récupération"} : ${o.pickup_place ? "🏪 " + o.pickup_place + ", " : ""}${o.pickup_address}, ${cityFr(o.from_city)}`);
   if (o.pickup_note) L.push(`   📝 ${o.pickup_note}`);
   if (o.pickup_contact || o.pickup_phone) L.push(`   ${[o.pickup_contact, o.pickup_phone].filter(Boolean).join(" · ")}`);
   if (o.service === "retrait") {
@@ -80,7 +90,7 @@ function orderText(o) {
     if (o.shopping_list) L.push(`   🛒 À acheter : ${o.shopping_list}`);
     if (o.budget) L.push(`   Budget : ${money(o.budget)} (avancé, remboursé à la livraison)`);
   }
-  L.push(`🏁 Livraison : ${o.dropoff_address}, ${cityFr(o.to_city)}`);
+  L.push(`🏁 Livraison : ${o.dropoff_place ? "🏪 " + o.dropoff_place + ", " : ""}${o.dropoff_address}, ${cityFr(o.to_city)}`);
   if (o.dropoff_note) L.push(`   📝 ${o.dropoff_note}`);
   if (o.dropoff_contact || o.dropoff_phone) L.push(`   ${[o.dropoff_contact, o.dropoff_phone].filter(Boolean).join(" · ")}`);
   L.push(``, `${SIZE_FR[o.size] || o.size}${o.round_trip ? " · aller-retour" : ""}${o.extra_stops ? ` · +${o.extra_stops} arrêt(s)` : ""}`);
@@ -131,10 +141,12 @@ function fmtKey(key) {
 }
 
 // Remarque sur une adresse (étage, code…), affichée sous l'adresse
+// Nom de l'enseigne (Super-Pharm, restaurant…) au-dessus de l'adresse
+function brand(name) { return name ? `<span class="brand-tag">🏪 <bdi>${esc(name)}</bdi></span>` : ""; }
 function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)}</div>` : ""; }
 
 window.UI = {
-  addrNote,
+  addrNote, brand,
   receiptUrl, referralCode, clientMessage, weekStart, addDays, fmtKey,
   esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

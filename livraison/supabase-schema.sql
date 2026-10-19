@@ -53,6 +53,8 @@ create table if not exists public.orders (
   from_city        text not null,
   pickup_address   text not null,
   pickup_note      text,
+  pickup_place     text,
+  pickup_exact     boolean not null default false,
   pickup_lat       double precision,
   pickup_lon       double precision,
   pickup_contact   text,
@@ -66,6 +68,8 @@ create table if not exists public.orders (
   to_city          text not null,
   dropoff_address  text not null,
   dropoff_note     text,
+  dropoff_place    text,
+  dropoff_exact    boolean not null default false,
   dropoff_lat      double precision,
   dropoff_lon      double precision,
   dropoff_contact  text,
@@ -99,6 +103,10 @@ create table if not exists public.orders (
 -- Pour une base déjà créée avec une version précédente
 alter table public.orders add column if not exists pickup_note text;
 alter table public.orders add column if not exists dropoff_note text;
+alter table public.orders add column if not exists pickup_place text;
+alter table public.orders add column if not exists dropoff_place text;
+alter table public.orders add column if not exists pickup_exact boolean not null default false;
+alter table public.orders add column if not exists dropoff_exact boolean not null default false;
 
 create index if not exists orders_pickup_at_idx on public.orders (pickup_at);
 create index if not exists orders_courier_idx on public.orders (courier_id);

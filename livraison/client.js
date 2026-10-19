@@ -12,7 +12,8 @@ const form = $("#orderForm");
 const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
-const state = { promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true } };
+const state = { promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null } };
+const ac = {};
 
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
@@ -47,7 +48,6 @@ function renderStatic() {
   $("#brandName").textContent = I18N.businessName();
   $("#footerName").textContent = I18N.businessName();
   document.title = `${I18N.businessName()} · ${t("orderTitle")}`;
-  $("#demoBanner").classList.toggle("hidden", Store.ONLINE);
   const avail = state.settings.accepting;
   $("#availBanner").classList.toggle("hidden", avail);
   $("#availText").textContent = (state.settings.message || "").trim() || t("closedBanner");
@@ -257,6 +257,7 @@ function scheduleOtherGeocode() {
 function applyExample(id) {
   const ex = EXAMPLES.find(e => e.id === id);
   form.reset();
+  resetPlaces();
   fillDefaults();
   Object.entries(ex.set).forEach(([k, v]) => {
     const el = form.elements[k];
@@ -276,6 +277,44 @@ function showError(msg) {
   $("#formError").classList.toggle("hidden", !msg);
 }
 
+// --- Adresses choisies dans la liste (carte) -----------------------------------------
+// Repère le type de lieu de retrait d'après le nom de l'enseigne
+function detectPlaceKind(brand) {
+  if (/super.?pharm|סופר.?פארם/i.test(brand)) return "superpharm";
+  if (/דואר|doar|israel post|post office|bureau de poste/i.test(brand)) return "poste";
+  if (/locker|לוקר|נקודת איסוף|pick.?up|relais/i.test(brand)) return "relais";
+  return null;
+}
+
+function onPlacePicked(which, p) {
+  state.pick[which] = p;
+  const sel = form.elements[which + "_city"];
+  if (p.cityId) sel.value = p.cityId;
+  else if (p.city) { sel.value = OTHER; form.elements[which + "_other"].value = p.city; }
+  state[which + "Point"] = { lat: p.lat, lon: p.lon };
+  if (which === "from" && val("service") === "retrait" && p.brand) {
+    const kind = detectPlaceKind(p.brand);
+    if (kind) form.place_kind.value = kind;
+  }
+  syncVisibility();
+  renderQuote();
+}
+
+function attachPlaces() {
+  ["from", "to"].forEach(which => {
+    ac[which] = Places.attach(form.elements[which === "from" ? "pickup_address" : "dropoff_address"], {
+      lang: () => I18N.lang,
+      texts: () => ({ none: t("addrNone") }),
+      onPick: p => onPlacePicked(which, p),
+      onClear: () => { state.pick[which] = null; renderQuote(); }
+    });
+  });
+}
+
+function resetPlaces() {
+  ["from", "to"].forEach(w => { state.pick[w] = null; if (ac[w]) ac[w].reset(); });
+}
+
 async function locate(address, cityId, point) {
   const c = Pricing.cityById(CONFIG, cityId);
   const name = c ? c.fr : cityId;
@@ -293,6 +332,11 @@ async function submit(e) {
     if (missing) form.elements[missing].focus();
     return showError(t("errRequired"));
   }
+  // Adresses : uniquement celles proposées par la carte (si le service répond)
+  if (Places.serviceOk && (!ac.from.isPicked() || !ac.to.isPicked())) {
+    form.elements[!ac.from.isPicked() ? "pickup_address" : "dropoff_address"].focus();
+    return showError(t("errAddrPick"));
+  }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
   if (state.promo) {
@@ -307,9 +351,10 @@ async function submit(e) {
     const q = currentQuote();
     const disc = q.lines.find(l => l.discount);
     const svc = val("service");
+    const pf = state.pick.from, pt = state.pick.to;
     const [pick, drop] = await Promise.all([
-      locate(val("pickup_address").trim(), fromCity, state.fromPoint),
-      locate(val("dropoff_address").trim(), toCity, state.toPoint)
+      pf ? { lat: pf.lat, lon: pf.lon } : locate(val("pickup_address").trim(), fromCity, state.fromPoint),
+      pt ? { lat: pt.lat, lon: pt.lon } : locate(val("dropoff_address").trim(), toCity, state.toPoint)
     ]);
     const order = {
       lang: I18N.lang,
@@ -317,7 +362,9 @@ async function submit(e) {
       urgency: val("urgency"),
       pickup_at: pickupDate().toISOString(),
       from_city: fromCity,
-      pickup_address: val("pickup_address").trim(),
+      pickup_address: pf ? (pf.street || pf.label) : val("pickup_address").trim(),
+      pickup_place: pf ? pf.brand : null,
+      pickup_exact: !!(pf && pf.exact),
       pickup_note: val("pickup_note").trim() || null,
       pickup_lat: pick ? pick.lat : null, pickup_lon: pick ? pick.lon : null,
       pickup_contact: svc !== "retrait" ? val("pickup_contact").trim() || null : null,
@@ -329,7 +376,9 @@ async function submit(e) {
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       to_city: toCity,
-      dropoff_address: val("dropoff_address").trim(),
+      dropoff_address: pt ? (pt.street || pt.label) : val("dropoff_address").trim(),
+      dropoff_place: pt ? pt.brand : null,
+      dropoff_exact: !!(pt && pt.exact),
       dropoff_note: val("dropoff_note").trim() || null,
       dropoff_lat: drop ? drop.lat : null, dropoff_lon: drop ? drop.lon : null,
       dropoff_contact: val("dropoff_contact").trim() || null,
@@ -364,6 +413,7 @@ async function submit(e) {
       .forEach(k => { form.elements[k].value = ""; });
     state.promo = null;
     $("#promoMsg").textContent = "";
+    resetPlaces();
     await loadMine();
   } catch (ex) {
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
@@ -463,6 +513,7 @@ I18N.apply();
 fillCitySelects();
 fillDefaults();
 renderAll();
+attachPlaces();
 loadMine();
 loadSettings();
 
