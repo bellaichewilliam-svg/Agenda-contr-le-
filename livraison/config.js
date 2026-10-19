@@ -69,16 +69,27 @@ window.CONFIG = {
     { id: "hod-hasharon", fr: "Hod HaSharon",   he: "הוד השרון",    lat: 32.1500, lon: 34.8880, aliases: ["Hod Hasharon"] },
     { id: "herzliya",     fr: "Herzliya",       he: "הרצליה",       lat: 32.1624, lon: 34.8443, aliases: ["Herzliyya", "Herzliya Pituah", "הרצליה פיתוח"] },
     { id: "ramat-hasharon", fr: "Ramat HaSharon", he: "רמת השרון",  lat: 32.1460, lon: 34.8390 },
-    { id: "tel-aviv",     fr: "Tel Aviv",       he: "תל אביב",      lat: 32.0853, lon: 34.7818, aliases: ["Tel Aviv-Yafo", "Tel Aviv-Jaffa", "Jaffa", "יפו"] },
-    { id: "ramat-gan",    fr: "Ramat Gan",      he: "רמת גן",       lat: 32.0823, lon: 34.8107 },
-    { id: "givatayim",    fr: "Givatayim",      he: "גבעתיים",      lat: 32.0722, lon: 34.8120, aliases: ["Giv'atayim", "Givataim"] },
-    { id: "bnei-brak",    fr: "Bnei Brak",      he: "בני ברק",      lat: 32.0807, lon: 34.8338, aliases: ["Bene Beraq", "Bnei Brak"] },
-    { id: "petah-tikva",  fr: "Petah Tikva",    he: "פתח תקווה",    lat: 32.0840, lon: 34.8878, aliases: ["Petah Tiqwa", "Petach Tikva", "Petah Tikva"] },
-    { id: "holon",        fr: "Holon",          he: "חולון",        lat: 32.0158, lon: 34.7874 },
-    { id: "bat-yam",      fr: "Bat Yam",        he: "בת ים",        lat: 32.0171, lon: 34.7454 },
-    { id: "rishon",       fr: "Rishon LeZion",  he: "ראשון לציון",  lat: 31.9730, lon: 34.7925, aliases: ["Rishon LeTsiyyon", "Rishon Lezion"] }
+    { id: "tel-aviv", zone: "tlv",     fr: "Tel Aviv",       he: "תל אביב",      lat: 32.0853, lon: 34.7818, aliases: ["Tel Aviv-Yafo", "Tel Aviv-Jaffa", "Jaffa", "יפו"] },
+    { id: "ramat-gan", zone: "tlv",    fr: "Ramat Gan",      he: "רמת גן",       lat: 32.0823, lon: 34.8107 },
+    { id: "givatayim", zone: "tlv",    fr: "Givatayim",      he: "גבעתיים",      lat: 32.0722, lon: 34.8120, aliases: ["Giv'atayim", "Givataim"] },
+    { id: "bnei-brak", zone: "tlv",    fr: "Bnei Brak",      he: "בני ברק",      lat: 32.0807, lon: 34.8338, aliases: ["Bene Beraq", "Bnei Brak"] },
+    { id: "petah-tikva", zone: "petah-tikva",  fr: "Petah Tikva",    he: "פתח תקווה",    lat: 32.0840, lon: 34.8878, aliases: ["Petah Tiqwa", "Petach Tikva", "Petah Tikva"] },
+    { id: "holon", zone: "tlv",        fr: "Holon",          he: "חולון",        lat: 32.0158, lon: 34.7874 },
+    { id: "bat-yam", zone: "tlv",      fr: "Bat Yam",        he: "בת ים",        lat: 32.0171, lon: 34.7454 },
+    { id: "rishon", zone: "rishon",       fr: "Rishon LeZion",  he: "ראשון לציון",  lat: 31.9730, lon: 34.7925, aliases: ["Rishon LeTsiyyon", "Rishon Lezion"] }
   ],
   homeCity: "netanya",
+
+  // --- Zones de livraison : seulement le Sharon pour l'instant -----------------
+  // Les villes sans « zone » sont dans le Sharon. Mettez active: true pour ouvrir une zone.
+  zones: [
+    { id: "sharon",      fr: "HaSharon",                he: "השרון",                active: true },
+    { id: "tlv",         fr: "Tel Aviv – Gush Dan",     he: "תל אביב – גוש דן",      active: false },
+    { id: "petah-tikva", fr: "Petah Tikva",             he: "פתח תקווה",            active: false },
+    { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: false }
+  ],
+  // Heures de pointe habituelles, affichées aux livreurs
+  peakHours: { fr: "12\u00a0h–14\u00a0h et 18\u00a0h–21\u00a0h", he: "12:00–14:00 ו-18:00–21:00" },
 
   // --- Tarifs ----------------------------------------------------------------
   // Prix depuis/vers votre ville : fixés à la main ci-dessous.

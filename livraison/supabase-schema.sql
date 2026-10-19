@@ -394,6 +394,12 @@ alter table public.settings add column if not exists max_debt numeric not null d
 alter table public.settings add column if not exists carnet_unit numeric not null default 20;
 alter table public.settings add column if not exists referral_active_days int not null default 21;
 alter table public.settings add column if not exists deliver_radius int not null default 200;
+-- Déblocages par le patron : une course (livrer sans GPS ni photo), ou un livreur (tout, jusqu'à une date)
+alter table public.orders add column if not exists unlocked boolean not null default false;
+alter table public.couriers add column if not exists unlocked_until timestamptz;
+-- Souci signalé par le livreur pendant la course (client absent, adresse introuvable…)
+alter table public.orders add column if not exists issue text;
+alter table public.orders add column if not exists issue_at timestamptz;
 create index if not exists orders_referrer_idx on public.orders (referrer_id);
 
 -- Nouvelle commande : IP, offre de bienvenue, et commerce / parrain (jamais fournis par le client)
@@ -460,7 +466,8 @@ language sql stable security definer set search_path = public as $$
      and (o.referrer_id = auth.uid()
           or now() >= o.created_at
                + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
-               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), 2), 2)));
+               -- hors service : après les livreurs en service (tout de suite s'il n'y en a aucun)
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), (select count(*) from ranked)), 2)));
 $$;
 
 -- Ce que le livreur doit à HOP (positif) ou HOP lui doit (négatif), sur les courses pas encore réglées :
@@ -485,8 +492,12 @@ declare c couriers;
 begin
   select * into c from couriers where id = auth.uid() and status = 'actif';
   if not found then return false; end if;
-  -- Trop de commission en retard : plus de nouvelles courses tant que ce n'est pas réglé
-  if c.role = 'coursier' and public.courier_balance(c.id) > (select max_debt from settings where id = 1) then return false; end if;
+  if c.role = 'coursier' and not coalesce(c.unlocked_until > now(), false) then
+    -- Trop de commission en retard : plus de nouvelles courses tant que ce n'est pas réglé
+    if public.courier_balance(c.id) > (select max_debt from settings where id = 1) then raise exception 'debt'; end if;
+    -- Une course récupérée doit être livrée (et validée) avant d'en prendre une autre
+    if exists (select 1 from orders where courier_id = c.id and status = 'recuperee') then raise exception 'busy'; end if;
+  end if;
   update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
          courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
          commission = case when c.role = 'admin' then 0 else (select commission from settings where id = 1) end
@@ -626,12 +637,21 @@ begin
   if p_action = 'recuperee' then
     update orders set status = 'recuperee' where id = p_id and courier_id = auth.uid() and status = 'confirmee';
   elsif p_action = 'livree' then
-    if exists (select 1 from orders o, couriers c, settings st
-                where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.dropoff_lat is not null
-                  and (c.position_at is null or c.position_at < now() - interval '3 minutes'
-                       or 6371000 * sqrt(radians(c.lat - o.dropoff_lat) ^ 2
-                            + (radians(c.lon - o.dropoff_lon) * cos(radians(o.dropoff_lat))) ^ 2) > st.deliver_radius)) then
-      raise exception 'too_far';
+    -- Sauf course ou livreur débloqué par le patron
+    if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()
+                    and (o.unlocked or coalesce(c.unlocked_until > now(), false))) then
+      if exists (select 1 from orders o, couriers c, settings st
+                  where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.dropoff_lat is not null
+                    and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                         or 6371000 * sqrt(radians(c.lat - o.dropoff_lat) ^ 2
+                              + (radians(c.lon - o.dropoff_lon) * cos(radians(o.dropoff_lat))) ^ 2) > st.deliver_radius)) then
+        raise exception 'too_far';
+      end if;
+      -- « Déposer devant la porte » : la photo du colis doit être envoyée dans la conversation
+      if exists (select 1 from orders o where o.id = p_id and o.leave_at_door)
+         and not exists (select 1 from chat_messages m where m.thread = 'o:' || p_id::text and m.author = 'courier' and m.image is not null) then
+        raise exception 'photo_required';
+      end if;
     end if;
     update orders set status = 'livree' where id = p_id and courier_id = auth.uid() and status = 'recuperee';
   elsif p_action = 'paye' then
@@ -817,6 +837,35 @@ begin
   return found;
 end;
 $$;
+
+-- Le livreur signale un souci : noté sur la course et écrit dans sa conversation (client + patron)
+create or replace function public.courier_issue(p_id uuid, p_reason text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare r text := left(nullif(trim(p_reason), ''), 300);
+begin
+  if r is null or not public.is_active_courier() then return false; end if;
+  update orders set issue = r, issue_at = now()
+   where id = p_id and courier_id = auth.uid() and status in ('confirmee', 'recuperee');
+  if not found then return false; end if;
+  insert into chat_messages (thread, author, author_name, body)
+  select 'o:' || p_id::text, 'courier', name, '⚠️ ' || r from couriers where id = auth.uid();
+  return true;
+end;
+$$;
+revoke execute on function public.courier_issue(uuid, text) from public, anon;
+grant execute on function public.courier_issue(uuid, text) to authenticated;
+
+-- Demande en direct pour l'écran « Zones » des livreurs (des chiffres seulement)
+create or replace function public.zone_demand() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'waiting',   (select count(*) from orders where status = 'nouvelle' and courier_id is null),
+    'last_hour', (select count(*) from orders where created_at > now() - interval '1 hour' and status not in ('annulee', 'refusee')),
+    'on_duty',   (select count(*) from couriers where status = 'actif' and position_at > now() - interval '10 minutes'))
+  where public.is_active_courier();
+$$;
+revoke execute on function public.zone_demand() from public, anon;
+grant execute on function public.zone_demand() to authenticated;
 
 -- Chaque étape de la course s'affiche toute seule dans sa conversation
 create or replace function public.orders_chat_status() returns trigger
