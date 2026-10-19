@@ -17,7 +17,7 @@ const BUSINESS = {
   status: "עוסק פטור",
   number: "332342807",
   address: "יהודה הלוי 20, נתניה",
-  phone: "050-000-0000"
+  phone: "052-779-0361"
 };
 
 function doPost(e) {

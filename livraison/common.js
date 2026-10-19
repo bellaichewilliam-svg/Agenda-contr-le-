@@ -69,6 +69,7 @@ function whenFr(o) {
 function orderText(o) {
   const L = [`📦 Commande ${o.ref} — ${SERVICE_FR[o.service]}`, `🕐 ${whenFr(o)}`, ``];
   L.push(`📍 ${o.service === "retrait" ? PLACE_FR[o.place_kind] || "Récupération" : "Récupération"} : ${o.pickup_address}, ${cityFr(o.from_city)}`);
+  if (o.pickup_note) L.push(`   📝 ${o.pickup_note}`);
   if (o.pickup_contact || o.pickup_phone) L.push(`   ${[o.pickup_contact, o.pickup_phone].filter(Boolean).join(" · ")}`);
   if (o.service === "retrait") {
     if (o.tracking_number) L.push(`   N° : ${o.tracking_number}`);
@@ -80,6 +81,7 @@ function orderText(o) {
     if (o.budget) L.push(`   Budget : ${money(o.budget)} (avancé, remboursé à la livraison)`);
   }
   L.push(`🏁 Livraison : ${o.dropoff_address}, ${cityFr(o.to_city)}`);
+  if (o.dropoff_note) L.push(`   📝 ${o.dropoff_note}`);
   if (o.dropoff_contact || o.dropoff_phone) L.push(`   ${[o.dropoff_contact, o.dropoff_phone].filter(Boolean).join(" · ")}`);
   L.push(``, `${SIZE_FR[o.size] || o.size}${o.round_trip ? " · aller-retour" : ""}${o.extra_stops ? ` · +${o.extra_stops} arrêt(s)` : ""}`);
   if (o.notes) L.push(`📝 ${o.notes}`);
@@ -128,7 +130,11 @@ function fmtKey(key) {
   return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
 }
 
+// Remarque sur une adresse (étage, code…), affichée sous l'adresse
+function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)}</div>` : ""; }
+
 window.UI = {
+  addrNote,
   receiptUrl, referralCode, clientMessage, weekStart, addDays, fmtKey,
   esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

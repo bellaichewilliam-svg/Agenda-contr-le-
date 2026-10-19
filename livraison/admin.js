@@ -236,8 +236,8 @@ function card(o, withDay) {
       <span class="order-price">${UI.money(o.price)}</span>
     </div>
     <div class="legs">
-      <div class="leg"><span>📍</span><div><b>${UI.esc(o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</b>${pickupExtra}<span class="small muted">${tel(o.pickup_contact, o.pickup_phone)}</span>${nav("pickup")}</div></div>
-      <div class="leg"><span>🏁</span><div><b>${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</b><span class="small muted">${tel(o.dropoff_contact, o.dropoff_phone)}</span>${nav("dropoff")}</div></div>
+      <div class="leg"><span>📍</span><div><b>${UI.esc(o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</b>${UI.addrNote(o.pickup_note)}${pickupExtra}<span class="small muted">${tel(o.pickup_contact, o.pickup_phone)}</span>${nav("pickup")}</div></div>
+      <div class="leg"><span>🏁</span><div><b>${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</b>${UI.addrNote(o.dropoff_note)}<span class="small muted">${tel(o.dropoff_contact, o.dropoff_phone)}</span>${nav("dropoff")}</div></div>
     </div>
     <div class="meta">${meta.join("")}</div>
     ${o.notes ? `<p class="notice" style="margin-top:10px">📝 ${UI.esc(o.notes)}</p>` : ""}

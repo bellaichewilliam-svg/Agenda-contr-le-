@@ -52,6 +52,7 @@ create table if not exists public.orders (
   pickup_at        timestamptz not null,
   from_city        text not null,
   pickup_address   text not null,
+  pickup_note      text,
   pickup_lat       double precision,
   pickup_lon       double precision,
   pickup_contact   text,
@@ -64,6 +65,7 @@ create table if not exists public.orders (
   budget           numeric,
   to_city          text not null,
   dropoff_address  text not null,
+  dropoff_note     text,
   dropoff_lat      double precision,
   dropoff_lon      double precision,
   dropoff_contact  text,
@@ -93,6 +95,10 @@ create table if not exists public.orders (
   receipt_number   int unique,
   receipt_at       timestamptz
 );
+
+-- Pour une base déjà créée avec une version précédente
+alter table public.orders add column if not exists pickup_note text;
+alter table public.orders add column if not exists dropoff_note text;
 
 create index if not exists orders_pickup_at_idx on public.orders (pickup_at);
 create index if not exists orders_courier_idx on public.orders (courier_id);

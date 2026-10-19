@@ -414,3 +414,4 @@ table.bill .num { text-align: end; }
 .offer-route > div:not(.offer-line) { display: flex; gap: 10px; align-items: center; font-size: 18px; }
 .offer-line { border-inline-start: 3px dotted var(--brand); height: 18px; margin-inline-start: 9px; }
 .offer-facts { display: grid; gap: 4px; font-size: 14px; color: var(--muted); background: var(--bg); border-radius: 12px; padding: 10px; }
+.addr-note { font-size: 13px; color: var(--amber-ink); background: var(--amber-soft); border-radius: 8px; padding: 3px 8px; margin: 4px 0; display: inline-block; }

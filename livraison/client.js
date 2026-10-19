@@ -318,6 +318,7 @@ async function submit(e) {
       pickup_at: pickupDate().toISOString(),
       from_city: fromCity,
       pickup_address: val("pickup_address").trim(),
+      pickup_note: val("pickup_note").trim() || null,
       pickup_lat: pick ? pick.lat : null, pickup_lon: pick ? pick.lon : null,
       pickup_contact: svc !== "retrait" ? val("pickup_contact").trim() || null : null,
       pickup_phone: svc !== "retrait" ? val("pickup_phone").trim() || null : null,
@@ -329,6 +330,7 @@ async function submit(e) {
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       to_city: toCity,
       dropoff_address: val("dropoff_address").trim(),
+      dropoff_note: val("dropoff_note").trim() || null,
       dropoff_lat: drop ? drop.lat : null, dropoff_lon: drop ? drop.lon : null,
       dropoff_contact: val("dropoff_contact").trim() || null,
       dropoff_phone: val("dropoff_phone").trim() || null,
@@ -358,7 +360,7 @@ async function submit(e) {
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "dropoff_address", "dropoff_contact", "dropoff_phone"]
+    ["notes", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_note", "dropoff_address", "dropoff_note", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     state.promo = null;
     $("#promoMsg").textContent = "";
