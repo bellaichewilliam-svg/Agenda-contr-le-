@@ -904,3 +904,5 @@ body.in-home .eta-bubble { display: none; }
 .ch-zoom button { width: 48px; height: 44px; border: 0; background: var(--panel); color: var(--ink); font-size: 24px; font-weight: 600; line-height: 1; }
 .ch-zoom button + button { border-top: 1px solid var(--border); }
 @media (max-width: 860px) { .ch-zoom { bottom: auto; top: calc(max(40vh, 250px) - 168px); } }
+/* Carte sombre : tuiles OpenStreetMap inversées (gratuit, sans clé) */
+.tiles-dark { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.88) saturate(.55); }

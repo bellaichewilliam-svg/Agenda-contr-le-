@@ -925,7 +925,7 @@ const riderSet = Object.assign({ nav: "waze", mode: "scooter", theme: "dark", so
 function saveRiderSet() { try { localStorage.setItem(LS_RIDER, JSON.stringify(riderSet)); } catch (e) { /* ignore */ } }
 function applyRiderSettings() {
   $("#work").classList.toggle("light", riderSet.theme === "light");
-  if (rmap.tiles) rmap.tiles.setUrl(tileUrl());
+  if (rmap.tiles) rmap.tiles.getContainer().classList.toggle("tiles-dark", riderSet.theme !== "light");
 }
 const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Zones et demande", week: "Finances", stats: "Statistiques",
   ref: "Gagner plus", rules: "Engagements et assurance", settings: "Réglages", help: "Centre d'aide", inbox: "Messages de HOP!" };
@@ -1006,12 +1006,11 @@ function initSlider() {
 
 // --- Carte plein écran : ma position, courses disponibles, ma course ---------------------
 const rmap = { map: null, tiles: null, layer: null, fitted: false };
-const tileUrl = () => `https://{s}.basemaps.cartocdn.com/${riderSet.theme === "light" ? "light_all" : "dark_all"}/{z}/{x}/{y}{r}.png`;
 function initRiderMap() {
   if (rmap.map || !window.L) return;
   const home = CONFIG.cities.find(c => c.id === CONFIG.homeCity);
   rmap.map = L.map("riderMap", { zoomControl: false, attributionControl: true }).setView([home.lat, home.lon], 13);
-  rmap.tiles = L.tileLayer(tileUrl(), { maxZoom: 19, subdomains: "abcd", attribution: "© OpenStreetMap · © CARTO" }).addTo(rmap.map);
+  rmap.tiles = UI.mapTiles(rmap.map, riderSet.theme !== "light");
   rmap.layer = L.layerGroup().addTo(rmap.map);
   setTimeout(() => rmap.map.invalidateSize(), 100);
 }
