@@ -23,7 +23,8 @@ Chaque visuel a son QR code : clients → l'application, commerces → l'inscrip
 >
 > 💰 **25 ₪ dans Netanya**, prix fixe affiché avant de commander.
 > 🎁 **Votre première course dans Netanya à 15 ₪** (code BIENVENUE appliqué tout seul).
-> 📍 Vous suivez le livreur en direct sur la carte.
+> 📍 Vous suivez le livreur en direct sur la carte, avec le temps qui reste.
+> 🏪 Super-Pharm, poste, restaurant… trouvez l'enseigne la plus proche en un geste.
 > 💵 Espèces ou Bit · 🗓️ Programmable à l'heure près.
 > 🏪 Tous les magasins, même les petits.
 >
@@ -38,7 +39,8 @@ Chaque visuel a son QR code : clients → l'application, commerces → l'inscrip
 >
 > 💰 **25 ₪ בתוך נתניה**, מחיר קבוע לפני ההזמנה.
 > 🎁 **המשלוח הראשון בתוך נתניה ב-15 ₪** (הקוד BRUCHIM נכנס לבד).
-> 📍 עוקבים אחרי השליח על המפה בזמן אמת.
+> 📍 עוקבים אחרי השליח על המפה בזמן אמת, עם הזמן שנשאר.
+> 🏪 סופר-פארם, דואר, מסעדה… מוצאים את הסניף הקרוב בנגיעה.
 > 💵 מזומן או ביט · 🗓️ אפשר לתזמן לשעה מדויקת.
 > 🏪 כל החנויות, גם הקטנות.
 >
@@ -78,15 +80,17 @@ Avec `rider-post-fr.png` / `rider-post-he.png` (groupes d'emploi, étudiants, ol
 > 🛵 **Deviens livreur partenaire HOP!** (scooter, voiture ou vélo)
 > ✅ Tu choisis tes courses · 💵 tu encaisses les espèces · 🎯 les courses proches de toi d'abord.
 > 💸 Commission de **12 % par course** (3 ₪ pour une course de 25 ₪), réglée une fois par semaine. Pas d'abonnement.
+> ⏱️ Attente ou achats sur place : **payés en plus** (10 min offertes, puis +5 ₪ par 10 min), 100 % pour toi.
 > 🤝 Amène un commerce : **+1 ₪ sur chacune de ses livraisons**, tant que tu livres avec nous.
-> Demandé : permis valide, véhicule assuré, עוסק פטור ou מורשה.
+> Demandé : permis valide, véhicule assuré, **un top case** (photo à l'inscription), עוסק פטור ou מורשה.
 > 👉 Inscription : https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html
 
 > 🛵 **בואו להיות שליחים בהופ!** (קטנוע, רכב או אופניים)
 > ✅ בוחרים את המשלוחים · 💵 מקבלים את המזומן · 🎯 משלוחים קרובים אליכם קודם.
 > 💸 עמלה של **12% למשלוח** (3 ₪ על משלוח של 25 ₪), תשלום פעם בשבוע. בלי מנוי.
+> ⏱️ המתנה או קניות במקום: **משולמים בנוסף** (10 דק׳ ראשונות חינם, ואז ‎+5 ₪ לכל 10 דק׳), 100% אליכם.
 > 🤝 מביאים עסק: **‎+1 ₪ על כל משלוח שלו**, כל עוד אתם שולחים איתנו.
-> דרוש: רישיון בתוקף, רכב מבוטח, עוסק פטור או מורשה.
+> דרוש: רישיון בתוקף, רכב מבוטח, **ארגז (טופ קייס)** (תמונה בהרשמה), עוסק פטור או מורשה.
 > 👈 להרשמה: https://bellaichewilliam-svg.github.io/Agenda-contr-le-/livraison/coursier.html
 
 ---
