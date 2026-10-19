@@ -723,4 +723,7 @@ document.addEventListener("visibilitychange", async () => {
 if (window.Notification && Notification.permission === "granted") $("#notifBtn").textContent = "🔔 Alertes activées";
 if (Store.session()) start(); else showLogin();
 
+// L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
+window.hopReady = true;
+
 })();

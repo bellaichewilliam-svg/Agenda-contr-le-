@@ -149,4 +149,7 @@ initMap();
 load();
 setInterval(load, 10000);
 
+// L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
+window.hopReady = true;
+
 })();

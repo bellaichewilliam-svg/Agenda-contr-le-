@@ -68,4 +68,7 @@ function render(o) {
 
 Store.trackOrder(token).then(render, () => render(null));
 
+// L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
+window.hopReady = true;
+
 })();

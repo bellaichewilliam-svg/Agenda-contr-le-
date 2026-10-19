@@ -391,4 +391,7 @@ $("#notifBtn").addEventListener("click", () => {
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers)/.test(e.key || "") && me && me.status === "actif") load(); });
 route();
 
+// L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
+window.hopReady = true;
+
 })();
