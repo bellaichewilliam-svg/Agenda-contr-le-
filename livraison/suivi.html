@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#0F1F3D" />
   <meta name="robots" content="noindex" />
   <title>Suivi · מעקב</title>
-  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%23FF6A13"/><text x="32" y="44" text-anchor="middle" font-size="34">🛵</text></svg>' />
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -17,7 +18,7 @@
 
 <header class="topbar">
   <div class="wrap">
-    <a class="logo" href="index.html"><span class="logo-mark">🛵</span><span class="logo-name" id="brandName"></span></a>
+    <a class="logo" href="index.html"><img class="logo-mark" src="logo.svg" alt="" /><span class="logo-name" id="brandName"></span></a>
     <nav class="nav">
       <a href="index.html#mes-courses" data-i18n="navMine"></a>
       <button class="lang-btn" id="langBtn" data-i18n="langSwitch"></button>
@@ -33,7 +34,7 @@
     <div class="card kv" id="details"></div>
     <div class="card pay-box hidden" id="payBox"></div>
     <div class="card" id="courierBox">
-      <h3 data-i18n="trCourier"></h3>
+      <h3 id="courierTitle" data-i18n="trCourier"></h3>
       <div class="mo-actions">
         <a class="btn btn-sm" id="callBtn" data-i18n="trCall"></a>
         <a class="btn btn-sm btn-wa" id="waBtn" target="_blank" rel="noopener" data-i18n="trWa"></a>

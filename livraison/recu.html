@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex" />
+  <title>קבלה · Reçu</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="logo.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body class="receipt-page">
+  <main class="wrap narrow" style="padding:20px 16px 40px">
+    <div class="receipt card" id="receipt"></div>
+    <div class="no-print" style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:14px">
+      <button class="btn btn-primary" onclick="window.print()">🖨️ הדפסה / PDF · Imprimer</button>
+      <a class="btn" href="index.html#mes-courses">← Retour · חזרה</a>
+    </div>
+  </main>
+  <script src="config.js"></script>
+  <script src="i18n.js"></script>
+  <script src="pricing.js"></script>
+  <script src="store.js"></script>
+  <script src="common.js"></script>
+  <script src="recu.js"></script>
+</body>
+</html>

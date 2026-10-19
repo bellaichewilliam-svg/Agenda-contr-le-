@@ -76,7 +76,9 @@ html[lang="he"] body { font-family: "Heebo", "Plus Jakarta Sans", -apple-system,
 .topbar { position: sticky; top: 0; z-index: 30; background: var(--navy); color: #fff; }
 .topbar .wrap { display: flex; align-items: center; gap: 12px; height: 60px; }
 .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 18px; text-decoration: none; white-space: nowrap; }
-.logo-mark { width: 34px; height: 34px; border-radius: 10px; background: var(--brand); display: grid; place-items: center; font-size: 18px; flex: none; }
+.logo-mark { width: 36px; height: 36px; border-radius: 10px; flex: none; display: block; }
+.logo-name { letter-spacing: -.01em; }
+.perks-list { list-style: none; display: grid; gap: 6px; margin-top: 10px; }
 .nav { display: flex; align-items: center; gap: 4px; margin-inline-start: auto; }
 .nav a { text-decoration: none; padding: 8px 12px; border-radius: 10px; font-weight: 600; font-size: 14px; opacity: .85; white-space: nowrap; }
 .nav a:hover { background: var(--navy-2); opacity: 1; }
@@ -270,6 +272,15 @@ label.check input { width: 20px; height: 20px; accent-color: var(--brand); flex:
 footer { background: var(--navy); color: rgba(255,255,255,.75); padding: 28px 0 90px; font-size: 14px; }
 footer .wrap { display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; }
 footer a { color: #fff; }
+.closed-banner { background: var(--red-soft) !important; color: var(--red) !important; }
+.order-no { font-weight: 700; color: var(--ink) !important; }
+.wa-fab {
+  position: fixed; inset-inline-end: 16px; bottom: 16px; z-index: 26; display: flex; align-items: center; gap: 8px;
+  background: #25D366; color: #fff; text-decoration: none; border-radius: 99px; padding: 12px 16px;
+  box-shadow: 0 6px 20px rgba(0,0,0,.25); font-size: 14px;
+}
+.wa-fab span { font-size: 20px; line-height: 1; }
+@media (max-width: 960px) { .wa-fab b { display: none; } .wa-fab { padding: 12px; } .mobile-bar.show ~ .wa-fab { bottom: 84px; } }
 .mode-banner { background: var(--amber-soft); color: var(--amber-ink); padding: 8px 0; font-size: 13px; font-weight: 600; }
 
 /* --- Suivi en direct ------------------------------------------------------------ */
@@ -347,7 +358,28 @@ table.bill .num { text-align: end; }
 .flyer .two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin: 14px 0; }
 .flyer ul { list-style: none; display: grid; gap: 4px; padding: 0 !important; }
 @media print {
-  body > *:not(.print-area) { display: none !important; }
-  .print-area { display: block !important; padding: 0; }
+  body.kit-page > *:not(.print-area) { display: none !important; }
+  body.kit-page .print-area { display: block !important; padding: 0; }
   .flyer { border: 0; max-width: none; }
+}
+
+/* --- Reçu (קבלה) ---------------------------------------------------------------- */
+.receipt-page { font-family: "Heebo", Arial, sans-serif; }
+.receipt { background: #fff; color: #101828; padding: 28px; }
+.rc-head { display: flex; justify-content: space-between; gap: 18px; flex-wrap: wrap; border-bottom: 3px solid var(--brand); padding-bottom: 14px; font-size: 14px; }
+.rc-head h1 { font-size: 24px; }
+.rc-title { display: grid; text-align: end; align-content: start; }
+.rc-title b { font-size: 22px; }
+.rc-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0; }
+.rc-meta small { display: block; color: #5B6476; font-size: 12px; }
+@media (max-width: 600px) { .rc-meta { grid-template-columns: 1fr; } }
+.rc-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rc-table th, .rc-table td { padding: 10px 6px; border-bottom: 1px solid #E4E7EC; text-align: start; vertical-align: top; }
+.rc-table .num { text-align: end; white-space: nowrap; }
+.rc-table tfoot th { font-size: 17px; border-top: 2px solid #101828; }
+.rc-table small { color: #5B6476; }
+.rc-note { margin-top: 12px; font-size: 13px; color: #5B6476; }
+@media print {
+  .receipt-page .no-print { display: none !important; }
+  .receipt-page .receipt { border: 0; box-shadow: none; }
 }

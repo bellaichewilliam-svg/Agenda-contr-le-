@@ -23,8 +23,18 @@ function tripPrice(a, b, pricing) {
   return { km, price: Math.max(pricing.minimum, roundTo(pricing.base + pricing.perKm * km, pricing.roundTo)) };
 }
 
+// Prix fixé à la main dans config.js pour un trajet depuis/vers la ville principale
+function fixedPrice(cfg, fromId, toId) {
+  const table = cfg.pricing.fixedFromHome || {};
+  if (fromId === cfg.homeCity && toId in table) return table[toId];
+  if (toId === cfg.homeCity && fromId in table) return table[fromId];
+  return null;
+}
+
 // Prix « petit colis » entre deux villes, pour les grilles de tarifs
 function cityToCity(cfg, fromId, toId) {
+  const fixed = fixedPrice(cfg, fromId, toId);
+  if (fixed != null) return fixed;
   return fromId === toId ? tripPrice(null, null, cfg.pricing).price
     : tripPrice(cityById(cfg, fromId), cityById(cfg, toId), cfg.pricing).price;
 }
@@ -40,6 +50,8 @@ function computeQuote(opts, cfg) {
   const known = same || !!(from && to);
 
   const trip = same || !known ? tripPrice(null, null, P) : tripPrice(from, to, P);
+  const fixed = fixedPrice(cfg, opts.fromCity, opts.toCity);
+  if (fixed != null) trip.price = fixed;
   lines.push(same
     ? { key: "qBaseSame", vars: { city: opts.fromCity }, amount: trip.price }
     : { key: "qBase", vars: { from: opts.fromCity, to: opts.toCity, km: Math.round(trip.km) }, amount: trip.price });

@@ -12,7 +12,7 @@ const form = $("#orderForm");
 const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
-const state = { promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [] };
+const state = { promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true } };
 
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
@@ -48,7 +48,11 @@ function renderStatic() {
   $("#footerName").textContent = I18N.businessName();
   document.title = `${I18N.businessName()} · ${t("orderTitle")}`;
   $("#demoBanner").classList.toggle("hidden", Store.ONLINE);
-  const open = Pricing.isOpenNow(CONFIG);
+  const avail = state.settings.accepting;
+  $("#availBanner").classList.toggle("hidden", avail);
+  $("#availText").textContent = (state.settings.message || "").trim() || t("closedBanner");
+  $("#waFab").href = UI.waLink(CONFIG.whatsapp, t("chatMsg") + " ");
+  const open = Pricing.isOpenNow(CONFIG) && avail;
   $("#openBadge").textContent = t(open ? "openNow" : "closedNow");
   $("#openBadge").classList.toggle("closed", !open);
   $("#expressSmall").textContent = `${t("w_express_d")} · +${money(P.express)}`;
@@ -153,13 +157,14 @@ function pickupDate() {
 
 function scheduleError() {
   const u = val("urgency");
+  if (!state.settings.accepting && u !== "programmee") return { key: "errNotAccepting" };
   if (u === "asap") return null;
   if (u === "express") return Pricing.isOpenNow(CONFIG) ? null : { key: "errExpressClosed" };
   return Pricing.checkSchedule(pickupDate(), CONFIG);
 }
 
 // --- Réductions -------------------------------------------------------------------
-function activeOrders() { return state.mine.filter(o => o.status !== "annulee"); }
+function activeOrders() { return state.mine.filter(o => !["annulee", "refusee"].includes(o.status)); }
 function deliveredCount() { return state.mine.filter(o => o.status === "livree").length; }
 function ownReferralCode(phone) {
   const d = String(phone || "").replace(/\D/g, "");
@@ -411,10 +416,14 @@ function renderMine() {
       <div class="mo-ico">${{ colis: "📦", retrait: "📮", achat: "🛒", repas: "🍔" }[o.service] || "📦"}</div>
       <div class="mo-main">
         <b>${UI.esc(cityLabel(o.from_city))} → ${UI.esc(cityLabel(o.to_city))}</b>
-        <small>${UI.esc(whenLabel(o))} · <span dir="ltr">${UI.esc(o.ref)}</span></small>
+        <small>${UI.esc(whenLabel(o))}</small>
+        <small class="order-no">${UI.esc(t("orderNo", { ref: o.ref }))}</small>
+        ${o.status === "refusee" ? `<p class="notice warn" style="margin-top:6px">${UI.esc(t("trRefused"))}${o.admin_note ? " " + UI.esc(t("trReason", { r: o.admin_note })) : ""} <a href="#commander">${UI.esc(t("trRebook"))}</a></p>`
+          : o.admin_note ? `<p class="notice" style="margin-top:6px">💬 ${UI.esc(o.admin_note)}</p>` : ""}
         <div class="mo-actions">
           ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<a class="btn btn-sm btn-primary" href="${UI.trackUrl(o)}">${t("track")}</a>` : ""}
-          <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.waLink(CONFIG.whatsapp, o.ref + " — ")}">${t("contact")}</a>
+          ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${t("receiptLink")}</a>` : ""}
+          <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.courier_phone || CONFIG.whatsapp, t("orderNo", { ref: o.ref }) + " — ")}">${t("contact")}</a>
           ${o.status === "nouvelle" ? `<button class="btn btn-sm btn-link" data-cancel="${UI.esc(o.token)}">${t("cancel")}</button>` : ""}
         </div>
       </div>
@@ -440,12 +449,19 @@ function renderAll() {
   renderMine();
 }
 
+async function loadSettings() {
+  try { state.settings = await Store.getSettings(); } catch (e) { /* on garde « disponible » */ }
+  renderStatic();
+  renderQuote();
+}
+
 // --- Démarrage ---------------------------------------------------------------------
 I18N.apply();
 fillCitySelects();
 fillDefaults();
 renderAll();
 loadMine();
+loadSettings();
 
 form.addEventListener("input", e => {
   if (/_other$/.test(e.target.name)) scheduleOtherGeocode();
@@ -491,6 +507,6 @@ if ("IntersectionObserver" in window) {
   new IntersectionObserver(es => { inForm = es[0].isIntersecting; update(); }).observe(form);
   new IntersectionObserver(es => { summaryVisible = es[0].isIntersecting; update(); }).observe($("#summary"));
 }
-if (Store.ONLINE) setInterval(loadMine, 60000);
+if (Store.ONLINE) setInterval(() => { loadMine(); loadSettings(); }, 60000);
 
 })();

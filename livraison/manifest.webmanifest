@@ -1,7 +1,7 @@
 {
-  "name": "Coursier Express",
-  "short_name": "Coursier",
-  "description": "Commander et suivre des courses de livraison",
+  "name": "HOP! Livraison · הופ! משלוחים",
+  "short_name": "HOP!",
+  "description": "Et hop, c'est livré ! Commander et suivre des courses de livraison",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -9,11 +9,6 @@
   "theme_color": "#0F1F3D",
   "lang": "fr",
   "icons": [
-    {
-      "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='110' fill='%23FF6A13'/><text x='256' y='340' text-anchor='middle' font-size='260'>🛵</text></svg>",
-      "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
+    { "src": "logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

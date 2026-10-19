@@ -4,14 +4,26 @@
 
 window.CONFIG = {
   // --- Identité --------------------------------------------------------------
-  businessName: "Coursier Express",
-  businessNameHe: "שליח אקספרס",
+  businessName: "HOP! Livraison",
+  businessNameHe: "הופ! משלוחים",
   // Numéro WhatsApp du coursier, format international SANS "+" ni espaces.
   whatsapp: "972500000000",
   phoneDisplay: "050-000-0000",
   // Numéro de téléphone sur lequel les clients paient avec Bit
   bitPhone: "050-000-0000",
   email: "contact@exemple.com",
+
+  // --- Reçus (קבלה) : vos informations légales ------------------------------
+  // Un עוסק פטור émet des reçus (קבלה), pas de חשבונית מס, et ne facture pas la TVA.
+  // ⚠️ Ce fichier est public : n'écrivez ici que ce qui doit figurer sur un reçu.
+  business: {
+    legalName: "בלאיש ויליאם אברהם",
+    tradeName: "DIGITAL AND CO",
+    status: "עוסק פטור",
+    number: "332342807",
+    address: "יהודה הלוי 20, נתניה",
+    email: ""                 // email affiché sur le reçu (facultatif)
+  },
 
   // --- Monnaie / pays --------------------------------------------------------
   currency: "₪",
@@ -53,11 +65,19 @@ window.CONFIG = {
   homeCity: "netanya",
 
   // --- Tarifs ----------------------------------------------------------------
-  // Prix = base + perKm × distance à vol d'oiseau, arrondi à 5 ₪.
-  // Ex. : dans Netanya 25 ₪ · Netanya→Ra'anana 45 ₪ · →Herzliya 50 ₪ · →Tel Aviv 65 ₪
+  // Prix depuis/vers votre ville : fixés à la main ci-dessous (petit colis).
+  // Pour les autres trajets : base + perKm × distance à vol d'oiseau, arrondi à 5 ₪.
   pricing: {
+    fixedFromHome: {
+      "netanya": 25,
+      "even-yehuda": 40, "kadima": 40, "pardesia": 40, "kfar-yona": 40,
+      "hadera": 60,
+      "raanana": 65, "kfar-saba": 65, "herzliya": 70, "hod-hasharon": 70, "ramat-hasharon": 70,
+      "tel-aviv": 90, "ramat-gan": 90, "givatayim": 90, "bnei-brak": 90, "petah-tikva": 85,
+      "holon": 110, "bat-yam": 110, "rishon": 115
+    },
     base: 25,
-    perKm: 1.4,
+    perKm: 2.4,
     roundTo: 5,
     minimum: 25,
     sizes: {
@@ -70,6 +90,12 @@ window.CONFIG = {
     purchase: 15,       // « J'achète pour vous » (pharmacie, courses…)
     extraStop: 10,      // par arrêt supplémentaire
     returnTripPercent: 50
+  },
+
+  // --- Livreurs partenaires (comme Wolt) ---------------------------------------
+  platform: {
+    commissionPerCourse: 3,   // ce que vous prenez sur chaque course d'un livreur
+    settlementDay: 0          // jour du paiement hebdomadaire (0 = dimanche)
   },
 
   // --- Offres de lancement ----------------------------------------------------

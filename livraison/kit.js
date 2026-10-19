@@ -33,7 +33,7 @@ $("#kitOffers").innerHTML = [
 
 const POSTS = [
   { title: "Post pour les groupes Facebook / WhatsApp (français)", dir: "ltr", text:
-`🛵 Nouveau à ${UI.cityFr(home)} : un coursier francophone, prix fixe, sans surprise !
+`🛵 Et hop, c'est livré ! Nouveau à ${UI.cityFr(home)} : ${nameFr}, le coursier francophone à prix fixe.
 
 📦 Colis et documents
 📮 Je récupère vos colis à la poste (fini la queue !)
@@ -49,7 +49,7 @@ const POSTS = [
 👉 Commandez en 1 minute : ${url}` },
 
   { title: "פוסט לקבוצות פייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
-`🛵 חדש ב${heHome}: שליח במחיר קבוע, בלי הפתעות!
+`🛵 הופ, וזה אצלך! חדש ב${heHome}: ${nameHe}, משלוחים במחיר קבוע.
 
 📦 חבילות ומסמכים
 📮 איסוף חבילות מהדואר (בלי לעמוד בתור!)
@@ -90,6 +90,42 @@ Il faut juste une procuration signée + la copie de la carte d'identité.
 צריך רק ייפוי כוח חתום וצילום תעודת זהות.
 👈 ${url}` },
 
+  { title: "Argumentaire pour un restaurant (français)", dir: "ltr", text:
+`Bonjour ! Je suis ${nameFr}, livreur à ${UI.cityFr(home)}.
+Avec moi :
+• 0 % de commission sur vos commandes : vous payez seulement la course (${price(home)} dans ${UI.cityFr(home)}).
+• Chaque commande part directement chez votre client, sans être groupée avec d'autres : elle arrive chaude.
+• Votre client reçoit un lien pour suivre la livraison en direct.
+• Paiement en espèces ou Bit, reçu à chaque course.
+On essaie avec 3 livraisons à moitié prix ? ${url}` },
+
+  { title: "טיעונים למסעדה (עברית)", dir: "rtl", text:
+`שלום! אני מ${nameHe}, שליח ב${heHome}.
+איתי:
+• 0% עמלה על ההזמנות: משלמים רק על המשלוח (${price(home)} בתוך העיר).
+• כל הזמנה יוצאת ישר ללקוח, בלי לאחד עם הזמנות אחרות: האוכל מגיע חם.
+• הלקוח מקבל קישור למעקב בזמן אמת.
+• תשלום במזומן או בביט, קבלה על כל משלוח.
+ננסה עם 3 משלוחים בחצי מחיר? ${url}` },
+
+  { title: "Recruter des livreurs (français)", dir: "ltr", text:
+`🛵 ${nameFr} recrute des livreurs indépendants à ${UI.cityFr(home)} et environs !
+✅ Vous choisissez vos courses, quand vous voulez
+✅ Vous encaissez le client directement (espèces ou Bit)
+✅ Seulement ${UI.money(CONFIG.platform.commissionPerCourse)} de commission par course, réglés une fois par semaine
+✅ Pas d'abonnement, pas de frais d'inscription
+Il faut : permis valide, véhicule assuré, statut d'עוסק פטור ou מורשה.
+👉 Inscription : ${UI.appUrl("coursier.html")}` },
+
+  { title: "גיוס שליחים (עברית)", dir: "rtl", text:
+`🛵 ${nameHe} מגייסת שליחים עצמאיים ב${heHome} והסביבה!
+✅ בוחרים משלוחים מתי שרוצים
+✅ גובים ישירות מהלקוח (מזומן או ביט)
+✅ רק ${UI.money(CONFIG.platform.commissionPerCourse)} עמלה למשלוח, תשלום פעם בשבוע
+✅ בלי מנוי ובלי דמי הרשמה
+דרוש: רישיון נהיגה בתוקף, רכב מבוטח, עוסק פטור או מורשה.
+👈 להרשמה: ${UI.appUrl("coursier.html")}` },
+
   { title: "Statut WhatsApp / bio Instagram", dir: "ltr", text:
 `🛵 Coursier ${UI.cityFr(home)} ⇄ Tel Aviv · prix fixe · suivi en direct · espèces/Bit · ${url}
 🛵 שליח ${heHome} ⇄ תל אביב · מחיר קבוע · מעקב בזמן אמת · מזומן/ביט` },
@@ -116,7 +152,7 @@ document.addEventListener("click", e => {
 // Flyer bilingue imprimable
 $("#flyer").innerHTML = `
   <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start">
-    <div><h2>🛵 ${UI.esc(nameFr)}</h2><h2 dir="rtl" style="font-family:Heebo,Arial">${UI.esc(nameHe)}</h2></div>
+    <div><img src="logo.svg" alt="" style="width:64px;height:64px;margin-bottom:6px"><h2>${UI.esc(nameFr)}</h2><h2 dir="rtl" style="font-family:Heebo,Arial">${UI.esc(nameHe)}</h2></div>
     <div class="qr" id="flyerQr"></div>
   </div>
   <div class="two">
@@ -139,6 +175,7 @@ $("#flyer").innerHTML = `
     <p><b>📍 Suivi en direct · 💵 Espèces / Bit</b><br><span style="font-size:19px">🎁 1re course <b>-50 %</b> : code <b>BIENVENUE</b></span></p>
     <p dir="rtl" style="font-family:Heebo,Arial"><b>📍 מעקב בזמן אמת · 💵 מזומן / ביט</b><br><span style="font-size:19px">🎁 משלוח ראשון <b>ב-50% הנחה</b>: קוד <b>BRUCHIM</b></span></p>
   </div>
+  <p style="margin-top:6px;font-size:18px"><b>Et hop, c'est livré ! · <span dir="rtl">הופ, וזה אצלך!</span></b></p>
   <p style="margin-top:10px">📞 <b dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</b> · <span dir="ltr">${UI.esc(url)}</span></p>`;
 if (window.QRCode) new QRCode($("#flyerQr"), { text: url, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
 

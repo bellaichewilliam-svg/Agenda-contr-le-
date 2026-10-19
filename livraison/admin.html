@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0F1F3D" />
   <meta name="robots" content="noindex" />
-  <title>Espace coursier</title>
+  <title>Espace patron</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%230F1F3D"/><text x="32" y="44" text-anchor="middle" font-size="34">🛵</text></svg>' />
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -17,7 +18,7 @@
 
 <header class="topbar">
   <div class="wrap">
-    <a class="logo" href="index.html"><span class="logo-mark">🛵</span><span class="logo-name">Espace coursier</span></a>
+    <a class="logo" href="index.html"><img class="logo-mark" src="logo.svg" alt="" /><span class="logo-name">Espace patron</span></a>
     <nav class="nav">
       <a href="kit.html">📣 Kit pub</a>
       <a href="index.html" class="hide-sm">Page client</a>
@@ -28,7 +29,7 @@
 
 <div class="wrap">
   <form class="login card hidden" id="loginForm">
-    <h2 style="margin-bottom:6px">Espace coursier</h2>
+    <h2 style="margin-bottom:6px">Espace patron</h2>
     <p class="muted small" id="loginHint" style="margin-bottom:16px"></p>
     <div style="display:grid;gap:12px">
       <label class="f" id="emailWrap">Email<input name="email" type="email" autocomplete="username" /></label>
@@ -47,6 +48,12 @@
     <div class="stat"><small>Chiffre du mois</small><b id="stMonthRev">0</b></div>
   </div>
 
+  <div class="duty" id="avail">
+    <div style="flex:1;min-width:220px"><b id="availTitle">🟢 Je prends des commandes</b><br>
+      <input id="availMsg" class="admin-note" placeholder="Message affiché aux clients si vous êtes complet (facultatif)…" /></div>
+    <button class="btn" id="availBtn">Je suis complet</button>
+  </div>
+
   <div class="duty" id="duty">
     <div><b id="dutyTitle">⚪ Hors service</b><br><span class="small muted" id="dutyText">Passez « en service » pour que vos clients vous voient sur la carte.</span></div>
     <button class="btn btn-primary" id="dutyBtn">Passer en service</button>
@@ -55,6 +62,8 @@
   <div class="tabs" id="tabs">
     <button class="tab on" data-tab="agenda">🗓️ Agenda</button>
     <button class="tab" data-tab="nouvelles">🆕 À accepter</button>
+    <button class="tab" data-tab="livreurs">👥 Livreurs <span id="pendingBadge"></span></button>
+    <button class="tab" data-tab="hebdo">💸 Paiements de la semaine</button>
     <button class="tab" data-tab="historique">📚 Historique</button>
     <button class="tab" data-tab="facturation">🧾 Facturation</button>
   </div>
@@ -69,6 +78,26 @@
 
   <div id="view"></div>
 </main>
+
+<!-- Refus d'une course avec la raison envoyée au client -->
+<div class="modal hidden" id="refuseModal" role="dialog" aria-modal="true">
+  <form class="modal-box" id="refuseForm" style="text-align:start">
+    <h3>🚫 Je ne peux pas prendre cette course</h3>
+    <p class="muted small" style="margin-bottom:12px">Le client verra la raison (traduite dans sa langue) sur son suivi, et vous pourrez la lui envoyer sur WhatsApp.</p>
+    <div style="display:grid;gap:8px">
+      <label class="check"><input type="radio" name="reason" value="reason_full" checked /> Complet à cet horaire</label>
+      <label class="check"><input type="radio" name="reason" value="reason_closed" /> Fermé à cet horaire</label>
+      <label class="check"><input type="radio" name="reason" value="reason_zone" /> Adresse hors zone</label>
+      <label class="check"><input type="radio" name="reason" value="reason_size" /> Colis trop volumineux</label>
+      <label class="check"><input type="radio" name="reason" value="autre" /> Autre :</label>
+      <input class="admin-note" name="other" placeholder="Votre raison (écrite telle quelle au client)" />
+    </div>
+    <div class="btns">
+      <button class="btn btn-primary" type="submit">Refuser et prévenir le client</button>
+      <button class="btn btn-link" type="button" id="refuseCancel">Retour</button>
+    </div>
+  </form>
+</div>
 
 <script src="config.js"></script>
 <script src="i18n.js"></script>

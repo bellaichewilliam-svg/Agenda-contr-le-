@@ -54,6 +54,7 @@ function etaBox(o) {
   const courier = live && { lat: o.courier_lat, lon: o.courier_lon };
   let main, sub = "";
   if (o.status === "annulee") main = t("trCancelled");
+  else if (o.status === "refusee") { main = t("trRefused"); sub = o.admin_note ? t("trReason", { r: o.admin_note }) : ""; }
   else if (o.status === "livree") { main = t("trStep4") + " 📦"; sub = t("trThanks"); }
   else if (o.status === "nouvelle") {
     main = t("trWaiting");
@@ -69,7 +70,7 @@ function etaBox(o) {
     const s = Math.max(0, Math.round((Date.now() - new Date(o.courier_at)) / 1000));
     sub = t("trUpdated", { s });
   }
-  $("#eta").innerHTML = `<small>${UI.esc(t("trTitle"))} · <span dir="ltr">${UI.esc(o.ref)}</span></small><b>${UI.esc(main)}</b>${sub ? `<small>${UI.esc(sub)}</small>` : ""}`;
+  $("#eta").innerHTML = `<small>${UI.esc(t("orderNo", { ref: o.ref }))}</small><b>${UI.esc(main)}</b>${sub ? `<small>${UI.esc(sub)}</small>` : ""}`;
 }
 
 function render() {
@@ -85,27 +86,31 @@ function render() {
 
   const step = FLOW.indexOf(o.status);
   const labels = ["trStep1", "trStep2", "trStep3", "trStep4"];
-  $("#steps").innerHTML = o.status === "annulee"
-    ? `<li class="done">${UI.esc(t("trCancelled"))}</li>`
+  $("#steps").innerHTML = o.status === "annulee" || o.status === "refusee"
+    ? `<li class="done">${UI.esc(t(o.status === "annulee" ? "trCancelled" : "trRefused"))}</li>
+       ${o.status === "refusee" ? `<li style="padding-inline-start:0"><a class="btn btn-sm btn-primary" href="index.html#commander">${UI.esc(t("trRebook"))}</a></li>` : ""}`
     : labels.map((k, i) => `<li class="${i < step || (i === step && i === 3) ? "done" : i === step ? "current" : ""}">${UI.esc(t(k))}</li>`).join("");
 
   $("#details").innerHTML = `
     <div><span>📍</span><span><b>${UI.esc(t("trPickup"))}</b><br>${UI.esc(o.pickup_address)}, ${UI.esc(cityLabel(o.from_city))}</span></div>
     <div><span>🏁</span><span><b>${UI.esc(t("trDrop"))}</b><br>${UI.esc(o.dropoff_address)}, ${UI.esc(cityLabel(o.to_city))}</span></div>
-    ${o.admin_note ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
+    ${o.admin_note && o.status !== "refusee" ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
 
   const pay = $("#payBox");
-  pay.classList.toggle("hidden", o.status === "annulee");
+  pay.classList.toggle("hidden", o.status === "annulee" || o.status === "refusee");
+  const bit = o.courier_bit || CONFIG.bitPhone;
   const copy = `<button class="btn btn-sm" id="copyBit">${UI.esc(t("trCopy"))}</button>`;
   pay.innerHTML = `<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>`
       : o.payment_method === "bit"
-        ? `<p style="margin:6px 0">${UI.esc(t("trPayBit", { phone: CONFIG.bitPhone, ref: o.ref }))}</p>${copy}`
+        ? `<p style="margin:6px 0">${UI.esc(t("trPayBit", { phone: bit, ref: o.ref }))}</p>${copy}`
         : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}`;
 
-  $("#callBtn").href = "tel:" + CONFIG.phoneDisplay;
-  $("#waBtn").href = UI.waLink(CONFIG.whatsapp, o.ref + " — ");
+  const phone = o.courier_phone || CONFIG.phoneDisplay;
+  $("#courierTitle").textContent = o.courier_name ? t("trCourierName", { name: o.courier_name }) : t("trCourier");
+  $("#callBtn").href = "tel:" + phone;
+  $("#waBtn").href = UI.waLink(o.courier_phone || CONFIG.whatsapp, t("orderNo", { ref: o.ref }) + " — ");
   $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: location.href }));
   updateMap(o);
 }
@@ -123,7 +128,8 @@ $("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); rend
 $("#payBox").addEventListener("click", e => {
   if (e.target.id !== "copyBit") return;
   const done = () => { e.target.textContent = t("trCopied"); };
-  if (navigator.clipboard) navigator.clipboard.writeText(CONFIG.bitPhone.replace(/\D/g, "")).then(done, done);
+  const bit = (order && order.courier_bit) || CONFIG.bitPhone;
+  if (navigator.clipboard) navigator.clipboard.writeText(bit.replace(/\D/g, "")).then(done, done);
   else done();
 });
 window.addEventListener("storage", e => { if (/livraison\.(orders|courier)/.test(e.key || "")) load(); });

@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0F1F3D" />
   <meta name="description" content="Coursier à Netanya, Sharon et Tel Aviv : colis, poste, Super-Pharm, restaurants, documents. Prix fixe immédiat, suivi en direct, paiement espèces ou Bit. שליחויות בנתניה, השרון ותל אביב." />
-  <meta property="og:title" content="Coursier Express · שליח אקספרס" />
-  <meta property="og:description" content="Colis, poste, Super-Pharm, restaurants… Netanya ⇄ Tel Aviv. Prix fixe, suivi en direct, espèces ou Bit. 1re course -50 %." />
+  <meta property="og:title" content="HOP! Livraison · הופ! משלוחים" />
+  <meta property="og:description" content="Et hop, c'est livré ! Colis, poste, Super-Pharm, restaurants… Netanya ⇄ Tel Aviv. Prix fixe, suivi en direct, espèces ou Bit. 1re course -50 %." />
   <meta property="og:type" content="website" />
-  <title>Coursier Express · שליח אקספרס</title>
+  <title>HOP! Livraison · הופ! משלוחים</title>
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" href='data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="%23FF6A13"/><text x="32" y="44" text-anchor="middle" font-size="34">🛵</text></svg>' />
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="logo.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -20,7 +21,7 @@
 
 <header class="topbar">
   <div class="wrap">
-    <a class="logo" href="#accueil"><span class="logo-mark">🛵</span><span class="logo-name" id="brandName"></span></a>
+    <a class="logo" href="#accueil"><img class="logo-mark" src="logo.svg" alt="" /><span class="logo-name" id="brandName"></span></a>
     <nav class="nav">
       <a class="hide-sm" href="#idees" data-i18n="navIdeas"></a>
       <a class="hide-sm" href="#tarifs" data-i18n="navPrices"></a>
@@ -31,6 +32,7 @@
 </header>
 
 <div id="demoBanner" class="mode-banner hidden"><div class="wrap" data-i18n="demoBanner"></div></div>
+<div id="availBanner" class="mode-banner closed-banner hidden"><div class="wrap" id="availText"></div></div>
 
 <!-- ============ ACCUEIL ============ -->
 <section class="hero" id="accueil">
@@ -63,8 +65,24 @@
   </div>
 </section>
 
+<!-- ============ POURQUOI NOUS ============ -->
+<section class="block alt" id="pourquoi">
+  <div class="wrap">
+    <h2 data-i18n="whyTitle"></h2>
+    <p class="sub" data-i18n="whySub"></p>
+    <div class="grid-3">
+      <div class="card why"><div class="ico">🔥</div><h3 data-i18n="why1_t"></h3><p data-i18n="why1_d"></p></div>
+      <div class="card why"><div class="ico">💰</div><h3 data-i18n="why2_t"></h3><p data-i18n="why2_d"></p></div>
+      <div class="card why"><div class="ico">🏪</div><h3 data-i18n="why3_t"></h3><p data-i18n="why3_d"></p></div>
+      <div class="card why"><div class="ico">📮</div><h3 data-i18n="why4_t"></h3><p data-i18n="why4_d"></p></div>
+      <div class="card why"><div class="ico">🗓️</div><h3 data-i18n="why5_t"></h3><p data-i18n="why5_d"></p></div>
+      <div class="card why"><div class="ico">💬</div><h3 data-i18n="why6_t"></h3><p data-i18n="why6_d"></p></div>
+    </div>
+  </div>
+</section>
+
 <!-- ============ OFFRES ============ -->
-<section class="block alt" id="offres">
+<section class="block" id="offres">
   <div class="wrap">
     <h2 data-i18n="offersTitle"></h2>
     <p class="sub" data-i18n="offersSub"></p>
@@ -256,9 +274,12 @@
 <footer>
   <div class="wrap">
     <div><b id="footerName" style="color:#fff"></b><br /><span id="footerContact"></span></div>
-    <div><a href="admin.html" data-i18n="footerPro"></a></div>
+    <div style="display:grid;gap:6px"><a href="coursier.html" data-i18n="becomeCourier"></a><a href="admin.html" data-i18n="footerPro"></a></div>
   </div>
 </footer>
+
+<!-- Bouton WhatsApp toujours visible : les clients vous écrivent directement -->
+<a class="wa-fab" id="waFab" target="_blank" rel="noopener"><span>💬</span><b data-i18n="chatFab"></b></a>
 
 <div class="modal hidden" id="doneModal" role="dialog" aria-modal="true">
   <div class="modal-box">

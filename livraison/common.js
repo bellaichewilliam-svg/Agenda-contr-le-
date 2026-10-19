@@ -90,7 +90,46 @@ function orderText(o) {
   return L.join("\n");
 }
 
+function referralCode(phone) {
+  const d = String(phone || "").replace(/\D/g, "");
+  return d.length >= 4 ? CONFIG.promos.referral.prefix + d.slice(-4) : "";
+}
+
+// Message WhatsApp au client selon le statut de sa course, dans SA langue
+function clientMessage(o) {
+  const l = o.lang || "fr";
+  const f = (k, v) => I18N.forLang(l, k, v);
+  const city = id => { const c = CONFIG.cities.find(x => x.id === id); return c ? c[l] || c.fr : id; };
+  const when = o.urgency === "programmee" ? f("msg_when_at", { when: whenFr(o) }) : f("msg_when_asap");
+  const pay = o.payment_method === "bit" ? f("pay_bit_short", { phone: o.courier_bit || CONFIG.bitPhone }) : f("pay_cash_short");
+  const msg = f("msg_" + o.status, {
+    name: o.contact_name || "", ref: o.ref, when, price: money(o.price), pay, reason: o.admin_note || "",
+    url: o.status === "refusee" ? appUrl() + "#commander" : trackUrl(o),
+    to: `${o.dropoff_address}, ${city(o.to_city)}`, code: referralCode(o.contact_phone)
+  });
+  return o.receipt_number ? msg + "\n" + f("msg_receipt", { url: receiptUrl(o) }) : msg;
+}
+
+function receiptUrl(o) { return appUrl("recu.html") + "?t=" + o.token; }
+
+// Semaines (dimanche → samedi) sur des clés de jour AAAA-MM-JJ
+function weekStart(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() - dt.getUTCDay());
+  return dt.toISOString().slice(0, 10);
+}
+function addDays(key, n) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+}
+function fmtKey(key) {
+  const [y, m, d] = key.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
+}
+
 window.UI = {
+  receiptUrl, referralCode, clientMessage, weekStart, addDays, fmtKey,
   esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
