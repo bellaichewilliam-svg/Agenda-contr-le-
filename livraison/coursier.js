@@ -160,17 +160,60 @@ const today = () => UI.dayKey(new Date().toISOString());
 const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id).sort(byTime);
 const mine = () => orders.filter(o => o.courier_id === me.id && ["confirmee", "recuperee"].includes(o.status)).sort(byTime);
 
-function beep() {
-  if (riderSet.sound !== false) try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+// Un seul lecteur audio, débloqué au premier geste (les téléphones l'exigent)
+let audioCtx = null;
+function audio() {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+  } catch (e) { audioCtx = null; }
+  return audioCtx;
+}
+["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, audio, { once: true, passive: true }));
+
+// Une note douce, façon marimba (fondamentale + harmonique, qui s'éteint en douceur)
+function note(ctx, freq, at, vol, len) {
+  [[1, 1], [4, 0.18]].forEach(([mult, part]) => {
     const o = ctx.createOscillator(), g = ctx.createGain();
-    o.frequency.value = 880;
-    g.gain.setValueAtTime(0.25, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+    o.type = "sine";
+    o.frequency.value = freq * mult;
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(vol * part, at + 0.015);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + len);
     o.connect(g).connect(ctx.destination);
-    o.start(); o.stop(ctx.currentTime + 0.4);
-  } catch (e) { /* audio indisponible */ }
+    o.start(at); o.stop(at + len + 0.05);
+  });
+}
+
+function beep() {
+  const ctx = riderSet.sound !== false && audio();
+  if (ctx) try { const t = ctx.currentTime + 0.02; note(ctx, 1046.5, t, 0.22, 0.5); note(ctx, 1318.5, t + 0.12, 0.2, 0.6); }
+  catch (e) { /* audio indisponible */ }
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+}
+
+// Sonnerie de nouvelle course : une petite mélodie agréable qui revient toutes les 2,5 s,
+// de plus en plus fort, jusqu'à ce que le livreur accepte, refuse ou laisse passer la course
+const ring = { timer: null, n: 0 };
+const MELODY = [[784, 0], [988, 0.16], [1175, 0.32], [1568, 0.5], [1175, 0.8], [1568, 0.96]];   // sol, si, ré, sol…
+function ringOnce() {
+  const ctx = riderSet.sound !== false && audio();
+  const vol = Math.min(0.32, 0.12 + ring.n * 0.04);
+  ring.n++;
+  if (ctx) try { const t = ctx.currentTime + 0.03; MELODY.forEach(([f, d]) => note(ctx, f, t + d, vol, 0.9)); }
+  catch (e) { /* audio indisponible */ }
+  if (navigator.vibrate) navigator.vibrate([250, 120, 250, 120, 400]);
+}
+function startRing() {
+  stopRing();
+  ring.n = 0;
+  ringOnce();
+  ring.timer = setInterval(ringOnce, 2500);
+}
+function stopRing() {
+  clearInterval(ring.timer);
+  ring.timer = null;
+  if (navigator.vibrate) navigator.vibrate(0);
 }
 
 async function load() {
@@ -194,13 +237,15 @@ async function load() {
     $("#lastSync").textContent = "⚠️ Erreur de connexion, nouvel essai bientôt.";
     return;
   }
+  // Course de la fenêtre prise par un autre livreur (ou annulée) : on arrête de sonner
+  if (offerShown && !pool().some(o => o.id === offerShown)) closeOffer();
   const fresh = pool().filter(o => !seenPool.has(o.id));
   // Toute course disponible encore jamais montrée s'ouvre en fenêtre (dès la 1re connexion aussi)
   // Hors ligne : ni fenêtre, ni son (la base ne montre d'ailleurs plus les courses)
   if (!blocked() && isOnline()) fresh.forEach(o => offerQueue.push(o.id));
   showNextOffer();
   if (!firstLoad && fresh.length && isOnline()) {
-    beep();
+    if (!offerShown) beep();
     if (window.Notification && Notification.permission === "granted") {
       fresh.forEach(o => new Notification(`🆕 Course dispo n° ${o.ref} — ${UI.money(o.price)}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}` }));
     }
@@ -730,7 +775,7 @@ function onWorkClick(e) {
   if (!el) return;
   if (el.dataset.boss != null) return openBossChat(el.dataset.boss);
   if (el.dataset.open) return openPage(el.dataset.open);
-  if (el.dataset.soundTest) { const s = riderSet.sound; riderSet.sound = true; beep(); riderSet.sound = s; return; }
+  if (el.dataset.soundTest) { const s = riderSet.sound; riderSet.sound = true; ringOnce(); riderSet.sound = s; return; }
   if (el.dataset.notif) {
     if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
     return Notification.requestPermission().then(() => render());
@@ -808,6 +853,7 @@ function showNextOffer() {
     `⏱️ Attente / achats payés : ${UI.esc(UI.waitRule(settings))}`
   ].filter(Boolean).map(x => `<div>${x}</div>`).join("");
   $("#offerModal").classList.remove("hidden");
+  startRing();
   // 40 secondes pour répondre, ensuite la course est proposée à un autre livreur
   clearInterval(offerTick);
   let left = 40;
@@ -829,6 +875,7 @@ function showNextOffer() {
 let offerTick = null;
 function closeOffer() {
   clearInterval(offerTick);
+  stopRing();
   $("#offerModal").classList.add("hidden");
   offerShown = null;
   setTimeout(showNextOffer, 300);

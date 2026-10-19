@@ -49,7 +49,7 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **🔔** : les annonces de HOP et la conversation avec HOP.
 
 - **Inscription :** coordonnées, véhicule, permis, assurance, numéro d'עוסק, et **9 engagements à cocher** (permis valide, assurance, statut d’indépendant, responsabilité des colis et de l’argent, « Livré » validé seulement sur place, sécurité, commission hebdomadaire…). Le bouton « Livré » vérifie la position GPS : à plus de 200 m de l’adresse (`platform.deliverRadius`), la livraison est refusée.
-- **Fenêtre « Nouvelle course ! »** avec un son, dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte », « Plus tard » ou « ✖ Refuser ».
+- **Fenêtre « Nouvelle course ! »** avec une **sonnerie douce qui revient toutes les 2,5 s, de plus en plus fort, et fait vibrer le téléphone jusqu'à ce que le livreur accepte, refuse ou laisse passer la course** (elle s'arrête aussi si un autre livreur la prend), dès qu'une course arrive : montant, gain net, trajet, kilomètres, distance jusqu'au point de récupération, puis « J'accepte », « Plus tard » ou « ✖ Refuser ».
 - **Après votre validation :** courses disponibles (le premier qui accepte la prend), ses courses, GPS, encaissement, « Je ne peux plus ».
 - **Onglet « Ma semaine » :** courses, encaissé, commission à verser par Bit une fois par semaine.
 
