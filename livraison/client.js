@@ -345,7 +345,8 @@ function confetti() {
 function renderQuote() {
   renderShopBanner();
   const q = currentQuote();
-  const goods = ["achat", "repas"].includes(val("service")) || proShopOn();
+  // Courses faites par HOP (ou commande chez un commerce Pro) : les articles au prix du magasin, en plus
+  const goods = val("service") === "achat" || proShopOn();
   $("#quoteLines").innerHTML = q.lines.map(l =>
     `<li class="${l.discount ? "disc" : ""}"><span>${UI.esc(lineLabel(l))}</span><span dir="ltr">${l.amount < 0 ? "−" : ""}${money(Math.abs(l.amount))}</span></li>`).join("")
     // Pas de frais cachés : on le montre noir sur blanc
@@ -1351,7 +1352,9 @@ function syncHome() {
     $("#homeGoSub").textContent = first ? t("hmGoFirst", { price: money(welcomePrice()) }) : t("hmGoKm", { from: I18N.cityName(CONFIG.homeCity), to: I18N.cityName(CONFIG.homeCity) });
   }
   $("#homeGo").textContent = t(ready ? "hmGoNext" : "hmGo");
-  $("#homeFair").textContent = t("fairText", { price: ready ? money(currentQuote().total) : money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity) - (proShopOn() ? Number(state.shop.shop_share || CONFIG.pro.shopShare) : 0)) });
+  const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity));
+  $("#homeFair").textContent = t("fairText", { price: ready && val("service") !== "achat" ? money(currentQuote().total) : base });
+  $("#homeFairShop").textContent = t("fairShop", { price: ready && val("service") === "achat" ? money(currentQuote().total) : base });
   const r = lastTrip();
   $("#homeRepeat").innerHTML = r && !ready ? `<button type="button" class="ch-repeat" id="homeRepeatBtn"><span>🔁</span><div><b>${UI.esc(t("hmRepeat"))}</b>
       <small>${UI.esc(t("hmRepeatSub", { from: r.from.brand || `${r.from.street} ${r.from.number}`.trim(), to: r.to.brand || `${r.to.street} ${r.to.number}`.trim() }))}</small></div><b>${money(r.o.price)}</b></button>` : "";
