@@ -127,6 +127,7 @@ Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et
 - **Attente** comptée à partir de l'heure « prête » : 10 min offertes, puis payée par le client. **Si la commande n'existe pas ou a été annulée, la course reste due** (écrit au client avant de commander).
 
 - **Le vrai numéro de l'enseigne** (carte OpenStreetMap) s'affiche avec un bouton **📞 Appeler** ; la commande en cours reste enregistrée sur le téléphone pendant l'appel (2 h), même si HOP! se ferme.
+- **Le livreur arrive directement dans son espace** : connecté sur son téléphone, l'accueil HOP! (site ou appli client) l'emmène tout de suite sur son espace livreur. Le logo de l'espace livreur ramène à l'accueil client pour cette visite (`?client=1`), par exemple pour commander comme client.
 - **Aucune avance d'argent par le livreur** : commande par téléphone déjà payée au commerce ; chez un commerce HOP! Pro, les articles se règlent directement au commerce. **« J'achète pour vous »** : le client coche obligatoirement « Je règle le magasin moi-même » (paiement par téléphone, Bit du magasin ou déjà payé en ligne) ; à la caisse, le livreur l'appelle depuis l'appli. La base refuse la commande sinon (`goods_pay_required`, colonne `goods_self_pay`).
 
 ### Message aux clients
