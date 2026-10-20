@@ -3193,6 +3193,64 @@ create or replace trigger couriers_welcome_credit after update of status on publ
 revoke execute on function public.couriers_welcome_credit() from public, anon, authenticated;
 
 -- ============================================================================
+-- LIVREUR EN LIGNE MAIS PLUS SUR L'APPLI : sans course en cours, si HOP! n'a plus de nouvelles
+-- (ni position ni appli ouverte) depuis idle_warn_min minutes, notification « Toujours là ? » ;
+-- après idle_off_min minutes, il passe hors ligne tout seul (les clients n'attendent pas un livreur absent).
+-- Pendant une course on ne compte pas : le livreur est sur Waze.
+-- ============================================================================
+alter table public.settings add column if not exists idle_warn_min int not null default 10;
+alter table public.settings add column if not exists idle_off_min int not null default 15;
+alter table public.couriers add column if not exists online_at timestamptz;
+alter table public.couriers add column if not exists idle_warned_at timestamptz;
+-- Livreurs déjà en ligne à la mise en place : on compte à partir de maintenant
+update public.couriers set online_at = now() where online and online_at is null;
+
+-- Passer en ligne : on note l'heure (une vieille position d'hier ne compte pas comme une absence)
+create or replace function public.courier_set_online(p_on boolean) returns void
+language sql security definer set search_path = public as $$
+  update couriers set decline_streak = case when p_on and not online then 0 else decline_streak end,
+         online_at = case when p_on and not online then now() else online_at end,
+         idle_warned_at = null,
+         online = p_on
+   where id = auth.uid();
+$$;
+
+create or replace function public.idle_couriers_check() returns int
+language plpgsql security definer set search_path = public as $$
+declare st settings; c record; n int := 0;
+begin
+  select * into st from settings where id = 1;
+  for c in select k.id, greatest(coalesce(k.position_at, '-infinity'), coalesce(k.online_at, '-infinity')) as seen, k.idle_warned_at
+             from couriers k
+            where k.online and k.status = 'actif' and k.role <> 'admin'
+              and not exists (select 1 from orders o where o.courier_id = k.id and o.status in ('confirmee', 'recuperee'))
+  loop
+    if c.seen < now() - make_interval(mins => st.idle_off_min) then
+      update couriers set online = false, decline_streak = 0, auto_offline_at = now(), idle_warned_at = null where id = c.id;
+      insert into chat_messages (thread, author, body) values ('c:' || c.id::text, 'system', 'status:idleoff');
+      perform public.push_call(jsonb_build_object('courier_id', c.id, 'tag', 'hop-idle',
+        'title', '⏸️ Vous êtes passé hors ligne',
+        'body', 'HOP! n''était plus ouvert depuis ' || st.idle_off_min || ' min : on vous a passé hors ligne pour ne pas faire attendre les clients. Pour continuer, ouvrez l''appli et repassez en ligne.'));
+      n := n + 1;
+    elsif c.seen < now() - make_interval(mins => st.idle_warn_min) and (c.idle_warned_at is null or c.idle_warned_at < c.seen) then
+      update couriers set idle_warned_at = now() where id = c.id;
+      perform public.push_call(jsonb_build_object('courier_id', c.id, 'tag', 'hop-idle',
+        'title', '👋 Toujours là ?',
+        'body', 'Vous êtes en ligne mais HOP! n''est plus ouvert depuis ' || st.idle_warn_min || ' min. Ouvrez l''appli pour rester en ligne, sinon vous passerez hors ligne dans ' || (st.idle_off_min - st.idle_warn_min) || ' min.'));
+      n := n + 1;
+    end if;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.idle_couriers_check() from public, anon, authenticated;
+do $$ begin
+  create extension if not exists pg_cron;
+  perform cron.schedule('hop-idle-couriers', '* * * * *', 'select public.idle_couriers_check()');
+exception when others then raise notice 'pg_cron indisponible : pas de rappel des livreurs absents';
+end $$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

@@ -84,6 +84,10 @@ Deno.serve(async req => {
       sent += await sendTo(await onDuty(), { title: `🛵 Nouvelle course · ${money(o.price)}`,
         body: `${when} · ${route}`, url: "livreur/", tag: "o-" + o.id }, site);
     }
+  } else if (ev.courier_id && ev.title) {
+    // Message de HOP! à un livreur (ex. « Toujours là ? » quand il n'est plus sur l'appli)
+    sent += await sendTo([String(ev.courier_id)], { title: String(ev.title), body: String(ev.body || ""),
+      url: "livreur/", tag: String(ev.tag || "hop-info") }, site);
   } else if (ev.thread) {
     // Messagerie : le client, un commerce ou un livreur écrit → le patron ; le patron écrit → le livreur
     const [kind, id] = String(ev.thread).split(":");
