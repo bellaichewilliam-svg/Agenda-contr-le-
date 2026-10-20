@@ -2013,7 +2013,7 @@ alter table public.orders add column if not exists retrait_code text check (leng
 create table if not exists public.order_docs (
   id          uuid primary key default gen_random_uuid(),
   order_id    uuid not null references public.orders(id) on delete cascade,
-  kind        text not null check (kind in ('avis', 'identite', 'procuration', 'rdv')),
+  kind        text not null check (kind in ('avis', 'identite', 'procuration', 'rdv', 'ordonnance', 'etiquette')),
   photo       text not null check (length(photo) <= 400000 and photo ~ '^data:image/(jpeg|png|webp);base64,'),
   created_at  timestamptz not null default now()
 );
@@ -2029,12 +2029,25 @@ language sql immutable as $$
                       else array['avis', 'identite'] end;
 $$;
 
+-- Les documents demandés pour une course : colis à récupérer (selon le lieu), médicament sur ordonnance
+-- (carte d'identité du patient + ordonnance), dépôt d'un colis à la poste (rendez-vous + étiquette payée)
+alter table public.orders add column if not exists rx boolean not null default false;
+alter table public.orders add column if not exists post_send boolean not null default false;
+create or replace function public.order_docs_needed(o orders) returns text[]
+language sql immutable as $$
+  select case when o.service = 'retrait' then public.retrait_docs_needed(o.place_kind)
+              when o.service = 'achat' and o.rx then array['identite', 'ordonnance']
+              when o.service = 'colis' and o.post_send then array['rdv', 'etiquette']
+              else '{}'::text[] end;
+$$;
+
 -- Contrôle à l'envoi (après les autres déclencheurs : ordre alphabétique) ; à la poste, la course est à l'heure du rendez-vous
 create or replace function public.orders_retrait() returns trigger
 language plpgsql set search_path = public as $$
 begin
+  -- Autres services : documents et rendez-vous gérés par orders_special (ordonnance, envoi à la poste)
   if new.service is distinct from 'retrait' then
-    new.docs_status := null; new.docs_note := null; new.appt_at := null; new.retrait_code := null;
+    new.retrait_code := null;
     return new;
   end if;
   if coalesce(new.place_kind, '') not in ('poste', 'superpharm', 'relais', 'locker', 'autre') then raise exception 'retrait_place'; end if;
@@ -2065,8 +2078,8 @@ language plpgsql security definer set search_path = public as $$
 declare o orders;
 begin
   select * into o from orders where token = p_token;
-  if o.id is null or o.service <> 'retrait' or o.status <> 'nouvelle' or o.docs_status = 'ok' then return false; end if;
-  if not (p_kind = any (public.retrait_docs_needed(o.place_kind))) then return false; end if;
+  if o.id is null or o.docs_status is null or o.status <> 'nouvelle' or o.docs_status = 'ok' then return false; end if;
+  if not (p_kind = any (public.order_docs_needed(o))) then return false; end if;
   if (select count(*) from order_docs where order_id = o.id) >= 12 then raise exception 'too_many'; end if;
   insert into order_docs (order_id, kind, photo) values (o.id, p_kind, p_photo);
   -- Le patron avait demandé un document : il revient à vérifier, et le patron est prévenu
@@ -2098,7 +2111,7 @@ begin
   if not public.is_admin() then raise exception 'forbidden'; end if;
   update orders set docs_status = case when p_ok then 'ok' else 'refuse' end,
                     docs_note = case when p_ok then null else left(nullif(trim(coalesce(p_note, '')), ''), 300) end
-   where id = p_order and service = 'retrait' and status = 'nouvelle';
+   where id = p_order and docs_status is not null and status = 'nouvelle';
   if not found then return false; end if;
   insert into chat_messages (thread, author, author_name, body)
   values ('o:' || p_order::text, 'admin', 'HOP!',
@@ -2260,6 +2273,163 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke execute on function public.shop_brand_save(uuid, text, text, text), public.shops_showcase() from public;
 grant execute on function public.shop_brand_save(uuid, text, text, text), public.shops_showcase() to anon, authenticated;
+
+-- ============================================================================
+-- CAS PARTICULIERS, chacun avec sa justification avant d'envoyer un livreur :
+-- - médicament sur ordonnance (« J'achète pour vous ») : carte d'identité du patient + ordonnance (photos) ;
+-- - dépôt d'un colis à la poste : rendez-vous + étiquette déjà payée (photos), pas d'avance du livreur ;
+-- - vente entre particuliers (Yad2, Marketplace) : l'acheteur a déjà payé le vendeur ;
+-- - clés ou objet de valeur : code de remise à 4 chiffres, demandé au destinataire avant « Livré ».
+-- ============================================================================
+alter table public.orders add column if not exists p2p_sale boolean not null default false;
+alter table public.orders add column if not exists sale_paid boolean not null default false;
+alter table public.orders add column if not exists handoff boolean not null default false;
+alter table public.orders add column if not exists handoff_ok_at timestamptz;
+-- Le code de remise : lu seulement par le client (suivi) ; le livreur le vérifie sans le voir
+create table if not exists public.order_secrets (
+  order_id      uuid primary key references public.orders(id) on delete cascade,
+  handoff_code  text not null,
+  tries         int not null default 0
+);
+alter table public.order_secrets enable row level security;
+revoke all on public.order_secrets from anon, authenticated;
+
+create or replace function public.orders_special() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.service is distinct from 'achat' then new.rx := false; end if;
+  if new.service is distinct from 'colis' then new.post_send := false; new.p2p_sale := false; end if;
+  if not coalesce(new.p2p_sale, false) then new.sale_paid := false;
+  elsif not coalesce(new.sale_paid, false) then raise exception 'sale_unpaid'; end if;
+  if new.post_send then
+    if new.appt_at is null or new.appt_at < now() - interval '15 minutes' or new.appt_at > now() + interval '30 days' then raise exception 'post_appt'; end if;
+    new.pickup_at := greatest(now(), new.appt_at - interval '30 minutes');
+  elsif new.service is distinct from 'retrait' then
+    new.appt_at := null;
+  end if;
+  if new.service is distinct from 'retrait' then
+    if new.rx or new.post_send then new.docs_status := 'a_verifier'; else new.docs_status := null; end if;
+    new.docs_note := null;
+  end if;
+  new.handoff_ok_at := null;
+  return new;
+end;
+$$;
+create or replace trigger orders_special before insert on public.orders
+  for each row execute function public.orders_special();
+
+create or replace function public.orders_handoff_code() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.handoff then
+    insert into order_secrets (order_id, handoff_code) values (new.id, lpad(floor(random() * 10000)::int::text, 4, '0'))
+    on conflict (order_id) do nothing;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_handoff_code after insert on public.orders
+  for each row execute function public.orders_handoff_code();
+
+-- Le livreur tape le code donné par le destinataire (5 essais au plus)
+create or replace function public.courier_handoff(p_id uuid, p_code text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare x order_secrets;
+begin
+  if not public.is_active_courier() then return false; end if;
+  if not exists (select 1 from orders where id = p_id and courier_id = auth.uid() and status = 'recuperee' and handoff) then return false; end if;
+  update order_secrets set tries = tries + 1 where order_id = p_id returning * into x;
+  if x.order_id is null then return false; end if;
+  if x.tries > 5 then raise exception 'too_many_tries'; end if;
+  if trim(coalesce(p_code, '')) <> x.handoff_code then return false; end if;
+  update orders set handoff_ok_at = now() where id = p_id;
+  return true;
+end;
+$$;
+revoke execute on function public.courier_handoff(uuid, text) from public, anon;
+grant execute on function public.courier_handoff(uuid, text) to authenticated;
+
+create or replace function public.track_order(p_token uuid)
+returns json
+language sql security definer set search_path = public as $$
+  select (to_jsonb(o) - 'contact_email' - 'commission' - 'commission_status' - 'client_ip' - 'device_id' - 'hop_share' - 'network'
+    || case when o.status in ('confirmee','recuperee') and c.position_at > now() - interval '30 minutes'
+         then jsonb_build_object('courier_lat', c.lat, 'courier_lon', c.lon, 'courier_at', c.position_at)
+         else '{}'::jsonb end
+    || jsonb_build_object('handoff_code', (select x.handoff_code from order_secrets x where x.order_id = o.id)))::json
+  from public.orders o
+  left join public.couriers c on c.id = o.courier_id
+  where o.token = p_token;
+$$;
+
+create or replace function public.courier_update(p_id uuid, p_action text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() then return false; end if;
+  if p_action = 'arrivee' then
+    -- « Je suis arrivé » au départ : le compteur d'attente démarre (sur place seulement, sauf déblocage)
+    if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()
+                    and (o.unlocked or coalesce(c.unlocked_until > now(), false)))
+       and exists (select 1 from orders o, couriers c, settings st
+                    where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.pickup_lat is not null
+                      and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                           or 6371000 * sqrt(radians(c.lat - o.pickup_lat) ^ 2
+                                + (radians(c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) > st.deliver_radius * 1.5)) then
+      raise exception 'too_far_pickup';
+    end if;
+    update orders set arrived_at = now()
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee' and arrived_at is null;
+    if found then insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:arrivee'); end if;
+  elsif p_action = 'recuperee' then
+    -- Attente / achats au-delà des minutes offertes : supplément par tranche commencée, ajouté au prix.
+    -- Course déjà payée (Bit, carnet) : le supplément reste à régler.
+    -- HOP! Pro : l'attente compte à partir de l'heure annoncée par le commerce, et c'est le commerce qui la paie.
+    update orders o set status = 'recuperee',
+           wait_minutes = w.mins,
+           wait_fee = w.fee,
+           price = o.price + case when o.shop_status is null then w.fee else 0 end,
+           shop_share = o.shop_share + case when o.shop_status is null then 0 else w.fee end,
+           payment_status = case when w.fee > 0 and o.shop_status is null and o.payment_status = 'paye' then 'en_attente' else o.payment_status end
+      from (select x.id, coalesce(floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60), 0)::int as mins,
+                   case when x.arrived_at is null then 0
+                        else least(st.wait_max, ceil(greatest(0, floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60) - st.wait_free_min)
+                                                     / st.wait_step_min) * st.wait_step_price) end as fee
+              from orders x, settings st where x.id = p_id and st.id = 1) w
+     where o.id = w.id and o.courier_id = auth.uid() and o.status = 'confirmee';
+  elsif p_action = 'livree' then
+    -- Sauf course ou livreur débloqué par le patron
+    if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()
+                    and (o.unlocked or coalesce(c.unlocked_until > now(), false))) then
+      if exists (select 1 from orders o, couriers c, settings st
+                  where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.dropoff_lat is not null
+                    and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                         or 6371000 * sqrt(radians(c.lat - o.dropoff_lat) ^ 2
+                              + (radians(c.lon - o.dropoff_lon) * cos(radians(o.dropoff_lat))) ^ 2) > st.deliver_radius)) then
+        raise exception 'too_far';
+      end if;
+      -- Clés ou objet de valeur : le destinataire a donné le bon code de remise
+      if exists (select 1 from orders o where o.id = p_id and o.handoff and o.handoff_ok_at is null) then
+        raise exception 'handoff_required';
+      end if;
+      -- « Déposer devant la porte » : la photo du colis doit être envoyée dans la conversation
+      if exists (select 1 from orders o where o.id = p_id and o.leave_at_door)
+         and not exists (select 1 from chat_messages m where m.thread = 'o:' || p_id::text and m.author = 'courier' and m.image is not null) then
+        raise exception 'photo_required';
+      end if;
+    end if;
+    update orders set status = 'livree' where id = p_id and courier_id = auth.uid() and status = 'recuperee';
+  elsif p_action = 'paye' then
+    update orders set payment_status = 'paye' where id = p_id and courier_id = auth.uid() and paid_to = 'livreur';
+  elsif p_action = 'liberer' then
+    update orders set status = 'nouvelle', courier_id = null, courier_name = null, courier_phone = null,
+           courier_bit = null, commission = 0
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee';
+  else
+    return false;
+  end if;
+  return found;
+end;
+$$;
 
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md

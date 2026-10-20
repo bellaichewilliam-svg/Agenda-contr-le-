@@ -1620,6 +1620,7 @@ function initHome() {
   $("#ensClose").addEventListener("click", () => $("#ensModal").classList.add("hidden"));
   $("#ensModal").addEventListener("click", e => {
     if (e.target.id === "ensModal") return $("#ensModal").classList.add("hidden");
+    if (e.target.closest("[data-ens-retry]")) return openEns(ens.cat);
     const b = e.target.closest("[data-ens-pick]");
     if (b) pickEnseigne(b.dataset.ensPick, ens.shown[Number(b.dataset.i)]);
   });
@@ -1973,7 +1974,10 @@ async function openEns(catId) {
   $("#ensFilter").value = "";
   $("#ensList").innerHTML = `<p class="ens-empty">⏳ ${UI.esc(t("ensLoading"))}</p>`;
   try { ens.items = await Enseignes.list(catId, at, I18N.lang); }
-  catch (e) { if (mine === ens.seq) $("#ensList").innerHTML = `<p class="ens-empty">⚠️ ${UI.esc(t("ensDown"))}</p>`; return; }
+  catch (e) {
+    if (mine === ens.seq) $("#ensList").innerHTML = `<p class="ens-empty">⚠️ ${UI.esc(t("ensDown"))}<br><button type="button" class="btn btn-sm" data-ens-retry style="margin-top:10px">${UI.esc(t("ensRetry"))}</button></p>`;
+    return;
+  }
   if (mine === ens.seq) renderEnsList();
 }
 function renderEnsList() {

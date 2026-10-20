@@ -391,7 +391,7 @@ fr: {
   ensTitle: "🏪 Enseignes près de vous", ens_hop: "⭐ Partenaires HOP", ens_pharm: "💊 Pharmacies", ens_post: "📮 Poste et relais",
   ens_super: "🛒 Supermarchés", ens_food: "🍔 Restaurants", ens_mall: "🛍️ Centres commerciaux", ens_flower: "💐 Fleuristes", ens_tech: "📱 Téléphonie",
   ensFilterPh: "Filtrer : nom, rue…", ensFrom: "📍 Récupérer ici", ensTo: "🏁 Livrer ici", ensLoading: "Recherche des enseignes autour…",
-  ensNone: "Rien trouvé dans le coin. Tapez le nom dans « Récupérer à ».", ensDown: "La liste des enseignes ne répond pas pour le moment : tapez le nom dans « Récupérer à ».",
+  ensNone: "Rien trouvé dans le coin. Tapez le nom dans « Récupérer à ».", ensDown: "La liste des enseignes ne répond pas pour le moment : réessayez, ou tapez le nom dans « Récupérer à ».", ensRetry: "↻ Réessayer",
   ensPartner: "Partenaire HOP", ensAddrLater: "adresse complétée au choix", ensNearYou: "Les plus proches de vous", ensNearCity: "Autour de {city} · touchez ◎ pour les plus proches de vous",
   // Accueil façon appli
   hmFrom: "Récupérer à", hmTo: "Livrer à", hmFromPh: "Adresse, magasin, restaurant…", hmToPh: "Où on livre ?", hmNo: "N°",
@@ -795,7 +795,7 @@ he: {
   ensTitle: "🏪 עסקים וחנויות לידכם", ens_hop: "⭐ שותפי הופ", ens_pharm: "💊 בתי מרקחת", ens_post: "📮 דואר ונקודות איסוף",
   ens_super: "🛒 סופרמרקטים", ens_food: "🍔 מסעדות", ens_mall: "🛍️ קניונים", ens_flower: "💐 חנויות פרחים", ens_tech: "📱 סלולר",
   ensFilterPh: "סינון: שם, רחוב…", ensFrom: "📍 איסוף מכאן", ensTo: "🏁 משלוח לכאן", ensLoading: "מחפשים עסקים באזור…",
-  ensNone: "לא נמצא באזור. הקלידו את השם בשדה האיסוף.", ensDown: "רשימת העסקים לא זמינה כרגע: הקלידו את השם בשדה האיסוף.",
+  ensNone: "לא נמצא באזור. הקלידו את השם בשדה האיסוף.", ensDown: "רשימת העסקים לא זמינה כרגע: נסו שוב, או הקלידו את השם בשדה האיסוף.", ensRetry: "↻ לנסות שוב",
   ensPartner: "שותף הופ", ensAddrLater: "הכתובת תושלם בבחירה", ensNearYou: "הקרובים אליכם", ensNearCity: "באזור {city} · געו ב-◎ לקרובים אליכם",
   // Accueil façon appli
   hmFrom: "נקודת איסוף", hmTo: "יעד", hmFromPh: "כתובת, חנות, מסעדה…", hmToPh: "לאן משלוח?", hmNo: "מס׳",

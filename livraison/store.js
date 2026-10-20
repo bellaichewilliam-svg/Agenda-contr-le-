@@ -273,7 +273,19 @@ async function createOrder(order) {
         order.pickup_at = new Date(a).toISOString();
       } else order.appt_at = null;
       Object.assign(order, { docs_status: "a_verifier", docs_note: null });
-    } else Object.assign(order, { docs_status: null, docs_note: null, appt_at: null, retrait_code: null });
+    } else Object.assign(order, { docs_status: null, docs_note: null, retrait_code: null });
+    // Cas particuliers (même contrôle que la base) : ordonnance, dépôt à la poste, vente entre particuliers, code de remise
+    if (order.service !== "achat") order.rx = false;
+    if (order.service !== "colis") Object.assign(order, { post_send: false, p2p_sale: false });
+    if (!order.p2p_sale) order.sale_paid = false; else if (!order.sale_paid) throw new Error("sale_unpaid");
+    if (order.post_send) {
+      const a = new Date(order.appt_at).getTime();
+      if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) throw new Error("post_appt");
+      order.pickup_at = new Date(Math.max(Date.now(), a - 30 * 60000)).toISOString();
+    } else if (order.service !== "retrait") order.appt_at = null;
+    if (order.service !== "retrait") order.docs_status = order.rx || order.post_send ? "a_verifier" : null;
+    order.handoff_ok_at = null;
+    order.handoff_code = order.handoff ? String(Math.floor(Math.random() * 10000)).padStart(4, "0") : null;
     // Commande passée par téléphone (commerce pas sur HOP!) : nom, déjà payée, heure « prête » (au plus 3 h)
     if (order.phone_order && !order.shop_id && order.service !== "achat") {
       if (!String(order.pickup_name || "").trim()) throw new Error("phone_name_required");
@@ -626,6 +638,19 @@ async function acceptOrder(id) {
 }
 
 // Livreur : "recuperee", "livree", "paye" ou "liberer" (rendre la course)
+// Code de remise (clés, objet de valeur) : le livreur tape le code donné par le destinataire
+async function courierHandoff(id, code) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_handoff", { method: "POST", body: { p_id: id, p_code: code } });
+  const all = localOrders(), o = all.find(x => x.id === id && x.courier_id === myId() && x.status === "recuperee" && x.handoff);
+  if (!o) return false;
+  o.handoff_tries = (o.handoff_tries || 0) + 1;
+  if (o.handoff_tries > 5) { saveLocalOrders(all); throw new Error("too_many_tries"); }
+  const ok = String(code || "").trim() === o.handoff_code;
+  if (ok) o.handoff_ok_at = new Date().toISOString();
+  saveLocalOrders(all);
+  return ok;
+}
+
 async function courierAction(id, action) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_update", { method: "POST", body: { p_id: id, p_action: action } });
   const all = localOrders();
@@ -664,6 +689,8 @@ async function courierAction(id, action) {
     }
     // « Déposer devant la porte » : photo du colis obligatoire dans la conversation
     if (!free && o.leave_at_door && !chatLocal().some(m => m.thread === "o:" + o.id && m.author === "courier" && m.image)) throw new Error("photo_required");
+    // Clés ou objet de valeur : le destinataire a donné le bon code de remise
+    if (!free && o.handoff && !o.handoff_ok_at) throw new Error("handoff_required");
     o.status = "livree"; referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
@@ -1294,10 +1321,15 @@ async function broadcastClients(body, days) {
 }
 // --- Colis à récupérer : documents du client (avis/SMS, carte d'identité, procuration, rendez-vous) ----------
 function docsNeeded(place) { return place === "poste" ? ["avis", "identite", "procuration", "rdv"] : place === "locker" ? ["avis"] : ["avis", "identite"]; }
+// Les documents d'une course (même règle que la base : order_docs_needed)
+function docsFor(o) {
+  return o.service === "retrait" ? docsNeeded(o.place_kind) : o.service === "achat" && o.rx ? ["identite", "ordonnance"]
+    : o.service === "colis" && o.post_send ? ["rdv", "etiquette"] : [];
+}
 async function addOrderDoc(token, kind, photo) {
   if (ONLINE) return rest("/rest/v1/rpc/order_doc_add", { method: "POST", body: { p_token: token, p_kind: kind, p_photo: photo } });
   const all = localOrders(), o = all.find(x => x.token === token);
-  if (!o || o.service !== "retrait" || o.status !== "nouvelle" || o.docs_status === "ok" || !docsNeeded(o.place_kind).includes(kind)) return false;
+  if (!o || !o.docs_status || o.status !== "nouvelle" || o.docs_status === "ok" || !docsFor(o).includes(kind)) return false;
   const docs = readJSON(LS.docs, {});
   (docs[o.id] = docs[o.id] || []).push({ kind, photo, created_at: new Date().toISOString() });
   writeJSON(LS.docs, docs);
@@ -1320,7 +1352,7 @@ async function orderDocs(orderId) {
 }
 async function docsVerdict(orderId, ok, note) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_docs_verdict", { method: "POST", body: { p_order: orderId, p_ok: ok, p_note: note || null } });
-  const all = localOrders(), o = all.find(x => x.id === orderId && x.service === "retrait" && x.status === "nouvelle");
+  const all = localOrders(), o = all.find(x => x.id === orderId && x.docs_status && x.status === "nouvelle");
   if (!o) return false;
   Object.assign(o, { docs_status: ok ? "ok" : "refuse", docs_note: ok ? null : String(note || "").trim().slice(0, 300) || null });
   saveLocalOrders(all);
@@ -1395,7 +1427,7 @@ window.Store = {
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
-  docsNeeded, addOrderDoc, orderDocsSent, orderDocs, docsVerdict,
+  docsNeeded, docsFor, addOrderDoc, courierHandoff, orderDocsSent, orderDocs, docsVerdict,
   chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };
