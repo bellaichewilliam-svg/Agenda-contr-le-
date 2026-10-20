@@ -7,9 +7,12 @@ self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));
 self.addEventListener("push", e => {
   let d = {};
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : "" }; }
+  // Nouvelle course (« o-… ») : elle reste affichée, vibre longtemps et resonne à chaque renvoi (toutes les 5 s)
+  const course = /^o-/.test(d.tag || "");
   e.waitUntil(self.registration.showNotification(d.title || "HOP!", {
     body: d.body || "", tag: d.tag || undefined, renotify: !!d.tag, icon: "icon-192.png", badge: "badge-96.png",
-    vibrate: [250, 120, 250], data: { url: d.url || self.registration.scope }
+    requireInteraction: course, silent: false,
+    vibrate: course ? [900, 300, 900, 300, 900, 300, 900] : [250, 120, 250], data: { url: d.url || self.registration.scope }
   }));
 });
 
