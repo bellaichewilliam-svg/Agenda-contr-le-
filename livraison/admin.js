@@ -296,7 +296,7 @@ function card(o, withDay) {
 
   let pickupExtra = "";
   if (o.service === "retrait") {
-    pickupExtra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° <b style="display:inline">${UI.esc(o.tracking_number || "—")}</b> · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌ à demander"}` : ""}</div>`;
+    pickupExtra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° <b style="display:inline">${UI.esc(o.tracking_number || "—")}</b>${o.retrait_code ? ` · code du casier <b style="display:inline">${UI.esc(o.retrait_code)}</b>` : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}${o.appt_at ? ` · 📅 rendez-vous ${UI.esc(UI.fmtDateTime(o.appt_at))}` : ""}</div>`;
   } else if (o.service === "achat") {
     pickupExtra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""} · 🧾 réglé par le client au magasin</div>`;
   }
@@ -313,6 +313,11 @@ function card(o, withDay) {
   if (o.shop_status && o.shop_status !== "refusee") meta.push(`<span class="pill">${o.shop_status === "attente" ? "🍳 Attente du commerce"
     : o.shop_status === "prete" ? "✅ Prête au commerce" : `🍳 Prête à ${UI.esc(new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}`}${Number(o.shop_share) > 0 ? ` · commerce ${UI.money(o.shop_share)}` : ""}</span>`);
   if (o.shop_order) meta.push(`<span class="pill">🧾 ${UI.esc(o.shop_order.slice(0, 80))}</span>`);
+  // Colis à récupérer : les documents du client, à vérifier avant d'envoyer un livreur
+  if (o.docs_status) {
+    meta.push(`<button class="pill pill-btn ${o.docs_status === "ok" ? "paid" : o.docs_status === "refuse" ? "st-annulee" : "unpaid"}" data-act="docs" title="Voir les photos envoyées par le client">${o.docs_status === "ok" ? "✅ Documents vérifiés" : o.docs_status === "refuse" ? `📄 Demandé au client : ${UI.esc(o.docs_note || "")}` : "📄 Documents à vérifier"} · voir</button>`);
+    if (o.status === "nouvelle" && o.docs_status !== "ok") meta.push(`<button class="pill pill-btn paid" data-act="docsok">✅ Documents OK : envoyer un livreur</button><button class="pill pill-btn st-annulee" data-act="docsko">✉️ Il manque…</button>`);
+  }
   if (o.phone_order) meta.push(`<span class="pill star-pill">📞 Commandée par tél. au nom de ${UI.esc(o.pickup_name || "")}${o.phone_ref ? " · n° " + UI.esc(o.phone_ref) : ""} · prête ${o.ready_at ? UI.fmtTime(o.ready_at) : ""}</span>`);
   if (Number(o.wait_fee) > 0) meta.push(`<span class="pill unpaid">⏱️ Attente ${o.wait_minutes} min · +${UI.money(o.wait_fee)} (au livreur)</span>`);
   else if (o.arrived_at && o.status === "confirmee") meta.push(`<span class="pill">⏱️ Livreur au départ depuis ${Math.floor((Date.now() - new Date(o.arrived_at)) / 60000)} min</span>`);
@@ -1110,7 +1115,19 @@ async function onViewClick(e) {
       if (changes.payment_status) await load();
 
     }
+  } else if (el.dataset.act === "docs") {
+    try {
+      const list = await Store.orderDocs(o.id);
+      UI.photoViewer(`Course n° ${o.ref} · ${UI.PLACE_FR[o.place_kind] || ""} · N° ${o.tracking_number || "—"}`, list.map(d => ({ label: UI.DOC_FR[d.kind] || d.kind, src: d.photo })));
+    } catch (ex) { alert("Documents introuvables, vérifiez la connexion."); }
+  } else if (el.dataset.act === "docsok" || el.dataset.act === "docsko") {
+    const ok = el.dataset.act === "docsok";
+    const note = ok ? null : prompt("Que manque-t-il ? Le client reçoit ce message (ex. : la photo de la procuration signée).");
+    if (ok ? !confirm(`Documents de la course n° ${o.ref} complets et lisibles ? Elle part aux livreurs.`) : !note) return;
+    try { if (!(await Store.docsVerdict(o.id, ok, note))) alert("Course déjà prise ou annulée."); await load(); }
+    catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
   } else if (el.dataset.act === "take") {
+    if (o.docs_status && o.docs_status !== "ok" && !confirm("Les documents de ce colis ne sont pas encore validés. La prendre quand même ?")) return;
     if (duty.watch == null && confirm("Course prise. Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
     assignTo(o, me);
   } else if (el.dataset.act === "refuse") {

@@ -234,6 +234,27 @@ label.check input { width: 20px; height: 20px; accent-color: var(--brand); flex:
 .show-retrait, .show-achat, .show-poste { display: none !important; }
 .svc-retrait .show-retrait, .svc-achat .show-achat, .place-poste .show-poste { display: flex !important; }
 .svc-retrait .hide-retrait { display: none !important; }
+.show-locker { display: none !important; }
+.place-locker .show-locker { display: flex !important; }
+.place-locker .hide-locker { display: none !important; }
+/* Colis à récupérer : les documents demandés, chacun avec sa photo */
+.svc-retrait .docs-box { display: block !important; }
+.docs-box { background: var(--brand-soft); border: 1px solid #FFD9BF; border-radius: 14px; padding: 12px; }
+.docs-box h4 { margin: 0 0 4px; font-size: 15px; }
+.docs-box > p { margin: 0 0 8px; font-size: 13px; color: var(--muted); }
+.doc-row { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 12px; padding: 8px 10px; margin-top: 8px; border: 1px solid var(--border); }
+.doc-row.ok { border-color: var(--green); }
+.doc-row img, .doc-row .doc-ph { width: 54px; height: 54px; border-radius: 10px; object-fit: cover; flex-shrink: 0; background: var(--bg-2); display: grid; place-items: center; font-size: 22px; }
+.doc-row .doc-label { flex: 1; min-width: 0; font-size: 13px; line-height: 1.3; }
+.doc-row .btn { flex-shrink: 0; }
+.tr-doc-add { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.tr-doc-add select { padding: 6px 8px; border-radius: 10px; border: 1px solid var(--border); background: #fff; font: inherit; font-size: 13px; }
+/* Visionneuse des documents (patron, livreur au guichet) */
+.photo-viewer { position: fixed; inset: 0; z-index: 120; background: rgba(15, 31, 61, .92); overflow-y: auto; padding: calc(12px + env(safe-area-inset-top)) 12px 24px; }
+.photo-viewer .pv-head { display: flex; justify-content: space-between; align-items: center; color: #fff; margin-bottom: 10px; position: sticky; top: 0; }
+.photo-viewer figure { margin: 0 0 14px; }
+.photo-viewer figcaption { color: #fff; font-weight: 700; margin-bottom: 6px; }
+.photo-viewer img { width: 100%; max-width: 900px; border-radius: 12px; background: #fff; display: block; }
 
 .promo-row { display: flex; gap: 8px; }
 .promo-row input { text-transform: uppercase; }

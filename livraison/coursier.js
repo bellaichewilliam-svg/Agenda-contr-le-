@@ -313,7 +313,9 @@ function card(o, kind) {
       <a class="btn btn-sm btn-primary" href="${navLink(o, which)}" target="_blank" rel="noopener">🧭 Y aller (${riderSet.nav === "maps" ? "Maps" : "Waze"})</a></div>` : "";
   const telLink = (name, phone) => kind === "mine" && phone ? `<span class="small muted">${UI.esc(name || "")} · <a href="tel:${UI.esc(phone)}">${UI.esc(phone)}</a></span>` : "";
   let extra = "";
-  if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")} · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌"}` : ""}</div>`;
+  if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
+    + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
+    + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
   if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""}<br>🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse</div>`;
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
   extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
@@ -344,6 +346,7 @@ function card(o, kind) {
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
           + `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
+      + (o.service === "retrait" && o.status === "confirmee" ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
@@ -882,6 +885,13 @@ function onWorkClick(e) {
   }
   if (el.dataset.logout) return $("#drawerLogout").click();
   if (el.dataset.issue) return reportIssue(orders.find(x => x.id === el.dataset.issue));
+  // Colis à récupérer : les photos du client (avis, carte d'identité, procuration, rendez-vous) à montrer au guichet
+  if (el.dataset.docs) {
+    const o = orders.find(x => x.id === el.dataset.docs);
+    if (!o) return;
+    return Store.orderDocs(o.id).then(list => UI.photoViewer(`${UI.PLACE_FR[o.place_kind] || ""} · N° ${o.tracking_number || "—"}`,
+      list.map(d => ({ label: UI.DOC_FR[d.kind] || d.kind, src: d.photo })))).catch(() => alert("Documents introuvables, vérifiez la connexion."));
+  }
   if (el.dataset.chat) {
     const o = orders.find(x => x.id === el.dataset.chat);
     if (o) openOrderChat(o, !!el.dataset.photo);

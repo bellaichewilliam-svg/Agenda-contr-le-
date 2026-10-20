@@ -190,6 +190,28 @@ function renderPhone() {
   box.querySelectorAll("[data-ready]").forEach(el => el.classList.toggle("on", Number(el.dataset.ready) === state.phoneReady));
 }
 
+// --- Colis à récupérer : les documents demandés selon le lieu (photos), envoyés avec la commande ---------
+const docs = {};
+let docsKey = "";
+function renderDocs() {
+  const box = $("#docsBox");
+  if (!box) return;
+  const need = val("service") === "retrait" ? Store.docsNeeded(val("place_kind")) : [];
+  const key = need.map(k => k + (docs[k] ? "+" : "")).join(",") + I18N.lang;
+  if (key === docsKey) return;
+  docsKey = key;
+  box.innerHTML = need.length ? `<h4>${UI.esc(t("docsTitle"))}</h4><p>${UI.esc(t("docsWhy"))}</p>
+    ${need.map(k => `<div class="doc-row${docs[k] ? " ok" : ""}">
+      ${docs[k] ? `<img src="${docs[k]}" alt="" />` : `<span class="doc-ph">📄</span>`}
+      <span class="doc-label">${UI.esc(t("doc_" + k))}${docs[k] ? `<br><b>${UI.esc(t("docOk"))}</b>` : ""}</span>
+      <label class="btn btn-sm${docs[k] ? "" : " btn-primary"}">${UI.esc(t(docs[k] ? "docChange" : "docAdd"))}<input type="file" accept="image/*" data-doc="${k}" hidden /></label>
+    </div>`).join("")}
+    <p style="margin-top:8px">${UI.esc(t("docsPrivacy"))}</p>` : "";
+}
+function docsMissing() {
+  return Store.docsNeeded(val("place_kind")).find(k => !docs[k]);
+}
+
 function syncVisibility() {
   const svc = val("service");
   renderPhone();
@@ -199,7 +221,10 @@ function syncVisibility() {
   if (P.carAvailable === false && gros.checked) form.querySelector('input[name=size][value=moyen]').checked = true;
   form.classList.remove("svc-colis", "svc-retrait", "svc-achat", "svc-repas", "place-poste");
   form.classList.add("svc-" + svc);
+  form.classList.remove("place-locker");
   if (svc === "retrait" && val("place_kind") === "poste") form.classList.add("place-poste");
+  if (svc === "retrait" && val("place_kind") === "locker") form.classList.add("place-locker");
+  renderDocs();
   $("#pickupLegend").textContent = t(svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
@@ -927,6 +952,18 @@ async function submit(e) {
     if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
   }
   if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
+  // Colis à récupérer : tout ce qu'il faut au guichet, avant d'envoyer la commande
+  if (val("service") === "retrait") {
+    const place = val("place_kind"), locker = place === "locker";
+    if (!val("tracking_number").trim()) { form.tracking_number.focus(); return showError(t("errTracking")); }
+    if (locker ? !val("retrait_code").trim() : !val("parcel_name").trim()) { (locker ? form.retrait_code : form.parcel_name).focus(); return showError(t(locker ? "errRetraitCode" : "errParcelName")); }
+    if (place === "poste") {
+      const a = new Date(val("appt_at")).getTime();
+      if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showError(t("errAppt")); }
+    }
+    const miss = docsMissing();
+    if (miss) { $("#docsBox").scrollIntoView({ block: "center" }); return showError(t("errDoc", { doc: t("doc_" + miss) })); }
+  }
   if (val("service") === "achat" && adultItems().length) {
     if (!form.adult_ok.checked) { form.adult_ok.focus(); return showError(t("errAdult")); }
     if (form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())) return showError(t("errAlcoholHours"));
@@ -989,7 +1026,9 @@ async function submit(e) {
       place_kind: svc === "retrait" ? val("place_kind") : null,
       tracking_number: svc === "retrait" ? val("tracking_number").trim() || null : null,
       parcel_name: svc === "retrait" ? val("parcel_name").trim() || null : null,
-      has_proxy: svc === "retrait" && val("place_kind") === "poste" && form.has_proxy.checked,
+      has_proxy: svc === "retrait" && val("place_kind") === "poste" && !!docs.procuration,
+      retrait_code: svc === "retrait" && val("place_kind") === "locker" ? val("retrait_code").trim() : null,
+      appt_at: svc === "retrait" && val("place_kind") === "poste" ? new Date(val("appt_at")).toISOString() : null,
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
@@ -1041,6 +1080,18 @@ async function submit(e) {
     if (!order.shop_token) delete order.shop_token;
     const firstOrder = activeOrders().length === 0;
     const saved = await Store.createOrder(order);
+    // Les photos des documents partent juste après la commande (le patron les vérifie avant d'envoyer un livreur)
+    let docsFailed = false;
+    if (saved.service === "retrait") {
+      $("#submitBtn").textContent = t("docsSending");
+      for (const k of Store.docsNeeded(saved.place_kind)) {
+        if (!docs[k]) continue;
+        try { if (!(await Store.addOrderDoc(saved.token, k, docs[k]))) docsFailed = true; } catch (e) { docsFailed = true; }
+      }
+      Object.keys(docs).forEach(k => delete docs[k]);
+      docsKey = "";
+      renderDocs();
+    }
     clearDraft();
     rememberAddresses(saved, pf, pt);
     // Bit : on paie tout de suite, depuis cet écran (créneau réservé : obligatoire)
@@ -1056,14 +1107,14 @@ async function submit(e) {
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
 
     $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(saved.price) }));
-    $("#doneSub").textContent = t(Store.ONLINE ? "doneOnline" : "doneDemo");
+    $("#doneSub").textContent = t(Store.ONLINE ? "doneOnline" : "doneDemo") + (saved.service === "retrait" ? " " + t(docsFailed ? "errDocsUpload" : "doneDocs") : "");
     $("#doneWa").href = UI.waLink(CONFIG.whatsapp, UI.orderText(saved));
     $("#doneWa").classList.toggle("hidden", Store.ONLINE);
     $("#doneTrack").href = UI.trackUrl(saved);
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
+    ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "retrait_code", "appt_at", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     setKind("pickup", null); setKind("dropoff", null);
     state.stops = []; renderStops();
@@ -1084,6 +1135,10 @@ async function submit(e) {
     if (/phone_name_required/.test(ex.message)) return showError(t("errPhoneName"));
     if (/phone_unpaid/.test(ex.message)) return showError(t("errPhonePaid"));
     if (/goods_pay_required/.test(ex.message)) return showError(t("errGoodsPay"));
+    if (/retrait_tracking/.test(ex.message)) return showError(t("errTracking"));
+    if (/retrait_name/.test(ex.message)) return showError(t("errParcelName"));
+    if (/retrait_code/.test(ex.message)) return showError(t("errRetraitCode"));
+    if (/retrait_appt/.test(ex.message)) return showError(t("errAppt"));
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;
@@ -1940,6 +1995,14 @@ form.addEventListener("change", e => {
   renderQuote();
 });
 form.addEventListener("submit", submit);
+// Photo d'un document : réduite sur le téléphone puis gardée jusqu'à l'envoi de la commande
+$("#docsBox").addEventListener("change", async e => {
+  const inp = e.target.closest("[data-doc]");
+  if (!inp || !inp.files[0]) return;
+  e.stopPropagation();
+  try { docs[inp.dataset.doc] = await UI.docPhoto(inp.files[0]); } catch (ex) { return showError(t("errDocPhoto")); }
+  renderDocs();
+});
 form.addEventListener("input", e => { if (PROFILE_FIELDS.includes(e.target.name)) rememberProfile(); });
 // Mise en forme du numéro quand on quitte le champ (052-123-4567)
 form.addEventListener("focusout", e => {

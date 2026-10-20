@@ -61,7 +61,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610200149" />
+  <link rel="stylesheet" href="styles.css?v=202610200204" />
 </head>
 <body>
 
@@ -317,6 +317,7 @@
                 <option value="poste" data-i18n="place_poste"></option>
                 <option value="superpharm" data-i18n="place_superpharm"></option>
                 <option value="relais" data-i18n="place_relais"></option>
+                <option value="locker" data-i18n="place_locker"></option>
                 <option value="autre" data-i18n="place_autre"></option>
               </select>
             </label>
@@ -340,9 +341,11 @@
             </div>
             <label class="f full"><span data-i18n="addrNote"></span><input name="pickup_note" data-i18n-ph="addrNotePh" /></label>
             <label class="f show-retrait"><span data-i18n="tracking"></span><input name="tracking_number" data-i18n-ph="trackingPh" /></label>
-            <label class="f show-retrait"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
-            <label class="check full show-poste"><input type="checkbox" name="has_proxy" /> <span data-i18n="proxy"></span></label>
-            <p class="notice warn full show-poste" data-i18n="proxyNote"></p>
+            <label class="f show-retrait hide-locker"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
+            <label class="f show-locker"><span data-i18n="retraitCode"></span><input name="retrait_code" data-i18n-ph="retraitCodePh" autocomplete="off" /></label>
+            <label class="f full show-poste"><span data-i18n="apptLabel"></span><input name="appt_at" type="datetime-local" /></label>
+            <p class="notice warn full show-poste" data-i18n="apptNote"></p>
+            <div class="docs-box full show-retrait" id="docsBox"></div>
             <label class="check full show-achat near-store"><input type="checkbox" name="nearest_store" /> <span data-i18n="nearStore"></span></label>
             <label class="f full show-achat"><span data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
             <div class="adult-box full show-achat">
@@ -604,14 +607,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610200149"></script>
-<script src="i18n.js?v=202610200149"></script>
-<script src="pricing.js?v=202610200149"></script>
-<script src="store.js?v=202610200149"></script>
-<script src="chat.js?v=202610200149"></script>
-<script src="common.js?v=202610200149"></script>
-<script src="enseignes.js?v=202610200149"></script>
-<script src="places.js?v=202610200149"></script>
-<script src="client.js?v=202610200149"></script>
+<script src="config.js?v=202610200204"></script>
+<script src="i18n.js?v=202610200204"></script>
+<script src="pricing.js?v=202610200204"></script>
+<script src="store.js?v=202610200204"></script>
+<script src="chat.js?v=202610200204"></script>
+<script src="common.js?v=202610200204"></script>
+<script src="enseignes.js?v=202610200204"></script>
+<script src="places.js?v=202610200204"></script>
+<script src="client.js?v=202610200204"></script>
 </body>
 </html>

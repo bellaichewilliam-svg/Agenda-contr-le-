@@ -26,7 +26,8 @@ const LS = {
   sales: "livraison.carnetSales.v1",
   planSales: "livraison.planSales.v1",
   chat: "livraison.chat.v1",
-  catalog: "livraison.catalog.v1"
+  catalog: "livraison.catalog.v1",
+  docs: "livraison.docs.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -253,6 +254,19 @@ async function createOrder(order) {
     // « J'achète pour vous » : le client règle le magasin lui-même, le livreur n'avance jamais d'argent
     if (order.service === "achat" && !order.goods_self_pay) throw new Error("goods_pay_required");
     order.goods_self_pay = order.service === "achat";
+    // Colis à récupérer : même contrôle que la base (n°, nom ou code, rendez-vous à la poste), documents à vérifier
+    if (order.service === "retrait") {
+      if (!["poste", "superpharm", "relais", "locker", "autre"].includes(order.place_kind)) throw new Error("retrait_place");
+      if (!String(order.tracking_number || "").trim()) throw new Error("retrait_tracking");
+      if (order.place_kind === "locker") { if (!String(order.retrait_code || "").trim()) throw new Error("retrait_code"); }
+      else { order.retrait_code = null; if (!String(order.parcel_name || "").trim()) throw new Error("retrait_name"); }
+      if (order.place_kind === "poste") {
+        const a = new Date(order.appt_at).getTime();
+        if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) throw new Error("retrait_appt");
+        order.pickup_at = new Date(a).toISOString();
+      } else order.appt_at = null;
+      Object.assign(order, { docs_status: "a_verifier", docs_note: null });
+    } else Object.assign(order, { docs_status: null, docs_note: null, appt_at: null, retrait_code: null });
     // Commande passée par téléphone (commerce pas sur HOP!) : nom, déjà payée, heure « prête » (au plus 3 h)
     if (order.phone_order && !order.shop_id && order.service !== "achat") {
       if (!String(order.pickup_name || "").trim()) throw new Error("phone_name_required");
@@ -471,6 +485,7 @@ const declined = (orderId, courierId) => readJSON(LS.declines, []).some(d => d.o
 // Quand la course devient visible : commande Pro ou par téléphone → pro_lead_min min avant l'heure « prête »
 function offerFrom(o, st) {
   const created = new Date(o.created_at).getTime();
+  if (o.appt_at) return Math.max(created, new Date(o.appt_at) - 40 * 60000);
   return (o.shop_status || o.phone_order) && o.ready_at ? Math.max(created, new Date(o.ready_at) - Number(st.pro_lead_min) * 60000) : created;
 }
 function canSeeNew(o, id, st) {
@@ -479,6 +494,8 @@ function canSeeNew(o, id, st) {
   if (!onlineNow(localCouriers().find(c => c.id === id)) || declined(o.id, id)) return false;
   // HOP! Pro : proposée quand le commerce a accepté, pour arriver au moment où c'est prêt
   if (o.shop_status && !["acceptee", "prete"].includes(o.shop_status)) return false;
+  // Colis à récupérer : seulement quand le patron a vérifié les documents
+  if (o.docs_status && o.docs_status !== "ok") return false;
   if (Date.now() < offerFrom(o, st)) return false;
   if (o.referrer_id && o.referrer_id === id) return true;
   const ranked = o.pickup_lat == null ? [] : localCouriers()
@@ -1246,6 +1263,44 @@ async function broadcastClients(body, days) {
   devices.forEach(d => chatLocalAdd({ thread: "u:" + d, author: "admin", author_name: "HOP!", body: clean(body) }));
   return devices.length;
 }
+// --- Colis à récupérer : documents du client (avis/SMS, carte d'identité, procuration, rendez-vous) ----------
+function docsNeeded(place) { return place === "poste" ? ["avis", "identite", "procuration", "rdv"] : place === "locker" ? ["avis"] : ["avis", "identite"]; }
+async function addOrderDoc(token, kind, photo) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_doc_add", { method: "POST", body: { p_token: token, p_kind: kind, p_photo: photo } });
+  const all = localOrders(), o = all.find(x => x.token === token);
+  if (!o || o.service !== "retrait" || o.status !== "nouvelle" || o.docs_status === "ok" || !docsNeeded(o.place_kind).includes(kind)) return false;
+  const docs = readJSON(LS.docs, {});
+  (docs[o.id] = docs[o.id] || []).push({ kind, photo, created_at: new Date().toISOString() });
+  writeJSON(LS.docs, docs);
+  if (o.docs_status === "refuse") {
+    o.docs_status = "a_verifier";
+    saveLocalOrders(all);
+    chatLocalAdd({ thread: "o:" + o.id, author: "client", author_name: o.contact_name, body: "📄 Document ajouté · מסמך נוסף", image: null });
+  }
+  return true;
+}
+async function orderDocsSent(token) {
+  if (ONLINE) return (await rest("/rest/v1/rpc/order_docs_sent", { method: "POST", body: { p_token: token } })) || [];
+  const o = localOrders().find(x => x.token === token);
+  return o ? [...new Set((readJSON(LS.docs, {})[o.id] || []).map(d => d.kind))] : [];
+}
+// Les photos : le patron, et le livreur de la course (vérifié par la base en ligne)
+async function orderDocs(orderId) {
+  if (ONLINE) return (await authRest("/rest/v1/rpc/order_docs", { method: "POST", body: { p_order: orderId } })) || [];
+  return readJSON(LS.docs, {})[orderId] || [];
+}
+async function docsVerdict(orderId, ok, note) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_docs_verdict", { method: "POST", body: { p_order: orderId, p_ok: ok, p_note: note || null } });
+  const all = localOrders(), o = all.find(x => x.id === orderId && x.service === "retrait" && x.status === "nouvelle");
+  if (!o) return false;
+  Object.assign(o, { docs_status: ok ? "ok" : "refuse", docs_note: ok ? null : String(note || "").trim().slice(0, 300) || null });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "admin", author_name: "HOP!", image: null, body: ok
+    ? "✅ Documents vérifiés : nous envoyons un livreur. · המסמכים אושרו: אנחנו שולחים שליח."
+    : `📄 Il manque : ${o.docs_note || "…"} — ajoutez-le depuis le suivi de votre course. · חסר מסמך: הוסיפו אותו מדף המעקב.` });
+  return true;
+}
+
 async function chatSend(thread, author, authorName, body, image) {
   const m = { thread, author, author_name: authorName || null, body: clean(body), image: image || null };
   if (ONLINE) return authRest("/rest/v1/chat_messages", { method: "POST", body: m, prefer: "return=minimal" });
@@ -1311,6 +1366,7 @@ window.Store = {
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
+  docsNeeded, addOrderDoc, orderDocsSent, orderDocs, docsVerdict,
   chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };

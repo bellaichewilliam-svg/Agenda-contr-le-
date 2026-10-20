@@ -144,6 +144,7 @@ function render() {
     <div><span>📍</span><span><b>${UI.esc(t("trPickup"))}</b><br>${UI.brand(o.pickup_place)}<bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(cityLabel(o.from_city))}${UI.addrDetails(o, "pickup", I18N.lang)}${UI.addrNote(o.pickup_note)}</span></div>
     <div><span>🏁</span><span><b>${UI.esc(t("trDrop"))}</b><br>${UI.brand(o.dropoff_place)}<bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(cityLabel(o.to_city))}${UI.addrDetails(o, "dropoff", I18N.lang)}${UI.addrNote(o.dropoff_note)}${UI.doorTag(o, I18N.lang)}</span></div>
     ${o.phone_order && o.ready_at && ["nouvelle", "confirmee"].includes(o.status) ? `<div><span>📞</span><span>${UI.esc(t("trPhoneReady", { time: new Date(o.ready_at).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" }) }))}</span></div>` : ""}
+    ${docsBlock(o)}
     ${o.admin_note && o.status !== "refusee" ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
 
   const pay = $("#payBox");
@@ -283,11 +284,40 @@ function celebrate() {
 async function load() {
   try {
     order = token ? await Store.trackOrder(token) : null;
+    if (order && order.service === "retrait" && order.status === "nouvelle") docsSent = await Store.orderDocsSent(token).catch(() => docsSent);
   } catch (e) {
     return; // nouvel essai au prochain passage
   }
   render();
 }
+
+// Colis à récupérer : où en sont les documents, et ajouter celui qui manque
+let docsSent = [];
+function docsBlock(o) {
+  if (o.service !== "retrait") return "";
+  const time = d => new Date(d).toLocaleString(I18N.lang === "he" ? "he-IL" : "fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  let html = o.appt_at ? `<div><span>📅</span><span>${UI.esc(t("trAppt", { time: time(o.appt_at) }))}</span></div>` : "";
+  if (o.status !== "nouvelle" || !o.docs_status) return html;
+  const need = Store.docsNeeded(o.place_kind);
+  const sent = need.filter(k => docsSent.includes(k)).map(k => t("ds_" + k)).join(", ");
+  if (o.docs_status === "ok") return html + `<div><span>✅</span><span>${UI.esc(t("trDocsOk"))}</span></div>`;
+  html += `<div class="tr-docs"><span>📄</span><span>${UI.esc(o.docs_status === "refuse" ? t("trDocsMissing", { note: o.docs_note || "…" }) : t("trDocsWait"))}
+    ${sent ? `<br><small class="muted">${UI.esc(t("trDocsSent", { list: sent }))}</small>` : ""}
+    <span class="tr-doc-add"><select data-tr-kind>${need.map(k => `<option value="${k}">${UI.esc(t("ds_" + k))}</option>`).join("")}</select>
+      <label class="btn btn-sm${o.docs_status === "refuse" ? " btn-primary" : ""}">📷 ${UI.esc(t("trDocsAdd"))}<input type="file" accept="image/*" data-tr-doc hidden /></label></span></span></div>`;
+  return html;
+}
+$("#details").addEventListener("change", async e => {
+  const inp = e.target.closest("[data-tr-doc]");
+  if (!inp || !inp.files[0] || !order) return;
+  const kind = $("#details [data-tr-kind]").value;
+  inp.closest("label").classList.add("busy");
+  try {
+    const ok = await Store.addOrderDoc(token, kind, await UI.docPhoto(inp.files[0]));
+    if (!ok) throw new Error("refused");
+  } catch (ex) { alert(t("errDocPhoto")); }
+  load();
+});
 
 $("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); render(); });
 $("#payBox").addEventListener("click", async e => {

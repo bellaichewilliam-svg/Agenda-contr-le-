@@ -1999,6 +1999,204 @@ create or replace trigger orders_goods_pay before insert on public.orders
   for each row execute function public.orders_goods_pay();
 
 -- ============================================================================
+-- RÉCUPÉRER UN COLIS (poste, Super-Pharm, point relais, casier) : le client donne TOUT avant.
+-- N° du colis, nom sur le colis (ou code du casier), photos (avis/SMS, carte d'identité, procuration
+-- signée, rendez-vous à la poste) et l'heure du rendez-vous à la poste (obligatoire : sans rendez-vous,
+-- la poste ne remet rien). La course n'est proposée aux livreurs qu'après « ✅ Documents OK » du patron ;
+-- seuls le patron et le livreur de la course voient les photos, effacées quelques jours après.
+-- ============================================================================
+alter table public.orders add column if not exists docs_status text check (docs_status in ('a_verifier', 'ok', 'refuse'));
+alter table public.orders add column if not exists docs_note text check (length(docs_note) <= 300);
+alter table public.orders add column if not exists appt_at timestamptz;
+alter table public.orders add column if not exists retrait_code text check (length(retrait_code) <= 30);
+
+create table if not exists public.order_docs (
+  id          uuid primary key default gen_random_uuid(),
+  order_id    uuid not null references public.orders(id) on delete cascade,
+  kind        text not null check (kind in ('avis', 'identite', 'procuration', 'rdv')),
+  photo       text not null check (length(photo) <= 400000 and photo ~ '^data:image/(jpeg|png|webp);base64,'),
+  created_at  timestamptz not null default now()
+);
+create index if not exists order_docs_order_idx on public.order_docs (order_id, created_at);
+alter table public.order_docs enable row level security;
+revoke all on public.order_docs from anon, authenticated;
+
+-- Les documents demandés selon le lieu
+create or replace function public.retrait_docs_needed(p_place text) returns text[]
+language sql immutable as $$
+  select case p_place when 'poste' then array['avis', 'identite', 'procuration', 'rdv']
+                      when 'locker' then array['avis']
+                      else array['avis', 'identite'] end;
+$$;
+
+-- Contrôle à l'envoi (après les autres déclencheurs : ordre alphabétique) ; à la poste, la course est à l'heure du rendez-vous
+create or replace function public.orders_retrait() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.service is distinct from 'retrait' then
+    new.docs_status := null; new.docs_note := null; new.appt_at := null; new.retrait_code := null;
+    return new;
+  end if;
+  if coalesce(new.place_kind, '') not in ('poste', 'superpharm', 'relais', 'locker', 'autre') then raise exception 'retrait_place'; end if;
+  if nullif(trim(coalesce(new.tracking_number, '')), '') is null then raise exception 'retrait_tracking'; end if;
+  if new.place_kind = 'locker' then
+    if nullif(trim(coalesce(new.retrait_code, '')), '') is null then raise exception 'retrait_code'; end if;
+  else
+    new.retrait_code := null;
+    if nullif(trim(coalesce(new.parcel_name, '')), '') is null then raise exception 'retrait_name'; end if;
+  end if;
+  if new.place_kind = 'poste' then
+    if new.appt_at is null or new.appt_at < now() - interval '15 minutes' or new.appt_at > now() + interval '30 days' then raise exception 'retrait_appt'; end if;
+    new.pickup_at := new.appt_at;
+  else
+    new.appt_at := null;
+  end if;
+  new.docs_status := 'a_verifier';
+  new.docs_note := null;
+  return new;
+end;
+$$;
+create or replace trigger orders_retrait before insert on public.orders
+  for each row execute function public.orders_retrait();
+
+-- Le client ajoute ses photos (avec le jeton secret de sa course), tant que les documents ne sont pas validés
+create or replace function public.order_doc_add(p_token uuid, p_kind text, p_photo text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders;
+begin
+  select * into o from orders where token = p_token;
+  if o.id is null or o.service <> 'retrait' or o.status <> 'nouvelle' or o.docs_status = 'ok' then return false; end if;
+  if not (p_kind = any (public.retrait_docs_needed(o.place_kind))) then return false; end if;
+  if (select count(*) from order_docs where order_id = o.id) >= 12 then raise exception 'too_many'; end if;
+  insert into order_docs (order_id, kind, photo) values (o.id, p_kind, p_photo);
+  -- Le patron avait demandé un document : il revient à vérifier, et le patron est prévenu
+  if o.docs_status = 'refuse' then
+    update orders set docs_status = 'a_verifier' where id = o.id;
+    insert into chat_messages (thread, author, author_name, body)
+    values ('o:' || o.id::text, 'client', left(o.contact_name, 80), '📄 Document ajouté · מסמך נוסף');
+  end if;
+  return true;
+end;
+$$;
+-- Ce que le client a déjà envoyé (sans les photos)
+create or replace function public.order_docs_sent(p_token uuid) returns text[]
+language sql stable security definer set search_path = public as $$
+  select coalesce(array_agg(distinct d.kind), '{}') from order_docs d join orders o on o.id = d.order_id where o.token = p_token;
+$$;
+-- Les photos : le patron, et le livreur de la course pendant la course
+create or replace function public.order_docs(p_order uuid) returns table (kind text, photo text, created_at timestamptz)
+language sql stable security definer set search_path = public as $$
+  select d.kind, d.photo, d.created_at from order_docs d join orders o on o.id = d.order_id
+   where d.order_id = p_order
+     and (public.is_admin() or (o.courier_id = auth.uid() and o.status in ('confirmee', 'recuperee')))
+   order by d.created_at;
+$$;
+-- Le patron valide (la course part aux livreurs) ou demande ce qui manque (message au client)
+create or replace function public.admin_docs_verdict(p_order uuid, p_ok boolean, p_note text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  update orders set docs_status = case when p_ok then 'ok' else 'refuse' end,
+                    docs_note = case when p_ok then null else left(nullif(trim(coalesce(p_note, '')), ''), 300) end
+   where id = p_order and service = 'retrait' and status = 'nouvelle';
+  if not found then return false; end if;
+  insert into chat_messages (thread, author, author_name, body)
+  values ('o:' || p_order::text, 'admin', 'HOP!',
+          case when p_ok then '✅ Documents vérifiés : nous envoyons un livreur. · המסמכים אושרו: אנחנו שולחים שליח.'
+               else '📄 Il manque : ' || coalesce(nullif(trim(coalesce(p_note, '')), ''), '…')
+                    || ' — ajoutez-le depuis le suivi de votre course. · חסר מסמך: הוסיפו אותו מדף המעקב.' end);
+  return true;
+end;
+$$;
+revoke execute on function public.order_doc_add(uuid, text, text), public.order_docs_sent(uuid), public.order_docs(uuid),
+  public.admin_docs_verdict(uuid, boolean, text) from public;
+grant execute on function public.order_doc_add(uuid, text, text), public.order_docs_sent(uuid) to anon, authenticated;
+grant execute on function public.order_docs(uuid), public.admin_docs_verdict(uuid, boolean, text) to authenticated;
+
+-- Quand la course devient visible : à la poste, 40 min avant le rendez-vous (et toujours après « Documents OK »)
+create or replace function public.offer_from(o orders) returns timestamptz
+language sql stable set search_path = public as $$
+  select case when o.appt_at is not null then greatest(o.created_at, o.appt_at - interval '40 minutes')
+              when o.shop_status is not null or o.phone_order
+              then greatest(o.created_at, o.ready_at - make_interval(mins => coalesce((select pro_lead_min from settings where id = 1), 8)))
+              else o.created_at end;
+$$;
+
+create or replace function public.can_see_new(o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with st as (select * from settings where id = 1),
+  ranked as (
+    select c.id, row_number() over (order by (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
+      from couriers c
+     where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
+       and public.courier_online(c)
+       and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = c.id)
+  )
+  select o.status = 'nouvelle' and o.courier_id is null
+     and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
+     and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = auth.uid())
+     -- HOP! Pro : quand le commerce a accepté ; Pro et téléphone : pour arriver au moment où c'est prêt
+     and (o.shop_status is null or o.shop_status in ('acceptee', 'prete'))
+     -- Colis à récupérer : seulement quand le patron a vérifié les documents
+     and coalesce(o.docs_status, 'ok') = 'ok'
+     and now() >= public.offer_from(o)
+     and (o.referrer_id = auth.uid()
+          or now() >= public.offer_from(o)
+               + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), (select count(*) from ranked)), 2)));
+$$;
+
+-- Notification « nouvelle course » quand une course retardée devient visible (Pro, téléphone, rendez-vous à la poste)
+create or replace function public.push_ready_orders() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0;
+begin
+  for o in select id from orders
+            where status = 'nouvelle' and courier_id is null and ready_push_at is null
+              and (phone_order or shop_status in ('acceptee', 'prete') or (appt_at is not null and docs_status = 'ok'))
+              and now() >= public.offer_from(orders) and created_at < now() - interval '1 minute'
+  loop
+    update orders set ready_push_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'ready'));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.push_ready_orders() from public, anon, authenticated;
+
+-- Push : « Documents OK » envoie la course aux livreurs en service
+create or replace function public.push_order_event() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare ev text;
+begin
+  if tg_op = 'INSERT' then ev := 'new';
+  elsif new.shop_status = 'acceptee' and old.shop_status is distinct from 'acceptee' then ev := 'shop_ok';
+  elsif new.docs_status = 'ok' and old.docs_status is distinct from 'ok' then ev := 'docs_ok';
+  elsif new.status = 'nouvelle' and old.status <> 'nouvelle' then ev := 'again';
+  else return new; end if;
+  perform public.push_call(jsonb_build_object('order_id', new.id, 'event', ev));
+  return new;
+end;
+$$;
+create or replace trigger orders_push after insert or update of status, shop_status, docs_status on public.orders
+  for each row execute function public.push_order_event();
+
+-- Les photos des documents sont effacées 3 jours après la fin de la course
+create or replace function public.purge_order_docs() returns int
+language sql security definer set search_path = public as $$
+  with d as (delete from order_docs x using orders o
+              where o.id = x.order_id and o.status in ('livree', 'annulee', 'refusee') and x.created_at < now() - interval '3 days'
+              returning x.id)
+  select count(*)::int from d;
+$$;
+revoke execute on function public.purge_order_docs() from public, anon, authenticated;
+do $$ begin
+  perform cron.schedule('hop-purge-docs', '17 3 * * *', 'select public.purge_order_docs()');
+exception when others then raise notice 'pg_cron indisponible : effacer les documents à la main';
+end $$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
