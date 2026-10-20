@@ -190,6 +190,34 @@ function renderPhone() {
   box.querySelectorAll("[data-ready]").forEach(el => el.classList.toggle("on", Number(el.dataset.ready) === state.phoneReady));
 }
 
+// --- Colis à récupérer : les documents demandés selon le lieu (photos), envoyés avec la commande ---------
+const docs = {};
+let docsKey = "";
+function renderDocs() {
+  const box = $("#docsBox");
+  if (!box) return;
+  const need = Store.docsFor(curOrderKind());
+  box.classList.toggle("hidden", !need.length);
+  const rx = val("service") === "achat" && form.rx.checked;
+  const key = need.map(k => k + (docs[k] ? "+" : "")).join(",") + I18N.lang;
+  if (key === docsKey) return;
+  docsKey = key;
+  box.innerHTML = need.length ? `<h4>${UI.esc(t("docsTitle"))}</h4><p>${UI.esc(t("docsWhy"))}</p>
+    ${need.map(k => `<div class="doc-row${docs[k] ? " ok" : ""}">
+      ${docs[k] ? `<img src="${docs[k]}" alt="" />` : `<span class="doc-ph">📄</span>`}
+      <span class="doc-label">${UI.esc(t(k === "identite" && rx ? "doc_identite_rx" : "doc_" + k))}${docs[k] ? `<br><b>${UI.esc(t("docOk"))}</b>` : ""}</span>
+      <label class="btn btn-sm${docs[k] ? "" : " btn-primary"}">${UI.esc(t(docs[k] ? "docChange" : "docAdd"))}<input type="file" accept="image/*" data-doc="${k}" hidden /></label>
+    </div>`).join("")}
+    <p style="margin-top:8px">${UI.esc(t("docsPrivacy"))}</p>` : "";
+}
+// Ce que demande la course en cours de saisie (même règle que la base : order_docs_needed)
+function curOrderKind() {
+  return { service: val("service"), place_kind: val("place_kind"), rx: form.rx.checked, post_send: form.post_send.checked };
+}
+function docsMissing() {
+  return Store.docsFor(curOrderKind()).find(k => !docs[k]);
+}
+
 function syncVisibility() {
   const svc = val("service");
   renderPhone();
@@ -199,7 +227,16 @@ function syncVisibility() {
   if (P.carAvailable === false && gros.checked) form.querySelector('input[name=size][value=moyen]').checked = true;
   form.classList.remove("svc-colis", "svc-retrait", "svc-achat", "svc-repas", "place-poste");
   form.classList.add("svc-" + svc);
+  form.classList.remove("place-locker", "post-send");
+  if (svc === "colis" && form.post_send.checked) form.classList.add("post-send");
+  form.querySelector(".sale-paid").classList.toggle("hidden", !(svc === "colis" && form.p2p_sale.checked));
+  $("#apptNote").textContent = t(svc === "colis" ? "apptNoteSend" : "apptNote");
   if (svc === "retrait" && val("place_kind") === "poste") form.classList.add("place-poste");
+  if (svc === "retrait" && val("place_kind") === "locker") form.classList.add("place-locker");
+  renderDocs();
+  // Supermarché : rappel « petites courses seulement » (le top case du scooter)
+  const sp = state.pick.from && (state.pick.from.brand || state.pick.from.streetName || "");
+  $("#superNote").classList.toggle("hidden", !(svc === "achat" && /rami|רמי|shufersal|שופרסל|victory|ויקטורי|yochananof|יוחננוף|osher|אושר עד|tiv ta|טיב טעם|carrefour|קרפור|yeinot|יינות|mega|מגה|super|סופר/i.test(sp || "")));
   $("#pickupLegend").textContent = t(svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
@@ -833,18 +870,35 @@ function renderAccount() {
   $("#coordsFields").classList.toggle("hidden", known && !editing);
   $("#coordsText").textContent = known ? `${p.contact_name} · ${p.contact_phone}${p.company ? " · " + p.company : ""}` : "";
 
+  // Le carnet d'adresses s'affiche dès la première adresse enregistrée (même avant la première commande)
   const card = $("#accountCard");
-  card.classList.toggle("hidden", !known);
-  if (!known) return;
   const addrs = Store.getAddresses();
+  card.classList.toggle("hidden", !known && !addrs.length);
+  if (!known && !addrs.length) return;
   card.innerHTML = `<h3>${UI.esc(t("accTitle"))}</h3>
-    <p class="muted small">${UI.esc(t("accSaved"))}</p>
+    ${known ? `<p class="muted small">${UI.esc(t("accSaved"))}</p>
     <p style="margin-top:8px"><b>${UI.esc(p.contact_name)}</b> · <span dir="ltr">${UI.esc(p.contact_phone)}</span>${p.contact_email ? " · " + UI.esc(p.contact_email) : ""}
-      · ${UI.esc(t("accOrders", { n: activeOrders().length }))}</p>
+      · ${UI.esc(t("accOrders", { n: activeOrders().length }))}</p>` : ""}
     <b style="display:block;margin-top:10px">${UI.esc(t("accAddrs"))}</b>
-    ${addrs.length ? `<ul>${addrs.map((a, i) => `<li><span>${addrChip(a)}</span>
-        <button type="button" class="btn btn-sm btn-link" data-del-addr="${i}">✕ ${UI.esc(t("accDelete"))}</button></li>`).join("")}</ul>`
+    ${addrs.length ? `<ul>${addrs.map((a, i) => state.editAddr === i ? addrEditForm(a, i) : `<li><span>${addrChip(a)}</span>
+        <span class="acc-addr-btns"><button type="button" class="btn btn-sm btn-link" data-edit-addr="${i}">${UI.esc(t("accEdit"))}</button>
+        <button type="button" class="btn btn-sm btn-link" data-del-addr="${i}">✕ ${UI.esc(t("accDelete"))}</button></span></li>`).join("")}</ul>`
       : `<p class="muted small">${UI.esc(t("accNoAddr"))}</p>`}`;
+}
+// Modifier une adresse enregistrée : son nom (Maison, Travail, autre) et les détails pour le livreur
+function addrEditForm(a, i) {
+  const field = (f, k) => `<label class="f"><span>${UI.esc(t(k))}</span><input data-ae="${f}" value="${UI.esc(a[f] || "")}" /></label>`;
+  return `<li class="addr-edit"><div>
+    <b>${addrIcon(a)} ${UI.esc(addrLabel(a))}</b>
+    <div class="save-tags">${[["home", "🏠 " + t("tagHome")], ["work", "💼 " + t("tagWork")], ["other", "⭐ " + t("tagOther")]].map(([k, l]) =>
+      `<button type="button" class="btn btn-sm${a.tag === k ? " btn-primary" : ""}" data-edit-tag="${k}">${UI.esc(l)}</button>`).join("")}</div>
+    <label class="f ae-name${a.tag === "other" ? "" : " hidden"}"><span>${UI.esc(t("tagNamePh"))}</span><input data-ae="name" maxlength="30" value="${UI.esc(a.tag === "other" ? a.name || "" : "")}" /></label>
+    <div class="ae-grid">${field("floor", "floor")}${field("apt", "apt")}${field("code", "entryCode")}</div>
+    ${field("note", "addrNote")}
+    <p class="muted small">${UI.esc(t("aeStreetHint"))}</p>
+    <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary btn-sm" data-ae-save="${i}">${UI.esc(t("ctSave"))}</button>
+      <button type="button" class="btn btn-sm btn-link" data-ae-cancel>${UI.esc(t("ctCancel"))}</button></div>
+  </div></li>`;
 }
 
 function resetPlaces() {
@@ -909,6 +963,37 @@ async function submit(e) {
     if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showError(t("errPhoneReady")); }
     if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
   }
+  if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
+  if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
+  // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
+  if (form.leave_at_door.checked) {
+    const k = kindOf("dropoff");
+    if (!k) { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showError(t("errDoorKind")); }
+    if (k !== "maison" && !val("dropoff_code").trim()) { form.dropoff_code.focus(); return showError(t("errDoorCode")); }
+    if (k === "appartement" && !val("dropoff_apt").trim()) { form.dropoff_apt.focus(); return showError(t("errDoorCode")); }
+  }
+  // Colis à récupérer : tout ce qu'il faut au guichet, avant d'envoyer la commande
+  if (val("service") === "retrait") {
+    const place = val("place_kind"), locker = place === "locker";
+    if (!val("tracking_number").trim()) { form.tracking_number.focus(); return showError(t("errTracking")); }
+    if (locker ? !val("retrait_code").trim() : !val("parcel_name").trim()) { (locker ? form.retrait_code : form.parcel_name).focus(); return showError(t(locker ? "errRetraitCode" : "errParcelName")); }
+    if (place === "poste") {
+      const a = new Date(val("appt_at")).getTime();
+      if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showError(t("errAppt")); }
+    }
+  }
+  // Dépôt à la poste : rendez-vous ; vente entre particuliers : déjà payée au vendeur
+  if (val("service") === "colis" && form.post_send.checked) {
+    const a = new Date(val("appt_at")).getTime();
+    if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showError(t("errPostAppt")); }
+  }
+  if (val("service") === "colis" && form.p2p_sale.checked && !form.sale_paid.checked) { form.sale_paid.focus(); return showError(t("errSaleUnpaid")); }
+  // Les photos demandées (colis à récupérer, ordonnance, dépôt à la poste)
+  const missDoc = docsMissing();
+  if (missDoc) {
+    $("#docsBox").scrollIntoView({ block: "center" });
+    return showError(t("errDoc", { doc: t(missDoc === "identite" && val("service") === "achat" ? "doc_identite_rx" : "doc_" + missDoc) }));
+  }
   if (val("service") === "achat" && adultItems().length) {
     if (!form.adult_ok.checked) { form.adult_ok.focus(); return showError(t("errAdult")); }
     if (form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())) return showError(t("errAlcoholHours"));
@@ -971,9 +1056,18 @@ async function submit(e) {
       place_kind: svc === "retrait" ? val("place_kind") : null,
       tracking_number: svc === "retrait" ? val("tracking_number").trim() || null : null,
       parcel_name: svc === "retrait" ? val("parcel_name").trim() || null : null,
-      has_proxy: svc === "retrait" && val("place_kind") === "poste" && form.has_proxy.checked,
+      has_proxy: svc === "retrait" && val("place_kind") === "poste" && !!docs.procuration,
+      retrait_code: svc === "retrait" && val("place_kind") === "locker" ? val("retrait_code").trim() : null,
+      appt_at: (svc === "retrait" && val("place_kind") === "poste") || (svc === "colis" && form.post_send.checked) ? new Date(val("appt_at")).toISOString() : null,
+      rx: svc === "achat" && form.rx.checked,
+      post_send: svc === "colis" && form.post_send.checked,
+      p2p_sale: svc === "colis" && form.p2p_sale.checked,
+      sale_paid: svc === "colis" && form.p2p_sale.checked && form.sale_paid.checked,
+      handoff: svc === "colis" && form.handoff.checked,
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
+      goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
+      fits_topcase: svc === "achat" && form.fits_topcase.checked,
       to_city: toCity,
       dropoff_address: dAddr,
       dropoff_place: pt ? pt.brand : null,
@@ -1022,6 +1116,18 @@ async function submit(e) {
     if (!order.shop_token) delete order.shop_token;
     const firstOrder = activeOrders().length === 0;
     const saved = await Store.createOrder(order);
+    // Les photos des documents partent juste après la commande (le patron les vérifie avant d'envoyer un livreur)
+    let docsFailed = false;
+    if (Store.docsFor(saved).length) {
+      $("#submitBtn").textContent = t("docsSending");
+      for (const k of Store.docsFor(saved)) {
+        if (!docs[k]) continue;
+        try { if (!(await Store.addOrderDoc(saved.token, k, docs[k]))) docsFailed = true; } catch (e) { docsFailed = true; }
+      }
+      Object.keys(docs).forEach(k => delete docs[k]);
+      docsKey = "";
+      renderDocs();
+    }
     clearDraft();
     rememberAddresses(saved, pf, pt);
     // Bit : on paie tout de suite, depuis cet écran (créneau réservé : obligatoire)
@@ -1037,14 +1143,14 @@ async function submit(e) {
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
 
     $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(saved.price) }));
-    $("#doneSub").textContent = t(Store.ONLINE ? "doneOnline" : "doneDemo");
+    $("#doneSub").textContent = t(Store.ONLINE ? "doneOnline" : "doneDemo") + (Store.docsFor(saved).length ? " " + t(docsFailed ? "errDocsUpload" : "doneDocs") : "") + (saved.handoff ? " " + t("doneHandoff") : "");
     $("#doneWa").href = UI.waLink(CONFIG.whatsapp, UI.orderText(saved));
     $("#doneWa").classList.toggle("hidden", Store.ONLINE);
     $("#doneTrack").href = UI.trackUrl(saved);
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
-    ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
+    ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "retrait_code", "appt_at", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     setKind("pickup", null); setKind("dropoff", null);
     state.stops = []; renderStops();
@@ -1053,7 +1159,8 @@ async function submit(e) {
     resetPlaces();
     applyShop();
     form.leave_at_door.checked = false;
-    form.phone_order.checked = false; form.phone_paid.checked = false; state.phoneReady = null;
+    form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; form.fits_topcase.checked = false;
+    ["rx", "post_send", "p2p_sale", "sale_paid", "handoff"].forEach(k => { form.elements[k].checked = false; }); state.phoneReady = null;
     state.cart = {}; renderCatalog();
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
@@ -1064,6 +1171,16 @@ async function submit(e) {
     if (/alcohol_hours/.test(ex.message)) return showError(t("errAlcoholHours"));
     if (/phone_name_required/.test(ex.message)) return showError(t("errPhoneName"));
     if (/phone_unpaid/.test(ex.message)) return showError(t("errPhonePaid"));
+    if (/goods_pay_required/.test(ex.message)) return showError(t("errGoodsPay"));
+    if (/topcase_required/.test(ex.message)) return showError(t("errTopcase"));
+    if (/door_kind/.test(ex.message)) return showError(t("errDoorKind"));
+    if (/door_code/.test(ex.message)) return showError(t("errDoorCode"));
+    if (/retrait_tracking/.test(ex.message)) return showError(t("errTracking"));
+    if (/retrait_name/.test(ex.message)) return showError(t("errParcelName"));
+    if (/retrait_code/.test(ex.message)) return showError(t("errRetraitCode"));
+    if (/retrait_appt/.test(ex.message)) return showError(t("errAppt"));
+    if (/post_appt/.test(ex.message)) return showError(t("errPostAppt"));
+    if (/sale_unpaid/.test(ex.message)) return showError(t("errSaleUnpaid"));
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;
@@ -1247,6 +1364,7 @@ function renderAll() {
   renderAccount();
   renderShopBanner();
   renderHomeStatic();
+  renderShowcase();
   syncHome();
   renderLive();
 }
@@ -1281,20 +1399,24 @@ function renderCatalog() {
   const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
   if (state.cgCat && !cats.some(c => c.id === state.cgCat) && state.cgCat !== "_") state.cgCat = "";
   const list = cgProducts().filter(p => !state.cgCat || (state.cgCat === "_" ? !cats.some(c => c.id === p.category_id) : p.category_id === state.cgCat));
+  // « Tout » : le menu par rubriques, comme dans les applis de livraison ; une rubrique choisie : ses produits
+  const sections = state.cgCat ? [{ title: "", items: list }]
+    : cats.map(c => ({ title: c.name, items: list.filter(p => p.category_id === c.id) }))
+      .concat(hasLoose ? [{ title: cats.length ? t("cgOther") : "", items: list.filter(p => !cats.some(c => c.id === p.category_id)) }] : []);
   const n = cartCount();
   const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: state.shop.name }))}</b>
     ${cats.length ? `<div class="cg-cats"><button type="button" class="ch-chip${!state.cgCat ? " on" : ""}" data-cg-cat="">${UI.esc(t("cgAll"))}</button>${cats.map(c =>
       `<button type="button" class="ch-chip${state.cgCat === c.id ? " on" : ""}" data-cg-cat="${UI.esc(c.id)}">${UI.esc(c.name)}</button>`).join("")}${hasLoose ? `<button type="button" class="ch-chip${state.cgCat === "_" ? " on" : ""}" data-cg-cat="_">${UI.esc(t("cgOther"))}</button>` : ""}</div>` : ""}
-    <div class="cg-grid">${list.map(p => {
-      const q = state.cart[p.id] || 0;
-      return `<div class="cg-item${p.available ? "" : " off"}">
-        ${p.photo ? `<img src="${UI.esc(p.photo)}" alt="" loading="lazy" />` : `<span class="cg-nophoto">🍽️</span>`}
+    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
+      const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
+      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}">
         <div class="cg-info"><b>${UI.esc(p.name)}</b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
+        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : `<span class="cg-nophoto">${state.shop.kind === "restaurant" ? "🍽️" : UI.KIND_ICON[state.shop.kind] || "🛍️"}</span>`}
         ${!p.available ? `<span class="cg-out">${UI.esc(t("cgOut"))}</span>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
-          : `<button type="button" class="btn btn-sm btn-primary" data-cg-plus="${UI.esc(p.id)}">${UI.esc(t("cgAdd"))}</button>`}
+          : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
       </div>`;
-    }).join("")}</div>
+    }).join("")}</div>`).join("")}
     <div class="cg-cart${n ? "" : " empty"}">${n ? UI.esc(t("cgCart", { n, total: money(cartTotal()) })) : UI.esc(t("cgEmpty"))}<small>${UI.esc(t("cgPayShop", { name: state.shop.name }))}</small></div>`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
@@ -1318,6 +1440,18 @@ const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method"
 function renderShopBanner() {
   const on = shopPicked();
   $("#shopBanner").classList.toggle("hidden", !on);
+  // Commerce HOP! Pro : sa vitrine en haut de la commande (photo, logo, accroche), comme dans les applis de livraison
+  const s = state.shop, hero = $("#shopHero"), showHero = !!(on && s && (s.pro || s.logo || s.cover));
+  hero.classList.toggle("hidden", !showHero);
+  if (showHero) {
+    const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), kinds = t("shKinds") || {};
+    const initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    const html = `<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
+      <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
+        <div class="sh-txt"><b>${UI.esc(s.name)}</b><small>${UI.esc(s.tagline || kinds[s.kind] || "")}</small></div></div>
+      ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice()) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}`;
+    if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
+  }
   if (on) $("#shopBannerText").textContent = t("shBanner", { name: state.shop.name });
   const pro = proShopOn();
   $("#shopOrderBox").classList.toggle("hidden", !pro);
@@ -1505,16 +1639,20 @@ function initHome() {
     if (e.target.closest("#homeRepeatBtn")) repeatLast();
     const en = e.target.closest("[data-ens]");
     if (en) openEns(en.dataset.ens);
+    const pr = e.target.closest("[data-pro]");
+    if (pr && pr.dataset.pro) loadShop(pr.dataset.pro);
   });
   $("#ensCats").addEventListener("click", e => { const b = e.target.closest("[data-ens]"); if (b) openEns(b.dataset.ens); });
   $("#ensFilter").addEventListener("input", renderEnsList);
   $("#ensClose").addEventListener("click", () => $("#ensModal").classList.add("hidden"));
   $("#ensModal").addEventListener("click", e => {
     if (e.target.id === "ensModal") return $("#ensModal").classList.add("hidden");
+    if (e.target.closest("[data-ens-retry]")) return openEns(ens.cat);
     const b = e.target.closest("[data-ens-pick]");
     if (b) pickEnseigne(b.dataset.ensPick, ens.shown[Number(b.dataset.i)]);
   });
   loadPartners();
+  loadShowcase();
   initHomeMap();
   // Position déjà autorisée : on centre la carte sur le client (sans rien lui demander)
   if (navigator.permissions && navigator.geolocation) {
@@ -1820,6 +1958,27 @@ function partnerPlace(sh) {
     housenumber: "", street: sh.address || "", city: cityLabel(cityId || sh.city), cityId, exact: true,
     label: [sh.name, sh.address, cityLabel(cityId || sh.city)].filter(Boolean).join(", ") };
 }
+// --- Vitrine : les commerces HOP! Pro abonnés, mis en avant sur l'accueil (logo, photo, accroche) -------
+state.showcase = [];
+function proPrice() {
+  const st = state.settings || {};
+  const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
+  return Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - share);
+}
+function renderShowcase() {
+  const list = state.showcase || [];
+  $("#homeProBox").classList.toggle("hidden", !list.length);
+  const kinds = t("shKinds") || {};
+  $("#homePro").innerHTML = list.map(s => UI.proCard(s, {
+    kindLabel: kinds[s.kind] || "", delivery: t("proDelivery", { price: money(proPrice()) }),
+    menu: s.products ? t("proMenu", { n: s.products }) : "", go: t("proGo")
+  })).join("");
+}
+async function loadShowcase() {
+  try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { state.showcase = []; }
+  renderShowcase();
+}
+
 async function loadPartners() {
   try { state.partners = ((await Store.shopsDirectory()) || []).filter(x => x.lat != null); } catch (e) { state.partners = []; }
   // En tapant « Fal… », le commerce partenaire Falafel Haim sort en premier
@@ -1842,7 +2001,10 @@ async function openEns(catId) {
   $("#ensFilter").value = "";
   $("#ensList").innerHTML = `<p class="ens-empty">⏳ ${UI.esc(t("ensLoading"))}</p>`;
   try { ens.items = await Enseignes.list(catId, at, I18N.lang); }
-  catch (e) { if (mine === ens.seq) $("#ensList").innerHTML = `<p class="ens-empty">⚠️ ${UI.esc(t("ensDown"))}</p>`; return; }
+  catch (e) {
+    if (mine === ens.seq) $("#ensList").innerHTML = `<p class="ens-empty">⚠️ ${UI.esc(t("ensDown"))}<br><button type="button" class="btn btn-sm" data-ens-retry style="margin-top:10px">${UI.esc(t("ensRetry"))}</button></p>`;
+    return;
+  }
   if (mine === ens.seq) renderEnsList();
 }
 function renderEnsList() {
@@ -1920,6 +2082,14 @@ form.addEventListener("change", e => {
   renderQuote();
 });
 form.addEventListener("submit", submit);
+// Photo d'un document : réduite sur le téléphone puis gardée jusqu'à l'envoi de la commande
+$("#docsBox").addEventListener("change", async e => {
+  const inp = e.target.closest("[data-doc]");
+  if (!inp || !inp.files[0]) return;
+  e.stopPropagation();
+  try { docs[inp.dataset.doc] = await UI.docPhoto(inp.files[0]); } catch (ex) { return showError(t("errDocPhoto")); }
+  renderDocs();
+});
 form.addEventListener("input", e => { if (PROFILE_FIELDS.includes(e.target.name)) rememberProfile(); });
 // Mise en forme du numéro quand on quitte le champ (052-123-4567)
 form.addEventListener("focusout", e => {
@@ -1978,8 +2148,33 @@ $("#shopBannerOff").addEventListener("click", () => {
 });
 $("#coordsEdit").addEventListener("click", () => { $("#coordsBox").dataset.editing = "1"; renderAccount(); form.contact_name.focus(); });
 $("#accountCard").addEventListener("click", e => {
+  const ed = e.target.closest("[data-edit-addr]");
+  if (ed) { state.editAddr = Number(ed.dataset.editAddr); renderAccount(); return; }
+  const tg = e.target.closest("[data-edit-tag]");
+  if (tg) {
+    // Toucher le nom déjà choisi l'enlève ; « Autre nom » ouvre le champ du nom
+    const li = tg.closest(".addr-edit"), on = !tg.classList.contains("btn-primary");
+    li.querySelectorAll("[data-edit-tag]").forEach(x => x.classList.toggle("btn-primary", on && x === tg));
+    li.querySelector(".ae-name").classList.toggle("hidden", !(on && tg.dataset.editTag === "other"));
+    if (on && tg.dataset.editTag === "other") li.querySelector('[data-ae="name"]').focus();
+    return;
+  }
+  if (e.target.closest("[data-ae-cancel]")) { state.editAddr = null; renderAccount(); return; }
+  const sv = e.target.closest("[data-ae-save]");
+  if (sv) {
+    const li = sv.closest(".addr-edit"), v = f => li.querySelector(`[data-ae="${f}"]`).value.trim() || null;
+    const sel = li.querySelector("[data-edit-tag].btn-primary"), tag = sel ? sel.dataset.editTag : null;
+    const name = tag === "other" ? (v("name") || "").slice(0, 30) : null;
+    if (tag === "other" && !name) { li.querySelector('[data-ae="name"]').focus(); return; }
+    Store.updateAddress(Number(sv.dataset.aeSave), { tag, name, floor: v("floor"), apt: v("apt"), code: v("code"), note: v("note") });
+    state.editAddr = null;
+    renderSavedAddrs();
+    renderAccount();
+    return;
+  }
   const b = e.target.closest("[data-del-addr]");
   if (!b) return;
+  state.editAddr = null;
   Store.deleteAddress(Number(b.dataset.delAddr));
   renderSavedAddrs();
   renderAccount();

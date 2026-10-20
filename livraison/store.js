@@ -26,7 +26,9 @@ const LS = {
   sales: "livraison.carnetSales.v1",
   planSales: "livraison.planSales.v1",
   chat: "livraison.chat.v1",
-  catalog: "livraison.catalog.v1"
+  catalog: "livraison.catalog.v1",
+  docs: "livraison.docs.v1",
+  penalties: "livraison.penalties.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -250,6 +252,41 @@ async function createOrder(order) {
       network: false, tip: 0, tip_status: null,
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
     });
+    // « J'achète pour vous » : le client règle le magasin lui-même, le livreur n'avance jamais d'argent
+    if (order.service === "achat" && !order.goods_self_pay) throw new Error("goods_pay_required");
+    order.goods_self_pay = order.service === "achat";
+    if (order.service === "achat" && !order.fits_topcase) throw new Error("topcase_required");
+    order.fits_topcase = order.service === "achat";
+    // Sans contact : type de lieu, code d'entrée (sauf maison) et n° d'appartement
+    if (order.leave_at_door) {
+      if (!order.dropoff_kind) throw new Error("door_kind");
+      if ((order.dropoff_kind !== "maison" && !String(order.dropoff_code || "").trim()) || (order.dropoff_kind === "appartement" && !String(order.dropoff_apt || "").trim())) throw new Error("door_code");
+    }
+    // Colis à récupérer : même contrôle que la base (n°, nom ou code, rendez-vous à la poste), documents à vérifier
+    if (order.service === "retrait") {
+      if (!["poste", "superpharm", "relais", "locker", "autre"].includes(order.place_kind)) throw new Error("retrait_place");
+      if (!String(order.tracking_number || "").trim()) throw new Error("retrait_tracking");
+      if (order.place_kind === "locker") { if (!String(order.retrait_code || "").trim()) throw new Error("retrait_code"); }
+      else { order.retrait_code = null; if (!String(order.parcel_name || "").trim()) throw new Error("retrait_name"); }
+      if (order.place_kind === "poste") {
+        const a = new Date(order.appt_at).getTime();
+        if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) throw new Error("retrait_appt");
+        order.pickup_at = new Date(a).toISOString();
+      } else order.appt_at = null;
+      Object.assign(order, { docs_status: "a_verifier", docs_note: null });
+    } else Object.assign(order, { docs_status: null, docs_note: null, retrait_code: null });
+    // Cas particuliers (même contrôle que la base) : ordonnance, dépôt à la poste, vente entre particuliers, code de remise
+    if (order.service !== "achat") order.rx = false;
+    if (order.service !== "colis") Object.assign(order, { post_send: false, p2p_sale: false });
+    if (!order.p2p_sale) order.sale_paid = false; else if (!order.sale_paid) throw new Error("sale_unpaid");
+    if (order.post_send) {
+      const a = new Date(order.appt_at).getTime();
+      if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) throw new Error("post_appt");
+      order.pickup_at = new Date(Math.max(Date.now(), a - 30 * 60000)).toISOString();
+    } else if (order.service !== "retrait") order.appt_at = null;
+    if (order.service !== "retrait") order.docs_status = order.rx || order.post_send ? "a_verifier" : null;
+    order.handoff_ok_at = null;
+    order.handoff_code = order.handoff ? String(Math.floor(Math.random() * 10000)).padStart(4, "0") : null;
     // Commande passée par téléphone (commerce pas sur HOP!) : nom, déjà payée, heure « prête » (au plus 3 h)
     if (order.phone_order && !order.shop_id && order.service !== "achat") {
       if (!String(order.pickup_name || "").trim()) throw new Error("phone_name_required");
@@ -318,6 +355,17 @@ function saveAddress(a) {
   writeJSON(LS.addresses, list.slice(0, 10));
 }
 function deleteAddress(i) { const list = getAddresses(); list.splice(i, 1); writeJSON(LS.addresses, list); }
+// Modifier une adresse enregistrée : Maison / Travail / autre nom, étage, appartement, code, note
+function updateAddress(i, patch) {
+  let list = getAddresses();
+  if (!list[i]) return;
+  const tag = patch.tag === "other" && !patch.name ? null : patch.tag || null;
+  if (tag === "home" || tag === "work") list = list.map((x, j) => (j !== i && x.tag === tag ? Object.assign({}, x, { tag: null, name: null }) : x));
+  list[i] = Object.assign({}, list[i], patch, { tag, name: tag === "other" ? patch.name : null });
+  const rank = x => (x.tag in TAG_RANK ? TAG_RANK[x.tag] : 9);
+  list.sort((x, y) => (rank(x) - rank(y)) || (y.uses - x.uses) || (y.at - x.at));
+  writeJSON(LS.addresses, list);
+}
 function saveProfile(p) { writeJSON(LS.profile, p); }
 
 // --- Connexion (patron et livreurs) ---------------------------------------------
@@ -457,6 +505,7 @@ const declined = (orderId, courierId) => readJSON(LS.declines, []).some(d => d.o
 // Quand la course devient visible : commande Pro ou par téléphone → pro_lead_min min avant l'heure « prête »
 function offerFrom(o, st) {
   const created = new Date(o.created_at).getTime();
+  if (o.appt_at) return Math.max(created, new Date(o.appt_at) - 40 * 60000);
   return (o.shop_status || o.phone_order) && o.ready_at ? Math.max(created, new Date(o.ready_at) - Number(st.pro_lead_min) * 60000) : created;
 }
 function canSeeNew(o, id, st) {
@@ -465,6 +514,8 @@ function canSeeNew(o, id, st) {
   if (!onlineNow(localCouriers().find(c => c.id === id)) || declined(o.id, id)) return false;
   // HOP! Pro : proposée quand le commerce a accepté, pour arriver au moment où c'est prêt
   if (o.shop_status && !["acceptee", "prete"].includes(o.shop_status)) return false;
+  // Colis à récupérer : seulement quand le patron a vérifié les documents
+  if (o.docs_status && o.docs_status !== "ok") return false;
   if (Date.now() < offerFrom(o, st)) return false;
   if (o.referrer_id && o.referrer_id === id) return true;
   const ranked = o.pickup_lat == null ? [] : localCouriers()
@@ -588,6 +639,74 @@ async function acceptOrder(id) {
 }
 
 // Livreur : "recuperee", "livree", "paye" ou "liberer" (rendre la course)
+// --- Course pas reçue / pas faite : signalement du client, retenue au livreur (déduite de son versement) ----
+async function claimOrder(token, note) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_claim", { method: "POST", body: { p_token: token, p_note: note || null } });
+  const all = localOrders(), o = all.find(x => x.token === token);
+  if (!o || o.status !== "livree" || o.claim_status || Date.now() - new Date(o.delivered_at || o.pickup_at) > 48 * 3600000) return false;
+  Object.assign(o, { claim_status: "ouverte", claim_note: String(note || "").trim().slice(0, 300) || null, claim_at: new Date().toISOString() });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "client", author_name: o.contact_name, image: null,
+    body: "⚠️ Commande pas reçue · ההזמנה לא הגיעה" + (o.claim_note ? " : " + o.claim_note : "") });
+  return true;
+}
+async function penaltyAdd(courierId, orderId, amount, reason) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_penalty_add", { method: "POST", body: { p_courier: courierId, p_order: orderId || null, p_amount: amount, p_reason: reason } });
+  const all = localOrders(), o = orderId && all.find(x => x.id === orderId);
+  const p = { id: uuid(), courier_id: courierId, order_id: orderId || null, order_ref: o ? o.ref : null, amount: Math.round(Number(amount) * 100) / 100,
+    reason: String(reason).trim().slice(0, 300), status: "du", created_at: new Date().toISOString(), settled_at: null };
+  writeJSON(LS.penalties, [p, ...readJSON(LS.penalties, [])]);
+  if (o && o.claim_status === "ouverte") { o.claim_status = "retenue"; saveLocalOrders(all); }
+  chatLocalAdd({ thread: "c:" + courierId, author: "admin", author_name: "HOP!", image: null,
+    body: `💸 Retenue de ${p.amount} ₪${p.order_ref ? " · course n° " + p.order_ref : ""} : ${p.reason}. Elle est déduite de votre prochain versement. Vous pouvez répondre ici avec vos preuves (photo, position).` });
+  return p.id;
+}
+async function penaltyCancel(id) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_penalty_cancel", { method: "POST", body: { p_id: id } });
+  const list = readJSON(LS.penalties, []), p = list.find(x => x.id === id && x.status === "du");
+  if (!p) return false;
+  p.status = "annulee";
+  writeJSON(LS.penalties, list);
+  chatLocalAdd({ thread: "c:" + p.courier_id, author: "admin", author_name: "HOP!", image: null, body: `✅ Retenue de ${p.amount} ₪ annulée${p.order_ref ? " (course n° " + p.order_ref + ")" : ""}.` });
+  return true;
+}
+async function claimClose(orderId) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_claim_close", { method: "POST", body: { p_order: orderId } });
+  const all = localOrders(), o = all.find(x => x.id === orderId && x.claim_status === "ouverte");
+  if (!o) return false;
+  o.claim_status = "classee";
+  saveLocalOrders(all);
+  return true;
+}
+async function listPenalties() {
+  if (ONLINE) return (await authRest("/rest/v1/rpc/admin_penalties", { method: "POST", body: {} })) || [];
+  return readJSON(LS.penalties, []);
+}
+async function myPenalties() {
+  if (ONLINE) return (await authRest("/rest/v1/rpc/my_penalties", { method: "POST", body: {} })) || [];
+  return readJSON(LS.penalties, []).filter(p => p.courier_id === myId() && p.status !== "annulee");
+}
+async function settlePenalties(courierId) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_penalties_settle", { method: "POST", body: { p_courier: courierId } });
+  const list = readJSON(LS.penalties, []);
+  list.forEach(p => { if (p.courier_id === courierId && p.status === "du") Object.assign(p, { status: "regle", settled_at: new Date().toISOString() }); });
+  writeJSON(LS.penalties, list);
+  return true;
+}
+
+// Code de remise (clés, objet de valeur) : le livreur tape le code donné par le destinataire
+async function courierHandoff(id, code) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_handoff", { method: "POST", body: { p_id: id, p_code: code } });
+  const all = localOrders(), o = all.find(x => x.id === id && x.courier_id === myId() && x.status === "recuperee" && x.handoff);
+  if (!o) return false;
+  o.handoff_tries = (o.handoff_tries || 0) + 1;
+  if (o.handoff_tries > 5) { saveLocalOrders(all); throw new Error("too_many_tries"); }
+  const ok = String(code || "").trim() === o.handoff_code;
+  if (ok) o.handoff_ok_at = new Date().toISOString();
+  saveLocalOrders(all);
+  return ok;
+}
+
 async function courierAction(id, action) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_update", { method: "POST", body: { p_id: id, p_action: action } });
   const all = localOrders();
@@ -626,7 +745,9 @@ async function courierAction(id, action) {
     }
     // « Déposer devant la porte » : photo du colis obligatoire dans la conversation
     if (!free && o.leave_at_door && !chatLocal().some(m => m.thread === "o:" + o.id && m.author === "courier" && m.image)) throw new Error("photo_required");
-    o.status = "livree"; referralCheck(o, "recuperee", all, await getSettings()); }
+    // Clés ou objet de valeur : le destinataire a donné le bon code de remise
+    if (!free && o.handoff && !o.handoff_ok_at) throw new Error("handoff_required");
+    o.status = "livree"; o.delivered_at = new Date().toISOString(); referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
     Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
@@ -725,6 +846,27 @@ async function shopsDirectory() {
   if (ONLINE) return rest("/rest/v1/rpc/shops_directory", { method: "POST", body: {} });
   return localShops().filter(x => x.status === "actif")
     .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, address: x.address, lat: x.lat, lon: x.lon, pro: planActive(x) }));
+}
+
+// Vitrine HOP! Pro : les commerces abonnés pour l'accueil, et le logo / la couverture / l'accroche du commerce
+async function shopsShowcase() {
+  if (ONLINE) return (await rest("/rest/v1/rpc/shops_showcase", { method: "POST", body: {} })) || [];
+  const cat = readJSON(LS.catalog, {});
+  return localShops().filter(x => x.status === "actif" && planActive(x))
+    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null,
+      products: ((cat[x.id] || {}).products || []).filter(p => p.available).length }))
+    .sort((a, b) => (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || a.name.localeCompare(b.name));
+}
+// logo / cover : null = garder, "" = enlever
+async function saveShopBrand(token, b) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_brand_save", { method: "POST", body: { p_token: token, p_logo: b.logo, p_cover: b.cover, p_tagline: b.tagline || null } });
+  const shops = localShops(), s = shops.find(x => x.token === token);
+  if (!s) return false;
+  if (b.logo != null) s.logo = b.logo || null;
+  if (b.cover != null) s.cover = b.cover || null;
+  s.tagline = String(b.tagline || "").trim().slice(0, 90) || null;
+  writeJSON(LS.shops, shops);
+  return true;
 }
 
 // HOP! Pro : le commerce accepte une commande avec un temps de préparation, la marque prête, ou la refuse
@@ -981,7 +1123,8 @@ function shopTokenFor(code) { return readJSON(LS.shopCodes, {})[String(code || "
 const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISOString().slice(0, 10));
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
-      pro: planActive(s), shop_share: DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
+      pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null,
+      shop_share: DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
 async function shopByCode(code) {
   if (!code) return null;
@@ -1232,6 +1375,49 @@ async function broadcastClients(body, days) {
   devices.forEach(d => chatLocalAdd({ thread: "u:" + d, author: "admin", author_name: "HOP!", body: clean(body) }));
   return devices.length;
 }
+// --- Colis à récupérer : documents du client (avis/SMS, carte d'identité, procuration, rendez-vous) ----------
+function docsNeeded(place) { return place === "poste" ? ["avis", "identite", "procuration", "rdv"] : place === "locker" ? ["avis"] : ["avis", "identite"]; }
+// Les documents d'une course (même règle que la base : order_docs_needed)
+function docsFor(o) {
+  return o.service === "retrait" ? docsNeeded(o.place_kind) : o.service === "achat" && o.rx ? ["identite", "ordonnance"]
+    : o.service === "colis" && o.post_send ? ["rdv", "etiquette"] : [];
+}
+async function addOrderDoc(token, kind, photo) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_doc_add", { method: "POST", body: { p_token: token, p_kind: kind, p_photo: photo } });
+  const all = localOrders(), o = all.find(x => x.token === token);
+  if (!o || !o.docs_status || o.status !== "nouvelle" || o.docs_status === "ok" || !docsFor(o).includes(kind)) return false;
+  const docs = readJSON(LS.docs, {});
+  (docs[o.id] = docs[o.id] || []).push({ kind, photo, created_at: new Date().toISOString() });
+  writeJSON(LS.docs, docs);
+  if (o.docs_status === "refuse") {
+    o.docs_status = "a_verifier";
+    saveLocalOrders(all);
+    chatLocalAdd({ thread: "o:" + o.id, author: "client", author_name: o.contact_name, body: "📄 Document ajouté · מסמך נוסף", image: null });
+  }
+  return true;
+}
+async function orderDocsSent(token) {
+  if (ONLINE) return (await rest("/rest/v1/rpc/order_docs_sent", { method: "POST", body: { p_token: token } })) || [];
+  const o = localOrders().find(x => x.token === token);
+  return o ? [...new Set((readJSON(LS.docs, {})[o.id] || []).map(d => d.kind))] : [];
+}
+// Les photos : le patron, et le livreur de la course (vérifié par la base en ligne)
+async function orderDocs(orderId) {
+  if (ONLINE) return (await authRest("/rest/v1/rpc/order_docs", { method: "POST", body: { p_order: orderId } })) || [];
+  return readJSON(LS.docs, {})[orderId] || [];
+}
+async function docsVerdict(orderId, ok, note) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_docs_verdict", { method: "POST", body: { p_order: orderId, p_ok: ok, p_note: note || null } });
+  const all = localOrders(), o = all.find(x => x.id === orderId && x.docs_status && x.status === "nouvelle");
+  if (!o) return false;
+  Object.assign(o, { docs_status: ok ? "ok" : "refuse", docs_note: ok ? null : String(note || "").trim().slice(0, 300) || null });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "admin", author_name: "HOP!", image: null, body: ok
+    ? "✅ Documents vérifiés : nous envoyons un livreur. · המסמכים אושרו: אנחנו שולחים שליח."
+    : `📄 Il manque : ${o.docs_note || "…"} — ajoutez-le depuis le suivi de votre course. · חסר מסמך: הוסיפו אותו מדף המעקב.` });
+  return true;
+}
+
 async function chatSend(thread, author, authorName, body, image) {
   const m = { thread, author, author_name: authorName || null, body: clean(body), image: image || null };
   if (ONLINE) return authRest("/rest/v1/chat_messages", { method: "POST", body: m, prefer: "return=minimal" });
@@ -1288,15 +1474,17 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
+  createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, shopSignup, shopByCode, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
+  docsNeeded, docsFor, addOrderDoc, courierHandoff,
+  claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
   chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };

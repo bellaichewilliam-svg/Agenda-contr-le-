@@ -59,21 +59,28 @@ Deno.serve(async req => {
     const when = o.urgency === "asap" || o.urgency === "express" ? "Dès que possible" : new Date(o.pickup_at)
       .toLocaleString("fr-FR", { timeZone: "Asia/Jerusalem", weekday: "short", hour: "2-digit", minute: "2-digit" });
     if (ev.event === "new") {
+      const docs = o.docs_status === "a_verifier" ? "📄 Colis à récupérer : documents à vérifier\n" : "";
       sent += await sendTo(await admins(), { title: `🆕 Nouvelle commande · ${money(o.price)}`,
-        body: `${o.ref} · ${when}\n${route}\n👤 ${o.contact_name}`, url: "patron/", tag: "o-" + o.id }, site);
+        body: `${docs}${o.ref} · ${when}\n${route}\n👤 ${o.contact_name}`, url: "patron/", tag: "o-" + o.id }, site);
+    } else if (ev.event === "late") {
+      // Course en retard : personne ne l'a prise, pas récupérée, pas livrée
+      sent += await sendTo(await admins(), { title: `⏰ Course en retard · ${o.ref}`,
+        body: `${ev.why || ""}\n${route}${o.courier_name ? "\n🛵 " + o.courier_name : ""}`, url: "patron/", tag: "late-" + o.id }, site);
     } else if (ev.event === "again") {
       sent += await sendTo(await admins(), { title: `↩️ Course remise en attente · ${o.ref}`,
         body: route, url: "patron/", tag: "o-" + o.id }, site);
     }
     // Les livreurs en service : seulement une course qu'on peut prendre maintenant
     // (une commande HOP! Pro attend d'abord que le commerce l'accepte)
-    // (commande Pro ou par téléphone : seulement quand elle devient visible, quelques minutes avant l'heure « prête »)
+    // (commande Pro ou par téléphone : seulement quand elle devient visible, quelques minutes avant l'heure « prête » ;
+    // colis à la poste : 40 min avant le rendez-vous, et seulement quand le patron a vérifié les documents)
     const { data: st } = await db.from("settings").select("pro_lead_min").eq("id", 1).single();
-    const delayed = !!(o.shop_status || o.phone_order) && o.ready_at
-      && new Date(o.ready_at).getTime() - Number((st && st.pro_lead_min) || 8) * 60000 > Date.now();
-    const open = o.status === "nouvelle" && !o.courier_id && !delayed
+    const delayed = (!!(o.shop_status || o.phone_order) && o.ready_at
+      && new Date(o.ready_at).getTime() - Number((st && st.pro_lead_min) || 8) * 60000 > Date.now())
+      || (!!o.appt_at && new Date(o.appt_at).getTime() - 40 * 60000 > Date.now());
+    const open = o.status === "nouvelle" && !o.courier_id && !delayed && (!o.docs_status || o.docs_status === "ok")
       && (!o.shop_status || o.shop_status === "acceptee" || o.shop_status === "prete");
-    if (open && ["new", "again", "shop_ok", "ready"].includes(ev.event)) {
+    if (open && ["new", "again", "shop_ok", "ready", "docs_ok"].includes(ev.event)) {
       sent += await sendTo(await onDuty(), { title: `🛵 Nouvelle course · ${money(o.price)}`,
         body: `${when} · ${route}`, url: "livreur/", tag: "o-" + o.id }, site);
     }
@@ -97,7 +104,8 @@ Deno.serve(async req => {
       }
       sent += await sendTo(to, { title: "💬 HOP!", body: text, url: "livreur/", tag: "m-" + ev.thread }, site);
     } else {
-      sent += await sendTo(await admins(), { title: `💬 ${who}`, body: text, url: "patron/", tag: "m-" + ev.thread }, site);
+      const claim = /^⚠️ Commande pas reçue/.test(text);
+      sent += await sendTo(await admins(), { title: claim ? "⚠️ Course pas reçue par le client" : `💬 ${who}`, body: text, url: "patron/", tag: "m-" + ev.thread }, site);
       if (kind === "o" && ev.author === "client") {
         const { data: o } = await db.from("orders").select("courier_id, status").eq("id", id).single();
         if (o && o.courier_id && ["confirmee", "recuperee"].includes(o.status)) {

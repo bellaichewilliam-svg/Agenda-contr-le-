@@ -16,6 +16,7 @@ const TERMS = [
   "Je travaille comme indépendant : je suis enregistré comme עוסק (פטור ou מורשה), je déclare moi-même mes revenus et je remets un reçu aux clients que j'encaisse.",
   "Je suis responsable des colis qui me sont confiés, de leur état et de l'argent encaissé, de la récupération jusqu'à la livraison.",
   "Je valide « Livré » seulement une fois sur place, à l'adresse du client : l'application vérifie ma position GPS.",
+  "Course acceptée mais pas faite, ou déclarée livrée mais pas reçue par le client : après vérification par HOP, le prix de la course et la valeur de la commande sont retenus sur mon versement de la semaine. Je peux répondre avec mes preuves (photo, position).",
   "Je respecte le code de la route et les règles de sécurité (casque, pas de téléphone en main en conduisant).",
   `Je verse à HOP une commission par course livrée (${UI.commissionText()} ; ${UI.networkText()} sur les courses de mes commerces), réglée chaque semaine.`,
   "Je suis poli et ponctuel. Si je ne peux plus faire une course acceptée, je la remets en attente tout de suite.",
@@ -29,6 +30,8 @@ let settings = { referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minu
 let refs = { shops: [], orders: [], board: [] };
 let msgs = { messages: [], replies: [] };
 let balance = 0;   // ce que le livreur doit à HOP (négatif : HOP lui doit)
+let pens = [];     // retenues (courses pas faites ou pas reçues), déduites du versement de la semaine
+const penDue = () => pens.filter(p => p.status === "du").reduce((x, p) => x + Number(p.amount || 0), 0);
 let tab = "home";   // "home" = carte + panneau du bas ; sinon une page du menu
 let firstLoad = true;
 const seenPool = new Set();
@@ -269,6 +272,7 @@ async function load() {
     // Parrainage et messages : un souci ici ne doit pas bloquer les courses
     const [r, m, bal, dem, acc, fc] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
       Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null), Store.myAcceptance().catch(() => null), Store.demandForecast().catch(() => null)]);
+    pens = (await Store.myPenalties().catch(() => null)) || pens;
     if (dem) demand = dem;
     if (acc) acceptance = acc;
     if (fc) forecast = fc;
@@ -313,8 +317,14 @@ function card(o, kind) {
       <a class="btn btn-sm btn-primary" href="${navLink(o, which)}" target="_blank" rel="noopener">🧭 Y aller (${riderSet.nav === "maps" ? "Maps" : "Waze"})</a></div>` : "";
   const telLink = (name, phone) => kind === "mine" && phone ? `<span class="small muted">${UI.esc(name || "")} · <a href="tel:${UI.esc(phone)}">${UI.esc(phone)}</a></span>` : "";
   let extra = "";
-  if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")} · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌"}` : ""}</div>`;
-  if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ${UI.money(o.budget)} à avancer` : ""}</div>`;
+  if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
+    + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
+    + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
+  if (o.service === "achat" && o.rx) extra += `<div class="bag-line">💊 Médicament sur ordonnance : carte d'identité du patient et ordonnance vérifiées par HOP!, à montrer à la pharmacie</div>`;
+  if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
+  if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
+  if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
+  if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""}<br>🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse</div>`;
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
   extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
     : kind === "pool" || o.status === "confirmee" ? `<div class="small muted">⏱️ Attente ou achats sur place : ${UI.esc(UI.waitRule(settings))}, pour vous</div>` : "";
@@ -344,6 +354,7 @@ function card(o, kind) {
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
           + `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
+      + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
@@ -389,11 +400,13 @@ function weekGain(s) {
   const tips = sum(list.filter(o => ["recu", "verse"].includes(o.tip_status)), o => Number(o.tip || 0));
   const bonus = sum(refDelivered().filter(o => inW(o.pickup_at)), o => Number(o.referral_bonus || 0));
   const plans = sum((refs.plans || []).filter(p => inW(p.created_at)), p => Number(p.share || 0));
-  return { s, e, list, courses, tips, bonus, plans, total: courses + tips + bonus + plans,
+  const wpens = pens.filter(p => inW(p.created_at)), pen = sum(wpens, p => Number(p.amount || 0));
+  return { s, e, list, courses, tips, bonus, plans, pens: wpens, pen, total: courses + tips + bonus + plans - pen,
     settled: list.length > 0 && list.every(o => o.commission_status === "regle"), cash: sum(list.filter(o => o.paid_to !== "hop")),
     commission: sum(list, o => Number(o.commission || 0)) };
 }
 function financesView(start, week, d) {
+  const bal = balance + penDue();
   const cur = weekGain(start);
   const payDay = UI.addDays(start, 7 + Number(CONFIG.platform.settlementDay || 0));
   const past = [1, 2, 3, 4, 5, 6, 7, 8].map(i => weekGain(UI.addDays(start, -7 * i))).filter(w => w.list.length || w.total);
@@ -404,25 +417,26 @@ function financesView(start, week, d) {
         <b class="fin-amount">${UI.money(w.total)}</b></summary>
       <div class="fin-detail">
         ${line("Courses (après commission)", w.courses)}${line("💝 Pourboires", w.tips, "+")}${line("🤝 Bonus réseau", w.bonus, "+")}${line("⭐ Abonnements Pro", w.plans, "+")}
-        ${line("Encaissé auprès des clients", w.cash)}${line("Commission HOP", w.commission)}
+        ${line("Encaissé auprès des clients", w.cash)}${line("Commission HOP", w.commission)}${line("💸 Retenues", w.pen, "−")}
+        ${w.pens.map(p => `<p class="small pen-line">💸 −${UI.money(p.amount)}${p.order_ref ? " · course n° " + UI.esc(p.order_ref) : ""} : ${UI.esc(p.reason)}${p.status === "regle" ? " · déduite ✓" : " · sera déduite au prochain versement"}</p>`).join("")}
       </div></details>`;
   return `<div class="fin-hero">
       <small>Gains de la semaine ›</small>
       <b>${UI.money(cur.total)}</b>
       <span>${cur.list.length} course(s) · prochain règlement le ${UI.esc(new Date(payDay + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" }))}</span>
     </div>
-    <div class="fin-balance ${balance > 0 ? "due" : balance < 0 ? "owed" : ""}">
-      <div><small>${balance > 0 ? "À verser à HOP" : balance < 0 ? "HOP vous verse" : "Solde"}</small><b>${UI.money(Math.abs(balance))}</b></div>
-      ${balance > 0 ? `<button type="button" class="btn btn-sm btn-wa" data-boss="${UI.esc(`Bonjour, je viens de verser mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé</button>` : ""}
-      ${balance < 0 ? `<button type="button" class="btn btn-sm btn-wa" data-boss="${UI.esc(`Bonjour, HOP me doit ${UI.money(-balance)} cette semaine : merci de me les verser sur mon Bit ${me.bit_phone || me.phone}.`)}">Demander mon versement</button>` : ""}
+    <div class="fin-bal ${bal > 0 ? "due" : bal < 0 ? "owed" : ""}">
+      <div><small>${bal > 0 ? "À verser à HOP" : bal < 0 ? "HOP vous verse" : "Solde"}</small><b>${UI.money(Math.abs(bal))}</b></div>
+      ${bal > 0 ? `<button type="button" class="btn btn-sm btn-wa" data-boss="${UI.esc(`Bonjour, je viens de verser mon solde de ${UI.money(bal)} par Bit.`)}">J'ai payé</button>` : ""}
+      ${bal < 0 ? `<button type="button" class="btn btn-sm btn-wa" data-boss="${UI.esc(`Bonjour, HOP me doit ${UI.money(-bal)} cette semaine : merci de me les verser sur mon Bit ${me.bit_phone || me.phone}.`)}">Demander mon versement</button>` : ""}
     </div>
     <h3 class="fin-title">Opérations récentes</h3>
     <div class="fin-ops">${weekItem(cur).replace("<details", "<details open")}${past.map(weekItem).join("") || `<p class="muted small">Pas encore d'autre semaine.</p>`}</div>
     <details class="fin-more"><summary>Détail du solde</summary>
       ${line("Commission due (toutes semaines)", d.amountDue)}${line("Courses payées à HOP (reversées)", d.hopDue, "−")}
       ${line("Part des commerces Pro et codes promo", d.hopAdds, "−")}${line("💝 Pourboires reçus par HOP", d.tipsDue, "−")}
-      ${line("🤝 Bonus réseau pas encore réglés", d.bDue, "−")}${line("⭐ Part des abonnements Pro", d.plansDue, "−")}
-      <div class="fin-row total"><span>${balance >= 0 ? "Reste à verser" : "HOP vous verse"}</span><b>${UI.money(Math.abs(balance))}</b></div>
+      ${line("🤝 Bonus réseau pas encore réglés", d.bDue, "−")}${line("⭐ Part des abonnements Pro", d.plansDue, "−")}${line("💸 Retenues (courses pas faites ou pas reçues)", penDue(), "+")}
+      <div class="fin-row total"><span>${bal >= 0 ? "Reste à verser" : "HOP vous verse"}</span><b>${UI.money(Math.abs(bal))}</b></div>
       <p class="muted small">Règlement une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Au-delà de ${UI.money(settings.max_debt)} dus, plus de nouvelles courses jusqu'au règlement.</p>
     </details>`;
 }
@@ -434,8 +448,8 @@ function render() {
   $("#stPool").textContent = pool().length;
   $("#stMine").textContent = mine().length;
   $("#stWeek").textContent = UI.money(sum(week.filter(o => o.paid_to !== "hop")));
-  $("#stDue").textContent = UI.money(Math.abs(balance));
-  $("#stDueLabel").textContent = balance >= 0 ? "Solde à verser à HOP" : "HOP vous doit";
+  $("#stDue").textContent = UI.money(Math.abs(balance + penDue()));
+  $("#stDueLabel").textContent = balance + penDue() >= 0 ? "Solde à verser à HOP" : "HOP vous doit";
   renderLock();
   renderHome();
   updateRiderMap();
@@ -530,9 +544,18 @@ async function onViewClick(e) {
         const here = await checkAtDropoff(o);
         if (!here.ok) { render(); return alert(here.msg); }
         if (o.leave_at_door && !(await hasDoorPhoto(o))) { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
+        // Clés ou objet de valeur : le code de remise donné par le destinataire
+        if (o.handoff && !o.handoff_ok_at) {
+          const code = prompt("🔐 Code de remise : demandez au destinataire son code à 4 chiffres.");
+          if (code == null) { render(); return; }
+          const good = await Store.courierHandoff(o.id, code).catch(e => (/too_many/.test(e.message) ? "max" : false));
+          if (good !== true) { render(); return alert(good === "max" ? "🔒 Trop d'essais : appelez HOP! (le patron peut débloquer la course)." : "❌ Code incorrect : ne remettez pas, vérifiez avec le destinataire."); }
+          o.handoff_ok_at = new Date().toISOString();
+        }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : false);
+    if (ok === "handoff") { render(); return alert("🔐 Code de remise manquant : demandez-le au destinataire avant de remettre."); }
     if (ok === "farpick") { render(); return alert("📍 Vous n'êtes pas encore au point de récupération : appuyez sur « Je suis arrivé » une fois sur place (le compteur d'attente démarre à ce moment-là)."); }
     if (ok === "photo") { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
     if (ok === "far") { render(); return alert(`📍 Vous n'êtes pas à l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).`); }
@@ -882,6 +905,13 @@ function onWorkClick(e) {
   }
   if (el.dataset.logout) return $("#drawerLogout").click();
   if (el.dataset.issue) return reportIssue(orders.find(x => x.id === el.dataset.issue));
+  // Colis à récupérer : les photos du client (avis, carte d'identité, procuration, rendez-vous) à montrer au guichet
+  if (el.dataset.docs) {
+    const o = orders.find(x => x.id === el.dataset.docs);
+    if (!o) return;
+    return Store.orderDocs(o.id).then(list => UI.photoViewer(`${UI.PLACE_FR[o.place_kind] || ""} · N° ${o.tracking_number || "—"}`,
+      list.map(d => ({ label: UI.DOC_FR[d.kind] || d.kind, src: d.photo })))).catch(() => alert("Documents introuvables, vérifiez la connexion."));
+  }
   if (el.dataset.chat) {
     const o = orders.find(x => x.id === el.dataset.chat);
     if (o) openOrderChat(o, !!el.dataset.photo);

@@ -212,7 +212,53 @@ function appUrl(page) { return new URL(page || "./", CONFIG.siteUrl && !LOCAL ? 
 function trackUrl(o) { return appUrl("suivi.html") + "?t=" + o.token; }
 
 const SERVICE_FR = { colis: "Envoi de colis", retrait: "Retrait de colis", achat: "Achat pour le client", repas: "Repas / restaurant" };
-const PLACE_FR = { poste: "Bureau de poste", superpharm: "Super-Pharm", relais: "Point relais", autre: "Magasin" };
+const PLACE_FR = { poste: "Bureau de poste", superpharm: "Super-Pharm", relais: "Point relais", locker: "Casier / locker", autre: "Magasin" };
+const DOC_FR = { avis: "📨 Avis / SMS", identite: "🪪 Carte d'identité", procuration: "✍️ Procuration signée", rdv: "📅 Rendez-vous à la poste" };
+
+// Carte d'un commerce HOP! Pro : accueil des clients (« Nos partenaires ») et aperçu dans l'espace du commerce
+const KIND_ICON = { restaurant: "🍔", boutique: "🛍️", pharmacie: "💊", bureau: "💼", autre: "🏪" };
+const safeImg = s => (typeof s === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) ? s : "");
+function proCard(s, o) {
+  const cover = safeImg(s.cover), logo = safeImg(s.logo);
+  const initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  return `<button type="button" class="pro-card pk-${esc(s.kind || "autre")}" data-pro="${esc(s.code || "")}">
+    <span class="pc-cover"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${KIND_ICON[s.kind] || "🏪"}</i>`}</span>
+    <span class="pc-logo">${logo ? `<img src="${logo}" alt="" />` : esc(initials)}</span>
+    <span class="pc-body"><b>${esc(s.name)}</b><small>${esc(s.tagline || o.kindLabel || "")}</small>
+      <span class="pc-tags"><em>🛵 ${esc(o.delivery)}</em>${o.menu ? `<em>${esc(o.menu)}</em>` : ""}<em class="pc-go">${esc(o.go || "")}</em></span></span>
+  </button>`;
+}
+
+// Photo d'un document (avis, carte d'identité…) : assez nette pour être lue au guichet, assez légère pour la base
+function docPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      for (const [max, q] of [[1600, 0.7], [1400, 0.62], [1200, 0.58], [1000, 0.52], [800, 0.5]]) {
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        const data = c.toDataURL("image/jpeg", q);
+        if (data.length < 390000) return resolve(data);
+      }
+      reject(new Error("too_big"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
+    img.src = url;
+  });
+}
+// Les documents d'une course en grand (patron, livreur au guichet)
+function photoViewer(title, items) {
+  const d = document.createElement("div");
+  d.className = "photo-viewer";
+  d.innerHTML = `<div class="pv-head"><b>${esc(title)}</b><button type="button" class="btn btn-sm" data-pv-close>✕</button></div>
+    ${items.length ? items.map(x => `<figure><figcaption>${esc(x.label)}</figcaption><img src="${esc(x.src)}" alt="" /></figure>`).join("")
+      : `<p class="muted">Aucun document reçu pour l'instant.</p>`}`;
+  d.addEventListener("click", e => { if (e.target.closest("[data-pv-close]") || e.target === d) d.remove(); });
+  document.body.appendChild(d);
+}
 const SIZE_FR = { petit: "Petit colis", moyen: "Colis moyen (5–15 kg)", gros: "Gros colis (15–30 kg)" };
 const PAY_FR = { cash: "💵 Espèces", bit: "📱 Bit", carnet: "🎟️ Carnet pro" };
 
@@ -232,6 +278,7 @@ function orderText(o) {
   if (o.service === "retrait") {
     if (o.tracking_number) L.push(`   N° : ${o.tracking_number}`);
     if (o.parcel_name) L.push(`   Au nom de : ${o.parcel_name}`);
+    if (o.appt_at) L.push(`   Rendez-vous à la poste : ${fmtDateTime(o.appt_at)}`);
     if (o.place_kind === "poste") L.push(`   Procuration : ${o.has_proxy ? "oui" : "NON"}`);
   }
   if (o.service === "achat") {
@@ -403,6 +450,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
+  DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON,
   deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

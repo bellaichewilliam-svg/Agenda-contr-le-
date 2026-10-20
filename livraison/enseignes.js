@@ -18,27 +18,62 @@ const CATS = [
   { id: "flower", icon: "💐", q: ['nwr["shop"="florist"]'], r: 6000 },
   { id: "tech", icon: "📱", q: ['nwr["shop"~"^(mobile_phone|electronics|computer)$"]'], r: 5000 }
 ];
-const ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"];
+const ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+// Même chose par Photon (rapide, déjà utilisé pour les adresses) : les plus proches d'un type de lieu
+const PHOTON_TAGS = {
+  pharm: ["amenity:pharmacy", "shop:chemist"], post: ["amenity:post_office", "amenity:parcel_locker"], super: ["shop:supermarket"],
+  food: ["amenity:restaurant", "amenity:fast_food"], mall: ["shop:mall", "shop:department_store"], flower: ["shop:florist"],
+  tech: ["shop:mobile_phone", "shop:electronics", "shop:computer"]
+};
 const KEEP_MS = 7 * 86400000;
 const KIND_ICON = { restaurant: "🍔", pharmacie: "💊", boutique: "🛍️", fleuriste: "💐", epicerie: "🛒", bureau: "🏢" };
 
 function readCache(key) { try { const c = JSON.parse(localStorage.getItem(key)); return c && Date.now() - c.at < KEEP_MS ? c.items : null; } catch (e) { return null; } }
 function writeCache(key, items) { try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), items })); } catch (e) { /* plein : tant pis */ } }
 
-async function overpass(query) {
-  let lastErr;
-  for (const url of ENDPOINTS) {
-    try {
-      const ctl = new AbortController();
-      const timer = setTimeout(() => ctl.abort(), 20000);
-      const res = await fetch(url, { method: "POST", body: "data=" + encodeURIComponent(query), signal: ctl.signal,
-        headers: { "Content-Type": "application/x-www-form-urlencoded" } });
-      clearTimeout(timer);
-      if (res.ok) return await res.json();
-      lastErr = new Error("overpass " + res.status);
-    } catch (e) { lastErr = e; }
-  }
-  throw lastErr;
+// Une requête avec délai maximum (un serveur gratuit saturé ne bloque jamais l'écran)
+async function fetchJson(url, opts, ms) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await fetch(url, Object.assign({ signal: ctl.signal }, opts));
+    if (!res.ok) throw new Error("http " + res.status);
+    return await res.json();
+  } finally { clearTimeout(timer); }
+}
+// Le premier qui répond avec quelque chose gagne
+function firstFull(promises) {
+  return new Promise((resolve, reject) => {
+    let left = promises.length, lastErr = new Error("empty");
+    promises.forEach(p => p.then(v => { if (v && v.length) resolve(v); else if (!--left) reject(lastErr); },
+      e => { lastErr = e; if (!--left) reject(lastErr); }));
+  });
+}
+// Les serveurs Overpass en même temps (pas l'un après l'autre)
+function overpass(query) {
+  return firstFull(ENDPOINTS.map(url => fetchJson(url, { method: "POST", body: "data=" + encodeURIComponent(query),
+    headers: { "Content-Type": "application/x-www-form-urlencoded" } }, 12000).then(d => (d.elements && d.elements.length ? [d] : []))))
+    .then(r => r[0]);
+}
+async function photonNear(cat, at, lang) {
+  const tags = PHOTON_TAGS[cat.id];
+  if (!tags) return [];
+  const u = new URL("https://photon.komoot.io/reverse");
+  u.searchParams.set("lat", at.lat); u.searchParams.set("lon", at.lon);
+  u.searchParams.set("limit", "50"); u.searchParams.set("radius", String(Math.round(cat.r / 1000)));
+  if (["fr", "en", "de"].includes(lang)) u.searchParams.set("lang", lang);
+  tags.forEach(x => u.searchParams.append("osm_tag", x));
+  const d = await fetchJson(u.toString(), {}, 8000);
+  return (d.features || []).map(f => {
+    const p = f.properties || {}, c = (f.geometry && f.geometry.coordinates) || [];
+    return { name: p.name, street: p.street || "", number: p.housenumber || "", city: p.city || "", phone: null, lat: c[1], lon: c[0] };
+  }).filter(x => x.name && x.lat != null);
+}
+async function overpassNear(cat, at, lang) {
+  const body = cat.q.map(sel => `${sel}["name"](around:${cat.r},${at.lat},${at.lon});`).join("");
+  const data = await overpass(`[out:json][timeout:12];(${body});out center tags 200;`);
+  return (data.elements || []).map(e => fromOsm(e, lang)).filter(x => x.name && x.lat != null);
 }
 
 // Une enseigne OpenStreetMap → { name, street, number, city, lat, lon }
@@ -66,17 +101,16 @@ async function list(catId, at, lang) {
     const key = `livraison.ens.v1.${cat.id}.${lang}.${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
     items = readCache(key);
     if (!items) {
-      const body = cat.q.map(sel => `${sel}["name"](around:${cat.r},${at.lat},${at.lon});`).join("");
-      const data = await overpass(`[out:json][timeout:20];(${body});out center tags 200;`);
+      // Photon et Overpass en même temps : on garde la première réponse non vide (quelques secondes au plus)
+      const found = await firstFull([photonNear(cat, at, lang).catch(() => []), overpassNear(cat, at, lang)]);
       const seen = new Set();
-      items = (data.elements || []).map(e => fromOsm(e, lang)).filter(x => {
-        if (!x.name || x.lat == null) return false;
+      items = found.filter(x => {
         const k = x.name + "|" + x.lat.toFixed(3) + "," + x.lon.toFixed(3);
         if (seen.has(k)) return false;
         seen.add(k);
         return true;
       });
-      writeCache(key, items);
+      if (items.length) writeCache(key, items);
     }
     items = items.map(x => Object.assign({ icon: cat.icon }, x));
   }
