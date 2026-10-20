@@ -18,8 +18,28 @@ const state = { pick: null, nameAc: null, addrAc: null, dash: null };
 function phoneDigits(v) { let d = String(v || "").replace(/\D/g, ""); if (d.startsWith("972")) d = "0" + d.slice(3); return d; }
 function phoneOk(v) { return /^0(5\d{8}|7\d{8}|[2-489]\d{7})$/.test(phoneDigits(v)); }
 
+// Qui paie la livraison des clients HOP! Pro : le commerce (sa part, 12 ₪) ou le client (la course entière)
+function payVars() {
+  const st = Object.assign({ pro_shop_share: CONFIG.pro.shopShare, pro_hop_share: CONFIG.pro.hopShare }, state.settings || {});
+  const full = Number(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || CONFIG.pricing.base);
+  return { share: UI.money(st.pro_shop_share), client: UI.money(Math.max(0, full - (Number(st.pro_shop_share) - Number(st.pro_hop_share || 0)))), full: UI.money(full) };
+}
+function payChoiceHtml(clientPays, note) {
+  const v = payVars();
+  const opt = (val, i, k) => `<label class="choice"><input type="radio" name="client_pays" value="${val}"${(val === "1") === !!clientPays ? " checked" : ""} />
+    <span><i>${i}</i><b>${UI.esc(t(k, v))}</b><small>${UI.esc(t(k + "Note", v))}</small></span></label>`;
+  return `<b class="pay-title">${UI.esc(t("payTitle"))}</b><div class="choices" style="margin-top:8px">${opt("0", "🏪", "payShop")}${opt("1", "🙋", "payClient")}</div>
+    <p class="muted small pay-msg" style="margin:8px 0 0">${UI.esc(note || t("payLater"))}</p>`;
+}
+function renderPay() {
+  const box = $("#spPay"), shop = state.dash && state.dash.shop;
+  if (!shop || box.contains(document.activeElement) && box.dataset.busy) return;
+  box.innerHTML = payChoiceHtml(shop.client_pays, box.dataset.note);
+}
 function renderStatic() {
   I18N.apply();
+  const pay = $("#shopPay"), chosen = pay.querySelector("input:checked");
+  pay.innerHTML = payChoiceHtml(chosen ? chosen.value === "1" : false);
   $("#brandName").innerHTML = UI.wordmark(I18N.lang === "he" ? "לעסקים" : "Pro");
   const price = UI.money(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || CONFIG.pricing.base);
   $("#shopPerks").innerHTML = ["shPerk1", "shPerk2", "shPerk3", "shPerk4", "shPerk5"]
@@ -73,7 +93,8 @@ async function submit(e) {
       name: v("name"), kind: v("kind"), city: v("city"), address,
       lat: point ? point.lat : null, lon: point ? point.lon : null,
       contact_name: v("contact_name") || null, phone: v("phone"), email: v("email") || null,
-      ref_code: v("ref_code").toUpperCase() || null, lang: I18N.lang
+      ref_code: v("ref_code").toUpperCase() || null, lang: I18N.lang,
+      client_pays: (form.querySelector("[name=client_pays]:checked") || {}).value === "1"
     });
     history.replaceState(null, "", location.pathname + "?k=" + r.token);
     await openSpace(r.token);
@@ -186,14 +207,14 @@ function renderPlan() {
     const done = orders.filter(o => o.status === "livree" && Number(o.shop_share) > 0 && String(o.pickup_at).slice(0, 7) === month);
     const shares = done.reduce((x, o) => x + Number(o.shop_share), 0);
     box.innerHTML = `<h3>${UI.esc(t("spPlanOn", { date: UI.fmtKey(shop.plan_until) }))}</h3>
-      <p class="small" style="margin:6px 0 0">${UI.esc(t("spBill", { monthly: UI.money(st.pro_monthly), shares: UI.money(shares), n: done.length,
+      <p class="small" style="margin:6px 0 0">${UI.esc(t(shop.client_pays && !shares ? "spBillClient" : "spBill", { monthly: UI.money(st.pro_monthly), shares: UI.money(shares), n: done.length,
         total: UI.money(Number(st.pro_monthly) + shares), phone: CONFIG.bitPhone }))}</p>`;
     return;
   }
   // Le client paie la course moins la part du commerce (hors les 2 ₪ de service HOP)
   const client = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - (Number(st.pro_shop_share) - Number(st.pro_hop_share || 0))));
   box.innerHTML = `<h3>${UI.esc(t("spPlanTitle"))}</h3>
-    <ul class="plan-list">${["spPlan1", "spPlan2", "spPlan3", "spPlan4"].map(k => `<li>${UI.esc(t(k, { monthly: UI.money(st.pro_monthly), client, share: UI.money(st.pro_shop_share) }))}</li>`).join("")}</ul>
+    <ul class="plan-list">${["spPlan1", "spPlan2", "spPlan3", "spPlan4"].map(k => `<li>${UI.esc(t(k, Object.assign(payVars(), { monthly: UI.money(st.pro_monthly), client, share: UI.money(st.pro_shop_share) })))}</li>`).join("")}</ul>
     <button type="button" class="btn btn-primary" data-plan="1">${UI.esc(t("spPlanBtn"))}</button>`;
 }
 async function refreshSpace() {
@@ -265,7 +286,7 @@ function brandValues() {
 function brandPreview() {
   const shop = state.dash.shop, v = brandValues(), st = state.settings || {};
   const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
-  const price = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - share));
+  const price = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - (shop.client_pays ? 0 : share)));
   const n = cat.data ? cat.data.products.filter(p => p.available).length : 0;
   $("#brPreview").innerHTML = UI.proCard({ name: shop.name, kind: shop.kind, logo: v.logo, cover: v.cover, tagline: v.tagline.trim(), code: "" },
     { kindLabel: (t("shKinds") || {})[shop.kind] || "", delivery: t("proDelivery", { price }), menu: n ? t("proMenu", { n }) : "", go: t("proGo") });
@@ -461,6 +482,18 @@ $("#spCatalog").addEventListener("submit", e => {
   catalogDo(() => Store.saveProduct(state.dash.shop.token, p)).then(() => { cat.photo = undefined; });
 });
 setInterval(() => { if (state.dash && !document.hidden) refreshSpace(); }, 15000);
+$("#spPay").addEventListener("change", async e => {
+  if (e.target.name !== "client_pays" || !state.dash) return;
+  const on = e.target.value === "1", box = $("#spPay");
+  box.dataset.busy = "1";
+  try {
+    if (!(await Store.setShopClientPays(state.dash.shop.token, on))) throw new Error("no");
+    state.dash.shop.client_pays = on;
+    box.dataset.note = t("paySaved");
+  } catch (err) { box.dataset.note = t("payErr"); }
+  delete box.dataset.busy;
+  renderPay(); renderPlan(); renderGuide(state.dash.shop); renderBrand(true);
+});
 Store.getSettings().then(s => { state.settings = s; if (state.dash) renderPlan(); }).catch(() => {});
 
 // Marche à suivre : ouverte aux premières visites (et quand le commerce passe à HOP! Pro), repliable ensuite
@@ -468,9 +501,9 @@ function renderGuide(shop) {
   const pro = planOn(shop);
   const st = Object.assign({ pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare, pro_hop_share: CONFIG.pro.hopShare }, state.settings || {});
   const client = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - (Number(st.pro_shop_share) - Number(st.pro_hop_share || 0))));
-  const vars = { monthly: UI.money(st.pro_monthly), share: UI.money(st.pro_shop_share), phone: CONFIG.bitPhone, client,
+  const vars = { monthly: UI.money(st.pro_monthly), share: UI.money(st.pro_shop_share), phone: CONFIG.bitPhone, client, full: payVars().full,
     n: CONFIG.partners.carnet.courses, price: UI.money(CONFIG.partners.carnet.price) };
-  const keys = pro ? ["gdPro1", "gdPro2", "gdPro3", "gdPro4", "gdPro5", "gdPro6", "gdPro7"] : ["gdBase1", "gdBase2", "gdBase3", "gdBase4"];
+  const keys = pro ? ["gdPro1", "gdPro2", "gdPro3", "gdPro4", "gdPro5", shop.client_pays ? "gdPro6c" : "gdPro6", "gdPro7"] : ["gdBase1", "gdBase2", "gdBase3", "gdBase4"];
   $("#spGuideTitle").textContent = t(pro ? "gdTitlePro" : "gdTitle");
   $("#spGuideSteps").innerHTML = keys.map(k => `<li>${UI.esc(t(k, vars))}</li>`).join("");
   const box = $("#spGuide"), key = "livraison.guideSeen." + shop.code + (pro ? ".pro" : "");
@@ -486,6 +519,7 @@ function renderSpace() {
   renderGuide(shop);
   renderPrep();
   renderPlan();
+  renderPay();
   renderBrand();
   const sales = state.dash.sales || [];
   $("#spTitle").textContent = t("shWelcome", { name: shop.name });

@@ -1181,3 +1181,8 @@ body.in-home .eta-bubble { display: none; }
 .eta-chips .ch-chip { font-size: 16px; padding: 10px 14px; }
 .eta-ask { display: grid; gap: 8px; margin: 10px 0; padding: 14px; border-radius: 16px; background: var(--brand-soft); border: 2px solid var(--brand); }
 .eta-ask b { font-size: 17px; }
+
+/* Commerce : qui paie la livraison (inscription et espace du commerce) */
+.pay-choice .pay-title { display: block; font-size: 15px; }
+.pay-choice .choice span b { font-size: 14px; }
+@media (max-width: 420px) { .pay-choice .choices { grid-template-columns: 1fr; } }
