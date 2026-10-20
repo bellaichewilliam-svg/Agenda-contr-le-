@@ -218,9 +218,17 @@ function docsMissing() {
   return Store.docsFor(curOrderKind()).find(k => !docs[k]);
 }
 
+// « C'est moi qui reçois » : pas besoin de redonner son nom et son numéro (ceux de « Vos coordonnées »)
+function syncDropMe() {
+  const me = form.drop_me.checked;
+  form.querySelectorAll(".drop-other").forEach(el => el.classList.toggle("hidden", me));
+  const name = val("contact_name").trim(), phone = val("contact_phone").trim();
+  $("#dropMeWho").textContent = !me ? "" : name || phone ? t("dropMeWho", { who: [name, phone].filter(Boolean).join(" · ") }) : t("dropMeNote");
+}
 function syncVisibility() {
   const svc = val("service");
   renderPhone();
+  syncDropMe();
   // Gros colis (voiture) : seulement quand une voiture est disponible
   const gros = form.querySelector('input[name=size][value=gros]');
   gros.closest(".choice").classList.toggle("hidden", P.carAvailable === false);
@@ -868,6 +876,7 @@ function renderAccount() {
   const editing = $("#coordsBox").dataset.editing === "1";
   $("#coordsSummary").classList.toggle("hidden", !known || editing);
   $("#coordsFields").classList.toggle("hidden", known && !editing);
+  syncDropMe();
   $("#coordsText").textContent = known ? `${p.contact_name} · ${p.contact_phone}${p.company ? " · " + p.company : ""}` : "";
 
   // Le carnet d'adresses s'affiche dès la première adresse enregistrée (même avant la première commande)
@@ -948,7 +957,7 @@ async function submit(e) {
     form.elements[!ac.from.isPicked() ? "pickup_address" : "dropoff_address"].focus();
     return showError(t("errAddrPick"));
   }
-  const badPhone = ["contact_phone", "dropoff_phone", val("service") !== "retrait" ? "pickup_phone" : null]
+  const badPhone = ["contact_phone", form.drop_me.checked ? null : "dropoff_phone", val("service") !== "retrait" ? "pickup_phone" : null]
     .find(k => k && val(k).trim() && !phoneOk(val(k)));
   if (badPhone) { form.elements[badPhone].focus(); return showError(t("errPhone")); }
   const isBrand = w => !!(state.pick[w] && state.pick[w].brand);
@@ -1080,8 +1089,9 @@ async function submit(e) {
       dropoff_exact: !!(drop && drop.exact),
       dropoff_note: val("dropoff_note").trim() || null,
       dropoff_lat: drop ? drop.lat : null, dropoff_lon: drop ? drop.lon : null,
-      dropoff_contact: val("dropoff_contact").trim() || null,
-      dropoff_phone: val("dropoff_phone").trim() ? formatPhone(val("dropoff_phone").trim()) : null,
+      dropoff_contact: (form.drop_me.checked ? val("contact_name") : val("dropoff_contact")).trim() || null,
+      dropoff_phone: form.drop_me.checked ? (val("contact_phone").trim() ? formatPhone(val("contact_phone").trim()) : null)
+        : val("dropoff_phone").trim() ? formatPhone(val("dropoff_phone").trim()) : null,
       size: val("size"),
       round_trip: form.round_trip.checked,
       extra_stops: state.stops.length,
@@ -1152,6 +1162,7 @@ async function submit(e) {
     $("#doneModal").classList.remove("hidden");
     ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "retrait_code", "appt_at", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
+    form.drop_me.checked = true; syncDropMe();
     setKind("pickup", null); setKind("dropoff", null);
     state.stops = []; renderStops();
     state.promo = null;
@@ -2091,6 +2102,7 @@ $("#docsBox").addEventListener("change", async e => {
   renderDocs();
 });
 form.addEventListener("input", e => { if (PROFILE_FIELDS.includes(e.target.name)) rememberProfile(); });
+["input", "change"].forEach(ev => form.addEventListener(ev, e => { if (["drop_me", "contact_name", "contact_phone"].includes(e.target.name)) syncDropMe(); }));
 // Mise en forme du numéro quand on quitte le champ (052-123-4567)
 form.addEventListener("focusout", e => {
   if (!/_phone$/.test(e.target.name || "") || !e.target.value.trim()) return;
