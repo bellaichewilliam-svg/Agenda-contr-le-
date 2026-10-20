@@ -260,7 +260,7 @@ function photoViewer(title, items) {
   document.body.appendChild(d);
 }
 const SIZE_FR = { petit: "Petit colis", moyen: "Colis moyen (5–15 kg)", gros: "Gros colis (15–30 kg)" };
-const PAY_FR = { cash: "💵 Espèces", bit: "📱 Bit", carnet: "🎟️ Carnet pro" };
+const PAY_FR = { cash: "💵 Espèces", bit: "📱 Bit / PayBox", carnet: "🎟️ Carnet pro" };
 
 function whenFr(o) {
   if (o.urgency === "express") return "⚡ EXPRESS (moins d'une heure)";
@@ -340,7 +340,8 @@ function commissionText() { return `${CONFIG.platform.commissionPercent} % du pr
 function networkText() { return `${CONFIG.platform.networkPercent} % (au moins ${money(CONFIG.platform.networkMin)})`; }
 
 // Numéro Bit à payer : toujours celui de HOP (le livreur n'encaisse que les espèces)
-function bitFor() { return CONFIG.bitPhone; }
+// Paiement direct : on paie le livreur sur son numéro (Bit ou PayBox) ; avant, c'était le Bit de HOP
+function bitFor(o) { return o && o.direct_pay ? o.courier_bit || "" : CONFIG.bitPhone; }
 
 // Payer par Bit tout de suite : montant, numéro, n° de commande, « Ouvrir Bit », « Copier », « J'ai payé »
 // (sur Android, le bouton ouvre l'application Bit ; sur iPhone, on copie le numéro puis on ouvre Bit)
@@ -349,10 +350,13 @@ const BIT_APP = "intent://#Intent;package=com.bnhp.payments.paymentsapp;S.browse
   + encodeURIComponent("https://play.google.com/store/apps/details?id=com.bnhp.payments.paymentsapp") + ";end";
 function bitPay(o) {
   const t = (k, v) => I18N.t(k, v);
-  if (o.client_paid_at) return `<p class="promo-msg ok bit-pay">${esc(t("bpThanks"))}</p>`;
+  const name = String(o.courier_name || "").split(" ")[0];
+  if (o.client_paid_at) return `<p class="promo-msg ok bit-pay">${esc(o.direct_pay ? t("bpThanksCourier", { name }) : t("bpThanks"))}</p>`;
   const phone = bitFor(o);
+  // Paiement au livreur : son numéro n'est connu qu'une fois la course acceptée
+  if (o.direct_pay && !phone) return `<p class="bit-pay muted">${esc(t("bpWaitCourier", { total: money(o.price) }))}</p>`;
   return `<div class="bit-pay">
-    <p>${esc(t("bpSend", { total: money(o.price), phone, ref: o.ref }))}</p>
+    <p>${esc(o.direct_pay ? t("bpSendCourier", { total: money(o.price), name, phone, ref: o.ref }) : t("bpSend", { total: money(o.price), phone, ref: o.ref }))}</p>
     <div class="bit-btns">
       ${ANDROID ? `<a class="btn btn-sm btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}
       <button type="button" class="btn btn-sm" data-bit-copy="${esc(String(phone).replace(/\D/g, ""))}">${esc(t("bpCopy"))}</button>
@@ -382,16 +386,19 @@ function clientMessage(o) {
   const city = id => { const c = CONFIG.cities.find(x => x.id === id); return c ? c[l] || c.fr : id; };
   const when = o.urgency === "programmee" ? f("msg_when_at", { when: whenFr(o) }) : f("msg_when_asap");
   const pay = o.payment_method === "carnet" ? f("pay_carnet")
-    : o.payment_method === "bit" ? f("pay_bit_short", { phone: bitFor(o) }) : f("pay_cash_short");
+    : o.direct_pay ? f("pay_direct_short") : o.payment_method === "bit" ? f("pay_bit_short", { phone: bitFor(o) }) : f("pay_cash_short");
   const msg = f("msg_" + o.status, {
     name: o.contact_name || "", ref: o.ref, when, price: money(o.price), pay, reason: o.admin_note || "",
     url: o.status === "refusee" ? appUrl() + "#commander" : trackUrl(o),
     to: `${o.dropoff_address}, ${city(o.to_city)}`, code: referralCode(o.contact_phone)
   });
-  return o.receipt_number ? msg + "\n" + f("msg_receipt", { url: receiptUrl(o) }) : msg;
+  return receiptNo(o) ? msg + "\n" + f("msg_receipt", { url: receiptUrl(o) }) : msg;
 }
 
 function receiptUrl(o) { return appUrl("recu.html") + "?t=" + o.token; }
+// Une course a un reçu : de HOP (ses propres courses) ou du livreur (paiement direct)
+const receiptNo = o => o.receipt_number || o.courier_receipt_number || null;
+function topupReceiptUrl(t) { return appUrl("recu.html") + "?k=" + t.token; }
 function carnetReceiptUrl(sale) { return appUrl("recu.html") + "?c=" + sale.token; }
 
 // Semaines (dimanche → samedi) sur des clés de jour AAAA-MM-JJ
@@ -451,7 +458,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON,
-  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

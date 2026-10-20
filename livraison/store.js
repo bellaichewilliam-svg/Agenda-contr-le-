@@ -28,7 +28,8 @@ const LS = {
   chat: "livraison.chat.v1",
   catalog: "livraison.catalog.v1",
   docs: "livraison.docs.v1",
-  penalties: "livraison.penalties.v1"
+  penalties: "livraison.penalties.v1",
+  topups: "livraison.topups.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -142,7 +143,7 @@ const DEFAULT_SETTINGS = {
   referral_active_days: CONFIG.partners.activeDays,
   deliver_radius: CONFIG.platform.deliverRadius,
   pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare, pro_lead_min: CONFIG.pro.leadMinutes,
-  pro_hop_share: CONFIG.pro.hopShare, pro_referrer_pct: CONFIG.pro.referrerPercent, pro_referrer_months: CONFIG.pro.referrerMonths,
+  pro_hop_share: CONFIG.pro.hopShare, pro_hop_share_client: CONFIG.pro.hopShareClient != null ? CONFIG.pro.hopShareClient : 1, pro_referrer_pct: CONFIG.pro.referrerPercent, pro_referrer_months: CONFIG.pro.referrerMonths,
   network_pct: CONFIG.platform.networkPercent, network_min: CONFIG.platform.networkMin,
   decline_streak_max: CONFIG.platform.declineStreakMax || 3,
   wait_free_min: CONFIG.pricing.waiting.freeMinutes, wait_step_min: CONFIG.pricing.waiting.stepMinutes,
@@ -206,6 +207,9 @@ async function createOrder(order) {
   if (!ONLINE && isWelcome(order.promo_code) && await welcomeUsed(order.contact_phone)) throw new Error("welcome_used");
   if (ONLINE) {
     await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" });
+    // Même règle que la base : payée directement au livreur (sauf carnet)
+    order.direct_pay = order.payment_method !== "carnet";
+    if (order.direct_pay) Object.assign(order, { paid_to: "livreur", prepaid_required: false });
   } else {
     // Même règle que la base en ligne : commerce et parrain retrouvés ici, jamais fournis par le client
     const settings = await getSettings();
@@ -215,7 +219,9 @@ async function createOrder(order) {
     Object.assign(order, {
       shop_id: shop ? shop.id : null, shop_name: shop ? shop.name : null, referrer_id: referrer ? referrer.id : null,
       referral_bonus: referrer && referrer.role === "coursier" ? Number(settings.referral_bonus) : 0, referral_status: "du",
-      paid_to: order.prepaid_required || ["bit", "carnet"].includes(order.payment_method) ? "hop" : "livreur"
+      // Paiement direct : le client paie le livreur (Bit ou PayBox) ; seul le carnet est payé d'avance à HOP
+      direct_pay: order.payment_method !== "carnet", prepaid_required: false,
+      paid_to: order.payment_method === "carnet" ? "hop" : "livreur"
     });
     // Carnet pro : seulement le commerce lui-même (sa clé), dans Netanya, s'il lui reste des courses
     if (order.payment_method === "carnet") {
@@ -250,7 +256,7 @@ async function createOrder(order) {
     Object.assign(order, {
       discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
       hop_share: order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share))
-        : order.shop_status ? Math.min(Math.max(0, Number(order.price) || 0), Number(settings.pro_hop_share)) : 0,
+        : order.shop_status ? Math.min(Math.max(0, Number(order.price) || 0), Number(settings.pro_hop_share_client)) : 0,
       network: false, tip: 0, tip_status: null,
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
     });
@@ -534,15 +540,66 @@ function canSeeNew(o, id, st) {
 // courses pas réglées (commission − part du commerce pour lui − réduction payée par HOP − course payée à HOP)
 // − pourboires reçus par HOP − bonus réseau − part des abonnements Pro
 const add = (list, f) => list.reduce((s, o) => s + f(o), 0);
+// Ce que le livreur doit à HOP pour une course (même règle que course_due en ligne)
+function courseDue(o) {
+  const share = Number(o.shop_share || 0), hop = Number(o.hop_share || 0);
+  return Number(o.commission || 0) - Number(o.discount || 0)
+    + (o.direct_pay ? (share > 0 ? 0 : hop) : hop - share)
+    - (o.paid_to === "hop" && o.payment_status === "paye" ? Number(o.price) : 0);
+}
 function balanceOf(id, all, plans) {
   return add(all.filter(o => o.courier_id === id && o.status === "livree" && o.commission_status !== "regle"),
-      o => Number(o.commission || 0) - (Number(o.shop_share || 0) - Number(o.hop_share || 0)) - Number(o.discount || 0)
-        - (o.paid_to === "hop" && o.payment_status === "paye" ? Number(o.price) : 0))
-    - add(all.filter(o => o.courier_id === id && o.tip_status === "recu"), o => Number(o.tip || 0))
+      courseDue)
+    - add(all.filter(o => o.courier_id === id && o.tip_status === "recu" && !o.direct_pay), o => Number(o.tip || 0))
     - add(all.filter(o => o.referrer_id === id && o.courier_id !== id && o.status === "livree" && o.referral_status !== "regle"), o => Number(o.referral_bonus || 0))
     - add((plans || (ONLINE ? [] : readJSON(LS.planSales, []))).filter(p => p.referrer_id === id && p.referrer_status !== "regle"), p => Number(p.referrer_share || 0));
 }
 
+// Crédit HOP prépayé du livreur : recharges validées − ce qu'il doit − retenues ; réservé = courses en cours
+function creditOf(id) {
+  const all = localOrders();
+  const tops = add(readJSON(LS.topups, []).filter(x => x.courier_id === id && x.status === "ok"), x => Number(x.amount));
+  const pen = add(readJSON(LS.penalties, []).filter(p => p.courier_id === id && p.status === "du"), p => Number(p.amount));
+  return { credit: tops - balanceOf(id, all) - pen,
+    reserved: add(all.filter(o => o.courier_id === id && ["confirmee", "recuperee"].includes(o.status)), o => Math.max(0, courseDue(o))) };
+}
+async function myCredit() {
+  if (ONLINE) return authRest("/rest/v1/rpc/my_credit", { method: "POST", body: {} });
+  const id = myId();
+  return Object.assign(creditOf(id), { topups: readJSON(LS.topups, []).filter(x => x.courier_id === id) });
+}
+async function declareTopup(amount) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_topup_declare", { method: "POST", body: { p_amount: amount } });
+  const a = Number(amount);
+  if (!(a >= 5 && a <= 2000)) throw new Error("bad_amount");
+  const list = readJSON(LS.topups, []);
+  if (list.filter(x => x.courier_id === myId() && x.status === "attente").length >= 3) throw new Error("too_many");
+  const t = { id: uuid(), courier_id: myId(), amount: a, status: "attente", note: null, created_at: new Date().toISOString(), decided_at: null };
+  writeJSON(LS.topups, [t, ...list]);
+  return t.id;
+}
+async function adminCredits() {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_credits", { method: "POST", body: {} });
+  const couriers = localCouriers();
+  return { credits: couriers.filter(c => c.role === "coursier").map(c => Object.assign({ courier_id: c.id }, creditOf(c.id))),
+    topups: readJSON(LS.topups, []).map(x => Object.assign({ courier_name: (couriers.find(c => c.id === x.courier_id) || {}).name || "" }, x)) };
+}
+async function decideTopup(id, ok) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_topup_decide", { method: "POST", body: { p_id: id, p_ok: !!ok } });
+  const list = readJSON(LS.topups, []), t = list.find(x => x.id === id && x.status === "attente");
+  if (!t) return false;
+  Object.assign(t, { status: ok ? "ok" : "refuse", decided_at: new Date().toISOString() });
+  writeJSON(LS.topups, list);
+  return true;
+}
+async function addTopup(courierId, amount, note, paid) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_topup_add", { method: "POST", body: { p_courier: courierId, p_amount: amount, p_note: note || null, p_paid: paid !== false } });
+  const a = Number(amount);
+  if (!(a >= 5 && a <= 2000)) throw new Error("bad_amount");
+  const t = { id: uuid(), courier_id: courierId, amount: a, status: "ok", note: note || null, created_at: new Date().toISOString(), decided_at: new Date().toISOString() };
+  writeJSON(LS.topups, [t, ...readJSON(LS.topups, [])]);
+  return t.id;
+}
 async function myBalance() {
   if (ONLINE) return Number(await authRest("/rest/v1/rpc/my_balance", { method: "POST", body: {} })) || 0;
   return balanceOf(myId(), localOrders());
@@ -773,6 +830,8 @@ async function courierAction(id, action) {
     if (!free && o.leave_at_door && !chatLocal().some(m => m.thread === "o:" + o.id && m.author === "courier" && m.image)) throw new Error("photo_required");
     // Clés ou objet de valeur : le destinataire a donné le bon code de remise
     if (!free && o.handoff && !o.handoff_ok_at) throw new Error("handoff_required");
+    // Paiement direct : « 💳 Paiement reçu » avant « Livré »
+    if (!free && o.direct_pay && o.paid_to === "livreur" && o.payment_status !== "paye" && c && c.role !== "admin") throw new Error("payment_required");
     o.status = "livree"; o.delivered_at = new Date().toISOString(); referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
@@ -984,7 +1043,7 @@ async function setPayment(token, method) {
   const o = all.find(x => x.token === token && ["cash", "bit"].includes(x.payment_method) && x.payment_method !== method
     && x.payment_status === "en_attente" && ["nouvelle", "confirmee", "recuperee"].includes(x.status) && !(method === "cash" && x.prepaid_required));
   if (!o) return false;
-  Object.assign(o, { payment_method: method, paid_to: method === "bit" ? "hop" : "livreur", client_paid_at: null });
+  Object.assign(o, { payment_method: method, paid_to: method === "bit" && !o.direct_pay ? "hop" : "livreur", client_paid_at: null });
   saveLocalOrders(all);
   chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:pay_" + method });
   return true;
@@ -1280,6 +1339,28 @@ async function sellCarnet(shopId, method) {
 }
 
 // Reçu d'un carnet (lien secret)
+// Reçu d'une course : émis par HOP (ses propres courses) ou par le livreur (paiement direct)
+async function orderReceipt(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_receipt", { method: "POST", body: { p_token: token } });
+  const o = localOrders().find(x => x.token === token);
+  return o ? Object.assign({ issuer: "hop" }, o) : null;
+}
+// Reçu de HOP pour une recharge de crédit d'un livreur
+async function topupReceipt(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/topup_receipt", { method: "POST", body: { p_token: token } });
+  return null;
+}
+// Relevé du mois du livreur (AAAA-MM) : courses, commission déduite, recharges, retenues
+async function myStatement(month) {
+  if (ONLINE) return authRest("/rest/v1/rpc/my_statement", { method: "POST", body: { p_month: month } });
+  const id = myId(), c = localCouriers().find(x => x.id === id), inM = d => String(d || "").slice(0, 7) === month;
+  return { month, courier: c ? { name: c.name, phone: c.phone, business_number: c.business_number } : {},
+    orders: localOrders().filter(o => o.courier_id === id && o.status === "livree" && inM(o.delivered_at || o.pickup_at))
+      .map(o => Object.assign({ delivered: o.delivered_at || o.pickup_at, due: courseDue(o) }, o)),
+    topups: readJSON(LS.topups, []).filter(x => x.courier_id === id && x.status === "ok" && inM(x.decided_at || x.created_at)),
+    penalties: readJSON(LS.penalties, []).filter(p => p.courier_id === id && p.status === "du" && inM(p.created_at)),
+    credit: creditOf(id).credit };
+}
 async function carnetReceipt(token) {
   if (ONLINE) return rest("/rest/v1/rpc/carnet_receipt", { method: "POST", body: { p_token: token } });
   const v = readJSON(LS.sales, []).find(x => x.token === token);
@@ -1517,7 +1598,7 @@ window.Store = {
   couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

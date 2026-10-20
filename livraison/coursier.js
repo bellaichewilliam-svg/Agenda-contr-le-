@@ -16,9 +16,9 @@ const TERMS = [
   "Je travaille comme indépendant : je suis enregistré comme עוסק (פטור ou מורשה), je déclare moi-même mes revenus et je remets un reçu aux clients que j'encaisse.",
   "Je suis responsable des colis qui me sont confiés, de leur état et de l'argent encaissé, de la récupération jusqu'à la livraison.",
   "Je valide « Livré » seulement une fois sur place, à l'adresse du client : l'application vérifie ma position GPS.",
-  "Course acceptée mais pas faite, ou déclarée livrée mais pas reçue par le client : après vérification par HOP, le prix de la course et la valeur de la commande sont retenus sur mon versement de la semaine. Je peux répondre avec mes preuves (photo, position).",
+  "Course acceptée mais pas faite, ou déclarée livrée mais pas reçue par le client : après vérification par HOP, le prix de la course et la valeur de la commande sont retenus sur mon crédit HOP. Je peux répondre avec mes preuves (photo, position).",
   "Je respecte le code de la route et les règles de sécurité (casque, pas de téléphone en main en conduisant).",
-  `Je verse à HOP une commission par course livrée (${UI.commissionText()} ; ${UI.networkText()} sur les courses de mes commerces), réglée chaque semaine.`,
+  `Mes clients me paient directement. Je recharge à l'avance mon crédit HOP : la commission de HOP (${UI.commissionText()} ; ${UI.networkText()} sur les courses de mes commerces) en est déduite à chaque course livrée.`,
   "Je suis poli et ponctuel. Si je ne peux plus faire une course acceptée, je la remets en attente tout de suite.",
   "Mon compte peut être suspendu si un de ces engagements n'est pas respecté."
 ];
@@ -30,7 +30,8 @@ let settings = { referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minu
 let refs = { shops: [], orders: [], board: [] };
 let msgs = { messages: [], replies: [] };
 let balance = 0;   // ce que le livreur doit à HOP (négatif : HOP lui doit)
-let pens = [];     // retenues (courses pas faites ou pas reçues), déduites du versement de la semaine
+let pens = [];     // retenues (courses pas faites ou pas reçues), déduites du crédit
+let wallet = { credit: 0, reserved: 0, topups: [] };   // crédit prépayé : la commission de HOP en est déduite
 const penDue = () => pens.filter(p => p.status === "du").reduce((x, p) => x + Number(p.amount || 0), 0);
 let tab = "home";   // "home" = carte + panneau du bas ; sinon une page du menu
 let firstLoad = true;
@@ -40,7 +41,7 @@ const seenPool = new Set();
 function renderWelcome() {
   $("#perks").innerHTML = [
     "Vous choisissez vos courses, quand vous voulez.",
-    "Vous encaissez le client directement (espèces ou Bit).",
+    "Vos clients vous paient directement (Bit ou PayBox sur votre numéro).",
     `Commission de ${UI.commissionText()} sur les courses que l'appli vous apporte, réglée une fois par semaine.`,
     `Faites votre marketing : sur les courses des commerces que vous amenez, seulement ${UI.networkText()}, et ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous quand un autre livreur les fait.`,
     `${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`,
@@ -225,13 +226,22 @@ function phoneLine(o) {
     <br>${left != null && left > 0 ? `⏱️ Prête à <b>${hh}</b> (dans ${left} min) : arrivez à l'heure, pas avant` : "✅ <b>Prête</b> : allez-y"}</div>`;
 }
 
+// Paiement direct : le client paie le livreur (Bit ou PayBox sur son numéro), le commerce Pro lui paie sa part
+const shopPart = o => Math.max(0, Number(o.shop_share || 0) - Number(o.hop_share || 0));
+function payLine(o) {
+  if (o.paid_to === "hop") return o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
+    : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant";
+  if (!o.direct_pay) return `💵 Espèces : vous encaissez ${UI.money(o.price)} auprès du client`;
+  return `💳 Le ${o.payer === "destinataire" ? "destinataire" : "client"} vous paie <b>${UI.money(o.price)}</b> par Bit ou PayBox sur votre numéro`
+    + (shopPart(o) ? ` · 🏪 le commerce vous paie <b>${UI.money(shopPart(o))}</b> par Bit en vous remettant la commande` : "");
+}
 // HOP! Pro : où en est la préparation chez le commerce, ce que le client a commandé, la part du commerce
 function proLine(o) {
   const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
   const state = o.shop_status === "prete" || (left != null && left <= 0) ? "✅ <b>Commande prête</b>"
     : left != null ? `🍳 <b>Prête dans ${left} min</b> chez ${UI.esc(o.shop_name || "le commerce")}` : "🍳 En attente du commerce";
   return `<div class="small pro-line">${state}${o.shop_order ? `<br>🧾 ${UI.esc(o.shop_order)}` : ""}
-    ${Number(o.shop_share) > Number(o.hop_share || 0) ? `<br>🏪 Le commerce paie ${UI.money(Number(o.shop_share) - Number(o.hop_share || 0))} de votre course : HOP vous le reverse` : ""}</div>`;
+    ${shopPart(o) && !o.direct_pay ? `<br>🏪 Le commerce paie ${UI.money(shopPart(o))} de votre course : HOP vous le reverse` : ""}</div>`;
 }
 
 function beep() {
@@ -275,6 +285,7 @@ async function load() {
     const [r, m, bal, dem, acc, fc] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
       Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null), Store.myAcceptance().catch(() => null), Store.demandForecast().catch(() => null)]);
     pens = (await Store.myPenalties().catch(() => null)) || pens;
+    wallet = (await Store.myCredit().catch(() => null)) || wallet;
     if (dem) demand = dem;
     if (acc) acceptance = acc;
     if (fc) forecast = fc;
@@ -343,10 +354,12 @@ function card(o, kind) {
   if (o.rules_accepted_at) extra += `<div class="small muted">📋 Le client a accepté les conditions : max 40 × 40 × 35 cm, 15 kg, 500 ₪, rien de dangereux ni d'illégal. Colis non conforme ? Vous pouvez refuser : « ⚠️ Un souci ».</div>`;
   if (Number(o.discount) > 0) extra += `<div class="small">🎁 Code promo du client : ${UI.money(o.discount)}, payé par HOP (pas par vous)</div>`;
   const hopPaid = o.paid_to === "hop";
+  if (kind === "mine" && o.direct_pay && !hopPaid) extra += `<div class="small pay-direct">${payLine(o)}${o.payment_status === "paye" ? " · ✅ reçu"
+    : o.client_paid_at ? " · 📲 le client dit avoir payé : vérifiez votre Bit / PayBox" : " · à recevoir avant « Livré »"}</div>`;
 
   let actions = "";
   if (kind === "pool") {
-    actions = locked() ? `<span class="pill st-annulee">🔒 Réglez votre solde pour accepter</span>`
+    actions = locked() ? `<span class="pill st-annulee">💳 Rechargez votre crédit HOP pour accepter</span>`
       : busy() ? `<span class="pill st-annulee">🔒 Livrez d'abord votre course en cours</span>`
       : `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button><button class="btn" data-decline="${UI.esc(o.id)}">✖ Refuser</button>`;
   } else {
@@ -360,7 +373,7 @@ function card(o, kind) {
         : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
       + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
-      + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
+      + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm${o.direct_pay ? " btn-primary" : ""}" data-act="paye">${o.direct_pay ? "💳 Paiement reçu" : "💵 Encaissé"}</button>` : `<span class="pill paid">✓ ${o.direct_pay ? "payé" : "encaissé"}</span>`)
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
       + (o.leave_at_door && o.status === "recuperee" ? `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}" data-photo="1">📷 Photo du dépôt</button>` : "")
       + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
@@ -409,6 +422,26 @@ function weekGain(s) {
     settled: list.length > 0 && list.every(o => o.commission_status === "regle"), cash: sum(list.filter(o => o.paid_to !== "hop")),
     commission: sum(list, o => Number(o.commission || 0)) };
 }
+// Crédit HOP prépayé : le livreur recharge par Bit à HOP, puis le déclare ; le patron valide
+const TOPUP_FR = { attente: "⏳ à valider par HOP", ok: "✅ validée", refuse: "❌ pas reçue" };
+let topupPick = null;
+function creditView() {
+  const credit = Number(wallet.credit || 0), avail = available();
+  const pending = (wallet.topups || []).filter(x => x.status === "attente");
+  return `<div class="credit-card${avail < Number(settings.commission_min || 3) ? " low" : ""}">
+      <div class="credit-top"><div><small>💳 Mon crédit HOP</small><b>${UI.money(credit)}</b>
+        ${Number(wallet.reserved) > 0 ? `<span class="small">dont ${UI.money(wallet.reserved)} réservés pour vos courses en cours</span>` : ""}</div></div>
+      <p class="small" style="margin:6px 0 0">Vos clients vous paient directement. La commission de HOP (${UI.esc(UI.commissionText())}) est déduite de ce crédit à chaque course livrée : rechargez-le à l'avance.</p>
+      <div class="rate-tags" style="margin-top:10px">${[50, 100, 200].map(n => `<button type="button" class="ch-chip${topupPick === n ? " on" : ""}" data-topup-pick="${n}">${UI.money(n)}</button>`).join("")}</div>
+      ${topupPick ? `<p class="small" style="margin:8px 0 0">1. Envoyez <b>${UI.money(topupPick)}</b> par Bit au <b dir="ltr">${UI.esc(CONFIG.bitPhone)}</b> (HOP).<br>2. Touchez « J'ai rechargé » : HOP vérifie et l'ajoute à votre crédit.</p>
+        <div class="btns" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(CONFIG.bitPhone).replace(/\D/g, ""))}">📋 Copier le numéro</button>
+        <button type="button" class="btn btn-sm btn-primary" data-topup-send="${topupPick}">✅ J'ai rechargé ${UI.money(topupPick)}</button></div>` : ""}
+      ${(wallet.topups || []).slice(0, 6).map(x => `<p class="small topup-line">${UI.money(x.amount)} · ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))} · ${TOPUP_FR[x.status] || ""}${x.status === "ok" && x.paid === false ? " · offerte par HOP" : ""}${x.note ? " · " + UI.esc(x.note) : ""}${x.receipt_number ? ` · <a href="${UI.esc(UI.topupReceiptUrl(x))}" target="_blank" rel="noopener">🧾 Reçu HOP n° ${x.receipt_number}</a>` : ""}</p>`).join("")}
+      <div class="btns" style="justify-content:flex-start;margin-top:10px">${[0, 1].map(i => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); const m = d.toISOString().slice(0, 7);
+        return `<a class="btn btn-sm" href="${UI.esc(UI.appUrl("recu.html") + "?m=" + m)}" target="_blank" rel="noopener">📄 Relevé de ${UI.esc(d.toLocaleDateString("fr-FR", { month: "long" }))}</a>`; }).join("")}</div>
+      ${pending.length ? `<p class="muted small">HOP valide vos recharges dès réception.</p>` : ""}
+    </div>`;
+}
 function financesView(start, week, d) {
   const bal = balance + penDue();
   const cur = weekGain(start);
@@ -429,19 +462,15 @@ function financesView(start, week, d) {
       <b>${UI.money(cur.total)}</b>
       <span>${cur.list.length} course(s) · prochain règlement le ${UI.esc(new Date(payDay + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" }))}</span>
     </div>
-    <div class="fin-bal ${bal > 0 ? "due" : bal < 0 ? "owed" : ""}">
-      <div><small>${bal > 0 ? "À verser à HOP" : bal < 0 ? "HOP vous verse" : "Solde"}</small><b>${UI.money(Math.abs(bal))}</b></div>
-      ${bal > 0 ? `<button type="button" class="btn btn-sm btn-wa" data-boss="${UI.esc(`Bonjour, je viens de verser mon solde de ${UI.money(bal)} par Bit.`)}">J'ai payé</button>` : ""}
-      ${bal < 0 ? `<button type="button" class="btn btn-sm btn-wa" data-boss="${UI.esc(`Bonjour, HOP me doit ${UI.money(-bal)} cette semaine : merci de me les verser sur mon Bit ${me.bit_phone || me.phone}.`)}">Demander mon versement</button>` : ""}
-    </div>
+    ${creditView()}
     <h3 class="fin-title">Opérations récentes</h3>
     <div class="fin-ops">${weekItem(cur).replace("<details", "<details open")}${past.map(weekItem).join("") || `<p class="muted small">Pas encore d'autre semaine.</p>`}</div>
     <details class="fin-more"><summary>Détail du solde</summary>
       ${line("Commission due (toutes semaines)", d.amountDue)}${line("Courses payées à HOP (reversées)", d.hopDue, "−")}
       ${line("Part des commerces Pro et codes promo", d.hopAdds, "−")}${line("💝 Pourboires reçus par HOP", d.tipsDue, "−")}
       ${line("🤝 Bonus réseau pas encore réglés", d.bDue, "−")}${line("⭐ Part des abonnements Pro", d.plansDue, "−")}${line("💸 Retenues (courses pas faites ou pas reçues)", penDue(), "+")}
-      <div class="fin-row total"><span>${bal >= 0 ? "Reste à verser" : "HOP vous verse"}</span><b>${UI.money(Math.abs(bal))}</b></div>
-      <p class="muted small">Règlement une fois par semaine, par Bit au ${UI.esc(CONFIG.bitPhone)}. Au-delà de ${UI.money(settings.max_debt)} dus, plus de nouvelles courses jusqu'au règlement.</p>
+      <div class="fin-row total"><span>${bal >= 0 ? "Déduit de votre crédit" : "Ajouté à votre crédit"}</span><b>${UI.money(Math.abs(bal))}</b></div>
+      <p class="muted small">Tout passe par votre crédit HOP : la commission et les retenues en sont déduites ; les bonus, parts d'abonnement et codes promo payés par HOP y sont ajoutés.</p>
     </details>`;
 }
 
@@ -452,8 +481,8 @@ function render() {
   $("#stPool").textContent = pool().length;
   $("#stMine").textContent = mine().length;
   $("#stWeek").textContent = UI.money(sum(week.filter(o => o.paid_to !== "hop")));
-  $("#stDue").textContent = UI.money(Math.abs(balance + penDue()));
-  $("#stDueLabel").textContent = balance + penDue() >= 0 ? "Solde à verser à HOP" : "HOP vous doit";
+  $("#stDue").textContent = UI.money(Number(wallet.credit || 0));
+  $("#stDueLabel").textContent = "💳 Crédit HOP";
   renderLock();
   renderHome();
   updateRiderMap();
@@ -510,6 +539,13 @@ function render() {
 async function onViewClick(e) {
   const el = e.target.closest("button");
   if (!el) return;
+  if (el.dataset.topupPick) { topupPick = Number(el.dataset.topupPick); return render(); }
+  if (el.dataset.topupSend) {
+    el.disabled = true;
+    try { await Store.declareTopup(Number(el.dataset.topupSend)); topupPick = null; alert("✅ Merci ! HOP vérifie votre Bit et ajoute la recharge à votre crédit."); }
+    catch (err) { alert(/too_many/.test(err.message) ? "Vous avez déjà des recharges en attente : HOP les valide dès réception." : "Recharge non enregistrée, réessayez."); }
+    return load();
+  }
   if (el.dataset.decline) {
     el.disabled = true;
     afterDecline(await Store.declineOrder(el.dataset.decline, "autre").catch(() => null));
@@ -544,6 +580,14 @@ async function onViewClick(e) {
       } catch (e) { /* la base refusera si besoin */ }
     }
     // « Livré » : seulement sur place, à l'adresse de livraison (vérifié aussi par la base)
+    if (el.dataset.act === "livree" && o.direct_pay && o.paid_to !== "hop" && o.payment_status !== "paye" && !o.unlocked && !freeNow()) {
+      if (!confirm(`💳 Avez-vous bien reçu ${UI.money(o.price)} par Bit ou PayBox${shopPart(o) ? ` (et ${UI.money(shopPart(o))} du commerce)` : ""} ?`)) {
+        return alert("Le client doit vous payer avant « Livré » : montrez-lui votre numéro Bit / PayBox, ou écrivez à HOP en cas de souci.");
+      }
+      const okPay = await Store.courierAction(id, "paye").catch(() => false);
+      if (!okPay) return alert("Paiement non enregistré, réessayez.");
+      o.payment_status = "paye";
+    }
     if (el.dataset.act === "livree") {
       el.disabled = true;
       el.textContent = "📍 Vérification de votre position…";
@@ -561,7 +605,8 @@ async function onViewClick(e) {
         }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /payment_required/.test(e.message) ? "pay" : false);
+    if (ok === "pay") { render(); return alert("💳 Touchez d'abord « Paiement reçu » une fois que le client vous a payé."); }
     if (ok === "handoff") { render(); return alert("🔐 Code de remise manquant : demandez-le au destinataire avant de remettre."); }
     if (ok === "farpick") { render(); return alert("📍 Vous n'êtes pas encore au point de récupération : appuyez sur « Je suis arrivé » une fois sur place (le compteur d'attente démarre à ce moment-là)."); }
     if (ok === "photo") { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
@@ -705,8 +750,9 @@ const isOnline = () => duty.watch != null;
 const PHOTO_MSG = "📷 Course « déposer devant la porte » : envoyez d'abord la photo du colis devant la porte dans la conversation, puis validez « Livré ».";
 // Livreur débloqué par HOP jusqu'à une date
 const freeNow = () => !!(me && me.unlocked_until && new Date(me.unlocked_until) > new Date());
-// Solde : au-delà du plafond, plus de nouvelles courses jusqu'au règlement
-const locked = () => !freeNow() && balance > Number(settings.max_debt);
+// Crédit prépayé : il doit couvrir au moins la commission minimum de HOP (le compte du patron n'est jamais bloqué)
+const available = () => Number(wallet.credit || 0) - Number(wallet.reserved || 0);
+const locked = () => !freeNow() && me && me.role !== "admin" && Store.ONLINE && available() < Number(settings.commission_min || 3);
 // Une course récupérée doit être livrée et validée avant d'en prendre une autre
 const busyOrder = () => orders.find(o => o.courier_id === me.id && o.status === "recuperee");
 const busy = () => !freeNow() && !!busyOrder();
@@ -714,6 +760,7 @@ const blocked = () => locked() || busy();
 function acceptError(e) {
   if (/busy/.test(e.message)) { const b = busyOrder(); alert(`🔒 Livrez d'abord votre course en cours${b ? " n° " + b.ref : ""} : validez « Livré » sur place${b && b.leave_at_door ? ", avec la photo devant la porte" : ""}. Un souci ? Écrivez à HOP.`); return "shown"; }
   if (/debt/.test(e.message)) { alert(`🔒 Vous devez ${UI.money(balance)} à HOP : réglez votre solde pour recevoir des courses.`); return "shown"; }
+  if (/credit_low/.test(e.message)) { alert(`💳 Crédit HOP insuffisant (${UI.money(available())}) pour la commission de cette course : rechargez-le dans « Finances ».`); openPage("week"); return "shown"; }
   return false;
 }
 async function hasDoorPhoto(o) {
@@ -735,8 +782,9 @@ function renderLock() {
     return;
   }
   if (!locked()) return;
-  box.innerHTML = `<div><b>🔒 Vous devez ${UI.money(balance)} à HOP</b><br><span class="small">Réglez par Bit au ${UI.esc(CONFIG.bitPhone)} pour recevoir à nouveau des courses (plafond ${UI.money(settings.max_debt)}).</span></div>
-    <button type="button" class="btn btn-wa" data-boss="${UI.esc(`Bonjour, je viens de régler mon solde de ${UI.money(balance)} par Bit.`)}">J'ai payé</button>`;
+  box.innerHTML = `<div><b>💳 Crédit HOP : ${UI.money(available())}</b><br><span class="small">Rechargez votre crédit (Bit au ${UI.esc(CONFIG.bitPhone)}) pour recevoir des courses : la commission de HOP en est déduite à chaque course.</span></div>
+    <button type="button" class="btn btn-primary" data-go-credit>💳 Recharger</button>`;
+  box.querySelector("[data-go-credit]").onclick = () => openPage("week");
 }
 
 // --- Parrainage des commerces ------------------------------------------------------------
@@ -985,8 +1033,7 @@ function showNextOffer() {
     `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
     toPickup != null ? `🛵 À ≈ ${toPickup.toFixed(1)} km de vous` : "",
     `🕐 ${UI.esc(when)}`,
-    o.paid_to === "hop" ? (o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
-      : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant") : `💵 Espèces : vous encaissez ${UI.money(o.price)} auprès du client`,
+    payLine(o),
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
     o.shop_status ? proLine(o) : "",
     o.phone_order ? phoneLine(o) : "",
@@ -1275,9 +1322,9 @@ function renderSettings(view) {
 function renderHelp(view) {
   const faq = [
     ["Comment je reçois des courses ?", "Passez en ligne : glissez le bouton « HOP! » jusqu’au bout. Les courses arrivent d’abord au livreur en ligne le plus proche du départ, puis aux autres. Une fenêtre s'ouvre avec le prix, votre gain et les kilomètres."],
-    ["Comment je suis payé ?", `Vous encaissez le client en espèces. Le Bit, les courses programmées et les carnets pro sont payés à HOP, qui vous les reverse. Chaque semaine : vous versez à HOP sa commission (${UI.commissionText()}, ou ${UI.networkText()} sur vos commerces), moins vos bonus, pourboires et parts d'abonnement, ou HOP vous verse la différence. Voir « Finances ».`],
+    ["Comment je suis payé ?", `Directement : le client vous paie la course par Bit ou PayBox sur votre numéro (avant « Livré », touchez « 💳 Paiement reçu »), et le commerce HOP! Pro vous paie sa part en vous remettant la commande. HOP n'encaisse rien pour vous : sa commission (${UI.commissionText()}, ou ${UI.networkText()} sur vos commerces) est déduite de votre crédit HOP, que vous rechargez à l'avance par Bit (« Finances »). Les bonus et parts d'abonnement y sont ajoutés.`],
     ["Pourquoi je ne peux pas valider « Livré » ?", `Il faut être à moins de ${deliverRadius()} m de l'adresse de livraison. Pour « déposer devant la porte », envoyez d'abord la photo du colis dans la conversation de la course.`],
-    ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre solde dû dépasse ${UI.money(settings.max_debt)}. Le bandeau rouge vous dit quoi faire. Un souci ? HOP peut vous débloquer.`],
+    ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre crédit HOP ne couvre plus la commission d'une course. Le bandeau vous dit quoi faire : rechargez dans « Finances ». Un souci ? HOP peut vous débloquer.`],
     ["Le client est absent, l'adresse est introuvable…", "Touchez « ⚠️ Un souci » sur la course : HOP et le client sont prévenus tout de suite, et vous continuez dans la conversation."],
     ["Comment gagner plus ?", `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier, vous ne payez que ${UI.networkText()} de commission dessus, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro pendant ${CONFIG.pro.referrerMonths} mois.`],
     ["Et les pourboires ?", "Après la livraison, le client peut laisser un pourboire : il le paie à HOP par Bit, et HOP vous le reverse en entier avec votre solde de la semaine."],

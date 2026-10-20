@@ -162,6 +162,18 @@ function setRing(on) {
 }
 // N° de commande tapé mais pas encore validé : gardé quand l'écran se rafraîchit
 const refDraft = {};
+// Paiement direct : le commerce paie au livreur sa part de la course (12 − 2 = 10 ₪) en lui remettant la commande
+const courierPart = o => (o.direct_pay ? Math.max(0, Number(o.shop_share || 0) - Number(o.hop_share || 0)) : 0);
+function courierPay(o) {
+  const amount = courierPart(o);
+  if (!amount) return "";
+  if (!o.courier_bit) return `<p class="small pay-courier">💳 ${UI.esc(t("spPayCourierLater", { amount: UI.money(amount) }))}</p>`;
+  const name = String(o.courier_name || "").split(" ")[0];
+  return `<p class="small pay-courier">💳 ${UI.esc(t("spPayCourier", { amount: UI.money(amount), name, phone: o.courier_bit }))}
+    <button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></p>`;
+}
+// Ce que le commerce doit à HOP pour une livraison : sa part (avant), ou seulement la part de HOP (paiement direct)
+const billPart = o => (o.direct_pay ? (Number(o.shop_share || 0) > 0 ? Number(o.hop_share || 0) : 0) : Number(o.shop_share || 0));
 // Articles déjà mis dans le sac (cochés par le commerce sur ce téléphone)
 const picked = {};
 function renderPrep() {
@@ -194,6 +206,7 @@ function renderPrep() {
           ${o.items_note ? `<p class="prep-order">💬 ${UI.esc(o.items_note)}</p>` : ""}<p class="small"><b>${UI.esc(t("spItemsTotal", { total: UI.money(o.items_total) }))}</b></p>`
         : `<p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>`}
       <small class="muted">${UI.esc(t("spClient", { name: (o.dropoff_contact || o.contact_name || "").split(" ")[0], city: I18N.cityName(o.to_city) }))}</small>
+      ${courierPay(o)}
       ${act}
     </div>`;
   }).join("") : `<p class="muted small">${UI.esc(t("spPrepNone"))}</p>`);
@@ -204,8 +217,8 @@ function renderPlan() {
   const box = $("#spPlan");
   if (planOn(shop)) {
     const month = today().slice(0, 7);
-    const done = orders.filter(o => o.status === "livree" && Number(o.shop_share) > 0 && String(o.pickup_at).slice(0, 7) === month);
-    const shares = done.reduce((x, o) => x + Number(o.shop_share), 0);
+    const done = orders.filter(o => o.status === "livree" && billPart(o) > 0 && String(o.pickup_at).slice(0, 7) === month);
+    const shares = done.reduce((x, o) => x + billPart(o), 0);
     box.innerHTML = `<h3>${UI.esc(t("spPlanOn", { date: UI.fmtKey(shop.plan_until) }))}</h3>
       <p class="small" style="margin:6px 0 0">${UI.esc(t(shop.client_pays && !shares ? "spBillClient" : "spBill", { monthly: UI.money(st.pro_monthly), shares: UI.money(shares), n: done.length,
         total: UI.money(Number(st.pro_monthly) + shares), phone: CONFIG.bitPhone }))}</p>`;
@@ -502,6 +515,7 @@ function renderGuide(shop) {
   const st = Object.assign({ pro_monthly: CONFIG.pro.monthly, pro_shop_share: CONFIG.pro.shopShare, pro_hop_share: CONFIG.pro.hopShare }, state.settings || {});
   const client = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - (Number(st.pro_shop_share) - Number(st.pro_hop_share || 0))));
   const vars = { monthly: UI.money(st.pro_monthly), share: UI.money(st.pro_shop_share), phone: CONFIG.bitPhone, client, full: payVars().full,
+    courier: UI.money(Number(st.pro_shop_share) - Number(st.pro_hop_share || 0)), hop: UI.money(st.pro_hop_share),
     n: CONFIG.partners.carnet.courses, price: UI.money(CONFIG.partners.carnet.price) };
   const keys = pro ? ["gdPro1", "gdPro2", "gdPro3", "gdPro4", "gdPro5", shop.client_pays ? "gdPro6c" : "gdPro6", "gdPro7"] : ["gdBase1", "gdBase2", "gdBase3", "gdBase4"];
   $("#spGuideTitle").textContent = t(pro ? "gdTitlePro" : "gdTitle");
