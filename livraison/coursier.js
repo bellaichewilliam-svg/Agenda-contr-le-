@@ -142,6 +142,15 @@ async function route() {
   if (!Store.session()) { $("#welcome").classList.remove("hidden"); return; }
   let meErr = false;
   try { me = await Store.me(); } catch (e) { me = null; meErr = true; }
+  // Le compte patron garde l'accueil client dans l'appli HOP! (voir index.html)
+  let backHome = false;
+  try {
+    if (me) localStorage.setItem("hop.role", me.role === "admin" ? "admin" : "");
+    backHome = !!me && me.role === "admin" && sessionStorage.getItem("hop.autoRider") === "1";
+    sessionStorage.removeItem("hop.autoRider");
+  } catch (e) { /* ignore */ }
+  // Envoyé ici tout seul depuis l'accueil client alors que c'est le patron : retour à l'accueil
+  if (backHome) return location.replace(/\.vercel\.app$/.test(location.hostname) && location.pathname.indexOf("/livreur/") === 0 ? "/app/" : "index.html");
   if (!me && meErr) {
     $("#welcome").classList.remove("hidden");
     showAuth("login");
@@ -320,6 +329,8 @@ function card(o, kind) {
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
     + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
     + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
+  if (o.eta_status === "attente" && new Date(o.eta_until) > Date.now()) extra += `<div class="bag-line">⏳ Vous avez annoncé ${o.eta_min} min : le client a jusqu'à ${UI.esc(new Date(o.eta_until).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))} pour refuser. Partez quand même au départ.</div>`;
+  else if (o.eta_at && o.status === "confirmee" && !o.arrived_at) extra += `<div class="small">🕐 Attendu au départ vers ${UI.esc(new Date(o.eta_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))} (${o.eta_min} min annoncées)</div>`;
   if (o.service === "achat" && o.rx) extra += `<div class="bag-line">💊 Médicament sur ordonnance : carte d'identité du patient et ordonnance vérifiées par HOP!, à montrer à la pharmacie</div>`;
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
@@ -512,8 +523,11 @@ async function onViewClick(e) {
     return load();
   }
   if (el.dataset.accept) {
+    const po = pool().find(x => x.id === el.dataset.accept);
+    const eta = prompt("🛵 Dans combien de minutes êtes-vous au départ ? (le client peut refuser si c'est trop long)", String(po ? etaGuess(po) : 15));
+    if (eta === null) return;
     el.disabled = true;
-    const ok = await Store.acceptOrder(el.dataset.accept).catch(e => acceptError(e));
+    const ok = await Store.acceptOrder(el.dataset.accept, Math.max(1, Math.min(180, parseInt(eta, 10) || 15))).catch(e => acceptError(e));
     if (ok === "shown") { /* message déjà affiché */ }
     else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
     else {
@@ -1013,6 +1027,8 @@ function closeOffer() {
   clearInterval(offerTick);
   stopRing();
   $("#declineWhy").classList.add("hidden");
+  $("#etaPick").classList.add("hidden");
+  $("#offerAccept").classList.remove("hidden");
   $("#offerModal").classList.add("hidden");
   offerShown = null;
   setTimeout(showNextOffer, 300);
@@ -1040,10 +1056,33 @@ function afterDecline(r) {
   $("#autoOffModal").classList.remove("hidden");
 }
 
-async function acceptOffer() {
+// Temps pour être au départ : proposé d'après la distance, le livreur choisit
+const ETA_STEPS = [5, 10, 15, 20, 30, 45, 60];
+function etaGuess(o) {
+  const km = roadKm(lastPos, pt(o.pickup_lat, o.pickup_lon));
+  const m = km == null ? 15 : Math.ceil(km * 2.5 + 3);
+  return ETA_STEPS.find(x => x >= m) || 60;
+}
+function askEta() {
+  const o = pool().find(x => x.id === offerShown);
+  if (!o) return closeOffer();
+  clearInterval(offerTick);
+  stopRing();
+  $("#offerTimer").textContent = "";
+  const g = etaGuess(o);
+  $("#etaChips").innerHTML = ETA_STEPS.map(m => `<button type="button" class="ch-chip${m === g ? " on" : ""}" data-eta="${m}">${m} min</button>`).join("");
+  $("#etaPick").classList.remove("hidden");
+  $("#offerAccept").classList.add("hidden");
+}
+$("#etaChips").addEventListener("click", e => { const b = e.target.closest("[data-eta]"); if (b) acceptOffer(Number(b.dataset.eta)); });
+async function acceptOffer(eta) {
   const id = offerShown;
+  // Avant d'accepter : dans combien de temps au départ ?
+  if (typeof eta !== "number") return askEta();
+  $("#etaPick").classList.add("hidden");
+  $("#offerAccept").classList.remove("hidden");
   $("#offerAccept").disabled = true;
-  const ok = await Store.acceptOrder(id).catch(e => acceptError(e));
+  const ok = await Store.acceptOrder(id, eta).catch(e => acceptError(e));
   $("#offerAccept").disabled = false;
   closeOffer();
   if (ok === "shown") { /* message déjà affiché */ }

@@ -50,18 +50,24 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
   <script>
     // Un livreur connecté sur ce téléphone arrive directement dans son espace (aussi dans l'appli HOP!).
-    // « ?client=1 » (logo de l'espace livreur) garde l'accueil client pour cette visite.
+    // « ?client=1 » (logo de l'espace livreur) garde l'accueil client pour cette visite. Le compte patron
+    // garde toujours l'accueil client. Dans l'appli HOP! installée, l'espace livreur s'ouvre DANS l'appli
+    // (sortir vers /livreur/ laissait l'appli sur une page blanche pendant qu'Android ouvrait l'autre).
     (function () {
       try {
         var q = new URLSearchParams(location.search);
         if (q.get("client") === "1") { sessionStorage.setItem("hop.asClient", "1"); return; }
         q.delete("r");
         if (sessionStorage.getItem("hop.asClient") === "1" || q.toString() || location.hash) return;
-        if (localStorage.getItem("livraison.session.coursier.v1")) location.replace("coursier.html");
+        if (!localStorage.getItem("livraison.session.coursier.v1") || localStorage.getItem("hop.role") === "admin") return;
+        var app = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+        if (app) sessionStorage.setItem("hop.app", "client");
+        sessionStorage.setItem("hop.autoRider", "1");
+        location.replace(app || !/\.vercel\.app$/.test(location.hostname) ? "coursier.html" : "/livreur/");
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610200228" />
+  <link rel="stylesheet" href="styles.css?v=202610200803" />
 </head>
 <body>
 
@@ -616,14 +622,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610200228"></script>
-<script src="i18n.js?v=202610200228"></script>
-<script src="pricing.js?v=202610200228"></script>
-<script src="store.js?v=202610200228"></script>
-<script src="chat.js?v=202610200228"></script>
-<script src="common.js?v=202610200228"></script>
-<script src="enseignes.js?v=202610200228"></script>
-<script src="places.js?v=202610200228"></script>
-<script src="client.js?v=202610200228"></script>
+<script src="config.js?v=202610200803"></script>
+<script src="i18n.js?v=202610200803"></script>
+<script src="pricing.js?v=202610200803"></script>
+<script src="store.js?v=202610200803"></script>
+<script src="chat.js?v=202610200803"></script>
+<script src="common.js?v=202610200803"></script>
+<script src="enseignes.js?v=202610200803"></script>
+<script src="places.js?v=202610200803"></script>
+<script src="client.js?v=202610200803"></script>
 </body>
 </html>
