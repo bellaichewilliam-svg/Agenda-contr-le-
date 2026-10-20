@@ -280,7 +280,7 @@ async function load() {
     let card;
     [orders, settings, card] = await Promise.all([Store.listOrders(), Store.getSettings(), Store.me().catch(() => null)]);
     // Fiche à jour (déblocage par HOP, suspension…)
-    if (card) me = card;
+    if (card) { me = card; serverWentOffline(card); }
     // Parrainage et messages : un souci ici ne doit pas bloquer les courses
     const [r, m, bal, dem, acc, fc] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
       Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null), Store.myAcceptance().catch(() => null), Store.demandForecast().catch(() => null)]);
@@ -1397,11 +1397,27 @@ async function sendPosition(pos) {
     await Store.ping(pos.coords.latitude, pos.coords.longitude);
     // Première position après le passage en ligne : les courses arrivent tout de suite
     if (duty.fresh) { duty.fresh = false; Promise.resolve(duty.onlineP).catch(() => {}).then(() => setTimeout(load, 1200)); }
-    $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR")} · vous pouvez passer sur Waze : vous restez en ligne.`;
+    $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR")} · pendant une course, vous pouvez passer sur Waze. Sans course, gardez HOP! ouvert : après ${settings.idle_off_min || 15} min sans HOP!, vous passez hors ligne.`;
   } catch (e) {
     duty.lastSent = 0;
     $("#dutyText").textContent = "⚠️ Position non envoyée (connexion). Nouvel essai automatique.";
   }
+}
+
+// HOP! ouvert à l'écran : on donne des nouvelles chaque minute, même à l'arrêt (sinon le GPS ne renvoie rien)
+setInterval(() => {
+  if (duty.watch == null || document.visibilityState !== "visible" || !lastPos || Date.now() - duty.lastSent < 60000) return;
+  sendPosition({ coords: { latitude: lastPos.lat, longitude: lastPos.lon } });
+}, 20000);
+
+// Passé hors ligne par HOP! (trop de refus, ou plus sur l'appli depuis 15 min) : on coupe aussi ici
+function serverWentOffline(card) {
+  if (duty.watch == null || !card || card.online || !card.auto_offline_at || !duty.since) return;
+  if (new Date(card.auto_offline_at).getTime() < duty.since) return;
+  toggleDuty(true);
+  try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }
+  $("#autoOffText").textContent = `HOP! n'était plus ouvert depuis ${settings.idle_off_min || 15} min (sans course en cours) : on vous a passé hors ligne pour ne pas faire attendre les clients. Repassez en ligne dès que vous êtes prêt à accepter des courses.`;
+  $("#autoOffModal").classList.remove("hidden");
 }
 
 // « HOP! » en grand quand on passe en ligne
@@ -1419,7 +1435,7 @@ async function toggleDuty(quiet) {
     if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
   } else {
     if (!navigator.geolocation) return alert("La géolocalisation n'est pas disponible sur ce téléphone.");
-    duty.fresh = true; duty.lastSent = 0;
+    duty.fresh = true; duty.lastSent = 0; duty.since = Date.now() - 5000;
     duty.watch = navigator.geolocation.watchPosition(sendPosition, err => {
       $("#dutyText").textContent = err.code === 1 ? "⚠️ Autorisez la localisation pour ce site." : "⚠️ Position GPS introuvable pour le moment…";
     }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
@@ -1428,7 +1444,7 @@ async function toggleDuty(quiet) {
   // En ligne / hors ligne pour HOP : seules les personnes en ligne reçoivent des courses
   duty.onlineP = Store.setOnline(duty.watch != null).then(() => { if (duty.watch == null) load(); }).catch(() => {});
   // Notification « En service » qui reste affichée : on peut passer sur Waze et revenir en un geste
-  UI.dutyNotice(duty.watch != null, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
+  UI.dutyNotice(duty.watch != null, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert). Sans course, revenez avant 15 min.");
   if (duty.watch != null && !quiet) hopBurst();
   try { localStorage.setItem("livraison.online.v1", duty.watch != null ? "1" : ""); } catch (e) { /* ignore */ }
   renderDuty();
@@ -1457,7 +1473,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible" || duty.watch == null) return;
   duty.lastSent = 0;
   navigator.geolocation.getCurrentPosition(sendPosition, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-  UI.dutyNotice(true, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
+  UI.dutyNotice(true, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert). Sans course, revenez avant 15 min.");
 });
 $("#waitRefresh").addEventListener("click", route);
 $("#drawerNav").addEventListener("click", e => {
