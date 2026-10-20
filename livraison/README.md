@@ -111,7 +111,7 @@ L'espace du commerce (`commerce.html`) montre le tarif pro (25 ₪ dans Netanya)
 Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et d'autres messages prêts, à tous ou à un seul livreur. Le message s'ouvre en grand chez eux, avec un son, et ils répondent « J'arrive » ou « Pas dispo ».
 
 ### Adresses
-- En touchant « Récupérer à » ou « Livrer à », la liste propose tout de suite **📍 Ma position** et les **adresses enregistrées**. **📍 Ma position** remplit l'adresse depuis le GPS du téléphone (aussi en raccourci sur l'accueil), et **⭐ Enregistrer cette adresse** l'ajoute au carnet du client en **🏠 Maison**, **💼 Travail** ou sous un nom choisi (« Maman »…). Ces adresses passent en premier dans les raccourcis.
+- En touchant « Récupérer à » ou « Livrer à », la liste propose tout de suite **📍 Ma position** et les **adresses enregistrées**. **📍 Ma position** remplit l'adresse depuis le GPS du téléphone (aussi en raccourci sur l'accueil), et **⭐ Enregistrer cette adresse** l'ajoute au carnet du client en **🏠 Maison**, **💼 Travail** ou sous un nom choisi (« Maman »…). Ces adresses passent en premier dans les raccourcis. Dans **Mes courses → Mon compte**, **✏️ Modifier** change le nom (Maison, Travail, autre) et les détails pour le livreur (étage, appartement, code, remarque) ; le carnet s'affiche dès la première adresse enregistrée.
 - **Enseignes :** « Golda », « Super-Pharm »… donnent d'abord l'agence la plus proche du client (si la carte n'en trouve aucune à moins de 4 km, on cherche le nom sur OpenStreetMap autour de lui).
 - Avant chaque commande, le client **vérifie ses adresses sur une carte** et peut faire glisser l'épingle au bon endroit, par exemple s'il commande pour une autre adresse que la sienne.
 

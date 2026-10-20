@@ -321,6 +321,17 @@ function saveAddress(a) {
   writeJSON(LS.addresses, list.slice(0, 10));
 }
 function deleteAddress(i) { const list = getAddresses(); list.splice(i, 1); writeJSON(LS.addresses, list); }
+// Modifier une adresse enregistrée : Maison / Travail / autre nom, étage, appartement, code, note
+function updateAddress(i, patch) {
+  let list = getAddresses();
+  if (!list[i]) return;
+  const tag = patch.tag === "other" && !patch.name ? null : patch.tag || null;
+  if (tag === "home" || tag === "work") list = list.map((x, j) => (j !== i && x.tag === tag ? Object.assign({}, x, { tag: null, name: null }) : x));
+  list[i] = Object.assign({}, list[i], patch, { tag, name: tag === "other" ? patch.name : null });
+  const rank = x => (x.tag in TAG_RANK ? TAG_RANK[x.tag] : 9);
+  list.sort((x, y) => (rank(x) - rank(y)) || (y.uses - x.uses) || (y.at - x.at));
+  writeJSON(LS.addresses, list);
+}
 function saveProfile(p) { writeJSON(LS.profile, p); }
 
 // --- Connexion (patron et livreurs) ---------------------------------------------
@@ -1291,7 +1302,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress,
+  createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,

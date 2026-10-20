@@ -833,18 +833,35 @@ function renderAccount() {
   $("#coordsFields").classList.toggle("hidden", known && !editing);
   $("#coordsText").textContent = known ? `${p.contact_name} · ${p.contact_phone}${p.company ? " · " + p.company : ""}` : "";
 
+  // Le carnet d'adresses s'affiche dès la première adresse enregistrée (même avant la première commande)
   const card = $("#accountCard");
-  card.classList.toggle("hidden", !known);
-  if (!known) return;
   const addrs = Store.getAddresses();
+  card.classList.toggle("hidden", !known && !addrs.length);
+  if (!known && !addrs.length) return;
   card.innerHTML = `<h3>${UI.esc(t("accTitle"))}</h3>
-    <p class="muted small">${UI.esc(t("accSaved"))}</p>
+    ${known ? `<p class="muted small">${UI.esc(t("accSaved"))}</p>
     <p style="margin-top:8px"><b>${UI.esc(p.contact_name)}</b> · <span dir="ltr">${UI.esc(p.contact_phone)}</span>${p.contact_email ? " · " + UI.esc(p.contact_email) : ""}
-      · ${UI.esc(t("accOrders", { n: activeOrders().length }))}</p>
+      · ${UI.esc(t("accOrders", { n: activeOrders().length }))}</p>` : ""}
     <b style="display:block;margin-top:10px">${UI.esc(t("accAddrs"))}</b>
-    ${addrs.length ? `<ul>${addrs.map((a, i) => `<li><span>${addrChip(a)}</span>
-        <button type="button" class="btn btn-sm btn-link" data-del-addr="${i}">✕ ${UI.esc(t("accDelete"))}</button></li>`).join("")}</ul>`
+    ${addrs.length ? `<ul>${addrs.map((a, i) => state.editAddr === i ? addrEditForm(a, i) : `<li><span>${addrChip(a)}</span>
+        <span class="acc-addr-btns"><button type="button" class="btn btn-sm btn-link" data-edit-addr="${i}">${UI.esc(t("accEdit"))}</button>
+        <button type="button" class="btn btn-sm btn-link" data-del-addr="${i}">✕ ${UI.esc(t("accDelete"))}</button></span></li>`).join("")}</ul>`
       : `<p class="muted small">${UI.esc(t("accNoAddr"))}</p>`}`;
+}
+// Modifier une adresse enregistrée : son nom (Maison, Travail, autre) et les détails pour le livreur
+function addrEditForm(a, i) {
+  const field = (f, k) => `<label class="f"><span>${UI.esc(t(k))}</span><input data-ae="${f}" value="${UI.esc(a[f] || "")}" /></label>`;
+  return `<li class="addr-edit"><div>
+    <b>${addrIcon(a)} ${UI.esc(addrLabel(a))}</b>
+    <div class="save-tags">${[["home", "🏠 " + t("tagHome")], ["work", "💼 " + t("tagWork")], ["other", "⭐ " + t("tagOther")]].map(([k, l]) =>
+      `<button type="button" class="btn btn-sm${a.tag === k ? " btn-primary" : ""}" data-edit-tag="${k}">${UI.esc(l)}</button>`).join("")}</div>
+    <label class="f ae-name${a.tag === "other" ? "" : " hidden"}"><span>${UI.esc(t("tagNamePh"))}</span><input data-ae="name" maxlength="30" value="${UI.esc(a.tag === "other" ? a.name || "" : "")}" /></label>
+    <div class="ae-grid">${field("floor", "floor")}${field("apt", "apt")}${field("code", "entryCode")}</div>
+    ${field("note", "addrNote")}
+    <p class="muted small">${UI.esc(t("aeStreetHint"))}</p>
+    <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary btn-sm" data-ae-save="${i}">${UI.esc(t("ctSave"))}</button>
+      <button type="button" class="btn btn-sm btn-link" data-ae-cancel>${UI.esc(t("ctCancel"))}</button></div>
+  </div></li>`;
 }
 
 function resetPlaces() {
@@ -1981,8 +1998,33 @@ $("#shopBannerOff").addEventListener("click", () => {
 });
 $("#coordsEdit").addEventListener("click", () => { $("#coordsBox").dataset.editing = "1"; renderAccount(); form.contact_name.focus(); });
 $("#accountCard").addEventListener("click", e => {
+  const ed = e.target.closest("[data-edit-addr]");
+  if (ed) { state.editAddr = Number(ed.dataset.editAddr); renderAccount(); return; }
+  const tg = e.target.closest("[data-edit-tag]");
+  if (tg) {
+    // Toucher le nom déjà choisi l'enlève ; « Autre nom » ouvre le champ du nom
+    const li = tg.closest(".addr-edit"), on = !tg.classList.contains("btn-primary");
+    li.querySelectorAll("[data-edit-tag]").forEach(x => x.classList.toggle("btn-primary", on && x === tg));
+    li.querySelector(".ae-name").classList.toggle("hidden", !(on && tg.dataset.editTag === "other"));
+    if (on && tg.dataset.editTag === "other") li.querySelector('[data-ae="name"]').focus();
+    return;
+  }
+  if (e.target.closest("[data-ae-cancel]")) { state.editAddr = null; renderAccount(); return; }
+  const sv = e.target.closest("[data-ae-save]");
+  if (sv) {
+    const li = sv.closest(".addr-edit"), v = f => li.querySelector(`[data-ae="${f}"]`).value.trim() || null;
+    const sel = li.querySelector("[data-edit-tag].btn-primary"), tag = sel ? sel.dataset.editTag : null;
+    const name = tag === "other" ? (v("name") || "").slice(0, 30) : null;
+    if (tag === "other" && !name) { li.querySelector('[data-ae="name"]').focus(); return; }
+    Store.updateAddress(Number(sv.dataset.aeSave), { tag, name, floor: v("floor"), apt: v("apt"), code: v("code"), note: v("note") });
+    state.editAddr = null;
+    renderSavedAddrs();
+    renderAccount();
+    return;
+  }
   const b = e.target.closest("[data-del-addr]");
   if (!b) return;
+  state.editAddr = null;
   Store.deleteAddress(Number(b.dataset.delAddr));
   renderSavedAddrs();
   renderAccount();

@@ -235,7 +235,7 @@ $("#spPlan").addEventListener("click", e => {
   openShopChat(t("spPlanMsg", { name: shop.name, code: shop.code }));
 });
 // --- Catalogue HOP! Pro : catégories et produits (photo, prix, disponible / épuisé) --------------
-const cat = { data: null, edit: null, photo: undefined, busy: false };
+const cat = { data: null, edit: null, photo: undefined, busy: false, fresh: false };
 async function loadCatalog() {
   try { cat.data = await Store.shopCatalogMine(state.dash.shop.token); } catch (e) { cat.data = cat.data || null; }
   renderCatalog();
@@ -301,6 +301,9 @@ function renderCatalog() {
   if (loose.length) groups.push({ c: { id: "", name: t("ctLoose") }, list: loose });
   const adding = c => cat.edit && !cat.edit.id && cat.edit.category_id === c.id;
   const sugg = CONFIG.partners.catalogCategories[shop.kind] || CONFIG.partners.catalogCategories.autre;
+  // Un formulaire ouvert garde ce qui est déjà tapé quand la liste se redessine (photo, épuisé, rechargement)
+  const open = box.querySelector("form.ct-form"), keep = open && !cat.fresh ? { id: open.dataset.form, vals: Object.fromEntries(new FormData(open)) } : null;
+  cat.fresh = false;
   box.innerHTML = `<h3>${UI.esc(t("ctTitle"))}</h3>
     <p class="muted small" style="margin:4px 0 10px">${UI.esc(t("ctSub", { n: products.length, on: products.filter(p => p.available).length }))}</p>
     ${!categories.length ? `<div class="notice" style="margin-bottom:10px">${UI.esc(t("ctStart"))}<br><button type="button" class="btn btn-primary btn-sm" data-suggest style="margin-top:8px">${UI.esc(t("ctSuggest", { list: sugg.map(x => x.split(" · ")[0]).join(", ") }))}</button></div>` : ""}
@@ -315,6 +318,8 @@ function renderCatalog() {
       <button type="button" class="btn btn-sm" data-add-cat>${UI.esc(t("ctAddCat"))}</button>
       ${!categories.length && !adding({ id: "" }) ? `<button type="button" class="btn btn-sm" data-add-prod="">${UI.esc(t("ctAddProd"))}</button>` : ""}
     </div>`;
+  const g = box.querySelector("form.ct-form");
+  if (keep && g && g.dataset.form === keep.id) Object.entries(keep.vals).forEach(([k, v]) => { if (g.elements[k] && typeof v === "string") g.elements[k].value = v; });
 }
 async function catalogDo(fn) {
   cat.busy = true;
@@ -342,8 +347,8 @@ $("#spCatalog").addEventListener("click", e => {
     return;
   }
   if (b.dataset.catDel) { if (confirm(t("ctDelCat"))) catalogDo(() => Store.deleteCategory(token, b.dataset.catDel)); return; }
-  if (b.dataset.addProd != null) { cat.edit = { id: null, category_id: b.dataset.addProd }; cat.photo = undefined; return renderCatalog(); }
-  if (b.dataset.edit) { cat.edit = { id: b.dataset.edit }; cat.photo = undefined; return renderCatalog(); }
+  if (b.dataset.addProd != null) { cat.edit = { id: null, category_id: b.dataset.addProd }; cat.photo = undefined; cat.fresh = true; return renderCatalog(); }
+  if (b.dataset.edit) { cat.edit = { id: b.dataset.edit }; cat.photo = undefined; cat.fresh = true; return renderCatalog(); }
   if (b.dataset.cancel != null) { cat.edit = null; cat.photo = undefined; return renderCatalog(); }
   if (b.dataset.photoOff != null) { cat.photo = ""; return renderCatalog(); }
   if (b.dataset.avail) {
@@ -357,12 +362,8 @@ $("#spCatalog").addEventListener("click", e => {
 });
 $("#spCatalog").addEventListener("change", async e => {
   if (!e.target.matches("[data-photo]") || !e.target.files[0]) return;
-  // On garde ce qui est déjà tapé dans le formulaire
-  const f = e.target.closest("form"), keep = f ? Object.fromEntries(new FormData(f)) : null;
   try { cat.photo = await shrinkPhoto(e.target.files[0]); } catch (ex) { return alert(t("ctPhotoErr")); }
   renderCatalog();
-  const g = $("#spCatalog form");
-  if (g && keep) Object.entries(keep).forEach(([k, v]) => { if (g.elements[k]) g.elements[k].value = v; });
 });
 $("#spCatalog").addEventListener("submit", e => {
   e.preventDefault();
