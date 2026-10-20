@@ -3339,6 +3339,40 @@ end;
 $$;
 
 -- ============================================================================
+-- ÇA SONNE, MÊME APPLI FERMÉE : tant qu'une course attend un livreur, la notification « Nouvelle course » est
+-- renvoyée toutes les 20 s (elle sonne et vibre à chaque fois) aux livreurs en ligne qui ne l'ont pas refusée,
+-- le patron compris quand il roule ; pendant 6 min au plus après qu'elle devient visible.
+-- ============================================================================
+alter table public.orders add column if not exists ring_count int not null default 0;
+alter table public.orders add column if not exists ring_at timestamptz;
+
+create or replace function public.ring_open_orders() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0;
+begin
+  for o in select id from orders
+            where status = 'nouvelle' and courier_id is null
+              and (shop_status is null or shop_status in ('acceptee', 'prete'))
+              and coalesce(docs_status, 'ok') = 'ok'
+              and now() >= public.offer_from(orders) and now() < public.offer_from(orders) + interval '6 minutes'
+              and coalesce(ring_at, public.offer_from(orders)) < now() - interval '15 seconds'
+              and ring_count < 18
+  loop
+    update orders set ring_count = ring_count + 1, ring_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'ring'));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.ring_open_orders() from public, anon, authenticated;
+do $$ begin
+  create extension if not exists pg_cron;
+  perform cron.schedule('hop-ring', '20 seconds', 'select public.ring_open_orders()');
+exception when others then raise notice 'pg_cron indisponible : pas de sonnerie répétée';
+end $$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
