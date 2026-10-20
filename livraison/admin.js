@@ -26,6 +26,7 @@ let shops = [];
 let requests = [];
 let sales = [];
 let planSales = [];
+let penalties = [];   // retenues aux livreurs (courses pas faites, pas reçues)
 let declines = [];    // refus des 30 derniers jours (avec la raison)   // abonnements HOP! Pro payés (part du livreur qui a amené le commerce)
 let msgs = { messages: [], replies: [] };
 let me = null;
@@ -133,6 +134,7 @@ async function load() {
     const [sh, m, rq, sa] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null),
       Store.listRequests().catch(() => null), Store.listCarnetSales().catch(() => null)]);
     planSales = (await Store.listPlanSales().catch(() => null)) || planSales;
+    penalties = (await Store.listPenalties().catch(() => null)) || penalties;
     declines = (await Store.listDeclines().catch(() => null)) || declines;
     if (sh) shops = sh;
     if (sa) sales = sa;
@@ -318,6 +320,14 @@ function card(o, withDay) {
     meta.push(`<button class="pill pill-btn ${o.docs_status === "ok" ? "paid" : o.docs_status === "refuse" ? "st-annulee" : "unpaid"}" data-act="docs" title="Voir les photos envoyées par le client">${o.docs_status === "ok" ? "✅ Documents vérifiés" : o.docs_status === "refuse" ? `📄 Demandé au client : ${UI.esc(o.docs_note || "")}` : "📄 Documents à vérifier"} · voir</button>`);
     if (o.status === "nouvelle" && o.docs_status !== "ok") meta.push(`<button class="pill pill-btn paid" data-act="docsok">✅ Documents OK : envoyer un livreur</button><button class="pill pill-btn st-annulee" data-act="docsko">✉️ Il manque…</button>`);
   }
+  // Course pas reçue (signalée par le client) ou pas faite : retenue au livreur, déduite de son versement
+  const LATE_FR = { libre: "⏰ En retard : personne ne l'a prise", pas_recuperee: "⏰ En retard : pas encore récupérée", pas_livree: "⏰ En retard : pas encore livrée" };
+  if (o.late_alert && ["nouvelle", "confirmee", "recuperee"].includes(o.status)) meta.push(`<span class="pill st-annulee">${LATE_FR[o.late_alert] || "⏰ En retard"}</span>`);
+  if (o.claim_status === "ouverte") meta.push(`<span class="pill st-annulee">⚠️ Le client dit ne pas avoir reçu${o.claim_note ? " : « " + UI.esc(o.claim_note) + " »" : ""}</span><button class="pill pill-btn paid" data-act="claimok" title="Vérifié : la course a bien été livrée">✅ Classer (bien livrée)</button>`);
+  else if (o.claim_status === "classee") meta.push(`<span class="pill">✅ Signalement classé</span>`);
+  penalties.filter(p => p.order_id === o.id && p.status !== "annulee").forEach(p => meta.push(`<span class="pill ${p.status === "regle" ? "paid" : "unpaid"}">💸 Retenue ${UI.money(p.amount)} · ${p.status === "regle" ? "déduite ✓" : "à déduire"}</span>${p.status === "du" ? `<button class="pill pill-btn" data-pen-cancel="${UI.esc(p.id)}">Annuler la retenue</button>` : ""}`));
+  const partner = couriers.find(c => c.id === o.courier_id && c.role !== "admin");
+  if (partner && ["confirmee", "recuperee", "livree", "annulee"].includes(o.status)) meta.push(`<button class="pill pill-btn st-annulee" data-act="penalty" title="Course pas faite ou pas reçue : retenue sur le versement de la semaine du livreur">💸 Retenue au livreur</button>`);
   if (o.rx) meta.push(`<span class="pill unpaid">💊 Médicament sur ordonnance</span>`);
   if (o.post_send) meta.push(`<span class="pill unpaid">📮 Dépôt à la poste · rendez-vous ${UI.esc(UI.fmtDateTime(o.appt_at))}</span>`);
   if (o.p2p_sale) meta.push(`<span class="pill">🤝 Vente entre particuliers · déjà payée au vendeur</span>`);
@@ -629,8 +639,11 @@ function renderWeek(view) {
     const tips = orders.filter(o => o.courier_id === c.id && o.tip_status === "recu");
     const plans = planSales.filter(p => p.referrer_id === c.id && p.referrer_status !== "regle" && Number(p.referrer_share) > 0);
     const extra = addsDue + sum(tips, o => Number(o.tip || 0)) + sum(plans, p => Number(p.referrer_share));
-    return { c, list, due, bonusList, bonusDue, hopPaid, hopDue, tips, plans, extra, collected: sum(list.filter(o => o.paid_to !== "hop")), commission: sum(list, o => Number(o.commission || 0)), dueAmount, balance: dueAmount - bonusDue - hopDue - extra };
-  }).filter(r => r.list.length || r.bonusList.length || r.tips.length || r.plans.length);
+    // Retenues (courses pas faites, pas reçues) : déduites de ce que HOP lui verse
+    const pens = penalties.filter(p => p.courier_id === c.id && (p.status === "du" ? UI.dayKey(p.created_at) <= end && weekOffset === 0 : p.status === "regle" && UI.dayKey(p.settled_at || p.created_at) >= start && UI.dayKey(p.settled_at || p.created_at) <= end));
+    const penDue = sum(pens.filter(p => p.status === "du"), p => Number(p.amount));
+    return { c, list, due, bonusList, bonusDue, hopPaid, hopDue, tips, plans, extra, pens, penDue, collected: sum(list.filter(o => o.paid_to !== "hop")), commission: sum(list, o => Number(o.commission || 0)), dueAmount, balance: dueAmount - bonusDue - hopDue - extra + penDue };
+  }).filter(r => r.list.length || r.bonusList.length || r.tips.length || r.plans.length || r.pens.length);
   const total = rows.reduce((s, r) => s + r.balance, 0);
   view.innerHTML = `<div class="toolbar">
       <button class="btn btn-sm" data-week="-1">◀</button>
@@ -641,17 +654,18 @@ function renderWeek(view) {
     <div class="week-sum"><small>Solde total de la semaine</small><b>${UI.money(Math.abs(total))}</b><span>${total > 0 ? "à recevoir des livreurs" : total < 0 ? "à verser aux livreurs" : "rien à régler"}</span></div>
     <details class="fin-more" style="margin:10px 0"><summary>ℹ️ Comment c'est calculé</summary><p class="small muted" style="margin-top:8px">Les livreurs encaissent les clients en espèces et vous versent leur commission une fois par semaine : ${UI.commissionText()}, ou ${UI.networkText()} sur les courses des commerces qu'ils ont amenés. Vous leur reversez : les courses payées à HOP (Bit, programmées, carnets), la part des commerces Pro, les codes promo, les pourboires reçus, leurs bonus réseau et ${CONFIG.pro.referrerPercent} % des abonnements Pro qu'ils ont fait signer. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</p></details>
     <div class="table-scroll"><table class="bill">
-      <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">🎁 Pro, promos, 💝, ⭐</th><th class="num">Solde</th><th></th></tr></thead>
+      <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">🎁 Pro, promos, 💝, ⭐</th><th class="num">💸 Retenues</th><th class="num">Solde</th><th></th></tr></thead>
       <tbody>${rows.map(r => `<tr data-courier="${UI.esc(r.c.id)}"><td><b>${UI.esc(r.c.name)}</b><br><span class="small muted">${UI.esc(r.c.phone)}</span></td>
         <td class="num">${r.list.length}</td><td class="num">${UI.money(r.collected)}</td><td class="num">${r.hopPaid.length ? "−" + UI.money(sum(r.hopPaid)) : "—"}</td><td class="num">${UI.money(r.commission)}</td>
         <td class="num">${r.bonusList.length ? `−${UI.money(sum(r.bonusList, o => Number(o.referral_bonus || 0)))}<br><span class="small muted">${r.bonusList.length} livraison(s)</span>` : "—"}</td>
         <td class="num">${r.extra ? "−" + UI.money(r.extra) : "—"}</td>
-        <td class="num"><b>${r.dueAmount || r.bonusDue || r.hopDue || r.extra ? (r.balance >= 0 ? UI.money(r.balance) + " à recevoir" : UI.money(-r.balance) + " à lui verser") : "✓ réglé"}</b></td>
+        <td class="num">${r.pens.length ? `+${UI.money(sum(r.pens, p => Number(p.amount)))}<br><span class="small muted">${r.pens.map(p => UI.esc(p.order_ref ? "n° " + p.order_ref : "") + (p.status === "regle" ? " ✓" : "")).join(", ")}</span>` : "—"}</td>
+        <td class="num"><b>${r.dueAmount || r.bonusDue || r.hopDue || r.extra || r.penDue ? (r.balance >= 0 ? UI.money(r.balance) + " à recevoir" : UI.money(-r.balance) + " à lui verser") : "✓ réglé"}</b></td>
         <td class="num" style="white-space:nowrap">
-          ${chatBtn("c:" + r.c.id, `Livreur : ${r.c.name}`, "Récapitulatif de la semaine", "Envoyer", `Bonjour ${r.c.name}, récapitulatif de la semaine du ${fmtKey(start)} au ${fmtKey(end)} : ${r.list.length} course(s) livrée(s), ${UI.money(r.collected)} encaissés, commission ${UI.money(r.dueAmount)}${r.hopDue ? `, courses payées à HOP ${UI.money(r.hopDue)} déduites` : ""}${r.bonusDue ? `, bonus parrainage ${UI.money(r.bonusDue)} déduit` : ""}. ${r.balance >= 0 ? `À me verser : ${UI.money(r.balance)} (Bit au ${CONFIG.bitPhone})` : `Je te verse ${UI.money(-r.balance)} sur ton Bit`}. Merci et bravo !`)}
-          ${r.dueAmount || r.bonusDue || r.hopDue || r.extra ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
-        </td></tr>`).join("") || `<tr><td colspan="9" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
-      <tfoot><tr><th>Solde total</th><th></th><th></th><th></th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
+          ${chatBtn("c:" + r.c.id, `Livreur : ${r.c.name}`, "Récapitulatif de la semaine", "Envoyer", `Bonjour ${r.c.name}, récapitulatif de la semaine du ${fmtKey(start)} au ${fmtKey(end)} : ${r.list.length} course(s) livrée(s), ${UI.money(r.collected)} encaissés, commission ${UI.money(r.dueAmount)}${r.hopDue ? `, courses payées à HOP ${UI.money(r.hopDue)} déduites` : ""}${r.bonusDue ? `, bonus parrainage ${UI.money(r.bonusDue)} déduit` : ""}${r.penDue ? `, retenues (courses pas faites ou pas reçues) ${UI.money(r.penDue)}` : ""}. ${r.balance >= 0 ? `À me verser : ${UI.money(r.balance)} (Bit au ${CONFIG.bitPhone})` : `Je te verse ${UI.money(-r.balance)} sur ton Bit`}. Merci et bravo !`)}
+          ${r.dueAmount || r.bonusDue || r.hopDue || r.extra || r.penDue ? `<button class="btn btn-sm" data-settle="${UI.esc(r.c.id)}">✓ Réglé</button>` : ""}
+        </td></tr>`).join("") || `<tr><td colspan="10" class="muted">Aucune course livrée par un livreur partenaire cette semaine.</td></tr>`}</tbody>
+      <tfoot><tr><th>Solde total</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th class="num">${UI.money(total)}</th><th></th></tr></tfoot>
     </table></div>`;
   view.dataset.weekStart = start;
 }
@@ -987,6 +1001,11 @@ async function onViewClick(e) {
   if (!el) return;
   if (el.id === "csvBtn") return exportCsv();
   if (el.dataset.week) { weekOffset = Math.min(0, weekOffset + Number(el.dataset.week)); return render(); }
+  if (el.dataset.penCancel) {
+    if (!confirm("Annuler cette retenue ? Le livreur est prévenu.")) return;
+    try { await Store.penaltyCancel(el.dataset.penCancel); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
   if (el.dataset.settle) {
     const start = $("#view").dataset.weekStart, end = addDays(start, 6);
     const inWeek = o => o.status === "livree" && UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= end;
@@ -997,6 +1016,7 @@ async function onViewClick(e) {
     try {
       await Store.settleOrders(ids); await Store.settleReferrals(bonusIds);
       await Store.settleTips(tipIds); await Store.settlePlanShares(planIds);
+      await Store.settlePenalties(el.dataset.settle);
       await load();
     } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
@@ -1119,6 +1139,20 @@ async function onViewClick(e) {
       if (changes.payment_status) await load();
 
     }
+  } else if (el.dataset.act === "claimok") {
+    if (!confirm(`Course n° ${o.ref} : vérifié, elle a bien été livrée ? Le signalement est classé, rien n'est retenu au livreur.`)) return;
+    try { await Store.claimClose(o.id); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+  } else if (el.dataset.act === "penalty") {
+    // Par défaut : le prix de la course + la valeur de la commande (catalogue ou budget des achats)
+    const c = couriers.find(x => x.id === o.courier_id);
+    const def = Number(o.price || 0) + Number(o.items_total || 0) + (o.service === "achat" ? Number(o.budget || 0) : 0);
+    const amount = prompt(`Retenue à ${c ? c.name : "ce livreur"} pour la course n° ${o.ref} (₪) : le prix de la course + la valeur de la commande, à modifier si besoin.`, String(def));
+    if (amount === null) return;
+    const v = Number(String(amount).replace(",", "."));
+    if (!(v > 0 && v <= 5000)) return alert("Montant entre 1 et 5 000 ₪.");
+    const reason = prompt("Motif (le livreur le reçoit dans sa messagerie) :", o.claim_status === "ouverte" ? "Commande déclarée livrée mais pas reçue par le client" : "Course acceptée mais pas faite");
+    if (!reason || !reason.trim()) return;
+    try { await Store.penaltyAdd(o.courier_id, o.id, v, reason.trim()); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
   } else if (el.dataset.act === "docs") {
     try {
       const list = await Store.orderDocs(o.id);

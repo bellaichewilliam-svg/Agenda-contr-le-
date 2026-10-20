@@ -145,6 +145,7 @@ function render() {
     <div><span>🏁</span><span><b>${UI.esc(t("trDrop"))}</b><br>${UI.brand(o.dropoff_place)}<bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(cityLabel(o.to_city))}${UI.addrDetails(o, "dropoff", I18N.lang)}${UI.addrNote(o.dropoff_note)}${UI.doorTag(o, I18N.lang)}</span></div>
     ${o.phone_order && o.ready_at && ["nouvelle", "confirmee"].includes(o.status) ? `<div><span>📞</span><span>${UI.esc(t("trPhoneReady", { time: new Date(o.ready_at).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" }) }))}</span></div>` : ""}
     ${docsBlock(o)}
+    ${claimBlock(o)}
     ${o.admin_note && o.status !== "refusee" ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
 
   const pay = $("#payBox");
@@ -308,6 +309,21 @@ function docsBlock(o) {
       <label class="btn btn-sm${o.docs_status === "refuse" ? " btn-primary" : ""}">📷 ${UI.esc(t("trDocsAdd"))}<input type="file" accept="image/*" data-tr-doc hidden /></label></span></span></div>`;
   return html;
 }
+// Commande pas reçue : le client le signale dans les 48 h après « Livré » (le patron est prévenu tout de suite)
+function claimBlock(o) {
+  if (o.claim_status === "ouverte") return `<div><span>⚠️</span><span>${UI.esc(t("trClaimSent"))}</span></div>`;
+  if (o.claim_status) return `<div><span>✅</span><span>${UI.esc(t("trClaimDone"))}</span></div>`;
+  if (o.status !== "livree" || Date.now() - new Date(o.delivered_at || o.pickup_at) > 48 * 3600000) return "";
+  return `<div><span>❓</span><span><button type="button" class="btn btn-sm btn-link danger" data-claim>${UI.esc(t("trClaimBtn"))}</button></span></div>`;
+}
+$("#details").addEventListener("click", async e => {
+  if (!e.target.closest("[data-claim]") || !order) return;
+  const note = prompt(t("trClaimAsk"));
+  if (note === null) return;
+  const ok = await Store.claimOrder(token, note).catch(() => false);
+  if (!ok) alert(t("trClaimErr"));
+  load();
+});
 $("#details").addEventListener("change", async e => {
   const inp = e.target.closest("[data-tr-doc]");
   if (!inp || !inp.files[0] || !order) return;

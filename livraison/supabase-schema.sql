@@ -2432,6 +2432,150 @@ end;
 $$;
 
 -- ============================================================================
+-- COURSE PAS FAITE / PAS REÇUE : le patron est prévenu, et la course est retenue au livreur.
+-- - Le client signale « pas reçu » (48 h après « Livré ») : message et notification au patron.
+-- - Courses en retard (personne ne l'a prise, pas récupérée, pas livrée) : notification au patron.
+-- - Le patron décide : « Classer » (livrée) ou « 💸 Retenue » (prix de la course + valeur de la commande, ou
+--   le montant qu'il fixe) : elle est déduite du versement de la semaine du livreur, qui est prévenu et peut
+--   répondre avec ses preuves. Les livreurs l'acceptent dans leurs engagements.
+-- ============================================================================
+alter table public.orders add column if not exists delivered_at timestamptz;
+alter table public.orders add column if not exists claim_status text check (claim_status in ('ouverte', 'classee', 'retenue'));
+alter table public.orders add column if not exists claim_note text check (length(claim_note) <= 300);
+alter table public.orders add column if not exists claim_at timestamptz;
+alter table public.orders add column if not exists late_alert text;
+
+create or replace function public.orders_delivered_at() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.status = 'livree' and old.status is distinct from 'livree' then new.delivered_at := now(); end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_delivered_at before update of status on public.orders
+  for each row execute function public.orders_delivered_at();
+
+create table if not exists public.courier_penalties (
+  id          uuid primary key default gen_random_uuid(),
+  courier_id  uuid not null references public.couriers(id) on delete cascade,
+  order_id    uuid references public.orders(id) on delete set null,
+  order_ref   text,
+  amount      numeric(10,2) not null check (amount > 0 and amount <= 5000),
+  reason      text not null check (length(reason) between 1 and 300),
+  status      text not null default 'du' check (status in ('du', 'regle', 'annulee')),
+  created_at  timestamptz not null default now(),
+  settled_at  timestamptz
+);
+create index if not exists courier_penalties_courier_idx on public.courier_penalties (courier_id, created_at);
+alter table public.courier_penalties enable row level security;
+revoke all on public.courier_penalties from anon, authenticated;
+
+-- Le client : « Je n'ai pas reçu ma commande » (jeton secret de la course)
+create or replace function public.order_claim(p_token uuid, p_note text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders;
+begin
+  select * into o from orders where token = p_token;
+  if o.id is null or o.status <> 'livree' or o.claim_status is not null
+     or coalesce(o.delivered_at, o.pickup_at) < now() - interval '48 hours' then return false; end if;
+  update orders set claim_status = 'ouverte', claim_note = left(nullif(trim(coalesce(p_note, '')), ''), 300), claim_at = now() where id = o.id;
+  insert into chat_messages (thread, author, author_name, body)
+  values ('o:' || o.id::text, 'client', left(o.contact_name, 80),
+          '⚠️ Commande pas reçue · ההזמנה לא הגיעה' || coalesce(' : ' || nullif(trim(coalesce(p_note, '')), ''), ''));
+  return true;
+end;
+$$;
+-- Le patron : retenue au livreur (déduite de son versement de la semaine), avec message au livreur
+create or replace function public.admin_penalty_add(p_courier uuid, p_order uuid, p_amount numeric, p_reason text) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare pid uuid; ref text;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  if p_amount is null or p_amount <= 0 or p_amount > 5000 then raise exception 'bad_amount'; end if;
+  if nullif(trim(coalesce(p_reason, '')), '') is null then raise exception 'reason_required'; end if;
+  select o.ref into ref from orders o where o.id = p_order;
+  insert into courier_penalties (courier_id, order_id, order_ref, amount, reason)
+  values (p_courier, p_order, ref, round(p_amount, 2), left(trim(p_reason), 300)) returning id into pid;
+  if p_order is not null then update orders set claim_status = 'retenue' where id = p_order and claim_status = 'ouverte'; end if;
+  insert into chat_messages (thread, author, author_name, body)
+  values ('c:' || p_courier::text, 'admin', 'HOP!',
+          '💸 Retenue de ' || round(p_amount, 2) || ' ₪' || coalesce(' · course n° ' || ref, '') || ' : ' || left(trim(p_reason), 300)
+          || '. Elle est déduite de votre prochain versement. Vous pouvez répondre ici avec vos preuves (photo, position).');
+  return pid;
+end;
+$$;
+create or replace function public.admin_penalty_cancel(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare x courier_penalties;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  update courier_penalties set status = 'annulee' where id = p_id and status = 'du' returning * into x;
+  if x.id is null then return false; end if;
+  insert into chat_messages (thread, author, author_name, body)
+  values ('c:' || x.courier_id::text, 'admin', 'HOP!', '✅ Retenue de ' || x.amount || ' ₪ annulée' || coalesce(' (course n° ' || x.order_ref || ')', '') || '.');
+  return true;
+end;
+$$;
+create or replace function public.admin_claim_close(p_order uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  update orders set claim_status = 'classee' where id = p_order and claim_status = 'ouverte';
+  return found;
+end;
+$$;
+create or replace function public.admin_penalties() returns setof public.courier_penalties
+language sql stable security definer set search_path = public as $$
+  select * from courier_penalties where public.is_admin() order by created_at desc limit 500;
+$$;
+create or replace function public.my_penalties() returns setof public.courier_penalties
+language sql stable security definer set search_path = public as $$
+  select * from courier_penalties where courier_id = auth.uid() and status <> 'annulee' order by created_at desc limit 200;
+$$;
+-- « ✓ Réglé » de la semaine : les retenues du livreur sont réglées en même temps
+create or replace function public.admin_penalties_settle(p_courier uuid) returns int
+language sql security definer set search_path = public as $$
+  with u as (update courier_penalties set status = 'regle', settled_at = now()
+              where public.is_admin() and courier_id = p_courier and status = 'du' returning id)
+  select count(*)::int from u;
+$$;
+revoke execute on function public.order_claim(uuid, text), public.admin_penalty_add(uuid, uuid, numeric, text), public.admin_penalty_cancel(uuid),
+  public.admin_claim_close(uuid), public.admin_penalties(), public.my_penalties(), public.admin_penalties_settle(uuid) from public;
+grant execute on function public.order_claim(uuid, text) to anon, authenticated;
+grant execute on function public.admin_penalty_add(uuid, uuid, numeric, text), public.admin_penalty_cancel(uuid), public.admin_claim_close(uuid),
+  public.admin_penalties(), public.my_penalties(), public.admin_penalties_settle(uuid) to authenticated;
+
+-- Courses en retard : le patron est prévenu une fois par étape (toutes les 5 minutes)
+create or replace function public.late_orders_alert() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0; why text; step text;
+begin
+  for o in select * from orders where status in ('nouvelle', 'confirmee', 'recuperee') and pickup_at < now() - interval '15 minutes'
+  loop
+    step := null;
+    if o.status = 'nouvelle' and o.courier_id is null and coalesce(o.docs_status, 'ok') = 'ok'
+       and (o.shop_status is null or o.shop_status in ('acceptee', 'prete')) and o.pickup_at < now() - interval '15 minutes' then
+      step := 'libre'; why := 'Personne n''a pris la course';
+    elsif o.status = 'confirmee' and o.pickup_at < now() - interval '45 minutes' then
+      step := 'pas_recuperee'; why := 'Pas encore récupérée, 45 min après l''heure';
+    elsif o.status = 'recuperee' and o.pickup_at < now() - interval '2 hours' then
+      step := 'pas_livree'; why := 'Pas encore livrée, 2 h après l''heure';
+    end if;
+    if step is null or o.late_alert is not distinct from step then continue; end if;
+    update orders set late_alert = step where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'late', 'why', why));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.late_orders_alert() from public, anon, authenticated;
+do $$ begin
+  perform cron.schedule('hop-late-orders', '*/5 * * * *', 'select public.late_orders_alert()');
+exception when others then raise notice 'pg_cron indisponible : pas d''alerte de retard';
+end $$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

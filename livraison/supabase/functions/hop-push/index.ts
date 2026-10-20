@@ -62,6 +62,10 @@ Deno.serve(async req => {
       const docs = o.docs_status === "a_verifier" ? "📄 Colis à récupérer : documents à vérifier\n" : "";
       sent += await sendTo(await admins(), { title: `🆕 Nouvelle commande · ${money(o.price)}`,
         body: `${docs}${o.ref} · ${when}\n${route}\n👤 ${o.contact_name}`, url: "patron/", tag: "o-" + o.id }, site);
+    } else if (ev.event === "late") {
+      // Course en retard : personne ne l'a prise, pas récupérée, pas livrée
+      sent += await sendTo(await admins(), { title: `⏰ Course en retard · ${o.ref}`,
+        body: `${ev.why || ""}\n${route}${o.courier_name ? "\n🛵 " + o.courier_name : ""}`, url: "patron/", tag: "late-" + o.id }, site);
     } else if (ev.event === "again") {
       sent += await sendTo(await admins(), { title: `↩️ Course remise en attente · ${o.ref}`,
         body: route, url: "patron/", tag: "o-" + o.id }, site);
@@ -100,7 +104,8 @@ Deno.serve(async req => {
       }
       sent += await sendTo(to, { title: "💬 HOP!", body: text, url: "livreur/", tag: "m-" + ev.thread }, site);
     } else {
-      sent += await sendTo(await admins(), { title: `💬 ${who}`, body: text, url: "patron/", tag: "m-" + ev.thread }, site);
+      const claim = /^⚠️ Commande pas reçue/.test(text);
+      sent += await sendTo(await admins(), { title: claim ? "⚠️ Course pas reçue par le client" : `💬 ${who}`, body: text, url: "patron/", tag: "m-" + ev.thread }, site);
       if (kind === "o" && ev.author === "client") {
         const { data: o } = await db.from("orders").select("courier_id, status").eq("id", id).single();
         if (o && o.courier_id && ["confirmee", "recuperee"].includes(o.status)) {

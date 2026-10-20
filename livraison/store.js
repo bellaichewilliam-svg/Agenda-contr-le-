@@ -27,7 +27,8 @@ const LS = {
   planSales: "livraison.planSales.v1",
   chat: "livraison.chat.v1",
   catalog: "livraison.catalog.v1",
-  docs: "livraison.docs.v1"
+  docs: "livraison.docs.v1",
+  penalties: "livraison.penalties.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -638,6 +639,61 @@ async function acceptOrder(id) {
 }
 
 // Livreur : "recuperee", "livree", "paye" ou "liberer" (rendre la course)
+// --- Course pas reçue / pas faite : signalement du client, retenue au livreur (déduite de son versement) ----
+async function claimOrder(token, note) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_claim", { method: "POST", body: { p_token: token, p_note: note || null } });
+  const all = localOrders(), o = all.find(x => x.token === token);
+  if (!o || o.status !== "livree" || o.claim_status || Date.now() - new Date(o.delivered_at || o.pickup_at) > 48 * 3600000) return false;
+  Object.assign(o, { claim_status: "ouverte", claim_note: String(note || "").trim().slice(0, 300) || null, claim_at: new Date().toISOString() });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "client", author_name: o.contact_name, image: null,
+    body: "⚠️ Commande pas reçue · ההזמנה לא הגיעה" + (o.claim_note ? " : " + o.claim_note : "") });
+  return true;
+}
+async function penaltyAdd(courierId, orderId, amount, reason) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_penalty_add", { method: "POST", body: { p_courier: courierId, p_order: orderId || null, p_amount: amount, p_reason: reason } });
+  const all = localOrders(), o = orderId && all.find(x => x.id === orderId);
+  const p = { id: uuid(), courier_id: courierId, order_id: orderId || null, order_ref: o ? o.ref : null, amount: Math.round(Number(amount) * 100) / 100,
+    reason: String(reason).trim().slice(0, 300), status: "du", created_at: new Date().toISOString(), settled_at: null };
+  writeJSON(LS.penalties, [p, ...readJSON(LS.penalties, [])]);
+  if (o && o.claim_status === "ouverte") { o.claim_status = "retenue"; saveLocalOrders(all); }
+  chatLocalAdd({ thread: "c:" + courierId, author: "admin", author_name: "HOP!", image: null,
+    body: `💸 Retenue de ${p.amount} ₪${p.order_ref ? " · course n° " + p.order_ref : ""} : ${p.reason}. Elle est déduite de votre prochain versement. Vous pouvez répondre ici avec vos preuves (photo, position).` });
+  return p.id;
+}
+async function penaltyCancel(id) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_penalty_cancel", { method: "POST", body: { p_id: id } });
+  const list = readJSON(LS.penalties, []), p = list.find(x => x.id === id && x.status === "du");
+  if (!p) return false;
+  p.status = "annulee";
+  writeJSON(LS.penalties, list);
+  chatLocalAdd({ thread: "c:" + p.courier_id, author: "admin", author_name: "HOP!", image: null, body: `✅ Retenue de ${p.amount} ₪ annulée${p.order_ref ? " (course n° " + p.order_ref + ")" : ""}.` });
+  return true;
+}
+async function claimClose(orderId) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_claim_close", { method: "POST", body: { p_order: orderId } });
+  const all = localOrders(), o = all.find(x => x.id === orderId && x.claim_status === "ouverte");
+  if (!o) return false;
+  o.claim_status = "classee";
+  saveLocalOrders(all);
+  return true;
+}
+async function listPenalties() {
+  if (ONLINE) return (await authRest("/rest/v1/rpc/admin_penalties", { method: "POST", body: {} })) || [];
+  return readJSON(LS.penalties, []);
+}
+async function myPenalties() {
+  if (ONLINE) return (await authRest("/rest/v1/rpc/my_penalties", { method: "POST", body: {} })) || [];
+  return readJSON(LS.penalties, []).filter(p => p.courier_id === myId() && p.status !== "annulee");
+}
+async function settlePenalties(courierId) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_penalties_settle", { method: "POST", body: { p_courier: courierId } });
+  const list = readJSON(LS.penalties, []);
+  list.forEach(p => { if (p.courier_id === courierId && p.status === "du") Object.assign(p, { status: "regle", settled_at: new Date().toISOString() }); });
+  writeJSON(LS.penalties, list);
+  return true;
+}
+
 // Code de remise (clés, objet de valeur) : le livreur tape le code donné par le destinataire
 async function courierHandoff(id, code) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_handoff", { method: "POST", body: { p_id: id, p_code: code } });
@@ -691,7 +747,7 @@ async function courierAction(id, action) {
     if (!free && o.leave_at_door && !chatLocal().some(m => m.thread === "o:" + o.id && m.author === "courier" && m.image)) throw new Error("photo_required");
     // Clés ou objet de valeur : le destinataire a donné le bon code de remise
     if (!free && o.handoff && !o.handoff_ok_at) throw new Error("handoff_required");
-    o.status = "livree"; referralCheck(o, "recuperee", all, await getSettings()); }
+    o.status = "livree"; o.delivered_at = new Date().toISOString(); referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
     Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
@@ -1427,7 +1483,8 @@ window.Store = {
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
-  docsNeeded, docsFor, addOrderDoc, courierHandoff, orderDocsSent, orderDocs, docsVerdict,
+  docsNeeded, docsFor, addOrderDoc, courierHandoff,
+  claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
   chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };
