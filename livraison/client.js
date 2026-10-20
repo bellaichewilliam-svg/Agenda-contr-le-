@@ -196,20 +196,26 @@ let docsKey = "";
 function renderDocs() {
   const box = $("#docsBox");
   if (!box) return;
-  const need = val("service") === "retrait" ? Store.docsNeeded(val("place_kind")) : [];
+  const need = Store.docsFor(curOrderKind());
+  box.classList.toggle("hidden", !need.length);
+  const rx = val("service") === "achat" && form.rx.checked;
   const key = need.map(k => k + (docs[k] ? "+" : "")).join(",") + I18N.lang;
   if (key === docsKey) return;
   docsKey = key;
   box.innerHTML = need.length ? `<h4>${UI.esc(t("docsTitle"))}</h4><p>${UI.esc(t("docsWhy"))}</p>
     ${need.map(k => `<div class="doc-row${docs[k] ? " ok" : ""}">
       ${docs[k] ? `<img src="${docs[k]}" alt="" />` : `<span class="doc-ph">📄</span>`}
-      <span class="doc-label">${UI.esc(t("doc_" + k))}${docs[k] ? `<br><b>${UI.esc(t("docOk"))}</b>` : ""}</span>
+      <span class="doc-label">${UI.esc(t(k === "identite" && rx ? "doc_identite_rx" : "doc_" + k))}${docs[k] ? `<br><b>${UI.esc(t("docOk"))}</b>` : ""}</span>
       <label class="btn btn-sm${docs[k] ? "" : " btn-primary"}">${UI.esc(t(docs[k] ? "docChange" : "docAdd"))}<input type="file" accept="image/*" data-doc="${k}" hidden /></label>
     </div>`).join("")}
     <p style="margin-top:8px">${UI.esc(t("docsPrivacy"))}</p>` : "";
 }
+// Ce que demande la course en cours de saisie (même règle que la base : order_docs_needed)
+function curOrderKind() {
+  return { service: val("service"), place_kind: val("place_kind"), rx: form.rx.checked, post_send: form.post_send.checked };
+}
 function docsMissing() {
-  return Store.docsNeeded(val("place_kind")).find(k => !docs[k]);
+  return Store.docsFor(curOrderKind()).find(k => !docs[k]);
 }
 
 function syncVisibility() {
@@ -221,7 +227,10 @@ function syncVisibility() {
   if (P.carAvailable === false && gros.checked) form.querySelector('input[name=size][value=moyen]').checked = true;
   form.classList.remove("svc-colis", "svc-retrait", "svc-achat", "svc-repas", "place-poste");
   form.classList.add("svc-" + svc);
-  form.classList.remove("place-locker");
+  form.classList.remove("place-locker", "post-send");
+  if (svc === "colis" && form.post_send.checked) form.classList.add("post-send");
+  form.querySelector(".sale-paid").classList.toggle("hidden", !(svc === "colis" && form.p2p_sale.checked));
+  $("#apptNote").textContent = t(svc === "colis" ? "apptNoteSend" : "apptNote");
   if (svc === "retrait" && val("place_kind") === "poste") form.classList.add("place-poste");
   if (svc === "retrait" && val("place_kind") === "locker") form.classList.add("place-locker");
   renderDocs();
@@ -972,8 +981,18 @@ async function submit(e) {
       const a = new Date(val("appt_at")).getTime();
       if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showError(t("errAppt")); }
     }
-    const miss = docsMissing();
-    if (miss) { $("#docsBox").scrollIntoView({ block: "center" }); return showError(t("errDoc", { doc: t("doc_" + miss) })); }
+  }
+  // Dépôt à la poste : rendez-vous ; vente entre particuliers : déjà payée au vendeur
+  if (val("service") === "colis" && form.post_send.checked) {
+    const a = new Date(val("appt_at")).getTime();
+    if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showError(t("errPostAppt")); }
+  }
+  if (val("service") === "colis" && form.p2p_sale.checked && !form.sale_paid.checked) { form.sale_paid.focus(); return showError(t("errSaleUnpaid")); }
+  // Les photos demandées (colis à récupérer, ordonnance, dépôt à la poste)
+  const missDoc = docsMissing();
+  if (missDoc) {
+    $("#docsBox").scrollIntoView({ block: "center" });
+    return showError(t("errDoc", { doc: t(missDoc === "identite" && val("service") === "achat" ? "doc_identite_rx" : "doc_" + missDoc) }));
   }
   if (val("service") === "achat" && adultItems().length) {
     if (!form.adult_ok.checked) { form.adult_ok.focus(); return showError(t("errAdult")); }
@@ -1039,7 +1058,12 @@ async function submit(e) {
       parcel_name: svc === "retrait" ? val("parcel_name").trim() || null : null,
       has_proxy: svc === "retrait" && val("place_kind") === "poste" && !!docs.procuration,
       retrait_code: svc === "retrait" && val("place_kind") === "locker" ? val("retrait_code").trim() : null,
-      appt_at: svc === "retrait" && val("place_kind") === "poste" ? new Date(val("appt_at")).toISOString() : null,
+      appt_at: (svc === "retrait" && val("place_kind") === "poste") || (svc === "colis" && form.post_send.checked) ? new Date(val("appt_at")).toISOString() : null,
+      rx: svc === "achat" && form.rx.checked,
+      post_send: svc === "colis" && form.post_send.checked,
+      p2p_sale: svc === "colis" && form.p2p_sale.checked,
+      sale_paid: svc === "colis" && form.p2p_sale.checked && form.sale_paid.checked,
+      handoff: svc === "colis" && form.handoff.checked,
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
@@ -1094,9 +1118,9 @@ async function submit(e) {
     const saved = await Store.createOrder(order);
     // Les photos des documents partent juste après la commande (le patron les vérifie avant d'envoyer un livreur)
     let docsFailed = false;
-    if (saved.service === "retrait") {
+    if (Store.docsFor(saved).length) {
       $("#submitBtn").textContent = t("docsSending");
-      for (const k of Store.docsNeeded(saved.place_kind)) {
+      for (const k of Store.docsFor(saved)) {
         if (!docs[k]) continue;
         try { if (!(await Store.addOrderDoc(saved.token, k, docs[k]))) docsFailed = true; } catch (e) { docsFailed = true; }
       }
@@ -1119,7 +1143,7 @@ async function submit(e) {
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
 
     $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(saved.price) }));
-    $("#doneSub").textContent = t(Store.ONLINE ? "doneOnline" : "doneDemo") + (saved.service === "retrait" ? " " + t(docsFailed ? "errDocsUpload" : "doneDocs") : "");
+    $("#doneSub").textContent = t(Store.ONLINE ? "doneOnline" : "doneDemo") + (Store.docsFor(saved).length ? " " + t(docsFailed ? "errDocsUpload" : "doneDocs") : "") + (saved.handoff ? " " + t("doneHandoff") : "");
     $("#doneWa").href = UI.waLink(CONFIG.whatsapp, UI.orderText(saved));
     $("#doneWa").classList.toggle("hidden", Store.ONLINE);
     $("#doneTrack").href = UI.trackUrl(saved);
@@ -1135,7 +1159,8 @@ async function submit(e) {
     resetPlaces();
     applyShop();
     form.leave_at_door.checked = false;
-    form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; form.fits_topcase.checked = false; state.phoneReady = null;
+    form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; form.fits_topcase.checked = false;
+    ["rx", "post_send", "p2p_sale", "sale_paid", "handoff"].forEach(k => { form.elements[k].checked = false; }); state.phoneReady = null;
     state.cart = {}; renderCatalog();
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
@@ -1154,6 +1179,8 @@ async function submit(e) {
     if (/retrait_name/.test(ex.message)) return showError(t("errParcelName"));
     if (/retrait_code/.test(ex.message)) return showError(t("errRetraitCode"));
     if (/retrait_appt/.test(ex.message)) return showError(t("errAppt"));
+    if (/post_appt/.test(ex.message)) return showError(t("errPostAppt"));
+    if (/sale_unpaid/.test(ex.message)) return showError(t("errSaleUnpaid"));
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;

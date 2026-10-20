@@ -61,7 +61,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610200218" />
+  <link rel="stylesheet" href="styles.css?v=202610200222" />
 </head>
 <body>
 
@@ -346,8 +346,8 @@
             <label class="f show-retrait hide-locker"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
             <label class="f show-locker"><span data-i18n="retraitCode"></span><input name="retrait_code" data-i18n-ph="retraitCodePh" autocomplete="off" /></label>
             <label class="f full show-poste"><span data-i18n="apptLabel"></span><input name="appt_at" type="datetime-local" /></label>
-            <p class="notice warn full show-poste" data-i18n="apptNote"></p>
-            <div class="docs-box full show-retrait" id="docsBox"></div>
+            <p class="notice warn full show-poste" id="apptNote" data-i18n="apptNote"></p>
+            <div class="docs-box full hidden" id="docsBox"></div>
             <label class="check full show-achat near-store"><input type="checkbox" name="nearest_store" /> <span data-i18n="nearStore"></span></label>
             <p class="notice warn full show-achat hidden" id="superNote" data-i18n="superNote"></p>
             <label class="f full show-achat"><span data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
@@ -357,6 +357,11 @@
               <label class="check adult-ok hidden" id="adultOkBox"><input type="checkbox" name="adult_ok" /> <span data-i18n="adultOk"></span></label>
               <p class="notice warn small hidden" id="alcoholNote" data-i18n="alcoholNote"></p>
             </div>
+            <label class="check full show-achat"><input type="checkbox" name="rx" /> <span data-i18n="rxLabel"></span></label>
+            <label class="check full show-colis"><input type="checkbox" name="post_send" /> <span data-i18n="postSend"></span></label>
+            <label class="check full show-colis"><input type="checkbox" name="p2p_sale" /> <span data-i18n="p2pSale"></span></label>
+            <label class="check full sale-paid hidden"><input type="checkbox" name="sale_paid" /> <span data-i18n="salePaid"></span></label>
+            <label class="check full show-colis"><input type="checkbox" name="handoff" /> <span data-i18n="handoffLabel"></span></label>
             <label class="f show-achat"><span data-i18n="budget"></span><input name="budget" type="number" min="0" step="10" inputmode="numeric" /></label>
             <p class="notice full show-achat" data-i18n="budgetNote"></p>
             <label class="check full show-achat"><input type="checkbox" name="goods_self_pay" /> <span data-i18n="goodsSelfPay"></span></label>
@@ -611,14 +616,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610200218"></script>
-<script src="i18n.js?v=202610200218"></script>
-<script src="pricing.js?v=202610200218"></script>
-<script src="store.js?v=202610200218"></script>
-<script src="chat.js?v=202610200218"></script>
-<script src="common.js?v=202610200218"></script>
-<script src="enseignes.js?v=202610200218"></script>
-<script src="places.js?v=202610200218"></script>
-<script src="client.js?v=202610200218"></script>
+<script src="config.js?v=202610200222"></script>
+<script src="i18n.js?v=202610200222"></script>
+<script src="pricing.js?v=202610200222"></script>
+<script src="store.js?v=202610200222"></script>
+<script src="chat.js?v=202610200222"></script>
+<script src="common.js?v=202610200222"></script>
+<script src="enseignes.js?v=202610200222"></script>
+<script src="places.js?v=202610200222"></script>
+<script src="client.js?v=202610200222"></script>
 </body>
 </html>

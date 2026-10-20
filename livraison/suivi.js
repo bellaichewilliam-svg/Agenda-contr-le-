@@ -284,7 +284,7 @@ function celebrate() {
 async function load() {
   try {
     order = token ? await Store.trackOrder(token) : null;
-    if (order && order.service === "retrait" && order.status === "nouvelle") docsSent = await Store.orderDocsSent(token).catch(() => docsSent);
+    if (order && order.docs_status && order.status === "nouvelle") docsSent = await Store.orderDocsSent(token).catch(() => docsSent);
   } catch (e) {
     return; // nouvel essai au prochain passage
   }
@@ -294,11 +294,12 @@ async function load() {
 // Colis à récupérer : où en sont les documents, et ajouter celui qui manque
 let docsSent = [];
 function docsBlock(o) {
-  if (o.service !== "retrait") return "";
   const time = d => new Date(d).toLocaleString(I18N.lang === "he" ? "he-IL" : "fr-FR", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   let html = o.appt_at ? `<div><span>📅</span><span>${UI.esc(t("trAppt", { time: time(o.appt_at) }))}</span></div>` : "";
+  // Clés ou objet de valeur : le code à donner au destinataire (le livreur le demande avant de remettre)
+  if (o.handoff_code && !["livree", "annulee", "refusee"].includes(o.status)) html += `<div><span>🔐</span><span><b>${UI.esc(t("trHandoff", { code: o.handoff_code }))}</b></span></div>`;
   if (o.status !== "nouvelle" || !o.docs_status) return html;
-  const need = Store.docsNeeded(o.place_kind);
+  const need = Store.docsFor(o);
   const sent = need.filter(k => docsSent.includes(k)).map(k => t("ds_" + k)).join(", ");
   if (o.docs_status === "ok") return html + `<div><span>✅</span><span>${UI.esc(t("trDocsOk"))}</span></div>`;
   html += `<div class="tr-docs"><span>📄</span><span>${UI.esc(o.docs_status === "refuse" ? t("trDocsMissing", { note: o.docs_note || "…" }) : t("trDocsWait"))}

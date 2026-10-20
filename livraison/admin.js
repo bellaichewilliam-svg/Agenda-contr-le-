@@ -318,6 +318,10 @@ function card(o, withDay) {
     meta.push(`<button class="pill pill-btn ${o.docs_status === "ok" ? "paid" : o.docs_status === "refuse" ? "st-annulee" : "unpaid"}" data-act="docs" title="Voir les photos envoyées par le client">${o.docs_status === "ok" ? "✅ Documents vérifiés" : o.docs_status === "refuse" ? `📄 Demandé au client : ${UI.esc(o.docs_note || "")}` : "📄 Documents à vérifier"} · voir</button>`);
     if (o.status === "nouvelle" && o.docs_status !== "ok") meta.push(`<button class="pill pill-btn paid" data-act="docsok">✅ Documents OK : envoyer un livreur</button><button class="pill pill-btn st-annulee" data-act="docsko">✉️ Il manque…</button>`);
   }
+  if (o.rx) meta.push(`<span class="pill unpaid">💊 Médicament sur ordonnance</span>`);
+  if (o.post_send) meta.push(`<span class="pill unpaid">📮 Dépôt à la poste · rendez-vous ${UI.esc(UI.fmtDateTime(o.appt_at))}</span>`);
+  if (o.p2p_sale) meta.push(`<span class="pill">🤝 Vente entre particuliers · déjà payée au vendeur</span>`);
+  if (o.handoff) meta.push(`<span class="pill ${o.handoff_ok_at ? "paid" : "unpaid"}">🔐 Code de remise${o.handoff_ok_at ? " vérifié" : ""}</span>`);
   if (o.phone_order) meta.push(`<span class="pill star-pill">📞 Commandée par tél. au nom de ${UI.esc(o.pickup_name || "")}${o.phone_ref ? " · n° " + UI.esc(o.phone_ref) : ""} · prête ${o.ready_at ? UI.fmtTime(o.ready_at) : ""}</span>`);
   if (Number(o.wait_fee) > 0) meta.push(`<span class="pill unpaid">⏱️ Attente ${o.wait_minutes} min · +${UI.money(o.wait_fee)} (au livreur)</span>`);
   else if (o.arrived_at && o.status === "confirmee") meta.push(`<span class="pill">⏱️ Livreur au départ depuis ${Math.floor((Date.now() - new Date(o.arrived_at)) / 60000)} min</span>`);

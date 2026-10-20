@@ -316,7 +316,11 @@ function card(o, kind) {
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
     + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
     + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
-  if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""}<br>🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse</div>`;
+  if (o.service === "achat" && o.rx) extra += `<div class="bag-line">💊 Médicament sur ordonnance : carte d'identité du patient et ordonnance vérifiées par HOP!, à montrer à la pharmacie</div>`;
+  if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
+  if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
+  if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
+  if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""}<br>🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse</div>`;
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
   extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
     : kind === "pool" || o.status === "confirmee" ? `<div class="small muted">⏱️ Attente ou achats sur place : ${UI.esc(UI.waitRule(settings))}, pour vous</div>` : "";
@@ -346,7 +350,7 @@ function card(o, kind) {
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
           + `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
-      + (o.service === "retrait" && o.status === "confirmee" ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
+      + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>` : `<span class="pill paid">✓ encaissé</span>`)
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
@@ -533,9 +537,18 @@ async function onViewClick(e) {
         const here = await checkAtDropoff(o);
         if (!here.ok) { render(); return alert(here.msg); }
         if (o.leave_at_door && !(await hasDoorPhoto(o))) { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
+        // Clés ou objet de valeur : le code de remise donné par le destinataire
+        if (o.handoff && !o.handoff_ok_at) {
+          const code = prompt("🔐 Code de remise : demandez au destinataire son code à 4 chiffres.");
+          if (code == null) { render(); return; }
+          const good = await Store.courierHandoff(o.id, code).catch(e => (/too_many/.test(e.message) ? "max" : false));
+          if (good !== true) { render(); return alert(good === "max" ? "🔒 Trop d'essais : appelez HOP! (le patron peut débloquer la course)." : "❌ Code incorrect : ne remettez pas, vérifiez avec le destinataire."); }
+          o.handoff_ok_at = new Date().toISOString();
+        }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : false);
+    if (ok === "handoff") { render(); return alert("🔐 Code de remise manquant : demandez-le au destinataire avant de remettre."); }
     if (ok === "farpick") { render(); return alert("📍 Vous n'êtes pas encore au point de récupération : appuyez sur « Je suis arrivé » une fois sur place (le compteur d'attente démarre à ce moment-là)."); }
     if (ok === "photo") { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
     if (ok === "far") { render(); return alert(`📍 Vous n'êtes pas à l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).`); }
