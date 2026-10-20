@@ -971,6 +971,8 @@ async function submit(e) {
   }
   if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
+  // Un mot pour le livreur sur chaque commande (code, étage, fragile, sonnette…)
+  if (val("notes").trim().length < 3) { form.notes.focus(); return showError(t("errNotes")); }
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
   if (form.leave_at_door.checked) {
     const k = kindOf("dropoff");
