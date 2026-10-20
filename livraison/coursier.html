@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <script>
-    // Sur le site (Vercel) : l'espace a sa propre adresse /livreur/, pour s'installer comme une appli à part
-    if (/\.vercel\.app$/.test(location.hostname) && location.pathname.indexOf("/livreur/") !== 0) location.replace("/livreur/" + location.search + location.hash);
+    // Sur le site (Vercel) : l'espace a sa propre adresse /livreur/, pour s'installer comme une appli à part.
+    // Ouvert depuis l'appli client installée (/app/) : on reste dans l'appli, sinon page blanche.
+    (function () {
+      var app = navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+      if (app && location.pathname.indexOf("/app/") === 0) { try { sessionStorage.setItem("hop.app", "client"); } catch (e) { /* ignore */ } return; }
+      if (/\.vercel\.app$/.test(location.hostname) && location.pathname.indexOf("/livreur/") !== 0) location.replace("/livreur/" + location.search + location.hash);
+    })();
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0F1F3D" />
@@ -49,7 +54,7 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610200745" />
+  <link rel="stylesheet" href="styles.css?v=202610200803" />
 </head>
 <body>
 
@@ -257,12 +262,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610200745"></script>
-<script src="i18n.js?v=202610200745"></script>
-<script src="pricing.js?v=202610200745"></script>
-<script src="store.js?v=202610200745"></script>
-<script src="chat.js?v=202610200745"></script>
-<script src="common.js?v=202610200745"></script>
-<script src="coursier.js?v=202610200745"></script>
+<script src="config.js?v=202610200803"></script>
+<script src="i18n.js?v=202610200803"></script>
+<script src="pricing.js?v=202610200803"></script>
+<script src="store.js?v=202610200803"></script>
+<script src="chat.js?v=202610200803"></script>
+<script src="common.js?v=202610200803"></script>
+<script src="coursier.js?v=202610200803"></script>
 </body>
 </html>

@@ -142,6 +142,15 @@ async function route() {
   if (!Store.session()) { $("#welcome").classList.remove("hidden"); return; }
   let meErr = false;
   try { me = await Store.me(); } catch (e) { me = null; meErr = true; }
+  // Le compte patron garde l'accueil client dans l'appli HOP! (voir index.html)
+  let backHome = false;
+  try {
+    if (me) localStorage.setItem("hop.role", me.role === "admin" ? "admin" : "");
+    backHome = !!me && me.role === "admin" && sessionStorage.getItem("hop.autoRider") === "1";
+    sessionStorage.removeItem("hop.autoRider");
+  } catch (e) { /* ignore */ }
+  // Envoyé ici tout seul depuis l'accueil client alors que c'est le patron : retour à l'accueil
+  if (backHome) return location.replace(/\.vercel\.app$/.test(location.hostname) && location.pathname.indexOf("/livreur/") === 0 ? "/app/" : "index.html");
   if (!me && meErr) {
     $("#welcome").classList.remove("hidden");
     showAuth("login");
