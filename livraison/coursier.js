@@ -1142,6 +1142,8 @@ function saveRiderSet() { try { localStorage.setItem(LS_RIDER, JSON.stringify(ri
 function applyRiderSettings() {
   $("#work").classList.toggle("light", riderSet.theme === "light");
   if (rmap.tiles) rmap.tiles.getContainer().classList.toggle("tiles-dark", riderSet.theme !== "light");
+  const m = rmap.gl && rmap.gl.getMaplibreMap();
+  if (m) m.setStyle(VSTYLE[riderSet.theme === "light" ? "light" : "dark"]);
 }
 const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Zones et demande", week: "Finances", stats: "Statistiques",
   ref: "Gagner plus", rules: "Engagements et assurance", settings: "Réglages", help: "Centre d'aide", inbox: "Messages de HOP!" };
@@ -1181,7 +1183,7 @@ function renderHome() {
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-card hot" data-notif="1"><span>🔔 ${Notification.permission === "denied" ? "Notifications bloquées" : "Autorisez les notifications"}<small>${Notification.permission === "denied" ? "Chrome ⋮ → Paramètres → Notifications → autorisez HOP!, sinon pas de « En service » ni de courses appli fermée" : "Pour la notification « En service » et les nouvelles courses, même appli fermée"}</small></span><span class="go">›</span></button>` : ""}
-    <button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>`;
+    ${!isOnline() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>` : ""}`;
   sheetHeight();
 }
 // Hauteur du panneau du bas : le bouton « me centrer » et le cadrage de la carte restent au-dessus
@@ -1260,14 +1262,49 @@ function initSlider() {
 }
 
 // --- Carte plein écran : ma position, courses disponibles, ma course ---------------------
-const rmap = { map: null, tiles: null, layer: null, fitted: false };
+const rmap = { map: null, tiles: null, gl: null, layer: null, fitted: false };
 function initRiderMap() {
   if (rmap.map || !window.L) return;
   const home = CONFIG.cities.find(c => c.id === CONFIG.homeCity);
   rmap.map = L.map("riderMap", { zoomControl: false, attributionControl: true }).setView([home.lat, home.lon], 13);
   rmap.tiles = UI.mapTiles(rmap.map, riderSet.theme !== "light");
   rmap.layer = L.layerGroup().addTo(rmap.map);
+  vectorMap();
   setTimeout(() => rmap.map.invalidateSize(), 100);
+}
+// Belle carte (OpenFreeMap : vectorielle, gratuite, sans clé, noms en français ou en anglais quand ils existent).
+// Chargée après la carte OpenStreetMap, qui reste si elle ne vient pas (pas de WebGL, réseau, service coupé).
+const ML = "https://unpkg.com/maplibre-gl@4.7.1/dist/", MLL = "https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.0.22/leaflet-maplibre-gl.js";
+const VSTYLE = { dark: "https://tiles.openfreemap.org/styles/dark", light: "https://tiles.openfreemap.org/styles/liberty" };
+const LABEL = ["coalesce", ["get", "name:fr"], ["get", "name_en"], ["get", "name:en"], ["get", "name:latin"], ["get", "name"]];
+let mlLoad = null;
+function loadScript(src) {
+  return new Promise((ok, ko) => { const el = document.createElement("script"); el.src = src; el.onload = ok; el.onerror = ko; document.head.appendChild(el); });
+}
+function vectorMap() {
+  if (!mlLoad) {
+    const css = document.createElement("link");
+    css.rel = "stylesheet"; css.href = ML + "maplibre-gl.css";
+    document.head.appendChild(css);
+    mlLoad = loadScript(ML + "maplibre-gl.js").then(() => loadScript(MLL));
+  }
+  mlLoad.then(() => {
+    if (rmap.gl || !L.maplibreGL) return;
+    const gl = L.maplibreGL({ style: VSTYLE[riderSet.theme === "light" ? "light" : "dark"], attribution: "© OpenFreeMap © OpenStreetMap" }).addTo(rmap.map);
+    const m = gl.getMaplibreMap();
+    if (!m) { rmap.map.removeLayer(gl); return; }
+    let ok = false;
+    m.on("style.load", () => {
+      // Noms lisibles : français, sinon anglais, sinon le nom local
+      m.getStyle().layers.forEach(l => {
+        const tf = l.type === "symbol" && m.getLayoutProperty(l.id, "text-field");
+        if (tf && /name/.test(JSON.stringify(tf))) m.setLayoutProperty(l.id, "text-field", LABEL);
+      });
+    });
+    m.once("load", () => { ok = true; if (rmap.tiles) { rmap.map.removeLayer(rmap.tiles); rmap.tiles = null; } });
+    m.on("error", () => { if (!ok && rmap.gl) { rmap.map.removeLayer(rmap.gl); rmap.gl = null; } });
+    rmap.gl = gl;
+  }).catch(() => {});
 }
 const rpin = (emoji, cls, label) => L.divIcon({ className: "", iconSize: [36, 36], iconAnchor: [18, 18],
   html: `<div class="rd-pin ${cls || ""}">${emoji}${label ? `<span class="pin-price">${UI.esc(label)}</span>` : ""}</div>` });
@@ -1293,6 +1330,28 @@ function updateRiderMap() {
   // Nouvelle course acceptée : on recadre sur ses 2 points et le trajet
   const curId = (mine()[0] || {}).id || null;
   if ((!rmap.fitted || curId !== rmap.curId) && pts.length) { rmap.curId = curId; fitRiderMap(); rmap.fitted = true; }
+}
+// Bouton « me centrer » : la position du téléphone maintenant (pas une ancienne), au milieu de la carte visible
+function centerOn(lat, lon) {
+  if (!rmap.map) return;
+  rmap.map.setView([lat, lon], 16, { animate: false });
+  rmap.map.panBy([0, Math.round(($("#sheet").offsetHeight || 0) / 2)], { animate: false });
+}
+function locateMe() {
+  if (lastPos) centerOn(lastPos.lat, lastPos.lon);
+  if (!navigator.geolocation) return;
+  const btn = $("#locateBtn");
+  btn.classList.add("busy");
+  navigator.geolocation.getCurrentPosition(pos => {
+    btn.classList.remove("busy");
+    lastPos = { lat: pos.coords.latitude, lon: pos.coords.longitude, at: Date.now() };
+    updateRiderMap();
+    centerOn(lastPos.lat, lastPos.lon);
+    if (duty.watch != null) sendPosition(pos);
+  }, err => {
+    btn.classList.remove("busy");
+    if (err.code === 1) alert("Autorisez la localisation pour HOP! (réglages du navigateur) pour vous voir sur la carte.");
+  }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
 }
 // Cadrage : la course en cours (récupération, livraison, moi) si il y en a une, sinon tout ; au-dessus du panneau du bas
 function fitRiderMap() {
@@ -1397,7 +1456,7 @@ async function sendPosition(pos) {
     await Store.ping(pos.coords.latitude, pos.coords.longitude);
     // Première position après le passage en ligne : les courses arrivent tout de suite
     if (duty.fresh) { duty.fresh = false; Promise.resolve(duty.onlineP).catch(() => {}).then(() => setTimeout(load, 1200)); }
-    $("#dutyText").textContent = `Position envoyée à ${new Date().toLocaleTimeString("fr-FR")} · pendant une course, vous pouvez passer sur Waze. Sans course, gardez HOP! ouvert : après ${settings.idle_off_min || 15} min sans HOP!, vous passez hors ligne.`;
+    $("#dutyText").textContent = "";
   } catch (e) {
     duty.lastSent = 0;
     $("#dutyText").textContent = "⚠️ Position non envoyée (connexion). Nouvel essai automatique.";
@@ -1481,11 +1540,26 @@ $("#drawerNav").addEventListener("click", e => {
   if (b) { closeDrawer(); openPage(b.dataset.tab); }
 });
 $("#menuBtn").addEventListener("click", () => $("#drawer").classList.remove("hidden"));
+// Bouton « retour » du téléphone : il ferme ce qui est ouvert (conversation, fenêtre, menu, page)
+// et ne fait jamais sortir de l'espace livreur (pas de retour sur l'accueil client)
+history.replaceState({ hop: "base" }, "");
+history.pushState({ hop: "stay" }, "");
+window.addEventListener("popstate", () => {
+  history.pushState({ hop: "stay" }, "");
+  const pick = document.querySelector(".chat-modal:not(.chat-wrap)");
+  if (pick) return pick.remove();
+  const chat = document.querySelector(".chat-wrap:not(.hidden) .chat-x");
+  if (chat) return chat.click();
+  if (!$("#msgModal").classList.contains("hidden")) return $("#msgClose").click();
+  if (!$("#autoOffModal").classList.contains("hidden")) return $("#autoOffClose").click();
+  if (!$("#drawer").classList.contains("hidden")) return closeDrawer();
+  if (!$("#page").classList.contains("hidden")) return closePage();
+});
 $("#drawer").addEventListener("click", e => { if (e.target.id === "drawer") closeDrawer(); });
 $("#bellBtn").addEventListener("click", () => openPage("inbox"));
 $("#pageBack").addEventListener("click", closePage);
 $("#drawerLogout").addEventListener("click", () => { if (confirm("Se déconnecter ?")) endAndLogout(); });
-$("#locateBtn").addEventListener("click", () => { if (rmap.map && lastPos) rmap.map.setView([lastPos.lat, lastPos.lon], 15); else fitRiderMap(); });
+$("#locateBtn").addEventListener("click", locateMe);
 $("#sheetBody").addEventListener("click", e => {
   if (e.target.closest("[data-install]")) return UI.installApp("HOP! Livreur", "livreur/").then(ok => { if (ok) renderHome(); });
   const b = e.target.closest("[data-tab]");
