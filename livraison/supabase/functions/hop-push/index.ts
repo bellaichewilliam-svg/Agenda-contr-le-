@@ -13,14 +13,14 @@ type Note = { title: string; body: string; url: string; tag: string };
 
 const money = (n: unknown) => `${Math.round(Number(n) * 100) / 100} ₪`.replace(".", ",");
 
-async function sendTo(ids: string[], note: Note, site: string) {
+async function sendTo(ids: string[], note: Note, site: string, ttl = 3600) {
   if (!ids.length) return 0;
   const { data: subs } = await db.from("push_subs").select("endpoint, p256dh, auth").in("courier_id", ids);
   let sent = 0;
   await Promise.all((subs || []).map(async s => {
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-        JSON.stringify(Object.assign({}, note, { url: site + note.url })), { TTL: 3600, urgency: "high" });
+        JSON.stringify(Object.assign({}, note, { url: site + note.url })), { TTL: ttl, urgency: "high" });
       sent++;
     } catch (e) {
       // Abonnement expiré (téléphone changé, notifications coupées) : on l'oublie
@@ -36,12 +36,18 @@ async function admins() {
   return (data || []).map(c => c.id);
 }
 
-// Livreurs en service (position récente) qui peuvent prendre une course
-async function onDuty() {
+// Livreurs en service (position récente) qui peuvent prendre une course, le patron compris quand il roule ;
+// sans ceux qui l'ont déjà refusée
+async function onDuty(orderId?: string) {
   const since = new Date(Date.now() - 60 * 60000).toISOString();
-  const { data } = await db.from("couriers").select("id").eq("online", true).eq("status", "actif")
-    .neq("role", "admin").gt("position_at", since);
-  return (data || []).map(c => c.id);
+  const { data } = await db.from("couriers").select("id").eq("online", true).eq("status", "actif").gt("position_at", since);
+  let ids = (data || []).map(c => c.id);
+  if (orderId && ids.length) {
+    const { data: no } = await db.from("order_declines").select("courier_id").eq("order_id", orderId);
+    const out = new Set((no || []).map(d => d.courier_id));
+    ids = ids.filter(id => !out.has(id));
+  }
+  return ids;
 }
 
 Deno.serve(async req => {
@@ -80,9 +86,10 @@ Deno.serve(async req => {
       || (!!o.appt_at && new Date(o.appt_at).getTime() - 40 * 60000 > Date.now());
     const open = o.status === "nouvelle" && !o.courier_id && !delayed && (!o.docs_status || o.docs_status === "ok")
       && (!o.shop_status || o.shop_status === "acceptee" || o.shop_status === "prete");
-    if (open && ["new", "again", "shop_ok", "ready", "docs_ok"].includes(ev.event)) {
-      sent += await sendTo(await onDuty(), { title: `🛵 Nouvelle course · ${money(o.price)}`,
-        body: `${when} · ${route}`, url: "livreur/", tag: "o-" + o.id }, site);
+    // « ring » : la même notification renvoyée toutes les 5 s (2 min au plus) tant que personne n'a pris la course (elle sonne à chaque fois)
+    if (open && ["new", "again", "shop_ok", "ready", "docs_ok", "ring"].includes(ev.event)) {
+      sent += await sendTo(await onDuty(o.id), { title: `${ev.event === "ring" ? "🔔" : "🛵"} Nouvelle course · ${money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}`,
+        body: `${when} · ${route}\nTouchez pour accepter ou refuser`, url: "livreur/", tag: "o-" + o.id }, site, ev.event === "ring" ? 10 : 3600);
     }
   } else if (ev.courier_id && ev.title) {
     // Message de HOP! à un livreur (ex. « Toujours là ? » quand il n'est plus sur l'appli)
@@ -95,9 +102,15 @@ Deno.serve(async req => {
     const who = ev.author_name || ({ client: "Client", courier: "Livreur", shop: "Commerce" } as Record<string, string>)[ev.author] || "HOP!";
     if (ev.author === "system") {
       if (ev.body === "status:client_paid") {
-        const { data: o } = await db.from("orders").select("ref, price").eq("id", id).single();
-        sent += await sendTo(await admins(), { title: "💳 Paiement Bit à vérifier",
-          body: `Le client dit avoir payé ${o ? money(o.price) + " · " + o.ref : ""}`, url: "patron/", tag: "pay-" + id }, site);
+        const { data: o } = await db.from("orders").select("ref, price, direct_pay, courier_id").eq("id", id).single();
+        if (o && o.direct_pay && o.courier_id) {
+          // Paiement direct : c'est le livreur qui reçoit l'argent, c'est lui qu'on prévient
+          sent += await sendTo([o.courier_id], { title: "💳 Le client dit avoir payé",
+            body: `Course ${o.ref} : vérifiez votre Bit / PayBox, puis touchez « Paiement reçu » pour récupérer la commande.`, url: "livreur/", tag: "pay-" + id }, site);
+        } else {
+          sent += await sendTo(await admins(), { title: "💳 Paiement Bit à vérifier",
+            body: `Le client dit avoir payé ${o ? money(o.price) + " · " + o.ref : ""}`, url: "patron/", tag: "pay-" + id }, site);
+        }
       }
     } else if (ev.author === "admin") {
       let to: string[] = [];

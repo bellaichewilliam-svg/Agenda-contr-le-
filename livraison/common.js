@@ -360,7 +360,7 @@ function bitPay(o) {
     <div class="bit-btns">
       ${ANDROID ? `<a class="btn btn-sm btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}
       <button type="button" class="btn btn-sm" data-bit-copy="${esc(String(phone).replace(/\D/g, ""))}">${esc(t("bpCopy"))}</button>
-      <button type="button" class="btn btn-sm btn-primary" data-bit-paid="${esc(o.token)}">${esc(t("bpPaid"))}</button>
+      <button type="button" class="btn btn-sm btn-primary" data-bit-paid="${esc(o.token)}" data-name="${esc(o.direct_pay ? name : "")}" data-total="${esc(money(o.price))}">${esc(t("bpPaid"))}</button>
     </div>
   </div>`;
 }
@@ -373,10 +373,12 @@ document.addEventListener("click", async e => {
   }
   const p = e.target.closest("[data-bit-paid]");
   if (!p) return;
+  // « J'ai payé » n'est pas une preuve : on fait confirmer, et le livreur vérifie sur son Bit / PayBox
+  if (!confirm(I18N.t("bpConfirm", { total: p.dataset.total || "", name: p.dataset.name || "HOP!" }))) return;
   p.disabled = true;
   const ok = await Store.clientPaid(p.dataset.bitPaid).catch(() => false);
   const box = p.closest(".bit-pay");
-  if (ok && box) box.outerHTML = `<p class="promo-msg ok bit-pay">${esc(I18N.t("bpThanks"))}</p>`;
+  if (ok && box) box.outerHTML = `<p class="promo-msg ok bit-pay">${esc(p.dataset.name ? I18N.t("bpThanksCourier", { name: p.dataset.name }) : I18N.t("bpThanks"))}</p>`;
   else p.disabled = false;
 });
 
