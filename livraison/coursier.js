@@ -436,7 +436,9 @@ function creditView() {
       ${topupPick ? `<p class="small" style="margin:8px 0 0">1. Envoyez <b>${UI.money(topupPick)}</b> par Bit au <b dir="ltr">${UI.esc(CONFIG.bitPhone)}</b> (HOP).<br>2. Touchez « J'ai rechargé » : HOP vérifie et l'ajoute à votre crédit.</p>
         <div class="btns" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(CONFIG.bitPhone).replace(/\D/g, ""))}">📋 Copier le numéro</button>
         <button type="button" class="btn btn-sm btn-primary" data-topup-send="${topupPick}">✅ J'ai rechargé ${UI.money(topupPick)}</button></div>` : ""}
-      ${(wallet.topups || []).slice(0, 6).map(x => `<p class="small topup-line">${UI.money(x.amount)} · ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))} · ${TOPUP_FR[x.status] || ""}${x.note ? " · " + UI.esc(x.note) : ""}</p>`).join("")}
+      ${(wallet.topups || []).slice(0, 6).map(x => `<p class="small topup-line">${UI.money(x.amount)} · ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))} · ${TOPUP_FR[x.status] || ""}${x.status === "ok" && x.paid === false ? " · offerte par HOP" : ""}${x.note ? " · " + UI.esc(x.note) : ""}${x.receipt_number ? ` · <a href="${UI.esc(UI.topupReceiptUrl(x))}" target="_blank" rel="noopener">🧾 Reçu HOP n° ${x.receipt_number}</a>` : ""}</p>`).join("")}
+      <div class="btns" style="justify-content:flex-start;margin-top:10px">${[0, 1].map(i => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); const m = d.toISOString().slice(0, 7);
+        return `<a class="btn btn-sm" href="${UI.esc(UI.appUrl("recu.html") + "?m=" + m)}" target="_blank" rel="noopener">📄 Relevé de ${UI.esc(d.toLocaleDateString("fr-FR", { month: "long" }))}</a>`; }).join("")}</div>
       ${pending.length ? `<p class="muted small">HOP valide vos recharges dès réception.</p>` : ""}
     </div>`;
 }

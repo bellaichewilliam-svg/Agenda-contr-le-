@@ -392,10 +392,13 @@ function clientMessage(o) {
     url: o.status === "refusee" ? appUrl() + "#commander" : trackUrl(o),
     to: `${o.dropoff_address}, ${city(o.to_city)}`, code: referralCode(o.contact_phone)
   });
-  return o.receipt_number ? msg + "\n" + f("msg_receipt", { url: receiptUrl(o) }) : msg;
+  return receiptNo(o) ? msg + "\n" + f("msg_receipt", { url: receiptUrl(o) }) : msg;
 }
 
 function receiptUrl(o) { return appUrl("recu.html") + "?t=" + o.token; }
+// Une course a un reçu : de HOP (ses propres courses) ou du livreur (paiement direct)
+const receiptNo = o => o.receipt_number || o.courier_receipt_number || null;
+function topupReceiptUrl(t) { return appUrl("recu.html") + "?k=" + t.token; }
 function carnetReceiptUrl(sale) { return appUrl("recu.html") + "?c=" + sale.token; }
 
 // Semaines (dimanche → samedi) sur des clés de jour AAAA-MM-JJ
@@ -455,7 +458,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON,
-  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

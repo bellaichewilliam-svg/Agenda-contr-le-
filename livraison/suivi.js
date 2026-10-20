@@ -196,7 +196,7 @@ function render() {
   pay.innerHTML = `<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
-    ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>`
+    ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${UI.esc(t("receiptLink"))}</a>` : ""}`
       : o.payment_method === "bit"
         ? `${o.prepaid_required && !o.direct_pay ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}${UI.bitPay(o)}`
         : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}

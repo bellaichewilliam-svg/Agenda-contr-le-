@@ -3029,6 +3029,143 @@ end;
 $$;
 
 -- ============================================================================
+-- DOCUMENTS DU PAIEMENT DIRECT
+-- 1. Reçu du livreur au client, à chaque course livrée et payée : au nom du livreur (son n° d'עוסק),
+--    numéroté pour chaque livreur (1, 2, 3…), même page que les reçus de HOP (recu.html?t=…).
+-- 2. Reçu de HOP au livreur, à chaque recharge de crédit reçue (קבלה numérotée de HOP, recu.html?k=…).
+-- 3. Relevé mensuel du livreur : ses courses, la commission déduite de son crédit, ses recharges (recu.html?m=AAAA-MM).
+-- ============================================================================
+alter table public.couriers add column if not exists receipt_seq int not null default 0;
+alter table public.orders add column if not exists courier_receipt_number int;
+
+create or replace function public.orders_courier_receipt() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if new.status = 'livree' and new.payment_status = 'paye' and new.direct_pay and new.paid_to = 'livreur'
+     and new.courier_receipt_number is null and new.receipt_number is null
+     and exists (select 1 from couriers where id = new.courier_id and role = 'coursier') then
+    update couriers set receipt_seq = receipt_seq + 1 where id = new.courier_id returning receipt_seq into n;
+    new.courier_receipt_number := n;
+    new.receipt_at := coalesce(new.receipt_at, now());
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_courier_receipt before update on public.orders
+  for each row execute function public.orders_courier_receipt();
+revoke execute on function public.orders_courier_receipt() from public, anon, authenticated;
+
+-- Reçu d'une course (jeton secret) : qui l'émet (HOP pour ses propres courses, ou le livreur)
+create or replace function public.order_receipt(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('ref', o.ref, 'token', o.token, 'status', o.status, 'price', o.price, 'payment_method', o.payment_method,
+    'contact_name', o.contact_name, 'company', o.company, 'contact_phone', o.contact_phone,
+    'from_city', o.from_city, 'to_city', o.to_city, 'pickup_at', o.pickup_at,
+    'receipt_number', coalesce(o.receipt_number, o.courier_receipt_number), 'receipt_at', o.receipt_at,
+    'issuer', case when o.courier_receipt_number is not null then 'courier' else 'hop' end,
+    'courier_name', case when o.courier_receipt_number is not null then c.name end,
+    'courier_business', case when o.courier_receipt_number is not null then c.business_number end,
+    'courier_phone', case when o.courier_receipt_number is not null then c.phone end,
+    'courier_city', case when o.courier_receipt_number is not null then c.city end)
+  from orders o left join couriers c on c.id = o.courier_id
+  where o.token = p_token;
+$$;
+revoke execute on function public.order_receipt(uuid) from public;
+grant execute on function public.order_receipt(uuid) to anon, authenticated;
+
+-- Recharges : reçu de HOP (numéro de la suite des reçus de HOP) quand l'argent est reçu
+alter table public.courier_topups add column if not exists token uuid not null default gen_random_uuid();
+alter table public.courier_topups add column if not exists receipt_number int unique;
+alter table public.courier_topups add column if not exists receipt_at timestamptz;
+alter table public.courier_topups add column if not exists paid boolean not null default true;   -- false : crédit offert (pas d'argent reçu)
+create or replace function public.topups_receipt() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'ok' and new.paid and new.receipt_number is null then
+    new.receipt_number := nextval('public.receipt_seq');
+    new.receipt_at := now();
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger topups_receipt before insert or update on public.courier_topups
+  for each row execute function public.topups_receipt();
+revoke execute on function public.topups_receipt() from public, anon, authenticated;
+
+-- Le patron ajoute du crédit : argent reçu autrement (reçu de HOP) ou offert (pas de reçu)
+create or replace function public.admin_topup_add(p_courier uuid, p_amount numeric, p_note text, p_paid boolean) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare tid uuid;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  if p_amount is null or p_amount < 5 or p_amount > 2000 then raise exception 'bad_amount'; end if;
+  insert into courier_topups (courier_id, amount, status, note, decided_at, paid)
+  values (p_courier, round(p_amount, 2), 'ok', left(nullif(trim(coalesce(p_note, '')), ''), 200), now(), coalesce(p_paid, true)) returning id into tid;
+  insert into chat_messages (thread, author, author_name, body)
+  values ('c:' || p_courier::text, 'admin', 'HOP!', '💳 ' || round(p_amount, 2) || ' ₪ ajoutés à votre crédit HOP'
+          || case when coalesce(p_paid, true) then ' (reçu dans Finances).' else ' (offerts par HOP).' end);
+  return tid;
+end;
+$$;
+revoke execute on function public.admin_topup_add(uuid, numeric, text, boolean) from public, anon;
+grant execute on function public.admin_topup_add(uuid, numeric, text, boolean) to authenticated;
+
+create or replace function public.topup_receipt(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('receipt_number', t.receipt_number, 'receipt_at', t.receipt_at, 'amount', t.amount,
+                           'courier_name', c.name, 'phone', c.phone, 'business_number', c.business_number)
+    from courier_topups t join couriers c on c.id = t.courier_id
+   where t.token = p_token and t.receipt_number is not null;
+$$;
+revoke execute on function public.topup_receipt(uuid) from public;
+grant execute on function public.topup_receipt(uuid) to anon, authenticated;
+
+-- Le livreur : ses recharges avec leur reçu, et son relevé du mois
+create or replace function public.my_credit() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('credit', public.courier_credit(auth.uid()), 'reserved', public.courier_reserved(auth.uid()),
+    'topups', coalesce((select json_agg(t order by t.created_at desc) from
+                 (select id, amount, status, note, created_at, decided_at, paid, receipt_number, token from courier_topups
+                   where courier_id = auth.uid() order by created_at desc limit 50) t), '[]'::json))
+   where public.is_active_courier();
+$$;
+create or replace function public.my_statement(p_month text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('month', p_month,
+    'courier', (select json_build_object('name', name, 'phone', phone, 'business_number', business_number) from couriers where id = auth.uid()),
+    'orders', coalesce((select json_agg(x order by x.delivered) from (
+        select o.ref, coalesce(o.delivered_at, o.pickup_at) as delivered, o.price, o.discount, o.commission, o.direct_pay,
+               o.shop_share, o.hop_share, o.courier_receipt_number, public.course_due(o) as due
+          from orders o where o.courier_id = auth.uid() and o.status = 'livree'
+           and to_char(coalesce(o.delivered_at, o.pickup_at) at time zone 'Asia/Jerusalem', 'YYYY-MM') = p_month) x), '[]'::json),
+    'topups', coalesce((select json_agg(t order by t.created_at) from (
+        select amount, status, paid, receipt_number, created_at, decided_at, note from courier_topups
+         where courier_id = auth.uid() and status = 'ok'
+           and to_char(coalesce(decided_at, created_at) at time zone 'Asia/Jerusalem', 'YYYY-MM') = p_month) t), '[]'::json),
+    'penalties', coalesce((select json_agg(p order by p.created_at) from (
+        select amount, reason, order_ref, created_at from courier_penalties
+         where courier_id = auth.uid() and status = 'du'
+           and to_char(created_at at time zone 'Asia/Jerusalem', 'YYYY-MM') = p_month) p), '[]'::json),
+    'credit', public.courier_credit(auth.uid()))
+   where public.is_active_courier() and p_month ~ '^[0-9]{4}-[0-9]{2}$';
+$$;
+revoke execute on function public.my_statement(text) from public, anon;
+grant execute on function public.my_statement(text) to authenticated;
+
+-- Patron : les recharges avec leur reçu
+create or replace function public.admin_credits() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'credits', coalesce((select json_agg(json_build_object('courier_id', c.id, 'credit', public.courier_credit(c.id),
+                           'reserved', public.courier_reserved(c.id))) from couriers c where c.role = 'coursier'), '[]'::json),
+    'topups', coalesce((select json_agg(t order by t.created_at desc) from
+                 (select x.*, c.name as courier_name from courier_topups x join couriers c on c.id = x.courier_id
+                   order by x.created_at desc limit 300) t), '[]'::json))
+   where public.is_admin();
+$$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

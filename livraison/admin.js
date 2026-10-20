@@ -400,7 +400,8 @@ function card(o, withDay) {
       ${o.courier_id && !isMine(o) ? chatBtn("c:" + o.courier_id, `Livreur : ${o.courier_name || ""}`, "Vos messages avec ce livreur", "💬 Livreur", `Course n° ${o.ref} — `) : ""}
       ${o.leave_at_door && ["recuperee", "livree"].includes(o.status) ? chatBtn("o:" + o.id, `Course n° ${o.ref}`, "Photo du dépôt devant la porte", "📷 Photo du dépôt", I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }), true) : ""}
       <a class="btn btn-sm" href="${UI.trackUrl(o)}" target="_blank" rel="noopener">📍 Suivi</a>
-      ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}" target="_blank" rel="noopener">🧾 Reçu n° ${o.receipt_number}</a>` : ""}
+      ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}" target="_blank" rel="noopener">🧾 Reçu n° ${o.receipt_number}</a>`
+        : o.courier_receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}" target="_blank" rel="noopener">🧾 Reçu du livreur n° ${o.courier_receipt_number}</a>` : ""}
       ${o.receipt_number && o.contact_email ? `<a class="btn btn-sm" href="mailto:${UI.esc(o.contact_email)}?subject=${encodeURIComponent(`Reçu n° ${o.receipt_number} · קבלה מס' ${o.receipt_number}`)}&body=${encodeURIComponent(UI.clientMessage(o))}">✉️ Reçu par mail</a>` : ""}
       <button class="btn btn-sm" data-act="price">✏️ Prix</button>
       <button class="btn btn-sm" data-act="ics">📅</button>
@@ -637,7 +638,7 @@ function creditsCard() {
       ${list.map(c => { const x = byId[c.id] || { credit: 0, reserved: 0 }; return `<tr><td>${UI.esc(c.name)}</td><td class="num"><b class="${Number(x.credit) < Number(settings.commission_min || 3) ? "neg" : ""}">${UI.money(x.credit)}</b></td>
         <td class="num">${Number(x.reserved) ? UI.money(x.reserved) : "—"}</td><td class="num"><button class="btn btn-sm" data-credit-add="${UI.esc(c.id)}" data-name="${UI.esc(c.name)}">➕ Crédit</button></td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Pas encore de livreur.</td></tr>`}
     </tbody></table></div>
-    ${(credits.topups || []).filter(x => x.status !== "attente").slice(0, 8).map(x => `<p class="small muted topup-line">${UI.esc(x.courier_name || "")} · ${UI.money(x.amount)} · ${TOPUP_ST[x.status] || ""}${x.note ? " · " + UI.esc(x.note) : ""}</p>`).join("")}
+    ${(credits.topups || []).filter(x => x.status !== "attente").slice(0, 8).map(x => `<p class="small muted topup-line">${UI.esc(x.courier_name || "")} · ${UI.money(x.amount)} · ${TOPUP_ST[x.status] || ""}${x.status === "ok" && x.paid === false ? " · offert" : ""}${x.note ? " · " + UI.esc(x.note) : ""}${x.receipt_number ? ` · <a href="${UI.esc(UI.topupReceiptUrl(x))}" target="_blank" rel="noopener">🧾 Reçu n° ${x.receipt_number}</a>` : ""}</p>`).join("")}
   </div>`;
 }
 function renderWeek(view) {
@@ -1034,8 +1035,9 @@ async function onViewClick(e) {
     if (a == null) return;
     const n = Number(String(a).replace(",", "."));
     if (!(n >= 5 && n <= 2000)) return alert("Montant entre 5 et 2000 ₪.");
+    const paid = confirm(`Avez-vous reçu ces ${UI.money(n)} de ${el.dataset.name} ?\nOK = argent reçu (un reçu HOP est fait)\nAnnuler = crédit offert (pas de reçu)`);
     const note = prompt("Note (facultatif) :", "") || "";
-    try { await Store.addTopup(el.dataset.creditAdd, n, note); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    try { await Store.addTopup(el.dataset.creditAdd, n, note, paid); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
   }
   if (el.dataset.penCancel) {

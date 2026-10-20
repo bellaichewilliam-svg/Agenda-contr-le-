@@ -592,8 +592,8 @@ async function decideTopup(id, ok) {
   writeJSON(LS.topups, list);
   return true;
 }
-async function addTopup(courierId, amount, note) {
-  if (ONLINE) return authRest("/rest/v1/rpc/admin_topup_add", { method: "POST", body: { p_courier: courierId, p_amount: amount, p_note: note || null } });
+async function addTopup(courierId, amount, note, paid) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_topup_add", { method: "POST", body: { p_courier: courierId, p_amount: amount, p_note: note || null, p_paid: paid !== false } });
   const a = Number(amount);
   if (!(a >= 5 && a <= 2000)) throw new Error("bad_amount");
   const t = { id: uuid(), courier_id: courierId, amount: a, status: "ok", note: note || null, created_at: new Date().toISOString(), decided_at: new Date().toISOString() };
@@ -1339,6 +1339,28 @@ async function sellCarnet(shopId, method) {
 }
 
 // Reçu d'un carnet (lien secret)
+// Reçu d'une course : émis par HOP (ses propres courses) ou par le livreur (paiement direct)
+async function orderReceipt(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_receipt", { method: "POST", body: { p_token: token } });
+  const o = localOrders().find(x => x.token === token);
+  return o ? Object.assign({ issuer: "hop" }, o) : null;
+}
+// Reçu de HOP pour une recharge de crédit d'un livreur
+async function topupReceipt(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/topup_receipt", { method: "POST", body: { p_token: token } });
+  return null;
+}
+// Relevé du mois du livreur (AAAA-MM) : courses, commission déduite, recharges, retenues
+async function myStatement(month) {
+  if (ONLINE) return authRest("/rest/v1/rpc/my_statement", { method: "POST", body: { p_month: month } });
+  const id = myId(), c = localCouriers().find(x => x.id === id), inM = d => String(d || "").slice(0, 7) === month;
+  return { month, courier: c ? { name: c.name, phone: c.phone, business_number: c.business_number } : {},
+    orders: localOrders().filter(o => o.courier_id === id && o.status === "livree" && inM(o.delivered_at || o.pickup_at))
+      .map(o => Object.assign({ delivered: o.delivered_at || o.pickup_at, due: courseDue(o) }, o)),
+    topups: readJSON(LS.topups, []).filter(x => x.courier_id === id && x.status === "ok" && inM(x.decided_at || x.created_at)),
+    penalties: readJSON(LS.penalties, []).filter(p => p.courier_id === id && p.status === "du" && inM(p.created_at)),
+    credit: creditOf(id).credit };
+}
 async function carnetReceipt(token) {
   if (ONLINE) return rest("/rest/v1/rpc/carnet_receipt", { method: "POST", body: { p_token: token } });
   const v = readJSON(LS.sales, []).find(x => x.token === token);
@@ -1576,7 +1598,7 @@ window.Store = {
   couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
