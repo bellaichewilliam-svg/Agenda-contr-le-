@@ -235,7 +235,11 @@ function attach(input, opts) {
   const close = () => { box.classList.add("hidden"); active = -1; };
   const render = () => {
     box.innerHTML = items.length
-      ? items.map((p, i) => `<button type="button" class="ac-item${i === active ? " on" : ""}" data-i="${i}">
+      ? items.map((p, i) => p.quick
+        // Raccourci (« Ma position », adresse enregistrée Maison / Travail…)
+        ? `<button type="button" class="ac-item quick${i === active ? " on" : ""}" data-i="${i}">
+            <span class="ac-ico">${p.icon || "⭐"}</span><span><b>${UI.esc(p.title)}</b>${p.sub ? `<small>${UI.esc(p.sub)}</small>` : ""}</span></button>`
+        : `<button type="button" class="ac-item${i === active ? " on" : ""}" data-i="${i}">
           <span class="ac-ico">${p.partner ? "⭐" : p.brand ? "🏪" : "📍"}</span>
           <span><b>${UI.esc(p.brand || p.street || p.city)}</b><small>${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
         </button>`).join("")
@@ -245,6 +249,7 @@ function attach(input, opts) {
   const pick = i => {
     const p = items[i];
     if (!p) return;
+    if (p.apply) { close(); p.apply(); return; }
     input.value = p.label;
     input.dataset.picked = p.label;
     input.classList.add("ac-ok");
@@ -260,7 +265,9 @@ function attach(input, opts) {
     }
     clearTimeout(timer);
     const q = input.value.trim();
-    if (q.length < 3) { close(); return; }
+    if (q.length < 3) { seq++; if (!showQuick()) close(); return; }
+    // Le client tape une adresse : les raccourcis disparaissent jusqu'aux résultats
+    if (items.length && items[0].quick) { items = []; close(); }
     timer = setTimeout(async () => {
       const mine = ++seq;
       try {
@@ -291,6 +298,14 @@ function attach(input, opts) {
   box.addEventListener("mousedown", e => e.preventDefault()); // garder le focus
   box.addEventListener("click", e => { const b = e.target.closest("[data-i]"); if (b) pick(Number(b.dataset.i)); });
   input.addEventListener("blur", () => setTimeout(close, 150));
+  // En touchant le champ : « Ma position » et les adresses enregistrées, tout de suite
+  function showQuick() {
+    const list = opts.quick ? opts.quick() : [];
+    if (!list.length) return false;
+    items = list; active = -1; render();
+    return true;
+  }
+  input.addEventListener("focus", () => { if (input.value.trim().length < 3 || input.dataset.picked) showQuick(); });
 
   return {
     isPicked: () => !!input.dataset.picked,

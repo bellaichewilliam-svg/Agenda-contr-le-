@@ -2,8 +2,8 @@
   "name": "HOP! Livraison · הופ! משלוחים",
   "short_name": "HOP!",
   "description": "Et hop, c'est livré ! Commander et suivre des courses de livraison",
-  "start_url": "./index.html",
-  "scope": "./",
+  "start_url": "/app/",
+  "scope": "/app/",
   "display": "standalone",
   "background_color": "#0F1F3D",
   "theme_color": "#0F1F3D",
@@ -27,5 +27,6 @@
       "type": "image/svg+xml",
       "purpose": "any"
     }
-  ]
+  ],
+  "id": "hop-client"
 }

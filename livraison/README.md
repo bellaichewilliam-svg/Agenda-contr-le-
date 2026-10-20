@@ -88,6 +88,11 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - Le client suit tout en direct (« Shawarma Nona prépare votre commande · prête dans ≈ 12 min », puis « ✅ prête »).
 - **Vous** : dans l'onglet Commerces, « ⭐ HOP! Pro : +1 mois » (payé ou offert) ou « Arrêter », et ce que chaque commerce vous doit ce mois-ci (abonnement + sa part des livraisons). Le commerce voit la même facture dans son espace pro.
 
+### Catalogue HOP! Pro (produits en ligne)
+- Dans son espace, le commerce Pro a **🛍️ Mon catalogue** : un bouton crée les **catégories proposées** selon son type (Entrées, Plats, Desserts, Boissons pour un restaurant…), qu'il renomme comme il veut ; puis il ajoute ses **produits** (nom, prix, photo, description) et les passe **✅ Disponible / ⛔ Épuisé** d'un geste.
+- Le client qui commande chez lui choisit par catégorie avec **+ / −**, voit son total d'articles (**à régler directement au commerce**, le livreur n'avance rien) et peut ajouter une précision.
+- La base reprend toujours **les prix et les noms du catalogue** (jamais ceux envoyés par le téléphone) et refuse les produits épuisés. Le commerce reçoit une **liste à cocher** au moment de préparer, avec le total des articles.
+
 ### Commande prête ou attente : un prix juste
 - **Commande prête : prix fixe**, affiché avant de commander.
 - **Le livreur doit attendre** (commande pas prête) **ou faire les achats** : au point de récupération, il appuie sur **« 📍 Je suis arrivé »** (seulement sur place, vérifié au GPS) ; le compteur démarre. **10 min offertes**, puis **+5 ₪ par tranche de 10 min commencée**, **60 ₪ au maximum** (`pricing.waiting` dans `config.js`, `wait_free_min`, `wait_step_min`, `wait_step_price`, `wait_max` dans la table `settings` en ligne).
@@ -106,7 +111,7 @@ L'espace du commerce (`commerce.html`) montre le tarif pro (25 ₪ dans Netanya)
 Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et d'autres messages prêts, à tous ou à un seul livreur. Le message s'ouvre en grand chez eux, avec un son, et ils répondent « J'arrive » ou « Pas dispo ».
 
 ### Adresses
-- **📍 Ma position** remplit l'adresse depuis le GPS du téléphone (aussi en raccourci sur l'accueil), et **⭐ Enregistrer cette adresse** l'ajoute au carnet du client en **🏠 Maison**, **💼 Travail** ou sous un nom choisi (« Maman »…). Ces adresses passent en premier dans les raccourcis.
+- En touchant « Récupérer à » ou « Livrer à », la liste propose tout de suite **📍 Ma position** et les **adresses enregistrées**. **📍 Ma position** remplit l'adresse depuis le GPS du téléphone (aussi en raccourci sur l'accueil), et **⭐ Enregistrer cette adresse** l'ajoute au carnet du client en **🏠 Maison**, **💼 Travail** ou sous un nom choisi (« Maman »…). Ces adresses passent en premier dans les raccourcis.
 - **Enseignes :** « Golda », « Super-Pharm »… donnent d'abord l'agence la plus proche du client (si la carte n'en trouve aucune à moins de 4 km, on cherche le nom sur OpenStreetMap autour de lui).
 - Avant chaque commande, le client **vérifie ses adresses sur une carte** et peut faire glisser l'épingle au bon endroit, par exemple s'il commande pour une autre adresse que la sienne.
 
@@ -143,7 +148,7 @@ Tant qu'une commande attend un livreur, **ça sonne toutes les 3 s** avec un ban
 - Fonctionnement : la base appelle la fonction Supabase `hop-push` (`supabase/functions/hop-push`) ; les clés sont dans la table `push_config` (invisible depuis l'application ; la clé publique est aussi dans `config.js`, `push.publicKey`).
 
 ### Trois applis, trois icônes
-Client (orange), **HOP! Livreur** (bleue « LIVREUR ») et **HOP! Patron** (noire « PATRON »). Sur le site, l'espace livreur est à **/livreur/** et l'espace patron à **/patron/** (`vercel.json`) : chaque appli s'installe à part sur Android. Depuis l'appli client, le bouton **🛵** en haut ouvre l'espace livreur. Le livreur a un bouton « 📲 Mettre HOP! Livreur sur l'écran d'accueil », le patron « 📲 Installer HOP! Patron ». Le patron et les livreurs ont aussi « Mot de passe oublié ? » sous la connexion.
+Client (orange), **HOP! Livreur** (bleue « LIVREUR ») et **HOP! Patron** (noire « PATRON »). Sur le site, l'appli client est à **/app/**, l'espace livreur à **/livreur/** et l'espace patron à **/patron/** (`vercel.json`, et `config.js` renvoie chaque page à la bonne adresse) : chaque appli s'installe à part sur Android. Depuis l'appli client, le bouton **🛵** en haut ouvre l'espace livreur. Le livreur a un bouton « 📲 Mettre HOP! Livreur sur l'écran d'accueil », le patron « 📲 Installer HOP! Patron ». Le patron et les livreurs ont aussi « Mot de passe oublié ? » sous la connexion.
 
 ### Zones
 Seulement le Sharon est ouvert (`zones` dans `config.js`). Tel Aviv – Gush Dan, Petah Tikva et Rishon apparaissent « bientôt » chez les clients et dans l'écran « 📍 Zones » des livreurs, qui montre aussi la demande en direct. Mettez `active: true` pour ouvrir une zone.

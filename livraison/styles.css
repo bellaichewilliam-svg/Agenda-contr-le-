@@ -1058,3 +1058,45 @@ body.in-home .eta-bubble { display: none; }
 @media (max-width: 480px) { .nav-rider { padding: 4px 6px; font-size: 16px; } }
 
 .shop-call { margin: 6px 0 4px; }
+
+/* Catalogue HOP! Pro : côté commerce */
+.catalog-card { margin-top: 14px; }
+.ct-cat { border-top: 1px solid var(--border); padding: 10px 0; display: grid; gap: 8px; }
+.ct-cat-head { display: flex; align-items: center; gap: 8px; }
+.ct-cat-head span { margin-inline-start: auto; display: flex; }
+.ct-prod { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto auto; gap: 10px; align-items: center; }
+.ct-prod.off { opacity: .6; }
+.ct-prod img, .ct-photo img { width: 52px; height: 52px; object-fit: cover; border-radius: 10px; }
+.ct-nophoto { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 10px; background: var(--blue-soft); font-size: 22px; }
+.ct-info { display: grid; min-width: 0; }
+.ct-info small { color: var(--muted); overflow-wrap: anywhere; }
+.ct-form { border: 1px dashed var(--border); border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
+.ct-photo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn-link.danger { color: var(--red); }
+.prep-items { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
+.prep-items label { display: flex; gap: 8px; align-items: center; font-size: 15px; }
+.prep-items input { width: 20px; height: 20px; }
+.prep-items input:checked + b, .prep-items input:checked ~ * { text-decoration: line-through; opacity: .6; }
+/* Catalogue : côté client */
+.cg { display: grid; gap: 10px; margin-bottom: 10px; min-width: 0; max-width: 100%; }
+.shop-order { min-width: 0; }
+.cg-title { font-size: 16px; }
+.cg-cats { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; min-width: 0; max-width: 100%; }
+.cg-cats .ch-chip { white-space: nowrap; }
+.cg-grid { display: grid; gap: 8px; min-width: 0; }
+.cg-item { display: grid; grid-template-columns: 60px minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 8px; }
+.cg-item.off { opacity: .55; }
+.cg-item img, .cg-nophoto { width: 60px; height: 60px; object-fit: cover; border-radius: 10px; }
+.cg-nophoto { display: grid; place-items: center; background: var(--blue-soft); font-size: 24px; }
+.cg-info { display: grid; min-width: 0; }
+.cg-info small { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.cg-price { font-weight: 800; }
+.cg-out { font-size: 12px; font-weight: 700; color: var(--muted); }
+.cg-qty { display: flex; align-items: center; gap: 8px; }
+.cg-qty button { width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--brand); color: #fff; font-size: 20px; font-weight: 800; line-height: 1; }
+.cg-cart { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; background: var(--brand-soft); font-weight: 800; }
+.cg-cart.empty { font-weight: 600; }
+.cg-cart small { font-weight: 500; color: var(--muted); }
+
+/* Les colonnes du formulaire ne s'élargissent jamais au-delà de l'écran (catalogue, catégories) */
+.order-layout > * { min-width: 0; }

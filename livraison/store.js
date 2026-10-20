@@ -25,7 +25,8 @@ const LS = {
   declines: "livraison.declines.v1",
   sales: "livraison.carnetSales.v1",
   planSales: "livraison.planSales.v1",
-  chat: "livraison.chat.v1"
+  chat: "livraison.chat.v1",
+  catalog: "livraison.catalog.v1"
 };
 // Une session par espace (patron / livreur) pour pouvoir utiliser les deux
 let sessionKey = "livraison.session.admin.v1";
@@ -228,6 +229,20 @@ async function createOrder(order) {
     if (shop && planActive(shop) && String(order.shop_order || "").trim() && order.payment_method !== "carnet") {
       Object.assign(order, { shop_status: "attente", shop_share: Number(settings.pro_shop_share), shop_order: String(order.shop_order).trim().slice(0, 1000) });
     } else order.shop_order = null;
+    // Articles du catalogue : noms et prix repris du catalogue, produits disponibles seulement
+    order.items_total = null;
+    if (order.shop_order && Array.isArray(order.items) && order.items.length) {
+      const products = localCatalog(shop.id).cat.products;
+      const list = order.items.slice(0, 40).map(i => {
+        const p = products.find(x => x.id === i.id && x.available);
+        return p ? { id: p.id, name: p.name, price: Number(p.price), qty: Math.min(50, Math.max(1, parseInt(i.qty, 10) || 1)) } : null;
+      }).filter(Boolean);
+      if (list.length) {
+        const note = String(order.items_note || "").trim().slice(0, 300);
+        Object.assign(order, { items: list, items_total: list.reduce((s, i) => s + i.price * i.qty, 0), items_note: note || null,
+          shop_order: (list.map(i => `${i.qty} × ${i.name}`).join("\n") + (note ? "\n💬 " + note : "")).slice(0, 1000) });
+      } else order.items = null;
+    } else order.items = null;
     // Réduction seulement avec un code (au plus 30 ₪, payée par HOP), part HOP du Pro, pas de pourboire
     Object.assign(order, {
       discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
@@ -987,6 +1002,89 @@ async function shopDashboard(token) {
   };
 }
 
+// --- Catalogue HOP! Pro : catégories et produits du commerce ------------------------------
+// Démo : { [shopId]: { categories: [...], products: [...] } } sur ce téléphone
+function localCatalog(shopId) {
+  const all = readJSON(LS.catalog, {});
+  return { all, cat: all[shopId] || (all[shopId] = { categories: [], products: [] }) };
+}
+const shopOfToken = token => localShops().find(x => x.token === token) || null;
+// Catalogue public d'un commerce Pro actif (pour ses clients)
+async function shopCatalog(code) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_catalog", { method: "POST", body: { p_code: code } });
+  const s = localShops().find(x => x.code === String(code || "").toUpperCase());
+  if (!s || s.status !== "actif" || !planActive(s)) return null;
+  return localCatalog(s.id).cat;
+}
+// Le catalogue complet, pour le commerce lui-même
+async function shopCatalogMine(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_catalog_mine", { method: "POST", body: { p_token: token } });
+  const s = shopOfToken(token);
+  return s ? localCatalog(s.id).cat : null;
+}
+async function saveCategory(token, id, name, position) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_category_save", { method: "POST", body: { p_token: token, p_id: id || null, p_name: name, p_position: position == null ? null : position } });
+  const s = shopOfToken(token);
+  if (!s) throw new Error("forbidden");
+  const { all, cat } = localCatalog(s.id);
+  let c = id && cat.categories.find(x => x.id === id);
+  if (!c) { c = { id: uuid(), position: position || 0 }; cat.categories.push(c); }
+  c.name = String(name).trim().slice(0, 40);
+  if (position != null) c.position = position;
+  cat.categories.sort((a, b) => a.position - b.position);
+  writeJSON(LS.catalog, all);
+  return c.id;
+}
+async function deleteCategory(token, id) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_category_delete", { method: "POST", body: { p_token: token, p_id: id } });
+  const s = shopOfToken(token);
+  if (!s) return false;
+  const { all, cat } = localCatalog(s.id);
+  cat.categories = cat.categories.filter(x => x.id !== id);
+  cat.products.forEach(p => { if (p.category_id === id) p.category_id = null; });
+  writeJSON(LS.catalog, all);
+  return true;
+}
+// p : { id, category_id, name, description, price, photo (null = garder, "" = enlever), available, position }
+async function saveProduct(token, p) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_product_save", { method: "POST", body: { p_token: token, p_id: p.id || null, p_category: p.category_id || null,
+    p_name: p.name, p_description: p.description || null, p_price: Number(p.price), p_photo: p.photo === undefined ? null : p.photo,
+    p_available: p.available == null ? true : !!p.available, p_position: p.position == null ? null : p.position } });
+  const s = shopOfToken(token);
+  if (!s) throw new Error("forbidden");
+  const { all, cat } = localCatalog(s.id);
+  let x = p.id && cat.products.find(y => y.id === p.id);
+  if (!x) { x = { id: uuid(), position: p.position || 0, available: true, photo: null }; cat.products.push(x); }
+  Object.assign(x, { category_id: cat.categories.some(c => c.id === p.category_id) ? p.category_id : null,
+    name: String(p.name).trim().slice(0, 80), description: String(p.description || "").trim().slice(0, 300) || null,
+    price: Math.round(Number(p.price) * 100) / 100 });
+  if (p.photo !== undefined && p.photo !== null) x.photo = p.photo || null;
+  if (p.available != null) x.available = !!p.available;
+  if (p.position != null) x.position = p.position;
+  writeJSON(LS.catalog, all);
+  return x.id;
+}
+async function setProductAvailable(token, id, available) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_product_available", { method: "POST", body: { p_token: token, p_id: id, p_available: !!available } });
+  const s = shopOfToken(token);
+  if (!s) return false;
+  const { all, cat } = localCatalog(s.id);
+  const x = cat.products.find(y => y.id === id);
+  if (!x) return false;
+  x.available = !!available;
+  writeJSON(LS.catalog, all);
+  return true;
+}
+async function deleteProduct(token, id) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_product_delete", { method: "POST", body: { p_token: token, p_id: id } });
+  const s = shopOfToken(token);
+  if (!s) return false;
+  const { all, cat } = localCatalog(s.id);
+  cat.products = cat.products.filter(y => y.id !== id);
+  writeJSON(LS.catalog, all);
+  return true;
+}
+
 // Patron : carnet payé → reçu numéroté + courses ajoutées au commerce. Renvoie { token, receipt_number }
 async function sellCarnet(shopId, method) {
   const C = CONFIG.partners.carnet;
@@ -1197,7 +1295,7 @@ window.Store = {
   couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, shopSignup, shopByCode, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest

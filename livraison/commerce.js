@@ -105,6 +105,7 @@ async function openSpace(token) {
   $("#shopGone").classList.add("hidden");
   $("#shopSpace").classList.remove("hidden");
   renderSpace();
+  loadCatalog();
 }
 
 // --- HOP! Pro : commandes des clients à préparer (avec sonnerie), abonnement et facture du mois ---
@@ -140,6 +141,8 @@ function setRing(on) {
 }
 // N° de commande tapé mais pas encore validé : gardé quand l'écran se rafraîchit
 const refDraft = {};
+// Articles déjà mis dans le sac (cochés par le commerce sur ce téléphone)
+const picked = {};
 function renderPrep() {
   const { shop, orders } = state.dash;
   // On ne redessine pas pendant que le commerce tape son n° de commande
@@ -165,7 +168,10 @@ function renderPrep() {
       : o.shop_status === "acceptee" ? `<button type="button" class="btn btn-primary btn-block" data-ready="${UI.esc(o.id)}">${UI.esc(t("spReadyBtn"))}</button>` : "";
     return `<div class="prep-item${o.shop_status === "attente" ? " is-new" : ""}">
       <div class="prep-head">${head}${o.shop_ref ? `<b class="bag-no">${UI.esc(t("spRefShow", { n: o.shop_ref }))}</b>` : ""}<small class="muted">${UI.esc(t("orderNo", { ref: o.ref }))}</small></div>
-      <p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>
+      ${Array.isArray(o.items) && o.items.length
+        ? `<ul class="prep-items">${o.items.map((it, i) => `<li><label><input type="checkbox" data-pick="${UI.esc(o.id)}:${i}"${picked[o.id + ":" + i] ? " checked" : ""} /> <b>${it.qty} ×</b> <span>${UI.esc(it.name)}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`).join("")}</ul>
+          ${o.items_note ? `<p class="prep-order">💬 ${UI.esc(o.items_note)}</p>` : ""}<p class="small"><b>${UI.esc(t("spItemsTotal", { total: UI.money(o.items_total) }))}</b></p>`
+        : `<p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>`}
       <small class="muted">${UI.esc(t("spClient", { name: (o.dropoff_contact || o.contact_name || "").split(" ")[0], city: I18N.cityName(o.to_city) }))}</small>
       ${act}
     </div>`;
@@ -205,6 +211,7 @@ async function prepAction(id, action, minutes, reason, ref) {
   } catch (e) { alert(/shop_ref/.test(e.message || "") ? t("spRefNeed") : t("spErr")); }
   refreshSpace();
 }
+$("#spPrep").addEventListener("change", e => { const c = e.target.closest("[data-pick]"); if (c) picked[c.dataset.pick] = c.checked; });
 $("#spPrep").addEventListener("input", e => {
   const i = e.target.closest("[data-ref-for]");
   if (!i) return;
@@ -226,6 +233,148 @@ $("#spPlan").addEventListener("click", e => {
   if (!e.target.closest("[data-plan]")) return;
   const { shop } = state.dash;
   openShopChat(t("spPlanMsg", { name: shop.name, code: shop.code }));
+});
+// --- Catalogue HOP! Pro : catégories et produits (photo, prix, disponible / épuisé) --------------
+const cat = { data: null, edit: null, photo: undefined, busy: false };
+async function loadCatalog() {
+  try { cat.data = await Store.shopCatalogMine(state.dash.shop.token); } catch (e) { cat.data = cat.data || null; }
+  renderCatalog();
+}
+// Photo réduite (480 px, JPEG) : légère pour les clients
+function shrinkPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      for (const [max, q] of [[480, 0.72], [360, 0.62], [280, 0.55]]) {
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        const data = c.toDataURL("image/jpeg", q);
+        if (data.length < 280000) return resolve(data);
+      }
+      reject(new Error("too_big"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
+    img.src = url;
+  });
+}
+function prodForm(p, catId) {
+  const { categories } = cat.data;
+  const photo = cat.photo !== undefined ? cat.photo : (p && p.photo) || "";
+  return `<form class="ct-form" data-form="${UI.esc(p ? p.id : "new")}" action="javascript:void(0)">
+    <div class="fields">
+      <label class="f wide"><span>${UI.esc(t("ctName"))}</span><input name="name" maxlength="80" required value="${UI.esc(p ? p.name : "")}" /></label>
+      <label class="f"><span>${UI.esc(t("ctPrice"))}</span><input name="price" inputmode="decimal" required value="${p ? UI.esc(String(p.price).replace(".", ",")) : ""}" placeholder="0" /></label>
+      <label class="f"><span>${UI.esc(t("ctCat"))}</span><select name="category_id"><option value="">${UI.esc(t("ctLoose"))}</option>${categories.map(c =>
+        `<option value="${UI.esc(c.id)}"${(p ? p.category_id : catId) === c.id ? " selected" : ""}>${UI.esc(c.name)}</option>`).join("")}</select></label>
+      <label class="f wide"><span>${UI.esc(t("ctDesc"))}</span><textarea name="description" rows="2" maxlength="300">${UI.esc(p && p.description || "")}</textarea></label>
+    </div>
+    <div class="ct-photo">${photo ? `<img src="${UI.esc(photo)}" alt="" />` : `<span class="ct-nophoto">📷</span>`}
+      <label class="btn btn-sm">${UI.esc(t(photo ? "ctPhotoChange" : "ctPhoto"))}<input type="file" accept="image/*" data-photo hidden /></label>
+      ${photo ? `<button type="button" class="btn btn-sm btn-link" data-photo-off>${UI.esc(t("ctRemovePhoto"))}</button>` : ""}</div>
+    <div class="btns" style="justify-content:flex-start">
+      <button class="btn btn-primary" type="submit"${cat.busy ? " disabled" : ""}>${UI.esc(t("ctSave"))}</button>
+      <button type="button" class="btn btn-link" data-cancel>${UI.esc(t("ctCancel"))}</button>
+      ${p ? `<button type="button" class="btn btn-link danger" data-prod-del="${UI.esc(p.id)}">${UI.esc(t("ctDelete"))}</button>` : ""}
+    </div>
+  </form>`;
+}
+function prodRow(p) {
+  if (cat.edit && cat.edit.id === p.id) return prodForm(p);
+  return `<div class="ct-prod${p.available ? "" : " off"}">
+    ${p.photo ? `<img src="${UI.esc(p.photo)}" alt="" />` : `<span class="ct-nophoto">🍽️</span>`}
+    <div class="ct-info"><b>${UI.esc(p.name)}</b><small>${UI.money(p.price)}${p.description ? " · " + UI.esc(p.description) : ""}</small></div>
+    <button type="button" class="btn btn-sm ${p.available ? "" : "btn-primary"}" data-avail="${UI.esc(p.id)}">${UI.esc(t(p.available ? "ctAvail" : "ctOut"))}</button>
+    <button type="button" class="btn btn-sm btn-link" data-edit="${UI.esc(p.id)}" aria-label="${UI.esc(t("ctEdit"))}">✏️</button>
+  </div>`;
+}
+function renderCatalog() {
+  const box = $("#spCatalog"), shop = state.dash.shop;
+  box.classList.toggle("hidden", !planOn(shop));
+  if (!planOn(shop)) return;
+  if (!cat.data) { box.innerHTML = `<h3>${UI.esc(t("ctTitle"))}</h3><p class="muted small">…</p>`; return; }
+  const { categories, products } = cat.data;
+  const groups = categories.map(c => ({ c, list: products.filter(p => p.category_id === c.id) }));
+  const loose = products.filter(p => !categories.some(c => c.id === p.category_id));
+  if (loose.length) groups.push({ c: { id: "", name: t("ctLoose") }, list: loose });
+  const adding = c => cat.edit && !cat.edit.id && cat.edit.category_id === c.id;
+  const sugg = CONFIG.partners.catalogCategories[shop.kind] || CONFIG.partners.catalogCategories.autre;
+  box.innerHTML = `<h3>${UI.esc(t("ctTitle"))}</h3>
+    <p class="muted small" style="margin:4px 0 10px">${UI.esc(t("ctSub", { n: products.length, on: products.filter(p => p.available).length }))}</p>
+    ${!categories.length ? `<div class="notice" style="margin-bottom:10px">${UI.esc(t("ctStart"))}<br><button type="button" class="btn btn-primary btn-sm" data-suggest style="margin-top:8px">${UI.esc(t("ctSuggest", { list: sugg.map(x => x.split(" · ")[0]).join(", ") }))}</button></div>` : ""}
+    ${groups.map(({ c, list }) => `<div class="ct-cat">
+      <div class="ct-cat-head"><b>${UI.esc(c.name)}</b><small class="muted">${list.length}</small>
+        ${c.id ? `<span><button type="button" class="btn btn-sm btn-link" data-cat-rename="${UI.esc(c.id)}">✏️</button><button type="button" class="btn btn-sm btn-link" data-cat-del="${UI.esc(c.id)}">🗑️</button></span>` : ""}</div>
+      ${list.map(prodRow).join("")}
+      ${adding(c) ? prodForm(null, c.id) : `<button type="button" class="btn btn-sm" data-add-prod="${UI.esc(c.id)}">${UI.esc(t("ctAddProd"))}</button>`}
+    </div>`).join("")}
+    ${!products.length && categories.length === 0 && adding({ id: "" }) ? prodForm(null, "") : ""}
+    <div class="btns" style="justify-content:flex-start;margin-top:10px">
+      <button type="button" class="btn btn-sm" data-add-cat>${UI.esc(t("ctAddCat"))}</button>
+      ${!categories.length && !adding({ id: "" }) ? `<button type="button" class="btn btn-sm" data-add-prod="">${UI.esc(t("ctAddProd"))}</button>` : ""}
+    </div>`;
+}
+async function catalogDo(fn) {
+  cat.busy = true;
+  try { await fn(); } catch (e) { alert(/too_big|bad_image/.test(e.message || "") ? t("ctPhotoErr") : t("ctErr")); }
+  cat.busy = false;
+  await loadCatalog();
+}
+$("#spCatalog").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  const token = state.dash.shop.token;
+  if (b.dataset.suggest != null) {
+    const sugg = CONFIG.partners.catalogCategories[state.dash.shop.kind] || CONFIG.partners.catalogCategories.autre;
+    return catalogDo(async () => { for (let i = 0; i < sugg.length; i++) await Store.saveCategory(token, null, sugg[i], i + 1); });
+  }
+  if (b.dataset.addCat != null) {
+    const name = (prompt(t("ctCatPh")) || "").trim();
+    if (name) catalogDo(() => Store.saveCategory(token, null, name, cat.data.categories.length + 1));
+    return;
+  }
+  if (b.dataset.catRename) {
+    const c = cat.data.categories.find(x => x.id === b.dataset.catRename);
+    const name = (prompt(t("ctCatPh"), c ? c.name : "") || "").trim();
+    if (name) catalogDo(() => Store.saveCategory(token, c.id, name, c.position));
+    return;
+  }
+  if (b.dataset.catDel) { if (confirm(t("ctDelCat"))) catalogDo(() => Store.deleteCategory(token, b.dataset.catDel)); return; }
+  if (b.dataset.addProd != null) { cat.edit = { id: null, category_id: b.dataset.addProd }; cat.photo = undefined; return renderCatalog(); }
+  if (b.dataset.edit) { cat.edit = { id: b.dataset.edit }; cat.photo = undefined; return renderCatalog(); }
+  if (b.dataset.cancel != null) { cat.edit = null; cat.photo = undefined; return renderCatalog(); }
+  if (b.dataset.photoOff != null) { cat.photo = ""; return renderCatalog(); }
+  if (b.dataset.avail) {
+    const p = cat.data.products.find(x => x.id === b.dataset.avail);
+    if (p) catalogDo(() => Store.setProductAvailable(token, p.id, !p.available));
+    return;
+  }
+  if (b.dataset.prodDel) {
+    if (confirm(t("ctConfirmDel"))) { cat.edit = null; catalogDo(() => Store.deleteProduct(token, b.dataset.prodDel)); }
+  }
+});
+$("#spCatalog").addEventListener("change", async e => {
+  if (!e.target.matches("[data-photo]") || !e.target.files[0]) return;
+  // On garde ce qui est déjà tapé dans le formulaire
+  const f = e.target.closest("form"), keep = f ? Object.fromEntries(new FormData(f)) : null;
+  try { cat.photo = await shrinkPhoto(e.target.files[0]); } catch (ex) { return alert(t("ctPhotoErr")); }
+  renderCatalog();
+  const g = $("#spCatalog form");
+  if (g && keep) Object.entries(keep).forEach(([k, v]) => { if (g.elements[k]) g.elements[k].value = v; });
+});
+$("#spCatalog").addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target, id = f.dataset.form === "new" ? null : f.dataset.form;
+  const price = Number(String(f.elements.price.value).replace(",", "."));
+  if (!f.elements.name.value.trim()) return f.elements.name.focus();
+  if (!(price >= 0) || f.elements.price.value.trim() === "") return f.elements.price.focus();
+  const p = { id, category_id: f.elements.category_id.value || null, name: f.elements.name.value, description: f.elements.description.value, price,
+    photo: cat.photo === undefined ? null : cat.photo };
+  if (!id) p.position = cat.data.products.length + 1;
+  cat.edit = null;
+  catalogDo(() => Store.saveProduct(state.dash.shop.token, p)).then(() => { cat.photo = undefined; });
 });
 setInterval(() => { if (state.dash && !document.hidden) refreshSpace(); }, 15000);
 Store.getSettings().then(s => { state.settings = s; if (state.dash) renderPlan(); }).catch(() => {});

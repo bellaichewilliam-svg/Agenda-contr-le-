@@ -1,12 +1,50 @@
 {
   "redirects": [
-    { "source": "/livreur", "destination": "/livreur/", "permanent": false },
-    { "source": "/patron", "destination": "/patron/", "permanent": false }
+    {
+      "source": "/",
+      "destination": "/app/",
+      "permanent": false
+    },
+    {
+      "source": "/app",
+      "destination": "/app/",
+      "permanent": false
+    },
+    {
+      "source": "/livreur",
+      "destination": "/livreur/",
+      "permanent": false
+    },
+    {
+      "source": "/patron",
+      "destination": "/patron/",
+      "permanent": false
+    }
   ],
   "rewrites": [
-    { "source": "/livreur/", "destination": "/coursier.html" },
-    { "source": "/livreur/:path*", "destination": "/:path*" },
-    { "source": "/patron/", "destination": "/admin.html" },
-    { "source": "/patron/:path*", "destination": "/:path*" }
+    {
+      "source": "/app/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app/:path*",
+      "destination": "/:path*"
+    },
+    {
+      "source": "/livreur/",
+      "destination": "/coursier.html"
+    },
+    {
+      "source": "/livreur/:path*",
+      "destination": "/:path*"
+    },
+    {
+      "source": "/patron/",
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/patron/:path*",
+      "destination": "/:path*"
+    }
   ]
 }

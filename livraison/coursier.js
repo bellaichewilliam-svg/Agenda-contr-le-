@@ -874,7 +874,11 @@ function onWorkClick(e) {
   if (el.dataset.soundTest) { const s = riderSet.sound; riderSet.sound = true; ringOnce(); riderSet.sound = s; return; }
   if (el.dataset.notif) {
     if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
-    return Notification.requestPermission().then(() => { UI.pushSubscribe(); render(); });
+    return Notification.requestPermission().then(p => {
+      UI.pushSubscribe();
+      if (p === "granted" && isOnline()) UI.dutyNotice(true);
+      render(); renderHome();
+    });
   }
   if (el.dataset.logout) return $("#drawerLogout").click();
   if (el.dataset.issue) return reportIssue(orders.find(x => x.id === el.dataset.issue));
@@ -1067,6 +1071,7 @@ function renderHome() {
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
+    ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-card hot" data-notif="1"><span>🔔 ${Notification.permission === "denied" ? "Notifications bloquées" : "Autorisez les notifications"}<small>${Notification.permission === "denied" ? "Chrome ⋮ → Paramètres → Notifications → autorisez HOP!, sinon pas de « En service » ni de courses appli fermée" : "Pour la notification « En service » et les nouvelles courses, même appli fermée"}</small></span><span class="go">›</span></button>` : ""}
     ${UI.inOwnApp() ? "" : `<button type="button" class="rd-card" data-install><span>📲 Mettre HOP! Livreur sur l'écran d'accueil<small>Son icône « LIVREUR », et les alertes même appli fermée</small></span><span class="go">›</span></button>`}
     <button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>`;
   const h = $("#sheet").offsetHeight;
