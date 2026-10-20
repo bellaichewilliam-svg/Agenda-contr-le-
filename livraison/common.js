@@ -92,7 +92,7 @@ const swReady = "serviceWorker" in navigator && location.protocol !== "file:"
   ? navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).catch(() => null) : Promise.resolve(null);
 async function notify(title, opts) {
   if (!window.Notification || Notification.permission !== "granted") return false;
-  const o = Object.assign({ icon: "logo.svg", badge: "logo.svg", data: { url: location.href } }, opts || {});
+  const o = Object.assign({ icon: "icon-192.png", badge: "badge-96.png", data: { url: location.href } }, opts || {});
   try {
     const reg = await swReady;
     if (reg && reg.showNotification) { await reg.showNotification(title, o); return true; }
