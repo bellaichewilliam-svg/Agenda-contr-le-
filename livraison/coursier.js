@@ -1481,6 +1481,21 @@ $("#drawerNav").addEventListener("click", e => {
   if (b) { closeDrawer(); openPage(b.dataset.tab); }
 });
 $("#menuBtn").addEventListener("click", () => $("#drawer").classList.remove("hidden"));
+// Bouton « retour » du téléphone : il ferme ce qui est ouvert (conversation, fenêtre, menu, page)
+// et ne fait jamais sortir de l'espace livreur (pas de retour sur l'accueil client)
+history.replaceState({ hop: "base" }, "");
+history.pushState({ hop: "stay" }, "");
+window.addEventListener("popstate", () => {
+  history.pushState({ hop: "stay" }, "");
+  const pick = document.querySelector(".chat-modal:not(.chat-wrap)");
+  if (pick) return pick.remove();
+  const chat = document.querySelector(".chat-wrap:not(.hidden) .chat-x");
+  if (chat) return chat.click();
+  if (!$("#msgModal").classList.contains("hidden")) return $("#msgClose").click();
+  if (!$("#autoOffModal").classList.contains("hidden")) return $("#autoOffClose").click();
+  if (!$("#drawer").classList.contains("hidden")) return closeDrawer();
+  if (!$("#page").classList.contains("hidden")) return closePage();
+});
 $("#drawer").addEventListener("click", e => { if (e.target.id === "drawer") closeDrawer(); });
 $("#bellBtn").addEventListener("click", () => openPage("inbox"));
 $("#pageBack").addEventListener("click", closePage);
