@@ -249,21 +249,15 @@ function syncVisibility() {
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
   const sched = val("urgency") === "programmee";
-  const cash = form.querySelector('input[name=payment_method][value=cash]');
-  cash.disabled = sched;
-  cash.closest(".choice").classList.toggle("disabled", sched);
-  if (sched && cash.checked) form.querySelector('input[name=payment_method][value=bit]').checked = true;
-  form.payer.querySelector('option[value=destinataire]').disabled = sched;
-  if (sched) form.payer.value = "moi";
   // Carnet pro proposé seulement quand il s'applique
   const carnet = carnetOk();
   $("#carnetChoice").classList.toggle("hidden", !carnet);
   if (carnet) $("#carnetSmall").textContent = t("pay_carnet_d", { n: state.pro.credits });
   const carnetOn = carnet && val("payment_method") === "carnet";
-  if (!carnet && val("payment_method") === "carnet") form.querySelector('input[name=payment_method][value=cash]').checked = !sched;
-  if (!carnet && sched) form.querySelector('input[name=payment_method][value=bit]').checked = true;
+  // Plus d'espèces : Bit ou PayBox directement au livreur (ou carnet pro du commerce)
+  if (!carnet && val("payment_method") === "carnet") form.querySelector('input[name=payment_method][value=bit]').checked = true;
   $("#bitSmall").textContent = t("pay_bit_d", { phone: CONFIG.bitPhone });
-  $("#prepayNote").classList.toggle("hidden", !sched || carnetOn);
+  $("#prepayNote").classList.add("hidden");
   document.querySelectorAll(".other-city").forEach(el => {
     el.classList.toggle("hidden", val(el.dataset.for + "_city") !== OTHER);
   });
@@ -1143,9 +1137,9 @@ async function submit(e) {
     }
     clearDraft();
     rememberAddresses(saved, pf, pt);
-    // Bit : on paie tout de suite, depuis cet écran (créneau réservé : obligatoire)
+    // Paiement direct : le client paiera son livreur (Bit ou PayBox) dès qu'il accepte ; avant : Bit à HOP tout de suite
     $("#donePrepay").innerHTML = saved.payment_method === "bit"
-      ? (saved.prepaid_required ? `<p class="promo-msg bad">${UI.esc(t("trPrepay"))}</p>` : "") + UI.bitPay(saved)
+      ? (saved.prepaid_required && !saved.direct_pay ? `<p class="promo-msg bad">${UI.esc(t("trPrepay"))}</p>` : "") + UI.bitPay(saved)
       : UI.esc(t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref }));
     $("#donePrepay").classList.toggle("hidden", saved.payment_method === "carnet" || (saved.payment_method !== "bit" && !saved.prepaid_required));
     if (saved.payment_method === "carnet" && state.pro) state.pro.credits--;

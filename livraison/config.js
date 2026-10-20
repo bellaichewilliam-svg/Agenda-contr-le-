@@ -162,8 +162,9 @@ window.CONFIG = {
   platform: {
     // Commission sur les courses que l'appli apporte au livreur : commissionPercent % du prix,
     // au moins commissionPerCourse, arrondie au demi-shekel : 25 ₪ → 4 ₪, 50 ₪ → 7,50 ₪, 100 ₪ → 15 ₪
-    // (en ligne : settings.commission_pct et settings.commission_min)
-    commissionPerCourse: 3.5,
+    // (en ligne : settings.commission_pct et settings.commission_min). Les clients paient le livreur directement ;
+    // la commission est déduite du crédit HOP que le livreur recharge à l'avance.
+    commissionPerCourse: 3,
     commissionPercent: 15,
     // Courses de son réseau (un commerce qu'il a amené) : networkPercent %, au moins networkMin
     // 25 ₪ → 2 ₪, 100 ₪ → 8 ₪ (en ligne : settings.network_pct et settings.network_min)
@@ -228,7 +229,8 @@ window.CONFIG = {
   // avant que ce soit prêt. Le livreur qui a amené le commerce touche referrerPercent % de chaque mois
   // d'abonnement payé, pendant referrerMonths mois.
   // (En ligne : pro_monthly, pro_shop_share, pro_hop_share, pro_lead_min, pro_referrer_pct, pro_referrer_months.)
-  pro: { monthly: 199, shopShare: 12, hopShare: 2, leadMinutes: 8, prepChoices: [10, 15, 20, 30], referrerPercent: 20, referrerMonths: 12 },
+  // hopShareClient : part de HOP quand le commerce a choisi « le client paie la livraison » (prise sur le crédit du livreur)
+  pro: { monthly: 199, shopShare: 12, hopShare: 2, hopShareClient: 1, leadMinutes: 8, prepChoices: [10, 15, 20, 30], referrerPercent: 20, referrerMonths: 12 },
 
   // Messages prêts à envoyer aux livreurs depuis l'espace patron
   courierMessages: [

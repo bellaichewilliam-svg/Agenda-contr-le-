@@ -190,7 +190,7 @@ function render() {
   pay.classList.toggle("hidden", o.status === "annulee" || o.status === "refusee");
   const bit = UI.bitFor(o);
   // Trompé de moyen de paiement : on change tant que rien n'est payé
-  const canSwitch = o.payment_status !== "paye" && ["cash", "bit"].includes(o.payment_method)
+  const canSwitch = !o.direct_pay && o.payment_status !== "paye" && ["cash", "bit"].includes(o.payment_method)
     && ["nouvelle", "confirmee", "recuperee"].includes(o.status) && !(o.payment_method === "bit" && o.prepaid_required);
   const copy = `<button class="btn btn-sm" id="copyBit">${UI.esc(t("trCopy"))}</button>`;
   pay.innerHTML = `<small class="muted">${UI.esc(t("trPay"))}</small>
@@ -198,7 +198,7 @@ function render() {
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>`
       : o.payment_method === "bit"
-        ? `${o.prepaid_required ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}${UI.bitPay(o)}`
+        ? `${o.prepaid_required && !o.direct_pay ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}${UI.bitPay(o)}`
         : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}
     ${canSwitch ? `<button class="btn btn-sm btn-link" id="switchPay">${UI.esc(t(o.payment_method === "bit" ? "trToCash" : "trToBit"))}</button>` : ""}`;
 
