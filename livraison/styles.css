@@ -1172,3 +1172,11 @@ body.in-home .eta-bubble { display: none; }
 .br-up { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .br-up > span { font-weight: 700; flex: 1 1 160px; }
 .pen-line { margin: 4px 0 0; color: var(--amber-ink); }
+
+/* Le livreur annonce son temps ; le client accepte ou préfère un autre livreur */
+.eta-pick { display: grid; gap: 8px; margin: 10px 0; padding: 12px; border-radius: 14px; background: var(--brand-soft); }
+.eta-pick:not(.hidden) { display: grid; }
+.eta-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.eta-chips .ch-chip { font-size: 16px; padding: 10px 14px; }
+.eta-ask { display: grid; gap: 8px; margin: 10px 0; padding: 14px; border-radius: 16px; background: var(--brand-soft); border: 2px solid var(--brand); }
+.eta-ask b { font-size: 17px; }

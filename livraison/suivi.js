@@ -80,6 +80,40 @@ function updateMap(o) {
   courierSeen = live;
 }
 
+// Le livreur a dit dans combien de temps il est au départ : le client accepte, ou préfère un autre livreur
+let others = null;
+function etaAsk(o) {
+  const box = $("#etaAsk");
+  const open = o.status === "confirmee" && o.eta_status === "attente" && new Date(o.eta_until) > Date.now();
+  box.classList.toggle("hidden", !open);
+  if (!open) { box.innerHTML = ""; return; }
+  const left = Math.max(0, Math.round((new Date(o.eta_until) - Date.now()) / 1000));
+  const time = new Date(o.eta_at).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const n = others == null ? null : others;
+  box.innerHTML = `<b>${UI.esc(t("trEtaAsk", { name: (o.courier_name || "").split(" ")[0] || t("a_courier"), min: o.eta_min, time }))}</b>
+    ${n != null ? `<small>${UI.esc(n ? t("trEtaOthers", { n }) : t("trEtaNone"))}</small>` : ""}
+    <div class="btns"><button type="button" class="btn btn-primary" data-eta-ok>${UI.esc(t("trEtaOk"))}</button>
+      <button type="button" class="btn" data-eta-no>${UI.esc(t("trEtaNo"))}</button></div>
+    <small class="muted">${UI.esc(t("trEtaAuto", { s: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` }))}</small>`;
+}
+async function countOthers(o) {
+  // Autres livreurs en ligne et libres près du départ (pour décider)
+  try {
+    const list = (await Store.couriersNearby()) || [];
+    others = o.pickup_lat == null ? list.filter(c => c.free).length
+      : list.filter(c => c.free && Pricing.haversineKm({ lat: o.pickup_lat, lon: o.pickup_lon }, c) < 5).length;
+  } catch (e) { others = null; }
+}
+$("#etaAsk").addEventListener("click", async e => {
+  const ok = !!e.target.closest("[data-eta-ok]"), no = !!e.target.closest("[data-eta-no]");
+  if ((!ok && !no) || !order) return;
+  e.target.closest("button").disabled = true;
+  const r = await Store.answerEta(token, ok).catch(() => false);
+  if (r && no) alert(t("trEtaRefused"));
+  load();
+});
+setInterval(() => { if (order) etaAsk(order); }, 1000);
+
 function etaBox(o) {
   const live = o.courier_lat != null;
   const courier = live && { lat: o.courier_lat, lon: o.courier_lon };
@@ -97,7 +131,10 @@ function etaBox(o) {
     sub = w.fee ? t("trWaitNow", { min: w.mins, fee: UI.money(w.fee) })
       : t("trWaitLeft", { min: w.mins, left: Math.max(0, st.wait_free_min - w.mins), price: UI.money(st.wait_step_price), step: st.wait_step_min });
   } else if (o.status === "confirmee") {
-    if (live && o.pickup_lat != null) main = t("trEtaPickup", { min: Pricing.etaMinutes(courier, { lat: o.pickup_lat, lon: o.pickup_lon }) });
+    // Le plus long entre le GPS et le temps annoncé par le livreur (il peut finir une autre course)
+    const said = o.eta_at ? Math.ceil((new Date(o.eta_at) - Date.now()) / 60000) : 0;
+    if (live && o.pickup_lat != null) main = t("trEtaPickup", { min: Math.max(Pricing.etaMinutes(courier, { lat: o.pickup_lat, lon: o.pickup_lon }), said) });
+    else if (o.eta_at && new Date(o.eta_at) > Date.now()) main = t("trEtaLine", { time: new Date(o.eta_at).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" }) });
     else { main = t("trStep2"); sub = o.urgency === "programmee" ? t("trPlanned", { when: UI.fmtDateTime(o.pickup_at) }) : t("trNoGps"); }
   } else if (o.status === "recuperee") {
     if (live && o.dropoff_lat != null) main = t("trEtaDrop", { min: Pricing.etaMinutes(courier, { lat: o.dropoff_lat, lon: o.dropoff_lon }) });
@@ -129,6 +166,7 @@ function render() {
     return;
   }
   etaBox(o);
+  etaAsk(o);
   renderRing(o);
   renderRate(o);
   renderTip(o);
@@ -285,6 +323,7 @@ function celebrate() {
 async function load() {
   try {
     order = token ? await Store.trackOrder(token) : null;
+    if (order && order.eta_status === "attente") await countOthers(order);
     if (order && order.docs_status && order.status === "nouvelle") docsSent = await Store.orderDocsSent(token).catch(() => docsSent);
   } catch (e) {
     return; // nouvel essai au prochain passage

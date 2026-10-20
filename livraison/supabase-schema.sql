@@ -2576,6 +2576,80 @@ exception when others then raise notice 'pg_cron indisponible : pas d''alerte de
 end $$;
 
 -- ============================================================================
+-- LE LIVREUR DIT DANS COMBIEN DE TEMPS IL EST AU DÉPART ; LE CLIENT PEUT REFUSER (TROP LONG)
+-- Courses « dès que possible » ou express (pas programmées, pas HOP! Pro, pas par téléphone, pas de rendez-vous) :
+-- le client a 3 minutes pour dire « trop long » ; la course repart alors aux autres livreurs (pas à celui-là).
+-- Sans réponse, c'est accepté.
+-- ============================================================================
+alter table public.orders add column if not exists eta_min int check (eta_min between 1 and 180);
+alter table public.orders add column if not exists eta_at timestamptz;
+alter table public.orders add column if not exists eta_status text check (eta_status in ('attente', 'ok'));
+alter table public.orders add column if not exists eta_until timestamptz;
+alter table public.orders add column if not exists eta_refusals int not null default 0;
+
+create or replace function public.eta_choice(o orders) returns boolean
+language sql stable as $$
+  select o.urgency in ('asap', 'express') and o.shop_status is null and not coalesce(o.phone_order, false) and o.appt_at is null;
+$$;
+
+-- Accepter en disant le temps pour être au départ (l'ancienne version, sans temps, reste pour les vieilles applis)
+create or replace function public.accept_order(p_id uuid, p_eta int) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders; m int;
+begin
+  if not public.accept_order(p_id) then return false; end if;
+  m := least(greatest(coalesce(p_eta, 15), 1), 180);
+  select * into o from orders where id = p_id;
+  update orders set eta_min = m, eta_at = now() + make_interval(mins => m),
+         eta_status = case when public.eta_choice(o) then 'attente' else 'ok' end,
+         eta_until = case when public.eta_choice(o) then now() + interval '3 minutes' else null end
+   where id = p_id;
+  if public.eta_choice(o) then
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:eta');
+  end if;
+  return true;
+end;
+$$;
+revoke execute on function public.accept_order(uuid, int) from public, anon;
+grant execute on function public.accept_order(uuid, int) to authenticated;
+
+-- Course remise en attente (livreur, patron, client) : plus de temps annoncé
+create or replace function public.orders_eta_reset() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.status = 'nouvelle' and old.status is distinct from 'nouvelle' then
+    new.eta_min := null; new.eta_at := null; new.eta_status := null; new.eta_until := null;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_eta_reset before update of status on public.orders
+  for each row execute function public.orders_eta_reset();
+
+-- Le client répond : « D'accord » ou « Trop long : un autre livreur » (dans les 3 minutes)
+create or replace function public.order_eta_answer(p_token uuid, p_ok boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders;
+begin
+  select * into o from orders where token = p_token;
+  if o.id is null or o.status <> 'confirmee' or o.eta_status is distinct from 'attente' then return false; end if;
+  if p_ok then update orders set eta_status = 'ok' where id = o.id; return true; end if;
+  if now() > o.eta_until then return false; end if;
+  -- Ce livreur ne la revoit plus ; elle repart aux autres (notification « remise en attente »)
+  insert into order_declines (order_id, courier_id) values (o.id, o.courier_id) on conflict do nothing;
+  update orders set status = 'nouvelle', courier_id = null, courier_name = null, courier_phone = null, courier_bit = null,
+         commission = 0, network = false, eta_refusals = eta_refusals + 1
+   where id = o.id;
+  insert into chat_messages (thread, author, author_name, body)
+  values ('c:' || o.courier_id::text, 'admin', 'HOP!',
+          '↩️ Course n° ' || o.ref || ' : le client a préféré un autre livreur (' || o.eta_min || ' min, trop long pour lui). Elle n''est plus à vous, pas de souci.');
+  return true;
+end;
+$$;
+revoke execute on function public.order_eta_answer(uuid, boolean) from public;
+grant execute on function public.order_eta_answer(uuid, boolean) to anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

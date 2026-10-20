@@ -619,8 +619,10 @@ async function assignOrder(o, courier) {
 }
 
 // Un livreur accepte une course libre (le premier qui accepte la prend)
-async function acceptOrder(id) {
-  if (ONLINE) return authRest("/rest/v1/rpc/accept_order", { method: "POST", body: { p_id: id } });
+// eta : dans combien de minutes le livreur est au départ (le client peut refuser si c'est trop long)
+const etaChoice = o => ["asap", "express"].includes(o.urgency) && !o.shop_status && !o.phone_order && !o.appt_at;
+async function acceptOrder(id, eta) {
+  if (ONLINE) return authRest("/rest/v1/rpc/accept_order", { method: "POST", body: eta != null ? { p_id: id, p_eta: eta } : { p_id: id } });
   const all = localOrders();
   const c = localCouriers().find(x => x.id === myId() && x.status === "actif");
   const st = await getSettings();
@@ -633,7 +635,29 @@ async function acceptOrder(id) {
   if (c.role === "coursier" && !onlineNow(c)) throw new Error("offline");
   const was = o.status;
   Object.assign(o, await courierFields(c, o));
+  if (eta != null) {
+    const m = Math.min(180, Math.max(1, Math.round(Number(eta) || 15)));
+    Object.assign(o, { eta_min: m, eta_at: new Date(Date.now() + m * 60000).toISOString(),
+      eta_status: etaChoice(o) ? "attente" : "ok", eta_until: etaChoice(o) ? new Date(Date.now() + 180000).toISOString() : null });
+  }
   chatStatus(o, was);
+  saveLocalOrders(all);
+  return true;
+}
+// Le client : « D'accord » ou « Trop long : un autre livreur » (3 minutes pour répondre)
+async function answerEta(token, ok) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_eta_answer", { method: "POST", body: { p_token: token, p_ok: ok } });
+  const all = localOrders(), o = all.find(x => x.token === token);
+  if (!o || o.status !== "confirmee" || o.eta_status !== "attente") return false;
+  if (ok) { o.eta_status = "ok"; saveLocalOrders(all); return true; }
+  if (Date.now() > new Date(o.eta_until)) return false;
+  const declines = readJSON(LS.declines, []);
+  declines.push({ order_id: o.id, courier_id: o.courier_id, created_at: new Date().toISOString() });
+  writeJSON(LS.declines, declines);
+  chatLocalAdd({ thread: "c:" + o.courier_id, author: "admin", author_name: "HOP!", image: null,
+    body: `↩️ Course n° ${o.ref} : le client a préféré un autre livreur (${o.eta_min} min, trop long pour lui). Elle n'est plus à vous, pas de souci.` });
+  Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0, network: false,
+    eta_min: null, eta_at: null, eta_status: null, eta_until: null, eta_refusals: (o.eta_refusals || 0) + 1 });
   saveLocalOrders(all);
   return true;
 }
@@ -1476,7 +1500,7 @@ window.Store = {
   welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
-  listOrders, updateOrder, assignOrder, acceptOrder, courierAction, courierIssue, zoneDemand, ping,
+  listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
