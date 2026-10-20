@@ -86,10 +86,10 @@ Deno.serve(async req => {
       || (!!o.appt_at && new Date(o.appt_at).getTime() - 40 * 60000 > Date.now());
     const open = o.status === "nouvelle" && !o.courier_id && !delayed && (!o.docs_status || o.docs_status === "ok")
       && (!o.shop_status || o.shop_status === "acceptee" || o.shop_status === "prete");
-    // « ring » : la même notification renvoyée toutes les 20 s tant que personne n'a pris la course (elle sonne à chaque fois)
+    // « ring » : la même notification renvoyée toutes les 5 s (2 min au plus) tant que personne n'a pris la course (elle sonne à chaque fois)
     if (open && ["new", "again", "shop_ok", "ready", "docs_ok", "ring"].includes(ev.event)) {
       sent += await sendTo(await onDuty(o.id), { title: `${ev.event === "ring" ? "🔔" : "🛵"} Nouvelle course · ${money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}`,
-        body: `${when} · ${route}\nTouchez pour accepter ou refuser`, url: "livreur/", tag: "o-" + o.id }, site, ev.event === "ring" ? 30 : 3600);
+        body: `${when} · ${route}\nTouchez pour accepter ou refuser`, url: "livreur/", tag: "o-" + o.id }, site, ev.event === "ring" ? 10 : 3600);
     }
   } else if (ev.courier_id && ev.title) {
     // Message de HOP! à un livreur (ex. « Toujours là ? » quand il n'est plus sur l'appli)

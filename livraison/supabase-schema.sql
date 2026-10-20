@@ -3340,8 +3340,8 @@ $$;
 
 -- ============================================================================
 -- ÇA SONNE, MÊME APPLI FERMÉE : tant qu'une course attend un livreur, la notification « Nouvelle course » est
--- renvoyée toutes les 20 s (elle sonne et vibre à chaque fois) aux livreurs en ligne qui ne l'ont pas refusée,
--- le patron compris quand il roule ; pendant 6 min au plus après qu'elle devient visible.
+-- renvoyée toutes les 5 s (elle sonne et vibre à chaque fois) aux livreurs en ligne qui ne l'ont pas refusée,
+-- le patron compris quand il roule ; pendant 2 min au plus après qu'elle devient visible.
 -- ============================================================================
 alter table public.orders add column if not exists ring_count int not null default 0;
 alter table public.orders add column if not exists ring_at timestamptz;
@@ -3354,9 +3354,9 @@ begin
             where status = 'nouvelle' and courier_id is null
               and (shop_status is null or shop_status in ('acceptee', 'prete'))
               and coalesce(docs_status, 'ok') = 'ok'
-              and now() >= public.offer_from(orders) and now() < public.offer_from(orders) + interval '6 minutes'
-              and coalesce(ring_at, public.offer_from(orders)) < now() - interval '15 seconds'
-              and ring_count < 18
+              and now() >= public.offer_from(orders) and now() < public.offer_from(orders) + interval '2 minutes'
+              and coalesce(ring_at, public.offer_from(orders)) < now() - interval '4 seconds'
+              and ring_count < 24
   loop
     update orders set ring_count = ring_count + 1, ring_at = now() where id = o.id;
     perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'ring'));
@@ -3368,7 +3368,7 @@ $$;
 revoke execute on function public.ring_open_orders() from public, anon, authenticated;
 do $$ begin
   create extension if not exists pg_cron;
-  perform cron.schedule('hop-ring', '20 seconds', 'select public.ring_open_orders()');
+  perform cron.schedule('hop-ring', '5 seconds', 'select public.ring_open_orders()');
 exception when others then raise notice 'pg_cron indisponible : pas de sonnerie répétée';
 end $$;
 
