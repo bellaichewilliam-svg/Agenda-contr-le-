@@ -2650,6 +2650,113 @@ revoke execute on function public.order_eta_answer(uuid, boolean) from public;
 grant execute on function public.order_eta_answer(uuid, boolean) to anon, authenticated;
 
 -- ============================================================================
+-- HOP! PRO : LE COMMERCE CHOISIT QUI PAIE LA LIVRAISON
+-- - « Je paie 12 ₪ » (par défaut) : le commerce paie pro_shop_share par livraison (dont pro_hop_share pour HOP),
+--   le client paie le reste (25 − 10 = 15 ₪ dans Netanya) ;
+-- - « Le client paie » : le client paie la course entière (25 ₪), HOP en garde pro_hop_share (2 ₪) et le
+--   livreur le reste ; le commerce ne paie que son abonnement.
+-- Choisi à l'inscription, modifiable à tout moment dans l'espace du commerce (les commandes passées gardent leur règle).
+-- ============================================================================
+alter table public.shops add column if not exists client_pays boolean not null default false;
+
+-- Commande HOP! Pro d'un commerce « le client paie » : pas de part du commerce
+create or replace function public.orders_guard_pay() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.shop_status is not null and exists (select 1 from shops where id = new.shop_id and client_pays) then
+    new.shop_share := 0;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_guard_pay before insert on public.orders
+  for each row execute function public.orders_guard_pay();
+revoke execute on function public.orders_guard_pay() from public, anon, authenticated;
+
+-- Part de HOP sur une commande HOP! Pro : prise sur la part du commerce, ou sur le prix payé par le client
+create or replace function public.orders_money_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.discount := case when new.promo_code is null then 0 else least(greatest(coalesce(new.discount, 0), 0), 30) end;
+  new.hop_share := case when coalesce(new.shop_share, 0) > 0
+                          then least(new.shop_share, (select pro_hop_share from settings where id = 1))
+                        when new.shop_status is not null
+                          then least(greatest(coalesce(new.price, 0), 0), (select pro_hop_share from settings where id = 1))
+                        else 0 end;
+  new.network := false; new.tip := 0; new.tip_status := null;
+  -- N° de commande du commerce (3 chiffres), seulement pour une course au départ d'un commerce
+  new.shop_ref := case when new.shop_id is not null and new.shop_ref ~ '^[0-9]{3}$' then new.shop_ref end;
+  -- Alcool : la loi interdit la vente entre 23 h et 6 h
+  if new.adult_items like '%alcool%' and (extract(hour from new.pickup_at at time zone 'Asia/Jerusalem') >= 23
+                                          or extract(hour from new.pickup_at at time zone 'Asia/Jerusalem') < 6) then
+    raise exception 'alcohol_hours';
+  end if;
+  return new;
+end;
+$$;
+
+-- Infos publiques : « shop_share » = ce que le commerce enlève au prix du client (0 quand le client paie tout)
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'logo', logo, 'cover', cover, 'tagline', tagline, 'client_pays', client_pays,
+                           'shop_share', case when client_pays then 0
+                                              else (select pro_shop_share - pro_hop_share from settings where id = 1) end)
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'client_pays', s.client_pays,
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available))
+           order by (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and s.plan_until >= current_date;
+$$;
+
+-- Le commerce change de formule (sa clé secrète)
+create or replace function public.shop_set_client_pays(p_token uuid, p_on boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  update shops set client_pays = coalesce(p_on, false) where token = p_token;
+  return found;
+end;
+$$;
+revoke execute on function public.shop_set_client_pays(uuid, boolean) from public;
+grant execute on function public.shop_set_client_pays(uuid, boolean) to anon, authenticated;
+
+-- Inscription : le choix est fait dès le départ (« client_pays » : true = le client paie la livraison)
+create or replace function public.shop_signup(p jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+declare r shops; ref uuid; ref_city text; other_city text; c text;
+begin
+  if coalesce(trim(p->>'name'), '') = '' or coalesce(trim(p->>'phone'), '') = '' then raise exception 'missing'; end if;
+  -- Déjà inscrit (même téléphone, ou même nom dans la même ville) : pas de doublon, le parrain ne change pas
+  if exists (select 1 from shops where norm_phone(phone) = norm_phone(p->>'phone')
+               or (lower(trim(name)) = lower(trim(p->>'name')) and coalesce(city, '') = coalesce(p->>'city', ''))) then
+    raise exception 'shop_exists';
+  end if;
+  select id, city into ref, ref_city from couriers where ref_code = upper(trim(coalesce(p->>'ref_code', ''))) and status = 'actif';
+  -- Partenariat seulement dans la ville du livreur (pour assurer les livraisons) ; sinon inscrit sans parrain
+  if ref is not null and ref_city is not null and coalesce(p->>'city', '') <> ref_city then
+    other_city := ref_city; ref := null;
+  end if;
+  loop
+    c := upper(substr(md5(random()::text || clock_timestamp()::text), 1, 6));
+    exit when not exists (select 1 from shops where code = c);
+  end loop;
+  insert into shops (code, name, kind, city, address, lat, lon, contact_name, phone, email, lang, referrer_id, client_pays)
+  values (c, left(trim(p->>'name'), 80), left(p->>'kind', 20), left(p->>'city', 60), left(p->>'address', 200),
+          (p->>'lat')::double precision, (p->>'lon')::double precision, left(p->>'contact_name', 80),
+          left(p->>'phone', 30), left(p->>'email', 120), case when p->>'lang' = 'fr' then 'fr' else 'he' end, ref,
+          coalesce((p->>'client_pays')::boolean, false))
+  returning * into r;
+  return json_build_object('code', r.code, 'token', r.token, 'referred', ref is not null, 'ref_other_city', other_city);
+end;
+$$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

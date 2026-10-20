@@ -229,7 +229,8 @@ async function createOrder(order) {
     // HOP! Pro : commande d'un client chez un commerce abonné → le commerce la confirme et la prépare
     Object.assign(order, { shop_status: null, prep_minutes: null, ready_at: null, shop_share: 0, arrived_at: null, wait_fee: 0 });
     if (shop && planActive(shop) && String(order.shop_order || "").trim() && order.payment_method !== "carnet") {
-      Object.assign(order, { shop_status: "attente", shop_share: Number(settings.pro_shop_share), shop_order: String(order.shop_order).trim().slice(0, 1000) });
+      // « Le client paie » : pas de part du commerce, HOP prend sa part sur le prix payé par le client
+      Object.assign(order, { shop_status: "attente", shop_share: shop.client_pays ? 0 : Number(settings.pro_shop_share), shop_order: String(order.shop_order).trim().slice(0, 1000) });
     } else order.shop_order = null;
     // Articles du catalogue : noms et prix repris du catalogue, produits disponibles seulement
     order.items_total = null;
@@ -248,7 +249,8 @@ async function createOrder(order) {
     // Réduction seulement avec un code (au plus 30 ₪, payée par HOP), part HOP du Pro, pas de pourboire
     Object.assign(order, {
       discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
-      hop_share: order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share)) : 0,
+      hop_share: order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share))
+        : order.shop_status ? Math.min(Math.max(0, Number(order.price) || 0), Number(settings.pro_hop_share)) : 0,
       network: false, tip: 0, tip_status: null,
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
     });
@@ -878,8 +880,17 @@ async function shopsShowcase() {
   const cat = readJSON(LS.catalog, {});
   return localShops().filter(x => x.status === "actif" && planActive(x))
     .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null,
-      products: ((cat[x.id] || {}).products || []).filter(p => p.available).length }))
+      client_pays: !!x.client_pays, products: ((cat[x.id] || {}).products || []).filter(p => p.available).length }))
     .sort((a, b) => (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || a.name.localeCompare(b.name));
+}
+// Qui paie la livraison : true = le client paie tout, false = le commerce paie sa part (12 ₪)
+async function setShopClientPays(token, on) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_set_client_pays", { method: "POST", body: { p_token: token, p_on: !!on } });
+  const shops = localShops(), s = shops.find(x => x.token === token);
+  if (!s) return false;
+  s.client_pays = !!on;
+  writeJSON(LS.shops, shops);
+  return true;
 }
 // logo / cover : null = garder, "" = enlever
 async function saveShopBrand(token, b) {
@@ -1123,7 +1134,8 @@ async function shopSignup(data) {
     const shop = {
       id: uuid(), created_at: new Date().toISOString(), code: newCode(6, list.map(x => x.code)), token: uuid(), status: "en_attente",
       name: data.name, kind: data.kind, city: data.city, address: data.address, lat: data.lat, lon: data.lon,
-      contact_name: data.contact_name, phone: data.phone, email: data.email, lang: data.lang, referrer_id: ref ? ref.id : null, credits: 0
+      contact_name: data.contact_name, phone: data.phone, email: data.email, lang: data.lang, referrer_id: ref ? ref.id : null, credits: 0,
+      client_pays: !!data.client_pays
     };
     list.push(shop);
     writeJSON(LS.shops, list);
@@ -1147,8 +1159,8 @@ function shopTokenFor(code) { return readJSON(LS.shopCodes, {})[String(code || "
 const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISOString().slice(0, 10));
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
-      pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null,
-      shop_share: DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
+      pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null, client_pays: !!s.client_pays,
+      shop_share: s.client_pays ? 0 : DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
 async function shopByCode(code) {
   if (!code) return null;
@@ -1505,7 +1517,7 @@ window.Store = {
   couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

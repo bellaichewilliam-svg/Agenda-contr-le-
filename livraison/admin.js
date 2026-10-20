@@ -723,8 +723,9 @@ function renderShops(view) {
             const on = Store.planActive(x), month = new Date().toISOString().slice(0, 7);
             const mine = done.filter(o => o.status === "livree" && Number(o.shop_share) > 0 && String(o.pickup_at).slice(0, 7) === month);
             const shares = sum(mine, o => Number(o.shop_share));
-            return on ? `<b>HOP! Pro</b> jusqu'au ${UI.esc(UI.fmtKey(x.plan_until))} · ce mois : ${UI.money(settings.pro_monthly)} + ${mine.length} livraison(s) ${UI.money(shares)} = <b>${UI.money(Number(settings.pro_monthly) + shares)}</b>`
-              : x.plan_until ? `HOP! Pro terminé le ${UI.esc(UI.fmtKey(x.plan_until))}` : "Pas d'abonnement HOP! Pro";
+            return (on ? `<b>HOP! Pro</b> jusqu'au ${UI.esc(UI.fmtKey(x.plan_until))} · ce mois : ${UI.money(settings.pro_monthly)} + ${mine.length} livraison(s) ${UI.money(shares)} = <b>${UI.money(Number(settings.pro_monthly) + shares)}</b>`
+              : x.plan_until ? `HOP! Pro terminé le ${UI.esc(UI.fmtKey(x.plan_until))}` : "Pas d'abonnement HOP! Pro")
+              + ` · 🛵 ${x.client_pays ? "le client paie la livraison" : `l'enseigne paie ${UI.money(settings.pro_shop_share)} par livraison`}`;
           })()}</span></div>
         </div>
         <div class="actions">

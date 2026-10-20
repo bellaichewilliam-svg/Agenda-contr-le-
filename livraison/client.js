@@ -355,7 +355,10 @@ const carnetUnit = () => Number(state.settings.carnet_unit || CONFIG.partners.ca
 function currentQuote() {
   const q = baseQuote();
   if (!proShopOn()) return q;
-  const share = Math.min(q.total, Number(state.shop.shop_share || CONFIG.pro.shopShare - CONFIG.pro.hopShare));
+  // Le commerce paie sa part (12 − 2 = 10 ₪ de moins pour le client), sauf s'il a choisi « le client paie »
+  const share = Math.min(q.total, state.shop.client_pays ? 0
+    : Number(state.shop.shop_share != null ? state.shop.shop_share : CONFIG.pro.shopShare - CONFIG.pro.hopShare));
+  if (!(share > 0)) return q;
   return Object.assign({}, q, { total: q.total - share, lines: q.lines.concat([{ key: "qShopShare", vars: { name: state.shop.name }, amount: -share, discount: true }]) });
 }
 function baseQuote() {
@@ -1460,7 +1463,7 @@ function renderShopBanner() {
     const html = `<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(s.name)}</b><small>${UI.esc(s.tagline || kinds[s.kind] || "")}</small></div></div>
-      ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice()) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}`;
+      ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}`;
     if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
   }
   if (on) $("#shopBannerText").textContent = t("shBanner", { name: state.shop.name });
@@ -1971,7 +1974,8 @@ function partnerPlace(sh) {
 }
 // --- Vitrine : les commerces HOP! Pro abonnés, mis en avant sur l'accueil (logo, photo, accroche) -------
 state.showcase = [];
-function proPrice() {
+function proPrice(s) {
+  if (s && s.client_pays) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
   const st = state.settings || {};
   const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
   return Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - share);
@@ -1981,7 +1985,7 @@ function renderShowcase() {
   $("#homeProBox").classList.toggle("hidden", !list.length);
   const kinds = t("shKinds") || {};
   $("#homePro").innerHTML = list.map(s => UI.proCard(s, {
-    kindLabel: kinds[s.kind] || "", delivery: t("proDelivery", { price: money(proPrice()) }),
+    kindLabel: kinds[s.kind] || "", delivery: t("proDelivery", { price: money(proPrice(s)) }),
     menu: s.products ? t("proMenu", { n: s.products }) : "", go: t("proGo")
   })).join("");
 }
