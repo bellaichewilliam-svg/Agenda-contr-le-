@@ -210,6 +210,14 @@ window.CONFIG = {
       { min: 10, name: "👑 Légende HOP!" }
     ],
     kinds: ["restaurant", "boutique", "pharmacie", "bureau", "autre"],
+    // Catalogue HOP! Pro : catégories proposées au commerce selon son type (il les renomme comme il veut)
+    catalogCategories: {
+      restaurant: ["Entrées · מנות ראשונות", "Plats · מנות עיקריות", "Desserts · קינוחים", "Boissons · שתייה"],
+      boutique: ["Nouveautés · חדש", "Vêtements · ביגוד", "Accessoires · אביזרים", "Promotions · מבצעים"],
+      pharmacie: ["Pharmacie · בית מרקחת", "Hygiène · היגיינה", "Bébé · תינוקות", "Beauté · יופי"],
+      bureau: ["Fournitures · ציוד משרדי", "Impression · הדפסה"],
+      autre: ["Produits · מוצרים", "Promotions · מבצעים"]
+    },
     // Carnet pro : 10 courses dans Netanya payées d'avance (en ligne : settings.carnet_unit = price / courses)
     carnet: { courses: 10, price: 200 }
   },
@@ -265,8 +273,16 @@ window.CONFIG = {
 // Ancienne adresse (GitHub) : on passe tout de suite à l'adresse officielle, même page (l'espace livreur
 // et l'espace patron y ont leur propre adresse, pour s'installer comme des applis à part)
 (function () {
+  // Sur le site officiel : l'appli client vit dans /app/, l'espace livreur dans /livreur/, le patron dans /patron/
+  // (trois applis séparées : Android installe chacune avec son icône, sans les confondre)
+  if (/\.vercel\.app$/.test(location.hostname) && !/^\/(app|livreur|patron)\//.test(location.pathname)) {
+    const page = location.pathname.split("/").pop() || "";
+    const to = page === "coursier.html" ? "/livreur/" : page === "admin.html" ? "/patron/" : "/app/" + (page === "index.html" ? "" : page);
+    location.replace(to + location.search + location.hash);
+    return;
+  }
   if (!/\.github\.io$/.test(location.hostname)) return;
   const page = location.pathname.split("/").pop() || "index.html";
-  const to = page === "coursier.html" ? "livreur/" : page === "admin.html" ? "patron/" : page;
+  const to = page === "coursier.html" ? "livreur/" : page === "admin.html" ? "patron/" : "app/" + (page === "index.html" ? "" : page);
   location.replace(window.CONFIG.siteUrl + to + location.search + location.hash);
 })();

@@ -347,7 +347,7 @@ function stepStates() {
     [fieldsetOf("#pickupLegend"), filled("pickup_address") && (filled("pickup_number") || !!(state.pick.from && state.pick.from.brand))],
     [fieldsetOf('legend[data-i18n="s3"]'), filled("dropoff_address") && (filled("dropoff_number") || !!(state.pick.to && state.pick.to.brand))],
     [$("#coordsBox"), filled("contact_name") && phoneOk(val("contact_phone"))],
-    ...(proShopOn() ? [[$("#shopOrderBox"), filled("shop_order")]] : [])
+    ...(proShopOn() ? [[$("#shopOrderBox"), filled("shop_order") || cartCount() > 0]] : [])
   ];
 }
 function updateProgress() {
@@ -387,7 +387,8 @@ function renderQuote() {
     // Pas de frais cachés : on le montre noir sur blanc
     + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
-    + (goods ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : "qGoods"))}</span></li>` : "")
+    + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t("qItems", { total: money(cartTotal()), name: state.shop.name }))}</span></li>` : "")
+    + (goods && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : "qGoods"))}</span></li>` : "")
     + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "");
   const total = (q.known ? "" : t("from") + " ") + money(q.total);
   $("#quoteTotal").textContent = total;
@@ -594,6 +595,7 @@ function attachPlaces() {
       lang: () => I18N.lang,
       texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner") }),
       onPick: p => onPlacePicked(which, p),
+      quick: () => quickPlaces(which, false),
       onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
     });
   });
@@ -613,6 +615,19 @@ function addrIcon(a) { return a.tag === "home" ? "🏠" : a.tag === "work" ? "�
 function addrChip(a) {
   const name = a.tag === "home" ? t("tagHome") : a.tag === "work" ? t("tagWork") : a.tag ? a.name : "";
   return `${addrIcon(a)} ${name ? `<b>${UI.esc(name)}</b> · ` : ""}${UI.esc(addrLabel(a))}`;
+}
+
+function tagName(a) { return a.tag === "home" ? t("tagHome") : a.tag === "work" ? t("tagWork") : a.tag ? a.name : ""; }
+// Raccourcis de la liste des adresses : « Ma position » puis les adresses enregistrées
+function quickPlaces(which, isHome) {
+  const after = () => { const p = state.pick[which]; if (p && home.ac[which]) home.ac[which].setPicked(p.label); if (p && ac[which]) ac[which].setPicked(p.label); syncHome(); };
+  const list = [{ quick: true, icon: "📍", title: t("myPosChip").replace(/^📍\s*/, ""), sub: t("qpPosSub"), apply: async () => {
+    const err = await locateInto(which);
+    if (err) (isHome ? showHomeErr : showError)(t(err)); else after();
+  } }];
+  Store.getAddresses().slice(0, 6).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
+    apply: () => { applySavedAddr(which, a); after(); } }));
+  return list;
 }
 
 function renderSavedAddrs() {
@@ -887,7 +902,7 @@ async function submit(e) {
   if (missingNo) { form.elements[missingNo[1]].focus(); return showError(t("errHouseNo")); }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
-  if (proShopOn() && !val("shop_order").trim()) { form.shop_order.focus(); return showError(t("errShopOrder", { name: state.shop.name })); }
+  if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showError(t(catalogOn() ? "errCart" : "errShopOrder", { name: state.shop.name })); }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showError(t("errShopRef")); }
   if (phoneOn()) {
     if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showError(t("errPhoneName")); }
@@ -985,7 +1000,10 @@ async function submit(e) {
       payment_method: val("payment_method"),
       payer: val("payer"),
       notes: val("notes").trim() || null,
-      shop_order: proShopOn() ? val("shop_order").trim() : null,
+      // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
+      shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
+      items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,
+      items_note: proShopOn() && cartCount() ? val("shop_order").trim() || null : null,
       shop_ref: shopSelf() ? val("shop_ref").trim() : null,
       phone_order: phoneOn(),
       pickup_name: phoneOn() ? val("pickup_name").trim() : null,
@@ -1036,6 +1054,7 @@ async function submit(e) {
     applyShop();
     form.leave_at_door.checked = false;
     form.phone_order.checked = false; form.phone_paid.checked = false; state.phoneReady = null;
+    state.cart = {}; renderCatalog();
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
     await loadMine();
@@ -1096,7 +1115,9 @@ function renderMine() {
     box.innerHTML = `<div class="empty card">${t("mineEmpty")} <a href="#commander">${t("mineFirst")}</a></div>`;
     return;
   }
-  const list = state.mine.slice().sort((a, b) => new Date(b.created_at || b.pickup_at) - new Date(a.created_at || a.pickup_at));
+  // Annulées : plus affichées ; refusées : 2 h, le temps de lire la raison et de recommander
+  const list = state.mine.filter(shownInMine).sort((a, b) => new Date(b.created_at || b.pickup_at) - new Date(a.created_at || a.pickup_at));
+  if (!list.length) { box.innerHTML = `<div class="empty card">${t("mineEmpty")} <a href="#commander">${t("mineFirst")}</a></div>`; return; }
   box.innerHTML = list.map(o => `
     <article class="mini-order">
       <div class="mo-ico">${{ colis: "📦", retrait: "📮", achat: "🛒", repas: "🍔" }[o.service] || "📦"}</div>
@@ -1133,7 +1154,11 @@ function openSupport(prefill) {
     send: (b, i) => Store.chatSupportSend([p.contact_name, p.contact_phone].filter(Boolean).join(" · "), b, i), onClose: checkChats });
 }
 // Courses à suivre dans la messagerie : en cours, ou terminées depuis moins de 2 jours
-const chatOrders = () => state.mine.filter(o => !["annulee"].includes(o.status)
+function shownInMine(o) {
+  if (o.status === "annulee") return false;
+  return o.status !== "refusee" || Date.now() - new Date(o.updated_at || o.created_at || o.pickup_at) < 2 * 3600000;
+}
+const chatOrders = () => state.mine.filter(shownInMine).filter(o => !["annulee"].includes(o.status)
   && (["nouvelle", "confirmee", "recuperee"].includes(o.status) || Date.now() - new Date(o.pickup_at) < 2 * 86400000));
 function openChatMenu() {
   const list = chatOrders();
@@ -1232,6 +1257,60 @@ async function loadSettings() {
   renderQuote();
 }
 
+// --- Catalogue du commerce HOP! Pro : le client choisit ses articles (payés directement au commerce) ---
+state.catalog = null; state.cart = {}; state.cgCat = "";
+const cgProducts = () => (state.catalog && state.catalog.products) || [];
+const cartLines = () => cgProducts().filter(p => p.available && state.cart[p.id] > 0).map(p => ({ p, qty: state.cart[p.id] }));
+const cartCount = () => cartLines().reduce((s, l) => s + l.qty, 0);
+const cartTotal = () => cartLines().reduce((s, l) => s + Number(l.p.price) * l.qty, 0);
+const catalogOn = () => proShopOn() && cgProducts().length > 0;
+async function loadCatalogFor(shop) {
+  state.catalog = null; state.cart = {}; state.cgCat = "";
+  if (!shop || !shop.pro) return renderCatalog();
+  try { state.catalog = await Store.shopCatalog(shop.code); } catch (e) { state.catalog = null; }
+  renderCatalog();
+  renderQuote();
+}
+function renderCatalog() {
+  const box = $("#catalogBox"), on = catalogOn();
+  box.classList.toggle("hidden", !on);
+  form.shop_order.placeholder = on ? t("cgNotePh") : t("spOrderPh");
+  if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: state.shop.name }) : t("spOrderLabel", { name: state.shop.name });
+  if (!on) { box.innerHTML = ""; box.dataset.html = ""; return; }
+  const cats = state.catalog.categories.filter(c => cgProducts().some(p => p.category_id === c.id));
+  const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
+  if (state.cgCat && !cats.some(c => c.id === state.cgCat) && state.cgCat !== "_") state.cgCat = "";
+  const list = cgProducts().filter(p => !state.cgCat || (state.cgCat === "_" ? !cats.some(c => c.id === p.category_id) : p.category_id === state.cgCat));
+  const n = cartCount();
+  const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: state.shop.name }))}</b>
+    ${cats.length ? `<div class="cg-cats"><button type="button" class="ch-chip${!state.cgCat ? " on" : ""}" data-cg-cat="">${UI.esc(t("cgAll"))}</button>${cats.map(c =>
+      `<button type="button" class="ch-chip${state.cgCat === c.id ? " on" : ""}" data-cg-cat="${UI.esc(c.id)}">${UI.esc(c.name)}</button>`).join("")}${hasLoose ? `<button type="button" class="ch-chip${state.cgCat === "_" ? " on" : ""}" data-cg-cat="_">${UI.esc(t("cgOther"))}</button>` : ""}</div>` : ""}
+    <div class="cg-grid">${list.map(p => {
+      const q = state.cart[p.id] || 0;
+      return `<div class="cg-item${p.available ? "" : " off"}">
+        ${p.photo ? `<img src="${UI.esc(p.photo)}" alt="" loading="lazy" />` : `<span class="cg-nophoto">🍽️</span>`}
+        <div class="cg-info"><b>${UI.esc(p.name)}</b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
+        ${!p.available ? `<span class="cg-out">${UI.esc(t("cgOut"))}</span>`
+          : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
+          : `<button type="button" class="btn btn-sm btn-primary" data-cg-plus="${UI.esc(p.id)}">${UI.esc(t("cgAdd"))}</button>`}
+      </div>`;
+    }).join("")}</div>
+    <div class="cg-cart${n ? "" : " empty"}">${n ? UI.esc(t("cgCart", { n, total: money(cartTotal()) })) : UI.esc(t("cgEmpty"))}<small>${UI.esc(t("cgPayShop", { name: state.shop.name }))}</small></div>`;
+  // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+$("#catalogBox").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.cgCat != null) state.cgCat = b.dataset.cgCat;
+  else if (b.dataset.cgPlus) state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1);
+  else if (b.dataset.cgMinus) state.cart[b.dataset.cgMinus] = Math.max(0, (state.cart[b.dataset.cgMinus] || 0) - 1);
+  else return;
+  renderCatalog();
+  renderQuote();
+  saveDraft();
+});
+
 // --- Commerce partenaire (lien index.html?c=CODE) : départ rempli depuis le commerce ----------
 // HOP! Pro : le départ est un commerce abonné → le client écrit sa commande, le commerce la prépare
 const shopPicked = () => !!(state.shop && state.pick.from && state.pick.from.shopId === state.shop.id);
@@ -1247,6 +1326,7 @@ function renderShopBanner() {
     $("#shopOrderLabel").textContent = t("spOrderLabel", { name: state.shop.name });
     $("#shopOrderNote").textContent = t("spOrderNote", { name: state.shop.name });
   }
+  renderCatalog();
 }
 
 function applyShop() {
@@ -1271,6 +1351,7 @@ async function loadShop(code, stay) {
     } catch (e) { /* pas de carnet */ }
   }
   applyShop();
+  loadCatalogFor(state.shop);
   if (!stay) setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);
 }
 
@@ -1377,6 +1458,7 @@ function initHome() {
         if (!p.housenumber && !p.brand) setTimeout(() => homeNo(which).focus(), 60);
         else if (which === "from" && !state.pick.to) setTimeout(() => homeInput("to").focus(), 60);
       },
+      quick: () => quickPlaces(which, true),
       onClear: () => {
         state.pick[which] = null;
         if (ac[which]) ac[which].reset();
@@ -1986,7 +2068,7 @@ function saveDraft(now) {
       else if (el.type === "checkbox") values[el.name] = el.checked;
       else values[el.name] = el.value;
     });
-    try { localStorage.setItem(LS_DRAFT, JSON.stringify({ at: Date.now(), values, pick: state.pick, phoneReady: state.phoneReady })); } catch (e) { /* plein */ }
+    try { localStorage.setItem(LS_DRAFT, JSON.stringify({ at: Date.now(), values, pick: state.pick, phoneReady: state.phoneReady, cart: state.cart })); } catch (e) { /* plein */ }
   };
   if (now === true) write(); else draftTimer = setTimeout(write, 300);
 }

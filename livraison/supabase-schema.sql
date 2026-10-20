@@ -1812,6 +1812,173 @@ revoke execute on function public.admin_broadcast_clients(text, int) from public
 grant execute on function public.admin_broadcast_clients(text, int) to authenticated;
 
 -- ============================================================================
+-- CATALOGUE DES COMMERCES HOP! Pro : catégories et produits (nom, prix, photo, disponible ou épuisé).
+-- Le commerce le gère dans son espace (clé secrète) ; le client choisit ses articles, la base recalcule
+-- les prix et écrit la liste à préparer. Les articles se paient directement au commerce.
+-- ============================================================================
+create table if not exists public.shop_categories (
+  id          uuid primary key default gen_random_uuid(),
+  shop_id     uuid not null references public.shops(id) on delete cascade,
+  name        text not null check (length(trim(name)) between 1 and 40),
+  position    int not null default 0,
+  created_at  timestamptz not null default now()
+);
+create table if not exists public.shop_products (
+  id           uuid primary key default gen_random_uuid(),
+  shop_id      uuid not null references public.shops(id) on delete cascade,
+  category_id  uuid references public.shop_categories(id) on delete set null,
+  name         text not null check (length(trim(name)) between 1 and 80),
+  description  text check (length(description) <= 300),
+  price        numeric(8,2) not null check (price >= 0 and price <= 5000),
+  photo        text check (length(photo) <= 300000 and photo ~ '^data:image/(jpeg|png|webp);base64,'),
+  available    boolean not null default true,
+  position     int not null default 0,
+  created_at   timestamptz not null default now()
+);
+create index if not exists shop_categories_shop_idx on public.shop_categories (shop_id, position);
+create index if not exists shop_products_shop_idx on public.shop_products (shop_id, position);
+alter table public.shop_categories enable row level security;
+alter table public.shop_products enable row level security;
+revoke all on public.shop_categories, public.shop_products from anon, authenticated;
+
+alter table public.orders add column if not exists items jsonb;
+alter table public.orders add column if not exists items_total numeric(10,2);
+
+-- Catalogue d'un commerce Pro actif (pour ses clients)
+create or replace function public.shop_catalog(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'categories', coalesce((select json_agg(json_build_object('id', c.id, 'name', c.name) order by c.position, c.created_at)
+                              from shop_categories c where c.shop_id = s.id), '[]'::json),
+    'products', coalesce((select json_agg(json_build_object('id', p.id, 'category_id', p.category_id, 'name', p.name,
+                              'description', p.description, 'price', p.price, 'photo', p.photo, 'available', p.available)
+                              order by p.position, p.created_at)
+                            from shop_products p where p.shop_id = s.id), '[]'::json))
+    from shops s
+   where s.code = upper(trim(p_code)) and s.status = 'actif' and s.plan_until >= current_date;
+$$;
+-- Le même, pour le commerce lui-même (sa clé), même avant activation
+create or replace function public.shop_catalog_mine(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'categories', coalesce((select json_agg(json_build_object('id', c.id, 'name', c.name, 'position', c.position) order by c.position, c.created_at)
+                              from shop_categories c where c.shop_id = s.id), '[]'::json),
+    'products', coalesce((select json_agg(json_build_object('id', p.id, 'category_id', p.category_id, 'name', p.name,
+                              'description', p.description, 'price', p.price, 'photo', p.photo, 'available', p.available, 'position', p.position)
+                              order by p.position, p.created_at)
+                            from shop_products p where p.shop_id = s.id), '[]'::json))
+    from shops s where s.token = p_token;
+$$;
+
+create or replace function public.shop_category_save(p_token uuid, p_id uuid, p_name text, p_position int) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare sid uuid; cid uuid;
+begin
+  select id into sid from shops where token = p_token;
+  if sid is null then raise exception 'forbidden'; end if;
+  if p_id is null then
+    if (select count(*) from shop_categories where shop_id = sid) >= 30 then raise exception 'too_many'; end if;
+    insert into shop_categories (shop_id, name, position) values (sid, left(trim(p_name), 40), coalesce(p_position, 0)) returning id into cid;
+  else
+    update shop_categories set name = left(trim(p_name), 40), position = coalesce(p_position, position)
+     where id = p_id and shop_id = sid returning id into cid;
+  end if;
+  return cid;
+end;
+$$;
+create or replace function public.shop_category_delete(p_token uuid, p_id uuid) returns boolean
+language sql security definer set search_path = public as $$
+  with d as (delete from shop_categories c using shops s where c.id = p_id and c.shop_id = s.id and s.token = p_token returning c.id)
+  select exists (select 1 from d);
+$$;
+-- p_photo : null = garder la photo, '' = l'enlever
+create or replace function public.shop_product_save(p_token uuid, p_id uuid, p_category uuid, p_name text, p_description text,
+  p_price numeric, p_photo text, p_available boolean, p_position int) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare sid uuid; pid uuid; cat uuid;
+begin
+  select id into sid from shops where token = p_token;
+  if sid is null then raise exception 'forbidden'; end if;
+  select id into cat from shop_categories where id = p_category and shop_id = sid;
+  if p_id is null then
+    if (select count(*) from shop_products where shop_id = sid) >= 300 then raise exception 'too_many'; end if;
+    insert into shop_products (shop_id, category_id, name, description, price, photo, available, position)
+    values (sid, cat, left(trim(p_name), 80), left(nullif(trim(coalesce(p_description, '')), ''), 300), round(p_price, 2),
+            nullif(p_photo, ''), coalesce(p_available, true), coalesce(p_position, 0))
+    returning id into pid;
+  else
+    update shop_products set category_id = cat, name = left(trim(p_name), 80),
+           description = left(nullif(trim(coalesce(p_description, '')), ''), 300), price = round(p_price, 2),
+           photo = case when p_photo is null then photo else nullif(p_photo, '') end,
+           available = coalesce(p_available, available), position = coalesce(p_position, position)
+     where id = p_id and shop_id = sid returning id into pid;
+  end if;
+  return pid;
+end;
+$$;
+create or replace function public.shop_product_available(p_token uuid, p_id uuid, p_available boolean) returns boolean
+language sql security definer set search_path = public as $$
+  with u as (update shop_products p set available = p_available from shops s
+              where p.id = p_id and p.shop_id = s.id and s.token = p_token returning p.id)
+  select exists (select 1 from u);
+$$;
+create or replace function public.shop_product_delete(p_token uuid, p_id uuid) returns boolean
+language sql security definer set search_path = public as $$
+  with d as (delete from shop_products p using shops s where p.id = p_id and p.shop_id = s.id and s.token = p_token returning p.id)
+  select exists (select 1 from d);
+$$;
+revoke execute on function public.shop_catalog(text), public.shop_catalog_mine(uuid), public.shop_category_save(uuid, uuid, text, int),
+  public.shop_category_delete(uuid, uuid), public.shop_product_save(uuid, uuid, uuid, text, text, numeric, text, boolean, int),
+  public.shop_product_available(uuid, uuid, boolean), public.shop_product_delete(uuid, uuid) from public;
+grant execute on function public.shop_catalog(text), public.shop_catalog_mine(uuid), public.shop_category_save(uuid, uuid, text, int),
+  public.shop_category_delete(uuid, uuid), public.shop_product_save(uuid, uuid, uuid, text, text, numeric, text, boolean, int),
+  public.shop_product_available(uuid, uuid, boolean), public.shop_product_delete(uuid, uuid) to anon, authenticated;
+
+-- Articles choisis par le client : prix et noms repris du catalogue (jamais ceux envoyés), produits
+-- disponibles seulement ; la liste à préparer est écrite dans shop_order (+ la précision du client)
+create or replace function public.orders_items() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare list jsonb; total numeric; lines text; note text;
+begin
+  if new.items is null or jsonb_typeof(new.items) <> 'array' or new.shop_id is null or new.shop_order is null then
+    new.items := null; new.items_total := null; return new;
+  end if;
+  select jsonb_agg(jsonb_build_object('id', p.id, 'name', p.name, 'price', p.price, 'qty', q.qty) order by q.ord),
+         sum(p.price * q.qty),
+         string_agg(q.qty || ' × ' || p.name, E'\n' order by q.ord)
+    into list, total, lines
+    from (select (x->>'id')::uuid as id, least(greatest(coalesce((x->>'qty')::int, 1), 1), 50) as qty, ord
+            from jsonb_array_elements(new.items) with ordinality as t(x, ord)
+           where (x->>'id') ~ '^[0-9a-f-]{36}$' limit 40) q
+    join shop_products p on p.id = q.id and p.shop_id = new.shop_id and p.available;
+  if list is null then new.items := null; new.items_total := null; return new; end if;
+  note := nullif(trim(coalesce(new.items_note, '')), '');
+  new.items := list; new.items_total := total;
+  new.shop_order := left(lines || coalesce(E'\n💬 ' || note, ''), 1000);
+  return new;
+end;
+$$;
+alter table public.orders add column if not exists items_note text check (length(items_note) <= 300);
+create or replace trigger orders_items before insert on public.orders
+  for each row execute function public.orders_items();
+
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes, o.shop_ref,
+               o.items, o.items_total, o.items_note
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json));
+$$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

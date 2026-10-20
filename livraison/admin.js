@@ -917,7 +917,9 @@ function threadLabel(thread, msgs) {
 }
 async function refreshChats() {
   try { chatRecentList = await Store.chatRecent(); } catch (e) { return; }
-  chatUnread = Chat.unread(chatRecentList, "admin");
+  const lastOf = {};
+  chatRecentList.forEach(m => { if (!lastOf[m.thread] || m.created_at > lastOf[m.thread].created_at) lastOf[m.thread] = m; });
+  chatUnread = Chat.unread(chatRecentList.filter(m => !isClosed(m.thread, lastOf[m.thread])), "admin");
   const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
   $("#chatTabBadge").textContent = total ? `(${total})` : "";
   if (!firstLoad && total > chatTotal && Chat.openThread == null) {
@@ -926,10 +928,21 @@ async function refreshChats() {
   }
   chatTotal = total;
 }
+// Discussions terminées (sur ce téléphone) : elles reviennent seulement si quelqu'un réécrit
+const LS_CLOSED = "livraison.closedThreads.v1";
+function closedThreads() { try { return JSON.parse(localStorage.getItem(LS_CLOSED)) || {}; } catch (e) { return {}; } }
+function closeThread(thread) {
+  const c = closedThreads();
+  c[thread] = new Date().toISOString();
+  try { localStorage.setItem(LS_CLOSED, JSON.stringify(c)); } catch (e) { /* ignore */ }
+  Chat.markSeen && Chat.markSeen(thread);
+}
+const isClosed = (thread, last) => { const at = closedThreads()[thread]; return !!at && new Date(last.created_at) <= new Date(at); };
 function renderInbox(view) {
   const threads = {};
   chatRecentList.forEach(m => { (threads[m.thread] = threads[m.thread] || []).push(m); });
   const list = Object.entries(threads).map(([thread, msgs]) => ({ thread, msgs, last: msgs[0] }))
+    .filter(x => !isClosed(x.thread, x.last))
     .sort((a, b) => new Date(b.last.created_at) - new Date(a.last.created_at));
   view.innerHTML = list.length ? `<div class="orders">${list.map(t => {
     const n = chatUnread[t.thread] || 0;
@@ -938,6 +951,7 @@ function renderInbox(view) {
     return `<article class="order inbox-row${n ? " is-new" : ""}" data-thread="${UI.esc(t.thread)}" data-ctitle="${UI.esc(label)}">
       <div class="order-head"><span class="order-time">${UI.esc(label)}</span>${n ? `<span class="chat-badge">${n}</span>` : ""}<span class="order-ref">${UI.esc(UI.fmtDateTime(t.last.created_at))}</span></div>
       <p class="small muted" style="margin-top:4px">${t.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(lastText).slice(0, 120))}</p>
+      <button type="button" class="btn btn-sm btn-link" data-close-thread="${UI.esc(t.thread)}">✓ Terminer la discussion</button>
     </article>`;
   }).join("")}</div>` : `<div class="empty card">Aucun message ces 30 derniers jours. Les clients, livreurs et commerces vous écrivent ici, dans l'application.</div>`;
 }
@@ -956,6 +970,8 @@ async function assignTo(o, courier) {
 }
 
 async function onViewClick(e) {
+  const ct = e.target.closest("[data-close-thread]");
+  if (ct) { closeThread(ct.dataset.closeThread); await refreshChats(); return render(); }
   const th = e.target.closest("[data-thread]");
   if (th) return openAdminChat(th.dataset.thread, th.dataset.ctitle, th.dataset.csub, th.dataset.prefill, !!th.dataset.photo);
   const el = e.target.closest("button");
