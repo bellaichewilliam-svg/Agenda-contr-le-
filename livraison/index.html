@@ -58,7 +58,14 @@
           var d = { s: step, t: Date.now() - t0, r: window.hopReady ? 1 : 0, f: frames, lt: longest, v: document.visibilityState,
             sa: matchMedia("(display-mode: standalone)").matches ? 1 : 0, w: innerWidth, h: innerHeight, y: Math.round(scrollY),
             sh: b ? b.scrollHeight : -1, tb: r ? Math.round(r.top) + "/" + Math.round(r.height) : "-",
-            bd: cs ? cs.display + "/" + cs.visibility + "/" + cs.opacity : "-", e: errs.join(" | ").slice(0, 300), p: location.pathname + location.hash };
+            bd: cs ? cs.display + "/" + cs.visibility + "/" + cs.opacity : "-", e: errs.join(" | ").slice(0, 300), p: location.pathname + location.hash,
+            dpr: devicePixelRatio, dk: matchMedia("(prefers-color-scheme: dark)").matches ? 1 : 0, rm: matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 0,
+            fo: document.fonts ? document.fonts.status : "-", at: [[0.5, 0.02], [0.5, 0.5], [0.5, 0.95]].map(function (k) {
+              var el = document.elementFromPoint(innerWidth * k[0], innerHeight * k[1]);
+              if (!el) return "none";
+              var s = getComputedStyle(el);
+              return el.tagName.toLowerCase() + (el.id ? "#" + el.id : "") + (el.className && el.className.baseVal == null ? "." + String(el.className).split(" ").slice(0, 2).join(".") : "") + "~" + s.backgroundColor + "~" + s.zIndex;
+            }).join(" ; ") };
           var url = (c && c.url ? c.url : "https://qwabzgmlpkazzvwhzfki.supabase.co") + "/rest/v1/hop_diag?d=" + encodeURIComponent(JSON.stringify(d));
           fetch(url, { mode: "no-cors", keepalive: true }).catch(function () {});
         } catch (e) { /* ignore */ }
@@ -95,7 +102,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610200828" />
+  <link rel="stylesheet" href="styles.css?v=202610200833" />
 </head>
 <body>
 
@@ -650,14 +657,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610200828"></script>
-<script src="i18n.js?v=202610200828"></script>
-<script src="pricing.js?v=202610200828"></script>
-<script src="store.js?v=202610200828"></script>
-<script src="chat.js?v=202610200828"></script>
-<script src="common.js?v=202610200828"></script>
-<script src="enseignes.js?v=202610200828"></script>
-<script src="places.js?v=202610200828"></script>
-<script src="client.js?v=202610200828"></script>
+<script src="config.js?v=202610200833"></script>
+<script src="i18n.js?v=202610200833"></script>
+<script src="pricing.js?v=202610200833"></script>
+<script src="store.js?v=202610200833"></script>
+<script src="chat.js?v=202610200833"></script>
+<script src="common.js?v=202610200833"></script>
+<script src="enseignes.js?v=202610200833"></script>
+<script src="places.js?v=202610200833"></script>
+<script src="client.js?v=202610200833"></script>
 </body>
 </html>
