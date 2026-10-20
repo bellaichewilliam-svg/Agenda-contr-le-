@@ -1181,10 +1181,47 @@ function renderHome() {
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-card hot" data-notif="1"><span>🔔 ${Notification.permission === "denied" ? "Notifications bloquées" : "Autorisez les notifications"}<small>${Notification.permission === "denied" ? "Chrome ⋮ → Paramètres → Notifications → autorisez HOP!, sinon pas de « En service » ni de courses appli fermée" : "Pour la notification « En service » et les nouvelles courses, même appli fermée"}</small></span><span class="go">›</span></button>` : ""}
-    ${UI.inOwnApp() ? "" : `<button type="button" class="rd-card" data-install><span>📲 Mettre HOP! Livreur sur l'écran d'accueil<small>Son icône « LIVREUR », et les alertes même appli fermée</small></span><span class="go">›</span></button>`}
     <button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>`;
+  sheetHeight();
+}
+// Hauteur du panneau du bas : le bouton « me centrer » et le cadrage de la carte restent au-dessus
+function sheetHeight() {
   const h = $("#sheet").offsetHeight;
   if (h) $("#work").style.setProperty("--sheet-h", h + "px");
+  return h || 0;
+}
+// Panneau du bas qu'on glisse vers le bas (ou qu'on touche) pour voir toute la carte : la course, ses 2 points et le trajet
+function setSheet(collapsed) {
+  $("#sheet").classList.toggle("collapsed", collapsed);
+  try { localStorage.setItem("livraison.sheetCollapsed.v1", collapsed ? "1" : ""); } catch (e) { /* ignore */ }
+  sheetHeight();
+  fitRiderMap();
+}
+function initSheetDrag() {
+  const grab = $("#sheetGrab"), sheet = $("#sheet");
+  let y0 = null, dy = 0;
+  grab.addEventListener("pointerdown", e => { y0 = e.clientY; dy = 0; sheet.classList.add("dragging"); grab.setPointerCapture(e.pointerId); });
+  grab.addEventListener("pointermove", e => {
+    if (y0 == null) return;
+    dy = e.clientY - y0;
+    const collapsed = sheet.classList.contains("collapsed");
+    sheet.style.transform = `translateY(${Math.max(collapsed ? -40 : 0, Math.min(dy, collapsed ? 0 : sheet.offsetHeight - 90))}px)`;
+  });
+  const end = () => {
+    if (y0 == null) return;
+    y0 = null;
+    sheet.classList.remove("dragging");
+    sheet.style.transform = "";
+    const collapsed = sheet.classList.contains("collapsed");
+    if (Math.abs(dy) < 8) setSheet(!collapsed);       // un simple toucher : réduire / agrandir
+    else if (dy > 40 && !collapsed) setSheet(true);    // glissé vers le bas : la carte entière
+    else if (dy < -30 && collapsed) setSheet(false);   // glissé vers le haut : le panneau revient
+  };
+  grab.addEventListener("pointerup", end);
+  grab.addEventListener("pointercancel", end);
+  let saved = false;
+  try { saved = localStorage.getItem("livraison.sheetCollapsed.v1") === "1"; } catch (e) { /* ignore */ }
+  if (saved) sheet.classList.add("collapsed");
 }
 
 // État « en service » : glissière, menu, texte
@@ -1253,11 +1290,18 @@ function updateRiderMap() {
   });
   if (lastPos) add(lastPos.lat, lastPos.lon, rpin("🛵", duty.watch != null ? "me" : "off"), "Vous êtes ici");
   rmap.pts = pts;
-  if (!rmap.fitted && pts.length) { fitRiderMap(); rmap.fitted = true; }
+  // Nouvelle course acceptée : on recadre sur ses 2 points et le trajet
+  const curId = (mine()[0] || {}).id || null;
+  if ((!rmap.fitted || curId !== rmap.curId) && pts.length) { rmap.curId = curId; fitRiderMap(); rmap.fitted = true; }
 }
+// Cadrage : la course en cours (récupération, livraison, moi) si il y en a une, sinon tout ; au-dessus du panneau du bas
 function fitRiderMap() {
   if (!rmap.map || !rmap.pts || !rmap.pts.length) return;
-  rmap.map.fitBounds(rmap.pts, { padding: [60, 60], maxZoom: 15, paddingBottomRight: [0, 260] });
+  const cur = mine()[0];
+  const pts = cur ? [[cur.pickup_lat, cur.pickup_lon], [cur.dropoff_lat, cur.dropoff_lon]].filter(p => p[0] != null && p[1] != null).map(p => p.map(Number)) : [];
+  if (cur && lastPos) pts.push([lastPos.lat, lastPos.lon]);
+  const sheet = $("#sheet").offsetHeight || 260;
+  rmap.map.fitBounds(pts.length ? pts : rmap.pts, { paddingTopLeft: [40, 80], paddingBottomRight: [40, sheet + 30], maxZoom: 16 });
 }
 
 // --- Pages : statistiques, réglages, aide, messages -----------------------------------------
@@ -1432,6 +1476,7 @@ $("#sheetBody").addEventListener("click", e => {
   if (b) openPage(b.dataset.tab);
 });
 initSlider();
+initSheetDrag();
 $("#view").addEventListener("click", onViewClick);
 $("#view").addEventListener("change", e => {
   const k = e.target.dataset.set;

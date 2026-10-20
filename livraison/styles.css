@@ -1203,3 +1203,11 @@ body.in-home .eta-bubble { display: none; }
 @media (prefers-color-scheme: dark) {
   .cg-qty, .pc-logo, .eta-ring, .eta-bubble .eb-ring, .ch-eta .eb-ring, .rd-pin { color: #0F1F3D; }
 }
+
+/* Panneau du bas de l'espace livreur : on le glisse vers le bas (ou on touche la poignée) pour voir toute la carte */
+.rd-grab { display: block; width: 100%; border: 0; background: var(--rd-bg); padding: 6px 0 12px; margin: -10px 0 2px; cursor: grab; touch-action: none; position: sticky; top: -10px; z-index: 2; }
+.rd-grab .rd-handle { margin: 0 auto; width: 56px; height: 6px; background: var(--rd-mute); opacity: .7; }
+.rd-sheet { transition: transform .2s ease; }
+.rd-sheet.dragging { transition: none; }
+.rd-sheet.collapsed { overflow: hidden; }
+.rd-sheet.collapsed > :not(.rd-grab):not(.rd-slide) { display: none; }
