@@ -234,6 +234,89 @@ $("#spPlan").addEventListener("click", e => {
   const { shop } = state.dash;
   openShopChat(t("spPlanMsg", { name: shop.name, code: shop.code }));
 });
+// --- Vitrine HOP! Pro : logo, photo de couverture, phrase d'accroche (ce que voient les clients) ------
+const brand = { logo: undefined, cover: undefined, shown: false, busy: false };
+// Photo recadrée au centre (logo carré, couverture en bandeau), légère pour l'accueil des clients
+function cropPhoto(file, w, h, maxLen) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const k = Math.max(w / img.width, h / img.height);
+      const sw = w / k, sh = h / k;
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, w, h);
+      for (const q of [0.85, 0.75, 0.65, 0.55, 0.45]) {
+        const data = c.toDataURL("image/jpeg", q);
+        if (data.length < maxLen) return resolve(data);
+      }
+      reject(new Error("too_big"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
+    img.src = url;
+  });
+}
+function brandValues() {
+  const shop = state.dash.shop, input = $("#brTagline");
+  return { logo: brand.logo !== undefined ? brand.logo : shop.logo || "", cover: brand.cover !== undefined ? brand.cover : shop.cover || "",
+    tagline: input ? input.value : shop.tagline || "" };
+}
+function brandPreview() {
+  const shop = state.dash.shop, v = brandValues(), st = state.settings || {};
+  const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
+  const price = UI.money(Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - share));
+  const n = cat.data ? cat.data.products.filter(p => p.available).length : 0;
+  $("#brPreview").innerHTML = UI.proCard({ name: shop.name, kind: shop.kind, logo: v.logo, cover: v.cover, tagline: v.tagline.trim(), code: "" },
+    { kindLabel: (t("shKinds") || {})[shop.kind] || "", delivery: t("proDelivery", { price }), menu: n ? t("proMenu", { n }) : "", go: t("proGo") });
+}
+function renderBrand(force) {
+  const box = $("#spBrand"), shop = state.dash.shop;
+  box.classList.toggle("hidden", !planOn(shop));
+  if (!planOn(shop)) return;
+  // Pas redessinée par le rafraîchissement automatique : ce qui est tapé reste
+  if (brand.shown && !force) return brandPreview();
+  brand.shown = true;
+  const v = brandValues();
+  const up = (k, label) => `<div class="br-up"><span>${UI.esc(label)}</span>
+    <label class="btn btn-sm${v[k] ? "" : " btn-primary"}">${UI.esc(t(v[k] ? "brChange" : "brAdd"))}<input type="file" accept="image/*" data-br="${k}" hidden /></label>
+    ${v[k] ? `<button type="button" class="btn btn-sm btn-link" data-br-off="${k}">${UI.esc(t("brRemove"))}</button>` : ""}</div>`;
+  box.innerHTML = `<h3>${UI.esc(t("brTitle"))}</h3>
+    <p class="muted small" style="margin:4px 0 10px">${UI.esc(t("brSub"))}</p>
+    <div class="br-preview" id="brPreview"></div>
+    <div class="br-fields">${up("logo", t("brLogo"))}${up("cover", t("brCover"))}
+      <label class="f"><span>${UI.esc(t("brTagline"))}</span><input id="brTagline" maxlength="90" value="${UI.esc(v.tagline)}" placeholder="${UI.esc(t("brTaglinePh"))}" /></label>
+      <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-br-save${brand.busy ? " disabled" : ""}>${UI.esc(t("brSave"))}</button><span class="small" id="brMsg"></span></div>
+    </div>`;
+  brandPreview();
+}
+$("#spBrand").addEventListener("change", async e => {
+  const inp = e.target.closest("[data-br]");
+  if (!inp || !inp.files[0]) return;
+  const logo = inp.dataset.br === "logo";
+  try { brand[inp.dataset.br] = await cropPhoto(inp.files[0], logo ? 320 : 1200, logo ? 320 : 500, logo ? 150000 : 290000); }
+  catch (ex) { return alert(t("ctPhotoErr")); }
+  renderBrand(true);
+});
+$("#spBrand").addEventListener("input", e => { if (e.target.id === "brTagline") brandPreview(); });
+$("#spBrand").addEventListener("click", async e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.brOff) { brand[b.dataset.brOff] = ""; return renderBrand(true); }
+  if (b.dataset.brSave == null) return;
+  const v = brandValues();
+  brand.busy = true; b.disabled = true;
+  try {
+    const ok = await Store.saveShopBrand(state.dash.shop.token, { logo: brand.logo, cover: brand.cover, tagline: v.tagline });
+    if (!ok) throw new Error("not_saved");
+    Object.assign(state.dash.shop, { logo: v.logo || null, cover: v.cover || null, tagline: v.tagline.trim() || null });
+    brand.logo = undefined; brand.cover = undefined;
+    brand.busy = false;
+    renderBrand(true);
+    $("#brMsg").textContent = t("brSaved");
+  } catch (ex) { brand.busy = false; b.disabled = false; $("#brMsg").textContent = t("brErr"); }
+});
+
 // --- Catalogue HOP! Pro : catégories et produits (photo, prix, disponible / épuisé) --------------
 const cat = { data: null, edit: null, photo: undefined, busy: false, fresh: false };
 async function loadCatalog() {
@@ -403,6 +486,7 @@ function renderSpace() {
   renderGuide(shop);
   renderPrep();
   renderPlan();
+  renderBrand();
   const sales = state.dash.sales || [];
   $("#spTitle").textContent = t("shWelcome", { name: shop.name });
   $("#spStatus").textContent = shop.status === "actif" ? t("shActive") : t("shPending");

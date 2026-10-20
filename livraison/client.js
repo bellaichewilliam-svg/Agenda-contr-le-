@@ -225,6 +225,9 @@ function syncVisibility() {
   if (svc === "retrait" && val("place_kind") === "poste") form.classList.add("place-poste");
   if (svc === "retrait" && val("place_kind") === "locker") form.classList.add("place-locker");
   renderDocs();
+  // Supermarché : rappel « petites courses seulement » (le top case du scooter)
+  const sp = state.pick.from && (state.pick.from.brand || state.pick.from.streetName || "");
+  $("#superNote").classList.toggle("hidden", !(svc === "achat" && /rami|רמי|shufersal|שופרסל|victory|ויקטורי|yochananof|יוחננוף|osher|אושר עד|tiv ta|טיב טעם|carrefour|קרפור|yeinot|יינות|mega|מגה|super|סופר/i.test(sp || "")));
   $("#pickupLegend").textContent = t(svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
@@ -952,6 +955,14 @@ async function submit(e) {
     if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
   }
   if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
+  if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
+  // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
+  if (form.leave_at_door.checked) {
+    const k = kindOf("dropoff");
+    if (!k) { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showError(t("errDoorKind")); }
+    if (k !== "maison" && !val("dropoff_code").trim()) { form.dropoff_code.focus(); return showError(t("errDoorCode")); }
+    if (k === "appartement" && !val("dropoff_apt").trim()) { form.dropoff_apt.focus(); return showError(t("errDoorCode")); }
+  }
   // Colis à récupérer : tout ce qu'il faut au guichet, avant d'envoyer la commande
   if (val("service") === "retrait") {
     const place = val("place_kind"), locker = place === "locker";
@@ -1032,6 +1043,7 @@ async function submit(e) {
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
+      fits_topcase: svc === "achat" && form.fits_topcase.checked,
       to_city: toCity,
       dropoff_address: dAddr,
       dropoff_place: pt ? pt.brand : null,
@@ -1123,7 +1135,7 @@ async function submit(e) {
     resetPlaces();
     applyShop();
     form.leave_at_door.checked = false;
-    form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; state.phoneReady = null;
+    form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; form.fits_topcase.checked = false; state.phoneReady = null;
     state.cart = {}; renderCatalog();
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
@@ -1135,6 +1147,9 @@ async function submit(e) {
     if (/phone_name_required/.test(ex.message)) return showError(t("errPhoneName"));
     if (/phone_unpaid/.test(ex.message)) return showError(t("errPhonePaid"));
     if (/goods_pay_required/.test(ex.message)) return showError(t("errGoodsPay"));
+    if (/topcase_required/.test(ex.message)) return showError(t("errTopcase"));
+    if (/door_kind/.test(ex.message)) return showError(t("errDoorKind"));
+    if (/door_code/.test(ex.message)) return showError(t("errDoorCode"));
     if (/retrait_tracking/.test(ex.message)) return showError(t("errTracking"));
     if (/retrait_name/.test(ex.message)) return showError(t("errParcelName"));
     if (/retrait_code/.test(ex.message)) return showError(t("errRetraitCode"));
@@ -1322,6 +1337,7 @@ function renderAll() {
   renderAccount();
   renderShopBanner();
   renderHomeStatic();
+  renderShowcase();
   syncHome();
   renderLive();
 }
@@ -1356,20 +1372,24 @@ function renderCatalog() {
   const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
   if (state.cgCat && !cats.some(c => c.id === state.cgCat) && state.cgCat !== "_") state.cgCat = "";
   const list = cgProducts().filter(p => !state.cgCat || (state.cgCat === "_" ? !cats.some(c => c.id === p.category_id) : p.category_id === state.cgCat));
+  // « Tout » : le menu par rubriques, comme dans les applis de livraison ; une rubrique choisie : ses produits
+  const sections = state.cgCat ? [{ title: "", items: list }]
+    : cats.map(c => ({ title: c.name, items: list.filter(p => p.category_id === c.id) }))
+      .concat(hasLoose ? [{ title: cats.length ? t("cgOther") : "", items: list.filter(p => !cats.some(c => c.id === p.category_id)) }] : []);
   const n = cartCount();
   const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: state.shop.name }))}</b>
     ${cats.length ? `<div class="cg-cats"><button type="button" class="ch-chip${!state.cgCat ? " on" : ""}" data-cg-cat="">${UI.esc(t("cgAll"))}</button>${cats.map(c =>
       `<button type="button" class="ch-chip${state.cgCat === c.id ? " on" : ""}" data-cg-cat="${UI.esc(c.id)}">${UI.esc(c.name)}</button>`).join("")}${hasLoose ? `<button type="button" class="ch-chip${state.cgCat === "_" ? " on" : ""}" data-cg-cat="_">${UI.esc(t("cgOther"))}</button>` : ""}</div>` : ""}
-    <div class="cg-grid">${list.map(p => {
-      const q = state.cart[p.id] || 0;
-      return `<div class="cg-item${p.available ? "" : " off"}">
-        ${p.photo ? `<img src="${UI.esc(p.photo)}" alt="" loading="lazy" />` : `<span class="cg-nophoto">🍽️</span>`}
+    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
+      const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
+      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}">
         <div class="cg-info"><b>${UI.esc(p.name)}</b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
+        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : `<span class="cg-nophoto">${state.shop.kind === "restaurant" ? "🍽️" : UI.KIND_ICON[state.shop.kind] || "🛍️"}</span>`}
         ${!p.available ? `<span class="cg-out">${UI.esc(t("cgOut"))}</span>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
-          : `<button type="button" class="btn btn-sm btn-primary" data-cg-plus="${UI.esc(p.id)}">${UI.esc(t("cgAdd"))}</button>`}
+          : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
       </div>`;
-    }).join("")}</div>
+    }).join("")}</div>`).join("")}
     <div class="cg-cart${n ? "" : " empty"}">${n ? UI.esc(t("cgCart", { n, total: money(cartTotal()) })) : UI.esc(t("cgEmpty"))}<small>${UI.esc(t("cgPayShop", { name: state.shop.name }))}</small></div>`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
@@ -1393,6 +1413,18 @@ const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method"
 function renderShopBanner() {
   const on = shopPicked();
   $("#shopBanner").classList.toggle("hidden", !on);
+  // Commerce HOP! Pro : sa vitrine en haut de la commande (photo, logo, accroche), comme dans les applis de livraison
+  const s = state.shop, hero = $("#shopHero"), showHero = !!(on && s && (s.pro || s.logo || s.cover));
+  hero.classList.toggle("hidden", !showHero);
+  if (showHero) {
+    const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), kinds = t("shKinds") || {};
+    const initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    const html = `<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
+      <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
+        <div class="sh-txt"><b>${UI.esc(s.name)}</b><small>${UI.esc(s.tagline || kinds[s.kind] || "")}</small></div></div>
+      ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice()) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}`;
+    if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
+  }
   if (on) $("#shopBannerText").textContent = t("shBanner", { name: state.shop.name });
   const pro = proShopOn();
   $("#shopOrderBox").classList.toggle("hidden", !pro);
@@ -1580,6 +1612,8 @@ function initHome() {
     if (e.target.closest("#homeRepeatBtn")) repeatLast();
     const en = e.target.closest("[data-ens]");
     if (en) openEns(en.dataset.ens);
+    const pr = e.target.closest("[data-pro]");
+    if (pr && pr.dataset.pro) loadShop(pr.dataset.pro);
   });
   $("#ensCats").addEventListener("click", e => { const b = e.target.closest("[data-ens]"); if (b) openEns(b.dataset.ens); });
   $("#ensFilter").addEventListener("input", renderEnsList);
@@ -1590,6 +1624,7 @@ function initHome() {
     if (b) pickEnseigne(b.dataset.ensPick, ens.shown[Number(b.dataset.i)]);
   });
   loadPartners();
+  loadShowcase();
   initHomeMap();
   // Position déjà autorisée : on centre la carte sur le client (sans rien lui demander)
   if (navigator.permissions && navigator.geolocation) {
@@ -1895,6 +1930,27 @@ function partnerPlace(sh) {
     housenumber: "", street: sh.address || "", city: cityLabel(cityId || sh.city), cityId, exact: true,
     label: [sh.name, sh.address, cityLabel(cityId || sh.city)].filter(Boolean).join(", ") };
 }
+// --- Vitrine : les commerces HOP! Pro abonnés, mis en avant sur l'accueil (logo, photo, accroche) -------
+state.showcase = [];
+function proPrice() {
+  const st = state.settings || {};
+  const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
+  return Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - share);
+}
+function renderShowcase() {
+  const list = state.showcase || [];
+  $("#homeProBox").classList.toggle("hidden", !list.length);
+  const kinds = t("shKinds") || {};
+  $("#homePro").innerHTML = list.map(s => UI.proCard(s, {
+    kindLabel: kinds[s.kind] || "", delivery: t("proDelivery", { price: money(proPrice()) }),
+    menu: s.products ? t("proMenu", { n: s.products }) : "", go: t("proGo")
+  })).join("");
+}
+async function loadShowcase() {
+  try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { state.showcase = []; }
+  renderShowcase();
+}
+
 async function loadPartners() {
   try { state.partners = ((await Store.shopsDirectory()) || []).filter(x => x.lat != null); } catch (e) { state.partners = []; }
   // En tapant « Fal… », le commerce partenaire Falafel Haim sort en premier

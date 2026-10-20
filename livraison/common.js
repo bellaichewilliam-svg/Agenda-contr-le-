@@ -215,6 +215,20 @@ const SERVICE_FR = { colis: "Envoi de colis", retrait: "Retrait de colis", achat
 const PLACE_FR = { poste: "Bureau de poste", superpharm: "Super-Pharm", relais: "Point relais", locker: "Casier / locker", autre: "Magasin" };
 const DOC_FR = { avis: "📨 Avis / SMS", identite: "🪪 Carte d'identité", procuration: "✍️ Procuration signée", rdv: "📅 Rendez-vous à la poste" };
 
+// Carte d'un commerce HOP! Pro : accueil des clients (« Nos partenaires ») et aperçu dans l'espace du commerce
+const KIND_ICON = { restaurant: "🍔", boutique: "🛍️", pharmacie: "💊", bureau: "💼", autre: "🏪" };
+const safeImg = s => (typeof s === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) ? s : "");
+function proCard(s, o) {
+  const cover = safeImg(s.cover), logo = safeImg(s.logo);
+  const initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  return `<button type="button" class="pro-card pk-${esc(s.kind || "autre")}" data-pro="${esc(s.code || "")}">
+    <span class="pc-cover"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${KIND_ICON[s.kind] || "🏪"}</i>`}</span>
+    <span class="pc-logo">${logo ? `<img src="${logo}" alt="" />` : esc(initials)}</span>
+    <span class="pc-body"><b>${esc(s.name)}</b><small>${esc(s.tagline || o.kindLabel || "")}</small>
+      <span class="pc-tags"><em>🛵 ${esc(o.delivery)}</em>${o.menu ? `<em>${esc(o.menu)}</em>` : ""}<em class="pc-go">${esc(o.go || "")}</em></span></span>
+  </button>`;
+}
+
 // Photo d'un document (avis, carte d'identité…) : assez nette pour être lue au guichet, assez légère pour la base
 function docPhoto(file) {
   return new Promise((resolve, reject) => {
@@ -436,7 +450,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  DOC_FR, docPhoto, photoViewer,
+  DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON,
   deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

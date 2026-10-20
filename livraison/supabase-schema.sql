@@ -2197,6 +2197,71 @@ exception when others then raise notice 'pg_cron indisponible : effacer les docu
 end $$;
 
 -- ============================================================================
+-- BON SENS À LA COMMANDE : sans contact, le livreur doit pouvoir arriver jusqu'à la porte (type de lieu,
+-- code d'entrée sauf maison, n° d'appartement) ; courses : tout doit tenir dans le top case du scooter.
+-- ============================================================================
+alter table public.orders add column if not exists fits_topcase boolean not null default false;
+create or replace function public.orders_door_topcase() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.service = 'achat' then
+    if not coalesce(new.fits_topcase, false) then raise exception 'topcase_required'; end if;
+  else
+    new.fits_topcase := false;
+  end if;
+  if coalesce(new.leave_at_door, false) then
+    if new.dropoff_kind is null then raise exception 'door_kind'; end if;
+    if (new.dropoff_kind <> 'maison' and nullif(trim(coalesce(new.dropoff_code, '')), '') is null)
+       or (new.dropoff_kind = 'appartement' and nullif(trim(coalesce(new.dropoff_apt, '')), '') is null) then
+      raise exception 'door_code';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_door_topcase before insert on public.orders
+  for each row execute function public.orders_door_topcase();
+
+-- ============================================================================
+-- VITRINE DES COMMERCES HOP! Pro : logo, photo de couverture et phrase d'accroche (le commerce les met
+-- dans son espace). Les commerces abonnés sont mis en avant sur l'accueil (« Nos partenaires »).
+-- ============================================================================
+alter table public.shops add column if not exists logo text check (length(logo) <= 160000 and logo ~ '^data:image/(jpeg|png|webp);base64,');
+alter table public.shops add column if not exists cover text check (length(cover) <= 300000 and cover ~ '^data:image/(jpeg|png|webp);base64,');
+alter table public.shops add column if not exists tagline text check (length(tagline) <= 90);
+
+-- p_logo / p_cover : null = garder, '' = enlever
+create or replace function public.shop_brand_save(p_token uuid, p_logo text, p_cover text, p_tagline text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  update shops set logo = case when p_logo is null then logo else nullif(p_logo, '') end,
+                   cover = case when p_cover is null then cover else nullif(p_cover, '') end,
+                   tagline = left(nullif(trim(coalesce(p_tagline, '')), ''), 90)
+   where token = p_token;
+  return found;
+end;
+$$;
+-- Les commerces HOP! Pro actifs, pour l'accueil des clients
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available))
+           order by (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and s.plan_until >= current_date;
+$$;
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'logo', logo, 'cover', cover, 'tagline', tagline,
+                           'shop_share', (select pro_shop_share - pro_hop_share from settings where id = 1))
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;
+revoke execute on function public.shop_brand_save(uuid, text, text, text), public.shops_showcase() from public;
+grant execute on function public.shop_brand_save(uuid, text, text, text), public.shops_showcase() to anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

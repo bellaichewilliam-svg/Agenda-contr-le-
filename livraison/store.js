@@ -254,6 +254,13 @@ async function createOrder(order) {
     // « J'achète pour vous » : le client règle le magasin lui-même, le livreur n'avance jamais d'argent
     if (order.service === "achat" && !order.goods_self_pay) throw new Error("goods_pay_required");
     order.goods_self_pay = order.service === "achat";
+    if (order.service === "achat" && !order.fits_topcase) throw new Error("topcase_required");
+    order.fits_topcase = order.service === "achat";
+    // Sans contact : type de lieu, code d'entrée (sauf maison) et n° d'appartement
+    if (order.leave_at_door) {
+      if (!order.dropoff_kind) throw new Error("door_kind");
+      if ((order.dropoff_kind !== "maison" && !String(order.dropoff_code || "").trim()) || (order.dropoff_kind === "appartement" && !String(order.dropoff_apt || "").trim())) throw new Error("door_code");
+    }
     // Colis à récupérer : même contrôle que la base (n°, nom ou code, rendez-vous à la poste), documents à vérifier
     if (order.service === "retrait") {
       if (!["poste", "superpharm", "relais", "locker", "autre"].includes(order.place_kind)) throw new Error("retrait_place");
@@ -758,6 +765,27 @@ async function shopsDirectory() {
     .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, address: x.address, lat: x.lat, lon: x.lon, pro: planActive(x) }));
 }
 
+// Vitrine HOP! Pro : les commerces abonnés pour l'accueil, et le logo / la couverture / l'accroche du commerce
+async function shopsShowcase() {
+  if (ONLINE) return (await rest("/rest/v1/rpc/shops_showcase", { method: "POST", body: {} })) || [];
+  const cat = readJSON(LS.catalog, {});
+  return localShops().filter(x => x.status === "actif" && planActive(x))
+    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null,
+      products: ((cat[x.id] || {}).products || []).filter(p => p.available).length }))
+    .sort((a, b) => (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || a.name.localeCompare(b.name));
+}
+// logo / cover : null = garder, "" = enlever
+async function saveShopBrand(token, b) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_brand_save", { method: "POST", body: { p_token: token, p_logo: b.logo, p_cover: b.cover, p_tagline: b.tagline || null } });
+  const shops = localShops(), s = shops.find(x => x.token === token);
+  if (!s) return false;
+  if (b.logo != null) s.logo = b.logo || null;
+  if (b.cover != null) s.cover = b.cover || null;
+  s.tagline = String(b.tagline || "").trim().slice(0, 90) || null;
+  writeJSON(LS.shops, shops);
+  return true;
+}
+
 // HOP! Pro : le commerce accepte une commande avec un temps de préparation, la marque prête, ou la refuse
 async function shopOrderAction(token, id, action, minutes, reason, ref) {
   if (ONLINE) return rest("/rest/v1/rpc/shop_order_action", { method: "POST", body: { p_token: token, p_id: id, p_action: action, p_minutes: minutes || null, p_reason: reason || null, p_ref: ref || null } });
@@ -1012,7 +1040,8 @@ function shopTokenFor(code) { return readJSON(LS.shopCodes, {})[String(code || "
 const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISOString().slice(0, 10));
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
-      pro: planActive(s), shop_share: DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
+      pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null,
+      shop_share: DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
 async function shopByCode(code) {
   if (!code) return null;
@@ -1364,7 +1393,7 @@ window.Store = {
   couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, shopSignup, shopByCode, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, addOrderDoc, orderDocsSent, orderDocs, docsVerdict,
   chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
