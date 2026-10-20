@@ -166,7 +166,19 @@ window.addEventListener("beforeinstallprompt", e => { e.preventDefault(); instal
 function isStandalone() {
   return !!(navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches));
 }
-async function installApp(appName) {
+// Ouvert dans la fenêtre de l'appli client HOP! (on y arrive par le bouton 🛵) : pas l'appli Livreur/Patron
+let appKind = null;
+try { appKind = sessionStorage.getItem("hop.app"); } catch (e) { /* ignore */ }
+function inOwnApp() { return isStandalone() && appKind !== "client"; }
+function markClientApp() { if (isStandalone()) { appKind = "client"; try { sessionStorage.setItem("hop.app", "client"); } catch (e) { /* ignore */ } } }
+async function installApp(appName, path) {
+  const url = CONFIG.siteUrl + (path || "");
+  // Dans l'appli client, on ne peut pas installer une autre appli : il faut l'adresse dans Chrome
+  if (isStandalone() && appKind === "client") {
+    if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {});
+    alert(`Pour installer « ${appName} » (son icône à part) : ouvrez Chrome, collez l'adresse ${url} (déjà copiée), puis menu ⋮ → « Installer l'application ».`);
+    return false;
+  }
   if (installEvt) {
     installEvt.prompt();
     const r = await installEvt.userChoice.catch(() => null);
@@ -176,7 +188,7 @@ async function installApp(appName) {
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   alert(ios
     ? `Sur iPhone, dans Safari : touchez Partager ⬆️ en bas de l'écran, puis « Sur l'écran d'accueil ». L'icône « ${appName} » apparaît sur votre téléphone, et les alertes marchent.`
-    : `Touchez le menu ⋮ du navigateur, puis « Ajouter à l'écran d'accueil » (ou « Installer l'application »). L'icône « ${appName} » apparaît sur votre téléphone.`);
+    : `Dans Chrome, à l'adresse ${url} : menu ⋮ → « Installer l'application ». L'icône « ${appName} » apparaît avec vos applis.\n\nSi Chrome dit « déjà installée », c'est l'ancienne icône HOP! : supprimez-la, rechargez la page, puis réessayez.`);
   return false;
 }
 
@@ -391,7 +403,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

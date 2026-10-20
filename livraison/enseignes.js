@@ -47,6 +47,7 @@ function fromOsm(e, lang) {
   return {
     name: g["name:" + lang] || g.name || g["name:he"] || g["name:en"] || g.brand,
     street: g["addr:street"] || "", number: g["addr:housenumber"] || "", city: g["addr:city"] || "",
+    phone: g.phone || g["contact:phone"] || g.mobile || g["contact:mobile"] || null,
     lat: e.lat != null ? e.lat : e.center && e.center.lat, lon: e.lon != null ? e.lon : e.center && e.center.lon
   };
 }

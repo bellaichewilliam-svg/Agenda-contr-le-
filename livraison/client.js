@@ -159,11 +159,35 @@ function fillDefaults() {
 // Commande par téléphone chez un commerce pas sur HOP! : repas, ou départ d'une enseigne (pas pour les achats)
 const PH_READY = [0, 10, 15, 20, 30, 45, 60];
 function phoneOrderOk() { return !proShopOn() && val("service") !== "achat" && (val("service") === "repas" || !!(state.pick.from && state.pick.from.brand)); }
+// Le vrai numéro de l'enseigne (carte OpenStreetMap) : on appelle d'ici, la commande en cours reste enregistrée
+let callFor = null;
+function renderShopCall() {
+  const p = state.pick.from, box = $("#shopCall");
+  if (!phoneOrderOk() || !p || !p.brand) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  const show = num => {
+    if (state.pick.from !== p) return;
+    box.innerHTML = num
+      ? `<a class="btn btn-sm btn-wa" href="tel:${UI.esc(String(num).split(/[;,]/)[0].replace(/[^\d+]/g, ""))}" data-shop-call>📞 ${UI.esc(t("phCall", { name: p.brand }))} · <bdi>${UI.esc(String(num).split(/[;,]/)[0])}</bdi></a>`
+      : `<small class="muted">${UI.esc(t("phNoNumber", { name: p.brand }))}</small>`;
+  };
+  if (callFor === p) return;
+  callFor = p;
+  box.innerHTML = `<small class="muted">${UI.esc(t("phFinding"))}</small>`;
+  Places.phoneOf(p).then(show, () => show(null));
+}
 function phoneOn() { return phoneOrderOk() && form.phone_order.checked; }
 function renderPhone() {
   $("#phoneBox").classList.toggle("hidden", !phoneOrderOk());
+  renderShopCall();
   $("#phoneFields").classList.toggle("hidden", !phoneOn());
-  $("#phReadyChips").innerHTML = PH_READY.map(n => `<button type="button" class="ch-chip${state.phoneReady === n ? " on" : ""}" data-ready="${n}">${UI.esc(n ? t("phMin", { n }) : t("phNow"))}</button>`).join("");
+  // Boutons créés une fois (par langue) puis seulement mis à jour : un toucher n'est jamais perdu
+  const box = $("#phReadyChips");
+  if (box.dataset.lang !== I18N.lang) {
+    box.innerHTML = PH_READY.map(n => `<button type="button" class="ch-chip" data-ready="${n}">${UI.esc(n ? t("phMin", { n }) : t("phNow"))}</button>`).join("");
+    box.dataset.lang = I18N.lang;
+  }
+  box.querySelectorAll("[data-ready]").forEach(el => el.classList.toggle("on", Number(el.dataset.ready) === state.phoneReady));
 }
 
 function syncVisibility() {
@@ -363,7 +387,8 @@ function renderQuote() {
     // Pas de frais cachés : on le montre noir sur blanc
     + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
-    + (goods ? `<li class="goods"><span>${UI.esc(t("qGoods"))}</span></li>` : "");
+    + (goods ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : "qGoods"))}</span></li>` : "")
+    + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "");
   const total = (q.known ? "" : t("from") + " ") + money(q.total);
   $("#quoteTotal").textContent = total;
   $("#mobileTotal").textContent = total;
@@ -472,7 +497,9 @@ function onPlacePicked(which, p, quiet) {
   // Numéro de rue : rempli si la carte le connaît, sinon on invite à le saisir (sauf enseigne)
   const num = form.elements[which === "from" ? "pickup_number" : "dropoff_number"];
   num.value = p.housenumber || "";
-  if (!quiet && !p.housenumber && !p.brand) setTimeout(() => num.focus(), 50);
+  // (sauf si le client est déjà passé à un autre champ entre-temps)
+  const addr = form.elements[prefixOf(which) + "_address"];
+  if (!quiet && !p.housenumber && !p.brand) setTimeout(() => { const a = document.activeElement; if (!a || a === document.body || a === addr) num.focus(); }, 50);
   if (which === "from" && val("service") === "retrait" && p.brand) {
     const kind = detectPlaceKind(p.brand);
     if (kind) form.place_kind.value = kind;
@@ -977,6 +1004,7 @@ async function submit(e) {
     if (!order.shop_token) delete order.shop_token;
     const firstOrder = activeOrders().length === 0;
     const saved = await Store.createOrder(order);
+    clearDraft();
     rememberAddresses(saved, pf, pt);
     // Bit : on paie tout de suite, depuis cet écran (créneau réservé : obligatoire)
     $("#donePrepay").innerHTML = saved.payment_method === "bit"
@@ -1706,7 +1734,7 @@ const cityIdOf = (city, pt) => (CONFIG.cities.some(c => c.id === city) ? city : 
   || (pt && pt.lat != null ? CONFIG.cities.slice().sort((a, b) => Places.km(a, pt) - Places.km(b, pt))[0].id : null);
 function partnerPlace(sh) {
   const cityId = cityIdOf(sh.city, sh);
-  return { lat: Number(sh.lat), lon: Number(sh.lon), brand: sh.name, partner: true, partnerCode: sh.code, streetName: sh.address || "",
+  return { lat: Number(sh.lat), lon: Number(sh.lon), brand: sh.name, phone: sh.phone || null, partner: true, partnerCode: sh.code, streetName: sh.address || "",
     housenumber: "", street: sh.address || "", city: cityLabel(cityId || sh.city), cityId, exact: true,
     label: [sh.name, sh.address, cityLabel(cityId || sh.city)].filter(Boolean).join(", ") };
 }
@@ -1761,7 +1789,7 @@ async function pickEnseigne(which, x) {
     catch (e) { /* on garde le nom et le point exact */ }
   }
   const cityId = cityIdOf(city, x);
-  const p = { lat: x.lat, lon: x.lon, brand: x.name, streetName: street || "", housenumber: number || "", city: city || cityLabel(cityId),
+  const p = { lat: x.lat, lon: x.lon, brand: x.name, phone: x.phone || null, streetName: street || "", housenumber: number || "", city: city || cityLabel(cityId),
     cityId, street: [street, number].filter(Boolean).join(" "), exact: true,
     label: [x.name, [street, number].filter(Boolean).join(" "), cityLabel(cityId || city)].filter(Boolean).join(", ") };
   onPlacePicked(which, p, true);
@@ -1943,6 +1971,51 @@ if ("IntersectionObserver" in window) {
   new IntersectionObserver(es => { summaryVisible = es[0].isIntersecting; update(); }).observe($("#summary"));
 }
 if (Store.ONLINE) setInterval(() => { loadMine(); loadSettings(); }, 60000);
+
+// Commande en cours gardée sur le téléphone (2 h) : si le client appelle le commerce et que le téléphone
+// ferme HOP! pendant l'appel, il retrouve tout en revenant
+const LS_DRAFT = "livraison.draft.v1";
+let draftTimer = null;
+function saveDraft(now) {
+  clearTimeout(draftTimer);
+  const write = () => {
+    const values = {};
+    [...form.elements].forEach(el => {
+      if (!el.name || el.type === "file" || el.type === "password") return;
+      if (el.type === "radio") { if (el.checked) values[el.name] = el.value; }
+      else if (el.type === "checkbox") values[el.name] = el.checked;
+      else values[el.name] = el.value;
+    });
+    try { localStorage.setItem(LS_DRAFT, JSON.stringify({ at: Date.now(), values, pick: state.pick, phoneReady: state.phoneReady })); } catch (e) { /* plein */ }
+  };
+  if (now === true) write(); else draftTimer = setTimeout(write, 300);
+}
+function clearDraft() { clearTimeout(draftTimer); try { localStorage.removeItem(LS_DRAFT); } catch (e) { /* ignore */ } }
+function restoreDraft() {
+  let d = null;
+  try { d = JSON.parse(localStorage.getItem(LS_DRAFT)); } catch (e) { /* ignore */ }
+  if (!d || Date.now() - d.at > 2 * 3600000 || new URLSearchParams(location.search).get("c")) return;
+  ["from", "to"].forEach(w => { if (d.pick && d.pick[w] && !d.pick[w].partnerCode) onPlacePicked(w, d.pick[w], true); });
+  Object.entries(d.values || {}).forEach(([k, v]) => {
+    const el = form.elements[k];
+    if (!el) return;
+    if (el instanceof RadioNodeList || (el.length && el[0] && el[0].type === "radio")) {
+      const r = form.querySelector(`input[name="${k}"][value="${CSS.escape(String(v))}"]`);
+      if (r) r.checked = true;
+    } else if (el.type === "checkbox") el.checked = !!v;
+    else if (el.type !== "radio") el.value = v;
+  });
+  if (d.phoneReady != null) state.phoneReady = d.phoneReady;
+  syncVisibility();
+  renderQuote();
+}
+form.addEventListener("input", saveDraft);
+form.addEventListener("change", saveDraft);
+document.addEventListener("click", e => { if (e.target.closest("[data-shop-call], [data-ready]")) saveDraft(true); });
+document.addEventListener("visibilitychange", () => { if (document.hidden) saveDraft(true); });
+try { restoreDraft(); } catch (e) { /* brouillon illisible : on repart de zéro */ }
+// Fenêtre de l'appli client : l'espace livreur ouvert d'ici proposera d'installer sa propre appli
+UI.markClientApp();
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;

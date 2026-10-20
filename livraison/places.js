@@ -56,6 +56,7 @@ function toPlace(f) {
     housenumber: p.housenumber || "",
     cityId: matchCity(city) || matchCity(p.district) || matchCity(p.county),
     brand: isPoi ? p.name : null,
+    osm: isPoi && p.osm_id ? { type: p.osm_type, id: p.osm_id } : null,
     street: streetLine || p.name || "",
     exact: !!(p.housenumber || isPoi),
     // Le numéro a sa propre case : il n'est pas répété dans le libellé
@@ -148,10 +149,38 @@ async function nearbyByName(q, lang, at) {
     out.push({
       lat, lon, city, type: "house", streetName, housenumber,
       cityId: matchCity(city) || nearestCity(lat, lon), brand: name, street: streetLine || name, exact: true,
+      phone: g.phone || g["contact:phone"] || g.mobile || g["contact:mobile"] || null,
       label: [name, streetLine, city].filter(Boolean).join(", ")
     });
   }
   return out.sort((a, b) => km(at, a) - km(at, b));
+}
+
+// Vrai numéro de téléphone d'une enseigne (OpenStreetMap), pour la commander par téléphone
+const phoneCache = {};
+async function phoneOf(p) {
+  if (!p) return null;
+  if (p.phone) return p.phone;
+  if (!p.osm || !p.osm.id) return null;
+  const kind = { N: "node", W: "way", R: "relation" }[p.osm.type] || "node";
+  const key = kind + p.osm.id;
+  if (!(key in phoneCache)) {
+    phoneCache[key] = (async () => {
+      for (const url of OVERPASS) {
+        const ctl = new AbortController();
+        const timer = setTimeout(() => ctl.abort(), 6000);
+        try {
+          const res = await fetch(url, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: "data=" + encodeURIComponent(`[out:json][timeout:6];${kind}(${Number(p.osm.id)});out tags;`) });
+          if (!res.ok) continue;
+          const g = (((await res.json()).elements || [])[0] || {}).tags || {};
+          return g.phone || g["contact:phone"] || g.mobile || g["contact:mobile"] || null;
+        } catch (e) { /* serveur suivant */ } finally { clearTimeout(timer); }
+      }
+      return null;
+    })();
+  }
+  return phoneCache[key];
 }
 
 // Adresse la plus proche d'une position GPS (« 📍 Ma position »)
@@ -272,7 +301,7 @@ function attach(input, opts) {
 }
 
 window.Places = {
-  attach, search, moreNearby, reverse, matchCity, km, distText,
+  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText,
   setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
   setLocal(fn) { local = fn; },
   get near() { return near; },
