@@ -261,3 +261,12 @@ window.CONFIG = {
   },
   demoAdminPin: "1234"
 };
+
+// Ancienne adresse (GitHub) : on passe tout de suite à l'adresse officielle, même page (l'espace livreur
+// et l'espace patron y ont leur propre adresse, pour s'installer comme des applis à part)
+(function () {
+  if (!/\.github\.io$/.test(location.hostname)) return;
+  const page = location.pathname.split("/").pop() || "index.html";
+  const to = page === "coursier.html" ? "livreur/" : page === "admin.html" ? "patron/" : page;
+  location.replace(window.CONFIG.siteUrl + to + location.search + location.hash);
+})();
