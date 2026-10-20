@@ -1,0 +1,14 @@
+{
+  "fps": 30,
+  "transition": 15,
+  "scenes": [
+    { "id": "hook",   "frames": 90,  "sfx": [[0, "hit"], [8, "whoosh"], [38, "pop"], [44, "pop2"], [56, "pop2"]] },
+    { "id": "items",  "frames": 120, "sfx": [[2, "pop"], [20, "pop"], [38, "pop"], [56, "pop"], [74, "pop"], [92, "stamp"]] },
+    { "id": "order",  "frames": 150, "sfx": [[8, "whoosh"], [26, "type"], [64, "type"], [96, "pop2"], [121, "tap"], [128, "ding"]] },
+    { "id": "track",  "frames": 120, "sfx": [[4, "whoosh"], [108, "ding"]] },
+    { "id": "price",  "frames": 105, "sfx": [[8, "riser"], [36, "hit"], [48, "pop2"], [56, "pop2"], [64, "pop2"]] },
+    { "id": "shop",   "frames": 120, "sfx": [[10, "pop"], [20, "stamp"], [62, "whoosh"], [92, "tap"], [96, "ding"]] },
+    { "id": "rider",  "frames": 90,  "sfx": [[2, "whoosh"], [36, "pop2"], [44, "pop2"], [52, "pop2"]] },
+    { "id": "cta",    "frames": 135, "sfx": [[2, "hit"], [10, "pop"], [24, "pop2"], [28, "pop2"], [32, "pop2"], [36, "pop2"], [66, "ding"]] }
+  ]
+}
