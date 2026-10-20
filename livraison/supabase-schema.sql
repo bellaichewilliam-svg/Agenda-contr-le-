@@ -3166,6 +3166,33 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- ============================================================================
+-- CRÉDIT DE DÉPART OFFERT : quand le patron valide un livreur, il reçoit welcome_credit ₪ (50 ₪) sur son crédit
+-- HOP, une seule fois. Crédit offert : pas d'argent reçu, donc pas de reçu ; il paie ses premières commissions.
+-- welcome_credit = 0 : plus de crédit de départ.
+-- ============================================================================
+alter table public.settings add column if not exists welcome_credit numeric not null default 50;
+create or replace function public.couriers_welcome_credit() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare amt numeric;
+begin
+  if new.role = 'coursier' and new.status = 'actif' and old.status is distinct from 'actif'
+     and not exists (select 1 from courier_topups where courier_id = new.id and note = 'Crédit de départ offert') then
+    amt := (select welcome_credit from settings where id = 1);
+    if amt >= 5 then
+      insert into courier_topups (courier_id, amount, status, note, decided_at, paid)
+      values (new.id, amt, 'ok', 'Crédit de départ offert', now(), false);
+      insert into chat_messages (thread, author, author_name, body)
+      values ('c:' || new.id::text, 'admin', 'HOP!', '🎁 Bienvenue ! ' || amt || ' ₪ de crédit de départ offerts par HOP : vos premières commissions sont payées avec. Ensuite, rechargez par Bit dans « Finances ».');
+    end if;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger couriers_welcome_credit after update of status on public.couriers
+  for each row execute function public.couriers_welcome_credit();
+revoke execute on function public.couriers_welcome_credit() from public, anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
