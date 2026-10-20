@@ -1979,6 +1979,26 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- ============================================================================
+-- « J'ACHÈTE POUR VOUS » SANS AVANCE : le client règle le magasin lui-même (paiement par téléphone, Bit du
+-- magasin, déjà payé en ligne). Le livreur n'avance jamais d'argent ; la commande est refusée sinon.
+-- ============================================================================
+alter table public.orders add column if not exists goods_self_pay boolean not null default false;
+
+create or replace function public.orders_goods_pay() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.service = 'achat' then
+    if not coalesce(new.goods_self_pay, false) then raise exception 'goods_pay_required'; end if;
+  else
+    new.goods_self_pay := false;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_goods_pay before insert on public.orders
+  for each row execute function public.orders_goods_pay();
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

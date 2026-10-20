@@ -250,6 +250,9 @@ async function createOrder(order) {
       network: false, tip: 0, tip_status: null,
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
     });
+    // « J'achète pour vous » : le client règle le magasin lui-même, le livreur n'avance jamais d'argent
+    if (order.service === "achat" && !order.goods_self_pay) throw new Error("goods_pay_required");
+    order.goods_self_pay = order.service === "achat";
     // Commande passée par téléphone (commerce pas sur HOP!) : nom, déjà payée, heure « prête » (au plus 3 h)
     if (order.phone_order && !order.shop_id && order.service !== "achat") {
       if (!String(order.pickup_name || "").trim()) throw new Error("phone_name_required");

@@ -909,6 +909,7 @@ async function submit(e) {
     if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showError(t("errPhoneReady")); }
     if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
   }
+  if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
   if (val("service") === "achat" && adultItems().length) {
     if (!form.adult_ok.checked) { form.adult_ok.focus(); return showError(t("errAdult")); }
     if (form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())) return showError(t("errAlcoholHours"));
@@ -974,6 +975,7 @@ async function submit(e) {
       has_proxy: svc === "retrait" && val("place_kind") === "poste" && form.has_proxy.checked,
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
+      goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
       to_city: toCity,
       dropoff_address: dAddr,
       dropoff_place: pt ? pt.brand : null,
@@ -1053,7 +1055,7 @@ async function submit(e) {
     resetPlaces();
     applyShop();
     form.leave_at_door.checked = false;
-    form.phone_order.checked = false; form.phone_paid.checked = false; state.phoneReady = null;
+    form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; state.phoneReady = null;
     state.cart = {}; renderCatalog();
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
@@ -1064,6 +1066,7 @@ async function submit(e) {
     if (/alcohol_hours/.test(ex.message)) return showError(t("errAlcoholHours"));
     if (/phone_name_required/.test(ex.message)) return showError(t("errPhoneName"));
     if (/phone_unpaid/.test(ex.message)) return showError(t("errPhonePaid"));
+    if (/goods_pay_required/.test(ex.message)) return showError(t("errGoodsPay"));
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;

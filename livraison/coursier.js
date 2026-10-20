@@ -314,7 +314,7 @@ function card(o, kind) {
   const telLink = (name, phone) => kind === "mine" && phone ? `<span class="small muted">${UI.esc(name || "")} · <a href="tel:${UI.esc(phone)}">${UI.esc(phone)}</a></span>` : "";
   let extra = "";
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")} · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌"}` : ""}</div>`;
-  if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ${UI.money(o.budget)} à avancer` : ""}</div>`;
+  if (o.service === "achat") extra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""}<br>🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse</div>`;
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
   extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
     : kind === "pool" || o.status === "confirmee" ? `<div class="small muted">⏱️ Attente ou achats sur place : ${UI.esc(UI.waitRule(settings))}, pour vous</div>` : "";

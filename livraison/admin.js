@@ -298,7 +298,7 @@ function card(o, withDay) {
   if (o.service === "retrait") {
     pickupExtra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° <b style="display:inline">${UI.esc(o.tracking_number || "—")}</b> · au nom de ${UI.esc(o.parcel_name || "—")}${o.place_kind === "poste" ? ` · procuration : ${o.has_proxy ? "✅" : "❌ à demander"}` : ""}</div>`;
   } else if (o.service === "achat") {
-    pickupExtra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ${UI.money(o.budget)} (à avancer)` : ""}</div>`;
+    pickupExtra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""} · 🧾 réglé par le client au magasin</div>`;
   }
 
   const meta = [
