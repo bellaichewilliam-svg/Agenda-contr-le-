@@ -697,9 +697,9 @@ body.rider-on > main { padding: 0 !important; max-width: none; }
 .rd-bell { inset-inline-end: 14px; }
 .rd-locate { inset-inline-end: 14px; top: auto; bottom: calc(var(--sheet-h, 300px) + 14px); font-size: 24px; }
 .rd-fab .chat-badge { position: absolute; top: -2px; inset-inline-end: -2px; }
-.rd-sheet { position: absolute; inset-inline: 0; bottom: 0; z-index: 6; background: var(--rd-bg); border-radius: 22px 22px 0 0; padding: 10px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 24px rgba(0,0,0,.35); max-height: 70vh; overflow-y: auto; }
+.rd-sheet { position: absolute; inset-inline: 0; bottom: 0; z-index: 6; background: var(--rd-bg); border-radius: 22px 22px 0 0; padding: 10px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 -6px 24px rgba(0,0,0,.35); max-height: 52vh; overflow-y: auto; }
 .rd-handle { width: 48px; height: 5px; border-radius: 99px; background: var(--rd-line); margin: 0 auto 12px; }
-.rd-title { font-family: "Fredoka", "Rubik", sans-serif; font-weight: 700; font-size: 28px; line-height: 1.15; margin: 4px 0 10px; }
+.rd-title { font-family: "Fredoka", "Rubik", sans-serif; font-weight: 700; font-size: 26px; line-height: 1.15; margin: 2px 0 6px; }
 .rd-demand { display: flex; align-items: center; gap: 10px; color: var(--rd-mute); font-size: 17px; margin-bottom: 12px; }
 .rd-demand b { color: var(--rd-ink); font-weight: 600; }
 .rd-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; text-align: start; background: var(--rd-bg2); color: var(--rd-ink); border: 0; border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; font: inherit; font-weight: 600; }
@@ -1211,3 +1211,9 @@ body.in-home .eta-bubble { display: none; }
 .rd-sheet.dragging { transition: none; }
 .rd-sheet.collapsed { overflow: hidden; }
 .rd-sheet.collapsed > :not(.rd-grab):not(.rd-slide) { display: none; }
+
+/* Panneau plus bas : texte d'état seulement quand il y a quelque chose à dire ; bouton « me centrer » qui cherche */
+.rd-duty-text:empty { display: none; }
+.rd-sheet .rd-card { padding: 12px 14px; }
+.rd-locate.busy { animation: rdPulse 1s ease-in-out infinite; }
+@keyframes rdPulse { 50% { opacity: .5; } }
