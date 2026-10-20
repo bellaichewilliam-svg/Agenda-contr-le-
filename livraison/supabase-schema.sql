@@ -1790,6 +1790,28 @@ exception when others then raise notice 'pg_cron indisponible : pas de rappel de
 end $$;
 
 -- ============================================================================
+-- MESSAGE AUX CLIENTS (promo, annonce) : le patron l'envoie dans la conversation « service client » de
+-- chaque client qui a commandé sur les p_days derniers jours (un message par téléphone)
+-- ============================================================================
+create or replace function public.admin_broadcast_clients(p_body text, p_days int) returns int
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  if nullif(trim(coalesce(p_body, '')), '') is null then raise exception 'empty'; end if;
+  insert into chat_messages (thread, author, author_name, body)
+  select 'u:' || d.device_id, 'admin', 'HOP!', left(trim(p_body), 2000)
+    from (select distinct device_id from orders
+           where device_id ~ '^[0-9a-f-]{36}$'
+             and created_at > now() - make_interval(days => least(greatest(coalesce(p_days, 365), 1), 730))) d;
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+revoke execute on function public.admin_broadcast_clients(text, int) from public, anon;
+grant execute on function public.admin_broadcast_clients(text, int) to authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

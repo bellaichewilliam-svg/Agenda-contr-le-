@@ -121,6 +121,12 @@ Onglet « 📣 Messages livreurs » : « 🔥 Ça vaut le coup de sortir ! » et
 - La course n'est proposée aux livreurs que **quelques minutes avant l'heure « prête »** (`pro_lead_min`, 8 min), avec une notification à ce moment-là : le livreur arrive quand c'est prêt, pas avant. Il voit « 📞 Commande au nom de David · n° 57 · prête à 20:45 ».
 - **Attente** comptée à partir de l'heure « prête » : 10 min offertes, puis payée par le client. **Si la commande n'existe pas ou a été annulée, la course reste due** (écrit au client avant de commander).
 
+- **Le vrai numéro de l'enseigne** (carte OpenStreetMap) s'affiche avec un bouton **📞 Appeler** ; la commande en cours reste enregistrée sur le téléphone pendant l'appel (2 h), même si HOP! se ferme.
+- **Aucune avance d'argent par le livreur** : commande par téléphone déjà payée au commerce ; chez un commerce HOP! Pro, les articles se règlent directement au commerce.
+
+### Message aux clients
+Onglet « 📣 Annonces livreurs et clients » : **🎁 Message aux clients** (promo, annonce), à tous les clients du dernier mois, des 3 derniers mois ou de l'année. Il arrive dans leur conversation « service client » (pastille sur la bulle 💬).
+
 ### Prix dans Netanya : zones industrielles
 Dans Netanya : 25 ₪. **Entre la ville et une zone industrielle (ancienne ou nouvelle), dans les deux sens, ou d'une zone à l'autre : 30 ₪** (`pricing.areas` dans `config.js` : le prix et les rectangles des zones, à vérifier et ajuster).
 

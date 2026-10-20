@@ -1056,3 +1056,5 @@ body.in-home .eta-bubble { display: none; }
 .nav-rider { font-size: 18px; line-height: 1; padding: 6px 8px; border-radius: 10px; text-decoration: none; }
 .nav-rider.mine { background: var(--brand); color: #fff; }
 @media (max-width: 480px) { .nav-rider { padding: 4px 6px; font-size: 16px; } }
+
+.shop-call { margin: 6px 0 4px; }

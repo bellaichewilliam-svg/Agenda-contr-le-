@@ -1126,6 +1126,14 @@ async function chatThread(thread) {
   if (ONLINE) return authRest("/rest/v1/chat_messages?select=*&order=created_at.asc&limit=300&thread=eq." + encodeURIComponent(thread));
   return byDate(chatLocal().filter(m => m.thread === thread));
 }
+// Message du patron à tous les clients des p_days derniers jours (conversation « service client »)
+async function broadcastClients(body, days) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_broadcast_clients", { method: "POST", body: { p_body: body, p_days: days } });
+  const since = Date.now() - days * 86400000;
+  const devices = [...new Set(localOrders().filter(o => o.device_id && new Date(o.created_at) > since).map(o => o.device_id))];
+  devices.forEach(d => chatLocalAdd({ thread: "u:" + d, author: "admin", author_name: "HOP!", body: clean(body) }));
+  return devices.length;
+}
 async function chatSend(thread, author, authorName, body, image) {
   const m = { thread, author, author_name: authorName || null, body: clean(body), image: image || null };
   if (ONLINE) return authRest("/rest/v1/chat_messages", { method: "POST", body: m, prefer: "return=minimal" });
@@ -1191,7 +1199,7 @@ window.Store = {
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, shopSignup, shopByCode, shopDashboard, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
-  chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, chatRecent,
+  chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };
 

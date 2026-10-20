@@ -747,7 +747,18 @@ function renderRequests(view) {
 }
 
 // --- Messages aux livreurs --------------------------------------------------------------
+// Messages tout prêts pour les clients (français + hébreu)
+const CLIENT_TPL = [
+  "🛵 HOP! livre ce soir dans tout Netanya : commandez en 1 minute ! · הופ! מוביל הערב בכל נתניה: מזמינים בדקה!",
+  "🍔 Un petit creux ? Commandez au restaurant, on vous l'apporte vite. · רעבים? הזמינו מהמסעדה ואנחנו נביא מהר.",
+  "🙏 Merci d'être client HOP! Votre avis compte : répondez-nous ici. · תודה שאתם לקוחות הופ! נשמח לשמוע מכם כאן."
+];
+function clientCount(days) {
+  const since = Date.now() - days * 86400000;
+  return new Set(orders.filter(o => o.device_id && new Date(o.created_at) > since).map(o => o.device_id)).size;
+}
 function renderMessages(view) {
+  const cliTyped = $("#cliText") ? $("#cliText").value : "";
   const act = partners().filter(c => c.status === "actif");
   const onDuty = act.filter(c => c.position_at && Date.now() - new Date(c.position_at) < 10 * 60000);
   const name = id => (couriers.find(c => c.id === id) || {}).name || "?";
@@ -761,6 +772,16 @@ function renderMessages(view) {
       <div class="promo-row" style="margin-top:8px">
         <select id="msgTo"><option value="">À tous les livreurs actifs</option>${act.map(c => `<option value="${UI.esc(c.id)}">À ${UI.esc(c.name)} seulement</option>`).join("")}</select>
         <button class="btn btn-primary" id="msgSend">📣 Envoyer</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <b>🎁 Message aux clients (promo, annonce)</b>
+      <p class="muted small" style="margin:4px 0 10px">Il arrive dans la conversation « service client » de chaque client (pastille sur la bulle 💬 de l'appli). Écrivez en français et en hébreu.</p>
+      <div class="tpl-list">${CLIENT_TPL.map((m, i) => `<button class="addr-chip" data-ctpl="${i}">${UI.esc(m)}</button>`).join("")}</div>
+      <textarea id="cliText" rows="3" placeholder="Votre message aux clients…" style="width:100%;margin-top:10px">${UI.esc(cliTyped)}</textarea>
+      <div class="promo-row" style="margin-top:8px">
+        <select id="cliDays">${[[30, "1 mois"], [90, "3 mois"], [365, "1 an"]].map(([d, l]) => `<option value="${d}">Clients des ${l} (${clientCount(d)})</option>`).join("")}</select>
+        <button class="btn btn-primary" id="cliSend">🎁 Envoyer aux clients</button>
       </div>
     </div>
     <h3 style="margin:18px 0 8px">Derniers messages (48 h)</h3>
@@ -1012,6 +1033,20 @@ async function onViewClick(e) {
     ta.focus();
     return;
   }
+  if (el.dataset.ctpl != null) { $("#cliText").value = CLIENT_TPL[Number(el.dataset.ctpl)]; $("#cliText").focus(); return; }
+  if (el.id === "cliSend") {
+    const body = $("#cliText").value.trim(), days = Number($("#cliDays").value);
+    if (!body) return $("#cliText").focus();
+    if (!confirm(`Envoyer ce message à ${clientCount(days)} client(s) ?\n\n${body}`)) return;
+    el.disabled = true;
+    try {
+      const n = await Store.broadcastClients(body, days);
+      $("#cliText").value = "";
+      alert(`✅ Message envoyé à ${n} client(s).`);
+    } catch (ex) { alert("Message non envoyé, vérifiez la connexion."); }
+    el.disabled = false;
+    return;
+  }
   if (el.id === "msgSend") {
     const body = $("#msgText").value.trim();
     if (!body) return $("#msgText").focus();
@@ -1171,8 +1206,8 @@ $("#refuseCancel").addEventListener("click", () => $("#refuseModal").classList.a
 $("#icsBtn").addEventListener("click", () => exportIcs(agendaList().filter(o => active(o) && isMine(o)).sort(byTime)));
 $("#ringStop").addEventListener("click", () => { waitingOrders().forEach(o => ringA.muted.add(o.id)); syncRing(); });
 $("#ringSee").addEventListener("click", () => { tab = "nouvelles"; render(); window.scrollTo({ top: $("#tabs").offsetTop - 10, behavior: "smooth" }); });
-$("#installBtn").classList.toggle("hidden", UI.isStandalone());
-$("#installBtn").addEventListener("click", () => UI.installApp("HOP! Patron").then(ok => { if (ok) $("#installBtn").classList.add("hidden"); }));
+$("#installBtn").classList.toggle("hidden", UI.inOwnApp());
+$("#installBtn").addEventListener("click", () => UI.installApp("HOP! Patron", "patron/").then(ok => { if (ok) $("#installBtn").classList.add("hidden"); }));
 $("#notifBtn").addEventListener("click", () => {
   if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
   Notification.requestPermission().then(p => {
