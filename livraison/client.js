@@ -1559,12 +1559,14 @@ function etaToPickup() {
 function renderWhenHints() {
   if (!$("#asapSmall")) return;
   const eta = etaToPickup(), online = (home.nearby || []).length, food = val("service") === "repas";
-  const asap = eta != null ? t(food ? "wEtaFood" : "wEta", { min: eta })
+  // Dès que possible : proposée par vagues, et un livreur peut la prendre en finissant sa course → une fourchette.
+  // Express : le livreur libre le plus proche, tout de suite, sans autre course → le temps le plus court.
+  const asap = eta != null ? t(food ? "wEtaFoodRange" : "wEtaRange", { min: eta, max: eta + 10 })
     : online ? t("wBusy") : food || !Pricing.isOpenNow(CONFIG) ? t("wNone") : t("w_asap_d");
   $("#asapSmall").textContent = asap;
   const ex = $("#expressSmall"), exInput = form.querySelector('input[name=urgency][value=express]');
   const exOk = eta != null;
-  ex.textContent = exOk ? `${t("wEta", { min: eta })} · +${money(P.express)}` : t("wExpressNone");
+  ex.textContent = exOk ? `${t("wExpressEta", { min: eta })} · +${money(P.express)}` : t("wExpressNone");
   exInput.disabled = !exOk;
   exInput.closest(".choice").classList.toggle("disabled", !exOk);
   if (!exOk && exInput.checked) form.querySelector('input[name=urgency][value=asap]').checked = true;

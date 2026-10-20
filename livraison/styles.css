@@ -1217,3 +1217,5 @@ body.in-home .eta-bubble { display: none; }
 .rd-sheet .rd-card { padding: 12px 14px; }
 .rd-locate.busy { animation: rdPulse 1s ease-in-out infinite; }
 @keyframes rdPulse { 50% { opacity: .5; } }
+/* Le client dit avoir payé : bien visible pour le livreur */
+.pay-direct.pay-claimed { background: #0E3B2A; color: #D1FADF; border: 2px solid #12B76A; animation: rdPulse 1.6s ease-in-out 3; }

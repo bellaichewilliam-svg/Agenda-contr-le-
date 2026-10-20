@@ -809,6 +809,8 @@ async function courierAction(id, action) {
     o.arrived_at = new Date().toISOString();
     chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:arrivee" });
   } else if (action === "recuperee" && o.status === "confirmee") {
+    // Même règle qu'en ligne : en paiement direct, payé avant de récupérer la commande
+    if (!freeOf() && o.direct_pay && o.paid_to === "livreur" && o.payment_status !== "paye" && cr && cr.role !== "admin") throw new Error("payment_required_pickup");
     // HOP! Pro : c'est le commerce qui paie l'attente (sa part de la livraison augmente)
     const w = waitFee(o, st);
     Object.assign(o, { status: "recuperee", wait_minutes: w.mins, wait_fee: w.fee });

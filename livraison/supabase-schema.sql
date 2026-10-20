@@ -3251,6 +3251,94 @@ exception when others then raise notice 'pg_cron indisponible : pas de rappel de
 end $$;
 
 -- ============================================================================
+-- PAYÉ AVANT DE PARTIR : en paiement direct, le livreur ne récupère pas la commande (« Colis récupéré »)
+-- tant qu'il n'a pas reçu le paiement (« 💳 Paiement reçu »). Le « J'ai payé » du client le prévient (notification),
+-- mais c'est le livreur qui vérifie son Bit / PayBox.
+-- ============================================================================
+create or replace function public.orders_paid_before_pickup() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'recuperee' and old.status is distinct from 'recuperee' and new.direct_pay and new.paid_to = 'livreur'
+     and new.payment_status <> 'paye' and not new.unlocked and coalesce(auth.uid() = new.courier_id, false)
+     and not exists (select 1 from couriers where id = new.courier_id and (role = 'admin' or unlocked_until > now())) then
+    raise exception 'payment_required_pickup';
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_paid_before_pickup before update of status on public.orders
+  for each row execute function public.orders_paid_before_pickup();
+revoke execute on function public.orders_paid_before_pickup() from public, anon, authenticated;
+
+-- ============================================================================
+-- EXPRESS (+ prix express) : la priorité. Proposée tout de suite à tous les livreurs LIBRES (pas de vagues, pas
+-- d'attente du parrain), et le livreur y va directement : il ne la prend pas s'il a déjà une course, et n'en prend
+-- pas d'autre avant de l'avoir livrée. « Dès que possible » : proposée par vagues, au plus proche d'abord,
+-- et un livreur peut la prendre en finissant sa course en cours.
+-- ============================================================================
+create or replace function public.can_see_new(o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with st as (select * from settings where id = 1),
+  ranked as (
+    select c.id, row_number() over (order by (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
+      from couriers c
+     where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
+       and public.courier_online(c)
+       and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = c.id)
+  )
+  select o.status = 'nouvelle' and o.courier_id is null
+     and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
+     and not exists (select 1 from order_declines d where d.order_id = o.id and d.courier_id = auth.uid())
+     -- HOP! Pro : quand le commerce a accepté ; Pro et téléphone : pour arriver au moment où c'est prêt
+     and (o.shop_status is null or o.shop_status in ('acceptee', 'prete'))
+     -- Colis à récupérer : seulement quand le patron a vérifié les documents
+     and coalesce(o.docs_status, 'ok') = 'ok'
+     and now() >= public.offer_from(o)
+     -- Express : seulement aux livreurs sans course en cours
+     and (o.urgency <> 'express' or not exists (select 1 from orders x where x.courier_id = auth.uid() and x.status in ('confirmee', 'recuperee')))
+     and (o.referrer_id = auth.uid() or o.urgency = 'express'
+          or now() >= public.offer_from(o)
+               + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), (select count(*) from ranked)), 2)));
+$$;
+
+create or replace function public.accept_order(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare c couriers; ord orders; need numeric;
+begin
+  select * into c from couriers where id = auth.uid() and status = 'actif';
+  if not found then return false; end if;
+  select * into ord from orders where id = p_id;
+  if c.role = 'coursier' and not coalesce(c.unlocked_until > now(), false) then
+    -- Crédit prépayé : il doit couvrir ce que HOP prendra sur cette course (et sur celles en cours)
+    if ord.id is not null then
+      need := case when ord.referrer_id = c.id then public.commission_network(public.course_value(ord))
+                   else public.commission_for(public.course_value(ord)) end
+            + case when ord.direct_pay and coalesce(ord.shop_share, 0) = 0 then coalesce(ord.hop_share, 0) else 0 end;
+      if public.courier_credit(c.id) - public.courier_reserved(c.id) < need then raise exception 'credit_low'; end if;
+    end if;
+    -- Une course récupérée doit être livrée (et validée) avant d'en prendre une autre
+    if exists (select 1 from orders where courier_id = c.id and status = 'recuperee') then raise exception 'busy'; end if;
+  end if;
+  -- Express : on y va directement (pas avec une autre course), et pas d'autre course pendant un express
+  if c.role = 'coursier' and ord.urgency = 'express'
+     and exists (select 1 from orders where courier_id = c.id and status in ('confirmee', 'recuperee')) then raise exception 'express_busy'; end if;
+  if c.role = 'coursier' and exists (select 1 from orders where courier_id = c.id and urgency = 'express' and status in ('confirmee', 'recuperee')) then
+    raise exception 'express_running';
+  end if;
+  if c.role = 'coursier' and not public.courier_online(c) then raise exception 'offline'; end if;
+  update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
+         courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
+         network = coalesce(o.referrer_id = c.id, false),
+         commission = case when c.role = 'admin' then 0
+                           when o.referrer_id = c.id then public.commission_network(public.course_value(o))
+                           else public.commission_for(public.course_value(o)) end
+   where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
+  return found;
+end;
+$$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

@@ -95,9 +95,15 @@ Deno.serve(async req => {
     const who = ev.author_name || ({ client: "Client", courier: "Livreur", shop: "Commerce" } as Record<string, string>)[ev.author] || "HOP!";
     if (ev.author === "system") {
       if (ev.body === "status:client_paid") {
-        const { data: o } = await db.from("orders").select("ref, price").eq("id", id).single();
-        sent += await sendTo(await admins(), { title: "💳 Paiement Bit à vérifier",
-          body: `Le client dit avoir payé ${o ? money(o.price) + " · " + o.ref : ""}`, url: "patron/", tag: "pay-" + id }, site);
+        const { data: o } = await db.from("orders").select("ref, price, direct_pay, courier_id").eq("id", id).single();
+        if (o && o.direct_pay && o.courier_id) {
+          // Paiement direct : c'est le livreur qui reçoit l'argent, c'est lui qu'on prévient
+          sent += await sendTo([o.courier_id], { title: "💳 Le client dit avoir payé",
+            body: `Course ${o.ref} : vérifiez votre Bit / PayBox, puis touchez « Paiement reçu » pour récupérer la commande.`, url: "livreur/", tag: "pay-" + id }, site);
+        } else {
+          sent += await sendTo(await admins(), { title: "💳 Paiement Bit à vérifier",
+            body: `Le client dit avoir payé ${o ? money(o.price) + " · " + o.ref : ""}`, url: "patron/", tag: "pay-" + id }, site);
+        }
       }
     } else if (ev.author === "admin") {
       let to: string[] = [];

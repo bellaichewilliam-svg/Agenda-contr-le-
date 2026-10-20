@@ -189,7 +189,9 @@ async function route() {
 const byTime = (a, b) => new Date(a.pickup_at) - new Date(b.pickup_at);
 const sum = (list, f = o => Number(o.price)) => list.reduce((s, o) => s + f(o), 0);
 const today = () => UI.dayKey(new Date().toISOString());
-const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id).sort(byTime);
+// Courses refusées par moi : elles ne reviennent pas (le patron voit toutes les commandes, il faut les cacher ici)
+const declinedByMe = new Set();
+const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id && !declinedByMe.has(o.id)).sort(byTime);
 const mine = () => orders.filter(o => o.courier_id === me.id && ["confirmee", "recuperee"].includes(o.status)).sort(byTime);
 
 // Un seul lecteur audio, débloqué au premier geste (les téléphones l'exigent)
@@ -275,6 +277,7 @@ function stopRing() {
   if (navigator.vibrate) navigator.vibrate(0);
 }
 
+const paidSeen = new Set();
 async function load() {
   try {
     let card;
@@ -285,6 +288,7 @@ async function load() {
     const [r, m, bal, dem, acc, fc] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
       Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null), Store.myAcceptance().catch(() => null), Store.demandForecast().catch(() => null)]);
     pens = (await Store.myPenalties().catch(() => null)) || pens;
+    ((await Store.listDeclines().catch(() => null)) || []).forEach(d => { if (d.courier_id === me.id) declinedByMe.add(d.order_id); });
     wallet = (await Store.myCredit().catch(() => null)) || wallet;
     if (dem) demand = dem;
     if (acc) acceptance = acc;
@@ -312,6 +316,13 @@ async function load() {
     }
   }
   pool().forEach(o => seenPool.add(o.id));
+  // Le client dit avoir payé (paiement direct) : on prévient le livreur, une fois par course
+  mine().filter(o => o.direct_pay && o.paid_to !== "hop" && o.client_paid_at && o.payment_status !== "paye" && !paidSeen.has(o.id)).forEach(o => {
+    paidSeen.add(o.id);
+    if (firstLoad) return;
+    beep();
+    UI.notify(`💳 Le client dit avoir payé · n° ${o.ref}`, { body: "Vérifiez votre Bit / PayBox, puis touchez « Paiement reçu » pour récupérer la commande.", tag: "pay-" + o.id, vibrate: [300, 150, 300] });
+  });
   firstLoad = false;
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   await checkChats();
@@ -324,7 +335,7 @@ function weekOrders(start) {
 }
 
 function card(o, kind) {
-  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS (moins d'une heure)" : "Dès que possible";
+  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS : priorité, allez-y directement, sans autre course" : "Dès que possible";
   // Navigation avec l'application choisie dans les réglages
   const nav = which => kind === "mine" ? `<div class="links">
       <a class="btn btn-sm btn-primary" href="${navLink(o, which)}" target="_blank" rel="noopener">🧭 Y aller (${riderSet.nav === "maps" ? "Maps" : "Waze"})</a></div>` : "";
@@ -354,8 +365,9 @@ function card(o, kind) {
   if (o.rules_accepted_at) extra += `<div class="small muted">📋 Le client a accepté les conditions : max 40 × 40 × 35 cm, 15 kg, 500 ₪, rien de dangereux ni d'illégal. Colis non conforme ? Vous pouvez refuser : « ⚠️ Un souci ».</div>`;
   if (Number(o.discount) > 0) extra += `<div class="small">🎁 Code promo du client : ${UI.money(o.discount)}, payé par HOP (pas par vous)</div>`;
   const hopPaid = o.paid_to === "hop";
-  if (kind === "mine" && o.direct_pay && !hopPaid) extra += `<div class="small pay-direct">${payLine(o)}${o.payment_status === "paye" ? " · ✅ reçu"
-    : o.client_paid_at ? " · 📲 le client dit avoir payé : vérifiez votre Bit / PayBox" : " · à recevoir avant « Livré »"}</div>`;
+  if (kind === "mine" && o.direct_pay && !hopPaid) extra += `<div class="small pay-direct${o.client_paid_at && o.payment_status !== "paye" ? " pay-claimed" : ""}">${payLine(o)}${o.payment_status === "paye" ? " · ✅ reçu"
+    : o.client_paid_at ? `<br><b>📲 Le client dit avoir payé : vérifiez votre Bit / PayBox, puis touchez « 💳 Paiement reçu ».</b>`
+    : ` · à recevoir <b>avant de récupérer la commande</b>`}</div>`;
 
   let actions = "";
   if (kind === "pool") {
@@ -548,6 +560,7 @@ async function onViewClick(e) {
   }
   if (el.dataset.decline) {
     el.disabled = true;
+    declinedByMe.add(el.dataset.decline);
     afterDecline(await Store.declineOrder(el.dataset.decline, "autre").catch(() => null));
     return load();
   }
@@ -605,8 +618,10 @@ async function onViewClick(e) {
         }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /payment_required/.test(e.message) ? "pay" : false);
-    if (ok === "pay") { render(); return alert("💳 Touchez d'abord « Paiement reçu » une fois que le client vous a payé."); }
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /payment_required/.test(e.message) ? "pay" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /payment_required/.test(e.message) ? "pay" : false);
+    if (ok === "pay") { render(); return alert(el.dataset.act === "recuperee"
+      ? "💳 Le client doit vous payer avant que vous récupériez la commande. Attendez son paiement (Bit / PayBox), vérifiez-le, puis touchez « Paiement reçu »."
+      : "💳 Touchez d'abord « Paiement reçu » une fois que le client vous a payé."); }
     if (ok === "handoff") { render(); return alert("🔐 Code de remise manquant : demandez-le au destinataire avant de remettre."); }
     if (ok === "farpick") { render(); return alert("📍 Vous n'êtes pas encore au point de récupération : appuyez sur « Je suis arrivé » une fois sur place (le compteur d'attente démarre à ce moment-là)."); }
     if (ok === "photo") { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
@@ -758,6 +773,8 @@ const busyOrder = () => orders.find(o => o.courier_id === me.id && o.status === 
 const busy = () => !freeNow() && !!busyOrder();
 const blocked = () => locked() || busy();
 function acceptError(e) {
+  if (/express_busy/.test(e.message)) { alert("⚡ Course express : elle est réservée à un livreur sans autre course, qui y va directement. Terminez d'abord votre course en cours."); return "shown"; }
+  if (/express_running/.test(e.message)) { alert("⚡ Vous avez une course express en cours : livrez-la d'abord, sans autre course."); return "shown"; }
   if (/busy/.test(e.message)) { const b = busyOrder(); alert(`🔒 Livrez d'abord votre course en cours${b ? " n° " + b.ref : ""} : validez « Livré » sur place${b && b.leave_at_door ? ", avec la photo devant la porte" : ""}. Un souci ? Écrivez à HOP.`); return "shown"; }
   if (/debt/.test(e.message)) { alert(`🔒 Vous devez ${UI.money(balance)} à HOP : réglez votre solde pour recevoir des courses.`); return "shown"; }
   if (/credit_low/.test(e.message)) { alert(`💳 Crédit HOP insuffisant (${UI.money(available())}) pour la commission de cette course : rechargez-le dans « Finances ».`); openPage("week"); return "shown"; }
@@ -1015,7 +1032,7 @@ function showNextOffer() {
   const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon);
   const trip = roadKm(pick, drop) ?? (o.distance_km != null ? Number(o.distance_km) * 1.3 : null);
   const toPickup = roadKm(lastPos, pick);
-  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : moins d'une heure" : "Dès que possible";
+  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : priorité, allez-y directement, sans autre course" : "Dès que possible";
   $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
   const total = Store.courseValue(o);
   $("#offerPrice").textContent = UI.money(total);
@@ -1084,6 +1101,7 @@ function askWhy() {
 async function declineOffer(reason) {
   const id = offerShown;
   closeOffer();
+  if (id) declinedByMe.add(id);
   if (id) afterDecline(await Store.declineOrder(id, reason).catch(() => null));
   load();
 }
