@@ -144,7 +144,7 @@ async function dirSearch(q, at, lang) {
   const list = await loadDir();
   const vs = variants(nq);
   // Mots tapés en lettres latines : on compare aussi leur squelette à celui des mots du nom (« Oshi » → אושי)
-  const qsk = /[a-z]/i.test(q) ? q.split(/[\s\-–,]+/).filter(w => w.length >= 2).map(skel).filter(Boolean) : [];
+  const qsk = /[a-z]/i.test(q) && !/\d/.test(q) ? q.split(/[\s\-–,]+/).filter(w => w.length >= 2).map(skel).filter(Boolean) : [];
   const score = e => {
     let best = 9;
     for (const k of e.keys) for (const v of vs) {
