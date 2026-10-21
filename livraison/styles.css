@@ -1297,3 +1297,10 @@ body.in-home .eta-bubble { display: none; }
 .mini-bars i.past { opacity: .35; } .mini-bars i.now { outline: 2px solid #fff; }
 .mini-txt { font-size: 13px; white-space: nowrap; }
 .rd-sheet.expanded .mini-curve { display: none; }
+/* « Aujourd'hui » : vraies commandes (plein) / prévision (hachuré) */
+.today-chart > div.fc i { opacity: .55; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.18) 0 3px, transparent 3px 6px); }
+.today-chart > div.real i { opacity: 1; }
+.today-chart em { font-style: normal; font-size: 9px; font-weight: 800; color: var(--rd-ink); line-height: 1; }
+.today-legend { margin: 4px 0 0; font-size: 11px; color: var(--rd-mute); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.today-legend .lg { width: 10px; height: 10px; border-radius: 3px; background: #FF6A13; display: inline-block; }
+.today-legend .lg.fc { opacity: .55; margin-inline-start: 8px; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.35) 0 2px, transparent 2px 4px); }

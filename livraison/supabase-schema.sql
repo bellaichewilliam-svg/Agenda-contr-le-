@@ -3688,6 +3688,24 @@ end;
 $$;
 
 -- ============================================================================
+-- « AUJOURD'HUI » EN VRAI : le nombre de commandes de chaque heure de la journée (heure d'Israël), pour la courbe
+-- du livreur : les heures passées et l'heure en cours montrent les vraies courses, les heures à venir la prévision
+-- ============================================================================
+create or replace function public.today_hours() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(x.n order by x.h), '[]'::json) from (
+    select h, count(o.id) as n
+      from generate_series(0, 23) h
+      left join orders o on extract(hour from o.created_at at time zone 'Asia/Jerusalem') = h
+        and (o.created_at at time zone 'Asia/Jerusalem')::date = (now() at time zone 'Asia/Jerusalem')::date
+        and o.status not in ('annulee', 'refusee')
+     group by h) x
+  where public.is_active_courier();
+$$;
+revoke execute on function public.today_hours() from public, anon;
+grant execute on function public.today_hours() to authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
