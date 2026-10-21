@@ -370,9 +370,11 @@ function card(o, withDay) {
   const km = c => fresh(c) && o.pickup_lat != null ? Pricing.haversineKm({ lat: c.lat, lon: c.lon }, { lat: o.pickup_lat, lon: o.pickup_lon }) * 1.3 : null;
   const active = partners().filter(c => c.status === "actif")
     .map(c => ({ c, km: km(c) })).sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9));
+  // Livreurs qui viennent de s'inscrire : on peut les valider et leur donner la course d'un coup
+  const fresh_ = partners().filter(c => c.status === "en_attente");
   const steps = {
     nouvelle: `<button class="btn btn-sm btn-primary" data-act="take">✅ Je la prends</button>`
-      + (active.length ? `<select class="btn btn-sm" data-act="assign"><option value="">👤 Donner à un livreur…</option>${active.map(({ c, km }) => `<option value="${UI.esc(c.id)}">${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : " · hors service"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</option>`).join("")}</select>` : "")
+      + (active.length || fresh_.length ? `<select class="btn btn-sm" data-act="assign"><option value="">👤 Donner à un livreur…</option>${active.map(({ c, km }) => `<option value="${UI.esc(c.id)}">${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : " · hors service"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</option>`).join("")}${fresh_.length ? `<optgroup label="🆕 Viennent de s'inscrire (validés en même temps)">${fresh_.map(c => `<option value="${UI.esc(c.id)}">🆕 ${UI.esc(c.name)}${c.phone ? " · " + UI.esc(c.phone) : ""}</option>`).join("")}</optgroup>` : ""}</select>` : "")
       + `<button class="btn btn-sm" data-act="refuse">🚫 Je ne peux pas</button>`,
     confirmee: b("recuperee", "🛵 Colis récupéré", "btn-primary") + `<button class="btn btn-sm" data-act="release">↩︎ Remettre en attente</button>` + b("annulee", "✖ Annuler"),
     recuperee: b("livree", "📦 Livré", "btn-primary")
@@ -1256,7 +1258,12 @@ async function onViewChange(e) {
   } else if (t.dataset.act === "assign" && t.value) {
     const o = orderOf(t);
     const c = couriers.find(x => x.id === t.value);
-    if (o && c) assignTo(o, c);
+    if (o && c && c.status === "en_attente") {
+      // Nouveau livreur : on le valide (son crédit de départ arrive), puis on lui donne la course
+      if (!confirm(`Valider ${c.name} comme livreur HOP! et lui donner la course n° ${o.ref} ?${c.topcase_at ? "" : "\n(Il n'a pas encore envoyé la photo de son top case.)"}`)) { t.value = ""; return; }
+      Store.updateCourier(c.id, { status: "actif" }).then(() => { c.status = "actif"; return assignTo(o, c); })
+        .catch(() => alert("Validation impossible, vérifiez la connexion."));
+    } else if (o && c) assignTo(o, c);
   } else if (t.dataset.ract === "note") {
     Store.updateRequest(t.closest("[data-req]").dataset.req, { admin_note: t.value.trim() || null }).catch(() => alert("Note non enregistrée."));
   } else if (t.dataset.sact === "note" || t.dataset.sact === "referrer") {

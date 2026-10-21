@@ -73,6 +73,10 @@ Deno.serve(async req => {
       // Course en retard : personne ne l'a prise, pas récupérée, pas livrée
       sent += await sendTo(await admins(), { title: `⏰ Course en retard · ${o.ref}`,
         body: `${ev.why || ""}\n${route}${o.courier_name ? "\n🛵 " + o.courier_name : ""}`, url: "patron/", tag: "late-" + o.id }, site);
+    } else if (ev.event === "assigned" && ev.courier_id) {
+      // Le patron donne la course à un livreur
+      sent += await sendTo([String(ev.courier_id)], { title: `📦 HOP! vous a donné une course · ${money(o.price)}`,
+        body: `${when} · ${route}\nOuvrez HOP! pour voir le départ et l'arrivée.`, url: "livreur/", tag: "o-" + o.id }, site);
     } else if (ev.event === "cancel" && ev.courier_id) {
       // Course annulée (ou refusée par HOP) alors qu'un livreur l'avait : il est prévenu tout de suite
       sent += await sendTo([String(ev.courier_id)], { title: `❌ Course annulée · ${o.ref}`,
