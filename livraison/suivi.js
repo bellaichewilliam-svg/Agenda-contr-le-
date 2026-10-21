@@ -52,17 +52,41 @@ function moveCourier(lat, lon) {
   anim = requestAnimationFrame(step);
 }
 
-// Anneau du temps restant avant la livraison
+// Rond du temps restant avant la livraison (« 17-27 min ») ; touché, il ouvre la page d'état
+let lastEta = { main: "", sub: "" };
+function ringText(o) {
+  const r = UI.etaRange(o);
+  return r ? { big: r.text, unit: "min" } : { big: o.status === "nouvelle" ? "⏳" : "🛵", unit: "" };
+}
 function renderRing(o) {
-  const min = UI.deliveryEta(o);
   const show = ["nouvelle", "confirmee", "recuperee"].includes(o.status);
   $("#etaRing").classList.toggle("hidden", !show);
-  if (!show) return;
-  $("#etaMin").textContent = min != null ? min : o.status === "nouvelle" ? "⏳" : "🛵";
-  $("#etaUnit").textContent = min != null ? "min" : "";
-  const len = 2 * Math.PI * 44;
-  $("#etaArc").style.strokeDasharray = `${len * (UI.PROGRESS[o.status] || 0)} ${len}`;
+  if (!show) { closeSheet(); return; }
+  const r = ringText(o), p = UI.PROGRESS[o.status] || 0;
+  $("#etaSvg").innerHTML = UI.ringSvg(p, "hrg-trk");
+  $("#etaMin").textContent = r.big;
+  $("#etaMin").classList.toggle("long", r.big.length > 4);
+  $("#etaUnit").textContent = r.unit;
+  // Page d'état (si ouverte, elle suit en direct)
+  $("#stSvg").innerHTML = UI.ringSvg(p, "hrg-st");
+  $("#stMin").textContent = r.big;
+  $("#stUnit").textContent = r.unit;
+  $("#stShop").textContent = o.shop_name || o.pickup_place || o.pickup_address || "";
+  $("#stTitle").textContent = lastEta.main;
+  $("#stSub").textContent = lastEta.sub;
+  const step = FLOW.indexOf(o.status);
+  $("#stSteps").innerHTML = ["trStep1", "trStep2", "trStep3", "trStep4"].map((k, i) =>
+    `<li class="${i < step ? "done" : i === step ? "current" : ""}"><i></i><span>${UI.esc(t(k))}</span></li>`).join("");
+  $("#stDetails").textContent = "🧾 " + t("trDetails");
 }
+function openSheet() { $("#stSheet").classList.remove("hidden"); document.body.classList.add("st-open"); }
+function closeSheet() { $("#stSheet").classList.add("hidden"); document.body.classList.remove("st-open"); }
+$("#etaRing").addEventListener("click", openSheet);
+$("#stClose").addEventListener("click", closeSheet);
+$("#stHelp").addEventListener("click", () => { closeSheet(); $("#chatBtn").click(); });
+["#stReceipt", "#stDetails"].forEach(id => $(id).addEventListener("click", () => {
+  closeSheet(); $("#details").scrollIntoView({ behavior: "smooth", block: "start" });
+}));
 
 function updateMap(o) {
   if (!map) return;
@@ -156,6 +180,7 @@ function etaBox(o) {
     const s = Math.max(0, Math.round((Date.now() - new Date(o.courier_at)) / 1000));
     sub = t("trUpdated", { s });
   }
+  lastEta = { main, sub };
   $("#eta").innerHTML = `<small>${UI.esc(t("orderNo", { ref: o.ref }))}</small><b>${UI.esc(main)}</b>${sub ? `<small>${UI.esc(sub)}</small>` : ""}`;
 }
 

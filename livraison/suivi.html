@@ -61,7 +61,23 @@
 
 <main class="track-page">
   <div id="map"></div>
-  <div class="eta-ring hidden" id="etaRing" aria-live="polite"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" class="bg" /><circle cx="50" cy="50" r="44" class="fg" id="etaArc" /></svg><b id="etaMin"></b><small id="etaUnit"></small></div>
+  <button type="button" class="eta-ring hidden" id="etaRing" aria-live="polite"><span id="etaSvg"></span><b id="etaMin" dir="ltr"></b><small id="etaUnit"></small></button>
+  <!-- Touché, le rond ouvre la page d'état : grand rond, commerce, où en est la commande -->
+  <section class="st-sheet hidden" id="stSheet" role="dialog" aria-modal="true">
+    <button type="button" class="st-close" id="stClose" aria-label="Fermer">⌄</button>
+    <div class="st-card">
+      <div class="st-ringrow">
+        <button type="button" class="st-side" id="stHelp" aria-label="Aide">?</button>
+        <div class="st-ring"><span id="stSvg"></span><b id="stMin" dir="ltr"></b><small id="stUnit"></small></div>
+        <button type="button" class="st-side" id="stReceipt" aria-label="Détails">🧾</button>
+      </div>
+      <p class="st-shop" id="stShop"></p>
+      <h2 class="st-title" id="stTitle"></h2>
+      <p class="st-sub" id="stSub"></p>
+      <ol class="st-steps" id="stSteps"></ol>
+      <button type="button" class="st-details" id="stDetails"></button>
+    </div>
+  </section>
   <div class="track-panel">
     <div class="eta" id="eta"><b data-i18n="trTitle"></b></div>
     <div class="eta-ask hidden" id="etaAsk"></div>

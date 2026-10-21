@@ -268,7 +268,7 @@ fr: {
   pay_cash_short: "espèces", pay_bit_short: "Bit au {phone}",
   // Suivi
   trTitle: "Suivi de la course", trNotFound: "Course introuvable. Vérifiez le lien.",
-  trStep1: "Commande envoyée", trStep2: "Acceptée par le coursier", trStep3: "Colis récupéré, en route", trStep4: "Livrée !",
+  trDetails: "Détails de la commande", trStep1: "Commande envoyée", trStep2: "Acceptée par le coursier", trStep3: "Colis récupéré, en route", trStep4: "Livrée !",
   trCancelled: "Cette course a été annulée.",
   trEtaPickup: "Le coursier arrive au point de récupération dans ≈ {min} min",
   trEtaDrop: "Arrivée prévue dans ≈ {min} min",
@@ -721,7 +721,7 @@ he: {
   msg_when_asap: "יוצא בהקדם.", msg_when_at: "איסוף: {when}.",
   pay_cash_short: "מזומן", pay_bit_short: "ביט למספר {phone}",
   trTitle: "מעקב משלוח", trNotFound: "המשלוח לא נמצא. בדקו את הקישור.",
-  trStep1: "ההזמנה נשלחה", trStep2: "השליח אישר", trStep3: "החבילה נאספה, בדרך", trStep4: "נמסרה!",
+  trDetails: "פרטי ההזמנה", trStep1: "ההזמנה נשלחה", trStep2: "השליח אישר", trStep3: "החבילה נאספה, בדרך", trStep4: "נמסרה!",
   trCancelled: "המשלוח הזה בוטל.",
   trEtaPickup: "השליח יגיע לנקודת האיסוף בעוד כ-{min} דק'",
   trEtaDrop: "הגעה משוערת בעוד כ-{min} דק'",
