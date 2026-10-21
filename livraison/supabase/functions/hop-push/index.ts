@@ -111,6 +111,11 @@ Deno.serve(async req => {
           sent += await sendTo(await admins(), { title: "💳 Paiement Bit à vérifier",
             body: `Le client dit avoir payé ${o ? money(o.price) + " · " + o.ref : ""}`, url: "patron/", tag: "pay-" + id }, site);
         }
+      } else if (ev.body === "status:refund_missing") {
+        // Course rendue après paiement : le client dit ne pas avoir été remboursé
+        const { data: o } = await db.from("orders").select("ref, refund_amount, refund_courier_name").eq("id", id).single();
+        sent += await sendTo(await admins(), { title: "⚠️ Client pas remboursé",
+          body: o ? `Course ${o.ref} : ${money(o.refund_amount)} à rembourser par ${o.refund_courier_name || "le livreur"}` : "", url: "patron/", tag: "refund-" + id }, site);
       }
     } else if (ev.author === "admin") {
       let to: string[] = [];

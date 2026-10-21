@@ -1219,3 +1219,10 @@ body.in-home .eta-bubble { display: none; }
 @keyframes rdPulse { 50% { opacity: .5; } }
 /* Le client dit avoir payé : bien visible pour le livreur */
 .pay-direct.pay-claimed { background: #0E3B2A; color: #D1FADF; border: 2px solid #12B76A; animation: rdPulse 1.6s ease-in-out 3; }
+/* Course rendue après paiement : remboursement du client */
+.refund-box { margin: 4px 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--brand-soft); border: 1px solid var(--brand); }
+.refund-box p { margin: 0 0 8px; font-weight: 600; }
+.rd-card.refund-card { background: #3B1F0E; border: 2px solid #FF6A13; display: block; }
+.rd-card.refund-card small { margin-top: 4px; }
+.refund-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.pay-apps { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--brand-soft); }

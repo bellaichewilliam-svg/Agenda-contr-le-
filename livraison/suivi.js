@@ -122,8 +122,11 @@ function etaBox(o) {
   else if (o.status === "refusee") { main = t("trRefused"); sub = o.admin_note ? t("trReason", { r: o.admin_note }) : ""; }
   else if (o.status === "livree") { main = t("deliveredYay"); sub = t("trThanks"); }
   else if (o.status === "nouvelle") {
-    main = t("trWaiting");
+    // Jamais dans l'inconnu : course rendue par son livreur, ou refusée par un livreur → on le dit
+    const released = o.released_at && Date.now() - new Date(o.released_at) < 30 * 60000;
+    main = released ? t("trReleased") : t("trWaiting");
     if (o.urgency === "programmee") sub = t("trPlanned", { when: UI.fmtDateTime(o.pickup_at) });
+    else if (!released && Number(o.offer_declines) > 0) sub = t("trDeclined");
   } else if (o.status === "confirmee" && o.arrived_at) {
     // Le livreur attend au départ (commande pas prête) ou fait les achats : le temps compte
     const st = settings, w = Store.waitFee(o, st);
@@ -193,7 +196,16 @@ function render() {
   const canSwitch = !o.direct_pay && o.payment_status !== "paye" && ["cash", "bit"].includes(o.payment_method)
     && ["nouvelle", "confirmee", "recuperee"].includes(o.status) && !(o.payment_method === "bit" && o.prepaid_required);
   const copy = `<button class="btn btn-sm" id="copyBit">${UI.esc(t("trCopy"))}</button>`;
-  pay.innerHTML = `<small class="muted">${UI.esc(t("trPay"))}</small>
+  // Course rendue après paiement : le premier livreur rembourse, le client confirme
+  const rname = String(o.refund_courier_name || "").split(" ")[0], ramount = UI.money(o.refund_amount || 0);
+  const refund = !o.refund_status ? ""
+    : o.refund_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trRefundOk"))}</p>`
+    : o.refund_status === "litige" ? `<p class="promo-msg bad">${UI.esc(t("trRefundLitige"))}</p>`
+    : `<div class="refund-box"><p>${UI.esc(t(o.refund_status === "fait" ? "trRefundDone" : o.refund_status === "rien_recu" ? "trRefundNone" : "trRefundDue", { name: rname, amount: ramount }))}</p>
+        <div class="bit-btns"><button type="button" class="btn btn-sm btn-primary" data-refund="1">${UI.esc(t("trRefundYes"))}</button>
+        <button type="button" class="btn btn-sm" data-refund="0">${UI.esc(t("trRefundNo"))}</button></div></div>`;
+  const missing = o.pay_missing_at && !o.client_paid_at && o.payment_status !== "paye" ? `<p class="promo-msg bad">${UI.esc(t("trPayMissing"))}</p>` : "";
+  pay.innerHTML = `${refund}${missing}<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${UI.esc(t("receiptLink"))}</a>` : ""}`
@@ -377,6 +389,12 @@ $("#details").addEventListener("change", async e => {
 
 $("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); render(); });
 $("#payBox").addEventListener("click", async e => {
+  const rf = e.target.closest("[data-refund]");
+  if (rf) {
+    rf.disabled = true;
+    await Store.refundAnswer(token, rf.dataset.refund === "1").catch(() => false);
+    return load();
+  }
   if (e.target.id === "switchPay") {
     e.target.disabled = true;
     const ok = await Store.setPayment(token, order.payment_method === "bit" ? "cash" : "bit").catch(() => false);

@@ -838,7 +838,16 @@ async function courierAction(id, action) {
     o.status = "livree"; o.delivered_at = new Date().toISOString(); referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
-    Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
+    // Même règle qu'en ligne : déjà payé (ou « j'ai payé ») → ce livreur rembourse le client ; tout repart à zéro
+    const paid = o.direct_pay && o.paid_to === "livreur" && (o.payment_status === "paye" || o.client_paid_at);
+    if (paid) Object.assign(o, { refund_amount: o.price, refund_courier_id: o.courier_id, refund_courier_name: o.courier_name,
+      refund_courier_phone: o.courier_bit || o.courier_phone, refund_received: o.payment_status === "paye", refund_status: "a_faire", refund_at: new Date().toISOString() });
+    if (o.paid_to === "livreur") o.payment_status = "en_attente";
+    Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0,
+      client_paid_at: null, pay_missing_at: null, arrived_at: null, eta_min: null, eta_at: null, eta_status: null, eta_until: null, released_at: new Date().toISOString() });
+    chatLocalAdd({ thread: "o:" + o.id, author: "system", body: paid ? "status:refund_due" : "status:released" });
+    const dl = readJSON(LS.declines, []);
+    if (!dl.some(d => d.order_id === o.id && d.courier_id === myId())) { dl.push({ order_id: o.id, courier_id: myId(), reason: "autre", created_at: new Date().toISOString() }); writeJSON(LS.declines, dl.slice(-500)); }
   } else return false;
   chatStatus(o, was);
   saveLocalOrders(all);
@@ -1028,6 +1037,41 @@ async function pushSubscribe(endpoint, p256dh, auth) {
 }
 
 // Le client a payé par Bit (il le déclare) : le patron vérifie son Bit
+// Livreur : « ❌ Pas reçu » (le client dit avoir payé, mais rien n'est arrivé : il doit vérifier)
+async function payMissing(id) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_pay_missing", { method: "POST", body: { p_id: id } });
+  const all = localOrders(), o = all.find(x => x.id === id && x.courier_id === myId() && x.payment_status !== "paye");
+  if (!o) return false;
+  Object.assign(o, { client_paid_at: null, pay_missing_at: new Date().toISOString() });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:pay_missing" });
+  return true;
+}
+// Livreur : remboursements à faire (course rendue après paiement), puis « J'ai remboursé » / « Je n'avais rien reçu »
+async function myRefunds() {
+  if (ONLINE) return authRest("/rest/v1/rpc/my_refunds", { method: "POST", body: {} });
+  return localOrders().filter(o => o.refund_courier_id === myId() && ["a_faire", "litige"].includes(o.refund_status))
+    .map(o => ({ id: o.id, ref: o.ref, amount: o.refund_amount, received: o.refund_received, status: o.refund_status, at: o.refund_at, name: o.contact_name, phone: o.contact_phone }));
+}
+async function refundDone(id, done) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_refund_done", { method: "POST", body: { p_id: id, p_done: !!done } });
+  const all = localOrders(), o = all.find(x => x.id === id && x.refund_courier_id === myId());
+  if (!o) return false;
+  o.refund_status = done ? "fait" : "rien_recu";
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "system", body: done ? "status:refund_done" : "status:refund_none" });
+  return true;
+}
+// Client : « ✅ J'ai été remboursé » ou « ❌ Pas remboursé » (le patron est prévenu)
+async function refundAnswer(token, ok) {
+  if (ONLINE) return rest("/rest/v1/rpc/client_refund_answer", { method: "POST", body: { p_token: token, p_ok: !!ok } });
+  const all = localOrders(), o = all.find(x => x.token === token && ["a_faire", "fait", "rien_recu"].includes(x.refund_status));
+  if (!o) return false;
+  o.refund_status = ok ? "recu" : "litige";
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "system", body: ok ? "status:refund_ok" : "status:refund_missing" });
+  return true;
+}
 async function clientPaid(token) {
   if (ONLINE) return rest("/rest/v1/rpc/order_client_paid", { method: "POST", body: { p_token: token } });
   const all = localOrders();
@@ -1598,7 +1642,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
