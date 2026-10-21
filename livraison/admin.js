@@ -1294,6 +1294,11 @@ async function start() {
   load();
   clearInterval(pollTimer);
   pollTimer = setInterval(load, 10000);
+  // Notification reçue (nouvelle commande, paiement, client pas remboursé…) : la page se met à jour tout de suite
+  if ("serviceWorker" in navigator && !window.hopSwListen) {
+    window.hopSwListen = true;
+    navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.hop === "refresh") load(); });
+  }
 }
 
 $("#loginForm").addEventListener("submit", onLogin);

@@ -37,13 +37,14 @@ async function admins() {
 }
 
 // Livreurs en service (position récente) qui peuvent prendre une course, le patron compris quand il roule ;
-// sans ceux qui l'ont déjà refusée
+// sans ceux qui l'ont refusée il y a moins de 5 min (après, elle peut leur revenir)
 async function onDuty(orderId?: string) {
   const since = new Date(Date.now() - 60 * 60000).toISOString();
   const { data } = await db.from("couriers").select("id").eq("online", true).eq("status", "actif").gt("position_at", since);
   let ids = (data || []).map(c => c.id);
   if (orderId && ids.length) {
-    const { data: no } = await db.from("order_declines").select("courier_id").eq("order_id", orderId);
+    const since5 = new Date(Date.now() - 5 * 60000).toISOString();
+    const { data: no } = await db.from("order_declines").select("courier_id").eq("order_id", orderId).gt("created_at", since5);
     const out = new Set((no || []).map(d => d.courier_id));
     ids = ids.filter(id => !out.has(id));
   }
@@ -72,6 +73,10 @@ Deno.serve(async req => {
       // Course en retard : personne ne l'a prise, pas récupérée, pas livrée
       sent += await sendTo(await admins(), { title: `⏰ Course en retard · ${o.ref}`,
         body: `${ev.why || ""}\n${route}${o.courier_name ? "\n🛵 " + o.courier_name : ""}`, url: "patron/", tag: "late-" + o.id }, site);
+    } else if (ev.event === "cancel" && ev.courier_id) {
+      // Course annulée (ou refusée par HOP) alors qu'un livreur l'avait : il est prévenu tout de suite
+      sent += await sendTo([String(ev.courier_id)], { title: `❌ Course annulée · ${o.ref}`,
+        body: `${route}\nNe vous déplacez pas : elle n'est plus à faire.`, url: "livreur/", tag: "o-" + o.id }, site);
     } else if (ev.event === "again") {
       sent += await sendTo(await admins(), { title: `↩️ Course remise en attente · ${o.ref}`,
         body: route, url: "patron/", tag: "o-" + o.id }, site);

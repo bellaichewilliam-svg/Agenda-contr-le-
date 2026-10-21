@@ -183,8 +183,8 @@ async function route() {
   try { wasOnline = localStorage.getItem("livraison.online.v1") === "1"; } catch (e) { /* ignore */ }
   if (wasOnline && duty.watch == null) toggleDuty(true); else if (duty.watch == null) Store.setOnline(false).catch(() => {});
   load();
-  clearInterval(pollTimer);
-  pollTimer = setInterval(load, 15000);
+  clearTimeout(pollTimer);
+  livePoll();
 }
 
 // --- Courses ------------------------------------------------------------------------
@@ -192,8 +192,12 @@ const byTime = (a, b) => new Date(a.pickup_at) - new Date(b.pickup_at);
 const sum = (list, f = o => Number(o.price)) => list.reduce((s, o) => s + f(o), 0);
 const today = () => UI.dayKey(new Date().toISOString());
 // Courses refusées par moi : elles ne reviennent pas (le patron voit toutes les commandes, il faut les cacher ici)
-const declinedByMe = new Set();
-const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id && !declinedByMe.has(o.id)).sort(byTime);
+// … pendant decline_hold_min minutes (5) : si personne d'autre ne l'a prise, elle revient (« Personne d'autre ne l'a prise »)
+const declinedAt = new Map(), backAgain = new Set();
+const holdMs = () => (Number(settings && settings.decline_hold_min) || 5) * 60000;
+const declinedRecently = id => declinedAt.has(id) && Date.now() - declinedAt.get(id) < holdMs();
+const markDeclined = id => { declinedAt.set(id, Date.now()); backAgain.delete(id); };
+const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id && !declinedRecently(o.id)).sort(byTime);
 const mine = () => orders.filter(o => o.courier_id === me.id && ["confirmee", "recuperee"].includes(o.status)).sort(byTime);
 
 // Un seul lecteur audio, débloqué au premier geste (les téléphones l'exigent)
@@ -290,7 +294,8 @@ async function load() {
     const [r, m, bal, dem, acc, fc] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
       Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null), Store.myAcceptance().catch(() => null), Store.demandForecast().catch(() => null)]);
     pens = (await Store.myPenalties().catch(() => null)) || pens;
-    ((await Store.listDeclines().catch(() => null)) || []).forEach(d => { if (d.courier_id === me.id) declinedByMe.add(d.order_id); });
+    // L'heure du refus vient de la base (c'est elle qui décide quand la course revient)
+    ((await Store.listDeclines().catch(() => null)) || []).forEach(d => { if (d.courier_id === me.id) declinedAt.set(d.order_id, new Date(d.created_at).getTime()); });
     wallet = (await Store.myCredit().catch(() => null)) || wallet;
     refunds = (await Store.myRefunds().catch(() => null)) || refunds;
     if (dem) demand = dem;
@@ -307,6 +312,8 @@ async function load() {
   }
   // Course de la fenêtre prise par un autre livreur (ou annulée) : on arrête de sonner
   if (offerShown && !pool().some(o => o.id === offerShown)) closeOffer();
+  // Refusée il y a plus de 5 min et toujours libre : elle revient en fenêtre
+  pool().forEach(o => { if (declinedAt.has(o.id) && !backAgain.has(o.id)) { backAgain.add(o.id); seenPool.delete(o.id); } });
   const fresh = pool().filter(o => !seenPool.has(o.id));
   // Toute course disponible encore jamais montrée s'ouvre en fenêtre (dès la 1re connexion aussi)
   // Hors ligne : ni fenêtre, ni son (la base ne montre d'ailleurs plus les courses)
@@ -571,7 +578,7 @@ async function onViewClick(e) {
   }
   if (el.dataset.decline) {
     el.disabled = true;
-    declinedByMe.add(el.dataset.decline);
+    markDeclined(el.dataset.decline);
     afterDecline(await Store.declineOrder(el.dataset.decline, "autre").catch(() => null));
     return load();
   }
@@ -1056,9 +1063,11 @@ function showNextOffer() {
   $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com)} (commission ${star ? "réseau " : ""}${UI.money(com)}${star ? " : c'est votre commerce ⭐" : ""})`;
   // Proposée d'abord aux livreurs en service les plus proches (vagues de wave_seconds)
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
-  $("#offerStar").innerHTML = star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
+  const again = backAgain.has(o.id);
+  $("#offerStar").innerHTML = again ? "↩️ Personne d'autre ne l'a prise : elle vous est reproposée"
+    : star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
     : early ? "🎯 Vous êtes parmi les plus proches : elle vous est proposée en premier" : "";
-  $("#offerStar").classList.toggle("hidden", !star && !early);
+  $("#offerStar").classList.toggle("hidden", !star && !early && !again);
   $("#offerFrom").textContent = UI.cityFr(o.from_city);
   $("#offerTo").textContent = UI.cityFr(o.to_city);
   $("#offerFacts").innerHTML = [
@@ -1116,7 +1125,7 @@ function askWhy() {
 async function declineOffer(reason) {
   const id = offerShown;
   closeOffer();
-  if (id) declinedByMe.add(id);
+  if (id) markDeclined(id);
   if (id) afterDecline(await Store.declineOrder(id, reason).catch(() => null));
   load();
 }
@@ -1561,6 +1570,16 @@ async function toggleDuty(quiet) {
 
 // --- Démarrage ------------------------------------------------------------------
 let pollTimer;
+// En direct : toutes les 5 s quand une course est proposée ou en cours, sinon toutes les 15 s ;
+// et tout de suite quand une notification arrive (paiement, annulation, nouvelle course…)
+function livePoll() {
+  clearTimeout(pollTimer);
+  const hot = mine().length || pool().length || offerShown || refunds.length;
+  pollTimer = setTimeout(async () => { await load(); livePoll(); }, hot ? 5000 : 15000);
+}
+if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => {
+  if (e.data && e.data.hop === "refresh" && me) load();
+});
 renderWelcome();
 document.querySelectorAll("[data-auth]").forEach(b => b.addEventListener("click", () => showAuth(b.dataset.auth)));
 $("#signupForm").addEventListener("submit", onSignup);
@@ -1569,7 +1588,7 @@ $("#waitTopcaseFile").addEventListener("change", onWaitTopcase);
 $("#loginForm").addEventListener("submit", onLogin);
 // Se déconnecter termine aussi le service : plus de courses proposées, plus visible sur la carte
 async function endAndLogout() {
-  clearInterval(pollTimer);
+  clearTimeout(pollTimer);
   if (duty.watch != null) toggleDuty(true);
   await Store.setOnline(false).catch(() => {});
   try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }

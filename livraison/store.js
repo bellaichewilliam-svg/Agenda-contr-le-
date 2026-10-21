@@ -146,7 +146,7 @@ const DEFAULT_SETTINGS = {
   pro_hop_share: CONFIG.pro.hopShare, pro_hop_share_client: CONFIG.pro.hopShareClient != null ? CONFIG.pro.hopShareClient : 1, pro_referrer_pct: CONFIG.pro.referrerPercent, pro_referrer_months: CONFIG.pro.referrerMonths,
   network_pct: CONFIG.platform.networkPercent, network_min: CONFIG.platform.networkMin,
   decline_streak_max: CONFIG.platform.declineStreakMax || 3,
-  idle_warn_min: 10, idle_off_min: 15,
+  idle_warn_min: 10, idle_off_min: 15, decline_hold_min: 5,
   wait_free_min: CONFIG.pricing.waiting.freeMinutes, wait_step_min: CONFIG.pricing.waiting.stepMinutes,
   wait_step_price: CONFIG.pricing.waiting.stepPrice, wait_max: CONFIG.pricing.waiting.max,
   commission_pct: CONFIG.platform.commissionPercent, commission_min: CONFIG.platform.commissionPerCourse

@@ -431,7 +431,8 @@ $("#chatBtn").addEventListener("click", openChat);
 I18N.apply();
 initMap();
 load().then(checkChat);
-setInterval(load, 10000);
+// En direct : toutes les 5 s pendant la course
+setInterval(() => { if (!order || ["nouvelle", "confirmee", "recuperee"].includes(order.status)) load(); }, 5000);
 setInterval(checkChat, 15000);
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
