@@ -79,9 +79,40 @@ function toPlace(f) {
 let dir = null;
 function loadDir() {
   if (!dir) dir = fetch("annuaire.json?v=" + DIR_VERSION).then(r => (r.ok ? r.json() : [])).then(list => list.map(e => Object.assign(e, {
-    keys: [e.n].concat(e.alt || []).map(normalize).filter(Boolean)
+    keys: [e.n].concat(e.alt || []).map(normalize).filter(Boolean),
+    sk: [e.n].concat(e.alt || []).join(" ").split(/[\s\-–,()]+/).map(skel).filter(Boolean)
   }))).catch(() => []);
   return dir;
+}
+// Squelette phonétique d'un mot, le même en hébreu et en lettres latines : « Oshi » et « אושי » → « _s »
+// (consonnes seulement, voyelle de tête notée « _ »), pour trouver un nom hébreu tapé en français
+const HE_SK = { "ב": "b", "ג": "g", "ד": "d", "ז": "z", "ח": "k", "ט": "t", "כ": "k", "ך": "k", "ל": "l", "מ": "m", "ם": "m",
+  "נ": "n", "ן": "n", "ס": "s", "פ": "p", "ף": "p", "צ": "c", "ץ": "c", "ק": "k", "ר": "r", "ש": "s", "ת": "t" };
+function skel(w) {
+  w = String(w || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f'’"׳״.]/g, "");
+  if (!w) return "";
+  if (/[\u0590-\u05FF]/.test(w)) {
+    const lead = /^[אע]/.test(w) ? "_" : "";
+    return lead + [...w].map(ch => HE_SK[ch] || "").join("");
+  }
+  if (!/[a-z]/.test(w)) return "";
+  const lead = /^[aeiouy]/.test(w) ? "_" : "";
+  w = w.replace(/ph/g, "p").replace(/sh/g, "s").replace(/ch|kh/g, "k").replace(/tz|ts/g, "§").replace(/ck/g, "k");
+  return lead + [...w].map(ch => ({ b: "b", v: "b", w: "b", g: "g", j: "g", d: "d", z: "z", k: "k", c: "k", q: "k", x: "k", t: "t",
+    l: "l", m: "m", n: "n", s: "s", "§": "c", p: "p", f: "p", r: "r" })[ch] || "").join("");
+}
+// Icône d'un restaurant selon son nom et son type (pas un burger pour tout le monde)
+function foodIcon(name, kind) {
+  const t = (String(name || "") + " " + String(kind || "")).toLowerCase();
+  const rules = [[/sushi|סושי|יפני|japan/, "🍣"], [/pizz|פיצ/, "🍕"], [/burger|בורגר|המבורגר|mcdonald|מקדונלד/, "🍔"],
+    [/סלט|salad|טבעונ|vegan/, "🥗"], [/asia|אסיי|סיני|chin|wok|ווק|thai|תאי|נודל|noodle|chung|ramen|ראמן/, "🥡"],
+    [/shawarma|שווארמ|שווארמה|falafel|פלאפל|חומוס|hummus|kebab|קבב|סביח|sabich|אוכל רחוב|street/, "🥙"],
+    [/גלידה|גלידר|gelat|glace|ice ?cream|יוגורט/, "🍦"], [/bagel|בייגל|מאפ|bakery|boulang|patiss|קונדיטור|עוגה|cake|donut|סופגני|croissant/, "🥐"],
+    [/איטלק|ital|pasta|פסטה/, "🍝"], [/בשר|grill|גריל|steak|סטייק|אסאדו|מעשנ|smoke|bbq/, "🥩"],
+    [/עוף|chicken|שניצל|schnitzel/, "🍗"], [/דגים|דג |fish|פירות ים/, "🐟"], [/כריך|sandwich|טוסט|deli|דלי/, "🥪"],
+    [/פאב|pub|בירה|beer|bar\b/, "🍺"], [/קפה|cafe|café|coffee|ארומה|aroma|קופיקס|cofix|espresso/, "☕"]];
+  for (const [rx, ico] of rules) if (rx.test(t)) return ico;
+  return "🍽️";
 }
 const DIR_VERSION = "1";
 // Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
@@ -107,12 +138,18 @@ async function dirSearch(q, at) {
   if (nq.length < 2) return [];
   const list = await loadDir();
   const vs = variants(nq);
+  // Mots tapés en lettres latines : on compare aussi leur squelette à celui des mots du nom (« Oshi » → אושי)
+  const qsk = /[a-z]/i.test(q) ? q.split(/[\s\-–,]+/).filter(w => w.length >= 2).map(skel).filter(Boolean) : [];
   const score = e => {
     let best = 9;
     for (const k of e.keys) for (const v of vs) {
       if (k === v) best = Math.min(best, 0);
       else if (k.startsWith(v)) best = Math.min(best, 1);
       else if (k.includes(v)) best = Math.min(best, 2);
+    }
+    if (best === 9 && qsk.length) {
+      const hits = qsk.filter(x => e.sk.includes(x));
+      if (hits.length >= Math.ceil(qsk.length / 2) && hits.some(x => x.length >= 2)) best = 3 + (qsk.length - hits.length) * 0.5;
     }
     return best;
   };
@@ -420,7 +457,7 @@ function attach(input, opts) {
 }
 
 window.Places = {
-  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText,
+  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText, foodIcon, directory: loadDir,
   setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
   setLocal(fn) { local = fn; },
   get near() { return near; },

@@ -546,7 +546,7 @@ function renderGuide(shop) {
   const vars = { monthly: UI.money(st.pro_monthly), share: UI.money(st.pro_shop_share), phone: CONFIG.bitPhone, client, full: payVars().full,
     courier: UI.money(Number(st.pro_shop_share) - Number(st.pro_hop_share || 0)), hop: UI.money(st.pro_hop_share),
     n: CONFIG.partners.carnet.courses, price: UI.money(CONFIG.partners.carnet.price) };
-  const keys = pro ? ["gdPro1", "gdPro2", "gdPro3", "gdPro4", "gdPro5", shop.client_pays ? "gdPro6c" : "gdPro6", "gdPro7"] : ["gdBase1", "gdBase2", "gdBase3", "gdBase4"];
+  const keys = pro ? ["gdPro1", "gdPro2", "gdPro3", "gdPro4", "gdPro5", shop.client_pays ? "gdPro6c" : "gdPro6", "gdPro7"] : ["gdBase1", "gdBase2", CONFIG.partners.carnet.offered ? "gdBase3c" : "gdBase3", "gdBase4"];
   $("#spGuideTitle").textContent = t(pro ? "gdTitlePro" : "gdTitle");
   $("#spGuideSteps").innerHTML = keys.map(k => `<li>${UI.esc(t(k, vars))}</li>`).join("");
   const box = $("#spGuide"), key = "livraison.guideSeen." + shop.code + (pro ? ".pro" : "");
@@ -578,14 +578,14 @@ function renderSpace() {
   $("#spPro").innerHTML = `<h3>${UI.esc(t("shProTitle"))}</h3>
     <div class="pro-grid">
       <div><small>${UI.esc(t("shProUnit", { city: I18N.cityName(home) }))}</small><b>${unit}</b></div>
-      <div class="pro-best"><small>${UI.esc(t("shProCarnet", { n: C.courses }))}</small><b>${UI.money(C.price)}</b><s>${UI.money(CONFIG.pricing.fixedFromHome[home] * C.courses)}</s></div>
-      <div><small>${UI.esc(t("shCarnetLeft"))}</small><b>🎟️ ${left}</b></div>
+      ${C.offered ? `<div class="pro-best"><small>${UI.esc(t("shProCarnet", { n: C.courses }))}</small><b>${UI.money(C.price)}</b><s>${UI.money(CONFIG.pricing.fixedFromHome[home] * C.courses)}</s></div>` : ""}
+      ${C.offered || left > 0 ? `<div><small>${UI.esc(t("shCarnetLeft"))}</small><b>🎟️ ${left}</b></div>` : ""}
     </div>
-    <p class="muted small" style="margin:10px 0">${UI.esc(t("shCarnetHow", { price: UI.money(C.price), phone: CONFIG.bitPhone, code: shop.code, n: C.courses }))}</p>
+    ${C.offered ? `<p class="muted small" style="margin:10px 0">${UI.esc(t("shCarnetHow", { price: UI.money(C.price), phone: CONFIG.bitPhone, code: shop.code, n: C.courses }))}</p>` : ""}
     ${sales.length ? `<p class="small" style="margin:6px 0 10px">${UI.esc(t("shReceipts"))} ${sales.map(v =>
       `<a href="${UI.esc(UI.carnetReceiptUrl(v))}">🧾 ${UI.esc(t("shReceiptNo", { n: v.receipt_number }))}</a>`).join(" · ")}</p>` : ""}
     <div class="btns" style="justify-content:flex-start">
-      <button type="button" class="btn btn-wa" data-buy="1">${UI.esc(t("shCarnetBuy", { price: UI.money(C.price) }))}</button>
+      ${C.offered ? `<button type="button" class="btn btn-wa" data-buy="1">${UI.esc(t("shCarnetBuy", { price: UI.money(C.price) }))}</button>` : ""}
       <a class="btn" href="index.html#devis">${UI.esc(t("offPro_cta"))} · ${UI.esc(t("rqTournee"))}</a>
     </div>`;
   const qr = $("#spQr");

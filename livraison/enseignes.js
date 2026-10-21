@@ -13,7 +13,7 @@ const CATS = [
   { id: "pharm", icon: "💊", q: ['nwr["amenity"="pharmacy"]', 'nwr["shop"="chemist"]'], r: 6000 },
   { id: "post", icon: "📮", q: ['nwr["amenity"="post_office"]', 'nwr["amenity"="parcel_locker"]'], r: 6000 },
   { id: "super", icon: "🛒", q: ['nwr["shop"="supermarket"]'], r: 5000 },
-  { id: "food", icon: "🍔", q: ['nwr["amenity"~"^(restaurant|fast_food)$"]'], r: 2500 },
+  { id: "food", icon: "🍽️", q: ['nwr["amenity"~"^(restaurant|fast_food)$"]'], r: 2500 },
   { id: "mall", icon: "🛍️", q: ['nwr["shop"~"^(mall|department_store)$"]'], r: 9000 },
   { id: "flower", icon: "💐", q: ['nwr["shop"="florist"]'], r: 6000 },
   { id: "tech", icon: "📱", q: ['nwr["shop"~"^(mobile_phone|electronics|computer)$"]'], r: 5000 }
@@ -27,7 +27,7 @@ const PHOTON_TAGS = {
   tech: ["shop:mobile_phone", "shop:electronics", "shop:computer"]
 };
 const KEEP_MS = 7 * 86400000;
-const KIND_ICON = { restaurant: "🍔", pharmacie: "💊", boutique: "🛍️", fleuriste: "💐", epicerie: "🛒", bureau: "🏢" };
+const KIND_ICON = { restaurant: "🍽️", pharmacie: "💊", boutique: "🛍️", fleuriste: "💐", epicerie: "🛒", bureau: "🏢" };
 
 function readCache(key) { try { const c = JSON.parse(localStorage.getItem(key)); return c && Date.now() - c.at < KEEP_MS ? c.items : null; } catch (e) { return null; } }
 function writeCache(key, items) { try { localStorage.setItem(key, JSON.stringify({ at: Date.now(), items })); } catch (e) { /* plein : tant pis */ } }
@@ -97,6 +97,13 @@ async function list(catId, at, lang) {
       name: s.name, street: s.address || "", number: "", city: s.city || "", lat: Number(s.lat), lon: Number(s.lon),
       partner: true, code: s.code, icon: KIND_ICON[s.kind] || "⭐"
     }));
+  } else if (cat.id === "food" && (items = (await Places.directory()).filter(e => e.lat != null && Places.km(at, e) * 1000 <= cat.r * 2)).length) {
+    // Restaurants : l'annuaire HOP! (vrais noms, adresses, téléphones), avec l'icône de leur cuisine
+    items = items.map(e => {
+      const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)/);
+      return { name: e.n, street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
+        lat: e.lat, lon: e.lon, icon: Places.foodIcon(e.n, e.k) };
+    });
   } else {
     const key = `livraison.ens.v1.${cat.id}.${lang}.${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
     items = readCache(key);
@@ -112,7 +119,7 @@ async function list(catId, at, lang) {
       });
       if (items.length) writeCache(key, items);
     }
-    items = items.map(x => Object.assign({ icon: cat.icon }, x));
+    items = items.map(x => Object.assign({ icon: cat.id === "food" ? Places.foodIcon(x.name) : cat.icon }, x));
   }
   return items.map(x => Object.assign(x, { km: Places.km(at, x) })).sort((a, b) => a.km - b.km).slice(0, 80);
 }
