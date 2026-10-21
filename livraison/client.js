@@ -1550,7 +1550,10 @@ function openRequest(topic) {
   if (!f.name.value && p.contact_name) f.name.value = p.contact_name;
   if (!f.phone.value && p.contact_phone) f.phone.value = p.contact_phone;
   if (!f.company.value && p.company) f.company.value = p.company;
-  f.topic.value = topic || "tournee";
+  // Carnet mis de côté par le patron : plus proposé dans les demandes
+  const carnetOpt = f.topic.querySelector('option[value="carnet"]');
+  if (carnetOpt) { carnetOpt.hidden = carnetOpt.disabled = !CONFIG.partners.carnet.offered; }
+  f.topic.value = topic === "carnet" && !CONFIG.partners.carnet.offered ? "tournee" : topic || "tournee";
   $("#reqError").classList.add("hidden");
   $("#reqDone").classList.add("hidden");
   $("#reqSend").classList.remove("hidden");

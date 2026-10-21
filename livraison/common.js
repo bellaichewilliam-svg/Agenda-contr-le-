@@ -216,7 +216,7 @@ const PLACE_FR = { poste: "Bureau de poste", superpharm: "Super-Pharm", relais: 
 const DOC_FR = { avis: "📨 Avis / SMS", identite: "🪪 Carte d'identité", procuration: "✍️ Procuration signée", rdv: "📅 Rendez-vous à la poste" };
 
 // Carte d'un commerce HOP! Pro : accueil des clients (« Nos partenaires ») et aperçu dans l'espace du commerce
-const KIND_ICON = { restaurant: "🍔", boutique: "🛍️", pharmacie: "💊", bureau: "💼", autre: "🏪" };
+const KIND_ICON = { restaurant: "🍽️", boutique: "🛍️", pharmacie: "💊", bureau: "💼", autre: "🏪" };
 const safeImg = s => (typeof s === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) ? s : "");
 function proCard(s, o) {
   const cover = safeImg(s.cover), logo = safeImg(s.logo);

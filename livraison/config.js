@@ -220,7 +220,9 @@ window.CONFIG = {
       autre: ["Produits · מוצרים", "Promotions · מבצעים"]
     },
     // Carnet pro : 10 courses dans Netanya payées d'avance (en ligne : settings.carnet_unit = price / courses)
-    carnet: { courses: 10, price: 200 }
+    // offered: false = le carnet n'est plus proposé aux commerces (mis de côté par le patron, pour une promo de relance) ;
+    // les commerces qui en ont encore l'utilisent normalement. Remettre true pour le proposer de nouveau.
+    carnet: { courses: 10, price: 200, offered: false }
   },
 
   // HOP! Pro : abonnement mensuel des commerces (0 % de commission sur leurs ventes). Leurs clients

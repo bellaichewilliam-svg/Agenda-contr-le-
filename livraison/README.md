@@ -270,3 +270,6 @@ livraison/
 └── email/                     # Envoi automatique des reçus depuis Gmail
 ```
 - **Annuaire HOP! des commerces** (`annuaire.json`) : 617 restaurants de Netanya et des alentours (nom, adresse, téléphone, position), cherchés en premier pendant la frappe, même s'ils ne sont pas sur la carte (« Nina » → Nina Sushi, « McDo » → tous les McDonald's du plus proche au plus loin) ; mention « Catalogue à venir » pour les enseignes pas encore partenaires. La recherche ne propose jamais d'adresse hors d'Israël, écrite en arabe ou à plus de 60 km.
+- **Avantages réseau au choix du patron** : par défaut, un livreur qui amène un commerce n'a plus ni la commission réduite (8 %), ni le bonus de 2 ₪, ni les 20 % des abonnements HOP! Pro ; le patron les active livreur par livreur (bouton « ⭐ Avantages réseau » sur sa fiche). La priorité sur les courses de ses commerces reste pour tous.
+- **Carnet de courses mis de côté** (`CONFIG.partners.carnet.offered = false`) : plus proposé aux commerces ni dans les demandes ; ceux qui en ont encore l'utilisent. Remettre `true` pour une promo de relance.
+- **Recherche phonétique** : un nom hébreu tapé en lettres latines est trouvé (« Oshi » → אושי אושי). **Restaurants près de vous** tirés de l'annuaire, avec l'icône de leur cuisine (🍣 🍕 🥡 ☕ 🍦…).

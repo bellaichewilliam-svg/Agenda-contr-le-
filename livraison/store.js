@@ -223,7 +223,7 @@ async function createOrder(order) {
     const referrer = shop && localCouriers().find(c => c.id === shop.referrer_id);
     Object.assign(order, {
       shop_id: shop ? shop.id : null, shop_name: shop ? shop.name : null, referrer_id: referrer ? referrer.id : null,
-      referral_bonus: referrer && referrer.role === "coursier" ? Number(settings.referral_bonus) : 0, referral_status: "du",
+      referral_bonus: referrer && referrer.role === "coursier" && referrer.network_perks ? Number(settings.referral_bonus) : 0, referral_status: "du",
       // Paiement direct : le client paie le livreur (Bit ou PayBox) ; seul le carnet est payé d'avance à HOP
       direct_pay: order.payment_method !== "carnet", prepaid_required: false,
       paid_to: order.payment_method === "carnet" ? "hop" : "livreur"
@@ -733,7 +733,8 @@ function refundCarnet(o) {
 // Champs à copier sur la course quand un livreur la prend (commission réseau si le commerce est à lui)
 async function courierFields(c, o) {
   const settings = await getSettings();
-  const network = !!o.referrer_id && o.referrer_id === c.id;
+  // Taux réseau seulement si le patron a accordé les avantages réseau à ce livreur
+  const network = !!o.referrer_id && o.referrer_id === c.id && !!c.network_perks;
   return {
     status: "confirmee", courier_id: c.id, courier_name: c.name, courier_phone: c.phone, network,
     courier_bit: c.bit_phone || c.phone, commission: c.role === "admin" ? 0 : commissionFor(courseValue(o), settings, network)
@@ -1247,7 +1248,7 @@ async function planExtend(shopId, paid) {
   if (paid) {
     const sales = readJSON(LS.planSales, []);
     const first = sales.filter(x => x.shop_id === shopId).map(x => x.created_at).sort()[0];
-    const ref = localCouriers().find(c => c.id === s.referrer_id && c.role === "coursier");
+    const ref = localCouriers().find(c => c.id === s.referrer_id && c.role === "coursier" && c.network_perks);
     const limit = new Date(); limit.setMonth(limit.getMonth() - Number(st.pro_referrer_months));
     if (ref && (!first || new Date(first) > limit)) share = Math.round(Number(st.pro_monthly) * Number(st.pro_referrer_pct)) / 100;
     sales.push({ id: uuid(), created_at: new Date().toISOString(), shop_id: shopId, months: 1, amount: Number(st.pro_monthly),

@@ -619,6 +619,7 @@ function renderCouriers(view) {
           ${c.unlocked_until && new Date(c.unlocked_until) > new Date()
             ? `<button class="btn btn-sm" data-unlock="off">🔒 Rebloquer (débloqué jusqu'au ${UI.esc(UI.fmtDateTime(c.unlocked_until))})</button>`
             : `<button class="btn btn-sm" data-unlock="on" title="Solde, course en cours, GPS et photo : plus aucun blocage pendant 24 h">🔓 Débloquer 24 h</button>`}
+          <button class="btn btn-sm${c.network_perks ? " btn-primary" : ""}" data-perks="${c.network_perks ? "off" : "on"}" title="Commission ${UI.esc(UI.networkText())} sur les courses de ses commerces, ${UI.esc(UI.money(settings.referral_bonus))} quand un autre livreur les fait, ${CONFIG.pro.referrerPercent} % des abonnements Pro">${c.network_perks ? "⭐ Avantages réseau : activés" : "☆ Avantages réseau : désactivés"}</button>
           ${chatBtn("c:" + c.id, `Livreur : ${c.name}`, c.phone, "💬 Message", c.status === "en_attente"
             ? `Bonjour ${c.name}, merci pour ton inscription chez ${CONFIG.businessName} ! Pour valider ton compte, envoie-moi ici en photo : permis de conduire, carte grise et carte d'identité.`
             : `Bonjour ${c.name}, `)}
@@ -1155,6 +1156,16 @@ async function onViewClick(e) {
   }
   if (el.dataset.copy) {
     if (navigator.clipboard) navigator.clipboard.writeText(el.dataset.copy).then(() => { el.textContent = "✓ Copié"; }, () => {});
+    return;
+  }
+  if (el.dataset.perks) {
+    const id = el.closest("[data-courier]").dataset.courier;
+    const c = couriers.find(x => x.id === id);
+    const on = el.dataset.perks === "on";
+    if (!confirm(on
+      ? `Activer les avantages réseau pour ${c ? c.name : "ce livreur"} ?\n\nSur les courses des commerces qu'il a amenés : commission ${UI.networkText()} au lieu de ${UI.commissionText()}, ${UI.money(settings.referral_bonus)} quand un autre livreur les fait, ${CONFIG.pro.referrerPercent} % de leurs abonnements HOP! Pro. (Pour les nouvelles courses.)`
+      : `Retirer les avantages réseau à ${c ? c.name : "ce livreur"} ? Ses prochaines courses repassent à ${UI.commissionText()}, sans bonus.`)) return;
+    try { await Store.updateCourier(id, { network_perks: on }); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
   }
   if (el.dataset.unlock) {

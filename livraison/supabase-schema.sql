@@ -4385,7 +4385,7 @@ begin
   if c.role = 'coursier' and not coalesce(c.unlocked_until > now(), false) then
     -- Crédit prépayé : il doit couvrir ce que HOP prendra sur cette course (et sur celles en cours)
     if ord.id is not null then
-      need := case when ord.referrer_id = c.id then public.commission_network(public.course_value(ord))
+      need := case when ord.referrer_id = c.id and c.network_perks then public.commission_network(public.course_value(ord))
                    else public.commission_for(public.course_value(ord)) end
             + case when ord.direct_pay and coalesce(ord.shop_share, 0) = 0 then coalesce(ord.hop_share, 0) else 0 end;
       if public.courier_credit(c.id) - public.courier_reserved(c.id) < need then raise exception 'credit_low'; end if;
@@ -4413,9 +4413,9 @@ begin
   end if;
   update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
          courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
-         network = coalesce(o.referrer_id = c.id, false),
+         network = coalesce(o.referrer_id = c.id and c.network_perks, false),
          commission = case when c.role = 'admin' then 0
-                           when o.referrer_id = c.id then public.commission_network(public.course_value(o))
+                           when o.referrer_id = c.id and c.network_perks then public.commission_network(public.course_value(o))
                            else public.commission_for(public.course_value(o)) end
    where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
   return found;
@@ -4477,6 +4477,69 @@ end;
 $$;
 revoke execute on function public.admin_unblock_phone(text) from public, anon;
 grant execute on function public.admin_unblock_phone(text) to authenticated;
+
+-- ============================================================================
+-- AVANTAGES RÉSEAU AU CHOIX DU PATRON : par défaut, un livreur qui amène un commerce n'a plus ni la commission
+-- réseau (8 %), ni le bonus de 2 ₪ quand un autre livreur livre ce commerce, ni les 20 % des abonnements HOP! Pro.
+-- Le patron les accorde livreur par livreur (couriers.network_perks), par exemple aux mieux notés.
+-- La priorité de quelques minutes sur les courses de ses commerces reste pour tous.
+-- ============================================================================
+alter table public.couriers add column if not exists network_perks boolean not null default false;
+
+create or replace function public.has_network_perks(p_id uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select network_perks from couriers where id = p_id), false);
+$$;
+revoke execute on function public.has_network_perks(uuid) from public, anon, authenticated;
+
+-- À l'inscription : jamais d'avantages réseau d'office
+create or replace function public.couriers_no_perks() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then new.network_perks := false; end if;
+  return new;
+end;
+$$;
+create or replace trigger couriers_no_perks before insert on public.couriers
+  for each row execute function public.couriers_no_perks();
+revoke execute on function public.couriers_no_perks() from public, anon, authenticated;
+
+-- Bonus de 2 ₪ par course d'un de ses commerces : seulement si le patron le lui a accordé
+create or replace function public.orders_zy_network_perks() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if coalesce(new.referral_bonus, 0) > 0 and not public.has_network_perks(new.referrer_id) then new.referral_bonus := 0; end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_zy_network_perks before insert on public.orders
+  for each row execute function public.orders_zy_network_perks();
+revoke execute on function public.orders_zy_network_perks() from public, anon, authenticated;
+
+-- 20 % des abonnements HOP! Pro : seulement si le patron le lui a accordé
+create or replace function public.shop_plan_extend(p_shop uuid, p_paid boolean) returns json
+language plpgsql security definer set search_path = public as $$
+declare s shops; st settings; until date; first_paid timestamptz; share numeric := 0; ref uuid;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  select * into s from shops where id = p_shop for update;
+  if not found then raise exception 'not_found'; end if;
+  select * into st from settings where id = 1;
+  until := (greatest(coalesce(s.plan_until, current_date - 1), current_date - 1) + interval '1 month')::date;
+  update shops set plan_until = until where id = p_shop;
+  if p_paid then
+    select min(created_at) into first_paid from plan_sales where shop_id = p_shop;
+    if exists (select 1 from couriers where id = s.referrer_id and role = 'coursier' and network_perks)
+       and coalesce(first_paid, now()) > now() - make_interval(months => st.pro_referrer_months) then
+      ref := s.referrer_id;
+      share := round(st.pro_monthly * st.pro_referrer_pct / 100, 2);
+    end if;
+    insert into plan_sales (shop_id, months, amount, referrer_id, referrer_share)
+    values (p_shop, 1, st.pro_monthly, ref, share);
+  end if;
+  return json_build_object('plan_until', until, 'referrer_share', share);
+end;
+$$;
 
 -- ============================================================================
 -- COMPTES CLIENTS : téléphone + mot de passe (accepté tout de suite, sans e-mail de confirmation pour l'instant).
