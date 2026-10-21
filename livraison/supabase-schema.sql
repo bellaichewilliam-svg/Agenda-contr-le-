@@ -3706,6 +3706,62 @@ revoke execute on function public.today_hours() from public, anon;
 grant execute on function public.today_hours() to authenticated;
 
 -- ============================================================================
+-- ENSEIGNES APPRISES : un restaurant ou un commerce absent de la carte (OpenStreetMap) que le client a indiqué
+-- lui-même (« n'est pas sur la carte : indiquez son adresse ») est mémorisé à chaque commande ; la fois suivante,
+-- il sort en premier dans la recherche, pour tous les clients
+-- ============================================================================
+create table if not exists public.known_places (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  address    text not null,
+  city       text,
+  lat        double precision,
+  lon        double precision,
+  uses       int not null default 1,
+  created_at timestamptz not null default now(),
+  last_at    timestamptz not null default now()
+);
+create unique index if not exists known_places_key on public.known_places (lower(name), lower(address), coalesce(city, ''));
+alter table public.known_places enable row level security;
+drop policy if exists "patron enseignes apprises" on public.known_places;
+create policy "patron enseignes apprises" on public.known_places for all to authenticated using (public.is_admin()) with check (public.is_admin());
+
+alter table public.orders add column if not exists pickup_learned boolean not null default false;
+alter table public.orders add column if not exists dropoff_learned boolean not null default false;
+
+create or replace function public.orders_learn_places() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.pickup_learned and coalesce(trim(new.pickup_place), '') <> '' and new.pickup_lat is not null then
+    insert into known_places (name, address, city, lat, lon)
+    values (trim(new.pickup_place), trim(new.pickup_address), new.from_city, new.pickup_lat, new.pickup_lon)
+    on conflict (lower(name), lower(address), coalesce(city, '')) do update set uses = known_places.uses + 1, last_at = now();
+  end if;
+  if new.dropoff_learned and coalesce(trim(new.dropoff_place), '') <> '' and new.dropoff_lat is not null then
+    insert into known_places (name, address, city, lat, lon)
+    values (trim(new.dropoff_place), trim(new.dropoff_address), new.to_city, new.dropoff_lat, new.dropoff_lon)
+    on conflict (lower(name), lower(address), coalesce(city, '')) do update set uses = known_places.uses + 1, last_at = now();
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_learn_places on public.orders;
+create trigger orders_learn_places after insert on public.orders
+  for each row execute function public.orders_learn_places();
+revoke execute on function public.orders_learn_places() from public, anon, authenticated;
+
+-- Recherche (tout le monde) : par nom, les plus utilisées d'abord
+create or replace function public.places_search(p_q text) returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(x), '[]'::json) from (
+    select name, address, city, lat, lon from known_places
+     where length(trim(coalesce(p_q, ''))) >= 2 and lower(name) like '%' || lower(trim(p_q)) || '%'
+     order by uses desc, last_at desc limit 5) x;
+$$;
+revoke execute on function public.places_search(text) from public;
+grant execute on function public.places_search(text) to anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
