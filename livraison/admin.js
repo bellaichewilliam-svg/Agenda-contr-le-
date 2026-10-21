@@ -344,6 +344,9 @@ function card(o, withDay) {
     meta.push(`<button class="pill pill-btn ${o.unlocked ? "paid" : ""}" data-act="unlock" title="Laisser le livreur valider « Livré » sans GPS ni photo">${o.unlocked ? "🔓 Débloquée (cliquer pour rebloquer)" : "🔓 Débloquer la course"}</button>`);
   }
   if (o.payment_method === "carnet") meta.push(`<span class="pill paid">🎟️ Carnet pro</span>`);
+  if (o.admin_note === "Espèces impayées à la livraison") meta.push(`<button type="button" class="btn btn-sm" data-unblock="${UI.esc(o.contact_phone)}">🔓 Débloquer le client</button>`);
+  // Espèces : qui a payé quoi (client → livreur, livreur → commerce), en clair
+  if (o.payment_method === "cash") meta.push(`<span class="pill">💵 Espèces : client ${UI.money(Number(o.price) + Number(o.cash_goods || 0))}${Number(o.cash_goods) > 0 ? ` · articles ${UI.money(o.cash_goods)} au commerce ${o.cash_shop_at ? "✅ reçus" : "⏳"}` : ""} · course ${UI.money(o.price)}${Number(o.cash_note) > 0 ? ` · billet ${UI.money(o.cash_note)}` : ""}</span>`);
   if (o.payment_method === "bit" && o.payment_status !== "paye" && o.client_paid_at) meta.push(o.direct_pay && !isMine(o)
     ? `<span class="pill unpaid">💳 Le client dit avoir payé le livreur · le livreur confirme</span>`
     : `<span class="pill unpaid" title="Vérifiez votre Bit, puis marquez la course payée">💳 Le client dit avoir payé par Bit · à vérifier</span>`);
@@ -1026,6 +1029,12 @@ async function onViewClick(e) {
   if (th) return openAdminChat(th.dataset.thread, th.dataset.ctitle, th.dataset.csub, th.dataset.prefill, !!th.dataset.photo);
   const el = e.target.closest("button");
   if (!el) return;
+  if (el.dataset.unblock) {
+    if (!confirm(`Débloquer le client ${el.dataset.unblock} ? Il pourra de nouveau commander (et payer en espèces s'il a déjà été livré).`)) return;
+    const ok = await Store.adminUnblock(el.dataset.unblock).catch(() => false);
+    alert(ok ? "✅ Client débloqué." : "Déblocage impossible, réessayez.");
+    return;
+  }
   if (el.id === "csvBtn") return exportCsv();
   if (el.dataset.week) { weekOffset = Math.min(0, weekOffset + Number(el.dataset.week)); return render(); }
   if (el.dataset.topupOk || el.dataset.topupNo) {

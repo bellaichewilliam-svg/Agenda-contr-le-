@@ -432,9 +432,17 @@
           <legend data-i18n="s6"></legend>
           <div class="choices">
             <label class="choice"><input type="radio" name="payment_method" value="bit" checked /><span><i class="bit-logo">bit</i><b data-i18n="pay_bit"></b><small id="bitSmall"></small></span></label>
+            <label class="choice"><input type="radio" name="payment_method" value="cash" /><span><i>💵</i><b data-i18n="pay_cash"></b><small id="cashSmall"></small></span></label>
             <label class="choice hidden" id="carnetChoice"><input type="radio" name="payment_method" value="carnet" /><span><i>🎟️</i><b data-i18n="pay_carnet"></b><small id="carnetSmall"></small></span></label>
           </div>
           <p class="notice warn hidden" id="prepayNote" data-i18n="prepayNote" style="margin-top:10px"></p>
+          <div class="cash-box hidden" id="cashBox">
+            <p class="cash-total" id="cashTotal"></p>
+            <span class="kind-label" data-i18n="cashNoteQ"></span>
+            <div class="cash-notes" id="cashNotes"></div>
+            <input type="hidden" name="cash_note" value="0" />
+            <small class="muted" id="cashRule"></small>
+          </div>
           <div class="fields" style="margin-top:12px">
             <label class="f full"><span data-i18n="payer"></span>
               <select name="payer"><option value="moi" data-i18n="payer_moi"></option><option value="destinataire" data-i18n="payer_dest"></option></select>

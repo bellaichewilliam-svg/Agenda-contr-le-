@@ -172,6 +172,13 @@ function courierPay(o) {
   return `<p class="small pay-courier">💳 ${UI.esc(t("spPayCourier", { amount: UI.money(amount), name, phone: o.courier_bit }))}
     <button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></p>`;
 }
+// Espèces : le livreur paie les articles au commerce en espèces ; le commerce le confirme (« Espèces reçues »)
+function cashLine(o) {
+  if (o.payment_method !== "cash" || !(Number(o.cash_goods) > 0)) return "";
+  if (o.cash_shop_at) return `<p class="cash-need ok">${UI.esc(t("spCashOk", { amount: UI.money(o.cash_goods) }))}</p>`;
+  return `<div class="cash-need"><b>${UI.esc(t("spCashDue", { amount: UI.money(o.cash_goods) }))}</b>
+    ${o.status === "confirmee" ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashWait"))}</small>`}</div>`;
+}
 // Ce que le commerce doit à HOP pour une livraison : sa part (avant), ou seulement la part de HOP (paiement direct)
 const billPart = o => (o.direct_pay ? (Number(o.shop_share || 0) > 0 ? Number(o.hop_share || 0) : 0) : Number(o.shop_share || 0));
 // Articles déjà mis dans le sac et nombre de sacs (gardés sur ce téléphone, même si on recharge la page)
@@ -238,6 +245,7 @@ function renderPrep() {
         : `<p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>`}
       <small class="muted">${UI.esc(t("spClient", { name: (o.dropoff_contact || o.contact_name || "").split(" ")[0], city: I18N.cityName(o.to_city) }))}</small>
       ${courierPay(o)}
+      ${cashLine(o)}
       ${act}
     </div>`;
   }).join("") : `<p class="muted small">${UI.esc(t("spPrepNone"))}</p>`);
@@ -296,6 +304,11 @@ $("#spPrep").addEventListener("click", e => {
     const input = $(`#spPrep [data-ref-for="${b.dataset.id}"]`), ref = input ? input.value.trim() : "";
     if (!/^[0-9]{3}$/.test(ref)) { alert(t("spRefNeed")); if (input) input.focus(); return; }
     return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep), null, ref);
+  }
+  if (b.dataset.cashOk) {
+    const o = state.dash.orders.find(x => x.id === b.dataset.cashOk);
+    if (o && confirm(t("spCashConfirm", { amount: UI.money(o.cash_goods) }))) return prepAction(b.dataset.cashOk, "cash_ok");
+    return;
   }
   if (b.dataset.bagsFor) { bagsDraft[b.dataset.bagsFor] = Number(b.dataset.n); keep("hop_shop_bags", bagsDraft); return renderPrep(); }
   if (b.dataset.ready) {

@@ -4080,6 +4080,403 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- ============================================================================
+-- ESPÈCES (au choix du client) : le client paie tout en espèces au livreur à la livraison (articles + course) ;
+-- le livreur paie les articles en espèces au commerce, qui touche « 💵 Espèces reçues ». Tout est carré :
+-- - plafond settings.cash_max (200 ₪), et seulement pour un client déjà livré une fois (même téléphone) ;
+-- - le client dit avec quel billet il paie (ou l'appoint) : le livreur sait le montant exact à avoir sur lui
+--   (cash_need = articles à payer au commerce + monnaie à rendre) et le confirme avant d'accepter ;
+-- - « Je n'ai pas les espèces » au commerce : la course repart tout de suite vers un autre livreur, 10 ₪ retenus
+--   sur son crédit (settings.cash_penalty) et plus de course avec espèces à avancer pendant 7 jours (cash_ban_days) ;
+-- - client qui ne paie pas : le patron est prévenu, le téléphone du client est bloqué, le patron décide ;
+-- - la commission de HOP est retirée du crédit du livreur à « Livré », comme toujours.
+-- ============================================================================
+alter table public.settings add column if not exists cash_max numeric not null default 200;
+alter table public.settings add column if not exists cash_penalty numeric not null default 10;
+alter table public.settings add column if not exists cash_ban_days int not null default 7;
+alter table public.orders add column if not exists cash_note int;                                 -- billet du client (0 : l'appoint)
+alter table public.orders add column if not exists cash_goods numeric(10, 2) not null default 0;  -- articles payés au commerce par le livreur
+alter table public.orders add column if not exists cash_change numeric(10, 2) not null default 0; -- monnaie à rendre au client
+alter table public.orders add column if not exists cash_need numeric(10, 2) not null default 0;   -- ce que le livreur doit avoir sur lui
+alter table public.orders add column if not exists cash_shop_at timestamptz;                      -- le commerce a reçu les espèces
+alter table public.couriers add column if not exists cash_ban_until timestamptz;
+
+create table if not exists public.blocked_phones (
+  phone       text primary key,
+  reason      text check (length(reason) <= 300),
+  created_at  timestamptz not null default now()
+);
+alter table public.blocked_phones enable row level security;
+revoke all on public.blocked_phones from anon, authenticated;
+
+-- « J'ai les espèces sur moi » : le livreur le confirme avant d'accepter (valable 10 min)
+create table if not exists public.order_cash_ok (
+  order_id    uuid not null references public.orders(id) on delete cascade,
+  courier_id  uuid not null references public.couriers(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  primary key (order_id, courier_id)
+);
+alter table public.order_cash_ok enable row level security;
+revoke all on public.order_cash_ok from anon, authenticated;
+
+create or replace function public.phone_digits(p text) returns text
+language sql immutable set search_path = public as $$
+  select right(regexp_replace(coalesce(p, ''), '\D', '', 'g'), 9);
+$$;
+
+-- Nouvelle commande : client bloqué refusé ; en espèces : plafond, client déjà livré, billet, montant exact pour le livreur
+create or replace function public.orders_zz_cash_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare st settings; goods numeric; total numeric; note int;
+begin
+  if exists (select 1 from blocked_phones where phone = public.phone_digits(new.contact_phone)) then raise exception 'client_blocked'; end if;
+  if new.payment_method <> 'cash' then
+    new.cash_note := null; new.cash_goods := 0; new.cash_change := 0; new.cash_need := 0;
+    return new;
+  end if;
+  select * into st from settings where id = 1;
+  goods := case when new.items is not null then coalesce(new.items_total, 0) else 0 end;
+  total := coalesce(new.price, 0) + goods;
+  if total > st.cash_max then raise exception 'cash_max'; end if;
+  if not exists (select 1 from orders o where o.status = 'livree' and public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone)) then
+    raise exception 'cash_first';
+  end if;
+  note := case when new.cash_note in (20, 50, 100, 200) then new.cash_note else 0 end;
+  if note > 0 and note < total then raise exception 'cash_note_small'; end if;
+  new.cash_note := note;
+  new.cash_goods := goods;
+  new.cash_change := case when note > 0 then note - total else 0 end;
+  new.cash_need := goods + new.cash_change;
+  new.direct_pay := true; new.paid_to := 'livreur'; new.prepaid_required := false;
+  return new;
+end;
+$$;
+create or replace trigger orders_zz_cash_guard before insert on public.orders
+  for each row execute function public.orders_zz_cash_guard();
+revoke execute on function public.orders_zz_cash_guard() from public, anon, authenticated;
+
+-- Le client ne passe pas en espèces après coup (le plafond et le livreur ont été choisis pour Bit)
+create or replace function public.order_set_payment(p_token uuid, p_method text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare oid uuid;
+begin
+  if p_method not in ('cash', 'bit') then raise exception 'bad_method'; end if;
+  if p_method = 'cash' then raise exception 'cash_switch'; end if;
+  update orders set payment_method = p_method,
+         paid_to = case when direct_pay or p_method = 'cash' then 'livreur' else 'hop' end,
+         client_paid_at = null, cash_note = null, cash_goods = 0, cash_change = 0, cash_need = 0
+   where token = p_token and payment_method in ('cash', 'bit') and payment_method <> p_method
+     and payment_status = 'en_attente' and status in ('nouvelle', 'confirmee', 'recuperee')
+   returning id into oid;
+  if oid is null then return false; end if;
+  insert into chat_messages (thread, author, body) values ('o:' || oid::text, 'system', 'status:pay_' || p_method);
+  return true;
+end;
+$$;
+
+-- Payé avant de récupérer (Bit / PayBox) ; en espèces : le client paie à la livraison, mais le commerce
+-- doit avoir confirmé « Espèces reçues » pour les articles
+create or replace function public.orders_paid_before_pickup() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'recuperee' and old.status is distinct from 'recuperee' and new.direct_pay and new.paid_to = 'livreur'
+     and not new.unlocked and coalesce(auth.uid() = new.courier_id, false)
+     and not exists (select 1 from couriers where id = new.courier_id and (role = 'admin' or unlocked_until > now())) then
+    if new.payment_method = 'cash' then
+      if new.cash_goods > 0 and new.shop_id is not null and new.cash_shop_at is null then raise exception 'cash_shop'; end if;
+    elsif new.payment_status <> 'paye' then
+      raise exception 'payment_required_pickup';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- « J'ai les espèces sur moi »
+create or replace function public.courier_cash_ok(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() then return false; end if;
+  if exists (select 1 from couriers where id = auth.uid() and cash_ban_until > now()) then raise exception 'cash_banned'; end if;
+  insert into order_cash_ok (order_id, courier_id) values (p_id, auth.uid())
+    on conflict (order_id, courier_id) do update set created_at = now();
+  return true;
+end;
+$$;
+revoke execute on function public.courier_cash_ok(uuid) from public, anon;
+grant execute on function public.courier_cash_ok(uuid) to authenticated;
+
+-- Livreur : « Je n'ai pas les espèces » et « le client ne paie pas en espèces »
+create or replace function public.courier_update(p_id uuid, p_action text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() then return false; end if;
+  if p_action = 'arrivee' then
+    -- « Je suis arrivé » au départ : le compteur d'attente démarre (sur place seulement, sauf déblocage)
+    if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()
+                    and (o.unlocked or coalesce(c.unlocked_until > now(), false)))
+       and exists (select 1 from orders o, couriers c, settings st
+                    where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.pickup_lat is not null
+                      and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                           or 6371000 * sqrt(radians(c.lat - o.pickup_lat) ^ 2
+                                + (radians(c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) > st.deliver_radius * 1.5)) then
+      raise exception 'too_far_pickup';
+    end if;
+    update orders set arrived_at = now()
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee' and arrived_at is null;
+    if found then insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:arrivee'); end if;
+  elsif p_action = 'recuperee' then
+    -- Attente / achats au-delà des minutes offertes (5 min, puis 1 ₪ la minute, 60 ₪ max), ajoutée au prix,
+    -- avec la commission de HOP dessus aussi. Course déjà payée : le client paie seulement le supplément au livreur
+    -- (wait_due, wait_status « a_payer »). HOP! Pro : l'attente compte à partir de l'heure annoncée et c'est le commerce qui la paie.
+    update orders o set status = 'recuperee',
+           wait_minutes = w.mins,
+           wait_fee = w.fee,
+           price = o.price + case when o.shop_status is null then w.fee else 0 end,
+           shop_share = o.shop_share + case when o.shop_status is null then 0 else w.fee end,
+           commission = round((o.commission + case when w.fee > 0 then round((w.fee * w.pct / 100 * 2)::numeric) / 2 else 0 end)::numeric, 2),
+           wait_due = case when w.fee > 0 and o.shop_status is null and o.payment_status = 'paye' then w.fee else 0 end,
+           wait_status = case when w.fee > 0 and o.shop_status is null and o.payment_status = 'paye' then 'a_payer' end
+      from (select x.id, st.commission_pct as pct, m.mins,
+                   case when x.arrived_at is null then 0
+                        -- Client : seulement l'attente annoncée sur place et pas refusée, jusqu'au plafond annoncé
+                        when x.shop_status is null and (x.wait_ann_cap is null or x.wait_ann_status = 'refus') then 0
+                        else least(st.wait_max, ceil(greatest(0, case when x.shop_status is null then least(m.mins, x.wait_ann_cap) else m.mins end - st.wait_free_min)
+                                                     / st.wait_step_min) * st.wait_step_price)::numeric(10, 2) end as fee
+              from orders x cross join settings st
+              cross join lateral (select coalesce(floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60), 0)::int as mins) m
+             where x.id = p_id and st.id = 1) w
+     where o.id = w.id and o.courier_id = auth.uid() and o.status = 'confirmee';
+  elsif p_action = 'attente_recue' then
+    update orders set wait_status = 'recu' where id = p_id and courier_id = auth.uid() and wait_status = 'a_payer';
+  elsif p_action = 'attente_refusee' then
+    -- Le client ne paie pas l'attente : pas de commission dessus, le patron est prévenu (il décide)
+    update orders o set wait_status = 'refuse',
+           commission = case when o.status = 'annulee' then 0 else round(greatest(0, o.commission - round((o.wait_due * st.commission_pct / 100 * 2)::numeric) / 2)::numeric, 2) end
+      from settings st where st.id = 1 and o.id = p_id and o.courier_id = auth.uid() and o.wait_status = 'a_payer';
+    if found then
+      insert into chat_messages (thread, author, author_name, body)
+      select 'c:' || auth.uid()::text, 'courier', o.courier_name,
+             '⚠️ Le client ne paie pas ' || case when o.status = 'annulee' then 'la moitié de la course (il a laissé tomber) : ' else 'le supplément d''attente : ' end
+             || replace(o.wait_due::text, '.', ',') || ' ₪ (course ' || o.ref || ')'
+        from orders o where o.id = p_id;
+    end if;
+  elsif p_action = 'livree' then
+    -- Sauf course ou livreur débloqué par le patron
+    if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()
+                    and (o.unlocked or coalesce(c.unlocked_until > now(), false))) then
+      if exists (select 1 from orders o, couriers c, settings st
+                  where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.dropoff_lat is not null
+                    and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                         or 6371000 * sqrt(radians(c.lat - o.dropoff_lat) ^ 2
+                              + (radians(c.lon - o.dropoff_lon) * cos(radians(o.dropoff_lat))) ^ 2) > st.deliver_radius)) then
+        raise exception 'too_far';
+      end if;
+      -- Clés ou objet de valeur : le destinataire a donné le bon code de remise
+      if exists (select 1 from orders o where o.id = p_id and o.handoff and o.handoff_ok_at is null) then
+        raise exception 'handoff_required';
+      end if;
+      -- « Déposer devant la porte » : la photo du colis doit être envoyée dans la conversation
+      if exists (select 1 from orders o where o.id = p_id and o.leave_at_door)
+         and not exists (select 1 from chat_messages m where m.thread = 'o:' || p_id::text and m.author = 'courier' and m.image is not null) then
+        raise exception 'photo_required';
+      end if;
+    end if;
+    -- Supplément d'attente à encaisser : « reçu » ou « ne paie pas » d'abord
+    if exists (select 1 from orders o where o.id = p_id and o.wait_status = 'a_payer') then raise exception 'wait_unpaid'; end if;
+    update orders set status = 'livree' where id = p_id and courier_id = auth.uid() and status = 'recuperee';
+  elsif p_action = 'paye' then
+    update orders set payment_status = 'paye' where id = p_id and courier_id = auth.uid() and paid_to = 'livreur';
+  elsif p_action = 'pas_especes' then
+    -- Il avait dit avoir les espèces : la course repart tout de suite, 10 ₪ retenus, 7 jours sans espèces à avancer
+    if not exists (select 1 from orders where id = p_id and courier_id = auth.uid() and status = 'confirmee' and cash_need > 0) then return false; end if;
+    insert into courier_penalties (courier_id, order_id, order_ref, amount, reason)
+      select auth.uid(), o.id, o.ref, st.cash_penalty, 'Espèces annoncées mais pas sur lui : course ' || o.ref || ' reproposée à un autre livreur'
+        from orders o, settings st where o.id = p_id and st.id = 1;
+    update couriers c set cash_ban_until = now() + make_interval(days => st.cash_ban_days) from settings st where st.id = 1 and c.id = auth.uid();
+    insert into chat_messages (thread, author, author_name, body)
+      select 'c:' || auth.uid()::text, 'courier', o.courier_name,
+             '⚠️ Pas les espèces pour la course ' || o.ref || ' : reproposée à un autre livreur, ' || replace(st.cash_penalty::text, '.00', '') || ' ₪ retenus et ' || st.cash_ban_days || ' jours sans espèces'
+        from orders o, settings st where o.id = p_id and st.id = 1;
+    update orders set status = 'nouvelle', courier_id = null, courier_name = null, courier_phone = null, courier_bit = null, commission = 0
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee';
+  elsif p_action = 'cash_impaye' then
+    -- Le client ne paie pas en espèces : le patron est prévenu, le client est bloqué, le patron décide
+    if not exists (select 1 from orders where id = p_id and courier_id = auth.uid() and status = 'recuperee' and payment_method = 'cash' and payment_status <> 'paye') then
+      return false;
+    end if;
+    insert into blocked_phones (phone, reason)
+      select public.phone_digits(o.contact_phone), 'Espèces impayées : course ' || o.ref from orders o where o.id = p_id
+      on conflict (phone) do nothing;
+    insert into chat_messages (thread, author, author_name, body)
+      select 'c:' || auth.uid()::text, 'courier', o.courier_name,
+             '⚠️ Le client ne paie pas en espèces : ' || replace((o.price + o.cash_goods)::text, '.00', '') || ' ₪ (articles ' || replace(o.cash_goods::text, '.00', '')
+             || ' ₪ payés au commerce + course ' || replace(o.price::text, '.00', '') || ' ₪), course ' || o.ref || '. Le client est bloqué.'
+        from orders o where o.id = p_id;
+    update orders set status = 'annulee', admin_note = 'Espèces impayées à la livraison' where id = p_id and courier_id = auth.uid();
+  elsif p_action = 'liberer' then
+    update orders set status = 'nouvelle', courier_id = null, courier_name = null, courier_phone = null,
+           courier_bit = null, commission = 0
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee';
+  else
+    return false;
+  end if;
+  return found;
+end;
+$$;
+
+-- Commerce : « Espèces reçues »
+create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_action text, p_minutes int, p_reason text, p_ref text, p_bags int) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders; v_ref text := nullif(trim(coalesce(p_ref, '')), '');
+begin
+  select o2.* into o from orders o2 join shops s on s.id = o2.shop_id where o2.id = p_id and s.token = p_token;
+  if not found then return false; end if;
+  if p_action = 'accepter' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    if v_ref is null or v_ref !~ '^[0-9]{3}$' then raise exception 'shop_ref_required'; end if;
+    update orders set shop_status = 'acceptee', shop_ref = v_ref, prep_minutes = least(greatest(coalesce(p_minutes, 15), 5), 90),
+           ready_at = now() + make_interval(mins => least(greatest(coalesce(p_minutes, 15), 5), 90))
+     where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:shop_ok');
+  elsif p_action = 'prete' and o.shop_status = 'acceptee' then
+    update orders set shop_status = 'prete', ready_at = least(ready_at, now()),
+           bags_count = case when p_bags between 1 and 20 then p_bags else bags_count end
+     where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:prete');
+  elsif p_action = 'cash_ok' and o.cash_goods > 0 and o.cash_shop_at is null and o.status = 'confirmee' then
+    update orders set cash_shop_at = now() where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:cash_shop');
+  elsif p_action = 'refuser' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    update orders set shop_status = 'refusee', status = 'refusee', admin_note = left(nullif(trim(p_reason), ''), 300) where id = p_id;
+  else
+    return false;
+  end if;
+  return true;
+end;
+$$;
+
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes, o.shop_ref,
+               o.items, o.items_total, o.items_note, o.hop_share, o.direct_pay, o.bags_count,
+               o.payment_method, o.cash_goods, o.cash_shop_at,
+               case when o.status in ('confirmee', 'recuperee') then o.courier_bit end as courier_bit
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json));
+$$;
+
+-- Accepter : confirmation des espèces
+create or replace function public.accept_order(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare c couriers; ord orders; need numeric;
+begin
+  select * into c from couriers where id = auth.uid() and status = 'actif';
+  if not found then return false; end if;
+  select * into ord from orders where id = p_id;
+  if c.role = 'coursier' and not coalesce(c.unlocked_until > now(), false) then
+    -- Crédit prépayé : il doit couvrir ce que HOP prendra sur cette course (et sur celles en cours)
+    if ord.id is not null then
+      need := case when ord.referrer_id = c.id then public.commission_network(public.course_value(ord))
+                   else public.commission_for(public.course_value(ord)) end
+            + case when ord.direct_pay and coalesce(ord.shop_share, 0) = 0 then coalesce(ord.hop_share, 0) else 0 end;
+      if public.courier_credit(c.id) - public.courier_reserved(c.id) < need then raise exception 'credit_low'; end if;
+    end if;
+    -- Une course récupérée doit être livrée (et validée) avant d'en prendre une autre
+    if exists (select 1 from orders where courier_id = c.id and status = 'recuperee') then raise exception 'busy'; end if;
+  end if;
+  -- Express : on y va directement (pas avec une autre course), et pas d'autre course pendant un express
+  if c.role = 'coursier' and ord.urgency = 'express'
+     and exists (select 1 from orders where courier_id = c.id and status in ('confirmee', 'recuperee')) then raise exception 'express_busy'; end if;
+  if c.role = 'coursier' and exists (select 1 from orders where courier_id = c.id and urgency = 'express' and status in ('confirmee', 'recuperee')) then
+    raise exception 'express_running';
+  end if;
+  if c.role = 'coursier' and not public.courier_online(c) then raise exception 'offline'; end if;
+  -- Une course rendue après paiement : le client doit d'abord être remboursé
+  if c.role = 'coursier' and exists (select 1 from orders where refund_courier_id = c.id and refund_status in ('a_faire', 'litige')) then
+    raise exception 'refund_pending';
+  end if;
+  -- Espèces à avancer : il a confirmé les avoir sur lui (et n'est pas privé d'espèces)
+  if c.role = 'coursier' and coalesce(ord.cash_need, 0) > 0 then
+    if c.cash_ban_until > now() then raise exception 'cash_banned'; end if;
+    if not exists (select 1 from order_cash_ok k where k.order_id = p_id and k.courier_id = c.id and k.created_at > now() - interval '10 minutes') then
+      raise exception 'cash_confirm';
+    end if;
+  end if;
+  update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
+         courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
+         network = coalesce(o.referrer_id = c.id, false),
+         commission = case when c.role = 'admin' then 0
+                           when o.referrer_id = c.id then public.commission_network(public.course_value(o))
+                           else public.commission_for(public.course_value(o)) end
+   where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
+  return found;
+end;
+$$;
+
+create or replace function public.can_see_new(o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with st as (select * from settings where id = 1),
+  ranked as (
+    select c.id, row_number() over (order by (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
+      from couriers c
+     where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
+       and public.courier_online(c)
+       and not public.declined_recently(o.id, c.id)
+  )
+  select o.status = 'nouvelle' and o.courier_id is null
+     and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
+     and not public.declined_recently(o.id, auth.uid())
+     -- Espèces à avancer : pas pour un livreur privé d'espèces (il n'avait pas les espèces la dernière fois)
+     and (coalesce(o.cash_need, 0) = 0 or not exists (select 1 from couriers me where me.id = auth.uid() and me.cash_ban_until > now()))
+     -- HOP! Pro : quand le commerce a accepté ; Pro et téléphone : pour arriver au moment où c'est prêt
+     and (o.shop_status is null or o.shop_status in ('acceptee', 'prete'))
+     -- Colis à récupérer : seulement quand le patron a vérifié les documents
+     and coalesce(o.docs_status, 'ok') = 'ok'
+     and now() >= public.offer_from(o)
+     -- Express : seulement aux livreurs sans course en cours
+     and (o.urgency <> 'express' or not exists (select 1 from orders x where x.courier_id = auth.uid() and x.status in ('confirmee', 'recuperee')))
+     and (o.referrer_id = auth.uid() or o.urgency = 'express'
+          or now() >= public.offer_from(o)
+               + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), (select count(*) from ranked)), 2)));
+$$;
+
+-- Reçu : les articles payés en espèces au commerce par le livreur (le commerce fait son propre reçu)
+create or replace function public.order_receipt(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('ref', o.ref, 'token', o.token, 'status', o.status, 'price', o.price, 'payment_method', o.payment_method, 'cash_goods', o.cash_goods,
+    'contact_name', o.contact_name, 'company', o.company, 'contact_phone', o.contact_phone,
+    'from_city', o.from_city, 'to_city', o.to_city, 'pickup_at', o.pickup_at,
+    'receipt_number', coalesce(o.receipt_number, o.courier_receipt_number), 'receipt_at', o.receipt_at,
+    'issuer', case when o.courier_receipt_number is not null then 'courier' else 'hop' end,
+    'courier_name', case when o.courier_receipt_number is not null then c.name end,
+    'courier_business', case when o.courier_receipt_number is not null then c.business_number end,
+    'courier_phone', case when o.courier_receipt_number is not null then c.phone end,
+    'courier_city', case when o.courier_receipt_number is not null then c.city end)
+  from orders o left join couriers c on c.id = o.courier_id
+  where o.token = p_token;
+$$;
+
+-- Patron : débloquer un client
+create or replace function public.admin_unblock_phone(p_phone text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then return false; end if;
+  delete from blocked_phones where phone = public.phone_digits(p_phone);
+  return true;
+end;
+$$;
+revoke execute on function public.admin_unblock_phone(text) from public, anon;
+grant execute on function public.admin_unblock_phone(text) to authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

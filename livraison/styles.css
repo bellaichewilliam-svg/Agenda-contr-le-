@@ -1189,6 +1189,18 @@ body.in-home .eta-bubble { display: none; }
 .wait-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .wait-chips .ch-chip { min-height: 40px; font-weight: 800; }
 .wait-ask { background: #FEF0C7; color: #7A2E0E; }
+.cash-stop { margin: 8px 0; padding: 12px; border-radius: 14px; background: #ECFDF3; border: 3px dashed #12B76A; color: #054F31; font-size: 18px; text-align: center; }
+.cash-stop b { font-size: 1.4em; }
+.cash-stop small { display: block; font-size: 13px; margin-top: 2px; }
+.cash-stop.ok { border-style: solid; font-size: 15px; }
+.cash-need { margin: 6px 0; padding: 10px 12px; border-radius: 12px; background: #ECFDF3; border: 2px dashed #12B76A; color: #054F31; font-size: 14px; }
+.cash-need.ok { border-style: solid; }
+.cash-need .btn { margin-top: 8px; }
+.cash-box { margin-top: 10px; padding: 12px; border-radius: 14px; background: #ECFDF3; border: 1px solid #ABEFC6; }
+.cash-box.hidden { display: none; }
+.cash-total { margin: 0 0 8px; font-weight: 700; color: #054F31; }
+.cash-notes { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+.cash-notes .ch-chip { min-height: 42px; font-weight: 800; }
 .bags-pick { margin: 8px 0; }
 .bags-pick > span { display: block; font-weight: 700; margin-bottom: 6px; }
 .bags-pick > div { display: flex; gap: 8px; flex-wrap: wrap; }

@@ -251,7 +251,8 @@ function render() {
   pay.classList.toggle("hidden", (o.status === "annulee" && !dropped) || o.status === "refusee");
   const bit = UI.bitFor(o);
   // Trompé de moyen de paiement : on change tant que rien n'est payé
-  const canSwitch = !o.direct_pay && o.payment_status !== "paye" && ["cash", "bit"].includes(o.payment_method)
+  // (passer en espèces après coup n'est pas possible : plafond et livreur choisis pour Bit)
+  const canSwitch = !o.direct_pay && o.payment_status !== "paye" && o.payment_method === "cash"
     && ["nouvelle", "confirmee", "recuperee"].includes(o.status) && !(o.payment_method === "bit" && o.prepaid_required);
   const copy = `<button class="btn btn-sm" id="copyBit">${UI.esc(t("trCopy"))}</button>`;
   // Course rendue après paiement : le premier livreur rembourse, le client confirme
@@ -271,7 +272,7 @@ function render() {
       : o.wait_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>` : ""}`;
   } else
   pay.innerHTML = `${refund}${missing}<small class="muted">${UI.esc(t("trPay"))}</small>
-    <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
+    <div class="amount">${UI.money(o.payment_method === "cash" ? Number(o.price) + Number(o.cash_goods || 0) : o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
     ${o.wait_status === "a_payer" ? `<div class="refund-box wait-due"><p><b>${UI.esc(t("trWaitDue", { fee: UI.money(o.wait_due), name: String(o.courier_name || "").split(" ")[0], phone: o.courier_bit || o.courier_phone || "" }))}</b></p>
       ${o.courier_bit || o.courier_phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit || o.courier_phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`
@@ -279,7 +280,9 @@ function render() {
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${UI.esc(t("receiptLink"))}</a>` : ""}`
       : o.payment_method === "bit"
         ? `${o.prepaid_required && !o.direct_pay ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}${UI.bitPay(o)}`
-        : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}
+        : `<div class="cash-box"><p class="cash-total">${UI.esc(t("trCashPay", { total: UI.money(Number(o.price) + Number(o.cash_goods || 0)) }))}</p>
+            ${Number(o.cash_goods) > 0 ? `<small>${UI.esc(t("trCashGoods", { goods: UI.money(o.cash_goods) }))}</small><br>` : ""}
+            <small>${UI.esc(Number(o.cash_note) > 0 ? t("trCashChange", { note: UI.money(o.cash_note), change: UI.money(Number(o.cash_note) - Number(o.price) - Number(o.cash_goods || 0)) }) : t("trCashExact"))}</small></div>`}
     ${canSwitch ? `<button class="btn btn-sm btn-link" id="switchPay">${UI.esc(t(o.payment_method === "bit" ? "trToCash" : "trToBit"))}</button>` : ""}`;
 
   // Discussion directe : avec le livreur attribué, ou avec l'administration

@@ -238,7 +238,27 @@ function phoneLine(o) {
 
 // Paiement direct : le client paie le livreur (Bit ou PayBox sur son numéro), le commerce Pro lui paie sa part
 const shopPart = o => Math.max(0, Number(o.shop_share || 0) - Number(o.hop_share || 0));
+// Espèces : ce que le client paie au livreur, et ce que le livreur doit avoir sur lui (articles + monnaie)
+const cashTotal = o => Number(o.price) + Number(o.cash_goods || 0);
+function cashNeedLine(o) {
+  if (o.payment_method !== "cash" || !(Number(o.cash_need) > 0)) return "";
+  const goods = Number(o.cash_goods || 0), change = Number(o.cash_change || 0);
+  return `<div class="cash-need">💵 Il vous faut <b>${UI.money(o.cash_need)}</b> en espèces sur vous : ${[goods ? `${UI.money(goods)} pour payer ${UI.esc(o.shop_name || "le commerce")}` : "", change ? `${UI.money(change)} de monnaie à rendre` : ""].filter(Boolean).join(" + ")}</div>`;
+}
+async function cashOk(o) {
+  if (!o || o.payment_method !== "cash" || !(Number(o.cash_need) > 0)) return true;
+  if (!confirm(`💵 Course en espèces : avez-vous bien ${UI.money(o.cash_need)} en espèces SUR VOUS, maintenant ?\n\nSi vous arrivez sans les espèces : la course repart à un autre livreur, ${UI.money(settings.cash_penalty || 10)} retenus sur votre crédit et ${settings.cash_ban_days || 7} jours sans courses en espèces.`)) return false;
+  const r = await Store.courierCashOk(o.id).catch(e => (/cash_banned/.test(e.message) ? "ban" : false));
+  if (r === "ban") { alert("🔒 Pas de course avec espèces pour l'instant : vous n'aviez pas les espèces la dernière fois."); return false; }
+  return !!r;
+}
 function payLine(o) {
+  if (o.payment_method === "cash") {
+    const goods = Number(o.cash_goods || 0), note = Number(o.cash_note || 0);
+    return `💵 <b>Espèces</b> : le ${o.payer === "destinataire" ? "destinataire" : "client"} vous paie <b>${UI.money(cashTotal(o))}</b> à la livraison`
+      + (goods ? ` (articles ${UI.money(goods)} que vous payez au commerce + course ${UI.money(o.price)})` : "")
+      + (note ? ` · il paie avec <b>${UI.money(note)}</b> : rendez-lui <b>${UI.money(note - cashTotal(o))}</b>` : " · il prépare l'appoint");
+  }
   if (o.paid_to === "hop") return o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
     : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant";
   if (!o.direct_pay) return `💵 Espèces : vous encaissez ${UI.money(o.price)} auprès du client`;
@@ -375,15 +395,18 @@ function card(o, kind) {
   const mineShop = !!o.referrer_id && o.referrer_id === me.id;
   const total = Store.courseValue(o);
   const net = total - (kind === "pool" ? Store.commissionFor(total, settings, mineShop) : Number(o.commission || 0));
-  if (kind === "pool") extra = readyBanner(o) + extra;
+  if (kind === "pool") extra = readyBanner(o) + cashNeedLine(o) + `<div class="small">${payLine(o)}</div>` + extra;
   if (o.shop_status) extra += proLine(o);
   if (o.phone_order) extra += phoneLine(o);
   if (o.adult_items) extra += `<div class="small adult-line">🔞 ${/tabac/.test(o.adult_items) ? "Tabac" : ""}${/tabac/.test(o.adult_items) && /alcool/.test(o.adult_items) ? " et " : ""}${/alcool/.test(o.adult_items) ? "alcool" : ""} : vérifiez la pièce d'identité du client (18 ans et plus) avant de donner.</div>`;
   if (o.shop_ref && kind !== "mine") extra += `<div class="bag-line">🛍️ Sac n° <b>${UI.esc(o.shop_ref)}</b> : demandez ce numéro${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}${Number(o.bags_count) ? ` · <b>${o.bags_count}</b> sac(s)` : ""}</div>`;
   if (o.rules_accepted_at) extra += `<div class="small muted">📋 Le client a accepté les conditions : max 40 × 40 × 35 cm, 15 kg, 500 ₪, rien de dangereux ni d'illégal. Colis non conforme ? Vous pouvez refuser : « ⚠️ Un souci ».</div>`;
   if (Number(o.discount) > 0) extra += `<div class="small">🎁 Code promo du client : ${UI.money(o.discount)}, payé par HOP (pas par vous)</div>`;
+  if (kind === "mine" && o.payment_method === "cash") {
+    extra += `<div class="small pay-direct">${payLine(o)}${o.payment_status === "paye" ? " · ✅ encaissé" : ""}</div>`;
+  }
   const hopPaid = o.paid_to === "hop";
-  if (kind === "mine" && o.direct_pay && !hopPaid) extra += `<div class="small pay-direct${o.client_paid_at && o.payment_status !== "paye" ? " pay-claimed" : ""}">${payLine(o)}${o.payment_status === "paye" ? " · ✅ reçu"
+  if (kind === "mine" && o.direct_pay && !hopPaid && o.payment_method !== "cash") extra += `<div class="small pay-direct${o.client_paid_at && o.payment_status !== "paye" ? " pay-claimed" : ""}">${payLine(o)}${o.payment_status === "paye" ? " · ✅ reçu"
     : o.client_paid_at ? `<br><b>📲 Le client dit avoir payé : vérifiez votre Bit / PayBox, puis touchez « 💳 Paiement reçu ».</b>`
     : ` · à recevoir <b>avant de récupérer la commande</b>`}</div>`;
 
@@ -408,7 +431,11 @@ function card(o, kind) {
           : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
       + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
-      + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm${o.direct_pay ? " btn-primary" : ""}" data-act="paye">${o.direct_pay ? "💳 Paiement reçu" : "💵 Encaissé"}</button>` : `<span class="pill paid">✓ ${o.direct_pay ? "payé" : "encaissé"}</span>`)
+      + (o.payment_method === "cash" && o.status === "confirmee" && Number(o.cash_need) > 0 && !o.cash_shop_at ? `<button class="btn btn-sm" data-act="pas_especes">😕 Je n'ai pas les espèces</button>` : "")
+      + (o.payment_method === "cash" ? (o.status === "recuperee" && o.payment_status !== "paye"
+          ? `<button class="btn btn-sm btn-primary" data-act="paye">💵 Espèces encaissées (${UI.money(cashTotal(o))})</button><button class="btn btn-sm" data-act="cash_impaye">❌ Le client ne paie pas</button>`
+          : o.payment_status === "paye" ? `<span class="pill paid">✓ encaissé</span>` : "")
+        : hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm${o.direct_pay ? " btn-primary" : ""}" data-act="paye">${o.direct_pay ? "💳 Paiement reçu" : "💵 Encaissé"}</button>` : `<span class="pill paid">✓ ${o.direct_pay ? "payé" : "encaissé"}</span>`)
       + (o.direct_pay && !hopPaid && o.client_paid_at && o.payment_status !== "paye" ? `<button class="btn btn-sm" data-paymissing="${UI.esc(o.id)}">❌ Pas reçu</button>` : "")
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
       + (o.leave_at_door && o.status === "recuperee" ? `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}" data-photo="1">📷 Photo du dépôt</button>` : "")
@@ -484,6 +511,17 @@ function readyBanner(o, etaToPickup) {
     : `Vous êtes à ${etaToPickup} min : partez dans ${r.left - etaToPickup} min, pas avant`;
   return `<div class="ready-banner ${r.ok ? "ok" : "wait"}">${r.text}${tip ? `<small>${tip}</small>` : ""}</div>`;
 }
+// Espèces, dans le bloc du point en cours : payer le commerce au départ, encaisser le client à l'arrivée
+function cashStop(o, which, now) {
+  if (o.payment_method !== "cash" || !now) return "";
+  if (which === "pickup" && Number(o.cash_goods) > 0) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu vos <b>${UI.money(o.cash_goods)}</b></div>`
+    : `<div class="cash-stop">💵 Payez <b>${UI.money(o.cash_goods)}</b> en espèces au commerce<small>il touche « Espèces reçues », puis vous récupérez la commande</small></div>`;
+  if (which === "dropoff" && o.payment_status !== "paye") {
+    const note = Number(o.cash_note || 0), tot = cashTotal(o);
+    return `<div class="cash-stop">💵 Encaissez <b>${UI.money(tot)}</b> en espèces<small>${note ? `il paie avec ${UI.money(note)} : rendez <b>${UI.money(note - tot)}</b>` : "il a préparé l'appoint"}</small></div>`;
+  }
+  return "";
+}
 // Le n° à montrer au commerce (sac HOP! Pro ou commande par téléphone) et les sacs à prendre, en très gros
 function showRef(o) {
   const n = o.shop_ref || o.phone_ref, bags = Number(o.bags_count) || 0;
@@ -524,6 +562,8 @@ function waitAnn(o) {
 }
 function mineStep(o, hopPaid) {
   if (o.status === "annulee") return `❌ Le client a laissé tomber (attente) : la moitié de la course vous est due`;
+  if (o.payment_method === "cash") return o.status === "recuperee" ? `3️⃣ Livrez et encaissez ${UI.money(cashTotal(o))} en espèces`
+    : Number(o.cash_goods) > 0 && !o.cash_shop_at ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
   if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${UI.money(o.price)} (Bit / PayBox), puis allez au départ`;
   return o.arrived_at ? "2️⃣ Récupérez la commande" : "2️⃣ Allez au départ";
@@ -537,7 +577,7 @@ function mineCard(o, x) {
     return `<section class="stop-block${now ? " now" : " done"}">
       <div class="stop-tag">${label}${which === "pickup" ? readyChip(o) : ""}</div>
       <div class="stop-addr">${UI.brand(o[pre + "_place"])}<bdi>${UI.esc(o[pre + "_address"])}</bdi>, ${UI.esc(UI.cityFr(city))}</div>
-      ${which === "pickup" && !to ? showRef(o) : ""}
+      ${which === "pickup" && !to ? showRef(o) : ""}${cashStop(o, which, now)}
       ${UI.addrDetails(o, pre)}${UI.addrNote(o[pre + "_note"])}${which === "dropoff" ? UI.doorTag(o) : ""}
       ${callBig(name, phone)}
       ${now ? navBtn(o, which) : ""}
@@ -726,6 +766,7 @@ async function onViewClick(e) {
   }
   if (el.dataset.accept) {
     const po = pool().find(x => x.id === el.dataset.accept);
+    if (!(await cashOk(po))) return;
     const eta = prompt("🛵 Dans combien de minutes êtes-vous au départ ? (le client peut refuser si c'est trop long)", String(po ? etaGuess(po) : 15));
     if (eta === null) return;
     el.disabled = true;
@@ -766,13 +807,16 @@ async function onViewClick(e) {
     }
     // « Livré » : seulement sur place, à l'adresse de livraison (vérifié aussi par la base)
     if (el.dataset.act === "livree" && o.direct_pay && o.paid_to !== "hop" && o.payment_status !== "paye" && !o.unlocked && !freeNow()) {
-      if (!confirm(`💳 Avez-vous bien reçu ${UI.money(o.price)} par Bit ou PayBox${shopPart(o) ? ` (et ${UI.money(shopPart(o))} du commerce)` : ""} ?`)) {
+      if (o.payment_method === "cash" ? !confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`) : !confirm(`💳 Avez-vous bien reçu ${UI.money(o.price)} par Bit ou PayBox${shopPart(o) ? ` (et ${UI.money(shopPart(o))} du commerce)` : ""} ?`)) {
         return alert("Le client doit vous payer avant « Livré » : montrez-lui votre numéro Bit / PayBox, ou écrivez à HOP en cas de souci.");
       }
       const okPay = await Store.courierAction(id, "paye").catch(() => false);
       if (!okPay) return alert("Paiement non enregistré, réessayez.");
       o.payment_status = "paye";
     }
+    if (el.dataset.act === "pas_especes" && !confirm(`😕 Vous n'avez pas les espèces ? La course repart tout de suite à un autre livreur, ${UI.money(settings.cash_penalty || 10)} sont retenus sur votre crédit et vous n'aurez plus de course en espèces pendant ${settings.cash_ban_days || 7} jours.`)) return;
+    if (el.dataset.act === "cash_impaye" && !confirm(`❌ Le client ne vous paie pas ${UI.money(cashTotal(o))} en espèces ? Gardez la commande : HOP! est prévenu, le client est bloqué et le patron décide.`)) return;
+    if (el.dataset.act === "paye" && o.payment_method === "cash" && !confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`)) return;
     if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`)) return;
     if (el.dataset.act === "livree") {
       el.disabled = true;
@@ -791,7 +835,8 @@ async function onViewClick(e) {
         }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /payment_required/.test(e.message) ? "pay" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /payment_required/.test(e.message) ? "pay" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /payment_required/.test(e.message) ? "pay" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /payment_required/.test(e.message) ? "pay" : false);
+    if (ok === "cash") { render(); return alert(`💵 ${o.shop_name || "Le commerce"} doit d'abord toucher « Espèces reçues » (vous lui payez ${UI.money(o.cash_goods)} en espèces).`); }
     if (ok === "wait") { render(); return alert("⏱️ Touchez d'abord « Supplément reçu » (ou « Le client ne paie pas ») pour l'attente."); }
     if (ok === "pay") { render(); return alert(el.dataset.act === "recuperee"
       ? "💳 Le client doit vous payer avant que vous récupériez la commande. Attendez son paiement (Bit / PayBox), vérifiez-le, puis touchez « Paiement reçu »."
@@ -953,6 +998,8 @@ function acceptError(e) {
   if (/express_running/.test(e.message)) { alert("⚡ Vous avez une course express en cours : livrez-la d'abord, sans autre course."); return "shown"; }
   if (/busy/.test(e.message)) { const b = busyOrder(); alert(`🔒 Livrez d'abord votre course en cours${b ? " n° " + b.ref : ""} : validez « Livré » sur place${b && b.leave_at_door ? ", avec la photo devant la porte" : ""}. Un souci ? Écrivez à HOP.`); return "shown"; }
   if (/debt/.test(e.message)) { alert(`🔒 Vous devez ${UI.money(balance)} à HOP : réglez votre solde pour recevoir des courses.`); return "shown"; }
+  if (/cash_confirm/.test(e.message)) { alert("💵 Confirmez d'abord que vous avez les espèces sur vous."); return "shown"; }
+  if (/cash_banned/.test(e.message)) { alert("🔒 Pas de course avec espèces pour l'instant : vous n'aviez pas les espèces la dernière fois."); return "shown"; }
   if (/credit_low/.test(e.message)) { alert(`💳 Crédit HOP insuffisant (${UI.money(available())}) pour la commission de cette course : rechargez-le dans « Finances ».`); openPage("week"); return "shown"; }
   return false;
 }
@@ -1235,6 +1282,7 @@ function showNextOffer() {
     trip != null ? `🏁 Puis <b>${Math.max(1, Math.round(trip / (trip < 6 ? 25 : 50) * 60 + 2))} min</b> jusqu'au client` : "",
     `🕐 ${UI.esc(when)}`,
     payLine(o),
+    cashNeedLine(o),
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
     o.shop_status ? proLine(o) : "",
     o.phone_order ? phoneLine(o) : "",
@@ -1322,6 +1370,7 @@ async function acceptOffer(eta) {
   const id = offerShown;
   // Avant d'accepter : dans combien de temps au départ ?
   if (typeof eta !== "number") return askEta();
+  if (!(await cashOk(pool().find(x => x.id === id)))) return closeOffer();
   $("#etaPick").classList.add("hidden");
   $("#offerAccept").classList.remove("hidden");
   $("#offerAccept").disabled = true;

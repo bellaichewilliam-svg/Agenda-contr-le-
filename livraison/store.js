@@ -681,6 +681,16 @@ async function assignOrder(o, courier) {
 // Un livreur accepte une course libre (le premier qui accepte la prend)
 // eta : dans combien de minutes le livreur est au départ (le client peut refuser si c'est trop long)
 const etaChoice = o => ["asap", "express"].includes(o.urgency) && !o.shop_status && !o.phone_order && !o.appt_at;
+// Patron : débloquer un client (espèces impayées)
+async function adminUnblock(phone) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_unblock_phone", { method: "POST", body: { p_phone: phone } });
+  return true;
+}
+// Espèces : « J'ai les espèces sur moi » avant d'accepter
+async function courierCashOk(id) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_cash_ok", { method: "POST", body: { p_id: id } });
+  return true;
+}
 async function acceptOrder(id, eta) {
   if (ONLINE) return authRest("/rest/v1/rpc/accept_order", { method: "POST", body: eta != null ? { p_id: id, p_eta: eta } : { p_id: id } });
   const all = localOrders();
@@ -1685,7 +1695,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
+  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, courierCashOk, adminUnblock, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
