@@ -79,8 +79,8 @@ function toPlace(f) {
 let dir = null;
 function loadDir() {
   if (!dir) dir = fetch("annuaire.json?v=" + DIR_VERSION).then(r => (r.ok ? r.json() : [])).then(list => list.map(e => Object.assign(e, {
-    keys: [e.n].concat(e.alt || []).map(normalize).filter(Boolean),
-    sk: [e.n].concat(e.alt || []).join(" ").split(/[\s\-–,()]+/).map(skel).filter(Boolean)
+    keys: [e.n, e.fr].concat(e.alt || []).map(normalize).filter(Boolean),
+    sk: [e.n, e.fr || ""].concat(e.alt || []).join(" ").split(/[\s\-–,()]+/).map(skel).filter(Boolean)
   }))).catch(() => []);
   return dir;
 }
@@ -114,7 +114,7 @@ function foodIcon(name, kind) {
   for (const [rx, ico] of rules) if (rx.test(t)) return ico;
   return "🍽️";
 }
-const DIR_VERSION = "1";
+const DIR_VERSION = "2";
 // Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
 const ALIASES = [
   ["mcdonalds", "מקדונלד"], ["mcdonald", "מקדונלד"], ["mcdo", "מקדונלד"], ["macdo", "מקדונלד"], ["burgerking", "בורגרקינג"],
@@ -133,7 +133,12 @@ function variants(nq) {
   if (t !== nq) out.push(t);
   return out;
 }
-async function dirSearch(q, at) {
+// Nom affiché en français et en hébreu : « Nina Sushi · נינה סושי » (l'hébreu d'abord en hébreu)
+function dirName(e, lang) {
+  if (!e.fr || normalize(e.fr) === normalize(e.n) || e.n.includes(e.fr)) return e.n;
+  return lang === "he" ? `${e.n} · ${e.fr}` : `${e.fr} · ${e.n}`;
+}
+async function dirSearch(q, at, lang) {
   const nq = normalize(q);
   if (nq.length < 2) return [];
   const list = await loadDir();
@@ -159,17 +164,18 @@ async function dirSearch(q, at) {
       const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)$/);
       const streetName = m ? m[1] : e.s || "", housenumber = m ? m[2] : "";
       const city = e.c || "נתניה";
+      const name = dirName(e, lang);
       return { lat: e.lat, lon: e.lon, city, type: "house", streetName, housenumber, hit: true, dir: true,
-        cityId: matchCity(city) || nearestCity(e.lat, e.lon), brand: e.n, street: e.s || e.n, exact: true,
+        cityId: matchCity(city) || nearestCity(e.lat, e.lon), brand: name, street: e.s || e.n, exact: true,
         phone: e.p || null, hours: e.h || null, kind: e.k || null,
-        label: [e.n, e.s, city].filter(Boolean).join(", ") };
+        label: [name, e.s, city].filter(Boolean).join(", ") };
     });
 }
 
 async function search(q, lang) {
   const at = near || CONFIG.cities.find(c => c.id === CONFIG.homeCity);
   const mine = local ? await Promise.resolve(local(q)).catch(() => []) : [];
-  const known = await dirSearch(q, at).catch(() => []);
+  const known = await dirSearch(q, at, lang).catch(() => []);
   const ms = new Set(mine.map(p => normalize(p.brand)));
   const extra = mine.concat(known.filter(p => !ms.has(normalize(p.brand))));
   const list = await searchMap(q, lang).catch(e => { if (!extra.length) throw e; return []; });
@@ -457,7 +463,7 @@ function attach(input, opts) {
 }
 
 window.Places = {
-  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText, foodIcon, directory: loadDir,
+  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText, foodIcon, dirName, directory: loadDir,
   setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
   setLocal(fn) { local = fn; },
   get near() { return near; },
