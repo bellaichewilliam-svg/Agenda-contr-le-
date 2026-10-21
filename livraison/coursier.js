@@ -1296,6 +1296,7 @@ function renderHome() {
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-card hot" data-notif="1"><span>🔔 ${Notification.permission === "denied" ? "Notifications bloquées" : "Autorisez les notifications"}<small>${Notification.permission === "denied" ? "Chrome ⋮ → Paramètres → Notifications → autorisez HOP!, sinon pas de « En service » ni de courses appli fermée" : "Pour la notification « En service » et les nouvelles courses, même appli fermée"}</small></span><span class="go">›</span></button>` : ""}
     ${!isOnline() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>` : ""}`;
   [...$("#sheetBody").querySelectorAll(".rd-card")].forEach((c, i) => c.classList.toggle("rd-more", i >= 2));
+  $("#sheetBody").insertAdjacentHTML("beforeend", miniCurve());
   $("#dutyText").classList.toggle("rd-more", !/⚠️/.test($("#dutyText").textContent));
   if (sheetState() === "expanded") renderToday();
   sheetHeight();
@@ -1345,7 +1346,6 @@ function initSheetDrag() {
   sheet.addEventListener("pointerdown", e => {
     fromGrab = !!e.target.closest("#sheetGrab");
     if (!fromGrab && e.target.closest("button, a, input, select, textarea, .rd-slide")) return;
-    if (!fromGrab && sheetState() === "expanded" && sheet.scrollTop > 0) return;   // grand : on lit d'abord en haut
     y0 = e.clientY; dy = 0; sheet.classList.add("dragging");
     try { sheet.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
   });
@@ -1390,6 +1390,15 @@ function todayCurve() {
   });
   return { hours, now, lv };
 }
+// Petite courbe de la journée, toujours visible dans le panneau (en ligne ou hors ligne) ; on la touche pour tout voir
+function miniCurve() {
+  const { hours, now } = todayCurve();
+  const top = Math.max(0.3, ...hours.map(x => x.v));
+  const next = hours.find(x => x.h > now && x.v / top >= 0.8);
+  return `<button type="button" class="mini-curve" data-sheet-up="1" aria-label="Voir la journée">
+      <span class="mini-bars">${hours.map(x => `<i class="${x.v / top >= 0.8 ? "hi" : x.v / top >= 0.45 ? "mid" : "lo"}${x.h === now ? " now" : ""}${x.h < now ? " past" : ""}" style="height:${Math.round(15 + 85 * x.v / top)}%"></i>`).join("")}</span>
+      <span class="mini-txt">📊 ${next ? `Prochain pic à <b>${next.h} h</b>` : "Afflux de la journée"} ›</span></button>`;
+}
 function renderToday() {
   const box = $("#todayBox");
   if (!box) return;
@@ -1403,7 +1412,8 @@ function renderToday() {
   const done = orders.filter(o => o.courier_id === me.id && o.status === "livree" && new Date(o.delivered_at || o.pickup_at) >= t0);
   const gain = done.reduce((a, o) => a + Store.courierGain(o) + (["recu", "verse"].includes(o.tip_status) ? Number(o.tip || 0) : 0), 0);
   box.innerHTML = `<div class="today">
-      <div class="today-head"><b>📊 Aujourd'hui</b><span>${lv ? `Demande maintenant : <b>${lv.label}</b> ${bars(lv)}` : ""}</span></div>
+      <div class="today-head"><b>📊 Aujourd'hui</b><span>${lv ? `Maintenant : <b>${lv.label}</b> ${bars(lv)}` : ""}</span>
+        <button type="button" class="today-close" data-sheet-down="1" aria-label="Réduire">⌄ Réduire</button></div>
       <div class="today-chart">${hours.map(x => `<div class="${x.h === now ? "now" : ""}${x.h < now ? " past" : ""}">
           <i style="height:${Math.round(8 + 92 * x.v / top)}%" class="${x.v / top >= 0.8 ? "hi" : x.v / top >= 0.45 ? "mid" : "lo"}"></i><span>${x.h}</span></div>`).join("")}</div>
       <p class="today-peak">🔥 Pics : ${ranges.map(r => `${r[0]} h–${r[1] + 1} h`).join(" et ") || "—"}${next ? ` · le prochain dans <b>${next.h - now} h</b>` : ""}</p>
@@ -1413,11 +1423,7 @@ function renderToday() {
         <div><small>Par course</small><b>${UI.money(done.length ? gain / done.length : 0)}</b></div>
         <div><small>Crédit HOP</small><b>${UI.money(available())}</b></div>
       </div>
-      <div class="today-how">
-        <p>🎯 La course part d'abord au livreur le plus proche, puis aux autres.</p>
-        <p>⚡ L'Express va aux livreurs libres, et on y va directement.</p>
-        <p>💳 Le client vous paie avant que vous récupériez la commande.</p>
-      </div></div>`;
+      <p class="today-how">🎯 Le plus proche d'abord · ⚡ Express aux livreurs libres · 💳 payé avant de récupérer</p></div>`;
 }
 
 // État « en service » : glissière, menu, texte
@@ -1777,6 +1783,10 @@ $("#bellBtn").addEventListener("click", () => openPage("inbox"));
 $("#pageBack").addEventListener("click", closePage);
 $("#drawerLogout").addEventListener("click", () => { if (confirm("Se déconnecter ?")) endAndLogout(); });
 $("#locateBtn").addEventListener("click", locateMe);
+$("#sheet").addEventListener("click", e => {
+  if (e.target.closest("[data-sheet-up]")) setSheetState("expanded");
+  else if (e.target.closest("[data-sheet-down]")) setSheetState("normal");
+});
 $("#sheetBody").addEventListener("click", async e => {
   if (await onRefundClick(e)) return;
   if (e.target.closest("[data-install]")) return UI.installApp("HOP! Livreur", "livreur/").then(ok => { if (ok) renderHome(); });
