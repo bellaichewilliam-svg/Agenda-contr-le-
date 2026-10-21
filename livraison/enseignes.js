@@ -101,7 +101,7 @@ async function list(catId, at, lang) {
     // Restaurants : l'annuaire HOP! (vrais noms, adresses, téléphones), avec l'icône de leur cuisine
     items = items.map(e => {
       const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)/);
-      return { name: e.n, street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
+      return { name: Places.dirName(e, lang), street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
         lat: e.lat, lon: e.lon, icon: Places.foodIcon(e.n, e.k) };
     });
   } else {
