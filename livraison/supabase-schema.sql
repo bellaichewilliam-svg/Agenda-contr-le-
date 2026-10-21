@@ -3819,6 +3819,72 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- ============================================================================
+-- AJOUTER DES ARTICLES À SA COMMANDE (catalogue HOP! Pro) : pendant add_items_min minutes (15) après la
+-- commande et tant que le commerce ne l'a pas marquée prête. La livraison ne change pas ; le client paie
+-- les articles au commerce, comme le reste. Tout doit encore tenir dans le top case (le client le confirme).
+-- ============================================================================
+alter table public.settings add column if not exists add_items_min int not null default 15;
+alter table public.orders add column if not exists items_added_at timestamptz;
+
+create or replace function public.order_add_until(o orders) returns timestamptz
+language sql stable security definer set search_path = public as $$
+  select case when o.shop_id is not null and o.items is not null and o.status in ('nouvelle', 'confirmee')
+                   and o.shop_status in ('attente', 'acceptee')
+              then o.created_at + make_interval(mins => coalesce((select add_items_min from settings where id = 1), 15)) end;
+$$;
+
+-- Ce que le client peut encore ajouter : jusqu'à quand, et les produits disponibles du commerce
+create or replace function public.order_addable(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select case when public.order_add_until(o) > now() then json_build_object(
+    'until', public.order_add_until(o),
+    'shop', (select s.name from shops s where s.id = o.shop_id),
+    'products', coalesce((select json_agg(json_build_object('id', p.id, 'name', p.name, 'description', p.description,
+                                  'price', p.price, 'photo', p.photo) order by p.position, p.created_at)
+                            from shop_products p where p.shop_id = o.shop_id and p.available), '[]'::json)) end
+    from orders o where o.token = p_token;
+$$;
+
+create or replace function public.order_add_items(p_token uuid, p_items jsonb, p_topcase boolean) returns json
+language plpgsql security definer set search_path = public as $$
+declare o orders; list jsonb; total numeric; lines text; note text; n_added int;
+begin
+  select * into o from orders where token = p_token for update;
+  if not found then return json_build_object('ok', false, 'error', 'not_found'); end if;
+  if coalesce(public.order_add_until(o) <= now(), true) then return json_build_object('ok', false, 'error', 'too_late'); end if;
+  if not coalesce(p_topcase, false) then return json_build_object('ok', false, 'error', 'topcase'); end if;
+  -- Articles demandés : produits disponibles de ce commerce, prix du catalogue (jamais ceux envoyés)
+  with req as (
+    select (x->>'id')::uuid as id, least(greatest(coalesce((x->>'qty')::int, 1), 1), 50) as qty
+      from jsonb_array_elements(case when jsonb_typeof(p_items) = 'array' then p_items else '[]'::jsonb end) x
+     where (x->>'id') ~ '^[0-9a-f-]{36}$' limit 40),
+  ok as (select p.id, p.name, p.price, r.qty from req r join shop_products p on p.id = r.id and p.shop_id = o.shop_id and p.available),
+  cur as (select (e->>'id')::uuid as id, e->>'name' as name, (e->>'price')::numeric as price, (e->>'qty')::int as qty,
+                 coalesce((e->>'added')::boolean, false) as added, ord
+            from jsonb_array_elements(o.items) with ordinality as t(e, ord)),
+  merged as (
+    select c.id, c.name, c.price, least(c.qty + coalesce(k.qty, 0), 50) as qty, c.added or k.id is not null as added, c.ord
+      from cur c left join ok k on k.id = c.id
+    union all
+    select k.id, k.name, k.price, k.qty, true, 1000 + row_number() over () from ok k where not exists (select 1 from cur c where c.id = k.id))
+  select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'price', price, 'qty', qty) || case when added then '{"added": true}'::jsonb else '{}'::jsonb end order by ord),
+         sum(price * qty), string_agg(qty || ' × ' || name, E'\n' order by ord), (select count(*) from ok)
+    into list, total, lines, n_added
+    from merged;
+  if coalesce(n_added, 0) = 0 then return json_build_object('ok', false, 'error', 'empty'); end if;
+  note := nullif(trim(coalesce(o.items_note, '')), '');
+  update orders set items = list, items_total = total, items_added_at = now(),
+         shop_order = left(lines || coalesce(E'\n💬 ' || note, ''), 1000)
+   where id = o.id;
+  insert into chat_messages (thread, author, body) values ('o:' || o.id::text, 'system', 'status:items_added');
+  return json_build_object('ok', true, 'items_total', total);
+end;
+$$;
+revoke execute on function public.order_add_until(orders) from public, anon, authenticated;
+revoke execute on function public.order_addable(uuid), public.order_add_items(uuid, jsonb, boolean) from public;
+grant execute on function public.order_addable(uuid), public.order_add_items(uuid, jsonb, boolean) to anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

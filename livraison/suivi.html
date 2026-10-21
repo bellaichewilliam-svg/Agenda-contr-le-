@@ -75,12 +75,14 @@
       <h2 class="st-title" id="stTitle"></h2>
       <p class="st-sub" id="stSub"></p>
       <ol class="st-steps" id="stSteps"></ol>
+      <div class="add-wrap" id="stAdd"></div>
       <button type="button" class="st-details" id="stDetails"></button>
     </div>
   </section>
   <div class="track-panel">
     <div class="eta" id="eta"><b data-i18n="trTitle"></b></div>
     <div class="eta-ask hidden" id="etaAsk"></div>
+    <div class="add-wrap hidden" id="addBox"></div>
     <div class="card rate-card hidden" id="rateBox"></div>
     <div class="card rate-card hidden" id="tipBox"></div>
     <div class="confetti" id="confetti" aria-hidden="true"></div>
@@ -98,6 +100,17 @@
     </div>
   </div>
 </main>
+<!-- Ajouter des articles du même commerce (livraison offerte) -->
+<div class="modal hidden" id="addModal" role="dialog" aria-modal="true">
+  <div class="modal-box add-box">
+    <h3 id="adHead"></h3>
+    <p class="small muted" id="adInfo"></p>
+    <div class="add-list" id="adList"></div>
+    <label class="add-top"><input type="checkbox" id="adTop" /> <span id="adTopTxt"></span></label>
+    <p class="notice err hidden" id="adErr"></p>
+    <div class="add-btns"><button type="button" class="btn btn-primary btn-lg" id="adOk"></button><button type="button" class="btn" id="adCancel"></button></div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="config.js?v=202610211617"></script>

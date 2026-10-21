@@ -1014,6 +1014,16 @@ async function shopOrderAction(token, id, action, minutes, reason, ref, bags) {
   return true;
 }
 
+// Client : ajouter des articles du même commerce à sa commande (15 min, tant qu'elle n'est pas prête)
+async function orderAddable(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_addable", { method: "POST", body: { p_token: token } });
+  return null;   // mode démo : pas d'ajout
+}
+async function orderAddItems(token, items, topcase) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_add_items", { method: "POST", body: { p_token: token, p_items: items, p_topcase: !!topcase } });
+  return { ok: false, error: "demo" };
+}
+
 // Client : noter sa livraison (une fois, dans les 7 jours) ; une note basse arrive chez le patron
 async function rateOrder(token, stars, tags, note) {
   if (ONLINE) return rest("/rest/v1/rpc/rate_order", { method: "POST", body: { p_token: token, p_stars: stars, p_tags: tags || [], p_note: note || null } });
@@ -1653,7 +1663,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
+  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,

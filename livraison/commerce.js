@@ -178,12 +178,26 @@ const billPart = o => (o.direct_pay ? (Number(o.shop_share || 0) > 0 ? Number(o.
 const keep = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } };
 const kept = k => { try { return JSON.parse(localStorage.getItem(k) || "{}") || {}; } catch (e) { return {}; } };
 const picked = kept("hop_shop_picked"), bagsDraft = kept("hop_shop_bags");
-const pickedCount = o => (o.items || []).filter((it, i) => picked[o.id + ":" + i]).length;
+// La clé d'une coche comprend la quantité : un article dont le client a augmenté la quantité est à recocher
+const pickKey = (o, it, i) => `${o.id}:${i}:${it.qty}`;
+const pickedCount = o => (o.items || []).filter((it, i) => picked[pickKey(o, it, i)]).length;
+// Le client a ajouté des articles : on sonne une fois et on le dit sur la commande
+const seenItems = {};
+function itemsChanged(list) {
+  let changed = false;
+  list.forEach(o => {
+    const sig = JSON.stringify(o.items || null);
+    if (seenItems[o.id] !== undefined && seenItems[o.id] !== sig) changed = true;
+    seenItems[o.id] = sig;
+  });
+  if (changed) ringOnce();
+}
 // Préparation : chaque article à cocher, la progression, puis combien de sacs pour le livreur
 function prepList(o) {
   const n = o.items.length, done = pickedCount(o), editable = o.shop_status === "acceptee";
-  return `<ul class="prep-items">${o.items.map((it, i) => { const on = !!picked[o.id + ":" + i];
-      return `<li class="${on ? "done" : ""}"><label><input type="checkbox" data-pick="${UI.esc(o.id)}:${i}"${on ? " checked" : ""}${editable ? "" : " disabled"} /> <b>${it.qty} ×</b> <span>${UI.esc(it.name)}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`; }).join("")}</ul>
+  const added = o.items.some(it => it.added) && o.items.some((it, i) => it.added && !picked[pickKey(o, it, i)]);
+  return `${added && editable ? `<p class="prep-added">${UI.esc(t("spAddedAlert"))}</p>` : ""}<ul class="prep-items">${o.items.map((it, i) => { const key = pickKey(o, it, i), on = !!picked[key];
+      return `<li class="${on ? "done" : ""}${it.added ? " added" : ""}"><label><input type="checkbox" data-pick="${UI.esc(key)}"${on ? " checked" : ""}${editable ? "" : " disabled"} /> <b>${it.qty} ×</b> <span>${UI.esc(it.name)}${it.added ? ` <i class="prep-new-tag">${UI.esc(t("spAdded"))}</i>` : ""}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`; }).join("")}</ul>
     ${editable ? `<p class="prep-progress${done === n ? " all" : ""}"><b>${UI.esc(done === n ? t("spAllPicked") : t("spPickedN", { n: done, total: n }))}</b><i style="width:${Math.round(done / n * 100)}%"></i></p>` : ""}`;
 }
 function bagsPicker(o) {
@@ -200,6 +214,7 @@ function renderPrep() {
   const box = $("#spPrep");
   box.classList.toggle("hidden", !planOn(shop) && !list.length);
   setRing(list.some(o => o.shop_status === "attente"));
+  itemsChanged(list);
   if (box.classList.contains("hidden")) return;
   const time = d => new Date(d).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" });
   box.innerHTML = `<h3>${UI.esc(t("spPrepTitle"))}</h3>` + (list.length ? list.map(o => {

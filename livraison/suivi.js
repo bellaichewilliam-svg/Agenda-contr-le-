@@ -195,6 +195,7 @@ function render() {
   }
   etaBox(o);
   etaAsk(o);
+  renderAdd();
   renderRing(o);
   renderRate(o);
   renderTip(o);
@@ -362,11 +363,72 @@ async function load() {
     order = token ? await Store.trackOrder(token) : null;
     if (order && order.eta_status === "attente") await countOthers(order);
     if (order && order.docs_status && order.status === "nouvelle") docsSent = await Store.orderDocsSent(token).catch(() => docsSent);
+    addable = canAdd(order) ? await Store.orderAddable(token).catch(() => addable) : null;
   } catch (e) {
     return; // nouvel essai au prochain passage
   }
   render();
 }
+
+// --- Ajouter des articles du même commerce (catalogue HOP! Pro) : pendant 15 min, tant qu'elle n'est pas prête ---
+let addable = null, addCart = {}, addDone = false;
+const canAdd = o => !!(o && o.shop_id && Array.isArray(o.items) && o.items.length && ["nouvelle", "confirmee"].includes(o.status)
+  && ["attente", "acceptee"].includes(o.shop_status));
+const addLeft = () => (addable ? Math.max(0, Math.floor((new Date(addable.until) - Date.now()) / 1000)) : 0);
+function renderAdd() {
+  const s = addLeft();
+  const html = addDone ? `<p class="add-done">${UI.esc(t("adDone"))}</p>`
+    : addable && s > 0 ? `<button type="button" class="add-card" data-add-open><span><b>${UI.esc(t("adTitle"))}</b><small>${UI.esc(t("adSub"))}</small></span>
+      <i class="add-timer" dir="ltr">${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}<small>${UI.esc(t("adLeft"))}</small></i></button>` : "";
+  ["#addBox", "#stAdd"].forEach(id => { if ($(id).innerHTML !== html) $(id).innerHTML = html; });
+  $("#addBox").classList.toggle("hidden", !html);
+}
+setInterval(renderAdd, 1000);
+const addTotal = () => (addable ? addable.products.reduce((x, p) => x + Number(p.price) * (addCart[p.id] || 0), 0) : 0);
+function renderAddList() {
+  $("#adList").innerHTML = addable.products.map(p => { const q = addCart[p.id] || 0, photo = UI.safeImg(p.photo);
+    return `<div class="add-item${q ? " in" : ""}">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : ""}
+      <span class="add-name"><b>${UI.esc(p.name)}</b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<em>${UI.money(p.price)}</em></span>
+      <span class="add-qty">${q ? `<button type="button" data-ad-minus="${UI.esc(p.id)}">−</button><b>${q}</b>` : ""}<button type="button" data-ad-plus="${UI.esc(p.id)}">+</button></span></div>`; }).join("");
+  const total = addTotal();
+  $("#adOk").textContent = total ? t("adOk", { total: UI.money(total) }) : t("adOkEmpty");
+}
+function openAdd() {
+  if (!addable) return;
+  addCart = {};
+  $("#adHead").textContent = t("adHead", { name: addable.shop || "" });
+  $("#adInfo").textContent = t("adInfo");
+  $("#adTopTxt").textContent = t("adTop");
+  $("#adTop").checked = false;
+  $("#adCancel").textContent = t("adCancel");
+  $("#adErr").classList.add("hidden");
+  renderAddList();
+  $("#addModal").classList.remove("hidden");
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-add-open]")) { closeSheet(); openAdd(); } });
+$("#adList").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.adPlus) addCart[b.dataset.adPlus] = Math.min(50, (addCart[b.dataset.adPlus] || 0) + 1);
+  if (b.dataset.adMinus) addCart[b.dataset.adMinus] = Math.max(0, (addCart[b.dataset.adMinus] || 0) - 1);
+  $("#adErr").classList.add("hidden");
+  renderAddList();
+});
+$("#adCancel").addEventListener("click", () => $("#addModal").classList.add("hidden"));
+$("#adTop").addEventListener("change", () => $("#adErr").classList.add("hidden"));
+$("#adOk").addEventListener("click", async () => {
+  const items = Object.entries(addCart).filter(([, q]) => q > 0).map(([id, qty]) => ({ id, qty }));
+  const err = m => { $("#adErr").textContent = t(m); $("#adErr").classList.remove("hidden"); };
+  if (!items.length) return err("adNeedItem");
+  if (!$("#adTop").checked) return err("adNeedTop");
+  $("#adOk").disabled = true;
+  const r = await Store.orderAddItems(token, items, true).catch(() => null);
+  $("#adOk").disabled = false;
+  if (!r || !r.ok) return err(r && r.error === "too_late" ? "adTooLate" : r && r.error === "topcase" ? "adNeedTop" : "adErrGen");
+  $("#addModal").classList.add("hidden");
+  addDone = true; setTimeout(() => { addDone = false; renderAdd(); }, 8000);
+  load();
+});
 
 // Colis à récupérer : où en sont les documents, et ajouter celui qui manque
 let docsSent = [];
