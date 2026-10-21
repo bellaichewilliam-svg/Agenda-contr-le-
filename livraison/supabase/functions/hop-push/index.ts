@@ -97,7 +97,15 @@ Deno.serve(async req => {
       && (!o.shop_status || o.shop_status === "acceptee" || o.shop_status === "prete");
     // « ring » : la même notification renvoyée toutes les 5 s (2 min au plus) tant que personne n'a pris la course (elle sonne à chaque fois)
     if (open && ["new", "again", "shop_ok", "ready", "docs_ok", "ring"].includes(ev.event)) {
-      sent += await sendTo(await onDuty(o.id), { title: `${ev.event === "ring" ? "🔔" : "🛵"} Nouvelle course · ${money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}`,
+      // Dès que ça sonne : prête ou pas, et dans combien de temps
+      const left = (d: string) => Math.ceil((new Date(d).getTime() - Date.now()) / 60000);
+      const dur = (m: number) => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`;
+      let ready = "✅ PRÊTE";
+      if (o.shop_status || o.phone_order) {
+        if (o.shop_status !== "prete") ready = o.ready_at ? (left(o.ready_at) > 0 ? `⏳ prête dans ${dur(left(o.ready_at))}` : "✅ PRÊTE") : "🍳 en préparation";
+      } else if (o.appt_at && left(o.appt_at) > 0) ready = `📅 rendez-vous dans ${dur(left(o.appt_at))}`;
+      else if (o.urgency === "programmee" && o.pickup_at && left(o.pickup_at) > 0) ready = `📅 à récupérer dans ${dur(left(o.pickup_at))}`;
+      sent += await sendTo(await onDuty(o.id), { title: `${ev.event === "ring" ? "🔔" : "🛵"} Nouvelle course · ${money(o.price)} · ${ready}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}`,
         body: `${when} · ${route}\nTouchez pour accepter ou refuser`, url: "livreur/", tag: "o-" + o.id }, site, ev.event === "ring" ? 10 : 3600);
     }
   } else if (ev.courier_id && ev.title) {

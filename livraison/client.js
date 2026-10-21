@@ -713,6 +713,8 @@ function applySavedAddr(which, a) {
   renderQuote();
   renderShopBanner();
   renderSaveBtns();
+  // « Le plus proche de chez moi » : le départ suit aussi une adresse enregistrée choisie pour l'arrivée
+  if (which === "to" && form.nearest_store.checked) applyNearest();
 }
 
 // --- « 📍 Ma position » et « ⭐ Enregistrer cette adresse » -----------------------------------
