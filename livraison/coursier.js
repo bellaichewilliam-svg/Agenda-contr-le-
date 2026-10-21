@@ -1355,7 +1355,7 @@ function initSheetDrag() {
   sheet.addEventListener("pointermove", e => {
     if (y0 == null) return;
     dy = e.clientY - y0;
-    if (Math.abs(dy) > 6) sheet.style.transform = `translateY(${Math.max(-60, Math.min(dy, sheet.offsetHeight - 90))}px)`;
+    if (Math.abs(dy) > 6) sheet.style.transform = `translateY(${Math.max(-60, Math.min(dy, sheetState() === "expanded" ? sheet.offsetHeight - 300 : 30))}px)`;
   });
   const end = () => {
     if (y0 == null) return;
@@ -1363,15 +1363,14 @@ function initSheetDrag() {
     sheet.classList.remove("dragging");
     sheet.style.transform = "";
     const st = sheetState();
-    if (Math.abs(dy) < 8) { if (fromGrab) setSheetState(st === "normal" ? "collapsed" : "normal"); return; }   // toucher la poignée
-    if (dy > 40) setSheetState(st === "expanded" ? "normal" : "collapsed");    // vers le bas
-    else if (dy < -30) setSheetState(st === "collapsed" ? "normal" : "expanded");   // vers le haut
+    // Deux positions : normal (le plus bas, toujours lisible) et grand (« Aujourd'hui »)
+    if (Math.abs(dy) < 8) { if (fromGrab) setSheetState(st === "expanded" ? "normal" : "expanded"); return; }   // toucher la poignée
+    if (dy > 40) setSheetState("normal");          // vers le bas
+    else if (dy < -30) setSheetState("expanded");  // vers le haut
   };
   sheet.addEventListener("pointerup", end);
   sheet.addEventListener("pointercancel", end);
-  let saved = false;
-  try { saved = localStorage.getItem("livraison.sheetCollapsed.v1") === "1"; } catch (e) { /* ignore */ }
-  if (saved) sheet.classList.add("collapsed");
+  try { localStorage.removeItem("livraison.sheetCollapsed.v1"); } catch (e) { /* ignore */ }
 }
 
 // --- Panneau remonté : « Aujourd'hui » — l'afflux heure par heure, mes chiffres du jour --------------
