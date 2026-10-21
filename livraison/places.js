@@ -71,11 +71,74 @@ function toPlace(f) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Annuaire HOP! des commerces (annuaire.json : restaurants, makolets, épiceries…
+// de Netanya, avec adresse, téléphone et position) : cherché en premier, tout de
+// suite, même si un commerce n'est pas sur la carte. Chargé à la première recherche.
+// ---------------------------------------------------------------------------
+let dir = null;
+function loadDir() {
+  if (!dir) dir = fetch("annuaire.json?v=" + DIR_VERSION).then(r => (r.ok ? r.json() : [])).then(list => list.map(e => Object.assign(e, {
+    keys: [e.n].concat(e.alt || []).map(normalize).filter(Boolean)
+  }))).catch(() => []);
+  return dir;
+}
+const DIR_VERSION = "1";
+// Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
+const ALIASES = [
+  ["mcdonalds", "מקדונלד"], ["mcdonald", "מקדונלד"], ["mcdo", "מקדונלד"], ["macdo", "מקדונלד"], ["burgerking", "בורגרקינג"],
+  ["kfc", "kfc"], ["dominos", "דומינו"], ["domino", "דומינו"], ["pizzahut", "פיצההאט"], ["superpharm", "סופרפארם"],
+  ["shufersal", "שופרסל"], ["ramilevy", "רמילוי"], ["yochananof", "יוחננוף"], ["victory", "ויקטורי"], ["osherad", "אושרעד"],
+  ["aroma", "ארומה"], ["cofix", "קופיקס"], ["landwer", "לנדוור"], ["greg", "גרג"], ["cafecafe", "קפהקפה"], ["japanika", "ג'פניקה"],
+  ["sushi", "סושי"], ["pizza", "פיצה"], ["pizzeria", "פיצריה"], ["shawarma", "שווארמה"], ["chawarma", "שווארמה"], ["falafel", "פלאפל"],
+  ["burger", "בורגר"], ["hamburger", "המבורגר"], ["makolet", "מכולת"], ["epicerie", "מכולת"], ["pharmacie", "פארם"], ["pharmacy", "פארם"],
+  ["boulangerie", "מאפיה"], ["bakery", "מאפיה"], ["patisserie", "קונדיטוריה"], ["fleurs", "פרחים"], ["fleuriste", "פרחים"],
+  ["cafe", "קפה"], ["nina", "נינה"], ["samaki", "סימאקי"], ["simaki", "סימאקי"], ["golda", "גולדה"], ["humus", "חומוס"], ["houmous", "חומוס"]
+].map(([a, b]) => [normalize(a), normalize(b)]);
+function variants(nq) {
+  const out = [nq];
+  let t = nq;
+  for (const [a, b] of ALIASES) if (t.includes(a)) t = t.split(a).join(b);
+  if (t !== nq) out.push(t);
+  return out;
+}
+async function dirSearch(q, at) {
+  const nq = normalize(q);
+  if (nq.length < 2) return [];
+  const list = await loadDir();
+  const vs = variants(nq);
+  const score = e => {
+    let best = 9;
+    for (const k of e.keys) for (const v of vs) {
+      if (k === v) best = Math.min(best, 0);
+      else if (k.startsWith(v)) best = Math.min(best, 1);
+      else if (k.includes(v)) best = Math.min(best, 2);
+    }
+    return best;
+  };
+  return list.map(e => ({ e, sc: score(e) })).filter(x => x.sc < 9)
+    .sort((a, b) => (a.sc - b.sc) || (km(at, a.e) - km(at, b.e))).slice(0, 8)
+    .map(({ e }) => {
+      const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)$/);
+      const streetName = m ? m[1] : e.s || "", housenumber = m ? m[2] : "";
+      const city = e.c || "נתניה";
+      return { lat: e.lat, lon: e.lon, city, type: "house", streetName, housenumber, hit: true, dir: true,
+        cityId: matchCity(city) || nearestCity(e.lat, e.lon), brand: e.n, street: e.s || e.n, exact: true,
+        phone: e.p || null, hours: e.h || null, kind: e.k || null,
+        label: [e.n, e.s, city].filter(Boolean).join(", ") };
+    });
+}
+
 async function search(q, lang) {
-  const extra = local ? await Promise.resolve(local(q)).catch(() => []) : [];
+  const at = near || CONFIG.cities.find(c => c.id === CONFIG.homeCity);
+  const mine = local ? await Promise.resolve(local(q)).catch(() => []) : [];
+  const known = await dirSearch(q, at).catch(() => []);
+  const ms = new Set(mine.map(p => normalize(p.brand)));
+  const extra = mine.concat(known.filter(p => !ms.has(normalize(p.brand))));
   const list = await searchMap(q, lang).catch(e => { if (!extra.length) throw e; return []; });
-  const seen = new Set(extra.map(p => normalize(p.brand)));
-  return extra.concat(list.filter(p => !(p.brand && seen.has(normalize(p.brand)) && near && km(near, p) < 0.15)));
+  // Même commerce déjà proposé (même nom, à moins de 150 m) : pas en double
+  const dup = p => p.brand && extra.some(x => x.lat != null && normalize(x.brand) === normalize(p.brand) && km(x, p) < 0.15);
+  return extra.concat(list.filter(p => !dup(p)));
 }
 async function searchMap(q, lang) {
   const home = CONFIG.cities.find(c => c.id === CONFIG.homeCity);
@@ -125,7 +188,7 @@ const nearCache = {};
 async function moreNearby(q, lang, list) {
   const at = near || CONFIG.cities.find(c => c.id === CONFIG.homeCity);
   const nq = normalize(q);
-  if (!at || q.trim().length < 3 || list.some(p => p.brand && p.lat != null && km(at, p) < 4 && normalize(p.brand).includes(nq))) return [];
+  if (!at || q.trim().length < 3 || list.some(p => p.brand && p.lat != null && km(at, p) < 4 && (p.hit || normalize(p.brand).includes(nq)))) return [];
   const key = lang + "|" + q.trim().toLowerCase() + "|" + at.lat.toFixed(2) + "," + at.lon.toFixed(2);
   if (!nearCache[key]) nearCache[key] = nearbyByName(q, lang, at).catch(() => []);
   const extra = await nearCache[key];
@@ -267,7 +330,7 @@ function attach(input, opts) {
             <span class="ac-ico">${p.icon || "⭐"}</span><span><b>${UI.esc(p.title)}</b>${p.sub ? `<small>${UI.esc(p.sub)}</small>` : ""}</span></button>`
         : `<button type="button" class="ac-item${i === active ? " on" : ""}" data-i="${i}">
           <span class="ac-ico">${p.partner ? "⭐" : p.brand ? "🏪" : "📍"}</span>
-          <span><b>${UI.esc(p.brand || p.street || p.city)}</b><small>${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
+          <span><b>${UI.esc(p.brand || p.street || p.city)}</b><small>${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : p.dir && opts.texts().soon ? `<i class="ac-soon">${UI.esc(opts.texts().soon)}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
         </button>`).join("")
       : `<div class="ac-empty">${UI.esc(opts.texts().none)}</div>`;
     box.classList.remove("hidden");
@@ -307,7 +370,7 @@ function attach(input, opts) {
         const list = await search(q, opts.lang());
         if (mine !== seq) return;
         // Pas d'enseigne trouvée : on propose d'indiquer son adresse (le client n'est jamais bloqué)
-        const offer = () => !pendingBrand && !items.some(p => p.brand && normalize(p.brand).includes(normalize(q))) && /[a-zA-Z\u0590-\u05FF]{3}/.test(q) && !/\d/.test(q);
+        const offer = () => !pendingBrand && !items.some(p => p.brand && (p.hit || normalize(p.brand).includes(normalize(q)))) && /[a-zA-Z\u0590-\u05FF]{3}/.test(q) && !/\d/.test(q);
         // Ses adresses déjà utilisées (Simaki Sushi, Maison…) qui correspondent au texte : en premier
         const nq = normalize(q);
         const saved = (opts.quick ? opts.quick() : []).filter(x => x.match && normalize(x.match).includes(nq));
