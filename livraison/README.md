@@ -269,3 +269,4 @@ livraison/
 ├── supabase-schema.sql        # Base de données + règles de sécurité + reçus
 └── email/                     # Envoi automatique des reçus depuis Gmail
 ```
+- **Annuaire HOP! des commerces** (`annuaire.json`) : 617 restaurants de Netanya et des alentours (nom, adresse, téléphone, position), cherchés en premier pendant la frappe, même s'ils ne sont pas sur la carte (« Nina » → Nina Sushi, « McDo » → tous les McDonald's du plus proche au plus loin) ; mention « Catalogue à venir » pour les enseignes pas encore partenaires. La recherche ne propose jamais d'adresse hors d'Israël, écrite en arabe ou à plus de 60 km.

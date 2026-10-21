@@ -617,7 +617,7 @@ function renderStops() {
   state.stops.forEach((s, i) => {
     Places.attach($(`#stopsList [data-stop-addr="${i}"]`), {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon") }),
       onPick: p => { s.place = p; s.label = p.label; renderStopInfo(); renderQuote(); },
       onClear: () => { s.place = null; s.label = ""; renderStopInfo(); renderQuote(); }
     });
@@ -665,7 +665,7 @@ function attachPlaces() {
   ["from", "to"].forEach(which => {
     ac[which] = Places.attach(form.elements[which === "from" ? "pickup_address" : "dropoff_address"], {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon") }),
       onPick: p => onPlacePicked(which, p),
       quick: () => quickPlaces(which, false),
       onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
@@ -1637,7 +1637,7 @@ function initHome() {
     const input = homeInput(which), pre = prefixOf(which);
     home.ac[which] = Places.attach(input, {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon") }),
       onPick: p => {
         onPlacePicked(which, p, true);
         if (ac[which]) ac[which].setPicked(p.label);
