@@ -817,10 +817,18 @@ async function courierAction(id, action) {
     if (o.shop_status) o.shop_share = Number(o.shop_share || 0) + w.fee;
     else {
       o.price = Number(o.price) + w.fee;
-      if (w.fee > 0 && o.payment_status === "paye") o.payment_status = "en_attente";
+      // Déjà payée : le client paie seulement le supplément au livreur
+      if (w.fee > 0 && o.payment_status === "paye") Object.assign(o, { wait_due: w.fee, wait_status: "a_payer" });
     }
+    if (w.fee > 0) o.commission = Number(o.commission || 0) + Math.round(w.fee * Number(st.commission_pct || 15) / 100 * 2) / 2;
+  } else if (action === "attente_recue" && o.wait_status === "a_payer") o.wait_status = "recu";
+  else if (action === "attente_refusee" && o.wait_status === "a_payer") {
+    o.wait_status = "refuse";
+    o.commission = Math.max(0, Number(o.commission || 0) - Math.round(Number(o.wait_due) * Number(st.commission_pct || 15) / 100 * 2) / 2);
+    chatLocalAdd({ thread: "c:" + myId(), author: "courier", body: `⚠️ Le client ne paie pas le supplément d'attente : ${String(o.wait_due).replace(".", ",")} ₪ (course ${o.ref})` });
   }
   else if (action === "livree" && o.status === "recuperee") {
+    if (o.wait_status === "a_payer") throw new Error("wait_unpaid");
     // Même règle qu'en ligne : sur place seulement (position de moins de 3 min, dans le rayon)
     const c = localCouriers().find(x => x.id === myId());
     const st = await getSettings();

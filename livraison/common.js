@@ -49,7 +49,7 @@ function ratingText(o) {
 }
 // Barème d'attente / d'achats en clair (patron, livreurs)
 function waitRule(st) {
-  return `${st.wait_free_min} min offertes, puis +${money(st.wait_step_price)} par ${st.wait_step_min} min (max ${money(st.wait_max)})`;
+  return `${st.wait_free_min} min offertes, puis +${money(st.wait_step_price)} par ${Number(st.wait_step_min) === 1 ? "minute" : st.wait_step_min + " min"} (max ${money(st.wait_max)})`;
 }
 // Fond de carte OpenStreetMap (gratuit, sans clé) ; version sombre par un filtre sur les tuiles
 function mapTiles(map, dark) {

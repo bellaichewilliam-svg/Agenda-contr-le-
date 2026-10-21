@@ -3885,6 +3885,106 @@ revoke execute on function public.order_addable(uuid), public.order_add_items(uu
 grant execute on function public.order_addable(uuid), public.order_add_items(uuid, jsonb, boolean) to anon, authenticated;
 
 -- ============================================================================
+-- ATTENTE AU DÉPART : 5 min offertes, puis 1 ₪ la minute (60 ₪ max) ; la commission de HOP s'applique aussi.
+-- Course déjà payée : le client paie seulement le supplément au livreur (Bit / PayBox) à la livraison ;
+-- le livreur touche « Supplément reçu » ou « Le client ne paie pas » (le patron est prévenu) avant « Livré ».
+-- ============================================================================
+alter table public.orders add column if not exists wait_due numeric(10, 2) not null default 0;
+alter table public.orders add column if not exists wait_status text check (wait_status in ('a_payer', 'recu', 'refuse'));
+alter table public.settings alter column wait_free_min set default 5;
+alter table public.settings alter column wait_step_min set default 1;
+alter table public.settings alter column wait_step_price set default 1;
+update public.settings set wait_free_min = 5, wait_step_min = 1, wait_step_price = 1
+ where id = 1 and wait_free_min = 10 and wait_step_min = 10 and wait_step_price = 5;
+
+create or replace function public.courier_update(p_id uuid, p_action text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() then return false; end if;
+  if p_action = 'arrivee' then
+    -- « Je suis arrivé » au départ : le compteur d'attente démarre (sur place seulement, sauf déblocage)
+    if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()
+                    and (o.unlocked or coalesce(c.unlocked_until > now(), false)))
+       and exists (select 1 from orders o, couriers c, settings st
+                    where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.pickup_lat is not null
+                      and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                           or 6371000 * sqrt(radians(c.lat - o.pickup_lat) ^ 2
+                                + (radians(c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) > st.deliver_radius * 1.5)) then
+      raise exception 'too_far_pickup';
+    end if;
+    update orders set arrived_at = now()
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee' and arrived_at is null;
+    if found then insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:arrivee'); end if;
+  elsif p_action = 'recuperee' then
+    -- Attente / achats au-delà des minutes offertes (5 min, puis 1 ₪ la minute, 60 ₪ max), ajoutée au prix,
+    -- avec la commission de HOP dessus aussi. Course déjà payée : le client paie seulement le supplément au livreur
+    -- (wait_due, wait_status « a_payer »). HOP! Pro : l'attente compte à partir de l'heure annoncée et c'est le commerce qui la paie.
+    update orders o set status = 'recuperee',
+           wait_minutes = w.mins,
+           wait_fee = w.fee,
+           price = o.price + case when o.shop_status is null then w.fee else 0 end,
+           shop_share = o.shop_share + case when o.shop_status is null then 0 else w.fee end,
+           commission = round(o.commission + case when w.fee > 0 then round(w.fee * w.pct / 100 * 2) / 2 else 0 end, 2),
+           wait_due = case when w.fee > 0 and o.shop_status is null and o.payment_status = 'paye' then w.fee else 0 end,
+           wait_status = case when w.fee > 0 and o.shop_status is null and o.payment_status = 'paye' then 'a_payer' end
+      from (select x.id, st.commission_pct as pct,
+                   coalesce(floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60), 0)::int as mins,
+                   case when x.arrived_at is null then 0
+                        else least(st.wait_max, ceil(greatest(0, floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60) - st.wait_free_min)
+                                                     / st.wait_step_min) * st.wait_step_price) end as fee
+              from orders x, settings st where x.id = p_id and st.id = 1) w
+     where o.id = w.id and o.courier_id = auth.uid() and o.status = 'confirmee';
+  elsif p_action = 'attente_recue' then
+    update orders set wait_status = 'recu' where id = p_id and courier_id = auth.uid() and wait_status = 'a_payer';
+  elsif p_action = 'attente_refusee' then
+    -- Le client ne paie pas l'attente : pas de commission dessus, le patron est prévenu (il décide)
+    update orders o set wait_status = 'refuse',
+           commission = round(greatest(0, o.commission - round(o.wait_due * st.commission_pct / 100 * 2) / 2), 2)
+      from settings st where st.id = 1 and o.id = p_id and o.courier_id = auth.uid() and o.wait_status = 'a_payer';
+    if found then
+      insert into chat_messages (thread, author, author_name, body)
+      select 'c:' || auth.uid()::text, 'courier', o.courier_name,
+             '⚠️ Le client ne paie pas le supplément d''attente : ' || replace(o.wait_due::text, '.', ',') || ' ₪ (course ' || o.ref || ')'
+        from orders o where o.id = p_id;
+    end if;
+  elsif p_action = 'livree' then
+    -- Sauf course ou livreur débloqué par le patron
+    if not exists (select 1 from orders o, couriers c where o.id = p_id and c.id = auth.uid()
+                    and (o.unlocked or coalesce(c.unlocked_until > now(), false))) then
+      if exists (select 1 from orders o, couriers c, settings st
+                  where o.id = p_id and c.id = auth.uid() and st.id = 1 and o.dropoff_lat is not null
+                    and (c.position_at is null or c.position_at < now() - interval '3 minutes'
+                         or 6371000 * sqrt(radians(c.lat - o.dropoff_lat) ^ 2
+                              + (radians(c.lon - o.dropoff_lon) * cos(radians(o.dropoff_lat))) ^ 2) > st.deliver_radius)) then
+        raise exception 'too_far';
+      end if;
+      -- Clés ou objet de valeur : le destinataire a donné le bon code de remise
+      if exists (select 1 from orders o where o.id = p_id and o.handoff and o.handoff_ok_at is null) then
+        raise exception 'handoff_required';
+      end if;
+      -- « Déposer devant la porte » : la photo du colis doit être envoyée dans la conversation
+      if exists (select 1 from orders o where o.id = p_id and o.leave_at_door)
+         and not exists (select 1 from chat_messages m where m.thread = 'o:' || p_id::text and m.author = 'courier' and m.image is not null) then
+        raise exception 'photo_required';
+      end if;
+    end if;
+    -- Supplément d'attente à encaisser : « reçu » ou « ne paie pas » d'abord
+    if exists (select 1 from orders o where o.id = p_id and o.wait_status = 'a_payer') then raise exception 'wait_unpaid'; end if;
+    update orders set status = 'livree' where id = p_id and courier_id = auth.uid() and status = 'recuperee';
+  elsif p_action = 'paye' then
+    update orders set payment_status = 'paye' where id = p_id and courier_id = auth.uid() and paid_to = 'livreur';
+  elsif p_action = 'liberer' then
+    update orders set status = 'nouvelle', courier_id = null, courier_name = null, courier_phone = null,
+           courier_bit = null, commission = 0
+     where id = p_id and courier_id = auth.uid() and status = 'confirmee';
+  else
+    return false;
+  end if;
+  return found;
+end;
+$$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
