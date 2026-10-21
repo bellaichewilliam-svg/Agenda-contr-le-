@@ -77,15 +77,21 @@ async function searchMap(q, lang) {
   const key = lang + "|" + q.trim().toLowerCase() + "|" + at.lat.toFixed(2) + "," + at.lon.toFixed(2);
   if (cache[key]) return cache[key];
   // Priorité forte à la distance : « Golda » donne d'abord la Golda du quartier, pas la plus connue du pays
-  const url = `${API}?limit=15&bbox=${BBOX}&lat=${at.lat}&lon=${at.lon}&location_bias_scale=0.1&zoom=14`
+  const base = `${API}?bbox=${BBOX}&lat=${at.lat}&lon=${at.lon}&location_bias_scale=0.1&zoom=14`
     + (lang === "fr" ? "&lang=fr" : "") + "&q=" + encodeURIComponent(q);
-  const res = await fetch(url);
+  // En plus, les commerces seulement : un nom court (« Nina ») n'est plus noyé sous les rues et les lieux homonymes
+  const [res, poi] = await Promise.all([fetch(base + "&limit=15"),
+    fetch(base + "&limit=15&" + ["amenity", "shop", "craft", "office", "healthcare"].map(k => "osm_tag=" + k).join("&")).catch(() => null)]);
   if (!res.ok) throw new Error("photon " + res.status);
   const data = await res.json();
+  const pdata = poi && poi.ok ? await poi.json().catch(() => null) : null;
   lastOk = true;
   // Pas de doublons (même libellé), pas de pays/régions entières
   const seen = new Set();
-  const list = (data.features || []).map(toPlace).filter(p => {
+  const nq = normalize(q);
+  const shops = ((pdata && pdata.features) || []).map(toPlace).filter(p => p.brand);
+  const named = shops.filter(p => normalize(p.brand).includes(nq)).sort((a, b) => km(at, a) - km(at, b));
+  const list = named.concat((data.features || []).map(toPlace), shops.filter(p => !named.includes(p))).filter(p => {
     // Seulement des rues, adresses ou enseignes (pas des villes ou régions entières)
     if (!p.brand && (!p.streetName || ["city", "district", "county", "state", "country", "locality"].includes(p.type))) return false;
     if (!p.label || seen.has(p.label)) return false;
@@ -96,11 +102,12 @@ async function searchMap(q, lang) {
   // (les rues gardent leur place : seules les enseignes sont reclassées entre elles)
   if (near) {
     const slots = list.map((p, i) => (p.brand ? i : -1)).filter(i => i >= 0);
-    const brands = slots.map(i => list[i]).sort((a, b) => km(near, a) - km(near, b));
+    const hit = p => (normalize(p.brand).includes(nq) ? 0 : 1);
+    const brands = slots.map(i => list[i]).sort((a, b) => (hit(a) - hit(b)) || (km(near, a) - km(near, b)));
     slots.forEach((i, k) => { list[i] = brands[k]; });
   }
-  cache[key] = list;
-  return list;
+  cache[key] = list.slice(0, 20);
+  return cache[key];
 }
 
 // Aucune enseigne de ce nom près du client : on cherche le nom autour de lui sur OpenStreetMap
@@ -108,13 +115,15 @@ async function searchMap(q, lang) {
 // s'affiche d'abord, ces enseignes proches s'ajoutent en tête quand elles arrivent.
 const nearCache = {};
 async function moreNearby(q, lang, list) {
-  if (!near || q.trim().length < 3 || list.some(p => p.brand && p.lat != null && km(near, p) < 4)) return [];
-  const key = lang + "|" + q.trim().toLowerCase() + "|" + near.lat.toFixed(2) + "," + near.lon.toFixed(2);
-  if (!nearCache[key]) nearCache[key] = nearbyByName(q, lang, near).catch(() => []);
+  const at = near || CONFIG.cities.find(c => c.id === CONFIG.homeCity);
+  const nq = normalize(q);
+  if (!at || q.trim().length < 3 || list.some(p => p.brand && p.lat != null && km(at, p) < 4 && normalize(p.brand).includes(nq))) return [];
+  const key = lang + "|" + q.trim().toLowerCase() + "|" + at.lat.toFixed(2) + "," + at.lon.toFixed(2);
+  if (!nearCache[key]) nearCache[key] = nearbyByName(q, lang, at).catch(() => []);
   const extra = await nearCache[key];
-  const at = p => normalize(p.brand) + "|" + p.lat.toFixed(3) + "," + p.lon.toFixed(3);
-  const seen = new Set(list.filter(p => p.brand && p.lat != null).map(at));
-  return extra.filter(p => !seen.has(at(p)));
+  const sig = p => normalize(p.brand) + "|" + p.lat.toFixed(3) + "," + p.lon.toFixed(3);
+  const seen = new Set(list.filter(p => p.brand && p.lat != null).map(sig));
+  return extra.filter(p => !seen.has(sig(p)));
 }
 
 // Enseignes dont le nom (français, hébreu, anglais ou marque) contient le texte, à moins de 6 km
@@ -290,7 +299,7 @@ function attach(input, opts) {
         const list = await search(q, opts.lang());
         if (mine !== seq) return;
         // Pas d'enseigne trouvée : on propose d'indiquer son adresse (le client n'est jamais bloqué)
-        const offer = () => !pendingBrand && !items.some(p => p.brand) && /[a-zA-Z\u0590-\u05FF]{3}/.test(q) && !/\d/.test(q);
+        const offer = () => !pendingBrand && !items.some(p => p.brand && normalize(p.brand).includes(normalize(q))) && /[a-zA-Z\u0590-\u05FF]{3}/.test(q) && !/\d/.test(q);
         // Ses adresses déjà utilisées (Simaki Sushi, Maison…) qui correspondent au texte : en premier
         const nq = normalize(q);
         const saved = (opts.quick ? opts.quick() : []).filter(x => x.match && normalize(x.match).includes(nq));
@@ -299,7 +308,8 @@ function attach(input, opts) {
         render();
         const extra = await moreNearby(q, opts.lang(), list);
         if (mine !== seq || !extra.length) return;
-        items = extra.concat(items.filter(p => !p.apply));
+        const found = extra.some(p => normalize(p.brand).includes(normalize(q)));
+        items = extra.concat(items.filter(p => !(found && p.apply)));
         if (active >= 0) active += extra.length;
         render();
       } catch (e) {

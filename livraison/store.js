@@ -11,6 +11,7 @@ const LS = {
   orders: "livraison.orders.v1",
   tokens: "livraison.myTokens.v1",
   profile: "livraison.profile.v1",
+  client: "livraison.client.v1",
   couriers: "livraison.couriers.v1",
   settings: "livraison.settings.v1",
   pendingCourier: "livraison.pendingCourier.v1",
@@ -205,9 +206,12 @@ async function welcomeUsed(phone) {
 // --- Côté client -----------------------------------------------------------------
 async function createOrder(order) {
   order = Object.assign({ token: uuid(), ref: newRef(), status: "nouvelle", payment_status: "en_attente", device_id: deviceId() }, order);
+  const acct = clientAccount();
+  if (ONLINE && acct) order.client_key = acct.key;
   if (!ONLINE && isWelcome(order.promo_code) && await welcomeUsed(order.contact_phone)) throw new Error("welcome_used");
   if (ONLINE) {
     await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" });
+    delete order.client_key;
     // Même règle que la base : payée directement au livreur (sauf carnet)
     order.direct_pay = order.payment_method !== "carnet";
     if (order.direct_pay) Object.assign(order, { paid_to: "livreur", prepaid_required: false });
@@ -321,9 +325,70 @@ async function createOrder(order) {
 
 async function myOrders() {
   const tokens = readJSON(LS.tokens, []);
+  const acct = clientAccount();
+  if (ONLINE && acct) {
+    // Connecté : ses courses sur tous ses téléphones, plus celles de ce téléphone pas encore rattachées
+    const [mine, here] = await Promise.all([rest("/rest/v1/rpc/client_orders", { method: "POST", body: { p_key: acct.key } }),
+      tokens.length ? rest("/rest/v1/rpc/orders_by_tokens", { method: "POST", body: { tokens } }) : []]);
+    const seen = new Set((mine || []).map(o => o.id));
+    return (mine || []).concat((here || []).filter(o => !seen.has(o.id)));
+  }
   if (!tokens.length) return [];
   if (ONLINE) return rest("/rest/v1/rpc/orders_by_tokens", { method: "POST", body: { tokens } });
   return localOrders().filter(o => tokens.includes(o.token));
+}
+
+// --- Compte client : téléphone + mot de passe (clé de session gardée sur ce téléphone) ---------
+function clientAccount() { return readJSON(LS.client, null); }
+async function clientAfterLogin(r) {
+  if (!r || !r.key) return null;
+  writeJSON(LS.client, { key: r.key, client: r.client });
+  // Ses courses passées depuis ce téléphone rejoignent son compte ; nom, téléphone et adresses partout
+  const tokens = readJSON(LS.tokens, []);
+  if (tokens.length) await rest("/rest/v1/rpc/client_claim", { method: "POST", body: { p_key: r.key, p_tokens: tokens } }).catch(() => 0);
+  const c = r.client || {};
+  const local = getAddresses(), keyOf = a => [a.street, a.number, a.city, a.apt].join("|").toLowerCase();
+  const merged = (Array.isArray(c.addresses) ? c.addresses : []).concat(local.filter(a => !(c.addresses || []).some(b => keyOf(b) === keyOf(a)))).slice(0, 20);
+  writeJSON(LS.addresses, merged);
+  saveProfile(Object.assign({}, getProfile(), { contact_name: c.name || getProfile().contact_name, contact_phone: c.phone || getProfile().contact_phone, contact_email: c.email || getProfile().contact_email }));
+  if (merged.length !== (c.addresses || []).length) pushAddresses();
+  return c;
+}
+async function clientRegister(name, phone, email, password) {
+  if (!ONLINE) throw new Error("demo");
+  return clientAfterLogin(await rest("/rest/v1/rpc/client_register", { method: "POST", body: { p_name: name, p_phone: phone, p_email: email || null, p_password: password } }));
+}
+async function clientLogin(phone, password) {
+  if (!ONLINE) throw new Error("demo");
+  const r = await rest("/rest/v1/rpc/client_login", { method: "POST", body: { p_phone: phone, p_password: password } });
+  if (r && r.error) throw new Error(r.error);
+  return clientAfterLogin(r);
+}
+async function clientRefresh() {
+  const acct = clientAccount();
+  if (!ONLINE || !acct) return null;
+  const c = await rest("/rest/v1/rpc/client_me", { method: "POST", body: { p_key: acct.key } }).catch(() => undefined);
+  if (c === null) { removeKey(LS.client); return null; }   // session plus valable (mot de passe réinitialisé)
+  if (c) writeJSON(LS.client, { key: acct.key, client: c });
+  return c || acct.client;
+}
+async function clientSave(fields) {
+  const acct = clientAccount();
+  if (!ONLINE || !acct) return null;
+  const c = await rest("/rest/v1/rpc/client_save", { method: "POST", body: Object.assign({ p_key: acct.key, p_name: null, p_phone: null, p_email: null, p_addresses: null }, fields) });
+  if (c) writeJSON(LS.client, { key: acct.key, client: c });
+  return c;
+}
+let pushTimer = null;
+function pushAddresses() {
+  if (!clientAccount()) return;
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => clientSave({ p_addresses: getAddresses() }).catch(() => {}), 800);
+}
+async function clientLogout() {
+  const acct = clientAccount();
+  if (ONLINE && acct) await rest("/rest/v1/rpc/client_logout", { method: "POST", body: { p_key: acct.key } }).catch(() => {});
+  removeKey(LS.client);
 }
 
 async function cancelMyOrder(token) {
@@ -362,8 +427,9 @@ function saveAddress(a) {
   const rank = x => (x.tag in TAG_RANK ? TAG_RANK[x.tag] : 9);
   list.sort((x, y) => (rank(x) - rank(y)) || (y.uses - x.uses) || (y.at - x.at));
   writeJSON(LS.addresses, list.slice(0, 10));
+  pushAddresses();
 }
-function deleteAddress(i) { const list = getAddresses(); list.splice(i, 1); writeJSON(LS.addresses, list); }
+function deleteAddress(i) { const list = getAddresses(); list.splice(i, 1); writeJSON(LS.addresses, list); pushAddresses(); }
 // Modifier une adresse enregistrée : Maison / Travail / autre nom, étage, appartement, code, note
 function updateAddress(i, patch) {
   let list = getAddresses();
@@ -374,6 +440,7 @@ function updateAddress(i, patch) {
   const rank = x => (x.tag in TAG_RANK ? TAG_RANK[x.tag] : 9);
   list.sort((x, y) => (rank(x) - rank(y)) || (y.uses - x.uses) || (y.at - x.at));
   writeJSON(LS.addresses, list);
+  pushAddresses();
 }
 function saveProfile(p) { writeJSON(LS.profile, p); }
 
@@ -681,6 +748,18 @@ async function assignOrder(o, courier) {
 // Un livreur accepte une course libre (le premier qui accepte la prend)
 // eta : dans combien de minutes le livreur est au départ (le client peut refuser si c'est trop long)
 const etaChoice = o => ["asap", "express"].includes(o.urgency) && !o.shop_status && !o.phone_order && !o.appt_at;
+// Patron : tous les clients (avec ou sans compte), réinitialiser un mot de passe
+async function adminClients() {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_clients", { method: "POST", body: {} });
+  const by = {};
+  localOrders().forEach(o => { const k = phoneKey(o.contact_phone); if (!k) return; const x = by[k] || (by[k] = { key: k, name: o.contact_name, phone: o.contact_phone, orders: 0, delivered: 0, spent: 0, first_at: o.created_at, last_at: o.created_at, city: o.to_city });
+    x.orders++; if (o.status === "livree") { x.delivered++; x.spent += Number(o.price || 0); } if (o.created_at > x.last_at) { x.last_at = o.created_at; x.name = o.contact_name; } });
+  return Object.values(by);
+}
+async function adminClientReset(id, password) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_client_reset", { method: "POST", body: { p_client: id, p_password: password } });
+  return false;
+}
 // Patron : débloquer un client (espèces impayées)
 async function adminUnblock(phone) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_unblock_phone", { method: "POST", body: { p_phone: phone } });
@@ -1695,7 +1774,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, courierCashOk, adminUnblock, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
+  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,

@@ -4479,6 +4479,265 @@ revoke execute on function public.admin_unblock_phone(text) from public, anon;
 grant execute on function public.admin_unblock_phone(text) to authenticated;
 
 -- ============================================================================
+-- COMPTES CLIENTS : téléphone + mot de passe (accepté tout de suite, sans e-mail de confirmation pour l'instant).
+-- Le client retrouve ses courses, son nom et ses adresses sur n'importe quel téléphone. L'e-mail est gardé
+-- « à vérifier » (vérification quand l'envoi par Brevo sera branché). Mots de passe chiffrés (bcrypt) ; 5 essais
+-- ratés → 10 min d'attente. La session est une clé aléatoire gardée sur le téléphone (la base n'en garde que l'empreinte).
+-- Mot de passe oublié : le patron le réinitialise depuis son panel.
+-- Espèces : seulement avec un compte, déjà livré une fois avec ce compte ; impayé → le compte est bloqué.
+-- ============================================================================
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
+create table if not exists public.clients (
+  id                 uuid primary key default gen_random_uuid(),
+  name               text not null check (length(name) between 1 and 80),
+  phone              text not null unique check (phone ~ '^[0-9]{9}$'),   -- 9 derniers chiffres (0541112233 → 541112233)
+  email              text check (length(email) <= 160),
+  email_verified_at  timestamptz,
+  pass_hash          text not null,
+  addresses          jsonb not null default '[]'::jsonb,
+  blocked            boolean not null default false,
+  fails              int not null default 0,
+  locked_until       timestamptz,
+  created_at         timestamptz not null default now(),
+  last_login_at      timestamptz
+);
+alter table public.clients enable row level security;
+revoke all on public.clients from anon, authenticated;
+
+create table if not exists public.client_sessions (
+  token_hash   text primary key,
+  client_id    uuid not null references public.clients(id) on delete cascade,
+  created_at   timestamptz not null default now(),
+  last_seen_at timestamptz not null default now()
+);
+create index if not exists client_sessions_client_idx on public.client_sessions (client_id);
+alter table public.client_sessions enable row level security;
+revoke all on public.client_sessions from anon, authenticated;
+
+alter table public.orders add column if not exists client_id uuid references public.clients(id) on delete set null;
+alter table public.orders add column if not exists client_key text;   -- jamais gardée : sert à retrouver le compte à la commande
+create index if not exists orders_client_idx on public.orders (client_id);
+
+create or replace function public.client_key_hash(p_key text) returns text
+language sql immutable set search_path = public as $$
+  select encode(extensions.digest(coalesce(p_key, ''), 'sha256'), 'hex');
+$$;
+-- Le compte d'une clé de session (null si la clé ne vaut rien)
+create or replace function public.client_of(p_key text) returns uuid
+language sql stable security definer set search_path = public as $$
+  select s.client_id from client_sessions s where s.token_hash = public.client_key_hash(p_key) and length(coalesce(p_key, '')) >= 32;
+$$;
+revoke execute on function public.client_of(text), public.client_key_hash(text) from public, anon, authenticated;
+
+-- Profil renvoyé au téléphone (jamais le mot de passe)
+create or replace function public.client_json(c clients) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', c.id, 'name', c.name, 'phone', '0' || c.phone, 'email', c.email,
+                           'email_verified', c.email_verified_at is not null, 'addresses', c.addresses, 'blocked', c.blocked);
+$$;
+revoke execute on function public.client_json(clients) from public, anon, authenticated;
+
+create or replace function public.client_new_session(p_client uuid) returns text
+language plpgsql security definer set search_path = public as $$
+declare k text := encode(extensions.gen_random_bytes(24), 'hex');
+begin
+  insert into client_sessions (token_hash, client_id) values (public.client_key_hash(k), p_client);
+  update clients set last_login_at = now() where id = p_client;
+  return k;
+end;
+$$;
+revoke execute on function public.client_new_session(uuid) from public, anon, authenticated;
+
+create or replace function public.client_register(p_name text, p_phone text, p_email text, p_password text) returns json
+language plpgsql security definer set search_path = public as $$
+declare ph text := public.phone_digits(p_phone); c clients;
+begin
+  if length(trim(coalesce(p_name, ''))) < 1 then raise exception 'name_required'; end if;
+  if ph !~ '^[0-9]{9}$' then raise exception 'bad_phone'; end if;
+  if length(coalesce(p_password, '')) < 6 then raise exception 'weak_password'; end if;
+  if nullif(trim(coalesce(p_email, '')), '') is not null and trim(p_email) !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'bad_email'; end if;
+  if exists (select 1 from clients where phone = ph) then raise exception 'phone_exists'; end if;
+  insert into clients (name, phone, email, pass_hash)
+  values (left(trim(p_name), 80), ph, nullif(lower(trim(coalesce(p_email, ''))), ''), extensions.crypt(p_password, extensions.gen_salt('bf', 8)))
+  returning * into c;
+  return json_build_object('key', public.client_new_session(c.id), 'client', public.client_json(c));
+end;
+$$;
+
+create or replace function public.client_login(p_phone text, p_password text) returns json
+language plpgsql security definer set search_path = public as $$
+declare ph text := public.phone_digits(p_phone); c clients;
+begin
+  select * into c from clients where phone = ph for update;
+  if not found then raise exception 'bad_login'; end if;
+  if c.locked_until > now() then raise exception 'locked'; end if;
+  if c.pass_hash <> extensions.crypt(coalesce(p_password, ''), c.pass_hash) then
+    update clients set fails = case when fails + 1 >= 5 then 0 else fails + 1 end,
+           locked_until = case when fails + 1 >= 5 then now() + interval '10 minutes' else locked_until end
+     where id = c.id;
+    return json_build_object('error', 'bad_login');
+  end if;
+  update clients set fails = 0, locked_until = null where id = c.id;
+  return json_build_object('key', public.client_new_session(c.id), 'client', public.client_json(c));
+end;
+$$;
+
+create or replace function public.client_me(p_key text) returns json
+language plpgsql security definer set search_path = public as $$
+declare c clients;
+begin
+  select * into c from clients where id = public.client_of(p_key);
+  if not found then return null; end if;
+  update client_sessions set last_seen_at = now() where token_hash = public.client_key_hash(p_key);
+  return public.client_json(c);
+end;
+$$;
+
+-- Modifier son profil et ses adresses (le numéro reste unique)
+create or replace function public.client_save(p_key text, p_name text, p_phone text, p_email text, p_addresses jsonb) returns json
+language plpgsql security definer set search_path = public as $$
+declare cid uuid := public.client_of(p_key); ph text := public.phone_digits(p_phone); c clients;
+begin
+  if cid is null then raise exception 'not_logged'; end if;
+  if p_phone is not null and ph !~ '^[0-9]{9}$' then raise exception 'bad_phone'; end if;
+  if p_phone is not null and exists (select 1 from clients where phone = ph and id <> cid) then raise exception 'phone_exists'; end if;
+  if nullif(trim(coalesce(p_email, '')), '') is not null and trim(p_email) !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' then raise exception 'bad_email'; end if;
+  update clients set name = coalesce(nullif(left(trim(coalesce(p_name, '')), 80), ''), name),
+         phone = case when p_phone is null then phone else ph end,
+         email = case when p_email is null then email else nullif(lower(trim(p_email)), '') end,
+         email_verified_at = case when p_email is not null and nullif(lower(trim(p_email)), '') is distinct from email then null else email_verified_at end,
+         addresses = case when p_addresses is not null and jsonb_typeof(p_addresses) = 'array' and jsonb_array_length(p_addresses) <= 20
+                          and length(p_addresses::text) <= 20000 then p_addresses else addresses end
+   where id = cid returning * into c;
+  return public.client_json(c);
+end;
+$$;
+
+-- Ses courses : celles passées connecté, et celles de ce téléphone qu'il rattache à son compte (il a leur clé)
+create or replace function public.client_claim(p_key text, p_tokens uuid[]) returns int
+language plpgsql security definer set search_path = public as $$
+declare cid uuid := public.client_of(p_key); n int;
+begin
+  if cid is null then return 0; end if;
+  update orders set client_id = cid where token = any(coalesce(p_tokens, '{}')) and client_id is null;
+  get diagnostics n = row_count;
+  return n;
+end;
+$$;
+create or replace function public.client_orders(p_key text) returns setof public.orders
+language sql stable security definer set search_path = public as $$
+  select * from public.orders where client_id = public.client_of(p_key) and public.client_of(p_key) is not null
+   order by pickup_at desc limit 200;
+$$;
+create or replace function public.client_logout(p_key text) returns boolean
+language sql security definer set search_path = public as $$
+  with d as (delete from client_sessions where token_hash = public.client_key_hash(p_key) returning 1) select exists (select 1 from d);
+$$;
+revoke execute on function public.client_register(text, text, text, text), public.client_login(text, text), public.client_me(text),
+  public.client_save(text, text, text, text, jsonb), public.client_claim(text, uuid[]), public.client_orders(text), public.client_logout(text) from public;
+grant execute on function public.client_register(text, text, text, text), public.client_login(text, text), public.client_me(text),
+  public.client_save(text, text, text, text, jsonb), public.client_claim(text, uuid[]), public.client_orders(text), public.client_logout(text) to anon, authenticated;
+
+-- Commande : le compte vient de la clé de session (jamais d'un client_id envoyé par le téléphone)
+create or replace function public.orders_client_link() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.client_id := public.client_of(new.client_key);
+  new.client_key := null;
+  if new.client_id is not null and exists (select 1 from clients where id = new.client_id and blocked) then raise exception 'client_blocked'; end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_client_link before insert on public.orders
+  for each row execute function public.orders_client_link();
+revoke execute on function public.orders_client_link() from public, anon, authenticated;
+
+-- Espèces : avec un compte, déjà livré une fois avec ce compte (en plus du plafond et du billet)
+create or replace function public.orders_zz_cash_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare st settings; goods numeric; total numeric; note int;
+begin
+  if exists (select 1 from blocked_phones where phone = public.phone_digits(new.contact_phone)) then raise exception 'client_blocked'; end if;
+  if new.payment_method <> 'cash' then
+    new.cash_note := null; new.cash_goods := 0; new.cash_change := 0; new.cash_need := 0;
+    return new;
+  end if;
+  select * into st from settings where id = 1;
+  if new.client_id is null then raise exception 'cash_account'; end if;
+  goods := case when new.items is not null then coalesce(new.items_total, 0) else 0 end;
+  total := coalesce(new.price, 0) + goods;
+  if total > st.cash_max then raise exception 'cash_max'; end if;
+  if not exists (select 1 from orders o where o.status = 'livree' and o.client_id = new.client_id) then raise exception 'cash_first'; end if;
+  note := case when new.cash_note in (20, 50, 100, 200) then new.cash_note else 0 end;
+  if note > 0 and note < total then raise exception 'cash_note_small'; end if;
+  new.cash_note := note;
+  new.cash_goods := goods;
+  new.cash_change := case when note > 0 then note - total else 0 end;
+  new.cash_need := goods + new.cash_change;
+  new.direct_pay := true; new.paid_to := 'livreur'; new.prepaid_required := false;
+  return new;
+end;
+$$;
+
+-- Espèces impayées : le compte du client est bloqué aussi
+create or replace function public.orders_cash_block_account() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'annulee' and old.status = 'recuperee' and new.admin_note = 'Espèces impayées à la livraison' and new.client_id is not null then
+    update clients set blocked = true where id = new.client_id;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_cash_block_account after update of status on public.orders
+  for each row execute function public.orders_cash_block_account();
+revoke execute on function public.orders_cash_block_account() from public, anon, authenticated;
+
+-- Patron : les clients (avec ou sans compte), réinitialiser un mot de passe, débloquer
+create or replace function public.admin_clients() returns json
+language sql stable security definer set search_path = public as $$
+  select case when public.is_admin() then coalesce((select json_agg(x order by x.last_at desc nulls last) from (
+    select coalesce(c.id::text, 'p:' || k.phone) as key, c.id as client_id, coalesce(c.name, k.name) as name, '0' || k.phone as phone,
+           c.email, c.email_verified_at is not null as email_verified, c.created_at as account_at,
+           (c.blocked or exists (select 1 from blocked_phones b where b.phone = k.phone)) as blocked,
+           k.orders, k.delivered, k.spent, k.first_at, k.last_at, k.city
+      from (select public.phone_digits(o.contact_phone) as phone, (array_agg(o.contact_name order by o.created_at desc))[1] as name,
+                   count(*) as orders, count(*) filter (where o.status = 'livree') as delivered,
+                   coalesce(sum(o.price) filter (where o.status = 'livree'), 0) as spent,
+                   min(o.created_at) as first_at, max(o.created_at) as last_at,
+                   (array_agg(o.to_city order by o.created_at desc))[1] as city
+              from orders o where length(public.phone_digits(o.contact_phone)) = 9 group by 1) k
+      left join clients c on c.phone = k.phone
+    union all
+    select c.id::text, c.id, c.name, '0' || c.phone, c.email, c.email_verified_at is not null, c.created_at, c.blocked,
+           0, 0, 0, null, c.created_at, null
+      from clients c where not exists (select 1 from orders o where public.phone_digits(o.contact_phone) = c.phone)
+  ) x), '[]'::json) end;
+$$;
+create or replace function public.admin_client_reset(p_client uuid, p_password text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() or length(coalesce(p_password, '')) < 6 then return false; end if;
+  update clients set pass_hash = extensions.crypt(p_password, extensions.gen_salt('bf', 8)), fails = 0, locked_until = null where id = p_client;
+  delete from client_sessions where client_id = p_client;
+  return found;
+end;
+$$;
+create or replace function public.admin_unblock_phone(p_phone text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then return false; end if;
+  delete from blocked_phones where phone = public.phone_digits(p_phone);
+  update clients set blocked = false where phone = public.phone_digits(p_phone);
+  return true;
+end;
+$$;
+revoke execute on function public.admin_clients(), public.admin_client_reset(uuid, text) from public, anon;
+grant execute on function public.admin_clients(), public.admin_client_reset(uuid, text) to authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
