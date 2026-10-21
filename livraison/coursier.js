@@ -373,6 +373,7 @@ function card(o, kind) {
   const mineShop = !!o.referrer_id && o.referrer_id === me.id;
   const total = Store.courseValue(o);
   const net = total - (kind === "pool" ? Store.commissionFor(total, settings, mineShop) : Number(o.commission || 0));
+  if (kind === "pool") extra = readyBanner(o) + extra;
   if (o.shop_status) extra += proLine(o);
   if (o.phone_order) extra += phoneLine(o);
   if (o.adult_items) extra += `<div class="small adult-line">🔞 ${/tabac/.test(o.adult_items) ? "Tabac" : ""}${/tabac/.test(o.adult_items) && /alcool/.test(o.adult_items) ? " et " : ""}${/alcool/.test(o.adult_items) ? "alcool" : ""} : vérifiez la pièce d'identité du client (18 ans et plus) avant de donner.</div>`;
@@ -451,6 +452,30 @@ function readyChip(o) {
   const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
   return o.shop_status === "prete" || (left != null && left <= 0) ? `<span class="ready-chip ok">✅ Prête</span>`
     : left != null ? `<span class="ready-chip">⏳ Prête dans <b>${left} min</b></span>` : `<span class="ready-chip">🍳 En préparation</span>`;
+}
+// Dès que ça sonne : prête ou pas, et dans combien de temps (commerce, commande par téléphone, rendez-vous, heure programmée)
+function readiness(o) {
+  const mins = d => Math.ceil((new Date(d) - Date.now()) / 60000);
+  const hh = d => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const dur = m => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`;
+  const READY = { ok: true, text: "✅ Commande <b>PRÊTE</b> : allez-y" };
+  if (o.shop_status || o.phone_order) {
+    if (o.shop_status === "prete") return READY;
+    if (!o.ready_at) return { ok: false, text: `🍳 <b>Pas encore prête</b> : en préparation${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}` };
+    const l = mins(o.ready_at);
+    return l <= 0 ? READY : { ok: false, left: l, text: `⏳ <b>Pas encore prête</b> : prête dans <b>${dur(l)}</b> (à ${hh(o.ready_at)})` };
+  }
+  if (o.appt_at && mins(o.appt_at) > 0) return { ok: false, left: mins(o.appt_at), text: `📅 Rendez-vous à <b>${hh(o.appt_at)}</b> (dans ${dur(mins(o.appt_at))})` };
+  if (o.urgency === "programmee" && o.pickup_at && mins(o.pickup_at) > 0)
+    return { ok: false, left: mins(o.pickup_at), text: `📅 À récupérer à <b>${hh(o.pickup_at)}</b> (dans ${dur(mins(o.pickup_at))})` };
+  return { ok: true, text: o.service === "achat" ? "✅ <b>Prêt</b> : les achats peuvent commencer tout de suite" : "✅ <b>Prêt</b> : à récupérer tout de suite" };
+}
+function readyBanner(o, etaToPickup) {
+  const r = readiness(o);
+  let tip = "";
+  if (r.left != null && etaToPickup != null) tip = etaToPickup >= r.left ? "Vous arrivez pile quand c'est prêt"
+    : `Vous êtes à ${etaToPickup} min : partez dans ${r.left - etaToPickup} min, pas avant`;
+  return `<div class="ready-banner ${r.ok ? "ok" : "wait"}">${r.text}${tip ? `<small>${tip}</small>` : ""}</div>`;
 }
 function mineStep(o, hopPaid) {
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
@@ -1140,6 +1165,10 @@ function showNextOffer() {
     : early ? "🎯 Vous êtes parmi les plus proches : elle vous est proposée en premier" : "";
   $("#offerStar").classList.toggle("hidden", !star && !early && !again);
   const place = (brand, addr, city) => `${brand ? `🏪 ${UI.esc(brand)}<br>` : ""}<bdi>${UI.esc(addr || "")}</bdi>${addr ? ", " : ""}${UI.esc(UI.cityFr(city))}`;
+  const pickEta = lastPos && pick ? etaMin({ lat: lastPos.lat, lon: lastPos.lon }, pick) : null;
+  // Mis à jour pendant que ça sonne (le commerce peut la marquer prête entre-temps)
+  const showReady = () => { $("#offerReady").innerHTML = readyBanner(pool().find(x => x.id === o.id) || o, pickEta); };
+  showReady();
   $("#offerFrom").innerHTML = place(o.pickup_place, o.pickup_address, o.from_city);
   $("#offerTo").innerHTML = place(o.dropoff_place, o.dropoff_address, o.to_city);
   $("#offerFacts").innerHTML = [
@@ -1165,6 +1194,7 @@ function showNextOffer() {
   offerTick = setInterval(() => {
     left--;
     $("#offerTimer").textContent = left > 0 ? `· ${left} s` : "";
+    if (left % 5 === 0) showReady();
     if (left <= 0 && offerShown === o.id) declineOffer("sans_reponse");
   }, 1000);
   // Position pas encore connue : on la demande une fois pour afficher « à X km de vous »

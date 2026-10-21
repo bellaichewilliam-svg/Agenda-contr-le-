@@ -1241,6 +1241,11 @@ body.in-home .eta-bubble { display: none; }
 .btn-waze .waze-ico { width: 28px; height: 28px; }
 .ready-chip { font-size: 13px; font-weight: 700; letter-spacing: 0; color: #B54708; background: #FEF0C7; border-radius: 99px; padding: 3px 10px; }
 .ready-chip.ok { color: #067647; background: #DCFAE6; }
+/* Prête ou pas : bandeau bien visible dès que ça sonne (fenêtre « nouvelle course » et liste) */
+.ready-banner { margin: 10px 0 4px; padding: 10px 12px; border-radius: 12px; font-size: 17px; line-height: 1.3; text-align: start; color: #B54708; background: #FEF0C7; border: 2px solid #FEC84B; }
+.ready-banner.ok { color: #067647; background: #DCFAE6; border-color: #75E0A7; }
+.ready-banner small { display: block; margin-top: 3px; font-size: 13px; font-weight: 600; opacity: .9; }
+.card .ready-banner { font-size: 15px; margin: 0 0 6px; }
 .mine-note { margin: 4px 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--brand-soft); font-weight: 600; font-size: 15px; }
 .client-line { margin: 0 0 10px; font-size: 15px; }
 .mine-card details.more { margin-top: 10px; }
