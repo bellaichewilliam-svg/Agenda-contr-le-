@@ -1226,3 +1226,26 @@ body.in-home .eta-bubble { display: none; }
 .rd-card.refund-card small { margin-top: 4px; }
 .refund-btns { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .pay-apps { display: grid; gap: 6px; padding: 10px 12px; border-radius: 12px; background: var(--brand-soft); }
+/* Ma course : l'étape, DÉPART puis ARRIVÉE en gros, numéros en gras, Waze */
+.mine-card .mine-step { margin: 8px 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--brand); color: #fff; font-weight: 700; font-size: 16px; }
+.stop-block { border: 1px solid var(--line); border-radius: 14px; padding: 12px; margin-bottom: 10px; }
+.stop-block.now { border: 2px solid var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+.stop-block.done { opacity: .75; }
+.stop-tag { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--muted); margin-bottom: 4px; }
+.stop-addr { font-size: 19px; font-weight: 800; line-height: 1.25; margin-bottom: 4px; }
+.call-big { display: inline-flex; align-items: baseline; gap: 8px; margin: 8px 0 2px; font-size: 20px; text-decoration: none; color: inherit; }
+.call-big b { text-decoration: underline; }
+.call-big span { font-size: 14px; color: var(--muted); }
+.btn-waze { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; margin-top: 10px; padding: 13px 14px; border-radius: 14px; background: #33CCFF; color: #0B1222; font-weight: 800; font-size: 16px; text-decoration: none; box-shadow: 0 4px 14px rgba(51,204,255,.35); }
+.btn-waze .waze-ico { width: 28px; height: 28px; }
+.ready-chip { font-size: 13px; font-weight: 700; letter-spacing: 0; color: #B54708; background: #FEF0C7; border-radius: 99px; padding: 3px 10px; }
+.ready-chip.ok { color: #067647; background: #DCFAE6; }
+.mine-note { margin: 4px 0 10px; padding: 10px 12px; border-radius: 12px; background: var(--brand-soft); font-weight: 600; font-size: 15px; }
+.client-line { margin: 0 0 10px; font-size: 15px; }
+.mine-card details.more { margin-top: 10px; }
+.mine-card details.more summary { cursor: pointer; color: var(--muted); font-size: 14px; }
+.rd-card.course small { opacity: .75; }
+.rd-card.course small.now { opacity: 1; font-weight: 700; }
+.rd-waze { inset-inline-end: 74px; background: #33CCFF; padding: 0; }
+.rd-waze .waze-ico { width: 40px; height: 40px; }
+.rd-waze i { position: absolute; bottom: -4px; inset-inline-end: -4px; font-style: normal; font-size: 16px; background: var(--rd-bg); border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; }

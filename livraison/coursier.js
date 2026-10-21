@@ -402,6 +402,7 @@ function card(o, kind) {
       + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
   }
 
+  if (kind === "mine") return mineCard(o, { when, extra, actions, total, net, hopPaid, mineShop });
   return `<article class="order${kind === "pool" ? " is-new" : ""}" data-id="${UI.esc(o.id)}">
     <div class="order-head">
       <span class="order-time">${UI.esc(when)}</span>
@@ -428,6 +429,70 @@ function card(o, kind) {
     </div>
     ${o.notes && kind === "mine" ? `<p class="notice" style="margin-top:10px">📝 ${UI.esc(o.notes)}</p>` : ""}
     <div class="actions">${actions}</div>
+  </article>`;
+}
+
+// --- Ma course, ultra simple : l'étape à faire, DÉPART puis ARRIVÉE en gros, numéros en gras, Waze ------
+const WAZE_SVG = `<svg class="waze-ico" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="#33CCFF"/><path d="M12 25c0-7 5.5-12 12.5-12S37 18 37 25c0 4-2 6.5-4.5 8l1 3-4-1.5c-1.5.5-3.3.8-5 .8-2 0-3.6-.4-5-1-1 1.6-3 2.4-5 1.6l1.6-2.6C13.3 31.6 12 28.6 12 25z" fill="#fff" stroke="#0B1222" stroke-width="2"/><circle cx="20.5" cy="23" r="1.8" fill="#0B1222"/><circle cx="28.5" cy="23" r="1.8" fill="#0B1222"/><path d="M20 28c2.6 2.4 6.4 2.4 9 0" fill="none" stroke="#0B1222" stroke-width="2" stroke-linecap="round"/></svg>`;
+function navBtn(o, which) {
+  return `<a class="btn-waze" href="${navLink(o, which)}" target="_blank" rel="noopener">${riderSet.nav === "maps" ? "🧭" : WAZE_SVG}<span>${which === "pickup" ? "Aller au départ" : "Aller chez le client"} · ${riderSet.nav === "maps" ? "Maps" : "Waze"}</span></a>`;
+}
+function callBig(name, phone) {
+  return phone ? `<a class="call-big" href="tel:${UI.esc(phone)}">📞 <b>${UI.esc(phone)}</b>${name ? `<span>${UI.esc(name)}</span>` : ""}</a>` : "";
+}
+// Commande prête ? Le temps qui reste, en direct (commerce Pro ou commande par téléphone)
+function readyChip(o) {
+  if (o.status !== "confirmee" || !(o.ready_at || o.shop_status)) return "";
+  const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
+  return o.shop_status === "prete" || (left != null && left <= 0) ? `<span class="ready-chip ok">✅ Prête</span>`
+    : left != null ? `<span class="ready-chip">⏳ Prête dans <b>${left} min</b></span>` : `<span class="ready-chip">🍳 En préparation</span>`;
+}
+function mineStep(o, hopPaid) {
+  if (o.status === "recuperee") return "3️⃣ Livrez le client";
+  if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${UI.money(o.price)} (Bit / PayBox), puis allez au départ`;
+  return o.arrived_at ? "2️⃣ Récupérez la commande" : "2️⃣ Allez au départ";
+}
+function mineCard(o, x) {
+  const to = o.status === "recuperee";
+  const stop = (which, label, now) => {
+    const pre = which === "pickup" ? "pickup" : "dropoff", city = which === "pickup" ? o.from_city : o.to_city;
+    const phone = which === "pickup" ? o.pickup_phone : (o.dropoff_phone || o.contact_phone);
+    const name = which === "pickup" ? (o.pickup_contact || o.shop_name || "") : (o.dropoff_contact || o.contact_name);
+    return `<section class="stop-block${now ? " now" : " done"}">
+      <div class="stop-tag">${label}${which === "pickup" ? readyChip(o) : ""}</div>
+      <div class="stop-addr">${UI.brand(o[pre + "_place"])}<bdi>${UI.esc(o[pre + "_address"])}</bdi>, ${UI.esc(UI.cityFr(city))}</div>
+      ${UI.addrDetails(o, pre)}${UI.addrNote(o[pre + "_note"])}${which === "dropoff" ? UI.doorTag(o) : ""}
+      ${callBig(name, phone)}
+      ${now ? navBtn(o, which) : ""}
+    </section>`;
+  };
+  return `<article class="order mine-card" data-id="${UI.esc(o.id)}">
+    <div class="order-head">
+      <span class="order-time">${UI.esc(x.when)}</span>
+      <span class="order-ref">N° ${UI.esc(o.ref)}</span>
+      <span class="order-price">${UI.money(x.total)}</span>
+    </div>
+    <div class="mine-step">${UI.esc(mineStep(o, x.hopPaid))}</div>
+    ${stop("pickup", "📍 DÉPART", !to)}
+    ${UI.stopsLegs(o, true)}
+    ${stop("dropoff", "🏁 ARRIVÉE", to)}
+    ${o.dropoff_phone && o.dropoff_phone !== o.contact_phone ? `<div class="client-line">👤 Client : ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}"><b>${UI.esc(o.contact_phone)}</b></a></div>` : ""}
+    ${o.notes ? `<p class="mine-note">📝 ${UI.esc(o.notes)}</p>` : ""}
+    <div class="mine-extra">${x.extra}
+      ${o.leave_at_door && !o.unlocked ? `<div class="small">📷 Devant la porte : photo obligatoire avant « Livré »</div>` : ""}
+      ${x.hopPaid ? `<div class="small pay-direct">${o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser" : "📱 Le client paie HOP : n'encaissez rien"}</div>` : ""}</div>
+    <div class="actions">${x.actions}</div>
+    <details class="more"><summary>Plus d'infos</summary><div class="meta">
+      <span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>
+      <span class="pill">${UI.esc(UI.SIZE_FR[o.size] || o.size)}</span>
+      <span class="pill">${UI.PAY_FR[o.payment_method] || ""}</span>
+      <span class="pill paid">Vous gagnez ${UI.money(x.net)}</span>
+      ${Number(o.tip) > 0 ? `<span class="pill paid">💝 Pourboire ${UI.money(o.tip)} · ${TIP_FR[o.tip_status] || ""}</span>` : ""}
+      ${x.mineShop ? `<span class="pill star-pill">⭐ Votre commerce${o.shop_name ? " : " + UI.esc(o.shop_name) : ""}</span>` : o.shop_name ? `<span class="pill">🏪 ${UI.esc(o.shop_name)}</span>` : ""}
+      <span class="pill">${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>
+      ${o.issue ? `<span class="pill st-annulee">⚠️ Souci signalé : ${UI.esc(o.issue)}</span>` : ""}
+      ${o.unlocked ? `<span class="pill paid">🔓 Débloquée par HOP</span>` : ""}
+    </div></details>
   </article>`;
 }
 
@@ -1219,8 +1284,9 @@ function renderHome() {
     <div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
     ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
-        <span>🛵 Course n° ${UI.esc(o.ref)} · ${o.status === "confirmee" ? "à récupérer" : "à livrer"}
-          <small>${UI.esc(o.status === "confirmee" ? (o.pickup_place || o.pickup_address) : o.dropoff_address)}, ${UI.esc(UI.cityFr(o.status === "confirmee" ? o.from_city : o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
+        <span>🛵 Course n° ${UI.esc(o.ref)} · ${UI.esc(mineStep(o, o.paid_to === "hop"))}
+          <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>
+          <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
@@ -1367,7 +1433,20 @@ function vectorMap() {
 }
 const rpin = (emoji, cls, label) => L.divIcon({ className: "", iconSize: [36, 36], iconAnchor: [18, 18],
   html: `<div class="rd-pin ${cls || ""}">${emoji}${label ? `<span class="pin-price">${UI.esc(label)}</span>` : ""}</div>` });
+function updateWazeFab() {
+  const fab = $("#wazeFab");
+  if (!fab) return;
+  const cur = mine()[0];
+  fab.classList.toggle("hidden", !cur);
+  if (!cur) return;
+  const which = cur.status === "recuperee" ? "dropoff" : "pickup";
+  fab.href = navLink(cur, which);
+  fab.dataset.step = which === "pickup" ? "1" : "2";
+  fab.title = which === "pickup" ? "Itinéraire vers le départ" : "Itinéraire vers le client";
+  fab.innerHTML = (riderSet.nav === "maps" ? "🧭" : WAZE_SVG) + `<i>${which === "pickup" ? "📍" : "🏁"}</i>`;
+}
 function updateRiderMap() {
+  updateWazeFab();
   if (!rmap.map || !me) return;
   rmap.layer.clearLayers();
   const pts = [];
