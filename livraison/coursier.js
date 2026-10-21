@@ -415,9 +415,9 @@ function card(o, kind) {
       <span class="order-price">${UI.money(total)}</span>
     </div>
     <div class="legs">
-      <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.pickup_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrDetails(o, "pickup") + UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
+      <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b><bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrDetails(o, "pickup") + UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
       ${UI.stopsLegs(o, kind === "mine")}
-      <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b>${kind === "mine" ? "<bdi>" + UI.esc(o.dropoff_address) + "</bdi>, " : ""}${UI.esc(UI.cityFr(o.to_city))}</b>${kind === "mine" ? UI.addrDetails(o, "dropoff") + UI.addrNote(o.dropoff_note) : ""}${UI.doorTag(o)}${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
+      <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b><bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}</b>${kind === "mine" ? UI.addrDetails(o, "dropoff") + UI.addrNote(o.dropoff_note) : ""}${UI.doorTag(o)}${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
     </div>
     <div class="meta">
       <span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>
@@ -587,7 +587,7 @@ function render() {
   if (tab === "pool") {
     const list = pool();
     view.innerHTML = refundCards() + (list.length
-      ? `<p class="muted small" style="margin-bottom:10px">L'adresse exacte et le contact du client s'affichent une fois la course acceptée. Le premier qui accepte la prend.</p><div class="orders">${list.map(o => card(o, "pool")).join("")}</div>`
+      ? `<p class="muted small" style="margin-bottom:10px">Le nom et le téléphone du client s'affichent une fois la course acceptée. Le premier qui accepte la prend.</p><div class="orders">${list.map(o => card(o, "pool")).join("")}</div>`
       : empty(isOnline() ? "Pas de course disponible pour l'instant. Activez les alertes 🔔 : vous serez prévenu dès qu'une course arrive."
         : "Vous êtes hors ligne : glissez le bouton « HOP! » pour passer en ligne et recevoir des courses."));
   } else if (tab === "mine") {
@@ -1139,11 +1139,13 @@ function showNextOffer() {
     : star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
     : early ? "🎯 Vous êtes parmi les plus proches : elle vous est proposée en premier" : "";
   $("#offerStar").classList.toggle("hidden", !star && !early && !again);
-  $("#offerFrom").textContent = UI.cityFr(o.from_city);
-  $("#offerTo").textContent = UI.cityFr(o.to_city);
+  const place = (brand, addr, city) => `${brand ? `🏪 ${UI.esc(brand)}<br>` : ""}<bdi>${UI.esc(addr || "")}</bdi>${addr ? ", " : ""}${UI.esc(UI.cityFr(city))}`;
+  $("#offerFrom").innerHTML = place(o.pickup_place, o.pickup_address, o.from_city);
+  $("#offerTo").innerHTML = place(o.dropoff_place, o.dropoff_address, o.to_city);
   $("#offerFacts").innerHTML = [
     `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
-    toPickup != null ? `🛵 À ≈ ${toPickup.toFixed(1)} km de vous` : "",
+    toPickup != null ? `🛵 Départ à <b>${etaMin({ lat: lastPos.lat, lon: lastPos.lon }, pick)} min</b> de vous (≈ ${toPickup.toFixed(1)} km)` : "",
+    trip != null ? `🏁 Puis <b>${Math.max(1, Math.round(trip / (trip < 6 ? 25 : 50) * 60 + 2))} min</b> jusqu'au client` : "",
     `🕐 ${UI.esc(when)}`,
     payLine(o),
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
@@ -1325,6 +1327,8 @@ async function onRefundClick(e) {
 function sheetHeight() {
   const h = $("#sheet").offsetHeight;
   if (h) $("#work").style.setProperty("--sheet-h", h + "px");
+  // Le panneau a changé de taille : on recadre la carte pour que la course reste visible au-dessus
+  if (h && Math.abs(h - (rmap.sheetH || 0)) > 40) { rmap.sheetH = h; if (rmap.fitted) setTimeout(fitRiderMap, 50); }
   return h || 0;
 }
 // Panneau du bas qu'on glisse vers le bas (ou qu'on touche) pour voir toute la carte : la course, ses 2 points et le trajet
@@ -1364,7 +1368,7 @@ function initSheetDrag() {
     sheet.style.transform = "";
     const st = sheetState();
     // Deux positions : normal (le plus bas, toujours lisible) et grand (« Aujourd'hui »)
-    if (Math.abs(dy) < 8) { if (fromGrab) setSheetState(st === "expanded" ? "normal" : "expanded"); return; }   // toucher la poignée
+    if (Math.abs(dy) < 8) { setSheetState(st === "expanded" ? "normal" : "expanded"); return; }   // un appui sur le panneau : monter / descendre
     if (dy > 40) setSheetState("normal");          // vers le bas
     else if (dy < -30) setSheetState("expanded");  // vers le haut
   };
@@ -1514,6 +1518,10 @@ function vectorMap() {
     rmap.gl = gl;
   }).catch(() => {});
 }
+// Bulle façon appli de livraison, posée sur le point : « 🏪 Récupération · 5 min »
+const rbubble = (emoji, cls, title, min) => L.divIcon({ className: "", iconSize: [36, 36], iconAnchor: [18, 18],
+  html: `<div class="rd-pin ${cls || ""}">${emoji}<span class="pin-bubble ${cls || ""}"><b>${UI.esc(title)}</b>${min != null ? `<em>${min} min</em>` : ""}</span></div>` });
+const etaMin = (a, b) => (a && b ? Pricing.etaMinutes(a, b) : null);
 const rpin = (emoji, cls, label) => L.divIcon({ className: "", iconSize: [36, 36], iconAnchor: [18, 18],
   html: `<div class="rd-pin ${cls || ""}">${emoji}${label ? `<span class="pin-price">${UI.esc(label)}</span>` : ""}</div>` });
 function updateWazeFab() {
@@ -1539,11 +1547,17 @@ function updateRiderMap() {
     if (popup) m.bindPopup(popup);
     pts.push([Number(lat), Number(lon)]);
   };
-  pool().forEach(o => add(o.pickup_lat, o.pickup_lon, rpin({ repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦", "", UI.money(Store.courseValue(o))),
+  const here = lastPos ? { lat: lastPos.lat, lon: lastPos.lon } : null;
+  pool().forEach(o => add(o.pickup_lat, o.pickup_lon, rpin({ repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦", "",
+      UI.money(Store.courseValue(o)) + (here && o.pickup_lat != null ? ` · à ${etaMin(here, pt(o.pickup_lat, o.pickup_lon))} min` : "")),
     `<b>Course n° ${UI.esc(o.ref)}</b><br>${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))} · ${UI.money(Store.courseValue(o))}`));
   mine().forEach(o => {
-    add(o.pickup_lat, o.pickup_lon, rpin("📍"), `Récupération · n° ${UI.esc(o.ref)}`);
-    add(o.dropoff_lat, o.dropoff_lon, rpin("🏁", "drop"), `Livraison · n° ${UI.esc(o.ref)}`);
+    // Temps sur la carte : jusqu'au départ (depuis moi), puis jusqu'au client (en passant par le départ si pas encore récupéré)
+    const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon), got = o.status === "recuperee";
+    const toPick = got ? null : etaMin(here, pick);
+    const toDrop = got ? etaMin(here, drop) : (etaMin(pick, drop) != null ? (toPick || 0) + etaMin(pick, drop) + (o.arrived_at ? 0 : 2) : null);
+    add(o.pickup_lat, o.pickup_lon, got ? rpin("📍", "done") : rbubble("🏪", "pick", "Récupération", toPick), `Récupération · n° ${UI.esc(o.ref)}`);
+    add(o.dropoff_lat, o.dropoff_lon, rbubble("🏁", "drop", "Livraison", toDrop), `Livraison · n° ${UI.esc(o.ref)}`);
     if (o.pickup_lat != null && o.dropoff_lat != null) L.polyline([[o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon]], { color: "#FF6A13", weight: 4, dashArray: "8 8" }).addTo(rmap.layer);
   });
   if (lastPos) add(lastPos.lat, lastPos.lon, rpin("🛵", duty.watch != null ? "me" : "off"), "Vous êtes ici");
@@ -1577,11 +1591,12 @@ function locateMe() {
 // Cadrage : la course en cours (récupération, livraison, moi) si il y en a une, sinon tout ; au-dessus du panneau du bas
 function fitRiderMap() {
   if (!rmap.map || !rmap.pts || !rmap.pts.length) return;
+  rmap.map.invalidateSize(false);   // la carte a pu être cachée ou redimensionnée : sinon le cadrage est faux
   const cur = mine()[0];
   const pts = cur ? [[cur.pickup_lat, cur.pickup_lon], [cur.dropoff_lat, cur.dropoff_lon]].filter(p => p[0] != null && p[1] != null).map(p => p.map(Number)) : [];
   if (cur && lastPos) pts.push([lastPos.lat, lastPos.lon]);
   const sheet = $("#sheet").offsetHeight || 260;
-  rmap.map.fitBounds(pts.length ? pts : rmap.pts, { paddingTopLeft: [40, 80], paddingBottomRight: [40, sheet + 30], maxZoom: 16 });
+  rmap.map.fitBounds(pts.length ? pts : rmap.pts, { paddingTopLeft: [40, 80], paddingBottomRight: [40, sheet + 30], maxZoom: 16, animate: false });
 }
 
 // --- Pages : statistiques, réglages, aide, messages -----------------------------------------
