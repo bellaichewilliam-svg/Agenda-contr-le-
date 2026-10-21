@@ -3585,6 +3585,105 @@ end;
 $$;
 
 -- ============================================================================
+-- REFUSÉE OU RENDUE : PAS PERDUE. Une course refusée (ou rendue) ne revient pas à ce livreur pendant
+-- decline_hold_min minutes (5) ; si personne d'autre ne l'a prise d'ici là, elle lui est reproposée
+-- (« Personne d'autre ne l'a prise »). Le patron peut aussi la donner à qui il veut (« Donner à un livreur… »).
+-- ============================================================================
+alter table public.settings add column if not exists decline_hold_min int not null default 5;
+-- Le livreur voit ses propres refus (pour savoir quand une course peut lui revenir)
+drop policy if exists "mes refus" on public.order_declines;
+create policy "mes refus" on public.order_declines for select to authenticated using (courier_id = auth.uid());
+
+create or replace function public.declined_recently(p_order uuid, p_courier uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from order_declines d
+                  where d.order_id = p_order and d.courier_id = p_courier
+                    and d.created_at > now() - make_interval(mins => coalesce((select decline_hold_min from settings where id = 1), 5)));
+$$;
+
+create or replace function public.can_see_new(o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with st as (select * from settings where id = 1),
+  ranked as (
+    select c.id, row_number() over (order by (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
+      from couriers c
+     where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
+       and public.courier_online(c)
+       and not public.declined_recently(o.id, c.id)
+  )
+  select o.status = 'nouvelle' and o.courier_id is null
+     and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
+     and not public.declined_recently(o.id, auth.uid())
+     -- HOP! Pro : quand le commerce a accepté ; Pro et téléphone : pour arriver au moment où c'est prêt
+     and (o.shop_status is null or o.shop_status in ('acceptee', 'prete'))
+     -- Colis à récupérer : seulement quand le patron a vérifié les documents
+     and coalesce(o.docs_status, 'ok') = 'ok'
+     and now() >= public.offer_from(o)
+     -- Express : seulement aux livreurs sans course en cours
+     and (o.urgency <> 'express' or not exists (select 1 from orders x where x.courier_id = auth.uid() and x.status in ('confirmee', 'recuperee')))
+     and (o.referrer_id = auth.uid() or o.urgency = 'express'
+          or now() >= public.offer_from(o)
+               + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), (select count(*) from ranked)), 2)));
+$$;
+
+-- Refuser à nouveau une course reproposée : l'heure du refus repart (elle ne revient pas avant 5 min)
+create or replace function public.decline_offer(p_id uuid, p_reason text) returns json
+language plpgsql security definer set search_path = public as $$
+declare c couriers; mx int; r text := case when p_reason in ('loin', 'prix', 'taille', 'occupe', 'fin', 'autre', 'sans_reponse') then p_reason else 'autre' end;
+begin
+  select * into c from couriers where id = auth.uid() and status = 'actif';
+  if not found then return json_build_object('ok', false); end if;
+  insert into order_declines (order_id, courier_id, reason) values (p_id, c.id, r) on conflict (order_id, courier_id) do update set created_at = now(), reason = excluded.reason;
+  if c.role = 'admin' then return json_build_object('ok', true, 'streak', 0, 'offline', false); end if;
+  select decline_streak_max into mx from settings where id = 1;
+  update couriers set decline_streak = decline_streak + 1 where id = c.id returning * into c;
+  if c.decline_streak >= mx then
+    update couriers set online = false, decline_streak = 0, auto_offline_at = now() where id = c.id;
+    insert into chat_messages (thread, author, body) values ('c:' || c.id::text, 'system', 'status:autooff');
+    return json_build_object('ok', true, 'streak', mx, 'offline', true, 'max', mx);
+  end if;
+  return json_build_object('ok', true, 'streak', c.decline_streak, 'offline', false, 'max', mx);
+end;
+$$;
+
+-- Course rendue : elle ne revient pas à ce livreur avant 5 min (l'heure du refus repart)
+create or replace function public.orders_release_msg() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if old.status = 'confirmee' and new.status = 'nouvelle' and old.courier_id is not null and new.courier_id is null then
+    insert into order_declines (order_id, courier_id, reason) values (new.id, old.courier_id, 'autre')
+      on conflict (order_id, courier_id) do update set created_at = now();
+    insert into chat_messages (thread, author, body)
+    values ('o:' || new.id::text, 'system', case when new.refund_status = 'a_faire' and new.refund_at is distinct from old.refund_at
+                                                 then 'status:refund_due' else 'status:released' end);
+  end if;
+  return new;
+end;
+$$;
+
+-- ============================================================================
+-- TOUT EN DIRECT : le livreur est prévenu tout de suite (notification, et l'appli se met à jour) quand sa course
+-- est annulée ou refusée par HOP
+-- ============================================================================
+create or replace function public.push_order_event() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare ev text;
+begin
+  if tg_op = 'INSERT' then ev := 'new';
+  elsif new.status in ('annulee', 'refusee') and old.status in ('confirmee', 'recuperee') and old.courier_id is not null then
+    perform public.push_call(jsonb_build_object('order_id', new.id, 'event', 'cancel', 'courier_id', old.courier_id));
+    return new;
+  elsif new.shop_status = 'acceptee' and old.shop_status is distinct from 'acceptee' then ev := 'shop_ok';
+  elsif new.docs_status = 'ok' and old.docs_status is distinct from 'ok' then ev := 'docs_ok';
+  elsif new.status = 'nouvelle' and old.status <> 'nouvelle' then ev := 'again';
+  else return new; end if;
+  perform public.push_call(jsonb_build_object('order_id', new.id, 'event', ev));
+  return new;
+end;
+$$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

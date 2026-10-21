@@ -9,6 +9,9 @@ self.addEventListener("push", e => {
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : "" }; }
   // Nouvelle course (« o-… ») : elle reste affichée, vibre longtemps et resonne à chaque renvoi (toutes les 5 s)
   const course = /^o-/.test(d.tag || "");
+  // L'appli ouverte (même en arrière-plan) se met à jour tout de suite : paiement, annulation, nouvelle course…
+  self.clients.matchAll({ type: "window", includeUncontrolled: true })
+    .then(list => list.forEach(c => c.postMessage({ hop: "refresh", tag: d.tag || "" }))).catch(() => {});
   e.waitUntil(self.registration.showNotification(d.title || "HOP!", {
     body: d.body || "", tag: d.tag || undefined, renotify: !!d.tag, icon: "icon-192.png", badge: "badge-96.png",
     requireInteraction: course, silent: false,
