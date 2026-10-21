@@ -293,6 +293,8 @@ async function load() {
     // Parrainage et messages : un souci ici ne doit pas bloquer les courses
     const [r, m, bal, dem, acc, fc] = await Promise.all([Store.myReferrals().catch(() => null), Store.listMessages().catch(() => null),
       Store.myBalance().catch(() => null), Store.zoneDemand().catch(() => null), Store.myAcceptance().catch(() => null), Store.demandForecast().catch(() => null)]);
+    const th = await Store.todayHours().catch(() => null);
+    if (th) todayReal = th.map(Number);
     pens = (await Store.myPenalties().catch(() => null)) || pens;
     // L'heure du refus vient de la base (c'est elle qui décide quand la course revient)
     ((await Store.listDeclines().catch(() => null)) || []).forEach(d => { if (d.courier_id === me.id) declinedAt.set(d.order_id, new Date(d.created_at).getTime()); });
@@ -763,7 +765,8 @@ async function checkChats() {
 // --- Zones de livraison : demande en direct (seulement le Sharon ouvert pour l'instant) ------
 let demand = null;
 let acceptance = null;   // { accepted, declined } sur 30 jours
-let forecast = null;     // commandes moyennes par heure (aujourd'hui, d'après les 4 dernières semaines)
+let forecast = null;
+let todayReal = null;     // vraies commandes de chaque heure d'aujourd'hui     // commandes moyennes par heure (aujourd'hui, d'après les 4 dernières semaines)
 function demandLevel(d) {
   if (!d) return null;
   const score = (Number(d.waiting) + Number(d.last_hour) / 2) / Math.max(1, Number(d.on_duty));
@@ -1382,13 +1385,18 @@ function todayCurve() {
   if (dow === 6) Object.assign(base, { 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0, 18: 1, 19: 5, 20: 8, 21: 8, 22: 6, 23: 4 });
   const hist = (forecast || []).map(Number), htop = Math.max(0, ...hist);
   const lv = demandLevel(demand), boost = lv ? [1, 1, 1.25, 1.6][lv.n] : 1;
+  const real = todayReal || [], rtop = Math.max(0, ...real, ...hist);
   const hours = Object.keys(base).map(Number).map(h => {
+    // À venir : la prévision (courbe habituelle + historique) ; passé et en cours : les vraies commandes du jour
     let v = base[h] / 8;
     if (htop > 0) v = v * 0.5 + (hist[h] || 0) / htop * 0.5;
     if (h === now) v *= boost;
-    return { h, v: Math.min(1.25, v) };
+    const n = real[h] || 0, isReal = h <= now && real.length > 0;
+    if (isReal && rtop > 0) v = h === now ? Math.max(n / rtop, v * 0.4) : n / rtop;
+    else if (isReal) v = v * 0.25;
+    return { h, v: Math.min(1.25, v), n, real: isReal };
   });
-  return { hours, now, lv };
+  return { hours, now, lv, total: real.reduce((a, b) => a + Number(b || 0), 0) };
 }
 // Petite courbe de la journée, toujours visible dans le panneau (en ligne ou hors ligne) ; on la touche pour tout voir
 function miniCurve() {
@@ -1402,7 +1410,7 @@ function miniCurve() {
 function renderToday() {
   const box = $("#todayBox");
   if (!box) return;
-  const { hours, now, lv } = todayCurve();
+  const { hours, now, lv, total } = todayCurve();
   const top = Math.max(0.3, ...hours.map(x => x.v));
   const peaks = hours.filter(x => x.v / top >= 0.8).map(x => x.h);
   const ranges = [];
@@ -1414,8 +1422,9 @@ function renderToday() {
   box.innerHTML = `<div class="today">
       <div class="today-head"><b>📊 Aujourd'hui</b><span>${lv ? `Maintenant : <b>${lv.label}</b> ${bars(lv)}` : ""}</span>
         <button type="button" class="today-close" data-sheet-down="1" aria-label="Réduire">⌄ Réduire</button></div>
-      <div class="today-chart">${hours.map(x => `<div class="${x.h === now ? "now" : ""}${x.h < now ? " past" : ""}">
-          <i style="height:${Math.round(8 + 92 * x.v / top)}%" class="${x.v / top >= 0.8 ? "hi" : x.v / top >= 0.45 ? "mid" : "lo"}"></i><span>${x.h}</span></div>`).join("")}</div>
+      <div class="today-chart">${hours.map(x => `<div class="${x.h === now ? "now" : ""}${x.real ? " real" : " fc"}">
+          ${x.real && x.n ? `<em>${x.n}</em>` : ""}<i style="height:${Math.round(8 + 80 * x.v / top)}%" class="${x.v / top >= 0.8 ? "hi" : x.v / top >= 0.45 ? "mid" : "lo"}"></i><span>${x.h}</span></div>`).join("")}</div>
+      <p class="today-legend"><span class="lg real"></span> Vraies commandes aujourd'hui : <b>${total}</b> <span class="lg fc"></span> Prévision</p>
       <p class="today-peak">🔥 Pics : ${ranges.map(r => `${r[0]} h–${r[1] + 1} h`).join(" et ") || "—"}${next ? ` · le prochain dans <b>${next.h - now} h</b>` : ""}</p>
       <div class="today-stats">
         <div><small>Courses</small><b>${done.length}</b></div>

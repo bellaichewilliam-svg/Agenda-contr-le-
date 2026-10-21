@@ -917,6 +917,14 @@ async function demandForecast() {
   return h;
 }
 
+// Livreurs : commandes de chaque heure d'aujourd'hui (les vraies, pour la courbe « Aujourd'hui »)
+async function todayHours() {
+  if (ONLINE) return authRest("/rest/v1/rpc/today_hours", { method: "POST", body: {} });
+  const h = Array(24).fill(0), d0 = new Date(); d0.setHours(0, 0, 0, 0);
+  localOrders().filter(o => new Date(o.created_at) >= d0 && !["annulee", "refusee"].includes(o.status))
+    .forEach(o => { h[new Date(o.created_at).getHours()] += 1; });
+  return h;
+}
 // Livreurs : demande en direct (courses en attente, commandes de la dernière heure, livreurs en service)
 async function zoneDemand() {
   if (ONLINE) return authRest("/rest/v1/rpc/zone_demand", { method: "POST", body: {} });
@@ -1642,7 +1650,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
