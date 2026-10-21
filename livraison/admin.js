@@ -479,7 +479,10 @@ function render() {
   } else if (tab === "hebdo") {
     renderWeek(view);
   } else if (tab === "commerces") {
+    // La fiche « annuaire » garde ce qui est en cours de saisie quand l'écran se rafraîchit
+    const keep = $("#dirCard");
     renderShops(view);
+    if (keep) $("#dirCard").replaceWith(keep); else initDirCard();
   } else if (tab === "messages") {
     renderMessages(view);
   } else if (tab === "demandes") {
@@ -709,6 +712,36 @@ function shopWelcome(x) {
     : `שלום ${x.contact_name || ""}, ברוכים הבאים ל${CONFIG.businessNameHe}! 🛵\nלהזמנת שליח מ${x.name}: ${order}\nהאזור שלכם (המשלוחים, קוד QR ללקוחות): ${space}\nנתראה בקרוב!`;
 }
 
+// Annuaire : enseignes ajoutées par le patron ou apprises des clients (absentes de la carte)
+let dirPick = null;
+async function initDirCard() {
+  if (!$("#dirCard") || !window.Places) return;
+  dirPick = null;
+  Places.attach($("#dirAddr"), {
+    lang: () => "fr",
+    onPick: p => { dirPick = p; },
+    onClear: () => { dirPick = null; },
+    texts: () => ({ none: "Aucune adresse trouvée : ajoutez le numéro et la ville", down: "Recherche d'adresse indisponible, réessayez" })
+  });
+  const list = await Store.knownPlaces().catch(() => []);
+  $("#dirCount").textContent = list.length;
+  $("#dirList").innerHTML = list.map(x => `<div class="dir-row" data-place="${UI.esc(x.id)}"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.address)}${x.city ? ", " + UI.esc(UI.cityFr(x.city) || x.city) : ""} · ${Number(x.uses || 1)} commande(s)</span><button type="button" class="btn btn-sm" data-place-del="1">Retirer</button></div>`).join("") || "Aucun pour l'instant.";
+}
+async function saveDirPlace() {
+  const fr = $("#dirFr").value.trim(), he = $("#dirHe").value.trim(), msg = $("#dirMsg");
+  if (!fr && !he) { msg.textContent = "⚠️ Indiquez au moins un nom."; return; }
+  if (!dirPick || dirPick.lat == null) { msg.textContent = "⚠️ Choisissez l'adresse dans la liste proposée (rue et numéro)."; return; }
+  const name = fr && he ? `${fr} · ${he}` : fr || he;
+  const address = [dirPick.streetName || dirPick.street, dirPick.housenumber].filter(Boolean).join(" ") || dirPick.street;
+  try {
+    await Store.knownPlaceAdd({ name, address, city: dirPick.cityId || CONFIG.homeCity, lat: dirPick.lat, lon: dirPick.lon });
+    msg.textContent = `✅ « ${name} » ajouté : les clients le trouvent dès maintenant.`;
+    $("#dirFr").value = ""; $("#dirHe").value = ""; $("#dirAddr").value = ""; dirPick = null;
+    initDirCard();
+  } catch (ex) {
+    msg.textContent = /409|duplicate|unique/i.test(String(ex && ex.message)) ? "Déjà dans l'annuaire à cette adresse." : "⚠️ Non enregistré, vérifiez la connexion.";
+  }
+}
 function renderShops(view) {
   const month = today().slice(0, 7);
   const viaShop = orders.filter(o => o.shop_id && o.status === "livree");
@@ -718,6 +751,18 @@ function renderShops(view) {
   const statusLabel = { en_attente: "⏳ À vérifier", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
   const bonusDue = sum(orders.filter(o => o.status === "livree" && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
   view.innerHTML = `
+    <div class="card" style="margin-bottom:14px" id="dirCard">
+      <b>📖 Annuaire : ajouter un commerce</b>
+      <p class="muted small" style="margin:4px 0 8px">Un restaurant, une makolet, une épicerie… qui ne sort pas dans la recherche : ajoutez-le ici. Il apparaît tout de suite chez tous les clients (« Catalogue à venir » tant qu'il n'est pas partenaire).</p>
+      <div class="dir-add">
+        <input id="dirFr" placeholder="Nom en français (ex. Oshi Sushi)" />
+        <input id="dirHe" placeholder="Nom en hébreu (ex. אושי סושי)" dir="rtl" />
+        <div><input id="dirAddr" placeholder="Adresse : rue et numéro, puis choisir dans la liste" /></div>
+        <button type="button" class="btn btn-primary btn-sm" id="dirSave">➕ Ajouter à l'annuaire</button>
+        <p class="small" id="dirMsg"></p>
+      </div>
+      <details style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
+    </div>
     <div class="card" style="margin-bottom:14px">
       <b>🤝 Commerces amenés par les livreurs</b>
       <p class="muted small" style="margin:4px 0 8px">Chaque livreur a son lien d'inscription pour les commerces (onglet « Parrainage » de son espace). Il gagne ${UI.money(settings.referral_bonus)} sur chaque course livrée au départ de ses commerces, tant qu'il livre avec nous (plus de bonus après ${Number(settings.referral_active_days || CONFIG.partners.activeDays)} jours sans livraison), déduit de sa commission chaque semaine, et voit leurs courses ${Number(settings.priority_minutes)} min avant les autres. Les courses peuvent être commandées dès l'inscription ; vérifiez ici que le commerce existe.</p>
@@ -1152,6 +1197,13 @@ async function onViewClick(e) {
       $("#msgText").value = "";
       await load();
     } catch (ex) { el.disabled = false; alert("Message non envoyé, vérifiez la connexion."); }
+    return;
+  }
+  if (el.id === "dirSave") { saveDirPlace(); return; }
+  if (el.dataset.placeDel) {
+    const row = el.closest("[data-place]");
+    if (!confirm("Retirer ce commerce de l'annuaire ?")) return;
+    try { await Store.knownPlaceDelete(row.dataset.place); row.remove(); } catch (ex) { alert("Non retiré, vérifiez la connexion."); }
     return;
   }
   if (el.dataset.copy) {

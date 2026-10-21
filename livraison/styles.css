@@ -1439,3 +1439,7 @@ body.in-home .eta-bubble { display: none; }
 /* Départ au-dessus de son point, livraison en dessous : les deux bulles restent lisibles même quand les points sont proches */
 .pin-bubble.drop { bottom: auto; top: 42px; }
 .pin-bubble.drop::after { bottom: auto; top: -6px; border-top-color: transparent; border-bottom: 6px solid #fff; border-top: 0; }
+/* Patron : ajouter un commerce à l'annuaire */
+.dir-add { display: grid; gap: 8px; }
+.dir-add input { width: 100%; }
+.dir-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); }
