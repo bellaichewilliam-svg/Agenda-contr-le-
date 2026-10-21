@@ -67,7 +67,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610211603" />
+  <link rel="stylesheet" href="styles.css?v=202610211617" />
 </head>
 <body>
 
@@ -529,7 +529,7 @@
 
 <!-- Bouton « Nous écrire » toujours visible : messagerie dans l'application -->
 <!-- Bulle ronde de la course en cours : temps restant, toujours visible -->
-<a class="eta-bubble hidden" id="etaBubble"><span class="eb-ring"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" class="bg" /><circle cx="50" cy="50" r="42" class="fg" id="ebArc" /></svg><b id="ebMin"></b><small id="ebUnit"></small></span><span class="eb-text"><b id="ebTitle"></b><small id="ebSub"></small></span></a>
+<a class="eta-bubble hidden" id="etaBubble"><span class="eb-ring"><span id="ebSvg"></span><b id="ebMin" dir="ltr"></b><small id="ebUnit"></small></span><span class="eb-text"><b id="ebTitle"></b><small id="ebSub"></small></span></a>
 <button type="button" class="wa-fab chat-fab" id="waFab"><span>💬</span><b data-i18n="chatFab"></b><i class="chat-badge hidden" id="fabBadge"></i></button>
 
 <!-- Demande de devis : tournée quotidienne, carnet… (pro ou particulier) -->
@@ -622,14 +622,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610211603"></script>
-<script src="i18n.js?v=202610211603"></script>
-<script src="pricing.js?v=202610211603"></script>
-<script src="store.js?v=202610211603"></script>
-<script src="chat.js?v=202610211603"></script>
-<script src="common.js?v=202610211603"></script>
-<script src="enseignes.js?v=202610211603"></script>
-<script src="places.js?v=202610211603"></script>
-<script src="client.js?v=202610211603"></script>
+<script src="config.js?v=202610211617"></script>
+<script src="i18n.js?v=202610211617"></script>
+<script src="pricing.js?v=202610211617"></script>
+<script src="store.js?v=202610211617"></script>
+<script src="chat.js?v=202610211617"></script>
+<script src="common.js?v=202610211617"></script>
+<script src="enseignes.js?v=202610211617"></script>
+<script src="places.js?v=202610211617"></script>
+<script src="client.js?v=202610211617"></script>
 </body>
 </html>

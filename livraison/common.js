@@ -312,6 +312,26 @@ function wordmark(sub) {
   return `<b>${he ? "הופ" : "HOP"}<i>!</i></b><small>${esc(small)}</small>`;
 }
 
+// Fourchette affichée dans le rond (« 17-27 min ») : le temps estimé, plus une marge.
+// Course pas encore prise (dès que possible) : départ dans les 10 min (Express : 5) + 5 min sur place + trajet.
+function etaRange(o) {
+  let m = deliveryEta(o);
+  if (m == null && o && o.status === "nouvelle" && o.urgency !== "programmee" && o.pickup_lat != null && o.dropoff_lat != null)
+    m = (o.urgency === "express" ? 5 : 10) + 5 + Pricing.etaMinutes({ lat: Number(o.pickup_lat), lon: Number(o.pickup_lon) }, { lat: Number(o.dropoff_lat), lon: Number(o.dropoff_lon) });
+  if (m == null) return null;
+  const lo = Math.max(1, Math.round(m)), hi = lo + (lo < 8 ? 3 : lo < 20 ? 6 : 10);
+  return { lo, hi, text: `${lo}-${hi}` };
+}
+// Rond d'avancement : dégradé, ouverture en haut, point blanc au bout de l'arc (p de 0 à 1)
+function ringSvg(p, gid) {
+  const C = 2 * Math.PI * 50, k = Math.max(0, Math.min(1, Number(p) || 0)), gap = 0.08 * C, len = (C - gap) * k;
+  const a = (-90 + (gap / 2 + len) / C * 360) * Math.PI / 180;
+  const arc = (cls, d) => `<circle class="${cls}" cx="60" cy="60" r="50" stroke-dasharray="${d.toFixed(1)} ${C.toFixed(1)}" stroke-dashoffset="${(-gap / 2).toFixed(1)}" transform="rotate(-90 60 60)"${cls === "hr-arc" ? ` stroke="url(#${gid})"` : ""}/>`;
+  return `<svg class="hop-ring" viewBox="0 0 120 120" aria-hidden="true"><defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#FFC94D"/><stop offset=".55" stop-color="#FF8A1F"/><stop offset="1" stop-color="#FF5A0A"/></linearGradient></defs>
+    ${arc("hr-track", C - gap)}${k > 0 ? arc("hr-arc", len) + `<circle class="hr-knob" cx="${(60 + 50 * Math.cos(a)).toFixed(1)}" cy="${(60 + 50 * Math.sin(a)).toFixed(1)}" r="6"/>` : ""}</svg>`;
+}
+
 // Minutes avant la livraison (position du livreur connue), sinon null.
 // Course acceptée : trajet jusqu'au départ + 5 min sur place + trajet jusqu'à l'arrivée.
 function deliveryEta(o) {
@@ -460,7 +480,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON,
-  deliveryEta, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

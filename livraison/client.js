@@ -1308,7 +1308,8 @@ function mirrorEtaBubble() {
   const el = $("#etaBubble"), card = $("#homeEta");
   card.classList.toggle("hidden", el.classList.contains("hidden"));
   card.href = el.getAttribute("href") || "#";
-  card.innerHTML = el.innerHTML.replace(/ id="[^"]*"/g, "");
+  // (le dégradé du rond a son propre nom dans la copie : la bulle d'origine peut être cachée)
+  card.innerHTML = el.innerHTML.replace(/ id="(?!hrg-)[^"]*"/g, "").replace(/hrg-eb/g, "hrg-home");
 }
 async function renderEtaBubble() {
   await renderEtaBubbleInner();
@@ -1324,24 +1325,24 @@ async function renderEtaBubbleInner() {
   document.body.classList.toggle("has-eta", !!(live || toRate));
   if (toRate) {
     el.href = UI.trackUrl(toRate);
-    $("#ebMin").textContent = "⭐";
+    $("#ebMin").textContent = "⭐"; $("#ebMin").classList.remove("long");
     $("#ebUnit").textContent = "";
     $("#ebTitle").textContent = t("rtCta");
     $("#ebSub").textContent = t("orderNo", { ref: toRate.ref });
-    $("#ebArc").style.strokeDasharray = `${2 * Math.PI * 42} ${2 * Math.PI * 42}`;
+    $("#ebSvg").innerHTML = UI.ringSvg(1, "hrg-eb");
     return;
   }
   if (!live) return;
   let o = live;
   try { o = (await Store.trackOrder(live.token)) || live; } catch (e) { /* on garde la course connue */ }
-  const min = UI.deliveryEta(o);
+  const r = UI.etaRange(o);
   el.href = UI.trackUrl(o);
-  $("#ebMin").textContent = min != null ? min : o.status === "nouvelle" ? "⏳" : "🛵";
-  $("#ebUnit").textContent = min != null ? "min" : "";
+  $("#ebMin").textContent = r ? r.text : o.status === "nouvelle" ? "⏳" : "🛵";
+  $("#ebMin").classList.toggle("long", !!r && r.text.length > 4);
+  $("#ebUnit").textContent = r ? "min" : "";
   $("#ebTitle").innerHTML = `<span class="eb-scoot">🛵</span> ${UI.esc(t(o.status === "nouvelle" ? "trWaiting" : o.status === "confirmee" ? "trStep2" : "trStep3"))}`;
   $("#ebSub").textContent = t("orderNo", { ref: o.ref });
-  const len = 2 * Math.PI * 42;
-  $("#ebArc").style.strokeDasharray = `${len * (UI.PROGRESS[o.status] || 0)} ${len}`;
+  $("#ebSvg").innerHTML = UI.ringSvg(UI.PROGRESS[o.status] || 0, "hrg-eb");
 }
 
 // Messages non lus : pastille sur le bouton « Nous écrire », vibration à l'arrivée

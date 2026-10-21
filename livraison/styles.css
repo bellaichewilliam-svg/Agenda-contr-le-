@@ -763,13 +763,51 @@ body.rider-on > main { padding: 0 !important; max-width: none; }
 
 /* Suivi : anneau du temps restant et scooter qui se déplace */
 .track-page { position: relative; }
-.eta-ring { position: absolute; top: 14px; inset-inline-end: 14px; z-index: 500; width: 92px; height: 92px; border-radius: 50%; background: #fff; box-shadow: 0 6px 18px rgba(15,31,61,.3); display: grid; place-items: center; align-content: center; }
-.eta-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
-.eta-ring circle { fill: none; stroke-width: 7; }
-.eta-ring .bg { stroke: var(--bg-2); }
-.eta-ring .fg { stroke: var(--brand); stroke-linecap: round; transition: stroke-dasharray .8s; }
-.eta-ring b { position: relative; font-family: "Fredoka", "Rubik", sans-serif; font-size: 30px; line-height: 1; color: var(--navy); }
-.eta-ring small { position: relative; font-weight: 700; color: var(--muted); font-size: 12px; }
+.eta-ring { position: absolute; top: 14px; inset-inline-end: 14px; z-index: 500; width: 104px; height: 104px; padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+  background: radial-gradient(circle at 50% 35%, #fff 0, #fff 58%, #FBF7F2 100%); box-shadow: 0 10px 28px rgba(15,31,61,.28), 0 2px 6px rgba(15,31,61,.12), inset 0 0 0 1px rgba(15,31,61,.04);
+  display: grid; place-items: center; align-content: center; font: inherit; color: var(--navy); animation: ring-in .4s ease-out; }
+.eta-ring:active { transform: scale(.96); }
+.eta-ring b { position: relative; font-family: "Fredoka", "Rubik", sans-serif; font-size: 28px; font-weight: 700; line-height: 1; letter-spacing: -.02em; color: var(--navy); }
+.eta-ring b.long { font-size: 22px; }
+.eta-ring small { position: relative; margin-top: 2px; font-weight: 700; color: var(--muted); font-size: 12px; }
+@keyframes ring-in { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+/* Rond d'avancement commun (suivi, bulle de l'accueil) */
+.hop-ring { position: absolute; inset: 6px; width: calc(100% - 12px); height: calc(100% - 12px); overflow: visible; }
+.hop-ring circle { fill: none; stroke-linecap: round; stroke-width: 9; }
+.hop-ring .hr-track { stroke: #EFEAE3; }
+.hop-ring .hr-arc { filter: drop-shadow(0 2px 3px rgba(255,106,19,.35)); transition: stroke-dasharray .8s ease; }
+.hop-ring .hr-knob { fill: #fff; stroke: #FF6A13; stroke-width: 3.5; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
+/* Page d'état : grand rond, commerce, où en est la commande */
+.st-sheet { position: fixed; inset: 0; z-index: 2500; overflow-y: auto; background: linear-gradient(to bottom, rgba(15,31,61,.2) 0, rgba(15,31,61,.2) 220px, transparent 220px); animation: st-up .28s ease-out; }
+.st-sheet.hidden { display: none; }
+@keyframes st-up { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.st-close { position: absolute; top: 14px; inset-inline-start: 14px; width: 46px; height: 46px; border-radius: 50%; border: 0; background: #fff; color: var(--navy); font-size: 26px; line-height: 1; box-shadow: 0 4px 14px rgba(15,31,61,.25); cursor: pointer; z-index: 2; }
+.st-card { margin: 210px auto 0; max-width: 520px; min-height: calc(100vh - 210px); background: #fff; color: #0F1F3D; border-radius: 28px 28px 0 0; padding: 0 20px 40px; text-align: center; box-shadow: 0 -6px 24px rgba(15,31,61,.12); }
+.st-ringrow { display: flex; align-items: flex-end; justify-content: space-between; transform: translateY(-110px); margin-bottom: -96px; }
+.st-side { width: 52px; height: 52px; border-radius: 50%; border: 0; background: #F4EFE9; color: #0F1F3D; font-size: 20px; font-weight: 800; cursor: pointer; margin-bottom: 6px; }
+.st-ring { position: relative; width: 230px; height: 230px; border-radius: 50%; display: grid; place-items: center; align-content: center;
+  background: radial-gradient(circle at 50% 35%, #fff 0, #fff 60%, #FBF7F2 100%); box-shadow: 0 14px 38px rgba(15,31,61,.22), inset 0 0 0 1px rgba(15,31,61,.04); }
+.st-ring .hop-ring { inset: 14px; width: calc(100% - 28px); height: calc(100% - 28px); }
+.st-ring .hop-ring circle { stroke-width: 8; }
+.st-ring b { position: relative; font-family: "Fredoka", "Rubik", sans-serif; font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -.02em; color: #0F1F3D; }
+.st-ring small { position: relative; font-size: 18px; color: var(--muted); font-weight: 600; }
+.st-shop { margin: 14px 0 2px; color: #667085; font-size: 16px; }
+.st-title { margin: 0; font-size: 24px; line-height: 1.2; color: #0F1F3D; }
+.st-sub { margin: 8px auto 0; max-width: 380px; color: #667085; font-size: 16px; line-height: 1.4; }
+.st-sub:empty { display: none; }
+.st-steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 0; margin: 22px 0 18px; }
+.st-steps li { display: grid; justify-items: center; gap: 6px; font-size: 11.5px; color: #98A2B3; position: relative; }
+.st-steps li::before { content: ""; position: absolute; top: 6px; inset-inline-start: -50%; width: 100%; height: 3px; background: #EFEAE3; z-index: 0; }
+.st-steps li:first-child::before { display: none; }
+.st-steps li.done::before, .st-steps li.current::before { background: #FF8A1F; }
+.st-steps li i { position: relative; z-index: 1; width: 15px; height: 15px; border-radius: 50%; background: #EFEAE3; }
+.st-steps li.done i { background: #FF8A1F; }
+.st-steps li.current i { background: #fff; box-shadow: 0 0 0 4px #FF8A1F; animation: st-pulse 1.4s ease-in-out infinite; }
+.st-steps li.current span { color: #0F1F3D; font-weight: 700; }
+@keyframes st-pulse { 50% { box-shadow: 0 0 0 7px rgba(255,138,31,.35); } }
+.st-details { border: 0; border-radius: 99px; background: #F4EFE9; color: #0F1F3D; font: inherit; font-weight: 700; font-size: 16px; padding: 12px 22px; cursor: pointer; }
+body.st-open { overflow: hidden; }
+body.st-open .eta-ring { visibility: hidden; }
 .trk-scooter { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 26px; background: var(--brand); border: 3px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,.35); animation: trk-bob 1s ease-in-out infinite alternate; }
 @keyframes trk-bob { from { transform: translateY(0); } to { transform: translateY(-3px); } }
 @media (prefers-reduced-motion: reduce) { .trk-scooter { animation: none; } }
@@ -778,7 +816,10 @@ body.rider-on > main { padding: 0 !important; max-width: none; }
 .eta-bubble { position: fixed; bottom: 18px; inset-inline-start: 16px; z-index: 40; max-width: calc(100vw - 110px); display: flex; align-items: center; gap: 10px; text-decoration: none; background: var(--navy); color: #fff; border-radius: 99px; padding: 6px 16px 6px 6px; box-shadow: 0 8px 24px rgba(15,31,61,.35); }
 [dir="rtl"] .eta-bubble { padding: 6px 6px 6px 16px; }
 .eta-bubble .eb-ring { position: relative; width: 58px; height: 58px; border-radius: 50%; background: #fff; display: grid; place-items: center; align-content: center; }
-.eta-bubble .eb-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.eta-bubble .eb-ring svg:not(.hop-ring) { position: absolute; inset: 0; transform: rotate(-90deg); }
+.eta-bubble .eb-ring .hop-ring, .ch-eta .eb-ring .hop-ring { inset: 3px; width: calc(100% - 6px); height: calc(100% - 6px); }
+.eta-bubble .eb-ring .hop-ring circle, .ch-eta .eb-ring .hop-ring circle { stroke-width: 11; }
+.eta-bubble .eb-ring b.long, .ch-eta .eb-ring b.long { font-size: 13px; letter-spacing: -.03em; }
 .eta-bubble circle { fill: none; stroke-width: 8; }
 .eta-bubble .bg { stroke: var(--bg-2); } .eta-bubble .fg { stroke: var(--brand); stroke-linecap: round; }
 .eta-bubble .eb-ring b { position: relative; font-family: "Fredoka", "Rubik", sans-serif; font-size: 21px; line-height: 1; color: var(--navy); }
@@ -881,7 +922,7 @@ body.in-home .eta-bubble { display: none; }
 .ch-eta { display: flex; align-items: center; gap: 12px; text-decoration: none; background: var(--navy); color: #fff; border-radius: 18px; padding: 8px 14px 8px 8px; }
 [dir="rtl"] .ch-eta { padding: 8px 8px 8px 14px; }
 .ch-eta .eb-ring { position: relative; flex: none; width: 54px; height: 54px; border-radius: 50%; background: #fff; display: grid; place-items: center; align-content: center; }
-.ch-eta .eb-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.ch-eta .eb-ring svg:not(.hop-ring) { position: absolute; inset: 0; transform: rotate(-90deg); }
 .ch-eta circle { fill: none; stroke-width: 8; } .ch-eta .bg { stroke: var(--bg-2); } .ch-eta .fg { stroke: var(--brand); stroke-linecap: round; }
 .ch-eta .eb-ring b { position: relative; font-family: "Fredoka", "Rubik", sans-serif; font-size: 19px; line-height: 1; color: var(--navy); }
 .ch-eta .eb-ring small { position: relative; font-size: 10px; font-weight: 700; color: var(--muted); }
