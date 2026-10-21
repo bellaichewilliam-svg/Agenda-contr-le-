@@ -354,7 +354,10 @@ function card(o, kind) {
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
     + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
     + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
-  if (o.eta_status === "attente" && new Date(o.eta_until) > Date.now()) extra += `<div class="bag-line">⏳ Vous avez annoncé ${o.eta_min} min : le client a jusqu'à ${UI.esc(new Date(o.eta_until).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))} pour refuser. Partez quand même au départ.</div>`;
+  if (o.eta_status === "attente" && new Date(o.eta_until) > Date.now()) {
+    const s = Math.max(0, Math.round((new Date(o.eta_until) - Date.now()) / 1000));
+    extra += `<div class="bag-line">⏳ Vous avez annoncé ${o.eta_min} min : le client a encore <b>${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}</b> pour refuser ce temps. Partez quand même au départ.</div>`;
+  }
   else if (o.eta_at && o.status === "confirmee" && !o.arrived_at) extra += `<div class="small">🕐 Attendu au départ vers ${UI.esc(new Date(o.eta_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))} (${o.eta_min} min annoncées)</div>`;
   if (o.service === "achat" && o.rx) extra += `<div class="bag-line">💊 Médicament sur ordonnance : carte d'identité du patient et ordonnance vérifiées par HOP!, à montrer à la pharmacie</div>`;
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
@@ -1292,6 +1295,9 @@ function renderHome() {
       : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-card hot" data-notif="1"><span>🔔 ${Notification.permission === "denied" ? "Notifications bloquées" : "Autorisez les notifications"}<small>${Notification.permission === "denied" ? "Chrome ⋮ → Paramètres → Notifications → autorisez HOP!, sinon pas de « En service » ni de courses appli fermée" : "Pour la notification « En service » et les nouvelles courses, même appli fermée"}</small></span><span class="go">›</span></button>` : ""}
     ${!isOnline() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>` : ""}`;
+  [...$("#sheetBody").querySelectorAll(".rd-card")].forEach((c, i) => c.classList.toggle("rd-more", i >= 2));
+  $("#dutyText").classList.toggle("rd-more", !/⚠️/.test($("#dutyText").textContent));
+  if (sheetState() === "expanded") renderToday();
   sheetHeight();
 }
 // Remboursement à faire : en haut de l'accueil et des courses disponibles, tant qu'il n'est pas fait
@@ -1318,37 +1324,100 @@ function sheetHeight() {
   return h || 0;
 }
 // Panneau du bas qu'on glisse vers le bas (ou qu'on touche) pour voir toute la carte : la course, ses 2 points et le trajet
-function setSheet(collapsed) {
-  $("#sheet").classList.toggle("collapsed", collapsed);
-  try { localStorage.setItem("livraison.sheetCollapsed.v1", collapsed ? "1" : ""); } catch (e) { /* ignore */ }
+// Trois positions, sans défilement : réduit (la carte entière), normal (l'essentiel), grand (tout + la journée)
+function sheetState() { const c = $("#sheet").classList; return c.contains("collapsed") ? "collapsed" : c.contains("expanded") ? "expanded" : "normal"; }
+function setSheetState(st) {
+  const sheet = $("#sheet");
+  sheet.classList.toggle("collapsed", st === "collapsed");
+  sheet.classList.toggle("expanded", st === "expanded");
+  if (st !== "expanded") sheet.scrollTop = 0;
+  $("#work").classList.toggle("sheet-big", st === "expanded");
+  try { localStorage.setItem("livraison.sheetCollapsed.v1", st === "collapsed" ? "1" : ""); } catch (e) { /* ignore */ }
+  if (st === "expanded") renderToday();
   sheetHeight();
   fitRiderMap();
 }
+function setSheet(collapsed) { setSheetState(collapsed ? "collapsed" : "normal"); }
 function initSheetDrag() {
-  const grab = $("#sheetGrab"), sheet = $("#sheet");
-  let y0 = null, dy = 0;
-  grab.addEventListener("pointerdown", e => { y0 = e.clientY; dy = 0; sheet.classList.add("dragging"); grab.setPointerCapture(e.pointerId); });
-  grab.addEventListener("pointermove", e => {
+  const sheet = $("#sheet");
+  let y0 = null, dy = 0, fromGrab = false;
+  // On glisse n'importe où sur le panneau (sauf sur un bouton, un lien ou la glissière « HOP! »)
+  sheet.addEventListener("pointerdown", e => {
+    fromGrab = !!e.target.closest("#sheetGrab");
+    if (!fromGrab && e.target.closest("button, a, input, select, textarea, .rd-slide")) return;
+    if (!fromGrab && sheetState() === "expanded" && sheet.scrollTop > 0) return;   // grand : on lit d'abord en haut
+    y0 = e.clientY; dy = 0; sheet.classList.add("dragging");
+    try { sheet.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
+  });
+  sheet.addEventListener("pointermove", e => {
     if (y0 == null) return;
     dy = e.clientY - y0;
-    const collapsed = sheet.classList.contains("collapsed");
-    sheet.style.transform = `translateY(${Math.max(collapsed ? -40 : 0, Math.min(dy, collapsed ? 0 : sheet.offsetHeight - 90))}px)`;
+    if (Math.abs(dy) > 6) sheet.style.transform = `translateY(${Math.max(-60, Math.min(dy, sheet.offsetHeight - 90))}px)`;
   });
   const end = () => {
     if (y0 == null) return;
     y0 = null;
     sheet.classList.remove("dragging");
     sheet.style.transform = "";
-    const collapsed = sheet.classList.contains("collapsed");
-    if (Math.abs(dy) < 8) setSheet(!collapsed);       // un simple toucher : réduire / agrandir
-    else if (dy > 40 && !collapsed) setSheet(true);    // glissé vers le bas : la carte entière
-    else if (dy < -30 && collapsed) setSheet(false);   // glissé vers le haut : le panneau revient
+    const st = sheetState();
+    if (Math.abs(dy) < 8) { if (fromGrab) setSheetState(st === "normal" ? "collapsed" : "normal"); return; }   // toucher la poignée
+    if (dy > 40) setSheetState(st === "expanded" ? "normal" : "collapsed");    // vers le bas
+    else if (dy < -30) setSheetState(st === "collapsed" ? "normal" : "expanded");   // vers le haut
   };
-  grab.addEventListener("pointerup", end);
-  grab.addEventListener("pointercancel", end);
+  sheet.addEventListener("pointerup", end);
+  sheet.addEventListener("pointercancel", end);
   let saved = false;
   try { saved = localStorage.getItem("livraison.sheetCollapsed.v1") === "1"; } catch (e) { /* ignore */ }
   if (saved) sheet.classList.add("collapsed");
+}
+
+// --- Panneau remonté : « Aujourd'hui » — l'afflux heure par heure, mes chiffres du jour --------------
+// Courbe habituelle d'une journée de livraison (midi et soir), le vendredi plus tôt (avant Chabbat), le samedi le soir ;
+// elle monte avec les vraies commandes de ce jour de la semaine (4 semaines) et la demande en direct.
+const TYPICAL = { 8: 1, 9: 1.2, 10: 1.6, 11: 3, 12: 6, 13: 7, 14: 5, 15: 2.6, 16: 2.6, 17: 4, 18: 6.5, 19: 8, 20: 8, 21: 6, 22: 3.2, 23: 1.6 };
+function todayCurve() {
+  const dow = new Date().getDay(), now = new Date().getHours();
+  const base = Object.assign({}, TYPICAL);
+  if (dow === 5) Object.assign(base, { 10: 4, 11: 7, 12: 8, 13: 8, 14: 6, 15: 3, 16: 1, 17: 0, 18: 0, 19: 0, 20: 0, 21: 0, 22: 0, 23: 0 });
+  if (dow === 6) Object.assign(base, { 8: 0, 9: 0, 10: 0, 11: 0, 12: 0, 13: 0, 14: 0, 15: 0, 16: 0, 17: 0, 18: 1, 19: 5, 20: 8, 21: 8, 22: 6, 23: 4 });
+  const hist = (forecast || []).map(Number), htop = Math.max(0, ...hist);
+  const lv = demandLevel(demand), boost = lv ? [1, 1, 1.25, 1.6][lv.n] : 1;
+  const hours = Object.keys(base).map(Number).map(h => {
+    let v = base[h] / 8;
+    if (htop > 0) v = v * 0.5 + (hist[h] || 0) / htop * 0.5;
+    if (h === now) v *= boost;
+    return { h, v: Math.min(1.25, v) };
+  });
+  return { hours, now, lv };
+}
+function renderToday() {
+  const box = $("#todayBox");
+  if (!box) return;
+  const { hours, now, lv } = todayCurve();
+  const top = Math.max(0.3, ...hours.map(x => x.v));
+  const peaks = hours.filter(x => x.v / top >= 0.8).map(x => x.h);
+  const ranges = [];
+  peaks.forEach(h => { const r = ranges[ranges.length - 1]; if (r && r[1] === h - 1) r[1] = h; else ranges.push([h, h]); });
+  const next = hours.find(x => x.h > now && x.v / top >= 0.8);
+  const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+  const done = orders.filter(o => o.courier_id === me.id && o.status === "livree" && new Date(o.delivered_at || o.pickup_at) >= t0);
+  const gain = done.reduce((a, o) => a + Store.courierGain(o) + (["recu", "verse"].includes(o.tip_status) ? Number(o.tip || 0) : 0), 0);
+  box.innerHTML = `<div class="today">
+      <div class="today-head"><b>📊 Aujourd'hui</b><span>${lv ? `Demande maintenant : <b>${lv.label}</b> ${bars(lv)}` : ""}</span></div>
+      <div class="today-chart">${hours.map(x => `<div class="${x.h === now ? "now" : ""}${x.h < now ? " past" : ""}">
+          <i style="height:${Math.round(8 + 92 * x.v / top)}%" class="${x.v / top >= 0.8 ? "hi" : x.v / top >= 0.45 ? "mid" : "lo"}"></i><span>${x.h}</span></div>`).join("")}</div>
+      <p class="today-peak">🔥 Pics : ${ranges.map(r => `${r[0]} h–${r[1] + 1} h`).join(" et ") || "—"}${next ? ` · le prochain dans <b>${next.h - now} h</b>` : ""}</p>
+      <div class="today-stats">
+        <div><small>Courses</small><b>${done.length}</b></div>
+        <div><small>Gagné</small><b>${UI.money(gain)}</b></div>
+        <div><small>Par course</small><b>${UI.money(done.length ? gain / done.length : 0)}</b></div>
+        <div><small>Crédit HOP</small><b>${UI.money(available())}</b></div>
+      </div>
+      <div class="today-how">
+        <p>🎯 La course part d'abord au livreur le plus proche, puis aux autres.</p>
+        <p>⚡ L'Express va aux livreurs libres, et on y va directement.</p>
+        <p>💳 Le client vous paie avant que vous récupériez la commande.</p>
+      </div></div>`;
 }
 
 // État « en service » : glissière, menu, texte

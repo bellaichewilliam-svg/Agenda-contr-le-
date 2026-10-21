@@ -1249,3 +1249,32 @@ body.in-home .eta-bubble { display: none; }
 .rd-waze { inset-inline-end: 74px; background: #33CCFF; padding: 0; }
 .rd-waze .waze-ico { width: 40px; height: 40px; }
 .rd-waze i { position: absolute; bottom: -4px; inset-inline-end: -4px; font-style: normal; font-size: 16px; background: var(--rd-bg); border-radius: 50%; width: 24px; height: 24px; display: grid; place-items: center; }
+/* Panneau du livreur : pas de défilement ; on le glisse (réduit / normal / grand) */
+.rd-sheet { max-height: none; overflow: hidden; touch-action: none; }
+.rd-sheet:not(.expanded) .rd-more { display: none !important; }
+.rd-sheet.expanded { max-height: 88vh; overflow-y: auto; touch-action: pan-y; }
+.rd-sheet.collapsed #todayBox { display: none; }
+/* « Aujourd'hui » : l'afflux heure par heure */
+.today { margin: 4px 0 14px; padding: 14px; border-radius: 16px; background: var(--rd-bg2); }
+.today-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.today-head b { font-size: 17px; }
+.today-head span { color: var(--rd-mute); font-size: 13px; display: flex; align-items: center; gap: 6px; }
+.today-chart { display: flex; align-items: flex-end; gap: 4px; height: 120px; padding-top: 6px; }
+.today-chart > div { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; }
+.today-chart i { width: 100%; border-radius: 6px 6px 3px 3px; background: linear-gradient(180deg, #3B82F6, #1D4ED8); transition: height .6s ease; }
+.today-chart i.mid { background: linear-gradient(180deg, #FDB022, #F79009); }
+.today-chart i.hi { background: linear-gradient(180deg, #FF6A13, #F04438); box-shadow: 0 0 12px rgba(255,106,19,.45); }
+.today-chart > div.past i { opacity: .35; }
+.today-chart > div.now i { outline: 2px solid #fff; outline-offset: 1px; }
+.today-chart span { font-size: 10px; color: var(--rd-mute); }
+.today-chart > div.now span { color: var(--rd-ink); font-weight: 800; }
+.today-peak { margin: 10px 0 12px; font-size: 14px; }
+.today-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 12px; }
+.today-stats div { background: var(--rd-bg); border-radius: 12px; padding: 8px; text-align: center; }
+.today-stats small { display: block; color: var(--rd-mute); font-size: 11px; }
+.today-stats b { font-size: 16px; }
+.today-how p { margin: 4px 0; font-size: 13px; color: var(--rd-mute); }
+/* Panneau grand : on le redescend en tirant le haut (poignée, titre, demande) ; le reste se lit */
+.rd-sheet { user-select: none; -webkit-user-select: none; }
+.rd-sheet.expanded .rd-grab, .rd-sheet.expanded .rd-title, .rd-sheet.expanded .rd-demand, .rd-sheet.expanded .today-head { touch-action: none; }
+.rd-app.sheet-big .rd-locate, .rd-app.sheet-big .rd-waze { display: none; }

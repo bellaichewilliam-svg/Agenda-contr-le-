@@ -3674,6 +3674,10 @@ begin
   elsif new.status in ('annulee', 'refusee') and old.status in ('confirmee', 'recuperee') and old.courier_id is not null then
     perform public.push_call(jsonb_build_object('order_id', new.id, 'event', 'cancel', 'courier_id', old.courier_id));
     return new;
+  elsif new.status = 'confirmee' and old.status = 'nouvelle' and new.courier_id is not null and public.is_admin() then
+    -- Le patron donne la course à un livreur : il est prévenu tout de suite
+    perform public.push_call(jsonb_build_object('order_id', new.id, 'event', 'assigned', 'courier_id', new.courier_id));
+    return new;
   elsif new.shop_status = 'acceptee' and old.shop_status is distinct from 'acceptee' then ev := 'shop_ok';
   elsif new.docs_status = 'ok' and old.docs_status is distinct from 'ok' then ev := 'docs_ok';
   elsif new.status = 'nouvelle' and old.status <> 'nouvelle' then ev := 'again';
