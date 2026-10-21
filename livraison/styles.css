@@ -1183,6 +1183,12 @@ body.in-home .eta-bubble { display: none; }
 .add-top { display: flex; gap: 10px; align-items: flex-start; font-weight: 600; margin: 8px 0; }
 .add-top input { width: 22px; height: 22px; flex: none; margin-top: 1px; }
 .add-btns { display: grid; gap: 8px; }
+.wait-ann { margin: 6px 0; padding: 10px 12px; border-radius: 12px; background: #FEF0C7; color: #7A2E0E; font-size: 14px; }
+.wait-ann.ok { background: #ECFDF3; color: #054F31; }
+.wait-ann small { display: block; margin-top: 6px; opacity: .8; }
+.wait-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.wait-chips .ch-chip { min-height: 40px; font-weight: 800; }
+.wait-ask { background: #FEF0C7; color: #7A2E0E; }
 .bags-pick { margin: 8px 0; }
 .bags-pick > span { display: block; font-weight: 700; margin-bottom: 6px; }
 .bags-pick > div { display: flex; gap: 8px; flex-wrap: wrap; }

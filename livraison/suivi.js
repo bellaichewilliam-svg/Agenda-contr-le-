@@ -136,13 +136,43 @@ $("#etaAsk").addEventListener("click", async e => {
   if (r && no) alert(t("trEtaRefused"));
   load();
 });
-setInterval(() => { if (order) etaAsk(order); }, 1000);
+setInterval(() => { if (order) { etaAsk(order); waitAsk(order); } }, 1000);
+
+// Attente annoncée par le livreur au départ : le client accepte, ou laisse tomber (la moitié de la course reste due)
+let lastAnn = null;
+function waitAsk(o) {
+  const box = $("#waitAsk");
+  const st = o.wait_ann_status, open = o.status === "confirmee" && !!st && st !== "refus";
+  box.classList.toggle("hidden", !open);
+  if (!open) { box.innerHTML = ""; return; }
+  // Nouvelle annonce : le téléphone vibre
+  if (o.wait_ann_at && lastAnn && lastAnn !== o.wait_ann_at && navigator.vibrate) navigator.vibrate([300, 120, 300]);
+  lastAnn = o.wait_ann_at;
+  const left = Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000));
+  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings));
+  const html = st === "info" ? `<b>${UI.esc(t("waInfo", { min: o.wait_ann_min }))}</b>`
+    : st === "attente" && left > 0 ? `<b>${UI.esc(t("waAnnTitle", { min: o.wait_ann_min }))}</b>
+      <small>${UI.esc(t("waAnnFee", { fee, free: settings.wait_free_min, price: UI.money(settings.wait_step_price), left: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` }))}</small>
+      <div class="btns"><button type="button" class="btn btn-primary" data-wa-ok>${UI.esc(t("waOk"))}</button>
+        <button type="button" class="btn" data-wa-drop>${UI.esc(t("waDrop"))}</button></div>`
+    : `<b>${UI.esc(t("waAccepted", { fee, min: o.wait_ann_min }))}</b>`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+$("#waitAsk").addEventListener("click", async e => {
+  const ok = !!e.target.closest("[data-wa-ok]"), drop = !!e.target.closest("[data-wa-drop]");
+  if ((!ok && !drop) || !order) return;
+  if (drop && !confirm(t("waDropConfirm", { half: UI.money(Math.round(Number(order.price)) / 2) }))) return;
+  e.target.closest("button").disabled = true;
+  const r = await Store.clientWaitAnswer(token, ok).catch(() => null);
+  if (!r || !r.ok) alert(t("waTooLate"));
+  load();
+});
 
 function etaBox(o) {
   const live = o.courier_lat != null;
   const courier = live && { lat: o.courier_lat, lon: o.courier_lon };
   let main, sub = "";
-  if (o.status === "annulee") main = t("trCancelled");
+  if (o.status === "annulee") { main = Number(o.drop_fee) > 0 ? t("trDropped") : t("trCancelled"); if (Number(o.drop_fee) > 0) sub = t("trDroppedSub", { fee: UI.money(o.drop_fee) }); }
   else if (o.status === "refusee") { main = t("trRefused"); sub = o.admin_note ? t("trReason", { r: o.admin_note }) : ""; }
   else if (o.status === "livree") { main = t("deliveredYay"); sub = t("trThanks"); }
   else if (o.status === "nouvelle") {
@@ -195,6 +225,7 @@ function render() {
   }
   etaBox(o);
   etaAsk(o);
+  waitAsk(o);
   renderAdd();
   renderRing(o);
   renderRate(o);
@@ -216,7 +247,8 @@ function render() {
     ${o.admin_note && o.status !== "refusee" ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
 
   const pay = $("#payBox");
-  pay.classList.toggle("hidden", o.status === "annulee" || o.status === "refusee");
+  const dropped = o.status === "annulee" && Number(o.drop_fee) > 0;
+  pay.classList.toggle("hidden", (o.status === "annulee" && !dropped) || o.status === "refusee");
   const bit = UI.bitFor(o);
   // Trompé de moyen de paiement : on change tant que rien n'est payé
   const canSwitch = !o.direct_pay && o.payment_status !== "paye" && ["cash", "bit"].includes(o.payment_method)
@@ -227,10 +259,17 @@ function render() {
   const refund = !o.refund_status ? ""
     : o.refund_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trRefundOk"))}</p>`
     : o.refund_status === "litige" ? `<p class="promo-msg bad">${UI.esc(t("trRefundLitige"))}</p>`
-    : `<div class="refund-box"><p>${UI.esc(t(o.refund_status === "fait" ? "trRefundDone" : o.refund_status === "rien_recu" ? "trRefundNone" : "trRefundDue", { name: rname, amount: ramount }))}</p>
+    : `<div class="refund-box"><p>${UI.esc(t(o.refund_status === "fait" ? "trRefundDone" : o.refund_status === "rien_recu" ? "trRefundNone" : Number(o.drop_fee) > 0 ? "trDropRefund" : "trRefundDue", { name: rname, amount: ramount }))}</p>
         <div class="bit-btns"><button type="button" class="btn btn-sm btn-primary" data-refund="1">${UI.esc(t("trRefundYes"))}</button>
         <button type="button" class="btn btn-sm" data-refund="0">${UI.esc(t("trRefundNo"))}</button></div></div>`;
   const missing = o.pay_missing_at && !o.client_paid_at && o.payment_status !== "paye" ? `<p class="promo-msg bad">${UI.esc(t("trPayMissing"))}</p>` : "";
+  if (dropped) {
+    const who = String(o.courier_name || "").split(" ")[0], phone = o.courier_bit || o.courier_phone || "";
+    pay.innerHTML = `${refund}<small class="muted">${UI.esc(t("trPay"))}</small><div class="amount">${UI.money(o.drop_fee)}</div>
+      ${o.wait_status === "a_payer" ? `<div class="refund-box wait-due"><p><b>${UI.esc(t("trDropDue", { fee: UI.money(o.wait_due), name: who, phone }))}</b></p>
+        ${phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`
+      : o.wait_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>` : ""}`;
+  } else
   pay.innerHTML = `${refund}${missing}<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}

@@ -3924,27 +3924,31 @@ begin
            wait_fee = w.fee,
            price = o.price + case when o.shop_status is null then w.fee else 0 end,
            shop_share = o.shop_share + case when o.shop_status is null then 0 else w.fee end,
-           commission = round(o.commission + case when w.fee > 0 then round(w.fee * w.pct / 100 * 2) / 2 else 0 end, 2),
+           commission = round((o.commission + case when w.fee > 0 then round((w.fee * w.pct / 100 * 2)::numeric) / 2 else 0 end)::numeric, 2),
            wait_due = case when w.fee > 0 and o.shop_status is null and o.payment_status = 'paye' then w.fee else 0 end,
            wait_status = case when w.fee > 0 and o.shop_status is null and o.payment_status = 'paye' then 'a_payer' end
-      from (select x.id, st.commission_pct as pct,
-                   coalesce(floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60), 0)::int as mins,
+      from (select x.id, st.commission_pct as pct, m.mins,
                    case when x.arrived_at is null then 0
-                        else least(st.wait_max, ceil(greatest(0, floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60) - st.wait_free_min)
-                                                     / st.wait_step_min) * st.wait_step_price) end as fee
-              from orders x, settings st where x.id = p_id and st.id = 1) w
+                        -- Client : seulement l'attente annoncée sur place et pas refusée, jusqu'au plafond annoncé
+                        when x.shop_status is null and (x.wait_ann_cap is null or x.wait_ann_status = 'refus') then 0
+                        else least(st.wait_max, ceil(greatest(0, case when x.shop_status is null then least(m.mins, x.wait_ann_cap) else m.mins end - st.wait_free_min)
+                                                     / st.wait_step_min) * st.wait_step_price)::numeric(10, 2) end as fee
+              from orders x cross join settings st
+              cross join lateral (select coalesce(floor(extract(epoch from now() - greatest(x.arrived_at, coalesce(x.ready_at, x.arrived_at))) / 60), 0)::int as mins) m
+             where x.id = p_id and st.id = 1) w
      where o.id = w.id and o.courier_id = auth.uid() and o.status = 'confirmee';
   elsif p_action = 'attente_recue' then
     update orders set wait_status = 'recu' where id = p_id and courier_id = auth.uid() and wait_status = 'a_payer';
   elsif p_action = 'attente_refusee' then
     -- Le client ne paie pas l'attente : pas de commission dessus, le patron est prévenu (il décide)
     update orders o set wait_status = 'refuse',
-           commission = round(greatest(0, o.commission - round(o.wait_due * st.commission_pct / 100 * 2) / 2), 2)
+           commission = case when o.status = 'annulee' then 0 else round(greatest(0, o.commission - round((o.wait_due * st.commission_pct / 100 * 2)::numeric) / 2)::numeric, 2) end
       from settings st where st.id = 1 and o.id = p_id and o.courier_id = auth.uid() and o.wait_status = 'a_payer';
     if found then
       insert into chat_messages (thread, author, author_name, body)
       select 'c:' || auth.uid()::text, 'courier', o.courier_name,
-             '⚠️ Le client ne paie pas le supplément d''attente : ' || replace(o.wait_due::text, '.', ',') || ' ₪ (course ' || o.ref || ')'
+             '⚠️ Le client ne paie pas ' || case when o.status = 'annulee' then 'la moitié de la course (il a laissé tomber) : ' else 'le supplément d''attente : ' end
+             || replace(o.wait_due::text, '.', ',') || ' ₪ (course ' || o.ref || ')'
         from orders o where o.id = p_id;
     end if;
   elsif p_action = 'livree' then
@@ -3982,6 +3986,97 @@ begin
   end if;
   return found;
 end;
+$$;
+
+-- ============================================================================
+-- ATTENTE ANNONCÉE : sur place, si on lui annonce une attente, le livreur la dit tout de suite (5 à 30 min, puis
+-- « encore +5 / +10 »). Le client voit les minutes et le supplément maximum, et accepte ou laisse tomber
+-- (la moitié de la course reste due : le livreur s'est déplacé). Sans réponse en 3 min : accepté d'office.
+-- Seule l'attente annoncée (et pas refusée) est payée, jusqu'au plafond annoncé. HOP! Pro : le commerce paie
+-- l'attente comme avant ; le client est seulement prévenu du retard.
+-- ============================================================================
+alter table public.orders add column if not exists wait_ann_min int;            -- minutes annoncées en tout
+alter table public.orders add column if not exists wait_ann_cap int;            -- minutes payables depuis l'arrivée (plafond)
+alter table public.orders add column if not exists wait_ann_at timestamptz;     -- dernière annonce
+alter table public.orders add column if not exists wait_ann_status text check (wait_ann_status in ('attente', 'ok', 'refus', 'info'));
+alter table public.orders add column if not exists drop_fee numeric(10, 2);     -- client qui laisse tomber : moitié de la course
+
+-- Supplément pour un nombre de minutes sur place (même règle que l'attente)
+create or replace function public.wait_fee_for(p_min int) returns numeric
+language sql stable security definer set search_path = public as $$
+  select least(st.wait_max, ceil(greatest(0, coalesce(p_min, 0) - st.wait_free_min) / st.wait_step_min) * st.wait_step_price)::numeric(10, 2)
+    from settings st where st.id = 1;
+$$;
+
+create or replace function public.courier_wait_announce(p_id uuid, p_min int) returns json
+language plpgsql security definer set search_path = public as $$
+declare o orders; m int := least(greatest(coalesce(p_min, 0), 1), 60); since int;
+begin
+  if not public.is_active_courier() then return json_build_object('ok', false); end if;
+  select * into o from orders where id = p_id and courier_id = auth.uid() and status = 'confirmee' and arrived_at is not null for update;
+  if not found or o.wait_ann_status = 'refus' then return json_build_object('ok', false); end if;
+  since := floor(extract(epoch from now() - o.arrived_at) / 60)::int;
+  update orders set wait_ann_min = coalesce(wait_ann_min, 0) + m,
+         wait_ann_cap = case when wait_ann_cap is null then since + m else wait_ann_cap + m end,
+         wait_ann_at = now(),
+         wait_ann_status = case when shop_status is not null then 'info' else 'attente' end
+   where id = p_id returning * into o;
+  insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:wait_ann');
+  return json_build_object('ok', true, 'min', o.wait_ann_min, 'cap', o.wait_ann_cap, 'fee', case when o.shop_status is null then public.wait_fee_for(o.wait_ann_cap) else 0 end);
+end;
+$$;
+
+-- Réponse du client (dans les 3 min) : accepter, ou laisser tomber (moitié de la course)
+create or replace function public.client_wait_answer(p_token uuid, p_ok boolean) returns json
+language plpgsql security definer set search_path = public as $$
+declare o orders; half numeric; paid boolean;
+begin
+  select * into o from orders where token = p_token for update;
+  if not found or o.status <> 'confirmee' or o.wait_ann_status is distinct from 'attente' or o.wait_ann_at < now() - interval '3 minutes' then
+    return json_build_object('ok', false, 'error', 'too_late');
+  end if;
+  if coalesce(p_ok, false) then
+    update orders set wait_ann_status = 'ok' where id = o.id;
+    insert into chat_messages (thread, author, body) values ('o:' || o.id::text, 'system', 'status:wait_ok');
+    return json_build_object('ok', true);
+  end if;
+  half := (round(o.price) / 2)::numeric(10, 2);
+  paid := o.paid_to = 'livreur' and o.direct_pay and o.payment_status = 'paye';
+  update orders set status = 'annulee', wait_ann_status = 'refus', drop_fee = half,
+         commission = least(half, public.commission_for(half)),
+         -- Déjà payée au livreur : il rend le reste ; sinon le client lui doit la moitié
+         refund_amount = case when paid then o.price - half else refund_amount end,
+         refund_courier_id = case when paid then o.courier_id else refund_courier_id end,
+         refund_courier_name = case when paid then o.courier_name else refund_courier_name end,
+         refund_courier_phone = case when paid then coalesce(o.courier_bit, o.courier_phone) else refund_courier_phone end,
+         refund_received = case when paid then true else refund_received end,
+         refund_status = case when paid then 'a_faire' else refund_status end,
+         refund_at = case when paid then now() else refund_at end,
+         wait_due = case when paid then 0 else half end,
+         wait_status = case when paid then null else 'a_payer' end
+   where id = o.id;
+  insert into chat_messages (thread, author, body) values ('o:' || o.id::text, 'system', 'status:wait_drop');
+  return json_build_object('ok', true, 'drop_fee', half, 'refund', case when paid then o.price - half else 0 end);
+end;
+$$;
+revoke execute on function public.wait_fee_for(int) from public, anon;
+grant execute on function public.wait_fee_for(int) to authenticated;
+revoke execute on function public.courier_wait_announce(uuid, int), public.client_wait_answer(uuid, boolean) from public;
+grant execute on function public.courier_wait_announce(uuid, int) to authenticated;
+grant execute on function public.client_wait_answer(uuid, boolean) to anon, authenticated;
+
+-- Crédit du livreur : la commission d'un abandon (moitié de la course) compte aussi
+create or replace function public.courier_balance(p_id uuid) returns numeric
+language sql stable security definer set search_path = public as $$
+  select coalesce((select sum(public.course_due(o))
+                     from orders o where o.courier_id = p_id and o.status = 'livree' and o.commission_status <> 'regle'), 0)
+       + coalesce((select sum(o.commission) from orders o
+                    where o.courier_id = p_id and o.status = 'annulee' and o.drop_fee > 0 and o.commission_status <> 'regle'), 0)
+       - coalesce((select sum(tip) from orders where courier_id = p_id and tip_status = 'recu' and not direct_pay), 0)
+       -- (une course de son réseau qu'il livre lui-même : pas de bonus, il a déjà la commission réseau)
+       - coalesce((select sum(referral_bonus) from orders
+                    where referrer_id = p_id and courier_id is distinct from p_id and status = 'livree' and referral_status <> 'regle'), 0)
+       - coalesce((select sum(referrer_share) from plan_sales where referrer_id = p_id and referrer_status <> 'regle'), 0);
 $$;
 
 -- ============================================================================

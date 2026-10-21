@@ -198,7 +198,9 @@ const holdMs = () => (Number(settings && settings.decline_hold_min) || 5) * 6000
 const declinedRecently = id => declinedAt.has(id) && Date.now() - declinedAt.get(id) < holdMs();
 const markDeclined = id => { declinedAt.set(id, Date.now()); backAgain.delete(id); };
 const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id && !declinedRecently(o.id)).sort(byTime);
-const mine = () => orders.filter(o => o.courier_id === me.id && ["confirmee", "recuperee"].includes(o.status)).sort(byTime);
+// (avec un abandon du client dont la moitié de la course reste à encaisser)
+const mine = () => orders.filter(o => o.courier_id === me.id && (["confirmee", "recuperee"].includes(o.status)
+  || (o.status === "annulee" && o.wait_status === "a_payer"))).sort(byTime);
 
 // Un seul lecteur audio, débloqué au premier geste (les téléphones l'exigent)
 let audioCtx = null;
@@ -356,7 +358,7 @@ function card(o, kind) {
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
     + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
     + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
-  if (o.eta_status === "attente" && new Date(o.eta_until) > Date.now()) {
+  if (o.eta_status === "attente" && o.status === "confirmee" && new Date(o.eta_until) > Date.now()) {
     const s = Math.max(0, Math.round((new Date(o.eta_until) - Date.now()) / 1000));
     extra += `<div class="bag-line">⏳ Vous avez annoncé ${o.eta_min} min : le client a encore <b>${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}</b> pour refuser ce temps. Partez quand même au départ.</div>`;
   }
@@ -393,9 +395,11 @@ function card(o, kind) {
   } else {
     // Au départ : « Je suis arrivé » lance le compteur d'attente (payée au-delà des minutes offertes)
     const w = Store.waitFee(o, settings);
-    actions = (o.status === "confirmee"
+    if (o.status === "annulee") actions = `<p class="wait-live">💳 Le client vous doit <b>${UI.money(o.wait_due)}</b> (moitié de la course, vous vous êtes déplacé) par Bit / PayBox</p>
+      <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`;
+    else actions = (o.status === "confirmee"
         ? (o.arrived_at
-            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : ` · ${Math.max(0, Number(settings.wait_free_min) - w.mins)} min encore offertes`}</p>`
+            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Number(settings.wait_free_min) - w.mins)} min encore offertes`}</p>${waitAnn(o)}`
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
           + `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : o.wait_status === "a_payer"
@@ -505,7 +509,21 @@ document.addEventListener("click", e => {
   const o = mine().find(x => x.id === b.dataset.showref);
   if (o) refFull(o);
 });
+// Attente au départ : le livreur l'annonce tout de suite, le client accepte (ou laisse tomber)
+function waitAnn(o) {
+  const pro = !!o.shop_status;
+  const chips = (list, plus) => `<div class="wait-chips">${list.map(m => `<button type="button" class="ch-chip" data-wait-ann="${UI.esc(o.id)}" data-min="${m}">${plus ? "+" : ""}${m} min</button>`).join("")}</div>`;
+  if (!o.wait_ann_status) return `<div class="wait-ann"><b>${pro ? "⏳ Pas prête ? Prévenez le client du retard" : "⏳ On vous annonce une attente ? Dites-le tout de suite au client"}</b>${chips([5, 10, 15, 20, 30])}
+    ${pro ? "" : `<small>Sans annonce, l'attente n'est pas payée.</small>`}</div>`;
+  const left = Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000));
+  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings));
+  const st = o.wait_ann_status === "info" ? `ℹ️ Client prévenu : environ <b>${o.wait_ann_min} min</b> de retard (l'attente est payée par le commerce)`
+    : o.wait_ann_status === "attente" && left > 0 ? `⏳ Annoncé au client : <b>${o.wait_ann_min} min</b> (+${fee} max) · sa réponse… <b>${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}</b>`
+    : `✅ ${o.wait_ann_status === "ok" ? "Le client accepte" : "Accepté d'office (pas de réponse)"} : jusqu'à <b>${o.wait_ann_cap} min</b> sur place, <b>+${fee}</b> max`;
+  return `<div class="wait-ann ${o.wait_ann_status === "attente" && left > 0 ? "pending" : "ok"}">${st}<small>Encore de l'attente ?</small>${chips([5, 10], true)}</div>`;
+}
 function mineStep(o, hopPaid) {
+  if (o.status === "annulee") return `❌ Le client a laissé tomber (attente) : la moitié de la course vous est due`;
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
   if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${UI.money(o.price)} (Bit / PayBox), puis allez au départ`;
   return o.arrived_at ? "2️⃣ Récupérez la commande" : "2️⃣ Allez au départ";
@@ -720,6 +738,15 @@ async function onViewClick(e) {
     }
     return load();
   }
+  if (el.dataset.waitAnn) {
+    const o = orders.find(x => x.id === el.dataset.waitAnn);
+    if (!o || !confirm(o.shop_status ? `Prévenir le client : environ ${el.dataset.min} min de retard ?`
+      : `Annoncer ${o.wait_ann_status ? "encore " : ""}${el.dataset.min} min d'attente au client ? Il accepte ou laisse tomber (3 min pour répondre, sinon c'est accepté).`)) return;
+    el.disabled = true;
+    const r = await Store.courierWaitAnnounce(o.id, Number(el.dataset.min)).catch(() => null);
+    if (!r || !r.ok) alert("Annonce impossible, actualisez la page.");
+    return load();
+  }
   if (el.dataset.act) {
     const id = el.closest("article").dataset.id;
     const o = orders.find(x => x.id === id);
@@ -746,7 +773,7 @@ async function onViewClick(e) {
       if (!okPay) return alert("Paiement non enregistré, réessayez.");
       o.payment_status = "paye";
     }
-    if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} d'attente ? HOP! est prévenu et s'en occupe.`)) return;
+    if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`)) return;
     if (el.dataset.act === "livree") {
       el.disabled = true;
       el.textContent = "📍 Vérification de votre position…";

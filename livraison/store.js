@@ -863,13 +863,27 @@ async function courierAction(id, action) {
 }
 
 // Supplément d'attente / d'achats (même calcul qu'en ligne)
+// Supplément pour un nombre de minutes sur place : minutes offertes, puis le prix par minute, avec un maximum
+function waitFeeFor(m, st) {
+  return Math.min(Number(st.wait_max), Math.ceil(Math.max(0, Number(m || 0) - Number(st.wait_free_min)) / Number(st.wait_step_min)) * Number(st.wait_step_price));
+}
 function waitFee(o, st) {
   if (!o.arrived_at) return { mins: 0, fee: 0 };
-  // Commande d'un commerce HOP! Pro : l'attente compte à partir de l'heure annoncée par le commerce
+  // Commande d'un commerce HOP! Pro : l'attente compte à partir de l'heure annoncée par le commerce (il la paie)
   const from = Math.max(new Date(o.arrived_at), o.ready_at ? new Date(o.ready_at) : 0);
   const mins = Math.max(0, Math.floor((Date.now() - from) / 60000));
-  const fee = Math.min(Number(st.wait_max), Math.ceil(Math.max(0, mins - Number(st.wait_free_min)) / Number(st.wait_step_min)) * Number(st.wait_step_price));
-  return { mins, fee };
+  // Client : seulement l'attente annoncée sur place et pas refusée, jusqu'au plafond annoncé
+  if (!o.shop_status && (o.wait_ann_cap == null || o.wait_ann_status === "refus")) return { mins, fee: 0, unannounced: true };
+  return { mins, fee: waitFeeFor(o.shop_status ? mins : Math.min(mins, Number(o.wait_ann_cap)), st) };
+}
+// Attente annoncée : le livreur la dit au client, qui accepte ou laisse tomber (moitié de la course)
+async function courierWaitAnnounce(id, min) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_wait_announce", { method: "POST", body: { p_id: id, p_min: min } });
+  return { ok: false };
+}
+async function clientWaitAnswer(token, ok) {
+  if (ONLINE) return rest("/rest/v1/rpc/client_wait_answer", { method: "POST", body: { p_token: token, p_ok: !!ok } });
+  return { ok: false };
 }
 
 // Livreur : en ligne / hors ligne
@@ -1671,7 +1685,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
+  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
