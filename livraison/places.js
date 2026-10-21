@@ -29,6 +29,12 @@ function distText(p) {
   return d < 1 ? `${Math.max(50, Math.round(d * 20) * 50)} m` : `${d.toFixed(1).replace(".", ",")} km`;
 }
 
+// Adresse hors d'Israël ou écrite en arabe (Jordanie, Cisjordanie…) : jamais proposée
+const FOREIGN = /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/;
+function foreign(p) {
+  return (p.cc && p.cc !== "IL") || FOREIGN.test([p.label, p.brand, p.street, p.city].join(" "));
+}
+
 function normalize(s) {
   return String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s'’"\-־.]/g, "");
 }
@@ -51,7 +57,7 @@ function toPlace(f) {
   const streetLine = [p.street || (!isPoi && p.type !== "city" ? p.name : ""), p.housenumber].filter(Boolean).join(" ");
   const city = p.city || p.town || p.village || p.locality || p.district || p.county || "";
   return {
-    lat, lon, city, type: p.type,
+    lat, lon, city, type: p.type, cc: String(p.countrycode || "").toUpperCase(),
     streetName: p.street || (!isPoi ? p.name : "") || "",
     housenumber: p.housenumber || "",
     cityId: matchCity(city) || matchCity(p.district) || matchCity(p.county),
@@ -89,9 +95,11 @@ async function searchMap(q, lang) {
   // Pas de doublons (même libellé), pas de pays/régions entières
   const seen = new Set();
   const nq = normalize(q);
-  const shops = ((pdata && pdata.features) || []).map(toPlace).filter(p => p.brand);
+  // Seulement en Israël, en hébreu / français / anglais, et pas à l'autre bout du pays (60 km au plus)
+  const ok = p => !foreign(p) && km(at, p) <= 60;
+  const shops = ((pdata && pdata.features) || []).map(toPlace).filter(p => p.brand && ok(p));
   const named = shops.filter(p => normalize(p.brand).includes(nq)).sort((a, b) => km(at, a) - km(at, b));
-  const list = named.concat((data.features || []).map(toPlace), shops.filter(p => !named.includes(p))).filter(p => {
+  const list = named.concat((data.features || []).map(toPlace).filter(ok), shops.filter(p => !named.includes(p))).filter(p => {
     // Seulement des rues, adresses ou enseignes (pas des villes ou régions entières)
     if (!p.brand && (!p.streetName || ["city", "district", "county", "state", "country", "locality"].includes(p.type))) return false;
     if (!p.label || seen.has(p.label)) return false;
@@ -151,7 +159,7 @@ async function nearbyByName(q, lang, at) {
     const g = e.tags || {};
     const lat = e.lat != null ? e.lat : e.center && e.center.lat, lon = e.lon != null ? e.lon : e.center && e.center.lon;
     const name = g["name:" + lang] || (lang === "fr" && g["name:en"]) || g.name || g["name:he"] || g["name:en"] || g.brand;
-    if (!name || lat == null || !(g.amenity || g.shop || g.office || g.tourism || g.healthcare || g.leisure || g.craft)) continue;
+    if (!name || lat == null || FOREIGN.test(name + " " + (g["addr:street"] || "")) || !(g.amenity || g.shop || g.office || g.tourism || g.healthcare || g.leisure || g.craft)) continue;
     const streetName = g["addr:street"] || "", housenumber = g["addr:housenumber"] || "";
     const city = g["addr:city"] || "";
     const streetLine = [streetName, housenumber].filter(Boolean).join(" ");
@@ -201,7 +209,7 @@ async function reverse(lat, lon, lang) {
   const data = await res.json();
   lastOk = true;
   const here = { lat, lon };
-  const list = (data.features || []).map(toPlace).filter(p => p.streetName || p.brand)
+  const list = (data.features || []).map(toPlace).filter(p => (p.streetName || p.brand) && !foreign(p))
     .map(p => Object.assign(p, { d: km(here, p) }))
     .sort((a, b) => (!!b.housenumber - !!a.housenumber) || (!!a.brand - !!b.brand) || a.d - b.d);
   const best = list.find(p => !p.brand) || list[0];
