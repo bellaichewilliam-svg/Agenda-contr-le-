@@ -377,7 +377,7 @@ function card(o, kind) {
   if (o.shop_status) extra += proLine(o);
   if (o.phone_order) extra += phoneLine(o);
   if (o.adult_items) extra += `<div class="small adult-line">🔞 ${/tabac/.test(o.adult_items) ? "Tabac" : ""}${/tabac/.test(o.adult_items) && /alcool/.test(o.adult_items) ? " et " : ""}${/alcool/.test(o.adult_items) ? "alcool" : ""} : vérifiez la pièce d'identité du client (18 ans et plus) avant de donner.</div>`;
-  if (o.shop_ref) extra += `<div class="bag-line">🛍️ Sac n° <b>${UI.esc(o.shop_ref)}</b> : demandez ce numéro${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}</div>`;
+  if (o.shop_ref && kind !== "mine") extra += `<div class="bag-line">🛍️ Sac n° <b>${UI.esc(o.shop_ref)}</b> : demandez ce numéro${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}${Number(o.bags_count) ? ` · <b>${o.bags_count}</b> sac(s)` : ""}</div>`;
   if (o.rules_accepted_at) extra += `<div class="small muted">📋 Le client a accepté les conditions : max 40 × 40 × 35 cm, 15 kg, 500 ₪, rien de dangereux ni d'illégal. Colis non conforme ? Vous pouvez refuser : « ⚠️ Un souci ».</div>`;
   if (Number(o.discount) > 0) extra += `<div class="small">🎁 Code promo du client : ${UI.money(o.discount)}, payé par HOP (pas par vous)</div>`;
   const hopPaid = o.paid_to === "hop";
@@ -477,6 +477,31 @@ function readyBanner(o, etaToPickup) {
     : `Vous êtes à ${etaToPickup} min : partez dans ${r.left - etaToPickup} min, pas avant`;
   return `<div class="ready-banner ${r.ok ? "ok" : "wait"}">${r.text}${tip ? `<small>${tip}</small>` : ""}</div>`;
 }
+// Le n° à montrer au commerce (sac HOP! Pro ou commande par téléphone) et les sacs à prendre, en très gros
+function showRef(o) {
+  const n = o.shop_ref || o.phone_ref, bags = Number(o.bags_count) || 0;
+  if (!n && !bags) return "";
+  return `<button type="button" class="show-ref" data-showref="${UI.esc(o.id)}">
+    <span>📢 À montrer ${o.shop_name ? "chez " + UI.esc(o.shop_name) : "au commerce"} · touchez pour agrandir</span>
+    ${n ? `<b>N° ${UI.esc(n)}</b>` : ""}${o.phone_order && o.pickup_name ? `<em>au nom de ${UI.esc(o.pickup_name)}</em>` : ""}
+    ${bags ? `<small>🛍️ ${bags} sac${bags > 1 ? "s" : ""} à prendre</small>` : ""}</button>`;
+}
+function refFull(o) {
+  const n = o.shop_ref || o.phone_ref, bags = Number(o.bags_count) || 0;
+  const el = document.createElement("div");
+  el.className = "ref-full";
+  el.innerHTML = `<span>${o.shop_name ? UI.esc(o.shop_name) : "Commande"}</span>${n ? `<b>${UI.esc(n)}</b>` : ""}
+    ${o.phone_order && o.pickup_name ? `<em>${UI.esc(o.pickup_name)}</em>` : ""}${bags ? `<small>🛍️ ${bags} sac${bags > 1 ? "s" : ""}</small>` : ""}
+    <p class="muted">Touchez pour fermer</p>`;
+  el.addEventListener("click", () => el.remove());
+  document.body.appendChild(el);
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-showref]");
+  if (!b) return;
+  const o = mine().find(x => x.id === b.dataset.showref);
+  if (o) refFull(o);
+});
 function mineStep(o, hopPaid) {
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
   if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${UI.money(o.price)} (Bit / PayBox), puis allez au départ`;
@@ -491,6 +516,7 @@ function mineCard(o, x) {
     return `<section class="stop-block${now ? " now" : " done"}">
       <div class="stop-tag">${label}${which === "pickup" ? readyChip(o) : ""}</div>
       <div class="stop-addr">${UI.brand(o[pre + "_place"])}<bdi>${UI.esc(o[pre + "_address"])}</bdi>, ${UI.esc(UI.cityFr(city))}</div>
+      ${which === "pickup" && !to ? showRef(o) : ""}
       ${UI.addrDetails(o, pre)}${UI.addrNote(o[pre + "_note"])}${which === "dropoff" ? UI.doorTag(o) : ""}
       ${callBig(name, phone)}
       ${now ? navBtn(o, which) : ""}

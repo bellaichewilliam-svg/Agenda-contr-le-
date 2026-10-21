@@ -174,8 +174,23 @@ function courierPay(o) {
 }
 // Ce que le commerce doit à HOP pour une livraison : sa part (avant), ou seulement la part de HOP (paiement direct)
 const billPart = o => (o.direct_pay ? (Number(o.shop_share || 0) > 0 ? Number(o.hop_share || 0) : 0) : Number(o.shop_share || 0));
-// Articles déjà mis dans le sac (cochés par le commerce sur ce téléphone)
-const picked = {};
+// Articles déjà mis dans le sac et nombre de sacs (gardés sur ce téléphone, même si on recharge la page)
+const keep = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } };
+const kept = k => { try { return JSON.parse(localStorage.getItem(k) || "{}") || {}; } catch (e) { return {}; } };
+const picked = kept("hop_shop_picked"), bagsDraft = kept("hop_shop_bags");
+const pickedCount = o => (o.items || []).filter((it, i) => picked[o.id + ":" + i]).length;
+// Préparation : chaque article à cocher, la progression, puis combien de sacs pour le livreur
+function prepList(o) {
+  const n = o.items.length, done = pickedCount(o), editable = o.shop_status === "acceptee";
+  return `<ul class="prep-items">${o.items.map((it, i) => { const on = !!picked[o.id + ":" + i];
+      return `<li class="${on ? "done" : ""}"><label><input type="checkbox" data-pick="${UI.esc(o.id)}:${i}"${on ? " checked" : ""}${editable ? "" : " disabled"} /> <b>${it.qty} ×</b> <span>${UI.esc(it.name)}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`; }).join("")}</ul>
+    ${editable ? `<p class="prep-progress${done === n ? " all" : ""}"><b>${UI.esc(done === n ? t("spAllPicked") : t("spPickedN", { n: done, total: n }))}</b><i style="width:${Math.round(done / n * 100)}%"></i></p>` : ""}`;
+}
+function bagsPicker(o) {
+  const cur = Number(bagsDraft[o.id]) || 0;
+  return `<div class="bags-pick"><span>${UI.esc(t("spBagsQ"))}</span><div>${[1, 2, 3, 4, 5, 6].map(k =>
+    `<button type="button" class="ch-chip${cur === k ? " on" : ""}" data-bags-for="${UI.esc(o.id)}" data-n="${k}">${k}</button>`).join("")}</div></div>`;
+}
 function renderPrep() {
   const { shop, orders } = state.dash;
   // On ne redessine pas pendant que le commerce tape son n° de commande
@@ -198,11 +213,12 @@ function renderPrep() {
         <small class="muted">${UI.esc(t("spAcceptIn"))}</small><div class="prep-btns">${CONFIG.pro.prepChoices.map(m =>
           `<button type="button" class="btn btn-primary" data-prep="${m}" data-id="${UI.esc(o.id)}">${UI.esc(t("spMin", { n: m }))}</button>`).join("")}
           <button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
-      : o.shop_status === "acceptee" ? `<button type="button" class="btn btn-primary btn-block" data-ready="${UI.esc(o.id)}">${UI.esc(t("spReadyBtn"))}</button>` : "";
+      : o.shop_status === "acceptee" ? `${bagsPicker(o)}<button type="button" class="btn btn-primary btn-block" data-ready="${UI.esc(o.id)}">${UI.esc(t("spReadyBtn"))}</button>`
+      : o.bags_count ? `<p class="bags-done">${UI.esc(t("spBags", { n: o.bags_count }))}</p>` : "";
     return `<div class="prep-item${o.shop_status === "attente" ? " is-new" : ""}">
       <div class="prep-head">${head}${o.shop_ref ? `<b class="bag-no">${UI.esc(t("spRefShow", { n: o.shop_ref }))}</b>` : ""}<small class="muted">${UI.esc(t("orderNo", { ref: o.ref }))}</small></div>
       ${Array.isArray(o.items) && o.items.length
-        ? `<ul class="prep-items">${o.items.map((it, i) => `<li><label><input type="checkbox" data-pick="${UI.esc(o.id)}:${i}"${picked[o.id + ":" + i] ? " checked" : ""} /> <b>${it.qty} ×</b> <span>${UI.esc(it.name)}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`).join("")}</ul>
+        ? `${prepList(o)}
           ${o.items_note ? `<p class="prep-order">💬 ${UI.esc(o.items_note)}</p>` : ""}<p class="small"><b>${UI.esc(t("spItemsTotal", { total: UI.money(o.items_total) }))}</b></p>`
         : `<p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>`}
       <small class="muted">${UI.esc(t("spClient", { name: (o.dropoff_contact || o.contact_name || "").split(" ")[0], city: I18N.cityName(o.to_city) }))}</small>
@@ -237,15 +253,21 @@ async function refreshSpace() {
     if (d && d.shop) { state.dash = d; renderSpace(); }
   } catch (e) { /* nouvel essai au prochain tour */ }
 }
-async function prepAction(id, action, minutes, reason, ref) {
+async function prepAction(id, action, minutes, reason, ref, bags) {
   try {
-    const ok = await Store.shopOrderAction(state.dash.shop.token, id, action, minutes, reason, ref);
+    const ok = await Store.shopOrderAction(state.dash.shop.token, id, action, minutes, reason, ref, bags);
     if (!ok) alert(t("spErr"));
     else if (action === "accepter") delete refDraft[id];
   } catch (e) { alert(/shop_ref/.test(e.message || "") ? t("spRefNeed") : t("spErr")); }
   refreshSpace();
 }
-$("#spPrep").addEventListener("change", e => { const c = e.target.closest("[data-pick]"); if (c) picked[c.dataset.pick] = c.checked; });
+$("#spPrep").addEventListener("change", e => {
+  const c = e.target.closest("[data-pick]");
+  if (!c) return;
+  if (c.checked) picked[c.dataset.pick] = true; else delete picked[c.dataset.pick];
+  keep("hop_shop_picked", picked);
+  renderPrep();
+});
 $("#spPrep").addEventListener("input", e => {
   const i = e.target.closest("[data-ref-for]");
   if (!i) return;
@@ -260,7 +282,14 @@ $("#spPrep").addEventListener("click", e => {
     if (!/^[0-9]{3}$/.test(ref)) { alert(t("spRefNeed")); if (input) input.focus(); return; }
     return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep), null, ref);
   }
-  if (b.dataset.ready) return prepAction(b.dataset.ready, "prete");
+  if (b.dataset.bagsFor) { bagsDraft[b.dataset.bagsFor] = Number(b.dataset.n); keep("hop_shop_bags", bagsDraft); return renderPrep(); }
+  if (b.dataset.ready) {
+    const o = state.dash.orders.find(x => x.id === b.dataset.ready), bags = Number(bagsDraft[b.dataset.ready]) || 0;
+    if (!bags) { alert(t("spBagsNeed")); return; }
+    const left = o && Array.isArray(o.items) ? o.items.length - pickedCount(o) : 0;
+    if (left > 0 && !confirm(t("spPickConfirm", { n: left }))) return;
+    return prepAction(b.dataset.ready, "prete", null, null, null, bags);
+  }
   if (b.dataset.refuse) { const why = prompt(t("spRefuseWhy")); if (why !== null) prepAction(b.dataset.refuse, "refuser", null, why); }
 });
 $("#spPlan").addEventListener("click", e => {

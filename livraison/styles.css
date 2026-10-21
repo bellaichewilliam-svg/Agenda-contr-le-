@@ -1103,9 +1103,32 @@ body.in-home .eta-bubble { display: none; }
 .ct-form { border: 1px dashed var(--border); border-radius: 12px; padding: 10px; display: grid; gap: 8px; }
 .ct-photo { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .btn-link.danger { color: var(--red); }
-.prep-items { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
-.prep-items label { display: flex; gap: 8px; align-items: center; font-size: 15px; }
-.prep-items input { width: 20px; height: 20px; }
+.prep-items { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; }
+.prep-items li { border: 2px solid var(--line, #E4E7EC); border-radius: 12px; background: var(--card, #fff); }
+.prep-items li.done { border-color: #75E0A7; background: #ECFDF3; }
+.prep-items label { display: flex; gap: 10px; align-items: center; font-size: 17px; padding: 10px 12px; min-height: 48px; cursor: pointer; }
+.prep-items input { width: 26px; height: 26px; flex: none; accent-color: #12B76A; }
+.prep-items label small { margin-inline-start: auto; }
+.prep-progress { position: relative; margin: 4px 0 8px; padding: 8px 12px; border-radius: 10px; background: #FEF0C7; color: #B54708; overflow: hidden; font-size: 15px; }
+.prep-progress i { position: absolute; inset: auto auto 0 0; height: 4px; background: #F79009; }
+[dir="rtl"] .prep-progress i { inset: auto 0 0 auto; }
+.prep-progress.all { background: #DCFAE6; color: #067647; }
+.prep-progress.all i { background: #12B76A; }
+.bags-pick { margin: 8px 0; }
+.bags-pick > span { display: block; font-weight: 700; margin-bottom: 6px; }
+.bags-pick > div { display: flex; gap: 8px; flex-wrap: wrap; }
+.bags-pick .ch-chip { min-width: 48px; min-height: 44px; font-size: 18px; font-weight: 800; }
+.bags-done { margin: 6px 0 0; font-weight: 700; color: var(--brand-ink); }
+/* Livreur : le n° à montrer au commerce, en très gros (touché : plein écran) */
+.show-ref { display: block; width: 100%; margin: 8px 0; padding: 10px 12px; border: 3px dashed var(--brand); border-radius: 14px; background: var(--brand-soft); color: var(--brand-ink); text-align: center; font: inherit; cursor: pointer; }
+.show-ref span { display: block; font-size: 13px; font-weight: 700; }
+.show-ref b { display: block; font-size: 44px; line-height: 1.1; letter-spacing: .08em; font-variant-numeric: tabular-nums; }
+.show-ref em, .show-ref small { display: block; font-style: normal; font-size: 16px; font-weight: 700; }
+.ref-full { position: fixed; inset: 0; z-index: 3000; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: #fff; color: #111; text-align: center; padding: 16px; }
+.ref-full span { font-size: 20px; font-weight: 700; color: #555; }
+.ref-full b { font-size: min(34vw, 220px); line-height: 1; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.ref-full em, .ref-full small { font-style: normal; font-size: 26px; font-weight: 800; }
+.ref-full .muted { font-size: 14px; }
 .prep-items input:checked + b, .prep-items input:checked ~ * { text-decoration: line-through; opacity: .6; }
 /* Catalogue : côté client */
 .cg { display: grid; gap: 10px; margin-bottom: 10px; min-width: 0; max-width: 100%; }

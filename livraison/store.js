@@ -990,8 +990,8 @@ async function saveShopBrand(token, b) {
 }
 
 // HOP! Pro : le commerce accepte une commande avec un temps de préparation, la marque prête, ou la refuse
-async function shopOrderAction(token, id, action, minutes, reason, ref) {
-  if (ONLINE) return rest("/rest/v1/rpc/shop_order_action", { method: "POST", body: { p_token: token, p_id: id, p_action: action, p_minutes: minutes || null, p_reason: reason || null, p_ref: ref || null } });
+async function shopOrderAction(token, id, action, minutes, reason, ref, bags) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_order_action", { method: "POST", body: { p_token: token, p_id: id, p_action: action, p_minutes: minutes || null, p_reason: reason || null, p_ref: ref || null, p_bags: bags || null } });
   const shop = localShops().find(x => x.token === token);
   const all = localOrders();
   const o = shop && all.find(x => x.id === id && x.shop_id === shop.id);
@@ -1004,6 +1004,7 @@ async function shopOrderAction(token, id, action, minutes, reason, ref) {
     chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:shop_ok" });
   } else if (action === "prete" && o.shop_status === "acceptee") {
     Object.assign(o, { shop_status: "prete", ready_at: new Date(Math.min(Date.now(), new Date(o.ready_at))).toISOString() });
+    if (Number(bags) >= 1 && Number(bags) <= 20) o.bags_count = Number(bags);
     chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:prete" });
   } else if (action === "refuser" && o.shop_status === "attente" && o.status === "nouvelle") {
     Object.assign(o, { shop_status: "refusee", status: "refusee", admin_note: String(reason || "").trim().slice(0, 300) || null });
