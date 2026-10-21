@@ -1304,3 +1304,11 @@ body.in-home .eta-bubble { display: none; }
 .today-legend { margin: 4px 0 0; font-size: 11px; color: var(--rd-mute); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .today-legend .lg { width: 10px; height: 10px; border-radius: 3px; background: #FF6A13; display: inline-block; }
 .today-legend .lg.fc { opacity: .55; margin-inline-start: 8px; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.35) 0 2px, transparent 2px 4px); }
+/* Panneau réduit : on garde la poignée, le titre et la demande (pas seulement le bouton) */
+.rd-sheet.collapsed > #sheetBody { display: block; }
+.rd-sheet.collapsed #sheetBody > :not(.rd-title):not(.rd-demand) { display: none !important; }
+.rd-sheet.collapsed .rd-title { font-size: 20px; margin: 0 0 2px; }
+.rd-sheet.collapsed .rd-demand { margin-bottom: 8px; font-size: 15px; }
+.rd-grab { padding: 8px 0 12px; }
+.rd-grab .rd-handle { width: 64px; height: 6px; opacity: .9; }
+.rd-grab .rd-handle { display: block; }
