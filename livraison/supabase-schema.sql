@@ -3762,6 +3762,63 @@ revoke execute on function public.places_search(text) from public;
 grant execute on function public.places_search(text) to anon, authenticated;
 
 -- ============================================================================
+-- PRÉPARATION CHEZ LE COMMERCE : il coche chaque article mis dans le sac, puis dit combien de sacs
+-- le livreur doit prendre en marquant la commande prête (le livreur le voit en gros avec le n° de sac)
+-- ============================================================================
+alter table public.orders add column if not exists bags_count int check (bags_count between 1 and 20);
+
+create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_action text, p_minutes int, p_reason text, p_ref text, p_bags int) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders; v_ref text := nullif(trim(coalesce(p_ref, '')), '');
+begin
+  select o2.* into o from orders o2 join shops s on s.id = o2.shop_id where o2.id = p_id and s.token = p_token;
+  if not found then return false; end if;
+  if p_action = 'accepter' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    if v_ref is null or v_ref !~ '^[0-9]{3}$' then raise exception 'shop_ref_required'; end if;
+    update orders set shop_status = 'acceptee', shop_ref = v_ref, prep_minutes = least(greatest(coalesce(p_minutes, 15), 5), 90),
+           ready_at = now() + make_interval(mins => least(greatest(coalesce(p_minutes, 15), 5), 90))
+     where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:shop_ok');
+  elsif p_action = 'prete' and o.shop_status = 'acceptee' then
+    update orders set shop_status = 'prete', ready_at = least(ready_at, now()),
+           bags_count = case when p_bags between 1 and 20 then p_bags else bags_count end
+     where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:prete');
+  elsif p_action = 'refuser' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    update orders set shop_status = 'refusee', status = 'refusee', admin_note = left(nullif(trim(p_reason), ''), 300) where id = p_id;
+  else
+    return false;
+  end if;
+  return true;
+end;
+$$;
+revoke execute on function public.shop_order_action(uuid, uuid, text, int, text, text, int) from public;
+grant execute on function public.shop_order_action(uuid, uuid, text, int, text, text, int) to anon, authenticated;
+-- Version sans nombre de sacs (appli pas encore à jour sur le téléphone du commerce)
+create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_action text, p_minutes int, p_reason text, p_ref text) returns boolean
+language sql security definer set search_path = public as $$
+  select public.shop_order_action(p_token, p_id, p_action, p_minutes, p_reason, p_ref, null::int);
+$$;
+
+-- Espace du commerce : le nombre de sacs en plus
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes, o.shop_ref,
+               o.items, o.items_total, o.items_note, o.hop_share, o.direct_pay, o.bags_count,
+               case when o.status in ('confirmee', 'recuperee') then o.courier_bit end as courier_bit
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json));
+$$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
