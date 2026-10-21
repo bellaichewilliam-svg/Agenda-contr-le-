@@ -953,6 +953,22 @@ async function placesSearch(q) {
   const n = String(q || "").trim().toLowerCase();
   return n.length < 2 ? [] : readJSON("livraison.knownPlaces.v1", []).filter(x => x.name.toLowerCase().includes(n)).slice(0, 5);
 }
+// Patron : l'annuaire des enseignes ajoutées à la main ou apprises (absentes de la carte)
+async function knownPlaces() {
+  if (ONLINE) return authRest("/rest/v1/known_places?select=*&order=last_at.desc&limit=300");
+  return readJSON("livraison.knownPlaces.v1", []);
+}
+async function knownPlaceAdd(p) {
+  const row = { name: String(p.name).trim().slice(0, 120), address: String(p.address).trim().slice(0, 160), city: p.city || null, lat: p.lat, lon: p.lon };
+  if (ONLINE) return authRest("/rest/v1/known_places", { method: "POST", body: row, prefer: "return=minimal" });
+  const list = readJSON("livraison.knownPlaces.v1", []);
+  list.unshift(Object.assign({ id: uuid(), uses: 1, created_at: new Date().toISOString(), last_at: new Date().toISOString() }, row));
+  writeJSON("livraison.knownPlaces.v1", list);
+}
+async function knownPlaceDelete(id) {
+  if (ONLINE) return authRest("/rest/v1/known_places?id=eq." + encodeURIComponent(id), { method: "DELETE", prefer: "return=minimal" });
+  writeJSON("livraison.knownPlaces.v1", readJSON("livraison.knownPlaces.v1", []).filter(x => x.id !== id));
+}
 async function shopsDirectory() {
   if (ONLINE) return rest("/rest/v1/rpc/shops_directory", { method: "POST", body: {} });
   return localShops().filter(x => x.status === "actif")
@@ -1657,7 +1673,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, placesSearch, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, knownPlaces, knownPlaceAdd, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
