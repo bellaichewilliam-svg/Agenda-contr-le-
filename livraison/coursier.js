@@ -31,7 +31,8 @@ let refs = { shops: [], orders: [], board: [] };
 let msgs = { messages: [], replies: [] };
 let balance = 0;   // ce que le livreur doit à HOP (négatif : HOP lui doit)
 let pens = [];     // retenues (courses pas faites ou pas reçues), déduites du crédit
-let wallet = { credit: 0, reserved: 0, topups: [] };   // crédit prépayé : la commission de HOP en est déduite
+let wallet = { credit: 0, reserved: 0, topups: [] };
+let refunds = [];  // courses rendues après paiement : le client est à rembourser   // crédit prépayé : la commission de HOP en est déduite
 const penDue = () => pens.filter(p => p.status === "du").reduce((x, p) => x + Number(p.amount || 0), 0);
 let tab = "home";   // "home" = carte + panneau du bas ; sinon une page du menu
 let firstLoad = true;
@@ -107,7 +108,8 @@ async function onSignup(e) {
   const profile = {
     name: v("name"), phone: v("phone"), bit_phone: v("bit_phone") || null, city: v("city"), vehicle: v("vehicle"),
     license_number: v("license_number") || null, license_expiry: v("license_expiry") || null,
-    business_number: v("business_number") || null
+    business_number: v("business_number") || null,
+    has_bit: f.elements.has_bit.checked, has_paybox: f.elements.has_paybox.checked
   };
   try {
     if (completing) { await Store.completeCourier(profile, signupTopcase); return route(); }
@@ -290,6 +292,7 @@ async function load() {
     pens = (await Store.myPenalties().catch(() => null)) || pens;
     ((await Store.listDeclines().catch(() => null)) || []).forEach(d => { if (d.courier_id === me.id) declinedByMe.add(d.order_id); });
     wallet = (await Store.myCredit().catch(() => null)) || wallet;
+    refunds = (await Store.myRefunds().catch(() => null)) || refunds;
     if (dem) demand = dem;
     if (acc) acceptance = acc;
     if (fc) forecast = fc;
@@ -386,6 +389,7 @@ function card(o, kind) {
       + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm${o.direct_pay ? " btn-primary" : ""}" data-act="paye">${o.direct_pay ? "💳 Paiement reçu" : "💵 Encaissé"}</button>` : `<span class="pill paid">✓ ${o.direct_pay ? "payé" : "encaissé"}</span>`)
+      + (o.direct_pay && !hopPaid && o.client_paid_at && o.payment_status !== "paye" ? `<button class="btn btn-sm" data-paymissing="${UI.esc(o.id)}">❌ Pas reçu</button>` : "")
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
       + (o.leave_at_door && o.status === "recuperee" ? `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}" data-photo="1">📷 Photo du dépôt</button>` : "")
       + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
@@ -505,10 +509,10 @@ function render() {
 
   if (tab === "pool") {
     const list = pool();
-    view.innerHTML = list.length
+    view.innerHTML = refundCards() + (list.length
       ? `<p class="muted small" style="margin-bottom:10px">L'adresse exacte et le contact du client s'affichent une fois la course acceptée. Le premier qui accepte la prend.</p><div class="orders">${list.map(o => card(o, "pool")).join("")}</div>`
       : empty(isOnline() ? "Pas de course disponible pour l'instant. Activez les alertes 🔔 : vous serez prévenu dès qu'une course arrive."
-        : "Vous êtes hors ligne : glissez le bouton « HOP! » pour passer en ligne et recevoir des courses.");
+        : "Vous êtes hors ligne : glissez le bouton « HOP! » pour passer en ligne et recevoir des courses."));
   } else if (tab === "mine") {
     const list = mine();
     view.innerHTML = list.length ? `<div class="orders">${list.map(o => card(o, "mine")).join("")}</div>` : empty("Aucune course en cours.");
@@ -551,6 +555,13 @@ function render() {
 async function onViewClick(e) {
   const el = e.target.closest("button");
   if (!el) return;
+  if (await onRefundClick(e)) return;
+  if (el.dataset.paymissing) {
+    if (!confirm("Rien reçu sur votre Bit / PayBox ? Le client sera prévenu de vérifier son paiement.")) return;
+    el.disabled = true;
+    await Store.payMissing(el.dataset.paymissing).catch(() => alert("Pas enregistré, réessayez."));
+    return load();
+  }
   if (el.dataset.topupPick) { topupPick = Number(el.dataset.topupPick); return render(); }
   if (el.dataset.topupSend) {
     el.disabled = true;
@@ -580,8 +591,11 @@ async function onViewClick(e) {
   }
   if (el.dataset.act) {
     const id = el.closest("article").dataset.id;
-    if (el.dataset.act === "liberer" && !confirm("Remettre cette course en attente pour un autre livreur ?")) return;
     const o = orders.find(x => x.id === id);
+    const paidMe = o && o.direct_pay && o.paid_to !== "hop" && (o.payment_status === "paye" || o.client_paid_at);
+    if (el.dataset.act === "liberer" && !confirm(paidMe
+      ? `⚠️ Le client vous a déjà payé (ou dit l'avoir fait) ${UI.money(o.price)}. Si vous rendez la course, vous devez le rembourser tout de suite par Bit / PayBox, et vous ne recevrez plus de course avant. Rendre la course ?`
+      : "Remettre cette course en attente pour un autre livreur ? Le client est prévenu tout de suite.")) return;
     // « Je suis arrivé » : la base vérifie la dernière position, on l'envoie tout de suite
     if (el.dataset.act === "arrivee" && !o.unlocked && !freeNow()) {
       el.disabled = true;
@@ -685,7 +699,7 @@ function renderZones(view) {
   const lv = demandLevel(demand);
   view.innerHTML = `<div class="card">
       <h3>Zone de livraison</h3>
-      <p class="muted small" style="margin:4px 0 12px">Regardez la demande en direct et sortez quand ça vaut le coup. Pour l'instant, HOP! livre seulement dans le Sharon ; les autres zones arrivent bientôt.</p>
+      <p class="muted small" style="margin:4px 0 12px">Regardez la demande en direct et sortez quand ça vaut le coup. HOP! livre dans le Sharon, à Tel Aviv – Gush Dan, Petah Tikva et Rishon LeZion.</p>
       <div class="zone-head"><b>Zone</b><b>Demande</b></div>
       ${CONFIG.zones.map(z => `<div class="zone-row${z.active ? "" : " off"}">
           <span class="zone-radio${z.active ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
@@ -773,6 +787,7 @@ const busyOrder = () => orders.find(o => o.courier_id === me.id && o.status === 
 const busy = () => !freeNow() && !!busyOrder();
 const blocked = () => locked() || busy();
 function acceptError(e) {
+  if (/refund_pending/.test(e.message)) { alert("💸 Remboursez d'abord le client de la course que vous avez rendue, puis touchez « J'ai remboursé ». Ensuite vous pourrez reprendre des courses."); return "shown"; }
   if (/express_busy/.test(e.message)) { alert("⚡ Course express : elle est réservée à un livreur sans autre course, qui y va directement. Terminez d'abord votre course en cours."); return "shown"; }
   if (/express_running/.test(e.message)) { alert("⚡ Vous avez une course express en cours : livrez-la d'abord, sans autre course."); return "shown"; }
   if (/busy/.test(e.message)) { const b = busyOrder(); alert(`🔒 Livrez d'abord votre course en cours${b ? " n° " + b.ref : ""} : validez « Livré » sur place${b && b.leave_at_door ? ", avec la photo devant la porte" : ""}. Un souci ? Écrivez à HOP.`); return "shown"; }
@@ -1191,7 +1206,7 @@ function renderHome() {
   const title = !isOnline() ? "Vous êtes hors ligne" : !lv ? "Bonjour " + String(me.name || "").split(" ")[0] + " !" : lv.n === 3 ? "🔥 Ça vaut le coup de sortir !" : lv.n === 2 ? "Ça roule tranquille" : "C'est calme pour l'instant";
   const cur = mine();
   const p = pool();
-  $("#sheetBody").innerHTML = `
+  $("#sheetBody").innerHTML = `${refundCards()}
     <div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
     ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
@@ -1203,6 +1218,23 @@ function renderHome() {
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-card hot" data-notif="1"><span>🔔 ${Notification.permission === "denied" ? "Notifications bloquées" : "Autorisez les notifications"}<small>${Notification.permission === "denied" ? "Chrome ⋮ → Paramètres → Notifications → autorisez HOP!, sinon pas de « En service » ni de courses appli fermée" : "Pour la notification « En service » et les nouvelles courses, même appli fermée"}</small></span><span class="go">›</span></button>` : ""}
     ${!isOnline() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>` : ""}`;
   sheetHeight();
+}
+// Remboursement à faire : en haut de l'accueil et des courses disponibles, tant qu'il n'est pas fait
+function refundCards() {
+  return refunds.map(r => `<div class="rd-card refund-card"><span>💸 Remboursez <b>${UI.money(r.amount)}</b> à ${UI.esc(r.name || "votre client")}
+      <small>Par Bit / PayBox au <a href="tel:${UI.esc(r.phone || "")}"><b>${UI.esc(r.phone || "")}</b></a> · course n° ${UI.esc(r.ref)}${r.status === "litige" ? " · ⚠️ le client dit ne pas avoir été remboursé" : ""}.
+      Pas de nouvelle course tant que ce n'est pas fait.</small>
+      <span class="refund-btns"><button type="button" class="btn btn-sm btn-primary" data-refund-done="${UI.esc(r.id)}">✅ J'ai remboursé</button>${r.received ? "" : `<button type="button" class="btn btn-sm" data-refund-none="${UI.esc(r.id)}">Je n'avais rien reçu</button>`}</span></span></div>`).join("");
+}
+async function onRefundClick(e) {
+  const d = e.target.closest("[data-refund-done], [data-refund-none]");
+  if (!d) return false;
+  const done = d.hasAttribute("data-refund-done");
+  if (!confirm(done ? "Vous avez bien renvoyé l'argent au client par Bit / PayBox ?" : "Vous n'avez vraiment rien reçu de ce client ? (il pourra le contester, HOP vérifie)")) return true;
+  d.disabled = true;
+  await Store.refundDone(d.dataset.refundDone || d.dataset.refundNone, done).catch(() => alert("Pas enregistré, réessayez."));
+  await load();
+  return true;
 }
 // Hauteur du panneau du bas : le bouton « me centrer » et le cadrage de la carte restent au-dessus
 function sheetHeight() {
@@ -1578,7 +1610,8 @@ $("#bellBtn").addEventListener("click", () => openPage("inbox"));
 $("#pageBack").addEventListener("click", closePage);
 $("#drawerLogout").addEventListener("click", () => { if (confirm("Se déconnecter ?")) endAndLogout(); });
 $("#locateBtn").addEventListener("click", locateMe);
-$("#sheetBody").addEventListener("click", e => {
+$("#sheetBody").addEventListener("click", async e => {
+  if (await onRefundClick(e)) return;
   if (e.target.closest("[data-install]")) return UI.installApp("HOP! Livreur", "livreur/").then(ok => { if (ok) renderHome(); });
   const b = e.target.closest("[data-tab]");
   if (b) openPage(b.dataset.tab);

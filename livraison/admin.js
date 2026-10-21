@@ -603,7 +603,7 @@ function renderCouriers(view) {
         </div>
         ${refus}
         <div class="kv">
-          <div><span>📞</span><span>${tel("", c.phone)}${c.bit_phone ? ` · Bit ${UI.esc(c.bit_phone)}` : ""}${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
+          <div><span>📞</span><span>${tel("", c.phone)}${c.bit_phone ? ` · Bit ${UI.esc(c.bit_phone)}` : ""}${c.has_bit == null ? "" : ` · ${c.has_bit ? "✅ Bit" : "⚠️ pas de Bit"} ${c.has_paybox ? "✅ PayBox" : "· pas de PayBox"}`}${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
           <div><span>🛵</span><span>${UI.esc(c.vehicle || "—")} · permis n° ${UI.esc(c.license_number || "—")} · assurance ${c.insurance ? UI.esc(c.insurance) : "déclarée"}${c.business_number ? ` · n° d'entreprise ${UI.esc(c.business_number)}` : ""}</span></div>
           <div><span>📝</span><span>Conditions acceptées le ${c.accepted_terms_at ? UI.esc(new Date(c.accepted_terms_at).toLocaleDateString("fr-FR")) : "—"}</span></div>
         </div>

@@ -3327,6 +3327,10 @@ begin
     raise exception 'express_running';
   end if;
   if c.role = 'coursier' and not public.courier_online(c) then raise exception 'offline'; end if;
+  -- Une course rendue après paiement : le client doit d'abord être remboursé
+  if c.role = 'coursier' and exists (select 1 from orders where refund_courier_id = c.id and refund_status in ('a_faire', 'litige')) then
+    raise exception 'refund_pending';
+  end if;
   update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
          courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
          network = coalesce(o.referrer_id = c.id, false),
@@ -3354,7 +3358,8 @@ begin
             where status = 'nouvelle' and courier_id is null
               and (shop_status is null or shop_status in ('acceptee', 'prete'))
               and coalesce(docs_status, 'ok') = 'ok'
-              and now() >= public.offer_from(orders) and now() < public.offer_from(orders) + interval '2 minutes'
+              and now() >= public.offer_from(orders)
+              and now() < greatest(public.offer_from(orders), coalesce(released_at, '-infinity')) + interval '2 minutes'
               and coalesce(ring_at, public.offer_from(orders)) < now() - interval '4 seconds'
               and ring_count < 24
   loop
@@ -3371,6 +3376,213 @@ do $$ begin
   perform cron.schedule('hop-ring', '5 seconds', 'select public.ring_open_orders()');
 exception when others then raise notice 'pg_cron indisponible : pas de sonnerie répétée';
 end $$;
+
+-- ============================================================================
+-- BIT ET PAYBOX : le livreur est payé directement par le client ; Bit obligatoire, PayBox vivement conseillé
+-- (certains clients n'ont que l'un ou l'autre)
+-- ============================================================================
+alter table public.couriers add column if not exists has_bit boolean;
+alter table public.couriers add column if not exists has_paybox boolean;
+
+-- ============================================================================
+-- LE CLIENT N'EST JAMAIS DANS L'INCONNU
+-- - Chaque refus (ou pas de réponse) d'un livreur est compté : le client voit « on propose à un autre livreur ».
+-- - « Je ne peux plus » (ou course rendue) : le client le voit tout de suite, la course repart aux autres livreurs.
+--   Si le client avait déjà payé ce livreur (ou dit avoir payé), ce livreur le rembourse par Bit / PayBox
+--   (« 💸 Remboursement à faire ») ; il ne reçoit plus de course tant qu'il ne l'a pas fait. Le client confirme
+--   « J'ai été remboursé » ou signale « Pas remboursé » (le patron est prévenu). Le client paie ensuite le nouveau livreur.
+-- - « J'ai payé » du client : le livreur répond vite (« 💳 Paiement reçu » ou « ❌ Pas reçu ») ; rappel au livreur
+--   après 3 min, le patron est prévenu après 8 min.
+-- ============================================================================
+alter table public.orders add column if not exists offer_declines int not null default 0;
+alter table public.orders add column if not exists released_at timestamptz;
+alter table public.orders add column if not exists pay_missing_at timestamptz;
+alter table public.orders add column if not exists pay_reminded_at timestamptz;
+alter table public.orders add column if not exists pay_alerted_at timestamptz;
+alter table public.orders add column if not exists refund_amount numeric;
+alter table public.orders add column if not exists refund_courier_id uuid references public.couriers(id);
+alter table public.orders add column if not exists refund_courier_name text;
+alter table public.orders add column if not exists refund_courier_phone text;
+alter table public.orders add column if not exists refund_received boolean;
+alter table public.orders add column if not exists refund_status text check (refund_status in ('a_faire', 'fait', 'rien_recu', 'recu', 'litige'));
+alter table public.orders add column if not exists refund_at timestamptz;
+alter table public.orders add column if not exists refund_alerted_at timestamptz;
+
+-- Refus ou pas de réponse : compté sur la course (le client le voit)
+create or replace function public.order_declines_count() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update orders set offer_declines = offer_declines + 1 where id = new.order_id;
+  return new;
+end;
+$$;
+create or replace trigger order_declines_count after insert on public.order_declines
+  for each row execute function public.order_declines_count();
+revoke execute on function public.order_declines_count() from public, anon, authenticated;
+
+-- Course rendue par son livreur (« Je ne peux plus », ou temps refusé par le client) : tout repart à zéro,
+-- et s'il avait été payé, ce livreur doit rembourser le client
+create or replace function public.orders_release() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare was_paid boolean;
+begin
+  if old.status = 'confirmee' and new.status = 'nouvelle' and old.courier_id is not null and new.courier_id is null then
+    was_paid := old.paid_to = 'livreur' and old.direct_pay and (old.payment_status = 'paye' or old.client_paid_at is not null);
+    if was_paid then
+      new.refund_amount := old.price;
+      new.refund_courier_id := old.courier_id;
+      new.refund_courier_name := old.courier_name;
+      new.refund_courier_phone := coalesce(old.courier_bit, old.courier_phone);
+      new.refund_received := old.payment_status = 'paye';
+      new.refund_status := 'a_faire';
+      new.refund_at := now();
+      new.refund_alerted_at := null;
+    end if;
+    if old.paid_to = 'livreur' then new.payment_status := 'en_attente'; end if;
+    new.client_paid_at := null;
+    new.pay_missing_at := null;
+    new.pay_reminded_at := null;
+    new.pay_alerted_at := null;
+    new.arrived_at := null;
+    new.eta_min := null; new.eta_at := null; new.eta_status := null; new.eta_until := null;
+    new.released_at := now();
+    new.ring_count := 0; new.ring_at := null;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_release before update of status on public.orders
+  for each row execute function public.orders_release();
+revoke execute on function public.orders_release() from public, anon, authenticated;
+
+create or replace function public.orders_release_msg() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if old.status = 'confirmee' and new.status = 'nouvelle' and old.courier_id is not null and new.courier_id is null then
+    -- Elle ne revient pas à celui qui l'a rendue
+    insert into order_declines (order_id, courier_id, reason) values (new.id, old.courier_id, 'autre') on conflict do nothing;
+    insert into chat_messages (thread, author, body)
+    values ('o:' || new.id::text, 'system', case when new.refund_status = 'a_faire' and new.refund_at is distinct from old.refund_at
+                                                 then 'status:refund_due' else 'status:released' end);
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_release_msg after update of status on public.orders
+  for each row execute function public.orders_release_msg();
+revoke execute on function public.orders_release_msg() from public, anon, authenticated;
+
+-- Le livreur : « ❌ Pas reçu » (le client doit vérifier son paiement)
+create or replace function public.courier_pay_missing(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  update orders set client_paid_at = null, pay_missing_at = now(), pay_reminded_at = null, pay_alerted_at = null
+   where id = p_id and courier_id = auth.uid() and direct_pay and paid_to = 'livreur' and payment_status <> 'paye'
+     and status in ('confirmee', 'recuperee');
+  if not found then return false; end if;
+  insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:pay_missing');
+  return true;
+end;
+$$;
+revoke execute on function public.courier_pay_missing(uuid) from public, anon;
+grant execute on function public.courier_pay_missing(uuid) to authenticated;
+
+-- Le livreur : ses remboursements à faire
+create or replace function public.my_refunds() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('id', o.id, 'ref', o.ref, 'amount', o.refund_amount, 'received', o.refund_received,
+           'status', o.refund_status, 'at', o.refund_at, 'name', o.contact_name, 'phone', o.contact_phone) order by o.refund_at), '[]'::json)
+    from orders o
+   where o.refund_courier_id = auth.uid() and o.refund_status in ('a_faire', 'litige');
+$$;
+revoke execute on function public.my_refunds() from public, anon;
+grant execute on function public.my_refunds() to authenticated;
+
+-- Le livreur : « ✅ J'ai remboursé » (p_done) ou « Je n'avais rien reçu »
+create or replace function public.courier_refund_done(p_id uuid, p_done boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  update orders set refund_status = case when p_done then 'fait' else 'rien_recu' end
+   where id = p_id and refund_courier_id = auth.uid() and refund_status in ('a_faire', 'litige')
+     and (p_done or not coalesce(refund_received, false));
+  if not found then return false; end if;
+  insert into chat_messages (thread, author, body)
+  values ('o:' || p_id::text, 'system', case when p_done then 'status:refund_done' else 'status:refund_none' end);
+  return true;
+end;
+$$;
+revoke execute on function public.courier_refund_done(uuid, boolean) from public, anon;
+grant execute on function public.courier_refund_done(uuid, boolean) to authenticated;
+
+-- Le client : « ✅ J'ai été remboursé » ou « ❌ Pas remboursé » (le patron est prévenu)
+create or replace function public.client_refund_answer(p_token uuid, p_ok boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare oid uuid;
+begin
+  update orders set refund_status = case when p_ok then 'recu' else 'litige' end
+   where token = p_token and refund_status in ('a_faire', 'fait', 'rien_recu')
+   returning id into oid;
+  if oid is null then return false; end if;
+  insert into chat_messages (thread, author, body)
+  values ('o:' || oid::text, 'system', case when p_ok then 'status:refund_ok' else 'status:refund_missing' end);
+  return true;
+end;
+$$;
+revoke execute on function public.client_refund_answer(uuid, boolean) from public;
+grant execute on function public.client_refund_answer(uuid, boolean) to anon, authenticated;
+
+-- Rappels : paiement pas vérifié par le livreur, remboursement pas fait
+create or replace function public.pay_checks() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0;
+begin
+  for o in select id, ref, courier_id from orders
+            where status in ('confirmee', 'recuperee') and direct_pay and paid_to = 'livreur' and payment_status <> 'paye'
+              and client_paid_at < now() - interval '3 minutes' and pay_reminded_at is null
+  loop
+    update orders set pay_reminded_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('courier_id', o.courier_id, 'tag', 'pay-' || o.id,
+      'title', '⏰ Le client attend votre réponse',
+      'body', 'Course ' || o.ref || ' : il dit vous avoir payé. Vérifiez votre Bit / PayBox et touchez « Paiement reçu » ou « Pas reçu ».'));
+    n := n + 1;
+  end loop;
+  for o in select id from orders
+            where status in ('confirmee', 'recuperee') and direct_pay and paid_to = 'livreur' and payment_status <> 'paye'
+              and client_paid_at < now() - interval '8 minutes' and pay_alerted_at is null
+  loop
+    update orders set pay_alerted_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'late',
+      'why', 'Le client dit avoir payé il y a 8 min : le livreur n''a toujours pas répondu.'));
+    n := n + 1;
+  end loop;
+  for o in select id from orders
+            where refund_status in ('a_faire', 'rien_recu', 'litige') and refund_at < now() - interval '15 minutes' and refund_alerted_at is null
+  loop
+    update orders set refund_alerted_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'late',
+      'why', 'Remboursement du client pas confirmé (le livreur a rendu une course payée).'));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.pay_checks() from public, anon, authenticated;
+do $$ begin
+  create extension if not exists pg_cron;
+  perform cron.schedule('hop-pay-checks', '* * * * *', 'select public.pay_checks()');
+exception when others then raise notice 'pg_cron indisponible : pas de rappel des paiements';
+end $$;
+
+-- Le patron est prévenu tout de suite d'un « Pas remboursé »
+create or replace function public.push_chat_event() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.author = 'system' and new.body is distinct from 'status:client_paid' and new.body is distinct from 'status:refund_missing' then return new; end if;
+  perform public.push_call(jsonb_build_object('thread', new.thread, 'author', new.author,
+    'author_name', new.author_name, 'body', new.body));
+  return new;
+end;
+$$;
 
 -- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
