@@ -66,7 +66,7 @@ function toPlace(f) {
 }
 
 async function search(q, lang) {
-  const extra = local ? local(q) : [];
+  const extra = local ? await Promise.resolve(local(q)).catch(() => []) : [];
   const list = await searchMap(q, lang).catch(e => { if (!extra.length) throw e; return []; });
   const seen = new Set(extra.map(p => normalize(p.brand)));
   return extra.concat(list.filter(p => !(p.brand && seen.has(normalize(p.brand)) && near && km(near, p) < 0.15)));
@@ -231,6 +231,15 @@ function attach(input, opts) {
   input.parentNode.appendChild(box);
   input.setAttribute("autocomplete", "off");
   let items = [], active = -1, timer = null, seq = 0;
+  // Enseigne absente de la carte : le client donne son nom, puis son adresse (rue et numéro)
+  let pendingBrand = null;
+  const notOnMap = q => ({ quick: true, icon: "🏪", title: (opts.texts().notOnMap || "« {q} » n'est pas sur la carte : indiquez son adresse").replace("{q}", q),
+    sub: opts.texts().notOnMapSub || "", apply: () => {
+      pendingBrand = q;
+      input.value = "";
+      input.placeholder = (opts.texts().brandAddr || "Adresse de « {q} » : rue et numéro").replace("{q}", q);
+      input.focus();
+    } });
 
   const close = () => { box.classList.add("hidden"); active = -1; };
   const render = () => {
@@ -247,9 +256,16 @@ function attach(input, opts) {
     box.classList.remove("hidden");
   };
   const pick = i => {
-    const p = items[i];
+    let p = items[i];
     if (!p) return;
     if (p.apply) { close(); p.apply(); return; }
+    // Adresse de l'enseigne absente de la carte : la course garde son nom (et HOP! l'apprend)
+    if (pendingBrand && !p.brand) {
+      p = Object.assign({}, p, { brand: pendingBrand, learned: true, exact: !!p.housenumber,
+        label: [pendingBrand, p.street, p.city].filter(Boolean).join(", ") });
+      pendingBrand = null;
+      input.placeholder = "";
+    }
     input.value = p.label;
     input.dataset.picked = p.label;
     input.classList.add("ac-ok");
@@ -273,10 +289,14 @@ function attach(input, opts) {
       try {
         const list = await search(q, opts.lang());
         if (mine !== seq) return;
-        items = list; active = -1; render();
+        // Pas d'enseigne trouvée : on propose d'indiquer son adresse (le client n'est jamais bloqué)
+        const offer = () => !pendingBrand && !items.some(p => p.brand) && /[a-zA-Z\u0590-\u05FF]{3}/.test(q) && !/\d/.test(q);
+        items = list; active = -1;
+        if (offer()) items = items.concat([notOnMap(q)]);
+        render();
         const extra = await moreNearby(q, opts.lang(), list);
         if (mine !== seq || !extra.length) return;
-        items = extra.concat(items);
+        items = extra.concat(items.filter(p => !p.apply));
         if (active >= 0) active += extra.length;
         render();
       } catch (e) {

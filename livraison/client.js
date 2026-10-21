@@ -521,6 +521,8 @@ function detectPlaceKind(brand) {
 }
 
 // Enseigne (magasin, restaurant, poste…) : pas de bâtiment / étage / appt / code, N° facultatif
+// Enseigne absente de la carte, indiquée par le client sur une rue sans numéro : on demande le numéro
+const needsNo = p => !!(p && p.learned && !p.housenumber);
 function setBrandMode(which, on) {
   const pre = prefixOf(which);
   form.elements[pre + "_address"].closest(".fields").classList.toggle("brand-mode", !!on);
@@ -532,7 +534,7 @@ function onPlacePicked(which, p, quiet) {
   state.pick[which] = p;
   // Le champ du formulaire porte l'adresse choisie avant le calcul du prix
   if (ac[which] && form.elements[prefixOf(which) + "_address"].value !== p.label) ac[which].setPicked(p.label);
-  setBrandMode(which, !!p.brand);
+  setBrandMode(which, !!p.brand && !needsNo(p));
   const sel = form.elements[which + "_city"];
   if (p.cityId) sel.value = p.cityId;
   else if (p.city) { sel.value = OTHER; form.elements[which + "_other"].value = p.city; }
@@ -542,7 +544,7 @@ function onPlacePicked(which, p, quiet) {
   num.value = p.housenumber || "";
   // (sauf si le client est déjà passé à un autre champ entre-temps)
   const addr = form.elements[prefixOf(which) + "_address"];
-  if (!quiet && !p.housenumber && !p.brand) setTimeout(() => { const a = document.activeElement; if (!a || a === document.body || a === addr) num.focus(); }, 50);
+  if (!quiet && !p.housenumber && (!p.brand || needsNo(p))) setTimeout(() => { const a = document.activeElement; if (!a || a === document.body || a === addr) num.focus(); }, 50);
   if (which === "from" && val("service") === "retrait" && p.brand) {
     const kind = detectPlaceKind(p.brand);
     if (kind) form.place_kind.value = kind;
@@ -587,7 +589,7 @@ function renderStops() {
   state.stops.forEach((s, i) => {
     Places.attach($(`#stopsList [data-stop-addr="${i}"]`), {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr") }),
       onPick: p => { s.place = p; s.label = p.label; renderStopInfo(); renderQuote(); },
       onClear: () => { s.place = null; s.label = ""; renderStopInfo(); renderQuote(); }
     });
@@ -635,7 +637,7 @@ function attachPlaces() {
   ["from", "to"].forEach(which => {
     ac[which] = Places.attach(form.elements[which === "from" ? "pickup_address" : "dropoff_address"], {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr") }),
       onPick: p => onPlacePicked(which, p),
       quick: () => quickPlaces(which, false),
       onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
@@ -957,7 +959,7 @@ async function submit(e) {
   const badPhone = ["contact_phone", form.drop_me.checked ? null : "dropoff_phone", val("service") !== "retrait" ? "pickup_phone" : null]
     .find(k => k && val(k).trim() && !phoneOk(val(k)));
   if (badPhone) { form.elements[badPhone].focus(); return showError(t("errPhone")); }
-  const isBrand = w => !!(state.pick[w] && state.pick[w].brand);
+  const isBrand = w => !!(state.pick[w] && state.pick[w].brand && !needsNo(state.pick[w]));
   const missingNo = [["from", "pickup_number"], ["to", "dropoff_number"]].find(([w, k]) => !isBrand(w) && !val(k).trim());
   if (missingNo) { form.elements[missingNo[1]].focus(); return showError(t("errHouseNo")); }
   const err = scheduleError();
@@ -1049,6 +1051,7 @@ async function submit(e) {
       from_city: fromCity,
       pickup_address: pAddr,
       pickup_place: pf ? pf.brand : null,
+      pickup_learned: !!(pf && pf.learned),
       pickup_kind: svc !== "retrait" ? kindOf("pickup") : null,
       dropoff_kind: kindOf("dropoff"),
       rules_accepted_at: checked.rulesOk ? new Date().toISOString() : null,
@@ -1079,6 +1082,7 @@ async function submit(e) {
       to_city: toCity,
       dropoff_address: dAddr,
       dropoff_place: pt ? pt.brand : null,
+      dropoff_learned: !!(pt && pt.learned),
       dropoff_building: val("dropoff_building").trim() || null,
       dropoff_floor: val("dropoff_floor").trim() || null,
       dropoff_apt: val("dropoff_apt").trim() || null,
@@ -1596,7 +1600,7 @@ function initHome() {
     const input = homeInput(which), pre = prefixOf(which);
     home.ac[which] = Places.attach(input, {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr") }),
       onPick: p => {
         onPlacePicked(which, p, true);
         if (ac[which]) ac[which].setPicked(p.label);
@@ -1964,6 +1968,13 @@ function setHomePos(pos) { home.pos = pos; Places.setNear(pos); }
 const norm = v => String(v || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s'’"\-־.]/g, "");
 const cityIdOf = (city, pt) => (CONFIG.cities.some(c => c.id === city) ? city : Places.matchCity(city))
   || (pt && pt.lat != null ? CONFIG.cities.slice().sort((a, b) => Places.km(a, pt) - Places.km(b, pt))[0].id : null);
+function learnedPlace(x) {
+  const cityId = cityIdOf(x.city, x);
+  const m = String(x.address || "").match(/^(.*?)\s+(\d+[a-zA-Zא-ת]?)$/);
+  return { lat: Number(x.lat), lon: Number(x.lon), brand: x.name, learned: true, known: true, streetName: m ? m[1] : x.address, housenumber: m ? m[2] : "",
+    street: x.address, city: cityLabel(cityId || x.city), cityId, exact: true,
+    label: [x.name, x.address, cityLabel(cityId || x.city)].filter(Boolean).join(", ") };
+}
 function partnerPlace(sh) {
   const cityId = cityIdOf(sh.city, sh);
   return { lat: Number(sh.lat), lon: Number(sh.lon), brand: sh.name, phone: sh.phone || null, partner: true, partnerCode: sh.code, streetName: sh.address || "",
@@ -1995,9 +2006,14 @@ async function loadShowcase() {
 async function loadPartners() {
   try { state.partners = ((await Store.shopsDirectory()) || []).filter(x => x.lat != null); } catch (e) { state.partners = []; }
   // En tapant « Fal… », le commerce partenaire Falafel Haim sort en premier
-  Places.setLocal(q => {
+  // … puis les enseignes que HOP! a apprises (absentes de la carte, indiquées par des clients)
+  Places.setLocal(async q => {
     const n = norm(q);
-    return n.length < 2 ? [] : state.partners.filter(x => norm(x.name).includes(n)).slice(0, 3).map(partnerPlace);
+    if (n.length < 2) return [];
+    const mine = state.partners.filter(x => norm(x.name).includes(n)).slice(0, 3).map(partnerPlace);
+    const learned = ((await Store.placesSearch(q).catch(() => [])) || [])
+      .filter(x => !mine.some(m => norm(m.brand) === norm(x.name)) && x.lat != null).map(learnedPlace);
+    return mine.concat(learned);
   });
   renderHomeStatic();
 }

@@ -947,6 +947,12 @@ async function couriersNearby() {
 }
 
 // Clients : l'annuaire des commerces partenaires vérifiés (sans téléphone ni clé)
+// Enseignes apprises (absentes de la carte, indiquées par des clients) : par nom
+async function placesSearch(q) {
+  if (ONLINE) return rest("/rest/v1/rpc/places_search", { method: "POST", body: { p_q: q } });
+  const n = String(q || "").trim().toLowerCase();
+  return n.length < 2 ? [] : readJSON("livraison.knownPlaces.v1", []).filter(x => x.name.toLowerCase().includes(n)).slice(0, 5);
+}
 async function shopsDirectory() {
   if (ONLINE) return rest("/rest/v1/rpc/shops_directory", { method: "POST", body: {} });
   return localShops().filter(x => x.status === "actif")
@@ -1650,7 +1656,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
