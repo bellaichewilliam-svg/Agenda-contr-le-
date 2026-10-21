@@ -4099,6 +4099,8 @@ alter table public.orders add column if not exists cash_change numeric(10, 2) no
 alter table public.orders add column if not exists cash_need numeric(10, 2) not null default 0;   -- ce que le livreur doit avoir sur lui
 alter table public.orders add column if not exists cash_shop_at timestamptz;                      -- le commerce a reçu les espèces
 alter table public.couriers add column if not exists cash_ban_until timestamptz;
+-- Les espèces se choisissent : une commande sans moyen de paiement précisé est en Bit / PayBox
+alter table public.orders alter column payment_method set default 'bit';
 
 create table if not exists public.blocked_phones (
   phone       text primary key,
