@@ -291,8 +291,11 @@ function attach(input, opts) {
         if (mine !== seq) return;
         // Pas d'enseigne trouvée : on propose d'indiquer son adresse (le client n'est jamais bloqué)
         const offer = () => !pendingBrand && !items.some(p => p.brand) && /[a-zA-Z\u0590-\u05FF]{3}/.test(q) && !/\d/.test(q);
-        items = list; active = -1;
-        if (offer()) items = items.concat([notOnMap(q)]);
+        // Ses adresses déjà utilisées (Simaki Sushi, Maison…) qui correspondent au texte : en premier
+        const nq = normalize(q);
+        const saved = (opts.quick ? opts.quick() : []).filter(x => x.match && normalize(x.match).includes(nq));
+        items = saved.concat(list); active = -1;
+        if (offer() && !saved.length) items = items.concat([notOnMap(q)]);
         render();
         const extra = await moreNearby(q, opts.lang(), list);
         if (mine !== seq || !extra.length) return;

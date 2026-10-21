@@ -669,7 +669,8 @@ function quickPlaces(which, isHome) {
     const err = await locateInto(which);
     if (err) (isHome ? showHomeErr : showError)(t(err)); else after();
   } }];
-  Store.getAddresses().slice(0, 6).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
+  Store.getAddresses().slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
+    match: [tagName(a), addrLabel(a)].join(" "),
     apply: () => { applySavedAddr(which, a); after(); } }));
   return list;
 }
