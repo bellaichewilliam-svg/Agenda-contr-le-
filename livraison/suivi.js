@@ -104,12 +104,30 @@ function updateMap(o) {
   courierSeen = live;
 }
 
+// Réponse attendue du client (heure du livreur, attente annoncée) : en pop-up au premier plan, avec vibreur
+// et son, pour ne pas la rater ; une seule alerte par question
+const askedPop = new Set();
+function askPop(box, on, key) {
+  box.classList.toggle("ask-pop", !!on);
+  document.body.classList.toggle("asking", !!document.querySelector(".ask-pop"));
+  if (!on || askedPop.has(key)) return;
+  askedPop.add(key);
+  try { if (navigator.vibrate) navigator.vibrate([400, 150, 400, 150, 400]); } catch (e) { /* ignore */ }
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.25, 0.5].forEach(t0 => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.25, ctx.currentTime + t0); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t0 + 0.2); o.start(ctx.currentTime + t0); o.stop(ctx.currentTime + t0 + 0.2); });
+  } catch (e) { /* ignore */ }
+  if (window.Notification && Notification.permission === "granted") UI.notify("HOP! · " + t("trAskNotif"), { tag: "hop-ask-" + key, vibrate: [400, 150, 400], requireInteraction: true });
+}
+
 // Le livreur a dit dans combien de temps il est au départ : le client accepte, ou préfère un autre livreur
 let others = null;
 function etaAsk(o) {
   const box = $("#etaAsk");
   const open = o.status === "confirmee" && o.eta_status === "attente" && new Date(o.eta_until) > Date.now();
   box.classList.toggle("hidden", !open);
+  askPop(box, open, "eta:" + o.eta_until);
   if (!open) { box.innerHTML = ""; return; }
   const left = Math.max(0, Math.round((new Date(o.eta_until) - Date.now()) / 1000));
   const time = new Date(o.eta_at).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -144,6 +162,7 @@ function waitAsk(o) {
   const box = $("#waitAsk");
   const st = o.wait_ann_status, open = o.status === "confirmee" && !!st && st !== "refus";
   box.classList.toggle("hidden", !open);
+  askPop(box, open && st === "attente" && Date.now() - new Date(o.wait_ann_at) < 180000, "wait:" + o.wait_ann_at);
   if (!open) { box.innerHTML = ""; return; }
   // Nouvelle annonce : le téléphone vibre
   if (o.wait_ann_at && lastAnn && lastAnn !== o.wait_ann_at && navigator.vibrate) navigator.vibrate([300, 120, 300]);
@@ -564,7 +583,11 @@ I18N.apply();
 initMap();
 load().then(checkChat);
 // En direct : toutes les 5 s pendant la course
-setInterval(() => { if (!order || ["nouvelle", "confirmee", "recuperee"].includes(order.status)) load(); }, 5000);
+// En direct : toutes les 2 s tant qu'un livreur peut accepter ou poser une question (heure, attente), sinon 5 s
+(function livePoll() {
+  const fast = !order || ["nouvelle", "confirmee"].includes(order.status);
+  setTimeout(async () => { if (!order || ["nouvelle", "confirmee", "recuperee"].includes(order.status)) await Promise.resolve(load()).catch(() => {}); livePoll(); }, fast ? 2000 : 5000);
+})();
 setInterval(checkChat, 15000);
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes

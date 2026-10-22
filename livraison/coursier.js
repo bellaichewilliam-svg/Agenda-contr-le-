@@ -355,14 +355,78 @@ async function load() {
   mine().filter(o => o.direct_pay && o.paid_to !== "hop" && o.client_paid_at && o.payment_status !== "paye" && !paidSeen.has(o.id)).forEach(o => {
     paidSeen.add(o.id);
     if (firstLoad) return;
-    beep();
+    // (le son et le pop-up : showAsk ; ici la notification, utile si HOP! est en arrière-plan)
     UI.notify(`💳 Le client dit avoir payé · n° ${o.ref}`, { body: "Vérifiez votre Bit / PayBox, puis touchez « Paiement reçu » pour récupérer la commande.", tag: "pay-" + o.id, vibrate: [300, 150, 300] });
   });
+  watchAnswers();
+  showAsk();
   firstLoad = false;
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   await checkChats();
   render();
 }
+
+// --- Pop-up « réponse attendue » : rien à chercher dans la liste, ça s'ouvre au premier plan ----------------
+// Le client dit avoir payé → « Paiement reçu » / « Pas reçu » ; le client a répondu (heure, attente) → on le dit
+const askLater = new Set();
+const askInfo = [];
+const answerPrev = new Map();
+const payPending = o => o.direct_pay && o.paid_to !== "hop" && o.payment_method !== "cash" && o.client_paid_at && o.payment_status !== "paye"
+  && !(o.pay_missing_at && new Date(o.pay_missing_at) >= new Date(o.client_paid_at));
+function watchAnswers() {
+  orders.filter(o => o.courier_id === me.id).forEach(o => {
+    const prev = answerPrev.get(o.id), now = { eta: o.eta_status, wait: o.wait_ann_status, status: o.status };
+    answerPrev.set(o.id, now);
+    if (!prev || firstLoad) return;
+    if (prev.eta === "attente" && now.eta === "ok" && o.status === "confirmee")
+      askInfo.push(`✅ <b>Le client accepte votre heure</b><br>Course n° ${UI.esc(o.ref)} : allez au départ (${UI.esc(o.eta_min || "")} min).`);
+    if (prev.wait === "attente" && now.wait === "ok")
+      askInfo.push(`✅ <b>Le client accepte d'attendre</b><br>Course n° ${UI.esc(o.ref)} : l'attente annoncée sera payée.`);
+    if (prev.wait === "attente" && now.wait === "refus")
+      askInfo.push(`❌ <b>Le client a laissé tomber</b><br>Course n° ${UI.esc(o.ref)} : la moitié de la course vous est due.`);
+  });
+}
+function showAsk() {
+  const modal = $("#askModal"), box = $("#askBox");
+  const o = mine().find(x => payPending(x) && !askLater.has(x.id + x.client_paid_at));
+  let html = "", key = "";
+  if (o) {
+    key = "pay:" + o.id + o.client_paid_at;
+    html = `<div class="offer-top"><span>💳</span><b>Le client dit avoir payé</b></div>
+      <div class="ask-amount">${UI.money(o.price)}</div>
+      <p class="small">Course n° ${UI.esc(o.ref)} · ${UI.esc(o.contact_name || "")}<br>Vérifiez votre Bit / PayBox maintenant.</p>
+      <button class="btn btn-primary" data-ask-paid="${UI.esc(o.id)}">✅ Paiement reçu</button>
+      <button class="btn" data-ask-missing="${UI.esc(o.id)}">❌ Pas reçu</button>
+      <button class="btn btn-link" data-ask-later="${UI.esc(o.id + o.client_paid_at)}">Vérifier plus tard</button>`;
+  } else if (askInfo.length) {
+    key = "info:" + askInfo[0];
+    html = `<p class="msg-body">${askInfo[0]}</p><button class="btn btn-primary" data-ask-ok>OK</button>`;
+  }
+  if (!html) { modal.classList.add("hidden"); modal.dataset.key = ""; return; }
+  if (modal.dataset.key === key && !modal.classList.contains("hidden")) return;
+  const fresh = modal.dataset.key !== key;
+  modal.dataset.key = key;
+  box.innerHTML = html;
+  modal.classList.remove("hidden");
+  if (fresh) { beep(); try { if (navigator.vibrate) navigator.vibrate([400, 150, 400]); } catch (e) { /* ignore */ } }
+}
+$("#askBox").addEventListener("click", async e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.askOk != null) { askInfo.shift(); return showAsk(); }
+  if (b.dataset.askLater) { askLater.add(b.dataset.askLater); return showAsk(); }
+  b.disabled = true;
+  if (b.dataset.askPaid) {
+    const ok = await Store.courierAction(b.dataset.askPaid, "paye").catch(() => false);
+    if (!ok) { b.disabled = false; return alert("Paiement non enregistré, réessayez."); }
+  }
+  if (b.dataset.askMissing) {
+    const ok = await Store.payMissing(b.dataset.askMissing).then(() => true).catch(() => false);
+    if (!ok) { b.disabled = false; return alert("Pas enregistré, réessayez."); }
+  }
+  $("#askModal").classList.add("hidden");
+  load();
+});
 
 function weekOrders(start) {
   const end = UI.addDays(start, 6);
@@ -1986,7 +2050,9 @@ let pollTimer;
 function livePoll() {
   clearTimeout(pollTimer);
   const hot = mine().length || pool().length || offerShown || refunds.length;
-  pollTimer = setTimeout(async () => { await load(); livePoll(); }, hot ? 5000 : 15000);
+  // Une réponse du client est attendue (heure, attente, paiement) : toutes les 2 s, pour la voir tout de suite
+  const waiting = mine().some(o => o.eta_status === "attente" || o.wait_ann_status === "attente" || (o.direct_pay && o.payment_status !== "paye" && o.status === "recuperee"));
+  pollTimer = setTimeout(async () => { await load(); livePoll(); }, waiting ? 2000 : hot ? 5000 : 15000);
 }
 if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => {
   if (e.data && e.data.hop === "refresh" && me) load();
