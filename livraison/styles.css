@@ -1524,3 +1524,17 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .topbar .nav-rider.mine { background: var(--brand); color: #fff; }
 .topbar .logo-mark { box-shadow: 0 3px 10px rgba(224,66,10,.28); }
 .view-bar { box-shadow: 0 1px 0 #E8EBF2; }
+
+/* --- Appli client : profil à gauche, « HOP! » orange au milieu (sans icône), langue à droite --- */
+.topbar-c .wrap { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.topbar-c .tb-profile { justify-self: start; display: inline-flex; align-items: center; gap: 8px; min-width: 0; text-decoration: none; color: #0F1F3D; font-weight: 700; font-size: 15px; padding: 4px 10px 4px 4px; border-radius: 999px; }
+.topbar-c .tb-profile:hover { background: #F7F8FB; }
+.topbar-c .tb-profile span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 110px; }
+.tb-ava { width: 34px; height: 34px; flex: none; padding: 7px; border-radius: 50%; background: #FFF1E8; fill: var(--brand); }
+.topbar-c .tb-center { justify-self: center; }
+.topbar-c .logo-name.wordmark { display: flex; }
+.topbar-c .wordmark b { color: var(--brand); font-size: 32px; }
+.topbar-c .wordmark b i { color: var(--brand); }
+.topbar-c .wordmark small { display: none; }
+.topbar-c .nav { justify-self: end; margin: 0; }
+@media (max-width: 430px) { .topbar-c .wordmark b { font-size: 29px; } .topbar-c .tb-profile span { max-width: 72px; } .topbar-c .tb-profile { font-size: 14px; } }

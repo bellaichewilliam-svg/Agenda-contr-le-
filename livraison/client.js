@@ -930,7 +930,7 @@ function renderAccount() {
   $("#navRider").title = rider ? t("navRiderMine") : t("navRider");
   const p = Store.getProfile();
   const known = isReturning();
-  $("#navMine").textContent = known ? t("hello", { name: p.contact_name.split(" ")[0] }) : t("navMine");
+  $("#navMine").textContent = known ? t("hello", { name: p.contact_name.split(" ")[0] }) : t("navMe");
   const editing = $("#coordsBox").dataset.editing === "1";
   $("#coordsSummary").classList.toggle("hidden", !known || editing);
   $("#coordsFields").classList.toggle("hidden", known && !editing);
