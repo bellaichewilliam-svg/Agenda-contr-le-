@@ -2052,7 +2052,8 @@ function initHomeMap() {
 const restos = { layer: null, list: [], key: "" };
 async function initRestos() {
   restos.layer = L.layerGroup().addTo(home.map);
-  try { restos.list = (await Places.directory()).filter(e => e.lat != null && e.lon != null); } catch (e) { restos.list = []; }
+  // La carte : les restaurants seulement (pas les magasins ni les pharmacies de l'annuaire)
+  try { restos.list = (await Places.directory()).filter(e => e.lat != null && e.lon != null && e.t !== "shop"); } catch (e) { restos.list = []; }
   // Position par défaut (beaucoup de restaurants de rues différentes sur le même point) : pas sur la carte, la recherche les trouve
   const streets = {};
   restos.list.forEach(e => { const k = e.lat.toFixed(4) + "," + e.lon.toFixed(4); (streets[k] = streets[k] || new Set()).add(String(e.s || "").split(" ")[0]); });
