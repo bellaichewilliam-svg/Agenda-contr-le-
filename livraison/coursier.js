@@ -1034,9 +1034,9 @@ const isOnline = () => duty.watch != null;
 const PHOTO_MSG = "📷 Course « déposer devant la porte » : envoyez d'abord la photo du colis devant la porte dans la conversation, puis validez « Livré ».";
 // Livreur débloqué par HOP jusqu'à une date
 const freeNow = () => !!(me && me.unlocked_until && new Date(me.unlocked_until) > new Date());
-// Crédit prépayé : il doit couvrir au moins la commission minimum de HOP (le compte du patron n'est jamais bloqué)
+// Crédit prépayé : il doit couvrir au moins la commission minimum de HOP (le patron aussi, quand il fait une course)
 const available = () => Number(wallet.credit || 0) - Number(wallet.reserved || 0);
-const locked = () => !freeNow() && me && me.role !== "admin" && Store.ONLINE && available() < Number(settings.commission_min || 3);
+const locked = () => !freeNow() && me && Store.ONLINE && available() < Number(settings.commission_min || 3);
 // Une course récupérée doit être livrée et validée avant d'en prendre une autre
 const busyOrder = () => orders.find(o => o.courier_id === me.id && o.status === "recuperee");
 const busy = () => !freeNow() && !!busyOrder();
