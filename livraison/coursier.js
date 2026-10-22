@@ -1275,17 +1275,12 @@ function myReply(id) { const r = msgs.replies.find(x => x.message_id === id && x
 const msgTime = m => new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 // Le ton HOP! : « Salut les Hopers ! » pour tous, « Salut Dan ! » pour un message perso
 const msgHello = m => m.to_courier ? `👋 Salut ${String((me && me.name) || "").split(" ")[0] || "à toi"} !` : "👋 Salut les Hopers !";
-const replyBtns = m => `<div class="msg-btns">
-    <button class="btn btn-sm ${myReply(m.id) === "jarrive" ? "btn-primary" : ""}" data-reply="jarrive" data-msg="${UI.esc(m.id)}">🛵 J'arrive</button>
-    <button class="btn btn-sm ${myReply(m.id) === "pas_dispo" ? "btn-dark" : ""}" data-reply="pas_dispo" data-msg="${UI.esc(m.id)}">😴 Pas dispo</button></div>`;
-
 function renderMsgs() {
   // Même message envoyé deux fois : on ne garde que le plus récent
   const list = msgs.messages.filter(m => Date.now() - new Date(m.created_at) < 12 * 3600000)
     .filter((m, i, all) => all.findIndex(x => x.body === m.body && !!x.to_courier === !!m.to_courier) === i).slice(0, 3);
   $("#msgs").innerHTML = list.map(m => `<div class="msg-card msg-${UI.esc(m.kind)}">
-      <div><small>${msgHello(m)} · ${msgTime(m)}</small><b>${UI.esc(m.body)}</b></div>
-      ${replyBtns(m)}</div>`).join("");
+      <div><small>${msgHello(m)} · ${msgTime(m)}</small><b>${UI.esc(m.body)}</b></div></div>`).join("");
 }
 
 function checkNewMessages() {
@@ -1301,7 +1296,7 @@ function checkNewMessages() {
   msgShown = m.id;
   $("#msgBody").textContent = m.body;
   $("#msgTime").textContent = msgHello(m) + " · " + msgTime(m);
-  $("#msgModalBtns").innerHTML = replyBtns(m);
+  $("#msgModalBtns").innerHTML = "";   // un message à lire, pas de réponse à donner
   $("#msgModal").classList.remove("hidden");
 }
 
@@ -1978,7 +1973,7 @@ function renderInbox(view) {
   const list = msgs.messages;
   view.innerHTML = `<button type="button" class="btn btn-wa btn-block" data-boss="">💬 Écrire à HOP${chatUnread["c:" + me.id] ? ` <span class="chat-badge">${chatUnread["c:" + me.id]}</span>` : ""}</button>
     <h3 style="margin:16px 0 8px">📣 Annonces (48 h)</h3>
-    ${list.length ? list.map(m => `<div class="msg-card msg-${UI.esc(m.kind)}"><div><small>${UI.esc(UI.fmtDateTime(m.created_at))}</small><b>${UI.esc(m.body)}</b></div>${replyBtns(m)}</div>`).join("")
+    ${list.length ? list.map(m => `<div class="msg-card msg-${UI.esc(m.kind)}"><div><small>${UI.esc(UI.fmtDateTime(m.created_at))}</small><b>${UI.esc(m.body)}</b></div></div>`).join("")
       : `<div class="empty card">Pas d'annonce en ce moment.</div>`}`;
 }
 
