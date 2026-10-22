@@ -15,6 +15,32 @@ const OTHER = "__other";
 const state = { shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null }, stops: [] };
 const ac = {};
 
+// --- Écrans : l'accueil ne garde que l'essentiel ; la commande, « Mes courses » et « Tout savoir »
+// (tarifs, autres distances, idées, offres, FAQ) s'ouvrent à part, au moment voulu ---------------
+const VIEW_OF = { accueil: "home", commander: "order", "mes-courses": "mine" };
+const VIEW_HASH = { order: "commander", mine: "mes-courses", infos: "infos" };
+const viewOf = el => { const sec = el && el.closest && el.closest("body > section"); return sec ? VIEW_OF[sec.id] || "infos" : null; };
+const viewTitle = () => { $("#viewTitle").textContent = { order: t("ordTitle"), mine: t("navMine"), infos: t("infosTitle") }[document.body.dataset.view] || ""; };
+function setView(v, push) {
+  if (!v || document.body.dataset.view === v) return false;
+  document.body.dataset.view = v;
+  viewTitle();
+  if (push) history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]);
+  window.scrollTo(0, 0);
+  return true;
+}
+// Tout ce qui « fait défiler jusqu'à » une partie de la page ouvre d'abord le bon écran
+const nativeScrollIntoView = Element.prototype.scrollIntoView;
+Element.prototype.scrollIntoView = function (o) { setView(viewOf(this), true); return nativeScrollIntoView.call(this, o); };
+function routeHash() {
+  const el = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+  setView(el ? viewOf(el) || "home" : "home");
+  if (el && !/^(accueil|commander|mes-courses|infos)$/.test(el.id)) requestAnimationFrame(() => nativeScrollIntoView.call(el, { block: "start" }));
+}
+window.addEventListener("hashchange", routeHash);
+window.addEventListener("popstate", routeHash);
+routeHash();
+
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
   { id: "poste", icon: "📮", set: { service: "retrait", place_kind: "poste" } },
@@ -1499,6 +1525,7 @@ function renderAll() {
   renderSavedAddrs();
   renderAccount();
   renderLogin();
+  viewTitle();
   renderShopBanner();
   renderHomeStatic();
   renderShowcase();
