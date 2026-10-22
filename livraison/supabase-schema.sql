@@ -4812,6 +4812,87 @@ revoke execute on function public.admin_clients(), public.admin_client_reset(uui
 grant execute on function public.admin_clients(), public.admin_client_reset(uuid, text) to authenticated;
 
 -- ============================================================================
+-- REGROUPEMENT DE COURSES : deux courses d'un coup pour un livreur, quand ça vaut le coup.
+-- Surtout les arrivées proches (1,2 km max l'une de l'autre), départs proches (600 m max : même commerce
+-- ou voisins), heures compatibles (15 min max d'écart). Pas d'express, pas d'espèces à avancer, pas
+-- d'aller-retour, d'arrêts en plus, de rendez-vous, de courses au supermarché, de gros colis, ni deux colis moyens
+-- (le top case). Le livreur le plus proche des départs reçoit les deux dans une seule fenêtre et les accepte
+-- d'un geste (accept_bundle : les deux ou aucune). Un livreur qui a déjà une course pas encore récupérée
+-- allant dans le même coin passe en premier pour une nouvelle course groupable. Prix et commissions inchangés.
+-- ============================================================================
+create or replace function public.km_between(lat1 double precision, lon1 double precision, lat2 double precision, lon2 double precision)
+returns double precision language sql immutable as $$
+  select 111.32 * sqrt((lat2 - lat1) ^ 2 + ((lon2 - lon1) * cos(radians((lat1 + lat2) / 2))) ^ 2);
+$$;
+create or replace function public.groupable(o orders) returns boolean
+language sql immutable as $$
+  select coalesce(o.urgency, '') <> 'express' and coalesce(o.cash_need, 0) = 0 and not coalesce(o.round_trip, false)
+     and o.appt_at is null and coalesce(o.service, '') <> 'achat' and coalesce(o.size, 'petit') <> 'gros'
+     and coalesce(o.extra_stops, 0) = 0
+     and coalesce(case when jsonb_typeof(o.stops) = 'array' then jsonb_array_length(o.stops) end, 0) = 0
+     and o.pickup_lat is not null and o.dropoff_lat is not null;
+$$;
+create or replace function public.pair_ok(a orders, b orders) returns boolean
+language sql immutable as $$
+  select a.id <> b.id and public.groupable(a) and public.groupable(b)
+     and not (coalesce(a.size, 'petit') = 'moyen' and coalesce(b.size, 'petit') = 'moyen')
+     and public.km_between(a.pickup_lat, a.pickup_lon, b.pickup_lat, b.pickup_lon) <= 0.6
+     and public.km_between(a.dropoff_lat, a.dropoff_lon, b.dropoff_lat, b.dropoff_lon) <= 1.2
+     and abs(extract(epoch from (a.pickup_at - b.pickup_at))) <= 15 * 60;
+$$;
+revoke execute on function public.groupable(orders), public.pair_ok(orders, orders) from public, anon;
+grant execute on function public.groupable(orders), public.pair_ok(orders, orders) to authenticated;
+
+-- Accepter deux courses groupées d'un coup : les deux ou aucune
+create or replace function public.accept_bundle(p_ids uuid[], p_eta int) returns int
+language plpgsql security definer set search_path = public as $$
+declare a orders; b orders;
+begin
+  if coalesce(array_length(p_ids, 1), 0) <> 2 then raise exception 'bundle_size'; end if;
+  select * into a from orders where id = p_ids[1] for update;
+  select * into b from orders where id = p_ids[2] for update;
+  if a.id is null or b.id is null or not public.pair_ok(a, b) then raise exception 'bundle_invalid'; end if;
+  if not public.accept_order(a.id, p_eta) then raise exception 'bundle_taken'; end if;
+  if not public.accept_order(b.id, p_eta) then raise exception 'bundle_taken'; end if;
+  return 2;
+end;
+$$;
+revoke execute on function public.accept_bundle(uuid[], int) from public, anon;
+grant execute on function public.accept_bundle(uuid[], int) to authenticated;
+
+-- Livreurs : la course est proposée en premier à qui l'a déjà « sur son chemin »
+create or replace function public.can_see_new(o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with st as (select * from settings where id = 1),
+  ranked as (
+    select c.id, row_number() over (order by
+             -- Regroupement : d'abord le livreur qui a déjà une course pas encore récupérée qui va dans le même coin
+             (case when exists (select 1 from orders x where x.courier_id = c.id and x.status = 'confirmee' and public.pair_ok(x, o)) then 0 else 1 end),
+             (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
+      from couriers c
+     where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
+       and public.courier_online(c)
+       and not public.declined_recently(o.id, c.id)
+  )
+  select o.status = 'nouvelle' and o.courier_id is null
+     and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
+     and not public.declined_recently(o.id, auth.uid())
+     -- Espèces à avancer : pas pour un livreur privé d'espèces (il n'avait pas les espèces la dernière fois)
+     and (coalesce(o.cash_need, 0) = 0 or not exists (select 1 from couriers me where me.id = auth.uid() and me.cash_ban_until > now()))
+     -- HOP! Pro : quand le commerce a accepté ; Pro et téléphone : pour arriver au moment où c'est prêt
+     and (o.shop_status is null or o.shop_status in ('acceptee', 'prete'))
+     -- Colis à récupérer : seulement quand le patron a vérifié les documents
+     and coalesce(o.docs_status, 'ok') = 'ok'
+     and now() >= public.offer_from(o)
+     -- Express : seulement aux livreurs sans course en cours
+     and (o.urgency <> 'express' or not exists (select 1 from orders x where x.courier_id = auth.uid() and x.status in ('confirmee', 'recuperee')))
+     and (o.referrer_id = auth.uid() or o.urgency = 'express'
+          or now() >= public.offer_from(o)
+               + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), (select count(*) from ranked)), 2)));
+$$;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================

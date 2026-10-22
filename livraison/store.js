@@ -771,6 +771,32 @@ async function courierCashOk(id) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_cash_ok", { method: "POST", body: { p_id: id } });
   return true;
 }
+// --- Regroupement : deux courses d'un coup (mêmes règles que la base : groupable, pair_ok) -------------
+function kmBetween(a1, o1, a2, o2) {
+  const dLat = a2 - a1, dLon = (o2 - o1) * Math.cos((a1 + a2) / 2 * Math.PI / 180);
+  return 111.32 * Math.sqrt(dLat * dLat + dLon * dLon);
+}
+function groupable(o) {
+  return o.urgency !== "express" && !(Number(o.cash_need) > 0) && !o.round_trip && !o.appt_at && o.service !== "achat"
+    && o.size !== "gros" && !Number(o.extra_stops) && !(Array.isArray(o.stops) && o.stops.length)
+    && o.pickup_lat != null && o.dropoff_lat != null;
+}
+function pairOk(a, b) {
+  const G = CONFIG.grouping || { dropKm: 1.2, pickupKm: 0.6, minutes: 15 };
+  return !!a && !!b && a.id !== b.id && groupable(a) && groupable(b) && !(a.size === "moyen" && b.size === "moyen")
+    && kmBetween(+a.pickup_lat, +a.pickup_lon, +b.pickup_lat, +b.pickup_lon) <= G.pickupKm
+    && kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) <= G.dropKm
+    && Math.abs(new Date(a.pickup_at) - new Date(b.pickup_at)) <= G.minutes * 60000;
+}
+// Accepter deux courses groupées : les deux ou aucune
+async function acceptBundle(ids, eta) {
+  if (ONLINE) return authRest("/rest/v1/rpc/accept_bundle", { method: "POST", body: { p_ids: ids, p_eta: eta } });
+  const all = localOrders(), [a, b] = ids.map(id => all.find(x => x.id === id));
+  if (!pairOk(a, b) || a.status !== "nouvelle" || b.status !== "nouvelle") throw new Error("bundle_invalid");
+  if (!(await acceptOrder(ids[0], eta))) throw new Error("bundle_taken");
+  if (!(await acceptOrder(ids[1], eta))) throw new Error("bundle_taken");
+  return 2;
+}
 async function acceptOrder(id, eta) {
   if (ONLINE) return authRest("/rest/v1/rpc/accept_order", { method: "POST", body: eta != null ? { p_id: id, p_eta: eta } : { p_id: id } });
   const all = localOrders();
@@ -1793,7 +1819,7 @@ window.Store = {
   welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
-  listOrders, updateOrder, assignOrder, acceptOrder, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
+  listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, kmBetween, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, knownPlaces, knownPlaceAdd, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
