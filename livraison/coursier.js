@@ -1275,13 +1275,8 @@ function myReply(id) { const r = msgs.replies.find(x => x.message_id === id && x
 const msgTime = m => new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 // Le ton HOP! : « Salut les Hopers ! » pour tous, « Salut Dan ! » pour un message perso
 const msgHello = m => m.to_courier ? `👋 Salut ${String((me && me.name) || "").split(" ")[0] || "à toi"} !` : "👋 Salut les Hopers !";
-function renderMsgs() {
-  // Même message envoyé deux fois : on ne garde que le plus récent
-  const list = msgs.messages.filter(m => Date.now() - new Date(m.created_at) < 12 * 3600000)
-    .filter((m, i, all) => all.findIndex(x => x.body === m.body && !!x.to_courier === !!m.to_courier) === i).slice(0, 3);
-  $("#msgs").innerHTML = list.map(m => `<div class="msg-card msg-${UI.esc(m.kind)}">
-      <div><small>${msgHello(m)} · ${msgTime(m)}</small><b>${UI.esc(m.body)}</b></div></div>`).join("");
-}
+// Les messages s'affichent en pop-up seulement (et dans la cloche 🔔), pas dans le panneau
+function renderMsgs() { $("#msgs").innerHTML = ""; }
 
 function checkNewMessages() {
   const seen = seenMsgs();
