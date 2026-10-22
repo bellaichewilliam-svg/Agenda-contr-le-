@@ -1497,3 +1497,6 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 /* Ordinateur : le panneau défile au lieu d'écraser ses rangées, la carte remplit l'écran */
 .ch-sheet > * { flex-shrink: 0; }
 @media (min-width: 861px) { body[data-view="home"] .ch { height: calc(100vh - 60px); max-height: none; } }
+/* Le logo orange dit déjà « HOP! » : à côté, on garde seulement le petit sous-titre (Livraison, Pro…) */
+.logo-mark + .wordmark b { display: none; }
+.logo:has(.wordmark) .logo-mark { width: 44px; height: 44px; border-radius: 12px; box-shadow: 0 4px 12px rgba(224,66,10,.35); }
