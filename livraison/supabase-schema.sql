@@ -4930,3 +4930,68 @@ revoke execute on function public.orders_recup_on_site() from public, anon, auth
 -- select id, 'admin', 'actif', 'Mon nom', '050-000-0000', '050-000-0000', now()
 --   from auth.users where email = 'mon-email@exemple.com';
 -- ============================================================================
+
+-- ============================================================================
+-- LE PATRON QUI FAIT LUI-MÊME UNE COURSE : mêmes règles qu'un livreur.
+-- Crédit HOP suffisant pour accepter, commission de HOP comptée, « Colis récupéré » seulement sur place.
+-- (Le patron qui confie une course à un livreur depuis son panel n'est pas concerné.)
+-- ============================================================================
+create or replace function public.accept_order(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare c couriers; ord orders; need numeric;
+begin
+  select * into c from couriers where id = auth.uid() and status = 'actif';
+  if not found then return false; end if;
+  select * into ord from orders where id = p_id;
+  -- Crédit HOP : pour tout le monde, patron compris (sauf livreur débloqué par le patron)
+  if not coalesce(c.unlocked_until > now(), false) and ord.id is not null then
+    need := case when ord.referrer_id = c.id and c.network_perks then public.commission_network(public.course_value(ord))
+                 else public.commission_for(public.course_value(ord)) end
+          + case when ord.direct_pay and coalesce(ord.shop_share, 0) = 0 then coalesce(ord.hop_share, 0) else 0 end;
+    if public.courier_credit(c.id) - public.courier_reserved(c.id) < need then raise exception 'credit_low'; end if;
+  end if;
+  if c.role = 'coursier' and not coalesce(c.unlocked_until > now(), false)
+     and exists (select 1 from orders where courier_id = c.id and status = 'recuperee') then raise exception 'busy'; end if;
+  if c.role = 'coursier' and ord.urgency = 'express'
+     and exists (select 1 from orders where courier_id = c.id and status in ('confirmee', 'recuperee')) then raise exception 'express_busy'; end if;
+  if c.role = 'coursier' and exists (select 1 from orders where courier_id = c.id and urgency = 'express' and status in ('confirmee', 'recuperee')) then
+    raise exception 'express_running';
+  end if;
+  if c.role = 'coursier' and not public.courier_online(c) then raise exception 'offline'; end if;
+  if c.role = 'coursier' and exists (select 1 from orders where refund_courier_id = c.id and refund_status in ('a_faire', 'litige')) then
+    raise exception 'refund_pending';
+  end if;
+  if c.role = 'coursier' and coalesce(ord.cash_need, 0) > 0 then
+    if c.cash_ban_until > now() then raise exception 'cash_banned'; end if;
+    if not exists (select 1 from order_cash_ok k where k.order_id = p_id and k.courier_id = c.id and k.created_at > now() - interval '10 minutes') then
+      raise exception 'cash_confirm';
+    end if;
+  end if;
+  update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
+         courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
+         network = coalesce(o.referrer_id = c.id and c.network_perks, false),
+         commission = case when o.referrer_id = c.id and c.network_perks then public.commission_network(public.course_value(o))
+                           else public.commission_for(public.course_value(o)) end
+   where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
+  return found;
+end;
+$$;
+
+create or replace function public.orders_recup_on_site() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare c couriers; st settings;
+begin
+  if new.status = 'recuperee' and old.status = 'confirmee' and new.pickup_lat is not null and not coalesce(new.unlocked, false) then
+    select * into c from couriers where id = auth.uid();
+    -- Le livreur de la course (patron compris quand c'est lui qui la fait)
+    if c.id is not null and c.role in ('coursier', 'admin') and c.id = new.courier_id and not coalesce(c.unlocked_until > now(), false) then
+      select * into st from settings where id = 1;
+      if c.position_at is null or c.position_at < now() - interval '3 minutes' or c.lat is null
+         or 6371000 * sqrt(radians(c.lat - new.pickup_lat) ^ 2 + (radians(c.lon - new.pickup_lon) * cos(radians(new.pickup_lat))) ^ 2) > st.deliver_radius * 1.5 then
+        raise exception 'too_far_recup';
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;

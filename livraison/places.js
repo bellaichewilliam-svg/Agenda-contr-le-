@@ -173,7 +173,7 @@ function dirPlace(e, lang) {
   const name = dirName(e, lang);
   return { lat: e.lat, lon: e.lon, city, type: "house", streetName, housenumber, hit: true, dir: true,
     cityId: matchCity(city) || nearestCity(e.lat, e.lon), brand: name, street: e.s || e.n, exact: true,
-    phone: e.p || null, hours: e.h || null, kind: e.k || null,
+    phone: e.p || null, hours: e.h || null, kind: e.k || null, food: e.t !== "shop",
     label: [name, e.s, city].filter(Boolean).join(", ") };
 }
 

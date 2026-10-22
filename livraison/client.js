@@ -601,6 +601,12 @@ function onPlacePicked(which, p, quiet) {
   // (sauf si le client est déjà passé à un autre champ entre-temps)
   const addr = form.elements[prefixOf(which) + "_address"];
   if (!quiet && !p.housenumber && (!p.brand || needsNo(p))) setTimeout(() => { const a = document.activeElement; if (!a || a === document.body || a === addr) num.focus(); }, 50);
+  // Départ dans un restaurant (annuaire, carte) : c'est un repas, pas un colis
+  if (which === "from" && p.food && val("service") === "colis" && !state.homeKind && !state.svcChosen) {
+    form.elements.service.value = "repas";
+    state.homeKind = "resto";
+    renderHomeStatic();
+  }
   if (which === "from" && val("service") === "retrait" && p.brand) {
     const kind = detectPlaceKind(p.brand);
     if (kind) form.place_kind.value = kind;
@@ -1099,7 +1105,9 @@ async function submit(e) {
       pt ? exactPoint(pt, dNo, UI.cityFr(toCity)) : locate(dAddr, toCity, state.toPoint)
     ]);
     // Le client vérifie ses adresses sur la carte (et corrige l'épingle s'il le faut)
-    const checked = await confirmAddresses(pick0, drop0, pAddr, dAddr, fromCity, toCity);
+    // Le nom du restaurant / commerce d'abord : « Smash It · דגניה 47 », pas seulement la rue
+    const named = (p, a) => (p && p.brand && !a.includes(p.brand) ? `${p.brand} · ${a}` : a);
+    const checked = await confirmAddresses(pick0, drop0, named(pf, pAddr), named(pt, dAddr), fromCity, toCity);
     if (!checked) return;
     const pick = checked.pick, drop = checked.drop;
     const order = {
@@ -2340,6 +2348,7 @@ form.addEventListener("input", e => {
 });
 // Choix d'un service ou d'un moment (hors « programmer ») : on passe à l'étape suivante
 form.addEventListener("change", e => {
+  if (e.target.name === "service" && e.isTrusted) state.svcChosen = true;   // choisi à la main : on n'y touche plus
   if (e.target.name === "service" || (e.target.name === "urgency" && e.target.value !== "programmee")) goNext(e.target.closest("fieldset"));
 });
 form.addEventListener("change", e => {

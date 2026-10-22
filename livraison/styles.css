@@ -1579,3 +1579,12 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .rp-row span { display: grid; }
 /* Courses groupables (liste du livreur) */
 .bundle-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; border: 2px dashed var(--brand); background: var(--brand-soft); }
+/* Solde livreur qui défile de l'ancien au nouveau montant */
+.money-anim { display: inline-block; font-variant-numeric: tabular-nums; transition: color .3s; }
+.money-anim.money-done { animation: money-pop .45s ease-out; }
+@keyframes money-pop { 50% { transform: scale(1.08); } }
+.money-delta { display: inline-block; margin-inline-start: 8px; padding: 2px 8px; border-radius: 999px; font-size: 13px; font-weight: 700; vertical-align: middle; animation: delta-in .4s ease-out; }
+.money-delta.up { background: rgba(18,183,106,.16); color: #12B76A; }
+.money-delta.down { background: rgba(240,68,56,.16); color: #F04438; }
+@keyframes delta-in { from { opacity: 0; transform: translateY(6px); } }
+@media (prefers-reduced-motion: reduce) { .money-anim.money-done, .money-delta { animation: none; } }
