@@ -4893,6 +4893,31 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- ============================================================================
+-- « COLIS RÉCUPÉRÉ » SEULEMENT SUR PLACE : comme « Je suis arrivé » (300 m du départ) et « Livré » (200 m du client),
+-- le livreur doit être au point de récupération (position de moins de 3 min), sauf course ou livreur débloqué par le patron.
+-- ============================================================================
+create or replace function public.orders_recup_on_site() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare c couriers; st settings;
+begin
+  if new.status = 'recuperee' and old.status = 'confirmee' and new.pickup_lat is not null and not coalesce(new.unlocked, false) then
+    select * into c from couriers where id = auth.uid();
+    if c.id is not null and c.role = 'coursier' and c.id = new.courier_id and not coalesce(c.unlocked_until > now(), false) then
+      select * into st from settings where id = 1;
+      if c.position_at is null or c.position_at < now() - interval '3 minutes' or c.lat is null
+         or 6371000 * sqrt(radians(c.lat - new.pickup_lat) ^ 2 + (radians(c.lon - new.pickup_lon) * cos(radians(new.pickup_lat))) ^ 2) > st.deliver_radius * 1.5 then
+        raise exception 'too_far_recup';
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_recup_on_site before update of status on public.orders
+  for each row execute function public.orders_recup_on_site();
+revoke execute on function public.orders_recup_on_site() from public, anon, authenticated;
+
+-- ============================================================================
 -- ENVOI AUTOMATIQUE DES REÇUS PAR MAIL : voir livraison/email/README-mail.md
 -- (Database > Webhooks > orders, UPDATE → votre script Google Apps Script)
 -- ============================================================================
