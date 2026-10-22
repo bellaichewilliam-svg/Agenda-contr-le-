@@ -1777,8 +1777,18 @@ function initHome() {
   });
   $("#homeSwap").addEventListener("click", swapRoute);
   $("#homeGo").addEventListener("click", homeGo);
+  // ◎ : la carte se centre sur moi (point bleu), bien zoomée
   $("#homeLocate").addEventListener("click", async () => {
-    try { setHomePos(await myPosition()); renderHomeMap(true); renderLive(); } catch (e) { showHomeErr(t("geoDenied")); }
+    const b = $("#homeLocate");
+    if (b.classList.contains("busy")) return;
+    b.classList.add("busy");
+    try {
+      const pos = await myPosition();
+      setHomePos(pos); renderHomeMap(false); renderLive();
+      if (home.map) home.map.flyTo([pos.lat, pos.lon], Math.max(home.map.getZoom(), 16), { duration: 0.6 });
+      showHomeErr("");
+    } catch (e) { showHomeErr(t("geoDenied")); }
+    finally { b.classList.remove("busy"); }
   });
   $("#homeSheet").addEventListener("click", async e => {
     const g = e.target.closest("[data-hgeo]");

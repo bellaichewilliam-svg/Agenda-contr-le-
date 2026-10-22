@@ -902,14 +902,12 @@ function demandLevel(d) {
 }
 const bars = lv => `<span class="dbars ${lv.cls}">${[1, 2, 3].map(i => `<i class="${i <= lv.n ? "on" : ""}"></i>`).join("")}</span>`;
 function renderZones(view) {
-  const lv = demandLevel(demand);
   view.innerHTML = `<div class="card">
       <h3>Zone de livraison</h3>
-      <p class="muted small" style="margin:4px 0 12px">Regardez la demande en direct et sortez quand ça vaut le coup. HOP! livre dans le Sharon, à Tel Aviv – Gush Dan, Petah Tikva et Rishon LeZion.</p>
-      <div class="zone-head"><b>Zone</b><b>Demande</b></div>
+      <p class="muted small" style="margin:4px 0 12px">Pour l'instant, HOP! livre dans le Sharon (Netanya et alentours). Les autres zones ouvriront bientôt.</p>
       ${CONFIG.zones.map(z => `<div class="zone-row${z.active ? "" : " off"}">
           <span class="zone-radio${z.active ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
-          <span class="zone-dem">${z.active ? (lv ? `${lv.label} ${bars(lv)}` : "…") : "Bientôt"}</span>
+          <span class="zone-dem">${z.active ? `<span class="zone-open">Ouverte</span>` : "À venir"}</span>
         </div>`).join("")}
       ${demand ? `<p class="small" style="margin-top:12px">En ce moment : <b>${demand.waiting}</b> course(s) en attente · <b>${demand.last_hour}</b> commande(s) cette dernière heure · <b>${demand.on_duty}</b> livreur(s) en ligne.</p>` : ""}
       <p class="muted small" style="margin-top:6px">Heures de pointe habituelles : ${UI.esc(CONFIG.peakHours.fr)}.</p>
@@ -1193,6 +1191,8 @@ function onWorkClick(e) {
   if (el.dataset.soundTest) { const s = riderSet.sound; riderSet.sound = true; ringOnce(); riderSet.sound = s; return; }
   if (el.dataset.notif) {
     if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
+    // Bloquées : le navigateur ne redemande plus, on explique où les réactiver
+    if (Notification.permission === "denied") return alert("Alertes bloquées sur ce téléphone.\n\nChrome : ⋮ → Paramètres → Paramètres des sites → Notifications → autorisez " + location.host + ".\nSans alertes : pas de « En service » ni de nouvelles courses appli fermée.");
     return Notification.requestPermission().then(p => {
       UI.pushSubscribe();
       if (p === "granted" && isOnline()) UI.dutyNotice(true);
@@ -1435,11 +1435,10 @@ function renderHome() {
           <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
-      : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
-    ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-card hot" data-notif="1"><span>🔔 ${Notification.permission === "denied" ? "Notifications bloquées" : "Autorisez les notifications"}<small>${Notification.permission === "denied" ? "Chrome ⋮ → Paramètres → Notifications → autorisez HOP!, sinon pas de « En service » ni de courses appli fermée" : "Pour la notification « En service » et les nouvelles courses, même appli fermée"}</small></span><span class="go">›</span></button>` : ""}
+      : `<button type="button" class="rd-line" data-tab="zones">⏰ Pas de course · pointe ${UI.esc(CONFIG.peakHours.fr)}<span class="go">›</span></button>`) : ""}
+    ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-line rd-alert" data-notif="1" title="Pour « En service » et les nouvelles courses, même appli fermée">${Notification.permission === "denied" ? "🔕 Alertes bloquées : touchez pour voir comment" : "🔔 Activer les alertes"}<span class="go">›</span></button>` : ""}
     ${!isOnline() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>${me.network_perks ? `+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons` : "Leurs courses vous sont proposées en premier"}</small></span><span class="go">›</span></button>` : ""}`;
   [...$("#sheetBody").querySelectorAll(".rd-card")].forEach((c, i) => c.classList.toggle("rd-more", i >= 2));
-  $("#sheetBody").insertAdjacentHTML("beforeend", miniCurve());
   $("#dutyText").classList.toggle("rd-more", !/⚠️/.test($("#dutyText").textContent));
   if (sheetState() === "expanded") renderToday();
   sheetHeight();
@@ -1538,15 +1537,6 @@ function todayCurve() {
     return { h, v: Math.min(1.25, v), n, real: isReal };
   });
   return { hours, now, lv, total: real.reduce((a, b) => a + Number(b || 0), 0) };
-}
-// Petite courbe de la journée, toujours visible dans le panneau (en ligne ou hors ligne) ; on la touche pour tout voir
-function miniCurve() {
-  const { hours, now } = todayCurve();
-  const top = Math.max(0.3, ...hours.map(x => x.v));
-  const next = hours.find(x => x.h > now && x.v / top >= 0.8);
-  return `<button type="button" class="mini-curve" data-sheet-up="1" aria-label="Voir la journée">
-      <span class="mini-bars">${hours.map(x => `<i class="${x.v / top >= 0.8 ? "hi" : x.v / top >= 0.45 ? "mid" : "lo"}${x.h === now ? " now" : ""}${x.h < now ? " past" : ""}" style="height:${Math.round(15 + 85 * x.v / top)}%"></i>`).join("")}</span>
-      <span class="mini-txt">📊 ${next ? `Prochain pic à <b>${next.h} h</b>` : "Afflux de la journée"} ›</span></button>`;
 }
 function renderToday() {
   const box = $("#todayBox");

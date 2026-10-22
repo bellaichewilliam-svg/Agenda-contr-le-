@@ -86,12 +86,12 @@ window.CONFIG = {
   homeCity: "netanya",
 
   // --- Zones de livraison : le Sharon, Tel Aviv – Gush Dan, Petah Tikva, Rishon ---
-  // Les villes sans « zone » sont dans le Sharon. Mettez active: true pour ouvrir une zone.
+  // Les villes sans « zone » sont dans le Sharon. Mettez active: true pour ouvrir une zone (pour l'instant : le Sharon seulement).
   zones: [
     { id: "sharon",      fr: "HaSharon",                he: "השרון",                active: true },
-    { id: "tlv",         fr: "Tel Aviv – Gush Dan",     he: "תל אביב – גוש דן",      active: true },
-    { id: "petah-tikva", fr: "Petah Tikva",             he: "פתח תקווה",            active: true },
-    { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: true }
+    { id: "tlv",         fr: "Tel Aviv – Gush Dan",     he: "תל אביב – גוש דן",      active: false },
+    { id: "petah-tikva", fr: "Petah Tikva",             he: "פתח תקווה",            active: false },
+    { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: false }
   ],
   // Heures de pointe habituelles, affichées aux livreurs
   peakHours: { fr: "12\u00a0h–14\u00a0h et 18\u00a0h–21\u00a0h", he: "12:00–14:00 ו-18:00–21:00" },
