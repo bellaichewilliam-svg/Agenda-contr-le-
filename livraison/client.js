@@ -27,6 +27,8 @@ function setView(v, push) {
   viewTitle();
   if (push) history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]);
   window.scrollTo(0, 0);
+  // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
+  if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); });
   return true;
 }
 // Tout ce qui « fait défiler jusqu'à » une partie de la page ouvre d'abord le bon écran
@@ -2076,7 +2078,8 @@ async function loadNearby() {
     });
     while (home.scoots.length > pts.length) home.map.removeLayer(home.scoots.pop().m);
     pts.forEach((p, i) => {
-      const icon = () => divIcon(`<div class="ch-scoot${p.free ? "" : " busy"}">🛵</div>`, 34);
+      // Rond blanc, « ! » orange de HOP! qui clignote (gris et fixe si le livreur est déjà en course)
+      const icon = () => divIcon(`<div class="ch-scoot${p.free ? "" : " busy"}"><b>!</b></div>`, 34);
       const s = home.scoots[i];
       if (!s) {
         home.scoots.push({ m: L.marker([p.lat, p.lon], { icon: icon(), interactive: false }).addTo(home.map), cur: p, free: p.free });
