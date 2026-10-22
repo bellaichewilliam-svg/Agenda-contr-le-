@@ -634,6 +634,36 @@ function weekGain(s) {
     settled: list.length > 0 && list.every(o => o.commission_status === "regle"), cash: sum(list.filter(o => o.paid_to !== "hop")),
     commission: sum(list, o => Number(o.commission || 0)) };
 }
+// Solde qui change : la page s'ouvre sur le montant vu la dernière fois, puis il défile jusqu'au nouveau,
+// avec « +12 ₪ » / « −4 ₪ » à côté. Le dernier montant vu est gardé sur ce téléphone, par livreur.
+const SEEN_KEY = k => `livraison.seen.${me && me.id}.${k}`;
+const seenGet = k => { try { const v = localStorage.getItem(SEEN_KEY(k)); return v == null ? null : Number(v); } catch (e) { return null; } };
+const seenSet = (k, v) => { try { localStorage.setItem(SEEN_KEY(k), String(v)); } catch (e) { /* ignore */ } };
+const moneyRunning = {};
+function moneyAnim(key, value) {
+  const prev = seenGet(key), from = moneyRunning[key] ? moneyRunning[key].shown : prev;
+  const start = from == null || Math.abs(from - value) < 0.01 ? value : from;
+  return `<b class="money-anim" data-money="${UI.esc(key)}" data-to="${value}" data-from="${start}">${UI.money(start)}</b>`;
+}
+function runMoneyAnims(root) {
+  root.querySelectorAll("[data-money]").forEach(el => {
+    const key = el.dataset.money, to = Number(el.dataset.to), from = Number(el.dataset.from);
+    if (Math.abs(to - from) < 0.01) { seenSet(key, to); delete moneyRunning[key]; return; }
+    const run = moneyRunning[key] || (moneyRunning[key] = { t0: performance.now() + 450, from, to, shown: from });
+    run.to = to;
+    const diff = to - run.from;
+    el.insertAdjacentHTML("afterend", `<span class="money-delta ${diff > 0 ? "up" : "down"}">${diff > 0 ? "+" : "−"}${UI.money(Math.abs(diff))}</span>`);
+    const step = now => {
+      if (!el.isConnected) return;
+      const p = Math.min(1, Math.max(0, (now - run.t0) / 1100)), e = 1 - Math.pow(1 - p, 3);
+      run.shown = p >= 1 ? run.to : Math.round((run.from + (run.to - run.from) * e) * 2) / 2;
+      el.textContent = UI.money(run.shown);
+      if (p < 1) requestAnimationFrame(step);
+      else { seenSet(key, run.to); delete moneyRunning[key]; el.classList.add("money-done"); }
+    };
+    requestAnimationFrame(step);
+  });
+}
 // Crédit HOP prépayé : le livreur recharge par Bit à HOP, puis le déclare ; le patron valide
 const TOPUP_FR = { attente: "⏳ à valider par HOP", ok: "✅ validée", refuse: "❌ pas reçue" };
 let topupPick = null;
@@ -641,7 +671,7 @@ function creditView() {
   const credit = Number(wallet.credit || 0), avail = available();
   const pending = (wallet.topups || []).filter(x => x.status === "attente");
   return `<div class="credit-card${avail < Number(settings.commission_min || 3) ? " low" : ""}">
-      <div class="credit-top"><div><small>💳 Mon crédit HOP</small><b>${UI.money(credit)}</b>
+      <div class="credit-top"><div><small>💳 Mon crédit HOP</small>${moneyAnim("credit", credit)}
         ${Number(wallet.reserved) > 0 ? `<span class="small">dont ${UI.money(wallet.reserved)} réservés pour vos courses en cours</span>` : ""}</div></div>
       <p class="small" style="margin:6px 0 0">Vos clients vous paient directement. La commission de HOP (${UI.esc(UI.commissionText())}) est déduite de ce crédit à chaque course livrée : rechargez-le à l'avance.</p>
       <div class="rate-tags" style="margin-top:10px">${[50, 100, 200].map(n => `<button type="button" class="ch-chip${topupPick === n ? " on" : ""}" data-topup-pick="${n}">${UI.money(n)}</button>`).join("")}</div>
@@ -671,7 +701,7 @@ function financesView(start, week, d) {
       </div></details>`;
   return `<div class="fin-hero">
       <small>Gains de la semaine ›</small>
-      <b>${UI.money(cur.total)}</b>
+      ${moneyAnim("week:" + start, cur.total)}
       <span>${cur.list.length} course(s) · prochain règlement le ${UI.esc(new Date(payDay + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" }))}</span>
     </div>
     ${creditView()}
@@ -722,6 +752,7 @@ function render() {
     const tipsDue = sum(orders.filter(o => o.courier_id === me.id && o.tip_status === "recu"), o => Number(o.tip || 0));
     const plansDue = sum((refs.plans || []).filter(p => p.status !== "regle"), p => Number(p.share || 0));
     view.innerHTML = financesView(start, week, { amountDue, weekBonus, bDue, hopDue, hopAdds, tipsDue, plansDue });
+    runMoneyAnims(view);
   } else if (tab === "stats") {
     renderStats(view);
   } else if (tab === "settings") {
