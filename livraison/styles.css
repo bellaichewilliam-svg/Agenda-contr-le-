@@ -1548,3 +1548,16 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
   .topbar .nav-rider, .tb-ava { background: var(--brand-soft); }
   .view-bar { box-shadow: 0 1px 0 var(--border); }
 }
+/* Panneau livreur : petites lignes discrètes à la place des grandes cartes (pas de course, alertes) */
+.rd-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; margin: 0 0 8px; padding: 6px 2px; border: 0; background: none; color: var(--rd-mute); font: inherit; font-size: 14px; font-weight: 600; text-align: start; }
+.rd-line .go { font-size: 18px; color: var(--rd-mute); }
+.rd-line.rd-alert { color: #FF8A3D; }
+.rd-line.rd-alert .go { color: #FF8A3D; }
+/* Téléphone : ◎ et +/− bien au-dessus du panneau (plus à moitié cachés) ; ◎ tourne pendant la recherche */
+@media (max-width: 860px) {
+  .ch-zoom { top: calc(max(40vh, 250px) - 222px); }
+  .ch-locate { top: calc(max(40vh, 250px) - 120px); z-index: 4; }
+}
+.ch-locate.busy { animation: locate-spin 1s linear infinite; }
+@keyframes locate-spin { to { transform: rotate(360deg); } }
+.zone-open { display: inline-block; padding: 3px 10px; border-radius: 999px; background: rgba(46,144,250,.16); color: #2E90FA; font-weight: 700; font-size: 13px; }
