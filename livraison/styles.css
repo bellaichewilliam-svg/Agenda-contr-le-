@@ -310,6 +310,9 @@ label.check input { width: 20px; height: 20px; accent-color: var(--brand); flex:
 
 /* --- Fenêtre de confirmation ----------------------------------------------- */
 .modal { position: fixed; inset: 0; background: rgba(15,31,61,.6); display: grid; place-items: center; padding: 16px; z-index: 50; }
+/* Fenêtre plus haute que l'écran : elle défile (centrée quand elle tient, collée en haut sinon) */
+.modal { overflow-y: auto; overscroll-behavior: contain; align-items: start; }
+.modal > .modal-box { margin-block: auto; }
 .modal-box { background: var(--panel); border-radius: 22px; padding: 26px; max-width: 420px; width: 100%; text-align: center; }
 .modal-box .big { font-size: 52px; }
 .modal-box h3 { font-size: 22px; margin: 6px 0; }
@@ -446,6 +449,8 @@ table.bill .num { text-align: end; }
 
 /* --- Fenêtre « nouvelle course » (livreur) -------------------------------------------- */
 .offer-box { border-top: 6px solid var(--brand); animation: pop .25s ease-out; }
+/* « J'accepte » toujours à portée de pouce, même si la fiche est longue */
+.offer-box .btns { position: sticky; bottom: -16px; background: var(--panel); padding: 10px 0 28px; margin-bottom: -28px; box-shadow: 0 -10px 12px -10px rgba(15,31,61,.25); z-index: 1; }
 @keyframes pop { from { transform: scale(.9); opacity: 0; } }
 .offer-top { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 18px; }
 .offer-top span { font-size: 28px; }
@@ -541,7 +546,7 @@ fieldset.step-done { border-color: var(--green); }
 fieldset.step-done > legend::after { content: " ✅"; }
 .choice.disabled { opacity: .45; }
 .choice.disabled span { cursor: not-allowed; }
-.modal-box { position: relative; overflow: hidden; }
+.modal-box { position: relative; overflow: hidden; overflow: clip; }
 .confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .confetti i { position: absolute; top: -40px; font-style: normal; font-size: 22px; animation: fall linear forwards; }
 @keyframes fall { to { transform: translateY(560px) rotate(540deg); opacity: .2; } }
@@ -1441,7 +1446,7 @@ body.in-home .eta-bubble { display: none; }
 .pin-bubble.drop::after { bottom: auto; top: -6px; border-top-color: transparent; border-bottom: 6px solid #fff; border-top: 0; }
 /* Patron : ajouter un commerce à l'annuaire */
 .dir-add { display: grid; gap: 8px; }
-.dir-add input { width: 100%; }
+.dir-add input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--ink); font: inherit; font-size: 15px; }
 .dir-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); }
 /* Pas de barre de défilement visible (on fait défiler au doigt, à la molette ou au pavé tactile) */
 * { scrollbar-width: none; -ms-overflow-style: none; }

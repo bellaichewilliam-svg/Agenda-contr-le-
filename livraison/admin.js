@@ -764,15 +764,15 @@ function renderShops(view) {
       <details style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <b>🤝 Commerces amenés par les livreurs</b>
-      <p class="muted small" style="margin:4px 0 8px">Chaque livreur a son lien d'inscription pour les commerces (onglet « Parrainage » de son espace). Il gagne ${UI.money(settings.referral_bonus)} sur chaque course livrée au départ de ses commerces, tant qu'il livre avec nous (plus de bonus après ${Number(settings.referral_active_days || CONFIG.partners.activeDays)} jours sans livraison), déduit de sa commission chaque semaine, et voit leurs courses ${Number(settings.priority_minutes)} min avant les autres. Les courses peuvent être commandées dès l'inscription ; vérifiez ici que le commerce existe.</p>
-      <div class="promo-row"><input readonly value="${UI.esc(signup)}" dir="ltr" /><button class="btn btn-sm" data-copy="${UI.esc(signup)}">Copier</button><a class="btn btn-sm" href="${UI.esc(signup)}" target="_blank" rel="noopener">➕ Inscrire un commerce</a></div>
+      <b>🏪 Inscrire un commerce partenaire</b>
+      <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien à un restaurant ou une boutique : il s'inscrit, puis vous le validez ici après avoir vérifié qu'il existe.</p>
+      <div class="actions"><button class="btn btn-sm" data-copy="${UI.esc(signup)}">📋 Copier le lien</button><a class="btn btn-sm btn-primary" href="${UI.esc(signup)}" target="_blank" rel="noopener">➕ Inscrire un commerce</a></div>
     </div>
     <div class="stats">
       <div class="stat"><small>Commerces</small><b>${shops.filter(x => x.status !== "suspendu").length}</b></div>
       <div class="stat"><small>À vérifier</small><b>${shops.filter(x => x.status === "en_attente").length}</b></div>
       <div class="stat"><small>Courses ce mois</small><b>${viaShop.filter(o => UI.dayKey(o.pickup_at).startsWith(month)).length}</b></div>
-      <div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>
+      ${bonusDue > 0 ? `<div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>` : `<div class="stat"><small>HOP! Pro</small><b>${shops.filter(x => Store.planActive(x)).length}</b></div>`}
     </div>
     ${list.length ? `<div class="orders">${list.map(x => {
       const done = viaShop.filter(o => o.shop_id === x.id);
@@ -788,8 +788,8 @@ function renderShops(view) {
           <div><span>👤</span><span>${tel(x.contact_name, x.phone)}${x.email ? " · " + UI.esc(x.email) : ""} · ${x.lang === "fr" ? "🇫🇷" : "🇮🇱"}</span></div>
           <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name + (c.city && x.city && c.city !== x.city ? " · autre ville (" + UI.cityFr(c.city) + ")" : ""))}</option>`).join("")}</select>
             · bonus générés ${UI.money(sum(done, o => Number(o.referral_bonus || 0)))}</span></div>
-          <div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
-            ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>
+          ${CONFIG.partners.carnet.offered || Number(x.credits || 0) > 0 ? `<div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
+            ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>` : ""}
           <div><span>📅</span><span>Inscrit le ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))}</span></div>
           <div><span>⭐</span><span>${(() => {
             // HOP! Pro : abonnement, et ce que le commerce doit ce mois-ci (abonnement + sa part des livraisons)
@@ -805,9 +805,9 @@ function renderShops(view) {
         </div>
         <div class="actions">
           ${x.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-sact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-sact="suspendu">⛔ Suspendre</button>`}
-          <button class="btn btn-sm" data-sact="carnet">🎟️ Carnet payé (${UI.money(CONFIG.partners.carnet.price)}) → +${CONFIG.partners.carnet.courses} et reçu</button>
-          <button class="btn btn-sm" data-sact="credits">✏️ Courses du carnet</button>
-          <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan" title="Le commerce a payé ${UI.esc(UI.money(settings.pro_monthly))} : ${Number(settings.pro_referrer_pct || CONFIG.pro.referrerPercent)} % pour son parrain livreur (12 premiers mois)">⭐ HOP! Pro : +1 mois payé</button>
+          ${CONFIG.partners.carnet.offered ? `<button class="btn btn-sm" data-sact="carnet">🎟️ Carnet payé (${UI.money(CONFIG.partners.carnet.price)}) → +${CONFIG.partners.carnet.courses} et reçu</button>
+          <button class="btn btn-sm" data-sact="credits">✏️ Courses du carnet</button>` : ""}
+          <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan" title="Le commerce a payé ${UI.esc(UI.money(settings.pro_monthly))}">⭐ HOP! Pro : +1 mois payé</button>
           <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
