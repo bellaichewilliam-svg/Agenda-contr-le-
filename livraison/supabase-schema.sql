@@ -4125,7 +4125,7 @@ language sql immutable set search_path = public as $$
   select right(regexp_replace(coalesce(p, ''), '\D', '', 'g'), 9);
 $$;
 
--- Nouvelle commande : client bloqué refusé ; en espèces : plafond, client déjà livré, billet, montant exact pour le livreur
+-- Nouvelle commande : client bloqué refusé ; en espèces : plafond, client déjà livré s'il y a des articles à avancer, billet, montant exact pour le livreur
 create or replace function public.orders_zz_cash_guard() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare st settings; goods numeric; total numeric; note int;
@@ -4139,7 +4139,8 @@ begin
   goods := case when new.items is not null then coalesce(new.items_total, 0) else 0 end;
   total := coalesce(new.price, 0) + goods;
   if total > st.cash_max then raise exception 'cash_max'; end if;
-  if not exists (select 1 from orders o where o.status = 'livree' and public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone)) then
+  -- Le livreur avance des articles (catalogue Pro) : seulement pour un client déjà livré une fois. Sans avance : dès la 1re commande.
+  if goods > 0 and not exists (select 1 from orders o where o.status = 'livree' and public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone)) then
     raise exception 'cash_first';
   end if;
   note := case when new.cash_note in (20, 50, 100, 200) then new.cash_note else 0 end;
@@ -4717,7 +4718,7 @@ create or replace trigger orders_client_link before insert on public.orders
   for each row execute function public.orders_client_link();
 revoke execute on function public.orders_client_link() from public, anon, authenticated;
 
--- Espèces : avec un compte, déjà livré une fois avec ce compte (en plus du plafond et du billet)
+-- Espèces : avec un compte ; articles à avancer seulement si déjà livré une fois avec ce compte (en plus du plafond et du billet)
 create or replace function public.orders_zz_cash_guard() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare st settings; goods numeric; total numeric; note int;
@@ -4732,7 +4733,7 @@ begin
   goods := case when new.items is not null then coalesce(new.items_total, 0) else 0 end;
   total := coalesce(new.price, 0) + goods;
   if total > st.cash_max then raise exception 'cash_max'; end if;
-  if not exists (select 1 from orders o where o.status = 'livree' and o.client_id = new.client_id) then raise exception 'cash_first'; end if;
+  if goods > 0 and not exists (select 1 from orders o where o.status = 'livree' and o.client_id = new.client_id) then raise exception 'cash_first'; end if;
   note := case when new.cash_note in (20, 50, 100, 200) then new.cash_note else 0 end;
   if note > 0 and note < total then raise exception 'cash_note_small'; end if;
   new.cash_note := note;
