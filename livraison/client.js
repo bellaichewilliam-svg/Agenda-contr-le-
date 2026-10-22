@@ -2037,6 +2037,76 @@ function initHomeMap() {
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
   UI.mapTiles(home.map, dark);
   addEventListener("resize", () => home.map.invalidateSize());
+  initRestos();
+}
+// Restaurants de l'annuaire sur la carte : un point de loin, un rond 🍴 de près, et leur nom en zoomant encore.
+// On en touche un : « Récupérer ici » le met en départ.
+const restos = { layer: null, list: [], key: "" };
+async function initRestos() {
+  restos.layer = L.layerGroup().addTo(home.map);
+  try { restos.list = (await Places.directory()).filter(e => e.lat != null && e.lon != null); } catch (e) { restos.list = []; }
+  // Position par défaut (beaucoup de restaurants de rues différentes sur le même point) : pas sur la carte, la recherche les trouve
+  const streets = {};
+  restos.list.forEach(e => { const k = e.lat.toFixed(4) + "," + e.lon.toFixed(4); (streets[k] = streets[k] || new Set()).add(String(e.s || "").split(" ")[0]); });
+  restos.list = restos.list.map(e => (streets[e.lat.toFixed(4) + "," + e.lon.toFixed(4)].size >= 3 ? Object.assign({}, e, { offMap: true }) : e));
+  home.map.on("zoomend moveend", drawRestos);
+  home.map.on("popupclose", () => { restos.open = false; drawRestos(); });
+  home.map.on("popupopen", e => {
+    restos.open = true;
+    const box = e.popup.getElement();
+    if (box) box.querySelectorAll("[data-resto]").forEach(b => b.addEventListener("click", () => { pickResto(restos.list[Number(b.dataset.resto)]); home.map.closePopup(); }));
+  });
+  drawRestos();
+}
+const restoName = e => (I18N.lang === "fr" && e.fr ? e.fr : e.n);
+function drawRestos() {
+  if (restos.open) return;   // une bulle est ouverte : on ne redessine pas (elle se fermerait)
+  const z = home.map.getZoom(), el = home.map.getContainer();
+  el.classList.toggle("rz-far", z < 15);
+  el.classList.toggle("rz-names", z >= 16);
+  if (z < 13) { restos.layer.clearLayers(); restos.key = ""; return; }
+  const bounds = home.map.getBounds().pad(0.15), c = home.map.getCenter();
+  // Plusieurs restaurants au même endroit (centre commercial) : un seul rond « nom +2 »
+  const groups = {};
+  restos.list.forEach((e, i) => {
+    if (e.offMap || !bounds.contains([e.lat, e.lon])) return;
+    const k = e.lat.toFixed(4) + "," + e.lon.toFixed(4);
+    (groups[k] = groups[k] || []).push(i);
+  });
+  const shown = Object.values(groups).map(ids => ({ ids, e: restos.list[ids[0]] }))
+    .sort((a, b2) => c.distanceTo([a.e.lat, a.e.lon]) - c.distanceTo([b2.e.lat, b2.e.lon])).slice(0, z >= 15 ? 150 : 250);
+  // Noms : seulement ceux qui ne se chevauchent pas (les plus proches du centre d'abord)
+  const boxes = [];
+  shown.forEach(g => {
+    if (z < 16) return;
+    const name = restoName(g.e), pt = home.map.latLngToContainerPoint([g.e.lat, g.e.lon]);
+    const w = Math.min(22, name.length) * 6.4 + (g.ids.length > 1 ? 22 : 0) + 30, box = [pt.x - 12, pt.y - 10, pt.x + w, pt.y + 10];
+    g.label = !boxes.some(o => box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]);
+    if (g.label) boxes.push(box);
+  });
+  const key = I18N.lang + ":" + z + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
+  if (key === restos.key) return;   // mêmes restaurants : rien à refaire (pas de clignotement)
+  restos.key = key;
+  restos.layer.clearLayers();
+  shown.forEach(g => {
+    const name = restoName(g.e), more = g.ids.length - 1;
+    const label = (name.length > 22 ? name.slice(0, 21) + "…" : name) + (more ? ` +${more}` : "");
+    L.marker([g.e.lat, g.e.lon], { zIndexOffset: -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [24, 24], iconAnchor: [12, 12],
+      html: `<div class="resto-pin${more ? " many" : ""}"><b>🍴</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
+      .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i]; return `<div class="rp-row">
+          <span><b>${UI.esc(Places.dirName(e, I18N.lang))}</b>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}</span>
+          <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(t("restoTake"))}</button></div>`; }).join("")}</div>`,
+        { closeButton: false, offset: [0, -6], autoPanPaddingTopLeft: [12, 140], autoPanPaddingBottomRight: [70, 20] })
+      .addTo(restos.layer);
+  });
+}
+function pickResto(e) {
+  if (!e) return;
+  const p = Places.dirPlace(e, I18N.lang);
+  if (home.ac.from) home.ac.from.setPicked(p.label);
+  onPlacePicked("from", p, true);
+  renderHomeMap(true);
+  if (!state.pick.to) setTimeout(() => homeInput("to").focus({ preventScroll: true }), 60);
 }
 const divIcon = (html, size) => L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
 function renderHomeMap(refit) {
