@@ -9,7 +9,7 @@
 const DICT = {
 fr: {
   langSwitch: "עברית",
-  navIdeas: "Idées", navPrices: "Tarifs", navMine: "Mes courses", navOrder: "Commander",
+  navIdeas: "Idées", navPrices: "Tarifs", navMine: "Mes courses", navMe: "Profil", navOrder: "Commander",
   vbHome: "Accueil", infosTitle: "Tout savoir sur HOP!", infosSub: "Les prix pour toutes les distances, des idées, nos offres et vos questions.", ordTitle: "Ma commande",
   inQuote: "💰 Prix d'une course", inWhy: "✨ Pourquoi HOP!", inOffers: "🎁 Offres", inShops: "🏪 Commerçants", inFaq: "❓ Questions",
   xpTitle: "Et aussi", xpPrice: "Tarifs", xpPriceS: "Toutes les distances", xpWhy: "Pourquoi HOP!", xpWhyS: "Prix justes, en direct",
@@ -99,7 +99,7 @@ fr: {
   lgErrLocked: "Trop d'essais : réessayez dans 10 minutes.", lgErrWeak: "Mot de passe trop court : 6 caractères au moins.", lgErrPhone: "Numéro de téléphone invalide.",
   lgErrEmail: "E-mail invalide (ou laissez vide).", lgErrName: "Indiquez votre nom.", lgErrNet: "Pas de connexion, réessayez.", lgDemo: "Les comptes marchent sur l'appli en ligne.",
   lgDoneTitle: "👤 Gardez vos courses sur tous vos téléphones", lgDoneSub: "Choisissez juste un mot de passe : votre compte est créé avec ce nom et ce numéro.", lgDoneOk: "✅ Compte créé : vous êtes connecté.",
-  accDelete: "Supprimer", aeStreetHint: "Pour changer de rue : supprimez cette adresse, puis enregistrez la nouvelle (⭐) pendant la commande.", hello: "👤 {name}",
+  accDelete: "Supprimer", aeStreetHint: "Pour changer de rue : supprimez cette adresse, puis enregistrez la nouvelle (⭐) pendant la commande.", hello: "{name}",
   doneAccount: "✅ Votre compte est créé : la prochaine fois, vos coordonnées et vos adresses seront déjà enregistrées. Touchez-les pour commander en quelques secondes.",
   msg_door: "Bonjour {name}, votre colis (course n° {ref}) a été déposé devant votre porte 🚪 Voici la photo :",
   placeKind: "Lieu", place_poste: "Bureau de poste (Doar)", place_superpharm: "Super-Pharm", place_relais: "Point relais", place_locker: "Casier / locker (avec un code)", place_autre: "Autre magasin",
@@ -500,7 +500,7 @@ fr: {
 
 he: {
   langSwitch: "Français",
-  navIdeas: "רעיונות", navPrices: "מחירים", navMine: "המשלוחים שלי", navOrder: "להזמנה",
+  navIdeas: "רעיונות", navPrices: "מחירים", navMine: "המשלוחים שלי", navMe: "פרופיל", navOrder: "להזמנה",
   vbHome: "בית", infosTitle: "כל מה שצריך לדעת על HOP!", infosSub: "מחירים לכל מרחק, רעיונות, מבצעים ושאלות.", ordTitle: "ההזמנה שלי",
   inQuote: "💰 מחיר משלוח", inWhy: "✨ למה HOP!", inOffers: "🎁 מבצעים", inShops: "🏪 לעסקים", inFaq: "❓ שאלות",
   xpTitle: "ועוד", xpPrice: "מחירים", xpPriceS: "לכל מרחק", xpWhy: "למה HOP!", xpWhyS: "מחיר הוגן, בזמן אמת",
@@ -590,7 +590,7 @@ he: {
   lgErrLocked: "יותר מדי ניסיונות: נסו שוב בעוד 10 דקות.", lgErrWeak: "הסיסמה קצרה מדי: 6 תווים לפחות.", lgErrPhone: "מספר טלפון לא תקין.",
   lgErrEmail: "אימייל לא תקין (או השאירו ריק).", lgErrName: "כתבו את השם שלכם.", lgErrNet: "אין חיבור, נסו שוב.", lgDemo: "החשבונות עובדים באפליקציה המקוונת.",
   lgDoneTitle: "👤 שמרו את המשלוחים בכל הטלפונים", lgDoneSub: "רק בחרו סיסמה: החשבון נפתח עם השם והמספר האלה.", lgDoneOk: "✅ החשבון נפתח: אתם מחוברים.",
-  accDelete: "מחיקה", aeStreetHint: "כדי לשנות רחוב: מחקו את הכתובת ושמרו את החדשה (⭐) בזמן ההזמנה.", hello: "👤 {name}",
+  accDelete: "מחיקה", aeStreetHint: "כדי לשנות רחוב: מחקו את הכתובת ושמרו את החדשה (⭐) בזמן ההזמנה.", hello: "{name}",
   doneAccount: "✅ החשבון שלכם נוצר: בפעם הבאה הפרטים והכתובות כבר יהיו שמורים. לחיצה אחת ומזמינים תוך שניות.",
   msg_door: "שלום {name}, החבילה (משלוח מס' {ref}) הושארה ליד הדלת 🚪 הנה התמונה:",
   placeKind: "מקום", place_poste: "סניף דואר", place_superpharm: "סופר-פארם", place_relais: "נקודת איסוף", place_locker: "לוקר (עם קוד)", place_autre: "חנות אחרת",
