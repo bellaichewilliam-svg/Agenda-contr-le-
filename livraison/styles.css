@@ -1460,3 +1460,40 @@ body.in-home .eta-bubble { display: none; }
 .lg-msg.err { color: var(--red-ink, #B42318); font-weight: 600; }
 .lg-quick { display: flex; gap: 8px; flex-wrap: wrap; }
 .lg-quick input { flex: 1 1 160px; min-width: 0; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 12px; font: inherit; background: var(--panel); color: var(--ink); }
+
+/* --- Écrans : accueil épuré ; commande, mes courses et « tout savoir » à part ------------------ */
+body[data-view="home"] > section:not(#accueil),
+body[data-view="order"] > section:not(#commander),
+body[data-view="mine"] > section:not(#mes-courses),
+body[data-view="infos"] > #accueil, body[data-view="infos"] > #commander, body[data-view="infos"] > #mes-courses,
+body[data-view]:not([data-view="infos"]) > footer { display: none; }
+/* Sur l'accueil : plus de pavé de prix ni de liste d'arguments (ils sont dans « Tout savoir ») */
+body[data-view="home"] .ch-fair, body[data-view="home"] .ch-perks { display: none; }
+.view-bar { position: sticky; top: 60px; z-index: 25; background: var(--panel); border-bottom: 1px solid var(--border); }
+.view-bar .wrap { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.view-bar b { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vb-back { display: inline-flex; align-items: center; gap: 4px; padding: 7px 14px 7px 10px; border-radius: 999px; background: var(--bg); font-weight: 700; color: var(--ink); text-decoration: none; flex: none; }
+.vb-back:hover { background: var(--bg-2); }
+body[data-view="home"] .view-bar, body:not([data-view]) .view-bar { display: none; }
+/* Tuiles « Et aussi » : colorées, en deux colonnes */
+.ch-explore { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.xp { position: relative; overflow: hidden; display: grid; gap: 2px; padding: 14px 14px 12px; border-radius: 18px; text-decoration: none; color: #fff; min-height: 96px; align-content: end; transition: transform .15s ease; }
+.xp:active { transform: scale(.97); }
+.xp i { position: absolute; top: 8px; inset-inline-end: 10px; font-style: normal; font-size: 34px; filter: drop-shadow(0 4px 6px rgba(0,0,0,.18)); transform: rotate(-8deg); }
+.xp b { font-family: "Fredoka", "Rubik", sans-serif; font-size: 18px; line-height: 1.1; }
+.xp small { font-size: 12px; opacity: .9; }
+.xp-price { background: linear-gradient(135deg, #FF7A1A, #FF4D6D); }
+.xp-why { background: linear-gradient(135deg, #7C5CFF, #3A86FF); }
+.xp-shop { background: linear-gradient(135deg, #12B886, #0CA678 60%, #087F5B); }
+.xp-rider { background: linear-gradient(135deg, #0F1F3D, #2B4C8C); }
+/* En-tête de « Tout savoir » */
+.info-head { background: linear-gradient(160deg, var(--navy), #24407A); color: #fff; padding: 26px 0 18px; }
+.info-head h1 { font-family: "Fredoka", "Rubik", sans-serif; font-size: 28px; margin: 0 0 4px; }
+.info-head .sub { color: rgba(255,255,255,.8); margin: 0 0 14px; }
+.info-nav { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 2px 16px; }
+.info-nav a { flex: none; padding: 8px 14px; border-radius: 999px; background: rgba(255,255,255,.12); color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.info-nav a:hover { background: rgba(255,255,255,.22); }
+body[data-view="infos"] > section { scroll-margin-top: 112px; }
+/* Ordinateur : le panneau défile au lieu d'écraser ses rangées, la carte remplit l'écran */
+.ch-sheet > * { flex-shrink: 0; }
+@media (min-width: 861px) { body[data-view="home"] .ch { height: calc(100vh - 60px); max-height: none; } }

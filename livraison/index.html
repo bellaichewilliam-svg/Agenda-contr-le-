@@ -67,7 +67,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610221031" />
+  <link rel="stylesheet" href="styles.css?v=202610221531" />
 </head>
 <body>
 
@@ -85,6 +85,9 @@
 </header>
 
 <div id="availBanner" class="mode-banner closed-banner hidden"><div class="wrap" id="availText"></div></div>
+
+<!-- Hors de l'accueil : un bouton pour revenir (le bouton retour du téléphone marche aussi) -->
+<div class="view-bar" id="viewBar"><div class="wrap"><a class="vb-back" href="#accueil">‹ <span data-i18n="vbHome"></span></a><b id="viewTitle"></b></div></div>
 
 <!-- ============ ACCUEIL ============ -->
 <!-- ============ ACCUEIL FAÇON APPLI : carte + « Où on livre ? » ============ -->
@@ -124,6 +127,13 @@
     <h3 class="ch-h" data-i18n="ensTitle"></h3>
     <div class="ch-chips ch-ens" id="homeEns"></div>
     <div id="homeRepeat"></div>
+    <h3 class="ch-h" data-i18n="xpTitle"></h3>
+    <div class="ch-explore">
+      <a class="xp xp-price" href="#tarifs"><i>💰</i><b data-i18n="xpPrice"></b><small data-i18n="xpPriceS"></small></a>
+      <a class="xp xp-why" href="#pourquoi"><i>✨</i><b data-i18n="xpWhy"></b><small data-i18n="xpWhyS"></small></a>
+      <a class="xp xp-shop" href="#commercants"><i>🏪</i><b data-i18n="xpShop"></b><small data-i18n="xpShopS"></small></a>
+      <a class="xp xp-rider" href="coursier.html"><i>🛵</i><b data-i18n="xpRider"></b><small data-i18n="xpRiderS"></small></a>
+    </div>
     <div class="ch-fair"><b>🧾 <span data-i18n="fairTitle"></span></b><span id="homeFair"></span><span id="homeFairShop"></span><small data-i18n="fairZero"></small><small class="ch-fair-wait" data-i18n="fairWait"></small></div>
     <ul class="ch-perks"><li data-i18n="perkFair"></li><li data-i18n="perkCash"></li><li data-i18n="perkLive"></li><li data-i18n="perkExpress"></li><li data-i18n="perkAll"></li></ul>
     <p class="ch-err hidden" id="homeErr"></p>
@@ -131,6 +141,18 @@
       <div class="ch-go-price"><small id="homeGoSub"></small><b id="homeGoPrice"></b></div>
       <button type="button" class="btn btn-primary btn-lg" id="homeGo"></button>
     </div>
+  </div>
+</section>
+
+<!-- ============ TOUT SAVOIR (tarifs, autres distances, idées, offres, FAQ) : écran à part ============ -->
+<section class="info-head" id="infos">
+  <div class="wrap">
+    <h1 data-i18n="infosTitle"></h1>
+    <p class="sub" data-i18n="infosSub"></p>
+    <nav class="info-nav">
+      <a href="#prix-rapide" data-i18n="inQuote"></a><a href="#tarifs" data-i18n="navPrices"></a><a href="#idees" data-i18n="navIdeas"></a>
+      <a href="#pourquoi" data-i18n="inWhy"></a><a href="#offres" data-i18n="inOffers"></a><a href="#commercants" data-i18n="inShops"></a><a href="#faq" data-i18n="inFaq"></a>
+    </nav>
   </div>
 </section>
 
@@ -631,14 +653,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610221031"></script>
-<script src="i18n.js?v=202610221031"></script>
-<script src="pricing.js?v=202610221031"></script>
-<script src="store.js?v=202610221031"></script>
-<script src="chat.js?v=202610221031"></script>
-<script src="common.js?v=202610221031"></script>
-<script src="enseignes.js?v=202610221031"></script>
-<script src="places.js?v=202610221031"></script>
-<script src="client.js?v=202610221031"></script>
+<script src="config.js?v=202610221531"></script>
+<script src="i18n.js?v=202610221531"></script>
+<script src="pricing.js?v=202610221531"></script>
+<script src="store.js?v=202610221531"></script>
+<script src="chat.js?v=202610221531"></script>
+<script src="common.js?v=202610221531"></script>
+<script src="enseignes.js?v=202610221531"></script>
+<script src="places.js?v=202610221531"></script>
+<script src="client.js?v=202610221531"></script>
 </body>
 </html>
