@@ -1698,7 +1698,9 @@ function updateRiderMap() {
     add(o.dropoff_lat, o.dropoff_lon, rbubble("🏁", "drop", "Livraison", toDrop), `Livraison · n° ${UI.esc(o.ref)}`);
     if (o.pickup_lat != null && o.dropoff_lat != null) L.polyline([[o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon]], { color: "#FF6A13", weight: 4, dashArray: "8 8" }).addTo(rmap.layer);
   });
-  if (lastPos) add(lastPos.lat, lastPos.lon, rpin("🛵", duty.watch != null ? "me" : "off"), "Vous êtes ici");
+  // Moi sur la carte : le même petit logo que côté client (« ! » orange qui clignote en service, gris hors service)
+  if (lastPos) add(lastPos.lat, lastPos.lon, L.divIcon({ className: "", iconSize: [30, 30], iconAnchor: [15, 15],
+    html: `<div class="ch-scoot${duty.watch != null ? "" : " busy"}"><b>!</b></div>` }), "Vous êtes ici");
   rmap.pts = pts;
   // Nouvelle course acceptée : on recadre sur ses 2 points et le trajet
   const curId = (mine()[0] || {}).id || null;

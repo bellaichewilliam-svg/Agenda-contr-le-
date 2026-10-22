@@ -2079,7 +2079,7 @@ async function loadNearby() {
     while (home.scoots.length > pts.length) home.map.removeLayer(home.scoots.pop().m);
     pts.forEach((p, i) => {
       // Rond blanc, « ! » orange de HOP! qui clignote (gris et fixe si le livreur est déjà en course)
-      const icon = () => divIcon(`<div class="ch-scoot${p.free ? "" : " busy"}"><b>!</b></div>`, 34);
+      const icon = () => divIcon(`<div class="ch-scoot${p.free ? "" : " busy"}"><b>!</b></div>`, 30);
       const s = home.scoots[i];
       if (!s) {
         home.scoots.push({ m: L.marker([p.lat, p.lon], { icon: icon(), interactive: false }).addTo(home.map), cur: p, free: p.free });
