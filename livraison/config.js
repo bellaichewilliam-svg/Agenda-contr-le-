@@ -105,7 +105,7 @@ window.CONFIG = {
     // Course prête : prix fixe. Si le livreur attend sur place (commande pas prête) ou fait les achats :
     // minutes offertes, puis un supplément par tranche commencée, plafonné ; versé en entier au livreur.
     // (En ligne : wait_free_min, wait_step_min, wait_step_price, wait_max dans la table settings.)
-    waiting: { freeMinutes: 10, stepMinutes: 10, stepPrice: 5, max: 60 },
+    waiting: { freeMinutes: 5, stepMinutes: 1, stepPrice: 1, max: 60 },
     // Pas encore de voiture : l'option « Gros colis » est cachée. Mettez true pour l'ouvrir
     // (les prix voiture ci-dessous sont déjà prêts).
     carAvailable: false,

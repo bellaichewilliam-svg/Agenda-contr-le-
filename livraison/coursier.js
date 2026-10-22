@@ -198,7 +198,9 @@ const holdMs = () => (Number(settings && settings.decline_hold_min) || 5) * 6000
 const declinedRecently = id => declinedAt.has(id) && Date.now() - declinedAt.get(id) < holdMs();
 const markDeclined = id => { declinedAt.set(id, Date.now()); backAgain.delete(id); };
 const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id && !declinedRecently(o.id)).sort(byTime);
-const mine = () => orders.filter(o => o.courier_id === me.id && ["confirmee", "recuperee"].includes(o.status)).sort(byTime);
+// (avec un abandon du client dont la moitié de la course reste à encaisser)
+const mine = () => orders.filter(o => o.courier_id === me.id && (["confirmee", "recuperee"].includes(o.status)
+  || (o.status === "annulee" && o.wait_status === "a_payer"))).sort(byTime);
 
 // Un seul lecteur audio, débloqué au premier geste (les téléphones l'exigent)
 let audioCtx = null;
@@ -236,7 +238,27 @@ function phoneLine(o) {
 
 // Paiement direct : le client paie le livreur (Bit ou PayBox sur son numéro), le commerce Pro lui paie sa part
 const shopPart = o => Math.max(0, Number(o.shop_share || 0) - Number(o.hop_share || 0));
+// Espèces : ce que le client paie au livreur, et ce que le livreur doit avoir sur lui (articles + monnaie)
+const cashTotal = o => Number(o.price) + Number(o.cash_goods || 0);
+function cashNeedLine(o) {
+  if (o.payment_method !== "cash" || !(Number(o.cash_need) > 0)) return "";
+  const goods = Number(o.cash_goods || 0), change = Number(o.cash_change || 0);
+  return `<div class="cash-need">💵 Il vous faut <b>${UI.money(o.cash_need)}</b> en espèces sur vous : ${[goods ? `${UI.money(goods)} pour payer ${UI.esc(o.shop_name || "le commerce")}` : "", change ? `${UI.money(change)} de monnaie à rendre` : ""].filter(Boolean).join(" + ")}</div>`;
+}
+async function cashOk(o) {
+  if (!o || o.payment_method !== "cash" || !(Number(o.cash_need) > 0)) return true;
+  if (!confirm(`💵 Course en espèces : avez-vous bien ${UI.money(o.cash_need)} en espèces SUR VOUS, maintenant ?\n\nSi vous arrivez sans les espèces : la course repart à un autre livreur, ${UI.money(settings.cash_penalty || 10)} retenus sur votre crédit et ${settings.cash_ban_days || 7} jours sans courses en espèces.`)) return false;
+  const r = await Store.courierCashOk(o.id).catch(e => (/cash_banned/.test(e.message) ? "ban" : false));
+  if (r === "ban") { alert("🔒 Pas de course avec espèces pour l'instant : vous n'aviez pas les espèces la dernière fois."); return false; }
+  return !!r;
+}
 function payLine(o) {
+  if (o.payment_method === "cash") {
+    const goods = Number(o.cash_goods || 0), note = Number(o.cash_note || 0);
+    return `💵 <b>Espèces</b> : le ${o.payer === "destinataire" ? "destinataire" : "client"} vous paie <b>${UI.money(cashTotal(o))}</b> à la livraison`
+      + (goods ? ` (articles ${UI.money(goods)} que vous payez au commerce + course ${UI.money(o.price)})` : "")
+      + (note ? ` · il paie avec <b>${UI.money(note)}</b> : rendez-lui <b>${UI.money(note - cashTotal(o))}</b>` : " · il prépare l'appoint");
+  }
   if (o.paid_to === "hop") return o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
     : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant";
   if (!o.direct_pay) return `💵 Espèces : vous encaissez ${UI.money(o.price)} auprès du client`;
@@ -356,7 +378,7 @@ function card(o, kind) {
   if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
     + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
     + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
-  if (o.eta_status === "attente" && new Date(o.eta_until) > Date.now()) {
+  if (o.eta_status === "attente" && o.status === "confirmee" && new Date(o.eta_until) > Date.now()) {
     const s = Math.max(0, Math.round((new Date(o.eta_until) - Date.now()) / 1000));
     extra += `<div class="bag-line">⏳ Vous avez annoncé ${o.eta_min} min : le client a encore <b>${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}</b> pour refuser ce temps. Partez quand même au départ.</div>`;
   }
@@ -373,15 +395,18 @@ function card(o, kind) {
   const mineShop = !!o.referrer_id && o.referrer_id === me.id;
   const total = Store.courseValue(o);
   const net = total - (kind === "pool" ? Store.commissionFor(total, settings, mineShop) : Number(o.commission || 0));
-  if (kind === "pool") extra = readyBanner(o) + extra;
+  if (kind === "pool") extra = readyBanner(o) + cashNeedLine(o) + `<div class="small">${payLine(o)}</div>` + extra;
   if (o.shop_status) extra += proLine(o);
   if (o.phone_order) extra += phoneLine(o);
   if (o.adult_items) extra += `<div class="small adult-line">🔞 ${/tabac/.test(o.adult_items) ? "Tabac" : ""}${/tabac/.test(o.adult_items) && /alcool/.test(o.adult_items) ? " et " : ""}${/alcool/.test(o.adult_items) ? "alcool" : ""} : vérifiez la pièce d'identité du client (18 ans et plus) avant de donner.</div>`;
   if (o.shop_ref && kind !== "mine") extra += `<div class="bag-line">🛍️ Sac n° <b>${UI.esc(o.shop_ref)}</b> : demandez ce numéro${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}${Number(o.bags_count) ? ` · <b>${o.bags_count}</b> sac(s)` : ""}</div>`;
   if (o.rules_accepted_at) extra += `<div class="small muted">📋 Le client a accepté les conditions : max 40 × 40 × 35 cm, 15 kg, 500 ₪, rien de dangereux ni d'illégal. Colis non conforme ? Vous pouvez refuser : « ⚠️ Un souci ».</div>`;
   if (Number(o.discount) > 0) extra += `<div class="small">🎁 Code promo du client : ${UI.money(o.discount)}, payé par HOP (pas par vous)</div>`;
+  if (kind === "mine" && o.payment_method === "cash") {
+    extra += `<div class="small pay-direct">${payLine(o)}${o.payment_status === "paye" ? " · ✅ encaissé" : ""}</div>`;
+  }
   const hopPaid = o.paid_to === "hop";
-  if (kind === "mine" && o.direct_pay && !hopPaid) extra += `<div class="small pay-direct${o.client_paid_at && o.payment_status !== "paye" ? " pay-claimed" : ""}">${payLine(o)}${o.payment_status === "paye" ? " · ✅ reçu"
+  if (kind === "mine" && o.direct_pay && !hopPaid && o.payment_method !== "cash") extra += `<div class="small pay-direct${o.client_paid_at && o.payment_status !== "paye" ? " pay-claimed" : ""}">${payLine(o)}${o.payment_status === "paye" ? " · ✅ reçu"
     : o.client_paid_at ? `<br><b>📲 Le client dit avoir payé : vérifiez votre Bit / PayBox, puis touchez « 💳 Paiement reçu ».</b>`
     : ` · à recevoir <b>avant de récupérer la commande</b>`}</div>`;
 
@@ -393,15 +418,24 @@ function card(o, kind) {
   } else {
     // Au départ : « Je suis arrivé » lance le compteur d'attente (payée au-delà des minutes offertes)
     const w = Store.waitFee(o, settings);
-    actions = (o.status === "confirmee"
+    if (o.status === "annulee") actions = `<p class="wait-live">💳 Le client vous doit <b>${UI.money(o.wait_due)}</b> (moitié de la course, vous vous êtes déplacé) par Bit / PayBox</p>
+      <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`;
+    else actions = (o.status === "confirmee"
         ? (o.arrived_at
-            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : ` · ${Math.max(0, Number(settings.wait_free_min) - w.mins)} min encore offertes`}</p>`
+            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Number(settings.wait_free_min) - w.mins)} min encore offertes`}</p>${waitAnn(o)}`
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
           + `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
-        : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
+        : o.wait_status === "a_payer"
+          ? `<p class="wait-live">⏱️ Supplément d'attente : <b>${UI.money(o.wait_due)}</b> à encaisser par Bit / PayBox avant de livrer (la course est déjà payée)</p>
+             <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Supplément reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`
+          : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
       + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
-      + (hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm${o.direct_pay ? " btn-primary" : ""}" data-act="paye">${o.direct_pay ? "💳 Paiement reçu" : "💵 Encaissé"}</button>` : `<span class="pill paid">✓ ${o.direct_pay ? "payé" : "encaissé"}</span>`)
+      + (o.payment_method === "cash" && o.status === "confirmee" && Number(o.cash_need) > 0 && !o.cash_shop_at ? `<button class="btn btn-sm" data-act="pas_especes">😕 Je n'ai pas les espèces</button>` : "")
+      + (o.payment_method === "cash" ? (o.status === "recuperee" && o.payment_status !== "paye"
+          ? `<button class="btn btn-sm btn-primary" data-act="paye">💵 Espèces encaissées (${UI.money(cashTotal(o))})</button><button class="btn btn-sm" data-act="cash_impaye">❌ Le client ne paie pas</button>`
+          : o.payment_status === "paye" ? `<span class="pill paid">✓ encaissé</span>` : "")
+        : hopPaid ? "" : o.payment_status !== "paye" ? `<button class="btn btn-sm${o.direct_pay ? " btn-primary" : ""}" data-act="paye">${o.direct_pay ? "💳 Paiement reçu" : "💵 Encaissé"}</button>` : `<span class="pill paid">✓ ${o.direct_pay ? "payé" : "encaissé"}</span>`)
       + (o.direct_pay && !hopPaid && o.client_paid_at && o.payment_status !== "paye" ? `<button class="btn btn-sm" data-paymissing="${UI.esc(o.id)}">❌ Pas reçu</button>` : "")
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
       + (o.leave_at_door && o.status === "recuperee" ? `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}" data-photo="1">📷 Photo du dépôt</button>` : "")
@@ -477,6 +511,17 @@ function readyBanner(o, etaToPickup) {
     : `Vous êtes à ${etaToPickup} min : partez dans ${r.left - etaToPickup} min, pas avant`;
   return `<div class="ready-banner ${r.ok ? "ok" : "wait"}">${r.text}${tip ? `<small>${tip}</small>` : ""}</div>`;
 }
+// Espèces, dans le bloc du point en cours : payer le commerce au départ, encaisser le client à l'arrivée
+function cashStop(o, which, now) {
+  if (o.payment_method !== "cash" || !now) return "";
+  if (which === "pickup" && Number(o.cash_goods) > 0) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu vos <b>${UI.money(o.cash_goods)}</b></div>`
+    : `<div class="cash-stop">💵 Payez <b>${UI.money(o.cash_goods)}</b> en espèces au commerce<small>il touche « Espèces reçues », puis vous récupérez la commande</small></div>`;
+  if (which === "dropoff" && o.payment_status !== "paye") {
+    const note = Number(o.cash_note || 0), tot = cashTotal(o);
+    return `<div class="cash-stop">💵 Encaissez <b>${UI.money(tot)}</b> en espèces<small>${note ? `il paie avec ${UI.money(note)} : rendez <b>${UI.money(note - tot)}</b>` : "il a préparé l'appoint"}</small></div>`;
+  }
+  return "";
+}
 // Le n° à montrer au commerce (sac HOP! Pro ou commande par téléphone) et les sacs à prendre, en très gros
 function showRef(o) {
   const n = o.shop_ref || o.phone_ref, bags = Number(o.bags_count) || 0;
@@ -502,7 +547,23 @@ document.addEventListener("click", e => {
   const o = mine().find(x => x.id === b.dataset.showref);
   if (o) refFull(o);
 });
+// Attente au départ : le livreur l'annonce tout de suite, le client accepte (ou laisse tomber)
+function waitAnn(o) {
+  const pro = !!o.shop_status;
+  const chips = (list, plus) => `<div class="wait-chips">${list.map(m => `<button type="button" class="ch-chip" data-wait-ann="${UI.esc(o.id)}" data-min="${m}">${plus ? "+" : ""}${m} min</button>`).join("")}</div>`;
+  if (!o.wait_ann_status) return `<div class="wait-ann"><b>${pro ? "⏳ Pas prête ? Prévenez le client du retard" : "⏳ On vous annonce une attente ? Dites-le tout de suite au client"}</b>${chips([5, 10, 15, 20, 30])}
+    ${pro ? "" : `<small>Sans annonce, l'attente n'est pas payée.</small>`}</div>`;
+  const left = Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000));
+  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings));
+  const st = o.wait_ann_status === "info" ? `ℹ️ Client prévenu : environ <b>${o.wait_ann_min} min</b> de retard (l'attente est payée par le commerce)`
+    : o.wait_ann_status === "attente" && left > 0 ? `⏳ Annoncé au client : <b>${o.wait_ann_min} min</b> (+${fee} max) · sa réponse… <b>${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}</b>`
+    : `✅ ${o.wait_ann_status === "ok" ? "Le client accepte" : "Accepté d'office (pas de réponse)"} : jusqu'à <b>${o.wait_ann_cap} min</b> sur place, <b>+${fee}</b> max`;
+  return `<div class="wait-ann ${o.wait_ann_status === "attente" && left > 0 ? "pending" : "ok"}">${st}<small>Encore de l'attente ?</small>${chips([5, 10], true)}</div>`;
+}
 function mineStep(o, hopPaid) {
+  if (o.status === "annulee") return `❌ Le client a laissé tomber (attente) : la moitié de la course vous est due`;
+  if (o.payment_method === "cash") return o.status === "recuperee" ? `3️⃣ Livrez et encaissez ${UI.money(cashTotal(o))} en espèces`
+    : Number(o.cash_goods) > 0 && !o.cash_shop_at ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
   if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${UI.money(o.price)} (Bit / PayBox), puis allez au départ`;
   return o.arrived_at ? "2️⃣ Récupérez la commande" : "2️⃣ Allez au départ";
@@ -516,7 +577,7 @@ function mineCard(o, x) {
     return `<section class="stop-block${now ? " now" : " done"}">
       <div class="stop-tag">${label}${which === "pickup" ? readyChip(o) : ""}</div>
       <div class="stop-addr">${UI.brand(o[pre + "_place"])}<bdi>${UI.esc(o[pre + "_address"])}</bdi>, ${UI.esc(UI.cityFr(city))}</div>
-      ${which === "pickup" && !to ? showRef(o) : ""}
+      ${which === "pickup" && !to ? showRef(o) : ""}${cashStop(o, which, now)}
       ${UI.addrDetails(o, pre)}${UI.addrNote(o[pre + "_note"])}${which === "dropoff" ? UI.doorTag(o) : ""}
       ${callBig(name, phone)}
       ${now ? navBtn(o, which) : ""}
@@ -705,6 +766,7 @@ async function onViewClick(e) {
   }
   if (el.dataset.accept) {
     const po = pool().find(x => x.id === el.dataset.accept);
+    if (!(await cashOk(po))) return;
     const eta = prompt("🛵 Dans combien de minutes êtes-vous au départ ? (le client peut refuser si c'est trop long)", String(po ? etaGuess(po) : 15));
     if (eta === null) return;
     el.disabled = true;
@@ -715,6 +777,15 @@ async function onViewClick(e) {
       openPage("mine");
       if (duty.watch == null && confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?")) toggleDuty();
     }
+    return load();
+  }
+  if (el.dataset.waitAnn) {
+    const o = orders.find(x => x.id === el.dataset.waitAnn);
+    if (!o || !confirm(o.shop_status ? `Prévenir le client : environ ${el.dataset.min} min de retard ?`
+      : `Annoncer ${o.wait_ann_status ? "encore " : ""}${el.dataset.min} min d'attente au client ? Il accepte ou laisse tomber (3 min pour répondre, sinon c'est accepté).`)) return;
+    el.disabled = true;
+    const r = await Store.courierWaitAnnounce(o.id, Number(el.dataset.min)).catch(() => null);
+    if (!r || !r.ok) alert("Annonce impossible, actualisez la page.");
     return load();
   }
   if (el.dataset.act) {
@@ -736,13 +807,17 @@ async function onViewClick(e) {
     }
     // « Livré » : seulement sur place, à l'adresse de livraison (vérifié aussi par la base)
     if (el.dataset.act === "livree" && o.direct_pay && o.paid_to !== "hop" && o.payment_status !== "paye" && !o.unlocked && !freeNow()) {
-      if (!confirm(`💳 Avez-vous bien reçu ${UI.money(o.price)} par Bit ou PayBox${shopPart(o) ? ` (et ${UI.money(shopPart(o))} du commerce)` : ""} ?`)) {
+      if (o.payment_method === "cash" ? !confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`) : !confirm(`💳 Avez-vous bien reçu ${UI.money(o.price)} par Bit ou PayBox${shopPart(o) ? ` (et ${UI.money(shopPart(o))} du commerce)` : ""} ?`)) {
         return alert("Le client doit vous payer avant « Livré » : montrez-lui votre numéro Bit / PayBox, ou écrivez à HOP en cas de souci.");
       }
       const okPay = await Store.courierAction(id, "paye").catch(() => false);
       if (!okPay) return alert("Paiement non enregistré, réessayez.");
       o.payment_status = "paye";
     }
+    if (el.dataset.act === "pas_especes" && !confirm(`😕 Vous n'avez pas les espèces ? La course repart tout de suite à un autre livreur, ${UI.money(settings.cash_penalty || 10)} sont retenus sur votre crédit et vous n'aurez plus de course en espèces pendant ${settings.cash_ban_days || 7} jours.`)) return;
+    if (el.dataset.act === "cash_impaye" && !confirm(`❌ Le client ne vous paie pas ${UI.money(cashTotal(o))} en espèces ? Gardez la commande : HOP! est prévenu, le client est bloqué et le patron décide.`)) return;
+    if (el.dataset.act === "paye" && o.payment_method === "cash" && !confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`)) return;
+    if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`)) return;
     if (el.dataset.act === "livree") {
       el.disabled = true;
       el.textContent = "📍 Vérification de votre position…";
@@ -760,7 +835,9 @@ async function onViewClick(e) {
         }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /payment_required/.test(e.message) ? "pay" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /payment_required/.test(e.message) ? "pay" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /payment_required/.test(e.message) ? "pay" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /payment_required/.test(e.message) ? "pay" : false);
+    if (ok === "cash") { render(); return alert(`💵 ${o.shop_name || "Le commerce"} doit d'abord toucher « Espèces reçues » (vous lui payez ${UI.money(o.cash_goods)} en espèces).`); }
+    if (ok === "wait") { render(); return alert("⏱️ Touchez d'abord « Supplément reçu » (ou « Le client ne paie pas ») pour l'attente."); }
     if (ok === "pay") { render(); return alert(el.dataset.act === "recuperee"
       ? "💳 Le client doit vous payer avant que vous récupériez la commande. Attendez son paiement (Bit / PayBox), vérifiez-le, puis touchez « Paiement reçu »."
       : "💳 Touchez d'abord « Paiement reçu » une fois que le client vous a payé."); }
@@ -921,6 +998,8 @@ function acceptError(e) {
   if (/express_running/.test(e.message)) { alert("⚡ Vous avez une course express en cours : livrez-la d'abord, sans autre course."); return "shown"; }
   if (/busy/.test(e.message)) { const b = busyOrder(); alert(`🔒 Livrez d'abord votre course en cours${b ? " n° " + b.ref : ""} : validez « Livré » sur place${b && b.leave_at_door ? ", avec la photo devant la porte" : ""}. Un souci ? Écrivez à HOP.`); return "shown"; }
   if (/debt/.test(e.message)) { alert(`🔒 Vous devez ${UI.money(balance)} à HOP : réglez votre solde pour recevoir des courses.`); return "shown"; }
+  if (/cash_confirm/.test(e.message)) { alert("💵 Confirmez d'abord que vous avez les espèces sur vous."); return "shown"; }
+  if (/cash_banned/.test(e.message)) { alert("🔒 Pas de course avec espèces pour l'instant : vous n'aviez pas les espèces la dernière fois."); return "shown"; }
   if (/credit_low/.test(e.message)) { alert(`💳 Crédit HOP insuffisant (${UI.money(available())}) pour la commission de cette course : rechargez-le dans « Finances ».`); openPage("week"); return "shown"; }
   return false;
 }
@@ -1010,9 +1089,10 @@ function renderRef(view) {
       <ol class="ref-steps">
         <li><b>Proposez HOP!</b> à un restaurant, une boutique, une pharmacie… <b>de votre ville${me.city ? " (" + UI.esc(UI.cityFr(me.city)) + ")" : ""}</b>, surtout ceux qui n'ont pas de livreur. Un partenariat se fait seulement dans votre ville, pour que vous puissiez assurer leurs livraisons.</li>
         <li><b>Il s'inscrit avec votre lien</b> ou en scannant votre QR code (1 minute, gratuit).</li>
-        <li><b>Ses courses vous sont proposées ${Number(settings.priority_minutes)} min avant</b> les autres livreurs, et quand vous les faites, la commission n'est que de <b>${UI.esc(UI.networkText())}</b>.</li>
-        <li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses quand un autre livreur la fait, <b>tant que vous livrez avec nous</b>.</li>
-        <li><b>${CONFIG.pro.referrerPercent} % de son abonnement HOP! Pro</b> (${UI.money(CONFIG.pro.monthly * CONFIG.pro.referrerPercent / 100)} par mois) pendant ses ${CONFIG.pro.referrerMonths} premiers mois.</li>
+        <li><b>Ses courses vous sont proposées ${Number(settings.priority_minutes)} min avant</b> les autres livreurs${me.network_perks ? `, et quand vous les faites, la commission n'est que de <b>${UI.esc(UI.networkText())}</b>` : ""}.</li>
+        ${me.network_perks ? `<li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses quand un autre livreur la fait, <b>tant que vous livrez avec nous</b>.</li>
+        <li><b>${CONFIG.pro.referrerPercent} % de son abonnement HOP! Pro</b> (${UI.money(CONFIG.pro.monthly * CONFIG.pro.referrerPercent / 100)} par mois) pendant ses ${CONFIG.pro.referrerMonths} premiers mois.</li>`
+          : `<li>⭐ <b>Avantages réseau</b>, accordés par HOP aux livreurs les mieux notés : commission de ${UI.esc(UI.networkText())} seulement sur ses courses, ${UI.money(bonus)} quand un autre livreur la fait, et ${CONFIG.pro.referrerPercent} % de son abonnement HOP! Pro.</li>`}
       </ol>
       ${(refs.plans || []).length ? `<p class="small">⭐ Abonnements Pro : <b>${UI.money(sum(refs.plans, p => Number(p.share || 0)))}</b> gagnés au total, dont ${UI.money(sum(refs.plans.filter(p => p.status !== "regle"), p => Number(p.share || 0)))} pas encore versés.</p>` : ""}
       ${activityBox()}
@@ -1203,6 +1283,7 @@ function showNextOffer() {
     trip != null ? `🏁 Puis <b>${Math.max(1, Math.round(trip / (trip < 6 ? 25 : 50) * 60 + 2))} min</b> jusqu'au client` : "",
     `🕐 ${UI.esc(when)}`,
     payLine(o),
+    cashNeedLine(o),
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
     o.shop_status ? proLine(o) : "",
     o.phone_order ? phoneLine(o) : "",
@@ -1290,6 +1371,7 @@ async function acceptOffer(eta) {
   const id = offerShown;
   // Avant d'accepter : dans combien de temps au départ ?
   if (typeof eta !== "number") return askEta();
+  if (!(await cashOk(pool().find(x => x.id === id)))) return closeOffer();
   $("#etaPick").classList.add("hidden");
   $("#offerAccept").classList.remove("hidden");
   $("#offerAccept").disabled = true;
@@ -1355,7 +1437,7 @@ function renderHome() {
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-card" data-tab="zones"><span>Pas de course pour l'instant<small>Les heures de pointe : ${UI.esc(CONFIG.peakHours.fr)}</small></span><span class="go">›</span></button>`) : ""}
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-card hot" data-notif="1"><span>🔔 ${Notification.permission === "denied" ? "Notifications bloquées" : "Autorisez les notifications"}<small>${Notification.permission === "denied" ? "Chrome ⋮ → Paramètres → Notifications → autorisez HOP!, sinon pas de « En service » ni de courses appli fermée" : "Pour la notification « En service » et les nouvelles courses, même appli fermée"}</small></span><span class="go">›</span></button>` : ""}
-    ${!isOnline() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons</small></span><span class="go">›</span></button>` : ""}`;
+    ${!isOnline() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>${me.network_perks ? `+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons` : "Leurs courses vous sont proposées en premier"}</small></span><span class="go">›</span></button>` : ""}`;
   [...$("#sheetBody").querySelectorAll(".rd-card")].forEach((c, i) => c.classList.toggle("rd-more", i >= 2));
   $("#sheetBody").insertAdjacentHTML("beforeend", miniCurve());
   $("#dutyText").classList.toggle("rd-more", !/⚠️/.test($("#dutyText").textContent));
@@ -1721,7 +1803,9 @@ function renderHelp(view) {
     ["Pourquoi je ne peux pas valider « Livré » ?", `Il faut être à moins de ${deliverRadius()} m de l'adresse de livraison. Pour « déposer devant la porte », envoyez d'abord la photo du colis dans la conversation de la course.`],
     ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre crédit HOP ne couvre plus la commission d'une course. Le bandeau vous dit quoi faire : rechargez dans « Finances ». Un souci ? HOP peut vous débloquer.`],
     ["Le client est absent, l'adresse est introuvable…", "Touchez « ⚠️ Un souci » sur la course : HOP et le client sont prévenus tout de suite, et vous continuez dans la conversation."],
-    ["Comment gagner plus ?", `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier, vous ne payez que ${UI.networkText()} de commission dessus, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro pendant ${CONFIG.pro.referrerMonths} mois.`],
+    ["Comment gagner plus ?", me.network_perks
+      ? `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier, vous ne payez que ${UI.networkText()} de commission dessus, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro pendant ${CONFIG.pro.referrerMonths} mois.`
+      : `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier. Les livreurs les mieux notés peuvent recevoir de HOP les avantages réseau : ${UI.networkText()} de commission seulement sur ces courses, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro.`],
     ["Et les pourboires ?", "Après la livraison, le client peut laisser un pourboire : il le paie à HOP par Bit, et HOP vous le reverse en entier avec votre solde de la semaine."],
     ["Le GPS se coupe ?", "Gardez l'application ouverte pendant le service : les téléphones coupent la position quand la page est fermée."]
   ];

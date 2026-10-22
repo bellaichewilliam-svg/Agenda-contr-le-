@@ -254,9 +254,11 @@ function syncVisibility() {
   $("#carnetChoice").classList.toggle("hidden", !carnet);
   if (carnet) $("#carnetSmall").textContent = t("pay_carnet_d", { n: state.pro.credits });
   const carnetOn = carnet && val("payment_method") === "carnet";
-  // Plus d'espèces : Bit ou PayBox directement au livreur (ou carnet pro du commerce)
+  // Bit ou PayBox directement au livreur, espèces (montant exact, billet du client), ou carnet pro du commerce
   if (!carnet && val("payment_method") === "carnet") form.querySelector('input[name=payment_method][value=bit]').checked = true;
   $("#bitSmall").textContent = t("pay_bit_d", { phone: CONFIG.bitPhone });
+  $("#cashSmall").textContent = t("pay_cash_d2", { max: money(cashMax()) });
+  renderCash();
   $("#prepayNote").classList.add("hidden");
   document.querySelectorAll(".other-city").forEach(el => {
     el.classList.toggle("hidden", val(el.dataset.for + "_city") !== OTHER);
@@ -419,6 +421,31 @@ function confetti() {
   setTimeout(() => { box.innerHTML = ""; }, 3200);
 }
 
+// --- Espèces : le client paie tout au livreur (articles + livraison) ; il dit avec quel billet ---------
+const cashMax = () => Number((state.settings && state.settings.cash_max) || 200);
+const cashGoods = () => (proShopOn() && cartCount() ? cartTotal() : 0);
+function renderCash() {
+  const on = val("payment_method") === "cash";
+  $("#cashBox").classList.toggle("hidden", !on);
+  if (!on) return;
+  const q = currentQuote(), goods = cashGoods(), total = Number(q.total) + goods;
+  $("#cashTotal").textContent = t(goods ? "cashTotalGoods" : "cashTotal", { total: money(total), goods: money(goods), course: money(q.total) });
+  // (le billet choisi reste choisi ; s'il ne suffit plus, on le dit au moment d'envoyer)
+  const cur = Number(form.cash_note.value) || 0;
+  const notes = [0, 50, 100, 200].filter(n => n === 0 || n >= total || n === cur);
+  // Redessiné seulement si ça change (sinon un toucher pendant la sortie d'un champ serait perdu)
+  const chips = notes.map(n => `<button type="button" class="ch-chip${(Number(form.cash_note.value) || 0) === n ? " on" : ""}" data-cash-note="${n}">${n ? money(n) : UI.esc(t("cashExact"))}</button>`).join("");
+  if ($("#cashNotes").dataset.html !== chips) { $("#cashNotes").innerHTML = chips; $("#cashNotes").dataset.html = chips; }
+  const n = Number(form.cash_note.value) || 0;
+  $("#cashRule").textContent = (n && n < total ? t("errCashNote") + " " : n ? t("cashChange", { change: money(n - total) }) + " " : "") + t("cashRule", { max: money(cashMax()) });
+}
+$("#cashNotes").addEventListener("click", e => {
+  const b = e.target.closest("[data-cash-note]");
+  if (!b) return;
+  form.cash_note.value = b.dataset.cashNote;
+  renderCash();
+});
+
 function renderQuote() {
   renderShopBanner();
   const q = currentQuote();
@@ -440,10 +467,11 @@ function renderQuote() {
   if (!q.known) notes.push(t("qUnknown"));
   if (val("service") === "achat") notes.push(t("qPurchaseNote"));
   const st = state.settings;
-  if (st.wait_step_price != null) notes.push(t("qWait", { free: st.wait_free_min, step: st.wait_step_min, price: money(st.wait_step_price), max: money(st.wait_max) }));
+  if (st.wait_step_price != null) notes.push(t("qWait", { free: st.wait_free_min, step: Number(st.wait_step_min) === 1 ? t("stepMin1") : t("stepMinN", { n: st.wait_step_min }), price: money(st.wait_step_price), max: money(st.wait_max) }));
   const sched = val("urgency") === "programmee";
   notes.push(val("payment_method") === "carnet" ? t("payNoteCarnet")
-    : val("payment_method") === "bit" ? t(sched ? "payNoteBit" : "payNoteBitNow", { phone: CONFIG.bitPhone }) : t("payNoteCash"));
+    : val("payment_method") === "bit" ? t(sched ? "payNoteBit" : "payNoteBitNow", { phone: CONFIG.bitPhone }) : t("payNoteCash2"));
+  renderCash();
   $("#quoteNote").textContent = notes.join(" ");
   updateProgress();
   const err = scheduleError();
@@ -1108,6 +1136,7 @@ async function submit(e) {
       promo_code: disc ? (disc.key === "qLoyalty" ? "FIDELITE" : disc.vars.code) : null,
       discount: disc ? -disc.amount : 0,
       payment_method: val("payment_method"),
+      cash_note: val("payment_method") === "cash" ? Number(form.cash_note.value) || 0 : null,
       payer: val("payer"),
       notes: val("notes").trim() || null,
       // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
@@ -1185,6 +1214,10 @@ async function submit(e) {
   } catch (ex) {
     if (/welcome_used/.test(ex.message)) { state.welcomeUsed = true; refuseWelcome(); return; }
     if (/carnet_/.test(ex.message)) { if (state.pro) state.pro.credits = 0; syncVisibility(); return showError(t("errCarnet")); }
+    if (/cash_max/.test(ex.message)) return showError(t("errCashMax", { max: money(cashMax()) }));
+    if (/cash_first/.test(ex.message)) return showError(t("errCashFirst"));
+    if (/cash_note_small/.test(ex.message)) return showError(t("errCashNote"));
+    if (/client_blocked/.test(ex.message)) return showError(t("errBlocked"));
     if (/alcohol_hours/.test(ex.message)) return showError(t("errAlcoholHours"));
     if (/phone_name_required/.test(ex.message)) return showError(t("errPhoneName"));
     if (/phone_unpaid/.test(ex.message)) return showError(t("errPhonePaid"));

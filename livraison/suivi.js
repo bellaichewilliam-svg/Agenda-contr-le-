@@ -136,13 +136,43 @@ $("#etaAsk").addEventListener("click", async e => {
   if (r && no) alert(t("trEtaRefused"));
   load();
 });
-setInterval(() => { if (order) etaAsk(order); }, 1000);
+setInterval(() => { if (order) { etaAsk(order); waitAsk(order); } }, 1000);
+
+// Attente annoncée par le livreur au départ : le client accepte, ou laisse tomber (la moitié de la course reste due)
+let lastAnn = null;
+function waitAsk(o) {
+  const box = $("#waitAsk");
+  const st = o.wait_ann_status, open = o.status === "confirmee" && !!st && st !== "refus";
+  box.classList.toggle("hidden", !open);
+  if (!open) { box.innerHTML = ""; return; }
+  // Nouvelle annonce : le téléphone vibre
+  if (o.wait_ann_at && lastAnn && lastAnn !== o.wait_ann_at && navigator.vibrate) navigator.vibrate([300, 120, 300]);
+  lastAnn = o.wait_ann_at;
+  const left = Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000));
+  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings));
+  const html = st === "info" ? `<b>${UI.esc(t("waInfo", { min: o.wait_ann_min }))}</b>`
+    : st === "attente" && left > 0 ? `<b>${UI.esc(t("waAnnTitle", { min: o.wait_ann_min }))}</b>
+      <small>${UI.esc(t("waAnnFee", { fee, free: settings.wait_free_min, price: UI.money(settings.wait_step_price), left: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` }))}</small>
+      <div class="btns"><button type="button" class="btn btn-primary" data-wa-ok>${UI.esc(t("waOk"))}</button>
+        <button type="button" class="btn" data-wa-drop>${UI.esc(t("waDrop"))}</button></div>`
+    : `<b>${UI.esc(t("waAccepted", { fee, min: o.wait_ann_min }))}</b>`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+$("#waitAsk").addEventListener("click", async e => {
+  const ok = !!e.target.closest("[data-wa-ok]"), drop = !!e.target.closest("[data-wa-drop]");
+  if ((!ok && !drop) || !order) return;
+  if (drop && !confirm(t("waDropConfirm", { half: UI.money(Math.round(Number(order.price)) / 2) }))) return;
+  e.target.closest("button").disabled = true;
+  const r = await Store.clientWaitAnswer(token, ok).catch(() => null);
+  if (!r || !r.ok) alert(t("waTooLate"));
+  load();
+});
 
 function etaBox(o) {
   const live = o.courier_lat != null;
   const courier = live && { lat: o.courier_lat, lon: o.courier_lon };
   let main, sub = "";
-  if (o.status === "annulee") main = t("trCancelled");
+  if (o.status === "annulee") { main = Number(o.drop_fee) > 0 ? t("trDropped") : t("trCancelled"); if (Number(o.drop_fee) > 0) sub = t("trDroppedSub", { fee: UI.money(o.drop_fee) }); }
   else if (o.status === "refusee") { main = t("trRefused"); sub = o.admin_note ? t("trReason", { r: o.admin_note }) : ""; }
   else if (o.status === "livree") { main = t("deliveredYay"); sub = t("trThanks"); }
   else if (o.status === "nouvelle") {
@@ -156,7 +186,7 @@ function etaBox(o) {
     const st = settings, w = Store.waitFee(o, st);
     main = t("trArrived");
     sub = w.fee ? t("trWaitNow", { min: w.mins, fee: UI.money(w.fee) })
-      : t("trWaitLeft", { min: w.mins, left: Math.max(0, st.wait_free_min - w.mins), price: UI.money(st.wait_step_price), step: st.wait_step_min });
+      : t("trWaitLeft", { min: w.mins, left: Math.max(0, st.wait_free_min - w.mins), price: UI.money(st.wait_step_price), step: Number(st.wait_step_min) === 1 ? t("stepMin1") : t("stepMinN", { n: st.wait_step_min }) });
   } else if (o.status === "confirmee") {
     // Le plus long entre le GPS et le temps annoncé par le livreur (il peut finir une autre course)
     const said = o.eta_at ? Math.ceil((new Date(o.eta_at) - Date.now()) / 60000) : 0;
@@ -195,6 +225,8 @@ function render() {
   }
   etaBox(o);
   etaAsk(o);
+  waitAsk(o);
+  renderAdd();
   renderRing(o);
   renderRate(o);
   renderTip(o);
@@ -215,10 +247,12 @@ function render() {
     ${o.admin_note && o.status !== "refusee" ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
 
   const pay = $("#payBox");
-  pay.classList.toggle("hidden", o.status === "annulee" || o.status === "refusee");
+  const dropped = o.status === "annulee" && Number(o.drop_fee) > 0;
+  pay.classList.toggle("hidden", (o.status === "annulee" && !dropped) || o.status === "refusee");
   const bit = UI.bitFor(o);
   // Trompé de moyen de paiement : on change tant que rien n'est payé
-  const canSwitch = !o.direct_pay && o.payment_status !== "paye" && ["cash", "bit"].includes(o.payment_method)
+  // (passer en espèces après coup n'est pas possible : plafond et livreur choisis pour Bit)
+  const canSwitch = !o.direct_pay && o.payment_status !== "paye" && o.payment_method === "cash"
     && ["nouvelle", "confirmee", "recuperee"].includes(o.status) && !(o.payment_method === "bit" && o.prepaid_required);
   const copy = `<button class="btn btn-sm" id="copyBit">${UI.esc(t("trCopy"))}</button>`;
   // Course rendue après paiement : le premier livreur rembourse, le client confirme
@@ -226,17 +260,29 @@ function render() {
   const refund = !o.refund_status ? ""
     : o.refund_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trRefundOk"))}</p>`
     : o.refund_status === "litige" ? `<p class="promo-msg bad">${UI.esc(t("trRefundLitige"))}</p>`
-    : `<div class="refund-box"><p>${UI.esc(t(o.refund_status === "fait" ? "trRefundDone" : o.refund_status === "rien_recu" ? "trRefundNone" : "trRefundDue", { name: rname, amount: ramount }))}</p>
+    : `<div class="refund-box"><p>${UI.esc(t(o.refund_status === "fait" ? "trRefundDone" : o.refund_status === "rien_recu" ? "trRefundNone" : Number(o.drop_fee) > 0 ? "trDropRefund" : "trRefundDue", { name: rname, amount: ramount }))}</p>
         <div class="bit-btns"><button type="button" class="btn btn-sm btn-primary" data-refund="1">${UI.esc(t("trRefundYes"))}</button>
         <button type="button" class="btn btn-sm" data-refund="0">${UI.esc(t("trRefundNo"))}</button></div></div>`;
   const missing = o.pay_missing_at && !o.client_paid_at && o.payment_status !== "paye" ? `<p class="promo-msg bad">${UI.esc(t("trPayMissing"))}</p>` : "";
+  if (dropped) {
+    const who = String(o.courier_name || "").split(" ")[0], phone = o.courier_bit || o.courier_phone || "";
+    pay.innerHTML = `${refund}<small class="muted">${UI.esc(t("trPay"))}</small><div class="amount">${UI.money(o.drop_fee)}</div>
+      ${o.wait_status === "a_payer" ? `<div class="refund-box wait-due"><p><b>${UI.esc(t("trDropDue", { fee: UI.money(o.wait_due), name: who, phone }))}</b></p>
+        ${phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`
+      : o.wait_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>` : ""}`;
+  } else
   pay.innerHTML = `${refund}${missing}<small class="muted">${UI.esc(t("trPay"))}</small>
-    <div class="amount">${UI.money(o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
+    <div class="amount">${UI.money(o.payment_method === "cash" ? Number(o.price) + Number(o.cash_goods || 0) : o.price)}${o.budget ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
+    ${o.wait_status === "a_payer" ? `<div class="refund-box wait-due"><p><b>${UI.esc(t("trWaitDue", { fee: UI.money(o.wait_due), name: String(o.courier_name || "").split(" ")[0], phone: o.courier_bit || o.courier_phone || "" }))}</b></p>
+      ${o.courier_bit || o.courier_phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit || o.courier_phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`
+      : o.wait_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trWaitDueOk"))}</p>` : ""}
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${UI.esc(t("receiptLink"))}</a>` : ""}`
       : o.payment_method === "bit"
         ? `${o.prepaid_required && !o.direct_pay ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}${UI.bitPay(o)}`
-        : `<p style="margin-top:6px">💵 ${UI.esc(t("trPayCash"))}</p>`}
+        : `<div class="cash-box"><p class="cash-total">${UI.esc(t("trCashPay", { total: UI.money(Number(o.price) + Number(o.cash_goods || 0)) }))}</p>
+            ${Number(o.cash_goods) > 0 ? `<small>${UI.esc(t("trCashGoods", { goods: UI.money(o.cash_goods) }))}</small><br>` : ""}
+            <small>${UI.esc(Number(o.cash_note) > 0 ? t("trCashChange", { note: UI.money(o.cash_note), change: UI.money(Number(o.cash_note) - Number(o.price) - Number(o.cash_goods || 0)) }) : t("trCashExact"))}</small></div>`}
     ${canSwitch ? `<button class="btn btn-sm btn-link" id="switchPay">${UI.esc(t(o.payment_method === "bit" ? "trToCash" : "trToBit"))}</button>` : ""}`;
 
   // Discussion directe : avec le livreur attribué, ou avec l'administration
@@ -362,11 +408,72 @@ async function load() {
     order = token ? await Store.trackOrder(token) : null;
     if (order && order.eta_status === "attente") await countOthers(order);
     if (order && order.docs_status && order.status === "nouvelle") docsSent = await Store.orderDocsSent(token).catch(() => docsSent);
+    addable = canAdd(order) ? await Store.orderAddable(token).catch(() => addable) : null;
   } catch (e) {
     return; // nouvel essai au prochain passage
   }
   render();
 }
+
+// --- Ajouter des articles du même commerce (catalogue HOP! Pro) : pendant 15 min, tant qu'elle n'est pas prête ---
+let addable = null, addCart = {}, addDone = false;
+const canAdd = o => !!(o && o.shop_id && Array.isArray(o.items) && o.items.length && ["nouvelle", "confirmee"].includes(o.status)
+  && ["attente", "acceptee"].includes(o.shop_status));
+const addLeft = () => (addable ? Math.max(0, Math.floor((new Date(addable.until) - Date.now()) / 1000)) : 0);
+function renderAdd() {
+  const s = addLeft();
+  const html = addDone ? `<p class="add-done">${UI.esc(t("adDone"))}</p>`
+    : addable && s > 0 ? `<button type="button" class="add-card" data-add-open><span><b>${UI.esc(t("adTitle"))}</b><small>${UI.esc(t("adSub"))}</small></span>
+      <i class="add-timer" dir="ltr">${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}<small>${UI.esc(t("adLeft"))}</small></i></button>` : "";
+  ["#addBox", "#stAdd"].forEach(id => { if ($(id).innerHTML !== html) $(id).innerHTML = html; });
+  $("#addBox").classList.toggle("hidden", !html);
+}
+setInterval(renderAdd, 1000);
+const addTotal = () => (addable ? addable.products.reduce((x, p) => x + Number(p.price) * (addCart[p.id] || 0), 0) : 0);
+function renderAddList() {
+  $("#adList").innerHTML = addable.products.map(p => { const q = addCart[p.id] || 0, photo = UI.safeImg(p.photo);
+    return `<div class="add-item${q ? " in" : ""}">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : ""}
+      <span class="add-name"><b>${UI.esc(p.name)}</b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<em>${UI.money(p.price)}</em></span>
+      <span class="add-qty">${q ? `<button type="button" data-ad-minus="${UI.esc(p.id)}">−</button><b>${q}</b>` : ""}<button type="button" data-ad-plus="${UI.esc(p.id)}">+</button></span></div>`; }).join("");
+  const total = addTotal();
+  $("#adOk").textContent = total ? t("adOk", { total: UI.money(total) }) : t("adOkEmpty");
+}
+function openAdd() {
+  if (!addable) return;
+  addCart = {};
+  $("#adHead").textContent = t("adHead", { name: addable.shop || "" });
+  $("#adInfo").textContent = t("adInfo");
+  $("#adTopTxt").textContent = t("adTop");
+  $("#adTop").checked = false;
+  $("#adCancel").textContent = t("adCancel");
+  $("#adErr").classList.add("hidden");
+  renderAddList();
+  $("#addModal").classList.remove("hidden");
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-add-open]")) { closeSheet(); openAdd(); } });
+$("#adList").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.adPlus) addCart[b.dataset.adPlus] = Math.min(50, (addCart[b.dataset.adPlus] || 0) + 1);
+  if (b.dataset.adMinus) addCart[b.dataset.adMinus] = Math.max(0, (addCart[b.dataset.adMinus] || 0) - 1);
+  $("#adErr").classList.add("hidden");
+  renderAddList();
+});
+$("#adCancel").addEventListener("click", () => $("#addModal").classList.add("hidden"));
+$("#adTop").addEventListener("change", () => $("#adErr").classList.add("hidden"));
+$("#adOk").addEventListener("click", async () => {
+  const items = Object.entries(addCart).filter(([, q]) => q > 0).map(([id, qty]) => ({ id, qty }));
+  const err = m => { $("#adErr").textContent = t(m); $("#adErr").classList.remove("hidden"); };
+  if (!items.length) return err("adNeedItem");
+  if (!$("#adTop").checked) return err("adNeedTop");
+  $("#adOk").disabled = true;
+  const r = await Store.orderAddItems(token, items, true).catch(() => null);
+  $("#adOk").disabled = false;
+  if (!r || !r.ok) return err(r && r.error === "too_late" ? "adTooLate" : r && r.error === "topcase" ? "adNeedTop" : "adErrGen");
+  $("#addModal").classList.add("hidden");
+  addDone = true; setTimeout(() => { addDone = false; renderAdd(); }, 8000);
+  load();
+});
 
 // Colis à récupérer : où en sont les documents, et ajouter celui qui manque
 let docsSent = [];

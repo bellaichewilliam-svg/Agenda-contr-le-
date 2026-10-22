@@ -344,6 +344,9 @@ function card(o, withDay) {
     meta.push(`<button class="pill pill-btn ${o.unlocked ? "paid" : ""}" data-act="unlock" title="Laisser le livreur valider « Livré » sans GPS ni photo">${o.unlocked ? "🔓 Débloquée (cliquer pour rebloquer)" : "🔓 Débloquer la course"}</button>`);
   }
   if (o.payment_method === "carnet") meta.push(`<span class="pill paid">🎟️ Carnet pro</span>`);
+  if (o.admin_note === "Espèces impayées à la livraison") meta.push(`<button type="button" class="btn btn-sm" data-unblock="${UI.esc(o.contact_phone)}">🔓 Débloquer le client</button>`);
+  // Espèces : qui a payé quoi (client → livreur, livreur → commerce), en clair
+  if (o.payment_method === "cash") meta.push(`<span class="pill">💵 Espèces : client ${UI.money(Number(o.price) + Number(o.cash_goods || 0))}${Number(o.cash_goods) > 0 ? ` · articles ${UI.money(o.cash_goods)} au commerce ${o.cash_shop_at ? "✅ reçus" : "⏳"}` : ""} · course ${UI.money(o.price)}${Number(o.cash_note) > 0 ? ` · billet ${UI.money(o.cash_note)}` : ""}</span>`);
   if (o.payment_method === "bit" && o.payment_status !== "paye" && o.client_paid_at) meta.push(o.direct_pay && !isMine(o)
     ? `<span class="pill unpaid">💳 Le client dit avoir payé le livreur · le livreur confirme</span>`
     : `<span class="pill unpaid" title="Vérifiez votre Bit, puis marquez la course payée">💳 Le client dit avoir payé par Bit · à vérifier</span>`);
@@ -619,6 +622,7 @@ function renderCouriers(view) {
           ${c.unlocked_until && new Date(c.unlocked_until) > new Date()
             ? `<button class="btn btn-sm" data-unlock="off">🔒 Rebloquer (débloqué jusqu'au ${UI.esc(UI.fmtDateTime(c.unlocked_until))})</button>`
             : `<button class="btn btn-sm" data-unlock="on" title="Solde, course en cours, GPS et photo : plus aucun blocage pendant 24 h">🔓 Débloquer 24 h</button>`}
+          <button class="btn btn-sm${c.network_perks ? " btn-primary" : ""}" data-perks="${c.network_perks ? "off" : "on"}" title="Commission ${UI.esc(UI.networkText())} sur les courses de ses commerces, ${UI.esc(UI.money(settings.referral_bonus))} quand un autre livreur les fait, ${CONFIG.pro.referrerPercent} % des abonnements Pro">${c.network_perks ? "⭐ Avantages réseau : activés" : "☆ Avantages réseau : désactivés"}</button>
           ${chatBtn("c:" + c.id, `Livreur : ${c.name}`, c.phone, "💬 Message", c.status === "en_attente"
             ? `Bonjour ${c.name}, merci pour ton inscription chez ${CONFIG.businessName} ! Pour valider ton compte, envoie-moi ici en photo : permis de conduire, carte grise et carte d'identité.`
             : `Bonjour ${c.name}, `)}
@@ -760,15 +764,15 @@ function renderShops(view) {
       <details style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
     </div>
     <div class="card" style="margin-bottom:14px">
-      <b>🤝 Commerces amenés par les livreurs</b>
-      <p class="muted small" style="margin:4px 0 8px">Chaque livreur a son lien d'inscription pour les commerces (onglet « Parrainage » de son espace). Il gagne ${UI.money(settings.referral_bonus)} sur chaque course livrée au départ de ses commerces, tant qu'il livre avec nous (plus de bonus après ${Number(settings.referral_active_days || CONFIG.partners.activeDays)} jours sans livraison), déduit de sa commission chaque semaine, et voit leurs courses ${Number(settings.priority_minutes)} min avant les autres. Les courses peuvent être commandées dès l'inscription ; vérifiez ici que le commerce existe.</p>
-      <div class="promo-row"><input readonly value="${UI.esc(signup)}" dir="ltr" /><button class="btn btn-sm" data-copy="${UI.esc(signup)}">Copier</button><a class="btn btn-sm" href="${UI.esc(signup)}" target="_blank" rel="noopener">➕ Inscrire un commerce</a></div>
+      <b>🏪 Inscrire un commerce partenaire</b>
+      <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien à un restaurant ou une boutique : il s'inscrit, puis vous le validez ici après avoir vérifié qu'il existe.</p>
+      <div class="actions"><button class="btn btn-sm" data-copy="${UI.esc(signup)}">📋 Copier le lien</button><a class="btn btn-sm btn-primary" href="${UI.esc(signup)}" target="_blank" rel="noopener">➕ Inscrire un commerce</a></div>
     </div>
     <div class="stats">
       <div class="stat"><small>Commerces</small><b>${shops.filter(x => x.status !== "suspendu").length}</b></div>
       <div class="stat"><small>À vérifier</small><b>${shops.filter(x => x.status === "en_attente").length}</b></div>
       <div class="stat"><small>Courses ce mois</small><b>${viaShop.filter(o => UI.dayKey(o.pickup_at).startsWith(month)).length}</b></div>
-      <div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>
+      ${bonusDue > 0 ? `<div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>` : `<div class="stat"><small>HOP! Pro</small><b>${shops.filter(x => Store.planActive(x)).length}</b></div>`}
     </div>
     ${list.length ? `<div class="orders">${list.map(x => {
       const done = viaShop.filter(o => o.shop_id === x.id);
@@ -784,8 +788,8 @@ function renderShops(view) {
           <div><span>👤</span><span>${tel(x.contact_name, x.phone)}${x.email ? " · " + UI.esc(x.email) : ""} · ${x.lang === "fr" ? "🇫🇷" : "🇮🇱"}</span></div>
           <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name + (c.city && x.city && c.city !== x.city ? " · autre ville (" + UI.cityFr(c.city) + ")" : ""))}</option>`).join("")}</select>
             · bonus générés ${UI.money(sum(done, o => Number(o.referral_bonus || 0)))}</span></div>
-          <div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
-            ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>
+          ${CONFIG.partners.carnet.offered || Number(x.credits || 0) > 0 ? `<div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
+            ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>` : ""}
           <div><span>📅</span><span>Inscrit le ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))}</span></div>
           <div><span>⭐</span><span>${(() => {
             // HOP! Pro : abonnement, et ce que le commerce doit ce mois-ci (abonnement + sa part des livraisons)
@@ -801,9 +805,9 @@ function renderShops(view) {
         </div>
         <div class="actions">
           ${x.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-sact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-sact="suspendu">⛔ Suspendre</button>`}
-          <button class="btn btn-sm" data-sact="carnet">🎟️ Carnet payé (${UI.money(CONFIG.partners.carnet.price)}) → +${CONFIG.partners.carnet.courses} et reçu</button>
-          <button class="btn btn-sm" data-sact="credits">✏️ Courses du carnet</button>
-          <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan" title="Le commerce a payé ${UI.esc(UI.money(settings.pro_monthly))} : ${Number(settings.pro_referrer_pct || CONFIG.pro.referrerPercent)} % pour son parrain livreur (12 premiers mois)">⭐ HOP! Pro : +1 mois payé</button>
+          ${CONFIG.partners.carnet.offered ? `<button class="btn btn-sm" data-sact="carnet">🎟️ Carnet payé (${UI.money(CONFIG.partners.carnet.price)}) → +${CONFIG.partners.carnet.courses} et reçu</button>
+          <button class="btn btn-sm" data-sact="credits">✏️ Courses du carnet</button>` : ""}
+          <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan" title="Le commerce a payé ${UI.esc(UI.money(settings.pro_monthly))}">⭐ HOP! Pro : +1 mois payé</button>
           <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
@@ -1071,6 +1075,12 @@ async function onViewClick(e) {
   if (th) return openAdminChat(th.dataset.thread, th.dataset.ctitle, th.dataset.csub, th.dataset.prefill, !!th.dataset.photo);
   const el = e.target.closest("button");
   if (!el) return;
+  if (el.dataset.unblock) {
+    if (!confirm(`Débloquer le client ${el.dataset.unblock} ? Il pourra de nouveau commander (et payer en espèces s'il a déjà été livré).`)) return;
+    const ok = await Store.adminUnblock(el.dataset.unblock).catch(() => false);
+    alert(ok ? "✅ Client débloqué." : "Déblocage impossible, réessayez.");
+    return;
+  }
   if (el.id === "csvBtn") return exportCsv();
   if (el.dataset.week) { weekOffset = Math.min(0, weekOffset + Number(el.dataset.week)); return render(); }
   if (el.dataset.topupOk || el.dataset.topupNo) {
@@ -1198,6 +1208,16 @@ async function onViewClick(e) {
   }
   if (el.dataset.copy) {
     if (navigator.clipboard) navigator.clipboard.writeText(el.dataset.copy).then(() => { el.textContent = "✓ Copié"; }, () => {});
+    return;
+  }
+  if (el.dataset.perks) {
+    const id = el.closest("[data-courier]").dataset.courier;
+    const c = couriers.find(x => x.id === id);
+    const on = el.dataset.perks === "on";
+    if (!confirm(on
+      ? `Activer les avantages réseau pour ${c ? c.name : "ce livreur"} ?\n\nSur les courses des commerces qu'il a amenés : commission ${UI.networkText()} au lieu de ${UI.commissionText()}, ${UI.money(settings.referral_bonus)} quand un autre livreur les fait, ${CONFIG.pro.referrerPercent} % de leurs abonnements HOP! Pro. (Pour les nouvelles courses.)`
+      : `Retirer les avantages réseau à ${c ? c.name : "ce livreur"} ? Ses prochaines courses repassent à ${UI.commissionText()}, sans bonus.`)) return;
+    try { await Store.updateCourier(id, { network_perks: on }); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
   }
   if (el.dataset.unlock) {

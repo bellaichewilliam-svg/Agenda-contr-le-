@@ -163,6 +163,7 @@ function render(o) {
       <tfoot>
         <tr><th>סה"כ שולם · Total payé</th><th class="num" dir="ltr">${UI.money(o.price)}</th></tr>
         <tr><td>אמצעי תשלום · Paiement</td><td class="num">${pay(o.payment_method)}</td></tr>
+        ${Number(o.cash_goods) > 0 ? `<tr><td colspan="2"><small>מוצרים ששולמו במזומן לעסק דרך השליח · Articles payés en espèces au commerce par le livreur : <b dir="ltr">${UI.money(o.cash_goods)}</b> (קבלה נפרדת מהעסק · reçu à part du commerce)</small></td></tr>` : ""}
       </tfoot>
     </table>` + (issuer ? FOOT_COURIER : FOOT);
 }

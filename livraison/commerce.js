@@ -172,18 +172,39 @@ function courierPay(o) {
   return `<p class="small pay-courier">💳 ${UI.esc(t("spPayCourier", { amount: UI.money(amount), name, phone: o.courier_bit }))}
     <button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></p>`;
 }
+// Espèces : le livreur paie les articles au commerce en espèces ; le commerce le confirme (« Espèces reçues »)
+function cashLine(o) {
+  if (o.payment_method !== "cash" || !(Number(o.cash_goods) > 0)) return "";
+  if (o.cash_shop_at) return `<p class="cash-need ok">${UI.esc(t("spCashOk", { amount: UI.money(o.cash_goods) }))}</p>`;
+  return `<div class="cash-need"><b>${UI.esc(t("spCashDue", { amount: UI.money(o.cash_goods) }))}</b>
+    ${o.status === "confirmee" ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashWait"))}</small>`}</div>`;
+}
 // Ce que le commerce doit à HOP pour une livraison : sa part (avant), ou seulement la part de HOP (paiement direct)
 const billPart = o => (o.direct_pay ? (Number(o.shop_share || 0) > 0 ? Number(o.hop_share || 0) : 0) : Number(o.shop_share || 0));
 // Articles déjà mis dans le sac et nombre de sacs (gardés sur ce téléphone, même si on recharge la page)
 const keep = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* stockage indisponible */ } };
 const kept = k => { try { return JSON.parse(localStorage.getItem(k) || "{}") || {}; } catch (e) { return {}; } };
 const picked = kept("hop_shop_picked"), bagsDraft = kept("hop_shop_bags");
-const pickedCount = o => (o.items || []).filter((it, i) => picked[o.id + ":" + i]).length;
+// La clé d'une coche comprend la quantité : un article dont le client a augmenté la quantité est à recocher
+const pickKey = (o, it, i) => `${o.id}:${i}:${it.qty}`;
+const pickedCount = o => (o.items || []).filter((it, i) => picked[pickKey(o, it, i)]).length;
+// Le client a ajouté des articles : on sonne une fois et on le dit sur la commande
+const seenItems = {};
+function itemsChanged(list) {
+  let changed = false;
+  list.forEach(o => {
+    const sig = JSON.stringify(o.items || null);
+    if (seenItems[o.id] !== undefined && seenItems[o.id] !== sig) changed = true;
+    seenItems[o.id] = sig;
+  });
+  if (changed) ringOnce();
+}
 // Préparation : chaque article à cocher, la progression, puis combien de sacs pour le livreur
 function prepList(o) {
   const n = o.items.length, done = pickedCount(o), editable = o.shop_status === "acceptee";
-  return `<ul class="prep-items">${o.items.map((it, i) => { const on = !!picked[o.id + ":" + i];
-      return `<li class="${on ? "done" : ""}"><label><input type="checkbox" data-pick="${UI.esc(o.id)}:${i}"${on ? " checked" : ""}${editable ? "" : " disabled"} /> <b>${it.qty} ×</b> <span>${UI.esc(it.name)}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`; }).join("")}</ul>
+  const added = o.items.some(it => it.added) && o.items.some((it, i) => it.added && !picked[pickKey(o, it, i)]);
+  return `${added && editable ? `<p class="prep-added">${UI.esc(t("spAddedAlert"))}</p>` : ""}<ul class="prep-items">${o.items.map((it, i) => { const key = pickKey(o, it, i), on = !!picked[key];
+      return `<li class="${on ? "done" : ""}${it.added ? " added" : ""}"><label><input type="checkbox" data-pick="${UI.esc(key)}"${on ? " checked" : ""}${editable ? "" : " disabled"} /> <b>${it.qty} ×</b> <span>${UI.esc(it.name)}${it.added ? ` <i class="prep-new-tag">${UI.esc(t("spAdded"))}</i>` : ""}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`; }).join("")}</ul>
     ${editable ? `<p class="prep-progress${done === n ? " all" : ""}"><b>${UI.esc(done === n ? t("spAllPicked") : t("spPickedN", { n: done, total: n }))}</b><i style="width:${Math.round(done / n * 100)}%"></i></p>` : ""}`;
 }
 function bagsPicker(o) {
@@ -200,6 +221,7 @@ function renderPrep() {
   const box = $("#spPrep");
   box.classList.toggle("hidden", !planOn(shop) && !list.length);
   setRing(list.some(o => o.shop_status === "attente"));
+  itemsChanged(list);
   if (box.classList.contains("hidden")) return;
   const time = d => new Date(d).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" });
   box.innerHTML = `<h3>${UI.esc(t("spPrepTitle"))}</h3>` + (list.length ? list.map(o => {
@@ -223,6 +245,7 @@ function renderPrep() {
         : `<p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>`}
       <small class="muted">${UI.esc(t("spClient", { name: (o.dropoff_contact || o.contact_name || "").split(" ")[0], city: I18N.cityName(o.to_city) }))}</small>
       ${courierPay(o)}
+      ${cashLine(o)}
       ${act}
     </div>`;
   }).join("") : `<p class="muted small">${UI.esc(t("spPrepNone"))}</p>`);
@@ -281,6 +304,11 @@ $("#spPrep").addEventListener("click", e => {
     const input = $(`#spPrep [data-ref-for="${b.dataset.id}"]`), ref = input ? input.value.trim() : "";
     if (!/^[0-9]{3}$/.test(ref)) { alert(t("spRefNeed")); if (input) input.focus(); return; }
     return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep), null, ref);
+  }
+  if (b.dataset.cashOk) {
+    const o = state.dash.orders.find(x => x.id === b.dataset.cashOk);
+    if (o && confirm(t("spCashConfirm", { amount: UI.money(o.cash_goods) }))) return prepAction(b.dataset.cashOk, "cash_ok");
+    return;
   }
   if (b.dataset.bagsFor) { bagsDraft[b.dataset.bagsFor] = Number(b.dataset.n); keep("hop_shop_bags", bagsDraft); return renderPrep(); }
   if (b.dataset.ready) {
