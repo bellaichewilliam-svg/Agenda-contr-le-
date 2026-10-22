@@ -52,9 +52,13 @@ function waitRule(st) {
   return `${st.wait_free_min} min offertes, puis +${money(st.wait_step_price)} par ${Number(st.wait_step_min) === 1 ? "minute" : st.wait_step_min + " min"} (max ${money(st.wait_max)})`;
 }
 // Fond de carte OpenStreetMap (gratuit, sans clé) ; version sombre par un filtre sur les tuiles
+// Fond de carte. Sans carrés vides quand on la déplace : les morceaux se chargent pendant le geste
+// (et pas seulement au lâcher sur téléphone), on en garde une large réserve autour, et le fond
+// sous la carte a la couleur de la carte (clair ou sombre) le temps qu'un morceau arrive.
 function mapTiles(map, dark) {
   return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    { maxZoom: 19, attribution: "© OpenStreetMap", className: dark ? "tiles-dark" : "" }).addTo(map);
+    { maxZoom: 19, attribution: "© OpenStreetMap", className: dark ? "tiles-dark" : "",
+      updateWhenIdle: false, updateWhenZooming: false, keepBuffer: 6 }).addTo(map);
 }
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 function placeQuery(o, which) {
