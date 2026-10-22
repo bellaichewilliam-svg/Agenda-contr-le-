@@ -114,7 +114,7 @@ function foodIcon(name, kind) {
   for (const [rx, ico] of rules) if (rx.test(t)) return ico;
   return "🍽️";
 }
-const DIR_VERSION = "2";
+const DIR_VERSION = "3";
 // Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
 const ALIASES = [
   ["mcdonalds", "מקדונלד"], ["mcdonald", "מקדונלד"], ["mcdo", "מקדונלד"], ["macdo", "מקדונלד"], ["burgerking", "בורגרקינג"],
@@ -143,6 +143,7 @@ async function dirSearch(q, at, lang) {
   if (nq.length < 2) return [];
   const list = await loadDir();
   const vs = variants(nq);
+  const words = String(q).split(/[\s,]+/).map(normalize).filter(w => w.length >= 2);
   // Mots tapés en lettres latines : on compare aussi leur squelette à celui des mots du nom (« Oshi » → אושי)
   const qsk = /[a-z]/i.test(q) && !/\d/.test(q) ? q.split(/[\s\-–,]+/).filter(w => w.length >= 2).map(skel).filter(Boolean) : [];
   const score = e => {
@@ -152,6 +153,8 @@ async function dirSearch(q, at, lang) {
       else if (k.startsWith(v)) best = Math.min(best, 1);
       else if (k.includes(v)) best = Math.min(best, 2);
     }
+    // Plusieurs mots (« מקדונלד כשר », « pizza herzl ») : chaque mot se trouve dans le nom
+    if (best === 9 && words.length > 1 && words.every(w => e.keys.some(k => k.includes(w)))) best = 2.5;
     if (best === 9 && qsk.length) {
       const hits = qsk.filter(x => e.sk.includes(x));
       if (hits.length >= Math.ceil(qsk.length / 2) && hits.some(x => x.length >= 2)) best = 3 + (qsk.length - hits.length) * 0.5;
