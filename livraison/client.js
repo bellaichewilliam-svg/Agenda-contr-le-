@@ -1183,8 +1183,17 @@ async function submit(e) {
     if (saved.payment_method === "carnet" && state.pro) state.pro.credits--;
     confetti();
     hopBurst(t("hopSent"));
-    $("#doneAccount").textContent = t("doneAccount");
-    $("#doneAccount").classList.toggle("hidden", !firstOrder);
+    // Pas encore de compte : un mot de passe et c'est fait (nom et téléphone viennent de la commande)
+    const da = $("#doneAccount");
+    if (Store.ONLINE && !Store.clientAccount()) {
+      da.innerHTML = `<b>${UI.esc(t("lgDoneTitle"))}</b><p class="small" style="margin:4px 0 8px">${UI.esc(t("lgDoneSub"))}</p>
+        <form class="lg-quick" id="doneAccForm"><input type="password" name="pw" minlength="6" autocomplete="new-password" placeholder="${UI.esc(t("lgPass"))}" required />
+        <button class="btn btn-primary btn-sm">${UI.esc(t("lgGoCreate"))}</button></form><p class="small lg-msg" id="doneAccMsg"></p>`;
+      da.classList.remove("hidden");
+    } else {
+      da.textContent = t("doneAccount");
+      da.classList.toggle("hidden", !firstOrder || !!Store.clientAccount());
+    }
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
 
     $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(saved.price) }));
@@ -1249,7 +1258,83 @@ async function loadMine() {
   renderQuote();
   renderQuick();
   renderAccount();
+  renderLogin();
 }
+
+// --- Compte client : téléphone + mot de passe, accepté tout de suite (sans e-mail de confirmation pour l'instant) ---
+const loginUi = { mode: "create" };
+const ACC_ERR = { phone_exists: "lgErrExists", bad_login: "lgErrBad", locked: "lgErrLocked", weak_password: "lgErrWeak",
+  bad_phone: "lgErrPhone", bad_email: "lgErrEmail", name_required: "lgErrName", demo: "lgDemo" };
+const accErr = ex => t(ACC_ERR[Object.keys(ACC_ERR).find(k => String(ex && ex.message).includes(k))] || "lgErrNet");
+function renderLogin() {
+  const box = $("#loginCard"), acct = Store.clientAccount();
+  if (!Store.ONLINE) { box.classList.add("hidden"); return; }
+  box.classList.remove("hidden");
+  const c = acct && acct.client || {};
+  const key = (acct ? "on:" + [c.id, c.name, c.phone, c.email, c.blocked].join("|") : "off:" + loginUi.mode) + ":" + I18N.lang;
+  if (box.dataset.key === key) return;   // ne pas effacer ce qui est en train d'être tapé
+  box.dataset.key = key;
+  if (acct) {
+    box.innerHTML = `<div class="lg-on"><div><h3>${UI.esc(t("lgOn", { name: c.name || "" }))}</h3>
+        <p class="muted small">${UI.esc(t("lgOnSub"))}</p>
+        <p class="small" style="margin-top:4px"><span dir="ltr">${UI.esc(c.phone || "")}</span>${c.email ? " · " + UI.esc(c.email) : ""}</p></div>
+      <button type="button" class="btn btn-sm" id="lgOut">${UI.esc(t("lgOut"))}</button></div>
+      ${c.blocked ? `<p class="notice warn" style="margin-top:8px">${UI.esc(t("lgBlocked"))}</p>` : ""}`;
+    return;
+  }
+  const p = Store.getProfile(), create = loginUi.mode === "create";
+  const f = (name, label, attrs, val) => `<label class="f"><span>${UI.esc(t(label))}</span><input name="${name}" ${attrs} value="${UI.esc(val || "")}" /></label>`;
+  box.innerHTML = `<h3>${UI.esc(t("lgTitle"))}</h3>
+    <p class="muted small">${UI.esc(t("lgSub"))}</p>
+    <div class="lg-tabs"><button type="button" class="ch-chip${create ? " on" : ""}" data-lg-mode="create">${UI.esc(t("lgCreate"))}</button>
+      <button type="button" class="ch-chip${create ? "" : " on"}" data-lg-mode="login">${UI.esc(t("lgLogin"))}</button></div>
+    <form id="lgForm" class="lg-form" novalidate>
+      ${create ? f("lg_name", "lgName", 'autocomplete="name" maxlength="80"', p.contact_name) : ""}
+      ${f("lg_phone", "lgPhone", 'type="tel" inputmode="tel" autocomplete="tel" dir="ltr"', p.contact_phone)}
+      ${f("lg_pass", "lgPass", `type="password" minlength="6" autocomplete="${create ? "new-password" : "current-password"}"`, "")}
+      ${create ? f("lg_email", "lgEmail", 'type="email" autocomplete="email" dir="ltr"', p.contact_email) : ""}
+      <button class="btn btn-primary">${UI.esc(t(create ? "lgGoCreate" : "lgGoLogin"))}</button>
+      <p class="small lg-msg" id="lgMsg"></p>
+      ${create ? "" : `<p class="muted small">${UI.esc(t("lgForgot"))}</p>`}
+    </form>`;
+}
+async function accountSubmit(fn, msgEl, btn) {
+  msgEl.textContent = ""; msgEl.classList.remove("err");
+  btn.disabled = true;
+  try { await fn(); return true; }
+  catch (ex) { msgEl.textContent = accErr(ex); msgEl.classList.add("err"); return false; }
+  finally { btn.disabled = false; }
+}
+$("#loginCard").addEventListener("click", async e => {
+  const m = e.target.closest("[data-lg-mode]");
+  if (m) { loginUi.mode = m.dataset.lgMode; return renderLogin(); }
+  if (e.target.closest("#lgOut")) {
+    await Store.clientLogout();
+    loginUi.mode = "login";
+    return loadMine();
+  }
+});
+$("#loginCard").addEventListener("submit", async e => {
+  if (e.target.id !== "lgForm") return;
+  e.preventDefault();
+  const fm = e.target, v = n => (fm[n] ? fm[n].value.trim() : "");
+  const ok = await accountSubmit(() => loginUi.mode === "create"
+      ? Store.clientRegister(v("lg_name"), v("lg_phone"), v("lg_email"), fm.lg_pass.value)
+      : Store.clientLogin(v("lg_phone"), fm.lg_pass.value), $("#lgMsg"), fm.querySelector("button.btn-primary"));
+  if (!ok) return;
+  // Ses coordonnées et ses adresses arrivent du compte : la commande est déjà remplie
+  const p = Store.getProfile();
+  ["contact_name", "contact_phone", "contact_email"].forEach(k => { if (p[k] && !form[k].value) form[k].value = p[k]; });
+  renderSavedAddrs();
+  await loadMine();
+});
+$("#doneAccount").addEventListener("submit", async e => {
+  if (e.target.id !== "doneAccForm") return;
+  e.preventDefault();
+  const p = Store.getProfile(), fm = e.target;
+  const ok = await accountSubmit(() => Store.clientRegister(p.contact_name, p.contact_phone, p.contact_email, fm.pw.value), $("#doneAccMsg"), fm.querySelector("button"));
+  if (ok) { $("#doneAccount").textContent = t("lgDoneOk"); loadMine(); }
+});
 
 function renderClub() {
   const L = PROMOS.loyalty;
@@ -1413,6 +1498,7 @@ function renderAll() {
   renderMine();
   renderSavedAddrs();
   renderAccount();
+  renderLogin();
   renderShopBanner();
   renderHomeStatic();
   renderShowcase();
@@ -2132,7 +2218,8 @@ attachPlaces();
 initHome();
 renderAll();
 if (shopCode) loadShop(shopCode);
-loadMine();
+// Connecté : profil à jour (nom, adresses) depuis le compte, puis ses courses de tous ses téléphones
+Store.clientRefresh().catch(() => null).finally(loadMine);
 loadSettings();
 
 form.addEventListener("input", e => {

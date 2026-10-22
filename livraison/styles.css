@@ -1451,3 +1451,12 @@ body.in-home .eta-bubble { display: none; }
 /* Pas de barre de défilement visible (on fait défiler au doigt, à la molette ou au pavé tactile) */
 * { scrollbar-width: none; -ms-overflow-style: none; }
 *::-webkit-scrollbar { display: none; width: 0; height: 0; }
+/* Compte client : créer / se connecter */
+.lg-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.lg-form { display: grid; gap: 10px; max-width: 420px; }
+.lg-form .f, .lg-form input { width: 100%; }
+.lg-on { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.lg-msg:empty { display: none; }
+.lg-msg.err { color: var(--red-ink, #B42318); font-weight: 600; }
+.lg-quick { display: flex; gap: 8px; flex-wrap: wrap; }
+.lg-quick input { flex: 1 1 160px; min-width: 0; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 12px; font: inherit; background: var(--panel); color: var(--ink); }
