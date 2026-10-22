@@ -897,8 +897,8 @@ body.has-eta { padding-bottom: 96px; }
 .ch-me { width: 18px; height: 18px; border-radius: 50%; background: #2E90FA; border: 3px solid #fff; box-shadow: 0 0 0 8px rgba(46,144,250,.22); }
 .ch-pin { font-size: 26px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.3)); }
 /* Livreur en service sur la carte : rond blanc, « ! » orange qui clignote ; déjà en course : « ! » gris, fixe */
-.ch-scoot { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(15,31,61,.3), 0 0 0 2px rgba(255,106,19,.25); }
-.ch-scoot b { font-family: "Fredoka", "Rubik", sans-serif; font-weight: 700; font-size: 24px; line-height: 1; color: var(--brand); transform: rotate(10deg); animation: scoot-blink 1.2s ease-in-out infinite; }
+.ch-scoot { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: #fff; border: 2px solid #fff; box-shadow: 0 4px 10px rgba(15,31,61,.3), 0 0 0 2px rgba(255,106,19,.25); }
+.ch-scoot b { font-family: "Fredoka", "Rubik", sans-serif; font-weight: 700; font-size: 21px; line-height: 1; color: var(--brand); transform: rotate(10deg); animation: scoot-blink 1.2s ease-in-out infinite; }
 .ch-scoot.busy { box-shadow: 0 4px 10px rgba(15,31,61,.3); }
 .ch-scoot.busy b { color: #98A2B3; animation: none; }
 @keyframes scoot-blink { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
