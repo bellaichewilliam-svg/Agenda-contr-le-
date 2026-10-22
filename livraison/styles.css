@@ -1538,3 +1538,13 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .topbar-c .wordmark small { display: none; }
 .topbar-c .nav { justify-self: end; margin: 0; }
 @media (max-width: 430px) { .topbar-c .wordmark b { font-size: 29px; } .topbar-c .tb-profile span { max-width: 72px; } .topbar-c .tb-profile { font-size: 14px; } }
+/* Mode nuit : la barre du haut suit le thème (sombre), le logo « HOP! » reste orange */
+@media (prefers-color-scheme: dark) {
+  .topbar { background: var(--panel); color: var(--ink); border-bottom-color: var(--border); box-shadow: 0 2px 12px rgba(0,0,0,.35); }
+  .topbar .logo, .topbar .logo-name, .topbar .nav a, .topbar-c .tb-profile { color: var(--ink); }
+  .topbar .nav a:hover, .topbar-c .tb-profile:hover { background: var(--bg-2); }
+  .topbar .wordmark small { color: var(--muted); }
+  .topbar .lang-btn { background: #fff; color: var(--navy); }
+  .topbar .nav-rider, .tb-ava { background: var(--brand-soft); }
+  .view-bar { box-shadow: 0 1px 0 var(--border); }
+}
