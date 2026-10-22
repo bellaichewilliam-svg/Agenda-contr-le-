@@ -10,7 +10,7 @@ const DICT = {
 fr: {
   langSwitch: "עברית",
   navIdeas: "Idées", navPrices: "Tarifs", navMine: "Mes courses", navMe: "Profil", navOrder: "Commander",
-  vbHome: "Accueil", infosTitle: "Tout savoir sur HOP!", infosSub: "Les prix pour toutes les distances, des idées, nos offres et vos questions.", ordTitle: "Ma commande",
+  restoTake: "📍 Récupérer ici", vbHome: "Accueil", infosTitle: "Tout savoir sur HOP!", infosSub: "Les prix pour toutes les distances, des idées, nos offres et vos questions.", ordTitle: "Ma commande",
   inQuote: "💰 Prix d'une course", inWhy: "✨ Pourquoi HOP!", inOffers: "🎁 Offres", inShops: "🏪 Commerçants", inFaq: "❓ Questions",
   xpTitle: "Et aussi", xpPrice: "Tarifs", xpPriceS: "Toutes les distances", xpWhy: "Pourquoi HOP!", xpWhyS: "Prix justes, en direct",
   xpShop: "Commerçants", xpShopS: "Livrez vos clients", xpRider: "Devenir livreur", xpRiderS: "Gagnez à votre rythme",
@@ -501,7 +501,7 @@ fr: {
 he: {
   langSwitch: "Français",
   navIdeas: "רעיונות", navPrices: "מחירים", navMine: "המשלוחים שלי", navMe: "פרופיל", navOrder: "להזמנה",
-  vbHome: "בית", infosTitle: "כל מה שצריך לדעת על HOP!", infosSub: "מחירים לכל מרחק, רעיונות, מבצעים ושאלות.", ordTitle: "ההזמנה שלי",
+  restoTake: "📍 לאסוף מכאן", vbHome: "בית", infosTitle: "כל מה שצריך לדעת על HOP!", infosSub: "מחירים לכל מרחק, רעיונות, מבצעים ושאלות.", ordTitle: "ההזמנה שלי",
   inQuote: "💰 מחיר משלוח", inWhy: "✨ למה HOP!", inOffers: "🎁 מבצעים", inShops: "🏪 לעסקים", inFaq: "❓ שאלות",
   xpTitle: "ועוד", xpPrice: "מחירים", xpPriceS: "לכל מרחק", xpWhy: "למה HOP!", xpWhyS: "מחיר הוגן, בזמן אמת",
   xpShop: "לעסקים", xpShopS: "משלוחים ללקוחות שלכם", xpRider: "להיות שליח", xpRiderS: "מרוויחים בקצב שלכם",

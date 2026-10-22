@@ -160,16 +160,18 @@ async function dirSearch(q, at, lang) {
   };
   return list.map(e => ({ e, sc: score(e) })).filter(x => x.sc < 9)
     .sort((a, b) => (a.sc - b.sc) || (km(at, a.e) - km(at, b.e))).slice(0, 8)
-    .map(({ e }) => {
-      const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)$/);
-      const streetName = m ? m[1] : e.s || "", housenumber = m ? m[2] : "";
-      const city = e.c || "נתניה";
-      const name = dirName(e, lang);
-      return { lat: e.lat, lon: e.lon, city, type: "house", streetName, housenumber, hit: true, dir: true,
-        cityId: matchCity(city) || nearestCity(e.lat, e.lon), brand: name, street: e.s || e.n, exact: true,
-        phone: e.p || null, hours: e.h || null, kind: e.k || null,
-        label: [name, e.s, city].filter(Boolean).join(", ") };
-    });
+    .map(({ e }) => dirPlace(e, lang));
+}
+// Une fiche de l'annuaire → une adresse choisie (recherche, ou rond 🍴 touché sur la carte)
+function dirPlace(e, lang) {
+  const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)$/);
+  const streetName = m ? m[1] : e.s || "", housenumber = m ? m[2] : "";
+  const city = e.c || "נתניה";
+  const name = dirName(e, lang);
+  return { lat: e.lat, lon: e.lon, city, type: "house", streetName, housenumber, hit: true, dir: true,
+    cityId: matchCity(city) || nearestCity(e.lat, e.lon), brand: name, street: e.s || e.n, exact: true,
+    phone: e.p || null, hours: e.h || null, kind: e.k || null,
+    label: [name, e.s, city].filter(Boolean).join(", ") };
 }
 
 async function search(q, lang) {
@@ -463,7 +465,7 @@ function attach(input, opts) {
 }
 
 window.Places = {
-  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText, foodIcon, dirName, directory: loadDir,
+  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText, foodIcon, dirName, dirPlace, directory: loadDir,
   setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
   setLocal(fn) { local = fn; },
   get near() { return near; },
