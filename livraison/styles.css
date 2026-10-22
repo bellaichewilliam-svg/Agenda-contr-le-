@@ -1512,3 +1512,15 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .leaflet-tile-container img.leaflet-tile { width: 256.5px !important; height: 256.5px !important; }
 /* « Enseignes près de vous » faisait doublon avec « Qu'est-ce qu'on livre ? » : retiré de l'accueil */
 .ch-ens-h, #homeEns { display: none !important; }
+
+/* --- Barre du haut blanche avec le logo orange « HOP! » (même en mode sombre) ------------------ */
+.topbar { background: #fff; color: #101828; border-bottom: 1px solid #E8EBF2; box-shadow: 0 2px 12px rgba(15,31,61,.06); }
+.topbar .logo, .topbar .logo-name { color: #0F1F3D; }
+.topbar .nav a { color: #0F1F3D; opacity: 1; }
+.topbar .nav a:hover { background: #F1F3F8; }
+.topbar .wordmark small { color: #5B6476; }
+.topbar .lang-btn { background: #0F1F3D; color: #fff; }
+.topbar .nav-rider { background: #FFF1E8; }
+.topbar .nav-rider.mine { background: var(--brand); color: #fff; }
+.topbar .logo-mark { box-shadow: 0 3px 10px rgba(224,66,10,.28); }
+.view-bar { box-shadow: 0 1px 0 #E8EBF2; }
