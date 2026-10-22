@@ -1273,14 +1273,18 @@ let msgShown = null;
 
 function myReply(id) { const r = msgs.replies.find(x => x.message_id === id && x.courier_id === me.id); return r && r.answer; }
 const msgTime = m => new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+// Le ton HOP! : « Salut les Hopers ! » pour tous, « Salut Dan ! » pour un message perso
+const msgHello = m => m.to_courier ? `👋 Salut ${String((me && me.name) || "").split(" ")[0] || "à toi"} !` : "👋 Salut les Hopers !";
 const replyBtns = m => `<div class="msg-btns">
     <button class="btn btn-sm ${myReply(m.id) === "jarrive" ? "btn-primary" : ""}" data-reply="jarrive" data-msg="${UI.esc(m.id)}">🛵 J'arrive</button>
     <button class="btn btn-sm ${myReply(m.id) === "pas_dispo" ? "btn-dark" : ""}" data-reply="pas_dispo" data-msg="${UI.esc(m.id)}">😴 Pas dispo</button></div>`;
 
 function renderMsgs() {
-  const list = msgs.messages.filter(m => Date.now() - new Date(m.created_at) < 12 * 3600000).slice(0, 3);
+  // Même message envoyé deux fois : on ne garde que le plus récent
+  const list = msgs.messages.filter(m => Date.now() - new Date(m.created_at) < 12 * 3600000)
+    .filter((m, i, all) => all.findIndex(x => x.body === m.body && !!x.to_courier === !!m.to_courier) === i).slice(0, 3);
   $("#msgs").innerHTML = list.map(m => `<div class="msg-card msg-${UI.esc(m.kind)}">
-      <div><small>📣 ${m.to_courier ? "Message pour vous" : "Message du patron"} · ${msgTime(m)}</small><b>${UI.esc(m.body)}</b></div>
+      <div><small>${msgHello(m)} · ${msgTime(m)}</small><b>${UI.esc(m.body)}</b></div>
       ${replyBtns(m)}</div>`).join("");
 }
 
@@ -1293,10 +1297,10 @@ function checkNewMessages() {
   if (!fresh.length) return;
   const m = fresh[0];
   beep();
-  UI.notify("📣 " + CONFIG.businessName, { body: m.body, tag: "hop-msg" });
+  UI.notify(msgHello(m), { body: m.body, tag: "hop-msg" });
   msgShown = m.id;
   $("#msgBody").textContent = m.body;
-  $("#msgTime").textContent = (m.to_courier ? "Message pour vous" : "Message du patron") + " · " + msgTime(m);
+  $("#msgTime").textContent = msgHello(m) + " · " + msgTime(m);
   $("#msgModalBtns").innerHTML = replyBtns(m);
   $("#msgModal").classList.remove("hidden");
 }
