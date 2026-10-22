@@ -4107,6 +4107,7 @@ create table if not exists public.blocked_phones (
   reason      text check (length(reason) <= 300),
   created_at  timestamptz not null default now()
 );
+alter table public.blocked_phones add column if not exists lifted_at timestamptz;   -- débloqué (la ligne reste, numéro renommé)
 alter table public.blocked_phones enable row level security;
 revoke all on public.blocked_phones from anon, authenticated;
 
@@ -4472,7 +4473,9 @@ create or replace function public.admin_unblock_phone(p_phone text) returns bool
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_admin() then return false; end if;
-  delete from blocked_phones where phone = public.phone_digits(p_phone);
+  -- On garde la trace : la ligne reste, le numéro est renommé pour qu'il ne bloque plus
+  update blocked_phones set lifted_at = now(), phone = phone || '#' || extract(epoch from now())::bigint
+   where phone = public.phone_digits(p_phone);
   return true;
 end;
 $$;
@@ -4548,7 +4551,7 @@ $$;
 -- « à vérifier » (vérification quand l'envoi par Brevo sera branché). Mots de passe chiffrés (bcrypt) ; 5 essais
 -- ratés → 10 min d'attente. La session est une clé aléatoire gardée sur le téléphone (la base n'en garde que l'empreinte).
 -- Mot de passe oublié : le patron le réinitialise depuis son panel.
--- Espèces : seulement avec un compte, déjà livré une fois avec ce compte ; impayé → le compte est bloqué.
+-- Espèces : sans compte obligatoire (articles à avancer : déjà livré une fois) ; impayé → le compte est bloqué aussi.
 -- ============================================================================
 create schema if not exists extensions;
 create extension if not exists pgcrypto with schema extensions;
@@ -4572,15 +4575,16 @@ revoke all on public.clients from anon, authenticated;
 
 create table if not exists public.client_sessions (
   token_hash   text primary key,
-  client_id    uuid not null references public.clients(id) on delete cascade,
+  client_id    uuid not null references public.clients(id),
   created_at   timestamptz not null default now(),
   last_seen_at timestamptz not null default now()
 );
+alter table public.client_sessions add column if not exists ended_at timestamptz;   -- déconnecté : la clé ne vaut plus rien
 create index if not exists client_sessions_client_idx on public.client_sessions (client_id);
 alter table public.client_sessions enable row level security;
 revoke all on public.client_sessions from anon, authenticated;
 
-alter table public.orders add column if not exists client_id uuid references public.clients(id) on delete set null;
+alter table public.orders add column if not exists client_id uuid references public.clients(id);
 alter table public.orders add column if not exists client_key text;   -- jamais gardée : sert à retrouver le compte à la commande
 create index if not exists orders_client_idx on public.orders (client_id);
 
@@ -4591,7 +4595,7 @@ $$;
 -- Le compte d'une clé de session (null si la clé ne vaut rien)
 create or replace function public.client_of(p_key text) returns uuid
 language sql stable security definer set search_path = public as $$
-  select s.client_id from client_sessions s where s.token_hash = public.client_key_hash(p_key) and length(coalesce(p_key, '')) >= 32;
+  select s.client_id from client_sessions s where s.token_hash = public.client_key_hash(p_key) and s.ended_at is null and length(coalesce(p_key, '')) >= 32;
 $$;
 revoke execute on function public.client_of(text), public.client_key_hash(text) from public, anon, authenticated;
 
@@ -4696,8 +4700,11 @@ language sql stable security definer set search_path = public as $$
    order by pickup_at desc limit 200;
 $$;
 create or replace function public.client_logout(p_key text) returns boolean
-language sql security definer set search_path = public as $$
-  with d as (delete from client_sessions where token_hash = public.client_key_hash(p_key) returning 1) select exists (select 1 from d);
+language plpgsql security definer set search_path = public as $$
+begin
+  update client_sessions set ended_at = now() where token_hash = public.client_key_hash(p_key) and ended_at is null;
+  return found;
+end;
 $$;
 revoke execute on function public.client_register(text, text, text, text), public.client_login(text, text), public.client_me(text),
   public.client_save(text, text, text, text, jsonb), public.client_claim(text, uuid[]), public.client_orders(text), public.client_logout(text) from public;
@@ -4718,7 +4725,7 @@ create or replace trigger orders_client_link before insert on public.orders
   for each row execute function public.orders_client_link();
 revoke execute on function public.orders_client_link() from public, anon, authenticated;
 
--- Espèces : avec un compte ; articles à avancer seulement si déjà livré une fois avec ce compte (en plus du plafond et du billet)
+-- Espèces : pas de compte obligatoire. Articles à avancer : client déjà livré une fois (même téléphone ou même compte).
 create or replace function public.orders_zz_cash_guard() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare st settings; goods numeric; total numeric; note int;
@@ -4729,11 +4736,13 @@ begin
     return new;
   end if;
   select * into st from settings where id = 1;
-  if new.client_id is null then raise exception 'cash_account'; end if;
   goods := case when new.items is not null then coalesce(new.items_total, 0) else 0 end;
   total := coalesce(new.price, 0) + goods;
   if total > st.cash_max then raise exception 'cash_max'; end if;
-  if goods > 0 and not exists (select 1 from orders o where o.status = 'livree' and o.client_id = new.client_id) then raise exception 'cash_first'; end if;
+  if goods > 0 and not exists (select 1 from orders o where o.status = 'livree'
+       and (public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone) or (new.client_id is not null and o.client_id = new.client_id))) then
+    raise exception 'cash_first';
+  end if;
   note := case when new.cash_note in (20, 50, 100, 200) then new.cash_note else 0 end;
   if note > 0 and note < total then raise exception 'cash_note_small'; end if;
   new.cash_note := note;
@@ -4785,15 +4794,16 @@ language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_admin() or length(coalesce(p_password, '')) < 6 then return false; end if;
   update clients set pass_hash = extensions.crypt(p_password, extensions.gen_salt('bf', 8)), fails = 0, locked_until = null where id = p_client;
-  delete from client_sessions where client_id = p_client;
-  return found;
+  update client_sessions set ended_at = now() where client_id = p_client and ended_at is null;
+  return exists (select 1 from clients where id = p_client);
 end;
 $$;
 create or replace function public.admin_unblock_phone(p_phone text) returns boolean
 language plpgsql security definer set search_path = public as $$
 begin
   if not public.is_admin() then return false; end if;
-  delete from blocked_phones where phone = public.phone_digits(p_phone);
+  update blocked_phones set lifted_at = now(), phone = phone || '#' || extract(epoch from now())::bigint
+   where phone = public.phone_digits(p_phone);
   update clients set blocked = false where phone = public.phone_digits(p_phone);
   return true;
 end;

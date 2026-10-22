@@ -26,6 +26,8 @@ let shops = [];
 let requests = [];
 let sales = [];
 let planSales = [];
+let clients = [];   // clients (avec ou sans compte), chargés à l'ouverture de l'onglet
+let clientsQ = "";
 let penalties = [];   // retenues aux livreurs (courses pas faites, pas reçues)
 let credits = { credits: [], topups: [] };   // crédit prépayé des livreurs et leurs recharges
 let declines = [];    // refus des 30 derniers jours (avec la raison)   // abonnements HOP! Pro payés (part du livreur qui a amené le commerce)
@@ -172,6 +174,7 @@ async function load() {
   firstLoad = false;
   syncRing();
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  if (tab === "clients") loadClients();
   await refreshChats();
   renderAvail();
   // Ne pas effacer un champ en cours de saisie
@@ -483,6 +486,8 @@ function render() {
     const keep = $("#dirCard");
     renderShops(view);
     if (keep) $("#dirCard").replaceWith(keep); else initDirCard();
+  } else if (tab === "clients") {
+    renderClients(view);
   } else if (tab === "messages") {
     renderMessages(view);
   } else if (tab === "demandes") {
@@ -819,6 +824,46 @@ function renderShops(view) {
     }).join("")}</div>` : `<div class="empty card">Aucun commerce inscrit pour l'instant. Envoyez votre lien à un restaurant ou une boutique !</div>`}`;
 }
 
+// --- Clients : comptes créés, clients sans compte (par téléphone), compteurs ---------------
+async function loadClients() {
+  clients = (await Store.adminClients().catch(() => null)) || clients;
+  if (tab === "clients") render();
+}
+function renderClients(view) {
+  const q = clientsQ.trim().toLowerCase(), qd = q.replace(/\D/g, "");
+  const withAcc = clients.filter(c => c.client_id);
+  const month = today().slice(0, 7);
+  const list = clients.filter(c => !q || String(c.name || "").toLowerCase().includes(q) || (qd && String(c.phone || "").replace(/\D/g, "").includes(qd)));
+  const day = iso => iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  view.innerHTML = `
+    <div class="stats">
+      <div class="stat"><small>Comptes clients</small><b>${withAcc.length}</b></div>
+      <div class="stat"><small>Nouveaux comptes ce mois</small><b>${withAcc.filter(c => String(c.account_at || "").startsWith(month)).length}</b></div>
+      <div class="stat"><small>Clients au total</small><b>${clients.length}</b></div>
+      <div class="stat"><small>Commerces · livreurs actifs</small><b>${shops.filter(x => x.status === "actif").length} · ${couriers.filter(c => c.role !== "admin" && c.status === "actif").length}</b></div>
+    </div>
+    <p class="muted small" style="margin:-8px 0 12px">Un client crée son compte dans l'appli (« Mes courses ») avec son téléphone et un mot de passe : accepté tout de suite, sans e-mail de confirmation pour l'instant. Les clients sans compte apparaissent ici d'après leur numéro de téléphone.</p>
+    <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" /></div>
+    ${list.length ? `<div class="orders">${list.map(c => `
+      <article class="order" data-client="${UI.esc(c.client_id || "")}">
+        <div class="order-head">
+          <span class="order-time">${UI.esc(c.name || "—")}</span>
+          <span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte" : "Sans compte"}</span>
+          ${c.blocked ? `<span class="pill" style="background:#FDE2E2;color:#9B1C1C">⛔ Bloqué</span>` : ""}
+          <span class="order-price">${Number(c.delivered || 0)} livrée(s)</span>
+        </div>
+        <div class="kv">
+          <div><span>📞</span><span>${tel(c.name, c.phone)}${c.email ? " · " + UI.esc(c.email) + (c.email_verified ? " ✅" : " (à vérifier)") : ""}</span></div>
+          <div><span>📦</span><span>${Number(c.orders || 0)} commande(s) · ${UI.money(Number(c.spent || 0))} livrés${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
+          <div><span>📅</span><span>${c.client_id ? "Compte créé le " + day(c.account_at) + " · " : ""}dernière commande : ${c.orders ? day(c.last_at) : "—"}</span></div>
+        </div>
+        <div class="actions">
+          ${c.client_id ? `<button class="btn btn-sm" data-client-reset="${UI.esc(c.client_id)}" data-cname="${UI.esc(c.name || "")}">🔑 Nouveau mot de passe</button>` : ""}
+          ${c.blocked ? `<button class="btn btn-sm" data-unblock="${UI.esc(c.phone)}">🔓 Débloquer</button>` : ""}
+        </div>
+      </article>`).join("")}</div>` : `<div class="empty card">${clients.length ? "Aucun client ne correspond." : "Aucun client pour l'instant."}</div>`}`;
+}
+
 // --- Demandes de devis (tournée quotidienne, carnet…) -------------------------------------
 function renderRequests(view) {
   const topic = { tournee: "🗓️ Tournée quotidienne", carnet: "🎟️ Carnet de courses", autre: "📝 Autre besoin" };
@@ -1079,6 +1124,14 @@ async function onViewClick(e) {
     if (!confirm(`Débloquer le client ${el.dataset.unblock} ? Il pourra de nouveau commander (et payer en espèces s'il a déjà été livré).`)) return;
     const ok = await Store.adminUnblock(el.dataset.unblock).catch(() => false);
     alert(ok ? "✅ Client débloqué." : "Déblocage impossible, réessayez.");
+    return;
+  }
+  if (el.dataset.clientReset) {
+    const pw = prompt(`Nouveau mot de passe pour ${el.dataset.cname || "ce client"} (6 caractères au moins). Donnez-le-lui : il le changera s'il veut en se reconnectant.`, Math.random().toString(36).slice(2, 8));
+    if (pw == null) return;
+    if (pw.trim().length < 6) return alert("6 caractères au moins.");
+    const ok = await Store.adminClientReset(el.dataset.clientReset, pw.trim()).catch(() => false);
+    alert(ok ? `✅ Nouveau mot de passe : ${pw.trim()}\nSes anciennes connexions sont coupées.` : "Non enregistré, réessayez.");
     return;
   }
   if (el.id === "csvBtn") return exportCsv();
@@ -1350,11 +1403,12 @@ async function onViewChange(e) {
 }
 
 function onViewInput(e) {
-  if (e.target.id !== "histQ") return;
-  histFilter.q = e.target.value;
+  if (e.target.id !== "histQ" && e.target.id !== "clientsQ") return;
+  const id = e.target.id;
+  if (id === "clientsQ") clientsQ = e.target.value; else histFilter.q = e.target.value;
   const pos = e.target.selectionStart;
   render();
-  const q = $("#histQ");
+  const q = $("#" + id);
   q.focus();
   q.setSelectionRange(pos, pos);
 }
@@ -1390,7 +1444,7 @@ $("#logoutBtn").addEventListener("click", async e => {
   UI.dutyNotice(false);
   Store.logout(); showLogin();
 });
-$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; render(); } });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; render(); if (tab === "clients") loadClients(); } });
 $("#reloadBtn").addEventListener("click", load);
 $("#routeBtn").addEventListener("click", openRoute);
 $("#dutyBtn").addEventListener("click", toggleDuty);
