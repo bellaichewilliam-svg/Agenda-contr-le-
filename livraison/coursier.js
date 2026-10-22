@@ -336,6 +336,7 @@ async function load() {
   }
   // Course de la fenêtre prise par un autre livreur (ou annulée) : on arrête de sonner
   if (offerShown && !pool().some(o => o.id === offerShown)) closeOffer();
+  if (offerShown && offerMate && !pool().some(o => o.id === offerMate)) { const id = offerShown; closeOffer(); offerQueue.unshift(id); }
   // Refusée il y a plus de 5 min et toujours libre : elle revient en fenêtre
   pool().forEach(o => { if (declinedAt.has(o.id) && !backAgain.has(o.id)) { backAgain.add(o.id); seenPool.delete(o.id); } });
   const fresh = pool().filter(o => !seenPool.has(o.id));
@@ -375,7 +376,13 @@ function card(o, kind) {
       <a class="btn btn-sm btn-primary" href="${navLink(o, which)}" target="_blank" rel="noopener">🧭 Y aller (${riderSet.nav === "maps" ? "Maps" : "Waze"})</a></div>` : "";
   const telLink = (name, phone) => kind === "mine" && phone ? `<span class="small muted">${UI.esc(name || "")} · <a href="tel:${UI.esc(phone)}">${UI.esc(phone)}</a></span>` : "";
   let extra = "";
-  if (o.service === "retrait") extra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
+  // Course groupée avec une autre des miennes : dans quel ordre livrer
+  const twin = kind === "mine" && ["confirmee", "recuperee"].includes(o.status) && mine().find(x => x.id !== o.id && Store.pairOk(x, o));
+  if (twin) {
+    const d = x => Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +x.dropoff_lat, +x.dropoff_lon);
+    extra += `<div class="bag-line">🔗 Groupée avec la course n° ${UI.esc(twin.ref)} : récupérez les deux, puis livrez ${d(o) <= d(twin) ? "<b>celle-ci d'abord</b> (la plus proche)" : `d'abord la n° ${UI.esc(twin.ref)} (la plus proche)`}.</div>`;
+  }
+  if (o.service === "retrait") extra += `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
     + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
     + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
   if (o.eta_status === "attente" && o.status === "confirmee" && new Date(o.eta_until) > Date.now()) {
@@ -699,7 +706,7 @@ function render() {
   if (tab === "pool") {
     const list = pool();
     view.innerHTML = refundCards() + (list.length
-      ? `<p class="muted small" style="margin-bottom:10px">Le nom et le téléphone du client s'affichent une fois la course acceptée. Le premier qui accepte la prend.</p><div class="orders">${list.map(o => card(o, "pool")).join("")}</div>`
+      ? `<p class="muted small" style="margin-bottom:10px">Le nom et le téléphone du client s'affichent une fois la course acceptée. Le premier qui accepte la prend.</p>${bundleCards(list)}<div class="orders">${list.map(o => card(o, "pool")).join("")}</div>`
       : empty(isOnline() ? "Pas de course disponible pour l'instant. Activez les alertes 🔔 : vous serez prévenu dès qu'une course arrive."
         : "Vous êtes hors ligne : glissez le bouton « HOP! » pour passer en ligne et recevoir des courses."));
   } else if (tab === "mine") {
@@ -762,6 +769,18 @@ async function onViewClick(e) {
     el.disabled = true;
     markDeclined(el.dataset.decline);
     afterDecline(await Store.declineOrder(el.dataset.decline, "autre").catch(() => null));
+    return load();
+  }
+  if (el.dataset.bundle) {
+    const [a, b] = el.dataset.bundle.split(",");
+    const po = pool().find(x => x.id === a);
+    const eta = prompt("🛵 Dans combien de minutes êtes-vous au départ ? (les clients peuvent refuser si c'est trop long)", String(po ? etaGuess(po) : 15));
+    if (eta === null) return;
+    el.disabled = true;
+    const ok = await acceptTwo(a, b, Math.max(1, Math.min(180, parseInt(eta, 10) || 15)));
+    if (ok === "shown") { /* message déjà affiché */ }
+    else if (!ok) alert("Trop tard, un autre livreur a pris ces courses.");
+    else openPage("mine");
     return load();
   }
   if (el.dataset.accept) {
@@ -990,6 +1009,20 @@ const locked = () => !freeNow() && me && me.role !== "admin" && Store.ONLINE && 
 const busyOrder = () => orders.find(o => o.courier_id === me.id && o.status === "recuperee");
 const busy = () => !freeNow() && !!busyOrder();
 const blocked = () => locked() || busy();
+// Courses groupables dans la liste : « Prendre les 2 » (arrivées proches, même coin de départ)
+function bundleCards(list) {
+  const used = new Set(), out = [];
+  list.forEach(a => {
+    if (used.has(a.id)) return;
+    const b = list.find(x => !used.has(x.id) && x.id !== a.id && Store.pairOk(a, x));
+    if (!b) return;
+    used.add(a.id); used.add(b.id);
+    const gap = Math.round(Store.kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) * 1000 / 50) * 50;
+    out.push(`<div class="bundle-card"><div>🔗 <b>N° ${UI.esc(a.ref)} + n° ${UI.esc(b.ref)}</b> : arrivées à ${gap} m l'une de l'autre · ${UI.money(Store.courseValue(a) + Store.courseValue(b))} les deux</div>
+      <button type="button" class="btn btn-primary btn-sm" data-bundle="${UI.esc(a.id)},${UI.esc(b.id)}">✅ Prendre les 2</button></div>`);
+  });
+  return out.join("");
+}
 function acceptError(e) {
   if (/refund_pending/.test(e.message)) { alert("💸 Remboursez d'abord le client de la course que vous avez rendue, puis touchez « J'ai remboursé ». Ensuite vous pourrez reprendre des courses."); return "shown"; }
   if (/express_busy/.test(e.message)) { alert("⚡ Course express : elle est réservée à un livreur sans autre course, qui y va directement. Terminez d'abord votre course en cours."); return "shown"; }
@@ -1253,36 +1286,60 @@ function showNextOffer() {
   }
   if (!o) return;
   offerShown = o.id;
+  // Regroupement : une autre course disponible part du même coin et arrive à côté → une seule fenêtre pour les deux
+  const mate = pool().find(x => x.id !== o.id && Store.pairOk(o, x));
+  offerMate = mate ? mate.id : null;
+  if (mate) { const i = offerQueue.indexOf(mate.id); if (i >= 0) offerQueue.splice(i, 1); seenPool.add(mate.id); }
+  // Ou elle va dans le même coin qu'une course que j'ai déjà (pas encore récupérée) : « sur votre chemin »
+  const onWay = !mate && mine().find(x => x.status === "confirmee" && Store.pairOk(x, o));
   const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon);
   const trip = roadKm(pick, drop) ?? (o.distance_km != null ? Number(o.distance_km) * 1.3 : null);
   const toPickup = roadKm(lastPos, pick);
   const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : priorité, allez-y directement, sans autre course" : "Dès que possible";
   $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
   const total = Store.courseValue(o);
-  $("#offerPrice").textContent = UI.money(total);
   const star = !!o.referrer_id && o.referrer_id === me.id;
   const com = Store.commissionFor(total, settings, star);
-  $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com)} (commission ${star ? "réseau " : ""}${UI.money(com)}${star ? " : c'est votre commerce ⭐" : ""})`;
+  $("#offerTitle").textContent = mate ? "2 courses d'un coup !" : "Nouvelle course !";
+  if (mate) {
+    const t2 = Store.courseValue(mate), c2 = Store.commissionFor(t2, settings, !!mate.referrer_id && mate.referrer_id === me.id);
+    $("#offerIcon").textContent = "📦📦";
+    $("#offerPrice").textContent = UI.money(total + t2);
+    $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com + t2 - c2)} pour les deux (commissions ${UI.money(com + c2)})`;
+  } else {
+    $("#offerPrice").textContent = UI.money(total);
+    $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com)} (commission ${star ? "réseau " : ""}${UI.money(com)}${star ? " : c'est votre commerce ⭐" : ""})`;
+  }
   // Proposée d'abord aux livreurs en service les plus proches (vagues de wave_seconds)
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
   const again = backAgain.has(o.id);
-  $("#offerStar").innerHTML = again ? "↩️ Personne d'autre ne l'a prise : elle vous est reproposée"
+  const dropGap = (a, b) => Math.round(Store.kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) * 1000 / 50) * 50;
+  $("#offerStar").innerHTML = onWay ? `🔗 Sur le chemin de votre course n° ${UI.esc(onWay.ref)} : même départ, arrivées à ${dropGap(onWay, o)} m. Prenez-la en plus !`
+    : again ? "↩️ Personne d'autre ne l'a prise : elle vous est reproposée"
     : star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
     : early ? "🎯 Vous êtes parmi les plus proches : elle vous est proposée en premier" : "";
-  $("#offerStar").classList.toggle("hidden", !star && !early && !again);
+  $("#offerStar").classList.toggle("hidden", !star && !early && !again && !onWay);
   const place = (brand, addr, city) => `${brand ? `🏪 ${UI.esc(brand)}<br>` : ""}<bdi>${UI.esc(addr || "")}</bdi>${addr ? ", " : ""}${UI.esc(UI.cityFr(city))}`;
   const pickEta = lastPos && pick ? etaMin({ lat: lastPos.lat, lon: lastPos.lon }, pick) : null;
   // Mis à jour pendant que ça sonne (le commerce peut la marquer prête entre-temps)
   const showReady = () => { $("#offerReady").innerHTML = readyBanner(pool().find(x => x.id === o.id) || o, pickEta); };
   showReady();
-  $("#offerFrom").innerHTML = place(o.pickup_place, o.pickup_address, o.from_city);
-  $("#offerTo").innerHTML = place(o.dropoff_place, o.dropoff_address, o.to_city);
+  // Deux courses : livrer d'abord l'arrivée la plus proche du départ
+  const order2 = mate ? [o, mate].sort((a, b) => Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +a.dropoff_lat, +a.dropoff_lon) - Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +b.dropoff_lat, +b.dropoff_lon)) : null;
+  const samePick = mate && Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +mate.pickup_lat, +mate.pickup_lon) < 0.08;
+  $("#offerFrom").innerHTML = !mate || samePick ? place(o.pickup_place, o.pickup_address, o.from_city)
+    : [o, mate].map((x, i) => `${i + 1}. ${place(x.pickup_place, x.pickup_address, x.from_city)}`).join("<br>");
+  $("#offerTo").innerHTML = mate ? order2.map((x, i) => `${["1️⃣", "2️⃣"][i]} ${place(x.dropoff_place, x.dropoff_address, x.to_city)}`).join("<br>")
+    : place(o.dropoff_place, o.dropoff_address, o.to_city);
+  const tour = mate ? Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +order2[0].dropoff_lat, +order2[0].dropoff_lon) * 1.3
+    + Store.kmBetween(+order2[0].dropoff_lat, +order2[0].dropoff_lon, +order2[1].dropoff_lat, +order2[1].dropoff_lon) * 1.3 : null;
   $("#offerFacts").innerHTML = [
-    `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
+    mate ? `🔗 <b>2 courses groupées</b> (n° ${UI.esc(order2[0].ref)} puis n° ${UI.esc(order2[1].ref)}) : ${samePick ? "même départ" : "départs voisins"}, arrivées à <b>${dropGap(o, mate)} m</b> l'une de l'autre · ≈ ${tour.toFixed(1)} km en tout` : "",
+    mate ? "" : `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
     toPickup != null ? `🛵 Départ à <b>${etaMin({ lat: lastPos.lat, lon: lastPos.lon }, pick)} min</b> de vous (≈ ${toPickup.toFixed(1)} km)` : "",
-    trip != null ? `🏁 Puis <b>${Math.max(1, Math.round(trip / (trip < 6 ? 25 : 50) * 60 + 2))} min</b> jusqu'au client` : "",
+    trip != null && !mate ? `🏁 Puis <b>${Math.max(1, Math.round(trip / (trip < 6 ? 25 : 50) * 60 + 2))} min</b> jusqu'au client` : "",
     `🕐 ${UI.esc(when)}`,
-    payLine(o),
+    mate ? `💳 Chaque client paie sa course : <b>${UI.money(total)}</b> (n° ${UI.esc(o.ref)}) et <b>${UI.money(Store.courseValue(mate))}</b> (n° ${UI.esc(mate.ref)})` : payLine(o),
     cashNeedLine(o),
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
     o.shop_status ? proLine(o) : "",
@@ -1313,8 +1370,9 @@ function showNextOffer() {
   }
 }
 
-let offerTick = null;
+let offerTick = null, offerMate = null;
 function closeOffer() {
+  offerMate = null;
   clearInterval(offerTick);
   stopRing();
   $("#declineWhy").classList.add("hidden");
@@ -1348,6 +1406,17 @@ function afterDecline(r) {
   $("#autoOffModal").classList.remove("hidden");
 }
 
+// Deux courses groupées : les deux d'un coup ; si l'autre vient d'être prise, celle-ci seule
+async function acceptTwo(id, mateId, eta) {
+  try { await Store.acceptBundle([id, mateId], eta); return true; }
+  catch (e) {
+    // L'autre vient d'être prise (ou la base ne connaît pas encore les courses groupées) : celle-ci seule
+    if (!/bundle_taken|bundle_invalid|PGRST202/.test(e.message) && e.status !== 404) return acceptError(e);
+    const one = await Store.acceptOrder(id, eta).catch(x => acceptError(x));
+    if (one && one !== "shown") alert("L'autre course vient d'être prise par un autre livreur : vous avez celle-ci.");
+    return one;
+  }
+}
 // Temps pour être au départ : proposé d'après la distance, le livreur choisit
 const ETA_STEPS = [5, 10, 15, 20, 30, 45, 60];
 function etaGuess(o) {
@@ -1375,7 +1444,8 @@ async function acceptOffer(eta) {
   $("#etaPick").classList.add("hidden");
   $("#offerAccept").classList.remove("hidden");
   $("#offerAccept").disabled = true;
-  const ok = await Store.acceptOrder(id, eta).catch(e => acceptError(e));
+  const mateId = offerMate;
+  const ok = mateId ? await acceptTwo(id, mateId, eta) : await Store.acceptOrder(id, eta).catch(e => acceptError(e));
   $("#offerAccept").disabled = false;
   closeOffer();
   if (ok === "shown") { /* message déjà affiché */ }

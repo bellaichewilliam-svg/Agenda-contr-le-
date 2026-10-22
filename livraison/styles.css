@@ -1577,3 +1577,5 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .rp-row { display: grid; gap: 4px; }
 .rp-row + .rp-row { border-top: 1px solid #E8EBF2; padding-top: 8px; }
 .rp-row span { display: grid; }
+/* Courses groupables (liste du livreur) */
+.bundle-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; border: 2px dashed var(--brand); background: var(--brand-soft); }
