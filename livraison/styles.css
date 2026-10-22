@@ -1588,3 +1588,15 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .money-delta.down { background: rgba(240,68,56,.16); color: #F04438; }
 @keyframes delta-in { from { opacity: 0; transform: translateY(6px); } }
 @media (prefers-reduced-motion: reduce) { .money-anim.money-done, .money-delta { animation: none; } }
+/* Réponse attendue (client : heure du livreur, attente annoncée ; livreur : paiement à confirmer) : pop-up au premier plan */
+.ask-pop { position: fixed; z-index: 70; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); max-width: 440px; margin: 0 auto;
+  box-shadow: 0 0 0 100vmax rgba(15,31,61,.62), 0 24px 60px rgba(0,0,0,.35); animation: ask-in .25s ease-out; text-align: center; }
+.ask-pop b { font-size: 19px; }
+.ask-pop .btns { display: grid; gap: 10px; }
+.ask-pop .btns .btn { width: 100%; padding: 14px; font-size: 17px; }
+@keyframes ask-in { from { opacity: 0; transform: translateY(-46%) scale(.96); } }
+body.asking { overflow: hidden; }
+.ask-modal .modal-box { display: grid; gap: 10px; }
+.ask-modal .ask-amount { font-size: 30px; font-weight: 800; color: var(--brand); }
+.ask-modal .btn { width: 100%; padding: 14px; font-size: 17px; }
+@media (prefers-reduced-motion: reduce) { .ask-pop { animation: none; } }
