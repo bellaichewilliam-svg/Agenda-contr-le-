@@ -1762,11 +1762,11 @@ body.asking { overflow: hidden; }
 .door-big.sm b { font-size: 15px; }
 /* Sans contact côté client : un vrai interrupteur, clair et net */
 .door-check { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center !important; padding: 14px 16px !important; border-radius: 16px !important; border: 2px solid var(--border); background: var(--panel) !important; cursor: pointer; transition: border-color .15s, background .15s; }
-.door-check > input { order: 2; appearance: none; -webkit-appearance: none; width: 52px; height: 30px; margin: 0; border-radius: 99px; background: var(--border); position: relative; cursor: pointer; transition: background .2s; flex: none; }
-.door-check > input::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(15, 31, 61, .25); transition: inset-inline-start .2s; }
-.door-check > input:checked { background: #12B76A; }
-.door-check > input:checked::after { inset-inline-start: 25px; }
-.door-check:has(> input:checked) { border-color: #12B76A; background: rgba(18, 183, 106, .1) !important; }
+label.check.door-check > input { order: 2; appearance: none; -webkit-appearance: none; width: 52px; height: 30px; margin: 0; border-radius: 99px; background: var(--border); position: relative; cursor: pointer; transition: background .2s; flex: none; }
+label.check.door-check > input::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(15, 31, 61, .25); transition: inset-inline-start .2s; }
+label.check.door-check > input:checked { background: #12B76A; }
+label.check.door-check > input:checked::after { inset-inline-start: 25px; }
+label.check.door-check:has(> input:checked) { border-color: #12B76A; background: rgba(18, 183, 106, .1) !important; }
 .door-check b { font-size: 15.5px; }
 .ac-fuzzy { font-style: normal; font-weight: 800; color: var(--brand-ink); background: var(--brand-soft); border-radius: 6px; padding: 0 5px; }
 
