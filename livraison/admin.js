@@ -766,7 +766,7 @@ function renderShops(view) {
   // Les vitrines de démonstration ont leur propre carte (liens à montrer aux commerces), pas dans la liste
   const list = shops.filter(x => !x.demo).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
   const demos = [["DEMO-RESTO", "🍔 Restaurant"], ["DEMO-BOULANGERIE", "🥐 Boulangerie"], ["DEMO-BOUTIQUE", "👗 Boutique"]]
-    .map(([code, label]) => ({ code, label, url: UI.appUrl("index.html") + "?c=" + code }));
+    .map(([code, label]) => ({ code, label, url: UI.appUrl("index.html") + "?c=" + code, space: UI.appUrl("commerce.html") + "?demo=" + code.split("-")[1].toLowerCase() }));
   // Retirer les démos d'un geste (elles sont seulement suspendues, jamais effacées : on peut les remettre)
   const demoShops = shops.filter(x => x.demo), demoOn = demoShops.some(x => x.status === "actif");
   const signup = UI.appUrl("commerce.html") + (me && me.ref_code ? "?p=" + me.ref_code : "");
@@ -788,8 +788,8 @@ function renderShops(view) {
     </div>
     <div class="card" style="margin-bottom:14px">
       <b>🎬 Vitrines de démonstration</b>
-      <p class="muted small" style="margin:4px 0 8px">À montrer en rendez-vous : un restaurant, une boulangerie et une boutique avec un catalogue complet. Le commerçant voit sa future vitrine, touche les articles, remplit le panier ; aucune commande ne part. Invisibles pour les clients.</p>
-      ${demoOn ? `<div class="actions">${demos.map(d => `<a class="btn btn-sm btn-primary" href="${UI.esc(d.url)}" target="_blank" rel="noopener">${d.label}</a><button class="btn btn-sm" data-copy="${UI.esc(d.url)}" title="Copier le lien">📋</button>`).join("")}</div>` : `<p class="small">⛔ Démos retirées : les liens ne montrent plus rien.</p>`}
+      <p class="muted small" style="margin:4px 0 8px">À montrer en rendez-vous : un restaurant, une boulangerie et une boutique avec un catalogue complet. Le commerçant voit sa future vitrine (côté client) et son espace (🧑‍🍳 : ajouter un article, changer un prix, accepter une commande) ; aucune commande ne part, rien n'est envoyé. Invisibles pour les clients.</p>
+      ${demoOn ? `<div class="actions">${demos.map(d => `<a class="btn btn-sm btn-primary" href="${UI.esc(d.url)}" target="_blank" rel="noopener">${d.label}</a><a class="btn btn-sm" href="${UI.esc(d.space)}" target="_blank" rel="noopener" title="L'espace du commerçant : catalogue, prix, commandes (démo sur le téléphone)">🧑‍🍳 Espace</a><button class="btn btn-sm" data-copy="${UI.esc(d.url)}" title="Copier le lien">📋</button>`).join("")}</div>` : `<p class="small">⛔ Démos retirées : les liens ne montrent plus rien.</p>`}
       ${demoShops.length ? `<div class="actions" style="margin-top:8px"><button class="btn btn-sm" data-demos="${demoOn ? "suspendu" : "actif"}">${demoOn ? "⛔ Retirer les démos" : "✅ Remettre les démos"}</button></div>` : ""}
     </div>
     <div class="card" style="margin-bottom:14px">
