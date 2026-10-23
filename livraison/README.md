@@ -120,6 +120,7 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
   - les cartes des commerces sur l'accueil sont plus compactes ;
   - « Enseignes près de vous » tient dans l'écran et s'affiche tout de suite : les commerces partenaires HOP! du même métier en tête (EDMAR pour le pressing, « Livrer ici » = on vient chercher vos vêtements), puis l'annuaire HOP! ; la carte complète la liste quand elle répond ;
   - les catégories courantes (pressing, pharmacies, poste, supermarchés) sont préchargées discrètement une fois par semaine.
+  - l'interrupteur « 🚪 Déposer devant la porte » a la bonne taille ; un seul champ libre dans la commande, « Un mot pour le livreur » (le champ « Remarque » sous l'adresse est retiré ; la remarque d'une adresse enregistrée dans « Mes adresses » reste envoyée au livreur).
 - **Annuaire :** « Simaki Sushi » (et non Samaki ; « Samaki » le retrouve quand même dans la recherche).
 - **Départ dans un restaurant** (annuaire ou rond 🍴 de la carte) : la course passe toute seule en « Repas / restaurant » (pas « Envoyer un colis »), sauf si le client a choisi lui-même un autre type. « Vérifiez vos adresses » affiche le nom du restaurant avant la rue.
 - **Crédit de départ offert :** quand vous validez un livreur, il reçoit automatiquement 50 ₪ de crédit offert (une seule fois ; `settings.welcome_credit`, 0 pour arrêter). Pas d'argent reçu, donc pas de reçu : ce crédit paie ses premières commissions (≈ 12 courses à 25 ₪), puis il recharge par Bit.

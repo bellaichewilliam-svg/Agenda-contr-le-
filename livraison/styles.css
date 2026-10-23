@@ -1935,3 +1935,5 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .ens-cats { max-width: calc(100% + 32px); }
 .sc-body small.sc-meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sc-meta .sc-dot { margin-inline-end: 5px; vertical-align: 1px; }
+/* Un seul champ libre : « Un mot pour le livreur ». La remarque d'une adresse enregistrée (Mes adresses) reste envoyée */
+form .addr-note { display: none !important; }
