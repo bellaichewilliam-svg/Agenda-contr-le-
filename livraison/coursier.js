@@ -1405,6 +1405,30 @@ let lastPos = null;
 function roadKm(a, b) { return a && b ? Pricing.haversineKm(a, b) * 1.3 : null; }
 function pt(lat, lon) { return lat != null && lon != null ? { lat: Number(lat), lon: Number(lon) } : null; }
 
+// Petite carte du trajet dans la proposition : vous → départ(s) 🏪 → clients 1, 2
+const omap = { map: null, layer: null };
+function drawOfferMap(picks, drops) {
+  const box = $("#offerMap");
+  const pts = [];
+  if (!box) return;
+  if (!window.L) { box.classList.add("hidden"); return; }
+  if (!omap.map) {
+    omap.map = L.map(box, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, tap: false });
+    UI.mapTiles(omap.map, riderSet.theme !== "light");
+    omap.layer = L.layerGroup().addTo(omap.map);
+  }
+  omap.layer.clearLayers();
+  const pin = (html, cls) => L.divIcon({ className: "", iconSize: [34, 34], iconAnchor: [17, 17], html: `<div class="om-pin ${cls}">${html}</div>` });
+  const add = (lat, lon, icon) => { if (lat == null || lon == null) return; pts.push([+lat, +lon]); L.marker([+lat, +lon], { icon, interactive: false }).addTo(omap.layer); };
+  if (lastPos) add(lastPos.lat, lastPos.lon, L.divIcon({ className: "", iconSize: [16, 16], iconAnchor: [8, 8], html: `<div class="om-me"></div>` }));
+  picks.forEach(x => add(x.pickup_lat, x.pickup_lon, pin("🏪", "pick")));
+  drops.forEach((x, i) => add(x.dropoff_lat, x.dropoff_lon, pin(drops.length > 1 ? String(i + 1) : "🏁", "drop")));
+  if (pts.length > 1) L.polyline(pts, { color: "#0F1F3D", weight: 4, opacity: .85 }).addTo(omap.layer);
+  box.classList.toggle("hidden", pts.length < 2);
+  if (pts.length < 2) return;
+  setTimeout(() => { omap.map.invalidateSize(false); omap.map.fitBounds(pts, { padding: [28, 28], maxZoom: 16, animate: false }); }, 60);
+}
+
 function showNextOffer() {
   if (offerShown) return;
   let o;
@@ -1457,11 +1481,17 @@ function showNextOffer() {
   const samePick = mate && Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +mate.pickup_lat, +mate.pickup_lon) < 0.08;
   $("#offerFrom").innerHTML = !mate || samePick ? place(o.pickup_place, o.pickup_address, o.from_city)
     : [o, mate].map((x, i) => `${i + 1}. ${place(x.pickup_place, x.pickup_address, x.from_city)}`).join("<br>");
-  $("#offerTo").innerHTML = mate ? order2.map((x, i) => `${["1️⃣", "2️⃣"][i]} ${place(x.dropoff_place, x.dropoff_address, x.to_city)}`).join("<br>")
+  $("#offerTo").innerHTML = mate ? `<details class="offer-drops"><summary>Livraisons multiples <span>(2 arrêts)</span></summary>${order2.map((x, i) => `<p>${["1️⃣", "2️⃣"][i]} ${place(x.dropoff_place, x.dropoff_address, x.to_city)}</p>`).join("")}</details>`
     : place(o.dropoff_place, o.dropoff_address, o.to_city);
   if (o.leave_at_door || (mate && mate.leave_at_door)) $("#offerTo").insertAdjacentHTML("beforeend", UI.doorBig(o.leave_at_door ? o : mate, true));
   const tour = mate ? Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +order2[0].dropoff_lat, +order2[0].dropoff_lon) * 1.3
     + Store.kmBetween(+order2[0].dropoff_lat, +order2[0].dropoff_lon, +order2[1].dropoff_lat, +order2[1].dropoff_lon) * 1.3 : null;
+  // Le tour en un coup d'œil : « 4 arrêts · 2,3 km » (de vous jusqu'au dernier client) et la carte du trajet
+  const picks = mate && !samePick ? [o, mate] : [o];
+  const drops = mate ? order2 : [o];
+  const legKm = (mate ? tour + (samePick ? 0 : Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +mate.pickup_lat, +mate.pickup_lon) * 1.3) : trip || 0) + (toPickup || 0);
+  $("#offerStops").innerHTML = `<b>${picks.length + drops.length} arrêts</b>${legKm >= 0.1 ? ` · ${legKm.toFixed(1).replace(".", ",")} km en tout` : ""}`;
+  drawOfferMap(picks, drops);
   $("#offerFacts").innerHTML = [
     mate ? `🔗 <b>2 courses groupées</b> (n° ${UI.esc(order2[0].ref)} puis n° ${UI.esc(order2[1].ref)}) : ${samePick ? "même départ" : "départs voisins"}, arrivées à <b>${dropGap(o, mate)} m</b> l'une de l'autre · ≈ ${tour.toFixed(1)} km en tout` : "",
     mate ? "" : `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,

@@ -1937,3 +1937,22 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .sc-meta .sc-dot { margin-inline-end: 5px; vertical-align: 1px; }
 /* Un seul champ libre : « Un mot pour le livreur ». La remarque d'une adresse enregistrée (Mes adresses) reste envoyée */
 form .addr-note { display: none !important; }
+/* Proposition de course : la carte du trajet en haut, « 4 arrêts · 2,3 km », livraisons multiples repliées */
+.offer-map { height: 170px; margin: -26px -26px 12px; border-radius: 22px 22px 0 0; overflow: hidden; background: var(--bg-2); }
+.offer-map.hidden { display: none; }
+.offer-box:has(.offer-map:not(.hidden)) { border-top: 0; }
+.om-pin { width: 34px; height: 34px; border-radius: 50%; background: #0F1F3D; color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 15px; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0, 0, 0, .35); }
+.om-pin.pick { background: var(--brand); }
+.om-me { width: 16px; height: 16px; border-radius: 50%; background: #2E7CF6; border: 3px solid #fff; box-shadow: 0 0 0 4px rgba(46, 124, 246, .25); }
+.offer-stops { font-size: 17px; color: var(--ink); margin-top: 2px; }
+.offer-drops summary { cursor: pointer; list-style: none; font-weight: 800; }
+.offer-drops summary::-webkit-details-marker { display: none; }
+.offer-drops summary span { font-weight: 600; color: var(--muted); }
+.offer-drops summary::after { content: " ›"; color: var(--muted); }
+.offer-drops[open] summary::after { content: " ⌄"; }
+.offer-drops p { margin: 6px 0 0; font-weight: 600; font-size: 16px; }
+@media (max-width: 860px) { .offer-map { margin: -26px -26px 12px; } }
+/* ✕ pour effacer une adresse de l'accueil d'un geste */
+.ch-x { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--bg-2); color: var(--muted); font-size: 14px; font-weight: 800; line-height: 1; display: grid; place-items: center; cursor: pointer; }
+.ch-x.hidden { display: none; }
+.ch-x:active { transform: scale(.92); }

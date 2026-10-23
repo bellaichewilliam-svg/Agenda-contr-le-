@@ -2105,6 +2105,20 @@ const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city);
 const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
 const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
 const isRtl = () => document.documentElement.dir === "rtl";
+// ✕ : effacer l'adresse d'un geste (le texte, le numéro, le point sur la carte), et on peut retaper tout de suite
+const syncHomeX = which => $(`[data-hclear="${which}"]`).classList.toggle("hidden", !homeInput(which).value);
+function clearHomeAddr(which) {
+  const input = homeInput(which), pre = prefixOf(which);
+  input.value = "";
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+  state.pick[which] = null; state[which + "Point"] = null;
+  form.elements[pre + "_address"].value = ""; form.elements[pre + "_number"].value = ""; homeNo(which).value = "";
+  if (home.ac[which]) home.ac[which].reset();
+  if (ac[which]) ac[which].reset();
+  setBrandMode(which, false);
+  renderQuote(); renderShopBanner(); renderSaveBtns(); syncHome();
+  input.focus();
+}
 const addrReady = which => { const pre = prefixOf(which); const p = state.pick[which];
   return !!val(pre + "_address").trim() && (!!val(pre + "_number").trim() || !!(p && p.brand)); };
 
@@ -2130,7 +2144,8 @@ function initHome() {
       }
     });
     // Adresse tapée sans la choisir dans la liste : elle part telle quelle dans le formulaire
-    input.addEventListener("input", () => { form.elements[pre + "_address"].value = input.value; renderQuote(); });
+    input.addEventListener("input", () => { form.elements[pre + "_address"].value = input.value; syncHomeX(which); renderQuote(); });
+    $(`[data-hclear="${which}"]`).addEventListener("click", () => clearHomeAddr(which));
     homeNo(which).addEventListener("input", e => { form.elements[pre + "_number"].value = e.target.value; $("#homeErr").classList.add("hidden"); renderQuote(); });
   });
   $("#homeSwap").addEventListener("click", swapRoute);
@@ -2342,6 +2357,7 @@ function syncHome() {
       if (p) { if (input.value !== p.label) home.ac[which].setPicked(p.label); }
       else { home.ac[which].reset(); input.value = val(pre + "_address"); }
     }
+    syncHomeX(which);
     const no = homeNo(which);
     // Une rue (pas une enseigne) : la case N° est toujours là, pré-remplie si la carte connaît le numéro
     const street = !!p && !p.brand;
