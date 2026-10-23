@@ -631,12 +631,27 @@ function waitAnn(o) {
     : `✅ ${o.wait_ann_status === "ok" ? "Le client accepte" : "Accepté d'office (pas de réponse)"} : jusqu'à <b>${o.wait_ann_cap} min</b> sur place, <b>+${fee}</b> max`;
   return `<div class="wait-ann ${o.wait_ann_status === "attente" && left > 0 ? "pending" : "ok"}">${st}<small>Encore de l'attente ?</small>${chips([5, 10], true)}</div>`;
 }
+// Plusieurs courses à récupérer au même endroit (même commerce, à moins de 80 m) : « commande 1 sur 2 »,
+// une à la fois ; une fois la première récupérée, on passe à la suivante
+function pickupGroup(o) {
+  const near = x => x.pickup_lat != null && o.pickup_lat != null
+    && Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +x.pickup_lat, +x.pickup_lon) < 0.08;
+  return mine().filter(x => x.id === o.id || (near(x) && ["confirmee", "recuperee"].includes(x.status)));
+}
+function pickupRank(o) {
+  const g = pickupGroup(o);
+  if (g.length < 2 || !g.some(x => x.status === "confirmee")) return null;
+  const done = g.filter(x => x.status === "recuperee").length;
+  return { k: Math.min(g.length, done + 1), n: g.length, group: g, current: g.find(x => x.status === "confirmee") };
+}
 function mineStep(o, hopPaid) {
   if (o.status === "annulee") return `❌ Le client a laissé tomber (attente) : la moitié de la course vous est due`;
   if (o.payment_method === "cash") return o.status === "recuperee" ? `3️⃣ Livrez et encaissez ${UI.money(cashTotal(o))} en espèces`
     : Number(o.cash_goods) > 0 && !o.cash_shop_at ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
   if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${UI.money(o.price)} (Bit / PayBox), puis allez au départ`;
+  const r = o.status === "confirmee" && pickupRank(o);
+  if (r) return o.arrived_at ? `2️⃣ Récupérez la commande ${r.k} sur ${r.n}` : `2️⃣ Allez au départ · ${r.n} commandes à récupérer`;
   return o.arrived_at ? "2️⃣ Récupérez la commande" : "2️⃣ Allez au départ";
 }
 function mineCard(o, x) {
@@ -804,8 +819,24 @@ function render() {
       : empty(isOnline() ? "Pas de course disponible pour l'instant. Activez les alertes 🔔 : vous serez prévenu dès qu'une course arrive."
         : "Vous êtes hors ligne : glissez le bouton « HOP! » pour passer en ligne et recevoir des courses."));
   } else if (tab === "mine") {
-    const list = mine();
-    view.innerHTML = list.length ? `<div class="orders">${list.map(o => card(o, "mine")).join("")}</div>` : empty("Aucune course en cours.");
+    const list = mine(), shown = new Set();
+    const blocks = list.map(o => {
+      if (shown.has(o.id)) return "";
+      const r = pickupRank(o);
+      if (!r) { shown.add(o.id); return card(o, "mine"); }
+      // Au même départ : seulement la commande à récupérer maintenant, les autres en liste
+      r.group.forEach(x => shown.add(x.id));
+      const place = r.current.pickup_place || r.current.shop_name || r.current.pickup_address;
+      return `<div class="pick-group">
+        <div class="pick-head"><span>📦 ${r.n} commandes à récupérer${place ? ` chez <b>${UI.esc(place)}</b>` : ""}</span>
+          <b class="pick-count">${r.k} sur ${r.n}</b></div>
+        ${card(r.current, "mine")}
+        <div class="pick-rest">${r.group.filter(x => x.id !== r.current.id).map(x => `<div class="pick-line ${x.status === "recuperee" ? "ok" : ""}">
+          ${x.status === "recuperee" ? "✅" : "⏳"} N° <b>${UI.esc(x.ref)}</b> · ${UI.esc(x.contact_name || "")}${x.shop_ref ? ` · sac n° <b>${UI.esc(x.shop_ref)}</b>` : ""}
+          <small>${x.status === "recuperee" ? "récupérée" : "ensuite"}</small></div>`).join("")}</div>
+      </div>`;
+    }).join("");
+    view.innerHTML = list.length ? `<div class="orders">${blocks}</div>` : empty("Aucune course en cours.");
   } else if (tab === "week") {
     const amountDue = sum(due, o => Number(o.commission || 0));
     const weekBonus = sum(refDelivered().filter(o => UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= UI.addDays(start, 6)), o => Number(o.referral_bonus || 0));
@@ -1584,7 +1615,8 @@ function navLink(o, which) {
 function renderHome() {
   const lv = demandLevel(demand);
   const title = !isOnline() ? "Vous êtes hors ligne" : !lv ? "Bonjour " + String(me.name || "").split(" ")[0] + " !" : lv.n === 3 ? "🔥 Ça vaut le coup de sortir !" : lv.n === 2 ? "Ça roule tranquille" : "C'est calme pour l'instant";
-  const cur = mine();
+  // Même départ : une seule carte, celle de la commande à récupérer maintenant (« 1 sur 2 »)
+  const cur = mine().filter(o => { const r = pickupRank(o); return !r || r.current.id === o.id; });
   const p = pool();
   $("#sheetBody").innerHTML = `${refundCards()}
     <div class="rd-title">${UI.esc(title)}</div>

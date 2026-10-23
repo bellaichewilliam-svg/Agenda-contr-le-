@@ -1600,3 +1600,11 @@ body.asking { overflow: hidden; }
 .ask-modal .ask-amount { font-size: 30px; font-weight: 800; color: var(--brand); }
 .ask-modal .btn { width: 100%; padding: 14px; font-size: 17px; }
 @media (prefers-reduced-motion: reduce) { .ask-pop { animation: none; } }
+/* Livreur : plusieurs commandes au même départ (« 1 sur 2 ») */
+.pick-group { display: grid; gap: 10px; padding: 12px; border-radius: 18px; border: 2px solid var(--brand); background: var(--brand-soft); }
+.pick-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 15px; }
+.pick-count { flex: none; padding: 6px 12px; border-radius: 999px; background: var(--brand); color: #fff; font-size: 18px; }
+.pick-rest { display: grid; gap: 6px; }
+.pick-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-radius: 12px; background: var(--panel); font-size: 14px; }
+.pick-line small { margin-inline-start: auto; opacity: .7; }
+.pick-line.ok { opacity: .7; }
