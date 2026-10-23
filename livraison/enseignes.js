@@ -11,6 +11,7 @@
 const CATS = [
   { id: "hop", icon: "⭐" },
   { id: "breakfast", icon: "🥐", q: ['nwr["shop"~"^(bakery|pastry|confectionery)$"]', 'nwr["craft"="bakery"]'], r: 4000 },
+  { id: "pressing", icon: "👔", q: ['nwr["shop"~"^(dry_cleaning|laundry)$"]'], r: 5000 },
   { id: "pharm", icon: "💊", q: ['nwr["amenity"="pharmacy"]', 'nwr["shop"="chemist"]'], r: 6000 },
   { id: "post", icon: "📮", q: ['nwr["amenity"="post_office"]', 'nwr["amenity"="parcel_locker"]'], r: 6000 },
   { id: "super", icon: "🛒", q: ['nwr["shop"="supermarket"]'], r: 5000 },
@@ -23,7 +24,7 @@ const ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
 // Même chose par Photon (rapide, déjà utilisé pour les adresses) : les plus proches d'un type de lieu
 const PHOTON_TAGS = {
-  breakfast: ["shop:bakery", "shop:pastry", "shop:confectionery"],
+  breakfast: ["shop:bakery", "shop:pastry", "shop:confectionery"], pressing: ["shop:dry_cleaning", "shop:laundry"],
   pharm: ["amenity:pharmacy", "shop:chemist"], post: ["amenity:post_office", "amenity:parcel_locker"], super: ["shop:supermarket"],
   food: ["amenity:restaurant", "amenity:fast_food"], mall: ["shop:mall", "shop:department_store"], flower: ["shop:florist"],
   tech: ["shop:mobile_phone", "shop:electronics", "shop:computer"]
@@ -32,6 +33,7 @@ const KEEP_MS = 7 * 86400000;
 // Petit-déjeuner : ce qu'on cherche dans les noms et les types de l'annuaire
 const dirText = e => [e.n, e.fr, e.k].concat(e.alt || []).join(" ");
 const BREAKFAST = /מאפ|בולנז|בולנג|קונדיטור|פטיסרי|בייקרי|bakery|boulang|patiss|p[âa]tisserie|croissant|קרואסון|בגט|baguette|brioche|בריוש|moulin|traiteur|קייטרינג|מעדני|bagel|בייגל|טאבון|לחם/i;
+const PRESSING = /מכבס|ניקוי יבש|גיהוץ|pressing|laverie|blanchisserie|nettoyage [àa] sec|dry.?clean|laundry/i;
 const FRENCH = /צרפת|בולנז|בולנג|boulang|fran[cç]ais|moulin|מולן|מולאן|parisien|פריזי|baguette|בגט|croissant|brioche/i;
 const KIND_ICON = { restaurant: "🍽️", pharmacie: "💊", boutique: "🛍️", fleuriste: "💐", epicerie: "🛒", bureau: "🏢" };
 
@@ -103,15 +105,18 @@ async function list(catId, at, lang) {
       name: s.name, street: s.address || "", number: "", city: s.city || "", lat: Number(s.lat), lon: Number(s.lon),
       partner: true, code: s.code, icon: KIND_ICON[s.kind] || "⭐"
     }));
-  } else if (cat.id === "breakfast") {
-    // Petit-déjeuner : boulangeries (françaises d'abord), pâtisseries, traiteurs de l'annuaire HOP! + celles de la carte
-    const dir = (await Places.directory()).filter(e => e.lat != null && Places.km(at, e) * 1000 <= cat.r * 2 && BREAKFAST.test(dirText(e)));
+  } else if (cat.id === "breakfast" || cat.id === "pressing") {
+    // Petit-déjeuner : boulangeries (françaises d'abord), pâtisseries, traiteurs ; pressing : pressings et laveries.
+    // L'annuaire HOP! + ceux de la carte
+    const rx = cat.id === "pressing" ? PRESSING : BREAKFAST;
+    const dir = (await Places.directory()).filter(e => e.lat != null && Places.km(at, e) * 1000 <= cat.r * 2 && rx.test(dirText(e)));
     const fromDir = dir.map(e => {
       const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)/);
       return { name: Places.dirName(e, lang), street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
-        lat: e.lat, lon: e.lon, icon: FRENCH.test(dirText(e)) ? "🥖" : /קייטרינג|traiteur|מעדני/i.test(dirText(e)) ? "🍱" : "🥐", french: FRENCH.test(dirText(e)) };
+        lat: e.lat, lon: e.lon, icon: cat.id === "pressing" ? "👔" : FRENCH.test(dirText(e)) ? "🥖" : /קייטרינג|traiteur|מעדני/i.test(dirText(e)) ? "🍱" : "🥐",
+        french: cat.id === "breakfast" && FRENCH.test(dirText(e)) };
     });
-    const key = `livraison.ens.v1.breakfast.${lang}.${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
+    const key = `livraison.ens.v1.${cat.id}.${lang}.${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
     let fromMap = readCache(key);
     if (!fromMap) {
       fromMap = await firstFull([photonNear(cat, at, lang).catch(() => []), overpassNear(cat, at, lang)]).catch(() => []);
@@ -119,7 +124,7 @@ async function list(catId, at, lang) {
     }
     const nn = v => String(v || "").toLowerCase().replace(/[^a-z0-9\u0590-\u05ff]/g, "");
     items = fromDir.concat(fromMap.filter(x => !fromDir.some(d => Places.km(d, x) < 0.15 && (nn(d.name).includes(nn(x.name)) || nn(x.name).includes(nn(d.name)))))
-      .map(x => Object.assign({ icon: "🥐" }, x)));
+      .map(x => Object.assign({ icon: cat.icon }, x)));
     // Les boulangeries françaises en tête (à distance égale), puis les plus proches
     return items.map(x => Object.assign(x, { km: Places.km(at, x) })).sort((a, b) => (a.km - (a.french ? 1 : 0)) - (b.km - (b.french ? 1 : 0))).slice(0, 80);
   } else if (cat.id === "food" && (items = (await Places.directory()).filter(e => e.lat != null && Places.km(at, e) * 1000 <= cat.r * 2)).length) {

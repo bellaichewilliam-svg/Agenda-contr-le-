@@ -52,6 +52,8 @@ const EXAMPLES = [
   { id: "yad2",  icon: "🛋️", set: { service: "colis", size: "moyen" } },
   { id: "keys",  icon: "🔑", set: { service: "colis", urgency: "express" } },
   { id: "shop",  icon: "🛒", set: { service: "achat" } },
+  { id: "bakery", icon: "🥐", set: { service: "repas" } },
+  { id: "pressing", icon: "👔", set: { service: "colis" } },
   { id: "gift",  icon: "💐", set: { service: "colis", urgency: "programmee" } },
   { id: "ta",    icon: "🏙️", set: { service: "colis", from_city: CONFIG.homeCity, to_city: "raanana" } }
 ];
@@ -1932,7 +1934,7 @@ function applyKind(id) {
   renderQuote();
   renderHomeStatic();
   // Poste, Super-Pharm, restaurant… sans départ choisi : on propose tout de suite les plus proches
-  const cat = { poste: "post", pharm: "pharm", resto: "food", shop: "super", gift: "flower" }[id];
+  const cat = { poste: "post", pharm: "pharm", resto: "food", shop: "super", gift: "flower", bakery: "breakfast", pressing: "pressing" }[id];
   if (state.homeKind && cat && !state.pick.from) openEns(cat);
 }
 
