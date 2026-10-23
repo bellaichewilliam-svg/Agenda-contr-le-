@@ -235,7 +235,7 @@ window.CONFIG = {
   // d'abonnement payé, pendant referrerMonths mois.
   // (En ligne : pro_monthly, pro_shop_share, pro_hop_share, pro_lead_min, pro_referrer_pct, pro_referrer_months.)
   // hopShareClient : part de HOP quand le commerce a choisi « le client paie la livraison » (prise sur le crédit du livreur)
-  pro: { monthly: 199, shopShare: 12, hopShare: 2, hopShareClient: 1, leadMinutes: 8, prepChoices: [10, 15, 20, 30], referrerPercent: 20, referrerMonths: 12 },
+  pro: { monthly: 299, shopShare: 12, hopShare: 2, hopShareClient: 1, leadMinutes: 8, prepChoices: [10, 15, 20, 30], referrerPercent: 20, referrerMonths: 12 },
 
   // Messages prêts à envoyer aux livreurs depuis l'espace patron
   courierMessages: [

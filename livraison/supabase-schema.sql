@@ -5549,3 +5549,61 @@ begin
                    replace(src, 'end - st.wait_free_min)', 'end - greatest(st.wait_free_min, coalesce(x.purchase_min, 0)))'));
   end if;
 end $$;
+
+-- ============================================================================
+-- HOP! PRO : ABONNEMENT À 299 ₪ PAR MOIS (au lieu de 199 ₪), décision du patron
+-- ============================================================================
+alter table public.settings alter column pro_monthly set default 299;
+update public.settings set pro_monthly = 299 where id = 1 and pro_monthly = 199;
+
+-- ============================================================================
+-- VITRINES DE DÉMONSTRATION : un restaurant, une boulangerie et une boutique au catalogue complet, à montrer aux
+-- commerces en rendez-vous (lien index.html?c=DEMO-RESTO…). Invisibles sur l'accueil et dans l'annuaire,
+-- et aucune commande ne peut y être passée (les données : supabase/demo-shops.sql).
+-- ============================================================================
+alter table public.shops add column if not exists demo boolean not null default false;
+
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'client_pays', s.client_pays, 'hours', s.hours,
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and s.plan_until >= current_date and not s.demo;
+$$;
+
+create or replace function public.shops_directory() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', code, 'name', name, 'kind', kind, 'city', city,
+           'address', address, 'lat', lat, 'lon', lon, 'pro', coalesce(plan_until >= current_date, false)) order by name), '[]'::json)
+    from shops where status = 'actif' and not demo;
+$$;
+
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'logo', logo, 'cover', cover, 'tagline', tagline, 'client_pays', client_pays,
+                           'whatsapp', whatsapp, 'hours', hours, 'about', about, 'pay_link', pay_link, 'pay_bit', pay_bit, 'demo', demo,
+                           'shop_share', case when client_pays then 0
+                                              else (select pro_shop_share - pro_hop_share from settings where id = 1) end)
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;
+
+-- Jamais de vraie course depuis une vitrine de démonstration
+create or replace function public.orders_demo_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.shop_id is not null and exists (select 1 from shops s where s.id = new.shop_id and s.demo) then raise exception 'demo_shop'; end if;
+  if new.drop_shop_id is not null and exists (select 1 from shops s where s.id = new.drop_shop_id and s.demo) then new.drop_shop_id := null; end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_demo_guard on public.orders;
+create trigger orders_demo_guard before insert on public.orders
+  for each row execute function public.orders_demo_guard();
+revoke execute on function public.orders_demo_guard() from public, anon, authenticated;

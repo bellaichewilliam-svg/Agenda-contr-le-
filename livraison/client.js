@@ -1113,6 +1113,8 @@ async function locate(address, cityId, point) {
 async function submit(e) {
   e.preventDefault();
   showError("");
+  // Vitrine de démonstration (montrée aux commerces) : on peut tout essayer, sauf envoyer une vraie course
+  if (state.shop && state.shop.demo) return showError(t("errDemoShop"));
   const fromCity = cityOf("from"), toCity = cityOf("to");
   const required = ["pickup_address", "dropoff_address", "contact_name", "contact_phone"];
   const missing = required.find(k => !val(k).trim());
@@ -1375,6 +1377,7 @@ async function submit(e) {
     if (/carnet_/.test(ex.message)) { if (state.pro) state.pro.credits = 0; syncVisibility(); return showError(t("errCarnet")); }
     if (/cash_max/.test(ex.message)) return showError(t("errCashMax", { max: money(cashMax()) }));
     if (/cash_first/.test(ex.message)) return showError(t("errCashFirst"));
+    if (/demo_shop/.test(ex.message)) return showError(t("errDemoShop"));
     if (/cash_note_small/.test(ex.message)) return showError(t("errCashNote"));
     if (/client_blocked/.test(ex.message)) return showError(t("errBlocked"));
     if (/alcohol_hours/.test(ex.message)) return showError(t("errAlcoholHours"));
@@ -1927,9 +1930,9 @@ function renderShopBanner() {
   const s = state.shop, hero = $("#shopHero"), showHero = !!(on && s && (s.pro || s.logo || s.cover));
   hero.classList.toggle("hidden", !showHero);
   if (showHero) {
-    const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), kinds = t("shKinds") || {};
+    const cover = UI.safeImg(s.cover) || UI.demoImg(s, "cover"), logo = UI.safeImg(s.logo) || UI.demoImg(s, "logo"), kinds = t("shKinds") || {};
     const initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
-    const html = `<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
+    const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))}</span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(s.name)}</b><small>${UI.esc(s.tagline || kinds[s.kind] || "")}</small></div></div>
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
@@ -2483,7 +2486,7 @@ function drawRestos() {
     L.marker([g.e.lat, g.e.lon], { zIndexOffset: -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [24, 24], iconAnchor: [12, 12],
       html: `<div class="resto-pin${more ? " many" : ""}"><b>🍴</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i]; return `<div class="rp-row">
-          <span><b>${UI.esc(Places.dirName(e, I18N.lang))}</b>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}</span>
+          <span><b>${UI.esc(Places.dirName(e, I18N.lang))}</b>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(t("restoTake"))}</button></div>`; }).join("")}</div>`,
         { closeButton: false, offset: [0, -6], autoPanPaddingTopLeft: [12, 140], autoPanPaddingBottomRight: [70, 20] })
       .addTo(restos.layer);
@@ -2711,7 +2714,7 @@ function renderEnsList() {
     const addr = [`${x.street} ${x.number}`.trim(), x.city ? cityLabel(cityIdOf(x.city) || x.city) : ""].filter(Boolean).join(", ");
     return `<div class="ens-item">
       <span class="ens-ico">${x.icon}</span>
-      <div class="ens-main"><b>${UI.esc(x.name)}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>
+      <div class="ens-main"><b>${UI.esc(x.name)}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>${x.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}
         <small>${UI.esc(addr || t("ensAddrLater"))} · ${dist(x)}</small></div>
       <div class="ens-act"><button type="button" class="btn btn-sm btn-primary" data-ens-pick="from" data-i="${i}">${UI.esc(t("ensFrom"))}</button>
         <button type="button" class="btn btn-sm" data-ens-pick="to" data-i="${i}">${UI.esc(t("ensTo"))}</button></div>

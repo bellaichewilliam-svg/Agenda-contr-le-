@@ -1956,3 +1956,9 @@ form .addr-note { display: none !important; }
 .ch-x { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 0; background: var(--bg-2); color: var(--muted); font-size: 14px; font-weight: 800; line-height: 1; display: grid; place-items: center; cursor: pointer; }
 .ch-x.hidden { display: none; }
 .ch-x:active { transform: scale(.92); }
+/* Vitrine de démonstration (montrée aux commerces) : bandeau bien visible en haut */
+.shop-hero .sh-demo { display: flex; gap: 8px; align-items: flex-start; margin: 0; padding: 10px 14px; background: #0F1F3D; color: #fff; font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+/* « 📖 Catalogue bientôt sur HOP! » sur les enseignes de l'annuaire (recherche, carte, enseignes près de vous) */
+.ac-soon { display: inline-block; font-style: normal; font-size: 11px; font-weight: 700; color: var(--brand-ink); background: var(--brand-soft); border: 0; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+.ens-main .ac-soon, .rp-row .ac-soon { justify-self: start; margin-top: 2px; }
+.rp-row span .ac-soon { display: table; }
