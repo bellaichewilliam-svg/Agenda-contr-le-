@@ -998,8 +998,10 @@ async function courierAction(id, action) {
 
 // Supplément d'attente / d'achats (même calcul qu'en ligne)
 // Supplément pour un nombre de minutes sur place : minutes offertes, puis le prix par minute, avec un maximum
-function waitFeeFor(m, st) {
-  return Math.min(Number(st.wait_max), Math.ceil(Math.max(0, Number(m || 0) - Number(st.wait_free_min)) / Number(st.wait_step_min)) * Number(st.wait_step_price));
+// Achats : les 10 min d'achats déjà payées remplacent les minutes offertes (l'attente payée commence après)
+const freeMinOf = (o, st) => Math.max(Number(st.wait_free_min), Number((o && o.purchase_min) || 0));
+function waitFeeFor(m, st, o) {
+  return Math.min(Number(st.wait_max), Math.ceil(Math.max(0, Number(m || 0) - freeMinOf(o, st)) / Number(st.wait_step_min)) * Number(st.wait_step_price));
 }
 function waitFee(o, st) {
   if (!o.arrived_at) return { mins: 0, fee: 0 };
@@ -1008,7 +1010,7 @@ function waitFee(o, st) {
   const mins = Math.max(0, Math.floor((Date.now() - from) / 60000));
   // Client : seulement l'attente annoncée sur place et pas refusée, jusqu'au plafond annoncé
   if (!o.shop_status && (o.wait_ann_cap == null || o.wait_ann_status === "refus")) return { mins, fee: 0, unannounced: true };
-  return { mins, fee: waitFeeFor(o.shop_status ? mins : Math.min(mins, Number(o.wait_ann_cap)), st) };
+  return { mins, fee: waitFeeFor(o.shop_status ? mins : Math.min(mins, Number(o.wait_ann_cap)), st, o) };
 }
 // Attente annoncée : le livreur la dit au client, qui accepte ou laisse tomber (moitié de la course)
 async function courierWaitAnnounce(id, min) {
@@ -1924,7 +1926,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
+  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,

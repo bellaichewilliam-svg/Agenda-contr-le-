@@ -114,6 +114,8 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
   - côté commerce : « ⏳ En attente du paiement du client », puis « 💳 Le client dit avoir payé 20 ₪ » (avec sonnerie) et les boutons « ✅ Paiement reçu » / « ❌ Pas reçu » (`shop_goods_pay`) ; la commande ne peut être acceptée (préparation) qu'une fois le paiement reçu, vérifié aussi par la base (`goods_unpaid`) ;
   - côté livreur : « ✅ Articles déjà payés au commerce : rien à avancer » ; en espèces, il n'avance plus les articles d'un commerce payé d'avance (`orders.goods_pay`, `orders_shop_prepay`).
   Un commerce sans lien ni Bit garde l'ancien fonctionnement.
+- **Achats : 10 minutes comptées d'office.** Une course « J'achète pour vous » (Super-Pharm, supermarché…) compte 10 min d'achats payées au livreur : « 🛒 Temps des achats (10 min compris) +10 ₪ » dans le prix (`pricing.purchase`, `pricing.purchaseMinutes`, `settings.purchase_min`, `orders.purchase_min`). Exception : seulement des cigarettes (« 2 Marlboro ») → pas de supplément. Au-delà de 10 min sur place, l'attente annoncée habituelle (1 ₪ la minute) : elle ne commence qu'après ces 10 min (`wait_fee_for(min, compris)`, `courier_update`, `courier_wait_announce`). Le livreur voit « ⏱️ 10 min d'achats comprises dans le prix ».
+- **Carte du livreur au retour dans l'appli** : si le téléphone a vidé la carte (appli en arrière-plan, sans recharger), elle se reconstruit toute seule au retour.
 - **Sur téléphone :**
   - le catalogue d'un commerce tient dans la largeur de l'écran : il débordait à 1 300 px, ce qui cachait les photos des articles et faisait défiler de travers ;
   - les bannières gardent leur format 600 × 250, sans « Repassage » coupé ;

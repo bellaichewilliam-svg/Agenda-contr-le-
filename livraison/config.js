@@ -140,7 +140,8 @@ window.CONFIG = {
     },
     express: 20,        // en moins d'une heure
     pickupPoint: 0,     // retrait à la poste / Super-Pharm / point relais : plus de supplément fixe (l'attente au-delà de 10 min est payée au temps, voir waiting)
-    purchase: 0,        // « J'achète pour vous » : plus de supplément fixe (le temps des achats au-delà de 10 min est payé au temps)
+    purchase: 10,       // « J'achète pour vous » : 10 min d'achats comptées d'office (10 ₪), sauf un paquet de cigarettes seul ;
+    purchaseMinutes: 10, // au-delà, l'attente annoncée habituelle (1 ₪ la minute). En ligne : settings.purchase_min
     extraStop: 10,      // (ancien) par arrêt supplémentaire sans adresse
     // Arrêt en plus, avec son adresse : sur le chemin (détour d'au plus onWayKm km) → onWayPercent % du
     // prix d'une course ; sinon le prix d'une course (base). Au plus maxStops arrêts.

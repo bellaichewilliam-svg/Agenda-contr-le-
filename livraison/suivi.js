@@ -168,10 +168,10 @@ function waitAsk(o) {
   if (o.wait_ann_at && lastAnn && lastAnn !== o.wait_ann_at && navigator.vibrate) navigator.vibrate([300, 120, 300]);
   lastAnn = o.wait_ann_at;
   const left = Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000));
-  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings));
+  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings, o));
   const html = st === "info" ? `<b>${UI.esc(t("waInfo", { min: o.wait_ann_min }))}</b>`
     : st === "attente" && left > 0 ? `<b>${UI.esc(t("waAnnTitle", { min: o.wait_ann_min }))}</b>
-      <small>${UI.esc(t("waAnnFee", { fee, free: settings.wait_free_min, price: UI.money(settings.wait_step_price), left: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` }))}</small>
+      <small>${UI.esc(t("waAnnFee", { fee, free: Store.freeMinOf(o, settings), price: UI.money(settings.wait_step_price), left: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` }))}</small>
       <div class="btns"><button type="button" class="btn btn-primary" data-wa-ok>${UI.esc(t("waOk"))}</button>
         <button type="button" class="btn" data-wa-drop>${UI.esc(t("waDrop"))}</button></div>`
     : `<b>${UI.esc(t("waAccepted", { fee, min: o.wait_ann_min }))}</b>`;
@@ -205,7 +205,7 @@ function etaBox(o) {
     const st = settings, w = Store.waitFee(o, st);
     main = t("trArrived");
     sub = w.fee ? t("trWaitNow", { min: w.mins, fee: UI.money(w.fee) })
-      : t("trWaitLeft", { min: w.mins, left: Math.max(0, st.wait_free_min - w.mins), price: UI.money(st.wait_step_price), step: Number(st.wait_step_min) === 1 ? t("stepMin1") : t("stepMinN", { n: st.wait_step_min }) });
+      : t("trWaitLeft", { min: w.mins, left: Math.max(0, Store.freeMinOf(o, st) - w.mins), price: UI.money(st.wait_step_price), step: Number(st.wait_step_min) === 1 ? t("stepMin1") : t("stepMinN", { n: st.wait_step_min }) });
   } else if (o.status === "confirmee") {
     // Le plus long entre le GPS et le temps annoncé par le livreur (il peut finir une autre course)
     const said = o.eta_at ? Math.ceil((new Date(o.eta_at) - Date.now()) / 60000) : 0;
