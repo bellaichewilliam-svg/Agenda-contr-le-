@@ -5293,3 +5293,19 @@ language sql stable security definer set search_path = public as $$
     from (select * from known_places where lat is not null and lon is not null and (verified or uses >= 3)
            order by uses desc, last_at desc limit 2000) k;
 $$;
+
+-- ============================================================================
+-- VITRINE DE L'ACCUEIL : avec les horaires (« Ouvert · ferme à 19:00 », « Fermé · ouvre lundi 08:30 »)
+-- et les premiers articles du menu (illustrés côté client, sans photo pour rester léger)
+-- ============================================================================
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'client_pays', s.client_pays, 'hours', s.hours,
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and s.plan_until >= current_date;
+$$;

@@ -219,6 +219,32 @@ const SERVICE_FR = { colis: "Envoi de colis", retrait: "Retrait de colis", achat
 const PLACE_FR = { poste: "Bureau de poste", superpharm: "Super-Pharm", relais: "Point relais", locker: "Casier / locker", autre: "Magasin" };
 const DOC_FR = { avis: "📨 Avis / SMS", identite: "🪪 Carte d'identité", procuration: "✍️ Procuration signée", rdv: "📅 Rendez-vous à la poste" };
 
+// Horaires d'un commerce [{ d: 0..6, h: "08:30-13:30,15:30-19:00" }] à l'heure d'Israël :
+// { open: true, until: minutes } ou { open: false, inDays, day, at: minutes } (prochaine ouverture), null sans horaires
+function openState(hours, at) {
+  if (!Array.isArray(hours) || !hours.some(x => x && x.h)) return null;
+  const now = new Date((at || new Date()).toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+  const m = now.getHours() * 60 + now.getMinutes(), day = now.getDay();
+  const mins = v => { const [h, mm] = String(v).split(":").map(Number); return h * 60 + (mm || 0); };
+  const ranges = d => { const x = hours.find(h => Number(h.d) === d);
+    return x && x.h ? String(x.h).split(",").map(r => r.split("-")).filter(r => r.length === 2).map(([a, b]) => [mins(a), mins(b)]).sort((p, q) => p[0] - q[0]) : []; };
+  const cur = ranges(day).find(([a, b]) => m >= a && m < b);
+  if (cur) return { open: true, until: cur[1] };
+  for (let k = 0; k < 8; k++) {
+    const d = (day + k) % 7, r = ranges(d).find(([a]) => k > 0 || a > m);
+    if (r) return { open: false, inDays: k, day: d, at: r[0] };
+  }
+  return { open: false };
+}
+const hhmmOf = n => `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+// Date de la prochaine ouverture (sur ce téléphone, réglé à l'heure d'Israël)
+function nextOpenDate(st, from) {
+  if (!st || st.open || st.inDays == null) return null;
+  const d = new Date(from || Date.now()); d.setDate(d.getDate() + st.inDays); d.setHours(Math.floor(st.at / 60), st.at % 60, 0, 0);
+  return d;
+}
+const artImg = (k, h) => `<span class="item-art" style="--h:${h}"><img src="img/items/${k}.webp" alt="" loading="lazy" /></span>`;
+
 // Article sans photo : une illustration qui lui ressemble (pressing, boulangerie, restaurant…) sur un fond coloré
 const ITEM_ART = [
   [/tsitsit|ציצי/i, "tshirt", 200], [/repass|גיהוץ|iron/i, "necktie", 215], [/manteau|מעיל|veste|coat|jacket/i, "coat", 30], [/robe|שמל|dress/i, "dress", 220],
@@ -510,7 +536,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON, itemArt,
+  DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

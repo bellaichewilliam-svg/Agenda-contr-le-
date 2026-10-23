@@ -1444,7 +1444,9 @@ async function bookNotice(n) {
     const cityId = CONFIG.cities.some(c => c.id === n.city) ? n.city : null;
     applySavedAddr("to", { street: m ? m[1] : n.addr, number: m ? m[2] : "", cityId, city: n.city, lat: n.lat, lon: n.lon, exact: n.lat != null });
   }
-  const at = n.ready_from && new Date(n.ready_from);
+  let at = n.ready_from && new Date(n.ready_from);
+  // Prêt un jour où le commerce est fermé (chabbat…) : à sa prochaine ouverture
+  if (at && state.shop) { const st = UI.openState(state.shop.hours, at), o = UI.nextOpenDate(st, at); if (o) at = new Date(o.getTime() + 15 * 60000); }
   if (at && at - Date.now() > 20 * 60000) {
     const d = new Date(Math.ceil(at.getTime() / 900000) * 900000);
     form.elements.urgency.value = "programmee";
@@ -1751,12 +1753,19 @@ function renderCatalog() {
     .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: cgProducts().filter(p => !cats.some(c => c.id === p.category_id)) }] : []);
   const n = cartCount();
   // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
+  // Les incontournables : les premiers articles du menu, en grandes cartes qui défilent
+  const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind));
+  const top = cgProducts().filter(p => p.available).slice(0, 8);
   const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: state.shop.name }))}</b>
+    ${cgProducts().length >= 5 ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = state.cart[p.id] || 0;
+      return `<div class="cg-tcard${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}"><div class="cg-tpic">${pic(p)}
+        <button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button></div>
+        <span class="cg-price">${UI.money(p.price)}</span><b><bdi>${UI.esc(p.name)}</bdi></b></div>`; }).join("")}</div></div>` : ""}
     ${cats.length > 1 ? `<div class="cg-cats" role="tablist">${sections.filter(x => x.title).map(x =>
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
       const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
-      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}">
+      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(p.name)}</bdi></b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
         <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind)}
         ${!p.available ? `<span class="cg-out">${UI.esc(t("cgOut"))}</span>`
@@ -1794,7 +1803,7 @@ let cgTick = 0;
 addEventListener("scroll", () => { if (!cgTick) cgTick = requestAnimationFrame(() => { cgTick = 0; syncCgTabs(); }); }, { passive: true });
 $("#catalogBox").addEventListener("click", e => {
   const b = e.target.closest("button");
-  if (!b) return;
+  if (!b) { const card = e.target.closest("[data-cg-open]"); if (card) openItem(card.dataset.cgOpen); return; }
   // Panier : on passe à la suite (adresse de livraison, ou le récapitulatif si tout est rempli)
   if (b.dataset.cgGo != null) {
     const next = stepStates().slice(1).find(([fs, ok]) => fs && !ok && fs !== $("#shopOrderBox") && fs.offsetParent);
@@ -1813,12 +1822,54 @@ $("#catalogBox").addEventListener("click", e => {
   saveDraft();
 });
 
+// Fiche d'un article : grande image, description, prix, quantité, « Ajouter · total »
+const item = { id: null, qty: 1 };
+function openItem(id) {
+  const p = cgProducts().find(x => x.id === id);
+  if (!p) return;
+  item.id = id; item.qty = Math.max(1, state.cart[id] || 1);
+  renderItem();
+  $("#itemSheet").classList.remove("hidden");
+}
+function renderItem() {
+  const p = cgProducts().find(x => x.id === item.id);
+  if (!p) return;
+  const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
+  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}" alt="" />` : UI.itemArt(p.name, state.shop.kind)}</div>
+    <div class="it-txt"><h3><bdi>${UI.esc(p.name)}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
+      ${p.description ? `<p>${UI.esc(p.description)}</p>` : ""}
+      ${p.available ? "" : `<p class="it-out">${UI.esc(t("cgOut"))}</p>`}</div>`;
+  $("#itemQty").textContent = item.qty;
+  $("#itemAdd").disabled = !p.available;
+  $("#itemAdd").innerHTML = `<span>${UI.esc(t(inCart ? "itUpdate" : "itAdd"))}</span><b>${UI.esc(money(Number(p.price) * item.qty))}</b>`;
+  $("#itemDel").classList.toggle("hidden", !inCart);
+}
+$("#itemSheet").addEventListener("click", e => {
+  if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
+  if (e.target.closest("#itemMinus")) { item.qty = Math.max(1, item.qty - 1); return renderItem(); }
+  if (e.target.closest("#itemPlus")) { item.qty = Math.min(50, item.qty + 1); return renderItem(); }
+  const add = e.target.closest("#itemAdd"), del = e.target.closest("#itemDel");
+  if (!add && !del) return;
+  state.cart[item.id] = add ? item.qty : 0;
+  $("#itemSheet").classList.add("hidden");
+  renderCatalog(); renderQuote(); saveDraft();
+});
+
 // --- Commerce partenaire (lien index.html?c=CODE) : départ rempli depuis le commerce ----------
 // HOP! Pro : le départ est un commerce abonné → le client écrit sa commande, le commerce la prépare
 const shopPicked = () => !!(state.shop && state.pick.from && state.pick.from.shopId === state.shop.id);
 const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method") !== "carnet";
 // Fiche du commerce : présentation, adresse, horaires (ouvert / fermé maintenant), WhatsApp pour le joindre
 const DAYS = { fr: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], he: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] };
+// « Ouvert · ferme à 19:00 » / « Fermé · ouvre demain à 08:30 » / « Fermé · ouvre lundi à 08:30 »
+function openLabel(st) {
+  if (!st) return "";
+  if (st.open) return t("stOpenUntil", { time: UI.hhmmOf(st.until) });
+  if (st.inDays == null) return t("shClosed");
+  const time = UI.hhmmOf(st.at);
+  return st.inDays === 0 ? t("stOpensAt", { time }) : st.inDays === 1 ? t("stOpensTomorrow", { time })
+    : t("stOpensDay", { day: (DAYS[I18N.lang] || DAYS.fr)[st.day].toLowerCase(), time });
+}
 function shopOpenNow(hours) {
   const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
   const today = (hours || []).find(x => Number(x.d) === now.getDay());
@@ -1837,7 +1888,7 @@ function shopInfo(s) {
     ${s.about ? `<p class="sh-about">${UI.esc(s.about)}</p>` : ""}
     <div class="sh-lines">
       ${s.address ? `<div class="sh-line"><span>📍</span><b><bdi>${UI.esc(s.address)}</bdi>${s.city ? ", " + UI.esc(cityLabel(cityIdOf(s.city, s) || s.city)) : ""}</b></div>` : ""}
-      ${hours.length ? `<div class="sh-line"><span>🕘</span><b class="sh-open ${open ? "on" : "off"}">${UI.esc(t(open ? "shOpenNow" : "shClosedNow"))}</b>
+      ${hours.length ? `<div class="sh-line"><span>🕘</span><b class="sh-open ${open ? "on" : "off"}">${UI.esc(openLabel(UI.openState(hours)) || t(open ? "shOpenNow" : "shClosedNow"))}</b>
         <small>${UI.esc(t("shToday"))} : ${UI.esc(fmt((hours.find(x => Number(x.d) === today) || {}).h))}</small></div>` : ""}
     </div>
     ${wa ? `<a class="sh-wa" href="https://wa.me/${UI.esc(wa)}?text=${waText}" target="_blank" rel="noopener">
@@ -1862,7 +1913,9 @@ function renderShopBanner() {
     const html = `<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(s.name)}</b><small>${UI.esc(s.tagline || kinds[s.kind] || "")}</small></div></div>
+      ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
       ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
+      ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: s.name, when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
         <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: s.name }))}</small></span></button>
         <button type="button" class="${side === "from" ? "on" : ""}" data-shop-dir="from"><i>👔</i><span><b>${UI.esc(t("shDirFrom"))}</b><small>${UI.esc(t("shDirFromSub", { name: s.name }))}</small></span></button>
@@ -1909,6 +1962,16 @@ function applyShop() {
     city: s.city, lat: s.lat, lon: s.lon, exact: s.lat != null });
   state.pick[dir].shopId = s.id;
   if (other === "from" && !state.pick.from) setTimeout(() => form.pickup_address.focus({ preventScroll: true }), 300);
+  // Commerce fermé maintenant : la course est programmée d'office pour son ouverture (le client peut changer)
+  state.shopSched = null;
+  const st = UI.openState(s.hours), at = UI.nextOpenDate(st);
+  if (at && val("urgency") === "asap") {
+    const d = new Date(at.getTime() + 15 * 60000);
+    form.elements.urgency.value = "programmee";
+    form.date.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    form.time.value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    state.shopSched = d;
+  }
   // Commerce HOP! Pro : le service va de soi (repas pour un restaurant, sinon une course simple)
   if (s.kind === "restaurant" || s.pro) { form.elements.service.value = s.kind === "restaurant" ? "repas" : "colis"; state.svcChosen = true; }
   syncVisibility(); renderQuote();
@@ -2128,11 +2191,15 @@ function initHome() {
 function showHomeErr(msg) { $("#homeErr").textContent = msg || ""; $("#homeErr").classList.toggle("hidden", !msg); }
 
 // Types de course, raccourcis d'heure et adresses enregistrées (selon la langue)
+// Illustrations en relief des types de course et des catégories d'enseignes (img/items)
+const KIND_ART = { bakery: ["croissant", 38], pressing: ["basket", 35], poste: ["mailbox", 205], pharm: ["pill", 160], resto: ["burger", 25], docs: ["docs", 215],
+  yad2: ["couch", 30], keys: ["key", 45], shop: ["cart", 140], gift: ["flowers", 330], ta: ["scooter", 15] };
 function renderHomeStatic() {
   const homeCity = CONFIG.homeCity;
   $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
     const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip }, CONFIG);
-    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}"><i>${ex.icon}</i><b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
+    const art = KIND_ART[ex.id];
+    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
   }).join("");
   const list = Store.getAddresses().slice(0, 5);
   $("#homeChips").innerHTML = `<button type="button" class="ch-chip" data-hgeo="auto">${UI.esc(t("myPosChip"))}</button>`
@@ -2517,15 +2584,44 @@ function proPrice(s) {
   const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
   return Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - share);
 }
-function renderShowcase() {
-  const list = state.showcase || [];
-  $("#homeProBox").classList.toggle("hidden", !list.length);
-  const kinds = t("shKinds") || {};
-  $("#homePro").innerHTML = list.map(s => UI.proCard(s, {
-    kindLabel: kinds[s.kind] || "", delivery: t("proDelivery", { price: money(proPrice(s)) }),
-    menu: s.products ? t("proMenu", { n: s.products }) : "", go: t("proGo")
-  })).join("");
+// Favoris (cœur) : gardés sur ce téléphone, affichés en premier
+const LS_FAVS = "livraison.favs.v1";
+const favs = () => { try { return JSON.parse(localStorage.getItem(LS_FAVS)) || []; } catch (e) { return []; } };
+function toggleFav(code) {
+  const f = favs(), i = f.indexOf(code);
+  if (i >= 0) f.splice(i, 1); else f.unshift(code);
+  try { localStorage.setItem(LS_FAVS, JSON.stringify(f.slice(0, 50))); } catch (e) { /* ignore */ }
+  renderShowcase();
 }
+// Grande carte d'un commerce : photo, logo, ouvert / fermé, livraison, et ses premiers articles illustrés
+function shopCard(s) {
+  const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = UI.openState(s.hours);
+  const initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  const top = (s.top || []).slice(0, 4);
+  return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">
+    <span class="sc-cover"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
+      ${st && !st.open ? `<em class="sc-closed">${UI.esc(t("scClosed"))}</em>` : ""}</span>
+    <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
+    <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
+    <span class="sc-body"><b>${UI.esc(s.name)}</b>
+      <small>${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : ""}</small>
+      ${s.tagline ? `<small class="sc-tag">${UI.esc(s.tagline)}</small>` : ""}</span>
+    ${top.length ? `<span class="sc-top">${top.map(p => `<span class="sc-ti">${UI.itemArt(p.name, s.kind)}<em>${UI.esc(money(p.price))}</em></span>`).join("")}</span>` : ""}
+    <span class="sc-go">${UI.esc(st && !st.open ? t("scSchedule") : t("proGo"))}</span>
+  </div>`;
+}
+function renderShowcase() {
+  const list = (state.showcase || []).slice(), f = favs();
+  list.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || ((UI.openState(b.hours) || {}).open === true) - ((UI.openState(a.hours) || {}).open === true));
+  $("#homeProBox").classList.toggle("hidden", !list.length);
+  const html = list.map(shopCard).join("");
+  if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
+}
+$("#homePro").addEventListener("click", e => {
+  const f = e.target.closest("[data-fav]");
+  if (f) { e.stopPropagation(); toggleFav(f.dataset.fav); }
+}, true);
+$("#homePro").addEventListener("keydown", e => { const c = e.target.closest("[data-pro]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); c.click(); } });
 async function loadShowcase() {
   try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { state.showcase = []; }
   renderShowcase();

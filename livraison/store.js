@@ -1192,7 +1192,8 @@ async function shopsShowcase() {
   const cat = readJSON(LS.catalog, {});
   return localShops().filter(x => x.status === "actif" && planActive(x))
     .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null,
-      client_pays: !!x.client_pays, products: ((cat[x.id] || {}).products || []).filter(p => p.available).length }))
+      client_pays: !!x.client_pays, hours: x.hours || null, products: ((cat[x.id] || {}).products || []).filter(p => p.available).length,
+      top: ((cat[x.id] || {}).products || []).filter(p => p.available).slice(0, 6).map(p => ({ name: p.name, price: p.price })) }))
     .sort((a, b) => (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || a.name.localeCompare(b.name));
 }
 // Qui paie la livraison : true = le client paie tout, false = le commerce paie sa part (12 ₪)
