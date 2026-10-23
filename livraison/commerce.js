@@ -706,7 +706,12 @@ function renderDrops(force) {
   box.classList.toggle("hidden", !list.length);
   // Un avis en cours d'écriture n'est jamais effacé par le rafraîchissement automatique
   if (!list.length || !force && box.querySelector("form")) return;
-  const d1 = new Date(Date.now() + 86400000), day = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, "0")}-${String(d1.getDate()).padStart(2, "0")}`;
+  // Par défaut : demain 10:00, ou la prochaine ouverture du commerce si ce jour-là il est fermé (chabbat…)
+  let d1 = new Date(Date.now() + 86400000); d1.setHours(10, 0, 0, 0);
+  const o = UI.nextOpenDate(UI.openState(state.dash.shop.hours, d1), d1);
+  if (o) d1 = o;
+  const day = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, "0")}-${String(d1.getDate()).padStart(2, "0")}`;
+  const hm = `${String(d1.getHours()).padStart(2, "0")}:${String(d1.getMinutes()).padStart(2, "0")}`;
   const msg0 = t(state.dash.shop.kind === "pressing" ? "drMsgPressing" : "drMsgOther");
   box.innerHTML = `<h3>${UI.esc(t("drTitle"))}</h3><p class="muted small" style="margin:4px 0 10px">${UI.esc(t("drSub"))}</p>
     ${list.map(o => `<div class="drop-row">
@@ -715,7 +720,7 @@ function renderDrops(force) {
       ${o.notes ? `<p class="drop-notes">${UI.esc(o.notes)}</p>` : ""}
       ${dropForm[o.id] ? `<form class="drop-form" data-drop="${UI.esc(o.id)}" action="javascript:void(0)">
           <div class="fields"><label class="f"><span>${UI.esc(t("drDay"))}</span><input type="date" name="day" value="${day}" /></label>
-          <label class="f"><span>${UI.esc(t("drTime"))}</span><input type="time" name="time" step="900" value="10:00" /></label>
+          <label class="f"><span>${UI.esc(t("drTime"))}</span><input type="time" name="time" step="900" value="${hm}" /></label>
           <label class="f full"><span>${UI.esc(t("drMsg"))}</span><input name="msg" maxlength="300" value="${UI.esc(msg0)}" /></label></div>
           <div class="btns" style="justify-content:flex-start"><button class="btn btn-primary" type="submit">${UI.esc(t("drSend"))}</button><button type="button" class="btn btn-link" data-drop-cancel="${UI.esc(o.id)}">${UI.esc(t("ctCancel"))}</button></div>
         </form>`
