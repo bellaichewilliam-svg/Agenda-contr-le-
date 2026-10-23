@@ -444,11 +444,13 @@ function renderStats() {
     + sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
     + sum(planSales.filter(p => String(p.created_at).startsWith(month)), p => Number(p.amount) - Number(p.referrer_share || 0)));
   const pending = couriers.filter(c => c.status === "en_attente").length;
-  $("#pendingBadge").textContent = pending ? `(${pending})` : "";
   const pendingShops = shops.filter(x => x.status === "en_attente").length;
-  $("#shopsBadge").textContent = pendingShops ? `(${pendingShops})` : "";
   const newReqs = requests.filter(x => x.status === "nouvelle").length;
-  $("#reqBadge").textContent = newReqs ? `(${newReqs})` : "";
+  const fresh = orders.filter(o => o.status === "nouvelle").length;
+  // Pastilles rouges : sur l'onglet et sur sa rubrique
+  const badge = (sel, n) => { $(sel).textContent = n > 0 ? n : ""; };
+  badge("#pendingBadge", pending); badge("#shopsBadge", pendingShops); badge("#reqBadge", newReqs); badge("#newBadge", fresh);
+  badge("#gbCourses", fresh); badge("#gbLivreurs", pending); badge("#gbBusiness", pendingShops + newReqs);
 }
 
 // Tableaux sur téléphone : chaque ligne devient une fiche (libellé de la colonne à gauche, valeur à droite)
@@ -461,9 +463,14 @@ function labelTables(root) {
     }));
   });
 }
+// Rubrique de l'onglet ouvert : seuls ses onglets s'affichent ; chiffres et service seulement dans « Courses »
+const groupOf = t => (document.querySelector(`#tabs [data-tab="${t}"]`) || {}).dataset?.group || "courses";
 function render() {
   renderStats();
-  document.querySelectorAll(".tab").forEach(b => b.classList.toggle("on", b.dataset.tab === tab));
+  const grp = groupOf(tab);
+  document.querySelectorAll(".tab").forEach(b => { b.classList.toggle("on", b.dataset.tab === tab); b.classList.toggle("hidden", b.dataset.group !== grp); });
+  document.querySelectorAll("#admGroups [data-group]").forEach(b => b.classList.toggle("on", b.dataset.group === grp));
+  document.querySelectorAll(".adm-for-courses").forEach(el => el.classList.toggle("adm-off", grp !== "courses"));
   const view = $("#view");
   const empty = msg => `<div class="empty card">${msg}</div>`;
   $("#liveWrap").classList.toggle("hidden", tab !== "carte");
@@ -729,8 +736,13 @@ async function initDirCard() {
     texts: () => ({ none: "Aucune adresse trouvée : ajoutez le numéro et la ville", down: "Recherche d'adresse indisponible, réessayez" })
   });
   const list = await Store.knownPlaces().catch(() => []);
+  // Enseignes tapées par des clients : cachées aux autres tant qu'elles ne sont pas vérifiées (faute de frappe ?)
+  const check = list.filter(x => x.verified === false && Number(x.uses || 1) < 3), ok = list.filter(x => !check.includes(x));
+  const row = (x, tocheck) => `<div class="dir-row${tocheck ? " to-check" : ""}" data-place="${UI.esc(x.id)}"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.address)}${x.city ? ", " + UI.esc(UI.cityFr(x.city) || x.city) : ""} · ${Number(x.uses || 1)} commande(s)</span>
+    <span class="dir-acts">${tocheck ? `<button type="button" class="btn btn-sm btn-primary" data-place-ok="1">✅ Existe</button><button type="button" class="btn btn-sm" data-place-fix="1">✏️ Corriger le nom</button>` : ""}<button type="button" class="btn btn-sm" data-place-del="1">Retirer</button></span></div>`;
   $("#dirCount").textContent = list.length;
-  $("#dirList").innerHTML = list.map(x => `<div class="dir-row" data-place="${UI.esc(x.id)}"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.address)}${x.city ? ", " + UI.esc(UI.cityFr(x.city) || x.city) : ""} · ${Number(x.uses || 1)} commande(s)</span><button type="button" class="btn btn-sm" data-place-del="1">Retirer</button></div>`).join("") || "Aucun pour l'instant.";
+  $("#dirCheck").innerHTML = check.length ? `<p class="small"><b>🔎 ${check.length} enseigne(s) tapée(s) par des clients à vérifier</b> (cachées aux autres clients jusque-là ; visibles d'office après 3 commandes)</p>${check.map(x => row(x, true)).join("")}` : "";
+  $("#dirList").innerHTML = ok.map(x => row(x, false)).join("") || "Aucun pour l'instant.";
 }
 async function saveDirPlace() {
   const fr = $("#dirFr").value.trim(), he = $("#dirHe").value.trim(), msg = $("#dirMsg");
@@ -766,6 +778,7 @@ function renderShops(view) {
         <button type="button" class="btn btn-primary btn-sm" id="dirSave">➕ Ajouter à l'annuaire</button>
         <p class="small" id="dirMsg"></p>
       </div>
+      <div id="dirCheck" class="dir-check small"></div>
       <details style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
     </div>
     <div class="card" style="margin-bottom:14px">
@@ -1072,7 +1085,8 @@ async function refreshChats() {
   chatRecentList.forEach(m => { if (!lastOf[m.thread] || m.created_at > lastOf[m.thread].created_at) lastOf[m.thread] = m; });
   chatUnread = Chat.unread(chatRecentList.filter(m => !isClosed(m.thread, lastOf[m.thread])), "admin");
   const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
-  $("#chatTabBadge").textContent = total ? `(${total})` : "";
+  $("#chatTabBadge").textContent = total || "";
+  $("#gbMessages").textContent = total || "";
   if (!firstLoad && total > chatTotal && Chat.openThread == null) {
     beep();
     UI.notify("💬 Nouveau message", { body: "Ouvrez la messagerie de l'espace patron.", tag: "hop-chat" });
@@ -1270,6 +1284,13 @@ async function onViewClick(e) {
     return;
   }
   if (el.id === "dirSave") { saveDirPlace(); return; }
+  if (el.dataset.placeOk || el.dataset.placeFix) {
+    const r = el.closest("[data-place]"), cur = r.querySelector("b").textContent;
+    const name = el.dataset.placeFix ? (prompt("Le bon nom de l'enseigne (ex. Simaki Sushi · סימאקי סושי)", cur) || "").trim() : "";
+    if (el.dataset.placeFix && !name) return;
+    try { await Store.verifyKnownPlace(r.dataset.place, name && name !== cur ? name : null); initDirCard(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
   if (el.dataset.placeDel) {
     const row = el.closest("[data-place]");
     if (!confirm("Retirer ce commerce de l'annuaire ?")) return;
@@ -1461,7 +1482,16 @@ $("#logoutBtn").addEventListener("click", async e => {
   UI.dutyNotice(false);
   Store.logout(); showLogin();
 });
-$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; render(); if (tab === "clients") loadClients(); } });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); } });
+// Une rubrique : on retrouve son dernier onglet (sinon le premier)
+const lastTab = {};
+$("#admGroups").addEventListener("click", e => {
+  const b = e.target.closest("[data-group]");
+  if (!b) return;
+  tab = lastTab[b.dataset.group] || document.querySelector(`#tabs [data-group="${b.dataset.group}"]`).dataset.tab;
+  render();
+  if (tab === "clients") loadClients();
+});
 $("#reloadBtn").addEventListener("click", load);
 $("#routeBtn").addEventListener("click", openRoute);
 $("#dutyBtn").addEventListener("click", toggleDuty);

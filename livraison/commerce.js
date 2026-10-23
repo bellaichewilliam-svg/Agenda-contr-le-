@@ -362,9 +362,9 @@ function brandPreview() {
     { kindLabel: (t("shKinds") || {})[shop.kind] || "", delivery: t("proDelivery", { price }), menu: n ? t("proMenu", { n }) : "", go: t("proGo") });
 }
 function renderBrand(force) {
+  // Logo, couverture, accroche : pour tous les commerces (la même fiche que les commerces HOP! Pro)
   const box = $("#spBrand"), shop = state.dash.shop;
-  box.classList.toggle("hidden", !planOn(shop));
-  if (!planOn(shop)) return;
+  box.classList.remove("hidden");
   // Pas redessinée par le rafraîchissement automatique : ce qui est tapé reste
   if (brand.shown && !force) return brandPreview();
   brand.shown = true;
@@ -595,6 +595,8 @@ function renderSpace() {
   const sales = state.dash.sales || [];
   renderHead(shop);
   renderTabs(shop);
+  renderFiche();
+  renderDrops();
   $("#spOrder").href = clientLink(shop) + "#commander";
   $("#spLink").value = clientLink(shop);
   $("#spShare").href = UI.waShare(t("shShareMsg", { name: shop.name, url: clientLink(shop) }));
@@ -636,6 +638,108 @@ function renderSpace() {
         ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<br><a class="small" href="${UI.trackUrl(o)}">${UI.esc(t("shTrack"))}</a>` : ""}</div>
     </div>`).join("") : `<p class="muted small">${UI.esc(t("shNoOrders"))}</p>`;
 }
+
+// --- Ma fiche pour les clients : WhatsApp, présentation, horaires (comme le patron, en libre-service) ---------
+const fiche = { shown: false, busy: false };
+const DAYS_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], DAYS_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+function ficheDay(i, h) {
+  const r = String(h || "").split(",").filter(Boolean).map(x => x.split("-"));
+  const [a, b] = r[0] || ["", ""], [c, d] = r[1] || ["", ""];
+  return `<div class="fh-day${r.length ? " open" : ""}" data-day="${i}">
+    <b>${UI.esc((I18N.lang === "he" ? DAYS_HE : DAYS_FR)[i])}</b>
+    <label class="fh-switch"><input type="checkbox" data-fh-open${r.length ? " checked" : ""} /><i></i><small>${UI.esc(t(r.length ? "fiOpen" : "fiClosed"))}</small></label>
+    <span class="fh-times"><input type="time" step="900" data-fh="a" value="${UI.esc(a || "08:30")}" />–<input type="time" step="900" data-fh="b" value="${UI.esc(b || "19:00")}" />
+      <span class="fh-2${c ? "" : " hidden"}">· <input type="time" step="900" data-fh="c" value="${UI.esc(c || "")}" />–<input type="time" step="900" data-fh="d" value="${UI.esc(d || "")}" /></span>
+      <button type="button" class="fh-add${c ? " hidden" : ""}" data-fh-add aria-label="+">＋ ${UI.esc(t("fiBreak"))}</button></span>
+  </div>`;
+}
+function renderFiche(force) {
+  const box = $("#spFiche"), shop = state.dash.shop;
+  if (fiche.shown && !force) return;
+  fiche.shown = true;
+  const hours = shop.hours || [];
+  box.innerHTML = `<h3>${UI.esc(t("fiTitle"))}</h3>
+    <p class="muted small" style="margin:4px 0 12px">${UI.esc(t("fiSub"))}</p>
+    <label class="f"><span>${UI.esc(t("fiWa"))}</span><input id="fiWa" inputmode="tel" dir="ltr" placeholder="053-373-3785" value="${UI.esc(shop.whatsapp ? "0" + String(shop.whatsapp).replace(/^972/, "") : "")}" /></label>
+    <label class="f" style="margin-top:10px"><span>${UI.esc(t("fiAbout"))}</span><textarea id="fiAbout" rows="3" maxlength="600" placeholder="${UI.esc(t("fiAboutPh"))}">${UI.esc(shop.about || "")}</textarea></label>
+    <div class="fh"><span class="fh-title">${UI.esc(t("fiHours"))}</span>${[0, 1, 2, 3, 4, 5, 6].map(i => ficheDay(i, (hours.find(x => Number(x.d) === i) || {}).h)).join("")}</div>
+    <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-fi-save${fiche.busy ? " disabled" : ""}>${UI.esc(t("fiSave"))}</button><span class="small" id="fiMsg"></span></div>`;
+}
+$("#spFiche").addEventListener("change", e => {
+  const c = e.target.closest("[data-fh-open]");
+  if (!c) return;
+  const day = c.closest(".fh-day");
+  day.classList.toggle("open", c.checked);
+  day.querySelector(".fh-switch small").textContent = t(c.checked ? "fiOpen" : "fiClosed");
+});
+$("#spFiche").addEventListener("click", async e => {
+  const add = e.target.closest("[data-fh-add]");
+  if (add) { const day = add.closest(".fh-day"); day.querySelector(".fh-2").classList.remove("hidden"); add.classList.add("hidden");
+    // Une coupure à midi : le matin finit à 13:30, l'après-midi reprend à 15:30
+    if (day.querySelector('[data-fh="b"]').value > "13:30") day.querySelector('[data-fh="b"]').value = "13:30";
+    day.querySelector('[data-fh="c"]').value = "15:30"; day.querySelector('[data-fh="d"]').value = "19:00"; return; }
+  const b = e.target.closest("[data-fi-save]");
+  if (!b) return;
+  const msg = $("#fiMsg");
+  const hours = [...$("#spFiche").querySelectorAll(".fh-day")].map(day => {
+    const v = k => day.querySelector(`[data-fh="${k}"]`).value;
+    const on = day.querySelector("[data-fh-open]").checked, ranges = [];
+    if (on && v("a") && v("b")) ranges.push(v("a") + "-" + v("b"));
+    if (on && !day.querySelector(".fh-2").classList.contains("hidden") && v("c") && v("d")) ranges.push(v("c") + "-" + v("d"));
+    return { d: Number(day.dataset.day), h: ranges.join(",") };
+  });
+  const wa = $("#fiWa").value.replace(/\D/g, "");
+  if (wa && !/^(0\d{8,9}|972\d{8,9})$/.test(wa)) { msg.textContent = t("fiWaBad"); $("#fiWa").focus(); return; }
+  fiche.busy = true; b.disabled = true;
+  try {
+    if (!(await Store.shopFicheSave(state.dash.shop.token, { whatsapp: wa, about: $("#fiAbout").value, hours }))) throw new Error("not_saved");
+    Object.assign(state.dash.shop, { whatsapp: wa ? (wa.startsWith("0") ? "972" + wa.slice(1) : wa) : null, about: $("#fiAbout").value.trim() || null, hours: hours.some(h => h.h) ? hours : null });
+    fiche.busy = false; renderFiche(true); renderHead(state.dash.shop);
+    $("#fiMsg").textContent = t("fiSaved");
+  } catch (ex) { fiche.busy = false; b.disabled = false; msg.textContent = t(/bad_hours/.test(ex.message || "") ? "fiHoursBad" : "brErr"); }
+});
+
+// --- « C'est prêt » : le commerce prévient ses clients qui lui ont envoyé quelque chose (vêtements au pressing…) ---
+const dropForm = {};   // commande → formulaire ouvert
+function renderDrops(force) {
+  const box = $("#spDrops"), list = state.dash.drops || [];
+  box.classList.toggle("hidden", !list.length);
+  // Un avis en cours d'écriture n'est jamais effacé par le rafraîchissement automatique
+  if (!list.length || !force && box.querySelector("form")) return;
+  const d1 = new Date(Date.now() + 86400000), day = `${d1.getFullYear()}-${String(d1.getMonth() + 1).padStart(2, "0")}-${String(d1.getDate()).padStart(2, "0")}`;
+  const msg0 = t(state.dash.shop.kind === "pressing" ? "drMsgPressing" : "drMsgOther");
+  box.innerHTML = `<h3>${UI.esc(t("drTitle"))}</h3><p class="muted small" style="margin:4px 0 10px">${UI.esc(t("drSub"))}</p>
+    ${list.map(o => `<div class="drop-row">
+      <div class="drop-head"><b>${UI.esc(o.first_name || "?")}</b><small class="muted">${UI.esc(UI.fmtDateTime(o.pickup_at || o.created_at))} · ${UI.esc(t("orderNo", { ref: o.ref }))}</small>
+        ${o.notice_at ? `<span class="pill paid">✅ ${UI.esc(t("drSent", { when: UI.fmtDateTime(o.notice_at) }))}</span>` : ""}</div>
+      ${o.notes ? `<p class="drop-notes">${UI.esc(o.notes)}</p>` : ""}
+      ${dropForm[o.id] ? `<form class="drop-form" data-drop="${UI.esc(o.id)}" action="javascript:void(0)">
+          <div class="fields"><label class="f"><span>${UI.esc(t("drDay"))}</span><input type="date" name="day" value="${day}" /></label>
+          <label class="f"><span>${UI.esc(t("drTime"))}</span><input type="time" name="time" step="900" value="10:00" /></label>
+          <label class="f full"><span>${UI.esc(t("drMsg"))}</span><input name="msg" maxlength="300" value="${UI.esc(msg0)}" /></label></div>
+          <div class="btns" style="justify-content:flex-start"><button class="btn btn-primary" type="submit">${UI.esc(t("drSend"))}</button><button type="button" class="btn btn-link" data-drop-cancel="${UI.esc(o.id)}">${UI.esc(t("ctCancel"))}</button></div>
+        </form>`
+        : Number(o.notices) < 3 ? `<button type="button" class="btn btn-sm${o.notice_at ? "" : " btn-primary"}" data-drop-open="${UI.esc(o.id)}">🔔 ${UI.esc(t(o.notice_at ? "drAgain" : "drReady"))}</button>` : ""}
+    </div>`).join("")}`;
+}
+$("#spDrops").addEventListener("click", e => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  if (b.dataset.dropOpen) { dropForm[b.dataset.dropOpen] = true; renderDrops(true); const f = $(`#spDrops form[data-drop="${b.dataset.dropOpen}"]`); if (f) f.elements.time.focus(); }
+  if (b.dataset.dropCancel) { delete dropForm[b.dataset.dropCancel]; renderDrops(true); }
+});
+$("#spDrops").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, id = f.dataset.drop;
+  const at = f.elements.day.value && f.elements.time.value ? new Date(`${f.elements.day.value}T${f.elements.time.value}`) : null;
+  try {
+    if (!(await Store.shopNoticeSend(state.dash.shop.token, id, at ? at.toISOString() : null, f.elements.msg.value))) throw new Error("no");
+    delete dropForm[id];
+    alert(t("drOk"));
+    await refreshSpace();
+    renderDrops(true);
+  } catch (ex) { alert(t(/notice_max/.test(ex.message || "") ? "drMax" : /bad_date/.test(ex.message || "") ? "drBadDate" : "spErr")); }
+});
 
 // En-tête : la vitrine du commerce telle que la voient ses clients, avec son abonnement
 function renderHead(shop) {

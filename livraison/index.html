@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610230203" />
+  <link rel="stylesheet" href="styles.css?v=202610230236" />
 </head>
 <body>
 
@@ -104,6 +104,7 @@
   <div class="ch-sheet" id="homeSheet">
     <p class="ch-hello" id="homeHello"></p>
     <a class="ch-eta hidden" id="homeEta"></a>
+    <div class="notice-cards" id="homeNotices"></div>
     <h1 class="ch-title"><span data-i18n="heroTitle1"></span> <span class="accent" data-i18n="heroTitle2"></span></h1>
     <div class="ch-route">
       <div class="ch-line" data-line="from">
@@ -448,7 +449,7 @@
               <div id="stopsList"></div>
               <button type="button" class="btn btn-sm" id="addStop" data-i18n="stAdd"></button>
             </div>
-            <label class="f full"><span data-i18n="notes"></span><textarea name="notes" rows="2" data-i18n-ph="notesPh" required minlength="3"></textarea></label>
+            <label class="f full"><span data-i18n="notes"></span><textarea name="notes" rows="2" data-i18n-ph="notesPh"></textarea></label>
           </div>
         </fieldset>
 
@@ -620,6 +621,13 @@
 
 <!-- Conditions de livraison d'objets -->
 <!-- Carnet d'adresses : ajouter / modifier Maison, Travail ou une autre adresse -->
+<!-- « C'est prêt » : un commerce prévient le client (vêtements prêts…) -->
+<div class="modal hidden notice-modal" id="noticeModal" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="as-head"><b data-i18n="ntModal"></b><button type="button" class="as-x" id="noticeClose" aria-label="✕">✕</button></div>
+    <div id="noticeBody"></div>
+  </div>
+</div>
 <div class="modal hidden addr-sheet" id="addrSheet" role="dialog" aria-modal="true">
   <div class="modal-box">
     <div class="as-head"><b id="asTitle"></b><button type="button" class="as-x" id="asClose" aria-label="Fermer">✕</button></div>
@@ -674,14 +682,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610230203"></script>
-<script src="i18n.js?v=202610230203"></script>
-<script src="pricing.js?v=202610230203"></script>
-<script src="store.js?v=202610230203"></script>
-<script src="chat.js?v=202610230203"></script>
-<script src="common.js?v=202610230203"></script>
-<script src="enseignes.js?v=202610230203"></script>
-<script src="places.js?v=202610230203"></script>
-<script src="client.js?v=202610230203"></script>
+<script src="config.js?v=202610230236"></script>
+<script src="i18n.js?v=202610230236"></script>
+<script src="pricing.js?v=202610230236"></script>
+<script src="store.js?v=202610230236"></script>
+<script src="chat.js?v=202610230236"></script>
+<script src="common.js?v=202610230236"></script>
+<script src="enseignes.js?v=202610230236"></script>
+<script src="places.js?v=202610230236"></script>
+<script src="client.js?v=202610230236"></script>
 </body>
 </html>
