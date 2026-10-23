@@ -5309,3 +5309,195 @@ language sql stable security definer set search_path = public as $$
            order by (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
     from shops s where s.status = 'actif' and s.plan_until >= current_date;
 $$;
+
+-- ============================================================================
+-- DEUX PAIEMENTS CLAIRS : les articles au commerce (son lien de paiement ou son Bit), AVANT la préparation ;
+-- la livraison au livreur (Bit / PayBox ou espèces), comme avant. HOP! ne touche jamais l'argent des articles.
+-- goods_pay : a_payer → declare (le client dit avoir payé) → recu (le commerce confirme) ou pas_recu
+-- ============================================================================
+alter table public.shops add column if not exists pay_link text;
+alter table public.shops add column if not exists pay_bit text;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'shops_pay_link_ok') then
+    alter table public.shops add constraint shops_pay_link_ok check (pay_link is null or pay_link ~ '^https://[^[:space:]]{4,250}$');
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'shops_pay_bit_ok') then
+    alter table public.shops add constraint shops_pay_bit_ok check (pay_bit is null or pay_bit ~ '^0[0-9]{8,9}$');
+  end if;
+end $$;
+alter table public.orders add column if not exists goods_pay text check (goods_pay in ('a_payer', 'declare', 'recu', 'pas_recu'));
+alter table public.orders add column if not exists goods_pay_at timestamptz;
+
+-- Commande d'articles chez un commerce qui a un moyen de paiement : à payer au commerce (jamais fourni par le client)
+create or replace function public.orders_shop_prepay() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.goods_pay := null; new.goods_pay_at := null;
+  if new.shop_id is not null and (coalesce(new.items_total, 0) > 0 or coalesce(trim(new.shop_order), '') <> '')
+     and exists (select 1 from shops s where s.id = new.shop_id and (s.pay_link is not null or s.pay_bit is not null)) then
+    new.goods_pay := 'a_payer';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_shop_prepay on public.orders;
+create trigger orders_shop_prepay before insert on public.orders
+  for each row execute function public.orders_shop_prepay();
+revoke execute on function public.orders_shop_prepay() from public, anon, authenticated;
+
+-- Espèces : les articles payés d'avance au commerce ne sont plus avancés par le livreur
+create or replace function public.orders_zz_cash_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare st settings; goods numeric; total numeric; note int;
+begin
+  if exists (select 1 from blocked_phones where phone = public.phone_digits(new.contact_phone)) then raise exception 'client_blocked'; end if;
+  if new.payment_method <> 'cash' then
+    new.cash_note := null; new.cash_goods := 0; new.cash_change := 0; new.cash_need := 0;
+    return new;
+  end if;
+  select * into st from settings where id = 1;
+  goods := case when new.items is not null and new.goods_pay is null then coalesce(new.items_total, 0) else 0 end;
+  total := coalesce(new.price, 0) + goods;
+  if total > st.cash_max then raise exception 'cash_max'; end if;
+  if goods > 0 and not exists (select 1 from orders o where o.status = 'livree'
+       and (public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone) or (new.client_id is not null and o.client_id = new.client_id))) then
+    raise exception 'cash_first';
+  end if;
+  note := case when new.cash_note in (20, 50, 100, 200) then new.cash_note else 0 end;
+  if note > 0 and note < total then raise exception 'cash_note_small'; end if;
+  new.cash_note := note;
+  new.cash_goods := goods;
+  new.cash_change := case when note > 0 then note - total else 0 end;
+  new.cash_need := goods + new.cash_change;
+  new.direct_pay := true; new.paid_to := 'livreur'; new.prepaid_required := false;
+  return new;
+end;
+$$;
+
+-- Le client : « J'ai payé le commerce »
+create or replace function public.client_goods_paid(p_token uuid) returns boolean
+language sql security definer set search_path = public as $$
+  update orders set goods_pay = 'declare', goods_pay_at = now()
+   where token = p_token and goods_pay in ('a_payer', 'pas_recu') and status not in ('annulee', 'refusee')
+  returning true;
+$$;
+revoke execute on function public.client_goods_paid(uuid) from public;
+grant execute on function public.client_goods_paid(uuid) to anon, authenticated;
+
+-- Le commerce : « Paiement reçu » ou « Pas reçu » (le client est prévenu dans son suivi)
+create or replace function public.shop_goods_pay(p_token uuid, p_id uuid, p_ok boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  update orders o set goods_pay = case when p_ok then 'recu' else 'pas_recu' end, goods_pay_at = now()
+    from shops s
+   where s.token = p_token and o.shop_id = s.id and o.id = p_id and o.goods_pay is not null and o.status not in ('annulee', 'refusee');
+  get diagnostics n = row_count;
+  if n > 0 then
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', case when p_ok then 'status:goods_recu' else 'status:goods_pas_recu' end);
+  end if;
+  return n > 0;
+end;
+$$;
+revoke execute on function public.shop_goods_pay(uuid, uuid, boolean) from public;
+grant execute on function public.shop_goods_pay(uuid, uuid, boolean) to anon, authenticated;
+
+-- Le commerce règle ses moyens de paiement (lien sécurisé https, et / ou numéro Bit / PayBox)
+create or replace function public.shop_pay_save(p_token uuid, p_link text, p_bit text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare lnk text := nullif(trim(coalesce(p_link, '')), ''); bit text := nullif(regexp_replace(coalesce(p_bit, ''), '\D', '', 'g'), ''); n int;
+begin
+  if bit like '972%' then bit := '0' || substr(bit, 4); end if;
+  if lnk is not null and lnk !~ '^https://[^[:space:]]{4,250}$' then raise exception 'bad_link'; end if;
+  if bit is not null and bit !~ '^0[0-9]{8,9}$' then raise exception 'bad_bit'; end if;
+  update shops set pay_link = lnk, pay_bit = bit where token = p_token and status <> 'suspendu';
+  get diagnostics n = row_count;
+  return n > 0;
+end;
+$$;
+revoke execute on function public.shop_pay_save(uuid, text, text) from public;
+grant execute on function public.shop_pay_save(uuid, text, text) to anon, authenticated;
+
+-- Fiche publique et suivi : comment payer le commerce
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'logo', logo, 'cover', cover, 'tagline', tagline, 'client_pays', client_pays,
+                           'whatsapp', whatsapp, 'hours', hours, 'about', about, 'pay_link', pay_link, 'pay_bit', pay_bit,
+                           'shop_share', case when client_pays then 0
+                                              else (select pro_shop_share - pro_hop_share from settings where id = 1) end)
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;
+create or replace function public.track_order(p_token uuid)
+returns json
+language sql security definer set search_path = public as $$
+  select (to_jsonb(o) - 'contact_email' - 'commission' - 'commission_status' - 'client_ip' - 'device_id' - 'hop_share' - 'network'
+    || case when o.status in ('confirmee','recuperee') and c.position_at > now() - interval '30 minutes'
+         then jsonb_build_object('courier_lat', c.lat, 'courier_lon', c.lon, 'courier_at', c.position_at)
+         else '{}'::jsonb end
+    || jsonb_build_object('handoff_code', (select x.handoff_code from order_secrets x where x.order_id = o.id))
+    || jsonb_build_object('shop_pay', (select jsonb_build_object('name', s.name, 'link', s.pay_link, 'bit', s.pay_bit) from shops s where s.id = o.shop_id)))::json
+  from public.orders o
+  left join public.couriers c on c.id = o.courier_id
+  where o.token = p_token;
+$$;
+
+-- Préparer seulement quand les articles sont payés ; l'espace du commerce voit l'état du paiement
+create or replace function public.shop_order_action(p_token uuid, p_id uuid, p_action text, p_minutes int, p_reason text, p_ref text, p_bags int) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders; v_ref text := nullif(trim(coalesce(p_ref, '')), '');
+begin
+  select o2.* into o from orders o2 join shops s on s.id = o2.shop_id where o2.id = p_id and s.token = p_token;
+  if not found then return false; end if;
+  if p_action = 'accepter' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    if v_ref is null or v_ref !~ '^[0-9]{3}$' then raise exception 'shop_ref_required'; end if;
+    -- Articles payés d'avance : on ne prépare qu'une fois le paiement reçu
+    if o.goods_pay is not null and o.goods_pay <> 'recu' then raise exception 'goods_unpaid'; end if;
+    update orders set shop_status = 'acceptee', shop_ref = v_ref, prep_minutes = least(greatest(coalesce(p_minutes, 15), 5), 90),
+           ready_at = now() + make_interval(mins => least(greatest(coalesce(p_minutes, 15), 5), 90))
+     where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:shop_ok');
+  elsif p_action = 'prete' and o.shop_status = 'acceptee' then
+    update orders set shop_status = 'prete', ready_at = least(ready_at, now()),
+           bags_count = case when p_bags between 1 and 20 then p_bags else bags_count end
+     where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:prete');
+  elsif p_action = 'cash_ok' and o.cash_goods > 0 and o.cash_shop_at is null and o.status = 'confirmee' then
+    update orders set cash_shop_at = now() where id = p_id;
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:cash_shop');
+  elsif p_action = 'refuser' and o.shop_status = 'attente' and o.status = 'nouvelle' then
+    update orders set shop_status = 'refusee', status = 'refusee', admin_note = left(nullif(trim(p_reason), ''), 300) where id = p_id;
+  else
+    return false;
+  end if;
+  return true;
+end;
+$$;
+
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes, o.shop_ref,
+               o.items, o.items_total, o.items_note, o.hop_share, o.direct_pay, o.bags_count,
+               o.payment_method, o.cash_goods, o.cash_shop_at, o.goods_pay, o.goods_pay_at,
+               case when o.status in ('confirmee', 'recuperee') then o.courier_bit end as courier_bit
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json),
+    'drops', coalesce((select json_agg(x order by x.created_at desc) from (
+        select o.id, o.ref, o.status, o.created_at, o.pickup_at, o.from_city, o.notes,
+               split_part(coalesce(o.contact_name, ''), ' ', 1) as first_name,
+               (select max(n.created_at) from shop_notices n where n.order_id = o.id) as notice_at,
+               (select count(*) from shop_notices n where n.order_id = o.id) as notices
+          from orders o join shops s on s.id = o.drop_shop_id
+         where s.token = p_token and o.status not in ('annulee', 'refusee') and o.created_at > now() - interval '60 days'
+         order by o.created_at desc limit 60) x), '[]'::json));
+$$;

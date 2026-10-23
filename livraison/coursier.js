@@ -537,6 +537,7 @@ function card(o, kind) {
       ${o.issue && kind === "mine" ? `<span class="pill st-annulee">⚠️ Souci signalé : ${UI.esc(o.issue)}</span>` : ""}
       ${o.unlocked ? `<span class="pill paid">🔓 Débloquée par HOP : « Livré » possible sans GPS ni photo</span>` : ""}
       ${o.leave_at_door && !o.unlocked && kind === "mine" ? `<span class="pill unpaid">📷 Devant la porte : photo obligatoire avant « Livré »</span>` : ""}
+      ${o.goods_pay === "recu" ? `<span class="pill paid">✅ Articles déjà payés au commerce par le client : rien à avancer</span>` : ""}
       ${hopPaid ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${o.payment_status === "paye" ? `✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse ${UI.money(net)}` : (o.payment_method === "bit" ? "📱 Le client paie par Bit à HOP : n'encaissez rien" : "💳 Paiement d'avance à HOP en attente : n'encaissez rien")}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
     </div>
@@ -686,6 +687,7 @@ function mineCard(o, x) {
     ${o.notes ? `<p class="mine-note">📝 ${UI.esc(o.notes)}</p>` : ""}
     <div class="mine-extra">${x.extra}
       ${o.leave_at_door && !o.unlocked ? `<div class="small">📷 Devant la porte : photo obligatoire avant « Livré »</div>` : ""}
+      ${o.goods_pay === "recu" ? `<div class="small pay-direct">✅ Articles déjà payés au commerce : rien à avancer</div>` : ""}
       ${x.hopPaid ? `<div class="small pay-direct">${o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser" : "📱 Le client paie HOP : n'encaissez rien"}</div>` : ""}</div>
     <div class="actions">${x.actions}</div>
     <details class="more"><summary>Plus d'infos</summary><div class="meta">

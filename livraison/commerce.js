@@ -220,7 +220,7 @@ function renderPrep() {
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   const box = $("#spPrep");
   box.classList.toggle("hidden", !planOn(shop) && !list.length);
-  setRing(list.some(o => o.shop_status === "attente"));
+  setRing(list.some(o => o.shop_status === "attente" || o.goods_pay === "declare"));
   itemsChanged(list);
   if (box.classList.contains("hidden")) return;
   const time = d => new Date(d).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -230,12 +230,23 @@ function renderPrep() {
     const head = o.shop_status === "attente" ? `<b class="prep-new">${UI.esc(t("spNew"))}</b> · ${time(o.created_at)}`
       : o.shop_status === "prete" ? `<b>${UI.esc(t("spIsReady"))}</b> · ${UI.esc(courier)}`
       : `<b class="${left < 0 ? "prep-late" : ""}">${UI.esc(left < 0 ? t("spLate", { min: -left }) : t("spReadyIn", { min: Math.max(0, left) }))}</b> · ${UI.esc(courier)}`;
-    const act = o.shop_status === "attente"
-      ? `<label class="f prep-ref"><span>${UI.esc(t("spRefLabel"))}</span><input inputmode="numeric" maxlength="3" autocomplete="off" data-ref-for="${UI.esc(o.id)}" value="${UI.esc(refDraft[o.id] || "")}" placeholder="${UI.esc(t("spRefPh"))}" /></label>
+    // Articles payés d'avance : on prépare seulement une fois le paiement reçu
+    const amount = Number(o.items_total) > 0 ? UI.money(o.items_total) : "";
+    const goods = !o.goods_pay ? ""
+      : o.goods_pay === "recu" ? `<p class="goods-line ok">${UI.esc(t("spGoodsOk", { amount }))}</p>`
+      : o.goods_pay === "pas_recu" ? `<p class="goods-line bad">${UI.esc(t("spGoodsNo"))}</p>`
+      : `<div class="goods-line ${o.goods_pay === "declare" ? "due" : "wait"}"><b>${UI.esc(t(o.goods_pay === "declare" ? "spGoodsDeclared" : "spGoodsTodo", { amount }))}</b>
+          <div class="prep-btns"><button type="button" class="btn btn-primary btn-sm" data-goods-ok="${UI.esc(o.id)}">${UI.esc(t("spGoodsOkBtn"))}</button>
+          ${o.goods_pay === "declare" ? `<button type="button" class="btn btn-sm" data-goods-no="${UI.esc(o.id)}">${UI.esc(t("spGoodsNoBtn"))}</button>` : ""}</div></div>`;
+    const unpaid = o.goods_pay && o.goods_pay !== "recu";
+    const act = o.shop_status === "attente" && unpaid ? `${goods}<small class="muted">${UI.esc(t("spGoodsWaitAccept"))}</small>
+        <div class="prep-btns"><button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
+      : o.shop_status === "attente"
+      ? `${goods}<label class="f prep-ref"><span>${UI.esc(t("spRefLabel"))}</span><input inputmode="numeric" maxlength="3" autocomplete="off" data-ref-for="${UI.esc(o.id)}" value="${UI.esc(refDraft[o.id] || "")}" placeholder="${UI.esc(t("spRefPh"))}" /></label>
         <small class="muted">${UI.esc(t("spAcceptIn"))}</small><div class="prep-btns">${CONFIG.pro.prepChoices.map(m =>
           `<button type="button" class="btn btn-primary" data-prep="${m}" data-id="${UI.esc(o.id)}">${UI.esc(t("spMin", { n: m }))}</button>`).join("")}
           <button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
-      : o.shop_status === "acceptee" ? `${bagsPicker(o)}<button type="button" class="btn btn-primary btn-block" data-ready="${UI.esc(o.id)}">${UI.esc(t("spReadyBtn"))}</button>`
+      : o.shop_status === "acceptee" ? `${goods}${bagsPicker(o)}<button type="button" class="btn btn-primary btn-block" data-ready="${UI.esc(o.id)}">${UI.esc(t("spReadyBtn"))}</button>`
       : o.bags_count ? `<p class="bags-done">${UI.esc(t("spBags", { n: o.bags_count }))}</p>` : "";
     return `<div class="prep-item${o.shop_status === "attente" ? " is-new" : ""}">
       <div class="prep-head">${head}${o.shop_ref ? `<b class="bag-no">${UI.esc(t("spRefShow", { n: o.shop_ref }))}</b>` : ""}<small class="muted">${UI.esc(t("orderNo", { ref: o.ref }))}</small></div>
@@ -281,7 +292,7 @@ async function prepAction(id, action, minutes, reason, ref, bags) {
     const ok = await Store.shopOrderAction(state.dash.shop.token, id, action, minutes, reason, ref, bags);
     if (!ok) alert(t("spErr"));
     else if (action === "accepter") delete refDraft[id];
-  } catch (e) { alert(/shop_ref/.test(e.message || "") ? t("spRefNeed") : t("spErr")); }
+  } catch (e) { alert(/shop_ref/.test(e.message || "") ? t("spRefNeed") : /goods_unpaid/.test(e.message || "") ? t("spErrGoods") : t("spErr")); }
   refreshSpace();
 }
 $("#spPrep").addEventListener("change", e => {
@@ -304,6 +315,13 @@ $("#spPrep").addEventListener("click", e => {
     const input = $(`#spPrep [data-ref-for="${b.dataset.id}"]`), ref = input ? input.value.trim() : "";
     if (!/^[0-9]{3}$/.test(ref)) { alert(t("spRefNeed")); if (input) input.focus(); return; }
     return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep), null, ref);
+  }
+  if (b.dataset.goodsOk || b.dataset.goodsNo) {
+    if (b.dataset.goodsNo && !confirm(t("spGoodsNoConfirm"))) return;
+    b.disabled = true;
+    Store.shopGoodsPay(state.dash.shop.token, b.dataset.goodsOk || b.dataset.goodsNo, !!b.dataset.goodsOk)
+      .then(ok => { if (!ok) alert(t("spErr")); }, () => alert(t("spErr"))).then(refreshSpace);
+    return;
   }
   if (b.dataset.cashOk) {
     const o = state.dash.orders.find(x => x.id === b.dataset.cashOk);
@@ -597,6 +615,7 @@ function renderSpace() {
   renderTabs(shop);
   renderFiche();
   renderDrops();
+  renderPayMeans();
   $("#spOrder").href = clientLink(shop) + "#commander";
   $("#spLink").value = clientLink(shop);
   $("#spShare").href = UI.waShare(t("shShareMsg", { name: shop.name, url: clientLink(shop) }));
@@ -697,6 +716,32 @@ $("#spFiche").addEventListener("click", async e => {
     fiche.busy = false; renderFiche(true); renderHead(state.dash.shop);
     $("#fiMsg").textContent = t("fiSaved");
   } catch (ex) { fiche.busy = false; b.disabled = false; msg.textContent = t(/bad_hours/.test(ex.message || "") ? "fiHoursBad" : "brErr"); }
+});
+
+// --- Comment les clients paient le commerce : son lien de paiement et / ou son Bit (articles payés avant la préparation) ---
+const payMeans = { shown: false };
+function renderPayMeans(force) {
+  const box = $("#spPayMeans"), shop = state.dash.shop;
+  if (payMeans.shown && !force) return;
+  payMeans.shown = true;
+  box.innerHTML = `<h3>${UI.esc(t("spPayTitle"))}</h3><p class="muted small" style="margin:4px 0 10px">${UI.esc(t("spPaySub"))}</p>
+    <label class="f"><span>${UI.esc(t("spPayLink"))}</span><input id="pmLink" type="url" inputmode="url" dir="ltr" placeholder="https://" value="${UI.esc(shop.pay_link || "")}" /></label>
+    <label class="f" style="margin-top:10px"><span>${UI.esc(t("spPayBit"))}</span><input id="pmBit" inputmode="tel" dir="ltr" placeholder="053-373-3785" value="${UI.esc(shop.pay_bit || "")}" /></label>
+    <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-pm-save>${UI.esc(t("spPaySave"))}</button><span class="small" id="pmMsg"></span></div>`;
+}
+$("#spPayMeans").addEventListener("click", async e => {
+  const b = e.target.closest("[data-pm-save]");
+  if (!b) return;
+  const link = $("#pmLink").value.trim(), bit = $("#pmBit").value.replace(/\D/g, ""), msg = $("#pmMsg");
+  if (link && !/^https:\/\/\S{4,250}$/.test(link)) { msg.textContent = t("spPayErrLink"); return $("#pmLink").focus(); }
+  if (bit && !/^(0\d{8,9}|972\d{8,9})$/.test(bit)) { msg.textContent = t("spPayErrBit"); return $("#pmBit").focus(); }
+  b.disabled = true;
+  try {
+    if (!(await Store.shopPaySave(state.dash.shop.token, link, bit))) throw new Error("no");
+    Object.assign(state.dash.shop, { pay_link: link || null, pay_bit: bit ? (bit.startsWith("972") ? "0" + bit.slice(3) : bit) : null });
+    renderPayMeans(true);
+    $("#pmMsg").textContent = t("spPaySaved");
+  } catch (ex) { b.disabled = false; msg.textContent = t(/bad_link/.test(ex.message || "") ? "spPayErrLink" : /bad_bit/.test(ex.message || "") ? "spPayErrBit" : "brErr"); }
 });
 
 // --- « C'est prêt » : le commerce prévient ses clients qui lui ont envoyé quelque chose (vêtements au pressing…) ---
