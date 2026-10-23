@@ -1739,3 +1739,79 @@ body.asking { overflow: hidden; }
 .choices.compact .choice span i { font-size: 22px; margin: 0 0 2px; }
 .choices.compact .choice span b { font-size: 14px; line-height: 1.2; }
 .choices.compact .choice span small { font-size: 11px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* « C'est prêt » : avis du commerce au client (accueil et fenêtre) */
+.notice-cards { display: grid; gap: 10px; margin: 6px 0 12px; }
+.notice-cards:empty { display: none; }
+.notice-card { display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px 12px; align-items: start; padding: 14px; border-radius: 18px; background: var(--panel); border: 2px solid var(--border); text-align: start; }
+.notice-card.new { border-color: var(--brand); background: var(--brand-soft); box-shadow: 0 8px 22px rgba(224, 66, 10, .18); }
+.nt-ico { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 24px; background: var(--bg-2); }
+.nt-txt { display: grid; gap: 4px; min-width: 0; }
+.nt-txt b { font-size: 16px; }
+.nt-txt p { margin: 0; font-size: 14px; color: var(--ink); overflow-wrap: anywhere; }
+.nt-txt small { color: var(--muted); font-size: 13px; font-weight: 600; }
+.nt-btns { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; }
+.nt-btns .btn-primary { flex: 1; }
+.notice-modal .modal-box { text-align: start; display: grid; gap: 12px; }
+
+/* Sans contact : bandeau vert bien visible pour le livreur */
+.door-big { display: grid; gap: 2px; margin: 8px 0; padding: 10px 14px; border-radius: 14px; background: #12B76A; color: #fff; box-shadow: 0 6px 16px rgba(18, 183, 106, .35); text-align: start; }
+.door-big b { font-size: 18px; letter-spacing: .03em; }
+.door-big span { font-size: 13.5px; font-weight: 600; opacity: .95; }
+.door-big.sm { padding: 8px 12px; }
+.door-big.sm b { font-size: 15px; }
+/* Sans contact côté client : un vrai interrupteur, clair et net */
+.door-check { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center !important; padding: 14px 16px !important; border-radius: 16px !important; border: 2px solid var(--border); background: var(--panel) !important; cursor: pointer; transition: border-color .15s, background .15s; }
+.door-check > input { order: 2; appearance: none; -webkit-appearance: none; width: 52px; height: 30px; margin: 0; border-radius: 99px; background: var(--border); position: relative; cursor: pointer; transition: background .2s; flex: none; }
+.door-check > input::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(15, 31, 61, .25); transition: inset-inline-start .2s; }
+.door-check > input:checked { background: #12B76A; }
+.door-check > input:checked::after { inset-inline-start: 25px; }
+.door-check:has(> input:checked) { border-color: #12B76A; background: rgba(18, 183, 106, .1) !important; }
+.door-check b { font-size: 15.5px; }
+.ac-fuzzy { font-style: normal; font-weight: 800; color: var(--brand-ink); background: var(--brand-soft); border-radius: 6px; padding: 0 5px; }
+
+/* Espace patron : grandes rubriques (Courses, Messages, Livreurs, Commerces, Compta) collées en haut, pastilles rouges */
+.adm-groups { position: sticky; top: 60px; z-index: 20; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; padding: 5px; margin: 14px 0 10px; border-radius: 18px; background: var(--panel); border: 1px solid var(--border); box-shadow: 0 6px 18px rgba(15, 31, 61, .08); }
+.adm-groups button { position: relative; display: grid; justify-items: center; gap: 2px; padding: 8px 2px; border: 0; border-radius: 14px; background: none; font: inherit; font-size: 12.5px; font-weight: 700; color: var(--muted); cursor: pointer; min-width: 0; }
+.adm-groups button i { font-style: normal; font-size: 21px; line-height: 1; }
+.adm-groups button span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.adm-groups button.on { background: var(--navy); color: #fff; }
+.adm-badge, .tab-badge { font-style: normal; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: #F04438; color: #fff; font-size: 12px; font-weight: 800; display: inline-grid; place-items: center; line-height: 1; }
+.adm-badge { position: absolute; top: 2px; inset-inline-end: 8px; box-shadow: 0 0 0 2px var(--panel); animation: badgePulse 1.2s ease-in-out infinite; }
+.adm-badge:empty, .tab-badge:empty { display: none; }
+.tab-badge { margin-inline-start: 4px; vertical-align: 1px; }
+.adm-off { display: none !important; }
+.dir-check:empty { display: none; }
+.dir-check { margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: var(--amber-soft, #FFF4E5); }
+.dir-row.to-check { border-top-color: rgba(0, 0, 0, .08); }
+.dir-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* Espace commerce : fiche en libre-service (horaires avec interrupteurs) et avis « c'est prêt » */
+.fh { display: grid; gap: 6px; margin-top: 12px; }
+.fh-title { font-weight: 700; font-size: 14px; }
+.fh-day { display: grid; grid-template-columns: 82px auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--bg-2); }
+.fh-day b { font-size: 14px; }
+.fh-switch { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.fh-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.fh-switch i { position: relative; width: 40px; height: 24px; border-radius: 99px; background: var(--border); transition: background .2s; flex: none; }
+.fh-switch i::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(15, 31, 61, .25); transition: inset-inline-start .2s; }
+.fh-switch input:checked + i { background: #12B76A; }
+.fh-switch input:checked + i::after { inset-inline-start: 19px; }
+.fh-switch small { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 42px; }
+.fh-times { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; font-size: 13px; }
+.fh-times input { width: 84px; padding: 4px 6px; font-size: 14px; }
+.fh-day:not(.open) .fh-times { visibility: hidden; }
+.fh-add { border: 0; background: none; color: var(--brand-ink); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 4px; }
+@media (max-width: 480px) { .fh-day { grid-template-columns: 1fr auto; } .fh-times { grid-column: 1 / -1; } .fh-day:not(.open) .fh-times { display: none; } }
+.drops-card { margin-bottom: 14px; }
+.drop-row { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); }
+.drop-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.drop-notes { margin: 0; font-size: 13px; color: var(--muted); white-space: pre-line; }
+.drop-form { display: grid; gap: 8px; padding: 10px; border-radius: 12px; background: var(--brand-soft); }
+/* Chiffres du jour : une seule ligne compacte sur téléphone */
+@media (max-width: 720px) {
+  .stats.adm-for-courses { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin: 10px 0; }
+  .stats.adm-for-courses .stat { padding: 8px; border-radius: 12px; }
+  .stats.adm-for-courses .stat small { font-size: 9.5px; letter-spacing: 0; display: block; line-height: 1.2; min-height: 2.4em; }
+  .stats.adm-for-courses .stat b { font-size: 17px; }
+}

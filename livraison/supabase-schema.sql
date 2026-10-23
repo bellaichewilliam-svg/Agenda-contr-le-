@@ -5132,3 +5132,164 @@ language sql stable security definer set search_path = public as $$
                                               else (select pro_shop_share - pro_hop_share from settings where id = 1) end)
     from shops where code = upper(p_code) and status <> 'suspendu';
 $$;
+
+-- ============================================================================
+-- FICHE EN LIBRE-SERVICE : le commerce remplit lui-même son WhatsApp, sa présentation et ses horaires
+-- (mêmes règles que la fiche remplie par le patron). Horaires : 7 jours [{ "d": 0..6, "h": "08:30-13:30,15:30-19:00" ou "" }]
+-- ============================================================================
+create or replace function public.shop_fiche_save(p_token uuid, p_whatsapp text, p_about text, p_hours jsonb) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare wa text := nullif(regexp_replace(coalesce(p_whatsapp, ''), '\D', '', 'g'), ''); n int;
+begin
+  if wa like '0%' then wa := '972' || substr(wa, 2); end if;
+  if wa is not null and wa !~ '^[0-9]{9,15}$' then raise exception 'bad_whatsapp'; end if;
+  if p_hours is not null and (jsonb_typeof(p_hours) <> 'array' or jsonb_array_length(p_hours) > 7
+     or exists (select 1 from jsonb_array_elements(p_hours) h
+                 where coalesce(h->>'d', '') !~ '^[0-6]$'
+                    or coalesce(h->>'h', '') !~ '^([0-9]{1,2}:[0-9]{2}-[0-9]{1,2}:[0-9]{2}(,[0-9]{1,2}:[0-9]{2}-[0-9]{1,2}:[0-9]{2})*)?$')) then
+    raise exception 'bad_hours';
+  end if;
+  update shops set whatsapp = wa,
+         about = nullif(left(trim(coalesce(p_about, '')), 600), ''),
+         hours = case when p_hours is null or not exists (select 1 from jsonb_array_elements(p_hours) h where coalesce(h->>'h', '') <> '') then null else p_hours end
+   where token = p_token and status <> 'suspendu';
+  get diagnostics n = row_count;
+  return n > 0;
+end;
+$$;
+revoke execute on function public.shop_fiche_save(uuid, text, text, jsonb) from public;
+grant execute on function public.shop_fiche_save(uuid, text, text, jsonb) to anon, authenticated;
+
+-- ============================================================================
+-- « C'EST PRÊT » : le commerce prévient son client par HOP (pas de contact direct entre eux) :
+-- « Vos vêtements sont prêts, à récupérer à partir de jeudi 10:00 : programmez votre Hoper »
+-- La course vers le commerce (pressing : on vient chercher les vêtements) garde le commerce d'arrivée
+-- ============================================================================
+alter table public.orders add column if not exists drop_shop_id uuid references public.shops(id);
+
+-- Seulement un vrai commerce, et l'arrivée de la course est bien chez lui (moins de 300 m)
+create or replace function public.orders_drop_shop() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.drop_shop_id is not null and not exists (
+       select 1 from shops s where s.id = new.drop_shop_id and s.status <> 'suspendu'
+          and (s.lat is null or new.dropoff_lat is null or public.km_between(s.lat, s.lon, new.dropoff_lat, new.dropoff_lon) <= 0.3)) then
+    new.drop_shop_id := null;
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_drop_shop on public.orders;
+create trigger orders_drop_shop before insert on public.orders
+  for each row execute function public.orders_drop_shop();
+revoke execute on function public.orders_drop_shop() from public, anon, authenticated;
+
+create table if not exists public.shop_notices (
+  id         uuid primary key default gen_random_uuid(),
+  shop_id    uuid not null references public.shops(id),
+  order_id   uuid not null references public.orders(id),
+  message    text check (message is null or length(message) <= 300),
+  ready_from timestamptz,
+  created_at timestamptz not null default now(),
+  seen_at    timestamptz
+);
+create index if not exists shop_notices_order on public.shop_notices (order_id);
+alter table public.shop_notices enable row level security;
+drop policy if exists "patron avis commerces" on public.shop_notices;
+create policy "patron avis commerces" on public.shop_notices for select to authenticated using (public.is_admin());
+
+-- Le commerce envoie l'avis pour une course de ses clients (vers lui ou depuis lui), 3 avis au plus par course
+create or replace function public.shop_notice_send(p_token uuid, p_order uuid, p_ready_from timestamptz, p_message text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare s shops;
+begin
+  select * into s from shops where token = p_token and status <> 'suspendu';
+  if not found then return false; end if;
+  if not exists (select 1 from orders o where o.id = p_order and (o.drop_shop_id = s.id or o.shop_id = s.id)
+                    and o.created_at > now() - interval '60 days') then return false; end if;
+  if (select count(*) from shop_notices where order_id = p_order) >= 3 then raise exception 'notice_max'; end if;
+  if p_ready_from is not null and (p_ready_from < now() - interval '1 day' or p_ready_from > now() + interval '30 days') then raise exception 'bad_date'; end if;
+  insert into shop_notices (shop_id, order_id, message, ready_from)
+  values (s.id, p_order, nullif(left(trim(coalesce(p_message, '')), 300), ''), p_ready_from);
+  return true;
+end;
+$$;
+revoke execute on function public.shop_notice_send(uuid, uuid, timestamptz, text) from public;
+grant execute on function public.shop_notice_send(uuid, uuid, timestamptz, text) to anon, authenticated;
+
+-- Le client (avec les liens secrets de ses courses) lit ses avis des 14 derniers jours
+create or replace function public.client_notices(p_tokens uuid[]) returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(x order by x.created_at desc), '[]'::json) from (
+    select n.id, n.message, n.ready_from, n.created_at, n.seen_at, o.token, o.ref,
+           s.code as shop_code, s.name as shop_name, s.kind as shop_kind,
+           -- Son adresse : celle d'où les vêtements sont partis (course vers le commerce) ou celle où ils ont été livrés
+           case when o.drop_shop_id = s.id then o.pickup_address else o.dropoff_address end as addr,
+           case when o.drop_shop_id = s.id then o.from_city else o.to_city end as city,
+           case when o.drop_shop_id = s.id then o.pickup_lat else o.dropoff_lat end as lat,
+           case when o.drop_shop_id = s.id then o.pickup_lon else o.dropoff_lon end as lon
+      from shop_notices n join orders o on o.id = n.order_id join shops s on s.id = n.shop_id
+     where o.token = any(coalesce(p_tokens, '{}'::uuid[])) and n.created_at > now() - interval '14 days'
+     order by n.created_at desc limit 20) x;
+$$;
+revoke execute on function public.client_notices(uuid[]) from public;
+grant execute on function public.client_notices(uuid[]) to anon, authenticated;
+
+create or replace function public.client_notice_seen(p_token uuid, p_id uuid) returns boolean
+language sql security definer set search_path = public as $$
+  update shop_notices n set seen_at = coalesce(n.seen_at, now())
+    from orders o where o.id = n.order_id and o.token = p_token and n.id = p_id
+  returning true;
+$$;
+revoke execute on function public.client_notice_seen(uuid, uuid) from public;
+grant execute on function public.client_notice_seen(uuid, uuid) to anon, authenticated;
+
+-- Espace du commerce : aussi les courses de ses clients vers lui (« drops »), avec le dernier avis envoyé
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes, o.shop_ref,
+               o.items, o.items_total, o.items_note, o.hop_share, o.direct_pay, o.bags_count,
+               o.payment_method, o.cash_goods, o.cash_shop_at,
+               case when o.status in ('confirmee', 'recuperee') then o.courier_bit end as courier_bit
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json),
+    'drops', coalesce((select json_agg(x order by x.created_at desc) from (
+        select o.id, o.ref, o.status, o.created_at, o.pickup_at, o.from_city, o.notes,
+               split_part(coalesce(o.contact_name, ''), ' ', 1) as first_name,
+               (select max(n.created_at) from shop_notices n where n.order_id = o.id) as notice_at,
+               (select count(*) from shop_notices n where n.order_id = o.id) as notices
+          from orders o join shops s on s.id = o.drop_shop_id
+         where s.token = p_token and o.status not in ('annulee', 'refusee') and o.created_at > now() - interval '60 days'
+         order by o.created_at desc limit 60) x), '[]'::json));
+$$;
+
+-- ============================================================================
+-- ENSEIGNES À VÉRIFIER : un nom tapé par un client (« Samaki » au lieu de « Simaki ») n'est montré aux autres
+-- clients qu'une fois vérifié par le patron, ou après 3 commandes au même endroit
+-- (les enseignes déjà apprises restent visibles)
+-- ============================================================================
+alter table public.known_places add column if not exists verified boolean not null default true;
+alter table public.known_places alter column verified set default false;
+
+create or replace function public.places_search(p_q text) returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(x), '[]'::json) from (
+    select name, address, city, lat, lon from known_places
+     where length(trim(coalesce(p_q, ''))) >= 2 and lower(name) like '%' || lower(trim(p_q)) || '%'
+       and (verified or uses >= 3)
+     order by uses desc, last_at desc limit 5) x;
+$$;
+create or replace function public.places_map() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('name', name, 'address', address, 'city', city, 'lat', lat, 'lon', lon) order by uses desc), '[]'::json)
+    from (select * from known_places where lat is not null and lon is not null and (verified or uses >= 3)
+           order by uses desc, last_at desc limit 2000) k;
+$$;

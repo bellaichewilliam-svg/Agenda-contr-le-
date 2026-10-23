@@ -612,7 +612,9 @@ function onPlacePicked(which, p, quiet) {
   const addr = form.elements[prefixOf(which) + "_address"];
   if (!quiet && !p.housenumber && (!p.brand || needsNo(p))) setTimeout(() => { const a = document.activeElement; if (!a || a === document.body || a === addr) num.focus(); }, 50);
   // Départ dans un restaurant (annuaire, carte) : c'est un repas, pas un colis
-  if (which === "from" && p.food && val("service") === "colis" && !state.homeKind && !state.svcChosen) {
+  // Un pressing n'est jamais un repas : c'est une course d'objets (vêtements)
+  if (which === "from" && isPressing(p) && val("service") === "repas" && !state.svcChosen) form.elements.service.value = "colis";
+  if (which === "from" && p.food && !isPressing(p) && val("service") === "colis" && !state.homeKind && !state.svcChosen) {
     form.elements.service.value = "repas";
     state.homeKind = "resto";
     renderHomeStatic();
@@ -661,7 +663,7 @@ function renderStops() {
   state.stops.forEach((s, i) => {
     Places.attach($(`#stopsList [data-stop-addr="${i}"]`), {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon"), didYouMean: t("addrDidYou") }),
       onPick: p => { s.place = p; s.label = p.label; renderStopInfo(); renderQuote(); },
       onClear: () => { s.place = null; s.label = ""; renderStopInfo(); renderQuote(); }
     });
@@ -709,7 +711,7 @@ function attachPlaces() {
   ["from", "to"].forEach(which => {
     ac[which] = Places.attach(form.elements[which === "from" ? "pickup_address" : "dropoff_address"], {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon"), didYouMean: t("addrDidYou") }),
       onPick: p => onPlacePicked(which, p),
       quick: () => quickPlaces(which, false),
       onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
@@ -779,7 +781,7 @@ function openAddrSheet(tag, which, idx) {
   $("#asDel").classList.toggle("hidden", sheet.idx < 0);
   if (!sheet.ac) sheet.ac = Places.attach($("#asAddr"), {
     lang: () => I18N.lang,
-    texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon") }),
+    texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon"), didYouMean: t("addrDidYou") }),
     onPick: p => { sheet.pick = p; $("#asErr").classList.add("hidden"); if (p.housenumber && !$("#asNo").value) $("#asNo").value = p.housenumber; if (!p.housenumber && !p.brand) setTimeout(() => $("#asNo").focus(), 50); },
     onClear: () => { sheet.pick = null; }
   });
@@ -1132,8 +1134,10 @@ async function submit(e) {
   }
   if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
-  // Un mot pour le livreur sur chaque commande (code, étage, fragile, sonnette…)
-  if (val("notes").trim().length < 3) { form.notes.focus(); return showError(t("errNotes")); }
+  // Un mot pour le livreur : seulement s'il manque une précision (un appartement sans étage ni n°)
+  const vague = ["pickup", "dropoff"].find(pre => { const w = pre === "pickup" ? "from" : "to";
+    return !(state.pick[w] && state.pick[w].brand) && kindOf(pre) === "appartement" && !val(pre + "_floor").trim() && !val(pre + "_apt").trim(); });
+  if (vague && val("notes").trim().length < 3) { form.elements[vague + "_apt"].focus(); return showError(t("errNotes")); }
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
   if (form.leave_at_door.checked) {
     const k = kindOf("dropoff");
@@ -1285,6 +1289,8 @@ async function submit(e) {
       contact_email: val("contact_email").trim() || null,
       // Départ = le commerce du lien : la course compte pour lui (et pour le livreur qui l'a amené)
       shop_id: state.shop && pf && pf.shopId === state.shop.id ? state.shop.id : null,
+      // Course vers le commerce (pressing : on vient chercher les vêtements) : il pourra prévenir le client quand c'est prêt
+      drop_shop_id: state.shop && pt && pt.shopId === state.shop.id ? state.shop.id : null,
       // Clé du commerce, seulement pour payer avec son carnet (la base la vérifie puis l'efface)
       shop_token: val("payment_method") === "carnet" && carnetOk() ? state.pro.token : null
     };
@@ -1389,7 +1395,79 @@ async function loadMine() {
   renderQuick();
   renderAccount();
   renderLogin();
+  loadNotices();
 }
+
+// --- « C'est prêt » : un commerce prévient son client par HOP (vêtements prêts au pressing…) ----------
+state.notices = [];
+const noticeShown = new Set();
+async function loadNotices() {
+  const tokens = (state.mine || []).map(o => o.token).filter(Boolean);
+  try { state.notices = (await Store.clientNotices(tokens)) || []; } catch (e) { return; }
+  renderNotices();
+}
+const noticeWhen = n => (n.ready_from && new Date(n.ready_from) > Date.now()
+  ? t("ntFrom", { when: UI.fmtDateTime(n.ready_from) }) : t("ntNow"));
+function noticeCard(n) {
+  return `<div class="notice-card${n.seen_at ? "" : " new"}">
+    <span class="nt-ico">${UI.KIND_ICON[n.shop_kind] || "🏪"}</span>
+    <div class="nt-txt"><b>${UI.esc(t("ntTitle", { name: n.shop_name }))}</b>
+      ${n.message ? `<p>« ${UI.esc(n.message)} »</p>` : ""}<small>🕘 ${UI.esc(noticeWhen(n))}</small></div>
+    <div class="nt-btns"><button type="button" class="btn btn-primary btn-sm" data-nt-book="${UI.esc(n.id)}">${UI.esc(t("ntBook"))}</button>
+      ${n.seen_at ? "" : `<button type="button" class="btn btn-link btn-sm" data-nt-later="${UI.esc(n.id)}">${UI.esc(t("ntLater"))}</button>`}</div>
+  </div>`;
+}
+function renderNotices() {
+  // Sur l'accueil : les avis pas encore traités (7 jours), le plus récent en premier
+  const list = state.notices.filter(n => !n.done && Date.now() - new Date(n.created_at) < 7 * 86400000);
+  const box = $("#homeNotices"), html = list.slice(0, 3).map(noticeCard).join("");
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  // Un nouvel avis : une fenêtre qui ne passe pas inaperçue (une seule fois)
+  const fresh = list.find(n => !n.seen_at && !noticeShown.has(n.id));
+  if (fresh && $("#noticeModal").classList.contains("hidden")) {
+    noticeShown.add(fresh.id);
+    $("#noticeBody").innerHTML = noticeCard(fresh);
+    $("#noticeModal").classList.remove("hidden");
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  }
+}
+const noticeOf = id => state.notices.find(n => n.id === id);
+function noticeSeen(n) { if (!n.seen_at) { n.seen_at = new Date().toISOString(); Store.clientNoticeSeen(n.token, n.id).catch(() => {}); } }
+// « Programmer mon Hoper » : départ du commerce, arrivée chez le client (l'adresse de la course d'avant), à l'heure où c'est prêt
+async function bookNotice(n) {
+  noticeSeen(n); n.done = true;
+  $("#noticeModal").classList.add("hidden");
+  state.shopDir = "from";
+  await loadShop(n.shop_code, true);
+  if (n.addr) {
+    const m = String(n.addr).match(/^(.*?)\s+(\d+[a-zA-Zא-ת]?)$/);
+    const cityId = CONFIG.cities.some(c => c.id === n.city) ? n.city : null;
+    applySavedAddr("to", { street: m ? m[1] : n.addr, number: m ? m[2] : "", cityId, city: n.city, lat: n.lat, lon: n.lon, exact: n.lat != null });
+  }
+  const at = n.ready_from && new Date(n.ready_from);
+  if (at && at - Date.now() > 20 * 60000) {
+    const d = new Date(Math.ceil(at.getTime() / 900000) * 900000);
+    form.elements.urgency.value = "programmee";
+    form.date.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    form.time.value = hhmm(d);
+  } else form.elements.urgency.value = "asap";
+  syncVisibility();
+  renderQuote();
+  renderNotices();
+  $("#commander").scrollIntoView({ behavior: "smooth" });
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-nt-book], [data-nt-later], #noticeClose");
+  if (!b) return;
+  if (b.id === "noticeClose") { $("#noticeModal").classList.add("hidden"); return; }
+  const n = noticeOf(b.dataset.ntBook || b.dataset.ntLater);
+  if (!n) return;
+  if (b.dataset.ntBook) return bookNotice(n);
+  noticeSeen(n);
+  $("#noticeModal").classList.add("hidden");
+  renderNotices();
+});
+setInterval(() => { if (!document.hidden) loadNotices(); }, 60000);
 
 // --- Compte client : téléphone + mot de passe, accepté tout de suite (sans e-mail de confirmation pour l'instant) ---
 const loginUi = { mode: "create" };
@@ -1806,6 +1884,8 @@ function renderShopBanner() {
   renderCatalog();
 }
 
+const PRESSING_RX = /pressing|laverie|blanchisserie|teinturerie|dry ?clean|laundr|ניקוי יבש|מכבס/i;
+const isPressing = p => !!p && (p.kind === "pressing" || PRESSING_RX.test(p.brand || ""));
 // Dans quel sens ? Un restaurant est toujours au départ. Un pressing : on vient chercher les vêtements chez le client
 // et on les y apporte (« to »), ou on les récupère au pressing et on les ramène (« from »). L'adresse du commerce
 // reste toujours d'un côté ou de l'autre, jamais perdue.
@@ -1951,7 +2031,7 @@ function initHome() {
     const input = homeInput(which), pre = prefixOf(which);
     home.ac[which] = Places.attach(input, {
       lang: () => I18N.lang,
-      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon") }),
+      texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon"), didYouMean: t("addrDidYou") }),
       onPick: p => {
         onPlacePicked(which, p, true);
         if (ac[which]) ac[which].setPicked(p.label);
@@ -2764,6 +2844,8 @@ function restoreDraft() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem(LS_DRAFT)); } catch (e) { /* ignore */ }
   if (!d || Date.now() - d.at > 2 * 3600000 || new URLSearchParams(location.search).get("c")) return;
+  // Une commande commencée chez un commerce (fiche, catalogue) ne revient pas toute seule à l'ouverture de l'appli
+  if (d.pick && ["from", "to"].some(w => d.pick[w] && (d.pick[w].shopId || d.pick[w].partnerCode))) { clearDraft(); return; }
   ["from", "to"].forEach(w => { if (d.pick && d.pick[w] && !d.pick[w].partnerCode) onPlacePicked(w, d.pick[w], true); });
   Object.entries(d.values || {}).forEach(([k, v]) => {
     const el = form.elements[k];

@@ -1114,13 +1114,63 @@ async function placesSearch(q) {
   const n = String(q || "").trim().toLowerCase();
   return n.length < 2 ? [] : readJSON("livraison.knownPlaces.v1", []).filter(x => x.name.toLowerCase().includes(n)).slice(0, 5);
 }
+// Fiche du commerce remplie par lui-même : WhatsApp, présentation, horaires
+async function shopFicheSave(token, f) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_fiche_save", { method: "POST", body: { p_token: token, p_whatsapp: f.whatsapp || null, p_about: f.about || null, p_hours: f.hours || null } });
+  const shops = localShops(), s = shops.find(x => x.token === token);
+  if (!s) return false;
+  let wa = String(f.whatsapp || "").replace(/\D/g, "");
+  if (wa.startsWith("0")) wa = "972" + wa.slice(1);
+  Object.assign(s, { whatsapp: wa || null, about: String(f.about || "").trim().slice(0, 600) || null, hours: f.hours && f.hours.some(h => h.h) ? f.hours : null });
+  writeJSON(LS.shops, shops);
+  return true;
+}
+// « C'est prêt » : le commerce prévient son client par HOP ; le client le lit avec les liens de ses courses
+async function shopNoticeSend(token, orderId, readyFrom, message) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_notice_send", { method: "POST", body: { p_token: token, p_order: orderId, p_ready_from: readyFrom || null, p_message: message || null } });
+  const shop = localShops().find(x => x.token === token), o = shop && localOrders().find(x => x.id === orderId && (x.drop_shop_id === shop.id || x.shop_id === shop.id));
+  if (!o) return false;
+  const list = readJSON("livraison.notices.v1", []);
+  if (list.filter(n => n.order_id === orderId).length >= 3) throw new Error("notice_max");
+  list.push({ id: uuid(), order_id: orderId, shop_id: shop.id, message: String(message || "").trim().slice(0, 300) || null, ready_from: readyFrom || null, created_at: new Date().toISOString(), seen_at: null });
+  writeJSON("livraison.notices.v1", list);
+  return true;
+}
+async function clientNotices(tokens) {
+  if (!tokens || !tokens.length) return [];
+  if (ONLINE) return rest("/rest/v1/rpc/client_notices", { method: "POST", body: { p_tokens: tokens } });
+  const orders = localOrders(), shops = localShops();
+  return readJSON("livraison.notices.v1", []).map(n => {
+    const o = orders.find(x => x.id === n.order_id && tokens.includes(x.token)), s = shops.find(x => x.id === n.shop_id);
+    if (!o || !s) return null;
+    const drop = o.drop_shop_id === s.id;
+    return Object.assign({}, n, { token: o.token, ref: o.ref, shop_code: s.code, shop_name: s.name, shop_kind: s.kind,
+      addr: drop ? o.pickup_address : o.dropoff_address, city: drop ? o.from_city : o.to_city, lat: drop ? o.pickup_lat : o.dropoff_lat, lon: drop ? o.pickup_lon : o.dropoff_lon });
+  }).filter(Boolean).reverse();
+}
+async function clientNoticeSeen(token, id) {
+  if (ONLINE) return rest("/rest/v1/rpc/client_notice_seen", { method: "POST", body: { p_token: token, p_id: id } });
+  const list = readJSON("livraison.notices.v1", []), n = list.find(x => x.id === id);
+  if (n && !n.seen_at) { n.seen_at = new Date().toISOString(); writeJSON("livraison.notices.v1", list); }
+  return true;
+}
+// Patron : enseigne apprise vérifiée (montrée aux autres clients), avec son nom corrigé au besoin
+async function verifyKnownPlace(id, name) {
+  const body = name ? { verified: true, name } : { verified: true };
+  if (ONLINE) return authRest("/rest/v1/known_places?id=eq." + encodeURIComponent(id), { method: "PATCH", body, prefer: "return=minimal" });
+  const list = readJSON("livraison.knownPlaces.v1", []), x = list.find(v => v.id === id);
+  if (x) Object.assign(x, body);
+  writeJSON("livraison.knownPlaces.v1", list);
+  return true;
+}
 // Patron : l'annuaire des enseignes ajoutées à la main ou apprises (absentes de la carte)
 async function knownPlaces() {
   if (ONLINE) return authRest("/rest/v1/known_places?select=*&order=last_at.desc&limit=300");
   return readJSON("livraison.knownPlaces.v1", []);
 }
 async function knownPlaceAdd(p) {
-  const row = { name: String(p.name).trim().slice(0, 120), address: String(p.address).trim().slice(0, 160), city: p.city || null, lat: p.lat, lon: p.lon };
+  // Ajouté par le patron : vérifié, montré tout de suite aux clients
+  const row = { name: String(p.name).trim().slice(0, 120), address: String(p.address).trim().slice(0, 160), city: p.city || null, lat: p.lat, lon: p.lon, verified: true };
   if (ONLINE) return authRest("/rest/v1/known_places", { method: "POST", body: row, prefer: "return=minimal" });
   const list = readJSON("livraison.knownPlaces.v1", []);
   list.unshift(Object.assign({ id: uuid(), uses: 1, created_at: new Date().toISOString(), last_at: new Date().toISOString() }, row));
@@ -1485,7 +1535,12 @@ async function shopDashboard(token) {
   return {
     shop: x,
     orders: localOrders().filter(o => o.shop_id === shop.id).sort((a, b) => new Date(b.pickup_at) - new Date(a.pickup_at)),
-    sales: readJSON(LS.sales, []).filter(v => v.shop_id === shop.id).reverse()
+    sales: readJSON(LS.sales, []).filter(v => v.shop_id === shop.id).reverse(),
+    drops: localOrders().filter(o => o.drop_shop_id === shop.id && !["annulee", "refusee"].includes(o.status)).reverse().map(o => {
+      const ns = readJSON("livraison.notices.v1", []).filter(n => n.order_id === o.id);
+      return { id: o.id, ref: o.ref, status: o.status, created_at: o.created_at, pickup_at: o.pickup_at, from_city: o.from_city, notes: o.notes,
+        first_name: String(o.contact_name || "").split(" ")[0], notices: ns.length, notice_at: ns.length ? ns[ns.length - 1].created_at : null };
+    })
   };
 }
 
@@ -1847,7 +1902,7 @@ window.Store = {
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

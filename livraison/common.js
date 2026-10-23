@@ -495,6 +495,10 @@ function stopsLegs(o, full) {
       <b>${full ? `<bdi>${esc(s.address || "")}</bdi>` : esc(s.city || "")}</b>${s.note ? `<div class="addr-note">📝 ${esc(s.note)}</div>` : ""}
       ${full && s.lat != null ? `<div class="links"><a class="btn btn-sm" href="https://waze.com/ul?ll=${encodeURIComponent(s.lat + "," + s.lon)}&navigate=yes" target="_blank" rel="noopener">Waze</a></div>` : ""}</div></div>`).join("");
 }
+// Sans contact, en grand pour le livreur : il ne peut pas le rater
+function doorBig(o, small) {
+  return o.leave_at_door ? `<div class="door-big${small ? " sm" : ""}"><b>🚪 SANS CONTACT</b><span>Déposer devant la porte${o.dropoff_apt ? ` · appt ${esc(o.dropoff_apt)}` : ""}${o.dropoff_code ? ` · code ${esc(o.dropoff_code)}` : ""} · 📷 photo obligatoire avant « Livré »</span></div>` : "";
+}
 function doorTag(o, lang) {
   return o.leave_at_door ? `<div class="door-tag">${esc(window.I18N ? I18N.forLang(lang || "fr", "doorTag") : "🚪")}</div>` : "";
 }
@@ -505,7 +509,7 @@ function brand(name) { return name ? `<span class="brand-tag">🏪 <bdi>${esc(na
 function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)}</div>` : ""; }
 
 window.UI = {
-  addrNote, brand, addrDetails, addrDetailsText, doorTag,
+  addrNote, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON, itemArt,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,

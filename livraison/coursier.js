@@ -525,7 +525,7 @@ function card(o, kind) {
     <div class="legs">
       <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b><bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrDetails(o, "pickup") + UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
       ${UI.stopsLegs(o, kind === "mine")}
-      <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b><bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}</b>${kind === "mine" ? UI.addrDetails(o, "dropoff") + UI.addrNote(o.dropoff_note) : ""}${UI.doorTag(o)}${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
+      <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b><bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}</b>${kind === "mine" ? UI.addrDetails(o, "dropoff") + UI.addrNote(o.dropoff_note) : ""}${UI.doorBig(o, true)}${telLink(o.dropoff_contact, o.dropoff_phone)}${nav("dropoff")}</div></div>
     </div>
     <div class="meta">
       <span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>
@@ -666,7 +666,7 @@ function mineCard(o, x) {
       <div class="stop-tag">${label}${which === "pickup" ? readyChip(o) : ""}</div>
       <div class="stop-addr">${UI.brand(o[pre + "_place"])}<bdi>${UI.esc(o[pre + "_address"])}</bdi>, ${UI.esc(UI.cityFr(city))}</div>
       ${which === "pickup" && !to ? showRef(o) : ""}${cashStop(o, which, now)}
-      ${UI.addrDetails(o, pre)}${UI.addrNote(o[pre + "_note"])}${which === "dropoff" ? UI.doorTag(o) : ""}
+      ${UI.addrDetails(o, pre)}${UI.addrNote(o[pre + "_note"])}${which === "dropoff" ? UI.doorBig(o, true) : ""}
       ${callBig(name, phone)}
       ${now ? navBtn(o, which) : ""}
     </section>`;
@@ -678,6 +678,7 @@ function mineCard(o, x) {
       <span class="order-price">${UI.money(x.total)}</span>
     </div>
     <div class="mine-step">${UI.esc(mineStep(o, x.hopPaid))}</div>
+    ${UI.doorBig(o)}
     ${stop("pickup", "📍 DÉPART", !to)}
     ${UI.stopsLegs(o, true)}
     ${stop("dropoff", "🏁 ARRIVÉE", to)}
@@ -1456,6 +1457,7 @@ function showNextOffer() {
     : [o, mate].map((x, i) => `${i + 1}. ${place(x.pickup_place, x.pickup_address, x.from_city)}`).join("<br>");
   $("#offerTo").innerHTML = mate ? order2.map((x, i) => `${["1️⃣", "2️⃣"][i]} ${place(x.dropoff_place, x.dropoff_address, x.to_city)}`).join("<br>")
     : place(o.dropoff_place, o.dropoff_address, o.to_city);
+  if (o.leave_at_door || (mate && mate.leave_at_door)) $("#offerTo").insertAdjacentHTML("beforeend", UI.doorBig(o.leave_at_door ? o : mate, true));
   const tour = mate ? Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +order2[0].dropoff_lat, +order2[0].dropoff_lon) * 1.3
     + Store.kmBetween(+order2[0].dropoff_lat, +order2[0].dropoff_lon, +order2[1].dropoff_lat, +order2[1].dropoff_lon) * 1.3 : null;
   $("#offerFacts").innerHTML = [

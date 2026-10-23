@@ -139,6 +139,21 @@ function dirName(e, lang) {
   if (!e.fr || normalize(e.fr) === normalize(e.n) || e.n.includes(e.fr)) return e.n;
   return lang === "he" ? `${e.n} · ${e.fr}` : `${e.fr} · ${e.n}`;
 }
+// Distance d'édition (lettre oubliée, en trop, changée ou inversée) : « Samaki » ≈ « Simaki »
+function editDist(a, b) {
+  const m = a.length, n = b.length;
+  if (Math.abs(m - n) > 2) return 9;
+  let prev2 = null, prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) {
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) cur[j] = Math.min(cur[j], prev2[j - 2] + 1);
+    }
+    prev2 = prev; prev = cur;
+  }
+  return prev[n];
+}
 async function dirSearch(q, at, lang) {
   const nq = normalize(q);
   if (nq.length < 2) return [];
@@ -162,9 +177,18 @@ async function dirSearch(q, at, lang) {
     }
     return best;
   };
-  return list.map(e => ({ e, sc: score(e) })).filter(x => x.sc < 9)
-    .sort((a, b) => (a.sc - b.sc) || (km(at, a.e) - km(at, b.e))).slice(0, 8)
-    .map(({ e }) => dirPlace(e, lang));
+  const hits = list.map(e => ({ e, sc: score(e) })).filter(x => x.sc < 9);
+  // Rien de trouvé : une faute de frappe ? On propose les noms les plus proches (« Vouliez-vous dire… »)
+  // (aussi quand seuls des noms vaguement ressemblants sortent : une lettre de travers compte plus)
+  if (!hits.some(x => x.sc <= 2.5) && nq.length >= 4 && !/\d/.test(nq)) {
+    const tol = nq.length <= 6 ? 1 : 2;
+    list.forEach(e => {
+      const d = Math.min(...e.keys.map(k => Math.min(editDist(nq, k), k.length > nq.length ? editDist(nq, k.slice(0, nq.length)) : 9)));
+      if (d > 0 && d <= tol && !hits.some(x => x.e === e)) hits.push({ e, sc: 2.6 + d * 0.2, fuzzy: true });
+    });
+  }
+  return hits.sort((a, b) => (a.sc - b.sc) || (km(at, a.e) - km(at, b.e))).slice(0, 8)
+    .map(({ e, fuzzy }) => Object.assign(dirPlace(e, lang), fuzzy ? { fuzzy: true } : {}));
 }
 // Une fiche de l'annuaire → une adresse choisie (recherche, ou rond 🍴 touché sur la carte)
 function dirPlace(e, lang) {
@@ -379,7 +403,7 @@ function attach(input, opts) {
             <span class="ac-ico">${p.icon || "⭐"}</span><span><b>${UI.esc(p.title)}</b>${p.sub ? `<small>${UI.esc(p.sub)}</small>` : ""}</span></button>`
         : `<button type="button" class="ac-item${i === active ? " on" : ""}" data-i="${i}">
           <span class="ac-ico">${p.partner ? "⭐" : p.brand ? "🏪" : "📍"}</span>
-          <span><b>${UI.esc(p.brand || p.street || p.city)}</b><small>${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : p.dir && opts.texts().soon ? `<i class="ac-soon">${UI.esc(opts.texts().soon)}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
+          <span><b>${UI.esc(p.brand || p.street || p.city)}</b><small>${p.fuzzy && opts.texts().didYouMean ? `<i class="ac-fuzzy">${UI.esc(opts.texts().didYouMean)}</i> ` : ""}${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : p.dir && opts.texts().soon ? `<i class="ac-soon">${UI.esc(opts.texts().soon)}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
         </button>`).join("")
       : `<div class="ac-empty">${UI.esc(opts.texts().none)}</div>`;
     box.classList.remove("hidden");
