@@ -1785,7 +1785,7 @@ function renderCatalog() {
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(p.name)}</bdi></b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
         <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind)}
-        ${!p.available ? `<span class="cg-out">${UI.esc(t("cgOut"))}</span>`
+        ${!p.available ? `<span class="cg-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
       </div>`;
@@ -1857,7 +1857,7 @@ function renderItem() {
   $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}" alt="" />` : UI.itemArt(p.name, state.shop.kind)}</div>
     <div class="it-txt"><h3><bdi>${UI.esc(p.name)}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
       ${p.description ? `<p>${UI.esc(p.description)}</p>` : ""}
-      ${p.available ? "" : `<p class="it-out">${UI.esc(t("cgOut"))}</p>`}</div>`;
+      ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
   $("#itemAdd").disabled = !p.available;
   $("#itemAdd").innerHTML = `<span>${UI.esc(t(inCart ? "itUpdate" : "itAdd"))}</span><b>${UI.esc(money(Number(p.price) * item.qty))}</b>`;
@@ -2467,7 +2467,9 @@ async function initRestos() {
       && [e.n, e.fr].concat(e.alt || []).some(k => nn(k) && (nn(k).includes(nn(x.n)) || nn(x.n).includes(nn(k)))));
     const extra = (state.partners || []).map(sh => ({ n: sh.name, s: sh.address || "", c: sh.city || "", lat: Number(sh.lat), lon: Number(sh.lon), partner: sh }))
       .concat(((await Store.placesMap().catch(() => [])) || []).map(x => ({ n: x.name, s: x.address || "", c: cityLabel(cityIdOf(x.city, x) || x.city), lat: Number(x.lat), lon: Number(x.lon), known: true })));
-    extra.forEach(x => { if (x.n && isFinite(x.lat) && isFinite(x.lon) && !twin(x)) restos.list.push(x); });
+    // Un partenaire remplace sa fiche de l'annuaire (jamais son nom « hors catalogue ») ; un lieu appris ne fait pas doublon
+    restos.list = restos.list.filter(e => !Places.partnerDup(e));
+    extra.forEach(x => { if (x.n && isFinite(x.lat) && isFinite(x.lon) && (x.partner || !twin(x))) restos.list.push(x); });
   } catch (e) { /* la carte garde l'annuaire */ }
   // Position par défaut (beaucoup de restaurants de rues différentes sur le même point) : pas sur la carte, la recherche les trouve
   const streets = {};
@@ -2699,6 +2701,7 @@ async function loadShowcase() {
 
 async function loadPartners() {
   try { state.partners = ((await Store.shopsDirectory()) || []).filter(x => x.lat != null); } catch (e) { state.partners = []; }
+  Places.setPartners(state.partners);
   // En tapant « Fal… », le commerce partenaire Falafel Haim sort en premier
   // … puis les enseignes que HOP! a apprises (absentes de la carte, indiquées par des clients)
   Places.setLocal(async q => {
