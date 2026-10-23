@@ -401,10 +401,16 @@ function baseQuote() {
   return Pricing.computeQuote({
     fromCity: cityOf("from"), toCity: cityOf("to"),
     fromPoint: state.fromPoint, toPoint: state.toPoint,
-    service: val("service"), urgency: val("urgency"), size: val("size"),
+    service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
   }, CONFIG);
+}
+// Seulement des cigarettes (« 2 Marlboro ») : achat express, pas de temps d'achats compté
+function tobaccoOnly() {
+  if (val("service") !== "achat") return false;
+  const parts = val("shopping_list").split(/[\n,;+]|\bet\b/).map(x => x.trim()).filter(Boolean);
+  return parts.length > 0 && parts.every(x => TOBACCO_RE.test(x));
 }
 
 function lineLabel(l) {
@@ -1243,6 +1249,7 @@ async function submit(e) {
       sale_paid: svc === "colis" && form.p2p_sale.checked && form.sale_paid.checked,
       handoff: svc === "colis" && form.handoff.checked,
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
+      purchase_min: svc === "achat" && !tobaccoOnly() && CONFIG.pricing.purchase ? CONFIG.pricing.purchaseMinutes || 10 : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
       fits_topcase: svc === "achat" && form.fits_topcase.checked,
@@ -2897,6 +2904,7 @@ form.shopping_list.addEventListener("input", () => {
   if (TOBACCO_RE.test(v)) form.has_tobacco.checked = true;
   if (ALCOHOL_RE.test(v)) form.has_alcohol.checked = true;
   syncAdult();
+  renderQuote();
 });
 $("#addStop").addEventListener("click", () => { if (state.stops.length < STOP.maxStops) { state.stops.push({ todo: "deposer" }); renderStops(); renderQuote(); $(`#stopsList [data-stop-addr="${state.stops.length - 1}"]`).focus(); } });
 $("#stopsList").addEventListener("click", e => {

@@ -76,7 +76,8 @@ function computeQuote(opts, cfg) {
   if (size) lines.push({ key: "qSize_" + opts.size, amount: size });
   if (opts.urgency === "express") lines.push({ key: "qExpress", amount: P.express });
   if (opts.service === "retrait" && P.pickupPoint) lines.push({ key: "qPickup", amount: P.pickupPoint });
-  if (opts.service === "achat" && P.purchase) lines.push({ key: "qPurchase", amount: P.purchase });
+  // Achats : 10 min comptées d'office (faire les courses prend du temps), sauf un simple paquet de cigarettes
+  if (opts.service === "achat" && P.purchase && !opts.quickBuy) lines.push({ key: "qPurchase", vars: { min: P.purchaseMinutes || 10 }, amount: P.purchase });
   // Arrêts en plus : sur le chemin → moitié prix d'une course, sinon prix d'une course
   if (Array.isArray(opts.stops) && opts.stops.length) {
     const S = P.stop || { onWayPercent: 50 };

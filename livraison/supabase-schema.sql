@@ -5501,3 +5501,51 @@ language sql stable security definer set search_path = public as $$
          where s.token = p_token and o.status not in ('annulee', 'refusee') and o.created_at > now() - interval '60 days'
          order by o.created_at desc limit 60) x), '[]'::json));
 $$;
+
+-- ============================================================================
+-- ACHATS : 10 MINUTES COMPTÉES D'OFFICE (10 ₪ dans le prix de la course, calculé par l'appli), sauf un simple
+-- paquet de cigarettes. L'attente payée (annoncée par le livreur, 1 ₪ la minute) commence après ces 10 minutes.
+-- ============================================================================
+alter table public.settings add column if not exists purchase_min int not null default 10;
+alter table public.orders add column if not exists purchase_min int check (purchase_min is null or purchase_min between 1 and 60);
+
+-- Seulement pour une course « J'achète pour vous », toujours la durée réglée par HOP!
+create or replace function public.orders_purchase_min() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.purchase_min := case when new.service = 'achat' and coalesce(new.purchase_min, 0) > 0
+                           then (select nullif(purchase_min, 0) from settings where id = 1) end;
+  return new;
+end;
+$$;
+drop trigger if exists orders_purchase_min on public.orders;
+create trigger orders_purchase_min before insert on public.orders
+  for each row execute function public.orders_purchase_min();
+revoke execute on function public.orders_purchase_min() from public, anon, authenticated;
+
+-- Supplément pour un nombre de minutes sur place, avec les minutes déjà comprises (achats)
+create or replace function public.wait_fee_for(p_min int, p_free int) returns numeric
+language sql stable security definer set search_path = public as $$
+  select least(st.wait_max, ceil(greatest(0, coalesce(p_min, 0) - greatest(st.wait_free_min, coalesce(p_free, 0))) / st.wait_step_min) * st.wait_step_price)::numeric(10, 2)
+    from settings st where st.id = 1;
+$$;
+revoke execute on function public.wait_fee_for(int, int) from public, anon;
+grant execute on function public.wait_fee_for(int, int) to authenticated;
+
+-- Même calcul dans l'annonce d'attente et à la récupération (on ne change que cette ligne des fonctions existantes)
+do $$
+declare src text;
+begin
+  select prosrc into src from pg_proc where oid = 'public.courier_wait_announce(uuid, int)'::regprocedure;
+  if position('wait_fee_for(o.wait_ann_cap, o.purchase_min)' in src) = 0 then
+    if position('public.wait_fee_for(o.wait_ann_cap)' in src) = 0 then raise exception 'courier_wait_announce: motif introuvable'; end if;
+    execute format('create or replace function public.courier_wait_announce(p_id uuid, p_min int) returns json language plpgsql security definer set search_path = public as %L',
+                   replace(src, 'public.wait_fee_for(o.wait_ann_cap)', 'public.wait_fee_for(o.wait_ann_cap, o.purchase_min)'));
+  end if;
+  select prosrc into src from pg_proc where oid = 'public.courier_update(uuid, text)'::regprocedure;
+  if position('coalesce(x.purchase_min, 0)' in src) = 0 then
+    if position('end - st.wait_free_min)' in src) = 0 then raise exception 'courier_update: motif introuvable'; end if;
+    execute format('create or replace function public.courier_update(p_id uuid, p_action text) returns boolean language plpgsql security definer set search_path = public as %L',
+                   replace(src, 'end - st.wait_free_min)', 'end - greatest(st.wait_free_min, coalesce(x.purchase_min, 0)))'));
+  end if;
+end $$;

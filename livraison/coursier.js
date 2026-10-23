@@ -459,7 +459,7 @@ function card(o, kind) {
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
   if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
-  if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""}<br>🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse</div>`;
+  if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse</div>`;
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
   extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
     : kind === "pool" || o.status === "confirmee" ? `<div class="small muted">⏱️ Attente ou achats sur place : ${UI.esc(UI.waitRule(settings))}, pour vous</div>` : "";
@@ -495,7 +495,7 @@ function card(o, kind) {
       <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`;
     else actions = (o.status === "confirmee"
         ? (o.arrived_at
-            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Number(settings.wait_free_min) - w.mins)} min encore offertes`}</p>${waitAnn(o)}`
+            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Store.freeMinOf(o, settings) - w.mins)} min ${o.purchase_min ? "d'achats comprises" : "encore offertes"}`}</p>${waitAnn(o)}`
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
           + `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : o.wait_status === "a_payer"
@@ -628,7 +628,7 @@ function waitAnn(o) {
   if (!o.wait_ann_status) return `<div class="wait-ann"><b>${pro ? "⏳ Pas prête ? Prévenez le client du retard" : "⏳ On vous annonce une attente ? Dites-le tout de suite au client"}</b>${chips([5, 10, 15, 20, 30])}
     ${pro ? "" : `<small>Sans annonce, l'attente n'est pas payée.</small>`}</div>`;
   const left = Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000));
-  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings));
+  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings, o));
   const st = o.wait_ann_status === "info" ? `ℹ️ Client prévenu : environ <b>${o.wait_ann_min} min</b> de retard (l'attente est payée par le commerce)`
     : o.wait_ann_status === "attente" && left > 0 ? `⏳ Annoncé au client : <b>${o.wait_ann_min} min</b> (+${fee} max) · sa réponse… <b>${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}</b>`
     : `✅ ${o.wait_ann_status === "ok" ? "Le client accepte" : "Accepté d'office (pas de réponse)"} : jusqu'à <b>${o.wait_ann_cap} min</b> sur place, <b>+${fee}</b> max`;
@@ -1843,9 +1843,33 @@ function vectorMap() {
     });
     m.once("load", () => { ok = true; if (rmap.tiles) { rmap.map.removeLayer(rmap.tiles); rmap.tiles = null; } });
     m.on("error", () => { if (!ok && rmap.gl) { rmap.map.removeLayer(rmap.gl); rmap.gl = null; } });
+    // Appli mise en arrière-plan : le téléphone peut reprendre la carte graphique → carte vide au retour
+    m.on("webglcontextlost", () => { rmap.glLost = true; });
     rmap.gl = gl;
   }).catch(() => {});
 }
+// De retour dans HOP! : la carte se redessine (et se reconstruit si le téléphone l'a vidée)
+function reviveRiderMap() {
+  if (!rmap.map) return;
+  rmap.map.invalidateSize(false);
+  const m = rmap.gl && rmap.gl.getMaplibreMap();
+  const gl = m && m.painter && m.painter.context && m.painter.context.gl;
+  if (rmap.gl && (rmap.glLost || !m || (gl && gl.isContextLost && gl.isContextLost()))) {
+    rmap.map.removeLayer(rmap.gl);
+    rmap.gl = null; rmap.glLost = false;
+    // La carte simple tout de suite, puis la belle carte par-dessus
+    if (!rmap.tiles) rmap.tiles = UI.mapTiles(rmap.map, riderSet.theme !== "light");
+    vectorMap();
+  } else if (m) { m.resize(); m.triggerRepaint(); }
+  if (rmap.tiles && rmap.tiles.redraw) rmap.tiles.redraw();
+  updateRiderMap();
+}
+let hiddenAt = 0;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") { hiddenAt = Date.now(); return; }
+  if (hiddenAt) setTimeout(reviveRiderMap, 150);
+});
+window.addEventListener("pageshow", e => { if (e.persisted) setTimeout(reviveRiderMap, 150); });
 // Bulle façon appli de livraison, posée sur le point : « 🏪 Récupération · 5 min »
 const rbubble = (emoji, cls, title, min) => L.divIcon({ className: "", iconSize: [36, 36], iconAnchor: [18, 18],
   html: `<div class="rd-pin ${cls || ""}">${emoji}<span class="pin-bubble ${cls || ""}"><b>${UI.esc(title)}</b>${min != null ? `<em>${min} min</em>` : ""}</span></div>` });
