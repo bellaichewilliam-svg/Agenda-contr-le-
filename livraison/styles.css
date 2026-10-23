@@ -203,9 +203,9 @@ details.faq p { color: var(--muted); margin-top: 8px; font-size: 14px; }
 fieldset { border: 1px solid var(--border); background: var(--panel); border-radius: var(--r); padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow); min-width: 0; }
 legend { font-weight: 800; font-size: 17px; padding: 0; float: inline-start; width: 100%; margin-bottom: 12px; }
 legend ~ * { clear: both; }
-.fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
 .fields .full { grid-column: 1 / -1; }
-@media (max-width: 600px) { .fields { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .fields { grid-template-columns: minmax(0, 1fr); } }
 .f { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
 .f input, .f select, .f textarea, .promo-row input {
   border: 1px solid var(--border); background: var(--bg); border-radius: 10px; padding: 12px;
@@ -504,7 +504,7 @@ table.bill .num { text-align: end; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--bg); border: 1px solid var(--border); border-radius: 12px; padding: 4px; gap: 4px; }
 .seg-btn { border: 0; background: transparent; border-radius: 9px; padding: 10px; font-weight: 700; font-size: 15px; color: var(--muted); }
 .seg-btn.on { background: var(--navy); color: #fff; }
-.quick-when .fields { margin-top: 10px; grid-template-columns: 1fr 1fr; }
+.quick-when .fields { margin-top: 10px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 
 /* --- Détails d'adresse, sans contact, compte client ----------------------------------- */
 .fields4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: end; }
@@ -1639,3 +1639,21 @@ body.asking { overflow: hidden; }
 .fiche-hours > span { font-size: 13px; color: var(--muted); }
 .fiche-hours label { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; }
 .fiche-hours input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: inherit; font: inherit; }
+
+/* Rien ne dépasse à droite d'un cadre du formulaire, même avec une longue adresse ou un petit écran */
+.fields > *, .saved-addrs, .addr-tools, .kind-chips { min-width: 0; max-width: 100%; }
+.kind-chips { flex-wrap: wrap; }
+.kind-chips .ch-chip { max-width: 100%; }
+/* Carnet d'adresses façon appli : Maison, Travail, autres ; fenêtre d'ajout */
+.addr-chip.tagged { border-color: var(--brand); }
+.addr-chip.add { border-style: dashed; color: var(--brand-ink); background: transparent; }
+.acc-add { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.addr-sheet .modal-box { text-align: start; display: grid; gap: 10px; max-width: 460px; }
+.as-head { display: flex; align-items: center; justify-content: space-between; }
+.as-head b { font-size: 20px; }
+.as-x { border: 0; background: var(--bg-2); color: var(--ink); width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer; }
+.as-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.as-pos { justify-self: start; }
+.as-save { width: 100%; }
+.as-del { justify-self: center; color: #F04438; }
+.addr-sheet .f input { width: 100%; }

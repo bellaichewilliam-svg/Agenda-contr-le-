@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610230126" />
+  <link rel="stylesheet" href="styles.css?v=202610230135" />
 </head>
 <body>
 
@@ -619,6 +619,25 @@
 </div>
 
 <!-- Conditions de livraison d'objets -->
+<!-- Carnet d'adresses : ajouter / modifier Maison, Travail ou une autre adresse -->
+<div class="modal hidden addr-sheet" id="addrSheet" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <div class="as-head"><b id="asTitle"></b><button type="button" class="as-x" id="asClose" aria-label="Fermer">✕</button></div>
+    <label class="f as-name hidden"><span id="asNameLbl"></span><input id="asName" maxlength="30" /></label>
+    <label class="f"><span id="asAddrLbl"></span><input id="asAddr" autocomplete="off" /></label>
+    <button type="button" class="btn btn-sm as-pos" id="asPos"></button>
+    <div class="as-row">
+      <label class="f"><span id="asNoLbl"></span><input id="asNo" inputmode="numeric" /></label>
+      <label class="f"><span id="asFloorLbl"></span><input id="asFloor" /></label>
+      <label class="f"><span id="asAptLbl"></span><input id="asApt" /></label>
+    </div>
+    <label class="f"><span id="asCodeLbl"></span><input id="asCode" /></label>
+    <label class="f"><span id="asNoteLbl"></span><input id="asNote" maxlength="120" /></label>
+    <p class="promo-msg bad hidden" id="asErr"></p>
+    <button type="button" class="btn btn-primary btn-lg as-save" id="asSave"></button>
+    <button type="button" class="btn btn-link as-del hidden" id="asDel"></button>
+  </div>
+</div>
 <div class="modal hidden rules-modal" id="rulesModal" role="dialog" aria-modal="true">
   <div class="modal-box rules-box">
     <div class="rules-head"><h3 data-i18n="rlTitle"></h3><button type="button" class="ens-x" id="rulesClose" aria-label="Fermer">✕</button></div>
@@ -655,14 +674,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610230126"></script>
-<script src="i18n.js?v=202610230126"></script>
-<script src="pricing.js?v=202610230126"></script>
-<script src="store.js?v=202610230126"></script>
-<script src="chat.js?v=202610230126"></script>
-<script src="common.js?v=202610230126"></script>
-<script src="enseignes.js?v=202610230126"></script>
-<script src="places.js?v=202610230126"></script>
-<script src="client.js?v=202610230126"></script>
+<script src="config.js?v=202610230135"></script>
+<script src="i18n.js?v=202610230135"></script>
+<script src="pricing.js?v=202610230135"></script>
+<script src="store.js?v=202610230135"></script>
+<script src="chat.js?v=202610230135"></script>
+<script src="common.js?v=202610230135"></script>
+<script src="enseignes.js?v=202610230135"></script>
+<script src="places.js?v=202610230135"></script>
+<script src="client.js?v=202610230135"></script>
 </body>
 </html>
