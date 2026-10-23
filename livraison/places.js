@@ -115,7 +115,7 @@ function foodIcon(name, kind) {
   for (const [rx, ico] of rules) if (rx.test(t)) return ico;
   return "🍽️";
 }
-const DIR_VERSION = "9";
+const DIR_VERSION = "10";
 // Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
 const ALIASES = [
   ["mcdonalds", "מקדונלד"], ["mcdonald", "מקדונלד"], ["mcdo", "מקדונלד"], ["macdo", "מקדונלד"], ["burgerking", "בורגרקינג"],
@@ -154,10 +154,22 @@ function editDist(a, b) {
   }
   return prev[n];
 }
+// Commerces partenaires HOP! (avec catalogue) : leur fiche de l'annuaire disparaît partout (recherche, carte,
+// enseignes près de vous), pour qu'on ne les trouve jamais « hors catalogue »
+let partners = [];
+function setPartners(list) {
+  partners = (list || []).filter(p => p.lat != null && p.name).map(p => ({ lat: Number(p.lat), lon: Number(p.lon),
+    keys: [p.name].concat(String(p.name).split(/[·|\-–]/)).map(normalize).filter(k => k.length >= 3) }));
+}
+function partnerDup(e) {
+  if (!partners.length || e.lat == null) return false;
+  const keys = (e.keys || [e.n, e.fr].concat(e.alt || []).map(normalize)).filter(k => k && k.length >= 3);
+  return partners.some(p => km(p, e) < 0.3 && p.keys.some(k => keys.some(x => x.includes(k) || k.includes(x))));
+}
 async function dirSearch(q, at, lang) {
   const nq = normalize(q);
   if (nq.length < 2) return [];
-  const list = await loadDir();
+  const list = (await loadDir()).filter(e => !partnerDup(e));
   const vs = variants(nq);
   const words = String(q).split(/[\s,]+/).map(normalize).filter(w => w.length >= 2);
   // Mots tapés en lettres latines : on compare aussi leur squelette à celui des mots du nom (« Oshi » → אושי)
@@ -493,7 +505,7 @@ function attach(input, opts) {
 }
 
 window.Places = {
-  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText, foodIcon, dirName, dirPlace, directory: loadDir,
+  attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText, foodIcon, dirName, dirPlace, directory: () => loadDir().then(l => l.filter(e => !partnerDup(e))), setPartners, partnerDup,
   setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
   setLocal(fn) { local = fn; },
   get near() { return near; },

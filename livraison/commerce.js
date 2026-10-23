@@ -480,7 +480,7 @@ function prodRow(p) {
   return `<div class="ct-prod${p.available ? "" : " off"}">
     ${UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" />` : UI.itemArt(p.name, state.dash.shop.kind)}
     <button type="button" class="ct-info" data-edit="${UI.esc(p.id)}"><b>${UI.esc(p.name)}</b><span class="ct-price">${UI.money(p.price)}</span>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}</button>
-    <button type="button" class="ct-switch${p.available ? " on" : ""}" role="switch" aria-checked="${p.available}" data-avail="${UI.esc(p.id)}"><i></i><small>${UI.esc(t(p.available ? "ctAvailShort" : "ctOutShort"))}</small></button>
+    <button type="button" class="ct-switch${p.available ? " on" : ""}" role="switch" aria-checked="${p.available}" data-avail="${UI.esc(p.id)}"><i></i><small>${UI.esc(t(p.available ? (UI.isService(state.dash.shop) ? "ctAvailSvc" : "ctAvailShort") : (UI.isService(state.dash.shop) ? "ctOutSvc" : "ctOutShort")))}</small></button>
   </div>`;
 }
 function renderCatalog() {
