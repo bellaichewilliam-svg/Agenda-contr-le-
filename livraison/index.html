@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610231343" />
+  <link rel="stylesheet" href="styles.css?v=202610231354" />
 </head>
 <body>
 
@@ -635,6 +635,20 @@
     <button type="button" class="btn btn-link it-del hidden" id="itemDel" data-i18n="itRemove"></button>
   </div>
 </div>
+<!-- « Voir la commande » : le panier (articles, quantités, total), puis on continue -->
+<div class="modal hidden item-sheet cart-sheet" id="cartSheet" role="dialog" aria-modal="true">
+  <div class="modal-box">
+    <button type="button" class="it-x" id="cartClose" aria-label="✕">✕</button>
+    <h3 class="cs-title" id="cartTitle"></h3>
+    <div class="cs-list" id="cartBody"></div>
+    <div class="cs-total"><span data-i18n="csTotal"></span><b id="cartSum"></b></div>
+    <p class="cs-note" id="cartNote"></p>
+    <div class="cs-btns">
+      <button type="button" class="btn btn-primary btn-lg" id="cartGo" data-i18n="csGo"></button>
+      <button type="button" class="btn btn-link" id="cartMore" data-i18n="csMore"></button>
+    </div>
+  </div>
+</div>
 <!-- « C'est prêt » : un commerce prévient le client (vêtements prêts…) -->
 <div class="modal hidden notice-modal" id="noticeModal" role="dialog" aria-modal="true">
   <div class="modal-box">
@@ -696,14 +710,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610231343"></script>
-<script src="i18n.js?v=202610231343"></script>
-<script src="pricing.js?v=202610231343"></script>
-<script src="store.js?v=202610231343"></script>
-<script src="chat.js?v=202610231343"></script>
-<script src="common.js?v=202610231343"></script>
-<script src="enseignes.js?v=202610231343"></script>
-<script src="places.js?v=202610231343"></script>
-<script src="client.js?v=202610231343"></script>
+<script src="config.js?v=202610231354"></script>
+<script src="i18n.js?v=202610231354"></script>
+<script src="pricing.js?v=202610231354"></script>
+<script src="store.js?v=202610231354"></script>
+<script src="chat.js?v=202610231354"></script>
+<script src="common.js?v=202610231354"></script>
+<script src="enseignes.js?v=202610231354"></script>
+<script src="places.js?v=202610231354"></script>
+<script src="client.js?v=202610231354"></script>
 </body>
 </html>

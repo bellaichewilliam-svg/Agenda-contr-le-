@@ -119,7 +119,7 @@ On essaie avec 3 livraisons à moitié prix ? ${url}` },
 ✅ Vous choisissez vos courses, quand vous voulez
 ✅ Vous encaissez le client directement (espèces ou Bit)
 ✅ Faites votre marketing, gagnez plus : seulement ${CONFIG.platform.networkPercent} % de commission sur les courses des commerces que vous amenez (${CONFIG.platform.commissionPercent} % sur les autres)
-✅ ${CONFIG.pro.referrerPercent} % des abonnements HOP! Pro que vous faites signer, et les pourboires 100 % pour vous
+✅ ${CONFIG.pro.referrerPercent ? `${CONFIG.pro.referrerPercent} % des abonnements HOP! Pro que vous faites signer, et les pourboires` : "Les pourboires"} 100 % pour vous
 ✅ Pas d'abonnement, pas de frais d'inscription
 Il faut : permis valide, véhicule assuré (simple déclaration), un top case, statut d'עוסק פטור ou מורשה.
 👉 Inscription : ${UI.appUrl("coursier.html")}` },
@@ -129,7 +129,7 @@ Il faut : permis valide, véhicule assuré (simple déclaration), un top case, s
 ✅ בוחרים משלוחים מתי שרוצים
 ✅ גובים ישירות מהלקוח (מזומן או ביט)
 ✅ עושים שיווק ומרוויחים יותר: רק ${CONFIG.platform.networkPercent}% עמלה על משלוחים של עסקים שהבאתם (${CONFIG.platform.commissionPercent}% על השאר)
-✅ ${CONFIG.pro.referrerPercent}% מהמנוי של HOP! Pro של עסקים שהחתמתם, והטיפים 100% שלכם
+✅ ${CONFIG.pro.referrerPercent ? `${CONFIG.pro.referrerPercent}% מהמנוי של HOP! Pro של עסקים שהחתמתם, והטיפים` : "הטיפים"} 100% שלכם
 ✅ בלי מנוי ובלי דמי הרשמה
 דרוש: רישיון נהיגה בתוקף, רכב מבוטח (הצהרה בלבד), ארגז, עוסק פטור או מורשה.
 👈 להרשמה: ${UI.appUrl("coursier.html")}` },

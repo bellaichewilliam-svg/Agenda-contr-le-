@@ -1962,3 +1962,18 @@ form .addr-note { display: none !important; }
 .ac-soon { display: inline-block; font-style: normal; font-size: 11px; font-weight: 700; color: var(--brand-ink); background: var(--brand-soft); border: 0; border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
 .ens-main .ac-soon, .rp-row .ac-soon { justify-self: start; margin-top: 2px; }
 .rp-row span .ac-soon { display: table; }
+/* Panier « Voir la commande » */
+.cart-sheet .modal-box { padding: 18px 16px calc(16px + env(safe-area-inset-bottom)); gap: 10px; }
+.cs-title { margin: 0 40px 0 0; font-size: 19px; }
+[dir="rtl"] .cs-title { margin: 0 0 0 40px; }
+.cs-list { display: grid; gap: 2px; max-height: 50vh; overflow-y: auto; }
+.cs-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.cs-pic .item-art, .cs-pic img { width: 52px; height: 52px; border-radius: 12px; object-fit: cover; display: grid; }
+.cs-txt { display: grid; gap: 2px; min-width: 0; }
+.cs-txt b { font-size: 14.5px; }
+.cs-txt small { color: var(--brand-ink); font-weight: 800; }
+.cs-qty { transform: scale(.9); }
+.cs-total { display: flex; justify-content: space-between; align-items: baseline; font-size: 16px; font-weight: 700; padding-top: 4px; }
+.cs-total b { font-size: 20px; }
+.cs-note { margin: 0; color: var(--muted); font-size: 13px; }
+.cs-btns { display: grid; gap: 4px; }

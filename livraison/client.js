@@ -1826,11 +1826,8 @@ addEventListener("scroll", () => { if (!cgTick) cgTick = requestAnimationFrame((
 $("#catalogBox").addEventListener("click", e => {
   const b = e.target.closest("button");
   if (!b) { const card = e.target.closest("[data-cg-open]"); if (card) openItem(card.dataset.cgOpen); return; }
-  // Panier : on passe à la suite (adresse de livraison, ou le récapitulatif si tout est rempli)
-  if (b.dataset.cgGo != null) {
-    const next = stepStates().slice(1).find(([fs, ok]) => fs && !ok && fs !== $("#shopOrderBox") && fs.offsetParent);
-    return (next ? next[0] : $("#summary")).scrollIntoView({ behavior: "smooth", block: "start" });
-  }
+  // « Voir la commande » : le panier s'ouvre (articles, quantités, total), puis « Continuer »
+  if (b.dataset.cgGo != null) return openCart();
   if (b.dataset.cgCat != null) {
     const h = $("#catalogBox").querySelector(`[data-cg-sec="${CSS.escape(b.dataset.cgCat)}"]`);
     if (h) scrollTo({ top: scrollY + h.getBoundingClientRect().top - cgEdge() + 4, behavior: "smooth" });
@@ -1866,6 +1863,41 @@ function renderItem() {
   $("#itemAdd").innerHTML = `<span>${UI.esc(t(inCart ? "itUpdate" : "itAdd"))}</span><b>${UI.esc(money(Number(p.price) * item.qty))}</b>`;
   $("#itemDel").classList.toggle("hidden", !inCart);
 }
+// Le panier : modifier les quantités, voir le total, puis continuer vers l'adresse ou le récapitulatif
+function openCart() {
+  if (!cartCount()) return;
+  renderCart();
+  $("#cartSheet").classList.remove("hidden");
+}
+function renderCart() {
+  const lines = cartLines();
+  if (!lines.length) { $("#cartSheet").classList.add("hidden"); return; }
+  $("#cartTitle").textContent = t("csTitle", { name: state.shop ? state.shop.name : "" });
+  $("#cartBody").innerHTML = lines.map(({ p, qty }) => {
+    const photo = UI.safeImg(p.photo);
+    return `<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : UI.itemArt(p.name, state.shop && state.shop.kind)}</span>
+      <span class="cs-txt"><b><bdi>${UI.esc(p.name)}</bdi></b><small>${UI.esc(money(Number(p.price) * qty))}</small></span>
+      <span class="it-qty cs-qty"><button type="button" data-cs-minus="${UI.esc(p.id)}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${UI.esc(p.id)}" aria-label="+">+</button></span></div>`;
+  }).join("");
+  $("#cartSum").textContent = money(cartTotal());
+  $("#cartNote").textContent = t(shopPrepay() ? "csNotePrepay" : "csNote", { name: state.shop ? state.shop.name : "" });
+}
+$("#cartSheet").addEventListener("click", e => {
+  if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) return $("#cartSheet").classList.add("hidden");
+  const plus = e.target.closest("[data-cs-plus]"), minus = e.target.closest("[data-cs-minus]");
+  if (plus || minus) {
+    const id = (plus || minus).dataset[plus ? "csPlus" : "csMinus"];
+    state.cart[id] = Math.max(0, Math.min(50, (state.cart[id] || 0) + (plus ? 1 : -1)));
+    renderCatalog(); renderQuote(); saveDraft(); renderCart();
+    return;
+  }
+  if (e.target.closest("#cartGo")) {
+    $("#cartSheet").classList.add("hidden");
+    // La suite : l'adresse de livraison, ou le récapitulatif si tout est rempli
+    const next = stepStates().slice(1).find(([fs, ok]) => fs && !ok && fs !== $("#shopOrderBox") && fs.offsetParent);
+    (next ? next[0] : $("#summary")).scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+});
 $("#itemSheet").addEventListener("click", e => {
   if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
   if (e.target.closest("#itemMinus")) { item.qty = Math.max(1, item.qty - 1); return renderItem(); }
