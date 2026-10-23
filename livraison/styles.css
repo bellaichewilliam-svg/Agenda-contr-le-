@@ -1977,3 +1977,7 @@ form .addr-note { display: none !important; }
 .cs-total b { font-size: 20px; }
 .cs-note { margin: 0; color: var(--muted); font-size: 13px; }
 .cs-btns { display: grid; gap: 4px; }
+/* Espace commerce de démonstration : bandeau collé en haut */
+.sandbox-bar { position: sticky; top: 0; z-index: 60; display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 14px; background: #0F1F3D; color: #fff; font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.sandbox-bar .btn { flex: none; background: #fff; color: #0F1F3D; border: 0; }
+.shop-hero .sh-demo a { color: #FFB27A; font-weight: 800; white-space: nowrap; }

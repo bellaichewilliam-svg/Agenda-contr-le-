@@ -157,6 +157,7 @@ function ringOnce() {
   if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
 }
 function setRing(on) {
+  if (Store.sandbox) on = false;   // démo en rendez-vous : pas de sonnerie
   if (on && !ring.timer) { ringOnce(); ring.timer = setInterval(ringOnce, 3000); }
   if (!on && ring.timer) { clearInterval(ring.timer); ring.timer = null; }
 }
@@ -793,7 +794,7 @@ $("#spDrops").addEventListener("submit", async e => {
 
 // En-tête : la vitrine du commerce telle que la voient ses clients, avec son abonnement
 function renderHead(shop) {
-  const cover = UI.safeImg(shop.cover), logo = UI.safeImg(shop.logo), kinds = t("shKinds") || {};
+  const cover = UI.safeImg(shop.cover) || UI.demoImg(shop, "cover"), logo = UI.safeImg(shop.logo) || UI.demoImg(shop, "logo"), kinds = t("shKinds") || {};
   const initials = String(shop.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   const chip = planOn(shop) ? t("spPlanOn", { date: UI.fmtKey(shop.plan_until) }) : shop.status === "actif" ? t("shActive") : t("shPending");
   const html = `<div class="sh-cover pk-${UI.esc(shop.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[shop.kind] || "🏪"}</i>`}</div>
@@ -877,9 +878,19 @@ $("#spCopy").addEventListener("click", () => {
 $("#spPrint").addEventListener("click", () => { document.body.classList.add("print-poster"); window.print(); document.body.classList.remove("print-poster"); });
 
 // Clé secrète dans l'adresse (lien envoyé au commerce), sinon celle gardée sur cet appareil
-const key = params.get("k") || (ref ? null : Store.myShopTokens()[0]);
-if (key) openSpace(key);
-else $("#shopSignup").classList.remove("hidden");
+// Démo (commerce.html?demo=resto) : l'espace d'un commerce d'exemple, tout sur ce téléphone, rien n'est envoyé
+if (Store.sandbox) {
+  const bar = document.createElement("div");
+  bar.className = "sandbox-bar";
+  bar.innerHTML = `<span>🎬 ${UI.esc(t("sbText"))}</span><button type="button" class="btn btn-sm" data-sb-reset>${UI.esc(t("sbReset"))}</button>`;
+  document.body.prepend(bar);
+  bar.addEventListener("click", e => { if (e.target.closest("[data-sb-reset]")) { Store.sandboxReset(); location.reload(); } });
+  Store.sandboxSeed(params.get("demo")).then(openSpace, () => $("#shopGone").classList.remove("hidden"));
+} else {
+  const key = params.get("k") || (ref ? null : Store.myShopTokens()[0]);
+  if (key) openSpace(key);
+  else $("#shopSignup").classList.remove("hidden");
+}
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;

@@ -36,7 +36,11 @@ const LS = {
 let sessionKey = "livraison.session.admin.v1";
 
 const sb = CONFIG.supabase || {};
-const ONLINE = !!(sb.url && sb.anonKey);
+// Espace commerce de démonstration (commerce.html?demo=resto|boulangerie|boutique) : tout reste sur ce téléphone,
+// dans des clés à part, rien n'est envoyé à la vraie base
+const SANDBOX = /commerce/.test(location.pathname) && /(^|[?&])demo=(resto|boulangerie|boutique)(&|$)/.test(location.search);
+if (SANDBOX) Object.keys(LS).forEach(k => { LS[k] = "sandbox." + LS[k]; });
+const ONLINE = !!(sb.url && sb.anonKey) && !SANDBOX;
 const DEMO_ADMIN_ID = "admin-demo";
 
 const STATUSES = {
@@ -1922,7 +1926,35 @@ async function replyMessage(messageId, answer) {
   writeJSON(LS.replies, list);
 }
 
+// Démo de l'espace commerce : le commerce, son catalogue et quelques commandes d'exemple (une nouvelle, une en préparation)
+async function sandboxSeed(kind, reset) {
+  if (!SANDBOX) return null;
+  const token = "demo-" + kind;
+  if (!reset && localShops().some(x => x.token === token)) return token;
+  const data = (await fetch("demo-shops.json?v=1").then(r => r.json()))[kind];
+  const now = Date.now(), iso = ms => new Date(now + ms).toISOString();
+  const shop = Object.assign({ id: uuid(), token, status: "actif", city: "netanya", address: "כיכר העצמאות", lat: 32.329, lon: 34.8565,
+    phone: CONFIG.bitPhone, lang: "fr", plan_until: "2099-12-31", demo: true, client_pays: true, logo: null, cover: null, created_at: iso(-30 * 86400000) }, data.shop);
+  writeJSON(LS.shops, localShops().filter(x => x.token !== token).concat([shop]));
+  const all = readJSON(LS.catalog, {});
+  all[shop.id] = { categories: data.categories, products: data.products };
+  writeJSON(LS.catalog, all);
+  const p = data.products, line = (x, qty) => ({ id: x.id, name: x.name, price: x.price, qty });
+  const order = (ref, mins, extra, items) => Object.assign({ id: uuid(), ref, token: uuid(), shop_id: shop.id, shop_name: shop.name, shop_order: null, service: "repas",
+    created_at: iso(-mins * 60000), pickup_at: iso(-mins * 60000 + 900000), urgency: "asap", price: 25, payment_status: "a_payer", payment_method: "bit",
+    from_city: "netanya", to_city: "netanya", pickup_address: shop.address, dropoff_address: "הרצל 12", contact_name: "David Levi", dropoff_contact: "David Levi",
+    items, items_total: items.reduce((s, i) => s + i.price * i.qty, 0), shop_share: 0, direct_pay: true, paid_to: "livreur" }, extra);
+  saveLocalOrders(localOrders().filter(o => o.shop_id !== shop.id && !String(o.ref).startsWith("D-")).concat([
+    order("D-1042", 2, { status: "nouvelle", shop_status: "attente" }, [line(p[0], 2), line(p[3], 1)]),
+    order("D-1041", 9, { status: "confirmee", shop_status: "acceptee", shop_ref: "427", prep_minutes: 15, ready_at: iso(6 * 60000), courier_name: "Yossi Cohen" }, [line(p[1], 1), line(p[6], 2)]),
+    order("D-1040", 95, { status: "livree", shop_status: "prete", shop_ref: "426", courier_name: "Avi Mizrahi" }, [line(p[2], 1)])
+  ]));
+  return token;
+}
+function sandboxReset() { Object.keys(localStorage).filter(k => k.startsWith("sandbox.")).forEach(k => localStorage.removeItem(k)); }
+
 window.Store = {
+  sandbox: SANDBOX, sandboxSeed, sandboxReset,
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
