@@ -82,6 +82,8 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **🥐 Petit-déjeuner :** nouvelle catégorie des enseignes avec les boulangeries, pâtisseries et traiteurs de l'annuaire et de la carte, les boulangeries françaises en tête (Moulin Doré, Le Parisien…).
 - **« Ce qu'on livre » : 🥐 Boulangerie et 👔 Pressing.** La tuile Boulangerie ouvre la liste Petit-déjeuner. La tuile Pressing ouvre les pressings et laveries : « On va récupérer vos vêtements au pressing et on vous les rapporte ». EDMAR (26 Smilansky, 053-373-3785) y figure, avec ses horaires.
 - **Fiche commerce complète (catalogue) :** en haut de la commande, la fiche d'un commerce HOP! Pro montre :
+- **Carnet d'adresses façon appli :** dans « Où récupérer ? » / « Où livrer ? » et dans « Mon compte », 🏠 Maison et 💼 Travail sont toujours là (« ＋ Maison » s'ils ne sont pas encore enregistrés), avec « ＋ Autre adresse ». Un toucher ouvre une fenêtre : la rue (ou « 📍 Ma position »), le n°, l'étage, l'appartement, le code d'entrée et une remarque, puis « ✅ Enregistrer l'adresse ». L'adresse est remplie tout de suite dans la commande. « ✏️ Modifier » rouvre la même fenêtre, et on peut aussi y supprimer l'adresse.
+- **Rien ne dépasse à droite** dans les cadres du formulaire, même avec une longue adresse ou un petit écran. Une adresse trop longue se coupe avec « … ».
   - son logo et sa couverture ;
   - sa présentation et son adresse ;
   - « Ouvert maintenant / Fermé pour le moment » avec les horaires du jour, et tous les horaires de la semaine ;

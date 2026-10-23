@@ -45,6 +45,9 @@ routeHash();
 
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
+  // Nouveautés en tête : boulangeries (petit-déjeuner) et pressing
+  { id: "bakery", icon: "🥐", set: { service: "repas" } },
+  { id: "pressing", icon: "👔", set: { service: "colis" } },
   { id: "poste", icon: "📮", set: { service: "retrait", place_kind: "poste" } },
   { id: "pharm", icon: "💊", set: { service: "retrait", place_kind: "superpharm" } },
   { id: "resto", icon: "🍔", set: { service: "repas", urgency: "express" } },
@@ -52,8 +55,6 @@ const EXAMPLES = [
   { id: "yad2",  icon: "🛋️", set: { service: "colis", size: "moyen" } },
   { id: "keys",  icon: "🔑", set: { service: "colis", urgency: "express" } },
   { id: "shop",  icon: "🛒", set: { service: "achat" } },
-  { id: "bakery", icon: "🥐", set: { service: "repas" } },
-  { id: "pressing", icon: "👔", set: { service: "colis" } },
   { id: "gift",  icon: "💐", set: { service: "colis", urgency: "programmee" } },
   { id: "ta",    icon: "🏙️", set: { service: "colis", from_city: CONFIG.homeCity, to_city: "raanana" } }
 ];
@@ -742,12 +743,90 @@ function quickPlaces(which, isHome) {
 function renderSavedAddrs() {
   const list = Store.getAddresses();
   if (home.ac.from) renderHomeStatic();
-  document.querySelectorAll(".saved-addrs").forEach(box => {
-    box.classList.toggle("hidden", !list.length);
-    box.innerHTML = list.length ? `<small>${UI.esc(t("savedTitle"))}</small>` + list.slice(0, 5).map((a, i) =>
-      `<button type="button" class="addr-chip" data-addr="${i}">${addrChip(a)}</button>`).join("") : "";
-  });
+  // Comme dans les applis : 🏠 Maison et 💼 Travail toujours proposés (à ajouter s'ils manquent), puis les autres adresses
+  const slot = tag => { const i = list.findIndex(a => a.tag === tag); return i >= 0
+    ? `<button type="button" class="addr-chip tagged" data-addr="${i}">${addrChip(list[i])}</button>`
+    : `<button type="button" class="addr-chip add" data-add-tag="${tag}">＋ ${tag === "home" ? "🏠 " + UI.esc(t("tagHome")) : "💼 " + UI.esc(t("tagWork"))}</button>`; };
+  const others = list.map((a, i) => ({ a, i })).filter(x => x.a.tag !== "home" && x.a.tag !== "work").slice(0, 4);
+  const html = `<small>${UI.esc(t("savedTitle"))}</small>${slot("home")}${slot("work")}`
+    + others.map(x => `<button type="button" class="addr-chip" data-addr="${x.i}">${addrChip(x.a)}</button>`).join("")
+    + `<button type="button" class="addr-chip add" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button>`;
+  document.querySelectorAll(".saved-addrs").forEach(box => { box.classList.remove("hidden"); box.innerHTML = html; });
 }
+
+// --- Fenêtre « Ajouter / modifier une adresse » (Maison, Travail, autre) ----------------------
+const sheet = { tag: null, which: null, idx: -1, pick: null, ac: null };
+function openAddrSheet(tag, which, idx) {
+  const list = Store.getAddresses(), a = idx >= 0 ? list[idx] : list.find(x => tag !== "other" && x.tag === tag);
+  Object.assign(sheet, { tag, which: which || null, idx: a ? list.indexOf(a) : -1, pick: null });
+  const titleKey = tag === "home" ? "tagHome" : tag === "work" ? "tagWork" : "asOther";
+  $("#asTitle").textContent = (tag === "home" ? "🏠 " : tag === "work" ? "💼 " : "⭐ ") + t(titleKey);
+  [["asNameLbl", "tagNamePh"], ["asAddrLbl", "asAddrLbl"], ["asNoLbl", "asNoLbl"], ["asFloorLbl", "floor"], ["asAptLbl", "apt"], ["asCodeLbl", "entryCode"], ["asNoteLbl", "addrNote"]]
+    .forEach(([id, k]) => { $("#" + id).textContent = t(k); });
+  $("#asPos").textContent = t("myPosChip"); $("#asSave").textContent = t("asSave"); $("#asDel").textContent = "✕ " + t("accDelete");
+  document.querySelector("#addrSheet .as-name").classList.toggle("hidden", tag !== "other");
+  $("#asName").value = a && a.tag === "other" ? a.name || "" : "";
+  $("#asNo").value = a ? a.number || "" : ""; $("#asFloor").value = a ? a.floor || "" : ""; $("#asApt").value = a ? a.apt || "" : "";
+  $("#asCode").value = a ? a.code || "" : ""; $("#asNote").value = a ? a.note || "" : "";
+  $("#asErr").classList.add("hidden");
+  $("#asDel").classList.toggle("hidden", sheet.idx < 0);
+  if (!sheet.ac) sheet.ac = Places.attach($("#asAddr"), {
+    lang: () => I18N.lang,
+    texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon") }),
+    onPick: p => { sheet.pick = p; $("#asErr").classList.add("hidden"); if (p.housenumber && !$("#asNo").value) $("#asNo").value = p.housenumber; if (!p.housenumber && !p.brand) setTimeout(() => $("#asNo").focus(), 50); },
+    onClear: () => { sheet.pick = null; }
+  });
+  if (a) {
+    sheet.pick = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, exact: a.exact,
+      label: [a.brand, a.street, cityLabel(a.cityId || a.city)].filter(Boolean).join(", ") };
+    sheet.ac.setPicked(sheet.pick.label);
+  } else { sheet.ac.reset(); $("#asAddr").value = ""; }
+  $("#addrSheet").classList.remove("hidden");
+  setTimeout(() => (tag === "other" && !a ? $("#asName") : a ? $("#asNo") : $("#asAddr")).focus(), 80);
+}
+function closeAddrSheet() { $("#addrSheet").classList.add("hidden"); }
+function saveAddrSheet() {
+  const err = m => { $("#asErr").textContent = m; $("#asErr").classList.remove("hidden"); };
+  const p = sheet.pick, name = $("#asName").value.trim();
+  if (sheet.tag === "other" && !name) return err(t("asNeedName"));
+  if (!p || p.lat == null) return err(t("asNeedAddr"));
+  const number = $("#asNo").value.trim() || p.housenumber || "";
+  if (!number && !p.brand) return err(t("errHouseNo"));
+  const cityId = p.cityId || cityIdOf(p.city, p);
+  const addr = { street: p.streetName || (p.brand ? "" : p.street) || "", number, brand: p.brand || null,
+    city: p.city || cityId, cityId: CONFIG.cities.some(c => c.id === cityId) ? cityId : null, lat: p.lat, lon: p.lon, exact: !!(p.exact || number),
+    floor: $("#asFloor").value.trim() || null, apt: $("#asApt").value.trim() || null, code: $("#asCode").value.trim() || null,
+    note: $("#asNote").value.trim() || null, building: null, kind: null, tag: sheet.tag, name: sheet.tag === "other" ? name : null };
+  if (sheet.idx >= 0) Store.deleteAddress(sheet.idx);
+  Store.saveAddress(addr);
+  closeAddrSheet();
+  if (sheet.which) applySavedAddr(sheet.which, addr);
+  renderSavedAddrs();
+  renderAccount();
+}
+$("#asClose").addEventListener("click", closeAddrSheet);
+$("#addrSheet").addEventListener("click", e => { if (e.target.id === "addrSheet") closeAddrSheet(); });
+$("#asSave").addEventListener("click", saveAddrSheet);
+$("#asDel").addEventListener("click", () => { if (sheet.idx >= 0 && confirm(t("accDelete") + " ?")) { Store.deleteAddress(sheet.idx); closeAddrSheet(); renderSavedAddrs(); renderAccount(); } });
+$("#asPos").addEventListener("click", async () => {
+  const b = $("#asPos"); b.disabled = true; b.textContent = t("geoLocating");
+  try {
+    const pos = await myPosition(); setHomePos(pos);
+    const r = (await Places.reverse(pos.lat, pos.lon, I18N.lang))[0];
+    if (!r) throw new Error("none");
+    sheet.pick = Object.assign(r, { lat: pos.lat, lon: pos.lon, exact: true });
+    sheet.ac.setPicked(r.label);
+    if (r.housenumber) $("#asNo").value = r.housenumber;
+  } catch (e) { $("#asErr").textContent = t("geoDenied"); $("#asErr").classList.remove("hidden"); }
+  b.disabled = false; b.textContent = t("myPosChip");
+});
+// « ＋ Maison », « ＋ Travail », « ＋ Autre adresse » : partout (commande, compte)
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-add-tag]");
+  if (!b) return;
+  const box = b.closest(".saved-addrs");
+  openAddrSheet(b.dataset.addTag, box ? box.dataset.for : null, -1);
+});
 
 // --- Type de lieu (maison, appartement, bureau, commerce) : une maison n'a pas d'étage ni d'appartement ---
 function kindOf(pre) { const r = form.querySelector(`input[name="${pre}_kind"]:checked`); return r ? r.value : null; }
@@ -788,6 +867,8 @@ function renderSaveBtns() {
     if (!b) return;
     b.classList.toggle("hidden", !state.pick[w]);
     b.textContent = t("saveAddr");
+    // Plus d'adresse choisie : les choix Maison / Travail disparaissent aussi
+    if (!state.pick[w] && b.parentNode) b.parentNode.querySelectorAll(".save-tags").forEach(x => x.remove());
   });
 }
 function myPosition() {
@@ -838,6 +919,7 @@ function askSaveTag(which, btn) {
 }
 function saveCurrentAddress(which, btn, tag) {
   const p = state.pick[which];
+  if (!p) { btn.closest(".addr-tools") && btn.closest(".addr-tools").querySelectorAll(".save-tags").forEach(x => x.remove()); return showError(t("asNeedAddr")); }
   let name = null;
   if (tag === "other") {
     name = (prompt(t("tagNamePh")) || "").trim().slice(0, 30);
@@ -955,6 +1037,9 @@ function renderAccount() {
     <p style="margin-top:8px"><b>${UI.esc(p.contact_name)}</b> · <span dir="ltr">${UI.esc(p.contact_phone)}</span>${p.contact_email ? " · " + UI.esc(p.contact_email) : ""}
       · ${UI.esc(t("accOrders", { n: activeOrders().length }))}</p>` : ""}
     <b style="display:block;margin-top:10px">${UI.esc(t("accAddrs"))}</b>
+    <div class="acc-add">${["home", "work"].filter(k => !addrs.some(x => x.tag === k)).map(k =>
+      `<button type="button" class="addr-chip add" data-add-tag="${k}">＋ ${k === "home" ? "🏠 " + UI.esc(t("tagHome")) : "💼 " + UI.esc(t("tagWork"))}</button>`).join("")}
+      <button type="button" class="addr-chip add" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button></div>
     ${addrs.length ? `<ul>${addrs.map((a, i) => state.editAddr === i ? addrEditForm(a, i) : `<li><span>${addrChip(a)}</span>
         <span class="acc-addr-btns"><button type="button" class="btn btn-sm btn-link" data-edit-addr="${i}">${UI.esc(t("accEdit"))}</button>
         <button type="button" class="btn btn-sm btn-link" data-del-addr="${i}">✕ ${UI.esc(t("accDelete"))}</button></span></li>`).join("")}</ul>`
@@ -2482,7 +2567,7 @@ $("#shopBannerOff").addEventListener("click", () => {
 $("#coordsEdit").addEventListener("click", () => { $("#coordsBox").dataset.editing = "1"; renderAccount(); form.contact_name.focus(); });
 $("#accountCard").addEventListener("click", e => {
   const ed = e.target.closest("[data-edit-addr]");
-  if (ed) { state.editAddr = Number(ed.dataset.editAddr); renderAccount(); return; }
+  if (ed) { const i = Number(ed.dataset.editAddr), a = Store.getAddresses()[i]; if (a) openAddrSheet(a.tag || "other", null, i); return; }
   const tg = e.target.closest("[data-edit-tag]");
   if (tg) {
     // Toucher le nom déjà choisi l'enlève ; « Autre nom » ouvre le champ du nom
