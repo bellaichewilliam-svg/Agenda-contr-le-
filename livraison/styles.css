@@ -1762,11 +1762,11 @@ body.asking { overflow: hidden; }
 .door-big.sm b { font-size: 15px; }
 /* Sans contact côté client : un vrai interrupteur, clair et net */
 .door-check { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center !important; padding: 14px 16px !important; border-radius: 16px !important; border: 2px solid var(--border); background: var(--panel) !important; cursor: pointer; transition: border-color .15s, background .15s; }
-.door-check > input { order: 2; appearance: none; -webkit-appearance: none; width: 52px; height: 30px; margin: 0; border-radius: 99px; background: var(--border); position: relative; cursor: pointer; transition: background .2s; flex: none; }
-.door-check > input::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(15, 31, 61, .25); transition: inset-inline-start .2s; }
-.door-check > input:checked { background: #12B76A; }
-.door-check > input:checked::after { inset-inline-start: 25px; }
-.door-check:has(> input:checked) { border-color: #12B76A; background: rgba(18, 183, 106, .1) !important; }
+label.check.door-check > input { order: 2; appearance: none; -webkit-appearance: none; width: 52px; height: 30px; margin: 0; border-radius: 99px; background: var(--border); position: relative; cursor: pointer; transition: background .2s; flex: none; }
+label.check.door-check > input::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(15, 31, 61, .25); transition: inset-inline-start .2s; }
+label.check.door-check > input:checked { background: #12B76A; }
+label.check.door-check > input:checked::after { inset-inline-start: 25px; }
+label.check.door-check:has(> input:checked) { border-color: #12B76A; background: rgba(18, 183, 106, .1) !important; }
 .door-check b { font-size: 15.5px; }
 .ac-fuzzy { font-style: normal; font-weight: 800; color: var(--brand-ink); background: var(--brand-soft); border-radius: 6px; padding: 0 5px; }
 
@@ -1888,3 +1888,52 @@ body.asking { overflow: hidden; }
 .it-del { margin: 6px 20px 0; justify-self: start; color: #F04438; }
 .item-sheet > .modal-box { margin-block: auto 0; }
 @media (min-width: 700px) { .item-sheet > .modal-box { margin-block: auto; } }
+
+/* Deux paiements clairs : ① les articles au commerce (avant la préparation), ② la livraison au livreur */
+.pay2 { display: grid; gap: 8px; margin-top: 12px; padding: 14px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--border); }
+.pay2 > b { font-size: 15px; }
+.pay2 { min-width: 0; }
+.pay2 p { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; align-items: start; margin: 0; font-size: 14px; line-height: 1.4; }
+.pay2 p i { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: #fff; font-style: normal; font-weight: 800; font-size: 13px; }
+.pay2 small { color: var(--muted); font-size: 12.5px; }
+.pay2-h { font-weight: 800; font-size: 16px; margin: 0 0 8px; color: var(--ink); }
+.goods-pay { display: grid; gap: 8px; padding: 12px 14px; border-radius: 16px; margin-bottom: 10px; text-align: start; }
+.goods-pay.todo { background: var(--brand-soft); border: 2px solid var(--brand); }
+.goods-pay.wait { background: rgba(247, 144, 9, .12); color: var(--ink); }
+.goods-pay.ok { background: rgba(18, 183, 106, .12); color: #0E9F5E; }
+.goods-pay .gp-step { font-size: 17px; }
+.goods-pay small { color: var(--muted); }
+.goods-pay .bit-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.goods-pay .gp-link { flex: 1 1 100%; text-align: center; }
+.gp-step2 { margin: 4px 0 8px; font-size: 14px; color: var(--ink); }
+/* Espace commerce : état du paiement des articles */
+.goods-line { margin: 6px 0; padding: 8px 10px; border-radius: 12px; font-size: 14px; }
+.goods-line.wait { background: var(--bg-2); }
+.goods-line.due { background: rgba(247, 144, 9, .14); border: 2px solid #F79009; animation: badgePulse 1.4s ease-in-out 3; }
+.goods-line.ok { background: rgba(18, 183, 106, .12); color: #0E9F5E; font-weight: 700; }
+.goods-line.bad { background: rgba(240, 68, 56, .1); color: #F04438; font-weight: 700; }
+.goods-line .prep-btns { margin-top: 6px; }
+/* Rien ne dépasse dans le catalogue : les rangées qui défilent restent dans la largeur de l écran */
+.cg > * { min-width: 0; max-width: 100%; }
+/* Retours sur téléphone : bannière jamais coupée (format 600 × 250 des couvertures), cartes plus compactes,
+   fenêtre « Enseignes près de vous » à la largeur de l'écran */
+.shop-hero .sh-cover, .sp-head .sh-cover { height: auto; aspect-ratio: 12 / 5; max-height: 260px; }
+.pro-row .sc-card { flex-basis: min(76vw, 292px); border-radius: 18px; }
+.sc-cover { height: auto; aspect-ratio: 12 / 5; }
+.sc-cover i { font-size: 40px; }
+.sc-logo { top: calc(min(76vw, 292px) * 5 / 12 - 26px); width: 46px; height: 46px; border-radius: 13px; border-width: 2px; inset-inline-start: 12px; }
+.sc-fav { width: 32px; height: 32px; font-size: 17px; top: 8px; inset-inline-end: 8px; }
+.sc-body { padding: 24px 12px 2px; gap: 2px; }
+.sc-body b { font-size: 16px; }
+.sc-body small { font-size: 12.5px; }
+.sc-top { gap: 5px; padding: 6px 12px 2px; }
+.sc-ti .item-art { border-radius: 10px; }
+.sc-ti em { font-size: 10px; bottom: 3px; inset-inline-start: 3px; }
+.sc-go { margin: 8px 12px 12px; padding: 8px 10px; font-size: 14px; }
+.ens-modal { grid-template-columns: minmax(0, 1fr); }
+.ens-box { min-width: 0; }
+.ens-cats { max-width: calc(100% + 32px); }
+.sc-body small.sc-meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-meta .sc-dot { margin-inline-end: 5px; vertical-align: 1px; }
+/* Un seul champ libre : « Un mot pour le livreur ». La remarque d'une adresse enregistrée (Mes adresses) reste envoyée */
+form .addr-note { display: none !important; }

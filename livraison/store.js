@@ -1114,6 +1114,34 @@ async function placesSearch(q) {
   const n = String(q || "").trim().toLowerCase();
   return n.length < 2 ? [] : readJSON("livraison.knownPlaces.v1", []).filter(x => x.name.toLowerCase().includes(n)).slice(0, 5);
 }
+// Articles payés d'avance au commerce : le client dit avoir payé, le commerce confirme ; le commerce règle ses moyens de paiement
+async function clientGoodsPaid(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/client_goods_paid", { method: "POST", body: { p_token: token } });
+  const all = localOrders(), o = all.find(x => x.token === token && ["a_payer", "pas_recu"].includes(x.goods_pay));
+  if (!o) return false;
+  Object.assign(o, { goods_pay: "declare", goods_pay_at: new Date().toISOString() });
+  writeJSON(LS.orders, all);
+  return true;
+}
+async function shopGoodsPay(token, id, ok) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_goods_pay", { method: "POST", body: { p_token: token, p_id: id, p_ok: !!ok } });
+  const shop = localShops().find(x => x.token === token), all = localOrders(), o = shop && all.find(x => x.id === id && x.shop_id === shop.id && x.goods_pay);
+  if (!o) return false;
+  Object.assign(o, { goods_pay: ok ? "recu" : "pas_recu", goods_pay_at: new Date().toISOString() });
+  writeJSON(LS.orders, all);
+  return true;
+}
+async function shopPaySave(token, link, bit) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_pay_save", { method: "POST", body: { p_token: token, p_link: link || null, p_bit: bit || null } });
+  const shops = localShops(), s = shops.find(x => x.token === token);
+  if (!s) return false;
+  let b = String(bit || "").replace(/\D/g, ""); if (b.startsWith("972")) b = "0" + b.slice(3);
+  if (link && !/^https:\/\/\S{4,250}$/.test(link)) throw new Error("bad_link");
+  if (b && !/^0\d{8,9}$/.test(b)) throw new Error("bad_bit");
+  Object.assign(s, { pay_link: link || null, pay_bit: b || null });
+  writeJSON(LS.shops, shops);
+  return true;
+}
 // Fiche du commerce remplie par lui-même : WhatsApp, présentation, horaires
 async function shopFicheSave(token, f) {
   if (ONLINE) return rest("/rest/v1/rpc/shop_fiche_save", { method: "POST", body: { p_token: token, p_whatsapp: f.whatsapp || null, p_about: f.about || null, p_hours: f.hours || null } });
@@ -1903,7 +1931,7 @@ window.Store = {
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

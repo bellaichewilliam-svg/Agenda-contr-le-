@@ -72,7 +72,7 @@ async function photonNear(cat, at, lang) {
   u.searchParams.set("limit", "50"); u.searchParams.set("radius", String(Math.round(cat.r / 1000)));
   if (["fr", "en", "de"].includes(lang)) u.searchParams.set("lang", lang);
   tags.forEach(x => u.searchParams.append("osm_tag", x));
-  const d = await fetchJson(u.toString(), {}, 8000);
+  const d = await fetchJson(u.toString(), {}, 6000);
   return (d.features || []).map(f => {
     const p = f.properties || {}, c = (f.geometry && f.geometry.coordinates) || [];
     return { name: p.name, street: p.street || "", number: p.housenumber || "", city: p.city || "", phone: null, lat: c[1], lon: c[0] };
@@ -96,7 +96,7 @@ function fromOsm(e, lang) {
 }
 
 // Enseignes d'une catégorie autour d'un point, de la plus proche à la plus loin
-async function list(catId, at, lang) {
+async function list(catId, at, lang, onMore) {
   const cat = CATS.find(c => c.id === catId);
   if (!cat) return [];
   let items;
@@ -110,23 +110,31 @@ async function list(catId, at, lang) {
     // L'annuaire HOP! + ceux de la carte
     const rx = cat.id === "pressing" ? PRESSING : BREAKFAST;
     const dir = (await Places.directory()).filter(e => e.lat != null && Places.km(at, e) * 1000 <= cat.r * 2 && rx.test(dirText(e)));
-    const fromDir = dir.map(e => {
+    // Les commerces partenaires HOP! du même métier en tête (EDMAR pour le pressing…)
+    const [shops, show] = await Promise.all([Store.shopsDirectory().catch(() => []), Store.shopsShowcase().catch(() => [])]);
+    const tagOf = code => ((show || []).find(x => x.code === code) || {}).tagline || "";
+    const partners = (shops || []).filter(x => x.lat != null && (rx.test(x.name + " " + tagOf(x.code)) || (cat.id === "pressing" && x.kind === "pressing"))).map(x => ({
+      name: x.name, street: x.address || "", number: "", city: x.city || "", lat: Number(x.lat), lon: Number(x.lon),
+      partner: true, code: x.code, icon: cat.id === "pressing" ? "👔" : "⭐", french: true }));
+    const fromDir = partners.concat(dir.map(e => {
       const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)/);
       return { name: Places.dirName(e, lang), street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
         lat: e.lat, lon: e.lon, icon: cat.id === "pressing" ? "👔" : FRENCH.test(dirText(e)) ? "🥖" : /קייטרינג|traiteur|מעדני/i.test(dirText(e)) ? "🍱" : "🥐",
         french: cat.id === "breakfast" && FRENCH.test(dirText(e)) };
-    });
+    }).filter(x => !partners.some(d => Places.km(d, x) < 0.15)));
     const key = `livraison.ens.v1.${cat.id}.${lang}.${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
-    let fromMap = readCache(key);
-    if (!fromMap) {
-      fromMap = await firstFull([photonNear(cat, at, lang).catch(() => []), overpassNear(cat, at, lang)]).catch(() => []);
-      if (fromMap.length) writeCache(key, fromMap);
-    }
     const nn = v => String(v || "").toLowerCase().replace(/[^a-z0-9\u0590-\u05ff]/g, "");
-    items = fromDir.concat(fromMap.filter(x => !fromDir.some(d => Places.km(d, x) < 0.15 && (nn(d.name).includes(nn(x.name)) || nn(x.name).includes(nn(d.name)))))
-      .map(x => Object.assign({ icon: cat.icon }, x)));
     // Les boulangeries françaises en tête (à distance égale), puis les plus proches
-    return items.map(x => Object.assign(x, { km: Places.km(at, x) })).sort((a, b) => (a.km - (a.french ? 1 : 0)) - (b.km - (b.french ? 1 : 0))).slice(0, 80);
+    const merge = fromMap => fromDir.concat(fromMap.filter(x => !fromDir.some(d => Places.km(d, x) < 0.15 && (nn(d.name).includes(nn(x.name)) || nn(x.name).includes(nn(d.name)))))
+      .map(x => Object.assign({ icon: cat.icon }, x)))
+      .map(x => Object.assign(x, { km: Places.km(at, x) })).sort((a, b) => (a.km - (a.partner ? 99 : a.french ? 1 : 0)) - (b.km - (b.partner ? 99 : b.french ? 1 : 0))).slice(0, 80);
+    const cached = readCache(key);
+    if (cached) return merge(cached);
+    const net = firstFull([photonNear(cat, at, lang).catch(() => []), overpassNear(cat, at, lang)]).catch(() => [])
+      .then(fromMap => { if (fromMap.length) writeCache(key, fromMap); return fromMap; });
+    // L'annuaire HOP! s'affiche tout de suite ; la carte complète la liste quand elle répond
+    if (fromDir.length && onMore) { net.then(m => { if (m.length) onMore(merge(m)); }); return merge([]); }
+    return merge(await net);
   } else if (cat.id === "food" && (items = (await Places.directory()).filter(e => e.lat != null && Places.km(at, e) * 1000 <= cat.r * 2)).length) {
     // Restaurants : l'annuaire HOP! (vrais noms, adresses, téléphones), avec l'icône de leur cuisine
     items = items.map(e => {
@@ -154,6 +162,16 @@ async function list(catId, at, lang) {
   return items.map(x => Object.assign(x, { km: Places.km(at, x) })).sort((a, b) => a.km - b.km).slice(0, 80);
 }
 
-window.Enseignes = { CATS, list };
+// Préchargement discret (une fois tous les 7 jours) : la liste s'ouvre ensuite instantanément
+function warm(at, lang) {
+  ["pressing", "pharm", "post", "super"].reduce((p, id) => p.then(() => {
+    const cat = CATS.find(c => c.id === id);
+    const key = `livraison.ens.v1.${id}.${lang}.${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
+    if (readCache(key)) return;
+    return photonNear(cat, at, lang).then(items => { if (items.length) writeCache(key, items); }).catch(() => {});
+  }), Promise.resolve());
+}
+
+window.Enseignes = { CATS, list, warm };
 
 })();

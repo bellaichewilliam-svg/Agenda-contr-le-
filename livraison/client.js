@@ -460,7 +460,9 @@ function confetti() {
 
 // --- Espèces : le client paie tout au livreur (articles + livraison) ; il dit avec quel billet ---------
 const cashMax = () => Number((state.settings && state.settings.cash_max) || 200);
-const cashGoods = () => (proShopOn() && cartCount() ? cartTotal() : 0);
+// Le commerce a un lien de paiement ou un Bit : les articles lui sont payés d'avance (jamais avancés par le livreur)
+const shopPrepay = () => !!(proShopOn() && (state.shop.pay_link || state.shop.pay_bit) && (cartCount() || val("shop_order").trim()));
+const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() ? cartTotal() : 0);
 function renderCash() {
   const on = val("payment_method") === "cash";
   $("#cashBox").classList.toggle("hidden", !on);
@@ -1296,7 +1298,10 @@ async function submit(e) {
     };
     if (!order.shop_token) delete order.shop_token;
     const firstOrder = activeOrders().length === 0;
+    // Articles à payer d'avance au commerce : on garde de quoi l'afficher après la commande
+    const gp = shopPrepay() ? { name: state.shop.name, link: state.shop.pay_link || null, bit: state.shop.pay_bit || null, total: cartTotal() } : null;
     const saved = await Store.createOrder(order);
+    if (gp) Object.assign(saved, { goods_pay: "a_payer", items_total: gp.total || saved.items_total || 0 });
     // Les photos des documents partent juste après la commande (le patron les vérifie avant d'envoyer un livreur)
     let docsFailed = false;
     if (Store.docsFor(saved).length) {
@@ -1312,10 +1317,12 @@ async function submit(e) {
     clearDraft();
     rememberAddresses(saved, pf, pt);
     // Paiement direct : le client paiera son livreur (Bit ou PayBox) dès qu'il accepte ; avant : Bit à HOP tout de suite
-    $("#donePrepay").innerHTML = saved.payment_method === "bit"
-      ? (saved.prepaid_required && !saved.direct_pay ? `<p class="promo-msg bad">${UI.esc(t("trPrepay"))}</p>` : "") + UI.bitPay(saved)
-      : UI.esc(t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref }));
-    $("#donePrepay").classList.toggle("hidden", saved.payment_method === "carnet" || (saved.payment_method !== "bit" && !saved.prepaid_required));
+    // Deux paiements, dans l'ordre : ① les articles au commerce, tout de suite ; ② la livraison au livreur
+    $("#donePrepay").innerHTML = (gp ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(saved, gp)}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: money(saved.price) }))}</b></p>` : "")
+      + (saved.payment_method === "bit"
+        ? (saved.prepaid_required && !saved.direct_pay ? `<p class="promo-msg bad">${UI.esc(t("trPrepay"))}</p>` : "") + UI.bitPay(saved)
+        : gp ? "" : UI.esc(t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref })));
+    $("#donePrepay").classList.toggle("hidden", !gp && (saved.payment_method === "carnet" || (saved.payment_method !== "bit" && !saved.prepaid_required)));
     if (saved.payment_method === "carnet" && state.pro) state.pro.credits--;
     confetti();
     hopBurst(t("hopSent"));
@@ -1773,7 +1780,12 @@ function renderCatalog() {
           : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
       </div>`;
     }).join("")}</div>`).join("")}
-    <p class="cg-pay">${UI.esc(t("cgPayShop", { name: state.shop.name }))}</p>
+    ${(state.shop.pay_link || state.shop.pay_bit) && proShopOn() ? `<div class="pay2">
+        <b>${UI.esc(t("pay2Title"))}</b>
+        <p><i>1</i><span>${UI.esc(t("pay2Goods", { name: state.shop.name, amount: n ? money(cartTotal()) : "" }))}</span></p>
+        <p><i>2</i><span>${UI.esc(t("pay2Ride"))}</span></p>
+        <small>${UI.esc(t("pay2Note"))}</small></div>`
+      : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: state.shop.name }))}</p>`}
     ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
       : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
@@ -1963,9 +1975,9 @@ function applyShop() {
   state.pick[dir].shopId = s.id;
   if (other === "from" && !state.pick.from) setTimeout(() => form.pickup_address.focus({ preventScroll: true }), 300);
   // Commerce fermé maintenant : la course est programmée d'office pour son ouverture (le client peut changer)
-  state.shopSched = null;
   const st = UI.openState(s.hours), at = UI.nextOpenDate(st);
-  if (at && val("urgency") === "asap") {
+  if (!at) state.shopSched = null;
+  if (at && (val("urgency") === "asap" || state.shopSched)) {
     const d = new Date(at.getTime() + 15 * 60000);
     form.elements.urgency.value = "programmee";
     form.date.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -2604,7 +2616,7 @@ function shopCard(s) {
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(s.name)}</b>
-      <small>${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : ""}</small>
+      <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : ""}</small>
       ${s.tagline ? `<small class="sc-tag">${UI.esc(s.tagline)}</small>` : ""}</span>
     ${top.length ? `<span class="sc-top">${top.map(p => `<span class="sc-ti">${UI.itemArt(p.name, s.kind)}<em>${UI.esc(money(p.price))}</em></span>`).join("")}</span>` : ""}
     <span class="sc-go">${UI.esc(st && !st.open ? t("scSchedule") : t("proGo"))}</span>
@@ -2640,6 +2652,10 @@ async function loadPartners() {
     return mine.concat(learned);
   });
   renderHomeStatic();
+  setTimeout(() => {
+    const c0 = Pricing.cityById(CONFIG, CONFIG.homeCity);
+    if (window.Enseignes) Enseignes.warm(home.pos || { lat: c0.lat, lon: c0.lon }, I18N.lang);
+  }, 5000);
 }
 async function openEns(catId) {
   ens.cat = catId;
@@ -2653,7 +2669,11 @@ async function openEns(catId) {
     .map(c => `<button type="button" class="ch-chip${c.id === catId ? " on" : ""}" data-ens="${c.id}">${UI.esc(t("ens_" + c.id))}</button>`).join("");
   $("#ensFilter").value = "";
   $("#ensList").innerHTML = `<p class="ens-empty">⏳ ${UI.esc(t("ensLoading"))}</p>`;
-  try { ens.items = await Enseignes.list(catId, at, I18N.lang); }
+  try {
+    ens.items = await Enseignes.list(catId, at, I18N.lang, more => {
+      if (mine === ens.seq) { ens.items = more; renderEnsList(); }
+    });
+  }
   catch (e) {
     if (mine === ens.seq) $("#ensList").innerHTML = `<p class="ens-empty">⚠️ ${UI.esc(t("ensDown"))}<br><button type="button" class="btn btn-sm" data-ens-retry style="margin-top:10px">${UI.esc(t("ensRetry"))}</button></p>`;
     return;
@@ -2679,7 +2699,8 @@ function renderEnsList() {
 async function pickEnseigne(which, x) {
   if (!x) return;
   $("#ensModal").classList.add("hidden");
-  if (x.partner && which === "from") { state.shopDir = "from"; loadShop(x.code, true); return; }
+  // Pressing partenaire : « Livrer ici » = on vient chercher vos vêtements pour le commerce
+  if (x.partner && (which === "from" || ens.cat === "pressing")) { state.shopDir = which; loadShop(x.code, true); return; }
   let { street, number, city } = x;
   if (!street) {
     try { const r = (await Places.reverse(x.lat, x.lon, I18N.lang))[0]; if (r) { street = r.streetName; number = number || r.housenumber; city = city || r.city; } }

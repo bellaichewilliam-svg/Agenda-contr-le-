@@ -437,7 +437,38 @@ function bitPay(o) {
     </div>
   </div>`;
 }
+// Articles payés d'avance au commerce : « ① Payer EDMAR · 30 ₪ » (son lien de paiement ou son Bit), puis « J'ai payé EDMAR ».
+// sp = { name, link, bit } du commerce ; le commerce confirme ensuite « Paiement reçu » et prépare
+function goodsPay(o, sp) {
+  const t = (k, v) => I18N.t(k, v);
+  if (!o || !o.goods_pay || !sp) return "";
+  const name = sp.name || "", amount = Number(o.items_total) > 0 ? money(o.items_total) : t("gpAmountShop");
+  if (o.goods_pay === "recu") return `<div class="goods-pay ok"><b>✅ ${esc(t("gpOk", { name, amount }))}</b></div>`;
+  if (o.goods_pay === "declare") return `<div class="goods-pay wait"><b>⏳ ${esc(t("gpWait", { name, amount }))}</b></div>`;
+  const bit = String(sp.bit || "").replace(/\D/g, "");
+  return `<div class="goods-pay todo">
+    ${o.goods_pay === "pas_recu" ? `<p class="promo-msg bad">${esc(t("gpNo", { name }))}</p>` : ""}
+    <b class="gp-step">${esc(t("gpStep1", { name, amount }))}</b>
+    <small>${esc(t("gpWhy", { name }))}</small>
+    <div class="bit-btns">
+      ${sp.link ? `<a class="btn btn-primary gp-link" href="${esc(sp.link)}" target="_blank" rel="noopener">💳 ${esc(t("gpPayLink", { name }))}</a>` : ""}
+      ${bit ? `${ANDROID ? `<a class="btn btn-sm btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}<button type="button" class="btn btn-sm" data-bit-copy="${esc(bit)}">${esc(t("gpCopyBit", { phone: bit }))}</button>` : ""}
+      <button type="button" class="btn btn-sm${sp.link ? "" : " btn-primary"}" data-goods-paid="${esc(o.token)}" data-name="${esc(name)}" data-total="${esc(amount)}">${esc(t("gpPaid", { name }))}</button>
+    </div></div>`;
+}
 document.addEventListener("click", async e => {
+  const g = e.target.closest("[data-goods-paid]");
+  if (g) {
+    if (!confirm(I18N.t("gpConfirm", { name: g.dataset.name, total: g.dataset.total }))) return;
+    g.disabled = true;
+    try {
+      await Store.clientGoodsPaid(g.dataset.goodsPaid);
+      const box = g.closest(".goods-pay");
+      if (box) { box.className = "goods-pay wait"; box.innerHTML = `<b>⏳ ${esc(I18N.t("gpWait", { name: g.dataset.name, amount: g.dataset.total }))}</b>`; }
+      document.dispatchEvent(new CustomEvent("hop-goods-paid", { detail: g.dataset.goodsPaid }));
+    } catch (ex) { g.disabled = false; alert(I18N.t("gpErr")); }
+    return;
+  }
   const c = e.target.closest("[data-bit-copy]");
   if (c) {
     const done = () => { c.textContent = I18N.t("bpCopied"); };
@@ -536,7 +567,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf,
+  DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
