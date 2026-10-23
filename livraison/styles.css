@@ -1608,3 +1608,34 @@ body.asking { overflow: hidden; }
 .pick-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 8px 10px; border-radius: 12px; background: var(--panel); font-size: 14px; }
 .pick-line small { margin-inline-start: auto; opacity: .7; }
 .pick-line.ok { opacity: .7; }
+/* Fiche du commerce : présentation, horaires, WhatsApp */
+.pk-pressing .pc-cover, .sh-cover.pk-pressing { background-image: linear-gradient(135deg, #3B2A6E, #B05AB8); }
+.sh-info { display: grid; gap: 12px; padding: 4px 14px 14px; }
+.sh-about { margin: 0; font-size: 15px; line-height: 1.5; color: var(--ink); }
+.sh-lines { display: grid; gap: 8px; }
+.sh-line { display: grid; grid-template-columns: 26px 1fr; align-items: center; column-gap: 6px; font-size: 15px; }
+.sh-line small { grid-column: 2; color: var(--muted); font-size: 13px; }
+.sh-open { font-weight: 800; }
+.sh-open.on { color: #12B76A; }
+.sh-open.off { color: #F04438; }
+.sh-hours { border-radius: 14px; background: var(--bg-2); padding: 10px 12px; }
+.sh-hours summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.sh-hours table { width: 100%; margin-top: 8px; border-collapse: collapse; font-size: 14px; }
+.sh-hours th { text-align: start; font-weight: 600; padding: 6px 0; }
+.sh-hours td { text-align: end; padding: 6px 0; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 13.5px; }
+.sh-hours tr + tr th, .sh-hours tr + tr td { border-top: 1px solid var(--border); }
+.sh-hours tr.today th, .sh-hours tr.today td { color: var(--brand); font-weight: 800; }
+.sh-wa { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: 16px; background: #25D366; color: #fff; text-decoration: none;
+  box-shadow: 0 6px 18px rgba(37, 211, 102, .35); }
+.sh-wa svg { width: 34px; height: 34px; flex: none; }
+.sh-wa b { display: block; font-size: 17px; }
+.sh-wa small { display: block; font-size: 12.5px; opacity: .92; line-height: 1.35; }
+.sh-wa:active { transform: scale(.98); }
+/* Patron : fiche client d'un commerce */
+.shop-fiche { margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); }
+.shop-fiche summary { cursor: pointer; font-weight: 700; }
+.shop-fiche .f { margin-top: 10px; }
+.fiche-hours { display: grid; gap: 6px; margin: 10px 0; }
+.fiche-hours > span { font-size: 13px; color: var(--muted); }
+.fiche-hours label { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; }
+.fiche-hours input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: inherit; font: inherit; }
