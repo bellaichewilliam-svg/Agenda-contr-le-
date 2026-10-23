@@ -763,7 +763,10 @@ function renderShops(view) {
   const month = today().slice(0, 7);
   const viaShop = orders.filter(o => o.shop_id && o.status === "livree");
   const order = ["en_attente", "actif", "suspendu"];
-  const list = shops.slice().sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  // Les vitrines de démonstration ont leur propre carte (liens à montrer aux commerces), pas dans la liste
+  const list = shops.filter(x => !x.demo).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  const demos = [["DEMO-RESTO", "🍔 Restaurant"], ["DEMO-BOULANGERIE", "🥐 Boulangerie"], ["DEMO-BOUTIQUE", "👗 Boutique"]]
+    .map(([code, label]) => ({ code, label, url: UI.appUrl("index.html") + "?c=" + code }));
   const signup = UI.appUrl("commerce.html") + (me && me.ref_code ? "?p=" + me.ref_code : "");
   const statusLabel = { en_attente: "⏳ À vérifier", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
   const bonusDue = sum(orders.filter(o => o.status === "livree" && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
@@ -780,6 +783,11 @@ function renderShops(view) {
       </div>
       <div id="dirCheck" class="dir-check small"></div>
       <details style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <b>🎬 Vitrines de démonstration</b>
+      <p class="muted small" style="margin:4px 0 8px">À montrer en rendez-vous : un restaurant, une boulangerie et une boutique avec un catalogue complet. Le commerçant voit sa future vitrine, touche les articles, remplit le panier ; aucune commande ne part. Invisibles pour les clients.</p>
+      <div class="actions">${demos.map(d => `<a class="btn btn-sm btn-primary" href="${UI.esc(d.url)}" target="_blank" rel="noopener">${d.label}</a><button class="btn btn-sm" data-copy="${UI.esc(d.url)}" title="Copier le lien">📋</button>`).join("")}</div>
     </div>
     <div class="card" style="margin-bottom:14px">
       <b>🏪 Inscrire un commerce partenaire</b>
