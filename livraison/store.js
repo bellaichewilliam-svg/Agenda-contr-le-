@@ -788,6 +788,22 @@ function pairOk(a, b) {
     && kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) <= G.dropKm
     && Math.abs(new Date(a.pickup_at) - new Date(b.pickup_at)) <= G.minutes * 60000;
 }
+// Course en plus « vraiment sur le chemin » d'un livreur qui a déjà 1 ou 2 courses (3 au plus en tout) :
+// arrivée à 1,2 km max d'une de ses arrivées, et départ au même endroit (600 m, 15 min d'écart) si la course
+// n'est pas encore récupérée, ou à 1 km de détour max sur la route vers son arrivée si elle l'est (prête dans 10 min).
+// Renvoie la course de référence (pour l'expliquer au livreur), ou null.
+function onWay(pos, mineList, o) {
+  const G = CONFIG.grouping || { dropKm: 1.2, pickupKm: 0.6, minutes: 15 };
+  const act = (mineList || []).filter(x => ["confirmee", "recuperee"].includes(x.status) && x.id !== o.id);
+  if (!act.length || act.length >= 3 || !groupable(o) || act.some(x => !groupable(x))) return null;
+  if ((o.size === "moyen" ? 1 : 0) + act.filter(x => x.size === "moyen").length > 1) return null;
+  const km = (a, b, c, d) => kmBetween(+a, +b, +c, +d);
+  return act.find(x => km(x.dropoff_lat, x.dropoff_lon, o.dropoff_lat, o.dropoff_lon) <= G.dropKm && (x.status === "confirmee"
+    ? km(x.pickup_lat, x.pickup_lon, o.pickup_lat, o.pickup_lon) <= G.pickupKm && Math.abs(new Date(x.pickup_at) - new Date(o.pickup_at)) <= G.minutes * 60000
+    : !!pos && new Date(o.pickup_at) <= Date.now() + 10 * 60000
+      && km(pos.lat, pos.lon, o.pickup_lat, o.pickup_lon) + km(o.pickup_lat, o.pickup_lon, x.dropoff_lat, x.dropoff_lon)
+         <= km(pos.lat, pos.lon, x.dropoff_lat, x.dropoff_lon) + (G.detourKm || 1))) || null;
+}
 // Accepter deux courses groupées : les deux ou aucune
 async function acceptBundle(ids, eta) {
   if (ONLINE) return authRest("/rest/v1/rpc/accept_bundle", { method: "POST", body: { p_ids: ids, p_eta: eta } });
@@ -806,7 +822,9 @@ async function acceptOrder(id, eta) {
   if (!o || !c) return false;
   if (c.role === "coursier" && !(c.unlocked_until && new Date(c.unlocked_until) > new Date())) {
     if (balanceOf(c.id, all) > Number(st.max_debt)) throw new Error("debt");
-    if (all.some(x => x.courier_id === c.id && x.status === "recuperee")) throw new Error("busy");
+    const act = all.filter(x => x.courier_id === c.id && ["confirmee", "recuperee"].includes(x.status));
+    if (act.length >= ((CONFIG.grouping || {}).maxOrders || 3)) throw new Error("max3");
+    if (act.some(x => x.status === "recuperee") && !onWay(c.lat != null ? { lat: c.lat, lon: c.lon } : null, act, o)) throw new Error("busy");
   }
   if (c.role === "coursier" && !onlineNow(c)) throw new Error("offline");
   const was = o.status;
@@ -1086,6 +1104,11 @@ async function couriersNearby() {
 
 // Clients : l'annuaire des commerces partenaires vérifiés (sans téléphone ni clé)
 // Enseignes apprises (absentes de la carte, indiquées par des clients) : par nom
+// Clients : les enseignes de l'annuaire du patron et celles apprises, pour la carte (toutes, avec leur position)
+async function placesMap() {
+  if (ONLINE) return rest("/rest/v1/rpc/places_map", { method: "POST", body: {} });
+  return readJSON("livraison.knownPlaces.v1", []).filter(x => x.lat != null);
+}
 async function placesSearch(q) {
   if (ONLINE) return rest("/rest/v1/rpc/places_search", { method: "POST", body: { p_q: q } });
   const n = String(q || "").trim().toLowerCase();
@@ -1819,9 +1842,9 @@ window.Store = {
   welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
-  listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, kmBetween, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
+  listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, placesSearch, knownPlaces, knownPlaceAdd, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,

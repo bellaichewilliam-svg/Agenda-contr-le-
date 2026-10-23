@@ -62,6 +62,7 @@ function toPlace(f) {
     housenumber: p.housenumber || "",
     cityId: matchCity(city) || matchCity(p.district) || matchCity(p.county),
     brand: isPoi ? p.name : null,
+    poi: isPoi,   // commerce trouvé sur la carte : HOP! l'apprend s'il n'est pas dans son annuaire
     osm: isPoi && p.osm_id ? { type: p.osm_type, id: p.osm_id } : null,
     street: streetLine || p.name || "",
     exact: !!(p.housenumber || isPoi),
@@ -114,7 +115,7 @@ function foodIcon(name, kind) {
   for (const [rx, ico] of rules) if (rx.test(t)) return ico;
   return "🍽️";
 }
-const DIR_VERSION = "5";
+const DIR_VERSION = "6";
 // Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
 const ALIASES = [
   ["mcdonalds", "מקדונלד"], ["mcdonald", "מקדונלד"], ["mcdo", "מקדונלד"], ["macdo", "מקדונלד"], ["burgerking", "בורגרקינג"],
@@ -276,7 +277,7 @@ async function nearbyByName(q, lang, at) {
     const streetLine = [streetName, housenumber].filter(Boolean).join(" ");
     out.push({
       lat, lon, city, type: "house", streetName, housenumber,
-      cityId: matchCity(city) || nearestCity(lat, lon), brand: name, street: streetLine || name, exact: true,
+      cityId: matchCity(city) || nearestCity(lat, lon), brand: name, street: streetLine || name, exact: true, poi: true,
       phone: g.phone || g["contact:phone"] || g.mobile || g["contact:mobile"] || null,
       label: [name, streetLine, city].filter(Boolean).join(", ")
     });
