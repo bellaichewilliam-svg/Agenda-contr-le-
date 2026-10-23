@@ -279,6 +279,12 @@ function syncVisibility() {
   $("#pickupLegend").textContent = t(svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
+  // Commande chez un commerce HOP! Pro : seulement l'essentiel (articles, adresse du client, heure, mot pour le livreur, paiement)
+  const side = shopMode();
+  form.classList.toggle("shop-mode", !!side);
+  form.classList.toggle("shop-from", side === "from");
+  form.classList.toggle("shop-to", side === "to");
+  $("#sizeLegend").textContent = t(side ? "s5Shop" : "s5");
   const sched = val("urgency") === "programmee";
   // Carnet pro proposé seulement quand il s'applique
   const carnet = carnetOk();
@@ -589,7 +595,8 @@ function setBrandMode(which, on) {
 }
 
 function onPlacePicked(which, p, quiet) {
-  if (which === "from" && p.partnerCode) { loadShop(p.partnerCode, true); return; }
+  if (which === "from" && p.partnerCode) { state.shopDir = "from"; loadShop(p.partnerCode, true); return; }
+  if (which === "to" && p.partnerCode && p.kind && BOTH_WAYS.includes(p.kind)) { state.shopDir = "to"; loadShop(p.partnerCode, true); return; }
   state.pick[which] = p;
   // Le champ du formulaire porte l'adresse choisie avant le calcul du prix
   if (ac[which] && form.elements[prefixOf(which) + "_address"].value !== p.label) ac[which].setPicked(p.label);
@@ -836,7 +843,7 @@ function setKind(pre, v) {
   if (box) box.classList.toggle("is-house", v === "maison");
 }
 // Conditions de livraison d'objets : pour tout envoi, sauf un repas ou une commande chez un commerce HOP! Pro
-const needsRules = () => val("service") !== "repas" && !proShopOn();
+const needsRules = () => val("service") !== "repas" && !proShopOn() && !shopMode();
 function openRules() { $("#rulesModal").classList.remove("hidden"); }
 
 function applySavedAddr(which, a) {
@@ -1261,7 +1268,7 @@ async function submit(e) {
       payment_method: val("payment_method"),
       cash_note: val("payment_method") === "cash" ? Number(form.cash_note.value) || 0 : null,
       payer: val("payer"),
-      notes: val("notes").trim() || null,
+      notes: [shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", val("notes").trim()].filter(Boolean).join("\n") || null,
       // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
       shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
       items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,
@@ -1637,65 +1644,90 @@ async function loadSettings() {
 }
 
 // --- Catalogue du commerce HOP! Pro : le client choisit ses articles (payés directement au commerce) ---
-state.catalog = null; state.cart = {}; state.cgCat = "";
+state.catalog = null; state.cart = {};
 const cgProducts = () => (state.catalog && state.catalog.products) || [];
 const cartLines = () => cgProducts().filter(p => p.available && state.cart[p.id] > 0).map(p => ({ p, qty: state.cart[p.id] }));
 const cartCount = () => cartLines().reduce((s, l) => s + l.qty, 0);
 const cartTotal = () => cartLines().reduce((s, l) => s + Number(l.p.price) * l.qty, 0);
-const catalogOn = () => proShopOn() && cgProducts().length > 0;
+const shopDropOn = () => !!(state.shop && state.shop.pro && state.pick.to && state.pick.to.shopId === state.shop.id);
+const catalogOn = () => (proShopOn() || shopDropOn()) && cgProducts().length > 0;
 async function loadCatalogFor(shop) {
-  state.catalog = null; state.cart = {}; state.cgCat = "";
+  state.catalog = null; state.cart = {};
   if (!shop || !shop.pro) return renderCatalog();
   try { state.catalog = await Store.shopCatalog(shop.code); } catch (e) { state.catalog = null; }
   renderCatalog();
   renderQuote();
 }
-// Article sans photo : une icône qui lui ressemble (pressing, boulangerie, restaurant…)
-const ITEM_ICONS = [[/repass|גיהוץ|iron/i, "👔"], [/manteau|מעיל|veste|coat/i, "🧥"], [/robe|שמל|dress/i, "👗"], [/tsitsit|ציצי/i, "🪢"],
-  [/couverture|שמיכ|couette|duvet/i, "🛏️"], [/tapis|שטיח|rug/i, "🧶"], [/sec|יבש|dry/i, "✨"], [/poids|kilo|משקל|ק"ג/i, "⚖️"], [/lavage|כביס|wash/i, "🧺"],
-  [/croissant|קרואסון/i, "🥐"], [/baguette|בגט|pain|לחם/i, "🥖"], [/g[âa]teau|עוג|cake/i, "🍰"], [/caf[ée]|קפה/i, "☕"], [/pizza|פיצ/i, "🍕"],
-  [/burger|בורגר/i, "🍔"], [/salade|סלט/i, "🥗"], [/autre|נוספ|other/i, "➕"]];
-function itemIcon(name, kind) {
-  const hit = ITEM_ICONS.find(([rx]) => rx.test(String(name || "")));
-  return hit ? hit[1] : kind === "restaurant" ? "🍽️" : UI.KIND_ICON[kind] || "🛍️";
-}
 function renderCatalog() {
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
+  $("#shopOrderBox").classList.toggle("with-cg", on);
+  document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   form.shop_order.placeholder = on ? t("cgNotePh") : t("spOrderPh");
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: state.shop.name }) : t("spOrderLabel", { name: state.shop.name });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; return; }
   const cats = state.catalog.categories.filter(c => cgProducts().some(p => p.category_id === c.id));
   const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
-  if (state.cgCat && !cats.some(c => c.id === state.cgCat) && state.cgCat !== "_") state.cgCat = "";
-  const list = cgProducts().filter(p => !state.cgCat || (state.cgCat === "_" ? !cats.some(c => c.id === p.category_id) : p.category_id === state.cgCat));
-  // « Tout » : le menu par rubriques, comme dans les applis de livraison ; une rubrique choisie : ses produits
-  const sections = state.cgCat ? [{ title: "", items: list }]
-    : cats.map(c => ({ title: c.name, items: list.filter(p => p.category_id === c.id) }))
-      .concat(hasLoose ? [{ title: cats.length ? t("cgOther") : "", items: list.filter(p => !cats.some(c => c.id === p.category_id)) }] : []);
+  // Le menu entier par rubriques ; les onglets mènent à leur rubrique et suivent le défilement
+  const sections = cats.map(c => ({ id: c.id, title: c.name, items: cgProducts().filter(p => p.category_id === c.id) }))
+    .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: cgProducts().filter(p => !cats.some(c => c.id === p.category_id)) }] : []);
   const n = cartCount();
+  // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
   const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: state.shop.name }))}</b>
-    ${cats.length ? `<div class="cg-cats"><button type="button" class="ch-chip${!state.cgCat ? " on" : ""}" data-cg-cat="">${UI.esc(t("cgAll"))}</button>${cats.map(c =>
-      `<button type="button" class="ch-chip${state.cgCat === c.id ? " on" : ""}" data-cg-cat="${UI.esc(c.id)}">${UI.esc(c.name)}</button>`).join("")}${hasLoose ? `<button type="button" class="ch-chip${state.cgCat === "_" ? " on" : ""}" data-cg-cat="_">${UI.esc(t("cgOther"))}</button>` : ""}</div>` : ""}
-    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
+    ${cats.length > 1 ? `<div class="cg-cats" role="tablist">${sections.filter(x => x.title).map(x =>
+      `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}
+    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
       const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}">
-        <div class="cg-info"><b>${UI.esc(p.name)}</b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
-        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : `<span class="cg-nophoto">${itemIcon(p.name, state.shop.kind)}</span>`}
+        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(p.name)}</bdi></b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
+        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind)}
         ${!p.available ? `<span class="cg-out">${UI.esc(t("cgOut"))}</span>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
       </div>`;
     }).join("")}</div>`).join("")}
-    <div class="cg-cart${n ? "" : " empty"}">${n ? UI.esc(t("cgCart", { n, total: money(cartTotal()) })) : UI.esc(t("cgEmpty"))}<small>${UI.esc(t("cgPayShop", { name: state.shop.name }))}</small></div>`;
+    <p class="cg-pay">${UI.esc(t("cgPayShop", { name: state.shop.name }))}</p>
+    ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
+      : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  // Les onglets restent collés juste sous la barre du haut (« ‹ Accueil · Ma commande »)
+  const bar = ["#viewBar", ".topbar"].map(q => document.querySelector(q)).find(el => el && el.offsetHeight);
+  if (bar) box.style.setProperty("--cg-top", (parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight - 1 + "px");
+  syncCgTabs();
 }
+// Onglet allumé = la rubrique en cours de lecture
+const cgEdge = () => { const tabs = $("#catalogBox .cg-cats"); return tabs ? (parseFloat(getComputedStyle(tabs).top) || 0) + tabs.offsetHeight + 12 : 0; };
+function syncCgTabs() {
+  const tabs = $("#catalogBox .cg-cats");
+  if (!tabs) return;
+  const secs = [...$("#catalogBox").querySelectorAll("[data-cg-sec]")], edge = cgEdge();
+  const cur = secs.filter(h => h.getBoundingClientRect().top <= edge + 40).pop() || secs[0];
+  tabs.querySelectorAll(".cg-tab").forEach(b => {
+    const on = !!cur && b.dataset.cgCat === cur.dataset.cgSec;
+    if (on && !b.classList.contains("on")) {
+      const r = b.getBoundingClientRect(), tr = tabs.getBoundingClientRect();
+      if (r.left < tr.left) tabs.scrollLeft += r.left - tr.left - 12; else if (r.right > tr.right) tabs.scrollLeft += r.right - tr.right + 12;
+    }
+    b.classList.toggle("on", on);
+  });
+}
+let cgTick = 0;
+addEventListener("scroll", () => { if (!cgTick) cgTick = requestAnimationFrame(() => { cgTick = 0; syncCgTabs(); }); }, { passive: true });
 $("#catalogBox").addEventListener("click", e => {
   const b = e.target.closest("button");
   if (!b) return;
-  if (b.dataset.cgCat != null) state.cgCat = b.dataset.cgCat;
-  else if (b.dataset.cgPlus) state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1);
+  // Panier : on passe à la suite (adresse de livraison, ou le récapitulatif si tout est rempli)
+  if (b.dataset.cgGo != null) {
+    const next = stepStates().slice(1).find(([fs, ok]) => fs && !ok && fs !== $("#shopOrderBox") && fs.offsetParent);
+    return (next ? next[0] : $("#summary")).scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  if (b.dataset.cgCat != null) {
+    const h = $("#catalogBox").querySelector(`[data-cg-sec="${CSS.escape(b.dataset.cgCat)}"]`);
+    if (h) scrollTo({ top: scrollY + h.getBoundingClientRect().top - cgEdge() + 4, behavior: "smooth" });
+    return;
+  }
+  if (b.dataset.cgPlus) state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1);
   else if (b.dataset.cgMinus) state.cart[b.dataset.cgMinus] = Math.max(0, (state.cart[b.dataset.cgMinus] || 0) - 1);
   else return;
   renderCatalog();
@@ -1737,8 +1769,11 @@ function shopInfo(s) {
       `<tr class="${Number(x.d) === today ? "today" : ""}"><th>${UI.esc(days[x.d])}</th><td>${UI.esc(fmt(x.h))}</td></tr>`).join("")}</table></details>` : ""}
   </div>`;
 }
+// Le commerce est-il dans la course (au départ ou à l'arrivée) ?
+const shopSide = () => (shopPicked() ? "from" : state.shop && state.pick.to && state.pick.to.shopId === state.shop.id ? "to" : "");
+const shopMode = () => (state.shop && state.shop.pro ? shopSide() : "");
 function renderShopBanner() {
-  const on = shopPicked();
+  const side = shopSide(), on = !!side;
   $("#shopBanner").classList.toggle("hidden", !on);
   // Commerce HOP! Pro : sa vitrine en haut de la commande (photo, logo, accroche), comme dans les applis de livraison
   const s = state.shop, hero = $("#shopHero"), showHero = !!(on && s && (s.pro || s.logo || s.cover));
@@ -1750,12 +1785,19 @@ function renderShopBanner() {
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(s.name)}</b><small>${UI.esc(s.tagline || kinds[s.kind] || "")}</small></div></div>
       ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
+      ${shopTwoWay() ? `<div class="sh-dir" role="group">
+        <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: s.name }))}</small></span></button>
+        <button type="button" class="${side === "from" ? "on" : ""}" data-shop-dir="from"><i>👔</i><span><b>${UI.esc(t("shDirFrom"))}</b><small>${UI.esc(t("shDirFromSub", { name: s.name }))}</small></span></button>
+      </div>` : ""}
       ${shopInfo(s)}`;
     if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
   }
-  if (on) $("#shopBannerText").textContent = t("shBanner", { name: state.shop.name });
+  if (on) $("#shopBannerText").textContent = t(side === "to" ? "shBannerTo" : "shBanner", { name: state.shop.name });
   const pro = proShopOn();
-  $("#shopOrderBox").classList.toggle("hidden", !pro);
+  // Commerce à l'arrivée (pressing : on lui apporte les vêtements) : le catalogue seul, sans commande à préparer
+  $("#shopOrderBox").classList.toggle("hidden", !pro && !shopDropOn());
+  form.shop_order.closest("label").classList.toggle("hidden", !pro);
+  $("#shopOrderNote").classList.toggle("hidden", !pro);
   $("#shopRefBox").classList.toggle("hidden", !shopSelf());
   if (pro) {
     $("#shopOrderLabel").textContent = t("spOrderLabel", { name: state.shop.name });
@@ -1764,13 +1806,32 @@ function renderShopBanner() {
   renderCatalog();
 }
 
+// Dans quel sens ? Un restaurant est toujours au départ. Un pressing : on vient chercher les vêtements chez le client
+// et on les y apporte (« to »), ou on les récupère au pressing et on les ramène (« from »). L'adresse du commerce
+// reste toujours d'un côté ou de l'autre, jamais perdue.
+const BOTH_WAYS = ["pressing"];
+const shopTwoWay = () => !!(state.shop && BOTH_WAYS.includes(state.shop.kind));
 function applyShop() {
   const s = state.shop;
   if (!s) return;
-  applySavedAddr("from", { brand: s.name, street: s.address || "", number: "", cityId: CONFIG.cities.some(c => c.id === s.city) ? s.city : null,
+  const dir = shopTwoWay() && state.shopDir !== "from" ? "to" : "from", other = dir === "from" ? "to" : "from";
+  const m = String(s.address || "").match(/^(.*?)\s+(\d+[a-zA-Zא-ת]?)$/);
+  // Le commerce était de l'autre côté : on libère ce côté (pour l'adresse du client)
+  if (state.pick[other] && state.pick[other].shopId === s.id) {
+    state.pick[other] = null; state[other + "Point"] = null;
+    if (ac[other]) ac[other].reset();
+    if (home.ac && home.ac[other]) home.ac[other].reset();
+    form.elements[prefixOf(other) + "_address"].value = "";
+    form.elements[prefixOf(other) + "_number"].value = "";
+    setBrandMode(other, false);
+  }
+  applySavedAddr(dir, { brand: s.name, street: m ? m[1] : s.address || "", number: m ? m[2] : "", cityId: CONFIG.cities.some(c => c.id === s.city) ? s.city : null,
     city: s.city, lat: s.lat, lon: s.lon, exact: s.lat != null });
-  state.pick.from.shopId = s.id;
-  if (s.kind === "restaurant") { form.elements.service.value = "repas"; syncVisibility(); renderQuote(); }
+  state.pick[dir].shopId = s.id;
+  if (other === "from" && !state.pick.from) setTimeout(() => form.pickup_address.focus({ preventScroll: true }), 300);
+  // Commerce HOP! Pro : le service va de soi (repas pour un restaurant, sinon une course simple)
+  if (s.kind === "restaurant" || s.pro) { form.elements.service.value = s.kind === "restaurant" ? "repas" : "colis"; state.svcChosen = true; }
+  syncVisibility(); renderQuote();
   renderShopBanner();
 }
 
@@ -1956,7 +2017,7 @@ function initHome() {
     const en = e.target.closest("[data-ens]");
     if (en) openEns(en.dataset.ens);
     const pr = e.target.closest("[data-pro]");
-    if (pr && pr.dataset.pro) loadShop(pr.dataset.pro);
+    if (pr && pr.dataset.pro) { state.shopDir = ""; loadShop(pr.dataset.pro); }
   });
   $("#ensCats").addEventListener("click", e => { const b = e.target.closest("[data-ens]"); if (b) openEns(b.dataset.ens); });
   $("#ensFilter").addEventListener("input", renderEnsList);
@@ -2363,8 +2424,9 @@ function learnedPlace(x) {
 }
 function partnerPlace(sh) {
   const cityId = cityIdOf(sh.city, sh);
-  return { lat: Number(sh.lat), lon: Number(sh.lon), brand: sh.name, phone: sh.phone || null, partner: true, partnerCode: sh.code, streetName: sh.address || "",
-    housenumber: "", street: sh.address || "", city: cityLabel(cityId || sh.city), cityId, exact: true,
+  const m = String(sh.address || "").match(/^(.*?)\s+(\d+[a-zA-Zא-ת]?)$/);
+  return { lat: Number(sh.lat), lon: Number(sh.lon), brand: sh.name, phone: sh.phone || null, partner: true, partnerCode: sh.code, kind: sh.kind || null,
+    streetName: m ? m[1] : sh.address || "", housenumber: m ? m[2] : "", street: sh.address || "", city: cityLabel(cityId || sh.city), cityId, exact: true,
     label: [sh.name, sh.address, cityLabel(cityId || sh.city)].filter(Boolean).join(", ") };
 }
 // --- Vitrine : les commerces HOP! Pro abonnés, mis en avant sur l'accueil (logo, photo, accroche) -------
@@ -2441,7 +2503,7 @@ function renderEnsList() {
 async function pickEnseigne(which, x) {
   if (!x) return;
   $("#ensModal").classList.add("hidden");
-  if (x.partner && which === "from") { loadShop(x.code, true); return; }
+  if (x.partner && which === "from") { state.shopDir = "from"; loadShop(x.code, true); return; }
   let { street, number, city } = x;
   if (!street) {
     try { const r = (await Places.reverse(x.lat, x.lon, I18N.lang))[0]; if (r) { street = r.streetName; number = number || r.housenumber; city = city || r.city; } }
@@ -2555,14 +2617,26 @@ $("#reqClose").addEventListener("click", () => $("#reqModal").classList.add("hid
 // Lien direct vers la demande de devis (ex. depuis l'espace pro : index.html#devis)
 if (location.hash === "#devis") setTimeout(() => openRequest("tournee"), 300);
 $("#shopBannerOff").addEventListener("click", () => {
+  const side = shopSide() || "from";
   state.shop = null;
-  state.pick.from = null;
-  if (ac.from) ac.from.reset();
-  form.pickup_address.value = "";
-  setBrandMode("from", false);
+  state.pick[side] = null; state[side + "Point"] = null;
+  if (ac[side]) ac[side].reset();
+  if (home.ac && home.ac[side]) home.ac[side].reset();
+  form.elements[prefixOf(side) + "_address"].value = "";
+  form.elements[prefixOf(side) + "_number"].value = "";
+  setBrandMode(side, false);
   renderShopBanner();
   renderQuote();
-  form.pickup_address.focus();
+  form.elements[prefixOf(side) + "_address"].focus();
+});
+// Pressing : on vient chercher les vêtements chez le client (→ pressing) ou on les ramène (pressing →)
+$("#shopHero").addEventListener("click", e => {
+  const b = e.target.closest("[data-shop-dir]");
+  if (!b || b.dataset.shopDir === shopSide()) return;
+  state.shopDir = b.dataset.shopDir;
+  applyShop();
+  renderQuote();
+  saveDraft();
 });
 $("#coordsEdit").addEventListener("click", () => { $("#coordsBox").dataset.editing = "1"; renderAccount(); form.contact_name.focus(); });
 $("#accountCard").addEventListener("click", e => {

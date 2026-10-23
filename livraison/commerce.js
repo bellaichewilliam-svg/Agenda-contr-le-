@@ -457,11 +457,11 @@ function prodForm(p, catId) {
 }
 function prodRow(p) {
   if (cat.edit && cat.edit.id === p.id) return prodForm(p);
+  // Comme le voit le client : l'image (ou l'illustration), le nom, le prix ; un interrupteur « en vente / épuisé »
   return `<div class="ct-prod${p.available ? "" : " off"}">
-    ${p.photo ? `<img src="${UI.esc(p.photo)}" alt="" />` : `<span class="ct-nophoto">🍽️</span>`}
-    <div class="ct-info"><b>${UI.esc(p.name)}</b><small>${UI.money(p.price)}${p.description ? " · " + UI.esc(p.description) : ""}</small></div>
-    <button type="button" class="btn btn-sm ${p.available ? "" : "btn-primary"}" data-avail="${UI.esc(p.id)}">${UI.esc(t(p.available ? "ctAvail" : "ctOut"))}</button>
-    <button type="button" class="btn btn-sm btn-link" data-edit="${UI.esc(p.id)}" aria-label="${UI.esc(t("ctEdit"))}">✏️</button>
+    ${UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" />` : UI.itemArt(p.name, state.dash.shop.kind)}
+    <button type="button" class="ct-info" data-edit="${UI.esc(p.id)}"><b>${UI.esc(p.name)}</b><span class="ct-price">${UI.money(p.price)}</span>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}</button>
+    <button type="button" class="ct-switch${p.available ? " on" : ""}" role="switch" aria-checked="${p.available}" data-avail="${UI.esc(p.id)}"><i></i><small>${UI.esc(t(p.available ? "ctAvailShort" : "ctOutShort"))}</small></button>
   </div>`;
 }
 function renderCatalog() {
@@ -593,8 +593,8 @@ function renderSpace() {
   renderPay();
   renderBrand();
   const sales = state.dash.sales || [];
-  $("#spTitle").textContent = t("shWelcome", { name: shop.name });
-  $("#spStatus").textContent = shop.status === "actif" ? t("shActive") : t("shPending");
+  renderHead(shop);
+  renderTabs(shop);
   $("#spOrder").href = clientLink(shop) + "#commander";
   $("#spLink").value = clientLink(shop);
   $("#spShare").href = UI.waShare(t("shShareMsg", { name: shop.name, url: clientLink(shop) }));
@@ -636,6 +636,45 @@ function renderSpace() {
         ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<br><a class="small" href="${UI.trackUrl(o)}">${UI.esc(t("shTrack"))}</a>` : ""}</div>
     </div>`).join("") : `<p class="muted small">${UI.esc(t("shNoOrders"))}</p>`;
 }
+
+// En-tête : la vitrine du commerce telle que la voient ses clients, avec son abonnement
+function renderHead(shop) {
+  const cover = UI.safeImg(shop.cover), logo = UI.safeImg(shop.logo), kinds = t("shKinds") || {};
+  const initials = String(shop.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  const chip = planOn(shop) ? t("spPlanOn", { date: UI.fmtKey(shop.plan_until) }) : shop.status === "actif" ? t("shActive") : t("shPending");
+  const html = `<div class="sh-cover pk-${UI.esc(shop.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[shop.kind] || "🏪"}</i>`}</div>
+    <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
+      <div class="sh-txt"><small class="sp-hello">${UI.esc(t("spHello"))}</small><b>${UI.esc(shop.name)}</b><small>${UI.esc(shop.tagline || kinds[shop.kind] || "")}</small></div></div>
+    <p class="sp-chip${planOn(shop) ? " pro" : ""}">${UI.esc(chip)}</p>`;
+  const box = $("#spHeadTop");
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+// Onglets : Commandes · Catalogue · Vitrine · Compte (le dernier choisi est gardé sur cet appareil)
+const TAB_KEY = "livraison.shopTab";
+let spTab = (() => { try { return localStorage.getItem(TAB_KEY) || "orders"; } catch (e) { return "orders"; } })();
+let lastWaiting = 0;
+function renderTabs(shop) {
+  const pro = planOn(shop);
+  const waiting = state.dash.orders.filter(o => o.shop_status === "attente" && ["nouvelle", "confirmee"].includes(o.status)).length;
+  // Une nouvelle commande arrive : on revient sur « Commandes »
+  if (waiting > lastWaiting) spTab = "orders";
+  lastWaiting = waiting;
+  $("#spTabs [data-sp-tab=catalog]").classList.toggle("hidden", !pro);
+  if (!pro && spTab === "catalog") spTab = "orders";
+  $("#spTabs").querySelectorAll("[data-sp-tab]").forEach(b => { b.classList.toggle("on", b.dataset.spTab === spTab); b.setAttribute("aria-selected", b.dataset.spTab === spTab); });
+  document.querySelectorAll("[data-sp-pane]").forEach(p => p.classList.toggle("hidden", p.dataset.spPane !== spTab));
+  $("#spBadge").textContent = waiting;
+  $("#spBadge").classList.toggle("hidden", !waiting);
+}
+$("#spTabs").addEventListener("click", e => {
+  const b = e.target.closest("[data-sp-tab]");
+  if (!b || !state.dash) return;
+  spTab = b.dataset.spTab;
+  try { localStorage.setItem(TAB_KEY, spTab); } catch (ex) { /* ignore */ }
+  renderTabs(state.dash.shop);
+  const top = $("#spTabs").getBoundingClientRect().top + scrollY - 60;
+  if (scrollY > top) scrollTo({ top, behavior: "smooth" });
+});
 
 // --- Messagerie : le commerce parle à HOP dans l'application --------------------------------
 function openShopChat(prefill) {
