@@ -45,7 +45,7 @@ function renderWelcome() {
     "Vos clients vous paient directement (Bit ou PayBox sur votre numéro).",
     `Commission de ${UI.commissionText()} sur les courses que l'appli vous apporte, réglée une fois par semaine.`,
     `Faites votre marketing : sur les courses des commerces que vous amenez, seulement ${UI.networkText()}, et ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous quand un autre livreur les fait.`,
-    `${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`,
+    ...(CONFIG.pro.referrerPercent ? [`${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`] : []),
     "Les pourboires sont 100 % pour vous, et les codes promo sont payés par HOP, pas par vous.",
     "Pas d'abonnement, pas de frais d'inscription."
   ].map(x => `<li>✅ ${UI.esc(x)}</li>`).join("");
@@ -1256,8 +1256,8 @@ function renderRef(view) {
         <li><b>Il s'inscrit avec votre lien</b> ou en scannant votre QR code (1 minute, gratuit).</li>
         <li><b>Ses courses vous sont proposées ${Number(settings.priority_minutes)} min avant</b> les autres livreurs${me.network_perks ? `, et quand vous les faites, la commission n'est que de <b>${UI.esc(UI.networkText())}</b>` : ""}.</li>
         ${me.network_perks ? `<li><b>${UI.money(bonus)} pour vous</b> sur chacune de ses courses quand un autre livreur la fait, <b>tant que vous livrez avec nous</b>.</li>
-        <li><b>${CONFIG.pro.referrerPercent} % de son abonnement HOP! Pro</b> (${UI.money(CONFIG.pro.monthly * CONFIG.pro.referrerPercent / 100)} par mois) pendant ses ${CONFIG.pro.referrerMonths} premiers mois.</li>`
-          : `<li>⭐ <b>Avantages réseau</b>, accordés par HOP aux livreurs les mieux notés : commission de ${UI.esc(UI.networkText())} seulement sur ses courses, ${UI.money(bonus)} quand un autre livreur la fait, et ${CONFIG.pro.referrerPercent} % de son abonnement HOP! Pro.</li>`}
+        ${CONFIG.pro.referrerPercent ? `<li><b>${CONFIG.pro.referrerPercent} % de son abonnement HOP! Pro</b> (${UI.money(CONFIG.pro.monthly * CONFIG.pro.referrerPercent / 100)} par mois) pendant ses ${CONFIG.pro.referrerMonths} premiers mois.</li>` : ""}`
+          : `<li>⭐ <b>Avantages réseau</b>, accordés par HOP aux livreurs les mieux notés : commission de ${UI.esc(UI.networkText())} seulement sur ses courses, ${UI.money(bonus)} quand un autre livreur la fait${CONFIG.pro.referrerPercent ? `, et ${CONFIG.pro.referrerPercent} % de son abonnement HOP! Pro` : ""}.</li>`}
       </ol>
       ${(refs.plans || []).length ? `<p class="small">⭐ Abonnements Pro : <b>${UI.money(sum(refs.plans, p => Number(p.share || 0)))}</b> gagnés au total, dont ${UI.money(sum(refs.plans.filter(p => p.status !== "regle"), p => Number(p.share || 0)))} pas encore versés.</p>` : ""}
       ${activityBox()}
@@ -2050,8 +2050,8 @@ function renderHelp(view) {
     ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre crédit HOP ne couvre plus la commission d'une course. Le bandeau vous dit quoi faire : rechargez dans « Finances ». Un souci ? HOP peut vous débloquer.`],
     ["Le client est absent, l'adresse est introuvable…", "Touchez « ⚠️ Un souci » sur la course : HOP et le client sont prévenus tout de suite, et vous continuez dans la conversation."],
     ["Comment gagner plus ?", me.network_perks
-      ? `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier, vous ne payez que ${UI.networkText()} de commission dessus, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro pendant ${CONFIG.pro.referrerMonths} mois.`
-      : `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier. Les livreurs les mieux notés peuvent recevoir de HOP les avantages réseau : ${UI.networkText()} de commission seulement sur ces courses, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro.`],
+      ? `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier, vous ne payez que ${UI.networkText()} de commission dessus, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait${CONFIG.pro.referrerPercent ? `, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro pendant ${CONFIG.pro.referrerMonths} mois` : ""}.`
+      : `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier. Les livreurs les mieux notés peuvent recevoir de HOP les avantages réseau : ${UI.networkText()} de commission seulement sur ces courses, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait${CONFIG.pro.referrerPercent ? `, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro` : ""}.`],
     ["Et les pourboires ?", "Après la livraison, le client peut laisser un pourboire : il le paie à HOP par Bit, et HOP vous le reverse en entier avec votre solde de la semaine."],
     ["Le GPS se coupe ?", "Gardez l'application ouverte pendant le service : les téléphones coupent la position quand la page est fermée."]
   ];

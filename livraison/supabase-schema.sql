@@ -5607,3 +5607,10 @@ drop trigger if exists orders_demo_guard on public.orders;
 create trigger orders_demo_guard before insert on public.orders
   for each row execute function public.orders_demo_guard();
 revoke execute on function public.orders_demo_guard() from public, anon, authenticated;
+
+-- ============================================================================
+-- PART DU LIVREUR SUR LES ABONNEMENTS HOP! PRO : 0 % tant que le patron ne la débloque pas (était 20 %).
+-- Pour la remettre : update settings set pro_referrer_pct = 20 where id = 1 (et pro.referrerPercent dans config.js)
+-- ============================================================================
+alter table public.settings alter column pro_referrer_pct set default 0;
+update public.settings set pro_referrer_pct = 0 where id = 1;
