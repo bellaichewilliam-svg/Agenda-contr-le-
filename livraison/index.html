@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610230135" />
+  <link rel="stylesheet" href="styles.css?v=202610230203" />
 </head>
 <body>
 
@@ -302,7 +302,7 @@
           <div class="fp-track"><div class="fp-fill" id="fpFill"></div><span class="fp-scooter" id="fpScooter">🛵</span><span class="fp-flag">🏁</span></div>
           <small id="fpText"></small>
         </div>
-        <fieldset>
+        <fieldset class="fs-service">
           <legend data-i18n="s1"></legend>
           <div class="choices four">
             <label class="choice"><input type="radio" name="service" value="colis" checked /><span><i>📦</i><b data-i18n="svc_colis"></b><small data-i18n="svc_colis_d"></small></span></label>
@@ -327,9 +327,9 @@
           </div>
         </fieldset>
 
-        <fieldset>
+        <fieldset class="fs-when">
           <legend data-i18n="s4"></legend>
-          <div class="choices three">
+          <div class="choices three compact">
             <label class="choice"><input type="radio" name="urgency" value="asap" checked /><span><i>🕐</i><b data-i18n="w_asap"></b><small id="asapSmall" data-i18n="w_asap_d"></small></span></label>
             <label class="choice"><input type="radio" name="urgency" value="express" /><span><i>⚡</i><b data-i18n="w_express"></b><small id="expressSmall"></small></span></label>
             <label class="choice"><input type="radio" name="urgency" value="programmee" /><span><i>🗓️</i><b data-i18n="w_sched"></b><small data-i18n="w_sched_d"></small></span></label>
@@ -341,7 +341,7 @@
           <p class="notice err hidden" id="scheduleError" style="margin-top:12px"></p>
         </fieldset>
 
-        <fieldset>
+        <fieldset class="fs-from">
           <legend id="pickupLegend" data-i18n="s2"></legend>
           <div class="fields">
             <label class="f full show-retrait"><span data-i18n="placeKind"></span>
@@ -396,12 +396,12 @@
             <p class="notice full show-achat" data-i18n="budgetNote"></p>
             <label class="check full show-achat"><input type="checkbox" name="goods_self_pay" /> <span data-i18n="goodsSelfPay"></span></label>
             <label class="check full show-achat"><input type="checkbox" name="fits_topcase" /> <span data-i18n="fitsTopcase"></span></label>
-            <label class="f hide-retrait"><span data-i18n="contactThere"></span><input name="pickup_contact" data-i18n-ph="namePh" /></label>
-            <label class="f hide-retrait"><span data-i18n="phoneThere"></span><input name="pickup_phone" type="tel" data-i18n-ph="phonePh" /></label>
+            <label class="f hide-retrait there-contact"><span data-i18n="contactThere"></span><input name="pickup_contact" data-i18n-ph="namePh" /></label>
+            <label class="f hide-retrait there-contact"><span data-i18n="phoneThere"></span><input name="pickup_phone" type="tel" data-i18n-ph="phonePh" /></label>
           </div>
         </fieldset>
 
-        <fieldset>
+        <fieldset class="fs-to">
           <legend data-i18n="s3"></legend>
           <div class="fields">
             <div class="saved-addrs full hidden" data-for="to"></div>
@@ -431,8 +431,8 @@
         </fieldset>
 
 
-        <fieldset>
-          <legend data-i18n="s5"></legend>
+        <fieldset class="fs-size">
+          <legend id="sizeLegend" data-i18n="s5"></legend>
           <div class="choices three">
             <label class="choice"><input type="radio" name="size" value="petit" checked /><span><i>✉️</i><b data-i18n="sz_petit"></b><small data-i18n="sz_petit_d"></small></span></label>
             <label class="choice"><input type="radio" name="size" value="moyen" /><span><i>📦</i><b data-i18n="sz_moyen"></b><small data-i18n="sz_moyen_d"></small></span></label>
@@ -674,14 +674,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610230135"></script>
-<script src="i18n.js?v=202610230135"></script>
-<script src="pricing.js?v=202610230135"></script>
-<script src="store.js?v=202610230135"></script>
-<script src="chat.js?v=202610230135"></script>
-<script src="common.js?v=202610230135"></script>
-<script src="enseignes.js?v=202610230135"></script>
-<script src="places.js?v=202610230135"></script>
-<script src="client.js?v=202610230135"></script>
+<script src="config.js?v=202610230203"></script>
+<script src="i18n.js?v=202610230203"></script>
+<script src="pricing.js?v=202610230203"></script>
+<script src="store.js?v=202610230203"></script>
+<script src="chat.js?v=202610230203"></script>
+<script src="common.js?v=202610230203"></script>
+<script src="enseignes.js?v=202610230203"></script>
+<script src="places.js?v=202610230203"></script>
+<script src="client.js?v=202610230203"></script>
 </body>
 </html>

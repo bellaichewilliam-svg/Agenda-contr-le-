@@ -219,6 +219,29 @@ const SERVICE_FR = { colis: "Envoi de colis", retrait: "Retrait de colis", achat
 const PLACE_FR = { poste: "Bureau de poste", superpharm: "Super-Pharm", relais: "Point relais", locker: "Casier / locker", autre: "Magasin" };
 const DOC_FR = { avis: "📨 Avis / SMS", identite: "🪪 Carte d'identité", procuration: "✍️ Procuration signée", rdv: "📅 Rendez-vous à la poste" };
 
+// Article sans photo : une illustration qui lui ressemble (pressing, boulangerie, restaurant…) sur un fond coloré
+const ITEM_ART = [
+  [/tsitsit|ציצי/i, "tshirt", 200], [/repass|גיהוץ|iron/i, "necktie", 215], [/manteau|מעיל|veste|coat|jacket/i, "coat", 30], [/robe|שמל|dress/i, "dress", 220],
+  [/chemise|חולצ|shirt/i, "tshirt", 140], [/pantalon|jean|מכנס/i, "jeans", 210], [/[ée]charpe|צעיף|scarf/i, "scarf", 350], [/blouse|jupe|חצאית/i, "blouse", 320],
+  [/couverture|couette|duvet|drap|שמיכ|מצעים|סדינ/i, "bed", 250], [/tapis|שטיח|rug|carpet/i, "yarn", 205], [/à sec|a sec|יבש|dry/i, "bubbles", 290],
+  [/poids|kilo|משקל|ק"ג/i, "scale", 45], [/lavage|linge|כביס|wash|laundry/i, "basket", 35], [/savon|סבון|soap/i, "soap", 320],
+  [/cookie|biscuit|עוגיי/i, "cookie", 35], [/croissant|קרואסון|pain au chocolat|chocolatine/i, "croissant", 38], [/baguette|בגט/i, "baguette", 35], [/bagel|בייגל/i, "bagel", 30],
+  [/pain|לחם|challah|חלה|bread/i, "bread", 35], [/anniversaire|יום הולדת|birthday/i, "bday", 330], [/cupcake|muffin|מאפין/i, "cupcake", 320],
+  [/beignet|donut|doughnut|סופגני/i, "doughnut", 20], [/g[âa]teau|עוג|cake|tarte|פאי/i, "cake", 350], [/pancake|cr[êe]pe|פנקייק|קרפ/i, "pancakes", 40],
+  [/caf[ée]|קפה|coffee|\bth[ée]\b|תה|latte|cappuccino/i, "coffee", 25], [/\bjus\b|מיץ|juice|smoothie|שייק/i, "juice", 100], [/pizza|פיצ/i, "pizza", 15],
+  [/burger|בורגר/i, "burger", 25], [/salade|סלט|salad/i, "salad", 110], [/sushi|סושי|maki/i, "sushi", 5], [/falafel|פלאפל/i, "falafel", 80],
+  [/shawarma|שווארמה|pita|פיתה|wrap|לאפה|laffa|sabich|סביח/i, "pita", 30], [/sandwich|כריך|טוסט|toast/i, "sandwich", 45], [/frites|צ'יפס|fries|chips/i, "fries", 0],
+  [/glace|גליד|ice cream/i, "icecream", 40], [/\bvin\b|יין|wine/i, "wine", 330], [/poulet|עוף|chicken|שניצל|schnitzel/i, "chicken", 25],
+  [/steak|viande|בשר|אנטריקוט|kebab|קבב/i, "steak", 5], [/p[âa]tes|pasta|פסטה|spaghetti/i, "pasta", 45], [/soupe|מרק|soup/i, "soup", 20],
+  [/nouille|noodle|ramen|נודלס|wok|ווק/i, "noodles", 0], [/fleur|פרח|bouquet/i, "flowers", 140], [/cadeau|מתנה|gift/i, "gift", 350],
+  [/m[ée]dic|תרופ|pill|pharma/i, "pill", 160], [/colis|חביל|package/i, "package", 35], [/autre|נוספ|other/i, "sparkles", 45]];
+const KIND_ART = { pressing: ["basket", 35], restaurant: ["plate", 25], boutique: ["bags", 210], pharmacie: ["pill", 160], bureau: ["briefcase", 215], autre: ["store", 200] };
+function itemArt(name, kind) {
+  const hit = ITEM_ART.find(([rx]) => rx.test(String(name || "")));
+  const [k, h] = hit ? hit.slice(1) : KIND_ART[kind] || ["bags", 25];
+  return `<span class="item-art" style="--h:${h}"><img src="img/items/${k}.webp" alt="" loading="lazy" /></span>`;
+}
+
 // Carte d'un commerce HOP! Pro : accueil des clients (« Nos partenaires ») et aperçu dans l'espace du commerce
 const KIND_ICON = { pressing: "👔", restaurant: "🍽️", boutique: "🛍️", pharmacie: "💊", bureau: "💼", autre: "🏪" };
 const safeImg = s => (typeof s === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) ? s : "");
@@ -483,7 +506,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag,
-  DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON,
+  DOC_FR, docPhoto, photoViewer, proCard, safeImg, KIND_ICON, itemArt,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

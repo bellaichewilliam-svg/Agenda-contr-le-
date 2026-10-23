@@ -48,7 +48,7 @@
       window.addEventListener("load", function () { if (first) later(); });
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610230135" />
+  <link rel="stylesheet" href="styles.css?v=202610230203" />
 </head>
 <body>
 
@@ -92,42 +92,56 @@
 
   <!-- Espace du commerce -->
   <section id="shopSpace" class="hidden">
-    <div class="shop-hero">
-      <h1 id="spTitle"></h1>
-      <p id="spStatus"></p>
-    </div>
-    <details class="card guide-card" id="spGuide"><summary id="spGuideTitle"></summary><ol id="spGuideSteps"></ol></details>
-    <div class="card prep-card hidden" id="spPrep"></div>
-    <div class="card brand-card hidden" id="spBrand"></div>
-    <div class="card catalog-card hidden" id="spCatalog"></div>
-    <a class="btn btn-primary btn-lg btn-block" id="spOrder" data-i18n="shOrder"></a>
-    <p class="muted small" style="margin:6px 0 16px;text-align:center" data-i18n="shOrderSub"></p>
-    <div class="stats">
-      <div class="stat"><small data-i18n="shStatsMonth"></small><b id="spMonth">0</b></div>
-      <div class="stat"><small data-i18n="shStatsSpent"></small><b id="spSpent">0</b></div>
-      <div class="stat"><small data-i18n="shStatsAll"></small><b id="spAll">0</b></div>
-    </div>
-    <div class="card plan-card" style="margin-top:14px" id="spPlan"></div>
-    <div class="card pay-choice" style="margin-top:14px" id="spPay"></div>
-    <div class="card pro-card" style="margin-top:14px" id="spPro"></div>
-    <div class="card" style="margin-top:14px">
-      <h3 data-i18n="shLinkTitle"></h3>
-      <p class="muted small" style="margin:4px 0 10px" data-i18n="shLinkSub"></p>
-      <div class="promo-row"><input readonly id="spLink" dir="ltr" /><button class="btn btn-sm" id="spCopy" data-i18n="shCopy"></button><a class="btn btn-sm btn-wa" id="spShare" target="_blank" rel="noopener" data-i18n="shShare"></a></div>
-      <div class="poster" id="poster">
-        <img src="logo.svg" alt="" class="poster-logo" />
-        <b data-i18n="shPoster"></b>
-        <div class="qr" id="spQr"></div>
-        <span id="posterName"></span>
-        <small data-i18n="shPosterSub"></small>
+    <!-- En-tête façon appli : couverture, logo, nom, abonnement, chiffres du mois -->
+    <div class="sp-head">
+      <div id="spHeadTop"></div>
+      <div class="sp-stats">
+        <div><b id="spMonth">0</b><small data-i18n="shStatsMonth"></small></div>
+        <div><b id="spSpent">0</b><small data-i18n="shStatsSpent"></small></div>
+        <div><b id="spAll">0</b><small data-i18n="shStatsAll"></small></div>
       </div>
-      <button class="btn" id="spPrint" data-i18n="shPrint"></button>
     </div>
-    <div class="card" style="margin-top:14px">
-      <h3 data-i18n="shOrders"></h3>
-      <div id="spOrders"></div>
+    <nav class="sp-tabs" id="spTabs" role="tablist">
+      <button type="button" data-sp-tab="orders"><i>🛎️</i><span data-i18n="spTabOrders"></span><em class="sp-badge hidden" id="spBadge"></em></button>
+      <button type="button" data-sp-tab="catalog"><i>🛍️</i><span data-i18n="spTabCatalog"></span></button>
+      <button type="button" data-sp-tab="shop"><i>🎨</i><span data-i18n="spTabShop"></span></button>
+      <button type="button" data-sp-tab="account"><i>⚙️</i><span data-i18n="spTabAccount"></span></button>
+    </nav>
+    <div class="sp-pane" data-sp-pane="orders">
+      <div class="card prep-card hidden" id="spPrep"></div>
+      <a class="btn btn-primary btn-lg btn-block" id="spOrder" data-i18n="shOrder"></a>
+      <p class="muted small" style="margin:6px 0 16px;text-align:center" data-i18n="shOrderSub"></p>
+      <div class="card">
+        <h3 data-i18n="shOrders"></h3>
+        <div id="spOrders"></div>
+      </div>
     </div>
-    <p class="notice" style="margin-top:14px" data-i18n="shKeep"></p>
+    <div class="sp-pane" data-sp-pane="catalog">
+      <div class="card catalog-card hidden" id="spCatalog"></div>
+    </div>
+    <div class="sp-pane" data-sp-pane="shop">
+      <div class="card brand-card hidden" id="spBrand"></div>
+      <div class="card" style="margin-top:14px">
+        <h3 data-i18n="shLinkTitle"></h3>
+        <p class="muted small" style="margin:4px 0 10px" data-i18n="shLinkSub"></p>
+        <div class="promo-row"><input readonly id="spLink" dir="ltr" /><button class="btn btn-sm" id="spCopy" data-i18n="shCopy"></button><a class="btn btn-sm btn-wa" id="spShare" target="_blank" rel="noopener" data-i18n="shShare"></a></div>
+        <div class="poster" id="poster">
+          <img src="logo.svg" alt="" class="poster-logo" />
+          <b data-i18n="shPoster"></b>
+          <div class="qr" id="spQr"></div>
+          <span id="posterName"></span>
+          <small data-i18n="shPosterSub"></small>
+        </div>
+        <button class="btn" id="spPrint" data-i18n="shPrint"></button>
+      </div>
+    </div>
+    <div class="sp-pane" data-sp-pane="account">
+      <div class="card plan-card" id="spPlan"></div>
+      <div class="card pay-choice" style="margin-top:14px" id="spPay"></div>
+      <div class="card pro-card" style="margin-top:14px" id="spPro"></div>
+      <details class="card guide-card" style="margin-top:14px" id="spGuide"><summary id="spGuideTitle"></summary><ol id="spGuideSteps"></ol></details>
+      <p class="notice" style="margin-top:14px" data-i18n="shKeep"></p>
+    </div>
   </section>
 
   <p class="notice err hidden" id="shopGone" data-i18n="shUnknown"></p>
@@ -136,13 +150,13 @@
 <button type="button" class="wa-fab chat-fab" id="waFab"><span>💬</span><b data-i18n="chatFab"></b><i class="chat-badge hidden" id="fabBadge"></i></button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610230135"></script>
-<script src="i18n.js?v=202610230135"></script>
-<script src="pricing.js?v=202610230135"></script>
-<script src="store.js?v=202610230135"></script>
-<script src="chat.js?v=202610230135"></script>
-<script src="common.js?v=202610230135"></script>
-<script src="places.js?v=202610230135"></script>
-<script src="commerce.js?v=202610230135"></script>
+<script src="config.js?v=202610230203"></script>
+<script src="i18n.js?v=202610230203"></script>
+<script src="pricing.js?v=202610230203"></script>
+<script src="store.js?v=202610230203"></script>
+<script src="chat.js?v=202610230203"></script>
+<script src="common.js?v=202610230203"></script>
+<script src="places.js?v=202610230203"></script>
+<script src="commerce.js?v=202610230203"></script>
 </body>
 </html>
