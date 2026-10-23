@@ -767,6 +767,8 @@ function renderShops(view) {
   const list = shops.filter(x => !x.demo).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
   const demos = [["DEMO-RESTO", "🍔 Restaurant"], ["DEMO-BOULANGERIE", "🥐 Boulangerie"], ["DEMO-BOUTIQUE", "👗 Boutique"]]
     .map(([code, label]) => ({ code, label, url: UI.appUrl("index.html") + "?c=" + code }));
+  // Retirer les démos d'un geste (elles sont seulement suspendues, jamais effacées : on peut les remettre)
+  const demoShops = shops.filter(x => x.demo), demoOn = demoShops.some(x => x.status === "actif");
   const signup = UI.appUrl("commerce.html") + (me && me.ref_code ? "?p=" + me.ref_code : "");
   const statusLabel = { en_attente: "⏳ À vérifier", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
   const bonusDue = sum(orders.filter(o => o.status === "livree" && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
@@ -787,7 +789,8 @@ function renderShops(view) {
     <div class="card" style="margin-bottom:14px">
       <b>🎬 Vitrines de démonstration</b>
       <p class="muted small" style="margin:4px 0 8px">À montrer en rendez-vous : un restaurant, une boulangerie et une boutique avec un catalogue complet. Le commerçant voit sa future vitrine, touche les articles, remplit le panier ; aucune commande ne part. Invisibles pour les clients.</p>
-      <div class="actions">${demos.map(d => `<a class="btn btn-sm btn-primary" href="${UI.esc(d.url)}" target="_blank" rel="noopener">${d.label}</a><button class="btn btn-sm" data-copy="${UI.esc(d.url)}" title="Copier le lien">📋</button>`).join("")}</div>
+      ${demoOn ? `<div class="actions">${demos.map(d => `<a class="btn btn-sm btn-primary" href="${UI.esc(d.url)}" target="_blank" rel="noopener">${d.label}</a><button class="btn btn-sm" data-copy="${UI.esc(d.url)}" title="Copier le lien">📋</button>`).join("")}</div>` : `<p class="small">⛔ Démos retirées : les liens ne montrent plus rien.</p>`}
+      ${demoShops.length ? `<div class="actions" style="margin-top:8px"><button class="btn btn-sm" data-demos="${demoOn ? "suspendu" : "actif"}">${demoOn ? "⛔ Retirer les démos" : "✅ Remettre les démos"}</button></div>` : ""}
     </div>
     <div class="card" style="margin-bottom:14px">
       <b>🏪 Inscrire un commerce partenaire</b>
@@ -1164,6 +1167,13 @@ async function onViewClick(e) {
     return;
   }
   if (el.id === "csvBtn") return exportCsv();
+  if (el.dataset.demos) {
+    const on = el.dataset.demos === "actif";
+    if (!confirm(on ? "Remettre les 3 vitrines de démonstration ?" : "Retirer les 3 vitrines de démonstration ?\n\nLeurs liens ne montreront plus rien. Rien n'est effacé : vous pourrez les remettre ici.")) return;
+    try { await Promise.all(shops.filter(x => x.demo).map(x => Store.updateShop(x.id, { status: el.dataset.demos }))); await load(); }
+    catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
   if (el.dataset.week) { weekOffset = Math.min(0, weekOffset + Number(el.dataset.week)); return render(); }
   if (el.dataset.topupOk || el.dataset.topupNo) {
     try { await Store.decideTopup(el.dataset.topupOk || el.dataset.topupNo, !!el.dataset.topupOk); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
