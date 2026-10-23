@@ -94,7 +94,7 @@ window.CONFIG = {
     { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: false }
   ],
   // Regroupement : deux courses d'un coup quand les arrivées sont proches (mêmes règles que la base, pair_ok)
-  grouping: { dropKm: 1.2, pickupKm: 0.6, minutes: 15 },
+  grouping: { dropKm: 1.2, pickupKm: 0.6, minutes: 15, detourKm: 1, maxOrders: 3 },
   // Heures de pointe habituelles, affichées aux livreurs
   peakHours: { fr: "12\u00a0h–14\u00a0h et 18\u00a0h–21\u00a0h", he: "12:00–14:00 ו-18:00–21:00" },
 

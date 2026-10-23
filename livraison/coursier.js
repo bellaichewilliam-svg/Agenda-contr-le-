@@ -342,7 +342,8 @@ async function load() {
   const fresh = pool().filter(o => !seenPool.has(o.id));
   // Toute course disponible encore jamais montrée s'ouvre en fenêtre (dès la 1re connexion aussi)
   // Hors ligne : ni fenêtre, ni son (la base ne montre d'ailleurs plus les courses)
-  if (!blocked() && isOnline()) fresh.forEach(o => offerQueue.push(o.id));
+  // Déjà une course récupérée : seulement une course vraiment sur le chemin (3 au plus en tout)
+  if (!locked() && isOnline() && mine().length < MAX_ORDERS) fresh.forEach(o => { if (!busy() || Store.onWay(lastPos, mine(), o)) offerQueue.push(o.id); });
   showNextOffer();
   if (!firstLoad && fresh.length && isOnline()) {
     if (!offerShown) beep();
@@ -484,7 +485,8 @@ function card(o, kind) {
   let actions = "";
   if (kind === "pool") {
     actions = locked() ? `<span class="pill st-annulee">💳 Rechargez votre crédit HOP pour accepter</span>`
-      : busy() ? `<span class="pill st-annulee">🔒 Livrez d'abord votre course en cours</span>`
+      : mine().length >= MAX_ORDERS ? `<span class="pill st-annulee">🔒 ${MAX_ORDERS} courses au plus en même temps : livrez d'abord</span>`
+      : busy() && !Store.onWay(lastPos, mine(), o) ? `<span class="pill st-annulee">🔒 Livrez d'abord votre course en cours</span>`
       : `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button><button class="btn" data-decline="${UI.esc(o.id)}">✖ Refuser</button>`;
   } else {
     // Au départ : « Je suis arrivé » lance le compteur d'attente (payée au-delà des minutes offertes)
@@ -1135,6 +1137,7 @@ const locked = () => !freeNow() && me && Store.ONLINE && available() < Number(se
 // Une course récupérée doit être livrée et validée avant d'en prendre une autre
 const busyOrder = () => orders.find(o => o.courier_id === me.id && o.status === "recuperee");
 const busy = () => !freeNow() && !!busyOrder();
+const MAX_ORDERS = (CONFIG.grouping || {}).maxOrders || 3;
 const blocked = () => locked() || busy();
 // Courses groupables dans la liste : « Prendre les 2 » (arrivées proches, même coin de départ)
 function bundleCards(list) {
@@ -1154,6 +1157,7 @@ function acceptError(e) {
   if (/refund_pending/.test(e.message)) { alert("💸 Remboursez d'abord le client de la course que vous avez rendue, puis touchez « J'ai remboursé ». Ensuite vous pourrez reprendre des courses."); return "shown"; }
   if (/express_busy/.test(e.message)) { alert("⚡ Course express : elle est réservée à un livreur sans autre course, qui y va directement. Terminez d'abord votre course en cours."); return "shown"; }
   if (/express_running/.test(e.message)) { alert("⚡ Vous avez une course express en cours : livrez-la d'abord, sans autre course."); return "shown"; }
+  if (/max3/.test(e.message)) { alert(`🔒 ${MAX_ORDERS} courses au plus en même temps : livrez d'abord une de vos courses.`); return "shown"; }
   if (/busy/.test(e.message)) { const b = busyOrder(); alert(`🔒 Livrez d'abord votre course en cours${b ? " n° " + b.ref : ""} : validez « Livré » sur place${b && b.leave_at_door ? ", avec la photo devant la porte" : ""}. Un souci ? Écrivez à HOP.`); return "shown"; }
   if (/debt/.test(e.message)) { alert(`🔒 Vous devez ${UI.money(balance)} à HOP : réglez votre solde pour recevoir des courses.`); return "shown"; }
   if (/cash_confirm/.test(e.message)) { alert("💵 Confirmez d'abord que vous avez les espèces sur vous."); return "shown"; }
@@ -1408,11 +1412,11 @@ function showNextOffer() {
   if (!o) return;
   offerShown = o.id;
   // Regroupement : une autre course disponible part du même coin et arrive à côté → une seule fenêtre pour les deux
-  const mate = pool().find(x => x.id !== o.id && Store.pairOk(o, x));
+  const mate = mine().length + 2 <= MAX_ORDERS && !busy() ? pool().find(x => x.id !== o.id && Store.pairOk(o, x)) : null;
   offerMate = mate ? mate.id : null;
   if (mate) { const i = offerQueue.indexOf(mate.id); if (i >= 0) offerQueue.splice(i, 1); seenPool.add(mate.id); }
   // Ou elle va dans le même coin qu'une course que j'ai déjà (pas encore récupérée) : « sur votre chemin »
-  const onWay = !mate && mine().find(x => x.status === "confirmee" && Store.pairOk(x, o));
+  const onWay = !mate && Store.onWay(lastPos, mine(), o);
   const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon);
   const trip = roadKm(pick, drop) ?? (o.distance_km != null ? Number(o.distance_km) * 1.3 : null);
   const toPickup = roadKm(lastPos, pick);
@@ -1421,7 +1425,7 @@ function showNextOffer() {
   const total = Store.courseValue(o);
   const star = !!o.referrer_id && o.referrer_id === me.id;
   const com = Store.commissionFor(total, settings, star);
-  $("#offerTitle").textContent = mate ? "2 courses d'un coup !" : "Nouvelle course !";
+  $("#offerTitle").textContent = mate ? "2 courses d'un coup !" : onWay ? "➕ Une course en plus ?" : "Nouvelle course !";
   if (mate) {
     const t2 = Store.courseValue(mate), c2 = Store.commissionFor(t2, settings, !!mate.referrer_id && mate.referrer_id === me.id);
     $("#offerIcon").textContent = "📦📦";
@@ -1435,7 +1439,7 @@ function showNextOffer() {
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
   const again = backAgain.has(o.id);
   const dropGap = (a, b) => Math.round(Store.kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) * 1000 / 50) * 50;
-  $("#offerStar").innerHTML = onWay ? `🔗 Sur le chemin de votre course n° ${UI.esc(onWay.ref)} : même départ, arrivées à ${dropGap(onWay, o)} m. Prenez-la en plus !`
+  $("#offerStar").innerHTML = onWay ? `🔗 <b>Vraiment sur votre chemin</b> : ${onWay.status === "recuperee" ? "départ sur votre route" : "même départ"} que votre course n° ${UI.esc(onWay.ref)}, arrivées à ${dropGap(onWay, o)} m l'une de l'autre${mine().length >= 2 ? ` (ce sera votre ${mine().length + 1}e course, le maximum)` : ""}.<br><b>Voulez-vous accepter cette course en plus ?</b>`
     : again ? "↩️ Personne d'autre ne l'a prise : elle vous est reproposée"
     : star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
     : early ? "🎯 Vous êtes parmi les plus proches : elle vous est proposée en premier" : "";

@@ -1118,7 +1118,7 @@ async function submit(e) {
       from_city: fromCity,
       pickup_address: pAddr,
       pickup_place: pf ? pf.brand : null,
-      pickup_learned: !!(pf && pf.learned),
+      pickup_learned: learnIt(pf),
       pickup_kind: svc !== "retrait" ? kindOf("pickup") : null,
       dropoff_kind: kindOf("dropoff"),
       rules_accepted_at: checked.rulesOk ? new Date().toISOString() : null,
@@ -1149,7 +1149,7 @@ async function submit(e) {
       to_city: toCity,
       dropoff_address: dAddr,
       dropoff_place: pt ? pt.brand : null,
-      dropoff_learned: !!(pt && pt.learned),
+      dropoff_learned: learnIt(pt),
       dropoff_building: val("dropoff_building").trim() || null,
       dropoff_floor: val("dropoff_floor").trim() || null,
       dropoff_apt: val("dropoff_apt").trim() || null,
@@ -1840,7 +1840,7 @@ function initHome() {
     const b = e.target.closest("[data-ens-pick]");
     if (b) pickEnseigne(b.dataset.ensPick, ens.shown[Number(b.dataset.i)]);
   });
-  loadPartners();
+  state.partnersReady = loadPartners();
   loadShowcase();
   initHomeMap();
   // Position déjà autorisée : on centre la carte sur le client (sans rien lui demander)
@@ -2054,6 +2054,16 @@ async function initRestos() {
   restos.layer = L.layerGroup().addTo(home.map);
   // La carte : les restaurants seulement (pas les magasins ni les pharmacies de l'annuaire)
   try { restos.list = (await Places.directory()).filter(e => e.lat != null && e.lon != null && e.t !== "shop"); } catch (e) { restos.list = []; }
+  // + les commerces partenaires et ceux ajoutés par le patron ou appris des clients (pas encore dans l'annuaire)
+  try {
+    await Promise.race([state.partnersReady, new Promise(r => setTimeout(r, 4000))]).catch(() => {});
+    const nn = v => norm(v).replace(/[^a-z0-9\u0590-\u05ff]/g, "");
+    const twin = x => restos.list.some(e => Math.abs(e.lat - x.lat) < 0.0015 && Math.abs(e.lon - x.lon) < 0.0015
+      && [e.n, e.fr].concat(e.alt || []).some(k => nn(k) && (nn(k).includes(nn(x.n)) || nn(x.n).includes(nn(k)))));
+    const extra = (state.partners || []).map(sh => ({ n: sh.name, s: sh.address || "", c: sh.city || "", lat: Number(sh.lat), lon: Number(sh.lon), partner: sh }))
+      .concat(((await Store.placesMap().catch(() => [])) || []).map(x => ({ n: x.name, s: x.address || "", c: cityLabel(cityIdOf(x.city, x) || x.city), lat: Number(x.lat), lon: Number(x.lon), known: true })));
+    extra.forEach(x => { if (x.n && isFinite(x.lat) && isFinite(x.lon) && !twin(x)) restos.list.push(x); });
+  } catch (e) { /* la carte garde l'annuaire */ }
   // Position par défaut (beaucoup de restaurants de rues différentes sur le même point) : pas sur la carte, la recherche les trouve
   const streets = {};
   restos.list.forEach(e => { const k = e.lat.toFixed(4) + "," + e.lon.toFixed(4); (streets[k] = streets[k] || new Set()).add(String(e.s || "").split(" ")[0]); });
@@ -2111,7 +2121,8 @@ function drawRestos() {
 }
 function pickResto(e) {
   if (!e) return;
-  const p = Places.dirPlace(e, I18N.lang);
+  if (e.partner) { onPlacePicked("from", partnerPlace(e.partner)); return; }   // commerce partenaire : sa vitrine
+  const p = Object.assign(Places.dirPlace(e, I18N.lang), e.known ? { known: true, food: Places.foodIcon(e.n) !== "🍽️" } : {});
   if (home.ac.from) home.ac.from.setPicked(p.label);
   onPlacePicked("from", p, true);
   renderHomeMap(true);
@@ -2213,6 +2224,9 @@ function setHomePos(pos) { home.pos = pos; Places.setNear(pos); }
 const norm = v => String(v || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[\s'’"\-־.]/g, "");
 const cityIdOf = (city, pt) => (CONFIG.cities.some(c => c.id === city) ? city : Places.matchCity(city))
   || (pt && pt.lat != null ? CONFIG.cities.slice().sort((a, b) => Places.km(a, pt) - Places.km(b, pt))[0].id : null);
+// Un commerce choisi qui n'est pas encore dans la base HOP! (indiqué par le client, ou trouvé sur la carte) :
+// il est enregistré avec la commande, puis retrouvé par les autres clients (recherche et carte)
+const learnIt = p => !!(p && p.brand && (p.learned || (p.poi && !p.dir && !p.partner && !p.known && !p.nearest)));
 function learnedPlace(x) {
   const cityId = cityIdOf(x.city, x);
   const m = String(x.address || "").match(/^(.*?)\s+(\d+[a-zA-Zא-ת]?)$/);

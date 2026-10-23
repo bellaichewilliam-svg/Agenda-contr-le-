@@ -4995,3 +4995,112 @@ begin
   return new;
 end;
 $$;
+
+-- ============================================================================
+-- COURSE EN PLUS SUR LE CHEMIN : un livreur qui a déjà 1 ou 2 courses peut en recevoir une de plus
+-- (3 au plus en tout) si elle est vraiment sur son chemin : arrivée à 1,2 km max d'une de ses arrivées, et
+-- départ au même endroit (600 m, 15 min d'écart) si sa course n'est pas encore récupérée, ou à 1 km de détour
+-- max sur sa route vers l'arrivée si elle l'est (et prête dans les 10 min). Prix et commissions inchangés.
+-- ============================================================================
+create or replace function public.on_way(p_courier uuid, o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with act as (select x.* from orders x where x.courier_id = p_courier and x.status in ('confirmee', 'recuperee') and x.id <> o.id)
+  select public.groupable(o)
+     and (select count(*) from act) between 1 and 2
+     and not exists (select 1 from act x where not public.groupable(x))
+     -- top case : un seul colis moyen en tout
+     and (case when coalesce(o.size, 'petit') = 'moyen' then 1 else 0 end) + (select count(*) from act x where coalesce(x.size, 'petit') = 'moyen') <= 1
+     and exists (select 1 from act x, couriers c where c.id = p_courier
+                  and public.km_between(x.dropoff_lat, x.dropoff_lon, o.dropoff_lat, o.dropoff_lon) <= 1.2
+                  and ((x.status = 'confirmee' and public.km_between(x.pickup_lat, x.pickup_lon, o.pickup_lat, o.pickup_lon) <= 0.6
+                        and abs(extract(epoch from (x.pickup_at - o.pickup_at))) <= 15 * 60)
+                    or (x.status = 'recuperee' and c.lat is not null and o.pickup_at <= now() + interval '10 minutes'
+                        and public.km_between(c.lat, c.lon, o.pickup_lat, o.pickup_lon) + public.km_between(o.pickup_lat, o.pickup_lon, x.dropoff_lat, x.dropoff_lon)
+                            <= public.km_between(c.lat, c.lon, x.dropoff_lat, x.dropoff_lon) + 1.0)));
+$$;
+revoke execute on function public.on_way(uuid, orders) from public, anon;
+grant execute on function public.on_way(uuid, orders) to authenticated;
+
+create or replace function public.accept_order(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare c couriers; ord orders; need numeric;
+begin
+  select * into c from couriers where id = auth.uid() and status = 'actif';
+  if not found then return false; end if;
+  select * into ord from orders where id = p_id;
+  -- Crédit HOP : pour tout le monde, patron compris (sauf livreur débloqué par le patron)
+  if not coalesce(c.unlocked_until > now(), false) and ord.id is not null then
+    need := case when ord.referrer_id = c.id and c.network_perks then public.commission_network(public.course_value(ord))
+                 else public.commission_for(public.course_value(ord)) end
+          + case when ord.direct_pay and coalesce(ord.shop_share, 0) = 0 then coalesce(ord.hop_share, 0) else 0 end;
+    if public.courier_credit(c.id) - public.courier_reserved(c.id) < need then raise exception 'credit_low'; end if;
+  end if;
+  if c.role = 'coursier' and not coalesce(c.unlocked_until > now(), false) then
+    -- 3 courses au plus en même temps
+    if (select count(*) from orders where courier_id = c.id and status in ('confirmee', 'recuperee')) >= 3 then raise exception 'max3'; end if;
+    -- Une course déjà récupérée : seulement une course vraiment sur le chemin
+    if exists (select 1 from orders where courier_id = c.id and status = 'recuperee') and not public.on_way(c.id, ord) then raise exception 'busy'; end if;
+  end if;
+  if c.role = 'coursier' and ord.urgency = 'express'
+     and exists (select 1 from orders where courier_id = c.id and status in ('confirmee', 'recuperee')) then raise exception 'express_busy'; end if;
+  if c.role = 'coursier' and exists (select 1 from orders where courier_id = c.id and urgency = 'express' and status in ('confirmee', 'recuperee')) then
+    raise exception 'express_running';
+  end if;
+  if c.role = 'coursier' and not public.courier_online(c) then raise exception 'offline'; end if;
+  if c.role = 'coursier' and exists (select 1 from orders where refund_courier_id = c.id and refund_status in ('a_faire', 'litige')) then
+    raise exception 'refund_pending';
+  end if;
+  if c.role = 'coursier' and coalesce(ord.cash_need, 0) > 0 then
+    if c.cash_ban_until > now() then raise exception 'cash_banned'; end if;
+    if not exists (select 1 from order_cash_ok k where k.order_id = p_id and k.courier_id = c.id and k.created_at > now() - interval '10 minutes') then
+      raise exception 'cash_confirm';
+    end if;
+  end if;
+  update orders o set status = 'confirmee', courier_id = c.id, courier_name = c.name,
+         courier_phone = c.phone, courier_bit = coalesce(c.bit_phone, c.phone),
+         network = coalesce(o.referrer_id = c.id and c.network_perks, false),
+         commission = case when o.referrer_id = c.id and c.network_perks then public.commission_network(public.course_value(o))
+                           else public.commission_for(public.course_value(o)) end
+   where o.id = p_id and (c.role = 'admin' or public.can_see_new(o)) and o.status = 'nouvelle' and o.courier_id is null;
+  return found;
+end;
+$$;
+
+-- La course est proposée en premier au livreur qui l'a vraiment sur son chemin
+create or replace function public.can_see_new(o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with st as (select * from settings where id = 1),
+  ranked as (
+    select c.id, row_number() over (order by
+             (case when exists (select 1 from orders x where x.courier_id = c.id and x.status = 'confirmee' and public.pair_ok(x, o))
+                     or public.on_way(c.id, o) then 0 else 1 end),
+             (c.lat - o.pickup_lat) ^ 2 + ((c.lon - o.pickup_lon) * cos(radians(o.pickup_lat))) ^ 2) as rk
+      from couriers c
+     where c.status = 'actif' and c.role = 'coursier' and c.lat is not null and o.pickup_lat is not null
+       and public.courier_online(c)
+       and not public.declined_recently(o.id, c.id)
+  )
+  select o.status = 'nouvelle' and o.courier_id is null
+     and exists (select 1 from couriers me where me.id = auth.uid() and public.courier_online(me))
+     and not public.declined_recently(o.id, auth.uid())
+     and (coalesce(o.cash_need, 0) = 0 or not exists (select 1 from couriers me where me.id = auth.uid() and me.cash_ban_until > now()))
+     and (o.shop_status is null or o.shop_status in ('acceptee', 'prete'))
+     and coalesce(o.docs_status, 'ok') = 'ok'
+     and now() >= public.offer_from(o)
+     and (o.urgency <> 'express' or not exists (select 1 from orders x where x.courier_id = auth.uid() and x.status in ('confirmee', 'recuperee')))
+     and (o.referrer_id = auth.uid() or o.urgency = 'express'
+          or now() >= public.offer_from(o)
+               + case when o.referrer_id is not null then make_interval(mins => (select priority_minutes from st)) else interval '0' end
+               + make_interval(secs => (select wave_seconds from st) * least(coalesce((select rk - 1 from ranked where id = auth.uid()), (select count(*) from ranked)), 2)));
+$$;
+
+-- ============================================================================
+-- CARTE DES CLIENTS : les commerces ajoutés par le patron (annuaire) ou appris des clients s'affichent aussi
+-- ============================================================================
+create or replace function public.places_map() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('name', name, 'address', address, 'city', city, 'lat', lat, 'lon', lon) order by uses desc), '[]'::json)
+    from (select * from known_places where lat is not null and lon is not null order by uses desc, last_at desc limit 2000) k;
+$$;
+revoke execute on function public.places_map() from public;
+grant execute on function public.places_map() to anon, authenticated;

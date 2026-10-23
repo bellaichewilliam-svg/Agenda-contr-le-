@@ -471,7 +471,7 @@ fr: {
   payErr: "Impossible d'enregistrer pour le moment : vérifiez la connexion et réessayez.",
   // Enseignes près de vous
   proTitle: "⭐ Nos partenaires", proSub: "Commandez chez eux : ils préparent, on livre.", proDelivery: "Livraison {price}", proMenu: "{n} au menu", proGo: "Commander ›",
-  ensTitle: "🏪 Enseignes près de vous", ens_hop: "⭐ Partenaires HOP", ens_pharm: "💊 Pharmacies", ens_post: "📮 Poste et relais",
+  ensTitle: "🏪 Enseignes près de vous", ens_hop: "⭐ Partenaires HOP", ens_breakfast: "🥐 Petit-déjeuner", ens_pharm: "💊 Pharmacies", ens_post: "📮 Poste et relais",
   ens_super: "🛒 Supermarchés", ens_food: "🍔 Restaurants", ens_mall: "🛍️ Centres commerciaux", ens_flower: "💐 Fleuristes", ens_tech: "📱 Téléphonie",
   ensFilterPh: "Filtrer : nom, rue…", ensFrom: "📍 Récupérer ici", ensTo: "🏁 Livrer ici", ensLoading: "Recherche des enseignes autour…",
   ensNone: "Rien trouvé dans le coin. Tapez le nom dans « Récupérer à ».", ensDown: "La liste des enseignes ne répond pas pour le moment : réessayez, ou tapez le nom dans « Récupérer à ».", ensRetry: "↻ Réessayer",
@@ -958,7 +958,7 @@ he: {
   payErr: "לא ניתן לשמור כרגע: בדקו את החיבור ונסו שוב.",
   // עסקים לידכם
   proTitle: "⭐ השותפים שלנו", proSub: "מזמינים אצלם: הם מכינים, אנחנו מביאים.", proDelivery: "משלוח {price}", proMenu: "{n} בתפריט", proGo: "להזמין ›",
-  ensTitle: "🏪 עסקים וחנויות לידכם", ens_hop: "⭐ שותפי הופ", ens_pharm: "💊 בתי מרקחת", ens_post: "📮 דואר ונקודות איסוף",
+  ensTitle: "🏪 עסקים וחנויות לידכם", ens_hop: "⭐ שותפי הופ", ens_breakfast: "🥐 ארוחת בוקר", ens_pharm: "💊 בתי מרקחת", ens_post: "📮 דואר ונקודות איסוף",
   ens_super: "🛒 סופרמרקטים", ens_food: "🍔 מסעדות", ens_mall: "🛍️ קניונים", ens_flower: "💐 חנויות פרחים", ens_tech: "📱 סלולר",
   ensFilterPh: "סינון: שם, רחוב…", ensFrom: "📍 איסוף מכאן", ensTo: "🏁 משלוח לכאן", ensLoading: "מחפשים עסקים באזור…",
   ensNone: "לא נמצא באזור. הקלידו את השם בשדה האיסוף.", ensDown: "רשימת העסקים לא זמינה כרגע: נסו שוב, או הקלידו את השם בשדה האיסוף.", ensRetry: "↻ לנסות שוב",
