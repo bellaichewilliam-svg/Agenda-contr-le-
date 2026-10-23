@@ -81,6 +81,15 @@ Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionn
 - **HOP! apprend les commerces des clients :** quand un client choisit un commerce absent de notre base (nom tapé à la main, ou trouvé sur la carte), il est enregistré avec la commande (`known_places`). Les autres clients le retrouvent ensuite dans la recherche et sur la carte.
 - **🥐 Petit-déjeuner :** nouvelle catégorie des enseignes avec les boulangeries, pâtisseries et traiteurs de l'annuaire et de la carte, les boulangeries françaises en tête (Moulin Doré, Le Parisien…).
 - **« Ce qu'on livre » : 🥐 Boulangerie et 👔 Pressing.** La tuile Boulangerie ouvre la liste Petit-déjeuner. La tuile Pressing ouvre les pressings et laveries : « On va récupérer vos vêtements au pressing et on vous les rapporte ». EDMAR (26 Smilansky, 053-373-3785) y figure, avec ses horaires.
+- **Fiche commerce complète (catalogue) :** en haut de la commande, la fiche d'un commerce HOP! Pro montre :
+  - son logo et sa couverture ;
+  - sa présentation et son adresse ;
+  - « Ouvert maintenant / Fermé pour le moment » avec les horaires du jour, et tous les horaires de la semaine ;
+  - un grand bouton vert « Écrire sur WhatsApp », avec un message déjà prêt. La livraison, elle, se commande dans HOP!
+
+  Ensuite vient son catalogue par rubriques, avec une icône par article (🧺 lavage, 👔 repassage, 🧥 manteaux, 👗 robes, 🛏️ couvertures…).
+  Pour chaque commerce, le patron remplit le WhatsApp, la présentation et les horaires dans « Commerces » → « 📝 Fiche pour les clients » (colonnes `whatsapp`, `hours`, `about` de `shops`).
+  Premier catalogue : EDMAR (pressing, 26 Smilansky, code EDMAR, lien `?c=EDMAR`), 1 mois HOP! Pro offert. Le client paie la livraison, et règle le pressing directement.
 - **Départ dans un restaurant** (annuaire ou rond 🍴 de la carte) : la course passe toute seule en « Repas / restaurant » (pas « Envoyer un colis »), sauf si le client a choisi lui-même un autre type. « Vérifiez vos adresses » affiche le nom du restaurant avant la rue.
 - **Crédit de départ offert :** quand vous validez un livreur, il reçoit automatiquement 50 ₪ de crédit offert (une seule fois ; `settings.welcome_credit`, 0 pour arrêter). Pas d'argent reçu, donc pas de reçu : ce crédit paie ses premières commissions (≈ 12 courses à 25 ₪), puis il recharge par Bit.
 - **Les documents :** (1) à chaque course livrée et payée en direct, le client a un **reçu au nom du livreur** (son nom, son n° d'עוסק, numéroté 1, 2, 3… pour chaque livreur ; lien « Reçu » du suivi, `recu.html?t=…`) ; (2) chaque **recharge reçue** donne un **reçu de HOP** au livreur (suite des reçus de HOP, `recu.html?k=…`, lien dans ses « Finances ») — un crédit offert par le patron (« ➕ Crédit », Annuler à la question « argent reçu ? ») n'a pas de reçu ; (3) le livreur a un **relevé mensuel** (« 📄 Relevé de… » dans « Finances », `recu.html?m=AAAA-MM`) : ses courses, ce qu'il a reçu, la commission de HOP déduite de son crédit, ses recharges. À faire valider par votre comptable ; un livreur עוסק מורשה émet en plus ses חשבוניות מס lui-même.

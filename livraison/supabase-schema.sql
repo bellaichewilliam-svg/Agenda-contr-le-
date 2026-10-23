@@ -5104,3 +5104,31 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke execute on function public.places_map() from public;
 grant execute on function public.places_map() to anon, authenticated;
+
+-- ============================================================================
+-- FICHE COMMERCE COMPLÈTE : WhatsApp du commerce (pour le joindre directement), horaires, présentation
+-- (les commandes passent toujours par l'appli). Horaires : [{ "d": 0..6 (dimanche = 0), "h": "08:30-13:30,15:30-19:00" }]
+-- ============================================================================
+alter table shops add column if not exists whatsapp text;
+alter table shops add column if not exists hours jsonb;
+alter table shops add column if not exists about text;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'shops_whatsapp_ok') then
+    alter table shops add constraint shops_whatsapp_ok check (whatsapp is null or whatsapp ~ '^[0-9]{9,15}$');
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'shops_about_len') then
+    alter table shops add constraint shops_about_len check (about is null or length(about) <= 600);
+  end if;
+end $$;
+
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'logo', logo, 'cover', cover, 'tagline', tagline, 'client_pays', client_pays,
+                           'whatsapp', whatsapp, 'hours', hours, 'about', about,
+                           'shop_share', case when client_pays then 0
+                                              else (select pro_shop_share - pro_hop_share from settings where id = 1) end)
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;

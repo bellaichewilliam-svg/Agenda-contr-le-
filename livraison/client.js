@@ -1565,6 +1565,15 @@ async function loadCatalogFor(shop) {
   renderCatalog();
   renderQuote();
 }
+// Article sans photo : une icône qui lui ressemble (pressing, boulangerie, restaurant…)
+const ITEM_ICONS = [[/repass|גיהוץ|iron/i, "👔"], [/manteau|מעיל|veste|coat/i, "🧥"], [/robe|שמל|dress/i, "👗"], [/tsitsit|ציצי/i, "🪢"],
+  [/couverture|שמיכ|couette|duvet/i, "🛏️"], [/tapis|שטיח|rug/i, "🧶"], [/sec|יבש|dry/i, "✨"], [/poids|kilo|משקל|ק"ג/i, "⚖️"], [/lavage|כביס|wash/i, "🧺"],
+  [/croissant|קרואסון/i, "🥐"], [/baguette|בגט|pain|לחם/i, "🥖"], [/g[âa]teau|עוג|cake/i, "🍰"], [/caf[ée]|קפה/i, "☕"], [/pizza|פיצ/i, "🍕"],
+  [/burger|בורגר/i, "🍔"], [/salade|סלט/i, "🥗"], [/autre|נוספ|other/i, "➕"]];
+function itemIcon(name, kind) {
+  const hit = ITEM_ICONS.find(([rx]) => rx.test(String(name || "")));
+  return hit ? hit[1] : kind === "restaurant" ? "🍽️" : UI.KIND_ICON[kind] || "🛍️";
+}
 function renderCatalog() {
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
@@ -1587,7 +1596,7 @@ function renderCatalog() {
       const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}">
         <div class="cg-info"><b>${UI.esc(p.name)}</b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
-        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : `<span class="cg-nophoto">${state.shop.kind === "restaurant" ? "🍽️" : UI.KIND_ICON[state.shop.kind] || "🛍️"}</span>`}
+        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : `<span class="cg-nophoto">${itemIcon(p.name, state.shop.kind)}</span>`}
         ${!p.available ? `<span class="cg-out">${UI.esc(t("cgOut"))}</span>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
@@ -1613,6 +1622,36 @@ $("#catalogBox").addEventListener("click", e => {
 // HOP! Pro : le départ est un commerce abonné → le client écrit sa commande, le commerce la prépare
 const shopPicked = () => !!(state.shop && state.pick.from && state.pick.from.shopId === state.shop.id);
 const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method") !== "carnet";
+// Fiche du commerce : présentation, adresse, horaires (ouvert / fermé maintenant), WhatsApp pour le joindre
+const DAYS = { fr: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], he: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] };
+function shopOpenNow(hours) {
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+  const today = (hours || []).find(x => Number(x.d) === now.getDay());
+  const m = now.getHours() * 60 + now.getMinutes(), mins = v => { const [h, mm] = v.split(":").map(Number); return h * 60 + (mm || 0); };
+  return !!(today && today.h && String(today.h).split(",").some(r => { const [a, b] = r.split("-"); return a && b && m >= mins(a) && m < mins(b); }));
+}
+function shopInfo(s) {
+  if (!s || !(s.whatsapp || s.about || (s.hours && s.hours.length))) return "";
+  const days = DAYS[I18N.lang] || DAYS.fr, today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" })).getDay();
+  const fmt = h => (h ? String(h).split(",").map(r => r.replace("-", "–")).join(" · ") : t("shClosed"));
+  const hours = (s.hours || []).slice().sort((a, b) => a.d - b.d);
+  const open = hours.length && shopOpenNow(hours);
+  const wa = String(s.whatsapp || "").replace(/\D/g, "");
+  const waText = encodeURIComponent(t("shWaHello", { name: s.name }));
+  return `<div class="sh-info">
+    ${s.about ? `<p class="sh-about">${UI.esc(s.about)}</p>` : ""}
+    <div class="sh-lines">
+      ${s.address ? `<div class="sh-line"><span>📍</span><b><bdi>${UI.esc(s.address)}</bdi>${s.city ? ", " + UI.esc(cityLabel(cityIdOf(s.city, s) || s.city)) : ""}</b></div>` : ""}
+      ${hours.length ? `<div class="sh-line"><span>🕘</span><b class="sh-open ${open ? "on" : "off"}">${UI.esc(t(open ? "shOpenNow" : "shClosedNow"))}</b>
+        <small>${UI.esc(t("shToday"))} : ${UI.esc(fmt((hours.find(x => Number(x.d) === today) || {}).h))}</small></div>` : ""}
+    </div>
+    ${wa ? `<a class="sh-wa" href="https://wa.me/${UI.esc(wa)}?text=${waText}" target="_blank" rel="noopener">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2c2 1.1 4.3 1.7 6.6 1.7 7.2 0 13-5.7 13-12.8C29 8.7 23.2 3 16 3zm0 23.4c-2.1 0-4.1-.6-5.9-1.7l-.4-.3-3.8 1.2 1.2-3.7-.3-.4a10.4 10.4 0 0 1-1.7-5.7C5.1 10 10 5.2 16 5.2S26.9 10 26.9 15.8 22 26.4 16 26.4zm6-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a9 9 0 0 1-2.6-1.6 9.8 9.8 0 0 1-1.8-2.2c-.2-.3 0-.5.1-.7l.5-.6.3-.5v-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.1 1.1-1.1 2.7 1.2 3.1 1.3 3.3 2.3 3.5 5.6 4.9c.8.3 1.4.5 1.9.7.8.2 1.5.2 2.1.1.6-.1 1.9-.8 2.2-1.5s.3-1.4.2-1.5-.3-.2-.6-.3z"/></svg>
+        <span><b>${UI.esc(t("shWa"))}</b><small>${UI.esc(t("shWaSub", { name: s.name }))}</small></span></a>` : ""}
+    ${hours.length ? `<details class="sh-hours"><summary>${UI.esc(t("shAllHours"))}</summary><table>${hours.map(x =>
+      `<tr class="${Number(x.d) === today ? "today" : ""}"><th>${UI.esc(days[x.d])}</th><td>${UI.esc(fmt(x.h))}</td></tr>`).join("")}</table></details>` : ""}
+  </div>`;
+}
 function renderShopBanner() {
   const on = shopPicked();
   $("#shopBanner").classList.toggle("hidden", !on);
@@ -1625,7 +1664,8 @@ function renderShopBanner() {
     const html = `<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(s.name)}</b><small>${UI.esc(s.tagline || kinds[s.kind] || "")}</small></div></div>
-      ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}`;
+      ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
+      ${shopInfo(s)}`;
     if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
   }
   if (on) $("#shopBannerText").textContent = t("shBanner", { name: state.shop.name });
