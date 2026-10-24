@@ -28,6 +28,10 @@ const TIP_FR = { promis: "promis, en attente du Bit du client", recu: "reçu par
 let orders = [];
 const refOn = () => !!CONFIG.partners.courierProgram;   // programme « Gagner plus » ouvert aux livreurs
 let settings = { referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes };
+// Passé hors ligne par HOP! : on le dit clairement
+const hrs = m => m >= 120 ? `${Math.floor(m / 60)} h` : `${m} min`;
+const autoOffText = () => `${Number(settings.miss_streak_max || 2)} courses ont sonné sans réponse, ou HOP! n'avait plus de nouvelles de vous depuis ${hrs(Number(settings.idle_off_min || 180))} (sans course en cours) : on vous a passé hors ligne pour ne pas faire attendre les clients. Repassez en ligne dès que vous êtes prêt à accepter des courses.`;
+const DUTY_TEXT = "Vous recevez les courses, même écran éteint : gardez le téléphone sur vous, ça sonne. Touchez ici pour revenir dans HOP! (Waze reste ouvert).";
 let refs = { shops: [], orders: [], board: [] };
 let msgs = { messages: [], replies: [] };
 let balance = 0;   // ce que le livreur doit à HOP (négatif : HOP lui doit)
@@ -43,7 +47,7 @@ const seenPool = new Set();
 function renderWelcome() {
   $("#perks").innerHTML = [
     "Vous choisissez vos courses, quand vous voulez.",
-    "Vos clients vous paient directement (Bit ou PayBox sur votre numéro).",
+    "Vos clients vous paient directement : espèces, ou Bit / PayBox sur votre numéro.",
     `Commission de ${UI.commissionText()} sur les courses que l'appli vous apporte, réglée une fois par semaine.`,
     ...(refOn() ? [`Faites votre marketing : sur les courses des commerces que vous amenez, seulement ${UI.networkText()}, et ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous quand un autre livreur les fait.`] : []),
     ...(refOn() && CONFIG.pro.referrerPercent ? [`${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`] : []),
@@ -179,14 +183,14 @@ async function route() {
   $("#drawerName").textContent = me.name;
   applyRiderSettings();
   initRiderMap();
-  // Après un rechargement : on reste en ligne seulement si HOP! nous voit encore en ligne. Sans l'appli depuis 15 min
-  // (sans course en cours), le serveur nous a passé hors ligne : on ne repasse jamais en ligne tout seul, même le lendemain.
+  // Après un rechargement : on reste en ligne seulement si HOP! nous voit encore en ligne. Passé hors ligne par le serveur
+  // (courses sans réponse, ou aucune nouvelle depuis 3 h) : on ne repasse jamais en ligne tout seul, même le lendemain.
   let wasOnline = false;
   try { wasOnline = localStorage.getItem("livraison.online.v1") === "1"; } catch (e) { /* ignore */ }
   if (wasOnline && me.online === false) {
     try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }
     if (me.auto_offline_at) {
-      $("#autoOffText").textContent = "HOP! n'était plus ouvert depuis plus de 15 min (sans course en cours) : on vous a passé hors ligne pour ne pas faire attendre les clients. Repassez en ligne dès que vous êtes prêt à accepter des courses.";
+      $("#autoOffText").textContent = autoOffText();
       $("#autoOffModal").classList.remove("hidden");
     }
     wasOnline = false;
@@ -2061,9 +2065,10 @@ function renderSettings(view) {
 function renderHelp(view) {
   const faq = [
     ["Comment je reçois des courses ?", "Passez en ligne : glissez le bouton « HOP! » jusqu’au bout. Les courses arrivent d’abord au livreur en ligne le plus proche du départ, puis aux autres. Une fenêtre s'ouvre avec le prix, votre gain et les kilomètres."],
-    ["Comment je suis payé ?", `Directement : le client vous paie la course par Bit ou PayBox sur votre numéro (avant « Livré », touchez « 💳 Paiement reçu »), et le commerce HOP! Pro vous paie sa part en vous remettant la commande. HOP n'encaisse rien pour vous : sa commission (${UI.commissionText()}${refOn() ? `, ou ${UI.networkText()} sur vos commerces` : ""}) est déduite de votre crédit HOP, que vous rechargez à l'avance par Bit (« Finances »).${refOn() ? " Les bonus et parts d'abonnement y sont ajoutés." : ""}`],
+    ["Comment je suis payé ?", `Directement : le client vous paie la course en espèces (le montant exact, indiqué sur la course) ou par Bit / PayBox sur votre numéro (avant « Livré », touchez « 💳 Paiement reçu »), et le commerce HOP! Pro vous paie sa part en vous remettant la commande. HOP n'encaisse rien pour vous : sa commission (${UI.commissionText()}${refOn() ? `, ou ${UI.networkText()} sur vos commerces` : ""}) est déduite de votre crédit HOP, que vous rechargez à l'avance par Bit (« Finances »).${refOn() ? " Les bonus et parts d'abonnement y sont ajoutés." : ""}`],
     ["Pourquoi je ne peux pas valider « Livré » ?", `Il faut être à moins de ${deliverRadius()} m de l'adresse de livraison. Pour « déposer devant la porte », envoyez d'abord la photo du colis dans la conversation de la course.`],
     ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre crédit HOP ne couvre plus la commission d'une course. Le bandeau vous dit quoi faire : rechargez dans « Finances ». Un souci ? HOP peut vous débloquer.`],
+    ["Je peux mettre le téléphone dans la poche ?", `Oui : vous restez en ligne écran éteint, et chaque nouvelle course fait sonner le téléphone (activez « Alertes sur le téléphone » dans les Réglages). Vous passez hors ligne seulement si ${Number(settings.miss_streak_max || 2)} courses sonnent d'affilée sans que vous répondiez (ni « Accepter » ni « Refuser »), ou si HOP! n'a plus de nouvelles de vous depuis ${hrs(Number(settings.idle_off_min || 180))}.`],
     ["Le client est absent, l'adresse est introuvable…", "Touchez « ⚠️ Un souci » sur la course : HOP et le client sont prévenus tout de suite, et vous continuez dans la conversation."],
     ...(!refOn() ? [] : [["Comment gagner plus ?", me.network_perks
       ? `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier, vous ne payez que ${UI.networkText()} de commission dessus, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait${CONFIG.pro.referrerPercent ? `, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro pendant ${CONFIG.pro.referrerMonths} mois` : ""}.`
@@ -2107,13 +2112,13 @@ setInterval(() => {
   sendPosition({ coords: { latitude: lastPos.lat, longitude: lastPos.lon } });
 }, 20000);
 
-// Passé hors ligne par HOP! (trop de refus, ou plus sur l'appli depuis 15 min) : on coupe aussi ici
+// Passé hors ligne par HOP! (courses sans réponse, trop de refus, aucune nouvelle depuis 3 h) : on coupe aussi ici
 function serverWentOffline(card) {
   if (duty.watch == null || !card || card.online || !card.auto_offline_at || !duty.since) return;
   if (new Date(card.auto_offline_at).getTime() < duty.since) return;
   toggleDuty(true);
   try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }
-  $("#autoOffText").textContent = `HOP! n'était plus ouvert depuis ${settings.idle_off_min || 15} min (sans course en cours) : on vous a passé hors ligne pour ne pas faire attendre les clients. Repassez en ligne dès que vous êtes prêt à accepter des courses.`;
+  $("#autoOffText").textContent = autoOffText();
   $("#autoOffModal").classList.remove("hidden");
 }
 
@@ -2141,7 +2146,7 @@ async function toggleDuty(quiet) {
   // En ligne / hors ligne pour HOP : seules les personnes en ligne reçoivent des courses
   duty.onlineP = Store.setOnline(duty.watch != null).then(() => { if (duty.watch == null) load(); }).catch(() => {});
   // Notification « En service » qui reste affichée : on peut passer sur Waze et revenir en un geste
-  UI.dutyNotice(duty.watch != null, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert). Sans course, revenez avant 15 min.");
+  UI.dutyNotice(duty.watch != null, DUTY_TEXT);
   if (duty.watch != null && !quiet) hopBurst();
   try { localStorage.setItem("livraison.online.v1", duty.watch != null ? "1" : ""); } catch (e) { /* ignore */ }
   renderDuty();
@@ -2178,11 +2183,15 @@ async function endAndLogout() {
 }
 $("#logoutBtn").addEventListener("click", e => { e.preventDefault(); endAndLogout(); });
 // De retour dans HOP! (après Waze) : position tout de suite et notification « En service » remise
-document.addEventListener("visibilitychange", () => {
+document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState !== "visible" || duty.watch == null) return;
+  // D'abord : HOP! nous a-t-il passé hors ligne pendant ce temps ? (sinon on afficherait « Vous recevez les courses » à tort)
+  const card = await Store.me().catch(() => null);
+  if (card) { me = card; serverWentOffline(card); }
+  if (duty.watch == null) return;
   duty.lastSent = 0;
   navigator.geolocation.getCurrentPosition(sendPosition, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-  UI.dutyNotice(true, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert). Sans course, revenez avant 15 min.");
+  UI.dutyNotice(true, DUTY_TEXT);
 });
 $("#waitRefresh").addEventListener("click", route);
 $('#drawerNav [data-tab="ref"]').classList.toggle("hidden", !refOn());

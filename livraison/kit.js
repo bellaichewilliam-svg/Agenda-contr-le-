@@ -103,6 +103,7 @@ Avec moi :
 • Chaque commande part directement chez votre client, sans être groupée avec d'autres : elle arrive chaude.
 • Votre client reçoit un lien pour suivre la livraison en direct.
 • Paiement en espèces ou Bit, reçu à chaque course.
+• En option, votre catalogue en ligne HOP! Pro (vos clients commandent chez vous) : abonnement de ${UI.money(CONFIG.pro.monthly)} par mois.
 On essaie avec 3 livraisons à moitié prix ? ${url}` },
 
   { title: "טיעונים למסעדה (עברית)", dir: "rtl", text:
@@ -112,14 +113,14 @@ On essaie avec 3 livraisons à moitié prix ? ${url}` },
 • כל הזמנה יוצאת ישר ללקוח, בלי לאחד עם הזמנות אחרות: האוכל מגיע חם.
 • הלקוח מקבל קישור למעקב בזמן אמת.
 • תשלום במזומן או בביט, קבלה על כל משלוח.
+• אפשרות נוספת: הקטלוג שלכם באפליקציה, HOP! Pro (הלקוחות מזמינים אצלכם): מנוי של ${UI.money(CONFIG.pro.monthly)} לחודש.
 ננסה עם 3 משלוחים בחצי מחיר? ${url}` },
 
   { title: "Recruter des livreurs (français)", dir: "ltr", text:
 `🛵 ${nameFr} recrute des livreurs indépendants à ${UI.cityFr(home)} et environs !
 ✅ Vous choisissez vos courses, quand vous voulez
-✅ Vous encaissez le client directement (espèces ou Bit)
-✅ Faites votre marketing, gagnez plus : seulement ${CONFIG.platform.networkPercent} % de commission sur les courses des commerces que vous amenez (${CONFIG.platform.commissionPercent} % sur les autres)
-✅ ${CONFIG.pro.referrerPercent ? `${CONFIG.pro.referrerPercent} % des abonnements HOP! Pro que vous faites signer, et les pourboires` : "Les pourboires"} 100 % pour vous
+✅ Le client vous paie directement (espèces, Bit ou PayBox)
+${CONFIG.partners.courierProgram ? `✅ Faites votre marketing, gagnez plus : seulement ${CONFIG.platform.networkPercent} % de commission sur les courses des commerces que vous amenez (${CONFIG.platform.commissionPercent} % sur les autres)\n` : `✅ Commission HOP : ${CONFIG.platform.commissionPercent} % de la course\n`}✅ ${CONFIG.pro.referrerPercent ? `${CONFIG.pro.referrerPercent} % des abonnements HOP! Pro que vous faites signer, et les pourboires` : "Les pourboires"} 100 % pour vous
 ✅ Pas d'abonnement, pas de frais d'inscription
 Il faut : permis valide, véhicule assuré (simple déclaration), un top case, statut d'עוסק פטור ou מורשה.
 👉 Inscription : ${UI.appUrl("coursier.html")}` },
@@ -127,9 +128,8 @@ Il faut : permis valide, véhicule assuré (simple déclaration), un top case, s
   { title: "גיוס שליחים (עברית)", dir: "rtl", text:
 `🛵 ${nameHe} מגייסת שליחים עצמאיים ב${heHome} והסביבה!
 ✅ בוחרים משלוחים מתי שרוצים
-✅ גובים ישירות מהלקוח (מזומן או ביט)
-✅ עושים שיווק ומרוויחים יותר: רק ${CONFIG.platform.networkPercent}% עמלה על משלוחים של עסקים שהבאתם (${CONFIG.platform.commissionPercent}% על השאר)
-✅ ${CONFIG.pro.referrerPercent ? `${CONFIG.pro.referrerPercent}% מהמנוי של HOP! Pro של עסקים שהחתמתם, והטיפים` : "הטיפים"} 100% שלכם
+✅ הלקוח משלם לכם ישירות (מזומן, ביט או פייבוקס)
+${CONFIG.partners.courierProgram ? `✅ עושים שיווק ומרוויחים יותר: רק ${CONFIG.platform.networkPercent}% עמלה על משלוחים של עסקים שהבאתם (${CONFIG.platform.commissionPercent}% על השאר)\n` : `✅ עמלת הופ: ${CONFIG.platform.commissionPercent}% מהמשלוח\n`}✅ ${CONFIG.pro.referrerPercent ? `${CONFIG.pro.referrerPercent}% מהמנוי של HOP! Pro של עסקים שהחתמתם, והטיפים` : "הטיפים"} 100% שלכם
 ✅ בלי מנוי ובלי דמי הרשמה
 דרוש: רישיון נהיגה בתוקף, רכב מבוטח (הצהרה בלבד), ארגז, עוסק פטור או מורשה.
 👈 להרשמה: ${UI.appUrl("coursier.html")}` },

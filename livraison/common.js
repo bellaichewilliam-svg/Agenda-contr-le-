@@ -237,6 +237,73 @@ function openState(hours, at) {
   return { open: false };
 }
 const hhmmOf = n => `${String(Math.floor(n / 60)).padStart(2, "0")}:${String(n % 60).padStart(2, "0")}`;
+// Horaires d'un commerce, à choisir dans des menus (espace commerce et panel patron) : par jour ouvert / fermé,
+// heure d'ouverture et de fermeture, une 2e plage (coupure de midi), et deux raccourcis pour toute la semaine
+const DAY_NAMES = { fr: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], he: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] };
+const HOUR_CHOICES = Array.from({ length: 39 }, (_, i) => hhmmOf(300 + i * 30)).concat("24:00");   // 05:00 → minuit, toutes les 30 min
+function hourSelect(k, v) {
+  const list = v && !HOUR_CHOICES.includes(v) ? HOUR_CHOICES.concat(v).sort() : HOUR_CHOICES;
+  return `<select data-fh="${k}">${list.map(h => `<option value="${h}"${h === v ? " selected" : ""}>${h === "24:00" ? esc(I18N.t("fiMidnight")) : h}</option>`).join("")}</select>`;
+}
+function hoursDay(i, h) {
+  const r = String(h || "").split(",").filter(Boolean).map(x => x.split("-"));
+  const [a, b] = r[0] || ["", ""], [c, d] = r[1] || ["", ""];
+  return `<div class="fh-day${r.length ? " open" : ""}" data-day="${i}">
+    <b>${esc((DAY_NAMES[I18N.lang] || DAY_NAMES.fr)[i])}</b>
+    <label class="fh-switch"><input type="checkbox" data-fh-open${r.length ? " checked" : ""} /><i></i><small>${esc(I18N.t(r.length ? "fiOpen" : "fiClosed"))}</small></label>
+    <span class="fh-times">${hourSelect("a", a || "08:30")}–${hourSelect("b", b || "19:00")}
+      <span class="fh-2${c ? "" : " hidden"}">· ${hourSelect("c", c || "15:30")}–${hourSelect("d", d || "19:00")}</span>
+      <button type="button" class="fh-add${c ? " hidden" : ""}" data-fh-add aria-label="+">＋ ${esc(I18N.t("fiBreak"))}</button></span>
+  </div>`;
+}
+function hoursEditor(hours) {
+  const list = Array.isArray(hours) ? hours : [];
+  return `<div class="fh"><span class="fh-title">${esc(I18N.t("fiHours"))}</span>
+    <div class="fh-presets"><button type="button" class="chip" data-fh-preset="copy">${esc(I18N.t("fiCopy"))}</button><button type="button" class="chip" data-fh-preset="week">${esc(I18N.t("fiWeek"))}</button></div>
+    ${[0, 1, 2, 3, 4, 5, 6].map(i => hoursDay(i, (list.find(x => Number(x.d) === i) || {}).h)).join("")}</div>`;
+}
+function setHoursDay(day, h) {
+  const tmp = document.createElement("div");
+  tmp.innerHTML = hoursDay(Number(day.dataset.day), h);
+  day.replaceWith(tmp.firstElementChild);
+}
+function readHours(root) {
+  return [...root.querySelectorAll(".fh-day")].map(day => {
+    const v = k => day.querySelector(`[data-fh="${k}"]`).value;
+    const on = day.querySelector("[data-fh-open]").checked, ranges = [];
+    if (on && v("a") && v("b")) ranges.push(v("a") + "-" + v("b"));
+    if (on && !day.querySelector(".fh-2").classList.contains("hidden") && v("c") && v("d")) ranges.push(v("c") + "-" + v("d"));
+    return { d: Number(day.dataset.day), h: ranges.join(",") };
+  });
+}
+// Une seule fois par page, sur le bloc qui contient les éditeurs d'horaires
+function bindHours(root) {
+  root.addEventListener("change", e => {
+    const c = e.target.closest("[data-fh-open]");
+    if (!c) return;
+    const day = c.closest(".fh-day");
+    day.classList.toggle("open", c.checked);
+    day.querySelector(".fh-switch small").textContent = I18N.t(c.checked ? "fiOpen" : "fiClosed");
+  });
+  root.addEventListener("click", e => {
+    const add = e.target.closest("[data-fh-add]");
+    if (add) {
+      const day = add.closest(".fh-day"), b = day.querySelector('[data-fh="b"]');
+      day.querySelector(".fh-2").classList.remove("hidden"); add.classList.add("hidden");
+      // Une coupure à midi : le matin finit à 13:30, l'après-midi reprend à 15:30
+      if (b.value > "13:30") b.value = "13:30";
+      day.querySelector('[data-fh="c"]').value = "15:30"; day.querySelector('[data-fh="d"]').value = "19:00";
+      return;
+    }
+    const p = e.target.closest("[data-fh-preset]");
+    if (!p) return;
+    const box = p.closest(".fh"), days = [...box.querySelectorAll(".fh-day")];
+    if (p.dataset.fhPreset === "copy") {
+      const first = readHours(box)[0].h;
+      days.slice(1).forEach(d => setHoursDay(d, first));
+    } else days.forEach(d => setHoursDay(d, d.dataset.day === "6" ? "" : d.dataset.day === "5" ? "08:30-14:00" : "08:30-19:00"));
+  });
+}
 // Date de la prochaine ouverture (sur ce téléphone, réglé à l'heure d'Israël)
 function nextOpenDate(st, from) {
   if (!st || st.open || st.inDays == null) return null;
@@ -456,6 +523,7 @@ function goodsPay(o, sp) {
     <small>${esc(t("gpWhy", { name }))}</small>
     <div class="bit-btns">
       ${sp.link ? `<a class="btn btn-primary gp-link" href="${esc(sp.link)}" target="_blank" rel="noopener">💳 ${esc(t("gpPayLink", { name }))}</a>` : ""}
+      ${sp.link && Number(o.items_total) > 0 ? `<button type="button" class="btn btn-sm" data-bit-copy="${esc(String(Number(o.items_total)))}">${esc(t("gpCopyAmount", { amount }))}</button>` : ""}
       ${bit ? `${ANDROID ? `<a class="btn btn-sm btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}<button type="button" class="btn btn-sm" data-bit-copy="${esc(bit)}">${esc(t("gpCopyBit", { phone: bit }))}</button>` : ""}
       <button type="button" class="btn btn-sm${sp.link ? "" : " btn-primary"}" data-goods-paid="${esc(o.token)}" data-name="${esc(name)}" data-total="${esc(amount)}">${esc(t("gpPaid", { name }))}</button>
     </div></div>`;
@@ -571,7 +639,7 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 
 window.UI = {
   addrNote, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  DOC_FR, docPhoto, photoViewer, proCard, safeImg, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, goodsPay,
+  DOC_FR, docPhoto, photoViewer, proCard, safeImg, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

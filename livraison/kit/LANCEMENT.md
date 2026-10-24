@@ -66,14 +66,14 @@ Avec `shop-post-fr.png` / `shop-post-he.png`, ou en message direct au commerçan
 
 > 🏪 **Votre commerce livre avec HOP!**
 > 💸 **0 % de commission sur vos ventes** : vous payez seulement la course, **25 ₪ dans Netanya**.
-> 🎟️ Carnet pro : **10 courses pour 200 ₪**.
-> 🛵 Un livreur en moins d'une heure · 📱 votre QR code pour vos clients · 🧾 un reçu pour chaque course.
+> ⭐ En option, **votre catalogue en ligne HOP! Pro** (vos clients commandent chez vous) : abonnement de 299 ₪ par mois.
+> 🛵 Le livreur arrive quand la commande est prête · 📱 votre QR code pour vos clients · 🧾 un reçu pour chaque course.
 > 👉 Inscription gratuite en 1 minute : https://hop-livraison.vercel.app/commerce.html
 
 > 🏪 **העסק שלכם שולח עם הופ!**
 > 💸 **0% עמלה על המכירות**: משלמים רק על המשלוח, **25 ₪ בתוך נתניה**.
-> 🎟️ כרטיסייה לעסקים: **10 משלוחים ב-200 ₪**.
-> 🛵 שליח תוך פחות משעה · 📱 קוד QR ללקוחות · 🧾 קבלה על כל משלוח.
+> ⭐ אפשרות נוספת: **הקטלוג שלכם באפליקציה, HOP! Pro** (הלקוחות מזמינים אצלכם): מנוי של 299 ₪ לחודש.
+> 🛵 השליח מגיע כשההזמנה מוכנה · 📱 קוד QR ללקוחות שלכם · 🧾 קבלה על כל משלוח.
 > 👈 הרשמה בחינם תוך דקה: https://hop-livraison.vercel.app/commerce.html
 
 ### HOP! Pro (abonnement des commerces) : à envoyer aux restaurants et boutiques
@@ -93,19 +93,19 @@ Avec `shop-post-fr.png` / `shop-post-he.png`, ou en message direct au commerçan
 Avec `rider-post-fr.png` / `rider-post-he.png` (groupes d'emploi, étudiants, olim).
 
 > 🛵 **Deviens livreur partenaire HOP!** (scooter, voiture ou vélo)
-> ✅ Tu choisis tes courses · 💵 tu encaisses les espèces · 🎯 les courses proches de toi d'abord.
-> 💸 Fais ton marketing, gagne plus : **8 % de commission seulement sur les courses des commerces que tu amènes** (15 % sur les courses de l'appli), réglée une fois par semaine. Pas d'abonnement.
+> ✅ Tu choisis tes courses · 💳 le client te paie directement (espèces, Bit ou PayBox) · 🎯 les courses proches de toi d'abord.
+> 💸 Commission HOP : **15 % de la course** (3 ₪ au moins), déduite de ton crédit. Pas d'abonnement.
+> 🔔 Tu restes en ligne téléphone dans la poche : les courses sonnent même écran éteint.
 > ⏱️ Attente ou achats sur place : **payés en plus** (10 min offertes, puis +5 ₪ par 10 min), 100 % pour toi.
-> 🤝 Amène un commerce : **+2 ₪ quand un autre livreur fait ses courses**, et **20 % de son abonnement HOP! Pro** pendant 12 mois.
 > 💝 Les **pourboires sont 100 % pour toi**, et les codes promo sont payés par HOP.
 > Demandé : permis valide, véhicule assuré (simple déclaration), **un top case** (photo à l'inscription), עוסק פטור ou מורשה.
 > 👉 Inscription : https://hop-livraison.vercel.app/coursier.html
 
 > 🛵 **בואו להיות שליחים בהופ!** (קטנוע, רכב או אופניים)
-> ✅ בוחרים את המשלוחים · 💵 מקבלים את המזומן · 🎯 משלוחים קרובים אליכם קודם.
-> 💸 עושים שיווק ומרוויחים יותר: **רק 8% עמלה על משלוחים של עסקים שהבאתם** (15% על משלוחים מהאפליקציה), תשלום פעם בשבוע. בלי מנוי.
+> ✅ בוחרים את המשלוחים · 💳 הלקוח משלם לכם ישירות (מזומן, ביט או פייבוקס) · 🎯 משלוחים קרובים אליכם קודם.
+> 💸 עמלת הופ: **15% מהמשלוח** (לפחות 3 ₪), יורדת מהקרדיט שלכם. בלי מנוי.
+> 🔔 נשארים מחוברים עם הטלפון בכיס: המשלוחים מצלצלים גם כשהמסך כבוי.
 > ⏱️ המתנה או קניות במקום: **משולמים בנוסף** (10 דק׳ ראשונות חינם, ואז ‎+5 ₪ לכל 10 דק׳), 100% אליכם.
-> 🤝 מביאים עסק: **‎+2 ₪ כששליח אחר עושה את המשלוחים שלו**, ו-**20% מהמנוי של HOP! Pro** במשך 12 חודשים.
 > 💝 **הטיפים 100% שלכם**, וקודי ההנחה על חשבון הופ.
 > דרוש: רישיון בתוקף, רכב מבוטח (הצהרה בלבד), **ארגז (טופ קייס)** (תמונה בהרשמה), עוסק פטור או מורשה.
 > 👈 להרשמה: https://hop-livraison.vercel.app/coursier.html

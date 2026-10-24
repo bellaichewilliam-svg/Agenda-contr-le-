@@ -151,7 +151,7 @@ const DEFAULT_SETTINGS = {
   pro_hop_share: CONFIG.pro.hopShare, pro_hop_share_client: CONFIG.pro.hopShareClient != null ? CONFIG.pro.hopShareClient : 1, pro_referrer_pct: CONFIG.pro.referrerPercent, pro_referrer_months: CONFIG.pro.referrerMonths,
   network_pct: CONFIG.platform.networkPercent, network_min: CONFIG.platform.networkMin,
   decline_streak_max: CONFIG.platform.declineStreakMax || 3,
-  idle_warn_min: 10, idle_off_min: 15, decline_hold_min: 5,
+  idle_warn_min: 170, idle_off_min: 180, duty_grace_min: 180, miss_streak_max: 2, miss_seconds: 45, decline_hold_min: 5,
   wait_free_min: CONFIG.pricing.waiting.freeMinutes, wait_step_min: CONFIG.pricing.waiting.stepMinutes,
   wait_step_price: CONFIG.pricing.waiting.stepPrice, wait_max: CONFIG.pricing.waiting.max,
   commission_pct: CONFIG.platform.commissionPercent, commission_min: CONFIG.platform.commissionPerCourse
@@ -1197,6 +1197,15 @@ async function verifyKnownPlace(id, name) {
   writeJSON("livraison.knownPlaces.v1", list);
   return true;
 }
+// Patron : la catégorie d'une enseigne de l'annuaire (celle des rubriques « Enseignes près de vous »)
+async function knownPlaceKind(id, kind) {
+  const body = { kind: kind || null };
+  if (ONLINE) return authRest("/rest/v1/known_places?id=eq." + encodeURIComponent(id), { method: "PATCH", body, prefer: "return=minimal" });
+  const list = readJSON("livraison.knownPlaces.v1", []), x = list.find(v => v.id === id);
+  if (x) Object.assign(x, body);
+  writeJSON("livraison.knownPlaces.v1", list);
+  return true;
+}
 // Patron : l'annuaire des enseignes ajoutées à la main ou apprises (absentes de la carte)
 async function knownPlaces() {
   if (ONLINE) return authRest("/rest/v1/known_places?select=*&order=last_at.desc&limit=300");
@@ -1204,7 +1213,7 @@ async function knownPlaces() {
 }
 async function knownPlaceAdd(p) {
   // Ajouté par le patron : vérifié, montré tout de suite aux clients
-  const row = { name: String(p.name).trim().slice(0, 120), address: String(p.address).trim().slice(0, 160), city: p.city || null, lat: p.lat, lon: p.lon, verified: true };
+  const row = { name: String(p.name).trim().slice(0, 120), address: String(p.address).trim().slice(0, 160), city: p.city || null, lat: p.lat, lon: p.lon, kind: p.kind || null, verified: true };
   if (ONLINE) return authRest("/rest/v1/known_places", { method: "POST", body: row, prefer: "return=minimal" });
   const list = readJSON("livraison.knownPlaces.v1", []);
   list.unshift(Object.assign({ id: uuid(), uses: 1, created_at: new Date().toISOString(), last_at: new Date().toISOString() }, row));
@@ -1962,7 +1971,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,

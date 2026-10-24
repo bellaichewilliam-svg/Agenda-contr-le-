@@ -714,7 +714,7 @@ function renderWeek(view) {
 }
 
 // --- Commerces partenaires --------------------------------------------------------------
-const SHOP_KIND = { restaurant: "🍔 Restaurant", boutique: "🛍️ Boutique", pharmacie: "💊 Pharmacie / beauté", bureau: "💼 Bureau", autre: "🏪 Commerce" };
+const SHOP_KIND = { restaurant: "🍔 Restaurant", pressing: "👔 Pressing", boutique: "🛍️ Boutique", pharmacie: "💊 Pharmacie / beauté", bureau: "💼 Bureau / services", autre: "🏪 Autre" };
 
 // Message au commerce avec ses deux liens, dans sa langue
 function shopWelcome(x) {
@@ -726,6 +726,11 @@ function shopWelcome(x) {
 
 // Annuaire : enseignes ajoutées par le patron ou apprises des clients (absentes de la carte)
 let dirPick = null;
+// Catégories : les mêmes que les rubriques « Enseignes près de vous » de l'accueil client
+const DIR_KINDS = [["food", "🍽️ Restaurant"], ["breakfast", "🥐 Boulangerie / pâtisserie"], ["super", "🛒 Supermarché / makolet / épicerie"],
+  ["pharm", "💊 Pharmacie / beauté"], ["pressing", "👔 Pressing / laverie"], ["flower", "💐 Fleuriste"], ["mall", "🛍️ Boutique / vêtements"],
+  ["tech", "📱 Téléphonie / électronique"], ["post", "📮 Poste / point relais"], ["autre", "🏪 Autre"]];
+const dirKindSelect = (cur, attrs) => `<select ${attrs}>${cur ? "" : `<option value="">Catégorie…</option>`}${DIR_KINDS.map(([v, l]) => `<option value="${v}"${cur === v ? " selected" : ""}>${l}</option>`).join("")}</select>`;
 async function initDirCard() {
   if (!$("#dirCard") || !window.Places) return;
   dirPick = null;
@@ -738,22 +743,30 @@ async function initDirCard() {
   const list = await Store.knownPlaces().catch(() => []);
   // Enseignes tapées par des clients : cachées aux autres tant qu'elles ne sont pas vérifiées (faute de frappe ?)
   const check = list.filter(x => x.verified === false && Number(x.uses || 1) < 3), ok = list.filter(x => !check.includes(x));
-  const row = (x, tocheck) => `<div class="dir-row${tocheck ? " to-check" : ""}" data-place="${UI.esc(x.id)}"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.address)}${x.city ? ", " + UI.esc(UI.cityFr(x.city) || x.city) : ""} · ${Number(x.uses || 1)} commande(s)</span>
+  const row = (x, tocheck) => `<div class="dir-row${tocheck ? " to-check" : ""}" data-place="${UI.esc(x.id)}"><span>${dirKindSelect(x.kind || "", 'class="dir-kind" data-place-kind="1" aria-label="Catégorie"')} <b>${UI.esc(x.name)}</b> · ${UI.esc(x.address)}${x.city ? ", " + UI.esc(UI.cityFr(x.city) || x.city) : ""} · ${Number(x.uses || 1)} commande(s)</span>
     <span class="dir-acts">${tocheck ? `<button type="button" class="btn btn-sm btn-primary" data-place-ok="1">✅ Existe</button><button type="button" class="btn btn-sm" data-place-fix="1">✏️ Corriger le nom</button>` : ""}<button type="button" class="btn btn-sm" data-place-del="1">Retirer</button></span></div>`;
   $("#dirCount").textContent = list.length;
   $("#dirCheck").innerHTML = check.length ? `<p class="small"><b>🔎 ${check.length} enseigne(s) tapée(s) par des clients à vérifier</b> (cachées aux autres clients jusque-là ; visibles d'office après 3 commandes)</p>${check.map(x => row(x, true)).join("")}` : "";
   $("#dirList").innerHTML = ok.map(x => row(x, false)).join("") || "Aucun pour l'instant.";
+  // Changer la catégorie d'une enseigne déjà ajoutée (ou apprise d'un client)
+  $("#dirCard").onchange = async e => {
+    const sel = e.target.closest("[data-place-kind]");
+    if (!sel) return;
+    try { await Store.knownPlaceKind(sel.closest("[data-place]").dataset.place, sel.value); sel.classList.add("saved"); }
+    catch (ex) { alert("Catégorie non enregistrée, vérifiez la connexion."); }
+  };
 }
 async function saveDirPlace() {
-  const fr = $("#dirFr").value.trim(), he = $("#dirHe").value.trim(), msg = $("#dirMsg");
+  const fr = $("#dirFr").value.trim(), he = $("#dirHe").value.trim(), kind = $("#dirKind").value, msg = $("#dirMsg");
   if (!fr && !he) { msg.textContent = "⚠️ Indiquez au moins un nom."; return; }
+  if (!kind) { msg.textContent = "⚠️ Choisissez la catégorie (restaurant, boulangerie, pressing…)."; $("#dirKind").focus(); return; }
   if (!dirPick || dirPick.lat == null) { msg.textContent = "⚠️ Choisissez l'adresse dans la liste proposée (rue et numéro)."; return; }
   const name = fr && he ? `${fr} · ${he}` : fr || he;
   const address = [dirPick.streetName || dirPick.street, dirPick.housenumber].filter(Boolean).join(" ") || dirPick.street;
   try {
-    await Store.knownPlaceAdd({ name, address, city: dirPick.cityId || CONFIG.homeCity, lat: dirPick.lat, lon: dirPick.lon });
+    await Store.knownPlaceAdd({ name, address, city: dirPick.cityId || CONFIG.homeCity, lat: dirPick.lat, lon: dirPick.lon, kind });
     msg.textContent = `✅ « ${name} » ajouté : les clients le trouvent dès maintenant.`;
-    $("#dirFr").value = ""; $("#dirHe").value = ""; $("#dirAddr").value = ""; dirPick = null;
+    $("#dirFr").value = ""; $("#dirHe").value = ""; $("#dirAddr").value = ""; $("#dirKind").value = ""; dirPick = null;
     initDirCard();
   } catch (ex) {
     msg.textContent = /409|duplicate|unique/i.test(String(ex && ex.message)) ? "Déjà dans l'annuaire à cette adresse." : "⚠️ Non enregistré, vérifiez la connexion.";
@@ -779,6 +792,7 @@ function renderShops(view) {
       <div class="dir-add">
         <input id="dirFr" placeholder="Nom en français (ex. Oshi Sushi)" />
         <input id="dirHe" placeholder="Nom en hébreu (ex. אושי סושי)" dir="rtl" />
+        ${dirKindSelect("", 'id="dirKind" aria-label="Catégorie"')}
         <div><input id="dirAddr" placeholder="Adresse : rue et numéro, puis choisir dans la liste" /></div>
         <button type="button" class="btn btn-primary btn-sm" id="dirSave">➕ Ajouter à l'annuaire</button>
         <p class="small" id="dirMsg"></p>
@@ -813,18 +827,19 @@ function renderShops(view) {
           <span class="order-price">${done.length} course(s)</span>
         </div>
         <div class="kv">
-          <div><span>🏷️</span><span>${UI.esc(SHOP_KIND[x.kind] || SHOP_KIND.autre)} · ${UI.esc(x.address || "")}${x.city ? ", " + UI.esc(UI.cityFr(x.city)) : ""}</span></div>
+          <div><span>🏷️</span><span><select class="dir-kind" data-sact="kind" aria-label="Catégorie">${Object.entries(SHOP_KIND).map(([v, l]) => `<option value="${v}"${(SHOP_KIND[x.kind] ? x.kind : "autre") === v ? " selected" : ""}>${l}</option>`).join("")}</select> · ${UI.esc(x.address || "")}${x.city ? ", " + UI.esc(UI.cityFr(x.city)) : ""}</span></div>
           <div><span>👤</span><span>${tel(x.contact_name, x.phone)}${x.email ? " · " + UI.esc(x.email) : ""} · ${x.lang === "fr" ? "🇫🇷" : "🇮🇱"}</span></div>
-          <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name + (c.city && x.city && c.city !== x.city ? " · autre ville (" + UI.cityFr(c.city) + ")" : ""))}</option>`).join("")}</select>
+          <div><span>🤝</span><span>Parrain : <select class="dir-kind" data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name + (c.city && x.city && c.city !== x.city ? " · autre ville (" + UI.cityFr(c.city) + ")" : ""))}</option>`).join("")}</select>
             · bonus générés ${UI.money(sum(done, o => Number(o.referral_bonus || 0)))}</span></div>
           ${CONFIG.partners.carnet.offered || Number(x.credits || 0) > 0 ? `<div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
             ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>` : ""}
           <div><span>📅</span><span>Inscrit le ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))}</span></div>
-          <details class="shop-fiche"><summary>📝 Fiche pour les clients : WhatsApp, horaires, présentation${x.whatsapp ? " · 💬 " + UI.esc(x.whatsapp) : ""}</summary>
+          <details class="shop-fiche"><summary>📝 Fiche pour les clients : WhatsApp, paiement, horaires, présentation${x.whatsapp ? " · 💬 " + UI.esc(x.whatsapp) : ""}${x.pay_link || x.pay_bit ? " · 💳" : ""}</summary>
             <label class="f"><span>WhatsApp du commerce (les clients peuvent l'écrire directement)</span><input data-fiche="whatsapp" inputmode="tel" placeholder="053-373-3785" value="${UI.esc(x.whatsapp ? "0" + String(x.whatsapp).replace(/^972/, "") : "")}" /></label>
+            <label class="f"><span>💳 Lien de paiement du commerce (carte bancaire : Grow, Cardcom, Tranzila, PayPlus…) : les clients paient leurs articles directement au commerce</span><input data-fiche="pay_link" type="url" inputmode="url" dir="ltr" placeholder="https://" value="${UI.esc(x.pay_link || "")}" /></label>
+            <label class="f"><span>Bit / PayBox du commerce</span><input data-fiche="pay_bit" inputmode="tel" placeholder="053-373-3785" value="${UI.esc(x.pay_bit || "")}" /></label>
             <label class="f"><span>Présentation (600 caractères)</span><textarea data-fiche="about" maxlength="600" rows="3" placeholder="Ce que fait le commerce, ses spécialités…">${UI.esc(x.about || "")}</textarea></label>
-            <div class="fiche-hours"><span>Horaires (ex. 08:30-13:30,15:30-19:00 ; vide = fermé)</span>
-              ${["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map((d, i) => `<label><b>${d}</b><input data-fiche-day="${i}" placeholder="fermé" value="${UI.esc(((x.hours || []).find(h => Number(h.d) === i) || {}).h || "")}" /></label>`).join("")}</div>
+            ${UI.hoursEditor(x.hours)}
             <button type="button" class="btn btn-sm btn-primary" data-sact="fiche">💾 Enregistrer la fiche</button>
           </details>
           <div><span>⭐</span><span>${(() => {
@@ -1253,10 +1268,14 @@ async function onViewClick(e) {
       let wa = v("whatsapp").replace(/\D/g, "");
       if (wa.startsWith("0")) wa = "972" + wa.slice(1);
       if (wa && !/^[0-9]{9,15}$/.test(wa)) return alert("Numéro WhatsApp invalide (ex. 053-373-3785).");
-      const bad = [...box.querySelectorAll("[data-fiche-day]")].find(i => i.value.trim() && !/^\d{1,2}:\d{2}-\d{1,2}:\d{2}(,\d{1,2}:\d{2}-\d{1,2}:\d{2})*$/.test(i.value.replace(/\s/g, "")));
-      if (bad) return alert("Horaires : écrivez par exemple 08:30-13:30,15:30-19:00 (ou laissez vide si fermé).");
-      const hours = [...box.querySelectorAll("[data-fiche-day]")].map(i => ({ d: Number(i.dataset.ficheDay), h: i.value.replace(/\s/g, "") }));
-      changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null };
+      const hours = UI.readHours(box);
+      if (hours.some(h => h.h.split(",").some(r => r && r.split("-")[0] >= r.split("-")[1]))) return alert("Horaires : l'heure de fermeture doit être après l'heure d'ouverture.");
+      const link = v("pay_link");
+      let bit = v("pay_bit").replace(/\D/g, "");
+      if (bit.startsWith("972")) bit = "0" + bit.slice(3);
+      if (link && !/^https:\/\/\S{4,250}$/.test(link)) return alert("Le lien de paiement doit commencer par https://");
+      if (bit && !/^0\d{8,9}$/.test(bit)) return alert("Numéro Bit / PayBox invalide (ex. 053-373-3785).");
+      changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null, pay_link: link || null, pay_bit: bit || null };
     } else if (el.dataset.sact === "planoff") {
       if (!confirm(`Arrêter HOP! Pro pour ${shop.name} ?`)) return;
       changes = { plan_until: UI.addDays(UI.dayKey(new Date()), -1) };
@@ -1447,9 +1466,9 @@ async function onViewChange(e) {
     } else if (o && c) assignTo(o, c);
   } else if (t.dataset.ract === "note") {
     Store.updateRequest(t.closest("[data-req]").dataset.req, { admin_note: t.value.trim() || null }).catch(() => alert("Note non enregistrée."));
-  } else if (t.dataset.sact === "note" || t.dataset.sact === "referrer") {
+  } else if (t.dataset.sact === "note" || t.dataset.sact === "referrer" || t.dataset.sact === "kind") {
     const id = t.closest("[data-shop]").dataset.shop;
-    const changes = t.dataset.sact === "note" ? { admin_note: t.value.trim() || null } : { referrer_id: t.value || null };
+    const changes = t.dataset.sact === "note" ? { admin_note: t.value.trim() || null } : t.dataset.sact === "kind" ? { kind: t.value } : { referrer_id: t.value || null };
     Store.updateShop(id, changes).then(load, () => alert("Non enregistré, vérifiez la connexion."));
   } else if (t.dataset.cact === "note") {
     const id = t.closest("[data-courier]").dataset.courier;
@@ -1532,6 +1551,7 @@ $("#view").addEventListener("click", onViewClick);
 $("#liveList").addEventListener("click", e => { const it = e.target.closest("[data-focus]"); if (it) focusOrder(it.dataset.focus); });
 $("#liveFit").addEventListener("click", () => { if (live.map && live.points && live.points.length) live.map.fitBounds(live.points, { padding: [40, 40], maxZoom: 15 }); });
 $("#view").addEventListener("change", onViewChange);
+UI.bindHours($("#view"));   // horaires des fiches commerce (menus, coupure, raccourcis)
 $("#view").addEventListener("input", onViewInput);
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|shops|replies|requests)/.test(e.key || "") && Store.session()) load(); });
 document.addEventListener("visibilitychange", async () => {

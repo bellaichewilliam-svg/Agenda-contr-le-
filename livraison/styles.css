@@ -1499,7 +1499,9 @@ body.cg-cart-on .wa-fab { bottom: 160px !important; }
 .pin-bubble.drop::after { bottom: auto; top: -6px; border-top-color: transparent; border-bottom: 6px solid #fff; border-top: 0; }
 /* Patron : ajouter un commerce à l'annuaire */
 .dir-add { display: grid; gap: 8px; }
-.dir-add input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--ink); font: inherit; font-size: 15px; }
+.dir-add input, .dir-add select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--ink); font: inherit; font-size: 15px; }
+.dir-kind { max-width: 150px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; font-size: 12px; }
+.dir-kind.saved { border-color: var(--green, #12B76A); }
 .dir-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); }
 /* Pas de barre de défilement visible (on fait défiler au doigt, à la molette ou au pavé tactile) */
 * { scrollbar-width: none; -ms-overflow-style: none; }
@@ -1683,10 +1685,11 @@ body.asking { overflow: hidden; }
 .shop-fiche { margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); }
 .shop-fiche summary { cursor: pointer; font-weight: 700; }
 .shop-fiche .f { margin-top: 10px; }
-.fiche-hours { display: grid; gap: 6px; margin: 10px 0; }
+.fiche-hours, .kv .fiche-hours { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 10px 0; }
+.kv details.shop-fiche { min-width: 0; }
 .fiche-hours > span { font-size: 13px; color: var(--muted); }
-.fiche-hours label { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; }
-.fiche-hours input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: inherit; font: inherit; }
+.fiche-hours label { display: grid; grid-template-columns: 90px minmax(0, 1fr); align-items: center; gap: 8px; }
+.fiche-hours input { width: 100%; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: inherit; font: inherit; }
 
 /* Rien ne dépasse à droite d'un cadre du formulaire, même avec une longue adresse ou un petit écran */
 .fields > *, .saved-addrs, .addr-tools, .kind-chips { min-width: 0; max-width: 100%; }
@@ -1787,8 +1790,18 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .dir-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
 /* Espace commerce : fiche en libre-service (horaires avec interrupteurs) et avis « c'est prêt » */
+/* Espace commerce : recevoir les paiements (2 étapes + aperçu) */
+.pm-step { display: grid; gap: 6px; margin: 10px 0; padding: 12px; border-radius: 14px; background: var(--bg-2); }
+.pm-step input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--ink); font: inherit; }
+.pm-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.pm-test { justify-self: start; }
+.pm-preview { margin: 8px 0; padding: 10px; border: 1.5px dashed var(--border); border-radius: 14px; }
+.pm-preview > small { display: block; margin-bottom: 6px; color: var(--muted); }
+.pm-preview .goods-pay { pointer-events: none; }
 .fh { display: grid; gap: 6px; margin-top: 12px; }
 .fh-title { font-weight: 700; font-size: 14px; }
+.fh-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.fh-presets button { border: 1px solid var(--border); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .fh-day { display: grid; grid-template-columns: 82px auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--bg-2); }
 .fh-day b { font-size: 14px; }
 .fh-switch { display: flex; align-items: center; gap: 6px; cursor: pointer; }
@@ -1799,10 +1812,17 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .fh-switch input:checked + i::after { inset-inline-start: 19px; }
 .fh-switch small { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 42px; }
 .fh-times { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; font-size: 13px; }
-.fh-times input { width: 84px; padding: 4px 6px; font-size: 14px; }
+.fh-times select { padding: 5px 6px; font: inherit; font-size: 14px; background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; }
+@media (prefers-color-scheme: dark) { .fh-times select { color-scheme: dark; } }
+.fh-times input { width: 84px; padding: 4px 6px; font-size: 14px; background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; }
+@media (prefers-color-scheme: dark) { .fh-times input { color-scheme: dark; } }
 .fh-day:not(.open) .fh-times { visibility: hidden; }
 .fh-add { border: 0; background: none; color: var(--brand-ink); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 4px; }
-@media (max-width: 480px) { .fh-day { grid-template-columns: 1fr auto; } .fh-times { grid-column: 1 / -1; } .fh-day:not(.open) .fh-times { display: none; } }
+/* Dans la fiche d'un commerce du panel patron (.kv met toutes ses div sur 2 colonnes) */
+.kv .fh { grid-template-columns: minmax(0, 1fr); }
+.kv .fh-day { grid-template-columns: 82px auto minmax(0, 1fr); }
+.kv .fh-presets { display: flex; }
+@media (max-width: 480px) { .fh-day, .kv .fh-day { grid-template-columns: 1fr auto; } .fh-times { grid-column: 1 / -1; } .fh-day:not(.open) .fh-times { display: none; } }
 .drops-card { margin-bottom: 14px; }
 .drop-row { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); }
 .drop-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
@@ -1929,12 +1949,23 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .sc-top { gap: 5px; padding: 6px 12px 2px; }
 .sc-ti .item-art { border-radius: 10px; }
 .sc-ti em { font-size: 10px; bottom: 3px; inset-inline-start: 3px; }
-.sc-go { margin: 8px 12px 12px; padding: 8px 10px; font-size: 14px; }
+/* Carte compacte (≈ 200 px de haut) : bannière 5/2, logo qui la chevauche, deux lignes d'infos, flèche ronde */
+.pro-row .sc-card { flex-basis: min(70vw, 260px); border-radius: 18px; box-shadow: 0 6px 18px rgba(15, 31, 61, .08); }
+.pro-row .sc-cover { aspect-ratio: 5 / 2; }
+.pro-row .sc-cover i { font-size: 34px; }
+.pro-row .sc-logo { top: calc(min(70vw, 260px) * 2 / 5 - 22px); width: 44px; height: 44px; border-radius: 12px; }
+.pro-row .sc-body { padding: 24px 12px 12px; padding-inline-end: 52px; gap: 1px; }
+.pro-row .sc-body b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pro-row .sc-body small { font-size: 12px; }
+.pro-row .sc-closed { font-size: 14px; }
+.sc-go { position: absolute; bottom: 14px; inset-inline-end: 12px; margin: 0; padding: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; line-height: 1; box-shadow: 0 4px 10px rgba(255, 106, 19, .35); }
+.sc-kind { font-size: 11px; padding: 3px 9px; top: 8px; inset-inline-start: 8px; }
 .ens-modal { grid-template-columns: minmax(0, 1fr); }
 .ens-box { min-width: 0; }
 .ens-cats { max-width: calc(100% + 32px); }
 .sc-body small.sc-meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sc-meta .sc-dot { margin-inline-end: 5px; vertical-align: 1px; }
+.sc-kind { position: absolute; top: 10px; inset-inline-start: 10px; z-index: 2; padding: 4px 10px; border-radius: 999px; background: rgba(15, 23, 42, .72); color: #fff; font-size: 12px; font-weight: 700; font-style: normal; backdrop-filter: blur(4px); }
 /* Un seul champ libre : « Un mot pour le livreur ». La remarque d'une adresse enregistrée (Mes adresses) reste envoyée */
 form .addr-note { display: none !important; }
 /* Proposition de course : la carte du trajet en haut, « 4 arrêts · 2,3 km », livraisons multiples repliées */

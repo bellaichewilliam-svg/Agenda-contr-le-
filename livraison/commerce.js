@@ -661,18 +661,6 @@ function renderSpace() {
 
 // --- Ma fiche pour les clients : WhatsApp, présentation, horaires (comme le patron, en libre-service) ---------
 const fiche = { shown: false, busy: false };
-const DAYS_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], DAYS_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
-function ficheDay(i, h) {
-  const r = String(h || "").split(",").filter(Boolean).map(x => x.split("-"));
-  const [a, b] = r[0] || ["", ""], [c, d] = r[1] || ["", ""];
-  return `<div class="fh-day${r.length ? " open" : ""}" data-day="${i}">
-    <b>${UI.esc((I18N.lang === "he" ? DAYS_HE : DAYS_FR)[i])}</b>
-    <label class="fh-switch"><input type="checkbox" data-fh-open${r.length ? " checked" : ""} /><i></i><small>${UI.esc(t(r.length ? "fiOpen" : "fiClosed"))}</small></label>
-    <span class="fh-times"><input type="time" step="900" data-fh="a" value="${UI.esc(a || "08:30")}" />–<input type="time" step="900" data-fh="b" value="${UI.esc(b || "19:00")}" />
-      <span class="fh-2${c ? "" : " hidden"}">· <input type="time" step="900" data-fh="c" value="${UI.esc(c || "")}" />–<input type="time" step="900" data-fh="d" value="${UI.esc(d || "")}" /></span>
-      <button type="button" class="fh-add${c ? " hidden" : ""}" data-fh-add aria-label="+">＋ ${UI.esc(t("fiBreak"))}</button></span>
-  </div>`;
-}
 function renderFiche(force) {
   const box = $("#spFiche"), shop = state.dash.shop;
   if (fiche.shown && !force) return;
@@ -682,32 +670,15 @@ function renderFiche(force) {
     <p class="muted small" style="margin:4px 0 12px">${UI.esc(t("fiSub"))}</p>
     <label class="f"><span>${UI.esc(t("fiWa"))}</span><input id="fiWa" inputmode="tel" dir="ltr" placeholder="053-373-3785" value="${UI.esc(shop.whatsapp ? "0" + String(shop.whatsapp).replace(/^972/, "") : "")}" /></label>
     <label class="f" style="margin-top:10px"><span>${UI.esc(t("fiAbout"))}</span><textarea id="fiAbout" rows="3" maxlength="600" placeholder="${UI.esc(t("fiAboutPh"))}">${UI.esc(shop.about || "")}</textarea></label>
-    <div class="fh"><span class="fh-title">${UI.esc(t("fiHours"))}</span>${[0, 1, 2, 3, 4, 5, 6].map(i => ficheDay(i, (hours.find(x => Number(x.d) === i) || {}).h)).join("")}</div>
+    ${UI.hoursEditor(hours)}
     <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-fi-save${fiche.busy ? " disabled" : ""}>${UI.esc(t("fiSave"))}</button><span class="small" id="fiMsg"></span></div>`;
 }
-$("#spFiche").addEventListener("change", e => {
-  const c = e.target.closest("[data-fh-open]");
-  if (!c) return;
-  const day = c.closest(".fh-day");
-  day.classList.toggle("open", c.checked);
-  day.querySelector(".fh-switch small").textContent = t(c.checked ? "fiOpen" : "fiClosed");
-});
+UI.bindHours($("#spFiche"));
 $("#spFiche").addEventListener("click", async e => {
-  const add = e.target.closest("[data-fh-add]");
-  if (add) { const day = add.closest(".fh-day"); day.querySelector(".fh-2").classList.remove("hidden"); add.classList.add("hidden");
-    // Une coupure à midi : le matin finit à 13:30, l'après-midi reprend à 15:30
-    if (day.querySelector('[data-fh="b"]').value > "13:30") day.querySelector('[data-fh="b"]').value = "13:30";
-    day.querySelector('[data-fh="c"]').value = "15:30"; day.querySelector('[data-fh="d"]').value = "19:00"; return; }
   const b = e.target.closest("[data-fi-save]");
   if (!b) return;
   const msg = $("#fiMsg");
-  const hours = [...$("#spFiche").querySelectorAll(".fh-day")].map(day => {
-    const v = k => day.querySelector(`[data-fh="${k}"]`).value;
-    const on = day.querySelector("[data-fh-open]").checked, ranges = [];
-    if (on && v("a") && v("b")) ranges.push(v("a") + "-" + v("b"));
-    if (on && !day.querySelector(".fh-2").classList.contains("hidden") && v("c") && v("d")) ranges.push(v("c") + "-" + v("d"));
-    return { d: Number(day.dataset.day), h: ranges.join(",") };
-  });
+  const hours = UI.readHours($("#spFiche"));
   const wa = $("#fiWa").value.replace(/\D/g, "");
   if (wa && !/^(0\d{8,9}|972\d{8,9})$/.test(wa)) { msg.textContent = t("fiWaBad"); $("#fiWa").focus(); return; }
   fiche.busy = true; b.disabled = true;
@@ -726,11 +697,34 @@ function renderPayMeans(force) {
   if (payMeans.shown && !force) return;
   payMeans.shown = true;
   box.innerHTML = `<h3>${UI.esc(t("spPayTitle"))}</h3><p class="muted small" style="margin:4px 0 10px">${UI.esc(t("spPaySub"))}</p>
-    <label class="f"><span>${UI.esc(t("spPayLink"))}</span><input id="pmLink" type="url" inputmode="url" dir="ltr" placeholder="https://" value="${UI.esc(shop.pay_link || "")}" /></label>
-    <label class="f" style="margin-top:10px"><span>${UI.esc(t("spPayBit"))}</span><input id="pmBit" inputmode="tel" dir="ltr" placeholder="053-373-3785" value="${UI.esc(shop.pay_bit || "")}" /></label>
+    <div class="pm-step"><b>${UI.esc(t("spPayStep1"))}</b>
+      <input id="pmBit" inputmode="tel" dir="ltr" placeholder="053-373-3785" aria-label="${UI.esc(t("spPayBit"))}" value="${UI.esc(shop.pay_bit || "")}" /></div>
+    <div class="pm-step"><b>${UI.esc(t("spPayStep2"))}</b>
+      <small class="muted">${UI.esc(t("spPayHow"))}</small>
+      <div class="pm-link"><input id="pmLink" type="url" inputmode="url" dir="ltr" placeholder="https://" aria-label="${UI.esc(t("spPayLink"))}" value="${UI.esc(shop.pay_link || "")}" />
+        <button type="button" class="btn btn-sm" data-pm-paste>${UI.esc(t("spPayPaste"))}</button></div>
+      <button type="button" class="btn btn-sm pm-test${shop.pay_link ? "" : " hidden"}" data-pm-test>${UI.esc(t("spPayTest"))}</button></div>
+    <p class="small muted">${UI.esc(t("spPayCash"))}</p>
+    <div class="pm-preview"><small>${UI.esc(t("spPayPreview"))}</small><div id="pmPreview"></div></div>
     <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-pm-save>${UI.esc(t("spPaySave"))}</button><span class="small" id="pmMsg"></span></div>`;
+  payPreview();
 }
+// Aperçu en direct : les mêmes boutons que ceux du client
+function payPreview() {
+  const link = /^https:\/\/\S{4,250}$/.test($("#pmLink").value.trim()) ? $("#pmLink").value.trim() : "", bit = $("#pmBit").value.replace(/\D/g, "");
+  $("#pmPreview").innerHTML = link || bit.length >= 9 ? UI.goodsPay({ goods_pay: "a_payer", items_total: 85, token: "apercu" }, { name: state.dash.shop.name, link, bit })
+    : `<p class="small muted">${UI.esc(t("spPayNothing"))}</p>`;
+  $("#spPayMeans .pm-test").classList.toggle("hidden", !link);
+}
+$("#spPayMeans").addEventListener("input", () => payPreview());
 $("#spPayMeans").addEventListener("click", async e => {
+  if (e.target.closest("#pmPreview")) { e.preventDefault(); e.stopPropagation(); return; }   // l'aperçu ne paie rien
+  if (e.target.closest("[data-pm-paste]")) {
+    const v = navigator.clipboard && navigator.clipboard.readText ? await navigator.clipboard.readText().catch(() => "") : "";
+    if (v) { $("#pmLink").value = v.trim(); payPreview(); } else $("#pmLink").focus();
+    return;
+  }
+  if (e.target.closest("[data-pm-test]")) { window.open($("#pmLink").value.trim(), "_blank", "noopener"); return; }
   const b = e.target.closest("[data-pm-save]");
   if (!b) return;
   const link = $("#pmLink").value.trim(), bit = $("#pmBit").value.replace(/\D/g, ""), msg = $("#pmMsg");
