@@ -47,7 +47,7 @@ const seenPool = new Set();
 function renderWelcome() {
   $("#perks").innerHTML = [
     "Vous choisissez vos courses, quand vous voulez.",
-    "Vos clients vous paient directement (Bit ou PayBox sur votre numéro).",
+    "Vos clients vous paient directement : espèces, ou Bit / PayBox sur votre numéro.",
     `Commission de ${UI.commissionText()} sur les courses que l'appli vous apporte, réglée une fois par semaine.`,
     ...(refOn() ? [`Faites votre marketing : sur les courses des commerces que vous amenez, seulement ${UI.networkText()}, et ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous quand un autre livreur les fait.`] : []),
     ...(refOn() && CONFIG.pro.referrerPercent ? [`${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`] : []),
@@ -2065,7 +2065,7 @@ function renderSettings(view) {
 function renderHelp(view) {
   const faq = [
     ["Comment je reçois des courses ?", "Passez en ligne : glissez le bouton « HOP! » jusqu’au bout. Les courses arrivent d’abord au livreur en ligne le plus proche du départ, puis aux autres. Une fenêtre s'ouvre avec le prix, votre gain et les kilomètres."],
-    ["Comment je suis payé ?", `Directement : le client vous paie la course par Bit ou PayBox sur votre numéro (avant « Livré », touchez « 💳 Paiement reçu »), et le commerce HOP! Pro vous paie sa part en vous remettant la commande. HOP n'encaisse rien pour vous : sa commission (${UI.commissionText()}${refOn() ? `, ou ${UI.networkText()} sur vos commerces` : ""}) est déduite de votre crédit HOP, que vous rechargez à l'avance par Bit (« Finances »).${refOn() ? " Les bonus et parts d'abonnement y sont ajoutés." : ""}`],
+    ["Comment je suis payé ?", `Directement : le client vous paie la course en espèces (le montant exact, indiqué sur la course) ou par Bit / PayBox sur votre numéro (avant « Livré », touchez « 💳 Paiement reçu »), et le commerce HOP! Pro vous paie sa part en vous remettant la commande. HOP n'encaisse rien pour vous : sa commission (${UI.commissionText()}${refOn() ? `, ou ${UI.networkText()} sur vos commerces` : ""}) est déduite de votre crédit HOP, que vous rechargez à l'avance par Bit (« Finances »).${refOn() ? " Les bonus et parts d'abonnement y sont ajoutés." : ""}`],
     ["Pourquoi je ne peux pas valider « Livré » ?", `Il faut être à moins de ${deliverRadius()} m de l'adresse de livraison. Pour « déposer devant la porte », envoyez d'abord la photo du colis dans la conversation de la course.`],
     ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre crédit HOP ne couvre plus la commission d'une course. Le bandeau vous dit quoi faire : rechargez dans « Finances ». Un souci ? HOP peut vous débloquer.`],
     ["Je peux mettre le téléphone dans la poche ?", `Oui : vous restez en ligne écran éteint, et chaque nouvelle course fait sonner le téléphone (activez « Alertes sur le téléphone » dans les Réglages). Vous passez hors ligne seulement si ${Number(settings.miss_streak_max || 2)} courses sonnent d'affilée sans que vous répondiez (ni « Accepter » ni « Refuser »), ou si HOP! n'a plus de nouvelles de vous depuis ${hrs(Number(settings.idle_off_min || 180))}.`],
