@@ -26,6 +26,7 @@ const TERMS = [
 let me = null;
 const TIP_FR = { promis: "promis, en attente du Bit du client", recu: "reçu par HOP, versé avec votre solde", verse: "versé ✓" };
 let orders = [];
+const refOn = () => !!CONFIG.partners.courierProgram;   // programme « Gagner plus » ouvert aux livreurs
 let settings = { referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes };
 let refs = { shops: [], orders: [], board: [] };
 let msgs = { messages: [], replies: [] };
@@ -44,8 +45,8 @@ function renderWelcome() {
     "Vous choisissez vos courses, quand vous voulez.",
     "Vos clients vous paient directement (Bit ou PayBox sur votre numéro).",
     `Commission de ${UI.commissionText()} sur les courses que l'appli vous apporte, réglée une fois par semaine.`,
-    `Faites votre marketing : sur les courses des commerces que vous amenez, seulement ${UI.networkText()}, et ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous quand un autre livreur les fait.`,
-    ...(CONFIG.pro.referrerPercent ? [`${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`] : []),
+    ...(refOn() ? [`Faites votre marketing : sur les courses des commerces que vous amenez, seulement ${UI.networkText()}, et ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous quand un autre livreur les fait.`] : []),
+    ...(refOn() && CONFIG.pro.referrerPercent ? [`${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`] : []),
     "Les pourboires sont 100 % pour vous, et les codes promo sont payés par HOP, pas par vous.",
     "Pas d'abonnement, pas de frais d'inscription."
   ].map(x => `<li>✅ ${UI.esc(x)}</li>`).join("");
@@ -872,7 +873,7 @@ function render() {
     renderInbox(view);
   } else if (tab === "zones") {
     renderZones(view);
-  } else if (tab === "ref") {
+  } else if (tab === "ref" && refOn()) {
     renderRef(view);
   } else {
     const exp = d => d ? `${new Date(d) < new Date() ? "⛔ expiré le" : "✅ valable jusqu'au"} ${new Date(d).toLocaleDateString("fr-FR")}` : "— (envoyez-le à HOP)";
@@ -891,6 +892,7 @@ function render() {
 async function onViewClick(e) {
   const el = e.target.closest("button");
   if (!el) return;
+  if (el.dataset.install) return UI.installApp("HOP! Livreur", "livreur/").then(ok => { if (ok) render(); });
   if (await onRefundClick(e)) return;
   if (el.dataset.paymissing) {
     if (!confirm("Rien reçu sur votre Bit / PayBox ? Le client sera prévenu de vérifier son paiement.")) return;
@@ -1639,6 +1641,8 @@ function applyRiderSettings() {
 const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Zones et demande", week: "Finances", stats: "Statistiques",
   ref: "Gagner plus", rules: "Engagements et assurance", settings: "Réglages", help: "Centre d'aide", inbox: "Messages de HOP!" };
 function openPage(t) {
+  if (t === "ref" && !refOn()) t = "home";
+  if (t === "home") return closePage();
   tab = t;
   $("#pageTitle").textContent = PAGE_TITLES[t] || "";
   $("#page").classList.remove("hidden");
@@ -1676,7 +1680,8 @@ function renderHome() {
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-line" data-tab="zones">⏰ Pas de course · pointe ${UI.esc(CONFIG.peakHours.fr)}<span class="go">›</span></button>`) : ""}
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-line rd-alert" data-notif="1" title="Pour « En service » et les nouvelles courses, même appli fermée">${Notification.permission === "denied" ? "🔕 Alertes bloquées : touchez pour voir comment" : "🔔 Activer les alertes"}<span class="go">›</span></button>` : ""}
-    ${!isOnline() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>${me.network_perks ? `+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons` : "Leurs courses vous sont proposées en premier"}</small></span><span class="go">›</span></button>` : ""}`;
+    ${!isOnline() && !UI.inOwnApp() ? `<button type="button" class="rd-card" data-install="1"><span>📲 Installer HOP! Livreur<small>Son icône « LIVREUR » à part, et les courses qui sonnent appli fermée</small></span><span class="go">›</span></button>` : ""}
+    ${!isOnline() && refOn() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>${me.network_perks ? `+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons` : "Leurs courses vous sont proposées en premier"}</small></span><span class="go">›</span></button>` : ""}`;
   [...$("#sheetBody").querySelectorAll(".rd-card")].forEach((c, i) => c.classList.toggle("rd-more", i >= 2));
   $("#dutyText").classList.toggle("rd-more", !/⚠️/.test($("#dutyText").textContent));
   if (sheetState() === "expanded") renderToday();
@@ -2017,7 +2022,7 @@ function renderStats(view) {
     </div>
     <div class="card"><h3>Vos gains des 6 dernières semaines</h3>
       <div class="stat-bars">${weeks.map(w => `<div><b>${w.g ? UI.money(w.g) : ""}</b><i style="height:${Math.round(110 * w.g / top) + 4}px"></i><span>${UI.esc(UI.fmtKey(w.s).replace(/\s\d{4}$/, ""))}</span></div>`).join("")}</div>
-      <p class="muted small">Gains = courses − commission HOP + pourboires reçus (hors bonus réseau et abonnements Pro).</p></div>
+      <p class="muted small">Gains = courses − commission HOP + pourboires reçus${refOn() ? " (hors bonus réseau et abonnements Pro)" : ""}.</p></div>
     <div class="card" style="margin-top:14px"><table class="prices">
       <tr><td>Meilleur jour</td><td>${best ? UI.esc(best[0]) + " (" + best[1] + " course(s))" : "—"}</td></tr>
       <tr><td>Distance parcourue (estimée)</td><td>≈ ${Math.round(km)} km</td></tr>
@@ -2035,6 +2040,8 @@ function renderSettings(view) {
   const opt = (k, v, label) => `<option value="${v}" ${riderSet[k] === v ? "selected" : ""}>${label}</option>`;
   const notif = window.Notification ? (Notification.permission === "granted" ? "🔔 Activées" : "Activer") : "Indisponible";
   view.innerHTML = `<div class="card set-list">
+      ${UI.inOwnApp() ? "" : `<h3>Application</h3>
+      <div class="set-row"><span>HOP! Livreur sur l'écran d'accueil<small class="muted" style="display:block">Son icône « LIVREUR » à part, même si l'appli client HOP! est déjà installée</small></span><button type="button" class="btn btn-sm btn-primary" data-install="1">📲 Installer</button></div>`}
       <h3>Navigation</h3>
       <div class="set-row"><span>Application de navigation</span><select data-set="nav">${opt("nav", "waze", "Waze")}${opt("nav", "maps", "Google Maps")}</select></div>
       <div class="set-row"><span>Mode de déplacement</span><select data-set="mode">${opt("mode", "scooter", "Scooter / moto")}${opt("mode", "car", "Voiture")}${opt("mode", "bike", "Vélo")}${opt("mode", "walk", "À pied")}</select></div>
@@ -2054,13 +2061,13 @@ function renderSettings(view) {
 function renderHelp(view) {
   const faq = [
     ["Comment je reçois des courses ?", "Passez en ligne : glissez le bouton « HOP! » jusqu’au bout. Les courses arrivent d’abord au livreur en ligne le plus proche du départ, puis aux autres. Une fenêtre s'ouvre avec le prix, votre gain et les kilomètres."],
-    ["Comment je suis payé ?", `Directement : le client vous paie la course par Bit ou PayBox sur votre numéro (avant « Livré », touchez « 💳 Paiement reçu »), et le commerce HOP! Pro vous paie sa part en vous remettant la commande. HOP n'encaisse rien pour vous : sa commission (${UI.commissionText()}, ou ${UI.networkText()} sur vos commerces) est déduite de votre crédit HOP, que vous rechargez à l'avance par Bit (« Finances »). Les bonus et parts d'abonnement y sont ajoutés.`],
+    ["Comment je suis payé ?", `Directement : le client vous paie la course par Bit ou PayBox sur votre numéro (avant « Livré », touchez « 💳 Paiement reçu »), et le commerce HOP! Pro vous paie sa part en vous remettant la commande. HOP n'encaisse rien pour vous : sa commission (${UI.commissionText()}${refOn() ? `, ou ${UI.networkText()} sur vos commerces` : ""}) est déduite de votre crédit HOP, que vous rechargez à l'avance par Bit (« Finances »).${refOn() ? " Les bonus et parts d'abonnement y sont ajoutés." : ""}`],
     ["Pourquoi je ne peux pas valider « Livré » ?", `Il faut être à moins de ${deliverRadius()} m de l'adresse de livraison. Pour « déposer devant la porte », envoyez d'abord la photo du colis dans la conversation de la course.`],
     ["Pourquoi je ne reçois plus de courses ?", `Soit une course récupérée n'est pas encore validée, soit votre crédit HOP ne couvre plus la commission d'une course. Le bandeau vous dit quoi faire : rechargez dans « Finances ». Un souci ? HOP peut vous débloquer.`],
     ["Le client est absent, l'adresse est introuvable…", "Touchez « ⚠️ Un souci » sur la course : HOP et le client sont prévenus tout de suite, et vous continuez dans la conversation."],
-    ["Comment gagner plus ?", me.network_perks
+    ...(!refOn() ? [] : [["Comment gagner plus ?", me.network_perks
       ? `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier, vous ne payez que ${UI.networkText()} de commission dessus, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait${CONFIG.pro.referrerPercent ? `, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro pendant ${CONFIG.pro.referrerMonths} mois` : ""}.`
-      : `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier. Les livreurs les mieux notés peuvent recevoir de HOP les avantages réseau : ${UI.networkText()} de commission seulement sur ces courses, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait${CONFIG.pro.referrerPercent ? `, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro` : ""}.`],
+      : `Amenez des commerces avec votre code (menu « Gagner plus ») : vous voyez leurs courses en premier. Les livreurs les mieux notés peuvent recevoir de HOP les avantages réseau : ${UI.networkText()} de commission seulement sur ces courses, +${UI.money(settings.referral_bonus)} quand un autre livreur les fait${CONFIG.pro.referrerPercent ? `, et ${CONFIG.pro.referrerPercent} % de leur abonnement HOP! Pro` : ""}.`]]),
     ["Et les pourboires ?", "Après la livraison, le client peut laisser un pourboire : il le paie à HOP par Bit, et HOP vous le reverse en entier avec votre solde de la semaine."],
     ["Le GPS se coupe ?", "Gardez l'application ouverte pendant le service : les téléphones coupent la position quand la page est fermée."]
   ];
@@ -2178,6 +2185,7 @@ document.addEventListener("visibilitychange", () => {
   UI.dutyNotice(true, "Vous recevez les courses. Touchez ici pour revenir dans HOP! (Waze reste ouvert). Sans course, revenez avant 15 min.");
 });
 $("#waitRefresh").addEventListener("click", route);
+$('#drawerNav [data-tab="ref"]').classList.toggle("hidden", !refOn());
 $("#drawerNav").addEventListener("click", e => {
   const b = e.target.closest("[data-tab]");
   if (b) { closeDrawer(); openPage(b.dataset.tab); }
