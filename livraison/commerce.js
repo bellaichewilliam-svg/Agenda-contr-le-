@@ -697,11 +697,34 @@ function renderPayMeans(force) {
   if (payMeans.shown && !force) return;
   payMeans.shown = true;
   box.innerHTML = `<h3>${UI.esc(t("spPayTitle"))}</h3><p class="muted small" style="margin:4px 0 10px">${UI.esc(t("spPaySub"))}</p>
-    <label class="f"><span>${UI.esc(t("spPayLink"))}</span><input id="pmLink" type="url" inputmode="url" dir="ltr" placeholder="https://" value="${UI.esc(shop.pay_link || "")}" /></label>
-    <label class="f" style="margin-top:10px"><span>${UI.esc(t("spPayBit"))}</span><input id="pmBit" inputmode="tel" dir="ltr" placeholder="053-373-3785" value="${UI.esc(shop.pay_bit || "")}" /></label>
+    <div class="pm-step"><b>${UI.esc(t("spPayStep1"))}</b>
+      <input id="pmBit" inputmode="tel" dir="ltr" placeholder="053-373-3785" aria-label="${UI.esc(t("spPayBit"))}" value="${UI.esc(shop.pay_bit || "")}" /></div>
+    <div class="pm-step"><b>${UI.esc(t("spPayStep2"))}</b>
+      <small class="muted">${UI.esc(t("spPayHow"))}</small>
+      <div class="pm-link"><input id="pmLink" type="url" inputmode="url" dir="ltr" placeholder="https://" aria-label="${UI.esc(t("spPayLink"))}" value="${UI.esc(shop.pay_link || "")}" />
+        <button type="button" class="btn btn-sm" data-pm-paste>${UI.esc(t("spPayPaste"))}</button></div>
+      <button type="button" class="btn btn-sm pm-test${shop.pay_link ? "" : " hidden"}" data-pm-test>${UI.esc(t("spPayTest"))}</button></div>
+    <p class="small muted">${UI.esc(t("spPayCash"))}</p>
+    <div class="pm-preview"><small>${UI.esc(t("spPayPreview"))}</small><div id="pmPreview"></div></div>
     <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-pm-save>${UI.esc(t("spPaySave"))}</button><span class="small" id="pmMsg"></span></div>`;
+  payPreview();
 }
+// Aperçu en direct : les mêmes boutons que ceux du client
+function payPreview() {
+  const link = /^https:\/\/\S{4,250}$/.test($("#pmLink").value.trim()) ? $("#pmLink").value.trim() : "", bit = $("#pmBit").value.replace(/\D/g, "");
+  $("#pmPreview").innerHTML = link || bit.length >= 9 ? UI.goodsPay({ goods_pay: "a_payer", items_total: 85, token: "apercu" }, { name: state.dash.shop.name, link, bit })
+    : `<p class="small muted">${UI.esc(t("spPayNothing"))}</p>`;
+  $("#spPayMeans .pm-test").classList.toggle("hidden", !link);
+}
+$("#spPayMeans").addEventListener("input", () => payPreview());
 $("#spPayMeans").addEventListener("click", async e => {
+  if (e.target.closest("#pmPreview")) { e.preventDefault(); e.stopPropagation(); return; }   // l'aperçu ne paie rien
+  if (e.target.closest("[data-pm-paste]")) {
+    const v = navigator.clipboard && navigator.clipboard.readText ? await navigator.clipboard.readText().catch(() => "") : "";
+    if (v) { $("#pmLink").value = v.trim(); payPreview(); } else $("#pmLink").focus();
+    return;
+  }
+  if (e.target.closest("[data-pm-test]")) { window.open($("#pmLink").value.trim(), "_blank", "noopener"); return; }
   const b = e.target.closest("[data-pm-save]");
   if (!b) return;
   const link = $("#pmLink").value.trim(), bit = $("#pmBit").value.replace(/\D/g, ""), msg = $("#pmMsg");

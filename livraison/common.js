@@ -523,6 +523,7 @@ function goodsPay(o, sp) {
     <small>${esc(t("gpWhy", { name }))}</small>
     <div class="bit-btns">
       ${sp.link ? `<a class="btn btn-primary gp-link" href="${esc(sp.link)}" target="_blank" rel="noopener">💳 ${esc(t("gpPayLink", { name }))}</a>` : ""}
+      ${sp.link && Number(o.items_total) > 0 ? `<button type="button" class="btn btn-sm" data-bit-copy="${esc(String(Number(o.items_total)))}">${esc(t("gpCopyAmount", { amount }))}</button>` : ""}
       ${bit ? `${ANDROID ? `<a class="btn btn-sm btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}<button type="button" class="btn btn-sm" data-bit-copy="${esc(bit)}">${esc(t("gpCopyBit", { phone: bit }))}</button>` : ""}
       <button type="button" class="btn btn-sm${sp.link ? "" : " btn-primary"}" data-goods-paid="${esc(o.token)}" data-name="${esc(name)}" data-total="${esc(amount)}">${esc(t("gpPaid", { name }))}</button>
     </div></div>`;

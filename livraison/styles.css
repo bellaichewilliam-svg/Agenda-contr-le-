@@ -1790,6 +1790,14 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .dir-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 
 /* Espace commerce : fiche en libre-service (horaires avec interrupteurs) et avis « c'est prêt » */
+/* Espace commerce : recevoir les paiements (2 étapes + aperçu) */
+.pm-step { display: grid; gap: 6px; margin: 10px 0; padding: 12px; border-radius: 14px; background: var(--bg-2); }
+.pm-step input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--ink); font: inherit; }
+.pm-link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: center; }
+.pm-test { justify-self: start; }
+.pm-preview { margin: 8px 0; padding: 10px; border: 1.5px dashed var(--border); border-radius: 14px; }
+.pm-preview > small { display: block; margin-bottom: 6px; color: var(--muted); }
+.pm-preview .goods-pay { pointer-events: none; }
 .fh { display: grid; gap: 6px; margin-top: 12px; }
 .fh-title { font-weight: 700; font-size: 14px; }
 .fh-presets { display: flex; flex-wrap: wrap; gap: 6px; }
