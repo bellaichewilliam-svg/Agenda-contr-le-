@@ -5652,8 +5652,11 @@ create table if not exists public.order_offers (
   primary key (order_id, courier_id)
 );
 alter table public.order_offers enable row level security;
-drop policy if exists "propositions patron" on public.order_offers;
-create policy "propositions patron" on public.order_offers for select to authenticated using (public.is_admin());
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'order_offers' and policyname = 'propositions patron') then
+    create policy "propositions patron" on public.order_offers for select to authenticated using (public.is_admin());
+  end if;
+end $$;
 
 -- Ce livreur voit-il la course maintenant ? (même règle que can_see_new, pour un livreur donné)
 do $$
@@ -5724,8 +5727,6 @@ begin
       end if;
     end if;
   end loop;
-  -- Les vieilles lignes ne servent plus
-  delete from order_offers where first_at < now() - interval '7 days';
   return n;
 end;
 $$;
