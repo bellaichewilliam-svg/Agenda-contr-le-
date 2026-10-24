@@ -1685,10 +1685,11 @@ body.asking { overflow: hidden; }
 .shop-fiche { margin-top: 6px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); }
 .shop-fiche summary { cursor: pointer; font-weight: 700; }
 .shop-fiche .f { margin-top: 10px; }
-.fiche-hours { display: grid; gap: 6px; margin: 10px 0; }
+.fiche-hours, .kv .fiche-hours { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; margin: 10px 0; }
+.kv details.shop-fiche { min-width: 0; }
 .fiche-hours > span { font-size: 13px; color: var(--muted); }
-.fiche-hours label { display: grid; grid-template-columns: 90px 1fr; align-items: center; gap: 8px; }
-.fiche-hours input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: inherit; font: inherit; }
+.fiche-hours label { display: grid; grid-template-columns: 90px minmax(0, 1fr); align-items: center; gap: 8px; }
+.fiche-hours input { width: 100%; min-width: 0; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: inherit; font: inherit; }
 
 /* Rien ne dépasse à droite d'un cadre du formulaire, même avec une longue adresse ou un petit écran */
 .fields > *, .saved-addrs, .addr-tools, .kind-chips { min-width: 0; max-width: 100%; }

@@ -714,7 +714,7 @@ function renderWeek(view) {
 }
 
 // --- Commerces partenaires --------------------------------------------------------------
-const SHOP_KIND = { restaurant: "🍔 Restaurant", boutique: "🛍️ Boutique", pharmacie: "💊 Pharmacie / beauté", bureau: "💼 Bureau", autre: "🏪 Commerce" };
+const SHOP_KIND = { restaurant: "🍔 Restaurant", pressing: "👔 Pressing", boutique: "🛍️ Boutique", pharmacie: "💊 Pharmacie / beauté", bureau: "💼 Bureau / services", autre: "🏪 Autre" };
 
 // Message au commerce avec ses deux liens, dans sa langue
 function shopWelcome(x) {
@@ -827,9 +827,9 @@ function renderShops(view) {
           <span class="order-price">${done.length} course(s)</span>
         </div>
         <div class="kv">
-          <div><span>🏷️</span><span>${UI.esc(SHOP_KIND[x.kind] || SHOP_KIND.autre)} · ${UI.esc(x.address || "")}${x.city ? ", " + UI.esc(UI.cityFr(x.city)) : ""}</span></div>
+          <div><span>🏷️</span><span><select class="dir-kind" data-sact="kind" aria-label="Catégorie">${Object.entries(SHOP_KIND).map(([v, l]) => `<option value="${v}"${(SHOP_KIND[x.kind] ? x.kind : "autre") === v ? " selected" : ""}>${l}</option>`).join("")}</select> · ${UI.esc(x.address || "")}${x.city ? ", " + UI.esc(UI.cityFr(x.city)) : ""}</span></div>
           <div><span>👤</span><span>${tel(x.contact_name, x.phone)}${x.email ? " · " + UI.esc(x.email) : ""} · ${x.lang === "fr" ? "🇫🇷" : "🇮🇱"}</span></div>
-          <div><span>🤝</span><span>Parrain : <select data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name + (c.city && x.city && c.city !== x.city ? " · autre ville (" + UI.cityFr(c.city) + ")" : ""))}</option>`).join("")}</select>
+          <div><span>🤝</span><span>Parrain : <select class="dir-kind" data-sact="referrer"><option value="">Aucun</option>${couriers.map(c => `<option value="${UI.esc(c.id)}" ${c.id === x.referrer_id ? "selected" : ""}>${UI.esc(c.role === "admin" ? "Moi (pas de bonus)" : c.name + (c.city && x.city && c.city !== x.city ? " · autre ville (" + UI.cityFr(c.city) + ")" : ""))}</option>`).join("")}</select>
             · bonus générés ${UI.money(sum(done, o => Number(o.referral_bonus || 0)))}</span></div>
           ${CONFIG.partners.carnet.offered || Number(x.credits || 0) > 0 ? `<div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
             ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>` : ""}
@@ -1461,9 +1461,9 @@ async function onViewChange(e) {
     } else if (o && c) assignTo(o, c);
   } else if (t.dataset.ract === "note") {
     Store.updateRequest(t.closest("[data-req]").dataset.req, { admin_note: t.value.trim() || null }).catch(() => alert("Note non enregistrée."));
-  } else if (t.dataset.sact === "note" || t.dataset.sact === "referrer") {
+  } else if (t.dataset.sact === "note" || t.dataset.sact === "referrer" || t.dataset.sact === "kind") {
     const id = t.closest("[data-shop]").dataset.shop;
-    const changes = t.dataset.sact === "note" ? { admin_note: t.value.trim() || null } : { referrer_id: t.value || null };
+    const changes = t.dataset.sact === "note" ? { admin_note: t.value.trim() || null } : t.dataset.sact === "kind" ? { kind: t.value } : { referrer_id: t.value || null };
     Store.updateShop(id, changes).then(load, () => alert("Non enregistré, vérifiez la connexion."));
   } else if (t.dataset.cact === "note") {
     const id = t.closest("[data-courier]").dataset.courier;
