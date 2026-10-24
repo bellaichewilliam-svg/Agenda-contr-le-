@@ -95,10 +95,23 @@ function fromOsm(e, lang) {
   };
 }
 
+// Les commerces ajoutés à l'annuaire par le patron, avec leur catégorie (une fois par visite)
+let knownP = null;
+async function knownFor(cat, at) {
+  if (!knownP) knownP = Promise.resolve(window.Store && Store.placesMap ? Store.placesMap() : []).catch(() => []);
+  return ((await knownP) || []).filter(x => x.kind === cat.id && x.lat != null && Places.km(at, x) * 1000 <= cat.r * 2)
+    .map(x => { const m = String(x.address || "").match(/^(.*?)\s+(\d+\S*)$/);
+      return { name: x.name, street: m ? m[1] : (x.address || ""), number: m ? m[2] : "", city: x.city || "", lat: Number(x.lat), lon: Number(x.lon), icon: cat.icon, known: true }; });
+}
+const nnKey = v => String(v || "").toLowerCase().replace(/[^a-z0-9\u0590-\u05ff]/g, "");
+const sameShop = (a, b) => Places.km(a, b) < 0.15 && (nnKey(a.name).includes(nnKey(b.name)) || nnKey(b.name).includes(nnKey(a.name)));
+const withKnown = (items, known) => items.concat(known.filter(k => !items.some(x => sameShop(x, k))));
+
 // Enseignes d'une catégorie autour d'un point, de la plus proche à la plus loin
 async function list(catId, at, lang, onMore) {
   const cat = CATS.find(c => c.id === catId);
   if (!cat) return [];
+  const known = cat.id === "hop" ? [] : await knownFor(cat, at);
   let items;
   if (cat.id === "hop") {
     items = ((await Store.shopsDirectory()) || []).filter(s => s.lat != null).map(s => ({
@@ -116,12 +129,13 @@ async function list(catId, at, lang, onMore) {
     const partners = (shops || []).filter(x => x.lat != null && (rx.test(x.name + " " + tagOf(x.code)) || (cat.id === "pressing" && x.kind === "pressing"))).map(x => ({
       name: x.name, street: x.address || "", number: "", city: x.city || "", lat: Number(x.lat), lon: Number(x.lon),
       partner: true, code: x.code, icon: cat.id === "pressing" ? "👔" : "⭐", french: true }));
-    const fromDir = partners.concat(dir.map(e => {
+    const fromDir0 = partners.concat(dir.map(e => {
       const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)/);
       return { name: Places.dirName(e, lang), street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
         lat: e.lat, lon: e.lon, icon: cat.id === "pressing" ? "👔" : FRENCH.test(dirText(e)) ? "🥖" : /קייטרינג|traiteur|מעדני/i.test(dirText(e)) ? "🍱" : "🥐",
         french: cat.id === "breakfast" && FRENCH.test(dirText(e)) };
     }).filter(x => !partners.some(d => Places.km(d, x) < 0.15)));
+    const fromDir = withKnown(fromDir0, known);
     const key = `livraison.ens.v1.${cat.id}.${lang}.${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
     const nn = v => String(v || "").toLowerCase().replace(/[^a-z0-9\u0590-\u05ff]/g, "");
     // Les boulangeries françaises en tête (à distance égale), puis les plus proches
@@ -142,12 +156,14 @@ async function list(catId, at, lang, onMore) {
       return { name: Places.dirName(e, lang), street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
         lat: e.lat, lon: e.lon, icon: Places.foodIcon(e.n, e.k) };
     });
+    items = withKnown(items, known);
   } else {
     const key = `livraison.ens.v1.${cat.id}.${lang}.${at.lat.toFixed(2)},${at.lon.toFixed(2)}`;
     items = readCache(key);
     if (!items) {
       // Photon et Overpass en même temps : on garde la première réponse non vide (quelques secondes au plus)
-      const found = await firstFull([photonNear(cat, at, lang).catch(() => []), overpassNear(cat, at, lang)]);
+      // (rien sur la carte, mais des commerces de l'annuaire HOP! : on montre ceux-là)
+      const found = await firstFull([photonNear(cat, at, lang).catch(() => []), overpassNear(cat, at, lang)]).catch(e => { if (known.length) return []; throw e; });
       const seen = new Set();
       items = found.filter(x => {
         const k = x.name + "|" + x.lat.toFixed(3) + "," + x.lon.toFixed(3);
@@ -157,7 +173,7 @@ async function list(catId, at, lang, onMore) {
       });
       if (items.length) writeCache(key, items);
     }
-    items = items.map(x => Object.assign({ icon: cat.id === "food" ? Places.foodIcon(x.name) : cat.icon }, x));
+    items = withKnown(items.map(x => Object.assign({ icon: cat.id === "food" ? Places.foodIcon(x.name) : cat.icon }, x)), known);
   }
   return items.map(x => Object.assign(x, { km: Places.km(at, x) })).sort((a, b) => a.km - b.km).slice(0, 80);
 }

@@ -1499,7 +1499,9 @@ body.cg-cart-on .wa-fab { bottom: 160px !important; }
 .pin-bubble.drop::after { bottom: auto; top: -6px; border-top-color: transparent; border-bottom: 6px solid #fff; border-top: 0; }
 /* Patron : ajouter un commerce à l'annuaire */
 .dir-add { display: grid; gap: 8px; }
-.dir-add input { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--ink); font: inherit; font-size: 15px; }
+.dir-add input, .dir-add select { width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--ink); font: inherit; font-size: 15px; }
+.dir-kind { max-width: 150px; padding: 3px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--ink); font: inherit; font-size: 12px; }
+.dir-kind.saved { border-color: var(--green, #12B76A); }
 .dir-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--border); }
 /* Pas de barre de défilement visible (on fait défiler au doigt, à la molette ou au pavé tactile) */
 * { scrollbar-width: none; -ms-overflow-style: none; }
@@ -1799,7 +1801,8 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .fh-switch input:checked + i::after { inset-inline-start: 19px; }
 .fh-switch small { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 42px; }
 .fh-times { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; font-size: 13px; }
-.fh-times input { width: 84px; padding: 4px 6px; font-size: 14px; }
+.fh-times input { width: 84px; padding: 4px 6px; font-size: 14px; background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; }
+@media (prefers-color-scheme: dark) { .fh-times input { color-scheme: dark; } }
 .fh-day:not(.open) .fh-times { visibility: hidden; }
 .fh-add { border: 0; background: none; color: var(--brand-ink); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 4px; }
 @media (max-width: 480px) { .fh-day { grid-template-columns: 1fr auto; } .fh-times { grid-column: 1 / -1; } .fh-day:not(.open) .fh-times { display: none; } }
@@ -1935,6 +1938,7 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .ens-cats { max-width: calc(100% + 32px); }
 .sc-body small.sc-meta { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sc-meta .sc-dot { margin-inline-end: 5px; vertical-align: 1px; }
+.sc-kind { position: absolute; top: 10px; inset-inline-start: 10px; z-index: 2; padding: 4px 10px; border-radius: 999px; background: rgba(15, 23, 42, .72); color: #fff; font-size: 12px; font-weight: 700; font-style: normal; backdrop-filter: blur(4px); }
 /* Un seul champ libre : « Un mot pour le livreur ». La remarque d'une adresse enregistrée (Mes adresses) reste envoyée */
 form .addr-note { display: none !important; }
 /* Proposition de course : la carte du trajet en haut, « 4 arrêts · 2,3 km », livraisons multiples repliées */

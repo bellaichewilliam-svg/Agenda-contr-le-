@@ -5628,3 +5628,142 @@ begin
                    replace(src, ' and k.role <> ''admin''', ''));
   end if;
 end $$;
+
+-- ============================================================================
+-- EN LIGNE TÉLÉPHONE DANS LA POCHE : on reste en ligne écran éteint, les courses font sonner le téléphone.
+-- On passe hors ligne tout seul seulement si :
+-- - on ne répond pas à miss_streak_max (2) courses proposées d'affilée : la course a sonné miss_seconds (45 s)
+--   sans qu'on l'accepte ni la refuse (ou l'appli a dit « sans réponse ») ;
+-- - ou HOP! n'a aucune nouvelle de nous depuis idle_off_min (3 h) : ni position, ni appli ouverte.
+-- Une course acceptée ou refusée remet le compteur à zéro. Pendant une course en cours, rien n'est compté.
+-- ============================================================================
+alter table public.settings add column if not exists miss_streak_max int not null default 2;
+alter table public.settings add column if not exists miss_seconds int not null default 45;
+alter table public.couriers add column if not exists miss_streak int not null default 0;
+update public.settings set idle_off_min = 180, idle_warn_min = 170, duty_grace_min = 180 where id = 1;
+
+-- Chaque course qui sonne chez un livreur : quand, jusqu'à quand, et ce qu'il en a fait
+create table if not exists public.order_offers (
+  order_id uuid not null references public.orders(id) on delete cascade,
+  courier_id uuid not null references public.couriers(id) on delete cascade,
+  first_at timestamptz not null default now(),
+  last_at timestamptz not null default now(),
+  outcome text check (outcome in ('pris', 'refus', 'rate', 'autre')),
+  primary key (order_id, courier_id)
+);
+alter table public.order_offers enable row level security;
+drop policy if exists "propositions patron" on public.order_offers;
+create policy "propositions patron" on public.order_offers for select to authenticated using (public.is_admin());
+
+-- Ce livreur voit-il la course maintenant ? (même règle que can_see_new, pour un livreur donné)
+do $$
+declare src text;
+begin
+  select prosrc into src from pg_proc where oid = 'public.can_see_new(public.orders)'::regprocedure;
+  execute format('create or replace function public.can_see_for(o orders, p_uid uuid) returns boolean language sql stable security definer set search_path = public as %L',
+                 replace(src, 'auth.uid()', 'p_uid'));
+end $$;
+revoke execute on function public.can_see_for(public.orders, uuid) from public, anon, authenticated;
+
+-- Repasser en ligne remet le compteur à zéro
+create or replace function public.couriers_miss_reset() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if new.online and not old.online then new.miss_streak := 0; end if;
+  return new;
+end;
+$$;
+create or replace trigger couriers_miss_reset before update of online on public.couriers
+  for each row execute function public.couriers_miss_reset();
+revoke execute on function public.couriers_miss_reset() from public, anon, authenticated;
+
+-- Toutes les 5 s : qui entend sonner quoi, et les courses restées sans réponse
+create or replace function public.offers_track() returns int
+language plpgsql security definer set search_path = public as $$
+declare st settings; f record; k couriers; n int := 0;
+begin
+  select * into st from settings where id = 1;
+  -- 1. Les courses qui sonnent, chez les livreurs en service qui les voient (sans course en cours)
+  insert into order_offers (order_id, courier_id)
+  select o.id, c.id
+    from orders o
+    join couriers c on c.online and c.status = 'actif'
+                   and c.position_at > now() - make_interval(mins => st.duty_grace_min)
+   where o.status = 'nouvelle' and o.courier_id is null and o.ring_count > 0
+     and now() < greatest(public.offer_from(o), coalesce(o.released_at, '-infinity')) + interval '2 minutes'
+     and not exists (select 1 from orders x where x.courier_id = c.id and x.status in ('confirmee', 'recuperee'))
+     and public.can_see_for(o, c.id)
+  on conflict (order_id, courier_id) do update set last_at = now() where order_offers.outcome is null;
+  -- 2. Ce que chacun en a fait
+  for f in
+    select p.order_id, p.courier_id,
+           case when o.courier_id = p.courier_id then 'pris'
+                when d.reason is not null and d.reason <> 'sans_reponse' then 'refus'
+                when d.reason = 'sans_reponse' or p.last_at - p.first_at >= make_interval(secs => st.miss_seconds) then 'rate'
+                when p.last_at < now() - interval '15 seconds' then 'autre' end as res
+      from order_offers p
+      join orders o on o.id = p.order_id
+      left join lateral (select reason from order_declines d where d.order_id = p.order_id and d.courier_id = p.courier_id
+                          order by created_at desc limit 1) d on true
+     where p.outcome is null
+     order by p.first_at
+  loop
+    continue when f.res is null;
+    update order_offers set outcome = f.res where order_id = f.order_id and courier_id = f.courier_id;
+    if f.res in ('pris', 'refus') then
+      update couriers set miss_streak = 0 where id = f.courier_id and miss_streak <> 0;
+    elsif f.res = 'rate' then
+      update couriers set miss_streak = miss_streak + 1 where id = f.courier_id and online returning * into k;
+      if found and k.miss_streak >= st.miss_streak_max then
+        update couriers set online = false, miss_streak = 0, decline_streak = 0, auto_offline_at = now(), idle_warned_at = null where id = k.id;
+        insert into chat_messages (thread, author, body) values ('c:' || k.id::text, 'system', 'status:missoff');
+        perform public.push_call(jsonb_build_object('courier_id', k.id, 'tag', 'hop-idle',
+          'title', '⏸️ Vous êtes passé hors ligne',
+          'body', st.miss_streak_max || ' courses ont sonné sans réponse : on vous a passé hors ligne pour ne pas faire attendre les clients. Pour continuer, ouvrez l''appli et repassez en ligne.'));
+        n := n + 1;
+      end if;
+    end if;
+  end loop;
+  -- Les vieilles lignes ne servent plus
+  delete from order_offers where first_at < now() - interval '7 days';
+  return n;
+end;
+$$;
+revoke execute on function public.offers_track() from public, anon, authenticated;
+do $$ begin
+  create extension if not exists pg_cron;
+  perform cron.schedule('hop-offers', '5 seconds', 'select public.offers_track()');
+exception when others then raise notice 'pg_cron indisponible : pas de suivi des courses sans réponse';
+end $$;
+
+-- Le message « Toujours là ? » et le passage hors ligne après 3 h parlent en heures
+do $$
+declare src text;
+begin
+  select prosrc into src from pg_proc where oid = 'public.idle_couriers_check()'::regprocedure;
+  if position('depuis '' || st.idle_off_min || '' min' in src) > 0 then
+    src := replace(src, 'depuis '' || st.idle_off_min || '' min', 'depuis '' || case when st.idle_off_min >= 120 then (st.idle_off_min / 60) || '' h'' else st.idle_off_min || '' min'' end || ''');
+    src := replace(src, 'depuis '' || st.idle_warn_min || '' min', 'depuis '' || case when st.idle_warn_min >= 120 then (st.idle_warn_min / 60) || '' h '' || lpad((st.idle_warn_min % 60)::text, 2, ''0'') else st.idle_warn_min || '' min'' end || ''');
+    execute format('create or replace function public.idle_couriers_check() returns int language plpgsql security definer set search_path = public as %L', src);
+  end if;
+end $$;
+
+-- ============================================================================
+-- ANNUAIRE : chaque commerce ajouté par le patron (ou appris des clients) a sa catégorie, la même que les
+-- rubriques « Enseignes près de vous » (food, breakfast, pressing, pharm, super, mall, flower, tech, post) ou 'autre'
+-- ============================================================================
+alter table public.known_places add column if not exists kind text;
+create or replace function public.places_search(p_q text) returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(x), '[]'::json) from (
+    select name, address, city, lat, lon, kind from known_places
+     where length(trim(coalesce(p_q, ''))) >= 2 and lower(name) like '%' || lower(trim(p_q)) || '%'
+       and (verified or uses >= 3)
+     order by uses desc, last_at desc limit 5) x;
+$$;
+create or replace function public.places_map() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('name', name, 'address', address, 'city', city, 'lat', lat, 'lon', lon, 'kind', kind) order by uses desc), '[]'::json)
+    from (select * from known_places where lat is not null and lon is not null and (verified or uses >= 3)
+           order by uses desc, last_at desc limit 2000) k;
+$$;

@@ -726,6 +726,11 @@ function shopWelcome(x) {
 
 // Annuaire : enseignes ajoutées par le patron ou apprises des clients (absentes de la carte)
 let dirPick = null;
+// Catégories : les mêmes que les rubriques « Enseignes près de vous » de l'accueil client
+const DIR_KINDS = [["food", "🍽️ Restaurant"], ["breakfast", "🥐 Boulangerie / pâtisserie"], ["super", "🛒 Supermarché / makolet / épicerie"],
+  ["pharm", "💊 Pharmacie / beauté"], ["pressing", "👔 Pressing / laverie"], ["flower", "💐 Fleuriste"], ["mall", "🛍️ Boutique / vêtements"],
+  ["tech", "📱 Téléphonie / électronique"], ["post", "📮 Poste / point relais"], ["autre", "🏪 Autre"]];
+const dirKindSelect = (cur, attrs) => `<select ${attrs}>${cur ? "" : `<option value="">Catégorie…</option>`}${DIR_KINDS.map(([v, l]) => `<option value="${v}"${cur === v ? " selected" : ""}>${l}</option>`).join("")}</select>`;
 async function initDirCard() {
   if (!$("#dirCard") || !window.Places) return;
   dirPick = null;
@@ -738,22 +743,30 @@ async function initDirCard() {
   const list = await Store.knownPlaces().catch(() => []);
   // Enseignes tapées par des clients : cachées aux autres tant qu'elles ne sont pas vérifiées (faute de frappe ?)
   const check = list.filter(x => x.verified === false && Number(x.uses || 1) < 3), ok = list.filter(x => !check.includes(x));
-  const row = (x, tocheck) => `<div class="dir-row${tocheck ? " to-check" : ""}" data-place="${UI.esc(x.id)}"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.address)}${x.city ? ", " + UI.esc(UI.cityFr(x.city) || x.city) : ""} · ${Number(x.uses || 1)} commande(s)</span>
+  const row = (x, tocheck) => `<div class="dir-row${tocheck ? " to-check" : ""}" data-place="${UI.esc(x.id)}"><span>${dirKindSelect(x.kind || "", 'class="dir-kind" data-place-kind="1" aria-label="Catégorie"')} <b>${UI.esc(x.name)}</b> · ${UI.esc(x.address)}${x.city ? ", " + UI.esc(UI.cityFr(x.city) || x.city) : ""} · ${Number(x.uses || 1)} commande(s)</span>
     <span class="dir-acts">${tocheck ? `<button type="button" class="btn btn-sm btn-primary" data-place-ok="1">✅ Existe</button><button type="button" class="btn btn-sm" data-place-fix="1">✏️ Corriger le nom</button>` : ""}<button type="button" class="btn btn-sm" data-place-del="1">Retirer</button></span></div>`;
   $("#dirCount").textContent = list.length;
   $("#dirCheck").innerHTML = check.length ? `<p class="small"><b>🔎 ${check.length} enseigne(s) tapée(s) par des clients à vérifier</b> (cachées aux autres clients jusque-là ; visibles d'office après 3 commandes)</p>${check.map(x => row(x, true)).join("")}` : "";
   $("#dirList").innerHTML = ok.map(x => row(x, false)).join("") || "Aucun pour l'instant.";
+  // Changer la catégorie d'une enseigne déjà ajoutée (ou apprise d'un client)
+  $("#dirCard").onchange = async e => {
+    const sel = e.target.closest("[data-place-kind]");
+    if (!sel) return;
+    try { await Store.knownPlaceKind(sel.closest("[data-place]").dataset.place, sel.value); sel.classList.add("saved"); }
+    catch (ex) { alert("Catégorie non enregistrée, vérifiez la connexion."); }
+  };
 }
 async function saveDirPlace() {
-  const fr = $("#dirFr").value.trim(), he = $("#dirHe").value.trim(), msg = $("#dirMsg");
+  const fr = $("#dirFr").value.trim(), he = $("#dirHe").value.trim(), kind = $("#dirKind").value, msg = $("#dirMsg");
   if (!fr && !he) { msg.textContent = "⚠️ Indiquez au moins un nom."; return; }
+  if (!kind) { msg.textContent = "⚠️ Choisissez la catégorie (restaurant, boulangerie, pressing…)."; $("#dirKind").focus(); return; }
   if (!dirPick || dirPick.lat == null) { msg.textContent = "⚠️ Choisissez l'adresse dans la liste proposée (rue et numéro)."; return; }
   const name = fr && he ? `${fr} · ${he}` : fr || he;
   const address = [dirPick.streetName || dirPick.street, dirPick.housenumber].filter(Boolean).join(" ") || dirPick.street;
   try {
-    await Store.knownPlaceAdd({ name, address, city: dirPick.cityId || CONFIG.homeCity, lat: dirPick.lat, lon: dirPick.lon });
+    await Store.knownPlaceAdd({ name, address, city: dirPick.cityId || CONFIG.homeCity, lat: dirPick.lat, lon: dirPick.lon, kind });
     msg.textContent = `✅ « ${name} » ajouté : les clients le trouvent dès maintenant.`;
-    $("#dirFr").value = ""; $("#dirHe").value = ""; $("#dirAddr").value = ""; dirPick = null;
+    $("#dirFr").value = ""; $("#dirHe").value = ""; $("#dirAddr").value = ""; $("#dirKind").value = ""; dirPick = null;
     initDirCard();
   } catch (ex) {
     msg.textContent = /409|duplicate|unique/i.test(String(ex && ex.message)) ? "Déjà dans l'annuaire à cette adresse." : "⚠️ Non enregistré, vérifiez la connexion.";
@@ -779,6 +792,7 @@ function renderShops(view) {
       <div class="dir-add">
         <input id="dirFr" placeholder="Nom en français (ex. Oshi Sushi)" />
         <input id="dirHe" placeholder="Nom en hébreu (ex. אושי סושי)" dir="rtl" />
+        ${dirKindSelect("", 'id="dirKind" aria-label="Catégorie"')}
         <div><input id="dirAddr" placeholder="Adresse : rue et numéro, puis choisir dans la liste" /></div>
         <button type="button" class="btn btn-primary btn-sm" id="dirSave">➕ Ajouter à l'annuaire</button>
         <p class="small" id="dirMsg"></p>

@@ -60,9 +60,9 @@ const T = {
   },
   shop: {
     fr: { h1: 'Votre commerce<br><em>livre avec HOP!</em>', sub: 'Restaurants · Boutiques · Pharmacies · Bureaux', chips: ['💸 0 % sur vos ventes', '🛵 Livreur en moins d\'une heure', '📱 Votre QR pour vos clients', '🧾 Reçu pour chaque course'],
-      price: '<span>Course dans Netanya</span><span><b>25 ₪</b></span>', badge: '🎟️ Carnet 10 courses : 200 ₪', scan: 'Inscription gratuite', url: 'Votre espace pro en 1 minute' },
+      price: '<span>Course dans Netanya</span><span><b>25 ₪</b></span>', badge: '✅ Sans abonnement', scan: 'Inscription gratuite', url: 'Votre espace pro en 1 minute' },
     he: { h1: 'העסק שלכם<br><em>שולח עם הופ!</em>', sub: 'מסעדות · חנויות · בתי מרקחת · משרדים', chips: ['💸 0% עמלה על המכירות', '🛵 שליח תוך פחות משעה', '📱 קוד QR ללקוחות שלכם', '🧾 קבלה על כל משלוח'],
-      price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '🎟️ כרטיסייה 10 משלוחים: 200 ₪', scan: 'הרשמה בחינם', url: 'אזור עסקי תוך דקה' },
+      price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '✅ בלי מנוי', scan: 'הרשמה בחינם', url: 'אזור עסקי תוך דקה' },
     link: APP + 'commerce.html'
   },
   rider: {

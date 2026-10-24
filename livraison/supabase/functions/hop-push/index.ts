@@ -36,10 +36,12 @@ async function admins() {
   return (data || []).map(c => c.id);
 }
 
-// Livreurs en service (position récente) qui peuvent prendre une course, le patron compris quand il roule ;
+// Livreurs en service qui peuvent prendre une course, le patron compris quand il roule : en ligne, avec une position
+// de moins de duty_grace_min minutes (3 h : on reste en ligne téléphone dans la poche, ça sonne) ;
 // sans ceux qui l'ont refusée il y a moins de 5 min (après, elle peut leur revenir)
 async function onDuty(orderId?: string) {
-  const since = new Date(Date.now() - 60 * 60000).toISOString();
+  const { data: st } = await db.from("settings").select("duty_grace_min").eq("id", 1).single();
+  const since = new Date(Date.now() - Number((st && st.duty_grace_min) || 60) * 60000).toISOString();
   const { data } = await db.from("couriers").select("id").eq("online", true).eq("status", "actif").gt("position_at", since);
   let ids = (data || []).map(c => c.id);
   if (orderId && ids.length) {

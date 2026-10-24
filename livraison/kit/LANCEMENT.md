@@ -66,13 +66,11 @@ Avec `shop-post-fr.png` / `shop-post-he.png`, ou en message direct au commerçan
 
 > 🏪 **Votre commerce livre avec HOP!**
 > 💸 **0 % de commission sur vos ventes** : vous payez seulement la course, **25 ₪ dans Netanya**.
-> 🎟️ Carnet pro : **10 courses pour 200 ₪**.
 > 🛵 Un livreur en moins d'une heure · 📱 votre QR code pour vos clients · 🧾 un reçu pour chaque course.
 > 👉 Inscription gratuite en 1 minute : https://hop-livraison.vercel.app/commerce.html
 
 > 🏪 **העסק שלכם שולח עם הופ!**
 > 💸 **0% עמלה על המכירות**: משלמים רק על המשלוח, **25 ₪ בתוך נתניה**.
-> 🎟️ כרטיסייה לעסקים: **10 משלוחים ב-200 ₪**.
 > 🛵 שליח תוך פחות משעה · 📱 קוד QR ללקוחות · 🧾 קבלה על כל משלוח.
 > 👈 הרשמה בחינם תוך דקה: https://hop-livraison.vercel.app/commerce.html
 

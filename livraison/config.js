@@ -262,10 +262,10 @@ window.CONFIG = {
     referral: { prefix: "AMI", amount: 10 },
     // Carte de fidélité : la Nième course est offerte (jusqu'à max ₪)
     loyalty: { every: 10, max: 30 },
-    // Offres professionnelles affichées sur la page (commande par WhatsApp)
+    // Offres professionnelles affichées sur la page (commande par WhatsApp) ; la ligne du carnet seulement si partners.carnet.offered
     business: [
       { fr: "Commerces et restaurants : course dans Netanya, sans abonnement, 0 % sur vos ventes", he: "עסקים ומסעדות: משלוח בתוך נתניה, בלי מנוי, 0% מהמכירות", price: { fr: "25 ₪", he: "25 ₪" } },
-      { fr: "Carnet pro de 10 courses dans Netanya, au lieu de 250 ₪ (25 ₪ × 10)", he: "כרטיסייה לעסקים: 10 משלוחים בתוך נתניה, במקום 250 ₪ (25 ₪ × 10)", price: { fr: "200 ₪ les 10", he: "200 ₪ ל-10" } },
+      { carnet: true, fr: "Carnet pro de 10 courses dans Netanya, au lieu de 250 ₪ (25 ₪ × 10)", he: "כרטיסייה לעסקים: 10 משלוחים בתוך נתניה, במקום 250 ₪ (25 ₪ × 10)", price: { fr: "200 ₪ les 10", he: "200 ₪ ל-10" } },
       { fr: "Tournée quotidienne fixe (avocats, comptables, labos)", he: "סבב יומי קבוע (עורכי דין, רואי חשבון, מעבדות)", price: { fr: "sur devis", he: "בהצעת מחיר" } }
     ]
   },
