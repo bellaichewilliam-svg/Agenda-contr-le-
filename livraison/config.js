@@ -201,6 +201,9 @@ window.CONFIG = {
   // commission chaque semaine. (En ligne : colonnes referral_bonus et
   // priority_minutes de la table settings.)
   partners: {
+    // Programme « Gagner plus » côté livreur (amener des commerces, avantages réseau, bonus) :
+    // caché tant que le patron ne le débloque pas. true pour le remettre.
+    courierProgram: false,
     bonusPerDelivery: 2,
     priorityMinutes: 3,
     // Bonus versés seulement si le parrain a livré au moins une course ces N derniers jours
