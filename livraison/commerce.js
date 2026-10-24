@@ -661,18 +661,6 @@ function renderSpace() {
 
 // --- Ma fiche pour les clients : WhatsApp, présentation, horaires (comme le patron, en libre-service) ---------
 const fiche = { shown: false, busy: false };
-const DAYS_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], DAYS_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
-function ficheDay(i, h) {
-  const r = String(h || "").split(",").filter(Boolean).map(x => x.split("-"));
-  const [a, b] = r[0] || ["", ""], [c, d] = r[1] || ["", ""];
-  return `<div class="fh-day${r.length ? " open" : ""}" data-day="${i}">
-    <b>${UI.esc((I18N.lang === "he" ? DAYS_HE : DAYS_FR)[i])}</b>
-    <label class="fh-switch"><input type="checkbox" data-fh-open${r.length ? " checked" : ""} /><i></i><small>${UI.esc(t(r.length ? "fiOpen" : "fiClosed"))}</small></label>
-    <span class="fh-times"><input type="time" step="900" data-fh="a" value="${UI.esc(a || "08:30")}" />–<input type="time" step="900" data-fh="b" value="${UI.esc(b || "19:00")}" />
-      <span class="fh-2${c ? "" : " hidden"}">· <input type="time" step="900" data-fh="c" value="${UI.esc(c || "")}" />–<input type="time" step="900" data-fh="d" value="${UI.esc(d || "")}" /></span>
-      <button type="button" class="fh-add${c ? " hidden" : ""}" data-fh-add aria-label="+">＋ ${UI.esc(t("fiBreak"))}</button></span>
-  </div>`;
-}
 function renderFiche(force) {
   const box = $("#spFiche"), shop = state.dash.shop;
   if (fiche.shown && !force) return;
@@ -682,32 +670,15 @@ function renderFiche(force) {
     <p class="muted small" style="margin:4px 0 12px">${UI.esc(t("fiSub"))}</p>
     <label class="f"><span>${UI.esc(t("fiWa"))}</span><input id="fiWa" inputmode="tel" dir="ltr" placeholder="053-373-3785" value="${UI.esc(shop.whatsapp ? "0" + String(shop.whatsapp).replace(/^972/, "") : "")}" /></label>
     <label class="f" style="margin-top:10px"><span>${UI.esc(t("fiAbout"))}</span><textarea id="fiAbout" rows="3" maxlength="600" placeholder="${UI.esc(t("fiAboutPh"))}">${UI.esc(shop.about || "")}</textarea></label>
-    <div class="fh"><span class="fh-title">${UI.esc(t("fiHours"))}</span>${[0, 1, 2, 3, 4, 5, 6].map(i => ficheDay(i, (hours.find(x => Number(x.d) === i) || {}).h)).join("")}</div>
+    ${UI.hoursEditor(hours)}
     <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-fi-save${fiche.busy ? " disabled" : ""}>${UI.esc(t("fiSave"))}</button><span class="small" id="fiMsg"></span></div>`;
 }
-$("#spFiche").addEventListener("change", e => {
-  const c = e.target.closest("[data-fh-open]");
-  if (!c) return;
-  const day = c.closest(".fh-day");
-  day.classList.toggle("open", c.checked);
-  day.querySelector(".fh-switch small").textContent = t(c.checked ? "fiOpen" : "fiClosed");
-});
+UI.bindHours($("#spFiche"));
 $("#spFiche").addEventListener("click", async e => {
-  const add = e.target.closest("[data-fh-add]");
-  if (add) { const day = add.closest(".fh-day"); day.querySelector(".fh-2").classList.remove("hidden"); add.classList.add("hidden");
-    // Une coupure à midi : le matin finit à 13:30, l'après-midi reprend à 15:30
-    if (day.querySelector('[data-fh="b"]').value > "13:30") day.querySelector('[data-fh="b"]').value = "13:30";
-    day.querySelector('[data-fh="c"]').value = "15:30"; day.querySelector('[data-fh="d"]').value = "19:00"; return; }
   const b = e.target.closest("[data-fi-save]");
   if (!b) return;
   const msg = $("#fiMsg");
-  const hours = [...$("#spFiche").querySelectorAll(".fh-day")].map(day => {
-    const v = k => day.querySelector(`[data-fh="${k}"]`).value;
-    const on = day.querySelector("[data-fh-open]").checked, ranges = [];
-    if (on && v("a") && v("b")) ranges.push(v("a") + "-" + v("b"));
-    if (on && !day.querySelector(".fh-2").classList.contains("hidden") && v("c") && v("d")) ranges.push(v("c") + "-" + v("d"));
-    return { d: Number(day.dataset.day), h: ranges.join(",") };
-  });
+  const hours = UI.readHours($("#spFiche"));
   const wa = $("#fiWa").value.replace(/\D/g, "");
   if (wa && !/^(0\d{8,9}|972\d{8,9})$/.test(wa)) { msg.textContent = t("fiWaBad"); $("#fiWa").focus(); return; }
   fiche.busy = true; b.disabled = true;

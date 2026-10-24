@@ -837,8 +837,7 @@ function renderShops(view) {
           <details class="shop-fiche"><summary>📝 Fiche pour les clients : WhatsApp, horaires, présentation${x.whatsapp ? " · 💬 " + UI.esc(x.whatsapp) : ""}</summary>
             <label class="f"><span>WhatsApp du commerce (les clients peuvent l'écrire directement)</span><input data-fiche="whatsapp" inputmode="tel" placeholder="053-373-3785" value="${UI.esc(x.whatsapp ? "0" + String(x.whatsapp).replace(/^972/, "") : "")}" /></label>
             <label class="f"><span>Présentation (600 caractères)</span><textarea data-fiche="about" maxlength="600" rows="3" placeholder="Ce que fait le commerce, ses spécialités…">${UI.esc(x.about || "")}</textarea></label>
-            <div class="fiche-hours"><span>Horaires (ex. 08:30-13:30,15:30-19:00 ; vide = fermé)</span>
-              ${["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map((d, i) => `<label><b>${d}</b><input data-fiche-day="${i}" placeholder="fermé" value="${UI.esc(((x.hours || []).find(h => Number(h.d) === i) || {}).h || "")}" /></label>`).join("")}</div>
+            ${UI.hoursEditor(x.hours)}
             <button type="button" class="btn btn-sm btn-primary" data-sact="fiche">💾 Enregistrer la fiche</button>
           </details>
           <div><span>⭐</span><span>${(() => {
@@ -1267,9 +1266,8 @@ async function onViewClick(e) {
       let wa = v("whatsapp").replace(/\D/g, "");
       if (wa.startsWith("0")) wa = "972" + wa.slice(1);
       if (wa && !/^[0-9]{9,15}$/.test(wa)) return alert("Numéro WhatsApp invalide (ex. 053-373-3785).");
-      const bad = [...box.querySelectorAll("[data-fiche-day]")].find(i => i.value.trim() && !/^\d{1,2}:\d{2}-\d{1,2}:\d{2}(,\d{1,2}:\d{2}-\d{1,2}:\d{2})*$/.test(i.value.replace(/\s/g, "")));
-      if (bad) return alert("Horaires : écrivez par exemple 08:30-13:30,15:30-19:00 (ou laissez vide si fermé).");
-      const hours = [...box.querySelectorAll("[data-fiche-day]")].map(i => ({ d: Number(i.dataset.ficheDay), h: i.value.replace(/\s/g, "") }));
+      const hours = UI.readHours(box);
+      if (hours.some(h => h.h.split(",").some(r => r && r.split("-")[0] >= r.split("-")[1]))) return alert("Horaires : l'heure de fermeture doit être après l'heure d'ouverture.");
       changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null };
     } else if (el.dataset.sact === "planoff") {
       if (!confirm(`Arrêter HOP! Pro pour ${shop.name} ?`)) return;
@@ -1546,6 +1544,7 @@ $("#view").addEventListener("click", onViewClick);
 $("#liveList").addEventListener("click", e => { const it = e.target.closest("[data-focus]"); if (it) focusOrder(it.dataset.focus); });
 $("#liveFit").addEventListener("click", () => { if (live.map && live.points && live.points.length) live.map.fitBounds(live.points, { padding: [40, 40], maxZoom: 15 }); });
 $("#view").addEventListener("change", onViewChange);
+UI.bindHours($("#view"));   // horaires des fiches commerce (menus, coupure, raccourcis)
 $("#view").addEventListener("input", onViewInput);
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|shops|replies|requests)/.test(e.key || "") && Store.session()) load(); });
 document.addEventListener("visibilitychange", async () => {

@@ -60,16 +60,16 @@ const T = {
   },
   shop: {
     fr: { h1: 'Votre commerce<br><em>livre avec HOP!</em>', sub: 'Restaurants · Boutiques · Pharmacies · Bureaux', chips: ['💸 0 % sur vos ventes', '🛵 Livreur en moins d\'une heure', '📱 Votre QR pour vos clients', '🧾 Reçu pour chaque course'],
-      price: '<span>Course dans Netanya</span><span><b>25 ₪</b></span>', badge: '✅ Sans abonnement', scan: 'Inscription gratuite', url: 'Votre espace pro en 1 minute' },
+      price: '<span>Course dans Netanya</span><span><b>25 ₪</b></span>', badge: '⭐ Catalogue HOP! Pro : 299 ₪ / mois', scan: 'Inscription gratuite', url: 'Votre espace pro en 1 minute' },
     he: { h1: 'העסק שלכם<br><em>שולח עם הופ!</em>', sub: 'מסעדות · חנויות · בתי מרקחת · משרדים', chips: ['💸 0% עמלה על המכירות', '🛵 שליח תוך פחות משעה', '📱 קוד QR ללקוחות שלכם', '🧾 קבלה על כל משלוח'],
-      price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '✅ בלי מנוי', scan: 'הרשמה בחינם', url: 'אזור עסקי תוך דקה' },
+      price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '⭐ קטלוג HOP! Pro: ‏299 ₪ לחודש', scan: 'הרשמה בחינם', url: 'אזור עסקי תוך דקה' },
     link: APP + 'commerce.html'
   },
   rider: {
-    fr: { h1: 'Deviens livreur<br><em>partenaire HOP!</em>', sub: 'Scooter, voiture ou vélo · Netanya et le Sharon', chips: ['✅ Tu choisis tes courses', '🟢 En ligne quand tu veux', '💝 Pourboires 100 % pour toi', '🤝 20 % des abonnements Pro que tu signes'],
-      price: '<span>Commission sur tes commerces</span><span><b>8 %</b> <small style="font-size:.45em;color:#5B6476">· 15 % sur l\'appli</small></span>', badge: '🛵 Pas d\'abonnement', scan: 'Inscris-toi', url: 'Permis, top case, עוסק' },
-    he: { h1: 'בואו להיות<br><em>שליחים בהופ!</em>', sub: 'קטנוע, רכב או אופניים · נתניה והשרון', chips: ['✅ בוחרים את המשלוחים', '🟢 מתחברים מתי שרוצים', '💝 הטיפים 100% שלכם', '🤝 20% מהמנויים שאתם מחתימים'],
-      price: '<span>עמלה על העסקים שלכם</span><span><b>8%</b> <small style="font-size:.45em;color:#5B6476">· 15% מהאפליקציה</small></span>', badge: '🛵 בלי מנוי', scan: 'להרשמה', url: 'רישיון, ארגז, עוסק' },
+    fr: { h1: 'Deviens livreur<br><em>partenaire HOP!</em>', sub: 'Scooter, voiture ou vélo · Netanya et le Sharon', chips: ['✅ Tu choisis tes courses', '🟢 En ligne quand tu veux', '💝 Pourboires 100 % pour toi', '🔔 Ça sonne même écran éteint'],
+      price: '<span>Commission HOP</span><span><b>15 %</b></span>', badge: '🛵 Pas d\'abonnement', scan: 'Inscris-toi', url: 'Permis, top case, עוסק' },
+    he: { h1: 'בואו להיות<br><em>שליחים בהופ!</em>', sub: 'קטנוע, רכב או אופניים · נתניה והשרון', chips: ['✅ בוחרים את המשלוחים', '🟢 מתחברים מתי שרוצים', '💝 הטיפים 100% שלכם', '🔔 מצלצל גם כשהמסך כבוי'],
+      price: '<span>עמלת הופ</span><span><b>15%</b></span>', badge: '🛵 בלי מנוי', scan: 'להרשמה', url: 'רישיון, ארגז, עוסק' },
     link: APP + 'coursier.html'
   }
 };

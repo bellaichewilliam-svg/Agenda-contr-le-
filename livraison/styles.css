@@ -1792,6 +1792,8 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 /* Espace commerce : fiche en libre-service (horaires avec interrupteurs) et avis « c'est prêt » */
 .fh { display: grid; gap: 6px; margin-top: 12px; }
 .fh-title { font-weight: 700; font-size: 14px; }
+.fh-presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.fh-presets button { border: 1px solid var(--border); background: var(--panel); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .fh-day { display: grid; grid-template-columns: 82px auto minmax(0, 1fr); gap: 8px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--bg-2); }
 .fh-day b { font-size: 14px; }
 .fh-switch { display: flex; align-items: center; gap: 6px; cursor: pointer; }
@@ -1802,11 +1804,17 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .fh-switch input:checked + i::after { inset-inline-start: 19px; }
 .fh-switch small { font-size: 12px; font-weight: 700; color: var(--muted); min-width: 42px; }
 .fh-times { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; min-width: 0; font-size: 13px; }
+.fh-times select { padding: 5px 6px; font: inherit; font-size: 14px; background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; }
+@media (prefers-color-scheme: dark) { .fh-times select { color-scheme: dark; } }
 .fh-times input { width: 84px; padding: 4px 6px; font-size: 14px; background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; }
 @media (prefers-color-scheme: dark) { .fh-times input { color-scheme: dark; } }
 .fh-day:not(.open) .fh-times { visibility: hidden; }
 .fh-add { border: 0; background: none; color: var(--brand-ink); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; padding: 2px 4px; }
-@media (max-width: 480px) { .fh-day { grid-template-columns: 1fr auto; } .fh-times { grid-column: 1 / -1; } .fh-day:not(.open) .fh-times { display: none; } }
+/* Dans la fiche d'un commerce du panel patron (.kv met toutes ses div sur 2 colonnes) */
+.kv .fh { grid-template-columns: minmax(0, 1fr); }
+.kv .fh-day { grid-template-columns: 82px auto minmax(0, 1fr); }
+.kv .fh-presets { display: flex; }
+@media (max-width: 480px) { .fh-day, .kv .fh-day { grid-template-columns: 1fr auto; } .fh-times { grid-column: 1 / -1; } .fh-day:not(.open) .fh-times { display: none; } }
 .drops-card { margin-bottom: 14px; }
 .drop-row { display: grid; gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); }
 .drop-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
@@ -1933,7 +1941,17 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .sc-top { gap: 5px; padding: 6px 12px 2px; }
 .sc-ti .item-art { border-radius: 10px; }
 .sc-ti em { font-size: 10px; bottom: 3px; inset-inline-start: 3px; }
-.sc-go { margin: 8px 12px 12px; padding: 8px 10px; font-size: 14px; }
+/* Carte compacte (≈ 200 px de haut) : bannière 5/2, logo qui la chevauche, deux lignes d'infos, flèche ronde */
+.pro-row .sc-card { flex-basis: min(70vw, 260px); border-radius: 18px; box-shadow: 0 6px 18px rgba(15, 31, 61, .08); }
+.pro-row .sc-cover { aspect-ratio: 5 / 2; }
+.pro-row .sc-cover i { font-size: 34px; }
+.pro-row .sc-logo { top: calc(min(70vw, 260px) * 2 / 5 - 22px); width: 44px; height: 44px; border-radius: 12px; }
+.pro-row .sc-body { padding: 24px 12px 12px; padding-inline-end: 52px; gap: 1px; }
+.pro-row .sc-body b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pro-row .sc-body small { font-size: 12px; }
+.pro-row .sc-closed { font-size: 14px; }
+.sc-go { position: absolute; bottom: 14px; inset-inline-end: 12px; margin: 0; padding: 0; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; line-height: 1; box-shadow: 0 4px 10px rgba(255, 106, 19, .35); }
+.sc-kind { font-size: 11px; padding: 3px 9px; top: 8px; inset-inline-start: 8px; }
 .ens-modal { grid-template-columns: minmax(0, 1fr); }
 .ens-box { min-width: 0; }
 .ens-cats { max-width: calc(100% + 32px); }
