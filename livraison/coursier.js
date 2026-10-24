@@ -178,9 +178,18 @@ async function route() {
   $("#drawerName").textContent = me.name;
   applyRiderSettings();
   initRiderMap();
-  // Après un rechargement : on reste en ligne si on l'était
+  // Après un rechargement : on reste en ligne seulement si HOP! nous voit encore en ligne. Sans l'appli depuis 15 min
+  // (sans course en cours), le serveur nous a passé hors ligne : on ne repasse jamais en ligne tout seul, même le lendemain.
   let wasOnline = false;
   try { wasOnline = localStorage.getItem("livraison.online.v1") === "1"; } catch (e) { /* ignore */ }
+  if (wasOnline && me.online === false) {
+    try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }
+    if (me.auto_offline_at) {
+      $("#autoOffText").textContent = "HOP! n'était plus ouvert depuis plus de 15 min (sans course en cours) : on vous a passé hors ligne pour ne pas faire attendre les clients. Repassez en ligne dès que vous êtes prêt à accepter des courses.";
+      $("#autoOffModal").classList.remove("hidden");
+    }
+    wasOnline = false;
+  }
   if (wasOnline && duty.watch == null) toggleDuty(true); else if (duty.watch == null) Store.setOnline(false).catch(() => {});
   load();
   clearTimeout(pollTimer);

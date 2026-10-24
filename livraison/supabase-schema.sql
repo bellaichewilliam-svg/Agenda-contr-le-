@@ -5614,3 +5614,17 @@ revoke execute on function public.orders_demo_guard() from public, anon, authent
 -- ============================================================================
 alter table public.settings alter column pro_referrer_pct set default 0;
 update public.settings set pro_referrer_pct = 0 where id = 1;
+
+-- ============================================================================
+-- LE PATRON SOUMIS À LA RÈGLE DES 15 MINUTES : sans l'appli livreur depuis idle_off_min minutes (sans course en cours),
+-- lui aussi passe hors ligne tout seul (avant, le compte patron en était exempté)
+-- ============================================================================
+do $$
+declare src text;
+begin
+  select prosrc into src from pg_proc where oid = 'public.idle_couriers_check()'::regprocedure;
+  if position('and k.role <> ''admin''' in src) > 0 then
+    execute format('create or replace function public.idle_couriers_check() returns int language plpgsql security definer set search_path = public as %L',
+                   replace(src, ' and k.role <> ''admin''', ''));
+  end if;
+end $$;
