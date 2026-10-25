@@ -392,3 +392,5 @@ livraison/
 - **Partenaires en vert avec 👑 sur la carte** : nom « 👑 EDMAR » en vert, rond cerclé de vert, et dans la bulle le badge vert « 👑 Partenaire HOP! » (plus d'orange).
 - **Logo dans la bulle** : en touchant un commerce sur la carte, son logo s'affiche à côté de son nom (partenaire ou commerce de l'annuaire).
 - **Rouah Hamatok** : nom court « Rouah Hamatok 770 » sur la carte (l'ancien, avec la description, reste pour la recherche). `DIR_VERSION` 14.
+- **Vrais logos des enseignes** (logos officiels de Wikipédia, miniatures 120 px) sur 69 fiches de l'annuaire : McDonald's, Aroma, Arcaffe, Cofix, Steimatzky, Max Stock, Good Pharm, Yeinot Bitan, Rami Levy, KSP, H&M, Adidas, American Eagle, Houmous Eliyahou, Lametayel, Falafel Bariboua (+ Rouah Hamatok). Seuls les fichiers qui sont des logos (pas les photos de magasins) ; adresses vérifiées (toutes répondent). Règle commune `UI.dirLogo`.
+- **Logo d'une enseigne plus petit que celui d'un partenaire** (30 px contre 40 px à la vue de départ), affiché entier dans son rond ; dans un groupe, le logo est celui du commerce dont le nom est affiché. Noms « Cofix - Cofix » nettoyés. `DIR_VERSION` 15.

@@ -340,6 +340,9 @@ function itemArt(name, kind) {
 const KIND_ICON = { pressing: "👔", restaurant: "🍽️", boutique: "🛍️", pharmacie: "💊", bureau: "💼", autre: "🏪" };
 // Commerce de services (pressing, bureau…) : « Hors service » plutôt que « Épuisé »
 const isService = s => !!s && ["pressing", "bureau"].includes(s.kind);
+// Logo d'un commerce de l'annuaire : un fichier de l'appli (img/logos/…) ou le logo officiel d'une enseigne sur Wikipédia
+const dirLogo = e => { const v = String((e && e.lg) || "");
+  return /^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(v) || /^https:\/\/(upload|thumb)\.wikimedia\.org\/wikipedia\/[A-Za-z0-9%._\/()\-]+$/.test(v) ? v : ""; };
 const safeImg = s => (typeof s === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) ? s : "");
 // Vitrines de démonstration : leurs images sont des fichiers de l'appli (img/demo/demo-resto-cover.jpg…)
 const demoImg = (s, k) => (s && s.demo && /^DEMO-[A-Z]+$/.test(s.code || "") ? `img/demo/${s.code.toLowerCase()}-${k}.jpg` : "");
@@ -691,7 +694,7 @@ if (typeof MutationObserver !== "undefined") {
 
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  DOC_FR, docPhoto, photoViewer, proCard, safeImg, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
+  DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

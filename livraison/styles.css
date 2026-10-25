@@ -2088,3 +2088,8 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 /* La bulle de la carte reste blanche, même en mode sombre : ses badges gardent leurs couleurs claires */
 .resto-pop .ac-partner { color: #067647; background: #DCFAE6; border-color: rgba(18, 183, 106, .35); }
 .resto-pop .ac-soon { color: #B93F00; background: #FFF0E6; }
+/* Logos d'enseignes (souvent larges) : entiers dans leur rond, sur fond blanc */
+.resto-pin.logo:not(.hop) b img, .rp-logo img, .ens-ico img { object-fit: contain; background: #fff; }
+.resto-pin.logo:not(.hop) b img { padding: 2px; }
+.rp-logo img { padding: 4px; }
+.ens-ico img { padding: 3px; border-radius: 12px; }

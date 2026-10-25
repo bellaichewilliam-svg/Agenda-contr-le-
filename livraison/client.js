@@ -2551,7 +2551,7 @@ function drawRestos() {
   });
   const shown = spread.sort((a, b2) => c.distanceTo(a.pos) - c.distanceTo(b2.pos)).slice(0, z >= 15 ? 300 : 350);
   // Noms : seulement ceux qui ne se chevauchent pas (les plus proches du centre d'abord)
-  const boxes = [], isHop = g => g.ids.some(i => restos.list[i].partner), hasLogo = g => g.ids.some(i => restos.list[i].lg);
+  const boxes = [], isHop = g => g.ids.some(i => restos.list[i].partner), hasLogo = g => !!UI.dirLogo(g.e);
   // Les partenaires HOP! d'abord (leur nom est toujours affiché), puis les commerces qui ont un logo
   shown.filter(isHop).concat(shown.filter(g => !isHop(g) && hasLogo(g)), shown.filter(g => !isHop(g) && !hasLogo(g))).forEach(g => {
     if (z < 13) return;
@@ -2571,11 +2571,12 @@ function drawRestos() {
     // Partenaire HOP! : son logo (celui de sa vitrine), sinon l'icône de son métier
     const pe = g.ids.map(i => restos.list[i]).find(e => e.partner), hop = !!pe;
     // Logo : celui de la vitrine d'un partenaire, sinon celui d'un commerce de l'annuaire (img/logos/…)
-    const dirLogo = g.ids.map(i => restos.list[i].lg).find(v => /^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(v || "")) || "";
+    const dirLogo = UI.dirLogo(g.e);   // le logo du commerce dont le nom est affiché (pas celui d'un voisin du groupe)
     const logo = hop ? UI.safeImg(((state.showcase || []).find(x => x.code === pe.partner.code) || {}).logo) || dirLogo : dirLogo;
     const ico = logo ? `<img src="${logo}" alt="" />` : hop ? (UI.KIND_ICON[pe.partner.kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
     // Le logo d'un partenaire grossit à mesure qu'on zoome (34 px à la vue de départ, jusqu'à 84 px tout près)
-    const lg = logo ? ({ 13: 28, 14: 30, 15: 34, 16: 40, 17: 52, 18: 66 })[z] || (z > 18 ? 84 : 28) : 26;
+    const lg = !logo ? 26 : hop ? ({ 13: 28, 14: 30, 15: 34, 16: 40, 17: 52, 18: 66 })[z] || (z > 18 ? 84 : 28)
+      : ({ 13: 22, 14: 24, 15: 26, 16: 30, 17: 36, 18: 44 })[z] || (z > 18 ? 52 : 22);   // commerce de l'annuaire : plus petit qu'un partenaire
     L.marker(g.pos, { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [lg, lg], iconAnchor: [lg / 2, lg / 2],
       html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"${logo ? ` style="--lg:${lg}px"` : ""}><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = UI.bi(Places.dirName(e, I18N.lang)), pl = rowLogo(e); return `<div class="rp-row">
@@ -2588,7 +2589,7 @@ function drawRestos() {
 // Logo d'un commerce dans la bulle : celui de sa vitrine (partenaire) ou de l'annuaire (img/logos/…)
 function rowLogo(e) {
   if (e.partner) { const sc = (state.showcase || []).find(x => x.code === e.partner.code); if (sc && UI.safeImg(sc.logo)) return UI.safeImg(sc.logo); }
-  return /^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(e.lg || "") ? e.lg : "";
+  return UI.dirLogo(e);
 }
 // Ce qu'est le commerce : « 👔 Pressing », « 🍕 Pizza »… (la cuisine se lit dans son nom ou sa fiche) ;
 // un partenaire a en plus son badge vert « 👑 Partenaire HOP! »
@@ -2847,7 +2848,7 @@ function renderEnsList() {
   $("#ensList").innerHTML = ens.shown.length ? ens.shown.map((x, i) => {
     const addr = [`${x.street} ${x.number}`.trim(), x.city ? cityLabel(cityIdOf(x.city) || x.city) : ""].filter(Boolean).join(", ");
     return `<div class="ens-item">
-      <span class="ens-ico">${/^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(x.lg || "") ? `<img src="${x.lg}" alt="" />` : x.icon}</span>
+      <span class="ens-ico">${UI.dirLogo(x) ? `<img src="${UI.esc(UI.dirLogo(x))}" alt="" loading="lazy" />` : x.icon}</span>
       <div class="ens-main"><b>${UI.esc(UI.bi(x.name))}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>${x.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}
         <small>${UI.esc(addr || t("ensAddrLater"))} · ${dist(x)}</small></div>
       <div class="ens-act"><button type="button" class="btn btn-sm btn-primary" data-ens-pick="from" data-i="${i}">${UI.esc(t("ensFrom"))}</button>
