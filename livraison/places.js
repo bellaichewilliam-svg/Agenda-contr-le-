@@ -78,8 +78,27 @@ function toPlace(f) {
 // suite, même si un commerce n'est pas sur la carte. Chargé à la première recherche.
 // ---------------------------------------------------------------------------
 let dir = null;
+// Deux fiches du même commerce (même adresse, même point, un mot du nom en commun : « Pizzeria La Italia » et
+// « La Italia Netanya ») : on n'en garde qu'une, l'autre nom servant encore à la recherche
+// (les mots génériques ne comptent pas : pizza, burger, café, casher, le nom de la ville… ; même nom = même commerce)
+const GENERIC_WORDS = new RegExp("^(netanya|נתניה|natanya|ltd|בעמ|the|la|le|les|de|du|des|bar|cafe|café|coffee|קפה|pizza|pizzeria|פיצריה|פיצה|מסעדת|מסעדה|restaurant|burger|בורגר|המבורגר|falafel|פלאפל|houmous|hummus|חומוס|chawarma|shawarma|שווארמה|schnitzel|שניצל|sushi|סושי|grill|גריל|kitchen|bakery|מאפייה|express|chicken|kebab|קבב|snack|shop|traiteur|קייטרינג|כשר|casher|kosher|zone|industrielle|center|centre|mall|קניון|herzl|הרצל|saveurs|maman|chef|house|street|salad|סלט|בריבוע|carré|carrée|bourekas|בורקס|פוקי|poke|baba|באבא|מאמא|mama|קדימה|כפר|יונה|אבן|יהודה|kadima|pita|פיתה|brochettes|שיפודי|tabun|טאבון|fricassé|פריקסה|הפריקסה)$");
+const normName = v => String(v || "").toLowerCase().replace(/[^a-z\u00e0-\u00ff\u0590-\u05ff0-9]/g, "");
+const nameWords = e => [e.n, e.fr].join(" ").toLowerCase().split(/[^a-z\u00e0-\u00ff\u0590-\u05ff0-9]+/).filter(w => w.length >= 4 && !GENERIC_WORDS.test(w));
+const sameShop = (a, b) => (normName(a.fr) && normName(a.fr) === normName(b.fr)) || normName(a.n) === normName(b.n)
+  || nameWords(a).some(w => nameWords(b).includes(w));
+function dedupeDir(list) {
+  const out = [], byPlace = {};
+  list.forEach(e => {
+    const k = e.lat + "," + e.lon + "," + String(e.s || "").trim();
+    const twin = (byPlace[k] || []).find(o => sameShop(o, e));
+    if (twin) { twin.alt = (twin.alt || []).concat([e.n, e.fr].filter(Boolean), e.alt || []); return; }
+    (byPlace[k] = byPlace[k] || []).push(e);
+    out.push(e);
+  });
+  return out;
+}
 function loadDir() {
-  if (!dir) dir = fetch("annuaire.json?v=" + DIR_VERSION).then(r => (r.ok ? r.json() : [])).then(list => list.map(e => Object.assign(e, {
+  if (!dir) dir = fetch("annuaire.json?v=" + DIR_VERSION).then(r => (r.ok ? r.json() : [])).then(list => dedupeDir(list).map(e => Object.assign(e, {
     keys: [e.n, e.fr].concat(e.alt || []).map(normalize).filter(Boolean),
     sk: [e.n, e.fr || ""].concat(e.alt || []).join(" ").split(/[\s\-–,()]+/).map(skel).filter(Boolean)
   }))).catch(() => []);
