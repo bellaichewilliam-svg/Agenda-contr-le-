@@ -165,11 +165,18 @@ async function onLogin(e) {
 }
 
 // --- Aiguillage selon l'état du compte ----------------------------------------------
+// Carte « Installez HOP! Livreur » : à l'accueil et en attente de validation, sauf déjà dans l'appli livreur
+function showInstallCard(on) {
+  const card = $("#installCard");
+  card.classList.toggle("hidden", !on || UI.inOwnApp());
+  if (UI.isStandalone && UI.isStandalone()) $("#installText").textContent = "Vous êtes dans l'appli client « HOP! ». Pour livrer, installez l'autre icône, « HOP! Livreur », et ouvrez-la à la place : tout y est.";
+}
 async function route() {
   ["#welcome", "#waiting", "#work"].forEach(s => $(s).classList.add("hidden"));
+  showInstallCard(false);
   document.body.classList.remove("rider-on");
   $("#logoutBtn").classList.toggle("hidden", !Store.session());
-  if (!Store.session()) { $("#welcome").classList.remove("hidden"); return; }
+  if (!Store.session()) { $("#welcome").classList.remove("hidden"); showInstallCard(true); return; }
   let meErr = false;
   try { me = await Store.me(); } catch (e) { me = null; meErr = true; }
   // Un vrai livreur ira directement dans son espace depuis l'appli HOP! ; le patron garde l'accueil client (voir index.html)
@@ -183,7 +190,7 @@ async function route() {
   }
   // Connecté mais sans fiche (inscription commencée sur un autre téléphone) : compléter la fiche
   setCompleting(!me);
-  if (!me) { $("#welcome").classList.remove("hidden"); showAuth("signup"); return; }
+  if (!me) { $("#welcome").classList.remove("hidden"); showInstallCard(true); showAuth("signup"); return; }
   if (me.status !== "actif") {
     const suspended = me.status === "suspendu";
     $("#waitIcon").textContent = suspended ? "⛔" : "⏳";
@@ -200,6 +207,7 @@ async function route() {
       ? "Bonjour, mon compte est suspendu, pouvez-vous m'expliquer ?"
       : "Bonjour,", !suspended);
     $("#waiting").classList.remove("hidden");
+    showInstallCard(true);
     return;
   }
   $("#work").classList.remove("hidden");
@@ -2245,6 +2253,9 @@ $("#bellBtn").addEventListener("click", () => openPage("inbox"));
 $("#pageBack").addEventListener("click", closePage);
 $("#drawerLogout").addEventListener("click", () => { if (confirm("Se déconnecter ?")) endAndLogout(); });
 $("#locateBtn").addEventListener("click", locateMe);
+$("#installCard").addEventListener("click", e => {
+  if (e.target.closest("[data-install-card]")) UI.installApp("HOP! Livreur", "livreur/").then(ok => { if (ok) showInstallCard(false); });
+});
 $("#sheet").addEventListener("click", e => {
   if (e.target.closest("[data-sheet-up]")) setSheetState("expanded");
   else if (e.target.closest("[data-sheet-down]")) setSheetState("normal");

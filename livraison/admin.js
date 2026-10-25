@@ -39,6 +39,7 @@ let clients = [];   // clients (avec ou sans compte), chargés à l'ouverture de
 let clientsQ = "";
 let penalties = [];   // retenues aux livreurs (courses pas faites, pas reçues)
 let credits = { credits: [], topups: [] };   // crédit prépayé des livreurs et leurs recharges
+let accounts = [];   // comptes (inscription finie ou pas, notifications activées), voir Store.adminAccounts
 let declines = [];    // refus des 30 derniers jours (avec la raison)   // abonnements HOP! Pro payés (part du livreur qui a amené le commerce)
 let msgs = { messages: [], replies: [] };
 let me = null;
@@ -149,6 +150,7 @@ async function load() {
     penalties = (await Store.listPenalties().catch(() => null)) || penalties;
     credits = (await Store.adminCredits().catch(() => null)) || credits;
     declines = (await Store.listDeclines().catch(() => null)) || declines;
+    accounts = (await Store.adminAccounts().catch(() => null)) || accounts;
     if (sh) shops = sh;
     if (sa) sales = sa;
     if (rq) requests = rq;
@@ -163,6 +165,7 @@ async function load() {
   const freshOrders = orders.filter(o => !seen.has(o.id) && o.status === "nouvelle");
   const freshCouriers = couriers.filter(c => !seen.has(c.id) && c.status === "en_attente");
   const freshShops = shops.filter(x => !seen.has(x.id) && x.status === "en_attente");
+  const freshStarts = unfinished().filter(a => !seen.has("start:" + a.id));
   const freshReqs = requests.filter(x => !seen.has(x.id) && x.status === "nouvelle");
   // Souci signalé par un livreur : alerte une seule fois par souci
   const freshIssues = orders.filter(o => o.issue && o.issue_at && !seen.has("issue:" + o.id + o.issue_at));
@@ -172,6 +175,8 @@ async function load() {
   }
   if (!firstLoad && freshCouriers.length) alertNew(freshCouriers, c => `👤 Nouveau livreur : ${c.name}`);
   if (!firstLoad && freshShops.length) alertNew(freshShops, x => `🏪 Nouveau commerce : ${x.name}`);
+  if (!firstLoad && freshStarts.length) alertNew(freshStarts, a => `⏳ Inscription livreur commencée : ${a.email}`);
+  unfinished().forEach(a => seen.add("start:" + a.id));
   orders.forEach(o => seen.add(o.id));
   couriers.forEach(c => seen.add(c.id));
   shops.forEach(x => seen.add(x.id));
@@ -452,7 +457,7 @@ function renderStats() {
   $("#stMonthRev").textContent = UI.money(sum(delivered.filter(isMine), o => Number(o.price) + Number(o.shop_share || 0))
     + sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
     + sum(planSales.filter(p => String(p.created_at).startsWith(month)), p => Number(p.amount) - Number(p.referrer_share || 0)));
-  const pending = couriers.filter(c => c.status === "en_attente").length;
+  const pending = couriers.filter(c => c.status === "en_attente").length + unfinished().length;
   const pendingShops = shops.filter(x => x.status === "en_attente").length;
   const newReqs = requests.filter(x => x.status === "nouvelle").length;
   const fresh = orders.filter(o => o.status === "nouvelle").length;
@@ -610,16 +615,45 @@ function expiryPill(label, date) {
   return `<span class="pill ${expired ? "st-annulee" : "paid"}">${label} ${expired ? "EXPIRÉ" : "valable"} jusqu'au ${UI.esc(new Date(date).toLocaleDateString("fr-FR"))}</span>`;
 }
 
+// Comptes créés sans fiche de livreur : l'inscription a commencé mais n'est pas finie
+function unfinished() { return accounts.filter(a => !a.has_fiche); }
+const fmtShort = iso => new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(" ", " à ");
+
+// Où en est l'inscription : inscrit, validé, notifications (sans elles, pas de course appli fermée)
+function signupLine(c) {
+  const a = accounts.find(x => x.id === c.id);
+  const parts = [`Inscrit le ${UI.esc(fmtShort(c.created_at))}`];
+  if (c.status === "actif") parts.push(c.validated_at ? `validé le ${UI.esc(fmtShort(c.validated_at))}` : "validé");
+  if (a && a.last_sign_in_at) parts.push(`dernière connexion le ${UI.esc(fmtShort(a.last_sign_in_at))}`);
+  return `<div><span>📅</span><span>${parts.join(" · ")}</span></div>`;
+}
+function pushPill(c) {
+  const a = accounts.find(x => x.id === c.id);
+  if (!a) return "";
+  return a.push_n ? `<span class="pill paid">🔔 Reçoit les courses appli fermée</span>`
+    : `<span class="pill st-annulee" title="Il doit ouvrir l'appli HOP! Livreur et toucher « 🔔 Activer les alertes »">🔕 Notifications pas activées</span>`;
+}
+function unfinishedCard() {
+  const list = unfinished();
+  if (!list.length) return "";
+  return `<div class="card" style="margin-bottom:14px;border:2px solid #f79009">
+    <b>⏳ Inscriptions pas terminées (${list.length})</b>
+    <p class="muted small" style="margin:4px 0 8px">Le compte est créé, mais la fiche (nom, véhicule, documents) n'est pas arrivée. ${list.some(a => !a.confirmed) ? "S'il n'a pas confirmé son email, il doit toucher le lien reçu par mail. " : ""}Ensuite il rouvre l'appli HOP! Livreur, se connecte et finit sa fiche : elle apparaîtra ici.</p>
+    ${list.map(a => `<p class="small" style="margin:4px 0"><b dir="ltr">${UI.esc(a.email || "—")}</b> · commencée le ${UI.esc(fmtShort(a.created_at))} · ${a.confirmed ? "✅ email confirmé" : "📧 email pas encore confirmé"}${a.last_sign_in_at ? ` · connecté le ${UI.esc(fmtShort(a.last_sign_in_at))}` : ""}</p>`).join("")}
+  </div>`;
+}
+
 function renderCouriers(view) {
   const list = partners().sort((a, b) => ["en_attente", "actif", "suspendu"].indexOf(a.status) - ["en_attente", "actif", "suspendu"].indexOf(b.status));
-  const invite = UI.appUrl("coursier.html");
-  const statusLabel = { en_attente: "⏳ En attente", actif: "✅ Actif", suspendu: "⛔ Suspendu" };
+  const invite = UI.appUrl("livreur/");
+  const statusLabel = { en_attente: "🆕 Inscrit · à valider", actif: "✅ Actif", suspendu: "⛔ Suspendu" };
   view.innerHTML = `
     <div class="card" style="margin-bottom:14px">
       <b>Recruter des livreurs</b>
       <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance déclarée, HOP pas responsable…), puis vous les validez ici après avoir vu leurs documents. Vous prenez ${UI.commissionText()} par course livrée, réglés chaque semaine.</p>
       <div class="promo-row"><input readonly value="${UI.esc(invite)}" dir="ltr" /><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(`Tu as un scooter, une voiture ou un vélo ? Deviens livreur partenaire chez ${CONFIG.businessName} : tu choisis tes courses, tu encaisses directement le client, et seulement ${UI.commissionText()} de commission par course. Inscription : ${invite}`)}">Partager</a></div>
     </div>
+    ${unfinishedCard()}
     ${list.length ? `<div class="orders">${list.map(c => {
       const done = orders.filter(o => o.courier_id === c.id && o.status === "livree").length;
       const rating = UI.ratingOf(orders.filter(o => o.courier_id === c.id));
@@ -634,9 +668,10 @@ function renderCouriers(view) {
         <div class="kv">
           <div><span>📞</span><span>${tel("", c.phone)}${c.bit_phone ? ` · Bit ${UI.esc(c.bit_phone)}` : ""}${c.has_bit == null ? "" : ` · ${c.has_bit ? "✅ Bit" : "⚠️ pas de Bit"} ${c.has_paybox ? "✅ PayBox" : "· pas de PayBox"}`}${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
           <div><span>🛵</span><span>${UI.esc(c.vehicle || "—")} · permis n° ${UI.esc(c.license_number || "—")} · assurance ${c.insurance ? UI.esc(c.insurance) : "déclarée"}${c.business_number ? ` · n° d'entreprise ${UI.esc(c.business_number)}` : ""}</span></div>
+          ${signupLine(c)}
           <div><span>📝</span><span>Conditions acceptées le ${c.accepted_terms_at ? UI.esc(new Date(c.accepted_terms_at).toLocaleDateString("fr-FR")) : "—"}</span></div>
         </div>
-        <div class="meta">${c.topcase_at ? `<button type="button" class="pill pill-btn paid" data-topcase="1">📷 Voir le top case</button>` : `<span class="pill st-annulee">📷 Pas de photo du top case</span>`}${c.docs_n ? `<button type="button" class="pill pill-btn paid" data-docs="1">📄 Documents (${Number(c.docs_n)})</button>` : `<span class="pill unpaid">📄 Pas encore de documents</span>`}${expiryPill("Permis", c.license_expiry)}${c.insurance_expiry ? expiryPill("Assurance", c.insurance_expiry) : ""}
+        <div class="meta">${c.topcase_at ? `<button type="button" class="pill pill-btn paid" data-topcase="1">📷 Voir le top case</button>` : `<span class="pill st-annulee">📷 Pas de photo du top case</span>`}${c.docs_n ? `<button type="button" class="pill pill-btn paid" data-docs="1">📄 Documents (${Number(c.docs_n)})</button>` : `<span class="pill unpaid">📄 Pas encore de documents</span>`}${expiryPill("Permis", c.license_expiry)}${c.insurance_expiry ? expiryPill("Assurance", c.insurance_expiry) : ""}${pushPill(c)}
           ${(() => { const b = balanceOf(c.id); return b > Number(settings.max_debt) ? `<span class="pill st-annulee">🔒 Bloqué : doit ${UI.money(b)}</span>` : b > 0 ? `<span class="pill unpaid">Doit ${UI.money(b)}</span>` : b < 0 ? `<span class="pill paid">Vous lui devez ${UI.money(-b)}</span>` : ""; })()}</div>
         <div class="actions">
           ${c.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-cact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-cact="suspendu">⛔ Suspendre</button>`}
@@ -647,6 +682,8 @@ function renderCouriers(view) {
           ${chatBtn("c:" + c.id, `Livreur : ${c.name}`, c.phone, "💬 Message", c.status === "en_attente"
             ? `Bonjour ${c.name}, merci pour ton inscription chez ${CONFIG.businessName} ! Pour valider ton compte, envoie-moi ici en photo : permis de conduire, carte grise et carte d'identité.`
             : `Bonjour ${c.name}, `)}
+          ${c.status !== "suspendu" && (accounts.find(x => x.id === c.id) || {}).push_n === 0 ? chatBtn("c:" + c.id, `Livreur : ${c.name}`, c.phone, "🔔 Lui demander d'activer les alertes",
+            `Bonjour ${c.name}, ouvre l'appli HOP! Livreur et touche « 🔔 Activer les alertes » puis « Autoriser » : sinon tu ne reçois pas les courses quand l'appli est fermée.`) : ""}
           <textarea class="admin-note" data-cact="note" rows="1" placeholder="Note interne (documents vérifiés, remarques…)">${UI.esc(c.admin_note || "")}</textarea>
         </div>
       </article>`;
