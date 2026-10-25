@@ -2133,3 +2133,8 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .online-line { margin: -4px 0 8px; }
 .online-line .pill { white-space: normal; display: inline-block; }
 .order .kv span { overflow-wrap: anywhere; }
+
+/* Kit pub : visuel ouvert en grand (Enregistrer / Partager / Fermer) */
+.vis-view { position: fixed; inset: 0; z-index: 130; background: rgba(15, 31, 61, .94); overflow-y: auto; padding: calc(10px + env(safe-area-inset-top)) 12px 24px; }
+.vis-view .vv-bar { position: sticky; top: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-bottom: 10px; }
+.vis-view img { display: block; width: 100%; max-width: 720px; margin: 0 auto; border-radius: 12px; }
