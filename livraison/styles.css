@@ -1642,7 +1642,11 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .resto-pop small { color: #5B6476; }
 .resto-pop .btn { margin-top: 4px; }
 .resto-pin.many b { border-width: 3px; }
-.resto-pop { gap: 8px; max-height: 220px; overflow-y: auto; }
+.resto-pop { gap: 8px; }
+/* Bulle compacte : nom, ce que c'est, adresse, puis le bouton en petit ; plusieurs commerces : on fait défiler */
+.resto-pop .rp-row .btn { padding: 7px 12px; font-size: 13.5px; }
+.resto-pop .ac-soon { justify-self: start; margin-top: 2px; font-size: 11.5px; }
+.resto-pop b { font-size: 14px; line-height: 1.25; }
 .rp-row { display: grid; gap: 4px; }
 .rp-row + .rp-row { border-top: 1px solid #E8EBF2; padding-top: 8px; }
 .rp-row span { display: grid; }

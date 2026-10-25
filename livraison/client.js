@@ -2507,6 +2507,8 @@ async function initRestos() {
   restos.list = restos.list.map(e => (streets[e.lat.toFixed(4) + "," + e.lon.toFixed(4)].size >= 3 ? Object.assign({}, e, { offMap: true }) : e));
   home.map.on("zoomend moveend", drawRestos);
   home.map.on("popupclose", () => { restos.open = false; drawRestos(); });
+  // On fait glisser la carte ou on zoome : la bulle se ferme, et les commerces du nouvel endroit s'affichent
+  home.map.on("dragstart zoomstart", () => { if (restos.open) home.map.closePopup(); });
   home.map.on("popupopen", e => {
     restos.open = true;
     const box = e.popup.getElement();
@@ -2522,7 +2524,7 @@ function drawRestos() {
   el.classList.toggle("rz-far", z < 13);
   el.classList.toggle("rz-names", z >= 13);
   if (z < 12) { restos.layer.clearLayers(); restos.key = ""; return; }
-  const bounds = home.map.getBounds().pad(0.15), c = home.map.getCenter();
+  const bounds = home.map.getBounds().pad(0.5), c = home.map.getCenter();   // un peu autour de l'écran : déjà là quand on se déplace
   // Plusieurs restaurants au même endroit (centre commercial) : un seul rond « nom +2 »
   const groups = {};
   restos.list.forEach((e, i) => {
@@ -2531,7 +2533,7 @@ function drawRestos() {
     (groups[k] = groups[k] || []).push(i);
   });
   const shown = Object.values(groups).map(ids => ({ ids, e: restos.list[ids[0]] }))
-    .sort((a, b2) => c.distanceTo([a.e.lat, a.e.lon]) - c.distanceTo([b2.e.lat, b2.e.lon])).slice(0, z >= 15 ? 150 : 250);
+    .sort((a, b2) => c.distanceTo([a.e.lat, a.e.lon]) - c.distanceTo([b2.e.lat, b2.e.lon])).slice(0, z >= 15 ? 260 : 350);
   // Noms : seulement ceux qui ne se chevauchent pas (les plus proches du centre d'abord)
   const boxes = [], isHop = g => g.ids.some(i => restos.list[i].partner);
   // Les partenaires HOP! d'abord : leur nom est toujours affiché
@@ -2559,7 +2561,7 @@ function drawRestos() {
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = Places.dirName(e, I18N.lang); return `<div class="rp-row">
           <span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t("restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
-        { closeButton: false, offset: [0, -6], autoPanPaddingTopLeft: [12, 140], autoPanPaddingBottomRight: [70, 20] })
+        { closeButton: false, offset: [0, -6], maxWidth: 260, maxHeight: 210, autoPanPaddingTopLeft: [12, 150], autoPanPaddingBottomRight: [76, 24] })
       .addTo(restos.layer);
   });
 }
