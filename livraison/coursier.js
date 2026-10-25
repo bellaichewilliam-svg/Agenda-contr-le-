@@ -1070,7 +1070,7 @@ const bars = lv => `<span class="dbars ${lv.cls}">${[1, 2, 3].map(i => `<i class
 function renderZones(view) {
   view.innerHTML = `<div class="card">
       <h3>Zone de livraison</h3>
-      <p class="muted small" style="margin:4px 0 12px">Pour l'instant, HOP! livre dans le Sharon (Netanya et alentours). Les autres zones ouvriront bientôt.</p>
+      <p class="muted small" style="margin:4px 0 12px">HOP! livre dans toutes les zones ci-dessous${CONFIG.cities.some(c => c.closed) ? ` (sauf ${UI.esc(CONFIG.cities.filter(c => c.closed).map(c => c.fr).join(", "))} pour l'instant)` : ""}.</p>
       ${CONFIG.zones.map(z => `<div class="zone-row${z.active ? "" : " off"}">
           <span class="zone-radio${z.active ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
           <span class="zone-dem">${z.active ? `<span class="zone-open">Ouverte</span>` : "À venir"}</span>

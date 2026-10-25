@@ -79,19 +79,20 @@ window.CONFIG = {
     { id: "givatayim", zone: "tlv",    fr: "Givatayim",      he: "גבעתיים",      lat: 32.0722, lon: 34.8120, aliases: ["Giv'atayim", "Givataim"] },
     { id: "bnei-brak", zone: "tlv",    fr: "Bnei Brak",      he: "בני ברק",      lat: 32.0807, lon: 34.8338, aliases: ["Bene Beraq", "Bnei Brak"] },
     { id: "petah-tikva", zone: "petah-tikva",  fr: "Petah Tikva",    he: "פתח תקווה",    lat: 32.0840, lon: 34.8878, aliases: ["Petah Tiqwa", "Petach Tikva", "Petah Tikva"] },
-    { id: "holon", zone: "tlv",        fr: "Holon",          he: "חולון",        lat: 32.0158, lon: 34.7874 },
+    { id: "holon", zone: "tlv",        fr: "Holon",          he: "חולון",        lat: 32.0158, lon: 34.7874, closed: true },
     { id: "bat-yam", zone: "tlv",      fr: "Bat Yam",        he: "בת ים",        lat: 32.0171, lon: 34.7454 },
     { id: "rishon", zone: "rishon",       fr: "Rishon LeZion",  he: "ראשון לציון",  lat: 31.9730, lon: 34.7925, aliases: ["Rishon LeTsiyyon", "Rishon Lezion"] }
   ],
   homeCity: "netanya",
 
   // --- Zones de livraison : le Sharon, Tel Aviv – Gush Dan, Petah Tikva, Rishon ---
-  // Les villes sans « zone » sont dans le Sharon. Mettez active: true pour ouvrir une zone (pour l'instant : le Sharon seulement).
+  // Les villes sans « zone » sont dans le Sharon. active: false ferme une zone ; closed: true sur une ville la ferme seule
+  // (pour l'instant : tout est ouvert sauf Holon).
   zones: [
     { id: "sharon",      fr: "HaSharon",                he: "השרון",                active: true },
-    { id: "tlv",         fr: "Tel Aviv – Gush Dan",     he: "תל אביב – גוש דן",      active: false },
-    { id: "petah-tikva", fr: "Petah Tikva",             he: "פתח תקווה",            active: false },
-    { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: false }
+    { id: "tlv",         fr: "Tel Aviv – Gush Dan",     he: "תל אביב – גוש דן",      active: true },
+    { id: "petah-tikva", fr: "Petah Tikva",             he: "פתח תקווה",            active: true },
+    { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: true }
   ],
   // Regroupement : deux courses d'un coup quand les arrivées sont proches (mêmes règles que la base, pair_ok)
   grouping: { dropKm: 1.2, pickupKm: 0.6, minutes: 15, detourKm: 1, maxOrders: 3 },
@@ -149,11 +150,11 @@ window.CONFIG = {
     returnTripPercent: 50,
     // Zones à part de Netanya : une course entre la ville et une de ces zones (ou d'une zone à l'autre)
     // coûte price au lieu du prix « dans Netanya », dans les deux sens ; dans la même zone, prix normal.
-    // Sauf si un livreur libre est déjà dans la zone ou à moins de nearKm km (et la course est pour maintenant) :
-    // prix normal. Contours : vraies limites (Overture Maps / OpenStreetMap), élargies de ≈ 30 m, en [lat, lon].
+    // Sauf si un livreur libre est déjà dans la zone (course pour maintenant) : prix normal. nearKm = la marge de
+    // l'arrondi des positions des livreurs (≈ 150 m, pour leur vie privée), pas plus. Contours : vraies limites (Overture Maps / OpenStreetMap), élargies de ≈ 30 m, en [lat, lon].
     areas: {
       price: 30,
-      nearKm: 1,
+      nearKm: 0.2,
       list: [
         { id: "ezor-hadash", city: "netanya", fr: "zone industrielle nouvelle (Poleg)", he: "אזור התעשייה החדש (פולג)",
           poly: [[32.2871, 34.85984], [32.2898, 34.86043], [32.29326, 34.86179], [32.29299, 34.86693], [32.29128, 34.86751], [32.28665, 34.8673], [32.28314, 34.86661], [32.27362, 34.86364], [32.27191, 34.85986], [32.27274, 34.85722], [32.27398, 34.85541]] },

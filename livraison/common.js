@@ -87,6 +87,7 @@ function cityFr(id) {
 function cityZone(id) { const c = CONFIG.cities.find(x => x.id === id); return (c && c.zone) || "sharon"; }
 function cityActive(id) {
   if (!CONFIG.cities.some(x => x.id === id)) return true;  // autre ville tapée : vérifiée par l'adresse
+  if (CONFIG.cities.some(x => x.id === id && x.closed)) return false;   // ville fermée à part (Holon)
   const z = (CONFIG.zones || []).find(x => x.id === cityZone(id));
   return !z || z.active !== false;
 }
