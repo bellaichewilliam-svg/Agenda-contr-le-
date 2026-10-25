@@ -132,7 +132,7 @@ async function list(catId, at, lang, onMore) {
     const fromDir0 = partners.concat(dir.map(e => {
       const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)/);
       return { name: Places.dirName(e, lang), street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
-        lat: e.lat, lon: e.lon, icon: cat.id === "pressing" ? "👔" : FRENCH.test(dirText(e)) ? "🥖" : /קייטרינג|traiteur|מעדני/i.test(dirText(e)) ? "🍱" : "🥐",
+        lat: e.lat, lon: e.lon, lg: e.lg, icon: cat.id === "pressing" ? "👔" : FRENCH.test(dirText(e)) ? "🥖" : /קייטרינג|traiteur|מעדני/i.test(dirText(e)) ? "🍱" : "🥐",
         french: cat.id === "breakfast" && FRENCH.test(dirText(e)) };
     }).filter(x => !partners.some(d => Places.km(d, x) < 0.15)));
     const fromDir = withKnown(fromDir0, known);
@@ -154,7 +154,7 @@ async function list(catId, at, lang, onMore) {
     items = items.map(e => {
       const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)/);
       return { name: Places.dirName(e, lang), street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,
-        lat: e.lat, lon: e.lon, icon: Places.foodIcon(e.n, e.k) };
+        lat: e.lat, lon: e.lon, lg: e.lg, icon: Places.foodIcon(e.n, e.k) };
     });
     items = withKnown(items, known);
   } else {

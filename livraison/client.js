@@ -2551,9 +2551,9 @@ function drawRestos() {
   });
   const shown = spread.sort((a, b2) => c.distanceTo(a.pos) - c.distanceTo(b2.pos)).slice(0, z >= 15 ? 300 : 350);
   // Noms : seulement ceux qui ne se chevauchent pas (les plus proches du centre d'abord)
-  const boxes = [], isHop = g => g.ids.some(i => restos.list[i].partner);
-  // Les partenaires HOP! d'abord : leur nom est toujours affiché
-  shown.filter(isHop).concat(shown.filter(g => !isHop(g))).forEach(g => {
+  const boxes = [], isHop = g => g.ids.some(i => restos.list[i].partner), hasLogo = g => g.ids.some(i => restos.list[i].lg);
+  // Les partenaires HOP! d'abord (leur nom est toujours affiché), puis les commerces qui ont un logo
+  shown.filter(isHop).concat(shown.filter(g => !isHop(g) && hasLogo(g)), shown.filter(g => !isHop(g) && !hasLogo(g))).forEach(g => {
     if (z < 13) return;
     const name = restoName(g.e), pt = home.map.latLngToContainerPoint(g.pos);
     const w = Math.min(22, name.length) * 6.6 + (g.ids.length > 1 ? 22 : 0) + 44, box = [pt.x - 14, pt.y - 13, pt.x + w, pt.y + 13];
@@ -2570,7 +2570,9 @@ function drawRestos() {
     // L'icône de sa cuisine (🍕 🍣 🍔…), un partenaire HOP! en orange ; les noms affichés passent devant
     // Partenaire HOP! : son logo (celui de sa vitrine), sinon l'icône de son métier
     const pe = g.ids.map(i => restos.list[i]).find(e => e.partner), hop = !!pe;
-    const logo = hop ? UI.safeImg(((state.showcase || []).find(x => x.code === pe.partner.code) || {}).logo) : "";
+    // Logo : celui de la vitrine d'un partenaire, sinon celui d'un commerce de l'annuaire (img/logos/…)
+    const dirLogo = g.ids.map(i => restos.list[i].lg).find(v => /^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(v || "")) || "";
+    const logo = hop ? UI.safeImg(((state.showcase || []).find(x => x.code === pe.partner.code) || {}).logo) || dirLogo : dirLogo;
     const ico = logo ? `<img src="${logo}" alt="" />` : hop ? (UI.KIND_ICON[pe.partner.kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
     // Le logo d'un partenaire grossit à mesure qu'on zoome (34 px à la vue de départ, jusqu'à 84 px tout près)
     const lg = logo ? ({ 13: 28, 14: 30, 15: 34, 16: 40, 17: 52, 18: 66 })[z] || (z > 18 ? 84 : 28) : 26;
@@ -2839,7 +2841,7 @@ function renderEnsList() {
   $("#ensList").innerHTML = ens.shown.length ? ens.shown.map((x, i) => {
     const addr = [`${x.street} ${x.number}`.trim(), x.city ? cityLabel(cityIdOf(x.city) || x.city) : ""].filter(Boolean).join(", ");
     return `<div class="ens-item">
-      <span class="ens-ico">${x.icon}</span>
+      <span class="ens-ico">${/^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(x.lg || "") ? `<img src="${x.lg}" alt="" />` : x.icon}</span>
       <div class="ens-main"><b>${UI.esc(UI.bi(x.name))}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>${x.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}
         <small>${UI.esc(addr || t("ensAddrLater"))} · ${dist(x)}</small></div>
       <div class="ens-act"><button type="button" class="btn btn-sm btn-primary" data-ens-pick="from" data-i="${i}">${UI.esc(t("ensFrom"))}</button>

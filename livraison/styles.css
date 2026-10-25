@@ -1632,6 +1632,8 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .resto-pin.logo { width: var(--lg, 34px); height: var(--lg, 34px); }
 .resto-pin.logo b { width: var(--lg, 34px); height: var(--lg, 34px); padding: 0; transition: width .2s, height .2s; overflow: hidden; background: #fff; border: 2.5px solid var(--brand); box-shadow: 0 4px 12px rgba(224, 66, 10, .4); }
 .resto-pin.logo b img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+/* Logo d'un commerce de l'annuaire (pas partenaire) : cerclé de blanc, le partenaire garde l'orange */
+.resto-pin.logo:not(.hop) b { border-color: #fff; box-shadow: 0 3px 10px rgba(15, 31, 61, .35); }
 .resto-pin.logo span { inset-inline-start: calc(var(--lg, 34px) - 4px); }
 /* Sans nom affiché : la même icône, en plus petit (pas de point orange) ; en zoomant, elles reprennent leur taille */
 .resto-pin.small b { width: 19px; height: 19px; font-size: 10.5px; border-width: 1.5px; box-shadow: 0 2px 5px rgba(15,31,61,.25); }
@@ -2075,3 +2077,5 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 
 .pg-area span { display: grid; gap: 1px; }
 .pg-area small { font-size: 12px; }
+
+.ens-ico img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
