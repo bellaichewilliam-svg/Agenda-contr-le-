@@ -636,9 +636,44 @@ function doorTag(o, lang) {
 // Nom de l'enseigne (Super-Pharm, restaurant…) au-dessus de l'adresse
 function brand(name) { return name ? `<span class="brand-tag">🏪 <bdi>${esc(name)}</bdi></span>` : ""; }
 function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)}</div>` : ""; }
+// Petit calendrier à la date du jour (l'emoji 📅 du téléphone affiche toujours « JUL 17 »)
+function calIcon(d) {
+  d = d || new Date();
+  const m = d.toLocaleDateString(loc(), { month: "short" }).replace(".", "").toUpperCase();
+  return `<span class="cal-ico" aria-hidden="true"><i>${esc(m)}</i><b>${d.getDate()}</b></span>`;
+}
+// Partout dans l'appli, chaque 📅 / 🗓️ affiché devient ce calendrier à la date du jour
+const CAL_RX = /\u{1F4C5}|\u{1F5D3}\uFE0F?/u;
+function liveCalendars(root) {
+  if (!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n => {
+    const tag = n.parentNode && n.parentNode.nodeName;
+    return CAL_RX.test(n.data) && !/^(OPTION|TEXTAREA|TITLE|SCRIPT|STYLE)$/.test(tag) && !(n.parentNode.closest && n.parentNode.closest("[contenteditable]"))
+      ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT; } });
+  const hits = [];
+  while (walker.nextNode()) hits.push(walker.currentNode);
+  hits.forEach(n => {
+    const parts = n.data.split(new RegExp(CAL_RX.source, "gu")), frag = document.createDocumentFragment();
+    parts.forEach((txt, i) => {
+      if (i) { const t = document.createElement("template"); t.innerHTML = calIcon(); frag.appendChild(t.content); }
+      if (txt) frag.appendChild(document.createTextNode(txt));
+    });
+    n.parentNode.replaceChild(frag, n);
+  });
+}
+if (typeof MutationObserver !== "undefined") {
+  const startCal = () => {
+    liveCalendars(document.body);
+    new MutationObserver(list => list.forEach(m => {
+      if (m.type === "characterData") { if (m.target.parentNode) liveCalendars(m.target.parentNode); return; }
+      m.addedNodes.forEach(n => { if (n.nodeType === 1) liveCalendars(n); else if (n.nodeType === 3 && n.parentNode) liveCalendars(n.parentNode); });
+    })).observe(document.body, { childList: true, subtree: true, characterData: true });
+  };
+  if (document.body) startCal(); else document.addEventListener("DOMContentLoaded", startCal);
+}
 
 window.UI = {
-  addrNote, brand, addrDetails, addrDetailsText, doorTag, doorBig,
+  addrNote, calIcon, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,

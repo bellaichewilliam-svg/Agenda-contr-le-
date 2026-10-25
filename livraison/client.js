@@ -1431,7 +1431,7 @@ function noticeCard(n) {
     <span class="nt-ico">${UI.KIND_ICON[n.shop_kind] || "🏪"}</span>
     <div class="nt-txt"><b>${UI.esc(t("ntTitle", { name: n.shop_name }))}</b>
       ${n.message ? `<p>« ${UI.esc(n.message)} »</p>` : ""}<small>🕘 ${UI.esc(noticeWhen(n))}</small></div>
-    <div class="nt-btns"><button type="button" class="btn btn-primary btn-sm" data-nt-book="${UI.esc(n.id)}">${UI.esc(t("ntBook"))}</button>
+    <div class="nt-btns"><button type="button" class="btn btn-primary btn-sm" data-nt-book="${UI.esc(n.id)}">${UI.calIcon()} ${UI.esc(String(t("ntBook")).replace("📅", "").trim())}</button>
       ${n.seen_at ? "" : `<button type="button" class="btn btn-link btn-sm" data-nt-later="${UI.esc(n.id)}">${UI.esc(t("ntLater"))}</button>`}</div>
   </div>`;
 }
@@ -2515,6 +2515,7 @@ async function initRestos() {
     if (box) box.querySelectorAll("[data-resto]").forEach(b => b.addEventListener("click", () => { pickResto(restos.list[Number(b.dataset.resto)]); home.map.closePopup(); }));
   });
   drawRestos();
+  if (Store.fixAddressBrands(freshBrand)) { renderHomeStatic(); syncHome(); }   // « Mes adresses » et « Refaire la dernière course » avec le bon nom
 }
 const restoName = e => (I18N.lang === "fr" && e.fr ? e.fr : e.n);
 function drawRestos() {
@@ -2525,21 +2526,31 @@ function drawRestos() {
   el.classList.toggle("rz-names", z >= 13);
   if (z < 12) { restos.layer.clearLayers(); restos.key = ""; return; }
   const bounds = home.map.getBounds().pad(0.5), c = home.map.getCenter();   // un peu autour de l'écran : déjà là quand on se déplace
-  // Plusieurs restaurants au même endroit (centre commercial) : un seul rond « nom +2 »
+  // Plusieurs commerces au même endroit (centre commercial) : chacun son rond, écartés en cercle autour du point
+  // (au-delà de 10, le dernier rond regroupe le reste : « nom +3 ») ; de loin, un seul rond « nom +2 »
   const groups = {};
   restos.list.forEach((e, i) => {
     if (e.offMap || !bounds.contains([e.lat, e.lon])) return;
     const k = e.lat.toFixed(4) + "," + e.lon.toFixed(4);
     (groups[k] = groups[k] || []).push(i);
   });
-  const shown = Object.values(groups).map(ids => ({ ids, e: restos.list[ids[0]] }))
-    .sort((a, b2) => c.distanceTo([a.e.lat, a.e.lon]) - c.distanceTo([b2.e.lat, b2.e.lon])).slice(0, z >= 15 ? 260 : 350);
+  const spread = [];
+  Object.values(groups).forEach(ids => {
+    const e0 = restos.list[ids[0]];
+    if (ids.length === 1 || z < 14) { spread.push({ ids, e: e0, pos: [e0.lat, e0.lon] }); return; }
+    const n = Math.min(ids.length, 10), r = 16 + 3 * n, p0 = home.map.project([e0.lat, e0.lon], z);
+    for (let k = 0; k < n; k++) {
+      const a = -Math.PI / 2 + 2 * Math.PI * k / n, ll = home.map.unproject(p0.add([r * Math.cos(a), r * Math.sin(a)]), z);
+      spread.push({ ids: k === n - 1 ? ids.slice(k) : [ids[k]], e: restos.list[ids[k]], pos: [ll.lat, ll.lng] });
+    }
+  });
+  const shown = spread.sort((a, b2) => c.distanceTo(a.pos) - c.distanceTo(b2.pos)).slice(0, z >= 15 ? 300 : 350);
   // Noms : seulement ceux qui ne se chevauchent pas (les plus proches du centre d'abord)
   const boxes = [], isHop = g => g.ids.some(i => restos.list[i].partner);
   // Les partenaires HOP! d'abord : leur nom est toujours affiché
   shown.filter(isHop).concat(shown.filter(g => !isHop(g))).forEach(g => {
     if (z < 13) return;
-    const name = restoName(g.e), pt = home.map.latLngToContainerPoint([g.e.lat, g.e.lon]);
+    const name = restoName(g.e), pt = home.map.latLngToContainerPoint(g.pos);
     const w = Math.min(22, name.length) * 6.6 + (g.ids.length > 1 ? 22 : 0) + 44, box = [pt.x - 14, pt.y - 13, pt.x + w, pt.y + 13];
     g.label = !boxes.some(o => box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]);
     if (g.label) boxes.push(box);
@@ -2556,7 +2567,7 @@ function drawRestos() {
     const pe = g.ids.map(i => restos.list[i]).find(e => e.partner), hop = !!pe;
     const logo = hop ? UI.safeImg(((state.showcase || []).find(x => x.code === pe.partner.code) || {}).logo) : "";
     const ico = logo ? `<img src="${logo}" alt="" />` : hop ? (UI.KIND_ICON[pe.partner.kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
-    L.marker([g.e.lat, g.e.lon], { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: logo ? [34, 34] : [26, 26], iconAnchor: logo ? [17, 17] : [13, 13],
+    L.marker(g.pos, { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: logo ? [34, 34] : [26, 26], iconAnchor: logo ? [17, 17] : [13, 13],
       html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = Places.dirName(e, I18N.lang); return `<div class="rp-row">
           <span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
@@ -2570,6 +2581,17 @@ function restoKind(e) {
   if (e.partner) return [(t("shKinds") || {})[e.partner.kind] || "⭐", t("restoHop")].join(" · ");
   const ico = Places.foodIcon(e.n, e.k), fk = t("fk") || {};
   return `${ico} ${fk[ico] || fk["🍽️"] || ""}`;
+}
+// Un nom mal tapé resté dans « Mes adresses » (« Samaki » au lieu de « Simaki ») : on reprend le nom de l'annuaire
+// du commerce au même endroit (même squelette de consonnes), et on le corrige une fois pour toutes
+const consonants = s => String(s || "").toLowerCase().normalize("NFD").replace(/[^a-z\u05d0-\u05ea]/g, "").replace(/[aeiouy]/g, "");
+function freshBrand(a) {
+  if (!a || !a.brand || a.lat == null || !restos.list.length) return a && a.brand;
+  const c = consonants(String(a.brand).split(" · ")[0]);
+  if (!c) return a.brand;
+  const hit = restos.list.find(e => !e.partner && Math.abs(e.lat - a.lat) < 0.0004 && Math.abs(e.lon - a.lon) < 0.0004
+    && [e.n, e.fr].concat(e.alt || []).some(n => { const k = consonants(n); return k.length >= 3 && (k === c || k.startsWith(c) || c.startsWith(k)); }));
+  return hit ? Places.dirName(hit, I18N.lang) : a.brand;
 }
 function pickResto(e) {
   if (!e) return;
@@ -2723,7 +2745,7 @@ function shopCard(s) {
     <span class="sc-body"><b>${UI.esc(s.name)}</b>
       <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : ""}</small>
       ${s.tagline ? `<small class="sc-tag">${UI.esc(s.tagline)}</small>` : ""}</span>
-    <span class="sc-go" aria-label="${UI.esc(st && !st.open ? t("scSchedule") : t("proGo"))}">${st && !st.open ? "📅" : "›"}</span>
+    <span class="sc-go" aria-label="${UI.esc(st && !st.open ? t("scSchedule") : t("proGo"))}">${st && !st.open ? UI.calIcon() : "›"}</span>
   </div>`;
 }
 function renderShowcase() {

@@ -134,7 +134,7 @@ function foodIcon(name, kind) {
   for (const [rx, ico] of rules) if (rx.test(t)) return ico;
   return "🍽️";
 }
-const DIR_VERSION = "10";
+const DIR_VERSION = "11";
 // Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
 const ALIASES = [
   ["mcdonalds", "מקדונלד"], ["mcdonald", "מקדונלד"], ["mcdo", "מקדונלד"], ["macdo", "מקדונלד"], ["burgerking", "בורגרקינג"],

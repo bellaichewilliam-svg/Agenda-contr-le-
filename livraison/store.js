@@ -446,6 +446,14 @@ function updateAddress(i, patch) {
   writeJSON(LS.addresses, list);
   pushAddresses();
 }
+// Le nom d'un commerce corrigé dans l'annuaire (« Samaki » → « Simaki ») : on corrige aussi les adresses enregistrées,
+// sans changer leur ordre ni leurs étiquettes (Maison, Travail…)
+function fixAddressBrands(fix) {
+  let changed = false;
+  const list = getAddresses().map(a => { const b = fix(a); if (b && b !== a.brand) { changed = true; return Object.assign({}, a, { brand: b }); } return a; });
+  if (changed) { writeJSON(LS.addresses, list); pushAddresses(); }
+  return changed;
+}
 function saveProfile(p) { writeJSON(LS.profile, p); }
 
 // --- Connexion (patron et livreurs) ---------------------------------------------
@@ -1967,7 +1975,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress,
+  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
