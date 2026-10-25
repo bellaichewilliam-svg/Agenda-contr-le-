@@ -2093,3 +2093,12 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .resto-pin.has-logo:not(.hop) b img { padding: 2px; }
 .rp-logo img { padding: 4px; }
 .ens-ico img { padding: 3px; border-radius: 12px; }
+
+/* Documents du livreur : une case par document (inscription, écran d'attente) */
+.docs-f { margin-top: 12px; }
+.docs-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.doc-pick { display: grid; gap: 2px; padding: 10px 12px; border: 1.5px dashed var(--border); border-radius: 12px; background: var(--bg-2); cursor: pointer; }
+.doc-pick span { font-weight: 700; font-size: 13.5px; }
+.doc-pick small { color: var(--muted); font-size: 12px; }
+.doc-pick.ok { border-style: solid; border-color: rgba(18, 183, 106, .5); background: var(--green-soft); }
+.doc-pick.ok small { color: var(--green-ink); }

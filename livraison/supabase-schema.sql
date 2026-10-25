@@ -5812,3 +5812,63 @@ begin
 end;
 $$;
 grant execute on function public.shop_texts_he_save(uuid, text, text) to anon, authenticated;
+
+-- ============================================================================
+-- DOCUMENTS DES LIVREURS : permis, carte grise, carte d'identité, attestation d'עוסק… rangés sur la fiche
+-- du livreur (comme la photo du top case), que le patron ouvre à la demande. Une photo envoyée par le livreur
+-- dans la conversation avec le patron y est aussi copiée (la conversation garde la sienne). Rien n'est jamais effacé.
+-- ============================================================================
+create table if not exists public.courier_docs (
+  id         uuid primary key default gen_random_uuid(),
+  courier_id uuid not null references public.couriers(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  kind       text not null default 'autre' check (kind in ('permis', 'carte_grise', 'identite', 'osek', 'assurance', 'autre', 'message')),
+  image      text not null check (length(image) <= 700000 and image ~ '^data:image/(jpeg|png|webp);base64,'),
+  source_msg uuid unique
+);
+create index if not exists courier_docs_courier_idx on public.courier_docs (courier_id, created_at);
+alter table public.courier_docs enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'courier_docs' and policyname = 'documents envoi') then
+    create policy "documents envoi" on public.courier_docs for insert to authenticated with check (courier_id = auth.uid() and source_msg is null);
+  end if;
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'courier_docs' and policyname = 'documents lecture') then
+    create policy "documents lecture" on public.courier_docs for select to authenticated using (courier_id = auth.uid() or public.is_admin());
+  end if;
+end $$;
+alter table public.couriers add column if not exists docs_n int not null default 0;
+
+-- Le nombre de documents sur la fiche (la liste des livreurs ne charge pas les photos)
+create or replace function public.courier_docs_count() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update couriers set docs_n = (select count(*) from courier_docs where courier_id = new.courier_id) where id = new.courier_id;
+  return new;
+end;
+$$;
+create or replace trigger courier_docs_count after insert on public.courier_docs
+  for each row execute function public.courier_docs_count();
+revoke execute on function public.courier_docs_count() from public, anon, authenticated;
+
+-- Une photo envoyée par le livreur au patron : copiée dans ses documents
+create or replace function public.chat_courier_doc() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.author = 'courier' and new.image is not null and new.thread like 'c:%' then
+    insert into courier_docs (courier_id, kind, image, source_msg, created_at)
+    select c.id, 'message', new.image, new.id, new.created_at from couriers c where c.id = substring(new.thread from 3)::uuid
+    on conflict (source_msg) do nothing;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger chat_courier_doc after insert on public.chat_messages
+  for each row execute function public.chat_courier_doc();
+revoke execute on function public.chat_courier_doc() from public, anon, authenticated;
+
+-- Les photos déjà envoyées en message : copiées une fois (les messages ne bougent pas)
+insert into public.courier_docs (courier_id, kind, image, source_msg, created_at)
+select c.id, 'message', m.image, m.id, m.created_at
+  from public.chat_messages m join public.couriers c on c.id::text = substring(m.thread from 3)
+ where m.author = 'courier' and m.image is not null and m.thread like 'c:%'
+on conflict (source_msg) do nothing;
