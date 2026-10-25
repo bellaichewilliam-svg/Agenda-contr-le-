@@ -322,9 +322,24 @@ function pickupDate() {
   return new Date(y, m - 1, d, hh, mm);
 }
 
+// Commerce de la course (départ ou arrivée) : le livreur y passe à l'heure de départ, ou ~25 min après pour l'y déposer
+function shopVisitAt(at) {
+  const side = shopSide();
+  return at && side ? (side === "to" ? new Date(at.getTime() + 25 * 60000) : at) : null;
+}
+// Le commerce est-il ouvert quand le livreur y passe ? (pas d'horaires renseignés : toujours oui)
+function shopOpenAt(at) {
+  const s = state.shop, when = shopVisitAt(at);
+  if (!when || !s || !s.hours) return true;
+  const st = UI.openState(s.hours, when);
+  return !st || st.open;
+}
+const shopShortName = () => String(UI.bi(state.shop.name)).split(" · ")[0];
 function scheduleError() {
   const u = val("urgency");
   if (!state.settings.accepting && u !== "programmee") return { key: "errNotAccepting" };
+  // Pas de course chez un commerce fermé à cette heure-là
+  if (!shopOpenAt(pickupDate())) return { key: "errShopClosed", vars: { name: shopShortName(), opens: openLabel(UI.openState(state.shop.hours)) } };
   if (u === "asap") return null;
   if (u === "express") return openNow() ? null : { key: "errExpressClosed" };
   return Pricing.checkSchedule(pickupDate(), CONFIG);
@@ -2289,9 +2304,15 @@ function renderHomeStatic() {
 // Raccourcis d'heure : maintenant, dans 1 h, ce soir, demain matin (seulement s'ils sont possibles)
 function whenOptions() {
   const lead = CONFIG.minLeadMinutes * 60000;
-  const ok = d => d - Date.now() >= lead && !Pricing.checkSchedule(d, CONFIG);
+  const ok = d => d - Date.now() >= lead && !Pricing.checkSchedule(d, CONFIG) && shopOpenAt(d);
   const out = [];
-  if (openNow()) out.push({ id: "now" });
+  if (openNow() && shopOpenAt(new Date())) out.push({ id: "now" });
+  // Commerce fermé maintenant : « À l'ouverture » (15 min après), l'heure prise d'office en choisissant le commerce
+  const shut = shopSide() && state.shop.hours ? UI.openState(state.shop.hours) : null, opens = shut && !shut.open && UI.nextOpenDate(shut);
+  if (opens) {
+    const d = new Date(opens.getTime() + 15 * 60000);
+    if (ok(d)) out.push({ id: "opens", d, h: shut.inDays ? `${(DAYS[I18N.lang] || DAYS.fr)[shut.day].toLowerCase()} ${hhmm(d)}` : hhmm(d) });
+  }
   const in1 = new Date(Date.now() + 3600000); in1.setSeconds(0, 0); in1.setMinutes(Math.ceil(in1.getMinutes() / 15) * 15);
   if (ok(in1)) out.push({ id: "in1h", d: in1 });
   const eve = new Date(); eve.setHours(19, 0, 0, 0);
@@ -2310,10 +2331,15 @@ function currentWhen() {
 }
 function renderWhen() {
   const cur = currentWhen();
-  $("#homeWhen").innerHTML = whenOptions().map(o => `<button type="button" class="ch-chip${cur === o.id ? " on" : ""}" data-when="${o.id}">${UI.esc(t({ now: "hmNow", in1h: "hmIn1h", tonight: "hmTonight", tomorrow: "hmTomorrow", other: "hmOther" }[o.id], { h: o.d ? hhmm(o.d) : "" }))}</button>`).join("");
+  $("#homeWhen").innerHTML = whenOptions().map(o => `<button type="button" class="ch-chip${cur === o.id ? " on" : ""}" data-when="${o.id}">${UI.esc(t({ now: "hmNow", in1h: "hmIn1h", tonight: "hmTonight", tomorrow: "hmTomorrow", opens: "hmOpens", other: "hmOther" }[o.id], { h: o.h || (o.d ? hhmm(o.d) : "") }))}</button>`).join("");
   const planned = val("urgency") === "programmee" && pickupDate();
-  $("#homeWhenNote").textContent = planned ? t("hmPlanned", { when: UI.fmtDateTime(planned) }) : "";
-  $("#homeWhenNote").classList.toggle("hidden", !planned);
+  // Commerce fermé maintenant : on le dit clairement (et quand il ouvre), avant l'heure programmée
+  const st = shopSide() && state.shop.hours ? UI.openState(state.shop.hours) : null;
+  const closed = st && !st.open ? t("hmShopClosed", { name: shopShortName(), opens: openLabel(st) }) : "";
+  const note = [closed, planned ? t("hmPlanned", { when: UI.fmtDateTime(planned) }) : ""].filter(Boolean).join(" ");
+  $("#homeWhenNote").textContent = note;
+  $("#homeWhenNote").classList.toggle("hidden", !note);
+  $("#homeWhenNote").classList.toggle("ch-note-closed", !!closed);
 }
 function applyWhen(id) {
   const opt = whenOptions().find(o => o.id === id);
@@ -2562,16 +2588,19 @@ function drawRestos() {
     g.label = !boxes.some(o => box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]);
     if (g.label) boxes.push(box);
   });
-  const key = I18N.lang + ":" + z + ":" + (state.showcase || []).length + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
+  const key = I18N.lang + ":" + z + ":" + (state.showcase || []).length + ":" + Math.floor(Date.now() / 300000) + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
   if (key === restos.key) return;   // mêmes restaurants : rien à refaire (pas de clignotement)
   restos.key = key;
   restos.layer.clearLayers();
   shown.forEach(g => {
     const name = restoName(g.e), more = g.ids.length - 1;
-    const label = (g.ids.some(i => restos.list[i].partner) ? "👑 " : "") + (name.length > 22 ? name.slice(0, 21) + "…" : name) + (more ? ` +${more}` : "");
+    const label = (g.ids.some(i => restos.list[i].partner) ? "👑 " : "") + (name.length > 22 ? name.slice(0, 21) + "…" : name) + (more ? ` +${more}` : "")
+      + (g.ids.some(i => { const p = restos.list[i].partner, st = p && UI.openState(p.hours); return st && !st.open; }) ? ` · ${t("pinClosed")}` : "");
     // L'icône de sa cuisine (🍕 🍣 🍔…), un partenaire HOP! en orange ; les noms affichés passent devant
     // Partenaire HOP! : son logo (celui de sa vitrine), sinon l'icône de son métier
     const pe = g.ids.map(i => restos.list[i]).find(e => e.partner), hop = !!pe;
+    // Partenaire fermé en ce moment : pastille grise et « fermé » à côté du nom (le vert = ouvert)
+    const pst = hop ? UI.openState(pe.partner.hours) : null, shut = !!(pst && !pst.open);
     // Logo : celui de la vitrine d'un partenaire, sinon celui d'un commerce de l'annuaire (img/logos/…)
     const dirLogo = UI.dirLogo(g.e);   // le logo du commerce dont le nom est affiché (pas celui d'un voisin du groupe)
     const logo = hop ? UI.safeImg(((state.showcase || []).find(x => x.code === pe.partner.code) || {}).logo) || dirLogo : dirLogo;
@@ -2580,10 +2609,10 @@ function drawRestos() {
     const lg = !logo ? 26 : hop ? ({ 13: 28, 14: 30, 15: 34, 16: 40, 17: 52, 18: 66 })[z] || (z > 18 ? 84 : 28)
       : ({ 13: 22, 14: 24, 15: 26, 16: 30, 17: 36, 18: 44 })[z] || (z > 18 ? 52 : 22);   // commerce de l'annuaire : plus petit qu'un partenaire
     L.marker(g.pos, { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [lg, lg], iconAnchor: [lg / 2, lg / 2],
-      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " has-logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"${logo ? ` style="--lg:${lg}px"` : ""}><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
+      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${shut ? " shut" : ""}${logo ? " has-logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"${logo ? ` style="--lg:${lg}px"` : ""}><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = UI.bi(Places.dirName(e, I18N.lang)), pl = rowLogo(e); return `<div class="rp-row">
-          <div class="rp-head">${pl ? `<span class="rp-logo"><img src="${pl}" alt="" /></span>` : ""}<span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.partner ? `<i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span></div>
-          <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t("restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
+          <div class="rp-head">${pl ? `<span class="rp-logo"><img src="${pl}" alt="" /></span>` : ""}<span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.partner ? `<i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}${partnerState(e)}${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span></div>
+          <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t(partnerShut(e) ? "restoSchedule" : "restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
         { closeButton: false, offset: [0, -6], maxWidth: 260, maxHeight: 210, autoPanPaddingTopLeft: [12, 150], autoPanPaddingBottomRight: [76, 24] })
       .addTo(restos.layer);
   });
@@ -2620,6 +2649,12 @@ function pickResto(e) {
   onPlacePicked("from", p, true);
   renderHomeMap(true);
   if (!state.pick.to) setTimeout(() => homeInput("to").focus({ preventScroll: true }), 60);
+}
+// Ouvert / fermé d'un partenaire (bulle de la carte)
+const partnerShut = e => { const st = e.partner && UI.openState(e.partner.hours); return !!(st && !st.open); };
+function partnerState(e) {
+  const st = e.partner && UI.openState(e.partner.hours);
+  return st ? `<small class="rp-st ${st.open ? "on" : "off"}">${UI.esc((st.open ? "🟢 " : "🌙 ") + openLabel(st))}</small>` : "";
 }
 const divIcon = (html, size) => L.divIcon({ className: "", html, iconSize: [size, size], iconAnchor: [size / 2, size / 2] });
 function renderHomeMap(refit) {
