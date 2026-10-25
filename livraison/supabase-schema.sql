@@ -6073,3 +6073,17 @@ begin
   return new;
 end;
 $$;
+
+-- Patron : le mail de confirmation n'arrive pas → il confirme l'email d'un livreur dont l'inscription n'est pas
+-- terminée (compte sans fiche) ; le livreur peut alors se connecter et finir sa fiche
+create or replace function public.admin_confirm_email(p_user uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'admin only'; end if;
+  if exists (select 1 from couriers where id = p_user) then return false; end if;
+  update auth.users set email_confirmed_at = coalesce(email_confirmed_at, now()) where id = p_user;
+  return found;
+end;
+$$;
+revoke execute on function public.admin_confirm_email(uuid) from public, anon;
+grant execute on function public.admin_confirm_email(uuid) to authenticated;

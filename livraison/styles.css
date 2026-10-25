@@ -2126,3 +2126,5 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .boss-takes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; }
 /* Enseigne inscrite sur HOP! : toute la ligne ouvre sa boutique */
 .ens-item.ens-partner { cursor: pointer; }
+/* Patron : fiche d'une inscription pas terminée (texte long sur deux lignes) */
+.order.unfinished .meta .pill { white-space: normal; }
