@@ -396,6 +396,7 @@ function renderBrand(force) {
     <div class="br-preview" id="brPreview"></div>
     <div class="br-fields">${up("logo", t("brLogo"))}${up("cover", t("brCover"))}
       <label class="f"><span>${UI.esc(t("brTagline"))}</span><input id="brTagline" maxlength="90" value="${UI.esc(v.tagline)}" placeholder="${UI.esc(t("brTaglinePh"))}" /></label>
+      <label class="f"><span>${UI.esc(t("brTaglineHe"))}</span><input id="brTaglineHe" maxlength="90" dir="rtl" lang="he" value="${UI.esc(shop.tagline_he || "")}" placeholder="לדוגמה: השווארמה הכי טובה בנתניה" /></label>
       <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-br-save${brand.busy ? " disabled" : ""}>${UI.esc(t("brSave"))}</button><span class="small" id="brMsg"></span></div>
     </div>`;
   brandPreview();
@@ -419,7 +420,9 @@ $("#spBrand").addEventListener("click", async e => {
   try {
     const ok = await Store.saveShopBrand(state.dash.shop.token, { logo: brand.logo, cover: brand.cover, tagline: v.tagline });
     if (!ok) throw new Error("not_saved");
-    Object.assign(state.dash.shop, { logo: v.logo || null, cover: v.cover || null, tagline: v.tagline.trim() || null });
+    const taglineHe = ($("#brTaglineHe") || {}).value || "";
+    if (!(await Store.shopTextsHeSave(state.dash.shop.token, { tagline_he: taglineHe, about_he: state.dash.shop.about_he }))) throw new Error("not_saved");
+    Object.assign(state.dash.shop, { logo: v.logo || null, cover: v.cover || null, tagline: v.tagline.trim() || null, tagline_he: taglineHe.trim() || null });
     brand.logo = undefined; brand.cover = undefined;
     brand.busy = false;
     renderBrand(true);
@@ -670,6 +673,7 @@ function renderFiche(force) {
     <p class="muted small" style="margin:4px 0 12px">${UI.esc(t("fiSub"))}</p>
     <label class="f"><span>${UI.esc(t("fiWa"))}</span><input id="fiWa" inputmode="tel" dir="ltr" placeholder="053-373-3785" value="${UI.esc(shop.whatsapp ? "0" + String(shop.whatsapp).replace(/^972/, "") : "")}" /></label>
     <label class="f" style="margin-top:10px"><span>${UI.esc(t("fiAbout"))}</span><textarea id="fiAbout" rows="3" maxlength="600" placeholder="${UI.esc(t("fiAboutPh"))}">${UI.esc(shop.about || "")}</textarea></label>
+    <label class="f" style="margin-top:10px"><span>${UI.esc(t("fiAboutHe"))}</span><textarea id="fiAboutHe" rows="3" maxlength="600" dir="rtl" lang="he" placeholder="מה אתם עושים, ההתמחויות שלכם, ממתי…">${UI.esc(shop.about_he || "")}</textarea></label>
     ${UI.hoursEditor(hours)}
     <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-fi-save${fiche.busy ? " disabled" : ""}>${UI.esc(t("fiSave"))}</button><span class="small" id="fiMsg"></span></div>`;
 }
@@ -684,6 +688,8 @@ $("#spFiche").addEventListener("click", async e => {
   fiche.busy = true; b.disabled = true;
   try {
     if (!(await Store.shopFicheSave(state.dash.shop.token, { whatsapp: wa, about: $("#fiAbout").value, hours }))) throw new Error("not_saved");
+    if (!(await Store.shopTextsHeSave(state.dash.shop.token, { tagline_he: state.dash.shop.tagline_he, about_he: $("#fiAboutHe").value }))) throw new Error("not_saved");
+    state.dash.shop.about_he = $("#fiAboutHe").value.trim() || null;
     Object.assign(state.dash.shop, { whatsapp: wa ? (wa.startsWith("0") ? "972" + wa.slice(1) : wa) : null, about: $("#fiAbout").value.trim() || null, hours: hours.some(h => h.h) ? hours : null });
     fiche.busy = false; renderFiche(true); renderHead(state.dash.shop);
     $("#fiMsg").textContent = t("fiSaved");

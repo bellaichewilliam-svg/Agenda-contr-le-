@@ -382,3 +382,7 @@ livraison/
 - **Zones de Netanya : 25 ₪ seulement si un livreur libre est DANS la zone** (marge de 200 m = l'arrondi des positions des livreurs), plus à 1 km autour.
 - **Badge « 👑 Partenaire HOP! » en vert** dans les listes de commerces et la recherche (au lieu de l'orange, réservé à « Catalogue bientôt »).
 - **Annuaire : 46 noms hébreu + anglais collés séparés** (« מכבסת המילניום Milanium Laundry » → nom hébreu + nom latin) ; une ville ou un mot générique collé au nom (« M32 קדימה ») n'est pas pris pour un nom. `DIR_VERSION` 12.
+- **Tout en hébreu quand l'appli est en hébreu** : 455 commerces de l'annuaire qui n'avaient qu'un nom en lettres latines ont maintenant leur nom en hébreu (l'ancien nom reste pour la recherche et s'affiche en français), 164 noms mélangés « hébreu + latin » ne gardent que l'hébreu ; la carte et le bouton « Voir la carte » changent de langue tout de suite ; les textes des commerces écrits « français · hébreu » (nom, produits, catégories) n'affichent que la moitié de la langue choisie (`UI.bi`) ; accroche et présentation en hébreu (`shops.tagline_he`, `shops.about_he`, RPC `shop_texts_he_save`, champs dans l'espace commerce) ; en hébreu, un texte resté en français ne s'affiche pas (`UI.shopText`).
+- **Logo des partenaires plus gros en zoomant** : 34 px de loin, 40 px à la vue de départ, puis 52, 66 et 84 px tout près.
+- **Rouah Hamatok, 2e boutique** : שדרות בנימין 31 (09-8330815).
+- **Badge « 👑 Partenaire HOP! » en vert**.

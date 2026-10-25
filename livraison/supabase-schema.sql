@@ -5768,3 +5768,47 @@ language sql stable security definer set search_path = public as $$
     from (select * from known_places where lat is not null and lon is not null and (verified or uses >= 3)
            order by uses desc, last_at desc limit 2000) k;
 $$;
+
+-- ============================================================================
+-- COMMERCES EN HÉBREU : accroche et description aussi en hébreu (affichées quand l'appli est en hébreu)
+-- ============================================================================
+alter table public.shops add column if not exists tagline_he text check (length(tagline_he) <= 90);
+alter table public.shops add column if not exists about_he text check (length(about_he) <= 600);
+
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'logo', logo, 'cover', cover, 'tagline', tagline, 'tagline_he', tagline_he, 'client_pays', client_pays,
+                           'whatsapp', whatsapp, 'hours', hours, 'about', about, 'about_he', about_he, 'pay_link', pay_link, 'pay_bit', pay_bit, 'demo', demo,
+                           'shop_share', case when client_pays then 0
+                                              else (select pro_shop_share - pro_hop_share from settings where id = 1) end)
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;
+
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'hours', s.hours,
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and s.plan_until >= current_date and not s.demo;
+$$;
+
+-- Le commerce écrit son accroche et sa description en hébreu (depuis son espace, avec son lien secret)
+create or replace function public.shop_texts_he_save(p_token uuid, p_tagline_he text, p_about_he text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  update shops set tagline_he = nullif(left(trim(coalesce(p_tagline_he, '')), 90), ''),
+                   about_he = nullif(left(trim(coalesce(p_about_he, '')), 600), '')
+   where token = p_token and status <> 'suspendu';
+  get diagnostics n = row_count;
+  return n > 0;
+end;
+$$;
+grant execute on function public.shop_texts_he_save(uuid, text, text) to anon, authenticated;

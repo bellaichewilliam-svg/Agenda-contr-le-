@@ -434,7 +434,7 @@ function attach(input, opts) {
             <span class="ac-ico">${p.icon || "⭐"}</span><span><b>${UI.esc(p.title)}</b>${p.sub ? `<small>${UI.esc(p.sub)}</small>` : ""}</span></button>`
         : `<button type="button" class="ac-item${i === active ? " on" : ""}" data-i="${i}">
           <span class="ac-ico">${p.partner ? "⭐" : p.brand ? "🏪" : "📍"}</span>
-          <span><b>${UI.esc(p.brand || p.street || p.city)}</b><small>${p.fuzzy && opts.texts().didYouMean ? `<i class="ac-fuzzy">${UI.esc(opts.texts().didYouMean)}</i> ` : ""}${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : p.dir && opts.texts().soon ? `<i class="ac-soon">${UI.esc(opts.texts().soon)}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
+          <span><b>${UI.esc(UI.bi(p.brand || p.street || p.city))}</b><small>${p.fuzzy && opts.texts().didYouMean ? `<i class="ac-fuzzy">${UI.esc(opts.texts().didYouMean)}</i> ` : ""}${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : p.dir && opts.texts().soon ? `<i class="ac-soon">${UI.esc(opts.texts().soon)}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
         </button>`).join("")
       : `<div class="ac-empty">${UI.esc(opts.texts().none)}</div>`;
     box.classList.remove("hidden");
