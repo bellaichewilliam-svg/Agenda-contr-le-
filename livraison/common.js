@@ -61,6 +61,14 @@ function mapTiles(map, dark) {
       updateWhenIdle: false, updateWhenZooming: false, keepBuffer: 6 }).addTo(map);
 }
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
+// Patron : le WhatsApp « normal », pas WhatsApp Business, même quand Business est l'appli par défaut sur Android
+// (lien intent:// vers com.whatsapp ; sans WhatsApp normal, le lien wa.me habituel)
+function waPersonal(phone, text) {
+  const web = phone ? waLink(phone, text || "") : waShare(text || "");
+  if (!/Android/i.test(navigator.userAgent)) return web;
+  const q = (phone ? "phone=" + intlPhone(phone) + "&" : "") + "text=" + encodeURIComponent(text || "");
+  return `intent://send?${q}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(web)};end`;
+}
 function placeQuery(o, which) {
   const brand = o[which + "_place"];
   return (brand ? brand + ", " : "") + (which === "pickup" ? `${o.pickup_address}, ${cityFr(o.from_city)}` : `${o.dropoff_address}, ${cityFr(o.to_city)}`);
@@ -696,7 +704,7 @@ window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
-  mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,
+  mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 

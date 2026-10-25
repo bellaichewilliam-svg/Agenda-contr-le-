@@ -149,7 +149,7 @@ $("#posts").innerHTML = POSTS.map((p, i) => `
   <h3>${UI.esc(p.title)}</h3>
   <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(p.text)}</div>
   <button class="btn btn-sm" data-copy="post${i}">Copier</button>
-  <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(p.text)}">Partager sur WhatsApp</a>`).join("");
+  <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a>`).join("");
 
 document.addEventListener("click", e => {
   const id = e.target.dataset && e.target.dataset.copy;
