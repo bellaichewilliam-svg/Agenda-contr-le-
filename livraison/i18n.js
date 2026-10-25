@@ -518,7 +518,7 @@ fr: {
   ens_super: "🛒 Supermarchés", ens_food: "🍔 Restaurants", ens_mall: "🛍️ Centres commerciaux", ens_flower: "💐 Fleuristes", ens_tech: "📱 Téléphonie",
   ensFilterPh: "Filtrer : nom, rue…", ensFrom: "📍 Récupérer ici", ensTo: "🏁 Livrer ici", ensLoading: "Recherche des enseignes autour…",
   ensNone: "Rien trouvé dans le coin. Tapez le nom dans « Récupérer à ».", ensDown: "La liste des enseignes ne répond pas pour le moment : réessayez, ou tapez le nom dans « Récupérer à ».", ensRetry: "↻ Réessayer",
-  ensPartner: "Partenaire HOP", ensAddrLater: "adresse complétée au choix", ensNearYou: "Les plus proches de vous", ensNearCity: "Autour de {city} · touchez ◎ pour les plus proches de vous",
+  ensPartner: "👑 Partenaire HOP!", ensAddrLater: "adresse complétée au choix", ensNearYou: "Les plus proches de vous", ensNearCity: "Autour de {city} · touchez ◎ pour les plus proches de vous",
   // Accueil façon appli
   hmFrom: "Récupérer à", hmTo: "Livrer à", hmFromPh: "Adresse, magasin, restaurant…", hmToPh: "Où on livre ?", hmNo: "N°",
   hmHello: "Bonjour {name} 👋", hmHelloNew: "Bienvenue chez HOP! 👋", hmWhat: "Qu'est-ce qu'on livre ?",
@@ -1048,7 +1048,7 @@ he: {
   ens_super: "🛒 סופרמרקטים", ens_food: "🍔 מסעדות", ens_mall: "🛍️ קניונים", ens_flower: "💐 חנויות פרחים", ens_tech: "📱 סלולר",
   ensFilterPh: "סינון: שם, רחוב…", ensFrom: "📍 איסוף מכאן", ensTo: "🏁 משלוח לכאן", ensLoading: "מחפשים עסקים באזור…",
   ensNone: "לא נמצא באזור. הקלידו את השם בשדה האיסוף.", ensDown: "רשימת העסקים לא זמינה כרגע: נסו שוב, או הקלידו את השם בשדה האיסוף.", ensRetry: "↻ לנסות שוב",
-  ensPartner: "שותף הופ", ensAddrLater: "הכתובת תושלם בבחירה", ensNearYou: "הקרובים אליכם", ensNearCity: "באזור {city} · געו ב-◎ לקרובים אליכם",
+  ensPartner: "👑 שותף HOP!", ensAddrLater: "הכתובת תושלם בבחירה", ensNearYou: "הקרובים אליכם", ensNearCity: "באזור {city} · געו ב-◎ לקרובים אליכם",
   // Accueil façon appli
   hmFrom: "נקודת איסוף", hmTo: "יעד", hmFromPh: "כתובת, חנות, מסעדה…", hmToPh: "לאן משלוח?", hmNo: "מס׳",
   hmHello: "שלום {name} 👋", hmHelloNew: "ברוכים הבאים להופ! 👋", hmWhat: "מה שולחים?",

@@ -380,3 +380,5 @@ livraison/
 - **Calendrier** : le mois est centré et le calendrier garde sa forme partout (il n'hérite plus du style des icônes de la carte « Programmer »).
 - **Toutes les villes ouvertes sauf Holon** : Tel Aviv – Gush Dan, Petah Tikva et Rishon passent `active: true` ; Holon reste « bientôt » (`closed: true` sur la ville, vérifié par `UI.cityActive`).
 - **Zones de Netanya : 25 ₪ seulement si un livreur libre est DANS la zone** (marge de 200 m = l'arrondi des positions des livreurs), plus à 1 km autour.
+- **Badge « 👑 Partenaire HOP! » en vert** dans les listes de commerces et la recherche (au lieu de l'orange, réservé à « Catalogue bientôt »).
+- **Annuaire : 46 noms hébreu + anglais collés séparés** (« מכבסת המילניום Milanium Laundry » → nom hébreu + nom latin) ; une ville ou un mot générique collé au nom (« M32 קדימה ») n'est pas pris pour un nom. `DIR_VERSION` 12.

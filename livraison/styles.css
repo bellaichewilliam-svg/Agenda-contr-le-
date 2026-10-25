@@ -952,7 +952,7 @@ body.in-home .eta-bubble { display: none; }
 .ch-eta.hidden { display: none; }
 /* Enseignes près de vous */
 .ac-soon { font-style: normal; font-size: 11px; font-weight: 600; color: var(--muted); border: 1px solid var(--border); border-radius: 6px; padding: 0 5px; }
-.ac-partner { font-style: normal; font-size: 11px; font-weight: 700; color: var(--brand-ink); background: var(--brand-soft); border-radius: 6px; padding: 1px 6px; }
+.ac-partner { display: inline-block; font-style: normal; font-size: 11px; font-weight: 800; color: var(--green-ink); background: var(--green-soft); border: 1px solid rgba(18, 183, 106, .35); border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
 .ens-box { width: min(560px, 100%); max-width: 560px; text-align: start; max-height: min(86vh, 760px); max-height: min(86dvh, 760px); display: flex; flex-direction: column; gap: 10px; padding: 16px; }
 .ens-cats { margin: 0 -16px; padding: 2px 16px; flex: none; }
 .ens-filter { width: 100%; flex: none; border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px; font-size: 15px; background: var(--bg); color: var(--ink); }
