@@ -74,10 +74,14 @@ Deno.serve(async req => {
         body: `${docs}${o.ref} · ${when}\n${route}\n👤 ${o.contact_name}`, url: `patron/?o=${o.id}`, tag: "o-" + o.id }, site);
     } else if (ev.event === "boss_ring") {
       // Le patron d'abord : ça sonne chez lui toutes les 5 s (2 min au plus) tant que la course n'est ni prise ni donnée
+      // (« Je ne prends pas de courses » : il entend tout, la course est déjà chez les livreurs, il peut encore la donner)
       if (o.status === "nouvelle" && !o.courier_id) {
-        sent += await sendTo(await admins(), { title: `🔔 Nouvelle course · ${money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}`,
-          body: `${o.ref} · ${when}\n${route}\nTouchez : je la prends, ou je la donne à un livreur`, url: `patron/?o=${o.id}`, tag: "o-" + o.id,
-          actions: [{ action: "take", title: "✅ Je la prends" }, { action: "give", title: "🛵 Donner à un livreur" }] }, site, 10);
+        const { data: bt } = await db.from("settings").select("boss_takes").eq("id", 1).single();
+        const takes = !bt || bt.boss_takes !== false;
+        sent += await sendTo(await admins(), { title: `🔔 Nouvelle course · ${money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}${takes ? "" : " · chez les livreurs"}`,
+          body: `${o.ref} · ${when}\n${route}\n${takes ? "Touchez : je la prends, ou je la donne à un livreur" : "Envoyée aux livreurs : touchez pour la suivre ou la donner vous-même"}`,
+          url: `patron/?o=${o.id}`, tag: "o-" + o.id,
+          actions: takes ? [{ action: "take", title: "✅ Je la prends" }, { action: "give", title: "🛵 Donner à un livreur" }] : [{ action: "give", title: "🛵 Donner à un livreur" }] }, site, 10);
       }
     } else if (ev.event === "late") {
       // Course en retard : personne ne l'a prise, pas récupérée, pas livrée

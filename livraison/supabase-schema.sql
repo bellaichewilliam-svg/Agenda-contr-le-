@@ -5995,3 +5995,12 @@ end;
 $$;
 revoke execute on function public.admin_signups() from public, anon;
 grant execute on function public.admin_signups() to authenticated;
+
+-- « Je prends des courses moi-même » (patron) : non → hors ligne, chaque course part tout de suite aux livreurs ;
+-- le patron est toujours prévenu (sonnerie « boss_ring », sans « Je la prends ») et peut encore la donner à un livreur
+alter table public.settings add column if not exists boss_takes boolean not null default true;
+create or replace function public.offer_from(o orders) returns timestamptz
+language sql stable set search_path = public as $$
+  select public.offer_base(o) + coalesce((select case when boss_takes then make_interval(secs => boss_first_seconds) else interval '0' end
+                                            from settings where id = 1), interval '0');
+$$;
