@@ -143,7 +143,7 @@ async function onSignup(e) {
     const r = await Store.signupCourier(v("email"), f.password.value, profile, signupTopcase, docs);
     if (r.needsConfirmation) {
       showAuth("login");
-      $("#loginError").textContent = "Inscription enregistrée ! Confirmez votre email (lien reçu par mail), puis connectez-vous ici.";
+      $("#loginError").textContent = "Inscription enregistrée ! Connectez-vous ici avec votre email et votre mot de passe (si ça ne passe pas, touchez le lien reçu par mail).";
       $("#loginError").className = "notice";
       return;
     }

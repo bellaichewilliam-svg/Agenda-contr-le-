@@ -571,7 +571,9 @@ async function signupCourier(email, password, profile, topcase, docs) {
   if (!data.access_token) {
     // Supabase demande de confirmer l'email : la fiche sera créée à la 1re connexion
     writeJSON(LS.pendingCourier, { email, profile, topcase, docs: docs || [] });
-    return { needsConfirmation: true };
+    // Les comptes sont confirmés tout de suite côté base (hop_autoconfirm) : on se connecte et la fiche part maintenant
+    try { await login(email, password); return { needsConfirmation: false }; }
+    catch (e) { return { needsConfirmation: true }; }
   }
   writeJSON(sessionKey, { access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id });
   await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, profile, { id: data.user.id }), prefer: "return=minimal" });
