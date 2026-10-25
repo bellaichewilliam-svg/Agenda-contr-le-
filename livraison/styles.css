@@ -850,7 +850,9 @@ body.has-eta { padding-bottom: 96px; }
 @media (max-width: 860px) { body.in-home .wa-fab { bottom: 96px; } }
 .ch-top { position: absolute; z-index: 2; top: 14px; inset-inline-end: 16px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; max-width: calc(100% - 32px); pointer-events: none; }
 .ch-top > * { pointer-events: auto; box-shadow: 0 4px 16px rgba(15,31,61,.18); }
-.ch .badge-open { background: var(--navy); color: #fff; }
+.ch .badge-open { background: var(--panel); color: var(--ink); border: 1px solid var(--border); }
+/* Mode nuit : le bandeau reste sombre */
+@media (prefers-color-scheme: dark) { .ch .badge-open { background: var(--navy); color: #fff; border-color: transparent; } }
 .ch-live { background: var(--panel); color: var(--ink); font-size: 13px; font-weight: 700; padding: 8px 12px; border-radius: 99px; }
 .ch-locate { position: absolute; z-index: 2; bottom: 24px; inset-inline-end: 16px; width: 48px; height: 48px; border-radius: 50%; border: 0; background: var(--panel); color: var(--ink); font-size: 22px; box-shadow: 0 4px 16px rgba(15,31,61,.22); }
 .ch-sheet { position: absolute; z-index: 3; top: 20px; bottom: 20px; inset-inline-start: max(16px, calc((100vw - 1160px) / 2)); width: 430px; overflow-y: auto; background: var(--panel); color: var(--ink); border-radius: 24px; padding: 22px 22px 0; box-shadow: 0 18px 50px rgba(15,31,61,.28); display: flex; flex-direction: column; gap: 12px; scrollbar-width: thin; }
@@ -2036,3 +2038,10 @@ form .addr-note { display: none !important; }
 .sandbox-bar { position: sticky; top: 0; z-index: 60; display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 10px 14px; background: #0F1F3D; color: #fff; font-size: 13.5px; font-weight: 600; line-height: 1.35; }
 .sandbox-bar .btn { flex: none; background: #fff; color: #0F1F3D; border: 0; }
 .shop-hero .sh-demo a { color: #FFB27A; font-weight: 800; white-space: nowrap; }
+
+/* Calendrier à la date du jour (à la place de l'emoji 📅, figé sur « JUL 17 ») : à la taille du texte */
+.cal-ico { display: inline-grid; grid-template-rows: .36em 1fr; width: 1.12em; height: 1.18em; border-radius: .2em; overflow: hidden; background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .3); vertical-align: -.15em; line-height: 1; font-style: normal; font-weight: 800; }
+.cal-ico i { display: block; background: #e5383b; color: #fff; font: 800 .3em/1.2 system-ui, sans-serif; text-align: center; font-style: normal; letter-spacing: .02em; overflow: hidden; }
+.cal-ico b { display: grid; place-items: center; color: #1d2433; font: 800 .6em/1 system-ui, sans-serif; }
+.sc-go .cal-ico { font-size: 21px; }
