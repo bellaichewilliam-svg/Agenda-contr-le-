@@ -169,6 +169,7 @@ async function load() {
   const freshReqs = requests.filter(x => !seen.has(x.id) && x.status === "nouvelle");
   // Souci signalé par un livreur : alerte une seule fois par souci
   const freshIssues = orders.filter(o => o.issue && o.issue_at && !seen.has("issue:" + o.id + o.issue_at));
+  if (!firstLoad && freshOrders.length && !bossId) bossAfterLoad = freshOrders[0].id;
   if (!firstLoad && freshOrders.length) {
     alertNew(freshOrders.map(o => ({ ref: o.ref, price: o.price, body: `${UI.whenFr(o)}\n${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)}` })),
       x => `🆕 Commande n° ${x.ref} — ${UI.money(x.price)}`);
@@ -195,6 +196,10 @@ async function load() {
   const typing = document.activeElement && $("#view").contains(document.activeElement)
     && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
   if (typing) renderStats(); else render();
+  // Course ouverte dans la fenêtre du patron : fermée si elle est prise entre-temps ; adresse de la notification au 1er chargement
+  if (bossFirstLoad) { bossFirstLoad = false; bossFromUrl(location.href); }
+  if (bossAfterLoad) { const id = bossAfterLoad; bossAfterLoad = null; bossPopup(id); }
+  else if (bossId) { const o = orders.find(x => x.id === bossId); if (!o || o.status !== "nouvelle" || o.courier_id) { $("#bossModal").classList.add("hidden"); bossId = null; } }
 }
 
 // --- Disponibilité (« je suis complet ») --------------------------------------------
@@ -204,6 +209,9 @@ function renderAvail() {
   $("#availTitle").textContent = on ? "🟢 Je prends des commandes immédiates" : "🔴 Complet : les clients ne peuvent que programmer pour plus tard";
   $("#availBtn").textContent = on ? "Je suis complet" : "Je reprends les commandes";
   if (document.activeElement !== $("#availMsg")) $("#availMsg").value = settings.message || "";
+  const bf = $("#bossFirst"), v = String(Number(settings.boss_first_seconds ?? 60));
+  if (![...bf.options].some(x => x.value === v)) bf.add(new Option(v + " s", v));
+  if (document.activeElement !== bf) bf.value = v;
 }
 
 async function toggleAvail() {
@@ -280,6 +288,64 @@ const active = o => ["nouvelle", "confirmee", "recuperee"].includes(o.status);
 const sum = (list, f = o => Number(o.price)) => list.reduce((s, o) => s + f(o), 0);
 const isMine = o => me && o.courier_id === me.id;
 const partners = () => couriers.filter(c => c.role !== "admin");
+// Livreurs actifs, le plus proche du départ en premier (position GPS de moins de 10 min)
+function rankedCouriers(o) {
+  const fresh = c => c.lat != null && c.position_at && Date.now() - new Date(c.position_at) < 10 * 60000;
+  const km = c => fresh(c) && o.pickup_lat != null ? Pricing.haversineKm({ lat: c.lat, lon: c.lon }, { lat: o.pickup_lat, lon: o.pickup_lon }) * 1.3 : null;
+  return partners().filter(c => c.status === "actif")
+    .map(c => ({ c, km: km(c) })).sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9));
+}
+
+// --- Le patron d'abord : « 🔔 Nouvelle course » → je la prends, ou je la donne à un livreur ----------------
+// Ouverte par la notification (même téléphone verrouillé), par « Voir » de la sonnerie, ou toute seule à l'arrivée d'une course
+let bossId = null, bossAfterLoad = null, bossFirstLoad = true;
+function bossPopup(id) {
+  const o = orders.find(x => x.id === id);
+  const m = $("#bossModal");
+  if (!o || o.status !== "nouvelle" || o.courier_id) {
+    m.classList.add("hidden");
+    if (o && bossId !== id && o.courier_name) alert(`Course n° ${o.ref} : déjà prise par ${o.courier_name}.`);
+    bossId = null;
+    return;
+  }
+  bossId = id;
+  const wait = Math.ceil((new Date(o.created_at).getTime() + Number(settings.boss_first_seconds || 0) * 1000 - Date.now()) / 1000);
+  const list = rankedCouriers(o);
+  $("#bossBody").innerHTML = `
+    <h3>🔔 Nouvelle course · ${UI.money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}</h3>
+    <p class="small" style="margin:4px 0">n° ${UI.esc(o.ref)} · ${UI.esc(UI.whenFr(o))}</p>
+    <p style="margin:6px 0"><b>${UI.esc(o.pickup_address || UI.cityFr(o.from_city))}</b> → <b>${UI.esc(o.dropoff_address || UI.cityFr(o.to_city))}</b></p>
+    <p class="small muted" style="margin:0 0 12px">${wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
+    <button type="button" class="btn btn-primary btn-block" data-boss="take">✅ Je la prends</button>
+    <p class="small" style="margin:14px 0 6px"><b>🛵 La donner à :</b></p>
+    <div class="boss-list">${list.length ? list.map(({ c, km }) => `<button type="button" class="btn btn-block" data-boss-give="${UI.esc(c.id)}">${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : " · hors service"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</button>`).join("") : `<p class="small muted">Aucun livreur validé pour l'instant.</p>`}</div>
+    <button type="button" class="btn btn-link btn-block" data-boss="later">Laisser aux livreurs</button>`;
+  m.classList.remove("hidden");
+}
+async function onBossClick(e) {
+  const o = orders.find(x => x.id === bossId);
+  const give = e.target.closest("[data-boss-give]"), act = e.target.closest("[data-boss]");
+  if (!give && !act) { if (e.target === $("#bossModal")) $("#bossModal").classList.add("hidden"); return; }
+  $("#bossModal").classList.add("hidden");
+  if (o) ringA.muted.add(o.id);
+  syncRing();
+  if (!o || (act && act.dataset.boss === "later")) return;
+  if (give) {
+    const c = couriers.find(x => x.id === give.dataset.bossGive);
+    if (c) await assignTo(o, c);
+    return;
+  }
+  if (o.docs_status && o.docs_status !== "ok" && !confirm("Les documents de ce colis ne sont pas encore validés. La prendre quand même ?")) return;
+  if (duty.watch == null && confirm("Course prise. Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
+  assignTo(o, me);
+}
+// Adresse ouverte par la notification : patron/?o=<course>
+function bossFromUrl(url) {
+  try {
+    const id = new URL(url, location.href).searchParams.get("o");
+    if (id) { history.replaceState(null, "", location.pathname); bossPopup(id); }
+  } catch (e) { /* ignore */ }
+}
 // Solde d'un livreur (même calcul que la base) : commissions − courses payées à HOP − part Pro et promos
 // payées par HOP − pourboires reçus − bonus réseau − part des abonnements Pro, pas encore réglés
 const balanceOf = id => Store.balanceOf(id, orders, planSales);
@@ -385,11 +451,7 @@ function card(o, withDay) {
   meta.push(`<span class="pill">${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>`);
 
   const b = (status, label, cls = "") => `<button class="btn btn-sm ${cls}" data-status="${status}">${label}</button>`;
-  // Livreurs actifs, le plus proche du départ en premier (position GPS de moins de 10 min)
-  const fresh = c => c.lat != null && c.position_at && Date.now() - new Date(c.position_at) < 10 * 60000;
-  const km = c => fresh(c) && o.pickup_lat != null ? Pricing.haversineKm({ lat: c.lat, lon: c.lon }, { lat: o.pickup_lat, lon: o.pickup_lon }) * 1.3 : null;
-  const active = partners().filter(c => c.status === "actif")
-    .map(c => ({ c, km: km(c) })).sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9));
+  const active = rankedCouriers(o);
   // Livreurs qui viennent de s'inscrire : on peut les valider et leur donner la course d'un coup
   const fresh_ = partners().filter(c => c.status === "en_attente");
   const steps = {
@@ -639,8 +701,8 @@ function unfinishedCard() {
   if (!list.length) return "";
   return `<div class="card" style="margin-bottom:14px;border:2px solid #f79009">
     <b>⏳ Inscriptions pas terminées (${list.length})</b>
-    <p class="muted small" style="margin:4px 0 8px">Le compte est créé, mais la fiche (nom, véhicule, documents) n'est pas arrivée. ${list.some(a => !a.confirmed) ? "S'il n'a pas confirmé son email, il doit toucher le lien reçu par mail. " : ""}Ensuite il rouvre l'appli HOP! Livreur, se connecte et finit sa fiche : elle apparaîtra ici.</p>
-    ${list.map(a => `<p class="small" style="margin:4px 0"><b dir="ltr">${UI.esc(a.email || "—")}</b> · commencée le ${UI.esc(fmtShort(a.created_at))} · ${a.confirmed ? "✅ email confirmé" : "📧 email pas encore confirmé"}${a.last_sign_in_at ? ` · connecté le ${UI.esc(fmtShort(a.last_sign_in_at))}` : ""}</p>`).join("")}
+    <p class="muted small" style="margin:4px 0 8px">Le compte est créé, mais la fiche (nom, véhicule, documents) n'est pas arrivée. ${list.some(a => !a.confirmed) ? "S'il n'a pas confirmé son email, il doit toucher le lien reçu par mail. " : ""}Ensuite il rouvre l'appli HOP! Livreur, se connecte et finit sa fiche : elle apparaîtra ici.${list.some(a => !a.phone) ? " (Pas de téléphone pour les comptes créés avant le 25/10 vers 13 h : seulement l'email.)" : ""}</p>
+    ${list.map(a => `<p class="small" style="margin:4px 0">${a.name ? `<b>${UI.esc(a.name)}</b> · ` : ""}${a.phone ? `📞 <a href="tel:${UI.esc(a.phone)}"><b>${UI.esc(a.phone)}</b></a> · ` : ""}<b dir="ltr">${UI.esc(a.email || "—")}</b> · commencée le ${UI.esc(fmtShort(a.created_at))} · ${a.confirmed ? "✅ email confirmé" : "📧 email pas encore confirmé"}${a.last_sign_in_at ? ` · connecté le ${UI.esc(fmtShort(a.last_sign_in_at))}` : ""}</p>`).join("")}
   </div>`;
 }
 
@@ -651,7 +713,7 @@ function renderCouriers(view) {
   view.innerHTML = `
     <div class="card" style="margin-bottom:14px">
       <b>Recruter des livreurs</b>
-      <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance déclarée, HOP pas responsable…), puis vous les validez ici après avoir vu leurs documents. Vous prenez ${UI.commissionText()} par course livrée, réglés chaque semaine.</p>
+      <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance déclarée, HOP pas responsable…), puis vous les validez ici après avoir vu leurs documents. Le client les paie directement ; HOP prend ${UI.commissionText()} par course livrée, retirés tout de suite de leur crédit HOP (rechargé à l'avance) : rien à régler ensuite.</p>
       <div class="promo-row"><input readonly value="${UI.esc(invite)}" dir="ltr" /><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(`Tu as un scooter, une voiture ou un vélo ? Deviens livreur partenaire chez ${CONFIG.businessName} : tu choisis tes courses, tu encaisses directement le client, et seulement ${UI.commissionText()} de commission par course. Inscription : ${invite}`)}">Partager</a></div>
     </div>
     ${unfinishedCard()}
@@ -1557,7 +1619,11 @@ async function start() {
   // Notification reçue (nouvelle commande, paiement, client pas remboursé…) : la page se met à jour tout de suite
   if ("serviceWorker" in navigator && !window.hopSwListen) {
     window.hopSwListen = true;
-    navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.hop === "refresh") load(); });
+    navigator.serviceWorker.addEventListener("message", e => {
+      if (e.data && e.data.hop === "refresh") load();
+      // Notification touchée alors que la page était ouverte : on ouvre la course
+      if (e.data && e.data.hop === "open") load().then(() => bossFromUrl(e.data.url));
+    });
   }
 }
 
@@ -1589,7 +1655,17 @@ $("#refuseForm").addEventListener("submit", onRefuse);
 $("#refuseCancel").addEventListener("click", () => $("#refuseModal").classList.add("hidden"));
 $("#icsBtn").addEventListener("click", () => exportIcs(agendaList().filter(o => active(o) && isMine(o)).sort(byTime)));
 $("#ringStop").addEventListener("click", () => { waitingOrders().forEach(o => ringA.muted.add(o.id)); syncRing(); });
-$("#ringSee").addEventListener("click", () => { tab = "nouvelles"; render(); window.scrollTo({ top: $("#tabs").offsetTop - 10, behavior: "smooth" }); });
+$("#ringSee").addEventListener("click", () => {
+  const first = waitingOrders().find(o => !ringA.muted.has(o.id));
+  if (first) return bossPopup(first.id);
+  tab = "nouvelles"; render(); window.scrollTo({ top: $("#tabs").offsetTop - 10, behavior: "smooth" });
+});
+$("#bossModal").addEventListener("click", onBossClick);
+$("#bossFirst").addEventListener("change", async e => {
+  const v = Number(e.target.value);
+  try { await Store.saveSettings({ boss_first_seconds: v }); settings.boss_first_seconds = v; }
+  catch (ex) { alert("Réglage non enregistré, vérifiez la connexion."); renderAvail(); }
+});
 $("#installBtn").classList.toggle("hidden", UI.inOwnApp());
 $("#installBtn").addEventListener("click", () => UI.installApp("HOP! Patron", "patron/").then(ok => { if (ok) $("#installBtn").classList.add("hidden"); }));
 $("#notifBtn").addEventListener("click", () => {
