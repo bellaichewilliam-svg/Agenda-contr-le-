@@ -844,7 +844,9 @@ body.has-eta { padding-bottom: 96px; }
 /* Téléphone : hauteur de la carte ; volet descendu = la carte prend presque tout l'écran */
 .ch { --mapH: max(40vh, 250px); }
 .ch.map-open { --mapH: max(calc(100dvh - 230px), 320px); }
-.ch-grip { display: none; }
+.ch-grip, .ch-mapbtn { display: none; }
+/* Accueil : tirer vers le bas ne recharge pas la page (le geste sert au volet) */
+html:has(body.in-home), body.in-home { overscroll-behavior-y: none; }
 .ch-map, .ch-map.leaflet-container { position: absolute; inset: 0; z-index: 0; background: linear-gradient(160deg, #DCE6F5, #EEF1F7); }
 .ch-perks { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 2px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); font-weight: 600; }
 @media (max-width: 860px) { body.in-home .wa-fab { bottom: 96px; } }
@@ -918,6 +920,10 @@ body.has-eta { padding-bottom: 96px; }
   .ch-grip { display: block; align-self: center; width: 100%; height: 26px; margin: -16px 0 -4px; border: 0; background: none; cursor: grab; touch-action: none; }
   .ch-grip i { display: block; margin: 8px auto 0; width: 44px; height: 5px; border-radius: 9px; background: var(--border); }
   .ch.map-open .ch-grip i { background: var(--brand); }
+  /* Bouton « Voir la carte » en haut du volet */
+  .ch-mapbtn { display: inline-flex; position: absolute; top: 14px; inset-inline-end: 14px; z-index: 2; align-items: center; gap: 4px; padding: 7px 12px; border: 1px solid var(--border); border-radius: 999px; background: var(--bg-2); color: var(--ink); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .ch.map-open .ch-mapbtn { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .ch-hello { padding-inline-end: 150px; }
   .ch-title { font-size: 30px; }
   .ch-chips, .ch-when, .ch-kinds { margin: 0 -16px; padding: 2px 16px; }
   .ch-go { margin: 4px -16px 0; padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -6px 16px rgba(15,31,61,.06); background: var(--panel); }
@@ -1643,6 +1649,7 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .rp-row { display: grid; gap: 4px; }
 .rp-row + .rp-row { border-top: 1px solid #E8EBF2; padding-top: 8px; }
 .rp-row span { display: grid; }
+.rp-kind { font-style: normal; font-size: 12.5px; font-weight: 600; color: #B33A00; }
 /* Courses groupables (liste du livreur) */
 .bundle-card { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; border: 2px dashed var(--brand); background: var(--brand-soft); }
 /* Solde livreur qui défile de l'ancien au nouveau montant */
