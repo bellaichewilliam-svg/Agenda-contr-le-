@@ -478,8 +478,8 @@ async function login(email, password) {
   writeJSON(sessionKey, { access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id });
   // Inscription faite avant confirmation de l'email : on crée la fiche maintenant
   const pending = readJSON(LS.pendingCourier, null);
-  if (pending && pending.email === email.toLowerCase() && !(await me())) {
-    await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, pending.profile, { id: data.user.id }), prefer: "return=minimal" });
+  if (pending && pending.email === email.toLowerCase()) {
+    await saveFiche(pending.profile, data.user.id);
     if (pending.topcase) await sendTopcase(pending.topcase).catch(() => {});
     await sendDocs(pending.docs);
     removeKey(LS.pendingCourier);
@@ -511,8 +511,8 @@ async function adoptLinkSession() {
   if (!claims.sub) return false;
   writeJSON(sessionKey, { access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), user_id: claims.sub });
   const pending = readJSON(LS.pendingCourier, null);
-  if (pending && pending.email === String(claims.email || "").toLowerCase() && !(await me())) {
-    await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, pending.profile, { id: claims.sub }), prefer: "return=minimal" });
+  if (pending && pending.email === String(claims.email || "").toLowerCase()) {
+    await saveFiche(pending.profile, claims.sub);
     if (pending.topcase) await sendTopcase(pending.topcase).catch(() => {});
     await sendDocs(pending.docs);
     removeKey(LS.pendingCourier);
@@ -521,9 +521,15 @@ async function adoptLinkSession() {
 }
 
 // Compte connecté sans fiche (inscription commencée sur un autre téléphone) : on complète la fiche
+// Fiche du livreur : créée si elle n'existe pas, sinon complétée (fiche ouverte par HOP avec son nom et son téléphone)
+async function saveFiche(profile, id) {
+  const p = Object.assign({ accepted_terms_at: new Date().toISOString() }, profile);
+  if (await me()) return authRest("/rest/v1/rpc/courier_complete_profile", { method: "POST", body: { p } });
+  return authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, p, { id }), prefer: "return=minimal" });
+}
 async function completeCourier(profile, topcase, docs) {
   if (!ONLINE) throw new Error("Indisponible en mode démo.");
-  await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, profile, { id: myId() }), prefer: "return=minimal" });
+  await saveFiche(profile, myId());
   if (topcase) await sendTopcase(topcase);
   await sendDocs(docs);
   removeKey(LS.pendingCourier);

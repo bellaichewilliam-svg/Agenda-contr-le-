@@ -6100,3 +6100,28 @@ $$;
 revoke execute on function public.auth_autoconfirm() from public, anon, authenticated;
 create or replace trigger hop_autoconfirm before insert on auth.users
   for each row execute function public.auth_autoconfirm();
+
+-- Fiche créée par le patron (ou commencée) : le livreur la complète lui-même tant qu'elle est « en attente »
+-- (permis, Bit, n° d'entreprise, conditions acceptées) ; jamais le statut, le rôle ni l'argent
+create or replace function public.courier_complete_profile(p jsonb) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then return false; end if;
+  update couriers set
+    name = coalesce(nullif(trim(p ->> 'name'), ''), name),
+    phone = coalesce(nullif(trim(p ->> 'phone'), ''), phone),
+    bit_phone = coalesce(nullif(trim(p ->> 'bit_phone'), ''), bit_phone),
+    city = coalesce(nullif(p ->> 'city', ''), city),
+    vehicle = coalesce(nullif(p ->> 'vehicle', ''), vehicle),
+    license_number = coalesce(nullif(trim(p ->> 'license_number'), ''), license_number),
+    license_expiry = coalesce(nullif(p ->> 'license_expiry', '')::date, license_expiry),
+    business_number = coalesce(nullif(trim(p ->> 'business_number'), ''), business_number),
+    has_bit = coalesce((p ->> 'has_bit')::boolean, has_bit),
+    has_paybox = coalesce((p ->> 'has_paybox')::boolean, has_paybox),
+    accepted_terms_at = coalesce(accepted_terms_at, now())
+   where id = auth.uid() and status = 'en_attente';
+  return found;
+end;
+$$;
+revoke execute on function public.courier_complete_profile(jsonb) from public, anon;
+grant execute on function public.courier_complete_profile(jsonb) to authenticated;

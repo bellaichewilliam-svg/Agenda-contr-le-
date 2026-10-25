@@ -188,9 +188,14 @@ async function route() {
     $("#loginError").className = "notice err";
     return;
   }
-  // Connecté mais sans fiche (inscription commencée sur un autre téléphone) : compléter la fiche
-  setCompleting(!me);
-  if (!me) { $("#welcome").classList.remove("hidden"); showInstallCard(true); showAuth("signup"); return; }
+  // Connecté mais sans fiche (inscription commencée sur un autre téléphone), ou fiche ouverte par HOP avec
+  // seulement son nom et son téléphone : il la complète (permis, Bit, top case, conditions)
+  const toFill = !me || (me.status === "en_attente" && !me.accepted_terms_at);
+  setCompleting(toFill);
+  if (toFill) {
+    if (me) { const f = $("#signupForm"); ["name", "phone", "city", "vehicle"].forEach(k => { if (me[k] && f.elements[k] && !f.elements[k].value) f.elements[k].value = me[k]; }); }
+    $("#welcome").classList.remove("hidden"); showInstallCard(true); showAuth("signup"); return;
+  }
   if (me.status !== "actif") {
     const suspended = me.status === "suspendu";
     $("#waitIcon").textContent = suspended ? "⛔" : "⏳";
