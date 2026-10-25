@@ -237,9 +237,12 @@ $("#posts").innerHTML = POSTS.map((p, i) => `
   <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a>`).join("");
 
 // Visuels : ouverts en grand dans la page, avec Fermer / Enregistrer / Partager (plus de nouvel onglet sans retour)
-function openVisual(a) {
-  const img = a.querySelector("img"), src = img.getAttribute("src"), href = a.getAttribute("href");
-  const pdf = /\.pdf$/i.test(href), name = src.split("/").pop();
+function openVisual(a, qrName) {
+  // QR code du kit (image générée dans la page) ou visuel prêt
+  const img = a.querySelector("img") || a, canvas = a.querySelector("canvas");
+  const src = canvas && !(img.getAttribute("src") || "").startsWith("data:") ? canvas.toDataURL("image/png") : img.getAttribute("src");
+  const href = a.getAttribute("href") || src;
+  const pdf = /\.pdf$/i.test(href), name = qrName || src.split("/").pop();
   const box = document.createElement("div");
   box.className = "vis-view";
   box.innerHTML = `<div class="vv-bar">
@@ -268,6 +271,9 @@ function openVisual(a) {
 document.addEventListener("click", e => {
   const v = e.target.closest(".vis-grid a");
   if (v) { e.preventDefault(); openVisual(v); }
+  // QR codes (lien de l'appli et flyer) : aussi en grand, à enregistrer ou partager
+  const q = e.target.closest("#qr, #flyerQr");
+  if (q && q.querySelector("img, canvas")) openVisual(q, "hop-qr-code.png");
 });
 
 document.addEventListener("click", e => {

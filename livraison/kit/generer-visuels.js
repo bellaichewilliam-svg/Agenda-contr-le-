@@ -95,6 +95,13 @@ const T = {
     he: { h1: 'מוכרים גם למי<br><em>שלא מגיע</em>', sub: 'בית מרקחת · פרחים · ניקוי יבש · חנות', chips: ['📦 משלוח באותו יום', '👔 ניקוי יבש: אוספים ומחזירים', '💰 0% · בלי מנוי', '📍 הלקוח עוקב אחרי המשלוח'],
       price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'כבר בהזמנה הבאה', url: 'חנות אונליין באופציה: 299 ₪ לחודש' },
     link: APP + 'commerce.html', hs: 0.6, hsPost: 1.23, postChips: 2
+  },
+  relance: {
+    fr: { h1: 'On est passés<br><em>vous voir !</em>', sub: 'Votre prochaine commande à livrer : appelez-nous et jugez vous-même.', chips: ['💸 0 % de commission', '🛵 1 livreur par commande', '📍 Suivi en direct', '📝 Sans contrat'],
+      price: '<span>Livraison dans Netanya</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'Essayez dès aujourd\'hui', url: 'Merci pour votre accueil' },
+    he: { h1: 'עברנו<br><em>אצלכם!</em>', sub: 'בהזמנה הבאה שצריך להביא: מתקשרים אלינו ושופטים בעצמכם.', chips: ['💸 0% עמלה', '🛵 שליח לכל הזמנה', '📍 מעקב בזמן אמת', '📝 בלי חוזה'],
+      price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'נסו כבר היום', url: 'תודה על קבלת הפנים' },
+    link: APP + 'commerce.html', hs: 0.8, hsPost: 1.05, postChips: 3
   }
 };
 function page(kind, lang, fmt) {
