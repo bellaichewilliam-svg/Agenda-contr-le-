@@ -1505,10 +1505,10 @@ function showNextOffer() {
     const t2 = Store.courseValue(mate), c2 = Store.commissionFor(t2, settings, !!mate.referrer_id && mate.referrer_id === me.id);
     $("#offerIcon").textContent = "📦📦";
     $("#offerPrice").textContent = UI.money(total + t2);
-    $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com + t2 - c2)} pour les deux (commissions ${UI.money(com + c2)})`;
+    $("#offerGain").textContent = `Pour vous : ${UI.money(total - com + t2 - c2)} pour les deux`;
   } else {
     $("#offerPrice").textContent = UI.money(total);
-    $("#offerGain").textContent = `Vous gagnez ${UI.money(total - com)} (commission ${star ? "réseau " : ""}${UI.money(com)}${star ? " : c'est votre commerce ⭐" : ""})`;
+    $("#offerGain").textContent = `Pour vous : ${UI.money(total - com)}${star ? " · ⭐ votre commerce" : ""}`;
   }
   // Proposée d'abord aux livreurs en service les plus proches (vagues de wave_seconds)
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;

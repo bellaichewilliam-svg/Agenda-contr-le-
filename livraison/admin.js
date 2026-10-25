@@ -452,10 +452,11 @@ function renderStats() {
   $("#stNew").textContent = orders.filter(o => o.status === "nouvelle").length;
   $("#stToday").textContent = orders.filter(o => UI.dayKey(o.pickup_at) === t && !["annulee", "refusee"].includes(o.status)).length;
   $("#stUnpaid").textContent = UI.money(sum(orders.filter(o => isMine(o) && o.payment_status !== "paye" && ["confirmee", "recuperee", "livree"].includes(o.status))));
-  // Chiffre du mois = vos courses + les commissions des livreurs + la part HOP des commandes Pro + les abonnements payés
+  // Chiffre du mois = toutes les courses livrées (les vôtres et celles des livreurs) ;
+  // Com HOP = les commissions des livreurs + la part HOP des commandes Pro − les codes promo payés par HOP + les abonnements
   const delivered = orders.filter(o => o.status === "livree" && UI.dayKey(o.pickup_at).startsWith(month));
-  $("#stMonthRev").textContent = UI.money(sum(delivered.filter(isMine), o => Number(o.price) + Number(o.shop_share || 0))
-    + sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
+  $("#stMonthRev").textContent = UI.money(sum(delivered, o => Number(o.price) + Number(o.discount || 0) + Number(o.shop_share || 0)));
+  $("#stMonthHop").textContent = UI.money(sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
     + sum(planSales.filter(p => String(p.created_at).startsWith(month)), p => Number(p.amount) - Number(p.referrer_share || 0)));
   const pending = couriers.filter(c => c.status === "en_attente").length + unfinished().length;
   const pendingShops = shops.filter(x => x.status === "en_attente").length;

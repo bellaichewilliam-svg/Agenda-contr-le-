@@ -2108,3 +2108,12 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 #installCard.hidden { display: none; }
 #installCard img { border-radius: 12px; flex: none; }
 #installCard p { margin: 4px 0 8px; }
+
+/* Patron : 5 compteurs (chiffre du mois et com HOP séparés) ; sur téléphone 3 en haut, 2 en bas */
+.stats.adm-for-courses { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 720px) {
+  .stats.adm-for-courses { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .stats.adm-for-courses .stat { grid-column: span 2; }
+  .stats.adm-for-courses .stat:nth-child(n+4) { grid-column: span 3; }
+  .stats.adm-for-courses .stat:nth-child(n+4) small { min-height: 0; }
+}
