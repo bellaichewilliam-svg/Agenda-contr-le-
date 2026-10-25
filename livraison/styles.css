@@ -1629,12 +1629,12 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .resto-pin b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; line-height: 1; font-weight: 400; background: #fff; border: 2px solid var(--brand); box-shadow: 0 3px 8px rgba(15,31,61,.28); }
 .resto-pin.hop b { background: linear-gradient(135deg, #32D583, #079455); border-color: #fff; font-size: 13px; }
 /* Partenaire avec son logo : rond blanc un peu plus grand, cerclé d'orange */
-.resto-pin.logo { width: var(--lg, 34px); height: var(--lg, 34px); }
-.resto-pin.logo b { width: var(--lg, 34px); height: var(--lg, 34px); padding: 0; transition: width .2s, height .2s; overflow: hidden; background: #fff; border: 2.5px solid #12B76A; box-shadow: 0 4px 12px rgba(18, 183, 106, .45); }
-.resto-pin.logo b img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.resto-pin.has-logo { width: var(--lg, 34px); height: var(--lg, 34px); }
+.resto-pin.has-logo b { width: var(--lg, 34px); height: var(--lg, 34px); padding: 0; transition: width .2s, height .2s; overflow: hidden; background: #fff; border: 2.5px solid #12B76A; box-shadow: 0 4px 12px rgba(18, 183, 106, .45); }
+.resto-pin.has-logo b img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 /* Logo d'un commerce de l'annuaire (pas partenaire) : cerclé de blanc, le partenaire garde l'orange */
-.resto-pin.logo:not(.hop) b { border-color: #fff; box-shadow: 0 3px 10px rgba(15, 31, 61, .35); }
-.resto-pin.logo span { inset-inline-start: calc(var(--lg, 34px) - 4px); }
+.resto-pin.has-logo:not(.hop) b { border-color: #fff; box-shadow: 0 3px 10px rgba(15, 31, 61, .35); }
+.resto-pin.has-logo span { inset-inline-start: calc(var(--lg, 34px) - 4px); }
 /* Sans nom affiché : la même icône, en plus petit (pas de point orange) ; en zoomant, elles reprennent leur taille */
 .resto-pin.small b { width: 19px; height: 19px; font-size: 10.5px; border-width: 1.5px; box-shadow: 0 2px 5px rgba(15,31,61,.25); }
 .resto-pin span { display: none; position: absolute; top: 50%; inset-inline-start: 25px; transform: translateY(-50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; color: #1D2433; background: rgba(255,255,255,.96); padding: 2px 8px 2px 7px; border-radius: 999px; box-shadow: 0 2px 6px rgba(15,31,61,.2); pointer-events: none; }
@@ -2089,7 +2089,7 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .resto-pop .ac-partner { color: #067647; background: #DCFAE6; border-color: rgba(18, 183, 106, .35); }
 .resto-pop .ac-soon { color: #B93F00; background: #FFF0E6; }
 /* Logos d'enseignes (souvent larges) : entiers dans leur rond, sur fond blanc */
-.resto-pin.logo:not(.hop) b img, .rp-logo img, .ens-ico img { object-fit: contain; background: #fff; }
-.resto-pin.logo:not(.hop) b img { padding: 2px; }
+.resto-pin.has-logo:not(.hop) b img, .rp-logo img, .ens-ico img { object-fit: contain; background: #fff; }
+.resto-pin.has-logo:not(.hop) b img { padding: 2px; }
 .rp-logo img { padding: 4px; }
 .ens-ico img { padding: 3px; border-radius: 12px; }
