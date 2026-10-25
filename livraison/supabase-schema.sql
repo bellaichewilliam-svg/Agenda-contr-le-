@@ -6087,3 +6087,16 @@ end;
 $$;
 revoke execute on function public.admin_confirm_email(uuid) from public, anon;
 grant execute on function public.admin_confirm_email(uuid) to authenticated;
+
+-- Plus de mail de confirmation à attendre : un compte créé est confirmé tout de suite (le livreur se connecte et
+-- finit sa fiche sans chercher le mail, souvent dans les spams). Demandé par le patron le 25/10.
+create or replace function public.auth_autoconfirm() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.email_confirmed_at is null then new.email_confirmed_at := now(); end if;
+  return new;
+end;
+$$;
+revoke execute on function public.auth_autoconfirm() from public, anon, authenticated;
+create or replace trigger hop_autoconfirm before insert on auth.users
+  for each row execute function public.auth_autoconfirm();
