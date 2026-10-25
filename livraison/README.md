@@ -389,3 +389,6 @@ livraison/
 - **Logos des commerces de l'annuaire** : un commerce peut avoir son logo (`lg: "img/logos/…"` dans annuaire.json), sur la carte (cerclé de blanc ; les partenaires gardent l'orange et passent devant) et dans les listes. Premier : Rouah Hamatok 770.
 - **Rouah Hamatok, adresses corrigées d'après leur affiche** : משה סמילנסקי 26 et שער הגיא 14, tél. 09-9796803 (la fiche « שדרות בנימין 31 », ancienne et peu sûre, est remplacée). `DIR_VERSION` 13.
 - **Vitrines de démonstration en hébreu** : accroche et présentation hébreu dans `demo-shops.json` (démos de l'espace commerce) et dans `supabase/demo-shops.sql` (vitrines en ligne).
+- **Partenaires en vert avec 👑 sur la carte** : nom « 👑 EDMAR » en vert, rond cerclé de vert, et dans la bulle le badge vert « 👑 Partenaire HOP! » (plus d'orange).
+- **Logo dans la bulle** : en touchant un commerce sur la carte, son logo s'affiche à côté de son nom (partenaire ou commerce de l'annuaire).
+- **Rouah Hamatok** : nom court « Rouah Hamatok 770 » sur la carte (l'ancien, avec la description, reste pour la recherche). `DIR_VERSION` 14.
