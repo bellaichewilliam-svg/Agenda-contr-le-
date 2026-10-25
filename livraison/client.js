@@ -2194,7 +2194,7 @@ function initHome() {
     try {
       const pos = await myPosition();
       setHomePos(pos); renderHomeMap(false); renderLive();
-      if (home.map) home.map.flyTo([pos.lat, pos.lon], Math.max(home.map.getZoom(), 16), { duration: 0.6 });
+      if (home.map) home.map.flyTo([pos.lat, pos.lon], Math.max(home.map.getZoom(), 17), { duration: 0.6 });
       showHomeErr("");
     } catch (e) { showHomeErr(t("geoDenied")); }
     finally { b.classList.remove("busy"); }
@@ -2445,7 +2445,7 @@ function initHomeMap() {
   const c = Pricing.cityById(CONFIG, CONFIG.homeCity);
   // Carte vivante : on la déplace au doigt, on zoome à deux doigts ou avec + / − (pas avec la molette : la page défile)
   home.map = L.map("homeMap", { zoomControl: false, attributionControl: true, scrollWheelZoom: false, dragging: true, touchZoom: true, doubleClickZoom: true })
-    .setView([c.lat, c.lon], 13);
+    .setView([c.lat, c.lon], 14);
   $("#homeZoomIn").addEventListener("click", () => home.map.zoomIn());
   $("#homeZoomOut").addEventListener("click", () => home.map.zoomOut());
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
@@ -2459,6 +2459,7 @@ function setMapOpen(on) {
   const ch = $("#accueil");
   if (!ch || ch.classList.contains("map-open") === !!on) return;
   ch.classList.toggle("map-open", !!on);
+  if ($("#homeMapBtn")) $("#homeMapBtn").textContent = t(on ? "hmMapClose" : "hmMapOpen");
   if (on) scrollTo({ top: 0, behavior: "smooth" });
   // La carte change de taille pendant l'animation : on la recale à la fin
   setTimeout(() => { if (home.map) { home.map.invalidateSize(); drawRestos(); } }, 330);
@@ -2471,12 +2472,15 @@ function initHomeGrip() {
   const move = y => { if (y0 == null) return; const dy = y - y0; if (Math.abs(dy) > 30) { moved = true; setMapOpen(dy > 0); y0 = null; } };
   // On attrape le haut du volet (la poignée, ou le haut de la feuille quand la page est en haut)
   sheet.addEventListener("touchstart", e => { const r = sheet.getBoundingClientRect(); if (e.touches[0].clientY - r.top < 56 && scrollY < 8) start(e.touches[0].clientY); }, { passive: true });
-  sheet.addEventListener("touchmove", e => move(e.touches[0].clientY), { passive: true });
+  // Pendant le geste sur le volet, la page ne bouge pas (et le navigateur n'actualise pas la page en tirant vers le bas)
+  sheet.addEventListener("touchmove", e => { if (y0 != null) { if (e.cancelable) e.preventDefault(); move(e.touches[0].clientY); } }, { passive: false });
   sheet.addEventListener("touchend", () => { y0 = null; });
   grip.addEventListener("pointerdown", e => start(e.clientY));
   addEventListener("pointermove", e => { if (e.pointerType === "mouse" && y0 != null) move(e.clientY); });
   addEventListener("pointerup", () => { y0 = null; });
   grip.addEventListener("click", () => { if (!moved) setMapOpen(!$("#accueil").classList.contains("map-open")); moved = false; });
+  const btn = $("#homeMapBtn");
+  if (btn) { btn.textContent = t("hmMapOpen"); btn.addEventListener("click", () => setMapOpen(!$("#accueil").classList.contains("map-open"))); }
 }
 // Restaurants de l'annuaire sur la carte : un point de loin, un rond 🍴 de près, et leur nom en zoomant encore.
 // On en touche un : « Récupérer ici » le met en départ.
@@ -2552,12 +2556,18 @@ function drawRestos() {
     const ico = logo ? `<img src="${logo}" alt="" />` : hop ? (UI.KIND_ICON[pe.partner.kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
     L.marker([g.e.lat, g.e.lon], { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: logo ? [34, 34] : [26, 26], iconAnchor: logo ? [17, 17] : [13, 13],
       html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " dot" : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
-      .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i]; return `<div class="rp-row">
-          <span><b>${UI.esc(Places.dirName(e, I18N.lang))}</b>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
-          <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(t("restoTake"))}</button></div>`; }).join("")}</div>`,
+      .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = Places.dirName(e, I18N.lang); return `<div class="rp-row">
+          <span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
+          <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t("restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
         { closeButton: false, offset: [0, -6], autoPanPaddingTopLeft: [12, 140], autoPanPaddingBottomRight: [70, 20] })
       .addTo(restos.layer);
   });
+}
+// Ce qu'est le commerce : « 👔 Pressing · Partenaire HOP! », « 🍕 Pizza »… (la cuisine se lit dans son nom ou sa fiche)
+function restoKind(e) {
+  if (e.partner) return [(t("shKinds") || {})[e.partner.kind] || "⭐", t("restoHop")].join(" · ");
+  const ico = Places.foodIcon(e.n, e.k), fk = t("fk") || {};
+  return `${ico} ${fk[ico] || fk["🍽️"] || ""}`;
 }
 function pickResto(e) {
   if (!e) return;
@@ -2595,9 +2605,9 @@ function homeFit() {
   const mobile = innerWidth <= 860;
   const side = mobile ? 0 : $("#homeSheet").offsetWidth + 40;
   const pad = isRtl() ? { paddingTopLeft: [50, 90], paddingBottomRight: [side + 50, 50] } : { paddingTopLeft: [side + 50, 90], paddingBottomRight: [50, 50] };
-  if (pts.length > 1) home.map.fitBounds(L.latLngBounds(pts.map(p => [p.lat, p.lon])), Object.assign({ maxZoom: 15 }, pad));
+  if (pts.length > 1) home.map.fitBounds(L.latLngBounds(pts.map(p => [p.lat, p.lon])), Object.assign({ maxZoom: 16 }, pad));
   else {
-    home.map.setView([pts[0].lat, pts[0].lon], 15, { animate: false });
+    home.map.setView([pts[0].lat, pts[0].lon], 16, { animate: false });   // de près dès le départ : les noms des commerces autour
     if (side) home.map.panBy([isRtl() ? side / 2 : -side / 2, 0], { animate: false });
   }
 }
