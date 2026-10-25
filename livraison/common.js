@@ -637,6 +637,22 @@ function doorTag(o, lang) {
 // Nom de l'enseigne (Super-Pharm, restaurant…) au-dessus de l'adresse
 function brand(name) { return name ? `<span class="brand-tag">🏪 <bdi>${esc(name)}</bdi></span>` : ""; }
 function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)}</div>` : ""; }
+// Texte d'un commerce écrit dans les deux langues (« Manteaux · מעילים », « EDMAR · אדמר ») :
+// seulement la moitié de la langue de l'appli ; un texte dans une seule langue reste tel quel
+function bi(text, lang) {
+  const s = String(text == null ? "" : text), parts = s.split(/\s+·\s+/);
+  if (parts.length < 2) return s;
+  const isHe = x => /[\u0590-\u05FF]/.test(x), he = parts.filter(isHe), other = parts.filter(x => !isHe(x));
+  if (!he.length || !other.length) return s;
+  return ((lang || (window.I18N ? I18N.lang : "fr")) === "he" ? he : other).join(" · ");
+}
+// Accroche / description d'un commerce : la version hébreu quand l'appli est en hébreu (en français : la française, sinon l'hébreu)
+function shopText(s, key, lang) {
+  if (!s) return "";
+  const he = (lang || (window.I18N ? I18N.lang : "fr")) === "he";
+  const v = bi((he && s[key + "_he"]) || s[key] || (he ? "" : s[key + "_he"]) || "", lang);
+  return he && v && !/[\u0590-\u05FF]/.test(v) ? "" : v;   // en hébreu : pas de texte resté en français
+}
 // Petit calendrier à la date du jour (l'emoji 📅 du téléphone affiche toujours « JUL 17 »)
 function calIcon(d) {
   d = d || new Date();
@@ -674,7 +690,7 @@ if (typeof MutationObserver !== "undefined") {
 }
 
 window.UI = {
-  addrNote, calIcon, brand, addrDetails, addrDetailsText, doorTag, doorBig,
+  addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, wazeLink, mapsLink,

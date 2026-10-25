@@ -1167,6 +1167,16 @@ async function shopFicheSave(token, f) {
   writeJSON(LS.shops, shops);
   return true;
 }
+// Accroche et présentation en hébreu, affichées quand l'appli du client est en hébreu
+async function shopTextsHeSave(token, f) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_texts_he_save", { method: "POST", body: { p_token: token, p_tagline_he: f.tagline_he || null, p_about_he: f.about_he || null } });
+  const shops = localShops(), s = shops.find(x => x.token === token);
+  if (!s) return false;
+  s.tagline_he = String(f.tagline_he || "").trim().slice(0, 90) || null;
+  s.about_he = String(f.about_he || "").trim().slice(0, 600) || null;
+  writeJSON(LS.shops, shops);
+  return true;
+}
 // « C'est prêt » : le commerce prévient son client par HOP ; le client le lit avec les liens de ses courses
 async function shopNoticeSend(token, orderId, readyFrom, message) {
   if (ONLINE) return rest("/rest/v1/rpc/shop_notice_send", { method: "POST", body: { p_token: token, p_order: orderId, p_ready_from: readyFrom || null, p_message: message || null } });
@@ -1242,7 +1252,7 @@ async function shopsShowcase() {
   if (ONLINE) return (await rest("/rest/v1/rpc/shops_showcase", { method: "POST", body: {} })) || [];
   const cat = readJSON(LS.catalog, {});
   return localShops().filter(x => x.status === "actif" && planActive(x))
-    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null,
+    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null, tagline_he: x.tagline_he || null,
       client_pays: !!x.client_pays, hours: x.hours || null, products: ((cat[x.id] || {}).products || []).filter(p => p.available).length,
       top: ((cat[x.id] || {}).products || []).filter(p => p.available).slice(0, 6).map(p => ({ name: p.name, price: p.price })) }))
     .sort((a, b) => (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || a.name.localeCompare(b.name));
@@ -1569,7 +1579,7 @@ function shopTokenFor(code) { return readJSON(LS.shopCodes, {})[String(code || "
 const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISOString().slice(0, 10));
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
-      pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null, client_pays: !!s.client_pays,
+      pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null, tagline_he: s.tagline_he || null, about_he: s.about_he || null, client_pays: !!s.client_pays,
       shop_share: s.client_pays ? 0 : DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
 async function shopByCode(code) {
@@ -1982,7 +1992,7 @@ window.Store = {
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

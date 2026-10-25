@@ -397,7 +397,7 @@ function currentQuote() {
   const share = Math.min(q.total, state.shop.client_pays ? 0
     : Number(state.shop.shop_share != null ? state.shop.shop_share : CONFIG.pro.shopShare - CONFIG.pro.hopShare));
   if (!(share > 0)) return q;
-  return Object.assign({}, q, { total: q.total - share, lines: q.lines.concat([{ key: "qShopShare", vars: { name: state.shop.name }, amount: -share, discount: true }]) });
+  return Object.assign({}, q, { total: q.total - share, lines: q.lines.concat([{ key: "qShopShare", vars: { name: UI.bi(state.shop.name) }, amount: -share, discount: true }]) });
 }
 function baseQuote() {
   if (val("payment_method") === "carnet" && carnetOk()) {
@@ -507,7 +507,7 @@ function renderQuote() {
     // Pas de frais cachés : on le montre noir sur blanc
     + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
-    + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t("qItems", { total: money(cartTotal()), name: state.shop.name }))}</span></li>` : "")
+    + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t("qItems", { total: money(cartTotal()), name: UI.bi(state.shop.name) }))}</span></li>` : "")
     + (goods && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : "qGoods"))}</span></li>` : "")
     + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "");
   const total = (q.known ? "" : t("from") + " ") + money(q.total);
@@ -1141,7 +1141,7 @@ async function submit(e) {
   if (missingNo) { form.elements[missingNo[1]].focus(); return showError(t("errHouseNo")); }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
-  if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showError(t(catalogOn() ? "errCart" : "errShopOrder", { name: state.shop.name })); }
+  if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showError(t(catalogOn() ? "errCart" : "errShopOrder", { name: UI.bi(state.shop.name) })); }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showError(t("errShopRef")); }
   if (phoneOn()) {
     if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showError(t("errPhoneName")); }
@@ -1767,29 +1767,29 @@ function renderCatalog() {
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   form.shop_order.placeholder = on ? t("cgNotePh") : t("spOrderPh");
-  if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: state.shop.name }) : t("spOrderLabel", { name: state.shop.name });
+  if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; return; }
   const cats = state.catalog.categories.filter(c => cgProducts().some(p => p.category_id === c.id));
   const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
   // Le menu entier par rubriques ; les onglets mènent à leur rubrique et suivent le défilement
-  const sections = cats.map(c => ({ id: c.id, title: c.name, items: cgProducts().filter(p => p.category_id === c.id) }))
+  const sections = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: cgProducts().filter(p => p.category_id === c.id) }))
     .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: cgProducts().filter(p => !cats.some(c => c.id === p.category_id)) }] : []);
   const n = cartCount();
   // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
   // Les incontournables : les premiers articles du menu, en grandes cartes qui défilent
   const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind));
   const top = cgProducts().filter(p => p.available).slice(0, 8);
-  const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: state.shop.name }))}</b>
+  const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: UI.bi(state.shop.name) }))}</b>
     ${cgProducts().length >= 5 ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = state.cart[p.id] || 0;
       return `<div class="cg-tcard${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}"><div class="cg-tpic">${pic(p)}
         <button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button></div>
-        <span class="cg-price">${UI.money(p.price)}</span><b><bdi>${UI.esc(p.name)}</bdi></b></div>`; }).join("")}</div></div>` : ""}
+        <span class="cg-price">${UI.money(p.price)}</span><b><bdi>${UI.esc(UI.bi(p.name))}</bdi></b></div>`; }).join("")}</div></div>` : ""}
     ${cats.length > 1 ? `<div class="cg-cats" role="tablist">${sections.filter(x => x.title).map(x =>
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
       const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
-        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(p.name)}</bdi></b>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
+        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(p.name))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
         <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind)}
         ${!p.available ? `<span class="cg-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
@@ -1798,10 +1798,10 @@ function renderCatalog() {
     }).join("")}</div>`).join("")}
     ${(state.shop.pay_link || state.shop.pay_bit) && proShopOn() ? `<div class="pay2">
         <b>${UI.esc(t("pay2Title"))}</b>
-        <p><i>1</i><span>${UI.esc(t("pay2Goods", { name: state.shop.name, amount: n ? money(cartTotal()) : "" }))}</span></p>
+        <p><i>1</i><span>${UI.esc(t("pay2Goods", { name: UI.bi(state.shop.name), amount: n ? money(cartTotal()) : "" }))}</span></p>
         <p><i>2</i><span>${UI.esc(t("pay2Ride"))}</span></p>
         <small>${UI.esc(t("pay2Note"))}</small></div>`
-      : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: state.shop.name }))}</p>`}
+      : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: UI.bi(state.shop.name) }))}</p>`}
     ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
       : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
@@ -1861,8 +1861,8 @@ function renderItem() {
   if (!p) return;
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
   $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}" alt="" />` : UI.itemArt(p.name, state.shop.kind)}</div>
-    <div class="it-txt"><h3><bdi>${UI.esc(p.name)}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
-      ${p.description ? `<p>${UI.esc(p.description)}</p>` : ""}
+    <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(p.name))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
+      ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
   $("#itemAdd").disabled = !p.available;
@@ -1878,15 +1878,15 @@ function openCart() {
 function renderCart() {
   const lines = cartLines();
   if (!lines.length) { $("#cartSheet").classList.add("hidden"); return; }
-  $("#cartTitle").textContent = t("csTitle", { name: state.shop ? state.shop.name : "" });
+  $("#cartTitle").textContent = t("csTitle", { name: state.shop ? UI.bi(state.shop.name) : "" });
   $("#cartBody").innerHTML = lines.map(({ p, qty }) => {
     const photo = UI.safeImg(p.photo);
     return `<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : UI.itemArt(p.name, state.shop && state.shop.kind)}</span>
-      <span class="cs-txt"><b><bdi>${UI.esc(p.name)}</bdi></b><small>${UI.esc(money(Number(p.price) * qty))}</small></span>
+      <span class="cs-txt"><b><bdi>${UI.esc(UI.bi(p.name))}</bdi></b><small>${UI.esc(money(Number(p.price) * qty))}</small></span>
       <span class="it-qty cs-qty"><button type="button" data-cs-minus="${UI.esc(p.id)}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${UI.esc(p.id)}" aria-label="+">+</button></span></div>`;
   }).join("");
   $("#cartSum").textContent = money(cartTotal());
-  $("#cartNote").textContent = t(shopPrepay() ? "csNotePrepay" : "csNote", { name: state.shop ? state.shop.name : "" });
+  $("#cartNote").textContent = t(shopPrepay() ? "csNotePrepay" : "csNote", { name: state.shop ? UI.bi(state.shop.name) : "" });
 }
 $("#cartSheet").addEventListener("click", e => {
   if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) return $("#cartSheet").classList.add("hidden");
@@ -1937,15 +1937,15 @@ function shopOpenNow(hours) {
   return !!(today && today.h && String(today.h).split(",").some(r => { const [a, b] = r.split("-"); return a && b && m >= mins(a) && m < mins(b); }));
 }
 function shopInfo(s) {
-  if (!s || !(s.whatsapp || s.about || (s.hours && s.hours.length))) return "";
+  if (!s || !(s.whatsapp || s.about || s.about_he || (s.hours && s.hours.length))) return "";
   const days = DAYS[I18N.lang] || DAYS.fr, today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" })).getDay();
   const fmt = h => (h ? String(h).split(",").map(r => r.replace("-", "–")).join(" · ") : t("shClosed"));
   const hours = (s.hours || []).slice().sort((a, b) => a.d - b.d);
   const open = hours.length && shopOpenNow(hours);
   const wa = String(s.whatsapp || "").replace(/\D/g, "");
-  const waText = encodeURIComponent(t("shWaHello", { name: s.name }));
+  const waText = encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }));
   return `<div class="sh-info">
-    ${s.about ? `<p class="sh-about">${UI.esc(s.about)}</p>` : ""}
+    ${UI.shopText(s, "about") ? `<p class="sh-about">${UI.esc(UI.shopText(s, "about"))}</p>` : ""}
     <div class="sh-lines">
       ${s.address ? `<div class="sh-line"><span>📍</span><b><bdi>${UI.esc(s.address)}</bdi>${s.city ? ", " + UI.esc(cityLabel(cityIdOf(s.city, s) || s.city)) : ""}</b></div>` : ""}
       ${hours.length ? `<div class="sh-line"><span>🕘</span><b class="sh-open ${open ? "on" : "off"}">${UI.esc(openLabel(UI.openState(hours)) || t(open ? "shOpenNow" : "shClosedNow"))}</b>
@@ -1953,7 +1953,7 @@ function shopInfo(s) {
     </div>
     ${wa ? `<a class="sh-wa" href="https://wa.me/${UI.esc(wa)}?text=${waText}" target="_blank" rel="noopener">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2c2 1.1 4.3 1.7 6.6 1.7 7.2 0 13-5.7 13-12.8C29 8.7 23.2 3 16 3zm0 23.4c-2.1 0-4.1-.6-5.9-1.7l-.4-.3-3.8 1.2 1.2-3.7-.3-.4a10.4 10.4 0 0 1-1.7-5.7C5.1 10 10 5.2 16 5.2S26.9 10 26.9 15.8 22 26.4 16 26.4zm6-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a9 9 0 0 1-2.6-1.6 9.8 9.8 0 0 1-1.8-2.2c-.2-.3 0-.5.1-.7l.5-.6.3-.5v-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.1 1.1-1.1 2.7 1.2 3.1 1.3 3.3 2.3 3.5 5.6 4.9c.8.3 1.4.5 1.9.7.8.2 1.5.2 2.1.1.6-.1 1.9-.8 2.2-1.5s.3-1.4.2-1.5-.3-.2-.6-.3z"/></svg>
-        <span><b>${UI.esc(t("shWa"))}</b><small>${UI.esc(t("shWaSub", { name: s.name }))}</small></span></a>` : ""}
+        <span><b>${UI.esc(t("shWa"))}</b><small>${UI.esc(t("shWaSub", { name: UI.bi(s.name) }))}</small></span></a>` : ""}
     ${hours.length ? `<details class="sh-hours"><summary>${UI.esc(t("shAllHours"))}</summary><table>${hours.map(x =>
       `<tr class="${Number(x.d) === today ? "today" : ""}"><th>${UI.esc(days[x.d])}</th><td>${UI.esc(fmt(x.h))}</td></tr>`).join("")}</table></details>` : ""}
   </div>`;
@@ -1969,21 +1969,21 @@ function renderShopBanner() {
   hero.classList.toggle("hidden", !showHero);
   if (showHero) {
     const cover = UI.safeImg(s.cover) || UI.demoImg(s, "cover"), logo = UI.safeImg(s.logo) || UI.demoImg(s, "logo"), kinds = t("shKinds") || {};
-    const initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
     const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
-        <div class="sh-txt"><b>${UI.esc(s.name)}</b><small>${UI.esc(s.tagline || kinds[s.kind] || "")}</small></div></div>
+        <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b><small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small></div></div>
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
       ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
-      ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: s.name, when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
+      ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: UI.bi(s.name), when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
-        <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: s.name }))}</small></span></button>
-        <button type="button" class="${side === "from" ? "on" : ""}" data-shop-dir="from"><i>👔</i><span><b>${UI.esc(t("shDirFrom"))}</b><small>${UI.esc(t("shDirFromSub", { name: s.name }))}</small></span></button>
+        <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: UI.bi(s.name) }))}</small></span></button>
+        <button type="button" class="${side === "from" ? "on" : ""}" data-shop-dir="from"><i>👔</i><span><b>${UI.esc(t("shDirFrom"))}</b><small>${UI.esc(t("shDirFromSub", { name: UI.bi(s.name) }))}</small></span></button>
       </div>` : ""}
       ${shopInfo(s)}`;
     if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
   }
-  if (on) $("#shopBannerText").textContent = t(side === "to" ? "shBannerTo" : "shBanner", { name: state.shop.name });
+  if (on) $("#shopBannerText").textContent = t(side === "to" ? "shBannerTo" : "shBanner", { name: UI.bi(state.shop.name) });
   const pro = proShopOn();
   // Commerce à l'arrivée (pressing : on lui apporte les vêtements) : le catalogue seul, sans commande à préparer
   $("#shopOrderBox").classList.toggle("hidden", !pro && !shopDropOn());
@@ -1991,8 +1991,8 @@ function renderShopBanner() {
   $("#shopOrderNote").classList.toggle("hidden", !pro);
   $("#shopRefBox").classList.toggle("hidden", !shopSelf());
   if (pro) {
-    $("#shopOrderLabel").textContent = t("spOrderLabel", { name: state.shop.name });
-    $("#shopOrderNote").textContent = t("spOrderNote", { name: state.shop.name });
+    $("#shopOrderLabel").textContent = t("spOrderLabel", { name: UI.bi(state.shop.name) });
+    $("#shopOrderNote").textContent = t("spOrderNote", { name: UI.bi(state.shop.name) });
   }
   renderCatalog();
 }
@@ -2522,7 +2522,7 @@ async function initRestos() {
   drawRestos();
   if (Store.fixAddressBrands(freshBrand)) { renderHomeStatic(); syncHome(); }   // « Mes adresses » et « Refaire la dernière course » avec le bon nom
 }
-const restoName = e => (I18N.lang === "fr" && e.fr ? e.fr : e.n);
+const restoName = e => UI.bi(I18N.lang === "fr" && e.fr ? e.fr : e.n);
 function drawRestos() {
   if (restos.open) return;   // une bulle est ouverte : on ne redessine pas (elle se fermerait)
   const z = home.map.getZoom(), el = home.map.getContainer();
@@ -2572,9 +2572,11 @@ function drawRestos() {
     const pe = g.ids.map(i => restos.list[i]).find(e => e.partner), hop = !!pe;
     const logo = hop ? UI.safeImg(((state.showcase || []).find(x => x.code === pe.partner.code) || {}).logo) : "";
     const ico = logo ? `<img src="${logo}" alt="" />` : hop ? (UI.KIND_ICON[pe.partner.kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
-    L.marker(g.pos, { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: logo ? [34, 34] : [26, 26], iconAnchor: logo ? [17, 17] : [13, 13],
-      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
-      .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = Places.dirName(e, I18N.lang); return `<div class="rp-row">
+    // Le logo d'un partenaire grossit à mesure qu'on zoome (34 px à la vue de départ, jusqu'à 84 px tout près)
+    const lg = logo ? ({ 13: 28, 14: 30, 15: 34, 16: 40, 17: 52, 18: 66 })[z] || (z > 18 ? 84 : 28) : 26;
+    L.marker(g.pos, { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [lg, lg], iconAnchor: [lg / 2, lg / 2],
+      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"${logo ? ` style="--lg:${lg}px"` : ""}><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
+      .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = UI.bi(Places.dirName(e, I18N.lang)); return `<div class="rp-row">
           <span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t("restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
         { closeButton: false, offset: [0, -6], maxWidth: 260, maxHeight: 210, autoPanPaddingTopLeft: [12, 150], autoPanPaddingBottomRight: [76, 24] })
@@ -2742,22 +2744,22 @@ function toggleFav(code) {
 // Carte d'un commerce, compacte : bannière, logo, catégorie, ouvert / fermé, livraison ; toute la carte s'ouvre au toucher
 function shopCard(s) {
   const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = UI.openState(s.hours);
-  const initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">
     <span class="sc-cover"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
       ${st && !st.open ? `<em class="sc-closed">${UI.esc(t("scClosed"))}</em>` : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
-    <span class="sc-body"><b>${UI.esc(s.name)}</b>
+    <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
       <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : ""}</small>
-      ${s.tagline ? `<small class="sc-tag">${UI.esc(s.tagline)}</small>` : ""}</span>
+      ${UI.shopText(s, "tagline") ? `<small class="sc-tag">${UI.esc(UI.shopText(s, "tagline"))}</small>` : ""}</span>
     <span class="sc-go" aria-label="${UI.esc(st && !st.open ? t("scSchedule") : t("proGo"))}">${st && !st.open ? UI.calIcon() : "›"}</span>
   </div>`;
 }
 // Vitrine façon « D » : les logos de tous les partenaires en haut, les ouverts en grandes cartes photo,
 // les fermés regroupés en petites lignes avec « Programmer »
 function shopLogo(s, cls) {
-  const logo = UI.safeImg(s.logo), initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  const logo = UI.safeImg(s.logo), initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<span class="${cls}">${logo ? `<img src="${logo}" alt="" />` : `<b>${UI.esc(initials)}</b>`}</span>`;
 }
 function renderShowcase() {
@@ -2768,12 +2770,12 @@ function renderShowcase() {
   const open = list.filter(isOpen), closed = list.filter(s => !isOpen(s));
   const kindOf = s => (s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind]) || "";
   const html = `<div class="sc-stories">${list.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
-        ${shopLogo(s, "sc-ring")}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(s.name)}</b></button>`).join("")}</div>`
+        ${shopLogo(s, "sc-ring")}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(UI.bi(s.name))}</b></button>`).join("")}</div>`
     + (open.length ? `${closed.length ? `<p class="sc-sub">${UI.esc(t("scOpenNow"))}</p>` : ""}<div class="pro-row">${open.map(shopCard).join("")}</div>` : "")
     + (closed.length ? `<p class="sc-sub">${UI.esc(t("scClosedList"))}</p><div class="sc-closed-list">${closed.map(s => {
         const st = UI.openState(s.hours);
         return `<div class="sc-line" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">${shopLogo(s, "sc-lg")}
-          <span class="sc-lb"><b>${UI.esc(s.name)}</b><small>${UI.esc([kindOf(s), openLabel(st)].filter(Boolean).join(" · "))}</small></span>
+          <span class="sc-lb"><b>${UI.esc(UI.bi(s.name))}</b><small>${UI.esc([kindOf(s), openLabel(st)].filter(Boolean).join(" · "))}</small></span>
           <span class="sc-prog">${UI.esc(t("scProg"))}</span></div>`; }).join("")}</div>` : "");
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
 }
@@ -2838,7 +2840,7 @@ function renderEnsList() {
     const addr = [`${x.street} ${x.number}`.trim(), x.city ? cityLabel(cityIdOf(x.city) || x.city) : ""].filter(Boolean).join(", ");
     return `<div class="ens-item">
       <span class="ens-ico">${x.icon}</span>
-      <div class="ens-main"><b>${UI.esc(x.name)}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>${x.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}
+      <div class="ens-main"><b>${UI.esc(UI.bi(x.name))}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>${x.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}
         <small>${UI.esc(addr || t("ensAddrLater"))} · ${dist(x)}</small></div>
       <div class="ens-act"><button type="button" class="btn btn-sm btn-primary" data-ens-pick="from" data-i="${i}">${UI.esc(t("ensFrom"))}</button>
         <button type="button" class="btn btn-sm" data-ens-pick="to" data-i="${i}">${UI.esc(t("ensTo"))}</button></div>
@@ -3030,6 +3032,9 @@ document.querySelector(".seg").addEventListener("click", e => {
 $("#langBtn").addEventListener("click", () => {
   I18N.setLang(I18N.other());
   renderAll();
+  // La carte de l'accueil et son bouton changent de langue aussi (noms des commerces en hébreu / en français)
+  if ($("#homeMapBtn")) $("#homeMapBtn").textContent = t($("#accueil").classList.contains("map-open") ? "hmMapClose" : "hmMapOpen");
+  if (home.map && restos.layer) { restos.key = ""; if (restos.open) home.map.closePopup(); drawRestos(); }
   $("#quickGo").textContent = t(quickWhen === "later" ? "quickCtaLater" : "quickCta");
 });
 $("#doneClose").addEventListener("click", () => { $("#doneModal").classList.add("hidden"); location.hash = "mes-courses"; });
