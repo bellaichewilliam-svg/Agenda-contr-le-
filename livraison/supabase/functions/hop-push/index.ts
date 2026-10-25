@@ -83,6 +83,13 @@ Deno.serve(async req => {
           url: `patron/?o=${o.id}`, tag: "o-" + o.id,
           actions: takes ? [{ action: "take", title: "✅ Je la prends" }, { action: "give", title: "🛵 Donner à un livreur" }] : [{ action: "give", title: "🛵 Donner à un livreur" }] }, site, 10);
       }
+    } else if (ev.event === "nobody") {
+      // Personne ne l'a prise 2 min après les livreurs : le patron la prend ou la donne (même à un livreur hors ligne)
+      if (o.status === "nouvelle" && !o.courier_id) {
+        sent += await sendTo(await admins(), { title: `⚠️ Personne n'a pris la course · ${money(o.price)}`,
+          body: `${o.ref} · ${when}\n${route}\nTouchez : je la prends, ou je la donne à un livreur`, url: `patron/?o=${o.id}`, tag: "o-" + o.id,
+          actions: [{ action: "take", title: "✅ Je la prends" }, { action: "give", title: "🛵 Donner à un livreur" }] }, site);
+      }
     } else if (ev.event === "late") {
       // Course en retard : personne ne l'a prise, pas récupérée, pas livrée
       sent += await sendTo(await admins(), { title: `⏰ Course en retard · ${o.ref}`,

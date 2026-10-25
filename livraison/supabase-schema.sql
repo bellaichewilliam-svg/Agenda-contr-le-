@@ -6004,3 +6004,72 @@ language sql stable set search_path = public as $$
   select public.offer_base(o) + coalesce((select case when boss_takes then make_interval(secs => boss_first_seconds) else interval '0' end
                                             from settings where id = 1), interval '0');
 $$;
+
+-- ============================================================================
+-- PERSONNE NE L'A PRISE : 2 min après que les livreurs la voient, toujours sans livreur → le patron est prévenu
+-- (« ⚠️ Personne n'a pris la course », boutons « Je la prends » / « Donner à un livreur »), une fois par mise en attente.
+-- Le patron redonne une course déjà prise à un autre livreur : l'ancien est prévenu (« Course annulée »), le nouveau aussi.
+-- ============================================================================
+alter table public.orders add column if not exists nobody_at timestamptz;
+
+create or replace function public.nobody_orders() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0;
+begin
+  for o in select id from orders
+            where status = 'nouvelle' and courier_id is null
+              and (shop_status is null or shop_status in ('acceptee', 'prete'))
+              and coalesce(docs_status, 'ok') = 'ok'
+              and now() >= greatest(public.offer_from(orders), coalesce(released_at, '-infinity')) + interval '2 minutes'
+              and (nobody_at is null or nobody_at < coalesce(released_at, '-infinity'))
+  loop
+    update orders set nobody_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'nobody'));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.nobody_orders() from public, anon, authenticated;
+-- Les courses déjà en attente depuis longtemps ne déclenchent pas d'alerte au démarrage
+update public.orders set nobody_at = now()
+ where status = 'nouvelle' and courier_id is null and nobody_at is null and created_at < now() - interval '30 minutes';
+do $$ begin
+  perform cron.schedule('hop-nobody', '10 seconds', 'select public.nobody_orders()');
+exception when others then raise notice 'pg_cron indisponible : pas d''alerte « personne ne l''a prise »';
+end $$;
+
+create or replace function public.push_order_event() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare ev text;
+begin
+  if tg_op = 'INSERT' then ev := 'new';
+  elsif new.status in ('annulee', 'refusee') and old.status in ('confirmee', 'recuperee') and old.courier_id is not null then
+    perform public.push_call(jsonb_build_object('order_id', new.id, 'event', 'cancel', 'courier_id', old.courier_id));
+    return new;
+  elsif new.status = 'confirmee' and old.status = 'nouvelle' and new.courier_id is not null and public.is_admin() then
+    -- Le patron donne la course à un livreur : il est prévenu tout de suite
+    perform public.push_call(jsonb_build_object('order_id', new.id, 'event', 'assigned', 'courier_id', new.courier_id));
+    return new;
+  elsif new.status = 'confirmee' and old.status = 'confirmee' and new.courier_id is distinct from old.courier_id and public.is_admin() then
+    -- Le patron la redonne à un autre : l'ancien ne doit plus y aller, le nouveau est prévenu
+    if old.courier_id is not null then
+      perform public.push_call(jsonb_build_object('order_id', new.id, 'event', 'cancel', 'courier_id', old.courier_id));
+    end if;
+    if new.courier_id is not null then
+      perform public.push_call(jsonb_build_object('order_id', new.id, 'event', 'assigned', 'courier_id', new.courier_id));
+    end if;
+    return new;
+  elsif new.shop_status = 'acceptee' and old.shop_status is distinct from 'acceptee' then ev := 'shop_ok';
+  elsif new.docs_status = 'ok' and old.docs_status is distinct from 'ok' then ev := 'docs_ok';
+  elsif new.status = 'nouvelle' and old.status <> 'nouvelle' then
+    -- Remise en attente par le patron : le livreur qui l'avait est prévenu
+    if old.courier_id is not null and public.is_admin() then
+      perform public.push_call(jsonb_build_object('order_id', new.id, 'event', 'cancel', 'courier_id', old.courier_id));
+    end if;
+    ev := 'again';
+  else return new; end if;
+  perform public.push_call(jsonb_build_object('order_id', new.id, 'event', ev));
+  return new;
+end;
+$$;
