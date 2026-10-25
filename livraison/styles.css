@@ -1623,6 +1623,10 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .resto-pin { position: relative; width: 24px; height: 24px; display: grid; place-items: center; }
 .resto-pin b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; line-height: 1; font-weight: 400; background: #fff; border: 2px solid var(--brand); box-shadow: 0 3px 8px rgba(15,31,61,.28); }
 .resto-pin.hop b { background: linear-gradient(135deg, #FF8A3D, #E0420A); border-color: #fff; font-size: 13px; }
+/* Partenaire avec son logo : rond blanc un peu plus grand, cerclé d'orange */
+.resto-pin.logo b { width: 34px; height: 34px; padding: 0; overflow: hidden; background: #fff; border: 2.5px solid var(--brand); box-shadow: 0 4px 12px rgba(224, 66, 10, .4); }
+.resto-pin.logo b img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+.resto-pin.logo span { inset-inline-start: 30px; }
 /* De loin : sans nom, un simple point (la carte reste lisible) ; on zoome, les icônes reviennent */
 .resto-pin.dot b { width: 10px; height: 10px; font-size: 0; border: 0; background: var(--brand); box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 1px 4px rgba(0,0,0,.3); }
 .resto-pin span { display: none; position: absolute; top: 50%; inset-inline-start: 25px; transform: translateY(-50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; color: #1D2433; background: rgba(255,255,255,.96); padding: 2px 8px 2px 7px; border-radius: 999px; box-shadow: 0 2px 6px rgba(15,31,61,.2); pointer-events: none; }
