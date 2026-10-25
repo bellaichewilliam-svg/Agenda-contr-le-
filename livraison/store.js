@@ -1958,7 +1958,7 @@ async function sandboxSeed(kind, reset) {
   if (!SANDBOX) return null;
   const token = "demo-" + kind;
   if (!reset && localShops().some(x => x.token === token)) return token;
-  const data = (await fetch("demo-shops.json?v=1").then(r => r.json()))[kind];
+  const data = (await fetch("demo-shops.json?v=2").then(r => r.json()))[kind];
   const now = Date.now(), iso = ms => new Date(now + ms).toISOString();
   const shop = Object.assign({ id: uuid(), token, status: "actif", city: "netanya", address: "כיכר העצמאות", lat: 32.329, lon: 34.8565,
     phone: CONFIG.bitPhone, lang: "fr", plan_until: "2099-12-31", demo: true, client_pays: true, logo: null, cover: null, created_at: iso(-30 * 86400000) }, data.shop);
