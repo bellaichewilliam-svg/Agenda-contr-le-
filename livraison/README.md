@@ -388,3 +388,4 @@ livraison/
 - **Badge « 👑 Partenaire HOP! » en vert**.
 - **Logos des commerces de l'annuaire** : un commerce peut avoir son logo (`lg: "img/logos/…"` dans annuaire.json), sur la carte (cerclé de blanc ; les partenaires gardent l'orange et passent devant) et dans les listes. Premier : Rouah Hamatok 770.
 - **Rouah Hamatok, adresses corrigées d'après leur affiche** : משה סמילנסקי 26 et שער הגיא 14, tél. 09-9796803 (la fiche « שדרות בנימין 31 », ancienne et peu sûre, est remplacée). `DIR_VERSION` 13.
+- **Vitrines de démonstration en hébreu** : accroche et présentation hébreu dans `demo-shops.json` (démos de l'espace commerce) et dans `supabase/demo-shops.sql` (vitrines en ligne).

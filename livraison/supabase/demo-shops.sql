@@ -104,3 +104,8 @@ begin
   insert into shop_products (shop_id, category_id, name, description, price, position) values (sid, cid, $q$Carte cadeau 100 ₪ · כרטיס מתנה$q$, null, 100, 400);
   insert into shop_products (shop_id, category_id, name, description, price, position) values (sid, cid, $q$Coffret cadeau · מארז מתנה$q$, $q$Emballage offert$q$, 149, 401);
 end $d$;
+
+-- Textes en hébreu des vitrines de démonstration (affichés quand l'appli est en hébreu)
+update public.shops set tagline_he = 'המבורגרים · פיצות · סושי · סלטים', about_he = 'הדגמה של HOP!: כך נראה חלון הראווה של מסעדה ב-HOP!. המנות בתמונות, המחירים, שעות הפתיחה; הלקוחות מזמינים כאן והופר מביא תוך דקות.' where code = 'DEMO-RESTO';
+update public.shops set tagline_he = 'לחמים · מאפים · עוגות', about_he = 'הדגמה של HOP!: כך נראה חלון הראווה של מאפייה ב-HOP!. קרואסונים של הבוקר, לחמים, עוגות יום הולדת: הלקוחות מזמינים, והופר מביא חם.' where code = 'DEMO-BOULANGERIE';
+update public.shops set tagline_he = 'אופנת נשים · גברים · ילדים', about_he = 'הדגמה של HOP!: כך נראה חלון הראווה של חנות בגדים ב-HOP!. החדש שלכם בתמונות, המידות, המחירים; הלקוחות מזמינים ומקבלים תוך שעה.' where code = 'DEMO-BOUTIQUE';
