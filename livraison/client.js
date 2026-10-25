@@ -2555,7 +2555,7 @@ function drawRestos() {
     const logo = hop ? UI.safeImg(((state.showcase || []).find(x => x.code === pe.partner.code) || {}).logo) : "";
     const ico = logo ? `<img src="${logo}" alt="" />` : hop ? (UI.KIND_ICON[pe.partner.kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
     L.marker([g.e.lat, g.e.lon], { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: logo ? [34, 34] : [26, 26], iconAnchor: logo ? [17, 17] : [13, 13],
-      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " dot" : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
+      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = Places.dirName(e, I18N.lang); return `<div class="rp-row">
           <span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t("restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
