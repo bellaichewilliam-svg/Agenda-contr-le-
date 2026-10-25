@@ -4,6 +4,8 @@ const fs = require('fs');
 // Usage : node generer-visuels.js <dossier des polices et de qrcodejs> (voir README)
 const L = process.argv[2] || __dirname + '/libs', OUT = __dirname + '/visuels';
 const APP = 'https://hop-livraison.vercel.app/';
+// Numéro du patron sur les visuels « argumentaires » (config.js : whatsapp)
+const TEL = (d => `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`)('0' + fs.readFileSync(__dirname + '/../config.js', 'utf8').match(/whatsapp:\s*"972(\d+)"/)[1]);
 // Polices intégrées (les fichiers locaux ne se chargent pas depuis une page générée)
 const font = (fam, file, w, range) => `@font-face{font-family:'${fam}';font-weight:${w};src:url(data:font/woff2;base64,${fs.readFileSync(`${L}/${fam === 'Fredoka' ? 'fr' : 'ru'}/package/files/${file}`).toString('base64')}) format('woff2');unicode-range:${range}}`;
 const LAT = 'U+0000-024F,U+20AA,U+2013-2019,U+00A0', HEB = 'U+0590-05FF';
@@ -38,7 +40,7 @@ h1 em{font-style:normal;color:#FF6A13}
 .scoot{direction:ltr}
 .price b{font-family:Fredoka;font-weight:700;color:#FF6A13;line-height:1}
 .price s{color:#98A2B3;font-weight:700}
-.badge{background:#FF6A13;color:#fff;border-radius:22px;padding:12px 22px;font-family:Fredoka;font-weight:700}
+.badge{background:#FF6A13;color:#fff;border-radius:22px;padding:12px 22px;font-family:Fredoka;font-weight:700;white-space:nowrap}
 .qrbox{background:#fff;border-radius:28px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px;color:#0F1F3D;font-weight:800}
 .qrbox canvas,.qrbox img{display:block}
 .foot{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
@@ -71,6 +73,28 @@ const T = {
     he: { h1: 'בואו להיות<br><em>שליחים בהופ!</em>', sub: 'קטנוע, רכב או אופניים · נתניה והשרון', chips: ['✅ בוחרים את המשלוחים', '🟢 מתחברים מתי שרוצים', '💝 הטיפים 100% שלכם', '🔔 מצלצל גם כשהמסך כבוי'],
       price: '<span>עמלת הופ</span><span><b>15%</b></span>', badge: '🛵 בלי מנוי', scan: 'להרשמה', url: 'רישיון, ארגז, עוסק' },
     link: APP + 'coursier.html'
+  },
+  // Argumentaires « qui font appeler » : un chiffre qui frappe, une offre claire, le numéro du patron
+  resto: {
+    fr: { h1: 'Gardez <em>100&nbsp;%</em><br>de vos ventes', sub: 'Les grandes applis prennent jusqu\'à 30 % par commande. HOP! : 0 %.', chips: ['💸 0 % de commission', '🛵 1 commande = 1 livreur', '🔥 Le plat arrive chaud', '📍 Suivi en direct', '🤝 Sans engagement'],
+      price: '<span>Commission sur 100 commandes de 80 ₪</span><span><s>2 400 ₪</s> <b>0 ₪</b></span>', badge: '📞 ' + TEL, scan: 'Installé en 10 min', url: 'Appelez-nous aujourd\'hui' },
+    he: { h1: 'שומרים <em>100%</em><br>מהמכירות', sub: 'האפליקציות הגדולות לוקחות עד 30% מכל הזמנה. הופ!: 0%.', chips: ['💸 0% עמלה', '🛵 הזמנה אחת = שליח אחד', '🔥 האוכל מגיע חם', '📍 מעקב בזמן אמת', '🤝 בלי התחייבות'],
+      price: '<span>עמלה על 100 הזמנות של 80 ₪</span><span><s>2,400 ₪</s> <b>0 ₪</b></span>', badge: '📞 ' + TEL, scan: 'מותקן תוך 10 דקות', url: 'התקשרו אלינו היום' },
+    link: APP + 'commerce.html', hs: 0.74, hsPost: 1.1, postChips: 3
+  },
+  pro: {
+    fr: { h1: 'Vos clients veulent<br><em>être livrés ?</em>', sub: 'Restaurants · Boutiques · Pharmacies · Pressings', chips: ['🛵 Un livreur en quelques minutes', '💸 0 % sur vos ventes', '📍 Suivi en direct pour le client', '📝 Sans contrat'],
+      price: '<span>Livraison dans Netanya, prix fixe</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'On en parle 2 min ?', url: 'Connu d\'avance, sans surprise' },
+    he: { h1: 'הלקוחות שלכם<br><em>רוצים משלוח?</em>', sub: 'מסעדות · חנויות · בתי מרקחת · ניקוי יבש', chips: ['🛵 שליח תוך דקות', '💸 0% עמלה על המכירות', '📍 מעקב בזמן אמת ללקוח', '📝 בלי חוזה'],
+      price: '<span>משלוח בתוך נתניה, מחיר קבוע</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'מדברים 2 דקות?', url: 'ידוע מראש, בלי הפתעות' },
+    link: APP + 'commerce.html', hs: 0.66, hsPost: 1.22, postChips: 3
+  },
+  quartier: {
+    fr: { h1: 'Vendez aussi à ceux<br><em>qui ne viennent pas</em>', sub: 'Pharmacie · Fleuriste · Pressing · Boutique', chips: ['📦 Livré le jour même', '👔 Pressing : on récupère et on ramène', '💰 0 % · pas d\'abonnement', '📍 Le client suit sa livraison'],
+      price: '<span>Livraison dans Netanya</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'Dès votre prochaine commande', url: 'Boutique en ligne en option : 299 ₪ / mois' },
+    he: { h1: 'מוכרים גם למי<br><em>שלא מגיע</em>', sub: 'בית מרקחת · פרחים · ניקוי יבש · חנות', chips: ['📦 משלוח באותו יום', '👔 ניקוי יבש: אוספים ומחזירים', '💰 0% · בלי מנוי', '📍 הלקוח עוקב אחרי המשלוח'],
+      price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'כבר בהזמנה הבאה', url: 'חנות אונליין באופציה: 299 ₪ לחודש' },
+    link: APP + 'commerce.html', hs: 0.6, hsPost: 1.23, postChips: 2
   }
 };
 function page(kind, lang, fmt) {
@@ -83,10 +107,10 @@ function page(kind, lang, fmt) {
   const sw = fmt === 'story' ? 320 : 280;
   const html = `<div class="page ${he ? 'he' : ''}" style="width:${W}px;height:${H}px;padding:${pad}px;gap:${fmt === 'post' ? 26 : 38}px">
     <div class="top"><div class="lg">${LOGO}</div><div class="wm">${he ? 'הופ' : 'HOP'}<i>!</i><small>${he ? 'משלוחים' : 'LIVRAISON'}</small></div></div>
-    ${fmt !== 'post' ? `<div style="height:${Math.round(sw * 0.7) + 16}px;position:relative"><div class="road" style="bottom:6px"></div>${scoot(sw, `bottom:2px;${he ? 'right' : 'left'}:30px`)}</div>` : ''}
-    <h1 style="font-size:${Math.round(110 * big)}px">${t.h1}</h1>
+    ${fmt !== 'post' ? `<div style="height:${Math.round(sw * 0.7) + 16}px;position:relative;flex-shrink:0"><div class="road" style="bottom:6px"></div>${scoot(sw, `bottom:2px;${he ? 'right' : 'left'}:30px`)}</div>` : ''}
+    <h1 style="font-size:${Math.round(110 * big * (T[kind].hs || 1) * (fmt === 'post' ? (T[kind].hsPost || 1) : 1))}px">${t.h1}</h1>
     <div class="sub" style="font-size:${Math.round(31 * big)}px">${t.sub}</div>
-    <div class="chips" style="font-size:${Math.round(27 * big)}px">${t.chips.map(c => `<span class="chip">${c}</span>`).join('')}</div>
+    <div class="chips" style="font-size:${Math.round(27 * big)}px">${(fmt === 'post' && T[kind].postChips ? t.chips.slice(0, T[kind].postChips) : t.chips).map(c => `<span class="chip">${c}</span>`).join('')}</div>
     <div style="flex:1"></div>
     ${fmt !== 'post' ? `<div class="price" style="font-size:${Math.round(32 * big)}px">${t.price.replace('<b>', `<b style="font-size:${Math.round(80 * big)}px">`)}</div>` : ''}
     <div class="foot">
@@ -105,7 +129,9 @@ function page(kind, lang, fmt) {
   const b = await chromium.launch();
   const qrJs = fs.readFileSync(L + '/q/package/qrcode.min.js', 'utf8');
   const made = [];
-  for (const kind of ['client', 'shop', 'rider']) for (const lang of ['fr', 'he']) for (const fmt of ['post', 'story', 'flyer']) {
+  // Usage : node generer-visuels.js <libs> [types séparés par des virgules] (par défaut : tous)
+  const kinds = process.argv[3] ? process.argv[3].split(',') : Object.keys(T);
+  for (const kind of kinds) for (const lang of ['fr', 'he']) for (const fmt of ['post', 'story', 'flyer']) {
     const p = page(kind, lang, fmt);
     const ctx = await b.newContext({ viewport: { width: p.W, height: p.H }, deviceScaleFactor: 1 });
     const pg = await ctx.newPage();

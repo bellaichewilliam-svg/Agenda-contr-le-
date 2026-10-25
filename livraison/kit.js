@@ -236,6 +236,40 @@ $("#posts").innerHTML = POSTS.map((p, i) => `
   <button class="btn btn-sm" data-copy="post${i}">Copier</button>
   <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a>`).join("");
 
+// Visuels : ouverts en grand dans la page, avec Fermer / Enregistrer / Partager (plus de nouvel onglet sans retour)
+function openVisual(a) {
+  const img = a.querySelector("img"), src = img.getAttribute("src"), href = a.getAttribute("href");
+  const pdf = /\.pdf$/i.test(href), name = src.split("/").pop();
+  const box = document.createElement("div");
+  box.className = "vis-view";
+  box.innerHTML = `<div class="vv-bar">
+      <a class="btn btn-sm btn-primary" href="${src}" download="${name}">⬇ Enregistrer</a>
+      ${pdf ? `<a class="btn btn-sm" href="${href}" download="${href.split("/").pop()}">📄 PDF à imprimer</a>` : ""}
+      ${navigator.share ? `<button type="button" class="btn btn-sm" data-vv-share>📤 Partager</button>` : ""}
+      <button type="button" class="btn btn-sm" data-vv-close>✕ Fermer</button>
+    </div>
+    <img src="${src}" alt="" />`;
+  box.addEventListener("click", async e => {
+    if (e.target.closest("[data-vv-close]") || e.target === box) return history.back();
+    if (e.target.closest("[data-vv-share]")) {
+      try {
+        const blob = await (await fetch(src)).blob();
+        const file = new File([blob], name, { type: blob.type || "image/png" });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: nameFr });
+        else await navigator.share({ title: nameFr, url: new URL(src, location.href).href });
+      } catch (ex) { /* partage annulé */ }
+    }
+  });
+  document.body.appendChild(box);
+  history.pushState({ vis: 1 }, "");
+  const back = () => { box.remove(); removeEventListener("popstate", back); };
+  addEventListener("popstate", back);
+}
+document.addEventListener("click", e => {
+  const v = e.target.closest(".vis-grid a");
+  if (v) { e.preventDefault(); openVisual(v); }
+});
+
 document.addEventListener("click", e => {
   const id = e.target.dataset && e.target.dataset.copy;
   if (!id) return;

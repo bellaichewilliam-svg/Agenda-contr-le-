@@ -390,7 +390,7 @@ function photoViewer(title, items) {
   const d = document.createElement("div");
   d.className = "photo-viewer";
   d.innerHTML = `<div class="pv-head"><b>${esc(title)}</b><button type="button" class="btn btn-sm" data-pv-close>✕</button></div>
-    ${items.length ? items.map(x => `<figure><figcaption>${esc(x.label)}</figcaption><img src="${esc(x.src)}" alt="" /></figure>`).join("")
+    ${items.length ? items.map((x, i) => `<figure><figcaption>${esc(x.label)} <a class="btn btn-sm" href="${esc(x.src)}" download="${esc(String(x.label || "photo").replace(/[^\w\u0590-\u05ff-]+/g, "-") + "-" + (i + 1))}.jpg">⬇ Enregistrer</a></figcaption><img src="${esc(x.src)}" alt="" /></figure>`).join("")
       : `<p class="muted">Aucun document reçu pour l'instant.</p>`}`;
   d.addEventListener("click", e => { if (e.target.closest("[data-pv-close]") || e.target === d) d.remove(); });
   document.body.appendChild(d);
