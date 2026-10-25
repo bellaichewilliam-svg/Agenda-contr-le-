@@ -197,6 +197,8 @@ async function load() {
     && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
   if (typing) renderStats(); else render();
   // Course ouverte dans la fenêtre du patron : fermée si elle est prise entre-temps ; adresse de la notification au 1er chargement
+  // « Je ne prends pas de courses » : pas de service repris tout seul à l'ouverture
+  if (!bossTakes() && duty.watch != null) toggleDuty();
   if (bossFirstLoad) { bossFirstLoad = false; bossFromUrl(location.href); }
   if (bossAfterLoad) { const id = bossAfterLoad; bossAfterLoad = null; bossPopup(id); }
   else if (bossId) { const o = orders.find(x => x.id === bossId); if (!o || o.status !== "nouvelle" || o.courier_id) { $("#bossModal").classList.add("hidden"); bossId = null; } }
@@ -209,6 +211,12 @@ function renderAvail() {
   $("#availTitle").textContent = on ? "🟢 Je prends des commandes immédiates" : "🔴 Complet : les clients ne peuvent que programmer pour plus tard";
   $("#availBtn").textContent = on ? "Je suis complet" : "Je reprends les commandes";
   if (document.activeElement !== $("#availMsg")) $("#availMsg").value = settings.message || "";
+  const takes = bossTakes();
+  $("#bossTakesBtn").textContent = takes ? "🙋 Je prends des courses : OUI" : "🚫 Je prends des courses : NON";
+  $("#bossTakesBtn").classList.toggle("btn-primary", takes);
+  $("#bossTakesText").textContent = takes ? "" : "Vous êtes hors ligne : les courses vont directement aux livreurs. Vous voyez et entendez tout.";
+  $("#bossFirstRow").classList.toggle("hidden", !takes);
+  $("#duty").classList.toggle("hidden", !takes);
   const bf = $("#bossFirst"), v = String(Number(settings.boss_first_seconds ?? 60));
   if (![...bf.options].some(x => x.value === v)) bf.add(new Option(v + " s", v));
   if (document.activeElement !== bf) bf.value = v;
@@ -299,6 +307,20 @@ function rankedCouriers(o) {
 // --- Le patron d'abord : « 🔔 Nouvelle course » → je la prends, ou je la donne à un livreur ----------------
 // Ouverte par la notification (même téléphone verrouillé), par « Voir » de la sonnerie, ou toute seule à l'arrivée d'une course
 let bossId = null, bossAfterLoad = null, bossFirstLoad = true;
+// « Je prends des courses moi-même » : non → le patron est hors ligne, les courses partent tout de suite aux livreurs
+// (il voit et entend tout, et peut encore donner une course à un livreur)
+const bossTakes = () => settings.boss_takes !== false;
+async function toggleBossTakes() {
+  const on = !bossTakes();
+  if (!on && !confirm("Ne plus prendre de courses vous-même ?\n\nVous passez hors ligne, chaque course part tout de suite aux livreurs. Vous continuez de tout voir et de tout entendre, et vous pouvez encore donner une course à un livreur.")) return;
+  try {
+    await Store.saveSettings({ boss_takes: on });
+    settings.boss_takes = on;
+    if (!on && duty.watch != null) await toggleDuty();
+    else if (!on) Store.setOnline(false).catch(() => {});
+    renderAvail(); render();
+  } catch (e) { alert("Réglage non enregistré, vérifiez la connexion."); }
+}
 function bossPopup(id) {
   const o = orders.find(x => x.id === id);
   const m = $("#bossModal");
@@ -309,17 +331,17 @@ function bossPopup(id) {
     return;
   }
   bossId = id;
-  const wait = Math.ceil((new Date(o.created_at).getTime() + Number(settings.boss_first_seconds || 0) * 1000 - Date.now()) / 1000);
+  const wait = bossTakes() ? Math.ceil((new Date(o.created_at).getTime() + Number(settings.boss_first_seconds || 0) * 1000 - Date.now()) / 1000) : 0;
   const list = rankedCouriers(o);
   $("#bossBody").innerHTML = `
     <h3>🔔 Nouvelle course · ${UI.money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}</h3>
     <p class="small" style="margin:4px 0">n° ${UI.esc(o.ref)} · ${UI.esc(UI.whenFr(o))}</p>
     <p style="margin:6px 0"><b>${UI.esc(o.pickup_address || UI.cityFr(o.from_city))}</b> → <b>${UI.esc(o.dropoff_address || UI.cityFr(o.to_city))}</b></p>
-    <p class="small muted" style="margin:0 0 12px">${wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
-    <button type="button" class="btn btn-primary btn-block" data-boss="take">✅ Je la prends</button>
+    <p class="small muted" style="margin:0 0 12px">${!bossTakes() ? "🛵 Envoyée aux livreurs : le premier qui accepte la prend. Vous pouvez aussi la donner vous-même :" : wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
+    ${bossTakes() ? `<button type="button" class="btn btn-primary btn-block" data-boss="take">✅ Je la prends</button>` : ""}
     <p class="small" style="margin:14px 0 6px"><b>🛵 La donner à :</b></p>
     <div class="boss-list">${list.length ? list.map(({ c, km }) => `<button type="button" class="btn btn-block" data-boss-give="${UI.esc(c.id)}">${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : " · hors service"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</button>`).join("") : `<p class="small muted">Aucun livreur validé pour l'instant.</p>`}</div>
-    <button type="button" class="btn btn-link btn-block" data-boss="later">Laisser aux livreurs</button>`;
+    <button type="button" class="btn btn-link btn-block" data-boss="later">${bossTakes() ? "Laisser aux livreurs" : "OK, je laisse les livreurs"}</button>`;
   m.classList.remove("hidden");
 }
 async function onBossClick(e) {
@@ -455,7 +477,7 @@ function card(o, withDay) {
   // Livreurs qui viennent de s'inscrire : on peut les valider et leur donner la course d'un coup
   const fresh_ = partners().filter(c => c.status === "en_attente");
   const steps = {
-    nouvelle: `<button class="btn btn-sm btn-primary" data-act="take">✅ Je la prends</button>`
+    nouvelle: (bossTakes() ? `<button class="btn btn-sm btn-primary" data-act="take">✅ Je la prends</button>` : "")
       + (active.length || fresh_.length ? `<select class="btn btn-sm" data-act="assign"><option value="">👤 Donner à un livreur…</option>${active.map(({ c, km }) => `<option value="${UI.esc(c.id)}">${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : " · hors service"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</option>`).join("")}${fresh_.length ? `<optgroup label="🆕 Viennent de s'inscrire (validés en même temps)">${fresh_.map(c => `<option value="${UI.esc(c.id)}">🆕 ${UI.esc(c.name)}${c.phone ? " · " + UI.esc(c.phone) : ""}</option>`).join("")}</optgroup>` : ""}</select>` : "")
       + `<button class="btn btn-sm" data-act="refuse">🚫 Je ne peux pas</button>`,
     confirmee: b("recuperee", "🛵 Colis récupéré", "btn-primary") + `<button class="btn btn-sm" data-act="release">↩︎ Remettre en attente</button>` + b("annulee", "✖ Annuler"),
@@ -1688,6 +1710,7 @@ $("#ringSee").addEventListener("click", () => {
   tab = "nouvelles"; render(); window.scrollTo({ top: $("#tabs").offsetTop - 10, behavior: "smooth" });
 });
 $("#bossModal").addEventListener("click", onBossClick);
+$("#bossTakesBtn").addEventListener("click", toggleBossTakes);
 $("#bossFirst").addEventListener("change", async e => {
   const v = Number(e.target.value);
   try { await Store.saveSettings({ boss_first_seconds: v }); settings.boss_first_seconds = v; }
