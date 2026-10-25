@@ -605,7 +605,31 @@ function livePin(emoji, cls) {
 
 const point = (lat, lon) => lat != null && lon != null ? { lat: Number(lat), lon: Number(lon) } : null;
 const fresh = c => c.position_at && Date.now() - new Date(c.position_at) < 30 * 60000;
-const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 1 ? "à l'instant" : `il y a ${m} min`; };
+const ago = iso => {
+  const m = Math.round((Date.now() - new Date(iso)) / 60000);
+  return m < 1 ? "à l'instant" : m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.floor(m / 60)} h` : `le ${UI.fmtDateTime(iso)}`;
+};
+// En ligne = « En ligne » dans son appli et une position reçue depuis moins de duty_grace_min (comme courier_online en base) :
+// c'est là qu'il reçoit les courses
+function onlineOf(c) {
+  const grace = Number(settings.duty_grace_min || 180) * 60000;
+  const posOk = c.position_at && Date.now() - new Date(c.position_at) < grace;
+  if (c.online && posOk) return { on: true, cls: "paid", text: `🟢 En ligne · position ${ago(c.position_at)}` };
+  if (c.online) return { on: false, cls: "unpaid", text: `🟠 En ligne, mais sans position${c.position_at ? " depuis " + ago(c.position_at).replace(/^il y a /, "") : ""} : ne reçoit pas les courses` };
+  if (c.auto_offline_at && (!c.online_at || new Date(c.auto_offline_at) >= new Date(c.online_at)) && Date.now() - new Date(c.auto_offline_at) < 864e5)
+    return { on: false, cls: "st-annulee", text: `⏸️ Passé hors ligne tout seul ${ago(c.auto_offline_at)} (courses sans réponse)` };
+  return { on: false, cls: "", text: `⚪ Hors ligne${c.position_at ? " · vu " + ago(c.position_at) : ""}` };
+}
+function onlineSummary() {
+  const act = partners().filter(c => c.status === "actif");
+  if (!act.length) return "";
+  const on = act.filter(c => onlineOf(c).on), off = act.filter(c => !onlineOf(c).on);
+  return `<div class="card" style="margin-bottom:14px">
+    <b>🟢 En ligne maintenant : ${on.length} / ${act.length}</b>
+    <p class="small" style="margin:6px 0 0">${on.length ? on.map(c => `🟢 ${UI.esc(c.name)}`).join(" · ") : "Aucun livreur en ligne : les courses sonnent chez vous seulement."}</p>
+    ${off.length ? `<p class="small muted" style="margin:4px 0 0">${off.map(c => `${onlineOf(c).text.slice(0, 2)} ${UI.esc(c.name)}`).join(" · ")}</p>` : ""}
+  </div>`;
+}
 
 // Où en est la course : étape, prochaine destination et temps estimé
 function progressOf(o) {
@@ -650,8 +674,8 @@ function updateLiveMap() {
   if (!live.fitted && pts.length) { live.map.fitBounds(pts, { padding: [40, 40], maxZoom: 15 }); live.fitted = true; }
   live.points = pts;
 
-  const onDuty = couriers.filter(fresh);
-  $("#liveList").innerHTML = `<p class="small muted" style="margin-bottom:6px">🛵 En service : ${onDuty.length ? onDuty.map(c => UI.esc(c.name)).join(", ") : "personne pour l'instant"}</p>`
+  const onDuty = couriers.filter(c => c.status === "actif" && onlineOf(c).on);
+  $("#liveList").innerHTML = `<p class="small muted" style="margin-bottom:6px">🟢 En ligne : ${onDuty.length ? onDuty.map(c => UI.esc(c.name) + (c.role === "admin" ? " (vous)" : "")).join(", ") : "personne pour l'instant"}</p>`
     + (list.length ? list.map(o => {
       const pr = progressOf(o);
       return `<div class="order live-item" data-focus="${UI.esc(o.id)}">
@@ -707,7 +731,8 @@ function unfinishedCard() {
 }
 
 function renderCouriers(view) {
-  const list = partners().sort((a, b) => ["en_attente", "actif", "suspendu"].indexOf(a.status) - ["en_attente", "actif", "suspendu"].indexOf(b.status));
+  const rank = c => ["en_attente", "actif", "suspendu"].indexOf(c.status) * 2 + (onlineOf(c).on ? 0 : 1);
+  const list = partners().sort((a, b) => rank(a) - rank(b));
   const invite = UI.appUrl("livreur/");
   const statusLabel = { en_attente: "🆕 Inscrit · à valider", actif: "✅ Actif", suspendu: "⛔ Suspendu" };
   view.innerHTML = `
@@ -716,6 +741,7 @@ function renderCouriers(view) {
       <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance déclarée, HOP pas responsable…), puis vous les validez ici après avoir vu leurs documents. Le client les paie directement ; HOP prend ${UI.commissionText()} par course livrée, retirés tout de suite de leur crédit HOP (rechargé à l'avance) : rien à régler ensuite.</p>
       <div class="promo-row"><input readonly value="${UI.esc(invite)}" dir="ltr" /><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(`Tu as un scooter, une voiture ou un vélo ? Deviens livreur partenaire chez ${CONFIG.businessName} : tu choisis tes courses, tu encaisses directement le client, et seulement ${UI.commissionText()} de commission par course. Inscription : ${invite}`)}">Partager</a></div>
     </div>
+    ${onlineSummary()}
     ${unfinishedCard()}
     ${list.length ? `<div class="orders">${list.map(c => {
       const done = orders.filter(o => o.courier_id === c.id && o.status === "livree").length;
@@ -725,6 +751,7 @@ function renderCouriers(view) {
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name)}</span>
           <span class="pill">${statusLabel[c.status] || c.status}</span>
+          ${c.status === "actif" ? (o => `<span class="pill ${o.cls}">${UI.esc(o.text)}</span>`)(onlineOf(c)) : ""}
           <span class="order-ref">${done} course(s) livrée(s)${rating ? ` · ⭐ ${rating.avg.toFixed(1).replace(".", ",")} (${rating.n} avis)` : ""}</span>
         </div>
         ${refus}
