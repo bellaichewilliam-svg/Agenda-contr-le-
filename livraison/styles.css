@@ -841,6 +841,10 @@ body.has-eta { padding-bottom: 96px; }
 
 /* ===== Accueil client façon appli : carte + « Où on livre ? » ===== */
 .ch { position: relative; min-height: 640px; height: min(82vh, 760px); background: var(--bg-2); overflow: hidden; }
+/* Téléphone : hauteur de la carte ; volet descendu = la carte prend presque tout l'écran */
+.ch { --mapH: max(40vh, 250px); }
+.ch.map-open { --mapH: max(calc(100dvh - 230px), 320px); }
+.ch-grip { display: none; }
 .ch-map, .ch-map.leaflet-container { position: absolute; inset: 0; z-index: 0; background: linear-gradient(160deg, #DCE6F5, #EEF1F7); }
 .ch-perks { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 2px 0 0; padding: 0; list-style: none; font-size: 12px; color: var(--muted); font-weight: 600; }
 @media (max-width: 860px) { body.in-home .wa-fab { bottom: 96px; } }
@@ -906,11 +910,14 @@ body.has-eta { padding-bottom: 96px; }
 .hero-h2 { font-size: clamp(26px, 4vw, 40px); line-height: 1.1; margin: 0 0 10px; color: #fff; }
 @media (max-width: 860px) {
   .ch { height: auto; min-height: 0; overflow: visible; }
-  .ch-map, .ch-map.leaflet-container { position: relative; height: 40vh; min-height: 250px; }
+  .ch-map, .ch-map.leaflet-container { position: relative; height: var(--mapH); min-height: 250px; transition: height .3s ease; }
   .ch-top { top: 12px; }
-  .ch-locate { top: calc(max(40vh, 250px) - 64px); bottom: auto; }
+  .ch-locate { top: calc(var(--mapH) - 64px); bottom: auto; }
   .ch-sheet { position: relative; top: auto; bottom: auto; inset-inline-start: auto; width: auto; margin-top: -26px; border-radius: 24px 24px 0 0; padding: 20px 16px 0; overflow: visible; box-shadow: 0 -8px 30px rgba(15,31,61,.14); }
-  .ch-sheet::before { content: ""; align-self: center; width: 44px; height: 5px; border-radius: 9px; background: var(--border); margin: -8px 0 2px; }
+  /* Poignée du volet : on la glisse (ou on la touche) pour descendre le volet et voir toute la carte */
+  .ch-grip { display: block; align-self: center; width: 100%; height: 26px; margin: -16px 0 -4px; border: 0; background: none; cursor: grab; touch-action: none; }
+  .ch-grip i { display: block; margin: 8px auto 0; width: 44px; height: 5px; border-radius: 9px; background: var(--border); }
+  .ch.map-open .ch-grip i { background: var(--brand); }
   .ch-title { font-size: 30px; }
   .ch-chips, .ch-when, .ch-kinds { margin: 0 -16px; padding: 2px 16px; }
   .ch-go { margin: 4px -16px 0; padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -6px 16px rgba(15,31,61,.06); background: var(--panel); }
@@ -985,7 +992,7 @@ body.in-home .eta-bubble { display: none; }
 .ch-zoom { position: absolute; z-index: 2; bottom: 84px; inset-inline-end: 16px; display: grid; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 16px rgba(15,31,61,.22); }
 .ch-zoom button { width: 48px; height: 44px; border: 0; background: var(--panel); color: var(--ink); font-size: 24px; font-weight: 600; line-height: 1; }
 .ch-zoom button + button { border-top: 1px solid var(--border); }
-@media (max-width: 860px) { .ch-zoom { bottom: auto; top: calc(max(40vh, 250px) - 168px); } }
+@media (max-width: 860px) { .ch-zoom { bottom: auto; top: calc(var(--mapH) - 168px); } }
 /* Carte sombre : tuiles OpenStreetMap inversées (gratuit, sans clé) */
 .tiles-dark { filter: invert(1) hue-rotate(180deg) brightness(.95) contrast(.88) saturate(.55); }
 .ch-gps.busy { animation: gpsSpin 1s linear infinite; }
@@ -1605,8 +1612,8 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 .rd-line.rd-alert .go { color: #FF8A3D; }
 /* Téléphone : ◎ et +/− bien au-dessus du panneau (plus à moitié cachés) ; ◎ tourne pendant la recherche */
 @media (max-width: 860px) {
-  .ch-zoom { top: calc(max(40vh, 250px) - 222px); }
-  .ch-locate { top: calc(max(40vh, 250px) - 120px); z-index: 4; }
+  .ch-zoom { top: calc(var(--mapH) - 222px); }
+  .ch-locate { top: calc(var(--mapH) - 120px); z-index: 4; }
 }
 .ch-locate.busy { animation: locate-spin 1s linear infinite; }
 @keyframes locate-spin { to { transform: rotate(360deg); } }
@@ -1614,11 +1621,16 @@ body[data-view="infos"] > section { scroll-margin-top: 112px; }
 
 /* Restaurants sur la carte de l'accueil : point de loin, rond 🍴 de près, nom en zoomant encore */
 .resto-pin { position: relative; width: 24px; height: 24px; display: grid; place-items: center; }
-.resto-pin b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; background: #fff; border: 2px solid var(--brand); box-shadow: 0 2px 6px rgba(15,31,61,.25); }
-.resto-pin span { display: none; position: absolute; top: 50%; inset-inline-start: 26px; transform: translateY(-50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; color: #3B2414; text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 2px #fff; pointer-events: none; }
+.resto-pin b { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; line-height: 1; font-weight: 400; background: #fff; border: 2px solid var(--brand); box-shadow: 0 3px 8px rgba(15,31,61,.28); }
+.resto-pin.hop b { background: linear-gradient(135deg, #FF8A3D, #E0420A); border-color: #fff; font-size: 13px; }
+/* De loin : sans nom, un simple point (la carte reste lisible) ; on zoome, les icônes reviennent */
+.resto-pin.dot b { width: 10px; height: 10px; font-size: 0; border: 0; background: var(--brand); box-shadow: 0 0 0 2px rgba(255,255,255,.9), 0 1px 4px rgba(0,0,0,.3); }
+.resto-pin span { display: none; position: absolute; top: 50%; inset-inline-start: 25px; transform: translateY(-50%); white-space: nowrap; font-size: 11.5px; font-weight: 700; color: #1D2433; background: rgba(255,255,255,.96); padding: 2px 8px 2px 7px; border-radius: 999px; box-shadow: 0 2px 6px rgba(15,31,61,.2); pointer-events: none; }
+.resto-pin.hop span { color: #B33A00; }
 .rz-names .resto-pin span { display: block; }
 .rz-far .resto-pin b { width: 9px; height: 9px; font-size: 0; border-width: 0; background: var(--brand); box-shadow: 0 0 0 2px rgba(255,255,255,.85); }
-.leaflet-container:has(.tiles-dark) .resto-pin span { color: #FFE3CF; text-shadow: 0 0 3px #000, 0 0 3px #000, 0 0 2px #000; }
+.leaflet-container:has(.tiles-dark) .resto-pin span { color: #F4F6FA; background: rgba(22,28,40,.92); box-shadow: 0 2px 8px rgba(0,0,0,.45); }
+.leaflet-container:has(.tiles-dark) .resto-pin.hop span { color: #FFB27F; }
 .resto-pop { display: grid; gap: 4px; min-width: 160px; font-family: "Rubik", sans-serif; }
 .resto-pop small { color: #5B6476; }
 .resto-pop .btn { margin-top: 4px; }

@@ -2452,6 +2452,31 @@ function initHomeMap() {
   UI.mapTiles(home.map, dark);
   addEventListener("resize", () => home.map.invalidateSize());
   initRestos();
+  initHomeGrip();
+}
+// Volet de l'accueil (téléphone) : on le glisse vers le bas, ou on touche la poignée, pour voir toute la carte
+function setMapOpen(on) {
+  const ch = $("#accueil");
+  if (!ch || ch.classList.contains("map-open") === !!on) return;
+  ch.classList.toggle("map-open", !!on);
+  if (on) scrollTo({ top: 0, behavior: "smooth" });
+  // La carte change de taille pendant l'animation : on la recale à la fin
+  setTimeout(() => { if (home.map) { home.map.invalidateSize(); drawRestos(); } }, 330);
+}
+function initHomeGrip() {
+  const grip = $("#homeGrip"), sheet = $("#homeSheet");
+  if (!grip || !sheet) return;
+  let y0 = null, moved = false;
+  const start = y => { y0 = y; moved = false; };
+  const move = y => { if (y0 == null) return; const dy = y - y0; if (Math.abs(dy) > 30) { moved = true; setMapOpen(dy > 0); y0 = null; } };
+  // On attrape le haut du volet (la poignée, ou le haut de la feuille quand la page est en haut)
+  sheet.addEventListener("touchstart", e => { const r = sheet.getBoundingClientRect(); if (e.touches[0].clientY - r.top < 56 && scrollY < 8) start(e.touches[0].clientY); }, { passive: true });
+  sheet.addEventListener("touchmove", e => move(e.touches[0].clientY), { passive: true });
+  sheet.addEventListener("touchend", () => { y0 = null; });
+  grip.addEventListener("pointerdown", e => start(e.clientY));
+  addEventListener("pointermove", e => { if (e.pointerType === "mouse" && y0 != null) move(e.clientY); });
+  addEventListener("pointerup", () => { y0 = null; });
+  grip.addEventListener("click", () => { if (!moved) setMapOpen(!$("#accueil").classList.contains("map-open")); moved = false; });
 }
 // Restaurants de l'annuaire sur la carte : un point de loin, un rond 🍴 de près, et leur nom en zoomant encore.
 // On en touche un : « Récupérer ici » le met en départ.
@@ -2489,9 +2514,10 @@ const restoName = e => (I18N.lang === "fr" && e.fr ? e.fr : e.n);
 function drawRestos() {
   if (restos.open) return;   // une bulle est ouverte : on ne redessine pas (elle se fermerait)
   const z = home.map.getZoom(), el = home.map.getContainer();
-  el.classList.toggle("rz-far", z < 15);
-  el.classList.toggle("rz-names", z >= 16);
-  if (z < 13) { restos.layer.clearLayers(); restos.key = ""; return; }
+  // Les noms dès la vue de départ (sans chevauchement) ; de très loin, de simples points
+  el.classList.toggle("rz-far", z < 13);
+  el.classList.toggle("rz-names", z >= 13);
+  if (z < 12) { restos.layer.clearLayers(); restos.key = ""; return; }
   const bounds = home.map.getBounds().pad(0.15), c = home.map.getCenter();
   // Plusieurs restaurants au même endroit (centre commercial) : un seul rond « nom +2 »
   const groups = {};
@@ -2505,9 +2531,9 @@ function drawRestos() {
   // Noms : seulement ceux qui ne se chevauchent pas (les plus proches du centre d'abord)
   const boxes = [];
   shown.forEach(g => {
-    if (z < 16) return;
+    if (z < 13) return;
     const name = restoName(g.e), pt = home.map.latLngToContainerPoint([g.e.lat, g.e.lon]);
-    const w = Math.min(22, name.length) * 6.4 + (g.ids.length > 1 ? 22 : 0) + 30, box = [pt.x - 12, pt.y - 10, pt.x + w, pt.y + 10];
+    const w = Math.min(22, name.length) * 6.6 + (g.ids.length > 1 ? 22 : 0) + 44, box = [pt.x - 14, pt.y - 13, pt.x + w, pt.y + 13];
     g.label = !boxes.some(o => box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]);
     if (g.label) boxes.push(box);
   });
@@ -2518,8 +2544,10 @@ function drawRestos() {
   shown.forEach(g => {
     const name = restoName(g.e), more = g.ids.length - 1;
     const label = (name.length > 22 ? name.slice(0, 21) + "…" : name) + (more ? ` +${more}` : "");
-    L.marker([g.e.lat, g.e.lon], { zIndexOffset: -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [24, 24], iconAnchor: [12, 12],
-      html: `<div class="resto-pin${more ? " many" : ""}"><b>🍴</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
+    // L'icône de sa cuisine (🍕 🍣 🍔…), un partenaire HOP! en orange ; les noms affichés passent devant
+    const hop = g.ids.some(i => restos.list[i].partner), ico = hop ? (UI.KIND_ICON[(restos.list[g.ids.find(i => restos.list[i].partner)].partner || {}).kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
+    L.marker([g.e.lat, g.e.lon], { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [26, 26], iconAnchor: [13, 13],
+      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${!g.label && !hop && z < 17 ? " dot" : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i]; return `<div class="rp-row">
           <span><b>${UI.esc(Places.dirName(e, I18N.lang))}</b>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(t("restoTake"))}</button></div>`; }).join("")}</div>`,
@@ -2529,6 +2557,7 @@ function drawRestos() {
 }
 function pickResto(e) {
   if (!e) return;
+  setMapOpen(false);   // le commerce choisi : le volet remonte pour finir la commande
   if (e.partner) { onPlacePicked("from", partnerPlace(e.partner)); return; }   // commerce partenaire : sa vitrine
   const p = Object.assign(Places.dirPlace(e, I18N.lang), e.known ? { known: true, food: Places.foodIcon(e.n) !== "🍽️" } : {});
   if (home.ac.from) home.ac.from.setPicked(p.label);
