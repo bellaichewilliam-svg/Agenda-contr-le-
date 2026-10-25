@@ -749,14 +749,33 @@ function pushPill(c) {
   return a.push_n ? `<span class="pill paid">🔔 Reçoit les courses appli fermée</span>`
     : `<span class="pill st-annulee" title="Il doit ouvrir l'appli HOP! Livreur et toucher « 🔔 Activer les alertes »">🔕 Notifications pas activées</span>`;
 }
+// Inscription pas terminée : une fiche à part pour chacun (nom, téléphone, email), pour le rappeler.
+// « Confirmer son email » : quand le mail de confirmation n'arrive pas, le patron le débloque ; le livreur se
+// connecte alors dans HOP! Livreur (« J'ai déjà un compte ») et sa fiche se termine
 function unfinishedCard() {
   const list = unfinished();
   if (!list.length) return "";
-  return `<div class="card" style="margin-bottom:14px;border:2px solid #f79009">
-    <b>⏳ Inscriptions pas terminées (${list.length})</b>
-    <p class="muted small" style="margin:4px 0 8px">Le compte est créé, mais la fiche (nom, véhicule, documents) n'est pas arrivée. ${list.some(a => !a.confirmed) ? "S'il n'a pas confirmé son email, il doit toucher le lien reçu par mail. " : ""}Ensuite il rouvre l'appli HOP! Livreur, se connecte et finit sa fiche : elle apparaîtra ici.${list.some(a => !a.phone) ? " (Pas de téléphone pour les comptes créés avant le 25/10 vers 13 h : seulement l'email.)" : ""}</p>
-    ${list.map(a => `<p class="small" style="margin:4px 0">${a.name ? `<b>${UI.esc(a.name)}</b> · ` : ""}${a.phone ? `📞 <a href="tel:${UI.esc(a.phone)}"><b>${UI.esc(a.phone)}</b></a> · ` : ""}<a dir="ltr" href="mailto:${UI.esc(a.email || "")}?subject=${encodeURIComponent(`${CONFIG.businessName} : votre inscription livreur`)}&body=${encodeURIComponent(`Bonjour,\n\nVous avez commencé votre inscription de livreur chez ${CONFIG.businessName}, mais elle n'est pas terminée. Envoyez-nous votre numéro de téléphone en réponse à ce mail, ou finissez l'inscription ici : ${UI.appUrl("livreur/")}\n\nשלום, התחלת את ההרשמה כשליח ב-${CONFIG.businessNameHe || CONFIG.businessName} אבל היא לא הסתיימה. שלח לנו את מספר הטלפון שלך בתשובה למייל הזה, או סיים את ההרשמה כאן: ${UI.appUrl("livreur/")}\n\nL'équipe ${CONFIG.businessName}`)}">✉️ <b>${UI.esc(a.email || "—")}</b></a> · commencée le ${UI.esc(fmtShort(a.created_at))} · ${a.confirmed ? "✅ email confirmé" : "📧 email pas encore confirmé"}${a.last_sign_in_at ? ` · connecté le ${UI.esc(fmtShort(a.last_sign_in_at))}` : ""}</p>`).join("")}
-  </div>`;
+  const url = UI.appUrl("livreur/");
+  const mail = a => `mailto:${a.email || ""}?subject=${encodeURIComponent(`${CONFIG.businessName} : votre inscription livreur`)}&body=${encodeURIComponent(`Bonjour${a.name ? " " + a.name : ""},\n\nVous avez commencé votre inscription de livreur chez ${CONFIG.businessName}, mais elle n'est pas terminée. Envoyez-nous votre numéro de téléphone en réponse à ce mail, ou finissez l'inscription ici : ${url}\n\nשלום, התחלת את ההרשמה כשליח ב-${CONFIG.businessNameHe || CONFIG.businessName} אבל היא לא הסתיימה. שלח לנו את מספר הטלפון שלך בתשובה למייל הזה, או סיים את ההרשמה כאן: ${url}\n\nL'équipe ${CONFIG.businessName}`)}`;
+  const sms = a => `sms:${String(a.phone).replace(/[^\d+]/g, "")}?body=${encodeURIComponent(`Bonjour${a.name ? " " + a.name : ""}, ici ${CONFIG.businessName}. Ton inscription de livreur n'est pas finie : ouvre HOP! Livreur (${url}), touche « J'ai déjà un compte », mets ton email et ton mot de passe, puis termine ta fiche. Merci !`)}`;
+  return `<p class="small muted" style="margin:0 0 8px"><b>⏳ Inscriptions pas terminées (${list.length})</b> : le compte est créé, mais la fiche (véhicule, documents) n'est pas arrivée.</p>
+    <div class="orders" style="margin-bottom:14px">${list.map(a => `<article class="order is-new unfinished" data-account="${UI.esc(a.id)}">
+      <div class="order-head">
+        <span class="order-time">${UI.esc(a.name || a.email || "Sans nom")}</span>
+        <span class="pill unpaid">⏳ Inscription pas terminée</span>
+      </div>
+      <div class="kv">
+        ${a.phone ? `<div><span>📞</span><span><a href="tel:${UI.esc(a.phone)}"><b>${UI.esc(a.phone)}</b></a></span></div>` : `<div><span>📞</span><span class="muted">Pas de téléphone (inscription faite avant le 25/10 vers 13 h)</span></div>`}
+        <div><span>✉️</span><span><a dir="ltr" href="${UI.esc(mail(a))}">${UI.esc(a.email || "—")}</a></span></div>
+        <div><span>📅</span><span>Commencée le ${UI.esc(fmtShort(a.created_at))}${a.last_sign_in_at ? ` · connecté le ${UI.esc(fmtShort(a.last_sign_in_at))}` : ""}</span></div>
+      </div>
+      <div class="meta"><span class="pill ${a.confirmed ? "paid" : "st-annulee"}">${a.confirmed ? "✅ Email confirmé : il doit se connecter et finir sa fiche" : "📧 Email pas encore confirmé : il ne peut pas se connecter"}</span></div>
+      <div class="actions">
+        ${a.phone ? `<a class="btn btn-sm btn-primary" href="tel:${UI.esc(a.phone)}">📞 Appeler</a><a class="btn btn-sm" href="${UI.esc(sms(a))}">💬 SMS tout prêt</a>` : ""}
+        ${a.confirmed ? "" : `<button type="button" class="btn btn-sm" data-confirm-mail="${UI.esc(a.id)}" title="Si le mail de confirmation n'arrive pas">✅ Confirmer son email</button>`}
+        <a class="btn btn-sm" href="${UI.esc(mail(a))}">✉️ Lui écrire</a>
+      </div>
+    </article>`).join("")}</div>`;
 }
 
 function renderCouriers(view) {
@@ -1336,6 +1355,13 @@ async function onViewClick(e) {
   if (th) return openAdminChat(th.dataset.thread, th.dataset.ctitle, th.dataset.csub, th.dataset.prefill, !!th.dataset.photo);
   const el = e.target.closest("button");
   if (!el) return;
+  if (el.dataset.confirmMail) {
+    const a = accounts.find(x => x.id === el.dataset.confirmMail);
+    if (!confirm(`Confirmer l'email de ${a && (a.name || a.email) || "ce livreur"} ?\n\nÀ faire si le mail de confirmation n'arrive pas. Ensuite, dites-lui : ouvre HOP! Livreur → « J'ai déjà un compte » → email et mot de passe, puis termine ta fiche.`)) return;
+    try { await Store.adminConfirmEmail(el.dataset.confirmMail); await load(); alert("✅ Email confirmé : il peut se connecter dans HOP! Livreur et finir sa fiche."); }
+    catch (ex) { alert("Pas enregistré, vérifiez la connexion."); }
+    return;
+  }
   if (el.dataset.unblock) {
     if (!confirm(`Débloquer le client ${el.dataset.unblock} ? Il pourra de nouveau commander (et payer en espèces s'il a déjà été livré).`)) return;
     const ok = await Store.adminUnblock(el.dataset.unblock).catch(() => false);
