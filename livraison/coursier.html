@@ -54,7 +54,7 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610251011" />
+  <link rel="stylesheet" href="styles.css?v=202610251021" />
 </head>
 <body>
 
@@ -66,6 +66,16 @@
 </header>
 
 <main class="wrap" style="padding:20px 16px 60px">
+
+  <!-- Avant l'inscription : une seule appli à installer, celle des livreurs (pas l'appli client « HOP! ») -->
+  <div class="card install-card hidden" id="installCard">
+    <img src="icon-livreur-192.png" alt="" width="52" height="52" />
+    <div>
+      <b>📲 Installez l'appli « HOP! Livreur »</b>
+      <p class="small muted" id="installText">C'est la seule appli à installer pour livrer (l'appli « HOP! » sert aux clients). Inscrivez-vous dedans : les courses sonnent même appli fermée.</p>
+      <button type="button" class="btn btn-primary btn-sm" data-install-card="1">📲 Installer HOP! Livreur</button>
+    </div>
+  </div>
 
   <!-- Présentation + inscription / connexion -->
   <section id="welcome" class="hidden">
@@ -280,12 +290,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610251011"></script>
-<script src="i18n.js?v=202610251011"></script>
-<script src="pricing.js?v=202610251011"></script>
-<script src="store.js?v=202610251011"></script>
-<script src="chat.js?v=202610251011"></script>
-<script src="common.js?v=202610251011"></script>
-<script src="coursier.js?v=202610251011"></script>
+<script src="config.js?v=202610251021"></script>
+<script src="i18n.js?v=202610251021"></script>
+<script src="pricing.js?v=202610251021"></script>
+<script src="store.js?v=202610251021"></script>
+<script src="chat.js?v=202610251021"></script>
+<script src="common.js?v=202610251021"></script>
+<script src="coursier.js?v=202610251021"></script>
 </body>
 </html>

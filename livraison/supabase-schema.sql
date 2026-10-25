@@ -5872,3 +5872,55 @@ select c.id, 'message', m.image, m.id, m.created_at
   from public.chat_messages m join public.couriers c on c.id::text = substring(m.thread from 3)
  where m.author = 'courier' and m.image is not null and m.thread like 'c:%'
 on conflict (source_msg) do nothing;
+
+-- ============================================================================
+-- INSCRIPTIONS DES LIVREURS : le patron voit tout de suite qui s'est inscrit (notification sur son téléphone),
+-- qui a commencé sans finir (compte créé, fiche pas envoyée), quand il l'a validé et si le livreur a activé
+-- ses notifications (sans elles, il ne reçoit pas les courses quand l'appli est fermée).
+-- ============================================================================
+alter table public.couriers add column if not exists validated_at timestamptz;
+
+create or replace function public.courier_validated_at() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then new.validated_at := old.validated_at;
+  elsif new.status = 'actif' and old.status is distinct from 'actif' then new.validated_at := now();
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger courier_validated_at before update on public.couriers
+  for each row execute function public.courier_validated_at();
+revoke execute on function public.courier_validated_at() from public, anon, authenticated;
+
+-- Nouvelle fiche de livreur : notification au patron (passe par la messagerie de la fonction hop-push)
+create or replace function public.push_courier_signup() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.role is distinct from 'admin' then
+    perform public.push_call(jsonb_build_object('thread', 'c:' || new.id, 'author', 'courier',
+      'author_name', '🆕 Nouveau livreur inscrit',
+      'body', coalesce(new.name, '') || coalesce(' · ' || new.vehicle, '') || coalesce(' · ' || new.city, '') || ' — à valider dans Livreurs'));
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger courier_signup_push after insert on public.couriers
+  for each row execute function public.push_courier_signup();
+revoke execute on function public.push_courier_signup() from public, anon, authenticated;
+
+-- Pour le patron seulement : les comptes (inscription finie ou pas), l'email confirmé, la dernière connexion,
+-- et le nombre de téléphones où le livreur reçoit les notifications
+create or replace function public.admin_accounts() returns table (id uuid, email text, created_at timestamptz,
+  confirmed boolean, last_sign_in_at timestamptz, has_fiche boolean, push_n int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then return; end if;
+  return query select u.id, u.email::text, u.created_at, u.email_confirmed_at is not null, u.last_sign_in_at,
+    exists (select 1 from couriers c where c.id = u.id),
+    (select count(*)::int from push_subs p where p.courier_id = u.id)
+    from auth.users u order by u.created_at desc limit 200;
+end;
+$$;
+revoke execute on function public.admin_accounts() from public, anon;
+grant execute on function public.admin_accounts() to authenticated;

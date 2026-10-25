@@ -74,14 +74,14 @@ const POSTS = [
 `Bonjour, je suis coursier indépendant à ${UI.cityFr(home)} (${nameFr}).
 Je propose aux commerces des livraisons à prix fixe (${price(home)} dans ${UI.cityFr(home)}), sans commission et sans engagement.
 Votre client reçoit un lien pour suivre la livraison en direct, et paie en espèces ou par Bit.
-Je vous offre 3 courses d'essai à moitié prix. Pour commander : ${url}
+Pour commander : ${url}
 Au plaisir de travailler avec vous !` },
 
   { title: "הודעה ישירה לבית עסק (עברית)", dir: "rtl", text:
 `שלום, אני שליח עצמאי ב${heHome} (${nameHe}).
 אני מציע לעסקים משלוחים במחיר קבוע (${price(home)} בתוך העיר), בלי עמלות ובלי התחייבות.
 הלקוח שלכם מקבל קישור למעקב בזמן אמת, ומשלם במזומן או בביט.
-אשמח לתת לכם 3 משלוחי ניסיון בחצי מחיר. להזמנה: ${url}
+להזמנה: ${url}
 תודה ובהצלחה!` },
 
   { title: "Spécial poste (français)", dir: "ltr", text:
@@ -104,7 +104,7 @@ Avec moi :
 • Votre client reçoit un lien pour suivre la livraison en direct.
 • Paiement en espèces ou Bit, reçu à chaque course.
 • En option, votre catalogue en ligne HOP! Pro (vos clients commandent chez vous) : abonnement de ${UI.money(CONFIG.pro.monthly)} par mois.
-On essaie avec 3 livraisons à moitié prix ? ${url}` },
+On commence quand vous voulez : ${url}` },
 
   { title: "טיעונים למסעדה (עברית)", dir: "rtl", text:
 `שלום! אני מ${nameHe}, שליח ב${heHome}.
@@ -114,7 +114,7 @@ On essaie avec 3 livraisons à moitié prix ? ${url}` },
 • הלקוח מקבל קישור למעקב בזמן אמת.
 • תשלום במזומן או בביט, קבלה על כל משלוח.
 • אפשרות נוספת: הקטלוג שלכם באפליקציה, HOP! Pro (הלקוחות מזמינים אצלכם): מנוי של ${UI.money(CONFIG.pro.monthly)} לחודש.
-ננסה עם 3 משלוחים בחצי מחיר? ${url}` },
+מתחילים מתי שתרצו: ${url}` },
 
   { title: "Recruter des livreurs (français)", dir: "ltr", text:
 `🛵 ${nameFr} recrute des livreurs indépendants à ${UI.cityFr(home)} et environs !
@@ -123,7 +123,7 @@ On essaie avec 3 livraisons à moitié prix ? ${url}` },
 ${CONFIG.partners.courierProgram ? `✅ Faites votre marketing, gagnez plus : seulement ${CONFIG.platform.networkPercent} % de commission sur les courses des commerces que vous amenez (${CONFIG.platform.commissionPercent} % sur les autres)\n` : `✅ Commission HOP : ${CONFIG.platform.commissionPercent} % de la course\n`}✅ ${CONFIG.pro.referrerPercent ? `${CONFIG.pro.referrerPercent} % des abonnements HOP! Pro que vous faites signer, et les pourboires` : "Les pourboires"} 100 % pour vous
 ✅ Pas d'abonnement, pas de frais d'inscription
 Il faut : permis valide, véhicule assuré (simple déclaration), un top case, statut d'עוסק פטור ou מורשה.
-👉 Inscription : ${UI.appUrl("coursier.html")}` },
+👉 Inscription : ${UI.appUrl("livreur/")}` },
 
   { title: "גיוס שליחים (עברית)", dir: "rtl", text:
 `🛵 ${nameHe} מגייסת שליחים עצמאיים ב${heHome} והסביבה!
@@ -132,7 +132,7 @@ Il faut : permis valide, véhicule assuré (simple déclaration), un top case, s
 ${CONFIG.partners.courierProgram ? `✅ עושים שיווק ומרוויחים יותר: רק ${CONFIG.platform.networkPercent}% עמלה על משלוחים של עסקים שהבאתם (${CONFIG.platform.commissionPercent}% על השאר)\n` : `✅ עמלת הופ: ${CONFIG.platform.commissionPercent}% מהמשלוח\n`}✅ ${CONFIG.pro.referrerPercent ? `${CONFIG.pro.referrerPercent}% מהמנוי של HOP! Pro של עסקים שהחתמתם, והטיפים` : "הטיפים"} 100% שלכם
 ✅ בלי מנוי ובלי דמי הרשמה
 דרוש: רישיון נהיגה בתוקף, רכב מבוטח (הצהרה בלבד), ארגז, עוסק פטור או מורשה.
-👈 להרשמה: ${UI.appUrl("coursier.html")}` },
+👈 להרשמה: ${UI.appUrl("livreur/")}` },
 
   { title: "Statut WhatsApp / bio Instagram", dir: "ltr", text:
 `🛵 Coursier dans tout le Sharon · prix fixe · suivi en direct · espèces/Bit · ${url}
