@@ -2239,3 +2239,5 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
   .sl-table th, .sl-table td { padding: 11px 6px; font-size: 13.5px; }
   .sl-table tbody th { padding-inline-start: 12px; }
 }
+.sl-gift { display: inline-block; margin-top: 10px; padding: 7px 12px; border-radius: 12px; background: var(--green-soft); color: var(--green-ink); font-weight: 800; font-size: 14px; }
+.sl-cmp-gift { display: block; color: var(--green-ink); font-weight: 700; font-size: 11.5px; margin-top: 2px; }
