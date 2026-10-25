@@ -2529,15 +2529,16 @@ function drawRestos() {
   const shown = Object.values(groups).map(ids => ({ ids, e: restos.list[ids[0]] }))
     .sort((a, b2) => c.distanceTo([a.e.lat, a.e.lon]) - c.distanceTo([b2.e.lat, b2.e.lon])).slice(0, z >= 15 ? 150 : 250);
   // Noms : seulement ceux qui ne se chevauchent pas (les plus proches du centre d'abord)
-  const boxes = [];
-  shown.forEach(g => {
+  const boxes = [], isHop = g => g.ids.some(i => restos.list[i].partner);
+  // Les partenaires HOP! d'abord : leur nom est toujours affiché
+  shown.filter(isHop).concat(shown.filter(g => !isHop(g))).forEach(g => {
     if (z < 13) return;
     const name = restoName(g.e), pt = home.map.latLngToContainerPoint([g.e.lat, g.e.lon]);
     const w = Math.min(22, name.length) * 6.6 + (g.ids.length > 1 ? 22 : 0) + 44, box = [pt.x - 14, pt.y - 13, pt.x + w, pt.y + 13];
     g.label = !boxes.some(o => box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]);
     if (g.label) boxes.push(box);
   });
-  const key = I18N.lang + ":" + z + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
+  const key = I18N.lang + ":" + z + ":" + (state.showcase || []).length + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
   if (key === restos.key) return;   // mêmes restaurants : rien à refaire (pas de clignotement)
   restos.key = key;
   restos.layer.clearLayers();
@@ -2545,9 +2546,12 @@ function drawRestos() {
     const name = restoName(g.e), more = g.ids.length - 1;
     const label = (name.length > 22 ? name.slice(0, 21) + "…" : name) + (more ? ` +${more}` : "");
     // L'icône de sa cuisine (🍕 🍣 🍔…), un partenaire HOP! en orange ; les noms affichés passent devant
-    const hop = g.ids.some(i => restos.list[i].partner), ico = hop ? (UI.KIND_ICON[(restos.list[g.ids.find(i => restos.list[i].partner)].partner || {}).kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
-    L.marker([g.e.lat, g.e.lon], { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [26, 26], iconAnchor: [13, 13],
-      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${!g.label && !hop && z < 17 ? " dot" : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
+    // Partenaire HOP! : son logo (celui de sa vitrine), sinon l'icône de son métier
+    const pe = g.ids.map(i => restos.list[i]).find(e => e.partner), hop = !!pe;
+    const logo = hop ? UI.safeImg(((state.showcase || []).find(x => x.code === pe.partner.code) || {}).logo) : "";
+    const ico = logo ? `<img src="${logo}" alt="" />` : hop ? (UI.KIND_ICON[pe.partner.kind] || "⭐") : Places.foodIcon(g.e.n, g.e.k);
+    L.marker([g.e.lat, g.e.lon], { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: logo ? [34, 34] : [26, 26], iconAnchor: logo ? [17, 17] : [13, 13],
+      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " dot" : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i]; return `<div class="rp-row">
           <span><b>${UI.esc(Places.dirName(e, I18N.lang))}</b>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(t("restoTake"))}</button></div>`; }).join("")}</div>`,
@@ -2724,6 +2728,7 @@ $("#homePro").addEventListener("click", e => {
 $("#homePro").addEventListener("keydown", e => { const c = e.target.closest("[data-pro]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); c.click(); } });
 async function loadShowcase() {
   try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { state.showcase = []; }
+  if (home.map && restos.layer) drawRestos();   // les logos des partenaires sur la carte
   renderShowcase();
 }
 
