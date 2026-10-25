@@ -2244,7 +2244,9 @@ function initHome() {
     if (e.target.id === "ensModal") return $("#ensModal").classList.add("hidden");
     if (e.target.closest("[data-ens-retry]")) return openEns(ens.cat);
     const b = e.target.closest("[data-ens-pick]");
-    if (b) pickEnseigne(b.dataset.ensPick, ens.shown[Number(b.dataset.i)]);
+    if (b) return pickEnseigne(b.dataset.ensPick, ens.shown[Number(b.dataset.i)]);
+    const sh = e.target.closest("[data-ens-shop]");
+    if (sh) { $("#ensModal").classList.add("hidden"); state.shopDir = ""; loadShop(sh.dataset.ensShop); }
   });
   state.partnersReady = loadPartners();
   loadShowcase();
@@ -2847,12 +2849,14 @@ function renderEnsList() {
   const dist = x => (x.km < 1 ? `${Math.max(50, Math.round(x.km * 20) * 50)} m` : `${x.km.toFixed(1).replace(".", ",")} km`);
   $("#ensList").innerHTML = ens.shown.length ? ens.shown.map((x, i) => {
     const addr = [`${x.street} ${x.number}`.trim(), x.city ? cityLabel(cityIdOf(x.city) || x.city) : ""].filter(Boolean).join(", ");
-    return `<div class="ens-item">
+    // Enseigne inscrite sur HOP! : on entre dans sa boutique (catalogue), en touchant la ligne ou le bouton
+    return `<div class="ens-item${x.partner && x.code ? " ens-partner" : ""}"${x.partner && x.code ? ` data-ens-shop="${UI.esc(x.code)}"` : ""}>
       <span class="ens-ico">${UI.dirLogo(x) ? `<img src="${UI.esc(UI.dirLogo(x))}" alt="" loading="lazy" />` : x.icon}</span>
       <div class="ens-main"><b>${UI.esc(UI.bi(x.name))}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>${x.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}
         <small>${UI.esc(addr || t("ensAddrLater"))} · ${dist(x)}</small></div>
-      <div class="ens-act"><button type="button" class="btn btn-sm btn-primary" data-ens-pick="from" data-i="${i}">${UI.esc(t("ensFrom"))}</button>
-        <button type="button" class="btn btn-sm" data-ens-pick="to" data-i="${i}">${UI.esc(t("ensTo"))}</button></div>
+      <div class="ens-act">${x.partner && x.code ? `<button type="button" class="btn btn-sm btn-primary" data-ens-shop="${UI.esc(x.code)}">${UI.esc(t("ensShop"))}</button>`
+        : `<button type="button" class="btn btn-sm btn-primary" data-ens-pick="from" data-i="${i}">${UI.esc(t("ensFrom"))}</button>
+        <button type="button" class="btn btn-sm" data-ens-pick="to" data-i="${i}">${UI.esc(t("ensTo"))}</button>`}</div>
     </div>`;
   }).join("") : `<p class="ens-empty">${UI.esc(t("ensNone"))}</p>`;
 }

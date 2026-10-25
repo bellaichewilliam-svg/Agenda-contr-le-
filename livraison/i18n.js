@@ -516,7 +516,7 @@ fr: {
   scOpenNow: "🟢 Ouverts maintenant", scClosedList: "🌙 Fermés · à programmer", scProg: "📅 Programmer", proTitle: "⭐ Nos partenaires", proSub: "Commandez chez eux : ils préparent, on livre.", proDelivery: "Livraison {price}", proMenu: "{n} au menu", proGo: "Commander ›",
   ensTitle: "🏪 Enseignes près de vous", ens_hop: "⭐ Partenaires HOP", ens_breakfast: "🥐 Petit-déjeuner", ens_pressing: "👔 Pressing", ens_pharm: "💊 Pharmacies", ens_post: "📮 Poste et relais",
   ens_super: "🛒 Supermarchés", ens_food: "🍔 Restaurants", ens_mall: "🛍️ Centres commerciaux", ens_flower: "💐 Fleuristes", ens_tech: "📱 Téléphonie",
-  ensFilterPh: "Filtrer : nom, rue…", ensFrom: "📍 Récupérer ici", ensTo: "🏁 Livrer ici", ensLoading: "Recherche des enseignes autour…",
+  ensFilterPh: "Filtrer : nom, rue…", ensFrom: "📍 Récupérer ici", ensTo: "🏁 Livrer ici", ensShop: "🛍️ Voir le catalogue", ensLoading: "Recherche des enseignes autour…",
   ensNone: "Rien trouvé dans le coin. Tapez le nom dans « Récupérer à ».", ensDown: "La liste des enseignes ne répond pas pour le moment : réessayez, ou tapez le nom dans « Récupérer à ».", ensRetry: "↻ Réessayer",
   ensPartner: "👑 Partenaire HOP!", ensAddrLater: "adresse complétée au choix", ensNearYou: "Les plus proches de vous", ensNearCity: "Autour de {city} · touchez ◎ pour les plus proches de vous",
   // Accueil façon appli
@@ -1046,7 +1046,7 @@ he: {
   scOpenNow: "🟢 פתוחים עכשיו", scClosedList: "🌙 סגורים · אפשר לתזמן", scProg: "📅 לתזמן", proTitle: "⭐ השותפים שלנו", proSub: "מזמינים אצלם: הם מכינים, אנחנו מביאים.", proDelivery: "משלוח {price}", proMenu: "{n} בתפריט", proGo: "להזמין ›",
   ensTitle: "🏪 עסקים וחנויות לידכם", ens_hop: "⭐ שותפי הופ", ens_breakfast: "🥐 ארוחת בוקר", ens_pressing: "👔 ניקוי יבש", ens_pharm: "💊 בתי מרקחת", ens_post: "📮 דואר ונקודות איסוף",
   ens_super: "🛒 סופרמרקטים", ens_food: "🍔 מסעדות", ens_mall: "🛍️ קניונים", ens_flower: "💐 חנויות פרחים", ens_tech: "📱 סלולר",
-  ensFilterPh: "סינון: שם, רחוב…", ensFrom: "📍 איסוף מכאן", ensTo: "🏁 משלוח לכאן", ensLoading: "מחפשים עסקים באזור…",
+  ensFilterPh: "סינון: שם, רחוב…", ensFrom: "📍 איסוף מכאן", ensTo: "🏁 משלוח לכאן", ensShop: "🛍️ לקטלוג", ensLoading: "מחפשים עסקים באזור…",
   ensNone: "לא נמצא באזור. הקלידו את השם בשדה האיסוף.", ensDown: "רשימת העסקים לא זמינה כרגע: נסו שוב, או הקלידו את השם בשדה האיסוף.", ensRetry: "↻ לנסות שוב",
   ensPartner: "👑 שותף HOP!", ensAddrLater: "הכתובת תושלם בבחירה", ensNearYou: "הקרובים אליכם", ensNearCity: "באזור {city} · געו ב-◎ לקרובים אליכם",
   // Accueil façon appli
