@@ -2128,3 +2128,8 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .ens-item.ens-partner { cursor: pointer; }
 /* Patron : fiche d'une inscription pas terminée (texte long sur deux lignes) */
 .order.unfinished .meta .pill { white-space: normal; }
+/* Patron : fiche livreur, rien ne dépasse de l'écran (pastille « En ligne » sur sa ligne, textes qui passent à la ligne) */
+.orders > .order { min-width: 0; }
+.online-line { margin: -4px 0 8px; }
+.online-line .pill { white-space: normal; display: inline-block; }
+.order .kv span { overflow-wrap: anywhere; }

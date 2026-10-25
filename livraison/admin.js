@@ -799,9 +799,9 @@ function renderCouriers(view) {
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name)}</span>
           <span class="pill">${statusLabel[c.status] || c.status}</span>
-          ${c.status === "actif" ? (o => `<span class="pill ${o.cls}">${UI.esc(o.text)}</span>`)(onlineOf(c)) : ""}
           <span class="order-ref">${done} course(s) livrée(s)${rating ? ` · ⭐ ${rating.avg.toFixed(1).replace(".", ",")} (${rating.n} avis)` : ""}</span>
         </div>
+        ${c.status === "actif" ? (o => `<div class="online-line"><span class="pill ${o.cls}">${UI.esc(o.text)}</span></div>`)(onlineOf(c)) : ""}
         ${refus}
         <div class="kv">
           <div><span>📞</span><span>${tel("", c.phone)}${c.bit_phone ? ` · Bit ${UI.esc(c.bit_phone)}` : ""}${c.has_bit == null ? "" : ` · ${c.has_bit ? "✅ Bit" : "⚠️ pas de Bit"} ${c.has_paybox ? "✅ PayBox" : "· pas de PayBox"}`}${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
