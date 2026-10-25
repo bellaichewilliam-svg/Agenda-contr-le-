@@ -420,3 +420,4 @@ livraison/
   - tableau de comparaison, et calcul « ce que vous gardez » (curseur des ventes : jusqu'à 30 % chez les grandes applis contre l'abonnement HOP! Pro) ;
   - « Comment ça marche », questions fréquentes, bouton « Inscription gratuite » en bas de l'écran ;
   - le formulaire demande la formule : avec HOP! Pro, on demande qui paie la livraison, et la demande d'abonnement part dans la messagerie après l'inscription.
+  - HOP! Pro : « 🎁 Le premier mois est offert » (carte, tableau, questions, choix du formulaire) ; les deux choix de livraison sont détaillés (partagée 12 ₪ / 15 ₪, ou le client paie tout).

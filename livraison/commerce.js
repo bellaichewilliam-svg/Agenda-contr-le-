@@ -106,9 +106,9 @@ function renderLanding() {
         </article>
         <article class="sl-plan sl-plan-pro">
           <header><span class="sl-tag">⭐ ${e("slProTag")}</span><h3>${e("slProName")}</h3>
-            <div class="sl-price"><b>${UI.esc(v.monthly)}</b><small>${e("slProPer")}</small></div><p>${e("slProFor")}</p></header>
+            <div class="sl-price"><b>${UI.esc(v.monthly)}</b><small>${e("slProPer")}</small></div><span class="sl-gift">${e("slProGift")}</span><p>${e("slProFor")}</p></header>
           <p class="sl-plus">${e("slPro0")}</p>
-          <ul class="sl-feats">${li(["slPro1", "slPro2", "slPro3", "slPro4", "slPro5", "slPro6"])}</ul>
+          <ul class="sl-feats">${li(["slPro1", "slPro2", "slPro3", "slPro4", "slPro4b", "slPro5", "slPro6"])}</ul>
           <a class="btn btn-primary btn-block btn-lg" href="#shopForm" data-sl-plan="pro">${e("slProBtn")}</a>
           <a class="sl-demo" href="${demo}" target="_blank" rel="noopener">${e("slProDemo")}</a>
         </article>
@@ -122,7 +122,7 @@ function renderLanding() {
         <tbody>
           ${row("slCmp1", yes, yes)}${row("slCmp2", yes, yes)}${row("slCmp3", yes, yes)}${row("slCmp4", yes, yes)}
           ${row("slCmp5", no, yes)}${row("slCmp6", no, yes)}${row("slCmp7", no, yes)}${row("slCmp8", no, yes)}
-          ${row("slCmp9", "<b>0 %</b>", "<b>0 %</b>")}${row("slCmp10", "<b>0 ₪</b>", `<b>${e("slCmpMonth")}</b>`)}
+          ${row("slCmp9", "<b>0 %</b>", "<b>0 %</b>")}${row("slCmp10", "<b>0 ₪</b>", `<b>${e("slCmpMonth")}</b><small class="sl-cmp-gift">${e("slCmpGift")}</small>`)}
         </tbody>
       </table></div>
     </section>
