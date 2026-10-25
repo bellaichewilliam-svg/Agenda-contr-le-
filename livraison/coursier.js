@@ -407,6 +407,7 @@ async function load() {
     UI.notify(`💳 Le client dit avoir payé · n° ${o.ref}`, { body: "Vérifiez votre Bit / PayBox, puis touchez « Paiement reçu » pour récupérer la commande.", tag: "pay-" + o.id, vibrate: [300, 150, 300] });
   });
   watchAnswers();
+  watchGiven();
   showAsk();
   firstLoad = false;
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
@@ -421,6 +422,24 @@ const askInfo = [];
 const answerPrev = new Map();
 const payPending = o => o.direct_pay && o.paid_to !== "hop" && o.payment_method !== "cash" && o.client_paid_at && o.payment_status !== "paye"
   && !(o.pay_missing_at && new Date(o.pay_missing_at) >= new Date(o.client_paid_at));
+// Course donnée par HOP! (même quand il était hors ligne) : elle s'ouvre au premier plan, avec le son, dès qu'il
+// ouvre l'appli — le patron peut l'appeler : « ouvre HOP!, il y a une course pour toi »
+const LS_MINE = "livraison.mineSeen.v1";
+const acceptedHere = new Set();
+let mineSeen = null;
+function watchGiven() {
+  if (!mineSeen) { try { mineSeen = new Set(JSON.parse(localStorage.getItem(LS_MINE) || "[]")); } catch (e) { mineSeen = new Set(); } }
+  let changed = false;
+  mine().filter(o => o.status === "confirmee").forEach(o => {
+    if (mineSeen.has(o.id)) return;
+    mineSeen.add(o.id); changed = true;
+    if (acceptedHere.has(o.id)) return;
+    askInfo.push(`📦 <b>HOP! vous a donné une course</b><br>Course n° ${UI.esc(o.ref)} · pour vous : <b>${UI.money(Store.courierGain(o))}</b>
+      <br>📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}<br>🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}
+      ${isOnline() ? "" : "<br><b>Passez en ligne</b> pour que le client vous suive sur la carte."}`);
+  });
+  if (changed) try { localStorage.setItem(LS_MINE, JSON.stringify([...mineSeen].slice(-200))); } catch (e) { /* ignore */ }
+}
 function watchAnswers() {
   orders.filter(o => o.courier_id === me.id).forEach(o => {
     const prev = answerPrev.get(o.id), now = { eta: o.eta_status, wait: o.wait_ann_status, status: o.status };
@@ -968,6 +987,7 @@ async function onViewClick(e) {
     const eta = prompt("🛵 Dans combien de minutes êtes-vous au départ ? (le client peut refuser si c'est trop long)", String(po ? etaGuess(po) : 15));
     if (eta === null) return;
     el.disabled = true;
+    acceptedHere.add(el.dataset.accept);
     const ok = await Store.acceptOrder(el.dataset.accept, Math.max(1, Math.min(180, parseInt(eta, 10) || 15))).catch(e => acceptError(e));
     if (ok === "shown") { /* message déjà affiché */ }
     else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
@@ -1615,6 +1635,7 @@ function afterDecline(r) {
 
 // Deux courses groupées : les deux d'un coup ; si l'autre vient d'être prise, celle-ci seule
 async function acceptTwo(id, mateId, eta) {
+  acceptedHere.add(id); acceptedHere.add(mateId);
   try { await Store.acceptBundle([id, mateId], eta); return true; }
   catch (e) {
     // L'autre vient d'être prise (ou la base ne connaît pas encore les courses groupées) : celle-ci seule
@@ -1652,6 +1673,7 @@ async function acceptOffer(eta) {
   $("#offerAccept").classList.remove("hidden");
   $("#offerAccept").disabled = true;
   const mateId = offerMate;
+  acceptedHere.add(id);
   const ok = mateId ? await acceptTwo(id, mateId, eta) : await Store.acceptOrder(id, eta).catch(e => acceptError(e));
   $("#offerAccept").disabled = false;
   closeOffer();

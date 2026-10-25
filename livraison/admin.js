@@ -301,7 +301,8 @@ function rankedCouriers(o) {
   const fresh = c => c.lat != null && c.position_at && Date.now() - new Date(c.position_at) < 10 * 60000;
   const km = c => fresh(c) && o.pickup_lat != null ? Pricing.haversineKm({ lat: c.lat, lon: c.lon }, { lat: o.pickup_lat, lon: o.pickup_lon }) * 1.3 : null;
   return partners().filter(c => c.status === "actif")
-    .map(c => ({ c, km: km(c) })).sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9));
+    .map(c => ({ c, km: km(c), on: onlineOf(c).on }))
+    .sort((a, b) => (b.on - a.on) || (a.km ?? 1e9) - (b.km ?? 1e9));
 }
 
 // --- Le patron d'abord : « 🔔 Nouvelle course » → je la prends, ou je la donne à un livreur ----------------
@@ -310,6 +311,9 @@ let bossId = null, bossAfterLoad = null, bossFirstLoad = true;
 // « Je prends des courses moi-même » : non → le patron est hors ligne, les courses partent tout de suite aux livreurs
 // (il voit et entend tout, et peut encore donner une course à un livreur)
 const bossTakes = () => settings.boss_takes !== false;
+// Personne ne l'a prise (2 min après que les livreurs la voient, ou aucun livreur en ligne) : le patron peut la prendre
+const nobodyTook = o => !!o.nobody_at || !partners().some(c => c.status === "actif" && onlineOf(c).on);
+const canTake = o => bossTakes() || nobodyTook(o);
 async function toggleBossTakes() {
   const on = !bossTakes();
   if (!on && !confirm("Ne plus prendre de courses vous-même ?\n\nVous passez hors ligne, chaque course part tout de suite aux livreurs. Vous continuez de tout voir et de tout entendre, et vous pouvez encore donner une course à un livreur.")) return;
@@ -337,10 +341,10 @@ function bossPopup(id) {
     <h3>🔔 Nouvelle course · ${UI.money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}</h3>
     <p class="small" style="margin:4px 0">n° ${UI.esc(o.ref)} · ${UI.esc(UI.whenFr(o))}</p>
     <p style="margin:6px 0"><b>${UI.esc(o.pickup_address || UI.cityFr(o.from_city))}</b> → <b>${UI.esc(o.dropoff_address || UI.cityFr(o.to_city))}</b></p>
-    <p class="small muted" style="margin:0 0 12px">${!bossTakes() ? "🛵 Envoyée aux livreurs : le premier qui accepte la prend. Vous pouvez aussi la donner vous-même :" : wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
-    ${bossTakes() ? `<button type="button" class="btn btn-primary btn-block" data-boss="take">✅ Je la prends</button>` : ""}
+    <p class="small muted" style="margin:0 0 12px">${!bossTakes() && nobodyTook(o) ? "⚠️ <b>Personne ne l'a prise</b> : prenez-la, ou donnez-la à un livreur (même hors ligne : appelez-le, elle l'attend dans son appli)." : !bossTakes() ? "🛵 Envoyée aux livreurs : le premier qui accepte la prend. Vous pouvez aussi la donner vous-même :" : wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
+    ${canTake(o) ? `<button type="button" class="btn btn-primary btn-block" data-boss="take">✅ Je la prends</button>` : ""}
     <p class="small" style="margin:14px 0 6px"><b>🛵 La donner à :</b></p>
-    <div class="boss-list">${list.length ? list.map(({ c, km }) => `<button type="button" class="btn btn-block" data-boss-give="${UI.esc(c.id)}">${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : " · hors service"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</button>`).join("") : `<p class="small muted">Aucun livreur validé pour l'instant.</p>`}</div>
+    <div class="boss-list">${list.length ? list.map(({ c, km }) => `<button type="button" class="btn btn-block" data-boss-give="${UI.esc(c.id)}">${onlineOf(c).on ? "🟢" : "⚪"} ${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : ""}${onlineOf(c).on ? "" : " · hors ligne : la verra en ouvrant l'appli"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</button>`).join("") : `<p class="small muted">Aucun livreur validé pour l'instant.</p>`}</div>
     <button type="button" class="btn btn-link btn-block" data-boss="later">${bossTakes() ? "Laisser aux livreurs" : "OK, je laisse les livreurs"}</button>`;
   m.classList.remove("hidden");
 }
@@ -477,10 +481,13 @@ function card(o, withDay) {
   // Livreurs qui viennent de s'inscrire : on peut les valider et leur donner la course d'un coup
   const fresh_ = partners().filter(c => c.status === "en_attente");
   const steps = {
-    nouvelle: (bossTakes() ? `<button class="btn btn-sm btn-primary" data-act="take">✅ Je la prends</button>` : "")
+    nouvelle: (canTake(o) ? `<button class="btn btn-sm btn-primary" data-act="take">✅ Je la prends</button>` : "")
       + (active.length || fresh_.length ? `<select class="btn btn-sm" data-act="assign"><option value="">👤 Donner à un livreur…</option>${active.map(({ c, km }) => `<option value="${UI.esc(c.id)}">${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : " · hors service"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</option>`).join("")}${fresh_.length ? `<optgroup label="🆕 Viennent de s'inscrire (validés en même temps)">${fresh_.map(c => `<option value="${UI.esc(c.id)}">🆕 ${UI.esc(c.name)}${c.phone ? " · " + UI.esc(c.phone) : ""}</option>`).join("")}</optgroup>` : ""}</select>` : "")
       + `<button class="btn btn-sm" data-act="refuse">🚫 Je ne peux pas</button>`,
-    confirmee: b("recuperee", "🛵 Colis récupéré", "btn-primary") + `<button class="btn btn-sm" data-act="release">↩︎ Remettre en attente</button>` + b("annulee", "✖ Annuler"),
+    confirmee: b("recuperee", "🛵 Colis récupéré", "btn-primary")
+      // Redonner à un autre livreur (l'ancien est prévenu), ou la reprendre soi-même
+      + (o.courier_id && !isMine(o) ? `<select class="btn btn-sm" data-act="assign"><option value="">🔁 Donner à un autre…</option>${active.filter(({ c }) => c.id !== o.courier_id).map(({ c }) => `<option value="${UI.esc(c.id)}">${onlineOf(c).on ? "🟢" : "⚪"} ${UI.esc(c.name)}</option>`).join("")}</select><button class="btn btn-sm" data-act="take">✋ Je la reprends</button>` : "")
+      + `<button class="btn btn-sm" data-act="release">↩︎ Remettre en attente</button>` + b("annulee", "✖ Annuler"),
     recuperee: b("livree", "📦 Livré", "btn-primary")
   };
 
@@ -748,7 +755,7 @@ function unfinishedCard() {
   return `<div class="card" style="margin-bottom:14px;border:2px solid #f79009">
     <b>⏳ Inscriptions pas terminées (${list.length})</b>
     <p class="muted small" style="margin:4px 0 8px">Le compte est créé, mais la fiche (nom, véhicule, documents) n'est pas arrivée. ${list.some(a => !a.confirmed) ? "S'il n'a pas confirmé son email, il doit toucher le lien reçu par mail. " : ""}Ensuite il rouvre l'appli HOP! Livreur, se connecte et finit sa fiche : elle apparaîtra ici.${list.some(a => !a.phone) ? " (Pas de téléphone pour les comptes créés avant le 25/10 vers 13 h : seulement l'email.)" : ""}</p>
-    ${list.map(a => `<p class="small" style="margin:4px 0">${a.name ? `<b>${UI.esc(a.name)}</b> · ` : ""}${a.phone ? `📞 <a href="tel:${UI.esc(a.phone)}"><b>${UI.esc(a.phone)}</b></a> · ` : ""}<b dir="ltr">${UI.esc(a.email || "—")}</b> · commencée le ${UI.esc(fmtShort(a.created_at))} · ${a.confirmed ? "✅ email confirmé" : "📧 email pas encore confirmé"}${a.last_sign_in_at ? ` · connecté le ${UI.esc(fmtShort(a.last_sign_in_at))}` : ""}</p>`).join("")}
+    ${list.map(a => `<p class="small" style="margin:4px 0">${a.name ? `<b>${UI.esc(a.name)}</b> · ` : ""}${a.phone ? `📞 <a href="tel:${UI.esc(a.phone)}"><b>${UI.esc(a.phone)}</b></a> · ` : ""}<a dir="ltr" href="mailto:${UI.esc(a.email || "")}?subject=${encodeURIComponent(`${CONFIG.businessName} : votre inscription livreur`)}&body=${encodeURIComponent(`Bonjour,\n\nVous avez commencé votre inscription de livreur chez ${CONFIG.businessName}, mais elle n'est pas terminée. Envoyez-nous votre numéro de téléphone en réponse à ce mail, ou finissez l'inscription ici : ${UI.appUrl("livreur/")}\n\nשלום, התחלת את ההרשמה כשליח ב-${CONFIG.businessNameHe || CONFIG.businessName} אבל היא לא הסתיימה. שלח לנו את מספר הטלפון שלך בתשובה למייל הזה, או סיים את ההרשמה כאן: ${UI.appUrl("livreur/")}\n\nL'équipe ${CONFIG.businessName}`)}">✉️ <b>${UI.esc(a.email || "—")}</b></a> · commencée le ${UI.esc(fmtShort(a.created_at))} · ${a.confirmed ? "✅ email confirmé" : "📧 email pas encore confirmé"}${a.last_sign_in_at ? ` · connecté le ${UI.esc(fmtShort(a.last_sign_in_at))}` : ""}</p>`).join("")}
   </div>`;
 }
 
@@ -1314,6 +1321,10 @@ async function assignTo(o, courier) {
   try {
     await Store.assignOrder(o, courier);
     await load();
+    // Livreur hors ligne : la course l'attend dans son appli (elle s'ouvre au premier plan) ; on peut l'appeler
+    if (courier.role !== "admin" && !onlineOf(courier).on && courier.phone
+      && confirm(`${courier.name} est hors ligne : la course n° ${o.ref} l'attend dans son appli HOP! Livreur (elle s'ouvrira dès qu'il l'ouvre).\n\nL'appeler maintenant ?`))
+      location.href = "tel:" + String(courier.phone).replace(/[^\d+]/g, "");
 
   } catch (e) { alert("Attribution impossible, vérifiez la connexion."); }
 }
