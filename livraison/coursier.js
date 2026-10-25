@@ -89,6 +89,27 @@ async function onWaitTopcase(e) {
   try { await Store.sendTopcase(data); route(); } catch (ex) { alert("Photo non envoyée, vérifiez la connexion."); }
 }
 
+// Documents du livreur : une photo par document, réduite avant l'envoi ; ils arrivent sur sa fiche chez le patron
+const DOC_KINDS = [["permis", "🪪 Permis de conduire"], ["carte_grise", "📗 Carte grise"], ["identite", "🆔 Carte d'identité"], ["osek", "🧾 Attestation d'עוסק"]];
+const signupDocs = {};
+function docsGrid(box, have, prefix) {
+  box.innerHTML = DOC_KINDS.map(([k, label]) => `<label class="doc-pick${have[k] ? " ok" : ""}">
+      <span>${have[k] ? "✅" : "📷"} ${UI.esc(label)}</span><small>${have[k] ? "Ajouté · changer" : "Prendre ou choisir"}</small>
+      <input type="file" accept="image/*" data-doc="${k}" data-docs="${prefix}" hidden /></label>`).join("");
+}
+let waitDocsSent = {};
+document.addEventListener("change", async e => {
+  const inp = e.target.closest("input[data-doc]");
+  if (!inp || !inp.files[0]) return;
+  const f = inp.files[0]; inp.value = "";
+  const data = await readTopcase(f);
+  if (!data) return;
+  if (inp.dataset.docs === "signup") { signupDocs[inp.dataset.doc] = data; return docsGrid($("#signupDocs"), signupDocs, "signup"); }
+  try { await Store.sendCourierDoc(inp.dataset.doc, data); waitDocsSent[inp.dataset.doc] = true; docsGrid($("#waitDocsGrid"), waitDocsSent, "wait"); }
+  catch (ex) { alert("Photo non envoyée, vérifiez la connexion."); }
+});
+docsGrid($("#signupDocs"), signupDocs, "signup");
+
 // Mode « compléter ma fiche » : le compte existe déjà (email confirmé), il manque la fiche livreur
 let completing = false;
 function setCompleting(on) {
@@ -117,8 +138,9 @@ async function onSignup(e) {
     has_bit: f.elements.has_bit.checked, has_paybox: f.elements.has_paybox.checked
   };
   try {
-    if (completing) { await Store.completeCourier(profile, signupTopcase); return route(); }
-    const r = await Store.signupCourier(v("email"), f.password.value, profile, signupTopcase);
+    const docs = Object.entries(signupDocs).map(([kind, image]) => ({ kind, image }));
+    if (completing) { await Store.completeCourier(profile, signupTopcase, docs); return route(); }
+    const r = await Store.signupCourier(v("email"), f.password.value, profile, signupTopcase, docs);
     if (r.needsConfirmation) {
       showAuth("login");
       $("#loginError").textContent = "Inscription enregistrée ! Confirmez votre email (lien reçu par mail), puis connectez-vous ici.";
@@ -168,12 +190,15 @@ async function route() {
     $("#waitTitle").textContent = suspended ? "Compte suspendu" : `Merci ${me.name}, inscription reçue !`;
     $("#waitText").textContent = suspended
       ? "Écrivez-nous dans l'application pour en savoir plus."
-      : "Envoyez vos documents en photo dans l'application (permis, carte grise, carte d'identité, attestation d'עוסק) : votre compte sera validé après vérification.";
-    $("#waitWa").textContent = suspended ? "💬 Écrire à HOP" : "📷 Envoyer mes documents";
+      : (me.docs_n ? `✅ ${me.docs_n} document(s) reçu(s). Ajoutez ceux qui manquent (permis, carte grise, carte d'identité, attestation d'עוסק) : votre compte sera validé après vérification.`
+        : "Ajoutez vos documents en photo ci-dessous (permis, carte grise, carte d'identité, attestation d'עוסק) : votre compte sera validé après vérification.");
+    $("#waitWa").textContent = "💬 Écrire à HOP";
+    $("#waitDocs").classList.toggle("hidden", suspended);
+    if (!suspended) docsGrid($("#waitDocsGrid"), waitDocsSent, "wait");
     $("#waitTopcase").classList.toggle("hidden", suspended || !!me.topcase_at);
     $("#waitWa").onclick = () => openBossChat(suspended
       ? "Bonjour, mon compte est suspendu, pouvez-vous m'expliquer ?"
-      : "Bonjour, voici mes documents :", !suspended);
+      : "Bonjour,", !suspended);
     $("#waiting").classList.remove("hidden");
     return;
   }

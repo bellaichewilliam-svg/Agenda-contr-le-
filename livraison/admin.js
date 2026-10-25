@@ -22,6 +22,15 @@ function showPhoto(src) {
   d.addEventListener("click", () => d.remove());
   document.body.appendChild(d);
 }
+// Documents d'un livreur (inscription, écran d'attente, photos envoyées en message) : toucher une photo l'agrandit
+const DOC_FR_KIND = { permis: "🪪 Permis", carte_grise: "📗 Carte grise", identite: "🆔 Carte d'identité", osek: "🧾 Attestation d'עוסק",
+  assurance: "🛡️ Assurance", autre: "📄 Document", message: "💬 Envoyé en message" };
+function showDocs(name, docs) {
+  if (!docs || !docs.length) return alert("Pas encore de documents.");
+  const when = x => new Date(x.created_at).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  UI.photoViewer(`📄 Documents${name ? " de " + name : ""} (${docs.length})`,
+    docs.map(x => ({ label: `${DOC_FR_KIND[x.kind] || "📄 Document"} · ${when(x)}`, src: UI.safeImg(x.image) })).filter(x => x.src));
+}
 let shops = [];
 let requests = [];
 let sales = [];
@@ -627,7 +636,7 @@ function renderCouriers(view) {
           <div><span>🛵</span><span>${UI.esc(c.vehicle || "—")} · permis n° ${UI.esc(c.license_number || "—")} · assurance ${c.insurance ? UI.esc(c.insurance) : "déclarée"}${c.business_number ? ` · n° d'entreprise ${UI.esc(c.business_number)}` : ""}</span></div>
           <div><span>📝</span><span>Conditions acceptées le ${c.accepted_terms_at ? UI.esc(new Date(c.accepted_terms_at).toLocaleDateString("fr-FR")) : "—"}</span></div>
         </div>
-        <div class="meta">${c.topcase_at ? `<button type="button" class="pill pill-btn paid" data-topcase="1">📷 Voir le top case</button>` : `<span class="pill st-annulee">📷 Pas de photo du top case</span>`}${expiryPill("Permis", c.license_expiry)}${c.insurance_expiry ? expiryPill("Assurance", c.insurance_expiry) : ""}
+        <div class="meta">${c.topcase_at ? `<button type="button" class="pill pill-btn paid" data-topcase="1">📷 Voir le top case</button>` : `<span class="pill st-annulee">📷 Pas de photo du top case</span>`}${c.docs_n ? `<button type="button" class="pill pill-btn paid" data-docs="1">📄 Documents (${Number(c.docs_n)})</button>` : `<span class="pill unpaid">📄 Pas encore de documents</span>`}${expiryPill("Permis", c.license_expiry)}${c.insurance_expiry ? expiryPill("Assurance", c.insurance_expiry) : ""}
           ${(() => { const b = balanceOf(c.id); return b > Number(settings.max_debt) ? `<span class="pill st-annulee">🔒 Bloqué : doit ${UI.money(b)}</span>` : b > 0 ? `<span class="pill unpaid">Doit ${UI.money(b)}</span>` : b < 0 ? `<span class="pill paid">Vous lui devez ${UI.money(-b)}</span>` : ""; })()}</div>
         <div class="actions">
           ${c.status !== "actif" ? `<button class="btn btn-sm btn-primary" data-cact="actif">✅ Valider</button>` : `<button class="btn btn-sm" data-cact="suspendu">⛔ Suspendre</button>`}
@@ -1355,6 +1364,11 @@ async function onViewClick(e) {
     if (on && !confirm(`Débloquer ${c.name} pendant 24 h ? Plus aucun blocage (solde dû, course en cours, GPS, photo).`)) return;
     try { await Store.updateCourier(id, { unlocked_until: on ? new Date(Date.now() + 86400000).toISOString() : null }); await load(); }
     catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
+  if (el.dataset.docs) {
+    const id = el.closest("[data-courier]").dataset.courier, cr = couriers.find(x => x.id === id);
+    try { showDocs(cr ? cr.name : "", await Store.courierDocs(id)); } catch (ex) { alert("Documents introuvables, vérifiez la connexion."); }
     return;
   }
   if (el.dataset.topcase) {

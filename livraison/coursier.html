@@ -54,7 +54,7 @@
     })();
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
-  <link rel="stylesheet" href="styles.css?v=202610250859" />
+  <link rel="stylesheet" href="styles.css?v=202610251011" />
 </head>
 <body>
 
@@ -116,7 +116,11 @@
           <label class="f">Permis valable jusqu'au<input name="license_expiry" type="date" /></label>
           <label class="f">N° d'עוסק (פטור ou מורשה)<input name="business_number" inputmode="numeric" /></label>
         </div>
-        <p class="notice" style="margin-top:12px">Après l'inscription, envoyez en photo dans l'application : permis, carte grise, carte d'identité et attestation d'עוסק. Votre compte est validé après vérification. Pour l'assurance, une simple déclaration suffit (voir les engagements).</p>
+        <div class="docs-f">
+          <b>📄 Vos documents en photo</b>
+          <p class="muted small" style="margin:2px 0 8px">Ils arrivent directement sur votre fiche chez HOP! : votre compte est validé après vérification. Pas tout sous la main ? Vous pourrez les ajouter après. Pour l'assurance, une simple déclaration suffit (voir les engagements).</p>
+          <div class="docs-grid" id="signupDocs"></div>
+        </div>
       </fieldset>
       <fieldset>
         <legend>3. Vos engagements</legend>
@@ -150,7 +154,8 @@
         <p class="notice warn" style="text-align:start">📷 Il manque la photo de votre <b>top case</b> (la caisse sur votre scooter) : elle est obligatoire pour valider votre compte.</p>
         <label class="btn btn-primary btn-block"><span>📷 Envoyer la photo du top case</span><input type="file" id="waitTopcaseFile" accept="image/*" capture="environment" hidden /></label>
       </div>
-      <button type="button" class="btn btn-wa" id="waitWa">📷 Envoyer mes documents</button>
+      <div class="docs-f hidden" id="waitDocs" style="text-align:start;margin-bottom:12px"><b>📄 Mes documents</b><div class="docs-grid" id="waitDocsGrid"></div></div>
+      <button type="button" class="btn btn-wa" id="waitWa">💬 Écrire à HOP</button>
       <button class="btn btn-link" id="waitRefresh">↻ Vérifier</button>
     </div>
   </section>
@@ -275,12 +280,12 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610250859"></script>
-<script src="i18n.js?v=202610250859"></script>
-<script src="pricing.js?v=202610250859"></script>
-<script src="store.js?v=202610250859"></script>
-<script src="chat.js?v=202610250859"></script>
-<script src="common.js?v=202610250859"></script>
-<script src="coursier.js?v=202610250859"></script>
+<script src="config.js?v=202610251011"></script>
+<script src="i18n.js?v=202610251011"></script>
+<script src="pricing.js?v=202610251011"></script>
+<script src="store.js?v=202610251011"></script>
+<script src="chat.js?v=202610251011"></script>
+<script src="common.js?v=202610251011"></script>
+<script src="coursier.js?v=202610251011"></script>
 </body>
 </html>

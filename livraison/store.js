@@ -481,6 +481,7 @@ async function login(email, password) {
   if (pending && pending.email === email.toLowerCase() && !(await me())) {
     await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, pending.profile, { id: data.user.id }), prefer: "return=minimal" });
     if (pending.topcase) await sendTopcase(pending.topcase).catch(() => {});
+    await sendDocs(pending.docs);
     removeKey(LS.pendingCourier);
   }
 }
@@ -513,16 +514,18 @@ async function adoptLinkSession() {
   if (pending && pending.email === String(claims.email || "").toLowerCase() && !(await me())) {
     await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, pending.profile, { id: claims.sub }), prefer: "return=minimal" });
     if (pending.topcase) await sendTopcase(pending.topcase).catch(() => {});
+    await sendDocs(pending.docs);
     removeKey(LS.pendingCourier);
   }
   return recovery ? "recovery" : true;
 }
 
 // Compte connecté sans fiche (inscription commencée sur un autre téléphone) : on complète la fiche
-async function completeCourier(profile, topcase) {
+async function completeCourier(profile, topcase, docs) {
   if (!ONLINE) throw new Error("Indisponible en mode démo.");
   await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, profile, { id: myId() }), prefer: "return=minimal" });
   if (topcase) await sendTopcase(topcase);
+  await sendDocs(docs);
   removeKey(LS.pendingCourier);
 }
 function sessionEmail() {
@@ -540,14 +543,15 @@ async function me() {
 }
 
 // Inscription d'un livreur (en attente de validation)
-async function signupCourier(email, password, profile, topcase) {
+async function signupCourier(email, password, profile, topcase, docs) {
   email = email.toLowerCase();
   profile = Object.assign({}, profile, { accepted_terms_at: new Date().toISOString() });
   if (!ONLINE) {
     const list = localCouriers();
     if (list.some(c => c.email === email)) throw new Error("Un compte existe déjà avec cet email.");
     const c = Object.assign({ id: uuid(), email, password, role: "coursier", status: "en_attente", created_at: new Date().toISOString() }, profile,
-      topcase ? { topcase, topcase_at: new Date().toISOString() } : {});
+      topcase ? { topcase, topcase_at: new Date().toISOString() } : {},
+      docs && docs.length ? { docs: docs.map(d => Object.assign({ id: uuid(), created_at: new Date().toISOString() }, d)), docs_n: docs.length } : {});
     list.push(c);
     writeJSON(LS.couriers, list);
     writeJSON(sessionKey, { demo: true, user_id: c.id });
@@ -564,12 +568,13 @@ async function signupCourier(email, password, profile, topcase) {
   }
   if (!data.access_token) {
     // Supabase demande de confirmer l'email : la fiche sera créée à la 1re connexion
-    writeJSON(LS.pendingCourier, { email, profile, topcase });
+    writeJSON(LS.pendingCourier, { email, profile, topcase, docs: docs || [] });
     return { needsConfirmation: true };
   }
   writeJSON(sessionKey, { access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id });
   await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, profile, { id: data.user.id }), prefer: "return=minimal" });
   if (topcase) await sendTopcase(topcase);
+  await sendDocs(docs);
   return { needsConfirmation: false };
 }
 
@@ -1488,7 +1493,7 @@ async function ping(lat, lon) {
 // --- Gestion des livreurs (patron) ------------------------------------------------
 async function listCouriers() {
   if (ONLINE) return authRest("/rest/v1/couriers?select=*&order=created_at.desc");
-  return localCouriers().map(c => { const x = Object.assign({}, c); delete x.password; delete x.topcase; return x; });
+  return localCouriers().map(c => { const x = Object.assign({}, c); delete x.password; delete x.topcase; delete x.docs; return x; });
 }
 
 // Photo du top case : le livreur l'envoie (ou la remplace), le patron l'ouvre à la demande
@@ -1498,6 +1503,22 @@ async function sendTopcase(dataUrl) {
   const c = list.find(x => x.id === myId());
   if (c) Object.assign(c, { topcase: dataUrl, topcase_at: new Date().toISOString() });
   writeJSON(LS.couriers, list);
+}
+// Documents du livreur (permis, carte grise, carte d'identité, עוסק…) : envoyés par lui, ouverts par le patron.
+// Une photo qu'il envoie au patron en message y est aussi copiée (par la base) ; rien n'est jamais effacé.
+async function sendCourierDoc(kind, dataUrl) {
+  if (ONLINE) return authRest("/rest/v1/courier_docs", { method: "POST", body: { courier_id: myId(), kind, image: dataUrl }, prefer: "return=minimal" });
+  const list = localCouriers(), c = list.find(x => x.id === myId());
+  if (c) { c.docs = (c.docs || []).concat([{ id: uuid(), kind, image: dataUrl, created_at: new Date().toISOString() }]); c.docs_n = c.docs.length; }
+  writeJSON(LS.couriers, list);
+}
+async function sendDocs(docs) {
+  for (const d of docs || []) { if (d && d.image) await sendCourierDoc(d.kind || "autre", d.image).catch(() => {}); }
+}
+async function courierDocs(id) {
+  if (ONLINE) return (await authRest(`/rest/v1/courier_docs?courier_id=eq.${encodeURIComponent(id)}&select=id,kind,created_at,image&order=created_at`)) || [];
+  const c = localCouriers().find(x => x.id === id);
+  return c ? c.docs || [] : [];
 }
 async function courierTopcase(id) {
   if (ONLINE) { const r = await authRest(`/rest/v1/courier_photos?courier_id=eq.${encodeURIComponent(id)}&select=topcase,created_at`); return r && r[0] ? r[0].topcase : null; }
@@ -1990,7 +2011,7 @@ window.Store = {
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
-  balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, waitFee, shopOrderAction, planActive,
+  balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, adminCredits, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
