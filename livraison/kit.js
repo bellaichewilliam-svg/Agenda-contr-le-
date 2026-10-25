@@ -35,13 +35,13 @@ $("#kitOffers").innerHTML = [
 
 const POSTS = [
   { title: "Post pour les groupes Facebook / WhatsApp (français)", dir: "ltr", text:
-`🛵 Et hop, c'est livré ! Nouveau à ${UI.cityFr(home)} : ${nameFr}, le coursier francophone à prix fixe.
+`🛵 Et hop, c'est livré ! Nouveau à ${UI.cityFr(home)} : ${nameFr}, la société de livraison francophone à prix fixe.
 
 📦 Colis et documents
-📮 Je récupère vos colis à la poste (fini la queue !)
+📮 On récupère vos colis à la poste (fini la queue !)
 💊 Commandes Super-Pharm, pharmacie
 🍔 Livraisons pour les restaurants et commerces
-🛒 J'achète pour vous et je livre
+🛒 On achète pour vous et on livre
 
 💰 Dans ${UI.cityFr(home)} : ${price(home)} · Even Yehuda : ${price("even-yehuda")} · Ra'anana, Kfar Saba, Herzliya : ${price("raanana")}
 🛒 On fait vos courses : le prix réel du magasin + la livraison. 0 frais de service, 0 frais de petite commande
@@ -71,34 +71,36 @@ const POSTS = [
 👈 להזמנה תוך דקה: ${url}` },
 
   { title: "Message direct à un commerce (français)", dir: "ltr", text:
-`Bonjour, je suis coursier indépendant à ${UI.cityFr(home)} (${nameFr}).
-Je propose aux commerces des livraisons à prix fixe (${price(home)} dans ${UI.cityFr(home)}), sans commission et sans engagement.
+`Bonjour, ici ${nameFr}, société de livraison à ${UI.cityFr(home)}.
+Nous proposons aux commerces des livraisons à prix fixe (${price(home)} dans ${UI.cityFr(home)}), sans commission et sans engagement.
 Votre client reçoit un lien pour suivre la livraison en direct, et paie en espèces ou par Bit.
 Pour commander : ${url}
-Au plaisir de travailler avec vous !` },
+Au plaisir de travailler avec vous,
+L'équipe ${nameFr}` },
 
   { title: "הודעה ישירה לבית עסק (עברית)", dir: "rtl", text:
-`שלום, אני שליח עצמאי ב${heHome} (${nameHe}).
-אני מציע לעסקים משלוחים במחיר קבוע (${price(home)} בתוך העיר), בלי עמלות ובלי התחייבות.
+`שלום, כאן ${nameHe}, חברת שליחויות ב${heHome}.
+אנחנו מציעים לעסקים משלוחים במחיר קבוע (${price(home)} בתוך העיר), בלי עמלות ובלי התחייבות.
 הלקוח שלכם מקבל קישור למעקב בזמן אמת, ומשלם במזומן או בביט.
 להזמנה: ${url}
-תודה ובהצלחה!` },
+תודה,
+צוות ${nameHe}` },
 
   { title: "Spécial poste (français)", dir: "ltr", text:
 `📮 Un avis de passage de la poste et pas le temps de faire la queue ?
-Je récupère votre colis et je vous l'apporte à la maison, dès ${pickupFrom} dans ${UI.cityFr(home)}.
+On récupère votre colis et on vous l'apporte à la maison, dès ${pickupFrom} dans ${UI.cityFr(home)}.
 Il faut juste une procuration signée + la copie de la carte d'identité.
 👉 ${url}` },
 
   { title: "מיוחד לדואר (עברית)", dir: "rtl", text:
 `📮 קיבלתם הודעה על חבילה בדואר ואין לכם זמן לעמוד בתור?
-אני אוסף בשבילכם ומביא עד הבית, החל מ-${pickupFrom} בתוך העיר.
+אנחנו אוספים בשבילכם ומביאים עד הבית, החל מ-${pickupFrom} בתוך העיר.
 צריך רק ייפוי כוח חתום וצילום תעודת זהות.
 👈 ${url}` },
 
   { title: "Argumentaire pour un restaurant (français)", dir: "ltr", text:
-`Bonjour ! Je suis ${nameFr}, livreur à ${UI.cityFr(home)}.
-Avec moi :
+`Bonjour ! Ici ${nameFr}, la société de livraison de ${UI.cityFr(home)}.
+Avec HOP! :
 • 0 % de commission sur vos commandes : vous payez seulement la course (${price(home)} dans ${UI.cityFr(home)}).
 • Chaque commande part directement chez votre client, sans être groupée avec d'autres : elle arrive chaude.
 • Votre client reçoit un lien pour suivre la livraison en direct.
@@ -107,8 +109,8 @@ Avec moi :
 On commence quand vous voulez : ${url}` },
 
   { title: "טיעונים למסעדה (עברית)", dir: "rtl", text:
-`שלום! אני מ${nameHe}, שליח ב${heHome}.
-איתי:
+`שלום! כאן ${nameHe}, חברת השליחויות של ${heHome}.
+איתנו:
 • 0% עמלה על ההזמנות: משלמים רק על המשלוח (${price(home)} בתוך העיר).
 • כל הזמנה יוצאת ישר ללקוח, בלי לאחד עם הזמנות אחרות: האוכל מגיע חם.
 • הלקוח מקבל קישור למעקב בזמן אמת.
@@ -135,12 +137,12 @@ ${CONFIG.partners.courierProgram ? `✅ עושים שיווק ומרוויחים
 👈 להרשמה: ${UI.appUrl("livreur/")}` },
 
   { title: "Statut WhatsApp / bio Instagram", dir: "ltr", text:
-`🛵 Coursier dans tout le Sharon · prix fixe · suivi en direct · espèces/Bit · ${url}
+`🛵 Société de livraison dans tout le Sharon · prix fixe · suivi en direct · espèces/Bit · ${url}
 🛵 שליחויות בכל השרון · מחיר קבוע · מעקב בזמן אמת · מזומן/ביט` },
 
   { title: "Description Google Business Profile", dir: "ltr", text:
 `${nameHe} | ${nameFr} – שירותי שליחויות בנתניה ובכל השרון: חבילות, מסמכים, איסוף מהדואר ומסופר-פארם, משלוחים למסעדות ולעסקים. מחיר קבוע, מעקב בזמן אמת, תשלום במזומן או בביט.
-Coursier à Netanya et dans tout le Sharon : colis, documents, retrait à la poste et chez Super-Pharm, livraisons pour restaurants et commerces. Prix fixe, suivi en direct, espèces ou Bit. On parle français.` }
+Société de livraison à Netanya et dans tout le Sharon : colis, documents, retrait à la poste et chez Super-Pharm, livraisons pour restaurants et commerces. Prix fixe, suivi en direct, espèces ou Bit. On parle français.` }
 ];
 
 $("#posts").innerHTML = POSTS.map((p, i) => `

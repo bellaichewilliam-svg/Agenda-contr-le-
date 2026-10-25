@@ -2117,3 +2117,9 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
   .stats.adm-for-courses .stat:nth-child(n+4) { grid-column: span 3; }
   .stats.adm-for-courses .stat:nth-child(n+4) small { min-height: 0; }
 }
+
+/* Patron : « 🔔 Nouvelle course » (je la prends / je la donne) et réglage « sonne d'abord chez moi » */
+#bossBody .boss-list { display: grid; gap: 8px; max-height: 40vh; overflow: auto; }
+#bossBody .boss-list .btn { justify-content: flex-start; text-align: start; }
+.boss-first { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
+.boss-first select { font: inherit; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--card, #fff); color: inherit; }

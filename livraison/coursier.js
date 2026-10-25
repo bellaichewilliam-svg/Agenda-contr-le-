@@ -48,7 +48,7 @@ function renderWelcome() {
   $("#perks").innerHTML = [
     "Vous choisissez vos courses, quand vous voulez.",
     "Vos clients vous paient directement : espèces, ou Bit / PayBox sur votre numéro.",
-    `Commission de ${UI.commissionText()} sur les courses que l'appli vous apporte, réglée une fois par semaine.`,
+    `Vous êtes payé directement par le client. Commission HOP : ${UI.commissionText()} par course, retirée de votre crédit HOP (rechargé à l'avance) : rien à régler en fin de semaine.`,
     ...(refOn() ? [`Faites votre marketing : sur les courses des commerces que vous amenez, seulement ${UI.networkText()}, et ${UI.money(CONFIG.partners.bonusPerDelivery)} pour vous quand un autre livreur les fait.`] : []),
     ...(refOn() && CONFIG.pro.referrerPercent ? [`${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`] : []),
     "Les pourboires sont 100 % pour vous, et les codes promo sont payés par HOP, pas par vous.",

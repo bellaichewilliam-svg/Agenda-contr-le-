@@ -9,7 +9,7 @@ const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SE
   auth: { persistSession: false }
 });
 
-type Note = { title: string; body: string; url: string; tag: string };
+type Note = { title: string; body: string; url: string; tag: string; actions?: { action: string; title: string }[] };
 
 const money = (n: unknown) => `${Math.round(Number(n) * 100) / 100} ₪`.replace(".", ",");
 
@@ -42,7 +42,8 @@ async function admins() {
 async function onDuty(orderId?: string) {
   const { data: st } = await db.from("settings").select("duty_grace_min").eq("id", 1).single();
   const since = new Date(Date.now() - Number((st && st.duty_grace_min) || 60) * 60000).toISOString();
-  const { data } = await db.from("couriers").select("id").eq("online", true).eq("status", "actif").gt("position_at", since);
+  // (le patron a sa propre sonnerie, « boss_ring » : il n'entend pas en plus celle des livreurs)
+  const { data } = await db.from("couriers").select("id").eq("online", true).eq("status", "actif").neq("role", "admin").gt("position_at", since);
   let ids = (data || []).map(c => c.id);
   if (orderId && ids.length) {
     const since5 = new Date(Date.now() - 5 * 60000).toISOString();
@@ -70,7 +71,14 @@ Deno.serve(async req => {
     if (ev.event === "new") {
       const docs = o.docs_status === "a_verifier" ? "📄 Colis à récupérer : documents à vérifier\n" : "";
       sent += await sendTo(await admins(), { title: `🆕 Nouvelle commande · ${money(o.price)}`,
-        body: `${docs}${o.ref} · ${when}\n${route}\n👤 ${o.contact_name}`, url: "patron/", tag: "o-" + o.id }, site);
+        body: `${docs}${o.ref} · ${when}\n${route}\n👤 ${o.contact_name}`, url: `patron/?o=${o.id}`, tag: "o-" + o.id }, site);
+    } else if (ev.event === "boss_ring") {
+      // Le patron d'abord : ça sonne chez lui toutes les 5 s (2 min au plus) tant que la course n'est ni prise ni donnée
+      if (o.status === "nouvelle" && !o.courier_id) {
+        sent += await sendTo(await admins(), { title: `🔔 Nouvelle course · ${money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}`,
+          body: `${o.ref} · ${when}\n${route}\nTouchez : je la prends, ou je la donne à un livreur`, url: `patron/?o=${o.id}`, tag: "o-" + o.id,
+          actions: [{ action: "take", title: "✅ Je la prends" }, { action: "give", title: "🛵 Donner à un livreur" }] }, site, 10);
+      }
     } else if (ev.event === "late") {
       // Course en retard : personne ne l'a prise, pas récupérée, pas livrée
       sent += await sendTo(await admins(), { title: `⏰ Course en retard · ${o.ref}`,
@@ -98,7 +106,14 @@ Deno.serve(async req => {
     const open = o.status === "nouvelle" && !o.courier_id && !delayed && (!o.docs_status || o.docs_status === "ok")
       && (!o.shop_status || o.shop_status === "acceptee" || o.shop_status === "prete");
     // « ring » : la même notification renvoyée toutes les 5 s (2 min au plus) tant que personne n'a pris la course (elle sonne à chaque fois)
-    if (open && ["new", "again", "shop_ok", "ready", "docs_ok", "ring"].includes(ev.event)) {
+    // Le patron d'abord : avant offer_from (settings.boss_first_seconds), rien pour les livreurs ; la sonnerie
+    // « ring » prend le relais dès qu'ils peuvent la voir
+    let early = false;
+    if (open && ev.event !== "ring") {
+      const { data: at } = await db.rpc("order_offer_at", { p_id: o.id });
+      early = !!at && new Date(at as string).getTime() > Date.now();
+    }
+    if (open && !early && ["new", "again", "shop_ok", "ready", "docs_ok", "ring"].includes(ev.event)) {
       // Dès que ça sonne : prête ou pas, et dans combien de temps
       const left = (d: string) => Math.ceil((new Date(d).getTime() - Date.now()) / 60000);
       const dur = (m: number) => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`;

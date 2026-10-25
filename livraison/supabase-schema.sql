@@ -5924,3 +5924,74 @@ end;
 $$;
 revoke execute on function public.admin_accounts() from public, anon;
 grant execute on function public.admin_accounts() to authenticated;
+
+-- ============================================================================
+-- LE PATRON D'ABORD : chaque nouvelle course sonne d'abord chez le patron (toutes les 5 s, même téléphone
+-- verrouillé et HOP! fermé, 2 min au plus) ; il la prend ou la donne à un livreur. Les livreurs ne la
+-- voient et ne l'entendent qu'après settings.boss_first_seconds (0 = en même temps que le patron).
+-- ============================================================================
+alter table public.settings add column if not exists boss_first_seconds int not null default 60
+  check (boss_first_seconds between 0 and 600);
+alter table public.orders add column if not exists boss_ring_at timestamptz;
+
+-- Quand la course devient visible (règles d'avant : poste, commande Pro ou par téléphone)
+create or replace function public.offer_base(o orders) returns timestamptz
+language sql stable set search_path = public as $$
+  select case when o.appt_at is not null then greatest(o.created_at, o.appt_at - interval '40 minutes')
+              when o.shop_status is not null or o.phone_order
+              then greatest(o.created_at, o.ready_at - make_interval(mins => coalesce((select pro_lead_min from settings where id = 1), 8)))
+              else o.created_at end;
+$$;
+-- … et pour les livreurs : après le temps réservé au patron
+create or replace function public.offer_from(o orders) returns timestamptz
+language sql stable set search_path = public as $$
+  select public.offer_base(o) + make_interval(secs => coalesce((select boss_first_seconds from settings where id = 1), 0));
+$$;
+-- Pour la fonction d'envoi (clé de service) : ne pas prévenir les livreurs trop tôt
+create or replace function public.order_offer_at(p_id uuid) returns timestamptz
+language sql stable security definer set search_path = public as $$
+  select public.offer_from(o) from orders o where o.id = p_id;
+$$;
+revoke execute on function public.order_offer_at(uuid) from public, anon, authenticated;
+grant execute on function public.order_offer_at(uuid) to service_role;
+
+create or replace function public.ring_boss_orders() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0;
+begin
+  for o in select id from orders
+            where status = 'nouvelle' and courier_id is null
+              and (shop_status is null or shop_status in ('acceptee', 'prete'))
+              and now() >= public.offer_base(orders)
+              and now() < greatest(public.offer_base(orders), coalesce(released_at, '-infinity')) + interval '2 minutes'
+              and (boss_ring_at is null or boss_ring_at < now() - interval '4 seconds')
+  loop
+    update orders set boss_ring_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'boss_ring'));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.ring_boss_orders() from public, anon, authenticated;
+do $$ begin
+  perform cron.schedule('hop-ring-boss', '5 seconds', 'select public.ring_boss_orders()');
+exception when others then raise notice 'pg_cron indisponible : pas de sonnerie du patron';
+end $$;
+
+-- Inscription pas terminée : le nom et le téléphone sont gardés dès la création du compte (données du compte),
+-- pour que le patron puisse rappeler le livreur même si sa fiche n'est jamais arrivée
+create or replace function public.admin_signups() returns table (id uuid, email text, name text, phone text, created_at timestamptz,
+  confirmed boolean, last_sign_in_at timestamptz, has_fiche boolean, push_n int)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then return; end if;
+  return query select u.id, u.email::text, (u.raw_user_meta_data ->> 'name')::text, (u.raw_user_meta_data ->> 'phone')::text,
+    u.created_at, u.email_confirmed_at is not null, u.last_sign_in_at,
+    exists (select 1 from couriers c where c.id = u.id),
+    (select count(*)::int from push_subs p where p.courier_id = u.id)
+    from auth.users u order by u.created_at desc limit 200;
+end;
+$$;
+revoke execute on function public.admin_signups() from public, anon;
+grant execute on function public.admin_signups() to authenticated;

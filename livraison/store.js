@@ -143,7 +143,7 @@ function myId() { const s = session(); return s && s.user_id; }
 const DEFAULT_SETTINGS = {
   accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse,
   referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes,
-  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt,
+  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt, boss_first_seconds: 60,
   carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
   referral_active_days: CONFIG.partners.activeDays,
   deliver_radius: CONFIG.platform.deliverRadius,
@@ -559,7 +559,9 @@ async function signupCourier(email, password, profile, topcase, docs) {
   }
   // Le lien du mail de confirmation ramène sur cette page (et non sur l'adresse par défaut du projet)
   const back = location.origin + location.pathname + "?confirme=1";
-  const data = await rest("/auth/v1/signup?redirect_to=" + encodeURIComponent(back), { method: "POST", body: { email, password } })
+  // Nom et téléphone gardés avec le compte : le patron peut rappeler le livreur même s'il ne finit pas son inscription
+  const meta = { name: profile.name || "", phone: profile.phone || "", city: profile.city || "", vehicle: profile.vehicle || "" };
+  const data = await rest("/auth/v1/signup?redirect_to=" + encodeURIComponent(back), { method: "POST", body: { email, password, data: meta } })
     .catch(e => { throw new Error(/registered|exists/i.test(e.message) ? "Un compte existe déjà avec cet email." : "Inscription impossible : " + e.message); });
   // Email déjà inscrit : Supabase répond « OK » sans rien envoyer (compte sans identité) ; on le dit
   const u = data.user || data;
@@ -598,8 +600,10 @@ const declined = (orderId, courierId) => readJSON(LS.declines, []).some(d => d.o
 // Quand la course devient visible : commande Pro ou par téléphone → pro_lead_min min avant l'heure « prête »
 function offerFrom(o, st) {
   const created = new Date(o.created_at).getTime();
-  if (o.appt_at) return Math.max(created, new Date(o.appt_at) - 40 * 60000);
-  return (o.shop_status || o.phone_order) && o.ready_at ? Math.max(created, new Date(o.ready_at) - Number(st.pro_lead_min) * 60000) : created;
+  // Le patron d'abord : les livreurs la reçoivent boss_first_seconds après (comme offer_from en ligne)
+  const boss = Number(st.boss_first_seconds || 0) * 1000;
+  if (o.appt_at) return Math.max(created, new Date(o.appt_at) - 40 * 60000) + boss;
+  return ((o.shop_status || o.phone_order) && o.ready_at ? Math.max(created, new Date(o.ready_at) - Number(st.pro_lead_min) * 60000) : created) + boss;
 }
 function canSeeNew(o, id, st) {
   if (o.status !== "nouvelle" || o.courier_id) return false;
@@ -671,7 +675,7 @@ async function adminCredits() {
 }
 // Comptes (patron) : inscription finie ou pas, email confirmé, dernière connexion, notifications activées
 async function adminAccounts() {
-  if (ONLINE) return authRest("/rest/v1/rpc/admin_accounts", { method: "POST", body: {} });
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_signups", { method: "POST", body: {} });
   return localCouriers().map(c => ({ id: c.id, email: c.email, created_at: c.created_at, confirmed: true, last_sign_in_at: null, has_fiche: true, push_n: 0 }));
 }
 async function decideTopup(id, ok) {
