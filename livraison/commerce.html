@@ -48,7 +48,7 @@
       window.addEventListener("load", function () { if (first) later(); });
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610252103" />
+  <link rel="stylesheet" href="styles.css?v=202610252120" />
 </head>
 <body>
 
@@ -65,6 +65,7 @@
 
   <!-- Présentation + inscription -->
   <section id="shopSignup" class="hidden">
+    <p class="notice hidden" id="shopHave" style="margin-bottom:12px"></p>
     <div class="shop-hero">
       <h1 data-i18n="shTitle"></h1>
       <p data-i18n="shLead"></p>
@@ -144,6 +145,10 @@
       <div class="card pro-card" style="margin-top:14px" id="spPro"></div>
       <details class="card guide-card" style="margin-top:14px" id="spGuide"><summary id="spGuideTitle"></summary><ol id="spGuideSteps"></ol></details>
       <p class="notice" style="margin-top:14px" data-i18n="shKeep"></p>
+      <div class="card" style="margin-top:14px" id="spOther">
+        <a class="btn btn-block" href="commerce.html?inscription=1" data-i18n="shAnother"></a>
+        <button type="button" class="btn btn-block btn-link danger" style="margin-top:8px" data-forget data-i18n="shForget"></button>
+      </div>
     </div>
   </section>
 
@@ -153,13 +158,13 @@
 <button type="button" class="wa-fab chat-fab" id="waFab"><span>💬</span><b data-i18n="chatFab"></b><i class="chat-badge hidden" id="fabBadge"></i></button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610252103"></script>
-<script src="i18n.js?v=202610252103"></script>
-<script src="pricing.js?v=202610252103"></script>
-<script src="store.js?v=202610252103"></script>
-<script src="chat.js?v=202610252103"></script>
-<script src="common.js?v=202610252103"></script>
-<script src="places.js?v=202610252103"></script>
-<script src="commerce.js?v=202610252103"></script>
+<script src="config.js?v=202610252120"></script>
+<script src="i18n.js?v=202610252120"></script>
+<script src="pricing.js?v=202610252120"></script>
+<script src="store.js?v=202610252120"></script>
+<script src="chat.js?v=202610252120"></script>
+<script src="common.js?v=202610252120"></script>
+<script src="places.js?v=202610252120"></script>
+<script src="commerce.js?v=202610252120"></script>
 </body>
 </html>
