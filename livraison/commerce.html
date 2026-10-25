@@ -48,7 +48,7 @@
       window.addEventListener("load", function () { if (first) later(); });
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610252120" />
+  <link rel="stylesheet" href="styles.css?v=202610252207" />
 </head>
 <body>
 
@@ -66,13 +66,11 @@
   <!-- Présentation + inscription -->
   <section id="shopSignup" class="hidden">
     <p class="notice hidden" id="shopHave" style="margin-bottom:12px"></p>
-    <div class="shop-hero">
-      <h1 data-i18n="shTitle"></h1>
-      <p data-i18n="shLead"></p>
-      <ul class="perks-list" id="shopPerks"></ul>
-    </div>
-    <form class="card" id="shopForm" action="javascript:void(0)" novalidate>
+    <!-- Page de présentation : les deux formules (Gratuit / HOP! Pro), comparaison, calcul, questions -->
+    <div class="sl" id="shopLanding"></div>
+    <form class="card sl-form" id="shopForm" action="javascript:void(0)" novalidate>
       <h2 data-i18n="shFormTitle"></h2>
+      <div class="sl-pick" id="shopPlan" role="radiogroup"></div>
       <p class="notice hidden" id="refOk" data-i18n="shRefOk" style="margin:8px 0"></p>
       <div class="fields" style="margin-top:12px">
         <label class="f wide"><span data-i18n="shName"></span><input name="name" required autocomplete="organization" data-i18n-ph="shNamePh" /></label>
@@ -85,7 +83,7 @@
         <label class="f"><span data-i18n="shEmail"></span><input name="email" type="email" autocomplete="email" /></label>
         <label class="f"><span data-i18n="shRef"></span><input name="ref_code" autocapitalize="characters" dir="ltr" /></label>
       </div>
-      <div class="pay-choice" id="shopPay" style="margin-top:14px"></div>
+      <div class="pay-choice hidden" id="shopPay" style="margin-top:14px"></div>
       <p class="notice err hidden" id="shopError" style="margin-top:12px"></p>
       <button class="btn btn-primary btn-block btn-lg" id="shopSubmit" style="margin-top:14px" data-i18n="shSubmit"></button>
     </form>
@@ -154,17 +152,18 @@
 
   <p class="notice err hidden" id="shopGone" data-i18n="shUnknown"></p>
 </main>
+<a class="sl-sticky hidden" id="slSticky" href="#shopForm" data-i18n="slSticky"></a>
 
 <button type="button" class="wa-fab chat-fab" id="waFab"><span>💬</span><b data-i18n="chatFab"></b><i class="chat-badge hidden" id="fabBadge"></i></button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610252120"></script>
-<script src="i18n.js?v=202610252120"></script>
-<script src="pricing.js?v=202610252120"></script>
-<script src="store.js?v=202610252120"></script>
-<script src="chat.js?v=202610252120"></script>
-<script src="common.js?v=202610252120"></script>
-<script src="places.js?v=202610252120"></script>
-<script src="commerce.js?v=202610252120"></script>
+<script src="config.js?v=202610252207"></script>
+<script src="i18n.js?v=202610252207"></script>
+<script src="pricing.js?v=202610252207"></script>
+<script src="store.js?v=202610252207"></script>
+<script src="chat.js?v=202610252207"></script>
+<script src="common.js?v=202610252207"></script>
+<script src="places.js?v=202610252207"></script>
+<script src="commerce.js?v=202610252207"></script>
 </body>
 </html>

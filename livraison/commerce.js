@@ -41,9 +41,7 @@ function renderStatic() {
   const pay = $("#shopPay"), chosen = pay.querySelector("input:checked");
   pay.innerHTML = payChoiceHtml(chosen ? chosen.value === "1" : false);
   $("#brandName").innerHTML = UI.wordmark(I18N.lang === "he" ? "לעסקים" : "Pro");
-  const price = UI.money(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || CONFIG.pricing.base);
-  $("#shopPerks").innerHTML = ["shPerk1", "shPerk2", "shPerk3", "shPerk4", "shPerk5"]
-    .map(k => `<li>${UI.esc(t(k, { price }))}</li>`).join("");
+  renderLanding();
   const city = $("#shopCity").value || CONFIG.homeCity;
   $("#shopCity").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(I18N.cityName(c.id))}</option>`).join("");
   $("#shopCity").value = city;
@@ -53,6 +51,141 @@ function renderStatic() {
   $("#shopKind").value = kind;
   if (state.dash) renderSpace();
 }
+
+// --- Page de présentation : Gratuit ou HOP! Pro ---------------------------------------
+const DEMO_SHOP = "DEMO-RESTO";
+let plan = params.get("formule") === "pro" ? "pro" : "free";
+let calcSales = 10000;
+function landingVars() {
+  const st = Object.assign({ pro_monthly: CONFIG.pro.monthly }, state.settings || {});
+  return Object.assign(payVars(), { price: payVars().full, monthly: UI.money(st.pro_monthly), monthlyN: Number(st.pro_monthly) });
+}
+function renderLanding() {
+  const v = landingVars(), e = k => UI.esc(t(k, v));
+  const demo = UI.esc(UI.appUrl() + "?c=" + DEMO_SHOP);
+  const li = keys => keys.map(k => `<li>${e(k)}</li>`).join("");
+  const yes = `<b class="sl-yes" aria-label="✓">✓</b>`, no = `<span class="sl-no" aria-label="—">—</span>`;
+  const row = (k, a, b) => `<tr><th scope="row">${e(k)}</th><td>${a}</td><td>${b}</td></tr>`;
+  $("#shopLanding").innerHTML = `
+    <section class="sl-hero">
+      <div class="sl-hero-text">
+        <span class="sl-kicker">${e("slKicker")}</span>
+        <h1>${e("slTitle")}<br><em>${e("slTitle2")}</em></h1>
+        <p>${e("slLead")}</p>
+        <div class="sl-ctas">
+          <a class="btn btn-primary btn-lg" href="#shopForm" data-sl-plan="free">${e("slCtaFree")}</a>
+          <a class="btn btn-lg sl-ghost" href="${demo}" target="_blank" rel="noopener">${e("slCtaDemo")}</a>
+        </div>
+        <div class="sl-stats">
+          <div><b>${e("slStat1")}</b><small>${e("slStat1s")}</small></div>
+          <div><b>${UI.esc(v.full)}</b><small>${e("slStat2s")}</small></div>
+          <div><b>${e("slStat3")}</b><small>${e("slStat3s")}</small></div>
+        </div>
+      </div>
+      <div class="sl-phone" aria-hidden="true">
+        <div class="sl-screen">
+          <div class="sl-cover"><span>🍔</span></div>
+          <div class="sl-shop"><b>${e("slMockShop")}</b><small>${e("slMockSub")}</small></div>
+          ${[["slMockA", 52, "🍔"], ["slMockB", 48, "🍕"], ["slMockC", 64, "🍣"]].map(([k, p, i]) =>
+            `<div class="sl-item"><i>${i}</i><span>${e(k)}<small>${UI.esc(UI.money(p))}</small></span><em>+</em></div>`).join("")}
+          <div class="sl-toast"><b>${e("slMockRing")}</b><small>${e("slMockRingSub")}</small></div>
+          <div class="sl-rider">${e("slMockRider")}</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sl-block">
+      <h2>${e("slPlansTitle")}</h2>
+      <p class="sl-sub">${e("slPlansSub")}</p>
+      <div class="sl-plans">
+        <article class="sl-plan">
+          <header><span class="sl-tag">${e("slFreeTag")}</span><h3>🛵 ${e("slFreeName")}</h3>
+            <div class="sl-price"><b>${e("slFreePrice")}</b><small>${e("slFreePer")}</small></div><p>${e("slFreeFor")}</p></header>
+          <ul class="sl-feats">${li(["slFree1", "slFree2", "slFree3", "slFree4", "slFree5"])}</ul>
+          <a class="btn btn-block btn-lg" href="#shopForm" data-sl-plan="free">${e("slFreeBtn")}</a>
+        </article>
+        <article class="sl-plan sl-plan-pro">
+          <header><span class="sl-tag">⭐ ${e("slProTag")}</span><h3>${e("slProName")}</h3>
+            <div class="sl-price"><b>${UI.esc(v.monthly)}</b><small>${e("slProPer")}</small></div><p>${e("slProFor")}</p></header>
+          <p class="sl-plus">${e("slPro0")}</p>
+          <ul class="sl-feats">${li(["slPro1", "slPro2", "slPro3", "slPro4", "slPro5", "slPro6"])}</ul>
+          <a class="btn btn-primary btn-block btn-lg" href="#shopForm" data-sl-plan="pro">${e("slProBtn")}</a>
+          <a class="sl-demo" href="${demo}" target="_blank" rel="noopener">${e("slProDemo")}</a>
+        </article>
+      </div>
+    </section>
+
+    <section class="sl-block">
+      <h2>${e("slCmpTitle")}</h2>
+      <div class="sl-table-wrap"><table class="sl-table">
+        <thead><tr><th></th><th>${e("slCmpFree")}</th><th class="sl-col-pro">${e("slCmpPro")}</th></tr></thead>
+        <tbody>
+          ${row("slCmp1", yes, yes)}${row("slCmp2", yes, yes)}${row("slCmp3", yes, yes)}${row("slCmp4", yes, yes)}
+          ${row("slCmp5", no, yes)}${row("slCmp6", no, yes)}${row("slCmp7", no, yes)}${row("slCmp8", no, yes)}
+          ${row("slCmp9", "<b>0 %</b>", "<b>0 %</b>")}${row("slCmp10", "<b>0 ₪</b>", `<b>${e("slCmpMonth")}</b>`)}
+        </tbody>
+      </table></div>
+    </section>
+
+    <section class="sl-block sl-calc">
+      <h2>${e("slCalcTitle")}</h2>
+      <label class="sl-range"><span>${e("slCalcSub")} <b id="slSales"></b></span>
+        <input type="range" id="slSalesIn" min="2000" max="60000" step="1000" value="${calcSales}" /></label>
+      <div class="sl-bars">
+        <div class="sl-bar sl-bar-big"><span>${e("slCalcBig")}</span><b id="slBig"></b></div>
+        <div class="sl-bar sl-bar-hop"><span>${e("slCalcHop")}</span><b id="slHop"></b></div>
+      </div>
+      <p class="sl-save" id="slSave"></p>
+      <p class="muted small">${e("slCalcNote")}</p>
+    </section>
+
+    <section class="sl-block">
+      <h2>${e("slHowTitle")}</h2>
+      <ol class="sl-steps">${[1, 2, 3, 4].map(n => `<li><i>${n}</i><b>${e("slHow" + n)}</b><span>${e("slHow" + n + "s")}</span></li>`).join("")}</ol>
+    </section>
+
+    <section class="sl-block">
+      <h2>${e("slFaqTitle")}</h2>
+      <div class="sl-faq">${[1, 2, 3, 4, 5].map(n => `<details><summary>${e("slQ" + n)}</summary><p>${e("slA" + n)}</p></details>`).join("")}</div>
+    </section>`;
+  renderCalc();
+  renderPlanPick();
+}
+function renderCalc() {
+  const v = landingVars(), big = Math.round(calcSales * 0.3), diff = big - v.monthlyN;
+  $("#slSales").textContent = UI.money(calcSales);
+  $("#slBig").textContent = "− " + UI.money(big);
+  $("#slHop").textContent = "− " + v.monthly;
+  const max = Math.max(big, v.monthlyN) || 1;
+  $(".sl-bar-big").style.setProperty("--w", Math.max(4, big / max * 100) + "%");
+  $(".sl-bar-hop").style.setProperty("--w", Math.max(4, v.monthlyN / max * 100) + "%");
+  $("#slSave").textContent = diff > 0 ? t("slCalcSave", { amount: UI.money(diff) }) : t("slCalcSmall");
+}
+function renderPlanPick() {
+  const v = landingVars();
+  const opt = (val, i, k) => `<label class="choice"><input type="radio" name="plan" value="${val}"${plan === val ? " checked" : ""} />
+    <span><i>${i}</i><b>${UI.esc(t(k, v))}</b><small>${UI.esc(t(k + "Sub", v))}</small></span></label>`;
+  $("#shopPlan").innerHTML = `<div class="choices">${opt("free", "🛵", "slPickFree")}${opt("pro", "⭐", "slPickPro")}</div>`;
+  $("#shopPay").classList.toggle("hidden", plan !== "pro");
+}
+function choosePlan(p) { plan = p; renderPlanPick(); }
+$("#shopLanding").addEventListener("input", e => { if (e.target.id === "slSalesIn") { calcSales = Number(e.target.value); renderCalc(); } });
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-sl-plan], #slSticky");
+  if (!a) return;
+  e.preventDefault();
+  if (a.dataset.slPlan) choosePlan(a.dataset.slPlan);
+  form.scrollIntoView({ behavior: "smooth", block: "start" });
+  setTimeout(() => form.name.focus({ preventScroll: true }), 450);
+});
+$("#shopPlan").addEventListener("change", e => { if (e.target.name === "plan") choosePlan(e.target.value); });
+// Bouton « Inscription gratuite » en bas de l'écran : après l'en-tête, tant que le formulaire n'est pas visible
+function stickyCheck() {
+  const hero = $(".sl-hero"), show = !$("#shopSignup").classList.contains("hidden") && hero &&
+    hero.getBoundingClientRect().bottom < 0 && form.getBoundingClientRect().top > innerHeight * 0.85;
+  $("#slSticky").classList.toggle("hidden", !show);
+}
+addEventListener("scroll", stickyCheck, { passive: true });
 
 // --- Inscription ------------------------------------------------------------------
 function onPick(p, fromName) {
@@ -94,12 +227,14 @@ async function submit(e) {
       lat: point ? point.lat : null, lon: point ? point.lon : null,
       contact_name: v("contact_name") || null, phone: v("phone"), email: v("email") || null,
       ref_code: v("ref_code").toUpperCase() || null, lang: I18N.lang,
-      client_pays: (form.querySelector("[name=client_pays]:checked") || {}).value === "1"
+      client_pays: plan === "pro" && (form.querySelector("[name=client_pays]:checked") || {}).value === "1"
     });
     history.replaceState(null, "", location.pathname + "?k=" + r.token);
     await openSpace(r.token);
     if (r.ref_other_city) alert(t("shRefCity", { city: I18N.cityName(r.ref_other_city) }));
     window.scrollTo(0, 0);
+    // HOP! Pro choisi : la demande d'abonnement part tout de suite au patron, dans la messagerie
+    if (plan === "pro" && state.dash) openShopChat(t("spPlanMsg", { name: state.dash.shop.name, code: state.dash.shop.code }));
   } catch (ex) {
     // Déjà inscrit : pas de doublon (le commerce garde son parrain et son espace)
     err(/shop_exists/.test(ex.message) ? t("shExists", { phone: CONFIG.phoneDisplay }) : t("shErrSend", { phone: CONFIG.phoneDisplay }));
@@ -588,7 +723,7 @@ $("#spPay").addEventListener("change", async e => {
   delete box.dataset.busy;
   renderPay(); renderPlan(); renderGuide(state.dash.shop); renderBrand(true);
 });
-Store.getSettings().then(s => { state.settings = s; if (state.dash) renderPlan(); }).catch(() => {});
+Store.getSettings().then(s => { state.settings = s; if (state.dash) renderPlan(); else renderLanding(); }).catch(() => {});
 
 // Marche à suivre : ouverte aux premières visites (et quand le commerce passe à HOP! Pro), repliable ensuite
 function renderGuide(shop) {
