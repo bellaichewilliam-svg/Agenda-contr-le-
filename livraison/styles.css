@@ -2039,9 +2039,38 @@ form .addr-note { display: none !important; }
 .sandbox-bar .btn { flex: none; background: #fff; color: #0F1F3D; border: 0; }
 .shop-hero .sh-demo a { color: #FFB27A; font-weight: 800; white-space: nowrap; }
 
-/* Calendrier à la date du jour (à la place de l'emoji 📅, figé sur « JUL 17 ») : à la taille du texte */
-.cal-ico { display: inline-grid; grid-template-rows: .36em 1fr; width: 1.12em; height: 1.18em; border-radius: .2em; overflow: hidden; background: #fff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .3); vertical-align: -.15em; line-height: 1; font-style: normal; font-weight: 800; }
-.cal-ico i { display: block; background: #e5383b; color: #fff; font: 800 .3em/1.2 system-ui, sans-serif; text-align: center; font-style: normal; letter-spacing: .02em; overflow: hidden; }
-.cal-ico b { display: grid; place-items: center; color: #1d2433; font: 800 .6em/1 system-ui, sans-serif; }
+/* Calendrier à la date du jour (à la place de l'emoji 📅, figé sur « JUL 17 ») : à la taille du texte,
+   protégé des styles de l'endroit où il est posé (icône d'une carte de choix, d'un bouton…) */
+span.cal-ico { display: inline-flex !important; flex-direction: column; align-items: stretch; width: 1.12em !important; height: 1.18em !important; min-height: 0; margin: 0; padding: 0 !important;
+  border: 0 !important; border-radius: .2em !important; overflow: hidden; background: #fff !important; cursor: inherit; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); vertical-align: -.15em; line-height: 1; font-style: normal; flex: none; }
+span.cal-ico > .cal-m { display: flex; flex: 0 0 1.3em; justify-content: center; align-items: center; width: 100%; height: 1.3em; min-height: 0; margin: 0; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: #e5383b !important; color: #fff;
+  font: 800 .28em/1 system-ui, sans-serif; letter-spacing: 0; text-align: center; white-space: nowrap; overflow: hidden; text-indent: 0; }
+span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; align-items: center; width: 100%; height: auto; min-height: 0; margin: 0; padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: none !important; color: #1d2433;
+  font: 800 .6em/1 system-ui, sans-serif; letter-spacing: 0; }
 .sc-go .cal-ico { font-size: 21px; }
+
+/* Vitrine des partenaires « D » : logos ronds en haut, ouverts en cartes photo, fermés en petites lignes */
+.sc-vitrine { display: grid; gap: 4px; min-width: 0; }
+.sc-stories { display: flex; gap: 12px; overflow-x: auto; padding: 4px 2px 6px; scrollbar-width: none; }
+.sc-stories::-webkit-scrollbar { display: none; }
+.sc-story { position: relative; flex: none; width: 70px; display: grid; justify-items: center; gap: 4px; padding: 0; border: 0; background: none; color: var(--ink); font: inherit; cursor: pointer; }
+.sc-ring { width: 58px; height: 58px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #fff; border: 2.5px solid var(--brand); box-shadow: 0 3px 10px rgba(15, 31, 61, .14); }
+.sc-ring img { width: 100%; height: 100%; object-fit: cover; }
+.sc-ring b, .sc-lg b { color: #1d2433; font-weight: 800; font-size: 16px; }
+.sc-story.closed .sc-ring { border-color: var(--subtle); filter: grayscale(.8); }
+.sc-sdot { position: absolute; top: 44px; inset-inline-end: 6px; width: 13px; height: 13px; border-radius: 50%; border: 2.5px solid var(--panel); background: var(--subtle); }
+.sc-sdot.on { background: var(--green); }
+.sc-story > b { font-size: 12px; font-weight: 700; line-height: 1.2; max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-sub { margin: 8px 0 2px; font-size: 14px; font-weight: 800; color: var(--muted); }
+.sc-closed-list { display: grid; border: 1px solid var(--border); border-radius: 16px; background: var(--panel); overflow: hidden; }
+.sc-line { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 12px; cursor: pointer; }
+.sc-line + .sc-line { border-top: 1px solid var(--border); }
+.sc-lg { width: 44px; height: 44px; border-radius: 12px; overflow: hidden; display: grid; place-items: center; background: #fff; box-shadow: 0 2px 6px rgba(15, 31, 61, .12); filter: grayscale(.75); }
+.sc-lg img { width: 100%; height: 100%; object-fit: cover; }
+.sc-lb { display: grid; min-width: 0; }
+.sc-lb b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-lb small { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-prog { padding: 7px 12px; border-radius: 999px; background: var(--brand); color: #fff; font-weight: 800; font-size: 13px; white-space: nowrap; }
+
+.pg-area span { display: grid; gap: 1px; }
+.pg-area small { font-size: 12px; }

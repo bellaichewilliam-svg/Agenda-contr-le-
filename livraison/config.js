@@ -140,23 +140,27 @@ window.CONFIG = {
     },
     express: 20,        // en moins d'une heure
     pickupPoint: 0,     // retrait à la poste / Super-Pharm / point relais : plus de supplément fixe (l'attente au-delà de 10 min est payée au temps, voir waiting)
-    purchase: 10,       // « J'achète pour vous » : 10 min d'achats comptées d'office (10 ₪), sauf un paquet de cigarettes seul ;
-    purchaseMinutes: 10, // au-delà, l'attente annoncée habituelle (1 ₪ la minute). En ligne : settings.purchase_min
+    purchase: 5,        // « J'achète pour vous » : 5 ₪ pour l'arrêt et l'achat, toujours (même sans queue, même un paquet de cigarettes) ;
+    purchaseMinutes: 5, // 5 min sur place comprises, puis 1 ₪ la minute (attente habituelle). En ligne : settings.purchase_min
     extraStop: 10,      // (ancien) par arrêt supplémentaire sans adresse
     // Arrêt en plus, avec son adresse : sur le chemin (détour d'au plus onWayKm km) → onWayPercent % du
     // prix d'une course ; sinon le prix d'une course (base). Au plus maxStops arrêts.
     stop: { onWayKm: 1.5, onWayPercent: 50, maxStops: 2 },
     returnTripPercent: 50,
-    // Zones industrielles de Netanya : une course entre la ville et une zone (ou d'une zone à l'autre)
+    // Zones à part de Netanya : une course entre la ville et une de ces zones (ou d'une zone à l'autre)
     // coûte price au lieu du prix « dans Netanya », dans les deux sens ; dans la même zone, prix normal.
-    // Rectangles approximatifs (sud, nord, ouest, est) : à vérifier sur la carte, et à ajuster ici.
+    // Sauf si un livreur libre est déjà dans la zone ou à moins de nearKm km (et la course est pour maintenant) :
+    // prix normal. Contours : vraies limites (Overture Maps / OpenStreetMap), élargies de ≈ 30 m, en [lat, lon].
     areas: {
       price: 30,
+      nearKm: 1,
       list: [
-        { id: "ezor-hadash", city: "netanya", fr: "zone industrielle nouvelle (Poleg)", he: "אזור התעשייה החדש",
-          box: [32.268, 32.292, 34.852, 34.876] },
+        { id: "ezor-hadash", city: "netanya", fr: "zone industrielle nouvelle (Poleg)", he: "אזור התעשייה החדש (פולג)",
+          poly: [[32.2871, 34.85984], [32.2898, 34.86043], [32.29326, 34.86179], [32.29299, 34.86693], [32.29128, 34.86751], [32.28665, 34.8673], [32.28314, 34.86661], [32.27362, 34.86364], [32.27191, 34.85986], [32.27274, 34.85722], [32.27398, 34.85541]] },
         { id: "ezor-yashan", city: "netanya", fr: "zone industrielle ancienne", he: "אזור התעשייה הישן",
-          box: [32.326, 32.345, 34.866, 34.890] }
+          poly: [[32.32271, 34.88286], [32.31838, 34.88238], [32.31103, 34.87611], [32.31192, 34.87299], [32.31245, 34.87274], [32.31325, 34.87312], [32.31357, 34.87244], [32.31416, 34.87232], [32.31473, 34.87065], [32.31607, 34.86869], [32.318, 34.8689], [32.31987, 34.87014], [32.32447, 34.87065], [32.32364, 34.8745], [32.32303, 34.88262]] },
+        { id: "kiryat-hasharon", city: "netanya", fr: "Kiryat HaSharon", he: "קריית השרון",
+          poly: [[32.31112, 34.87618], [32.30354, 34.87413], [32.30273, 34.88054], [32.30227, 34.88248], [32.30187, 34.88263], [32.29873, 34.87987], [32.29836, 34.87892], [32.29537, 34.87823], [32.29425, 34.86885], [32.31055, 34.86942], [32.31081, 34.87204], [32.31192, 34.87207], [32.31214, 34.87241]] }
       ]
     }
   },

@@ -39,11 +39,33 @@ function cityToCity(cfg, fromId, toId) {
     : tripPrice(cityById(cfg, fromId), cityById(cfg, toId), cfg.pricing).price;
 }
 
-// Zone industrielle d'un point (config.pricing.areas), ou null
+// Point dans un contour [[lat, lon], …] (rayon lancé vers l'est)
+function inPoly(p, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [ai, bi] = poly[i], [aj, bj] = poly[j];
+    if ((ai > p.lat) !== (aj > p.lat) && p.lon < (bj - bi) * (p.lat - ai) / (aj - ai) + bi) inside = !inside;
+  }
+  return inside;
+}
+// Distance (km) d'un point à une zone : 0 dedans, sinon jusqu'au bord le plus proche
+function kmToArea(p, a) {
+  if (inPoly(p, a.poly)) return 0;
+  const kx = 111.32 * Math.cos(p.lat * Math.PI / 180), ky = 110.57;
+  let best = Infinity;
+  for (let i = 0, j = a.poly.length - 1; i < a.poly.length; j = i++) {
+    const ax = (a.poly[j][1] - p.lon) * kx, ay = (a.poly[j][0] - p.lat) * ky, bx = (a.poly[i][1] - p.lon) * kx, by = (a.poly[i][0] - p.lat) * ky;
+    const dx = bx - ax, dy = by - ay, t = dx || dy ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / (dx * dx + dy * dy))) : 0;
+    best = Math.min(best, Math.hypot(ax + t * dx, ay + t * dy));
+  }
+  return best;
+}
+// Zone à part d'un point (config.pricing.areas : zones industrielles, Kiryat HaSharon), ou null
 function areaOf(cfg, cityId, p) {
   const A = cfg.pricing.areas;
   if (!A || !p || p.lat == null) return null;
-  const z = A.list.find(a => a.city === cityId && p.lat >= a.box[0] && p.lat <= a.box[1] && p.lon >= a.box[2] && p.lon <= a.box[3]);
+  const z = A.list.find(a => a.city === cityId && (a.poly ? inPoly(p, a.poly)
+    : p.lat >= a.box[0] && p.lat <= a.box[1] && p.lon >= a.box[2] && p.lon <= a.box[3]));
   return z ? z.id : null;
 }
 
@@ -63,8 +85,13 @@ function computeQuote(opts, cfg) {
   // Dans la même ville : la ville ↔ une zone industrielle (ou une zone ↔ l'autre) a son propre prix
   const zf = same ? areaOf(cfg, opts.fromCity, opts.fromPoint) : null, zt = same ? areaOf(cfg, opts.toCity, opts.toPoint) : null;
   const area = same && (zf || zt) && zf !== zt && opts.fromPoint && opts.toPoint ? cfg.pricing.areas.list.find(a => a.id === (zf || zt)) : null;
-  if (area) trip.price = Math.max(trip.price, cfg.pricing.areas.price);
-  lines.push(area
+  // … sauf si un livreur libre est déjà dans la zone ou tout près (course pour maintenant) : prix normal
+  const near = area && opts.urgency !== "programmee" && area.poly && (opts.couriers || [])
+    .some(c => c && c.lat != null && kmToArea({ lat: Number(c.lat), lon: Number(c.lon) }, area) <= (cfg.pricing.areas.nearKm || 1));
+  if (area && !near) trip.price = Math.max(trip.price, cfg.pricing.areas.price);
+  lines.push(area && near
+    ? { key: "qBaseAreaNear", vars: { city: opts.fromCity, area: area.id }, amount: trip.price }
+    : area
     ? { key: "qBaseArea", vars: { city: opts.fromCity, area: area.id }, amount: trip.price }
     : same
     ? { key: "qBaseSame", vars: { city: opts.fromCity }, amount: trip.price }
@@ -76,8 +103,9 @@ function computeQuote(opts, cfg) {
   if (size) lines.push({ key: "qSize_" + opts.size, amount: size });
   if (opts.urgency === "express") lines.push({ key: "qExpress", amount: P.express });
   if (opts.service === "retrait" && P.pickupPoint) lines.push({ key: "qPickup", amount: P.pickupPoint });
-  // Achats : 10 min comptées d'office (faire les courses prend du temps), sauf un simple paquet de cigarettes
-  if (opts.service === "achat" && P.purchase && !opts.quickBuy) lines.push({ key: "qPurchase", vars: { min: P.purchaseMinutes || 10 }, amount: P.purchase });
+  // Achats : s'arrêter et acheter a toujours un prix (même sans queue, même un paquet de cigarettes),
+  // quelques minutes sur place comprises, puis l'attente habituelle
+  if (opts.service === "achat" && P.purchase) lines.push({ key: "qPurchase", vars: { min: P.purchaseMinutes || 5 }, amount: P.purchase });
   // Arrêts en plus : sur le chemin → moitié prix d'une course, sinon prix d'une course
   if (Array.isArray(opts.stops) && opts.stops.length) {
     const S = P.stop || { onWayPercent: 50 };
@@ -180,7 +208,7 @@ async function geocode(address, countryCode, timeoutMs) {
 // Prix voiture (gros colis) entre la ville principale et une ville, ou null
 function carPrice(cfg, fromId, toId) { return cfg.pricing.carAvailable === false ? null : fixedPrice(cfg, fromId, toId, true); }
 
-const api = { areaOf, computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
+const api = { areaOf, kmToArea, computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.Pricing = api;
 

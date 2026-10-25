@@ -639,8 +639,8 @@ function addrNote(note) { return note ? `<div class="addr-note">📝 ${esc(note)
 // Petit calendrier à la date du jour (l'emoji 📅 du téléphone affiche toujours « JUL 17 »)
 function calIcon(d) {
   d = d || new Date();
-  const m = d.toLocaleDateString(loc(), { month: "short" }).replace(".", "").toUpperCase();
-  return `<span class="cal-ico" aria-hidden="true"><i>${esc(m)}</i><b>${d.getDate()}</b></span>`;
+  const m = d.toLocaleDateString(loc(), { month: "short" }).replace(/[.\s]/g, "").slice(0, 4).toUpperCase();
+  return `<span class="cal-ico" aria-hidden="true"><span class="cal-m">${esc(m)}</span><span class="cal-d">${d.getDate()}</span></span>`;
 }
 // Partout dans l'appli, chaque 📅 / 🗓️ affiché devient ce calendrier à la date du jour
 const CAL_RX = /\u{1F4C5}|\u{1F5D3}\uFE0F?/u;
