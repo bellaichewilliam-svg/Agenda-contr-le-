@@ -65,7 +65,7 @@ const T = {
       price: '<span>Course dans Netanya</span><span><b>25 ₪</b></span>', badge: '⭐ Catalogue HOP! Pro : 299 ₪ / mois', scan: 'Inscription gratuite', url: 'Votre espace pro en 1 minute' },
     he: { h1: 'העסק שלכם<br><em>שולח עם הופ!</em>', sub: 'מסעדות · חנויות · בתי מרקחת · משרדים', chips: ['💸 0% עמלה על המכירות', '🛵 השליח מגיע כשמוכן', '📱 קוד QR ללקוחות שלכם', '🧾 קבלה על כל משלוח'],
       price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '⭐ קטלוג אונליין: 299 ₪ לחודש', scan: 'הרשמה בחינם', url: 'אזור עסקי תוך דקה' },
-    link: APP + 'commerce.html'
+    link: APP + 'commerce.html?inscription=1'
   },
   rider: {
     fr: { h1: 'Deviens livreur<br><em>partenaire HOP!</em>', sub: 'Scooter, voiture ou vélo · Netanya et le Sharon', chips: ['✅ Tu choisis tes courses', '🟢 En ligne quand tu veux', '💝 Pourboires 100 % pour toi', '🔔 Ça sonne même écran éteint'],
@@ -80,28 +80,28 @@ const T = {
       price: '<span>Commission sur 100 commandes de 80 ₪</span><span><s>2 400 ₪</s> <b>0 ₪</b></span>', badge: '📞 ' + TEL, scan: 'Installé en 10 min', url: 'Appelez-nous aujourd\'hui' },
     he: { h1: 'שומרים <em>100%</em><br>מהמכירות', sub: 'האפליקציות הגדולות לוקחות עד 30% מכל הזמנה. הופ!: 0%.', chips: ['💸 0% עמלה', '🛵 הזמנה אחת = שליח אחד', '🔥 האוכל מגיע חם', '📍 מעקב בזמן אמת', '🤝 בלי התחייבות'],
       price: '<span>עמלה על 100 הזמנות של 80 ₪</span><span><s>2,400 ₪</s> <b>0 ₪</b></span>', badge: '📞 ' + TEL, scan: 'מותקן תוך 10 דקות', url: 'התקשרו אלינו היום' },
-    link: APP + 'commerce.html', hs: 0.74, hsPost: 1.1, postChips: 3
+    link: APP + 'commerce.html?inscription=1', hs: 0.74, hsPost: 1.1, postChips: 3
   },
   pro: {
     fr: { h1: 'Vos clients veulent<br><em>être livrés ?</em>', sub: 'Restaurants · Boutiques · Pharmacies · Pressings', chips: ['🛵 Un livreur en quelques minutes', '💸 0 % sur vos ventes', '📍 Suivi en direct pour le client', '📝 Sans contrat'],
       price: '<span>Livraison dans Netanya, prix fixe</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'On en parle 2 min ?', url: 'Connu d\'avance, sans surprise' },
     he: { h1: 'הלקוחות שלכם<br><em>רוצים משלוח?</em>', sub: 'מסעדות · חנויות · בתי מרקחת · ניקוי יבש', chips: ['🛵 שליח תוך דקות', '💸 0% עמלה על המכירות', '📍 מעקב בזמן אמת ללקוח', '📝 בלי חוזה'],
       price: '<span>משלוח בתוך נתניה, מחיר קבוע</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'מדברים 2 דקות?', url: 'ידוע מראש, בלי הפתעות' },
-    link: APP + 'commerce.html', hs: 0.66, hsPost: 1.22, postChips: 3
+    link: APP + 'commerce.html?inscription=1', hs: 0.66, hsPost: 1.22, postChips: 3
   },
   quartier: {
     fr: { h1: 'Vendez aussi à ceux<br><em>qui ne viennent pas</em>', sub: 'Pharmacie · Fleuriste · Pressing · Boutique', chips: ['📦 Livré le jour même', '👔 Pressing : on récupère et on ramène', '💰 0 % · pas d\'abonnement', '📍 Le client suit sa livraison'],
       price: '<span>Livraison dans Netanya</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'Dès votre prochaine commande', url: 'Boutique en ligne en option : 299 ₪ / mois' },
     he: { h1: 'מוכרים גם למי<br><em>שלא מגיע</em>', sub: 'בית מרקחת · פרחים · ניקוי יבש · חנות', chips: ['📦 משלוח באותו יום', '👔 ניקוי יבש: אוספים ומחזירים', '💰 0% · בלי מנוי', '📍 הלקוח עוקב אחרי המשלוח'],
       price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'כבר בהזמנה הבאה', url: 'חנות אונליין באופציה: 299 ₪ לחודש' },
-    link: APP + 'commerce.html', hs: 0.6, hsPost: 1.23, postChips: 2
+    link: APP + 'commerce.html?inscription=1', hs: 0.6, hsPost: 1.23, postChips: 2
   },
   relance: {
     fr: { h1: 'On est passés<br><em>vous voir !</em>', sub: 'Votre prochaine commande à livrer : appelez-nous et jugez vous-même.', chips: ['💸 0 % de commission', '🛵 1 livreur par commande', '📍 Suivi en direct', '📝 Sans contrat'],
       price: '<span>Livraison dans Netanya</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'Essayez dès aujourd\'hui', url: 'Merci pour votre accueil' },
     he: { h1: 'עברנו<br><em>אצלכם!</em>', sub: 'בהזמנה הבאה שצריך להביא: מתקשרים אלינו ושופטים בעצמכם.', chips: ['💸 0% עמלה', '🛵 שליח לכל הזמנה', '📍 מעקב בזמן אמת', '📝 בלי חוזה'],
       price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '📞 ' + TEL, scan: 'נסו כבר היום', url: 'תודה על קבלת הפנים' },
-    link: APP + 'commerce.html', hs: 0.8, hsPost: 1.05, postChips: 3
+    link: APP + 'commerce.html?inscription=1', hs: 0.8, hsPost: 1.05, postChips: 3
   }
 };
 function page(kind, lang, fmt) {

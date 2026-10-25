@@ -120,7 +120,9 @@ async function openSpace(token) {
     $("#shopSignup").classList.remove("hidden");
     return;
   }
-  Store.rememberShopToken(token, d.shop.code);
+  // Le patron qui regarde l'espace d'un commerce (?vu=1) : rien n'est gardé sur son téléphone
+  if (!params.has("vu")) Store.rememberShopToken(token, d.shop.code);
+  state.token = token;
   state.dash = d;
   $("#shopSignup").classList.add("hidden");
   $("#shopGone").classList.add("hidden");
@@ -859,6 +861,22 @@ $("#spPro").addEventListener("click", e => {
 setTimeout(checkChat, 1500);
 setInterval(checkChat, 20000);
 
+// Espaces déjà gardés sur ce téléphone, proposés au-dessus du formulaire d'inscription
+function showKnownShops() {
+  const shops = Store.myShops();
+  const box = $("#shopHave");
+  box.classList.toggle("hidden", !shops.length);
+  box.innerHTML = shops.length ? `<span>${UI.esc(t("shHave"))}</span> ` + shops.map(x =>
+    `<a class="btn btn-sm" href="commerce.html?k=${encodeURIComponent(x.token)}">${UI.esc(t("shHaveOpen", { code: x.code || "…" }))}</a>`).join(" ") : "";
+}
+$("#spOther").addEventListener("click", e => {
+  if (e.target.closest("[data-forget]")) {
+    if (!confirm(t("shForgetAsk"))) return;
+    Store.forgetShopToken(state.token);
+    location.href = "commerce.html?inscription=1";
+  }
+});
+
 // --- Démarrage ------------------------------------------------------------------------
 renderStatic();
 attachPlaces();
@@ -887,9 +905,11 @@ if (Store.sandbox) {
   bar.addEventListener("click", e => { if (e.target.closest("[data-sb-reset]")) { Store.sandboxReset(); location.reload(); } });
   Store.sandboxSeed(params.get("demo")).then(openSpace, () => $("#shopGone").classList.remove("hidden"));
 } else {
-  const key = params.get("k") || (ref ? null : Store.myShopTokens()[0]);
+  // Lien « Inscrire mon commerce » (?inscription=1) : toujours le formulaire, même si un espace est gardé ici
+  const signupAsked = !!ref || params.has("inscription");
+  const key = params.get("k") || (signupAsked ? null : Store.myShopTokens()[0]);
   if (key) openSpace(key);
-  else $("#shopSignup").classList.remove("hidden");
+  else { $("#shopSignup").classList.remove("hidden"); showKnownShops(); }
 }
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes

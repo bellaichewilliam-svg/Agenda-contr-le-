@@ -152,6 +152,8 @@ async function load() {
     declines = (await Store.listDeclines().catch(() => null)) || declines;
     accounts = (await Store.adminAccounts().catch(() => null)) || accounts;
     if (sh) shops = sh;
+    // Le téléphone du patron ne garde pas la clé d'un commerce ouvert depuis ici (sinon « Inscrire mon commerce » ouvrait cet espace)
+    if (sh) sh.forEach(x => { if (x.token) Store.forgetShopToken(x.token); });
     if (sa) sales = sa;
     if (rq) requests = rq;
     if (m) msgs = m;
@@ -967,7 +969,7 @@ function renderShops(view) {
     .map(([code, label]) => ({ code, label, url: UI.appUrl("index.html") + "?c=" + code, space: UI.appUrl("commerce.html") + "?demo=" + code.split("-")[1].toLowerCase() }));
   // Retirer les démos d'un geste (elles sont seulement suspendues, jamais effacées : on peut les remettre)
   const demoShops = shops.filter(x => x.demo), demoOn = demoShops.some(x => x.status === "actif");
-  const signup = UI.appUrl("commerce.html") + (me && me.ref_code ? "?p=" + me.ref_code : "");
+  const signup = UI.appUrl("commerce.html") + "?inscription=1" + (me && me.ref_code ? "&p=" + me.ref_code : "");
   const statusLabel = { en_attente: "⏳ À vérifier", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
   const bonusDue = sum(orders.filter(o => o.status === "livree" && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
   view.innerHTML = `
@@ -1048,7 +1050,7 @@ function renderShops(view) {
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
-          <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl("commerce.html") + "?k=" + x.token)}">🔑 Son espace</a>
+          <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl("commerce.html") + "?k=" + x.token + "&vu=1")}">🔑 Son espace</a>
           <textarea class="admin-note" data-sact="note" rows="1" placeholder="Note interne (vérifié sur place, horaires…)">${UI.esc(x.admin_note || "")}</textarea>
         </div>
       </article>`;

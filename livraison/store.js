@@ -1617,6 +1617,19 @@ function rememberShopToken(token, code) {
   if (code) writeJSON(LS.shopCodes, Object.assign(readJSON(LS.shopCodes, {}), { [code]: token }));
 }
 function shopTokenFor(code) { return readJSON(LS.shopCodes, {})[String(code || "").toUpperCase()] || null; }
+// « Ce n'est pas mon commerce » : cet appareil oublie la clé (le commerce, lui, n'est pas touché)
+function forgetShopToken(token) {
+  writeJSON(LS.shopTokens, myShopTokens().filter(x => x !== token));
+  const codes = readJSON(LS.shopCodes, {});
+  Object.keys(codes).forEach(c => { if (codes[c] === token) delete codes[c]; });
+  writeJSON(LS.shopCodes, codes);
+}
+// Commerces dont la clé est gardée sur cet appareil : [{ code, token }]
+function myShops() {
+  const codes = readJSON(LS.shopCodes, {}), byToken = {};
+  Object.keys(codes).forEach(c => { byToken[codes[c]] = c; });
+  return myShopTokens().map(token => ({ token, code: byToken[token] || "" }));
+}
 
 // Abonnement HOP! Pro en cours (jusqu'au plan_until inclus)
 const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISOString().slice(0, 10));
@@ -2035,7 +2048,7 @@ window.Store = {
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
