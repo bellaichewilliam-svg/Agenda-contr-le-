@@ -771,7 +771,7 @@ function unfinishedCard() {
       </div>
       <div class="meta"><span class="pill ${a.confirmed ? "paid" : "st-annulee"}">${a.confirmed ? "✅ Email confirmé : il doit se connecter et finir sa fiche" : "📧 Email pas encore confirmé : il ne peut pas se connecter"}</span></div>
       <div class="actions">
-        ${a.phone ? `<a class="btn btn-sm btn-primary" href="tel:${UI.esc(a.phone)}">📞 Appeler</a><a class="btn btn-sm" href="${UI.esc(sms(a))}">💬 SMS tout prêt</a>` : ""}
+        ${a.phone ? `<a class="btn btn-sm btn-primary" href="tel:${UI.esc(a.phone)}">📞 Appeler</a><a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(a.phone, `Bonjour${a.name ? " " + a.name : ""}, ici ${CONFIG.businessName}. Ton inscription de livreur n'est pas finie : ouvre HOP! Livreur (${url}), touche « J'ai déjà un compte », mets ton email et ton mot de passe, puis termine ta fiche.`))}">🟢 WhatsApp</a><a class="btn btn-sm" href="${UI.esc(sms(a))}">💬 SMS</a>` : ""}
         ${a.confirmed ? "" : `<button type="button" class="btn btn-sm" data-confirm-mail="${UI.esc(a.id)}" title="Si le mail de confirmation n'arrive pas">✅ Confirmer son email</button>`}
         <a class="btn btn-sm" href="${UI.esc(mail(a))}">✉️ Lui écrire</a>
       </div>
@@ -787,7 +787,7 @@ function renderCouriers(view) {
     <div class="card" style="margin-bottom:14px">
       <b>Recruter des livreurs</b>
       <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien : ils s'inscrivent, acceptent les conditions (permis, assurance déclarée, HOP pas responsable…), puis vous les validez ici après avoir vu leurs documents. Le client les paie directement ; HOP prend ${UI.commissionText()} par course livrée, retirés tout de suite de leur crédit HOP (rechargé à l'avance) : rien à régler ensuite.</p>
-      <div class="promo-row"><input readonly value="${UI.esc(invite)}" dir="ltr" /><a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(`Tu as un scooter, une voiture ou un vélo ? Deviens livreur partenaire chez ${CONFIG.businessName} : tu choisis tes courses, tu encaisses directement le client, et seulement ${UI.commissionText()} de commission par course. Inscription : ${invite}`)}">Partager</a></div>
+      <div class="promo-row"><input readonly value="${UI.esc(invite)}" dir="ltr" /><a class="btn btn-sm btn-wa" href="${UI.waPersonal("", `Tu as un scooter, une voiture ou un vélo ? Deviens livreur partenaire chez ${CONFIG.businessName} : tu choisis tes courses, tu encaisses directement le client, et seulement ${UI.commissionText()} de commission par course. Inscription : ${invite}`)}">Partager</a></div>
     </div>
     ${onlineSummary()}
     ${unfinishedCard()}
@@ -822,6 +822,7 @@ function renderCouriers(view) {
             : `Bonjour ${c.name}, `)}
           ${c.status !== "suspendu" && (accounts.find(x => x.id === c.id) || {}).push_n === 0 ? chatBtn("c:" + c.id, `Livreur : ${c.name}`, c.phone, "🔔 Lui demander d'activer les alertes",
             `Bonjour ${c.name}, ouvre l'appli HOP! Livreur et touche « 🔔 Activer les alertes » puis « Autoriser » : sinon tu ne reçois pas les courses quand l'appli est fermée.`) : ""}
+          ${c.phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(c.phone, `Bonjour ${c.name}, `))}" title="Votre WhatsApp à vous (pas WhatsApp Business)">🟢 WhatsApp</a>` : ""}
           <textarea class="admin-note" data-cact="note" rows="1" placeholder="Note interne (documents vérifiés, remarques…)">${UI.esc(c.admin_note || "")}</textarea>
         </div>
       </article>`;
