@@ -2566,7 +2566,7 @@ function drawRestos() {
   restos.layer.clearLayers();
   shown.forEach(g => {
     const name = restoName(g.e), more = g.ids.length - 1;
-    const label = (name.length > 22 ? name.slice(0, 21) + "…" : name) + (more ? ` +${more}` : "");
+    const label = (g.ids.some(i => restos.list[i].partner) ? "👑 " : "") + (name.length > 22 ? name.slice(0, 21) + "…" : name) + (more ? ` +${more}` : "");
     // L'icône de sa cuisine (🍕 🍣 🍔…), un partenaire HOP! en orange ; les noms affichés passent devant
     // Partenaire HOP! : son logo (celui de sa vitrine), sinon l'icône de son métier
     const pe = g.ids.map(i => restos.list[i]).find(e => e.partner), hop = !!pe;
@@ -2578,16 +2578,22 @@ function drawRestos() {
     const lg = logo ? ({ 13: 28, 14: 30, 15: 34, 16: 40, 17: 52, 18: 66 })[z] || (z > 18 ? 84 : 28) : 26;
     L.marker(g.pos, { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [lg, lg], iconAnchor: [lg / 2, lg / 2],
       html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${logo ? " logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"${logo ? ` style="--lg:${lg}px"` : ""}><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
-      .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = UI.bi(Places.dirName(e, I18N.lang)); return `<div class="rp-row">
-          <span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span>
+      .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = UI.bi(Places.dirName(e, I18N.lang)), pl = rowLogo(e); return `<div class="rp-row">
+          <div class="rp-head">${pl ? `<span class="rp-logo"><img src="${pl}" alt="" /></span>` : ""}<span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.partner ? `<i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span></div>
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t("restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
         { closeButton: false, offset: [0, -6], maxWidth: 260, maxHeight: 210, autoPanPaddingTopLeft: [12, 150], autoPanPaddingBottomRight: [76, 24] })
       .addTo(restos.layer);
   });
 }
-// Ce qu'est le commerce : « 👔 Pressing · Partenaire HOP! », « 🍕 Pizza »… (la cuisine se lit dans son nom ou sa fiche)
+// Logo d'un commerce dans la bulle : celui de sa vitrine (partenaire) ou de l'annuaire (img/logos/…)
+function rowLogo(e) {
+  if (e.partner) { const sc = (state.showcase || []).find(x => x.code === e.partner.code); if (sc && UI.safeImg(sc.logo)) return UI.safeImg(sc.logo); }
+  return /^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(e.lg || "") ? e.lg : "";
+}
+// Ce qu'est le commerce : « 👔 Pressing », « 🍕 Pizza »… (la cuisine se lit dans son nom ou sa fiche) ;
+// un partenaire a en plus son badge vert « 👑 Partenaire HOP! »
 function restoKind(e) {
-  if (e.partner) return [(t("shKinds") || {})[e.partner.kind] || "⭐", t("restoHop")].join(" · ");
+  if (e.partner) return (t("shKinds") || {})[e.partner.kind] || "⭐";
   const ico = Places.foodIcon(e.n, e.k), fk = t("fk") || {};
   return `${ico} ${fk[ico] || fk["🍽️"] || ""}`;
 }
