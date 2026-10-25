@@ -121,6 +121,10 @@ function renderStatic() {
     ? UI.esc(t("within", { city: I18N.cityName(home) }))
     : `${UI.esc(I18N.cityName(home))} ⇄ ${UI.esc(r.c[I18N.lang])}`}</span><b>${!UI.cityActive(r.c.id) ? `<small class="muted">${UI.esc(t("soon"))}</small>` : money(r.price)}${Pricing.carPrice(CONFIG, home, r.c.id) != null
       ? ` <small class="muted" title="${UI.esc(t("xBig"))}">🚗 ${money(Pricing.carPrice(CONFIG, home, r.c.id))}</small>` : ""}</b></div>`).join("");
+  // Les zones à part (zones industrielles, Kiryat HaSharon) juste sous « Dans Netanya »
+  const A = P.areas, areaRows = A ? A.list.filter(z => z.city === home).map(z => `<div class="pg-row pg-area"><span>${UI.esc(I18N.cityName(home))} ⇄ ${UI.esc(z[I18N.lang] || z.fr)}
+      <small class="muted">${UI.esc(t("pgAreaNear", { price: money(P.fixedFromHome[home] || P.base) }))}</small></span><b>${money(A.price)}</b></div>`).join("") : "";
+  if (areaRows) { const first = $("#priceGrid .pg-row"); if (first) first.insertAdjacentHTML("afterend", areaRows); }
 
   const extras = [["xExpress", "+ " + money(P.express)], ...(P.pickupPoint ? [["xPickup", "+ " + money(P.pickupPoint)]] : []), ...(P.purchase ? [["xPurchase", "+ " + money(P.purchase)]] : []),
     ["xMedium", "+ " + money(P.sizes.moyen)], ...(P.carAvailable === false ? [] : [["xBig", t("xBigCar")]]), ["xStop", "+ " + money(P.extraStop)], ["xReturn", `+ ${P.returnTripPercent} %`]];
@@ -403,6 +407,7 @@ function baseQuote() {
     fromCity: cityOf("from"), toCity: cityOf("to"),
     fromPoint: state.fromPoint, toPoint: state.toPoint,
     service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
+    couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
   }, CONFIG);
@@ -1252,7 +1257,7 @@ async function submit(e) {
       sale_paid: svc === "colis" && form.p2p_sale.checked && form.sale_paid.checked,
       handoff: svc === "colis" && form.handoff.checked,
       shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
-      purchase_min: svc === "achat" && !tobaccoOnly() && CONFIG.pricing.purchase ? CONFIG.pricing.purchaseMinutes || 10 : null,
+      purchase_min: svc === "achat" && CONFIG.pricing.purchase ? CONFIG.pricing.purchaseMinutes || 5 : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
       fits_topcase: svc === "achat" && form.fits_topcase.checked,
@@ -2643,6 +2648,7 @@ async function loadNearby() {
   try { home.nearby = (await Store.couriersNearby()) || []; } catch (e) { return; }
   // Un livreur passe en ligne (ou hors ligne) en dehors des horaires : « Ouvert » et « Maintenant » suivent
   if (renderOpenBadge() !== wasOpen) { renderWhen(); renderQuote(); }
+  else if (state.fromPoint && state.toPoint) renderQuote();   // un livreur arrive près d'une zone : le prix suit
   if (home.map) {
     // Deux livreurs dans le même carré : on les écarte un peu (≈ 30 m) pour voir les deux
     const seen = {};
@@ -2748,11 +2754,27 @@ function shopCard(s) {
     <span class="sc-go" aria-label="${UI.esc(st && !st.open ? t("scSchedule") : t("proGo"))}">${st && !st.open ? UI.calIcon() : "›"}</span>
   </div>`;
 }
+// Vitrine façon « D » : les logos de tous les partenaires en haut, les ouverts en grandes cartes photo,
+// les fermés regroupés en petites lignes avec « Programmer »
+function shopLogo(s, cls) {
+  const logo = UI.safeImg(s.logo), initials = String(s.name || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  return `<span class="${cls}">${logo ? `<img src="${logo}" alt="" />` : `<b>${UI.esc(initials)}</b>`}</span>`;
+}
 function renderShowcase() {
   const list = (state.showcase || []).slice(), f = favs();
-  list.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || ((UI.openState(b.hours) || {}).open === true) - ((UI.openState(a.hours) || {}).open === true));
+  const isOpen = s => { const st = UI.openState(s.hours); return !st || st.open; };
+  list.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (isOpen(b) - isOpen(a)));
   $("#homeProBox").classList.toggle("hidden", !list.length);
-  const html = list.map(shopCard).join("");
+  const open = list.filter(isOpen), closed = list.filter(s => !isOpen(s));
+  const kindOf = s => (s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind]) || "";
+  const html = `<div class="sc-stories">${list.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
+        ${shopLogo(s, "sc-ring")}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(s.name)}</b></button>`).join("")}</div>`
+    + (open.length ? `${closed.length ? `<p class="sc-sub">${UI.esc(t("scOpenNow"))}</p>` : ""}<div class="pro-row">${open.map(shopCard).join("")}</div>` : "")
+    + (closed.length ? `<p class="sc-sub">${UI.esc(t("scClosedList"))}</p><div class="sc-closed-list">${closed.map(s => {
+        const st = UI.openState(s.hours);
+        return `<div class="sc-line" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">${shopLogo(s, "sc-lg")}
+          <span class="sc-lb"><b>${UI.esc(s.name)}</b><small>${UI.esc([kindOf(s), openLabel(st)].filter(Boolean).join(" · "))}</small></span>
+          <span class="sc-prog">${UI.esc(t("scProg"))}</span></div>`; }).join("")}</div>` : "");
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
 }
 $("#homePro").addEventListener("click", e => {
