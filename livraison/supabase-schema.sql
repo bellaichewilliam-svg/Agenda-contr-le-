@@ -6125,3 +6125,14 @@ end;
 $$;
 revoke execute on function public.courier_complete_profile(jsonb) from public, anon;
 grant execute on function public.courier_complete_profile(jsonb) to authenticated;
+
+-- ============================================================================
+-- CARTE : HORAIRES DES PARTENAIRES (pastille grise « fermé », pas de course à une heure de fermeture)
+-- ============================================================================
+create or replace function public.shops_directory() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', code, 'name', name, 'kind', kind, 'city', city,
+           'address', address, 'lat', lat, 'lon', lon, 'pro', coalesce(plan_until >= current_date, false),
+           'hours', hours) order by name), '[]'::json)
+    from shops where status = 'actif' and not demo;
+$$;

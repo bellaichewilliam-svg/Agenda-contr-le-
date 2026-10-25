@@ -421,3 +421,9 @@ livraison/
   - « Comment ça marche », questions fréquentes, bouton « Inscription gratuite » en bas de l'écran ;
   - le formulaire demande la formule : avec HOP! Pro, on demande qui paie la livraison, et la demande d'abonnement part dans la messagerie après l'inscription.
   - HOP! Pro : « 🎁 Le premier mois est offert » (carte, tableau, questions, choix du formulaire) ; les deux choix de livraison sont détaillés (partagée 12 ₪ / 15 ₪, ou le client paie tout).
+- **Commerces partenaires fermés**, à l'aide de leurs horaires (`shops_directory` renvoie maintenant `hours`) :
+  - sur la carte, la pastille d'un partenaire fermé devient grise avec « · fermé » ; le vert veut dire ouvert ;
+  - la bulle de la carte dit « 🌙 Fermé · ouvre à 08:30 » et son bouton devient « 📅 Programmer chez … » ;
+  - à l'accueil, quand le commerce choisi est fermé, l'appli affiche « 🌙 EDMAR · Fermé · ouvre à 08:30. Pas de livreur avant l'ouverture. » et propose le raccourci « 🏪 À l'ouverture 08:45 » ;
+  - les raccourcis d'heure tombant pendant la fermeture disparaissent (« Maintenant », « Ce soir 19:00 »…) ;
+  - aucune course ne peut partir à une heure où le commerce est fermé : au départ du commerce, ou environ 25 min après le départ quand on y dépose.
