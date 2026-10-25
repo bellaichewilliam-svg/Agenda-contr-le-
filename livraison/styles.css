@@ -2140,3 +2140,102 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .vis-view img { display: block; width: 100%; max-width: 720px; margin: 0 auto; border-radius: 12px; }
 #qr, #flyerQr { cursor: zoom-in; }
 .vis-view img[src^="data:"] { max-width: 360px; background: #fff; padding: 16px; }
+
+/* --- Page de présentation commerces (commerce.html) : Gratuit / HOP! Pro ------------------ */
+.sl { display: grid; gap: 34px; margin-bottom: 26px; }
+.sl h2 { font-family: "Fredoka", "Rubik", sans-serif; font-size: clamp(24px, 5.4vw, 34px); line-height: 1.15; color: var(--ink); text-align: center; }
+.sl-sub { color: var(--muted); text-align: center; max-width: 560px; margin: 8px auto 0; font-size: 16px; }
+.sl-hero { position: relative; overflow: hidden; display: grid; grid-template-columns: 1.25fr 1fr; gap: 26px; align-items: center;
+  padding: 34px 30px; border-radius: 26px; color: #fff; margin-top: 6px;
+  background: radial-gradient(120% 90% at 100% 0%, rgba(255, 106, 19, .35), transparent 55%), linear-gradient(160deg, var(--navy-2), var(--navy) 70%); box-shadow: 0 18px 40px rgba(15, 31, 61, .25); }
+.sl-kicker { display: inline-block; padding: 6px 12px; border-radius: 99px; background: rgba(255, 255, 255, .12); font-weight: 700; font-size: 13px; letter-spacing: .02em; }
+.sl-hero h1 { font-family: "Fredoka", "Rubik", sans-serif; font-size: clamp(32px, 7.4vw, 50px); line-height: 1.05; margin-top: 14px; color: #fff; }
+.sl-hero h1 em { font-style: normal; color: var(--brand); }
+.sl-hero p { color: rgba(255, 255, 255, .82); margin-top: 14px; font-size: 16.5px; line-height: 1.5; max-width: 520px; }
+.sl-ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.sl-ghost { background: rgba(255, 255, 255, .1); color: #fff; border-color: rgba(255, 255, 255, .25); }
+.sl-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 24px; }
+.sl-stats div { background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .12); border-radius: 16px; padding: 12px 10px; text-align: center; }
+.sl-stats b { display: block; font-family: "Fredoka", "Rubik", sans-serif; font-size: 26px; color: var(--brand); white-space: nowrap; }
+.sl-stats small { display: block; font-size: 12.5px; color: rgba(255, 255, 255, .78); line-height: 1.3; margin-top: 2px; }
+/* Téléphone d'exemple : vitrine, nouvelle commande qui sonne, livreur en route */
+.sl-phone { justify-self: center; width: 250px; padding: 10px; border-radius: 36px; background: #0b1428; border: 1px solid rgba(255, 255, 255, .14); box-shadow: 0 24px 50px rgba(0, 0, 0, .45); transform: rotate(-3deg); }
+.sl-screen { position: relative; border-radius: 28px; overflow: hidden; background: #F6F7FB; color: #101828; padding-bottom: 64px; min-height: 420px; }
+.sl-cover { height: 96px; display: grid; place-items: center; font-size: 46px; background: linear-gradient(135deg, #FFB36B, #FF6A13); }
+.sl-shop { padding: 10px 14px 6px; }
+.sl-shop b { display: block; font-size: 17px; } .sl-shop small { color: #5B6476; font-size: 12px; }
+.sl-item { display: flex; align-items: center; gap: 10px; margin: 8px 12px 0; padding: 9px 10px; background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(16, 24, 40, .08); }
+.sl-item i { font-style: normal; font-size: 24px; width: 40px; height: 40px; display: grid; place-items: center; background: #FFF0E6; border-radius: 10px; }
+.sl-item span { flex: 1; min-width: 0; font-size: 13px; font-weight: 700; }
+.sl-item span small { display: block; color: #E0520A; font-weight: 800; }
+.sl-item em { font-style: normal; width: 26px; height: 26px; border-radius: 50%; background: #FF6A13; color: #fff; display: grid; place-items: center; font-weight: 800; }
+.sl-toast { position: absolute; left: 10px; right: 10px; top: 12px; background: #101828; color: #fff; border-radius: 16px; padding: 10px 12px; box-shadow: 0 10px 24px rgba(0, 0, 0, .3); animation: sl-drop 4.5s ease-in-out infinite; }
+.sl-toast b { display: block; font-size: 13.5px; } .sl-toast small { color: rgba(255, 255, 255, .75); font-size: 12px; }
+.sl-rider { position: absolute; left: 12px; right: 12px; bottom: 12px; background: #DCFAE6; color: #067647; font-weight: 800; font-size: 13px; padding: 10px 12px; border-radius: 14px; text-align: center; }
+@keyframes sl-drop { 0%, 12% { transform: translateY(-130%); opacity: 0; } 22%, 78% { transform: translateY(0); opacity: 1; } 90%, 100% { transform: translateY(-130%); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sl-toast { animation: none; } }
+/* Les deux formules */
+.sl-plans { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 20px; align-items: stretch; }
+.sl-plan { position: relative; display: flex; flex-direction: column; gap: 14px; background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 22px 20px; box-shadow: var(--shadow); }
+.sl-plan header h3 { font-family: "Fredoka", "Rubik", sans-serif; font-size: 24px; margin-top: 10px; color: var(--ink); }
+.sl-plan header p { color: var(--muted); margin-top: 6px; }
+.sl-tag { display: inline-block; padding: 5px 11px; border-radius: 99px; background: var(--green-soft); color: var(--green-ink); font-weight: 800; font-size: 12.5px; }
+.sl-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.sl-price b { font-family: "Fredoka", "Rubik", sans-serif; font-size: 40px; line-height: 1; color: var(--ink); white-space: nowrap; }
+.sl-price small { color: var(--muted); font-weight: 600; }
+.sl-feats { list-style: none; display: grid; gap: 10px; flex: 1; align-content: start; }
+.sl-feats li { position: relative; padding-inline-start: 30px; line-height: 1.4; }
+.sl-feats li::before { content: "✓"; position: absolute; inset-inline-start: 0; top: 0; width: 21px; height: 21px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; background: var(--green-soft); color: var(--green-ink); }
+.sl-plan-pro { border: 2px solid var(--brand); box-shadow: 0 16px 36px rgba(255, 106, 19, .18); }
+.sl-plan-pro .sl-tag { background: var(--brand); color: #fff; }
+.sl-plan-pro .sl-feats li::before { background: var(--brand-soft); color: var(--brand-ink); }
+.sl-plus { font-weight: 800; color: var(--brand-ink); }
+.sl-demo { text-align: center; font-weight: 700; color: var(--brand-ink); }
+/* Comparaison */
+.sl-table-wrap { margin-top: 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
+.sl-table { width: 100%; border-collapse: collapse; }
+.sl-table th, .sl-table td { padding: 12px 10px; border-bottom: 1px solid var(--border); text-align: center; font-size: 14.5px; }
+.sl-table tbody tr:last-child th, .sl-table tbody tr:last-child td { border-bottom: 0; }
+.sl-table tbody th { text-align: start; font-weight: 600; color: var(--ink); padding-inline-start: 16px; }
+.sl-table thead th { font-family: "Fredoka", "Rubik", sans-serif; font-size: 16px; background: var(--bg-2); width: 24%; }
+.sl-table thead th:first-child { width: auto; }
+.sl-table .sl-col-pro { background: var(--brand); color: #fff; }
+.sl-table td:last-child { background: color-mix(in srgb, var(--brand-soft) 55%, transparent); }
+.sl-yes { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--green-soft); color: var(--green-ink); font-size: 13px; }
+.sl-no { color: var(--subtle); font-weight: 700; }
+/* Calcul : ce que vous gardez */
+.sl-calc { background: var(--panel); border: 1px solid var(--border); border-radius: 22px; padding: 24px 20px; box-shadow: var(--shadow); }
+.sl-range { display: grid; gap: 10px; margin-top: 18px; font-weight: 600; }
+.sl-range b { color: var(--brand-ink); font-size: 20px; }
+.sl-range input { width: 100%; accent-color: var(--brand); }
+.sl-bars { display: grid; gap: 12px; margin-top: 18px; }
+.sl-bar { position: relative; display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; overflow: hidden; background: var(--bg-2); z-index: 0; }
+.sl-bar::before { content: ""; position: absolute; inset-block: 0; inset-inline-start: 0; width: var(--w, 50%); z-index: -1; transition: width .25s; }
+.sl-bar-big::before { background: color-mix(in srgb, var(--red) 22%, transparent); }
+.sl-bar-hop::before { background: color-mix(in srgb, var(--green) 26%, transparent); }
+.sl-bar span { font-size: 13.5px; font-weight: 600; } .sl-bar b { white-space: nowrap; font-size: 17px; }
+.sl-bar-big b { color: var(--red); } .sl-bar-hop b { color: var(--green-ink); }
+.sl-save { margin: 16px 0 6px; text-align: center; font-family: "Fredoka", "Rubik", sans-serif; font-size: 22px; color: var(--green-ink); }
+/* Étapes et questions */
+.sl-steps { list-style: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
+.sl-steps li { background: var(--panel); border: 1px solid var(--border); border-radius: 18px; padding: 16px 14px; display: grid; gap: 6px; align-content: start; }
+.sl-steps i { font-style: normal; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--brand); color: #fff; font-weight: 800; }
+.sl-steps b { font-size: 16px; } .sl-steps span { color: var(--muted); font-size: 14px; line-height: 1.4; }
+.sl-faq { display: grid; gap: 8px; margin-top: 16px; }
+.sl-faq details { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 14px 16px; }
+.sl-faq summary { cursor: pointer; font-weight: 700; }
+.sl-faq p { color: var(--muted); margin-top: 8px; line-height: 1.5; }
+.sl-form { scroll-margin-top: 80px; }
+.sl-pick { margin-top: 12px; }
+.sl-sticky { position: fixed; z-index: 40; left: 16px; right: 16px; bottom: calc(14px + env(safe-area-inset-bottom)); max-width: 420px; margin: 0 auto; text-align: center;
+  padding: 15px 18px; border-radius: 16px; background: var(--brand); color: #fff; font-weight: 800; font-size: 16.5px; text-decoration: none; box-shadow: 0 12px 28px rgba(255, 106, 19, .4); }
+@media (min-width: 900px) { .sl-sticky { display: none; } }
+@media (max-width: 760px) {
+  .sl-hero { grid-template-columns: 1fr; padding: 26px 18px; text-align: start; }
+  .sl-phone { width: 230px; transform: none; margin-top: 4px; }
+  .sl-ctas .btn { flex: 1 1 100%; }
+  .sl-plans { grid-template-columns: 1fr; }
+  .sl-steps { grid-template-columns: 1fr 1fr; }
+  .sl-table th, .sl-table td { padding: 11px 6px; font-size: 13.5px; }
+  .sl-table tbody th { padding-inline-start: 12px; }
+}
