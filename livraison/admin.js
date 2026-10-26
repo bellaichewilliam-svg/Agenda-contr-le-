@@ -552,7 +552,7 @@ function renderStats() {
   $("#stMonthHop").textContent = UI.money(sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
     + sum(planSales.filter(p => String(p.created_at).startsWith(month)), p => Number(p.amount) - Number(p.referrer_share || 0)));
   const pending = couriers.filter(c => c.status === "en_attente").length + unfinished().length;
-  const pendingShops = shops.filter(x => x.status === "en_attente").length;
+  const pendingShops = shops.filter(x => !x.demo && x.status === "en_attente").length;
   const newReqs = requests.filter(x => x.status === "nouvelle").length;
   const fresh = orders.filter(o => o.status === "nouvelle").length;
   // Pastilles rouges : sur l'onglet et sur sa rubrique
@@ -999,10 +999,10 @@ function renderShops(view) {
       <div class="actions"><button class="btn btn-sm" data-copy="${UI.esc(signup)}">📋 Copier le lien</button><a class="btn btn-sm btn-primary" href="${UI.esc(signup)}" target="_blank" rel="noopener">➕ Inscrire un commerce</a></div>
     </div>
     <div class="stats">
-      <div class="stat"><small>Commerces</small><b>${shops.filter(x => x.status !== "suspendu").length}</b></div>
-      <div class="stat"><small>À vérifier</small><b>${shops.filter(x => x.status === "en_attente").length}</b></div>
+      <div class="stat"><small>Commerces</small><b>${shops.filter(x => !x.demo && x.status !== "suspendu").length}</b></div>
+      <div class="stat"><small>À vérifier</small><b>${shops.filter(x => !x.demo && x.status === "en_attente").length}</b></div>
       <div class="stat"><small>Courses ce mois</small><b>${viaShop.filter(o => UI.dayKey(o.pickup_at).startsWith(month)).length}</b></div>
-      ${bonusDue > 0 ? `<div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>` : `<div class="stat"><small>HOP! Pro</small><b>${shops.filter(x => Store.planActive(x)).length}</b></div>`}
+      ${bonusDue > 0 ? `<div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>` : `<div class="stat"><small>HOP! Pro</small><b>${shops.filter(x => !x.demo && Store.planActive(x)).length}</b></div>`}
     </div>
     ${list.length ? `<div class="orders">${list.map(x => {
       const done = viaShop.filter(o => o.shop_id === x.id);
@@ -1074,7 +1074,7 @@ function renderClients(view) {
       <div class="stat"><small>Comptes clients</small><b>${withAcc.length}</b></div>
       <div class="stat"><small>Nouveaux comptes ce mois</small><b>${withAcc.filter(c => String(c.account_at || "").startsWith(month)).length}</b></div>
       <div class="stat"><small>Clients au total</small><b>${clients.length}</b></div>
-      <div class="stat"><small>Commerces · livreurs actifs</small><b>${shops.filter(x => x.status === "actif").length} · ${couriers.filter(c => c.role !== "admin" && c.status === "actif").length}</b></div>
+      <div class="stat"><small>Commerces · livreurs actifs</small><b>${shops.filter(x => !x.demo && x.status === "actif").length} · ${couriers.filter(c => c.role !== "admin" && c.status === "actif").length}</b></div>
     </div>
     <p class="muted small" style="margin:-8px 0 12px">Un client crée son compte dans l'appli (« Mes courses ») avec son téléphone et un mot de passe : accepté tout de suite, sans e-mail de confirmation pour l'instant. Les clients sans compte apparaissent ici d'après leur numéro de téléphone.</p>
     <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" /></div>
