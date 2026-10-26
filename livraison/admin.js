@@ -917,6 +917,25 @@ function shopWelcome(x) {
     : `שלום ${x.contact_name || ""}, ברוכים הבאים ל${CONFIG.businessNameHe}! 🛵\nלהזמנת שליח מ${x.name}: ${order}\nהאזור שלכם (המשלוחים, קוד QR ללקוחות): ${space}\nנתראה בקרוב!`;
 }
 
+// Accès du commerce par WhatsApp : le message est prêt, le patron n'a qu'à appuyer sur « Envoyer »
+// (seulement aux commerces ; rien n'est envoyé aux livreurs). On retient sur ce téléphone à qui c'est parti.
+const ACCESS_SENT = "livraison.shopAccessSent.v1";
+const accessSent = () => { try { return JSON.parse(localStorage.getItem(ACCESS_SENT)) || {}; } catch (e) { return {}; } };
+function markAccessSent(id) { try { localStorage.setItem(ACCESS_SENT, JSON.stringify(Object.assign(accessSent(), { [id]: new Date().toISOString() }))); } catch (e) { /* ignore */ } }
+function shopAccessText(x) {
+  const order = UI.appUrl() + "?c=" + x.code, space = UI.appUrl("commerce.html") + "?k=" + x.token;
+  const hi = String(x.contact_name || "").trim(), name = UI.bi(x.name, x.lang === "fr" ? "fr" : "he");
+  return x.lang === "fr"
+    ? `Bonjour${hi ? " " + hi : ""}, bienvenue chez ${CONFIG.businessName} ! 🛵\n\nVoici les accès de ${name} :\n\n🔑 Votre espace commerce (commandes, catalogue et prix, photos, horaires, paiement) :\n${space}\nCe lien est personnel : gardez-le et ne le partagez pas. Astuce : ouvrez-le puis « Ajouter à l'écran d'accueil ».\n\n🏷️ Votre code commerce : ${x.code}\n\n🛒 Le lien à donner à vos clients pour commander chez vous :\n${order}\n\nUne question ? Répondez simplement à ce message.`
+    : `שלום${hi ? " " + hi : ""}, ברוכים הבאים ל${CONFIG.businessNameHe}! 🛵\n\nהנה פרטי הגישה של ${name}:\n\n🔑 האזור של העסק (הזמנות, קטלוג ומחירים, תמונות, שעות, תשלום):\n${space}\nהקישור אישי: שמרו אותו ואל תעבירו אותו. טיפ: פתחו אותו ואז „הוספה למסך הבית”.\n\n🏷️ קוד העסק: ${x.code}\n\n🛒 הקישור ללקוחות שלכם, להזמנה מכם:\n${order}\n\nשאלה? פשוט ענו להודעה הזו.`;
+}
+function accessBtn(x) {
+  const to = x.whatsapp || x.phone;
+  if (!to) return "";
+  const sent = accessSent()[x.id];
+  return `<a class="btn btn-sm${sent ? "" : " btn-wa"}" data-access-wa="${UI.esc(x.id)}" href="${UI.esc(UI.waPersonal(to, shopAccessText(x)))}" title="Message prêt dans WhatsApp : il suffit d'appuyer sur Envoyer">🟢 ${sent ? "Renvoyer ses accès" : "Envoyer ses accès"} sur WhatsApp</a>`;
+}
+
 // Annuaire : enseignes ajoutées par le patron ou apprises des clients (absentes de la carte)
 let dirPick = null;
 // Catégories : les mêmes que les rubriques « Enseignes près de vous » de l'accueil client
@@ -978,7 +997,14 @@ function renderShops(view) {
   const signup = UI.appUrl("commerce.html") + "?inscription=1" + (me && me.ref_code ? "&p=" + me.ref_code : "");
   const statusLabel = { en_attente: "⏳ À vérifier", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
   const bonusDue = sum(orders.filter(o => o.status === "livree" && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
+  // Dès qu'un commerce s'inscrit : ses accès à lui envoyer, en haut de l'onglet
+  const toSend = list.filter(x => x.status !== "suspendu" && !accessSent()[x.id] && (x.whatsapp || x.phone));
   view.innerHTML = `
+    ${toSend.length ? `<div class="card access-card" style="margin-bottom:14px">
+      <b>📲 ${toSend.length === 1 ? "1 commerce attend ses accès" : toSend.length + " commerces attendent leurs accès"}</b>
+      <p class="muted small" style="margin:4px 0 8px">Le lien de son espace (catalogue, commandes), son code et le lien pour ses clients : le message est déjà écrit dans sa langue, appuyez sur Envoyer dans WhatsApp.</p>
+      ${toSend.map(x => `<div class="access-row"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.contact_name || "")} · ${UI.esc(x.whatsapp || x.phone)}</span>${accessBtn(x)}</div>`).join("")}
+    </div>` : ""}
     <div class="card" style="margin-bottom:14px" id="dirCard">
       <b>📖 Annuaire : ajouter un commerce</b>
       <p class="muted small" style="margin:4px 0 8px">Un restaurant, une makolet, une épicerie… qui ne sort pas dans la recherche : ajoutez-le ici. Il apparaît tout de suite chez tous les clients (« Catalogue à venir » tant qu'il n'est pas partenaire).</p>
@@ -1055,6 +1081,7 @@ function renderShops(view) {
           <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
           <button class="btn btn-sm" data-sact="enrich" title="Horaires, photo et menu repris de sa page publique (seulement ce qui est vide)">🤖 Remplir sa fiche</button>
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
+          ${accessBtn(x)}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl("commerce.html") + "?k=" + x.token + "&vu=1")}">🔑 Son espace</a>
@@ -1845,6 +1872,11 @@ $("#notifBtn").addEventListener("click", () => {
   });
 });
 $("#view").addEventListener("click", onViewClick);
+// Accès envoyés : le bouton passe en « Renvoyer » et le commerce quitte la liste « attend ses accès »
+$("#view").addEventListener("click", e => {
+  const a = e.target.closest("[data-access-wa]");
+  if (a) { markAccessSent(a.dataset.accessWa); setTimeout(render, 800); }
+});
 $("#liveList").addEventListener("click", e => { const it = e.target.closest("[data-focus]"); if (it) focusOrder(it.dataset.focus); });
 $("#liveFit").addEventListener("click", () => { if (live.map && live.points && live.points.length) live.map.fitBounds(live.points, { padding: [40, 40], maxZoom: 15 }); });
 $("#view").addEventListener("change", onViewChange);

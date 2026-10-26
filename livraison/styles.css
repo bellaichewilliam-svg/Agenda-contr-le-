@@ -2331,3 +2331,7 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .gb-total { border-top: 1.5px solid var(--ink, #222); }
 .gb-total .gb-amt { font-size: 19px; color: var(--brand, #ff6b13); }
 .gb-never { display: block; color: var(--muted); margin-top: 6px; }
+/* Patron : commerces qui attendent leurs accès (WhatsApp prêt à envoyer) */
+.access-card { border: 2px solid #25D366; }
+.access-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px dashed #d8dde6; }
+.access-row:first-of-type { border-top: 0; }
