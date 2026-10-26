@@ -512,3 +512,8 @@ livraison/
   - **Bouton « Voir la carte »** : carte du monde 3D, dégradé orange-rose-violet, il respire, avec un reflet qui passe et le nombre d'adresses (« 1214 restos et commerces autour de vous »).
 - **Compteur − 3 + des produits** (rayons et catalogues des commerces) : le chiffre était presque invisible en mode sombre (texte foncé sur fond foncé). La pastille reste maintenant blanche, avec un chiffre bien lisible.
 - **Boulangeries : Nini deli n'y apparaît plus.** Pour un restaurant partenaire, seul son nom compte dans la liste des boulangeries : son accroche « Bagel » ne suffit plus. Et toucher une tuile de l'accueil après avoir ouvert la fiche d'un commerce quitte cette fiche et rouvre la bonne liste.
+- **Rayons : prix indicatifs, limite d'articles, top case.**
+  - **Prix indicatifs** en fourchette (« Baguette ≈ 10-12 ₪ ») sur chaque produit, et le total estimé : « 🧾 Vos articles ≈ 100-120 ₪, à régler au magasin ». La ligne du livreur garde aussi le prix indicatif. Le tabac (cigarettes, IQOS, à rouler) n'a ni prix ni images ; les bières ont un prix pour la bouteille et un pour le pack.
+  - **Limite** : 10 articles compris dans le prix (comptés à l'unité), puis +2 ₪ par article (1 ₪ pour le livreur, 1 ₪ pour HOP!), 24 articles au plus.
+  - **La part HOP!** est calculée par la base (`orders_money_guard`, `hop_share`) et retirée du crédit du livreur à la livraison, comme la commission ; la commission se calcule sans elle.
+  - **Top case** : chaque produit prend 1 à 4 places (couches 4, gâteau 3, pack de bières 3…), 30 places en tout. Une jauge verte, orange puis rouge bloque quand c'est plein, et coche toute seule « ça tient dans le top case ». Le pack d'eau 6 × 1,5 L est retiré.

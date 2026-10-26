@@ -106,6 +106,10 @@ function computeQuote(opts, cfg) {
   // Achats : s'arrêter et acheter a toujours un prix (même sans queue, même un paquet de cigarettes),
   // quelques minutes sur place comprises, puis l'attente habituelle
   if (opts.service === "achat" && P.purchase) lines.push({ key: "qPurchase", vars: { min: P.purchaseMinutes || 5 }, amount: P.purchase });
+  // Articles cochés au-delà de ceux compris : 2 ₪ l'article (1 ₪ pour le livreur, 1 ₪ pour HOP!)
+  const PI = P.purchaseItems;
+  const extra = opts.service === "achat" && PI ? Math.max(0, Math.min(opts.units || 0, PI.max) - PI.included) : 0;
+  if (extra) lines.push({ key: "qItemsExtra", vars: { n: extra, inc: PI.included, each: PI.extraCourier + PI.extraHop }, amount: extra * (PI.extraCourier + PI.extraHop) });
   // Arrêts en plus : sur le chemin → moitié prix d'une course, sinon prix d'une course
   if (Array.isArray(opts.stops) && opts.stops.length) {
     const S = P.stop || { onWayPercent: 50 };
