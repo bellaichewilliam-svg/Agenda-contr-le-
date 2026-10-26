@@ -626,10 +626,14 @@ function goPharma() {
 // « Qu'est-ce qu'on livre ? » (tuiles) et cartes des rayons : on choisit, et on avance — d'abord le magasin
 // le plus proche quand il y a une liste (pharmacie, boulangerie, poste…), puis la commande avec ses produits
 function goKind(id) {
-  if (state.homeKind === id) return goPharma();
-  // Autre type de course : le magasin choisi avant (une pharmacie pour une commande de pain…) est oublié
+  // Même type de course, rien d'autre de choisi : on reprend la commande
+  if (state.homeKind === id && !state.shop) return goPharma();
+  // Sinon on repart de la liste : le commerce ouvert avant (la fiche Nini…) ou le magasin choisi avant
+  // (une pharmacie pour une commande de pain…) est oublié
+  if (state.shop) leaveShop(true);
   const f = state.pick.from;
-  if (f && f.brand && !f.partnerCode && !f.shopId) clearHomeAddr("from", true);
+  if (f && f.brand) clearHomeAddr("from", true);
+  if (state.homeKind === id) state.homeKind = null;   // (applyKind le remet, sans l'enlever)
   state.pharmaGo = true;
   applyKind(id);
   if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); }
@@ -3268,9 +3272,11 @@ $("#reqForm").addEventListener("submit", sendRequest);
 $("#reqClose").addEventListener("click", () => $("#reqModal").classList.add("hidden"));
 // Lien direct vers la demande de devis (ex. depuis l'espace pro : index.html#devis)
 if (location.hash === "#devis") setTimeout(() => openRequest("tournee"), 300);
-$("#shopBannerOff").addEventListener("click", () => {
+// On quitte le commerce choisi (« Ne plus commander chez… », ou une autre tuile de l'accueil)
+function leaveShop(quiet) {
   const side = shopSide() || "from";
   state.shop = null;
+  state.cart = {};
   state.pick[side] = null; state[side + "Point"] = null;
   if (ac[side]) ac[side].reset();
   if (home.ac && home.ac[side]) home.ac[side].reset();
@@ -3278,9 +3284,11 @@ $("#shopBannerOff").addEventListener("click", () => {
   form.elements[prefixOf(side) + "_number"].value = "";
   setBrandMode(side, false);
   renderShopBanner();
+  renderCatalog();
   renderQuote();
-  form.elements[prefixOf(side) + "_address"].focus();
-});
+  if (!quiet) form.elements[prefixOf(side) + "_address"].focus();
+}
+$("#shopBannerOff").addEventListener("click", () => leaveShop());
 // Pressing : on vient chercher les vêtements chez le client (→ pressing) ou on les ramène (pressing →)
 $("#shopHero").addEventListener("click", e => {
   const b = e.target.closest("[data-shop-dir]");

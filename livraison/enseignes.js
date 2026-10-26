@@ -147,7 +147,9 @@ async function listNear(catId, at, lang, onMore) {
     // Les commerces partenaires HOP! du même métier en tête (EDMAR pour le pressing…)
     const [shops, show] = await Promise.all([Store.shopsDirectory().catch(() => []), Store.shopsShowcase().catch(() => [])]);
     const tagOf = code => ((show || []).find(x => x.code === code) || {}).tagline || "";
-    const partners = (shops || []).filter(x => x.lat != null && (rx.test(x.name + " " + tagOf(x.code)) || (cat.id === "pressing" && x.kind === "pressing"))).map(x => ({
+    // (un restaurant qui sert aussi des bagels — Nini deli — n'est pas une boulangerie : pour un restaurant, seul son nom compte)
+    const metier = x => (cat.id === "pressing" && x.kind === "pressing") || rx.test(x.kind === "restaurant" ? x.name : x.name + " " + tagOf(x.code));
+    const partners = (shops || []).filter(x => x.lat != null && metier(x)).map(x => ({
       name: x.name, street: x.address || "", number: "", city: x.city || "", lat: Number(x.lat), lon: Number(x.lon),
       partner: true, code: x.code, icon: cat.id === "pressing" ? "👔" : "⭐", french: true }));
     const fromDir0 = partners.concat(dir.map(e => {

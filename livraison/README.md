@@ -511,3 +511,4 @@ livraison/
   - **Boulangerie** : elle passe en « Acheter pour moi », à 30 ₪, comme la pharmacie, la makolet et le tabac.
   - **Bouton « Voir la carte »** : carte du monde 3D, dégradé orange-rose-violet, il respire, avec un reflet qui passe et le nombre d'adresses (« 1214 restos et commerces autour de vous »).
 - **Compteur − 3 + des produits** (rayons et catalogues des commerces) : le chiffre était presque invisible en mode sombre (texte foncé sur fond foncé). La pastille reste maintenant blanche, avec un chiffre bien lisible.
+- **Boulangeries : Nini deli n'y apparaît plus.** Pour un restaurant partenaire, seul son nom compte dans la liste des boulangeries : son accroche « Bagel » ne suffit plus. Et toucher une tuile de l'accueil après avoir ouvert la fiche d'un commerce quitte cette fiche et rouvre la bonne liste.
