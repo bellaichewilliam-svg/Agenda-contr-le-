@@ -2265,3 +2265,33 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 /* Bulle d'un commerce ouverte sur la carte : rien ne passe par-dessus (bandeaux du haut, zoom, ma position) */
 .ch-top, .ch-zoom, .ch-locate { transition: opacity .2s; }
 #accueil.pop-open .ch-top, #accueil.pop-open .ch-zoom, #accueil.pop-open .ch-locate { opacity: 0; pointer-events: none; }
+/* Livreur : fin de service, bilan + avis rapide */
+.shift-box { position: relative; max-height: 92vh; overflow-y: auto; text-align: start; }
+.sh-x { position: absolute; top: 10px; inset-inline-end: 12px; border: 0; background: none; font-size: 22px; color: var(--muted); cursor: pointer; }
+.sh-head { display: flex; align-items: center; gap: 10px; padding-inline-end: 30px; }
+.sh-head span { font-size: 34px; }
+.sh-head h3 { font-family: "Fredoka", "Rubik", sans-serif; font-size: 22px; line-height: 1.15; }
+.sh-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0 6px; }
+.sh-sum div { background: var(--brand-soft); border-radius: 14px; padding: 10px 6px; text-align: center; }
+.sh-sum b { display: block; font-family: "Fredoka", "Rubik", sans-serif; font-size: 20px; color: var(--brand-ink); white-space: nowrap; }
+.sh-sum small { color: var(--muted); font-size: 12px; }
+.sh-lead { margin: 8px 0 4px; }
+.sh-q { margin-top: 14px; }
+.sh-q > b { display: block; font-size: 16px; }
+.sh-q > small { display: block; color: var(--muted); font-size: 12.5px; }
+.sh-rates { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.sh-rates button { display: grid; justify-items: center; gap: 2px; padding: 10px 4px; border-radius: 16px; border: 1.5px solid var(--border); background: var(--panel); color: var(--ink); font-weight: 700; font-size: 13px; cursor: pointer; box-shadow: 0 2px 8px rgba(16, 24, 40, .06); }
+.sh-rates button i { font-style: normal; font-size: 26px; line-height: 1.1; transition: transform .15s; }
+.sh-rates button.on i { transform: scale(1.2); }
+.sh-rates button.on.top { border-color: var(--green); background: var(--green-soft); color: var(--green-ink); }
+.sh-rates button.on.moyen { border-color: #F79009; background: var(--amber-soft); color: var(--amber-ink); }
+.sh-rates button.on.bof { border-color: var(--red); background: var(--red-soft); color: var(--red); }
+.sh-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.sh-tags .chip { font-size: 13px; }
+.sh-tags .chip.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+.sh-com { margin-top: 14px; display: grid; gap: 6px; }
+.sh-com textarea { width: 100%; }
+.sh-thanks { text-align: center; padding: 10px 0; }
+.sh-thanks span { font-size: 46px; }
+.sh-thanks h3 { font-family: "Fredoka", "Rubik", sans-serif; margin: 6px 0; }
+.sh-tags .chip { border: 1.5px solid var(--border); background: var(--panel); color: var(--ink); border-radius: 99px; padding: 6px 11px; font-weight: 600; cursor: pointer; }

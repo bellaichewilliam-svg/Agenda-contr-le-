@@ -2204,6 +2204,86 @@ function hopBurst() {
   $("#work").appendChild(el);
   setTimeout(() => el.remove(), 1600);
 }
+// --- Fin de service : le bilan, puis un avis en quelques gestes, envoyé au patron dans ses messages ---------------
+const RATE = [["top", "😀", "Top"], ["moyen", "😐", "Moyen"], ["bof", "😕", "Pas top"]];
+const SHIFT_TAGS = {
+  app: ["GPS / carte", "Temps annoncés faux", "Trop de notifications", "Lent / bug", "Difficile à comprendre"],
+  shop: ["Commande pas prête", "Longue attente", "Mauvais accueil", "Mal emballé", "Mauvais n° de sac"],
+  client: ["Injoignable", "Mauvaise adresse", "Paiement en retard", "Pas aimable", "Longue attente"],
+  hop: ["Pas assez de courses", "Réponse lente", "Prix des courses", "Règles pas claires"]
+};
+const shift = { since: 0, rates: {}, tags: {} };
+const fmtDur = ms => { const m = Math.max(1, Math.round(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`; };
+function shiftDone() {
+  return orders.filter(o => o.courier_id === me.id && o.status === "livree" && new Date(o.delivered_at || o.pickup_at).getTime() >= shift.since);
+}
+// Les commerces (ou lieux de départ) où il est passé pendant ce service, 3 au plus
+function shiftShops() {
+  const seen = new Map();
+  shiftDone().forEach(o => { const n = o.shop_name || String(o.pickup_place || "").split(" · ")[0]; if (n && !seen.has(n)) seen.set(n, o.shop_id || n); });
+  return [...seen.keys()].slice(0, 3);
+}
+function openShift(since) {
+  shift.since = since; shift.rates = {}; shift.tags = {};
+  const done = shiftDone();
+  // Service très court sans course (un essai, un faux geste) : on ne demande rien
+  if (!done.length && Date.now() - since < 10 * 60000) return;
+  renderShift();
+  $("#shiftModal").classList.remove("hidden");
+}
+function renderShift() {
+  const done = shiftDone(), shops = shiftShops();
+  const gain = done.reduce((a, o) => a + Store.courseValue(o) - Number(o.commission || 0) + (o.tip_status === "recu" ? Number(o.tip || 0) : 0), 0);
+  const block = (key, icon, title, sub) => {
+    const r = shift.rates[key];
+    const tags = r && r !== "top" ? SHIFT_TAGS[key.startsWith("shop:") ? "shop" : key] : null;
+    return `<section class="sh-q"><b>${icon} ${UI.esc(title)}</b>${sub ? `<small>${UI.esc(sub)}</small>` : ""}
+      <div class="sh-rates">${RATE.map(([v, e, l]) => `<button type="button" class="${r === v ? "on " + v : ""}" data-rate="${UI.esc(key)}" data-v="${v}"><i>${e}</i>${l}</button>`).join("")}</div>
+      ${tags ? `<div class="sh-tags">${tags.map(t => `<button type="button" class="chip${(shift.tags[key] || []).includes(t) ? " on" : ""}" data-tag="${UI.esc(key)}" data-t="${UI.esc(t)}">${UI.esc(t)}</button>`).join("")}</div>` : ""}
+    </section>`;
+  };
+  $("#shiftBox").innerHTML = `<button type="button" class="sh-x" data-shift-close aria-label="Fermer">✕</button>
+    <div class="sh-head"><span>🏁</span><h3>Fin de service · merci ${UI.esc(String(me.name || "").split(" ")[0])} !</h3></div>
+    <div class="sh-sum">
+      <div><b>${fmtDur(Date.now() - shift.since)}</b><small>en ligne</small></div>
+      <div><b>${done.length}</b><small>course${done.length > 1 ? "s" : ""} livrée${done.length > 1 ? "s" : ""}</small></div>
+      <div><b>${UI.money(gain)}</b><small>pour vous</small></div>
+    </div>
+    <p class="muted small sh-lead">Votre avis en 20 secondes : il part directement au patron et nous aide à améliorer HOP!</p>
+    ${block("app", "📱", "L'appli HOP!", "Courses, carte, temps annoncés, notifications")}
+    ${shops.map(n => block("shop:" + n, "🏪", n, "Comment ça s'est passé au retrait ?")).join("")}
+    ${done.length ? block("client", "🙋", "Les clients", "Accueil, adresse, paiement") : ""}
+    ${block("hop", "🛵", "HOP! (le patron, l'aide)", "Les courses, les réponses, les règles")}
+    <label class="f sh-com"><span>💬 Un mot pour le patron (facultatif)</span><textarea id="shiftCom" rows="2" maxlength="500" placeholder="Une idée, un souci, un compliment…"></textarea></label>
+    <div class="btns"><button type="button" class="btn btn-primary btn-block" data-shift-send>📨 Envoyer mon avis</button>
+      <button type="button" class="btn btn-link btn-block" data-shift-close>Pas maintenant</button></div>`;
+}
+$("#shiftModal").addEventListener("click", async e => {
+  const r = e.target.closest("[data-rate]"), tg = e.target.closest("[data-tag]");
+  if (r) { const com = $("#shiftCom").value; shift.rates[r.dataset.rate] = r.dataset.v; if (r.dataset.v === "top") delete shift.tags[r.dataset.rate]; renderShift(); $("#shiftCom").value = com; return; }
+  if (tg) {
+    const com = $("#shiftCom").value, list = shift.tags[tg.dataset.tag] = shift.tags[tg.dataset.tag] || [], i = list.indexOf(tg.dataset.t);
+    if (i >= 0) list.splice(i, 1); else list.push(tg.dataset.t);
+    renderShift(); $("#shiftCom").value = com; return;
+  }
+  if (e.target.closest("[data-shift-close]") || e.target === $("#shiftModal")) { $("#shiftModal").classList.add("hidden"); return; }
+  const send = e.target.closest("[data-shift-send]");
+  if (!send) return;
+  const com = $("#shiftCom").value.trim();
+  if (!Object.keys(shift.rates).length && !com) return alert("Touchez au moins un 😀 😐 😕, ou écrivez un mot.");
+  const done = shiftDone(), label = { top: "😀 Top", moyen: "😐 Moyen", bof: "😕 Pas top" };
+  const line = (key, title) => shift.rates[key] ? `• ${title} : ${label[shift.rates[key]]}${(shift.tags[key] || []).length ? " (" + shift.tags[key].join(", ") + ")" : ""}` : "";
+  const text = [`📝 Fin de service · ${fmtDur(Date.now() - shift.since)} en ligne · ${done.length} course(s) livrée(s)`,
+    line("app", "📱 Appli"), ...shiftShops().map(n => line("shop:" + n, "🏪 " + n)), line("client", "🙋 Clients"), line("hop", "🛵 HOP!"),
+    com ? `💬 ${com}` : ""].filter(Boolean).join("\n");
+  send.disabled = true; send.textContent = "Envoi…";
+  try {
+    await Store.chatSend("c:" + me.id, "courier", me.name, text);
+    $("#shiftBox").innerHTML = `<div class="sh-thanks"><span>🙏</span><h3>Merci, c'est envoyé au patron !</h3><p class="muted">Bon repos, et à très vite sur HOP!</p>
+      <button type="button" class="btn btn-primary btn-block" data-shift-close>Fermer</button></div>`;
+  } catch (ex) { send.disabled = false; send.textContent = "📨 Envoyer mon avis"; alert("Non envoyé, vérifiez la connexion."); }
+});
+
 async function toggleDuty(quiet) {
   if (duty.watch != null) {
     navigator.geolocation.clearWatch(duty.watch);
@@ -2222,6 +2302,8 @@ async function toggleDuty(quiet) {
   // Notification « En service » qui reste affichée : on peut passer sur Waze et revenir en un geste
   UI.dutyNotice(duty.watch != null, DUTY_TEXT);
   if (duty.watch != null && !quiet) hopBurst();
+  // Il termine son service lui-même : le bilan et l'avis rapide (après la mise à jour des courses)
+  if (duty.watch == null && !quiet && duty.since) { const since = duty.since; duty.onlineP.then(() => setTimeout(() => openShift(since), 600)); }
   try { localStorage.setItem("livraison.online.v1", duty.watch != null ? "1" : ""); } catch (e) { /* ignore */ }
   renderDuty();
 }

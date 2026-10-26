@@ -441,3 +441,11 @@ livraison/
 - **Patron : les compteurs de commerces ne comptent plus les 3 vitrines de démonstration** : Commerces, À vérifier, HOP! Pro, badge de l'onglet, « Commerces · livreurs actifs ».
 - **Recherche par type** (`Places.kindRx`) : taper « sushi », « pizza », « burger », « falafel », « shawarma », « houmous », « salade », « asiatique », « glace », « boulangerie », « pâtisserie », « bagel », « italien », « viande », « poulet », « poisson », « sandwich », « bar », « café », « petit-déjeuner », « fast-food », « pharmacie », « fleurs », « supermarché », « épicerie », « vêtements », « pressing », « traiteur » ou « cacher » (en français, en anglais ou en hébreu) sort tous les commerces de ce type. On les cherche par leur nom et leur catégorie, jusqu'à 40, ceux dont le nom contient le mot d'abord, puis du plus proche au plus loin. Les partenaires HOP! sortent aussi d'après leur métier, leur accroche et leurs plats phares. Dans la liste, chaque restaurant a l'icône de sa cuisine (🍣 🍕 🍔…).
 - **Kit pub, offres** : le carnet de 10 courses n'apparaît plus, comme partout ailleurs (seulement si `partners.carnet.offered`). HOP! Pro affiche son prix : « 299 ₪ / mois, 1er mois offert ».
+- **Livreur, fin de service** : quand il passe lui-même hors ligne, après au moins une course ou 10 min en ligne, il voit :
+  - son bilan : temps en ligne, courses livrées, ce qu'il a gagné ;
+  - un avis en 20 secondes, 😀 Top / 😐 Moyen / 😕 Pas top, sur l'appli, chaque commerce où il est passé (3 au plus), les clients et HOP! ;
+  - des raisons en un geste pour un avis moyen ou pas top (« Commande pas prête », « Injoignable », « GPS / carte »…) ;
+  - un mot libre.
+
+  L'avis part au patron dans ses Messages (fil du livreur).
+- **Patron, inscriptions pas terminées : « 🗑️ Effacer de la liste »** (mail faux, plus de nouvelles). L'inscription est retirée de la liste et du badge, sur ce téléphone. S'il finit un jour son inscription, il réapparaît dans les livreurs à valider.
