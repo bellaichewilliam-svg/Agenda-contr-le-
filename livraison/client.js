@@ -12,7 +12,7 @@ const form = $("#orderForm");
 const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
-const state = { shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null }, stops: [] };
+const state = { pharma: {}, pharmaCat: "douleur", shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null }, stops: [] };
 const ac = {};
 
 // --- Écrans : l'accueil ne garde que l'essentiel ; la commande, « Mes courses » et « Tout savoir »
@@ -449,7 +449,7 @@ function baseQuote() {
 // Seulement des cigarettes (« 2 Marlboro ») : achat express, pas de temps d'achats compté
 function tobaccoOnly() {
   if (val("service") !== "achat") return false;
-  const parts = val("shopping_list").split(/[\n,;+]|\bet\b/).map(x => x.trim()).filter(Boolean);
+  const parts = shopListText().split(/[\n,;+]|\bet\b/).map(x => x.trim()).filter(Boolean);
   return parts.length > 0 && parts.every(x => TOBACCO_RE.test(x));
 }
 
@@ -547,15 +547,65 @@ $("#cashNotes").addEventListener("click", e => {
   renderCash();
 });
 
+// --- Pharmacie : les essentiels sans ordonnance, à cocher (n'importe quelle pharmacie, pas encore de catalogue) ---
+// state.pharma = { "huggies|2": 1, "acamol|0": 2 } (produit|variante → quantité)
+const PHARMA_RE = /pharm|פארם|מרקחת|be ?pharm|new ?pharm|ניו ?פארם|בי ?פארם/i;
+const pharmaOn = () => val("service") === "achat" && (state.homeKind === "pharm" || !!(state.pick.from && PHARMA_RE.test(String(state.pick.from.brand || state.pick.from.label || ""))));
+const phName = x => (I18N.lang === "he" ? x.he : x.fr);
+function pharmaLines() {
+  if (!pharmaOn()) return [];
+  return Object.entries(state.pharma).filter(([, q]) => q > 0).map(([k, q]) => {
+    const [id, o] = k.split("|"), x = Pharma.ITEMS.find(i => i.id === id);
+    if (!x) return null;
+    const opt = x.opt && x.opt[Number(o)] ? " · " + phName(x.opt[Number(o)]) : "";
+    return `${x.e} ${phName(x)}${opt} ×${q}`;
+  }).filter(Boolean);
+}
+// Ce que lit le livreur : les produits cochés, puis ce que le client a écrit
+const shopListText = () => pharmaLines().concat(val("shopping_list").trim() ? [val("shopping_list").trim()] : []).join("\n");
+function renderPharma() {
+  const box = $("#pharmaBox"), on = pharmaOn() && !!window.Pharma;
+  box.classList.toggle("hidden", !on);
+  if (!on) return;
+  const n = Object.values(state.pharma).reduce((a, q) => a + q, 0);
+  const inCat = c => Pharma.ITEMS.filter(x => x.c === c).reduce((a, x) => a + Object.entries(state.pharma).filter(([k]) => k.split("|")[0] === x.id).reduce((b, [, q]) => b + q, 0), 0);
+  const html = `<div class="ph-head"><b>${UI.esc(t("phTitle"))}</b><small>${UI.esc(t("phSub"))}</small></div>
+    <div class="ph-cats">${Pharma.CATS.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}">${c.e} ${UI.esc(phName(c))}${k ? ` <em>${k}</em>` : ""}</button>`; }).join("")}</div>
+    <div class="ph-list">${Pharma.ITEMS.filter(x => x.c === state.pharmaCat).map(x => {
+      const sel = Number((state.pharmaOpt || {})[x.id] || 0), key = x.id + "|" + (x.opt ? sel : 0), q = state.pharma[key] || 0;
+      return `<div class="ph-item${q ? " in" : ""}"><span class="ph-ico">${x.e}</span><span class="ph-name"><b>${UI.esc(phName(x))}</b>
+        ${x.opt ? `<select data-ph-opt="${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[x.id + "|" + i] ? ` (×${state.pharma[x.id + "|" + i]})` : ""}</option>`).join("")}</select>` : ""}</span>
+        ${q ? `<span class="cg-qty"><button type="button" data-ph-minus="${key}" aria-label="−">−</button><b>${q}</b><button type="button" data-ph-plus="${key}" aria-label="+">+</button></span>`
+          : `<button type="button" class="cg-plus" data-ph-plus="${key}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>`;
+    }).join("")}</div>
+    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b><small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+$("#pharmaBox").addEventListener("click", e => {
+  const c = e.target.closest("[data-ph-cat]"), plus = e.target.closest("[data-ph-plus]"), minus = e.target.closest("[data-ph-minus]");
+  if (c) state.pharmaCat = c.dataset.phCat;
+  else if (plus) state.pharma[plus.dataset.phPlus] = Math.min(20, (state.pharma[plus.dataset.phPlus] || 0) + 1);
+  else if (minus) { const k = minus.dataset.phMinus; state.pharma[k] = Math.max(0, (state.pharma[k] || 0) - 1); if (!state.pharma[k]) delete state.pharma[k]; }
+  else return;
+  renderPharma();
+  saveDraft();
+});
+$("#pharmaBox").addEventListener("change", e => {
+  const s = e.target.closest("[data-ph-opt]");
+  if (!s) return;
+  state.pharmaOpt = Object.assign(state.pharmaOpt || {}, { [s.dataset.phOpt]: Number(s.value) });
+  renderPharma();
+});
 // « Acheter pour moi » : tant que le magasin n'a pas son catalogue sur HOP!, la commande s'écrit dans le message au livreur
 function renderShopList() {
   const p = state.pick.from, name = p && p.brand ? UI.bi(String(p.brand).split(",")[0]) : "";
-  $("#shopListLabel").textContent = name ? t("shopListAt", { name }) : t("shoppingList");
+  $("#shopListLabel").textContent = pharmaOn() ? t("phMore") : name ? t("shopListAt", { name }) : t("shoppingList");
   $("#noCatNote").textContent = name ? t("shopNoCat", { name }) : t("shopNoCatAny");
 }
 function renderQuote() {
   renderShopBanner();
   renderShopList();
+  renderPharma();
   const q = currentQuote();
   // Courses faites par HOP (ou commande chez un commerce Pro) : les articles au prix du magasin, en plus
   const goods = val("service") === "achat" || proShopOn();
@@ -1220,7 +1270,7 @@ async function submit(e) {
     if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showError(t("errPhoneReady")); }
     if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
   }
-  if (val("service") === "achat" && val("shopping_list").trim().length < 3) { form.shopping_list.focus(); return showError(t("errShopList")); }
+  if (val("service") === "achat" && shopListText().trim().length < 3) { form.shopping_list.focus(); return showError(t("errShopList")); }
   if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
   // Arrivée chez quelqu'un (pas un commerce) : tout ce qu'il faut pour trouver la porte, sinon pas d'envoi
@@ -1337,7 +1387,7 @@ async function submit(e) {
       p2p_sale: svc === "colis" && form.p2p_sale.checked,
       sale_paid: svc === "colis" && form.p2p_sale.checked && form.sale_paid.checked,
       handoff: svc === "colis" && form.handoff.checked,
-      shopping_list: svc === "achat" ? val("shopping_list").trim() || null : null,
+      shopping_list: svc === "achat" ? shopListText() || null : null,
       purchase_min: svc === "achat" && CONFIG.pricing.purchase ? CONFIG.pricing.purchaseMinutes || 5 : null,
       budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
       goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
@@ -1460,6 +1510,7 @@ async function submit(e) {
     form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; form.fits_topcase.checked = false;
     ["rx", "post_send", "p2p_sale", "sale_paid", "handoff"].forEach(k => { form.elements[k].checked = false; }); state.phoneReady = null;
     state.cart = {}; renderCatalog();
+    state.pharma = {}; state.pharmaOpt = {};
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
     await loadMine();
@@ -3281,7 +3332,7 @@ function saveDraft(now) {
       else if (el.type === "checkbox") values[el.name] = el.checked;
       else values[el.name] = el.value;
     });
-    try { localStorage.setItem(LS_DRAFT, JSON.stringify({ at: Date.now(), values, pick: state.pick, phoneReady: state.phoneReady, cart: state.cart })); } catch (e) { /* plein */ }
+    try { localStorage.setItem(LS_DRAFT, JSON.stringify({ at: Date.now(), values, pick: state.pick, phoneReady: state.phoneReady, cart: state.cart, pharma: state.pharma })); } catch (e) { /* plein */ }
   };
   if (now === true) write(); else draftTimer = setTimeout(write, 300);
 }
@@ -3303,6 +3354,7 @@ function restoreDraft() {
     else if (el.type !== "radio") el.value = v;
   });
   if (d.phoneReady != null) state.phoneReady = d.phoneReady;
+  if (d.pharma) state.pharma = d.pharma;
   syncNoCode();
   syncVisibility();
   renderQuote();
