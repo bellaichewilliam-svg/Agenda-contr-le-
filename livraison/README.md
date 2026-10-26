@@ -465,3 +465,8 @@ livraison/
   - ② la livraison, payée au Hoper ;
   - le total.
   Le même rappel s'affiche après l'envoi et sur la page de suivi, même quand le commerce n'a ni lien ni Bit.
+- **Patron : envoyer ses accès à un commerce par WhatsApp.** Dès qu'un commerce s'inscrit, l'onglet Commerces affiche en haut « 📲 N commerce(s) attendent leurs accès ». Chaque fiche de commerce a aussi un bouton « 🟢 Envoyer ses accès sur WhatsApp ».
+  - Le message est déjà écrit, dans la langue du commerce. Il contient le lien secret de son espace (commandes, catalogue et prix, photos, horaires, paiement), son code et le lien à donner à ses clients.
+  - Le patron n'a qu'à appuyer sur Envoyer, depuis son WhatsApp normal.
+  - Une fois envoyé, le commerce quitte la liste et le bouton devient « Renvoyer ses accès ». C'est retenu sur ce téléphone.
+  - Seulement pour les commerces : ce bouton n'existe pas pour les livreurs.
