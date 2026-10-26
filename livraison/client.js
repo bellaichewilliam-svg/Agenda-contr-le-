@@ -2864,7 +2864,10 @@ async function loadPartners() {
   Places.setLocal(async q => {
     const n = norm(q);
     if (n.length < 2) return [];
-    const mine = state.partners.filter(x => norm(x.name).includes(n)).slice(0, 3).map(partnerPlace);
+    // Nom du partenaire, ou son type (« salade », « pizza »…) d'après son métier, son accroche et ses plats phares
+    const krx = Places.kindRx(q), sc = code => (state.showcase || []).find(x => x.code === code) || {};
+    const kindText = x => `${x.name} ${(t("shKinds") || {})[x.kind] || ""} ${sc(x.code).tagline || ""} ${sc(x.code).tagline_he || ""} ${(sc(x.code).top || []).map(p => p.name).join(" ")}`.toLowerCase();
+    const mine = state.partners.filter(x => norm(x.name).includes(n) || (krx && krx.test(kindText(x)))).slice(0, 5).map(partnerPlace);
     const learned = ((await Store.placesSearch(q).catch(() => [])) || [])
       .filter(x => !mine.some(m => norm(m.brand) === norm(x.name)) && x.lat != null).map(learnedPlace);
     return mine.concat(learned);

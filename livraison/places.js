@@ -134,6 +134,46 @@ function foodIcon(name, kind) {
   for (const [rx, ico] of rules) if (rx.test(t)) return ico;
   return "🍽️";
 }
+// Recherche par type : « sushi », « pizza », « falafel », « pharmacie »… → tous les commerces de ce type
+// (q : ce que le client tape, en français, anglais ou hébreu ; rx : ce qu'on cherche dans le nom et la catégorie)
+const KINDS = [
+  ["sushi japonais japon japanese סושי יפני", /sushi|סושי|יפני|japan/],
+  ["pizza pizzeria pizzas פיצה פיצריה פיצות", /pizz|פיצ/],
+  ["burger burgers hamburger hamburgers בורגר המבורגר", /burger|בורגר|המבורגר/],
+  ["falafel פלאפל", /falafel|פלאפל/],
+  ["shawarma chawarma kebab שווארמה שוארמה קבב", /shawarma|שווארמ|שוארמ|kebab|קבב|לאפה/],
+  ["houmous humus hummus חומוס", /hummus|חומוס|houmous/],
+  ["salade salades salad vegan vegetarien טבעוני סלט סלטים", /סלט|salad|טבעונ|vegan|צמחונ/],
+  ["asiatique chinois thai wok nouilles noodles ramen אסייתי סיני תאילנדי ווק נודלס ראמן", /asia|אסיי|אסייא|סיני|chin|wok|ווק|thai|תאי|נודל|noodle|ramen|ראמן/],
+  ["glace glaces gelato icecream גלידה גלידריה", /גלידה|גלידר|gelat|glace|ice ?cream|יוגורט/],
+  ["boulangerie boulangeries bakery pain viennoiserie croissant מאפייה מאפיה לחם", /bagel|בייגל|מאפ|bakery|boulang|לחם|בולנז|croissant|קרואסון/],
+  ["patisserie patisseries gateau gateaux cake dessert desserts קונדיטוריה עוגות קינוחים", /patiss|קונדיטור|עוגה|עוגות|cake|קינוח|dessert|שוקולד/],
+  ["bagel bagels בייגל", /bagel|בייגל/],
+  ["italien italienne pasta pates פסטה איטלקי", /איטלק|ital|pasta|פסטה/],
+  ["viande viandes grill steak bbq בשר בשרים גריל סטייק", /בשר|בשרים|grill|גריל|steak|סטייק|אסאדו|מעשנ|smoke|bbq/],
+  ["poulet chicken schnitzel עוף שניצל", /עוף|chicken|שניצל|schnitzel|poulet/],
+  ["poisson poissons fish דגים", /דגים|fish|פירות ים|poisson/],
+  ["sandwich sandwichs sandwiches deli כריך כריכים טוסט", /כריך|sandwich|טוסט|deli|דלי/],
+  ["bar bars biere bieres beer pub pubs בירה פאב פאבים", /פאב|pub|בירה|beer|bar\b|ברים/],
+  ["cafe cafes coffee קפה", /קפה|cafe|café|coffee|ארומה|aroma|קופיקס|cofix|espresso/],
+  ["petitdejeuner breakfast brunch ארוחתבוקר", /ארוחת בוקר|breakfast|brunch|בית קפה|בתי קפה/],
+  ["fastfood מזוןמהיר", /מזון מהיר|fast ?food/],
+  ["pharmacie pharmacies pharmacy פארם ביתמרקחת", /בית מרקחת|פארם|pharm/],
+  ["fleurs fleur fleuriste flowers פרחים", /פרח|fleur|flower/],
+  ["supermarche supermarches supermarket סופר סופרמרקט", /סופרמרקט|supermarket|שופרסל|רמי לוי|יוחננוף|ויקטורי|אושר עד/],
+  ["epicerie makolet מכולת", /מכולת|מינימרקט|makolet/],
+  ["vetements vetement mode fashion בגדים אופנה", /בגדים|אופנה|fashion/],
+  ["pressing laverie מכבסה ניקוייבש", /מכבס|ניקוי יבש|pressing|laundr|dry ?clean/],
+  ["traiteur catering קייטרינג", /קייטרינג|traiteur|catering/],
+  ["cacher casher kosher כשר", /כשר|kosher/]
+].map(([w, rx]) => [new Set(w.split(" ").map(normalize)), rx]);
+// Le mot tapé est un type (tel quel, ou presque en entier : « pizz », « sush ») → ce qu'on cherche
+function kindRx(q) {
+  const nq = normalize(q);
+  if (nq.length < 3) return null;
+  const k = KINDS.find(([ws]) => ws.has(nq) || (nq.length >= 4 && [...ws].some(w => w.startsWith(nq) && nq.length >= w.length - 3)));
+  return k ? k[1] : null;
+}
 const DIR_VERSION = "16";
 // Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
 const ALIASES = [
@@ -209,6 +249,9 @@ async function dirSearch(q, at, lang) {
     return best;
   };
   const hits = list.map(e => ({ e, sc: score(e) })).filter(x => x.sc < 9);
+  // Un type de cuisine ou de commerce (« sushi », « pizza »…) : tous ceux de ce type, du plus proche au plus loin
+  const krx = kindRx(q);
+  if (krx) list.forEach(e => { if (!hits.some(x => x.e === e) && krx.test(`${e.n} ${e.fr || ""} ${e.k || ""} ${(e.alt || []).join(" ")}`.toLowerCase())) hits.push({ e, sc: 2.8 }); });
   // Rien de trouvé : une faute de frappe ? On propose les noms les plus proches (« Vouliez-vous dire… »)
   // (aussi quand seuls des noms vaguement ressemblants sortent : une lettre de travers compte plus)
   if (!hits.some(x => x.sc <= 2.5) && nq.length >= 4 && !/\d/.test(nq)) {
@@ -218,7 +261,8 @@ async function dirSearch(q, at, lang) {
       if (d > 0 && d <= tol && !hits.some(x => x.e === e)) hits.push({ e, sc: 2.6 + d * 0.2, fuzzy: true });
     });
   }
-  return hits.sort((a, b) => (a.sc - b.sc) || (km(at, a.e) - km(at, b.e))).slice(0, 8)
+  // Type de commerce : ceux dont le nom contient le mot d'abord, puis tous les autres de ce type par distance
+  return hits.sort((a, b) => (Math.min(a.sc, 2.8) - Math.min(b.sc, 2.8)) || (km(at, a.e) - km(at, b.e))).slice(0, krx ? 40 : 8)
     .map(({ e, fuzzy }) => Object.assign(dirPlace(e, lang), fuzzy ? { fuzzy: true } : {}));
 }
 // Une fiche de l'annuaire → une adresse choisie (recherche, ou rond 🍴 touché sur la carte)
@@ -433,7 +477,7 @@ function attach(input, opts) {
         ? `<button type="button" class="ac-item quick${i === active ? " on" : ""}" data-i="${i}">
             <span class="ac-ico">${p.icon || "⭐"}</span><span><b>${UI.esc(p.title)}</b>${p.sub ? `<small>${UI.esc(p.sub)}</small>` : ""}</span></button>`
         : `<button type="button" class="ac-item${i === active ? " on" : ""}" data-i="${i}">
-          <span class="ac-ico">${p.partner ? "⭐" : p.brand ? "🏪" : "📍"}</span>
+          <span class="ac-ico">${p.partner ? "⭐" : p.dir && p.food ? foodIcon(p.brand, p.kind) : p.brand ? "🏪" : "📍"}</span>
           <span><b>${UI.esc(UI.bi(p.brand || p.street || p.city))}</b><small>${p.fuzzy && opts.texts().didYouMean ? `<i class="ac-fuzzy">${UI.esc(opts.texts().didYouMean)}</i> ` : ""}${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : p.dir && opts.texts().soon ? `<i class="ac-soon">${UI.esc(opts.texts().soon)}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
         </button>`).join("")
       : `<div class="ac-empty">${UI.esc(opts.texts().none)}</div>`;
@@ -524,6 +568,7 @@ function attach(input, opts) {
 }
 
 window.Places = {
+  kindRx,
   attach, search, moreNearby, phoneOf, reverse, matchCity, km, distText, foodIcon, dirName, dirPlace, directory: () => loadDir().then(l => l.filter(e => !partnerDup(e))), setPartners, partnerDup,
   setNear(p) { near = p && p.lat != null ? { lat: p.lat, lon: p.lon } : null; },
   setLocal(fn) { local = fn; },
