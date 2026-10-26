@@ -2554,15 +2554,19 @@ async function initRestos() {
     restos.open = true;
     const box = e.popup.getElement();
     if (box) box.querySelectorAll("[data-resto]").forEach(b => b.addEventListener("click", () => { pickResto(restos.list[Number(b.dataset.resto)]); home.map.closePopup(); }));
-    // La bulle entière (et son bouton « Commander ») toujours visible : jamais sous le volet du bas ni sous les bandeaux du haut
+    // Bulle ouverte : les bandeaux du haut et les boutons de la carte s'effacent, et la carte glisse pour que la bulle
+    // entière (et son bouton « Commander ») tienne dans la partie visible : ni sous le volet du bas, ni coupée sur un côté
+    $("#accueil").classList.add("pop-open");
     if (box) requestAnimationFrame(() => {
       const r = box.getBoundingClientRect(), map = home.map.getContainer().getBoundingClientRect();
       const sheet = $("#homeSheet"), sheetTop = sheet && sheet.offsetParent ? sheet.getBoundingClientRect().top : map.bottom;
-      const bottom = Math.min(map.bottom, sheetTop) - 12, top = map.top + 12;
-      const dy = r.bottom > bottom ? r.bottom - bottom : r.top < top ? r.top - top : 0;
-      if (dy) home.map.panBy([0, Math.round(r.height > bottom - top ? r.top - top : dy)], { animate: true });
+      const top = map.top + 10, bottom = Math.min(map.bottom, sheetTop) - 12, left = map.left + 8, right = map.right - 8;
+      const dy = r.height > bottom - top || r.top < top ? r.top - top : r.bottom > bottom ? r.bottom - bottom : 0;
+      const dx = r.left < left ? r.left - left : r.right > right ? r.right - right : 0;
+      if (dx || dy) home.map.panBy([Math.round(dx), Math.round(dy)], { animate: true });
     });
   });
+  home.map.on("popupclose", () => $("#accueil").classList.remove("pop-open"));
   drawRestos();
   if (Store.fixAddressBrands(freshBrand)) { renderHomeStatic(); syncHome(); }   // « Mes adresses » et « Refaire la dernière course » avec le bon nom
 }
