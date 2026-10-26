@@ -430,7 +430,7 @@ livraison/
 - **« Enseignes près de vous » : les partenaires HOP! en tête de chaque catégorie** selon leur métier (restaurant → Restaurants, pressing, pharmacie, boutique → Centres commerciaux, fleuriste, épicerie → Supermarchés). Ils y apparaissent même un peu loin, et même quand la carte ne répond pas. Avant, un restaurant partenaire (Nini deli) n'apparaissait pas dans « Restaurants ».
 - **Accueil : plus de carte jaune « Programmée » périmée.** Une heure programmée déjà passée (brouillon de la veille), ou prise d'office pour un commerce qu'on a retiré, revient à « Maintenant ».
 - **Recherche → boutique** : choisir un partenaire avec catalogue (HOP! Pro) dans la recherche ou sur la carte ouvre sa boutique et son catalogue. Un partenaire sans catalogue est simplement mis en adresse de départ.
-- **Fiche automatique d'un commerce** (fonction `shop-enrich`, déclenchée à l'inscription par le trigger `shops_enrich_on_signup`, relançable avec `admin_shop_enrich`) :
+- **Fiche automatique d'un commerce** (fonction `shop-enrich`, appelée par l'appli juste après l'inscription avec la clé du commerce, et par le patron avec le bouton « 🤖 Remplir sa fiche ») :
   - elle reprend sa page publique s'il en a une : horaires, photo, logo, accroche, menu avec prix et photos ;
   - elle ne remplit que les cases encore vides, et laisse une ligne « 🤖 » dans la note interne.
 - **Inscription commerce : « ✨ Votre vitrine (facultatif) »** avec logo, photo de couverture, phrase d'accroche, présentation, WhatsApp et horaires (raccourcis « Dim–jeu… »). Ces infos sont enregistrées dans sa fiche dès l'inscription (`shop_brand_save` / `shop_fiche_save`, seulement ce qui est rempli). La fiche automatique ne complète que les cases restées vides, case par case.

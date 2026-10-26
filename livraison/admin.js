@@ -1047,6 +1047,7 @@ function renderShops(view) {
           <button class="btn btn-sm" data-sact="credits">✏️ Courses du carnet</button>` : ""}
           <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan" title="Le commerce a payé ${UI.esc(UI.money(settings.pro_monthly))}">⭐ HOP! Pro : +1 mois payé</button>
           <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
+          <button class="btn btn-sm" data-sact="enrich" title="Horaires, photo et menu repris de sa page publique (seulement ce qui est vide)">🤖 Remplir sa fiche</button>
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
@@ -1459,6 +1460,16 @@ async function onViewClick(e) {
         if (r && Number(r.referrer_share) > 0) alert(`Enregistré. ${UI.money(r.referrer_share)} pour le livreur qui a amené ce commerce, versés avec son solde.`);
         await load();
       } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+      return;
+    } else if (el.dataset.sact === "enrich") {
+      // Fiche automatique : horaires, photo, menu… repris de sa page publique, seulement les cases vides
+      el.disabled = true; el.textContent = "🤖 Recherche en cours… (≈ 30 s)";
+      try {
+        const r = await Store.adminShopEnrich(id);
+        alert(r && r.ok ? ((r.done || []).length ? `✅ Fiche de ${shop.name} remplie : ${r.done.join(", ")}.` : `Rien à ajouter : la fiche de ${shop.name} est déjà remplie.`)
+          : `${shop.name} n'a pas été trouvé en ligne : remplissez sa fiche à la main (📝 Fiche pour les clients).`);
+        await load();
+      } catch (ex) { alert("Non lancé, vérifiez la connexion."); el.disabled = false; el.textContent = "🤖 Remplir sa fiche"; }
       return;
     } else if (el.dataset.sact === "fiche") {
       // Fiche visible par les clients : WhatsApp (format international), présentation, horaires de la semaine

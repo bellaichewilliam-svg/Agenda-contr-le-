@@ -276,6 +276,11 @@ async function submit(e) {
     // Les infos de base tout de suite dans sa fiche (seulement ce qui a été rempli)
     if (ex.logo || ex.cover || ex.tagline) await Store.saveShopBrand(r.token, { logo: ex.logo || null, cover: ex.cover || null, tagline: ex.tagline }).catch(() => {});
     if (ex.whatsapp || ex.about || ex.hours) await Store.shopFicheSave(r.token, { whatsapp: ex.whatsapp, about: ex.about, hours: ex.hours }).catch(() => {});
+    // Puis la fiche automatique (horaires, photo, menu s'il est déjà en ligne quelque part) : l'espace se met à jour à l'arrivée
+    Store.shopEnrich(r.token).then(x => {
+      if (!x || !x.ok || !(x.done || []).length || !state.dash || state.dash.shop.token !== r.token) return;
+      refreshSpace().then(() => { loadCatalog(); renderBrand(true); renderFiche(true); });
+    }).catch(() => {});
     history.replaceState(null, "", location.pathname + "?k=" + r.token);
     await openSpace(r.token);
     if (r.ref_other_city) alert(t("shRefCity", { city: I18N.cityName(r.ref_other_city) }));

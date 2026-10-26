@@ -6138,43 +6138,6 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- ============================================================================
--- FICHE AUTOMATIQUE D'UN COMMERCE À SON INSCRIPTION (fonction shop-enrich) : horaires, photo, logo, accroche,
--- menu avec prix et photos, repris de sa page publique s'il en a une ; seulement les cases encore vides
+-- FICHE AUTOMATIQUE D'UN COMMERCE : rien dans la base. La fonction shop-enrich (supabase/functions/shop-enrich)
+-- est appelée par l'appli juste après l'inscription (clé du commerce) et par le patron (« 🤖 Remplir sa fiche »).
 -- ============================================================================
-create or replace function public.shop_enrich_call(p_shop uuid) returns void
-language plpgsql security definer set search_path = public as $$
-declare cfg push_config;
-begin
-  select * into cfg from push_config where id = 1;
-  if cfg.function_url is null or cfg.hook_key is null then return; end if;
-  perform net.http_post(url := replace(cfg.function_url, '/hop-push', '/shop-enrich'),
-    body := jsonb_build_object('shop_id', p_shop),
-    headers := jsonb_build_object('Content-Type', 'application/json', 'x-hop-key', cfg.hook_key),
-    timeout_milliseconds := 120000);
-exception when others then return;
-end;
-$$;
-revoke execute on function public.shop_enrich_call(uuid) from public, anon, authenticated;
-
-create or replace function public.shop_enrich_on_signup() returns trigger
-language plpgsql security definer set search_path = public as $$
-begin
-  if not coalesce(new.demo, false) and new.lat is not null then perform public.shop_enrich_call(new.id); end if;
-  return new;
-end;
-$$;
-drop trigger if exists shops_enrich_on_signup on public.shops;
-create trigger shops_enrich_on_signup after insert on public.shops
-  for each row execute function public.shop_enrich_on_signup();
-
--- Le patron relance la fiche automatique d'un commerce déjà inscrit (bouton « 🤖 Remplir sa fiche »)
-create or replace function public.admin_shop_enrich(p_shop uuid) returns boolean
-language plpgsql security definer set search_path = public as $$
-begin
-  if not public.is_admin() then raise exception 'admin only'; end if;
-  perform public.shop_enrich_call(p_shop);
-  return true;
-end;
-$$;
-revoke execute on function public.admin_shop_enrich(uuid) from public, anon;
-grant execute on function public.admin_shop_enrich(uuid) to authenticated;

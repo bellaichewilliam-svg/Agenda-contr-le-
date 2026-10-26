@@ -687,6 +687,16 @@ async function adminAccounts() {
   return localCouriers().map(c => ({ id: c.id, email: c.email, created_at: c.created_at, confirmed: true, last_sign_in_at: null, has_fiche: true, push_n: 0 }));
 }
 // Patron : confirmer l'email d'un livreur dont le mail de confirmation n'arrive pas (inscription pas terminée)
+// Fiche automatique d'un commerce (horaires, photo, menu, repris de sa page publique) : le commerce avec sa clé,
+// juste après l'inscription ; le patron pour n'importe quel commerce
+async function shopEnrich(token) {
+  if (!ONLINE) return null;
+  return rest("/functions/v1/shop-enrich", { method: "POST", body: { token } });
+}
+async function adminShopEnrich(id) {
+  if (!ONLINE) return null;
+  return authRest("/functions/v1/shop-enrich", { method: "POST", body: { shop_id: id } });
+}
 async function adminConfirmEmail(id) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_confirm_email", { method: "POST", body: { p_user: id } });
   return true;
@@ -2049,7 +2059,7 @@ window.Store = {
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
