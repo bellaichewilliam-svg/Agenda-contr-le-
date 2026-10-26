@@ -2554,6 +2554,14 @@ async function initRestos() {
     restos.open = true;
     const box = e.popup.getElement();
     if (box) box.querySelectorAll("[data-resto]").forEach(b => b.addEventListener("click", () => { pickResto(restos.list[Number(b.dataset.resto)]); home.map.closePopup(); }));
+    // La bulle entière (et son bouton « Commander ») toujours visible : jamais sous le volet du bas ni sous les bandeaux du haut
+    if (box) requestAnimationFrame(() => {
+      const r = box.getBoundingClientRect(), map = home.map.getContainer().getBoundingClientRect();
+      const sheet = $("#homeSheet"), sheetTop = sheet && sheet.offsetParent ? sheet.getBoundingClientRect().top : map.bottom;
+      const bottom = Math.min(map.bottom, sheetTop) - 12, top = map.top + 12;
+      const dy = r.bottom > bottom ? r.bottom - bottom : r.top < top ? r.top - top : 0;
+      if (dy) home.map.panBy([0, Math.round(r.height > bottom - top ? r.top - top : dy)], { animate: true });
+    });
   });
   drawRestos();
   if (Store.fixAddressBrands(freshBrand)) { renderHomeStatic(); syncHome(); }   // « Mes adresses » et « Refaire la dernière course » avec le bon nom
