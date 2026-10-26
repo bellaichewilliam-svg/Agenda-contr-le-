@@ -455,3 +455,13 @@ livraison/
   - les commerces sont classés du moins bien noté au mieux noté ;
   - les 30 derniers avis s'affichent avec le livreur, la date, les notes en couleur, son mot et le bouton « 💬 Répondre ».
 - **Client : bouton retour du téléphone.** Il ferme d'abord la fenêtre ouverte (« Vérifiez vos adresses », panier, fiche article, règles…) et on reste sur le même écran. Avant, la page changeait derrière une fenêtre restée ouverte. « Vérifiez vos adresses » a aussi une croix ✕, et un toucher à côté de la fenêtre revient au formulaire. Un numéro comme « 28/28-1 » place l'épingle au n° 28.
+- **Client : adresse d'arrivée complète obligatoire.** Sauf si l'arrivée est un commerce, on ne peut plus envoyer la commande sans :
+  - le type de lieu (maison, appartement, bureau, commerce) ;
+  - pour un appartement : l'étage, le n° d'appartement et le code d'entrée (ou la case « Pas de code d'entrée ») ;
+  - pour un bureau : l'étage.
+  Avant, un mot de 3 lettres dans la note suffisait. La case « Pas de code » écrit « Pas de code » dans le champ code : le livreur le lit sur sa fiche, et l'adresse enregistrée s'en souvient.
+- **Client : commande chez un commerce, « 💳 Ce que vous payez ».** À l'étape Paiement, l'appli montre :
+  - ① les articles, avec leur montant, payés directement au commerce : par son lien de paiement ou son Bit s'il en a mis un, sinon le commerce contacte le client ;
+  - ② la livraison, payée au Hoper ;
+  - le total.
+  Le même rappel s'affiche après l'envoi et sur la page de suivi, même quand le commerce n'a ni lien ni Bit.
