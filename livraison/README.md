@@ -454,3 +454,4 @@ livraison/
   - la vue d'ensemble note l'appli, les clients et HOP! sur 100, avec une barre 😀 / 😐 / 😕 et les raisons les plus citées ;
   - les commerces sont classés du moins bien noté au mieux noté ;
   - les 30 derniers avis s'affichent avec le livreur, la date, les notes en couleur, son mot et le bouton « 💬 Répondre ».
+- **Client : bouton retour du téléphone.** Il ferme d'abord la fenêtre ouverte (« Vérifiez vos adresses », panier, fiche article, règles…) et on reste sur le même écran. Avant, la page changeait derrière une fenêtre restée ouverte. « Vérifiez vos adresses » a aussi une croix ✕, et un toucher à côté de la fenêtre revient au formulaire. Un numéro comme « 28/28-1 » place l'épingle au n° 28.
