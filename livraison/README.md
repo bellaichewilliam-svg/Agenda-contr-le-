@@ -481,3 +481,9 @@ livraison/
   - La tuile 💊 « Pharmacie » ouvre « Acheter pour moi ».
   - Une note dit que, tant que le magasin n'a pas son catalogue sur HOP!, on écrit sa commande dans le message au livreur. Le champ s'appelle « 📝 Votre commande chez {magasin} (le message au livreur) » et il est obligatoire.
   - La note « Supermarché » ne s'affiche plus pour une pharmacie : une note masquée restait visible.
+- **Client : pharmacie, les essentiels sans ordonnance prêts à cocher** (nouveau fichier `pharma.js`). Ils s'affichent dans « Acheter pour moi » quand on passe par la tuile 💊 ou qu'on choisit une pharmacie (Super-Pharm, Be, New Pharm, toute « בית מרקחת »).
+  - 8 rayons : douleur et fièvre (Acamol, comme le Doliprane ; Advil ; Nurofen et Acamoli enfants…), rhume, ventre, allergie, bébé, soins, hygiène, vitamines.
+  - Rayon bébé : couches Huggies et Pampers en tailles 1 à 6, lait Materna et Similac 1er, 2e et 3e âge…
+  - Des boutons + / − pour les quantités, avec la variante à choisir (taille, âge, dosage).
+  - Les produits cochés partent en tête du message au livreur, un par ligne ; le client peut ajouter autre chose en texte libre.
+  - Pas de prix : le client règle la pharmacie lui-même, le livreur n'avance rien.
