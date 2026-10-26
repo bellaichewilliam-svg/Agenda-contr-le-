@@ -107,8 +107,29 @@ const nnKey = v => String(v || "").toLowerCase().replace(/[^a-z0-9\u0590-\u05ff]
 const sameShop = (a, b) => Places.km(a, b) < 0.15 && (nnKey(a.name).includes(nnKey(b.name)) || nnKey(b.name).includes(nnKey(a.name)));
 const withKnown = (items, known) => items.concat(known.filter(k => !items.some(x => sameShop(x, k))));
 
-// Enseignes d'une catégorie autour d'un point, de la plus proche à la plus loin
+// Partenaires HOP! d'une catégorie (selon leur métier) : toujours en tête de la liste, même un peu plus loin
+const KIND_CAT = { restaurant: "food", pressing: "pressing", pharmacie: "pharm", boutique: "mall", fleuriste: "flower", epicerie: "super" };
+async function partnersOf(catId) {
+  if (catId === "hop") return [];
+  const shops = (await Store.shopsDirectory().catch(() => [])) || [];
+  return shops.filter(x => x.lat != null && KIND_CAT[x.kind] === catId).map(x => ({
+    name: x.name, street: x.address || "", number: "", city: x.city || "", lat: Number(x.lat), lon: Number(x.lon),
+    partner: true, code: x.code, icon: KIND_ICON[x.kind] || "⭐" }));
+}
+function withPartners(items, partners, at) {
+  if (!partners.length) return items;
+  const rest = items.filter(x => !(x.partner && partners.some(p => p.code === x.code)) && !partners.some(p => Places.km(p, x) < 0.15));
+  return partners.map(x => Object.assign(x, { km: Places.km(at, x) })).concat(rest).slice(0, 80);
+}
+
+// Enseignes d'une catégorie autour d'un point, de la plus proche à la plus loin (les partenaires HOP! d'abord)
 async function list(catId, at, lang, onMore) {
+  const partners = await partnersOf(catId);
+  // La carte ne répond pas : les partenaires s'affichent quand même
+  const items = await listNear(catId, at, lang, onMore && (more => onMore(withPartners(more, partners, at)))).catch(e => { if (partners.length) return []; throw e; });
+  return withPartners(items, partners, at);
+}
+async function listNear(catId, at, lang, onMore) {
   const cat = CATS.find(c => c.id === catId);
   if (!cat) return [];
   const known = cat.id === "hop" ? [] : await knownFor(cat, at);
