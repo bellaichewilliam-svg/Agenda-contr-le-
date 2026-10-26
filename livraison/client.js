@@ -67,7 +67,8 @@ const EXAMPLES = [
   { id: "bakery", icon: "🥐", set: { service: "repas" } },
   { id: "pressing", icon: "👔", set: { service: "colis" } },
   { id: "poste", icon: "📮", set: { service: "retrait", place_kind: "poste" } },
-  { id: "pharm", icon: "💊", set: { service: "retrait", place_kind: "superpharm" } },
+  // Pharmacie : « Acheter pour moi » ; la commande s'écrit dans le message au livreur (pas encore de catalogue)
+  { id: "pharm", icon: "💊", set: { service: "achat" } },
   { id: "resto", icon: "🍔", set: { service: "repas", urgency: "express" } },
   { id: "docs",  icon: "📄", set: { service: "colis", round_trip: true } },
   { id: "yad2",  icon: "🛋️", set: { service: "colis", size: "moyen" } },
@@ -546,8 +547,15 @@ $("#cashNotes").addEventListener("click", e => {
   renderCash();
 });
 
+// « Acheter pour moi » : tant que le magasin n'a pas son catalogue sur HOP!, la commande s'écrit dans le message au livreur
+function renderShopList() {
+  const p = state.pick.from, name = p && p.brand ? UI.bi(String(p.brand).split(",")[0]) : "";
+  $("#shopListLabel").textContent = name ? t("shopListAt", { name }) : t("shoppingList");
+  $("#noCatNote").textContent = name ? t("shopNoCat", { name }) : t("shopNoCatAny");
+}
 function renderQuote() {
   renderShopBanner();
+  renderShopList();
   const q = currentQuote();
   // Courses faites par HOP (ou commande chez un commerce Pro) : les articles au prix du magasin, en plus
   const goods = val("service") === "achat" || proShopOn();
@@ -1212,6 +1220,7 @@ async function submit(e) {
     if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showError(t("errPhoneReady")); }
     if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
   }
+  if (val("service") === "achat" && val("shopping_list").trim().length < 3) { form.shopping_list.focus(); return showError(t("errShopList")); }
   if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
   // Arrivée chez quelqu'un (pas un commerce) : tout ce qu'il faut pour trouver la porte, sinon pas d'envoi
@@ -2549,7 +2558,7 @@ function initHomeMap() {
   $("#homeZoomIn").addEventListener("click", () => home.map.zoomIn());
   $("#homeZoomOut").addEventListener("click", () => home.map.zoomOut());
   const dark = matchMedia("(prefers-color-scheme: dark)").matches;
-  UI.mapTiles(home.map, dark);
+  UI.mapTiles(home.map, dark, true);
   addEventListener("resize", () => home.map.invalidateSize());
   initRestos();
   initHomeGrip();
@@ -2584,7 +2593,24 @@ function initHomeGrip() {
 }
 // Restaurants de l'annuaire sur la carte : un point de loin, un rond 🍴 de près, et leur nom en zoomant encore.
 // On en touche un : « Récupérer ici » le met en départ.
-const restos = { layer: null, list: [], key: "" };
+const restos = { layer: null, list: [], key: "", filter: "", seen: new Set() };
+// Chaque cuisine a sa couleur sur la carte (sushi rose, pizza rouge, burger jaune…)
+const FOOD_COLOR = { "🍣": "#EC4899", "🍕": "#EF4444", "🍔": "#F59E0B", "🥗": "#22C55E", "🥡": "#F97316", "🥙": "#CA8A04", "🍦": "#A855F7",
+  "🥐": "#D97706", "🍝": "#F43F5E", "🥩": "#B91C1C", "🍗": "#EA580C", "🐟": "#0EA5E9", "🥪": "#65A30D", "🍺": "#EAB308", "☕": "#92400E", "🍽️": "#FF6A13" };
+const restoMatch = e => !restos.filter || (restos.filter === "👑" ? !!e.partner : Places.foodIcon(e.n, e.k) === restos.filter);
+// Filtres en haut de la carte : « Tout », « 👑 HOP! », puis les cuisines les plus présentes (🍕 Pizza 23…)
+function renderMapCats() {
+  const box = $("#homeMapCats");
+  if (!box) return;
+  const count = {};
+  restos.list.forEach(e => { if (e.offMap) return; const k = Places.foodIcon(e.n, e.k); if (k !== "🍽️") count[k] = (count[k] || 0) + 1; });
+  const fk = t("fk") || {}, hop = restos.list.filter(e => e.partner).length;
+  // Les envies du soir d'abord (pizza, sushi, burger…), le bar en dernier
+  const ORDER = ["🍕", "🍣", "🍔", "🥙", "🥗", "🥡", "🍝", "☕", "🥐", "🍦", "🥩", "🍗", "🐟", "🥪", "🍺"];
+  const cats = ORDER.filter(k => count[k] >= 2).map(k => [k, count[k]]);
+  const chip = (k, label, n) => `<button type="button" class="mc-chip${restos.filter === k ? " on" : ""}" data-mapcat="${k}"${k && FOOD_COLOR[k] ? ` style="--pc:${FOOD_COLOR[k]}"` : ""}>${label}${n ? ` <small>${n}</small>` : ""}</button>`;
+  box.innerHTML = chip("", "✨ " + t("mcAll"), 0) + (hop ? chip("👑", "👑 HOP!", hop) : "") + cats.map(([k, n]) => chip(k, `${k} ${UI.esc(fk[k] || "")}`, n)).join("");
+}
 async function initRestos() {
   restos.layer = L.layerGroup().addTo(home.map);
   // La carte : les restaurants seulement (pas les magasins ni les pharmacies de l'annuaire)
@@ -2606,6 +2632,16 @@ async function initRestos() {
   restos.list.forEach(e => { const k = e.lat.toFixed(4) + "," + e.lon.toFixed(4); (streets[k] = streets[k] || new Set()).add(String(e.s || "").split(" ")[0]); });
   restos.list = restos.list.map(e => (streets[e.lat.toFixed(4) + "," + e.lon.toFixed(4)].size >= 3 ? Object.assign({}, e, { offMap: true }) : e));
   home.map.on("zoomend moveend", drawRestos);
+  renderMapCats();
+  $("#homeMapCats").addEventListener("click", e => {
+    const b = e.target.closest("[data-mapcat]");
+    if (!b) return;
+    restos.filter = restos.filter === b.dataset.mapcat ? "" : b.dataset.mapcat;
+    renderMapCats();
+    drawRestos();
+    // Rien de ce type sur l'écran : on recule pour en montrer
+    if (restos.filter && home.map.getZoom() > 13 && !restos.list.some(x => restoMatch(x) && !x.offMap && home.map.getBounds().contains([x.lat, x.lon]))) home.map.setZoom(13);
+  });
   home.map.on("popupclose", () => { restos.open = false; drawRestos(); });
   // On fait glisser la carte ou on zoome : la bulle se ferme, et les commerces du nouvel endroit s'affichent
   home.map.on("dragstart zoomstart", () => { if (restos.open) home.map.closePopup(); });
@@ -2642,7 +2678,7 @@ function drawRestos() {
   // (au-delà de 10, le dernier rond regroupe le reste : « nom +3 ») ; de loin, un seul rond « nom +2 »
   const groups = {};
   restos.list.forEach((e, i) => {
-    if (e.offMap || !bounds.contains([e.lat, e.lon])) return;
+    if (e.offMap || !restoMatch(e) || !bounds.contains([e.lat, e.lon])) return;
     const k = e.lat.toFixed(4) + "," + e.lon.toFixed(4);
     (groups[k] = groups[k] || []).push(i);
   });
@@ -2667,11 +2703,17 @@ function drawRestos() {
     g.label = !boxes.some(o => box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]);
     if (g.label) boxes.push(box);
   });
-  const key = I18N.lang + ":" + z + ":" + (state.showcase || []).length + ":" + Math.floor(Date.now() / 300000) + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
+  const key = I18N.lang + ":" + restos.filter + ":" + z + ":" + (state.showcase || []).length + ":" + Math.floor(Date.now() / 300000) + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
   if (key === restos.key) return;   // mêmes restaurants : rien à refaire (pas de clignotement)
   restos.key = key;
   restos.layer.clearLayers();
+  // Les commerces qui arrivent à l'écran « sautent » en place (pas ceux qui y étaient déjà)
+  const seen = new Set();
+  let popN = 0;
   shown.forEach(g => {
+    const id = g.ids.join("+"), pop = !restos.seen.has(id) && popN < 60;
+    seen.add(id);
+    if (pop) popN++;
     const name = restoName(g.e), more = g.ids.length - 1;
     const label = (g.ids.some(i => restos.list[i].partner) ? "👑 " : "") + (name.length > 22 ? name.slice(0, 21) + "…" : name) + (more ? ` +${more}` : "")
       + (g.ids.some(i => { const p = restos.list[i].partner, st = p && UI.openState(p.hours); return st && !st.open; }) ? ` · ${t("pinClosed")}` : "");
@@ -2688,13 +2730,14 @@ function drawRestos() {
     const lg = !logo ? 26 : hop ? ({ 13: 28, 14: 30, 15: 34, 16: 40, 17: 52, 18: 66 })[z] || (z > 18 ? 84 : 28)
       : ({ 13: 22, 14: 24, 15: 26, 16: 30, 17: 36, 18: 44 })[z] || (z > 18 ? 52 : 22);   // commerce de l'annuaire : plus petit qu'un partenaire
     L.marker(g.pos, { zIndexOffset: hop ? 400 : g.label ? -500 : -1000, keyboard: false, icon: L.divIcon({ className: "", iconSize: [lg, lg], iconAnchor: [lg / 2, lg / 2],
-      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${shut ? " shut" : ""}${logo ? " has-logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}"${logo ? ` style="--lg:${lg}px"` : ""}><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
+      html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${shut ? " shut" : ""}${logo ? " has-logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}${pop ? " pop" : ""}" style="--pc:${FOOD_COLOR[Places.foodIcon(g.e.n, g.e.k)] || "#FF6A13"};${pop ? `--pd:${(popN % 20) * 18}ms;` : ""}${logo ? `--lg:${lg}px` : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = UI.bi(Places.dirName(e, I18N.lang)), pl = rowLogo(e); return `<div class="rp-row">
           <div class="rp-head">${pl ? `<span class="rp-logo"><img src="${pl}" alt="" /></span>` : ""}<span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.partner ? `<i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}${partnerState(e)}${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span></div>
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t(partnerShut(e) ? "restoSchedule" : "restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
         { closeButton: false, offset: [0, -6], maxWidth: 260, maxHeight: 210, autoPanPaddingTopLeft: [12, 150], autoPanPaddingBottomRight: [76, 24] })
       .addTo(restos.layer);
   });
+  restos.seen = seen;
 }
 // Logo d'un commerce dans la bulle : celui de sa vitrine (partenaire) ou de l'annuaire (img/logos/…)
 function rowLogo(e) {
