@@ -487,3 +487,9 @@ livraison/
   - Des boutons + / − pour les quantités, avec la variante à choisir (taille, âge, dosage).
   - Les produits cochés partent en tête du message au livreur, un par ligne ; le client peut ajouter autre chose en texte libre.
   - Pas de prix : le client règle la pharmacie lui-même, le livreur n'avance rien.
+- **Pharmacie : images des produits et mise en avant.**
+  - Chaque produit et chaque rayon a son image 3D. Ce sont des illustrations Microsoft Fluent Emoji, sous licence MIT, rangées dans `img/pharma/` (40 images, 180 Ko en tout). Ce ne sont pas les photos des marques.
+  - La liste des produits s'affiche tout en haut de la commande, et plus au milieu du formulaire.
+  - Sur l'accueil :
+    - la tuile 💊 Pharmacie passe en premier, avec une pastille « Nouveau » ;
+    - une grande carte verte « ✨ NOUVEAU · 💊 La pharmacie livrée chez vous » mène aux produits. Elle propose d'abord de choisir la pharmacie la plus proche, puis ouvre directement les produits.

@@ -570,10 +570,10 @@ function renderPharma() {
   const n = Object.values(state.pharma).reduce((a, q) => a + q, 0);
   const inCat = c => Pharma.ITEMS.filter(x => x.c === c).reduce((a, x) => a + Object.entries(state.pharma).filter(([k]) => k.split("|")[0] === x.id).reduce((b, [, q]) => b + q, 0), 0);
   const html = `<div class="ph-head"><b>${UI.esc(t("phTitle"))}</b><small>${UI.esc(t("phSub"))}</small></div>
-    <div class="ph-cats">${Pharma.CATS.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}">${c.e} ${UI.esc(phName(c))}${k ? ` <em>${k}</em>` : ""}</button>`; }).join("")}</div>
+    <div class="ph-cats">${Pharma.CATS.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}"><img src="img/pharma/${c.img}.webp" alt="" />${UI.esc(phName(c))}${k ? ` <em>${k}</em>` : ""}</button>`; }).join("")}</div>
     <div class="ph-list">${Pharma.ITEMS.filter(x => x.c === state.pharmaCat).map(x => {
       const sel = Number((state.pharmaOpt || {})[x.id] || 0), key = x.id + "|" + (x.opt ? sel : 0), q = state.pharma[key] || 0;
-      return `<div class="ph-item${q ? " in" : ""}"><span class="ph-ico">${x.e}</span><span class="ph-name"><b>${UI.esc(phName(x))}</b>
+      return `<div class="ph-item${q ? " in" : ""}"><span class="ph-ico"><img src="img/pharma/${x.img}.webp" alt="" loading="lazy" /></span><span class="ph-name"><b>${UI.esc(phName(x))}</b>
         ${x.opt ? `<select data-ph-opt="${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[x.id + "|" + i] ? ` (×${state.pharma[x.id + "|" + i]})` : ""}</option>`).join("")}</select>` : ""}</span>
         ${q ? `<span class="cg-qty"><button type="button" data-ph-minus="${key}" aria-label="−">−</button><b>${q}</b><button type="button" data-ph-plus="${key}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-ph-plus="${key}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>`;
@@ -581,6 +581,28 @@ function renderPharma() {
     ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b><small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
+// Accueil : la pharmacie mise en avant (on ne savait pas que c'était possible)
+const PH_SHOW = ["pill", "baby", "bottle", "thermometer"];
+function renderHomePharma() {
+  const on = state.homeKind === "pharm";
+  $("#homePharma").innerHTML = `<button type="button" class="hp-card${on ? " on" : ""}" data-pharma-go>
+    <span class="hp-imgs">${PH_SHOW.map(k => `<img src="img/pharma/${k}.webp" alt="" />`).join("")}</span>
+    <span class="hp-txt"><em>${UI.esc(t(on ? "hpOnTag" : "hpTag"))}</em><b>${UI.esc(t("hpTitle"))}</b><small>${UI.esc(t(on ? "hpOnSub" : "hpSub", { n: Pharma.ITEMS.length }))}</small></span>
+    <span class="hp-go">${UI.esc(t("hpGo"))} ›</span></button>`;
+}
+function goPharma() {
+  setView("order", true);
+  renderQuote();
+  requestAnimationFrame(() => { const b = $("#pharmaBox"); if (b && !b.classList.contains("hidden")) b.scrollIntoView({ block: "start", behavior: "smooth" }); });
+}
+$("#homePharma").addEventListener("click", e => {
+  if (!e.target.closest("[data-pharma-go]")) return;
+  // D'abord la pharmacie la plus proche (liste), puis les produits ; déjà choisie : directement les produits
+  if (state.homeKind !== "pharm") { state.pharmaGo = true; applyKind("pharm"); if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); } }
+  else goPharma();
+});
+$("#ensClose").addEventListener("click", () => { if (state.pharmaGo) { state.pharmaGo = false; goPharma(); } });
+$("#ensModal").addEventListener("click", e => { if (e.target.id === "ensModal" && state.pharmaGo) { state.pharmaGo = false; goPharma(); } });
 $("#pharmaBox").addEventListener("click", e => {
   const c = e.target.closest("[data-ph-cat]"), plus = e.target.closest("[data-ph-plus]"), minus = e.target.closest("[data-ph-minus]");
   if (c) state.pharmaCat = c.dataset.phCat;
@@ -2278,7 +2300,8 @@ function renderOpenBadge() {
 }
 // Le commerce commande lui-même une course (son téléphone) : n° de commande à 3 chiffres pour le sac
 const shopSelf = () => shopPicked() && !!state.pro && !proShopOn();
-const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city);
+// (la pharmacie en premier : c'est nouveau, il faut la voir)
+const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city).sort((a, b) => (b.id === "pharm") - (a.id === "pharm"));
 const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
 const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
 const isRtl = () => document.documentElement.dir === "rtl";
@@ -2412,8 +2435,9 @@ function renderHomeStatic() {
   $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
     const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip }, CONFIG);
     const art = KIND_ART[ex.id];
-    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
+    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${ex.id === "pharm" ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
   }).join("");
+  renderHomePharma();
   const list = Store.getAddresses().slice(0, 5);
   $("#homeChips").innerHTML = `<button type="button" class="ch-chip" data-hgeo="auto">${UI.esc(t("myPosChip"))}</button>`
     + list.map((a, i) => `<button type="button" class="ch-chip" data-haddr="${i}">${addrChip(a)}</button>`).join("");
@@ -3088,6 +3112,8 @@ async function pickEnseigne(which, x) {
     label: [x.name, [street, number].filter(Boolean).join(" "), cityLabel(cityId || city)].filter(Boolean).join(", ") };
   onPlacePicked(which, p, true);
   if (ac[which]) ac[which].setPicked(p.label);
+  // Venu de « La pharmacie livrée » : la pharmacie choisie, on passe tout de suite aux produits
+  if (state.pharmaGo) { state.pharmaGo = false; goPharma(); return; }
   if (which === "from" && !state.pick.to) setTimeout(() => homeInput("to").focus(), 80);
 }
 
