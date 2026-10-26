@@ -503,3 +503,4 @@ livraison/
   - **🛒 Makolet / supermarché** (tuile « J'achète pour vous ») : 43 produits (laitiers, pain, fruits et légumes, épicerie, boissons, snacks, maison).
   - Le rayon vient de la tuile choisie, ou du nom du magasin de départ (Super-Pharm, Shufersal, Rami Levy, Roladin, kiosque…).
   - Sur l'accueil, les 4 tuiles passent en premier avec « Nouveau ». Une rangée de 4 cartes de couleur (« La pharmacie livrée », « Cigarettes & alcool livrés », « La boulangerie livrée chaude », « La makolet livrée ») mène d'abord au magasin le plus proche, puis aux produits.
+- **Appli livreur : « HOP! » au lieu de « le patron ».** Écran de fin de service (« il part directement à HOP! », « HOP! (l'équipe, l'aide) », « Un mot pour HOP! », « Merci, c'est bien envoyé à HOP! »), messagerie (« 💬 HOP! », « Vos messages avec l'équipe HOP! »), espèces impayées, code de remise bloqué.

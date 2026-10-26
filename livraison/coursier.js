@@ -1047,7 +1047,7 @@ async function onViewClick(e) {
       o.payment_status = "paye";
     }
     if (el.dataset.act === "pas_especes" && !confirm(`😕 Vous n'avez pas les espèces ? La course repart tout de suite à un autre livreur, ${UI.money(settings.cash_penalty || 10)} sont retenus sur votre crédit et vous n'aurez plus de course en espèces pendant ${settings.cash_ban_days || 7} jours.`)) return;
-    if (el.dataset.act === "cash_impaye" && !confirm(`❌ Le client ne vous paie pas ${UI.money(cashTotal(o))} en espèces ? Gardez la commande : HOP! est prévenu, le client est bloqué et le patron décide.`)) return;
+    if (el.dataset.act === "cash_impaye" && !confirm(`❌ Le client ne vous paie pas ${UI.money(cashTotal(o))} en espèces ? Gardez la commande : HOP! est prévenu, le client est bloqué et HOP! décide.`)) return;
     if (el.dataset.act === "paye" && o.payment_method === "cash" && !confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`)) return;
     if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`)) return;
     if (el.dataset.act === "livree") {
@@ -1062,7 +1062,7 @@ async function onViewClick(e) {
           const code = prompt("🔐 Code de remise : demandez au destinataire son code à 4 chiffres.");
           if (code == null) { render(); return; }
           const good = await Store.courierHandoff(o.id, code).catch(e => (/too_many/.test(e.message) ? "max" : false));
-          if (good !== true) { render(); return alert(good === "max" ? "🔒 Trop d'essais : appelez HOP! (le patron peut débloquer la course)." : "❌ Code incorrect : ne remettez pas, vérifiez avec le destinataire."); }
+          if (good !== true) { render(); return alert(good === "max" ? "🔒 Trop d'essais : appelez HOP! (HOP! peut débloquer la course)." : "❌ Code incorrect : ne remettez pas, vérifiez avec le destinataire."); }
           o.handoff_ok_at = new Date().toISOString();
         }
       }
@@ -1095,7 +1095,7 @@ async function onViewClick(e) {
 let chatUnread = {};
 let chatTotal = 0;
 function openBossChat(prefill, photo) {
-  Chat.open({ thread: "c:" + me.id, title: "💬 HOP! · le patron", sub: "Vos messages avec HOP", me: "courier", lang: "fr", prefill, photo,
+  Chat.open({ thread: "c:" + me.id, title: "💬 HOP!", sub: "Vos messages avec l'équipe HOP!", me: "courier", lang: "fr", prefill, photo,
     fetch: () => Store.chatThread("c:" + me.id), send: (b, i) => Store.chatSend("c:" + me.id, "courier", me.name, b, i), onClose: checkChats });
 }
 function openOrderChat(o, photo) {
@@ -2249,12 +2249,12 @@ function renderShift() {
       <div><b>${done.length}</b><small>course${done.length > 1 ? "s" : ""} livrée${done.length > 1 ? "s" : ""}</small></div>
       <div><b>${UI.money(gain)}</b><small>pour vous</small></div>
     </div>
-    <p class="muted small sh-lead">Votre avis en 20 secondes : il part directement au patron et nous aide à améliorer HOP!</p>
+    <p class="muted small sh-lead">Votre avis en 20 secondes : il part directement à HOP! et nous aide à améliorer l'appli</p>
     ${block("app", "📱", "L'appli HOP!", "Courses, carte, temps annoncés, notifications")}
     ${shops.map(n => block("shop:" + n, "🏪", n, "Comment ça s'est passé au retrait ?")).join("")}
     ${done.length ? block("client", "🙋", "Les clients", "Accueil, adresse, paiement") : ""}
-    ${block("hop", "🛵", "HOP! (le patron, l'aide)", "Les courses, les réponses, les règles")}
-    <label class="f sh-com"><span>💬 Un mot pour le patron (facultatif)</span><textarea id="shiftCom" rows="2" maxlength="500" placeholder="Une idée, un souci, un compliment…"></textarea></label>
+    ${block("hop", "🛵", "HOP! (l'équipe, l'aide)", "Les courses, les réponses, les règles")}
+    <label class="f sh-com"><span>💬 Un mot pour HOP! (facultatif)</span><textarea id="shiftCom" rows="2" maxlength="500" placeholder="Une idée, un souci, un compliment…"></textarea></label>
     <div class="btns"><button type="button" class="btn btn-primary btn-block" data-shift-send>📨 Envoyer mon avis</button>
       <button type="button" class="btn btn-link btn-block" data-shift-close>Pas maintenant</button></div>`;
 }
@@ -2279,7 +2279,7 @@ $("#shiftModal").addEventListener("click", async e => {
   send.disabled = true; send.textContent = "Envoi…";
   try {
     await Store.chatSend("c:" + me.id, "courier", me.name, text);
-    $("#shiftBox").innerHTML = `<div class="sh-thanks"><span>🙏</span><h3>Merci, c'est envoyé au patron !</h3><p class="muted">Bon repos, et à très vite sur HOP!</p>
+    $("#shiftBox").innerHTML = `<div class="sh-thanks"><span>🙏</span><h3>Merci, c'est bien envoyé à HOP!</h3><p class="muted">Bon repos, et à très vite sur HOP!</p>
       <button type="button" class="btn btn-primary btn-block" data-shift-close>Fermer</button></div>`;
   } catch (ex) { send.disabled = false; send.textContent = "📨 Envoyer mon avis"; alert("Non envoyé, vérifiez la connexion."); }
 });
