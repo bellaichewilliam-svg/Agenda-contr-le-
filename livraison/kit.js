@@ -32,7 +32,9 @@ $("#kitOffers").innerHTML = [
   `<b>NETANYA</b> : -${UI.money(PR.codes.NETANYA.amount)} sur n'importe quelle course — à imprimer comme « bon de réduction » sur les flyers laissés chez les commerçants.`,
   `<b>Parrainage</b> : chaque client a son code ${PR.referral.prefix} + 4 chiffres (-${UI.money(PR.referral.amount)} pour le filleul ; offrez aussi ${UI.money(PR.referral.amount)} au parrain sur sa course suivante en ajustant le prix ✏️).`,
   `<b>Fidélité</b> : la ${PR.loyalty.every}e course est offerte automatiquement (max ${UI.money(PR.loyalty.max)}).`,
-  ...PR.business.map(b => `<b>Pro</b> : ${UI.esc(b.fr)} — ${UI.esc(typeof b.price === "object" ? b.price.fr : b.price)}`)
+  // Le carnet de courses seulement s'il est proposé (mis de côté par le patron) ; HOP! Pro avec son prix
+  ...PR.business.filter(b => !b.carnet || CONFIG.partners.carnet.offered)
+    .map(b => `<b>Pro</b> : ${UI.esc(b.fr)} — ${UI.esc(b.pro ? `${UI.money(CONFIG.pro.monthly)} / mois, 1er mois offert` : typeof b.price === "object" ? b.price.fr : b.price)}`)
 ].map(x => `<li>${x}</li>`).join("");
 
 const POSTS = [
