@@ -234,6 +234,8 @@ label.check input { width: 20px; height: 20px; accent-color: var(--brand); flex:
 .show-retrait, .show-achat, .show-poste, .show-colis { display: none !important; }
 .svc-colis .show-colis, .post-send .show-poste { display: flex !important; }
 .svc-retrait .show-retrait, .svc-achat .show-achat, .place-poste .show-poste { display: flex !important; }
+/* (une note masquée reste masquée, ex. « Supermarché » quand on commande à la pharmacie) */
+.svc-achat .show-achat.hidden, .svc-retrait .show-retrait.hidden, .place-poste .show-poste.hidden { display: none !important; }
 .svc-retrait .hide-retrait { display: none !important; }
 .show-locker { display: none !important; }
 .place-locker .show-locker { display: flex !important; }
@@ -2335,3 +2337,57 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .access-card { border: 2px solid #25D366; }
 .access-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px dashed #d8dde6; }
 .access-row:first-of-type { border-top: 0; }
+/* « Acheter pour moi » : pas encore de catalogue → la commande s'écrit dans le message au livreur */
+.notice.no-cat { background: var(--brand-soft); color: var(--brand-ink); border: 1.5px dashed var(--brand); font-weight: 600; }
+.shop-list span { font-weight: 800; }
+.shop-list textarea { border-color: var(--brand); }
+
+/* ===== Carte de l'accueil « fun » : fond coloré, pastilles par cuisine, petites animations, filtres ===== */
+.ch-map.leaflet-container:has(.tiles-fun) { background: #F5F2EC; }
+.ch-map.leaflet-container:has(.tiles-fun-dark) { background: #1B1D21; }
+.leaflet-container:has(.tiles-fun-dark) .resto-pin span { color: #F4F6FA; background: rgba(22,28,40,.92); box-shadow: 0 2px 8px rgba(0,0,0,.45); }
+.leaflet-container:has(.tiles-fun-dark) .resto-pin.hop span { color: #6CE9A6; }
+/* Pastille d'un commerce : la couleur de sa cuisine (fond pastel, bord vif), le nom souligné de la même couleur */
+.resto-pin:not(.hop):not(.has-logo) b { background: color-mix(in srgb, var(--pc, #FF6A13) 16%, #fff); border-color: var(--pc, #FF6A13); box-shadow: 0 3px 8px color-mix(in srgb, var(--pc, #FF6A13) 35%, transparent), 0 1px 2px rgba(15,31,61,.2); }
+.resto-pin:not(.hop) span { border-inline-start: 3px solid var(--pc, #FF6A13); }
+.resto-pin b { transition: transform .18s cubic-bezier(.2, 1.6, .4, 1); }
+.leaflet-marker-icon:hover .resto-pin b { transform: scale(1.18); }
+/* Un commerce qui arrive à l'écran saute en place ; un partenaire HOP! a un halo qui respire */
+.resto-pin.pop b { animation: pinPop .55s cubic-bezier(.2, 1.7, .4, 1) both; animation-delay: var(--pd, 0ms); }
+.resto-pin.pop span { animation: pinFade .5s ease both; animation-delay: calc(var(--pd, 0ms) + 150ms); }
+@keyframes pinFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pinPop { 0% { transform: translateY(-14px) scale(.2); opacity: 0; } 70% { opacity: 1; } 100% { transform: none; opacity: 1; } }
+.resto-pin.hop:not(.shut)::before { content: ""; position: absolute; inset: -6px; border-radius: 50%; background: rgba(18, 183, 106, .28); animation: hopHalo 2.2s ease-out infinite; pointer-events: none; }
+.resto-pin.hop.has-logo:not(.shut)::before { inset: -7px; }
+@keyframes hopHalo { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+/* Moi : un point bleu qui pulse */
+.ch-me { position: relative; }
+.ch-me::after { content: ""; position: absolute; inset: -9px; border-radius: 50%; background: rgba(46,144,250,.35); animation: mePulse 2s ease-out infinite; }
+@keyframes mePulse { 0% { transform: scale(.5); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+/* Livreurs en ligne : ils flottent doucement */
+.ch-scoot:not(.busy) { animation: scootFloat 2.4s ease-in-out infinite; }
+@keyframes scootFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+/* Départ / arrivée : l'épingle tombe et rebondit */
+.ch-pin { animation: pinDrop .6s cubic-bezier(.2, 1.6, .4, 1) both; transform-origin: 50% 100%; }
+@keyframes pinDrop { 0% { transform: translateY(-30px) scale(.6); opacity: 0; } 100% { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .resto-pin.pop b, .resto-pin.pop span, .resto-pin.hop::before, .ch-me::after, .ch-scoot, .ch-pin { animation: none !important; }
+}
+/* Filtres de la carte : 🍕 Pizza 23, 🍣 Sushi 12… (ordinateur : en bas de la carte ; téléphone : en haut, carte ouverte) */
+.ch-mapcats { position: absolute; z-index: 2; top: 14px; inset-inline-start: calc(max(16px, (100vw - 1160px) / 2) + 446px); inset-inline-end: 16px;
+  display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 4px 2px 8px; }
+.ch-mapcats::-webkit-scrollbar { display: none; }
+.ch-mapcats:empty { display: none; }
+.mc-chip { flex: none; display: inline-flex; align-items: center; gap: 5px; border: 0; border-radius: 999px; padding: 8px 13px; font: inherit; font-size: 13.5px; font-weight: 700;
+  background: var(--panel); color: var(--ink); box-shadow: 0 4px 14px rgba(15,31,61,.18); cursor: pointer; transition: transform .15s, background .15s; }
+.mc-chip small { font-size: 11px; font-weight: 800; color: var(--muted); background: var(--bg-2); border-radius: 99px; padding: 1px 6px; }
+.mc-chip:active { transform: scale(.94); }
+.mc-chip.on { background: var(--pc, var(--navy)); color: #fff; box-shadow: 0 6px 16px color-mix(in srgb, var(--pc, #0F1F3D) 45%, transparent); }
+.mc-chip.on small { background: rgba(255,255,255,.25); color: #fff; }
+#accueil.pop-open .ch-mapcats { opacity: 0; pointer-events: none; }
+@media (min-width: 861px) { .ch:has(.ch-mapcats:not(:empty)) .ch-top { top: 66px; } }
+@media (max-width: 860px) {
+  .ch-mapcats { display: none; top: 10px; inset-inline: 0; padding: 4px 12px 8px; }
+  .ch.map-open .ch-mapcats { display: flex; }
+  .ch.map-open .ch-top { top: 60px; }
+}

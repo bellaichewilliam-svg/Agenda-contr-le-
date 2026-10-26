@@ -470,3 +470,14 @@ livraison/
   - Le patron n'a qu'à appuyer sur Envoyer, depuis son WhatsApp normal.
   - Une fois envoyé, le commerce quitte la liste et le bouton devient « Renvoyer ses accès ». C'est retenu sur ce téléphone.
   - Seulement pour les commerces : ce bouton n'existe pas pour les livreurs.
+- **Client : carte de l'accueil plus jolie et plus vivante.**
+  - Fond de carte coloré et doux (CARTO Voyager, version nuit en mode sombre).
+  - Chaque restaurant a la couleur de sa cuisine : sushi rose, pizza rouge, burger jaune…
+  - Les commerces sautent en place quand ils arrivent à l'écran.
+  - Les partenaires HOP! ont un halo vert qui respire ; le point « moi » pulse ; les livreurs flottent ; l'épingle départ/arrivée tombe et rebondit.
+  - Filtres en haut de la carte (sur téléphone, quand la carte est ouverte) : ✨ Tout, 👑 HOP!, 🍕 Pizza, 🍣 Sushi, 🍔 Burgers… avec le nombre d'adresses.
+  - Animations coupées si le téléphone demande moins de mouvement.
+- **Client : médicaments et magasins sans catalogue.**
+  - La tuile 💊 « Pharmacie » ouvre « Acheter pour moi ».
+  - Une note dit que, tant que le magasin n'a pas son catalogue sur HOP!, on écrit sa commande dans le message au livreur. Le champ s'appelle « 📝 Votre commande chez {magasin} (le message au livreur) » et il est obligatoire.
+  - La note « Supermarché » ne s'affiche plus pour une pharmacie : une note masquée restait visible.

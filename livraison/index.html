@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610261449" />
+  <link rel="stylesheet" href="styles.css?v=202610262155" />
 </head>
 <body>
 
@@ -95,6 +95,7 @@
 <!-- ============ ACCUEIL FAÇON APPLI : carte + « Où on livre ? » ============ -->
 <section class="ch" id="accueil">
   <div class="ch-map" id="homeMap" aria-hidden="true"></div>
+  <div class="ch-mapcats" id="homeMapCats"></div>
   <div class="ch-top">
     <span class="badge-open" id="openBadge"></span>
     <span class="ch-live hidden" id="homeLive"></span>
@@ -385,7 +386,8 @@
             <div class="docs-box full hidden" id="docsBox"></div>
             <label class="check full show-achat near-store"><input type="checkbox" name="nearest_store" /> <span data-i18n="nearStore"></span></label>
             <p class="notice warn full show-achat hidden" id="superNote" data-i18n="superNote"></p>
-            <label class="f full show-achat"><span data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
+            <p class="notice full show-achat no-cat" id="noCatNote"></p>
+            <label class="f full show-achat shop-list"><span id="shopListLabel" data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
             <div class="adult-box full show-achat">
               <label class="check"><input type="checkbox" name="has_tobacco" /> <span data-i18n="hasTobacco"></span></label>
               <label class="check"><input type="checkbox" name="has_alcohol" /> <span data-i18n="hasAlcohol"></span></label>
@@ -714,14 +716,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610261449"></script>
-<script src="i18n.js?v=202610261449"></script>
-<script src="pricing.js?v=202610261449"></script>
-<script src="store.js?v=202610261449"></script>
-<script src="chat.js?v=202610261449"></script>
-<script src="common.js?v=202610261449"></script>
-<script src="enseignes.js?v=202610261449"></script>
-<script src="places.js?v=202610261449"></script>
-<script src="client.js?v=202610261449"></script>
+<script src="config.js?v=202610262155"></script>
+<script src="i18n.js?v=202610262155"></script>
+<script src="pricing.js?v=202610262155"></script>
+<script src="store.js?v=202610262155"></script>
+<script src="chat.js?v=202610262155"></script>
+<script src="common.js?v=202610262155"></script>
+<script src="enseignes.js?v=202610262155"></script>
+<script src="places.js?v=202610262155"></script>
+<script src="client.js?v=202610262155"></script>
 </body>
 </html>
