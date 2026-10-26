@@ -2262,3 +2262,6 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 @media (max-width: 560px) { .sg-pics { grid-template-columns: 1fr; } }
 /* Livreur : même client, plusieurs commandes (une validation par enseigne) */
 .twin-line { margin-top: 8px; padding: 9px 12px; border-radius: 12px; background: var(--blue-soft); color: var(--blue-ink); font-weight: 600; font-size: 14px; line-height: 1.4; }
+/* Bulle d'un commerce ouverte sur la carte : rien ne passe par-dessus (bandeaux du haut, zoom, ma position) */
+.ch-top, .ch-zoom, .ch-locate { transition: opacity .2s; }
+#accueil.pop-open .ch-top, #accueil.pop-open .ch-zoom, #accueil.pop-open .ch-locate { opacity: 0; pointer-events: none; }
