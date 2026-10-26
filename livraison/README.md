@@ -493,3 +493,13 @@ livraison/
   - Sur l'accueil :
     - la tuile 💊 Pharmacie passe en premier, avec une pastille « Nouveau » ;
     - une grande carte verte « ✨ NOUVEAU · 💊 La pharmacie livrée chez vous » mène aux produits. Elle propose d'abord de choisir la pharmacie la plus proche, puis ouvre directement les produits.
+- **Rayons à cocher pour tous les magasins sans catalogue** (`rayons.js`, remplace `pharma.js` ; images dans `img/qc/`, 113 illustrations Fluent 3D sous licence MIT, 480 Ko).
+  - **💊 Pharmacie** : 47 produits sans ordonnance.
+  - **🍾 Tabac, alcool & apéro** (nouvelle tuile « Cigarettes & alcool ») : 45 produits.
+    - Cigarettes Marlboro, Winston, Camel, Parliament, L&M, Kent, Time, Noblesse, cartouche ; IQOS, vape, tabac à rouler, feuilles, briquet.
+    - Bières, vins, bulles, vodka, whisky, arak, rhum, gin… ; softs, glaçons, Bamba, chips…
+    - Les produits 18+ ont un badge. Les cocher coche « tabac » / « alcool » et fait apparaître la case « 18 ans et plus » (la règle de l'alcool la nuit s'applique).
+  - **🥐 Boulangerie** : 24 produits (baguette, challah, croissants, rugelach, bourekas, gâteaux, café…). Le texte va dans le message au livreur (commande à récupérer).
+  - **🛒 Makolet / supermarché** (tuile « J'achète pour vous ») : 43 produits (laitiers, pain, fruits et légumes, épicerie, boissons, snacks, maison).
+  - Le rayon vient de la tuile choisie, ou du nom du magasin de départ (Super-Pharm, Shufersal, Rami Levy, Roladin, kiosque…).
+  - Sur l'accueil, les 4 tuiles passent en premier avec « Nouveau ». Une rangée de 4 cartes de couleur (« La pharmacie livrée », « Cigarettes & alcool livrés », « La boulangerie livrée chaude », « La makolet livrée ») mène d'abord au magasin le plus proche, puis aux produits.

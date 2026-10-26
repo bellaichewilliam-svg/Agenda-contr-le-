@@ -2442,3 +2442,17 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 @keyframes kindNew { 0%, 100% { transform: rotate(-6deg) scale(1); } 50% { transform: rotate(4deg) scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .kind-new, .ph-item.in .ph-ico img { animation: none; } }
 #pharmaBox { scroll-margin-top: 130px; }
+/* Rayons : chaque rayon a sa couleur (pharmacie verte, tabac violet, boulangerie ambre, makolet bleue) */
+.pharma-box { border-color: color-mix(in srgb, var(--rc, #059669) 40%, transparent); background: linear-gradient(180deg, color-mix(in srgb, var(--rc, #059669) 9%, var(--panel)), var(--panel) 120px); }
+.ph-cat.on { background: var(--rc, #059669); border-color: var(--rc, #059669); }
+.ph-item.in { border-color: var(--rc, #10B981); box-shadow: 0 0 0 2px color-mix(in srgb, var(--rc, #10B981) 20%, transparent); }
+.ph-sum { background: color-mix(in srgb, var(--rc, #059669) 10%, var(--panel)); color: var(--ink); }
+.ph-sum small { color: var(--muted); }
+.ph-18 { font-style: normal; font-size: 10px; font-weight: 800; background: #111827; color: #fff; border-radius: 6px; padding: 1px 5px; vertical-align: middle; }
+.hp-row { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 -16px; padding: 4px 16px 10px; }
+.hp-row::-webkit-scrollbar { display: none; }
+.hp-row .hp-card { flex: none; width: 86%; max-width: 380px; scroll-snap-align: start; background: linear-gradient(120deg, var(--rc, #059669), color-mix(in srgb, var(--rc, #059669) 70%, #fff)); box-shadow: 0 10px 24px color-mix(in srgb, var(--rc, #059669) 35%, transparent); }
+.hp-row .hp-card.on { background: linear-gradient(120deg, color-mix(in srgb, var(--rc, #059669) 80%, #000), var(--rc, #059669)); }
+.hp-go { color: var(--rc, #047857); }
+@media (min-width: 861px) { .hp-row { margin: 0 -22px; padding: 4px 22px 10px; } }
+.ph-ico { background: color-mix(in srgb, var(--rc, #059669) 10%, var(--panel)); }
