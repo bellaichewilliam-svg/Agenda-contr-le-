@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610262200" />
+  <link rel="stylesheet" href="styles.css?v=202610262233" />
 </head>
 <body>
 
@@ -131,6 +131,7 @@
     <p class="ch-note hidden" id="homeWhenNote"></p>
     <h3 class="ch-h" data-i18n="hmWhat"></h3>
     <div class="ch-kinds" id="homeKinds"></div>
+    <div id="homePharma"></div>
     <div class="pro-home hidden" id="homeProBox"><h3 class="ch-h" data-i18n="proTitle"></h3><p class="pro-sub" data-i18n="proSub"></p><div class="sc-vitrine" id="homePro"></div></div>
     <h3 class="ch-h ch-ens-h" data-i18n="ensTitle"></h3>
     <div class="ch-chips ch-ens" id="homeEns"></div>
@@ -296,6 +297,8 @@
     <form id="orderForm" class="order-layout" action="javascript:void(0)" novalidate>
       <div>
         <div class="shop-hero hidden" id="shopHero"></div>
+        <!-- Pharmacie : les essentiels sans ordonnance, tout en haut de la commande -->
+        <div class="pharma-box hidden" id="pharmaBox"></div>
         <div class="shop-banner hidden" id="shopBanner"><span id="shopBannerText"></span><button type="button" class="btn btn-sm" id="shopBannerOff" data-i18n="shBannerOff"></button></div>
         <!-- HOP! Pro : le client écrit sa commande, le commerce la prépare -->
         <div class="shop-order hidden" id="shopOrderBox">
@@ -387,7 +390,6 @@
             <label class="check full show-achat near-store"><input type="checkbox" name="nearest_store" /> <span data-i18n="nearStore"></span></label>
             <p class="notice warn full show-achat hidden" id="superNote" data-i18n="superNote"></p>
             <p class="notice full show-achat no-cat" id="noCatNote"></p>
-            <div class="full show-achat pharma-box hidden" id="pharmaBox"></div>
             <label class="f full show-achat shop-list"><span id="shopListLabel" data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
             <div class="adult-box full show-achat">
               <label class="check"><input type="checkbox" name="has_tobacco" /> <span data-i18n="hasTobacco"></span></label>
@@ -717,15 +719,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610262200"></script>
-<script src="i18n.js?v=202610262200"></script>
-<script src="pricing.js?v=202610262200"></script>
-<script src="store.js?v=202610262200"></script>
-<script src="chat.js?v=202610262200"></script>
-<script src="common.js?v=202610262200"></script>
-<script src="enseignes.js?v=202610262200"></script>
-<script src="places.js?v=202610262200"></script>
-<script src="pharma.js?v=202610262200"></script>
-<script src="client.js?v=202610262200"></script>
+<script src="config.js?v=202610262233"></script>
+<script src="i18n.js?v=202610262233"></script>
+<script src="pricing.js?v=202610262233"></script>
+<script src="store.js?v=202610262233"></script>
+<script src="chat.js?v=202610262233"></script>
+<script src="common.js?v=202610262233"></script>
+<script src="enseignes.js?v=202610262233"></script>
+<script src="places.js?v=202610262233"></script>
+<script src="pharma.js?v=202610262233"></script>
+<script src="client.js?v=202610262233"></script>
 </body>
 </html>

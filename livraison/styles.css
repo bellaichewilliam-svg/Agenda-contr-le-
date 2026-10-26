@@ -2414,3 +2414,31 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .ph-item .cg-qty { gap: 8px; } .ph-item .cg-plus { border: 1.5px solid var(--brand); }
 .pharma-box, .ph-list, .ph-item, .ph-name { min-width: 0; max-width: 100%; box-sizing: border-box; }
 .ph-name select { width: 100%; min-width: 0; text-overflow: ellipsis; }
+/* Pharmacie : en haut de la commande, avec les images des produits */
+.pharma-box:not(.hidden) { display: flex; margin-bottom: 14px; }
+.ph-head b { font-size: 18px; }
+.ph-cat { display: inline-flex; align-items: center; gap: 5px; }
+.ph-cat img { width: 22px; height: 22px; object-fit: contain; }
+.ph-ico { width: 52px; height: 52px; background: linear-gradient(145deg, #F0FDF4, #E0F2FE); }
+.ph-ico img { width: 40px; height: 40px; object-fit: contain; filter: drop-shadow(0 3px 4px rgba(15,31,61,.18)); }
+.ph-item.in .ph-ico img { animation: kindHop .45s cubic-bezier(.2, 1.8, .4, 1); }
+/* Accueil : « 💊 La pharmacie livrée chez vous », bien visible sous « Qu'est-ce qu'on livre ? » */
+.hp-card { position: relative; display: flex; align-items: center; gap: 12px; width: 100%; text-align: start; border: 0; border-radius: 20px; padding: 14px; cursor: pointer;
+  background: linear-gradient(120deg, #059669, #10B981 55%, #34D399); color: #fff; box-shadow: 0 10px 24px rgba(5,150,105,.35); font: inherit; overflow: hidden; }
+.hp-card::after { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 90% -20%, rgba(255,255,255,.35), transparent 50%); pointer-events: none; }
+.hp-card:active { transform: scale(.98); }
+.hp-imgs { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; width: 74px; height: 74px; background: rgba(255,255,255,.95); border-radius: 16px; padding: 5px; }
+.hp-imgs img { width: 100%; height: 100%; object-fit: contain; }
+.hp-txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.hp-txt em { font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: .04em; background: #FDE047; color: #713F12; border-radius: 99px; padding: 2px 8px; justify-self: start; }
+.hp-txt b { font-size: 17px; line-height: 1.2; }
+.hp-txt small { font-size: 12.5px; opacity: .95; line-height: 1.3; }
+.hp-go { position: absolute; bottom: 10px; inset-inline-end: 12px; font-size: 12px; font-weight: 800; background: #fff; color: #047857; border-radius: 99px; padding: 5px 10px; box-shadow: 0 3px 8px rgba(0,0,0,.15); }
+.hp-card .hp-txt { padding-bottom: 26px; }
+.hp-card.on { background: linear-gradient(120deg, #0F766E, #059669); }
+/* Tuile « Pharmacie » : pastille Nouveau */
+.ch-kind { position: relative; }
+.kind-new { position: absolute; top: 5px; inset-inline-end: 5px; z-index: 1; font-style: normal; font-size: 10px; font-weight: 800; background: #EF4444; color: #fff; border-radius: 99px; padding: 2px 7px; box-shadow: 0 3px 8px rgba(239,68,68,.4); animation: kindNew 2s ease-in-out infinite; }
+@keyframes kindNew { 0%, 100% { transform: rotate(-6deg) scale(1); } 50% { transform: rotate(4deg) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .kind-new, .ph-item.in .ph-ico img { animation: none; } }
+#pharmaBox { scroll-margin-top: 130px; }
