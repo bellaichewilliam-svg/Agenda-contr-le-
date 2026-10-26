@@ -624,8 +624,10 @@ function setBrandMode(which, on) {
 }
 
 function onPlacePicked(which, p, quiet) {
-  if (which === "from" && p.partnerCode) { state.shopDir = "from"; loadShop(p.partnerCode, true); return; }
-  if (which === "to" && p.partnerCode && p.kind && BOTH_WAYS.includes(p.kind)) { state.shopDir = "to"; loadShop(p.partnerCode, true); return; }
+  // Partenaire avec catalogue (HOP! Pro) choisi dans la recherche ou sur la carte : on ouvre sa boutique
+  const stay = pc => !(state.partners.find(x => x.code === pc) || {}).pro;
+  if (which === "from" && p.partnerCode) { state.shopDir = "from"; loadShop(p.partnerCode, stay(p.partnerCode)); return; }
+  if (which === "to" && p.partnerCode && p.kind && BOTH_WAYS.includes(p.kind)) { state.shopDir = "to"; loadShop(p.partnerCode, stay(p.partnerCode)); return; }
   state.pick[which] = p;
   // Le champ du formulaire porte l'adresse choisie avant le calcul du prix
   if (ac[which] && form.elements[prefixOf(which) + "_address"].value !== p.label) ac[which].setPicked(p.label);
@@ -2330,6 +2332,12 @@ function currentWhen() {
   return opt ? opt.id : "other";
 }
 function renderWhen() {
+  // Heure programmée déjà passée (brouillon de la veille), ou prise d'office pour un commerce qu'on a retiré : retour à « Maintenant »
+  const at = val("urgency") === "programmee" && pickupDate();
+  if (at && (at < Date.now() || (state.shopSched && !shopSide()))) {
+    form.elements.urgency.value = "asap"; state.shopSched = null;
+    syncVisibility();
+  }
   const cur = currentWhen();
   $("#homeWhen").innerHTML = whenOptions().map(o => `<button type="button" class="ch-chip${cur === o.id ? " on" : ""}" data-when="${o.id}">${UI.esc(t({ now: "hmNow", in1h: "hmIn1h", tonight: "hmTonight", tomorrow: "hmTomorrow", opens: "hmOpens", other: "hmOther" }[o.id], { h: o.h || (o.d ? hhmm(o.d) : "") }))}</button>`).join("");
   const planned = val("urgency") === "programmee" && pickupDate();

@@ -428,3 +428,8 @@ livraison/
   - les raccourcis d'heure tombant pendant la fermeture disparaissent (« Maintenant », « Ce soir 19:00 »…) ;
   - aucune course ne peut partir à une heure où le commerce est fermé : au départ du commerce, ou environ 25 min après le départ quand on y dépose.
 - **« Enseignes près de vous » : les partenaires HOP! en tête de chaque catégorie** selon leur métier (restaurant → Restaurants, pressing, pharmacie, boutique → Centres commerciaux, fleuriste, épicerie → Supermarchés). Ils y apparaissent même un peu loin, et même quand la carte ne répond pas. Avant, un restaurant partenaire (Nini deli) n'apparaissait pas dans « Restaurants ».
+- **Accueil : plus de carte jaune « Programmée » périmée.** Une heure programmée déjà passée (brouillon de la veille), ou prise d'office pour un commerce qu'on a retiré, revient à « Maintenant ».
+- **Recherche → boutique** : choisir un partenaire avec catalogue (HOP! Pro) dans la recherche ou sur la carte ouvre sa boutique et son catalogue. Un partenaire sans catalogue est simplement mis en adresse de départ.
+- **Fiche automatique d'un commerce** (fonction `shop-enrich`, déclenchée à l'inscription par le trigger `shops_enrich_on_signup`, relançable avec `admin_shop_enrich`) :
+  - elle reprend sa page publique s'il en a une : horaires, photo, logo, accroche, menu avec prix et photos ;
+  - elle ne remplit que les cases encore vides, et laisse une ligne « 🤖 » dans la note interne.
