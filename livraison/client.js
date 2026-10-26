@@ -12,7 +12,7 @@ const form = $("#orderForm");
 const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
-const state = { pharma: {}, pharmaCat: "douleur", shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null }, stops: [] };
+const state = { pharma: {}, pharmaCat: "", shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null }, stops: [] };
 const ac = {};
 
 // --- Écrans : l'accueil ne garde que l'essentiel ; la commande, « Mes courses » et « Tout savoir »
@@ -69,6 +69,8 @@ const EXAMPLES = [
   { id: "poste", icon: "📮", set: { service: "retrait", place_kind: "poste" } },
   // Pharmacie : « Acheter pour moi » ; la commande s'écrit dans le message au livreur (pas encore de catalogue)
   { id: "pharm", icon: "💊", set: { service: "achat" } },
+  // Cigarettes & alcool : « Acheter pour moi » (18 ans et plus), produits à cocher
+  { id: "tabac", icon: "🍾", set: { service: "achat" } },
   { id: "resto", icon: "🍔", set: { service: "repas", urgency: "express" } },
   { id: "docs",  icon: "📄", set: { service: "colis", round_trip: true } },
   { id: "yad2",  icon: "🛋️", set: { service: "colis", size: "moyen" } },
@@ -547,48 +549,74 @@ $("#cashNotes").addEventListener("click", e => {
   renderCash();
 });
 
-// --- Pharmacie : les essentiels sans ordonnance, à cocher (n'importe quelle pharmacie, pas encore de catalogue) ---
-// state.pharma = { "huggies|2": 1, "acamol|0": 2 } (produit|variante → quantité)
-const PHARMA_RE = /pharm|פארם|מרקחת|be ?pharm|new ?pharm|ניו ?פארם|בי ?פארם/i;
-const pharmaOn = () => val("service") === "achat" && (state.homeKind === "pharm" || !!(state.pick.from && PHARMA_RE.test(String(state.pick.from.brand || state.pick.from.label || ""))));
+// --- Rayons à cocher (pharmacie, tabac & alcool, boulangerie, makolet) : pour les magasins qui n'ont pas
+// encore leur catalogue. state.pharma = { "pharm:huggies|2": 1, "tabac:marlboro|0": 2 } (rayon:produit|variante → quantité)
+const rayonRe = r => new RegExp(r.re, "i");
+// Le rayon de la commande : celui du magasin de départ (d'après son nom), sinon celui de la tuile choisie
+function rayonOn() {
+  if (!window.Rayons || proShopOn()) return null;
+  const k = Rayons.byKind(state.homeKind);
+  const p = state.pick.from, name = p ? String(p.brand || p.label || "") : "";
+  const r = (name && Rayons.ALL.find(x => rayonRe(x).test(name))) || k || null;
+  // Pharmacie, tabac, makolet : « Acheter pour moi » ; boulangerie : aussi en commande à récupérer
+  return r && (val("service") === "achat" || r.id === "bakery") ? r : null;
+}
+const pharmaOn = () => !!rayonOn();
 const phName = x => (I18N.lang === "he" ? x.he : x.fr);
+const rayonPicked = r => Object.entries(state.pharma).filter(([k, q]) => q > 0 && k.startsWith(r.id + ":"));
 function pharmaLines() {
-  if (!pharmaOn()) return [];
-  return Object.entries(state.pharma).filter(([, q]) => q > 0).map(([k, q]) => {
-    const [id, o] = k.split("|"), x = Pharma.ITEMS.find(i => i.id === id);
+  const r = rayonOn();
+  if (!r) return [];
+  return rayonPicked(r).map(([k, q]) => {
+    const [id, o] = k.slice(r.id.length + 1).split("|"), x = r.items.find(i => i.id === id);
     if (!x) return null;
     const opt = x.opt && x.opt[Number(o)] ? " · " + phName(x.opt[Number(o)]) : "";
     return `${x.e} ${phName(x)}${opt} ×${q}`;
   }).filter(Boolean);
 }
+// Tabac / alcool cochés : les cases « 18 ans et plus » suivent
+function rayonAdult() {
+  const r = rayonOn();
+  if (!r) return;
+  const kinds = new Set(rayonPicked(r).map(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).adult).filter(Boolean));
+  if (kinds.has("tabac")) form.has_tobacco.checked = true;
+  if (kinds.has("alcool")) form.has_alcohol.checked = true;
+  syncAdult();
+}
 // Ce que lit le livreur : les produits cochés, puis ce que le client a écrit
 const shopListText = () => pharmaLines().concat(val("shopping_list").trim() ? [val("shopping_list").trim()] : []).join("\n");
+const notesText = () => (val("service") === "achat" ? val("notes").trim() : pharmaLines().concat(val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
 function renderPharma() {
-  const box = $("#pharmaBox"), on = pharmaOn() && !!window.Pharma;
-  box.classList.toggle("hidden", !on);
-  if (!on) return;
-  const n = Object.values(state.pharma).reduce((a, q) => a + q, 0);
-  const inCat = c => Pharma.ITEMS.filter(x => x.c === c).reduce((a, x) => a + Object.entries(state.pharma).filter(([k]) => k.split("|")[0] === x.id).reduce((b, [, q]) => b + q, 0), 0);
-  const html = `<div class="ph-head"><b>${UI.esc(t("phTitle"))}</b><small>${UI.esc(t("phSub"))}</small></div>
-    <div class="ph-cats">${Pharma.CATS.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}"><img src="img/pharma/${c.img}.webp" alt="" />${UI.esc(phName(c))}${k ? ` <em>${k}</em>` : ""}</button>`; }).join("")}</div>
-    <div class="ph-list">${Pharma.ITEMS.filter(x => x.c === state.pharmaCat).map(x => {
-      const sel = Number((state.pharmaOpt || {})[x.id] || 0), key = x.id + "|" + (x.opt ? sel : 0), q = state.pharma[key] || 0;
-      return `<div class="ph-item${q ? " in" : ""}"><span class="ph-ico"><img src="img/pharma/${x.img}.webp" alt="" loading="lazy" /></span><span class="ph-name"><b>${UI.esc(phName(x))}</b>
-        ${x.opt ? `<select data-ph-opt="${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[x.id + "|" + i] ? ` (×${state.pharma[x.id + "|" + i]})` : ""}</option>`).join("")}</select>` : ""}</span>
-        ${q ? `<span class="cg-qty"><button type="button" data-ph-minus="${key}" aria-label="−">−</button><b>${q}</b><button type="button" data-ph-plus="${key}" aria-label="+">+</button></span>`
-          : `<button type="button" class="cg-plus" data-ph-plus="${key}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>`;
+  const box = $("#pharmaBox"), r = rayonOn();
+  box.classList.toggle("hidden", !r);
+  if (!r) return;
+  if (!r.cats.some(c => c.id === state.pharmaCat)) state.pharmaCat = r.cats[0].id;
+  const picked = rayonPicked(r), n = picked.reduce((a, [, q]) => a + q, 0);
+  const inCat = c => picked.filter(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).c === c).reduce((a, [, q]) => a + q, 0);
+  const key = (x, o) => `${r.id}:${x.id}|${o}`;
+  const html = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small></div>
+    <div class="ph-cats">${r.cats.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}"><img src="img/qc/${c.img}.webp" alt="" />${UI.esc(phName(c))}${k ? ` <em>${k}</em>` : ""}</button>`; }).join("")}</div>
+    <div class="ph-list">${r.items.filter(x => x.c === state.pharmaCat).map(x => {
+      const sel = Number((state.pharmaOpt || {})[r.id + ":" + x.id] || 0), k = key(x, x.opt ? sel : 0), q = state.pharma[k] || 0;
+      return `<div class="ph-item${q ? " in" : ""}"><span class="ph-ico"><img src="img/qc/${x.img}.webp" alt="" loading="lazy" /></span><span class="ph-name"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>
+        ${x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : ""}</span>
+        ${q ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${q}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
+          : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>`;
     }).join("")}</div>
     ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b><small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
+  box.style.setProperty("--rc", r.color);
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
-// Accueil : la pharmacie mise en avant (on ne savait pas que c'était possible)
-const PH_SHOW = ["pill", "baby", "bottle", "thermometer"];
+// Accueil : les rayons mis en avant (pharmacie, tabac & alcool, boulangerie, makolet), en cartes qui défilent
 function renderHomePharma() {
-  const on = state.homeKind === "pharm";
-  $("#homePharma").innerHTML = `<button type="button" class="hp-card${on ? " on" : ""}" data-pharma-go>
-    <span class="hp-imgs">${PH_SHOW.map(k => `<img src="img/pharma/${k}.webp" alt="" />`).join("")}</span>
-    <span class="hp-txt"><em>${UI.esc(t(on ? "hpOnTag" : "hpTag"))}</em><b>${UI.esc(t("hpTitle"))}</b><small>${UI.esc(t(on ? "hpOnSub" : "hpSub", { n: Pharma.ITEMS.length }))}</small></span>
+  if (!window.Rayons) return;
+  $("#homePharma").innerHTML = `<div class="hp-row">${Rayons.ALL.map(r => {
+    const on = state.homeKind === r.kind;
+    return `<button type="button" class="hp-card${on ? " on" : ""}" data-pharma-go="${r.id}" style="--rc:${r.color}">
+    <span class="hp-imgs">${r.show.map(k => `<img src="img/qc/${k}.webp" alt="" />`).join("")}</span>
+    <span class="hp-txt"><em>${UI.esc(t(on ? "hpOnTag" : "hpTag"))}</em><b>${UI.esc(phName(r.card))}</b><small>${UI.esc(on ? t("hpOnSub") : phName(r.cardSub).replace("{n}", r.items.length))}</small></span>
     <span class="hp-go">${UI.esc(t("hpGo"))} ›</span></button>`;
+  }).join("")}</div>`;
 }
 function goPharma() {
   setView("order", true);
@@ -596,9 +624,11 @@ function goPharma() {
   requestAnimationFrame(() => { const b = $("#pharmaBox"); if (b && !b.classList.contains("hidden")) b.scrollIntoView({ block: "start", behavior: "smooth" }); });
 }
 $("#homePharma").addEventListener("click", e => {
-  if (!e.target.closest("[data-pharma-go]")) return;
-  // D'abord la pharmacie la plus proche (liste), puis les produits ; déjà choisie : directement les produits
-  if (state.homeKind !== "pharm") { state.pharmaGo = true; applyKind("pharm"); if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); } }
+  const b = e.target.closest("[data-pharma-go]");
+  if (!b) return;
+  const r = Rayons.byId(b.dataset.pharmaGo);
+  // D'abord le magasin le plus proche (liste), puis les produits ; déjà choisi : directement les produits
+  if (state.homeKind !== r.kind) { state.pharmaGo = true; applyKind(r.kind); if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); } }
   else goPharma();
 });
 $("#ensClose").addEventListener("click", () => { if (state.pharmaGo) { state.pharmaGo = false; goPharma(); } });
@@ -609,7 +639,9 @@ $("#pharmaBox").addEventListener("click", e => {
   else if (plus) state.pharma[plus.dataset.phPlus] = Math.min(20, (state.pharma[plus.dataset.phPlus] || 0) + 1);
   else if (minus) { const k = minus.dataset.phMinus; state.pharma[k] = Math.max(0, (state.pharma[k] || 0) - 1); if (!state.pharma[k]) delete state.pharma[k]; }
   else return;
+  if (plus) rayonAdult();
   renderPharma();
+  renderQuote();
   saveDraft();
 });
 $("#pharmaBox").addEventListener("change", e => {
@@ -621,7 +653,8 @@ $("#pharmaBox").addEventListener("change", e => {
 // « Acheter pour moi » : tant que le magasin n'a pas son catalogue sur HOP!, la commande s'écrit dans le message au livreur
 function renderShopList() {
   const p = state.pick.from, name = p && p.brand ? UI.bi(String(p.brand).split(",")[0]) : "";
-  $("#shopListLabel").textContent = pharmaOn() ? t("phMore") : name ? t("shopListAt", { name }) : t("shoppingList");
+  const r = rayonOn();
+  $("#shopListLabel").textContent = r ? phName(r.more) : name ? t("shopListAt", { name }) : t("shoppingList");
   $("#noCatNote").textContent = name ? t("shopNoCat", { name }) : t("shopNoCatAny");
 }
 function renderQuote() {
@@ -1306,7 +1339,7 @@ async function submit(e) {
   // Un mot pour le livreur : seulement s'il manque une précision (un appartement sans étage ni n°)
   const vague = ["pickup", "dropoff"].find(pre => { const w = pre === "pickup" ? "from" : "to";
     return !(state.pick[w] && state.pick[w].brand) && kindOf(pre) === "appartement" && !val(pre + "_floor").trim() && !val(pre + "_apt").trim(); });
-  if (vague && val("notes").trim().length < 3) { form.elements[vague + "_apt"].focus(); return showError(t("errNotes")); }
+  if (vague && notesText().length < 3) { form.elements[vague + "_apt"].focus(); return showError(t("errNotes")); }
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
   if (form.leave_at_door.checked) {
     const k = kindOf("dropoff");
@@ -1442,7 +1475,7 @@ async function submit(e) {
       payment_method: val("payment_method"),
       cash_note: val("payment_method") === "cash" ? Number(form.cash_note.value) || 0 : null,
       payer: val("payer"),
-      notes: [shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", val("notes").trim()].filter(Boolean).join("\n") || null,
+      notes: [shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText()].filter(Boolean).join("\n") || null,
       // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
       shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
       items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,
@@ -2300,8 +2333,9 @@ function renderOpenBadge() {
 }
 // Le commerce commande lui-même une course (son téléphone) : n° de commande à 3 chiffres pour le sac
 const shopSelf = () => shopPicked() && !!state.pro && !proShopOn();
-// (la pharmacie en premier : c'est nouveau, il faut la voir)
-const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city).sort((a, b) => (b.id === "pharm") - (a.id === "pharm"));
+// (les rayons à cocher en premier — pharmacie, tabac & alcool, boulangerie, makolet : c'est nouveau, il faut les voir)
+const RAYON_KINDS = ["pharm", "tabac", "bakery", "shop"];
+const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city).sort((a, b) => (RAYON_KINDS.indexOf(a.id) + 1 || 99) - (RAYON_KINDS.indexOf(b.id) + 1 || 99));
 const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
 const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
 const isRtl = () => document.documentElement.dir === "rtl";
@@ -2428,14 +2462,14 @@ function showHomeErr(msg) { $("#homeErr").textContent = msg || ""; $("#homeErr")
 
 // Types de course, raccourcis d'heure et adresses enregistrées (selon la langue)
 // Illustrations en relief des types de course et des catégories d'enseignes (img/items)
-const KIND_ART = { bakery: ["croissant", 38], pressing: ["basket", 35], poste: ["mailbox", 205], pharm: ["pill", 160], resto: ["burger", 25], docs: ["docs", 215],
+const KIND_ART = { tabac: ["wine", 280], bakery: ["croissant", 38], pressing: ["basket", 35], poste: ["mailbox", 205], pharm: ["pill", 160], resto: ["burger", 25], docs: ["docs", 215],
   yad2: ["couch", 30], keys: ["key", 45], shop: ["cart", 140], gift: ["flowers", 330], ta: ["scooter", 15] };
 function renderHomeStatic() {
   const homeCity = CONFIG.homeCity;
   $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
     const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip }, CONFIG);
     const art = KIND_ART[ex.id];
-    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${ex.id === "pharm" ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
+    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
   }).join("");
   renderHomePharma();
   const list = Store.getAddresses().slice(0, 5);
