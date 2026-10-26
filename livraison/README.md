@@ -504,3 +504,9 @@ livraison/
   - Le rayon vient de la tuile choisie, ou du nom du magasin de départ (Super-Pharm, Shufersal, Rami Levy, Roladin, kiosque…).
   - Sur l'accueil, les 4 tuiles passent en premier avec « Nouveau ». Une rangée de 4 cartes de couleur (« La pharmacie livrée », « Cigarettes & alcool livrés », « La boulangerie livrée chaude », « La makolet livrée ») mène d'abord au magasin le plus proche, puis aux produits.
 - **Appli livreur : « HOP! » au lieu de « le patron ».** Écran de fin de service (« il part directement à HOP! », « HOP! (l'équipe, l'aide) », « Un mot pour HOP! », « Merci, c'est bien envoyé à HOP! »), messagerie (« 💬 HOP! », « Vos messages avec l'équipe HOP! »), espèces impayées, code de remise bloqué.
+- **Correctifs accueil client.**
+  - **Fond de carte** : retour à OpenStreetMap, gratuit et sans clé, avec des couleurs plus vives sur la carte de l'accueil. Le fond CARTO affichait « API KEY REQUIRED » en mode sombre.
+  - **« Qu'est-ce qu'on livre ? »** : chaque tuile mène quelque part. On voit d'abord le magasin le plus proche quand il y a une liste (pharmacie, boulangerie, poste, restaurant…), puis la commande, avec ses produits à cocher. Changer de type de course oublie le magasin choisi avant, qui était d'un autre type.
+  - **Le rayon suit la tuile choisie** : avant, une pharmacie choisie avant ouvrait les médicaments pour toutes les catégories. Le nom du magasin ne sert que s'il n'y a pas de tuile.
+  - **Boulangerie** : elle passe en « Acheter pour moi », à 30 ₪, comme la pharmacie, la makolet et le tabac.
+  - **Bouton « Voir la carte »** : carte du monde 3D, dégradé orange-rose-violet, il respire, avec un reflet qui passe et le nombre d'adresses (« 1214 restos et commerces autour de vous »).
