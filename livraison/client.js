@@ -64,7 +64,8 @@ routeHash();
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
   // Nouveautés en tête : boulangeries (petit-déjeuner) et pressing
-  { id: "bakery", icon: "🥐", set: { service: "repas" } },
+  // Boulangerie : on achète pour le client, comme la pharmacie ou la makolet (même prix)
+  { id: "bakery", icon: "🥐", set: { service: "achat" } },
   { id: "pressing", icon: "👔", set: { service: "colis" } },
   { id: "poste", icon: "📮", set: { service: "retrait", place_kind: "poste" } },
   // Pharmacie : « Acheter pour moi » ; la commande s'écrit dans le message au livreur (pas encore de catalogue)
@@ -552,14 +553,13 @@ $("#cashNotes").addEventListener("click", e => {
 // --- Rayons à cocher (pharmacie, tabac & alcool, boulangerie, makolet) : pour les magasins qui n'ont pas
 // encore leur catalogue. state.pharma = { "pharm:huggies|2": 1, "tabac:marlboro|0": 2 } (rayon:produit|variante → quantité)
 const rayonRe = r => new RegExp(r.re, "i");
-// Le rayon de la commande : celui du magasin de départ (d'après son nom), sinon celui de la tuile choisie
+// Le rayon de la commande : celui de la tuile choisie ; sans tuile, celui du magasin de départ (d'après son nom)
 function rayonOn() {
   if (!window.Rayons || proShopOn()) return null;
   const k = Rayons.byKind(state.homeKind);
   const p = state.pick.from, name = p ? String(p.brand || p.label || "") : "";
-  const r = (name && Rayons.ALL.find(x => rayonRe(x).test(name))) || k || null;
-  // Pharmacie, tabac, makolet : « Acheter pour moi » ; boulangerie : aussi en commande à récupérer
-  return r && (val("service") === "achat" || r.id === "bakery") ? r : null;
+  const r = k || (!state.homeKind && name && Rayons.ALL.find(x => rayonRe(x).test(name))) || null;
+  return r && val("service") === "achat" ? r : null;
 }
 const pharmaOn = () => !!rayonOn();
 const phName = x => (I18N.lang === "he" ? x.he : x.fr);
@@ -621,15 +621,23 @@ function renderHomePharma() {
 function goPharma() {
   setView("order", true);
   renderQuote();
-  requestAnimationFrame(() => { const b = $("#pharmaBox"); if (b && !b.classList.contains("hidden")) b.scrollIntoView({ block: "start", behavior: "smooth" }); });
+  requestAnimationFrame(() => { const b = $("#pharmaBox"); if (b && !b.classList.contains("hidden")) b.scrollIntoView({ block: "start", behavior: "smooth" }); else window.scrollTo(0, 0); });
+}
+// « Qu'est-ce qu'on livre ? » (tuiles) et cartes des rayons : on choisit, et on avance — d'abord le magasin
+// le plus proche quand il y a une liste (pharmacie, boulangerie, poste…), puis la commande avec ses produits
+function goKind(id) {
+  if (state.homeKind === id) return goPharma();
+  // Autre type de course : le magasin choisi avant (une pharmacie pour une commande de pain…) est oublié
+  const f = state.pick.from;
+  if (f && f.brand && !f.partnerCode && !f.shopId) clearHomeAddr("from", true);
+  state.pharmaGo = true;
+  applyKind(id);
+  if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); }
 }
 $("#homePharma").addEventListener("click", e => {
   const b = e.target.closest("[data-pharma-go]");
   if (!b) return;
-  const r = Rayons.byId(b.dataset.pharmaGo);
-  // D'abord le magasin le plus proche (liste), puis les produits ; déjà choisi : directement les produits
-  if (state.homeKind !== r.kind) { state.pharmaGo = true; applyKind(r.kind); if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); } }
-  else goPharma();
+  goKind(Rayons.byId(b.dataset.pharmaGo).kind);
 });
 $("#ensClose").addEventListener("click", () => { if (state.pharmaGo) { state.pharmaGo = false; goPharma(); } });
 $("#ensModal").addEventListener("click", e => { if (e.target.id === "ensModal" && state.pharmaGo) { state.pharmaGo = false; goPharma(); } });
@@ -2341,7 +2349,7 @@ const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
 const isRtl = () => document.documentElement.dir === "rtl";
 // ✕ : effacer l'adresse d'un geste (le texte, le numéro, le point sur la carte), et on peut retaper tout de suite
 const syncHomeX = which => $(`[data-hclear="${which}"]`).classList.toggle("hidden", !homeInput(which).value);
-function clearHomeAddr(which) {
+function clearHomeAddr(which, quiet) {
   const input = homeInput(which), pre = prefixOf(which);
   input.value = "";
   input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -2351,7 +2359,7 @@ function clearHomeAddr(which) {
   if (ac[which]) ac[which].reset();
   setBrandMode(which, false);
   renderQuote(); renderShopBanner(); renderSaveBtns(); syncHome();
-  input.focus();
+  if (!quiet) input.focus();
 }
 const addrReady = which => { const pre = prefixOf(which); const p = state.pick[which];
   return !!val(pre + "_address").trim() && (!!val(pre + "_number").trim() || !!(p && p.brand)); };
@@ -2415,7 +2423,7 @@ function initHome() {
       return;
     }
     const k = e.target.closest("[data-kind]");
-    if (k) return applyKind(k.dataset.kind);
+    if (k) return goKind(k.dataset.kind);
     const w = e.target.closest("[data-when]");
     if (w) return applyWhen(w.dataset.when);
     const a = e.target.closest("[data-haddr]");
@@ -2673,11 +2681,21 @@ function initHomeMap() {
   initHomeGrip();
 }
 // Volet de l'accueil (téléphone) : on le glisse vers le bas, ou on touche la poignée, pour voir toute la carte
+// Bouton « Voir la carte » : une vraie petite carte au trésor (image, couleurs, il bouge un peu)
+function renderMapBtn() {
+  const b = $("#homeMapBtn");
+  if (!b) return;
+  const on = $("#accueil").classList.contains("map-open");
+  let n = 0;
+  try { n = restos.list.filter(e => !e.offMap).length; } catch (e) { /* carte pas encore prête */ }
+  b.innerHTML = on ? `<span class="mb-ico">⌃</span><b>${UI.esc(t("hmMapClose").replace(/^\S+\s/, ""))}</b>`
+    : `<img src="img/qc/worldmap.webp" alt="" /><span class="mb-txt"><b>${UI.esc(t("hmMapOpen").replace(/^\S+\s/, ""))}</b>${n ? `<small>${UI.esc(t("hmMapSub", { n }))}</small>` : ""}</span><span class="mb-go">›</span>`;
+}
 function setMapOpen(on) {
   const ch = $("#accueil");
   if (!ch || ch.classList.contains("map-open") === !!on) return;
   ch.classList.toggle("map-open", !!on);
-  if ($("#homeMapBtn")) $("#homeMapBtn").textContent = t(on ? "hmMapClose" : "hmMapOpen");
+  renderMapBtn();
   if (on) scrollTo({ top: 0, behavior: "smooth" });
   // La carte change de taille pendant l'animation : on la recale à la fin
   setTimeout(() => { if (home.map) { home.map.invalidateSize(); drawRestos(); } }, 330);
@@ -2698,7 +2716,7 @@ function initHomeGrip() {
   addEventListener("pointerup", () => { y0 = null; });
   grip.addEventListener("click", () => { if (!moved) setMapOpen(!$("#accueil").classList.contains("map-open")); moved = false; });
   const btn = $("#homeMapBtn");
-  if (btn) { btn.textContent = t("hmMapOpen"); btn.addEventListener("click", () => setMapOpen(!$("#accueil").classList.contains("map-open"))); }
+  if (btn) { renderMapBtn(); btn.addEventListener("click", () => setMapOpen(!$("#accueil").classList.contains("map-open"))); }
 }
 // Restaurants de l'annuaire sur la carte : un point de loin, un rond 🍴 de près, et leur nom en zoomant encore.
 // On en touche un : « Récupérer ici » le met en départ.
@@ -2742,6 +2760,7 @@ async function initRestos() {
   restos.list = restos.list.map(e => (streets[e.lat.toFixed(4) + "," + e.lon.toFixed(4)].size >= 3 ? Object.assign({}, e, { offMap: true }) : e));
   home.map.on("zoomend moveend", drawRestos);
   renderMapCats();
+  renderMapBtn();
   $("#homeMapCats").addEventListener("click", e => {
     const b = e.target.closest("[data-mapcat]");
     if (!b) return;
@@ -3317,7 +3336,7 @@ $("#langBtn").addEventListener("click", () => {
   I18N.setLang(I18N.other());
   renderAll();
   // La carte de l'accueil et son bouton changent de langue aussi (noms des commerces en hébreu / en français)
-  if ($("#homeMapBtn")) $("#homeMapBtn").textContent = t($("#accueil").classList.contains("map-open") ? "hmMapClose" : "hmMapOpen");
+  renderMapBtn();
   if (home.map && restos.layer) { restos.key = ""; if (restos.open) home.map.closePopup(); drawRestos(); }
   $("#quickGo").textContent = t(quickWhen === "later" ? "quickCtaLater" : "quickCta");
 });

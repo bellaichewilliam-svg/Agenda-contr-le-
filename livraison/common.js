@@ -56,12 +56,10 @@ function waitRule(st) {
 // (et pas seulement au lâcher sur téléphone), on en garde une large réserve autour, et le fond
 // sous la carte a la couleur de la carte (clair ou sombre) le temps qu'un morceau arrive.
 function mapTiles(map, dark, fun) {
-  // Carte de l'accueil client : fond coloré et doux (CARTO Voyager, ou sa version nuit), plus joli que le plan standard
-  if (fun) return L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/${dark ? "dark_all" : "voyager"}/{z}/{x}/{y}{r}.png`,
-    { maxZoom: 20, subdomains: "abcd", attribution: "© OpenStreetMap © CARTO", className: dark ? "tiles-fun-dark" : "tiles-fun",
-      updateWhenIdle: false, updateWhenZooming: false, keepBuffer: 6 }).addTo(map);
+  // (le fond « coloré » de CARTO demande maintenant une clé payante : on garde OpenStreetMap, gratuit,
+  // avec des couleurs plus vives sur la carte de l'accueil)
   return L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    { maxZoom: 19, attribution: "© OpenStreetMap", className: dark ? "tiles-dark" : "",
+    { maxZoom: 19, attribution: "© OpenStreetMap", className: dark ? "tiles-dark" : fun ? "tiles-fun" : "",
       updateWhenIdle: false, updateWhenZooming: false, keepBuffer: 6 }).addTo(map);
 }
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
