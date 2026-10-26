@@ -2478,3 +2478,6 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 @keyframes mapBtnBreath { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-2px) scale(1.03); } }
 @keyframes mapBtnShine { 0%, 55% { transform: translateX(-120%); } 85%, 100% { transform: translateX(120%); } }
 @media (prefers-reduced-motion: reduce) { .ch-mapbtn, .ch-mapbtn::after { animation: none !important; } }
+/* Compteur − 2 + : la pastille reste blanche (le chiffre foncé se lit aussi en mode sombre) */
+.cg-qty { background: #fff; color: #0F1F3D; }
+.cg-qty b { color: #0F1F3D; font-weight: 800; font-size: 16px; min-width: 18px; }
