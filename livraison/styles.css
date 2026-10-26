@@ -2249,3 +2249,14 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .leaflet-container:has(.tiles-dark) .resto-pin.hop.shut span { color: #D0D5DD; }
 .rp-st { font-weight: 700; font-size: 12.5px; } .rp-st.on { color: #067647; } .rp-st.off { color: #B54708; }
 .ch-note.ch-note-closed { color: var(--amber-ink); background: var(--amber-soft); border-radius: 12px; padding: 8px 12px; font-weight: 600; }
+/* Inscription commerce : la vitrine dès le départ (facultatif) */
+.sg-extra { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--border); }
+.sg-h { font-size: 17px; }
+.sg-pics { display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; margin-bottom: 12px; }
+.sg-pic { display: flex; gap: 10px; align-items: center; background: var(--bg); border: 1px solid var(--border); border-radius: 14px; padding: 10px; min-width: 0; }
+.sg-pic-img { flex: none; width: 56px; height: 56px; border-radius: 12px; overflow: hidden; display: grid; place-items: center; font-size: 26px; background: var(--panel); border: 1px solid var(--border); }
+.sg-pic.wide .sg-pic-img { width: 96px; }
+.sg-pic-img img { width: 100%; height: 100%; object-fit: cover; }
+.sg-pic-txt { display: grid; gap: 6px; min-width: 0; font-size: 13px; }
+.sg-pic-txt .btn { justify-self: start; }
+@media (max-width: 560px) { .sg-pics { grid-template-columns: 1fr; } }
