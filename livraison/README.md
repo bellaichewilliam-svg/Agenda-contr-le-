@@ -510,3 +510,4 @@ livraison/
   - **Le rayon suit la tuile choisie** : avant, une pharmacie choisie avant ouvrait les médicaments pour toutes les catégories. Le nom du magasin ne sert que s'il n'y a pas de tuile.
   - **Boulangerie** : elle passe en « Acheter pour moi », à 30 ₪, comme la pharmacie, la makolet et le tabac.
   - **Bouton « Voir la carte »** : carte du monde 3D, dégradé orange-rose-violet, il respire, avec un reflet qui passe et le nombre d'adresses (« 1214 restos et commerces autour de vous »).
+- **Compteur − 3 + des produits** (rayons et catalogues des commerces) : le chiffre était presque invisible en mode sombre (texte foncé sur fond foncé). La pastille reste maintenant blanche, avec un chiffre bien lisible.
