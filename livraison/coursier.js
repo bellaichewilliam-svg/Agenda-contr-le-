@@ -728,6 +728,14 @@ function mineStep(o, hopPaid) {
   if (r) return o.arrived_at ? `2️⃣ Récupérez la commande ${r.k} sur ${r.n}` : `2️⃣ Allez au départ · ${r.n} commandes à récupérer`;
   return o.arrived_at ? "2️⃣ Récupérez la commande" : "2️⃣ Allez au départ";
 }
+// Mêmes client et adresse pour plusieurs de mes courses (souvent deux enseignes) : chacune se valide à part
+function sameClient(o) {
+  const ph = v => String(v || "").replace(/\D/g, "").slice(-9);
+  return mine().filter(x => x.id !== o.id && ["confirmee", "recuperee"].includes(x.status)
+    && ((ph(x.contact_phone) && ph(x.contact_phone) === ph(o.contact_phone))
+      || Store.kmBetween(+x.dropoff_lat, +x.dropoff_lon, +o.dropoff_lat, +o.dropoff_lon) < 0.06));
+}
+const twinName = x => `n° ${x.ref}${x.shop_name ? " · " + x.shop_name : x.pickup_place ? " · " + String(x.pickup_place).split(" · ")[0] : ""}`;
 function mineCard(o, x) {
   const to = o.status === "recuperee";
   const stop = (which, label, now) => {
@@ -738,6 +746,7 @@ function mineCard(o, x) {
       <div class="stop-tag">${label}${which === "pickup" ? readyChip(o) : ""}</div>
       <div class="stop-addr">${UI.brand(o[pre + "_place"])}<bdi>${UI.esc(o[pre + "_address"])}</bdi>, ${UI.esc(UI.cityFr(city))}</div>
       ${which === "pickup" && !to ? showRef(o) : ""}${cashStop(o, which, now)}
+      ${which === "dropoff" && sameClient(o).length ? `<div class="twin-line">👥 Même client : <b>${sameClient(o).length + 1} commandes</b> (celle-ci + ${sameClient(o).map(t => UI.esc(twinName(t))).join(", ")}).<br>Touchez « Livré » sur <b>chaque</b> commande, une par enseigne.</div>` : ""}
       ${UI.addrDetails(o, pre)}${UI.addrNote(o[pre + "_note"])}${which === "dropoff" ? UI.doorBig(o, true) : ""}
       ${callBig(name, phone)}
       ${now ? navBtn(o, which) : ""}
@@ -1072,6 +1081,11 @@ async function onViewClick(e) {
     if (!ok) alert("Action impossible, actualisez la page.");
     else if (el.dataset.act === "livree" && o && o.paid_to !== "hop" && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(o.price)} ?`)) {
       await Store.courierAction(id, "paye").catch(() => alert("Encaissement non enregistré, réessayez."));
+    }
+    // Même client, autre enseigne : on rappelle de valider aussi l'autre commande
+    if (ok && el.dataset.act === "livree" && o) {
+      const left = sameClient(o).filter(t => t.status === "recuperee");
+      if (left.length) alert(`✅ Commande n° ${o.ref} livrée.\n👥 Ce client a aussi : ${left.map(twinName).join(", ")}.\nTouchez « Livré » sur ${left.length > 1 ? "chacune" : "celle-ci"} aussi.`);
     }
     await load();
   }

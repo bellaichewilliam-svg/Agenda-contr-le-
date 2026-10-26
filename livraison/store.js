@@ -849,9 +849,16 @@ function onWay(pos, mineList, o) {
   const km = (a, b, c, d) => kmBetween(+a, +b, +c, +d);
   return act.find(x => km(x.dropoff_lat, x.dropoff_lon, o.dropoff_lat, o.dropoff_lon) <= G.dropKm && (x.status === "confirmee"
     ? km(x.pickup_lat, x.pickup_lon, o.pickup_lat, o.pickup_lon) <= G.pickupKm && Math.abs(new Date(x.pickup_at) - new Date(o.pickup_at)) <= G.minutes * 60000
-    : !!pos && new Date(o.pickup_at) <= Date.now() + 10 * 60000
+    : !!pos && readySoon(o)
       && km(pos.lat, pos.lon, o.pickup_lat, o.pickup_lon) + km(o.pickup_lat, o.pickup_lon, x.dropoff_lat, x.dropoff_lon)
          <= km(pos.lat, pos.lon, x.dropoff_lat, x.dropoff_lon) + (G.detourKm || 1))) || null;
+}
+// À prendre en route seulement si elle est prête (ou le sera dans 10 min) : départ dans 10 min au plus (règle de la base),
+// et pour une commande de commerce, marquée « prête » ou prête dans 10 min (pas d'attente au comptoir)
+function readySoon(o) {
+  const soon = d => !!d && new Date(d) <= Date.now() + 10 * 60000;
+  if (!soon(o.pickup_at)) return false;
+  return !(o.shop_status || o.phone_order) || o.shop_status === "prete" || soon(o.ready_at);
 }
 // Accepter deux courses groupées : les deux ou aucune
 async function acceptBundle(ids, eta) {

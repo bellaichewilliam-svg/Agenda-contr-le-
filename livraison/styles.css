@@ -2260,3 +2260,5 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .sg-pic-txt { display: grid; gap: 6px; min-width: 0; font-size: 13px; }
 .sg-pic-txt .btn { justify-self: start; }
 @media (max-width: 560px) { .sg-pics { grid-template-columns: 1fr; } }
+/* Livreur : même client, plusieurs commandes (une validation par enseigne) */
+.twin-line { margin-top: 8px; padding: 9px 12px; border-radius: 12px; background: var(--blue-soft); color: var(--blue-ink); font-weight: 600; font-size: 14px; line-height: 1.4; }
