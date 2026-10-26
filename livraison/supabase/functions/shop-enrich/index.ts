@@ -1,7 +1,8 @@
 // Fiche automatique d'un commerce, dès son inscription : horaires, photo de couverture, logo, accroche
 // et menu (catégories, plats, prix, photos), repris de sa page publique sur la grande appli de livraison
 // où il est déjà (même nom, même endroit). Ne remplace jamais ce que le commerce a déjà rempli.
-// Appelée par la base (trigger shops_enrich_on_signup, ou admin_shop_enrich) avec la clé x-hop-key.
+// Appelée par l'appli juste après l'inscription (clé du commerce), par le patron (bouton « 🤖 Remplir sa fiche »),
+// ou par la base (clé x-hop-key).
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
@@ -138,16 +139,31 @@ async function enrich(shopId: string) {
   return { ok: true, slug, done };
 }
 
-Deno.serve(async req => {
+// Qui peut lancer la fiche : le commerce lui-même (sa clé secrète, juste après l'inscription), le patron
+// (connecté, rôle admin) pour n'importe quel commerce, ou la base (clé x-hop-key)
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-hop-key", "Access-Control-Allow-Methods": "POST, OPTIONS" };
+const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+async function shopIdFor(req: Request, body: any): Promise<string | null> {
+  if (body.token && /^[0-9a-f-]{36}$/i.test(String(body.token))) {
+    const { data } = await db.from("shops").select("id").eq("token", String(body.token)).maybeSingle();
+    return data ? data.id : null;
+  }
+  if (!body.shop_id) return null;
   const { data: cfg } = await db.from("push_config").select("hook_key").eq("id", 1).maybeSingle();
-  if (!cfg || !cfg.hook_key || req.headers.get("x-hop-key") !== cfg.hook_key) return new Response("forbidden", { status: 403 });
+  if (cfg && cfg.hook_key && req.headers.get("x-hop-key") === cfg.hook_key) return String(body.shop_id);
+  const jwt = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const { data: u } = jwt ? await db.auth.getUser(jwt) : { data: null };
+  if (!u || !u.user) return null;
+  const { data: me } = await db.from("couriers").select("role").eq("id", u.user.id).maybeSingle();
+  return me && me.role === "admin" ? String(body.shop_id) : null;
+}
+
+Deno.serve(async req => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   let body: any = {};
   try { body = await req.json(); } catch { /* corps vide */ }
-  if (!body.shop_id) return new Response("shop_id", { status: 400 });
-  try {
-    const r = await enrich(String(body.shop_id));
-    return new Response(JSON.stringify(r), { headers: { "Content-Type": "application/json" } });
-  } catch (e) {
-    return new Response(JSON.stringify({ ok: false, why: String(e) }), { status: 500, headers: { "Content-Type": "application/json" } });
-  }
+  const id = await shopIdFor(req, body);
+  if (!id) return reply({ ok: false, why: "forbidden" }, 403);
+  try { return reply(await enrich(id)); }
+  catch (e) { return reply({ ok: false, why: String(e) }, 500); }
 });
