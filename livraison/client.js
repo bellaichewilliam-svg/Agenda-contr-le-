@@ -523,6 +523,22 @@ function renderCash() {
   const n = Number(form.cash_note.value) || 0;
   $("#cashRule").textContent = (n && n < total ? t("errCashNote") + " " : n ? t("cashChange", { change: money(n - total) }) + " " : "") + t("cashRule", { max: money(cashMax()) });
 }
+// Étape « Paiement » d'une commande chez un commerce : combien on paie au commerce, comment, et la livraison à part
+function renderGoodsBox(q) {
+  const box = $("#goodsBox");
+  const on = proShopOn() && (cartCount() > 0 || !!val("shop_order").trim());
+  box.classList.toggle("hidden", !on);
+  if (!on) { box.innerHTML = ""; return; }
+  const name = UI.bi(state.shop.name), goods = cartCount() ? cartTotal() : 0, cash = val("payment_method") === "cash";
+  const bit = String(state.shop.pay_bit || "");
+  const how = [state.shop.pay_link ? t("gbHowLink") : "", bit ? t("gbHowBit", { phone: bit }) : ""].filter(Boolean).join(t("gbHowOr"));
+  const goodsHow = shopPrepay() ? t("gbPrepay", { name, how }) : cash && cashGoods() ? t("gbCash") : t("gbAsk", { name });
+  box.innerHTML = `<b class="gb-h">${UI.esc(t("gbTitle"))}</b>
+    <div class="gb-row"><span><b>${UI.esc(t("gbGoods", { name }))}</b><small>${UI.esc(goodsHow)}</small></span>${goods ? `<b class="gb-amt" dir="ltr">${money(goods)}</b>` : `<small class="gb-free">${UI.esc(t("gbGoodsFree", { name }))}</small>`}</div>
+    <div class="gb-row"><span><b>${UI.esc(t("gbRide"))}</b><small>${UI.esc(t(cash ? "gbRideCash" : "gbRideHow"))}</small></span><b class="gb-amt" dir="ltr">${money(q.total)}</b></div>
+    ${goods ? `<div class="gb-row gb-total"><span><b>${UI.esc(t("gbTotal"))}</b></span><b class="gb-amt" dir="ltr">${money(goods + Number(q.total))}</b></div>` : ""}
+    <small class="gb-never">${UI.esc(t("gbNever"))}</small>`;
+}
 $("#cashNotes").addEventListener("click", e => {
   const b = e.target.closest("[data-cash-note]");
   if (!b) return;
@@ -556,6 +572,7 @@ function renderQuote() {
   notes.push(val("payment_method") === "carnet" ? t("payNoteCarnet")
     : val("payment_method") === "bit" ? t(sched ? "payNoteBit" : "payNoteBitNow", { phone: CONFIG.bitPhone }) : t("payNoteCash2"));
   renderCash();
+  renderGoodsBox(q);
   $("#quoteNote").textContent = notes.join(" ");
   updateProgress();
   const err = scheduleError();
@@ -893,6 +910,13 @@ function setKind(pre, v) {
   const box = form.querySelector(`[data-details="${pre}"]`);
   if (box) box.classList.toggle("is-house", v === "maison");
 }
+// « Pas de code d'entrée » : la case remplit le code (le livreur le lit sur sa fiche) et le bloque
+const NO_CODE = /^(Pas de code|אין קוד)$/;
+function syncNoCode() { form.dropoff_code.readOnly = form.dropoff_nocode.checked; }
+form.dropoff_nocode.addEventListener("change", () => {
+  form.dropoff_code.value = form.dropoff_nocode.checked ? t("noCodeVal") : NO_CODE.test(form.dropoff_code.value) ? "" : form.dropoff_code.value;
+  syncNoCode();
+});
 // Conditions de livraison d'objets : pour tout envoi, sauf un repas ou une commande chez un commerce HOP! Pro
 const needsRules = () => val("service") !== "repas" && !proShopOn() && !shopMode();
 function openRules() { $("#rulesModal").classList.remove("hidden"); }
@@ -904,6 +928,7 @@ function applySavedAddr(which, a) {
   if (a.cityId) sel.value = a.cityId; else { sel.value = OTHER; form.elements[which + "_other"].value = a.city || ""; }
   form.elements[pre + "_number"].value = a.number || "";
   DETAIL.forEach(k => { form.elements[pre + "_" + k].value = a[k] || ""; });
+  if (pre === "dropoff") { form.dropoff_nocode.checked = NO_CODE.test(a.code || ""); syncNoCode(); }
   form.elements[pre + "_note"].value = a.note || "";
   setKind(pre, a.kind || null);
   state.pick[which] = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, label, exact: a.exact };
@@ -1189,6 +1214,14 @@ async function submit(e) {
   }
   if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
+  // Arrivée chez quelqu'un (pas un commerce) : tout ce qu'il faut pour trouver la porte, sinon pas d'envoi
+  if (!(state.pick.to && state.pick.to.brand)) {
+    const k = kindOf("dropoff"), flat = k === "appartement";
+    const miss = !k ? "Kind" : (flat || k === "bureau") && !val("dropoff_floor").trim() ? "Floor"
+      : flat && !val("dropoff_apt").trim() ? "Apt" : flat && !val("dropoff_code").trim() ? "Code" : null;
+    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showError(t("errToKind")); }
+    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showError(t("errTo" + miss)); }
+  }
   // Un mot pour le livreur : seulement s'il manque une précision (un appartement sans étage ni n°)
   const vague = ["pickup", "dropoff"].find(pre => { const w = pre === "pickup" ? "from" : "to";
     return !(state.pick[w] && state.pick[w].brand) && kindOf(pre) === "appartement" && !val(pre + "_floor").trim() && !val(pre + "_apt").trim(); });
@@ -1372,11 +1405,14 @@ async function submit(e) {
     rememberAddresses(saved, pf, pt);
     // Paiement direct : le client paiera son livreur (Bit ou PayBox) dès qu'il accepte ; avant : Bit à HOP tout de suite
     // Deux paiements, dans l'ordre : ① les articles au commerce, tout de suite ; ② la livraison au livreur
-    $("#donePrepay").innerHTML = (gp ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(saved, gp)}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: money(saved.price) }))}</b></p>` : "")
+    // Commerce sans lien ni Bit : on rappelle quand même combien payer pour les articles, et à qui
+    const goodsAsk = !gp && proShopOn() && cartCount() && saved.payment_method !== "cash"
+      ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay todo"><b class="gp-step">${UI.esc(t("gpStep1", { name: UI.bi(state.shop.name), amount: money(cartTotal()) }))}</b><small>${UI.esc(t("gbAsk", { name: UI.bi(state.shop.name) }))}</small></div><p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: money(saved.price) }))}</b></p>` : "";
+    $("#donePrepay").innerHTML = goodsAsk + (gp ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(saved, gp)}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: money(saved.price) }))}</b></p>` : "")
       + (saved.payment_method === "bit"
         ? (saved.prepaid_required && !saved.direct_pay ? `<p class="promo-msg bad">${UI.esc(t("trPrepay"))}</p>` : "") + UI.bitPay(saved)
         : gp ? "" : UI.esc(t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref })));
-    $("#donePrepay").classList.toggle("hidden", !gp && (saved.payment_method === "carnet" || (saved.payment_method !== "bit" && !saved.prepaid_required)));
+    $("#donePrepay").classList.toggle("hidden", !gp && !goodsAsk && (saved.payment_method === "carnet" || (saved.payment_method !== "bit" && !saved.prepaid_required)));
     if (saved.payment_method === "carnet" && state.pro) state.pro.credits--;
     confetti();
     hopBurst(t("hopSent"));
@@ -1411,6 +1447,7 @@ async function submit(e) {
     resetPlaces();
     applyShop();
     form.leave_at_door.checked = false;
+    form.dropoff_nocode.checked = false; syncNoCode();
     form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; form.fits_topcase.checked = false;
     ["rx", "post_send", "p2p_sale", "sale_paid", "handoff"].forEach(k => { form.elements[k].checked = false; }); state.phoneReady = null;
     state.cart = {}; renderCatalog();
@@ -3223,6 +3260,7 @@ function restoreDraft() {
     else if (el.type !== "radio") el.value = v;
   });
   if (d.phoneReady != null) state.phoneReady = d.phoneReady;
+  syncNoCode();
   syncVisibility();
   renderQuote();
 }

@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610261438" />
+  <link rel="stylesheet" href="styles.css?v=202610261446" />
 </head>
 <body>
 
@@ -426,6 +426,7 @@
               <label class="f"><span data-i18n="floor"></span><input name="dropoff_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="dropoff_apt" data-i18n-ph="aptPh" /></label>
               <label class="f"><span data-i18n="entryCode"></span><input name="dropoff_code" data-i18n-ph="codePh" /></label>
+              <label class="check nocode"><input type="checkbox" name="dropoff_nocode" /> <span data-i18n="noCode"></span></label>
             </div>
             <label class="f full addr-note"><span data-i18n="addrNote"></span><input name="dropoff_note" data-i18n-ph="addrNotePh" /></label>
             <label class="check full door-check"><input type="checkbox" name="leave_at_door" /> <span><b data-i18n="leaveDoor"></b><br><small class="muted" data-i18n="leaveDoorNote"></small></span></label>
@@ -459,6 +460,7 @@
 
         <fieldset>
           <legend data-i18n="s6"></legend>
+          <div class="goods-box hidden" id="goodsBox"></div>
           <div class="choices">
             <label class="choice"><input type="radio" name="payment_method" value="bit" checked /><span><i class="bit-logo">bit</i><b data-i18n="pay_bit"></b><small id="bitSmall"></small></span></label>
             <label class="choice"><input type="radio" name="payment_method" value="cash" /><span><i>💵</i><b data-i18n="pay_cash"></b><small id="cashSmall"></small></span></label>
@@ -712,14 +714,14 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610261438"></script>
-<script src="i18n.js?v=202610261438"></script>
-<script src="pricing.js?v=202610261438"></script>
-<script src="store.js?v=202610261438"></script>
-<script src="chat.js?v=202610261438"></script>
-<script src="common.js?v=202610261438"></script>
-<script src="enseignes.js?v=202610261438"></script>
-<script src="places.js?v=202610261438"></script>
-<script src="client.js?v=202610261438"></script>
+<script src="config.js?v=202610261446"></script>
+<script src="i18n.js?v=202610261446"></script>
+<script src="pricing.js?v=202610261446"></script>
+<script src="store.js?v=202610261446"></script>
+<script src="chat.js?v=202610261446"></script>
+<script src="common.js?v=202610261446"></script>
+<script src="enseignes.js?v=202610261446"></script>
+<script src="places.js?v=202610261446"></script>
+<script src="client.js?v=202610261446"></script>
 </body>
 </html>

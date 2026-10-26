@@ -2316,3 +2316,18 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .av-chip { font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 99px; }
 .av-chip.r2 { background: var(--green-soft); color: var(--green-ink); } .av-chip.r1 { background: var(--amber-soft); color: var(--amber-ink); } .av-chip.r0 { background: var(--red-soft); color: var(--red); }
 .av-com { font-style: italic; margin: 0; }
+/* « Pas de code d'entrée » (arrivée) : sur toute la ligne ; pas pour une maison */
+.fields4 .nocode { grid-column: 1 / -1; margin-top: -2px; }
+.fields4.is-house .nocode { display: none; }
+input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--muted); }
+/* Étape paiement d'une commande chez un commerce : articles au commerce + livraison au Hoper */
+.goods-box { border: 1.5px solid var(--line, #e6e0d8); border-radius: 16px; padding: 12px 14px; margin-bottom: 12px; background: var(--bg-2); }
+.goods-box .gb-h { display: block; font-size: 16px; margin-bottom: 6px; }
+.gb-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 8px 0; border-top: 1px dashed var(--line, #e6e0d8); }
+.gb-row:first-of-type { border-top: 0; }
+.gb-row span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gb-row small { color: var(--muted); line-height: 1.35; }
+.gb-amt { white-space: nowrap; font-size: 16px; }
+.gb-total { border-top: 1.5px solid var(--ink, #222); }
+.gb-total .gb-amt { font-size: 19px; color: var(--brand, #ff6b13); }
+.gb-never { display: block; color: var(--muted); margin-top: 6px; }

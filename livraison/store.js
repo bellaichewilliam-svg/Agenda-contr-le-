@@ -1653,7 +1653,7 @@ const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISO
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
       pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null, tagline_he: s.tagline_he || null, about_he: s.about_he || null, client_pays: !!s.client_pays,
-      hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null,
+      hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null, pay_link: s.pay_link || null, pay_bit: s.pay_bit || null, demo: !!s.demo,
       shop_share: s.client_pays ? 0 : DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
 async function shopByCode(code) {
