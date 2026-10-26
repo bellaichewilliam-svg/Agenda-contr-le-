@@ -25,7 +25,7 @@ function setView(v, push) {
   if (!v || document.body.dataset.view === v) return false;
   document.body.dataset.view = v;
   viewTitle();
-  if (push) history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]);
+  if (push) { history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]); here = location.href; }
   window.scrollTo(0, 0);
   // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
   if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); });
@@ -39,8 +39,26 @@ function routeHash() {
   setView(el ? viewOf(el) || "home" : "home");
   if (el && !/^(accueil|commander|mes-courses|infos)$/.test(el.id)) requestAnimationFrame(() => nativeScrollIntoView.call(el, { block: "start" }));
 }
-window.addEventListener("hashchange", routeHash);
-window.addEventListener("popstate", routeHash);
+// Bouton retour du téléphone : il ferme d'abord la fenêtre ouverte (vérification des adresses, panier,
+// fiche article…) et on reste sur le même écran, au lieu de changer de page sous la fenêtre
+let here = location.href;
+const MODAL_CLOSE = { checkModal: "#checkBack", itemSheet: "#itemClose", cartSheet: "#cartClose", ensModal: "#ensClose",
+  noticeModal: "#noticeClose", addrSheet: "#asClose", rulesModal: "#rulesClose", reqModal: "#reqClose", doneModal: "#doneClose" };
+function closeTopModal() {
+  const open = [...document.querySelectorAll("body > .modal:not(.hidden)")].pop();
+  if (!open) return false;
+  const btn = MODAL_CLOSE[open.id] && document.querySelector(MODAL_CLOSE[open.id]);
+  if (btn) btn.click(); else open.classList.add("hidden");
+  return true;
+}
+function onBack() {
+  const popped = location.href;
+  // (si la fenêtre emmène ailleurs en se fermant, comme « Voir mes courses », on la laisse faire)
+  if (closeTopModal()) { if (location.href === popped && popped !== here) history.pushState(null, "", here); return; }
+  routeHash();
+}
+window.addEventListener("hashchange", () => { if (location.href !== here) routeHash(); here = location.href; });
+window.addEventListener("popstate", () => { onBack(); here = location.href; });
 routeHash();
 
 // Exemples cliquables : ils pré-remplissent le formulaire
@@ -1019,13 +1037,15 @@ function confirmAddresses(pick, drop, pAddr, dAddr, fromCity, toCity) {
         checkMap.fitBounds([[legs.pick.lat, legs.pick.lon], [legs.drop.lat, legs.drop.lon]], { padding: [40, 40], maxZoom: 17 });
       }, 60);
     }
-    const done = ok => { $("#checkModal").classList.add("hidden"); $("#checkOk").onclick = $("#checkBack").onclick = null; resolve(ok ? legs : null); };
+    const done = ok => { $("#checkModal").classList.add("hidden"); $("#checkOk").onclick = $("#checkBack").onclick = $("#checkClose").onclick = $("#checkModal").onclick = null; resolve(ok ? legs : null); };
     $("#checkOk").onclick = () => {
       if (rules && !$("#rulesOk").checked) { $("#rulesErr").classList.remove("hidden"); return; }
       legs.rulesOk = rules;
       done(true);
     };
-    $("#checkBack").onclick = () => done(false);
+    // Corriger, la croix ou un toucher à côté de la fenêtre : retour au formulaire
+    $("#checkBack").onclick = $("#checkClose").onclick = () => done(false);
+    $("#checkModal").onclick = e => { if (e.target.id === "checkModal") done(false); };
   });
 }
 
@@ -1108,6 +1128,8 @@ function resetPlaces() {
 // Coordonnées exactes de « rue + numéro » choisis (sinon celles de la rue)
 async function exactPoint(p, number, cityName) {
   if (!p) return null;
+  // « 28/28-1 », « 28 א », « 28, appt 4 » : c'est le n° 28 qu'on cherche sur la carte
+  number = (String(number || "").match(/\d+/) || [String(number || "")])[0];
   if ((p.shopId || p.gps) && p.lat != null) return { lat: p.lat, lon: p.lon, exact: true };
   if (p.housenumber && p.housenumber === number) return { lat: p.lat, lon: p.lon, exact: p.exact !== false };
   if (p.streetName) {
