@@ -594,6 +594,8 @@ function render() {
     view.innerHTML = list.length ? `<div class="orders">${list.map(o => card(o, true)).join("")}</div>` : empty("Aucune course à accepter 👍");
   } else if (tab === "livreurs") {
     renderCouriers(view);
+  } else if (tab === "avis") {
+    renderReviews(view);
   } else if (tab === "hebdo") {
     renderWeek(view);
   } else if (tab === "commerces") {
@@ -1297,11 +1299,66 @@ function threadLabel(thread, msgs) {
   const m = msgs.find(v => v.author === "client" && v.author_name);
   return `💬 Client : ${m ? m.author_name : "sans nom"}`;
 }
+// --- Avis des livreurs (fin de service) : lus dans leurs messages au patron, rassemblés et classés ---------------
+const AVIS_SEEN = "livraison.avisSeen.v1";
+const RATE_OF = { "😀 Top": 2, "😐 Moyen": 1, "😕 Pas top": 0 };
+function parseReviews() {
+  return chatRecentList.filter(m => m.author === "courier" && /^📝 Fin de service/.test(m.body || "")).map(m => {
+    const c = couriers.find(x => "c:" + x.id === m.thread);
+    const r = { id: m.id, at: m.created_at, thread: m.thread, who: c ? c.name : m.author_name || "Livreur", head: String(m.body).split("\n")[0].replace(/^📝 /, ""), items: [], comment: "" };
+    String(m.body).split("\n").slice(1).forEach(l => {
+      const x = l.match(/^• (.+?) : (😀 Top|😐 Moyen|😕 Pas top)(?: \((.*)\))?$/);
+      if (x) r.items.push({ what: x[1], rate: RATE_OF[x[2]], label: x[2], tags: x[3] ? x[3].split(", ") : [] });
+      else if (/^💬 /.test(l)) r.comment = l.slice(3);
+    });
+    return r;
+  });
+}
+function avisBadge() {
+  const seen = (() => { try { return localStorage.getItem(AVIS_SEEN) || ""; } catch (e) { return ""; } })();
+  const n = parseReviews().filter(r => r.at > seen).length;
+  const el = $("#avisBadge"); if (el) { el.textContent = n || ""; el.classList.toggle("hidden", !n); }
+}
+function renderReviews(view) {
+  const list = parseReviews();
+  try { localStorage.setItem(AVIS_SEEN, new Date().toISOString()); } catch (e) { /* ignore */ }
+  avisBadge();
+  if (!list.length) { view.innerHTML = `<div class="card"><b>⭐ Avis des livreurs</b><p class="muted" style="margin-top:6px">Pas encore d'avis. À la fin de chaque service, vos livreurs donnent leur avis en 20 secondes (l'appli, chaque commerce, les clients, HOP!) : tout arrivera ici, rassemblé et classé.</p></div>`; return; }
+  // Regroupe les notes par sujet : score (0-100), nombre, et raisons les plus citées
+  const stats = {};
+  list.forEach(r => r.items.forEach(it => {
+    const s = stats[it.what] = stats[it.what] || { what: it.what, n: 0, sum: 0, top: 0, moyen: 0, bof: 0, tags: {} };
+    s.n++; s.sum += it.rate; s[["bof", "moyen", "top"][it.rate]]++;
+    it.tags.forEach(t => { s.tags[t] = (s.tags[t] || 0) + 1; });
+  }));
+  const score = s => Math.round(s.sum / s.n * 50);
+  const tone = v => v >= 75 ? "good" : v >= 45 ? "mid" : "bad";
+  const bar = s => `<div class="av-bar"><i class="t" style="flex:${s.top}"></i><i class="m" style="flex:${s.moyen}"></i><i class="b" style="flex:${s.bof}"></i></div>`;
+  const reasons = s => Object.entries(s.tags).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([t, n]) => `<span class="av-tag">${UI.esc(t)} <b>×${n}</b></span>`).join("");
+  const row = s => `<div class="av-row ${tone(score(s))}"><div class="av-name"><b>${UI.esc(s.what)}</b><small>${s.n} avis · 😀 ${s.top} · 😐 ${s.moyen} · 😕 ${s.bof}</small></div>
+      <div class="av-score">${score(s)}<small>/100</small></div>${bar(s)}${Object.keys(s.tags).length ? `<div class="av-tags">${reasons(s)}</div>` : ""}</div>`;
+  const all = Object.values(stats), shops = all.filter(s => s.what.startsWith("🏪")).sort((a, b) => score(a) - score(b) || b.n - a.n);
+  const main = ["📱 Appli", "🙋 Clients", "🛵 HOP!"].map(w => stats[w]).filter(Boolean);
+  const week = list.filter(r => Date.now() - new Date(r.at) < 7 * 86400000).length;
+  const alerts = shops.filter(s => s.bof > 0);
+  view.innerHTML = `
+    <div class="card av-head"><b>⭐ Avis des livreurs</b><small class="muted">${list.length} avis sur 30 jours · ${week} cette semaine · donnés en fin de service</small></div>
+    ${alerts.length ? `<div class="card av-alert">⚠️ <b>À regarder :</b> ${alerts.map(s => `${UI.esc(s.what.replace(/^🏪 /, ""))}${Object.keys(s.tags).length ? ` (${UI.esc(Object.entries(s.tags).sort((a, b) => b[1] - a[1])[0][0])})` : ""}`).join(" · ")}</div>` : ""}
+    <div class="card"><h3>Vue d'ensemble</h3><div class="av-list">${main.map(row).join("") || `<p class="muted">—</p>`}</div></div>
+    ${shops.length ? `<div class="card"><h3>🏪 Les commerces, du moins bien noté au mieux noté</h3><div class="av-list">${shops.map(row).join("")}</div></div>` : ""}
+    <div class="card"><h3>💬 Derniers avis</h3><div class="av-feed">${list.slice(0, 30).map(r => `<article class="av-item">
+        <div class="av-top"><b>${UI.esc(r.who)}</b><small>${UI.esc(new Date(r.at).toLocaleString("fr-FR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }))} · ${UI.esc(r.head.replace(/^Fin de service · /, ""))}</small></div>
+        <div class="av-chips">${r.items.map(it => `<span class="av-chip r${it.rate}">${UI.esc(it.what)} ${["😕", "😐", "😀"][it.rate]}${it.tags.length ? ` · ${UI.esc(it.tags.join(", "))}` : ""}</span>`).join("")}</div>
+        ${r.comment ? `<p class="av-com">« ${UI.esc(r.comment)} »</p>` : ""}
+        ${chatBtn(r.thread, `Livreur : ${r.who}`, "", "💬 Répondre")}
+      </article>`).join("")}</div></div>`;
+}
 async function refreshChats() {
   try { chatRecentList = await Store.chatRecent(); } catch (e) { return; }
   const lastOf = {};
   chatRecentList.forEach(m => { if (!lastOf[m.thread] || m.created_at > lastOf[m.thread].created_at) lastOf[m.thread] = m; });
   chatUnread = Chat.unread(chatRecentList.filter(m => !isClosed(m.thread, lastOf[m.thread])), "admin");
+  avisBadge();
   const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
   $("#chatTabBadge").textContent = total || "";
   $("#gbMessages").textContent = total || "";

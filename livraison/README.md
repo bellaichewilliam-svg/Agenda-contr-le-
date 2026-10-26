@@ -449,3 +449,8 @@ livraison/
 
   L'avis part au patron dans ses Messages (fil du livreur).
 - **Patron, inscriptions pas terminées : « 🗑️ Effacer de la liste »** (mail faux, plus de nouvelles). L'inscription est retirée de la liste et du badge, sur ce téléphone. S'il finit un jour son inscription, il réapparaît dans les livreurs à valider.
+- **Patron : onglet « ⭐ Avis des livreurs »** (groupe Livreurs, avec un badge pour les nouveaux avis). Il rassemble les avis de fin de service des 30 derniers jours, lus dans les messages des livreurs :
+  - en haut, l'alerte « ⚠️ À regarder » donne les commerces qui ont eu un 😕, avec la raison la plus citée ;
+  - la vue d'ensemble note l'appli, les clients et HOP! sur 100, avec une barre 😀 / 😐 / 😕 et les raisons les plus citées ;
+  - les commerces sont classés du moins bien noté au mieux noté ;
+  - les 30 derniers avis s'affichent avec le livreur, la date, les notes en couleur, son mot et le bouton « 💬 Répondre ».
