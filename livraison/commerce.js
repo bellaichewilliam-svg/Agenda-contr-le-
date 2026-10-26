@@ -42,6 +42,7 @@ function renderStatic() {
   pay.innerHTML = payChoiceHtml(chosen ? chosen.value === "1" : false);
   $("#brandName").innerHTML = UI.wordmark(I18N.lang === "he" ? "לעסקים" : "Pro");
   renderLanding();
+  renderExtra();
   const city = $("#shopCity").value || CONFIG.homeCity;
   $("#shopCity").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(I18N.cityName(c.id))}</option>`).join("");
   $("#shopCity").value = city;
@@ -187,6 +188,46 @@ function stickyCheck() {
 }
 addEventListener("scroll", stickyCheck, { passive: true });
 
+// --- Infos de base dès l'inscription (facultatif) : ce que verront les clients ----------------
+const extra = { logo: "", cover: "", shown: false };
+function renderExtra() {
+  const box = $("#shopExtra"), keep = extra.shown ? {
+    tagline: $("#sgTagline").value, about: $("#sgAbout").value, wa: $("#sgWa").value, hours: UI.readHours(box) } : null;
+  extra.shown = true;
+  const pic = (k, label, wide) => `<div class="sg-pic${wide ? " wide" : ""}">
+      <span class="sg-pic-img">${extra[k] ? `<img src="${extra[k]}" alt="" />` : wide ? "🖼️" : "🏪"}</span>
+      <span class="sg-pic-txt"><b>${UI.esc(t(label))}</b>
+        <label class="btn btn-sm">${UI.esc(t(extra[k] ? "brChange" : "brAdd"))}<input type="file" accept="image/*" data-sg-pic="${k}" hidden /></label>
+        ${extra[k] ? `<button type="button" class="btn btn-sm btn-link" data-sg-off="${k}">${UI.esc(t("brRemove"))}</button>` : ""}</span></div>`;
+  box.innerHTML = `<h3 class="sg-h">${UI.esc(t("sgTitle"))}</h3>
+    <p class="muted small" style="margin:2px 0 10px">${UI.esc(t("sgSub"))}</p>
+    <div class="sg-pics">${pic("logo", "brLogo")}${pic("cover", "brCover", true)}</div>
+    <label class="f wide"><span>${UI.esc(t("brTagline"))}</span><input id="sgTagline" maxlength="90" placeholder="${UI.esc(t("brTaglinePh"))}" /></label>
+    <label class="f wide" style="margin-top:10px"><span>${UI.esc(t("fiAbout"))}</span><textarea id="sgAbout" rows="2" maxlength="600" placeholder="${UI.esc(t("fiAboutPh"))}"></textarea></label>
+    <label class="f wide" style="margin-top:10px"><span>${UI.esc(t("fiWa"))}</span><input id="sgWa" inputmode="tel" dir="ltr" placeholder="05X-XXX-XXXX" /></label>
+    ${UI.hoursEditor(keep ? keep.hours : [])}`;
+  if (keep) { $("#sgTagline").value = keep.tagline; $("#sgAbout").value = keep.about; $("#sgWa").value = keep.wa; }
+}
+UI.bindHours($("#shopExtra"));
+$("#shopExtra").addEventListener("change", async e => {
+  const k = e.target.dataset && e.target.dataset.sgPic;
+  if (!k || !e.target.files[0]) return;
+  try { extra[k] = await (k === "logo" ? cropPhoto(e.target.files[0], 320, 320, 120000) : cropPhoto(e.target.files[0], 960, 480, 260000)); }
+  catch (ex) { return alert(t("ctPhotoErr")); }
+  renderExtra();
+});
+$("#shopExtra").addEventListener("click", e => {
+  const b = e.target.closest("[data-sg-off]");
+  if (b) { extra[b.dataset.sgOff] = ""; renderExtra(); }
+});
+// Ce que le commerce a rempli (rien = rien d'envoyé : la fiche automatique complète)
+function extraValues() {
+  const hours = UI.readHours($("#shopExtra"));
+  return { logo: extra.logo, cover: extra.cover, tagline: $("#sgTagline").value.trim(), about: $("#sgAbout").value.trim(),
+    whatsapp: $("#sgWa").value.replace(/\D/g, ""), hours: hours.some(h => h.h) ? hours : null };
+}
+const badRanges = hours => (hours || []).some(h => String(h.h || "").split(",").filter(Boolean).some(r => { const [a, b] = r.split("-"); return !a || !b || a >= b; }));
+
 // --- Inscription ------------------------------------------------------------------
 function onPick(p, fromName) {
   state.pick = p;
@@ -213,6 +254,9 @@ async function submit(e) {
     (!v("name") ? form.name : !v("address") ? form.address : form.phone).focus();
     return err(t("shErr"));
   }
+  const ex = extraValues();
+  if (ex.whatsapp && !/^(0\d{8,9}|972\d{8,9})$/.test(ex.whatsapp)) { $("#sgWa").focus(); return err(t("fiWaBad")); }
+  if (badRanges(ex.hours)) return err(t("fiHoursBad"));
   const btn = $("#shopSubmit");
   btn.disabled = true;
   btn.textContent = t("shSending");
@@ -229,6 +273,9 @@ async function submit(e) {
       ref_code: v("ref_code").toUpperCase() || null, lang: I18N.lang,
       client_pays: plan === "pro" && (form.querySelector("[name=client_pays]:checked") || {}).value === "1"
     });
+    // Les infos de base tout de suite dans sa fiche (seulement ce qui a été rempli)
+    if (ex.logo || ex.cover || ex.tagline) await Store.saveShopBrand(r.token, { logo: ex.logo || null, cover: ex.cover || null, tagline: ex.tagline }).catch(() => {});
+    if (ex.whatsapp || ex.about || ex.hours) await Store.shopFicheSave(r.token, { whatsapp: ex.whatsapp, about: ex.about, hours: ex.hours }).catch(() => {});
     history.replaceState(null, "", location.pathname + "?k=" + r.token);
     await openSpace(r.token);
     if (r.ref_other_city) alert(t("shRefCity", { city: I18N.cityName(r.ref_other_city) }));

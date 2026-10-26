@@ -128,7 +128,8 @@ async function enrich(shopId: string) {
     if (nProducts) done.push(`${nProducts} produits`);
   }
 
-  if (Object.keys(patch).length) await db.from("shops").update(patch).eq("id", shop.id);
+  // Case par case, et seulement si elle est toujours vide (le commerce a pu la remplir entre-temps à l'inscription)
+  for (const [k, v] of Object.entries(patch)) await db.from("shops").update({ [k]: v }).eq("id", shop.id).is(k, null);
   // Une ligne pour le patron dans la note interne de la fiche
   if (done.length) {
     const line = `🤖 Fiche remplie automatiquement à l'inscription : ${done.join(", ")} (à vérifier avec le commerce).`;
