@@ -734,7 +734,10 @@ function expiryPill(label, date) {
 }
 
 // Comptes créés sans fiche de livreur : l'inscription a commencé mais n'est pas finie
-function unfinished() { return accounts.filter(a => !a.has_fiche); }
+// Inscriptions pas terminées que le patron a effacées de sa liste (mail faux, plus de nouvelles) : gardées sur ce téléphone
+const HIDDEN_SIGNUPS = "livraison.hiddenSignups.v1";
+const hiddenSignups = () => { try { return JSON.parse(localStorage.getItem(HIDDEN_SIGNUPS) || "[]"); } catch (e) { return []; } };
+function unfinished() { const h = hiddenSignups(); return accounts.filter(a => !a.has_fiche && !h.includes(a.id)); }
 const fmtShort = iso => new Date(iso).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(" ", " à ");
 
 // Où en est l'inscription : inscrit, validé, notifications (sans elles, pas de course appli fermée)
@@ -776,6 +779,7 @@ function unfinishedCard() {
         ${a.phone ? `<a class="btn btn-sm btn-primary" href="tel:${UI.esc(a.phone)}">📞 Appeler</a><a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(a.phone, `Bonjour${a.name ? " " + a.name : ""}, ici ${CONFIG.businessName}. Ton inscription de livreur n'est pas finie : ouvre HOP! Livreur (${url}), touche « J'ai déjà un compte », mets ton email et ton mot de passe, puis termine ta fiche.`))}">🟢 WhatsApp</a><a class="btn btn-sm" href="${UI.esc(sms(a))}">💬 SMS</a>` : ""}
         ${a.confirmed ? "" : `<button type="button" class="btn btn-sm" data-confirm-mail="${UI.esc(a.id)}" title="Si le mail de confirmation n'arrive pas">✅ Confirmer son email</button>`}
         <a class="btn btn-sm" href="${UI.esc(mail(a))}">✉️ Lui écrire</a>
+        <button type="button" class="btn btn-sm btn-link danger" data-hide-signup="${UI.esc(a.id)}">🗑️ Effacer de la liste</button>
       </div>
     </article>`).join("")}</div>`;
 }
@@ -1359,6 +1363,13 @@ async function onViewClick(e) {
   if (th) return openAdminChat(th.dataset.thread, th.dataset.ctitle, th.dataset.csub, th.dataset.prefill, !!th.dataset.photo);
   const el = e.target.closest("button");
   if (!el) return;
+  if (el.dataset.hideSignup) {
+    const a = accounts.find(x => x.id === el.dataset.hideSignup);
+    if (!confirm(`Effacer ${a && (a.name || a.email) || "cette inscription"} de la liste ?\n\nÀ faire quand il n'y a plus de nouvelles (mail faux…). S'il finit un jour son inscription, il réapparaîtra dans vos livreurs à valider.`)) return;
+    try { localStorage.setItem(HIDDEN_SIGNUPS, JSON.stringify(hiddenSignups().concat(el.dataset.hideSignup))); } catch (ex) { /* ignore */ }
+    render();
+    return;
+  }
   if (el.dataset.confirmMail) {
     const a = accounts.find(x => x.id === el.dataset.confirmMail);
     if (!confirm(`Confirmer l'email de ${a && (a.name || a.email) || "ce livreur"} ?\n\nÀ faire si le mail de confirmation n'arrive pas. Ensuite, dites-lui : ouvre HOP! Livreur → « J'ai déjà un compte » → email et mot de passe, puis termine ta fiche.`)) return;
