@@ -143,6 +143,11 @@ window.CONFIG = {
     pickupPoint: 0,     // retrait à la poste / Super-Pharm / point relais : plus de supplément fixe (l'attente au-delà de 10 min est payée au temps, voir waiting)
     purchase: 5,        // « J'achète pour vous » : 5 ₪ pour l'arrêt et l'achat, toujours (même sans queue, même un paquet de cigarettes) ;
     purchaseMinutes: 5, // 5 min sur place comprises, puis 1 ₪ la minute (attente habituelle). En ligne : settings.purchase_min
+    // Articles cochés dans les rayons (pharmacie, makolet, boulangerie, tabac & alcool) : 10 compris dans le prix,
+    // puis +2 ₪ par article (1 ₪ pour le livreur, 1 ₪ pour HOP!, retiré de son crédit), 24 au plus ;
+    // place dans le top case (40 × 40 × 35 cm, 15 kg) : 30 « places » (un article = 1 à 4 selon sa taille).
+    // (La base compte la part HOP! de la même façon : orders_money_guard.)
+    purchaseItems: { included: 10, max: 24, extraCourier: 1, extraHop: 1, topcase: 30 },
     extraStop: 10,      // (ancien) par arrêt supplémentaire sans adresse
     // Arrêt en plus, avec son adresse : sur le chemin (détour d'au plus onWayKm km) → onWayPercent % du
     // prix d'une course ; sinon le prix d'une course (base). Au plus maxStops arrêts.

@@ -6141,3 +6141,33 @@ $$;
 -- FICHE AUTOMATIQUE D'UN COMMERCE : rien dans la base. La fonction shop-enrich (supabase/functions/shop-enrich)
 -- est appelée par l'appli juste après l'inscription (clé du commerce) et par le patron (« 🤖 Remplir sa fiche »).
 -- ============================================================================
+
+-- « Acheter pour moi » avec les rayons à cocher : 10 articles compris, puis +2 ₪ l'article payés au livreur
+-- (1 ₪ pour lui, 1 ₪ pour HOP!), 24 au plus. La part HOP! va dans hop_share : retirée du crédit du livreur
+-- à la livraison (course_due), et la commission se calcule sans elle (course_value). Les articles se comptent
+-- sur les lignes « … ×N » de la liste.
+create or replace function public.orders_money_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare units int;
+begin
+  new.discount := case when new.promo_code is null then 0 else least(greatest(coalesce(new.discount, 0), 0), 30) end;
+  new.hop_share := case when coalesce(new.shop_share, 0) > 0
+                          then least(new.shop_share, (select pro_hop_share from settings where id = 1))
+                        when new.shop_status is not null
+                          then least(greatest(coalesce(new.price, 0), 0), (select pro_hop_share_client from settings where id = 1))
+                        else 0 end;
+  if new.service = 'achat' and new.shop_status is null and coalesce(new.shop_share, 0) = 0 then
+    select coalesce(sum(a[1]::int), 0) into units
+      from regexp_matches(coalesce(new.shopping_list, ''), '×(\d{1,2})\s*$', 'gn') as m(a);
+    new.hop_share := new.hop_share + greatest(0, least(units, 24) - 10);
+  end if;
+  new.network := false; new.tip := 0; new.tip_status := null;
+  new.shop_ref := case when new.shop_id is not null and new.shop_ref ~ '^[0-9]{3}$' then new.shop_ref end;
+  if new.adult_items like '%alcool%' and (extract(hour from new.pickup_at at time zone 'Asia/Jerusalem') >= 23
+                                          or extract(hour from new.pickup_at at time zone 'Asia/Jerusalem') < 6) then
+    raise exception 'alcohol_hours';
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_money_guard() from public, anon, authenticated;

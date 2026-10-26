@@ -2481,3 +2481,17 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 /* Compteur − 2 + : la pastille reste blanche (le chiffre foncé se lit aussi en mode sombre) */
 .cg-qty { background: #fff; color: #0F1F3D; }
 .cg-qty b { color: #0F1F3D; font-weight: 800; font-size: 16px; min-width: 18px; }
+/* Rayons : prix indicatif, jauge du top case, total estimé ; tabac sans image */
+.ph-price { color: var(--muted); font-weight: 700; font-size: 12.5px; }
+.ph-item.no-img { padding-inline-start: 14px; }
+.ph-cat i { font-style: normal; font-size: 16px; }
+.ph-meter { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 9px 11px; display: grid; gap: 5px; }
+.pm-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13.5px; }
+.pm-row span { font-weight: 800; color: var(--muted); }
+.pm-bar { height: 9px; border-radius: 99px; background: var(--bg-2); overflow: hidden; }
+.pm-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, #22C55E, #16A34A); transition: width .3s; }
+.ph-meter.warn .pm-bar i { background: linear-gradient(90deg, #F59E0B, #F97316); }
+.ph-meter.full .pm-bar i { background: linear-gradient(90deg, #F97316, #EF4444); }
+.ph-meter small { color: var(--muted); line-height: 1.35; }
+.pm-msg { margin: 2px 0 0; font-size: 13px; font-weight: 700; color: var(--red, #D92D20); }
+.ph-goods { display: block; font-weight: 800; margin: 2px 0; }

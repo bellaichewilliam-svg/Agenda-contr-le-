@@ -443,7 +443,7 @@ function baseQuote() {
   return Pricing.computeQuote({
     fromCity: cityOf("from"), toCity: cityOf("to"),
     fromPoint: state.fromPoint, toPoint: state.toPoint,
-    service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
+    service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(), units: rayonUnits(),
     couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
@@ -564,14 +564,33 @@ function rayonOn() {
 const pharmaOn = () => !!rayonOn();
 const phName = x => (I18N.lang === "he" ? x.he : x.fr);
 const rayonPicked = r => Object.entries(state.pharma).filter(([k, q]) => q > 0 && k.startsWith(r.id + ":"));
+// Produit + variante d'une clé « rayon:produit|variante » ; son prix indicatif et sa place (la variante peut avoir les siens)
+function rayonEntry(r, k) {
+  const [id, o] = k.slice(r.id.length + 1).split("|"), x = r.items.find(i => i.id === id);
+  if (!x) return null;
+  const v = x.opt && x.opt[Number(o)];
+  return { x, v, p: (v && v.p) || x.p || null, sz: (v && v.sz) || x.sz || 1 };
+}
+const PI = CONFIG.pricing.purchaseItems || { included: 10, max: 24, extraCourier: 1, extraHop: 1, topcase: 30 };
+const rayonUnits = () => { const r = rayonOn(); return r ? rayonPicked(r).reduce((a, [, q]) => a + q, 0) : 0; };
+const rayonPlace = () => { const r = rayonOn(); return r ? rayonPicked(r).reduce((a, [k, q]) => a + q * ((rayonEntry(r, k) || {}).sz || 1), 0) : 0; };
+// Ce que coûteront les articles au magasin (fourchette, prix indicatifs ; le tabac n'a pas de prix)
+function rayonGoods() {
+  const r = rayonOn();
+  if (!r) return null;
+  let lo = 0, hi = 0, any = false;
+  rayonPicked(r).forEach(([k, q]) => { const e = rayonEntry(r, k); if (e && e.p) { lo += e.p[0] * q; hi += e.p[1] * q; any = true; } });
+  return any ? { lo, hi } : null;
+}
+const priceTxt = p => (p[0] === p[1] ? `${p[0]} ₪` : `${p[0]}-${p[1]} ₪`);
 function pharmaLines() {
   const r = rayonOn();
   if (!r) return [];
   return rayonPicked(r).map(([k, q]) => {
-    const [id, o] = k.slice(r.id.length + 1).split("|"), x = r.items.find(i => i.id === id);
-    if (!x) return null;
-    const opt = x.opt && x.opt[Number(o)] ? " · " + phName(x.opt[Number(o)]) : "";
-    return `${x.e} ${phName(x)}${opt} ×${q}`;
+    const e = rayonEntry(r, k);
+    if (!e) return null;
+    // (le prix indicatif aide le livreur à voir un prix anormal ; « ×N » reste en fin de ligne : la base compte les articles)
+    return `${e.x.e} ${phName(e.x)}${e.v ? " · " + phName(e.v) : ""}${e.p ? ` (≈ ${priceTxt(e.p)})` : ""} ×${q}`;
   }).filter(Boolean);
 }
 // Tabac / alcool cochés : les cases « 18 ans et plus » suivent
@@ -595,17 +614,28 @@ function renderPharma() {
   const inCat = c => picked.filter(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).c === c).reduce((a, [, q]) => a + q, 0);
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
   const html = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small></div>
-    <div class="ph-cats">${r.cats.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}"><img src="img/qc/${c.img}.webp" alt="" />${UI.esc(phName(c))}${k ? ` <em>${k}</em>` : ""}</button>`; }).join("")}</div>
+    ${rayonMeter(n)}
+    <div class="ph-cats">${r.cats.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}">${c.img ? `<img src="img/qc/${c.img}.webp" alt="" />` : `<i>${c.e}</i>`}${UI.esc(phName(c))}${k ? ` <em>${k}</em>` : ""}</button>`; }).join("")}</div>
     <div class="ph-list">${r.items.filter(x => x.c === state.pharmaCat).map(x => {
       const sel = Number((state.pharmaOpt || {})[r.id + ":" + x.id] || 0), k = key(x, x.opt ? sel : 0), q = state.pharma[k] || 0;
-      return `<div class="ph-item${q ? " in" : ""}"><span class="ph-ico"><img src="img/qc/${x.img}.webp" alt="" loading="lazy" /></span><span class="ph-name"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>
+      const pr = (x.opt && x.opt[sel] && x.opt[sel].p) || x.p;
+      return `<div class="ph-item${q ? " in" : ""}${x.img ? "" : " no-img"}">${x.img ? `<span class="ph-ico"><img src="img/qc/${x.img}.webp" alt="" loading="lazy" /></span>` : ""}<span class="ph-name"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${pr ? `<small class="ph-price">≈ ${priceTxt(pr)}</small>` : ""}
         ${x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : ""}</span>
         ${q ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${q}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>`;
     }).join("")}</div>
-    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b><small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
+    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { lo: g.lo, hi: g.hi }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
   box.style.setProperty("--rc", r.color);
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+// Jauge : combien d'articles (10 compris, puis +2 ₪ l'article, 24 au plus) et la place prise dans le top case
+function rayonMeter(n) {
+  const place = Math.min(100, Math.round(rayonPlace() / PI.topcase * 100)), extra = Math.max(0, n - PI.included);
+  const lvl = place >= 100 || n >= PI.max ? "full" : place >= 75 || n > PI.included ? "warn" : "ok";
+  return `<div class="ph-meter ${lvl}"><div class="pm-row"><b>🛵 ${UI.esc(t("phTopcase", { p: place }))}</b><span>${UI.esc(t("phCount", { n, max: PI.max }))}</span></div>
+    <div class="pm-bar"><i style="width:${place}%"></i></div>
+    <small>${UI.esc(extra ? t("phExtra", { n: extra, each: PI.extraCourier + PI.extraHop, inc: PI.included }) : t("phIncluded", { inc: PI.included, each: PI.extraCourier + PI.extraHop, max: PI.max }))}</small>
+    ${state.pharmaMsg ? `<p class="pm-msg">${UI.esc(state.pharmaMsg)}</p>` : ""}</div>`;
 }
 // Accueil : les rayons mis en avant (pharmacie, tabac & alcool, boulangerie, makolet), en cartes qui défilent
 function renderHomePharma() {
@@ -626,10 +656,14 @@ function goPharma() {
 // « Qu'est-ce qu'on livre ? » (tuiles) et cartes des rayons : on choisit, et on avance — d'abord le magasin
 // le plus proche quand il y a une liste (pharmacie, boulangerie, poste…), puis la commande avec ses produits
 function goKind(id) {
-  if (state.homeKind === id) return goPharma();
-  // Autre type de course : le magasin choisi avant (une pharmacie pour une commande de pain…) est oublié
+  // Même type de course, rien d'autre de choisi : on reprend la commande
+  if (state.homeKind === id && !state.shop) return goPharma();
+  // Sinon on repart de la liste : le commerce ouvert avant (la fiche Nini…) ou le magasin choisi avant
+  // (une pharmacie pour une commande de pain…) est oublié
+  if (state.shop) leaveShop(true);
   const f = state.pick.from;
-  if (f && f.brand && !f.partnerCode && !f.shopId) clearHomeAddr("from", true);
+  if (f && f.brand) clearHomeAddr("from", true);
+  if (state.homeKind === id) state.homeKind = null;   // (applyKind le remet, sans l'enlever)
   state.pharmaGo = true;
   applyKind(id);
   if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); }
@@ -643,11 +677,20 @@ $("#ensClose").addEventListener("click", () => { if (state.pharmaGo) { state.pha
 $("#ensModal").addEventListener("click", e => { if (e.target.id === "ensModal" && state.pharmaGo) { state.pharmaGo = false; goPharma(); } });
 $("#pharmaBox").addEventListener("click", e => {
   const c = e.target.closest("[data-ph-cat]"), plus = e.target.closest("[data-ph-plus]"), minus = e.target.closest("[data-ph-minus]");
+  state.pharmaMsg = "";
   if (c) state.pharmaCat = c.dataset.phCat;
-  else if (plus) state.pharma[plus.dataset.phPlus] = Math.min(20, (state.pharma[plus.dataset.phPlus] || 0) + 1);
+  else if (plus) {
+    // 24 articles au plus, et tout doit tenir dans le top case
+    const r = rayonOn(), e = r && rayonEntry(r, plus.dataset.phPlus);
+    if (rayonUnits() >= PI.max) state.pharmaMsg = t("phMax", { max: PI.max });
+    else if (e && rayonPlace() + e.sz > PI.topcase) state.pharmaMsg = t("phFull");
+    else state.pharma[plus.dataset.phPlus] = (state.pharma[plus.dataset.phPlus] || 0) + 1;
+  }
   else if (minus) { const k = minus.dataset.phMinus; state.pharma[k] = Math.max(0, (state.pharma[k] || 0) - 1); if (!state.pharma[k]) delete state.pharma[k]; }
   else return;
   if (plus) rayonAdult();
+  // Les articles cochés tiennent dans le top case (la jauge le vérifie) : la case est cochée pour le client
+  if (rayonUnits() > 0) form.fits_topcase.checked = true;
   renderPharma();
   renderQuote();
   saveDraft();
@@ -3268,9 +3311,11 @@ $("#reqForm").addEventListener("submit", sendRequest);
 $("#reqClose").addEventListener("click", () => $("#reqModal").classList.add("hidden"));
 // Lien direct vers la demande de devis (ex. depuis l'espace pro : index.html#devis)
 if (location.hash === "#devis") setTimeout(() => openRequest("tournee"), 300);
-$("#shopBannerOff").addEventListener("click", () => {
+// On quitte le commerce choisi (« Ne plus commander chez… », ou une autre tuile de l'accueil)
+function leaveShop(quiet) {
   const side = shopSide() || "from";
   state.shop = null;
+  state.cart = {};
   state.pick[side] = null; state[side + "Point"] = null;
   if (ac[side]) ac[side].reset();
   if (home.ac && home.ac[side]) home.ac[side].reset();
@@ -3278,9 +3323,11 @@ $("#shopBannerOff").addEventListener("click", () => {
   form.elements[prefixOf(side) + "_number"].value = "";
   setBrandMode(side, false);
   renderShopBanner();
+  renderCatalog();
   renderQuote();
-  form.elements[prefixOf(side) + "_address"].focus();
-});
+  if (!quiet) form.elements[prefixOf(side) + "_address"].focus();
+}
+$("#shopBannerOff").addEventListener("click", () => leaveShop());
 // Pressing : on vient chercher les vêtements chez le client (→ pressing) ou on les ramène (pressing →)
 $("#shopHero").addEventListener("click", e => {
   const b = e.target.closest("[data-shop-dir]");
