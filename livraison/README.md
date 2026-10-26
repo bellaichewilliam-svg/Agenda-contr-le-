@@ -434,3 +434,4 @@ livraison/
   - elle reprend sa page publique s'il en a une : horaires, photo, logo, accroche, menu avec prix et photos ;
   - elle ne remplit que les cases encore vides, et laisse une ligne « 🤖 » dans la note interne.
 - **Inscription commerce : « ✨ Votre vitrine (facultatif) »** avec logo, photo de couverture, phrase d'accroche, présentation, WhatsApp et horaires (raccourcis « Dim–jeu… »). Ces infos sont enregistrées dans sa fiche dès l'inscription (`shop_brand_save` / `shop_fiche_save`, seulement ce qui est rempli). La fiche automatique ne complète que les cases restées vides, case par case.
+- **Carte : la bulle d'un commerce n'est jamais coupée.** À l'ouverture, la carte glisse pour que la bulle entière, bouton « Commander chez … » compris, reste au-dessus du volet du bas et sous le haut de la carte.
