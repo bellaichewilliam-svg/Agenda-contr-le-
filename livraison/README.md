@@ -427,3 +427,4 @@ livraison/
   - à l'accueil, quand le commerce choisi est fermé, l'appli affiche « 🌙 EDMAR · Fermé · ouvre à 08:30. Pas de livreur avant l'ouverture. » et propose le raccourci « 🏪 À l'ouverture 08:45 » ;
   - les raccourcis d'heure tombant pendant la fermeture disparaissent (« Maintenant », « Ce soir 19:00 »…) ;
   - aucune course ne peut partir à une heure où le commerce est fermé : au départ du commerce, ou environ 25 min après le départ quand on y dépose.
+- **« Enseignes près de vous » : les partenaires HOP! en tête de chaque catégorie** selon leur métier (restaurant → Restaurants, pressing, pharmacie, boutique → Centres commerciaux, fleuriste, épicerie → Supermarchés). Ils y apparaissent même un peu loin, et même quand la carte ne répond pas. Avant, un restaurant partenaire (Nini deli) n'apparaissait pas dans « Restaurants ».
