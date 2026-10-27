@@ -1005,7 +1005,7 @@ async function courierAction(id, action) {
   const freeOf = () => o.unlocked || (cr && cr.unlocked_until && new Date(cr.unlocked_until) > new Date());
   if (action === "arrivee" && o.status === "confirmee" && !o.arrived_at) {
     // Même règle qu'en ligne : au départ seulement (le compteur d'attente démarre)
-    if (!freeOf() && o.pickup_lat != null && (!cr || cr.lat == null || Date.now() - new Date(cr.position_at) > 180000
+    if (!freeOf() && o.pickup_lat != null && !o.pickup_near && (!cr || cr.lat == null || Date.now() - new Date(cr.position_at) > 180000
       || Pricing.haversineKm({ lat: cr.lat, lon: cr.lon }, { lat: o.pickup_lat, lon: o.pickup_lon }) * 1000 > Number(st.deliver_radius) * 1.5)) {
       throw new Error("too_far_pickup");
     }
