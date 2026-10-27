@@ -441,8 +441,8 @@ livraison/
   - **carte déjà lue sur un autre site** (`{menu: [{cat, name, description, price, photo}], source, logo, cover}`) : sert aux sites qui ne sont pas des boutiques Shopify, par exemple une page de commande Zenorder. Elle ne fait rien si le catalogue n'est pas vide. Les photos passent par un serveur d'images public (wsrv.nl), qui les renvoie en webp léger. C'est le cas de Nina Sushi (`NINASUSHI`, 16 rubriques, 121 plats, 2,7 Mo de photos).
 - **Badge « Casher » des partenaires** :
   - le patron coche « ✡️ Casher » sur la fiche du commerce dans son panel (colonne `shops.kosher`) ;
-  - le badge « ✡ Casher / כשר » apparaît sur la carte vitrine, sur la page du commerce et dans la bulle de la carte ;
-  - Paris Texas Netanya (succursale casher de Kiryat HaSharon) l'a déjà.
+  - le badge est un sceau bleu dégradé, avec une étoile de David blanche dans un rond, suivi de « Casher / כשר ». Il apparaît sur la photo de la carte vitrine, sous le nom sur la page du commerce, en petit sceau au coin des logos ronds du haut de l'accueil, et dans la bulle de la carte ;
+  - il est coché pour tous les restaurants partenaires sauf Panda Sushi : Nini deli, Nina Sushi, Smash It, Paris Texas.
 - **Logos jamais coupés** : un logo large (par exemple celui de Panda Sushi) s'affiche en entier, centré sur fond blanc, dans les pastilles rondes, les cartes vitrines, la page du commerce et sur la carte.
 - **Nouveaux partenaires repris de leur site** :
   - Panda Sushi (`PANDASUSHI`, boutique WooCommerce : 16 rubriques, 148 plats) ;
