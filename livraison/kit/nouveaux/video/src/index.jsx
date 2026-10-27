@@ -4,6 +4,8 @@
 import React from "react";
 import { registerRoot, Composition, AbsoluteFill, Img, staticFile, useCurrentFrame, useVideoConfig, spring, interpolate, Easing } from "remotion";
 import data from "../props.json";
+import { FONTS } from "./fonts";
+import { Courses } from "./courses";
 
 const T = {
   fr: { kicker: "✨ Nouveau sur HOP!", h1a: "On vous livre", h1b: "vos adresses préférées", more: "+ des centaines d'autres enseignes à Netanya",
@@ -12,12 +14,6 @@ const T = {
     cta: "מזמינים באפליקציה", price: "משלוח בתוך נתניה", kosher: "כשר", url: "hop-livraison.vercel.app", tag: "הופ, וזה אצלך!" }
 };
 const NAVY = "#0F1F3D", ORANGE = "#FF6A13";
-const FONTS = `
-@font-face{font-family:Fredoka;font-weight:700;src:url(${staticFile("fonts/fredoka-latin-700.woff2")}) format("woff2");unicode-range:U+0000-024F,U+20AA,U+2013-2019,U+00B7}
-@font-face{font-family:Fredoka;font-weight:700;src:url(${staticFile("fonts/fredoka-hebrew-700.woff2")}) format("woff2");unicode-range:U+0590-05FF}
-@font-face{font-family:Rubik;font-weight:700;src:url(${staticFile("fonts/rubik-latin-700.woff2")}) format("woff2");unicode-range:U+0000-024F,U+20AA,U+2013-2019,U+00B7}
-@font-face{font-family:Rubik;font-weight:700;src:url(${staticFile("fonts/rubik-hebrew-700.woff2")}) format("woff2");unicode-range:U+0590-05FF}`;
-
 const Star = ({ size }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" style={{ background: "#fff", color: "#1D4ED8", borderRadius: "50%", padding: size * 0.16, boxSizing: "border-box", display: "block" }}>
     <path d="M12 3.2l7.6 13.2H4.4zM12 20.8L4.4 7.6h15.2z" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" />
@@ -91,7 +87,11 @@ const Nouveaux = ({ lang }) => {
   );
 };
 
+const CoursesV = p => <><style>{FONTS}</style><Courses {...p} /></>;
 const Root = () => (
-  <Composition id="Nouveaux" component={Nouveaux} durationInFrames={450} fps={30} width={1080} height={1920} defaultProps={{ lang: "fr" }} />
+  <>
+    <Composition id="Nouveaux" component={Nouveaux} durationInFrames={450} fps={30} width={1080} height={1920} defaultProps={{ lang: "fr" }} />
+    <Composition id="Courses" component={CoursesV} durationInFrames={450} fps={30} width={1080} height={1920} defaultProps={{ lang: "fr" }} />
+  </>
 );
 registerRoot(Root);

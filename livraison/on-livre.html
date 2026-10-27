@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#FFFFFF" />
+  <meta name="description" content="Ce que HOP! livre à Netanya : supérette, pharmacie, boulangerie, restaurants, poste, pressing, fleurs, bébé, animaux… On achète pour vous et on livre. מה הופ! מביאים בנתניה." />
+  <meta property="og:title" content="Ce qu'on livre · מה אנחנו מביאים · HOP!" />
+  <meta property="og:description" content="Vous choisissez, on achète et on livre. Prix fixe affiché, suivi en direct, espèces ou Bit." />
+  <title>Ce qu'on livre · HOP!</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=202610271629" />
+</head>
+<body class="onlivre">
+<!-- Page d'arrivée des flyers et des QR codes : on explique d'abord ce qu'on livre, puis on ouvre l'appli sur la bonne catégorie -->
+<header class="topbar">
+  <div class="wrap">
+    <a class="logo" href="index.html"><img class="logo-mark" src="logo.svg" alt="" /><span class="logo-name">HOP!</span></a>
+    <span style="flex:1"></span>
+    <button type="button" class="btn btn-sm" id="olLang"></button>
+  </div>
+</header>
+
+<main class="wrap narrow" style="padding:20px 16px 120px">
+  <section class="ol-hero">
+    <h1 id="olH1"></h1>
+    <p class="ol-sub" id="olSub"></p>
+    <ol class="ol-steps" id="olSteps"></ol>
+  </section>
+  <h2 class="ol-h2" id="olPick"></h2>
+  <div class="ol-grid" id="olGrid"></div>
+  <ul class="ol-perks" id="olPerks"></ul>
+</main>
+
+<div class="ol-bar"><a class="btn btn-primary btn-lg" href="index.html" id="olGo"></a></div>
+
+<script src="config.js?v=202610271629"></script>
+<script src="i18n.js?v=202610271629"></script>
+<script src="pricing.js?v=202610271629"></script>
+<script src="common.js?v=202610271629"></script>
+<script>
+(function () {
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const home = CONFIG.homeCity;
+  // Même liste et mêmes illustrations que les catégories de l'appli (client.js : EXAMPLES, KIND_ART) ; pas d'image pour le tabac
+  const KINDS = [
+    ["shop", "cart", 140, { service: "achat" }], ["pharm", "pill", 160, { service: "achat" }], ["bakery", "croissant", 38, { service: "achat" }],
+    ["resto", "burger", 25, { service: "repas", urgency: "express" }], ["poste", "mailbox", 205, { service: "retrait", place_kind: "poste" }],
+    ["pressing", "basket", 35, { service: "colis" }], ["gift", "flowers", 330, { service: "achat", urgency: "programmee" }],
+    ["baby", "baby", 330, { service: "achat" }], ["pets", "dog", 30, { service: "achat" }], ["home", "plug", 210, { service: "achat" }],
+    ["docs", "docs", 215, { service: "colis", round_trip: true }], ["keys", "key", 45, { service: "colis", urgency: "express" }],
+    ["yad2", "couch", 30, { service: "colis", size: "moyen" }]
+  ];
+  const TXT = {
+    fr: { h1: "Ce qu'on livre <em>à Netanya</em>", sub: "Tout ce dont vous avez besoin : vous choisissez, le livreur HOP! va au magasin, achète pour vous et vous l'apporte.",
+      steps: ["Choisissez une catégorie ci-dessous", "Écrivez ce qu'il vous faut", "Le livreur achète et livre, vous suivez sur la carte"],
+      pick: "Touchez ce qu'il vous faut", from: "dès", perks: ["🧾 Le prix réel du magasin, 0 frais de service", "📍 Vous suivez le livreur en direct", "💵 Espèces ou Bit", "🏪 Tous les magasins, même les petits"],
+      go: "Ouvrir l'appli HOP!", lang: "עברית" },
+    he: { h1: "מה אנחנו מביאים <em>בנתניה</em>", sub: "כל מה שצריך: בוחרים, השליח של הופ! הולך לחנות, קונה בשבילכם ומביא עד הבית.",
+      steps: ["בוחרים קטגוריה למטה", "כותבים מה צריך", "השליח קונה ומביא, ואתם עוקבים על המפה"],
+      pick: "בחרו מה אתם צריכים", from: "החל מ-", perks: ["🧾 המחיר האמיתי של החנות, 0 דמי שירות", "📍 מעקב אחרי השליח בזמן אמת", "💵 מזומן או ביט", "🏪 כל החנויות, גם הקטנות"],
+      go: "לפתוח את האפליקציה", lang: "Français" }
+  };
+  function render() {
+    const L = I18N.lang, x = TXT[L];
+    I18N.apply();
+    document.title = (L === "he" ? "מה אנחנו מביאים" : "Ce qu'on livre") + " · HOP!";
+    $("#olH1").innerHTML = x.h1;
+    $("#olSub").textContent = x.sub;
+    $("#olSteps").innerHTML = x.steps.map((s, i) => `<li><b>${i + 1}</b><span>${UI.esc(s)}</span></li>`).join("");
+    $("#olPick").textContent = x.pick;
+    $("#olGrid").innerHTML = KINDS.map(([id, art, hue, set]) => {
+      const q = Pricing.computeQuote({ fromCity: home, toCity: home, service: set.service, size: set.size || "petit", roundTrip: set.round_trip }, CONFIG);
+      return `<a class="ol-card" href="index.html?k=${id}">${UI.artImg(art, hue)}
+        <span class="ol-txt"><b>${UI.esc(I18N.t("ex_" + id + "_t"))}</b><small>${UI.esc(I18N.t("ex_" + id + "_d"))}</small></span>
+        <em class="ol-price">${UI.esc(x.from)}${L === "he" ? "" : " "}${UI.money(q.total)}</em></a>`;
+    }).join("");
+    $("#olPerks").innerHTML = x.perks.map(p => `<li>${UI.esc(p)}</li>`).join("");
+    $("#olGo").textContent = x.go;
+    $("#olLang").textContent = x.lang;
+  }
+  $("#olLang").addEventListener("click", () => { I18N.setLang(I18N.lang === "he" ? "fr" : "he"); render(); });
+  render();
+})();
+</script>
+</body>
+</html>
