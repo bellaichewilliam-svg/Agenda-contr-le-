@@ -776,15 +776,19 @@ function renderQuote() {
     + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t("qItems", { total: money(cartTotal()), name: UI.bi(state.shop.name) }))}</span></li>` : "")
+    // Achats payés au livreur : le montant des articles (au maximum) est dans le prix, comme la course
+    + (goods && goodsPrepay() ? `<li class="goods-amt"><span>${UI.esc(t("qGoodsMax"))}</span><span dir="ltr">${goodsBudget() ? money(goodsBudget()) : "—"}</span></li>` : "")
     + (goods && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : goodsPrepay() ? "qGoodsPre" : "qGoods"))}</span></li>` : "")
     + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "");
-  const total = (q.known ? "" : t("from") + " ") + money(q.total);
+  // (achats payés au livreur : course + articles au maximum, ce que le client envoie vraiment)
+  const all = Number(q.total) + (val("service") === "achat" && goodsPrepay() ? goodsBudget() : 0);
+  const total = (q.known ? "" : t("from") + " ") + money(all);
   $("#quoteTotal").textContent = total;
   $("#mobileTotal").textContent = total;
-  $("#submitBtn").textContent = t("submit", { total: money(q.total) });
+  $("#submitBtn").textContent = t("submit", { total: money(all) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
-  if (val("service") === "achat") notes.push(t(goodsPrepay() ? "qPurchaseNotePre" : "qPurchaseNote"));
+  if (val("service") === "achat") notes.push(goodsPrepay() ? t("qPurchaseNotePre2", { ride: money(q.total), goods: money(goodsBudget()) }) : t("qPurchaseNote"));
   const st = state.settings;
   if (st.wait_step_price != null) notes.push(t("qWait", { free: st.wait_free_min, step: Number(st.wait_step_min) === 1 ? t("stepMin1") : t("stepMinN", { n: st.wait_step_min }), price: money(st.wait_step_price), max: money(st.wait_max) }));
   const sched = val("urgency") === "programmee";
