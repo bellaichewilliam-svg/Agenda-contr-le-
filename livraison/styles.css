@@ -236,6 +236,11 @@ label.check input { width: 20px; height: 20px; accent-color: var(--brand); flex:
 .svc-retrait .show-retrait, .svc-achat .show-achat, .place-poste .show-poste { display: flex !important; }
 /* (une note masquée reste masquée, ex. « Supermarché » quand on commande à la pharmacie) */
 .svc-achat .show-achat.hidden, .svc-retrait .show-retrait.hidden, .place-poste .show-poste.hidden { display: none !important; }
+/* Tabac / alcool / 18 ans : une case par ligne (le « flex » ci-dessus les mettait côte à côte, textes écrasés) */
+.svc-achat .adult-box.show-achat { display: grid !important; grid-template-columns: 1fr; }
+.adult-box label.check { align-items: flex-start; line-height: 1.35; }
+.adult-box label.check input, label.check input[type=checkbox] { flex: none; }
+.adult-box label.check input { margin-top: 1px; }
 .svc-retrait .hide-retrait { display: none !important; }
 .show-locker { display: none !important; }
 .place-locker .show-locker { display: flex !important; }
