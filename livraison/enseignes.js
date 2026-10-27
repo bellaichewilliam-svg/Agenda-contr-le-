@@ -178,8 +178,9 @@ async function listNear(catId, at, lang, onMore) {
     // L'annuaire HOP! s'affiche tout de suite ; la carte complète la liste quand elle répond
     if (fromDir.length && onMore) { net.then(m => { if (m.length) onMore(merge(m)); }); return merge([]); }
     return merge(await net);
-  } else if (cat.id === "food" && (items = (await Places.directory()).filter(e => e.lat != null && Places.km(at, e) * 1000 <= cat.r * 2)).length) {
-    // Restaurants : l'annuaire HOP! (vrais noms, adresses, téléphones), avec l'icône de leur cuisine
+  } else if (cat.id === "food" && (items = (await Places.directory()).filter(e => e.lat != null && e.t !== "shop" && Places.km(at, e) * 1000 <= cat.r * 2)).length) {
+    // Restaurants : l'annuaire HOP! (vrais noms, adresses, téléphones), avec l'icône de leur cuisine.
+    // Seulement les lieux où l'on mange : pas les magasins de l'annuaire (pharmacie, vêtements, meubles…)
     items = items.map(e => {
       const m = String(e.s || "").match(/^(.*?)\s+(\d+\S*)/);
       return { name: Places.dirName(e, lang), street: m ? m[1] : (e.s || ""), number: m ? m[2] : "", city: e.c || "נתניה", phone: e.p || null,

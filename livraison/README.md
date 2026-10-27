@@ -443,6 +443,7 @@ livraison/
   - le patron coche « ✡️ Casher » sur la fiche du commerce dans son panel (colonne `shops.kosher`) ;
   - le badge est un sceau bleu dégradé, avec une étoile de David blanche dans un rond, suivi de « Casher / כשר ». Il apparaît sur la photo de la carte vitrine, sous le nom sur la page du commerce, en petit sceau au coin des logos ronds du haut de l'accueil, et dans la bulle de la carte ;
   - il est coché pour tous les restaurants partenaires sauf Panda Sushi : Nini deli, Nina Sushi, Smash It, Paris Texas.
+- **« Enseignes près de vous » → Restaurants : seulement des lieux où l'on mange.** Les magasins de l'annuaire (pharmacies comme Super-Pharm, vêtements, meubles…, marqués `t: "shop"`) n'y apparaissent plus.
 - **Logos jamais coupés** : un logo large (par exemple celui de Panda Sushi) s'affiche en entier, centré sur fond blanc, dans les pastilles rondes, les cartes vitrines, la page du commerce et sur la carte.
 - **Nouveaux partenaires repris de leur site** :
   - Panda Sushi (`PANDASUSHI`, boutique WooCommerce : 16 rubriques, 148 plats) ;
