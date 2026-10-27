@@ -1,0 +1,55 @@
+name: Kit pub - nouveaux partenaires
+
+# Visuels (post et story, FR et HE) et vidéos Remotion « Nouveaux partenaires » avec les vrais logos,
+# repris de la vitrine en ligne. Se relance tout seul quand la liste livraison/kit/nouveaux/partenaires.json change.
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "livraison/kit/nouveaux/**"
+      - ".github/workflows/kit-nouveaux.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Polices et QR code
+        run: |
+          mkdir -p "$RUNNER_TEMP/libs" && cd "$RUNNER_TEMP/libs"
+          for p in "fr:@fontsource/fredoka@5.3.0" "ru:@fontsource/rubik@5.3.0" "q:qrcodejs@1.0.0"; do
+            d="${p%%:*}"; n="${p#*:}"; mkdir -p "$d" && (cd "$d" && tar xzf "$(npm pack "$n" --silent | tail -1)")
+          done
+
+      - name: Visuels (post et story)
+        working-directory: livraison/kit/nouveaux
+        run: |
+          npm install --no-save --no-audit --no-fund playwright@1.48.2
+          npx playwright install --with-deps chromium
+          node generer.js "$RUNNER_TEMP/libs"
+
+      - name: Vidéos Remotion (FR et HE)
+        working-directory: livraison/kit/nouveaux/video
+        run: |
+          npm ci --no-audit --no-fund
+          npx remotion render src/index.jsx Nouveaux ../../visuels/nouveaux-video-fr.mp4 --props='{"lang":"fr"}'
+          npx remotion render src/index.jsx Nouveaux ../../visuels/nouveaux-video-he.mp4 --props='{"lang":"he"}'
+
+      - name: Enregistrer dans le kit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add livraison/kit/visuels/nouveaux-*
+          if git diff --cached --quiet; then echo "Rien de nouveau."; else
+            git commit -m "Kit pub : visuels et vidéos « Nouveaux partenaires »"
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

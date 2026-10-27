@@ -1,0 +1,11 @@
+{
+  "titre": "Nouveaux partenaires du 27 octobre 2026",
+  "codes": ["NINASUSHI", "PARISTEXAS", "SMASHIT", "PANDASUSHI", "MARCHEFR"],
+  "labels": {
+    "NINASUSHI": { "fr": "Sushis · Kikar HaAtsmaout", "he": "סושי · כיכר העצמאות" },
+    "PARISTEXAS": { "fr": "Burgers & grill texan", "he": "המבורגרים וגריל טקסני" },
+    "SMASHIT": { "fr": "Smash burgers", "he": "סמאש בורגרים" },
+    "PANDASUSHI": { "fr": "Sushis & rolls chauds", "he": "סושי ורולים חמים" },
+    "MARCHEFR": { "fr": "Épicerie française", "he": "מכולת צרפתית" }
+  }
+}

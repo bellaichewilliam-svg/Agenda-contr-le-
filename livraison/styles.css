@@ -689,6 +689,9 @@ body.print-poster .print-only { display: grid; }
 .vis-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 8px; }
 .vis-grid a { display: grid; gap: 4px; text-decoration: none; text-align: center; }
 .vis-grid img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; object-position: top; border-radius: 10px; border: 1px solid var(--border); background: var(--navy); }
+.vid-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 8px; }
+.vid-grid figure { margin: 0; display: grid; gap: 6px; justify-items: center; }
+.vid-grid video { width: 100%; aspect-ratio: 9 / 16; border-radius: 12px; background: var(--navy); border: 1px solid var(--border); }
 
 /* ============================================================================
    Espace livreur « appli » : carte plein écran, panneau du bas, menu, pages
