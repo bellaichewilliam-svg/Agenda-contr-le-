@@ -583,6 +583,34 @@ function rayonGoods() {
   return any ? { lo, hi } : null;
 }
 const priceTxt = p => (p[0] === p[1] ? `${p[0]} ₪` : `${p[0]}-${p[1]} ₪`);
+// « Acheter pour moi » sans partenaire : le client paie tout d'avance au livreur par Bit, la course + les articles
+// au prix maximum. Le livreur n'achète qu'une fois payé, photographie le ticket et rend la différence avant de livrer.
+// Au plus 300 ₪ d'articles, 150 ₪ tant que le client a moins de 3 courses livrées (la base vérifie aussi).
+const goodsPrepay = () => val("service") === "achat" && !proShopOn() && val("goods_mode") !== "self";
+const goodsCap = () => ((state.mine || []).filter(o => o.status === "livree").length >= 3 ? 300 : 150);
+const goodsMin = () => { const g = rayonGoods(); return g ? Math.ceil(g.hi) : 0; };
+const goodsBudget = () => Math.max(goodsMin(), Math.round(parseFloat(val("budget")) || 0));
+const capVars = () => ({ cap: money(goodsCap()), more: goodsCap() < 300 ? t("gmCapNew") : "" });
+function renderGoodsMode(q) {
+  const box = $("#goodsModeBox"), achat = val("service") === "achat" && !proShopOn(), pre = achat && goodsPrepay();
+  box.classList.toggle("hidden", !achat);
+  box.classList.toggle("gm-pre", pre);
+  // Payé d'avance : par Bit seulement (pas d'espèces : le livreur n'a pas d'argent à avancer ni à rendre)
+  $("#cashChoice").classList.toggle("hidden", pre);
+  if (pre && val("payment_method") === "cash") form.querySelector('input[name=payment_method][value=bit]').checked = true;
+  if (!achat) return;
+  // Le maximum des articles suit les produits cochés (prix indicatifs les plus hauts) tant que le client ne l'a pas changé
+  // (jamais moins que les produits cochés : le chiffre affiché est celui payé)
+  if (document.activeElement !== form.budget && (form.budget.dataset.manual !== "1" || (parseFloat(val("budget")) || 0) < goodsMin())) form.budget.value = goodsMin() || "";
+  const sum = $("#goodsSum");
+  if (!pre) { sum.innerHTML = `<p class="notice">${UI.esc(t("budgetNote"))}</p>`; return; }
+  const b = goodsBudget(), cap = goodsCap(), over = b > cap;
+  sum.innerHTML = `<div class="gb-row"><span><b>${UI.esc(t("gmGoods"))}</b><small>${UI.esc(t(goodsMin() ? "gmGoodsD" : "gmGoodsFree"))}</small></span><b class="gb-amt" dir="ltr">${b ? money(b) : "—"}</b></div>
+    <div class="gb-row"><span><b>${UI.esc(t("gmRide"))}</b></span><b class="gb-amt" dir="ltr">${money(q.total)}</b></div>
+    <div class="gb-row gb-total"><span><b>${UI.esc(t("gmTotal"))}</b></span><b class="gb-amt" dir="ltr">${b ? money(b + Number(q.total)) : "—"}</b></div>
+    <small class="gm-how">${UI.esc(t("gmHow"))}</small>
+    <small class="gm-cap${over ? " bad" : ""}">${UI.esc(t(over ? "errGoodsCap" : "gmCap", capVars()))}</small>`;
+}
 function pharmaLines() {
   const r = rayonOn();
   if (!r) return [];
@@ -721,7 +749,7 @@ function renderQuote() {
     + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t("qItems", { total: money(cartTotal()), name: UI.bi(state.shop.name) }))}</span></li>` : "")
-    + (goods && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : "qGoods"))}</span></li>` : "")
+    + (goods && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : goodsPrepay() ? "qGoodsPre" : "qGoods"))}</span></li>` : "")
     + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "");
   const total = (q.known ? "" : t("from") + " ") + money(q.total);
   $("#quoteTotal").textContent = total;
@@ -729,12 +757,13 @@ function renderQuote() {
   $("#submitBtn").textContent = t("submit", { total: money(q.total) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
-  if (val("service") === "achat") notes.push(t("qPurchaseNote"));
+  if (val("service") === "achat") notes.push(t(goodsPrepay() ? "qPurchaseNotePre" : "qPurchaseNote"));
   const st = state.settings;
   if (st.wait_step_price != null) notes.push(t("qWait", { free: st.wait_free_min, step: Number(st.wait_step_min) === 1 ? t("stepMin1") : t("stepMinN", { n: st.wait_step_min }), price: money(st.wait_step_price), max: money(st.wait_max) }));
   const sched = val("urgency") === "programmee";
   notes.push(val("payment_method") === "carnet" ? t("payNoteCarnet")
     : val("payment_method") === "bit" ? t(sched ? "payNoteBit" : "payNoteBitNow", { phone: CONFIG.bitPhone }) : t("payNoteCash2"));
+  renderGoodsMode(q);
   renderCash();
   renderGoodsBox(q);
   $("#quoteNote").textContent = notes.join(" ");
@@ -1377,7 +1406,8 @@ async function submit(e) {
     if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
   }
   if (val("service") === "achat" && shopListText().trim().length < 3) { form.shopping_list.focus(); return showError(t("errShopList")); }
-  if (val("service") === "achat" && !form.goods_self_pay.checked) { form.goods_self_pay.focus(); return showError(t("errGoodsPay")); }
+  if (goodsPrepay() && !goodsBudget()) { form.budget.focus(); return showError(t("errGoodsBudget")); }
+  if (goodsPrepay() && goodsBudget() > goodsCap()) { form.budget.focus(); return showError(t("errGoodsCap", capVars())); }
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
   // Arrivée chez quelqu'un (pas un commerce) : tout ce qu'il faut pour trouver la porte, sinon pas d'envoi
   if (!(state.pick.to && state.pick.to.brand)) {
@@ -1495,8 +1525,11 @@ async function submit(e) {
       handoff: svc === "colis" && form.handoff.checked,
       shopping_list: svc === "achat" ? shopListText() || null : null,
       purchase_min: svc === "achat" && CONFIG.pricing.purchase ? CONFIG.pricing.purchaseMinutes || 5 : null,
-      budget: svc === "achat" ? parseFloat(val("budget")) || null : null,
-      goods_self_pay: svc === "achat" && form.goods_self_pay.checked,
+      budget: svc === "achat" ? (goodsPrepay() ? goodsBudget() : parseFloat(val("budget"))) || null : null,
+      // Articles : payés d'avance au livreur (avec la course), ou réglés au magasin par le client lui-même
+      goods_prepay: goodsPrepay(),
+      goods_budget: goodsPrepay() ? goodsBudget() : 0,
+      goods_self_pay: svc === "achat" && !goodsPrepay(),
       fits_topcase: svc === "achat" && form.fits_topcase.checked,
       to_city: toCity,
       dropoff_address: dAddr,
@@ -1594,7 +1627,7 @@ async function submit(e) {
     }
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
 
-    $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(saved.price) }));
+    $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(UI.payTotal(saved)) }));
     $("#doneSub").textContent = t(Store.ONLINE ? "doneOnline" : "doneDemo") + (Store.docsFor(saved).length ? " " + t(docsFailed ? "errDocsUpload" : "doneDocs") : "") + (saved.handoff ? " " + t("doneHandoff") : "");
     $("#doneWa").href = UI.waLink(CONFIG.whatsapp, UI.orderText(saved));
     $("#doneWa").classList.toggle("hidden", Store.ONLINE);
@@ -1613,7 +1646,8 @@ async function submit(e) {
     applyShop();
     form.leave_at_door.checked = false;
     form.dropoff_nocode.checked = false; syncNoCode();
-    form.phone_order.checked = false; form.phone_paid.checked = false; form.goods_self_pay.checked = false; form.fits_topcase.checked = false;
+    form.phone_order.checked = false; form.phone_paid.checked = false; form.fits_topcase.checked = false;
+    form.querySelector('input[name=goods_mode][value=prepay]').checked = true; form.budget.dataset.manual = "";
     ["rx", "post_send", "p2p_sale", "sale_paid", "handoff"].forEach(k => { form.elements[k].checked = false; }); state.phoneReady = null;
     state.cart = {}; renderCatalog();
     state.pharma = {}; state.pharmaOpt = {};
@@ -1632,6 +1666,9 @@ async function submit(e) {
     if (/phone_name_required/.test(ex.message)) return showError(t("errPhoneName"));
     if (/phone_unpaid/.test(ex.message)) return showError(t("errPhonePaid"));
     if (/goods_pay_required/.test(ex.message)) return showError(t("errGoodsPay"));
+    if (/goods_cap_/.test(ex.message)) { const cap = Number((/goods_cap_(\d+)/.exec(ex.message) || [])[1]) || goodsCap(); return showError(t("errGoodsCap", { cap: money(cap), more: cap < 300 ? t("gmCapNew") : "" })); }
+    if (/goods_budget_required/.test(ex.message)) return showError(t("errGoodsBudget"));
+    if (/goods_prepay_bit/.test(ex.message)) return showError(t("errGoodsBit"));
     if (/topcase_required/.test(ex.message)) return showError(t("errTopcase"));
     if (/door_kind/.test(ex.message)) return showError(t("errDoorKind"));
     if (/door_code/.test(ex.message)) return showError(t("errDoorCode"));
@@ -3242,6 +3279,7 @@ loadSettings();
 form.addEventListener("input", e => {
   if (/_other$/.test(e.target.name)) scheduleOtherGeocode();
   if (e.target.name === "promo") { state.promo = null; $("#promoMsg").textContent = ""; }
+  if (e.target.name === "budget") form.budget.dataset.manual = val("budget") ? "1" : "";
   syncVisibility();
   renderQuote();
 });

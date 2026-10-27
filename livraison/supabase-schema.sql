@@ -6171,3 +6171,178 @@ begin
 end;
 $$;
 revoke execute on function public.orders_money_guard() from public, anon, authenticated;
+
+-- « Acheter pour moi » dans n'importe quel magasin (sans partenaire) : le client paie tout d'avance au livreur
+-- par Bit — la course + les articles au prix maximum (goods_budget, 300 ₪ au plus, 150 ₪ tant qu'il a moins
+-- de 3 courses livrées). Le livreur n'achète qu'une fois payé, paie le magasin avec cet argent (il n'avance rien),
+-- photographie le ticket (goods_spent) et rend la différence (goods_refund) avant « Livrée ».
+-- Ticket plus cher : le client complète d'abord (« Complément reçu »).
+alter table public.orders add column if not exists goods_prepay boolean not null default false;
+alter table public.orders add column if not exists goods_budget numeric(10, 2) not null default 0;
+alter table public.orders add column if not exists goods_spent numeric(10, 2);
+alter table public.orders add column if not exists goods_refund numeric(10, 2);
+alter table public.orders add column if not exists goods_refund_status text
+  check (goods_refund_status in ('a_rendre', 'rendu', 'a_completer', 'ok'));
+alter table public.orders add column if not exists goods_ticket_at timestamptz;
+
+-- Achat : soit le client règle le magasin lui-même, soit il paie tout d'avance au livreur (Bit seulement)
+create or replace function public.orders_goods_pay() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare done int; cap numeric;
+begin
+  if new.service = 'achat' and new.shop_status is null then
+    if coalesce(new.goods_prepay, false) then
+      if new.payment_method <> 'bit' then raise exception 'goods_prepay_bit'; end if;
+      select count(*) into done from orders o where o.status = 'livree'
+        and (public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone) or (new.client_id is not null and o.client_id = new.client_id));
+      cap := case when done >= 3 then 300 else 150 end;
+      if coalesce(new.goods_budget, 0) <= 0 then raise exception 'goods_budget_required'; end if;
+      if new.goods_budget > cap then raise exception 'goods_cap_%', cap::int; end if;
+      new.goods_self_pay := false;
+    else
+      if not coalesce(new.goods_self_pay, false) then raise exception 'goods_pay_required'; end if;
+      new.goods_prepay := false; new.goods_budget := 0;
+    end if;
+  else
+    if new.service <> 'achat' then new.goods_self_pay := false; end if;
+    new.goods_prepay := false; new.goods_budget := 0;
+  end if;
+  new.goods_spent := null; new.goods_refund := null; new.goods_refund_status := null; new.goods_ticket_at := null;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_goods_pay() from public, anon, authenticated;
+
+-- Le livreur à la caisse : le montant du ticket et sa photo (dans les messages de la course)
+create or replace function public.courier_goods_ticket(p_id uuid, p_amount numeric, p_photo text) returns json
+language plpgsql security definer set search_path = public as $$
+declare o orders; diff numeric;
+begin
+  if not public.is_active_courier() then raise exception 'not_courier'; end if;
+  select * into o from orders where id = p_id and courier_id = auth.uid() and goods_prepay and status in ('confirmee', 'recuperee');
+  if not found then raise exception 'not_found'; end if;
+  if o.payment_status <> 'paye' then raise exception 'not_paid'; end if;
+  if p_amount is null or p_amount <= 0 or p_amount > 1000 then raise exception 'bad_amount'; end if;
+  if p_photo is null or length(p_photo) > 400000 or p_photo !~ '^data:image/(jpeg|png|webp);base64,' then raise exception 'bad_photo'; end if;
+  diff := round((o.goods_budget - p_amount)::numeric, 2);
+  insert into chat_messages (thread, author, author_name, body, image)
+    values ('o:' || p_id::text, 'courier', o.courier_name,
+            '🧾 Ticket du magasin : ' || replace(p_amount::text, '.00', '') || ' ₪ (payé d''avance : ' || replace(o.goods_budget::text, '.00', '') || ' ₪) — '
+            || case when diff > 0 then 'je vous rends ' || replace(diff::text, '.00', '') || ' ₪'
+                    when diff < 0 then 'il manque ' || replace((-diff)::text, '.00', '') || ' ₪ à envoyer avant que je paie'
+                    else 'compte juste' end,
+            p_photo);
+  update orders set goods_spent = p_amount, goods_ticket_at = now(),
+         goods_refund = case when diff > 0 then diff when diff < 0 then -diff else 0 end,
+         goods_refund_status = case when diff > 0 then 'a_rendre' when diff < 0 then 'a_completer' else 'ok' end
+   where id = p_id;
+  return json_build_object('ok', true, 'refund', diff);
+end;
+$$;
+revoke execute on function public.courier_goods_ticket(uuid, numeric, text) from public, anon;
+grant execute on function public.courier_goods_ticket(uuid, numeric, text) to authenticated;
+
+-- « Rendu » (la différence rendue au client) et « Complément reçu » ; « Livrée » attend le ticket et le rendu
+create or replace function public.courier_goods_refund(p_id uuid, p_action text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() then return false; end if;
+  if p_action = 'rendu' then
+    update orders set goods_refund_status = 'rendu' where id = p_id and courier_id = auth.uid() and goods_refund_status = 'a_rendre';
+  elsif p_action = 'complement' then
+    update orders set goods_refund_status = 'ok' where id = p_id and courier_id = auth.uid() and goods_refund_status = 'a_completer';
+  else return false; end if;
+  if found then
+    insert into chat_messages (thread, author, author_name, body)
+      select 'o:' || p_id::text, 'courier', o.courier_name,
+             case when p_action = 'rendu' then '💸 Je vous ai rendu ' || replace(o.goods_refund::text, '.00', '') || ' ₪ par Bit'
+                  else '✅ Complément de ' || replace(o.goods_refund::text, '.00', '') || ' ₪ bien reçu' end
+        from orders o where o.id = p_id;
+  end if;
+  return found;
+end;
+$$;
+revoke execute on function public.courier_goods_refund(uuid, text) from public, anon;
+grant execute on function public.courier_goods_refund(uuid, text) to authenticated;
+
+create or replace function public.orders_goods_livree() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  -- (le patron peut toujours clore une course à la main)
+  if new.status = 'livree' and old.status is distinct from 'livree' and new.goods_prepay and not public.is_admin() then
+    if new.goods_spent is null then raise exception 'ticket_required'; end if;
+    if new.goods_refund_status in ('a_rendre', 'a_completer') then raise exception 'goods_refund_pending'; end if;
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_goods_livree before update of status on public.orders
+  for each row execute function public.orders_goods_livree();
+revoke execute on function public.orders_goods_livree() from public, anon, authenticated;
+
+-- Achat payé d'avance : un livreur qui lâche la course rend aussi l'argent des articles (pas encore achetés) ;
+-- une fois le ticket pris (articles achetés), il ne peut plus la lâcher (le patron s'en occupe)
+create or replace function public.orders_release() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare was_paid boolean;
+begin
+  if old.status = 'confirmee' and new.status = 'nouvelle' and old.courier_id is not null and new.courier_id is null then
+    if old.goods_prepay and old.goods_spent is not null and not public.is_admin() then raise exception 'goods_bought'; end if;
+    was_paid := old.paid_to = 'livreur' and old.direct_pay and (old.payment_status = 'paye' or old.client_paid_at is not null);
+    if was_paid then
+      new.refund_amount := old.price + case when old.goods_prepay and old.goods_spent is null then old.goods_budget else 0 end;
+      new.refund_courier_id := old.courier_id;
+      new.refund_courier_name := old.courier_name;
+      new.refund_courier_phone := coalesce(old.courier_bit, old.courier_phone);
+      new.refund_received := old.payment_status = 'paye';
+      new.refund_status := 'a_faire';
+      new.refund_at := now();
+      new.refund_alerted_at := null;
+    end if;
+    if old.paid_to = 'livreur' then new.payment_status := 'en_attente'; end if;
+    new.client_paid_at := null;
+    new.pay_missing_at := null;
+    new.pay_reminded_at := null;
+    new.pay_alerted_at := null;
+    new.arrived_at := null;
+    new.eta_min := null; new.eta_at := null; new.eta_status := null; new.eta_until := null;
+    new.released_at := now();
+    new.ring_count := 0; new.ring_at := null;
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function public.client_wait_answer(p_token uuid, p_ok boolean) returns json
+language plpgsql security definer set search_path = public as $$
+declare o orders; half numeric; paid boolean; goods numeric;
+begin
+  select * into o from orders where token = p_token for update;
+  if not found or o.status <> 'confirmee' or o.wait_ann_status is distinct from 'attente' or o.wait_ann_at < now() - interval '3 minutes' then
+    return json_build_object('ok', false, 'error', 'too_late');
+  end if;
+  if coalesce(p_ok, false) then
+    update orders set wait_ann_status = 'ok' where id = o.id;
+    insert into chat_messages (thread, author, body) values ('o:' || o.id::text, 'system', 'status:wait_ok');
+    return json_build_object('ok', true);
+  end if;
+  half := (round(o.price) / 2)::numeric(10, 2);
+  paid := o.paid_to = 'livreur' and o.direct_pay and o.payment_status = 'paye';
+  -- (achat payé d'avance, rien encore acheté : l'argent des articles est rendu aussi)
+  goods := case when o.goods_prepay and o.goods_spent is null then o.goods_budget else 0 end;
+  update orders set status = 'annulee', wait_ann_status = 'refus', drop_fee = half,
+         commission = least(half, public.commission_for(half)),
+         refund_amount = case when paid then o.price - half + goods else refund_amount end,
+         refund_courier_id = case when paid then o.courier_id else refund_courier_id end,
+         refund_courier_name = case when paid then o.courier_name else refund_courier_name end,
+         refund_courier_phone = case when paid then coalesce(o.courier_bit, o.courier_phone) else refund_courier_phone end,
+         refund_received = case when paid then true else refund_received end,
+         refund_status = case when paid then 'a_faire' else refund_status end,
+         refund_at = case when paid then now() else refund_at end,
+         wait_due = case when paid then 0 else half end,
+         wait_status = case when paid then null else 'a_payer' end
+   where id = o.id;
+  insert into chat_messages (thread, author, body) values ('o:' || o.id::text, 'system', 'status:wait_drop');
+  return json_build_object('ok', true, 'drop_fee', half, 'refund', case when paid then o.price - half + goods else 0 end);
+end;
+$$;

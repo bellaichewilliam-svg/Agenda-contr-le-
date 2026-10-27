@@ -413,7 +413,7 @@ function card(o, withDay) {
   if (o.service === "retrait") {
     pickupExtra = `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° <b style="display:inline">${UI.esc(o.tracking_number || "—")}</b>${o.retrait_code ? ` · code du casier <b style="display:inline">${UI.esc(o.retrait_code)}</b>` : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}${o.appt_at ? ` · 📅 rendez-vous ${UI.esc(UI.fmtDateTime(o.appt_at))}` : ""}</div>`;
   } else if (o.service === "achat") {
-    pickupExtra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""} · 🧾 réglé par le client au magasin</div>`;
+    pickupExtra = `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.goods_prepay ? ` · 💳 articles payés d'avance au livreur : ${UI.money(o.goods_budget)} au plus${o.goods_spent != null ? ` · 🧾 ticket ${UI.money(o.goods_spent)}${o.goods_refund_status === "a_rendre" ? ` · ⏳ ${UI.money(o.goods_refund)} à rendre au client` : o.goods_refund_status === "rendu" ? ` · ✅ ${UI.money(o.goods_refund)} rendus` : o.goods_refund_status === "a_completer" ? ` · ⚠️ ${UI.money(o.goods_refund)} à compléter par le client` : " · compte juste"}` : " · ticket pas encore pris"}` : `${o.budget ? ` · budget ≈ ${UI.money(o.budget)}` : ""} · 🧾 réglé par le client au magasin`}</div>`;
   }
 
   const meta = [

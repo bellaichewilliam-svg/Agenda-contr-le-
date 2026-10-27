@@ -421,7 +421,8 @@ function orderText(o) {
   }
   if (o.service === "achat") {
     if (o.shopping_list) L.push(`   🛒 À acheter : ${o.shopping_list}`);
-    if (o.budget) L.push(`   Budget : ${money(o.budget)} (avancé, remboursé à la livraison)`);
+    if (o.goods_prepay) L.push(`   💳 Articles payés d'avance au livreur : ${money(o.goods_budget)} au plus (ticket en photo, différence rendue)`);
+    else if (o.budget) L.push(`   Budget : ${money(o.budget)} (réglé au magasin par le client)`);
   }
   L.push(`🏁 Livraison : ${o.dropoff_place ? "🏪 " + o.dropoff_place + ", " : ""}${o.dropoff_address}, ${cityFr(o.to_city)}`);
   if (addrDetailsText(o, "dropoff")) L.push(`   🏢 ${addrDetailsText(o, "dropoff")}`);
@@ -506,19 +507,21 @@ function bitFor(o) { return o && o.direct_pay ? o.courier_bit || "" : CONFIG.bit
 const ANDROID = /Android/i.test(navigator.userAgent);
 const BIT_APP = "intent://#Intent;package=com.bnhp.payments.paymentsapp;S.browser_fallback_url="
   + encodeURIComponent("https://play.google.com/store/apps/details?id=com.bnhp.payments.paymentsapp") + ";end";
+// Ce que le client envoie au livreur : la course, et les articles (au maximum) quand ils sont payés d'avance
+const payTotal = o => Number(o.price || 0) + (o.goods_prepay ? Number(o.goods_budget || 0) : 0);
 function bitPay(o) {
   const t = (k, v) => I18N.t(k, v);
   const name = String(o.courier_name || "").split(" ")[0];
   if (o.client_paid_at) return `<p class="promo-msg ok bit-pay">${esc(o.direct_pay ? t("bpThanksCourier", { name }) : t("bpThanks"))}</p>`;
   const phone = bitFor(o);
   // Paiement au livreur : son numéro n'est connu qu'une fois la course acceptée
-  if (o.direct_pay && !phone) return `<p class="bit-pay muted">${esc(t("bpWaitCourier", { total: money(o.price) }))}</p>`;
+  if (o.direct_pay && !phone) return `<p class="bit-pay muted">${esc(t("bpWaitCourier", { total: money(payTotal(o)) }))}</p>`;
   return `<div class="bit-pay">
-    <p>${esc(o.direct_pay ? t("bpSendCourier", { total: money(o.price), name, phone, ref: o.ref }) : t("bpSend", { total: money(o.price), phone, ref: o.ref }))}</p>
+    <p>${esc(o.direct_pay ? t("bpSendCourier", { total: money(payTotal(o)), name, phone, ref: o.ref }) : t("bpSend", { total: money(payTotal(o)), phone, ref: o.ref }))}</p>
     <div class="bit-btns">
       ${ANDROID ? `<a class="btn btn-sm btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}
       <button type="button" class="btn btn-sm" data-bit-copy="${esc(String(phone).replace(/\D/g, ""))}">${esc(t("bpCopy"))}</button>
-      <button type="button" class="btn btn-sm btn-primary" data-bit-paid="${esc(o.token)}" data-name="${esc(o.direct_pay ? name : "")}" data-total="${esc(money(o.price))}">${esc(t("bpPaid"))}</button>
+      <button type="button" class="btn btn-sm btn-primary" data-bit-paid="${esc(o.token)}" data-name="${esc(o.direct_pay ? name : "")}" data-total="${esc(money(payTotal(o)))}">${esc(t("bpPaid"))}</button>
     </div>
   </div>`;
 }
@@ -705,7 +708,7 @@ if (typeof MutationObserver !== "undefined") {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

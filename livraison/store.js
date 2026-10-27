@@ -270,8 +270,21 @@ async function createOrder(order) {
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
     });
     // « J'achète pour vous » : le client règle le magasin lui-même, le livreur n'avance jamais d'argent
-    if (order.service === "achat" && !order.goods_self_pay) throw new Error("goods_pay_required");
-    order.goods_self_pay = order.service === "achat";
+    // ou il paie tout d'avance au livreur par Bit (la course + les articles au maximum : 300 ₪, 150 ₪ avant 3 courses livrées)
+    const achat = order.service === "achat" && !order.shop_status;
+    if (achat && order.goods_prepay) {
+      if (order.payment_method !== "bit") throw new Error("goods_prepay_bit");
+      const done = localOrders().filter(x => x.status === "livree" && (String(x.contact_phone || "").replace(/\D/g, "") === String(order.contact_phone || "").replace(/\D/g, ""))).length;
+      const cap = done >= 3 ? 300 : 150;
+      if (!(Number(order.goods_budget) > 0)) throw new Error("goods_budget_required");
+      if (Number(order.goods_budget) > cap) throw new Error("goods_cap_" + cap);
+      order.goods_self_pay = false;
+    } else {
+      if (achat && !order.goods_self_pay) throw new Error("goods_pay_required");
+      order.goods_self_pay = order.service === "achat";
+      Object.assign(order, { goods_prepay: false, goods_budget: 0 });
+    }
+    Object.assign(order, { goods_spent: null, goods_refund: null, goods_refund_status: null, goods_ticket_at: null });
     if (order.service === "achat" && !order.fits_topcase) throw new Error("topcase_required");
     order.fits_topcase = order.service === "achat";
     // Sans contact : type de lieu, code d'entrée (sauf maison) et n° d'appartement
@@ -1033,12 +1046,18 @@ async function courierAction(id, action) {
     if (!free && o.handoff && !o.handoff_ok_at) throw new Error("handoff_required");
     // Paiement direct : « 💳 Paiement reçu » avant « Livré »
     if (!free && o.direct_pay && o.paid_to === "livreur" && o.payment_status !== "paye" && c && c.role !== "admin") throw new Error("payment_required");
+    // Articles payés d'avance : le ticket en photo, puis la différence rendue (ou le complément reçu)
+    if (o.goods_prepay && !(c && c.role === "admin")) {
+      if (o.goods_spent == null) throw new Error("ticket_required");
+      if (["a_rendre", "a_completer"].includes(o.goods_refund_status)) throw new Error("goods_refund_pending");
+    }
     o.status = "livree"; o.delivered_at = new Date().toISOString(); referralCheck(o, "recuperee", all, await getSettings()); }
   else if (action === "paye" && o.paid_to !== "hop") o.payment_status = "paye";
   else if (action === "liberer" && o.status === "confirmee") {
     // Même règle qu'en ligne : déjà payé (ou « j'ai payé ») → ce livreur rembourse le client ; tout repart à zéro
+    if (o.goods_prepay && o.goods_spent != null) throw new Error("goods_bought");
     const paid = o.direct_pay && o.paid_to === "livreur" && (o.payment_status === "paye" || o.client_paid_at);
-    if (paid) Object.assign(o, { refund_amount: o.price, refund_courier_id: o.courier_id, refund_courier_name: o.courier_name,
+    if (paid) Object.assign(o, { refund_amount: Number(o.price) + (o.goods_prepay ? Number(o.goods_budget || 0) : 0), refund_courier_id: o.courier_id, refund_courier_name: o.courier_name,
       refund_courier_phone: o.courier_bit || o.courier_phone, refund_received: o.payment_status === "paye", refund_status: "a_faire", refund_at: new Date().toISOString() });
     if (o.paid_to === "livreur") o.payment_status = "en_attente";
     Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0,
@@ -1048,6 +1067,38 @@ async function courierAction(id, action) {
     if (!dl.some(d => d.order_id === o.id && d.courier_id === myId())) { dl.push({ order_id: o.id, courier_id: myId(), reason: "autre", created_at: new Date().toISOString() }); writeJSON(LS.declines, dl.slice(-500)); }
   } else return false;
   chatStatus(o, was);
+  saveLocalOrders(all);
+  return true;
+}
+
+// Achat payé d'avance : à la caisse, le livreur photographie le ticket et dit son montant (même règle qu'en ligne)
+const num2 = n => String(Math.round(n * 100) / 100).replace(".", ",");
+async function courierGoodsTicket(id, amount, photo) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_goods_ticket", { method: "POST", body: { p_id: id, p_amount: amount, p_photo: photo } });
+  const all = localOrders();
+  const o = all.find(x => x.id === id && x.courier_id === myId() && x.goods_prepay && ["confirmee", "recuperee"].includes(x.status));
+  if (!o) throw new Error("not_found");
+  if (o.payment_status !== "paye") throw new Error("not_paid");
+  const a = Number(amount);
+  if (!(a > 0 && a <= 1000)) throw new Error("bad_amount");
+  if (!/^data:image\/(jpeg|png|webp);base64,/.test(String(photo || "")) || String(photo).length > 400000) throw new Error("bad_photo");
+  const diff = Math.round((Number(o.goods_budget) - a) * 100) / 100;
+  chatLocalAdd({ thread: "o:" + o.id, author: "courier", author_name: o.courier_name, image: photo,
+    body: `🧾 Ticket du magasin : ${num2(a)} ₪ (payé d'avance : ${num2(Number(o.goods_budget))} ₪) — ` + (diff > 0 ? `je vous rends ${num2(diff)} ₪` : diff < 0 ? `il manque ${num2(-diff)} ₪ à envoyer avant que je paie` : "compte juste") });
+  Object.assign(o, { goods_spent: a, goods_ticket_at: new Date().toISOString(), goods_refund: Math.abs(diff),
+    goods_refund_status: diff > 0 ? "a_rendre" : diff < 0 ? "a_completer" : "ok" });
+  saveLocalOrders(all);
+  return { ok: true, refund: diff };
+}
+// « Rendu » : la différence rendue au client par Bit ; « Complément reçu » : le client a envoyé ce qui manquait
+async function courierGoodsRefund(id, action) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_goods_refund", { method: "POST", body: { p_id: id, p_action: action } });
+  const all = localOrders();
+  const o = all.find(x => x.id === id && x.courier_id === myId() && x.goods_refund_status === (action === "rendu" ? "a_rendre" : "a_completer"));
+  if (!o || !["rendu", "complement"].includes(action)) return false;
+  o.goods_refund_status = action === "rendu" ? "rendu" : "ok";
+  chatLocalAdd({ thread: "o:" + o.id, author: "courier", author_name: o.courier_name, image: null,
+    body: action === "rendu" ? `💸 Je vous ai rendu ${num2(Number(o.goods_refund))} ₪ par Bit` : `✅ Complément de ${num2(Number(o.goods_refund))} ₪ bien reçu` });
   saveLocalOrders(all);
   return true;
 }
@@ -2061,7 +2112,7 @@ window.Store = {
   welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
-  listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierIssue, zoneDemand, ping,
+  listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,

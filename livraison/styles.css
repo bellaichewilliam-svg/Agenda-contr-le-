@@ -2495,3 +2495,12 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .ph-meter small { color: var(--muted); line-height: 1.35; }
 .pm-msg { margin: 2px 0 0; font-size: 13px; font-weight: 700; color: var(--red, #D92D20); }
 .ph-goods { display: block; font-weight: 800; margin: 2px 0; }
+
+/* Achat sans partenaire : payer tout au livreur, ou régler le magasin soi-même */
+.goods-mode { display: flex; flex-direction: column; gap: 8px; border: 1.5px solid var(--line, #e6e0d8); border-radius: 16px; padding: 12px 14px; background: var(--bg-2); min-width: 0; }
+.goods-mode .gm-budget { display: none; }
+.goods-mode.gm-pre .gm-budget { display: flex; }
+.goods-mode .notice { margin: 0; }
+.gm-sum { display: flex; flex-direction: column; min-width: 0; }
+.gm-how, .gm-cap { display: block; color: var(--muted); line-height: 1.4; margin-top: 6px; }
+.gm-cap.bad { color: #d6336c; font-weight: 600; }
