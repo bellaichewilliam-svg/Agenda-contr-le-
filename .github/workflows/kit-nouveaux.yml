@@ -12,6 +12,11 @@ on:
 permissions:
   contents: write
 
+# Une nouvelle liste annule le rendu en cours (seule la dernière compte)
+concurrency:
+  group: kit-nouveaux-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   render:
     runs-on: ubuntu-latest

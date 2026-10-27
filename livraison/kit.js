@@ -240,7 +240,6 @@ const NEW_POSTS = [
 🍣 Nina Sushi, Kikar HaAtsmaout · ✡️ casher
 🍔 Paris Texas, Kiryat HaSharon · ✡️ casher
 🍔 Smash It, smash burgers · ✡️ casher
-🍣 Panda Sushi, sushis et rolls chauds
 🥐 Le Marché Français, l'épicerie française (Bonne Maman, LU, Président…)
 
 ➕ Et des centaines d'autres enseignes : restaurants, Super-Pharm, poste, supermarchés…
@@ -252,17 +251,16 @@ const NEW_POSTS = [
 🍣 נינה סושי, כיכר העצמאות · ✡️ כשר
 🍔 פריז טקסס, קריית השרון · ✡️ כשר
 🍔 סמאש איט, סמאש בורגרים · ✡️ כשר
-🍣 פנדה סושי, סושי ורולים חמים
 🥐 השוק הצרפתי, מכולת צרפתית (בון מאמן, LU, פרזידנט…)
 
 ➕ ועוד מאות עסקים: מסעדות, סופר-פארם, דואר, סופרמרקטים…
 🛵 משלוח בתוך ${heHome}: ${price(home)} · מעקב בזמן אמת · מזומן או ביט
 👈 מזמינים תוך דקה: ${url}` },
   { title: "Phrases courtes (story, statut, légende de vidéo)", dir: "ltr", text:
-`🛵 Nina Sushi, Paris Texas, Smash It, Panda Sushi et Le Marché Français : maintenant livrés par ${nameFr} !
+`🛵 Nina Sushi, Paris Texas, Smash It et Le Marché Français : maintenant livrés par ${nameFr} !
 🍣🍔🥐 Vos sushis, vos burgers casher et vos produits français, livrés chez vous à ${UI.cityFr(home)} en un clic.
 ✡️ Nos restaurants casher sont marqués d'un sceau dans l'appli : facile à trouver.
-🛵 נינה סושי, פריז טקסס, סמאש איט, פנדה סושי והשוק הצרפתי: עכשיו במשלוח עם ${nameHe}!
+🛵 נינה סושי, פריז טקסס, סמאש איט והשוק הצרפתי: עכשיו במשלוח עם ${nameHe}!
 🍣🍔🥐 הסושי, ההמבורגרים הכשרים והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
 👉 ${url}` }
 ];

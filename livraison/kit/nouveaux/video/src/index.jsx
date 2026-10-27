@@ -58,7 +58,7 @@ const Nouveaux = ({ lang }) => {
   const ctaAt = cardsEnd + 50, cta = spring({ frame: f - ctaAt, fps, config: { damping: 13 } });
   const out = interpolate(f, [durationInFrames - 10, durationInFrames], [1, 0], { extrapolateLeft: "clamp" });
   // 5 enseignes ou plus : 3 par ligne, sinon 2 (cartes plus grandes)
-  const three = list.length > 4, w = three ? 296 : 440, lh = three ? 150 : 200, fs = three ? 33 : 42;
+  const three = list.length > 4, w = three ? 296 : 440, lh = three ? 150 : 170, fs = three ? 33 : 42;
   return (
     <AbsoluteFill style={{ background: `radial-gradient(110% 70% at 85% 0%,#2B4C8C 0%,${NAVY} 55%,#0A1630 100%)`, direction: he ? "rtl" : "ltr",
       color: "#fff", fontFamily: "Rubik", padding: "90px 70px", opacity: out }}>
@@ -75,7 +75,7 @@ const Nouveaux = ({ lang }) => {
         {list.map((p, i) => <Card key={p.code} p={p} lang={lang} delay={cardsAt + i * step} w={w} lh={lh} fs={fs} />)}
       </div>
       <div style={{ textAlign: "center", fontWeight: 700, fontSize: 34, marginTop: 34, opacity: interpolate(f, [cardsEnd, cardsEnd + 15], [0, 0.9], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }}>{t.more}</div>
-      <Img src={staticFile("scooter.svg")} style={{ position: "absolute", bottom: 410, left: scootX, width: 260, transform: he ? "scaleX(-1)" : "none" }} />
+      <Img src={staticFile("scooter.svg")} style={{ position: "absolute", bottom: 360, left: scootX, width: 220, direction: "ltr", transform: he ? "scaleX(-1)" : "none" }} />
       <div style={{ position: "absolute", left: 70, right: 70, bottom: 90, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24,
         transform: `translateY(${(1 - cta) * 260}px)`, opacity: cta }}>
         <div style={{ background: "#fff", color: NAVY, borderRadius: 36, padding: "24px 36px", fontWeight: 700, fontSize: 32 }}>

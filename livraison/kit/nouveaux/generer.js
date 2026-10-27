@@ -58,7 +58,7 @@ h1 em{font-style:normal;color:#FFB27F}
 .qrbox{background:#fff;border-radius:26px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:6px;color:#0F1F3D;font-weight:800}
 .qrbox img,.qrbox canvas{display:block}
 .url{direction:ltr;font-weight:700;opacity:.8}
-.scoot{position:absolute}
+.scoot{position:absolute;direction:ltr}
 .road{position:absolute;left:0;right:0;border-bottom:6px dashed rgba(255,255,255,.18)}
 `;
 function page(list, lang, fmt) {
@@ -114,7 +114,7 @@ const splitName = s => { const [a, b] = String(s).split(' · '); return { fr: a,
     const m = String(s.logo || '').match(/^data:image\/(png|jpeg|webp);base64,(.+)$/);
     if (m) { logo = `${code.toLowerCase()}.${m[1] === 'jpeg' ? 'jpg' : m[1]}`; fs.writeFileSync(`${LOGOS}/${logo}`, Buffer.from(m[2], 'base64')); }
     const lab = (LIST.labels || {})[code] || { fr: s.tagline || '', he: s.tagline_he || s.tagline || '' };
-    return { code, name: splitName(s.name), label: lab, kosher: !!s.kosher, logoFile: logo, logo: s.logo || null };
+    return { code, name: Object.assign(splitName(s.name), (LIST.names || {})[code] || {}), label: lab, kosher: !!s.kosher, logoFile: logo, logo: s.logo || null };
   }).filter(Boolean);
   // Données de la vidéo (Remotion) : sans les images (elles sont dans video/public/logos)
   fs.writeFileSync(__dirname + '/video/props.json', JSON.stringify({ partners: list.map(({ logo, ...p }) => p) }, null, 2));
