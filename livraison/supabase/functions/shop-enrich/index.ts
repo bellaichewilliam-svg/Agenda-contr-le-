@@ -30,10 +30,10 @@ async function json(url: string, init: RequestInit = {}) {
   return r.json();
 }
 // Image → data:image/…;base64 (taille réduite par le serveur d'images ; au-delà de 350 Ko, on laisse tomber)
-async function imageData(url: string | null | undefined, w: number) {
+async function imageData(url: string | null | undefined, w: number, key = "w", accept?: string) {
   if (!url) return null;
   try {
-    const r = await fetch(`${url}${url.includes("?") ? "&" : "?"}w=${w}`, { headers: HEAD, signal: AbortSignal.timeout(15000) });
+    const r = await fetch(`${url}${url.includes("?") ? "&" : "?"}${key}=${w}`, { headers: accept ? { ...HEAD, Accept: accept } : HEAD, signal: AbortSignal.timeout(15000) });
     const type = (r.headers.get("content-type") || "").split(";")[0];
     if (!r.ok || !/^image\/(jpeg|png|webp)$/.test(type)) return null;
     const buf = new Uint8Array(await r.arrayBuffer());
@@ -139,6 +139,74 @@ async function enrich(shopId: string) {
   return { ok: true, slug, done };
 }
 
+// Boutique en ligne Shopify du commerce (son propre site) : ses rayons et, dans chacun, ses produits phares
+// (l'ordre du rayon sur son site), avec prix et photo ; logo et couverture si donnés. Seulement si la fiche
+// n'a encore aucun produit (on ne double jamais un catalogue).
+async function shopifyImg(src: string | null | undefined, w: number) {
+  if (!src) return null;
+  const u = String(src).replace(/^\/\//, "https://").replace(/^http:/, "https:");
+  for (const ww of [w, Math.round(w * 0.66)]) {
+    // (le serveur d'images Shopify renvoie du webp quand on le demande : 10 fois plus léger que le png)
+    const d = await imageData(u, ww, "width", "image/webp,image/*");
+    if (d && d.length <= 290000) return d;
+  }
+  return null;
+}
+// Nom de produit : sans la signature du site (« … | Le Marché Français »), 80 caractères au plus, coupé au mot
+const shortName = (title: string, shopName: string) => {
+  const brand = String(shopName || "").split(" · ")[0].trim();
+  let n = clean(title);
+  if (brand) n = n.replace(new RegExp(`\\s*[|—–-]\\s*${brand.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*$`, "i"), "").trim();
+  return n.length <= 80 ? n : n.slice(0, 79).replace(/\s+\S*$/, "").replace(/[\s,;:–—-]+$/, "") + "…";
+};
+async function fromShopify(id: string, site: string, per: number, logo?: string, cover?: string, fill = false) {
+  const base = new URL(site).origin;
+  if (!/^https:\/\//.test(base)) throw new Error("bad_site");
+  const { data: shop } = await db.from("shops").select("*").eq("id", id).single();
+  if (!shop) throw new Error("no_shop");
+  const { count } = await db.from("shop_products").select("id", { count: "exact", head: true }).eq("shop_id", id);
+  if (count && !fill) return { ok: false, why: "already_has_products", count };
+  // Compléter (fill) : seulement les rayons encore vides, sans reprendre un produit déjà là
+  const { data: had } = await db.from("shop_categories").select("id, name, shop_products(count)").eq("shop_id", id);
+  const hadCat = new Map<string, { id: string; n: number }>((had || []).map((c: any) => [c.name, { id: c.id, n: c.shop_products?.[0]?.count || 0 }]));
+  const { data: hadProd } = await db.from("shop_products").select("name").eq("shop_id", id);
+  const hadName = new Set((hadProd || []).map((p: any) => p.name));
+  const patch: Record<string, string> = {};
+  const lg = !shop.logo && await shopifyImg(logo, 320), cv = !shop.cover && await shopifyImg(cover, 1000);
+  if (lg) patch.logo = lg;
+  if (cv) patch.cover = cv;
+  if (Object.keys(patch).length) await db.from("shops").update(patch).eq("id", id);
+  const cols = ((await json(`${base}/collections.json?limit=250`)).collections || [])
+    .filter((c: any) => c.products_count > 0 && !["frontpage", "all"].includes(c.handle));
+  const seen = new Set<number>();
+  let nCat = 0, nProd = 0;
+  for (const [i, c] of cols.entries()) {
+    const cname = clean(c.title).slice(0, 60), old = hadCat.get(cname);
+    const prods = ((await json(`${base}/collections/${encodeURIComponent(c.handle)}/products.json?limit=${per * 3}`)).products || [])
+      .filter((p: any) => !seen.has(p.id) && !hadName.has(shortName(p.title, shop.name)) && p.variants?.length && Number(p.variants[0].price) > 0 && p.variants.some((v: any) => v.available))
+      .slice(0, per);
+    prods.forEach((p: any) => seen.add(p.id));
+    if (old && old.n) continue;
+    if (!prods.length) continue;
+    const { data: cat, error } = old ? { data: { id: old.id }, error: null }
+      : await db.from("shop_categories").insert({ shop_id: id, name: cname, position: i }).select("id").single();
+    if (error || !cat) continue;
+    nCat++;
+    const rows = await Promise.all(prods.map(async (p: any, j: number) => ({
+      shop_id: id, category_id: cat.id, position: j, name: shortName(p.title, shop.name),
+      description: (d => (d.length > 220 ? d.slice(0, 219).replace(/\s+\S*$/, "") + "…" : d) || null)(clean(String(p.body_html || "").replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&#39;|&rsquo;/g, "'"))),
+      price: Math.round(Number(p.variants[0].price) * 100) / 100,
+      photo: await shopifyImg(p.images?.[0]?.src, 360),
+      available: true,
+    })));
+    const { error: e2 } = await db.from("shop_products").insert(rows);
+    if (!e2) nProd += rows.length; else console.error("shopify insert", cname, e2.message);
+  }
+  const line = `🛍️ Catalogue repris de son site ${base} : ${nCat} rayons, ${nProd} produits phares (prix du site, à vérifier avec le commerce).`;
+  await db.from("shops").update({ admin_note: shop.admin_note ? `${line}\n${shop.admin_note}` : line }).eq("id", id);
+  return { ok: true, nCat, nProd, logo: !!lg, cover: !!cv };
+}
+
 // Qui peut lancer la fiche : le commerce lui-même (sa clé secrète, juste après l'inscription), le patron
 // (connecté, rôle admin) pour n'importe quel commerce, ou la base (clé x-hop-key)
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-hop-key", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -164,6 +232,9 @@ Deno.serve(async req => {
   try { body = await req.json(); } catch { /* corps vide */ }
   const id = await shopIdFor(req, body);
   if (!id) return reply({ ok: false, why: "forbidden" }, 403);
-  try { return reply(await enrich(id)); }
+  try {
+    if (body.shopify) return reply(await fromShopify(id, String(body.shopify), Math.min(15, Math.max(1, Number(body.per) || 8)), body.logo, body.cover, !!body.fill));
+    return reply(await enrich(id));
+  }
   catch (e) { return reply({ ok: false, why: String(e) }, 500); }
 });
