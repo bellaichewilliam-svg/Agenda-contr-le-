@@ -2508,3 +2508,6 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 /* Rayon choisi par sa tuile : pas d'adresse de départ (le livreur va au magasin le plus proche) */
 .near-mode .pick-addr { display: none !important; }
 .near-note { margin: 0 0 4px; font-weight: 600; }
+/* Lignes de texte du prix (une seule colonne) : elles passent à la ligne, jamais coupées */
+.summary li.goods span, .summary li.goods span:last-child { white-space: normal; font-weight: 500; color: var(--muted); }
+.summary li.goods-amt span:first-child { color: var(--ink); }
