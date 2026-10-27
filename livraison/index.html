@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610270108" />
+  <link rel="stylesheet" href="styles.css?v=202610270153" />
 </head>
 <body>
 
@@ -362,25 +362,26 @@
                 <option value="autre" data-i18n="place_autre"></option>
               </select>
             </label>
-            <div class="saved-addrs full hidden" data-for="from"></div>
-            <div class="addr-tools full"><button type="button" class="btn btn-sm" data-geo="from" data-i18n="useMyPos"></button><button type="button" class="btn btn-sm btn-link hidden" data-save-addr="from" data-i18n="saveAddr"></button></div>
-            <label class="f full"><span data-i18n="addrSearch"></span><input name="pickup_address" data-i18n-ph="addrSearchPh" /></label>
-            <label class="f"><span data-i18n="houseNo"></span><input name="pickup_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
-            <label class="f"><span data-i18n="city"></span><select name="from_city" class="city-select with-other"></select></label>
-            <label class="f other-city hidden" data-for="from"><span data-i18n="otherCityName"></span><input name="from_other" /></label>
-            <div class="kind-chips full hide-retrait" role="radiogroup" data-kind="pickup"><span class="kind-label" data-i18n="kindLabel"></span>
+            <p class="notice full near-note hidden" id="nearNote"></p>
+            <div class="saved-addrs full hidden pick-addr" data-for="from"></div>
+            <div class="addr-tools full pick-addr"><button type="button" class="btn btn-sm" data-geo="from" data-i18n="useMyPos"></button><button type="button" class="btn btn-sm btn-link hidden" data-save-addr="from" data-i18n="saveAddr"></button></div>
+            <label class="f full pick-addr"><span data-i18n="addrSearch"></span><input name="pickup_address" data-i18n-ph="addrSearchPh" /></label>
+            <label class="f pick-addr"><span data-i18n="houseNo"></span><input name="pickup_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
+            <label class="f pick-addr"><span data-i18n="city"></span><select name="from_city" class="city-select with-other"></select></label>
+            <label class="f other-city hidden pick-addr" data-for="from"><span data-i18n="otherCityName"></span><input name="from_other" /></label>
+            <div class="kind-chips full hide-retrait pick-addr" role="radiogroup" data-kind="pickup"><span class="kind-label" data-i18n="kindLabel"></span>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="maison" hidden /><span data-i18n="kind_maison"></span></label>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="appartement" hidden /><span data-i18n="kind_appartement"></span></label>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="bureau" hidden /><span data-i18n="kind_bureau"></span></label>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="commerce" hidden /><span data-i18n="kind_commerce"></span></label>
             </div>
-            <div class="fields4 full hide-retrait" data-details="pickup">
+            <div class="fields4 full hide-retrait pick-addr" data-details="pickup">
               <label class="f"><span data-i18n="building"></span><input name="pickup_building" data-i18n-ph="buildingPh" /></label>
               <label class="f"><span data-i18n="floor"></span><input name="pickup_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="pickup_apt" data-i18n-ph="aptPh" /></label>
               <label class="f"><span data-i18n="entryCode"></span><input name="pickup_code" data-i18n-ph="codePh" /></label>
             </div>
-            <label class="f full addr-note"><span data-i18n="addrNote"></span><input name="pickup_note" data-i18n-ph="addrNotePh" /></label>
+            <label class="f full addr-note pick-addr"><span data-i18n="addrNote"></span><input name="pickup_note" data-i18n-ph="addrNotePh" /></label>
             <label class="f show-retrait"><span data-i18n="tracking"></span><input name="tracking_number" data-i18n-ph="trackingPh" /></label>
             <label class="f show-retrait hide-locker"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
             <label class="f show-locker"><span data-i18n="retraitCode"></span><input name="retrait_code" data-i18n-ph="retraitCodePh" autocomplete="off" /></label>
@@ -410,8 +411,8 @@
               <div class="gm-sum" id="goodsSum"></div>
             </div>
             <label class="check full show-achat"><input type="checkbox" name="fits_topcase" /> <span data-i18n="fitsTopcase"></span></label>
-            <label class="f hide-retrait there-contact"><span data-i18n="contactThere"></span><input name="pickup_contact" data-i18n-ph="namePh" /></label>
-            <label class="f hide-retrait there-contact"><span data-i18n="phoneThere"></span><input name="pickup_phone" type="tel" data-i18n-ph="phonePh" /></label>
+            <label class="f hide-retrait there-contact pick-addr"><span data-i18n="contactThere"></span><input name="pickup_contact" data-i18n-ph="namePh" /></label>
+            <label class="f hide-retrait there-contact pick-addr"><span data-i18n="phoneThere"></span><input name="pickup_phone" type="tel" data-i18n-ph="phonePh" /></label>
           </div>
         </fieldset>
 
@@ -723,15 +724,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610270108"></script>
-<script src="i18n.js?v=202610270108"></script>
-<script src="pricing.js?v=202610270108"></script>
-<script src="store.js?v=202610270108"></script>
-<script src="chat.js?v=202610270108"></script>
-<script src="common.js?v=202610270108"></script>
-<script src="enseignes.js?v=202610270108"></script>
-<script src="places.js?v=202610270108"></script>
-<script src="rayons.js?v=202610270108"></script>
-<script src="client.js?v=202610270108"></script>
+<script src="config.js?v=202610270153"></script>
+<script src="i18n.js?v=202610270153"></script>
+<script src="pricing.js?v=202610270153"></script>
+<script src="store.js?v=202610270153"></script>
+<script src="chat.js?v=202610270153"></script>
+<script src="common.js?v=202610270153"></script>
+<script src="enseignes.js?v=202610270153"></script>
+<script src="places.js?v=202610270153"></script>
+<script src="rayons.js?v=202610270153"></script>
+<script src="client.js?v=202610270153"></script>
 </body>
 </html>

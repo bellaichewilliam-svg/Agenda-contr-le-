@@ -6444,3 +6444,20 @@ end;
 $$;
 revoke execute on function public.courier_goods_ticket(uuid, numeric, text) from public, anon;
 grant execute on function public.courier_goods_ticket(uuid, numeric, text) to authenticated;
+
+-- Achats par rayon (pharmacie, tabac, makolet, bébé…) : le client ne choisit pas le magasin, le livreur va au plus
+-- proche de l'adresse de livraison. pickup_near = le rayon ; pas de coordonnées de départ (pas de contrôle GPS au départ).
+alter table public.orders add column if not exists pickup_near text
+  check (pickup_near in ('pharm', 'tabac', 'bakery', 'shop', 'baby', 'pets', 'home', 'gift'));
+-- Sans point de départ, la course est proposée d'abord aux livreurs les plus proches du client
+do $$
+declare f text; d text;
+begin
+  foreach f in array array['public.can_see_new(public.orders)', 'public.can_see_for(public.orders, uuid)'] loop
+    d := pg_get_functiondef(f::regprocedure);
+    if position('coalesce(o.pickup_lat, o.dropoff_lat)' in d) = 0 then
+      d := replace(replace(d, 'o.pickup_lat', 'coalesce(o.pickup_lat, o.dropoff_lat)'), 'o.pickup_lon', 'coalesce(o.pickup_lon, o.dropoff_lon)');
+      execute d;
+    end if;
+  end loop;
+end $$;
