@@ -273,7 +273,7 @@ async function createOrder(order) {
     // ou il paie tout d'avance au livreur par Bit (la course + les articles au maximum : 300 ₪, 150 ₪ avant 3 courses livrées)
     const achat = order.service === "achat" && !order.shop_status;
     if (achat && order.goods_prepay) {
-      if (order.payment_method !== "bit") throw new Error("goods_prepay_bit");
+      if (!["bit", "cash"].includes(order.payment_method)) throw new Error("goods_prepay_bit");
       const done = localOrders().filter(x => x.status === "livree" && (String(x.contact_phone || "").replace(/\D/g, "") === String(order.contact_phone || "").replace(/\D/g, ""))).length;
       const cap = done >= 3 ? 300 : 150;
       if (!(Number(order.goods_budget) > 0)) throw new Error("goods_budget_required");

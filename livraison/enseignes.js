@@ -18,7 +18,10 @@ const CATS = [
   { id: "food", icon: "🍽️", q: ['nwr["amenity"~"^(restaurant|fast_food)$"]'], r: 2500 },
   { id: "mall", icon: "🛍️", q: ['nwr["shop"~"^(mall|department_store)$"]'], r: 9000 },
   { id: "flower", icon: "💐", q: ['nwr["shop"="florist"]'], r: 6000 },
-  { id: "tech", icon: "📱", q: ['nwr["shop"~"^(mobile_phone|electronics|computer)$"]'], r: 5000 }
+  { id: "tech", icon: "📱", q: ['nwr["shop"~"^(mobile_phone|electronics|computer)$"]'], r: 5000 },
+  { id: "baby", icon: "👶", q: ['nwr["shop"~"^(baby_goods|toys)$"]'], r: 8000 },
+  { id: "pet", icon: "🐾", q: ['nwr["shop"="pet"]'], r: 6000 },
+  { id: "home", icon: "🔌", q: ['nwr["shop"~"^(hardware|doityourself|houseware|variety_store)$"]'], r: 6000 }
 ];
 const ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter",
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
@@ -27,7 +30,8 @@ const PHOTON_TAGS = {
   breakfast: ["shop:bakery", "shop:pastry", "shop:confectionery"], pressing: ["shop:dry_cleaning", "shop:laundry"],
   pharm: ["amenity:pharmacy", "shop:chemist"], post: ["amenity:post_office", "amenity:parcel_locker"], super: ["shop:supermarket"],
   food: ["amenity:restaurant", "amenity:fast_food"], mall: ["shop:mall", "shop:department_store"], flower: ["shop:florist"],
-  tech: ["shop:mobile_phone", "shop:electronics", "shop:computer"]
+  tech: ["shop:mobile_phone", "shop:electronics", "shop:computer"], baby: ["shop:baby_goods", "shop:toys"], pet: ["shop:pet"],
+  home: ["shop:hardware", "shop:doityourself", "shop:houseware", "shop:variety_store"]
 };
 const KEEP_MS = 7 * 86400000;
 // Petit-déjeuner : ce qu'on cherche dans les noms et les types de l'annuaire
