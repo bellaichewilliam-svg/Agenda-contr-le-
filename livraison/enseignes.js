@@ -14,7 +14,8 @@ const CATS = [
   { id: "pressing", icon: "👔", q: ['nwr["shop"~"^(dry_cleaning|laundry)$"]'], r: 5000 },
   { id: "pharm", icon: "💊", q: ['nwr["amenity"="pharmacy"]', 'nwr["shop"="chemist"]'], r: 6000 },
   { id: "post", icon: "📮", q: ['nwr["amenity"="post_office"]', 'nwr["amenity"="parcel_locker"]'], r: 6000 },
-  { id: "super", icon: "🛒", q: ['nwr["shop"="supermarket"]'], r: 5000 },
+  { id: "super", icon: "🛒", q: ['nwr["shop"~"^(supermarket|convenience)$"]'], r: 5000 },
+  { id: "kiosk", icon: "🍾", q: ['nwr["shop"~"^(kiosk|tobacco|convenience|alcohol|beverages)$"]'], r: 4000 },
   { id: "food", icon: "🍽️", q: ['nwr["amenity"~"^(restaurant|fast_food)$"]'], r: 2500 },
   { id: "mall", icon: "🛍️", q: ['nwr["shop"~"^(mall|department_store)$"]'], r: 9000 },
   { id: "flower", icon: "💐", q: ['nwr["shop"="florist"]'], r: 6000 },
@@ -28,7 +29,8 @@ const ENDPOINTS = ["https://overpass-api.de/api/interpreter", "https://overpass.
 // Même chose par Photon (rapide, déjà utilisé pour les adresses) : les plus proches d'un type de lieu
 const PHOTON_TAGS = {
   breakfast: ["shop:bakery", "shop:pastry", "shop:confectionery"], pressing: ["shop:dry_cleaning", "shop:laundry"],
-  pharm: ["amenity:pharmacy", "shop:chemist"], post: ["amenity:post_office", "amenity:parcel_locker"], super: ["shop:supermarket"],
+  pharm: ["amenity:pharmacy", "shop:chemist"], post: ["amenity:post_office", "amenity:parcel_locker"], super: ["shop:supermarket", "shop:convenience"],
+  kiosk: ["shop:kiosk", "shop:tobacco", "shop:convenience", "shop:alcohol"],
   food: ["amenity:restaurant", "amenity:fast_food"], mall: ["shop:mall", "shop:department_store"], flower: ["shop:florist"],
   tech: ["shop:mobile_phone", "shop:electronics", "shop:computer"], baby: ["shop:baby_goods", "shop:toys"], pet: ["shop:pet"],
   home: ["shop:hardware", "shop:doityourself", "shop:houseware", "shop:variety_store"]

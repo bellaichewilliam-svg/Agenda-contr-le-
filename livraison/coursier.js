@@ -625,7 +625,7 @@ function card(o, kind) {
 // --- Ma course, ultra simple : l'étape à faire, DÉPART puis ARRIVÉE en gros, numéros en gras, Waze ------
 const WAZE_SVG = `<svg class="waze-ico" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="#33CCFF"/><path d="M12 25c0-7 5.5-12 12.5-12S37 18 37 25c0 4-2 6.5-4.5 8l1 3-4-1.5c-1.5.5-3.3.8-5 .8-2 0-3.6-.4-5-1-1 1.6-3 2.4-5 1.6l1.6-2.6C13.3 31.6 12 28.6 12 25z" fill="#fff" stroke="#0B1222" stroke-width="2"/><circle cx="20.5" cy="23" r="1.8" fill="#0B1222"/><circle cx="28.5" cy="23" r="1.8" fill="#0B1222"/><path d="M20 28c2.6 2.4 6.4 2.4 9 0" fill="none" stroke="#0B1222" stroke-width="2" stroke-linecap="round"/></svg>`;
 function navBtn(o, which) {
-  return `<a class="btn-waze" href="${navLink(o, which)}" target="_blank" rel="noopener">${riderSet.nav === "maps" ? "🧭" : WAZE_SVG}<span>${which === "pickup" ? (o.pickup_near ? "Chercher le plus proche" : "Aller au départ") : "Aller chez le client"} · ${riderSet.nav === "maps" ? "Maps" : "Waze"}</span></a>`;
+  return `<a class="btn-waze" href="${navLink(o, which)}" target="_blank" rel="noopener">${riderSet.nav === "maps" ? "🧭" : WAZE_SVG}<span>${which === "pickup" ? (o.pickup_near && o.pickup_lat == null ? "Chercher le plus proche" : "Aller au départ") : "Aller chez le client"} · ${riderSet.nav === "maps" ? "Maps" : "Waze"}</span></a>`;
 }
 function callBig(name, phone) {
   return phone ? `<a class="call-big" href="tel:${UI.esc(phone)}">📞 <b>${UI.esc(phone)}</b>${name ? `<span>${UI.esc(name)}</span>` : ""}</a>` : "";
@@ -770,6 +770,7 @@ function mineCard(o, x) {
     return `<section class="stop-block${now ? " now" : " done"}">
       <div class="stop-tag">${label}${which === "pickup" ? readyChip(o) : ""}</div>
       <div class="stop-addr">${UI.brand(o[pre + "_place"])}<bdi>${UI.esc(o[pre + "_address"])}</bdi>, ${UI.esc(UI.cityFr(city))}</div>
+      ${which === "pickup" && o.pickup_near ? `<div class="small near-tip">📍 Le magasin le plus proche du client. Fermé ? Allez au suivant ouvert : pas de contrôle GPS au départ.</div>` : ""}
       ${which === "pickup" && !to ? showRef(o) : ""}${cashStop(o, which, now)}
       ${which === "dropoff" && sameClient(o).length ? `<div class="twin-line">👥 Même client : <b>${sameClient(o).length + 1} commandes</b> (celle-ci + ${sameClient(o).map(t => UI.esc(twinName(t))).join(", ")}).<br>Touchez « Livré » sur <b>chaque</b> commande, une par enseigne.</div>` : ""}
       ${UI.addrDetails(o, pre)}${UI.addrNote(o[pre + "_note"])}${which === "dropoff" ? UI.doorBig(o, true) : ""}

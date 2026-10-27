@@ -6461,3 +6461,18 @@ begin
     end if;
   end loop;
 end $$;
+
+-- Achat « au plus proche » : le départ est le magasin le plus proche du client (point Waze du livreur), mais s'il est
+-- fermé le livreur va au suivant : pas de contrôle GPS au départ (« Je suis arrivé », « Colis récupéré »)
+do $$
+declare d text;
+begin
+  d := pg_get_functiondef('public.orders_recup_on_site()'::regprocedure);
+  if position('new.pickup_near is null' in d) = 0 then
+    execute replace(d, 'new.pickup_lat is not null and not coalesce(new.unlocked, false)', 'new.pickup_lat is not null and new.pickup_near is null and not coalesce(new.unlocked, false)');
+  end if;
+  d := pg_get_functiondef('public.courier_update(uuid, text)'::regprocedure);
+  if position('o.pickup_near is null' in d) = 0 then
+    execute replace(d, 'st.id = 1 and o.pickup_lat is not null', 'st.id = 1 and o.pickup_lat is not null and o.pickup_near is null');
+  end if;
+end $$;

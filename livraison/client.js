@@ -574,6 +574,16 @@ const pharmaOn = () => !!rayonOn();
 // Rayon choisi par sa tuile (pharmacie, tabac, makolet, bébé…) : le client ne choisit pas le magasin,
 // le livreur va au plus proche de l'adresse de livraison (ouvert). Pas d'adresse de départ à remplir.
 const nearMode = () => !!state.homeKind && RAYON_KINDS.includes(state.homeKind) && !state.shop && val("service") === "achat";
+// Le magasin du rayon le plus proche de l'adresse de livraison (3 km au plus) : le point Waze du livreur
+const NEAR_CAT = { pharm: "pharm", tabac: "kiosk", bakery: "breakfast", shop: "super", baby: "baby", pets: "pet", home: "home", gift: "flower" };
+async function nearestShop(kind, at) {
+  if (!window.Enseignes || !at || at.lat == null || !NEAR_CAT[kind]) return null;
+  try {
+    const items = await Promise.race([Enseignes.list(NEAR_CAT[kind], { lat: at.lat, lon: at.lon }, I18N.lang), new Promise(r => setTimeout(() => r([]), 6000))]);
+    const best = (items || []).filter(x => x.lat != null).map(x => Object.assign({}, x, { km: Places.km(at, x) })).sort((a, b) => a.km - b.km)[0];
+    return best && best.km <= 3 ? best : null;
+  } catch (e) { return null; }
+}
 const NEAR_FR = { pharm: "Pharmacie", tabac: "Kiosque / tabac", bakery: "Boulangerie", shop: "Makolet / supermarché", baby: "Magasin bébé ou pharmacie", pets: "Animalerie", home: "Quincaillerie / bazar", gift: "Fleuriste" };
 const phName = x => (I18N.lang === "he" ? x.he : x.fr);
 const rayonPicked = r => Object.entries(state.pharma).filter(([k, q]) => q > 0 && k.startsWith(r.id + ":"));
@@ -1507,9 +1517,14 @@ async function submit(e) {
     // Le client vérifie ses adresses sur la carte (et corrige l'épingle s'il le faut)
     // Le nom du restaurant / commerce d'abord : « Smash It · דגניה 47 », pas seulement la rue
     const named = (p, a) => (p && p.brand && !a.includes(p.brand) ? `${p.brand} · ${a}` : a);
-    const checked = await confirmAddresses(pick0, drop0, named(pf, pAddr), named(pt, dAddr), fromCity, toCity);
+    // Au plus proche : on cherche tout de suite le magasin le plus proche de l'arrivée (le livreur reçoit son point Waze) ;
+    // rien trouvé : Waze cherchera ce type de magasin autour du client
+    const nearShop = near ? await nearestShop(state.homeKind, drop0) : null;
+    const nearAddr = nearShop ? (`${nearShop.street || ""} ${nearShop.number || ""}`.trim() || nearShop.name) : "";
+    const checked = await confirmAddresses(nearShop ? { lat: nearShop.lat, lon: nearShop.lon, exact: true } : pick0, drop0,
+      nearShop ? `🏪 ${nearShop.name} · ${nearAddr} (${t("nearClosest")})` : named(pf, pAddr), named(pt, dAddr), fromCity, toCity);
     if (!checked) return;
-    const pick = near ? null : checked.pick, drop = checked.drop;
+    const pick = near && !nearShop ? null : checked.pick, drop = checked.drop;
     const pv = k => (near ? "" : val(k).trim());
     const order = {
       lang: I18N.lang,
@@ -1517,8 +1532,8 @@ async function submit(e) {
       urgency: val("urgency"),
       pickup_at: pickupDate().toISOString(),
       from_city: fromCity,
-      pickup_address: pAddr,
-      pickup_place: pf ? pf.brand : null,
+      pickup_address: nearShop ? nearAddr : pAddr,
+      pickup_place: pf ? pf.brand : nearShop ? nearShop.name : null,
       pickup_near: near ? state.homeKind : null,
       pickup_learned: learnIt(pf),
       pickup_kind: svc !== "retrait" && !near ? kindOf("pickup") : null,
