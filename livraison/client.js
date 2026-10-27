@@ -2592,8 +2592,39 @@ function initHome() {
   // Livreurs en ligne : vérifié toutes les 5 s (un livreur qui se déconnecte disparaît tout de suite)
   setInterval(() => { if (!document.hidden) loadNearby(); }, 5000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) loadNearby(); });
+  // Commerces toujours à jour, même dans une appli ouverte depuis des heures : ceux qui ouvrent ou ferment,
+  // les nouveaux partenaires et leurs vitrines. Relus à chaque retour dans l'appli et toutes les 5 min ;
+  // l'écran n'est redessiné que si quelque chose a changé (rien ne bouge sous le doigt du client).
+  // « Ouvert / Fermé » suit l'heure : les vitrines sont recalculées chaque minute.
+  let shopsAt = Date.now(), hiddenAt = 0;
+  const refreshShops = async () => {
+    shopsAt = Date.now();
+    const [dir, sc] = await Promise.all([Store.shopsDirectory().catch(() => null), Store.shopsShowcase().catch(() => null)]);
+    if (dir && JSON.stringify(dir.filter(x => x.lat != null)) !== JSON.stringify(state.partners)) state.partnersReady = loadPartners();
+    if (sc && JSON.stringify(sc) !== JSON.stringify(state.showcase)) loadShowcase(); else renderShowcase();
+  };
+  setInterval(() => { if (!document.hidden) renderShowcase(); }, 60000);
+  setInterval(() => { if (!document.hidden) refreshShops(); }, 5 * 60000);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) { hiddenAt = Date.now(); return; }
+    if (Date.now() - shopsAt > 15000) refreshShops();
+    if (hiddenAt && Date.now() - hiddenAt > 5 * 60000) checkNewVersion();
+  });
+  window.addEventListener("pageshow", e => { if (e.persisted) refreshShops(); });
   // Sur téléphone, la bulle « Nous écrire » remonte au-dessus du bouton Commander
   if ("IntersectionObserver" in window) new IntersectionObserver(es => document.body.classList.toggle("in-home", es[0].isIntersecting)).observe($("#homeSheet"));
+}
+
+// Nouvelle version de l'appli mise en ligne pendant que le téléphone la gardait en arrière-plan : au retour,
+// si le client est sur l'accueil sans panier en cours, on recharge (sinon on attend, rien n'est perdu)
+async function checkNewVersion() {
+  const mine = ((document.querySelector('script[src*="client.js"]') || {}).src || "").match(/[?&]v=(\d+)/);
+  if (!mine || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length) return;
+  try {
+    const html = await (await fetch(`${location.pathname}?fresh=${Date.now()}`, { cache: "no-store" })).text();
+    const live = html.match(/client\.js\?v=(\d+)/);
+    if (live && live[1] !== mine[1] && document.body.dataset.view === "home") location.reload();
+  } catch (e) { /* hors ligne : on garde la version ouverte */ }
 }
 
 function showHomeErr(msg) { $("#homeErr").textContent = msg || ""; $("#homeErr").classList.toggle("hidden", !msg); }

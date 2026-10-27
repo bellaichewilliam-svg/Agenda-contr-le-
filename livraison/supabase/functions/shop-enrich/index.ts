@@ -235,6 +235,45 @@ async function shopifyRephoto(id: string, site: string, logo?: string, cover?: s
   return { ok: true, photos: n, of: todo.length, logo: !!patch.logo, cover: !!patch.cover };
 }
 
+// Carte reprise d'un autre site, déjà lue par le patron (rayon, nom, description, prix, photo) : seulement si
+// le catalogue est vide. Les photos passent par un serveur d'images public qui les réduit en webp léger.
+const lightImg = (src: string | null | undefined, w: number) =>
+  src && /^https:\/\//.test(String(src)) ? imageData(`https://wsrv.nl/?url=${encodeURIComponent(String(src))}&output=webp&q=78`, w) : Promise.resolve(null);
+async function fromMenu(id: string, items: any[], source: string, logo?: string, cover?: string) {
+  const { data: shop } = await db.from("shops").select("logo, cover, admin_note").eq("id", id).single();
+  if (!shop) throw new Error("no_shop");
+  const { count } = await db.from("shop_products").select("id", { count: "exact", head: true }).eq("shop_id", id);
+  if (count) return { ok: false, why: "already_has_products", count };
+  const patch: Record<string, string> = {};
+  const lg = !shop.logo && await lightImg(logo, 320), cv = !shop.cover && await lightImg(cover, 1000);
+  if (lg) patch.logo = lg;
+  if (cv) patch.cover = cv;
+  if (Object.keys(patch).length) await db.from("shops").update(patch).eq("id", id);
+  const cut = (t: unknown, n: number) => { const d = clean(String(t || "")); return d.length > n ? d.slice(0, n - 1).replace(/\s+\S*$/, "") + "…" : d; };
+  const cats: string[] = [];
+  for (const it of items) { const c = cut(it.cat, 60) || "Menu"; if (!cats.includes(c)) cats.push(c); }
+  let nCat = 0, nProd = 0;
+  for (const [i, cname] of cats.slice(0, 30).entries()) {
+    const list = items.filter(it => (cut(it.cat, 60) || "Menu") === cname && cut(it.name, 80) && Number(it.price) > 0 && Number(it.price) <= 5000).slice(0, 60);
+    if (!list.length) continue;
+    const { data: cat } = await db.from("shop_categories").insert({ shop_id: id, name: cname, position: i }).select("id").single();
+    if (!cat) continue;
+    nCat++;
+    const rows = await Promise.all(list.map(async (it: any, j: number) => ({
+      shop_id: id, category_id: cat.id, position: j, name: cut(it.name, 80),
+      description: cut(it.description, 300) || null,
+      price: Math.round(Number(it.price) * 100) / 100,
+      photo: await lightImg(it.photo, 360),
+      available: true,
+    })));
+    const { error } = await db.from("shop_products").insert(rows);
+    if (!error) nProd += rows.length; else console.error("menu insert", cname, error.message);
+  }
+  const line = `🍽️ Carte reprise de ${source} : ${nCat} rubriques, ${nProd} plats (prix du site, à vérifier avec le commerce).`;
+  await db.from("shops").update({ admin_note: shop.admin_note ? `${line}\n${shop.admin_note}` : line }).eq("id", id);
+  return { ok: true, nCat, nProd, logo: !!lg, cover: !!cv };
+}
+
 // Qui peut lancer la fiche : le commerce lui-même (sa clé secrète, juste après l'inscription), le patron
 // (connecté, rôle admin) pour n'importe quel commerce, ou la base (clé x-hop-key)
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-hop-key", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -261,6 +300,7 @@ Deno.serve(async req => {
   const id = await shopIdFor(req, body);
   if (!id) return reply({ ok: false, why: "forbidden" }, 403);
   try {
+    if (Array.isArray(body.menu)) return reply(await fromMenu(id, body.menu.slice(0, 400), String(body.source || "son site").slice(0, 120), body.logo, body.cover));
     if (body.shopify && body.rephoto) return reply(await shopifyRephoto(id, String(body.shopify), body.logo, body.cover));
     if (body.shopify) return reply(await fromShopify(id, String(body.shopify), Math.min(15, Math.max(1, Number(body.per) || 8)), body.logo, body.cover, !!body.fill));
     return reply(await enrich(id));
