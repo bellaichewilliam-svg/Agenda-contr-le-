@@ -245,7 +245,7 @@ const NEW_POSTS = [
 🍔 Paris Texas, Kiryat HaSharon · ✡️ casher
 🍔 Smash It, smash burgers · ✡️ casher
 🥐 Le Marché Français, l'épicerie française (Bonne Maman, LU, Président…)
-🍕 Pizza Crush, rue David Remez : parts, grandes et géantes pizzas, calzones
+🍕 Pizza Crush, rue David Remez · ✡️ casher
 
 ➕ Et des centaines d'autres enseignes : restaurants, Super-Pharm, poste, supermarchés…
 🛵 Livraison dans ${UI.cityFr(home)} : ${price(home)} · suivi en direct · espèces ou Bit
@@ -257,17 +257,17 @@ const NEW_POSTS = [
 🍔 פריז טקסס, קריית השרון · ✡️ כשר
 🍔 סמאש איט, סמאש בורגרים · ✡️ כשר
 🥐 השוק הצרפתי, מכולת צרפתית (בון מאמן, LU, פרזידנט…)
-🍕 פיצה קראש, רחוב דוד רמז: משולשים, פיצות גדולות וענקיות, קלצונה
+🍕 פיצה קראש, רחוב דוד רמז · ✡️ כשר
 
 ➕ ועוד מאות עסקים: מסעדות, סופר-פארם, דואר, סופרמרקטים…
 🛵 משלוח בתוך ${heHome}: ${price(home)} · מעקב בזמן אמת · מזומן או ביט
 👈 כל מה שאנחנו מביאים (ולהזמין תוך דקה): ${livreHe}` },
   { title: "Phrases courtes (story, statut, légende de vidéo)", dir: "ltr", text:
 `🛵 Nina Sushi, Paris Texas, Smash It, Le Marché Français et Pizza Crush : maintenant livrés par ${nameFr} !
-🍣🍔🥐🍕 Vos sushis, vos burgers casher, vos pizzas et vos produits français, livrés chez vous à ${UI.cityFr(home)} en un clic.
+🍣🍔🥐🍕 Vos sushis, vos burgers et vos pizzas casher, vos produits français, livrés chez vous à ${UI.cityFr(home)} en un clic.
 ✡️ Nos restaurants casher sont marqués d'un sceau dans l'appli : facile à trouver.
 🛵 נינה סושי, פריז טקסס, סמאש איט, השוק הצרפתי ופיצה קראש: עכשיו במשלוח עם ${nameHe}!
-🍣🍔🥐🍕 הסושי, ההמבורגרים הכשרים, הפיצות והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
+🍣🍔🥐🍕 הסושי, ההמבורגרים והפיצות הכשרים והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
 👉 ${livre}` }
 ];
 // « On fait toutes vos courses » : textes qui vont avec les visuels et la vidéo des catégories
