@@ -1174,6 +1174,8 @@ function clientCount(days) {
 }
 // Visuels du kit pub proposés pour les pubs de l'appli (format story, FR et HE)
 const KIT_PROMO_IMGS = [
+  ["Toutes vos courses (story)", "kit/visuels/courses-story-fr.png", "kit/visuels/courses-story-he.png"],
+  ["Toutes vos courses (carré)", "kit/visuels/courses-post-fr.png", "kit/visuels/courses-post-he.png"],
   ["Nouveaux partenaires (story)", "kit/visuels/nouveaux-story-fr.png", "kit/visuels/nouveaux-story-he.png"],
   ["Nouveaux partenaires (carré)", "kit/visuels/nouveaux-post-fr.png", "kit/visuels/nouveaux-post-he.png"],
   ["Clients : première course (story)", "kit/visuels/client-story-fr.png", "kit/visuels/client-story-he.png"],

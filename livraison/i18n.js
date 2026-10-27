@@ -1286,6 +1286,9 @@ he: {
 const LS_LANG = "livraison.lang.v1";
 
 function detectLang() {
+  // Lien d'un flyer en hébreu (…?lang=he) : la langue choisie est gardée pour la suite
+  const asked = new URLSearchParams(location.search).get("lang");
+  if (asked && DICT[asked]) { try { localStorage.setItem(LS_LANG, asked); } catch (e) { /* ignore */ } return asked; }
   try {
     const saved = localStorage.getItem(LS_LANG);
     if (saved && DICT[saved]) return saved;

@@ -4,6 +4,8 @@ const fs = require('fs');
 // Usage : node generer-visuels.js <dossier des polices et de qrcodejs> (voir README)
 const L = process.argv[2] || __dirname + '/libs', OUT = __dirname + '/visuels';
 const APP = 'https://hop-livraison.vercel.app/';
+// QR des visuels clients : d'abord la page « Ce qu'on livre » (pas la commande directement), dans la langue du visuel
+const ON_LIVRE = lang => APP + 'on-livre.html' + (lang === 'he' ? '?lang=he' : '');
 // Numéro du patron sur les visuels « argumentaires » (config.js : whatsapp)
 const TEL = (d => `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}`)('0' + fs.readFileSync(__dirname + '/../config.js', 'utf8').match(/whatsapp:\s*"972(\d+)"/)[1]);
 // Polices intégrées (les fichiers locaux ne se chargent pas depuis une page générée)
@@ -49,16 +51,29 @@ h1 em{font-style:normal;color:#FF6A13}
 .road{position:absolute;left:0;right:0;border-bottom:6px dashed rgba(255,255,255,.18)}
 ul.ok{list-style:none;display:grid;gap:16px}
 ul.ok li{font-weight:700}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;flex-shrink:0}
+.steps span{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.16);border-radius:24px;padding:8px 14px 8px 8px;font-weight:700;line-height:1.15}
+.he .steps span{padding:8px 8px 8px 14px}
+.steps b{flex:none;display:grid;place-items:center;width:1.7em;height:1.7em;border-radius:50%;background:#FF6A13;font-family:Fredoka}
+.cgrid{display:grid;gap:18px;flex:1;min-height:0;grid-auto-rows:1fr}
+.foot,.top,h1{flex-shrink:0}
+.ctile{position:relative;background:#fff;border-radius:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#0F1F3D;text-align:center;padding:10px;box-shadow:0 14px 30px rgba(0,0,0,.28)}
+.ctile b{font-family:Rubik;font-weight:800;line-height:1.1}
+.ctile .cart{height:62%;aspect-ratio:1;display:grid;place-items:center;border-radius:26px;background:radial-gradient(circle at 30% 25%,hsl(var(--h) 100% 97%),hsl(var(--h) 85% 84%) 70%)}
+.ctile .cart img{width:80%;height:80%;object-fit:contain;filter:drop-shadow(0 8px 10px hsl(var(--h) 60% 30% / .3))}
+.ctile.tap{outline:6px solid #FF6A13;outline-offset:-6px;transform:scale(1.04)}
+.finger{position:absolute;font-style:normal;font-size:64px;bottom:-26px;right:-6px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+.he .finger{right:auto;left:-6px}
 `;
 const qr = (id, size) => `<div class="qrbox"><div id="${id}"></div><span style="font-size:${Math.round(size / 9)}px">{{scan}}</span></div>`;
 // --- Contenus ------------------------------------------------------------------------
 const T = {
   client: {
     fr: { h1: 'Et hop,<br><em>c\'est livré !</em>', sub: 'Colis · Poste · Super-Pharm · Restaurants · Courses', chips: ['🛵 Dans tout le Sharon', '📍 Suivi en direct', '💵 Espèces ou Bit', '🧾 0 frais cachés'],
-      price: '<span>Course dans Netanya</span><span><s>25 ₪</s> <b>15 ₪</b></span>', badge: '🎁 Première course', scan: 'Scannez et commandez', url: 'Commandez en 1 minute' },
+      price: '<span>Course dans Netanya</span><span><s>25 ₪</s> <b>15 ₪</b></span>', badge: '🎁 Première course', scan: 'Tout ce qu\'on livre', url: 'Commandez en 1 minute' },
     he: { h1: 'הופ,<br><em>וזה אצלך!</em>', sub: 'חבילות · דואר · סופר-פארם · מסעדות · קניות', chips: ['🛵 בכל השרון', '📍 מעקב בזמן אמת', '💵 מזומן או ביט', '🧾 0 עמלות נסתרות'],
-      price: '<span>משלוח בתוך נתניה</span><span><s>25 ₪</s> <b>15 ₪</b></span>', badge: '🎁 משלוח ראשון', scan: 'סורקים ומזמינים', url: 'מזמינים תוך דקה' },
-    link: APP
+      price: '<span>משלוח בתוך נתניה</span><span><s>25 ₪</s> <b>15 ₪</b></span>', badge: '🎁 משלוח ראשון', scan: 'כל מה שאנחנו מביאים', url: 'מזמינים תוך דקה' },
+    link: ON_LIVRE
   },
   shop: {
     fr: { h1: 'Votre commerce<br><em>livre avec HOP!</em>', sub: 'Restaurants · Boutiques · Pharmacies · Bureaux', chips: ['💸 0 % sur vos ventes', '🛵 Le livreur arrive quand c\'est prêt', '📱 Votre QR pour vos clients', '🧾 Reçu pour chaque course'],
@@ -104,6 +119,46 @@ const T = {
     link: APP + 'commerce.html?inscription=1', hs: 0.8, hsPost: 1.05, postChips: 3
   }
 };
+// « On fait toutes vos courses » : la grille des catégories de l'appli (mêmes illustrations 3D), en 3 étapes
+T.courses = {
+  fr: { h1: 'On fait <em>toutes<br>vos courses</em>', sub: 'Ouvrez l\'appli, touchez une catégorie, écrivez ce qu\'il vous faut : on achète et on livre.',
+    steps: ['Ouvrez l\'appli', 'Touchez une catégorie', 'On achète et on livre'],
+    price: '<span>Achat + livraison dans Netanya</span><span><b>30 ₪</b></span>', badge: '🧾 Prix du magasin, 0 frais de service', scan: 'Voir ce qu\'on livre', url: 'Tous les magasins, même les petits' },
+  he: { h1: 'אנחנו עושים<br><em>את כל הקניות</em>', sub: 'פותחים את האפליקציה, בוחרים קטגוריה, כותבים מה צריך: אנחנו קונים ומביאים.',
+    steps: ['פותחים את האפליקציה', 'בוחרים קטגוריה', 'קונים ומביאים לכם'],
+    price: '<span>קנייה + משלוח בתוך נתניה</span><span><b>30 ₪</b></span>', badge: '🧾 מחיר החנות, 0 דמי שירות', scan: 'מה אנחנו מביאים', url: 'כל החנויות, גם הקטנות' },
+  link: ON_LIVRE,
+  cats: [['cart', 140, 'Supérette', 'מכולת'], ['pill', 160, 'Pharmacie', 'בית מרקחת'], ['croissant', 38, 'Boulangerie', 'מאפייה'], ['burger', 25, 'Restaurants', 'מסעדות'],
+    ['mailbox', 205, 'Colis à la poste', 'חבילה בדואר'], ['basket', 35, 'Pressing', 'ניקוי יבש'], ['flowers', 330, 'Fleurs & cadeaux', 'פרחים ומתנות'], ['baby', 280, 'Bébé & enfants', 'תינוקות וילדים'],
+    ['dog', 30, 'Animaux', 'חיות מחמד'], ['plug', 210, 'Maison', 'לבית ותיקונים'], ['docs', 215, 'Documents', 'מסמכים'], ['key', 45, 'Clés oubliées', 'מפתחות']]
+};
+const ART = k => 'data:image/webp;base64,' + fs.readFileSync(`${__dirname}/../img/items/${k}.webp`).toString('base64');
+function coursesPage(lang, fmt) {
+  const t = T.courses[lang], he = lang === 'he', post = fmt === 'post';
+  const W = fmt === 'flyer' ? 1240 : 1080, H = fmt === 'story' ? 1920 : fmt === 'flyer' ? 1754 : 1080;
+  const k = post ? 1 : fmt === 'story' ? 1.3 : 1.25, pad = post ? 56 : 80, qrSize = post ? 170 : 240;
+  // Story : 9 catégories (3 × 3), post : 8 (4 × 2), flyer : 12 (4 × 3) ; la grille prend toute la place qui reste
+  const cats = T.courses.cats.slice(0, post ? 8 : fmt === 'story' ? 9 : 12), cols = fmt === 'story' ? 3 : 4;
+  const html = `<div class="page ${he ? 'he' : ''}" style="width:${W}px;height:${H}px;padding:${pad}px;gap:${post ? 20 : 34}px">
+    <div class="top" style="justify-content:space-between"><div style="display:flex;align-items:center;gap:22px"><div class="lg" ${post ? 'style="width:88px;height:88px"' : ''}>${LOGO}</div>
+      <div class="wm" ${post ? 'style="font-size:76px"' : ''}>${he ? 'הופ' : 'HOP'}<i>!</i><small>${he ? 'משלוחים' : 'LIVRAISON'}</small></div></div>
+      ${post ? '' : `<span class="badge" style="font-size:${Math.round(30 * k)}px">🛒 ${he ? 'קונים בשבילכם' : 'J\'achète pour vous'}</span>`}</div>
+    <h1 style="font-size:${post ? 64 : Math.round(88 * k)}px">${post ? t.h1.replace('<br>', ' ') : t.h1}</h1>
+    <div class="steps" style="font-size:${post ? 22 : Math.round(22 * k)}px">${t.steps.map((x, i) => `<span><b>${i + 1}</b>${x}</span>`).join('')}</div>
+    <div class="cgrid" style="grid-template-columns:repeat(${cols},1fr)">${cats.map(([img, h, fr, hb], i) => `<div class="ctile${i === 1 ? ' tap' : ''}" style="--h:${h}">
+        <span class="cart"><img src="${ART(img)}" alt="" /></span>
+        <b style="font-size:${post ? 21 : Math.round((cols === 3 ? 25 : 21) * k)}px">${he ? hb : fr}</b>${i === 1 ? '<i class="finger">👆</i>' : ''}</div>`).join('')}</div>
+    <div class="foot">
+      <div style="display:grid;gap:16px;flex:1;min-width:0">
+        <div class="price" style="font-size:${Math.round((post ? 26 : 28) * k)}px;padding:${post ? '16px 26px' : '22px 32px'}">${t.price.replace('<b>', `<b style="font-size:${Math.round((post ? 56 : 70) * k)}px">`)}</div>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="badge" style="font-size:${Math.round((post ? 24 : 28) * k)}px">${t.badge}</span>
+          ${post ? '' : `<span class="url" style="font-size:${Math.round(24 * k)}px">${t.url}</span>`}</div>
+      </div>
+      ${qr('q', qrSize).replace('{{scan}}', t.scan)}
+    </div>
+  </div>`;
+  return { html, W, H, qrSize, link: ON_LIVRE(lang) };
+}
 function page(kind, lang, fmt) {
   const t = T[kind][lang], he = lang === 'he';
   const W = fmt === 'story' ? 1080 : fmt === 'flyer' ? 1240 : 1080, H = fmt === 'story' ? 1920 : fmt === 'flyer' ? 1754 : 1080;
@@ -130,7 +185,7 @@ function page(kind, lang, fmt) {
     </div>
     ${fmt === 'post' ? scoot(250, `top:70px;${he ? 'left' : 'right'}:64px`) : ''}
   </div>`;
-  return { html, W, H, qrSize, link: T[kind].link };
+  return { html, W, H, qrSize, link: typeof T[kind].link === 'function' ? T[kind].link(lang) : T[kind].link };
 }
 (async () => {
   const b = await chromium.launch();
@@ -139,7 +194,7 @@ function page(kind, lang, fmt) {
   // Usage : node generer-visuels.js <libs> [types séparés par des virgules] (par défaut : tous)
   const kinds = process.argv[3] ? process.argv[3].split(',') : Object.keys(T);
   for (const kind of kinds) for (const lang of ['fr', 'he']) for (const fmt of ['post', 'story', 'flyer']) {
-    const p = page(kind, lang, fmt);
+    const p = kind === 'courses' ? coursesPage(lang, fmt) : page(kind, lang, fmt);
     const ctx = await b.newContext({ viewport: { width: p.W, height: p.H }, deviceScaleFactor: 1 });
     const pg = await ctx.newPage();
     await pg.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${p.html}<script>${qrJs}</script>

@@ -2613,7 +2613,8 @@ function initHome() {
     if (hiddenAt && Date.now() - hiddenAt > 30 * 60000) setTimeout(showAppPromo, 900);
   });
   window.addEventListener("pageshow", e => { if (e.persisted) refreshShops(); });
-  setTimeout(showAppPromo, 1500);
+  if (kindParam && EXAMPLES.some(x => x.id === kindParam && !x.set.to_city)) setTimeout(() => goKind(kindParam), 400);
+  else setTimeout(showAppPromo, 1500);
   // Sur téléphone, la bulle « Nous écrire » remonte au-dessus du bouton Commander
   if ("IntersectionObserver" in window) new IntersectionObserver(es => document.body.classList.toggle("in-home", es[0].isIntersecting)).observe($("#homeSheet"));
 }
@@ -2622,7 +2623,7 @@ function initHome() {
 // ouverture, à tour de rôle. Jamais par-dessus une commande en cours, une page de commerce ou une autre fenêtre.
 const LS_PROMO = "livraison.promo.v1";
 async function showAppPromo() {
-  if (new URLSearchParams(location.search).get("c") || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length
+  if (shopCode || kindParam || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length
     || document.querySelector(".promo-modal") || !$("#noticeModal").classList.contains("hidden")) return;
   let list;
   try { list = ((await Store.appPromos()) || []).filter(p => p.image_fr); } catch (e) { return; }
@@ -3392,6 +3393,8 @@ function hopBurst(text) {
 // --- Démarrage ---------------------------------------------------------------------
 // Lien d'un commerce partenaire (lu avant de nettoyer l'adresse)
 const shopCode = new URLSearchParams(location.search).get("c");
+// Lien « Ce qu'on livre » (on-livre.html) : ?k=pharm ouvre directement cette catégorie
+const kindParam = new URLSearchParams(location.search).get("k");
 // Adresse nettoyée (paramètres laissés par une ancienne version ou un rechargement forcé)
 if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 I18N.apply();

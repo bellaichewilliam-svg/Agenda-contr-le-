@@ -25,9 +25,9 @@ const SCOOTER = idx.slice(idx.indexOf('<svg class="scooter"'), idx.indexOf('</sv
 
 const T = {
   fr: { kicker: 'Nouveau sur HOP!', h1: 'On vous livre<br><em>vos adresses préférées</em>', more: 'et des centaines d\'autres enseignes à Netanya',
-    price: 'Livraison dans Netanya', kosher: 'Casher', scan: 'Commandez ici', url: 'hop-livraison.vercel.app' },
+    price: 'Livraison dans Netanya', kosher: 'Casher', scan: 'Tout ce qu\'on livre', url: 'hop-livraison.vercel.app' },
   he: { kicker: 'חדש בהופ!', h1: 'עכשיו מביאים לכם<br><em>את המקומות שאתם אוהבים</em>', more: 'ועוד מאות עסקים בנתניה',
-    price: 'משלוח בתוך נתניה', kosher: 'כשר', scan: 'מזמינים כאן', url: 'hop-livraison.vercel.app' }
+    price: 'משלוח בתוך נתניה', kosher: 'כשר', scan: 'כל מה שאנחנו מביאים', url: 'hop-livraison.vercel.app' }
 };
 const CSS = `${FONTS}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -126,7 +126,7 @@ const splitName = s => { const [a, b] = String(s).split(' · '); return { fr: a,
     const ctx = await b.newContext({ viewport: { width: p.W, height: p.H } });
     const pg = await ctx.newPage();
     await pg.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${p.html}<script>${qrJs}</script>
-      <script>new QRCode(document.getElementById('q'), { text: ${JSON.stringify(APP)}, width: ${p.qrSize}, height: ${p.qrSize}, correctLevel: QRCode.CorrectLevel.M });</script></body></html>`);
+      <script>new QRCode(document.getElementById('q'), { text: ${JSON.stringify(APP + 'on-livre.html' + (lang === 'he' ? '?lang=he' : ''))}, width: ${p.qrSize}, height: ${p.qrSize}, correctLevel: QRCode.CorrectLevel.M });</script></body></html>`);
     await pg.evaluate(() => document.fonts.ready);
     await pg.waitForTimeout(300);
     const name = `nouveaux-${fmt}-${lang}`;

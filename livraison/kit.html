@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=202610271617" />
+  <link rel="stylesheet" href="styles.css?v=202610271629" />
 </head>
 <body class="kit-page">
 
@@ -23,16 +23,69 @@
   </div>
 </header>
 
-<main class="wrap narrow kit" style="padding:24px 16px 60px">
+<main class="wrap narrow kit" style="padding:16px 16px 60px">
 
-  <section class="card">
-    <h2>🎯 La stratégie en une phrase</h2>
-    <p style="margin-top:8px"><b>« Le coursier de Netanya qui parle français et hébreu : prix fixe affiché, suivi en direct, espèces ou Bit. »</b></p>
-    <p class="muted" style="margin-top:8px">Concentrez-vous sur ce que les autres font peu : <b>la poste, Super-Pharm, les documents, les objets de Yad2, les commerces sans livreur, les courses entre villes</b>, et la confiance de la communauté francophone.</p>
+  <div class="kit-head">
+    <h1>📣 Kit pub</h1>
+    <p class="muted small">Choisissez ce que vous voulez publier, touchez pour l'ouvrir en grand, puis « ⬇ Enregistrer » ou « 📤 Partager ».</p>
+  </div>
+
+  <!-- Onglets : une seule partie à la fois, au lieu d'une longue page -->
+  <nav class="kit-tabs" id="kitTabs">
+    <button type="button" data-ktab="visuels">🖼️ Visuels</button>
+    <button type="button" data-ktab="videos">🎬 Vidéos</button>
+    <button type="button" data-ktab="textes">✍️ Textes</button>
+    <button type="button" data-ktab="lien">🔗 Lien & QR</button>
+    <button type="button" data-ktab="guide">📋 Guide</button>
+  </nav>
+
+  <!-- Pour qui et en quelle langue (visuels, vidéos et textes) -->
+  <div class="kit-filters" id="kitFilters">
+    <div class="kit-seg" id="kitAud">
+      <button type="button" data-aud="client">👥 Clients</button><button type="button" data-aud="shop">🏪 Commerces</button><button type="button" data-aud="rider">🛵 Livreurs</button>
+    </div>
+    <div class="kit-seg" id="kitLang"><button type="button" data-klang="fr">FR</button><button type="button" data-klang="he">עברית</button></div>
+  </div>
+
+  <section class="kit-pane" data-kpane="visuels"><div class="camp-list" id="kitCamps"></div></section>
+
+  <section class="kit-pane" data-kpane="videos"><div class="vid-grid" id="kitVideos"></div></section>
+
+  <section class="kit-pane" data-kpane="textes">
+    <p class="muted small" style="margin:0 0 10px">Les prix et le lien sont déjà remplis. Touchez « Copier » puis collez dans le groupe ou sur WhatsApp.</p>
+    <div id="posts"></div>
   </section>
 
-  <section class="card">
-    <h2>💪 Nos atouts</h2>
+  <section class="kit-pane" data-kpane="lien">
+    <div class="card">
+      <h2>🔗 Le lien des flyers : « Ce qu'on livre »</h2>
+      <p class="muted small" style="margin:6px 0 12px">Tous les QR codes des visuels clients ouvrent cette page : elle montre d'abord tout ce qu'on livre (catégories, prix), puis le client touche une catégorie et commande. À mettre partout : statut WhatsApp, bio Instagram/Facebook, autocollant sur le scooter.</p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+        <div class="qr" id="qr"></div>
+        <div style="flex:1;min-width:220px;display:grid;gap:8px">
+          <div class="post" id="livreLink" dir="ltr"></div>
+          <div><button class="btn btn-sm" data-copy="livreLink">Copier le lien</button> <a class="btn btn-sm" href="on-livre.html" target="_blank">👀 Voir la page</a></div>
+          <small class="muted">En hébreu : <span id="livreLinkHe" dir="ltr"></span> <button class="btn btn-sm" data-copy="livreLinkHe">Copier</button></small>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <h2>📱 Le lien direct de l'appli</h2>
+      <p class="muted small" style="margin:6px 0 10px">Pour un client qui connaît déjà HOP! et veut commander tout de suite.</p>
+      <div class="post" id="appLink" dir="ltr"></div>
+      <button class="btn btn-sm" data-copy="appLink">Copier le lien</button>
+      <button class="btn btn-sm" onclick="window.print()">🖨️ Imprimer le flyer bilingue</button>
+    </div>
+  </section>
+
+  <section class="kit-pane" data-kpane="guide">
+    <details class="card kit-acc" open><summary>🎯 La stratégie en une phrase</summary>
+
+    <p style="margin-top:8px"><b>« Le coursier de Netanya qui parle français et hébreu : prix fixe affiché, suivi en direct, espèces ou Bit. »</b></p>
+    <p class="muted" style="margin-top:8px">Concentrez-vous sur ce que les autres font peu : <b>la poste, Super-Pharm, les documents, les objets de Yad2, les commerces sans livreur, les courses entre villes</b>, et la confiance de la communauté francophone.</p>
+    </details>
+    <details class="card kit-acc"><summary>💪 Nos atouts</summary>
+
     <p class="muted small" style="margin:6px 0 10px">Vos arguments. Ne citez jamais de concurrent : parlez seulement de ce que HOP! fait.</p>
     <table>
       <tr><td>Départ direct</td><td><b>1 course = 1 client</b> : le livreur part tout de suite, le repas arrive chaud</td></tr>
@@ -42,119 +95,16 @@
       <tr><td>Horaire</td><td><b>Programmé à l'heure près</b>, et on prévient si on ne peut pas</td></tr>
       <tr><td>Langues</td><td><b>Français et hébreu</b>, dans l'application et au téléphone</td></tr>
     </table>
-    
-  </section>
+    </details>
+    <details class="card kit-acc"><summary>💰 Vos prix et vos offres</summary>
 
-  <section class="card" id="nouveaux">
-    <h2>🆕 Nouveaux partenaires : à publier</h2>
-    <p class="muted small" style="margin:6px 0 12px">Nina Sushi, Paris Texas, Smash It et Le Marché Français, avec leur vrai logo et le sceau Casher. Post carré pour Facebook et Instagram, story et vidéo pour Instagram, TikTok et le statut WhatsApp. Les textes à copier sont juste en dessous.</p>
-    <div class="vis-grid">
-      <a href="kit/visuels/nouveaux-post-fr.png" target="_blank"><img src="kit/visuels/nouveaux-post-fr.png" alt="" loading="lazy" /><small>Post FR</small></a>
-      <a href="kit/visuels/nouveaux-post-he.png" target="_blank"><img src="kit/visuels/nouveaux-post-he.png" alt="" loading="lazy" /><small>Post HE</small></a>
-      <a href="kit/visuels/nouveaux-story-fr.png" target="_blank"><img src="kit/visuels/nouveaux-story-fr.png" alt="" loading="lazy" /><small>Story FR</small></a>
-      <a href="kit/visuels/nouveaux-story-he.png" target="_blank"><img src="kit/visuels/nouveaux-story-he.png" alt="" loading="lazy" /><small>Story HE</small></a>
-    </div>
-    <h3 style="margin-top:14px">🎬 Vidéos (15 s, format story)</h3>
-    <div class="vid-grid">
-      <figure><video src="kit/visuels/nouveaux-video-fr.mp4" controls playsinline preload="metadata"></video>
-        <figcaption><a class="btn btn-sm" href="kit/visuels/nouveaux-video-fr.mp4" download="hop-nouveaux-partenaires-fr.mp4">⬇ Vidéo FR</a></figcaption></figure>
-      <figure><video src="kit/visuels/nouveaux-video-he.mp4" controls playsinline preload="metadata"></video>
-        <figcaption><a class="btn btn-sm" href="kit/visuels/nouveaux-video-he.mp4" download="hop-nouveaux-partenaires-he.mp4">⬇ Vidéo HE</a></figcaption></figure>
-    </div>
-    <div id="newPosts" style="margin-top:14px"></div>
-  </section>
-
-  <section class="card">
-    <h2>🖼️ Visuels de lancement prêts</h2>
-    <p class="muted small" style="margin:6px 0 12px">Touchez une image : elle s'ouvre en grand avec « ⬇ Enregistrer », « 📤 Partager » et « ✕ Fermer ». Posts carrés pour Facebook et Instagram, stories pour Instagram et le statut WhatsApp, flyers A5 à imprimer (PDF). Les textes à copier sont plus bas et dans <a href="kit/LANCEMENT.md">LANCEMENT.md</a>.</p>
-    <h3 style="margin-top:12px">👥 Clients</h3>
-    <div class="vis-grid">
-      <a href="kit/visuels/client-post-fr.png" target="_blank"><img src="kit/visuels/client-post-fr.png" alt="" loading="lazy" /><small>Post FR</small></a>
-      <a href="kit/visuels/client-post-he.png" target="_blank"><img src="kit/visuels/client-post-he.png" alt="" loading="lazy" /><small>Post HE</small></a>
-      <a href="kit/visuels/client-story-fr.png" target="_blank"><img src="kit/visuels/client-story-fr.png" alt="" loading="lazy" /><small>Story FR</small></a>
-      <a href="kit/visuels/client-story-he.png" target="_blank"><img src="kit/visuels/client-story-he.png" alt="" loading="lazy" /><small>Story HE</small></a>
-      <a href="kit/visuels/client-flyer-fr.pdf" target="_blank"><img src="kit/visuels/client-flyer-fr.png" alt="" loading="lazy" /><small>Flyer A5 FR (PDF)</small></a>
-      <a href="kit/visuels/client-flyer-he.pdf" target="_blank"><img src="kit/visuels/client-flyer-he.png" alt="" loading="lazy" /><small>Flyer A5 HE (PDF)</small></a>
-    </div>
-    <h3 style="margin-top:12px">🏪 Commerces</h3>
-    <div class="vis-grid">
-      <a href="kit/visuels/shop-post-fr.png" target="_blank"><img src="kit/visuels/shop-post-fr.png" alt="" loading="lazy" /><small>Post FR</small></a>
-      <a href="kit/visuels/shop-post-he.png" target="_blank"><img src="kit/visuels/shop-post-he.png" alt="" loading="lazy" /><small>Post HE</small></a>
-      <a href="kit/visuels/shop-story-fr.png" target="_blank"><img src="kit/visuels/shop-story-fr.png" alt="" loading="lazy" /><small>Story FR</small></a>
-      <a href="kit/visuels/shop-story-he.png" target="_blank"><img src="kit/visuels/shop-story-he.png" alt="" loading="lazy" /><small>Story HE</small></a>
-      <a href="kit/visuels/shop-flyer-fr.pdf" target="_blank"><img src="kit/visuels/shop-flyer-fr.png" alt="" loading="lazy" /><small>Flyer A5 FR (PDF)</small></a>
-      <a href="kit/visuels/shop-flyer-he.pdf" target="_blank"><img src="kit/visuels/shop-flyer-he.png" alt="" loading="lazy" /><small>Flyer A5 HE (PDF)</small></a>
-    </div>
-    <h3 style="margin-top:12px">🔥 Restaurants : « Gardez 100 % de vos ventes »</h3>
-    <div class="vis-grid">
-      <a href="kit/visuels/resto-post-fr.png" target="_blank"><img src="kit/visuels/resto-post-fr.png" alt="" loading="lazy" /><small>Post FR</small></a>
-      <a href="kit/visuels/resto-post-he.png" target="_blank"><img src="kit/visuels/resto-post-he.png" alt="" loading="lazy" /><small>Post HE</small></a>
-      <a href="kit/visuels/resto-story-fr.png" target="_blank"><img src="kit/visuels/resto-story-fr.png" alt="" loading="lazy" /><small>Story FR</small></a>
-      <a href="kit/visuels/resto-story-he.png" target="_blank"><img src="kit/visuels/resto-story-he.png" alt="" loading="lazy" /><small>Story HE</small></a>
-      <a href="kit/visuels/resto-flyer-fr.pdf" target="_blank"><img src="kit/visuels/resto-flyer-fr.png" alt="" loading="lazy" /><small>Flyer A5 FR (PDF)</small></a>
-      <a href="kit/visuels/resto-flyer-he.pdf" target="_blank"><img src="kit/visuels/resto-flyer-he.png" alt="" loading="lazy" /><small>Flyer A5 HE (PDF)</small></a>
-    </div>
-    <h3 style="margin-top:12px">⚡ Tout commerce : « Vos clients veulent être livrés ? »</h3>
-    <div class="vis-grid">
-      <a href="kit/visuels/pro-post-fr.png" target="_blank"><img src="kit/visuels/pro-post-fr.png" alt="" loading="lazy" /><small>Post FR</small></a>
-      <a href="kit/visuels/pro-post-he.png" target="_blank"><img src="kit/visuels/pro-post-he.png" alt="" loading="lazy" /><small>Post HE</small></a>
-      <a href="kit/visuels/pro-story-fr.png" target="_blank"><img src="kit/visuels/pro-story-fr.png" alt="" loading="lazy" /><small>Story FR</small></a>
-      <a href="kit/visuels/pro-story-he.png" target="_blank"><img src="kit/visuels/pro-story-he.png" alt="" loading="lazy" /><small>Story HE</small></a>
-      <a href="kit/visuels/pro-flyer-fr.pdf" target="_blank"><img src="kit/visuels/pro-flyer-fr.png" alt="" loading="lazy" /><small>Flyer A5 FR (PDF)</small></a>
-      <a href="kit/visuels/pro-flyer-he.pdf" target="_blank"><img src="kit/visuels/pro-flyer-he.png" alt="" loading="lazy" /><small>Flyer A5 HE (PDF)</small></a>
-    </div>
-    <h3 style="margin-top:12px">🏪 Commerces de quartier : « Vendez aussi à ceux qui ne viennent pas »</h3>
-    <div class="vis-grid">
-      <a href="kit/visuels/quartier-post-fr.png" target="_blank"><img src="kit/visuels/quartier-post-fr.png" alt="" loading="lazy" /><small>Post FR</small></a>
-      <a href="kit/visuels/quartier-post-he.png" target="_blank"><img src="kit/visuels/quartier-post-he.png" alt="" loading="lazy" /><small>Post HE</small></a>
-      <a href="kit/visuels/quartier-story-fr.png" target="_blank"><img src="kit/visuels/quartier-story-fr.png" alt="" loading="lazy" /><small>Story FR</small></a>
-      <a href="kit/visuels/quartier-story-he.png" target="_blank"><img src="kit/visuels/quartier-story-he.png" alt="" loading="lazy" /><small>Story HE</small></a>
-      <a href="kit/visuels/quartier-flyer-fr.pdf" target="_blank"><img src="kit/visuels/quartier-flyer-fr.png" alt="" loading="lazy" /><small>Flyer A5 FR (PDF)</small></a>
-      <a href="kit/visuels/quartier-flyer-he.pdf" target="_blank"><img src="kit/visuels/quartier-flyer-he.png" alt="" loading="lazy" /><small>Flyer A5 HE (PDF)</small></a>
-    </div>
-    <h3 style="margin-top:12px">🤝 Relance après une visite : « On est passés vous voir ! »</h3>
-    <div class="vis-grid">
-      <a href="kit/visuels/relance-post-fr.png" target="_blank"><img src="kit/visuels/relance-post-fr.png" alt="" loading="lazy" /><small>Post FR</small></a>
-      <a href="kit/visuels/relance-post-he.png" target="_blank"><img src="kit/visuels/relance-post-he.png" alt="" loading="lazy" /><small>Post HE</small></a>
-      <a href="kit/visuels/relance-story-fr.png" target="_blank"><img src="kit/visuels/relance-story-fr.png" alt="" loading="lazy" /><small>Story FR</small></a>
-      <a href="kit/visuels/relance-story-he.png" target="_blank"><img src="kit/visuels/relance-story-he.png" alt="" loading="lazy" /><small>Story HE</small></a>
-      <a href="kit/visuels/relance-flyer-fr.pdf" target="_blank"><img src="kit/visuels/relance-flyer-fr.png" alt="" loading="lazy" /><small>Flyer A5 FR (PDF)</small></a>
-      <a href="kit/visuels/relance-flyer-he.pdf" target="_blank"><img src="kit/visuels/relance-flyer-he.png" alt="" loading="lazy" /><small>Flyer A5 HE (PDF)</small></a>
-    </div>
-    <h3 style="margin-top:12px">🛵 Livreurs</h3>
-    <div class="vis-grid">
-      <a href="kit/visuels/rider-post-fr.png" target="_blank"><img src="kit/visuels/rider-post-fr.png" alt="" loading="lazy" /><small>Post FR</small></a>
-      <a href="kit/visuels/rider-post-he.png" target="_blank"><img src="kit/visuels/rider-post-he.png" alt="" loading="lazy" /><small>Post HE</small></a>
-      <a href="kit/visuels/rider-story-fr.png" target="_blank"><img src="kit/visuels/rider-story-fr.png" alt="" loading="lazy" /><small>Story FR</small></a>
-      <a href="kit/visuels/rider-story-he.png" target="_blank"><img src="kit/visuels/rider-story-he.png" alt="" loading="lazy" /><small>Story HE</small></a>
-      <a href="kit/visuels/rider-flyer-fr.pdf" target="_blank"><img src="kit/visuels/rider-flyer-fr.png" alt="" loading="lazy" /><small>Flyer A5 FR (PDF)</small></a>
-      <a href="kit/visuels/rider-flyer-he.pdf" target="_blank"><img src="kit/visuels/rider-flyer-he.png" alt="" loading="lazy" /><small>Flyer A5 HE (PDF)</small></a>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>🔗 Votre lien et votre QR code</h2>
-    <p class="muted small" style="margin:6px 0 12px">À mettre partout : statut WhatsApp, bio Instagram/Facebook, flyers, autocollant sur le scooter.</p>
-    <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
-      <div class="qr" id="qr"></div>
-      <div style="flex:1;min-width:220px">
-        <div class="post" id="appLink" dir="ltr"></div>
-        <button class="btn btn-sm" data-copy="appLink">Copier le lien</button>
-        <button class="btn btn-sm" onclick="window.print()">🖨️ Imprimer le flyer</button>
-      </div>
-    </div>
-  </section>
-
-  <section class="card">
-    <h2>💰 Vos prix de lancement</h2>
     <p class="muted small" style="margin:6px 0 10px">Calculés automatiquement depuis <code>config.js</code> (petit colis). Raisonnables pour démarrer : moins chers qu'un coursier moto classique, assez pour être rentable sur des courses groupées. Appelez 2 ou 3 sociétés de coursiers (שליחויות) de Netanya pour comparer, puis ajustez <code>base</code> et <code>perKm</code> si besoin.</p>
     <table id="kitPrices"></table>
     <h3>Offres déjà intégrées dans l'application</h3>
     <ul id="kitOffers"></ul>
-  </section>
+    </details>
+    <details class="card kit-acc"><summary>🗓️ Plan des 30 premiers jours</summary>
 
-  <section class="card">
-    <h2>🗓️ Plan des 30 premiers jours (gratuit)</h2>
     <h3>Semaine 1 — Se préparer</h3>
     <ol>
       <li>Mettre votre numéro WhatsApp, votre numéro Bit et vos horaires dans <code>config.js</code>.</li>
@@ -193,16 +143,9 @@
       <li><b>Chaque vendredi</b> : fleurs et gâteaux avant Shabbat, plats des traiteurs.</li>
       <li><b>Périodes de soldes en ligne</b> (novembre) : explosion des colis à la poste et dans les points relais.</li>
     </ul>
-  </section>
+    </details>
+    <details class="card kit-acc"><summary>👥 Grandir avec des livreurs partenaires</summary>
 
-  <section class="card">
-    <h2>✍️ Messages prêts à copier</h2>
-    <p class="muted small">Les prix et le lien sont remplis automatiquement. Touchez « Copier » puis collez dans le groupe ou sur WhatsApp.</p>
-    <div id="posts"></div>
-  </section>
-
-  <section class="card">
-    <h2>👥 Grandir avec des livreurs partenaires</h2>
     <ol>
       <li>Envoyez le lien d'inscription (<a href="coursier.html">coursier.html</a>) avec l'annonce de recrutement ci-dessus.</li>
       <li>Chaque livreur s'inscrit et accepte ses engagements : permis valide, assurance, statut d'עוסק, responsabilité des colis et de l'argent, commission hebdomadaire.</li>
@@ -211,14 +154,14 @@
       <li>Le livreur est payé directement par le client ; la commission de HOP est retirée de son crédit HOP à chaque course (rien à régler en fin de semaine).</li>
       <li>⚠️ Faites relire les engagements des livreurs par un avocat ou un comptable avant de recruter : statut d'indépendant, assurance de transport de marchandises, responsabilité en cas de perte.</li>
     </ol>
-  </section>
+    </details>
+    <details class="card kit-acc"><summary>📏 Suivre ce qui marche</summary>
 
-  <section class="card">
-    <h2>📏 Suivre ce qui marche</h2>
     <ul>
       <li>Demandez à chaque nouveau client « Comment vous nous avez connus ? » et notez-le dans le message pour le client (espace coursier).</li>
       <li>Chaque dimanche : regardez l'onglet <b>Facturation</b> (courses, chiffre, qui revient). Gardez ce qui marche, arrêtez le reste.</li>
     </ul>
+    </details>
   </section>
 </main>
 
@@ -228,10 +171,10 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610271617"></script>
-<script src="i18n.js?v=202610271617"></script>
-<script src="pricing.js?v=202610271617"></script>
-<script src="common.js?v=202610271617"></script>
-<script src="kit.js?v=202610271617"></script>
+<script src="config.js?v=202610271629"></script>
+<script src="i18n.js?v=202610271629"></script>
+<script src="pricing.js?v=202610271629"></script>
+<script src="common.js?v=202610271629"></script>
+<script src="kit.js?v=202610271629"></script>
 </body>
 </html>

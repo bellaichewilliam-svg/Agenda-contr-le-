@@ -7,6 +7,8 @@
 
 const $ = s => document.querySelector(s);
 const url = UI.appUrl();
+// Lien des flyers et des textes clients : la page « Ce qu'on livre » (on-livre.html), pas la commande directement
+const livre = new URL("on-livre.html", url).href, livreHe = livre + "?lang=he";
 const home = CONFIG.homeCity;
 const price = to => UI.money(Pricing.cityToCity(CONFIG, home, to));
 const P = CONFIG.pricing;
@@ -19,7 +21,9 @@ const pickupFrom = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.pickupPoi
 const bossTel = (d => d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : d)("0" + String(CONFIG.whatsapp || "").replace(/^972/, ""));
 
 $("#appLink").textContent = url;
-if (window.QRCode) new QRCode($("#qr"), { text: url, width: 164, height: 164, correctLevel: QRCode.CorrectLevel.M });
+$("#livreLink").textContent = livre;
+$("#livreLinkHe").textContent = livreHe;
+if (window.QRCode) new QRCode($("#qr"), { text: livre, width: 164, height: 164, correctLevel: QRCode.CorrectLevel.M });
 
 // Seulement le Sharon pour l'instant (Tel Aviv et Gush Dan : bientôt)
 const featured = ["netanya", "nordia", "even-yehuda", "kadima", "kfar-yona", "hadera", "raanana", "kfar-saba", "herzliya"];
@@ -54,7 +58,7 @@ const POSTS = [
 
 🏪 Tous les magasins, même les petits : on y va pour vous !
 🎁 Votre première course dans ${UI.cityFr(home)} à ${welcome} avec le code BIENVENUE
-👉 Commandez en 1 minute : ${url}` },
+👉 Tout ce qu'on livre (et commander en 1 minute) : ${livre}` },
 
   { title: "פוסט לקבוצות פייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
 `🛵 הופ, וזה אצלך! חדש ב${heHome}: ${nameHe}, משלוחים במחיר קבוע.
@@ -72,7 +76,7 @@ const POSTS = [
 
 🏪 כל החנויות, גם הקטנות: אנחנו מגיעים בשבילכם!
 🎁 משלוח ראשון בתוך ${heHome} ב-${welcome} עם הקוד BRUCHIM
-👈 להזמנה תוך דקה: ${url}` },
+👈 כל מה שאנחנו מביאים (ולהזמין תוך דקה): ${livreHe}` },
 
   { title: "Message direct à un commerce (français)", dir: "ltr", text:
 `Bonjour, ici ${nameFr}, société de livraison à ${UI.cityFr(home)}.
@@ -94,13 +98,13 @@ L'équipe ${nameFr}` },
 `📮 Un avis de passage de la poste et pas le temps de faire la queue ?
 On récupère votre colis et on vous l'apporte à la maison, dès ${pickupFrom} dans ${UI.cityFr(home)}.
 Il faut juste une procuration signée + la copie de la carte d'identité.
-👉 ${url}` },
+👉 ${livre}` },
 
   { title: "מיוחד לדואר (עברית)", dir: "rtl", text:
 `📮 קיבלתם הודעה על חבילה בדואר ואין לכם זמן לעמוד בתור?
 אנחנו אוספים בשבילכם ומביאים עד הבית, החל מ-${pickupFrom} בתוך העיר.
 צריך רק ייפוי כוח חתום וצילום תעודת זהות.
-👈 ${url}` },
+👈 ${livreHe}` },
 
   { title: "Argumentaire pour un restaurant (français)", dir: "ltr", text:
 `Bonjour ! Ici ${nameFr}, la société de livraison de ${UI.cityFr(home)}.
@@ -224,7 +228,7 @@ ${CONFIG.partners.courierProgram ? `✅ עושים שיווק ומרוויחים
 👈 להרשמה: ${UI.appUrl("livreur/")}` },
 
   { title: "Statut WhatsApp / bio Instagram", dir: "ltr", text:
-`🛵 Société de livraison dans tout le Sharon · prix fixe · suivi en direct · espèces/Bit · ${url}
+`🛵 Société de livraison dans tout le Sharon · prix fixe · suivi en direct · espèces/Bit · ${livre}
 🛵 שליחויות בכל השרון · מחיר קבוע · מעקב בזמן אמת · מזומן/ביט` },
 
   { title: "Description Google Business Profile", dir: "ltr", text:
@@ -244,7 +248,7 @@ const NEW_POSTS = [
 
 ➕ Et des centaines d'autres enseignes : restaurants, Super-Pharm, poste, supermarchés…
 🛵 Livraison dans ${UI.cityFr(home)} : ${price(home)} · suivi en direct · espèces ou Bit
-👉 Commandez en 1 minute : ${url}` },
+👉 Tout ce qu'on livre (et commander en 1 minute) : ${livre}` },
   { title: "שותפים חדשים: פוסט לפייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
 `🆕 חדש ב${nameHe}: עכשיו מביאים לכם את המקומות שאתם אוהבים ב${heHome}!
 
@@ -255,32 +259,109 @@ const NEW_POSTS = [
 
 ➕ ועוד מאות עסקים: מסעדות, סופר-פארם, דואר, סופרמרקטים…
 🛵 משלוח בתוך ${heHome}: ${price(home)} · מעקב בזמן אמת · מזומן או ביט
-👈 מזמינים תוך דקה: ${url}` },
+👈 כל מה שאנחנו מביאים (ולהזמין תוך דקה): ${livreHe}` },
   { title: "Phrases courtes (story, statut, légende de vidéo)", dir: "ltr", text:
 `🛵 Nina Sushi, Paris Texas, Smash It et Le Marché Français : maintenant livrés par ${nameFr} !
 🍣🍔🥐 Vos sushis, vos burgers casher et vos produits français, livrés chez vous à ${UI.cityFr(home)} en un clic.
 ✡️ Nos restaurants casher sont marqués d'un sceau dans l'appli : facile à trouver.
 🛵 נינה סושי, פריז טקסס, סמאש איט והשוק הצרפתי: עכשיו במשלוח עם ${nameHe}!
 🍣🍔🥐 הסושי, ההמבורגרים הכשרים והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
-👉 ${url}` }
+👉 ${livre}` }
 ];
-$("#newPosts").innerHTML = NEW_POSTS.map((p, i) => `
-  <h3>${UI.esc(p.title)}</h3>
-  <div class="post" id="npost${i}" dir="${p.dir}">${UI.esc(p.text)}</div>
-  <button class="btn btn-sm" data-copy="npost${i}">Copier</button>
-  <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a>`).join("");
+// « On fait toutes vos courses » : textes qui vont avec les visuels et la vidéo des catégories
+const COURSES_POSTS = [
+  { title: "🛒 On fait toutes vos courses (français)", dir: "ltr", text:
+`🛒 Pas le temps d'aller au magasin ? ${nameFr} fait toutes vos courses à ${UI.cityFr(home)} !
 
-$("#posts").innerHTML = POSTS.map((p, i) => `
-  <h3>${UI.esc(p.title)}</h3>
-  <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(p.text)}</div>
-  <button class="btn btn-sm" data-copy="post${i}">Copier</button>
-  <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a>`).join("");
+1️⃣ Ouvrez l'appli et touchez une catégorie
+2️⃣ Écrivez ce qu'il vous faut (marque, taille, quantité)
+3️⃣ Le livreur achète et vous livre, vous le suivez sur la carte
+
+💊 Pharmacie · 🛒 Supérette · 🥐 Boulangerie · 🍔 Restaurants · 📮 Poste · 👔 Pressing · 💐 Fleurs · 👶 Bébé · 🐾 Animaux
+🧾 Le prix réel du magasin + la livraison, 0 frais de service
+👉 Tout ce qu'on livre : ${livre}` },
+  { title: "🛒 אנחנו עושים את כל הקניות (עברית)", dir: "rtl", text:
+`🛒 אין זמן ללכת לחנות? ${nameHe} עושים לכם את כל הקניות ב${heHome}!
+
+1️⃣ פותחים את האפליקציה ובוחרים קטגוריה
+2️⃣ כותבים מה צריך (מותג, גודל, כמות)
+3️⃣ השליח קונה ומביא, ואתם עוקבים על המפה
+
+💊 בית מרקחת · 🛒 מכולת · 🥐 מאפייה · 🍔 מסעדות · 📮 דואר · 👔 ניקוי יבש · 💐 פרחים · 👶 תינוקות · 🐾 חיות מחמד
+🧾 המחיר האמיתי של החנות + המשלוח, 0 דמי שירות
+👈 כל מה שאנחנו מביאים: ${livreHe}` }
+];
+// Pour qui est chaque texte de POSTS (dans l'ordre) : clients, commerces ou livreurs
+const POST_AUD = ["client", "client", "shop", "shop", "client", "client", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "rider", "rider", "client", "client"];
+const ALL_POSTS = COURSES_POSTS.concat(NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
+  .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
+
+// Campagnes de visuels : chaque carte = un message, avec ses formats (post carré, story, flyer A5) et sa vidéo
+const V = "kit/visuels/";
+const CAMPS = [
+  { id: "courses", aud: "client", isNew: true, title: "🛒 On fait toutes vos courses", desc: "Les catégories de l'appli en 3 étapes. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story", "flyer"], video: true },
+  { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires", desc: "Nina Sushi, Paris Texas, Smash It, Le Marché Français, avec leurs vrais logos.", formats: ["post", "story"], video: true },
+  { id: "client", aud: "client", title: "🎁 Première course à 15 ₪", desc: "Le message de lancement : prix, suivi en direct, espèces ou Bit.", formats: ["post", "story", "flyer"] },
+  { id: "resto", aud: "shop", title: "🔥 Restaurants : « Gardez 100 % de vos ventes »", desc: "Le calcul qui fait réagir : 0 % de commission.", formats: ["post", "story", "flyer"] },
+  { id: "pro", aud: "shop", title: "⚡ Tout commerce : « Vos clients veulent être livrés ? »", desc: "Un livreur en quelques minutes, sans contrat.", formats: ["post", "story", "flyer"] },
+  { id: "quartier", aud: "shop", title: "🏪 Commerces de quartier", desc: "« Vendez aussi à ceux qui ne viennent pas » : pharmacie, fleuriste, pressing…", formats: ["post", "story", "flyer"] },
+  { id: "relance", aud: "shop", title: "🤝 Relance après une visite", desc: "« On est passés vous voir ! » à laisser ou envoyer après le passage.", formats: ["post", "story", "flyer"] },
+  { id: "shop", aud: "shop", title: "🏪 Votre commerce livre avec HOP!", desc: "La présentation générale pour les commerces.", formats: ["post", "story", "flyer"] },
+  { id: "rider", aud: "rider", title: "🛵 Deviens livreur partenaire", desc: "Le recrutement : tu choisis tes courses, pourboires 100 % pour toi.", formats: ["post", "story", "flyer"] }
+];
+const FMT = { post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5" };
+const VIDEOS = [
+  { id: "courses", aud: "client", title: "🛒 On fait toutes vos courses" },
+  { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires" }
+];
+
+// Onglet, public et langue choisis : gardés sur ce téléphone
+const UI_KEY = "livraison.kit.ui.v1";
+const ui = (() => { try { return Object.assign({ tab: "visuels", aud: "client", lang: "fr" }, JSON.parse(localStorage.getItem(UI_KEY)) || {}); } catch (e) { return { tab: "visuels", aud: "client", lang: "fr" }; } })();
+const TABS = ["visuels", "videos", "textes", "lien", "guide"];
+if (TABS.includes(location.hash.slice(1))) ui.tab = location.hash.slice(1);
+else if (location.hash === "#nouveaux") ui.tab = "visuels";
+function renderKit() {
+  try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* navigation privée */ }
+  document.querySelectorAll("[data-ktab]").forEach(b => b.classList.toggle("on", b.dataset.ktab === ui.tab));
+  document.querySelectorAll("[data-kpane]").forEach(p => p.classList.toggle("hidden", p.dataset.kpane !== ui.tab));
+  document.querySelectorAll("[data-aud]").forEach(b => b.classList.toggle("on", b.dataset.aud === ui.aud));
+  document.querySelectorAll("[data-klang]").forEach(b => b.classList.toggle("on", b.dataset.klang === ui.lang));
+  $("#kitFilters").classList.toggle("hidden", !["visuels", "videos", "textes"].includes(ui.tab));
+  const L = ui.lang, f = (id, fmt) => `${V}${id}-${fmt}-${L}.png`;
+  $("#kitCamps").innerHTML = CAMPS.filter(c => c.aud === ui.aud).map(c => `<div class="camp">
+      <a class="camp-thumb" href="${f(c.id, "story")}" data-vis data-src="${f(c.id, "story")}"><img src="${f(c.id, "story")}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
+      <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
+        <div class="camp-btns">${c.formats.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/png$/, "pdf") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
+          ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}</div></div></div>`).join("")
+    || `<p class="muted small">Rien pour l'instant.</p>`;
+  const vids = VIDEOS.filter(v => v.aud === ui.aud);
+  $("#kitVideos").innerHTML = vids.map(v => `<figure><video src="${V}${v.id}-video-${L}.mp4" controls playsinline preload="metadata"></video>
+      <figcaption><b>${UI.esc(v.title)}</b><a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></figcaption></figure>`).join("")
+    || `<p class="muted small">Pas encore de vidéo pour eux : les visuels sont dans l'onglet 🖼️.</p>`;
+  // Les textes bilingues (statut, phrases courtes, fiche Google) apparaissent dans les deux langues
+  const bi = p => p.dir === "ltr" && /[\u0590-\u05FF]/.test(p.text);
+  const posts = ALL_POSTS.filter(p => p.aud === ui.aud && (bi(p) || (L === "he") === (p.dir === "rtl")));
+  $("#posts").innerHTML = posts.map((p, i) => `<div class="kpost">
+      <b>${UI.esc(p.title)}</b>
+      <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(p.text)}</div>
+      <div class="kpost-btns"><button class="btn btn-sm btn-primary" data-copy="post${i}">Copier</button>
+        <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a></div></div>`).join("")
+    || `<p class="muted small">Pas de texte pour eux dans cette langue.</p>`;
+}
+document.addEventListener("click", e => {
+  const tb = e.target.closest("[data-ktab]"), au = e.target.closest("[data-aud]"), lg = e.target.closest("[data-klang]");
+  if (tb) { ui.tab = tb.dataset.ktab; history.replaceState(null, "", "#" + ui.tab); renderKit(); window.scrollTo({ top: 0 }); }
+  if (au) { ui.aud = au.dataset.aud; renderKit(); }
+  if (lg) { ui.lang = lg.dataset.klang; renderKit(); }
+});
+renderKit();
 
 // Visuels : ouverts en grand dans la page, avec Fermer / Enregistrer / Partager (plus de nouvel onglet sans retour)
 function openVisual(a, qrName) {
   // QR code du kit (image générée dans la page) ou visuel prêt
   const img = a.querySelector("img") || a, canvas = a.querySelector("canvas");
-  const src = canvas && !(img.getAttribute("src") || "").startsWith("data:") ? canvas.toDataURL("image/png") : img.getAttribute("src");
+  const src = a.dataset.src || (canvas && !(img.getAttribute("src") || "").startsWith("data:") ? canvas.toDataURL("image/png") : img.getAttribute("src"));
   const href = a.getAttribute("href") || src;
   const pdf = /\.pdf$/i.test(href), name = qrName || src.split("/").pop();
   const box = document.createElement("div");
@@ -309,7 +390,7 @@ function openVisual(a, qrName) {
   addEventListener("popstate", back);
 }
 document.addEventListener("click", e => {
-  const v = e.target.closest(".vis-grid a");
+  const v = e.target.closest(".vis-grid a, a[data-vis]");
   if (v) { e.preventDefault(); openVisual(v); }
   // QR codes (lien de l'appli et flyer) : aussi en grand, à enregistrer ou partager
   const q = e.target.closest("#qr, #flyerQr");
@@ -352,6 +433,6 @@ $("#flyer").innerHTML = `
   </div>
   <p style="margin-top:6px;font-size:18px"><b>Et hop, c'est livré ! · <span dir="rtl">הופ, וזה אצלך!</span></b></p>
   <p style="margin-top:10px">📞 <b dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</b> · <span dir="ltr">${UI.esc(url)}</span></p>`;
-if (window.QRCode) new QRCode($("#flyerQr"), { text: url, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+if (window.QRCode) new QRCode($("#flyerQr"), { text: livre, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
 
 })();
