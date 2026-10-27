@@ -6499,3 +6499,43 @@ language sql stable security definer set search_path = public as $$
            order by (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
     from shops s where s.status = 'actif' and s.plan_until >= current_date and not s.demo;
 $$;
+-- ============================================================================
+-- PUBS DANS L'APPLI CLIENT : à chaque ouverture, une pub plein écran (visuel du kit pub ou photo), la suivante
+-- à chaque fois. Le patron choisit lesquelles tournent (interrupteur), leur ordre, et ce que fait le bouton
+-- (commander, voir les commerces, ouvrir la page d'un commerce, un lien). Rien n'est effacé tout seul.
+-- ============================================================================
+create table if not exists public.app_promos (
+  id         uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  title      text not null check (length(title) between 1 and 80),
+  image_fr   text not null check (length(image_fr) <= 400000 and image_fr ~ '^(kit/visuels/[a-z0-9-]+\.(png|jpg|webp)|data:image/(jpeg|png|webp);base64,)'),
+  image_he   text check (image_he is null or (length(image_he) <= 400000 and image_he ~ '^(kit/visuels/[a-z0-9-]+\.(png|jpg|webp)|data:image/(jpeg|png|webp);base64,)')),
+  cta        text check (cta is null or cta ~ '^(order|pro|shop:[A-Z0-9-]{2,20}|url:https://[^[:space:]]{4,250})$'),
+  active     boolean not null default false,
+  position   int not null default 0
+);
+alter table public.app_promos enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='app_promos' and policyname='app_promos_admin') then
+    create policy app_promos_admin on public.app_promos for all to authenticated using (public.is_admin()) with check (public.is_admin());
+  end if;
+end $$;
+grant select, insert, update, delete on public.app_promos to authenticated;
+
+-- Les pubs actives, dans l'ordre (lues par l'appli client, sans compte)
+create or replace function public.app_promos_live() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('id', id, 'title', title, 'image_fr', image_fr, 'image_he', image_he, 'cta', cta)
+           order by position, created_at), '[]'::json)
+    from app_promos where active;
+$$;
+revoke execute on function public.app_promos_live() from public;
+grant execute on function public.app_promos_live() to anon, authenticated;
+
+-- Deux pubs de départ, tirées du kit pub (seulement si la table est vide)
+insert into public.app_promos (title, image_fr, image_he, cta, active, position)
+select * from (values
+  ('Nouveaux partenaires (Nina Sushi, Paris Texas, Smash It, Le Marché Français)', 'kit/visuels/nouveaux-story-fr.png', 'kit/visuels/nouveaux-story-he.png', 'pro', true, 1),
+  ('Première course dans Netanya à 15 ₪', 'kit/visuels/client-story-fr.png', 'kit/visuels/client-story-he.png', 'order', true, 2)
+) v(title, image_fr, image_he, cta, active, position)
+where not exists (select 1 from public.app_promos);

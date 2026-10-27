@@ -1870,6 +1870,33 @@ async function listShops() {
   if (ONLINE) return authRest("/rest/v1/shops?select=*&order=created_at.desc");
   return localShops().slice().reverse();
 }
+// Pubs plein écran de l'appli client (choisies par le patron) : les actives pour l'appli, toutes pour le panel
+const DEMO_PROMOS = [
+  { id: "p1", title: "Nouveaux partenaires", image_fr: "kit/visuels/nouveaux-story-fr.png", image_he: "kit/visuels/nouveaux-story-he.png", cta: "pro", active: true, position: 1 },
+  { id: "p2", title: "Première course dans Netanya à 15 ₪", image_fr: "kit/visuels/client-story-fr.png", image_he: "kit/visuels/client-story-he.png", cta: "order", active: true, position: 2 }
+];
+const localPromos = () => readJSON("livraison.promos.v1", DEMO_PROMOS);
+async function appPromos() {
+  if (ONLINE) return (await rest("/rest/v1/rpc/app_promos_live", { method: "POST", body: {} })) || [];
+  return localPromos().filter(p => p.active).sort((a, b) => a.position - b.position);
+}
+async function adminPromos() {
+  if (ONLINE) return (await authRest("/rest/v1/app_promos?select=*&order=position.asc,created_at.asc")) || [];
+  return localPromos().sort((a, b) => a.position - b.position);
+}
+async function promoSave(p) {
+  const row = { title: p.title, image_fr: p.image_fr, image_he: p.image_he || null, cta: p.cta || null, active: !!p.active, position: Number(p.position) || 0 };
+  if (ONLINE) return p.id ? authRest("/rest/v1/app_promos?id=eq." + encodeURIComponent(p.id), { method: "PATCH", body: row, prefer: "return=minimal" })
+    : authRest("/rest/v1/app_promos", { method: "POST", body: row, prefer: "return=minimal" });
+  const list = localPromos(), x = p.id && list.find(y => y.id === p.id);
+  if (x) Object.assign(x, row); else list.push(Object.assign({ id: "p" + Date.now() }, row));
+  writeJSON("livraison.promos.v1", list);
+}
+async function promoDelete(id) {
+  if (ONLINE) return authRest("/rest/v1/app_promos?id=eq." + encodeURIComponent(id), { method: "DELETE", prefer: "return=minimal" });
+  writeJSON("livraison.promos.v1", localPromos().filter(p => p.id !== id));
+}
+
 async function updateShop(id, changes) {
   if (ONLINE) return authRest("/rest/v1/shops?id=eq." + encodeURIComponent(id), { method: "PATCH", body: changes, prefer: "return=minimal" });
   const list = localShops();
@@ -2115,6 +2142,7 @@ window.Store = {
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,

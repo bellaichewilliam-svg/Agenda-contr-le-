@@ -232,6 +232,44 @@ ${CONFIG.partners.courierProgram ? `✅ עושים שיווק ומרוויחים
 Société de livraison à Netanya et dans tout le Sharon : colis, documents, retrait à la poste et chez Super-Pharm, livraisons pour restaurants et commerces. Prix fixe, suivi en direct, espèces ou Bit. On parle français.` }
 ];
 
+// Nouveaux partenaires (kit/nouveaux/partenaires.json) : les phrases à publier avec les visuels et les vidéos
+const NEW_POSTS = [
+  { title: "Nouveaux partenaires : post Facebook / WhatsApp (français)", dir: "ltr", text:
+`🆕 Nouveau sur ${nameFr} : on vous livre maintenant vos adresses préférées à ${UI.cityFr(home)} !
+
+🍣 Nina Sushi, Kikar HaAtsmaout · ✡️ casher
+🍔 Paris Texas, Kiryat HaSharon · ✡️ casher
+🍔 Smash It, smash burgers · ✡️ casher
+🥐 Le Marché Français, l'épicerie française (Bonne Maman, LU, Président…)
+
+➕ Et des centaines d'autres enseignes : restaurants, Super-Pharm, poste, supermarchés…
+🛵 Livraison dans ${UI.cityFr(home)} : ${price(home)} · suivi en direct · espèces ou Bit
+👉 Commandez en 1 minute : ${url}` },
+  { title: "שותפים חדשים: פוסט לפייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
+`🆕 חדש ב${nameHe}: עכשיו מביאים לכם את המקומות שאתם אוהבים ב${heHome}!
+
+🍣 נינה סושי, כיכר העצמאות · ✡️ כשר
+🍔 פריז טקסס, קריית השרון · ✡️ כשר
+🍔 סמאש איט, סמאש בורגרים · ✡️ כשר
+🥐 השוק הצרפתי, מכולת צרפתית (בון מאמן, LU, פרזידנט…)
+
+➕ ועוד מאות עסקים: מסעדות, סופר-פארם, דואר, סופרמרקטים…
+🛵 משלוח בתוך ${heHome}: ${price(home)} · מעקב בזמן אמת · מזומן או ביט
+👈 מזמינים תוך דקה: ${url}` },
+  { title: "Phrases courtes (story, statut, légende de vidéo)", dir: "ltr", text:
+`🛵 Nina Sushi, Paris Texas, Smash It et Le Marché Français : maintenant livrés par ${nameFr} !
+🍣🍔🥐 Vos sushis, vos burgers casher et vos produits français, livrés chez vous à ${UI.cityFr(home)} en un clic.
+✡️ Nos restaurants casher sont marqués d'un sceau dans l'appli : facile à trouver.
+🛵 נינה סושי, פריז טקסס, סמאש איט והשוק הצרפתי: עכשיו במשלוח עם ${nameHe}!
+🍣🍔🥐 הסושי, ההמבורגרים הכשרים והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
+👉 ${url}` }
+];
+$("#newPosts").innerHTML = NEW_POSTS.map((p, i) => `
+  <h3>${UI.esc(p.title)}</h3>
+  <div class="post" id="npost${i}" dir="${p.dir}">${UI.esc(p.text)}</div>
+  <button class="btn btn-sm" data-copy="npost${i}">Copier</button>
+  <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a>`).join("");
+
 $("#posts").innerHTML = POSTS.map((p, i) => `
   <h3>${UI.esc(p.title)}</h3>
   <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(p.text)}</div>
