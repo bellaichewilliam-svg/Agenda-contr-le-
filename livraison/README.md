@@ -439,6 +439,15 @@ livraison/
   - elle ne remplit que les cases encore vides, et laisse une ligne « 🤖 » dans la note interne.
   - **boutique en ligne Shopify** (`{shopify: "https://…", per: 8, logo, cover}`) : elle reprend ses rayons et, dans chacun, ses produits phares disponibles avec prix, description et photo. C'est le cas de Le Marché Français (`MARCHEFR`, 13 rayons, 103 produits). Elle ne double jamais un catalogue : `fill: true` complète seulement les rayons vides. Les photos sont demandées en webp, environ 10 fois plus légères. `rephoto: true` remplace les photos trop lourdes d'un catalogue déjà repris, sans toucher aux produits, aux prix ni aux rayons.
   - **carte déjà lue sur un autre site** (`{menu: [{cat, name, description, price, photo}], source, logo, cover}`) : sert aux sites qui ne sont pas des boutiques Shopify, par exemple une page de commande Zenorder. Elle ne fait rien si le catalogue n'est pas vide. Les photos passent par un serveur d'images public (wsrv.nl), qui les renvoie en webp léger. C'est le cas de Nina Sushi (`NINASUSHI`, 16 rubriques, 121 plats, 2,7 Mo de photos).
+- **Badge « Casher » des partenaires** :
+  - le patron coche « ✡️ Casher » sur la fiche du commerce dans son panel (colonne `shops.kosher`) ;
+  - le badge « ✡ Casher / כשר » apparaît sur la carte vitrine, sur la page du commerce et dans la bulle de la carte ;
+  - Paris Texas Netanya (succursale casher de Kiryat HaSharon) l'a déjà.
+- **Logos jamais coupés** : un logo large (par exemple celui de Panda Sushi) s'affiche en entier, centré sur fond blanc, dans les pastilles rondes, les cartes vitrines, la page du commerce et sur la carte.
+- **Nouveaux partenaires repris de leur site** :
+  - Panda Sushi (`PANDASUSHI`, boutique WooCommerce : 16 rubriques, 148 plats) ;
+  - Smash It (`SMASHIT`, page de commande my-shop : 34 articles), en attente tant que son téléphone n'est pas connu ;
+  - Paris Texas Netanya (`PARISTEXAS`) : fiche, logo et photo seulement, car sa carte n'existe sur son site qu'en image.
 - **Appli client toujours à jour, même ouverte depuis des heures** :
   - à chaque retour dans l'appli (après 15 s ou plus en arrière-plan), et toutes les 5 min, elle relit l'annuaire des partenaires et les vitrines. Les nouveaux partenaires apparaissent, et l'écran n'est redessiné que si quelque chose a changé ;
   - « Ouvert / Fermé » est recalculé chaque minute ;

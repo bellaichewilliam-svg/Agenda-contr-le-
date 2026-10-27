@@ -1080,6 +1080,7 @@ function renderShops(view) {
           <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan" title="Le commerce a payé ${UI.esc(UI.money(settings.pro_monthly))}">⭐ HOP! Pro : +1 mois payé</button>
           <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
           <button class="btn btn-sm" data-sact="enrich" title="Horaires, photo et menu repris de sa page publique (seulement ce qui est vide)">🤖 Remplir sa fiche</button>
+          <button class="btn btn-sm${x.kosher ? " btn-primary" : ""}" data-sact="kosher" title="Badge « Casher » sur sa vitrine, sa page et la carte">${x.kosher ? "✡️ Casher ✓" : "✡️ Casher ?"}</button>
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
           ${accessBtn(x)}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
@@ -1580,6 +1581,8 @@ async function onViewClick(e) {
       if (link && !/^https:\/\/\S{4,250}$/.test(link)) return alert("Le lien de paiement doit commencer par https://");
       if (bit && !/^0\d{8,9}$/.test(bit)) return alert("Numéro Bit / PayBox invalide (ex. 053-373-3785).");
       changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null, pay_link: link || null, pay_bit: bit || null };
+    } else if (el.dataset.sact === "kosher") {
+      changes = { kosher: !shop.kosher };
     } else if (el.dataset.sact === "planoff") {
       if (!confirm(`Arrêter HOP! Pro pour ${shop.name} ?`)) return;
       changes = { plan_until: UI.addDays(UI.dayKey(new Date()), -1) };
