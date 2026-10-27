@@ -2511,3 +2511,24 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 /* Lignes de texte du prix (une seule colonne) : elles passent à la ligne, jamais coupées */
 .summary li.goods span, .summary li.goods span:last-child { white-space: normal; font-weight: 500; color: var(--muted); }
 .summary li.goods-amt span:first-child { color: var(--ink); }
+
+/* Rayons : toutes les catégories visibles d'un coup, en tuiles (plus de rangée qui défile) */
+.ph-cats-h { margin: 10px 0 6px; font-size: 13px; font-weight: 800; color: var(--ink); }
+#pharmaBox .ph-cats { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; overflow: visible; margin: 0; padding: 0; }
+#pharmaBox .ph-cat { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 4px;
+  min-height: 82px; padding: 9px 4px 7px; border-radius: 16px; border: 1.5px solid var(--border); background: var(--panel); color: var(--ink);
+  font-size: 11.5px; font-weight: 700; line-height: 1.2; text-align: center; white-space: normal; box-shadow: 0 1px 2px rgba(15, 31, 61, .06); transition: transform .12s, box-shadow .12s; }
+#pharmaBox .ph-cat:active { transform: scale(.96); }
+#pharmaBox .ph-cat img { width: 36px; height: 36px; object-fit: contain; flex: none; }
+#pharmaBox .ph-cat i { font-style: normal; font-size: 28px; line-height: 36px; height: 36px; }
+#pharmaBox .ph-cat span { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+#pharmaBox .ph-cat.on { background: color-mix(in srgb, var(--rc, #059669) 14%, var(--panel)); border-color: var(--rc, #059669); color: var(--ink);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--rc, #059669) 35%, transparent); }
+#pharmaBox .ph-cat em { position: absolute; top: -6px; inset-inline-end: -4px; margin: 0; min-width: 20px; height: 20px; line-height: 20px; padding: 0 5px;
+  border-radius: 99px; background: #F97316; color: #fff; font-size: 11px; font-style: normal; box-shadow: 0 0 0 2px var(--panel); }
+.ph-cur { display: flex; align-items: center; gap: 8px; margin: 14px 0 6px; font-size: 17px; scroll-margin-top: 80px; }
+.ph-cur img { width: 28px; height: 28px; object-fit: contain; }
+.ph-cur i { font-style: normal; font-size: 22px; }
+.ph-nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 10px 0 2px; }
+.ph-nav button { font: inherit; font-size: 13px; font-weight: 800; border-radius: 999px; padding: 10px 14px; cursor: pointer; border: 1.5px solid var(--border); background: var(--panel); color: var(--ink); }
+.ph-nav .ph-next { margin-inline-start: auto; background: var(--rc, #059669); border-color: var(--rc, #059669); color: #fff; }
