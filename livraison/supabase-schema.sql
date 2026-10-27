@@ -6539,3 +6539,35 @@ select * from (values
   ('Première course dans Netanya à 15 ₪', 'kit/visuels/client-story-fr.png', 'kit/visuels/client-story-he.png', 'order', true, 2)
 ) v(title, image_fr, image_he, cta, active, position)
 where not exists (select 1 from public.app_promos);
+
+-- ============================================================================
+-- NOUVEAU CLIENT / NOUVEAU COMMERCE : notification au patron (même appli fermée), comme pour un nouveau livreur
+-- ============================================================================
+create or replace function public.push_client_signup() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  perform public.push_call(jsonb_build_object('thread', 'cl:' || new.id, 'author', 'client',
+    'author_name', '🆕 Nouveau client inscrit',
+    'body', coalesce(new.name, '') || ' · 0' || substr(new.phone, 1, 2) || '-' || substr(new.phone, 3, 3) || '-' || substr(new.phone, 6)));
+  return new;
+end;
+$$;
+create or replace trigger client_signup_push after insert on public.clients
+  for each row execute function public.push_client_signup();
+revoke execute on function public.push_client_signup() from public, anon, authenticated;
+
+-- Seulement les commerces inscrits tout seuls (en attente) : pas ceux que le patron ajoute lui-même
+create or replace function public.push_shop_signup() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'en_attente' then
+    perform public.push_call(jsonb_build_object('thread', 'sh:' || new.id, 'author', 'shop',
+      'author_name', '🆕 Nouveau commerce inscrit',
+      'body', coalesce(new.name, '') || coalesce(' · ' || nullif(new.contact_name, ''), '') || coalesce(' · ' || nullif(new.phone, ''), '') || ' — à valider dans Commerces'));
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger shop_signup_push after insert on public.shops
+  for each row execute function public.push_shop_signup();
+revoke execute on function public.push_shop_signup() from public, anon, authenticated;
