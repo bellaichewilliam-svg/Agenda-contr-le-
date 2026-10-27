@@ -207,6 +207,34 @@ async function fromShopify(id: string, site: string, per: number, logo?: string,
   return { ok: true, nCat, nProd, logo: !!lg, cover: !!cv };
 }
 
+// Photos trop lourdes (catalogue repris avant le passage au webp) : on remplace chaque photo, le logo et la
+// couverture par leur version légère, sans toucher aux produits, prix ni rayons
+async function shopifyRephoto(id: string, site: string, logo?: string, cover?: string) {
+  const base = new URL(site).origin;
+  if (!/^https:\/\//.test(base)) throw new Error("bad_site");
+  const { data: shop } = await db.from("shops").select("name, logo, cover").eq("id", id).single();
+  if (!shop) throw new Error("no_shop");
+  const HEAVY = 60000, patch: Record<string, string> = {};
+  const lg = (shop.logo || "").length > HEAVY && await shopifyImg(logo, 320), cv = (shop.cover || "").length > HEAVY && await shopifyImg(cover, 1000);
+  if (lg && lg.length < (shop.logo || "").length) patch.logo = lg;
+  if (cv && cv.length < (shop.cover || "").length) patch.cover = cv;
+  if (Object.keys(patch).length) await db.from("shops").update(patch).eq("id", id);
+  const src = new Map<string, string>();
+  const cols = ((await json(`${base}/collections.json?limit=250`)).collections || []).filter((c: any) => c.products_count > 0);
+  for (const c of cols)
+    for (const p of (await json(`${base}/collections/${encodeURIComponent(c.handle)}/products.json?limit=250`)).products || [])
+      if (p.images?.[0]?.src) src.set(shortName(p.title, shop.name), p.images[0].src);
+  const { data: prods } = await db.from("shop_products").select("id, name, photo").eq("shop_id", id);
+  const todo = (prods || []).filter((p: any) => (p.photo || "").length > HEAVY && src.has(p.name));
+  let n = 0;
+  for (let i = 0; i < todo.length; i += 8)
+    await Promise.all(todo.slice(i, i + 8).map(async (p: any) => {
+      const d = await shopifyImg(src.get(p.name), 360);
+      if (d && d.length < p.photo.length && !(await db.from("shop_products").update({ photo: d }).eq("id", p.id)).error) n++;
+    }));
+  return { ok: true, photos: n, of: todo.length, logo: !!patch.logo, cover: !!patch.cover };
+}
+
 // Qui peut lancer la fiche : le commerce lui-même (sa clé secrète, juste après l'inscription), le patron
 // (connecté, rôle admin) pour n'importe quel commerce, ou la base (clé x-hop-key)
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-hop-key", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -233,6 +261,7 @@ Deno.serve(async req => {
   const id = await shopIdFor(req, body);
   if (!id) return reply({ ok: false, why: "forbidden" }, 403);
   try {
+    if (body.shopify && body.rephoto) return reply(await shopifyRephoto(id, String(body.shopify), body.logo, body.cover));
     if (body.shopify) return reply(await fromShopify(id, String(body.shopify), Math.min(15, Math.max(1, Number(body.per) || 8)), body.logo, body.cover, !!body.fill));
     return reply(await enrich(id));
   }
