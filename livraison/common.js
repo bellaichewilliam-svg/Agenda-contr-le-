@@ -71,7 +71,10 @@ function waPersonal(phone, text) {
   const q = (phone ? "phone=" + intlPhone(phone) + "&" : "") + "text=" + encodeURIComponent(text || "");
   return `intent://send?${q}#Intent;scheme=whatsapp;package=com.whatsapp;S.browser_fallback_url=${encodeURIComponent(web)};end`;
 }
+// Achat « au plus proche » : on cherche ce type de magasin autour de l'adresse de livraison
+const NEAR_HE = { pharm: "בית מרקחת", tabac: "פיצוציה", bakery: "מאפייה", shop: "מכולת", baby: "חנות תינוקות", pets: "חנות חיות", home: "כלי בית", gift: "חנות פרחים" };
 function placeQuery(o, which) {
+  if (which === "pickup" && o.pickup_near) return `${NEAR_HE[o.pickup_near] || "חנות"} ${o.dropoff_address}, ${cityFr(o.to_city)}`;
   const brand = o[which + "_place"];
   return (brand ? brand + ", " : "") + (which === "pickup" ? `${o.pickup_address}, ${cityFr(o.from_city)}` : `${o.dropoff_address}, ${cityFr(o.to_city)}`);
 }
@@ -80,6 +83,9 @@ function exactPoint(o, which) {
   return o[which + "_exact"] && o[which + "_lat"] != null ? `${o[which + "_lat"]},${o[which + "_lon"]}` : null;
 }
 function wazeLink(o, which) {
+  // (au plus proche : Waze cherche le type de magasin autour du client, le livreur choisit le plus proche ouvert)
+  if (which === "pickup" && o.pickup_near) return "https://waze.com/ul?q=" + encodeURIComponent(NEAR_HE[o.pickup_near] || "חנות")
+    + (o.dropoff_lat != null ? `&ll=${o.dropoff_lat},${o.dropoff_lon}` : "");
   const ll = exactPoint(o, which);
   return ll ? `https://waze.com/ul?ll=${ll}&navigate=yes` : "https://waze.com/ul?navigate=yes&q=" + encodeURIComponent(placeQuery(o, which));
 }

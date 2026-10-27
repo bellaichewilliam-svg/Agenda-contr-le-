@@ -2504,3 +2504,7 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .gm-sum { display: flex; flex-direction: column; min-width: 0; }
 .gm-how, .gm-cap { display: block; color: var(--muted); line-height: 1.4; margin-top: 6px; }
 .gm-cap.bad { color: #d6336c; font-weight: 600; }
+
+/* Rayon choisi par sa tuile : pas d'adresse de départ (le livreur va au magasin le plus proche) */
+.near-mode .pick-addr { display: none !important; }
+.near-note { margin: 0 0 4px; font-weight: 600; }

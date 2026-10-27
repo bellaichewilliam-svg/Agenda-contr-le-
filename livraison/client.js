@@ -308,7 +308,11 @@ function syncVisibility() {
   // Supermarché : rappel « petites courses seulement » (le top case du scooter)
   const sp = state.pick.from && (state.pick.from.brand || state.pick.from.streetName || "");
   $("#superNote").classList.toggle("hidden", !(svc === "achat" && /rami|רמי|shufersal|שופרסל|victory|ויקטורי|yochananof|יוחננוף|osher|אושר עד|tiv ta|טיב טעם|carrefour|קרפור|yeinot|יינות|mega|מגה|super|סופר/i.test(sp || "")));
-  $("#pickupLegend").textContent = t(svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
+  const near = nearMode();
+  form.classList.toggle("near-mode", near);
+  $("#nearNote").classList.toggle("hidden", !near);
+  if (near) $("#nearNote").textContent = t("nearNote", { shop: t("near_" + state.homeKind) });
+  $("#pickupLegend").textContent = t(near ? "s2_near" : svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
   // Commande chez un commerce HOP! Pro : seulement l'essentiel (articles, adresse du client, heure, mot pour le livreur, paiement)
@@ -446,8 +450,8 @@ function baseQuote() {
     return { total: carnetUnit(), known: true, distanceKm: 0, lines: [{ key: "qCarnet", vars: { n: state.pro.credits - 1 }, amount: carnetUnit() }] };
   }
   return Pricing.computeQuote({
-    fromCity: cityOf("from"), toCity: cityOf("to"),
-    fromPoint: state.fromPoint, toPoint: state.toPoint,
+    fromCity: nearMode() ? cityOf("to") : cityOf("from"), toCity: cityOf("to"),
+    fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint,
     service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(), units: rayonUnits(),
     couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
@@ -479,7 +483,7 @@ function stepStates() {
   return [
     [fieldsetOf('legend[data-i18n="s1"]'), true],
     [fieldsetOf('legend[data-i18n="s4"]'), !scheduleError()],
-    [fieldsetOf("#pickupLegend"), filled("pickup_address") && (filled("pickup_number") || !!(state.pick.from && state.pick.from.brand))],
+    [fieldsetOf("#pickupLegend"), nearMode() ? rayonUnits() > 0 || shopListText().trim().length >= 3 : filled("pickup_address") && (filled("pickup_number") || !!(state.pick.from && state.pick.from.brand))],
     [fieldsetOf('legend[data-i18n="s3"]'), filled("dropoff_address") && (filled("dropoff_number") || !!(state.pick.to && state.pick.to.brand))],
     [$("#coordsBox"), filled("contact_name") && phoneOk(val("contact_phone"))],
     ...(proShopOn() ? [[$("#shopOrderBox"), filled("shop_order") || cartCount() > 0]] : [])
@@ -567,6 +571,10 @@ function rayonOn() {
   return r && val("service") === "achat" ? r : null;
 }
 const pharmaOn = () => !!rayonOn();
+// Rayon choisi par sa tuile (pharmacie, tabac, makolet, bébé…) : le client ne choisit pas le magasin,
+// le livreur va au plus proche de l'adresse de livraison (ouvert). Pas d'adresse de départ à remplir.
+const nearMode = () => !!state.homeKind && RAYON_KINDS.includes(state.homeKind) && !state.shop && val("service") === "achat";
+const NEAR_FR = { pharm: "Pharmacie", tabac: "Kiosque / tabac", bakery: "Boulangerie", shop: "Makolet / supermarché", baby: "Magasin bébé ou pharmacie", pets: "Animalerie", home: "Quincaillerie / bazar", gift: "Fleuriste" };
 const phName = x => (I18N.lang === "he" ? x.he : x.fr);
 const rayonPicked = r => Object.entries(state.pharma).filter(([k, q]) => q > 0 && k.startsWith(r.id + ":"));
 // Produit + variante d'une clé « rayon:produit|variante » ; son prix indicatif et sa place (la variante peut avoir les siens)
@@ -699,6 +707,8 @@ function goKind(id) {
   const f = state.pick.from;
   if (f && f.brand) clearHomeAddr("from", true);
   if (state.homeKind === id) state.homeKind = null;   // (applyKind le remet, sans l'enlever)
+  // Pharmacie, tabac, makolet… : pas de magasin à choisir, on va droit aux produits (le livreur va au plus proche)
+  if (RAYON_KINDS.includes(id)) { applyKind(id); return goPharma(); }
   state.pharmaGo = true;
   applyKind(id);
   if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); }
@@ -1287,7 +1297,7 @@ function rememberAddresses(o, pf, pt) {
       kind: o[pre + "_kind"]
     });
   };
-  save("from", pf, o.from_city);
+  if (!o.pickup_near) save("from", pf, o.from_city);
   save("to", pt, o.to_city);
 }
 
@@ -1385,23 +1395,24 @@ async function submit(e) {
   showError("");
   // Vitrine de démonstration (montrée aux commerces) : on peut tout essayer, sauf envoyer une vraie course
   if (state.shop && state.shop.demo) return showError(t("errDemoShop"));
-  const fromCity = cityOf("from"), toCity = cityOf("to");
-  const required = ["pickup_address", "dropoff_address", "contact_name", "contact_phone"];
+  const near = nearMode();
+  const fromCity = near ? cityOf("to") : cityOf("from"), toCity = cityOf("to");
+  const required = [near ? null : "pickup_address", "dropoff_address", "contact_name", "contact_phone"].filter(Boolean);
   const missing = required.find(k => !val(k).trim());
   if (missing || !fromCity || !toCity) {
     if (missing) form.elements[missing].focus();
     return showError(t("errRequired"));
   }
   // Adresses : uniquement celles proposées par la carte (si le service répond)
-  if (Places.serviceOk && (!ac.from.isPicked() || !ac.to.isPicked())) {
-    form.elements[!ac.from.isPicked() ? "pickup_address" : "dropoff_address"].focus();
+  if (Places.serviceOk && ((!near && !ac.from.isPicked()) || !ac.to.isPicked())) {
+    form.elements[!near && !ac.from.isPicked() ? "pickup_address" : "dropoff_address"].focus();
     return showError(t("errAddrPick"));
   }
-  const badPhone = ["contact_phone", form.drop_me.checked ? null : "dropoff_phone", val("service") !== "retrait" ? "pickup_phone" : null]
+  const badPhone = ["contact_phone", form.drop_me.checked ? null : "dropoff_phone", val("service") !== "retrait" && !near ? "pickup_phone" : null]
     .find(k => k && val(k).trim() && !phoneOk(val(k)));
   if (badPhone) { form.elements[badPhone].focus(); return showError(t("errPhone")); }
   const isBrand = w => !!(state.pick[w] && state.pick[w].brand && !needsNo(state.pick[w]));
-  const missingNo = [["from", "pickup_number"], ["to", "dropoff_number"]].find(([w, k]) => !isBrand(w) && !val(k).trim());
+  const missingNo = [["from", "pickup_number"], ["to", "dropoff_number"]].find(([w, k]) => !(near && w === "from") && !isBrand(w) && !val(k).trim());
   if (missingNo) { form.elements[missingNo[1]].focus(); return showError(t("errHouseNo")); }
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
@@ -1425,7 +1436,7 @@ async function submit(e) {
     if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showError(t("errTo" + miss)); }
   }
   // Un mot pour le livreur : seulement s'il manque une précision (un appartement sans étage ni n°)
-  const vague = ["pickup", "dropoff"].find(pre => { const w = pre === "pickup" ? "from" : "to";
+  const vague = (near ? ["dropoff"] : ["pickup", "dropoff"]).find(pre => { const w = pre === "pickup" ? "from" : "to";
     return !(state.pick[w] && state.pick[w].brand) && kindOf(pre) === "appartement" && !val(pre + "_floor").trim() && !val(pre + "_apt").trim(); });
   if (vague && notesText().length < 3) { form.elements[vague + "_apt"].focus(); return showError(t("errNotes")); }
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
@@ -1484,12 +1495,13 @@ async function submit(e) {
     // Réduction du client (code promo, fidélité, parrainage) : pas la part payée par le commerce Pro
     const disc = q.lines.find(l => l.discount && l.key !== "qShopShare");
     const svc = val("service");
-    const pf = state.pick.from, pt = state.pick.to;
-    const pNo = val("pickup_number").trim(), dNo = val("dropoff_number").trim();
-    const pAddr = fullAddress(pf, val("pickup_address").trim(), pNo);
+    const pf = near ? null : state.pick.from, pt = state.pick.to;
+    const pNo = near ? "" : val("pickup_number").trim(), dNo = val("dropoff_number").trim();
+    // (au plus proche : le texte pour le livreur, en français comme son appli)
+    const pAddr = near ? `🏪 Au plus proche du client : ${NEAR_FR[state.homeKind] || "magasin"} (au choix du livreur, ouvert)` : fullAddress(pf, val("pickup_address").trim(), pNo);
     const dAddr = fullAddress(pt, val("dropoff_address").trim(), dNo);
     const [pick0, drop0] = await Promise.all([
-      pf ? exactPoint(pf, pNo, UI.cityFr(fromCity)) : locate(pAddr, fromCity, state.fromPoint),
+      near ? null : pf ? exactPoint(pf, pNo, UI.cityFr(fromCity)) : locate(pAddr, fromCity, state.fromPoint),
       pt ? exactPoint(pt, dNo, UI.cityFr(toCity)) : locate(dAddr, toCity, state.toPoint)
     ]);
     // Le client vérifie ses adresses sur la carte (et corrige l'épingle s'il le faut)
@@ -1497,7 +1509,8 @@ async function submit(e) {
     const named = (p, a) => (p && p.brand && !a.includes(p.brand) ? `${p.brand} · ${a}` : a);
     const checked = await confirmAddresses(pick0, drop0, named(pf, pAddr), named(pt, dAddr), fromCity, toCity);
     if (!checked) return;
-    const pick = checked.pick, drop = checked.drop;
+    const pick = near ? null : checked.pick, drop = checked.drop;
+    const pv = k => (near ? "" : val(k).trim());
     const order = {
       lang: I18N.lang,
       service: svc,
@@ -1506,19 +1519,20 @@ async function submit(e) {
       from_city: fromCity,
       pickup_address: pAddr,
       pickup_place: pf ? pf.brand : null,
+      pickup_near: near ? state.homeKind : null,
       pickup_learned: learnIt(pf),
-      pickup_kind: svc !== "retrait" ? kindOf("pickup") : null,
+      pickup_kind: svc !== "retrait" && !near ? kindOf("pickup") : null,
       dropoff_kind: kindOf("dropoff"),
       rules_accepted_at: checked.rulesOk ? new Date().toISOString() : null,
-      pickup_building: svc !== "retrait" ? val("pickup_building").trim() || null : null,
-      pickup_floor: svc !== "retrait" ? val("pickup_floor").trim() || null : null,
-      pickup_apt: svc !== "retrait" ? val("pickup_apt").trim() || null : null,
-      pickup_code: svc !== "retrait" ? val("pickup_code").trim() || null : null,
+      pickup_building: svc !== "retrait" ? pv("pickup_building") || null : null,
+      pickup_floor: svc !== "retrait" ? pv("pickup_floor") || null : null,
+      pickup_apt: svc !== "retrait" ? pv("pickup_apt") || null : null,
+      pickup_code: svc !== "retrait" ? pv("pickup_code") || null : null,
       pickup_exact: !!(pick && pick.exact),
-      pickup_note: val("pickup_note").trim() || null,
-      pickup_lat: pick ? pick.lat : null, pickup_lon: pick ? pick.lon : null,
-      pickup_contact: svc !== "retrait" ? val("pickup_contact").trim() || null : null,
-      pickup_phone: svc !== "retrait" && val("pickup_phone").trim() ? formatPhone(val("pickup_phone").trim()) : null,
+      pickup_note: pv("pickup_note") || null,
+      pickup_lat: pick && pick.lat != null ? pick.lat : null, pickup_lon: pick && pick.lon != null ? pick.lon : null,
+      pickup_contact: svc !== "retrait" ? pv("pickup_contact") || null : null,
+      pickup_phone: svc !== "retrait" && pv("pickup_phone") ? formatPhone(pv("pickup_phone")) : null,
       place_kind: svc === "retrait" ? val("place_kind") : null,
       tracking_number: svc === "retrait" ? val("tracking_number").trim() || null : null,
       parcel_name: svc === "retrait" ? val("parcel_name").trim() || null : null,
@@ -2652,7 +2666,7 @@ function applyKind(id) {
   renderHomeStatic();
   // Poste, Super-Pharm, restaurant… sans départ choisi : on propose tout de suite les plus proches
   const cat = { poste: "post", pharm: "pharm", resto: "food", shop: "super", gift: "flower", bakery: "breakfast", pressing: "pressing", baby: "baby", pets: "pet", home: "home" }[id];
-  if (state.homeKind && cat && !state.pick.from) openEns(cat);
+  if (state.homeKind && cat && !state.pick.from && !RAYON_KINDS.includes(id)) openEns(cat);
 }
 
 // Inverser départ et arrivée
