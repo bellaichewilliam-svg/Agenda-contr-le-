@@ -2609,10 +2609,52 @@ function initHome() {
     if (document.hidden) { hiddenAt = Date.now(); return; }
     if (Date.now() - shopsAt > 15000) refreshShops();
     if (hiddenAt && Date.now() - hiddenAt > 5 * 60000) checkNewVersion();
+    // Retour dans l'appli après 30 min ou plus : la pub suivante, comme à l'ouverture
+    if (hiddenAt && Date.now() - hiddenAt > 30 * 60000) setTimeout(showAppPromo, 900);
   });
   window.addEventListener("pageshow", e => { if (e.persisted) refreshShops(); });
+  setTimeout(showAppPromo, 1500);
   // Sur téléphone, la bulle « Nous écrire » remonte au-dessus du bouton Commander
   if ("IntersectionObserver" in window) new IntersectionObserver(es => document.body.classList.toggle("in-home", es[0].isIntersecting)).observe($("#homeSheet"));
+}
+
+// Pub plein écran à l'ouverture de l'appli (celles que le patron a activées dans son panel) : une autre à chaque
+// ouverture, à tour de rôle. Jamais par-dessus une commande en cours, une page de commerce ou une autre fenêtre.
+const LS_PROMO = "livraison.promo.v1";
+async function showAppPromo() {
+  if (new URLSearchParams(location.search).get("c") || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length
+    || document.querySelector(".promo-modal") || !$("#noticeModal").classList.contains("hidden")) return;
+  let list;
+  try { list = ((await Store.appPromos()) || []).filter(p => p.image_fr); } catch (e) { return; }
+  if (!list.length) return;
+  let last = -1;
+  try { last = (JSON.parse(localStorage.getItem(LS_PROMO)) || {}).i; } catch (e) { /* première fois */ }
+  const i = (Number.isInteger(last) ? last + 1 : 0) % list.length, p = list[i];
+  try { localStorage.setItem(LS_PROMO, JSON.stringify({ i, at: Date.now() })); } catch (e) { /* stockage plein */ }
+  const src = (I18N.lang === "he" && p.image_he) || p.image_fr, kind = String(p.cta || "").split(":")[0];
+  // L'image d'abord : la fenêtre ne s'ouvre que si elle est prête (rien de vide à l'écran)
+  const ok = await new Promise(res => { const im = new Image(); im.onload = () => res(true); im.onerror = () => res(false); im.src = src; setTimeout(() => res(false), 5000); });
+  if (!ok || document.body.dataset.view !== "home" || document.querySelector(".promo-modal")) return;
+  const box = document.createElement("div");
+  box.className = "promo-modal";
+  box.setAttribute("role", "dialog");
+  box.innerHTML = `<div class="pm-card">
+      <button type="button" class="pm-close" data-pm-close aria-label="${UI.esc(t("promoClose"))}">✕</button>
+      <img class="pm-img" src="${UI.esc(src)}" alt="${UI.esc(p.title || "")}" />
+      ${kind ? `<button type="button" class="btn btn-primary pm-go" data-pm-go>${UI.esc((t("promoGo") || {})[kind] || "OK")}</button>` : ""}
+      ${list.length > 1 ? `<div class="pm-dots">${list.map((x, j) => `<i class="${j === i ? "on" : ""}"></i>`).join("")}</div>` : ""}
+    </div>`;
+  const close = () => { box.classList.add("out"); setTimeout(() => box.remove(), 220); };
+  box.addEventListener("click", e => {
+    if (e.target === box || e.target.closest("[data-pm-close]")) return close();
+    if (!e.target.closest("[data-pm-go]") && !e.target.closest(".pm-img")) return;
+    close();
+    if (kind === "order") setView("order", true);
+    else if (kind === "pro") { const el = $("#homePro"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }
+    else if (kind === "shop") loadShop(p.cta.slice(5));
+    else if (kind === "url") window.open(p.cta.slice(4), "_blank", "noopener");
+  });
+  document.body.appendChild(box);
 }
 
 // Nouvelle version de l'appli mise en ligne pendant que le téléphone la gardait en arrière-plan : au retour,

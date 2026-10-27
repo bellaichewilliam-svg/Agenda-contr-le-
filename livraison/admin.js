@@ -42,6 +42,9 @@ let credits = { credits: [], topups: [] };   // crédit prépayé des livreurs e
 let accounts = [];   // comptes (inscription finie ou pas, notifications activées), voir Store.adminAccounts
 let declines = [];    // refus des 30 derniers jours (avec la raison)   // abonnements HOP! Pro payés (part du livreur qui a amené le commerce)
 let msgs = { messages: [], replies: [] };
+// Pubs plein écran de l'appli client (onglet 📣) : chargées à la première ouverture de l'onglet
+let promos = null;
+const promoForm = { open: false, img: "kit/visuels/nouveaux-story-fr.png", imgHe: "kit/visuels/nouveaux-story-he.png", own: null, ownHe: null };
 let me = null;
 let settings = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
 let tab = "agenda";
@@ -1169,14 +1172,114 @@ function clientCount(days) {
   const since = Date.now() - days * 86400000;
   return new Set(orders.filter(o => o.device_id && new Date(o.created_at) > since).map(o => o.device_id)).size;
 }
+// Visuels du kit pub proposés pour les pubs de l'appli (format story, FR et HE)
+const KIT_PROMO_IMGS = [
+  ["Nouveaux partenaires (story)", "kit/visuels/nouveaux-story-fr.png", "kit/visuels/nouveaux-story-he.png"],
+  ["Nouveaux partenaires (carré)", "kit/visuels/nouveaux-post-fr.png", "kit/visuels/nouveaux-post-he.png"],
+  ["Clients : première course (story)", "kit/visuels/client-story-fr.png", "kit/visuels/client-story-he.png"],
+  ["Clients : première course (carré)", "kit/visuels/client-post-fr.png", "kit/visuels/client-post-he.png"]
+];
+const PROMO_CTA = { "": "Pas de bouton", order: "🛵 Commander maintenant", pro: "🍽️ Voir les commerces", shop: "🍽️ La carte d'un commerce", url: "🔗 Un lien" };
+const ctaLabel = c => !c ? PROMO_CTA[""] : c.startsWith("shop:") ? `🍽️ ${((shops.find(x => x.code === c.slice(5)) || {}).name || c.slice(5))}` : c.startsWith("url:") ? "🔗 " + c.slice(4) : PROMO_CTA[c] || c;
+function promoCard() {
+  if (!promos) {
+    Store.adminPromos().then(r => { promos = r || []; if (tab === "messages") render(); }, () => { promos = []; });
+    return `<div class="card"><b>📱 Pubs à l'ouverture de l'appli client</b><p class="muted small">Chargement…</p></div>`;
+  }
+  const on = promos.filter(p => p.active).length;
+  const f = promoForm, kitSel = KIT_PROMO_IMGS.findIndex(k => k[1] === f.img);
+  return `<div class="card" id="promoCard">
+    <b>📱 Pubs à l'ouverture de l'appli client</b>
+    <p class="muted small" style="margin:4px 0 10px">À chaque ouverture de l'appli, le client voit une pub en grand, puis la suivante la fois d'après (à tour de rôle). ${on ? `<b>${on} pub(s) active(s)</b>.` : "<b>Aucune pub active</b> : l'appli s'ouvre directement."} Activez, coupez ou changez l'ordre quand vous voulez : c'est immédiat.</p>
+    ${promos.length ? `<div class="promo-list">${promos.map((p, i) => `<div class="promo-row-a${p.active ? " on" : ""}" data-promo="${UI.esc(p.id)}">
+        <img src="${UI.esc(p.image_fr)}" alt="" data-promo-act="view" />
+        <div class="pr-txt"><b>${UI.esc(p.title)}</b><small>${UI.esc(ctaLabel(p.cta))}${p.image_he ? " · FR + HE" : " · FR seulement"}</small></div>
+        <div class="pr-btns">
+          <button type="button" class="btn btn-sm${p.active ? " btn-primary" : ""}" data-promo-act="toggle">${p.active ? "🟢 Active" : "⚪ Coupée"}</button>
+          <button type="button" class="btn btn-sm" data-promo-act="up" ${i ? "" : "disabled"} title="Plus tôt">↑</button>
+          <button type="button" class="btn btn-sm" data-promo-act="down" ${i < promos.length - 1 ? "" : "disabled"} title="Plus tard">↓</button>
+          <button type="button" class="btn btn-sm" data-promo-act="del" title="Supprimer">🗑</button>
+        </div></div>`).join("")}</div>` : `<p class="muted small">Aucune pub pour l'instant.</p>`}
+    ${f.open ? `<div class="promo-form">
+      <label class="f"><span>Titre (pour vous)</span><input id="pfTitle" maxlength="80" placeholder="ex. Soirée sushis -10 %" /></label>
+      <label class="f"><span>Visuel</span><select id="pfKit">${KIT_PROMO_IMGS.map((k, j) => `<option value="${j}" ${j === kitSel ? "selected" : ""}>${UI.esc(k[0])}</option>`).join("")}<option value="own" ${kitSel < 0 ? "selected" : ""}>📷 Ma propre image…</option></select></label>
+      ${kitSel < 0 ? `<div class="pf-own"><label class="btn btn-sm">📷 Image en français<input type="file" accept="image/*" id="pfOwn" hidden /></label> ${f.own ? "✅" : ""}
+        <label class="btn btn-sm">📷 Image en hébreu (facultatif)<input type="file" accept="image/*" id="pfOwnHe" hidden /></label> ${f.ownHe ? "✅" : ""}
+        <small class="muted">Format conseillé : vertical (story 1080 × 1920).</small></div>` : `<img class="pf-prev" src="${UI.esc(f.img)}" alt="" />`}
+      <label class="f"><span>Bouton sous la pub</span><select id="pfCta">${Object.entries(PROMO_CTA).map(([k, l]) => `<option value="${k}">${UI.esc(l)}</option>`).join("")}</select></label>
+      <label class="f hidden" id="pfShopRow"><span>Quel commerce ?</span><select id="pfShop">${shops.filter(x => x.status === "actif" && !x.demo).map(x => `<option value="${UI.esc(x.code)}">${UI.esc(x.name)}</option>`).join("")}</select></label>
+      <label class="f hidden" id="pfUrlRow"><span>Lien (https://…)</span><input id="pfUrl" placeholder="https://" /></label>
+      <label class="small"><input type="checkbox" id="pfActive" checked /> L'activer tout de suite</label>
+      <div class="promo-row"><button type="button" class="btn btn-primary" data-promo-act="save">💾 Ajouter la pub</button><button type="button" class="btn" data-promo-act="cancel">Annuler</button></div>
+    </div>` : `<button type="button" class="btn btn-sm" data-promo-act="new" style="margin-top:10px">➕ Nouvelle pub</button>`}
+  </div>`;
+}
+document.addEventListener("change", async e => {
+  const t = e.target;
+  if (t.id === "pfKit") {
+    if (t.value === "own") { promoForm.img = null; promoForm.imgHe = null; }
+    else { const k = KIT_PROMO_IMGS[Number(t.value)]; promoForm.img = k[1]; promoForm.imgHe = k[2]; }
+    const keep = { title: $("#pfTitle").value };
+    render(); $("#pfTitle").value = keep.title;
+  } else if (t.id === "pfCta") {
+    $("#pfShopRow").classList.toggle("hidden", t.value !== "shop");
+    $("#pfUrlRow").classList.toggle("hidden", t.value !== "url");
+  } else if (t.id === "pfOwn" || t.id === "pfOwnHe") {
+    const file = t.files && t.files[0];
+    if (!file) return;
+    try {
+      const data = await UI.docPhoto(file);
+      promoForm[t.id === "pfOwn" ? "own" : "ownHe"] = data;
+      const keep = { title: $("#pfTitle").value };
+      render(); $("#pfTitle").value = keep.title;
+    } catch (ex) { alert("Image illisible ou trop lourde."); }
+  }
+});
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-promo-act]");
+  if (!b) return;
+  const act = b.dataset.promoAct, row = b.closest("[data-promo]"), p = row && promos.find(x => x.id === row.dataset.promo);
+  const save = async (x, done) => { try { await Store.promoSave(x); promos = await Store.adminPromos(); if (done) done(); render(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); } };
+  if (act === "new") { promoForm.open = true; return render(); }
+  if (act === "cancel") { Object.assign(promoForm, { open: false, own: null, ownHe: null }); return render(); }
+  if (act === "view" && p) return UI.photoViewer(p.title, [{ label: "FR", src: p.image_fr }].concat(p.image_he ? [{ label: "HE", src: p.image_he }] : []));
+  if (act === "toggle" && p) return save(Object.assign({}, p, { active: !p.active }));
+  if ((act === "up" || act === "down") && p) {
+    // Nouvel ordre : on échange avec la voisine et on renumérote tout (1, 2, 3…)
+    const list = promos.slice(), i = list.indexOf(p), j = act === "up" ? i - 1 : i + 1;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    try { for (const [k, x] of list.entries()) if (x.position !== k + 1) await Store.promoSave(Object.assign({}, x, { position: k + 1 })); promos = await Store.adminPromos(); render(); }
+    catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
+  if (act === "del" && p) {
+    if (!confirm(`Supprimer la pub « ${p.title} » ? (Pour l'arrêter seulement, touchez plutôt « 🟢 Active ».)`)) return;
+    try { await Store.promoDelete(p.id); promos = await Store.adminPromos(); render(); } catch (ex) { alert("Non supprimée, vérifiez la connexion."); }
+    return;
+  }
+  if (act === "save") {
+    const title = $("#pfTitle").value.trim(), kind = $("#pfCta").value;
+    const img = promoForm.img || promoForm.own, imgHe = promoForm.img ? promoForm.imgHe : promoForm.ownHe;
+    if (!title) return alert("Donnez un titre à la pub (pour vous la retrouver).");
+    if (!img) return alert("Choisissez un visuel du kit ou ajoutez votre image.");
+    let cta = kind || null;
+    if (kind === "shop") cta = "shop:" + $("#pfShop").value;
+    if (kind === "url") { const u = $("#pfUrl").value.trim(); if (!/^https:\/\/\S{4,250}$/.test(u)) return alert("Le lien doit commencer par https://"); cta = "url:" + u; }
+    const position = promos.reduce((m, x) => Math.max(m, x.position || 0), 0) + 1;
+    return save({ title, image_fr: img, image_he: imgHe || null, cta, active: $("#pfActive").checked, position },
+      () => Object.assign(promoForm, { open: false, own: null, ownHe: null }));
+  }
+});
+
 function renderMessages(view) {
   const cliTyped = $("#cliText") ? $("#cliText").value : "";
   const act = partners().filter(c => c.status === "actif");
   const onDuty = act.filter(c => c.position_at && Date.now() - new Date(c.position_at) < 10 * 60000);
   const name = id => (couriers.find(c => c.id === id) || {}).name || "?";
   const typed = $("#msgText") ? $("#msgText").value : "";
-  view.innerHTML = `
-    <div class="card">
+  view.innerHTML = `${promoCard()}
+    <div class="card" style="margin-top:14px">
       <b>📣 Prévenir vos livreurs</b>
       <p class="muted small" style="margin:4px 0 10px">Le message s'ouvre en grand sur leur téléphone, avec un son, et ils répondent « J'arrive » ou « Pas dispo ». ${act.length} livreur(s) actif(s), ${onDuty.length} en ligne en ce moment${onDuty.length ? " : " + onDuty.map(c => UI.esc(c.name)).join(", ") : ""}.</p>
       <div class="tpl-list">${CONFIG.courierMessages.map((m, i) => `<button class="addr-chip" data-tpl="${i}">${UI.esc(m.text)}</button>`).join("")}</div>

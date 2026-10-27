@@ -444,6 +444,10 @@ livraison/
   - visuels : vrais logos repris de la vitrine en ligne, avec le sceau Casher ;
   - liste des enseignes : `kit/nouveaux/partenaires.json` (codes et accroches). Quand elle change, GitHub Actions (`.github/workflows/kit-nouveaux.yml`) relance tout : `kit/nouveaux/generer.js` lit la vitrine (`shops_showcase`) et fabrique les PNG ; `kit/nouveaux/video` (Remotion) fabrique les MP4 ; tout est déposé dans `kit/visuels/nouveaux-*` ;
   - essai sur un ordinateur : `node kit/nouveaux/generer.js <libs> [vitrine.json]`, puis `npx remotion render src/index.jsx Nouveaux sortie.mp4 --props='{"lang":"fr"}'` dans `kit/nouveaux/video`.
+- **Pubs plein écran à l'ouverture de l'appli client** (patron, onglet « 📣 Annonces livreurs et clients », carte « 📱 Pubs à l'ouverture de l'appli client ») :
+  - côté client : à l'ouverture de l'accueil, une pub s'affiche en grand avec un bouton (Commander maintenant, Voir les commerces, la carte d'un commerce ou un lien) et une croix ; à l'ouverture suivante, c'est la pub suivante (à tour de rôle, mémorisé sur le téléphone). Jamais avec un panier en cours, sur un lien de commerce (`?c=`) ou par-dessus une autre fenêtre ; elle revient après 30 min hors de l'appli. Image en hébreu quand l'appli est en hébreu ;
+  - côté patron : chaque pub a son interrupteur « 🟢 Active / ⚪ Coupée », ses flèches ↑↓ pour l'ordre et 🗑 ; « ➕ Nouvelle pub » prend un visuel du kit (Nouveaux partenaires, Clients première course) ou une image du téléphone (FR, et HE facultative) ;
+  - base : table `app_promos` (réservée au patron) et `app_promos_live()` pour l'appli client ; au départ, deux pubs actives : Nouveaux partenaires et Première course à 15 ₪.
 - **Badge « Casher » des partenaires** :
   - le patron coche « ✡️ Casher » sur la fiche du commerce dans son panel (colonne `shops.kosher`) ;
   - le badge est un sceau bleu dégradé, avec une étoile de David blanche dans un rond, suivi de « Casher / כשר ». Il apparaît sur la photo de la carte vitrine, sous le nom sur la page du commerce, en petit sceau au coin des logos ronds du haut de l'accueil, et dans la bulle de la carte ;
