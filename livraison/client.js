@@ -2301,7 +2301,7 @@ function renderShopBanner() {
     const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
     const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
-        <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}${isKosher(s) ? " " + kosherTag() : ""}</b><small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small></div></div>
+        <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small></div></div>
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
       ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
       ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: UI.bi(s.name), when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
@@ -3201,17 +3201,19 @@ function toggleFav(code) {
 }
 // Badge « Casher » des partenaires (case cochée par le patron) : vitrine, page du commerce, carte
 function isKosher(s) { return !!(s && (s.kosher || (state.partners || []).some(p => p.code === s.code && p.kosher))); }
-function kosherTag() { return `<em class="k-badge">✡ ${UI.esc(t("kosher"))}</em>`; }
+// Sceau : étoile de David blanche dans un rond bleu, puis « Casher / כשר »
+const KOSHER_STAR = `<svg class="k-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7.6 13.2H4.4zM12 20.8L4.4 7.6h15.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
+function kosherTag(cls) { return `<em class="k-badge${cls ? " " + cls : ""}">${KOSHER_STAR}${UI.esc(t("kosher"))}</em>`; }
 // Carte d'un commerce, compacte : bannière, logo, catégorie, ouvert / fermé, livraison ; toute la carte s'ouvre au toucher
 function shopCard(s) {
   const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = UI.openState(s.hours);
   const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">
     <span class="sc-cover"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
-      ${st && !st.open ? `<em class="sc-closed">${UI.esc(t("scClosed"))}</em>` : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
+      ${st && !st.open ? `<em class="sc-closed">${UI.esc(t("scClosed"))}</em>` : ""}${isKosher(s) ? kosherTag("k-on-cover") : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
-    <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}${isKosher(s) ? " " + kosherTag() : ""}</b>
+    <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
       <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : ""}</small>
       ${UI.shopText(s, "tagline") ? `<small class="sc-tag">${UI.esc(UI.shopText(s, "tagline"))}</small>` : ""}</span>
     <span class="sc-go" aria-label="${UI.esc(st && !st.open ? t("scSchedule") : t("proGo"))}">${st && !st.open ? UI.calIcon() : "›"}</span>
@@ -3231,7 +3233,7 @@ function renderShowcase() {
   const open = list.filter(isOpen), closed = list.filter(s => !isOpen(s));
   const kindOf = s => (s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind]) || "";
   const html = `<div class="sc-stories">${list.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
-        ${shopLogo(s, "sc-ring")}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(UI.bi(s.name))}</b></button>`).join("")}</div>`
+        ${shopLogo(s, "sc-ring")}${isKosher(s) ? `<i class="k-dot" title="${UI.esc(t("kosher"))}">${KOSHER_STAR}</i>` : ""}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(UI.bi(s.name))}</b></button>`).join("")}</div>`
     + (open.length ? `${closed.length ? `<p class="sc-sub">${UI.esc(t("scOpenNow"))}</p>` : ""}<div class="pro-row">${open.map(shopCard).join("")}</div>` : "")
     + (closed.length ? `<p class="sc-sub">${UI.esc(t("scClosedList"))}</p><div class="sc-closed-list">${closed.map(s => {
         const st = UI.openState(s.hours);
