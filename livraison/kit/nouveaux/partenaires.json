@@ -4,7 +4,8 @@
     "NINASUSHI",
     "PARISTEXAS",
     "SMASHIT",
-    "MARCHEFR"
+    "MARCHEFR",
+    "PIZZACRUSH"
   ],
   "labels": {
     "NINASUSHI": {
@@ -22,6 +23,10 @@
     "MARCHEFR": {
       "fr": "Épicerie française",
       "he": "מכולת צרפתית"
+    },
+    "PIZZACRUSH": {
+      "fr": "Pizzas et parts · rue David Remez",
+      "he": "פיצות ומשולשים · רחוב דוד רמז"
     }
   },
   "names": {

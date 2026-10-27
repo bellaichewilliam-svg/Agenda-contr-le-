@@ -245,6 +245,7 @@ const NEW_POSTS = [
 🍔 Paris Texas, Kiryat HaSharon · ✡️ casher
 🍔 Smash It, smash burgers · ✡️ casher
 🥐 Le Marché Français, l'épicerie française (Bonne Maman, LU, Président…)
+🍕 Pizza Crush, rue David Remez · ✡️ casher
 
 ➕ Et des centaines d'autres enseignes : restaurants, Super-Pharm, poste, supermarchés…
 🛵 Livraison dans ${UI.cityFr(home)} : ${price(home)} · suivi en direct · espèces ou Bit
@@ -256,16 +257,17 @@ const NEW_POSTS = [
 🍔 פריז טקסס, קריית השרון · ✡️ כשר
 🍔 סמאש איט, סמאש בורגרים · ✡️ כשר
 🥐 השוק הצרפתי, מכולת צרפתית (בון מאמן, LU, פרזידנט…)
+🍕 פיצה קראש, רחוב דוד רמז · ✡️ כשר
 
 ➕ ועוד מאות עסקים: מסעדות, סופר-פארם, דואר, סופרמרקטים…
 🛵 משלוח בתוך ${heHome}: ${price(home)} · מעקב בזמן אמת · מזומן או ביט
 👈 כל מה שאנחנו מביאים (ולהזמין תוך דקה): ${livreHe}` },
   { title: "Phrases courtes (story, statut, légende de vidéo)", dir: "ltr", text:
-`🛵 Nina Sushi, Paris Texas, Smash It et Le Marché Français : maintenant livrés par ${nameFr} !
-🍣🍔🥐 Vos sushis, vos burgers casher et vos produits français, livrés chez vous à ${UI.cityFr(home)} en un clic.
+`🛵 Nina Sushi, Paris Texas, Smash It, Le Marché Français et Pizza Crush : maintenant livrés par ${nameFr} !
+🍣🍔🥐🍕 Vos sushis, vos burgers et vos pizzas casher, vos produits français, livrés chez vous à ${UI.cityFr(home)} en un clic.
 ✡️ Nos restaurants casher sont marqués d'un sceau dans l'appli : facile à trouver.
-🛵 נינה סושי, פריז טקסס, סמאש איט והשוק הצרפתי: עכשיו במשלוח עם ${nameHe}!
-🍣🍔🥐 הסושי, ההמבורגרים הכשרים והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
+🛵 נינה סושי, פריז טקסס, סמאש איט, השוק הצרפתי ופיצה קראש: עכשיו במשלוח עם ${nameHe}!
+🍣🍔🥐🍕 הסושי, ההמבורגרים והפיצות הכשרים והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
 👉 ${livre}` }
 ];
 // « On fait toutes vos courses » : textes qui vont avec les visuels et la vidéo des catégories
@@ -300,7 +302,7 @@ const ALL_POSTS = COURSES_POSTS.concat(NEW_POSTS).map(p => Object.assign({ aud: 
 const V = "kit/visuels/";
 const CAMPS = [
   { id: "courses", aud: "client", isNew: true, title: "🛒 On fait toutes vos courses", desc: "Les catégories de l'appli en 3 étapes. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story", "flyer"], video: true },
-  { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires", desc: "Nina Sushi, Paris Texas, Smash It, Le Marché Français, avec leurs vrais logos.", formats: ["post", "story"], video: true },
+  { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires", desc: "Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush, avec leurs vrais logos.", formats: ["post", "story"], video: true },
   { id: "client", aud: "client", title: "🎁 Première course à 15 ₪", desc: "Le message de lancement : prix, suivi en direct, espèces ou Bit.", formats: ["post", "story", "flyer"] },
   { id: "resto", aud: "shop", title: "🔥 Restaurants : « Gardez 100 % de vos ventes »", desc: "Le calcul qui fait réagir : 0 % de commission.", formats: ["post", "story", "flyer"] },
   { id: "pro", aud: "shop", title: "⚡ Tout commerce : « Vos clients veulent être livrés ? »", desc: "Un livreur en quelques minutes, sans contrat.", formats: ["post", "story", "flyer"] },
