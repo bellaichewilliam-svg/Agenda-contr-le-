@@ -508,7 +508,8 @@ const ANDROID = /Android/i.test(navigator.userAgent);
 const BIT_APP = "intent://#Intent;package=com.bnhp.payments.paymentsapp;S.browser_fallback_url="
   + encodeURIComponent("https://play.google.com/store/apps/details?id=com.bnhp.payments.paymentsapp") + ";end";
 // Ce que le client envoie au livreur : la course, et les articles (au maximum) quand ils sont payés d'avance
-const payTotal = o => Number(o.price || 0) + (o.goods_prepay ? Number(o.goods_budget || 0) : 0);
+// (en espèces, une fois le ticket pris : la course + le ticket exact)
+const payTotal = o => Number(o.price || 0) + (!o.goods_prepay ? 0 : o.payment_method === "cash" && o.goods_spent != null ? Number(o.goods_spent) : Number(o.goods_budget || 0));
 function bitPay(o) {
   const t = (k, v) => I18N.t(k, v);
   const name = String(o.courier_name || "").split(" ")[0];

@@ -308,7 +308,8 @@ function payLine(o) {
   if (o.payment_method === "cash") {
     const goods = Number(o.cash_goods || 0), note = Number(o.cash_note || 0);
     return `💵 <b>Espèces</b> : le ${o.payer === "destinataire" ? "destinataire" : "client"} vous paie <b>${UI.money(cashTotal(o))}</b> à la livraison`
-      + (goods ? ` (articles ${UI.money(goods)} que vous payez au commerce + course ${UI.money(o.price)})` : "")
+      + (goods && o.goods_prepay ? (o.goods_spent != null ? ` (ticket ${UI.money(goods)} + course ${UI.money(o.price)})` : ` (articles au plus ${UI.money(goods)} que vous payez au magasin, puis le ticket exact + course ${UI.money(o.price)})`)
+        : goods ? ` (articles ${UI.money(goods)} que vous payez au commerce + course ${UI.money(o.price)})` : "")
       + (note ? ` · il paie avec <b>${UI.money(note)}</b> : rendez-lui <b>${UI.money(note - cashTotal(o))}</b>` : " · il prépare l'appoint");
   }
   if (o.paid_to === "hop") return o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
@@ -531,8 +532,9 @@ function card(o, kind) {
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
   if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
-  if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay
-    ? `💳 <b>Articles payés d'avance : ${UI.money(o.goods_budget)} au plus</b>, avec la course. N'achetez qu'après « Paiement reçu » ✅ et payez le magasin avec cet argent. Plus cher ? Le client vous envoie d'abord le complément. Puis 🧾 photo du ticket et la différence rendue par Bit avant « Livré ».`
+  if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
+    ? `💵 <b>Espèces : vous payez le magasin, ${UI.money(o.goods_budget)} au plus</b> (vous avez annoncé avoir les espèces). 🧾 Photo du ticket, puis le client vous paie la course + le ticket exact à la livraison.`
+    : o.goods_prepay ? `💳 <b>Articles payés d'avance : ${UI.money(o.goods_budget)} au plus</b>, avec la course. N'achetez qu'après « Paiement reçu » ✅ et payez le magasin avec cet argent. Plus cher ? Le client vous envoie d'abord le complément. Puis 🧾 photo du ticket et la différence rendue par Bit avant « Livré ».`
     : "🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse"}</div>`;
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
   extra += Number(o.wait_fee) > 0 ? `<div class="small">⏱️ Attente payée : <b>+${UI.money(o.wait_fee)}</b> (${o.wait_minutes} min sur place), comprise dans le prix</div>`
@@ -662,6 +664,9 @@ function readyBanner(o, etaToPickup) {
 // Espèces, dans le bloc du point en cours : payer le commerce au départ, encaisser le client à l'arrivée
 function cashStop(o, which, now) {
   if (o.payment_method !== "cash" || !now) return "";
+  // (achat sans partenaire : le livreur paie le magasin, au plus le maximum prévu, puis photo du ticket)
+  if (which === "pickup" && o.goods_prepay) return o.goods_spent != null ? `<div class="cash-stop ok">🧾 Ticket <b>${UI.money(o.goods_spent)}</b> payé au magasin</div>`
+    : `<div class="cash-stop">💵 Payez le magasin en espèces : <b>${UI.money(o.goods_budget)}</b> au plus<small>puis 🧾 photo du ticket ; le client vous rembourse à la livraison</small></div>`;
   if (which === "pickup" && Number(o.cash_goods) > 0) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu vos <b>${UI.money(o.cash_goods)}</b></div>`
     : `<div class="cash-stop">💵 Payez <b>${UI.money(o.cash_goods)}</b> en espèces au commerce<small>il touche « Espèces reçues », puis vous récupérez la commande</small></div>`;
   if (which === "dropoff" && o.payment_status !== "paye") {
@@ -723,7 +728,7 @@ function pickupRank(o) {
 }
 // Achat payé d'avance : 🧾 ticket du magasin (photo + montant), puis la différence rendue (ou le complément reçu)
 function goodsActs(o) {
-  if (!o.goods_prepay || !["confirmee", "recuperee"].includes(o.status) || o.payment_status !== "paye") return "";
+  if (!o.goods_prepay || !["confirmee", "recuperee"].includes(o.status) || (o.payment_method !== "cash" && o.payment_status !== "paye")) return "";
   const id = UI.esc(o.id);
   if (o.goods_spent == null) return `<button type="button" class="btn btn-sm btn-primary" data-goods-ticket="${id}">🧾 Ticket du magasin (photo + montant)</button>`;
   if (o.goods_refund_status === "a_rendre") return `<p class="wait-live">💸 Rendez <b>${UI.money(o.goods_refund)}</b> au client par Bit (ticket ${UI.money(o.goods_spent)} sur ${UI.money(o.goods_budget)} reçus)</p>
@@ -734,8 +739,9 @@ function goodsActs(o) {
 }
 function mineStep(o, hopPaid) {
   if (o.status === "annulee") return `❌ Le client a laissé tomber (attente) : la moitié de la course vous est due`;
+  if (o.payment_method === "cash" && o.goods_prepay && o.goods_spent == null) return `2️⃣ Au magasin : payez les articles en espèces (au plus ${UI.money(o.goods_budget)}), puis 🧾 photo du ticket`;
   if (o.payment_method === "cash") return o.status === "recuperee" ? `3️⃣ Livrez et encaissez ${UI.money(cashTotal(o))} en espèces`
-    : Number(o.cash_goods) > 0 && !o.cash_shop_at ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
+    : Number(o.cash_goods) > 0 && !o.cash_shop_at && !o.goods_prepay ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
   if (o.goods_prepay && o.payment_status === "paye" && ["confirmee", "recuperee"].includes(o.status)) {
     if (o.goods_spent == null) return "2️⃣ Au magasin : achetez avec l'argent reçu, puis 🧾 photo du ticket";
     if (o.goods_refund_status === "a_completer") return `2️⃣ Attendez le complément de ${UI.money(o.goods_refund)} avant de payer le magasin`;
@@ -996,14 +1002,14 @@ function goodsTicket(id) {
     if (!f) return;
     let photo;
     try { photo = await UI.docPhoto(f); } catch (e) { return alert("Photo illisible, reprenez-la."); }
-    const a = prompt(`🧾 Montant total du ticket (₪) ?\nPayé d'avance : ${UI.money(o.goods_budget)}`);
+    const a = prompt(`🧾 Montant total du ticket (₪) ?\n${o.payment_method === "cash" ? "Maximum prévu" : "Payé d'avance"} : ${UI.money(o.goods_budget)}`);
     if (a == null) return;
     const amount = Math.round(parseFloat(String(a).replace(",", ".")) * 100) / 100;
     if (!(amount > 0)) return alert("Montant incorrect.");
     const r = await Store.courierGoodsTicket(o.id, amount, photo).catch(e => ({ err: e.message }));
     if (!r || r.err) return alert(/not_paid/.test((r && r.err) || "") ? "💳 Le client doit d'abord vous payer (« Paiement reçu »)." : "Ticket non enregistré, réessayez.");
     const d = Number(r.refund);
-    alert(d > 0 ? `✅ Ticket envoyé au client. Rendez-lui ${UI.money(d)} par Bit, puis « C'est rendu ».`
+    alert(r.cash ? `✅ Ticket envoyé au client. À la livraison, encaissez ${UI.money(r.cash)} en espèces (course + ticket).` : d > 0 ? `✅ Ticket envoyé au client. Rendez-lui ${UI.money(d)} par Bit, puis « C'est rendu ».`
       : d < 0 ? `⚠️ Il manque ${UI.money(-d)} : le client est prévenu. Attendez son complément avant de payer le magasin.` : "✅ Ticket envoyé au client : compte juste.");
     load();
   };

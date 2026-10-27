@@ -72,12 +72,17 @@ const EXAMPLES = [
   { id: "pharm", icon: "💊", set: { service: "achat" } },
   // Cigarettes & alcool : « Acheter pour moi » (18 ans et plus), produits à cocher
   { id: "tabac", icon: "🍾", set: { service: "achat" } },
+  // Nouvelles rubriques à cocher : bébé & enfants, animaux, maison & dépannage (fleurs & cadeaux plus bas)
+  { id: "baby", icon: "👶", set: { service: "achat" } },
+  { id: "pets", icon: "🐾", set: { service: "achat" } },
+  { id: "home", icon: "🔌", set: { service: "achat" } },
   { id: "resto", icon: "🍔", set: { service: "repas", urgency: "express" } },
   { id: "docs",  icon: "📄", set: { service: "colis", round_trip: true } },
   { id: "yad2",  icon: "🛋️", set: { service: "colis", size: "moyen" } },
   { id: "keys",  icon: "🔑", set: { service: "colis", urgency: "express" } },
   { id: "shop",  icon: "🛒", set: { service: "achat" } },
-  { id: "gift",  icon: "💐", set: { service: "colis", urgency: "programmee" } },
+  // Fleurs & cadeaux : on achète pour le client (rayon à cocher), livré à l'heure choisie
+  { id: "gift",  icon: "💐", set: { service: "achat", urgency: "programmee" } },
   { id: "ta",    icon: "🏙️", set: { service: "colis", from_city: CONFIG.homeCity, to_city: "raanana" } }
 ];
 
@@ -511,13 +516,13 @@ function confetti() {
 const cashMax = () => Number((state.settings && state.settings.cash_max) || 200);
 // Le commerce a un lien de paiement ou un Bit : les articles lui sont payés d'avance (jamais avancés par le livreur)
 const shopPrepay = () => !!(proShopOn() && (state.shop.pay_link || state.shop.pay_bit) && (cartCount() || val("shop_order").trim()));
-const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() ? cartTotal() : 0);
+const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() ? cartTotal() : goodsPrepay() ? goodsBudget() : 0);
 function renderCash() {
   const on = val("payment_method") === "cash";
   $("#cashBox").classList.toggle("hidden", !on);
   if (!on) return;
   const q = currentQuote(), goods = cashGoods(), total = Number(q.total) + goods;
-  $("#cashTotal").textContent = t(goods ? "cashTotalGoods" : "cashTotal", { total: money(total), goods: money(goods), course: money(q.total) });
+  $("#cashTotal").textContent = t(goods ? (goodsPrepay() ? "cashTotalMax" : "cashTotalGoods") : "cashTotal", { total: money(total), goods: money(goods), course: money(q.total) });
   // (le billet choisi reste choisi ; s'il ne suffit plus, on le dit au moment d'envoyer)
   const cur = Number(form.cash_note.value) || 0;
   const notes = [0, 50, 100, 200].filter(n => n === 0 || n >= total || n === cur);
@@ -595,20 +600,22 @@ function renderGoodsMode(q) {
   const box = $("#goodsModeBox"), achat = val("service") === "achat" && !proShopOn(), pre = achat && goodsPrepay();
   box.classList.toggle("hidden", !achat);
   box.classList.toggle("gm-pre", pre);
-  // Payé d'avance : par Bit seulement (pas d'espèces : le livreur n'a pas d'argent à avancer ni à rendre)
-  $("#cashChoice").classList.toggle("hidden", pre);
-  if (pre && val("payment_method") === "cash") form.querySelector('input[name=payment_method][value=bit]').checked = true;
   if (!achat) return;
   // Le maximum des articles suit les produits cochés (prix indicatifs les plus hauts) tant que le client ne l'a pas changé
   // (jamais moins que les produits cochés : le chiffre affiché est celui payé)
   if (document.activeElement !== form.budget && (form.budget.dataset.manual !== "1" || (parseFloat(val("budget")) || 0) < goodsMin())) form.budget.value = goodsMin() || "";
   const sum = $("#goodsSum");
   if (!pre) { sum.innerHTML = `<p class="notice">${UI.esc(t("budgetNote"))}</p>`; return; }
-  const b = goodsBudget(), cap = goodsCap(), over = b > cap;
+  const b = goodsBudget(), cap = goodsCap(), over = b > cap, cash = val("payment_method") === "cash";
+  // Espèces (même règle que les catalogues) : le livreur avance les articles, le client paie la course + le ticket exact
+  // à la livraison ; total ≤ plafond des espèces, et seulement après une 1re course livrée
+  const done = (state.mine || []).some(o => o.status === "livree");
+  const cashErr = !cash ? "" : !done ? t("gmCashFirst") : b + Number(q.total) > cashMax() ? t("errCashMax", { max: money(cashMax()) }) : "";
   sum.innerHTML = `<div class="gb-row"><span><b>${UI.esc(t("gmGoods"))}</b><small>${UI.esc(t(goodsMin() ? "gmGoodsD" : "gmGoodsFree"))}</small></span><b class="gb-amt" dir="ltr">${b ? money(b) : "—"}</b></div>
     <div class="gb-row"><span><b>${UI.esc(t("gmRide"))}</b></span><b class="gb-amt" dir="ltr">${money(q.total)}</b></div>
-    <div class="gb-row gb-total"><span><b>${UI.esc(t("gmTotal"))}</b></span><b class="gb-amt" dir="ltr">${b ? money(b + Number(q.total)) : "—"}</b></div>
-    <small class="gm-how">${UI.esc(t("gmHow"))}</small>
+    <div class="gb-row gb-total"><span><b>${UI.esc(t(cash ? "gmTotalCash" : "gmTotal"))}</b></span><b class="gb-amt" dir="ltr">${b ? money(b + Number(q.total)) : "—"}</b></div>
+    <small class="gm-how">${UI.esc(t(cash ? "gmHowCash" : "gmHow"))}</small>
+    ${cashErr ? `<small class="gm-cap bad">${UI.esc(cashErr)}</small>` : ""}
     <small class="gm-cap${over ? " bad" : ""}">${UI.esc(t(over ? "errGoodsCap" : "gmCap", capVars()))}</small>`;
 }
 function pharmaLines() {
@@ -2422,7 +2429,7 @@ function renderOpenBadge() {
 // Le commerce commande lui-même une course (son téléphone) : n° de commande à 3 chiffres pour le sac
 const shopSelf = () => shopPicked() && !!state.pro && !proShopOn();
 // (les rayons à cocher en premier — pharmacie, tabac & alcool, boulangerie, makolet : c'est nouveau, il faut les voir)
-const RAYON_KINDS = ["pharm", "tabac", "bakery", "shop"];
+const RAYON_KINDS = ["pharm", "tabac", "bakery", "shop", "baby", "pets", "home", "gift"];
 const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city).sort((a, b) => (RAYON_KINDS.indexOf(a.id) + 1 || 99) - (RAYON_KINDS.indexOf(b.id) + 1 || 99));
 const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
 const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
@@ -2551,7 +2558,8 @@ function showHomeErr(msg) { $("#homeErr").textContent = msg || ""; $("#homeErr")
 // Types de course, raccourcis d'heure et adresses enregistrées (selon la langue)
 // Illustrations en relief des types de course et des catégories d'enseignes (img/items)
 const KIND_ART = { tabac: ["wine", 280], bakery: ["croissant", 38], pressing: ["basket", 35], poste: ["mailbox", 205], pharm: ["pill", 160], resto: ["burger", 25], docs: ["docs", 215],
-  yad2: ["couch", 30], keys: ["key", 45], shop: ["cart", 140], gift: ["flowers", 330], ta: ["scooter", 15] };
+  yad2: ["couch", 30], keys: ["key", 45], shop: ["cart", 140], gift: ["flowers", 330], ta: ["scooter", 15],
+  baby: ["baby", 330], pets: ["dog", 30], home: ["plug", 210] };
 function renderHomeStatic() {
   const homeCity = CONFIG.homeCity;
   $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
@@ -2643,7 +2651,7 @@ function applyKind(id) {
   renderQuote();
   renderHomeStatic();
   // Poste, Super-Pharm, restaurant… sans départ choisi : on propose tout de suite les plus proches
-  const cat = { poste: "post", pharm: "pharm", resto: "food", shop: "super", gift: "flower", bakery: "breakfast", pressing: "pressing" }[id];
+  const cat = { poste: "post", pharm: "pharm", resto: "food", shop: "super", gift: "flower", bakery: "breakfast", pressing: "pressing", baby: "baby", pets: "pet", home: "home" }[id];
   if (state.homeKind && cat && !state.pick.from) openEns(cat);
 }
 

@@ -6346,3 +6346,101 @@ begin
   return json_build_object('ok', true, 'drop_fee', half, 'refund', case when paid then o.price - half + goods else 0 end);
 end;
 $$;
+
+-- Acheter pour moi en espèces (même règle que les catalogues) : le livreur qui a les espèces paie le magasin
+-- (au plus goods_budget), photographie le ticket, et le client lui paie à la livraison la course + le ticket exact.
+-- Total (course + articles au maximum) ≤ settings.cash_max, client déjà livré une fois (orders_zz_cash_guard).
+create or replace function public.orders_goods_pay() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare done int; cap numeric;
+begin
+  if new.service = 'achat' and new.shop_status is null then
+    if coalesce(new.goods_prepay, false) then
+      if new.payment_method not in ('bit', 'cash') then raise exception 'goods_prepay_bit'; end if;
+      select count(*) into done from orders o where o.status = 'livree'
+        and (public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone) or (new.client_id is not null and o.client_id = new.client_id));
+      cap := case when done >= 3 then 300 else 150 end;
+      if coalesce(new.goods_budget, 0) <= 0 then raise exception 'goods_budget_required'; end if;
+      if new.goods_budget > cap then raise exception 'goods_cap_%', cap::int; end if;
+      new.goods_self_pay := false;
+    else
+      if not coalesce(new.goods_self_pay, false) then raise exception 'goods_pay_required'; end if;
+      new.goods_prepay := false; new.goods_budget := 0;
+    end if;
+  else
+    if new.service <> 'achat' then new.goods_self_pay := false; end if;
+    new.goods_prepay := false; new.goods_budget := 0;
+  end if;
+  new.goods_spent := null; new.goods_refund := null; new.goods_refund_status := null; new.goods_ticket_at := null;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_goods_pay() from public, anon, authenticated;
+
+create or replace function public.orders_zz_cash_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare st settings; goods numeric; total numeric; note int;
+begin
+  if exists (select 1 from blocked_phones where phone = public.phone_digits(new.contact_phone)) then raise exception 'client_blocked'; end if;
+  if new.payment_method <> 'cash' then
+    new.cash_note := null; new.cash_goods := 0; new.cash_change := 0; new.cash_need := 0;
+    return new;
+  end if;
+  select * into st from settings where id = 1;
+  -- Articles avancés par le livreur : ceux du catalogue (non payés au commerce), ou les achats « payés au livreur » (au maximum)
+  goods := case when new.items is not null and new.goods_pay is null then coalesce(new.items_total, 0)
+                when coalesce(new.goods_prepay, false) then coalesce(new.goods_budget, 0) else 0 end;
+  total := coalesce(new.price, 0) + goods;
+  if total > st.cash_max then raise exception 'cash_max'; end if;
+  if goods > 0 and not exists (select 1 from orders o where o.status = 'livree'
+       and (public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone) or (new.client_id is not null and o.client_id = new.client_id))) then
+    raise exception 'cash_first';
+  end if;
+  note := case when new.cash_note in (20, 50, 100, 200) then new.cash_note else 0 end;
+  if note > 0 and note < total then raise exception 'cash_note_small'; end if;
+  new.cash_note := note;
+  new.cash_goods := goods;
+  new.cash_change := case when note > 0 then note - total else 0 end;
+  new.cash_need := goods + new.cash_change;
+  new.direct_pay := true; new.paid_to := 'livreur'; new.prepaid_required := false;
+  return new;
+end;
+$$;
+
+-- Ticket : en espèces, rien à rendre ni à compléter (le client paie la course + le ticket exact à la livraison)
+create or replace function public.courier_goods_ticket(p_id uuid, p_amount numeric, p_photo text) returns json
+language plpgsql security definer set search_path = public as $$
+declare o orders; diff numeric; cash boolean;
+begin
+  if not public.is_active_courier() then raise exception 'not_courier'; end if;
+  select * into o from orders where id = p_id and courier_id = auth.uid() and goods_prepay and status in ('confirmee', 'recuperee');
+  if not found then raise exception 'not_found'; end if;
+  cash := o.payment_method = 'cash';
+  if not cash and o.payment_status <> 'paye' then raise exception 'not_paid'; end if;
+  if p_amount is null or p_amount <= 0 or p_amount > 1000 then raise exception 'bad_amount'; end if;
+  if p_photo is null or length(p_photo) > 400000 or p_photo !~ '^data:image/(jpeg|png|webp);base64,' then raise exception 'bad_photo'; end if;
+  diff := round((o.goods_budget - p_amount)::numeric, 2);
+  insert into chat_messages (thread, author, author_name, body, image)
+    values ('o:' || p_id::text, 'courier', o.courier_name,
+            case when cash then '🧾 Ticket du magasin : ' || replace(p_amount::text, '.00', '') || ' ₪. À la livraison, en espèces : '
+                   || replace((o.price + p_amount)::text, '.00', '') || ' ₪ (course ' || replace(o.price::text, '.00', '') || ' ₪ + ticket)'
+                 else '🧾 Ticket du magasin : ' || replace(p_amount::text, '.00', '') || ' ₪ (payé d''avance : ' || replace(o.goods_budget::text, '.00', '') || ' ₪) — '
+                   || case when diff > 0 then 'je vous rends ' || replace(diff::text, '.00', '') || ' ₪'
+                           when diff < 0 then 'il manque ' || replace((-diff)::text, '.00', '') || ' ₪ à envoyer avant que je paie'
+                           else 'compte juste' end end,
+            p_photo);
+  if cash then
+    update orders set goods_spent = p_amount, goods_ticket_at = now(), goods_refund = 0, goods_refund_status = 'ok',
+           cash_goods = p_amount, cash_change = case when cash_note > 0 then greatest(0, cash_note - (price + p_amount)) else 0 end
+     where id = p_id;
+    return json_build_object('ok', true, 'refund', 0, 'cash', o.price + p_amount);
+  end if;
+  update orders set goods_spent = p_amount, goods_ticket_at = now(),
+         goods_refund = case when diff > 0 then diff when diff < 0 then -diff else 0 end,
+         goods_refund_status = case when diff > 0 then 'a_rendre' when diff < 0 then 'a_completer' else 'ok' end
+   where id = p_id;
+  return json_build_object('ok', true, 'refund', diff);
+end;
+$$;
+revoke execute on function public.courier_goods_ticket(uuid, numeric, text) from public, anon;
+grant execute on function public.courier_goods_ticket(uuid, numeric, text) to authenticated;
