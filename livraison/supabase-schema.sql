@@ -6476,3 +6476,26 @@ begin
     execute replace(d, 'st.id = 1 and o.pickup_lat is not null', 'st.id = 1 and o.pickup_lat is not null and o.pickup_near is null');
   end if;
 end $$;
+-- Badge « Casher » d'un partenaire : case cochée par le patron (panel, bouton « ✡️ Casher »),
+-- montrée sur sa vitrine, sa page et la carte
+alter table public.shops add column if not exists kosher boolean not null default false;
+
+create or replace function public.shops_directory() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', code, 'name', name, 'kind', kind, 'city', city,
+           'address', address, 'lat', lat, 'lon', lon, 'pro', coalesce(plan_until >= current_date, false),
+           'hours', hours, 'kosher', kosher) order by name), '[]'::json)
+    from shops where status = 'actif' and not demo;
+$$;
+
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'hours', s.hours, 'kosher', s.kosher,
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and s.plan_until >= current_date and not s.demo;
+$$;
