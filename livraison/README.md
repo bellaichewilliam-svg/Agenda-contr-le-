@@ -450,6 +450,16 @@ livraison/
   - il envoie la photo du ticket (« 🧾 Ticket du magasin ») ; le client voit « Envoyez X ₪ à … par Bit » et paie le montant exact ;
   - le livreur touche « ✅ Ticket reçu », puis peut livrer (« Livré » bloqué sans ticket ou tant que le ticket n'est pas payé) ;
   - plus de prix approximatif à payer d'avance ni de différence à rendre ; en espèces, rien ne change (course + ticket à la livraison). Les commandes passées avec l'ancienne version gardent l'ancienne règle.
+- **Notifications qui ne reviennent plus pour rien** :
+  - une course prise, livrée ou annulée, un paiement reçu, un message lu : sa notification se ferme dès que l'appli (patron ou livreur) se met à jour ;
+  - « 🟢 En service » s'affiche une fois quand on passe en service ; balayée, elle ne revient plus (ni au retour de Waze, ni au rechargement) ;
+  - plus de doublons : la notification de l'appli ouverte et la notification push d'une même course ou d'un même message ont la même étiquette, l'une remplace l'autre. Les messages disent qui écrit et quoi ;
+  - toucher une notification ouvre ce dont elle parle : course à prendre → sa fenêtre ; course déjà prise ou livrée → sa fiche ouverte (historique pour le patron, « Mes dernières courses livrées » pour le livreur) ; message → la conversation.
+- **Livreur : l'argent en une case de couleur** en haut de chaque course : vert « ✅ Déjà payé · rien à encaisser », orange « 💰 À encaisser au commerce / chez le client : 30 ₪ en espèces / par Bit », avec « 🛍️ Les articles sont déjà payés au magasin » pour les courses envoyées par un commerce.
+- **Livreur : « 🛵 J'arrive dans 5 min » et « 📍 Je suis en bas »** sur une course récupérée : un toucher, et le client reçoit le message dans sa langue (conversation + notification).
+- **Colis récupéré : message automatique au client** (`orders_step_msg`) : « ✅ Votre commande est récupérée ! Ilan est en route vers vous 🛵 », avec le lien du suivi en direct (FR/HE).
+- **Espace commerce : ▲ ▼ pour ranger ses articles** (`shop_products_order`) dans chaque catégorie : les premiers sont vus en premier par les clients.
+- **Panneau patron, onglet Commerces** : 🔎 recherche (nom, code, adresse, téléphone) ; chaque commerce replié en une ligne qu'on ouvre ; « Annuaire », « Vitrines de démonstration » et « Inscrire un commerce » repliés. Les fiches ouvertes restent ouvertes quand l'écran se rafraîchit.
 - **Livraison terminée, tout le monde est prévenu** (`orders_done_msg`, `orders_client_push`, `client_push_subs`) :
   - à « Livré », le client reçoit dans sa conversation « ✅ Livré ! HOP! est content de vous avoir livré 🧡 … » avec le lien pour sa prochaine course (FR/HE), et le commerce « ✅ Course n° X livrée à … à HH:MM » ; ces messages automatiques ne font pas sonner le patron ;
   - **notifications au client** (« 🔔 Me prévenir » sur le suivi et l'écran « Commande envoyée ») : livreur trouvé, colis récupéré, livré. Chaque étape remplace la précédente (pas de doublon), et toucher la notification ouvre le suivi de la course. Sur iPhone, seulement avec HOP! sur l'écran d'accueil ;

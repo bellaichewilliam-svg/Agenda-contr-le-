@@ -189,18 +189,40 @@ function forgotLink(form, errEl) {
   form.appendChild(b);
 }
 // « En service » : une notification qui reste dans la barre tant que le service est en cours
-async function dutyNotice(on, text) {
+// « En service » : affichée une seule fois par passage en service (pas à chaque rechargement ni à chaque position) ;
+// balayée, elle ne revient pas. Repasser hors ligne puis en ligne la remontre.
+const DUTY_KEY = "hop.dutyShown." + location.pathname.split("/")[1];
+async function dutyNotice(on, text, force) {
   // iPhone : la permission doit être demandée tout de suite, dans le geste (avant toute attente)
   const ask = on && window.Notification && Notification.permission === "default" ? Notification.requestPermission().catch(() => null) : null;
   if (!on) {
+    try { localStorage.removeItem(DUTY_KEY); } catch (e) { /* ignore */ }
     const reg = await swReady.catch(() => null);
     if (reg && reg.getNotifications) (await reg.getNotifications({ tag: "hop-duty" })).forEach(n => n.close());
     return;
   }
   if (ask) await ask;
   pushSubscribe();
+  let shown = false;
+  try { shown = !!localStorage.getItem(DUTY_KEY); localStorage.setItem(DUTY_KEY, "1"); } catch (e) { /* ignore */ }
+  if (shown && !force) return true;
   return notify("🟢 HOP! · En service", { body: text || "Vous recevez les courses. Touchez ici pour revenir dans HOP!.", tag: "hop-duty",
     requireInteraction: true, silent: true, renotify: false });
+}
+
+// Notifications déjà affichées qui ne servent plus (course prise, livrée, annulée, payée, message lu) : on les ferme.
+// stale(kind, id) → true pour fermer ; kind = o, pay, refund, late, m (id = la conversation pour m)
+async function clearNotifs(stale) {
+  try {
+    const reg = await swReady;
+    if (!reg || !reg.getNotifications) return;
+    (await reg.getNotifications()).forEach(n => {
+      // (« hop-o-… » et « hop-chat » : anciennes notifications de l'appli ouverte, remplacées par celles-ci)
+      if (n.tag === "hop-chat") return n.close();
+      const m = String(n.tag || "").match(/^(?:hop-)?(o|pay|refund|late|m)-(.+)$/);
+      if (m && stale(m[1], m[2])) n.close();
+    });
+  } catch (e) { /* ignore */ }
 }
 
 // Installer l'appli sur l'écran d'accueil (icône propre à chaque espace : client, LIVREUR, PATRON)
@@ -756,7 +778,7 @@ if (typeof MutationObserver !== "undefined") {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

@@ -1842,6 +1842,17 @@ async function setProductAvailable(token, id, available) {
   writeJSON(LS.catalog, all);
   return true;
 }
+// Ordre des articles : tous les id du catalogue, dans le nouvel ordre (position = rang)
+async function orderProducts(token, ids) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_products_order", { method: "POST", body: { p_token: token, p_ids: ids } });
+  const s = shopOfToken(token);
+  if (!s) return false;
+  const { all, cat } = localCatalog(s.id);
+  ids.forEach((id, i) => { const x = cat.products.find(y => y.id === id); if (x) x.position = i + 1; });
+  cat.products.sort((a, b) => a.position - b.position);
+  writeJSON(LS.catalog, all);
+  return true;
+}
 async function deleteProduct(token, id) {
   if (ONLINE) return rest("/rest/v1/rpc/shop_product_delete", { method: "POST", body: { p_token: token, p_id: id } });
   const s = shopOfToken(token);
@@ -2183,7 +2194,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
