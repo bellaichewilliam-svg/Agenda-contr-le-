@@ -450,6 +450,32 @@ async function houseNumberAt(lat, lon, lang) {
 }
 
 // Branche la recherche sur un champ texte.
+// Ce qui s'affiche dans la case une fois l'adresse choisie : court, pour que rien ne soit coupé
+// (nom de l'enseigne dans la langue de l'écran, sans la ville qui a sa propre case)
+const HEB = /[\u0590-\u05FF]/;
+function shortLabel(label, lang) {
+  const parts = String(label || "").split(", ");
+  const last = normalize(parts[parts.length - 1]);
+  if (parts.length > 1 && CONFIG.cities.some(c => [c.fr, c.he, c.id, ...(c.aliases || [])].some(x => normalize(x) === last))) parts.pop();
+  const names = parts[0].split(/\s+[•·]\s+/);
+  if (names.length > 1) parts[0] = (lang === "he" ? names.find(n => HEB.test(n)) : names.find(n => !HEB.test(n))) || names[0];
+  return parts.join(", ");
+}
+// Encore trop long pour la case : la police rapetisse un peu (jusqu'à 12 px) au lieu de couper le texte
+function fitText(input) {
+  input.style.fontSize = "";
+  requestAnimationFrame(() => {
+    if (!input.value || !input.clientWidth) return;
+    let size = parseFloat(getComputedStyle(input).fontSize);
+    while (input.scrollWidth > input.clientWidth + 1 && size > 12) { size -= 1; input.style.fontSize = size + "px"; }
+    // Toujours trop long (nom d'enseigne très long) : on garde seulement le nom
+    if (input.scrollWidth > input.clientWidth + 1 && input.value.includes(", ") && input.dataset.picked === input.value) {
+      input.value = input.dataset.picked = input.value.split(", ")[0];
+      fitText(input);
+    }
+  });
+}
+
 // opts : { lang(): "fr"|"he", onPick(place), onClear(), texts: { none, pick } }
 function attach(input, opts) {
   const box = document.createElement("div");
@@ -494,9 +520,11 @@ function attach(input, opts) {
       pendingBrand = null;
       input.placeholder = "";
     }
-    input.value = p.label;
-    input.dataset.picked = p.label;
+    input.value = shortLabel(p.label, opts.lang());
+    input.dataset.picked = input.value;
+    input.dataset.full = p.label;
     input.classList.add("ac-ok");
+    fitText(input);
     close();
     opts.onPick(p);
   };
@@ -504,6 +532,7 @@ function attach(input, opts) {
   input.addEventListener("input", () => {
     if (input.dataset.picked && input.value !== input.dataset.picked) {
       delete input.dataset.picked;
+      input.style.fontSize = "";
       input.classList.remove("ac-ok");
       opts.onClear();
     }
@@ -562,8 +591,10 @@ function attach(input, opts) {
   return {
     isPicked: () => !!input.dataset.picked,
     // Adresse reprise du carnet : considérée comme choisie sur la carte
-    setPicked(label) { input.value = label; input.dataset.picked = label; input.classList.add("ac-ok"); close(); },
-    reset() { delete input.dataset.picked; input.classList.remove("ac-ok"); close(); }
+    setPicked(label) { input.value = shortLabel(label, opts.lang()); input.dataset.picked = input.value; input.dataset.full = label; input.classList.add("ac-ok"); fitText(input); close(); },
+    // Libellé complet de l'adresse choisie (la case n'en montre qu'une version courte)
+    pickedLabel: () => (input.dataset.picked && input.value === input.dataset.picked ? input.dataset.full : null),
+    reset() { delete input.dataset.picked; input.style.fontSize = ""; input.classList.remove("ac-ok"); close(); }
   };
 }
 

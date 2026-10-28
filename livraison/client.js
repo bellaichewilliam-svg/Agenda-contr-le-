@@ -903,7 +903,7 @@ function onPlacePicked(which, p, quiet) {
   if (which === "to" && p.partnerCode && p.kind && BOTH_WAYS.includes(p.kind)) { state.shopDir = "to"; loadShop(p.partnerCode, stay(p.partnerCode)); return; }
   state.pick[which] = p;
   // Le champ du formulaire porte l'adresse choisie avant le calcul du prix
-  if (ac[which] && form.elements[prefixOf(which) + "_address"].value !== p.label) ac[which].setPicked(p.label);
+  if (ac[which] && ac[which].pickedLabel() !== p.label) ac[which].setPicked(p.label);
   setBrandMode(which, !!p.brand && !needsNo(p));
   const sel = form.elements[which + "_city"];
   if (p.cityId) sel.value = p.cityId;
@@ -2826,7 +2826,7 @@ function syncHome() {
   ["from", "to"].forEach(which => {
     const input = homeInput(which), p = state.pick[which], pre = prefixOf(which);
     if (document.activeElement !== input) {
-      if (p) { if (input.value !== p.label) home.ac[which].setPicked(p.label); }
+      if (p) { if (home.ac[which].pickedLabel() !== p.label) home.ac[which].setPicked(p.label); }
       else { home.ac[which].reset(); input.value = val(pre + "_address"); }
     }
     syncHomeX(which);
