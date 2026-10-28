@@ -170,7 +170,7 @@ Deno.serve(async req => {
       livree: ["✅ Livré ! Merci d'avoir choisi HOP!", "Votre reçu et votre suivi : touchez ici"]
     };
     // Course à payer par Bit au livreur : la notification le dit tout de suite (le livreur ne part qu'après le paiement)
-    if (o.payment_method === "bit" && o.direct_pay && o.payment_status !== "paye" && !o.shop_sent)
+    if (o.payment_method === "bit" && o.direct_pay && o.payment_status !== "paye" && !o.shop_sent && !o.shop_pays)
       T.confirmee[1] = he ? `שלחו לו/לה עכשיו ${money(o.price)} בביט: לגעת כאן` : `Envoyez-lui ${money(o.price)} par Bit maintenant : touchez ici`;
     const t = T[String(ev.event)];
     if (t) sent += await sendClient(o, { title: t[0], body: `${t[1]} · ${o.ref}`, url: `suivi.html?t=${o.token}`, tag: "c-" + o.id }, site);

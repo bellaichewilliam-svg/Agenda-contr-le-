@@ -364,6 +364,10 @@ function render() {
   // Course envoyée et payée par le commerce : rien à payer pour le client (le commerce garde son lien « &shop=1 »)
   if (o.shop_sent && o.payer === "moi" && !dropped && !new URLSearchParams(location.search).has("shop"))
     pay.innerHTML = `<p class="promo-msg ok">${UI.esc(t("trShopPaid", { shop: o.shop_name || "" }))}</p>`;
+  // Livraison offerte par le commerce : seulement les articles à lui payer (s'il y en a), rien pour la livraison
+  if (o.shop_pays && !dropped)
+    pay.innerHTML = `${o.goods_pay && o.shop_pay ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(o, o.shop_pay)}<p class="gp-step2"><b>${UI.esc(t("gpStep2Gift", { name: UI.bi(o.shop_name || "") }))}</b></p>` : ""}
+      <p class="promo-msg ok">${UI.esc(t("giftNote", { name: UI.bi(o.shop_name || "") }))}</p>`;
 
   // Discussion directe : avec le livreur attribué, ou avec l'administration
   const hasCourier = !!o.courier_phone && ["confirmee", "recuperee"].includes(o.status);

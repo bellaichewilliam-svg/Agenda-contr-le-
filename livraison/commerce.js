@@ -24,22 +24,23 @@ function payVars() {
   const full = Number(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || CONFIG.pricing.base);
   return { share: UI.money(st.pro_shop_share), client: UI.money(Math.max(0, full - (Number(st.pro_shop_share) - Number(st.pro_hop_share || 0)))), full: UI.money(full) };
 }
-function payChoiceHtml(clientPays, note) {
+// mode : "0" je paie ma part, "1" le client paie, "2" je paie toute la livraison (seulement dans l'espace, pas à l'inscription)
+function payChoiceHtml(mode, note, gift) {
   const v = payVars();
-  const opt = (val, i, k) => `<label class="choice"><input type="radio" name="client_pays" value="${val}"${(val === "1") === !!clientPays ? " checked" : ""} />
+  const opt = (val, i, k) => `<label class="choice"><input type="radio" name="client_pays" value="${val}"${val === mode ? " checked" : ""} />
     <span><i>${i}</i><b>${UI.esc(t(k, v))}</b><small>${UI.esc(t(k + "Note", v))}</small></span></label>`;
-  return `<b class="pay-title">${UI.esc(t("payTitle"))}</b><div class="choices" style="margin-top:8px">${opt("0", "🏪", "payShop")}${opt("1", "🙋", "payClient")}</div>
+  return `<b class="pay-title">${UI.esc(t("payTitle"))}</b><div class="choices" style="margin-top:8px">${opt("0", "🏪", "payShop")}${opt("1", "🙋", "payClient")}${gift ? opt("2", "🎁", "payGift") : ""}</div>
     <p class="muted small pay-msg" style="margin:8px 0 0">${UI.esc(note || t("payLater"))}</p>`;
 }
 function renderPay() {
   const box = $("#spPay"), shop = state.dash && state.dash.shop;
   if (!shop || box.contains(document.activeElement) && box.dataset.busy) return;
-  box.innerHTML = payChoiceHtml(shop.client_pays, box.dataset.note);
+  box.innerHTML = payChoiceHtml(shop.shop_pays ? "2" : shop.client_pays ? "1" : "0", box.dataset.note, true);
 }
 function renderStatic() {
   I18N.apply();
   const pay = $("#shopPay"), chosen = pay.querySelector("input:checked");
-  pay.innerHTML = payChoiceHtml(chosen ? chosen.value === "1" : false);
+  pay.innerHTML = payChoiceHtml(chosen ? chosen.value : "0");
   $("#brandName").innerHTML = UI.wordmark(I18N.lang === "he" ? "לעסקים" : "Pro");
   renderLanding();
   renderExtra();
@@ -353,13 +354,15 @@ function setRing(on) {
 // N° de commande tapé mais pas encore validé : gardé quand l'écran se rafraîchit
 const refDraft = {};
 // Paiement direct : le commerce paie au livreur sa part de la course (12 − 2 = 10 ₪) en lui remettant la commande
-const courierPart = o => (o.direct_pay ? Math.max(0, Number(o.shop_share || 0) - Number(o.hop_share || 0)) : 0);
+// Livraison offerte par le commerce : il paie toute la course au livreur
+const courierPart = o => (o.shop_pays ? Number(o.price || 0) : o.direct_pay ? Math.max(0, Number(o.shop_share || 0) - Number(o.hop_share || 0)) : 0);
 function courierPay(o) {
-  const amount = courierPart(o);
+  const amount = courierPart(o), all = !!o.shop_pays;
   if (!amount) return "";
-  if (!o.courier_bit) return `<p class="small pay-courier">💳 ${UI.esc(t("spPayCourierLater", { amount: UI.money(amount) }))}</p>`;
+  if (all && o.payment_status === "paye") return `<p class="small pay-courier">${UI.esc(t("spPaidCourier", { amount: UI.money(amount) }))}</p>`;
+  if (!o.courier_bit) return `<p class="small pay-courier">${all ? "" : "💳 "}${UI.esc(t(all ? "spPayCourierAllLater" : "spPayCourierLater", { amount: UI.money(amount) }))}</p>`;
   const name = String(o.courier_name || "").split(" ")[0];
-  return `<p class="small pay-courier">💳 ${UI.esc(t("spPayCourier", { amount: UI.money(amount), name, phone: o.courier_bit }))}
+  return `<p class="small pay-courier">${all ? "" : "💳 "}${UI.esc(t(all ? "spPayCourierAll" : "spPayCourier", { amount: UI.money(amount), name, phone: o.courier_bit }))}
     <button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></p>`;
 }
 // Espèces : le livreur paie les articles au commerce en espèces ; le commerce le confirme (« Espèces reçues »)
@@ -845,11 +848,11 @@ $("#spCatalog").addEventListener("submit", e => {
 setInterval(() => { if (state.dash && !document.hidden) refreshSpace(); }, 15000);
 $("#spPay").addEventListener("change", async e => {
   if (e.target.name !== "client_pays" || !state.dash) return;
-  const on = e.target.value === "1", box = $("#spPay");
+  const mode = { 0: "share", 1: "client", 2: "shop" }[e.target.value], box = $("#spPay");
   box.dataset.busy = "1";
   try {
-    if (!(await Store.setShopClientPays(state.dash.shop.token, on))) throw new Error("no");
-    state.dash.shop.client_pays = on;
+    if (!(await Store.setShopPayMode(state.dash.shop.token, mode))) throw new Error("no");
+    Object.assign(state.dash.shop, { client_pays: mode !== "share", shop_pays: mode === "shop" });
     box.dataset.note = t("paySaved");
   } catch (err) { box.dataset.note = t("payErr"); }
   delete box.dataset.busy;

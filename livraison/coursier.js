@@ -306,7 +306,10 @@ async function cashOk(o) {
   if (r === "ban") { alert("🔒 Pas de course avec espèces pour l'instant : vous n'aviez pas les espèces la dernière fois."); return false; }
   return !!r;
 }
+// Livraison offerte par le commerce : c'est lui qui paie toute la course, par Bit, en remettant la commande
+const giftShop = o => UI.esc(o.shop_name || "Le commerce");
 function payLine(o) {
+  if (o.shop_pays) return `🎁 <b>${giftShop(o)}</b> vous paie <b>${UI.money(o.price)}</b> par Bit <b>en vous remettant la commande</b> · le client ne paie rien`;
   // Course envoyée par le commerce (son client a déjà acheté) : le commerce paie en donnant le colis, ou le client à la livraison
   if (o.shop_sent) {
     const how = o.payment_method === "cash" ? "en espèces" : "par Bit";
@@ -339,6 +342,8 @@ function moneyBox(o) {
   if (o.payment_status === "paye") return box(true, `✅ Déjà payé · rien à encaisser`,
     [o.paid_to === "hop" ? "Payé à HOP!, qui vous reverse le montant" : `Vous avez reçu ${UI.money(total)} ${how}`, goodsPaid].filter(Boolean).join("<br>"));
   if (o.paid_to === "hop") return box(true, "✅ Rien à encaisser", "Le client paie HOP! directement, HOP! vous reverse le montant");
+  if (o.shop_pays) return box(false, `💰 À encaisser au commerce : ${UI.money(o.price)} par Bit`,
+    `${giftShop(o)} vous paie en vous donnant la commande.<br>🎁 Livraison offerte : le client ne paie rien`);
   if (o.shop_sent && o.payer === "moi") return box(false, `💰 À encaisser au commerce : ${UI.money(o.price)} ${how}`,
     `${UI.esc(o.shop_name || "Le commerce")} vous paie en vous donnant le colis.<br>🙋 Le client ne paie rien : tout est déjà payé au magasin`);
   if (o.shop_sent) return box(false, `💰 À encaisser chez le client : ${UI.money(o.price)} ${how}`, `${goodsPaid}. Seulement la livraison, à l'arrivée`);
@@ -386,7 +391,7 @@ function doneBody(o) {
 // Payé comment ? Deux gros boutons : le livreur dit ce qu'il a vraiment reçu (Bit ou espèces), sans autre question
 function paidHowBtns(o) {
   const a = UI.money(UI.payTotal(o));
-  return `<div class="paid-how"><b>Le client vous a payé ${a} ?</b>
+  return `<div class="paid-how"><b>${o.shop_pays ? `${giftShop(o)} vous a payé ${a} ?` : `Le client vous a payé ${a} ?`}</b>
     <button class="btn btn-primary" data-paidhow="bit" data-id="${UI.esc(o.id)}">📱 Payé par Bit</button>
     <button class="btn btn-primary" data-paidhow="cash" data-id="${UI.esc(o.id)}">💵 Payé en espèces</button></div>`;
 }
@@ -643,7 +648,7 @@ function card(o, kind) {
     : o.client_paid_at ? `<br><b>📲 Le client dit avoir payé : vérifiez votre Bit / PayBox, puis touchez « 📱 Payé par Bit ».</b>`
     : ` · à recevoir <b>avant de récupérer la commande</b>`}</div>`;
   // Course acceptée, Bit pas encore reçu : on demande tout de suite le paiement au client (SMS ou WhatsApp, prêts à envoyer)
-  if (kind === "mine" && o.status === "confirmee" && o.direct_pay && !hopPaid && o.payment_method === "bit" && o.payment_status !== "paye" && !o.client_paid_at && !o.shop_sent && o.contact_phone) {
+  if (kind === "mine" && o.status === "confirmee" && o.direct_pay && !hopPaid && o.payment_method === "bit" && o.payment_status !== "paye" && !o.client_paid_at && !o.shop_sent && !o.shop_pays && o.contact_phone) {
     const amount = UI.money(UI.payTotal(o)), bit = o.courier_bit || me.bit_phone || me.phone || "";
     const msg = I18N.forLang(o.lang || "fr", "payAskMsg", { name: String(me.name || o.courier_name || "").split(" ")[0], ref: o.ref, total: amount, phone: bit, url: UI.trackUrl(o) });
     extra += `<div class="pay-ask"><b>⏳ Le client doit vous payer ${amount} par Bit avant que vous partiez récupérer</b>
@@ -837,6 +842,8 @@ function goodsActs(o) {
 function mineStep(o, hopPaid) {
   if (o.status === "annulee") return `❌ Le client a laissé tomber (attente) : la moitié de la course vous est due`;
   // Course envoyée par un commerce : le commerce paie en donnant le colis, ou le client à la livraison (Bit ou espèces)
+  if (o.shop_pays && o.payment_status !== "paye") return o.status === "recuperee" ? "3️⃣ Livrez le client"
+    : `1️⃣ Au départ : ${o.shop_name || "le commerce"} vous paie ${UI.money(o.price)} par Bit en vous donnant la commande`;
   if (o.shop_sent && o.payment_status !== "paye") {
     const how = o.payment_method === "cash" ? "en espèces" : "par Bit";
     if (o.payer === "moi") return o.status === "recuperee" ? "3️⃣ Livrez le client" : `1️⃣ Au départ : ${o.shop_name || "le commerce"} vous paie ${UI.money(o.price)} ${how} en vous donnant le colis`;
@@ -1269,7 +1276,7 @@ async function onViewClick(e) {
     if (ok === "bought") { render(); return alert("🧾 Les articles sont déjà achetés : vous ne pouvez plus rendre la course. Écrivez à HOP! en cas de souci."); }
     if (ok === "cash") { render(); return alert(`💵 ${o.shop_name || "Le commerce"} doit d'abord toucher « Espèces reçues » (vous lui payez ${UI.money(o.cash_goods)} en espèces).`); }
     if (ok === "wait") { render(); return alert("⏱️ Touchez d'abord « Supplément reçu » (ou « Le client ne paie pas ») pour l'attente."); }
-    if (ok === "pay") { render(); return alert(el.dataset.act === "recuperee" && o && o.shop_sent
+    if (ok === "pay") { render(); return alert(el.dataset.act === "recuperee" && o && (o.shop_sent || o.shop_pays)
       ? `🏪 ${o.shop_name || "Le commerce"} doit vous payer ${UI.money(o.price)} par Bit avant que vous preniez le colis. Vérifiez votre Bit, puis touchez « 📱 Payé par Bit » (ou « 💵 Payé en espèces »).`
       : el.dataset.act === "recuperee"
       ? "💳 Le client doit vous payer avant que vous récupériez la commande. Attendez son paiement (Bit / PayBox), vérifiez-le, puis touchez « 📱 Payé par Bit » (ou « 💵 Payé en espèces »)."
