@@ -6806,3 +6806,18 @@ $$;
 revoke execute on function public.orders_receipt_msg() from public, anon, authenticated;
 create or replace trigger orders_receipt_msg after update of receipt_number, courier_receipt_number on public.orders
   for each row execute function public.orders_receipt_msg();
+
+-- ============================================================================
+-- COURSES D'ESSAI : le patron marque une course « 🧪 Course test » ; elle reste dans la liste mais sort du
+-- chiffre du mois, de la compta et des statistiques. Jamais à la création (seul le patron peut la marquer).
+-- ============================================================================
+alter table public.orders add column if not exists is_test boolean not null default false;
+create or replace function public.orders_zw_test() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  new.is_test := false;
+  return new;
+end;
+$$;
+create or replace trigger orders_zw_test before insert on public.orders
+  for each row execute function public.orders_zw_test();
