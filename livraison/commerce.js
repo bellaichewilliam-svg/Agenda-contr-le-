@@ -619,6 +619,68 @@ $("#spBrand").addEventListener("click", async e => {
   } catch (ex) { brand.busy = false; b.disabled = false; $("#brMsg").textContent = t("brErr"); }
 });
 
+// --- Ma page : photos de présentation (8 au plus) et message / promo aux clients qui viennent sur la page ---
+const page = { gallery: null, shown: false, busy: false };
+// Photo entière (pas recadrée), 1000 px au plus, légère
+function galleryPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      for (const [max, q] of [[1000, 0.78], [860, 0.7], [720, 0.62], [560, 0.55]]) {
+        const k = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        const data = c.toDataURL("image/jpeg", q);
+        if (data.length < 290000) return resolve(data);
+      }
+      reject(new Error("too_big"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
+    img.src = url;
+  });
+}
+function renderPage(force) {
+  const box = $("#spPage"), shop = state.dash.shop;
+  box.classList.remove("hidden");
+  if (page.shown && !force) return;
+  page.shown = true;
+  if (!page.gallery) page.gallery = (Array.isArray(shop.gallery) ? shop.gallery : []).filter(x => UI.safeImg(x));
+  const g = page.gallery, promo = ($("#pgPromo") || {}).value, promoHe = ($("#pgPromoHe") || {}).value;
+  box.innerHTML = `<h3>${UI.esc(t("pgTitle"))}</h3>
+    <p class="muted small" style="margin:4px 0 10px">${UI.esc(t("pgSub"))}</p>
+    <div class="pg-grid">${g.map((src, i) => `<figure><img src="${UI.safeImg(src)}" alt="" />
+        <button type="button" class="pg-off" data-pg-off="${i}" aria-label="${UI.esc(t("brRemove"))}">✕</button></figure>`).join("")}
+      ${g.length < 8 ? `<label class="pg-add"><span>📷</span><b>${UI.esc(t("pgAdd"))}</b><small>${g.length} / 8</small><input type="file" accept="image/*" multiple data-pg-add hidden /></label>` : ""}</div>
+    <label class="f"><span>${UI.esc(t("pgPromo"))}</span><textarea id="pgPromo" rows="2" maxlength="300" placeholder="${UI.esc(t("pgPromoPh"))}">${UI.esc(promo != null ? promo : shop.promo || "")}</textarea></label>
+    <label class="f"><span>${UI.esc(t("pgPromoHe"))}</span><textarea id="pgPromoHe" rows="2" maxlength="300" dir="rtl" lang="he" placeholder="לדוגמה: 10% הנחה על כל מארזי הלידה החודש">${UI.esc(promoHe != null ? promoHe : shop.promo_he || "")}</textarea></label>
+    <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-pg-save${page.busy ? " disabled" : ""}>${UI.esc(t("pgSave"))}</button><span class="small" id="pgMsg"></span></div>`;
+}
+$("#spPage").addEventListener("change", async e => {
+  const inp = e.target.closest("[data-pg-add]");
+  if (!inp || !inp.files.length) return;
+  for (const f of Array.from(inp.files).slice(0, 8 - page.gallery.length)) {
+    try { page.gallery.push(await galleryPhoto(f)); } catch (ex) { alert(t("ctPhotoErr")); }
+  }
+  renderPage(true);
+});
+$("#spPage").addEventListener("click", async e => {
+  const off = e.target.closest("[data-pg-off]");
+  if (off) { page.gallery.splice(Number(off.dataset.pgOff), 1); return renderPage(true); }
+  const b = e.target.closest("[data-pg-save]");
+  if (!b) return;
+  const promo = $("#pgPromo").value.trim(), promoHe = $("#pgPromoHe").value.trim();
+  page.busy = true; b.disabled = true;
+  try {
+    if (!(await Store.shopPageSave(state.dash.shop.token, { gallery: page.gallery, promo, promo_he: promoHe }))) throw new Error("not_saved");
+    Object.assign(state.dash.shop, { gallery: page.gallery.slice(), promo: promo || null, promo_he: promoHe || null });
+    page.busy = false;
+    renderPage(true);
+    $("#pgMsg").textContent = t("pgSaved");
+  } catch (ex) { page.busy = false; b.disabled = false; $("#pgMsg").textContent = t("brErr"); }
+});
+
 // --- Catalogue HOP! Pro : catégories et produits (photo, prix, disponible / épuisé) --------------
 const cat = { data: null, edit: null, photo: undefined, busy: false, fresh: false };
 async function loadCatalog() {
@@ -821,6 +883,7 @@ function renderSpace() {
   renderPlan();
   renderPay();
   renderBrand();
+  renderPage();
   const sales = state.dash.sales || [];
   renderHead(shop);
   renderTabs(shop);

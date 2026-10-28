@@ -1369,11 +1369,24 @@ async function shopsDirectory() {
 async function shopsShowcase() {
   if (ONLINE) return (await rest("/rest/v1/rpc/shops_showcase", { method: "POST", body: {} })) || [];
   const cat = readJSON(LS.catalog, {});
-  return localShops().filter(x => x.status === "actif" && planActive(x))
+  return localShops().filter(x => x.status === "actif" && (planActive(x) || x.showcase))
     .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, kosher: !!x.kosher, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null, tagline_he: x.tagline_he || null,
+      pro: planActive(x), promo: x.promo || null, promo_he: x.promo_he || null, rank: x.rank == null ? null : Number(x.rank),
       client_pays: !!x.client_pays, hours: x.hours || null, products: ((cat[x.id] || {}).products || []).filter(p => p.available).length,
       top: ((cat[x.id] || {}).products || []).filter(p => p.available).slice(0, 6).map(p => ({ name: p.name, price: p.price })) }))
-    .sort((a, b) => (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || a.name.localeCompare(b.name));
+    .sort((a, b) => ((a.rank == null ? 1e9 : a.rank) - (b.rank == null ? 1e9 : b.rank)) || (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || a.name.localeCompare(b.name));
+}
+// Page vitrine : photos de présentation (8 au plus) et message / promo aux clients (FR, HE)
+async function shopPageSave(token, p) {
+  const gallery = (p.gallery || []).slice(0, 8);
+  if (ONLINE) return rest("/rest/v1/rpc/shop_page_save", { method: "POST", body: { p_token: token, p_gallery: gallery, p_promo: p.promo || null, p_promo_he: p.promo_he || null } });
+  const shops = localShops(), s = shops.find(x => x.token === token);
+  if (!s) return false;
+  s.gallery = gallery;
+  s.promo = String(p.promo || "").trim().slice(0, 300) || null;
+  s.promo_he = String(p.promo_he || "").trim().slice(0, 300) || null;
+  writeJSON(LS.shops, shops);
+  return true;
 }
 // Qui paie la livraison : true = le client paie tout, false = le commerce paie sa part (12 ₪)
 async function setShopClientPays(token, on) {
@@ -1752,6 +1765,7 @@ const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
       pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null, tagline_he: s.tagline_he || null, about_he: s.about_he || null, client_pays: !!s.client_pays,
       hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null, phone: s.phone || null, pay_link: s.pay_link || null, pay_bit: s.pay_bit || null, demo: !!s.demo,
+      gallery: s.gallery || [], promo: s.promo || null, promo_he: s.promo_he || null,
       shop_share: s.client_pays ? 0 : DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
 async function shopByCode(code) {
@@ -2203,7 +2217,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

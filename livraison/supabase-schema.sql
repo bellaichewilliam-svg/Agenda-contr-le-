@@ -7064,3 +7064,61 @@ begin
     execute n;
   end if;
 end $$;
+
+-- ============================================================================
+-- PAGE VITRINE DES ENSEIGNES (même sans commande en ligne) : photos de présentation (8 au plus), message ou promo
+-- affiché aux clients qui viennent sur leur page (FR/HE). Le patron choisit quelles enseignes sont dans la vitrine
+-- de l'accueil (même sans HOP! Pro) et leur ordre (position : 1 = en premier).
+-- ============================================================================
+alter table public.shops add column if not exists gallery jsonb not null default '[]'::jsonb;
+alter table public.shops add column if not exists promo text;
+alter table public.shops add column if not exists promo_he text;
+alter table public.shops add column if not exists rank int;
+alter table public.shops add column if not exists showcase boolean not null default false;
+
+create or replace function public.shop_page_save(p_token uuid, p_gallery jsonb, p_promo text, p_promo_he text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare g jsonb := coalesce(p_gallery, '[]'::jsonb); x jsonb;
+begin
+  if jsonb_typeof(g) <> 'array' or jsonb_array_length(g) > 8 then raise exception 'bad_gallery'; end if;
+  for x in select * from jsonb_array_elements(g) loop
+    if jsonb_typeof(x) <> 'string' or length(x #>> '{}') > 300000 or (x #>> '{}') !~ '^data:image/(jpeg|png|webp);base64,' then
+      raise exception 'bad_image';
+    end if;
+  end loop;
+  update shops set gallery = g,
+                   promo = left(nullif(trim(coalesce(p_promo, '')), ''), 300),
+                   promo_he = left(nullif(trim(coalesce(p_promo_he, '')), ''), 300)
+   where token = p_token;
+  return found;
+end;
+$$;
+revoke execute on function public.shop_page_save(uuid, jsonb, text, text) from public;
+grant execute on function public.shop_page_save(uuid, jsonb, text, text) to anon, authenticated;
+
+do $$
+declare d text; n text;
+begin
+  -- Fiche publique : les photos et le message
+  d := pg_get_functiondef('public.shop_public(text)'::regprocedure);
+  if position('''gallery''' in d) = 0 then
+    n := replace(d, '''demo'', demo,', '''demo'', demo, ''gallery'', gallery, ''promo'', promo, ''promo_he'', promo_he,');
+    if n = d then raise exception 'shop_public: motif introuvable'; end if;
+    execute n;
+  end if;
+end $$;
+
+-- Vitrine de l'accueil : les HOP! Pro, et aussi les enseignes choisies par le patron, dans l'ordre qu'il a fixé
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'hours', s.hours, 'kosher', s.kosher,
+           'pro', coalesce(s.plan_until >= current_date, false), 'promo', s.promo, 'promo_he', s.promo_he, 'rank', s.rank,
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by s.rank nulls last, (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
+$$;
+grant execute on function public.shops_showcase() to anon, authenticated;

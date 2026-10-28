@@ -1054,6 +1054,11 @@ async function saveDirPlace() {
     msg.textContent = /409|duplicate|unique/i.test(String(ex && ex.message)) ? "Déjà dans l'annuaire à cette adresse." : "⚠️ Non enregistré, vérifiez la connexion.";
   }
 }
+// Les enseignes de la vitrine de l'accueil, dans l'ordre des clients (le même que shops_showcase)
+function vitrineShops() {
+  return shops.filter(x => !x.demo && x.status === "actif" && (Store.planActive(x) || x.showcase))
+    .sort((a, b) => ((a.rank == null ? 1e9 : a.rank) - (b.rank == null ? 1e9 : b.rank)) || (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || String(a.name).localeCompare(String(b.name)));
+}
 function renderShops(view) {
   const month = today().slice(0, 7);
   const viaShop = orders.filter(o => o.shop_id && o.status === "livree" && !o.is_test);
@@ -1073,6 +1078,7 @@ function renderShops(view) {
   const bonusDue = sum(orders.filter(o => o.status === "livree" && !o.is_test && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
   // Dès qu'un commerce s'inscrit : ses accès à lui envoyer, en haut de l'onglet
   const toSend = all.filter(x => x.status !== "suspendu" && !accessSent()[x.id] && (x.whatsapp || x.phone));
+  const vit = vitrineShops();
   view.innerHTML = `
     ${toSend.length ? `<div class="card access-card" style="margin-bottom:14px">
       <b>📲 ${toSend.length === 1 ? "1 commerce attend ses accès" : toSend.length + " commerces attendent leurs accès"}</b>
@@ -1098,6 +1104,13 @@ function renderShops(view) {
       <p class="muted small" style="margin:4px 0 8px">À montrer en rendez-vous : un restaurant, une boulangerie et une boutique avec un catalogue complet. Le commerçant voit sa future vitrine (côté client) et son espace (🧑‍🍳 : ajouter un article, changer un prix, accepter une commande) ; aucune commande ne part, rien n'est envoyé. Invisibles pour les clients.</p>
       ${demoOn ? `<div class="actions">${demos.map(d => `<a class="btn btn-sm btn-primary" href="${UI.esc(d.url)}" target="_blank" rel="noopener">${d.label}</a><a class="btn btn-sm" href="${UI.esc(d.space)}" target="_blank" rel="noopener" title="L'espace du commerçant : catalogue, prix, commandes (démo sur le téléphone)">🧑‍🍳 Espace</a><button class="btn btn-sm" data-copy="${UI.esc(d.url)}" title="Copier le lien">📋</button>`).join("")}</div>` : `<p class="small">⛔ Démos retirées : les liens ne montrent plus rien.</p>`}
       ${demoShops.length ? `<div class="actions" style="margin-top:8px"><button class="btn btn-sm" data-demos="${demoOn ? "suspendu" : "actif"}">${demoOn ? "⛔ Retirer les démos" : "✅ Remettre les démos"}</button></div>` : ""}
+    </details>
+    <details class="card adm-fold" style="margin-bottom:14px" data-fold="c:vit"${foldOpen("c:vit")}>
+      <summary><b>🏠 Vitrine de l'accueil : ordre des enseignes</b> <span class="muted small">(${vit.length})</span></summary>
+      <p class="muted small" style="margin:4px 0 8px">L'ordre dans lequel les clients voient les enseignes sur l'accueil (n° 1 en premier ; les favoris d'un client passent avant, sur son téléphone). Les HOP! Pro y sont toujours ; une enseigne sans HOP! Pro (sans commande en ligne, comme une boutique) s'y ajoute avec « 🏠 Mettre dans la vitrine » sur sa fiche.</p>
+      ${vit.length ? `<ol class="vit-list">${vit.map((x, i) => `<li><span><b>${UI.esc(x.name)}</b>${Store.planActive(x) ? " · ⭐ Pro" : " · 💬 vitrine"}</span>
+        <span class="vit-move"><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="-1"${i ? "" : " disabled"} aria-label="Monter">▲</button><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="1"${i < vit.length - 1 ? "" : " disabled"} aria-label="Descendre">▼</button></span></li>`).join("")}</ol>`
+        : `<p class="small">Aucune enseigne dans la vitrine pour l'instant.</p>`}
     </details>
     <details class="card adm-fold" style="margin-bottom:14px" data-fold="c:signup"${foldOpen("c:signup")}>
       <summary><b>🏪 Inscrire un commerce partenaire</b></summary>
@@ -1161,7 +1174,8 @@ function renderShops(view) {
           <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
           <button class="btn btn-sm" data-sact="enrich" title="Horaires, photo et menu repris de sa page publique (seulement ce qui est vide)">🤖 Remplir sa fiche</button>
           <button class="btn btn-sm${x.kosher ? " btn-primary" : ""}" data-sact="kosher" title="Badge « Casher » sur sa vitrine, sa page et la carte">${x.kosher ? "✡️ Casher ✓" : "✡️ Casher ?"}</button>
-          ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>` : ""}
+          ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>`
+            : `<button class="btn btn-sm${x.showcase ? " btn-primary" : ""}" data-sact="showcase" title="Sa page (logo, photos, WhatsApp) sur l'accueil des clients, même sans HOP! Pro">${x.showcase ? "🏠 Dans la vitrine ✓" : "🏠 Mettre dans la vitrine"}</button>`}
           ${accessBtn(x)}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
@@ -1670,6 +1684,16 @@ async function onViewClick(e) {
     return;
   }
   if (el.id === "csvBtn") return exportCsv();
+  if (el.dataset.vmove) {
+    // Monter / descendre dans la vitrine : on renumérote 1, 2, 3… dans le nouvel ordre
+    const vit = vitrineShops(), i = vit.findIndex(x => x.id === el.dataset.vmove), j = i + Number(el.dataset.dir);
+    if (i < 0 || j < 0 || j >= vit.length) return;
+    [vit[i], vit[j]] = [vit[j], vit[i]];
+    el.disabled = true;
+    try { await Promise.all(vit.map((x, k) => (x.rank === k + 1 ? null : Store.updateShop(x.id, { rank: k + 1 }))).filter(Boolean)); await load(); }
+    catch (ex) { alert("Non enregistré, vérifiez la connexion."); await load(); }
+    return;
+  }
   if (el.dataset.demos) {
     const on = el.dataset.demos === "actif";
     if (!confirm(on ? "Remettre les 3 vitrines de démonstration ?" : "Retirer les 3 vitrines de démonstration ?\n\nLeurs liens ne montreront plus rien. Rien n'est effacé : vous pourrez les remettre ici.")) return;
@@ -1774,6 +1798,8 @@ async function onViewClick(e) {
       if (link && !/^https:\/\/\S{4,250}$/.test(link)) return alert("Le lien de paiement doit commencer par https://");
       if (bit && !/^0\d{8,9}$/.test(bit)) return alert("Numéro Bit / PayBox invalide (ex. 053-373-3785).");
       changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null, pay_link: link || null, pay_bit: bit || null };
+    } else if (el.dataset.sact === "showcase") {
+      changes = { showcase: !shop.showcase };
     } else if (el.dataset.sact === "kosher") {
       changes = { kosher: !shop.kosher };
     } else if (el.dataset.sact === "planoff") {
