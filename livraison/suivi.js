@@ -275,8 +275,14 @@ function render() {
   const goodsLine = x => {
     const name = String(x.courier_name || "").split(" ")[0], ph = String(x.courier_bit || x.courier_phone || "").replace(/\D/g, "");
     const cash = x.payment_method === "cash";
-    const head = `<p class="small muted" style="margin:2px 0 0">${UI.esc(t(cash ? "trGoodsSplitCash" : "trGoodsSplit", { ride: UI.money(x.price), goods: UI.money(x.goods_budget) }))}</p>`;
+    const head = `<p class="small muted" style="margin:2px 0 0">${UI.esc(t(cash ? "trGoodsSplitCash" : x.goods_after ? "trGoodsAfterSplit" : "trGoodsSplit", { ride: UI.money(x.price), goods: UI.money(x.goods_budget) }))}</p>`;
     if (x.goods_spent == null) return head;
+    // Ticket après : le client envoie le montant exact du ticket au livreur, qui livre dès réception
+    if (x.goods_after && !cash) {
+      const due = x.goods_refund_status === "a_completer", v = { spent: UI.money(x.goods_spent), name };
+      return head + `<div class="refund-box${due ? " wait-due" : ""}"><p><b>🧾 ${UI.esc(t(due ? "trGoodsAfterDue" : "trGoodsAfterOk", v))}</b></p>
+        ${due && ph ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(ph)}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`;
+    }
     if (cash) return `<div class="refund-box"><p><b>🧾 ${UI.esc(t("trGoodsCash", { spent: UI.money(x.goods_spent), total: UI.money(Number(x.price) + Number(x.goods_spent)) }))}</b></p></div>`;
     const st = x.goods_refund_status, v = { spent: UI.money(x.goods_spent), diff: UI.money(x.goods_refund), name };
     return head + `<div class="refund-box${st === "a_completer" ? " wait-due" : ""}"><p><b>🧾 ${UI.esc(t(st === "a_rendre" ? "trGoodsBack" : st === "rendu" ? "trGoodsBackDone" : st === "a_completer" ? "trGoodsMore" : "trGoodsExact", v))}</b></p>

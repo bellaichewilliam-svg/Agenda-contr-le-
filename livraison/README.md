@@ -444,6 +444,12 @@ livraison/
   - visuels : vrais logos repris de la vitrine en ligne, avec le sceau Casher ;
   - liste des enseignes : `kit/nouveaux/partenaires.json` (codes et accroches). Quand elle change, GitHub Actions (`.github/workflows/kit-nouveaux.yml`) relance tout : `kit/nouveaux/generer.js` lit la vitrine (`shops_showcase`) et fabrique les PNG ; `kit/nouveaux/video` (Remotion) fabrique les MP4 ; tout est déposé dans `kit/visuels/nouveaux-*` ;
   - essai sur un ordinateur : `node kit/nouveaux/generer.js <libs> [vitrine.json]`, puis `npx remotion render src/index.jsx Nouveaux sortie.mp4 --props='{"lang":"fr"}'` dans `kit/nouveaux/video`.
+- **« J'achète pour vous » : la course d'avance, le ticket après** (choix du patron, `orders.goods_after`) :
+  - le client paie seulement la course par Bit dès que le livreur accepte ;
+  - le livreur avance les articles, au plus le budget du client : 200 ₪, 100 ₪ tant que le client a moins de 3 courses livrées ;
+  - il envoie la photo du ticket (« 🧾 Ticket du magasin ») ; le client voit « Envoyez X ₪ à … par Bit » et paie le montant exact ;
+  - le livreur touche « ✅ Ticket reçu », puis peut livrer (« Livré » bloqué sans ticket ou tant que le ticket n'est pas payé) ;
+  - plus de prix approximatif à payer d'avance ni de différence à rendre ; en espèces, rien ne change (course + ticket à la livraison). Les commandes passées avec l'ancienne version gardent l'ancienne règle.
 - **Vitrine « Nos partenaires » : plus de liste « Fermés · à programmer »**. Tous les commerces gardent leur belle carte photo (les ouverts d'abord). Un commerce fermé a « 🌙 Fermé / ouvre demain à 11:00 » sur la photo, un peu assombrie, et le bouton facultatif « 📅 Programmer une commande » (il ouvre la page du commerce pour programmer).
 - **Pizza Crush (פיצה קראש, rue David Remez, Netanya)** : carte reprise de son site de commande (tap2dine : session publique `auth/login-by-host`, puis `/settings` et `/menus`), traduite en « Français · עברית » : 7 rubriques, 65 plats avec photo, logo et couverture, horaires (dim.-jeu. 10 h-23 h, samedi soir). Casher (confirmé par le patron) : badge mis. Ajouté au kit « Nouveaux partenaires ».
 - **Nouveau client, nouveau commerce : le téléphone du patron sonne** (notification, même appli fermée) : « 🆕 Nouveau client inscrit » avec le nom et le téléphone, « 🆕 Nouveau commerce inscrit » pour un commerce qui s'inscrit tout seul (à valider). Comme pour un nouveau livreur (déclencheurs `client_signup_push`, `shop_signup_push`).
