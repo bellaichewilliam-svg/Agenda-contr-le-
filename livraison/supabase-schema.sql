@@ -6783,3 +6783,26 @@ begin
     execute n;
   end if;
 end $$;
+
+-- ============================================================================
+-- REÇU ENVOYÉ AU CLIENT : dès qu'une course a son reçu (HOP! ou livreur), le lien arrive tout seul
+-- dans la conversation de la course (suivi du client), dans sa langue.
+-- ============================================================================
+create or replace function public.orders_receipt_msg() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare n bigint; url text;
+begin
+  n := coalesce(new.receipt_number, new.courier_receipt_number);
+  if n is null or coalesce(old.receipt_number, old.courier_receipt_number) is not null then return new; end if;
+  url := 'https://hop-livraison.vercel.app/recu.html?t=' || new.token::text;
+  insert into chat_messages (thread, author, author_name, body)
+    values ('o:' || new.id::text, 'admin', 'HOP!',
+            case when new.lang = 'he'
+                 then '🧾 תודה על ההזמנה! הקבלה שלכם מס'' ' || n || ' (' || replace(new.price::text, '.00', '') || ' ₪): ' || url
+                 else '🧾 Merci pour votre commande ! Votre reçu n° ' || n || ' (' || replace(new.price::text, '.00', '') || ' ₪) : ' || url end);
+  return new;
+end;
+$$;
+revoke execute on function public.orders_receipt_msg() from public, anon, authenticated;
+create or replace trigger orders_receipt_msg after update of receipt_number, courier_receipt_number on public.orders
+  for each row execute function public.orders_receipt_msg();
