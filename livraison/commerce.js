@@ -854,7 +854,7 @@ function renderSpace() {
 // Course envoyée par le commerce : qui paie ; « vous payez » → le Bit du livreur dès qu'il a pris la course
 function sentLine(o) {
   if (!o.shop_sent) return "";
-  const due = o.payer === "moi" && o.payment_status !== "paye" && o.courier_bit && ["confirmee", "recuperee"].includes(o.status);
+  const due = o.payer === "moi" && o.payment_method !== "cash" && o.payment_status !== "paye" && o.courier_bit && ["confirmee", "recuperee"].includes(o.status);
   const bit = String(o.courier_bit || "").replace(/\D/g, "");
   return `<small class="sd-who">${UI.esc(t(o.payer === "moi" ? "sdByYou" : "sdByClient"))}</small>`
     + (due ? `<span class="sd-due">${UI.esc(t("sdPayDue", { price: UI.money(o.price), name: String(o.courier_name || "").split(" ")[0], phone: bit }))}
@@ -1078,8 +1078,15 @@ $("#spOther").addEventListener("click", e => {
 // Tout ce qu'il faut au livreur est obligatoire (nom, téléphone, rue et numéro, étage, appartement, heure, qui paie) ;
 // départ = le commerce (la base le reprend de sa fiche). La course se paie au livreur par Bit : le commerce
 // quand il prend le colis, ou le client à la livraison.
-const send = { pick: null, ac: null, ready: "0", payer: "", done: null, busy: false };
+const send = { pick: null, ac: null, ready: "0", payer: "", how: "", done: null, busy: false };
 const SEND_KEYS = ["name", "phone", "street", "city", "floor", "apt", "code", "note", "at"];
+// Quartier hors centre (Agamim, zones industrielles) : pourquoi ce prix
+function sendAreaWhy() {
+  const shop = state.dash.shop, f = $("#spSend");
+  const to = (f.elements.city && f.elements.city.value) || shop.city || CONFIG.homeCity;
+  return UI.areaWhy({ from_city: shop.city || CONFIG.homeCity, to_city: to, pickup_lat: shop.lat, pickup_lon: shop.lon,
+    dropoff_lat: send.pick ? send.pick.lat : null, dropoff_lon: send.pick ? send.pick.lon : null, price: sendPrice() });
+}
 function sendPrice() {
   const shop = state.dash.shop, f = $("#spSend");
   const to = (f.elements.city && f.elements.city.value) || shop.city || CONFIG.homeCity;
@@ -1103,7 +1110,7 @@ function renderSend(full) {
     const o = send.done, first = String(o.dropoff_contact || "").split(" ")[0];
     const when = o.ready ? t("sdWhenAt", { time: UI.fmtTime(o.pickup_at) }) : t("sdWhenNow");
     f.innerHTML = `<p class="sd-done">${e(t("sdDone", { ref: o.ref, when }))}</p>
-      <p class="sd-pay">${e(t(o.payer === "moi" ? "sdDoneShop" : "sdDoneClient", { price: UI.money(o.price) }))}</p>
+      <p class="sd-pay">${e(t(o.payer === "moi" ? "sdDoneShop" : "sdDoneClient", { price: UI.money(o.price), how: t(o.payment_method === "cash" ? "sdHowCashW" : "sdHowBitW") }))}</p>
       <a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="${e(UI.waLink(o.dropoff_phone, t("sdShareMsg", { name: first, shop: shop.name, url: UI.trackUrl(o) })))}">${e(t("sdShareWa"))}</a>
       <div class="sd-done-btns"><a class="btn" href="${e(UI.trackUrl(o) + "&shop=1")}">${e(t("shTrack"))}</a>
         <button type="button" class="btn btn-primary" data-sd-new>${e(t("sdAnother"))}</button></div>`;
@@ -1113,6 +1120,7 @@ function renderSend(full) {
   const city = v.city || shop.city || CONFIG.homeCity, price = UI.money(sendPrice());
   const fld = (k, label, attrs, cls) => `<label class="f${cls ? " " + cls : ""}"><span>${e(t(label))}</span><input name="${k}" ${attrs || ""} value="${e(v[k] || "")}" /></label>`;
   const ready = (val, label) => `<label class="choice"><input type="radio" name="ready" value="${val}"${send.ready === val ? " checked" : ""} /><span><b>${e(label)}</b></span></label>`;
+  const how = (val, k) => `<label class="choice"><input type="radio" name="how" value="${val}"${send.how === val ? " checked" : ""} /><span><b>${e(t(k))}</b></span></label>`;
   const payer = (val, k) => `<label class="choice"><input type="radio" name="payer" value="${val}"${send.payer === val ? " checked" : ""} /><span><b>${e(t(k))}</b><small>${e(t(k + "D", { price }))}</small></span></label>`;
   f.innerHTML = `<div class="sd-head"><h3>${e(t("sdTitle"))}</h3><button type="button" class="btn btn-sm btn-link" data-sd-close>${e(t("sdClose"))}</button></div>
     <p class="muted small sd-sub">${e(t("sdSub"))}</p>
@@ -1136,6 +1144,10 @@ function renderSend(full) {
     <div class="sd-block"><b class="sd-label">${e(t("sdPayer"))}</b>
       <div class="choices sd-payer">${payer("destinataire", "sdPayClient")}${payer("moi", "sdPayShop")}</div>
     </div>
+    <div class="sd-block"><b class="sd-label">${e(t("sdHow"))}</b>
+      <div class="choices sd-how">${how("cash", "sdHowCash")}${how("bit", "sdHowBit")}</div>
+    </div>
+    <p class="area-why-note${sendAreaWhy() ? "" : " hidden"}" id="sdArea">${e(sendAreaWhy())}</p>
     <p class="sd-goods">✓ ${e(t("sdGoods"))}</p>
     <p class="notice err hidden" id="sdErr"></p>
     <button class="btn btn-primary btn-lg btn-block sd-go" id="sdGo">${e(t("sdGo", { price }))}</button>
@@ -1155,7 +1167,9 @@ function renderSend(full) {
   });
 }
 function sendRefreshPrice() {
-  const price = UI.money(sendPrice());
+  const price = UI.money(sendPrice()), why = sendAreaWhy();
+  $("#sdArea").textContent = why;
+  $("#sdArea").classList.toggle("hidden", !why);
   $("#sdGo").textContent = t("sdGo", { price });
   document.querySelectorAll("#spSend .sd-payer .choice").forEach(c => {
     const k = c.querySelector("input").value === "moi" ? "sdPayShop" : "sdPayClient";
@@ -1178,6 +1192,7 @@ async function sendSubmit() {
   if (need.length) return sendErr(t("sdErrMissing"), f.elements[need[0]]);
   if (!phoneOk(v.phone)) { f.elements.phone.classList.add("field-bad"); return sendErr(t("sdErrPhone"), f.elements.phone); }
   if (!send.payer) { f.querySelector(".sd-payer").classList.add("field-bad"); return sendErr(t("sdErrPayer"), f.querySelector(".sd-payer input")); }
+  if (!send.how) { f.querySelector(".sd-how").classList.add("field-bad"); return sendErr(t("sdErrHow"), f.querySelector(".sd-how input")); }
   let at = new Date();
   if (send.ready === "15" || send.ready === "30") at = new Date(Date.now() + Number(send.ready) * 60000);
   if (send.ready === "at") {
@@ -1208,10 +1223,10 @@ async function sendSubmit() {
       dropoff_floor: v.floor.trim(), dropoff_apt: v.apt.trim(), dropoff_code: v.code.trim() || null,
       dropoff_note: v.note.trim() || null, dropoff_contact: v.name.trim(), dropoff_phone: phoneDigits(v.phone),
       contact_name: shop.name, contact_phone: shop.phone,
-      price: sendPrice(), discount: 0, payment_method: "bit", payer: send.payer, distance_km: null
+      price: sendPrice(), discount: 0, payment_method: send.how, payer: send.payer, distance_km: null
     });
     send.done = Object.assign({}, saved, { ready: send.ready !== "0", price: saved.price || sendPrice() });
-    send.pick = null; send.ready = "0"; send.payer = "";
+    send.pick = null; send.ready = "0"; send.payer = ""; send.how = "";
     f.reset();
     renderSend(true);
     f.scrollIntoView({ block: "start", behavior: "smooth" });
@@ -1244,6 +1259,7 @@ $("#spSend").addEventListener("change", e => {
     if (send.ready === "at") f.elements.at.focus();
   }
   if (e.target.name === "payer") { send.payer = e.target.value; f.querySelector(".sd-payer").classList.remove("field-bad"); }
+  if (e.target.name === "how") { send.how = e.target.value; f.querySelector(".sd-how").classList.remove("field-bad"); }
   if (e.target.name === "city") sendRefreshPrice();
 });
 $("#spSend").addEventListener("input", e => { if (e.target.classList.contains("field-bad") && e.target.value.trim()) e.target.classList.remove("field-bad"); });

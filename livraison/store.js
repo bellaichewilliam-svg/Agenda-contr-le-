@@ -252,7 +252,7 @@ async function createOrder(order) {
     if (order.shop_sent) {
       const s = shops.find(x => x.token === order.send_key && x.status !== "suspendu");
       if (!s || s.id !== order.shop_id) throw new Error("shop_invalid");
-      if (order.service !== "colis" || order.payment_method !== "bit" || !["moi", "destinataire"].includes(order.payer)) throw new Error("send_pay");
+      if (order.service !== "colis" || !["bit", "cash"].includes(order.payment_method) || !["moi", "destinataire"].includes(order.payer)) throw new Error("send_pay");
       if (!["dropoff_contact", "dropoff_phone", "dropoff_address", "dropoff_floor", "dropoff_apt"].every(k => String(order[k] || "").trim())) throw new Error("send_fields");
       const ready = new Date(Math.min(Math.max(new Date(order.pickup_at || Date.now()).getTime(), Date.now()), Date.now() + 3 * 3600000)).toISOString();
       Object.assign(order, { ready_at: ready, pickup_at: ready, from_city: s.city, pickup_address: s.address, pickup_lat: s.lat, pickup_lon: s.lon,

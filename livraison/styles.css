@@ -2663,7 +2663,8 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .sd-card .choice span { padding: 10px 12px; justify-content: center; text-align: center; overflow-wrap: anywhere; }
 .sd-card .choice span b { font-size: 15px; line-height: 1.25; }
 .sd-card .choice span small { font-size: 12.5px; line-height: 1.3; margin-top: 2px; }
-.sd-payer.field-bad .choice span { border-color: var(--red, #F04438); }
+.sd-payer.field-bad .choice span, .sd-how.field-bad .choice span { border-color: var(--red, #F04438); }
+.sd-card .choices.sd-how { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .sd-goods { margin: 0; font-size: 13px; line-height: 1.4; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
 .sd-go { white-space: normal; line-height: 1.2; min-height: 56px; }
 .sd-wa { margin: 0; text-align: center; line-height: 1.45; }
@@ -2689,3 +2690,9 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .bp-steps .bp-done { min-height: 52px; font-size: 16px; }
 .bp-steps small { line-height: 1.4; }
 .sent-btn { margin-top: 6px; }
+
+/* Livreur : demander tout de suite le paiement Bit au client */
+.pay-ask { display: grid; gap: 6px; margin-top: 8px; padding: 10px 12px; border: 2px solid var(--bit); border-radius: 14px; background: var(--blue-soft); font-size: 14px; line-height: 1.35; }
+.pay-ask small { font-size: 13px; }
+.pay-ask-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.pay-ask-btns .btn { flex: 1 1 140px; white-space: normal; text-align: center; }
