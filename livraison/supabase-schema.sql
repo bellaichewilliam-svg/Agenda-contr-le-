@@ -7051,3 +7051,16 @@ $$;
 revoke execute on function public.orders_photo_check() from public, anon, authenticated;
 create or replace trigger orders_photo_check before update of status on public.orders
   for each row execute function public.orders_photo_check();
+
+-- Fiche publique du commerce : son téléphone aussi (quand il n'a pas de WhatsApp enregistré), pour que le client
+-- puisse commander chez lui quand son paiement en ligne n'est pas encore branché
+do $$
+declare d text; n text;
+begin
+  d := pg_get_functiondef('public.shop_public(text)'::regprocedure);
+  if position('''phone'', phone' in d) = 0 then
+    n := replace(d, '''whatsapp'', whatsapp,', '''whatsapp'', whatsapp, ''phone'', phone,');
+    if n = d then raise exception 'shop_public: motif introuvable'; end if;
+    execute n;
+  end if;
+end $$;

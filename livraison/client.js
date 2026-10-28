@@ -527,6 +527,19 @@ function confetti() {
 // --- Espèces : le client paie tout au livreur (articles + livraison) ; il dit avec quel billet ---------
 const cashMax = () => Number((state.settings && state.settings.cash_max) || 200);
 // Le commerce a un lien de paiement ou un Bit : les articles lui sont payés d'avance (jamais avancés par le livreur)
+// Commerce Pro sans paiement en ligne (ni lien, ni Bit) : le client commande et paie chez lui par WhatsApp,
+// demande l'heure exacte où c'est prêt, puis commande ici la livraison (pas d'attente, pas de supplément)
+const shopNoPay = () => !!((proShopOn() || shopDropOn()) && state.shop && !state.shop.pay_link && !state.shop.pay_bit);
+function noPayBox() {
+  const sh = state.shop, name = UI.bi(sh.name), num = sh.whatsapp || sh.phone || "";
+  const shown = num ? (String(num).replace(/\D/g, "").replace(/^972/, "0")) : "";
+  return `<div class="nopay"><b>💬 ${UI.esc(t("nopayTitle", { name }))}</b>
+    <p><i>1</i><span>${UI.esc(t("nopay1", { name }))}</span></p>
+    <p><i>2</i><span>${UI.esc(t("nopay2"))}</span></p>
+    <p><i>3</i><span>${UI.esc(t("nopay3"))}</span></p>
+    ${num ? `<a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="${UI.esc(UI.waLink(num, t("nopayMsg", { name })))}">${UI.esc(t("nopayBtn", { name }))}</a>
+      <small class="nopay-num">WhatsApp : <bdi>${UI.esc(shown)}</bdi></small>` : `<small>${UI.esc(t("nopayNoNum"))}</small>`}</div>`;
+}
 const shopPrepay = () => !!(proShopOn() && (state.shop.pay_link || state.shop.pay_bit) && (cartCount() || val("shop_order").trim()));
 const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() ? cartTotal() : goodsPrepay() ? goodsBudget() : 0);
 function renderCash() {
@@ -2138,6 +2151,7 @@ function renderCatalog() {
   const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind));
   const top = cgProducts().filter(p => p.available).slice(0, 8);
   const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: UI.bi(state.shop.name) }))}</b>
+    ${shopNoPay() ? noPayBox() : ""}
     ${cgProducts().length >= 5 ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = state.cart[p.id] || 0;
       return `<div class="cg-tcard${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}"><div class="cg-tpic">${pic(p)}
         <button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button></div>
@@ -2159,6 +2173,7 @@ function renderCatalog() {
         <p><i>1</i><span>${UI.esc(t("pay2Goods", { name: UI.bi(state.shop.name), amount: n ? money(cartTotal()) : "" }))}</span></p>
         <p><i>2</i><span>${UI.esc(t("pay2Ride"))}</span></p>
         <small>${UI.esc(t("pay2Note"))}</small></div>`
+      : shopNoPay() ? `<p class="cg-pay">${UI.esc(t("nopayShort", { name: UI.bi(state.shop.name) }))}</p>`
       : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: UI.bi(state.shop.name) }))}</p>`}
     ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
       : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;

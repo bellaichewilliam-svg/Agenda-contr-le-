@@ -2746,3 +2746,12 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 /* Course ouverte depuis une notification : un éclair orange pour la repérer */
 .flash { animation: hopFlash 1.6s ease-out 1; }
 @keyframes hopFlash { 0%, 40% { box-shadow: 0 0 0 4px #FF6A13; } 100% { box-shadow: 0 0 0 0 transparent; } }
+/* Commerce Pro sans paiement en ligne : commander et payer chez lui par WhatsApp, puis la livraison ici */
+.nopay { display: grid; gap: 8px; margin: 10px 0 14px; padding: 14px; border-radius: 16px; background: #FFF6E5; color: #5C3B00; border: 2px solid #F5A524; min-width: 0; }
+.nopay > b { font-size: 16px; line-height: 1.3; }
+.nopay p { margin: 0; display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 14px; line-height: 1.4; }
+.nopay p i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #F5A524; color: #fff; font-style: normal; font-weight: 700; font-size: 13px; }
+.nopay .btn { margin-top: 4px; }
+.nopay small { font-size: 13px; }
+.nopay-num { text-align: center; }
+@media (prefers-color-scheme: dark) { .nopay { background: #3A2A0B; color: #FFE2A8; border-color: #C98A12; } }
