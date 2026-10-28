@@ -500,7 +500,7 @@ function card(o, withDay) {
   <article class="order${o.status === "nouvelle" ? " is-new" : ""}" data-id="${UI.esc(o.id)}">
     <div class="order-head">
       <span class="order-time">${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}${when}</span>
-      <span class="pill st-${UI.esc(o.status)}">${st.icon} ${st.label}</span>
+      <span class="pill st-${UI.esc(o.status)}">${st.icon} ${st.label}</span>${o.is_test ? ` <span class="pill">🧪 Test · hors chiffre</span>` : ""}
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(o.price)}</span>
     </div>
@@ -523,6 +523,7 @@ function card(o, withDay) {
       ${UI.receiptNo(o) && o.contact_phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waLink(o.contact_phone, I18N.forLang(o.lang || "fr", "msg_receipt_full", { name: o.contact_name || "", ref: o.ref, n: UI.receiptNo(o), price: UI.money(o.price), url: UI.receiptUrl(o) })))}" target="_blank" rel="noopener">📲 Envoyer le reçu</a>` : ""}
       ${o.receipt_number && o.contact_email ? `<a class="btn btn-sm" href="mailto:${UI.esc(o.contact_email)}?subject=${encodeURIComponent(`Reçu n° ${o.receipt_number} · קבלה מס' ${o.receipt_number}`)}&body=${encodeURIComponent(UI.clientMessage(o))}">✉️ Reçu par mail</a>` : ""}
       <button class="btn btn-sm" data-act="price">✏️ Prix</button>
+      <button class="btn btn-sm" data-act="test">${o.is_test ? "↩︎ Pas un essai" : "🧪 Course test"}</button>
       <button class="btn btn-sm" data-act="ics">📅</button>
       <textarea class="admin-note" data-act="note" rows="1" placeholder="Message visible par le client sur la page de suivi…">${UI.esc(o.admin_note || "")}</textarea>
     </div>
@@ -551,7 +552,7 @@ function renderStats() {
   $("#stUnpaid").textContent = UI.money(sum(orders.filter(o => isMine(o) && o.payment_status !== "paye" && ["confirmee", "recuperee", "livree"].includes(o.status))));
   // Chiffre du mois = toutes les courses livrées (les vôtres et celles des livreurs) ;
   // Com HOP = les commissions des livreurs + la part HOP des commandes Pro − les codes promo payés par HOP + les abonnements
-  const delivered = orders.filter(o => o.status === "livree" && UI.dayKey(o.pickup_at).startsWith(month));
+  const delivered = orders.filter(o => o.status === "livree" && !o.is_test && UI.dayKey(o.pickup_at).startsWith(month));
   $("#stMonthRev").textContent = UI.money(sum(delivered, o => Number(o.price) + Number(o.discount || 0) + Number(o.shop_share || 0)));
   $("#stMonthHop").textContent = UI.money(sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
     + sum(planSales.filter(p => String(p.created_at).startsWith(month)), p => Number(p.amount) - Number(p.referrer_share || 0)));
@@ -804,7 +805,7 @@ function renderCouriers(view) {
     ${onlineSummary()}
     ${unfinishedCard()}
     ${list.length ? `<div class="orders">${list.map(c => {
-      const done = orders.filter(o => o.courier_id === c.id && o.status === "livree").length;
+      const done = orders.filter(o => o.courier_id === c.id && o.status === "livree" && !o.is_test).length;
       const rating = UI.ratingOf(orders.filter(o => o.courier_id === c.id));
       const refus = declineStats(c);
       return `<article class="order${c.status === "en_attente" ? " is-new" : ""}" data-courier="${UI.esc(c.id)}">
@@ -862,7 +863,7 @@ function creditsCard() {
 function renderWeek(view) {
   const start = addDays(weekStart(today()), 7 * weekOffset);
   const end = addDays(start, 6);
-  const inWeek = o => { const k = UI.dayKey(o.pickup_at); return o.status === "livree" && k >= start && k <= end; };
+  const inWeek = o => { const k = UI.dayKey(o.pickup_at); return o.status === "livree" && !o.is_test && k >= start && k <= end; };
   const rows = partners().map(c => {
     const list = orders.filter(o => o.courier_id === c.id && inWeek(o));
     const due = list.filter(o => o.commission_status !== "regle");
@@ -990,7 +991,7 @@ async function saveDirPlace() {
 }
 function renderShops(view) {
   const month = today().slice(0, 7);
-  const viaShop = orders.filter(o => o.shop_id && o.status === "livree");
+  const viaShop = orders.filter(o => o.shop_id && o.status === "livree" && !o.is_test);
   const order = ["en_attente", "actif", "suspendu"];
   // Les vitrines de démonstration ont leur propre carte (liens à montrer aux commerces), pas dans la liste
   const list = shops.filter(x => !x.demo).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
@@ -1000,7 +1001,7 @@ function renderShops(view) {
   const demoShops = shops.filter(x => x.demo), demoOn = demoShops.some(x => x.status === "actif");
   const signup = UI.appUrl("commerce.html") + "?inscription=1" + (me && me.ref_code ? "&p=" + me.ref_code : "");
   const statusLabel = { en_attente: "⏳ À vérifier", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
-  const bonusDue = sum(orders.filter(o => o.status === "livree" && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
+  const bonusDue = sum(orders.filter(o => o.status === "livree" && !o.is_test && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
   // Dès qu'un commerce s'inscrit : ses accès à lui envoyer, en haut de l'onglet
   const toSend = list.filter(x => x.status !== "suspendu" && !accessSent()[x.id] && (x.whatsapp || x.phone));
   view.innerHTML = `
@@ -1070,7 +1071,7 @@ function renderShops(view) {
             const on = Store.planActive(x), month = new Date().toISOString().slice(0, 7);
             // Paiement direct : le commerce paie sa part au livreur ; HOP ne lui facture que sa part (2 ₪)
             const bill = o => (o.direct_pay ? (Number(o.shop_share || 0) > 0 ? Number(o.hop_share || 0) : 0) : Number(o.shop_share || 0));
-            const mine = done.filter(o => o.status === "livree" && bill(o) > 0 && String(o.pickup_at).slice(0, 7) === month);
+            const mine = done.filter(o => o.status === "livree" && !o.is_test && bill(o) > 0 && String(o.pickup_at).slice(0, 7) === month);
             const shares = sum(mine, bill);
             return (on ? `<b>HOP! Pro</b> jusqu'au ${UI.esc(UI.fmtKey(x.plan_until))} · ce mois : ${UI.money(settings.pro_monthly)} + ${mine.length} livraison(s) ${UI.money(shares)} = <b>${UI.money(Number(settings.pro_monthly) + shares)}</b>`
               : x.plan_until ? `HOP! Pro terminé le ${UI.esc(UI.fmtKey(x.plan_until))}` : "Pas d'abonnement HOP! Pro")
@@ -1315,7 +1316,7 @@ function renderMessages(view) {
 
 // --- Facturation clients -------------------------------------------------------------
 function monthOrders() {
-  return orders.filter(o => o.status === "livree" && UI.dayKey(o.pickup_at).startsWith(billMonth));
+  return orders.filter(o => o.status === "livree" && !o.is_test && UI.dayKey(o.pickup_at).startsWith(billMonth));
 }
 
 function renderBilling(view) {
@@ -1612,7 +1613,7 @@ async function onViewClick(e) {
   }
   if (el.dataset.settle) {
     const start = $("#view").dataset.weekStart, end = addDays(start, 6);
-    const inWeek = o => o.status === "livree" && UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= end;
+    const inWeek = o => o.status === "livree" && !o.is_test && UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= end;
     const ids = orders.filter(o => o.courier_id === el.dataset.settle && inWeek(o) && o.commission_status !== "regle").map(o => o.id);
     const bonusIds = orders.filter(o => o.referrer_id === el.dataset.settle && inWeek(o) && o.referral_status !== "regle").map(o => o.id);
     const tipIds = orders.filter(o => o.courier_id === el.dataset.settle && o.tip_status === "recu").map(o => o.id);
@@ -1848,6 +1849,9 @@ async function onViewClick(e) {
     const v = prompt(`Nouveau prix pour la course n° ${o.ref} (${CONFIG.currency})`, o.price);
     const n = parseFloat(String(v).replace(",", "."));
     if (v != null && isFinite(n) && n >= 0) change(o, { price: n });
+  } else if (el.dataset.act === "test") {
+    // Course d'essai : gardée dans la liste, mais hors du chiffre, de la compta et des statistiques
+    if (confirm(o.is_test ? `Remettre la course n° ${o.ref} dans le chiffre et la compta ?` : `Course n° ${o.ref} : c'était un essai ? Elle restera dans la liste mais ne comptera plus dans le chiffre, la compta et les statistiques.`)) change(o, { is_test: !o.is_test });
   } else if (el.dataset.act === "ics") {
     exportIcs([o]);
   }
