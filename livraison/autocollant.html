@@ -28,8 +28,11 @@
     .st-h { margin: 1mm 0 0; font: 700 8.6mm/1.04 Fredoka, sans-serif; }
     .st-h span { color: #FF9A5C; display: block; }
     .st-hhe { margin: 0; font: 800 6.2mm/1.15 Rubik, sans-serif; text-align: right; }
-    .st-p { margin: 0; font-size: 3.7mm; font-weight: 700; line-height: 1.38; }
-    .st-phe { margin: 0; font-size: 3.5mm; font-weight: 500; line-height: 1.4; text-align: right; opacity: .92; }
+    .st-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2.2mm; }
+    .st-steps li { display: grid; grid-template-columns: 6.4mm minmax(0, 1fr); gap: 2.4mm; align-items: center; }
+    .st-steps i { width: 6.4mm; height: 6.4mm; border-radius: 50%; background: #FF6A13; color: #fff; font: 700 3.8mm/6.4mm Fredoka, sans-serif; text-align: center; font-style: normal; }
+    .st-steps b { display: block; font-size: 3.9mm; font-weight: 800; line-height: 1.25; }
+    .st-steps span { display: block; font-size: 3.5mm; font-weight: 500; line-height: 1.3; text-align: right; opacity: .92; }
     .st-fill { flex: 1; min-height: 0; }
     .st-bot { display: grid; grid-template-columns: minmax(0, 1fr) 32mm; gap: 3mm; }
     .st-price { background: #fff; color: #0F1F3D; border-radius: 4mm; padding: 3mm 3.4mm; display: flex; flex-direction: column; justify-content: center; gap: 1mm; min-width: 0; }
@@ -67,8 +70,11 @@
     </div>
     <h2 class="st-h">On vous livre <span>vos achats à la maison</span></h2>
     <p class="st-hhe" dir="rtl" lang="he">מביאים לכם את הקנייה הביתה</p>
-    <p class="st-p">Vous payez ici comme d'habitude, vous dites « livraison » au vendeur, et un livreur HOP! vous l'apporte chez vous.</p>
-    <p class="st-phe" dir="rtl" lang="he">משלמים כאן כרגיל, אומרים למוכר "משלוח", ושליח של הופ! מביא לכם עד הבית.</p>
+    <ol class="st-steps">
+      <li><i>1</i><div><b>Payez vos achats ici, à la caisse</b><span dir="rtl" lang="he">משלמים על הקנייה כאן, בקופה</span></div></li>
+      <li><i>2</i><div><b>Dites « livraison » au vendeur</b><span dir="rtl" lang="he">אומרים למוכר: "משלוח"</span></div></li>
+      <li><i>3</i><div><b>Un livreur HOP! vous l'apporte chez vous</b><span dir="rtl" lang="he">שליח של הופ! מביא לכם הביתה</span></div></li>
+    </ol>
     <div class="st-fill"></div>
     <div class="st-bot">
       <div class="st-price">
@@ -83,7 +89,7 @@
 </div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610280240"></script>
+<script src="config.js?v=202610280247"></script>
 <script>
 (function () {
   "use strict";
