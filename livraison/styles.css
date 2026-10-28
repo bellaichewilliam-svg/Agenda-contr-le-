@@ -8,6 +8,10 @@ html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 /* Jamais de défilement sur le côté (clip garde le menu collant en haut) */
 html, body { overflow-x: clip; max-width: 100%; }
 button, input, select, textarea { font: inherit; color: inherit; }
+/* Champs sans style propre (annonces, listes…) : fond du thème, sinon texte clair sur fond blanc en mode sombre.
+   :where() = aucune priorité, les règles de chaque écran gardent la main */
+:where(textarea, select, input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="color"], [type="submit"], [type="button"])) { background-color: var(--panel); }
+:where(textarea, input)::placeholder { color: var(--muted); opacity: 1; }
 button { cursor: pointer; }
 a { color: inherit; }
 
@@ -40,6 +44,7 @@ a { color: inherit; }
 }
 @media (prefers-color-scheme: dark) {
   :root {
+    color-scheme: dark;
     --bg: #0B1220;
     --bg-2: #0F172A;
     --panel: #141C2E;
