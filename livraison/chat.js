@@ -72,7 +72,7 @@ function bubble(m, o) {
   return `<div class="chat-msg ${mine ? "mine" : ""} from-${UI.esc(m.author)}">
       <small>${UI.esc(who)} · ${time}</small>
       ${m.image ? `<a href="${UI.esc(m.image)}" target="_blank" rel="noopener"><img src="${UI.esc(m.image)}" alt="" /></a>` : m.has_image ? `<span class="muted">📷</span>` : ""}
-      ${m.body ? `<p>${UI.esc(m.body).replace(/\n/g, "<br>")}</p>` : ""}
+      ${m.body ? `<p>${UI.esc(m.body).replace(/\n/g, "<br>").replace(/https:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${/recu\.html/.test(u) ? "🧾 " + UI.esc(tr(lang, "receiptOpen")) : u}</a>`)}</p>` : ""}
     </div>`;
 }
 
