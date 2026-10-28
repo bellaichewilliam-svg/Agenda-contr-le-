@@ -1054,6 +1054,15 @@ async function saveDirPlace() {
     msg.textContent = /409|duplicate|unique/i.test(String(ex && ex.message)) ? "Déjà dans l'annuaire à cette adresse." : "⚠️ Non enregistré, vérifiez la connexion.";
   }
 }
+// Placer une enseigne à la position voulue (0 = en premier) : on renumérote 1, 2, 3… dans le nouvel ordre
+async function moveVitrine(id, to) {
+  const vit = vitrineShops(), i = vit.findIndex(x => x.id === id);
+  if (i < 0 || to < 0 || to >= vit.length || to === i) return render();
+  const [x] = vit.splice(i, 1);
+  vit.splice(to, 0, x);
+  try { await Promise.all(vit.map((y, k) => (y.rank === k + 1 ? null : Store.updateShop(y.id, { rank: k + 1 }))).filter(Boolean)); await load(); }
+  catch (ex) { alert("Non enregistré, vérifiez la connexion."); await load(); }
+}
 // Les enseignes de la vitrine de l'accueil, dans l'ordre des clients (le même que shops_showcase)
 function vitrineShops() {
   return shops.filter(x => !x.demo && x.status === "actif" && (Store.planActive(x) || x.showcase))
@@ -1064,7 +1073,9 @@ function renderShops(view) {
   const viaShop = orders.filter(o => o.shop_id && o.status === "livree" && !o.is_test);
   const order = ["en_attente", "actif", "suspendu"];
   // Les vitrines de démonstration ont leur propre carte (liens à montrer aux commerces), pas dans la liste
-  const all = shops.filter(x => !x.demo).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  // À vérifier d'abord, puis les enseignes de l'accueil dans leur ordre (n° 1 en premier), puis les autres
+  const vitIds = vitrineShops().map(x => x.id), vpos = x => (vitIds.includes(x.id) ? vitIds.indexOf(x.id) : 1e9);
+  const all = shops.filter(x => !x.demo).sort((a, b) => (order.indexOf(a.status) - order.indexOf(b.status)) || (vpos(a) - vpos(b)));
   // Recherche : nom, code, adresse, contact ou téléphone
   const q = shopsQ.trim().toLowerCase(), qd = q.replace(/\D/g, "");
   const list = all.filter(x => !q || [x.name, x.code, x.address, x.contact_name, x.email].some(v => String(v || "").toLowerCase().includes(q))
@@ -1129,7 +1140,8 @@ function renderShops(view) {
       // Fiche repliée en une ligne (nom, état, courses) ; celles à vérifier restent ouvertes
       const k = "s:" + x.id, open = x.status === "en_attente" || openFolds.has(k);
       return `<details class="order-fold shop-fold" data-shop="${UI.esc(x.id)}" data-fold="${UI.esc(k)}"${open ? " open" : ""}><summary>
-        <span>${x.status === "en_attente" ? "⏳" : x.status === "suspendu" ? "⛔" : "✅"} <b>${UI.esc(x.name)}</b>${Store.planActive(x) ? " · ⭐ Pro" : ""}${x.address ? " · " + UI.esc(x.address) : ""}</span>
+        <span>${vpos(x) < 1e9 ? `<em class="vit-n" title="Position sur l'accueil">${vpos(x) + 1}</em> ` : ""}${x.status === "en_attente" ? "⏳" : x.status === "suspendu" ? "⛔" : "✅"} <b>${UI.esc(x.name)}</b>${Store.planActive(x) ? " · ⭐ Pro" : ""}${x.address ? " · " + UI.esc(x.address) : ""}</span>
+        ${vpos(x) < 1e9 ? `<span class="vit-move"><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="-1"${vpos(x) ? "" : " disabled"} aria-label="Monter">▲</button><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="1"${vpos(x) < vitIds.length - 1 ? "" : " disabled"} aria-label="Descendre">▼</button></span>` : ""}
         <b>${done.length} 🛵</b></summary>
       <article class="order${x.status === "en_attente" ? " is-new" : ""}" data-shop="${UI.esc(x.id)}">
         <div class="order-head">
@@ -1176,6 +1188,7 @@ function renderShops(view) {
           <button class="btn btn-sm${x.kosher ? " btn-primary" : ""}" data-sact="kosher" title="Badge « Casher » sur sa vitrine, sa page et la carte">${x.kosher ? "✡️ Casher ✓" : "✡️ Casher ?"}</button>
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>`
             : `<button class="btn btn-sm${x.showcase ? " btn-primary" : ""}" data-sact="showcase" title="Sa page (logo, photos, WhatsApp) sur l'accueil des clients, même sans HOP! Pro">${x.showcase ? "🏠 Dans la vitrine ✓" : "🏠 Mettre dans la vitrine"}</button>`}
+          ${vpos(x) < 1e9 ? `<label class="vit-pos">🏠 Position sur l'accueil <select data-vpos="${UI.esc(x.id)}">${vitIds.map((_, i) => `<option value="${i + 1}"${i === vpos(x) ? " selected" : ""}>${i + 1}${i === 0 ? " (en premier)" : i === vitIds.length - 1 ? " (en dernier)" : ""}</option>`).join("")}</select></label>` : ""}
           ${accessBtn(x)}
           ${chatBtn("s:" + x.id, `Commerce : ${x.name}`, x.phone, "💬 Message", shopWelcome(x))}
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}">🛵 Commander pour lui</a>
@@ -1685,14 +1698,10 @@ async function onViewClick(e) {
   }
   if (el.id === "csvBtn") return exportCsv();
   if (el.dataset.vmove) {
-    // Monter / descendre dans la vitrine : on renumérote 1, 2, 3… dans le nouvel ordre
-    const vit = vitrineShops(), i = vit.findIndex(x => x.id === el.dataset.vmove), j = i + Number(el.dataset.dir);
-    if (i < 0 || j < 0 || j >= vit.length) return;
-    [vit[i], vit[j]] = [vit[j], vit[i]];
+    e.preventDefault();   // (dans la ligne repliée : la fiche ne s'ouvre pas)
     el.disabled = true;
-    try { await Promise.all(vit.map((x, k) => (x.rank === k + 1 ? null : Store.updateShop(x.id, { rank: k + 1 }))).filter(Boolean)); await load(); }
-    catch (ex) { alert("Non enregistré, vérifiez la connexion."); await load(); }
-    return;
+    const vit = vitrineShops(), i = vit.findIndex(x => x.id === el.dataset.vmove);
+    return moveVitrine(el.dataset.vmove, i + Number(el.dataset.dir));
   }
   if (el.dataset.demos) {
     const on = el.dataset.demos === "actif";
@@ -2000,6 +2009,8 @@ async function onViewChange(e) {
     } else if (o && c) assignTo(o, c);
   } else if (t.dataset.ract === "note") {
     Store.updateRequest(t.closest("[data-req]").dataset.req, { admin_note: t.value.trim() || null }).catch(() => alert("Note non enregistrée."));
+  } else if (t.dataset.vpos) {
+    moveVitrine(t.dataset.vpos, Number(t.value) - 1);
   } else if (t.dataset.sact === "note" || t.dataset.sact === "referrer" || t.dataset.sact === "kind") {
     const id = t.closest("[data-shop]").dataset.shop;
     const changes = t.dataset.sact === "note" ? { admin_note: t.value.trim() || null } : t.dataset.sact === "kind" ? { kind: t.value } : { referrer_id: t.value || null };
