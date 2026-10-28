@@ -450,6 +450,7 @@ livraison/
   - il envoie la photo du ticket (« 🧾 Ticket du magasin ») ; le client voit « Envoyez X ₪ à … par Bit » et paie le montant exact ;
   - le livreur touche « ✅ Ticket reçu », puis peut livrer (« Livré » bloqué sans ticket ou tant que le ticket n'est pas payé) ;
   - plus de prix approximatif à payer d'avance ni de différence à rendre ; en espèces, rien ne change (course + ticket à la livraison). Les commandes passées avec l'ancienne version gardent l'ancienne règle.
+- **« Votre livreur HOP! » partout côté client** : suivi (« Votre livreur HOP! : Ilan »), notifications (« 🛵 Votre livreur HOP! Ilan a accepté votre course », « 📦 Votre livreur HOP! est en route »), messages automatiques et messages du livreur (« 💬 Ilan · votre livreur HOP! »), paiement, pourboire. En hébreu : « השליח שלכם מהופ! ».
 - **Notifications qui ne reviennent plus pour rien** :
   - une course prise, livrée ou annulée, un paiement reçu, un message lu : sa notification se ferme dès que l'appli (patron ou livreur) se met à jour ;
   - « 🟢 En service » s'affiche une fois quand on passe en service ; balayée, elle ne revient plus (ni au retour de Waze, ni au rechargement) ;
