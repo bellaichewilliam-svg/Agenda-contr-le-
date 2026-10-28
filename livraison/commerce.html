@@ -48,7 +48,7 @@
       window.addEventListener("load", function () { if (first) later(); });
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610280145" />
+  <link rel="stylesheet" href="styles.css?v=202610280240" />
 </head>
 <body>
 
@@ -111,8 +111,10 @@
     <div class="sp-pane" data-sp-pane="orders">
       <div class="card prep-card hidden" id="spPrep"></div>
       <div class="card drops-card hidden" id="spDrops"></div>
-      <a class="btn btn-primary btn-lg btn-block" id="spOrder" data-i18n="shOrder"></a>
-      <p class="muted small" style="margin:6px 0 16px;text-align:center" data-i18n="shOrderSub"></p>
+      <!-- « Envoyer une course » : le client a acheté au magasin, HOP! lui livre (toutes ses infos obligatoires) -->
+      <button type="button" class="btn btn-primary btn-lg btn-block" id="spOrder" data-i18n="shOrder"></button>
+      <p class="muted small" style="margin:6px 0 16px;text-align:center" id="spOrderSub"></p>
+      <form class="card sd-card hidden" id="spSend" action="javascript:void(0)" novalidate></form>
       <div class="card">
         <h3 data-i18n="shOrders"></h3>
         <div id="spOrders"></div>
@@ -136,6 +138,7 @@
           <small data-i18n="shPosterSub"></small>
         </div>
         <button class="btn" id="spPrint" data-i18n="shPrint"></button>
+        <a class="btn" href="autocollant.html" target="_blank" rel="noopener" data-i18n="shSticker"></a>
       </div>
     </div>
     <div class="sp-pane" data-sp-pane="account">
@@ -159,13 +162,13 @@
 <button type="button" class="wa-fab chat-fab" id="waFab"><span>💬</span><b data-i18n="chatFab"></b><i class="chat-badge hidden" id="fabBadge"></i></button>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="config.js?v=202610280145"></script>
-<script src="i18n.js?v=202610280145"></script>
-<script src="pricing.js?v=202610280145"></script>
-<script src="store.js?v=202610280145"></script>
-<script src="chat.js?v=202610280145"></script>
-<script src="common.js?v=202610280145"></script>
-<script src="places.js?v=202610280145"></script>
-<script src="commerce.js?v=202610280145"></script>
+<script src="config.js?v=202610280240"></script>
+<script src="i18n.js?v=202610280240"></script>
+<script src="pricing.js?v=202610280240"></script>
+<script src="store.js?v=202610280240"></script>
+<script src="chat.js?v=202610280240"></script>
+<script src="common.js?v=202610280240"></script>
+<script src="places.js?v=202610280240"></script>
+<script src="commerce.js?v=202610280240"></script>
 </body>
 </html>

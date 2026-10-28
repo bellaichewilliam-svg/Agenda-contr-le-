@@ -809,7 +809,7 @@ function renderSpace() {
   renderFiche();
   renderDrops();
   renderPayMeans();
-  $("#spOrder").href = clientLink(shop) + "#commander";
+  renderSend();
   $("#spLink").value = clientLink(shop);
   $("#spShare").href = UI.waShare(t("shShareMsg", { name: shop.name, url: clientLink(shop) }));
   $("#posterName").textContent = shop.name;
@@ -845,10 +845,20 @@ function renderSpace() {
   $("#spOrders").innerHTML = orders.length ? orders.slice(0, 30).map(o => `
     <div class="shop-row">
       <div><b>${UI.esc(o.dropoff_contact || o.contact_name || "")} · <bdi>${UI.esc(o.dropoff_address || "")}</bdi>, ${UI.esc(I18N.cityName(o.to_city))}</b>
-        <small class="muted">${UI.esc(UI.fmtDateTime(o.pickup_at))} · ${UI.esc(t("orderNo", { ref: o.ref }))}</small></div>
+        <small class="muted">${UI.esc(UI.fmtDateTime(o.pickup_at))} · ${UI.esc(t("orderNo", { ref: o.ref }))}</small>${sentLine(o)}</div>
       <div class="num"><span class="pill st-${UI.esc(o.status)}">${UI.esc(t("st_" + o.status))}</span><br><b>${UI.money(o.price)}</b>
-        ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<br><a class="small" href="${UI.trackUrl(o)}">${UI.esc(t("shTrack"))}</a>` : ""}</div>
+        ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<br><a class="small" href="${UI.trackUrl(o)}${o.shop_sent ? "&shop=1" : ""}">${UI.esc(t("shTrack"))}</a>` : ""}</div>
     </div>`).join("") : `<p class="muted small">${UI.esc(t("shNoOrders"))}</p>`;
+}
+
+// Course envoyée par le commerce : qui paie ; « vous payez » → le Bit du livreur dès qu'il a pris la course
+function sentLine(o) {
+  if (!o.shop_sent) return "";
+  const due = o.payer === "moi" && o.payment_status !== "paye" && o.courier_bit && ["confirmee", "recuperee"].includes(o.status);
+  const bit = String(o.courier_bit || "").replace(/\D/g, "");
+  return `<small class="sd-who">${UI.esc(t(o.payer === "moi" ? "sdByYou" : "sdByClient"))}</small>`
+    + (due ? `<span class="sd-due">${UI.esc(t("sdPayDue", { price: UI.money(o.price), name: String(o.courier_name || "").split(" ")[0], phone: bit }))}
+      <button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(bit)}">${UI.esc(t("bpCopy"))}</button></span>` : "");
 }
 
 // --- Ma fiche pour les clients : WhatsApp, présentation, horaires (comme le patron, en libre-service) ---------
@@ -1064,6 +1074,181 @@ $("#spOther").addEventListener("click", e => {
   }
 });
 
+// --- « Envoyer une course » : le client a acheté et payé au magasin, HOP! lui livre -----------
+// Tout ce qu'il faut au livreur est obligatoire (nom, téléphone, rue et numéro, étage, appartement, heure, qui paie) ;
+// départ = le commerce (la base le reprend de sa fiche). La course se paie au livreur par Bit : le commerce
+// quand il prend le colis, ou le client à la livraison.
+const send = { pick: null, ac: null, ready: "0", payer: "", done: null, busy: false };
+const SEND_KEYS = ["name", "phone", "street", "city", "floor", "apt", "code", "note", "at"];
+function sendPrice() {
+  const shop = state.dash.shop, f = $("#spSend");
+  const to = (f.elements.city && f.elements.city.value) || shop.city || CONFIG.homeCity;
+  const from = shop.lat != null ? { lat: Number(shop.lat), lon: Number(shop.lon) } : null;
+  const toPt = send.pick && send.pick.lat != null ? { lat: send.pick.lat, lon: send.pick.lon } : null;
+  return Pricing.computeQuote({ fromCity: shop.city || CONFIG.homeCity, toCity: to, service: "colis", size: "petit", fromPoint: from, toPoint: toPt }, CONFIG).total;
+}
+function sendVals() {
+  const f = $("#spSend"), v = {};
+  SEND_KEYS.forEach(k => { if (f.elements[k]) v[k] = f.elements[k].value; });
+  return v;
+}
+// full : redessiner le formulaire (ouverture, langue) ; sinon seulement la ligne sous le bouton (rafraîchissements)
+function renderSend(full) {
+  const f = $("#spSend"), shop = state.dash && state.dash.shop;
+  if (!shop) return;
+  $("#spOrderSub").textContent = t("shOrderSub", { price: UI.money(CONFIG.pricing.fixedFromHome[shop.city] || CONFIG.pricing.base), city: I18N.cityName(shop.city || CONFIG.homeCity) });
+  if (!full || f.classList.contains("hidden")) return;
+  const e = UI.esc;
+  if (send.done) {
+    const o = send.done, first = String(o.dropoff_contact || "").split(" ")[0];
+    const when = o.ready ? t("sdWhenAt", { time: UI.fmtTime(o.pickup_at) }) : t("sdWhenNow");
+    f.innerHTML = `<p class="sd-done">${e(t("sdDone", { ref: o.ref, when }))}</p>
+      <p class="sd-pay">${e(t(o.payer === "moi" ? "sdDoneShop" : "sdDoneClient", { price: UI.money(o.price) }))}</p>
+      <a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="${e(UI.waLink(o.dropoff_phone, t("sdShareMsg", { name: first, shop: shop.name, url: UI.trackUrl(o) })))}">${e(t("sdShareWa"))}</a>
+      <div class="sd-done-btns"><a class="btn" href="${e(UI.trackUrl(o) + "&shop=1")}">${e(t("shTrack"))}</a>
+        <button type="button" class="btn btn-primary" data-sd-new>${e(t("sdAnother"))}</button></div>`;
+    return;
+  }
+  const v = sendVals();
+  const city = v.city || shop.city || CONFIG.homeCity, price = UI.money(sendPrice());
+  const fld = (k, label, attrs, cls) => `<label class="f${cls ? " " + cls : ""}"><span>${e(t(label))}</span><input name="${k}" ${attrs || ""} value="${e(v[k] || "")}" /></label>`;
+  const ready = (val, label) => `<label class="choice"><input type="radio" name="ready" value="${val}"${send.ready === val ? " checked" : ""} /><span><b>${e(label)}</b></span></label>`;
+  const payer = (val, k) => `<label class="choice"><input type="radio" name="payer" value="${val}"${send.payer === val ? " checked" : ""} /><span><b>${e(t(k))}</b><small>${e(t(k + "D", { price }))}</small></span></label>`;
+  f.innerHTML = `<div class="sd-head"><h3>${e(t("sdTitle"))}</h3><button type="button" class="btn btn-sm btn-link" data-sd-close>${e(t("sdClose"))}</button></div>
+    <p class="muted small sd-sub">${e(t("sdSub"))}</p>
+    <p class="sd-req">${e(t("sdReq"))}</p>
+    <div class="sd-grid sd-two">
+      ${fld("name", "sdName", 'required autocomplete="off" maxlength="60"')}
+      ${fld("phone", "sdPhone", 'type="tel" inputmode="tel" required autocomplete="off" dir="ltr" placeholder="05X-XXX-XXXX"')}
+    </div>
+    ${fld("street", "sdStreet", `required autocomplete="off" placeholder="${e(t("sdStreetPh"))}"`)}
+    <label class="f"><span>${e(t("sdCity"))}</span><select name="city">${CONFIG.cities.map(c => `<option value="${e(c.id)}"${c.id === city ? " selected" : ""}>${e(I18N.cityName(c.id))}</option>`).join("")}</select></label>
+    <div class="sd-grid sd-three">
+      ${fld("floor", "sdFloor", 'required inputmode="numeric" maxlength="10"')}
+      ${fld("apt", "sdApt", 'required maxlength="10"')}
+      ${fld("code", "sdCode", 'maxlength="20" dir="ltr"')}
+    </div>
+    ${fld("note", "sdNote", `maxlength="200" placeholder="${e(t("sdNotePh"))}"`)}
+    <div class="sd-block"><b class="sd-label">${e(t("sdReady"))}</b>
+      <div class="choices sd-ready">${ready("0", t("sdNow"))}${ready("15", t("sdIn", { n: 15 }))}${ready("30", t("sdIn", { n: 30 }))}${ready("at", t("sdAt"))}</div>
+      <label class="f sd-at${send.ready === "at" ? "" : " hidden"}"><span>${e(t("sdAtLabel"))}</span><input type="time" name="at" value="${e(v.at || "")}" dir="ltr" /></label>
+    </div>
+    <div class="sd-block"><b class="sd-label">${e(t("sdPayer"))}</b>
+      <div class="choices sd-payer">${payer("destinataire", "sdPayClient")}${payer("moi", "sdPayShop")}</div>
+    </div>
+    <p class="sd-goods">✓ ${e(t("sdGoods"))}</p>
+    <p class="notice err hidden" id="sdErr"></p>
+    <button class="btn btn-primary btn-lg btn-block sd-go" id="sdGo">${e(t("sdGo", { price }))}</button>
+    <p class="muted small sd-wa">${e(t("sdWa", { phone: CONFIG.phoneDisplay }))}</p>`;
+  if (send.ac && send.ac.destroy) send.ac.destroy();
+  send.ac = Places.attach(f.elements.street, {
+    lang: () => I18N.lang, texts: () => ({ none: t("addrNone"), down: t("addrDown") }),
+    onPick: p => {
+      send.pick = p;
+      f.elements.street.value = [p.streetName || p.street || "", p.housenumber || ""].join(" ").trim();
+      if (send.ac) send.ac.setPicked(f.elements.street.value);
+      if (p.cityId && CONFIG.cities.some(c => c.id === p.cityId)) f.elements.city.value = p.cityId;
+      sendRefreshPrice();
+      (p.housenumber ? f.elements.floor : f.elements.street).focus();
+    },
+    onClear: () => { send.pick = null; sendRefreshPrice(); }
+  });
+}
+function sendRefreshPrice() {
+  const price = UI.money(sendPrice());
+  $("#sdGo").textContent = t("sdGo", { price });
+  document.querySelectorAll("#spSend .sd-payer .choice").forEach(c => {
+    const k = c.querySelector("input").value === "moi" ? "sdPayShop" : "sdPayClient";
+    c.querySelector("small").textContent = t(k + "D", { price });
+  });
+}
+function sendErr(msg, el) {
+  const box = $("#sdErr");
+  box.textContent = msg || "";
+  box.classList.toggle("hidden", !msg);
+  if (el) { el.focus(); el.scrollIntoView({ block: "center", behavior: "smooth" }); }
+}
+async function sendSubmit() {
+  if (send.busy) return;
+  const f = $("#spSend"), shop = state.dash.shop, v = sendVals();
+  f.querySelectorAll(".field-bad").forEach(x => x.classList.remove("field-bad"));
+  const need = ["name", "phone", "street", "floor", "apt"].filter(k => !String(v[k] || "").trim());
+  if (send.ready === "at" && !v.at) need.push("at");
+  need.forEach(k => f.elements[k].classList.add("field-bad"));
+  if (need.length) return sendErr(t("sdErrMissing"), f.elements[need[0]]);
+  if (!phoneOk(v.phone)) { f.elements.phone.classList.add("field-bad"); return sendErr(t("sdErrPhone"), f.elements.phone); }
+  if (!send.payer) { f.querySelector(".sd-payer").classList.add("field-bad"); return sendErr(t("sdErrPayer"), f.querySelector(".sd-payer input")); }
+  let at = new Date();
+  if (send.ready === "15" || send.ready === "30") at = new Date(Date.now() + Number(send.ready) * 60000);
+  if (send.ready === "at") {
+    const [h, m] = v.at.split(":").map(Number);
+    at = new Date(); at.setHours(h, m, 0, 0);
+    if (at < Date.now() - 60000) at.setDate(at.getDate() + 1);
+    if (at - Date.now() > 3 * 3600000) { f.elements.at.classList.add("field-bad"); return sendErr(t("sdErrAt"), f.elements.at); }
+  }
+  sendErr("");
+  send.busy = true;
+  const btn = $("#sdGo");
+  btn.disabled = true;
+  btn.textContent = t("sdSending");
+  try {
+    const city = Pricing.cityById(CONFIG, v.city);
+    let pt = send.pick && send.pick.lat != null ? { lat: send.pick.lat, lon: send.pick.lon, exact: !!send.pick.housenumber } : null;
+    if (!pt) {
+      const g = await Pricing.geocode(`${v.street.trim()}, ${city ? city.fr : ""}`, CONFIG.countryCode, 3000).catch(() => null);
+      if (g) pt = { lat: g.lat, lon: g.lon, exact: false };
+    }
+    const saved = await Store.createOrder({
+      service: "colis", urgency: "asap", size: "petit", lang: I18N.lang,
+      shop_sent: true, send_key: state.token, shop_id: shop.id,
+      from_city: shop.city || CONFIG.homeCity, to_city: v.city,
+      pickup_at: at.toISOString(), pickup_address: shop.address, pickup_lat: shop.lat, pickup_lon: shop.lon,
+      pickup_contact: shop.name, pickup_phone: shop.phone,
+      dropoff_address: v.street.trim(), dropoff_lat: pt ? pt.lat : null, dropoff_lon: pt ? pt.lon : null, dropoff_exact: !!(pt && pt.exact),
+      dropoff_floor: v.floor.trim(), dropoff_apt: v.apt.trim(), dropoff_code: v.code.trim() || null,
+      dropoff_note: v.note.trim() || null, dropoff_contact: v.name.trim(), dropoff_phone: phoneDigits(v.phone),
+      contact_name: shop.name, contact_phone: shop.phone,
+      price: sendPrice(), discount: 0, payment_method: "bit", payer: send.payer, distance_km: null
+    });
+    send.done = Object.assign({}, saved, { ready: send.ready !== "0", price: saved.price || sendPrice() });
+    send.pick = null; send.ready = "0"; send.payer = "";
+    f.reset();
+    renderSend(true);
+    f.scrollIntoView({ block: "start", behavior: "smooth" });
+    refreshSpace().catch(() => {});
+  } catch (ex) {
+    sendErr(/send_fields/.test(ex.message) ? t("sdErrMissing") : t("sdErrSend", { phone: CONFIG.phoneDisplay }));
+  } finally {
+    send.busy = false;
+    if (!send.done) { btn.disabled = false; btn.textContent = t("sdGo", { price: UI.money(sendPrice()) }); }
+  }
+}
+$("#spOrder").addEventListener("click", () => {
+  const f = $("#spSend");
+  send.done = null;
+  f.classList.remove("hidden");
+  renderSend(true);
+  f.scrollIntoView({ block: "start", behavior: "smooth" });
+  setTimeout(() => f.elements.name && f.elements.name.focus({ preventScroll: true }), 350);
+});
+$("#spSend").addEventListener("click", e => {
+  if (e.target.closest("[data-sd-close]")) { $("#spSend").classList.add("hidden"); send.done = null; return; }
+  if (e.target.closest("[data-sd-new]")) { send.done = null; renderSend(true); $("#spSend").elements.name.focus(); return; }
+  if (e.target.closest("#sdGo")) { e.preventDefault(); sendSubmit(); }
+});
+$("#spSend").addEventListener("change", e => {
+  const f = $("#spSend");
+  if (e.target.name === "ready") {
+    send.ready = e.target.value;
+    f.querySelector(".sd-at").classList.toggle("hidden", send.ready !== "at");
+    if (send.ready === "at") f.elements.at.focus();
+  }
+  if (e.target.name === "payer") { send.payer = e.target.value; f.querySelector(".sd-payer").classList.remove("field-bad"); }
+  if (e.target.name === "city") sendRefreshPrice();
+});
+$("#spSend").addEventListener("input", e => { if (e.target.classList.contains("field-bad") && e.target.value.trim()) e.target.classList.remove("field-bad"); });
+$("#spSend").addEventListener("submit", e => { e.preventDefault(); sendSubmit(); });
+
 // --- Démarrage ------------------------------------------------------------------------
 renderStatic();
 attachPlaces();
@@ -1076,7 +1261,7 @@ form.addEventListener("submit", submit);
 form.addEventListener("focusout", e => {
   if (e.target.name === "phone" && e.target.value.trim()) e.target.classList.toggle("field-bad", !phoneOk(e.target.value));
 });
-$("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); renderStatic(); });
+$("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); renderStatic(); renderSend(true); });
 $("#spCopy").addEventListener("click", () => {
   if (navigator.clipboard) navigator.clipboard.writeText($("#spLink").value).then(() => { $("#spCopy").textContent = t("shCopied"); }, () => {});
 });

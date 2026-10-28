@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <title>Autocollant de caisse · HOP!</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Rubik:wght@500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* Autocollant A6 (105 × 148 mm) pour la caisse des commerces : tout en mm, rien ne dépasse */
+    @page { size: 105mm 148mm; margin: 0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #E9EDF3; font-family: Rubik, system-ui, sans-serif; color: #0F1F3D; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .bar { max-width: 560px; margin: 0 auto; padding: 16px 16px 4px; display: grid; gap: 8px; }
+    .bar h1 { margin: 0; font: 700 22px Fredoka, sans-serif; }
+    .bar p { margin: 0; font-size: 14px; line-height: 1.45; color: #344054; }
+    .bar button { justify-self: start; border: 0; border-radius: 12px; background: #FF6A13; color: #fff; font: 700 16px Rubik, sans-serif; padding: 12px 18px; cursor: pointer; }
+    .stage { padding: 12px 16px 32px; display: flex; justify-content: center; }
+    .fit { width: 105mm; transform-origin: top center; }
+    .st { width: 105mm; height: 148mm; background: #0F1F3D; color: #fff; border-radius: 5mm; padding: 7mm 7mm 6mm; display: flex; flex-direction: column; gap: 3.2mm; overflow: hidden; }
+    .st-top { display: flex; align-items: center; justify-content: space-between; gap: 3mm; }
+    .st-logo { font: 700 13mm/1 Fredoka, sans-serif; letter-spacing: -.02em; }
+    .st-logo i, .st-o { color: #FF6A13; font-style: normal; }
+    .st-pill { background: #FF6A13; border-radius: 99px; padding: 1.6mm 3.4mm; font: 700 3.6mm/1.15 Rubik, sans-serif; text-align: center; }
+    .st-h { margin: 1mm 0 0; font: 700 8.6mm/1.04 Fredoka, sans-serif; }
+    .st-h span { color: #FF9A5C; display: block; }
+    .st-hhe { margin: 0; font: 800 6.2mm/1.15 Rubik, sans-serif; text-align: right; }
+    .st-p { margin: 0; font-size: 3.7mm; font-weight: 700; line-height: 1.38; }
+    .st-phe { margin: 0; font-size: 3.5mm; font-weight: 500; line-height: 1.4; text-align: right; opacity: .92; }
+    .st-fill { flex: 1; min-height: 0; }
+    .st-bot { display: grid; grid-template-columns: minmax(0, 1fr) 32mm; gap: 3mm; }
+    .st-price { background: #fff; color: #0F1F3D; border-radius: 4mm; padding: 3mm 3.4mm; display: flex; flex-direction: column; justify-content: center; gap: 1mm; min-width: 0; }
+    .st-price small { font-size: 3.1mm; font-weight: 700; color: #475467; line-height: 1.25; }
+    .st-price b { font: 700 11.5mm/1 Fredoka, sans-serif; color: #FF6A13; }
+    .st-wa { font-size: 3.1mm; font-weight: 700; line-height: 1.25; }
+    .st-wa b { display: block; font-size: 4.4mm; font-weight: 800; white-space: nowrap; }
+    .st-qr { background: #fff; color: #0F1F3D; border-radius: 4mm; padding: 2.4mm; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2mm; }
+    .st-qr .qr { width: 26mm; height: 26mm; }
+    .st-qr .qr img, .st-qr .qr canvas { width: 26mm !important; height: 26mm !important; display: block; }
+    .st-qr small { font-size: 3mm; font-weight: 800; text-align: center; line-height: 1.2; }
+    .st-end { margin: 0; text-align: center; font: 700 4.4mm/1.2 Fredoka, sans-serif; color: #FF9A5C; display: flex; justify-content: center; flex-wrap: wrap; gap: 0 4mm; }
+    .st-end span { font-family: Rubik, sans-serif; font-weight: 800; }
+    @media print {
+      body { background: none; }
+      .bar { display: none; }
+      html, body { width: 105mm; height: 148mm; overflow: hidden; }
+      .stage { padding: 0; display: block; height: auto !important; }
+      .fit { transform: none !important; }
+      .st { border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+<div class="bar">
+  <h1>🏷️ Autocollant de caisse · מדבקה לקופה</h1>
+  <p>Format A6 (105 × 148 mm). Imprimez-le sur papier autocollant et collez-le près de la caisse. Le QR code ouvre « Ce qu'on livre ».<br><span dir="rtl" lang="he">גודל A6. להדפיס על נייר מדבקה ולהדביק ליד הקופה.</span></p>
+  <button type="button" onclick="window.print()">🖨️ Imprimer · להדפיס</button>
+</div>
+<div class="stage"><div class="fit" id="fit">
+  <div class="st">
+    <div class="st-top">
+      <div class="st-logo">HOP<i>!</i></div>
+      <div class="st-pill">Livraison · <span lang="he">משלוחים</span></div>
+    </div>
+    <h2 class="st-h">On vous livre <span>vos achats à la maison</span></h2>
+    <p class="st-hhe" dir="rtl" lang="he">מביאים לכם את הקנייה הביתה</p>
+    <p class="st-p">Vous payez ici comme d'habitude, vous dites « livraison » au vendeur, et un livreur HOP! vous l'apporte chez vous.</p>
+    <p class="st-phe" dir="rtl" lang="he">משלמים כאן כרגיל, אומרים למוכר "משלוח", ושליח של הופ! מביא לכם עד הבית.</p>
+    <div class="st-fill"></div>
+    <div class="st-bot">
+      <div class="st-price">
+        <small id="stCity"></small>
+        <b id="stPrice"></b>
+        <span class="st-wa">WhatsApp<b id="stPhone" dir="ltr"></b></span>
+      </div>
+      <div class="st-qr"><div class="qr" id="stQr"></div><small>Scannez · <span lang="he">סרקו</span></small></div>
+    </div>
+    <p class="st-end">Et hop, c'est livré !<span dir="rtl" lang="he">הופ, וזה אצלכם!</span></p>
+  </div>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="config.js?v=202610280240"></script>
+<script>
+(function () {
+  "use strict";
+  const home = CONFIG.homeCity;
+  const city = (CONFIG.cities.find(c => c.id === home) || {});
+  const $ = s => document.querySelector(s);
+  $("#stCity").textContent = `Course à ${city.fr || "Netanya"} · משלוח ב${city.he || "נתניה"}`;
+  $("#stPrice").textContent = (CONFIG.pricing.fixedFromHome[home] || CONFIG.pricing.base) + " ₪";
+  $("#stPhone").textContent = CONFIG.phoneDisplay;
+  // QR : toujours la page « Ce qu'on livre » (comme tous les flyers), jamais la commande directement
+  const url = new URL("on-livre.html", CONFIG.siteUrl && !/^(localhost|127\.)/.test(location.hostname) ? CONFIG.siteUrl : location.href).href;
+  if (window.QRCode) new QRCode($("#stQr"), { text: url, width: 256, height: 256, correctLevel: QRCode.CorrectLevel.M });
+  // Écran de téléphone plus étroit que 105 mm : on réduit l'aperçu (l'impression reste en vraie taille)
+  const fit = () => {
+    const w = Math.min(document.documentElement.clientWidth - 32, 560), real = $("#fit").offsetWidth;
+    const k = Math.min(1.4, w / real);
+    $("#fit").style.transform = `scale(${k})`;
+    $("#fit").parentElement.style.height = ($("#fit").offsetHeight * k + 44) + "px";
+  };
+  addEventListener("resize", fit);
+  fit();
+})();
+</script>
+</body>
+</html>
