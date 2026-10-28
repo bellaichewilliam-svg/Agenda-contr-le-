@@ -327,12 +327,39 @@ function payLine(o) {
       : o.goods_prepay ? ` (course ${UI.money(o.price)} + articles ${UI.money(o.goods_budget)} au plus)` : "")
     + (shopPart(o) ? ` · 🏪 le commerce vous paie <b>${UI.money(shopPart(o))}</b> par Bit en vous remettant la commande` : "");
 }
+// Argent de la course en une case de couleur, en haut de la fiche : vert « déjà payé, rien à encaisser »,
+// orange « à encaisser » avec qui paie, combien, comment et quand (le doute « payé ou pas ? » n'existe plus)
+function moneyBox(o) {
+  const how = o.payment_method === "cash" ? "en espèces" : "par Bit";
+  const total = o.payment_method === "cash" ? cashTotal(o) : UI.payTotal(o);
+  const box = (ok, big, sub) => `<div class="money-box ${ok ? "ok" : "due"}"><b>${big}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
+  const goodsPaid = o.shop_sent ? "🛍️ Les articles sont déjà payés au magasin : ne les encaissez pas" : "";
+  if (o.payment_status === "paye") return box(true, `✅ Déjà payé · rien à encaisser`,
+    [o.paid_to === "hop" ? "Payé à HOP!, qui vous reverse le montant" : `Vous avez reçu ${UI.money(total)} ${how}`, goodsPaid].filter(Boolean).join("<br>"));
+  if (o.paid_to === "hop") return box(true, "✅ Rien à encaisser", "Le client paie HOP! directement, HOP! vous reverse le montant");
+  if (o.shop_sent && o.payer === "moi") return box(false, `💰 À encaisser au commerce : ${UI.money(o.price)} ${how}`,
+    `${UI.esc(o.shop_name || "Le commerce")} vous paie en vous donnant le colis.<br>🙋 Le client ne paie rien : tout est déjà payé au magasin`);
+  if (o.shop_sent) return box(false, `💰 À encaisser chez le client : ${UI.money(o.price)} ${how}`, `${goodsPaid}. Seulement la livraison, à l'arrivée`);
+  if (o.payment_method === "cash") return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`, "À la livraison");
+  return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`, "Sur votre numéro, avant de récupérer la commande");
+}
+// Colis en route : prévenir le client d'un toucher (« j'arrive dans 5 min », « je suis en bas »)
+let onWaySent = {};
+try { onWaySent = JSON.parse(sessionStorage.getItem("hop.onway") || "{}") || {}; } catch (e) { /* ignore */ }
+const onWayBtns = o => [["5", "🛵 J'arrive dans 5 min"], ["here", "📍 Je suis en bas"]].map(([k, l]) =>
+  `<button type="button" class="btn btn-sm" data-onway="${k}" data-id="${UI.esc(o.id)}">${onWaySent[o.id + k] ? "✓ " : ""}${l}</button>`).join("");
+// Fiches repliées ouvertes par le livreur : elles le restent quand l'écran se rafraîchit
+const openFolds = new Set();
+document.addEventListener("toggle", e => {
+  const k = e.target && e.target.dataset && e.target.dataset.fold;
+  if (k) { if (e.target.open) openFolds.add(k); else openFolds.delete(k); }
+}, true);
 // Mes dernières courses livrées : en petit, à ouvrir (au cas où : client, adresse, paiement, reçu)
 function doneList() {
   const done = orders.filter(o => o.courier_id === me.id && o.status === "livree")
     .sort((a, b) => new Date(b.delivered_at || b.pickup_at) - new Date(a.delivered_at || a.pickup_at)).slice(0, 15);
   if (!done.length) return "";
-  return `<h3 class="done-title">🕘 Mes dernières courses livrées</h3><div class="done-list">${done.map(o => `<details class="done-row">
+  return `<h3 class="done-title">🕘 Mes dernières courses livrées</h3><div class="done-list">${done.map(o => `<details class="done-row" data-fold="d:${UI.esc(o.id)}"${openFolds.has("d:" + o.id) ? " open" : ""}>
     <summary><span>✅ N° ${UI.esc(o.ref)} · ${UI.esc(UI.fmtDateTime(o.delivered_at || o.pickup_at))}</span><b>${UI.money(o.price)}</b></summary>
     <div class="done-body">
       <p>📍 <bdi>${UI.esc(o.pickup_place || o.pickup_address || "")}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</p>
@@ -431,11 +458,20 @@ async function load() {
   showNextOffer();
   if (!firstLoad && fresh.length && isOnline()) {
     if (!offerShown) beep();
-    if (window.Notification && Notification.permission === "granted") {
-      fresh.forEach(o => UI.notify(`🆕 Course dispo n° ${o.ref} — ${UI.money(Store.courseValue(o))}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}`, tag: "hop-o-" + o.id, vibrate: [300, 150, 300], requireInteraction: true }));
+    // Appli en arrière-plan seulement (ouverte, la fenêtre de la course suffit) ; même étiquette que la notification
+    // push de cette course : l'une remplace l'autre, jamais deux fois la même
+    if (document.hidden && window.Notification && Notification.permission === "granted") {
+      fresh.forEach(o => UI.notify(`🆕 Course dispo n° ${o.ref} — ${UI.money(Store.courseValue(o))}`, { body: `${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)} · ${UI.whenFr(o)}`, tag: "o-" + o.id, vibrate: [300, 150, 300], requireInteraction: true }));
     }
   }
   pool().forEach(o => seenPool.add(o.id));
+  // Notifications qui ne servent plus (course prise par un autre, livrée, annulée, payée) : fermées sur le téléphone
+  UI.clearNotifs((k, id) => {
+    if (k === "m") return false;
+    const o = orders.find(x => x.id === id);
+    const over = !o || ["livree", "annulee", "refusee"].includes(o.status) || (!!o.courier_id && o.courier_id !== me.id);
+    return k === "pay" ? over || o.payment_status === "paye" : over;
+  });
   // Le client dit avoir payé (paiement direct) : on prévient le livreur, une fois par course
   mine().filter(o => o.direct_pay && o.paid_to !== "hop" && o.client_paid_at && o.payment_status !== "paye" && !paidSeen.has(o.id)).forEach(o => {
     paidSeen.add(o.id);
@@ -578,6 +614,7 @@ function card(o, kind) {
   const total = Store.courseValue(o);
   const net = total - (kind === "pool" ? Store.commissionFor(total, settings, mineShop) : Number(o.commission || 0));
   if (kind === "pool") extra = readyBanner(o) + cashNeedLine(o) + `<div class="small">${payLine(o)}</div>` + extra;
+  if (kind === "mine" || kind === "pool") extra = moneyBox(o) + extra;
   if (o.shop_status) extra += proLine(o);
   if (o.phone_order) extra += phoneLine(o);
   if (o.adult_items) extra += `<div class="small adult-line">🔞 ${/tabac/.test(o.adult_items) ? "Tabac" : ""}${/tabac/.test(o.adult_items) && /alcool/.test(o.adult_items) ? " et " : ""}${/alcool/.test(o.adult_items) ? "alcool" : ""} : vérifiez la pièce d'identité du client (18 ans et plus) avant de donner.</div>`;
@@ -621,7 +658,7 @@ function card(o, kind) {
         : o.wait_status === "a_payer"
           ? `<p class="wait-live">⏱️ Supplément d'attente : <b>${UI.money(o.wait_due)}</b> à encaisser par Bit / PayBox avant de livrer (la course est déjà payée)</p>
              <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Supplément reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`
-          : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`)
+          : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>` + onWayBtns(o))
       + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (o.payment_method === "cash" && o.status === "confirmee" && Number(o.cash_need) > 0 && !o.cash_shop_at ? `<button class="btn btn-sm" data-act="pas_especes">😕 Je n'ai pas les espèces</button>` : "")
@@ -1084,6 +1121,19 @@ async function onViewClick(e) {
     if (!ok) alert("Pas enregistré, réessayez.");
     return load();
   }
+  if (el.dataset.onway) {
+    // Message tout prêt, dans la langue du client : il le reçoit dans sa conversation et en notification
+    const o = orders.find(x => x.id === el.dataset.id);
+    if (!o) return;
+    el.disabled = true;
+    const key = el.dataset.onway === "here" ? "rdMsgHere" : "rdMsgOnWay";
+    try {
+      await Store.chatSend("o:" + o.id, "courier", me.name, I18N.forLang(o.lang || "fr", key, { name: String(me.name || "").split(" ")[0] }));
+      onWaySent[o.id + el.dataset.onway] = 1;
+      try { sessionStorage.setItem("hop.onway", JSON.stringify(onWaySent)); } catch (ex) { /* ignore */ }
+    } catch (ex) { alert("Message non envoyé, réessayez."); }
+    return render();
+  }
   if (el.dataset.paidhow) {
     const o = orders.find(x => x.id === el.dataset.id);
     if (!o) return;
@@ -1249,6 +1299,8 @@ async function checkChats() {
   // des autres, qu'on ne peut pas ouvrir d'ici
   const mineThreads = new Set(["c:" + me.id].concat(orders.filter(o => o.courier_id === me.id).map(o => "o:" + o.id)));
   chatUnread = Chat.unread((recent || []).filter(m => mineThreads.has(m.thread)), "courier");
+  // Message lu (ou conversation d'une course finie) : sa notification se ferme
+  UI.clearNotifs((k, id) => k === "m" && !chatUnread[id]);
   const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
   const boss = chatUnread["c:" + me.id] || 0;
   $("#bossBadge").textContent = boss;
@@ -2436,7 +2488,7 @@ async function toggleDuty(quiet) {
   // En ligne / hors ligne pour HOP : seules les personnes en ligne reçoivent des courses
   duty.onlineP = Store.setOnline(duty.watch != null).then(() => { if (duty.watch == null) load(); }).catch(() => {});
   // Notification « En service » qui reste affichée : on peut passer sur Waze et revenir en un geste
-  UI.dutyNotice(duty.watch != null, DUTY_TEXT);
+  UI.dutyNotice(duty.watch != null, DUTY_TEXT, !quiet);
   if (duty.watch != null && !quiet) hopBurst();
   // Il termine son service lui-même : le bilan et l'avis rapide (après la mise à jour des courses)
   if (duty.watch == null && !quiet && duty.since) { const since = duty.since; duty.onlineP.then(() => setTimeout(() => openShift(since), 600)); }
@@ -2466,6 +2518,12 @@ function openFromNotif(url) {
   const id = m ? (m[1].match(/^o:(.+)$/) || [])[1] : (tag.match(/^(?:o|pay|refund)-(.+)$/) || [])[1];
   const o = id && orders.find(x => x.id === id);
   if (m && o) return openOrderChat(o);
+  if (!o && !m) return alert("Cette course n'est plus disponible : un autre livreur l'a prise, ou elle a été annulée.");
+  if (o && o.courier_id === me.id && o.status === "livree") {
+    // Course déjà livrée : sa fiche dans « Mes dernières courses livrées », ouverte
+    openFolds.add("d:" + o.id); openPage("mine"); render();
+    return setTimeout(() => { const el = document.querySelector(`[data-fold="d:${CSS.escape(o.id)}"]`); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 300);
+  }
   if (o && o.courier_id === me.id) { openPage("mine"); setTimeout(() => { const el = document.querySelector(`.mine-card[data-id="${CSS.escape(id)}"]`); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 300); }
   else if (o) openPage("pool");
 }

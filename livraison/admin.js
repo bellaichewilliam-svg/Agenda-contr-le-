@@ -36,7 +36,14 @@ let requests = [];
 let sales = [];
 let planSales = [];
 let clients = [];   // clients (avec ou sans compte), chargés à l'ouverture de l'onglet
-let clientsQ = "";
+let clientsQ = "", shopsQ = "";
+// Fiches repliées (courses terminées, commerces) : celles que le patron a ouvertes le restent quand l'écran se rafraîchit
+const openFolds = new Set();
+document.addEventListener("toggle", e => {
+  const k = e.target && e.target.dataset && e.target.dataset.fold;
+  if (k) { if (e.target.open) openFolds.add(k); else openFolds.delete(k); }
+}, true);
+const foldOpen = k => openFolds.has(k) ? " open" : "";
 let penalties = [];   // retenues aux livreurs (courses pas faites, pas reçues)
 let credits = { credits: [], topups: [] };   // crédit prépayé des livreurs et leurs recharges
 let accounts = [];   // comptes (inscription finie ou pas, notifications activées), voir Store.adminAccounts
@@ -207,6 +214,15 @@ async function load() {
   if (bossFirstLoad) { bossFirstLoad = false; bossFromUrl(location.href); }
   if (bossAfterLoad) { const id = bossAfterLoad; bossAfterLoad = null; bossPopup(id); }
   else if (bossId) { const o = orders.find(x => x.id === bossId); if (!o || o.status !== "nouvelle" || o.courier_id) { $("#bossModal").classList.add("hidden"); bossId = null; } }
+  // Notifications qui ne servent plus (course prise, livrée, annulée, payée ; message lu) : fermées sur le téléphone
+  UI.clearNotifs((k, id) => {
+    if (k === "m") return !chatUnread[id];
+    const o = orders.find(x => x.id === id), over = !o || ["livree", "annulee", "refusee"].includes(o.status);
+    if (k === "o") return over || o.status !== "nouvelle" || !!o.courier_id;
+    if (k === "pay") return over || o.payment_status === "paye";
+    if (k === "late") return over;
+    return false;
+  });
 }
 
 // --- Disponibilité (« je suis complet ») --------------------------------------------
@@ -370,6 +386,22 @@ async function onBossClick(e) {
   if (duty.watch == null && confirm("Course prise. Passer en service pour que le client vous suive sur la carte ?")) toggleDuty();
   assignTo(o, me);
 }
+// Course d'une notification : à prendre ou donner → sa fenêtre ; sinon (prise, en route, livrée…) → sa fiche,
+// ouverte et montrée dans l'historique (recherche sur son numéro)
+function showOrder(id) {
+  const o = orders.find(x => x.id === id);
+  if (!o) return alert("Cette course n'existe plus.");
+  if (o.status === "nouvelle" && !o.courier_id) return bossPopup(id);
+  $("#bossModal").classList.add("hidden");
+  histFilter = { status: "", q: o.ref };
+  openFolds.add("o:" + o.id);
+  tab = "historique"; lastTab[groupOf(tab)] = tab;
+  render();
+  setTimeout(() => {
+    const el = document.querySelector(`#view [data-fold="o:${CSS.escape(o.id)}"], #view article[data-id="${CSS.escape(o.id)}"]`);
+    if (el) { el.scrollIntoView({ block: "start", behavior: "smooth" }); el.classList.add("flash"); }
+  }, 200);
+}
 // Adresse ouverte par la notification : patron/?o=<course>
 function bossFromUrl(url) {
   try {
@@ -379,7 +411,7 @@ function bossFromUrl(url) {
     const m = tag.match(/^m-(.+)$/);
     if (m) { const th = m[1]; openAdminChat(th, threadLabel(th, []), ""); return; }
     const oid = id || (tag.match(/^(?:o|pay|refund|late)-(.+)$/) || [])[1];
-    if (oid) bossPopup(oid);
+    if (oid) showOrder(oid);
   } catch (e) { /* ignore */ }
 }
 // Solde d'un livreur (même calcul que la base) : commissions − courses payées à HOP − part Pro et promos
@@ -503,7 +535,7 @@ function card(o, withDay) {
 
   // Course terminée (livrée, annulée, refusée) : une ligne qu'on ouvre ; les courses à faire restent ouvertes
   const closed = ["livree", "annulee", "refusee"].includes(o.status);
-  const fold = inner => closed ? `<details class="order-fold" data-id="${UI.esc(o.id)}"><summary>
+  const fold = inner => closed ? `<details class="order-fold" data-id="${UI.esc(o.id)}" data-fold="o:${UI.esc(o.id)}"${foldOpen("o:" + o.id)}><summary>
       <span>${st.icon} ${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}N° ${UI.esc(o.ref)} · ${UI.esc(o.dropoff_contact || o.contact_name || "")}${o.courier_name ? " · 🛵 " + UI.esc(o.courier_name.split(" ")[0]) : ""}${o.is_test ? " · 🧪 test" : ""}</span>
       <b>${UI.money(o.price)}</b></summary>${inner}</details>` : inner;
   return fold(`
@@ -1004,7 +1036,11 @@ function renderShops(view) {
   const viaShop = orders.filter(o => o.shop_id && o.status === "livree" && !o.is_test);
   const order = ["en_attente", "actif", "suspendu"];
   // Les vitrines de démonstration ont leur propre carte (liens à montrer aux commerces), pas dans la liste
-  const list = shops.filter(x => !x.demo).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  const all = shops.filter(x => !x.demo).sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  // Recherche : nom, code, adresse, contact ou téléphone
+  const q = shopsQ.trim().toLowerCase(), qd = q.replace(/\D/g, "");
+  const list = all.filter(x => !q || [x.name, x.code, x.address, x.contact_name, x.email].some(v => String(v || "").toLowerCase().includes(q))
+    || (qd.length >= 3 && [x.phone, x.whatsapp].some(v => String(v || "").replace(/\D/g, "").includes(qd))));
   const demos = [["DEMO-RESTO", "🍔 Restaurant"], ["DEMO-BOULANGERIE", "🥐 Boulangerie"], ["DEMO-BOUTIQUE", "👗 Boutique"]]
     .map(([code, label]) => ({ code, label, url: UI.appUrl("index.html") + "?c=" + code, space: UI.appUrl("commerce.html") + "?demo=" + code.split("-")[1].toLowerCase() }));
   // Retirer les démos d'un geste (elles sont seulement suspendues, jamais effacées : on peut les remettre)
@@ -1013,15 +1049,15 @@ function renderShops(view) {
   const statusLabel = { en_attente: "⏳ À vérifier", actif: "✅ Partenaire", suspendu: "⛔ Suspendu" };
   const bonusDue = sum(orders.filter(o => o.status === "livree" && !o.is_test && Number(o.referral_bonus) > 0 && o.referral_status !== "regle"), o => Number(o.referral_bonus));
   // Dès qu'un commerce s'inscrit : ses accès à lui envoyer, en haut de l'onglet
-  const toSend = list.filter(x => x.status !== "suspendu" && !accessSent()[x.id] && (x.whatsapp || x.phone));
+  const toSend = all.filter(x => x.status !== "suspendu" && !accessSent()[x.id] && (x.whatsapp || x.phone));
   view.innerHTML = `
     ${toSend.length ? `<div class="card access-card" style="margin-bottom:14px">
       <b>📲 ${toSend.length === 1 ? "1 commerce attend ses accès" : toSend.length + " commerces attendent leurs accès"}</b>
       <p class="muted small" style="margin:4px 0 8px">Le lien de son espace (catalogue, commandes), son code et le lien pour ses clients : le message est déjà écrit dans sa langue, appuyez sur Envoyer dans WhatsApp.</p>
       ${toSend.map(x => `<div class="access-row"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.contact_name || "")} · ${UI.esc(x.whatsapp || x.phone)}</span>${accessBtn(x)}</div>`).join("")}
     </div>` : ""}
-    <div class="card" style="margin-bottom:14px" id="dirCard">
-      <b>📖 Annuaire : ajouter un commerce</b>
+    <details class="card adm-fold" style="margin-bottom:14px" id="dirCard" data-fold="c:dir"${foldOpen("c:dir")}>
+      <summary><b>📖 Annuaire : ajouter un commerce</b></summary>
       <p class="muted small" style="margin:4px 0 8px">Un restaurant, une makolet, une épicerie… qui ne sort pas dans la recherche : ajoutez-le ici. Il apparaît tout de suite chez tous les clients (« Catalogue à venir » tant qu'il n'est pas partenaire).</p>
       <div class="dir-add">
         <input id="dirFr" placeholder="Nom en français (ex. Oshi Sushi)" />
@@ -1033,27 +1069,33 @@ function renderShops(view) {
       </div>
       <div id="dirCheck" class="dir-check small"></div>
       <details style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
-    </div>
-    <div class="card" style="margin-bottom:14px">
-      <b>🎬 Vitrines de démonstration</b>
+    </details>
+    <details class="card adm-fold" style="margin-bottom:14px" data-fold="c:demo"${foldOpen("c:demo")}>
+      <summary><b>🎬 Vitrines de démonstration</b></summary>
       <p class="muted small" style="margin:4px 0 8px">À montrer en rendez-vous : un restaurant, une boulangerie et une boutique avec un catalogue complet. Le commerçant voit sa future vitrine (côté client) et son espace (🧑‍🍳 : ajouter un article, changer un prix, accepter une commande) ; aucune commande ne part, rien n'est envoyé. Invisibles pour les clients.</p>
       ${demoOn ? `<div class="actions">${demos.map(d => `<a class="btn btn-sm btn-primary" href="${UI.esc(d.url)}" target="_blank" rel="noopener">${d.label}</a><a class="btn btn-sm" href="${UI.esc(d.space)}" target="_blank" rel="noopener" title="L'espace du commerçant : catalogue, prix, commandes (démo sur le téléphone)">🧑‍🍳 Espace</a><button class="btn btn-sm" data-copy="${UI.esc(d.url)}" title="Copier le lien">📋</button>`).join("")}</div>` : `<p class="small">⛔ Démos retirées : les liens ne montrent plus rien.</p>`}
       ${demoShops.length ? `<div class="actions" style="margin-top:8px"><button class="btn btn-sm" data-demos="${demoOn ? "suspendu" : "actif"}">${demoOn ? "⛔ Retirer les démos" : "✅ Remettre les démos"}</button></div>` : ""}
-    </div>
-    <div class="card" style="margin-bottom:14px">
-      <b>🏪 Inscrire un commerce partenaire</b>
+    </details>
+    <details class="card adm-fold" style="margin-bottom:14px" data-fold="c:signup"${foldOpen("c:signup")}>
+      <summary><b>🏪 Inscrire un commerce partenaire</b></summary>
       <p class="muted small" style="margin:4px 0 8px">Envoyez ce lien à un restaurant ou une boutique : il s'inscrit, puis vous le validez ici après avoir vérifié qu'il existe.</p>
       <div class="actions"><button class="btn btn-sm" data-copy="${UI.esc(signup)}">📋 Copier le lien</button><a class="btn btn-sm btn-primary" href="${UI.esc(signup)}" target="_blank" rel="noopener">➕ Inscrire un commerce</a></div>
-    </div>
+    </details>
     <div class="stats">
       <div class="stat"><small>Commerces</small><b>${shops.filter(x => !x.demo && x.status !== "suspendu").length}</b></div>
       <div class="stat"><small>À vérifier</small><b>${shops.filter(x => !x.demo && x.status === "en_attente").length}</b></div>
       <div class="stat"><small>Courses ce mois</small><b>${viaShop.filter(o => UI.dayKey(o.pickup_at).startsWith(month)).length}</b></div>
       ${bonusDue > 0 ? `<div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>` : `<div class="stat"><small>HOP! Pro</small><b>${shops.filter(x => !x.demo && Store.planActive(x)).length}</b></div>`}
     </div>
+    <div class="toolbar"><input id="shopsQ" type="search" placeholder="🔎 Rechercher un commerce (nom, code, adresse, téléphone)" value="${UI.esc(shopsQ)}" /></div>
     ${list.length ? `<div class="orders">${list.map(x => {
       const done = viaShop.filter(o => o.shop_id === x.id);
-      return `<article class="order${x.status === "en_attente" ? " is-new" : ""}" data-shop="${UI.esc(x.id)}">
+      // Fiche repliée en une ligne (nom, état, courses) ; celles à vérifier restent ouvertes
+      const k = "s:" + x.id, open = x.status === "en_attente" || openFolds.has(k);
+      return `<details class="order-fold shop-fold" data-shop="${UI.esc(x.id)}" data-fold="${UI.esc(k)}"${open ? " open" : ""}><summary>
+        <span>${x.status === "en_attente" ? "⏳" : x.status === "suspendu" ? "⛔" : "✅"} <b>${UI.esc(x.name)}</b>${Store.planActive(x) ? " · ⭐ Pro" : ""}${x.address ? " · " + UI.esc(x.address) : ""}</span>
+        <b>${done.length} 🛵</b></summary>
+      <article class="order${x.status === "en_attente" ? " is-new" : ""}" data-shop="${UI.esc(x.id)}">
         <div class="order-head">
           <span class="order-time">${UI.esc(x.name)}</span>
           <span class="pill">${statusLabel[x.status] || x.status}</span>
@@ -1103,8 +1145,8 @@ function renderShops(view) {
           <a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.appUrl("commerce.html") + "?k=" + x.token + "&vu=1")}">🔑 Son espace</a>
           <textarea class="admin-note" data-sact="note" rows="1" placeholder="Note interne (vérifié sur place, horaires…)">${UI.esc(x.admin_note || "")}</textarea>
         </div>
-      </article>`;
-    }).join("")}</div>` : `<div class="empty card">Aucun commerce inscrit pour l'instant. Envoyez votre lien à un restaurant ou une boutique !</div>`}`;
+      </article></details>`;
+    }).join("")}</div>` : `<div class="empty card">${all.length ? "Aucun commerce ne correspond à la recherche." : "Aucun commerce inscrit pour l'instant. Envoyez votre lien à un restaurant ou une boutique !"}</div>`}`;
 }
 
 // --- Clients : comptes créés, clients sans compte (par téléphone), compteurs ---------------
@@ -1509,7 +1551,10 @@ async function refreshChats() {
   $("#gbMessages").textContent = total || "";
   if (!firstLoad && total > chatTotal && Chat.openThread == null) {
     beep();
-    UI.notify("💬 Nouveau message", { body: "Ouvrez la messagerie de l'espace patron.", tag: "hop-chat" });
+    // Appli en arrière-plan : la notification dit qui écrit et quoi, et ouvre cette conversation (même étiquette
+    // que la notification push : elle la remplace au lieu de s'ajouter). Appli ouverte : la sonnerie et la pastille suffisent.
+    const last = chatRecentList.filter(m => chatUnread[m.thread] && m.author !== "admin").sort((a, b) => (a.created_at < b.created_at ? 1 : -1))[0];
+    if (document.hidden && last) UI.notify(`💬 ${last.author_name || "Nouveau message"}`, { body: String(last.body || "📷 Photo").slice(0, 140), tag: "m-" + last.thread });
   }
   chatTotal = total;
 }
@@ -1910,9 +1955,9 @@ async function onViewChange(e) {
 }
 
 function onViewInput(e) {
-  if (e.target.id !== "histQ" && e.target.id !== "clientsQ") return;
+  if (!["histQ", "clientsQ", "shopsQ"].includes(e.target.id)) return;
   const id = e.target.id;
-  if (id === "clientsQ") clientsQ = e.target.value; else histFilter.q = e.target.value;
+  if (id === "clientsQ") clientsQ = e.target.value; else if (id === "shopsQ") shopsQ = e.target.value; else histFilter.q = e.target.value;
   const pos = e.target.selectionStart;
   render();
   const q = $("#" + id);

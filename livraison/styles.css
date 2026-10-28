@@ -2715,3 +2715,29 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .done-body { padding: 8px 12px 12px; display: grid; gap: 4px; font-size: 14px; }
 .done-body p { margin: 0; overflow-wrap: anywhere; }
 .done-body .btn { justify-self: start; margin-top: 4px; }
+
+/* Catalogue du commerce : ▲ ▼ pour ranger les articles */
+.ct-prod.has-move { grid-template-columns: 30px 56px minmax(0, 1fr) auto; gap: 8px; }
+.ct-prod.has-move > img, .ct-prod.has-move > .item-art { width: 56px; height: 56px; }
+.ct-move { display: flex; flex-direction: column; gap: 4px; }
+.ct-move button { width: 30px; height: 28px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); color: var(--ink); font-size: 12px; line-height: 1; cursor: pointer; padding: 0; }
+.ct-move button:disabled { opacity: .3; cursor: default; }
+
+/* Panneau patron : cartes repliables (annuaire, démos, inscription) et fiches commerces */
+.adm-fold > summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.adm-fold > summary::-webkit-details-marker { display: none; }
+.adm-fold > summary::after, .shop-fold > summary::after { content: "⌄"; font-weight: 800; opacity: .6; transition: transform .2s; }
+.adm-fold[open] > summary::after, .shop-fold[open] > summary::after { transform: rotate(180deg); }
+.adm-fold[open] > summary { margin-bottom: 8px; }
+.orders > .shop-fold { margin-bottom: 0; }
+
+/* Livreur : l'argent de la course en une case de couleur */
+.money-box { margin: 4px 0 8px; padding: 10px 12px; border-radius: 12px; display: grid; gap: 3px; font-size: 15px; line-height: 1.3; }
+.money-box b { font-size: 16px; overflow-wrap: anywhere; }
+.money-box small { font-size: 13px; opacity: .9; }
+.money-box.ok { background: #D1FADF; color: #054F31; border: 2px solid #12B76A; }
+.money-box.due { background: #FFF1E6; color: #7A2E0B; border: 2px solid #FF6A13; }
+#shopsQ, #clientsQ { flex: 1 1 100%; min-width: 0; font-size: 16px; }
+/* Course ouverte depuis une notification : un éclair orange pour la repérer */
+.flash { animation: hopFlash 1.6s ease-out 1; }
+@keyframes hopFlash { 0%, 40% { box-shadow: 0 0 0 4px #FF6A13; } 100% { box-shadow: 0 0 0 0 transparent; } }

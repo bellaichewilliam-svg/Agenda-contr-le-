@@ -666,11 +666,14 @@ function prodForm(p, catId) {
     </div>
   </form>`;
 }
-function prodRow(p) {
+function prodRow(p, i, list) {
   if (cat.edit && cat.edit.id === p.id) return prodForm(p);
+  // ▲ ▼ : le commerce range ses articles dans la catégorie (ce qu'il veut voir en haut, en premier)
+  const n = list ? list.length : 1;
+  const move = n > 1 ? `<span class="ct-move"><button type="button" data-move="-1" data-id="${UI.esc(p.id)}" aria-label="${UI.esc(t("ctUp"))}"${i === 0 ? " disabled" : ""}>▲</button><button type="button" data-move="1" data-id="${UI.esc(p.id)}" aria-label="${UI.esc(t("ctDown"))}"${i === n - 1 ? " disabled" : ""}>▼</button></span>` : "";
   // Comme le voit le client : l'image (ou l'illustration), le nom, le prix ; un interrupteur « en vente / épuisé »
-  return `<div class="ct-prod${p.available ? "" : " off"}">
-    ${UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" />` : UI.itemArt(p.name, state.dash.shop.kind)}
+  return `<div class="ct-prod${p.available ? "" : " off"}${move ? " has-move" : ""}">
+    ${move}${UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" />` : UI.itemArt(p.name, state.dash.shop.kind)}
     <button type="button" class="ct-info" data-edit="${UI.esc(p.id)}"><b>${UI.esc(p.name)}</b><span class="ct-price">${UI.money(p.price)}</span>${p.description ? `<small>${UI.esc(p.description)}</small>` : ""}</button>
     <button type="button" class="ct-switch${p.available ? " on" : ""}" role="switch" aria-checked="${p.available}" data-avail="${UI.esc(p.id)}"><i></i><small>${UI.esc(t(p.available ? (UI.isService(state.dash.shop) ? "ctAvailSvc" : "ctAvailShort") : (UI.isService(state.dash.shop) ? "ctOutSvc" : "ctOutShort")))}</small></button>
   </div>`;
@@ -691,6 +694,7 @@ function renderCatalog() {
   cat.fresh = false;
   box.innerHTML = `<h3>${UI.esc(t("ctTitle"))}</h3>
     <p class="muted small" style="margin:4px 0 10px">${UI.esc(t("ctSub", { n: products.length, on: products.filter(p => p.available).length }))}</p>
+    ${products.length > 1 ? `<p class="muted small" style="margin:-6px 0 10px">${UI.esc(t("ctMoveHint"))}</p>` : ""}
     ${!categories.length ? `<div class="notice" style="margin-bottom:10px">${UI.esc(t("ctStart"))}<br><button type="button" class="btn btn-primary btn-sm" data-suggest style="margin-top:8px">${UI.esc(t("ctSuggest", { list: sugg.map(x => x.split(" · ")[0]).join(", ") }))}</button></div>` : ""}
     ${groups.map(({ c, list }) => `<div class="ct-cat">
       <div class="ct-cat-head"><b>${UI.esc(c.name)}</b><small class="muted">${list.length}</small>
@@ -736,6 +740,20 @@ $("#spCatalog").addEventListener("click", e => {
   if (b.dataset.edit) { cat.edit = { id: b.dataset.edit }; cat.photo = undefined; cat.fresh = true; return renderCatalog(); }
   if (b.dataset.cancel != null) { cat.edit = null; cat.photo = undefined; return renderCatalog(); }
   if (b.dataset.photoOff != null) { cat.photo = ""; return renderCatalog(); }
+  if (b.dataset.move) {
+    // Nouvel ordre : les catégories dans l'ordre affiché, l'article échangé avec son voisin
+    const { categories, products } = cat.data;
+    const groups = categories.map(c => products.filter(p => p.category_id === c.id))
+      .concat([products.filter(p => !categories.some(c => c.id === p.category_id))]);
+    const g = groups.find(l => l.some(p => p.id === b.dataset.id));
+    const i = g ? g.findIndex(p => p.id === b.dataset.id) : -1, j = i + Number(b.dataset.move);
+    if (i < 0 || j < 0 || j >= g.length) return;
+    [g[i], g[j]] = [g[j], g[i]];
+    const ids = groups.flat().map(p => p.id);
+    cat.data.products = groups.flat();
+    renderCatalog();
+    return catalogDo(() => Store.orderProducts(token, ids));
+  }
   if (b.dataset.avail) {
     const p = cat.data.products.find(x => x.id === b.dataset.avail);
     if (p) catalogDo(() => Store.setProductAvailable(token, p.id, !p.available));

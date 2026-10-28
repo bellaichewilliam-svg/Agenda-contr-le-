@@ -6979,3 +6979,43 @@ $$;
 revoke execute on function public.orders_client_push() from public, anon, authenticated;
 create or replace trigger orders_client_push after update of status on public.orders
   for each row execute function public.orders_client_push();
+
+-- ============================================================================
+-- COLIS RÉCUPÉRÉ : message automatique au client (« votre commande est récupérée, on arrive »), dans sa langue,
+-- avec le lien du suivi en direct. Il commence par ✅ : pas de sonnerie en double (la notification « récupéré »
+-- part déjà au client par orders_client_push).
+-- ORDRE DES PRODUITS : le commerce range ses articles (▲ ▼) ; la liste complète dans le nouvel ordre.
+-- ============================================================================
+create or replace function public.orders_step_msg() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare who text;
+begin
+  if new.status <> 'recuperee' or old.status = 'recuperee' or coalesce(new.is_test, false) then return new; end if;
+  who := nullif(split_part(trim(coalesce(new.courier_name, '')), ' ', 1), '');
+  insert into chat_messages (thread, author, author_name, body)
+    values ('o:' || new.id::text, 'admin', 'HOP!',
+            case when new.lang = 'he'
+                 then '✅ ההזמנה נאספה! ' || coalesce(who, 'השליח שלכם') || ' בדרך אליכם 🛵 תתכוננו, אנחנו מגיעים. מעקב חי: https://hop-livraison.vercel.app/suivi.html?t=' || new.token
+                 else '✅ Votre commande est récupérée ! ' || coalesce(who, 'Votre livreur') || ' est en route vers vous 🛵 Préparez-vous, on arrive. Suivre en direct : https://hop-livraison.vercel.app/suivi.html?t=' || new.token end);
+  return new;
+end;
+$$;
+revoke execute on function public.orders_step_msg() from public, anon, authenticated;
+create or replace trigger orders_step_msg after update of status on public.orders
+  for each row execute function public.orders_step_msg();
+
+create or replace function public.shop_products_order(p_token uuid, p_ids uuid[]) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare sid uuid;
+begin
+  select id into sid from shops where token = p_token;
+  if sid is null then raise exception 'forbidden'; end if;
+  if coalesce(array_length(p_ids, 1), 0) > 300 then raise exception 'too_many'; end if;
+  update shop_products p set position = x.n
+    from unnest(p_ids) with ordinality as x(id, n)
+   where p.id = x.id and p.shop_id = sid;
+  return true;
+end;
+$$;
+revoke execute on function public.shop_products_order(uuid, uuid[]) from public;
+grant execute on function public.shop_products_order(uuid, uuid[]) to anon, authenticated;
