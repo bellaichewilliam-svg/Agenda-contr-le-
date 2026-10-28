@@ -1183,6 +1183,9 @@ function renderClients(view) {
   const month = today().slice(0, 7);
   const list = clients.filter(c => !q || String(c.name || "").toLowerCase().includes(q) || (qd && String(c.phone || "").replace(/\D/g, "").includes(qd)));
   const day = iso => iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  // Client qui est aussi une enseigne (même numéro) : on le montre
+  const d9 = v => String(v || "").replace(/\D/g, "").slice(-9);
+  const shopOfClient = c => d9(c.phone) && shops.find(x => !x.demo && (d9(x.phone) === d9(c.phone) || d9(x.whatsapp) === d9(c.phone)));
   view.innerHTML = `
     <div class="stats">
       <div class="stat"><small>Comptes clients</small><b>${withAcc.length}</b></div>
@@ -1192,12 +1195,16 @@ function renderClients(view) {
     </div>
     <p class="muted small" style="margin:-8px 0 12px">Un client crée son compte dans l'appli (« Mes courses ») avec son téléphone et un mot de passe : accepté tout de suite, sans e-mail de confirmation pour l'instant. Les clients sans compte apparaissent ici d'après leur numéro de téléphone.</p>
     <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" /></div>
-    ${list.length ? `<div class="orders">${list.map(c => `
+    ${list.length ? `<div class="orders">${list.map(c => { const k = "u:" + (c.client_id || d9(c.phone)), sh = shopOfClient(c); return `
+      <details class="order-fold shop-fold" data-fold="${UI.esc(k)}"${foldOpen(k)}><summary>
+        <span>${c.client_id ? "👤" : "📞"} <b>${UI.esc(c.name || "—")}</b>${sh ? " · 🏪 " + UI.esc(sh.name) : ""}${c.blocked ? " · ⛔" : ""}</span>
+        <b>${Number(c.delivered || 0)} 📦</b></summary>
       <article class="order" data-client="${UI.esc(c.client_id || "")}">
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name || "—")}</span>
           <span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte" : "Sans compte"}</span>
           ${c.blocked ? `<span class="pill" style="background:#FDE2E2;color:#9B1C1C">⛔ Bloqué</span>` : ""}
+          ${sh ? `<span class="pill">🏪 Enseigne : ${UI.esc(sh.name)}</span>` : ""}
           <span class="order-price">${Number(c.delivered || 0)} livrée(s)</span>
         </div>
         <div class="kv">
@@ -1209,7 +1216,7 @@ function renderClients(view) {
           ${c.client_id ? `<button class="btn btn-sm" data-client-reset="${UI.esc(c.client_id)}" data-cname="${UI.esc(c.name || "")}">🔑 Nouveau mot de passe</button>` : ""}
           ${c.blocked ? `<button class="btn btn-sm" data-unblock="${UI.esc(c.phone)}">🔓 Débloquer</button>` : ""}
         </div>
-      </article>`).join("")}</div>` : `<div class="empty card">${clients.length ? "Aucun client ne correspond." : "Aucun client pour l'instant."}</div>`}`;
+      </article></details>`; }).join("")}</div>` : `<div class="empty card">${clients.length ? "Aucun client ne correspond." : "Aucun client pour l'instant."}</div>`}`;
 }
 
 // --- Demandes de devis (tournée quotidienne, carnet…) -------------------------------------
