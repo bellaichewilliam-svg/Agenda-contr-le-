@@ -1019,6 +1019,8 @@ body.in-home .eta-bubble { display: none; }
 .ch-fair small { font-weight: 700; opacity: .85; }
 #quoteLines li.zero span:last-child { color: var(--green-ink); font-weight: 700; }
 #quoteLines li.goods { color: var(--muted); font-size: 13px; }
+#quoteLines li.area-why { display: block; background: var(--blue-soft); border-radius: 10px; padding: 8px 10px; margin: 4px 0; font-size: 13.5px; line-height: 1.4; }
+.area-why-note { background: var(--blue-soft); border-radius: 10px; padding: 8px 10px; margin: 6px 0 0; font-size: 13.5px; line-height: 1.4; }
 .ch-fair .ch-fair-wait { font-weight: 600; opacity: .75; }
 
 /* --- Conditions de livraison d'objets ------------------------------------------- */
@@ -2671,3 +2673,19 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .sd-done-btns .btn, .sd-card .btn-wa { white-space: normal; text-align: center; line-height: 1.25; }
 .sd-who { display: block; font-size: 12px; font-weight: 700; margin-top: 2px; }
 .sd-due { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--brand-ink); }
+
+/* --- Payer par Bit : trois étapes évidentes (numéro, Bit, « J'ai payé ») --- */
+.bp-steps { display: grid; gap: 10px; margin-top: 8px; padding: 12px; border: 2px solid var(--bit); border-radius: 16px; background: var(--panel); }
+.bp-steps .bp-head { margin: 0; font-size: 17px; font-weight: 800; line-height: 1.3; }
+.bp-steps ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.bp-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; }
+.bp-steps li > b { width: 28px; height: 28px; border-radius: 50%; background: var(--bit); color: #fff; display: grid; place-items: center; font-size: 14px; }
+.bp-steps li > div { display: grid; gap: 6px; min-width: 0; }
+.bp-steps li > div > span { font-size: 14px; font-weight: 600; line-height: 1.35; padding-top: 4px; }
+.bp-steps .btn-block { white-space: normal; line-height: 1.25; }
+.bp-steps .bp-num { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 12px; max-width: 100%; font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.bp-steps .bp-num span { white-space: nowrap; }
+.bp-steps .bp-num em { font-style: normal; font-size: 14px; font-weight: 700; white-space: nowrap; background: var(--blue-soft); border-radius: 999px; padding: 4px 10px; }
+.bp-steps .bp-done { min-height: 52px; font-size: 16px; }
+.bp-steps small { line-height: 1.4; }
+.sent-btn { margin-top: 6px; }

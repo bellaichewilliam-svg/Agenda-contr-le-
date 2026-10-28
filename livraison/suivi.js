@@ -10,6 +10,15 @@ const t = I18N.t;
 const token = new URLSearchParams(location.search).get("t");
 const FLOW = ["nouvelle", "confirmee", "recuperee", "livree"];
 let order = null;
+// Gros bouton « ✅ J'ai envoyé X ₪ à … » (ticket, complément, attente) ; une fois touché, un message de confirmation à la place
+function sentBtn(amount, name, what) {
+  if (!(Number(amount) > 0)) return "";
+  const a = UI.money(amount);
+  let sent = false;
+  try { sent = !!sessionStorage.getItem("hop.sent." + token + "." + what + "." + a); } catch (ex) { /* pas de stockage */ }
+  return sent ? `<p class="promo-msg ok">${UI.esc(I18N.t("sentOk", { name }))}</p>`
+    : `<button type="button" class="btn btn-primary btn-block sent-btn" data-sent="1" data-what="${what}" data-amount="${UI.esc(a)}" data-name="${UI.esc(name)}">${UI.esc(I18N.t("sentBtn", { amount: a, name }))}</button>`;
+}
 const W = CONFIG.pricing.waiting;
 let settings = { wait_free_min: W.freeMinutes, wait_step_min: W.stepMinutes, wait_step_price: W.stepPrice, wait_max: W.max };
 Store.getSettings().then(s => { Object.assign(settings, s); if (order) render(); }).catch(() => {});
@@ -281,12 +290,12 @@ function render() {
     if (x.goods_after && !cash) {
       const due = x.goods_refund_status === "a_completer", v = { spent: UI.money(x.goods_spent), name };
       return head + `<div class="refund-box${due ? " wait-due" : ""}"><p><b>🧾 ${UI.esc(t(due ? "trGoodsAfterDue" : "trGoodsAfterOk", v))}</b></p>
-        ${due && ph ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(ph)}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`;
+        ${due && ph ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(ph)}">${UI.esc(t("bpCopy"))}</button></div>${sentBtn(x.goods_refund, name, "ticket")}` : ""}</div>`;
     }
     if (cash) return `<div class="refund-box"><p><b>🧾 ${UI.esc(t("trGoodsCash", { spent: UI.money(x.goods_spent), total: UI.money(Number(x.price) + Number(x.goods_spent)) }))}</b></p></div>`;
     const st = x.goods_refund_status, v = { spent: UI.money(x.goods_spent), diff: UI.money(x.goods_refund), name };
     return head + `<div class="refund-box${st === "a_completer" ? " wait-due" : ""}"><p><b>🧾 ${UI.esc(t(st === "a_rendre" ? "trGoodsBack" : st === "rendu" ? "trGoodsBackDone" : st === "a_completer" ? "trGoodsMore" : "trGoodsExact", v))}</b></p>
-      ${st === "a_completer" && ph ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(ph)}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`;
+      ${st === "a_completer" && ph ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(ph)}">${UI.esc(t("bpCopy"))}</button></div>${sentBtn(x.goods_refund, name, "more")}` : ""}</div>`;
   };
   const canSwitch = !o.direct_pay && o.payment_status !== "paye" && o.payment_method === "cash"
     && ["nouvelle", "confirmee", "recuperee"].includes(o.status) && !(o.payment_method === "bit" && o.prepaid_required);
@@ -304,7 +313,7 @@ function render() {
     const who = String(o.courier_name || "").split(" ")[0], phone = o.courier_bit || o.courier_phone || "";
     pay.innerHTML = `${refund}<small class="muted">${UI.esc(t("trPay"))}</small><div class="amount">${UI.money(o.drop_fee)}</div>
       ${o.wait_status === "a_payer" ? `<div class="refund-box wait-due"><p><b>${UI.esc(t("trDropDue", { fee: UI.money(o.wait_due), name: who, phone }))}</b></p>
-        ${phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`
+        ${phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>${sentBtn(o.wait_due, who, "drop")}` : ""}</div>`
       : o.wait_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>` : ""}`;
   } else
   // Articles payés d'avance au commerce : ① le commerce, ② la livraison
@@ -312,10 +321,11 @@ function render() {
   pay.innerHTML = `${o.goods_pay && o.shop_pay ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(o, o.shop_pay)}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>`
     : o.shop_pay && Number(o.items_total) > 0 && o.payment_method !== "cash" ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay todo"><b class="gp-step">${UI.esc(t("gpStep1", { name: UI.bi(o.shop_pay.name), amount: UI.money(o.items_total) }))}</b><small>${UI.esc(t("gbAsk", { name: UI.bi(o.shop_pay.name) }))}</small></div><p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>` : ""}${refund}${missing}<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.payment_method === "cash" ? Number(o.price) + Number(o.cash_goods || 0) : UI.payTotal(o))}${o.budget && !o.goods_prepay ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
+    ${UI.areaWhy(o) ? `<p class="area-why-note">${UI.esc(UI.areaWhy(o))}</p>` : ""}
     ${o.goods_prepay ? goodsLine(o) : ""}
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
     ${o.wait_status === "a_payer" ? `<div class="refund-box wait-due"><p><b>${UI.esc(t("trWaitDue", { fee: UI.money(o.wait_due), name: String(o.courier_name || "").split(" ")[0], phone: o.courier_bit || o.courier_phone || "" }))}</b></p>
-      ${o.courier_bit || o.courier_phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit || o.courier_phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>` : ""}</div>`
+      ${o.courier_bit || o.courier_phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit || o.courier_phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>${sentBtn(o.wait_due, String(o.courier_name || "").split(" ")[0], "wait")}` : ""}</div>`
       : o.wait_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trWaitDueOk"))}</p>` : ""}
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${UI.esc(t("receiptLink"))}</a>` : ""}`
       : o.payment_method === "bit"
@@ -566,6 +576,17 @@ $("#details").addEventListener("change", async e => {
 
 $("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); render(); });
 $("#payBox").addEventListener("click", async e => {
+  // « J'ai envoyé X ₪ » : un message au livreur dans la conversation (il vérifie son Bit, puis confirme)
+  const sb = e.target.closest("[data-sent]");
+  if (sb) {
+    if (!confirm(t("sentConfirm", { amount: sb.dataset.amount, name: sb.dataset.name }))) return;
+    sb.disabled = true;
+    const ok = await Store.chatOrderSend(token, t("sentMsg_" + sb.dataset.what, { amount: sb.dataset.amount })).catch(() => false);
+    if (!ok) { sb.disabled = false; return alert(t("sentErr")); }
+    try { sessionStorage.setItem("hop.sent." + token + "." + sb.dataset.what + "." + sb.dataset.amount, "1"); } catch (ex) { /* pas de stockage */ }
+    sb.outerHTML = `<p class="promo-msg ok">${UI.esc(t("sentOk", { name: sb.dataset.name }))}</p>`;
+    return;
+  }
   const rf = e.target.closest("[data-refund]");
   if (rf) {
     rf.disabled = true;

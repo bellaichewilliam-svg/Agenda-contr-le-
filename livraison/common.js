@@ -518,6 +518,17 @@ const BIT_APP = "intent://#Intent;package=com.bnhp.payments.paymentsapp;S.browse
 // (en espèces, une fois le ticket pris : la course + le ticket exact)
 // (« ticket après » : seule la course est payée d'avance ; le ticket est envoyé à part, après la photo)
 const payTotal = o => Number(o.price || 0) + (!o.goods_prepay || o.goods_after ? 0 : o.payment_method === "cash" && o.goods_spent != null ? Number(o.goods_spent) : Number(o.goods_budget || 0));
+// Course vers / depuis un quartier hors centre (Agamim, zones industrielles) : pourquoi ce prix
+function areaWhy(o) {
+  if (!window.Pricing || !o || o.from_city !== o.to_city || !CONFIG.pricing.areas) return "";
+  const pt = (la, lo) => (la != null && lo != null ? { lat: Number(la), lon: Number(lo) } : null);
+  const zf = Pricing.areaOf(CONFIG, o.from_city, pt(o.pickup_lat, o.pickup_lon)), zt = Pricing.areaOf(CONFIG, o.to_city, pt(o.dropoff_lat, o.dropoff_lon));
+  const base = CONFIG.pricing.fixedFromHome[o.from_city] || CONFIG.pricing.base;
+  const ap = Number(CONFIG.pricing.areas.price);
+  if ((!zf && !zt) || zf === zt || Number(o.price) < ap) return "";
+  const z = CONFIG.pricing.areas.list.find(a => a.id === (zt || zf)), c = CONFIG.cities.find(x => x.id === o.from_city) || {};
+  return I18N.t("qAreaWhy", { area: z ? z[I18N.lang] || z.fr : "", city: c[I18N.lang] || c.fr || "", price: money(ap), base: money(base) });
+}
 function bitPay(o) {
   const t = (k, v) => I18N.t(k, v);
   const name = String(o.courier_name || "").split(" ")[0];
@@ -525,13 +536,19 @@ function bitPay(o) {
   const phone = bitFor(o);
   // Paiement au livreur : son numéro n'est connu qu'une fois la course acceptée
   if (o.direct_pay && !phone) return `<p class="bit-pay muted">${esc(t("bpWaitCourier", { total: money(payTotal(o)) }))}</p>`;
-  return `<div class="bit-pay">
-    <p>${esc(o.direct_pay ? t("bpSendCourier", { total: money(payTotal(o)), name, phone, ref: o.ref }) : t("bpSend", { total: money(payTotal(o)), phone, ref: o.ref }))}</p>
-    <div class="bit-btns">
-      ${ANDROID ? `<a class="btn btn-sm btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}
-      <button type="button" class="btn btn-sm" data-bit-copy="${esc(String(phone).replace(/\D/g, ""))}">${esc(t("bpCopy"))}</button>
-      <button type="button" class="btn btn-sm btn-primary" data-bit-paid="${esc(o.token)}" data-name="${esc(o.direct_pay ? name : "")}" data-total="${esc(money(payTotal(o)))}">${esc(t("bpPaid"))}</button>
-    </div>
+  // Trois étapes, dans l'ordre, avec de gros boutons : ① le numéro ② Bit ③ « J'ai payé »
+  const who = o.direct_pay ? name : "HOP!", total = money(payTotal(o)), digits = String(phone).replace(/\D/g, "");
+  return `<div class="bit-pay bp-steps">
+    <p class="bp-head">💳 ${esc(t("bpHead", { total, name: who }))}</p>
+    <ol>
+      <li><b>1</b><div><span>${esc(t("bpStep1", { name: who }))}</span>
+        <button type="button" class="btn btn-block bp-num" data-bit-copy="${esc(digits)}"><span dir="ltr">${esc(digits.length === 10 ? digits.replace(/^(\d{3})(\d{3})(\d{4})$/, "$1-$2-$3") : phone)}</span><em>${esc(t("bpCopyShort"))}</em></button></div></li>
+      <li><b>2</b><div><span>${esc(t(ANDROID ? "bpStep2" : "bpStep2Ios", { total }))}</span>
+        ${ANDROID ? `<a class="btn btn-block btn-bit" href="${BIT_APP}">${esc(t("bpOpen"))}</a>` : ""}</div></li>
+      <li><b>3</b><div><span>${esc(t("bpStep3"))}</span>
+        <button type="button" class="btn btn-primary btn-block bp-done" data-bit-paid="${esc(o.token)}" data-name="${esc(o.direct_pay ? name : "")}" data-total="${esc(total)}">${esc(t("bpPaidBig", { total, name: who }))}</button></div></li>
+    </ol>
+    <small class="muted">${esc(t("bpPaybox", { ref: o.ref }))}</small>
   </div>`;
 }
 // Articles payés d'avance au commerce : « ① Payer EDMAR · 30 ₪ » (son lien de paiement ou son Bit), puis « J'ai payé EDMAR ».
@@ -717,7 +734,7 @@ if (typeof MutationObserver !== "undefined") {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

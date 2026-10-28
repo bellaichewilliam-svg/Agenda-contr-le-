@@ -465,6 +465,14 @@ function tobaccoOnly() {
   return parts.length > 0 && parts.every(x => TOBACCO_RE.test(x));
 }
 
+// « Pourquoi 30 ₪ et pas 25 ? » : la course touche un quartier hors du centre
+function areaWhy(q) {
+  const l = q.lines.find(x => x.key === "qBaseArea");
+  if (!l) return "";
+  const z = (CONFIG.pricing.areas.list || []).find(x => x.id === l.vars.area);
+  const base = CONFIG.pricing.fixedFromHome[l.vars.city] || CONFIG.pricing.base;
+  return `<li class="area-why"><span>${UI.esc(t("qAreaWhy", { area: z ? z[I18N.lang] || z.fr : "", city: cityLabel(l.vars.city), price: money(l.amount), base: money(base) }))}</span></li>`;
+}
 function lineLabel(l) {
   const v = Object.assign({}, l.vars);
   if (v.from) v.from = cityLabel(v.from);
@@ -792,7 +800,9 @@ function renderQuote() {
     + (goods && goodsPrepay() && !goodsAfter() ? `<li class="goods-amt"><span>${UI.esc(t("qGoodsMax"))}</span><span dir="ltr">${goodsBudget() ? money(goodsBudget()) : "—"}</span></li>` : "")
     + (goods && goodsAfter() ? `<li class="goods"><span>${UI.esc(t("qGoodsAfter", { max: goodsBudget() ? money(goodsBudget()) : "—" }))}</span></li>` : "")
     + (goods && !goodsAfter() && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : goodsPrepay() ? "qGoodsPre" : "qGoods"))}</span></li>` : "")
-    + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "");
+    + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "")
+    // Zone hors centre (Agamim, zones industrielles) : on explique tout de suite pourquoi ce n'est pas le prix habituel
+    + areaWhy(q);
   // (achats en espèces : course + articles au maximum ; « ticket après » par Bit : la course seule d'avance)
   const all = Number(q.total) + (val("service") === "achat" && goodsPrepay() && !goodsAfter() ? goodsBudget() : 0);
   const total = (q.known ? "" : t("from") + " ") + money(all);
