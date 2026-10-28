@@ -359,15 +359,27 @@ function doneList() {
   const done = orders.filter(o => o.courier_id === me.id && o.status === "livree")
     .sort((a, b) => new Date(b.delivered_at || b.pickup_at) - new Date(a.delivered_at || a.pickup_at)).slice(0, 15);
   if (!done.length) return "";
+  // Coordonnées du client (nom, téléphone, adresse exacte, message) : seulement sur la dernière course,
+  // pendant 30 min après la livraison ; ensuite, la fiche ne garde que le n°, le prix et le paiement
+  const fresh = o => o === done[0] && Date.now() - new Date(o.delivered_at || o.pickup_at).getTime() < DONE_OPEN_MIN * 60000;
   return `<h3 class="done-title">🕘 Mes dernières courses livrées</h3><div class="done-list">${done.map(o => `<details class="done-row" data-fold="d:${UI.esc(o.id)}"${openFolds.has("d:" + o.id) ? " open" : ""}>
     <summary><span>✅ N° ${UI.esc(o.ref)} · ${UI.esc(UI.fmtDateTime(o.delivered_at || o.pickup_at))}</span><b>${UI.money(o.price)}</b></summary>
-    <div class="done-body">
+    ${fresh(o) ? doneBody(o) : `<div class="done-body">
+      <p>📍 ${UI.esc(UI.cityFr(o.from_city))} → 🏁 ${UI.esc(UI.cityFr(o.to_city))}</p>
+      <p>${o.payment_method === "cash" ? "💵 Espèces" : "📱 Bit"} · ${o.payment_status === "paye" ? "✓ payé" : "⚠️ pas marqué payé"}</p>
+      <p class="muted small">🔒 Les coordonnées du client ne restent visibles que 30 min après la livraison. Un souci ? Écrivez à HOP!.</p>
+    </div>`}</details>`).join("")}</div>`;
+}
+const DONE_OPEN_MIN = 30;
+function doneBody(o) {
+  return `<div class="done-body">
       <p>📍 <bdi>${UI.esc(o.pickup_place || o.pickup_address || "")}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</p>
       <p>🏁 <bdi>${UI.esc(o.dropoff_address || "")}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}${o.dropoff_floor ? ` · étage ${UI.esc(o.dropoff_floor)}` : ""}${o.dropoff_apt ? ` · appt ${UI.esc(o.dropoff_apt)}` : ""}</p>
       <p>👤 ${UI.esc(o.dropoff_contact || o.contact_name || "")}${(o.dropoff_phone || o.contact_phone) ? ` · <a href="tel:${UI.esc(o.dropoff_phone || o.contact_phone)}">${UI.esc(o.dropoff_phone || o.contact_phone)}</a>` : ""}</p>
       <p>${o.payment_method === "cash" ? "💵 Espèces" : "📱 Bit"} · ${o.payment_status === "paye" ? "✓ payé" : "⚠️ pas marqué payé"}${UI.receiptNo(o) ? ` · <a href="${UI.esc(UI.receiptUrl(o))}" target="_blank" rel="noopener">🧾 Reçu</a>` : ""}</p>
       <button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Écrire au client</button>
-    </div></details>`).join("")}</div>`;
+      <p class="muted small">🔒 Visible encore ${Math.max(1, Math.ceil(DONE_OPEN_MIN - (Date.now() - new Date(o.delivered_at || o.pickup_at).getTime()) / 60000))} min, puis les coordonnées du client sont masquées.</p>
+    </div>`;
 }
 // Payé comment ? Deux gros boutons : le livreur dit ce qu'il a vraiment reçu (Bit ou espèces), sans autre question
 function paidHowBtns(o) {
