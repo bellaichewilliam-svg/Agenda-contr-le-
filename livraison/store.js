@@ -1399,7 +1399,7 @@ async function setShopClientPays(token, on) {
 }
 // logo / cover : null = garder, "" = enlever
 async function saveShopBrand(token, b) {
-  if (ONLINE) return rest("/rest/v1/rpc/shop_brand_save", { method: "POST", body: { p_token: token, p_logo: b.logo, p_cover: b.cover, p_tagline: b.tagline || null } });
+  if (ONLINE) return rest("/rest/v1/rpc/shop_brand_save", { method: "POST", body: { p_token: token, p_logo: b.logo == null ? null : b.logo, p_cover: b.cover == null ? null : b.cover, p_tagline: b.tagline || null } });
   const shops = localShops(), s = shops.find(x => x.token === token);
   if (!s) return false;
   if (b.logo != null) s.logo = b.logo || null;

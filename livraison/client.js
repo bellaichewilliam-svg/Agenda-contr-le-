@@ -315,7 +315,7 @@ function syncVisibility() {
   $("#pickupLegend").textContent = t(near ? "s2_near" : svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
-  // Commande chez un commerce HOP! Pro : seulement l'essentiel (articles, adresse du client, heure, mot pour le livreur, paiement)
+  // Commande chez une enseigne (HOP! Pro ou vitrine) : seulement l'essentiel (articles, adresse du client, heure, mot pour le livreur, paiement)
   const side = shopMode();
   form.classList.toggle("shop-mode", !!side);
   form.classList.toggle("shop-from", side === "from");
@@ -2339,7 +2339,8 @@ function shopGallery(s) {
 }
 // Le commerce est-il dans la course (au départ ou à l'arrivée) ?
 const shopSide = () => (shopPicked() ? "from" : state.shop && state.pick.to && state.pick.to.shopId === state.shop.id ? "to" : "");
-const shopMode = () => (state.shop && state.shop.pro ? shopSide() : "");
+// Toute enseigne choisie (HOP! Pro ou vitrine comme Bloovi) : son adresse est connue, pas de champs à remplir
+const shopMode = () => (state.shop ? shopSide() : "");
 function renderShopBanner() {
   const side = shopSide(), on = !!side;
   $("#shopBanner").classList.toggle("hidden", !on);
@@ -2415,8 +2416,8 @@ function applyShop() {
     form.time.value = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
     state.shopSched = d;
   }
-  // Commerce HOP! Pro : le service va de soi (repas pour un restaurant, sinon une course simple)
-  if (s.kind === "restaurant" || s.pro) { form.elements.service.value = s.kind === "restaurant" ? "repas" : "colis"; state.svcChosen = true; }
+  // Enseigne : le service va de soi (repas pour un restaurant, sinon une course simple)
+  { form.elements.service.value = s.kind === "restaurant" ? "repas" : "colis"; state.svcChosen = true; }
   syncVisibility(); renderQuote();
   renderShopBanner();
 }
