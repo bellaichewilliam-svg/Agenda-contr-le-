@@ -373,8 +373,13 @@ async function onBossClick(e) {
 // Adresse ouverte par la notification : patron/?o=<course>
 function bossFromUrl(url) {
   try {
-    const id = new URL(url, location.href).searchParams.get("o");
-    if (id) { history.replaceState(null, "", location.pathname); bossPopup(id); }
+    const u = new URL(url, location.href), id = u.searchParams.get("o"), tag = u.searchParams.get("tag") || "";
+    if (id || tag) history.replaceState(null, "", location.pathname);
+    // Notification d'un message : la conversation s'ouvre ; d'une course : sa fenêtre
+    const m = tag.match(/^m-(.+)$/);
+    if (m) { const th = m[1]; openAdminChat(th, threadLabel(th, []), ""); return; }
+    const oid = id || (tag.match(/^(?:o|pay|refund|late)-(.+)$/) || [])[1];
+    if (oid) bossPopup(oid);
   } catch (e) { /* ignore */ }
 }
 // Solde d'un livreur (même calcul que la base) : commissions − courses payées à HOP − part Pro et promos

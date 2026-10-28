@@ -6863,3 +6863,16 @@ begin
     execute n;
   end if;
 end $$;
+
+-- Messages automatiques de HOP! au client (reçu, demande de paiement Bit) : pour le client seulement, pas de notification au livreur ni au patron
+create or replace function public.push_chat_event() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.author = 'system' and new.body is distinct from 'status:client_paid' and new.body is distinct from 'status:refund_missing' then return new; end if;
+  if new.author = 'admin' and new.author_name = 'HOP!' and new.thread like 'o:%'
+     and (new.body like '🧾 %' or new.body like '💳 %') then return new; end if;
+  perform public.push_call(jsonb_build_object('thread', new.thread, 'author', new.author,
+    'author_name', new.author_name, 'body', new.body));
+  return new;
+end;
+$$;

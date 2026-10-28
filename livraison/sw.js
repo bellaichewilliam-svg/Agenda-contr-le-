@@ -22,6 +22,9 @@ self.addEventListener("push", e => {
 // Toucher une notification : revenir sur la page HOP! déjà ouverte (Waze reste en arrière-plan)
 self.addEventListener("notificationclick", e => {
   let url = (e.notification.data && e.notification.data.url) || self.registration.scope;
+  // La page ouvre directement ce dont parle la notification (« m-… » : la conversation, « o-… » / « pay-… » : la course)
+  const tag = e.notification.tag || "";
+  if (/^(m|o|pay|refund|late)-/.test(tag) && !/[?&]tag=/.test(url)) url += (url.includes("?") ? "&" : "?") + "tag=" + encodeURIComponent(tag);
   // Bouton de la notification du patron (« Je la prends », « Donner à un livreur ») : la page ouvre la course
   if (e.action) url += (url.includes("?") ? "&" : "?") + "do=" + encodeURIComponent(e.action);
   if (e.notification.tag !== "hop-duty") e.notification.close();
