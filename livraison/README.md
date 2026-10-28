@@ -450,6 +450,7 @@ livraison/
   - il envoie la photo du ticket (« 🧾 Ticket du magasin ») ; le client voit « Envoyez X ₪ à … par Bit » et paie le montant exact ;
   - le livreur touche « ✅ Ticket reçu », puis peut livrer (« Livré » bloqué sans ticket ou tant que le ticket n'est pas payé) ;
   - plus de prix approximatif à payer d'avance ni de différence à rendre ; en espèces, rien ne change (course + ticket à la livraison). Les commandes passées avec l'ancienne version gardent l'ancienne règle.
+- **Livraison chez une enseigne : bâtiment, étage, appartement et code toujours affichés** (avant, choisir une enseigne comme adresse de livraison les cachait). Seul le départ chez une enseigne les cache encore.
 - **Case d'adresse : plus de texte coupé.** Une fois l'adresse ou l'enseigne choisie, la case montre une version courte : le nom dans la langue de l'écran (« Simaki Sushi » au lieu de « Simaki Sushi • סימאקי סושי »), la rue, sans la ville (elle a sa propre case). Si c'est encore trop long, la police rapetisse un peu, puis seul le nom reste (`places.js` : `shortLabel`, `fitText` ; le libellé complet reste en mémoire, `pickedLabel()`).
 - **Espace commerce : « 🛵 Envoyer une course »** (`commerce.html`, `orders.shop_sent`) : le client a acheté et payé au magasin, HOP! le livre.
   - Obligatoire : nom et téléphone du client, rue et numéro (recherche d'adresse), ville, étage, appartement, « Prête à » (maintenant, 15 min, 30 min ou une heure) et qui paie. Facultatif : code d'entrée, note.
