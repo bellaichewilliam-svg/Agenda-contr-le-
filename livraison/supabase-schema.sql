@@ -6995,8 +6995,8 @@ begin
   insert into chat_messages (thread, author, author_name, body)
     values ('o:' || new.id::text, 'admin', 'HOP!',
             case when new.lang = 'he'
-                 then '✅ ההזמנה נאספה! ' || coalesce(who, 'השליח שלכם') || ' בדרך אליכם 🛵 תתכוננו, אנחנו מגיעים. מעקב חי: https://hop-livraison.vercel.app/suivi.html?t=' || new.token
-                 else '✅ Votre commande est récupérée ! ' || coalesce(who, 'Votre livreur') || ' est en route vers vous 🛵 Préparez-vous, on arrive. Suivre en direct : https://hop-livraison.vercel.app/suivi.html?t=' || new.token end);
+                 then '✅ ההזמנה נאספה! השליח שלכם מהופ!' || coalesce(' ' || who, '') || ' בדרך אליכם 🛵 תתכוננו, אנחנו מגיעים. מעקב חי: https://hop-livraison.vercel.app/suivi.html?t=' || new.token
+                 else '✅ Votre commande est récupérée ! Votre livreur HOP!' || coalesce(' ' || who, '') || ' est en route vers vous 🛵 Préparez-vous, on arrive. Suivre en direct : https://hop-livraison.vercel.app/suivi.html?t=' || new.token end);
   return new;
 end;
 $$;

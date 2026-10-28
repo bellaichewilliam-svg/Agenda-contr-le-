@@ -161,12 +161,12 @@ Deno.serve(async req => {
     if (!o) return new Response("no order", { status: 404 });
     const he = o.lang === "he", first = String(o.courier_name || "").split(" ")[0];
     const T: Record<string, [string, string]> = he ? {
-      confirmee: [`🛵 ${first || "השליח"} קיבל/ה את המשלוח`, "לגעת כדי לעקוב אחרי השליח"],
-      recuperee: ["📦 ההזמנה שלכם בדרך", "לגעת כדי לראות איפה השליח"],
+      confirmee: [`🛵 השליח שלכם מהופ!${first ? " " + first : ""} קיבל/ה את המשלוח`, "לגעת כדי לעקוב אחרי השליח שלכם מהופ!"],
+      recuperee: ["📦 השליח שלכם מהופ! בדרך אליכם עם ההזמנה", "לגעת כדי לראות איפה השליח"],
       livree: ["✅ נמסר! תודה שבחרתם בהופ!", "הקבלה והמעקב שלכם: לגעת כאן"]
     } : {
-      confirmee: [`🛵 ${first || "Votre livreur"} a accepté votre course`, "Touchez pour suivre votre livreur"],
-      recuperee: ["📦 Votre commande est en route", "Touchez pour voir où est votre livreur"],
+      confirmee: [`🛵 Votre livreur HOP!${first ? " " + first : ""} a accepté votre course`, "Touchez pour suivre votre livreur HOP!"],
+      recuperee: ["📦 Votre livreur HOP! est en route avec votre commande", "Touchez pour voir où il est"],
       livree: ["✅ Livré ! Merci d'avoir choisi HOP!", "Votre reçu et votre suivi : touchez ici"]
     };
     // Course à payer par Bit au livreur : la notification le dit tout de suite (le livreur ne part qu'après le paiement)
@@ -189,7 +189,7 @@ Deno.serve(async req => {
         if (o && o.direct_pay && o.courier_id) {
           // Paiement direct : c'est le livreur qui reçoit l'argent, c'est lui qu'on prévient
           sent += await sendTo([o.courier_id], { title: "💳 Le client dit avoir payé",
-            body: `Course ${o.ref} : vérifiez votre Bit / PayBox, puis touchez « Paiement reçu » pour récupérer la commande.`, url: "livreur/", tag: "pay-" + id }, site);
+            body: `Course ${o.ref} : vérifiez votre Bit / PayBox, puis touchez « 📱 Payé par Bit » pour récupérer la commande.`, url: "livreur/", tag: "pay-" + id }, site);
         } else {
           sent += await sendTo(await admins(), { title: "💳 Paiement Bit à vérifier",
             body: `Le client dit avoir payé ${o ? money(o.price) + " · " + o.ref : ""}`, url: "patron/", tag: "pay-" + id }, site);
@@ -215,7 +215,7 @@ Deno.serve(async req => {
       sent += await sendTo(await admins(), { title: claim ? "⚠️ Course pas reçue par le client" : `💬 ${who}`, body: text, url: "patron/", tag: "m-" + ev.thread }, site);
       if (kind === "o" && ev.author === "courier") {
         const { data: oc } = await db.from("orders").select("*").eq("id", id).single();
-        if (oc && ["confirmee", "recuperee"].includes(oc.status)) sent += await sendClient(oc, { title: `💬 ${who}`, body: text,
+        if (oc && ["confirmee", "recuperee"].includes(oc.status)) sent += await sendClient(oc, { title: oc.lang === "he" ? `💬 ${who} · השליח שלכם מהופ!` : `💬 ${who} · votre livreur HOP!`, body: text,
           url: `suivi.html?t=${oc.token}`, tag: "cm-" + id }, site);
       }
       if (kind === "o" && ev.author === "client") {
