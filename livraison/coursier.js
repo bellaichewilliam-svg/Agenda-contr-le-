@@ -428,7 +428,10 @@ async function load() {
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   await checkChats();
   render();
+  // Appli ouverte en touchant une notification : on va directement à la course ou à la conversation
+  if (notifFirst) { notifFirst = false; openFromNotif(location.href); }
 }
+let notifFirst = true;
 
 // --- Pop-up « réponse attendue » : rien à chercher dans la liste, ça s'ouvre au premier plan ----------------
 // Le client dit avoir payé → « Paiement reçu » / « Pas reçu » ; le client a répondu (heure, attente) → on le dit
@@ -2419,8 +2422,23 @@ function livePoll() {
   const waiting = mine().some(o => o.eta_status === "attente" || o.wait_ann_status === "attente" || (o.direct_pay && o.payment_status !== "paye" && o.status === "recuperee"));
   pollTimer = setTimeout(async () => { await load(); livePoll(); }, waiting ? 2000 : hot ? 5000 : 15000);
 }
+// Notification touchée : la conversation ou la course dont elle parle s'ouvre
+function openFromNotif(url) {
+  let tag = "";
+  try { tag = new URL(url, location.href).searchParams.get("tag") || ""; } catch (e) { return; }
+  if (!tag || !me) return;
+  history.replaceState(null, "", location.pathname);
+  const m = tag.match(/^m-(.+)$/);
+  if (m && m[1] === "c:" + me.id) return openBossChat();
+  const id = m ? (m[1].match(/^o:(.+)$/) || [])[1] : (tag.match(/^(?:o|pay|refund)-(.+)$/) || [])[1];
+  const o = id && orders.find(x => x.id === id);
+  if (m && o) return openOrderChat(o);
+  if (o && o.courier_id === me.id) { openPage("mine"); setTimeout(() => { const el = document.querySelector(`.mine-card[data-id="${CSS.escape(id)}"]`); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 300); }
+  else if (o) openPage("pool");
+}
 if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => {
   if (e.data && e.data.hop === "refresh" && me) load();
+  if (e.data && e.data.hop === "open" && me) load().then(() => openFromNotif(e.data.url));
 });
 renderWelcome();
 document.querySelectorAll("[data-auth]").forEach(b => b.addEventListener("click", () => showAuth(b.dataset.auth)));
