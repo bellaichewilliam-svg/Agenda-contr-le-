@@ -891,6 +891,9 @@ function detectPlaceKind(brand) {
 // Enseigne absente de la carte, indiquée par le client sur une rue sans numéro : on demande le numéro
 const needsNo = p => !!(p && p.learned && !p.housenumber);
 function setBrandMode(which, on) {
+  // À la livraison, bâtiment, étage, appartement et code restent toujours affichés (même chez une enseigne :
+  // un client peut habiter au-dessus, un bureau être au 3e) ; seul le départ chez une enseigne les cache
+  if (which === "to") on = false;
   const pre = prefixOf(which);
   form.elements[pre + "_address"].closest(".fields").classList.toggle("brand-mode", !!on);
   if (on) DETAIL.forEach(k => { form.elements[pre + "_" + k].value = ""; });
@@ -2790,7 +2793,7 @@ function swapRoute() {
   ["from", "to"].forEach(w => {
     const p = state.pick[w];
     if (p) { ac[w].setPicked(p.label); home.ac[w].setPicked(p.label); } else { ac[w].reset(); home.ac[w].reset(); }
-    form.elements[prefixOf(w) + "_address"].closest(".fields").classList.toggle("brand-mode", !!(p && p.brand));
+    form.elements[prefixOf(w) + "_address"].closest(".fields").classList.toggle("brand-mode", w === "from" && !!(p && p.brand));
   });
   syncVisibility();
   renderQuote();
