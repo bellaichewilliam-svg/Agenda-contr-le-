@@ -402,6 +402,25 @@ function showOrder(id) {
     if (el) { el.scrollIntoView({ block: "start", behavior: "smooth" }); el.classList.add("flash"); }
   }, 200);
 }
+// Photo à la livraison : obligatoire devant la porte, ou quand le client l'a demandée (« 📷 Je veux une photo »)
+const needPhoto = o => !!(o.leave_at_door || o.photo_wanted);
+const photoDone = new Set();
+document.addEventListener("change", async e => {
+  const inp = e.target.closest("input[data-aphoto]");
+  if (!inp || !inp.files[0]) return;
+  const f = inp.files[0], id = inp.dataset.aphoto, o = orders.find(x => x.id === id);
+  inp.value = "";
+  if (!o) return;
+  inp.closest("label").firstChild.textContent = "📷 Envoi de la photo…";
+  try {
+    const data = await UI.docPhoto(f);
+    await Store.chatSend("o:" + o.id, "admin", "HOP!", I18N.forLang(o.lang || "fr", "rdMsgPhoto", { name: String((me && me.name) || "HOP!").split(" ")[0] }), data);
+    photoDone.add(o.id);
+  } catch (ex) { render(); return alert("Photo non envoyée, vérifiez la connexion et réessayez."); }
+  render();
+  const btn = document.querySelector(`#view article.order[data-id="${CSS.escape(id)}"] [data-status="livree"]`);
+  if (btn) btn.click();
+});
 // Adresse ouverte par la notification : patron/?o=<course>
 function bossFromUrl(url) {
   try {
@@ -468,6 +487,7 @@ function card(o, withDay) {
   if (o.shop_status && o.shop_status !== "refusee") meta.push(`<span class="pill">${o.shop_status === "attente" ? "🍳 Attente du commerce"
     : o.shop_status === "prete" ? "✅ Prête au commerce" : `🍳 Prête à ${UI.esc(new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}`}${Number(o.shop_share) > 0 ? ` · commerce ${UI.money(o.shop_share)}` : ""}</span>`);
   if (o.shop_order) meta.push(`<span class="pill">🧾 ${UI.esc(o.shop_order.slice(0, 80))}</span>`);
+  if (o.photo_wanted || o.leave_at_door) meta.push(`<span class="pill unpaid">📷 Photo du colis obligatoire${o.photo_wanted ? " (demandée par le client)" : " (devant la porte)"}</span>`);
   // Colis à récupérer : les documents du client, à vérifier avant d'envoyer un livreur
   if (o.docs_status) {
     meta.push(`<button class="pill pill-btn ${o.docs_status === "ok" ? "paid" : o.docs_status === "refuse" ? "st-annulee" : "unpaid"}" data-act="docs" title="Voir les photos envoyées par le client">${o.docs_status === "ok" ? "✅ Documents vérifiés" : o.docs_status === "refuse" ? `📄 Demandé au client : ${UI.esc(o.docs_note || "")}` : "📄 Documents à vérifier"} · voir</button>`);
@@ -530,7 +550,10 @@ function card(o, withDay) {
       // Redonner à un autre livreur (l'ancien est prévenu), ou la reprendre soi-même
       + (o.courier_id && !isMine(o) ? `<select class="btn btn-sm" data-act="assign"><option value="">🔁 Donner à un autre…</option>${active.filter(({ c }) => c.id !== o.courier_id).map(({ c }) => `<option value="${UI.esc(c.id)}">${onlineOf(c).on ? "🟢" : "⚪"} ${UI.esc(c.name)}</option>`).join("")}</select><button class="btn btn-sm" data-act="take">✋ Je la reprends</button>` : "")
       + `<button class="btn btn-sm" data-act="release">↩︎ Remettre en attente</button>` + b("annulee", "✖ Annuler"),
-    recuperee: b("livree", "📦 Livré", "btn-primary")
+    // Photo obligatoire (devant la porte, ou demandée par le client) : l'appareil photo s'ouvre, la photo part au client, puis « Livré »
+    recuperee: needPhoto(o) && !photoDone.has(o.id)
+      ? `<label class="btn btn-sm btn-primary">📷 Photo du colis, puis Livré<input type="file" accept="image/*" capture="environment" data-aphoto="${UI.esc(o.id)}" hidden /></label>`
+      : b("livree", "📦 Livré", "btn-primary")
   };
 
   // Course terminée (livrée, annulée, refusée) : une ligne qu'on ouvre ; les courses à faire restent ouvertes
@@ -1459,6 +1482,7 @@ async function change(o, changes) {
     render();
     return true;
   } catch (e) {
+    if (/photo_required/.test(e.message || "")) { photoDone.delete(o.id); render(); alert("📷 Photo du colis obligatoire pour cette course : touchez « 📷 Photo du colis, puis Livré »."); return false; }
     alert("La modification n'a pas pu être enregistrée.");
     return false;
   }

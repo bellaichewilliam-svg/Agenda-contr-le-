@@ -1055,7 +1055,7 @@ async function courierAction(id, action) {
       throw new Error("too_far");
     }
     // « Déposer devant la porte » : photo du colis obligatoire dans la conversation
-    if (!free && o.leave_at_door && !chatLocal().some(m => m.thread === "o:" + o.id && m.author === "courier" && m.image)) throw new Error("photo_required");
+    if ((o.leave_at_door || o.photo_wanted) && !chatLocal().some(m => m.thread === "o:" + o.id && ["courier", "admin"].includes(m.author) && m.image)) throw new Error("photo_required");
     // Clés ou objet de valeur : le destinataire a donné le bon code de remise
     if (!free && o.handoff && !o.handoff_ok_at) throw new Error("handoff_required");
     // Paiement direct : « 💳 Paiement reçu » avant « Livré »
@@ -1472,6 +1472,15 @@ async function pushSubscribe(endpoint, p256dh, auth) {
 async function clientPushSubscribe(token, endpoint, p256dh, auth) {
   if (!ONLINE) return false;
   return rest("/rest/v1/rpc/client_push_subscribe", { method: "POST", body: { p_token: token, p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth } });
+}
+// Le client demande une photo du colis à la livraison (obligatoire ensuite pour « Livré »)
+async function clientPhotoWanted(token, on) {
+  if (ONLINE) return rest("/rest/v1/rpc/client_photo_wanted", { method: "POST", body: { p_token: token, p_on: on !== false } });
+  const all = localOrders(), o = all.find(x => x.token === token);
+  if (!o || !["nouvelle", "confirmee", "recuperee"].includes(o.status)) return false;
+  o.photo_wanted = on !== false;
+  writeJSON(LS.orders, all);
+  return true;
 }
 // Le livreur dit comment il a été payé : espèces ou Bit
 async function courierPaidHow(id, how) {
@@ -2190,7 +2199,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
