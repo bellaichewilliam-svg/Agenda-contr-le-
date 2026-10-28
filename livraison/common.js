@@ -37,6 +37,10 @@ function intlPhone(phone) {
 function waLink(phone, text) {
   return "https://wa.me/" + intlPhone(phone) + "?text=" + encodeURIComponent(text);
 }
+// SMS prérempli (le numéro local, le texte) : marche sur Android et iPhone
+function smsLink(phone, text) {
+  return "sms:" + String(phone || "").replace(/[^\d+]/g, "") + "?&body=" + encodeURIComponent(text || "");
+}
 // Lien WhatsApp sans destinataire : l'utilisateur choisit le contact
 // Notes des clients : moyenne et nombre d'avis d'une liste de courses
 function ratingOf(list) {
@@ -735,7 +739,7 @@ window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
-  mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, waShare, waPersonal, wazeLink, mapsLink,
+  mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 

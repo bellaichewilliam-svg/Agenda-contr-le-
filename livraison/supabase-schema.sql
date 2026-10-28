@@ -6821,3 +6821,33 @@ end;
 $$;
 create or replace trigger orders_zw_test before insert on public.orders
   for each row execute function public.orders_zw_test();
+
+-- ============================================================================
+-- PAIEMENT BIT DEMANDÉ DÈS QUE LE LIVREUR ACCEPTE : le client reçoit tout de suite, dans la conversation de la
+-- course (suivi), le montant, le nom et le numéro Bit du livreur. Pas pour les courses envoyées par un commerce
+-- (le commerce paie au départ, ou le client à la livraison) ni les courses déjà payées.
+-- ============================================================================
+create or replace function public.orders_pay_ask() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare total numeric; ph text;
+begin
+  if new.status <> 'confirmee' or old.status = 'confirmee' or not new.direct_pay or new.payment_method <> 'bit'
+     or new.payment_status = 'paye' or coalesce(new.shop_sent, false) or new.courier_id is null then
+    return new;
+  end if;
+  total := new.price + case when coalesce(new.goods_prepay, false) and not coalesce(new.goods_after, false) then coalesce(new.goods_budget, 0) else 0 end;
+  ph := coalesce(new.courier_bit, (select coalesce(bit_phone, phone) from couriers where id = new.courier_id));
+  if ph is null then return new; end if;
+  insert into chat_messages (thread, author, author_name, body)
+    values ('o:' || new.id::text, 'admin', 'HOP!',
+            case when new.lang = 'he'
+                 then '💳 ' || split_part(coalesce(new.courier_name, ''), ' ', 1) || ' קיבל/ה את המשלוח! שלחו לו/לה עכשיו ' || replace(total::text, '.00', '') || ' ₪ בביט למספר ' || ph
+                      || ' (הזמנה מס'' ' || new.ref || '), ואז לגעת ב"שילמתי". השליח יוצא לאסוף ברגע שהתשלום מגיע.'
+                 else '💳 ' || split_part(coalesce(new.courier_name, ''), ' ', 1) || ', votre livreur, a accepté ! Envoyez-lui maintenant ' || replace(total::text, '.00', '') || ' ₪ par Bit au ' || ph
+                      || ' (commande n° ' || new.ref || '), puis touchez « J''ai payé ». Il récupère votre commande dès que le paiement arrive.' end);
+  return new;
+end;
+$$;
+revoke execute on function public.orders_pay_ask() from public, anon, authenticated;
+create or replace trigger orders_pay_ask after update of status on public.orders
+  for each row execute function public.orders_pay_ask();

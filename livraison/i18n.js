@@ -321,6 +321,7 @@ fr: {
   chatCourier: "💬 Écrire à {name}", callCourier: "📞 Appeler {name}", chatAdmin: "💬 Service client", callAdmin: "📞 Service client",
   chatTitle: "Une question ? Parlez-nous en direct", chatNoCourier: "Un livreur va être attribué : en attendant, écrivez au service client.",
   msg_receipt: "🧾 Votre reçu : {url}", receiptLink: "🧾 Reçu", receiptOpen: "Ouvrir le reçu",
+  payAskMsg: "Bonjour, c'est {name}, votre livreur HOP! 🛵 (commande n° {ref}). Envoyez-moi {total} par Bit au {phone} et je pars récupérer votre commande. Suivi : {url}",
   msg_receipt_full: "Bonjour {name}, merci pour votre commande HOP! n° {ref} 🙏\n🧾 Votre reçu n° {n} ({price}) : {url}",
   // Messages WhatsApp du coursier au client
   msg_nouvelle: "Bonjour {name}, j'ai bien reçu votre course n° {ref} 👍",
@@ -995,6 +996,7 @@ he: {
   chatCourier: "💬 לכתוב ל{name}", callCourier: "📞 להתקשר ל{name}", chatAdmin: "💬 שירות לקוחות", callAdmin: "📞 שירות לקוחות",
   chatTitle: "יש שאלה? דברו איתנו ישירות", chatNoCourier: "שליח ישובץ בקרוב: בינתיים אפשר לכתוב לשירות הלקוחות.",
   msg_receipt: "🧾 הקבלה שלכם: {url}", receiptLink: "🧾 קבלה", receiptOpen: "לפתוח את הקבלה",
+  payAskMsg: "שלום, כאן {name}, השליח שלכם מהופ! 🛵 (הזמנה מס' {ref}). שלחו לי {total} בביט למספר {phone} ואני יוצא לאסוף את ההזמנה. מעקב: {url}",
   msg_receipt_full: "שלום {name}, תודה על ההזמנה בהופ! מס' {ref} 🙏\n🧾 הקבלה שלכם מס' {n} ({price}): {url}",
   msg_nouvelle: "שלום {name}, קיבלתי את המשלוח {ref} 👍",
   msg_confirmee: "שלום {name}, המשלוח מס' {ref} אושר ✅ {when}\nמחיר: {price} ({pay})\nמעקב בזמן אמת: {url}",

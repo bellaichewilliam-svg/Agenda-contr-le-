@@ -520,7 +520,7 @@ function card(o, withDay) {
       <a class="btn btn-sm" href="${UI.trackUrl(o)}" target="_blank" rel="noopener">📍 Suivi</a>
       ${o.receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}" target="_blank" rel="noopener">🧾 Reçu n° ${o.receipt_number}</a>`
         : o.courier_receipt_number ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}" target="_blank" rel="noopener">🧾 Reçu du livreur n° ${o.courier_receipt_number}</a>` : ""}
-      ${UI.receiptNo(o) && o.contact_phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waLink(o.contact_phone, I18N.forLang(o.lang || "fr", "msg_receipt_full", { name: o.contact_name || "", ref: o.ref, n: UI.receiptNo(o), price: UI.money(o.price), url: UI.receiptUrl(o) })))}" target="_blank" rel="noopener">📲 Envoyer le reçu</a>` : ""}
+      ${UI.receiptNo(o) && o.contact_phone ? (m => `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(o.contact_phone, m))}" target="_blank" rel="noopener">💬 Reçu WhatsApp perso</a><a class="btn btn-sm" href="${UI.esc(UI.smsLink(o.contact_phone, m))}">📩 Reçu par SMS</a>`)(I18N.forLang(o.lang || "fr", "msg_receipt_full", { name: o.contact_name || "", ref: o.ref, n: UI.receiptNo(o), price: UI.money(o.price), url: UI.receiptUrl(o) })) : ""}
       ${o.receipt_number && o.contact_email ? `<a class="btn btn-sm" href="mailto:${UI.esc(o.contact_email)}?subject=${encodeURIComponent(`Reçu n° ${o.receipt_number} · קבלה מס' ${o.receipt_number}`)}&body=${encodeURIComponent(UI.clientMessage(o))}">✉️ Reçu par mail</a>` : ""}
       <button class="btn btn-sm" data-act="price">✏️ Prix</button>
       <button class="btn btn-sm" data-act="test">${o.is_test ? "↩︎ Pas un essai" : "🧪 Course test"}</button>

@@ -2689,3 +2689,9 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .bp-steps .bp-done { min-height: 52px; font-size: 16px; }
 .bp-steps small { line-height: 1.4; }
 .sent-btn { margin-top: 6px; }
+
+/* Livreur : demander tout de suite le paiement Bit au client */
+.pay-ask { display: grid; gap: 6px; margin-top: 8px; padding: 10px 12px; border: 2px solid var(--bit); border-radius: 14px; background: var(--blue-soft); font-size: 14px; line-height: 1.35; }
+.pay-ask small { font-size: 13px; }
+.pay-ask-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.pay-ask-btns .btn { flex: 1 1 140px; white-space: normal; text-align: center; }

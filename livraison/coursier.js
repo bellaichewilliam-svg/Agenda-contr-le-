@@ -563,6 +563,16 @@ function card(o, kind) {
   if (kind === "mine" && o.direct_pay && !hopPaid && o.payment_method !== "cash") extra += `<div class="small pay-direct${o.client_paid_at && o.payment_status !== "paye" ? " pay-claimed" : ""}">${payLine(o)}${o.payment_status === "paye" ? " · ✅ reçu"
     : o.client_paid_at ? `<br><b>📲 Le client dit avoir payé : vérifiez votre Bit / PayBox, puis touchez « 💳 Paiement reçu ».</b>`
     : ` · à recevoir <b>avant de récupérer la commande</b>`}</div>`;
+  // Course acceptée, Bit pas encore reçu : on demande tout de suite le paiement au client (SMS ou WhatsApp, prêts à envoyer)
+  if (kind === "mine" && o.status === "confirmee" && o.direct_pay && !hopPaid && o.payment_method === "bit" && o.payment_status !== "paye" && !o.client_paid_at && !o.shop_sent && o.contact_phone) {
+    const amount = UI.money(UI.payTotal(o)), bit = o.courier_bit || me.bit_phone || me.phone || "";
+    const msg = I18N.forLang(o.lang || "fr", "payAskMsg", { name: String(me.name || o.courier_name || "").split(" ")[0], ref: o.ref, total: amount, phone: bit, url: UI.trackUrl(o) });
+    extra += `<div class="pay-ask"><b>⏳ Le client doit vous payer ${amount} par Bit avant que vous partiez récupérer</b>
+      <small>HOP! lui a déjà envoyé votre numéro. Pour aller plus vite, envoyez-lui la demande :</small>
+      <div class="pay-ask-btns"><a class="btn btn-sm btn-primary" href="${UI.esc(UI.smsLink(o.contact_phone, msg))}">📩 Demander par SMS</a>
+      <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(o.contact_phone, msg))}" target="_blank" rel="noopener">💬 Par WhatsApp</a></div>
+      <small>Dès que l'argent est sur votre Bit : touchez « 💳 Paiement reçu ».</small></div>`;
+  }
 
   let actions = "";
   if (kind === "pool") {
