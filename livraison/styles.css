@@ -2755,3 +2755,35 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .nopay small { font-size: 13px; }
 .nopay-num { text-align: center; }
 @media (prefers-color-scheme: dark) { .nopay { background: #3A2A0B; color: #FFE2A8; border-color: #C98A12; } }
+
+/* Page vitrine d'une enseigne : message / promo, photos de présentation, photo en grand */
+.sh-promo { display: flex; gap: 10px; align-items: flex-start; margin: 10px 14px 0; padding: 12px 14px; border-radius: 14px; background: linear-gradient(135deg, #FFF1F6, #FFF8E8); color: #5A1F3A; border: 1px solid #F4C4D6; font-weight: 600; line-height: 1.4; min-width: 0; }
+.sh-promo i { font-style: normal; font-size: 20px; line-height: 1.2; }
+.sh-promo span { min-width: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.sh-gallery { display: flex; gap: 8px; overflow-x: auto; padding: 12px 14px 4px; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; }
+.sh-gallery button { flex: 0 0 auto; width: 132px; height: 132px; padding: 0; border: 0; border-radius: 14px; overflow: hidden; background: var(--panel); cursor: zoom-in; scroll-snap-align: start; box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+.sh-gallery img { width: 100%; height: 100%; object-fit: cover; display: block; }
+#shopHero .nopay { margin: 12px 14px 4px; }
+.sh-viewer { position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,.92); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.sh-viewer img { max-width: 100%; max-height: 86vh; border-radius: 12px; object-fit: contain; }
+.sh-viewer button { position: absolute; border: 0; border-radius: 50%; width: 44px; height: 44px; background: rgba(255,255,255,.18); color: #fff; font-size: 26px; line-height: 1; cursor: pointer; }
+.sh-viewer .shv-x { top: 14px; right: 14px; font-size: 20px; }
+.sh-viewer .shv-prev { left: 10px; top: 50%; transform: translateY(-50%); }
+.sh-viewer .shv-next { right: 10px; top: 50%; transform: translateY(-50%); }
+.sh-viewer small { position: absolute; bottom: 18px; left: 0; right: 0; text-align: center; color: #fff; opacity: .8; }
+@media (prefers-color-scheme: dark) { .sh-promo { background: linear-gradient(135deg, #3B1626, #3A2A0B); color: #FFD9E8; border-color: #7A3553; } }
+/* Espace commerce : « Ma page » */
+.pg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.pg-grid figure { position: relative; margin: 0; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--panel); }
+.pg-grid img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pg-off { position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; cursor: pointer; }
+.pg-add { aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; border: 2px dashed var(--border); border-radius: 12px; cursor: pointer; text-align: center; padding: 6px; }
+.pg-add span { font-size: 24px; } .pg-add b { font-size: 13px; line-height: 1.2; } .pg-add small { opacity: .7; }
+#spPage textarea { width: 100%; resize: vertical; }
+/* Patron : ordre de la vitrine */
+.vit-list { margin: 0; padding-inline-start: 22px; display: grid; gap: 6px; }
+.vit-list li > * { vertical-align: middle; }
+.vit-list li { padding: 4px 0; }
+.vit-list li > span:first-child { display: inline-block; min-width: 0; max-width: calc(100% - 92px); overflow-wrap: anywhere; }
+.vit-move { float: right; display: inline-flex; gap: 4px; }
+[dir="rtl"] .vit-move { float: left; }

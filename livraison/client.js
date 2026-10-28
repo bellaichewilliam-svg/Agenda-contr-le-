@@ -530,10 +530,10 @@ const cashMax = () => Number((state.settings && state.settings.cash_max) || 200)
 // Commerce Pro sans paiement en ligne (ni lien, ni Bit) : le client commande et paie chez lui par WhatsApp,
 // demande l'heure exacte où c'est prêt, puis commande ici la livraison (pas d'attente, pas de supplément)
 const shopNoPay = () => !!((proShopOn() || shopDropOn()) && state.shop && !state.shop.pay_link && !state.shop.pay_bit);
-function noPayBox() {
+function noPayBox(titleKey) {
   const sh = state.shop, name = UI.bi(sh.name), num = sh.whatsapp || sh.phone || "";
   const shown = num ? (String(num).replace(/\D/g, "").replace(/^972/, "0")) : "";
-  return `<div class="nopay"><b>💬 ${UI.esc(t("nopayTitle", { name }))}</b>
+  return `<div class="nopay"><b>💬 ${UI.esc(t(titleKey || "nopayTitle", { name }))}</b>
     <p><i>1</i><span>${UI.esc(t("nopay1", { name }))}</span></p>
     <p><i>2</i><span>${UI.esc(t("nopay2"))}</span></p>
     <p><i>3</i><span>${UI.esc(t("nopay3"))}</span></p>
@@ -2309,13 +2309,13 @@ function shopOpenNow(hours) {
   const m = now.getHours() * 60 + now.getMinutes(), mins = v => { const [h, mm] = v.split(":").map(Number); return h * 60 + (mm || 0); };
   return !!(today && today.h && String(today.h).split(",").some(r => { const [a, b] = r.split("-"); return a && b && m >= mins(a) && m < mins(b); }));
 }
-function shopInfo(s) {
+function shopInfo(s, noWa) {
   if (!s || !(s.whatsapp || s.about || s.about_he || (s.hours && s.hours.length))) return "";
   const days = DAYS[I18N.lang] || DAYS.fr, today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" })).getDay();
   const fmt = h => (h ? String(h).split(",").map(r => r.replace("-", "–")).join(" · ") : t("shClosed"));
   const hours = (s.hours || []).slice().sort((a, b) => a.d - b.d);
   const open = hours.length && shopOpenNow(hours);
-  const wa = String(s.whatsapp || "").replace(/\D/g, "");
+  const wa = noWa ? "" : String(s.whatsapp || "").replace(/\D/g, "");
   const waText = encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }));
   return `<div class="sh-info">
     ${UI.shopText(s, "about") ? `<p class="sh-about">${UI.esc(UI.shopText(s, "about"))}</p>` : ""}
@@ -2331,6 +2331,12 @@ function shopInfo(s) {
       `<tr class="${Number(x.d) === today ? "today" : ""}"><th>${UI.esc(days[x.d])}</th><td>${UI.esc(fmt(x.h))}</td></tr>`).join("")}</table></details>` : ""}
   </div>`;
 }
+// Photos de présentation de l'enseigne (8 au plus) : une rangée qui défile, en grand au toucher
+const shopPhotos = s => (Array.isArray(s && s.gallery) ? s.gallery : []).map(UI.safeImg).filter(Boolean).slice(0, 8);
+function shopGallery(s) {
+  const g = shopPhotos(s);
+  return g.length ? `<div class="sh-gallery" role="list">${g.map((src, i) => `<button type="button" role="listitem" data-sh-photo="${i}" aria-label="${UI.esc(t("shPhoto", { n: i + 1 }))}"><img src="${src}" alt="" loading="lazy" /></button>`).join("")}</div>` : "";
+}
 // Le commerce est-il dans la course (au départ ou à l'arrivée) ?
 const shopSide = () => (shopPicked() ? "from" : state.shop && state.pick.to && state.pick.to.shopId === state.shop.id ? "to" : "");
 const shopMode = () => (state.shop && state.shop.pro ? shopSide() : "");
@@ -2338,22 +2344,26 @@ function renderShopBanner() {
   const side = shopSide(), on = !!side;
   $("#shopBanner").classList.toggle("hidden", !on);
   // Commerce HOP! Pro : sa vitrine en haut de la commande (photo, logo, accroche), comme dans les applis de livraison
-  const s = state.shop, hero = $("#shopHero"), showHero = !!(on && s && (s.pro || s.logo || s.cover));
+  const s = state.shop, hero = $("#shopHero"), showHero = !!(on && s && (s.pro || s.logo || s.cover || s.promo || shopPhotos(s).length));
   hero.classList.toggle("hidden", !showHero);
   if (showHero) {
     const cover = UI.safeImg(s.cover) || UI.demoImg(s, "cover"), logo = UI.safeImg(s.logo) || UI.demoImg(s, "logo"), kinds = t("shKinds") || {};
     const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+    // Enseigne sans commande en ligne (vitrine) : sa présentation, puis comment commander chez elle par WhatsApp
+    const vit = !s.pro && !s.demo && side === "from";
     const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small></div></div>
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
+      ${UI.shopText(s, "promo") ? `<p class="sh-promo"><i>📣</i><span>${UI.esc(UI.shopText(s, "promo"))}</span></p>` : ""}
       ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
       ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: UI.bi(s.name), when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
         <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: UI.bi(s.name) }))}</small></span></button>
         <button type="button" class="${side === "from" ? "on" : ""}" data-shop-dir="from"><i>👔</i><span><b>${UI.esc(t("shDirFrom"))}</b><small>${UI.esc(t("shDirFromSub", { name: UI.bi(s.name) }))}</small></span></button>
       </div>` : ""}
-      ${shopInfo(s)}`;
+      ${shopGallery(s)}
+      ${vit ? shopInfo(s, true) + noPayBox("vitTitle") : shopInfo(s)}`;
     if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
   }
   if (on) $("#shopBannerText").textContent = t(side === "to" ? "shBannerTo" : "shBanner", { name: UI.bi(state.shop.name) });
@@ -3272,7 +3282,7 @@ function partnerPlace(sh) {
 // --- Vitrine : les commerces HOP! Pro abonnés, mis en avant sur l'accueil (logo, photo, accroche) -------
 state.showcase = [];
 function proPrice(s) {
-  if (s && s.client_pays) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
+  if (s && (s.client_pays || s.pro === false)) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
   const st = state.settings || {};
   const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
   return Math.max(0, CONFIG.pricing.fixedFromHome[CONFIG.homeCity] - share);
@@ -3301,7 +3311,7 @@ function shopCard(s) {
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
-      <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : ""}</small>
+      <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
       ${UI.shopText(s, "tagline") ? `<small class="sc-tag">${UI.esc(UI.shopText(s, "tagline"))}</small>` : ""}</span>
     ${st && !st.open ? `<span class="sc-prog-btn">${UI.calIcon()} ${UI.esc(t("scProgOrder"))}</span>` : `<span class="sc-go" aria-label="${UI.esc(t("proGo"))}">›</span>`}
   </div>`;
@@ -3315,9 +3325,12 @@ function shopLogo(s, cls) {
 function renderShowcase() {
   const list = (state.showcase || []).slice(), f = favs();
   const isOpen = s => { const st = UI.openState(s.hours); return !st || st.open; };
-  list.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (isOpen(b) - isOpen(a)));
+  // Favoris du client d'abord, puis les enseignes placées par HOP! (position 1 = en premier), puis les ouvertes
+  const rk = s => (s.rank != null ? Number(s.rank) : Infinity);
+  list.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (rk(a) - rk(b) || 0) || (isOpen(b) - isOpen(a)));
   $("#homeProBox").classList.toggle("hidden", !list.length);
-  const open = list.filter(isOpen), closed = list.filter(s => !isOpen(s));
+  const placed = list.filter(s => rk(s) < Infinity || f.includes(s.code)), rest = list.filter(s => !placed.includes(s));
+  const open = placed.concat(rest.filter(isOpen)), closed = rest.filter(s => !isOpen(s));
   const html = `<div class="sc-stories">${list.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
         ${shopLogo(s, "sc-ring")}${isKosher(s) ? `<i class="k-dot" title="${UI.esc(t("kosher"))}">${KOSHER_STAR}</i>` : ""}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(UI.bi(s.name))}</b></button>`).join("")}</div>`
     + `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>`;
@@ -3537,7 +3550,28 @@ function leaveShop(quiet) {
 }
 $("#shopBannerOff").addEventListener("click", () => leaveShop());
 // Pressing : on vient chercher les vêtements chez le client (→ pressing) ou on les ramène (pressing →)
+// Une photo en grand (‹ › pour passer à la suivante, toucher le fond pour fermer)
+function openShopPhoto(i) {
+  const g = shopPhotos(state.shop);
+  if (!g.length) return;
+  let k = (Number(i) + g.length) % g.length;
+  const d = document.createElement("div");
+  d.className = "sh-viewer";
+  const draw = () => {
+    d.innerHTML = `<img src="${g[k]}" alt="" /><button type="button" class="shv-x" data-shv="x" aria-label="✕">✕</button>
+      ${g.length > 1 ? `<button type="button" class="shv-prev" data-shv="-1" aria-label="‹">‹</button><button type="button" class="shv-next" data-shv="1" aria-label="›">›</button><small>${k + 1} / ${g.length}</small>` : ""}`;
+  };
+  draw();
+  d.addEventListener("click", e => {
+    const c = e.target.closest("[data-shv]");
+    if (c && c.dataset.shv !== "x") { k = (k + Number(c.dataset.shv) + g.length) % g.length; return draw(); }
+    if (c || e.target === d) d.remove();
+  });
+  document.body.appendChild(d);
+}
 $("#shopHero").addEventListener("click", e => {
+  const ph = e.target.closest("[data-sh-photo]");
+  if (ph) return openShopPhoto(ph.dataset.shPhoto);
   const b = e.target.closest("[data-shop-dir]");
   if (!b || b.dataset.shopDir === shopSide()) return;
   state.shopDir = b.dataset.shopDir;
