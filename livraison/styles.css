@@ -2790,3 +2790,11 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 /* L'adresse enregistrée choisie : pleine, avec ✓ (Maison / Travail ont déjà une bordure orange) */
 .addr-chip.on, .addr-chip.tagged.on { background: var(--brand); border-color: var(--brand); color: #fff; }
 .addr-chip.on::before { content: "✓ "; }
+/* Adresse de livraison enregistrée : fiche résumée, les champs sont repliés */
+.to-saved .drop-addr { display: none !important; }
+.addr-sum { display: grid; gap: 6px; padding: 12px 14px; border: 2px solid var(--brand); border-radius: 14px; background: var(--brand-soft); min-width: 0; }
+.addr-sum b { overflow-wrap: anywhere; }
+.addr-sum small { color: var(--muted); line-height: 1.4; overflow-wrap: anywhere; }
+.addr-sum-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* Mes adresses : le nom et l'adresse en entier (sur deux lignes au besoin), jamais coupés */
+.saved-addrs .addr-chip { white-space: normal; text-overflow: clip; border-radius: 16px; text-align: start; overflow-wrap: anywhere; }

@@ -233,7 +233,9 @@ async function route() {
     }
     wasOnline = false;
   }
-  if (wasOnline && duty.watch == null) toggleDuty(true); else if (duty.watch == null) Store.setOnline(false).catch(() => {});
+  if (wasOnline && duty.watch == null) toggleDuty(true);
+  // Hors service : la notification « 🟢 En service » restée d'avant (appli fermée, passé hors ligne par HOP!) s'en va
+  else if (duty.watch == null) { Store.setOnline(false).catch(() => {}); UI.dutyNotice(false); }
   load();
   clearTimeout(pollTimer);
   livePoll();
@@ -2586,7 +2588,8 @@ async function endAndLogout() {
 $("#logoutBtn").addEventListener("click", e => { e.preventDefault(); endAndLogout(); });
 // De retour dans HOP! (après Waze) : position tout de suite et notification « En service » remise
 document.addEventListener("visibilitychange", async () => {
-  if (document.visibilityState !== "visible" || duty.watch == null) return;
+  if (document.visibilityState !== "visible") return;
+  if (duty.watch == null) return UI.dutyNotice(false);
   // D'abord : HOP! nous a-t-il passé hors ligne pendant ce temps ? (sinon on afficherait « Vous recevez les courses » à tort)
   const card = await Store.me().catch(() => null);
   if (card) { me = card; serverWentOffline(card); }

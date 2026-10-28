@@ -9,14 +9,16 @@ self.addEventListener("push", e => {
   try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : "" }; }
   // Nouvelle course (« o-… ») : elle reste affichée, vibre longtemps et resonne à chaque renvoi (toutes les 5 s)
   const course = /^o-/.test(d.tag || "");
+  // Passé hors ligne par HOP! (appli en veille) : la notification « 🟢 En service » n'a plus lieu d'être
+  const off = /^⏸️/.test(d.title || "") ? self.registration.getNotifications({ tag: "hop-duty" }).then(l => l.forEach(n => n.close())).catch(() => {}) : null;
   // L'appli ouverte (même en arrière-plan) se met à jour tout de suite : paiement, annulation, nouvelle course…
   self.clients.matchAll({ type: "window", includeUncontrolled: true })
     .then(list => list.forEach(c => c.postMessage({ hop: "refresh", tag: d.tag || "" }))).catch(() => {});
-  e.waitUntil(self.registration.showNotification(d.title || "HOP!", {
+  e.waitUntil(Promise.resolve(off).then(() => self.registration.showNotification(d.title || "HOP!", {
     body: d.body || "", tag: d.tag || undefined, renotify: !!d.tag, icon: "icon-192.png", badge: "badge-96.png",
     requireInteraction: course, silent: false, actions: Array.isArray(d.actions) ? d.actions.slice(0, 2) : [],
     vibrate: course ? [900, 300, 900, 300, 900, 300, 900] : [250, 120, 250], data: { url: d.url || self.registration.scope }
-  }));
+  })));
 });
 
 // Toucher une notification : revenir sur la page HOP! déjà ouverte (Waze reste en arrière-plan)
