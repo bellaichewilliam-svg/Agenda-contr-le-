@@ -670,7 +670,7 @@ function card(o, kind) {
         : o.wait_status === "a_payer"
           ? `<p class="wait-live">⏱️ Supplément d'attente : <b>${UI.money(o.wait_due)}</b> à encaisser par Bit / PayBox avant de livrer (la course est déjà payée)</p>
              <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Supplément reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`
-          : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>` + onWayBtns(o))
+          : (needPhoto(o) && !photoDone.has(o.id) ? photoBtn(o, true) : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`) + onWayBtns(o))
       + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (o.payment_method === "cash" && o.status === "confirmee" && Number(o.cash_need) > 0 && !o.cash_shop_at ? `<button class="btn btn-sm" data-act="pas_especes">😕 Je n'ai pas les espèces</button>` : "")
@@ -680,7 +680,7 @@ function card(o, kind) {
         : hopPaid ? "" : o.payment_status !== "paye" ? (o.direct_pay ? paidHowBtns(o) : `<button class="btn btn-sm" data-act="paye">💵 Encaissé</button>`) : `<span class="pill paid">✓ ${o.direct_pay ? "payé" : "encaissé"}</span>`)
       + (o.direct_pay && !hopPaid && o.client_paid_at && o.payment_status !== "paye" ? `<button class="btn btn-sm" data-paymissing="${UI.esc(o.id)}">❌ Pas reçu</button>` : "")
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
-      + (o.leave_at_door && o.status === "recuperee" ? `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}" data-photo="1">📷 Photo du dépôt</button>` : "")
+      + (o.status === "recuperee" && (!needPhoto(o) || photoDone.has(o.id)) ? photoBtn(o, false) : "")
       + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
   }
 
@@ -705,7 +705,7 @@ function card(o, kind) {
       ${mineShop ? `<span class="pill star-pill">⭐ Votre commerce${o.shop_name ? " : " + UI.esc(o.shop_name) : ""}${kind === "pool" ? priorityLeft(o) : ""} · commission réseau ${UI.esc(UI.networkText())}</span>` : o.shop_name ? `<span class="pill">🏪 Partenaire : ${UI.esc(o.shop_name)}</span>` : ""}
       ${o.issue && kind === "mine" ? `<span class="pill st-annulee">⚠️ Souci signalé : ${UI.esc(o.issue)}</span>` : ""}
       ${o.unlocked ? `<span class="pill paid">🔓 Débloquée par HOP : « Livré » possible sans GPS ni photo</span>` : ""}
-      ${o.leave_at_door && !o.unlocked && kind === "mine" ? `<span class="pill unpaid">📷 Devant la porte : photo obligatoire avant « Livré »</span>` : ""}
+      ${needPhoto(o) && kind === "mine" ? `<span class="pill unpaid">${photoWhy(o)}</span>` : ""}
       ${o.goods_pay === "recu" ? `<span class="pill paid">✅ Articles déjà payés au commerce par le client : rien à avancer</span>` : ""}
       ${hopPaid ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${o.payment_status === "paye" ? `✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse ${UI.money(net)}` : (o.payment_method === "bit" ? "📱 Le client paie par Bit à HOP : n'encaissez rien" : "💳 Paiement d'avance à HOP en attente : n'encaissez rien")}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
@@ -895,7 +895,7 @@ function mineCard(o, x) {
     ${o.dropoff_phone && o.dropoff_phone !== o.contact_phone ? `<div class="client-line">👤 Client : ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}"><b>${UI.esc(o.contact_phone)}</b></a></div>` : ""}
     ${o.notes ? `<p class="mine-note">📝 ${UI.esc(o.notes)}</p>` : ""}
     <div class="mine-extra">${x.extra}
-      ${o.leave_at_door && !o.unlocked ? `<div class="small">📷 Devant la porte : photo obligatoire avant « Livré »</div>` : ""}
+      ${needPhoto(o) ? `<div class="small">${photoWhy(o)}</div>` : ""}
       ${o.goods_pay === "recu" ? `<div class="small pay-direct">✅ Articles déjà payés au commerce : rien à avancer</div>` : ""}
       ${x.hopPaid ? `<div class="small pay-direct">${o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser" : "📱 Le client paie HOP : n'encaissez rien"}</div>` : ""}</div>
     <div class="actions">${x.actions}</div>
@@ -1245,11 +1245,12 @@ async function onViewClick(e) {
     if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`)) return;
     if (el.dataset.act === "livree") {
       el.disabled = true;
+      // Photo du colis obligatoire (devant la porte, ou demandée par le client) : pour tout le monde, même débloquée
+      if (needPhoto(o) && !photoDone.has(o.id) && !(await hasDoorPhoto(o))) { render(); return alert(PHOTO_MSG); }
       el.textContent = "📍 Vérification de votre position…";
       if (!o.unlocked && !freeNow()) {
         const here = await checkAtDropoff(o);
         if (!here.ok) { render(); return alert(here.msg); }
-        if (o.leave_at_door && !(await hasDoorPhoto(o))) { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
         // Clés ou objet de valeur : le code de remise donné par le destinataire
         if (o.handoff && !o.handoff_ok_at) {
           const code = prompt("🔐 Code de remise : demandez au destinataire son code à 4 chiffres.");
@@ -1274,7 +1275,7 @@ async function onViewClick(e) {
     if (ok === "handoff") { render(); return alert("🔐 Code de remise manquant : demandez-le au destinataire avant de remettre."); }
     if (ok === "farpick") { render(); return alert("📍 Vous n'êtes pas encore au point de récupération : appuyez sur « Je suis arrivé » une fois sur place (le compteur d'attente démarre à ce moment-là)."); }
     if (ok === "farrecup") { render(); return alert(`📍 Vous n'êtes pas au point de récupération : « Colis récupéré » se valide sur place (moins de ${Math.round(deliverRadius() * 1.5)} m), GPS activé.`); }
-    if (ok === "photo") { render(); alert(PHOTO_MSG); return openOrderChat(o, true); }
+    if (ok === "photo") { photoDone.delete(id); render(); return alert(PHOTO_MSG); }
     if (ok === "far") { render(); return alert(`📍 Vous n'êtes pas à l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).`); }
     if (!ok) alert("Action impossible, actualisez la page.");
     else if (el.dataset.act === "livree" && o && o.paid_to !== "hop" && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(UI.payTotal(o))} ?`)) {
@@ -1418,7 +1419,31 @@ async function checkAtDropoff(o) {
 const isOnline = () => duty.watch != null;
 
 // --- Blocages (le patron peut tout débloquer) ----------------------------------------------
-const PHOTO_MSG = "📷 Course « déposer devant la porte » : envoyez d'abord la photo du colis devant la porte dans la conversation, puis validez « Livré ».";
+const PHOTO_MSG = "📷 Photo du colis obligatoire : touchez « 📷 Photo du colis, puis Livré », prenez la photo, elle part au client et la course est validée.";
+// Photo à la livraison : obligatoire devant la porte, ou quand le client l'a demandée (« 📷 Je veux une photo »)
+const needPhoto = o => !!(o.leave_at_door || o.photo_wanted);
+const photoWhy = o => o.leave_at_door ? "📷 Devant la porte : photo obligatoire avant « Livré »" : "📷 Le client a demandé une photo : obligatoire avant « Livré »";
+const photoDone = new Set();
+// Bouton qui ouvre directement l'appareil photo ; la photo part dans la conversation du client, puis (then) « Livré »
+const photoBtn = (o, then) => `<label class="btn btn-sm${then ? " btn-primary" : " btn-wa"}">${then ? "📷 Photo du colis, puis Livré" : "📷 Photo au client"}<input type="file" accept="image/*" capture="environment" data-dphoto="${UI.esc(o.id)}"${then ? ' data-then="livree"' : ""} hidden /></label>`;
+document.addEventListener("change", async e => {
+  const inp = e.target.closest("input[data-dphoto]");
+  if (!inp || !inp.files[0]) return;
+  const f = inp.files[0], id = inp.dataset.dphoto, then = inp.dataset.then;
+  inp.value = "";
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  const lbl = inp.closest("label");
+  if (lbl) lbl.firstChild.textContent = "📷 Envoi de la photo…";
+  try {
+    const data = await UI.docPhoto(f);
+    await Store.chatSend("o:" + o.id, "courier", me.name, I18N.forLang(o.lang || "fr", "rdMsgPhoto", { name: String(me.name || "").split(" ")[0] }), data);
+    photoDone.add(o.id);
+  } catch (ex) { render(); return alert("Photo non envoyée, vérifiez la connexion et réessayez."); }
+  render();
+  // Photo envoyée : on valide « Livré » tout de suite (position, code de remise… comme d'habitude)
+  if (then === "livree") { const b = document.querySelector(`article[data-id="${CSS.escape(id)}"] [data-act="livree"]`); if (b) b.click(); }
+});
 // Livreur débloqué par HOP jusqu'à une date
 const freeNow = () => !!(me && me.unlocked_until && new Date(me.unlocked_until) > new Date());
 // Crédit prépayé : il doit couvrir au moins la commission minimum de HOP (le patron aussi, quand il fait une course)

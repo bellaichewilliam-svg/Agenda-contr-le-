@@ -22,6 +22,16 @@ function renderNotif(o) {
     : `<b>🔔 ${UI.esc(I18N.t("trNotifTitle"))}</b><p class="small muted" style="margin:4px 0 8px">${UI.esc(I18N.t("trNotifSub"))}</p>
        <button type="button" class="btn btn-primary btn-block" id="notifOn">${UI.esc(I18N.t("trNotifBtn"))}</button>`;
 }
+// « 📷 Je veux une photo à la livraison » : le livreur HOP! doit alors prendre la photo du colis avant « Livré »
+function renderPhotoAsk(o) {
+  const box = $("#photoCard");
+  const live = ["nouvelle", "confirmee", "recuperee"].includes(o.status);
+  box.classList.toggle("hidden", !live || !!o.leave_at_door);
+  if (!live || o.leave_at_door) return;
+  box.innerHTML = o.photo_wanted ? `<p class="promo-msg ok" style="margin:0">${UI.esc(I18N.t("trPhotoOn"))}</p>`
+    : `<b>📷 ${UI.esc(I18N.t("trPhotoTitle"))}</b><p class="small muted" style="margin:4px 0 8px">${UI.esc(I18N.t("trPhotoSub"))}</p>
+       <button type="button" class="btn btn-block" id="photoOn">${UI.esc(I18N.t("trPhotoBtn"))}</button>`;
+}
 // Gros bouton « ✅ J'ai envoyé X ₪ à … » (ticket, complément, attente) ; une fois touché, un message de confirmation à la place
 function sentBtn(amount, name, what) {
   if (!(Number(amount) > 0)) return "";
@@ -288,6 +298,7 @@ function render() {
 
   // Notifications sur ce téléphone (livreur accepté, en route, livré) : proposées tant que la course n'est pas finie
   renderNotif(o);
+  renderPhotoAsk(o);
 
   const pay = $("#payBox");
   const dropped = o.status === "annulee" && Number(o.drop_fee) > 0;
@@ -596,6 +607,14 @@ $("#notifCard").addEventListener("click", async e => {
   const ok = await UI.clientPushSubscribe(token, true);
   $("#notifCard").innerHTML = `<p class="promo-msg ${ok ? "ok" : "bad"}" style="margin:0">${UI.esc(I18N.t(ok ? "trNotifOn" : "trNotifDenied"))}</p>`;
   if (ok) setTimeout(() => $("#notifCard").classList.add("hidden"), 4000);
+});
+$("#photoCard").addEventListener("click", async e => {
+  if (e.target.id !== "photoOn") return;
+  e.target.disabled = true;
+  const ok = await Store.clientPhotoWanted(token, true).catch(() => false);
+  if (!ok) { e.target.disabled = false; return alert(I18N.t("trPhotoErr")); }
+  order.photo_wanted = true;
+  renderPhotoAsk(order);
 });
 $("#payBox").addEventListener("click", async e => {
   // « J'ai envoyé X ₪ » : un message au livreur dans la conversation (il vérifie son Bit, puis confirme)

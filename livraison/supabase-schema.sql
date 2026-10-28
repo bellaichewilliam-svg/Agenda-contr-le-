@@ -7019,3 +7019,35 @@ end;
 $$;
 revoke execute on function public.shop_products_order(uuid, uuid[]) from public;
 grant execute on function public.shop_products_order(uuid, uuid[]) to anon, authenticated;
+
+-- ============================================================================
+-- PHOTO À LA LIVRAISON : obligatoire pour « déposer devant la porte » et quand le client la demande
+-- (« 📷 Je veux une photo », sur son suivi). « Livré » est refusé tant que la photo n'est pas dans la
+-- conversation de la course, pour tout le monde (livreur, patron qui livre, panneau patron).
+-- ============================================================================
+alter table public.orders add column if not exists photo_wanted boolean not null default false;
+
+create or replace function public.client_photo_wanted(p_token uuid, p_on boolean) returns boolean
+language sql security definer set search_path = public as $$
+  with u as (update orders set photo_wanted = coalesce(p_on, true)
+              where token = p_token and status in ('nouvelle', 'confirmee', 'recuperee') returning id)
+  select exists (select 1 from u);
+$$;
+revoke execute on function public.client_photo_wanted(uuid, boolean) from public;
+grant execute on function public.client_photo_wanted(uuid, boolean) to anon, authenticated;
+
+create or replace function public.orders_photo_check() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'livree' and old.status is distinct from 'livree' and not coalesce(new.is_test, false)
+     and (coalesce(new.leave_at_door, false) or coalesce(new.photo_wanted, false))
+     and not exists (select 1 from chat_messages m where m.thread = 'o:' || new.id::text
+                       and m.author in ('courier', 'admin') and m.image is not null) then
+    raise exception 'photo_required';
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_photo_check() from public, anon, authenticated;
+create or replace trigger orders_photo_check before update of status on public.orders
+  for each row execute function public.orders_photo_check();
