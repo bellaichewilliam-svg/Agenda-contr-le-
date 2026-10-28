@@ -3253,17 +3253,17 @@ function shopCard(s) {
   const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">
     <span class="sc-cover"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
-      ${st && !st.open ? `<em class="sc-closed">${UI.esc(t("scClosed"))}</em>` : ""}${isKosher(s) ? kosherTag("k-on-cover") : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
+      ${st && !st.open ? `<em class="sc-closed"><span><b>🌙 ${UI.esc(t("scClosedShort"))}</b>${(lb => lb ? `<small>${UI.esc(lb)}</small>` : "")(openLabel(st).replace(/^[^·]*·\s*/, "").replace(/^(Fermé|סגור)$/, ""))}</span></em>` : ""}${isKosher(s) ? kosherTag("k-on-cover") : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
       <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : ""}</small>
       ${UI.shopText(s, "tagline") ? `<small class="sc-tag">${UI.esc(UI.shopText(s, "tagline"))}</small>` : ""}</span>
-    <span class="sc-go" aria-label="${UI.esc(st && !st.open ? t("scSchedule") : t("proGo"))}">${st && !st.open ? UI.calIcon() : "›"}</span>
+    ${st && !st.open ? `<span class="sc-prog-btn">${UI.calIcon()} ${UI.esc(t("scProgOrder"))}</span>` : `<span class="sc-go" aria-label="${UI.esc(t("proGo"))}">›</span>`}
   </div>`;
 }
-// Vitrine façon « D » : les logos de tous les partenaires en haut, les ouverts en grandes cartes photo,
-// les fermés regroupés en petites lignes avec « Programmer »
+// Vitrine : les logos de tous les partenaires en haut, puis tous en grandes cartes photo (les ouverts d'abord) ;
+// un fermé garde sa belle carte, avec « Fermé · ouvre à … » sur la photo et « Programmer une commande » en option
 function shopLogo(s, cls) {
   const logo = UI.safeImg(s.logo), initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<span class="${cls}">${logo ? `<img src="${logo}" alt="" />` : `<b>${UI.esc(initials)}</b>`}</span>`;
@@ -3274,15 +3274,9 @@ function renderShowcase() {
   list.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (isOpen(b) - isOpen(a)));
   $("#homeProBox").classList.toggle("hidden", !list.length);
   const open = list.filter(isOpen), closed = list.filter(s => !isOpen(s));
-  const kindOf = s => (s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind]) || "";
   const html = `<div class="sc-stories">${list.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
         ${shopLogo(s, "sc-ring")}${isKosher(s) ? `<i class="k-dot" title="${UI.esc(t("kosher"))}">${KOSHER_STAR}</i>` : ""}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(UI.bi(s.name))}</b></button>`).join("")}</div>`
-    + (open.length ? `${closed.length ? `<p class="sc-sub">${UI.esc(t("scOpenNow"))}</p>` : ""}<div class="pro-row">${open.map(shopCard).join("")}</div>` : "")
-    + (closed.length ? `<p class="sc-sub">${UI.esc(t("scClosedList"))}</p><div class="sc-closed-list">${closed.map(s => {
-        const st = UI.openState(s.hours);
-        return `<div class="sc-line" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">${shopLogo(s, "sc-lg")}
-          <span class="sc-lb"><b>${UI.esc(UI.bi(s.name))}</b><small>${UI.esc([kindOf(s), openLabel(st)].filter(Boolean).join(" · "))}</small></span>
-          <span class="sc-prog">${UI.esc(t("scProg"))}</span></div>`; }).join("")}</div>` : "");
+    + `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>`;
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
 }
 $("#homePro").addEventListener("click", e => {
