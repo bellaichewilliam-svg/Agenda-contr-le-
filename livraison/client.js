@@ -829,6 +829,12 @@ function renderQuote() {
   syncHome();
 }
 
+$("#doneNotif").addEventListener("click", async e => {
+  e.currentTarget.disabled = true;
+  const ok = await UI.clientPushSubscribe(e.currentTarget.dataset.token, true);
+  e.currentTarget.textContent = t(ok ? "trNotifOn" : "trNotifDenied");
+});
+
 // Ville hors liste : on géolocalise le nom de la ville pour estimer le prix
 let otherTimer;
 function scheduleOtherGeocode() {
@@ -1700,6 +1706,11 @@ async function submit(e) {
     $("#doneWa").href = UI.waLink(CONFIG.whatsapp, UI.orderText(saved));
     $("#doneWa").classList.toggle("hidden", Store.ONLINE);
     $("#doneTrack").href = UI.trackUrl(saved);
+    // Notifications de la course sur ce téléphone : tout de suite si déjà autorisées, sinon un bouton
+    $("#doneNotif").dataset.token = saved.token;
+    const canNotif = window.Notification && Store.ONLINE && CONFIG.push;
+    $("#doneNotif").classList.toggle("hidden", !canNotif || Notification.permission !== "default");
+    if (canNotif && Notification.permission === "granted") UI.clientPushSubscribe(saved.token, false);
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");

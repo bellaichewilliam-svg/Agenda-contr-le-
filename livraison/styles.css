@@ -2696,3 +2696,22 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .pay-ask small { font-size: 13px; }
 .pay-ask-btns { display: flex; flex-wrap: wrap; gap: 8px; }
 .pay-ask-btns .btn { flex: 1 1 140px; white-space: normal; text-align: center; }
+
+/* Livreur : comment le client a payé (deux gros boutons) */
+.paid-how { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; width: 100%; margin: 4px 0; }
+.paid-how b { grid-column: 1 / -1; font-size: 15px; }
+.paid-how .btn { min-height: 48px; white-space: normal; line-height: 1.2; }
+
+/* Courses terminées : une ligne compacte qu'on ouvre (patron et livreur) */
+.order-fold, .done-row { border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
+.order-fold > summary, .done-row > summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; cursor: pointer; font-size: 14px; list-style: none; }
+.order-fold > summary::-webkit-details-marker, .done-row > summary::-webkit-details-marker { display: none; }
+.order-fold > summary span, .done-row > summary span { min-width: 0; overflow-wrap: anywhere; }
+.order-fold > summary b, .done-row > summary b { white-space: nowrap; }
+.order-fold[open] > summary, .done-row[open] > summary { border-bottom: 1px solid var(--border); }
+.order-fold > .order { border: 0; box-shadow: none; margin: 0; }
+.done-title { margin: 18px 0 8px; font-size: 16px; }
+.done-list { display: grid; gap: 8px; }
+.done-body { padding: 8px 12px 12px; display: grid; gap: 4px; font-size: 14px; }
+.done-body p { margin: 0; overflow-wrap: anywhere; }
+.done-body .btn { justify-self: start; margin-top: 4px; }

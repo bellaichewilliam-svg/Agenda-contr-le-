@@ -1468,6 +1468,21 @@ async function pushSubscribe(endpoint, p256dh, auth) {
   return authRest("/rest/v1/rpc/push_subscribe", { method: "POST", body: { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth } });
 }
 
+// Le client s'abonne aux notifications de sa course (et des suivantes, par son numéro)
+async function clientPushSubscribe(token, endpoint, p256dh, auth) {
+  if (!ONLINE) return false;
+  return rest("/rest/v1/rpc/client_push_subscribe", { method: "POST", body: { p_token: token, p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth } });
+}
+// Le livreur dit comment il a été payé : espèces ou Bit
+async function courierPaidHow(id, how) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_paid_how", { method: "POST", body: { p_id: id, p_how: how } });
+  const all = localOrders(), o = all.find(x => x.id === id && x.payment_status !== "paye");
+  if (!o) return false;
+  Object.assign(o, { payment_method: how, payment_status: "paye", direct_pay: true, paid_to: "livreur" });
+  saveLocalOrders(all);
+  return true;
+}
+
 // Le client a payé par Bit (il le déclare) : le patron vérifie son Bit
 // Livreur : « ❌ Pas reçu » (le client dit avoir payé, mais rien n'est arrivé : il doit vérifier)
 async function payMissing(id) {
@@ -2164,7 +2179,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,

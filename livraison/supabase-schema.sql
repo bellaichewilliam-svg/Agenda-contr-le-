@@ -6876,3 +6876,106 @@ begin
   return new;
 end;
 $$;
+
+-- ============================================================================
+-- FIN DE COURSE BIEN FICELÉE
+-- 1. Le livreur dit comment il a été payé : « 💵 Payé en espèces » ou « 📱 Payé par Bit » (courier_paid_how).
+-- 2. Livrée : message automatique au client (« HOP! est content de vous avoir livré » + lien), et à l'enseigne
+--    (course envoyée par elle ou commande chez elle) dans sa conversation avec HOP!.
+-- 3. Notifications sur le téléphone du client (même appli fermée) : le livreur a accepté, en route, livré.
+--    Le client s'abonne depuis son suivi ; une seule notification par course (elle se remplace d'une étape à l'autre).
+-- ============================================================================
+create or replace function public.courier_paid_how(p_id uuid, p_how text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() or p_how not in ('cash', 'bit') then return false; end if;
+  update orders set payment_method = p_how, payment_status = 'paye', direct_pay = true, paid_to = 'livreur', prepaid_required = false
+   where id = p_id and courier_id = auth.uid() and status in ('confirmee', 'recuperee', 'livree')
+     and payment_status <> 'paye' and payment_method in ('cash', 'bit');
+  return found;
+end;
+$$;
+revoke execute on function public.courier_paid_how(uuid, text) from public, anon;
+grant execute on function public.courier_paid_how(uuid, text) to authenticated;
+
+create or replace function public.orders_done_msg() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare who text;
+begin
+  if new.status <> 'livree' or old.status = 'livree' or coalesce(new.is_test, false) then return new; end if;
+  insert into chat_messages (thread, author, author_name, body)
+    values ('o:' || new.id::text, 'admin', 'HOP!',
+            case when new.lang = 'he'
+                 then '✅ נמסר! הופ! שמחים שהבאנו לכם 🧡 תודה על האמון. למשלוח הבא: https://hop-livraison.vercel.app/on-livre.html?lang=he'
+                 else '✅ Livré ! HOP! est content de vous avoir livré 🧡 Merci pour votre confiance. Pour votre prochaine course : https://hop-livraison.vercel.app/on-livre.html' end);
+  if new.shop_id is not null then
+    who := coalesce(nullif(new.dropoff_contact, ''), new.contact_name, '');
+    insert into chat_messages (thread, author, author_name, body)
+      values ('s:' || new.shop_id::text, 'admin', 'HOP!',
+              '✅ Course n° ' || new.ref || ' livrée' || case when who <> '' then ' à ' || who else '' end
+              || ' (' || coalesce(new.dropoff_address, '') || ') à ' || to_char(now() at time zone 'Asia/Jerusalem', 'HH24:MI') || '.');
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_done_msg() from public, anon, authenticated;
+create or replace trigger orders_done_msg after update of status on public.orders
+  for each row execute function public.orders_done_msg();
+
+-- Messages automatiques (reçu, paiement, livré) : pas de sonnerie chez le livreur ni le patron
+create or replace function public.push_chat_event() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.author = 'system' and new.body is distinct from 'status:client_paid' and new.body is distinct from 'status:refund_missing' then return new; end if;
+  if new.author = 'admin' and new.author_name = 'HOP!' and (new.thread like 'o:%' or new.thread like 's:%')
+     and (new.body like '🧾 %' or new.body like '💳 %' or new.body like '✅ %') then return new; end if;
+  perform public.push_call(jsonb_build_object('thread', new.thread, 'author', new.author,
+    'author_name', new.author_name, 'body', new.body));
+  return new;
+end;
+$$;
+
+-- Téléphones des clients abonnés aux notifications (par course et par numéro : les courses suivantes aussi)
+create table if not exists public.client_push_subs (
+  endpoint    text primary key,
+  p256dh      text not null,
+  auth        text not null,
+  order_token uuid,
+  phone       text,
+  lang        text,
+  created_at  timestamptz not null default now()
+);
+alter table public.client_push_subs enable row level security;
+create index if not exists client_push_subs_phone on public.client_push_subs (phone);
+create index if not exists client_push_subs_token on public.client_push_subs (order_token);
+
+create or replace function public.client_push_subscribe(p_token uuid, p_endpoint text, p_p256dh text, p_auth text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders;
+begin
+  select * into o from orders where token = p_token;
+  if not found or coalesce(p_endpoint, '') !~ '^https://' or length(p_endpoint) > 1000 then return false; end if;
+  insert into client_push_subs (endpoint, p256dh, auth, order_token, phone, lang)
+    values (p_endpoint, left(p_p256dh, 200), left(p_auth, 100), p_token, public.phone_digits(o.contact_phone), o.lang)
+    on conflict (endpoint) do update set p256dh = excluded.p256dh, auth = excluded.auth, order_token = excluded.order_token,
+      phone = excluded.phone, lang = excluded.lang, created_at = now();
+  return true;
+end;
+$$;
+revoke execute on function public.client_push_subscribe(uuid, text, text, text) from public;
+grant execute on function public.client_push_subscribe(uuid, text, text, text) to anon, authenticated;
+
+-- Étape de la course → notification au client abonné (seulement s'il y en a un)
+create or replace function public.orders_client_push() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status is distinct from old.status and new.status in ('confirmee', 'recuperee', 'livree')
+     and exists (select 1 from client_push_subs s where s.order_token = new.token or s.phone = public.phone_digits(new.contact_phone)) then
+    perform public.push_call(jsonb_build_object('client_order', new.id, 'event', new.status));
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_client_push() from public, anon, authenticated;
+create or replace trigger orders_client_push after update of status on public.orders
+  for each row execute function public.orders_client_push();

@@ -31,6 +31,25 @@ async function sendTo(ids: string[], note: Note, site: string, ttl = 3600) {
   return sent;
 }
 
+// Téléphones des clients abonnés : par course, ou par numéro (abonné lors d'une course précédente)
+async function sendClient(o: Record<string, unknown>, note: Note, site: string) {
+  const ph = String(o.contact_phone || "").replace(/\D/g, "").slice(-9);
+  const { data: subs } = await db.from("client_push_subs").select("endpoint, p256dh, auth")
+    .or(`order_token.eq.${o.token}${ph ? `,phone.eq.${ph}` : ""}`);
+  let sent = 0;
+  await Promise.all((subs || []).map(async s => {
+    try {
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+        JSON.stringify(Object.assign({}, note, { url: site + note.url })), { TTL: 3600, urgency: "high" });
+      sent++;
+    } catch (e) {
+      const code = (e as { statusCode?: number }).statusCode;
+      if (code === 404 || code === 410) await db.from("client_push_subs").delete().eq("endpoint", s.endpoint);
+    }
+  }));
+  return sent;
+}
+
 async function admins() {
   const { data } = await db.from("couriers").select("id").eq("role", "admin");
   return (data || []).map(c => c.id);
@@ -136,6 +155,25 @@ Deno.serve(async req => {
       sent += await sendTo(await onDuty(o.id), { title: `${ev.event === "ring" ? "🔔" : "🛵"} Nouvelle course · ${money(o.price)} · ${ready}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}`,
         body: `${when} · ${route}\nTouchez pour accepter ou refuser`, url: "livreur/", tag: "o-" + o.id }, site, ev.event === "ring" ? 10 : 3600);
     }
+  } else if (ev.client_order) {
+    // Le client (abonné depuis son suivi) : une seule notification par course, remplacée à chaque étape
+    const { data: o } = await db.from("orders").select("*").eq("id", ev.client_order).single();
+    if (!o) return new Response("no order", { status: 404 });
+    const he = o.lang === "he", first = String(o.courier_name || "").split(" ")[0];
+    const T: Record<string, [string, string]> = he ? {
+      confirmee: [`🛵 ${first || "השליח"} קיבל/ה את המשלוח`, "לגעת כדי לעקוב אחרי השליח"],
+      recuperee: ["📦 ההזמנה שלכם בדרך", "לגעת כדי לראות איפה השליח"],
+      livree: ["✅ נמסר! תודה שבחרתם בהופ!", "הקבלה והמעקב שלכם: לגעת כאן"]
+    } : {
+      confirmee: [`🛵 ${first || "Votre livreur"} a accepté votre course`, "Touchez pour suivre votre livreur"],
+      recuperee: ["📦 Votre commande est en route", "Touchez pour voir où est votre livreur"],
+      livree: ["✅ Livré ! Merci d'avoir choisi HOP!", "Votre reçu et votre suivi : touchez ici"]
+    };
+    // Course à payer par Bit au livreur : la notification le dit tout de suite (le livreur ne part qu'après le paiement)
+    if (o.payment_method === "bit" && o.direct_pay && o.payment_status !== "paye" && !o.shop_sent)
+      T.confirmee[1] = he ? `שלחו לו/לה עכשיו ${money(o.price)} בביט: לגעת כאן` : `Envoyez-lui ${money(o.price)} par Bit maintenant : touchez ici`;
+    const t = T[String(ev.event)];
+    if (t) sent += await sendClient(o, { title: t[0], body: `${t[1]} · ${o.ref}`, url: `suivi.html?t=${o.token}`, tag: "c-" + o.id }, site);
   } else if (ev.courier_id && ev.title) {
     // Message de HOP! à un livreur (ex. « Toujours là ? » quand il n'est plus sur l'appli)
     sent += await sendTo([String(ev.courier_id)], { title: String(ev.title), body: String(ev.body || ""),
@@ -166,13 +204,20 @@ Deno.serve(async req => {
       let to: string[] = [];
       if (kind === "c") to = [id];
       if (kind === "o") {
-        const { data: o } = await db.from("orders").select("courier_id").eq("id", id).single();
+        const { data: o } = await db.from("orders").select("*").eq("id", id).single();
         if (o && o.courier_id) to = [o.courier_id];
+        // HOP! écrit au client dans sa course : il est prévenu sur son téléphone
+        if (o) sent += await sendClient(o, { title: "💬 HOP!", body: text, url: `suivi.html?t=${o.token}`, tag: "cm-" + id }, site);
       }
       sent += await sendTo(to, { title: "💬 HOP!", body: text, url: "livreur/", tag: "m-" + ev.thread }, site);
     } else {
       const claim = /^⚠️ Commande pas reçue/.test(text);
       sent += await sendTo(await admins(), { title: claim ? "⚠️ Course pas reçue par le client" : `💬 ${who}`, body: text, url: "patron/", tag: "m-" + ev.thread }, site);
+      if (kind === "o" && ev.author === "courier") {
+        const { data: oc } = await db.from("orders").select("*").eq("id", id).single();
+        if (oc && ["confirmee", "recuperee"].includes(oc.status)) sent += await sendClient(oc, { title: `💬 ${who}`, body: text,
+          url: `suivi.html?t=${oc.token}`, tag: "cm-" + id }, site);
+      }
       if (kind === "o" && ev.author === "client") {
         const { data: o } = await db.from("orders").select("courier_id, status").eq("id", id).single();
         if (o && o.courier_id && ["confirmee", "recuperee"].includes(o.status)) {

@@ -143,6 +143,24 @@ async function pushSubscribe() {
     return pushDone;
   } catch (e) { return false; }
 }
+// Client : notifications de sa course sur ce téléphone (livreur en route, livré), même appli fermée.
+// ask = on demande l'autorisation (bouton touché) ; sinon seulement si elle est déjà donnée
+async function clientPushSubscribe(token, ask) {
+  const key = CONFIG.push && CONFIG.push.publicKey;
+  if (!token || !key || !window.Notification || !Store.ONLINE) return false;
+  try {
+    if (Notification.permission === "default" && ask) await Notification.requestPermission();
+    if (Notification.permission !== "granted") return false;
+    const reg = await swReady;
+    if (!reg || !reg.pushManager) return false;
+    const raw = atob(key.replace(/-/g, "+").replace(/_/g, "/"));
+    const appKey = Uint8Array.from(raw, ch => ch.charCodeAt(0));
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
+    const j = sub.toJSON();
+    return !!(await Store.clientPushSubscribe(token, j.endpoint, j.keys.p256dh, j.keys.auth));
+  } catch (e) { return false; }
+}
 // Retour du lien « Mot de passe oublié » : on demande le nouveau mot de passe
 async function askNewPassword() {
   for (;;) {
@@ -738,7 +756,7 @@ if (typeof MutationObserver !== "undefined") {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
