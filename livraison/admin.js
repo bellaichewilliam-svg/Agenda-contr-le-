@@ -2113,7 +2113,7 @@ document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible" && duty.watch != null && navigator.wakeLock) {
     try { duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* ignore */ }
   }
-  if (document.visibilityState === "visible") dutyBack();
+  if (document.visibilityState === "visible") { if (duty.watch == null) UI.dutyNotice(false); else dutyBack(); }
 });
 
 if (window.Notification && Notification.permission === "granted") $("#notifBtn").textContent = "🔔 Alertes activées";
@@ -2124,7 +2124,7 @@ Store.adoptLinkSession().catch(() => false).then(async how => {
   if (Store.session()) start(); else showLogin();
 });
 // Le service était en cours avant de recharger la page : on le reprend
-try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); } catch (e) { /* ignore */ }
+try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); else UI.dutyNotice(false); } catch (e) { /* ignore */ }
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 UI.iosInstallHint("HOP! Patron");

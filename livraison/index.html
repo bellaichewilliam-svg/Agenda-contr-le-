@@ -68,7 +68,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610282231" />
+  <link rel="stylesheet" href="styles.css?v=202610282247" />
 </head>
 <body>
 
@@ -420,25 +420,26 @@
           <legend data-i18n="s3"></legend>
           <div class="fields">
             <div class="saved-addrs full hidden" data-for="to"></div>
-            <div class="addr-tools full"><button type="button" class="btn btn-sm" data-geo="to" data-i18n="useMyPos"></button><button type="button" class="btn btn-sm btn-link hidden" data-save-addr="to" data-i18n="saveAddr"></button></div>
-            <label class="f full"><span data-i18n="addrSearch"></span><input name="dropoff_address" data-i18n-ph="addrSearchPh" /></label>
-            <label class="f"><span data-i18n="houseNo"></span><input name="dropoff_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
-            <label class="f"><span data-i18n="city"></span><select name="to_city" class="city-select with-other"></select></label>
-            <label class="f other-city hidden" data-for="to"><span data-i18n="otherCityName"></span><input name="to_other" /></label>
-            <div class="kind-chips full" role="radiogroup" data-kind="dropoff"><span class="kind-label" data-i18n="kindLabel"></span>
+            <div class="addr-sum full hidden" id="toSum"></div>
+            <div class="addr-tools full drop-addr"><button type="button" class="btn btn-sm" data-geo="to" data-i18n="useMyPos"></button><button type="button" class="btn btn-sm btn-link hidden" data-save-addr="to" data-i18n="saveAddr"></button></div>
+            <label class="f full drop-addr"><span data-i18n="addrSearch"></span><input name="dropoff_address" data-i18n-ph="addrSearchPh" /></label>
+            <label class="f drop-addr"><span data-i18n="houseNo"></span><input name="dropoff_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
+            <label class="f drop-addr"><span data-i18n="city"></span><select name="to_city" class="city-select with-other"></select></label>
+            <label class="f other-city hidden drop-addr" data-for="to"><span data-i18n="otherCityName"></span><input name="to_other" /></label>
+            <div class="kind-chips full drop-addr" role="radiogroup" data-kind="dropoff"><span class="kind-label" data-i18n="kindLabel"></span>
               <label class="ch-chip"><input type="radio" name="dropoff_kind" value="maison" hidden /><span data-i18n="kind_maison"></span></label>
               <label class="ch-chip"><input type="radio" name="dropoff_kind" value="appartement" hidden /><span data-i18n="kind_appartement"></span></label>
               <label class="ch-chip"><input type="radio" name="dropoff_kind" value="bureau" hidden /><span data-i18n="kind_bureau"></span></label>
               <label class="ch-chip"><input type="radio" name="dropoff_kind" value="commerce" hidden /><span data-i18n="kind_commerce"></span></label>
             </div>
-            <div class="fields4 full" data-details="dropoff">
+            <div class="fields4 full drop-addr" data-details="dropoff">
               <label class="f"><span data-i18n="building"></span><input name="dropoff_building" data-i18n-ph="buildingPh" /></label>
               <label class="f"><span data-i18n="floor"></span><input name="dropoff_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="dropoff_apt" data-i18n-ph="aptPh" /></label>
               <label class="f"><span data-i18n="entryCode"></span><input name="dropoff_code" data-i18n-ph="codePh" /></label>
               <label class="check nocode"><input type="checkbox" name="dropoff_nocode" /> <span data-i18n="noCode"></span></label>
             </div>
-            <label class="f full addr-note"><span data-i18n="addrNote"></span><input name="dropoff_note" data-i18n-ph="addrNotePh" /></label>
+            <label class="f full addr-note drop-addr"><span data-i18n="addrNote"></span><input name="dropoff_note" data-i18n-ph="addrNotePh" /></label>
             <label class="check full door-check"><input type="checkbox" name="leave_at_door" /> <span><b data-i18n="leaveDoor"></b><br><small class="muted" data-i18n="leaveDoorNote"></small></span></label>
             <label class="check full drop-me"><input type="checkbox" name="drop_me" checked /> <span><b data-i18n="dropMe"></b><br><small class="muted" id="dropMeWho"></small></span></label>
             <label class="f drop-other"><span data-i18n="recipient"></span><input name="dropoff_contact" data-i18n-ph="namePh" /></label>
@@ -725,15 +726,15 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610282231"></script>
-<script src="i18n.js?v=202610282231"></script>
-<script src="pricing.js?v=202610282231"></script>
-<script src="store.js?v=202610282231"></script>
-<script src="chat.js?v=202610282231"></script>
-<script src="common.js?v=202610282231"></script>
-<script src="enseignes.js?v=202610282231"></script>
-<script src="places.js?v=202610282231"></script>
-<script src="rayons.js?v=202610282231"></script>
-<script src="client.js?v=202610282231"></script>
+<script src="config.js?v=202610282247"></script>
+<script src="i18n.js?v=202610282247"></script>
+<script src="pricing.js?v=202610282247"></script>
+<script src="store.js?v=202610282247"></script>
+<script src="chat.js?v=202610282247"></script>
+<script src="common.js?v=202610282247"></script>
+<script src="enseignes.js?v=202610282247"></script>
+<script src="places.js?v=202610282247"></script>
+<script src="rayons.js?v=202610282247"></script>
+<script src="client.js?v=202610282247"></script>
 </body>
 </html>

@@ -31,6 +31,12 @@ function setView(v, push) {
   if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); });
   return true;
 }
+// Un champ de l'adresse repliée en fiche doit être corrigé (erreur à l'envoi) : les champs reviennent
+const nativeFocus = HTMLElement.prototype.focus;
+HTMLElement.prototype.focus = function (o) {
+  if (this.closest && this.closest(".drop-addr") && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
+  return nativeFocus.call(this, o);
+};
 // Tout ce qui « fait défiler jusqu'à » une partie de la page ouvre d'abord le bon écran
 const nativeScrollIntoView = Element.prototype.scrollIntoView;
 Element.prototype.scrollIntoView = function (o) { setView(viewOf(this), true); return nativeScrollIntoView.call(this, o); };
@@ -1194,6 +1200,7 @@ function openRules() { $("#rulesModal").classList.remove("hidden"); }
 
 function applySavedAddr(which, a) {
   const pre = prefixOf(which);
+  if (which === "to") state.toOpen = false;
   const label = [a.brand, a.street, cityLabel(a.cityId || a.city)].filter(Boolean).join(", ");
   const sel = form.elements[which + "_city"];
   if (a.cityId) sel.value = a.cityId; else { sel.value = OTHER; form.elements[which + "_other"].value = a.city || ""; }
@@ -1375,17 +1382,45 @@ function defaultDropAddr() {
   try { last = localStorage.getItem(LS_LAST_DROP); } catch (e) { /* ignore */ }
   return (last && list.find(a => addrKey(a) === last)) || list.find(a => a.tag === "home") || null;
 }
-// L'adresse enregistrée choisie est marquée (bordure orange) dans « Mes adresses »
+// L'adresse enregistrée choisie est marquée (pleine, ✓) dans « Mes adresses »
+const isSavedPick = (p, a) => !!(p && a && a.lat != null && p.lat === a.lat && p.lon === a.lon && String(p.housenumber || "") === String(a.number || ""));
 function markAddrChips() {
   const list = Store.getAddresses();
   document.querySelectorAll(".saved-addrs").forEach(box => {
     const p = state.pick[box.dataset.for];
-    box.querySelectorAll("[data-addr]").forEach(b => {
-      const a = list[Number(b.dataset.addr)];
-      b.classList.toggle("on", !!(p && a && a.lat != null && p.lat === a.lat && p.lon === a.lon && String(p.housenumber || "") === String(a.number || "")));
-    });
+    box.querySelectorAll("[data-addr]").forEach(b => b.classList.toggle("on", isSavedPick(p, list[Number(b.dataset.addr)])));
   });
+  renderToSum();
 }
+// Livraison à une adresse enregistrée : une fiche résumée au lieu de tous les champs (on la change dans « Modifier »)
+function renderToSum() {
+  const list = Store.getAddresses(), i = list.findIndex(a => isSavedPick(state.pick.to, a)), a = list[i];
+  const on = !!a && !state.toOpen;
+  form.classList.toggle("to-saved", on);
+  $("#toSum").classList.toggle("hidden", !on);
+  if (!on) return;
+  const det = [a.kind ? t("kind_" + a.kind) : "", a.building ? t("building") + " : " + a.building : "", a.floor ? t("floor") + " : " + a.floor : "",
+    NO_CODE.test(a.code || "") ? t("noCode") : a.code ? t("entryCode") + " : " + a.code : "", a.note || ""].filter(Boolean);
+  const html = `<b>${addrChip(a)}</b>${det.length ? `<small>${det.map(UI.esc).join(" · ")}</small>` : ""}
+    <span class="addr-sum-btns"><button type="button" class="btn btn-sm" data-sum-edit="${i}">${UI.esc(t("accEdit"))}</button>
+      <button type="button" class="btn btn-sm btn-link" data-sum-other>📍 ${UI.esc(t("sumOther"))}</button></span>`;
+  if ($("#toSum").dataset.html !== html) { $("#toSum").innerHTML = html; $("#toSum").dataset.html = html; }
+}
+$("#toSum").addEventListener("click", e => {
+  const ed = e.target.closest("[data-sum-edit]");
+  if (ed) { const a = Store.getAddresses()[Number(ed.dataset.sumEdit)]; if (a) openAddrSheet(a.tag || "other", "to", Number(ed.dataset.sumEdit)); return; }
+  if (!e.target.closest("[data-sum-other]")) return;
+  // Une autre adresse (sans l'enregistrer) : les champs reviennent, vides
+  state.toOpen = true;
+  state.pick.to = null; state.toPoint = null;
+  if (ac.to) ac.to.reset();
+  form.dropoff_address.value = ""; form.dropoff_number.value = "";
+  DETAIL.forEach(k => { form.elements["dropoff_" + k].value = ""; });
+  form.dropoff_note.value = ""; form.dropoff_nocode.checked = false; syncNoCode();
+  setKind("dropoff", null); setBrandMode("to", false);
+  renderQuote(); renderSaveBtns();
+  form.dropoff_address.focus();
+});
 
 function isReturning() {
   const p = Store.getProfile();
@@ -2447,6 +2482,7 @@ function applyShop() {
   { form.elements.service.value = s.kind === "restaurant" ? "repas" : "colis"; state.svcChosen = true; }
   syncVisibility(); renderQuote();
   renderShopBanner();
+  renderWhenHints();
 }
 
 async function loadShop(code, stay) {
@@ -2461,9 +2497,14 @@ async function loadShop(code, stay) {
     } catch (e) { /* pas de carnet */ }
   }
   applyShop();
-  loadCatalogFor(state.shop);
+  try { sessionStorage.setItem(SS_SHOP, JSON.stringify({ code: state.shop.code, dir: state.shopDir || "" })); } catch (e) { /* ignore */ }
+  const cat = loadCatalogFor(state.shop);
   if (!stay) setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);
+  return cat;
 }
+// Commerce ouvert dans cet onglet : un rechargement de la page le rouvre (pas une nouvelle ouverture de l'appli)
+const SS_SHOP = "livraison.openShop.v1";
+const forgetOpenShop = () => { try { sessionStorage.removeItem(SS_SHOP); } catch (e) { /* ignore */ } };
 
 // --- Demande de devis (tournée quotidienne, carnet…) : pro ou particulier, dans l'application --
 let reqKind = "pro";
@@ -2536,9 +2577,17 @@ function renderWhenHints() {
   const ex = $("#expressSmall"), exInput = form.querySelector('input[name=urgency][value=express]');
   const exOk = eta != null;
   ex.textContent = exOk ? `${t("wExpressEta", { min: eta })} · +${money(P.express)}` : t("wExpressNone");
-  exInput.disabled = !exOk;
-  exInput.closest(".choice").classList.toggle("disabled", !exOk);
-  if (!exOk && exInput.checked) form.querySelector('input[name=urgency][value=asap]').checked = true;
+  // Enseigne fermée maintenant : seulement « Programmer » (à son heure d'ouverture)
+  const shut = !!(state.shop && shopSide() && !shopOpenAt(new Date())), asapInput = form.querySelector('input[name=urgency][value=asap]');
+  if (shut) { const lb = t("shClosedShort", { name: shopShortName() }); $("#asapSmall").textContent = lb; ex.textContent = lb; }
+  exInput.disabled = !exOk || shut;
+  exInput.closest(".choice").classList.toggle("disabled", !exOk || shut);
+  asapInput.disabled = shut;
+  asapInput.closest(".choice").classList.toggle("disabled", shut);
+  if (shut && !form.querySelector('input[name=urgency][value=programmee]').checked) {
+    form.querySelector('input[name=urgency][value=programmee]').checked = true;
+    syncVisibility(); renderQuote();
+  } else if (!exOk && exInput.checked) asapInput.checked = true;
 }
 function renderOpenBadge() {
   renderWhenHints();
@@ -3482,7 +3531,20 @@ fillDefaults();
 attachPlaces();
 initHome();
 renderAll();
+// Rechargement sur la page d'un commerce : on le rouvre, avec le panier et ce qui était rempli
+let reopenShop = null;
+if (!shopCode && location.hash === "#commander") { try { reopenShop = JSON.parse(sessionStorage.getItem(SS_SHOP)); } catch (e) { /* ignore */ } }
+if (!reopenShop || !reopenShop.code) reopenShop = null;
 if (shopCode) loadShop(shopCode);
+else if (reopenShop) {
+  state.shopDir = reopenShop.dir || "";
+  loadShop(reopenShop.code, true).then(() => {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(LS_DRAFT)); } catch (e) { /* ignore */ }
+    const ids = cgProducts().map(p => p.id);
+    if (d && d.cart && ids.length) { state.cart = Object.fromEntries(Object.entries(d.cart).filter(([id, q]) => ids.includes(id) && q > 0)); renderCatalog(); renderQuote(); }
+  });
+} else forgetOpenShop();
 // Connecté : profil à jour (nom, adresses) depuis le compte, puis ses courses de tous ses téléphones
 Store.clientRefresh().catch(() => null).finally(loadMine);
 loadSettings();
@@ -3563,6 +3625,7 @@ if (location.hash === "#devis") setTimeout(() => openRequest("tournee"), 300);
 // On quitte le commerce choisi (« Ne plus commander chez… », ou une autre tuile de l'accueil)
 function leaveShop(quiet) {
   const side = shopSide() || "from";
+  forgetOpenShop();
   state.shop = null;
   state.cart = {};
   state.pick[side] = null; state[side + "Point"] = null;
@@ -3574,6 +3637,7 @@ function leaveShop(quiet) {
   renderShopBanner();
   renderCatalog();
   renderQuote();
+  renderWhenHints();
   if (!quiet) form.elements[prefixOf(side) + "_address"].focus();
 }
 $("#shopBannerOff").addEventListener("click", () => leaveShop());
@@ -3732,14 +3796,14 @@ function saveDraft(now) {
   };
   if (now === true) write(); else draftTimer = setTimeout(write, 300);
 }
-function clearDraft() { clearTimeout(draftTimer); try { localStorage.removeItem(LS_DRAFT); } catch (e) { /* ignore */ } }
+function clearDraft() { clearTimeout(draftTimer); forgetOpenShop(); try { localStorage.removeItem(LS_DRAFT); } catch (e) { /* ignore */ } }
 function restoreDraft() {
   let d = null;
   try { d = JSON.parse(localStorage.getItem(LS_DRAFT)); } catch (e) { /* ignore */ }
   if (!d || Date.now() - d.at > 2 * 3600000 || new URLSearchParams(location.search).get("c")) return;
   // Une commande commencée chez un commerce (fiche, catalogue) ne revient pas toute seule à l'ouverture de l'appli
-  if (d.pick && ["from", "to"].some(w => d.pick[w] && (d.pick[w].shopId || d.pick[w].partnerCode))) { clearDraft(); return; }
-  ["from", "to"].forEach(w => { if (d.pick && d.pick[w] && !d.pick[w].partnerCode) onPlacePicked(w, d.pick[w], true); });
+  if (!reopenShop && d.pick && ["from", "to"].some(w => d.pick[w] && (d.pick[w].shopId || d.pick[w].partnerCode))) { clearDraft(); return; }
+  ["from", "to"].forEach(w => { if (d.pick && d.pick[w] && !d.pick[w].partnerCode && !d.pick[w].shopId) onPlacePicked(w, d.pick[w], true); });
   Object.entries(d.values || {}).forEach(([k, v]) => {
     const el = form.elements[k];
     if (!el) return;
