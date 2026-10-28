@@ -2798,3 +2798,7 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .addr-sum-btns { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 /* Mes adresses : le nom et l'adresse en entier (sur deux lignes au besoin), jamais coupés */
 .saved-addrs .addr-chip { white-space: normal; text-overflow: clip; border-radius: 16px; text-align: start; overflow-wrap: anywhere; }
+/* Patron : position de l'enseigne sur l'accueil, dans sa ligne */
+.shop-fold > summary .vit-move { float: none; flex: 0 0 auto; }
+.vit-n { display: inline-block; min-width: 22px; padding: 1px 6px; border-radius: 99px; background: var(--brand); color: #fff; font-style: normal; font-weight: 800; font-size: 12px; text-align: center; }
+.vit-pos { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; }
