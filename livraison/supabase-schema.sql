@@ -6851,3 +6851,15 @@ $$;
 revoke execute on function public.orders_pay_ask() from public, anon, authenticated;
 create or replace trigger orders_pay_ask after update of status on public.orders
   for each row execute function public.orders_pay_ask();
+
+-- Course envoyée par un commerce : payée au livreur par Bit OU en espèces (le commerce au départ, ou le client à la livraison)
+do $$
+declare d text; n text;
+begin
+  d := pg_get_functiondef('public.orders_zx_shop_sent()'::regprocedure);
+  if position('''bit'', ''cash''' in d) = 0 then
+    n := replace(d, 'new.payment_method <> ''bit''', 'new.payment_method not in (''bit'', ''cash'')');
+    if n = d then raise exception 'orders_zx_shop_sent: motif introuvable'; end if;
+    execute n;
+  end if;
+end $$;
