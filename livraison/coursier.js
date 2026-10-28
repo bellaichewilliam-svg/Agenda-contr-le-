@@ -316,7 +316,8 @@ function payLine(o) {
     : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant";
   if (!o.direct_pay) return `💵 Espèces : vous encaissez ${UI.money(o.price)} auprès du client`;
   return `💳 Le ${o.payer === "destinataire" ? "destinataire" : "client"} vous paie <b>${UI.money(UI.payTotal(o))}</b> par Bit ou PayBox sur votre numéro`
-    + (o.goods_prepay ? ` (course ${UI.money(o.price)} + articles ${UI.money(o.goods_budget)} au plus)` : "")
+    + (o.goods_after ? ` : la course. Les articles : le ticket exact, envoyé à part après la photo (au plus ${UI.money(o.goods_budget)})`
+      : o.goods_prepay ? ` (course ${UI.money(o.price)} + articles ${UI.money(o.goods_budget)} au plus)` : "")
     + (shopPart(o) ? ` · 🏪 le commerce vous paie <b>${UI.money(shopPart(o))}</b> par Bit en vous remettant la commande` : "");
 }
 // HOP! Pro : où en est la préparation chez le commerce, ce que le client a commandé, la part du commerce
@@ -467,7 +468,7 @@ function showAsk() {
   if (o) {
     key = "pay:" + o.id + o.client_paid_at;
     html = `<div class="offer-top"><span>💳</span><b>Le client dit avoir payé</b></div>
-      <div class="ask-amount">${UI.money(UI.payTotal(o))}</div>${o.goods_prepay ? `<p class="small">dont ${UI.money(o.goods_budget)} pour les articles (au plus)</p>` : ""}
+      <div class="ask-amount">${UI.money(UI.payTotal(o))}</div>${o.goods_prepay && !o.goods_after ? `<p class="small">dont ${UI.money(o.goods_budget)} pour les articles (au plus)</p>` : o.goods_after ? `<p class="small">La course. Le ticket viendra à part, après la photo.</p>` : ""}
       <p class="small">Course n° ${UI.esc(o.ref)} · ${UI.esc(o.contact_name || "")}<br>Vérifiez votre Bit / PayBox maintenant.</p>
       <button class="btn btn-primary" data-ask-paid="${UI.esc(o.id)}">✅ Paiement reçu</button>
       <button class="btn" data-ask-missing="${UI.esc(o.id)}">❌ Pas reçu</button>
@@ -534,6 +535,7 @@ function card(o, kind) {
   if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
   if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
     ? `💵 <b>Espèces : vous payez le magasin, ${UI.money(o.goods_budget)} au plus</b> (vous avez annoncé avoir les espèces). 🧾 Photo du ticket, puis le client vous paie la course + le ticket exact à la livraison.`
+    : o.goods_after ? `🧾 <b>Vous avancez les articles : ${UI.money(o.goods_budget)} au plus.</b> Le client paie d'abord la course (« Paiement reçu » ✅), puis vous achetez. Plus cher que ${UI.money(o.goods_budget)} ? Appelez-le avant de payer. 🧾 Photo du ticket : le client vous envoie le montant exact par Bit, touchez « Ticket reçu », puis livrez.`
     : o.goods_prepay ? `💳 <b>Articles payés d'avance : ${UI.money(o.goods_budget)} au plus</b>, avec la course. N'achetez qu'après « Paiement reçu » ✅ et payez le magasin avec cet argent. Plus cher ? Le client vous envoie d'abord le complément. Puis 🧾 photo du ticket et la différence rendue par Bit avant « Livré ».`
     : "🧾 Le client règle le magasin lui-même : n'avancez rien, appelez-le depuis l'appli à la caisse"}</div>`;
   // Attente au départ ou temps des achats : payé au livreur au-delà des minutes offertes
@@ -733,9 +735,11 @@ function goodsActs(o) {
   if (o.goods_spent == null) return `<button type="button" class="btn btn-sm btn-primary" data-goods-ticket="${id}">🧾 Ticket du magasin (photo + montant)</button>`;
   if (o.goods_refund_status === "a_rendre") return `<p class="wait-live">💸 Rendez <b>${UI.money(o.goods_refund)}</b> au client par Bit (ticket ${UI.money(o.goods_spent)} sur ${UI.money(o.goods_budget)} reçus)</p>
     <button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.contact_phone || "").replace(/\D/g, ""))}">📋 Copier son numéro</button><button type="button" class="btn btn-sm btn-primary" data-goods-refund="rendu" data-id="${id}">✅ C'est rendu</button>`;
+  if (o.goods_after && o.goods_refund_status === "a_completer") return `<p class="wait-live">🧾 Ticket <b>${UI.money(o.goods_spent)}</b> envoyé au client : il vous envoie ce montant par Bit. Livrez dès réception.</p>
+    <button type="button" class="btn btn-sm btn-primary" data-goods-refund="complement" data-id="${id}">✅ Ticket reçu (${UI.money(o.goods_refund)})</button>`;
   if (o.goods_refund_status === "a_completer") return `<p class="wait-live">⚠️ Ticket ${UI.money(o.goods_spent)} : il manque <b>${UI.money(o.goods_refund)}</b>. Le client vous les envoie par Bit <b>avant</b> que vous payiez le magasin.</p>
     <button type="button" class="btn btn-sm btn-primary" data-goods-refund="complement" data-id="${id}">✅ Complément reçu</button>`;
-  return `<span class="pill paid">🧾 Ticket ${UI.money(o.goods_spent)}${o.goods_refund_status === "rendu" ? ` · ${UI.money(o.goods_refund)} rendus` : ""} ✓</span>`;
+  return `<span class="pill paid">🧾 Ticket ${UI.money(o.goods_spent)}${o.goods_after ? " payé par le client" : ""}${o.goods_refund_status === "rendu" ? ` · ${UI.money(o.goods_refund)} rendus` : ""} ✓</span>`;
 }
 function mineStep(o, hopPaid) {
   if (o.status === "annulee") return `❌ Le client a laissé tomber (attente) : la moitié de la course vous est due`;
@@ -743,12 +747,14 @@ function mineStep(o, hopPaid) {
   if (o.payment_method === "cash") return o.status === "recuperee" ? `3️⃣ Livrez et encaissez ${UI.money(cashTotal(o))} en espèces`
     : Number(o.cash_goods) > 0 && !o.cash_shop_at && !o.goods_prepay ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
   if (o.goods_prepay && o.payment_status === "paye" && ["confirmee", "recuperee"].includes(o.status)) {
-    if (o.goods_spent == null) return "2️⃣ Au magasin : achetez avec l'argent reçu, puis 🧾 photo du ticket";
+    if (o.goods_spent == null) return o.goods_after ? `2️⃣ Au magasin : avancez les articles (au plus ${UI.money(o.goods_budget)}), puis 🧾 photo du ticket`
+      : "2️⃣ Au magasin : achetez avec l'argent reçu, puis 🧾 photo du ticket";
+    if (o.goods_after && o.goods_refund_status === "a_completer") return `3️⃣ Le client vous envoie le ticket (${UI.money(o.goods_refund)}) par Bit : « Ticket reçu », puis livrez`;
     if (o.goods_refund_status === "a_completer") return `2️⃣ Attendez le complément de ${UI.money(o.goods_refund)} avant de payer le magasin`;
     if (o.goods_refund_status === "a_rendre") return `${o.status === "recuperee" ? "3️⃣" : "2️⃣"} Rendez ${UI.money(o.goods_refund)} au client par Bit, puis livrez`;
   }
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
-  if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${UI.money(UI.payTotal(o))} (Bit / PayBox)${o.goods_prepay ? " avant d'acheter quoi que ce soit" : ", puis allez au départ"}`;
+  if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${o.goods_after ? "la course, " : ""}${UI.money(UI.payTotal(o))} (Bit / PayBox)${o.goods_prepay ? " avant d'acheter quoi que ce soit" : ", puis allez au départ"}`;
   const r = o.status === "confirmee" && pickupRank(o);
   if (r) return o.arrived_at ? `2️⃣ Récupérez la commande ${r.k} sur ${r.n}` : `2️⃣ Allez au départ · ${r.n} commandes à récupérer`;
   return o.arrived_at ? "2️⃣ Récupérez la commande" : "2️⃣ Allez au départ";
@@ -1003,14 +1009,14 @@ function goodsTicket(id) {
     if (!f) return;
     let photo;
     try { photo = await UI.docPhoto(f); } catch (e) { return alert("Photo illisible, reprenez-la."); }
-    const a = prompt(`🧾 Montant total du ticket (₪) ?\n${o.payment_method === "cash" ? "Maximum prévu" : "Payé d'avance"} : ${UI.money(o.goods_budget)}`);
+    const a = prompt(`🧾 Montant total du ticket (₪) ?\n${o.payment_method === "cash" || o.goods_after ? "Maximum prévu" : "Payé d'avance"} : ${UI.money(o.goods_budget)}`);
     if (a == null) return;
     const amount = Math.round(parseFloat(String(a).replace(",", ".")) * 100) / 100;
     if (!(amount > 0)) return alert("Montant incorrect.");
     const r = await Store.courierGoodsTicket(o.id, amount, photo).catch(e => ({ err: e.message }));
     if (!r || r.err) return alert(/not_paid/.test((r && r.err) || "") ? "💳 Le client doit d'abord vous payer (« Paiement reçu »)." : "Ticket non enregistré, réessayez.");
     const d = Number(r.refund);
-    alert(r.cash ? `✅ Ticket envoyé au client. À la livraison, encaissez ${UI.money(r.cash)} en espèces (course + ticket).` : d > 0 ? `✅ Ticket envoyé au client. Rendez-lui ${UI.money(d)} par Bit, puis « C'est rendu ».`
+    alert(r.after ? `✅ Ticket envoyé au client : il vous envoie ${UI.money(amount)} par Bit. Touchez « Ticket reçu » dès que c'est arrivé, puis livrez.` : r.cash ? `✅ Ticket envoyé au client. À la livraison, encaissez ${UI.money(r.cash)} en espèces (course + ticket).` : d > 0 ? `✅ Ticket envoyé au client. Rendez-lui ${UI.money(d)} par Bit, puis « C'est rendu ».`
       : d < 0 ? `⚠️ Il manque ${UI.money(-d)} : le client est prévenu. Attendez son complément avant de payer le magasin.` : "✅ Ticket envoyé au client : compte juste.");
     load();
   };
@@ -1024,7 +1030,7 @@ async function onViewClick(e) {
   if (el.dataset.goodsTicket) return goodsTicket(el.dataset.goodsTicket);
   if (el.dataset.goodsRefund) {
     const o = orders.find(x => x.id === el.dataset.id);
-    if (!o || !confirm(el.dataset.goodsRefund === "rendu" ? `💸 Avez-vous bien rendu ${UI.money(o.goods_refund)} au client par Bit ?` : `✅ Avez-vous bien reçu le complément de ${UI.money(o.goods_refund)} ?`)) return;
+    if (!o || !confirm(el.dataset.goodsRefund === "rendu" ? `💸 Avez-vous bien rendu ${UI.money(o.goods_refund)} au client par Bit ?` : o.goods_after ? `✅ Avez-vous bien reçu ${UI.money(o.goods_refund)} du client (le ticket) sur votre Bit ?` : `✅ Avez-vous bien reçu le complément de ${UI.money(o.goods_refund)} ?`)) return;
     el.disabled = true;
     const ok = await Store.courierGoodsRefund(o.id, el.dataset.goodsRefund).catch(() => false);
     if (!ok) alert("Pas enregistré, réessayez.");
@@ -1135,7 +1141,7 @@ async function onViewClick(e) {
     }
     const ok = await Store.courierAction(id, el.dataset.act).catch(e => /payment_required/.test(e.message) ? "pay" : /too_far_recup/.test(e.message) ? "farrecup" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /ticket_required/.test(e.message) ? "ticket" : /goods_refund_pending/.test(e.message) ? "refund" : /goods_bought/.test(e.message) ? "bought" : false);
     if (ok === "ticket") { render(); return alert("🧾 Touchez d'abord « Ticket du magasin » : photo du ticket et son montant."); }
-    if (ok === "refund") { render(); return alert(o.goods_refund_status === "a_completer" ? "⚠️ Le client doit d'abord vous envoyer le complément : touchez « Complément reçu »." : "💸 Rendez d'abord la différence au client par Bit, puis touchez « C'est rendu »."); }
+    if (ok === "refund") { render(); return alert(o.goods_refund_status === "a_completer" ? (o.goods_after ? "🧾 Le client doit d'abord vous envoyer le montant du ticket : touchez « Ticket reçu »." : "⚠️ Le client doit d'abord vous envoyer le complément : touchez « Complément reçu ».") : "💸 Rendez d'abord la différence au client par Bit, puis touchez « C'est rendu »."); }
     if (ok === "bought") { render(); return alert("🧾 Les articles sont déjà achetés : vous ne pouvez plus rendre la course. Écrivez à HOP! en cas de souci."); }
     if (ok === "cash") { render(); return alert(`💵 ${o.shop_name || "Le commerce"} doit d'abord toucher « Espèces reçues » (vous lui payez ${UI.money(o.cash_goods)} en espèces).`); }
     if (ok === "wait") { render(); return alert("⏱️ Touchez d'abord « Supplément reçu » (ou « Le client ne paie pas ») pour l'attente."); }

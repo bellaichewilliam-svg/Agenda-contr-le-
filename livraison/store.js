@@ -270,19 +270,21 @@ async function createOrder(order) {
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
     });
     // « J'achète pour vous » : le client règle le magasin lui-même, le livreur n'avance jamais d'argent
-    // ou il paie tout d'avance au livreur par Bit (la course + les articles au maximum : 300 ₪, 150 ₪ avant 3 courses livrées)
+    // ou le livreur avance les articles (au plus 200 ₪, 100 ₪ avant 3 courses livrées) : par Bit, la course d'avance et
+    // le ticket exact après la photo (goods_after) ; en espèces, la course + le ticket à la livraison
     const achat = order.service === "achat" && !order.shop_status;
     if (achat && order.goods_prepay) {
       if (!["bit", "cash"].includes(order.payment_method)) throw new Error("goods_prepay_bit");
       const done = localOrders().filter(x => x.status === "livree" && (String(x.contact_phone || "").replace(/\D/g, "") === String(order.contact_phone || "").replace(/\D/g, ""))).length;
-      const cap = done >= 3 ? 300 : 150;
+      const cap = done >= 3 ? 200 : 100;
       if (!(Number(order.goods_budget) > 0)) throw new Error("goods_budget_required");
       if (Number(order.goods_budget) > cap) throw new Error("goods_cap_" + cap);
       order.goods_self_pay = false;
+      order.goods_after = !!order.goods_after && order.payment_method === "bit";
     } else {
       if (achat && !order.goods_self_pay) throw new Error("goods_pay_required");
       order.goods_self_pay = order.service === "achat";
-      Object.assign(order, { goods_prepay: false, goods_budget: 0 });
+      Object.assign(order, { goods_prepay: false, goods_budget: 0, goods_after: false });
     }
     Object.assign(order, { goods_spent: null, goods_refund: null, goods_refund_status: null, goods_ticket_at: null });
     if (order.service === "achat" && !order.fits_topcase) throw new Error("topcase_required");
@@ -1057,7 +1059,7 @@ async function courierAction(id, action) {
     // Même règle qu'en ligne : déjà payé (ou « j'ai payé ») → ce livreur rembourse le client ; tout repart à zéro
     if (o.goods_prepay && o.goods_spent != null) throw new Error("goods_bought");
     const paid = o.direct_pay && o.paid_to === "livreur" && (o.payment_status === "paye" || o.client_paid_at);
-    if (paid) Object.assign(o, { refund_amount: Number(o.price) + (o.goods_prepay ? Number(o.goods_budget || 0) : 0), refund_courier_id: o.courier_id, refund_courier_name: o.courier_name,
+    if (paid) Object.assign(o, { refund_amount: Number(o.price) + (o.goods_prepay && !o.goods_after ? Number(o.goods_budget || 0) : 0), refund_courier_id: o.courier_id, refund_courier_name: o.courier_name,
       refund_courier_phone: o.courier_bit || o.courier_phone, refund_received: o.payment_status === "paye", refund_status: "a_faire", refund_at: new Date().toISOString() });
     if (o.paid_to === "livreur") o.payment_status = "en_attente";
     Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0,
@@ -1082,6 +1084,14 @@ async function courierGoodsTicket(id, amount, photo) {
   const a = Number(amount);
   if (!(a > 0 && a <= 1000)) throw new Error("bad_amount");
   if (!/^data:image\/(jpeg|png|webp);base64,/.test(String(photo || "")) || String(photo).length > 400000) throw new Error("bad_photo");
+  if (o.goods_after) {
+    // Ticket après : le client envoie tout le montant du ticket avant la livraison
+    chatLocalAdd({ thread: "o:" + o.id, author: "courier", author_name: o.courier_name, image: photo,
+      body: `🧾 Ticket du magasin : ${num2(a)} ₪. Envoyez-moi ce montant exact par Bit, et je vous livre.` });
+    Object.assign(o, { goods_spent: a, goods_ticket_at: new Date().toISOString(), goods_refund: a, goods_refund_status: "a_completer" });
+    saveLocalOrders(all);
+    return { ok: true, refund: -a, after: true };
+  }
   const diff = Math.round((Number(o.goods_budget) - a) * 100) / 100;
   chatLocalAdd({ thread: "o:" + o.id, author: "courier", author_name: o.courier_name, image: photo,
     body: `🧾 Ticket du magasin : ${num2(a)} ₪ (payé d'avance : ${num2(Number(o.goods_budget))} ₪) — ` + (diff > 0 ? `je vous rends ${num2(diff)} ₪` : diff < 0 ? `il manque ${num2(-diff)} ₪ à envoyer avant que je paie` : "compte juste") });
@@ -1098,7 +1108,8 @@ async function courierGoodsRefund(id, action) {
   if (!o || !["rendu", "complement"].includes(action)) return false;
   o.goods_refund_status = action === "rendu" ? "rendu" : "ok";
   chatLocalAdd({ thread: "o:" + o.id, author: "courier", author_name: o.courier_name, image: null,
-    body: action === "rendu" ? `💸 Je vous ai rendu ${num2(Number(o.goods_refund))} ₪ par Bit` : `✅ Complément de ${num2(Number(o.goods_refund))} ₪ bien reçu` });
+    body: action === "rendu" ? `💸 Je vous ai rendu ${num2(Number(o.goods_refund))} ₪ par Bit`
+      : o.goods_after ? `✅ Ticket de ${num2(Number(o.goods_refund))} ₪ bien reçu, j'arrive !` : `✅ Complément de ${num2(Number(o.goods_refund))} ₪ bien reçu` });
   saveLocalOrders(all);
   return true;
 }

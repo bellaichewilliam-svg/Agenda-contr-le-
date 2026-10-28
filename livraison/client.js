@@ -606,14 +606,16 @@ function rayonGoods() {
   return any ? { lo, hi } : null;
 }
 const priceTxt = p => (p[0] === p[1] ? `${p[0]} ₪` : `${p[0]}-${p[1]} ₪`);
-// « Acheter pour moi » sans partenaire : le client paie tout d'avance au livreur par Bit, la course + les articles
-// au prix maximum. Le livreur n'achète qu'une fois payé, photographie le ticket et rend la différence avant de livrer.
-// Au plus 300 ₪ d'articles, 150 ₪ tant que le client a moins de 3 courses livrées (la base vérifie aussi).
+// « Acheter pour moi » sans partenaire : le client paie la course d'avance par Bit (ça l'engage), le livreur avance
+// les articles (au plus le budget), envoie la photo du ticket, et le client lui envoie le montant exact avant la
+// livraison (goods_after). Au plus 200 ₪ d'articles, 100 ₪ tant que le client a moins de 3 courses livrées (la base
+// vérifie aussi). En espèces : le client paie la course + le ticket exact à la livraison.
 const goodsPrepay = () => val("service") === "achat" && !proShopOn() && val("goods_mode") !== "self";
-const goodsCap = () => ((state.mine || []).filter(o => o.status === "livree").length >= 3 ? 300 : 150);
+const goodsAfter = () => goodsPrepay() && val("payment_method") !== "cash";
+const goodsCap = () => ((state.mine || []).filter(o => o.status === "livree").length >= 3 ? 200 : 100);
 const goodsMin = () => { const g = rayonGoods(); return g ? Math.ceil(g.hi) : 0; };
 const goodsBudget = () => Math.max(goodsMin(), Math.round(parseFloat(val("budget")) || 0));
-const capVars = () => ({ cap: money(goodsCap()), more: goodsCap() < 300 ? t("gmCapNew") : "" });
+const capVars = () => ({ cap: money(goodsCap()), more: goodsCap() < 200 ? t("gmCapNew") : "" });
 function renderGoodsMode(q) {
   const box = $("#goodsModeBox"), achat = val("service") === "achat" && !proShopOn(), pre = achat && goodsPrepay();
   box.classList.toggle("hidden", !achat);
@@ -631,8 +633,8 @@ function renderGoodsMode(q) {
   const cashErr = !cash ? "" : !done ? t("gmCashFirst") : b + Number(q.total) > cashMax() ? t("errCashMax", { max: money(cashMax()) }) : "";
   sum.innerHTML = `<div class="gb-row"><span><b>${UI.esc(t("gmGoods"))}</b><small>${UI.esc(t(goodsMin() ? "gmGoodsD" : "gmGoodsFree"))}</small></span><b class="gb-amt" dir="ltr">${b ? money(b) : "—"}</b></div>
     <div class="gb-row"><span><b>${UI.esc(t("gmRide"))}</b></span><b class="gb-amt" dir="ltr">${money(q.total)}</b></div>
-    <div class="gb-row gb-total"><span><b>${UI.esc(t(cash ? "gmTotalCash" : "gmTotal"))}</b></span><b class="gb-amt" dir="ltr">${b ? money(b + Number(q.total)) : "—"}</b></div>
-    <small class="gm-how">${UI.esc(t(cash ? "gmHowCash" : "gmHow"))}</small>
+    <div class="gb-row gb-total"><span><b>${UI.esc(t(cash ? "gmTotalCash" : "gmTotalAfter"))}</b></span><b class="gb-amt" dir="ltr">${cash ? (b ? money(b + Number(q.total)) : "—") : money(q.total)}</b></div>
+    <small class="gm-how">${UI.esc(cash ? t("gmHowCash") : t("gmHowAfter", { max: b ? money(b) : "—" }))}</small>
     ${cashErr ? `<small class="gm-cap bad">${UI.esc(cashErr)}</small>` : ""}
     <small class="gm-cap${over ? " bad" : ""}">${UI.esc(t(over ? "errGoodsCap" : "gmCap", capVars()))}</small>`;
 }
@@ -787,18 +789,20 @@ function renderQuote() {
     + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t("qItems", { total: money(cartTotal()), name: UI.bi(state.shop.name) }))}</span></li>` : "")
     // Achats payés au livreur : le montant des articles (au maximum) est dans le prix, comme la course
-    + (goods && goodsPrepay() ? `<li class="goods-amt"><span>${UI.esc(t("qGoodsMax"))}</span><span dir="ltr">${goodsBudget() ? money(goodsBudget()) : "—"}</span></li>` : "")
-    + (goods && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : goodsPrepay() ? "qGoodsPre" : "qGoods"))}</span></li>` : "")
+    + (goods && goodsPrepay() && !goodsAfter() ? `<li class="goods-amt"><span>${UI.esc(t("qGoodsMax"))}</span><span dir="ltr">${goodsBudget() ? money(goodsBudget()) : "—"}</span></li>` : "")
+    + (goods && goodsAfter() ? `<li class="goods"><span>${UI.esc(t("qGoodsAfter", { max: goodsBudget() ? money(goodsBudget()) : "—" }))}</span></li>` : "")
+    + (goods && !goodsAfter() && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : goodsPrepay() ? "qGoodsPre" : "qGoods"))}</span></li>` : "")
     + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "");
-  // (achats payés au livreur : course + articles au maximum, ce que le client envoie vraiment)
-  const all = Number(q.total) + (val("service") === "achat" && goodsPrepay() ? goodsBudget() : 0);
+  // (achats en espèces : course + articles au maximum ; « ticket après » par Bit : la course seule d'avance)
+  const all = Number(q.total) + (val("service") === "achat" && goodsPrepay() && !goodsAfter() ? goodsBudget() : 0);
   const total = (q.known ? "" : t("from") + " ") + money(all);
   $("#quoteTotal").textContent = total;
   $("#mobileTotal").textContent = total;
   $("#submitBtn").textContent = t("submit", { total: money(all) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
-  if (val("service") === "achat") notes.push(goodsPrepay() ? t("qPurchaseNotePre2", { ride: money(q.total), goods: money(goodsBudget()) }) : t("qPurchaseNote"));
+  if (val("service") === "achat") notes.push(goodsAfter() ? t("qPurchaseNoteAfter", { ride: money(q.total), goods: money(goodsBudget()) })
+    : goodsPrepay() ? t("qPurchaseNotePre2", { ride: money(q.total), goods: money(goodsBudget()) }) : t("qPurchaseNote"));
   const st = state.settings;
   if (st.wait_step_price != null) notes.push(t("qWait", { free: st.wait_free_min, step: Number(st.wait_step_min) === 1 ? t("stepMin1") : t("stepMinN", { n: st.wait_step_min }), price: money(st.wait_step_price), max: money(st.wait_max) }));
   const sched = val("urgency") === "programmee";
@@ -1579,6 +1583,7 @@ async function submit(e) {
       // Articles : payés d'avance au livreur (avec la course), ou réglés au magasin par le client lui-même
       goods_prepay: goodsPrepay(),
       goods_budget: goodsPrepay() ? goodsBudget() : 0,
+      goods_after: goodsAfter(),
       goods_self_pay: svc === "achat" && !goodsPrepay(),
       fits_topcase: svc === "achat" && form.fits_topcase.checked,
       to_city: toCity,

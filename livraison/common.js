@@ -427,7 +427,8 @@ function orderText(o) {
   }
   if (o.service === "achat") {
     if (o.shopping_list) L.push(`   🛒 À acheter : ${o.shopping_list}`);
-    if (o.goods_prepay) L.push(`   💳 Articles payés d'avance au livreur : ${money(o.goods_budget)} au plus (ticket en photo, différence rendue)`);
+    if (o.goods_prepay) L.push(o.goods_after ? `   🧾 Articles avancés par le livreur : au plus ${money(o.goods_budget)}, le client paie le ticket exact après la photo`
+      : `   💳 Articles payés d'avance au livreur : ${money(o.goods_budget)} au plus (ticket en photo, différence rendue)`);
     else if (o.budget) L.push(`   Budget : ${money(o.budget)} (réglé au magasin par le client)`);
   }
   L.push(`🏁 Livraison : ${o.dropoff_place ? "🏪 " + o.dropoff_place + ", " : ""}${o.dropoff_address}, ${cityFr(o.to_city)}`);
@@ -515,7 +516,8 @@ const BIT_APP = "intent://#Intent;package=com.bnhp.payments.paymentsapp;S.browse
   + encodeURIComponent("https://play.google.com/store/apps/details?id=com.bnhp.payments.paymentsapp") + ";end";
 // Ce que le client envoie au livreur : la course, et les articles (au maximum) quand ils sont payés d'avance
 // (en espèces, une fois le ticket pris : la course + le ticket exact)
-const payTotal = o => Number(o.price || 0) + (!o.goods_prepay ? 0 : o.payment_method === "cash" && o.goods_spent != null ? Number(o.goods_spent) : Number(o.goods_budget || 0));
+// (« ticket après » : seule la course est payée d'avance ; le ticket est envoyé à part, après la photo)
+const payTotal = o => Number(o.price || 0) + (!o.goods_prepay || o.goods_after ? 0 : o.payment_method === "cash" && o.goods_spent != null ? Number(o.goods_spent) : Number(o.goods_budget || 0));
 function bitPay(o) {
   const t = (k, v) => I18N.t(k, v);
   const name = String(o.courier_name || "").split(" ")[0];
