@@ -10,6 +10,18 @@ const t = I18N.t;
 const token = new URLSearchParams(location.search).get("t");
 const FLOW = ["nouvelle", "confirmee", "recuperee", "livree"];
 let order = null;
+let notifTried = false;
+function renderNotif(o) {
+  const box = $("#notifCard"), live = ["nouvelle", "confirmee", "recuperee"].includes(o.status);
+  const can = live && window.Notification && "serviceWorker" in navigator && CONFIG.push && Store.ONLINE;
+  if (can && Notification.permission === "granted" && !notifTried) { notifTried = true; UI.clientPushSubscribe(token, false); }
+  const show = can && Notification.permission !== "granted";
+  box.classList.toggle("hidden", !show);
+  if (!show) return;
+  box.innerHTML = Notification.permission === "denied" ? `<p class="small muted" style="margin:0">${UI.esc(I18N.t("trNotifDenied"))}</p>`
+    : `<b>🔔 ${UI.esc(I18N.t("trNotifTitle"))}</b><p class="small muted" style="margin:4px 0 8px">${UI.esc(I18N.t("trNotifSub"))}</p>
+       <button type="button" class="btn btn-primary btn-block" id="notifOn">${UI.esc(I18N.t("trNotifBtn"))}</button>`;
+}
 // Gros bouton « ✅ J'ai envoyé X ₪ à … » (ticket, complément, attente) ; une fois touché, un message de confirmation à la place
 function sentBtn(amount, name, what) {
   if (!(Number(amount) > 0)) return "";
@@ -273,6 +285,9 @@ function render() {
     ${docsBlock(o)}
     ${claimBlock(o)}
     ${o.admin_note && o.status !== "refusee" ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
+
+  // Notifications sur ce téléphone (livreur accepté, en route, livré) : proposées tant que la course n'est pas finie
+  renderNotif(o);
 
   const pay = $("#payBox");
   const dropped = o.status === "annulee" && Number(o.drop_fee) > 0;
@@ -575,6 +590,13 @@ $("#details").addEventListener("change", async e => {
 });
 
 $("#langBtn").addEventListener("click", () => { I18N.setLang(I18N.other()); render(); });
+$("#notifCard").addEventListener("click", async e => {
+  if (e.target.id !== "notifOn") return;
+  e.target.disabled = true;
+  const ok = await UI.clientPushSubscribe(token, true);
+  $("#notifCard").innerHTML = `<p class="promo-msg ${ok ? "ok" : "bad"}" style="margin:0">${UI.esc(I18N.t(ok ? "trNotifOn" : "trNotifDenied"))}</p>`;
+  if (ok) setTimeout(() => $("#notifCard").classList.add("hidden"), 4000);
+});
 $("#payBox").addEventListener("click", async e => {
   // « J'ai envoyé X ₪ » : un message au livreur dans la conversation (il vérifie son Bit, puis confirme)
   const sb = e.target.closest("[data-sent]");

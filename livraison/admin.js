@@ -501,7 +501,12 @@ function card(o, withDay) {
     recuperee: b("livree", "📦 Livré", "btn-primary")
   };
 
-  return `
+  // Course terminée (livrée, annulée, refusée) : une ligne qu'on ouvre ; les courses à faire restent ouvertes
+  const closed = ["livree", "annulee", "refusee"].includes(o.status);
+  const fold = inner => closed ? `<details class="order-fold" data-id="${UI.esc(o.id)}"><summary>
+      <span>${st.icon} ${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}N° ${UI.esc(o.ref)} · ${UI.esc(o.dropoff_contact || o.contact_name || "")}${o.courier_name ? " · 🛵 " + UI.esc(o.courier_name.split(" ")[0]) : ""}${o.is_test ? " · 🧪 test" : ""}</span>
+      <b>${UI.money(o.price)}</b></summary>${inner}</details>` : inner;
+  return fold(`
   <article class="order${o.status === "nouvelle" ? " is-new" : ""}" data-id="${UI.esc(o.id)}">
     <div class="order-head">
       <span class="order-time">${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}${when}</span>
@@ -532,7 +537,7 @@ function card(o, withDay) {
       <button class="btn btn-sm" data-act="ics">📅</button>
       <textarea class="admin-note" data-act="note" rows="1" placeholder="Message visible par le client sur la page de suivi…">${UI.esc(o.admin_note || "")}</textarea>
     </div>
-  </article>`;
+  </article>`);
 }
 
 function groupedByDay(list) {
