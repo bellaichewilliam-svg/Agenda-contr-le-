@@ -328,6 +328,16 @@ function syncVisibility() {
   form.classList.toggle("shop-to", side === "to");
   $("#sizeLegend").textContent = t(side ? "s5Shop" : "s5");
   const sched = val("urgency") === "programmee";
+  // Livraison offerte par le commerce : pas de choix de paiement (le commerce paie le livreur par Bit)
+  const gift = shopGift();
+  $("#giftNote").classList.toggle("hidden", !gift);
+  if (gift) {
+    $("#giftNote").textContent = t("giftNote", { name: UI.bi(state.shop.name) });
+    if (val("payment_method") !== "bit") form.querySelector('input[name=payment_method][value=bit]').checked = true;
+    form.payer.value = "moi";
+  }
+  $("#payChoices").classList.toggle("hidden", gift);
+  form.payer.closest("label").classList.toggle("hidden", gift);
   // Carnet pro proposé seulement quand il s'applique
   const carnet = carnetOk();
   $("#carnetChoice").classList.toggle("hidden", !carnet);
@@ -442,9 +452,13 @@ function carnetOk() {
 }
 const carnetUnit = () => Number(state.settings.carnet_unit || CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses);
 
+// Livraison offerte par le commerce : le client ne paie rien, le commerce paie toute la course au livreur
+const shopGift = () => !!(proShopOn() && state.shop.shop_pays);
 function currentQuote() {
   const q = baseQuote();
   if (!proShopOn()) return q;
+  if (shopGift()) return Object.assign({}, q, { total: 0, course: q.total, gift: true,
+    lines: q.lines.concat([{ key: "qShopGift", vars: { name: UI.bi(state.shop.name) }, amount: -q.total, discount: true }]) });
   // Le commerce paie sa part (12 − 2 = 10 ₪ de moins pour le client), sauf s'il a choisi « le client paie »
   const share = Math.min(q.total, state.shop.client_pays ? 0
     : Number(state.shop.shop_share != null ? state.shop.shop_share : CONFIG.pro.shopShare - CONFIG.pro.hopShare));
@@ -827,6 +841,12 @@ function renderQuote() {
   const total = (q.known ? "" : t("from") + " ") + money(all);
   $("#quoteTotal").textContent = total;
   $("#mobileTotal").textContent = total;
+  // Barre du bas : c'est la livraison (les articles se paient à part, ou sont comptés au maximum)
+  const withMax = all > Number(q.total), items = proShopOn() && cartCount() ? cartTotal() : 0;
+  $("#mobileLbl").textContent = t(withMax ? "barMax" : "barDelivery");
+  const hint = withMax ? "" : items ? t("barItems", { total: money(items), name: UI.bi(state.shop.name) }) : goods ? t("barGoodsHint") : "";
+  $("#mobileHint").textContent = hint;
+  $("#mobileHint").classList.toggle("hidden", !hint);
   $("#submitBtn").textContent = t("submit", { total: money(all) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
@@ -1701,7 +1721,7 @@ async function submit(e) {
       stops: state.stops.length ? stopsForOrder() : null,
       adult_items: svc === "achat" && adultItems().length ? adultItems().join(",") : null,
       distance_km: q.distanceKm,
-      price: q.total,
+      price: q.gift ? q.course : q.total,
       promo_code: disc ? (disc.key === "qLoyalty" ? "FIDELITE" : disc.vars.code) : null,
       discount: disc ? -disc.amount : 0,
       payment_method: val("payment_method"),
@@ -1734,6 +1754,8 @@ async function submit(e) {
     // Articles à payer d'avance au commerce : on garde de quoi l'afficher après la commande
     const gp = shopPrepay() ? { name: state.shop.name, link: state.shop.pay_link || null, bit: state.shop.pay_bit || null, total: cartTotal() } : null;
     const saved = await Store.createOrder(order);
+    // (la base marque la livraison offerte ; l'écran de confirmation le sait déjà)
+    if (q.gift) saved.shop_pays = true;
     if (gp) Object.assign(saved, { goods_pay: "a_payer", items_total: gp.total || saved.items_total || 0 });
     // Les photos des documents partent juste après la commande (le patron les vérifie avant d'envoyer un livreur)
     let docsFailed = false;
@@ -1752,10 +1774,12 @@ async function submit(e) {
     // Paiement direct : le client paiera son livreur (Bit ou PayBox) dès qu'il accepte ; avant : Bit à HOP tout de suite
     // Deux paiements, dans l'ordre : ① les articles au commerce, tout de suite ; ② la livraison au livreur
     // Commerce sans lien ni Bit : on rappelle quand même combien payer pour les articles, et à qui
+    // ② la livraison : au livreur, ou offerte par le commerce
+    const gift2 = () => (saved.shop_pays ? t("gpStep2Gift", { name: UI.bi(state.shop.name) }) : t("gpStep2", { amount: money(saved.price) }));
     const goodsAsk = !gp && proShopOn() && cartCount() && saved.payment_method !== "cash"
-      ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay todo"><b class="gp-step">${UI.esc(t("gpStep1", { name: UI.bi(state.shop.name), amount: money(cartTotal()) }))}</b><small>${UI.esc(t("gbAsk", { name: UI.bi(state.shop.name) }))}</small></div><p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: money(saved.price) }))}</b></p>` : "";
-    $("#donePrepay").innerHTML = goodsAsk + (gp ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(saved, gp)}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: money(saved.price) }))}</b></p>` : "")
-      + (saved.payment_method === "bit"
+      ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay todo"><b class="gp-step">${UI.esc(t("gpStep1", { name: UI.bi(state.shop.name), amount: money(cartTotal()) }))}</b><small>${UI.esc(t("gbAsk", { name: UI.bi(state.shop.name) }))}</small></div><p class="gp-step2"><b>${UI.esc(gift2())}</b></p>` : "";
+    $("#donePrepay").innerHTML = goodsAsk + (gp ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(saved, gp)}<p class="gp-step2"><b>${UI.esc(gift2())}</b></p>` : "")
+      + (saved.shop_pays ? `<p class="promo-msg ok">${UI.esc(t("giftNote", { name: UI.bi(state.shop.name) }))}</p>` : saved.payment_method === "bit"
         ? (saved.prepaid_required && !saved.direct_pay ? `<p class="promo-msg bad">${UI.esc(t("trPrepay"))}</p>` : "") + UI.bitPay(saved)
         : gp ? "" : UI.esc(t("donePrepay", { total: money(saved.price), phone: CONFIG.bitPhone, ref: saved.ref })));
     $("#donePrepay").classList.toggle("hidden", !gp && !goodsAsk && (saved.payment_method === "carnet" || (saved.payment_method !== "bit" && !saved.prepaid_required)));
@@ -1775,7 +1799,7 @@ async function submit(e) {
     }
     Store.saveProfile({ company: order.company, contact_name: order.contact_name, contact_phone: order.contact_phone, contact_email: order.contact_email });
 
-    $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(UI.payTotal(saved)) }));
+    $("#doneText").innerHTML = UI.esc(t("doneText", { ref: saved.ref, total: money(saved.shop_pays ? 0 : UI.payTotal(saved)) }));
     $("#doneSub").textContent = t(Store.ONLINE ? "doneOnline" : "doneDemo") + (Store.docsFor(saved).length ? " " + t(docsFailed ? "errDocsUpload" : "doneDocs") : "") + (saved.handoff ? " " + t("doneHandoff") : "");
     $("#doneWa").href = UI.waLink(CONFIG.whatsapp, UI.orderText(saved));
     $("#doneWa").classList.toggle("hidden", Store.ONLINE);
@@ -2418,7 +2442,7 @@ function renderShopBanner() {
         <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small></div></div>
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
       ${UI.shopText(s, "promo") ? `<p class="sh-promo"><i>📣</i><span>${UI.esc(UI.shopText(s, "promo"))}</span></p>` : ""}
-      ${s.pro ? `<div class="pc-tags sh-tags"><em>🛵 ${UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
+      ${s.pro ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
       ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: UI.bi(s.name), when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
         <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: UI.bi(s.name) }))}</small></span></button>
@@ -2813,7 +2837,7 @@ function renderHomeStatic() {
   $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
     const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip }, CONFIG);
     const art = KIND_ART[ex.id];
-    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b><small>${money(q.total)}</small></button>`;
+    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b></button>`;
   }).join("");
   renderHomePharma();
   const list = Store.getAddresses().slice(0, 5);
@@ -3388,7 +3412,7 @@ function shopCard(s) {
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
-      <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}🛵 ${UI.esc(money(proPrice(s)))}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
+      <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}${s.shop_pays ? `🎁 ${UI.esc(t("scGift"))}` : `🛵 ${UI.esc(money(proPrice(s)))}`}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
       ${UI.shopText(s, "tagline") ? `<small class="sc-tag">${UI.esc(UI.shopText(s, "tagline"))}</small>` : ""}</span>
     ${st && !st.open ? `<span class="sc-prog-btn">${UI.calIcon()} ${UI.esc(t("scProgOrder"))}</span>` : `<span class="sc-go" aria-label="${UI.esc(t("proGo"))}">›</span>`}
   </div>`;

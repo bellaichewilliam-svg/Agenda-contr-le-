@@ -7122,3 +7122,89 @@ language sql stable security definer set search_path = public as $$
     from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
 $$;
 grant execute on function public.shops_showcase() to anon, authenticated;
+
+-- ============================================================================
+-- LIVRAISON OFFERTE PAR LE COMMERCE (3e choix de « Qui paie la livraison ») : le client ne paie rien pour la
+-- livraison ; le commerce donne la course entière (25 ₪ dans Netanya) directement au livreur, par Bit, en lui
+-- remettant la commande (« Paiement reçu » avant « Colis récupéré »). Comme « le client paie » : pas de part du
+-- commerce sur sa facture, HOP garde pro_hop_share_client (1 ₪). Réglé une fois dans l'espace du commerce.
+-- ============================================================================
+alter table public.shops add column if not exists shop_pays boolean not null default false;
+alter table public.orders add column if not exists shop_pays boolean not null default false;
+
+-- Mode de paiement de la livraison : share (le commerce paie sa part), client (le client paie), shop (le commerce paie tout)
+create or replace function public.shop_set_pay_mode(p_token uuid, p_mode text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if p_mode is null or p_mode not in ('share', 'client', 'shop') then raise exception 'bad_mode'; end if;
+  update shops set client_pays = p_mode in ('client', 'shop'), shop_pays = p_mode = 'shop' where token = p_token;
+  return found;
+end;
+$$;
+revoke execute on function public.shop_set_pay_mode(uuid, text) from public;
+grant execute on function public.shop_set_pay_mode(uuid, text) to anon, authenticated;
+
+-- (ancienne appli : choisir « je paie ma part » ou « le client paie » enlève la livraison offerte)
+create or replace function public.shop_set_client_pays(p_token uuid, p_on boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  update shops set client_pays = coalesce(p_on, false), shop_pays = false where token = p_token;
+  return found;
+end;
+$$;
+
+-- Nouvelle commande : livraison offerte seulement pour une commande HOP! Pro d'un commerce qui l'a choisie (jamais décidé par le client)
+create or replace function public.orders_guard_pay() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.shop_pays := new.shop_status is not null and exists (select 1 from shops where id = new.shop_id and shop_pays);
+  if new.shop_pays then new.payment_method := 'bit'; new.cash_note := null; end if;
+  if new.shop_status is not null and exists (select 1 from shops where id = new.shop_id and client_pays) then
+    new.shop_share := 0;
+  end if;
+  new.direct_pay := new.payment_method <> 'carnet';
+  if new.direct_pay then new.paid_to := 'livreur'; new.prepaid_required := false; end if;
+  return new;
+end;
+$$;
+
+do $$
+declare d text; n text;
+begin
+  -- Pas de « Envoyez-lui 25 ₪ par Bit » au client : c'est le commerce qui paie
+  d := pg_get_functiondef('public.orders_pay_ask()'::regprocedure);
+  if position('shop_pays' in d) = 0 then
+    n := replace(d, 'or coalesce(new.shop_sent, false) or', 'or coalesce(new.shop_sent, false) or coalesce(new.shop_pays, false) or');
+    if n = d then raise exception 'orders_pay_ask: motif introuvable'; end if;
+    execute n;
+  end if;
+  -- Fiche publique : livraison offerte
+  d := pg_get_functiondef('public.shop_public(text)'::regprocedure);
+  if position('shop_pays' in d) = 0 then
+    n := replace(d, '''gallery'', gallery,', '''gallery'', gallery, ''shop_pays'', shop_pays,');
+    if n = d then raise exception 'shop_public: motif introuvable'; end if;
+    execute n;
+  end if;
+  -- Espace du commerce : ses commandes à livraison offerte (il paie le livreur)
+  d := pg_get_functiondef('public.shop_dashboard(uuid)'::regprocedure);
+  if position('shop_pays' in d) = 0 then
+    n := replace(d, 'o.shop_sent, o.payer,', 'o.shop_sent, o.shop_pays, o.payer,');
+    if n = d then raise exception 'shop_dashboard: motif introuvable'; end if;
+    execute n;
+  end if;
+end $$;
+
+-- Vitrine de l'accueil : « 🎁 Livraison offerte » sur la carte
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'shop_pays', s.shop_pays, 'hours', s.hours, 'kosher', s.kosher,
+           'pro', coalesce(s.plan_until >= current_date, false), 'promo', s.promo, 'promo_he', s.promo_he, 'rank', s.rank,
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by s.rank nulls last, (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
+$$;
+grant execute on function public.shops_showcase() to anon, authenticated;

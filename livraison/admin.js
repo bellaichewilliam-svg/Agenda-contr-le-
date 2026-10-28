@@ -478,7 +478,7 @@ function card(o, withDay) {
   const meta = [
     `<span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>`,
     `<span class="pill">${UI.esc(UI.SIZE_FR[o.size] || o.size)}</span>`,
-    `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${UI.PAY_FR[o.payment_method] || ""} · ${o.payment_status === "paye" ? "encaissé" : "à encaisser"}${o.shop_sent ? (o.payer === "destinataire" ? " · 🏪 envoyée par le commerce, payée par le client" : " · 🏪 envoyée et payée par le commerce") : o.payer === "destinataire" ? " (par le destinataire)" : ""}</span>`
+    `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${UI.PAY_FR[o.payment_method] || ""} · ${o.payment_status === "paye" ? "encaissé" : "à encaisser"}${o.shop_pays ? " · 🎁 livraison offerte : payée par le commerce au livreur" : o.shop_sent ? (o.payer === "destinataire" ? " · 🏪 envoyée par le commerce, payée par le client" : " · 🏪 envoyée et payée par le commerce") : o.payer === "destinataire" ? " (par le destinataire)" : ""}</span>`
   ];
   if (o.courier_id && !isMine(o) && !["annulee", "refusee"].includes(o.status)) {
     meta.push(`<button class="pill pill-btn ${o.paid_to === "hop" ? "paid" : ""}" data-act="paidto" title="Qui a reçu l'argent du client ?">${o.paid_to === "hop" ? "💳 Payée à HOP (reversée au livreur)" : "🛵 Payée au livreur"} ⇄</button>`);
@@ -1175,7 +1175,7 @@ function renderShops(view) {
             const shares = sum(mine, bill);
             return (on ? `<b>HOP! Pro</b> jusqu'au ${UI.esc(UI.fmtKey(x.plan_until))} · ce mois : ${UI.money(settings.pro_monthly)} + ${mine.length} livraison(s) ${UI.money(shares)} = <b>${UI.money(Number(settings.pro_monthly) + shares)}</b>`
               : x.plan_until ? `HOP! Pro terminé le ${UI.esc(UI.fmtKey(x.plan_until))}` : "Pas d'abonnement HOP! Pro")
-              + ` · 🛵 ${x.client_pays ? "le client paie la livraison" : `l'enseigne paie ${UI.money(settings.pro_shop_share)} par livraison`}`;
+              + ` · 🛵 ${x.shop_pays ? "🎁 l'enseigne offre la livraison (paie toute la course au livreur)" : x.client_pays ? "le client paie la livraison" : `l'enseigne paie ${UI.money(settings.pro_shop_share)} par livraison`}`;
           })()}</span></div>
         </div>
         <div class="actions">
