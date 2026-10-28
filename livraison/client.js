@@ -1097,6 +1097,7 @@ function renderSavedAddrs() {
     + others.map(x => `<button type="button" class="addr-chip" data-addr="${x.i}">${addrChip(x.a)}</button>`).join("")
     + `<button type="button" class="addr-chip add" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button>`;
   document.querySelectorAll(".saved-addrs").forEach(box => { box.classList.remove("hidden"); box.innerHTML = html; });
+  markAddrChips();
 }
 
 // --- Fenêtre « Ajouter / modifier une adresse » (Maison, Travail, autre) ----------------------
@@ -1215,6 +1216,7 @@ function applySavedAddr(which, a) {
 
 // --- « 📍 Ma position » et « ⭐ Enregistrer cette adresse » -----------------------------------
 function renderSaveBtns() {
+  markAddrChips();
   ["from", "to"].forEach(w => {
     const b = form.querySelector(`[data-save-addr="${w}"]`);
     if (!b) return;
@@ -1359,6 +1361,30 @@ function rememberAddresses(o, pf, pt) {
   };
   if (!o.pickup_near) save("from", pf, o.from_city);
   save("to", pt, o.to_city);
+  // La dernière adresse livrée : proposée d'office à la prochaine commande chez une enseigne
+  const pre = prefixOf("to");
+  try { localStorage.setItem(LS_LAST_DROP, addrKey({ street: pt ? (pt.streetName || pt.brand || "") : val(pre + "_address").trim().replace(/\s+\d+[^\s,]*$/, ""),
+    number: val(pre + "_number").trim(), city: pt ? pt.city || o.to_city : o.to_city, apt: o[pre + "_apt"] })); } catch (e) { /* ignore */ }
+}
+const LS_LAST_DROP = "livraison.lastDrop.v1";
+const addrKey = a => [a.street, a.number, a.city, a.apt].join("|").toLowerCase();
+// Commande chez une enseigne : on livre d'office à la dernière adresse livrée, sinon à la Maison (le client peut changer)
+function defaultDropAddr() {
+  const list = Store.getAddresses().filter(a => !a.brand);
+  let last = null;
+  try { last = localStorage.getItem(LS_LAST_DROP); } catch (e) { /* ignore */ }
+  return (last && list.find(a => addrKey(a) === last)) || list.find(a => a.tag === "home") || null;
+}
+// L'adresse enregistrée choisie est marquée (bordure orange) dans « Mes adresses »
+function markAddrChips() {
+  const list = Store.getAddresses();
+  document.querySelectorAll(".saved-addrs").forEach(box => {
+    const p = state.pick[box.dataset.for];
+    box.querySelectorAll("[data-addr]").forEach(b => {
+      const a = list[Number(b.dataset.addr)];
+      b.classList.toggle("on", !!(p && a && a.lat != null && p.lat === a.lat && p.lon === a.lon && String(p.housenumber || "") === String(a.number || "")));
+    });
+  });
 }
 
 function isReturning() {
@@ -2405,6 +2431,7 @@ function applyShop() {
   applySavedAddr(dir, { brand: s.name, street: m ? m[1] : s.address || "", number: m ? m[2] : "", cityId: CONFIG.cities.some(c => c.id === s.city) ? s.city : null,
     city: s.city, lat: s.lat, lon: s.lon, exact: s.lat != null });
   state.pick[dir].shopId = s.id;
+  if (dir === "from" && !state.pick.to) { const d = defaultDropAddr(); if (d) applySavedAddr("to", d); }
   if (other === "from" && !state.pick.from) setTimeout(() => form.pickup_address.focus({ preventScroll: true }), 300);
   // Commerce fermé maintenant : la course est programmée d'office pour son ouverture (le client peut changer)
   const st = UI.openState(s.hours), at = UI.nextOpenDate(st);
