@@ -2787,3 +2787,6 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .vit-list li > span:first-child { display: inline-block; min-width: 0; max-width: calc(100% - 92px); overflow-wrap: anywhere; }
 .vit-move { float: right; display: inline-flex; gap: 4px; }
 [dir="rtl"] .vit-move { float: left; }
+/* L'adresse enregistrée choisie : pleine, avec ✓ (Maison / Travail ont déjà une bordure orange) */
+.addr-chip.on, .addr-chip.tagged.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.addr-chip.on::before { content: "✓ "; }
