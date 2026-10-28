@@ -438,7 +438,7 @@ function orderText(o) {
   if (o.dropoff_contact || o.dropoff_phone) L.push(`   ${[o.dropoff_contact, o.dropoff_phone].filter(Boolean).join(" · ")}`);
   L.push(``, `${SIZE_FR[o.size] || o.size}${o.round_trip ? " · aller-retour" : ""}${o.extra_stops ? ` · +${o.extra_stops} arrêt(s)` : ""}`);
   if (o.notes) L.push(`📝 ${o.notes}`);
-  L.push(``, `💰 ${money(o.price)} — ${PAY_FR[o.payment_method] || ""} — payé par ${o.payer === "destinataire" ? "le destinataire" : "le client"}${o.prepaid_required ? " — 💳 À PAYER D'AVANCE" : ""}`);
+  L.push(``, `💰 ${money(o.price)} — ${PAY_FR[o.payment_method] || ""} — payé par ${o.payer === "destinataire" ? "le destinataire" : o.shop_sent ? "le commerce (quand le livreur prend le colis)" : "le client"}${o.prepaid_required ? " — 💳 À PAYER D'AVANCE" : ""}`);
   if (o.promo_code) L.push(`🎁 ${o.promo_code} (-${money(o.discount || 0)})`);
   L.push(`👤 ${o.contact_name}${o.company ? " (" + o.company + ")" : ""} — ${o.contact_phone}`);
   if (o.token) L.push(``, `Suivi : ${trackUrl(o)}`);

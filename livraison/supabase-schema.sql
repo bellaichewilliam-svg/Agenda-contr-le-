@@ -6699,3 +6699,87 @@ begin
     execute n;
   end if;
 end $$;
+
+-- ============================================================================
+-- « ENVOYER UNE COURSE » DEPUIS L'ESPACE DU COMMERCE : le client a acheté et payé au magasin, HOP! livre.
+-- Le commerce donne toutes les infos du client (nom, téléphone, rue et numéro, étage, appartement) et l'heure
+-- où le colis sera prêt. Sa clé secrète (send_key, jamais gardée) prouve que c'est bien lui : départ = son adresse.
+-- Qui paie la course (25 ₪ dans Netanya), directement au livreur par Bit :
+--  - le commerce (payer « moi ») : quand le livreur prend le colis (« Paiement reçu » avant « Colis récupéré ») ;
+--  - le client (payer « destinataire ») : à la livraison (« Paiement reçu » avant « Livré »).
+-- La course n'est proposée aux livreurs que pro_lead_min minutes avant l'heure « prête » (comme une commande Pro).
+-- ============================================================================
+alter table public.orders add column if not exists shop_sent boolean not null default false;
+alter table public.orders add column if not exists send_key uuid;
+
+-- Après tous les autres contrôles (ordre alphabétique des déclencheurs : « zx »)
+create or replace function public.orders_zx_shop_sent() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare s shops; ready timestamptz;
+begin
+  if not coalesce(new.shop_sent, false) then
+    new.shop_sent := false; new.send_key := null;
+    return new;
+  end if;
+  select * into s from shops where token = new.send_key and status <> 'suspendu';
+  new.send_key := null;
+  if not found or new.shop_id is distinct from s.id then raise exception 'shop_invalid'; end if;
+  if new.service <> 'colis' or new.payment_method <> 'bit' or coalesce(new.payer, '') not in ('moi', 'destinataire') then
+    raise exception 'send_pay';
+  end if;
+  if nullif(trim(coalesce(new.dropoff_contact, '')), '') is null
+     or public.norm_phone(new.dropoff_phone) !~ '^0[2-9][0-9]{7,8}$'
+     or nullif(trim(coalesce(new.dropoff_address, '')), '') is null
+     or nullif(trim(coalesce(new.dropoff_floor, '')), '') is null
+     or nullif(trim(coalesce(new.dropoff_apt, '')), '') is null then
+    raise exception 'send_fields';
+  end if;
+  ready := least(greatest(coalesce(new.pickup_at, now()), now()), now() + interval '3 hours');
+  new.ready_at := ready;
+  new.pickup_at := ready;
+  -- Départ : le commerce lui-même (jamais l'adresse écrite par le téléphone)
+  new.from_city := s.city;
+  new.pickup_address := s.address;
+  new.pickup_lat := s.lat; new.pickup_lon := s.lon; new.pickup_exact := s.lat is not null;
+  new.pickup_contact := s.name; new.pickup_phone := s.phone;
+  new.contact_name := s.name; new.contact_phone := s.phone;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_zx_shop_sent() from public, anon, authenticated;
+create or replace trigger orders_zx_shop_sent before insert on public.orders
+  for each row execute function public.orders_zx_shop_sent();
+
+-- Proposée aux livreurs juste avant l'heure « prête », et notification à ce moment-là ;
+-- payée par le client à la livraison : le livreur prend le colis sans attendre le paiement
+do $$
+declare d text; n text;
+begin
+  d := pg_get_functiondef('public.offer_base(public.orders)'::regprocedure);
+  if position('shop_sent' in d) = 0 then
+    n := replace(d, 'when o.shop_status is not null or o.phone_order', 'when o.shop_status is not null or o.phone_order or o.shop_sent');
+    if n = d then raise exception 'offer_base: motif introuvable'; end if;
+    execute n;
+  end if;
+  d := pg_get_functiondef('public.push_ready_orders()'::regprocedure);
+  if position('shop_sent' in d) = 0 then
+    n := replace(d, 'and (phone_order or shop_status in',
+                    'and (phone_order or (shop_sent and ready_at > created_at + interval ''2 minutes'') or shop_status in');
+    if n = d then raise exception 'push_ready_orders: motif introuvable'; end if;
+    execute n;
+  end if;
+  d := pg_get_functiondef('public.orders_paid_before_pickup()'::regprocedure);
+  if position('shop_sent' in d) = 0 then
+    n := replace(d, 'elsif new.payment_status <> ''paye'' then',
+                    'elsif new.payment_status <> ''paye'' and not (new.shop_sent and new.payer = ''destinataire'') then');
+    if n = d then raise exception 'orders_paid_before_pickup: motif introuvable'; end if;
+    execute n;
+  end if;
+  -- Espace du commerce : ses courses envoyées, qui paie, le Bit du livreur pour lui payer la course
+  d := pg_get_functiondef('public.shop_dashboard(uuid)'::regprocedure);
+  if position('shop_sent' in d) = 0 then
+    n := replace(d, 'o.goods_pay, o.goods_pay_at,', 'o.goods_pay, o.goods_pay_at, o.shop_sent, o.payer, o.dropoff_phone, o.dropoff_floor, o.dropoff_apt,');
+    if n = d then raise exception 'shop_dashboard: motif introuvable'; end if;
+    execute n;
+  end if;
+end $$;

@@ -260,7 +260,7 @@ function render() {
   $("#details").innerHTML = `
     <div><span>📍</span><span><b>${UI.esc(t("trPickup"))}</b><br>${UI.brand(o.pickup_place)}<bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(cityLabel(o.from_city))}${UI.addrDetails(o, "pickup", I18N.lang)}${UI.addrNote(o.pickup_note)}</span></div>
     <div><span>🏁</span><span><b>${UI.esc(t("trDrop"))}</b><br>${UI.brand(o.dropoff_place)}<bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(cityLabel(o.to_city))}${UI.addrDetails(o, "dropoff", I18N.lang)}${UI.addrNote(o.dropoff_note)}${UI.doorTag(o, I18N.lang)}</span></div>
-    ${o.phone_order && o.ready_at && ["nouvelle", "confirmee"].includes(o.status) ? `<div><span>📞</span><span>${UI.esc(t("trPhoneReady", { time: new Date(o.ready_at).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" }) }))}</span></div>` : ""}
+    ${(o.phone_order || o.shop_sent) && o.ready_at && ["nouvelle", "confirmee"].includes(o.status) ? `<div><span>📞</span><span>${UI.esc(t("trPhoneReady", { time: new Date(o.ready_at).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" }) }))}</span></div>` : ""}
     ${docsBlock(o)}
     ${claimBlock(o)}
     ${o.admin_note && o.status !== "refusee" ? `<div><span>💬</span><span>${UI.esc(o.admin_note)}</span></div>` : ""}`;
@@ -324,6 +324,10 @@ function render() {
             ${Number(o.cash_goods) > 0 ? `<small>${UI.esc(t("trCashGoods", { goods: UI.money(o.cash_goods) }))}</small><br>` : ""}
             <small>${UI.esc(Number(o.cash_note) > 0 ? t("trCashChange", { note: UI.money(o.cash_note), change: UI.money(Number(o.cash_note) - Number(o.price) - Number(o.cash_goods || 0)) }) : t("trCashExact"))}</small></div>`}
     ${canSwitch ? `<button class="btn btn-sm btn-link" id="switchPay">${UI.esc(t(o.payment_method === "bit" ? "trToCash" : "trToBit"))}</button>` : ""}`;
+
+  // Course envoyée et payée par le commerce : rien à payer pour le client (le commerce garde son lien « &shop=1 »)
+  if (o.shop_sent && o.payer === "moi" && !dropped && !new URLSearchParams(location.search).has("shop"))
+    pay.innerHTML = `<p class="promo-msg ok">${UI.esc(t("trShopPaid", { shop: o.shop_name || "" }))}</p>`;
 
   // Discussion directe : avec le livreur attribué, ou avec l'administration
   const hasCourier = !!o.courier_phone && ["confirmee", "recuperee"].includes(o.status);

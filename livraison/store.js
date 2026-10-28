@@ -216,6 +216,7 @@ async function createOrder(order) {
   if (ONLINE) {
     await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" });
     delete order.client_key;
+    delete order.send_key;
     // Même règle que la base : payée directement au livreur (sauf carnet)
     order.direct_pay = order.payment_method !== "carnet";
     if (order.direct_pay) Object.assign(order, { paid_to: "livreur", prepaid_required: false });
@@ -247,6 +248,17 @@ async function createOrder(order) {
       // « Le client paie » : pas de part du commerce, HOP prend sa part sur le prix payé par le client
       Object.assign(order, { shop_status: "attente", shop_share: shop.client_pays ? 0 : Number(settings.pro_shop_share), shop_order: String(order.shop_order).trim().slice(0, 1000) });
     } else order.shop_order = null;
+    // Course envoyée par le commerce (sa clé) : départ = le commerce, infos du client obligatoires, heure « prête »
+    if (order.shop_sent) {
+      const s = shops.find(x => x.token === order.send_key && x.status !== "suspendu");
+      if (!s || s.id !== order.shop_id) throw new Error("shop_invalid");
+      if (order.service !== "colis" || order.payment_method !== "bit" || !["moi", "destinataire"].includes(order.payer)) throw new Error("send_pay");
+      if (!["dropoff_contact", "dropoff_phone", "dropoff_address", "dropoff_floor", "dropoff_apt"].every(k => String(order[k] || "").trim())) throw new Error("send_fields");
+      const ready = new Date(Math.min(Math.max(new Date(order.pickup_at || Date.now()).getTime(), Date.now()), Date.now() + 3 * 3600000)).toISOString();
+      Object.assign(order, { ready_at: ready, pickup_at: ready, from_city: s.city, pickup_address: s.address, pickup_lat: s.lat, pickup_lon: s.lon,
+        pickup_contact: s.name, pickup_phone: s.phone, contact_name: s.name, contact_phone: s.phone });
+    } else order.shop_sent = false;
+    delete order.send_key;
     // Articles du catalogue : noms et prix repris du catalogue, produits disponibles seulement
     order.items_total = null;
     if (order.shop_order && Array.isArray(order.items) && order.items.length) {

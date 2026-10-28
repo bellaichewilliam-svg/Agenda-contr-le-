@@ -422,7 +422,7 @@ function card(o, withDay) {
   const meta = [
     `<span class="pill">${UI.esc(UI.SERVICE_FR[o.service] || o.service)}</span>`,
     `<span class="pill">${UI.esc(UI.SIZE_FR[o.size] || o.size)}</span>`,
-    `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${UI.PAY_FR[o.payment_method] || ""} · ${o.payment_status === "paye" ? "encaissé" : "à encaisser"}${o.payer === "destinataire" ? " (par le destinataire)" : ""}</span>`
+    `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${UI.PAY_FR[o.payment_method] || ""} · ${o.payment_status === "paye" ? "encaissé" : "à encaisser"}${o.shop_sent ? (o.payer === "destinataire" ? " · 🏪 envoyée par le commerce, payée par le client" : " · 🏪 envoyée et payée par le commerce") : o.payer === "destinataire" ? " (par le destinataire)" : ""}</span>`
   ];
   if (o.courier_id && !isMine(o) && !["annulee", "refusee"].includes(o.status)) {
     meta.push(`<button class="pill pill-btn ${o.paid_to === "hop" ? "paid" : ""}" data-act="paidto" title="Qui a reçu l'argent du client ?">${o.paid_to === "hop" ? "💳 Payée à HOP (reversée au livreur)" : "🛵 Payée au livreur"} ⇄</button>`);

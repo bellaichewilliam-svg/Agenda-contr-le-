@@ -315,6 +315,10 @@ function payLine(o) {
   if (o.paid_to === "hop") return o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
     : "📱 Payée par Bit à HOP : rien à encaisser, HOP vous reverse le montant";
   if (!o.direct_pay) return `💵 Espèces : vous encaissez ${UI.money(o.price)} auprès du client`;
+  // Course envoyée par le commerce (son client a déjà acheté) : le commerce paie en donnant le colis, ou le client à la livraison
+  if (o.shop_sent) return o.payer === "moi"
+    ? `🏪 <b>${UI.esc(o.shop_name || "Le commerce")}</b> vous paie <b>${UI.money(o.price)}</b> par Bit <b>quand vous prenez le colis</b> (touchez « 💳 Paiement reçu » avant « Colis récupéré »)`
+    : `🙋 Le client vous paie <b>${UI.money(o.price)}</b> par Bit <b>à la livraison</b> (touchez « 💳 Paiement reçu » avant « Livré »)`;
   return `💳 Le ${o.payer === "destinataire" ? "destinataire" : "client"} vous paie <b>${UI.money(UI.payTotal(o))}</b> par Bit ou PayBox sur votre numéro`
     + (o.goods_after ? ` : la course. Les articles : le ticket exact, envoyé à part après la photo (au plus ${UI.money(o.goods_budget)})`
       : o.goods_prepay ? ` (course ${UI.money(o.price)} + articles ${UI.money(o.goods_budget)} au plus)` : "")
@@ -1145,7 +1149,9 @@ async function onViewClick(e) {
     if (ok === "bought") { render(); return alert("🧾 Les articles sont déjà achetés : vous ne pouvez plus rendre la course. Écrivez à HOP! en cas de souci."); }
     if (ok === "cash") { render(); return alert(`💵 ${o.shop_name || "Le commerce"} doit d'abord toucher « Espèces reçues » (vous lui payez ${UI.money(o.cash_goods)} en espèces).`); }
     if (ok === "wait") { render(); return alert("⏱️ Touchez d'abord « Supplément reçu » (ou « Le client ne paie pas ») pour l'attente."); }
-    if (ok === "pay") { render(); return alert(el.dataset.act === "recuperee"
+    if (ok === "pay") { render(); return alert(el.dataset.act === "recuperee" && o && o.shop_sent
+      ? `🏪 ${o.shop_name || "Le commerce"} doit vous payer ${UI.money(o.price)} par Bit avant que vous preniez le colis. Vérifiez votre Bit, puis touchez « Paiement reçu ».`
+      : el.dataset.act === "recuperee"
       ? "💳 Le client doit vous payer avant que vous récupériez la commande. Attendez son paiement (Bit / PayBox), vérifiez-le, puis touchez « Paiement reçu »."
       : "💳 Touchez d'abord « Paiement reçu » une fois que le client vous a payé."); }
     if (ok === "handoff") { render(); return alert("🔐 Code de remise manquant : demandez-le au destinataire avant de remettre."); }
