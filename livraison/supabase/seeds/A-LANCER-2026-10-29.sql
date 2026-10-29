@@ -366,6 +366,68 @@ update public.orders set not_before = public.note_time(notes)
 -- ============================================================================
 alter table public.settings add column if not exists zones_open text[] not null default '{sharon}';
 
+-- ============================================================================
+-- RAPPEL AU LIVREUR : espèces des articles encaissées chez le client et pas encore rendues au commerce
+-- (ni avancées au départ) → notification 30 min après la livraison, puis toutes les 2 h (6 au plus, 3 jours),
+-- jusqu'à « J'ai rendu » (livreur) ou « Espèces reçues » (commerce). Le patron reste prévenu à 3 h.
+-- ============================================================================
+alter table public.orders add column if not exists cash_remind_at timestamptz;
+alter table public.orders add column if not exists cash_remind_n int not null default 0;
+
+create or replace function public.remind_orders() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; a record; n int := 0; tgt timestamptz; hhmm text; ttl text; body text;
+begin
+  for o in select *, coalesce(not_before, case when urgency = 'programmee' then pickup_at end, appt_at) as tgt_at from orders
+            where status in ('nouvelle', 'confirmee') and remind_at is null
+              and coalesce(not_before, case when urgency = 'programmee' then pickup_at end, appt_at) between now() and now() + interval '20 minutes'
+  loop
+    tgt := o.tgt_at;
+    hhmm := to_char(tgt at time zone 'Asia/Jerusalem', 'HH24:MI');
+    update orders set remind_at = now() where id = o.id;
+    ttl := '⏰ Dans 20 min : course n° ' || o.ref || ' pour ' || hhmm;
+    body := coalesce(o.shop_name, o.pickup_place, o.pickup_address, '') || ' → ' || coalesce(o.dropoff_address, '') || ', ' || coalesce(o.to_city, '')
+            || case when o.courier_id is null then ' · PERSONNE DESSUS' else ' · ' || coalesce(o.courier_name, '') end;
+    if o.courier_id is not null then
+      perform public.push_call(jsonb_build_object('courier_id', o.courier_id, 'tag', 'remind-' || o.id::text, 'title', ttl, 'body', body));
+    end if;
+    for a in select id from couriers where role = 'admin' and (o.courier_id is null or id <> o.courier_id) loop
+      perform public.push_call(jsonb_build_object('courier_id', a.id, 'tag', 'remind-' || o.id::text, 'title', ttl, 'body', body));
+    end loop;
+    insert into chat_messages (thread, author, body) values ('o:' || o.id::text, 'system', 'status:remind');
+    n := n + 1;
+  end loop;
+  -- Le livreur : rapportez l'argent des articles (30 min après la livraison, puis toutes les 2 h)
+  for o in select * from orders where status = 'livree' and cash_shop_after and coalesce(cash_goods, 0) > 0 and cash_shop_at is null
+            and cash_courier_mode is null and courier_id is not null
+            and delivered_at < now() - interval '30 minutes' and delivered_at > now() - interval '3 days'
+            and (cash_remind_at is null or cash_remind_at < now() - interval '2 hours') and cash_remind_n < 6
+  loop
+    update orders set cash_remind_at = now(), cash_remind_n = cash_remind_n + 1 where id = o.id;
+    perform public.push_call(jsonb_build_object('courier_id', o.courier_id, 'tag', 'cashret-' || o.id::text,
+      'title', '💵 Rapportez ' || replace(o.cash_goods::text, '.', ',') || ' ₪ à ' || coalesce(o.shop_name, 'le commerce'),
+      'body', 'Course n° ' || o.ref || ' livrée à ' || to_char(o.delivered_at at time zone 'Asia/Jerusalem', 'HH24:MI') || ', encaissée en espèces chez le client. '
+              || 'Rapportez l''argent des articles au commerce, puis touchez « J''ai rendu » dans HOP!.'));
+    n := n + 1;
+  end loop;
+  -- Le patron : espèces pas rapportées 3 h après la livraison
+  for o in select * from orders where status = 'livree' and cash_shop_after and coalesce(cash_goods, 0) > 0 and cash_shop_at is null
+            and cash_alert_at is null and delivered_at < now() - interval '3 hours'
+  loop
+    update orders set cash_alert_at = now() where id = o.id;
+    for a in select id from couriers where role = 'admin' loop
+      perform public.push_call(jsonb_build_object('courier_id', a.id, 'tag', 'cash-' || o.id::text,
+        'title', '💵 Espèces pas rapportées au commerce · ' || o.ref,
+        'body', coalesce(o.courier_name, 'Le livreur') || ' doit rapporter ' || replace(o.cash_goods::text, '.', ',') || ' ₪ à ' || coalesce(o.shop_name, 'le commerce')
+                || ' (livrée il y a plus de 3 h' || case when o.cash_courier_mode = 'rendu' then ', il dit l''avoir rendu' else '' end || ').'));
+    end loop;
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.remind_orders() from public, anon, authenticated;
+
 do $$ declare sid uuid; cid uuid; begin
   insert into shops (code, name, kind, city, address, lat, lon, phone, whatsapp, lang, status, kosher, tagline, tagline_he, client_pays, showcase, rank, plan_until, logo, cover, admin_note)
   values ('MARYLOU', 'Marylou Traiteur · מרילו קייטרינג', 'traiteur', 'netanya', 'Ussishkin 2', 32.3305, 34.8578, '09-773-9145', '972525345224', 'fr', 'actif', true,
