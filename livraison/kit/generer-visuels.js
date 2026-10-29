@@ -66,7 +66,7 @@ ul.ok li{font-weight:700}
 .page.sh{background:radial-gradient(120% 80% at 85% 0%,#5B2D8E 0%,#231A4F 45%,#0A1630 100%)}
 .page.sh:before{content:"";position:absolute;inset:auto -20% -30% -20%;height:55%;background:radial-gradient(50% 50% at 50% 50%,rgba(255,184,77,.28),transparent 70%)}
 .page.sh>*{position:relative}
-.page.sh>.candles{position:absolute;top:0;inset-inline-end:40px;font-style:normal;line-height:1;filter:drop-shadow(0 0 28px rgba(255,184,77,.65));opacity:.95}
+.page.sh>.candles{position:absolute;top:30px;inset-inline-end:44px;font-style:normal;line-height:1.25;filter:drop-shadow(0 0 28px rgba(255,184,77,.65));opacity:.95}
 .kick{display:inline-flex;align-self:flex-start;align-items:center;gap:12px;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.22);color:#fff;font-family:Fredoka;font-weight:700;border-radius:99px;padding:8px 24px}
 .page.sh h1 em{color:#FFC46B}
 .badge.gold{background:linear-gradient(135deg,#FFB84D,#FF8A2B);color:#2A1A05}

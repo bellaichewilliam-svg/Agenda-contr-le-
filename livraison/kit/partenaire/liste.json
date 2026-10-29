@@ -1,0 +1,10 @@
+[
+  {
+    "code": "MARCHEFR",
+    "name": { "fr": "Le Marché Français", "he": "השוק הצרפתי" },
+    "short": { "fr": "Le Marché Français", "he": "השוק הצרפתי" },
+    "tagline": { "fr": "L'épicerie française de Netanya : Bonne Maman, LU, Président, Andros…", "he": "המכולת הצרפתית של נתניה: בון מאמן, LU, פרזידנט, אנדרוס…" },
+    "kosher": false,
+    "items": [["croissant", 42, "Produits français", "מוצרים צרפתיים"], ["cookie", 30, "Biscuits & confitures", "עוגיות וריבות"], ["cart", 140, "Épicerie fine", "מעדנייה"], ["juice", 95, "Boissons", "משקאות"]]
+  }
+]
