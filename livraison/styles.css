@@ -2805,3 +2805,15 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 /* Barre du bas : « 🛵 Livraison » et, en dessous, les articles à part */
 .mobile-bar .mb-sum { min-width: 0; flex: 1 1 auto; }
 .mobile-bar .mb-hint { font-size: 11px; line-height: 1.3; white-space: normal; overflow-wrap: anywhere; color: var(--muted); }
+/* Patron, 📊 Visites du site : petites barres (par jour, par heure) */
+.v-bars { display: flex; align-items: flex-end; gap: 4px; height: 150px; padding-top: 18px; overflow-x: auto; }
+.v-bar { flex: 1 0 18px; min-width: 18px; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 2px; }
+.v-bar i { display: block; width: 100%; min-height: 2px; border-radius: 6px 6px 2px 2px; background: var(--brand); }
+.v-bar b { font-size: 11px; line-height: 1; }
+.v-bar small { font-size: 10px; color: var(--muted); white-space: nowrap; }
+.stat em { display: block; font-style: normal; margin-top: 2px; }
+.v-rows { display: grid; gap: 2px; }
+.v-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 9px 0; border-bottom: 1px solid var(--border); min-width: 0; }
+.v-row > span { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
+.v-row > b { white-space: nowrap; }
+.v-row > small { grid-column: 1 / -1; color: var(--muted); overflow-wrap: anywhere; }

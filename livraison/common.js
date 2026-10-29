@@ -775,9 +775,52 @@ if (typeof MutationObserver !== "undefined") {
   if (document.body) startCal(); else document.addEventListener("DOMContentLoaded", startCal);
 }
 
+// --- Visites du site (analytique du patron) : pages vues, commandes commencées / envoyées, commerces ouverts,
+// et d'où vient la visite (Google, Facebook, Instagram, TikTok, WhatsApp, flyer ?src=…, QR d'un commerce ?c=…, utm_…).
+// Visiteur et visite : numéros au hasard gardés sur ce téléphone, ni nom ni téléphone. Pas pour le patron ni les livreurs.
+const track = (() => {
+  const page = (location.pathname.split("/").filter(Boolean).pop() || "index").replace(/\.html$/, "");
+  const staff = /^(admin|coursier|patron|livreur)$/.test(page);
+  const cfg = CONFIG.supabase || {};
+  let test = false;
+  try { test = !!localStorage.getItem("hop.trackTest"); } catch (e) { /* ignore */ }
+  const on = !!(cfg.url && cfg.anonKey) && !staff && !/[?&]demo=/.test(location.search) && (!LOCAL || test);
+  const rid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  const keep = (st, k, make) => { try { let v = st.getItem(k); if (!v) { v = make(); st.setItem(k, v); } return v; } catch (e) { return make(); } };
+  const visitor = keep(localStorage, "hop.visitor", rid), session = keep(sessionStorage, "hop.session", rid);
+  const q = new URLSearchParams(location.search);
+  let refHost = "";
+  try { refHost = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, "") : ""; } catch (e) { /* ignore */ }
+  if (refHost === location.hostname) refHost = "";
+  const named = h => (/(^|\.)google\./.test(h) ? "google" : /(facebook|fb)\.(com|me)$|^l\.facebook/.test(h) ? "facebook" : /instagram/.test(h) ? "instagram"
+    : /tiktok/.test(h) ? "tiktok" : /whatsapp|^wa\.me$/.test(h) ? "whatsapp" : /^(t\.co|twitter\.com|x\.com)$/.test(h) ? "twitter" : /bing\./.test(h) ? "bing" : h);
+  const src = q.get("utm_source") || q.get("src") || (q.get("fbclid") ? "facebook" : q.get("gclid") ? "google" : q.get("ttclid") ? "tiktok" : q.get("igshid") ? "instagram" : "")
+    || (q.get("c") ? "qr-commerce" : "") || named(refHost);
+  // Source de la visite : celle de la première page (gardée pour les pages suivantes de la même visite)
+  let visit = null;
+  try { visit = JSON.parse(sessionStorage.getItem("hop.src") || "null"); } catch (e) { /* ignore */ }
+  if (!visit || (src && !visit.source)) {
+    visit = { source: src || "", medium: q.get("utm_medium") || "", campaign: q.get("utm_campaign") || (q.get("c") ? String(q.get("c")).toUpperCase() : ""), ref: refHost };
+    try { sessionStorage.setItem("hop.src", JSON.stringify(visit)); } catch (e) { /* ignore */ }
+  }
+  const first = keep(localStorage, "hop.firstSrc", () => visit.source || "direct");
+  const ua = navigator.userAgent || "";
+  const device = /iPad|Tablet/i.test(ua) ? "tablette" : /Mobi|Android|iPhone/i.test(ua) ? "mobile" : "ordinateur";
+  const app = !!(navigator.standalone || (window.matchMedia && matchMedia("(display-mode: standalone)").matches));
+  const send = (kind, extra) => {
+    if (!on) return;
+    const p = Object.assign({ visitor, session, kind, page, source: visit.source || "", medium: visit.medium, campaign: visit.campaign, first_source: first,
+      ref_host: visit.ref, device, lang: (window.I18N && I18N.lang) || "fr", app }, extra || {});
+    fetch(cfg.url.replace(/\/$/, "") + "/rest/v1/rpc/site_track", { method: "POST", keepalive: true,
+      headers: { apikey: cfg.anonKey, Authorization: "Bearer " + cfg.anonKey, "Content-Type": "application/json" }, body: JSON.stringify({ p }) }).catch(() => {});
+  };
+  send("view");
+  return send;
+})();
+
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
+  track, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

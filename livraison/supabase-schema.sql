@@ -7127,7 +7127,7 @@ grant execute on function public.shops_showcase() to anon, authenticated;
 -- LIVRAISON OFFERTE PAR LE COMMERCE (3e choix de « Qui paie la livraison ») : le client ne paie rien pour la
 -- livraison ; le commerce donne la course entière (25 ₪ dans Netanya) directement au livreur, par Bit, en lui
 -- remettant la commande (« Paiement reçu » avant « Colis récupéré »). Comme « le client paie » : pas de part du
--- commerce sur sa facture, HOP garde pro_hop_share_client (1 ₪). Réglé une fois dans l'espace du commerce.
+-- commerce sur sa facture ; HOP ne prend que sa commission habituelle (voir plus bas). Réglé dans l'espace du commerce.
 -- ============================================================================
 alter table public.shops add column if not exists shop_pays boolean not null default false;
 alter table public.orders add column if not exists shop_pays boolean not null default false;
@@ -7208,3 +7208,116 @@ language sql stable security definer set search_path = public as $$
     from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
 $$;
 grant execute on function public.shops_showcase() to anon, authenticated;
+
+-- Livraison offerte par le commerce : HOP! ne prend que sa commission habituelle (15 % sur le crédit du livreur), pas de part en plus
+do $$
+declare d text; n text;
+begin
+  d := pg_get_functiondef('public.orders_money_guard()'::regprocedure);
+  if position('shop_pays' in d) = 0 then
+    n := replace(d, 'new.hop_share := case when coalesce(new.shop_share, 0) > 0', 'new.hop_share := case when coalesce(new.shop_pays, false) then 0 when coalesce(new.shop_share, 0) > 0');
+    if n = d then raise exception 'orders_money_guard: motif introuvable'; end if;
+    execute n;
+  end if;
+end $$;
+
+-- ============================================================================
+-- VISITES DU SITE (analytique du patron) : chaque page vue, commande commencée / envoyée, commerce ouvert,
+-- avec d'où vient la visite (Google, Facebook, Instagram, TikTok, WhatsApp, flyer ?src=…, QR d'un commerce,
+-- campagne utm_…, direct). Visiteur et visite = numéros au hasard gardés sur le téléphone (ni nom, ni IP).
+-- Écrit par tous (site_track, limité), lu seulement par le patron (admin_analytics).
+-- ============================================================================
+create table if not exists public.site_events (
+  id         bigint generated always as identity primary key,
+  created_at timestamptz not null default now(),
+  visitor    text not null,
+  session    text not null,
+  kind       text not null check (kind in ('view', 'order_start', 'order_sent', 'shop_view')),
+  page       text,
+  source     text,
+  medium     text,
+  campaign   text,
+  first_source text,
+  ref_host   text,
+  device     text,
+  lang       text,
+  app        boolean not null default false,
+  shop_code  text,
+  order_ref  text,
+  amount     numeric
+);
+create index if not exists site_events_at on public.site_events (created_at);
+create index if not exists site_events_session on public.site_events (session, created_at);
+alter table public.site_events enable row level security;
+
+create or replace function public.site_track(p jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+declare s text := left(coalesce(p->>'session', ''), 40); k text := p->>'kind';
+begin
+  if length(s) < 8 or length(coalesce(p->>'visitor', '')) < 8 or k not in ('view', 'order_start', 'order_sent', 'shop_view') then return; end if;
+  -- (au plus 200 évènements par visite et par heure : pas de remplissage par un robot)
+  if (select count(*) from site_events where session = s and created_at > now() - interval '1 hour') >= 200 then return; end if;
+  insert into site_events (visitor, session, kind, page, source, medium, campaign, first_source, ref_host, device, lang, app, shop_code, order_ref, amount)
+  values (left(p->>'visitor', 40), s, k, left(p->>'page', 40), left(lower(p->>'source'), 60), left(lower(p->>'medium'), 40), left(p->>'campaign', 60),
+          left(lower(p->>'first_source'), 60), left(lower(p->>'ref_host'), 80), left(p->>'device', 12), left(p->>'lang', 4),
+          coalesce((p->>'app')::boolean, false), left(upper(p->>'shop_code'), 30), left(p->>'order_ref', 30),
+          case when (p->>'amount') ~ '^[0-9]+(\.[0-9]+)?$' then least((p->>'amount')::numeric, 100000) end);
+end;
+$$;
+revoke execute on function public.site_track(jsonb) from public;
+grant execute on function public.site_track(jsonb) to anon, authenticated;
+
+-- Résumé pour le patron sur p_days jours (1 = aujourd'hui, heure d'Israël)
+create or replace function public.admin_analytics(p_days int) returns json
+language plpgsql stable security definer set search_path = public as $$
+declare since timestamptz; r json;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  since := case when coalesce(p_days, 7) <= 1 then date_trunc('day', now() at time zone 'Asia/Jerusalem') at time zone 'Asia/Jerusalem'
+                else now() - make_interval(days => least(greatest(p_days, 1), 365)) end;
+  with e as (select * from site_events where created_at >= since),
+  -- Source d'une visite : celle de sa première page vue
+  ss as (select distinct on (session) session, visitor, coalesce(nullif(source, ''), 'direct') as source, medium, campaign, device, lang, app, page,
+                created_at from e where kind = 'view' order by session, created_at),
+  st as (select ss.*, exists (select 1 from e x where x.session = ss.session and x.kind = 'order_start') as started,
+                exists (select 1 from e x where x.session = ss.session and x.kind = 'order_sent') as sent from ss)
+  select json_build_object(
+    'since', since,
+    'views', (select count(*) from e where kind = 'view'),
+    'sessions', (select count(*) from ss),
+    'visitors', (select count(distinct visitor) from ss),
+    'new_visitors', (select count(distinct visitor) from ss where not exists (select 1 from site_events o where o.visitor = ss.visitor and o.created_at < since)),
+    'started', (select count(distinct session) from e where kind = 'order_start'),
+    'sent', (select count(*) from e where kind = 'order_sent'),
+    'sent_amount', (select coalesce(sum(amount), 0) from e where kind = 'order_sent'),
+    'app', (select count(*) from ss where app),
+    'by_day', (select coalesce(json_agg(x order by x.d), '[]'::json) from (
+        select to_char(created_at at time zone 'Asia/Jerusalem', 'YYYY-MM-DD') as d, count(distinct session) as sessions,
+               count(*) filter (where kind = 'order_sent') as sent from e group by 1) x),
+    'by_hour', (select coalesce(json_agg(x order by x.h), '[]'::json) from (
+        select extract(hour from created_at at time zone 'Asia/Jerusalem')::int as h, count(*) as sessions from ss group by 1) x),
+    'sources', (select coalesce(json_agg(x order by x.sessions desc), '[]'::json) from (
+        select source, count(*) as sessions, count(distinct visitor) as visitors, count(*) filter (where started) as started,
+               count(*) filter (where sent) as sent from st group by source order by count(*) desc limit 20) x),
+    'campaigns', (select coalesce(json_agg(x order by x.sessions desc), '[]'::json) from (
+        select campaign, source, count(*) as sessions, count(*) filter (where sent) as sent from st
+         where coalesce(campaign, '') <> '' group by campaign, source order by count(*) desc limit 15) x),
+    'pages', (select coalesce(json_agg(x order by x.views desc), '[]'::json) from (
+        select coalesce(page, '?') as page, count(*) as views from e where kind = 'view' group by 1 order by 2 desc limit 12) x),
+    'devices', (select coalesce(json_agg(x order by x.sessions desc), '[]'::json) from (
+        select coalesce(device, '?') as device, count(*) as sessions from ss group by 1) x),
+    'langs', (select coalesce(json_agg(x order by x.sessions desc), '[]'::json) from (
+        select coalesce(lang, '?') as lang, count(*) as sessions from ss group by 1) x),
+    'shops', (select coalesce(json_agg(x order by x.views desc), '[]'::json) from (
+        select e.shop_code as code, max(s.name) as name, count(*) as views, count(distinct e.session) as sessions
+          from e left join shops s on s.code = e.shop_code where e.kind = 'shop_view' and e.shop_code is not null
+         group by e.shop_code order by count(*) desc limit 12) x),
+    'orders', (select coalesce(json_agg(x order by x.at desc), '[]'::json) from (
+        select e.created_at as at, e.order_ref as ref, e.amount, coalesce(nullif(ss.source, ''), 'direct') as source, e.first_source, ss.campaign
+          from e left join ss on ss.session = e.session where e.kind = 'order_sent' order by e.created_at desc limit 30) x)
+  ) into r;
+  return r;
+end;
+$$;
+revoke execute on function public.admin_analytics(int) from public, anon;
+grant execute on function public.admin_analytics(int) to authenticated;

@@ -279,7 +279,7 @@ async function createOrder(order) {
     // Réduction seulement avec un code (au plus 30 ₪, payée par HOP), part HOP du Pro, pas de pourboire
     Object.assign(order, {
       discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
-      hop_share: order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share))
+      hop_share: order.shop_pays ? 0 : order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share))
         : order.shop_status ? Math.min(Math.max(0, Number(order.price) || 0), Number(settings.pro_hop_share_client)) : 0,
       network: false, tip: 0, tip_status: null,
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
@@ -712,6 +712,11 @@ async function adminCredits() {
     topups: readJSON(LS.topups, []).map(x => Object.assign({ courier_name: (couriers.find(c => c.id === x.courier_id) || {}).name || "" }, x)) };
 }
 // Comptes (patron) : inscription finie ou pas, email confirmé, dernière connexion, notifications activées
+// Visites du site (analytique) : seulement le patron, sur p_days jours (1 = aujourd'hui)
+async function adminAnalytics(days) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_analytics", { method: "POST", body: { p_days: days } });
+  return null;
+}
 async function adminAccounts() {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_signups", { method: "POST", body: {} });
   return localCouriers().map(c => ({ id: c.id, email: c.email, created_at: c.created_at, confirmed: true, last_sign_in_at: null, has_fiche: true, push_n: 0 }));
@@ -2229,7 +2234,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminAnalytics, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

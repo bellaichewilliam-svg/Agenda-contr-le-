@@ -23,7 +23,8 @@ const bossTel = (d => d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.s
 $("#appLink").textContent = url;
 $("#livreLink").textContent = livre;
 $("#livreLinkHe").textContent = livreHe;
-if (window.QRCode) new QRCode($("#qr"), { text: livre, width: 164, height: 164, correctLevel: QRCode.CorrectLevel.M });
+// QR codes : la visite est comptée « flyer » dans les visites du site (panel patron)
+if (window.QRCode) new QRCode($("#qr"), { text: livre + "?src=qr", width: 164, height: 164, correctLevel: QRCode.CorrectLevel.M });
 
 // Seulement le Sharon pour l'instant (Tel Aviv et Gush Dan : bientôt)
 const featured = ["netanya", "nordia", "even-yehuda", "kadima", "kfar-yona", "hadera", "raanana", "kfar-saba", "herzliya"];
@@ -435,6 +436,6 @@ $("#flyer").innerHTML = `
   </div>
   <p style="margin-top:6px;font-size:18px"><b>Et hop, c'est livré ! · <span dir="rtl">הופ, וזה אצלך!</span></b></p>
   <p style="margin-top:10px">📞 <b dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</b> · <span dir="ltr">${UI.esc(url)}</span></p>`;
-if (window.QRCode) new QRCode($("#flyerQr"), { text: livre, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+if (window.QRCode) new QRCode($("#flyerQr"), { text: livre + "?src=flyer", width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
 
 })();

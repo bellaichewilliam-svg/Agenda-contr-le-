@@ -25,6 +25,8 @@ function setView(v, push) {
   if (!v || document.body.dataset.view === v) return false;
   document.body.dataset.view = v;
   viewTitle();
+  // Analytique : la commande ouverte (une fois par visite)
+  if (v === "order") { let s = null; try { s = sessionStorage.getItem("hop.started"); sessionStorage.setItem("hop.started", "1"); } catch (e) { /* ignore */ } if (!s) UI.track("order_start"); }
   if (push) { history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]); here = location.href; }
   window.scrollTo(0, 0);
   // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
@@ -1756,6 +1758,8 @@ async function submit(e) {
     const saved = await Store.createOrder(order);
     // (la base marque la livraison offerte ; l'écran de confirmation le sait déjà)
     if (q.gift) saved.shop_pays = true;
+    UI.track("order_sent", { order_ref: saved.ref, amount: Number(saved.price) || 0, shop_code: state.shop ? state.shop.code : null });
+    try { sessionStorage.removeItem("hop.started"); } catch (e) { /* ignore */ }
     if (gp) Object.assign(saved, { goods_pay: "a_payer", items_total: gp.total || saved.items_total || 0 });
     // Les photos des documents partent juste après la commande (le patron les vérifie avant d'envoyer un livreur)
     let docsFailed = false;
@@ -2512,6 +2516,7 @@ function applyShop() {
 async function loadShop(code, stay) {
   try { state.shop = await Store.shopByCode(code); } catch (e) { state.shop = null; }
   if (!state.shop) return;
+  UI.track("shop_view", { shop_code: state.shop.code });
   // Sur le téléphone du commerce : son carnet pro
   const token = Store.shopTokenFor(state.shop.code);
   if (token) {
