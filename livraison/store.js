@@ -870,6 +870,13 @@ async function adminUnblock(phone) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_unblock_phone", { method: "POST", body: { p_phone: phone } });
   return true;
 }
+// Tabac / alcool : « j'ai vérifié la pièce d'identité » avant de livrer (gardé sur la course)
+async function courierIdChecked(id) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_id_checked", { method: "POST", body: { p_id: id } });
+  const all = localOrders(), o = all.find(x => x.id === id);
+  if (o && !o.id_checked_at) { o.id_checked_at = new Date().toISOString(); saveOrders(all); }
+  return true;
+}
 // Espèces : « J'ai les espèces sur moi » avant d'accepter
 async function courierCashOk(id) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_cash_ok", { method: "POST", body: { p_id: id } });
@@ -885,15 +892,19 @@ function groupable(o) {
     && o.size !== "gros" && !Number(o.extra_stops) && !(Array.isArray(o.stops) && o.stops.length)
     && o.pickup_lat != null && o.dropoff_lat != null;
 }
+// Place dans le top case : les sacs annoncés par le commerce (1 sans précision), 4 au plus en tout
+const bagsOf = o => Math.max(1, Number(o.bags_count) || 1);
+// Deux courses d'un coup : départs au même endroit ou chez deux commerces voisins (shopsKm), arrivées proches
 function pairOk(a, b) {
-  const G = CONFIG.grouping || { dropKm: 1.2, pickupKm: 0.6, minutes: 15 };
+  const G = CONFIG.grouping || { dropKm: 1.2, pickupKm: 0.6, shopsKm: 1.5, minutes: 15, maxBags: 4 };
   return !!a && !!b && a.id !== b.id && groupable(a) && groupable(b) && !(a.size === "moyen" && b.size === "moyen")
-    && kmBetween(+a.pickup_lat, +a.pickup_lon, +b.pickup_lat, +b.pickup_lon) <= G.pickupKm
+    && bagsOf(a) + bagsOf(b) <= (G.maxBags || 4)
+    && kmBetween(+a.pickup_lat, +a.pickup_lon, +b.pickup_lat, +b.pickup_lon) <= (G.shopsKm || G.pickupKm)
     && kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) <= G.dropKm
     && Math.abs(new Date(a.pickup_at) - new Date(b.pickup_at)) <= G.minutes * 60000;
 }
-// Course en plus « vraiment sur le chemin » d'un livreur qui a déjà 1 ou 2 courses (3 au plus en tout) :
-// arrivée à 1,2 km max d'une de ses arrivées, et départ au même endroit (600 m, 15 min d'écart) si la course
+// Course en plus « vraiment sur le chemin » d'un livreur qui a déjà 1 ou 2 courses (3 au plus en tout, 4 sacs) :
+// arrivée à 1,2 km max d'une de ses arrivées, et départ au même endroit ou chez un commerce voisin (1,5 km, 15 min d'écart) si la course
 // n'est pas encore récupérée, ou à 1 km de détour max sur la route vers son arrivée si elle l'est (prête dans 10 min).
 // Renvoie la course de référence (pour l'expliquer au livreur), ou null.
 function onWay(pos, mineList, o) {
@@ -901,9 +912,10 @@ function onWay(pos, mineList, o) {
   const act = (mineList || []).filter(x => ["confirmee", "recuperee"].includes(x.status) && x.id !== o.id);
   if (!act.length || act.length >= 3 || !groupable(o) || act.some(x => !groupable(x))) return null;
   if ((o.size === "moyen" ? 1 : 0) + act.filter(x => x.size === "moyen").length > 1) return null;
+  if (bagsOf(o) + act.reduce((n, x) => n + bagsOf(x), 0) > (G.maxBags || 4)) return null;
   const km = (a, b, c, d) => kmBetween(+a, +b, +c, +d);
   return act.find(x => km(x.dropoff_lat, x.dropoff_lon, o.dropoff_lat, o.dropoff_lon) <= G.dropKm && (x.status === "confirmee"
-    ? km(x.pickup_lat, x.pickup_lon, o.pickup_lat, o.pickup_lon) <= G.pickupKm && Math.abs(new Date(x.pickup_at) - new Date(o.pickup_at)) <= G.minutes * 60000
+    ? km(x.pickup_lat, x.pickup_lon, o.pickup_lat, o.pickup_lon) <= (G.shopsKm || G.pickupKm) && Math.abs(new Date(x.pickup_at) - new Date(o.pickup_at)) <= G.minutes * 60000
     : !!pos && readySoon(o)
       && km(pos.lat, pos.lon, o.pickup_lat, o.pickup_lon) + km(o.pickup_lat, o.pickup_lon, x.dropoff_lat, x.dropoff_lon)
          <= km(pos.lat, pos.lon, x.dropoff_lat, x.dropoff_lon) + (G.detourKm || 1))) || null;
@@ -2287,7 +2299,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

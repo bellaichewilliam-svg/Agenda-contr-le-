@@ -7550,3 +7550,53 @@ $$;
 -- HOP! Pro « le client paie la livraison » : HOP ne garde plus rien (était 1 ₪ pris sur le crédit du livreur)
 alter table public.settings alter column pro_hop_share_client set default 0;
 update public.settings set pro_hop_share_client = 0 where id = 1 and pro_hop_share_client = 1;
+
+-- ============================================================================
+-- TOURNÉE SUR PLUSIEURS COMMERCES : un livreur peut cumuler jusqu'à 3 courses de commerces différents
+-- (départs à 1,5 km max l'un de l'autre au lieu de 600 m, 15 min d'écart), si les arrivées sont proches
+-- (1,2 km) et s'il reste de la place dans le top case : 4 sacs au plus en tout (bags_count, 1 par défaut),
+-- un seul colis moyen, pas de gros colis. Mêmes règles dans l'appli (store.js : pairOk, onWay).
+-- ============================================================================
+create or replace function public.pair_ok(a orders, b orders) returns boolean
+language sql immutable as $$
+  select a.id <> b.id and public.groupable(a) and public.groupable(b)
+     and not (coalesce(a.size, 'petit') = 'moyen' and coalesce(b.size, 'petit') = 'moyen')
+     and greatest(coalesce(a.bags_count, 1), 1) + greatest(coalesce(b.bags_count, 1), 1) <= 4
+     and public.km_between(a.pickup_lat, a.pickup_lon, b.pickup_lat, b.pickup_lon) <= 1.5
+     and public.km_between(a.dropoff_lat, a.dropoff_lon, b.dropoff_lat, b.dropoff_lon) <= 1.2
+     and abs(extract(epoch from (a.pickup_at - b.pickup_at))) <= 15 * 60;
+$$;
+create or replace function public.on_way(p_courier uuid, o orders) returns boolean
+language sql stable security definer set search_path = public as $$
+  with act as (select x.* from orders x where x.courier_id = p_courier and x.status in ('confirmee', 'recuperee') and x.id <> o.id)
+  select public.groupable(o)
+     and (select count(*) from act) between 1 and 2
+     and not exists (select 1 from act x where not public.groupable(x))
+     -- top case : un seul colis moyen en tout, 4 sacs au plus
+     and (case when coalesce(o.size, 'petit') = 'moyen' then 1 else 0 end) + (select count(*) from act x where coalesce(x.size, 'petit') = 'moyen') <= 1
+     and greatest(coalesce(o.bags_count, 1), 1) + (select coalesce(sum(greatest(coalesce(x.bags_count, 1), 1)), 0) from act x) <= 4
+     and exists (select 1 from act x, couriers c where c.id = p_courier
+                  and public.km_between(x.dropoff_lat, x.dropoff_lon, o.dropoff_lat, o.dropoff_lon) <= 1.2
+                  and ((x.status = 'confirmee' and public.km_between(x.pickup_lat, x.pickup_lon, o.pickup_lat, o.pickup_lon) <= 1.5
+                        and abs(extract(epoch from (x.pickup_at - o.pickup_at))) <= 15 * 60)
+                    or (x.status = 'recuperee' and c.lat is not null and o.pickup_at <= now() + interval '10 minutes'
+                        and public.km_between(c.lat, c.lon, o.pickup_lat, o.pickup_lon) + public.km_between(o.pickup_lat, o.pickup_lon, x.dropoff_lat, x.dropoff_lon)
+                            <= public.km_between(c.lat, c.lon, x.dropoff_lat, x.dropoff_lon) + 1.0)));
+$$;
+
+-- ============================================================================
+-- TABAC / ALCOOL : le livreur coche « j'ai vérifié la pièce d'identité (18 ans +) » avant « Livré » ;
+-- l'heure est gardée sur la course (preuve pour le patron). Le client, lui, déclare ses 18 ans à la commande.
+-- ============================================================================
+alter table public.orders add column if not exists id_checked_at timestamptz;
+create or replace function public.courier_id_checked(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_active_courier() then return false; end if;
+  update orders set id_checked_at = now()
+   where id = p_id and courier_id = auth.uid() and status in ('confirmee', 'recuperee') and adult_items is not null and id_checked_at is null;
+  return found;
+end;
+$$;
+revoke execute on function public.courier_id_checked(uuid) from public, anon;
+grant execute on function public.courier_id_checked(uuid) to authenticated;

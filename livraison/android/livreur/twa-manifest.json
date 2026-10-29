@@ -1,0 +1,42 @@
+{
+  "packageId": "il.co.hop.livreur",
+  "host": "hop-livraison.vercel.app",
+  "name": "HOP! Livreur",
+  "launcherName": "HOP! Livreur",
+  "display": "standalone",
+  "themeColor": "#0F1F3D",
+  "themeColorDark": "#0F1F3D",
+  "navigationColor": "#0F1F3D",
+  "navigationColorDark": "#0F1F3D",
+  "navigationDividerColor": "#00000000",
+  "navigationDividerColorDark": "#00000000",
+  "backgroundColor": "#0F1F3D",
+  "enableNotifications": true,
+  "startUrl": "/livreur/",
+  "iconUrl": "https://hop-livraison.vercel.app/icon-livreur-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "hop-livreur"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://hop-livraison.vercel.app/manifest-coursier.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://hop-livraison.vercel.app/livreur/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "1.0.0"
+}
