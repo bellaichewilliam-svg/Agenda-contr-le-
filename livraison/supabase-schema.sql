@@ -8028,3 +8028,93 @@ begin
 end;
 $$;
 revoke execute on function public.nobody_orders() from public, anon, authenticated;
+
+-- ============================================================================
+-- ESPÈCES DES ARTICLES, NOTÉES DES DEUX CÔTÉS : le commerce saisit le montant qu'il a reçu du livreur
+-- (cash_shop_amount, « Espèces reçues »), le livreur note s'il a avancé l'argent au commerce en prenant la
+-- commande (cash_courier_mode = 'avance') ou s'il l'a rendu après la livraison ('rendu'). Le patron voit
+-- les deux et un écart éventuel ; tout reste écrit sur la course.
+-- ============================================================================
+alter table public.orders add column if not exists cash_shop_amount numeric(10, 2);
+alter table public.orders add column if not exists cash_courier_mode text check (cash_courier_mode in ('avance', 'rendu'));
+alter table public.orders add column if not exists cash_courier_at timestamptz;
+
+-- Le commerce : « Espèces reçues » avec le montant (par défaut le montant des articles) ; un écart prévient le patron
+create or replace function public.shop_cash_received(p_token uuid, p_id uuid, p_amount numeric) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare o orders; a record; amt numeric;
+begin
+  select o2.* into o from orders o2 join shops s on s.id = o2.shop_id
+   where s.token = p_token and o2.id = p_id and o2.payment_method = 'cash'
+     and coalesce(o2.cash_goods, 0) > 0 and o2.cash_shop_at is null and o2.status not in ('annulee', 'refusee');
+  if not found then return false; end if;
+  amt := round(coalesce(p_amount, o.cash_goods), 2);
+  if amt < 0 or amt > 5000 then raise exception 'cash_amount'; end if;
+  update orders set cash_shop_at = now(), cash_shop_amount = amt where id = p_id;
+  insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:cash_shop');
+  if amt <> o.cash_goods then
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:cash_diff');
+    for a in select id from couriers where role = 'admin' loop
+      perform public.push_call(jsonb_build_object('courier_id', a.id, 'tag', 'cashdiff-' || p_id::text,
+        'title', '💵 Écart d''espèces · ' || o.ref,
+        'body', coalesce(o.shop_name, 'Le commerce') || ' dit avoir reçu ' || replace(amt::text, '.', ',') || ' ₪ au lieu de ' || replace(o.cash_goods::text, '.', ',') || ' ₪'
+                || case when o.courier_name is not null then ' · livreur ' || o.courier_name else '' end));
+    end loop;
+  end if;
+  return true;
+end;
+$$;
+revoke execute on function public.shop_cash_received(uuid, uuid, numeric) from public;
+grant execute on function public.shop_cash_received(uuid, uuid, numeric) to anon, authenticated;
+-- (l'ancienne forme, sans montant, reste : même chose avec le montant des articles)
+create or replace function public.shop_cash_received(p_token uuid, p_id uuid) returns boolean
+language sql security definer set search_path = public as $$
+  select public.shop_cash_received(p_token, p_id, null);
+$$;
+
+-- Le livreur : « j'ai avancé l'argent au commerce » (en prenant la commande) ou « je l'ai rendu » (après la livraison)
+create or replace function public.courier_cash_mark(p_id uuid, p_mode text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if p_mode not in ('avance', 'rendu') then raise exception 'cash_mode'; end if;
+  update orders set cash_courier_mode = p_mode, cash_courier_at = now()
+   where id = p_id and courier_id = auth.uid() and payment_method = 'cash' and coalesce(cash_goods, 0) > 0
+     and status in ('confirmee', 'recuperee', 'livree');
+  get diagnostics n = row_count;
+  if n > 0 then
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:cash_' || p_mode);
+  end if;
+  return n > 0;
+end;
+$$;
+revoke execute on function public.courier_cash_mark(uuid, text) from public, anon;
+grant execute on function public.courier_cash_mark(uuid, text) to authenticated;
+
+-- L'espace commerce voit le montant saisi et ce que le livreur a noté
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes, o.shop_ref,
+               o.items, o.items_total, o.items_note, o.hop_share, o.direct_pay, o.bags_count,
+               o.payment_method, o.cash_goods, o.cash_shop_at, o.cash_shop_amount, o.cash_courier_mode, o.cash_courier_at, o.goods_pay, o.goods_pay_at,
+               o.not_before, o.cash_shop_after, o.notes,
+               case when o.status in ('confirmee', 'recuperee') then o.courier_bit end as courier_bit
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json),
+    'drops', coalesce((select json_agg(x order by x.created_at desc) from (
+        select o.id, o.ref, o.status, o.created_at, o.pickup_at, o.from_city, o.notes,
+               split_part(coalesce(o.contact_name, ''), ' ', 1) as first_name,
+               (select max(n.created_at) from shop_notices n where n.order_id = o.id) as notice_at,
+               (select count(*) from shop_notices n where n.order_id = o.id) as notices
+          from orders o join shops s on s.id = o.drop_shop_id
+         where s.token = p_token and o.status not in ('annulee', 'refusee') and o.created_at > now() - interval '60 days'
+         order by o.created_at desc limit 60) x), '[]'::json));
+$$;

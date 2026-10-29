@@ -1261,6 +1261,11 @@ button.ct-info { border: 0; background: none; padding: 0; text-align: start; fon
 .cash-stop.ok { border-style: solid; font-size: 15px; }
 .cash-need { margin: 6px 0; padding: 10px 12px; border-radius: 12px; background: #ECFDF3; border: 2px dashed #12B76A; color: #054F31; font-size: 14px; }
 .cash-need.ok { border-style: solid; }
+.cash-due { margin-bottom: 14px; }
+.cash-due h3 { margin: 0 0 8px; }
+.cash-need.ok.diff { background: #FEF3C7; border-color: #D97706; color: #78350F; }
+.cash-need .cash-mark, .cash-stop .cash-marked { display: block; margin-top: 6px; font-weight: 600; }
+.cash-stop .btn { margin-top: 8px; }
 .cash-need .btn { margin-top: 8px; }
 .cash-box { margin-top: 10px; padding: 12px; border-radius: 14px; background: #ECFDF3; border: 1px solid #ABEFC6; }
 .cash-box.hidden { display: none; }

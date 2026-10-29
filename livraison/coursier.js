@@ -859,10 +859,13 @@ function cashStop(o, which, now) {
   // (achat sans partenaire : le livreur paie le magasin, au plus le maximum prévu, puis photo du ticket)
   if (which === "pickup" && o.goods_prepay) return o.goods_spent != null ? `<div class="cash-stop ok">🧾 Ticket <b>${UI.money(o.goods_spent)}</b> payé au magasin</div>`
     : `<div class="cash-stop">💵 Payez le magasin en espèces : <b>${UI.money(o.goods_budget)}</b> au plus<small>puis 🧾 photo du ticket ; le client vous rembourse à la livraison</small></div>`;
-  if (which === "pickup" && Number(o.cash_goods) > 0 && o.cash_shop_after) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu les <b>${UI.money(o.cash_goods)}</b> des articles</div>`
-    : `<div class="cash-stop">🛍️ Prenez la commande sans payer<small>le client vous paie tout en espèces à la livraison (articles <b>${UI.money(o.cash_goods)}</b> + course <b>${UI.money(o.price)}</b>) ; vous rapportez ensuite les <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}, ou vous le payez maintenant si vous avez les espèces</small></div>`;
-  if (which === "pickup" && Number(o.cash_goods) > 0) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu vos <b>${UI.money(o.cash_goods)}</b></div>`
-    : `<div class="cash-stop">💵 Payez <b>${UI.money(o.cash_goods)}</b> en espèces au commerce<small>il touche « Espèces reçues », puis vous récupérez la commande</small></div>`;
+  // Ce que vous avez noté (avancé / rendu) reste écrit sur la course, pour vous, le commerce et HOP!
+  const marked = o.cash_courier_mode ? `<small class="cash-marked">✍️ Vous avez noté : ${o.cash_courier_mode === "avance" ? "payé au commerce en prenant la commande" : "rendu au commerce"} · ${UI.esc(UI.fmtTime(o.cash_courier_at))}</small>` : "";
+  const markBtn = o.cash_courier_mode ? "" : `<button type="button" class="btn btn-sm btn-primary" data-cashmark="avance" data-id="${UI.esc(o.id)}">✍️ J'ai payé ${UI.money(o.cash_goods)} au commerce</button>`;
+  if (which === "pickup" && Number(o.cash_goods) > 0 && o.cash_shop_after) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu les <b>${UI.money(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods)}</b> des articles${marked}</div>`
+    : `<div class="cash-stop">🛍️ Prenez la commande sans payer<small>le client vous paie tout en espèces à la livraison (articles <b>${UI.money(o.cash_goods)}</b> + course <b>${UI.money(o.price)}</b>) ; vous rapportez ensuite les <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}, ou vous le payez maintenant si vous avez les espèces</small>${marked || markBtn}</div>`;
+  if (which === "pickup" && Number(o.cash_goods) > 0) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu vos <b>${UI.money(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods)}</b>${marked}</div>`
+    : `<div class="cash-stop">💵 Payez <b>${UI.money(o.cash_goods)}</b> en espèces au commerce<small>il touche « Espèces reçues », puis vous récupérez la commande</small>${marked || markBtn}</div>`;
   if (which === "dropoff" && o.payment_status !== "paye") {
     const note = Number(o.cash_note || 0), tot = cashTotal(o);
     return `<div class="cash-stop">💵 Encaissez <b>${UI.money(tot)}</b> en espèces<small>${note ? `il paie avec ${UI.money(note)} : rendez <b>${UI.money(note - tot)}</b>` : "il a préparé l'appoint"}</small></div>`;
@@ -1230,6 +1233,7 @@ async function onViewClick(e) {
   if (!el) return;
   if (el.dataset.install) return UI.installApp("HOP! Livreur", "livreur/").then(ok => { if (ok) render(); });
   if (await onRefundClick(e)) return;
+  if (await onCashMarkClick(e)) return;
   if (el.dataset.goodsTicket) return goodsTicket(el.dataset.goodsTicket);
   if (el.dataset.goodsRefund) {
     const o = orders.find(x => x.id === el.dataset.id);
@@ -2115,7 +2119,22 @@ function renderHome() {
 function cashReturnCards() {
   return orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at)
     .map(o => `<div class="rd-card refund-card cash-return"><span>💵 Rapportez <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}
-      <small>Les articles de la course n° ${UI.esc(o.ref)}, encaissés chez le client. Le commerce touche « Espèces reçues » quand c'est fait${o.pickup_phone ? ` · <a href="tel:${UI.esc(o.pickup_phone)}">appeler</a>` : ""}.</small></span></div>`).join("");
+      <small>Les articles de la course n° ${UI.esc(o.ref)}, encaissés chez le client. Le commerce touche « Espèces reçues » quand c'est fait${o.pickup_phone ? ` · <a href="tel:${UI.esc(o.pickup_phone)}">appeler</a>` : ""}.</small>
+      ${o.cash_courier_mode ? `<small class="cash-marked">✍️ Vous avez noté : ${o.cash_courier_mode === "avance" ? "payé en prenant la commande" : "rendu au commerce"} · ${UI.esc(UI.fmtTime(o.cash_courier_at))} · en attente de « Espèces reçues » du commerce</small>`
+        : `<span class="refund-btns"><button type="button" class="btn btn-sm btn-primary" data-cashmark="rendu" data-id="${UI.esc(o.id)}">✍️ J'ai rendu ${UI.money(o.cash_goods)} au commerce</button><button type="button" class="btn btn-sm" data-cashmark="avance" data-id="${UI.esc(o.id)}">J'avais payé en prenant la commande</button></span>`}</span></div>`).join("");
+}
+// Le livreur note ce qu'il a fait des espèces des articles : « avancé » (payé au commerce au départ) ou « rendu » (après la livraison)
+async function onCashMarkClick(e) {
+  const b = e.target.closest("[data-cashmark]");
+  if (!b) return false;
+  const o = orders.find(x => x.id === b.dataset.id), mode = b.dataset.cashmark;
+  if (!o) return true;
+  if (!confirm(mode === "rendu" ? `Vous avez bien rendu ${UI.money(o.cash_goods)} à ${o.shop_name || "le commerce"} ? C'est noté sur la course, le commerce et HOP! le voient.`
+    : `Vous avez bien payé ${UI.money(o.cash_goods)} à ${o.shop_name || "le commerce"} en prenant la commande ? C'est noté sur la course, le commerce et HOP! le voient.`)) return true;
+  b.disabled = true;
+  try { await Store.courierCashMark(o.id, mode); } catch (ex) { alert("Pas enregistré, réessayez."); }
+  await load();
+  return true;
 }
 function refundCards() {
   return refunds.map(r => `<div class="rd-card refund-card"><span>💸 Remboursez <b>${UI.money(r.amount)}</b> à ${UI.esc(r.name || "votre client")}
@@ -2790,6 +2809,7 @@ $("#sheet").addEventListener("click", e => {
 });
 $("#sheetBody").addEventListener("click", async e => {
   if (await onRefundClick(e)) return;
+  if (await onCashMarkClick(e)) return;
   if (e.target.closest("[data-install]")) return UI.installApp("HOP! Livreur", "livreur/").then(ok => { if (ok) renderHome(); });
   const b = e.target.closest("[data-tab]");
   if (b) openPage(b.dataset.tab);
