@@ -699,8 +699,13 @@ function rayonAdult() {
   const r = rayonOn();
   if (!r) return;
   const kinds = new Set(rayonPicked(r).map(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).adult).filter(Boolean));
-  if (kinds.has("tabac")) form.has_tobacco.checked = true;
-  if (kinds.has("alcool")) form.has_alcohol.checked = true;
+  // Coché par les produits du rayon, décoché quand ils partent (un autre rayon, un article enlevé) ; ce que le
+  // client a coché lui-même reste
+  const auto = state.adultAuto || (state.adultAuto = {});
+  [["tabac", form.has_tobacco], ["alcool", form.has_alcohol]].forEach(([k, f]) => {
+    if (kinds.has(k)) { if (!f.checked) { f.checked = true; auto[k] = true; } }
+    else if (auto[k]) { f.checked = false; auto[k] = false; }
+  });
   syncAdult();
 }
 // Ce que lit le livreur : les produits cochés, puis ce que le client a écrit
@@ -834,7 +839,10 @@ function renderShopList() {
   $("#noCatNote").classList.toggle("hidden", !!r);
   // Tabac / alcool : seulement là où on en vend ; ordonnance : seulement en pharmacie (sans rayon : tout reste possible)
   const svcAchat = val("service") === "achat";
-  document.querySelector(".adult-box").classList.toggle("hidden", !svcAchat || (r && !["tabac", "super"].includes(r.id)));
+  const noAdult = !svcAchat || (r && !r.items.some(i => i.adult));
+  document.querySelector(".adult-box").classList.toggle("hidden", noAdult);
+  // Cases invisibles : rien ne doit rester coché (sinon la commande serait bloquée sans que le client voie pourquoi)
+  if (noAdult && (form.has_tobacco.checked || form.has_alcohol.checked)) { form.has_tobacco.checked = form.has_alcohol.checked = form.adult_ok.checked = false; syncAdult(); }
   form.rx.closest("label").classList.toggle("hidden", !svcAchat || (r && r.id !== "pharm"));
 }
 function renderQuote() {
@@ -865,7 +873,10 @@ function renderQuote() {
   // Barre du bas : c'est la livraison (les articles se paient à part, ou sont comptés au maximum)
   const withMax = all > Number(q.total), items = proShopOn() && cartCount() ? cartTotal() : 0;
   $("#mobileLbl").textContent = t(withMax ? "barMax" : "barDelivery");
-  const hint = withMax ? "" : items ? t("barItems", { total: money(items), name: UI.bi(state.shop.name) }) : goods ? t("barGoodsHint") : "";
+  // Articles d'un rayon : la fourchette des prix indicatifs ; cigarettes (sans prix) : le prix du magasin, sans calcul
+  const est = goods && rayonOn() ? rayonGoods() : null, tabac = goods && rayonOn() && rayonOn().id === "tabac";
+  const hint = withMax ? "" : items ? t("barItems", { total: money(items), name: UI.bi(state.shop.name) })
+    : est ? t("barGoodsEst", { lo: est.lo, hi: est.hi }) : tabac && rayonUnits() ? t("barGoodsShop") : goods ? t("barGoodsHint") : "";
   $("#mobileHint").textContent = hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
   $("#submitBtn").textContent = t("submit", { total: money(all) });
@@ -1838,6 +1849,7 @@ async function submit(e) {
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
     $("#doneModal").classList.remove("hidden");
+    doneAuto(saved);
     ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "retrait_code", "appt_at", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
       .forEach(k => { form.elements[k].value = ""; });
     form.drop_me.checked = true; syncDropMe();
@@ -3787,6 +3799,18 @@ $("#langBtn").addEventListener("click", () => {
   $("#quickGo").textContent = t(quickWhen === "later" ? "quickCtaLater" : "quickCta");
 });
 $("#doneClose").addEventListener("click", () => { $("#doneModal").classList.add("hidden"); location.hash = "mes-courses"; });
+// Le suivi s'ouvre tout seul après la commande (8 s), sauf si le client touche l'écran (il veut lire, activer
+// les alertes, créer son compte…) ou s'il a un paiement à faire d'abord
+let doneTimer = null;
+function doneAuto(saved) {
+  clearInterval(doneTimer);
+  const el = $("#doneAuto");
+  if (!el || !$("#donePrepay").classList.contains("hidden")) { if (el) el.classList.add("hidden"); return; }
+  let n = 8;
+  const tick = () => { el.textContent = t("doneAuto", { n }); el.classList.remove("hidden"); if (n-- <= 0) { clearInterval(doneTimer); location.href = UI.trackUrl(saved); } };
+  tick(); doneTimer = setInterval(tick, 1000);
+}
+["click", "input", "touchstart"].forEach(ev => $("#doneModal").addEventListener(ev, () => { if (doneTimer) { clearInterval(doneTimer); doneTimer = null; $("#doneAuto").classList.add("hidden"); } }, { passive: true }));
 $("#refreshMine").addEventListener("click", loadMine);
 $("#myOrders").addEventListener("click", onListClick);
 $("#waFab").addEventListener("click", openChatMenu);

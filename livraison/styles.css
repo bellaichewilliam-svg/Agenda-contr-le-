@@ -2903,3 +2903,7 @@ img.ray-img[src^="data:"] { object-fit: cover; }
 .ray-off summary { cursor: pointer; font-weight: 600; }
 @media (max-width: 600px) { .ray-fields { grid-template-columns: 1fr; } .ray-act .btn { padding: 6px 8px; } }
 .mine-km { font-weight: 500; color: var(--muted); white-space: nowrap; margin-inline-start: 6px; }
+/* Livreur : « j'ai vérifié la pièce d'identité » (tabac / alcool) avant « Livré » */
+.id-check { width: 100%; padding: 10px 12px; border-radius: 12px; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.35); margin-bottom: 8px; }
+.id-check.ok { background: rgba(34,197,94,.1); border-color: rgba(34,197,94,.35); }
+.id-check span { line-height: 1.3; }

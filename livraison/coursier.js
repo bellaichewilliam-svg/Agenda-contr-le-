@@ -677,7 +677,7 @@ function card(o, kind) {
         : o.wait_status === "a_payer"
           ? `<p class="wait-live">⏱️ Supplément d'attente : <b>${UI.money(o.wait_due)}</b> à encaisser par Bit / PayBox avant de livrer (la course est déjà payée)</p>
              <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Supplément reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`
-          : (needPhoto(o) && !photoDone.has(o.id) ? photoBtn(o, true) : `<button class="btn btn-sm btn-primary" data-act="livree">📦 Livré (sur place)</button>`) + onWayBtns(o))
+          : idCheckBox(o) + (needPhoto(o) && !photoDone.has(o.id) ? photoBtn(o, true) : `<button class="btn btn-sm btn-primary" data-act="livree"${idNeeded(o) ? " disabled" : ""}>📦 Livré (sur place)</button>`) + onWayBtns(o))
       + (o.docs_status && ["confirmee", "recuperee"].includes(o.status) ? `<button type="button" class="btn btn-sm btn-primary" data-docs="${UI.esc(o.id)}">📄 Documents à montrer</button>` : "")
       + `<button type="button" class="btn btn-sm" data-issue="${UI.esc(o.id)}">⚠️ Un souci</button>`
       + (o.payment_method === "cash" && o.status === "confirmee" && Number(o.cash_need) > 0 && !o.cash_shop_at ? `<button class="btn btn-sm" data-act="pas_especes">😕 Je n'ai pas les espèces</button>` : "")
@@ -1253,6 +1253,7 @@ async function onViewClick(e) {
     if (el.dataset.act === "paye" && o.payment_method === "cash" && !confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`)) return;
     if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`)) return;
     if (el.dataset.act === "livree") {
+      if (idNeeded(o)) { render(); return alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus)."); }
       el.disabled = true;
       // Photo du colis obligatoire (devant la porte, ou demandée par le client) : pour tout le monde, même débloquée
       if (needPhoto(o) && !photoDone.has(o.id) && !(await hasDoorPhoto(o))) { render(); return alert(PHOTO_MSG); }
@@ -1433,6 +1434,10 @@ const PHOTO_MSG = "📷 Photo du colis obligatoire : touchez « 📷 Photo du co
 const needPhoto = o => !!(o.leave_at_door || o.photo_wanted);
 const photoWhy = o => o.leave_at_door ? "📷 Devant la porte : photo obligatoire avant « Livré »" : "📷 Le client a demandé une photo : obligatoire avant « Livré »";
 const photoDone = new Set();
+// Tabac / alcool : le livreur coche « j'ai vérifié la pièce d'identité » avant de pouvoir livrer
+const idChecked = new Set();
+const idNeeded = o => !!o.adult_items && !o.id_checked_at && !idChecked.has(o.id);
+const idCheckBox = o => (o.adult_items ? `<label class="check id-check${idNeeded(o) ? "" : " ok"}"><input type="checkbox" data-idcheck="${UI.esc(o.id)}"${idNeeded(o) ? "" : " checked disabled"} /> <span>🪪 J'ai vérifié la pièce d'identité : <b>18 ans ou plus</b> (${/tabac/.test(o.adult_items) ? "tabac" : ""}${/tabac/.test(o.adult_items) && /alcool/.test(o.adult_items) ? " + " : ""}${/alcool/.test(o.adult_items) ? "alcool" : ""})</span></label>` : "");
 // Bouton qui ouvre directement l'appareil photo ; la photo part dans la conversation du client, puis (then) « Livré »
 const photoBtn = (o, then) => `<label class="btn btn-sm${then ? " btn-primary" : " btn-wa"}">${then ? "📷 Photo du colis, puis Livré" : "📷 Photo au client"}<input type="file" accept="image/*" capture="environment" data-dphoto="${UI.esc(o.id)}"${then ? ' data-then="livree"' : ""} hidden /></label>`;
 document.addEventListener("change", async e => {
@@ -1472,7 +1477,8 @@ function bundleCards(list) {
     if (!b) return;
     used.add(a.id); used.add(b.id);
     const gap = Math.round(Store.kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) * 1000 / 50) * 50;
-    out.push(`<div class="bundle-card"><div>🔗 <b>N° ${UI.esc(a.ref)} + n° ${UI.esc(b.ref)}</b> : arrivées à ${gap} m l'une de l'autre · ${UI.money(Store.courseValue(a) + Store.courseValue(b))} les deux</div>
+    const same = Store.kmBetween(+a.pickup_lat, +a.pickup_lon, +b.pickup_lat, +b.pickup_lon) < 0.08;
+    out.push(`<div class="bundle-card"><div>🔗 <b>N° ${UI.esc(a.ref)} + n° ${UI.esc(b.ref)}</b> : ${same ? "même départ" : "2 commerces voisins"}, arrivées à ${gap} m l'une de l'autre · ${UI.money(Store.courseValue(a) + Store.courseValue(b))} les deux</div>
       <button type="button" class="btn btn-primary btn-sm" data-bundle="${UI.esc(a.id)},${UI.esc(b.id)}">✅ Prendre les 2</button></div>`);
   });
   return out.join("");
@@ -1792,7 +1798,7 @@ function showNextOffer() {
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
   const again = backAgain.has(o.id);
   const dropGap = (a, b) => Math.round(Store.kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) * 1000 / 50) * 50;
-  $("#offerStar").innerHTML = onWay ? `🔗 <b>Vraiment sur votre chemin</b> : ${onWay.status === "recuperee" ? "départ sur votre route" : "même départ"} que votre course n° ${UI.esc(onWay.ref)}, arrivées à ${dropGap(onWay, o)} m l'une de l'autre${mine().length >= 2 ? ` (ce sera votre ${mine().length + 1}e course, le maximum)` : ""}.<br><b>Voulez-vous accepter cette course en plus ?</b>`
+  $("#offerStar").innerHTML = onWay ? `🔗 <b>Vraiment sur votre chemin</b> : ${onWay.status === "recuperee" ? "départ sur votre route" : Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +onWay.pickup_lat, +onWay.pickup_lon) < 0.08 ? "même départ" : "départ à côté (autre commerce)"} que votre course n° ${UI.esc(onWay.ref)}, arrivées à ${dropGap(onWay, o)} m l'une de l'autre${mine().length >= 2 ? ` (ce sera votre ${mine().length + 1}e course, le maximum)` : ""}.<br><b>Voulez-vous accepter cette course en plus ?</b>`
     : again ? "↩️ Personne d'autre ne l'a prise : elle vous est reproposée"
     : star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
     : early ? "🎯 Vous êtes parmi les plus proches : elle vous est proposée en premier" : "";
@@ -1819,7 +1825,7 @@ function showNextOffer() {
   $("#offerStops").innerHTML = `<b>${picks.length + drops.length} arrêts</b>${legKm >= 0.1 ? ` · ${legKm.toFixed(1).replace(".", ",")} km en tout` : ""}`;
   drawOfferMap(picks, drops);
   $("#offerFacts").innerHTML = [
-    mate ? `🔗 <b>2 courses groupées</b> (n° ${UI.esc(order2[0].ref)} puis n° ${UI.esc(order2[1].ref)}) : ${samePick ? "même départ" : "départs voisins"}, arrivées à <b>${dropGap(o, mate)} m</b> l'une de l'autre · ≈ ${tour.toFixed(1)} km en tout` : "",
+    mate ? `🔗 <b>2 courses groupées</b> (n° ${UI.esc(order2[0].ref)} puis n° ${UI.esc(order2[1].ref)}) : ${samePick ? "même départ" : "2 commerces voisins"}, arrivées à <b>${dropGap(o, mate)} m</b> l'une de l'autre · ≈ ${tour.toFixed(1)} km en tout` : "",
     mate ? "" : `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
     toPickup != null ? `🛵 Départ à <b>${etaMin({ lat: lastPos.lat, lon: lastPos.lon }, pick)} min</b> de vous (≈ ${toPickup.toFixed(1)} km)` : "",
     trip != null && !mate ? `🏁 Puis <b>${Math.max(1, Math.round(trip / (trip < 6 ? 25 : 50) * 60 + 2))} min</b> jusqu'au client` : "",
@@ -2655,6 +2661,12 @@ initSlider();
 initSheetDrag();
 $("#view").addEventListener("click", onViewClick);
 $("#view").addEventListener("change", e => {
+  // Pièce d'identité vérifiée (tabac / alcool) : le bouton « Livré » s'ouvre, et c'est gardé sur la course
+  if (e.target.dataset.idcheck) {
+    const id = e.target.dataset.idcheck;
+    if (e.target.checked) { idChecked.add(id); Store.courierIdChecked(id).catch(() => {}); } else idChecked.delete(id);
+    return render();
+  }
   const k = e.target.dataset.set;
   if (!k) return;
   riderSet[k] = k === "sound" ? e.target.value === "1" : e.target.value;

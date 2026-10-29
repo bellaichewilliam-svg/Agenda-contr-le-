@@ -1,0 +1,22 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "il.co.hop.livraison",
+      "sha256_cert_fingerprints": [
+        "42:9D:3D:E7:21:B8:F8:57:13:0C:5D:CD:A4:86:68:D9:4C:F1:C6:2C:92:9A:10:5D:DB:2A:E8:E1:C4:99:EC:0A"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "il.co.hop.livreur",
+      "sha256_cert_fingerprints": [
+        "EF:22:E7:BD:E4:C8:45:48:F0:7E:53:12:D8:12:42:E8:F6:E4:D6:E2:C4:C9:05:BF:ED:01:26:6B:7C:F0:61:1F"
+      ]
+    }
+  }
+]

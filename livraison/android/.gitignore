@@ -1,0 +1,23 @@
+# Projets TWA Bubblewrap (client/ et livreur/) : on ne versionne que la config.
+# Sorties de compilation
+build/
+*/build/
+*/app/build/
+.gradle/
+*/.gradle/
+*.aab
+*.apk
+*.idsig
+# Clés de signature : JAMAIS dans le dépôt (ni test, ni production)
+*.keystore
+*.jks
+*.p12
+*.pem
+service-account*.json
+# Outils / caches
+node_modules/
+.bubblewrap/
+*/local.properties
+.idea/
+*.iml
+.DS_Store
