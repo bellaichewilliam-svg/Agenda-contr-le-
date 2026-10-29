@@ -688,7 +688,7 @@ fr: {
   payErr: "Impossible d'enregistrer pour le moment : vérifiez la connexion et réessayez.",
   // Enseignes près de vous
   findPh: "🔎 Un plat, un produit, un commerce…", findNone: "Rien trouvé pour « {q} »", findProducts: "Plats et produits", findShops: "Commerces", findAt: "chez {shop}",
-  scAll: "Tous", scOpenF: "🟢 Ouverts", scKosherF: "✡️ Casher", rowFavs: "♥ Mes favoris", rowOpen: "🟢 Ouverts maintenant", rowPop: "🔥 Populaires", rowNew: "✨ Nouveautés", rowAll: "Tous les commerces", rowOrders: "{n} commandes ce mois", scNoneF: "Aucun commerce avec ce filtre.",
+  scAll: "Tous", scOpenF: "🟢 Ouverts", scKosherF: "✡️ Casher", rowFavs: "♥ Mes favoris", rowOpen: "🟢 Ouverts maintenant", rowPop: "🔥 Populaires", rowNew: "✨ Nouveautés", rowAll: "🏪 Nos commerces partenaires", rowOrders: "{n} commandes ce mois", scNoneF: "Aucun commerce avec ce filtre.",
   scOpenNow: "🟢 Ouverts maintenant", scClosedList: "🌙 Fermés · à programmer", scProg: "📅 Programmer", scClosedShort: "Fermé", scProgOrder: "Programmer une commande", proTitle: "⭐ Nos partenaires", proSub: "Commandez chez eux : ils préparent, on livre.", proDelivery: "Livraison {price}", proMenu: "{n} au menu", proGo: "Commander ›",
   ensTitle: "🏪 Enseignes près de vous", ens_hop: "⭐ Partenaires HOP", ens_breakfast: "🥐 Petit-déjeuner", ens_pressing: "👔 Pressing", ens_pharm: "💊 Pharmacies", ens_post: "📮 Poste et relais",
   ens_super: "🛒 Supermarchés & makolets", ens_kiosk: "🍾 Kiosques & pitsoutsias", ens_food: "🍔 Restaurants", ens_mall: "🛍️ Centres commerciaux", ens_flower: "💐 Fleuristes", ens_tech: "📱 Téléphonie", ens_baby: "👶 Bébé & jouets", ens_pet: "🐾 Animaleries", ens_home: "🔌 Quincailleries & bazars",

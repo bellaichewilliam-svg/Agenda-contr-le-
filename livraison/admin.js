@@ -1403,6 +1403,7 @@ function renderShops(view) {
           <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
           <button class="btn btn-sm" data-sact="enrich" title="Horaires, photo et menu repris de sa page publique (seulement ce qui est vide)">🤖 Remplir sa fiche</button>
           <button class="btn btn-sm${x.kosher ? " btn-primary" : ""}" data-sact="kosher" title="Badge « Casher » sur sa vitrine, sa page et la carte">${x.kosher ? "✡️ Casher ✓" : "✡️ Casher ?"}</button>
+          ${"featured" in x ? `<button class="btn btn-sm${x.featured ? " btn-primary" : ""}" data-sact="featured" title="Dans la rangée 🔥 Populaires de l'accueil, en tête, même sans commande ce mois-ci (l'automatique suit derrière)">${x.featured ? "🔥 Mis en avant ✓" : "🔥 Mettre en avant"}</button>` : ""}
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>`
             : `<button class="btn btn-sm${x.showcase ? " btn-primary" : ""}" data-sact="showcase" title="Sa page (logo, photos, WhatsApp) sur l'accueil des clients, même sans HOP! Pro">${x.showcase ? "🏠 Dans la vitrine ✓" : "🏠 Mettre dans la vitrine"}</button>`}
           ${vpos(x) < 1e9 ? `<label class="vit-pos">🏠 Position sur l'accueil <select data-vpos="${UI.esc(x.id)}">${vitIds.map((_, i) => `<option value="${i + 1}"${i === vpos(x) ? " selected" : ""}>${i + 1}${i === 0 ? " (en premier)" : i === vitIds.length - 1 ? " (en dernier)" : ""}</option>`).join("")}</select></label>` : ""}
@@ -2040,6 +2041,8 @@ async function onViewClick(e) {
       changes = { showcase: !shop.showcase };
     } else if (el.dataset.sact === "kosher") {
       changes = { kosher: !shop.kosher };
+    } else if (el.dataset.sact === "featured") {
+      changes = { featured: !shop.featured };
     } else if (el.dataset.sact === "planoff") {
       if (!confirm(`Arrêter HOP! Pro pour ${shop.name} ?`)) return;
       changes = { plan_until: UI.addDays(UI.dayKey(new Date()), -1) };
