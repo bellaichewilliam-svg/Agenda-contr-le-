@@ -404,7 +404,7 @@ function itemArt(name, kind) {
 }
 
 // Carte d'un commerce HOP! Pro : accueil des clients (« Nos partenaires ») et aperçu dans l'espace du commerce
-const KIND_ICON = { pressing: "👔", restaurant: "🍽️", boutique: "🛍️", pharmacie: "💊", bureau: "💼", autre: "🏪" };
+const KIND_ICON = { pressing: "👔", restaurant: "🍽️", boutique: "🛍️", pharmacie: "💊", bureau: "💼", epicerie: "🧺", traiteur: "🍱", autre: "🏪" };
 // Commerce de services (pressing, bureau…) : « Hors service » plutôt que « Épuisé »
 const isService = s => !!s && ["pressing", "bureau"].includes(s.kind);
 // Logo d'un commerce de l'annuaire : un fichier de l'appli (img/logos/…) ou le logo officiel d'une enseigne sur Wikipédia
