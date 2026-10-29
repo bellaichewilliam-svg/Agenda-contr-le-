@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
-  <meta name="theme-color" content="#141C2E" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#0B0F1A" />
   <meta name="robots" content="noindex" />
   <title>Suivi · מעקב</title>
   <link rel="manifest" href="manifest.webmanifest" />
@@ -46,9 +45,9 @@
       window.addEventListener("load", function () { if (first) later(); });
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202610292316" />
+  <link rel="stylesheet" href="styles.css?v=202610292334" />
 </head>
-<body>
+<body class="trk-v2">
 
 <header class="topbar">
   <div class="wrap">
@@ -61,39 +60,47 @@
 </header>
 
 <main class="track-page">
+  <!-- Façon grande appli de livraison : carte sombre en haut, grand rond du temps, l'étape en une phrase -->
   <div class="trk-map">
     <div id="map"></div>
+    <div class="trk-top">
+      <a class="trk-round" id="trkBack" href="index.html#mes-courses" aria-label="Retour"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      <div class="trk-pill hidden" id="trkPill"><span class="trk-pill-ring" id="pillSvg"></span><span class="trk-pill-txt"><b id="pillMin" dir="ltr"></b><small id="pillShop"></small></span></div>
+      <span class="trk-top-r">
+        <button type="button" class="trk-round trk-lang" id="trkLang"></button>
+        <a class="trk-round" id="trkShare" target="_blank" rel="noopener" aria-label="Partager"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 13v5a2 2 0 002 2h10a2 2 0 002-2v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+      </span>
+    </div>
     <button type="button" class="trk-full hidden" id="trkFull" aria-label="Plein écran">⤢</button>
     <div class="trk-card hidden" id="trkCard"></div>
     <button type="button" class="eta-ring hidden" id="etaRing" aria-live="polite"><span id="etaSvg"></span><b id="etaMin" dir="ltr"></b><small id="etaUnit"></small></button>
+    <button type="button" class="trk-back-status" id="trkBackStatus"></button>
   </div>
-  <!-- Touché, le rond ouvre la page d'état : grand rond, commerce, où en est la commande -->
-  <section class="st-sheet hidden" id="stSheet" role="dialog" aria-modal="true">
-    <button type="button" class="st-close" id="stClose" aria-label="Fermer">⌄</button>
-    <div class="st-card">
-      <div class="st-ringrow">
-        <button type="button" class="st-side" id="stHelp" aria-label="Aide">?</button>
-        <div class="st-ring"><span id="stSvg"></span><b id="stMin" dir="ltr"></b><small id="stUnit"></small></div>
-        <button type="button" class="st-side" id="stReceipt" aria-label="Détails">🧾</button>
-      </div>
-      <p class="st-shop" id="stShop"></p>
-      <h2 class="st-title" id="stTitle"></h2>
-      <p class="st-sub" id="stSub"></p>
-      <ol class="st-steps" id="stSteps"></ol>
-      <div class="add-wrap" id="stAdd"></div>
-      <button type="button" class="st-details" id="stDetails"></button>
+  <section class="trk-status" id="trkStatus">
+    <div class="st-ringrow">
+      <button type="button" class="st-side" id="stHelp" aria-label="Aide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1116 0 8 8 0 01-8 8H4v-8z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9.6 9.6a2.4 2.4 0 114 1.8c-.8.6-1.6 1-1.6 2.2M12 16.6h.01" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+      <div class="st-ring" id="stRing"><span id="stSvg"></span><b id="stMin" dir="ltr"></b><small id="stUnit"></small></div>
+      <button type="button" class="st-side" id="stReceipt" aria-label="Détails"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     </div>
+    <p class="st-shop" id="stShop"></p>
+    <h2 class="st-title" id="stTitle"></h2>
+    <p class="st-sub" id="stSub"></p>
+    <div class="trk-card trk-card-in hidden" id="trkCardIn"></div>
+    <ol class="st-steps" id="stSteps"></ol>
+    <div class="add-wrap" id="stAdd"></div>
+    <button type="button" class="st-details" id="stDetails"></button>
   </section>
+  <span class="hidden" id="stSheet"></span><span class="hidden" id="stClose"></span>
   <div class="track-panel">
     <div class="eta" id="eta"><b data-i18n="trTitle"></b></div>
     <div class="eta-ask hidden" id="etaAsk"></div>
     <div class="eta-ask wait-ask hidden" id="waitAsk"></div>
-    <div class="add-wrap hidden" id="addBox"></div>
+    <div class="add-wrap hidden trk-v1-only" id="addBox"></div>
     <div class="card rate-card hidden" id="rateBox"></div>
     <div class="card rate-card hidden" id="tipBox"></div>
     <div class="card rate-card hidden" id="shopRateBox"></div>
     <div class="confetti" id="confetti" aria-hidden="true"></div>
-    <div class="card"><ol class="steps" id="steps"></ol></div>
+    <div class="card trk-v1-only"><ol class="steps" id="steps"></ol></div>
     <div class="card notif-card hidden" id="notifCard"></div>
     <div class="card notif-card hidden" id="photoCard"></div>
     <div class="card kv" id="details"></div>
@@ -122,12 +129,12 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202610292316"></script>
-<script src="i18n.js?v=202610292316"></script>
-<script src="pricing.js?v=202610292316"></script>
-<script src="store.js?v=202610292316"></script>
-  <script src="chat.js?v=202610292316"></script>
-<script src="common.js?v=202610292316"></script>
-<script src="suivi.js?v=202610292316"></script>
+<script src="config.js?v=202610292334"></script>
+<script src="i18n.js?v=202610292334"></script>
+<script src="pricing.js?v=202610292334"></script>
+<script src="store.js?v=202610292334"></script>
+  <script src="chat.js?v=202610292334"></script>
+<script src="common.js?v=202610292334"></script>
+<script src="suivi.js?v=202610292334"></script>
 </body>
 </html>

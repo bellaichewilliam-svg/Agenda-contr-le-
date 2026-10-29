@@ -51,11 +51,15 @@ function cityLabel(id) { return CONFIG.cities.some(c => c.id === id) ? I18N.city
 function initMap() {
   if (!window.L) { $("#map").classList.add("hidden"); return; }
   const home = Pricing.cityById(CONFIG, CONFIG.homeCity);
-  map = L.map("map", { zoomControl: true }).setView([home.lat, home.lon], 12);
-  UI.mapTiles(map, false);
+  map = L.map("map", { zoomControl: false, attributionControl: true }).setView([home.lat, home.lon], 12);
+  UI.mapTiles(map, true);
+  // Toucher la carte l'ouvre en grand (la pastille du temps reste en haut)
+  map.on("click", () => { if (!document.body.classList.contains("map-full")) setMapFull(true); });
 }
 
 function pin(emoji) {
+  if (emoji === "📍") return L.divIcon({ className: "", html: `<div class="trk-pin-shop"><span>${order && (order.service === "repas" || order.shop_id) ? "🍴" : "🏪"}</span></div>`, iconSize: [44, 52], iconAnchor: [22, 50] });
+  if (emoji === "🏁") return L.divIcon({ className: "", html: `<div class="trk-pin-home"><i></i></div>`, iconSize: [52, 62], iconAnchor: [26, 60] });
   return L.divIcon({ className: "", html: `<div class="map-pin">${emoji}</div>`, iconSize: [32, 32], iconAnchor: [16, 28] });
 }
 
@@ -97,13 +101,24 @@ function moveCourier(lat, lon) {
 let lastEta = { main: "", sub: "" };
 function ringText(o) {
   const r = UI.etaRange(o);
-  return r ? { big: r.text, unit: "min" } : { big: o.status === "nouvelle" ? "⏳" : "🛵", unit: "" };
+  return r ? { big: r.text, unit: t("trMinUnit") } : { big: o.status === "nouvelle" ? "⏳" : "🛵", unit: "" };
 }
 function renderRing(o) {
   const show = ["nouvelle", "confirmee", "recuperee"].includes(o.status);
   $("#etaRing").classList.toggle("hidden", !show);
-  if (!show) { closeSheet(); return; }
+  $("#stRing").classList.toggle("hidden", !show);
+  $("#trkPill").classList.toggle("hidden", !show);
+  document.body.classList.toggle("trk-done", !show);
+  const shopName = UI.bi(o.shop_name || o.pickup_place || "") || o.pickup_address || "";
+  $("#stShop").textContent = [shopName, t("orderNo", { ref: o.ref })].filter(Boolean).join(" · ");
+  $("#stTitle").textContent = String(lastEta.main).replace(/ (\S{1,4})$/, "\u00a0$1");
+  $("#stSub").textContent = lastEta.sub;
+  $("#stDetails").innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z M9 8V6a3 3 0 016 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>${UI.esc(t("trDetails"))}`;
+  if (!show) { $("#stSteps").innerHTML = ""; return; }
   const r = ringText(o), p = UI.PROGRESS[o.status] || 0;
+  $("#pillSvg").innerHTML = UI.ringSvg(p, "hrg-pill");
+  $("#pillMin").textContent = r.unit ? `${r.big} ${r.unit}` : r.big;
+  $("#pillShop").textContent = shopName;
   $("#etaSvg").innerHTML = UI.ringSvg(p, "hrg-trk");
   $("#etaMin").textContent = r.big;
   $("#etaMin").classList.toggle("long", r.big.length > 4);
@@ -112,18 +127,17 @@ function renderRing(o) {
   $("#stSvg").innerHTML = UI.ringSvg(p, "hrg-st");
   $("#stMin").textContent = r.big;
   $("#stUnit").textContent = r.unit;
-  $("#stShop").textContent = o.shop_name || o.pickup_place || o.pickup_address || "";
-  $("#stTitle").textContent = lastEta.main;
-  $("#stSub").textContent = lastEta.sub;
   const step = FLOW.indexOf(o.status);
   $("#stSteps").innerHTML = ["trStep1", "trStep2", "trStep3", "trStep4"].map((k, i) =>
     `<li class="${i < step ? "done" : i === step ? "current" : ""}"><i></i><span>${UI.esc(t(k))}</span></li>`).join("");
-  $("#stDetails").textContent = "🧾 " + t("trDetails");
 }
-function openSheet() { $("#stSheet").classList.remove("hidden"); document.body.classList.add("st-open"); }
-function closeSheet() { $("#stSheet").classList.add("hidden"); document.body.classList.remove("st-open"); }
+// Le statut est sur la page (plus de fenêtre à part) : « ouvrir » = revenir au statut
+function openSheet() { if (document.body.classList.contains("map-full")) setMapFull(false); $("#trkStatus").scrollIntoView({ behavior: "smooth", block: "start" }); }
+function closeSheet() { /* rien : le statut fait partie de la page */ }
 $("#etaRing").addEventListener("click", openSheet);
-$("#stClose").addEventListener("click", closeSheet);
+$("#trkPill").addEventListener("click", openSheet);
+$("#trkBackStatus").addEventListener("click", () => setMapFull(false));
+$("#trkLang").addEventListener("click", () => $("#langBtn").click());
 $("#stHelp").addEventListener("click", () => { closeSheet(); $("#chatBtn").click(); });
 ["#stReceipt", "#stDetails"].forEach(id => $(id).addEventListener("click", () => {
   closeSheet(); $("#details").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -137,14 +151,14 @@ function updateMap(o) {
   if (live) moveCourier(Number(o.courier_lat), Number(o.courier_lon));
   else if (markers.courier) { map.removeLayer(markers.courier); delete markers.courier; }
   // Une belle courbe (pas un trajet routier) : commerce → vous en clair, et le livreur → son prochain arrêt en orange
-  if (!baseLine && o.pickup_lat != null && o.dropoff_lat != null) baseLine = UI.routeLayer([o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon], { color: "#98A2B3", opacity: .7, weight: 4, glow: "#FFFFFF", glowOpacity: .5 }).addTo(map);
+  if (false && !baseLine && o.pickup_lat != null && o.dropoff_lat != null) baseLine = UI.routeLayer([o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon], { color: "#98A2B3", opacity: .7, weight: 4, glow: "#FFFFFF", glowOpacity: .5 }).addTo(map);
   const tgt = o.status === "confirmee" ? [o.pickup_lat, o.pickup_lon] : o.status === "recuperee" ? [o.dropoff_lat, o.dropoff_lon] : null;
   if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
-  if (live && tgt && tgt[0] != null) routeLine = UI.routeLayer([Number(o.courier_lat), Number(o.courier_lon)], [Number(tgt[0]), Number(tgt[1])], { color: "#FF6A00" }).addTo(map);
+  if (false && live && tgt && tgt[0] != null) routeLine = UI.routeLayer([Number(o.courier_lat), Number(o.courier_lon)], [Number(tgt[0]), Number(tgt[1])], { color: "#FF6A00" }).addTo(map);
   // Recentrer au premier affichage et quand le coursier apparaît
   if (!fitted || (live && !courierSeen)) {
     const pts = Object.values(markers).map(m => m.getLatLng());
-    if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 15 });
+    if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.25), fitOpts(15));
     fitted = true;
   }
   courierSeen = live;
@@ -290,7 +304,8 @@ function renderCourierCard(o) {
   document.body.classList.toggle("trk-live", !!(o && ["confirmee", "recuperee"].includes(o.status)));
   $("#trkFull").classList.toggle("hidden", !live);
   box.classList.toggle("hidden", !live);
-  if (!live) { if (document.body.classList.contains("map-full")) setMapFull(false); return; }
+  $("#trkCardIn").classList.toggle("hidden", !live);
+  if (!live) return;
   const name = String(o.courier_name || "").split(" ")[0] || t("tkCourier"), courier = { lat: o.courier_lat, lon: o.courier_lon };
   const tgt = o.status === "confirmee" ? { lat: o.pickup_lat, lon: o.pickup_lon } : { lat: o.dropoff_lat, lon: o.dropoff_lon };
   const min = tgt.lat != null ? Pricing.etaMinutes(courier, tgt) : null, km = tgt.lat != null ? (Pricing.haversineKm(courier, tgt) * 1.3).toFixed(1).replace(".", ",") : null;
@@ -299,12 +314,22 @@ function renderCourierCard(o) {
   const html = `<span class="trk-ava">${UI.esc(initials)}</span><span class="trk-txt"><b>${UI.esc(min != null ? t(o.status === "confirmee" ? "tkToPickup" : "tkToDrop", { name, min }) : name)}</b><small>🛵 ${UI.esc(t("tkCourier"))}${km ? " · " + UI.esc(t("tkDist", { km })) : ""}</small></span>
     ${phone ? `<a class="trk-btn" href="tel:${UI.esc(phone)}" aria-label="${UI.esc(t("trCall"))}">📞</a>` : ""}<button type="button" class="trk-btn wa" data-trk-chat aria-label="${UI.esc(t("chOpen"))}">💬</button>`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  const inl = $("#trkCardIn");
+  if (inl.dataset.html !== html) { inl.innerHTML = html; inl.dataset.html = html; }
+}
+$("#trkCardIn").addEventListener("click", e => { if (e.target.closest("[data-trk-chat]")) $("#chatBtn").click(); });
+// Marges pour que les épingles ne passent ni sous les boutons du haut ni sous l'anneau (ou le bouton du bas en plein écran)
+function fitOpts(maxZoom) {
+  if (!document.body.classList.contains("trk-v2")) return { maxZoom };
+  const full = document.body.classList.contains("map-full");
+  return { maxZoom, paddingTopLeft: [30, full ? 100 : 80], paddingBottomRight: [30, full ? 110 : 150] };
 }
 function setMapFull(on) {
   document.body.classList.toggle("map-full", on);
+  if (on) window.scrollTo(0, 0);
   $("#trkFull").textContent = on ? "⤡" : "⤢";
   $("#trkFull").setAttribute("aria-label", on ? t("tkSmall") : t("tkFull"));
-  if (map) setTimeout(() => { map.invalidateSize(); const pts = Object.values(markers).map(m => m.getLatLng()); if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 16 }); }, 60);
+  if (map) setTimeout(() => { map.invalidateSize(); const pts = Object.values(markers).map(m => m.getLatLng()); if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.25), fitOpts(16)); }, 60);
 }
 $("#trkFull").addEventListener("click", () => setMapFull(!document.body.classList.contains("map-full")));
 $("#trkCard").addEventListener("click", e => { if (e.target.closest("[data-trk-chat]")) { if (document.body.classList.contains("map-full")) setMapFull(false); $("#chatBtn").click(); } });
@@ -313,6 +338,7 @@ function render() {
   I18N.apply();
   renderCourierCard(o);
   $("#brandName").innerHTML = UI.wordmark();
+  document.body.classList.toggle("trk-notfound", !o);
   if (!o) {
     $("#eta").innerHTML = `<b>${UI.esc(t("trNotFound"))}</b>`;
     ["#steps", "#details"].forEach(s => { $(s).closest(".card").classList.add("hidden"); });
@@ -426,6 +452,9 @@ function render() {
     $("#callCourier").href = "tel:" + o.courier_phone;
   }
   $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: UI.appUrl("suivi.html") + location.search }));
+  $("#trkShare").href = $("#shareBtn").href;
+  $("#trkLang").textContent = I18N.lang === "he" ? "FR" : "עב";
+  $("#trkBackStatus").textContent = t("trBackStatus");
   updateMap(o);
 }
 

@@ -335,7 +335,7 @@ fr: {
   pay_cash_short: "espèces", pay_bit_short: "Bit au {phone}",
   // Suivi
   trTitle: "Suivi de la course", trNotFound: "Course introuvable. Vérifiez le lien.",
-  trDetails: "Détails de la commande", pay_cash_d2: "Au livreur, à la livraison (jusqu'à {max})", pay_cash_off: "Pas pour cette commande : plus de {max} avec les articles", cashNoteQ: "Vous payez avec :", cashExact: "L'appoint",
+  trDetails: "Détails de la commande", trBackStatus: "Retour au statut de la commande", trMinUnit: "min", pay_cash_d2: "Au livreur, à la livraison (jusqu'à {max})", pay_cash_off: "Pas pour cette commande : plus de {max} avec les articles", cashNoteQ: "Vous payez avec :", cashExact: "L'appoint",
   cashTotal: "💵 Vous paierez {total} en espèces au livreur, à la livraison.", cashTotalMax: "💵 Au plus {total} en espèces au livreur, à la livraison : le ticket exact du magasin (au plus {goods}) + livraison {course}.", cashTotalGoods: "💵 Vous paierez {total} en espèces au livreur, à la livraison : articles {goods} (il les paie pour vous au commerce) + livraison {course}.",
   cashChange: "Le livreur vous rendra {change}.", cashRule: "Espèces : jusqu'à {max} quand le livreur avance des achats pour vous. Il vient avec la monnaie.",
   payNoteCash2: "Paiement en espèces au livreur, à la livraison.", errCashMax: "En espèces, la commande ne peut pas dépasser {max} : choisissez Bit / PayBox.",
@@ -1052,7 +1052,7 @@ he: {
   msg_when_asap: "יוצא בהקדם.", msg_when_at: "איסוף: {when}.",
   pay_cash_short: "מזומן", pay_bit_short: "ביט למספר {phone}",
   trTitle: "מעקב משלוח", trNotFound: "המשלוח לא נמצא. בדקו את הקישור.",
-  trDetails: "פרטי ההזמנה", pay_cash_d2: "לשליח, במסירה (עד {max})", pay_cash_off: "לא להזמנה הזו: יותר מ-{max} עם המוצרים", cashNoteQ: "משלמים עם:", cashExact: "סכום מדויק",
+  trDetails: "פרטי ההזמנה", trBackStatus: "חזרה לסטטוס ההזמנה", trMinUnit: "דק'", pay_cash_d2: "לשליח, במסירה (עד {max})", pay_cash_off: "לא להזמנה הזו: יותר מ-{max} עם המוצרים", cashNoteQ: "משלמים עם:", cashExact: "סכום מדויק",
   cashTotal: "💵 תשלמו {total} במזומן לשליח, במסירה.", cashTotalMax: "💵 עד {total} במזומן לשליח, במסירה: הסכום המדויק של הקבלה (עד {goods}) + משלוח {course}.", cashTotalGoods: "💵 תשלמו {total} במזומן לשליח, במסירה: מוצרים {goods} (הוא משלם עליהם בשבילכם בעסק) + משלוח {course}.",
   cashChange: "השליח יחזיר לכם {change}.", cashRule: "מזומן: עד {max} כשהשליח משלם מראש על קניות בשבילכם. הוא מגיע עם עודף.",
   payNoteCash2: "תשלום במזומן לשליח, במסירה.", errCashMax: "במזומן ההזמנה לא יכולה לעבור {max}: בחרו ביט / פייבוקס.",
