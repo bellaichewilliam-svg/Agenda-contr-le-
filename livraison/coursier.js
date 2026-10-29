@@ -2345,14 +2345,15 @@ document.addEventListener("visibilitychange", () => {
 window.addEventListener("pageshow", e => { if (e.persisted) setTimeout(reviveRiderMap, 150); });
 // Bulle façon appli de livraison, posée sur le point : « 🏪 Récupération · 5 min »
 const rbubble = (emoji, cls, title, min) => L.divIcon({ className: "", iconSize: [36, 36], iconAnchor: [18, 18],
-  html: `<div class="rd-pin ${cls || ""}">${emoji}<span class="pin-bubble ${cls || ""}"><b>${UI.esc(title)}</b>${min != null ? `<em>${min} min</em>` : ""}</span></div>` });
+  html: `<div class="rd-pin ${cls || ""}">${emoji}<span class="pin-bubble ${cls || ""}"><b>${UI.esc(title)}</b>${min != null ? `<em>${typeof min === "number" ? min + " min" : UI.esc(min)}</em>` : ""}</span></div>` });
 const etaMin = (a, b) => (a && b ? Pricing.etaMinutes(a, b) : null);
 const rpin = (emoji, cls, label) => L.divIcon({ className: "", iconSize: [36, 36], iconAnchor: [18, 18],
   html: `<div class="rd-pin ${cls || ""}">${emoji}${label ? `<span class="pin-price">${UI.esc(label)}</span>` : ""}</div>` });
 function updateWazeFab() {
   const fab = $("#wazeFab");
   if (!fab) return;
-  const cur = mine()[0];
+  // Rien à faire avant l'heure d'une course « plus tard » : pas de bouton itinéraire
+  const cur = mine().find(o => !isLater(o));
   fab.classList.toggle("hidden", !cur);
   if (!cur) return;
   const which = cur.status === "recuperee" ? "dropoff" : "pickup";
@@ -2377,6 +2378,12 @@ function updateRiderMap() {
       UI.money(Store.courseValue(o)) + (here && o.pickup_lat != null ? ` · à ${etaMin(here, pt(o.pickup_lat, o.pickup_lon))} min` : "")),
     `<b>Course n° ${UI.esc(o.ref)}</b><br>${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))} · ${UI.money(Store.courseValue(o))}`));
   mine().forEach(o => {
+    // Course pour plus tard (pas avant 16 h, programmée, rendez-vous) : l'heure, pas des minutes, et pas de halo « prochain arrêt »
+    if (isLater(o)) {
+      add(o.pickup_lat, o.pickup_lon, rbubble("🏪", "pick later", "Récupération", `⏰ dès ${startAt(o)}`), `Récupération · n° ${UI.esc(o.ref)} · ${UI.esc(dueLabel(o))}`);
+      add(o.dropoff_lat, o.dropoff_lon, rbubble("🏁", "drop later", "Livraison", `⏰ ${dueLabel(o)}`), `Livraison · n° ${UI.esc(o.ref)} · ${UI.esc(dueLabel(o))}`);
+      return;
+    }
     // Temps sur la carte : jusqu'au départ (depuis moi), puis jusqu'au client (en passant par le départ si pas encore récupéré)
     const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon), got = o.status === "recuperee";
     const toPick = got ? null : etaMin(here, pick);

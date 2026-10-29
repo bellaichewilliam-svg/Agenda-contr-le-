@@ -1541,6 +1541,8 @@ body.cg-cart-on .wa-fab { bottom: 160px !important; }
 .pin-bubble b { font-weight: 700; }
 .pin-bubble em { font-style: normal; font-weight: 800; color: #fff; background: var(--brand); border-radius: 99px; padding: 2px 8px; }
 .pin-bubble.drop em { background: #12B76A; }
+.pin-bubble.later em { background: #475569; }
+.rd-pin.later { opacity: .9; }
 .rd-pin.done { opacity: .55; }
 /* Départ au-dessus de son point, livraison en dessous : les deux bulles restent lisibles même quand les points sont proches */
 .pin-bubble.drop { bottom: auto; top: 42px; }
