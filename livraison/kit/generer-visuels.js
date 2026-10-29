@@ -63,6 +63,14 @@ ul.ok li{font-weight:700}
 .ctile .cart img{width:80%;height:80%;object-fit:contain;filter:drop-shadow(0 8px 10px hsl(var(--h) 60% 30% / .3))}
 .ctile.tap{outline:6px solid #FF6A13;outline-offset:-6px;transform:scale(1.04)}
 .finger{position:absolute;font-style:normal;font-size:64px;bottom:-26px;right:-6px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
+.page.sh{background:radial-gradient(120% 80% at 85% 0%,#5B2D8E 0%,#231A4F 45%,#0A1630 100%)}
+.page.sh:before{content:"";position:absolute;inset:auto -20% -30% -20%;height:55%;background:radial-gradient(50% 50% at 50% 50%,rgba(255,184,77,.28),transparent 70%)}
+.page.sh>*{position:relative}
+.page.sh>.candles{position:absolute;top:0;inset-inline-end:40px;font-style:normal;line-height:1;filter:drop-shadow(0 0 28px rgba(255,184,77,.65));opacity:.95}
+.kick{display:inline-flex;align-self:flex-start;align-items:center;gap:12px;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.22);color:#fff;font-family:Fredoka;font-weight:700;border-radius:99px;padding:8px 24px}
+.page.sh h1 em{color:#FFC46B}
+.badge.gold{background:linear-gradient(135deg,#FFB84D,#FF8A2B);color:#2A1A05}
+.page.sh .ctile{box-shadow:0 14px 30px rgba(0,0,0,.35)}
 .he .finger{right:auto;left:-6px}
 `;
 const qr = (id, size) => `<div class="qrbox"><div id="${id}"></div><span style="font-size:${Math.round(size / 9)}px">{{scan}}</span></div>`;
@@ -132,6 +140,40 @@ T.courses = {
     ['mailbox', 205, 'Colis à la poste', 'חבילה בדואר'], ['basket', 35, 'Pressing', 'ניקוי יבש'], ['flowers', 330, 'Fleurs & cadeaux', 'פרחים ומתנות'], ['baby', 280, 'Bébé & enfants', 'תינוקות וילדים'],
     ['dog', 30, 'Animaux', 'חיות מחמד'], ['plug', 210, 'Maison', 'לבית ותיקונים'], ['docs', 215, 'Documents', 'מסמכים'], ['key', 45, 'Clés oubliées', 'מפתחות']]
 };
+// « L'appli évolue » : de nouveaux commerces se rajoutent, invitation à revenir voir (QR vers l'accueil de l'appli)
+T.visite = {
+  fr: { h1: 'L\'appli évolue :<br><em>de nouveaux commerces chaque semaine</em>', sub: 'Restaurants, épiceries, boulangeries, boutiques de Netanya : ils arrivent sur HOP! les uns après les autres. Pensez à nous visiter !',
+    chips: ['🆕 Nouvelles enseignes chaque semaine', '🍣🍔🥐 Leur carte dans l\'appli', '📍 Suivi en direct', '💵 Espèces ou Bit'],
+    price: '<span>Livraison dans Netanya</span><span><b>25 ₪</b></span>', badge: '👀 Pensez à nous visiter', scan: 'Voir les nouveautés', url: 'hop-livraison.vercel.app' },
+  he: { h1: 'האפליקציה מתפתחת:<br><em>עסקים חדשים כל שבוע</em>', sub: 'מסעדות, מכולות, מאפיות וחנויות בנתניה מצטרפות להופ! אחת אחרי השנייה. בואו לבקר אותנו!',
+    chips: ['🆕 עסקים חדשים כל שבוע', '🍣🍔🥐 התפריט שלהם באפליקציה', '📍 מעקב בזמן אמת', '💵 מזומן או ביט'],
+    price: '<span>משלוח בתוך נתניה</span><span><b>25 ₪</b></span>', badge: '👀 בואו לבקר אותנו', scan: 'מה חדש', url: 'hop-livraison.vercel.app' },
+  hs: 0.78, hsPost: 0.9, postChips: 3,
+  link: lang => APP + (lang === 'he' ? '?lang=he' : '')
+};
+// Avant Chabbat : trois pubs chaleureuses (courses de dernière minute, hallot, table de Chabbat), avec les illustrations de l'appli
+const SH_PRICE = { fr: '<span>Achat + livraison dans Netanya</span><span><b>30 ₪</b></span>', he: '<span>קנייה + משלוח בתוך נתניה</span><span><b>30 ₪</b></span>' };
+T.chabbat = { shabbat: true, link: ON_LIVRE,
+  fr: { kicker: '🕯️ Vendredi', h1: 'Courses de dernière minute<br><em>avant Chabbat ?</em>', sub: 'Pas le temps de courir ? Dites-nous ce qu\'il vous faut : on achète et on vous livre, vous préparez tranquille.',
+    tiles: [['bread', 38, 'Hallot'], ['chicken', 25, 'Poulet, viande'], ['wine', 350, 'Vin, jus de raisin'], ['flowers', 330, 'Fleurs']],
+    price: SH_PRICE.fr, badge: '🕯️ Chabbat chalom !', scan: 'Commander en 1 minute', url: 'Tous les magasins de Netanya, même les petits' },
+  he: { kicker: '🕯️ יום שישי', h1: 'קניות של הרגע האחרון<br><em>לפני שבת?</em>', sub: 'אין זמן לרוץ? כתבו לנו מה צריך: אנחנו קונים ומביאים, ואתם מכינים בשקט.',
+    tiles: [['bread', 38, 'חלות'], ['chicken', 25, 'עוף, בשר'], ['wine', 350, 'יין, מיץ ענבים'], ['flowers', 330, 'פרחים']],
+    price: SH_PRICE.he, badge: '🕯️ שבת שלום!', scan: 'מזמינים תוך דקה', url: 'כל החנויות בנתניה, גם הקטנות' } };
+T.halot = { shabbat: true, link: ON_LIVRE,
+  fr: { kicker: '🥖 Boulangerie', h1: 'Pensez à<br><em>vos hallot !</em>', sub: 'Hallot fraîches de la boulangerie, livrées chez vous le vendredi. Et avec, le gâteau du Chabbat 😉',
+    tiles: [['bread', 38, 'Hallot tressées'], ['cake', 340, 'Gâteaux'], ['cookie', 30, 'Biscuits'], ['croissant', 42, 'Viennoiseries']],
+    price: SH_PRICE.fr, badge: '🥖 Livrées le vendredi', scan: 'Commander en 1 minute', url: 'La boulangerie que vous voulez' },
+  he: { kicker: '🥖 מאפייה', h1: 'אל תשכחו<br><em>את החלות!</em>', sub: 'חלות טריות מהמאפייה, עד הבית ביום שישי. ועם זה, עוגה לשבת 😉',
+    tiles: [['bread', 38, 'חלות קלועות'], ['cake', 340, 'עוגות'], ['cookie', 30, 'עוגיות'], ['croissant', 42, 'מאפים']],
+    price: SH_PRICE.he, badge: '🥖 מגיעות ביום שישי', scan: 'מזמינים תוך דקה', url: 'מהמאפייה שאתם אוהבים' } };
+T.table = { shabbat: true, link: ON_LIVRE,
+  fr: { kicker: '🍷 Table de Chabbat', h1: 'Tout pour la table<br><em>de Chabbat</em>', sub: 'Vin, fleurs, pâtisserie, épicerie : on fait vos courses dans tous les magasins de Netanya et on livre à votre porte.',
+    tiles: [['wine', 350, 'Vin'], ['flowers', 330, 'Fleurs'], ['cake', 340, 'Pâtisserie'], ['salad', 120, 'Salades, mezzés']],
+    price: SH_PRICE.fr, badge: '🕯️ Vendredi, jusqu\'à la dernière minute', scan: 'Commander en 1 minute', url: 'Suivi en direct · espèces ou Bit' },
+  he: { kicker: '🍷 שולחן שבת', h1: 'הכול לשולחן<br><em>השבת</em>', sub: 'יין, פרחים, קינוחים, מכולת: עושים לכם את הקניות בכל החנויות בנתניה ומביאים עד הדלת.',
+    tiles: [['wine', 350, 'יין'], ['flowers', 330, 'פרחים'], ['cake', 340, 'קינוחים'], ['salad', 120, 'סלטים, מזה']],
+    price: SH_PRICE.he, badge: '🕯️ יום שישי, עד הרגע האחרון', scan: 'מזמינים תוך דקה', url: 'מעקב בזמן אמת · מזומן או ביט' } };
 const ART = k => 'data:image/webp;base64,' + fs.readFileSync(`${__dirname}/../img/items/${k}.webp`).toString('base64');
 function coursesPage(lang, fmt) {
   const t = T.courses[lang], he = lang === 'he', post = fmt === 'post';
@@ -152,6 +194,33 @@ function coursesPage(lang, fmt) {
       <div style="display:grid;gap:16px;flex:1;min-width:0">
         <div class="price" style="font-size:${Math.round((post ? 26 : 28) * k)}px;padding:${post ? '16px 26px' : '22px 32px'}">${t.price.replace('<b>', `<b style="font-size:${Math.round((post ? 56 : 70) * k)}px">`)}</div>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="badge" style="font-size:${Math.round((post ? 24 : 28) * k)}px">${t.badge}</span>
+          ${post ? '' : `<span class="url" style="font-size:${Math.round(24 * k)}px">${t.url}</span>`}</div>
+      </div>
+      ${qr('q', qrSize).replace('{{scan}}', t.scan)}
+    </div>
+  </div>`;
+  return { html, W, H, qrSize, link: ON_LIVRE(lang) };
+}
+// Mise en page « avant Chabbat » : fond chaud (bougies, lueur dorée), en-tête, titre, 4 tuiles d'articles, prix, QR
+function shabbatPage(kind, lang, fmt) {
+  const t = T[kind][lang], he = lang === 'he', post = fmt === 'post';
+  const W = fmt === 'flyer' ? 1240 : 1080, H = fmt === 'story' ? 1920 : fmt === 'flyer' ? 1754 : 1080;
+  const k = post ? 1 : fmt === 'story' ? 1.3 : 1.25, pad = post ? 56 : 80, qrSize = post ? 170 : 240;
+  const cols = fmt === 'story' ? 2 : 4;
+  const html = `<div class="page sh ${he ? 'he' : ''}" style="width:${W}px;height:${H}px;padding:${pad}px;gap:${post ? 18 : 30}px">
+    <i class="candles" style="font-size:${post ? 110 : Math.round(150 * k)}px">🕯️🕯️</i>
+    <div class="top" style="justify-content:space-between"><div style="display:flex;align-items:center;gap:22px"><div class="lg" ${post ? 'style="width:88px;height:88px"' : ''}>${LOGO}</div>
+      <div class="wm" ${post ? 'style="font-size:76px"' : ''}>${he ? 'הופ' : 'HOP'}<i>!</i><small>${he ? 'משלוחים' : 'LIVRAISON'}</small></div></div></div>
+    <span class="kick" style="font-size:${Math.round((post ? 26 : 30) * k)}px">${t.kicker}</span>
+    <h1 style="font-size:${post ? 72 : Math.round(92 * k)}px">${post ? t.h1.replace('<br>', ' ') : t.h1}</h1>
+    <div class="sub" style="font-size:${Math.round((post ? 27 : 29) * k)}px;max-width:${post ? 940 : 1000}px">${t.sub}</div>
+    <div class="cgrid" style="grid-template-columns:repeat(${cols},1fr)">${t.tiles.map(([img, h, label]) => `<div class="ctile" style="--h:${h}">
+        <span class="cart"><img src="${ART(img)}" alt="" /></span>
+        <b style="font-size:${post ? 21 : Math.round((cols === 2 ? 27 : 22) * k)}px">${label}</b></div>`).join('')}</div>
+    <div class="foot">
+      <div style="display:grid;gap:16px;flex:1;min-width:0">
+        <div class="price" style="font-size:${Math.round((post ? 26 : 28) * k)}px;padding:${post ? '16px 26px' : '22px 32px'}">${t.price.replace('<b>', `<b style="font-size:${Math.round((post ? 56 : 70) * k)}px">`)}</div>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><span class="badge gold" style="font-size:${Math.round((post ? 24 : 28) * k)}px">${t.badge}</span>
           ${post ? '' : `<span class="url" style="font-size:${Math.round(24 * k)}px">${t.url}</span>`}</div>
       </div>
       ${qr('q', qrSize).replace('{{scan}}', t.scan)}
@@ -194,7 +263,7 @@ function page(kind, lang, fmt) {
   // Usage : node generer-visuels.js <libs> [types séparés par des virgules] (par défaut : tous)
   const kinds = process.argv[3] ? process.argv[3].split(',') : Object.keys(T);
   for (const kind of kinds) for (const lang of ['fr', 'he']) for (const fmt of ['post', 'story', 'flyer']) {
-    const p = kind === 'courses' ? coursesPage(lang, fmt) : page(kind, lang, fmt);
+    const p = kind === 'courses' ? coursesPage(lang, fmt) : T[kind].shabbat ? shabbatPage(kind, lang, fmt) : page(kind, lang, fmt);
     const ctx = await b.newContext({ viewport: { width: p.W, height: p.H }, deviceScaleFactor: 1 });
     const pg = await ctx.newPage();
     await pg.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${p.html}<script>${qrJs}</script>

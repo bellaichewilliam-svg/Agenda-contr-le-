@@ -334,6 +334,9 @@ function payLine(o) {
 }
 // Argent de la course en une case de couleur, en haut de la fiche : vert « déjà payé, rien à encaisser »,
 // orange « à encaisser » avec qui paie, combien, comment et quand (le doute « payé ou pas ? » n'existe plus)
+// Articles d'un catalogue sans lien de paiement : le client les règle au commerce, le livreur n'avance rien et n'encaisse que la course
+const goodsSelf = o => Number(o.items_total) > 0 && !o.goods_pay && o.payment_method !== "cash" && !o.shop_sent && !o.shop_pays
+  ? `🛍️ Articles ${UI.money(o.items_total)} : le client les règle au commerce, pas à vous · vous n'avancez rien` : "";
 function moneyBox(o) {
   const how = o.payment_method === "cash" ? "en espèces" : "par Bit";
   const total = o.payment_method === "cash" ? cashTotal(o) : UI.payTotal(o);
@@ -347,8 +350,9 @@ function moneyBox(o) {
   if (o.shop_sent && o.payer === "moi") return box(false, `💰 À encaisser au commerce : ${UI.money(o.price)} ${how}`,
     `${UI.esc(o.shop_name || "Le commerce")} vous paie en vous donnant le colis.<br>🙋 Le client ne paie rien : tout est déjà payé au magasin`);
   if (o.shop_sent) return box(false, `💰 À encaisser chez le client : ${UI.money(o.price)} ${how}`, `${goodsPaid}. Seulement la livraison, à l'arrivée`);
-  if (o.payment_method === "cash") return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`, "À la livraison");
-  return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`, "Sur votre numéro, avant de récupérer la commande");
+  if (o.payment_method === "cash") return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`,
+    Number(o.cash_goods) > 0 ? `À la livraison : articles ${UI.money(o.cash_goods)} (que vous payez au commerce au départ) + livraison ${UI.money(o.price)}` : "À la livraison");
+  return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`, [`Sur votre numéro, avant de récupérer la commande`, goodsSelf(o)].filter(Boolean).join("<br>"));
 }
 // Colis en route : prévenir le client d'un toucher (« j'arrive dans 5 min », « je suis en bas »)
 let onWaySent = {};
@@ -743,7 +747,7 @@ function card(o, kind) {
       ${o.issue && kind === "mine" ? `<span class="pill st-annulee">⚠️ Souci signalé : ${UI.esc(o.issue)}</span>` : ""}
       ${o.unlocked ? `<span class="pill paid">🔓 Débloquée par HOP : « Livré » possible sans GPS ni photo</span>` : ""}
       ${needPhoto(o) && kind === "mine" ? `<span class="pill unpaid">${photoWhy(o)}</span>` : ""}
-      ${o.goods_pay === "recu" ? `<span class="pill paid">✅ Articles déjà payés au commerce par le client : rien à avancer</span>` : ""}
+      ${o.goods_pay === "recu" ? `<span class="pill paid">✅ Articles déjà payés au commerce par le client : rien à avancer</span>` : goodsSelf(o) ? `<span class="pill">${goodsSelf(o)}</span>` : ""}
       ${hopPaid ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${o.payment_status === "paye" ? `✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse ${UI.money(net)}` : (o.payment_method === "bit" ? "📱 Le client paie par Bit à HOP : n'encaissez rien" : "💳 Paiement d'avance à HOP en attente : n'encaissez rien")}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
     </div>

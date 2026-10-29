@@ -435,7 +435,8 @@ function renderPrep() {
       : `<b class="${left < 0 ? "prep-late" : ""}">${UI.esc(left < 0 ? t("spLate", { min: -left }) : t("spReadyIn", { min: Math.max(0, left) }))}</b> · ${UI.esc(courier)}`;
     // Articles payés d'avance : on prépare seulement une fois le paiement reçu
     const amount = Number(o.items_total) > 0 ? UI.money(o.items_total) : "";
-    const goods = !o.goods_pay ? ""
+    // Pas de lien de paiement : le commerce encaisse lui-même les articles (le livreur n'encaisse que la livraison)
+    const goods = !o.goods_pay ? (Number(o.items_total) > 0 && o.payment_method !== "cash" && !o.shop_sent ? `<p class="goods-line wait">${UI.esc(t("spGoodsSelf", { amount }))}</p>` : "")
       : o.goods_pay === "recu" ? `<p class="goods-line ok">${UI.esc(t("spGoodsOk", { amount }))}</p>`
       : o.goods_pay === "pas_recu" ? `<p class="goods-line bad">${UI.esc(t("spGoodsNo"))}</p>`
       : `<div class="goods-line ${o.goods_pay === "declare" ? "due" : "wait"}"><b>${UI.esc(t(o.goods_pay === "declare" ? "spGoodsDeclared" : "spGoodsTodo", { amount }))}</b>

@@ -233,6 +233,9 @@ label.check input { width: 20px; height: 20px; accent-color: var(--brand); flex:
 .choice span small { color: var(--muted); font-size: 12px; }
 .choice input:checked + span { border-color: var(--brand); background: var(--brand-soft); }
 .choice input:focus-visible + span { outline: 2px solid var(--brand); outline-offset: 2px; }
+/* Espèces impossibles pour cette commande : le choix reste visible (la raison est écrite dessous), mais éteint */
+.choice.choice-off > span { opacity: .55; }
+.choice.choice-off > span small { color: var(--red); font-weight: 700; }
 .choice span i.bit-logo { font-weight: 900; font-size: 15px; color: #fff; background: var(--bit); border-radius: 8px; padding: 1px 8px; align-self: flex-start; }
 
 /* Champs affichés selon le type de service */

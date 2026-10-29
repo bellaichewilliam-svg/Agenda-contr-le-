@@ -294,15 +294,102 @@ const COURSES_POSTS = [
 🧾 המחיר האמיתי של החנות + המשלוח, 0 דמי שירות
 👈 כל מה שאנחנו מביאים: ${livreHe}` }
 ];
+// « L'appli évolue » et « Avant Chabbat » : textes qui vont avec les visuels
+const VISITE_POSTS = [
+  { title: "👀 L'appli évolue : pensez à nous visiter (français)", dir: "ltr", text:
+`👀 Vous connaissez ${nameFr} ? L'appli évolue toutes les semaines !
+
+🆕 De nouveaux commerces de ${UI.cityFr(home)} se rajoutent les uns après les autres : restaurants, épiceries, boulangeries, boutiques…
+🛒 Leur carte est dans l'appli : vous commandez en 1 minute, le livreur vous apporte tout.
+📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais de service
+
+👉 Pensez à nous visiter, il y a du nouveau : ${url}` },
+  { title: "👀 האפליקציה מתפתחת: בואו לבקר אותנו (עברית)", dir: "rtl", text:
+`👀 מכירים את ${nameHe}? האפליקציה מתפתחת כל שבוע!
+
+🆕 עסקים חדשים מ${heHome} מצטרפים אחד אחרי השני: מסעדות, מכולות, מאפיות, חנויות…
+🛒 התפריט שלהם באפליקציה: מזמינים תוך דקה, והשליח מביא הכול.
+📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 0 דמי שירות
+
+👈 בואו לבקר אותנו, יש חדש: ${url}?lang=he` },
+  { title: "👀 Phrases courtes « L'appli évolue » (story, statut)", dir: "ltr", text:
+`🆕 Du nouveau sur ${nameFr} : de nouveaux commerces chaque semaine. Pensez à nous visiter 👀 ${url}
+🍣🍔🥐 Restaurants, épiceries, boulangeries de ${UI.cityFr(home)} : ils arrivent sur HOP! les uns après les autres.
+🆕 חדש ב${nameHe}: עסקים חדשים כל שבוע. בואו לבקר אותנו 👀 ${url}?lang=he
+🍣🍔🥐 מסעדות, מכולות ומאפיות ב${heHome} מצטרפות להופ! אחת אחרי השנייה.` }
+];
+const CHABBAT_POSTS = [
+  { title: "🕯️ Courses de dernière minute avant Chabbat (français)", dir: "ltr", text:
+`🕯️ Vendredi, courses de dernière minute avant Chabbat ?
+
+Pas le temps de courir ? Dites-nous ce qu'il vous faut, on achète et on vous livre : vous préparez tranquille.
+🥖 Hallot · 🍗 Poulet, viande · 🍷 Vin, jus de raisin · 💐 Fleurs · 🍰 Pâtisserie
+🛒 Tous les magasins de ${UI.cityFr(home)}, même les petits : le prix réel du magasin + la livraison, 0 frais de service
+📍 Suivi en direct · 💵 Espèces ou Bit
+
+Chabbat chalom ! 🕯️ 👉 Commander en 1 minute : ${livre}` },
+  { title: "🕯️ קניות של הרגע האחרון לפני שבת (עברית)", dir: "rtl", text:
+`🕯️ יום שישי, קניות של הרגע האחרון לפני שבת?
+
+אין זמן לרוץ? כתבו לנו מה צריך, אנחנו קונים ומביאים: ואתם מכינים בשקט.
+🥖 חלות · 🍗 עוף, בשר · 🍷 יין, מיץ ענבים · 💐 פרחים · 🍰 קינוחים
+🛒 כל החנויות ב${heHome}, גם הקטנות: המחיר האמיתי של החנות + המשלוח, 0 דמי שירות
+📍 מעקב בזמן אמת · 💵 מזומן או ביט
+
+שבת שלום! 🕯️ 👈 מזמינים תוך דקה: ${livreHe}` },
+  { title: "🥖 Pensez à vos hallot ! (français)", dir: "ltr", text:
+`🥖 Pensez à vos hallot !
+
+Hallot fraîches de la boulangerie que vous aimez, livrées chez vous le vendredi. Et avec, le gâteau du Chabbat 😉
+🥐 Viennoiseries · 🍪 Biscuits · 🍰 Gâteaux : écrivez votre liste, on passe la prendre.
+🛵 Achat + livraison dans ${UI.cityFr(home)} : ${UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase)}
+
+Chabbat chalom ! 👉 ${livre}` },
+  { title: "🥖 אל תשכחו את החלות! (עברית)", dir: "rtl", text:
+`🥖 אל תשכחו את החלות!
+
+חלות טריות מהמאפייה שאתם אוהבים, עד הבית ביום שישי. ועם זה, עוגה לשבת 😉
+🥐 מאפים · 🍪 עוגיות · 🍰 עוגות: כתבו את הרשימה, אנחנו עוברים לקחת.
+🛵 קנייה + משלוח בתוך ${heHome}: ${UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase)}
+
+שבת שלום! 👈 ${livreHe}` },
+  { title: "🍷 Tout pour la table de Chabbat (français)", dir: "ltr", text:
+`🍷 Tout pour la table de Chabbat, livré à votre porte.
+
+Vin, fleurs, pâtisserie, salades et mezzés, épicerie : on fait vos courses dans tous les magasins de ${UI.cityFr(home)} et on livre le vendredi, jusqu'à la dernière minute.
+🧾 Le prix réel du magasin + la livraison, 0 frais de service
+📍 Suivi en direct · 💵 Espèces ou Bit
+
+Chabbat chalom ! 🕯️ 👉 ${livre}` },
+  { title: "🍷 הכול לשולחן השבת (עברית)", dir: "rtl", text:
+`🍷 הכול לשולחן השבת, עד הדלת.
+
+יין, פרחים, קינוחים, סלטים ומזה, מכולת: עושים לכם את הקניות בכל החנויות ב${heHome} ומביאים ביום שישי, עד הרגע האחרון.
+🧾 המחיר האמיתי של החנות + המשלוח, 0 דמי שירות
+📍 מעקב בזמן אמת · 💵 מזומן או ביט
+
+שבת שלום! 🕯️ 👈 ${livreHe}` },
+  { title: "🕯️ Phrases courtes « avant Chabbat » (story, statut, légende)", dir: "ltr", text:
+`🕯️ Vendredi, pas le temps de courir ? On fait vos courses et on vous livre avant Chabbat. Chabbat chalom ! ${livre}
+🥖 Vos hallot, livrées le vendredi. Pensez-y ! 😉
+🍷 Vin, fleurs, gâteau : la table de Chabbat arrive par HOP!
+🕯️ יום שישי, אין זמן לרוץ? אנחנו עושים לכם את הקניות ומביאים לפני שבת. שבת שלום! ${livreHe}
+🥖 החלות שלכם, עד הבית ביום שישי. אל תשכחו! 😉
+🍷 יין, פרחים, עוגה: שולחן השבת מגיע עם הופ!` }
+];
 // Pour qui est chaque texte de POSTS (dans l'ordre) : clients, commerces ou livreurs
 const POST_AUD = ["client", "client", "shop", "shop", "client", "client", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "rider", "rider", "client", "client"];
-const ALL_POSTS = COURSES_POSTS.concat(NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
+const ALL_POSTS = CHABBAT_POSTS.concat(VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
   .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
 
 // Campagnes de visuels : chaque carte = un message, avec ses formats (post carré, story, flyer A5) et sa vidéo
 const V = "kit/visuels/";
 const CAMPS = [
-  { id: "courses", aud: "client", isNew: true, title: "🛒 On fait toutes vos courses", desc: "Les catégories de l'appli en 3 étapes. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story", "flyer"], video: true },
+  { id: "chabbat", aud: "client", isNew: true, title: "🕯️ Courses de dernière minute avant Chabbat", desc: "Le vendredi : hallot, poulet, vin, fleurs… « Dites-nous ce qu'il vous faut, on achète et on livre. »", formats: ["post", "story", "flyer"] },
+  { id: "halot", aud: "client", isNew: true, title: "🥖 Pensez à vos hallot !", desc: "Boulangerie livrée le vendredi : hallot tressées, gâteaux, biscuits, viennoiseries.", formats: ["post", "story", "flyer"] },
+  { id: "table", aud: "client", isNew: true, title: "🍷 Tout pour la table de Chabbat", desc: "Vin, fleurs, pâtisserie, salades : courses dans tous les magasins de Netanya, livrées à la porte.", formats: ["post", "story", "flyer"] },
+  { id: "visite", aud: "client", isNew: true, title: "👀 L'appli évolue : pensez à nous visiter", desc: "De nouveaux commerces se rajoutent chaque semaine : invitation à revenir voir l'appli. Le QR ouvre l'accueil.", formats: ["post", "story", "flyer"] },
+  { id: "courses", aud: "client", title: "🛒 On fait toutes vos courses", desc: "Les catégories de l'appli en 3 étapes. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story", "flyer"], video: true },
   { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires", desc: "Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush, avec leurs vrais logos.", formats: ["post", "story"], video: true },
   { id: "client", aud: "client", title: "🎁 Première course à 15 ₪", desc: "Le message de lancement : prix, suivi en direct, espèces ou Bit.", formats: ["post", "story", "flyer"] },
   { id: "resto", aud: "shop", title: "🔥 Restaurants : « Gardez 100 % de vos ventes »", desc: "Le calcul qui fait réagir : 0 % de commission.", formats: ["post", "story", "flyer"] },
