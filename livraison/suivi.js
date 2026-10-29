@@ -66,13 +66,23 @@ function setMarker(key, lat, lon, emoji) {
 }
 
 // Le scooter du livreur glisse en douceur d'une position à la suivante (pas de saut)
-let anim = null;
-const scooterIcon = () => L.divIcon({ className: "", iconSize: [46, 46], iconAnchor: [23, 23], html: `<div class="trk-scooter">🛵</div>` });
+let anim = null, routeLine = null;
+const scooterIcon = () => L.divIcon({ className: "", iconSize: [46, 46], iconAnchor: [23, 23], html: `<div class="trk-scooter"><span>🛵</span></div>` });
+// Le scooter regarde dans le sens de sa route (cap entre deux positions)
+function headScooter(from, to) {
+  const el = markers.courier && markers.courier.getElement() && markers.courier.getElement().querySelector(".trk-scooter > span");
+  if (!el) return;
+  const dy = to.lat - from.lat, dx = (to.lng - from.lng) * Math.cos(from.lat * Math.PI / 180);
+  if (Math.abs(dx) + Math.abs(dy) < 1e-6) return;
+  // (l'emoji roule vers la gauche : miroir quand on va vers l'est)
+  el.style.transform = dx > 0 ? "scaleX(-1)" : "";
+}
 function moveCourier(lat, lon) {
   if (!map) return;
   if (!markers.courier) { markers.courier = L.marker([lat, lon], { icon: scooterIcon(), zIndexOffset: 1000 }).addTo(map); return; }
   const from = markers.courier.getLatLng(), to = L.latLng(lat, lon);
   if (from.equals(to)) return;
+  headScooter(from, to);
   cancelAnimationFrame(anim);
   const t0 = performance.now(), dur = 9000;   // jusqu'à la prochaine mise à jour (10 s)
   const step = now => {
@@ -126,6 +136,12 @@ function updateMap(o) {
   const live = o.courier_lat != null;
   if (live) moveCourier(Number(o.courier_lat), Number(o.courier_lon));
   else if (markers.courier) { map.removeLayer(markers.courier); delete markers.courier; }
+  // Tracé (pointillé animé) du livreur jusqu'à son prochain arrêt : le commerce, puis vous
+  const tgt = o.status === "confirmee" ? [o.pickup_lat, o.pickup_lon] : o.status === "recuperee" ? [o.dropoff_lat, o.dropoff_lon] : null;
+  if (live && tgt && tgt[0] != null) {
+    const pts = [[Number(o.courier_lat), Number(o.courier_lon)], [Number(tgt[0]), Number(tgt[1])]];
+    if (routeLine) routeLine.setLatLngs(pts); else routeLine = L.polyline(pts, { color: "#FF6A00", weight: 4, opacity: .85, className: "trk-route" }).addTo(map);
+  } else if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
   // Recentrer au premier affichage et quand le coursier apparaît
   if (!fitted || (live && !courierSeen)) {
     const pts = Object.values(markers).map(m => m.getLatLng());
@@ -264,9 +280,34 @@ function etaBox(o) {
   $("#eta").innerHTML = `<small>${UI.esc(t("orderNo", { ref: o.ref }))}</small><b>${UI.esc(main)}</b>${sub ? `<small>${UI.esc(sub)}</small>` : ""}`;
 }
 
+// Carte du livreur sur la carte : prénom, « arrive dans ≈ X min · 1,2 km », appeler, écrire
+function renderCourierCard(o) {
+  const box = $("#trkCard"), live = o && o.courier_lat != null && ["confirmee", "recuperee"].includes(o.status);
+  document.body.classList.toggle("trk-live", !!(o && ["confirmee", "recuperee"].includes(o.status)));
+  $("#trkFull").classList.toggle("hidden", !live);
+  box.classList.toggle("hidden", !live);
+  if (!live) { if (document.body.classList.contains("map-full")) setMapFull(false); return; }
+  const name = String(o.courier_name || "").split(" ")[0] || t("tkCourier"), courier = { lat: o.courier_lat, lon: o.courier_lon };
+  const tgt = o.status === "confirmee" ? { lat: o.pickup_lat, lon: o.pickup_lon } : { lat: o.dropoff_lat, lon: o.dropoff_lon };
+  const min = tgt.lat != null ? Pricing.etaMinutes(courier, tgt) : null, km = tgt.lat != null ? (Pricing.haversineKm(courier, tgt) * 1.3).toFixed(1).replace(".", ",") : null;
+  const initials = name.slice(0, 2).toUpperCase();
+  const phone = String(o.courier_phone || "").replace(/[^\d+]/g, "");
+  const html = `<span class="trk-ava">${UI.esc(initials)}</span><span class="trk-txt"><b>${UI.esc(min != null ? t(o.status === "confirmee" ? "tkToPickup" : "tkToDrop", { name, min }) : name)}</b><small>🛵 ${UI.esc(t("tkCourier"))}${km ? " · " + UI.esc(t("tkDist", { km })) : ""}</small></span>
+    ${phone ? `<a class="trk-btn" href="tel:${UI.esc(phone)}" aria-label="${UI.esc(t("trCall"))}">📞</a>` : ""}<button type="button" class="trk-btn wa" data-trk-chat aria-label="${UI.esc(t("chOpen"))}">💬</button>`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+function setMapFull(on) {
+  document.body.classList.toggle("map-full", on);
+  $("#trkFull").textContent = on ? "⤡" : "⤢";
+  $("#trkFull").setAttribute("aria-label", on ? t("tkSmall") : t("tkFull"));
+  if (map) setTimeout(() => { map.invalidateSize(); const pts = Object.values(markers).map(m => m.getLatLng()); if (pts.length) map.fitBounds(L.latLngBounds(pts).pad(0.25), { maxZoom: 16 }); }, 60);
+}
+$("#trkFull").addEventListener("click", () => setMapFull(!document.body.classList.contains("map-full")));
+$("#trkCard").addEventListener("click", e => { if (e.target.closest("[data-trk-chat]")) { if (document.body.classList.contains("map-full")) setMapFull(false); $("#chatBtn").click(); } });
 function render() {
   const o = order;
   I18N.apply();
+  renderCourierCard(o);
   $("#brandName").innerHTML = UI.wordmark();
   if (!o) {
     $("#eta").innerHTML = `<b>${UI.esc(t("trNotFound"))}</b>`;
