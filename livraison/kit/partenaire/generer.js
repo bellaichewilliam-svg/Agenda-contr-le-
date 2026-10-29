@@ -49,14 +49,18 @@ h1{font-family:Fredoka;font-weight:700;line-height:1.04}
 h1 em{font-style:normal;color:#FFB27F}
 .tag{font-weight:700;opacity:.92;line-height:1.25}
 .how{font-weight:500;opacity:.88;line-height:1.3}
-.items{display:flex;gap:14px}
-.item{flex:1;background:#fff;color:#0F1F3D;border-radius:26px;display:flex;align-items:center;gap:12px;padding:12px 16px;font-weight:800;box-shadow:0 14px 30px rgba(0,0,0,.3)}
+.items{display:flex;flex-wrap:wrap;gap:14px}
+.item{flex:1 1 0;min-width:0;background:#fff;color:#0F1F3D;border-radius:26px;display:flex;align-items:center;gap:12px;padding:12px 16px;font-weight:800;line-height:1.15;box-shadow:0 14px 30px rgba(0,0,0,.3)}
+.story .item{flex:1 1 44%}
 .item span{flex:none;display:grid;place-items:center;border-radius:18px;background:radial-gradient(circle at 30% 25%,hsl(var(--h) 100% 97%),hsl(var(--h) 85% 84%) 70%)}
 .item img{width:72%;height:72%;object-fit:contain}
 .foot{display:flex;align-items:center;justify-content:space-between;gap:24px}
 .price{background:#fff;color:#0F1F3D;border-radius:30px;padding:18px 28px;display:flex;align-items:center;justify-content:space-between;gap:20px;font-weight:700}
 .price b{font-family:Fredoka;color:#FF6A13;line-height:1;white-space:nowrap}
-.badge{background:#FF6A13;color:#fff;border-radius:22px;padding:10px 20px;font-family:Fredoka;font-weight:700;white-space:nowrap}
+.badge{background:#FF6A13;color:#fff;border-radius:22px;padding:10px 20px;font-family:Fredoka;font-weight:700;line-height:1.15}
+.price>b{white-space:nowrap}
+.foot>div{min-width:0}
+.foot .qrbox{flex:none}
 .seal{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:99px;background:linear-gradient(135deg,#1E3A8A,#1D4ED8 55%,#3B82F6);color:#fff;font-weight:800;border:3px solid #fff}
 .qrbox{background:#fff;border-radius:26px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:6px;color:#0F1F3D;font-weight:800;text-align:center}
 .qrbox img,.qrbox canvas{display:block}
@@ -71,7 +75,7 @@ function page(p, lang, fmt) {
   const lg = story ? 420 : 360;
   const scoot = (w, style) => SCOOTER.replace('width="118" height="83"', `width="${w}" height="${Math.round(w * 0.7)}"`).replace('class="scoot"', `class="scoot" style="${style}"`);
   const items = (p.items || []).slice(0, story ? 4 : 3);
-  const html = `<div class="page ${he ? 'he' : ''}" style="width:${W}px;height:${H}px;padding:${pad}px;gap:${story ? 30 : 20}px">
+  const html = `<div class="page ${he ? 'he' : ''}${story ? ' story' : ''}" style="width:${W}px;height:${H}px;padding:${pad}px;gap:${story ? 30 : 20}px">
     <div class="top"><div style="display:flex;align-items:center;gap:20px"><div class="lg">${LOGO}</div><div class="wm">${he ? 'הופ' : 'HOP'}<i>!</i></div></div>
       <span class="kick" style="font-size:${Math.round(28 * k)}px">✨ ${t.kicker}</span></div>
     <div class="hero" style="${story ? 'flex-direction:column;align-items:flex-start;gap:26px' : ''}">
@@ -130,6 +134,8 @@ async function showcase() {
       await pg.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${pg0.html}<script>${qrJs}</script>
         <script>new QRCode(document.getElementById('q'), { text: ${JSON.stringify(pg0.link)}, width: ${pg0.qrSize}, height: ${pg0.qrSize}, correctLevel: QRCode.CorrectLevel.M });</script></body></html>`);
       await pg.evaluate(() => document.fonts.ready);
+      await pg.evaluate(H => { const p = document.querySelector('.page'), h1 = p.querySelector('h1'), sub = p.querySelector('.how');
+        for (let i = 0; i < 12 && p.scrollHeight > H; i++) { h1.style.fontSize = (parseFloat(getComputedStyle(h1).fontSize) * 0.93) + 'px'; if (sub) sub.style.fontSize = (parseFloat(getComputedStyle(sub).fontSize) * 0.96) + 'px'; } }, pg0.H);
       await pg.waitForTimeout(300);
       const name = `partenaire-${code.toLowerCase()}-${fmt}-${lang}`;
       await pg.screenshot({ path: `${OUT}/${name}.png`, clip: { x: 0, y: 0, width: pg0.W, height: pg0.H } });
