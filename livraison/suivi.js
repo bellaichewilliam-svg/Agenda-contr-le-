@@ -352,6 +352,7 @@ function render() {
   renderRate(o);
   renderTip(o);
   renderShopRate(o);
+  renderDoneFlow(o);
 
   const step = FLOW.indexOf(o.status);
   const labels = ["trStep1", "trStep2", "trStep3", "trStep4"];
@@ -574,6 +575,102 @@ $("#tipBox").addEventListener("click", async e => {
     $("#tipErr").textContent = t("tpErr");
     $("#tipErr").classList.remove("hidden");
     e.target.disabled = false;
+  }
+});
+
+// --- Écran plein après la livraison : 5 visages + pourboire, puis petits mots, puis merci --------
+// S'ouvre une fois à la livraison tant que la course n'est pas notée ; « Passer » le referme pour de bon
+// (les cartes de note et de pourboire restent sur la page).
+const FACES = [
+  '<path d="M15 19l5 3-5 3M33 19l-5 3 5 3" stroke-width="2.6"/><path d="M15 36c3-5 15-5 18 0" stroke-width="2.8"/>',
+  '<circle cx="17" cy="21" r="2.8"/><circle cx="31" cy="21" r="2.8"/><path d="M16 35c3-4.5 13-4.5 16 0" stroke-width="2.8"/>',
+  '<circle cx="17" cy="21" r="2.8"/><circle cx="31" cy="21" r="2.8"/><path d="M17 32h14" stroke-width="2.8"/>',
+  '<circle cx="17" cy="21" r="2.8"/><circle cx="31" cy="21" r="2.8"/><path d="M15.5 29.5c3.5 5 13.5 5 17 0" stroke-width="2.8"/>',
+  '<path d="M13.5 22c1.5-3.5 5.5-3.5 7 0M27.5 22c1.5-3.5 5.5-3.5 7 0" stroke-width="2.6"/><path d="M14 28h20c0 6-4.5 9-10 9s-10-3-10-9z" class="df-mouth"/>'
+];
+const df = { step: 0, stars: 0, tip: 0, tags: new Set(), note: "", open: false, shown: false, err: "" };
+const dfKey = o => "hop.doneflow." + o.ref;
+function dfSkipped(o) { try { return localStorage.getItem(dfKey(o)) === "1"; } catch (e) { return false; } }
+function renderDoneFlow(o) {
+  const box = $("#doneFlow");
+  if (!box) return;
+  if (!df.shown) {
+    const recent = Date.now() - new Date(o.delivered_at || o.pickup_at) < 7 * 86400000;
+    if (o.status !== "livree" || o.rating != null || rate.sent || !recent || dfSkipped(o)) return;
+    df.shown = df.open = true;
+    drawDoneFlow();
+  }
+}
+function closeDoneFlow(skip) {
+  df.open = false;
+  if (skip && order) { try { localStorage.setItem(dfKey(order), "1"); } catch (e) { /* ignore */ } }
+  $("#doneFlow").classList.add("hidden");
+  document.body.classList.remove("df-open");
+}
+function drawDoneFlow() {
+  const box = $("#doneFlow"), o = order;
+  if (!df.open || !o) return;
+  const day = new Date(o.delivered_at || o.pickup_at).toLocaleDateString(I18N.lang === "he" ? "he-IL" : "fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+  const who = o.shop_name ? UI.bi(o.shop_name) : "HOP!";
+  const canTip = !!o.courier_id && !o.tip_status;
+  const tips = [0, ...(CONFIG.platform.tips || [5, 10, 15])];
+  let body = "";
+  if (df.step === 0) {
+    body = `<div class="df-logo"><img src="logo.svg" alt="HOP!" /></div>
+      <p class="df-meta">${UI.esc(who)} · ${UI.esc(day)}</p>
+      <h2 class="df-title">${UI.esc(t("dfTitle"))}</h2>
+      <p class="df-sub">${UI.esc(t("dfSub"))}</p>
+      <div class="df-faces${df.stars ? " picked" : ""}" role="radiogroup">${FACES.map((f, i) => `<button type="button" class="df-face${df.stars === i + 1 ? " on" : ""}" data-face="${i + 1}" role="radio" aria-checked="${df.stars === i + 1}"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="23" class="df-skin"/><g class="df-feat">${f}</g></svg><span>${UI.esc(t("dfF" + (i + 1)))}</span></button>`).join("")}</div>
+      ${canTip ? `<h3 class="df-h3">${UI.esc(t("dfTipTitle"))}</h3><p class="df-sub">${UI.esc(t("dfTipSub"))}</p>
+      <div class="df-tips" style="--n:${tips.length}">${tips.map(n => `<button type="button" class="df-tip${df.tip === n ? " on" : ""}" data-dftip="${n}">${UI.money(n)}</button>`).join("")}</div>` : ""}
+      <div class="df-foot"><button type="button" class="df-next" id="dfNext"${df.stars ? "" : " disabled"}>${UI.esc(t("dfNext"))}</button></div>`;
+  } else if (df.step === 1) {
+    const tags = df.stars <= 3 ? BAD : GOOD;
+    body = `<div class="df-bigface"><svg viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="23" class="df-skin"/><g class="df-feat">${FACES[df.stars - 1]}</g></svg></div>
+      <h2 class="df-title">${UI.esc(t(df.stars <= 3 ? "dfBadQ" : "dfGoodQ"))}</h2>
+      <div class="df-tags">${tags.map(k => `<button type="button" class="df-tag${df.tags.has(k) ? " on" : ""}" data-dftag="${k}">${UI.esc(t("rt_" + k))}</button>`).join("")}</div>
+      <textarea id="dfNote" rows="3" maxlength="300" placeholder="${UI.esc(t("rtNotePh"))}">${UI.esc(df.note)}</textarea>
+      ${df.err ? `<p class="df-err">${UI.esc(df.err)}</p>` : ""}
+      <div class="df-foot"><button type="button" class="df-next" id="dfSend">${UI.esc(df.tip ? t("dfSendTip", { amount: UI.money(df.tip) }) : t("dfSend"))}</button></div>`;
+  } else {
+    const tipLine = df.tip ? `<p class="df-pay">${UI.esc(t("dfTipPay", { amount: UI.money(df.tip), phone: UI.bitFor(o), ref: String(o.ref).replace(/-/g, "\u2011") }))}</p><button type="button" class="df-ghost" id="dfCopy">${UI.esc(t("trCopy"))}</button>` : "";
+    body = `<div class="df-logo df-ok"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M13 25l7 7 15-16" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <h2 class="df-title">${UI.esc(t("dfThanks"))}</h2>
+      <p class="df-sub">${UI.esc(t(df.stars <= 3 ? "dfLowSub" : "dfOkSub"))}</p>
+      ${tipLine}
+      <div class="df-foot"><button type="button" class="df-next" id="dfDone">${UI.esc(t("dfDone"))}</button></div>`;
+  }
+  box.innerHTML = `<div class="df-in">${df.step < 2 ? `<button type="button" class="df-skip" id="dfSkip">${UI.esc(t("dfSkip"))}</button>` : ""}${body}</div>`;
+  box.classList.remove("hidden");
+  document.body.classList.add("df-open");
+}
+$("#doneFlow").addEventListener("input", e => { if (e.target.id === "dfNote") df.note = e.target.value; });
+$("#doneFlow").addEventListener("click", async e => {
+  const face = e.target.closest("[data-face]");
+  if (face) { const was = df.stars; df.stars = Number(face.dataset.face); if ((was <= 3) !== (df.stars <= 3)) df.tags.clear(); return drawDoneFlow(); }
+  const tp = e.target.closest("[data-dftip]");
+  if (tp) { df.tip = Number(tp.dataset.dftip); return drawDoneFlow(); }
+  const tg = e.target.closest("[data-dftag]");
+  if (tg) { df.tags.has(tg.dataset.dftag) ? df.tags.delete(tg.dataset.dftag) : df.tags.add(tg.dataset.dftag); return drawDoneFlow(); }
+  const id = e.target.closest("button")?.id;
+  if (id === "dfSkip") return closeDoneFlow(true);
+  if (id === "dfNext" && df.stars) { df.step = 1; return drawDoneFlow(); }
+  if (id === "dfCopy") { navigator.clipboard && navigator.clipboard.writeText(String(UI.bitFor(order))).catch(() => {}); e.target.textContent = "✓"; return; }
+  if (id === "dfDone") return closeDoneFlow(false);
+  if (id === "dfSend") {
+    e.target.disabled = true;
+    try {
+      if (!(await Store.rateOrder(token, df.stars, [...df.tags], df.note))) throw new Error("refused");
+      rate.sent = df.stars;
+      if (df.tip && !(await Store.tipOrder(token, df.tip).catch(() => false))) df.tip = 0;
+      df.step = 2; df.err = "";
+      if (df.stars >= 4) celebrate();
+      drawDoneFlow();
+      load();
+    } catch (ex) {
+      df.err = t("rtErr");
+      drawDoneFlow();
+    }
   }
 });
 
