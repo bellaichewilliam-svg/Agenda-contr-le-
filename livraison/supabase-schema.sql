@@ -8270,3 +8270,133 @@ begin
 end;
 $$;
 revoke execute on function public.orders_done_msg() from public, anon, authenticated;
+
+-- ============================================================================
+-- CATALOGUES EN HÉBREU SEULEMENT → « français · hébreu » (UI.bi montre la bonne langue). Dictionnaire hop_dict
+-- (hébreu → français, du plus long au plus court), hop_tr / hop_tr_clean, et un déclencheur qui traduit tout seul un
+-- plat ou une rubrique saisi en hébreu (seulement si tout a pu être traduit). Textes d'origine copiés dans hop_catalog_backup.
+-- Appliqué en ligne le 29/10 (Panda Sushi, Smash It, Marché Français, Paris Texas).
+-- ============================================================================
+create table if not exists public.hop_dict (k text primary key, v text not null);
+alter table public.hop_dict enable row level security;
+insert into public.hop_dict (k, v) select key, value from jsonb_each_text('{"סטים":"Sets","רולים קלאסיים":"Rolls classiques","רולים חמים":"Rolls chauds","רולים אפויים":"Rolls gratinés","רולים":"Rolls","טובוסי סושי":"Sushi tubes","סנדוויץ׳ רול חם":"Sandwich roll chaud","גונקאנים":"Gunkans","פוקה":"Poké","מנות ראשונות חמות":"Entrées chaudes","גיוזה":"Gyoza","מרקים":"Soupes","סלטים":"Salades","נודלס ואורז":"Nouilles et riz","מוצ׳י":"Mochi","משקאות":"Boissons","שתייה":"Boissons","רטבים":"Sauces","תוספות ושרינג":"À partager","ארוחות":"Menus","המבורגרים":"Burgers","מנה 2 יחידות":"2 pièces","(6 יחידות)":"(6 pièces)","מנה של 15 יח''":"15 pièces","(10 יח'')":"(10 pièces)","10 יחידות":"10 pièces","גבינת שמנת":"cream cheese","גבינת פילדלפיה":"cream cheese Philadelphia","גבינת צ׳דר":"cheddar","גבינה נמס":"fromage fondant","כיפת גבינה חריפה":"dôme de fromage pimenté","כיפת גבינה":"dôme de fromage","כיפה אפויה חריפה":"dôme gratiné pimenté","שרימפס בטמפורה":"crevettes tempura","שרימפס טמפורה":"crevettes tempura","שרימפס טייגר":"crevettes tigrées","שרימפס מטוגן":"crevettes frites","שרימפס בבלילת בירה":"crevettes en pâte à la bière","סלמון צרוב":"saumon snacké","סלמון מטוגן":"saumon frit","סלמון אפוי":"saumon gratiné","איקרה סלמון":"œufs de saumon","טרטר סלמון וטונה":"tartare saumon et thon","טרטר סלמון חריף":"tartare de saumon pimenté","טרטר סלמון עם סרירצ׳ה ושמן שומשום":"tartare de saumon sriracha et huile de sésame","טרטר סלמון עם רוטב טום ים":"tartare de saumon sauce tom yam","טרטר סלמון":"tartare de saumon","טרטר טונה":"tartare de thon","ספייסי מיונז":"mayo épicée","רוטב ספייסי מיונז":"sauce mayo épicée","רוטב טריאקי":"sauce teriyaki","רוטב חריף":"sauce piquante","רוטב מנגו-צ׳ילי":"sauce mangue-piment","רוטב מיסו-דבש":"sauce miso-miel","רוטב בנג בנג":"sauce bang bang","רוטב הוט האני":"sauce hot honey","רוטב קיסר":"sauce César","רוטב שומשום":"sauce sésame","רוטב סויה ווואסבי":"sauce soja et wasabi","רוטב סויה":"sauce soja","רוטב וואסבי":"sauce wasabi","רוטב צ''ילי מתוק":"sauce chili douce","רוטב טרטר":"sauce tartare","רוטב פאד תאי":"sauce pad thaï","רוטב דגים":"sauce poisson","רוטב הבית":"sauce maison","רוטב רויאל":"sauce royale","רוטב צ׳ילי בוטנים":"sauce chili cacahuète","סקאלופ ברוטב כמהין":"Saint-Jacques sauce truffe","פונזו כמהין":"ponzu à la truffe","שמן כמהין":"huile de truffe","שמן שומשום":"huile de sésame","שבבי שקדים":"amandes effilées","שבבי צ׳ילי":"flocons de piment","שומשום זהב":"sésame doré","מיקס טופינג קריספי":"mélange croustillant","בצל קריספי":"oignon croustillant","בצל ירוק":"oignon vert","בצל מטוגן":"oignon frit","בצל אדום":"oignon rouge","בצל סגול קצוץ":"oignon rouge haché","בצל לבן חרוך":"oignon blanc grillé","בצל חרוך":"oignon grillé","פלפל חלפיניו":"jalapeño","פלפל צ׳ילי":"piment","פלפל מתוק":"poivron","עגבניות שרי":"tomates cerises","עלי חסה":"feuilles de laitue","חסה לאליק":"laitue","פטריות שמפיניון":"champignons de Paris","חלב קוקוס":"lait de coco","ציר עוף":"bouillon de poulet","ציר דאשי":"bouillon dashi","מחית מיסו":"pâte de miso","מחית טום יאם":"pâte tom yam","אצות וואקמה":"algues wakamé","אטריות אורז":"nouilles de riz","אטריות זכוכית":"vermicelles de verre","פירורי פנקו":"chapelure panko","תערובת טמפורה":"pâte tempura","אורז בנפרד":"riz à part","סלט צ׳וקה":"salade chuka","גלידת מוצ׳י":"glace mochi","פילה באסה בציפוי פיקנטי":"filet de basa pané épicé","שניצל עוף":"schnitzel de poulet","מקלות גבינה פריכים מבחוץ":"bâtonnets de fromage croustillants","טבעות בצל בציפוי טמפורה קריספית":"rondelles d''oignon en tempura croustillante","כנפיים בציפוי קריספי":"ailes de poulet croustillantes","פילה עוף מושרה במרינדה במעטפת קריספית":"filet de poulet mariné, enrobage croustillant","עוף רך מושרה בבלילה עטוף בציפוי קריספי":"poulet tendre mariné en enrobage croustillant","צ''יפס בשרני במעטפת קריספית":"frites épaisses croustillantes","חמוצי הבית":"pickles maison","קציצות סמאש צרובות":"steaks smash saisis","קציצות סמאש":"steaks smash","קציצת סמאש":"steak smash","קציצות":"steaks","לחמנייה רכה":"pain brioché","לחמניה רכה":"pain brioché","בלחמנייה רכה":"dans un pain brioché","בלחמניה רכה":"dans un pain brioché","צ''דר כשר":"cheddar casher","צ׳דר כשר":"cheddar casher","פרמז׳ן כשר":"parmesan casher","איולי עגבניות מעושן":"aïoli tomate fumée","איולי סריראצה":"aïoli sriracha","איולי סריראצ''ה":"aïoli sriracha","איולי כמהין":"aïoli truffe","איולי צ׳ילי חריף במיוחד":"aïoli chili très piquant","מגיע עם צ''יפס ושתייה לבחירה":"avec frites et boisson au choix","מגיע עם צ׳יפס ושתיה לבחירה":"avec frites et boisson au choix","מגיע עם צ''יפס ושתייה":"avec frites et boisson","מוגש עם צ''יפס ושתייה":"servi avec frites et boisson","מגיע עם קטשופ מיונז בצד":"ketchup et mayo à part","מגיע עם רוטב הבית":"avec sauce maison","מגיע בצד":"à part","מוגש עם רוטב טריאקי":"servi avec sauce teriyaki","מוגש עם רוטב סויה ווואסבי":"servi avec sauce soja et wasabi","מוגש עם רוטב שומשום":"servi avec sauce sésame","מוגש עם רוטב צ''ילי מתוק":"avec sauce chili douce","מנה מלוחה":"plat salé","הרכב הסט:":"Composition :","מים מינרליים ללא גז":"eau minérale plate","110 גרם כל אחת":"110 g chacun","110 גרם":"110 g","2 פרוסות":"2 tranches","אורז":"riz","נורי":"nori","סלמון":"saumon","טונה":"thon","שרימפס":"crevettes","אבוקדו":"avocat","מלפפון":"concombre","טוביקו":"tobiko","אונאגי":"anguille","צלופח":"anguille","סורימי":"surimi","סקאלופ":"Saint-Jacques","קלמרי":"calamar","קלמארי":"calamars","טופו":"tofu","שומשום":"sésame","סומסום":"sésame","טריאקי":"teriyaki","מיונז":"mayo","סרירצ׳ה":"sriracha","טוגרשי":"togarashi","נענע":"menthe","כוסברה":"coriandre","ליים":"citron vert","לימון":"citron","כרישה":"poireau","גזר":"carotte","שום":"ail","תבלינים":"épices","חסה":"laitue","עגבנייה":"tomate","בצל":"oignon","פרמזן":"parmesan","קרוטונים":"croûtons","שרי":"tomates cerises","צ׳וקה":"chuka","פנקו":"panko","טמפורה":"tempura","צ׳דר":"cheddar","מוצרלה":"mozzarella","שוקולד":"chocolat","וניל":"vanille","פיסטוק":"pistache","קוקוס":"coco","דובדבן":"cerise","מנגו":"mangue","אננס":"ananas","טעמים:":"parfums :","עוף":"poulet","עם":"avec","ניגירי":"Nigiri","סשימי":"Sashimi","מאקי":"maki","אבי":"Ebi","אקאי גולד":"Akai Gold","קראנץ׳":"Crunch","פנדה":"Panda","פייר":"Fire","בלופין דרים":"Bluefin Dream","הוט האני איל":"Hot Honey Eel","בלאק וולקנו":"Black Volcano","טוקיו פליים":"Tokyo Flame","גולד":"Gold","בומב":"Bomb","סאראדה":"salada","סראדה":"salada","סאקה":"Sake","חמוצים יפניים":"Pickles japonais","מרק מיסו":"Soupe miso","טום יאם":"Tom yam","סט":"Set","אפוי":"gratiné","אפויה":"gratiné","קלאסי":"classique","קיץ":"été","טוקיו":"Tokyo","שלוש פילדלפיות":"trois Philadelphia","פרימיום":"premium","קליפורניה":"California","פיוז׳ן":"Fusion","לאב":"Love","נטפליקס נייט":"Netflix Night","רול":"Roll","פילדלפיה":"Philadelphia","סאקורה":"Sakura","פוג׳י":"Fuji","קאי":"Kai","גונקאן":"Gunkan","חריף":"pimenté","הוט":"Hot","דאבל פיש":"double poisson","ללא אורז":"sans riz","מגורו":"Maguro","מאגורו":"Maguro","חם":"chaud","קריספי":"Crispy","סושי סנדוויץ׳":"Sushi sandwich","ספיישל":"Special","עדין":"doux","פירות":"fruits","פאד תאי":"Pad thaï","פונצ׳וזה":"Funchoza","מים":"Eau","איזומי":"Izumi","קיוטו":"Kyoto","טבעוני":"vegan","קלאססיק":"classique","פוג׳יאמה":"Fujiyama","רד דרגון":"Red Dragon","וולקנו":"Volcano","שמנת":"crème","בשמנת":"crème","היאשי":"Hiyashi","צ׳יז":"cheese","צרובה":"snacké","לאבה":"Lava","אלסקה":"Alaska","קנדה":"Canada","דלוקס":"deluxe","קאפה":"kappa","פוטורמה":"Futurama","פיש בול":"Fish ball","מקלות גבינה":"Bâtonnets de fromage","ווסבי":"wasabi","שניצל":"Schnitzel","צ''יפס":"Frites","צ׳יפס":"Frites","פיש אנד צ''יפס":"Fish and chips","בטובוס":"en tube","בטמפורה":"tempura","אי":"Ei","סמאש איט":"Smash It","רויאל":"Royal","סולטי":"Salty","אוקלהומה":"Oklahoma","קריספי צ''יקן":"Crispy chicken","ילדים":"enfants","ארוחת":"Menu","ווינגס":"Wings","אוניון רינגס":"Onion rings","כמהין ופרמז׳ן":"truffe et parmesan","נאגטס":"Nuggets","קיט רטבים":"Kit de sauces","האיולי הסודי של":"L''aïoli secret de","קוקה קולה":"Coca-Cola","קולה זירו":"Coca zéro","ספרייט זירו":"Sprite zéro","ספרייט":"Sprite","פאנטה":"Fanta","סודה":"Soda","קרלסברג":"Carlsberg","טובורג":"Tuborg","מ\"ל":"ml","ביסלי":"Bissli","בטעם":"goût","בתעם":"goût","ברביקיו":"barbecue","גריל":"grill","פיצה":"pizza","פלאפל":"falafel","גליץ":"Glitz","דובונים":"Oursons gélifiés","במבה":"Bamba","צד''ר":"cheddar","מלווה":"fourrée","בייגלה":"Bretzels (Beigale)","אפרופו":"Apropo","פופקו":"Popco","חמאה ודבש":"beurre et miel","קרקר זעתר":"Crackers zaatar","טורטיה תירס":"Tortillas de maïs","מארז":"pack de","יחידות":"pièces","גרם":"g","טום ים":"tom yam","טאי":"Tai","בשומשום":"au sésame","\"סולטי\"":"\"Salty\"","מים מינרליים":"Eau minérale","שאלוט":"échalote","רוטב":"sauce","ובצל סגול קצוץ":"et oignon rouge haché","ופרמז׳ן כשר":"et parmesan casher","וחמוצי הבית":"et pickles maison","ואיולי סריראצה":"et aïoli sriracha","(פיקנטי)":"(épicé)","פיקנטי":"épicé","טונה קראנץ׳":"Tuna Crunch"}'::jsonb) on conflict (k) do update set v = excluded.v;
+create table if not exists public.hop_catalog_backup (kind text, id uuid, name text, description text, saved_at timestamptz default now(), primary key (kind, id));
+alter table public.hop_catalog_backup enable row level security;
+
+create or replace function public.hop_tr(p text) returns text language plpgsql stable set search_path = public as $f$
+declare r record; s text := p;
+begin
+  if s is null then return null; end if;
+  for r in select k, v from hop_dict order by length(k) desc loop
+    s := regexp_replace(s, '(^|[^א-ת״׳"''])' || regexp_replace(r.k, '([\^$.|?*+()\[\]{}\\])', '\\\1', 'g') || '(?=$|[^א-ת])', '\1' || r.v, 'g');
+  end loop;
+  s := btrim(regexp_replace(s, '\s+', ' ', 'g'));
+  return upper(left(s, 1)) || substr(s, 2);
+end $f$;
+revoke execute on function public.hop_tr(text) from public, anon, authenticated;
+create or replace function public.hop_tr_clean(p text) returns text language sql stable set search_path = public as $c$
+  select regexp_replace(regexp_replace(public.hop_tr(p), '\s+([.,)])', '\1', 'g'), '\(\s+', '(', 'g')
+$c$;
+revoke execute on function public.hop_tr_clean(text) from public, anon, authenticated;
+
+create or replace function public.catalog_auto_fr() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare fr text; lim int;
+begin
+  lim := case when tg_table_name = 'shop_categories' then 40 else 80 end;
+  if new.name ~ '[א-ת]' and new.name !~ '[A-Za-zÀ-ÿ]' then
+    fr := public.hop_tr_clean(new.name);
+    if fr !~ '[א-ת]' and length(fr || ' · ' || new.name) <= lim then new.name := fr || ' · ' || new.name; end if;
+  end if;
+  if tg_table_name = 'shop_products' and new.description ~ '[א-ת]' and new.description !~ '[A-Za-zÀ-ÿ]' then
+    fr := public.hop_tr_clean(new.description);
+    if fr !~ '[א-ת]' and length(fr || ' · ' || new.description) <= 300 then new.description := fr || ' · ' || new.description; end if;
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.catalog_auto_fr() from public, anon, authenticated;
+create or replace trigger shop_products_auto_fr before insert or update of name, description on public.shop_products
+  for each row execute function public.catalog_auto_fr();
+create or replace trigger shop_categories_auto_fr before insert or update of name on public.shop_categories
+  for each row execute function public.catalog_auto_fr();
+
+-- ============================================================================
+-- AJOUTER UN AUTRE COMMERCE POUR 10 ₪ : pendant addon_min minutes (15) après une commande, le client peut commander
+-- dans un autre commerce partenaire proche (addon_km, 2 km du départ de la 1re), livré à la même adresse, pour
+-- addon_price (10 ₪) de livraison. La base vérifie tout (même téléphone, même adresse, à temps, commerce proche)
+-- et fixe le prix ; le livreur et le patron voient « ➕ Ajout à la commande n° … ».
+-- ============================================================================
+alter table public.settings add column if not exists addon_price numeric(8,2) not null default 10;
+alter table public.settings add column if not exists addon_min int not null default 15;
+alter table public.settings add column if not exists addon_km numeric(5,2) not null default 2;
+alter table public.orders add column if not exists addon_of uuid;
+alter table public.orders add column if not exists addon_ref text;
+
+-- Ce qu'on peut encore ajouter à une commande (suivi du client, catalogue)
+create or replace function public.order_addon_info(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select case when o.id is null then json_build_object('ok', false) else json_build_object(
+    'ok', o.status in ('nouvelle', 'confirmee') and o.addon_of is null and not coalesce(o.is_test, false)
+          and now() < o.created_at + make_interval(mins => st.addon_min),
+    'id', o.id, 'ref', o.ref, 'shop_id', o.shop_id,
+    'until', o.created_at + make_interval(mins => st.addon_min),
+    'price', st.addon_price, 'km', st.addon_km,
+    'lat', coalesce(o.pickup_lat, o.dropoff_lat), 'lon', coalesce(o.pickup_lon, o.dropoff_lon)) end
+  from settings st left join orders o on o.token = p_token where st.id = 1;
+$$;
+revoke execute on function public.order_addon_info(uuid) from public;
+grant execute on function public.order_addon_info(uuid) to anon, authenticated;
+
+create or replace function public.orders_ab_addon() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare p orders; st settings; sh shops; d_drop numeric; d_shop numeric;
+begin
+  if new.addon_of is null then new.addon_ref := null; return new; end if;
+  select * into st from settings where id = 1;
+  select * into p from orders where id = new.addon_of;
+  select * into sh from shops where id = new.shop_id;
+  if p.id is null or p.addon_of is not null or p.status not in ('nouvelle', 'confirmee')
+     or now() > p.created_at + make_interval(mins => st.addon_min + 2)
+     or public.phone_digits(p.contact_phone) <> public.phone_digits(new.contact_phone)
+     or sh.id is null or new.shop_id = p.shop_id then
+    raise exception 'addon_expired';
+  end if;
+  -- Même adresse de livraison (à 300 m près) et commerce proche du premier départ
+  if p.dropoff_lat is not null and new.dropoff_lat is not null then
+    d_drop := 111.32 * sqrt(power(new.dropoff_lat - p.dropoff_lat, 2) + power((new.dropoff_lon - p.dropoff_lon) * cos(radians(p.dropoff_lat)), 2));
+    if d_drop > 0.3 then raise exception 'addon_expired'; end if;
+  end if;
+  if sh.lat is not null and coalesce(p.pickup_lat, p.dropoff_lat) is not null then
+    d_shop := 111.32 * sqrt(power(sh.lat - coalesce(p.pickup_lat, p.dropoff_lat), 2) + power((sh.lon - coalesce(p.pickup_lon, p.dropoff_lon)) * cos(radians(sh.lat)), 2));
+    if d_shop > st.addon_km then raise exception 'addon_expired'; end if;
+  end if;
+  new.price := st.addon_price;
+  new.discount := 0; new.promo_code := null;
+  new.addon_ref := p.ref;
+  new.urgency := case when p.urgency = 'programmee' then p.urgency else new.urgency end;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_ab_addon() from public, anon, authenticated;
+create or replace trigger orders_ab_addon before insert on public.orders
+  for each row execute function public.orders_ab_addon();
+
+-- La vitrine donne aussi la position (ajout d'un autre commerce proche pour 10 ₪)
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'shop_pays', s.shop_pays, 'hours', s.hours, 'kosher', s.kosher,
+           'pro', coalesce(s.plan_until >= current_date, false), 'promo', s.promo, 'promo_he', s.promo_he, 'rank', s.rank,
+           'created_at', s.created_at, 'featured', s.featured, 'lat', s.lat, 'lon', s.lon,
+           'orders30', (select count(*) from orders o where o.shop_id = s.id and o.status in ('confirmee', 'recuperee', 'livree') and o.created_at >= now() - interval '30 days'),
+           'rating', (select round(avg(o.shop_rating)::numeric, 1) from orders o where o.shop_id = s.id and o.shop_rating is not null),
+           'ratings', (select count(*) from orders o where o.shop_id = s.id and o.shop_rating is not null),
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by s.rank nulls last, (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
+$$;
+grant execute on function public.shops_showcase() to anon, authenticated;

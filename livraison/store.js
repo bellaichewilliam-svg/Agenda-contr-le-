@@ -143,7 +143,7 @@ function myId() { const s = session(); return s && s.user_id; }
 const DEFAULT_SETTINGS = {
   accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse,
   referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes,
-  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt, boss_first_seconds: 60, boss_takes: true, boss_only: false, zones_open: ["sharon"],
+  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt, boss_first_seconds: 60, boss_takes: true, boss_only: false, zones_open: ["sharon"], addon_price: 10, addon_min: 15, addon_km: 2,
   carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
   referral_active_days: CONFIG.partners.activeDays,
   deliver_radius: CONFIG.platform.deliverRadius,
@@ -1582,6 +1582,15 @@ async function orderAddable(token) {
   if (ONLINE) return rest("/rest/v1/rpc/order_addable", { method: "POST", body: { p_token: token } });
   return null;   // mode démo : pas d'ajout
 }
+// Ajouter un autre commerce à sa commande (10 ₪ de livraison) : encore possible ? jusqu'à quand, depuis où
+async function orderAddonInfo(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/order_addon_info", { method: "POST", body: { p_token: token } });
+  const o = localOrders().find(x => x.token === token), st = await getSettings();
+  if (!o) return { ok: false };
+  const until = new Date(new Date(o.created_at).getTime() + Number(st.addon_min || 15) * 60000).toISOString();
+  return { ok: ["nouvelle", "confirmee"].includes(o.status) && !o.addon_of && Date.now() < new Date(until), id: o.id, ref: o.ref, shop_id: o.shop_id,
+    until, price: Number(st.addon_price || 10), km: Number(st.addon_km || 2), lat: o.pickup_lat != null ? o.pickup_lat : o.dropoff_lat, lon: o.pickup_lat != null ? o.pickup_lon : o.dropoff_lon };
+}
 async function orderAddItems(token, items, topcase) {
   if (ONLINE) return rest("/rest/v1/rpc/order_add_items", { method: "POST", body: { p_token: token, p_items: items, p_topcase: !!topcase } });
   return { ok: false, error: "demo" };
@@ -2367,7 +2376,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
+  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,

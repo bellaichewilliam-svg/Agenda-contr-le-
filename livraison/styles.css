@@ -1267,6 +1267,19 @@ button.ct-info { border: 0; background: none; padding: 0; text-align: start; fon
 .new-client { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 2px; padding: 4px 10px; border-radius: 99px; background: #EEF4FF; color: #1D4ED8; border: 1px solid #BFD3FF; font-weight: 800; font-size: 13px; }
 .pill.new-client { margin: 0; }
 .welcome-btn { margin: 4px 0 8px; }
+.addon-pill { display: inline-flex; align-items: center; margin: 6px 0 2px; padding: 4px 10px; border-radius: 99px; background: #FFF4E5; color: #B54708; border: 1px solid #FEC84B; font-weight: 800; font-size: 13px; }
+.pill.addon-pill { margin: 0; }
+.addon-bar { position: relative; margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; background: linear-gradient(135deg, #FF8A3D, #E0420A); color: #fff; font-weight: 800; font-size: 14px; text-align: center; box-shadow: 0 6px 16px rgba(224, 66, 10, .25); }
+.ao-card { margin-top: 10px; padding: 12px; border-radius: 18px; background: var(--panel); border: 1.5px solid #FDB022; }
+.ao-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ao-head span { display: grid; gap: 2px; min-width: 0; }
+.ao-head small { font-size: 12.5px; color: var(--muted); }
+.ao-shops { display: flex; gap: 12px; overflow-x: auto; padding: 10px 2px 2px; }
+.ao-shop { flex: 0 0 72px; display: grid; justify-items: center; gap: 5px; text-decoration: none; color: var(--ink); }
+.ao-shop span { width: 60px; height: 60px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #fff; border: 2px solid #FF6A13; }
+.ao-shop img { width: 100%; height: 100%; object-fit: cover; }
+.ao-shop b { font: 700 18px/1 "Fredoka", sans-serif; color: #0F1F3D; }
+.ao-shop small { font-size: 11.5px; font-weight: 700; text-align: center; line-height: 1.2; max-width: 72px; overflow-wrap: anywhere; }
 .welcome-ok { color: #067647; font-weight: 700; margin: 2px 0 6px; }
 #msgModalBtns .welcome-btn { display: flex; justify-content: center; width: 100%; margin: 10px 0 4px; font-size: 15px; padding: 12px; }
 .cash-due h3 { margin: 0 0 8px; }
