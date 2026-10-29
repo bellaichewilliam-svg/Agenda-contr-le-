@@ -1302,7 +1302,11 @@ async function clientGoodsPaid(token) {
 async function shopCashReceived(token, id, amount) {
   const body = { p_token: token, p_id: id };
   if (amount != null) body.p_amount = Number(amount);
-  if (ONLINE) return rest("/rest/v1/rpc/shop_cash_received", { method: "POST", body });
+  if (ONLINE) {
+    // Base pas encore à jour (fonction sans montant) : on note quand même « reçues », au montant des articles
+    try { return await rest("/rest/v1/rpc/shop_cash_received", { method: "POST", body }); }
+    catch (e) { if (amount != null && /404|PGRST202|Could not find/i.test(String(e && e.message))) return rest("/rest/v1/rpc/shop_cash_received", { method: "POST", body: { p_token: token, p_id: id } }); throw e; }
+  }
   const shop = localShops().find(x => x.token === token), all = localOrders(), o = shop && all.find(x => x.id === id && x.shop_id === shop.id);
   if (!o || o.cash_shop_at) return false;
   o.cash_shop_at = new Date().toISOString();
