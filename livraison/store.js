@@ -1537,6 +1537,21 @@ async function orderAddItems(token, items, topcase) {
 }
 
 // Client : noter sa livraison (une fois, dans les 7 jours) ; une note basse arrive chez le patron
+// Avis sur le commerce (à part de la note du livreur) et avis publics d'un commerce
+async function rateShop(token, stars, note) {
+  if (ONLINE) return rest("/rest/v1/rpc/rate_shop", { method: "POST", body: { p_token: token, p_stars: stars, p_note: note || null } });
+  const all = localOrders(), o = all.find(x => x.token === token);
+  if (!o || o.status !== "livree" || !o.shop_id || o.shop_rating != null) return false;
+  Object.assign(o, { shop_rating: stars, shop_note: (note || "").trim().slice(0, 300) || null, shop_rated_at: new Date().toISOString() });
+  saveLocalOrders(all);
+  return true;
+}
+async function shopReviews(code) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_reviews", { method: "POST", body: { p_code: code } });
+  const shop = localShops().find(x => x.code === code), list = shop ? localOrders().filter(o => o.shop_id === shop.id && o.shop_rating != null) : [];
+  const avg = list.length ? Math.round(list.reduce((a, o) => a + o.shop_rating, 0) / list.length * 10) / 10 : null;
+  return { avg, count: list.length, list: list.sort((a, b) => new Date(b.shop_rated_at) - new Date(a.shop_rated_at)).slice(0, 10).map(o => ({ stars: o.shop_rating, note: o.shop_note, name: String(o.contact_name || "").split(" ")[0], at: o.shop_rated_at })) };
+}
 async function rateOrder(token, stars, tags, note) {
   if (ONLINE) return rest("/rest/v1/rpc/rate_order", { method: "POST", body: { p_token: token, p_stars: stars, p_tags: tags || [], p_note: note || null } });
   const all = localOrders();
@@ -2305,7 +2320,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,

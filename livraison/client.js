@@ -2483,6 +2483,26 @@ function shopGallery(s) {
 const shopSide = () => (shopPicked() ? "from" : state.shop && state.pick.to && state.pick.to.shopId === state.shop.id ? "to" : "");
 // Toute enseigne choisie (HOP! Pro ou vitrine comme Bloovi) : son adresse est connue, pas de champs à remplir
 const shopMode = () => (state.shop ? shopSide() : "");
+// Note moyenne d'un commerce (vitrine) et ses derniers avis, chargés quand on ouvre le pli
+const scOf = s => (state.showcase || []).find(x => x.code === s.code) || s;
+function shopStars(s) {
+  const x = scOf(s);
+  return Number(x.ratings) > 0 ? `<small class="sh-stars">${UI.esc(t("shReviews", { avg: String(x.rating).replace(".", ","), n: x.ratings }))}</small>` : "";
+}
+function shopReviewsFold(s) {
+  const x = scOf(s);
+  if (!(Number(x.ratings) > 0)) return "";
+  return `<details class="sh-reviews" data-reviews="${UI.esc(s.code)}"><summary>${UI.esc(t("shReviewsSee"))} · ${UI.esc(t("shReviews", { avg: String(x.rating).replace(".", ","), n: x.ratings }))}</summary><div class="sh-rev-list">…</div></details>`;
+}
+$("#shopHero").addEventListener("toggle", async e => {
+  const d = e.target.closest("details[data-reviews]");
+  if (!d || !d.open || d.dataset.loaded) return;
+  d.dataset.loaded = "1";
+  try {
+    const r = await Store.shopReviews(d.dataset.reviews);
+    d.querySelector(".sh-rev-list").innerHTML = (r && r.list && r.list.length) ? r.list.map(v => `<div class="sh-rev"><b>${"★".repeat(v.stars)}<i>${"★".repeat(5 - v.stars)}</i></b><span>${v.note ? UI.esc(v.note) : ""}</span><small>${UI.esc(v.name || "")}${v.at ? " · " + UI.esc(UI.fmtDay(v.at)) : ""}</small></div>`).join("") : `<p class="muted small">${UI.esc(t("shReviewsNone"))}</p>`;
+  } catch (err) { d.querySelector(".sh-rev-list").textContent = t("shReviewsNone"); }
+}, true);
 function renderShopBanner() {
   const side = shopSide(), on = !!side;
   $("#shopBanner").classList.toggle("hidden", !on);
@@ -2496,7 +2516,8 @@ function renderShopBanner() {
     const vit = !s.pro && !s.demo && side === "from";
     const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
-        <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small></div></div>
+        <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small>${shopStars(s)}</div></div>
+      ${shopReviewsFold(s)}
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
       ${UI.shopText(s, "promo") ? `<p class="sh-promo"><i>📣</i><span>${UI.esc(UI.shopText(s, "promo"))}</span></p>` : ""}
       ${s.pro ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
@@ -3474,7 +3495,7 @@ function shopCard(s) {
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
-      <small class="sc-meta">${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}${s.shop_pays ? `🎁 ${UI.esc(t("scGift"))}` : `🛵 ${UI.esc(money(proPrice(s)))}`}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
+      <small class="sc-meta">${Number(s.ratings) > 0 ? `<b class="sc-star">${UI.esc(t("scRating", { avg: String(s.rating).replace(".", ","), n: s.ratings }))}</b> · ` : ""}${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}${s.shop_pays ? `🎁 ${UI.esc(t("scGift"))}` : `🛵 ${UI.esc(money(proPrice(s)))}`}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
       ${UI.shopText(s, "tagline") ? `<small class="sc-tag">${UI.esc(UI.shopText(s, "tagline"))}</small>` : ""}</span>
     ${st && !st.open ? `<span class="sc-prog-btn">${UI.calIcon()} ${UI.esc(t("scProgOrder"))}</span>` : `<span class="sc-go" aria-label="${UI.esc(t("proGo"))}">›</span>`}
   </div>`;
