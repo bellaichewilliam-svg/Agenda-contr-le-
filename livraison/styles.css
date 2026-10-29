@@ -2863,3 +2863,43 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .rc-who { min-width: 0; overflow-wrap: anywhere; font-weight: 800; }
 .rc-who small { display: block; margin: 0; opacity: .7; font-size: 12px; }
 .rc-step { display: block; font-style: normal; font-weight: 600; margin-bottom: 4px; }
+
+/* --- Rayons : photo d'un produit (patron) côté client, et l'éditeur du panel patron --- */
+.ph-ico.photo img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; filter: none; }
+.ph-cat img, .ph-cur img { object-fit: cover; border-radius: 10px; }
+.ray-chips { margin: 0 0 12px; padding: 0; border: 0; }
+.ray-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: flex-start; margin-bottom: 12px; }
+.ray-head h3 { margin: 0 0 4px; }
+.ray-head .actions, .ray-pic-row .actions { margin: 0; padding: 0; border: 0; }
+.ray-cat { padding: 14px 16px; margin-bottom: 12px; }
+.ray-cat h4 { display: flex; align-items: center; gap: 10px; margin: 0 0 6px; font-size: 16px; }
+.ray-cat h4 > span:first-of-type { flex: 1; min-width: 0; }
+.ray-cat h4 small { font-weight: 500; color: var(--muted); margin-inline-start: 6px; }
+.ray-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--border); }
+.ray-row.off { opacity: .6; }
+.ray-img { flex: none; width: 40px; height: 40px; border-radius: 10px; object-fit: contain; background: var(--bg-2); display: grid; place-items: center; font-style: normal; font-size: 22px; }
+img.ray-img[src^="data:"] { object-fit: cover; }
+.ray-img.big { width: 72px; height: 72px; font-size: 36px; border-radius: 14px; }
+.ray-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.25; }
+.ray-txt b { font-size: 14px; overflow-wrap: anywhere; }
+.ray-txt span { font-size: 13px; color: var(--muted); overflow-wrap: anywhere; }
+.ray-txt small { font-size: 12px; color: var(--muted); }
+.ray-act { flex: none; display: flex; gap: 6px; }
+.ray-form { margin-bottom: 12px; }
+.ray-form h3 { margin: 0 0 12px; }
+.ray-pic-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.ray-emoji { flex-direction: row; align-items: center; gap: 6px; }
+.ray-emoji input { width: 3.5em; text-align: center; }
+.ray-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ray-fields .ray-full { grid-column: 1 / -1; }
+.ray-2 { display: flex; gap: 8px; }
+.ray-2 input { min-width: 0; }
+.ray-pick { margin-bottom: 12px; }
+.ray-pick input { width: 100%; box-sizing: border-box; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; font: inherit; background: var(--panel); color: inherit; }
+.ray-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 6px; max-height: 260px; overflow: auto; padding: 4px; border: 1px solid var(--border); border-radius: 12px; }
+.ray-grid button { border: 2px solid transparent; background: var(--bg-2); border-radius: 10px; padding: 4px; cursor: pointer; aspect-ratio: 1; }
+.ray-grid button.on { border-color: var(--brand); }
+.ray-grid img { width: 100%; height: 100%; object-fit: contain; }
+.ray-off summary { cursor: pointer; font-weight: 600; }
+@media (max-width: 600px) { .ray-fields { grid-template-columns: 1fr; } .ray-act .btn { padding: 6px 8px; } }
+.mine-km { font-weight: 500; color: var(--muted); white-space: nowrap; margin-inline-start: 6px; }

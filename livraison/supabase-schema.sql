@@ -2762,7 +2762,7 @@ $$;
 --   HOP. Le livreur confirme « Paiement reçu » avant « Livré ».
 -- - HOP! Pro « je paie 12 ₪ » : le commerce paie au livreur sa part (12 − 2 = 10 ₪) en lui remettant la
 --   commande ; HOP facture au commerce ses 2 ₪ par livraison avec l'abonnement.
--- - HOP! Pro « le client paie » : HOP garde pro_hop_share_client (1 ₪), pris sur le crédit du livreur.
+-- - HOP! Pro « le client paie » : HOP garde pro_hop_share_client (1 ₪, puis 0 depuis « rayons modifiables »), pris sur le crédit du livreur.
 -- - Le livreur recharge un crédit à l'avance (Bit à HOP, validé par le patron) ; chaque course livrée en
 --   déduit la commission de HOP (15 %, au moins 3 ₪). Sans crédit suffisant, pas de nouvelle course.
 -- Les courses passées avant gardent leur ancienne règle (direct_pay = false).
@@ -7452,3 +7452,101 @@ language sql stable security definer set search_path = public as $$
      where o.token = any(coalesce(p_tokens, '{}'::uuid[])) and n.created_at > now() - interval '14 days'
      order by n.created_at desc limit 20) x;
 $$;
+
+-- ============================================================================
+-- RAYONS À COCHER MODIFIABLES PAR LE PATRON (panel → Commerces → 🧺 Rayons)
+-- Les listes de base restent dans rayons.js ; la base garde ce que le patron change : produits et catégories
+-- ajoutés, modifiés ou masqués, avec photo (ou pictogramme img/qc) et prix indicatif. Rien n'est effacé :
+-- un produit « supprimé » est masqué (hidden) et peut être rétabli. Un produit de base n'a en base que les
+-- champs modifiés (les autres restent null → valeur de rayons.js).
+-- ============================================================================
+create table if not exists public.rayon_cats (
+  rayon      text not null,
+  cat_id     text not null,
+  name_fr    text check (length(name_fr) <= 60),
+  name_he    text check (length(name_he) <= 60),
+  img        text check (length(img) <= 40),
+  emoji      text check (length(emoji) <= 8),
+  hidden     boolean not null default false,
+  position   int not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (rayon, cat_id)
+);
+create table if not exists public.rayon_items (
+  rayon      text not null,
+  item_id    text not null,
+  cat        text,
+  name_fr    text check (length(name_fr) <= 80),
+  name_he    text check (length(name_he) <= 80),
+  price_lo   numeric(8,2) check (price_lo is null or price_lo >= 0),
+  price_hi   numeric(8,2) check (price_hi is null or price_hi >= 0),
+  img        text check (length(img) <= 40),
+  emoji      text check (length(emoji) <= 8),
+  photo      text check (photo is null or (length(photo) <= 200000 and photo ~ '^data:image/(jpeg|png|webp);base64,')),
+  sz         int check (sz is null or sz between 1 and 8),
+  adult      text check (adult is null or adult in ('tabac', 'alcool')),
+  opts       jsonb,
+  hidden     boolean not null default false,
+  position   int not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (rayon, item_id)
+);
+alter table public.rayon_cats enable row level security;
+alter table public.rayon_items enable row level security;
+
+-- Tout le monde (appli client) : les changements du patron
+create or replace function public.rayons_live() returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'cats', coalesce((select json_agg(to_jsonb(c) order by c.position, c.updated_at) from rayon_cats c), '[]'::json),
+    'items', coalesce((select json_agg(to_jsonb(i) order by i.position, i.updated_at) from rayon_items i), '[]'::json));
+$$;
+grant execute on function public.rayons_live() to anon, authenticated;
+
+-- Patron : enregistrer un produit (p = champs du produit ; une clé absente garde la valeur en base,
+-- une clé à null l'efface → retour à rayons.js)
+create or replace function public.admin_rayon_item_save(p jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  if coalesce(p->>'rayon', '') = '' or coalesce(p->>'item_id', '') !~ '^[a-z0-9_-]{1,40}$' then raise exception 'bad_id'; end if;
+  insert into rayon_items (rayon, item_id) values (p->>'rayon', p->>'item_id') on conflict do nothing;
+  update rayon_items set
+    cat      = case when p ? 'cat' then nullif(p->>'cat', '') else cat end,
+    name_fr  = case when p ? 'name_fr' then nullif(trim(p->>'name_fr'), '') else name_fr end,
+    name_he  = case when p ? 'name_he' then nullif(trim(p->>'name_he'), '') else name_he end,
+    price_lo = case when p ? 'price_lo' then (p->>'price_lo')::numeric else price_lo end,
+    price_hi = case when p ? 'price_hi' then (p->>'price_hi')::numeric else price_hi end,
+    img      = case when p ? 'img' then nullif(p->>'img', '') else img end,
+    emoji    = case when p ? 'emoji' then nullif(p->>'emoji', '') else emoji end,
+    photo    = case when p ? 'photo' then nullif(p->>'photo', '') else photo end,
+    sz       = case when p ? 'sz' then (p->>'sz')::int else sz end,
+    adult    = case when p ? 'adult' then nullif(p->>'adult', '') else adult end,
+    opts     = case when p ? 'opts' then nullif(p->'opts', 'null'::jsonb) else opts end,
+    hidden   = case when p ? 'hidden' then coalesce((p->>'hidden')::boolean, false) else hidden end,
+    position = case when p ? 'position' then coalesce((p->>'position')::int, 0) else position end,
+    updated_at = now()
+  where rayon = p->>'rayon' and item_id = p->>'item_id';
+end;
+$$;
+create or replace function public.admin_rayon_cat_save(p jsonb) returns void
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  if coalesce(p->>'rayon', '') = '' or coalesce(p->>'cat_id', '') !~ '^[a-z0-9_-]{1,40}$' then raise exception 'bad_id'; end if;
+  insert into rayon_cats (rayon, cat_id) values (p->>'rayon', p->>'cat_id') on conflict do nothing;
+  update rayon_cats set
+    name_fr  = case when p ? 'name_fr' then nullif(trim(p->>'name_fr'), '') else name_fr end,
+    name_he  = case when p ? 'name_he' then nullif(trim(p->>'name_he'), '') else name_he end,
+    img      = case when p ? 'img' then nullif(p->>'img', '') else img end,
+    emoji    = case when p ? 'emoji' then nullif(p->>'emoji', '') else emoji end,
+    hidden   = case when p ? 'hidden' then coalesce((p->>'hidden')::boolean, false) else hidden end,
+    position = case when p ? 'position' then coalesce((p->>'position')::int, 0) else position end,
+    updated_at = now()
+  where rayon = p->>'rayon' and cat_id = p->>'cat_id';
+end;
+$$;
+
+-- HOP! Pro « le client paie la livraison » : HOP ne garde plus rien (était 1 ₪ pris sur le crédit du livreur)
+alter table public.settings alter column pro_hop_share_client set default 0;
+update public.settings set pro_hop_share_client = 0 where id = 1 and pro_hop_share_client = 1;
