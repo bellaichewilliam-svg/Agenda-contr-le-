@@ -57,6 +57,18 @@ function initMap() {
   map.on("click", () => { if (!document.body.classList.contains("map-full")) setMapFull(true); });
 }
 
+// Sombre la nuit, clair le jour (lever / coucher du soleil à l'adresse de livraison), revu chaque minute
+function applyDayNight() {
+  const o = order || {}, home = Pricing.cityById(CONFIG, CONFIG.homeCity) || {};
+  const lat = Number(o.dropoff_lat ?? home.lat), lon = Number(o.dropoff_lon ?? home.lon);
+  const day = !UI.isNight(lat, lon);
+  document.body.classList.toggle("trk-day", day);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = day ? "#FFFFFF" : "#0B0F1A";
+}
+applyDayNight();
+setInterval(applyDayNight, 60000);
+
 function pin(emoji) {
   if (emoji === "📍") return L.divIcon({ className: "", html: `<div class="trk-pin-shop"><span>${order && (order.service === "repas" || order.shop_id) ? "🍴" : "🏪"}</span></div>`, iconSize: [44, 52], iconAnchor: [22, 50] });
   if (emoji === "🏁") return L.divIcon({ className: "", html: `<div class="trk-pin-home"><i></i></div>`, iconSize: [52, 62], iconAnchor: [26, 60] });
@@ -353,6 +365,7 @@ function render() {
   renderTip(o);
   renderShopRate(o);
   renderDoneFlow(o);
+  applyDayNight();
 
   const step = FLOW.indexOf(o.status);
   const labels = ["trStep1", "trStep2", "trStep3", "trStep4"];
@@ -616,7 +629,7 @@ function drawDoneFlow() {
   const tips = [0, ...(CONFIG.platform.tips || [5, 10, 15])];
   let body = "";
   if (df.step === 0) {
-    body = `<div class="df-logo"><img src="logo.svg" alt="HOP!" /></div>
+    body = `<div class="df-logo"><img src="icon-512.png" alt="HOP!" width="132" height="132" /></div>
       <p class="df-meta">${UI.esc(who)} · ${UI.esc(day)}</p>
       <h2 class="df-title">${UI.esc(t("dfTitle"))}</h2>
       <p class="df-sub">${UI.esc(t("dfSub"))}</p>

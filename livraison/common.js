@@ -66,6 +66,22 @@ function mapTiles(map, dark, fun) {
     { maxZoom: 19, attribution: "© OpenStreetMap", className: dark ? "tiles-dark" : fun ? "tiles-fun" : "",
       updateWhenIdle: false, updateWhenZooming: false, keepBuffer: 6 }).addTo(map);
 }
+// Nuit ou jour à cet endroit, d'après le lever et le coucher du soleil (équation du lever du soleil,
+// à une ou deux minutes près) : sert à passer le suivi en sombre la nuit et en clair le jour.
+function isNight(lat, lon, when) {
+  const R = Math.PI / 180, ms = when ? +when : Date.now();
+  if (!isFinite(lat) || !isFinite(lon)) { lat = 32.33; lon = 34.86; }
+  const n = Math.round(ms / 86400000 + 2440587.5 - 2451545 + 0.0008);
+  const J = n - lon / 360, M = (357.5291 + 0.98560028 * J) % 360;
+  const C = 1.9148 * Math.sin(M * R) + 0.02 * Math.sin(2 * M * R) + 0.0003 * Math.sin(3 * M * R);
+  const lam = (M + C + 180 + 102.9372) % 360;
+  const transit = 2451545 + J + 0.0053 * Math.sin(M * R) - 0.0069 * Math.sin(2 * lam * R);
+  const dec = Math.asin(Math.sin(lam * R) * Math.sin(23.44 * R));
+  const cosW = (Math.sin(-0.833 * R) - Math.sin(lat * R) * Math.sin(dec)) / (Math.cos(lat * R) * Math.cos(dec));
+  if (cosW > 1) return true; if (cosW < -1) return false;
+  const w = Math.acos(cosW) / R / 360, toMs = jd => (jd - 2440587.5) * 86400000;
+  return ms < toMs(transit - w) || ms > toMs(transit + w);
+}
 // Nouveau client livré : le lien « Vous avez été livré avec HOP! » et le message WhatsApp prêt à envoyer (dans sa langue)
 function welcomeUrl(o) { return CONFIG.siteUrl + "app/bienvenue.html?t=" + encodeURIComponent(o.token || "") + (o.lang === "he" ? "&lang=he" : ""); }
 function welcomeMsg(o) {
@@ -896,7 +912,7 @@ window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   track, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
-  mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
+  mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 
