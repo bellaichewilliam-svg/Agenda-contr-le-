@@ -527,7 +527,7 @@ function card(o, withDay) {
     meta.push(`<span class="pill star-pill">🏪 ${UI.esc(o.shop_name)}${ref && ref.role !== "admin" ? ` · parrain ${UI.esc(ref.name)} +${UI.money(o.referral_bonus || 0)}` : ""}</span>`);
   }
   if (o.courier_id && !isMine(o)) meta.push(`<span class="pill courier-pill">🛵 ${UI.esc(o.courier_name || "Livreur")} · commission ${o.network ? "réseau " : ""}${UI.money(o.commission || 0)}${Number(o.hop_share) > 0 ? ` + part Pro ${UI.money(o.hop_share)}` : ""}</span>`);
-  if (o.adult_items) meta.push(o.id_checked_at ? `<span class="pill paid">🪪 ${UI.esc(o.adult_items.replace(",", " + "))} · identité vérifiée ${UI.esc(UI.fmtTime ? UI.fmtTime(o.id_checked_at) : new Date(o.id_checked_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}</span>` : `<span class="pill unpaid">🔞 ${UI.esc(o.adult_items.replace(",", " + "))} · pièce d'identité à vérifier</span>`);
+  if (o.adult_items) meta.push(o.id_checked_at ? `<span class="pill paid">🪪 ${UI.esc(o.adult_items.replace(",", " + "))} · identité vérifiée ${UI.esc(UI.fmtTime(o.id_checked_at))}</span>` : `<span class="pill unpaid">🔞 ${UI.esc(o.adult_items.replace(",", " + "))} · pièce d'identité à vérifier</span>`);
   if (o.shop_ref) meta.push(`<span class="pill star-pill">🛍️ Sac n° ${UI.esc(o.shop_ref)}</span>`);
   if (Number(o.tip) > 0) meta.push(`<span class="pill ${o.tip_status === "promis" ? "unpaid" : "paid"}">💝 Pourboire ${UI.money(o.tip)} · ${TIP_FR[o.tip_status] || ""}</span>`
     + (o.tip_status === "promis" && !o.direct_pay ? `<button class="pill pill-btn paid" data-act="tipok" title="Le Bit du client est arrivé : le pourboire sera reversé au livreur avec son solde">✅ Pourboire reçu</button>` : ""));
