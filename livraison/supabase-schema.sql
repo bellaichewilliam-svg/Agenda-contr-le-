@@ -7696,3 +7696,33 @@ language sql stable security definer set search_path = public as $$
     from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
 $$;
 grant execute on function public.shops_showcase() to anon, authenticated;
+
+-- ============================================================================
+-- TABLEAU DE BORD VENTES DU COMMERCE (espace commerce → « 📈 Mes ventes ») : commandes et ventes du jour, 7 et
+-- 30 jours (ventes = articles du catalogue, items_total), panier moyen, top 5 produits, heures de pointe,
+-- 14 derniers jours, clients qui reviennent (90 jours). Lecture avec la clé du commerce seulement.
+-- ============================================================================
+create or replace function public.shop_stats(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  with s as (select * from shops where token = p_token),
+  d as (select o.*, (o.created_at at time zone 'Asia/Jerusalem') as lt from orders o, s
+         where o.shop_id = s.id and o.status not in ('annulee', 'refusee') and not coalesce(o.is_test, false)),
+  today as (select (now() at time zone 'Asia/Jerusalem')::date as t)
+  select json_build_object(
+    'today', json_build_object('n', (select count(*) from d, today where d.lt::date = today.t), 'amount', (select coalesce(sum(items_total), 0) from d, today where d.lt::date = today.t)),
+    'week', json_build_object('n', (select count(*) from d where created_at >= now() - interval '7 days'), 'amount', (select coalesce(sum(items_total), 0) from d where created_at >= now() - interval '7 days')),
+    'month', json_build_object('n', (select count(*) from d where created_at >= now() - interval '30 days'), 'amount', (select coalesce(sum(items_total), 0) from d where created_at >= now() - interval '30 days')),
+    'basket', (select round(avg(items_total)) from d where created_at >= now() - interval '30 days' and items_total is not null),
+    'top', (select coalesce(json_agg(json_build_object('name', t.name, 'qty', t.qty, 'amount', t.amount) order by t.qty desc), '[]'::json)
+              from (select i->>'name' as name, sum((i->>'qty')::int) as qty, sum((i->>'qty')::int * (i->>'price')::numeric) as amount
+                      from d, jsonb_array_elements(d.items) i where d.created_at >= now() - interval '30 days' and jsonb_typeof(d.items) = 'array'
+                     group by 1 order by 2 desc limit 5) t),
+    'hours', (select coalesce(json_agg(json_build_object('h', h.h, 'n', h.n) order by h.h), '[]'::json)
+                from (select extract(hour from lt)::int as h, count(*) as n from d where created_at >= now() - interval '30 days' group by 1) h),
+    'days', (select coalesce(json_agg(json_build_object('d', x.d, 'n', x.n, 'amount', x.amount) order by x.d), '[]'::json)
+               from (select lt::date as d, count(*) as n, coalesce(sum(items_total), 0) as amount from d where created_at >= now() - interval '14 days' group by 1) x),
+    'clients90', (select count(distinct public.phone_digits(contact_phone)) from d where created_at >= now() - interval '90 days' and length(public.phone_digits(contact_phone)) >= 9),
+    'repeat90', (select count(*) from (select public.phone_digits(contact_phone) as ph from d where created_at >= now() - interval '90 days' and length(public.phone_digits(contact_phone)) >= 9 group by 1 having count(*) >= 2) r));
+$$;
+revoke execute on function public.shop_stats(uuid) from public;
+grant execute on function public.shop_stats(uuid) to anon, authenticated;

@@ -1457,6 +1457,20 @@ async function shopOrderPay(token, id, mode) {
   writeJSON(LS.orders, all);
   return true;
 }
+// Tableau de bord ventes du commerce
+async function shopStats(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_stats", { method: "POST", body: { p_token: token } });
+  const shop = localShops().find(x => x.token === token);
+  const list = shop ? localOrders().filter(o => o.shop_id === shop.id && !["annulee", "refusee"].includes(o.status)) : [];
+  const within = days => list.filter(o => Date.now() - new Date(o.created_at) < days * 86400000);
+  const agg = l => ({ n: l.length, amount: l.reduce((a, o) => a + Number(o.items_total || 0), 0) });
+  const top = {};
+  within(30).forEach(o => (o.items || []).forEach(i => { const k = top[i.name] || (top[i.name] = { name: i.name, qty: 0, amount: 0 }); k.qty += Number(i.qty || 1); k.amount += Number(i.qty || 1) * Number(i.price || 0); }));
+  const hours = {}; within(30).forEach(o => { const h = new Date(o.created_at).getHours(); hours[h] = (hours[h] || 0) + 1; });
+  return { today: agg(list.filter(o => new Date(o.created_at).toDateString() === new Date().toDateString())), week: agg(within(7)), month: agg(within(30)),
+    basket: (l => (l.length ? Math.round(l.reduce((a, o) => a + Number(o.items_total), 0) / l.length) : null))(within(30).filter(o => o.items_total != null)),
+    top: Object.values(top).sort((a, b) => b.qty - a.qty).slice(0, 5), hours: Object.entries(hours).map(([h, n]) => ({ h: Number(h), n })), days: [], clients90: 0, repeat90: 0 };
+}
 // Les clients du commerce (prénom, commandes, dernière commande) et un message à tous (une fois par jour)
 async function shopClients(token) {
   if (ONLINE) return rest("/rest/v1/rpc/shop_clients", { method: "POST", body: { p_token: token } });
@@ -2324,7 +2338,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
