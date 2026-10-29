@@ -14,6 +14,7 @@
   "enableNotifications": true,
   "startUrl": "/livreur/",
   "iconUrl": "https://hop-livraison.vercel.app/icon-livreur-512.png",
+  "maskableIconUrl": "https://hop-livraison.vercel.app/icon-livreur-maskable-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "./android.keystore",
