@@ -1271,7 +1271,8 @@ async function onViewClick(e) {
         }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /payment_required/.test(e.message) ? "pay" : /too_far_recup/.test(e.message) ? "farrecup" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /ticket_required/.test(e.message) ? "ticket" : /goods_refund_pending/.test(e.message) ? "refund" : /goods_bought/.test(e.message) ? "bought" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /id_check_required/.test(e.message) ? "idcheck" : /payment_required/.test(e.message) ? "pay" : /too_far_recup/.test(e.message) ? "farrecup" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /ticket_required/.test(e.message) ? "ticket" : /goods_refund_pending/.test(e.message) ? "refund" : /goods_bought/.test(e.message) ? "bought" : false);
+    if (ok === "idcheck") { idChecked.delete(id); render(); return alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus)."); }
     if (ok === "ticket") { render(); return alert("🧾 Touchez d'abord « Ticket du magasin » : photo du ticket et son montant."); }
     if (ok === "refund") { render(); return alert(o.goods_refund_status === "a_completer" ? (o.goods_after ? "🧾 Le client doit d'abord vous envoyer le montant du ticket : touchez « Ticket reçu »." : "⚠️ Le client doit d'abord vous envoyer le complément : touchez « Complément reçu ».") : "💸 Rendez d'abord la différence au client par Bit, puis touchez « C'est rendu »."); }
     if (ok === "bought") { render(); return alert("🧾 Les articles sont déjà achetés : vous ne pouvez plus rendre la course. Écrivez à HOP! en cas de souci."); }
@@ -1456,7 +1457,7 @@ document.addEventListener("change", async e => {
   } catch (ex) { render(); return alert("Photo non envoyée, vérifiez la connexion et réessayez."); }
   render();
   // Photo envoyée : on valide « Livré » tout de suite (position, code de remise… comme d'habitude)
-  if (then === "livree") { const b = document.querySelector(`article[data-id="${CSS.escape(id)}"] [data-act="livree"]`); if (b) b.click(); }
+  if (then === "livree") { const b = document.querySelector(`article[data-id="${CSS.escape(id)}"] [data-act="livree"]`); if (b && b.disabled) alert("📷 Photo envoyée. 🔞 Tabac / alcool : cochez « J'ai vérifié la pièce d'identité », puis « Livré »."); else if (b) b.click(); }
 });
 // Livreur débloqué par HOP jusqu'à une date
 const freeNow = () => !!(me && me.unlocked_until && new Date(me.unlocked_until) > new Date());
@@ -1487,6 +1488,7 @@ function acceptError(e) {
   if (/refund_pending/.test(e.message)) { alert("💸 Remboursez d'abord le client de la course que vous avez rendue, puis touchez « J'ai remboursé ». Ensuite vous pourrez reprendre des courses."); return "shown"; }
   if (/express_busy/.test(e.message)) { alert("⚡ Course express : elle est réservée à un livreur sans autre course, qui y va directement. Terminez d'abord votre course en cours."); return "shown"; }
   if (/express_running/.test(e.message)) { alert("⚡ Vous avez une course express en cours : livrez-la d'abord, sans autre course."); return "shown"; }
+  if (/id_check_required/.test(e.message)) { alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus)."); return "shown"; }
   if (/max3/.test(e.message)) { alert(`🔒 ${MAX_ORDERS} courses au plus en même temps : livrez d'abord une de vos courses.`); return "shown"; }
   if (/busy/.test(e.message)) { const b = busyOrder(); alert(`🔒 Livrez d'abord votre course en cours${b ? " n° " + b.ref : ""} : validez « Livré » sur place${b && b.leave_at_door ? ", avec la photo devant la porte" : ""}. Un souci ? Écrivez à HOP.`); return "shown"; }
   if (/debt/.test(e.message)) { alert(`🔒 Vous devez ${UI.money(balance)} à HOP : réglez votre solde pour recevoir des courses.`); return "shown"; }
@@ -2663,9 +2665,13 @@ $("#view").addEventListener("click", onViewClick);
 $("#view").addEventListener("change", e => {
   // Pièce d'identité vérifiée (tabac / alcool) : le bouton « Livré » s'ouvre, et c'est gardé sur la course
   if (e.target.dataset.idcheck) {
-    const id = e.target.dataset.idcheck;
-    if (e.target.checked) { idChecked.add(id); Store.courierIdChecked(id).catch(() => {}); } else idChecked.delete(id);
-    return render();
+    const id = e.target.dataset.idcheck, box = e.target;
+    if (!box.checked) { idChecked.delete(id); return render(); }
+    box.disabled = true;
+    // Enregistré sur la course avant d'ouvrir « Livré » : si ça ne passe pas, la case se décoche
+    Store.courierIdChecked(id).then(ok => { if (ok) idChecked.add(id); else alert("Non enregistré : vérifiez la connexion et recochez la case."); render(); })
+      .catch(() => { alert("Non enregistré : vérifiez la connexion et recochez la case."); render(); });
+    return;
   }
   const k = e.target.dataset.set;
   if (!k) return;

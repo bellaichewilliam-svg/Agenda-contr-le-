@@ -698,7 +698,7 @@ function pharmaLines() {
 function rayonAdult() {
   const r = rayonOn();
   if (!r) return;
-  const kinds = new Set(rayonPicked(r).map(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).adult).filter(Boolean));
+  const kinds = new Set(rayonPicked(r).map(([k]) => (Rayons.items(r).find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).adult).filter(Boolean));
   // Coché par les produits du rayon, décoché quand ils partent (un autre rayon, un article enlevé) ; ce que le
   // client a coché lui-même reste
   const auto = state.adultAuto || (state.adultAuto = {});
@@ -839,7 +839,8 @@ function renderShopList() {
   $("#noCatNote").classList.toggle("hidden", !!r);
   // Tabac / alcool : seulement là où on en vend ; ordonnance : seulement en pharmacie (sans rayon : tout reste possible)
   const svcAchat = val("service") === "achat";
-  const noAdult = !svcAchat || (r && !r.items.some(i => i.adult));
+  if (r) rayonAdult();   // (à chaque rendu : changement de rayon, article ajouté ou enlevé)
+  const noAdult = !svcAchat || (r && !Rayons.items(r).some(i => i.adult));
   document.querySelector(".adult-box").classList.toggle("hidden", noAdult);
   // Cases invisibles : rien ne doit rester coché (sinon la commande serait bloquée sans que le client voie pourquoi)
   if (noAdult && (form.has_tobacco.checked || form.has_alcohol.checked)) { form.has_tobacco.checked = form.has_alcohol.checked = form.adult_ok.checked = false; syncAdult(); }
@@ -874,9 +875,10 @@ function renderQuote() {
   const withMax = all > Number(q.total), items = proShopOn() && cartCount() ? cartTotal() : 0;
   $("#mobileLbl").textContent = t(withMax ? "barMax" : "barDelivery");
   // Articles d'un rayon : la fourchette des prix indicatifs ; cigarettes (sans prix) : le prix du magasin, sans calcul
-  const est = goods && rayonOn() ? rayonGoods() : null, tabac = goods && rayonOn() && rayonOn().id === "tabac";
+  const r0 = goods ? rayonOn() : null, est = r0 ? rayonGoods() : null;
+  const unpriced = r0 ? rayonPicked(r0).some(([k]) => { const e = rayonEntry(r0, k); return e && !e.p; }) : false;
   const hint = withMax ? "" : items ? t("barItems", { total: money(items), name: UI.bi(state.shop.name) })
-    : est ? t("barGoodsEst", { lo: est.lo, hi: est.hi }) : tabac && rayonUnits() ? t("barGoodsShop") : goods ? t("barGoodsHint") : "";
+    : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { lo: est.lo, hi: est.hi }) : goods ? t("barGoodsHint") : "";
   $("#mobileHint").textContent = hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
   $("#submitBtn").textContent = t("submit", { total: money(all) });
@@ -3805,7 +3807,7 @@ let doneTimer = null;
 function doneAuto(saved) {
   clearInterval(doneTimer);
   const el = $("#doneAuto");
-  if (!el || !$("#donePrepay").classList.contains("hidden")) { if (el) el.classList.add("hidden"); return; }
+  if (!el || !$("#donePrepay").classList.contains("hidden") || !$("#doneWa").classList.contains("hidden")) { if (el) el.classList.add("hidden"); return; }
   let n = 8;
   const tick = () => { el.textContent = t("doneAuto", { n }); el.classList.remove("hidden"); if (n-- <= 0) { clearInterval(doneTimer); location.href = UI.trackUrl(saved); } };
   tick(); doneTimer = setInterval(tick, 1000);

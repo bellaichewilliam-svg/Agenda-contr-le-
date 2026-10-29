@@ -874,7 +874,7 @@ async function adminUnblock(phone) {
 async function courierIdChecked(id) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_id_checked", { method: "POST", body: { p_id: id } });
   const all = localOrders(), o = all.find(x => x.id === id);
-  if (o && !o.id_checked_at) { o.id_checked_at = new Date().toISOString(); saveOrders(all); }
+  if (o && !o.id_checked_at) { o.id_checked_at = new Date().toISOString(); saveLocalOrders(all); }
   return true;
 }
 // Espèces : « J'ai les espèces sur moi » avant d'accepter

@@ -7600,3 +7600,17 @@ end;
 $$;
 revoke execute on function public.courier_id_checked(uuid) from public, anon;
 grant execute on function public.courier_id_checked(uuid) to authenticated;
+
+-- Tabac / alcool : « Livré » refusé par la base tant que la pièce d'identité n'est pas vérifiée (sauf patron)
+create or replace function public.orders_id_check_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'livree' and old.status is distinct from 'livree' and new.adult_items is not null and new.id_checked_at is null
+     and not public.is_admin() then
+    raise exception 'id_check_required';
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_id_check_guard before update of status on public.orders
+  for each row execute function public.orders_id_check_guard();

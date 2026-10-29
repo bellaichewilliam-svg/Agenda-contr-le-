@@ -243,6 +243,7 @@ label.check input { width: 20px; height: 20px; accent-color: var(--brand); flex:
 .svc-achat .show-achat.hidden, .svc-retrait .show-retrait.hidden, .place-poste .show-poste.hidden { display: none !important; }
 /* Tabac / alcool / 18 ans : une case par ligne (le « flex » ci-dessus les mettait côte à côte, textes écrasés) */
 .svc-achat .adult-box.show-achat { display: grid !important; grid-template-columns: 1fr; }
+.svc-achat .adult-box.show-achat.hidden { display: none !important; }   /* (rayon sans tabac ni alcool) */
 .adult-box label.check { align-items: flex-start; line-height: 1.35; }
 .adult-box label.check input, label.check input[type=checkbox] { flex: none; }
 .adult-box label.check input { margin-top: 1px; }
