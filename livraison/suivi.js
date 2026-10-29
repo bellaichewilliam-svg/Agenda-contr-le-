@@ -43,7 +43,7 @@ function sentBtn(amount, name, what) {
 }
 const W = CONFIG.pricing.waiting;
 let settings = { wait_free_min: W.freeMinutes, wait_step_min: W.stepMinutes, wait_step_price: W.stepPrice, wait_max: W.max };
-Store.getSettings().then(s => { Object.assign(settings, s); if (order) render(); }).catch(() => {});
+Store.getSettings().then(s => { Object.assign(settings, s); UI.setZonesOpen(s.zones_open); if (order) render(); }).catch(() => {});
 let map = null, markers = {}, fitted = false, courierSeen = false;
 
 function cityLabel(id) { return CONFIG.cities.some(c => c.id === id) ? I18N.cityName(id) : id; }

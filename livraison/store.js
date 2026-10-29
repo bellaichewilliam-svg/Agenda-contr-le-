@@ -143,7 +143,7 @@ function myId() { const s = session(); return s && s.user_id; }
 const DEFAULT_SETTINGS = {
   accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse,
   referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes,
-  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt, boss_first_seconds: 60, boss_takes: true, boss_only: false,
+  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt, boss_first_seconds: 60, boss_takes: true, boss_only: false, zones_open: ["sharon"],
   carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
   referral_active_days: CONFIG.partners.activeDays,
   deliver_radius: CONFIG.platform.deliverRadius,

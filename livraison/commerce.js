@@ -951,7 +951,7 @@ $("#spPay").addEventListener("change", async e => {
   delete box.dataset.busy;
   renderPay(); renderPlan(); renderGuide(state.dash.shop); renderBrand(true);
 });
-Store.getSettings().then(s => { state.settings = s; if (state.dash) renderPlan(); else renderLanding(); }).catch(() => {});
+Store.getSettings().then(s => { state.settings = s; UI.setZonesOpen(s.zones_open); if (state.dash) renderPlan(); else renderLanding(); }).catch(() => {});
 
 // Marche à suivre : ouverte aux premières visites (et quand le commerce passe à HOP! Pro), repliable ensuite
 function renderGuide(shop) {

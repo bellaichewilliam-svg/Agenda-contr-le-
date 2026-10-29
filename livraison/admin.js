@@ -153,6 +153,7 @@ function alertNew(list, title) {
 async function load() {
   try {
     [orders, couriers, settings] = await Promise.all([Store.listOrders(), Store.listCouriers(), Store.getSettings()]);
+    UI.setZonesOpen(settings.zones_open);
     // Commerces et messages : un souci ici ne doit pas bloquer les courses
     const [sh, m, rq, sa] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null),
       Store.listRequests().catch(() => null), Store.listCarnetSales().catch(() => null)]);
@@ -241,6 +242,7 @@ function renderAvail() {
   const bf = $("#bossFirst"), v = bossOnly() ? "never" : String(Number(settings.boss_first_seconds ?? 60));
   if (![...bf.options].some(x => x.value === v)) bf.add(new Option(v + " s", v));
   if (document.activeElement !== bf) bf.value = v;
+  $("#zonesChips").innerHTML = CONFIG.zones.map(z => `<button type="button" class="chip${UI.zoneActive(z.id) ? " on" : ""}" data-zone="${UI.esc(z.id)}">${UI.zoneActive(z.id) ? "🟢" : "⚪"} ${UI.esc(z.fr)}</button>`).join("");
   $("#bossOnlyText").textContent = bossOnly() ? "🔒 Seul vous recevez les courses : les livreurs ne voient rien tant que vous ne leur donnez pas une course." : "";
 }
 
@@ -2337,6 +2339,16 @@ $("#ringSee").addEventListener("click", () => {
 });
 $("#bossModal").addEventListener("click", onBossClick);
 $("#bossTakesBtn").addEventListener("click", toggleBossTakes);
+// Zones ouvertes aux clients : c'est le patron qui ouvre (ou referme) une zone, pour tout le monde (client, livreurs, commerces)
+$("#zonesChips").addEventListener("click", async e => {
+  const b = e.target.closest("[data-zone]");
+  if (!b) return;
+  const z = CONFIG.zones.find(x => x.id === b.dataset.zone), on = UI.zoneActive(z.id);
+  if (!confirm(on ? `Fermer ${z.fr} ? Les clients ne pourront plus y commander (« bientôt »).` : `Ouvrir ${z.fr} aux clients ? Les commandes et les prix de cette zone deviennent possibles tout de suite.`)) return;
+  const list = CONFIG.zones.filter(x => (x.id === z.id ? !on : UI.zoneActive(x.id))).map(x => x.id);
+  try { await Store.saveSettings({ zones_open: list }); settings.zones_open = list; UI.setZonesOpen(list); renderAvail(); }
+  catch (ex) { alert("Réglage non enregistré (la base en ligne doit d'abord être mise à jour)."); }
+});
 $("#bossFirst").addEventListener("change", async e => {
   const never = e.target.value === "never", v = never ? Number(settings.boss_first_seconds ?? 60) : Number(e.target.value);
   const changes = { boss_only: never, boss_first_seconds: v };

@@ -2277,7 +2277,7 @@ function renderAll() {
 }
 
 async function loadSettings() {
-  try { state.settings = await Store.getSettings(); } catch (e) { /* on garde « disponible » */ }
+  try { state.settings = await Store.getSettings(); UI.setZonesOpen(state.settings.zones_open); } catch (e) { /* on garde « disponible » */ }
   renderStatic();
   renderQuote();
 }

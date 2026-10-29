@@ -345,7 +345,7 @@ function payLine(o) {
     const goods = Number(o.cash_goods || 0), note = Number(o.cash_note || 0);
     return `💵 <b>Espèces</b> : le ${o.payer === "destinataire" ? "destinataire" : "client"} vous paie <b>${UI.money(cashTotal(o))}</b> à la livraison`
       + (goods && o.goods_prepay ? (o.goods_spent != null ? ` (ticket ${UI.money(goods)} + course ${UI.money(o.price)})` : ` (articles au plus ${UI.money(goods)} que vous payez au magasin, puis le ticket exact + course ${UI.money(o.price)})`)
-        : goods ? ` (articles ${UI.money(goods)} que vous payez au commerce + course ${UI.money(o.price)})` : "")
+        : goods ? ` (= articles ${UI.money(goods)} + livraison ${UI.money(o.price)})` : "")
       + (note ? ` · il paie avec <b>${UI.money(note)}</b> : rendez-lui <b>${UI.money(note - cashTotal(o))}</b>` : " · il prépare l'appoint");
   }
   if (o.paid_to === "hop") return o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse le montant"
@@ -375,7 +375,7 @@ function moneyBox(o) {
     `${UI.esc(o.shop_name || "Le commerce")} vous paie en vous donnant le colis.<br>🙋 Le client ne paie rien : tout est déjà payé au magasin`);
   if (o.shop_sent) return box(false, `💰 À encaisser chez le client : ${UI.money(o.price)} ${how}`, `${goodsPaid}. Seulement la livraison, à l'arrivée`);
   if (o.payment_method === "cash") return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`,
-    Number(o.cash_goods) > 0 ? `À la livraison : articles ${UI.money(o.cash_goods)} (${o.cash_shop_after ? `à rapporter ensuite à ${UI.esc(o.shop_name || "le commerce")}` : "que vous payez au commerce au départ"}) + livraison ${UI.money(o.price)}` : "À la livraison");
+    Number(o.cash_goods) > 0 ? `${UI.money(total)} = articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)} · les articles ${o.cash_shop_after ? `sont à rapporter ensuite à ${UI.esc(o.shop_name || "le commerce")}` : "se paient au commerce au départ"}` : "À la livraison");
   return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`, [`Sur votre numéro, avant de récupérer la commande`, goodsSelf(o)].filter(Boolean).join("<br>"));
 }
 // Colis en route : prévenir le client d'un toucher (« j'arrive dans 5 min », « je suis en bas »)
@@ -511,6 +511,7 @@ async function load() {
   try {
     let card;
     [orders, settings, card] = await Promise.all([Store.listOrders(), Store.getSettings(), Store.me().catch(() => null)]);
+    UI.setZonesOpen(settings.zones_open);
     // Fiche à jour (déblocage par HOP, suspension…)
     if (card) { me = card; serverWentOffline(card); }
     // Parrainage et messages : un souci ici ne doit pas bloquer les courses
@@ -863,12 +864,12 @@ function cashStop(o, which, now) {
   const marked = o.cash_courier_mode ? `<small class="cash-marked">✍️ Vous avez noté : ${o.cash_courier_mode === "avance" ? "payé au commerce en prenant la commande" : "rendu au commerce"} · ${UI.esc(UI.fmtTime(o.cash_courier_at))}</small>` : "";
   const markBtn = o.cash_courier_mode ? "" : `<button type="button" class="btn btn-sm btn-primary" data-cashmark="avance" data-id="${UI.esc(o.id)}">✍️ J'ai payé ${UI.money(o.cash_goods)} au commerce</button>`;
   if (which === "pickup" && Number(o.cash_goods) > 0 && o.cash_shop_after) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu les <b>${UI.money(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods)}</b> des articles${marked}</div>`
-    : `<div class="cash-stop">🛍️ Prenez la commande sans payer<small>le client vous paie tout en espèces à la livraison (articles <b>${UI.money(o.cash_goods)}</b> + course <b>${UI.money(o.price)}</b>) ; vous rapportez ensuite les <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}, ou vous le payez maintenant si vous avez les espèces</small>${marked || markBtn}</div>`;
+    : `<div class="cash-stop">🛍️ Prenez la commande sans payer<small>à la livraison, le client vous doit <b>${UI.money(cashTotal(o))}</b> en espèces (articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)}) ; vous rapportez ensuite les <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}, ou vous le payez maintenant si vous avez les espèces</small>${marked || markBtn}</div>`;
   if (which === "pickup" && Number(o.cash_goods) > 0) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu vos <b>${UI.money(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods)}</b>${marked}</div>`
     : `<div class="cash-stop">💵 Payez <b>${UI.money(o.cash_goods)}</b> en espèces au commerce<small>il touche « Espèces reçues », puis vous récupérez la commande</small>${marked || markBtn}</div>`;
   if (which === "dropoff" && o.payment_status !== "paye") {
-    const note = Number(o.cash_note || 0), tot = cashTotal(o);
-    return `<div class="cash-stop">💵 Encaissez <b>${UI.money(tot)}</b> en espèces<small>${note ? `il paie avec ${UI.money(note)} : rendez <b>${UI.money(note - tot)}</b>` : "il a préparé l'appoint"}</small></div>`;
+    const note = Number(o.cash_note || 0), tot = cashTotal(o), goods = Number(o.cash_goods || 0);
+    return `<div class="cash-stop cash-say">💵 Dites-lui : « Vous me devez <b>${UI.money(tot)}</b> »<small>${goods ? `= articles ${UI.money(goods)} + livraison ${UI.money(o.price)} · ` : ""}${note ? `il paie avec ${UI.money(note)} : rendez <b>${UI.money(note - tot)}</b>` : "en espèces, il a préparé l'appoint"}</small></div>`;
   }
   return "";
 }
@@ -947,7 +948,7 @@ function mineStep(o, hopPaid) {
     return o.status === "recuperee" ? `3️⃣ Livrez : le client vous paie ${UI.money(o.price)} ${how}` : `2️⃣ Allez au départ · le client paie ${UI.money(o.price)} ${how} à la livraison`;
   }
   if (o.payment_method === "cash" && o.goods_prepay && o.goods_spent == null) return `2️⃣ Au magasin : payez les articles en espèces (au plus ${UI.money(o.goods_budget)}), puis 🧾 photo du ticket`;
-  if (o.payment_method === "cash") return o.status === "recuperee" ? `3️⃣ Livrez et encaissez ${UI.money(cashTotal(o))} en espèces`
+  if (o.payment_method === "cash") return o.status === "recuperee" ? `3️⃣ Livrez : « Vous me devez ${UI.money(cashTotal(o))} » en espèces`
     : Number(o.cash_goods) > 0 && !o.cash_shop_at && !o.goods_prepay && !o.cash_shop_after ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce`
     : Number(o.cash_goods) > 0 && o.cash_shop_after ? `2️⃣ Allez au départ · prenez la commande, le client paie tout en espèces à la livraison (${UI.money(cashTotal(o))})` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
   if (o.goods_prepay && o.payment_status === "paye" && ["confirmee", "recuperee"].includes(o.status)) {
@@ -1455,10 +1456,10 @@ const bars = lv => `<span class="dbars ${lv.cls}">${[1, 2, 3].map(i => `<i class
 function renderZones(view) {
   view.innerHTML = `<div class="card">
       <h3>Zone de livraison</h3>
-      <p class="muted small" style="margin:4px 0 12px">HOP! livre dans toutes les zones ci-dessous${CONFIG.cities.some(c => c.closed) ? ` (sauf ${UI.esc(CONFIG.cities.filter(c => c.closed).map(c => c.fr).join(", "))} pour l'instant)` : ""}.</p>
-      ${CONFIG.zones.map(z => `<div class="zone-row${z.active ? "" : " off"}">
-          <span class="zone-radio${z.active ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
-          <span class="zone-dem">${z.active ? `<span class="zone-open">Ouverte</span>` : "À venir"}</span>
+      <p class="muted small" style="margin:4px 0 12px">HOP! livre dans les zones ouvertes ci-dessous${CONFIG.cities.some(c => c.closed) ? ` (sauf ${UI.esc(CONFIG.cities.filter(c => c.closed).map(c => c.fr).join(", "))} pour l'instant)` : ""} ; les autres ouvriront plus tard.</p>
+      ${CONFIG.zones.map(z => `<div class="zone-row${UI.zoneActive(z.id) ? "" : " off"}">
+          <span class="zone-radio${UI.zoneActive(z.id) ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
+          <span class="zone-dem">${UI.zoneActive(z.id) ? `<span class="zone-open">Ouverte</span>` : "À venir"}</span>
         </div>`).join("")}
       ${demand ? `<p class="small" style="margin-top:12px">En ce moment : <b>${demand.waiting}</b> course(s) en attente · <b>${demand.last_hour}</b> commande(s) cette dernière heure · <b>${demand.on_duty}</b> livreur(s) en ligne.</p>` : ""}
       <p class="muted small" style="margin-top:6px">Heures de pointe habituelles : ${UI.esc(CONFIG.peakHours.fr)}.</p>
