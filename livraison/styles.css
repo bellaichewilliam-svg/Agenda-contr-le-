@@ -3026,3 +3026,9 @@ body.map-full .trk-full { top: max(14px, env(safe-area-inset-top)); }
 .sv-bar small { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
 .sv-clients { margin: 10px 0 0; font-size: 13px; }
 @media (max-width: 480px) { .sv-grid { grid-template-columns: 1fr; } .sv-tile b { font-size: 17px; } }
+
+/* --- Revue design : contrastes en mode sombre, km lisibles, carte livreur au-dessus de l'attribution --- */
+select, input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"], [type="submit"], [type="button"]), textarea { color: var(--ink); }
+#bossFirst { background: var(--panel); color: var(--ink); border: 1px solid var(--border); border-radius: 10px; padding: 7px 10px; font: inherit; font-weight: 600; }
+.mine-step .mine-km { color: #fff; opacity: .92; font-weight: 600; }
+.trk-card { bottom: 26px; }
