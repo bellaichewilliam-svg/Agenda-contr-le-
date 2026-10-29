@@ -22,6 +22,7 @@ const PHARM = {
   card: S("💊 La pharmacie livrée chez vous", "💊 בית המרקחת עד הבית"),
   cardSub: S("Acamol, Optalgin, Nurofen, couches, lait bébé, sirops, anti-poux… {n} produits sans ordonnance.", "אקמול, חיתולים, תמ״ל, סירופים… {n} מוצרים בלי מרשם."),
   more: S("📝 Autre chose ? Écrivez-le ici (marque, dosage…)", "📝 משהו נוסף? כתבו כאן (מותג, מינון…)"),
+  ph: S("Ex. Acamol 500 ×2, crème Avène, gouttes pour les yeux…", "לדוגמה: אקמול ×2, קרם אוון, טיפות עיניים…"),
   show: ["pill", "baby", "bottle", "thermometer"], color: "#059669",
   cats: [
     { id: "douleur", img: "thermometer", e: "🤕", fr: "Douleur & fièvre", he: "כאב וחום" },
@@ -128,6 +129,7 @@ const TABAC = {
   card: S("🍾 Cigarettes & alcool livrés", "🍾 סיגריות ואלכוהול עד הבית"),
   cardSub: S("Cigarettes, bières, vins, vodka, arak, glaçons, apéro… {n} produits. 18 ans et plus.", "סיגריות, בירות, יין, וודקה, ערק, קרח, נשנושים… {n} מוצרים. מגיל 18."),
   more: S("📝 Autre chose ? Écrivez-le ici (marque, taille…)", "📝 משהו נוסף? כתבו כאן (מותג, גודל…)"),
+  ph: S("Ex. Marlboro Gold ×2, 6 Goldstar, bouteille d'arak…", "לדוגמה: מרלבורו גולד ×2, 6 גולדסטאר, בקבוק ערק…"),
   show: ["beer", "wine", "champagne", "ice"], color: "#7C3AED",
   cats: [
     { id: "cig", img: "", e: "🚬", fr: "Cigarettes", he: "סיגריות" },
@@ -199,6 +201,7 @@ const BAKERY = {
   card: S("🥐 La boulangerie livrée chaude", "🥐 המאפייה עד הבית"),
   cardSub: S("Baguette, challah, croissants, bourekas, rugelach, gâteaux… {n} produits.", "באגט, חלה, קרואסונים, בורקס, רוגלך, עוגות… {n} מוצרים."),
   more: S("📝 Autre chose ? Écrivez-le ici (taille, parfum…)", "📝 משהו נוסף? כתבו כאן (גודל, טעם…)"),
+  ph: S("Ex. 6 bourekas fromage, 1 hala, 4 croissants…", "לדוגמה: 6 בורקס גבינה, חלה, 4 קרואסונים…"),
   show: ["baguette", "croissant", "bread", "cupcake"], color: "#D97706",
   cats: [
     { id: "pain", img: "baguette", e: "🥖", fr: "Pains", he: "לחמים" },
@@ -247,6 +250,7 @@ const SUPER = {
   card: S("🛒 La makolet livrée", "🛒 המכולת עד הבית"),
   cardSub: S("Lait, œufs, pain, fruits, surgelés, Shabbat, papier toilette… {n} produits. Petites courses.", "חלב, ביצים, לחם, פירות, קפואים, שבת, נייר טואלט… {n} מוצרים. קניות קטנות."),
   more: S("📝 Autre chose ? Écrivez-le ici (marque, quantité…)", "📝 משהו נוסף? כתבו כאן (מותג, כמות…)"),
+  ph: S("Ex. 2 l de lait Tnuva, 6 œufs, pain tranché, Bamba ×3…", "לדוגמה: 2 ליטר חלב תנובה, 6 ביצים, לחם פרוס, במבה ×3…"),
   show: ["milk", "egg", "banana", "bread"], color: "#2563EB",
   cats: [
     { id: "lait", img: "milk", e: "🥛", fr: "Laitiers & œufs", he: "חלב וביצים" },
@@ -362,6 +366,7 @@ const BABY = {
   card: S("👶 Tout pour bébé, livré", "👶 הכול לתינוק, עד הבית"),
   cardSub: S("Couches, lait Materna, tétine, biberon, lingettes, jouets… {n} produits.", "חיתולים, מטרנה, מוצץ, בקבוק, מגבונים, צעצועים… {n} מוצרים."),
   more: S("📝 Autre chose ? Écrivez-le ici (taille, âge, marque…)", "📝 משהו נוסף? כתבו כאן (מידה, גיל, מותג…)"),
+  ph: S("Ex. couches Huggies taille 4, Materna étape 2, lingettes ×2…", "לדוגמה: האגיס מידה 4, מטרנה שלב 2, מגבונים ×2…"),
   show: ["babyface", "bottle", "teddy", "puzzle"], color: "#EC4899",
   cats: [
     { id: "couches", img: "babyface", e: "👶", fr: "Couches & change", he: "חיתולים והחתלה" },
@@ -431,6 +436,7 @@ const PETS = {
   card: S("🐾 Croquettes & litière livrées", "🐾 מזון וחול לחתולים עד הבית"),
   cardSub: S("Croquettes, pâtée, litière, friandises, sacs à crottes… {n} produits. Fini de porter les sacs.", "מזון יבש ורטוב, חול לחתולים, חטיפים, שקיות… {n} מוצרים. בלי לסחוב שקים."),
   more: S("📝 Autre chose ? Écrivez-le ici (marque, poids, âge de l'animal…)", "📝 משהו נוסף? כתבו כאן (מותג, משקל, גיל…)"),
+  ph: S("Ex. Bonzo chien adulte 4 kg, litière agglomérante 10 l, pâtée chat ×6…", "לדוגמה: בונזו לכלב בוגר 4 ק״ג, חול מתגבש 10 ל׳, שימורי חתול ×6…"),
   show: ["dog", "cat", "bone", "paw"], color: "#0891B2",
   cats: [
     { id: "chien", img: "dog", e: "🐶", fr: "Chien", he: "כלבים" },
@@ -469,6 +475,7 @@ const HOME = {
   card: S("🔌 Le dépannage maison livré", "🔌 כל מה שחסר בבית, עד הבית"),
   cardSub: S("Piles, chargeur, ampoule, charbon pour le mangal, assiettes jetables, scotch… {n} produits.", "סוללות, מטען, נורה, פחמים למנגל, חד פעמי, סלוטייפ… {n} מוצרים."),
   more: S("📝 Autre chose ? Écrivez-le ici (modèle, taille, couleur…)", "📝 משהו נוסף? כתבו כאן (דגם, גודל, צבע…)"),
+  ph: S("Ex. piles AA ×8, ampoule LED E27, chargeur USB-C, charbon 3 kg…", "לדוגמה: סוללות AA ×8, נורת לד E27, מטען USB-C, פחמים 3 ק״ג…"),
   show: ["battery", "bulb", "plug", "fire"], color: "#475569",
   cats: [
     { id: "elec", img: "battery", e: "🔋", fr: "Piles & électricité", he: "סוללות וחשמל" },
@@ -536,6 +543,7 @@ const GIFT = {
   card: S("💐 Fleurs & cadeaux surprise", "💐 פרחים ומתנות בהפתעה"),
   cardSub: S("Bouquet, roses, orchidée, ballon d'anniversaire, chocolats… {n} idées, livrées à l'heure choisie.", "זר, ורדים, סחלב, בלון יום הולדת, שוקולד… {n} רעיונות, בשעה שבחרתם."),
   more: S("📝 Un mot pour la carte, une couleur, une idée ? Écrivez-le ici", "📝 ברכה לכרטיס, צבע, רעיון? כתבו כאן"),
+  ph: S("Ex. bouquet roses rouges, ballon « Mazal tov », boîte de chocolats…", "לדוגמה: זר ורדים אדומים, בלון «מזל טוב», קופסת שוקולד…"),
   show: ["bouquet", "rose", "balloon", "gift"], color: "#E11D48",
   cats: [
     { id: "fleurs", img: "bouquet", e: "💐", fr: "Fleurs", he: "פרחים" },

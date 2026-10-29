@@ -407,7 +407,7 @@ function prepList(o) {
   const n = o.items.length, done = pickedCount(o), editable = o.shop_status === "acceptee";
   const added = o.items.some(it => it.added) && o.items.some((it, i) => it.added && !picked[pickKey(o, it, i)]);
   return `${added && editable ? `<p class="prep-added">${UI.esc(t("spAddedAlert"))}</p>` : ""}<ul class="prep-items">${o.items.map((it, i) => { const key = pickKey(o, it, i), on = !!picked[key];
-      return `<li class="${on ? "done" : ""}${it.added ? " added" : ""}"><label><input type="checkbox" data-pick="${UI.esc(key)}"${on ? " checked" : ""}${editable ? "" : " disabled"} /> <b>${it.qty} ×</b> <span>${UI.esc(it.name)}${it.added ? ` <i class="prep-new-tag">${UI.esc(t("spAdded"))}</i>` : ""}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`; }).join("")}</ul>
+      return `<li class="${on ? "done" : ""}${it.added ? " added" : ""}"><label><input type="checkbox" data-pick="${UI.esc(key)}"${on ? " checked" : ""}${editable ? "" : " disabled"} /> <b dir="ltr">${it.qty} ×</b> <span dir="auto">${UI.esc(it.name)}${it.added ? ` <i class="prep-new-tag">${UI.esc(t("spAdded"))}</i>` : ""}</span> <small class="muted">${UI.money(it.price * it.qty)}</small></label></li>`; }).join("")}</ul>
     ${editable ? `<p class="prep-progress${done === n ? " all" : ""}"><b>${UI.esc(done === n ? t("spAllPicked") : t("spPickedN", { n: done, total: n }))}</b><i style="width:${Math.round(done / n * 100)}%"></i></p>` : ""}`;
 }
 function bagsPicker(o) {
@@ -446,9 +446,9 @@ function renderPrep() {
         <div class="prep-btns"><button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
       : o.shop_status === "attente"
       ? `${goods}${payPick(o)}<label class="f prep-ref"><span>${UI.esc(t("spRefLabel"))}</span><input inputmode="numeric" maxlength="3" autocomplete="off" data-ref-for="${UI.esc(o.id)}" value="${UI.esc(refDraft[o.id] || "")}" placeholder="${UI.esc(t("spRefPh"))}" /></label>
-        <small class="muted">${UI.esc(t("spAcceptIn"))}</small><div class="prep-btns">${CONFIG.pro.prepChoices.map(m =>
-          `<button type="button" class="btn btn-primary" data-prep="${m}" data-id="${UI.esc(o.id)}">${UI.esc(t("spMin", { n: m }))}</button>`).join("")}
-          <button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
+        <small class="muted">${UI.esc(t("spAcceptIn"))}</small><div class="prep-btns prep-accept">${CONFIG.pro.prepChoices.map(m =>
+          `<button type="button" class="btn btn-primary" data-prep="${m}" data-id="${UI.esc(o.id)}">${UI.esc(t("spMin", { n: m }))}</button>`).join("")}</div>
+          <button type="button" class="btn btn-link btn-sm prep-refuse" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button>`
       : o.shop_status === "acceptee" ? `${goods}${bagsPicker(o)}<button type="button" class="btn btn-primary btn-block" data-ready="${UI.esc(o.id)}">${UI.esc(t("spReadyBtn"))}</button>`
       : o.bags_count ? `<p class="bags-done">${UI.esc(t("spBags", { n: o.bags_count }))}</p>` : "";
     return `<div class="prep-item${o.shop_status === "attente" ? " is-new" : ""}">
@@ -456,7 +456,7 @@ function renderPrep() {
       ${Array.isArray(o.items) && o.items.length
         ? `${prepList(o)}
           ${o.items_note ? `<p class="prep-order">💬 ${UI.esc(o.items_note)}</p>` : ""}<p class="small"><b>${UI.esc(t("spItemsTotal", { total: UI.money(o.items_total) }))}</b></p>`
-        : `<p class="prep-order">🧾 ${UI.esc(o.shop_order || "")}</p>`}
+        : `<p class="prep-order" dir="auto">${UI.esc(o.shop_order || "")}</p>`}
       <small class="muted">${UI.esc(t("spClient", { name: (o.dropoff_contact || o.contact_name || "").split(" ")[0], city: I18N.cityName(o.to_city) }))}</small>
       ${courierPay(o)}
       ${cashLine(o)}
@@ -938,6 +938,14 @@ function renderGuide(shop) {
     box.open = seen < 3;
   }
 }
+// Onglet Vitrine : chaque carte se replie sur son titre (la ligne du titre est reprise dans le résumé)
+function foldTitles() {
+  document.querySelectorAll(".sp-fold").forEach(d => {
+    const card = d.querySelector(".card"), h = card && card.querySelector("h3"), sum = d.querySelector("summary");
+    d.classList.toggle("hidden", !card || card.classList.contains("hidden"));
+    if (h && sum.textContent !== h.textContent) sum.textContent = h.textContent;
+  });
+}
 function renderSpace() {
   const { shop, orders } = state.dash;
   renderGuide(shop);
@@ -993,6 +1001,7 @@ function renderSpace() {
       <div class="num"><span class="pill st-${UI.esc(o.status)}">${UI.esc(t("st_" + o.status))}</span><br><b>${UI.money(o.price)}</b>
         ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<br><a class="small" href="${UI.trackUrl(o)}${o.shop_sent ? "&shop=1" : ""}">${UI.esc(t("shTrack"))}</a>` : ""}</div>
     </div>`).join("") : `<p class="muted small">${UI.esc(t("shNoOrders"))}</p>`;
+  foldTitles();
 }
 
 // Course envoyée par le commerce : qui paie ; « vous payez » → le Bit du livreur dès qu'il a pris la course

@@ -2825,3 +2825,41 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .cl-row { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--border); }
 .cl-row small { color: var(--muted); }
 #spClients textarea { width: 100%; resize: vertical; }
+
+/* --- Finitions pro --- */
+/* Suivi : étage / appartement / code sur leur propre ligne, jamais dans la grille icône + texte */
+.kv .addr-details { display: flex; flex-wrap: wrap; grid-template-columns: none; gap: 6px; }
+/* Lignes repliées (code promo, compte) : une ligne sobre, qui s'ouvre au toucher */
+.fold-line > summary, .lg-fold > summary { list-style: none; cursor: pointer; font-weight: 700; color: var(--brand-ink); padding: 6px 0; }
+.fold-line > summary::-webkit-details-marker, .lg-fold > summary::-webkit-details-marker { display: none; }
+.fold-line > summary::before { content: "+"; display: inline-block; width: 18px; font-weight: 800; }
+.fold-line[open] > summary::before { content: "–"; }
+.fold-line[open] > summary { margin-bottom: 6px; }
+.lg-fold > summary h3 { margin: 0; } .lg-fold > summary p { margin: 2px 0 0; }
+.lg-fold > summary::after { content: "›"; float: inline-end; font-size: 22px; line-height: 1; color: var(--muted); }
+.lg-fold[open] > summary::after { content: "⌄"; }
+.lg-fold[open] > summary { margin-bottom: 10px; }
+/* Sous « Votre prix » : l'essentiel, le reste derrière « En savoir plus » */
+.q-more { display: inline; } .q-more > summary { display: inline; list-style: none; cursor: pointer; color: var(--brand-ink); font-weight: 700; }
+.q-more > summary::-webkit-details-marker { display: none; }
+/* Espace commerce, onglet Vitrine : cartes repliables */
+.sp-fold { margin-top: 10px; } .sp-fold.hidden { display: none; }
+.sp-fold > summary { list-style: none; cursor: pointer; background: #fff; border-radius: 16px; padding: 14px 16px; font-weight: 800; font-size: 16px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.sp-fold > summary::-webkit-details-marker { display: none; }
+.sp-fold > summary::after { content: "›"; font-size: 22px; line-height: 1; color: var(--muted); transform: rotate(90deg); }
+.sp-fold[open] > summary::after { transform: rotate(-90deg); }
+.sp-fold[open] > summary { border-radius: 16px 16px 0 0; }
+.sp-fold[open] > .card { border-radius: 0 0 16px 16px; margin-top: 0; }
+.sp-fold .card > h3:first-child { display: none; }
+@media (prefers-color-scheme: dark) { .sp-fold > summary { background: var(--panel); } }
+/* Commandes à préparer : les minutes sur une ligne qui défile, « Refuser » discret dessous */
+.prep-btns.prep-accept { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+.prep-btns.prep-accept .btn { flex: 0 0 auto; }
+.prep-refuse { margin-top: 2px; color: var(--muted); }
+/* Livreur : carte de course sur l'accueil, le montant d'abord */
+.rd-card.course > span { min-width: 0; }
+.rc-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.rc-amt { font-size: 24px; font-weight: 900; letter-spacing: -.5px; white-space: nowrap; }
+.rc-who { min-width: 0; overflow-wrap: anywhere; font-weight: 800; }
+.rc-who small { display: block; margin: 0; opacity: .7; font-size: 12px; }
+.rc-step { display: block; font-style: normal; font-weight: 600; margin-bottom: 4px; }

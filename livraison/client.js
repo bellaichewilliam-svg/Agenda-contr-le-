@@ -339,7 +339,9 @@ function syncVisibility() {
     form.payer.value = "moi";
   }
   $("#payChoices").classList.toggle("hidden", gift);
-  form.payer.closest("label").classList.toggle("hidden", gift);
+  const payerOn = !gift && val("service") === "colis" && !shopMode();
+  form.payer.closest("label").classList.toggle("hidden", !payerOn);
+  if (!payerOn) form.payer.value = "moi";
   // Carnet pro proposé seulement quand il s'applique
   const carnet = carnetOk();
   $("#carnetChoice").classList.toggle("hidden", !carnet);
@@ -674,7 +676,8 @@ function renderGoodsMode(q) {
   // à la livraison ; total ≤ plafond des espèces, et seulement après une 1re course livrée
   const done = (state.mine || []).some(o => o.status === "livree");
   const cashErr = !cash ? "" : !done ? t("gmCashFirst") : b + Number(q.total) > cashMax() ? t("errCashMax", { max: money(cashMax()) }) : "";
-  sum.innerHTML = `<div class="gb-row"><span><b>${UI.esc(t("gmGoods"))}</b><small>${UI.esc(t(goodsMin() ? "gmGoodsD" : "gmGoodsFree"))}</small></span><b class="gb-amt" dir="ltr">${b ? money(b) : "—"}</b></div>
+  form.budget.closest("label").querySelector("span").textContent = t("gmGoods") + " (₪)";
+  sum.innerHTML = `<small class="gm-how">${UI.esc(t(goodsMin() ? "gmGoodsD" : "gmGoodsFree"))}</small>
     <div class="gb-row"><span><b>${UI.esc(t("gmRide"))}</b></span><b class="gb-amt" dir="ltr">${money(q.total)}</b></div>
     <div class="gb-row gb-total"><span><b>${UI.esc(t(cash ? "gmTotalCash" : "gmTotalAfter"))}</b></span><b class="gb-amt" dir="ltr">${cash ? (b ? money(b + Number(q.total)) : "—") : money(q.total)}</b></div>
     <small class="gm-how">${UI.esc(cash ? t("gmHowCash") : t("gmHowAfter", { max: b ? money(b) : "—" }))}</small>
@@ -816,7 +819,14 @@ function renderShopList() {
   const p = state.pick.from, name = p && p.brand ? UI.bi(String(p.brand).split(",")[0]) : "";
   const r = rayonOn();
   $("#shopListLabel").textContent = r ? phName(r.more) : name ? t("shopListAt", { name }) : t("shoppingList");
+  // Chaque rayon a son exemple (pas « Acamol » dans Animaux) ; la note « pas de catalogue » n'a pas lieu d'être avec un rayon
+  form.shopping_list.placeholder = r && r.ph ? phName(r.ph) : t("shoppingListPh");
   $("#noCatNote").textContent = name ? t("shopNoCat", { name }) : t("shopNoCatAny");
+  $("#noCatNote").classList.toggle("hidden", !!r);
+  // Tabac / alcool : seulement là où on en vend ; ordonnance : seulement en pharmacie (sans rayon : tout reste possible)
+  const svcAchat = val("service") === "achat";
+  document.querySelector(".adult-box").classList.toggle("hidden", !svcAchat || (r && !["tabac", "super"].includes(r.id)));
+  form.rx.closest("label").classList.toggle("hidden", !svcAchat || (r && r.id !== "pharm"));
 }
 function renderQuote() {
   renderShopBanner();
@@ -863,7 +873,9 @@ function renderQuote() {
   renderGoodsMode(q);
   renderCash();
   renderGoodsBox(q);
-  $("#quoteNote").textContent = notes.join(" ");
+  // L'essentiel visible ; la règle d'attente (longue) derrière « En savoir plus »
+  const main = notes.filter(n => !n.startsWith(t("qWait").slice(0, 12))), more = notes.filter(n => !main.includes(n));
+  $("#quoteNote").innerHTML = `${UI.esc(main.join(" "))}${more.length ? ` <details class="q-more"${$("#quoteNote").querySelector("details[open]") ? " open" : ""}><summary>${UI.esc(t("qMore"))}</summary>${UI.esc(more.join(" "))}</details>` : ""}`;
   updateProgress();
   const err = scheduleError();
   $("#scheduleError").textContent = err ? t(err.key, err.vars) : "";
@@ -1965,7 +1977,7 @@ document.addEventListener("click", e => {
 setInterval(() => { if (!document.hidden) loadNotices(); }, 60000);
 
 // --- Compte client : téléphone + mot de passe, accepté tout de suite (sans e-mail de confirmation pour l'instant) ---
-const loginUi = { mode: "create" };
+const loginUi = { mode: "create", open: false };
 const ACC_ERR = { phone_exists: "lgErrExists", bad_login: "lgErrBad", locked: "lgErrLocked", weak_password: "lgErrWeak",
   bad_phone: "lgErrPhone", bad_email: "lgErrEmail", name_required: "lgErrName", demo: "lgDemo" };
 const accErr = ex => t(ACC_ERR[Object.keys(ACC_ERR).find(k => String(ex && ex.message).includes(k))] || "lgErrNet");
@@ -1987,8 +1999,7 @@ function renderLogin() {
   }
   const p = Store.getProfile(), create = loginUi.mode === "create";
   const f = (name, label, attrs, val) => `<label class="f"><span>${UI.esc(t(label))}</span><input name="${name}" ${attrs} value="${UI.esc(val || "")}" /></label>`;
-  box.innerHTML = `<h3>${UI.esc(t("lgTitle"))}</h3>
-    <p class="muted small">${UI.esc(t("lgSub"))}</p>
+  box.innerHTML = `<details class="lg-fold"${loginUi.open ? " open" : ""}><summary><h3>${UI.esc(t("lgTitle"))}</h3><p class="muted small">${UI.esc(t("lgSub"))}</p></summary>
     <div class="lg-tabs"><button type="button" class="ch-chip${create ? " on" : ""}" data-lg-mode="create">${UI.esc(t("lgCreate"))}</button>
       <button type="button" class="ch-chip${create ? "" : " on"}" data-lg-mode="login">${UI.esc(t("lgLogin"))}</button></div>
     <form id="lgForm" class="lg-form" novalidate>
@@ -1999,7 +2010,7 @@ function renderLogin() {
       <button class="btn btn-primary">${UI.esc(t(create ? "lgGoCreate" : "lgGoLogin"))}</button>
       <p class="small lg-msg" id="lgMsg"></p>
       ${create ? "" : `<p class="muted small">${UI.esc(t("lgForgot"))}</p>`}
-    </form>`;
+    </form></details>`;
 }
 async function accountSubmit(fn, msgEl, btn) {
   msgEl.textContent = ""; msgEl.classList.remove("err");
@@ -2008,6 +2019,7 @@ async function accountSubmit(fn, msgEl, btn) {
   catch (ex) { msgEl.textContent = accErr(ex); msgEl.classList.add("err"); return false; }
   finally { btn.disabled = false; }
 }
+$("#loginCard").addEventListener("toggle", e => { if (e.target.matches(".lg-fold")) loginUi.open = e.target.open; }, true);
 $("#loginCard").addEventListener("click", async e => {
   const m = e.target.closest("[data-lg-mode]");
   if (m) { loginUi.mode = m.dataset.lgMode; return renderLogin(); }
@@ -3071,6 +3083,7 @@ function setMapOpen(on) {
   if (!ch || ch.classList.contains("map-open") === !!on) return;
   ch.classList.toggle("map-open", !!on);
   renderMapBtn();
+  if (home.map && restos.layer) { restos.key = ""; drawRestos(); }   // grande carte : tout l'annuaire ; accueil : les partenaires
   if (on) scrollTo({ top: 0, behavior: "smooth" });
   // La carte change de taille pendant l'animation : on la recale à la fin
   setTimeout(() => { if (home.map) { home.map.invalidateSize(); drawRestos(); } }, 330);
@@ -3180,8 +3193,10 @@ function drawRestos() {
   // Plusieurs commerces au même endroit (centre commercial) : chacun son rond, écartés en cercle autour du point
   // (au-delà de 10, le dernier rond regroupe le reste : « nom +3 ») ; de loin, un seul rond « nom +2 »
   const groups = {};
+  const compact = !$("#accueil").classList.contains("map-open");
   restos.list.forEach((e, i) => {
     if (e.offMap || !restoMatch(e) || !bounds.contains([e.lat, e.lon])) return;
+    if (compact && !e.partner) return;   // accueil : seulement nos partenaires, lisibles ; tout l'annuaire sur la grande carte
     const k = e.lat.toFixed(4) + "," + e.lon.toFixed(4);
     (groups[k] = groups[k] || []).push(i);
   });
@@ -3206,7 +3221,7 @@ function drawRestos() {
     g.label = !boxes.some(o => box[0] < o[2] && box[2] > o[0] && box[1] < o[3] && box[3] > o[1]);
     if (g.label) boxes.push(box);
   });
-  const key = I18N.lang + ":" + restos.filter + ":" + z + ":" + (state.showcase || []).length + ":" + Math.floor(Date.now() / 300000) + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
+  const key = I18N.lang + ":" + restos.filter + ":" + z + ":" + (compact ? "c" : "f") + ":" + (state.showcase || []).length + ":" + Math.floor(Date.now() / 300000) + ":" + shown.map(g => g.ids.join("+") + (g.label ? "L" : "")).join(",");
   if (key === restos.key) return;   // mêmes restaurants : rien à refaire (pas de clignotement)
   restos.key = key;
   restos.layer.clearLayers();
@@ -3591,6 +3606,7 @@ loadSettings();
 form.addEventListener("input", e => {
   if (/_other$/.test(e.target.name)) scheduleOtherGeocode();
   if (e.target.name === "promo") { state.promo = null; $("#promoMsg").textContent = ""; }
+  if (e.target.name === "promo" && e.target.value.trim()) $("#promoFold").open = true;
   if (e.target.name === "budget") form.budget.dataset.manual = val("budget") ? "1" : "";
   syncVisibility();
   renderQuote();
