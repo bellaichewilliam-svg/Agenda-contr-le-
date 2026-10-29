@@ -7970,3 +7970,23 @@ language sql stable security definer set search_path = public as $$
          where s.token = p_token and o.status not in ('annulee', 'refusee') and o.created_at > now() - interval '60 days'
          order by o.created_at desc limit 60) x), '[]'::json));
 $$;
+
+-- « 🔥 Mettre en avant » (patron) : le commerce passe en tête de la rangée Populaires de l'accueil, l'automatique suit
+alter table public.shops add column if not exists featured boolean not null default false;
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'shop_pays', s.shop_pays, 'hours', s.hours, 'kosher', s.kosher,
+           'pro', coalesce(s.plan_until >= current_date, false), 'promo', s.promo, 'promo_he', s.promo_he, 'rank', s.rank,
+           'created_at', s.created_at, 'featured', s.featured,
+           'orders30', (select count(*) from orders o where o.shop_id = s.id and o.status in ('confirmee', 'recuperee', 'livree') and o.created_at >= now() - interval '30 days'),
+           'rating', (select round(avg(o.shop_rating)::numeric, 1) from orders o where o.shop_id = s.id and o.shop_rating is not null),
+           'ratings', (select count(*) from orders o where o.shop_id = s.id and o.shop_rating is not null),
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by s.rank nulls last, (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
+$$;
+grant execute on function public.shops_showcase() to anon, authenticated;

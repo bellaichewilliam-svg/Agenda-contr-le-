@@ -3561,7 +3561,8 @@ function renderShowcase() {
   let body;
   if (list.length >= 4 && none) {
     const favL = list.filter(s => f.includes(s.code)), openL = list.filter(isOpen);
-    const pop = list.filter(s => Number(s.orders30) > 0).sort((a, b) => Number(b.orders30) - Number(a.orders30)).slice(0, 8);
+    // Mis en avant par le patron (🔥 dans son panel) d'abord, puis l'automatique : les commandes des 30 derniers jours
+    const pop = list.filter(s => s.featured || Number(s.orders30) > 0).sort((a, b) => (!!b.featured - !!a.featured) || (Number(b.orders30) - Number(a.orders30))).slice(0, 8);
     const fresh = list.filter(recent).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 8);
     body = row(t("rowFavs"), favL) + row(t("rowOpen"), openL) + row(t("rowPop"), pop) + row(t("rowNew"), fresh) + row(t("rowAll"), open.concat(closed));
   } else body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
