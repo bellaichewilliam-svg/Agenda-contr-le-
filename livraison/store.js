@@ -279,7 +279,7 @@ async function createOrder(order) {
     // Réduction seulement avec un code (au plus 30 ₪, payée par HOP), part HOP du Pro, pas de pourboire
     Object.assign(order, {
       discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
-      hop_share: order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share))
+      hop_share: order.shop_pays ? 0 : order.shop_share > 0 ? Math.min(order.shop_share, Number(settings.pro_hop_share))
         : order.shop_status ? Math.min(Math.max(0, Number(order.price) || 0), Number(settings.pro_hop_share_client)) : 0,
       network: false, tip: 0, tip_status: null,
       shop_ref: shop && /^[0-9]{3}$/.test(String(order.shop_ref || "")) ? order.shop_ref : null
@@ -712,6 +712,11 @@ async function adminCredits() {
     topups: readJSON(LS.topups, []).map(x => Object.assign({ courier_name: (couriers.find(c => c.id === x.courier_id) || {}).name || "" }, x)) };
 }
 // Comptes (patron) : inscription finie ou pas, email confirmé, dernière connexion, notifications activées
+// Visites du site (analytique) : seulement le patron, sur p_days jours (1 = aujourd'hui)
+async function adminAnalytics(days) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_analytics", { method: "POST", body: { p_days: days } });
+  return null;
+}
 async function adminAccounts() {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_signups", { method: "POST", body: {} });
   return localCouriers().map(c => ({ id: c.id, email: c.email, created_at: c.created_at, confirmed: true, last_sign_in_at: null, has_fiche: true, push_n: 0 }));
@@ -1396,9 +1401,42 @@ async function setShopPayMode(token, mode) {
   if (ONLINE) return rest("/rest/v1/rpc/shop_set_pay_mode", { method: "POST", body: { p_token: token, p_mode: mode } });
   const shops = localShops(), s = shops.find(x => x.token === token);
   if (!s) return false;
-  Object.assign(s, { client_pays: mode !== "share", shop_pays: mode === "shop" });
+  Object.assign(s, { client_pays: mode !== "share", shop_pays: mode === "shop", pay_ask: mode === "ask" });
   writeJSON(LS.shops, shops);
   return true;
+}
+// Au choix à chaque commande : le commerce choisit en acceptant (client | share | shop)
+async function shopOrderPay(token, id, mode) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_order_pay", { method: "POST", body: { p_token: token, p_id: id, p_mode: mode } });
+  const all = localOrders(), o = all.find(x => x.id === id), st = Object.assign({}, DEFAULT_SETTINGS, readJSON(LS.settings, {}));
+  if (!o || o.shop_status !== "attente") return false;
+  if (mode === "share") Object.assign(o, { shop_share: Number(st.pro_shop_share), hop_share: Number(st.pro_hop_share), price: Math.max(0, Number(o.price) - (Number(st.pro_shop_share) - Number(st.pro_hop_share))) });
+  if (mode === "shop") Object.assign(o, { shop_pays: true, hop_share: 0, shop_share: 0 });
+  writeJSON(LS.orders, all);
+  return true;
+}
+// Les clients du commerce (prénom, commandes, dernière commande) et un message à tous (une fois par jour)
+async function shopClients(token) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_clients", { method: "POST", body: { p_token: token } });
+  const shop = localShops().find(x => x.token === token);
+  if (!shop) return { count: 0, list: [] };
+  const by = {};
+  localOrders().filter(o => (o.shop_id === shop.id || o.drop_shop_id === shop.id) && !["annulee", "refusee"].includes(o.status) && !o.shop_sent).forEach(o => {
+    const k = String(o.contact_phone || "").replace(/\D/g, "").slice(-9);
+    if (k.length < 9) return;
+    const c = by[k] || (by[k] = { name: String(o.contact_name || "").split(" ")[0], last_at: o.created_at, orders: 0 });
+    c.orders++; if (o.created_at > c.last_at) c.last_at = o.created_at;
+  });
+  const list = Object.values(by).sort((a, b) => String(b.last_at).localeCompare(String(a.last_at)));
+  return { count: list.length, list, broadcast_at: shop.broadcast_at || null };
+}
+async function shopBroadcast(token, message) {
+  if (ONLINE) return rest("/rest/v1/rpc/shop_broadcast", { method: "POST", body: { p_token: token, p_message: message } });
+  const shops = localShops(), s = shops.find(x => x.token === token);
+  if (!s) return 0;
+  if (s.broadcast_at && Date.now() - new Date(s.broadcast_at) < 20 * 3600000) throw new Error("broadcast_wait");
+  s.broadcast_at = new Date().toISOString(); writeJSON(LS.shops, shops);
+  return (await shopClients(token)).count;
 }
 // Qui paie la livraison : true = le client paie tout, false = le commerce paie sa part (12 ₪)
 async function setShopClientPays(token, on) {
@@ -1776,7 +1814,7 @@ const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISO
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
       pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null, tagline_he: s.tagline_he || null, about_he: s.about_he || null, client_pays: !!s.client_pays,
-      hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null, phone: s.phone || null, pay_link: s.pay_link || null, pay_bit: s.pay_bit || null, demo: !!s.demo, shop_pays: !!s.shop_pays,
+      hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null, phone: s.phone || null, pay_link: s.pay_link || null, pay_bit: s.pay_bit || null, demo: !!s.demo, shop_pays: !!s.shop_pays, pay_ask: !!s.pay_ask,
       gallery: s.gallery || [], promo: s.promo || null, promo_he: s.promo_he || null,
       shop_share: s.client_pays ? 0 : DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
@@ -2229,7 +2267,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminAnalytics, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

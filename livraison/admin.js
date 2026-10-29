@@ -641,6 +641,64 @@ function labelTables(root) {
     }));
   });
 }
+// --- 📊 Visites du site : d'où viennent les visiteurs, ce qu'ils regardent, combien commandent ---------------
+const visits = { days: 7, data: null, at: 0, busy: false };
+async function loadVisits(force) {
+  if (visits.busy || (!force && visits.data && Date.now() - visits.at < 60000)) return;
+  visits.busy = true;
+  try { visits.data = (await Store.adminAnalytics(visits.days)) || { empty: true }; } catch (e) { visits.data = { error: true }; }
+  visits.busy = false; visits.at = Date.now();
+  if (tab === "visites") render();
+}
+const SRC_LABEL = { direct: "✍️ Direct (lien tapé, favori, appli, WhatsApp privé)", google: "🔎 Google", facebook: "📘 Facebook", instagram: "📸 Instagram",
+  tiktok: "🎵 TikTok", whatsapp: "💬 WhatsApp", twitter: "🐦 X / Twitter", bing: "🔎 Bing", flyer: "🧾 Flyers (QR)", qr: "🔳 QR du kit pub",
+  "qr-commerce": "🏪 QR d'un commerce (autocollant, lien du commerce)" };
+const PAGE_LABEL = { index: "🏠 Accueil et commande", suivi: "📍 Suivi d'une course", commerce: "🏪 Espace commerce", "on-livre": "📦 « Ce qu'on livre »",
+  recu: "🧾 Reçus", kit: "📣 Kit pub" };
+const pct = (a, b) => (b ? Math.round(a * 100 / b) : 0) + " %";
+function vBars(rows, key, label) {
+  const max = Math.max(1, ...rows.map(r => Number(r[key]) || 0));
+  return `<div class="v-bars">${rows.map(r => `<div class="v-bar" title="${UI.esc(label(r))} : ${Number(r[key]) || 0}"><b>${Number(r[key]) || ""}</b><i style="height:${Math.round((Number(r[key]) || 0) * 100 / max)}%"></i><small>${UI.esc(label(r))}</small></div>`).join("")}</div>`;
+}
+function renderVisits(view) {
+  loadVisits();
+  const d = visits.data;
+  const chips = `<div class="actions" style="margin-bottom:12px">${[[1, "Aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [90, "3 mois"]].map(([n, l]) =>
+    `<button class="btn btn-sm${visits.days === n ? " btn-primary" : ""}" data-vdays="${n}">${l}</button>`).join("")}<button class="btn btn-sm" data-vdays="${visits.days}" title="Actualiser">↻</button></div>`;
+  if (!d) { view.innerHTML = chips + `<div class="empty card">Chargement des visites…</div>`; return; }
+  if (d.error || d.empty) { view.innerHTML = chips + `<div class="empty card">${d.error ? "Visites indisponibles, vérifiez la connexion." : "Les visites s'affichent avec la base en ligne."}</div>`; return; }
+  const days = (d.by_day || []).map(x => ({ ...x, label: x.d.slice(8, 10) + "/" + x.d.slice(5, 7) }));
+  const hours = Array.from({ length: 24 }, (_, h) => ({ h, sessions: ((d.by_hour || []).find(x => x.h === h) || {}).sessions || 0 }));
+  // Une ligne par élément (lisible sur le téléphone) : nom, chiffre principal, détails
+  const rows = list => list.length ? `<div class="v-rows">${list.join("")}</div>` : `<p class="muted small">Rien pour l'instant.</p>`;
+  const row = (label, big, sub) => `<div class="v-row"><span>${label}</span><b>${big}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
+  view.innerHTML = chips + `
+    <div class="stats">
+      <div class="stat"><small>Visiteurs</small><b>${d.visitors}</b><em class="muted small">dont ${d.new_visitors} nouveaux</em></div>
+      <div class="stat"><small>Visites</small><b>${d.sessions}</b><em class="muted small">${d.views} pages vues</em></div>
+      <div class="stat"><small>Commande ouverte</small><b>${d.started}</b><em class="muted small">${pct(d.started, d.sessions)} des visites</em></div>
+      <div class="stat"><small>Commandes envoyées</small><b>${d.sent}</b><em class="muted small">${pct(d.sent, d.sessions)} des visites · ${UI.money(d.sent_amount)}</em></div>
+      <div class="stat"><small>Depuis l'appli installée</small><b>${d.app}</b><em class="muted small">${pct(d.app, d.sessions)} des visites</em></div>
+    </div>
+    <div class="card" style="margin-top:12px"><h3>📈 Visites par jour</h3>${days.length ? vBars(days, "sessions", r => r.label) : `<p class="muted small">Pas encore de visite.</p>`}</div>
+    <div class="card" style="margin-top:12px"><h3>🧭 D'où ils viennent</h3>
+      ${rows((d.sources || []).map(s => row(UI.esc(SRC_LABEL[s.source] || "🔗 " + s.source), `${s.sessions} visite${s.sessions > 1 ? "s" : ""}`,
+        `${s.visitors} visiteur${s.visitors > 1 ? "s" : ""} · ${s.started} commande ouverte · <b>${s.sent} envoyée${s.sent > 1 ? "s" : ""}</b> (${pct(s.sent, s.sessions)})`)))}
+      <p class="muted small" style="margin-top:6px">Pour savoir ce que rapporte une pub, mettez dans son lien <b>?src=</b> suivi d'un nom (ex. <code>${UI.esc(UI.appUrl("on-livre.html"))}?src=insta-octobre</code>) : elle a sa propre ligne ici. Les flyers et QR du kit pub sont déjà comptés.</p></div>
+    ${(d.campaigns || []).length ? `<div class="card" style="margin-top:12px"><h3>📣 Campagnes et commerces (QR)</h3>${rows(d.campaigns.map(c =>
+      row(UI.esc(c.campaign), `${c.sessions} visite${c.sessions > 1 ? "s" : ""}`, `${UI.esc(SRC_LABEL[c.source] || c.source)} · ${c.sent} envoyée${c.sent > 1 ? "s" : ""}`)))}</div>` : ""}
+    <div class="card" style="margin-top:12px"><h3>🏪 Commerces les plus regardés</h3>${rows((d.shops || []).map(s =>
+      row(UI.esc(s.name || s.code), `${s.views} fois`, `${s.sessions} visite${s.sessions > 1 ? "s" : ""}`)))}</div>
+    <div class="card" style="margin-top:12px"><h3>📄 Pages vues</h3>${rows((d.pages || []).map(p => row(UI.esc(PAGE_LABEL[p.page] || p.page), String(p.views))))}</div>
+    <div class="card" style="margin-top:12px"><h3>🕘 Heures des visites</h3>${vBars(hours, "sessions", r => String(r.h))}</div>
+    <div class="card" style="margin-top:12px"><h3>📱 Appareils et langue</h3>
+      <p>${(d.devices || []).map(x => `${x.device === "mobile" ? "📱" : x.device === "tablette" ? "📟" : "💻"} ${UI.esc(x.device)} : <b>${x.sessions}</b>`).join(" · ") || "—"}</p>
+      <p>${(d.langs || []).map(x => `${x.lang === "he" ? "🇮🇱 hébreu" : x.lang === "fr" ? "🇫🇷 français" : UI.esc(x.lang)} : <b>${x.sessions}</b>`).join(" · ") || "—"}</p></div>
+    <div class="card" style="margin-top:12px"><h3>🧾 Dernières commandes et leur source</h3>${rows((d.orders || []).map(o =>
+      row(`<b>${UI.esc(o.ref || "")}</b> · ${UI.esc(UI.fmtDateTime(o.at))}`, UI.money(o.amount || 0),
+        `Venue par ${UI.esc(SRC_LABEL[o.source] || o.source)}${o.first_source && o.first_source !== o.source ? ` · 1ʳᵉ visite : ${UI.esc(SRC_LABEL[o.first_source] || o.first_source)}` : ""}`)))}</div>
+    <p class="muted small" style="margin-top:10px">Comptées depuis la mise en ligne des visites, sans nom ni téléphone : chaque téléphone a un numéro au hasard. Vos propres visites (patron, livreurs) ne sont pas comptées.</p>`;
+}
 // Rubrique de l'onglet ouvert : seuls ses onglets s'affichent ; chiffres et service seulement dans « Courses »
 const groupOf = t => (document.querySelector(`#tabs [data-tab="${t}"]`) || {}).dataset?.group || "courses";
 function render() {
@@ -668,6 +726,8 @@ function render() {
     renderReviews(view);
   } else if (tab === "hebdo") {
     renderWeek(view);
+  } else if (tab === "visites") {
+    renderVisits(view);
   } else if (tab === "commerces") {
     // La fiche « annuaire » garde ce qui est en cours de saisie quand l'écran se rafraîchit
     const keep = $("#dirCard");
@@ -1697,6 +1757,7 @@ async function onViewClick(e) {
     return;
   }
   if (el.id === "csvBtn") return exportCsv();
+  if (el.dataset.vdays) { visits.days = Number(el.dataset.vdays); visits.data = null; render(); return loadVisits(true); }
   if (el.dataset.vmove) {
     e.preventDefault();   // (dans la ligne repliée : la fiche ne s'ouvre pas)
     el.disabled = true;
@@ -2077,6 +2138,7 @@ $("#admGroups").addEventListener("click", e => {
   tab = lastTab[b.dataset.group] || document.querySelector(`#tabs [data-group="${b.dataset.group}"]`).dataset.tab;
   render();
   if (tab === "clients") loadClients();
+  if (tab === "visites") loadVisits();
 });
 $("#reloadBtn").addEventListener("click", load);
 $("#routeBtn").addEventListener("click", openRoute);

@@ -25,6 +25,8 @@ function setView(v, push) {
   if (!v || document.body.dataset.view === v) return false;
   document.body.dataset.view = v;
   viewTitle();
+  // Analytique : la commande ouverte (une fois par visite)
+  if (v === "order") { let s = null; try { s = sessionStorage.getItem("hop.started"); sessionStorage.setItem("hop.started", "1"); } catch (e) { /* ignore */ } if (!s) UI.track("order_start"); }
   if (push) { history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]); here = location.href; }
   window.scrollTo(0, 0);
   // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
@@ -850,6 +852,7 @@ function renderQuote() {
   $("#submitBtn").textContent = t("submit", { total: money(all) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
+  if (proShopOn() && state.shop.pay_ask) notes.push(t("askNote", { name: UI.bi(state.shop.name) }));
   if (val("service") === "achat") notes.push(goodsAfter() ? t("qPurchaseNoteAfter", { ride: money(q.total), goods: money(goodsBudget()) })
     : goodsPrepay() ? t("qPurchaseNotePre2", { ride: money(q.total), goods: money(goodsBudget()) }) : t("qPurchaseNote"));
   const st = state.settings;
@@ -1756,6 +1759,8 @@ async function submit(e) {
     const saved = await Store.createOrder(order);
     // (la base marque la livraison offerte ; l'écran de confirmation le sait déjà)
     if (q.gift) saved.shop_pays = true;
+    UI.track("order_sent", { order_ref: saved.ref, amount: Number(saved.price) || 0, shop_code: state.shop ? state.shop.code : null });
+    try { sessionStorage.removeItem("hop.started"); } catch (e) { /* ignore */ }
     if (gp) Object.assign(saved, { goods_pay: "a_payer", items_total: gp.total || saved.items_total || 0 });
     // Les photos des documents partent juste après la commande (le patron les vérifie avant d'envoyer un livreur)
     let docsFailed = false;
@@ -1888,6 +1893,13 @@ async function loadNotices() {
 const noticeWhen = n => (n.ready_from && new Date(n.ready_from) > Date.now()
   ? t("ntFrom", { when: UI.fmtDateTime(n.ready_from) }) : t("ntNow"));
 function noticeCard(n) {
+  // Message du commerce à ses clients (nouveautés, promo) : « Commander chez … »
+  if (n.kind === "promo") return `<div class="notice-card promo${n.seen_at ? "" : " new"}">
+    <span class="nt-ico">📣</span>
+    <div class="nt-txt"><b>${UI.esc(t("ntPromo", { name: UI.bi(n.shop_name) }))}</b>${n.message ? `<p>${UI.esc(n.message)}</p>` : ""}<small>🕘 ${UI.esc(UI.fmtDateTime(n.created_at))}</small></div>
+    <div class="nt-btns"><button type="button" class="btn btn-primary btn-sm" data-nt-shop="${UI.esc(n.id)}">${UI.esc(t("ntShop", { name: UI.bi(n.shop_name) }))}</button>
+      <button type="button" class="btn btn-link btn-sm" data-nt-later="${UI.esc(n.id)}">${UI.esc(t("ntOk"))}</button></div>
+  </div>`;
   return `<div class="notice-card${n.seen_at ? "" : " new"}">
     <span class="nt-ico">${UI.KIND_ICON[n.shop_kind] || "🏪"}</span>
     <div class="nt-txt"><b>${UI.esc(t("ntTitle", { name: n.shop_name }))}</b>
@@ -1938,13 +1950,15 @@ async function bookNotice(n) {
   $("#commander").scrollIntoView({ behavior: "smooth" });
 }
 document.addEventListener("click", e => {
-  const b = e.target.closest("[data-nt-book], [data-nt-later], #noticeClose");
+  const b = e.target.closest("[data-nt-book], [data-nt-later], [data-nt-shop], #noticeClose");
   if (!b) return;
   if (b.id === "noticeClose") { $("#noticeModal").classList.add("hidden"); return; }
-  const n = noticeOf(b.dataset.ntBook || b.dataset.ntLater);
+  const n = noticeOf(b.dataset.ntBook || b.dataset.ntLater || b.dataset.ntShop);
   if (!n) return;
   if (b.dataset.ntBook) return bookNotice(n);
   noticeSeen(n);
+  if (b.dataset.ntShop) { n.done = true; $("#noticeModal").classList.add("hidden"); renderNotices(); state.shopDir = ""; return loadShop(n.shop_code); }
+  if (n.kind === "promo") n.done = true;
   $("#noticeModal").classList.add("hidden");
   renderNotices();
 });
@@ -2512,6 +2526,7 @@ function applyShop() {
 async function loadShop(code, stay) {
   try { state.shop = await Store.shopByCode(code); } catch (e) { state.shop = null; }
   if (!state.shop) return;
+  UI.track("shop_view", { shop_code: state.shop.code });
   // Sur le téléphone du commerce : son carnet pro
   const token = Store.shopTokenFor(state.shop.code);
   if (token) {
