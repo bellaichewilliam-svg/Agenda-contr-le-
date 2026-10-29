@@ -174,6 +174,8 @@ Deno.serve(async req => {
       T.confirmee[1] = he ? `שלחו לו/לה עכשיו ${money(o.price)} בביט: לגעת כאן` : `Envoyez-lui ${money(o.price)} par Bit maintenant : touchez ici`;
     const t = T[String(ev.event)];
     if (t) sent += await sendClient(o, { title: t[0], body: `${t[1]} · ${o.ref}`, url: `suivi.html?t=${o.token}`, tag: "c-" + o.id }, site);
+    // Message d'un commerce à ses clients (nouveautés, promo) : il s'ouvre sur l'accueil HOP!
+    if (ev.event === "notice") sent += await sendClient(o, { title: String(ev.title || "📣 HOP!"), body: String(ev.body || ""), url: "index.html", tag: "n-" + String(o.shop_id || o.id) }, site);
   } else if (ev.courier_id && ev.title) {
     // Message de HOP! à un livreur (ex. « Toujours là ? » quand il n'est plus sur l'appli)
     sent += await sendTo([String(ev.courier_id)], { title: String(ev.title), body: String(ev.body || ""),

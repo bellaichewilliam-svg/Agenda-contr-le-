@@ -2817,3 +2817,11 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .v-row > span { min-width: 0; overflow-wrap: anywhere; font-weight: 600; }
 .v-row > b { white-space: nowrap; }
 .v-row > small { grid-column: 1 / -1; color: var(--muted); overflow-wrap: anywhere; }
+/* Commerce : qui paie la livraison de cette commande ; ses clients */
+.pay-pick { display: grid; gap: 6px; margin: 8px 0 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+.pay-pick .check span { overflow-wrap: anywhere; }
+.cl-list { margin-top: 10px; }
+.cl-list summary { cursor: pointer; font-weight: 700; }
+.cl-row { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.cl-row small { color: var(--muted); }
+#spClients textarea { width: 100%; resize: vertical; }

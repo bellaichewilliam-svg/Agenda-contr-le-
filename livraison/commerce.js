@@ -29,13 +29,13 @@ function payChoiceHtml(mode, note, gift) {
   const v = payVars();
   const opt = (val, i, k) => `<label class="choice"><input type="radio" name="client_pays" value="${val}"${val === mode ? " checked" : ""} />
     <span><i>${i}</i><b>${UI.esc(t(k, v))}</b><small>${UI.esc(t(k + "Note", v))}</small></span></label>`;
-  return `<b class="pay-title">${UI.esc(t("payTitle"))}</b><div class="choices" style="margin-top:8px">${opt("0", "🏪", "payShop")}${opt("1", "🙋", "payClient")}${gift ? opt("2", "🎁", "payGift") : ""}</div>
+  return `<b class="pay-title">${UI.esc(t("payTitle"))}</b><div class="choices" style="margin-top:8px">${opt("0", "🏪", "payShop")}${opt("1", "🙋", "payClient")}${gift ? opt("2", "🎁", "payGift") + opt("3", "🤝", "payAsk") : ""}</div>
     <p class="muted small pay-msg" style="margin:8px 0 0">${UI.esc(note || t("payLater"))}</p>`;
 }
 function renderPay() {
   const box = $("#spPay"), shop = state.dash && state.dash.shop;
   if (!shop || box.contains(document.activeElement) && box.dataset.busy) return;
-  box.innerHTML = payChoiceHtml(shop.shop_pays ? "2" : shop.client_pays ? "1" : "0", box.dataset.note, true);
+  box.innerHTML = payChoiceHtml(shop.pay_ask ? "3" : shop.shop_pays ? "2" : shop.client_pays ? "1" : "0", box.dataset.note, true);
 }
 function renderStatic() {
   I18N.apply();
@@ -353,6 +353,16 @@ function setRing(on) {
 }
 // N° de commande tapé mais pas encore validé : gardé quand l'écran se rafraîchit
 const refDraft = {};
+// « Je choisis à chaque commande » : qui paie la livraison de celle-ci (choisi en l'acceptant)
+const payDraft = {};
+function payPick(o) {
+  const shop = state.dash.shop;
+  if (!shop.pay_ask || o.shop_pays || Number(o.shop_share) > 0) return "";
+  if (o.payment_method === "cash") return `<p class="small muted">${UI.esc(t("ppCash"))}</p>`;
+  const v = payVars(), cur = payDraft[o.id] || "client";
+  return `<div class="pay-pick" data-pay-for="${UI.esc(o.id)}"><b>${UI.esc(t("ppTitle"))}</b>
+    ${[["client", "ppClient"], ["share", "ppShare"], ["shop", "ppShop"]].map(([m, k]) => `<label class="check"><input type="radio" name="pp-${UI.esc(o.id)}" value="${m}"${m === cur ? " checked" : ""} /> <span>${UI.esc(t(k, v))}</span></label>`).join("")}</div>`;
+}
 // Paiement direct : le commerce paie au livreur sa part de la course (12 − 2 = 10 ₪) en lui remettant la commande
 // Livraison offerte par le commerce : il paie toute la course au livreur
 const courierPart = o => (o.shop_pays ? Number(o.price || 0) : o.direct_pay ? Math.max(0, Number(o.shop_share || 0) - Number(o.hop_share || 0)) : 0);
@@ -435,7 +445,7 @@ function renderPrep() {
     const act = o.shop_status === "attente" && unpaid ? `${goods}<small class="muted">${UI.esc(t("spGoodsWaitAccept"))}</small>
         <div class="prep-btns"><button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
       : o.shop_status === "attente"
-      ? `${goods}<label class="f prep-ref"><span>${UI.esc(t("spRefLabel"))}</span><input inputmode="numeric" maxlength="3" autocomplete="off" data-ref-for="${UI.esc(o.id)}" value="${UI.esc(refDraft[o.id] || "")}" placeholder="${UI.esc(t("spRefPh"))}" /></label>
+      ? `${goods}${payPick(o)}<label class="f prep-ref"><span>${UI.esc(t("spRefLabel"))}</span><input inputmode="numeric" maxlength="3" autocomplete="off" data-ref-for="${UI.esc(o.id)}" value="${UI.esc(refDraft[o.id] || "")}" placeholder="${UI.esc(t("spRefPh"))}" /></label>
         <small class="muted">${UI.esc(t("spAcceptIn"))}</small><div class="prep-btns">${CONFIG.pro.prepChoices.map(m =>
           `<button type="button" class="btn btn-primary" data-prep="${m}" data-id="${UI.esc(o.id)}">${UI.esc(t("spMin", { n: m }))}</button>`).join("")}
           <button type="button" class="btn btn-link" data-refuse="${UI.esc(o.id)}">${UI.esc(t("spRefuse"))}</button></div>`
@@ -501,12 +511,23 @@ $("#spPrep").addEventListener("input", e => {
   i.value = i.value.replace(/\D/g, "").slice(0, 3);
   refDraft[i.dataset.refFor] = i.value;
 });
-$("#spPrep").addEventListener("click", e => {
+$("#spPrep").addEventListener("change", e => {
+  const r = e.target.closest("[data-pay-for] input");
+  if (r) payDraft[r.closest("[data-pay-for]").dataset.payFor] = r.value;
+});
+$("#spPrep").addEventListener("click", async e => {
   const b = e.target.closest("button");
   if (!b) return;
   if (b.dataset.prep) {
     const input = $(`#spPrep [data-ref-for="${b.dataset.id}"]`), ref = input ? input.value.trim() : "";
     if (!/^[0-9]{3}$/.test(ref)) { alert(t("spRefNeed")); if (input) input.focus(); return; }
+    // Qui paie la livraison de cette commande (au choix) : enregistré juste avant d'accepter
+    const pick = $(`#spPrep [data-pay-for="${b.dataset.id}"] input:checked`);
+    if (pick && pick.value !== "client") {
+      b.disabled = true;
+      const ok = await Store.shopOrderPay(state.dash.shop.token, b.dataset.id, pick.value).catch(() => false);
+      if (!ok) { b.disabled = false; return alert(t("spErr")); }
+    }
     return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep), null, ref);
   }
   if (b.dataset.goodsOk || b.dataset.goodsNo) {
@@ -684,6 +705,44 @@ $("#spPage").addEventListener("click", async e => {
   } catch (ex) { page.busy = false; b.disabled = false; $("#pgMsg").textContent = t("brErr"); }
 });
 
+// --- Mes clients : ceux qui ont commandé chez lui avec HOP! (prénom seulement), et un message à tous ---------
+const clients = { data: null, at: 0, open: false, msg: "", note: "" };
+async function renderClients(force) {
+  const box = $("#spClients"), shop = state.dash.shop;
+  if (force || !clients.data || Date.now() - clients.at > 120000) {
+    try { clients.data = await Store.shopClients(shop.token); clients.at = Date.now(); } catch (e) { clients.data = clients.data || { count: 0, list: [] }; }
+  }
+  const d = clients.data || { count: 0, list: [] }, n = Number(d.count) || 0;
+  box.classList.remove("hidden");
+  if (box.contains(document.activeElement)) return;   // (en train d'écrire : on ne redessine pas)
+  const next = d.broadcast_at && new Date(new Date(d.broadcast_at).getTime() + 20 * 3600000);
+  const wait = next && next > new Date();
+  box.innerHTML = `<h3>${UI.esc(t("clTitle", { n }))}</h3>
+    <p class="muted small" style="margin:4px 0 10px">${UI.esc(t(n ? "clSub" : "clNone"))}</p>
+    ${n ? `<label class="f"><textarea id="clMsg" rows="3" maxlength="300" placeholder="${UI.esc(t("clMsgPh"))}">${UI.esc(clients.msg)}</textarea></label>
+      <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-cl-send${wait ? " disabled" : ""}>${UI.esc(t("clSend", { n }))}</button></div>
+      ${wait ? `<p class="small muted">${UI.esc(t("clWait", { when: UI.fmtDateTime(next.toISOString()) }))}</p>` : ""}
+      ${clients.note ? `<p class="small">${UI.esc(clients.note)}</p>` : ""}
+      <details class="cl-list"${clients.open ? " open" : ""}><summary>${UI.esc(t("clMore"))}</summary>
+        ${(d.list || []).map(c => `<div class="cl-row"><b>${UI.esc(c.name || "—")}</b><small>${UI.esc(t("clLast", { orders: c.orders, date: UI.fmtDay(c.last_at) }))}</small></div>`).join("")}</details>` : ""}`;
+}
+$("#spClients").addEventListener("input", e => { if (e.target.id === "clMsg") clients.msg = e.target.value; });
+$("#spClients").addEventListener("toggle", e => { if (e.target.matches(".cl-list")) clients.open = e.target.open; }, true);
+$("#spClients").addEventListener("click", async e => {
+  const b = e.target.closest("[data-cl-send]");
+  if (!b) return;
+  const msg = ($("#clMsg") || {}).value || "";
+  if (msg.trim().length < 5) return alert(t("clShort"));
+  if (!confirm(t("clSend", { n: clients.data.count }) + " ?\n\n« " + msg.trim() + " »")) return;
+  b.disabled = true;
+  try {
+    const n = await Store.shopBroadcast(state.dash.shop.token, msg.trim());
+    clients.msg = ""; clients.note = t("clSent", { n });
+  } catch (ex) { clients.note = /broadcast_wait/.test(ex.message || "") ? t("clWait", { when: "20 h" }) : t("spErr"); }
+  b.blur();
+  renderClients(true);
+});
+
 // --- Catalogue HOP! Pro : catégories et produits (photo, prix, disponible / épuisé) --------------
 const cat = { data: null, edit: null, photo: undefined, busy: false, fresh: false };
 async function loadCatalog() {
@@ -848,11 +907,11 @@ $("#spCatalog").addEventListener("submit", e => {
 setInterval(() => { if (state.dash && !document.hidden) refreshSpace(); }, 15000);
 $("#spPay").addEventListener("change", async e => {
   if (e.target.name !== "client_pays" || !state.dash) return;
-  const mode = { 0: "share", 1: "client", 2: "shop" }[e.target.value], box = $("#spPay");
+  const mode = { 0: "share", 1: "client", 2: "shop", 3: "ask" }[e.target.value], box = $("#spPay");
   box.dataset.busy = "1";
   try {
     if (!(await Store.setShopPayMode(state.dash.shop.token, mode))) throw new Error("no");
-    Object.assign(state.dash.shop, { client_pays: mode !== "share", shop_pays: mode === "shop" });
+    Object.assign(state.dash.shop, { client_pays: mode !== "share", shop_pays: mode === "shop", pay_ask: mode === "ask" });
     box.dataset.note = t("paySaved");
   } catch (err) { box.dataset.note = t("payErr"); }
   delete box.dataset.busy;
@@ -887,6 +946,7 @@ function renderSpace() {
   renderPay();
   renderBrand();
   renderPage();
+  renderClients();
   const sales = state.dash.sales || [];
   renderHead(shop);
   renderTabs(shop);
