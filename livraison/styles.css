@@ -778,6 +778,13 @@ body.rider-on > main { padding: 0 !important; max-width: none; }
 .rd-pin.drop { border-color: #12B76A; }
 .rd-pin.me { background: #12B76A; border-color: #fff; }
 .rd-pin.off { background: #98A2B3; border-color: #fff; }
+/* Prochain arrêt du livreur : plus gros, orange, avec un halo qui pulse (la destination, pas un trait) */
+.rd-pin.next { width: 44px; height: 44px; font-size: 22px; background: var(--brand); border-color: #fff; box-shadow: 0 4px 14px rgba(255, 106, 19, .55); z-index: 2; }
+.rd-pin.next.drop { background: #12B76A; box-shadow: 0 4px 14px rgba(18, 183, 106, .55); }
+.rd-pin.next::before { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 3px solid currentColor; color: var(--brand); opacity: 0; animation: pin-halo 1.8s ease-out infinite; }
+.rd-pin.next.drop::before { color: #12B76A; }
+@keyframes pin-halo { 0% { transform: scale(.9); opacity: .9; } 100% { transform: scale(2.1); opacity: 0; } }
+.ready-chip.soon { background: #FEF0C7; color: #B54708; }
 .pin-price { position: absolute; top: -10px; inset-inline-start: 22px; background: #fff; color: #0F1F3D; border-radius: 99px; padding: 1px 7px; font: 700 11px Rubik, Arial; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
 .fc-bars { display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; align-items: end; height: 120px; margin: 12px 0 6px; }
 .fc-bars div { display: grid; gap: 3px; justify-items: center; align-self: end; font-size: 10px; color: var(--muted); }
@@ -1306,6 +1313,9 @@ body.cg-cart-on .wa-fab { bottom: 160px !important; }
 .cg-pic > img, .item-art { width: 112px; height: 112px; object-fit: cover; border-radius: 16px; display: block; }
 .item-art { display: grid; place-items: center; overflow: hidden; background: radial-gradient(circle at 30% 25%, hsl(var(--h, 25) 100% 97%), hsl(var(--h, 25) 85% 86%) 70%); }
 .item-art img { width: 74%; height: 74%; object-fit: contain; filter: drop-shadow(0 8px 10px hsl(var(--h, 25) 60% 30% / .28)); transition: transform .2s; }
+/* Article sans photo : le logo du commerce, sur fond blanc, petit et centré */
+.item-art.logo-art { background: #fff; }
+.item-art.logo-art img { width: 62%; height: 62%; filter: none; border-radius: 12%; }
 .cg-item:hover .item-art img, .cg-item.in .item-art img { transform: scale(1.06) rotate(-3deg); }
 .cg-info { display: grid; gap: 4px; min-width: 0; align-content: center; }
 .cg-info b { font-size: 16px; line-height: 1.3; font-weight: 700; }
@@ -1337,6 +1347,10 @@ body.cg-cart-on .wa-fab { bottom: 160px !important; }
 .pro-card { position: relative; flex: 0 0 248px; scroll-snap-align: start; display: grid; text-align: start; padding: 0; border: 1px solid var(--border); border-radius: 18px; background: var(--panel); overflow: hidden; cursor: pointer; font: inherit; color: inherit; box-shadow: 0 6px 18px rgba(15, 31, 61, .08); }
 .pc-cover, .sh-cover { display: grid; place-items: center; height: 118px; background: linear-gradient(135deg, #FF8A3D, #E0420A) center / cover no-repeat; }
 .pc-cover i, .sh-cover i { font-style: normal; font-size: 46px; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, .2)); }
+/* Pas de photo de couverture : le logo du commerce, flou et agrandi, sous un voile sombre, avec le logo net au milieu (jamais un aplat de couleur) */
+.sh-cover.auto, .sc-cover.auto, .pc-cover.auto { position: relative; overflow: hidden; background: #0F1F3D; }
+.sh-cover.auto::before, .sc-cover.auto::before, .pc-cover.auto::before { content: ""; position: absolute; inset: -30px; background: var(--logo) center / cover no-repeat; filter: blur(26px) saturate(1.4) brightness(.85); transform: scale(1.3); }
+.sh-cover.auto::after, .sc-cover.auto::after, .pc-cover.auto::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15, 31, 61, .05), rgba(15, 31, 61, .45)); }
 .pk-boutique .pc-cover, .sh-cover.pk-boutique { background-color: #6E56CF; background-image: linear-gradient(135deg, #8E7CF0, #5B3FC4); }
 .pk-pharmacie .pc-cover, .sh-cover.pk-pharmacie { background-image: linear-gradient(135deg, #34C38F, #12976B); }
 .pk-bureau .pc-cover, .sh-cover.pk-bureau, .pk-autre .pc-cover, .sh-cover.pk-autre { background-image: linear-gradient(135deg, #2E5AAC, #0F1F3D); }

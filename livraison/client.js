@@ -732,6 +732,11 @@ function renderNoteTime() {
   el.classList.toggle("hidden", !d);
   el.textContent = d ? t("noteTime", { time: UI.fmtTime(d) }) : "";
 }
+// Article sans photo : le petit logo du commerce (jamais une illustration au hasard), sinon l'illustration par nom
+function shopArt(p) {
+  const logo = state.shop && UI.safeImg(state.shop.logo);
+  return logo ? `<span class="item-art logo-art"><img src="${logo}" alt="" loading="lazy" /></span>` : UI.itemArt(p.name, state.shop && state.shop.kind);
+}
 const notesText = () => (val("service") === "achat" ? val("notes").trim() : pharmaLines().concat(val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
 function renderPharma() {
   const box = $("#pharmaBox"), r = rayonOn();
@@ -2308,7 +2313,7 @@ function renderCatalog() {
   const n = cartCount();
   // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
   // Les incontournables : les premiers articles du menu, en grandes cartes qui défilent
-  const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind));
+  const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : shopArt(p));
   const top = cgProducts().filter(p => p.available).slice(0, 8);
   const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: UI.bi(state.shop.name) }))}</b>
     ${shopNoPay() ? noPayBox() : ""}
@@ -2322,7 +2327,7 @@ function renderCatalog() {
       const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(p.name))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
-        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : UI.itemArt(p.name, state.shop.kind)}
+        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : shopArt(p)}
         ${!p.available ? `<span class="cg-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
@@ -2397,7 +2402,7 @@ function renderItem() {
   const p = cgProducts().find(x => x.id === item.id);
   if (!p) return;
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
-  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}" alt="" />` : UI.itemArt(p.name, state.shop.kind)}</div>
+  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</div>
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(p.name))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
@@ -2418,7 +2423,7 @@ function renderCart() {
   $("#cartTitle").textContent = t("csTitle", { name: state.shop ? UI.bi(state.shop.name) : "" });
   $("#cartBody").innerHTML = lines.map(({ p, qty }) => {
     const photo = UI.safeImg(p.photo);
-    return `<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : UI.itemArt(p.name, state.shop && state.shop.kind)}</span>
+    return `<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</span>
       <span class="cs-txt"><b><bdi>${UI.esc(UI.bi(p.name))}</bdi></b><small>${UI.esc(money(Number(p.price) * qty))}</small></span>
       <span class="it-qty cs-qty"><button type="button" data-cs-minus="${UI.esc(p.id)}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${UI.esc(p.id)}" aria-label="+">+</button></span></div>`;
   }).join("");
@@ -2536,7 +2541,7 @@ function renderShopBanner() {
     const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
     // Enseigne sans commande en ligne (vitrine) : sa présentation, puis comment commander chez elle par WhatsApp
     const vit = !s.pro && !s.demo && side === "from";
-    const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
+    const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small>${shopStars(s)}</div></div>
       ${shopReviewsFold(s)}
@@ -3512,7 +3517,7 @@ function shopCard(s) {
   const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = UI.openState(s.hours);
   const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">
-    <span class="sc-cover"${cover ? ` style="background-image:url(${cover})"` : ""}>${cover ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
+    <span class="sc-cover${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
       ${st && !st.open ? `<em class="sc-closed"><span><b>🌙 ${UI.esc(t("scClosedShort"))}</b>${(lb => lb ? `<small>${UI.esc(lb)}</small>` : "")(openLabel(st).replace(/^[^·]*·\s*/, "").replace(/^(Fermé|סגור)$/, ""))}</span></em>` : ""}${isKosher(s) ? kosherTag("k-on-cover") : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>

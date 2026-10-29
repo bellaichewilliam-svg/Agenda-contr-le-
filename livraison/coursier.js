@@ -435,8 +435,8 @@ function proLine(o) {
   const nb = UI.notBefore(o);
   const state = o.shop_status === "prete" ? "✅ <b>Commande prête</b>"
     : nb && nbLeft(nb) > 0 ? `⏰ <b>Pour ${UI.esc(UI.fmtTime(nb))}</b> : le client a demandé à partir de cette heure, ne partez pas avant`
-    : left != null && left <= 0 ? `⏳ <b>Devrait être prête</b> : ${UI.esc(o.shop_name || "le commerce")} n'a pas encore touché « Prête » · demandez-lui`
-    : left != null ? `🍳 <b>Prête dans ${left} min</b> chez ${UI.esc(o.shop_name || "le commerce")}` : "🍳 En attente du commerce";
+    : left != null && left <= 0 ? `⏱️ <b>Prête maintenant</b> (annoncée pour ${new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}) · ${UI.esc(o.shop_name || "le commerce")} n'a pas encore confirmé, demandez-lui`
+    : left != null ? `🍳 <b>Prête dans ${left} min</b> chez ${UI.esc(o.shop_name || "le commerce")} <small class="muted">(à ${new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})</small>` : "🍳 En attente du commerce";
   return `<div class="small pro-line">${state}${o.shop_order ? `<br>🧾 ${UI.esc(o.shop_order)}` : ""}
     ${shopPart(o) && !o.direct_pay ? `<br>🏪 Le commerce paie ${UI.money(shopPart(o))} de votre course : HOP vous le reverse` : ""}</div>`;
 }
@@ -788,8 +788,8 @@ function readyChip(o) {
   const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null, nb = UI.notBefore(o);
   return o.shop_status === "prete" ? `<span class="ready-chip ok">✅ Prête</span>`
     : nb && nbLeft(nb) > 0 ? `<span class="ready-chip nb">⏰ Pour <b>${UI.esc(UI.fmtTime(nb))}</b></span>`
-    : left != null && left <= 0 ? `<span class="ready-chip">⏳ Devrait être prête · pas confirmé</span>`
-    : left != null ? `<span class="ready-chip">⏳ Prête dans <b>${left} min</b></span>` : `<span class="ready-chip">🍳 En préparation</span>`;
+    : left != null && left <= 0 ? `<span class="ready-chip soon">⏱️ Prête maintenant · pas confirmé</span>`
+    : left != null ? `<span class="ready-chip${left <= 5 ? " soon" : ""}">⏳ Prête dans <b>${left} min</b></span>` : `<span class="ready-chip">🍳 En préparation</span>`;
 }
 // Dès que ça sonne : prête ou pas, et dans combien de temps (commerce, commande par téléphone, rendez-vous, heure programmée)
 function readiness(o) {
@@ -804,8 +804,8 @@ function readiness(o) {
     if (!o.ready_at) return { ok: false, text: `🍳 <b>Pas encore prête</b> : en préparation${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}` };
     const l = mins(o.ready_at);
     // Le temps annoncé est passé mais le commerce n'a pas touché « Prête » : on ne dit pas « prête » à sa place
-    return l <= 0 ? { ok: false, text: `⏳ <b>Devrait être prête</b> (annoncée pour ${hh(o.ready_at)}) : ${o.shop_name ? UI.esc(o.shop_name) : "le commerce"} n'a pas confirmé · appelez-le avant de partir` }
-      : { ok: false, left: l, text: `⏳ <b>Pas encore prête</b> : prête dans <b>${dur(l)}</b> (à ${hh(o.ready_at)})` };
+    return l <= 0 ? { ok: false, text: `⏱️ <b>Prête maintenant</b> (annoncée pour ${hh(o.ready_at)}) : ${o.shop_name ? UI.esc(o.shop_name) : "le commerce"} n'a pas confirmé · appelez-le avant de partir` }
+      : { ok: false, left: l, text: `⏳ <b>Pas encore prête</b> : il reste <b>${dur(l)}</b> (prête à ${hh(o.ready_at)})` };
   }
   if (o.appt_at && mins(o.appt_at) > 0) return { ok: false, left: mins(o.appt_at), text: `📅 Rendez-vous à <b>${hh(o.appt_at)}</b> (dans ${dur(mins(o.appt_at))})` };
   if (o.urgency === "programmee" && o.pickup_at && mins(o.pickup_at) > 0)
@@ -2347,12 +2347,9 @@ function updateRiderMap() {
     const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon), got = o.status === "recuperee";
     const toPick = got ? null : etaMin(here, pick);
     const toDrop = got ? etaMin(here, drop) : (etaMin(pick, drop) != null ? (toPick || 0) + etaMin(pick, drop) + (o.arrived_at ? 0 : 2) : null);
-    add(o.pickup_lat, o.pickup_lon, got ? rpin("📍", "done") : rbubble("🏪", "pick", "Récupération", toPick), `Récupération · n° ${UI.esc(o.ref)}`);
-    add(o.dropoff_lat, o.dropoff_lon, rbubble("🏁", "drop", "Livraison", toDrop), `Livraison · n° ${UI.esc(o.ref)}`);
-    // Une courbe douce : départ → arrivée en clair, et de moi jusqu'au prochain arrêt en orange (on voit où j'en suis)
-    if (o.pickup_lat != null && o.dropoff_lat != null) UI.routeLayer([o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon], { color: "#FFFFFF", opacity: .55, weight: 4, glow: "#0F1F3D", glowOpacity: .25 }).addTo(rmap.layer);
-    const next = got ? drop : pick;
-    if (lastPos && next) UI.routeLayer([lastPos.lat, lastPos.lon], [next.lat, next.lon], { color: "#FF6A13" }).addTo(rmap.layer);
+    // Le prochain arrêt est mis en valeur (halo orange qui pulse) ; pas de trait à vol d'oiseau, ce n'est pas un itinéraire
+    add(o.pickup_lat, o.pickup_lon, got ? rpin("📍", "done") : rbubble("🏪", "pick next", "Récupération", toPick), `Récupération · n° ${UI.esc(o.ref)}`);
+    add(o.dropoff_lat, o.dropoff_lon, rbubble("🏁", got ? "drop next" : "drop", "Livraison", toDrop), `Livraison · n° ${UI.esc(o.ref)}`);
   });
   // Moi sur la carte : le même petit logo que côté client (« ! » orange qui clignote en service, gris hors service)
   if (lastPos) add(lastPos.lat, lastPos.lon, L.divIcon({ className: "", iconSize: [30, 30], iconAnchor: [15, 15],
@@ -2525,6 +2522,11 @@ function remindCheck() {
   });
 }
 setInterval(remindCheck, 30000);
+// « Prête dans 10 min », « 5 min », « prête maintenant » : les minutes restantes se mettent à jour toutes les 30 s
+setInterval(() => {
+  if (document.visibilityState !== "visible" || !me) return;
+  if (mine().some(o => o.ready_at && o.shop_status !== "prete") && ["home", "mine"].includes(tab)) render();
+}, 30000);
 
 // Passé hors ligne par HOP! (courses sans réponse, trop de refus, aucune nouvelle depuis 3 h) : on coupe aussi ici
 function serverWentOffline(card) {

@@ -669,7 +669,8 @@ function renderVisits(view) {
   loadVisits();
   const d = visits.data;
   const chips = `<div class="actions" style="margin-bottom:12px">${[[1, "Aujourd'hui"], [7, "7 jours"], [30, "30 jours"], [90, "3 mois"]].map(([n, l]) =>
-    `<button class="btn btn-sm${visits.days === n ? " btn-primary" : ""}" data-vdays="${n}">${l}</button>`).join("")}<button class="btn btn-sm" data-vdays="${visits.days}" title="Actualiser">↻</button></div>`;
+    `<button class="btn btn-sm${visits.days === n ? " btn-primary" : ""}" data-vdays="${n}">${l}</button>`).join("")}<button class="btn btn-sm" data-vdays="${visits.days}" title="Actualiser">↻</button></div>`
+    + (d && d.by_day && d.by_day.length && visits.days > 1 ? `<p class="muted small" style="margin:-6px 0 10px">Visites comptées depuis le ${UI.esc(d.by_day[0].d.slice(8, 10) + "/" + d.by_day[0].d.slice(5, 7))} (début du suivi) : avant cette date, il n'y a rien à compter, les périodes plus longues donnent donc les mêmes chiffres.</p>` : "");
   if (!d) { view.innerHTML = chips + `<div class="empty card">Chargement des visites…</div>`; return; }
   if (d.error || d.empty) { view.innerHTML = chips + `<div class="empty card">${d.error ? "Visites indisponibles, vérifiez la connexion." : "Les visites s'affichent avec la base en ligne."}</div>`; return; }
   const days = (d.by_day || []).map(x => ({ ...x, label: x.d.slice(8, 10) + "/" + x.d.slice(5, 7) }));
@@ -1348,7 +1349,7 @@ function renderShops(view) {
       <div class="stat"><small>Commerces</small><b>${shops.filter(x => !x.demo && x.status !== "suspendu").length}</b></div>
       <div class="stat"><small>À vérifier</small><b>${shops.filter(x => !x.demo && x.status === "en_attente").length}</b></div>
       <div class="stat"><small>Courses ce mois</small><b>${viaShop.filter(o => UI.dayKey(o.pickup_at).startsWith(month)).length}</b></div>
-      ${bonusDue > 0 ? `<div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>` : `<div class="stat"><small>HOP! Pro</small><b>${shops.filter(x => !x.demo && Store.planActive(x)).length}</b></div>`}
+      ${bonusDue > 0 ? `<div class="stat"><small>Bonus à régler</small><b>${UI.money(bonusDue)}</b></div>` : `<div class="stat"><small>Commerces</small><b>${shops.filter(x => !x.demo).length}</b><em class="muted small">dont ${shops.filter(x => !x.demo && Store.planActive(x)).length} HOP! Pro</em></div>`}
     </div>
     <div class="toolbar"><input id="shopsQ" type="search" placeholder="🔎 Rechercher un commerce (nom, code, adresse, téléphone)" value="${UI.esc(shopsQ)}" /></div>
     ${list.length ? `<div class="orders">${list.map(x => {

@@ -42,7 +42,10 @@ h1 em{font-style:normal;color:#FF6A13}
 .scoot{direction:ltr}
 .price b{font-family:Fredoka;font-weight:700;color:#FF6A13;line-height:1}
 .price s{color:#98A2B3;font-weight:700}
-.badge{background:#FF6A13;color:#fff;border-radius:22px;padding:12px 22px;font-family:Fredoka;font-weight:700;white-space:nowrap}
+.badge{background:#FF6A13;color:#fff;border-radius:22px;padding:12px 22px;font-family:Fredoka;font-weight:700;line-height:1.15}
+.price>span:last-child{white-space:nowrap}
+.foot>div{min-width:0}
+.foot .qrbox{flex:none}
 .qrbox{background:#fff;border-radius:28px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:8px;color:#0F1F3D;font-weight:800}
 .qrbox canvas,.qrbox img{display:block}
 .foot{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
@@ -59,7 +62,7 @@ ul.ok li{font-weight:700}
 .foot,.top,h1{flex-shrink:0}
 .ctile{position:relative;background:#fff;border-radius:30px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:#0F1F3D;text-align:center;padding:10px;box-shadow:0 14px 30px rgba(0,0,0,.28)}
 .ctile b{font-family:Rubik;font-weight:800;line-height:1.1}
-.ctile .cart{height:62%;aspect-ratio:1;display:grid;place-items:center;border-radius:26px;background:radial-gradient(circle at 30% 25%,hsl(var(--h) 100% 97%),hsl(var(--h) 85% 84%) 70%)}
+.ctile .cart{width:68%;max-width:100%;max-height:62%;aspect-ratio:1;display:grid;place-items:center;border-radius:26px;background:radial-gradient(circle at 30% 25%,hsl(var(--h) 100% 97%),hsl(var(--h) 85% 84%) 70%)}
 .ctile .cart img{width:80%;height:80%;object-fit:contain;filter:drop-shadow(0 8px 10px hsl(var(--h) 60% 30% / .3))}
 .ctile.tap{outline:6px solid #FF6A13;outline-offset:-6px;transform:scale(1.04)}
 .finger{position:absolute;font-style:normal;font-size:64px;bottom:-26px;right:-6px;filter:drop-shadow(0 6px 8px rgba(0,0,0,.35))}
@@ -269,6 +272,9 @@ function page(kind, lang, fmt) {
     await pg.setContent(`<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>${p.html}<script>${qrJs}</script>
       <script>new QRCode(document.getElementById('q'), { text: ${JSON.stringify(p.link)}, width: ${p.qrSize}, height: ${p.qrSize}, correctLevel: QRCode.CorrectLevel.M });</script></body></html>`);
     await pg.evaluate(() => document.fonts.ready);
+    // Si le texte déborde de la page (français plus long), le titre et le sous-titre rétrécissent jusqu'à ce que tout tienne
+    await pg.evaluate(H => { const p = document.querySelector('.page'), h1 = p.querySelector('h1'), sub = p.querySelector('.sub, .how');
+      for (let i = 0; i < 12 && p.scrollHeight > H; i++) { h1.style.fontSize = (parseFloat(getComputedStyle(h1).fontSize) * 0.93) + 'px'; if (sub) sub.style.fontSize = (parseFloat(getComputedStyle(sub).fontSize) * 0.96) + 'px'; } }, p.H);
     await pg.waitForTimeout(300);
     const name = `${kind}-${fmt}-${lang}`;
     await pg.screenshot({ path: `${OUT}/${name}.png`, clip: { x: 0, y: 0, width: p.W, height: p.H } });
