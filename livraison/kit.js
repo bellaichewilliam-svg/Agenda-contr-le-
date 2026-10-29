@@ -294,6 +294,31 @@ const COURSES_POSTS = [
 🧾 המחיר האמיתי של החנות + המשלוח, 0 דמי שירות
 👈 כל מה שאנחנו מביאים: ${livreHe}` }
 ];
+// Commerces partenaires : la liste (même fichier que le générateur de visuels), et leurs textes FR / HE
+const PARTNERS = [
+  { code: "MARCHEFR", name: { fr: "Le Marché Français", he: "השוק הצרפתי" }, tagline: { fr: "L'épicerie française de Netanya : Bonne Maman, LU, Président, Andros…", he: "המכולת הצרפתית של נתניה: בון מאמן, LU, פרזידנט, אנדרוס…" },
+    fr: `🥐 Le Marché Français vous livre !
+
+Envie de produits français sans bouger de chez vous ? Bonne Maman, LU, Président, Andros, et toute l'épicerie fine du Marché Français : sa carte est maintenant dans l'appli ${nameFr}.
+🛒 Commandez en 1 minute · 📍 suivez le livreur en direct · 💵 espèces ou Bit
+🛵 Livraison dans ${UI.cityFr(home)} : ${price(home)}, livré en 30 min environ
+
+👉 Commander chez Le Marché Français : ${url}?c=MARCHEFR`,
+    he: `🥐 השוק הצרפתי מגיע אליכם!
+
+בא לכם מוצרים צרפתיים בלי לצאת מהבית? בון מאמן, LU, פרזידנט, אנדרוס וכל המעדנייה של השוק הצרפתי: התפריט עכשיו באפליקציית ${nameHe}.
+🛒 מזמינים תוך דקה · 📍 עוקבים אחרי השליח בזמן אמת · 💵 מזומן או ביט
+🛵 משלוח בתוך ${heHome}: ${price(home)}, מגיע תוך כ-30 דקות
+
+👈 להזמין מהשוק הצרפתי: ${url}?c=MARCHEFR&lang=he`,
+    short: `🥐 Le Marché Français vous livre ! Produits français, commandés en 1 minute, livrés en 30 min : ${url}?c=MARCHEFR
+🥐 השוק הצרפתי מגיע אליכם! מוצרים צרפתיים, הזמנה תוך דקה, משלוח תוך 30 דקות: ${url}?c=MARCHEFR&lang=he` }
+];
+const PARTNER_POSTS = PARTNERS.flatMap(p => [
+  { title: `🏪 ${p.name.fr} vous livre ! (français)`, dir: "ltr", text: p.fr },
+  { title: `🏪 ${p.name.he} מגיע אליכם! (עברית)`, dir: "rtl", text: p.he },
+  { title: `🏪 ${p.name.fr} : phrases courtes (story, statut)`, dir: "ltr", text: p.short }
+]);
 // « L'appli évolue » et « Avant Chabbat » : textes qui vont avec les visuels
 const VISITE_POSTS = [
   { title: "👀 L'appli évolue : pensez à nous visiter (français)", dir: "ltr", text:
@@ -379,12 +404,14 @@ Chabbat chalom ! 🕯️ 👉 ${livre}` },
 ];
 // Pour qui est chaque texte de POSTS (dans l'ordre) : clients, commerces ou livreurs
 const POST_AUD = ["client", "client", "shop", "shop", "client", "client", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "rider", "rider", "client", "client"];
-const ALL_POSTS = CHABBAT_POSTS.concat(VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
+const ALL_POSTS = PARTNER_POSTS.concat(CHABBAT_POSTS, VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
   .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
 
 // Campagnes de visuels : chaque carte = un message, avec ses formats (post carré, story, flyer A5) et sa vidéo
 const V = "kit/visuels/";
 const CAMPS = [
+  // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
+  ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
   { id: "chabbat", aud: "client", isNew: true, title: "🕯️ Courses de dernière minute avant Chabbat", desc: "Le vendredi : hallot, poulet, vin, fleurs… « Dites-nous ce qu'il vous faut, on achète et on livre. »", formats: ["post", "story", "flyer"] },
   { id: "halot", aud: "client", isNew: true, title: "🥖 Pensez à vos hallot !", desc: "Boulangerie livrée le vendredi : hallot tressées, gâteaux, biscuits, viennoiseries.", formats: ["post", "story", "flyer"] },
   { id: "table", aud: "client", isNew: true, title: "🍷 Tout pour la table de Chabbat", desc: "Vin, fleurs, pâtisserie, salades : courses dans tous les magasins de Netanya, livrées à la porte.", formats: ["post", "story", "flyer"] },
