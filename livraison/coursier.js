@@ -254,7 +254,31 @@ const markDeclined = id => { declinedAt.set(id, Date.now()); backAgain.delete(id
 const pool = () => orders.filter(o => o.status === "nouvelle" && !o.courier_id && !declinedRecently(o.id)).sort(byTime);
 // (avec un abandon du client dont la moitié de la course reste à encaisser)
 const mine = () => orders.filter(o => o.courier_id === me.id && (["confirmee", "recuperee"].includes(o.status)
-  || (o.status === "annulee" && o.wait_status === "a_payer"))).sort(byTime);
+  || (o.status === "annulee" && o.wait_status === "a_payer")))
+  .sort((a, b) => (isLater(a) ? 1 : 0) - (isLater(b) ? 1 : 0) || (isLater(a) ? laterAt(a) - laterAt(b) : byTime(a, b)));
+
+// À FAIRE MAINTENANT ou PLUS TARD : une course « pas avant 16 h », programmée ou avec rendez-vous reste hors de la
+// tournée tant que son heure est à plus de TOUR_LEAD min ; elle la rejoint TOUR_LEAD min avant (en même temps que le rappel)
+const TOUR_LEAD = 20;
+function dueAt(o) {
+  const nb = UI.notBefore(o);
+  if (nb) return nb.getTime();
+  if (o.appt_at) return new Date(o.appt_at).getTime();
+  if (o.urgency === "programmee" && o.pickup_at) return new Date(o.pickup_at).getTime();
+  return null;
+}
+const laterAt = o => { const t = dueAt(o); return t && o.status === "confirmee" && t - Date.now() > TOUR_LEAD * 60000 ? t : null; };
+const isLater = o => !!laterAt(o);
+const sameDay = t => new Date(t).toDateString() === new Date().toDateString();
+function dueLabel(o) {
+  const t = dueAt(o);
+  if (!t) return "";
+  const hh = UI.fmtTime(new Date(t));
+  if (UI.notBefore(o)) return `Pas avant ${hh}`;
+  if (o.appt_at) return `Rendez-vous ${sameDay(t) ? hh : UI.fmtDateTime(o.appt_at)}`;
+  return `Programmée ${sameDay(t) ? hh : UI.fmtDateTime(o.pickup_at)}`;
+}
+const startAt = o => UI.fmtTime(new Date(dueAt(o) - TOUR_LEAD * 60000));
 
 // Un seul lecteur audio, débloqué au premier geste (les téléphones l'exigent)
 let audioCtx = null;
@@ -369,7 +393,7 @@ document.addEventListener("toggle", e => {
 // Tournée (2 courses ou plus) : l'ordre des arrêts — les départs qui restent, du plus proche au suivant, puis les
 // arrivées, de proche en proche — le prochain en grand, les km de chaque tronçon et Waze par arrêt
 function tourStops(list) {
-  const act = list.filter(o => ["confirmee", "recuperee"].includes(o.status));
+  const act = list.filter(o => ["confirmee", "recuperee"].includes(o.status) && !isLater(o));
   const km = (a, b) => (a && b && a.lat != null && b.lat != null ? Store.kmBetween(+a.lat, +a.lon, +b.lat, +b.lon) : 0);
   let pos = lastPos ? { lat: lastPos.lat, lon: lastPos.lon } : null;
   const stops = [];
@@ -380,8 +404,8 @@ function tourStops(list) {
   return stops;
 }
 function tourBlock(list) {
-  const stops = tourStops(list);
-  if (stops.length < 2) return "";
+  const stops = tourStops(list), later = list.filter(isLater);
+  if (stops.length < 2 && !later.length) return "";
   let prev = lastPos ? { lat: lastPos.lat, lon: lastPos.lon } : null, total = 0;
   const rows = stops.map((st, i) => {
     const here = st.lat != null ? pt(st.lat, st.lon) : null, d = prev && here ? roadKm(prev, here) : null;
@@ -390,11 +414,21 @@ function tourBlock(list) {
     const o = st.o, pick = st.kind === "pickup";
     const place = pick ? (o.shop_name || o.pickup_place || o.pickup_address) : (o.dropoff_place || o.dropoff_address);
     const who = pick ? "" : (o.contact_name || "");
+    const due = dueAt(o) ? `<em class="due">⏰ pour ${UI.esc(UI.fmtTime(new Date(dueAt(o))))}</em> · ` : "";
     return `<div class="tour-stop${i === 0 ? " now" : ""}"><b class="tour-n">${i + 1}</b><div class="tour-txt"><b>${pick ? "📍" : "🏁"} <bdi>${UI.esc(place || "")}</bdi></b>
-      <small>${i === 0 ? "<em>Prochain arrêt</em> · " : ""}n° ${UI.esc(o.ref)}${who ? " · " + UI.esc(who) : ""}${d != null && d >= 0.05 ? ` · ≈ ${d.toFixed(1).replace(".", ",")} km` : ""}${pick && o.shop_ref ? ` · sac n° <b>${UI.esc(o.shop_ref)}</b>` : ""}</small></div>
+      <small>${i === 0 ? "<em>Prochain arrêt</em> · " : ""}${due}n° ${UI.esc(o.ref)}${who ? " · " + UI.esc(who) : ""}${d != null && d >= 0.05 ? ` · ≈ ${d.toFixed(1).replace(".", ",")} km` : ""}${pick && o.shop_ref ? ` · sac n° <b>${UI.esc(o.shop_ref)}</b>` : ""}</small></div>
       <a class="tour-nav" href="${navLink(o, st.kind)}" target="_blank" rel="noopener" aria-label="Itinéraire">${riderSet.nav === "maps" ? "🧭" : WAZE_SVG}</a></div>`;
   });
-  return `<div class="tour"><div class="tour-head">🗺️ <b>Votre tournée</b> · ${stops.length} arrêts${total >= 0.1 ? ` · ≈ ${total.toFixed(1).replace(".", ",")} km` : ""}</div>${rows.join("")}</div>`;
+  const now = stops.length
+    ? `<div class="tour-head">🗺️ <b>MAINTENANT</b> · ${stops.length} arrêt${stops.length > 1 ? "s" : ""}${total >= 0.1 ? ` · ≈ ${total.toFixed(1).replace(".", ",")} km` : ""}</div>${rows.join("")}`
+    : `<div class="tour-head">🗺️ <b>MAINTENANT</b> · rien à faire</div><div class="tour-free">Votre prochaine course rejoint la tournée à <b>${UI.esc(startAt(later[0]))}</b>. Vous pouvez prendre d'autres courses d'ici là.</div>`;
+  const lt = later.length ? `<div class="tour-head later-head">⏰ <b>PLUS TARD</b> · ${later.length} course${later.length > 1 ? "s" : ""}</div>${later.map(o => {
+    const place = o.shop_name || o.pickup_place || o.pickup_address, drop = o.dropoff_place || o.dropoff_address;
+    return `<div class="tour-stop later"><b class="tour-n">⏰</b><div class="tour-txt"><b><bdi>${UI.esc(dueLabel(o))}</bdi> · n° ${UI.esc(o.ref)}</b>
+      <small>📍 <bdi>${UI.esc(place || "")}</bdi> → 🏁 <bdi>${UI.esc(drop || "")}</bdi>${o.contact_name ? " · " + UI.esc(o.contact_name) : ""}</small>
+      <small><em>Dans ${UI.esc(nbDur(nbLeft(laterAt(o))))}</em> · rejoint votre tournée à <b>${UI.esc(startAt(o))}</b> · ne partez pas avant</small></div></div>`;
+  }).join("")}` : "";
+  return `<div class="tour">${now}${lt}</div>`;
 }
 function doneList() {
   const done = orders.filter(o => o.courier_id === me.id && o.status === "livree")
@@ -951,14 +985,14 @@ function mineCard(o, x) {
       ${now ? navBtn(o, which) : ""}
     </section>`;
   };
-  return `<article class="order mine-card" data-id="${UI.esc(o.id)}">
+  return `<article class="order mine-card${isLater(o) ? " later" : ""}" data-id="${UI.esc(o.id)}">
     <div class="order-head">
       <span class="order-time">${UI.esc(x.when)}</span>
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(x.total)}</span>
     </div>
     ${nbBlock(o)}
-    <div class="mine-step">${UI.esc(mineStep(o, x.hopPaid))}${tripKm(o) ? ` <span class="mine-km">🛣️ ${tripKm(o)}</span>` : ""}</div>
+    <div class="mine-step">${isLater(o) ? `<b class="later-tag">⏰ PLUS TARD · dans ${UI.esc(nbDur(nbLeft(laterAt(o))))}</b> · rien à faire avant <b>${UI.esc(startAt(o))}</b> · ensuite : ` : ""}${UI.esc(mineStep(o, x.hopPaid))}${tripKm(o) ? ` <span class="mine-km">🛣️ ${tripKm(o)}</span>` : ""}</div>
     ${UI.doorBig(o)}
     ${stop("pickup", "📍 DÉPART", !to)}
     ${UI.stopsLegs(o, true)}
@@ -2062,7 +2096,7 @@ function renderHome() {
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
     ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
         <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
-          <em class="rc-step">${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}</em>
+          <em class="rc-step">${isLater(o) ? `⏰ PLUS TARD · ${UI.esc(dueLabel(o))} · rien à faire avant ${UI.esc(startAt(o))}` : `${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}`}</em>
           <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>
           <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
@@ -2525,7 +2559,7 @@ setInterval(remindCheck, 30000);
 // « Prête dans 10 min », « 5 min », « prête maintenant » : les minutes restantes se mettent à jour toutes les 30 s
 setInterval(() => {
   if (document.visibilityState !== "visible" || !me) return;
-  if (mine().some(o => o.ready_at && o.shop_status !== "prete") && ["home", "mine"].includes(tab)) render();
+  if (mine().some(o => (o.ready_at && o.shop_status !== "prete") || dueAt(o)) && ["home", "mine"].includes(tab)) render();
 }, 30000);
 
 // Passé hors ligne par HOP! (courses sans réponse, trop de refus, aucune nouvelle depuis 3 h) : on coupe aussi ici
