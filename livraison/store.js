@@ -224,6 +224,8 @@ async function createOrder(order) {
     // Même règle que la base en ligne : commerce et parrain retrouvés ici, jamais fournis par le client
     const settings = await getSettings();
     const shops = localShops();
+    const digits = p => String(p || "").replace(/\D/g, "").slice(-9);
+    order.first_order = !!digits(order.contact_phone) && !localOrders().some(x => digits(x.contact_phone) === digits(order.contact_phone) && !["annulee", "refusee"].includes(x.status));
     const shop = order.shop_id && shops.find(x => x.id === order.shop_id && x.status !== "suspendu");
     const referrer = shop && localCouriers().find(c => c.id === shop.referrer_id);
     Object.assign(order, {

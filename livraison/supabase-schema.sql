@@ -8186,3 +8186,29 @@ begin
 end;
 $$;
 revoke execute on function public.remind_orders() from public, anon, authenticated;
+
+-- ============================================================================
+-- NOUVEAU CLIENT : la première commande d'un numéro de téléphone (aucune commande avant, annulées et tests mis à part)
+-- est marquée first_order à la création ; le livreur voit « 🆕 Nouveau client · 1re commande », le patron aussi.
+-- ============================================================================
+alter table public.orders add column if not exists first_order boolean not null default false;
+
+create or replace function public.orders_aa_first_order() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.first_order := public.phone_digits(new.contact_phone) <> '' and not exists (
+    select 1 from orders o
+     where public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone)
+       and o.status not in ('annulee', 'refusee') and not coalesce(o.is_test, false));
+  return new;
+end;
+$$;
+create or replace trigger orders_aa_first_order before insert on public.orders
+  for each row execute function public.orders_aa_first_order();
+
+-- Courses en cours : marquées si c'est la première du numéro
+update public.orders o set first_order = true
+ where o.status in ('nouvelle', 'confirmee', 'recuperee') and not o.first_order
+   and public.phone_digits(o.contact_phone) <> ''
+   and not exists (select 1 from orders p where public.phone_digits(p.contact_phone) = public.phone_digits(o.contact_phone)
+                    and p.created_at < o.created_at and p.status not in ('annulee', 'refusee') and not coalesce(p.is_test, false));
