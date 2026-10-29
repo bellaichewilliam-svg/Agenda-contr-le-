@@ -193,7 +193,7 @@ window.CONFIG = {
     networkPercent: 8,
     networkMin: 2,
     // Pourboires proposés au client après la livraison : 100 % pour le livreur
-    tips: [5, 10, 15],
+    tips: [5, 10, 15, 20],
     // Après ce nombre de courses refusées d'affilée (refus ou pas de réponse en 40 s), le livreur passe
     // hors ligne tout seul ; il repasse en ligne quand il est prêt (en ligne : settings.decline_streak_max)
     declineStreakMax: 3,
