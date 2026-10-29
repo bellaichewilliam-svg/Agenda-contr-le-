@@ -8118,3 +8118,9 @@ language sql stable security definer set search_path = public as $$
          where s.token = p_token and o.status not in ('annulee', 'refusee') and o.created_at > now() - interval '60 days'
          order by o.created_at desc limit 60) x), '[]'::json));
 $$;
+
+-- ============================================================================
+-- ZONES OUVERTES : le patron ouvre ou ferme une zone (HaSharon, Tel Aviv – Gush Dan, Petah Tikva, Rishon) depuis son
+-- espace ; les appli lisent settings.zones_open (seule HaSharon ouverte au départ), config.js ne sert que de liste.
+-- ============================================================================
+alter table public.settings add column if not exists zones_open text[] not null default '{sharon}';

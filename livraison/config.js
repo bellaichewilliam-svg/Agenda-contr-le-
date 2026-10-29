@@ -87,12 +87,13 @@ window.CONFIG = {
 
   // --- Zones de livraison : le Sharon, Tel Aviv – Gush Dan, Petah Tikva, Rishon ---
   // Les villes sans « zone » sont dans le Sharon. active: false ferme une zone ; closed: true sur une ville la ferme seule
-  // (pour l'instant : tout est ouvert sauf Holon).
+  // Seule HaSharon est ouverte ici ; le patron ouvre ou ferme les autres depuis son espace (« 🗺️ Zones ouvertes »,
+  // settings.zones_open), ce qui prend le pas sur ces valeurs.
   zones: [
     { id: "sharon",      fr: "HaSharon",                he: "השרון",                active: true },
-    { id: "tlv",         fr: "Tel Aviv – Gush Dan",     he: "תל אביב – גוש דן",      active: true },
-    { id: "petah-tikva", fr: "Petah Tikva",             he: "פתח תקווה",            active: true },
-    { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: true }
+    { id: "tlv",         fr: "Tel Aviv – Gush Dan",     he: "תל אביב – גוש דן",      active: false },
+    { id: "petah-tikva", fr: "Petah Tikva",             he: "פתח תקווה",            active: false },
+    { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: false }
   ],
   // Regroupement : deux courses d'un coup quand les arrivées sont proches (mêmes règles que la base, pair_ok)
   grouping: { dropKm: 1.2, pickupKm: 0.6, shopsKm: 1.5, minutes: 15, detourKm: 1, maxOrders: 3, maxBags: 4 },   // shopsKm : départs de commerces différents ; maxBags : place dans le top case

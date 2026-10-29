@@ -360,6 +360,12 @@ update public.orders set not_before = public.note_time(notes)
  where not_before is null and notes is not null and status in ('nouvelle', 'confirmee', 'recuperee')
    and urgency <> 'programmee' and appt_at is null and public.note_time(notes) > now() + interval '20 minutes';
 
+-- ============================================================================
+-- ZONES OUVERTES : le patron ouvre ou ferme une zone (HaSharon, Tel Aviv – Gush Dan, Petah Tikva, Rishon) depuis son
+-- espace ; les appli lisent settings.zones_open (seule HaSharon ouverte au départ), config.js ne sert que de liste.
+-- ============================================================================
+alter table public.settings add column if not exists zones_open text[] not null default '{sharon}';
+
 do $$ declare sid uuid; cid uuid; begin
   insert into shops (code, name, kind, city, address, lat, lon, phone, whatsapp, lang, status, kosher, tagline, tagline_he, client_pays, showcase, rank, plan_until, logo, cover, admin_note)
   values ('MARYLOU', 'Marylou Traiteur · מרילו קייטרינג', 'traiteur', 'netanya', 'Ussishkin 2', 32.3305, 34.8578, '09-773-9145', '972525345224', 'fr', 'actif', true,

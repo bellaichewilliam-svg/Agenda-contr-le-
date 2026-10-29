@@ -1259,6 +1259,8 @@ button.ct-info { border: 0; background: none; padding: 0; text-align: start; fon
 .cash-stop b { font-size: 1.4em; }
 .cash-stop small { display: block; font-size: 13px; margin-top: 2px; }
 .cash-stop.ok { border-style: solid; font-size: 15px; }
+.cash-stop.cash-say { font-size: 20px; }
+.cash-stop.cash-say b { font-size: 1.7em; display: inline-block; }
 .cash-need { margin: 6px 0; padding: 10px 12px; border-radius: 12px; background: #ECFDF3; border: 2px dashed #12B76A; color: #054F31; font-size: 14px; }
 .cash-need.ok { border-style: solid; }
 .cash-due { margin-bottom: 14px; }
@@ -2168,6 +2170,9 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 .boss-first select { font: inherit; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--card, #fff); color: inherit; }
 .boss-first .boss-only { flex-basis: 100%; color: var(--navy, #1b2340); font-weight: 700; }
 .boss-first .boss-only:empty { display: none; }
+.zones-row { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.zones-row .chip { font: inherit; font-size: 13px; padding: 5px 10px; border-radius: 99px; border: 1px solid var(--border); background: var(--card, #fff); color: inherit; cursor: pointer; }
+.zones-row .chip.on { border-color: #12B76A; background: #ECFDF3; font-weight: 700; }
 .boss-takes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; }
 /* Enseigne inscrite sur HOP! : toute la ligne ouvre sa boutique */
 .ens-item.ens-partner { cursor: pointer; }
