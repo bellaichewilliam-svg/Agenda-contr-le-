@@ -508,6 +508,8 @@ function card(o, withDay) {
   const partner = couriers.find(c => c.id === o.courier_id && c.role !== "admin");
   if (partner && ["confirmee", "recuperee", "livree", "annulee"].includes(o.status)) meta.push(`<button class="pill pill-btn st-annulee" data-act="penalty" title="Course pas faite ou pas reçue : retenue sur le versement de la semaine du livreur">💸 Retenue au livreur</button>`);
   if (o.first_order) meta.push(`<span class="pill new-client">🆕 Nouveau client · 1re commande</span>`);
+  if (o.first_order && o.status === "livree") meta.push(o.welcome_sent_at ? `<span class="pill paid">📣 Lien HOP! envoyé ✓</span>`
+    : `<a class="pill pill-btn btn-wa" target="_blank" rel="noopener" data-welcome-wa="${UI.esc(o.id)}" href="${UI.esc(UI.waPersonal(o.dropoff_phone || o.contact_phone, UI.welcomeMsg(o)))}">📣 Envoyer « Livré avec HOP! » (WhatsApp)</a>`);
   if (nbOn) meta.push(`<span class="pill unpaid nb-pill">⏰ Livraison demandée à partir de ${UI.esc(UI.fmtTime(nb))}${o.not_before ? "" : " (lu dans la note)"}</span>`);
   if (o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at && !["annulee", "refusee"].includes(o.status))
     meta.push(`<span class="pill ${o.status === "livree" && o.delivered_at && Date.now() - new Date(o.delivered_at) > 3 * 3600000 ? "st-annulee" : "unpaid"}">💵 ${UI.money(o.cash_goods)} d'articles à rapporter à ${UI.esc(o.shop_name || "le commerce")} par ${UI.esc((o.courier_name || "le livreur").split(" ")[0])}${o.status === "livree" ? " · livrée, pas encore rapportés" : ""}</span>`);
@@ -1577,6 +1579,13 @@ document.addEventListener("change", async e => {
       render(); $("#pfTitle").value = keep.title;
     } catch (ex) { alert("Image illisible ou trop lourde."); }
   }
+});
+// Lien de bienvenue au nouveau client : WhatsApp s'ouvre, l'envoi est noté sur la course
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-welcome-wa]");
+  if (!a) return;
+  const id = a.dataset.welcomeWa;
+  setTimeout(async () => { try { await Store.orderWelcomeSent(id); const o = orders.find(x => x.id === id); if (o) o.welcome_sent_at = new Date().toISOString(); render(); } catch (ex) { /* noté au prochain toucher */ } }, 400);
 });
 document.addEventListener("click", async e => {
   const b = e.target.closest("[data-promo-act]");

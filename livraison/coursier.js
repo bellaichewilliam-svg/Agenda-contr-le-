@@ -446,8 +446,28 @@ function doneList() {
     </div>`}</details>`).join("")}</div>`;
 }
 const DONE_OPEN_MIN = 30;
+// Nouveau client livré : le bouton qui lui envoie « Vous avez été livré avec HOP! » sur WhatsApp, d'un toucher
+const welcomeBtn = o => !o.first_order ? "" : o.welcome_sent_at ? `<p class="small welcome-ok">📣 Lien HOP! envoyé au client ✓</p>`
+  : `<a class="btn btn-sm btn-wa welcome-btn" target="_blank" rel="noopener" data-welcome="${UI.esc(o.id)}" href="${UI.esc(UI.waPersonal(o.dropoff_phone || o.contact_phone, UI.welcomeMsg(o)))}">📣 Envoyer « Livré avec HOP! » au client</a>`;
+function welcomeAsk(o) {
+  if (!o || !o.first_order || o.welcome_sent_at || !(o.dropoff_phone || o.contact_phone)) return;
+  $("#msgTime").textContent = "🆕 Nouveau client";
+  $("#msgBody").textContent = `${(o.dropoff_contact || o.contact_name || "Ce client").split(" ")[0]} commandait avec HOP! pour la première fois${o.shop_name ? ` (envoyé par ${UI.bi(o.shop_name, "fr")})` : ""}. Envoyez-lui le lien HOP! : il saura qu'on livre toute la ville.`;
+  $("#msgModalBtns").innerHTML = welcomeBtn(o);
+  $("#msgModal").classList.remove("hidden");
+}
+async function onWelcomeClick(e) {
+  const a = e.target.closest("[data-welcome]");
+  if (!a) return false;
+  const id = a.dataset.welcome, o = orders.find(x => x.id === id);
+  // Le lien s'ouvre dans WhatsApp ; on note l'envoi pour ne pas le refaire
+  setTimeout(async () => { try { await Store.orderWelcomeSent(id); if (o) o.welcome_sent_at = new Date().toISOString(); } catch (ex) { /* réessayé au prochain toucher */ }
+    $("#msgModal").classList.add("hidden"); render(); }, 400);
+  return true;
+}
 function doneBody(o) {
   return `<div class="done-body">
+      ${welcomeBtn(o)}
       <p>📍 <bdi>${UI.esc(o.pickup_place || o.pickup_address || "")}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</p>
       <p>🏁 <bdi>${UI.esc(o.dropoff_address || "")}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}${o.dropoff_floor ? ` · étage ${UI.esc(o.dropoff_floor)}` : ""}${o.dropoff_apt ? ` · appt ${UI.esc(o.dropoff_apt)}` : ""}</p>
       <p>👤 ${UI.esc(o.dropoff_contact || o.contact_name || "")}${(o.dropoff_phone || o.contact_phone) ? ` · <a href="tel:${UI.esc(o.dropoff_phone || o.contact_phone)}">${UI.esc(o.dropoff_phone || o.contact_phone)}</a>` : ""}</p>
@@ -1401,6 +1421,7 @@ async function onViewClick(e) {
     // Même client, autre enseigne : on rappelle de valider aussi l'autre commande
     if (ok && el.dataset.act === "livree" && o) {
       const left = sameClient(o).filter(t => t.status === "recuperee");
+      setTimeout(() => welcomeAsk(o), 600);
       if (left.length) alert(`✅ Commande n° ${o.ref} livrée.\n👥 Ce client a aussi : ${left.map(twinName).join(", ")}.\nTouchez « Livré » sur ${left.length > 1 ? "chacune" : "celle-ci"} aussi.`);
     }
     await load();
@@ -2847,7 +2868,8 @@ $("#view").addEventListener("change", e => {
 });
 $("#work").addEventListener("click", onWorkClick);
 $("#bossChat").addEventListener("click", () => { closeDrawer(); openBossChat(); });
-$("#msgModal").addEventListener("click", e => { const el = e.target.closest("button"); if (el && el.dataset.reply) onReply(el); });
+$("#msgModal").addEventListener("click", e => { if (e.target.closest("[data-welcome]")) return; const el = e.target.closest("button"); if (el && el.dataset.reply) onReply(el); });
+document.addEventListener("click", e => { onWelcomeClick(e); });
 $("#msgClose").addEventListener("click", () => $("#msgModal").classList.add("hidden"));
 $("#offerAccept").addEventListener("click", acceptOffer);
 $("#offerSkip").addEventListener("click", closeOffer);

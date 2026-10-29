@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <meta name="description" content="Vous avez été livré avec HOP! : votre solution de livraison dans toute la ville. Restos, commerces, courses, colis. נמסר לכם עם הופ!" />
+  <meta property="og:title" content="Vous avez été livré avec HOP! · נמסר לכם עם הופ!" />
+  <meta property="og:description" content="Votre solution de livraison dans toute la ville : restos, commerces, courses, colis, pressing." />
+  <meta property="og:image" content="https://hop-livraison.vercel.app/app/icon-512.png" />
+  <title>Livré avec HOP!</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=202610291938" />
+</head>
+<body class="bv">
+<!-- Page envoyée à chaque nouveau client après sa première livraison (souvent envoyé par un commerce, il ne connaît pas encore HOP!) -->
+<header class="bv-hero">
+  <div class="bv-top"><span></span><button type="button" class="bv-lang" id="bvLang"></button></div>
+  <img class="bv-mark" src="wordmark.svg" alt="HOP!" />
+  <span class="bv-done" id="bvDone"></span>
+  <h1 id="bvH1"></h1>
+  <p class="bv-sub" id="bvSub"></p>
+  <p class="bv-hello hidden" id="bvHello"></p>
+</header>
+
+<main class="wrap narrow bv-main">
+  <h2 class="bv-h2" id="bvAlso"></h2>
+  <div class="bv-grid" id="bvGrid"></div>
+
+  <section class="bv-partners hidden" id="bvPartnersBox">
+    <h2 class="bv-h2" id="bvPartnersH"></h2>
+    <div class="bv-logos" id="bvPartners"></div>
+  </section>
+
+  <ul class="bv-perks" id="bvPerks"></ul>
+
+  <div class="bv-more">
+    <button type="button" class="btn btn-block" id="bvInstall"></button>
+    <a class="btn btn-block btn-wa" id="bvShare" target="_blank" rel="noopener"></a>
+  </div>
+</main>
+
+<div class="ol-bar"><a class="btn btn-primary btn-lg" href="index.html" id="bvGo"></a></div>
+
+<script src="config.js?v=202610291938"></script>
+<script src="i18n.js?v=202610291938"></script>
+<script src="pricing.js?v=202610291938"></script>
+<script src="store.js?v=202610291938"></script>
+<script src="common.js?v=202610291938"></script>
+<script>
+(function () {
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const home = CONFIG.homeCity;
+  const token = new URLSearchParams(location.search).get("t");
+  // Ce que HOP! livre aussi : mêmes catégories et mêmes illustrations que l'appli (ouvre l'appli sur la bonne catégorie)
+  const KINDS = [
+    ["resto", "burger", 25, { service: "repas" }], ["shop", "cart", 140, { service: "achat" }], ["pharm", "pill", 160, { service: "achat" }],
+    ["docs", "docs", 215, { service: "colis" }], ["pressing", "basket", 35, { service: "colis" }], ["gift", "flowers", 330, { service: "achat" }]
+  ];
+  const TXT = {
+    fr: { done: "✅ Livré", h1: "Vous avez été livré avec <em>HOP!</em>", sub: "Votre solution de livraison dans toute la ville.",
+      hello: (n, s) => `Bonjour ${n}, votre commande${s ? " " + s : ""} est bien arrivée. Ce n'était qu'un début : HOP! vous livre aussi tout le reste.`,
+      also: "Avec HOP!, on vous livre aussi", from: "dès", partners: "Ils livrent avec HOP!",
+      perks: ["🧾 Le prix affiché avant de commander", "📍 Vous suivez le livreur en direct", "💵 Espèces ou Bit", "🏙️ Partout dans la ville, même les petits commerces"],
+      go: "🛵 Commander avec HOP!", install: "📲 Mettre HOP! sur mon téléphone", share: "💬 Faire découvrir HOP! à un proche",
+      shareMsg: "Je viens de me faire livrer avec HOP! 🛵 Restos, commerces, courses, colis, dans toute la ville : ", lang: "עברית" },
+    he: { done: "✅ נמסר", h1: "נמסר לכם עם <em>הופ!</em>", sub: "פתרון המשלוחים שלכם בכל העיר.",
+      hello: (n, s) => `שלום ${n}, ההזמנה שלכם${s ? " מ" + s : ""} הגיעה. וזו רק ההתחלה: הופ! מביאים לכם גם את כל השאר.`,
+      also: "עם הופ! אנחנו מביאים לכם גם", from: "החל מ-", partners: "הם שולחים עם הופ!",
+      perks: ["🧾 המחיר מוצג לפני ההזמנה", "📍 מעקב אחרי השליח בזמן אמת", "💵 מזומן או ביט", "🏙️ בכל העיר, גם בעסקים הקטנים"],
+      go: "🛵 להזמין עם הופ!", install: "📲 להוסיף את הופ! לטלפון", share: "💬 להמליץ על הופ! לחברים",
+      shareMsg: "הרגע קיבלתי משלוח עם הופ! 🛵 מסעדות, חנויות, קניות, חבילות, בכל העיר: ", lang: "Français" }
+  };
+  let order = null, partners = [];
+  function render() {
+    const L = I18N.lang, x = TXT[L];
+    I18N.apply();
+    document.documentElement.lang = L; document.documentElement.dir = L === "he" ? "rtl" : "ltr";
+    document.title = (L === "he" ? "נמסר עם הופ!" : "Livré avec HOP!");
+    $("#bvLang").textContent = x.lang;
+    $("#bvDone").textContent = x.done;
+    $("#bvH1").innerHTML = x.h1;
+    $("#bvSub").textContent = x.sub;
+    const first = order ? String(order.dropoff_contact || order.contact_name || "").trim().split(/\s+/)[0] : "";
+    const shop = order && order.shop_name ? UI.bi(order.shop_name, L) : "";
+    $("#bvHello").classList.toggle("hidden", !first);
+    if (first) $("#bvHello").textContent = x.hello(first, L === "he" ? shop : (shop ? "chez " + shop : ""));
+    $("#bvAlso").textContent = x.also;
+    $("#bvGrid").innerHTML = KINDS.map(([id, art, hue, set]) => {
+      const q = Pricing.computeQuote({ fromCity: home, toCity: home, service: set.service, size: "petit" }, CONFIG);
+      return `<a class="bv-tile" href="index.html?k=${id}">${UI.artImg(art, hue)}<b>${UI.esc(I18N.t("ex_" + id + "_t"))}</b><small>${UI.esc(x.from)} ${UI.esc(UI.money(q.total))}</small></a>`;
+    }).join("");
+    $("#bvPartnersBox").classList.toggle("hidden", !partners.length);
+    $("#bvPartnersH").textContent = x.partners;
+    $("#bvPartners").innerHTML = partners.map(s => {
+      const logo = UI.safeImg(s.logo), ini = String(UI.bi(s.name, L) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+      return `<a class="bv-logo" href="index.html?c=${encodeURIComponent(s.code)}"><span>${logo ? `<img src="${logo}" alt="" />` : `<b>${UI.esc(ini)}</b>`}</span><small>${UI.esc(UI.bi(s.name, L))}</small></a>`;
+    }).join("");
+    $("#bvPerks").innerHTML = x.perks.map(p => `<li>${UI.esc(p)}</li>`).join("");
+    $("#bvGo").textContent = x.go;
+    $("#bvInstall").textContent = x.install;
+    $("#bvInstall").classList.toggle("hidden", UI.isStandalone());
+    $("#bvShare").textContent = x.share;
+    $("#bvShare").href = UI.waShare(x.shareMsg + CONFIG.siteUrl + "app/");
+  }
+  $("#bvLang").addEventListener("click", () => { I18N.setLang(I18N.lang === "he" ? "fr" : "he"); render(); });
+  $("#bvInstall").addEventListener("click", () => UI.installApp("HOP!", "app/"));
+  render();
+  if (token) Store.trackOrder(token).then(o => { if (o) { order = o; if (!new URLSearchParams(location.search).get("lang") && o.lang && o.lang !== I18N.lang) I18N.setLang(o.lang); render(); } }).catch(() => {});
+  Store.shopsShowcase().then(list => { partners = (list || []).filter(s => !s.demo).slice(0, 12); render(); }).catch(() => {});
+})();
+</script>
+</body>
+</html>
