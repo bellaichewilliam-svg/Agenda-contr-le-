@@ -2950,7 +2950,19 @@ body.map-full .track-panel, body.map-full .eta-ring, body.map-full .topbar { dis
 body.map-full #map { height: 100vh !important; height: 100dvh !important; }
 body.map-full .trk-full { top: max(14px, env(safe-area-inset-top)); }
 .trk-scooter > span { display: inline-block; transition: transform .6s ease; }
-.trk-route { stroke-dasharray: 8 8; animation: trk-dash 1.2s linear infinite; }
+/* « Pas avant 16 h » (heure écrite par le client) : en gros, en orange, en tête de la fiche */
+.not-before { margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--brand); color: #fff; display: grid; gap: 3px; }
+.not-before b { font-size: 20px; letter-spacing: .3px; }
+.not-before small { font-size: 13px; opacity: .95; line-height: 1.3; }
+.ready-chip.nb { background: var(--brand); color: #fff; }
+.prep-nb { display: inline-block; color: var(--amber-ink); background: var(--amber-soft); border-radius: 10px; padding: 4px 10px; margin-bottom: 6px; font-weight: 800; }
+.nb-pill { background: var(--brand) !important; color: #fff !important; }
+/* Rappel 20 min avant : bandeau en haut, jusqu'à ce qu'on le touche */
+.remind-toast { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 12px; right: 12px; z-index: 1200; display: grid; gap: 6px; padding: 14px 16px; border-radius: 16px; background: var(--brand); color: #fff; box-shadow: 0 14px 34px rgba(0, 0, 0, .35); }
+.remind-toast b { font-size: 18px; }
+.remind-toast small { font-size: 13px; opacity: .95; }
+.remind-toast .btn { justify-self: end; background: #fff; color: var(--brand); border: 0; }
+.cash-return { border-color: var(--brand); }
 @keyframes trk-dash { to { stroke-dashoffset: -32; } }
 .steps li.current::before { background: var(--brand); box-shadow: 0 0 0 0 rgba(255, 106, 0, .55); animation: trk-pulse 1.6s ease-out infinite; }
 @keyframes trk-pulse { 70% { box-shadow: 0 0 0 10px rgba(255, 106, 0, 0); } 100% { box-shadow: 0 0 0 0 rgba(255, 106, 0, 0); } }

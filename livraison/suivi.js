@@ -66,7 +66,7 @@ function setMarker(key, lat, lon, emoji) {
 }
 
 // Le scooter du livreur glisse en douceur d'une position à la suivante (pas de saut)
-let anim = null, routeLine = null;
+let anim = null, routeLine = null, baseLine = null;
 const scooterIcon = () => L.divIcon({ className: "", iconSize: [46, 46], iconAnchor: [23, 23], html: `<div class="trk-scooter"><span>🛵</span></div>` });
 // Le scooter regarde dans le sens de sa route (cap entre deux positions)
 function headScooter(from, to) {
@@ -136,12 +136,11 @@ function updateMap(o) {
   const live = o.courier_lat != null;
   if (live) moveCourier(Number(o.courier_lat), Number(o.courier_lon));
   else if (markers.courier) { map.removeLayer(markers.courier); delete markers.courier; }
-  // Tracé (pointillé animé) du livreur jusqu'à son prochain arrêt : le commerce, puis vous
+  // Une belle courbe (pas un trajet routier) : commerce → vous en clair, et le livreur → son prochain arrêt en orange
+  if (!baseLine && o.pickup_lat != null && o.dropoff_lat != null) baseLine = UI.routeLayer([o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon], { color: "#98A2B3", opacity: .7, weight: 4, glow: "#FFFFFF", glowOpacity: .5 }).addTo(map);
   const tgt = o.status === "confirmee" ? [o.pickup_lat, o.pickup_lon] : o.status === "recuperee" ? [o.dropoff_lat, o.dropoff_lon] : null;
-  if (live && tgt && tgt[0] != null) {
-    const pts = [[Number(o.courier_lat), Number(o.courier_lon)], [Number(tgt[0]), Number(tgt[1])]];
-    if (routeLine) routeLine.setLatLngs(pts); else routeLine = L.polyline(pts, { color: "#FF6A00", weight: 4, opacity: .85, className: "trk-route" }).addTo(map);
-  } else if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+  if (live && tgt && tgt[0] != null) routeLine = UI.routeLayer([Number(o.courier_lat), Number(o.courier_lon)], [Number(tgt[0]), Number(tgt[1])], { color: "#FF6A00" }).addTo(map);
   // Recentrer au premier affichage et quand le coursier apparaît
   if (!fitted || (live && !courierSeen)) {
     const pts = Object.values(markers).map(m => m.getLatLng());
@@ -269,9 +268,14 @@ function etaBox(o) {
     const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
     if (o.shop_status === "attente") { main = t("trShopWait", { name }); sub = ""; }
     else if (o.shop_status === "acceptee" && left > 0) { sub = o.status === "confirmee" ? main : ""; main = t("trShopPrep", { name, min: left }); }
-    else if (o.shop_status === "prete" || (o.shop_status === "acceptee" && left <= 0)) { if (o.status === "nouvelle") main = t("trShopReady"); else sub = t("trShopReady"); }
+    // « Prête » seulement quand le commerce l'a dit ; temps annoncé passé sans confirmation → « termine »
+    else if (o.shop_status === "prete") { if (o.status === "nouvelle") main = t("trShopReady"); else sub = t("trShopReady"); }
+    else if (o.shop_status === "acceptee" && left <= 0) { if (o.status === "nouvelle") main = t("trShopAlmost", { name }); else sub = t("trShopAlmost", { name }); }
   }
   if (o.status === "refusee" && o.shop_status === "refusee") main = t("trShopRefused", { name: o.shop_name || "" });
+  // Livraison demandée à partir d'une heure (écrite dans la note) : rappelée tant qu'elle n'est pas passée
+  const nb = UI.notBefore(o);
+  if (nb && nb > Date.now() && ["nouvelle", "confirmee"].includes(o.status)) sub = t("trNotBefore", { time: UI.fmtTime(nb) });
   if (live && o.courier_at && ["confirmee", "recuperee"].includes(o.status) && !(o.status === "confirmee" && o.arrived_at) && !sub) {
     const s = Math.max(0, Math.round((Date.now() - new Date(o.courier_at)) / 1000));
     sub = t("trUpdated", { s });

@@ -818,11 +818,69 @@ const track = (() => {
   return send;
 })();
 
+// Heure écrite dans un texte (« à partir de 16 h », « vers 16h30 », « après 16:00 », « אחרי 17:00 ») → Date, ce jour-là dans le fuseau
+// de l'entreprise (ou le lendemain si elle est passée depuis plus d'une heure). « avant 18 h » / « jusqu'à » / « לפני » : rien.
+function zonedTime(ymd, h, mi) {
+  const [y, mo, d] = ymd.split("-").map(Number);
+  const guess = Date.UTC(y, mo - 1, d, h, mi);
+  const f = new Intl.DateTimeFormat("en-US", { timeZone: CONFIG.timezone, hour12: false, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).formatToParts(new Date(guess));
+  const g = k => Number((f.find(p => p.type === k) || {}).value);
+  const wall = Date.UTC(g("year"), g("month") - 1, g("day"), g("hour") % 24, g("minute"));
+  return guess - (wall - guess);
+}
+function noteTime(text, from) {
+  if (!text) return null;
+  const s = String(text);
+  let m = s.match(/(?:partir d[e'’]?\s*|apr[èe]s\s*|pas avant\s*|vers\s*|d[èé]s\s*|pour\s*|מ-\s*|מ\s+|אחרי\s*|החל מ-?\s*|בשעה\s*|ב-\s*)(\d{1,2})\s*(?:h|H|:|\.)?\s*(\d{2})?(?!\d)/i);
+  if (!m) {
+    if (/(avant|jusqu|max|לפני|עד)\s*(la |ה)?\s*\d{1,2}/i.test(s)) return null;
+    m = s.match(/(?:^|[^\d/.,-])(\d{1,2})\s*(?:h|H|:)\s*(\d{2})?(?![\d/])/);
+  }
+  if (!m) return null;
+  const h = Number(m[1]), mi = Number(m[2] || 0);
+  if (h < 6 || h > 23 || mi > 59) return null;
+  const base = from ? new Date(from) : new Date();
+  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: CONFIG.timezone, year: "numeric", month: "2-digit", day: "2-digit" }).format(base);
+  const t = zonedTime(ymd, h, mi);
+  return new Date(t < base.getTime() - 3600000 ? t + 86400000 : t);
+}
+// « Pas avant » d'une course : enregistré à la commande, sinon lu dans la note (anciennes commandes)
+function notBefore(o) {
+  if (!o) return null;
+  if (o.not_before) return new Date(o.not_before);
+  if (o.urgency === "programmee" || o.appt_at) return null;
+  return noteTime(o.notes, o.created_at);
+}
+// Belle courbe entre deux points (un arc doux, pas de trajet routier) : ligne épaisse arrondie posée sur un halo clair
+function curvePts(a, b, n) {
+  const [la1, lo1] = [Number(a[0] != null ? a[0] : a.lat), Number(a[1] != null ? a[1] : a.lon)];
+  const [la2, lo2] = [Number(b[0] != null ? b[0] : b.lat), Number(b[1] != null ? b[1] : b.lon)];
+  const k = Math.cos((la1 + la2) / 2 * Math.PI / 180);
+  const dx = (lo2 - lo1) * k, dy = la2 - la1;
+  const mx = (lo1 + lo2) / 2, my = (la1 + la2) / 2;
+  const cx = mx - dy * 0.22 / k, cy = my + dx * 0.22;
+  const out = [];
+  for (let i = 0; i <= (n || 28); i++) {
+    const t = i / (n || 28), u = 1 - t;
+    out.push([u * u * la1 + 2 * u * t * cy + t * t * la2, u * u * lo1 + 2 * u * t * cx + t * t * lo2]);
+  }
+  return out;
+}
+function routeLayer(a, b, opts) {
+  const o = Object.assign({ color: "#FF6A13", weight: 6, opacity: .95, glow: "#FFFFFF", glowOpacity: .45 }, opts || {});
+  const pts = curvePts(a, b);
+  const g = L.featureGroup([
+    L.polyline(pts, { color: o.glow, weight: o.weight + 8, opacity: o.glowOpacity, lineCap: "round", lineJoin: "round", interactive: false }),
+    L.polyline(pts, { color: o.color, weight: o.weight, opacity: o.opacity, lineCap: "round", lineJoin: "round", interactive: false })
+  ]);
+  return g;
+}
+
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   track, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
-  mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
+  mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 
