@@ -630,7 +630,7 @@ async function nearestShop(kind, at) {
   } catch (e) { return null; }
 }
 const NEAR_FR = { pharm: "Pharmacie", tabac: "Kiosque / tabac", bakery: "Boulangerie", shop: "Makolet / supermarché", baby: "Magasin bébé ou pharmacie", pets: "Animalerie", home: "Quincaillerie / bazar", gift: "Fleuriste" };
-const phName = x => (I18N.lang === "he" ? x.he : x.fr);
+const phName = x => (I18N.lang === "he" ? x.he : x.fr) || x.fr || x.he || "";
 const rayonPicked = r => Object.entries(state.pharma).filter(([k, q]) => q > 0 && k.startsWith(r.id + ":"));
 // Produit + variante d'une clé « rayon:produit|variante » ; son prix indicatif et sa place (la variante peut avoir les siens)
 function rayonEntry(r, k) {
@@ -710,27 +710,30 @@ function renderPharma() {
   const box = $("#pharmaBox"), r = rayonOn();
   box.classList.toggle("hidden", !r);
   if (!r) return;
-  if (!r.cats.some(c => c.id === state.pharmaCat)) state.pharmaCat = r.cats[0].id;
+  const cats = Rayons.cats(r), items = Rayons.items(r);
+  if (!cats.some(c => c.id === state.pharmaCat)) state.pharmaCat = (cats[0] || {}).id;
+  // Image d'un produit ou d'une catégorie : photo du patron, sinon pictogramme, sinon emoji
+  const pic = x => (x.photo ? `<img src="${x.photo}" alt="" loading="lazy" />` : x.img ? `<img src="img/qc/${x.img}.webp" alt="" loading="lazy" />` : `<i>${x.e}</i>`);
   const picked = rayonPicked(r), n = picked.reduce((a, [, q]) => a + q, 0);
   const inCat = c => picked.filter(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).c === c).reduce((a, [, q]) => a + q, 0);
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
   const html = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small></div>
     ${rayonMeter(n)}
-    <p class="ph-cats-h">${UI.esc(t("phCatsHint", { n: r.cats.length }))}</p>
-    <div class="ph-cats">${r.cats.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}" aria-pressed="${state.pharmaCat === c.id}">${c.img ? `<img src="img/qc/${c.img}.webp" alt="" />` : `<i>${c.e}</i>`}<span>${UI.esc(phName(c))}</span>${k ? `<em>${k}</em>` : ""}</button>`; }).join("")}</div>
-    <p class="ph-cur">${(cur => cur ? `${cur.img ? `<img src="img/qc/${cur.img}.webp" alt="" />` : `<i>${cur.e}</i>`}<b>${UI.esc(phName(cur))}</b>` : "")(r.cats.find(c => c.id === state.pharmaCat))}</p>
-    <div class="ph-list">${r.items.filter(x => x.c === state.pharmaCat).map(x => {
+    <p class="ph-cats-h">${UI.esc(t("phCatsHint", { n: cats.length }))}</p>
+    <div class="ph-cats">${cats.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}" aria-pressed="${state.pharmaCat === c.id}">${pic(c)}<span>${UI.esc(phName(c))}</span>${k ? `<em>${k}</em>` : ""}</button>`; }).join("")}</div>
+    <p class="ph-cur">${(cur => cur ? `${pic(cur)}<b>${UI.esc(phName(cur))}</b>` : "")(cats.find(c => c.id === state.pharmaCat))}</p>
+    <div class="ph-list">${items.filter(x => x.c === state.pharmaCat).map(x => {
       const sel = Number((state.pharmaOpt || {})[r.id + ":" + x.id] || 0), k = key(x, x.opt ? sel : 0), q = state.pharma[k] || 0;
       const pr = (x.opt && x.opt[sel] && x.opt[sel].p) || x.p;
-      return `<div class="ph-item${q ? " in" : ""}${x.img ? "" : " no-img"}">${x.img ? `<span class="ph-ico"><img src="img/qc/${x.img}.webp" alt="" loading="lazy" /></span>` : ""}<span class="ph-name"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${pr ? `<small class="ph-price">≈ ${priceTxt(pr)}</small>` : ""}
+      return `<div class="ph-item${q ? " in" : ""}${x.img || x.photo ? "" : " no-img"}">${x.img || x.photo ? `<span class="ph-ico${x.photo ? " photo" : ""}">${pic(x)}</span>` : ""}<span class="ph-name"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${pr ? `<small class="ph-price">≈ ${priceTxt(pr)}</small>` : ""}
         ${x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : ""}</span>
         ${q ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${q}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>`;
     }).join("")}</div>
-    ${(i => { const prev = r.cats[i - 1], next = r.cats[i + 1], rtl = document.documentElement.dir === "rtl";
+    ${(i => { const prev = cats[i - 1], next = cats[i + 1], rtl = document.documentElement.dir === "rtl";
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
       return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">${rtl ? "›" : "‹"} ${UI.esc(phName(prev))}</button>` : "<span></span>"}
-        ${next ? `<button type="button" class="ph-next" data-ph-cat="${next.id}" data-ph-nav="1">${UI.esc(t("phNext"))} : ${UI.esc(phName(next))} ${rtl ? "‹" : "›"}</button>` : ""}</div>`; })(r.cats.findIndex(c => c.id === state.pharmaCat))}
+        ${next ? `<button type="button" class="ph-next" data-ph-cat="${next.id}" data-ph-nav="1">${UI.esc(t("phNext"))} : ${UI.esc(phName(next))} ${rtl ? "‹" : "›"}</button>` : ""}</div>`; })(cats.findIndex(c => c.id === state.pharmaCat))}
     ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { lo: g.lo, hi: g.hi }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
   box.style.setProperty("--rc", r.color);
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
@@ -745,13 +748,19 @@ function rayonMeter(n) {
     ${state.pharmaMsg ? `<p class="pm-msg">${UI.esc(state.pharmaMsg)}</p>` : ""}</div>`;
 }
 // Accueil : les rayons mis en avant (pharmacie, tabac & alcool, boulangerie, makolet), en cartes qui défilent
+// Les changements du patron (produits ajoutés, photos, prix) : le cache local tout de suite, la base ensuite
+function loadRayonsLive() {
+  if (!window.Rayons) return;
+  Rayons.apply(Store.rayonsCached());
+  Store.rayonsLive().then(live => { if (!live) return; Rayons.apply(live); renderHomePharma(); if (rayonOn()) renderQuote(); }).catch(() => {});
+}
 function renderHomePharma() {
   if (!window.Rayons) return;
   $("#homePharma").innerHTML = `<div class="hp-row">${Rayons.ALL.map(r => {
     const on = state.homeKind === r.kind;
     return `<button type="button" class="hp-card${on ? " on" : ""}" data-pharma-go="${r.id}" style="--rc:${r.color}">
     <span class="hp-imgs">${r.show.map(k => `<img src="img/qc/${k}.webp" alt="" />`).join("")}</span>
-    <span class="hp-txt"><em>${UI.esc(t(on ? "hpOnTag" : "hpTag"))}</em><b>${UI.esc(phName(r.card))}</b><small>${UI.esc(on ? t("hpOnSub") : phName(r.cardSub).replace("{n}", r.items.length))}</small></span>
+    <span class="hp-txt"><em>${UI.esc(t(on ? "hpOnTag" : "hpTag"))}</em><b>${UI.esc(phName(r.card))}</b><small>${UI.esc(on ? t("hpOnSub") : phName(r.cardSub).replace("{n}", Rayons.items(r).length))}</small></span>
     <span class="hp-go">${UI.esc(t("hpGo"))} ›</span></button>`;
   }).join("")}</div>`;
 }
@@ -2866,6 +2875,7 @@ function renderHomeStatic() {
     const art = KIND_ART[ex.id];
     return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b></button>`;
   }).join("");
+  loadRayonsLive();
   renderHomePharma();
   const list = Store.getAddresses().slice(0, 5);
   $("#homeChips").innerHTML = `<button type="button" class="ch-chip" data-hgeo="auto">${UI.esc(t("myPosChip"))}</button>`

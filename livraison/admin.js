@@ -700,6 +700,125 @@ function renderVisits(view) {
     <p class="muted small" style="margin-top:10px">Comptées depuis la mise en ligne des visites, sans nom ni téléphone : chaque téléphone a un numéro au hasard. Vos propres visites (patron, livreurs) ne sont pas comptées.</p>`;
 }
 // Rubrique de l'onglet ouvert : seuls ses onglets s'affichent ; chiffres et service seulement dans « Courses »
+// --- 🧺 Rayons à cocher : les listes de produits (pharmacie, tabac, boulangerie, bébé, animaux…) modifiables -----
+// Les listes de base sont dans rayons.js ; ce que le patron change part dans rayon_items / rayon_cats et
+// s'applique par-dessus, tout de suite pour les clients. Rien n'est effacé : « masquer », puis « rétablir ».
+const ray = { id: "pharm", loaded: false, error: false, busy: false, edit: null };
+async function loadRayons(force) {
+  if (!window.Rayons || ray.busy || (ray.loaded && !force)) return;
+  ray.busy = true;
+  try { Rayons.apply(await Store.rayonsLive()); ray.loaded = true; ray.error = false; } catch (e) { ray.error = true; }
+  ray.busy = false;
+  if (tab === "rayons") render();
+}
+const rayName = x => x.fr || x.he || "";
+const rayPic = (x, cls) => (x.photo ? `<img class="${cls}" src="${x.photo}" alt="" />` : x.img ? `<img class="${cls}" src="img/qc/${x.img}.webp" alt="" />` : `<i class="${cls}">${x.e || "🛒"}</i>`);
+const rayPrice = x => (x.p ? (x.p[0] === x.p[1] ? `${x.p[0]} ₪` : `${x.p[0]}-${x.p[1]} ₪`) : "");
+function renderRayons(view) {
+  loadRayons();
+  const r = Rayons.byId(ray.id);
+  const chips = `<div class="actions ray-chips">${Rayons.ALL.map(x => `<button class="btn btn-sm${x.id === ray.id ? " btn-primary" : ""}" data-ray="${x.id}">${UI.esc(rayName(x.title))}</button>`).join("")}</div>`;
+  if (!ray.loaded) { view.innerHTML = chips + `<div class="empty card">${ray.error ? "Rayons indisponibles, vérifiez la connexion." : "Chargement…"}</div>`; return; }
+  const cats = r.cats.filter(c => !c.hidden), hiddenCats = r.cats.filter(c => c.hidden), hiddenItems = r.items.filter(i => i.hidden);
+  const row = x => `<div class="ray-row${x.hidden ? " off" : ""}">${rayPic(x, "ray-img")}<div class="ray-txt"><b>${UI.esc(x.fr)}</b><span dir="rtl">${UI.esc(x.he)}</span><small>${[rayPrice(x), x.sz > 1 ? `${x.sz} places` : "", x.adult ? "18+" : "", x.opt ? `${x.opt.length} variantes` : "", x.added ? "ajouté" : x.edited ? "modifié" : ""].filter(Boolean).join(" · ")}</small></div>
+    <span class="ray-act"><button type="button" class="btn btn-sm" data-ray-edit="${x.id}" title="Modifier">✏️</button><button type="button" class="btn btn-sm" data-ray-hide="${x.id}" data-on="${x.hidden ? 0 : 1}" title="${x.hidden ? "Rétablir" : "Masquer"}">${x.hidden ? "↩️ Rétablir" : "🚫"}</button></span></div>`;
+  view.innerHTML = chips + (ray.edit ? rayForm(r) : "") + `<div class="card ray-head"><div><h3>${UI.esc(rayName(r.title))}</h3><p class="muted small">${r.items.filter(i => !i.hidden).length} produits dans ${cats.length} catégories. Ce que vous changez ici est en ligne tout de suite pour les clients (noms en français et en hébreu, photo ou pictogramme, prix indicatif en magasin).${r.id === "tabac" ? " Cigarettes : ni prix ni image (loi israélienne)." : ""}</p></div>
+      <div class="actions ray-btns"><button type="button" class="btn btn-primary" data-ray-new="item">➕ Produit</button><button type="button" class="btn" data-ray-new="cat">➕ Catégorie</button></div></div>
+    ${cats.map(c => `<div class="card ray-cat"><h4>${rayPic(c, "ray-img")}<span>${UI.esc(c.fr)} <small dir="rtl">${UI.esc(c.he)}</small></span><span class="ray-act"><button type="button" class="btn btn-sm" data-ray-cedit="${c.id}" title="Modifier">✏️</button><button type="button" class="btn btn-sm" data-ray-chide="${c.id}" data-on="1" title="Masquer la catégorie">🚫</button></span></h4>
+      ${r.items.filter(i => i.c === c.id && !i.hidden).map(row).join("") || `<p class="muted small">Aucun produit : « ➕ Produit », puis choisissez cette catégorie.</p>`}</div>`).join("")}
+    ${hiddenItems.length || hiddenCats.length ? `<details class="card ray-off"><summary>🚫 Masqués (${hiddenItems.length + hiddenCats.length}) : les clients ne les voient pas</summary>${hiddenCats.map(c => `<div class="ray-row off">${rayPic(c, "ray-img")}<div class="ray-txt"><b>${UI.esc(c.fr)}</b><small>catégorie entière</small></div><span class="ray-act"><button type="button" class="btn btn-sm" data-ray-chide="${c.id}" data-on="0">↩️ Rétablir</button></span></div>`).join("")}${hiddenItems.map(row).join("")}</details>` : ""}`;
+}
+// Formulaire produit / catégorie : ce qui est tapé est gardé (vals) quand on choisit une image ou une photo
+function rayForm(r) {
+  const e = ray.edit, x = e.x || {}, isCat = e.kind === "cat", v = e.vals || {};
+  const cur = { photo: e.photo !== undefined ? e.photo : x.photo, img: e.img !== undefined ? e.img : x.img, e: v.emoji !== undefined ? v.emoji : x.e };
+  const val = (k, d) => (v[k] !== undefined ? v[k] : d);
+  const grid = e.pick ? `<div class="ray-pick"><input id="rayPickQ" type="search" placeholder="Chercher (bread, cat, battery, bottle…)" value="${UI.esc(e.q || "")}" /><div class="ray-grid" id="rayGrid">${rayGrid(e.q, cur)}</div></div>` : "";
+  return `<form class="card ray-form" id="rayForm">
+    <h3>${e.x ? "✏️ Modifier" : "➕ Nouveau"} ${isCat ? "une catégorie" : "produit"} · ${UI.esc(rayName(r.title))}</h3>
+    <div class="ray-pic-row">${rayPic(cur, "ray-img big")}<div class="actions ray-btns">
+      <label class="btn btn-sm">📷 Photo<input type="file" accept="image/*" id="rayPhoto" hidden /></label>
+      <button type="button" class="btn btn-sm" data-ray-pick="1">🖼️ Pictogramme</button>
+      <label class="f ray-emoji">Emoji<input name="emoji" value="${UI.esc(cur.e || "")}" maxlength="4" /></label>
+      ${cur.photo ? `<button type="button" class="btn btn-sm" data-ray-nophoto="1">✖ Sans photo</button>` : ""}</div></div>
+    ${grid}
+    <div class="ray-fields">
+      <label class="f">Nom (français)<input name="fr" required maxlength="80" value="${UI.esc(val("fr", x.fr || ""))}" /></label>
+      <label class="f">Nom (hébreu)<input name="he" dir="rtl" maxlength="80" value="${UI.esc(val("he", x.he || ""))}" placeholder="(sinon le français)" /></label>
+      ${isCat ? "" : `<label class="f">Catégorie<select name="cat">${r.cats.filter(c => !c.hidden).map(c => `<option value="${c.id}"${val("cat", x.c || e.cat) === c.id ? " selected" : ""}>${UI.esc(c.fr)}</option>`).join("")}</select></label>
+      <label class="f">Prix indicatif en magasin (₪), min et max<span class="ray-2"><input name="lo" type="number" min="0" step="0.5" value="${UI.esc(val("lo", x.p ? x.p[0] : ""))}" placeholder="min" /><input name="hi" type="number" min="0" step="0.5" value="${UI.esc(val("hi", x.p ? x.p[1] : ""))}" placeholder="max" /></span></label>
+      <label class="f">Place dans le top case<select name="sz">${[1, 2, 3, 4, 5, 6].map(n => `<option value="${n}"${Number(val("sz", x.sz || 1)) === n ? " selected" : ""}>${n}${n === 1 ? " (petit article)" : n >= 4 ? " (gros : couches, pack)" : ""}</option>`).join("")}</select></label>
+      <label class="f">18 ans et plus<select name="adult"><option value="">Non</option><option value="tabac"${val("adult", x.adult || "") === "tabac" ? " selected" : ""}>Tabac</option><option value="alcool"${val("adult", x.adult || "") === "alcool" ? " selected" : ""}>Alcool</option></select></label>
+      <label class="f ray-full">Variantes, une par ligne : français | hébreu | prix min-max (facultatif)<textarea name="opts" rows="3" placeholder="20 comprimés | 20 טבליות | 12-18&#10;50 comprimés | 50 טבליות | 25-30">${UI.esc(val("opts", (x.opt || []).map(o => [o.fr, o.he, o.p ? o.p.join("-") : ""].join(" | ")).join("\n")))}</textarea></label>`}
+    </div>
+    <div class="actions"><button type="submit" class="btn btn-primary">💾 Enregistrer</button><button type="button" class="btn" data-ray-cancel="1">Annuler</button><span class="muted small" id="rayMsg"></span></div></form>`;
+}
+const rayGrid = (q, cur) => Rayons.PICTOS.filter(n => !q || n.includes(String(q).toLowerCase().trim())).map(n => `<button type="button" class="${cur.img === n && !cur.photo ? "on" : ""}" data-ray-pic="${n}" title="${n}"><img src="img/qc/${n}.webp" alt="${n}" loading="lazy" /></button>`).join("");
+function rayStash() {
+  const f = $("#rayForm");
+  if (!f || !ray.edit) return;
+  ray.edit.vals = Object.fromEntries([...f.elements].filter(el => el.name).map(el => [el.name, el.value]));
+}
+// Photo d'un produit : carrée, légère (la vignette fait 52 px)
+function rayCrop(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const w = 200, k = Math.max(w / img.width, w / img.height), sw = w / k, sh = w / k;
+      const c = document.createElement("canvas");
+      c.width = c.height = w;
+      c.getContext("2d").drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, w, w);
+      for (const q of [0.85, 0.7, 0.55, 0.4]) { const d = c.toDataURL("image/jpeg", q); if (d.length < 80000) return resolve(d); }
+      reject(new Error("too_big"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
+    img.src = url;
+  });
+}
+const raySlug = (s, taken) => {
+  let b = String(s).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 30) || "p";
+  let id = b, n = 2;
+  while (taken.includes(id)) id = `${b}-${n++}`;
+  return id;
+};
+async function raySubmit(e) {
+  e.preventDefault();
+  const f = e.target, ed = ray.edit, r = Rayons.byId(ray.id), isCat = ed.kind === "cat", msg = $("#rayMsg");
+  const g = k => (f.elements[k] ? f.elements[k].value.trim() : "");
+  if (!g("fr")) return;
+  const img = ed.img !== undefined ? ed.img : (ed.x || {}).img;
+  const p = { rayon: r.id, name_fr: g("fr"), name_he: g("he") || null, img: img || null, emoji: g("emoji") || null, hidden: false };
+  if (isCat) {
+    p.cat_id = ed.x ? ed.x.id : raySlug(g("fr"), r.cats.map(c => c.id));
+    if (!ed.x) p.position = r.cats.length;
+  } else {
+    p.item_id = ed.x ? ed.x.id : raySlug(g("fr"), r.items.map(i => i.id));
+    p.cat = g("cat"); p.sz = Number(g("sz")) || 1; p.adult = g("adult") || null;
+    p.price_lo = g("lo") === "" ? null : Number(g("lo"));
+    p.price_hi = g("hi") === "" ? p.price_lo : Number(g("hi"));
+    if (p.price_lo != null && p.price_hi < p.price_lo) p.price_hi = p.price_lo;
+    p.opts = g("opts").split("\n").map(l => l.split("|").map(s => s.trim())).filter(a => a[0]).map(a => {
+      const m = /^(\d+(?:[.,]\d+)?)(?:\s*-\s*(\d+(?:[.,]\d+)?))?$/.exec(a[2] || "");
+      return Object.assign({ fr: a[0], he: a[1] || a[0] }, m ? { p: [Number(m[1].replace(",", ".")), Number((m[2] || m[1]).replace(",", "."))] } : {});
+    });
+    if (!p.opts.length) p.opts = null;
+    if (ed.photo !== undefined) p.photo = ed.photo;
+    if (!ed.x) p.position = r.items.length;
+  }
+  msg.textContent = "Enregistrement…";
+  try {
+    await Store.adminRayonSave(isCat ? "cat" : "item", p);
+    Rayons.apply(isCat ? { cats: [p] } : { items: [p] });
+    ray.edit = null; render();
+  } catch (err) { msg.textContent = "Non enregistré, réessayez" + (/photo/.test(err.message || "") ? " (photo trop lourde)" : "") + "."; }
+}
+async function rayHide(kind, id, hidden) {
+  const r = Rayons.byId(ray.id), key = kind === "cat" ? "cat_id" : "item_id";
+  const p = { rayon: r.id, [key]: id, hidden };
+  try { await Store.adminRayonSave(kind, p); Rayons.apply(kind === "cat" ? { cats: [p] } : { items: [p] }); render(); }
+  catch (e) { alert("Non enregistré, réessayez."); }
+}
 const groupOf = t => (document.querySelector(`#tabs [data-tab="${t}"]`) || {}).dataset?.group || "courses";
 function render() {
   renderStats();
@@ -728,6 +847,8 @@ function render() {
     renderWeek(view);
   } else if (tab === "visites") {
     renderVisits(view);
+  } else if (tab === "rayons") {
+    renderRayons(view);
   } else if (tab === "commerces") {
     // La fiche « annuaire » garde ce qui est en cours de saisie quand l'écran se rafraîchit
     const keep = $("#dirCard");
@@ -1758,6 +1879,17 @@ async function onViewClick(e) {
   }
   if (el.id === "csvBtn") return exportCsv();
   if (el.dataset.vdays) { visits.days = Number(el.dataset.vdays); visits.data = null; render(); return loadVisits(true); }
+  // Rayons à cocher (patron)
+  if (el.dataset.ray) { ray.id = el.dataset.ray; ray.edit = null; return render(); }
+  if (el.dataset.rayNew) { const r = Rayons.byId(ray.id); ray.edit = { kind: el.dataset.rayNew, x: null, cat: (r.cats.find(c => !c.hidden) || {}).id }; render(); return $("#rayForm input[name=fr]").focus(); }
+  if (el.dataset.rayEdit) { ray.edit = { kind: "item", x: Rayons.byId(ray.id).items.find(i => i.id === el.dataset.rayEdit) }; render(); return $("#rayForm").scrollIntoView({ block: "start", behavior: "smooth" }); }
+  if (el.dataset.rayCedit) { ray.edit = { kind: "cat", x: Rayons.byId(ray.id).cats.find(c => c.id === el.dataset.rayCedit) }; render(); return $("#rayForm").scrollIntoView({ block: "start", behavior: "smooth" }); }
+  if (el.dataset.rayHide) return rayHide("item", el.dataset.rayHide, el.dataset.on === "1");
+  if (el.dataset.rayChide) { if (el.dataset.on === "1" && !confirm("Masquer toute la catégorie et ses produits pour les clients ?")) return; return rayHide("cat", el.dataset.rayChide, el.dataset.on === "1"); }
+  if (el.dataset.rayPick) { rayStash(); ray.edit.pick = !ray.edit.pick; return render(); }
+  if (el.dataset.rayPic) { rayStash(); ray.edit.img = el.dataset.rayPic; ray.edit.photo = null; ray.edit.pick = false; return render(); }
+  if (el.dataset.rayNophoto) { rayStash(); ray.edit.photo = null; return render(); }
+  if (el.dataset.rayCancel) { ray.edit = null; return render(); }
   if (el.dataset.vmove) {
     e.preventDefault();   // (dans la ligne repliée : la fiche ne s'ouvre pas)
     el.disabled = true;
@@ -2129,7 +2261,7 @@ $("#logoutBtn").addEventListener("click", async e => {
   UI.dutyNotice(false);
   Store.logout(); showLogin();
 });
-$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); } });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); if (tab === "rayons") loadRayons(); } });
 // Une rubrique : on retrouve son dernier onglet (sinon le premier)
 const lastTab = {};
 $("#admGroups").addEventListener("click", e => {
@@ -2178,6 +2310,19 @@ $("#view").addEventListener("click", e => {
 $("#liveList").addEventListener("click", e => { const it = e.target.closest("[data-focus]"); if (it) focusOrder(it.dataset.focus); });
 $("#liveFit").addEventListener("click", () => { if (live.map && live.points && live.points.length) live.map.fitBounds(live.points, { padding: [40, 40], maxZoom: 15 }); });
 $("#view").addEventListener("change", onViewChange);
+$("#view").addEventListener("submit", e => { if (e.target.id === "rayForm") raySubmit(e); });
+$("#view").addEventListener("change", async e => {
+  if (e.target.id !== "rayPhoto" || !e.target.files[0]) return;
+  rayStash();
+  try { ray.edit.photo = await rayCrop(e.target.files[0]); render(); }
+  catch (err) { alert(err.message === "too_big" ? "Photo trop lourde : prenez-la moins grande." : "Photo illisible."); }
+});
+$("#view").addEventListener("input", e => {
+  if (e.target.id !== "rayPickQ") return;
+  ray.edit.q = e.target.value;
+  const x = ray.edit.x || {}, cur = { img: ray.edit.img !== undefined ? ray.edit.img : x.img, photo: ray.edit.photo !== undefined ? ray.edit.photo : x.photo };
+  $("#rayGrid").innerHTML = rayGrid(ray.edit.q, cur);
+});
 UI.bindHours($("#view"));   // horaires des fiches commerce (menus, coupure, raccourcis)
 $("#view").addEventListener("input", onViewInput);
 window.addEventListener("storage", e => { if (/livraison\.(orders|couriers|shops|replies|requests)/.test(e.key || "") && Store.session()) load(); });

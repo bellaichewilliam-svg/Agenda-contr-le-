@@ -896,7 +896,7 @@ function mineCard(o, x) {
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(x.total)}</span>
     </div>
-    <div class="mine-step">${UI.esc(mineStep(o, x.hopPaid))}</div>
+    <div class="mine-step">${UI.esc(mineStep(o, x.hopPaid))}${tripKm(o) ? ` <span class="mine-km">🛣️ ${tripKm(o)}</span>` : ""}</div>
     ${UI.doorBig(o)}
     ${stop("pickup", "📍 DÉPART", !to)}
     ${UI.stopsLegs(o, true)}
@@ -1724,6 +1724,11 @@ let lastPos = null;
 
 // Distance par la route estimée (vol d'oiseau × 1,3) entre deux points connus
 function roadKm(a, b) { return a && b ? Pricing.haversineKm(a, b) * 1.3 : null; }
+// Longueur de la course (départ → arrivée, par la route) : « ≈ 2,3 km », ou rien si on ne sait pas
+function tripKm(o) {
+  const km = roadKm(pt(o.pickup_lat, o.pickup_lon), pt(o.dropoff_lat, o.dropoff_lon)) ?? (o.distance_km != null ? Number(o.distance_km) * 1.3 : null);
+  return km != null && km >= 0.1 ? `≈ ${km.toFixed(km < 10 ? 1 : 0).replace(".", ",")} km` : "";
+}
 function pt(lat, lon) { return lat != null && lon != null ? { lat: Number(lat), lon: Number(lon) } : null; }
 
 // Petite carte du trajet dans la proposition : vous → départ(s) 🏪 → clients 1, 2
@@ -1985,7 +1990,7 @@ function renderHome() {
     <div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
     ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
-        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>n° ${UI.esc(o.ref)}</small></span></span>
+        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""}</small></span></span>
           <em class="rc-step">${UI.esc(mineStep(o, o.paid_to === "hop"))}</em>
           <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>
           <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}

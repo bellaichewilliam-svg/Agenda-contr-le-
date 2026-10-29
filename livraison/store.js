@@ -713,6 +713,26 @@ async function adminCredits() {
 }
 // Comptes (patron) : inscription finie ou pas, email confirmé, dernière connexion, notifications activées
 // Visites du site (analytique) : seulement le patron, sur p_days jours (1 = aujourd'hui)
+// Rayons à cocher : ce que le patron a changé (produits / catégories ajoutés, modifiés, masqués) — public ;
+// gardé en cache local pour que la liste soit juste dès l'ouverture
+const RAYONS_KEY = "livraison.rayons.v1";
+async function rayonsLive() {
+  if (!ONLINE) return readJSON(RAYONS_KEY, { cats: [], items: [] });
+  const live = await rest("/rest/v1/rpc/rayons_live", { method: "POST", body: {} });
+  if (live) writeJSON(RAYONS_KEY, live);
+  return live;
+}
+const rayonsCached = () => readJSON(RAYONS_KEY, null);
+// Patron : enregistrer un produit (kind = "item") ou une catégorie (kind = "cat") d'un rayon
+async function adminRayonSave(kind, p) {
+  if (ONLINE) return authRest(kind === "cat" ? "/rest/v1/rpc/admin_rayon_cat_save" : "/rest/v1/rpc/admin_rayon_item_save", { method: "POST", body: { p } });
+  const live = readJSON(RAYONS_KEY, { cats: [], items: [] }), list = kind === "cat" ? live.cats : live.items, key = kind === "cat" ? "cat_id" : "item_id";
+  let x = list.find(r => r.rayon === p.rayon && r[key] === p[key]);
+  if (!x) { x = { rayon: p.rayon, [key]: p[key], hidden: false, position: 0 }; list.push(x); }
+  Object.assign(x, p, { updated_at: new Date().toISOString() });
+  writeJSON(RAYONS_KEY, live);
+  return null;
+}
 async function adminAnalytics(days) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_analytics", { method: "POST", body: { p_days: days } });
   return null;
@@ -2267,7 +2287,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminAnalytics, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

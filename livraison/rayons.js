@@ -576,6 +576,51 @@ const GIFT = {
 };
 
 const ALL = [PHARM, TABAC, BAKERY, SUPER, BABY, PETS, HOME, GIFT];
-window.Rayons = { ALL, byId: id => ALL.find(r => r.id === id), byKind: k => ALL.find(r => r.kind === k),
+// Les pictogrammes disponibles (img/qc/<nom>.webp) : pour l'éditeur du patron
+const PICTOS = "abacus apple avocado baby babyface bagel baguette ball balloon banana bandage basket bathtub battery bdaycake beer beers bellpepper biceps bird blossom bone books bottle bouquet bowl bread broccoli broom bubbles bucket bulb butter candle candy canned carrot cart cat champagne cheers cheese cherry chicken chocolate cigarette cloud cockroach cocktail coffee compass cookie corn crayon croissant cucumber cupcake cupstraw dice dog doughnut droplet dumpling egg envelope eye falafel fire fish flashlight flatbread fork fries garlic gift glasses grapes greenapple hammer headphone heart herb hibiscus honey ice icecream jar juice key lab leaf leafy lemon lotion loveletter mango mask meat microbe milk mosquito mushroom nose notebook nut olive onion orange package paintbrush pancakes paper paw peanuts pencil pepper petri phone pie pill pin pizza plate plug plunger popcorn popper potato potted pretzel puzzle rabbit ribbon rice rock rose ruler salt sandwich scissors screwdriver scroll shallow shortcake sneezing snowflake soap socks spaghetti sponge spoon stethoscope strawberry stuffed sun sunflower sunwithface syringe tangerine tea teddy testtube thermometer toilet tomato toolbox toothbrush trap tropfish tropical tshirt tulip tumbler voltage waffle wastebasket water watermelon wine worldmap yarn yogurt".split(" ");
+// Ce que le patron a changé dans son panel (table rayon_items / rayon_cats) : appliqué par-dessus les listes
+// de base. Un produit « masqué » reste dans la liste avec hidden = true (il peut être rétabli) ; cats() et
+// items() donnent ce qui se montre. Peut être rappelé (cache local puis base) : rien n'est ajouté deux fois.
+function apply(live) {
+  if (!live) return;
+  for (const c of live.cats || []) {
+    const r = ALL.find(x => x.id === c.rayon);
+    if (!r) continue;
+    let x = r.cats.find(k => k.id === c.cat_id);
+    if (!x) { x = { id: c.cat_id, e: "🛒", fr: "", he: "", added: true }; r.cats.push(x); }
+    if (c.name_fr) x.fr = c.name_fr;
+    if (c.name_he || c.name_fr) x.he = c.name_he || x.he || c.name_fr;
+    if (c.img) x.img = c.img;
+    if (c.emoji) x.e = c.emoji;
+    if ("hidden" in c) x.hidden = !!c.hidden;
+    if (c.position != null) x.pos = c.position;
+  }
+  for (const i of live.items || []) {
+    const r = ALL.find(x => x.id === i.rayon);
+    if (!r) continue;
+    let x = r.items.find(k => k.id === i.item_id);
+    if (!x) { x = { id: i.item_id, e: "🛒", fr: "", he: "", c: r.cats[0] && r.cats[0].id, added: true }; r.items.push(x); }
+    if (i.cat) x.c = i.cat;
+    if (i.name_fr) x.fr = i.name_fr;
+    if (i.name_he || i.name_fr) x.he = i.name_he || x.he || i.name_fr;
+    if (i.price_lo != null) x.p = [Number(i.price_lo), Number(i.price_hi != null ? i.price_hi : i.price_lo)];
+    if (i.img) x.img = i.img;
+    if (i.emoji) x.e = i.emoji;
+    if ("photo" in i) x.photo = i.photo || null;
+    if (i.sz) x.sz = Number(i.sz);
+    if (i.adult) x.adult = i.adult;
+    if (Array.isArray(i.opts) && i.opts.length) x.opt = i.opts.map(o => Object.assign({ fr: o.fr || "", he: o.he || o.fr || "" }, o.p ? { p: o.p } : {}));
+    if ("hidden" in i) x.hidden = !!i.hidden;
+    if (i.position != null) x.pos = i.position;
+    x.edited = true;
+  }
+  // Les catégories ajoutées à la fin ; les produits ajoutés à la fin de leur catégorie (ordre donné par position)
+  for (const r of ALL) {
+    r.cats.sort((a, b) => (a.added ? 1 : 0) - (b.added ? 1 : 0) || (a.added && b.added ? (a.pos || 0) - (b.pos || 0) : 0));
+  }
+}
+const cats = r => r.cats.filter(c => !c.hidden);
+const items = r => r.items.filter(i => !i.hidden && !r.cats.some(c => c.id === i.c && c.hidden));
+window.Rayons = { ALL, PICTOS, apply, cats, items, byId: id => ALL.find(r => r.id === id), byKind: k => ALL.find(r => r.kind === k),
   item: id => { for (const r of ALL) { const x = r.items.find(i => i.id === id); if (x) return x; } return null; } };
 })();

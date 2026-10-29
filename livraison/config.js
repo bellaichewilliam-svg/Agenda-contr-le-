@@ -250,8 +250,8 @@ window.CONFIG = {
   // avant que ce soit prêt. Le livreur qui a amené le commerce touche referrerPercent % de chaque mois
   // d'abonnement payé, pendant referrerMonths mois.
   // (En ligne : pro_monthly, pro_shop_share, pro_hop_share, pro_lead_min, pro_referrer_pct, pro_referrer_months.)
-  // hopShareClient : part de HOP quand le commerce a choisi « le client paie la livraison » (prise sur le crédit du livreur)
-  pro: { monthly: 299, shopShare: 12, hopShare: 2, hopShareClient: 1, leadMinutes: 8, prepChoices: [10, 15, 20, 30], referrerPercent: 0, referrerMonths: 12 },   // part livreur des abonnements : 0 % tant que le patron ne la débloque pas (était 20 %)
+  // hopShareClient : part de HOP quand le commerce a choisi « le client paie la livraison » : 0 (était 1 ₪, pris sur le crédit du livreur)
+  pro: { monthly: 299, shopShare: 12, hopShare: 2, hopShareClient: 0, leadMinutes: 8, prepChoices: [10, 15, 20, 30], referrerPercent: 0, referrerMonths: 12 },   // part livreur des abonnements : 0 % tant que le patron ne la débloque pas (était 20 %)
 
   // Messages prêts à envoyer aux livreurs depuis l'espace patron
   courierMessages: [
