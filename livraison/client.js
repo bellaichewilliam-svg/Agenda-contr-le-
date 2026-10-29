@@ -350,7 +350,6 @@ function syncVisibility() {
   // Bit ou PayBox directement au livreur, espèces (montant exact, billet du client), ou carnet pro du commerce
   if (!carnet && val("payment_method") === "carnet") form.querySelector('input[name=payment_method][value=bit]').checked = true;
   $("#bitSmall").textContent = t("pay_bit_d", { phone: CONFIG.bitPhone });
-  $("#cashSmall").textContent = t("pay_cash_d2", { max: money(cashMax()) });
   renderCash();
   $("#prepayNote").classList.add("hidden");
   document.querySelectorAll(".other-city").forEach(el => {
@@ -566,11 +565,24 @@ function noPayBox(titleKey) {
 }
 const shopPrepay = () => !!(proShopOn() && (state.shop.pay_link || state.shop.pay_bit) && (cartCount() || val("shop_order").trim()));
 const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() ? cartTotal() : goodsPrepay() ? goodsBudget() : 0);
+// Espèces impossibles pour cette commande (mêmes règles que le serveur : plafond, et articles avancés par le livreur
+// seulement après une 1re course livrée) : dit sous le choix « Espèces » tout de suite, pas en erreur après l'envoi
+function cashIssue(q) {
+  const goods = cashGoods(), total = Number(q.total) + goods;
+  if (total > cashMax()) return { hard: true, text: t("errCashMax", { max: money(cashMax()) }) };
+  if (goods > 0 && !(state.mine || []).some(o => o.status === "livree")) return { hard: false, text: t("errCashFirst") };
+  return null;
+}
 function renderCash() {
   const on = val("payment_method") === "cash";
+  const issue = cashIssue(currentQuote());
+  $("#cashChoice").classList.toggle("choice-off", !!(issue && issue.hard));
+  $("#cashSmall").textContent = issue && issue.hard ? t("pay_cash_off", { max: money(cashMax()) }) : t("pay_cash_d2", { max: money(cashMax()) });
   $("#cashBox").classList.toggle("hidden", !on);
   if (!on) return;
   const q = currentQuote(), goods = cashGoods(), total = Number(q.total) + goods;
+  $("#cashIssue").classList.toggle("hidden", !issue);
+  $("#cashIssue").textContent = issue ? issue.text : "";
   $("#cashTotal").textContent = t(goods ? (goodsPrepay() ? "cashTotalMax" : "cashTotalGoods") : "cashTotal", { total: money(total), goods: money(goods), course: money(q.total) });
   // (le billet choisi reste choisi ; s'il ne suffit plus, on le dit au moment d'envoyer)
   const cur = Number(form.cash_note.value) || 0;
@@ -1599,6 +1611,8 @@ async function submit(e) {
   const err = scheduleError();
   if (err) return showError(t(err.key, err.vars));
   if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showError(t(catalogOn() ? "errCart" : "errShopOrder", { name: UI.bi(state.shop.name) })); }
+  // Espèces au-dessus du plafond : refusé ici (le serveur le refuserait aussi), le client choisit Bit sans perdre sa commande
+  if (val("payment_method") === "cash") { const ci = cashIssue(currentQuote()); if (ci && ci.hard) { $("#cashBox").scrollIntoView({ block: "center" }); return showError(ci.text); } }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showError(t("errShopRef")); }
   if (phoneOn()) {
     if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showError(t("errPhoneName")); }
