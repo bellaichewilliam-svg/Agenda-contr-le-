@@ -7650,3 +7650,49 @@ language sql stable security definer set search_path = public as $$
     from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
 $$;
 grant execute on function public.shops_showcase() to anon, authenticated;
+
+-- ============================================================================
+-- AVIS DES COMMERCES : après une livraison chez un commerce, le client note le commerce (1-5 + un mot), à part
+-- de la note du livreur. Moyenne et nombre sur la vitrine et la fiche, derniers avis publics (prénom seulement).
+-- ============================================================================
+alter table public.orders add column if not exists shop_rating smallint check (shop_rating between 1 and 5);
+alter table public.orders add column if not exists shop_note text;
+alter table public.orders add column if not exists shop_rated_at timestamptz;
+create or replace function public.rate_shop(p_token uuid, p_stars int, p_note text) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if p_stars is null or p_stars < 1 or p_stars > 5 then raise exception 'bad_rating'; end if;
+  update orders set shop_rating = p_stars, shop_note = left(nullif(trim(p_note), ''), 300), shop_rated_at = now()
+   where token = p_token and status = 'livree' and shop_id is not null and shop_rating is null and pickup_at > now() - interval '30 days';
+  return found;
+end;
+$$;
+grant execute on function public.rate_shop(uuid, int, text) to anon, authenticated;
+create or replace function public.shop_reviews(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'avg', (select round(avg(o.shop_rating)::numeric, 1) from orders o join shops s on s.id = o.shop_id where s.code = p_code and o.shop_rating is not null),
+    'count', (select count(*) from orders o join shops s on s.id = o.shop_id where s.code = p_code and o.shop_rating is not null),
+    'list', coalesce((select json_agg(json_build_object('stars', x.shop_rating, 'note', x.shop_note, 'name', split_part(coalesce(x.contact_name, ''), ' ', 1), 'at', x.shop_rated_at) order by x.shop_rated_at desc)
+                       from (select o.shop_rating, o.shop_note, o.contact_name, o.shop_rated_at from orders o join shops s on s.id = o.shop_id
+                              where s.code = p_code and o.shop_rating is not null order by o.shop_rated_at desc limit 10) x), '[]'::json));
+$$;
+grant execute on function public.shop_reviews(text) to anon, authenticated;
+
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'shop_pays', s.shop_pays, 'hours', s.hours, 'kosher', s.kosher,
+           'pro', coalesce(s.plan_until >= current_date, false), 'promo', s.promo, 'promo_he', s.promo_he, 'rank', s.rank,
+           'created_at', s.created_at,
+           'orders30', (select count(*) from orders o where o.shop_id = s.id and o.status in ('confirmee', 'recuperee', 'livree') and o.created_at >= now() - interval '30 days'),
+           'rating', (select round(avg(o.shop_rating)::numeric, 1) from orders o where o.shop_id = s.id and o.shop_rating is not null),
+           'ratings', (select count(*) from orders o where o.shop_id = s.id and o.shop_rating is not null),
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by s.rank nulls last, (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
+$$;
+grant execute on function public.shops_showcase() to anon, authenticated;

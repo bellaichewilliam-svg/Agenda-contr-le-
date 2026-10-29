@@ -321,6 +321,7 @@ function render() {
   renderRing(o);
   renderRate(o);
   renderTip(o);
+  renderShopRate(o);
 
   const step = FLOW.indexOf(o.status);
   const labels = ["trStep1", "trStep2", "trStep3", "trStep4"];
@@ -482,6 +483,32 @@ $("#rateBox").addEventListener("click", async e => {
 });
 // --- Pourboire : 100 % pour le livreur (payé à HOP par Bit, reversé au livreur) ----------------
 const tip = { pick: null };
+// Avis sur le commerce (après la livraison d'une commande chez un commerce), à part de la note du livreur
+const srate = { stars: 0, note: "", sent: 0 };
+function renderShopRate(o) {
+  const box = $("#shopRateBox"), name = UI.bi(o.shop_name || "");
+  const can = o.status === "livree" && !!o.shop_id && o.shop_rating == null && Date.now() - new Date(o.pickup_at) < 30 * 86400000;
+  if (srate.sent) { box.innerHTML = `<p class="rate-thanks">${UI.esc(t("srThanks", { name }))}</p>`; box.classList.remove("hidden"); return; }
+  if (o.shop_rating != null && o.shop_id) { box.innerHTML = `<p class="rate-thanks">${UI.esc(t("srYours", { name, stars: "⭐".repeat(o.shop_rating) }))}</p>`; box.classList.remove("hidden"); return; }
+  box.classList.toggle("hidden", !can);
+  if (!can || box.contains(document.activeElement)) return;
+  const html = `<h3>${UI.esc(t("srTitle", { name }))}</h3><p class="muted small">${UI.esc(t("srSub"))}</p>
+    <div class="rate-stars" role="radiogroup">${[1, 2, 3, 4, 5].map(n => `<button type="button" class="${n <= srate.stars ? "on" : ""}" data-sstar="${n}" aria-label="${n}/5">★</button>`).join("")}</div>
+    ${srate.stars ? `<textarea id="srNote" rows="2" maxlength="300" placeholder="${UI.esc(t("srPh", { name }))}">${UI.esc(srate.note)}</textarea>
+      <button type="button" class="btn btn-primary btn-block" id="srSend">${UI.esc(t("srSend"))}</button>` : `<p class="muted small" style="text-align:center">${UI.esc(t("rtPick"))}</p>`}`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
+$("#shopRateBox").addEventListener("input", e => { if (e.target.id === "srNote") srate.note = e.target.value; });
+$("#shopRateBox").addEventListener("click", async e => {
+  const star = e.target.closest("[data-sstar]");
+  if (star) { srate.stars = Number(star.dataset.sstar); star.blur(); $("#shopRateBox").dataset.html = ""; renderShopRate(order); return; }
+  if (e.target.id !== "srSend" || !order) return;
+  e.target.disabled = true;
+  const ok = await Store.rateShop(token, srate.stars, srate.note).catch(() => false);
+  if (!ok) { e.target.disabled = false; return alert(I18N.lang === "he" ? "לא נשלח, נסו שוב." : "Non envoyé, réessayez."); }
+  srate.sent = srate.stars; order.shop_rating = srate.stars;
+  renderShopRate(order);
+});
 function renderTip(o) {
   const box = $("#tipBox");
   const first = (o.courier_name || "").split(" ")[0];

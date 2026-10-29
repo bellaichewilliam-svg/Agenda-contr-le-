@@ -713,11 +713,16 @@ async function renderClients(force) {
     try { clients.data = await Store.shopClients(shop.token); clients.at = Date.now(); } catch (e) { clients.data = clients.data || { count: 0, list: [] }; }
   }
   const d = clients.data || { count: 0, list: [] }, n = Number(d.count) || 0;
+  if (!clients.reviews || force) { try { clients.reviews = await Store.shopReviews(shop.code); } catch (e) { clients.reviews = clients.reviews || { count: 0, list: [] }; } }
+  const rv = clients.reviews || { count: 0, list: [] };
   box.classList.remove("hidden");
   if (box.contains(document.activeElement)) return;   // (en train d'écrire : on ne redessine pas)
   const next = d.broadcast_at && new Date(new Date(d.broadcast_at).getTime() + 20 * 3600000);
   const wait = next && next > new Date();
-  box.innerHTML = `<h3>${UI.esc(t("clTitle", { n }))}</h3>
+  box.innerHTML = `<div class="sp-reviews"><h3>${UI.esc(t("spReviews"))}</h3>
+    ${Number(rv.count) ? `<p class="sp-rev-avg"><b>${UI.esc(String(rv.avg).replace(".", ","))}</b> <span>${"★".repeat(Math.round(rv.avg))}</span> <small>${UI.esc(t("spReviewsAvg", { avg: String(rv.avg).replace(".", ","), n: rv.count }))}</small></p>
+      ${(rv.list || []).map(v => `<div class="sh-rev"><b>${"★".repeat(v.stars)}<i>${"★".repeat(5 - v.stars)}</i></b><span>${v.note ? UI.esc(v.note) : ""}</span><small>${UI.esc(v.name || "")}${v.at ? " · " + UI.esc(UI.fmtDay(v.at)) : ""}</small></div>`).join("")}` : `<p class="muted small">${UI.esc(t("spReviewsNone"))}</p>`}</div>
+    <h3>${UI.esc(t("clTitle", { n }))}</h3>
     <p class="muted small" style="margin:4px 0 10px">${UI.esc(t(n ? "clSub" : "clNone"))}</p>
     ${n ? `<label class="f"><textarea id="clMsg" rows="3" maxlength="300" placeholder="${UI.esc(t("clMsgPh"))}">${UI.esc(clients.msg)}</textarea></label>
       <div class="btns" style="justify-content:flex-start"><button type="button" class="btn btn-primary" data-cl-send${wait ? " disabled" : ""}>${UI.esc(t("clSend", { n }))}</button></div>

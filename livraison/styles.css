@@ -2967,3 +2967,19 @@ body.map-full .trk-full { top: max(14px, env(safe-area-inset-top)); }
 .tour-txt small em { font-style: normal; color: var(--brand); font-weight: 700; }
 .tour-nav { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #33CCFF; color: #fff; text-decoration: none; font-size: 20px; }
 .tour-nav .waze-ico { width: 26px; height: 26px; }
+
+/* --- Avis des commerces --- */
+.sc-star { color: var(--ink); font-weight: 800; }
+.sh-stars { display: block; margin-top: 2px; font-weight: 700; color: var(--ink); }
+.sh-reviews { margin: 6px 0 2px; }
+.sh-reviews summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.sh-rev-list { display: grid; gap: 8px; padding: 8px 0 2px; }
+.sh-rev { display: grid; gap: 2px; padding: 8px 10px; border-radius: 12px; background: var(--bg-2); }
+.sh-rev b { color: #F59E0B; letter-spacing: 1px; font-size: 14px; }
+.sh-rev b i { color: var(--border); font-style: normal; }
+.sh-rev span { font-size: 14px; overflow-wrap: anywhere; }
+.sh-rev small { color: var(--muted); font-size: 12px; }
+.sp-reviews { margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border); display: grid; gap: 8px; }
+.sp-rev-avg { display: flex; align-items: baseline; gap: 8px; margin: 0; }
+.sp-rev-avg b { font-size: 28px; font-family: "Fredoka", "Rubik", sans-serif; }
+.sp-rev-avg span { color: #F59E0B; letter-spacing: 1px; }
