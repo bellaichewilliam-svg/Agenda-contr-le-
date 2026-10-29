@@ -238,9 +238,10 @@ function renderAvail() {
   $("#bossTakesText").textContent = takes ? "" : "Vous êtes hors ligne : les courses vont directement aux livreurs. Vous voyez et entendez tout.";
   $("#bossFirstRow").classList.toggle("hidden", !takes);
   $("#duty").classList.toggle("hidden", !takes);
-  const bf = $("#bossFirst"), v = String(Number(settings.boss_first_seconds ?? 60));
+  const bf = $("#bossFirst"), v = bossOnly() ? "never" : String(Number(settings.boss_first_seconds ?? 60));
   if (![...bf.options].some(x => x.value === v)) bf.add(new Option(v + " s", v));
   if (document.activeElement !== bf) bf.value = v;
+  $("#bossOnlyText").textContent = bossOnly() ? "🔒 Seul vous recevez les courses : les livreurs ne voient rien tant que vous ne leur donnez pas une course." : "";
 }
 
 async function toggleAvail() {
@@ -332,6 +333,8 @@ let bossId = null, bossAfterLoad = null, bossFirstLoad = true;
 // « Je prends des courses moi-même » : non → le patron est hors ligne, les courses partent tout de suite aux livreurs
 // (il voit et entend tout, et peut encore donner une course à un livreur)
 const bossTakes = () => settings.boss_takes !== false;
+// « Jamais : je les distribue moi-même » : les livreurs ne voient aucune course libre, le patron la prend ou la donne
+const bossOnly = () => settings.boss_only === true;
 // Personne ne l'a prise (2 min après que les livreurs la voient, ou aucun livreur en ligne) : le patron peut la prendre
 const nobodyTook = o => !!o.nobody_at || !partners().some(c => c.status === "actif" && onlineOf(c).on);
 const canTake = o => bossTakes() || nobodyTook(o);
@@ -356,17 +359,17 @@ function bossPopup(id) {
     return;
   }
   bossId = id;
-  const wait = bossTakes() ? Math.ceil((new Date(o.created_at).getTime() + Number(settings.boss_first_seconds || 0) * 1000 - Date.now()) / 1000) : 0;
+  const wait = bossOnly() ? Infinity : bossTakes() ? Math.ceil((new Date(o.created_at).getTime() + Number(settings.boss_first_seconds || 0) * 1000 - Date.now()) / 1000) : 0;
   const list = rankedCouriers(o);
   $("#bossBody").innerHTML = `
     <h3>🔔 Nouvelle course · ${UI.money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}</h3>
     <p class="small" style="margin:4px 0">n° ${UI.esc(o.ref)} · ${UI.esc(UI.whenFr(o))}</p>
     <p style="margin:6px 0"><b>${UI.esc(o.pickup_address || UI.cityFr(o.from_city))}</b> → <b>${UI.esc(o.dropoff_address || UI.cityFr(o.to_city))}</b></p>
-    <p class="small muted" style="margin:0 0 12px">${!bossTakes() && nobodyTook(o) ? "⚠️ <b>Personne ne l'a prise</b> : prenez-la, ou donnez-la à un livreur (même hors ligne : appelez-le, elle l'attend dans son appli)." : !bossTakes() ? "🛵 Envoyée aux livreurs : le premier qui accepte la prend. Vous pouvez aussi la donner vous-même :" : wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
+    <p class="small muted" style="margin:0 0 12px">${bossOnly() ? "🔒 <b>Seul vous la voyez</b> : prenez-la, ou donnez-la à un livreur (il la reçoit tout de suite dans son appli)." : !bossTakes() && nobodyTook(o) ? "⚠️ <b>Personne ne l'a prise</b> : prenez-la, ou donnez-la à un livreur (même hors ligne : appelez-le, elle l'attend dans son appli)." : !bossTakes() ? "🛵 Envoyée aux livreurs : le premier qui accepte la prend. Vous pouvez aussi la donner vous-même :" : wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
     ${canTake(o) ? `<button type="button" class="btn btn-primary btn-block" data-boss="take">✅ Je la prends</button>` : ""}
     <p class="small" style="margin:14px 0 6px"><b>🛵 La donner à :</b></p>
     <div class="boss-list">${list.length ? list.map(({ c, km }) => `<button type="button" class="btn btn-block" data-boss-give="${UI.esc(c.id)}">${onlineOf(c).on ? "🟢" : "⚪"} ${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : ""}${onlineOf(c).on ? "" : " · hors ligne : la verra en ouvrant l'appli"}${balanceOf(c.id) > Number(settings.max_debt) ? " · 🔒 solde dû" : ""}</button>`).join("") : `<p class="small muted">Aucun livreur validé pour l'instant.</p>`}</div>
-    <button type="button" class="btn btn-link btn-block" data-boss="later">${bossTakes() ? "Laisser aux livreurs" : "OK, je laisse les livreurs"}</button>`;
+    <button type="button" class="btn btn-link btn-block" data-boss="later">${bossOnly() ? "Je décide plus tard" : bossTakes() ? "Laisser aux livreurs" : "OK, je laisse les livreurs"}</button>`;
   m.classList.remove("hidden");
 }
 async function onBossClick(e) {
@@ -2327,8 +2330,9 @@ $("#ringSee").addEventListener("click", () => {
 $("#bossModal").addEventListener("click", onBossClick);
 $("#bossTakesBtn").addEventListener("click", toggleBossTakes);
 $("#bossFirst").addEventListener("change", async e => {
-  const v = Number(e.target.value);
-  try { await Store.saveSettings({ boss_first_seconds: v }); settings.boss_first_seconds = v; }
+  const never = e.target.value === "never", v = never ? Number(settings.boss_first_seconds ?? 60) : Number(e.target.value);
+  const changes = { boss_only: never, boss_first_seconds: v };
+  try { await Store.saveSettings(changes); Object.assign(settings, changes); renderAvail(); }
   catch (ex) { alert("Réglage non enregistré, vérifiez la connexion."); renderAvail(); }
 });
 $("#installBtn").classList.toggle("hidden", UI.inOwnApp());

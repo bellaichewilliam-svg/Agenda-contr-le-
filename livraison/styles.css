@@ -2159,6 +2159,8 @@ span.cal-ico > .cal-d { display: flex; flex: 1 1 auto; justify-content: center; 
 #bossBody .boss-list .btn { justify-content: flex-start; text-align: start; }
 .boss-first { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; }
 .boss-first select { font: inherit; padding: 4px 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--card, #fff); color: inherit; }
+.boss-first .boss-only { flex-basis: 100%; color: var(--navy, #1b2340); font-weight: 700; }
+.boss-first .boss-only:empty { display: none; }
 .boss-takes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; }
 /* Enseigne inscrite sur HOP! : toute la ligne ouvre sa boutique */
 .ens-item.ens-partner { cursor: pointer; }

@@ -143,7 +143,7 @@ function myId() { const s = session(); return s && s.user_id; }
 const DEFAULT_SETTINGS = {
   accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse,
   referral_bonus: CONFIG.partners.bonusPerDelivery, priority_minutes: CONFIG.partners.priorityMinutes,
-  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt, boss_first_seconds: 60, boss_takes: true,
+  wave_seconds: CONFIG.platform.waveSeconds, max_debt: CONFIG.platform.maxDebt, boss_first_seconds: 60, boss_takes: true, boss_only: false,
   carnet_unit: CONFIG.partners.carnet.price / CONFIG.partners.carnet.courses,
   referral_active_days: CONFIG.partners.activeDays,
   deliver_radius: CONFIG.platform.deliverRadius,
@@ -639,6 +639,8 @@ const declined = (orderId, courierId) => readJSON(LS.declines, []).some(d => d.o
 function offerFrom(o, st) {
   const created = new Date(o.created_at).getTime();
   // Le patron d'abord : les livreurs la reçoivent boss_first_seconds après (comme offer_from en ligne)
+  // « Jamais : je les distribue moi-même » : aucune course libre pour les livreurs
+  if (st.boss_only === true) return Infinity;
   const boss = st.boss_takes === false ? 0 : Number(st.boss_first_seconds || 0) * 1000;
   if (o.appt_at) return Math.max(created, new Date(o.appt_at) - 40 * 60000) + boss;
   return ((o.shop_status || o.phone_order) && o.ready_at ? Math.max(created, new Date(o.ready_at) - Number(st.pro_lead_min) * 60000) : created) + boss;

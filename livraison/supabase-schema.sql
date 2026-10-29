@@ -7990,3 +7990,41 @@ language sql stable security definer set search_path = public as $$
     from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
 $$;
 grant execute on function public.shops_showcase() to anon, authenticated;
+
+-- ============================================================================
+-- SEUL LE PATRON DISTRIBUE (settings.boss_only) : les livreurs ne voient, n'entendent et ne reçoivent
+-- aucune course libre. Chaque course sonne chez le patron (boss_ring, 2 min), qui la prend ou la donne à
+-- un livreur (« Donner à un livreur ») ; 2 min après la fin de la sonnerie, « Personne n'a pris la course ».
+-- offer_from() renvoie alors une date très lointaine : fenêtre livreur, sonnerie « ring », vagues,
+-- order_offer_at() (fonction d'envoi) et can_see_for() restent fermés sans changer de code.
+-- ============================================================================
+alter table public.settings add column if not exists boss_only boolean not null default false;
+
+create or replace function public.offer_from(o orders) returns timestamptz
+language sql stable set search_path = public as $$
+  select case when (select boss_only from settings where id = 1) then '9999-01-01'::timestamptz
+              else public.offer_base(o) + coalesce((select case when boss_takes then make_interval(secs => boss_first_seconds) else interval '0' end
+                                                      from settings where id = 1), interval '0') end;
+$$;
+
+-- « Personne n'a pris la course » : quand seul le patron distribue, 2 min après la fin de sa sonnerie (il n'y a pas de livreurs à attendre)
+create or replace function public.nobody_orders() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0; bo boolean := coalesce((select boss_only from settings where id = 1), false);
+begin
+  for o in select id from orders
+            where status = 'nouvelle' and courier_id is null
+              and (shop_status is null or shop_status in ('acceptee', 'prete'))
+              and coalesce(docs_status, 'ok') = 'ok'
+              and now() >= greatest(case when bo then public.offer_base(orders) + interval '2 minutes' else public.offer_from(orders) end,
+                                    coalesce(released_at, '-infinity')) + interval '2 minutes'
+              and (nobody_at is null or nobody_at < coalesce(released_at, '-infinity'))
+  loop
+    update orders set nobody_at = now() where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'nobody'));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.nobody_orders() from public, anon, authenticated;
