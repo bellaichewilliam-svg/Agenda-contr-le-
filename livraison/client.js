@@ -646,11 +646,13 @@ const rayonPlace = () => { const r = rayonOn(); return r ? rayonPicked(r).reduce
 function rayonGoods() {
   const r = rayonOn();
   if (!r) return null;
-  let lo = 0, hi = 0, any = false;
-  rayonPicked(r).forEach(([k, q]) => { const e = rayonEntry(r, k); if (e && e.p) { lo += e.p[0] * q; hi += e.p[1] * q; any = true; } });
-  return any ? { lo, hi } : null;
+  let lo = 0, hi = 0, mid = 0, any = false;
+  rayonPicked(r).forEach(([k, q]) => { const e = rayonEntry(r, k); if (e && e.p) { lo += e.p[0] * q; hi += e.p[1] * q; mid += priceMid(e.p) * q; any = true; } });
+  return any ? { lo, hi, mid } : null;
 }
-const priceTxt = p => (p[0] === p[1] ? `${p[0]} ₪` : `${p[0]}-${p[1]} ₪`);
+// Un seul prix indicatif affiché (le milieu de la fourchette relevée en magasin) ; le maximum (hi) sert au budget
+const priceMid = p => Math.round((Number(p[0]) + Number(p[1])) / 2);
+const priceTxt = p => `${priceMid(p)} ₪`;
 // « Acheter pour moi » sans partenaire : le client paie la course d'avance par Bit (ça l'engage), le livreur avance
 // les articles (au plus le budget), envoie la photo du ticket, et le client lui envoie le montant exact avant la
 // livraison (goods_after). Au plus 200 ₪ d'articles, 100 ₪ tant que le client a moins de 3 courses livrées (la base
@@ -739,7 +741,7 @@ function renderPharma() {
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
       return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">${rtl ? "›" : "‹"} ${UI.esc(phName(prev))}</button>` : "<span></span>"}
         ${next ? `<button type="button" class="ph-next" data-ph-cat="${next.id}" data-ph-nav="1">${UI.esc(t("phNext"))} : ${UI.esc(phName(next))} ${rtl ? "‹" : "›"}</button>` : ""}</div>`; })(cats.findIndex(c => c.id === state.pharmaCat))}
-    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { lo: g.lo, hi: g.hi }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
+    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { mid: g.mid }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
   box.style.setProperty("--rc", r.color);
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
@@ -826,6 +828,7 @@ $("#pharmaBox").addEventListener("change", e => {
   const s = e.target.closest("[data-ph-opt]");
   if (!s) return;
   state.pharmaOpt = Object.assign(state.pharmaOpt || {}, { [s.dataset.phOpt]: Number(s.value) });
+  saveDraft();
   renderPharma();
 });
 // « Acheter pour moi » : tant que le magasin n'a pas son catalogue sur HOP!, la commande s'écrit dans le message au livreur
@@ -878,7 +881,7 @@ function renderQuote() {
   const r0 = goods ? rayonOn() : null, est = r0 ? rayonGoods() : null;
   const unpriced = r0 ? rayonPicked(r0).some(([k]) => { const e = rayonEntry(r0, k); return e && !e.p; }) : false;
   const hint = withMax ? "" : items ? t("barItems", { total: money(items), name: UI.bi(state.shop.name) })
-    : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { lo: est.lo, hi: est.hi }) : goods ? t("barGoodsHint") : "";
+    : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { mid: est.mid }) : goods ? t("barGoodsHint") : "";
   $("#mobileHint").textContent = hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
   $("#submitBtn").textContent = t("submit", { total: money(all) });
@@ -3883,7 +3886,7 @@ function saveDraft(now) {
       else if (el.type === "checkbox") values[el.name] = el.checked;
       else values[el.name] = el.value;
     });
-    try { localStorage.setItem(LS_DRAFT, JSON.stringify({ at: Date.now(), values, pick: state.pick, phoneReady: state.phoneReady, cart: state.cart, pharma: state.pharma })); } catch (e) { /* plein */ }
+    try { localStorage.setItem(LS_DRAFT, JSON.stringify({ at: Date.now(), values, pick: state.pick, phoneReady: state.phoneReady, cart: state.cart, pharma: state.pharma, pharmaCat: state.pharmaCat, pharmaOpt: state.pharmaOpt, homeKind: state.homeKind })); } catch (e) { /* plein */ }
   };
   if (now === true) write(); else draftTimer = setTimeout(write, 300);
 }
@@ -3906,6 +3909,10 @@ function restoreDraft() {
   });
   if (d.phoneReady != null) state.phoneReady = d.phoneReady;
   if (d.pharma) state.pharma = d.pharma;
+  if (d.pharmaOpt) state.pharmaOpt = d.pharmaOpt;
+  // Le rayon et sa catégorie reviennent tels quels après un rafraîchissement
+  if (d.homeKind && !state.homeKind && EXAMPLES.some(e => e.id === d.homeKind)) applyKind(d.homeKind);
+  if (d.pharmaCat) state.pharmaCat = d.pharmaCat;
   syncNoCode();
   syncVisibility();
   renderQuote();
