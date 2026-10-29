@@ -1316,6 +1316,13 @@ async function shopCashReceived(token, id, amount) {
   writeJSON(LS.orders, all);
   return true;
 }
+// Lien « Vous avez été livré avec HOP! » envoyé au nouveau client (WhatsApp) : noté pour ne pas l'envoyer deux fois
+async function orderWelcomeSent(id) {
+  if (ONLINE) return authRest("/rest/v1/rpc/order_welcome_sent", { method: "POST", body: { p_id: id } });
+  const all = localOrders(), o = all.find(x => x.id === id);
+  if (!o || o.welcome_sent_at) return false;
+  o.welcome_sent_at = new Date().toISOString(); writeJSON(LS.orders, all); return true;
+}
 // Le livreur note : « avancé » (payé au commerce en prenant la commande) ou « rendu » (rapporté après la livraison)
 async function courierCashMark(id, mode) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_cash_mark", { method: "POST", body: { p_id: id, p_mode: mode } });
@@ -2368,7 +2375,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

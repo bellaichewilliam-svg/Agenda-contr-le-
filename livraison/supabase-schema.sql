@@ -8212,3 +8212,61 @@ update public.orders o set first_order = true
    and public.phone_digits(o.contact_phone) <> ''
    and not exists (select 1 from orders p where public.phone_digits(p.contact_phone) = public.phone_digits(o.contact_phone)
                     and p.created_at < o.created_at and p.status not in ('annulee', 'refusee') and not coalesce(p.is_test, false));
+
+-- ============================================================================
+-- BIENVENUE AU NOUVEAU CLIENT : à la livraison de sa 1re commande (souvent envoyé par un commerce, il ne connaît pas
+-- HOP!), son suivi reçoit « Vous avez été livré avec HOP! » + le lien bienvenue.html ; le livreur (ou le patron)
+-- le lui envoie aussi sur WhatsApp d'un toucher, et c'est noté (welcome_sent_at) pour ne pas l'envoyer deux fois.
+-- ============================================================================
+alter table public.orders add column if not exists welcome_sent_at timestamptz;
+
+create or replace function public.order_welcome_sent(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  update orders set welcome_sent_at = now()
+   where id = p_id and welcome_sent_at is null and (courier_id = auth.uid() or public.is_admin());
+  get diagnostics n = row_count;
+  if n > 0 then insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:welcome'); end if;
+  return n > 0;
+end;
+$$;
+revoke execute on function public.order_welcome_sent(uuid) from public, anon;
+grant execute on function public.order_welcome_sent(uuid) to authenticated;
+
+create or replace function public.orders_done_msg() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare who text; first text; shop text; url text;
+begin
+  if new.status <> 'livree' or old.status = 'livree' or coalesce(new.is_test, false) then return new; end if;
+  if new.first_order then
+    first := split_part(trim(coalesce(nullif(new.dropoff_contact, ''), new.contact_name, '')), ' ', 1);
+    shop := case when new.shop_name is null then null
+                 when new.lang = 'he' then coalesce(nullif(trim(split_part(new.shop_name, '·', 2)), ''), trim(split_part(new.shop_name, '·', 1)))
+                 else trim(split_part(new.shop_name, '·', 1)) end;
+    url := 'https://hop-livraison.vercel.app/app/bienvenue.html?t=' || new.token::text || case when new.lang = 'he' then '&lang=he' else '' end;
+    insert into chat_messages (thread, author, author_name, body)
+      values ('o:' || new.id::text, 'admin', 'HOP!',
+              case when new.lang = 'he'
+                   then '✅ שלום' || case when first <> '' then ' ' || first else '' end || ' 👋 ההזמנה שלכם' || case when shop is not null then ' מ' || shop else '' end
+                        || ' נמסרה על ידי הופ! 🛵🧡 הופ! זה פתרון המשלוחים שלכם בכל העיר: מסעדות, חנויות, קניות, חבילות, ניקוי יבש… כל הפרטים כאן 👉 ' || url
+                   else '✅ Bonjour' || case when first <> '' then ' ' || first else '' end || ' 👋 Votre commande' || case when shop is not null then ' chez ' || shop else '' end
+                        || ' vous a été livrée par HOP! 🛵🧡 HOP!, c''est votre solution de livraison dans toute la ville : restos, commerces, courses, colis, pressing… Découvrez tout ici 👉 ' || url end);
+  else
+    insert into chat_messages (thread, author, author_name, body)
+      values ('o:' || new.id::text, 'admin', 'HOP!',
+              case when new.lang = 'he'
+                   then '✅ נמסר! הופ! שמחים שהבאנו לכם 🧡 תודה על האמון. למשלוח הבא: https://hop-livraison.vercel.app/on-livre.html?lang=he'
+                   else '✅ Livré ! HOP! est content de vous avoir livré 🧡 Merci pour votre confiance. Pour votre prochaine course : https://hop-livraison.vercel.app/on-livre.html' end);
+  end if;
+  if new.shop_id is not null then
+    who := coalesce(nullif(new.dropoff_contact, ''), new.contact_name, '');
+    insert into chat_messages (thread, author, author_name, body)
+      values ('s:' || new.shop_id::text, 'admin', 'HOP!',
+              '✅ Course n° ' || new.ref || ' livrée' || case when who <> '' then ' à ' || who else '' end
+              || ' (' || coalesce(new.dropoff_address, '') || ') à ' || to_char(now() at time zone 'Asia/Jerusalem', 'HH24:MI') || '.');
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_done_msg() from public, anon, authenticated;

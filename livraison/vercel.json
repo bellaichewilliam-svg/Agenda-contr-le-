@@ -23,6 +23,10 @@
   ],
   "rewrites": [
     {
+      "source": "/bienvenue",
+      "destination": "/bienvenue.html"
+    },
+    {
       "source": "/app/",
       "destination": "/index.html"
     },

@@ -66,6 +66,15 @@ function mapTiles(map, dark, fun) {
     { maxZoom: 19, attribution: "© OpenStreetMap", className: dark ? "tiles-dark" : fun ? "tiles-fun" : "",
       updateWhenIdle: false, updateWhenZooming: false, keepBuffer: 6 }).addTo(map);
 }
+// Nouveau client livré : le lien « Vous avez été livré avec HOP! » et le message WhatsApp prêt à envoyer (dans sa langue)
+function welcomeUrl(o) { return CONFIG.siteUrl + "app/bienvenue.html?t=" + encodeURIComponent(o.token || "") + (o.lang === "he" ? "&lang=he" : ""); }
+function welcomeMsg(o) {
+  const he = o.lang === "he", first = String(o.dropoff_contact || o.contact_name || "").trim().split(/\s+/)[0];
+  const shop = o.shop_name ? bi(o.shop_name, he ? "he" : "fr") : "";
+  return he
+    ? `שלום${first ? " " + first : ""} 👋\nההזמנה שלכם${shop ? " מ" + shop : ""} נמסרה על ידי הופ! 🛵🧡\nהופ! זה פתרון המשלוחים שלכם בכל העיר: מסעדות, חנויות, קניות בסופר, חבילות, ניקוי יבש…\nכל הפרטים כאן 👉 ${welcomeUrl(o)}`
+    : `Bonjour${first ? " " + first : ""} 👋\nVotre commande${shop ? " chez " + shop : ""} vous a été livrée par HOP! 🛵🧡\nHOP!, c'est votre solution de livraison dans toute la ville : restos, commerces, courses, colis, pressing…\nDécouvrez tout ici 👉 ${welcomeUrl(o)}`;
+}
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 // Patron : le WhatsApp « normal », pas WhatsApp Business, même quand Business est l'appli par défaut sur Android
 // (lien intent:// vers com.whatsapp ; sans WhatsApp normal, le lien wa.me habituel)
@@ -886,7 +895,7 @@ function routeLayer(a, b, opts) {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   track, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
