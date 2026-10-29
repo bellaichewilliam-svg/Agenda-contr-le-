@@ -7726,3 +7726,247 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke execute on function public.shop_stats(uuid) from public;
 grant execute on function public.shop_stats(uuid) to anon, authenticated;
+
+-- ============================================================================
+-- HEURE ÉCRITE DANS LA NOTE (« à partir de 16 h ») → « pas avant », visible partout ; rappel 20 min avant ;
+-- espèces dès la 1re commande ; commerce partenaire : le livreur rapporte l'argent des articles après la livraison
+-- ============================================================================
+alter table public.orders add column if not exists not_before timestamptz;          -- livraison demandée à partir de…
+alter table public.orders add column if not exists remind_at timestamptz;           -- rappel « dans 20 min » envoyé
+alter table public.orders add column if not exists cash_shop_after boolean not null default false; -- articles d'un commerce partenaire : rapportés après la livraison
+alter table public.orders add column if not exists cash_alert_at timestamptz;       -- patron prévenu : espèces pas rapportées
+
+-- Une heure dans un texte (« à partir de 16 h », « vers 16h30 », « après 16:00 », « מ-16 », « אחרי 16:30 ») → ce soir à cette heure
+-- (ou demain si elle est déjà passée depuis plus d'une heure). « avant 18 h » / « jusqu'à 18 h » / « לפני » n'est pas un « pas avant ».
+create or replace function public.note_time(p_note text) returns timestamptz
+language plpgsql stable set search_path = public as $$
+declare m text[]; h int; mi int; d date; t timestamptz;
+begin
+  if p_note is null or trim(p_note) = '' then return null; end if;
+  m := regexp_match(p_note, '(?:partir d[e''’]?\s*|apr[èe]s\s*|pas avant\s*|vers\s*|d[èé]s\s*|pour\s*|מ-\s*|מ\s+|אחרי\s*|החל מ-?\s*|בשעה\s*|ב-\s*)(\d{1,2})\s*(?:h|H|:|\.)?\s*(\d{2})?(?!\d)', 'i');
+  if m is null then
+    if p_note ~* '(avant|jusqu|max|לפני|עד)\s*(la |ה)?\s*\d{1,2}' then return null; end if;
+    m := regexp_match(p_note, '(?<![\d/.,-])(\d{1,2})\s*(?:h|H|:)\s*(\d{2})?(?![\d/])');
+  end if;
+  if m is null then return null; end if;
+  h := m[1]::int; mi := coalesce(nullif(m[2], '')::int, 0);
+  if h < 6 or h > 23 or mi > 59 then return null; end if;
+  d := (now() at time zone 'Asia/Jerusalem')::date;
+  t := (d + make_interval(hours => h, mins => mi)) at time zone 'Asia/Jerusalem';
+  if t < now() - interval '1 hour' then t := t + interval '1 day'; end if;
+  return t;
+end;
+$$;
+grant execute on function public.note_time(text) to anon, authenticated;
+
+-- À la commande : si le client n'a pas programmé la course mais a écrit une heure dans sa note, elle devient « pas avant »
+create or replace function public.orders_note_time() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.urgency = 'programmee' or new.appt_at is not null then new.not_before := null; return new; end if;
+  if new.not_before is null then new.not_before := public.note_time(new.notes); end if;
+  if new.not_before is not null and new.not_before < now() + interval '20 minutes' then new.not_before := null; end if;
+  if new.not_before is not null and new.not_before > now() + interval '14 days' then new.not_before := null; end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_note_time on public.orders;
+create trigger orders_note_time before insert on public.orders
+  for each row execute function public.orders_note_time();
+
+-- Le commerce prépare pour l'heure demandée : « prête dans 15 min » accepté à 11 h pour une livraison à 16 h → prête à 15 h 50
+create or replace function public.orders_ready_not_before() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.not_before is not null and new.ready_at is not null and new.shop_status = 'acceptee' and old.shop_status is distinct from 'acceptee' then
+    new.ready_at := greatest(new.ready_at, new.not_before - interval '10 minutes');
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists orders_ready_not_before on public.orders;
+create trigger orders_ready_not_before before update of shop_status on public.orders
+  for each row execute function public.orders_ready_not_before();
+
+-- Proposée aux livreurs 40 min avant l'heure demandée (comme un rendez-vous), jamais avant
+create or replace function public.offer_base(o orders) returns timestamptz
+language sql stable set search_path = public as $$
+  select case when o.not_before is not null then greatest(o.created_at, o.not_before - interval '40 minutes',
+                     case when o.shop_status is not null or o.phone_order
+                          then coalesce(o.ready_at, o.not_before) - make_interval(mins => coalesce((select pro_lead_min from settings where id = 1), 8))
+                          else o.created_at end)
+              when o.appt_at is not null then greatest(o.created_at, o.appt_at - interval '40 minutes')
+              when o.shop_status is not null or o.phone_order
+              then greatest(o.created_at, o.ready_at - make_interval(mins => coalesce((select pro_lead_min from settings where id = 1), 8)))
+              else o.created_at end;
+$$;
+
+-- Retards : comptés à partir de l'heure demandée, pas de l'heure de la commande
+create or replace function public.late_orders_alert() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; n int := 0; why text; step text; ref_at timestamptz;
+begin
+  for o in select * from orders where status in ('nouvelle', 'confirmee', 'recuperee')
+            and greatest(pickup_at, coalesce(not_before, pickup_at)) < now() - interval '15 minutes'
+  loop
+    ref_at := greatest(o.pickup_at, coalesce(o.not_before, o.pickup_at));
+    step := null;
+    if o.status = 'nouvelle' and o.courier_id is null and coalesce(o.docs_status, 'ok') = 'ok'
+       and (o.shop_status is null or o.shop_status in ('acceptee', 'prete')) and ref_at < now() - interval '15 minutes' then
+      step := 'libre'; why := 'Personne n''a pris la course';
+    elsif o.status = 'confirmee' and ref_at < now() - interval '45 minutes' then
+      step := 'pas_recuperee'; why := 'Pas encore récupérée, 45 min après l''heure';
+    elsif o.status = 'recuperee' and ref_at < now() - interval '2 hours' then
+      step := 'pas_livree'; why := 'Pas encore livrée, 2 h après l''heure';
+    end if;
+    if step is null or o.late_alert is not distinct from step then continue; end if;
+    update orders set late_alert = step where id = o.id;
+    perform public.push_call(jsonb_build_object('order_id', o.id, 'event', 'late', 'why', why));
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.late_orders_alert() from public, anon, authenticated;
+
+-- Rappel 20 min avant (course programmée, « pas avant », rendez-vous) : le livreur et le patron reçoivent une notification,
+-- l'appli se rafraîchit ; et le patron est prévenu quand des espèces d'articles n'ont pas été rapportées 3 h après la livraison
+create or replace function public.remind_orders() returns int
+language plpgsql security definer set search_path = public as $$
+declare o record; a record; n int := 0; tgt timestamptz; hhmm text; ttl text; body text;
+begin
+  for o in select *, coalesce(not_before, case when urgency = 'programmee' then pickup_at end, appt_at) as tgt_at from orders
+            where status in ('nouvelle', 'confirmee') and remind_at is null
+              and coalesce(not_before, case when urgency = 'programmee' then pickup_at end, appt_at) between now() and now() + interval '20 minutes'
+  loop
+    tgt := o.tgt_at;
+    hhmm := to_char(tgt at time zone 'Asia/Jerusalem', 'HH24:MI');
+    update orders set remind_at = now() where id = o.id;
+    ttl := '⏰ Dans 20 min : course n° ' || o.ref || ' pour ' || hhmm;
+    body := coalesce(o.shop_name, o.pickup_place, o.pickup_address, '') || ' → ' || coalesce(o.dropoff_address, '') || ', ' || coalesce(o.to_city, '')
+            || case when o.courier_id is null then ' · PERSONNE DESSUS' else ' · ' || coalesce(o.courier_name, '') end;
+    if o.courier_id is not null then
+      perform public.push_call(jsonb_build_object('courier_id', o.courier_id, 'tag', 'remind-' || o.id::text, 'title', ttl, 'body', body));
+    end if;
+    for a in select id from couriers where role = 'admin' and (o.courier_id is null or id <> o.courier_id) loop
+      perform public.push_call(jsonb_build_object('courier_id', a.id, 'tag', 'remind-' || o.id::text, 'title', ttl, 'body', body));
+    end loop;
+    insert into chat_messages (thread, author, body) values ('o:' || o.id::text, 'system', 'status:remind');
+    n := n + 1;
+  end loop;
+  for o in select * from orders where status = 'livree' and cash_shop_after and coalesce(cash_goods, 0) > 0 and cash_shop_at is null
+            and cash_alert_at is null and delivered_at < now() - interval '3 hours'
+  loop
+    update orders set cash_alert_at = now() where id = o.id;
+    for a in select id from couriers where role = 'admin' loop
+      perform public.push_call(jsonb_build_object('courier_id', a.id, 'tag', 'cash-' || o.id::text,
+        'title', '💵 Espèces pas rapportées au commerce · ' || o.ref,
+        'body', coalesce(o.courier_name, 'Le livreur') || ' doit rapporter ' || replace(o.cash_goods::text, '.', ',') || ' ₪ à ' || coalesce(o.shop_name, 'le commerce') || ' (livrée il y a plus de 3 h).'));
+    end loop;
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.remind_orders() from public, anon, authenticated;
+do $$ begin
+  if not exists (select 1 from cron.job where jobname = 'hop-remind') then
+    perform cron.schedule('hop-remind', '* * * * *', 'select public.remind_orders()');
+  end if;
+exception when others then raise notice 'pg_cron indisponible : pas de rappel 20 min avant';
+end $$;
+
+-- Espèces : plus de refus à la première commande. Le plafond ne concerne que ce que le livreur avance lui-même (achats).
+-- Articles d'un catalogue partenaire sans lien de paiement : le livreur prend la commande sans payer, encaisse tout chez le client,
+-- et rapporte l'argent des articles au commerce (qui touche « Espèces reçues »). Il n'a donc rien à avoir sur lui.
+create or replace function public.orders_zz_cash_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare st settings; goods numeric; adv numeric; total numeric; note int; shop_after boolean;
+begin
+  if exists (select 1 from blocked_phones where phone = public.phone_digits(new.contact_phone)) then raise exception 'client_blocked'; end if;
+  if new.payment_method <> 'cash' then
+    new.cash_note := null; new.cash_goods := 0; new.cash_change := 0; new.cash_need := 0; new.cash_shop_after := false;
+    return new;
+  end if;
+  select * into st from settings where id = 1;
+  shop_after := new.items is not null and new.goods_pay is null and new.shop_id is not null and coalesce(new.items_total, 0) > 0;
+  goods := case when new.items is not null and new.goods_pay is null then coalesce(new.items_total, 0)
+                when coalesce(new.goods_prepay, false) then coalesce(new.goods_budget, 0) else 0 end;
+  adv := case when coalesce(new.goods_prepay, false) then coalesce(new.goods_budget, 0) else 0 end;
+  total := coalesce(new.price, 0) + goods;
+  if coalesce(new.price, 0) + adv > st.cash_max then raise exception 'cash_max'; end if;
+  note := case when new.cash_note in (20, 50, 100, 200, 500) then new.cash_note else 0 end;
+  if note > 0 and note < total then raise exception 'cash_note_small'; end if;
+  new.cash_note := note;
+  new.cash_goods := goods;
+  new.cash_shop_after := shop_after;
+  new.cash_change := case when note > 0 then note - total else 0 end;
+  new.cash_need := (case when shop_after then 0 else goods end) + new.cash_change;
+  new.direct_pay := true; new.paid_to := 'livreur'; new.prepaid_required := false;
+  return new;
+end;
+$$;
+
+-- Récupérer : en espèces « après », pas besoin que le commerce ait déjà reçu l'argent
+create or replace function public.orders_paid_before_pickup() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if new.status = 'recuperee' and old.status is distinct from 'recuperee' and new.direct_pay and new.paid_to = 'livreur'
+     and not new.unlocked and coalesce(auth.uid() = new.courier_id, false)
+     and not exists (select 1 from couriers where id = new.courier_id and (role = 'admin' or unlocked_until > now())) then
+    if new.payment_method = 'cash' then
+      if new.cash_goods > 0 and new.shop_id is not null and new.cash_shop_at is null and not new.cash_shop_after then raise exception 'cash_shop'; end if;
+    elsif new.payment_status <> 'paye' then
+      raise exception 'payment_required_pickup';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+-- Le commerce : « Espèces reçues » à tout moment (en prenant la commande ou après la livraison)
+create or replace function public.shop_cash_received(p_token uuid, p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  update orders o set cash_shop_at = now()
+    from shops s
+   where s.token = p_token and o.shop_id = s.id and o.id = p_id and o.payment_method = 'cash'
+     and coalesce(o.cash_goods, 0) > 0 and o.cash_shop_at is null and o.status not in ('annulee', 'refusee');
+  get diagnostics n = row_count;
+  if n > 0 then
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', 'status:cash_shop');
+  end if;
+  return n > 0;
+end;
+$$;
+revoke execute on function public.shop_cash_received(uuid, uuid) from public;
+grant execute on function public.shop_cash_received(uuid, uuid) to anon, authenticated;
+
+-- L'espace commerce voit « pas avant » (heure demandée) et « espèces rapportées après la livraison »
+create or replace function public.shop_dashboard(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'shop', (select to_jsonb(s) - 'referrer_id' - 'admin_note' from shops s where s.token = p_token),
+    'sales', coalesce((select json_agg(json_build_object('token', c.token, 'receipt_number', c.receipt_number, 'receipt_at', c.receipt_at,
+                                                         'amount', c.amount, 'courses', c.courses) order by c.receipt_at desc)
+                         from carnet_sales c join shops s on s.id = c.shop_id where s.token = p_token), '[]'::json),
+    'orders', coalesce((select json_agg(x order by x.pickup_at desc) from (
+        select o.id, o.ref, o.token, o.status, o.created_at, o.pickup_at, o.urgency, o.price, o.payment_status,
+               o.to_city, o.dropoff_address, o.dropoff_contact, o.contact_name, o.receipt_number, o.courier_name,
+               o.shop_order, o.shop_status, o.prep_minutes, o.ready_at, o.shop_share, o.wait_fee, o.wait_minutes, o.shop_ref,
+               o.items, o.items_total, o.items_note, o.hop_share, o.direct_pay, o.bags_count,
+               o.payment_method, o.cash_goods, o.cash_shop_at, o.goods_pay, o.goods_pay_at,
+               o.not_before, o.cash_shop_after, o.notes,
+               case when o.status in ('confirmee', 'recuperee') then o.courier_bit end as courier_bit
+          from orders o join shops s on s.id = o.shop_id
+         where s.token = p_token order by o.pickup_at desc limit 100) x), '[]'::json),
+    'drops', coalesce((select json_agg(x order by x.created_at desc) from (
+        select o.id, o.ref, o.status, o.created_at, o.pickup_at, o.from_city, o.notes,
+               split_part(coalesce(o.contact_name, ''), ' ', 1) as first_name,
+               (select max(n.created_at) from shop_notices n where n.order_id = o.id) as notice_at,
+               (select count(*) from shop_notices n where n.order_id = o.id) as notices
+          from orders o join shops s on s.id = o.drop_shop_id
+         where s.token = p_token and o.status not in ('annulee', 'refusee') and o.created_at > now() - interval '60 days'
+         order by o.created_at desc limit 60) x), '[]'::json));
+$$;

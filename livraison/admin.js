@@ -463,7 +463,8 @@ function tel(name, phone) {
 // --- Carte d'une course -------------------------------------------------------------
 function card(o, withDay) {
   const st = Store.STATUSES[o.status] || { label: o.status, icon: "" };
-  const when = o.urgency === "programmee" ? UI.fmtTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS" : "Dès que possible";
+  const nb = UI.notBefore(o), nbOn = nb && nb > Date.now() && !["livree", "annulee", "refusee"].includes(o.status);
+  const when = nbOn ? `⏰ Pas avant ${UI.fmtTime(nb)}` : o.urgency === "programmee" ? UI.fmtTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS" : "Dès que possible";
   const nav = which => `<div class="links">
       <a class="btn btn-sm" href="${UI.wazeLink(o, which)}" target="_blank" rel="noopener">Waze</a>
       <a class="btn btn-sm" href="${UI.mapsLink(o, which)}" target="_blank" rel="noopener">Maps</a></div>`;
@@ -501,6 +502,9 @@ function card(o, withDay) {
   penalties.filter(p => p.order_id === o.id && p.status !== "annulee").forEach(p => meta.push(`<span class="pill ${p.status === "regle" ? "paid" : "unpaid"}">💸 Retenue ${UI.money(p.amount)} · ${p.status === "regle" ? "déduite ✓" : "à déduire"}</span>${p.status === "du" ? `<button class="pill pill-btn" data-pen-cancel="${UI.esc(p.id)}">Annuler la retenue</button>` : ""}`));
   const partner = couriers.find(c => c.id === o.courier_id && c.role !== "admin");
   if (partner && ["confirmee", "recuperee", "livree", "annulee"].includes(o.status)) meta.push(`<button class="pill pill-btn st-annulee" data-act="penalty" title="Course pas faite ou pas reçue : retenue sur le versement de la semaine du livreur">💸 Retenue au livreur</button>`);
+  if (nbOn) meta.push(`<span class="pill unpaid nb-pill">⏰ Livraison demandée à partir de ${UI.esc(UI.fmtTime(nb))}${o.not_before ? "" : " (lu dans la note)"}</span>`);
+  if (o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at && !["annulee", "refusee"].includes(o.status))
+    meta.push(`<span class="pill ${o.status === "livree" && o.delivered_at && Date.now() - new Date(o.delivered_at) > 3 * 3600000 ? "st-annulee" : "unpaid"}">💵 ${UI.money(o.cash_goods)} d'articles à rapporter à ${UI.esc(o.shop_name || "le commerce")} par ${UI.esc((o.courier_name || "le livreur").split(" ")[0])}${o.status === "livree" ? " · livrée, pas encore rapportés" : ""}</span>`);
   if (o.rx) meta.push(`<span class="pill unpaid">💊 Médicament sur ordonnance</span>`);
   if (o.post_send) meta.push(`<span class="pill unpaid">📮 Dépôt à la poste · rendez-vous ${UI.esc(UI.fmtDateTime(o.appt_at))}</span>`);
   if (o.p2p_sale) meta.push(`<span class="pill">🤝 Vente entre particuliers · déjà payée au vendeur</span>`);
@@ -933,6 +937,8 @@ function progressOf(o) {
 // récupération, heure annoncée au client dépassée de 5 min
 function lateOf(o) {
   const m = iso => (iso ? Math.round((Date.now() - new Date(iso)) / 60000) : -1e9);
+  const nb = UI.notBefore(o);
+  if (nb && nb > Date.now()) return null;
   if (o.status === "nouvelle") {
     if (o.urgency === "programmee") return m(o.pickup_at) > -20 ? { min: Math.max(0, m(o.pickup_at) + 20), why: "sans livreur, départ programmé proche" } : null;
     return m(o.created_at) > 5 ? { min: m(o.created_at), why: "sans livreur" } : null;
@@ -965,8 +971,8 @@ function updateLiveMap() {
     const cls = late ? "pin-late" : o.status === "nouvelle" ? "pin-wait" : "";
     if (o.status !== "recuperee") add(pick, o.status === "nouvelle" ? "🆕" : SERVICE_PIN[o.service] || "📍", `${label}<br>📍 ${UI.esc(UI.placeQuery(o, "pickup"))}`, cls);
     add(drop, "🏁", `${label}<br>🏁 ${UI.esc(UI.placeQuery(o, "dropoff"))}`, late ? "pin-late" : "");
-    if (pick && drop) L.polyline([[pick.lat, pick.lon], [drop.lat, drop.lon]], { color: late ? "#D92D20" : "#98A2B3", weight: 2, dashArray: "4 6" }).addTo(live.layer);
-    if (pr.pos && pr.target) L.polyline([[pr.pos.lat, pr.pos.lon], [pr.target.lat, pr.target.lon]], { color: late ? "#D92D20" : "#FF6A13", weight: 4 }).addTo(live.layer);
+    if (pick && drop) UI.routeLayer([pick.lat, pick.lon], [drop.lat, drop.lon], { color: late ? "#D92D20" : "#98A2B3", weight: 3, opacity: .6, glowOpacity: .3 }).addTo(live.layer);
+    if (pr.pos && pr.target) UI.routeLayer([pr.pos.lat, pr.pos.lon], [pr.target.lat, pr.target.lon], { color: late ? "#D92D20" : "#FF6A13", weight: 5 }).addTo(live.layer);
   });
   // Tous les livreurs qui ont une position : en ligne (couleur, position fraîche) ou hors ligne (gris, dernière position)
   const riders = partners().filter(c => c.status === "actif" && c.lat != null).map(c => ({ c, on: onlineOf(c).on, n: list.filter(o => o.courier_id === c.id).length }));

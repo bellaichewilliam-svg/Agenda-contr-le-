@@ -351,7 +351,7 @@ function moneyBox(o) {
     `${UI.esc(o.shop_name || "Le commerce")} vous paie en vous donnant le colis.<br>🙋 Le client ne paie rien : tout est déjà payé au magasin`);
   if (o.shop_sent) return box(false, `💰 À encaisser chez le client : ${UI.money(o.price)} ${how}`, `${goodsPaid}. Seulement la livraison, à l'arrivée`);
   if (o.payment_method === "cash") return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`,
-    Number(o.cash_goods) > 0 ? `À la livraison : articles ${UI.money(o.cash_goods)} (que vous payez au commerce au départ) + livraison ${UI.money(o.price)}` : "À la livraison");
+    Number(o.cash_goods) > 0 ? `À la livraison : articles ${UI.money(o.cash_goods)} (${o.cash_shop_after ? `à rapporter ensuite à ${UI.esc(o.shop_name || "le commerce")}` : "que vous payez au commerce au départ"}) + livraison ${UI.money(o.price)}` : "À la livraison");
   return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`, [`Sur votre numéro, avant de récupérer la commande`, goodsSelf(o)].filter(Boolean).join("<br>"));
 }
 // Colis en route : prévenir le client d'un toucher (« j'arrive dans 5 min », « je suis en bas »)
@@ -432,7 +432,10 @@ function paidHowBtns(o) {
 // HOP! Pro : où en est la préparation chez le commerce, ce que le client a commandé, la part du commerce
 function proLine(o) {
   const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
-  const state = o.shop_status === "prete" || (left != null && left <= 0) ? "✅ <b>Commande prête</b>"
+  const nb = UI.notBefore(o);
+  const state = o.shop_status === "prete" ? "✅ <b>Commande prête</b>"
+    : nb && nbLeft(nb) > 0 ? `⏰ <b>Pour ${UI.esc(UI.fmtTime(nb))}</b> : le client a demandé à partir de cette heure, ne partez pas avant`
+    : left != null && left <= 0 ? `⏳ <b>Devrait être prête</b> : ${UI.esc(o.shop_name || "le commerce")} n'a pas encore touché « Prête » · demandez-lui`
     : left != null ? `🍳 <b>Prête dans ${left} min</b> chez ${UI.esc(o.shop_name || "le commerce")}` : "🍳 En attente du commerce";
   return `<div class="small pro-line">${state}${o.shop_order ? `<br>🧾 ${UI.esc(o.shop_order)}` : ""}
     ${shopPart(o) && !o.direct_pay ? `<br>🏪 Le commerce paie ${UI.money(shopPart(o))} de votre course : HOP vous le reverse` : ""}</div>`;
@@ -629,13 +632,28 @@ function weekOrders(start) {
   return orders.filter(o => o.courier_id === me.id && o.status === "livree" && UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= end);
 }
 
+// « Pas avant 16 h » : le client l'a écrit dans sa note (ou l'a choisi) → en gros et en orange, impossible de le rater
+const nbLeft = d => Math.ceil((d - Date.now()) / 60000);
+const nbDur = m => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`;
+function nbBlock(o) {
+  const nb = UI.notBefore(o);
+  if (!nb || nbLeft(nb) <= 0 || ["livree", "annulee", "refusee"].includes(o.status)) return "";
+  return `<div class="not-before">⏰ <b>PAS AVANT ${UI.esc(UI.fmtTime(nb))}</b><small>Le client a demandé la livraison à partir de ${UI.esc(UI.fmtTime(nb))} · dans ${nbDur(nbLeft(nb))}. Ne partez pas avant.</small></div>`;
+}
+function whenOf(o, long) {
+  const nb = UI.notBefore(o);
+  if (nb && nbLeft(nb) > 0) return `⏰ Pas avant ${UI.fmtTime(nb)}`;
+  if (o.urgency === "programmee") return UI.fmtDateTime(o.pickup_at);
+  if (o.urgency === "express") return long ? "⚡ EXPRESS : priorité, allez-y directement, sans autre course" : "⚡ Express : priorité, allez-y directement, sans autre course";
+  return "Dès que possible";
+}
 function card(o, kind) {
-  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ EXPRESS : priorité, allez-y directement, sans autre course" : "Dès que possible";
+  const when = whenOf(o, true);
   // Navigation avec l'application choisie dans les réglages
   const nav = which => kind === "mine" ? `<div class="links">
       <a class="btn btn-sm btn-primary" href="${navLink(o, which)}" target="_blank" rel="noopener">🧭 Y aller (${riderSet.nav === "maps" ? "Maps" : "Waze"})</a></div>` : "";
   const telLink = (name, phone) => kind === "mine" && phone ? `<span class="small muted">${UI.esc(name || "")} · <a href="tel:${UI.esc(phone)}">${UI.esc(phone)}</a></span>` : "";
-  let extra = "";
+  let extra = kind === "mine" ? "" : nbBlock(o);
   // Course groupée avec une autre des miennes : dans quel ordre livrer
   const twin = kind === "mine" && ["confirmee", "recuperee"].includes(o.status) && mine().find(x => x.id !== o.id && Store.pairOk(x, o));
   if (twin) {
@@ -767,8 +785,10 @@ function callBig(name, phone) {
 // Commande prête ? Le temps qui reste, en direct (commerce Pro ou commande par téléphone)
 function readyChip(o) {
   if (o.status !== "confirmee" || !(o.ready_at || o.shop_status)) return "";
-  const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
-  return o.shop_status === "prete" || (left != null && left <= 0) ? `<span class="ready-chip ok">✅ Prête</span>`
+  const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null, nb = UI.notBefore(o);
+  return o.shop_status === "prete" ? `<span class="ready-chip ok">✅ Prête</span>`
+    : nb && nbLeft(nb) > 0 ? `<span class="ready-chip nb">⏰ Pour <b>${UI.esc(UI.fmtTime(nb))}</b></span>`
+    : left != null && left <= 0 ? `<span class="ready-chip">⏳ Devrait être prête · pas confirmé</span>`
     : left != null ? `<span class="ready-chip">⏳ Prête dans <b>${left} min</b></span>` : `<span class="ready-chip">🍳 En préparation</span>`;
 }
 // Dès que ça sonne : prête ou pas, et dans combien de temps (commerce, commande par téléphone, rendez-vous, heure programmée)
@@ -777,11 +797,15 @@ function readiness(o) {
   const hh = d => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   const dur = m => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`;
   const READY = { ok: true, text: "✅ Commande <b>PRÊTE</b> : allez-y" };
+  const nb = UI.notBefore(o);
+  if (nb && mins(nb) > 0) return { ok: false, left: mins(nb), text: `⏰ <b>Pas avant ${hh(nb)}</b> : le client a demandé la livraison à partir de ${hh(nb)} (dans ${dur(mins(nb))})` };
   if (o.shop_status || o.phone_order) {
     if (o.shop_status === "prete") return READY;
     if (!o.ready_at) return { ok: false, text: `🍳 <b>Pas encore prête</b> : en préparation${o.shop_name ? " chez " + UI.esc(o.shop_name) : ""}` };
     const l = mins(o.ready_at);
-    return l <= 0 ? READY : { ok: false, left: l, text: `⏳ <b>Pas encore prête</b> : prête dans <b>${dur(l)}</b> (à ${hh(o.ready_at)})` };
+    // Le temps annoncé est passé mais le commerce n'a pas touché « Prête » : on ne dit pas « prête » à sa place
+    return l <= 0 ? { ok: false, text: `⏳ <b>Devrait être prête</b> (annoncée pour ${hh(o.ready_at)}) : ${o.shop_name ? UI.esc(o.shop_name) : "le commerce"} n'a pas confirmé · appelez-le avant de partir` }
+      : { ok: false, left: l, text: `⏳ <b>Pas encore prête</b> : prête dans <b>${dur(l)}</b> (à ${hh(o.ready_at)})` };
   }
   if (o.appt_at && mins(o.appt_at) > 0) return { ok: false, left: mins(o.appt_at), text: `📅 Rendez-vous à <b>${hh(o.appt_at)}</b> (dans ${dur(mins(o.appt_at))})` };
   if (o.urgency === "programmee" && o.pickup_at && mins(o.pickup_at) > 0)
@@ -801,6 +825,8 @@ function cashStop(o, which, now) {
   // (achat sans partenaire : le livreur paie le magasin, au plus le maximum prévu, puis photo du ticket)
   if (which === "pickup" && o.goods_prepay) return o.goods_spent != null ? `<div class="cash-stop ok">🧾 Ticket <b>${UI.money(o.goods_spent)}</b> payé au magasin</div>`
     : `<div class="cash-stop">💵 Payez le magasin en espèces : <b>${UI.money(o.goods_budget)}</b> au plus<small>puis 🧾 photo du ticket ; le client vous rembourse à la livraison</small></div>`;
+  if (which === "pickup" && Number(o.cash_goods) > 0 && o.cash_shop_after) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu les <b>${UI.money(o.cash_goods)}</b> des articles</div>`
+    : `<div class="cash-stop">🛍️ Prenez la commande sans payer<small>le client vous paie tout en espèces à la livraison (articles <b>${UI.money(o.cash_goods)}</b> + course <b>${UI.money(o.price)}</b>) ; vous rapportez ensuite les <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}, ou vous le payez maintenant si vous avez les espèces</small></div>`;
   if (which === "pickup" && Number(o.cash_goods) > 0) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu vos <b>${UI.money(o.cash_goods)}</b></div>`
     : `<div class="cash-stop">💵 Payez <b>${UI.money(o.cash_goods)}</b> en espèces au commerce<small>il touche « Espèces reçues », puis vous récupérez la commande</small></div>`;
   if (which === "dropoff" && o.payment_status !== "paye") {
@@ -885,7 +911,8 @@ function mineStep(o, hopPaid) {
   }
   if (o.payment_method === "cash" && o.goods_prepay && o.goods_spent == null) return `2️⃣ Au magasin : payez les articles en espèces (au plus ${UI.money(o.goods_budget)}), puis 🧾 photo du ticket`;
   if (o.payment_method === "cash") return o.status === "recuperee" ? `3️⃣ Livrez et encaissez ${UI.money(cashTotal(o))} en espèces`
-    : Number(o.cash_goods) > 0 && !o.cash_shop_at && !o.goods_prepay ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
+    : Number(o.cash_goods) > 0 && !o.cash_shop_at && !o.goods_prepay && !o.cash_shop_after ? `2️⃣ Au départ : payez ${UI.money(o.cash_goods)} en espèces au commerce`
+    : Number(o.cash_goods) > 0 && o.cash_shop_after ? `2️⃣ Allez au départ · prenez la commande, le client paie tout en espèces à la livraison (${UI.money(cashTotal(o))})` : "2️⃣ Allez au départ · le client paie en espèces à la livraison";
   if (o.goods_prepay && o.payment_status === "paye" && ["confirmee", "recuperee"].includes(o.status)) {
     if (o.goods_spent == null) return o.goods_after ? `2️⃣ Au magasin : avancez les articles (au plus ${UI.money(o.goods_budget)}), puis 🧾 photo du ticket`
       : "2️⃣ Au magasin : achetez avec l'argent reçu, puis 🧾 photo du ticket";
@@ -930,6 +957,7 @@ function mineCard(o, x) {
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(x.total)}</span>
     </div>
+    ${nbBlock(o)}
     <div class="mine-step">${UI.esc(mineStep(o, x.hopPaid))}${tripKm(o) ? ` <span class="mine-km">🛣️ ${tripKm(o)}</span>` : ""}</div>
     ${UI.doorBig(o)}
     ${stop("pickup", "📍 DÉPART", !to)}
@@ -1071,7 +1099,7 @@ function render() {
 
   if (tab === "pool") {
     const list = pool();
-    view.innerHTML = refundCards() + (list.length
+    view.innerHTML = refundCards() + cashReturnCards() + (list.length
       ? `<p class="muted small" style="margin-bottom:10px">Le nom et le téléphone du client s'affichent une fois la course acceptée. Le premier qui accepte la prend.</p>${bundleCards(list)}<div class="orders">${list.map(o => card(o, "pool")).join("")}</div>`
       : empty(isOnline() ? "Pas de course disponible pour l'instant. Activez les alertes 🔔 : vous serez prévenu dès qu'une course arrive."
         : "Vous êtes hors ligne : glissez le bouton « HOP! » pour passer en ligne et recevoir des courses."));
@@ -1792,7 +1820,7 @@ function drawOfferMap(picks, drops) {
   if (lastPos) add(lastPos.lat, lastPos.lon, L.divIcon({ className: "", iconSize: [16, 16], iconAnchor: [8, 8], html: `<div class="om-me"></div>` }));
   picks.forEach(x => add(x.pickup_lat, x.pickup_lon, pin("🏪", "pick")));
   drops.forEach((x, i) => add(x.dropoff_lat, x.dropoff_lon, pin(drops.length > 1 ? String(i + 1) : "🏁", "drop")));
-  if (pts.length > 1) L.polyline(pts, { color: "#0F1F3D", weight: 4, opacity: .85 }).addTo(omap.layer);
+  for (let i = 1; i < pts.length; i++) UI.routeLayer(pts[i - 1], pts[i], { color: i === 1 && lastPos ? "#FF6A13" : "#0F1F3D", glow: "#FFFFFF", glowOpacity: .6 }).addTo(omap.layer);
   box.classList.toggle("hidden", pts.length < 2);
   if (pts.length < 2) return;
   setTimeout(() => { omap.map.invalidateSize(false); omap.map.fitBounds(pts, { padding: [28, 28], maxZoom: 16, animate: false }); }, 60);
@@ -1816,7 +1844,7 @@ function showNextOffer() {
   const pick = pt(o.pickup_lat, o.pickup_lon), drop = pt(o.dropoff_lat, o.dropoff_lon);
   const trip = roadKm(pick, drop) ?? (o.distance_km != null ? Number(o.distance_km) * 1.3 : null);
   const toPickup = roadKm(lastPos, pick);
-  const when = o.urgency === "programmee" ? UI.fmtDateTime(o.pickup_at) : o.urgency === "express" ? "⚡ Express : priorité, allez-y directement, sans autre course" : "Dès que possible";
+  const when = whenOf(o, false);
   $("#offerIcon").textContent = { repas: "🍔", retrait: "📮", achat: "🛒", colis: "📦" }[o.service] || "📦";
   const total = Store.courseValue(o);
   const star = !!o.referrer_id && o.referrer_id === me.id;
@@ -1866,7 +1894,7 @@ function showNextOffer() {
     mate ? "" : `🛣️ <b>${trip != null && trip >= 0.5 ? `≈ ${trip.toFixed(trip < 10 ? 1 : 0)} km` : "Dans la même ville"}</b> de trajet`,
     toPickup != null ? `🛵 Départ à <b>${etaMin({ lat: lastPos.lat, lon: lastPos.lon }, pick)} min</b> de vous (≈ ${toPickup.toFixed(1)} km)` : "",
     trip != null && !mate ? `🏁 Puis <b>${Math.max(1, Math.round(trip / (trip < 6 ? 25 : 50) * 60 + 2))} min</b> jusqu'au client` : "",
-    `🕐 ${UI.esc(when)}`,
+    UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ <b>PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))}</b> : le client a demandé la livraison à partir de cette heure (dans ${nbDur(nbLeft(UI.notBefore(o)))})` : `🕐 ${UI.esc(when)}`,
     mate ? `💳 Chaque client paie sa course : <b>${UI.money(total)}</b> (n° ${UI.esc(o.ref)}) et <b>${UI.money(Store.courseValue(mate))}</b> (n° ${UI.esc(mate.ref)})` : payLine(o),
     cashNeedLine(o),
     `${UI.esc(UI.SERVICE_FR[o.service] || "")} · ${UI.esc(UI.SIZE_FR[o.size] || "")} · ${UI.PAY_FR[o.payment_method] || ""}`,
@@ -2029,12 +2057,12 @@ function renderHome() {
   // Même départ : une seule carte, celle de la commande à récupérer maintenant (« 1 sur 2 »)
   const cur = mine().filter(o => { const r = pickupRank(o); return !r || r.current.id === o.id; });
   const p = pool();
-  $("#sheetBody").innerHTML = `${refundCards()}
+  $("#sheetBody").innerHTML = `${refundCards()}${cashReturnCards()}
     <div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
     ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
-        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""}</small></span></span>
-          <em class="rc-step">${UI.esc(mineStep(o, o.paid_to === "hop"))}</em>
+        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
+          <em class="rc-step">${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}</em>
           <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>
           <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
@@ -2049,6 +2077,12 @@ function renderHome() {
   sheetHeight();
 }
 // Remboursement à faire : en haut de l'accueil et des courses disponibles, tant qu'il n'est pas fait
+// Articles encaissés chez le client en espèces : à rapporter au commerce, tant qu'il n'a pas touché « Espèces reçues »
+function cashReturnCards() {
+  return orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at)
+    .map(o => `<div class="rd-card refund-card cash-return"><span>💵 Rapportez <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}
+      <small>Les articles de la course n° ${UI.esc(o.ref)}, encaissés chez le client. Le commerce touche « Espèces reçues » quand c'est fait${o.pickup_phone ? ` · <a href="tel:${UI.esc(o.pickup_phone)}">appeler</a>` : ""}.</small></span></div>`).join("");
+}
 function refundCards() {
   return refunds.map(r => `<div class="rd-card refund-card"><span>💸 Remboursez <b>${UI.money(r.amount)}</b> à ${UI.esc(r.name || "votre client")}
       <small>Par Bit / PayBox au <a href="tel:${UI.esc(r.phone || "")}"><b>${UI.esc(r.phone || "")}</b></a> · course n° ${UI.esc(r.ref)}${r.status === "litige" ? " · ⚠️ le client dit ne pas avoir été remboursé" : ""}.
@@ -2315,7 +2349,10 @@ function updateRiderMap() {
     const toDrop = got ? etaMin(here, drop) : (etaMin(pick, drop) != null ? (toPick || 0) + etaMin(pick, drop) + (o.arrived_at ? 0 : 2) : null);
     add(o.pickup_lat, o.pickup_lon, got ? rpin("📍", "done") : rbubble("🏪", "pick", "Récupération", toPick), `Récupération · n° ${UI.esc(o.ref)}`);
     add(o.dropoff_lat, o.dropoff_lon, rbubble("🏁", "drop", "Livraison", toDrop), `Livraison · n° ${UI.esc(o.ref)}`);
-    if (o.pickup_lat != null && o.dropoff_lat != null) L.polyline([[o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon]], { color: "#FF6A13", weight: 4, dashArray: "8 8" }).addTo(rmap.layer);
+    // Une courbe douce : départ → arrivée en clair, et de moi jusqu'au prochain arrêt en orange (on voit où j'en suis)
+    if (o.pickup_lat != null && o.dropoff_lat != null) UI.routeLayer([o.pickup_lat, o.pickup_lon], [o.dropoff_lat, o.dropoff_lon], { color: "#FFFFFF", opacity: .55, weight: 4, glow: "#0F1F3D", glowOpacity: .25 }).addTo(rmap.layer);
+    const next = got ? drop : pick;
+    if (lastPos && next) UI.routeLayer([lastPos.lat, lastPos.lon], [next.lat, next.lon], { color: "#FF6A13" }).addTo(rmap.layer);
   });
   // Moi sur la carte : le même petit logo que côté client (« ! » orange qui clignote en service, gris hors service)
   if (lastPos) add(lastPos.lat, lastPos.lon, L.divIcon({ className: "", iconSize: [30, 30], iconAnchor: [15, 15],
@@ -2468,6 +2505,26 @@ setInterval(() => {
   if (duty.watch == null || document.visibilityState !== "visible" || !lastPos || Date.now() - duty.lastSent < 60000) return;
   sendPosition({ coords: { latitude: lastPos.lat, longitude: lastPos.lon } });
 }, 20000);
+
+// Rappel 20 min avant une course à heure (programmée, « pas avant », rendez-vous) : bip, vibreur et bandeau, une fois par course
+const remindDone = (() => { try { return new Set(JSON.parse(localStorage.getItem("livraison.remind.v1") || "[]")); } catch (e) { return new Set(); } })();
+function remindCheck() {
+  mine().filter(o => ["nouvelle", "confirmee"].includes(o.status)).forEach(o => {
+    const nb = UI.notBefore(o), at = nb || (o.urgency === "programmee" && o.pickup_at ? new Date(o.pickup_at) : o.appt_at ? new Date(o.appt_at) : null);
+    if (!at || remindDone.has(o.id)) return;
+    const left = Math.ceil((at - Date.now()) / 60000);
+    if (left > 20 || left < -5) return;
+    remindDone.add(o.id);
+    try { localStorage.setItem("livraison.remind.v1", JSON.stringify([...remindDone].slice(-50))); } catch (e) { /* ignore */ }
+    beep(); try { if (navigator.vibrate) navigator.vibrate([300, 120, 300, 120, 300]); } catch (e) { /* ignore */ }
+    const el = document.createElement("div");
+    el.className = "remind-toast";
+    el.innerHTML = `<b>⏰ Dans ${Math.max(0, left)} min : course n° ${UI.esc(o.ref)} pour ${UI.esc(UI.fmtTime(at))}</b><small>${UI.esc(o.shop_name || o.pickup_place || o.pickup_address || "")} → ${UI.esc(o.dropoff_address || "")}</small><button type="button" class="btn btn-sm">OK</button>`;
+    el.querySelector("button").addEventListener("click", () => el.remove());
+    document.body.appendChild(el);
+  });
+}
+setInterval(remindCheck, 30000);
 
 // Passé hors ligne par HOP! (courses sans réponse, trop de refus, aucune nouvelle depuis 3 h) : on coupe aussi ici
 function serverWentOffline(card) {

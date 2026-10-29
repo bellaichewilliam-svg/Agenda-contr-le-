@@ -445,11 +445,13 @@ function renderKit() {
   document.querySelectorAll("[data-aud]").forEach(b => b.classList.toggle("on", b.dataset.aud === ui.aud));
   document.querySelectorAll("[data-klang]").forEach(b => b.classList.toggle("on", b.dataset.klang === ui.lang));
   $("#kitFilters").classList.toggle("hidden", !["visuels", "videos", "textes"].includes(ui.tab));
-  const L = ui.lang, f = (id, fmt) => `${V}${id}-${fmt}-${L}.png`;
+  // Les visuels portent la version de la page : un visuel refait est rechargé, pas repris du cache du téléphone
+  const VQ = (() => { const sc = document.querySelector('script[src*="kit.js"]'); const m = sc && /v=(\d+)/.exec(sc.getAttribute("src") || ""); return m ? `?v=${m[1]}` : ""; })();
+  const L = ui.lang, f = (id, fmt) => `${V}${id}-${fmt}-${L}.png${VQ}`;
   $("#kitCamps").innerHTML = CAMPS.filter(c => c.aud === ui.aud).map(c => `<div class="camp">
       <a class="camp-thumb" href="${f(c.id, "story")}" data-vis data-src="${f(c.id, "story")}"><img src="${f(c.id, "story")}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
       <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
-        <div class="camp-btns">${c.formats.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/png$/, "pdf") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
+        <div class="camp-btns">${c.formats.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
           ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}</div></div></div>`).join("")
     || `<p class="muted small">Rien pour l'instant.</p>`;
   const vids = VIDEOS.filter(v => v.aud === ui.aud);
@@ -480,12 +482,12 @@ function openVisual(a, qrName) {
   const img = a.querySelector("img") || a, canvas = a.querySelector("canvas");
   const src = a.dataset.src || (canvas && !(img.getAttribute("src") || "").startsWith("data:") ? canvas.toDataURL("image/png") : img.getAttribute("src"));
   const href = a.getAttribute("href") || src;
-  const pdf = /\.pdf$/i.test(href), name = qrName || src.split("/").pop();
+  const pdf = /\.pdf(\?|$)/i.test(href), name = qrName || src.split("/").pop().split("?")[0];
   const box = document.createElement("div");
   box.className = "vis-view";
   box.innerHTML = `<div class="vv-bar">
       <a class="btn btn-sm btn-primary" href="${src}" download="${name}">⬇ Enregistrer</a>
-      ${pdf ? `<a class="btn btn-sm" href="${href}" download="${href.split("/").pop()}">📄 PDF à imprimer</a>` : ""}
+      ${pdf ? `<a class="btn btn-sm" href="${href}" download="${href.split("/").pop().split("?")[0]}">📄 PDF à imprimer</a>` : ""}
       ${navigator.share ? `<button type="button" class="btn btn-sm" data-vv-share>📤 Partager</button>` : ""}
       <button type="button" class="btn btn-sm" data-vv-close>✕ Fermer</button>
     </div>

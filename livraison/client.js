@@ -568,9 +568,10 @@ const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() ? cartTotal
 // Espèces impossibles pour cette commande (mêmes règles que le serveur : plafond, et articles avancés par le livreur
 // seulement après une 1re course livrée) : dit sous le choix « Espèces » tout de suite, pas en erreur après l'envoi
 function cashIssue(q) {
-  const goods = cashGoods(), total = Number(q.total) + goods;
-  if (total > cashMax()) return { hard: true, text: t("errCashMax", { max: money(cashMax()) }) };
-  if (goods > 0 && !(state.mine || []).some(o => o.status === "livree")) return { hard: false, text: t("errCashFirst") };
+  // Le plafond ne concerne que ce que le livreur avance lui-même (achats) ; les articles d'un commerce partenaire sont encaissés
+  // chez le client et rapportés au commerce, sans avance
+  const adv = goodsPrepay() ? goodsBudget() : 0;
+  if (Number(q.total) + adv > cashMax()) return { hard: true, text: t("errCashMax", { max: money(cashMax()) }) };
   return null;
 }
 function renderCash() {
@@ -689,8 +690,7 @@ function renderGoodsMode(q) {
   const b = goodsBudget(), cap = goodsCap(), over = b > cap, cash = val("payment_method") === "cash";
   // Espèces (même règle que les catalogues) : le livreur avance les articles, le client paie la course + le ticket exact
   // à la livraison ; total ≤ plafond des espèces, et seulement après une 1re course livrée
-  const done = (state.mine || []).some(o => o.status === "livree");
-  const cashErr = !cash ? "" : !done ? t("gmCashFirst") : b + Number(q.total) > cashMax() ? t("errCashMax", { max: money(cashMax()) }) : "";
+  const cashErr = !cash ? "" : b + Number(q.total) > cashMax() ? t("errCashMax", { max: money(cashMax()) }) : "";
   form.budget.closest("label").querySelector("span").textContent = t("gmGoods") + " (₪)";
   sum.innerHTML = `<small class="gm-how">${UI.esc(t(goodsMin() ? "gmGoodsD" : "gmGoodsFree"))}</small>
     <div class="gb-row"><span><b>${UI.esc(t("gmRide"))}</b></span><b class="gb-amt" dir="ltr">${money(q.total)}</b></div>
@@ -725,6 +725,13 @@ function rayonAdult() {
 }
 // Ce que lit le livreur : les produits cochés, puis ce que le client a écrit
 const shopListText = () => pharmaLines().concat(val("shopping_list").trim() ? [val("shopping_list").trim()] : []).join("\n");
+// Une heure écrite dans le mot au livreur (« à partir de 16 h ») : dite tout de suite, et envoyée comme « pas avant »
+function noteNotBefore() { return val("urgency") === "programmee" ? null : UI.noteTime(val("notes")); }
+function renderNoteTime() {
+  const d = noteNotBefore(), el = $("#noteTime");
+  el.classList.toggle("hidden", !d);
+  el.textContent = d ? t("noteTime", { time: UI.fmtTime(d) }) : "";
+}
 const notesText = () => (val("service") === "achat" ? val("notes").trim() : pharmaLines().concat(val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
 function renderPharma() {
   const box = $("#pharmaBox"), r = rayonOn();
@@ -1780,6 +1787,7 @@ async function submit(e) {
       promo_code: disc ? (disc.key === "qLoyalty" ? "FIDELITE" : disc.vars.code) : null,
       discount: disc ? -disc.amount : 0,
       payment_method: val("payment_method"),
+      not_before: noteNotBefore() ? noteNotBefore().toISOString() : null,
       cash_note: val("payment_method") === "cash" ? Number(form.cash_note.value) || 0 : null,
       payer: val("payer"),
       notes: [shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText()].filter(Boolean).join("\n") || null,
@@ -3738,6 +3746,7 @@ form.addEventListener("input", e => {
   if (e.target.name === "promo") { state.promo = null; $("#promoMsg").textContent = ""; }
   if (e.target.name === "promo" && e.target.value.trim()) $("#promoFold").open = true;
   if (e.target.name === "budget") form.budget.dataset.manual = val("budget") ? "1" : "";
+  if (e.target.name === "notes" || e.target.name === "urgency") renderNoteTime();
   syncVisibility();
   renderQuote();
 });

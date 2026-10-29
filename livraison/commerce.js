@@ -379,6 +379,9 @@ function courierPay(o) {
 function cashLine(o) {
   if (o.payment_method !== "cash" || !(Number(o.cash_goods) > 0)) return "";
   if (o.cash_shop_at) return `<p class="cash-need ok">${UI.esc(t("spCashOk", { amount: UI.money(o.cash_goods) }))}</p>`;
+  // Commerce partenaire : le livreur rapporte l'argent des articles après la livraison (ou paie en prenant la commande)
+  if (o.cash_shop_after) return `<div class="cash-need"><b>${UI.esc(t("spCashAfter", { amount: UI.money(o.cash_goods) }))}</b>
+    ${["confirmee", "recuperee", "livree"].includes(o.status) ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}" data-after="1">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashAfterWait"))}</small>`}</div>`;
   return `<div class="cash-need"><b>${UI.esc(t("spCashDue", { amount: UI.money(o.cash_goods) }))}</b>
     ${o.status === "confirmee" ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashWait"))}</small>`}</div>`;
 }
@@ -426,13 +429,15 @@ function renderPrep() {
   setRing(list.some(o => o.shop_status === "attente" || o.goods_pay === "declare"));
   itemsChanged(list);
   if (box.classList.contains("hidden")) return;
-  const time = d => new Date(d).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const time = d => new Date(d).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: CONFIG.timezone });
   box.innerHTML = `<h3>${UI.esc(t("spPrepTitle"))}</h3>` + (list.length ? list.map(o => {
     const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
     const courier = o.status === "confirmee" && o.courier_name ? t("spCourier", { name: o.courier_name.split(" ")[0] }) : t("spNoCourier");
-    const head = o.shop_status === "attente" ? `<b class="prep-new">${UI.esc(t("spNew"))}</b> · ${time(o.created_at)}`
+    const nb = UI.notBefore(o), nbOn = nb && nb > Date.now();
+    const head = (nbOn ? `<b class="prep-nb">⏰ ${UI.esc(t("spForTime", { time: time(nb), prep: time(new Date(nb - 10 * 60000)) }))}</b><br>` : "")
+      + (o.shop_status === "attente" ? `<b class="prep-new">${UI.esc(t("spNew"))}</b> · ${time(o.created_at)}`
       : o.shop_status === "prete" ? `<b>${UI.esc(t("spIsReady"))}</b> · ${UI.esc(courier)}`
-      : `<b class="${left < 0 ? "prep-late" : ""}">${UI.esc(left < 0 ? t("spLate", { min: -left }) : t("spReadyIn", { min: Math.max(0, left) }))}</b> · ${UI.esc(courier)}`;
+      : `<b class="${left < 0 ? "prep-late" : ""}">${UI.esc(left < 0 ? t("spLate", { min: -left }) : t("spReadyIn", { min: Math.max(0, left) }))}</b> · ${UI.esc(courier)}`);
     // Articles payés d'avance : on prépare seulement une fois le paiement reçu
     const amount = Number(o.items_total) > 0 ? UI.money(o.items_total) : "";
     // Pas de lien de paiement : le commerce encaisse lui-même les articles (le livreur n'encaisse que la livraison)
@@ -540,7 +545,11 @@ $("#spPrep").addEventListener("click", async e => {
   }
   if (b.dataset.cashOk) {
     const o = state.dash.orders.find(x => x.id === b.dataset.cashOk);
-    if (o && confirm(t("spCashConfirm", { amount: UI.money(o.cash_goods) }))) return prepAction(b.dataset.cashOk, "cash_ok");
+    if (o && confirm(t("spCashConfirm", { amount: UI.money(o.cash_goods) }))) {
+      if (!b.dataset.after) return prepAction(b.dataset.cashOk, "cash_ok");
+      return Store.shopCashReceived(state.dash.shop.token, b.dataset.cashOk).then(ok => { if (!ok) alert(t("spErr")); refreshSpace(); }, () => alert(t("spErr")));
+    }
+    return;
     return;
   }
   if (b.dataset.bagsFor) { bagsDraft[b.dataset.bagsFor] = Number(b.dataset.n); keep("hop_shop_bags", bagsDraft); return renderPrep(); }
