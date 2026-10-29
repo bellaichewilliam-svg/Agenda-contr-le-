@@ -2324,9 +2324,15 @@ const cartTotal = () => cartLines().reduce((s, l) => s + Number(l.p.price) * l.q
 const shopDropOn = () => !!(state.shop && state.shop.pro && state.pick.to && state.pick.to.shopId === state.shop.id);
 const catalogOn = () => (proShopOn() || shopDropOn()) && cgProducts().length > 0;
 async function loadCatalogFor(shop) {
+  const seq = shopSeq;
   state.catalog = null; state.cart = {};
-  if (!shop || !shop.pro) return renderCatalog();
-  try { state.catalog = await Store.shopCatalog(shop.code); } catch (e) { state.catalog = null; }
+  renderCatalog();   // l'ancien menu disparaît tout de suite (jamais les plats d'un autre commerce)
+  if (!shop || !shop.pro) return;
+  let cat = null;
+  try { cat = await Store.shopCatalog(shop.code); } catch (e) { cat = null; }
+  // Le client a touché un autre commerce entre-temps : ce menu-là n'est plus le bon
+  if (seq !== shopSeq || !state.shop || state.shop.code !== shop.code) return;
+  state.catalog = cat;
   renderCatalog();
   renderQuote();
 }
@@ -2647,8 +2653,17 @@ function applyShop() {
   renderWhenHints();
 }
 
+// Chaque ouverture de commerce a son numéro : une réponse en retard d'un commerce touché avant est ignorée
+let shopSeq = 0;
 async function loadShop(code, stay) {
-  try { state.shop = await Store.shopByCode(code); } catch (e) { state.shop = null; }
+  const seq = ++shopSeq;
+  // On vide tout de suite le menu affiché : rien du commerce précédent ne doit rester pendant le chargement
+  state.catalog = null; state.cart = {};
+  renderCatalog();
+  let shop = null;
+  try { shop = await Store.shopByCode(code); } catch (e) { shop = null; }
+  if (seq !== shopSeq) return;
+  state.shop = shop;
   if (!state.shop) return;
   UI.track("shop_view", { shop_code: state.shop.code });
   // Sur le téléphone du commerce : son carnet pro
