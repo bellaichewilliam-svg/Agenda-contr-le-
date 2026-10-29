@@ -8320,3 +8320,83 @@ create or replace trigger shop_products_auto_fr before insert or update of name,
   for each row execute function public.catalog_auto_fr();
 create or replace trigger shop_categories_auto_fr before insert or update of name on public.shop_categories
   for each row execute function public.catalog_auto_fr();
+
+-- ============================================================================
+-- AJOUTER UN AUTRE COMMERCE POUR 10 ₪ : pendant addon_min minutes (15) après une commande, le client peut commander
+-- dans un autre commerce partenaire proche (addon_km, 2 km du départ de la 1re), livré à la même adresse, pour
+-- addon_price (10 ₪) de livraison. La base vérifie tout (même téléphone, même adresse, à temps, commerce proche)
+-- et fixe le prix ; le livreur et le patron voient « ➕ Ajout à la commande n° … ».
+-- ============================================================================
+alter table public.settings add column if not exists addon_price numeric(8,2) not null default 10;
+alter table public.settings add column if not exists addon_min int not null default 15;
+alter table public.settings add column if not exists addon_km numeric(5,2) not null default 2;
+alter table public.orders add column if not exists addon_of uuid;
+alter table public.orders add column if not exists addon_ref text;
+
+-- Ce qu'on peut encore ajouter à une commande (suivi du client, catalogue)
+create or replace function public.order_addon_info(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select case when o.id is null then json_build_object('ok', false) else json_build_object(
+    'ok', o.status in ('nouvelle', 'confirmee') and o.addon_of is null and not coalesce(o.is_test, false)
+          and now() < o.created_at + make_interval(mins => st.addon_min),
+    'id', o.id, 'ref', o.ref, 'shop_id', o.shop_id,
+    'until', o.created_at + make_interval(mins => st.addon_min),
+    'price', st.addon_price, 'km', st.addon_km,
+    'lat', coalesce(o.pickup_lat, o.dropoff_lat), 'lon', coalesce(o.pickup_lon, o.dropoff_lon)) end
+  from settings st left join orders o on o.token = p_token where st.id = 1;
+$$;
+revoke execute on function public.order_addon_info(uuid) from public;
+grant execute on function public.order_addon_info(uuid) to anon, authenticated;
+
+create or replace function public.orders_ab_addon() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare p orders; st settings; sh shops; d_drop numeric; d_shop numeric;
+begin
+  if new.addon_of is null then new.addon_ref := null; return new; end if;
+  select * into st from settings where id = 1;
+  select * into p from orders where id = new.addon_of;
+  select * into sh from shops where id = new.shop_id;
+  if p.id is null or p.addon_of is not null or p.status not in ('nouvelle', 'confirmee')
+     or now() > p.created_at + make_interval(mins => st.addon_min + 2)
+     or public.phone_digits(p.contact_phone) <> public.phone_digits(new.contact_phone)
+     or sh.id is null or new.shop_id = p.shop_id then
+    raise exception 'addon_expired';
+  end if;
+  -- Même adresse de livraison (à 300 m près) et commerce proche du premier départ
+  if p.dropoff_lat is not null and new.dropoff_lat is not null then
+    d_drop := 111.32 * sqrt(power(new.dropoff_lat - p.dropoff_lat, 2) + power((new.dropoff_lon - p.dropoff_lon) * cos(radians(p.dropoff_lat)), 2));
+    if d_drop > 0.3 then raise exception 'addon_expired'; end if;
+  end if;
+  if sh.lat is not null and coalesce(p.pickup_lat, p.dropoff_lat) is not null then
+    d_shop := 111.32 * sqrt(power(sh.lat - coalesce(p.pickup_lat, p.dropoff_lat), 2) + power((sh.lon - coalesce(p.pickup_lon, p.dropoff_lon)) * cos(radians(sh.lat)), 2));
+    if d_shop > st.addon_km then raise exception 'addon_expired'; end if;
+  end if;
+  new.price := st.addon_price;
+  new.discount := 0; new.promo_code := null;
+  new.addon_ref := p.ref;
+  new.urgency := case when p.urgency = 'programmee' then p.urgency else new.urgency end;
+  return new;
+end;
+$$;
+revoke execute on function public.orders_ab_addon() from public, anon, authenticated;
+create or replace trigger orders_ab_addon before insert on public.orders
+  for each row execute function public.orders_ab_addon();
+
+-- La vitrine donne aussi la position (ajout d'un autre commerce proche pour 10 ₪)
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'shop_pays', s.shop_pays, 'hours', s.hours, 'kosher', s.kosher,
+           'pro', coalesce(s.plan_until >= current_date, false), 'promo', s.promo, 'promo_he', s.promo_he, 'rank', s.rank,
+           'created_at', s.created_at, 'featured', s.featured, 'lat', s.lat, 'lon', s.lon,
+           'orders30', (select count(*) from orders o where o.shop_id = s.id and o.status in ('confirmee', 'recuperee', 'livree') and o.created_at >= now() - interval '30 days'),
+           'rating', (select round(avg(o.shop_rating)::numeric, 1) from orders o where o.shop_id = s.id and o.shop_rating is not null),
+           'ratings', (select count(*) from orders o where o.shop_id = s.id and o.shop_rating is not null),
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by s.rank nulls last, (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
+$$;
+grant execute on function public.shops_showcase() to anon, authenticated;

@@ -566,6 +566,8 @@ async function load() {
     if (order && order.eta_status === "attente") await countOthers(order);
     if (order && order.docs_status && order.status === "nouvelle") docsSent = await Store.orderDocsSent(token).catch(() => docsSent);
     addable = canAdd(order) ? await Store.orderAddable(token).catch(() => addable) : null;
+    addon = order && ["nouvelle", "confirmee"].includes(order.status) && !order.addon_of ? await Store.orderAddonInfo(token).catch(() => addon) : null;
+    if (addon && addon.ok && !addonShops) addonShops = await Store.shopsShowcase().catch(() => []);
   } catch (e) {
     return; // nouvel essai au prochain passage
   }
@@ -574,14 +576,33 @@ async function load() {
 
 // --- Ajouter des articles du même commerce (catalogue HOP! Pro) : pendant 15 min, tant qu'elle n'est pas prête ---
 let addable = null, addCart = {}, addDone = false;
+// Ajouter un autre commerce proche pour 10 ₪ (pendant 15 min) : les commerces avec catalogue, ouverts, à 2 km du départ
+let addon = null, addonShops = null;
+const aoLeft = () => (addon && addon.ok ? Math.max(0, Math.floor((new Date(addon.until) - Date.now()) / 1000)) : 0);
+function addonList() {
+  if (!addon || !addonShops) return [];
+  const km = (a, b) => 111.32 * Math.hypot(a.lat - b.lat, (a.lon - b.lon) * Math.cos(a.lat * Math.PI / 180));
+  return addonShops.filter(s => Number(s.products) > 0 && s.name !== (order && order.shop_name)
+      && (!UI.openState(s.hours) || UI.openState(s.hours).open)
+      && (addon.lat == null || s.lat == null || km({ lat: +s.lat, lon: +s.lon }, { lat: +addon.lat, lon: +addon.lon }) <= Number(addon.km || 2)))
+    .slice(0, 10);
+}
+function addonCard() {
+  const s = aoLeft(), list = addonList();
+  if (!s || !list.length) return "";
+  return `<div class="ao-card"><div class="ao-head"><span><b>${UI.esc(t("aoTitle"))}</b><small>${UI.esc(t("aoSub", { price: UI.money(addon.price) }))}</small></span>
+      <i class="add-timer" dir="ltr">${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}<small>${UI.esc(t("aoLeft"))}</small></i></div>
+    <div class="ao-shops">${list.map(x => { const logo = UI.safeImg(x.logo), ini = String(UI.bi(x.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+      return `<a class="ao-shop" href="index.html?c=${encodeURIComponent(x.code)}&addon=${encodeURIComponent(token)}"><span>${logo ? `<img src="${logo}" alt="" />` : `<b>${UI.esc(ini)}</b>`}</span><small>${UI.esc(UI.bi(x.name))}</small></a>`; }).join("")}</div></div>`;
+}
 const canAdd = o => !!(o && o.shop_id && Array.isArray(o.items) && o.items.length && ["nouvelle", "confirmee"].includes(o.status)
   && ["attente", "acceptee"].includes(o.shop_status));
 const addLeft = () => (addable ? Math.max(0, Math.floor((new Date(addable.until) - Date.now()) / 1000)) : 0);
 function renderAdd() {
   const s = addLeft();
-  const html = addDone ? `<p class="add-done">${UI.esc(t("adDone"))}</p>`
+  const html = (addDone ? `<p class="add-done">${UI.esc(t("adDone"))}</p>`
     : addable && s > 0 ? `<button type="button" class="add-card" data-add-open><span><b>${UI.esc(t("adTitle"))}</b><small>${UI.esc(t("adSub"))}</small></span>
-      <i class="add-timer" dir="ltr">${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}<small>${UI.esc(t("adLeft"))}</small></i></button>` : "";
+      <i class="add-timer" dir="ltr">${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}<small>${UI.esc(t("adLeft"))}</small></i></button>` : "") + addonCard();
   ["#addBox", "#stAdd"].forEach(id => { if ($(id).innerHTML !== html) $(id).innerHTML = html; });
   $("#addBox").classList.toggle("hidden", !html);
 }

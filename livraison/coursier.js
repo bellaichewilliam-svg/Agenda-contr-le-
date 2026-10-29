@@ -688,7 +688,8 @@ function weekOrders(start) {
 }
 
 // Première commande de ce client (même numéro de téléphone) : le livreur le sait tout de suite
-const newClient = o => o.first_order ? `<span class="new-client">🆕 Nouveau client · 1re commande</span>` : "";
+const newClient = o => (o.first_order ? `<span class="new-client">🆕 Nouveau client · 1re commande</span>` : "")
+  + (o.addon_ref ? `<span class="addon-pill">➕ Ajout à la commande n° ${UI.esc(o.addon_ref)} · même client, même adresse</span>` : "");
 // « Pas avant 16 h » : le client l'a écrit dans sa note (ou l'a choisi) → en gros et en orange, impossible de le rater
 const nbLeft = d => Math.ceil((d - Date.now()) / 60000);
 const nbDur = m => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`;

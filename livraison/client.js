@@ -457,7 +457,38 @@ const carnetUnit = () => Number(state.settings.carnet_unit || CONFIG.partners.ca
 
 // Livraison offerte par le commerce : le client ne paie rien, le commerce paie toute la course au livreur
 const shopGift = () => !!(proShopOn() && state.shop.shop_pays);
+// Ajout à une commande en cours (autre commerce, même adresse) : livraison au prix fixe, pendant 15 min
+const addonOn = () => !!(state.addon && proShopOn() && Date.now() < new Date(state.addon.until).getTime() + 60000);
+async function initAddon(tok) {
+  const info = await Store.orderAddonInfo(tok).catch(() => null);
+  if (!info || !info.ok) return;
+  const p = await Store.trackOrder(tok).catch(() => null);
+  if (!p) return;
+  state.addon = { id: info.id, ref: info.ref, until: info.until, price: Number(info.price) || 10 };
+  // Même client, même adresse : rien à retaper
+  if (p.contact_name && !val("contact_name").trim()) form.contact_name.value = p.contact_name;
+  if (p.contact_phone && !val("contact_phone").trim()) form.contact_phone.value = p.contact_phone;
+  const m = String(p.dropoff_address || "").match(/^(.*?)\s+(\d+[\w/-]*)$/);
+  applySavedAddr("to", { street: m ? m[1] : p.dropoff_address, number: m ? m[2] : "", cityId: p.to_city, city: p.to_city, lat: p.dropoff_lat, lon: p.dropoff_lon,
+    brand: p.dropoff_place || null, exact: !!p.dropoff_exact, building: p.dropoff_building, floor: p.dropoff_floor, apt: p.dropoff_apt, code: p.dropoff_code,
+    note: p.dropoff_note, kind: p.dropoff_apt ? "appartement" : p.dropoff_floor ? "bureau" : "maison" });
+  if (p.dropoff_phone && String(p.dropoff_phone).replace(/\D/g, "").slice(-9) !== String(p.contact_phone || "").replace(/\D/g, "").slice(-9)) {
+    form.drop_me.checked = false; form.dropoff_contact.value = p.dropoff_contact || ""; form.dropoff_phone.value = p.dropoff_phone;
+  }
+  renderAddonBar(); renderQuote();
+}
+function renderAddonBar() {
+  const bar = $("#addonBar");
+  if (!bar) return;
+  const on = addonOn(), s = on ? Math.max(0, Math.floor((new Date(state.addon.until) - Date.now()) / 1000)) : 0;
+  bar.classList.toggle("hidden", !on || !s);
+  if (on && s) bar.textContent = t("aoBar", { ref: state.addon.ref, price: money(state.addon.price), time: `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}` });
+  if (state.addon && !s && bar.dataset.on) { bar.dataset.on = ""; renderQuote(); }
+  if (on && s) bar.dataset.on = "1";
+}
+setInterval(renderAddonBar, 1000);
 function currentQuote() {
+  if (addonOn()) return { total: state.addon.price, known: true, distanceKm: 0, lines: [{ key: "qAddon", vars: { ref: state.addon.ref }, amount: state.addon.price }] };
   const q = baseQuote();
   if (!proShopOn()) return q;
   if (shopGift()) return Object.assign({}, q, { total: 0, course: q.total, gift: true,
@@ -907,7 +938,7 @@ function renderQuote() {
   const unpriced = r0 ? rayonPicked(r0).some(([k]) => { const e = rayonEntry(r0, k); return e && !e.p && !e.pb; }) : false;
   const hint = withMax ? "" : items ? t("barItems", { total: money(items), name: UI.bi(state.shop.name) })
     : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { mid: est.mid }) : goods ? t("barGoodsHint") : "";
-  $("#mobileHint").textContent = hint;
+  $("#mobileHint").textContent = addonOn() ? t("qAddon", { ref: state.addon.ref }) : hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
   $("#submitBtn").textContent = t("submit", { total: money(all) });
   const notes = [];
@@ -1812,6 +1843,7 @@ async function submit(e) {
       contact_email: val("contact_email").trim() || null,
       // Départ = le commerce du lien : la course compte pour lui (et pour le livreur qui l'a amené)
       shop_id: state.shop && pf && pf.shopId === state.shop.id ? state.shop.id : null,
+      addon_of: addonOn() ? state.addon.id : null,
       // Course vers le commerce (pressing : on vient chercher les vêtements) : il pourra prévenir le client quand c'est prêt
       drop_shop_id: state.shop && pt && pt.shopId === state.shop.id ? state.shop.id : null,
       // Clé du commerce, seulement pour payer avec son carnet (la base la vérifie puis l'efface)
@@ -1909,6 +1941,7 @@ async function submit(e) {
     if (/cash_first/.test(ex.message)) return showError(t("errCashFirst"));
     if (/demo_shop/.test(ex.message)) return showError(t("errDemoShop"));
     if (/cash_note_small/.test(ex.message)) return showError(t("errCashNote"));
+    if (/addon_expired/.test(ex.message)) { state.addon = null; renderAddonBar(); renderQuote(); return showError(t("errAddonExpired")); }
     if (/client_blocked/.test(ex.message)) return showError(t("errBlocked"));
     if (/alcohol_hours/.test(ex.message)) return showError(t("errAlcoholHours"));
     if (/phone_name_required/.test(ex.message)) return showError(t("errPhoneName"));
@@ -2547,7 +2580,7 @@ function renderShopBanner() {
       ${shopReviewsFold(s)}
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
       ${UI.shopText(s, "promo") ? `<p class="sh-promo"><i>📣</i><span>${UI.esc(UI.shopText(s, "promo"))}</span></p>` : ""}
-      ${s.pro ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
+      ${s.pro ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
       ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: UI.bi(s.name), when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
         <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: UI.bi(s.name) }))}</small></span></button>
@@ -3721,6 +3754,8 @@ function hopBurst(text) {
 const shopCode = new URLSearchParams(location.search).get("c");
 // Lien « Ce qu'on livre » (on-livre.html) : ?k=pharm ouvre directement cette catégorie
 const kindParam = new URLSearchParams(location.search).get("k");
+// Lien « Ajouter un autre commerce » du suivi : la commande à laquelle on ajoute (livraison à 10 ₪)
+const addonToken = new URLSearchParams(location.search).get("addon");
 // Adresse nettoyée (paramètres laissés par une ancienne version ou un rechargement forcé)
 if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 I18N.apply();
@@ -3733,7 +3768,7 @@ renderAll();
 let reopenShop = null;
 if (!shopCode && location.hash === "#commander") { try { reopenShop = JSON.parse(sessionStorage.getItem(SS_SHOP)); } catch (e) { /* ignore */ } }
 if (!reopenShop || !reopenShop.code) reopenShop = null;
-if (shopCode) loadShop(shopCode);
+if (shopCode) loadShop(shopCode).then(() => { if (addonToken) initAddon(addonToken); });
 else if (reopenShop) {
   state.shopDir = reopenShop.dir || "";
   loadShop(reopenShop.code, true).then(() => {
