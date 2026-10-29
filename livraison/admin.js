@@ -929,6 +929,20 @@ function progressOf(o) {
   return { c, pos, target, eta, step, text };
 }
 
+// Retard : sans livreur depuis plus de 5 min (ou à 20 min d'un horaire programmé), départ passé de 10 min sans
+// récupération, heure annoncée au client dépassée de 5 min
+function lateOf(o) {
+  const m = iso => (iso ? Math.round((Date.now() - new Date(iso)) / 60000) : -1e9);
+  if (o.status === "nouvelle") {
+    if (o.urgency === "programmee") return m(o.pickup_at) > -20 ? { min: Math.max(0, m(o.pickup_at) + 20), why: "sans livreur, départ programmé proche" } : null;
+    return m(o.created_at) > 5 ? { min: m(o.created_at), why: "sans livreur" } : null;
+  }
+  if (o.status === "confirmee" && m(o.pickup_at) > 10) return { min: m(o.pickup_at), why: "pas encore récupérée" };
+  if (o.status === "recuperee" && o.eta_at && m(o.eta_at) > 5) return { min: m(o.eta_at), why: "heure annoncée au client dépassée" };
+  return null;
+}
+const riderIcon = (c, n, on) => L.divIcon({ className: "", iconSize: [0, 0], iconAnchor: [0, 0],
+  html: `<div class="live-rider ${on ? "on" : "off"}"><i>🛵</i><b>${UI.esc(String(c.name || "").split(" ")[0])}</b>${n ? `<em>${n}</em>` : ""}</div>` });
 function updateLiveMap() {
   if (!window.L) { $("#liveMap").innerHTML = '<p class="empty">Carte indisponible (connexion).</p>'; return; }
   if (!live.map) {
@@ -942,34 +956,48 @@ function updateLiveMap() {
   const pts = [];
   const add = (p, emoji, html, cls) => { if (!p) return; pts.push([p.lat, p.lon]); L.marker([p.lat, p.lon], { icon: livePin(emoji, cls) }).bindPopup(html).addTo(live.layer); };
 
-  const list = orders.filter(o => ["nouvelle", "confirmee", "recuperee"].includes(o.status)).sort(byTime);
+  const list = orders.filter(o => ["nouvelle", "confirmee", "recuperee"].includes(o.status))
+    .map(o => Object.assign({ late: lateOf(o) }, o)).sort((x, y) => (!!y.late - !!x.late) || byTime(x, y));
   list.forEach(o => {
-    const pr = progressOf(o);
+    const pr = progressOf(o), late = o.late;
     const pick = point(o.pickup_lat, o.pickup_lon), drop = point(o.dropoff_lat, o.dropoff_lon);
-    const label = `<b>N° ${UI.esc(o.ref)}</b> · ${UI.money(o.price)}<br>${UI.esc(pr.text)}`;
-    if (o.status !== "recuperee") add(pick, o.status === "nouvelle" ? "🆕" : SERVICE_PIN[o.service] || "📍", `${label}<br>📍 ${UI.esc(UI.placeQuery(o, "pickup"))}`, o.status === "nouvelle" ? "pin-wait" : "");
-    add(drop, "🏁", `${label}<br>🏁 ${UI.esc(UI.placeQuery(o, "dropoff"))}`);
-    if (pick && drop) L.polyline([[pick.lat, pick.lon], [drop.lat, drop.lon]], { color: "#98A2B3", weight: 2, dashArray: "4 6" }).addTo(live.layer);
-    if (pr.pos && pr.target) L.polyline([[pr.pos.lat, pr.pos.lon], [pr.target.lat, pr.target.lon]], { color: "#FF6A13", weight: 4 }).addTo(live.layer);
+    const label = `<b>N° ${UI.esc(o.ref)}</b> · ${UI.money(o.price)}<br>${UI.esc(pr.text)}${late ? `<br><b style="color:#D92D20">⚠️ En retard de ${late.min} min · ${UI.esc(late.why)}</b>` : ""}`;
+    const cls = late ? "pin-late" : o.status === "nouvelle" ? "pin-wait" : "";
+    if (o.status !== "recuperee") add(pick, o.status === "nouvelle" ? "🆕" : SERVICE_PIN[o.service] || "📍", `${label}<br>📍 ${UI.esc(UI.placeQuery(o, "pickup"))}`, cls);
+    add(drop, "🏁", `${label}<br>🏁 ${UI.esc(UI.placeQuery(o, "dropoff"))}`, late ? "pin-late" : "");
+    if (pick && drop) L.polyline([[pick.lat, pick.lon], [drop.lat, drop.lon]], { color: late ? "#D92D20" : "#98A2B3", weight: 2, dashArray: "4 6" }).addTo(live.layer);
+    if (pr.pos && pr.target) L.polyline([[pr.pos.lat, pr.pos.lon], [pr.target.lat, pr.target.lon]], { color: late ? "#D92D20" : "#FF6A13", weight: 4 }).addTo(live.layer);
   });
-  couriers.filter(fresh).forEach(c => {
-    const n = list.filter(o => o.courier_id === c.id).length;
-    add(point(c.lat, c.lon), "🛵", `<b>${UI.esc(c.name)}</b>${c.role === "admin" ? " (vous)" : ""}<br>${n} course(s) en cours · position ${ago(c.position_at)}`, "pin-courier");
+  // Tous les livreurs qui ont une position : en ligne (couleur, position fraîche) ou hors ligne (gris, dernière position)
+  const riders = partners().filter(c => c.status === "actif" && c.lat != null).map(c => ({ c, on: onlineOf(c).on, n: list.filter(o => o.courier_id === c.id).length }));
+  riders.forEach(({ c, on, n }) => {
+    const p = point(c.lat, c.lon);
+    if (!p) return;
+    if (on) pts.push([p.lat, p.lon]);
+    L.marker([p.lat, p.lon], { icon: riderIcon(c, n, on), zIndexOffset: on ? 900 : 100 })
+      .bindPopup(`<b>${UI.esc(c.name)}</b>${c.role === "admin" ? " (vous)" : ""}<br>${UI.esc(onlineOf(c).text)}<br>${n} course(s) en cours${c.phone ? `<br><a href="tel:${UI.esc(String(c.phone).replace(/[^\d+]/g, ""))}">📞 ${UI.esc(c.phone)}</a>` : ""}`).addTo(live.layer);
   });
   if (!live.fitted && pts.length) { live.map.fitBounds(pts, { padding: [40, 40], maxZoom: 15 }); live.fitted = true; }
   live.points = pts;
 
-  const onDuty = couriers.filter(c => c.status === "actif" && onlineOf(c).on);
-  $("#liveList").innerHTML = `<p class="small muted" style="margin-bottom:6px">🟢 En ligne : ${onDuty.length ? onDuty.map(c => UI.esc(c.name) + (c.role === "admin" ? " (vous)" : "")).join(", ") : "personne pour l'instant"}</p>`
+  const act = partners().filter(c => c.status === "actif"), onDuty = act.filter(c => onlineOf(c).on), lateN = list.filter(o => o.late).length;
+  $("#liveList").innerHTML = `<div class="live-sum"><b>${list.length} course(s) en cours</b>${lateN ? ` · <b class="late">⚠️ ${lateN} en retard</b>` : ""} · 🟢 ${onDuty.length} / ${act.length} en ligne</div>
+    <div class="live-riders">${act.sort((x, y) => (onlineOf(y).on - onlineOf(x).on) || String(x.name).localeCompare(String(y.name))).map(c => { const st = onlineOf(c), n = list.filter(o => o.courier_id === c.id).length;
+      return `<div class="live-r${st.on ? " on" : ""}" data-focus-c="${UI.esc(c.id)}"><span>${st.on ? "🟢" : st.text.slice(0, 2)}</span><b>${UI.esc(c.name)}${c.role === "admin" ? " (vous)" : ""}</b><small>${n ? `${n} course${n > 1 ? "s" : ""} · ` : ""}${st.on ? "position " + UI.esc(ago(c.position_at)) : UI.esc(st.text.replace(/^..\s*/, "").toLowerCase())}</small>${c.phone && c.role !== "admin" ? `<a href="tel:${UI.esc(String(c.phone).replace(/[^\d+]/g, ""))}" aria-label="Appeler">📞</a>` : ""}</div>`; }).join("")}</div>`
     + (list.length ? list.map(o => {
-      const pr = progressOf(o);
-      return `<div class="order live-item" data-focus="${UI.esc(o.id)}">
+      const pr = progressOf(o), late = o.late;
+      return `<div class="order live-item${late ? " late" : ""}" data-focus="${UI.esc(o.id)}">
         <div class="order-head"><span class="order-time">${UI.esc(UI.cityFr(o.from_city))} → ${UI.esc(UI.cityFr(o.to_city))}</span><span class="order-price">${UI.money(o.price)}</span></div>
         <div class="small">N° ${UI.esc(o.ref)} · ${pr.c ? "🛵 " + UI.esc(pr.c.name) : "sans livreur"}${pr.c && !pr.pos ? " · position inconnue" : ""}</div>
         <div class="small"><b>${UI.esc(pr.text)}</b></div>
+        ${late ? `<div class="small late-line">⚠️ En retard de <b>${late.min} min</b> · ${UI.esc(late.why)}</div>` : ""}
         <div class="progress">${[0, 1, 2, 3].map(i => `<i class="${i <= pr.step ? "on" : ""}"></i>`).join("")}</div>
       </div>`;
     }).join("") : `<div class="empty card">Aucune course en cours.</div>`);
+}
+function focusCourier(id) {
+  const c = couriers.find(x => x.id === id), p = c && point(c.lat, c.lon);
+  if (p && live.map) live.map.setView([p.lat, p.lon], 15);
 }
 
 function focusOrder(id) {
@@ -2308,7 +2336,7 @@ $("#view").addEventListener("click", e => {
   const a = e.target.closest("[data-access-wa]");
   if (a) { markAccessSent(a.dataset.accessWa); setTimeout(render, 800); }
 });
-$("#liveList").addEventListener("click", e => { const it = e.target.closest("[data-focus]"); if (it) focusOrder(it.dataset.focus); });
+$("#liveList").addEventListener("click", e => { if (e.target.closest("a")) return; const it = e.target.closest("[data-focus]"), r = e.target.closest("[data-focus-c]"); if (it) focusOrder(it.dataset.focus); else if (r) focusCourier(r.dataset.focusC); });
 $("#liveFit").addEventListener("click", () => { if (live.map && live.points && live.points.length) live.map.fitBounds(live.points, { padding: [40, 40], maxZoom: 15 }); });
 $("#view").addEventListener("change", onViewChange);
 $("#view").addEventListener("submit", e => { if (e.target.id === "rayForm") raySubmit(e); });
