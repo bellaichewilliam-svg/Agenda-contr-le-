@@ -1406,12 +1406,22 @@ async function shopsDirectory() {
 }
 
 // Vitrine HOP! Pro : les commerces abonnés pour l'accueil, et le logo / la couverture / l'accroche du commerce
+// Accueil : un plat / produit dans tous les catalogues des commerces de la vitrine (sans photo : trop lourd)
+async function productsSearch(q) {
+  if (String(q || "").trim().length < 2) return [];
+  if (ONLINE) return (await rest("/rest/v1/rpc/products_search", { method: "POST", body: { p_q: q } })) || [];
+  const n = String(q).trim().toLowerCase(), cat = readJSON(LS.catalog, {});
+  return localShops().filter(x => x.status === "actif" && (planActive(x) || x.showcase)).flatMap(x => ((cat[x.id] || {}).products || [])
+    .filter(pr => pr.available && (String(pr.name).toLowerCase().includes(n) || String(pr.description || "").toLowerCase().includes(n)))
+    .map(pr => ({ id: pr.id, name: pr.name, price: pr.price, has_photo: !!pr.photo, code: x.code, shop: x.name, kind: x.kind, category: null }))).slice(0, 20);
+}
 async function shopsShowcase() {
   if (ONLINE) return (await rest("/rest/v1/rpc/shops_showcase", { method: "POST", body: {} })) || [];
   const cat = readJSON(LS.catalog, {});
   return localShops().filter(x => x.status === "actif" && (planActive(x) || x.showcase))
     .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, kosher: !!x.kosher, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null, tagline_he: x.tagline_he || null,
       pro: planActive(x), shop_pays: !!x.shop_pays, promo: x.promo || null, promo_he: x.promo_he || null, rank: x.rank == null ? null : Number(x.rank),
+      created_at: x.created_at || null, orders30: localOrders().filter(o => o.shop_id === x.id && ["confirmee", "recuperee", "livree"].includes(o.status) && Date.now() - new Date(o.created_at) < 30 * 86400000).length,
       client_pays: !!x.client_pays, hours: x.hours || null, products: ((cat[x.id] || {}).products || []).filter(p => p.available).length,
       top: ((cat[x.id] || {}).products || []).filter(p => p.available).slice(0, 6).map(p => ({ name: p.name, price: p.price })) }))
     .sort((a, b) => ((a.rank == null ? 1e9 : a.rank) - (b.rank == null ? 1e9 : b.rank)) || (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || a.name.localeCompare(b.name));
@@ -2299,7 +2309,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

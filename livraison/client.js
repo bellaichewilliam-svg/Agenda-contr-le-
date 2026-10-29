@@ -2317,6 +2317,10 @@ function renderCatalog() {
       : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  if (state.findItem) {
+    const id = state.findItem; state.findItem = null;
+    requestAnimationFrame(() => { const el = box.querySelector(`.cg-item[data-cg-open="${CSS.escape(id)}"]`) || box.querySelector(`[data-cg-open="${CSS.escape(id)}"]`); if (el) { el.classList.add("cg-found"); el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.classList.remove("cg-found"), 4000); } });
+  }
   // Les onglets restent collés juste sous la barre du haut (« ‹ Accueil · Ma commande »)
   const bar = ["#viewBar", ".topbar"].map(q => document.querySelector(q)).find(el => el && el.offsetHeight);
   if (bar) box.style.setProperty("--cg-top", (parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight - 1 + "px");
@@ -3481,20 +3485,83 @@ function shopLogo(s, cls) {
   const logo = UI.safeImg(s.logo), initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<span class="${cls}">${logo ? `<img src="${logo}" alt="" />` : `<b>${UI.esc(initials)}</b>`}</span>`;
 }
+// Filtre de la vitrine (chips) : tous / ouverts / casher / un métier
+const scFilter = { kind: "", open: false, kosher: false };
 function renderShowcase() {
-  const list = (state.showcase || []).slice(), f = favs();
+  const all = (state.showcase || []).slice(), f = favs();
   const isOpen = s => { const st = UI.openState(s.hours); return !st || st.open; };
   // Favoris du client d'abord, puis les enseignes placées par HOP! (position 1 = en premier), puis les ouvertes
   const rk = s => (s.rank != null ? Number(s.rank) : Infinity);
-  list.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (rk(a) - rk(b) || 0) || (isOpen(b) - isOpen(a)));
-  $("#homeProBox").classList.toggle("hidden", !list.length);
+  all.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (rk(a) - rk(b) || 0) || (isOpen(b) - isOpen(a)));
+  $("#homeProBox").classList.toggle("hidden", !all.length);
+  // Filtres : seulement les métiers présents
+  const kinds = [...new Set(all.map(s => s.kind).filter(Boolean))];
+  const chip = (k, on, label) => `<button type="button" class="ch-chip${on ? " on" : ""}" data-scf="${k}">${UI.esc(label)}</button>`;
+  const none = !scFilter.kind && !scFilter.open && !scFilter.kosher;
+  $("#homeFilters").innerHTML = chip("all", none, t("scAll")) + chip("open", scFilter.open, t("scOpenF"))
+    + (all.some(isKosher) ? chip("kosher", scFilter.kosher, t("scKosherF")) : "")
+    + kinds.map(k => chip("k:" + k, scFilter.kind === k, (t("shKinds") || {})[k] || k)).join("");
+  const list = all.filter(s => (!scFilter.kind || s.kind === scFilter.kind) && (!scFilter.open || isOpen(s)) && (!scFilter.kosher || isKosher(s)));
   const placed = list.filter(s => rk(s) < Infinity || f.includes(s.code)), rest = list.filter(s => !placed.includes(s));
   const open = placed.concat(rest.filter(isOpen)), closed = rest.filter(s => !isOpen(s));
-  const html = `<div class="sc-stories">${list.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
-        ${shopLogo(s, "sc-ring")}${isKosher(s) ? `<i class="k-dot" title="${UI.esc(t("kosher"))}">${KOSHER_STAR}</i>` : ""}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(UI.bi(s.name))}</b></button>`).join("")}</div>`
-    + `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>`;
+  const stories = `<div class="sc-stories">${all.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
+        ${shopLogo(s, "sc-ring")}${isKosher(s) ? `<i class="k-dot" title="${UI.esc(t("kosher"))}">${KOSHER_STAR}</i>` : ""}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(UI.bi(s.name))}</b></button>`).join("")}</div>`;
+  // Façon appli de livraison, dès qu'il y a de quoi : rangées « Mes favoris », « Ouverts maintenant », « Populaires »
+  // (commandes du mois), « Nouveautés » (arrivés depuis 30 jours), puis tous ; sinon une seule rangée
+  const row = (title, items, sub) => (items.length ? `<h4 class="sc-row-h"><span>${UI.esc(title)}</span>${sub ? `<small>${UI.esc(sub)}</small>` : ""}</h4><div class="pro-row">${items.map(shopCard).join("")}</div>` : "");
+  const recent = s => s.created_at && Date.now() - new Date(s.created_at) < 30 * 86400000;
+  let body;
+  if (list.length >= 4 && none) {
+    const favL = list.filter(s => f.includes(s.code)), openL = list.filter(isOpen);
+    const pop = list.filter(s => Number(s.orders30) > 0).sort((a, b) => Number(b.orders30) - Number(a.orders30)).slice(0, 8);
+    const fresh = list.filter(recent).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 8);
+    body = row(t("rowFavs"), favL) + row(t("rowOpen"), openL) + row(t("rowPop"), pop) + row(t("rowNew"), fresh) + row(t("rowAll"), open.concat(closed));
+  } else body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
+  const html = stories + body;
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
 }
+$("#homeFilters").addEventListener("click", e => {
+  const b = e.target.closest("[data-scf]");
+  if (!b) return;
+  const k = b.dataset.scf;
+  if (k === "all") Object.assign(scFilter, { kind: "", open: false, kosher: false });
+  else if (k === "open") scFilter.open = !scFilter.open;
+  else if (k === "kosher") scFilter.kosher = !scFilter.kosher;
+  else scFilter.kind = scFilter.kind === k.slice(2) ? "" : k.slice(2);
+  UI.track("home_filter", { f: k });
+  renderShowcase();
+});
+// Recherche d'un plat, d'un produit ou d'un commerce : les commerces de la vitrine tout de suite, les produits
+// de tous les catalogues (base) ensuite ; un produit ouvre son commerce et se met en avant dans le menu
+let findTimer = null, findSeq = 0;
+async function homeFind(q) {
+  const box = $("#homeFindList"), n = norm(q);
+  if (n.length < 2) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+  const seq = ++findSeq;
+  const sc = code => (state.showcase || []).find(x => x.code === code) || {};
+  const shops = (state.showcase || []).filter(s => norm(`${s.name} ${(t("shKinds") || {})[s.kind] || ""} ${s.tagline || ""} ${s.tagline_he || ""}`).includes(n)).slice(0, 5);
+  const render = products => {
+    if (seq !== findSeq) return;
+    const prodHtml = products.slice(0, 8).map(p => `<button type="button" data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}"><span class="fi-pic">${UI.safeImg(sc(p.code).logo) ? `<img src="${UI.safeImg(sc(p.code).logo)}" alt="" />` : (UI.KIND_ICON[p.kind] || "🍽️")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(p.name))}</b><small>${UI.esc(t("findAt", { shop: UI.bi(p.shop) }))}${p.category ? " · " + UI.esc(UI.bi(p.category)) : ""}</small></span><span class="fi-price" dir="ltr">${money(p.price)}</span></button>`).join("");
+    const shopHtml = shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}${UI.shopText(s, "tagline") ? " · " + UI.esc(UI.shopText(s, "tagline")) : ""}</small></span></button>`).join("");
+    box.innerHTML = (prodHtml ? `<h5>${UI.esc(t("findProducts"))}</h5>${prodHtml}` : "") + (shopHtml ? `<h5>${UI.esc(t("findShops"))}</h5>${shopHtml}` : "")
+      || `<p class="fi-none">${UI.esc(t("findNone", { q }))}</p>`;
+    box.classList.remove("hidden");
+  };
+  render([]);
+  try { render(await Store.productsSearch(q)); } catch (e) { /* les commerces suffisent */ }
+  UI.track("home_find", { q: q.slice(0, 40) });
+}
+$("#homeFind").addEventListener("input", e => { clearTimeout(findTimer); findTimer = setTimeout(() => homeFind(e.target.value), 250); });
+$("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });
+document.addEventListener("click", e => { if (!e.target.closest(".sc-find")) $("#homeFindList").classList.add("hidden"); });
+$("#homeFindList").addEventListener("click", e => {
+  const b = e.target.closest("[data-find-pro]");
+  if (!b) return;
+  state.findItem = b.dataset.findItem || null;
+  $("#homeFindList").classList.add("hidden");
+  state.shopDir = ""; loadShop(b.dataset.findPro);
+});
 $("#homePro").addEventListener("click", e => {
   const f = e.target.closest("[data-fav]");
   if (f) { e.stopPropagation(); toggleFav(f.dataset.fav); }
