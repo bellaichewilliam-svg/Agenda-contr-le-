@@ -2689,6 +2689,11 @@ $("#shiftModal").addEventListener("click", async e => {
 
 async function toggleDuty(quiet) {
   if (duty.watch != null) {
+    // Des espèces d'articles encaissées chez un client et pas encore rendues au commerce : on le redit avant de partir
+    const owe = orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at && !o.cash_courier_mode);
+    if (owe.length && !quiet && !confirm(`💵 Avant de finir : vous avez ${owe.map(o => `${UI.money(o.cash_goods)} à rapporter à ${o.shop_name || "un commerce"}`).join(", ")}.
+
+Rapportez l'argent des articles, puis touchez « J'ai rendu » sur l'accueil. Terminer quand même ?`)) { renderDuty(); return; }
     navigator.geolocation.clearWatch(duty.watch);
     duty.watch = null;
     if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
