@@ -637,7 +637,8 @@ function rayonEntry(r, k) {
   const [id, o] = k.slice(r.id.length + 1).split("|"), x = r.items.find(i => i.id === id);
   if (!x) return null;
   const v = x.opt && x.opt[Number(o)];
-  return { x, v, p: (v && v.p) || x.p || null, sz: (v && v.sz) || x.sz || 1 };
+  // pb : prix caché (tabac), compté dans le total mais jamais affiché sur le produit
+  return { x, v, p: (v && v.p) || x.p || null, pb: (v && v.pb) || x.pb || null, sz: (v && v.sz) || x.sz || 1 };
 }
 const PI = CONFIG.pricing.purchaseItems || { included: 10, max: 24, extraCourier: 1, extraHop: 1, topcase: 30 };
 const rayonUnits = () => { const r = rayonOn(); return r ? rayonPicked(r).reduce((a, [, q]) => a + q, 0) : 0; };
@@ -647,7 +648,7 @@ function rayonGoods() {
   const r = rayonOn();
   if (!r) return null;
   let lo = 0, hi = 0, mid = 0, any = false;
-  rayonPicked(r).forEach(([k, q]) => { const e = rayonEntry(r, k); if (e && e.p) { lo += e.p[0] * q; hi += e.p[1] * q; mid += priceMid(e.p) * q; any = true; } });
+  rayonPicked(r).forEach(([k, q]) => { const e = rayonEntry(r, k), p = e && (e.p || e.pb); if (p) { lo += p[0] * q; hi += p[1] * q; mid += priceMid(p) * q; any = true; } });
   return any ? { lo, hi, mid } : null;
 }
 // Un seul prix indicatif affiché (le milieu de la fourchette relevée en magasin) ; le maximum (hi) sert au budget
@@ -879,7 +880,7 @@ function renderQuote() {
   $("#mobileLbl").textContent = t(withMax ? "barMax" : "barDelivery");
   // Articles d'un rayon : la fourchette des prix indicatifs ; cigarettes (sans prix) : le prix du magasin, sans calcul
   const r0 = goods ? rayonOn() : null, est = r0 ? rayonGoods() : null;
-  const unpriced = r0 ? rayonPicked(r0).some(([k]) => { const e = rayonEntry(r0, k); return e && !e.p; }) : false;
+  const unpriced = r0 ? rayonPicked(r0).some(([k]) => { const e = rayonEntry(r0, k); return e && !e.p && !e.pb; }) : false;
   const hint = withMax ? "" : items ? t("barItems", { total: money(items), name: UI.bi(state.shop.name) })
     : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { mid: est.mid }) : goods ? t("barGoodsHint") : "";
   $("#mobileHint").textContent = hint;
