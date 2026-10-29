@@ -2028,6 +2028,8 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 /* Carte compacte (≈ 200 px de haut) : bannière 5/2, logo qui la chevauche, deux lignes d'infos, flèche ronde */
 .pro-row .sc-card { flex-basis: min(70vw, 260px); border-radius: 18px; box-shadow: 0 6px 18px rgba(15, 31, 61, .08); }
 .pro-row .sc-cover { aspect-ratio: 5 / 2; }
+.sc-card > .sc-cover { width: 100%; min-width: 0; align-self: start; }
+.sc-card { align-content: start; }
 .pro-row .sc-cover i { font-size: 34px; }
 .pro-row .sc-logo { top: calc(min(70vw, 260px) * 2 / 5 - 22px); width: 44px; height: 44px; border-radius: 12px; }
 .pro-row .sc-body { padding: 24px 12px 12px; padding-inline-end: 52px; gap: 1px; }
