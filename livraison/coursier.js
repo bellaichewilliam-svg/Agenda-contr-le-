@@ -667,6 +667,8 @@ function weekOrders(start) {
   return orders.filter(o => o.courier_id === me.id && o.status === "livree" && UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= end);
 }
 
+// Première commande de ce client (même numéro de téléphone) : le livreur le sait tout de suite
+const newClient = o => o.first_order ? `<span class="new-client">🆕 Nouveau client · 1re commande</span>` : "";
 // « Pas avant 16 h » : le client l'a écrit dans sa note (ou l'a choisi) → en gros et en orange, impossible de le rater
 const nbLeft = d => Math.ceil((d - Date.now()) / 60000);
 const nbDur = m => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`;
@@ -785,6 +787,7 @@ function card(o, kind) {
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(total)}</span>
     </div>
+    ${newClient(o)}
     <div class="legs">
       <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b><bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</b>${kind === "mine" ? UI.addrDetails(o, "pickup") + UI.addrNote(o.pickup_note) : ""}${extra}${telLink(o.pickup_contact, o.pickup_phone)}${nav("pickup")}</div></div>
       ${UI.stopsLegs(o, kind === "mine")}
@@ -995,6 +998,7 @@ function mineCard(o, x) {
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(x.total)}</span>
     </div>
+    ${newClient(o)}
     ${nbBlock(o)}
     <div class="mine-step">${isLater(o) ? `<b class="later-tag">⏰ PLUS TARD · dans ${UI.esc(nbDur(nbLeft(laterAt(o))))}</b> · rien à faire avant <b>${UI.esc(startAt(o))}</b> · ensuite : ` : ""}${UI.esc(mineStep(o, x.hopPaid))}${tripKm(o) ? ` <span class="mine-km">🛣️ ${tripKm(o)}</span>` : ""}</div>
     ${UI.doorBig(o)}
@@ -2100,7 +2104,7 @@ function renderHome() {
     <div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
     ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
-        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
+        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>${o.first_order ? "🆕 nouveau client · " : ""}n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
           <em class="rc-step">${isLater(o) ? `⏰ PLUS TARD · ${UI.esc(dueLabel(o))} · rien à faire avant ${UI.esc(startAt(o))}` : `${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}`}</em>
           <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>
           <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}

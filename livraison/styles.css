@@ -1264,6 +1264,8 @@ button.ct-info { border: 0; background: none; padding: 0; text-align: start; fon
 .cash-need { margin: 6px 0; padding: 10px 12px; border-radius: 12px; background: #ECFDF3; border: 2px dashed #12B76A; color: #054F31; font-size: 14px; }
 .cash-need.ok { border-style: solid; }
 .cash-due { margin-bottom: 14px; }
+.new-client { display: inline-flex; align-items: center; gap: 4px; margin: 6px 0 2px; padding: 4px 10px; border-radius: 99px; background: #EEF4FF; color: #1D4ED8; border: 1px solid #BFD3FF; font-weight: 800; font-size: 13px; }
+.pill.new-client { margin: 0; }
 .cash-due h3 { margin: 0 0 8px; }
 .cash-need.ok.diff { background: #FEF3C7; border-color: #D97706; color: #78350F; }
 .cash-need .cash-mark, .cash-stop .cash-marked { display: block; margin-top: 6px; font-weight: 600; }

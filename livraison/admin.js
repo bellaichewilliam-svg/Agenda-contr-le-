@@ -365,7 +365,7 @@ function bossPopup(id) {
   const list = rankedCouriers(o);
   $("#bossBody").innerHTML = `
     <h3>🔔 Nouvelle course · ${UI.money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}</h3>
-    <p class="small" style="margin:4px 0">n° ${UI.esc(o.ref)} · ${UI.esc(UI.whenFr(o))}</p>
+    <p class="small" style="margin:4px 0">n° ${UI.esc(o.ref)} · ${UI.esc(UI.whenFr(o))}${o.first_order ? ` · <b class="new-client">🆕 Nouveau client</b>` : ""}</p>
     <p style="margin:6px 0"><b>${UI.esc(o.pickup_address || UI.cityFr(o.from_city))}</b> → <b>${UI.esc(o.dropoff_address || UI.cityFr(o.to_city))}</b></p>
     <p class="small muted" style="margin:0 0 12px">${bossOnly() ? "🔒 <b>Seul vous la voyez</b> : prenez-la, ou donnez-la à un livreur (il la reçoit tout de suite dans son appli)." : !bossTakes() && nobodyTook(o) ? "⚠️ <b>Personne ne l'a prise</b> : prenez-la, ou donnez-la à un livreur (même hors ligne : appelez-le, elle l'attend dans son appli)." : !bossTakes() ? "🛵 Envoyée aux livreurs : le premier qui accepte la prend. Vous pouvez aussi la donner vous-même :" : wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
     ${canTake(o) ? `<button type="button" class="btn btn-primary btn-block" data-boss="take">✅ Je la prends</button>` : ""}
@@ -507,6 +507,7 @@ function card(o, withDay) {
   penalties.filter(p => p.order_id === o.id && p.status !== "annulee").forEach(p => meta.push(`<span class="pill ${p.status === "regle" ? "paid" : "unpaid"}">💸 Retenue ${UI.money(p.amount)} · ${p.status === "regle" ? "déduite ✓" : "à déduire"}</span>${p.status === "du" ? `<button class="pill pill-btn" data-pen-cancel="${UI.esc(p.id)}">Annuler la retenue</button>` : ""}`));
   const partner = couriers.find(c => c.id === o.courier_id && c.role !== "admin");
   if (partner && ["confirmee", "recuperee", "livree", "annulee"].includes(o.status)) meta.push(`<button class="pill pill-btn st-annulee" data-act="penalty" title="Course pas faite ou pas reçue : retenue sur le versement de la semaine du livreur">💸 Retenue au livreur</button>`);
+  if (o.first_order) meta.push(`<span class="pill new-client">🆕 Nouveau client · 1re commande</span>`);
   if (nbOn) meta.push(`<span class="pill unpaid nb-pill">⏰ Livraison demandée à partir de ${UI.esc(UI.fmtTime(nb))}${o.not_before ? "" : " (lu dans la note)"}</span>`);
   if (o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at && !["annulee", "refusee"].includes(o.status))
     meta.push(`<span class="pill ${o.status === "livree" && o.delivered_at && Date.now() - new Date(o.delivered_at) > 3 * 3600000 ? "st-annulee" : "unpaid"}">💵 ${UI.money(o.cash_goods)} d'articles à rapporter à ${UI.esc(o.shop_name || "le commerce")} par ${UI.esc((o.courier_name || "le livreur").split(" ")[0])}${o.status === "livree" ? " · livrée, pas encore rapportés" : ""}</span>`);
