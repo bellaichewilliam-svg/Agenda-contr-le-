@@ -362,6 +362,36 @@ document.addEventListener("toggle", e => {
   if (k) { if (e.target.open) openFolds.add(k); else openFolds.delete(k); }
 }, true);
 // Mes dernières courses livrées : en petit, à ouvrir (au cas où : client, adresse, paiement, reçu)
+// Tournée (2 courses ou plus) : l'ordre des arrêts — les départs qui restent, du plus proche au suivant, puis les
+// arrivées, de proche en proche — le prochain en grand, les km de chaque tronçon et Waze par arrêt
+function tourStops(list) {
+  const act = list.filter(o => ["confirmee", "recuperee"].includes(o.status));
+  const km = (a, b) => (a && b && a.lat != null && b.lat != null ? Store.kmBetween(+a.lat, +a.lon, +b.lat, +b.lon) : 0);
+  let pos = lastPos ? { lat: lastPos.lat, lon: lastPos.lon } : null;
+  const stops = [];
+  const picks = act.filter(o => o.status === "confirmee").map(o => ({ o, kind: "pickup", lat: o.pickup_lat, lon: o.pickup_lon }));
+  while (picks.length) { picks.sort((a, b) => km(pos, a) - km(pos, b)); const st = picks.shift(); stops.push(st); if (st.lat != null) pos = st; }
+  const drops = act.map(o => ({ o, kind: "dropoff", lat: o.dropoff_lat, lon: o.dropoff_lon }));
+  while (drops.length) { drops.sort((a, b) => km(pos, a) - km(pos, b)); const st = drops.shift(); stops.push(st); if (st.lat != null) pos = st; }
+  return stops;
+}
+function tourBlock(list) {
+  const stops = tourStops(list);
+  if (stops.length < 2) return "";
+  let prev = lastPos ? { lat: lastPos.lat, lon: lastPos.lon } : null, total = 0;
+  const rows = stops.map((st, i) => {
+    const here = st.lat != null ? pt(st.lat, st.lon) : null, d = prev && here ? roadKm(prev, here) : null;
+    if (d) total += d;
+    if (here) prev = here;
+    const o = st.o, pick = st.kind === "pickup";
+    const place = pick ? (o.shop_name || o.pickup_place || o.pickup_address) : (o.dropoff_place || o.dropoff_address);
+    const who = pick ? "" : (o.contact_name || "");
+    return `<div class="tour-stop${i === 0 ? " now" : ""}"><b class="tour-n">${i + 1}</b><div class="tour-txt"><b>${pick ? "📍" : "🏁"} <bdi>${UI.esc(place || "")}</bdi></b>
+      <small>${i === 0 ? "<em>Prochain arrêt</em> · " : ""}n° ${UI.esc(o.ref)}${who ? " · " + UI.esc(who) : ""}${d != null && d >= 0.05 ? ` · ≈ ${d.toFixed(1).replace(".", ",")} km` : ""}${pick && o.shop_ref ? ` · sac n° <b>${UI.esc(o.shop_ref)}</b>` : ""}</small></div>
+      <a class="tour-nav" href="${navLink(o, st.kind)}" target="_blank" rel="noopener" aria-label="Itinéraire">${riderSet.nav === "maps" ? "🧭" : WAZE_SVG}</a></div>`;
+  });
+  return `<div class="tour"><div class="tour-head">🗺️ <b>Votre tournée</b> · ${stops.length} arrêts${total >= 0.1 ? ` · ≈ ${total.toFixed(1).replace(".", ",")} km` : ""}</div>${rows.join("")}</div>`;
+}
 function doneList() {
   const done = orders.filter(o => o.courier_id === me.id && o.status === "livree")
     .sort((a, b) => new Date(b.delivered_at || b.pickup_at) - new Date(a.delivered_at || a.pickup_at)).slice(0, 15);
@@ -1043,6 +1073,7 @@ function render() {
         : "Vous êtes hors ligne : glissez le bouton « HOP! » pour passer en ligne et recevoir des courses."));
   } else if (tab === "mine") {
     const list = mine(), shown = new Set();
+    const tour = list.length >= 2 ? tourBlock(list) : "";
     const blocks = list.map(o => {
       if (shown.has(o.id)) return "";
       const r = pickupRank(o);
@@ -1059,7 +1090,7 @@ function render() {
           <small>${x.status === "recuperee" ? "récupérée" : "ensuite"}</small></div>`).join("")}</div>
       </div>`;
     }).join("");
-    view.innerHTML = (list.length ? `<div class="orders">${blocks}</div>` : empty("Aucune course en cours.")) + doneList();
+    view.innerHTML = (list.length ? `<div class="orders">${tour}${blocks}</div>` : empty("Aucune course en cours.")) + doneList();
   } else if (tab === "week") {
     const amountDue = sum(due, o => Number(o.commission || 0));
     const weekBonus = sum(refDelivered().filter(o => UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= UI.addDays(start, 6)), o => Number(o.referral_bonus || 0));
