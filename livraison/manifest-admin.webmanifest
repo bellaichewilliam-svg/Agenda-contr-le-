@@ -16,15 +16,15 @@
       "purpose": "any"
     },
     {
-      "src": "icon-patron-512.png",
+      "src": "icon-patron-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "maskable"
     },
     {
-      "src": "logo-patron.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "splash-patron-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     }
   ],
