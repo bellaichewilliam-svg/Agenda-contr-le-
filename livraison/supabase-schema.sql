@@ -7614,3 +7614,39 @@ end;
 $$;
 create or replace trigger orders_id_check_guard before update of status on public.orders
   for each row execute function public.orders_id_check_guard();
+
+-- ============================================================================
+-- ACCUEIL FAÇON APPLI DE LIVRAISON : recherche d'un plat / produit dans tous les catalogues (products_search),
+-- et pour chaque commerce de la vitrine sa popularité (commandes des 30 derniers jours) et sa date d'arrivée
+-- (rangées « Populaires », « Nouveautés »). Lecture publique, sans photo (trop lourde) : le logo vient de la vitrine.
+-- ============================================================================
+create or replace function public.products_search(p_q text) returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('id', x.id, 'name', x.name, 'price', x.price, 'has_photo', x.has_photo,
+                                             'code', x.code, 'shop', x.shop, 'kind', x.kind, 'category', x.category)), '[]'::json)
+    from (select p.id, p.name, p.price, (p.photo is not null) as has_photo, s.code, s.name as shop, s.kind,
+                 (select c.name from shop_categories c where c.id = p.category_id) as category
+            from shop_products p join shops s on s.id = p.shop_id
+           where p.available and s.status = 'actif' and not s.demo and (s.plan_until >= current_date or s.showcase)
+             and length(trim(coalesce(p_q, ''))) >= 2
+             and (p.name ilike '%' || trim(p_q) || '%' or coalesce(p.description, '') ilike '%' || trim(p_q) || '%')
+           order by (p.name ilike trim(p_q) || '%') desc, s.rank nulls last, p.position
+           limit 20) x;
+$$;
+grant execute on function public.products_search(text) to anon, authenticated;
+
+create or replace function public.shops_showcase() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', s.code, 'name', s.name, 'kind', s.kind, 'city', s.city, 'logo', s.logo, 'cover', s.cover,
+           'tagline', s.tagline, 'tagline_he', s.tagline_he, 'client_pays', s.client_pays, 'shop_pays', s.shop_pays, 'hours', s.hours, 'kosher', s.kosher,
+           'pro', coalesce(s.plan_until >= current_date, false), 'promo', s.promo, 'promo_he', s.promo_he, 'rank', s.rank,
+           'created_at', s.created_at,
+           'orders30', (select count(*) from orders o where o.shop_id = s.id and o.status in ('confirmee', 'recuperee', 'livree') and o.created_at >= now() - interval '30 days'),
+           'products', (select count(*) from shop_products p where p.shop_id = s.id and p.available),
+           'top', (select coalesce(json_agg(json_build_object('name', t.name, 'price', t.price)), '[]'::json) from (
+                     select p.name, p.price from shop_products p where p.shop_id = s.id and p.available
+                      order by p.position, p.created_at limit 6) t))
+           order by s.rank nulls last, (s.cover is not null) desc, (s.logo is not null) desc, s.name), '[]'::json)
+    from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
+$$;
+grant execute on function public.shops_showcase() to anon, authenticated;

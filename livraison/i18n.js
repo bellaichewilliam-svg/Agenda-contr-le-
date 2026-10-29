@@ -682,6 +682,8 @@ fr: {
   payLater: "Vous pourrez changer à tout moment dans votre espace.", paySaved: "✅ Enregistré : ça compte pour les prochaines commandes.",
   payErr: "Impossible d'enregistrer pour le moment : vérifiez la connexion et réessayez.",
   // Enseignes près de vous
+  findPh: "🔎 Un plat, un produit, un commerce…", findNone: "Rien trouvé pour « {q} »", findProducts: "Plats et produits", findShops: "Commerces", findAt: "chez {shop}",
+  scAll: "Tous", scOpenF: "🟢 Ouverts", scKosherF: "✡️ Casher", rowFavs: "♥ Mes favoris", rowOpen: "🟢 Ouverts maintenant", rowPop: "🔥 Populaires", rowNew: "✨ Nouveautés", rowAll: "Tous les commerces", rowOrders: "{n} commandes ce mois", scNoneF: "Aucun commerce avec ce filtre.",
   scOpenNow: "🟢 Ouverts maintenant", scClosedList: "🌙 Fermés · à programmer", scProg: "📅 Programmer", scClosedShort: "Fermé", scProgOrder: "Programmer une commande", proTitle: "⭐ Nos partenaires", proSub: "Commandez chez eux : ils préparent, on livre.", proDelivery: "Livraison {price}", proMenu: "{n} au menu", proGo: "Commander ›",
   ensTitle: "🏪 Enseignes près de vous", ens_hop: "⭐ Partenaires HOP", ens_breakfast: "🥐 Petit-déjeuner", ens_pressing: "👔 Pressing", ens_pharm: "💊 Pharmacies", ens_post: "📮 Poste et relais",
   ens_super: "🛒 Supermarchés & makolets", ens_kiosk: "🍾 Kiosques & pitsoutsias", ens_food: "🍔 Restaurants", ens_mall: "🛍️ Centres commerciaux", ens_flower: "💐 Fleuristes", ens_tech: "📱 Téléphonie", ens_baby: "👶 Bébé & jouets", ens_pet: "🐾 Animaleries", ens_home: "🔌 Quincailleries & bazars",
@@ -1381,6 +1383,8 @@ he: {
   payLater: "אפשר לשנות בכל רגע באזור שלכם.", paySaved: "✅ נשמר: חל על ההזמנות הבאות.",
   payErr: "לא ניתן לשמור כרגע: בדקו את החיבור ונסו שוב.",
   // עסקים לידכם
+  findPh: "🔎 מנה, מוצר, חנות…", findNone: "לא נמצא כלום עבור «{q}»", findProducts: "מנות ומוצרים", findShops: "חנויות", findAt: "ב{shop}",
+  scAll: "הכול", scOpenF: "🟢 פתוחים", scKosherF: "✡️ כשר", rowFavs: "♥ המועדפים שלי", rowOpen: "🟢 פתוחים עכשיו", rowPop: "🔥 פופולריים", rowNew: "✨ חדשים", rowAll: "כל החנויות", rowOrders: "{n} הזמנות החודש", scNoneF: "אין חנויות בסינון הזה.",
   scOpenNow: "🟢 פתוחים עכשיו", scClosedList: "🌙 סגורים · אפשר לתזמן", scProg: "📅 לתזמן", scClosedShort: "סגור", scProgOrder: "לתזמן הזמנה", proTitle: "⭐ השותפים שלנו", proSub: "מזמינים אצלם: הם מכינים, אנחנו מביאים.", proDelivery: "משלוח {price}", proMenu: "{n} בתפריט", proGo: "להזמין ›",
   ensTitle: "🏪 עסקים וחנויות לידכם", ens_hop: "⭐ שותפי הופ", ens_breakfast: "🥐 ארוחת בוקר", ens_pressing: "👔 ניקוי יבש", ens_pharm: "💊 בתי מרקחת", ens_post: "📮 דואר ונקודות איסוף",
   ens_super: "🛒 סופרים ומכולות", ens_kiosk: "🍾 קיוסקים ופיצוציות", ens_food: "🍔 מסעדות", ens_mall: "🛍️ קניונים", ens_flower: "💐 חנויות פרחים", ens_tech: "📱 סלולר", ens_baby: "👶 תינוקות וצעצועים", ens_pet: "🐾 חנויות חיות", ens_home: "🔌 כלי בית וחומרי בניין",
