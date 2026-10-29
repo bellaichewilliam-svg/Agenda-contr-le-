@@ -1876,7 +1876,7 @@ function drawOfferMap(picks, drops) {
   if (!window.L) { box.classList.add("hidden"); return; }
   if (!omap.map) {
     omap.map = L.map(box, { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, boxZoom: false, keyboard: false, touchZoom: false, tap: false });
-    UI.mapTiles(omap.map, riderSet.theme !== "light");
+    UI.mapTiles(omap.map, !riderLight());
     omap.layer = L.layerGroup().addTo(omap.map);
   }
   omap.layer.clearLayers();
@@ -2085,12 +2085,27 @@ const LS_RIDER = "livraison.riderSettings.v1";
 const riderSet = Object.assign({ nav: "waze", mode: "scooter", theme: "dark", sound: true },
   (() => { try { return JSON.parse(localStorage.getItem(LS_RIDER)) || {}; } catch (e) { return {}; } })());
 function saveRiderSet() { try { localStorage.setItem(LS_RIDER, JSON.stringify(riderSet)); } catch (e) { /* ignore */ } }
-function applyRiderSettings() {
-  $("#work").classList.toggle("light", riderSet.theme === "light");
-  if (rmap.tiles) rmap.tiles.getContainer().classList.toggle("tiles-dark", riderSet.theme !== "light");
-  const m = rmap.gl && rmap.gl.getMaplibreMap();
-  if (m) m.setStyle(VSTYLE[riderSet.theme === "light" ? "light" : "dark"]);
+// Apparence « auto » (par défaut, comme le suivi client) : clair le jour, sombre la nuit, d'après le lever
+// et le coucher du soleil ; le livreur peut forcer Sombre ou Clair dans les réglages.
+if (riderSet.themeV !== 2) { riderSet.theme = "auto"; riderSet.themeV = 2; saveRiderSet(); }
+function riderLight() {
+  if (riderSet.theme === "light") return true;
+  if (riderSet.theme === "dark") return false;
+  const home = Pricing.cityById(CONFIG, CONFIG.homeCity) || {};
+  return !UI.isNight(Number(home.lat), Number(home.lon));
 }
+let riderLightNow = null;
+function applyRiderSettings() {
+  const light = riderLight();
+  $("#work").classList.toggle("light", light);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.content = light ? "#FFFFFF" : "#0F1F3D";
+  if (rmap.tiles) rmap.tiles.getContainer().classList.toggle("tiles-dark", !light);
+  const m = rmap.gl && rmap.gl.getMaplibreMap();
+  if (m && light !== riderLightNow && riderLightNow !== null) m.setStyle(VSTYLE[light ? "light" : "dark"]);
+  riderLightNow = light;
+}
+setInterval(() => { if (riderLight() !== riderLightNow) applyRiderSettings(); }, 60000);
 const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Zones et demande", week: "Finances", stats: "Statistiques",
   ref: "Gagner plus", rules: "Engagements et assurance", settings: "Réglages", help: "Centre d'aide", inbox: "Messages de HOP!" };
 function openPage(t) {
@@ -2326,7 +2341,7 @@ function initRiderMap() {
   if (rmap.map || !window.L) return;
   const home = CONFIG.cities.find(c => c.id === CONFIG.homeCity);
   rmap.map = L.map("riderMap", { zoomControl: false, attributionControl: true }).setView([home.lat, home.lon], 13);
-  rmap.tiles = UI.mapTiles(rmap.map, riderSet.theme !== "light");
+  rmap.tiles = UI.mapTiles(rmap.map, !riderLight());
   rmap.layer = L.layerGroup().addTo(rmap.map);
   vectorMap();
   setTimeout(() => rmap.map.invalidateSize(), 100);
@@ -2349,7 +2364,7 @@ function vectorMap() {
   }
   mlLoad.then(() => {
     if (rmap.gl || !L.maplibreGL) return;
-    const gl = L.maplibreGL({ style: VSTYLE[riderSet.theme === "light" ? "light" : "dark"], attribution: "© OpenFreeMap © OpenStreetMap" }).addTo(rmap.map);
+    const gl = L.maplibreGL({ style: VSTYLE[riderLight() ? "light" : "dark"], attribution: "© OpenFreeMap © OpenStreetMap" }).addTo(rmap.map);
     const m = gl.getMaplibreMap();
     if (!m) { rmap.map.removeLayer(gl); return; }
     let ok = false;
@@ -2377,7 +2392,7 @@ function reviveRiderMap() {
     rmap.map.removeLayer(rmap.gl);
     rmap.gl = null; rmap.glLost = false;
     // La carte simple tout de suite, puis la belle carte par-dessus
-    if (!rmap.tiles) rmap.tiles = UI.mapTiles(rmap.map, riderSet.theme !== "light");
+    if (!rmap.tiles) rmap.tiles = UI.mapTiles(rmap.map, !riderLight());
     vectorMap();
   } else if (m) { m.resize(); m.triggerRepaint(); }
   if (rmap.tiles && rmap.tiles.redraw) rmap.tiles.redraw();
@@ -2528,7 +2543,7 @@ function renderSettings(view) {
       <div class="set-row"><span>Application de navigation</span><select data-set="nav">${opt("nav", "waze", "Waze")}${opt("nav", "maps", "Google Maps")}</select></div>
       <div class="set-row"><span>Mode de déplacement</span><select data-set="mode">${opt("mode", "scooter", "Scooter / moto")}${opt("mode", "car", "Voiture")}${opt("mode", "bike", "Vélo")}${opt("mode", "walk", "À pied")}</select></div>
       <h3>Affichage et sons</h3>
-      <div class="set-row"><span>Apparence</span><select data-set="theme">${opt("theme", "dark", "Sombre")}${opt("theme", "light", "Clair")}</select></div>
+      <div class="set-row"><span>Apparence</span><select data-set="theme">${opt("theme", "auto", "Auto (jour / nuit)")}${opt("theme", "dark", "Sombre")}${opt("theme", "light", "Clair")}</select></div>
       <div class="set-row"><span>Son des nouvelles courses</span><select data-set="sound"><option value="1" ${riderSet.sound !== false ? "selected" : ""}>Activé</option><option value="0" ${riderSet.sound === false ? "selected" : ""}>Coupé</option></select></div>
       <div class="set-row"><span>Tester le son</span><button type="button" class="btn btn-sm" data-sound-test="1">🔊 Tester</button></div>
       <div class="set-row"><span>Alertes sur le téléphone</span><button type="button" class="btn btn-sm" data-notif="1">${notif}</button></div>
