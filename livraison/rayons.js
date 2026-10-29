@@ -7,7 +7,8 @@
 // Chaque produit : rayon, image, nom FR / HE, parfois une variante (taille, marque…) et « adult »
 // (tabac / alcool : 18 ans et plus, pièce d'identité à la livraison), p = prix indicatif en magasin [min, max] en ₪
 // (relevé moyen ; le vrai prix est celui du magasin), sz = place dans le top case (1 par défaut). Une variante peut avoir son propre p / sz (bière : bouteille ou pack).
-// Tabac (cigarettes, IQOS, à rouler) : ni prix ni images (loi israélienne sur la publicité et l'affichage du tabac).
+// Tabac (cigarettes, IQOS, à rouler) : ni prix ni images (loi israélienne sur la publicité et l'affichage du tabac) ;
+// pb = prix caché, jamais affiché sur le produit, seulement pour estimer le total et pré-remplir le budget.
 // ============================================================================
 (function () {
 "use strict";
@@ -141,21 +142,21 @@ const TABAC = {
     { id: "snack", img: "peanuts", e: "🥜", fr: "Apéro", he: "נשנושים" },
   ],
   items: [
-    { id: "marlboro", c: "cig", img: "", e: "🚬", fr: "Marlboro", he: "מרלבורו", opt: V(["Red (rouge)", "אדום"], ["Gold", "גולד"], ["Touch", "טאץ'"], ["Silver", "סילבר"]), adult: "tabac" },
-    { id: "winston", c: "cig", img: "", e: "🚬", fr: "Winston", he: "ווינסטון", opt: V(["Blue", "כחול"], ["Red", "אדום"], ["Silver", "סילבר"]), adult: "tabac" },
-    { id: "camel", c: "cig", img: "", e: "🚬", fr: "Camel", he: "קאמל", opt: V(["Blue", "כחול"], ["Yellow", "צהוב"]), adult: "tabac" },
-    { id: "parliament", c: "cig", img: "", e: "🚬", fr: "Parliament", he: "פרלמנט", opt: V(["Aqua Blue", "אקווה בלו"], ["Night Blue", "נייט בלו"]), adult: "tabac" },
-    { id: "lm", c: "cig", img: "", e: "🚬", fr: "L&M", he: "אל אנד אם", opt: V(["Blue", "כחול"], ["Red", "אדום"]), adult: "tabac" },
-    { id: "kent", c: "cig", img: "", e: "🚬", fr: "Kent", he: "קנט", adult: "tabac" },
-    { id: "time", c: "cig", img: "", e: "🚬", fr: "Time", he: "טיים", adult: "tabac" },
-    { id: "noblesse", c: "cig", img: "", e: "🚬", fr: "Noblesse", he: "נובלס", adult: "tabac" },
-    { id: "cartouche", c: "cig", img: "", e: "📦", fr: "Cartouche (10 paquets) : précisez la marque en dessous", he: "קרטון (10 חפיסות): ציינו מותג למטה", adult: "tabac" },
-    { id: "iqos", c: "rouler", img: "", e: "🔋", fr: "IQOS TEREA / HEETS", he: "אייקוס טריאה / היטס", opt: V(["Amber", "אמבר"], ["Turquoise", "טורקיז"], ["Silver", "סילבר"], ["Bleu", "כחול"]), adult: "tabac" },
-    { id: "vape", c: "rouler", img: "", e: "💨", fr: "Vape jetable", he: "ווייפ חד פעמי", adult: "tabac" },
-    { id: "rouler", c: "rouler", img: "", e: "🍂", fr: "Tabac à rouler", he: "טבק לגלגול", opt: V("Golden Virginia", "Drum", "Pueblo"), adult: "tabac" },
-    { id: "feuilles", c: "rouler", img: "", e: "📜", fr: "Feuilles à rouler (OCB / Gizeh)", he: "ניירות גלגול (OCB / גיזה)", adult: "tabac" },
-    { id: "filtres", c: "rouler", img: "", e: "📜", fr: "Filtres", he: "פילטרים", adult: "tabac" },
-    { id: "narguile", c: "rouler", img: "", e: "💨", fr: "Tabac à narguilé (Al Fakher…)", he: "טבק לנרגילה (אל פאחר…)", adult: "tabac" },
+    { id: "marlboro", pb: [38, 42], c: "cig", img: "", e: "🚬", fr: "Marlboro", he: "מרלבורו", opt: V(["Red (rouge)", "אדום"], ["Gold", "גולד"], ["Touch", "טאץ'"], ["Silver", "סילבר"]), adult: "tabac" },
+    { id: "winston", pb: [34, 38], c: "cig", img: "", e: "🚬", fr: "Winston", he: "ווינסטון", opt: V(["Blue", "כחול"], ["Red", "אדום"], ["Silver", "סילבר"]), adult: "tabac" },
+    { id: "camel", pb: [36, 40], c: "cig", img: "", e: "🚬", fr: "Camel", he: "קאמל", opt: V(["Blue", "כחול"], ["Yellow", "צהוב"]), adult: "tabac" },
+    { id: "parliament", pb: [40, 44], c: "cig", img: "", e: "🚬", fr: "Parliament", he: "פרלמנט", opt: V(["Aqua Blue", "אקווה בלו"], ["Night Blue", "נייט בלו"]), adult: "tabac" },
+    { id: "lm", pb: [33, 37], c: "cig", img: "", e: "🚬", fr: "L&M", he: "אל אנד אם", opt: V(["Blue", "כחול"], ["Red", "אדום"]), adult: "tabac" },
+    { id: "kent", pb: [36, 40], c: "cig", img: "", e: "🚬", fr: "Kent", he: "קנט", adult: "tabac" },
+    { id: "time", pb: [30, 34], c: "cig", img: "", e: "🚬", fr: "Time", he: "טיים", adult: "tabac" },
+    { id: "noblesse", pb: [28, 32], c: "cig", img: "", e: "🚬", fr: "Noblesse", he: "נובלס", adult: "tabac" },
+    { id: "cartouche", pb: [330, 400], c: "cig", img: "", e: "📦", fr: "Cartouche (10 paquets) : précisez la marque en dessous", he: "קרטון (10 חפיסות): ציינו מותג למטה", adult: "tabac" },
+    { id: "iqos", pb: [36, 40], c: "rouler", img: "", e: "🔋", fr: "IQOS TEREA / HEETS", he: "אייקוס טריאה / היטס", opt: V(["Amber", "אמבר"], ["Turquoise", "טורקיז"], ["Silver", "סילבר"], ["Bleu", "כחול"]), adult: "tabac" },
+    { id: "vape", pb: [45, 80], c: "rouler", img: "", e: "💨", fr: "Vape jetable", he: "ווייפ חד פעמי", adult: "tabac" },
+    { id: "rouler", pb: [55, 90], c: "rouler", img: "", e: "🍂", fr: "Tabac à rouler", he: "טבק לגלגול", opt: V("Golden Virginia", "Drum", "Pueblo"), adult: "tabac" },
+    { id: "feuilles", pb: [4, 10], c: "rouler", img: "", e: "📜", fr: "Feuilles à rouler (OCB / Gizeh)", he: "ניירות גלגול (OCB / גיזה)", adult: "tabac" },
+    { id: "filtres", pb: [4, 10], c: "rouler", img: "", e: "📜", fr: "Filtres", he: "פילטרים", adult: "tabac" },
+    { id: "narguile", pb: [40, 80], c: "rouler", img: "", e: "💨", fr: "Tabac à narguilé (Al Fakher…)", he: "טבק לנרגילה (אל פאחר…)", adult: "tabac" },
     { id: "charbon", p: [10, 25], c: "rouler", img: "", e: "🔥", fr: "Charbons pour narguilé", he: "גחלים לנרגילה" },
     { id: "briquet", p: [3, 8], c: "rouler", img: "", e: "🔥", fr: "Briquet", he: "מצית" },
     { id: "goldstar", p: [8, 50], sz: 2, c: "biere", img: "beer", e: "🍺", fr: "Goldstar", he: "גולדסטאר", opt: [{ fr: "Bouteille 500 ml", he: "בקבוק 500 מ״ל", p: [8, 12] }, { fr: "Pack 6 canettes", he: "שישייה פחיות", p: [35, 50], sz: 3 }], adult: "alcool" },

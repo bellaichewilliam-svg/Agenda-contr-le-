@@ -548,7 +548,8 @@ function card(o, withDay) {
       + `<button class="btn btn-sm" data-act="refuse">🚫 Je ne peux pas</button>`,
     confirmee: b("recuperee", "🛵 Colis récupéré", "btn-primary")
       // Redonner à un autre livreur (l'ancien est prévenu), ou la reprendre soi-même
-      + (o.courier_id && !isMine(o) ? `<select class="btn btn-sm" data-act="assign"><option value="">🔁 Donner à un autre…</option>${active.filter(({ c }) => c.id !== o.courier_id).map(({ c }) => `<option value="${UI.esc(c.id)}">${onlineOf(c).on ? "🟢" : "⚪"} ${UI.esc(c.name)}</option>`).join("")}</select><button class="btn btn-sm" data-act="take">✋ Je la reprends</button>` : "")
+      // (aussi quand c'est le patron qui l'a prise : il la redonne à un livreur, en ligne ou non — hors ligne, elle l'attend dans son appli et on peut l'appeler)
+      + (o.courier_id ? `<select class="btn btn-sm" data-act="assign"><option value="">${isMine(o) ? "🔁 Donner à un livreur…" : "🔁 Donner à un autre…"}</option>${active.filter(({ c }) => c.id !== o.courier_id && c.role !== "admin").map(({ c, km }) => `<option value="${UI.esc(c.id)}">${onlineOf(c).on ? "🟢" : "⚪"} ${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : ""}${onlineOf(c).on ? "" : " · hors ligne"}</option>`).join("")}</select>${isMine(o) ? "" : `<button class="btn btn-sm" data-act="take">✋ Je la reprends</button>`}` : "")
       + `<button class="btn btn-sm" data-act="release">↩︎ Remettre en attente</button>` + b("annulee", "✖ Annuler"),
     // Photo obligatoire (devant la porte, ou demandée par le client) : l'appareil photo s'ouvre, la photo part au client, puis « Livré »
     recuperee: needPhoto(o) && !photoDone.has(o.id)
