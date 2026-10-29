@@ -679,7 +679,7 @@ function addDays(key, n) {
 }
 function fmtKey(key) {
   const [y, m, d] = key.split("-").map(Number);
-  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString("fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
+  return new Date(Date.UTC(y, m - 1, d)).toLocaleDateString(window.I18N && I18N.lang === "he" ? "he-IL" : "fr-FR", { day: "numeric", month: "long", timeZone: "UTC" });
 }
 
 // Étage / appartement / code d'une adresse, en texte (pour WhatsApp et l'agenda)

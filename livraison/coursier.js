@@ -1985,7 +1985,8 @@ function renderHome() {
     <div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
     ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
-        <span>🛵 Course n° ${UI.esc(o.ref)} · ${UI.esc(mineStep(o, o.paid_to === "hop"))}
+        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>n° ${UI.esc(o.ref)}</small></span></span>
+          <em class="rc-step">${UI.esc(mineStep(o, o.paid_to === "hop"))}</em>
           <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>
           <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
