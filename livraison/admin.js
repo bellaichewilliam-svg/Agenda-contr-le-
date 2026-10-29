@@ -524,7 +524,13 @@ function card(o, withDay) {
   if (o.payment_method === "carnet") meta.push(`<span class="pill paid">🎟️ Carnet pro</span>`);
   if (o.admin_note === "Espèces impayées à la livraison") meta.push(`<button type="button" class="btn btn-sm" data-unblock="${UI.esc(o.contact_phone)}">🔓 Débloquer le client</button>`);
   // Espèces : qui a payé quoi (client → livreur, livreur → commerce), en clair
-  if (o.payment_method === "cash") meta.push(`<span class="pill">💵 Espèces : client ${UI.money(Number(o.price) + Number(o.cash_goods || 0))}${Number(o.cash_goods) > 0 ? ` · articles ${UI.money(o.cash_goods)} au commerce ${o.cash_shop_at ? "✅ reçus" : "⏳"}` : ""} · course ${UI.money(o.price)}${Number(o.cash_note) > 0 ? ` · billet ${UI.money(o.cash_note)}` : ""}</span>`);
+  if (o.payment_method === "cash") {
+    // Les deux côtés des espèces des articles : ce que le livreur a noté, ce que le commerce a reçu (et l'écart éventuel)
+    const got = o.cash_shop_at ? Number(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods) : null;
+    const diff = got != null && got !== Number(o.cash_goods);
+    const sides = Number(o.cash_goods) > 0 ? ` · articles ${UI.money(o.cash_goods)} → livreur : ${o.cash_courier_mode ? `${o.cash_courier_mode === "avance" ? "payés au départ" : "rendus"} ✅ ${UI.esc(UI.fmtTime(o.cash_courier_at))}` : "rien noté ⏳"} · commerce : ${got != null ? `reçu ${UI.money(got)} ✅ ${UI.esc(UI.fmtTime(o.cash_shop_at))}${diff ? " ⚠️ ÉCART" : ""}` : "pas encore reçus ⏳"}` : "";
+    meta.push(`<span class="pill${diff ? " st-annulee" : ""}">💵 Espèces : client ${UI.money(Number(o.price) + Number(o.cash_goods || 0))}${sides} · course ${UI.money(o.price)}${Number(o.cash_note) > 0 ? ` · billet ${UI.money(o.cash_note)}` : ""}</span>`);
+  }
   if (o.payment_method === "bit" && o.payment_status !== "paye" && o.client_paid_at) meta.push(o.direct_pay && !isMine(o)
     ? `<span class="pill unpaid">💳 Le client dit avoir payé le livreur · le livreur confirme</span>`
     : `<span class="pill unpaid" title="Vérifiez votre Bit, puis marquez la course payée">💳 Le client dit avoir payé par Bit · à vérifier</span>`);
@@ -2148,6 +2154,8 @@ async function onViewClick(e) {
   if (!o) return;
   if (el.dataset.status) {
     if (el.dataset.status === "annulee" && !confirm(`Annuler la course n° ${o.ref} ?`)) return;
+    // « Livré » à la place du livreur : on demande, pour ne pas clore une course d'un doigt qui glisse
+    if (el.dataset.status === "livree" && !confirm(`Marquer la course n° ${o.ref} comme livrée${o.courier_name ? ` (à la place de ${o.courier_name})` : ""} ?`)) return;
     const changes = { status: el.dataset.status };
     // Le paiement se fait en général à la livraison : le noter déclenche aussi le reçu
     if (changes.status === "livree" && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(o.price)} ?`)) changes.payment_status = "paye";

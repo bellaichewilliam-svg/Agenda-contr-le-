@@ -378,12 +378,18 @@ function courierPay(o) {
 // Espèces : le livreur paie les articles au commerce en espèces ; le commerce le confirme (« Espèces reçues »)
 function cashLine(o) {
   if (o.payment_method !== "cash" || !(Number(o.cash_goods) > 0)) return "";
-  if (o.cash_shop_at) return `<p class="cash-need ok">${UI.esc(t("spCashOk", { amount: UI.money(o.cash_goods) }))}</p>`;
+  // Ce que le livreur a noté de son côté (avancé en prenant la commande, ou rendu après la livraison)
+  const mark = o.cash_courier_mode ? `<small class="cash-mark">${UI.esc(t(o.cash_courier_mode === "avance" ? "spCashCourierAvance" : "spCashCourierRendu", { time: UI.fmtTime(o.cash_courier_at) }))}</small>` : "";
+  if (o.cash_shop_at) {
+    const got = o.cash_shop_amount != null ? Number(o.cash_shop_amount) : Number(o.cash_goods);
+    return `<div class="cash-need ok${got !== Number(o.cash_goods) ? " diff" : ""}">${UI.esc(t("spCashOkAt", { amount: UI.money(got), time: UI.fmtTime(o.cash_shop_at) }))}
+      ${got !== Number(o.cash_goods) ? `<small>${UI.esc(t("spCashDiff", { expected: UI.money(o.cash_goods) }))}</small>` : ""}${mark}</div>`;
+  }
   // Commerce partenaire : le livreur rapporte l'argent des articles après la livraison (ou paie en prenant la commande)
   if (o.cash_shop_after) return `<div class="cash-need"><b>${UI.esc(t("spCashAfter", { amount: UI.money(o.cash_goods) }))}</b>
-    ${["confirmee", "recuperee", "livree"].includes(o.status) ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}" data-after="1">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashAfterWait"))}</small>`}</div>`;
+    ${mark}${["confirmee", "recuperee", "livree"].includes(o.status) ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}" data-after="1">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashAfterWait"))}</small>`}</div>`;
   return `<div class="cash-need"><b>${UI.esc(t("spCashDue", { amount: UI.money(o.cash_goods) }))}</b>
-    ${o.status === "confirmee" ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashWait"))}</small>`}</div>`;
+    ${mark}${o.status === "confirmee" ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashWait"))}</small>`}</div>`;
 }
 // Ce que le commerce doit à HOP pour une livraison : sa part (avant), ou seulement la part de HOP (paiement direct)
 const billPart = o => (o.direct_pay ? (Number(o.shop_share || 0) > 0 ? Number(o.hop_share || 0) : 0) : Number(o.shop_share || 0));
@@ -424,13 +430,22 @@ function renderPrep() {
   if (document.activeElement && document.activeElement.closest && document.activeElement.closest("#spPrep [data-ref-for]")) return;
   const list = orders.filter(o => PREP.includes(o.shop_status) && ["nouvelle", "confirmee"].includes(o.status))
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+  // Espèces des articles : les commandes déjà parties (le livreur rapporte l'argent après la livraison) en attente de
+  // « Espèces reçues », et celles reçues ces 7 derniers jours (le montant noté reste écrit, pour le commerce et HOP!)
+  const cashDue = orders.filter(o => o.payment_method === "cash" && Number(o.cash_goods) > 0 && !["annulee", "refusee"].includes(o.status)
+      && (["recuperee", "livree"].includes(o.status) || o.cash_shop_at)
+      && (!o.cash_shop_at || Date.now() - new Date(o.cash_shop_at) < 7 * 86400000))
+    .sort((a, b) => (a.cash_shop_at ? 1 : 0) - (b.cash_shop_at ? 1 : 0) || new Date(b.pickup_at) - new Date(a.pickup_at));
   const box = $("#spPrep");
-  box.classList.toggle("hidden", !planOn(shop) && !list.length);
+  box.classList.toggle("hidden", !planOn(shop) && !list.length && !cashDue.length);
   setRing(list.some(o => o.shop_status === "attente" || o.goods_pay === "declare"));
   itemsChanged(list);
   if (box.classList.contains("hidden")) return;
   const time = d => new Date(d).toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: CONFIG.timezone });
-  box.innerHTML = `<h3>${UI.esc(t("spPrepTitle"))}</h3>` + (list.length ? list.map(o => {
+  const cashBlock = cashDue.length ? `<div class="cash-due"><h3>${UI.esc(t("spCashDueTitle"))}</h3>${cashDue.map(o => `<div class="prep-item cash-item">
+      <div class="prep-head"><b>${UI.esc(t("orderNo", { ref: o.ref }))}</b> · ${time(o.pickup_at)}${o.courier_name ? ` · 🛵 ${UI.esc(o.courier_name.split(" ")[0])}` : ""}<small class="muted">${UI.esc(t("spItemsTotal", { total: UI.money(o.cash_goods) }))}</small></div>
+      ${cashLine(o)}</div>`).join("")}</div>` : "";
+  box.innerHTML = cashBlock + `<h3>${UI.esc(t("spPrepTitle"))}</h3>` + (list.length ? list.map(o => {
     const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null;
     const courier = o.status === "confirmee" && o.courier_name ? t("spCourier", { name: o.courier_name.split(" ")[0] }) : t("spNoCourier");
     const nb = UI.notBefore(o), nbOn = nb && nb > Date.now();
@@ -545,10 +560,14 @@ $("#spPrep").addEventListener("click", async e => {
   }
   if (b.dataset.cashOk) {
     const o = state.dash.orders.find(x => x.id === b.dataset.cashOk);
-    if (o && confirm(t("spCashConfirm", { amount: UI.money(o.cash_goods) }))) {
-      if (!b.dataset.after) return prepAction(b.dataset.cashOk, "cash_ok");
-      return Store.shopCashReceived(state.dash.shop.token, b.dataset.cashOk).then(ok => { if (!ok) alert(t("spErr")); refreshSpace(); }, () => alert(t("spErr")));
-    }
+    if (!o) return;
+    // Le montant reçu, noté sur la course (par défaut celui des articles) : un écart prévient HOP!
+    const raw = prompt(t("spCashAmount", { amount: UI.money(o.cash_goods) }), String(Number(o.cash_goods)));
+    if (raw === null) return;
+    const amount = Number(String(raw).replace(",", ".").replace(/[^\d.]/g, ""));
+    if (!(amount >= 0 && amount <= 5000)) return alert(t("spCashAmountBad"));
+    if (confirm(t("spCashConfirm", { amount: UI.money(amount) })))
+      return Store.shopCashReceived(state.dash.shop.token, o.id, amount).then(ok => { if (!ok) alert(t("spErr")); refreshSpace(); }, () => alert(t("spErr")));
     return;
     return;
   }
