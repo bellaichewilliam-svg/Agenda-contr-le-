@@ -944,6 +944,34 @@ function renderGuide(shop) {
   }
 }
 // Onglet Vitrine : chaque carte se replie sur son titre (la ligne du titre est reprise dans le résumé)
+// --- 📈 Mes ventes : le tableau de bord du commerce ------------------------------------------------------
+const svc = { data: null, at: 0 };
+async function renderStatsCard(force) {
+  const box = $("#spStats"), shop = state.dash.shop;
+  if (!shop) return;
+  if (force || !svc.data || Date.now() - svc.at > 120000) {
+    try { svc.data = await Store.shopStats(shop.token); svc.at = Date.now(); } catch (e) { svc.data = svc.data || null; }
+  }
+  const d = svc.data;
+  box.classList.remove("hidden");
+  if (!d) { box.innerHTML = `<h3>${UI.esc(t("svTitle"))}</h3><p class="muted small">${UI.esc(t("svNone"))}</p>`; foldTitles(); return; }
+  const tile = (label, x) => `<div class="sv-tile"><small>${UI.esc(label)}</small><b dir="ltr">${UI.money(x.amount || 0)}</b><span>${UI.esc(t("svOrders", { n: x.n || 0 }))}</span></div>`;
+  const days = d.days || [], maxD = Math.max(1, ...days.map(x => Number(x.n) || 0));
+  const dayBars = days.length ? `<div class="sv-bars">${days.map(x => `<div class="sv-bar" title="${UI.esc(UI.fmtDay(x.d))} : ${x.n}"><i style="height:${Math.round(Number(x.n) * 100 / maxD)}%"></i><small>${new Date(x.d + "T12:00:00").getDate()}</small></div>`).join("")}</div>` : "";
+  const hours = (d.hours || []).slice().sort((a, b) => Number(b.n) - Number(a.n)).slice(0, 3);
+  const top = d.top || [];
+  box.innerHTML = `<h3>${UI.esc(t("svTitle"))}</h3><p class="muted small" style="margin:4px 0 10px">${UI.esc(t("svSub"))}</p>
+    ${Number((d.month || {}).n) ? `<div class="sv-tiles">${tile(t("svToday"), d.today || {})}${tile(t("svWeek"), d.week || {})}${tile(t("svMonth"), d.month || {})}</div>
+      <div class="sv-grid">
+        <div class="sv-box"><b>${UI.esc(t("svTop"))}</b>${top.length ? `<ol class="sv-top">${top.map(x => `<li><span>${UI.esc(UI.bi(x.name))}</span><small>${UI.esc(t("svQty", { n: x.qty }))} · ${UI.money(x.amount || 0)}</small></li>`).join("")}</ol>` : `<p class="muted small">${UI.esc(t("svTopNone"))}</p>`}</div>
+        <div class="sv-box"><b>${UI.esc(t("svHours"))}</b>${hours.length ? `<p class="sv-hours">${hours.map(h => `<span>${String(h.h).padStart(2, "0")}h–${String(h.h + 1).padStart(2, "0")}h <small>· ${h.n}</small></span>`).join("")}</p>` : ""}
+          ${d.basket != null ? `<b style="margin-top:8px">${UI.esc(t("svBasket"))}</b><p class="sv-basket" dir="ltr">${UI.money(d.basket)}</p>` : ""}</div>
+      </div>
+      ${dayBars ? `<b class="sv-h">${UI.esc(t("svDays"))}</b>${dayBars}` : ""}
+      ${Number(d.clients90) ? `<p class="sv-clients">👥 <b>${UI.esc(t("svClients"))}</b> · ${UI.esc(t("svClientsSub", { r: d.repeat90 || 0, n: d.clients90 }))}</p>` : ""}`
+    : `<p class="muted small">${UI.esc(t("svNone"))}</p>`}`;
+  foldTitles();
+}
 function foldTitles() {
   document.querySelectorAll(".sp-fold").forEach(d => {
     const card = d.querySelector(".card"), h = card && card.querySelector("h3"), sum = d.querySelector("summary");
@@ -960,6 +988,7 @@ function renderSpace() {
   renderBrand();
   renderPage();
   renderClients();
+  renderStatsCard();
   const sales = state.dash.sales || [];
   renderHead(shop);
   renderTabs(shop);
