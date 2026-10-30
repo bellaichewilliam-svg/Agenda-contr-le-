@@ -1450,7 +1450,9 @@ async function checkChats() {
   // Seulement les conversations du livreur (HOP et ses courses) : le compte patron voit aussi celles
   // des autres, qu'on ne peut pas ouvrir d'ici
   const mineThreads = new Set(["c:" + me.id].concat(orders.filter(o => o.courier_id === me.id).map(o => "o:" + o.id)));
-  chatUnread = Chat.unread((recent || []).filter(m => mineThreads.has(m.thread)), "courier");
+  // Dans la conversation d'une course, seuls les messages du client comptent : ceux signés HOP! sont
+  // les messages automatiques envoyés au client (« récupérée », « Livré ! », reçu…), pas pour le livreur
+  chatUnread = Chat.unread((recent || []).filter(m => mineThreads.has(m.thread) && (m.thread === "c:" + me.id || m.author === "client")), "courier");
   // Message lu (ou conversation d'une course finie) : sa notification se ferme
   UI.clearNotifs((k, id) => k === "m" && !chatUnread[id]);
   const total = Object.values(chatUnread).reduce((s, n) => s + n, 0);
