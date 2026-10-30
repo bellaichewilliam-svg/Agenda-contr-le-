@@ -56,7 +56,7 @@ let me = null;
 let settings = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
 let tab = "agenda";
 let firstLoad = true;
-let histFilter = { status: "", q: "", trash: false };
+let histFilter = { status: "", q: "", trash: false, day: "" };
 let billMonth = new Date().toISOString().slice(0, 7);
 let weekOffset = 0;
 let refusing = null;
@@ -401,7 +401,7 @@ function showOrder(id) {
   if (!o) return alert("Cette course n'existe plus.");
   if (o.status === "nouvelle" && !o.courier_id) return bossPopup(id);
   $("#bossModal").classList.add("hidden");
-  histFilter = { status: "", q: o.ref };
+  histFilter = { status: "", q: o.ref, trash: false, day: "" };
   openFolds.add("o:" + o.id);
   tab = "historique"; lastTab[groupOf(tab)] = tab;
   render();
@@ -890,7 +890,13 @@ function render() {
     renderInbox(view);
   } else if (tab === "historique") {
     const q = histFilter.q.toLowerCase();
+    // Période : aujourd'hui, hier, 7 derniers jours, ou une date choisie au calendrier
+    const dk = d => UI.dayKey(d.toISOString()), now = new Date();
+    const today = dk(now), yesterday = dk(new Date(now - 86400000)), weekFrom = dk(new Date(now - 6 * 86400000));
+    const inDay = o => { const k = UI.dayKey(o.pickup_at), d = histFilter.day;
+      return !d || (d === "today" ? k === today : d === "yesterday" ? k === yesterday : d === "week" ? k >= weekFrom && k <= today : k === d); };
     const list = orders
+      .filter(inDay)
       .filter(o => !histFilter.status || o.status === histFilter.status)
       .filter(o => !q || [o.ref, o.company, o.contact_name, o.contact_phone, o.pickup_address, o.dropoff_address, o.courier_name].join(" ").toLowerCase().includes(q))
       .sort((a, b) => byTime(b, a));
@@ -898,6 +904,15 @@ function render() {
         <select id="histStatus"><option value="">Tous les statuts</option>${Object.entries(Store.STATUSES).map(([k, s]) => `<option value="${k}" ${histFilter.status === k ? "selected" : ""}>${s.label}</option>`).join("")}</select>
         <input id="histQ" type="search" placeholder="Rechercher (n°, client, téléphone, adresse, livreur)" value="${UI.esc(histFilter.q)}" />
       </div>
+      <div class="hist-days">
+        ${[["today", "Aujourd'hui"], ["yesterday", "Hier"], ["week", "7 jours"], ["", "Tout"]].map(([k, l]) => `<button type="button" class="ch-chip${histFilter.day === k ? " on" : ""}" data-hday="${k}">${l}</button>`).join("")}
+        <label class="ch-chip hist-date${/^\d{4}-/.test(histFilter.day) ? " on" : ""}">📅 <input type="date" id="histDate" max="${today}" value="${/^\d{4}-/.test(histFilter.day) ? histFilter.day : ""}" aria-label="Choisir une date" /></label>
+      </div>
+      ${histFilter.day && !histFilter.trash ? (() => {
+        const done = list.filter(o => o.status === "livree" && !o.is_test);
+        const label = histFilter.day === "today" ? "Aujourd'hui" : histFilter.day === "yesterday" ? "Hier" : histFilter.day === "week" ? "7 derniers jours" : UI.fmtDay(histFilter.day + "T12:00:00");
+        return `<p class="hist-sum"><b>${UI.esc(label)}</b> · ${plural(list.length, "{n} course", "{n} courses")} · ${plural(done.length, "{n} livrée", "{n} livrées")} · ${UI.money(done.reduce((t, o) => t + Number(o.price || 0), 0))}</p>`;
+      })() : ""}
       <div class="hist-clean">
         ${orders.some(o => o.is_test) ? `<button type="button" class="btn btn-sm" data-hclean="test">🗑️ Effacer ${plural(orders.filter(o => o.is_test).length, "la course test", "les {n} courses test")}</button>` : ""}
         ${orders.some(o => !o.is_test && ["annulee", "refusee"].includes(o.status)) ? `<button type="button" class="btn btn-sm" data-hclean="annul">🗑️ Effacer ${plural(orders.filter(o => !o.is_test && ["annulee", "refusee"].includes(o.status)).length, "l'annulée", "les {n} annulées / refusées")}</button>` : ""}
@@ -1761,7 +1776,7 @@ function openRoute() {
 }
 
 // --- Actions ---------------------------------------------------------------------------
-const plural = (n, one, many) => n === 1 ? one : many.replace("{n}", n);
+const plural = (n, one, many) => (n <= 1 ? one : many).replace("{n}", n);   // 0 et 1 au singulier, comme en français
 // Corbeille : effacer (hidden_at) ou remettre des courses ; la base refuse d'effacer une vraie course livrée
 async function hideOrders(list, hide) {
   const at = hide ? new Date().toISOString() : null;
@@ -1774,6 +1789,8 @@ async function hideOrders(list, hide) {
   if (!trash.length && histFilter.trash) { histFilter.trash = false; render(); }
 }
 document.addEventListener("click", e => {
+  const hd = e.target.closest("[data-hday]");
+  if (hd) { histFilter.day = hd.dataset.hday; histFilter.trash = false; return render(); }
   const b = e.target.closest("[data-hclean]");
   if (!b) return;
   const k = b.dataset.hclean;
@@ -2314,6 +2331,7 @@ async function onViewChange(e) {
     const id = t.closest("[data-courier]").dataset.courier;
     Store.updateCourier(id, { admin_note: t.value.trim() || null }).catch(() => alert("Note non enregistrée."));
   } else if (t.id === "histStatus") { histFilter.status = t.value; render(); }
+  else if (t.id === "histDate") { histFilter.day = t.value || ""; histFilter.trash = false; render(); }
   else if (t.id === "billMonth") { billMonth = t.value; render(); }
 }
 

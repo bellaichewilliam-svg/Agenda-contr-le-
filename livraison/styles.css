@@ -3270,3 +3270,11 @@ body.trk-v2.trk-day .trk-status .st-ring { box-shadow: 0 0 0 12px var(--bg), 0 8
 body.trk-v2.trk-day .trk-status .trk-card-in, body.trk-v2.trk-day .df-pay { box-shadow: 0 2px 10px rgba(16, 24, 40, .06); }
 body.trk-v2.trk-day .df-face.on svg { filter: drop-shadow(0 4px 10px rgba(255, 150, 0, .35)); }
 body.trk-v2.trk-day .df-skip { color: #E0520A; }
+/* Historique du patron : période (aujourd'hui, hier, 7 jours, date) et bilan de la période */
+.hist-days { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 4px; }
+.hist-days .ch-chip { cursor: pointer; }
+.hist-days .ch-chip.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+.hist-date { display: inline-flex; align-items: center; gap: 4px; padding-block: 4px; max-width: none; }
+.hist-date input { border: 0; background: transparent; color: inherit; font: inherit; padding: 2px 0; min-width: 0; width: 132px; color-scheme: light dark; }
+.hist-sum { margin: 8px 0 4px; padding: 10px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--border); font-size: 15px; }
+.hist-clean { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
