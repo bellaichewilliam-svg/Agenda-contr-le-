@@ -3278,3 +3278,9 @@ body.trk-v2.trk-day .df-skip { color: #E0520A; }
 .hist-date input { border: 0; background: transparent; color: inherit; font: inherit; padding: 2px 0; min-width: 0; width: 132px; color-scheme: light dark; }
 .hist-sum { margin: 8px 0 4px; padding: 10px 14px; border-radius: 14px; background: var(--panel); border: 1px solid var(--border); font-size: 15px; }
 .hist-clean { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0; }
+/* Finances du livreur : une ligne par course dans chaque semaine (date, n°, client, prix, commission, gain) */
+.fin-courses { margin: 10px 0 4px; display: grid; gap: 2px; }
+.fin-course { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--rd-line, var(--border)); }
+.fin-course > span { display: grid; min-width: 0; line-height: 1.3; }
+.fin-course small { color: var(--rd-mute, var(--muted)); font-size: 12.5px; }
+.fin-course-n { text-align: end; flex: none; }
