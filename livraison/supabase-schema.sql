@@ -8400,3 +8400,23 @@ language sql stable security definer set search_path = public as $$
     from shops s where s.status = 'actif' and (s.plan_until >= current_date or s.showcase) and not s.demo;
 $$;
 grant execute on function public.shops_showcase() to anon, authenticated;
+
+-- ============================================================================
+-- EFFACER LES COURSES D'ESSAI : le patron range dans la corbeille une course 🧪 test, annulée ou refusée
+-- (hidden_at). Rien n'est supprimé : elle disparaît des listes et se remet d'un toucher. Une vraie course
+-- livrée (reçu, compta) ne peut pas être effacée : il faut d'abord la marquer « 🧪 Course test ».
+-- ============================================================================
+alter table public.orders add column if not exists hidden_at timestamptz;
+create or replace function public.orders_zy_hidden() returns trigger
+language plpgsql set search_path = public as $$
+begin
+  if tg_op = 'INSERT' then new.hidden_at := null; return new; end if;
+  if new.hidden_at is not null and old.hidden_at is null
+     and not (coalesce(new.is_test, false) or new.status in ('annulee', 'refusee')) then
+    raise exception 'hide_real_order';
+  end if;
+  return new;
+end;
+$$;
+create or replace trigger orders_zy_hidden before insert or update on public.orders
+  for each row execute function public.orders_zy_hidden();

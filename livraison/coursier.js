@@ -531,6 +531,7 @@ async function load() {
   try {
     let card;
     [orders, settings, card] = await Promise.all([Store.listOrders(), Store.getSettings(), Store.me().catch(() => null)]);
+    orders = orders.filter(o => !o.hidden_at);   // courses effacées par HOP! (essais)
     UI.setZonesOpen(settings.zones_open);
     // Fiche à jour (déblocage par HOP, suspension…)
     if (card) { me = card; serverWentOffline(card); }

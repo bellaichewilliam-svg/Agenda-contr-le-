@@ -10,7 +10,7 @@ const $ = s => document.querySelector(s);
 const LS_SEEN = "livraison.seenIds.v1";
 Store.useSpace("admin");
 
-let orders = [];
+let orders = [], trash = [];
 let couriers = [];
 
 // Photo en grand (top case d'un livreur)
@@ -56,7 +56,7 @@ let me = null;
 let settings = { accepting: true, message: "", commission: CONFIG.platform.commissionPerCourse };
 let tab = "agenda";
 let firstLoad = true;
-let histFilter = { status: "", q: "" };
+let histFilter = { status: "", q: "", trash: false };
 let billMonth = new Date().toISOString().slice(0, 7);
 let weekOffset = 0;
 let refusing = null;
@@ -153,6 +153,9 @@ function alertNew(list, title) {
 async function load() {
   try {
     [orders, couriers, settings] = await Promise.all([Store.listOrders(), Store.listCouriers(), Store.getSettings()]);
+    // Courses effacées (corbeille) : hors des listes et des comptes, remises d'un toucher
+    trash = orders.filter(o => o.hidden_at).sort((a, b) => byTime(b, a));
+    orders = orders.filter(o => !o.hidden_at);
     UI.setZonesOpen(settings.zones_open);
     // Commerces et messages : un souci ici ne doit pas bloquer les courses
     const [sh, m, rq, sa] = await Promise.all([Store.listShops().catch(() => null), Store.listMessages().catch(() => null),
@@ -608,7 +611,9 @@ function card(o, withDay) {
       ${UI.receiptNo(o) && o.contact_phone ? (m => `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(o.contact_phone, m))}" target="_blank" rel="noopener">💬 Reçu WhatsApp perso</a><a class="btn btn-sm" href="${UI.esc(UI.smsLink(o.contact_phone, m))}">📩 Reçu par SMS</a>`)(I18N.forLang(o.lang || "fr", "msg_receipt_full", { name: o.contact_name || "", ref: o.ref, n: UI.receiptNo(o), price: UI.money(o.price), url: UI.receiptUrl(o) })) : ""}
       ${o.receipt_number && o.contact_email ? `<a class="btn btn-sm" href="mailto:${UI.esc(o.contact_email)}?subject=${encodeURIComponent(`Reçu n° ${o.receipt_number} · קבלה מס' ${o.receipt_number}`)}&body=${encodeURIComponent(UI.clientMessage(o))}">✉️ Reçu par mail</a>` : ""}
       <button class="btn btn-sm" data-act="price">✏️ Prix</button>
-      <button class="btn btn-sm" data-act="test">${o.is_test ? "↩︎ Pas un essai" : "🧪 Course test"}</button>
+      ${o.hidden_at ? "" : `<button class="btn btn-sm" data-act="test">${o.is_test ? "↩︎ Pas un essai" : "🧪 Course test"}</button>`}
+      ${o.hidden_at ? `<button class="btn btn-sm btn-primary" data-act="unhide">↩︎ Remettre</button>`
+        : o.is_test || ["annulee", "refusee"].includes(o.status) ? `<button class="btn btn-sm" data-act="hide">🗑️ Effacer</button>` : ""}
       <button class="btn btn-sm" data-act="ics">📅</button>
       <textarea class="admin-note" data-act="note" rows="1" placeholder="Message visible par le client sur la page de suivi…">${UI.esc(o.admin_note || "")}</textarea>
     </div>
@@ -893,7 +898,14 @@ function render() {
         <select id="histStatus"><option value="">Tous les statuts</option>${Object.entries(Store.STATUSES).map(([k, s]) => `<option value="${k}" ${histFilter.status === k ? "selected" : ""}>${s.label}</option>`).join("")}</select>
         <input id="histQ" type="search" placeholder="Rechercher (n°, client, téléphone, adresse, livreur)" value="${UI.esc(histFilter.q)}" />
       </div>
-      ${list.length ? `<div class="orders">${list.map(o => card(o, true)).join("")}</div>` : empty("Aucune course.")}`;
+      <div class="hist-clean">
+        ${orders.some(o => o.is_test) ? `<button type="button" class="btn btn-sm" data-hclean="test">🗑️ Effacer ${plural(orders.filter(o => o.is_test).length, "la course test", "les {n} courses test")}</button>` : ""}
+        ${orders.some(o => !o.is_test && ["annulee", "refusee"].includes(o.status)) ? `<button type="button" class="btn btn-sm" data-hclean="annul">🗑️ Effacer ${plural(orders.filter(o => !o.is_test && ["annulee", "refusee"].includes(o.status)).length, "l'annulée", "les {n} annulées / refusées")}</button>` : ""}
+        ${trash.length ? `<button type="button" class="btn btn-sm btn-link" data-hclean="trash">${histFilter.trash ? "← Retour aux courses" : `🗑️ Corbeille (${trash.length})`}</button>` : ""}
+      </div>
+      ${histFilter.trash
+        ? (trash.length ? `<p class="small muted">Courses effacées : elles ne comptent nulle part. « ↩︎ Remettre » les fait revenir.</p><div class="orders">${trash.map(o => card(o, true)).join("")}</div>` : empty("Corbeille vide."))
+        : list.length ? `<div class="orders">${list.map(o => card(o, true)).join("")}</div>` : empty("Aucune course.")}`;
   } else {
     renderBilling(view);
   }
@@ -1749,6 +1761,29 @@ function openRoute() {
 }
 
 // --- Actions ---------------------------------------------------------------------------
+const plural = (n, one, many) => n === 1 ? one : many.replace("{n}", n);
+// Corbeille : effacer (hidden_at) ou remettre des courses ; la base refuse d'effacer une vraie course livrée
+async function hideOrders(list, hide) {
+  const at = hide ? new Date().toISOString() : null;
+  let ko = 0;
+  for (const o of list) {
+    try { await Store.updateOrder(o.id, { hidden_at: at }); } catch (e) { ko++; }
+  }
+  if (ko) alert(`${ko} course(s) non effacée(s) : seules les courses test, annulées ou refusées peuvent l'être.`);
+  await load();
+  if (!trash.length && histFilter.trash) { histFilter.trash = false; render(); }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-hclean]");
+  if (!b) return;
+  const k = b.dataset.hclean;
+  if (k === "trash") { histFilter.trash = !histFilter.trash; return render(); }
+  const list = k === "test" ? orders.filter(o => o.is_test) : orders.filter(o => !o.is_test && ["annulee", "refusee"].includes(o.status));
+  if (!list.length) return;
+  const what = k === "test" ? plural(list.length, "la course test", "les {n} courses test") : plural(list.length, "la course annulée", "les {n} courses annulées ou refusées");
+  if (confirm(`Effacer ${what} ? ${plural(list.length, "Elle part dans la corbeille : rien n'est perdu, on peut la remettre.", "Elles partent dans la corbeille : rien n'est perdu, on peut les remettre.")}`)) hideOrders(list, true);
+});
+
 async function change(o, changes) {
   try {
     await Store.updateOrder(o.id, changes);
@@ -1886,7 +1921,7 @@ function renderInbox(view) {
 
 function orderOf(el) {
   const art = el.closest("article.order");
-  return art && orders.find(o => o.id === art.dataset.id);
+  return art && (orders.find(o => o.id === art.dataset.id) || trash.find(o => o.id === art.dataset.id));
 }
 
 async function assignTo(o, courier) {
@@ -2229,6 +2264,10 @@ async function onViewClick(e) {
   } else if (el.dataset.act === "test") {
     // Course d'essai : gardée dans la liste, mais hors du chiffre, de la compta et des statistiques
     if (confirm(o.is_test ? `Remettre la course n° ${o.ref} dans le chiffre et la compta ?` : `Course n° ${o.ref} : c'était un essai ? Elle restera dans la liste mais ne comptera plus dans le chiffre, la compta et les statistiques.`)) change(o, { is_test: !o.is_test });
+  } else if (el.dataset.act === "hide") {
+    if (confirm(`Effacer la course n° ${o.ref} ? Elle part dans la corbeille (rien n'est perdu, on peut la remettre).`)) hideOrders([o], true);
+  } else if (el.dataset.act === "unhide") {
+    hideOrders([o], false);
   } else if (el.dataset.act === "ics") {
     exportIcs([o]);
   }
