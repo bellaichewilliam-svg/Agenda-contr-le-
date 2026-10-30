@@ -629,7 +629,7 @@ function drawDoneFlow() {
   const tips = [0, ...(CONFIG.platform.tips || [5, 10, 15])];
   let body = "";
   if (df.step === 0) {
-    body = `<div class="df-logo"><img src="icon-512.png" alt="HOP!" width="132" height="132" /></div>
+    body = `<div class="df-logo"><img src="hop-orange-512.png" alt="HOP!" width="132" height="132" /></div>
       <p class="df-meta">${UI.esc(who)} · ${UI.esc(day)}</p>
       <h2 class="df-title">${UI.esc(t("dfTitle"))}</h2>
       <p class="df-sub">${UI.esc(t("dfSub"))}</p>
