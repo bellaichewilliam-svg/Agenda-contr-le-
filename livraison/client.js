@@ -584,15 +584,20 @@ const cashMax = () => Number((state.settings && state.settings.cash_max) || 200)
 // Commerce Pro sans paiement en ligne (ni lien, ni Bit) : le client commande et paie chez lui par WhatsApp,
 // demande l'heure exacte où c'est prêt, puis commande ici la livraison (pas d'attente, pas de supplément)
 const shopNoPay = () => !!((proShopOn() || shopDropOn()) && state.shop && !state.shop.pay_link && !state.shop.pay_bit);
-function noPayBox(titleKey) {
+function noPayBox(titleKey, noTitle) {
   const sh = state.shop, name = UI.bi(sh.name), num = sh.whatsapp || sh.phone || "";
   const shown = num ? (String(num).replace(/\D/g, "").replace(/^972/, "0")) : "";
-  return `<div class="nopay"><b>💬 ${UI.esc(t(titleKey || "nopayTitle", { name }))}</b>
+  return `<div class="nopay${noTitle ? " bare" : ""}">${noTitle ? "" : `<b>💬 ${UI.esc(t(titleKey || "nopayTitle", { name }))}</b>`}
     <p><i>1</i><span>${UI.esc(t("nopay1", { name }))}</span></p>
     <p><i>2</i><span>${UI.esc(t("nopay2"))}</span></p>
     <p><i>3</i><span>${UI.esc(t("nopay3"))}</span></p>
     ${num ? `<a class="btn btn-wa btn-block" target="_blank" rel="noopener" href="${UI.esc(UI.waLink(num, t("nopayMsg", { name })))}">${UI.esc(t("nopayBtn", { name }))}</a>
       <small class="nopay-num">WhatsApp : <bdi>${UI.esc(shown)}</bdi></small>` : `<small>${UI.esc(t("nopayNoNum"))}</small>`}</div>`;
+}
+// Le même mode d'emploi, replié en une ligne au-dessus du catalogue : les produits passent en premier
+function noPayMini() {
+  const name = UI.bi(state.shop.name);
+  return `<details class="nopay-mini"><summary><i>💬</i><span><b>${UI.esc(t("nopayMini", { name }))}</b><small>${UI.esc(t("nopayMiniSub"))}</small></span></summary>${noPayBox(null, true)}</details>`;
 }
 const shopPrepay = () => !!(proShopOn() && (state.shop.pay_link || state.shop.pay_bit) && (cartCount() || val("shop_order").trim()));
 const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() ? cartTotal() : goodsPrepay() ? goodsBudget() : 0);
@@ -2354,8 +2359,7 @@ function renderCatalog() {
   // Les incontournables : les premiers articles du menu, en grandes cartes qui défilent
   const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : shopArt(p));
   const top = cgProducts().filter(p => p.available).slice(0, 8);
-  const html = `<b class="cg-title">${UI.esc(t("cgTitle", { name: UI.bi(state.shop.name) }))}</b>
-    ${shopNoPay() ? noPayBox() : ""}
+  const html = `${shopNoPay() ? noPayMini() : ""}
     ${cgProducts().length >= 5 ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = state.cart[p.id] || 0;
       return `<div class="cg-tcard${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}"><div class="cg-tpic">${pic(p)}
         <button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button></div>
@@ -2569,6 +2573,26 @@ $("#shopHero").addEventListener("toggle", async e => {
     d.querySelector(".sh-rev-list").innerHTML = (r && r.list && r.list.length) ? r.list.map(v => `<div class="sh-rev"><b>${"★".repeat(v.stars)}<i>${"★".repeat(5 - v.stars)}</i></b><span>${v.note ? UI.esc(v.note) : ""}</span><small>${UI.esc(v.name || "")}${v.at ? " · " + UI.esc(UI.fmtDay(v.at)) : ""}</small></div>`).join("") : `<p class="muted small">${UI.esc(t("shReviewsNone"))}</p>`;
   } catch (err) { d.querySelector(".sh-rev-list").textContent = t("shReviewsNone"); }
 }, true);
+// Une seule ligne sous le nom : ouvert / fermé, prix de la livraison, et deux boutons (WhatsApp, Infos)
+const WA_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2c2 1.1 4.3 1.7 6.6 1.7 7.2 0 13-5.7 13-12.8C29 8.7 23.2 3 16 3zm0 23.4c-2.1 0-4.1-.6-5.9-1.7l-.4-.3-3.8 1.2 1.2-3.7-.3-.4a10.4 10.4 0 0 1-1.7-5.7C5.1 10 10 5.2 16 5.2S26.9 10 26.9 15.8 22 26.4 16 26.4zm6-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a9 9 0 0 1-2.6-1.6 9.8 9.8 0 0 1-1.8-2.2c-.2-.3 0-.5.1-.7l.5-.6.3-.5v-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.1 1.1-1.1 2.7 1.2 3.1 1.3 3.3 2.3 3.5 5.6 4.9c.8.3 1.4.5 1.9.7.8.2 1.5.2 2.1.1.6-.1 1.9-.8 2.2-1.5s.3-1.4.2-1.5-.3-.2-.6-.3z"/></svg>`;
+function shopMeta(s) {
+  const st = UI.openState(s.hours), wa = String(s.whatsapp || "").replace(/\D/g, "");
+  const price = s.shop_pays ? "🎁 " + t("scGift") : "🛵 " + t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) });
+  return `<div class="sh-meta">
+      <div class="sh-meta-l">${st ? `<b class="sh-dot ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</b>` : ""}
+        <small>${UI.esc(price)} · ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</small></div>
+      <div class="sh-meta-r">${wa ? `<a class="sh-ic sh-ic-wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener" aria-label="${UI.esc(t("shWa"))}">${WA_SVG}</a>` : ""}
+        <button type="button" class="sh-ic sh-ic-info" data-sh-info="1"><i>i</i><span>${UI.esc(t("shInfoBtn"))}</span></button></div>
+    </div>`;
+}
+// Fiche « Infos » (s'ouvre par-dessus) : photos, présentation, adresse, horaires, WhatsApp, avis
+function shopSheet(s) {
+  return `<div class="sh-sheet${state.shInfo ? " open" : ""}" data-sh-sheet="1" aria-hidden="${state.shInfo ? "false" : "true"}">
+      <div class="sh-sheet-box" role="dialog" aria-modal="true" aria-label="${UI.esc(UI.bi(s.name))}">
+        <div class="sh-sheet-head"><b>${UI.esc(UI.bi(s.name))}</b><button type="button" class="sh-sheet-x" data-sh-close="1" aria-label="${UI.esc(t("close") || "×")}">✕</button></div>
+        ${shopGallery(s)}${shopInfo(s)}${shopReviewsFold(s)}
+      </div></div>`;
+}
 function renderShopBanner() {
   const side = shopSide(), on = !!side;
   $("#shopBanner").classList.toggle("hidden", !on);
@@ -2580,22 +2604,27 @@ function renderShopBanner() {
     const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
     // Enseigne sans commande en ligne (vitrine) : sa présentation, puis comment commander chez elle par WhatsApp
     const vit = !s.pro && !s.demo && side === "from";
+    // Commerce Pro : vitrine compacte (photo, logo, nom, une ligne d'infos) et les produits juste dessous
+    const compact = !!s.pro;
     const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small>${shopStars(s)}</div></div>
-      ${shopReviewsFold(s)}
-      ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}
+      ${compact ? shopMeta(s) : `${shopReviewsFold(s)}
+      ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}`}
       ${UI.shopText(s, "promo") ? `<p class="sh-promo"><i>📣</i><span>${UI.esc(UI.shopText(s, "promo"))}</span></p>` : ""}
-      ${s.pro ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
+      ${s.pro && !compact ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
       ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: UI.bi(s.name), when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
         <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: UI.bi(s.name) }))}</small></span></button>
         <button type="button" class="${side === "from" ? "on" : ""}" data-shop-dir="from"><i>👔</i><span><b>${UI.esc(t("shDirFrom"))}</b><small>${UI.esc(t("shDirFromSub", { name: UI.bi(s.name) }))}</small></span></button>
       </div>` : ""}
-      ${shopGallery(s)}
-      ${vit ? shopInfo(s, true) + noPayBox("vitTitle") : shopInfo(s)}`;
+      ${compact ? shopSheet(s) : `${shopGallery(s)}
+      ${vit ? shopInfo(s, true) + noPayBox("vitTitle") : shopInfo(s)}`}`;
     if (hero.dataset.html !== html) { hero.innerHTML = html; hero.dataset.html = html; }
   }
+  const compactOn = !!(showHero && s.pro);
+  if (compactOn) $("#shopBanner").classList.add("hidden");
+  document.body.classList.toggle("shop-compact", compactOn);
   if (on) $("#shopBannerText").textContent = t(side === "to" ? "shBannerTo" : "shBanner", { name: UI.bi(state.shop.name) });
   const pro = proShopOn();
   // Commerce à l'arrivée (pressing : on lui apporte les vêtements) : le catalogue seul, sans commande à préparer
@@ -3912,6 +3941,8 @@ function openShopPhoto(i) {
   document.body.appendChild(d);
 }
 $("#shopHero").addEventListener("click", e => {
+  if (e.target.closest("[data-sh-info]")) { state.shInfo = true; return renderShopBanner(); }
+  if (e.target.closest("[data-sh-close]") || e.target.matches("[data-sh-sheet]")) { state.shInfo = false; return renderShopBanner(); }
   const ph = e.target.closest("[data-sh-photo]");
   if (ph) return openShopPhoto(ph.dataset.shPhoto);
   const b = e.target.closest("[data-shop-dir]");
