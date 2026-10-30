@@ -3284,3 +3284,8 @@ body.trk-v2.trk-day .df-skip { color: #E0520A; }
 .fin-course > span { display: grid; min-width: 0; line-height: 1.3; }
 .fin-course small { color: var(--rd-mute, var(--muted)); font-size: 12.5px; }
 .fin-course-n { text-align: end; flex: none; }
+a.fin-hero { text-decoration: none; color: inherit; }
+.fin-week-courses { margin-top: 12px; padding: 14px 16px 6px; border-radius: 18px; background: var(--rd-panel, var(--panel)); border: 1px solid var(--border); scroll-margin-top: 70px; }
+.fin-week-courses > b { display: block; margin-bottom: 4px; font-size: 15px; }
+.fin-course-tot { font-weight: 700; }
+.fin-course-tot > span:first-child { font-size: 14px; }

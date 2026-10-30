@@ -1112,32 +1112,41 @@ function creditView() {
       ${pending.length ? `<p class="muted small">HOP valide vos recharges dès réception.</p>` : ""}
     </div>`;
 }
+// Une ligne par course : jour, n°, client, prix, commission, ce que le livreur gagne
+function finCourses(list) {
+  return list.slice().sort((a, b) => new Date(b.pickup_at) - new Date(a.pickup_at)).map(o => `<div class="fin-course">
+      <span><small>${UI.esc(new Date(o.pickup_at).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }))} · n° ${UI.esc(String(o.ref).split("-").pop())}${o.is_test ? " · 🧪 test" : ""}</small>${UI.esc(o.dropoff_contact || o.contact_name || "")}</span>
+      <span class="fin-course-n"><small>${UI.money(o.price)}${Number(o.commission) > 0 ? ` · commission −${UI.money(o.commission)}` : " · sans commission"}</small><b>${UI.money(Store.courierGain(o))}</b></span></div>`).join("");
+}
 function financesView(start, week, d) {
   const bal = balance + penDue();
   const cur = weekGain(start);
   const payDay = UI.addDays(start, 7 + Number(CONFIG.platform.settlementDay || 0));
   const past = [1, 2, 3, 4, 5, 6, 7, 8].map(i => weekGain(UI.addDays(start, -7 * i))).filter(w => w.list.length || w.total);
   const line = (label, v, sign) => v ? `<div class="fin-row"><span>${label}</span><b>${sign || ""}${UI.money(v)}</b></div>` : "";
-  const weekItem = w => `<details class="fin-op">
+  const weekItem = (w, withCourses = true) => `<details class="fin-op">
       <summary><div><small>${UI.esc(shortDate(w.e))}</small><b>Semaine du ${UI.esc(shortDate(w.s))} au ${UI.esc(shortDate(w.e, true))}</b>
         <span class="muted small">${w.list.length} course(s) · ${w.settled ? "✓ Réglé" : "⏳ À régler"} · ID HOP-${w.s.replace(/-/g, "")}</span></div>
         <b class="fin-amount">${UI.money(w.total)}</b></summary>
       <div class="fin-detail">
         ${line("Courses (après commission)", w.courses)}${line("💝 Pourboires", w.tips, "+")}${line("🤝 Bonus réseau", w.bonus, "+")}${line("⭐ Abonnements Pro", w.plans, "+")}
         ${line("Encaissé auprès des clients", w.cash)}${line("Commission HOP", w.commission)}${line("💸 Retenues", w.pen, "−")}
-        ${w.list.length ? `<div class="fin-courses"><b class="small">Le détail de vos courses</b>${w.list.slice().sort((a, b) => new Date(a.pickup_at) - new Date(b.pickup_at)).map(o => `<div class="fin-course">
-          <span><small>${UI.esc(new Date(o.pickup_at).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }))} · n° ${UI.esc(String(o.ref).split("-").pop())}${o.is_test ? " · 🧪 test" : ""}</small>${UI.esc(o.dropoff_contact || o.contact_name || "")}</span>
-          <span class="fin-course-n"><small>${UI.money(o.price)}${Number(o.commission) > 0 ? ` · commission −${UI.money(o.commission)}` : " · sans commission"}</small><b>${UI.money(Store.courierGain(o))}</b></span></div>`).join("")}</div>` : ""}
+        ${withCourses && w.list.length ? `<div class="fin-courses"><b class="small">Le détail de vos courses</b>${finCourses(w.list)}</div>` : ""}
         ${w.pens.map(p => `<p class="small pen-line">💸 −${UI.money(p.amount)}${p.order_ref ? " · course n° " + UI.esc(p.order_ref) : ""} : ${UI.esc(p.reason)}${p.status === "regle" ? " · déduite ✓" : " · sera déduite au prochain versement"}</p>`).join("")}
       </div></details>`;
-  return `<div class="fin-hero">
+  return `<a class="fin-hero" href="#finWeekCourses" data-fin-scroll="1">
       <small>Gains de la semaine ›</small>
       ${moneyAnim("week:" + start, cur.total)}
       <span>${cur.list.length} course(s) · prochain règlement le ${UI.esc(new Date(payDay + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" }))}</span>
+    </a>
+    <div class="fin-week-courses" id="finWeekCourses">
+      <b>🧾 Vos courses de la semaine</b>
+      ${cur.list.length ? finCourses(cur.list) + `<div class="fin-course fin-course-tot"><span>Total · ${cur.list.length} course(s)</span><span class="fin-course-n"><small>${UI.money(sum(cur.list, o => Number(o.price || 0)))} · commission −${UI.money(cur.commission)}</small><b>${UI.money(cur.courses)}</b></span></div>`
+        : `<p class="muted small" style="margin:6px 0 0">Pas encore de course livrée cette semaine.</p>`}
     </div>
     ${creditView()}
     <h3 class="fin-title">Opérations récentes</h3>
-    <div class="fin-ops">${weekItem(cur).replace("<details", "<details open")}${past.map(weekItem).join("") || `<p class="muted small">Pas encore d'autre semaine.</p>`}</div>
+    <div class="fin-ops">${weekItem(cur, false)}${past.map(weekItem).join("") || `<p class="muted small">Pas encore d'autre semaine.</p>`}</div>
     <details class="fin-more"><summary>Détail du solde</summary>
       ${line("Commission due (toutes semaines)", d.amountDue)}${line("Courses payées à HOP (reversées)", d.hopDue, "−")}
       ${line("Part des commerces Pro et codes promo", d.hopAdds, "−")}${line("💝 Pourboires reçus par HOP", d.tipsDue, "−")}
@@ -2919,3 +2928,12 @@ UI.iosInstallHint("HOP! Livreur");
 window.hopReady = true;
 
 })();
+
+// « Gains de la semaine › » : descend jusqu'à la liste des courses de la semaine
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-fin-scroll]");
+  if (!a) return;
+  e.preventDefault();
+  const el = document.getElementById("finWeekCourses");
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+});
