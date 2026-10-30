@@ -845,7 +845,7 @@ async function courierFields(c, o) {
   const network = !!o.referrer_id && o.referrer_id === c.id && !!c.network_perks;
   return {
     status: "confirmee", courier_id: c.id, courier_name: c.name, courier_phone: c.phone, network,
-    courier_bit: c.bit_phone || c.phone, commission: c.role === "admin" ? 0 : commissionFor(courseValue(o), settings, network)
+    courier_bit: c.bit_phone || c.phone, commission: commissionFor(courseValue(o), settings, network)   // patron compris : ses courses paient la commission comme un livreur
   };
 }
 
