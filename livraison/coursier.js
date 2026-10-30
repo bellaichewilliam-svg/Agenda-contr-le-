@@ -1121,23 +1121,22 @@ function finCourses(list) {
 function financesView(start, week, d) {
   const bal = balance + penDue();
   const cur = weekGain(start);
-  const payDay = UI.addDays(start, 7 + Number(CONFIG.platform.settlementDay || 0));
   const past = [1, 2, 3, 4, 5, 6, 7, 8].map(i => weekGain(UI.addDays(start, -7 * i))).filter(w => w.list.length || w.total);
   const line = (label, v, sign) => v ? `<div class="fin-row"><span>${label}</span><b>${sign || ""}${UI.money(v)}</b></div>` : "";
   const weekItem = (w, withCourses = true) => `<details class="fin-op">
       <summary><div><small>${UI.esc(shortDate(w.e))}</small><b>Semaine du ${UI.esc(shortDate(w.s))} au ${UI.esc(shortDate(w.e, true))}</b>
-        <span class="muted small">${w.list.length} course(s) · ${w.settled ? "✓ Réglé" : "⏳ À régler"} · ID HOP-${w.s.replace(/-/g, "")}</span></div>
+        <span class="muted small">${w.list.length} course(s) · commission déduite de votre crédit</span></div>
         <b class="fin-amount">${UI.money(w.total)}</b></summary>
       <div class="fin-detail">
         ${line("Courses (après commission)", w.courses)}${line("💝 Pourboires", w.tips, "+")}${line("🤝 Bonus réseau", w.bonus, "+")}${line("⭐ Abonnements Pro", w.plans, "+")}
         ${line("Encaissé auprès des clients", w.cash)}${line("Commission HOP", w.commission)}${line("💸 Retenues", w.pen, "−")}
         ${withCourses && w.list.length ? `<div class="fin-courses"><b class="small">Le détail de vos courses</b>${finCourses(w.list)}</div>` : ""}
-        ${w.pens.map(p => `<p class="small pen-line">💸 −${UI.money(p.amount)}${p.order_ref ? " · course n° " + UI.esc(p.order_ref) : ""} : ${UI.esc(p.reason)}${p.status === "regle" ? " · déduite ✓" : " · sera déduite au prochain versement"}</p>`).join("")}
+        ${w.pens.map(p => `<p class="small pen-line">💸 −${UI.money(p.amount)}${p.order_ref ? " · course n° " + UI.esc(p.order_ref) : ""} : ${UI.esc(p.reason)}${p.status === "regle" ? " · déduite ✓" : " · déduite de votre crédit"}</p>`).join("")}
       </div></details>`;
   return `<a class="fin-hero" href="#finWeekCourses" data-fin-scroll="1">
       <small>Gains de la semaine ›</small>
       ${moneyAnim("week:" + start, cur.total)}
-      <span>${cur.list.length} course(s) · prochain règlement le ${UI.esc(new Date(payDay + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" }))}</span>
+      <span>${cur.list.length} course(s) · payées directement par vos clients</span>
     </a>
     <div class="fin-week-courses" id="finWeekCourses">
       <b>🧾 Vos courses de la semaine</b>
