@@ -1125,6 +1125,9 @@ function financesView(start, week, d) {
       <div class="fin-detail">
         ${line("Courses (après commission)", w.courses)}${line("💝 Pourboires", w.tips, "+")}${line("🤝 Bonus réseau", w.bonus, "+")}${line("⭐ Abonnements Pro", w.plans, "+")}
         ${line("Encaissé auprès des clients", w.cash)}${line("Commission HOP", w.commission)}${line("💸 Retenues", w.pen, "−")}
+        ${w.list.length ? `<div class="fin-courses"><b class="small">Le détail de vos courses</b>${w.list.slice().sort((a, b) => new Date(a.pickup_at) - new Date(b.pickup_at)).map(o => `<div class="fin-course">
+          <span><small>${UI.esc(new Date(o.pickup_at).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }))} · n° ${UI.esc(String(o.ref).split("-").pop())}${o.is_test ? " · 🧪 test" : ""}</small>${UI.esc(o.dropoff_contact || o.contact_name || "")}</span>
+          <span class="fin-course-n"><small>${UI.money(o.price)}${Number(o.commission) > 0 ? ` · commission −${UI.money(o.commission)}` : " · sans commission"}</small><b>${UI.money(Store.courierGain(o))}</b></span></div>`).join("")}</div>` : ""}
         ${w.pens.map(p => `<p class="small pen-line">💸 −${UI.money(p.amount)}${p.order_ref ? " · course n° " + UI.esc(p.order_ref) : ""} : ${UI.esc(p.reason)}${p.status === "regle" ? " · déduite ✓" : " · sera déduite au prochain versement"}</p>`).join("")}
       </div></details>`;
   return `<div class="fin-hero">
