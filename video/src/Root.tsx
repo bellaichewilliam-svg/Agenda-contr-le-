@@ -9,6 +9,7 @@ import { Route, ROUTE_FRAMES } from './Route';
 import { Cycle, CYCLE_FRAMES } from './Cycle';
 import { Grid } from './Grid';
 import { AdoptHop, ADOPT_FRAMES } from './Adopt';
+import { Tout, TOUT_FRAMES } from './Tout';
 
 export const Root: React.FC = () => (
   <>
@@ -26,6 +27,8 @@ export const Root: React.FC = () => (
     <Composition id="HopCycleHe" component={Cycle} durationInFrames={CYCLE_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Composition id="HopAdopt" component={AdoptHop} durationInFrames={ADOPT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
     <Composition id="HopAdoptHe" component={AdoptHop} durationInFrames={ADOPT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
+    <Composition id="HopTout" component={Tout} durationInFrames={TOUT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="HopToutHe" component={Tout} durationInFrames={TOUT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Still id="HopGrid1" component={Grid} width={1080} height={1350} defaultProps={{ tile: 0 }} />
     <Still id="HopGrid2" component={Grid} width={1080} height={1350} defaultProps={{ tile: 1 }} />
     <Still id="HopGrid3" component={Grid} width={1080} height={1350} defaultProps={{ tile: 2 }} />
