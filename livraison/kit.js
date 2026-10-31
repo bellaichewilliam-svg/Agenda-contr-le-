@@ -408,6 +408,12 @@ const ALL_POSTS = PARTNER_POSTS.concat(CHABBAT_POSTS, VISITE_POSTS, COURSES_POST
   .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
 
 // Campagnes de visuels : chaque carte = un message, avec ses formats (post carré, story, flyer A5) et sa vidéo
+const APP_URL = location.origin + location.pathname.replace(/[^/]*$/, "");
+const CAPTION = {
+  fr: `HOP! 🛵 Livraison à Netanya : restaurants, courses, colis… livrés au plus vite, encore chauds.\n👉 ${APP_URL}\n#Netanya #livraison #HOP`,
+  he: `HOP! 🛵 משלוחים בנתניה: מסעדות, קניות, חבילות… מגיעים הכי מהר, עדיין חמים.\n👉 ${APP_URL}\n#נתניה #משלוחים #HOP`,
+};
+const UPLOAD = [["Instagram", "https://www.instagram.com/"], ["TikTok", "https://www.tiktok.com/tiktokstudio/upload"], ["Facebook", "https://www.facebook.com/"]];
 const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
@@ -469,11 +475,12 @@ function renderKit() {
       <a class="camp-thumb" href="${f(c.id, c.thumb || "story")}" data-vis data-src="${f(c.id, c.thumb || "story")}"><img src="${f(c.id, c.thumb || "story")}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
       <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
         <div class="camp-btns">${c.formats.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
-          ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4${VQ}" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}</div></div></div>`).join("")
+          ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4${VQ}" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}
+          ${c.formats.includes("story") ? shareBtn(f(c.id, "story"), `hop-${c.id}-story-${L}.png`, "📲 Publier la story") : ""}</div></div></div>`).join("")
     || `<p class="muted small">Rien pour l'instant.</p>`;
   const vids = VIDEOS.filter(v => v.aud === ui.aud);
   $("#kitVideos").innerHTML = vids.map(v => `<figure${v.ratio ? ' class="wide"' : ""}><video src="${V}${v.id}-video-${L}.mp4${VQ}" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
-      <figcaption><b>${UI.esc(v.title)}</b><a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4${VQ}" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></figcaption></figure>`).join("")
+      <figcaption><b>${UI.esc(v.title)}</b><span class="kshare-row">${shareBtn(`${V}${v.id}-video-${L}.mp4${VQ}`, `hop-${v.id}-${L}.mp4`)}<a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4${VQ}" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></span></figcaption></figure>`).join("")
     || `<p class="muted small">Pas encore de vidéo pour eux : les visuels sont dans l'onglet 🖼️.</p>`;
   // Les textes bilingues (statut, phrases courtes, fiche Google) apparaissent dans les deux langues
   const bi = p => p.dir === "ltr" && /[\u0590-\u05FF]/.test(p.text);
@@ -482,6 +489,8 @@ function renderKit() {
       <b>${UI.esc(p.title)}</b>
       <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(p.text)}</div>
       <div class="kpost-btns"><button class="btn btn-sm btn-primary" data-copy="post${i}">Copier</button>
+        ${navigator.share ? `<button class="btn btn-sm btn-share" data-share-text="post${i}">📲 Partager</button>` : ""}
+        <a class="btn btn-sm btn-fb" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(APP_URL)}" target="_blank" rel="noopener" data-fb-copy="post${i}">Facebook</a>
         <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a></div></div>`).join("")
     || `<p class="muted small">Pas de texte pour eux dans cette langue.</p>`;
 }
@@ -492,6 +501,61 @@ document.addEventListener("click", e => {
   if (lg) { ui.lang = lg.dataset.klang; renderKit(); }
 });
 renderKit();
+
+// --- Publier en direct sur Instagram, TikTok, Facebook (et WhatsApp…) ----------------------------------
+// Sur téléphone : la feuille de partage du téléphone, avec le fichier déjà joint (Instagram Reels / Story,
+// TikTok, Facebook, WhatsApp y apparaissent). Sur ordinateur, ces applis n'acceptent pas d'envoi depuis une
+// page web : on enregistre le fichier et on ouvre leur page d'envoi. La légende est copiée pour être collée.
+function shareBtn(url, name, label) {
+  return `<button type="button" class="btn btn-sm btn-share" data-share="${UI.esc(url)}" data-name="${UI.esc(name)}">${label || "📲 Insta · TikTok · Facebook"}</button>`;
+}
+const shareFiles = new Map();
+const copyCaption = () => { try { navigator.clipboard && navigator.clipboard.writeText(CAPTION[ui.lang] || CAPTION.fr).catch(() => {}); } catch (_) { /* rien */ } };
+function shareHelp(btn, url, name, mobile) {
+  const old = btn.parentElement.querySelector(".kshare-help");
+  if (old) old.remove();
+  const box = document.createElement("div");
+  box.className = "kshare-help";
+  box.innerHTML = mobile
+    ? `Ce téléphone ne permet pas l'envoi direct : le fichier est enregistré. Ouvrez l'appli et choisissez-le dans votre galerie. <b>Légende copiée</b> : collez-la.`
+    : `✓ Fichier enregistré, <b>légende copiée</b>. Ouvrez la page d'envoi, choisissez le fichier, collez la légende :
+      <span>${UPLOAD.map(([n, u]) => `<a class="btn btn-sm" href="${u}" target="_blank" rel="noopener">${n}</a>`).join("")}</span>`;
+  btn.insertAdjacentElement("afterend", box);
+  const a = document.createElement("a");
+  a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+async function shareMedia(btn) {
+  const url = btn.dataset.share, name = btn.dataset.name;
+  copyCaption();
+  if (!navigator.share || !navigator.canShare) return shareHelp(btn, url, name, false);
+  let file = shareFiles.get(url);
+  const label = btn.dataset.label || btn.innerHTML;
+  btn.dataset.label = label;
+  if (!file) {
+    btn.disabled = true; btn.textContent = "⏳ Préparation…";
+    try {
+      const blob = await (await fetch(url)).blob();
+      file = new File([blob], name, { type: blob.type || (/\.mp4$/i.test(name) ? "video/mp4" : "image/png") });
+      shareFiles.set(url, file);
+    } catch (_) { btn.disabled = false; btn.innerHTML = label; return alert("Pas de connexion : réessayez."); }
+    btn.disabled = false;
+  }
+  if (!navigator.canShare({ files: [file] })) { btn.innerHTML = label; return shareHelp(btn, url, name, true); }
+  try { await navigator.share({ files: [file], text: CAPTION[ui.lang] || CAPTION.fr }); btn.innerHTML = label; }
+  catch (ex) {
+    // Le téléchargement a pris trop de temps : le téléphone demande un 2e toucher pour ouvrir le partage
+    if (ex && ex.name === "NotAllowedError") { btn.innerHTML = "📲 Publier maintenant"; btn.classList.add("ready"); }
+    else btn.innerHTML = label;
+  }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-share]");
+  if (b) { e.preventDefault(); e.stopPropagation(); return shareMedia(b); }
+  const t = e.target.closest("[data-share-text]");
+  if (t) { const el = document.getElementById(t.dataset.shareText); if (el && navigator.share) navigator.share({ text: el.textContent }).catch(() => {}); return; }
+  const fb = e.target.closest("[data-fb-copy]");
+  if (fb) { const el = document.getElementById(fb.dataset.fbCopy); try { el && navigator.clipboard && navigator.clipboard.writeText(el.textContent).catch(() => {}); } catch (_) { /* rien */ } }
+}, true);
 
 // Visuels : ouverts en grand dans la page, avec Fermer / Enregistrer / Partager (plus de nouvel onglet sans retour)
 function openVisual(a, qrName) {
@@ -505,20 +569,12 @@ function openVisual(a, qrName) {
   box.innerHTML = `<div class="vv-bar">
       <a class="btn btn-sm btn-primary" href="${src}" download="${name}">⬇ Enregistrer</a>
       ${pdf ? `<a class="btn btn-sm" href="${href}" download="${href.split("/").pop().split("?")[0]}">📄 PDF à imprimer</a>` : ""}
-      ${navigator.share ? `<button type="button" class="btn btn-sm" data-vv-share>📤 Partager</button>` : ""}
+      ${pdf ? "" : shareBtn(src, name)}
       <button type="button" class="btn btn-sm" data-vv-close>✕ Fermer</button>
     </div>
     <img src="${src}" alt="" />`;
   box.addEventListener("click", async e => {
     if (e.target.closest("[data-vv-close]") || e.target === box) return history.back();
-    if (e.target.closest("[data-vv-share]")) {
-      try {
-        const blob = await (await fetch(src)).blob();
-        const file = new File([blob], name, { type: blob.type || "image/png" });
-        if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: nameFr });
-        else await navigator.share({ title: nameFr, url: new URL(src, location.href).href });
-      } catch (ex) { /* partage annulé */ }
-    }
   });
   document.body.appendChild(box);
   history.pushState({ vis: 1 }, "");
