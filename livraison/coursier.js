@@ -598,6 +598,7 @@ async function load() {
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   await checkChats();
   render();
+  checkBadges();
   // Appli ouverte en touchant une notification : on va directement à la course ou à la conversation
   if (notifFirst) { notifFirst = false; openFromNotif(location.href); }
 }
@@ -2508,6 +2509,21 @@ function fitRiderMap() {
   rmap.map.fitBounds(pts.length ? pts : rmap.pts, { paddingTopLeft: [40, 80], paddingBottomRight: [40, sheet + 30], maxZoom: 16, animate: false });
 }
 
+// --- Badges : 1, 10, 25, 50, 100, 250, 500, 1000 courses livrées (badge.js) ----------------------
+// Le plus haut palier atteint s'affiche une fois par téléphone ; jamais par-dessus une course proposée.
+function checkBadges() {
+  if (!me || !window.Badge || document.hidden || offerShown || document.querySelector(".bdg")) return;
+  const n = orders.filter(o => o.courier_id === me.id && o.status === "livree").length;
+  const got = Badge.reached(n);
+  if (!got.length) return;
+  const key = "hop.badge." + me.id, top = got[got.length - 1].n;
+  let seen = 0;
+  try { seen = Number(localStorage.getItem(key) || 0); } catch (_) { return; }
+  if (top <= seen) return;
+  try { localStorage.setItem(key, String(top)); } catch (_) { return; }
+  Badge.show({ n: top, name: me.name });
+}
+
 // --- Pages : statistiques, réglages, aide, messages -----------------------------------------
 function renderStats(view) {
   const done = orders.filter(o => o.courier_id === me.id && o.status === "livree");
@@ -2531,7 +2547,10 @@ function renderStats(view) {
       <div class="stat"><small>Courses au total</small><b>${done.length}</b></div>
       <div class="stat"><small>Moyenne par course</small><b>${UI.money(done.length ? gain(done) / done.length : 0)}</b></div>
     </div>
-    <div class="card"><h3>Vos gains des 6 dernières semaines</h3>
+    <div class="card"><h3>🏅 Mes badges</h3>
+      <div class="bdg-row">${Badge.MILESTONES.map(m => `<button type="button" data-badge="${m.n}"${done.length >= m.n ? "" : " disabled"} aria-label="${UI.esc(m.title)}${done.length >= m.n ? "" : " (à débloquer)"}">${Badge.medal(m.n, done.length < m.n)}<span>${UI.esc(m.tier)}</span></button>`).join("")}</div>
+      ${(next => next ? `<p class="muted small" style="margin-top:10px">Prochain badge : ${UI.esc(next.title)}, encore ${next.n - done.length} course${next.n - done.length > 1 ? "s" : ""}.</p>` : "")(Badge.MILESTONES.find(m => done.length < m.n))}</div>
+    <div class="card" style="margin-top:14px"><h3>Vos gains des 6 dernières semaines</h3>
       <div class="stat-bars">${weeks.map(w => `<div><b>${w.g ? UI.money(w.g) : ""}</b><i style="height:${Math.round(110 * w.g / top) + 4}px"></i><span>${UI.esc(UI.fmtKey(w.s).replace(/\s\d{4}$/, ""))}</span></div>`).join("")}</div>
       <p class="muted small">Gains = courses − commission HOP + pourboires reçus${refOn() ? " (hors bonus réseau et abonnements Pro)" : ""}.</p></div>
     <div class="card" style="margin-top:14px"><table class="prices">
@@ -2878,6 +2897,8 @@ $("#sheetBody").addEventListener("click", async e => {
 initSlider();
 initSheetDrag();
 $("#view").addEventListener("click", onViewClick);
+// Badge déjà gagné : on le revoit en touchant sa médaille
+$("#view").addEventListener("click", e => { const b = e.target.closest("[data-badge]"); if (b && !b.disabled && me) Badge.show({ n: Number(b.dataset.badge), name: me.name }); });
 $("#view").addEventListener("change", e => {
   // Pièce d'identité vérifiée (tabac / alcool) : le bouton « Livré » s'ouvre, et c'est gardé sur la course
   if (e.target.dataset.idcheck) {

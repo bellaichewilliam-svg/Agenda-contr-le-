@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F1F3D" />
+  <meta name="robots" content="noindex" />
+  <title>HOP! · Badges des livreurs</title>
+  <link rel="icon" href="logo.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=202610312034" />
+  <style>
+    body { background: #0F1F3D; color: #fff; min-height: 100vh; font-family: Rubik, sans-serif; }
+    .bd-page { max-width: 460px; margin: 0 auto; padding: 32px 16px; text-align: center; }
+    .bd-page h1 { font: 700 26px/1.15 Fredoka, Rubik, sans-serif; margin-bottom: 8px; }
+    .bd-page p { color: #C9D3E6; font-size: 15px; line-height: 1.45; }
+    .bd-page .bdg-row { justify-content: center; margin-top: 24px; }
+    .bd-page .bdg-row button { color: #C9D3E6; }
+  </style>
+</head>
+<body>
+  <main class="bd-page">
+    <h1>🏅 Badges des livreurs</h1>
+    <p>Chaque livreur débloque un badge à 1, 10, 25, 50, 100, 250, 500 et 1 000 courses livrées. Il s'affiche une fois dans l'appli HOP! Livreur, puis reste dans « Statistiques ». Touchez une médaille pour la voir.</p>
+    <div class="bdg-row" id="row"></div>
+  </main>
+  <script src="badge.js?v=202610312034"></script>
+  <script>
+    const row = document.getElementById("row");
+    row.innerHTML = Badge.MILESTONES.map(m => `<button type="button" data-n="${m.n}">${Badge.medal(m.n)}<span>${m.tier}</span></button>`).join("");
+    row.addEventListener("click", e => { const b = e.target.closest("[data-n]"); if (b) Badge.show({ n: Number(b.dataset.n), name: "Ilan" }); });
+    const n = Number(new URLSearchParams(location.search).get("n"));
+    if (n !== 0) Badge.show({ n: Badge.MILESTONES.some(m => m.n === n) ? n : 100, name: "Ilan" });
+  </script>
+</body>
+</html>
