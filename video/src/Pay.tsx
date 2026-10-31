@@ -1,4 +1,5 @@
 import React from 'react';
+import { HoppyHop } from './HoppyHop';
 import { AbsoluteFill, Audio, Sequence, random, spring, staticFile, useCurrentFrame } from 'remotion';
 import { C, DISPLAY, UI } from './theme';
 import { Digit, Flashes, Grain, Vignette, Wordmark, inExpo, inOut, lerp, outExpo, shake, useSpring, NIGHT } from './Reel';
@@ -295,7 +296,7 @@ export const Pay: React.FC<{ music?: boolean; lang?: PayLang }> = ({ music = tru
     <Sequence from={225} durationInFrames={75}><CashScene /></Sequence>
     <Sequence from={300} durationInFrames={60}><PaidScene /></Sequence>
     <Sequence from={360} durationInFrames={45}><TilesScene /></Sequence>
-    <Sequence from={405} durationInFrames={45}><Outro /></Sequence>
+    <Sequence from={405} durationInFrames={45}><Outro /><HoppyHop x={210} bottom={1890} h={560} at={0.35} /></Sequence>
     <Flashes />
     <Vignette />
     <Grain />

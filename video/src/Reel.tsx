@@ -1,4 +1,5 @@
 import React from 'react';
+import { HoppyHop } from './HoppyHop';
 import { AbsoluteFill, Audio, Easing, Sequence, interpolate, random, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { evolvePath, getLength, getPointAtLength, getTangentAtLength } from '@remotion/paths';
 import { C, DISPLAY, UI } from './theme';
@@ -426,7 +427,7 @@ export const Reel: React.FC<{ music?: boolean; lang?: ReelLang }> = ({ music = t
     <Sequence from={225} durationInFrames={75}><PhoneScene /></Sequence>
     <Sequence from={300} durationInFrames={60}><PriceScene /></Sequence>
     <Sequence from={360} durationInFrames={45}><TilesScene /></Sequence>
-    <Sequence from={405} durationInFrames={45}><Outro /></Sequence>
+    <Sequence from={405} durationInFrames={45}><Outro /><HoppyHop x={210} bottom={1890} h={560} at={0.35} /></Sequence>
     <Flashes />
     <Vignette />
     <Grain />
