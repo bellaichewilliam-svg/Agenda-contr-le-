@@ -52,3 +52,20 @@ python3 scripts/reel_music.py
 npx remotion render src/index.ts HopReel out/hop-showreel-15s.mp4
 npx remotion render src/index.ts HopReelHe out/hop-showreel-15s-he.mp4   # en hébreu, de droite à gauche
 ```
+
+## Survol 3D de la page d'accueil (`HopFly`)
+
+1440 × 1152, 60 i/s, 14,5 s, un seul mouvement de caméra (`src/Fly.tsx`, musique `scripts/fly_music.py`).
+La page d'accueil HOP! est posée à plat sur un sol de studio (#f9fbfb au centre, #f2f3f6 aux coins), coins arrondis 24 px,
+ombres douces. Les cartes, photos, puces et le téléphone se soulèvent de 20 à 40 px quand la caméra passe.
+
+- 0–8,2 s : survol continu du hero jusqu'au bas de la page (on accélère au début, on ralentit à la fin seulement) ;
+- 7,75–9,25 s : montée à la verticale, la page entière en une bande ; 9,25–9,47 s : pause ;
+- 9,47–9,97 s : plongée dans le hero ; 9,97–14,5 s : le hero devient la carte titre
+  (badge HOP!, « Vos courses et vos restos, livrés en une minute. » en Geist Medium, « au prix du magasin. » en Instrument Serif italique).
+- Les quatre tuiles-logos (Marylou, HOP!, Le Marché Français, HOP! orange) restent autour du hero jusqu'à la fin.
+
+```bash
+python3 scripts/fly_music.py
+npx remotion render src/index.ts HopFly out/hop-landing-flythrough.mp4
+```
