@@ -50,4 +50,5 @@ Vidéo verticale 1080 × 1920, 15 s, 120 BPM : chaque coupe tombe sur un temps (
 ```bash
 python3 scripts/reel_music.py
 npx remotion render src/index.ts HopReel out/hop-showreel-15s.mp4
+npx remotion render src/index.ts HopReelHe out/hop-showreel-15s-he.mp4   # en hébreu, de droite à gauche
 ```

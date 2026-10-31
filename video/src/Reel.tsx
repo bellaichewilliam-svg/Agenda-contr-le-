@@ -7,6 +7,22 @@ import { LETTERS } from './wordmark';
 // Showreel HOP! : 15 s, 1080 × 1920, 120 BPM (1 temps = 15 images). Chaque coupe tombe sur un temps,
 // la musique (scripts/reel_music.py) suit les mêmes images clés.
 export const REEL_FRAMES = 450;
+export type ReelLang = 'fr' | 'he';
+const STR = {
+  fr: { rtl: false, onLivre: 'ON LIVRE', words: ['REPAS', 'PHARMACIE', 'COLIS', 'FLEURS', 'COURSES'], track: 'Suivi en direct', min: 'min', rider: 'Ilan arrive chez vous',
+    ordered: 'Commandé en 1 min.', hop: "Et hop, c'est livré !", livre: 'Livré ! 🎉', bubbles: ['🛵 Ilan · ⭐ 4,9', "💬 J'arrive !", '🧾 Reçu envoyé'],
+    city: 'LA COURSE DANS NETANYA', from: 'dès', fixed: 'PRIX FIXE', pays: ['Bit', 'Espèces', 'Express ⚡'],
+    tiles: ['de commission pour les commerces', 'Livreurs : vous choisissez vos horaires', 'En français et en hébreu', "Suivi en direct jusqu'à la porte"],
+    tag: 'Netanya · HaSharon · FR · עב' },
+  he: { rtl: true, onLivre: 'אנחנו מביאים', words: ['אוכל', 'תרופות', 'חבילות', 'פרחים', 'קניות'], track: 'מעקב בזמן אמת', min: "דק'", rider: 'אילן בדרך אליכם',
+    ordered: 'הזמנתם בדקה.', hop: 'הופ, וזה אצלך!', livre: 'נמסר! 🎉', bubbles: ['🛵 אילן · ⭐ 4.9', '💬 אני מגיע!', '🧾 הקבלה נשלחה'],
+    city: 'משלוח בנתניה', from: 'החל מ־', fixed: 'מחיר קבוע', pays: ['ביט', 'מזומן', 'אקספרס ⚡'],
+    tiles: ['עמלה לבתי העסק', 'שליחים: אתם בוחרים את השעות', 'בעברית ובצרפתית', 'מעקב חי עד הדלת'],
+    tag: 'נתניה · השרון · FR · עב' },
+};
+type Str = typeof STR.fr;
+const Lang = React.createContext<Str>(STR.fr);
+const useT = () => React.useContext(Lang);
 const CUTS = [60, 135, 225, 300, 360, 405];
 const NIGHT = '#0B0F1A';
 
@@ -119,7 +135,8 @@ const WORDS = [
 ];
 const Word: React.FC<{ i: number }> = ({ i }) => {
   const f = useCurrentFrame();
-  const w = WORDS[i], dir = i % 2 ? -1 : 1;
+  const T = useT();
+  const w = { ...WORDS[i], w: T.words[i] }, dir = (i % 2 ? -1 : 1) * (T.rtl ? -1 : 1);
   const wipe = lerp(f, [0, 5], [1, 0], outExpo);
   const s = useSpring(0, 13, 300, 0.5);
   const size = Math.min(290, 1600 / w.w.length);
@@ -131,12 +148,12 @@ const Word: React.FC<{ i: number }> = ({ i }) => {
       {[-1, 0, 1, 2].map(row => (
         <div key={row} style={{ position: 'absolute', left: 0, top: 960 + row * 330 - 520, whiteSpace: 'nowrap', font: `700 300px/1 ${DISPLAY}`, color: 'transparent',
           WebkitTextStroke: `4px ${w.out}`, transform: `translateX(${(row % 2 ? 1 : -1) * (f * 18) - 600}px)` }}>
-          {`${w.w} · ${w.w} · ${w.w} · ${w.w}`}
+          {`${w.w} · ${w.w} · ${w.w} · ${w.w} · ${w.w}`}
         </div>
       ))}
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', transform: `translate(${sh.x}px, ${sh.y}px)` }}>
         <div style={{ fontSize: 260, transform: `scale(${em}) rotate(${(1 - em) * -40 * dir}deg) translateY(-40px)`, filter: 'drop-shadow(0 30px 40px rgba(0,0,0,.25))' }}>{w.e}</div>
-        <div style={{ display: 'flex', marginTop: 10 }}>
+        <div style={{ display: 'flex', marginTop: 10, direction: T.rtl ? 'rtl' : 'ltr' }}>
           {w.w.split('').map((ch, k) => {
             const ls = spring({ frame: f - k * 0.8, fps: 30, config: { damping: 12, stiffness: 320, mass: 0.45 } });
             return <span key={k} style={{ font: `700 ${size}px/1 ${DISPLAY}`, color: w.fg, display: 'inline-block', letterSpacing: '-0.02em',
@@ -144,8 +161,8 @@ const Word: React.FC<{ i: number }> = ({ i }) => {
           })}
         </div>
       </AbsoluteFill>
-      <div style={{ position: 'absolute', top: 150, left: 0, right: 0, textAlign: 'center', font: `800 40px/1 ${UI}`, letterSpacing: '.35em', color: w.fg, opacity: 0.85 }}>
-        ON LIVRE · {String(i + 1).padStart(2, '0')}/05
+      <div style={{ position: 'absolute', top: 150, left: 0, right: 0, textAlign: 'center', font: `800 40px/1 ${UI}`, letterSpacing: T.rtl ? '.08em' : '.35em', color: w.fg, opacity: 0.85 }}>
+        <span dir={T.rtl ? 'rtl' : 'ltr'}>{T.onLivre} · <bdi>{String(i + 1).padStart(2, '0')}/05</bdi></span>
       </div>
     </AbsoluteFill>
   );
@@ -165,6 +182,7 @@ const STREETS = [
 ];
 const MapScene: React.FC = () => {
   const f = useCurrentFrame();
+  const T = useT();
   const len = getLength(ROUTE);
   const draw = lerp(f, [8, 36], [0, 1], inOut);
   const ride = lerp(f, [26, 82], [0, 1], inOut);
@@ -214,17 +232,17 @@ const MapScene: React.FC = () => {
         </div>
       </AbsoluteFill>
       {/* la pastille du temps (comme dans l'appli) */}
-      <div style={{ position: 'absolute', top: 130, left: 80, right: 80, display: 'flex', alignItems: 'center', gap: 30, padding: '26px 34px', borderRadius: 999,
+      <div style={{ position: 'absolute', top: 130, left: 80, right: 80, display: 'flex', alignItems: 'center', gap: 30, padding: '26px 34px', borderRadius: 999, direction: T.rtl ? 'rtl' : 'ltr',
         background: 'rgba(20,27,45,.92)', border: '2px solid #2A3350', transform: `translateY(${(1 - hud) * -260}px)`, boxShadow: '0 30px 60px rgba(0,0,0,.4)' }}>
         <svg width={120} height={120} viewBox="0 0 120 120"><circle cx={60} cy={60} r={48} stroke="#2C3552" strokeWidth={14} fill="none" />
           <circle cx={60} cy={60} r={48} stroke={C.orange} strokeWidth={14} fill="none" strokeLinecap="round" strokeDasharray={`${301 * (0.1 + 0.9 * ride)} 302`} transform="rotate(-90 60 60)" /></svg>
         <div style={{ display: 'grid', gap: 6 }}>
-          <span style={{ font: `700 92px/1 ${DISPLAY}`, color: '#fff' }}>{mins} min</span>
-          <span style={{ font: `500 38px/1 ${UI}`, color: '#A9B3CA' }}>Ilan arrive chez vous</span>
+          <span style={{ font: `700 92px/1 ${DISPLAY}`, color: '#fff' }}>{mins} {T.min}</span>
+          <span style={{ font: `500 38px/1 ${UI}`, color: '#A9B3CA' }}>{T.rider}</span>
         </div>
       </div>
       <div style={{ position: 'absolute', bottom: 190, left: 0, right: 0, textAlign: 'center', overflow: 'hidden' }}>
-        <div style={{ font: `700 130px/1 ${DISPLAY}`, color: '#fff', transform: `translateY(${(1 - title) * 160}px)`, letterSpacing: '-0.01em' }}>Suivi en direct</div>
+        <div style={{ font: `700 130px/1 ${DISPLAY}`, color: '#fff', transform: `translateY(${(1 - title) * 160}px)`, letterSpacing: '-0.01em' }} dir={T.rtl ? 'rtl' : 'ltr'}>{T.track}</div>
       </div>
     </AbsoluteFill>
   );
@@ -233,6 +251,7 @@ const MapScene: React.FC = () => {
 // ===== 4. Le téléphone : l'anneau se remplit, « Livré ! », confettis ===========================
 const PhoneScene: React.FC = () => {
   const f = useCurrentFrame();
+  const T = useT();
   const enter = useSpring(0, 14, 120, 0.9);
   const ringP = lerp(f, [6, 42], [0.08, 1], inOut);
   const done = f >= 43;
@@ -249,8 +268,8 @@ const PhoneScene: React.FC = () => {
     <AbsoluteFill style={{ background: `linear-gradient(160deg, ${C.orangeLight} 0%, ${C.orangeDeep} 100%)`, overflow: 'hidden' }}>
       <AbsoluteFill style={{ background: 'radial-gradient(circle at 50% 55%, rgba(255,255,255,.28), rgba(255,255,255,0) 55%)' }} />
       <div style={{ position: 'absolute', top: 150, left: 0, right: 0, textAlign: 'center', height: 150 }}>
-        <div style={{ position: 'absolute', inset: 0, font: `700 112px/1.05 ${DISPLAY}`, color: '#fff', opacity: head * (1 - head2), transform: `translateY(${(1 - head) * 60 - head2 * 60}px)` }}>Commandé en 1 min.</div>
-        <div style={{ position: 'absolute', inset: 0, font: `700 112px/1.05 ${DISPLAY}`, color: '#fff', opacity: head2, transform: `translateY(${(1 - head2) * 60}px) scale(${0.9 + 0.1 * head2})` }}>Et hop, c'est livré !</div>
+        <div style={{ position: 'absolute', inset: 0, font: `700 112px/1.05 ${DISPLAY}`, color: '#fff', opacity: head * (1 - head2), transform: `translateY(${(1 - head) * 60 - head2 * 60}px)` }} dir={T.rtl ? 'rtl' : 'ltr'}>{T.ordered}</div>
+        <div style={{ position: 'absolute', inset: 0, font: `700 112px/1.05 ${DISPLAY}`, color: '#fff', opacity: head2, transform: `translateY(${(1 - head2) * 60}px) scale(${0.9 + 0.1 * head2})` }} dir={T.rtl ? 'rtl' : 'ltr'}>{T.hop}</div>
       </div>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', perspective: 1800, transform: `translate(${sh.x}px, ${sh.y + 120}px)` }}>
         <div style={{ position: 'relative', width: 560, height: 1120, borderRadius: 86, background: '#05070D', padding: 18, boxShadow: '0 80px 120px rgba(80,20,0,.45)',
@@ -268,19 +287,19 @@ const PhoneScene: React.FC = () => {
               </svg>
               {done
                 ? <div style={{ transform: `scale(${doneS})`, font: `700 140px/1 ${DISPLAY}`, color: C.green }}>✓</div>
-                : <div style={{ textAlign: 'center' }}><div style={{ font: `700 104px/1 ${DISPLAY}`, color: '#F4F6FB' }}>{Math.max(1, Math.round(6 - 5 * ringP))}</div><div style={{ font: `500 34px/1 ${UI}`, color: '#A9B3CA' }}>min</div></div>}
+                : <div style={{ textAlign: 'center' }}><div style={{ font: `700 104px/1 ${DISPLAY}`, color: '#F4F6FB' }}>{Math.max(1, Math.round(6 - 5 * ringP))}</div><div style={{ font: `500 34px/1 ${UI}`, color: '#A9B3CA' }}>{T.min}</div></div>}
             </div>
-            <div style={{ marginTop: 34, font: `700 44px/1.15 ${DISPLAY}`, color: '#F4F6FB', textAlign: 'center', padding: '0 30px' }}>{done ? 'Livré ! 🎉' : 'Ilan arrive chez vous'}</div>
+            <div style={{ marginTop: 34, font: `700 44px/1.15 ${DISPLAY}`, color: '#F4F6FB', textAlign: 'center', padding: '0 30px' }}><span dir={T.rtl ? 'rtl' : 'ltr'}>{done ? T.livre : T.rider}</span></div>
             <div style={{ marginTop: 28, display: 'flex', gap: 14 }}>
               {[0, 1, 2, 3].map(k => <div key={k} style={{ width: 80, height: 10, borderRadius: 9, background: ringP * 4 > k || done ? C.orange : '#2C3552' }} />)}
             </div>
           </div>
         </div>
         {/* bulles autour du téléphone */}
-        {[{ d: 14, x: -330, y: -260, t: '🛵 Ilan · ⭐ 4,9' }, { d: 20, x: 330, y: -40, t: '💬 J\'arrive !' }, { d: 26, x: -320, y: 260, t: '🧾 Reçu envoyé' }].map((b, k) => {
+        {[{ d: 14, x: -330, y: -260, t: T.bubbles[0] }, { d: 20, x: 330, y: -40, t: T.bubbles[1] }, { d: 26, x: -320, y: 260, t: T.bubbles[2] }].map((b, k) => {
           const s = chip(b.d);
           return <div key={k} style={{ position: 'absolute', left: '50%', top: '50%', transform: `translate(-50%,-50%) translate(${b.x}px, ${b.y + Math.sin((f + k * 20) / 10) * 14}px) scale(${s})`,
-            padding: '22px 30px', borderRadius: 999, background: '#fff', font: `700 38px/1 ${UI}`, color: C.navy, boxShadow: '0 20px 40px rgba(0,0,0,.18)', whiteSpace: 'nowrap' }}>{b.t}</div>;
+            padding: '22px 30px', borderRadius: 999, background: '#fff', font: `700 38px/1 ${UI}`, color: C.navy, boxShadow: '0 20px 40px rgba(0,0,0,.18)', whiteSpace: 'nowrap' }} dir={T.rtl ? 'rtl' : 'ltr'}>{b.t}</div>;
         })}
         {done && confetti.map((c, k) => <div key={k} style={{ position: 'absolute', left: '50%', top: '42%', width: c.w, height: c.w * 0.5, background: c.c, borderRadius: 4,
           transform: `translate(${c.x}px, ${c.y}px) rotate(${c.r}deg)` }} />)}
@@ -305,6 +324,7 @@ const Digit: React.FC<{ to: number; land: number }> = ({ to, land }) => {
 };
 const PriceScene: React.FC = () => {
   const f = useCurrentFrame();
+  const T = useT();
   const stamp = useSpring(30, 8, 300, 0.6);
   const sh = shake(f, 30, 30, 10);
   const ring = lerp(f, [30, 50], [0, 1], outExpo);
@@ -315,16 +335,16 @@ const PriceScene: React.FC = () => {
       <AbsoluteFill style={{ background: `repeating-linear-gradient(-45deg, rgba(255,106,19,.06) 0 40px, transparent 40px 80px)`, transform: `translateX(${f * 3}px)` }} />
       <div style={{ position: 'absolute', left: 540, top: 900, width: 20, height: 20, borderRadius: '50%', border: `10px solid ${C.orange}`, transform: `translate(-50%,-50%) scale(${ring * 80})`, opacity: 1 - ring }} />
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', transform: `translate(${sh.x}px, ${sh.y}px)` }}>
-        <div style={{ font: `800 50px/1 ${UI}`, letterSpacing: `${0.5 - 0.2 * lab}em`, color: C.orangeInk, opacity: lab, marginBottom: 20 }}>LA COURSE DANS NETANYA</div>
-        <div style={{ font: `800 60px/1 ${UI}`, color: C.navy, opacity: lab, marginBottom: 24 }}>dès</div>
+        <div style={{ font: `800 50px/1 ${UI}`, letterSpacing: T.rtl ? '.05em' : `${0.5 - 0.2 * lab}em`, color: C.orangeInk, opacity: lab, marginBottom: 20 }} dir={T.rtl ? 'rtl' : 'ltr'}>{T.city}</div>
+        <div style={{ font: `800 60px/1 ${UI}`, color: C.navy, opacity: lab, marginBottom: 24 }}>{T.from}</div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Digit to={2} land={24} /><Digit to={5} land={30} />
           <div style={{ font: `700 260px/1 ${DISPLAY}`, color: C.orange, transform: `scale(${stamp}) rotate(${(1 - stamp) * -60}deg)`, marginLeft: 10 }}>₪</div>
         </div>
         <div style={{ marginTop: 40, padding: '28px 56px', border: `10px solid ${C.orangeDeep}`, borderRadius: 28, font: `800 84px/1 ${UI}`, color: C.orangeDeep, letterSpacing: '.08em',
-          transform: `scale(${1 + Math.max(0, 1 - stamp) * 2.2}) rotate(-6deg)`, opacity: Math.min(1, stamp) }}>PRIX FIXE</div>
-        <div style={{ display: 'flex', gap: 22, marginTop: 70 }}>
-          {['Bit', 'Espèces', 'Express ⚡'].map((t, k) => <div key={k} style={{ transform: `scale(${chip(40 + k * 6)})`, padding: '22px 36px', borderRadius: 999, background: C.navy, color: '#fff', font: `700 44px/1 ${UI}` }}>{t}</div>)}
+          transform: `scale(${1 + Math.max(0, 1 - stamp) * 2.2}) rotate(-6deg)`, opacity: Math.min(1, stamp) }}>{T.fixed}</div>
+        <div style={{ display: 'flex', gap: 22, marginTop: 70, direction: T.rtl ? 'rtl' : 'ltr' }}>
+          {T.pays.map((t, k) => <div key={k} style={{ transform: `scale(${chip(40 + k * 6)})`, padding: '22px 36px', borderRadius: 999, background: C.navy, color: '#fff', font: `700 44px/1 ${UI}` }}>{t}</div>)}
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
@@ -340,6 +360,7 @@ const TILES = [
 ];
 const TilesScene: React.FC = () => {
   const f = useCurrentFrame();
+  const T = useT();
   const fold = lerp(f, [32, 45], [0, 1], inExpo);
   return (
     <AbsoluteFill style={{ background: C.navy, overflow: 'hidden' }}>
@@ -353,7 +374,7 @@ const TilesScene: React.FC = () => {
               transform: `translate(${from[0] * (1 - s)}px, ${from[1] * (1 - s)}px) rotate(${(1 - s) * (k % 2 ? 25 : -25)}deg) scale(${0.5 + 0.5 * s})`,
               boxShadow: '0 30px 60px rgba(0,0,0,.3)' }}>
               <div style={{ font: `700 ${x.big.length > 4 ? 120 : 170}px/1 ${DISPLAY}` }}>{x.big}</div>
-              <div style={{ font: `700 50px/1.15 ${UI}` }}>{x.t}</div>
+              <div style={{ font: `700 50px/1.15 ${UI}` }} dir={T.rtl ? 'rtl' : 'ltr'}>{T.tiles[k]}</div>
             </div>
           );
         })}
@@ -366,6 +387,7 @@ const TilesScene: React.FC = () => {
 // ===== 7. Fin : le point s'ouvre, le logo se pose =================================================
 const Outro: React.FC = () => {
   const f = useCurrentFrame();
+  const T = useT();
   const open = lerp(f, [0, 10], [0, 1], outExpo);
   const letter = (i: number) => {
     const s = spring({ frame: f - 4 - i * 3, fps: 30, config: { damping: i === 3 ? 6 : 10, stiffness: 240, mass: 0.6 } });
@@ -389,13 +411,14 @@ const Outro: React.FC = () => {
         <div style={{ marginTop: 90, padding: '30px 52px', borderRadius: 999, background: C.orange, color: '#fff', font: `700 52px/1 ${UI}`, transform: `scale(${url})`, boxShadow: `0 20px 50px rgba(255,106,19,.45)` }}>
           hop-livraison.vercel.app
         </div>
-        <div style={{ marginTop: 44, font: `500 42px/1 ${UI}`, color: '#A9B3CA', opacity: tag, letterSpacing: '.06em' }}>Netanya · HaSharon · FR · עב</div>
+        <div style={{ marginTop: 44, font: `500 42px/1 ${UI}`, color: '#A9B3CA', opacity: tag, letterSpacing: '.06em' }} dir={T.rtl ? 'rtl' : 'ltr'}>{T.tag}</div>
       </AbsoluteFill>
     </AbsoluteFill>
   );
 };
 
-export const Reel: React.FC<{ music?: boolean }> = ({ music = true }) => (
+export const Reel: React.FC<{ music?: boolean; lang?: ReelLang }> = ({ music = true, lang = 'fr' }) => (
+  <Lang.Provider value={STR[lang]}>
   <AbsoluteFill style={{ background: C.navy }}>
     <Sequence durationInFrames={60}><Ignite /></Sequence>
     <Sequence from={60} durationInFrames={75}><Words /></Sequence>
@@ -409,4 +432,5 @@ export const Reel: React.FC<{ music?: boolean }> = ({ music = true }) => (
     <Grain />
     {music && <Audio src={staticFile('reel-music.wav')} />}
   </AbsoluteFill>
+  </Lang.Provider>
 );
