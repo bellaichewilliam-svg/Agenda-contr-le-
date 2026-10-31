@@ -3319,3 +3319,4 @@ body.shop-compact #commander > .wrap > h2, body.shop-compact #commander > .wrap 
 .nopay-mini > summary small { font-size: 12.5px; color: #8A6A2E; }
 .nopay-mini .nopay.bare { margin: 0; border: 0; border-top: 1px solid #F5C26B; border-radius: 0 0 16px 16px; }
 @media (prefers-color-scheme: dark) { .nopay-mini { background: #3A2A0B; border-color: #7A5A1E; } .nopay-mini > summary b { color: #FFE2A8; } .nopay-mini > summary small { color: #E8C98A; } }
+.vid-grid figure.wide { grid-column: 1 / -1; }

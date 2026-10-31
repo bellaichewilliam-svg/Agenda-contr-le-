@@ -432,6 +432,9 @@ const VIDEOS = [
   { id: "showreel", aud: "client", title: "⚡ HOP! en 15 secondes" },
   { id: "showreel", aud: "shop", title: "⚡ HOP! en 15 secondes" },
   { id: "showreel", aud: "rider", title: "⚡ HOP! en 15 secondes" },
+  // Survol 3D de la page d'accueil (format 5:4, pour Facebook, LinkedIn, présentation, site)
+  { id: "survol", aud: "client", title: "🎥 La page HOP! en 3D", ratio: "5 / 4" },
+  { id: "survol", aud: "shop", title: "🎥 La page HOP! en 3D", ratio: "5 / 4" },
   { id: "courses", aud: "client", title: "🛒 On fait toutes vos courses" },
   { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires" }
 ];
@@ -459,7 +462,7 @@ function renderKit() {
           ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}</div></div></div>`).join("")
     || `<p class="muted small">Rien pour l'instant.</p>`;
   const vids = VIDEOS.filter(v => v.aud === ui.aud);
-  $("#kitVideos").innerHTML = vids.map(v => `<figure><video src="${V}${v.id}-video-${L}.mp4" controls playsinline preload="metadata"></video>
+  $("#kitVideos").innerHTML = vids.map(v => `<figure${v.ratio ? ' class="wide"' : ""}><video src="${V}${v.id}-video-${L}.mp4" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
       <figcaption><b>${UI.esc(v.title)}</b><a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></figcaption></figure>`).join("")
     || `<p class="muted small">Pas encore de vidéo pour eux : les visuels sont dans l'onglet 🖼️.</p>`;
   // Les textes bilingues (statut, phrases courtes, fiche Google) apparaissent dans les deux langues
