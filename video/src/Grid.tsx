@@ -11,7 +11,9 @@ const TARGET = [540, 1620, 2700];                 // centre de chaque tuile
 const PGROUP = 1770;                              // centre du groupe « P! » dans le dessin du logo
 const WORDS = [['Commandez.', 'הזמינו.'], ['On livre.', 'אנחנו מביאים.'], ['Et hop !', 'והופ!']];
 export const Grid: React.FC<{ tile: number }> = ({ tile }) => {
-  const dx = (i: number) => (i < 2 ? TARGET[i] / S - CX[i] : TARGET[2] / S - PGROUP);
+  // Correction mesurée sur l'image (centre réel du dessin de chaque lettre) : chaque lettre pile au centre de sa publication
+  const CORR = [-8, -12.5, -52];
+  const dx = (i: number) => (i < 2 ? TARGET[i] / S - CX[i] + CORR[i] / S : TARGET[2] / S - PGROUP + CORR[2] / S);
   return (
     <AbsoluteFill style={{ background: C.navy, overflow: 'hidden' }}>
       <div style={{ position: 'absolute', left: -tile * 1080, top: 0, width: 3240, height: 1350 }}>
