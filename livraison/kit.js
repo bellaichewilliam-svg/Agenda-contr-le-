@@ -412,6 +412,7 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
+  { id: "grille", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram « H · O · P! »", desc: "3 publications qui forment le logo sur votre profil. Publiez dans cet ordre : d'abord P!, puis O, puis H (la dernière publiée se met à gauche).", formats: ["g3", "g2", "g1"] },
   { id: "chabbat", aud: "client", isNew: true, title: "🕯️ Courses de dernière minute avant Chabbat", desc: "Le vendredi : hallot, poulet, vin, fleurs… « Dites-nous ce qu'il vous faut, on achète et on livre. »", formats: ["post", "story", "flyer"] },
   { id: "halot", aud: "client", isNew: true, title: "🥖 Pensez à vos hallot !", desc: "Boulangerie livrée le vendredi : hallot tressées, gâteaux, biscuits, viennoiseries.", formats: ["post", "story", "flyer"] },
   { id: "table", aud: "client", isNew: true, title: "🍷 Tout pour la table de Chabbat", desc: "Vin, fleurs, pâtisserie, salades : courses dans tous les magasins de Netanya, livrées à la porte.", formats: ["post", "story", "flyer"] },
@@ -426,7 +427,7 @@ const CAMPS = [
   { id: "shop", aud: "shop", title: "🏪 Votre commerce livre avec HOP!", desc: "La présentation générale pour les commerces.", formats: ["post", "story", "flyer"] },
   { id: "rider", aud: "rider", title: "🛵 Deviens livreur partenaire", desc: "Le recrutement : tu choisis tes courses, pourboires 100 % pour toi.", formats: ["post", "story", "flyer"] }
 ];
-const FMT = { post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5" };
+const FMT = { post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »" };
 const VIDEOS = [
   // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public
   { id: "showreel", aud: "client", title: "⚡ HOP! en 15 secondes" },
@@ -435,6 +436,7 @@ const VIDEOS = [
   // Survol 3D de la page d'accueil (format 5:4, pour Facebook, LinkedIn, présentation, site)
   { id: "survol", aud: "client", title: "🎥 La page HOP! en 3D", ratio: "5 / 4" },
   { id: "survol", aud: "shop", title: "🎥 La page HOP! en 3D", ratio: "5 / 4" },
+  { id: "cycle", aud: "client", title: "🔁 Le cycle HOP! : commandé, livré en 18 min (20 s, en boucle)" },
   { id: "itineraire", aud: "client", title: "🗺️ Vite, suivi, simple : l'itinéraire HOP!" },
   { id: "itineraire", aud: "shop", title: "🗺️ Vite, suivi, simple : l'itinéraire HOP!" },
   { id: "paiement", aud: "client", title: "💳 Payé à la livraison : Bit, PayBox, espèces" },
@@ -459,7 +461,7 @@ function renderKit() {
   const VQ = (() => { const sc = document.querySelector('script[src*="kit.js"]'); const m = sc && /v=(\d+)/.exec(sc.getAttribute("src") || ""); return m ? `?v=${m[1]}` : ""; })();
   const L = ui.lang, f = (id, fmt) => `${V}${id}-${fmt}-${L}.png${VQ}`;
   $("#kitCamps").innerHTML = CAMPS.filter(c => c.aud === ui.aud).map(c => `<div class="camp">
-      <a class="camp-thumb" href="${f(c.id, "story")}" data-vis data-src="${f(c.id, "story")}"><img src="${f(c.id, "story")}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
+      <a class="camp-thumb" href="${f(c.id, c.thumb || "story")}" data-vis data-src="${f(c.id, c.thumb || "story")}"><img src="${f(c.id, c.thumb || "story")}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
       <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
         <div class="camp-btns">${c.formats.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
           ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}</div></div></div>`).join("")
