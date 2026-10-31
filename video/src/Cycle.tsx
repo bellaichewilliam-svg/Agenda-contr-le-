@@ -1,4 +1,5 @@
 import React from 'react';
+import { HoppyHop } from './HoppyHop';
 import { AbsoluteFill, Audio, Sequence, random, spring, staticFile, useCurrentFrame } from 'remotion';
 import { C, DISPLAY, UI } from './theme';
 import { Grain, Vignette, Wordmark, inExpo as inExpoRaw, inOut, lerp, outExpo, shake, useSpring } from './Reel';
@@ -540,7 +541,7 @@ export const Cycle: React.FC<{ music?: boolean; lang?: CycleLang }> = ({ music =
     <Sequence from={120} durationInFrames={WAIT}><Wait /></Sequence>
     <Sequence from={330} durationInFrames={60}><Door /></Sequence>
     <Sequence from={390} durationInFrames={120}><Joy /></Sequence>
-    <Sequence from={510} durationInFrames={90}><Loop /></Sequence>
+    <Sequence from={510} durationInFrames={90}><Loop /><HoppyHop x={210} bottom={1890} h={560} at={0.3} exitAt={1.85} /></Sequence>
     <Vignette />
     <Grain />
     {music && <Audio src={staticFile('cycle-music.wav')} />}

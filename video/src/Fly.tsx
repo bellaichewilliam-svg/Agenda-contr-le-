@@ -1,5 +1,7 @@
 import React from 'react';
+import { HoppyHop } from './HoppyHop';
 import { AbsoluteFill, Audio, Img, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { Sequence } from 'remotion';
 import { C } from './theme';
 
 // Survol 3D de la page d'accueil HOP! : 14,5 s, 1440 × 1152, 60 i/s, un seul mouvement de caméra.
@@ -341,6 +343,7 @@ export const Fly: React.FC<{ music?: boolean; lang?: FlyLang }> = ({ music = tru
       </AbsoluteFill>
       {!title && <DepthOfField k={cam.pitch / PITCH} />}
       {title && <TitleCard u={u} />}
+      <Sequence from={Math.round(9.97 * 60)}><HoppyHop x={1250} bottom={1130} h={480} at={0.6} from="right" /></Sequence>
       {music && <Audio src={staticFile('fly-music.wav')} />}
     </AbsoluteFill>
   );

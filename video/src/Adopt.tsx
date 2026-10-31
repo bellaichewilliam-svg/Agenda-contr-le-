@@ -1,4 +1,5 @@
 import React from 'react';
+import { HoppyHop } from './HoppyHop';
 import { AbsoluteFill, Audio, Sequence, random, spring, staticFile, useCurrentFrame } from 'remotion';
 import { evolvePath } from '@remotion/paths';
 import { C, DISPLAY, UI } from './theme';
@@ -273,7 +274,7 @@ export const AdoptHop: React.FC<{ music?: boolean; lang?: AdoptLang }> = ({ musi
     <Sequence from={225} durationInFrames={75}><Ticket /></Sequence>
     <Sequence from={300} durationInFrames={60}><Adopt /></Sequence>
     <Sequence from={360} durationInFrames={45}><Stickers /></Sequence>
-    <Sequence from={405} durationInFrames={45}><Outro /></Sequence>
+    <Sequence from={405} durationInFrames={45}><Outro /><HoppyHop x={210} bottom={1890} h={560} at={0.35} /></Sequence>
     <Flashes />
     <Vignette />
     <Grain />
