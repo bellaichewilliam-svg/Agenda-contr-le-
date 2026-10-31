@@ -9,6 +9,7 @@ import { Route, ROUTE_FRAMES } from './Route';
 import { Cycle, CYCLE_FRAMES } from './Cycle';
 import { Grid } from './Grid';
 import { Grid2 } from './Grid2';
+import { MascotHero, MascotSheet } from './Mascot';
 import { AdoptHop, ADOPT_FRAMES } from './Adopt';
 import { Tout, TOUT_FRAMES } from './Tout';
 
@@ -36,5 +37,7 @@ export const Root: React.FC = () => (
     <Still id="HopGrid4" component={Grid2} width={1080} height={1350} defaultProps={{ tile: 0 }} />
     <Still id="HopGrid5" component={Grid2} width={1080} height={1350} defaultProps={{ tile: 1 }} />
     <Still id="HopGrid6" component={Grid2} width={1080} height={1350} defaultProps={{ tile: 2 }} />
+    <Still id="HoppyHero" component={MascotHero} width={1080} height={1350} />
+    <Still id="HoppySheet" component={MascotSheet} width={2160} height={1350} />
   </>
 );
