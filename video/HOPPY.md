@@ -4,6 +4,41 @@
 **`livraison/kit/visuels/hoppy-officiel.png`** : c'est LUI. Toujours repartir de cette image.
 Version détourée (fond transparent) : `video/public/hoppy-cut.png`, pour le poser sur n'importe quel fond.
 
+## ⭐ Visuels pour les réseaux : UNIQUEMENT ce style
+Le modèle : `video/public/reseaux/hoppy-fleurs-original.png` (« On livre aussi vos fleurs », fait avec ChatGPT et validé par le patron).
+Pour Instagram, TikTok, Facebook et l'image de HOP!, on ne publie **que des visuels dans ce style** (pas de montage maison) :
+- fond **bleu ciel vif** en dégradé, lumière douce, traits de vitesse derrière Hoppy ;
+- en haut, gros titre **en majuscules, arrondi et très gras** : 1re ligne en **blanc**, 2e ligne en **orange vif**, petits traits orange de chaque côté ;
+- juste dessous, la ligne en **hébreu, en blanc, très grasse** ;
+- au centre, **Hoppy officiel** en plein saut, qui tient l'objet du thème ;
+- en bas à droite, une pastille bleu nuit avec le logo **HOP!** (« HOP » blanc, « ! » orange) ;
+- en bas, un **bandeau bleu nuit** aux coins arrondis : la phrase en français en blanc, et l'hébreu en orange dessous.
+
+### Le prompt (joindre `hoppy-officiel.png` ET `reseaux/hoppy-fleurs-original.png`)
+```
+Create a new Instagram post, vertical 4:5 (1080x1350), in EXACTLY the same style and layout as the second attached image (the HOP! "flowers" ad), with EXACTLY the same character as the first attached image (Hoppy the kangaroo: same face, fur, navy backpack straps, navy "HOP!" bag in its pouch with "HOP" in white and "!" in orange).
+- Bright sky-blue gradient background with soft light and white speed lines behind Hoppy.
+- Top title, big bold rounded uppercase letters, line 1 in white: "[LIGNE 1]", line 2 in bright orange: "[LIGNE 2]", small orange burst strokes on both sides.
+- Under it, in bold white Hebrew letters: "[HÉBREU]".
+- Center: Hoppy jumping happily, [ACTION].
+- Bottom right: navy rounded pill with the HOP! logo (white "HOP", orange "!").
+- Bottom: navy band with rounded top corners, white text "[PHRASE FRANÇAISE]" and below it in orange Hebrew "[PHRASE HÉBREU]".
+Spell every text exactly as written, letter by letter.
+```
+
+### Les thèmes prêts (remplacer les crochets)
+| Thème | [LIGNE 1] / [LIGNE 2] | [HÉBREU] | [ACTION] | [PHRASE FRANÇAISE] / [PHRASE HÉBREU] |
+|---|---|---|---|---|
+| Courses | ON FAIT / VOS COURSES | עושים לכם את הקניות | holding a wicker basket full of groceries (baguette, fresh vegetables, fruit, a bottle of milk) | Supermarché, épicerie, pharmacie… on y va à votre place. / סופר, מכולת, פארם… במקומכם. |
+| Magasins | ON VA DANS / VOS MAGASINS PRÉFÉRÉS | הולכים לחנויות שאתם אוהבים | holding colorful shopping bags | Vêtements, chaussures, cadeaux, déco… on vous les rapporte. / בגדים, נעליים, מתנות, עיצוב… ואנחנו מביאים. |
+| Restaurants | VOTRE RESTO / LIVRÉ CHAUD | המסעדה שלכם, חמה עד הבית | carrying a steaming pizza box and a burger bag | Au prix du resto, livré au plus vite. / במחיר המסעדה, הכי מהר. |
+| Pharmacie | VOTRE PHARMACIE / SANS BOUGER | בית המרקחת, בלי לזוז | holding a small white pharmacy bag with a green cross | Super-Pharm et les autres, livrés chez vous. / סופר-פארם ועוד, עד הבית. |
+| Colis | VOS COLIS / ENVOYÉS, RÉCUPÉRÉS | חבילות: שולחים ואוספים | carrying a stack of cardboard parcels | La poste, les retraits, les envois : on s'en occupe. / דואר, איסוף ומשלוח: אנחנו דואגים. |
+| Pressing | VOTRE PRESSING / ALLER ET RETOUR | ניקוי יבש הלוך וחזור | holding a clean shirt on a hanger in a plastic cover | On dépose, on récupère, vous ne bougez pas. / מביאים, מחזירים, אתם לא זזים. |
+| Présentation | VOICI / HOPPY ! | תכירו את הופי! | giving a big friendly thumbs up | Il livre tout Netanya… dans sa poche. / מביא את כל נתניה… בכיס. |
+
+Le visuel reçu : l'envoyer dans la conversation, il est redimensionné en 1080 × 1350 et ajouté au kit.
+
 ## Qui est Hoppy ?
 - Un **kangourou** dynamique et souriant : il fait « hop ! » en sautant, et il livre la commande **dans sa poche**.
 - Caractère : joyeux, serviable, rapide, un peu malicieux. Il ne court jamais, il **saute**.
