@@ -546,3 +546,4 @@ export const Cycle: React.FC<{ music?: boolean; lang?: CycleLang }> = ({ music =
     {music && <Audio src={staticFile('cycle-music.wav')} />}
   </AbsoluteFill>
 ); };
+export { Person, Bag, Steam, Punch, Phone };

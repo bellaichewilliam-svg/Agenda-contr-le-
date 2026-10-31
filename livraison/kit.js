@@ -430,6 +430,8 @@ const CAMPS = [
 const FMT = { post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »" };
 const VIDEOS = [
   // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public
+  // Nouveau : « Arrête de payer plus cher. Adopte HOP! » (15 s, fun)
+  { id: "adopte", aud: "client", title: "💸 Nouveau · Arrête de payer plus cher. Adopte HOP! (15 s)" },
   // Nouveau : « Le cycle HOP! » (20 s en boucle, Insta / TikTok), en tête
   { id: "cycle", aud: "client", title: "🔁 Nouveau · Le cycle HOP! : livré au plus vite, encore chaud (20 s, en boucle)" },
   { id: "cycle", aud: "shop", title: "🔁 Nouveau · Le cycle HOP! : livré au plus vite, encore chaud (20 s, en boucle)" },
