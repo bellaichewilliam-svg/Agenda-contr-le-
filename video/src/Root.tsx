@@ -10,6 +10,7 @@ import { Cycle, CYCLE_FRAMES } from './Cycle';
 import { Grid } from './Grid';
 import { Grid2 } from './Grid2';
 import { MascotHero, MascotSheet } from './Mascot';
+import { HoppyPhoto } from './HoppyPhoto';
 import { AdoptHop, ADOPT_FRAMES } from './Adopt';
 import { Tout, TOUT_FRAMES } from './Tout';
 
@@ -39,5 +40,7 @@ export const Root: React.FC = () => (
     <Still id="HopGrid6" component={Grid2} width={1080} height={1350} defaultProps={{ tile: 2 }} />
     <Still id="HoppyHero" component={MascotHero} width={1080} height={1350} />
     <Still id="HoppySheet" component={MascotSheet} width={2160} height={1350} />
+    <Still id="HoppyPost" component={HoppyPhoto} width={1080} height={1350} defaultProps={{ story: false }} />
+    <Still id="HoppyStory" component={HoppyPhoto} width={1080} height={1920} defaultProps={{ story: true }} />
   </>
 );

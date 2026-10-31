@@ -418,7 +418,7 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
-  { id: "hoppy", aud: "client", isNew: true, thumb: "post", title: "🦘 Notre mascotte : Hoppy (הופי)", desc: "Le kangourou HOP! : il livre tout dans sa poche. Présentation à publier + fiche du personnage (à joindre à ChatGPT pour de nouvelles poses : voir video/HOPPY.md).", formats: ["post", "fiche"] },
+  { id: "hoppy", aud: "client", isNew: true, thumb: "post", title: "🦘 Notre mascotte : Hoppy (הופי)", desc: "Le kangourou HOP! : il livre tout dans sa poche. Présentation (post et story), image officielle à joindre à ChatGPT pour de nouvelles scènes, et Hoppy sans fond.", formats: ["post", "story", "fiche", "detoure"] },
   { id: "grille2", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram, 2e rangée : ce qu'on fait", desc: "3 publications sous « H · O · P! » : Tout Netanya livré · Comment ça marche · Pourquoi HOP!. Publiez d'abord « Pourquoi », puis « Comment », puis « Tout Netanya ». Si « H · O · P! » est déjà en ligne : épinglez ensuite P!, puis O, puis H pour qu'ils restent en haut.", formats: ["g6", "g5", "g4"] },
   { id: "grille", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram « H · O · P! »", desc: "3 publications qui forment le logo sur votre profil. Publiez dans cet ordre : d'abord P!, puis O, puis H (la dernière publiée se met à gauche).", formats: ["g3", "g2", "g1"] },
   { id: "chabbat", aud: "client", isNew: true, title: "🕯️ Courses de dernière minute avant Chabbat", desc: "Le vendredi : hallot, poulet, vin, fleurs… « Dites-nous ce qu'il vous faut, on achète et on livre. »", formats: ["post", "story", "flyer"] },
@@ -435,7 +435,7 @@ const CAMPS = [
   { id: "shop", aud: "shop", title: "🏪 Votre commerce livre avec HOP!", desc: "La présentation générale pour les commerces.", formats: ["post", "story", "flyer"] },
   { id: "rider", aud: "rider", title: "🛵 Deviens livreur partenaire", desc: "Le recrutement : tu choisis tes courses, pourboires 100 % pour toi.", formats: ["post", "story", "flyer"] }
 ];
-const FMT = { fiche: "🦘 Fiche du personnage", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
+const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
   // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public
