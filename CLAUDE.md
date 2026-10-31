@@ -12,6 +12,7 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - **Dans le site / le kit** : `kit/visuels/hoppy-detoure-fr.png`.
 - **Nouvelles poses** : pas de dessin maison ; le patron les fait avec ChatGPT grâce au prompt de `video/HOPPY.md` (toujours joindre `hoppy-officiel.png`). Les nouvelles images validées vont dans `livraison/kit/visuels/` et `video/public/`.
 - Hoppy de temps en temps dans les pubs, pas partout ; jamais de geste de la main ambigu.
+- **Visuels réseaux (Instagram, TikTok, Facebook, image de HOP!) : UNIQUEMENT le style du modèle `video/public/reseaux/hoppy-fleurs-original.png`** (fond bleu ciel, gros titre majuscules blanc + orange, hébreu blanc gras, Hoppy officiel au centre, pastille HOP!, bandeau bleu nuit). Ces visuels sont faits avec ChatGPT (prompt et thèmes prêts dans `video/HOPPY.md`) ; ne pas publier de montage maison à la place. Quand le patron envoie un nouveau visuel : le redimensionner en 1080 × 1350, le mettre dans `livraison/kit/visuels/<id>-post-<fr|he>.png` (+ l'original dans `video/public/reseaux/`) et l'ajouter aux campagnes du kit.
 
 ## Marque
 - Logo **HOP!** : blanc sur **bleu nuit `#0F1F3D`**, le « ! » orange `#FF6A13`. Fonds de marque = bleu nuit (pas d'aplat orange).
