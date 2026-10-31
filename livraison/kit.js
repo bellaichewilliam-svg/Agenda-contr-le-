@@ -430,13 +430,16 @@ const CAMPS = [
 const FMT = { post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »" };
 const VIDEOS = [
   // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public
+  // Nouveau : « Le cycle HOP! » (20 s en boucle, Insta / TikTok), en tête
+  { id: "cycle", aud: "client", title: "🔁 Nouveau · Le cycle HOP! : livré au plus vite, encore chaud (20 s, en boucle)" },
+  { id: "cycle", aud: "shop", title: "🔁 Nouveau · Le cycle HOP! : livré au plus vite, encore chaud (20 s, en boucle)" },
   { id: "showreel", aud: "client", title: "⚡ HOP! en 15 secondes" },
   { id: "showreel", aud: "shop", title: "⚡ HOP! en 15 secondes" },
   { id: "showreel", aud: "rider", title: "⚡ HOP! en 15 secondes" },
   // Survol 3D de la page d'accueil (format 5:4, pour Facebook, LinkedIn, présentation, site)
   { id: "survol", aud: "client", title: "🎥 La page HOP! en 3D", ratio: "5 / 4" },
   { id: "survol", aud: "shop", title: "🎥 La page HOP! en 3D", ratio: "5 / 4" },
-  { id: "cycle", aud: "client", title: "🔁 Le cycle HOP! : commandé, livré au plus vite, encore chaud (20 s, en boucle)" },
+
   { id: "itineraire", aud: "client", title: "🗺️ Vite, suivi, simple : l'itinéraire HOP!" },
   { id: "itineraire", aud: "shop", title: "🗺️ Vite, suivi, simple : l'itinéraire HOP!" },
   { id: "paiement", aud: "client", title: "💳 Payé à la livraison : Bit, PayBox, espèces" },
@@ -464,11 +467,11 @@ function renderKit() {
       <a class="camp-thumb" href="${f(c.id, c.thumb || "story")}" data-vis data-src="${f(c.id, c.thumb || "story")}"><img src="${f(c.id, c.thumb || "story")}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
       <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
         <div class="camp-btns">${c.formats.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
-          ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}</div></div></div>`).join("")
+          ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4${VQ}" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}</div></div></div>`).join("")
     || `<p class="muted small">Rien pour l'instant.</p>`;
   const vids = VIDEOS.filter(v => v.aud === ui.aud);
-  $("#kitVideos").innerHTML = vids.map(v => `<figure${v.ratio ? ' class="wide"' : ""}><video src="${V}${v.id}-video-${L}.mp4" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
-      <figcaption><b>${UI.esc(v.title)}</b><a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></figcaption></figure>`).join("")
+  $("#kitVideos").innerHTML = vids.map(v => `<figure${v.ratio ? ' class="wide"' : ""}><video src="${V}${v.id}-video-${L}.mp4${VQ}" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
+      <figcaption><b>${UI.esc(v.title)}</b><a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4${VQ}" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></figcaption></figure>`).join("")
     || `<p class="muted small">Pas encore de vidéo pour eux : les visuels sont dans l'onglet 🖼️.</p>`;
   // Les textes bilingues (statut, phrases courtes, fiche Google) apparaissent dans les deux langues
   const bi = p => p.dir === "ltr" && /[\u0590-\u05FF]/.test(p.text);

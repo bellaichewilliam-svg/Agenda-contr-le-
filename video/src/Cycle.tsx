@@ -107,9 +107,17 @@ const Phone: React.FC<{ s?: number; r?: number }> = ({ s = 1, r = 0 }) => (
 const Slice: React.FC<{ r?: number }> = ({ r = -30 }) => (
   <g transform={`rotate(${r})`}><path d="M -8 -10 L 46 -70 Q 62 -50 70 -30 Z" fill="#FFC857" stroke="#E0A030" strokeWidth={4} /><circle cx={40} cy={-48} r={6} fill="#E04F2F" /><circle cx={54} cy={-34} r={5} fill="#E04F2F" /></g>
 );
+// Le sac isotherme HOP! : bleu nuit comme le logo, couvercle, bande orange, poignée
 const Bag: React.FC<{ s?: number }> = ({ s = 1 }) => (
-  <g transform={`scale(${s})`}><path d="M -18 -40 Q 0 -70 18 -40" stroke="#0B1730" strokeWidth={7} fill="none" /><rect x={-46} y={-40} width={92} height={96} rx={12} fill={C.navy} stroke="#2A3F6E" strokeWidth={3} />
-    <text direction="ltr" x={0} y={18} textAnchor="middle" fontFamily="Fredoka, Rubik" fontWeight={700} fontSize={30} fill="#fff">HOP<tspan fill={C.orange}>!</tspan></text></g>
+  <g transform={`scale(${s})`}>
+    <path d="M -28 -56 Q 0 -92 28 -56" stroke="#0B1730" strokeWidth={9} fill="none" strokeLinecap="round" />
+    <rect x={-62} y={-56} width={124} height={114} rx={18} fill={C.navy} />
+    <rect x={-62} y={-56} width={124} height={26} rx={18} fill="#1B2F57" />
+    <rect x={-62} y={-36} width={124} height={6} fill="#0B1730" opacity={0.5} />
+    <text direction="ltr" x={0} y={14} textAnchor="middle" fontFamily="Fredoka, Rubik" fontWeight={700} fontSize={40} fill="#fff">HOP<tspan fill={C.orange}>!</tspan></text>
+    <rect x={-62} y={32} width={124} height={12} fill={C.orange} />
+    <rect x={-62} y={-56} width={124} height={114} rx={18} fill="none" stroke="#2A3F6E" strokeWidth={3} />
+  </g>
 );
 const Clock: React.FC<{ m: number; r?: number }> = ({ m, r = 80 }) => {
   const hr = ((19 + m / 60) % 12) * 30, mn = (m % 60) * 6;
@@ -395,6 +403,8 @@ const Wait: React.FC = () => {
 };
 
 // ===== 4. Ding-dong : la porte s'ouvre, le livreur entier dans l'encadrement ==============================
+// Position du sac à l'écran au moment où il vient vers nous (livreur : translate(540 1182) scale(1.72))
+const BAG_K = 1.72 * 1.22, BAG_X = 540, BAG_Y = 1182 + (-34 + 1 * 1.22) * 1.72;
 const Door: React.FC = () => {
   const f = useCurrentFrame();          // 0..60
   const open = lerp(f, [12, 26], [0, 1], inOut);
@@ -413,8 +423,12 @@ const Door: React.FC = () => {
           <rect x={250} y={1330} width={580} height={186} fill="#3A4566" />
           {/* le livreur, entier : casque, sac chaud, pieds sur le palier */}
           <g transform="translate(540 1182) scale(1.72)">
-            <Person helmet sweater={C.navy} pants="#1D2433" aR={lerp(give, [0, 1], [20, 80])} fR={lerp(give, [0, 1], [60, 10])} aL={8}
-              hold={<g transform={`translate(${give * 20} ${give * -10})`}><Bag s={0.75} /><Steam x={0} y={-48} s={0.5} /></g>} eyes="happy" mouth="grin" />
+            <Person helmet sweater={C.navy} pants="#1D2433" aL={14 + give * 16} fL={-60 - give * 12} aR={14 + give * 16} fR={-60 - give * 12} eyes="happy" mouth="grin" />
+            {/* le sac, tenu à deux mains devant lui, qu'il tend vers nous ; la vapeur sort sur les côtés */}
+            {f < 44 && <g transform={`translate(0 ${-20 - give * 14}) scale(${1 + give * 0.22})`}>
+              <Bag s={1} /><Steam x={-80} y={-40} s={0.55} n={1} /><Steam x={80} y={-40} s={0.55} n={1} />
+              <circle cx={-62} cy={8} r={15} fill={SKIN} /><circle cx={62} cy={8} r={15} fill={SKIN} />
+            </g>}
           </g>
           <rect x={232} y={404} width={616} height={1124} rx={10} fill="none" stroke="#fff" strokeWidth={24} />
           <rect x={210} y={1516} width={660} height={24} rx={6} fill="#C9A27A" />
@@ -436,8 +450,12 @@ const Door: React.FC = () => {
         </div>
       </AbsoluteFill>
       {/* le sac vient vers nous : écran bleu nuit HOP!, comme le logo */}
-      {zoomBag > 0 && <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 300, height: 320, borderRadius: 40, background: C.navy, transform: `translateY(${(1 - zoomBag) * 150}px) scale(${1 + zoomBag * 9})` }} />
+      {f >= 44 && <AbsoluteFill>
+        <div style={{ position: 'absolute', left: BAG_X - 62 * BAG_K, top: BAG_Y - 57 * BAG_K, width: 124 * BAG_K, height: 114 * BAG_K, borderRadius: 18 * BAG_K, background: C.navy, overflow: 'hidden',
+          transform: `scale(${1 + zoomBag * 11})`, transformOrigin: '50% 45%', boxShadow: `inset 0 ${26 * BAG_K}px 0 #1B2F57` }}>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 30 * BAG_K, display: 'flex', justifyContent: 'center' }}><Wordmark width={92 * BAG_K} /></div>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: 88 * BAG_K, height: 12 * BAG_K, background: C.orange }} />
+        </div>
       </AbsoluteFill>}
     </AbsoluteFill>
   );
@@ -459,7 +477,7 @@ const Joy: React.FC = () => {
         <path d="M 420 1478 L 440 1380 L 640 1380 L 660 1478 Z" fill="#F7EBD3" stroke="#D9C29A" strokeWidth={4} />
         <circle cx={540} cy={1500} r={8} fill="#E04F2F" /><circle cx={600} cy={1500} r={8} fill="#E04F2F" /><circle cx={480} cy={1505} r={8} fill="#E04F2F" />
         <Steam x={540} y={1470} s={1.2} n={4} />
-        <g transform="translate(770 1500)"><Bag s={0.7} /></g>
+        <g transform="translate(800 1478)"><Bag s={0.9} /><Steam x={0} y={-56} s={0.6} /></g>
       </g>}>
         <g transform="translate(540 1180) scale(1.55)">
           <Person sit={1} aR={20 + toMouth * 30} fR={20 + toMouth * 120} hold={<g><Slice r={-40 - toMouth * 40} /><Steam x={36} y={-80} s={0.45} n={2} /></g>} aL={14} fL={10}
