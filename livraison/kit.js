@@ -428,6 +428,10 @@ const CAMPS = [
 ];
 const FMT = { post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5" };
 const VIDEOS = [
+  // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public
+  { id: "showreel", aud: "client", title: "⚡ HOP! en 15 secondes" },
+  { id: "showreel", aud: "shop", title: "⚡ HOP! en 15 secondes" },
+  { id: "showreel", aud: "rider", title: "⚡ HOP! en 15 secondes" },
   { id: "courses", aud: "client", title: "🛒 On fait toutes vos courses" },
   { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires" }
 ];

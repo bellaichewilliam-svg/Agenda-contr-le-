@@ -33,3 +33,22 @@ npm run studio       # pour la voir et la modifier dans le navigateur
 ```
 
 Dans le conteneur cloud, ajouter `--browser-executable=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell`.
+
+
+## Showreel 15 s (`HopReel`)
+
+Vidéo verticale 1080 × 1920, 15 s, 120 BPM : chaque coupe tombe sur un temps (`src/Reel.tsx`, musique `scripts/reel_music.py`).
+
+1. **Allumage** : un point orange, une onde de choc, les lettres de HOP! claquent une à une (le « ! » se balance), DELIVERY, puis on plonge dans le « O ».
+2. **On livre** : REPAS, PHARMACIE, COLIS, FLEURS, COURSES, un mot par temps, le mot en contour qui défile derrière.
+3. **Suivi en direct** : la ville se dessine (la mer à l'ouest), le trajet s'allume, le scooter fonce, la pastille passe de 9 min à 1 min.
+4. **Le téléphone** : il arrive en 3D, l'anneau se remplit, « Livré ! », confettis — « Et hop, c'est livré ! ».
+5. **Dès 25 ₪** : les chiffres roulent, le tampon PRIX FIXE tombe, Bit · Espèces · Express.
+6. **Quatre tuiles** : 0 % de commission pour les commerces, livreurs, FR · עב, suivi — puis elles se replient en un point.
+7. **Fin** : le point s'ouvre sur le logo, hop-livraison.vercel.app.
+
+```bash
+python3 scripts/reel_music.py
+npx remotion render src/index.ts HopReel out/hop-showreel-15s.mp4
+npx remotion render src/index.ts HopReelHe out/hop-showreel-15s-he.mp4   # en hébreu, de droite à gauche
+```
