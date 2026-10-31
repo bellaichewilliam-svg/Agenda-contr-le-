@@ -34,7 +34,7 @@ export const Grid: React.FC<{ tile: number }> = ({ tile }) => {
         {WORDS.map(([fr, he], k) => (
           <div key={k} style={{ position: 'absolute', left: TARGET[k] - 500, width: 1000, top: 950, textAlign: 'center' }}>
             <div style={{ font: `700 74px/1 ${DISPLAY}`, color: '#fff' }}>{fr}</div>
-            <div style={{ font: `500 46px/1.2 ${UI}`, color: '#A9B3CA', marginTop: 14 }} dir="rtl">{he}</div>
+            <div style={{ font: `700 64px/1.15 ${UI}`, color: '#FFB27F', marginTop: 16 }} dir="rtl">{he}</div>
           </div>
         ))}
         <div style={{ position: 'absolute', left: 540 - 300, width: 600, top: 120, textAlign: 'center', font: `800 30px/1 ${UI}`, letterSpacing: '.4em', color: '#FFB27F' }}>NETANYA</div>
