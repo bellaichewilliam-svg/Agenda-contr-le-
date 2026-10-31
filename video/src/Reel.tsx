@@ -434,3 +434,6 @@ export const Reel: React.FC<{ music?: boolean; lang?: ReelLang }> = ({ music = t
   </AbsoluteFill>
   </Lang.Provider>
 );
+
+// Briques réutilisées par les autres vidéos sur le même rythme (Pay.tsx)
+export { Wordmark, Grain, Vignette, Flashes, Digit, shake, lerp, useSpring, outExpo, inExpo, inOut, NIGHT, CUTS };
