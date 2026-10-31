@@ -70,3 +70,13 @@ python3 scripts/fly_music.py
 npx remotion render src/index.ts HopFly out/hop-landing-flythrough.mp4
 npx remotion render src/index.ts HopFlyHe out/hop-landing-flythrough-he.mp4   # en hébreu : page en miroir, fin en Frank Ruhl Libre
 ```
+
+## Paiements en 15 s (`HopPay`)
+
+1080 × 1920, 15 s, même rythme que le showreel (`src/Pay.tsx`, musique : `HOP_KEY=3 HOP_SEED=23 HOP_OUT=pay-music.wav python3 scripts/reel_music.py`).
+La pièce ₪ tombe (« Payer ? Comme vous voulez. »), BIT · PAYBOX · ESPÈCES · LIEN · SANS CARTE, le téléphone (Payez 25 ₪ à Ilan :
+Ouvrir Bit, coller le numéro, J'ai payé), les espèces (« Vous payez avec : 50 ₪ », Ilan vous rend 25 ₪), 25 ₪ PAYÉ ✓, quatre tuiles, fin.
+
+```bash
+npx remotion render src/index.ts HopPay out/hop-paiement-15s.mp4
+```

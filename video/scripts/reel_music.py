@@ -15,7 +15,8 @@ FPS = 30
 BEAT = 0.5
 DUR = 15.6
 N = int(SR * DUR)
-rng = np.random.default_rng(11)
+KEY = int(os.environ.get('HOP_KEY', '0'))  # transposition (demi-tons) pour une variante
+rng = np.random.default_rng(int(os.environ.get('HOP_SEED', '11')))
 L = np.zeros(N)
 R = np.zeros(N)
 
@@ -42,7 +43,7 @@ def add(sig, t, gain=1.0, pan=0.0):
 
 
 def note(m):
-    return 440 * 2 ** ((m - 69) / 12)
+    return 440 * 2 ** ((m + KEY - 69) / 12)
 
 
 def ts(n):
@@ -253,7 +254,7 @@ mix = np.tanh(mix / peak * 1.35) / np.tanh(1.35) * 0.92
 fade = int(0.35 * SR)
 mix[-fade:] *= np.linspace(1, 0, fade)[:, None]
 pcm = (mix * 32767).astype(np.int16)
-out = os.path.join(ROOT, "public", "reel-music.wav")
+out = os.path.join(ROOT, "public", os.environ.get("HOP_OUT", "reel-music.wav"))
 with wave.open(out, "wb") as w:
     w.setnchannels(2)
     w.setsampwidth(2)
