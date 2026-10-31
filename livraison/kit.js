@@ -418,6 +418,7 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
+  { id: "hoppy-courses", aud: "client", isNew: true, thumb: "post", title: "🛒 Hoppy fait vos courses", desc: "Supermarché, épicerie, pharmacie… Hoppy y va à votre place.", formats: ["post"] },
   { id: "hoppy-fleurs", aud: "client", isNew: true, thumb: "post", title: "💐 Hoppy livre aussi vos fleurs", desc: "Anniversaire, Chabbat, ou juste pour dire merci : Hoppy arrive avec le bouquet.", formats: ["post"] },
   { id: "hoppy", aud: "client", isNew: true, thumb: "post", title: "🦘 Notre mascotte : Hoppy (הופי)", desc: "Le kangourou HOP! : il livre tout dans sa poche. Présentation (post et story), image officielle à joindre à ChatGPT pour de nouvelles scènes, et Hoppy sans fond.", formats: ["post", "story", "fiche", "detoure"] },
   { id: "grille2", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram, 2e rangée : ce qu'on fait", desc: "3 publications sous « H · O · P! » : Tout Netanya livré · Comment ça marche · Pourquoi HOP!. Publiez d'abord « Pourquoi », puis « Comment », puis « Tout Netanya ». Si « H · O · P! » est déjà en ligne : épinglez ensuite P!, puis O, puis H pour qu'ils restent en haut.", formats: ["g6", "g5", "g4"] },

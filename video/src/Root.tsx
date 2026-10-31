@@ -43,6 +43,7 @@ export const Root: React.FC = () => (
     <Still id="HoppySheet" component={MascotSheet} width={2160} height={1350} />
     <Still id="HoppyPost" component={HoppyPhoto} width={1080} height={1350} defaultProps={{ story: false }} />
     <Still id="HoppyStory" component={HoppyPhoto} width={1080} height={1920} defaultProps={{ story: true }} />
-    <Still id="HoppyFleurs" component={HoppyFleurs} width={1080} height={1350} />
+    <Still id="HoppyFleurs" component={HoppyFleurs} width={1080} height={1350} defaultProps={{ theme: 'fleurs' as const }} />
+    <Still id="HoppyCourses" component={HoppyFleurs} width={1080} height={1350} defaultProps={{ theme: 'courses' as const }} />
   </>
 );
