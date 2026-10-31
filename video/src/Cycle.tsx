@@ -3,19 +3,21 @@ import { AbsoluteFill, Audio, Sequence, random, spring, staticFile, useCurrentFr
 import { C, DISPLAY, UI } from './theme';
 import { Grain, Vignette, Wordmark, inExpo as inExpoRaw, inOut, lerp, outExpo, shake, useSpring } from './Reel';
 
-// « Le cycle HOP! » : 20 s en boucle, 1080 × 1920. Petite faim à 19:40 → commande en 3 touches → attente
-// (il vit sa vie, le livreur roule, le suivi décompte) → 19:58 ding-dong, livré en 18 min → il savoure, 5 étoiles →
-// logo, et la dernière image est la première : la vidéo boucle sans coupure.
+// « Le cycle HOP! » : 20 s en boucle, 1080 × 1920, format Insta / TikTok. « J'ai faim ! » → commande en 3 touches →
+// attente (il vit sa vie, le livreur roule, le suivi avance, gardé au chaud) → ding-dong, livré au plus vite →
+// il savoure, c'est chaud, 5 étoiles → logo HOP! sur fond bleu nuit, et la dernière image est la première (boucle).
 export const CYCLE_FRAMES = 600;
 export type CycleLang = 'fr' | 'he';
 const BLUE = '#1E9BE0', SKIN = '#F2C29B', HAIR = '#2B2135', WALL = '#FFF0E6', WOOD = '#E8C9A4';
 const STR = {
-  fr: { rtl: false, c1: 'Petite faim…', grr: 'Grrr…', c2: 'Il commande. 3 touches.', items: [['🍕', 'Pizza'], ['🍔', 'Burger'], ['🥗', 'Salade']], order: 'Commander',
-    done: 'Commandé !', eta: 'Arrivée vers 19:58', steps: ['En préparation', 'Récupérée', 'En route', 'Il arrive !'], acts: ['Il met la table.', 'Il danse un peu.', 'Déjà là ?'],
-    min: 'min', ding: 'Ding-dong !', livre: 'Livré en 18 min', c5: 'Content. Comme toujours.', thanks: '💝 Merci Ilan !', tag: ['Commandé.', 'Livré.', 'Encore ?'], pizzeria: 'PIZZERIA' },
-  he: { rtl: true, c1: 'קצת רעב…', grr: 'גררר…', c2: 'מזמין. 3 נגיעות.', items: [['🍕', 'פיצה'], ['🍔', 'המבורגר'], ['🥗', 'סלט']], order: 'להזמין',
-    done: 'הוזמן!', eta: 'הגעה בסביבות 19:58', steps: ['בהכנה', 'נאסף', 'בדרך', 'מגיע!'], acts: ['עורך את השולחן.', 'רוקד קצת.', 'כבר כאן?'],
-    min: "דק'", ding: 'דינג-דונג!', livre: "נמסר תוך 18 דק'", c5: 'מרוצה. כמו תמיד.', thanks: '💝 תודה אילן!', tag: ['הוזמן.', 'נמסר.', 'עוד פעם?'], pizzeria: 'פיצרייה' },
+  fr: { rtl: false, hook: "J'ai faim ! 😩", grr: 'Grrr…', c2: '3 touches. Commandé !', items: [['🍕', 'Pizza'], ['🍔', 'Burger'], ['🥗', 'Salade']], order: 'Commander',
+    done: 'Commandé !', eta: 'Arrive au plus vite ⚡', steps: ['En préparation', 'Récupérée', 'En route', 'Il arrive !'], acts: ['On met la table…', 'On danse un peu…', 'Déjà là ?! 😮'],
+    hot: '🔥 Gardé au chaud', ding: 'Ding-dong !', livre: '⚡ Livré au plus vite', hotChip: '🔥 Encore chaud', hotBig: 'Votre plat arrive chaud 🔥', c5: 'Content. Comme toujours. 😋',
+    thanks: '💝 Merci Ilan !', tag: ['Commandé.', 'Livré.', 'Encore chaud.'], pizzeria: 'PIZZERIA' },
+  he: { rtl: true, hook: 'אני רעב! 😩', grr: 'גררר…', c2: '3 נגיעות. הוזמן!', items: [['🍕', 'פיצה'], ['🍔', 'המבורגר'], ['🥗', 'סלט']], order: 'להזמין',
+    done: 'הוזמן!', eta: 'מגיע הכי מהר ⚡', steps: ['בהכנה', 'נאסף', 'בדרך', 'מגיע!'], acts: ['עורכים את השולחן…', 'רוקדים קצת…', 'כבר כאן?! 😮'],
+    hot: '🔥 נשמר חם', ding: 'דינג-דונג!', livre: '⚡ נמסר הכי מהר', hotChip: '🔥 עדיין חם', hotBig: 'האוכל מגיע חם 🔥', c5: 'מרוצה. כמו תמיד. 😋',
+    thanks: '💝 תודה אילן!', tag: ['הוזמן.', 'נמסר.', 'עדיין חם.'], pizzeria: 'פיצרייה' },
 };
 let T = STR.fr; // fixé par <Cycle lang> avant le rendu des scènes
 const iso = { unicodeBidi: 'isolate' as const, direction: 'ltr' as const };
@@ -106,8 +108,8 @@ const Slice: React.FC<{ r?: number }> = ({ r = -30 }) => (
   <g transform={`rotate(${r})`}><path d="M -8 -10 L 46 -70 Q 62 -50 70 -30 Z" fill="#FFC857" stroke="#E0A030" strokeWidth={4} /><circle cx={40} cy={-48} r={6} fill="#E04F2F" /><circle cx={54} cy={-34} r={5} fill="#E04F2F" /></g>
 );
 const Bag: React.FC<{ s?: number }> = ({ s = 1 }) => (
-  <g transform={`scale(${s})`}><path d="M -18 -40 Q 0 -70 18 -40" stroke="#B93F00" strokeWidth={7} fill="none" /><rect x={-46} y={-40} width={92} height={96} rx={12} fill={C.orange} />
-    <text direction="ltr" x={0} y={18} textAnchor="middle" fontFamily="Fredoka, Rubik" fontWeight={700} fontSize={30} fill="#fff">HOP!</text></g>
+  <g transform={`scale(${s})`}><path d="M -18 -40 Q 0 -70 18 -40" stroke="#0B1730" strokeWidth={7} fill="none" /><rect x={-46} y={-40} width={92} height={96} rx={12} fill={C.navy} stroke="#2A3F6E" strokeWidth={3} />
+    <text direction="ltr" x={0} y={18} textAnchor="middle" fontFamily="Fredoka, Rubik" fontWeight={700} fontSize={30} fill="#fff">HOP<tspan fill={C.orange}>!</tspan></text></g>
 );
 const Clock: React.FC<{ m: number; r?: number }> = ({ m, r = 80 }) => {
   const hr = ((19 + m / 60) % 12) * 30, mn = (m % 60) * 6;
@@ -121,18 +123,31 @@ const Clock: React.FC<{ m: number; r?: number }> = ({ m, r = 80 }) => {
     </g>
   );
 };
-const hhmm = (m: number) => `19:${String(Math.floor(40 + m)).padStart(2, '0')}`;
-const Caption: React.FC<{ t: string; at: number; until?: number; top?: number; dark?: boolean }> = ({ t, at, until = 9999, top = 120, dark }) => {
+// Contour épais « autocollant » (ombres tout autour) + ombre portée, comme les sous-titres TikTok
+const outline = (w: number, drop: number) => Array.from({ length: 24 }, (_, k) => {
+  const a = (k / 24) * Math.PI * 2;
+  return `${(Math.cos(a) * w).toFixed(1)}px ${(Math.sin(a) * w).toFixed(1)}px 0 ${C.navy}`;
+}).concat([`0 ${drop}px 0 ${C.navy}`, `0 ${drop + 6}px 24px rgba(0,0,0,.35)`]).join(', ');
+const Punch: React.FC<{ t: string; at: number; until?: number; y?: number; size?: number; color?: string; rot?: number }> = ({ t, at, until = 9999, y = 300, size = 96, color = '#fff', rot = -3 }) => {
   const f = useCurrentFrame();
-  const s = spring({ frame: f - at, fps: 30, config: { damping: 14, stiffness: 220, mass: 0.6 } });
-  const out = lerp(f, [until, until + 6], [0, 1], inExpo);
   if (f < at) return null;
+  const s = spring({ frame: f - at, fps: 30, config: { damping: 9, stiffness: 320, mass: 0.5 } });
+  const out = lerp(f, [until, until + 5], [0, 1], inExpo);
+  if (out >= 1) return null;
   return (
-    <div style={{ position: 'absolute', top, left: 0, right: 0, display: 'flex', justifyContent: 'center', opacity: 1 - out }}>
-      <div style={{ padding: '22px 40px', borderRadius: 999, background: dark ? C.navy : '#fff', color: dark ? '#fff' : C.navy, font: `700 54px/1.1 ${DISPLAY}`,
-        transform: `translateY(${(1 - s) * -80 - out * 40}px) scale(${0.8 + 0.2 * s})`, boxShadow: '0 20px 50px rgba(15,31,61,.25)', whiteSpace: 'nowrap' }}>{t}</div>
+    <div style={{ position: 'absolute', top: y, left: 30, right: 30, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+      <div style={{ font: `700 ${size}px/1.08 ${DISPLAY}`, color, textAlign: 'center', textShadow: outline(Math.max(5, Math.round(size / 13)), Math.round(size / 11)),
+        transform: `scale(${s * (1 - out)}) rotate(${rot * s}deg)` }}>{t}</div>
     </div>
   );
+};
+const Steam: React.FC<{ x: number; y: number; s?: number; n?: number }> = ({ x, y, s = 1, n = 3 }) => {
+  const f = useCurrentFrame();
+  return <g transform={`translate(${x} ${y}) scale(${s})`}>{Array.from({ length: n }).map((_, k) => {
+    const t = ((f + k * 11) % 34) / 34, dx = (k - (n - 1) / 2) * 34;
+    return <path key={k} d={`M ${dx} 0 q -14 -24 0 -48 q 14 -24 0 -48`} stroke="#fff" strokeWidth={9} fill="none" strokeLinecap="round"
+      opacity={Math.sin(Math.PI * t) * 0.85} transform={`translate(${Math.sin(t * 6 + k) * 6} ${-t * 70})`} />;
+  })}</g>;
 };
 
 // ===== Le salon (début, fin de boucle, et le repas) =====================================================
@@ -175,30 +190,29 @@ const Room: React.FC<{ minutes: number; children?: React.ReactNode; table?: Reac
   </svg>
 );
 
-// ===== 1. 19:40, petite faim ===========================================================================
+// ===== 1. « J'ai faim ! » (accroche dès la 1re seconde) ==================================================
 const Hungry: React.FC = () => {
-  const f = useCurrentFrame();
-  const breath = Math.sin((f / 45) * Math.PI * 2) * 3;
-  const rumble = (k: number) => Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, (f - k) / 24))));
-  const r1 = rumble(12), r2 = rumble(34);
-  const lift = lerp(f, [42, 54], [0, 1], outExpo);
-  const zoom = lerp(f, [56, 75], [1, 4.2], inExpo);
+  const f = useCurrentFrame();          // 0..45
+  const rumble = (k: number) => Math.max(0, Math.sin(Math.PI * Math.min(1, Math.max(0, (f - k) / 18))));
+  const r1 = rumble(6), r2 = rumble(22);
+  const punch = f >= 6 ? 1 + 0.06 * Math.max(0, 1 - (f - 6) / 8) : 1;
+  const lift = lerp(f, [26, 34], [0, 1], outExpo);
+  const zoom = lerp(f, [34, 45], [1, 4.2], inExpo);
   return (
     <AbsoluteFill style={{ background: WALL, overflow: 'hidden' }}>
-      <AbsoluteFill style={{ transform: `scale(${zoom})`, transformOrigin: '640px 940px' }}>
+      <AbsoluteFill style={{ transform: `scale(${zoom * punch})`, transformOrigin: '640px 940px' }}>
         <Room minutes={0}>
-          <g transform={`translate(540 1180) scale(1.55)`}>
-            <Person sit={1} bob={breath + (r1 + r2) * Math.sin(f * 2.4) * 3} aL={lerp(r1 + r2, [0, 1], [10, 40])} fL={lerp(r1 + r2, [0, 1], [0, 90])}
+          <g transform="translate(540 1180) scale(1.55)">
+            <Person sit={1} bob={(r1 + r2) * Math.sin(f * 2.4) * 3} aL={lerp(r1 + r2, [0, 1], [10, 40])} fL={lerp(r1 + r2, [0, 1], [0, 90])}
               aR={lerp(lift, [0, 1], [10, 30])} fR={lerp(lift, [0, 1], [0, 130])} hold={lift > 0.2 ? <Phone s={0.9} r={-10} /> : undefined}
-              eyes={f > 12 && f < 42 ? 'look' : 'open'} mouth={f > 12 && f < 54 ? 'o' : 'smile'} brows={r1 + r2 * 0.5} head={lift * 8} />
+              eyes={f > 6 && f < 26 ? 'closed' : 'open'} mouth={f > 6 && f < 34 ? 'o' : 'smile'} brows={r1 + r2 * 0.5} head={lift * 8 + (r1 + r2) * Math.sin(f) * 4} />
             {(r1 > 0 || r2 > 0) && [0, 1, 2].map(k => <path key={k} d={`M ${-70 - k * 16} ${-70 + k * 22} q -12 -10 0 -20 q 12 -10 0 -20`} stroke={C.orange} strokeWidth={5} fill="none" opacity={Math.max(r1, r2)} />)}
           </g>
         </Room>
-        {/* bulle « Grrr… » */}
         <div style={{ position: 'absolute', left: 150, top: 1000, transform: `scale(${Math.max(r1, r2 * 0.8)}) rotate(-8deg)`, transformOrigin: '100% 100%', padding: '14px 26px', borderRadius: 30,
           background: '#fff', font: `700 46px/1 ${DISPLAY}`, color: C.orangeDeep, boxShadow: '0 12px 30px rgba(0,0,0,.15)' }}>{T.grr}</div>
       </AbsoluteFill>
-      <Caption t={`🕖 ${hhmm(0)} · ${T.c1}`} at={4} until={50} />
+      <Punch t={T.hook} at={4} until={32} y={260} size={124} />
     </AbsoluteFill>
   );
 };
@@ -214,15 +228,15 @@ const Tap: React.FC<{ x: number; y: number; at: number }> = ({ x, y, at }) => {
   </>;
 };
 const Order: React.FC = () => {
-  const f = useCurrentFrame();          // 0..90 (images 75 → 165)
-  const enter = lerp(f, [0, 12], [0, 1], outExpo);
-  const picked = f >= 20, sent = f >= 55;
-  const sentS = useSpring(55, 11, 240, 0.6);
-  const exit = lerp(f, [80, 90], [0, 1], inExpo);
+  const f = useCurrentFrame();          // 0..75
+  const enter = lerp(f, [0, 10], [0, 1], outExpo);
+  const picked = f >= 15, sent = f >= 36;
+  const sentS = useSpring(36, 10, 260, 0.6);
+  const exit = lerp(f, [66, 75], [0, 1], inExpo);
   const card = (k: number) => {
     const on = picked && k === 0;
     return <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 22, padding: '22px 24px', borderRadius: 28, background: on ? '#FFF0E6' : '#fff', border: `4px solid ${on ? C.orange : '#EEF0F4'}`,
-      transform: `scale(${on ? 1 + 0.05 * Math.max(0, 1 - (f - 20) / 8) : 1})` }}>
+      transform: `scale(${on ? 1 + 0.05 * Math.max(0, 1 - (f - 15) / 8) : 1})` }}>
       <span style={{ fontSize: 64 }}>{T.items[k][0]}</span><span style={{ font: `700 44px/1 ${DISPLAY}`, color: C.navy }}>{T.items[k][1]}</span>
       {on && <span style={{ marginInlineStart: 'auto', width: 50, height: 50, borderRadius: '50%', background: C.orange, color: '#fff', display: 'grid', placeItems: 'center', font: `800 30px/1 ${UI}` }}>1</span>}
     </div>;
@@ -230,34 +244,34 @@ const Order: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 40%, ${C.navy2} 0%, ${C.navy} 70%)`, overflow: 'hidden' }}>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ position: 'relative', marginTop: 120, width: 640, height: 1240, borderRadius: 90, background: '#05070D', padding: 20, boxShadow: '0 80px 120px rgba(0,0,0,.5)',
+        <div style={{ position: 'relative', marginTop: 200, width: 640, height: 1240, borderRadius: 90, background: '#05070D', padding: 20, boxShadow: '0 80px 120px rgba(0,0,0,.5)',
           transform: `translateY(${(1 - enter) * 300 + exit * -200}px) scale(${0.92 + 0.08 * enter - exit * 0.3}) rotate(${(1 - enter) * -6}deg)`, opacity: 1 - exit }}>
           <div style={{ position: 'absolute', inset: 20, borderRadius: 72, background: '#F6F7FB', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             <div style={{ background: C.navy, padding: '70px 40px 30px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ font: `700 54px/1 ${DISPLAY}`, color: '#fff', ...iso }}>HOP<span style={{ color: C.orange }}>!</span></span>
-              <span style={{ font: `600 30px/1 ${UI}`, color: '#A9B3CA', ...iso }}>🕖 {hhmm(0)}</span>
+              <span style={{ font: `600 30px/1 ${UI}`, color: '#A9B3CA' }}>📍 Netanya</span>
             </div>
             {!sent ? <div style={{ padding: 30, display: 'grid', gap: 22 }}>
               {[0, 1, 2].map(card)}
               <div style={{ marginTop: 30, padding: '34px 0', borderRadius: 999, textAlign: 'center', background: picked ? C.orange : '#D0D5DD', color: '#fff', font: `700 50px/1 ${DISPLAY}`,
-                transform: `scale(${lerp(f, [40, 44, 50], [1, 0.94, 1])})` }}>{T.order}</div>
+                transform: `scale(${lerp(f, [30, 33, 38], [1, 0.94, 1])})` }}>{T.order}</div>
             </div> : <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 30, transform: `scale(${sentS})` }}>
               <div style={{ width: 220, height: 220, borderRadius: '50%', background: C.green, display: 'grid', placeItems: 'center', font: `700 140px/1 ${DISPLAY}`, color: '#fff', boxShadow: '0 20px 50px rgba(18,183,106,.4)' }}>✓</div>
               <div style={{ font: `700 72px/1 ${DISPLAY}`, color: C.navy }}>{T.done}</div>
-              <div style={{ font: `600 40px/1.2 ${UI}`, color: C.muted }}>{T.eta}</div>
+              <div style={{ font: `700 42px/1.2 ${UI}`, color: C.orangeDeep }}>{T.eta}</div>
             </div>}
           </div>
-          <Tap x={230} y={262} at={20} />
-          <Tap x={320} y={685} at={43} />
+          <Tap x={230} y={262} at={15} />
+          <Tap x={320} y={685} at={33} />
         </div>
       </AbsoluteFill>
-      <Caption t={T.c2} at={2} until={80} />
+      <Punch t={T.c2} at={38} until={64} y={110} size={92} />
     </AbsoluteFill>
   );
 };
 
 // ===== 3. L'attente : chez lui en haut, le livreur en bas, le suivi au milieu ===========================
-const WAIT = 240;
+const WAIT = 210;
 const Scooter: React.FC<{ f: number; speed: number }> = ({ f, speed }) => {
   const spin = f * speed * 14;
   const bob = Math.sin(f / 3) * 3 * Math.min(1, speed);
@@ -270,8 +284,8 @@ const Scooter: React.FC<{ f: number; speed: number }> = ({ f, speed }) => {
       <path d="M 60 -40 L 110 -190 L 135 -190" stroke="#1D2433" strokeWidth={14} fill="none" strokeLinecap="round" />
       <path d="M 100 -40 Q 160 -60 170 -10" stroke={C.orangeDeep} strokeWidth={30} fill="none" strokeLinecap="round" />
       {/* top case */}
-      <rect x={-230} y={-230} width={130} height={120} rx={16} fill={C.orange} stroke="#fff" strokeWidth={6} />
-      <text direction="ltr" x={-165} y={-158} textAnchor="middle" fontFamily="Fredoka, Rubik" fontWeight={700} fontSize={40} fill="#fff">HOP!</text>
+      <rect x={-230} y={-230} width={130} height={120} rx={16} fill={C.navy} stroke="#fff" strokeWidth={6} />
+      <text direction="ltr" x={-165} y={-158} textAnchor="middle" fontFamily="Fredoka, Rubik" fontWeight={700} fontSize={40} fill="#fff">HOP<tspan fill={C.orange}>!</tspan></text>
       {/* livreur de profil */}
       <path d="M -40 -110 L 10 -110 L 40 -40" stroke="#22314F" strokeWidth={34} fill="none" strokeLinecap="round" strokeLinejoin="round" />
       <path d="M -40 -110 L -10 -250" stroke={C.navy} strokeWidth={60} strokeLinecap="round" />
@@ -320,27 +334,24 @@ const City: React.FC = () => {
 };
 const Home: React.FC = () => {
   const f = useCurrentFrame();
-  const m = lerp(f, [0, WAIT], [0, 17], (t: number) => t);
-  const act = f < 80 ? 0 : f < 160 ? 1 : 2;
-  const a = f - act * 80;
-  // 0 : il met la table — 1 : il danse — 2 : il regarde son téléphone puis la porte
-  const reach = act === 0 ? Math.max(0, Math.sin(Math.PI * ((a % 40) / 40))) : 0;
-  const plates = act > 0 ? 2 : a > 30 ? (a > 68 ? 2 : 1) : 0;
+  const m = lerp(f, [0, WAIT], [0, 14], (t: number) => t);
+  const act = f < 70 ? 0 : f < 140 ? 1 : 2;
+  const a = f - act * 70;
+  const reach = act === 0 ? Math.max(0, Math.sin(Math.PI * ((a % 35) / 35))) : 0;
+  const plates = act > 0 ? 2 : a > 26 ? (a > 60 ? 2 : 1) : 0;
   const beat = Math.sin((a / 15) * Math.PI);
   const pose: Pose = act === 0
     ? { aR: 20 + reach * 40, fR: reach * 40, aL: 10, lean: reach * 6, eyes: 'open', mouth: 'smile', hold: reach > 0.2 ? <ellipse cx={18} cy={12} rx={36} ry={10} fill="#fff" stroke="#D0D5DD" strokeWidth={4} /> : undefined }
     : act === 1
       ? { aL: 140 + beat * 30, fL: 30, aR: 140 - beat * 30, fR: 30, bob: -Math.abs(beat) * 18, head: beat * 10, lean: beat * 5, eyes: 'happy', mouth: 'grin' }
-      : { aR: 30, fR: 140, hold: <Phone s={0.9} r={-10} />, aL: 10, head: a > 40 ? 14 : 0, eyes: a > 40 ? 'look' : 'open', mouth: a > 40 ? 'o' : 'smile', brows: a > 40 ? 1 : 0 };
+      : { aR: 30, fR: 140, hold: <Phone s={0.9} r={-10} />, aL: 10, head: a > 30 ? 14 : 0, eyes: a > 30 ? 'look' : 'open', mouth: a > 30 ? 'o' : 'smile', brows: a > 30 ? 1 : 0 };
   return (
     <svg width={1080} height={860} style={{ position: 'absolute', left: 0, top: 0 }}>
       <rect width={1080} height={860} fill={WALL} />
       <rect y={700} width={1080} height={160} fill={WOOD} />
       <rect x={70} y={170} width={300} height={360} rx={20} fill="#1B2F57" stroke="#fff" strokeWidth={12} />
       <circle cx={300} cy={240} r={26} fill="#FFF3C4" />
-      <g transform="translate(860 250)"><Clock m={40 + m} r={80} /></g>
-      <g transform="translate(860 360)"><rect x={-90} y={0} width={180} height={56} rx={28} fill={C.navy} /><text direction="ltr" x={0} y={39} textAnchor="middle" fontFamily="Rubik" fontWeight={700} fontSize={34} fill="#fff">{hhmm(m)}</text></g>
-      {/* table */}
+      <g transform="translate(860 300)"><Clock m={40 + m} r={80} /></g>
       <rect x={560} y={590} width={420} height={26} rx={10} fill="#B37A4C" /><rect x={590} y={616} width={18} height={150} fill="#8C5A35" /><rect x={932} y={616} width={18} height={150} fill="#8C5A35" />
       {plates >= 1 && <ellipse cx={680} cy={582} rx={56} ry={14} fill="#fff" stroke="#D0D5DD" strokeWidth={4} />}
       {plates >= 2 && <ellipse cx={860} cy={582} rx={56} ry={14} fill="#fff" stroke="#D0D5DD" strokeWidth={4} />}
@@ -353,9 +364,9 @@ const Home: React.FC = () => {
 const Wait: React.FC = () => {
   const f = useCurrentFrame();
   const prog = lerp(f, [0, WAIT], [0, 1], (t: number) => t);
-  const mins = Math.max(1, Math.round(18 - 17 * prog));
-  const step = f < 50 ? 0 : f < 95 ? 1 : f < 215 ? 2 : 3;
+  const step = f < 45 ? 0 : f < 85 ? 1 : f < 185 ? 2 : 3;
   const enter = lerp(f, [0, 10], [0, 1], outExpo);
+  const stepPop = spring({ frame: f - [0, 45, 85, 185][step], fps: 30, config: { damping: 10, stiffness: 300, mass: 0.5 } });
   return (
     <AbsoluteFill style={{ background: C.navy, overflow: 'hidden' }}>
       <div style={{ position: 'absolute', inset: 0, transform: `translateY(${(1 - enter) * -400}px)` }}><Home /></div>
@@ -366,154 +377,152 @@ const Wait: React.FC = () => {
         <svg width={140} height={140} viewBox="0 0 140 140" style={{ flex: 'none' }}>
           <circle cx={70} cy={70} r={56} stroke="#EEF0F4" strokeWidth={16} fill="none" />
           <circle cx={70} cy={70} r={56} stroke={C.orange} strokeWidth={16} fill="none" strokeLinecap="round" strokeDasharray={`${352 * (0.05 + 0.95 * prog)} 352`} transform="rotate(-90 70 70)" />
-          <text direction="ltr" x={70} y={74} textAnchor="middle" fontFamily="Fredoka, Rubik" fontWeight={700} fontSize={50} fill={C.navy}>{mins}</text>
-          <text direction="ltr" x={70} y={104} textAnchor="middle" fontFamily="Rubik" fontWeight={600} fontSize={22} fill={C.muted}>{T.min}</text>
+          <text direction="ltr" x={70} y={88} textAnchor="middle" fontSize={54}>🛵</text>
         </svg>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ font: `700 50px/1.1 ${DISPLAY}`, color: C.navy, whiteSpace: 'nowrap' }}>{['🍳', '🛍️', '🛵', '🔔'][step]} {T.steps[step]}</div>
-          <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-            {[0, 1, 2, 3].map(k => <div key={k} style={{ flex: 1, height: 12, borderRadius: 6, background: k <= step ? C.orange : '#EEF0F4' }} />)}
+          <div style={{ font: `700 50px/1.1 ${DISPLAY}`, color: C.navy, whiteSpace: 'nowrap', transform: `scale(${0.9 + 0.1 * stepPop})`, transformOrigin: T.rtl ? '100% 50%' : '0% 50%' }}>{['🍳', '🛍️', '🛵', '🔔'][step]} {T.steps[step]}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 16 }}>
+            <div style={{ display: 'flex', gap: 8, flex: 1 }}>{[0, 1, 2, 3].map(k => <div key={k} style={{ flex: 1, height: 12, borderRadius: 6, background: k <= step ? C.orange : '#EEF0F4' }} />)}</div>
+            <span style={{ font: `700 30px/1 ${UI}`, color: '#B54708', background: '#FEF0C7', padding: '8px 14px', borderRadius: 999, whiteSpace: 'nowrap' }}>{T.hot}</span>
           </div>
         </div>
       </div>
-      <Caption t={T.acts[0]} at={6} until={74} top={50} />
-      <Caption t={T.acts[1]} at={84} until={154} top={50} />
-      <Caption t={T.acts[2]} at={164} until={232} top={50} />
+      <Punch t={T.acts[0]} at={6} until={64} y={40} size={76} />
+      <Punch t={T.acts[1]} at={74} until={134} y={40} size={76} rot={3} />
+      <Punch t={T.acts[2]} at={144} until={204} y={40} size={76} />
     </AbsoluteFill>
   );
 };
 
-// ===== 4. Ding-dong : la porte s'ouvre, livré en 18 min ==================================================
+// ===== 4. Ding-dong : la porte s'ouvre, le livreur entier dans l'encadrement ==============================
 const Door: React.FC = () => {
-  const f = useCurrentFrame();          // 0..60 (images 405 → 465)
-  const open = lerp(f, [14, 30], [0, 1], inOut);
+  const f = useCurrentFrame();          // 0..60
+  const open = lerp(f, [12, 26], [0, 1], inOut);
   const ring = (k: number) => lerp(f, [k, k + 14], [0, 1], outExpo);
-  const badge = useSpring(16, 12, 260, 0.6);
+  const badge = useSpring(16, 11, 260, 0.6);
   const sh = shake(f, 16, 18, 8);
-  const give = lerp(f, [30, 42], [0, 1], inOut);
-  const bagZoom = lerp(f, [46, 60], [0, 1], inExpo);
+  const give = lerp(f, [26, 38], [0, 1], inOut);
+  const zoomBag = lerp(f, [44, 60], [0, 1], inExpo);
   return (
     <AbsoluteFill style={{ background: WALL, overflow: 'hidden' }}>
       <AbsoluteFill style={{ transform: `translate(${sh.x}px, ${sh.y}px)` }}>
         <svg width={1080} height={1920} style={{ position: 'absolute', inset: 0 }}>
           <rect width={1080} height={1920} fill="#FFE3CF" />
-          <rect y={1500} width={1080} height={420} fill={WOOD} />
-          {/* palier vu par la porte */}
-          <rect x={250} y={420} width={580} height={1080} fill="#2B3655" />
-          <rect x={250} y={1300} width={580} height={200} fill="#3A4566" />
-          <g transform="translate(540 1440) scale(1.9)">
+          <rect y={1516} width={1080} height={404} fill={WOOD} />
+          <rect x={250} y={420} width={580} height={1096} fill="#2B3655" />
+          <rect x={250} y={1330} width={580} height={186} fill="#3A4566" />
+          {/* le livreur, entier : casque, sac chaud, pieds sur le palier */}
+          <g transform="translate(540 1182) scale(1.72)">
             <Person helmet sweater={C.navy} pants="#1D2433" aR={lerp(give, [0, 1], [20, 80])} fR={lerp(give, [0, 1], [60, 10])} aL={8}
-              hold={<g transform={`translate(${give * 20} ${give * -10})`}><Bag s={0.75} /></g>} eyes="open" mouth="grin" />
+              hold={<g transform={`translate(${give * 20} ${give * -10})`}><Bag s={0.75} /><Steam x={0} y={-48} s={0.5} /></g>} eyes="happy" mouth="grin" />
           </g>
-          {/* la porte (pivote) */}
-          <rect x={232} y={404} width={616} height={1112} rx={10} fill="none" stroke="#fff" strokeWidth={24} />
+          <rect x={232} y={404} width={616} height={1124} rx={10} fill="none" stroke="#fff" strokeWidth={24} />
+          <rect x={210} y={1516} width={660} height={24} rx={6} fill="#C9A27A" />
         </svg>
-        <div style={{ position: 'absolute', left: 250, top: 420, width: 580, height: 1080, perspective: 1600 }}>
-          <div style={{ position: 'absolute', inset: 0, background: C.navy2, transformOrigin: '0% 50%', transform: `rotateY(${-open * 100}deg)`, borderRadius: 6,
-            boxShadow: 'inset 0 0 0 18px #22386A' }}>
-            <div style={{ position: 'absolute', right: 50, top: 520, width: 40, height: 40, borderRadius: '50%', background: '#FFC857' }} />
+        <div style={{ position: 'absolute', left: 250, top: 420, width: 580, height: 1096, perspective: 1600 }}>
+          <div style={{ position: 'absolute', inset: 0, background: C.navy2, transformOrigin: '0% 50%', transform: `rotateY(${-open * 100}deg)`, borderRadius: 6, boxShadow: 'inset 0 0 0 18px #22386A' }}>
+            <div style={{ position: 'absolute', right: 50, top: 540, width: 40, height: 40, borderRadius: '50%', background: '#FFC857' }} />
             <div style={{ position: 'absolute', left: 190, top: 120, width: 200, height: 70, borderRadius: 12, background: '#fff', display: 'grid', placeItems: 'center', font: `700 40px/1 ${UI}`, color: C.navy }}>12</div>
           </div>
         </div>
-        {/* sonnette */}
         {[0, 6].map(k => f >= k && f < k + 16 && <div key={k} style={{ position: 'absolute', left: 900, top: 900, width: 60 + ring(k) * 380, height: 60 + ring(k) * 380, borderRadius: '50%', border: `6px solid ${C.orange}`, transform: 'translate(-50%,-50%)', opacity: 1 - ring(k) }} />)}
         <div style={{ position: 'absolute', left: 880, top: 880, width: 40, height: 40, borderRadius: '50%', background: C.orange, border: '6px solid #fff' }} />
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 230, textAlign: 'center', font: `700 110px/1 ${DISPLAY}`, color: C.orangeDeep, transform: `scale(${spring({ frame: f, fps: 30, config: { damping: 9, stiffness: 300, mass: 0.5 } })}) rotate(-4deg)`,
-          opacity: 1 - lerp(f, [12, 18], [0, 1]) }}>🔔 {T.ding}</div>
-        {/* badge livré */}
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 170, display: 'flex', justifyContent: 'center', opacity: Math.min(1, badge) * (1 - bagZoom) }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 24, padding: '26px 44px', borderRadius: 999, background: C.green, color: '#fff', font: `700 66px/1 ${DISPLAY}`,
-            transform: `scale(${1 + Math.max(0, 1 - badge) * 2})`, boxShadow: '0 30px 60px rgba(18,183,106,.4)', whiteSpace: 'nowrap' }}>✓ {T.livre}</div>
-        </div>
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 300, display: 'flex', justifyContent: 'center', opacity: Math.min(1, badge) * (1 - bagZoom) }}>
-          <div style={{ padding: '14px 28px', borderRadius: 999, background: C.navy, color: '#fff', font: `700 40px/1 ${UI}`, ...iso }}>🕖 {hhmm(18)}</div>
+        <Punch t={`🔔 ${T.ding}`} at={0} until={13} y={200} size={116} color={C.orange} />
+        {/* « livré au plus vite » + « encore chaud » */}
+        <div style={{ position: 'absolute', left: 0, right: 0, top: 150, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 22, opacity: Math.min(1, badge) * (1 - zoomBag) }}>
+          <div style={{ padding: '26px 44px', borderRadius: 999, background: C.green, color: '#fff', font: `700 70px/1 ${DISPLAY}`, transform: `scale(${1 + Math.max(0, 1 - badge) * 2}) rotate(-3deg)`,
+            boxShadow: '0 30px 60px rgba(18,183,106,.4)', whiteSpace: 'nowrap' }}>{T.livre}</div>
+          <div style={{ padding: '16px 30px', borderRadius: 999, background: '#FEF0C7', color: '#B54708', font: `700 50px/1 ${DISPLAY}`, transform: `scale(${spring({ frame: f - 24, fps: 30, config: { damping: 9, stiffness: 300, mass: 0.5 } })}) rotate(2deg)` }}>{T.hotChip}</div>
         </div>
       </AbsoluteFill>
-      {/* le sac vient vers nous et remplit l'écran → le repas */}
-      {bagZoom > 0 && <div style={{ position: 'absolute', left: 540, top: 1150, width: 300, height: 320, marginLeft: -150, marginTop: -160, borderRadius: 40, background: C.orange,
-        transform: `scale(${1 + bagZoom * 9})`, display: 'grid', placeItems: 'center', font: `700 90px/1 ${DISPLAY}`, color: '#fff' }}>HOP!</div>}
+      {/* le sac vient vers nous : écran bleu nuit HOP!, comme le logo */}
+      {zoomBag > 0 && <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 300, height: 320, borderRadius: 40, background: C.navy, transform: `translateY(${(1 - zoomBag) * 150}px) scale(${1 + zoomBag * 9})` }} />
+      </AbsoluteFill>}
     </AbsoluteFill>
   );
 };
 
-// ===== 5. Il savoure : bouchées, cœurs, 5 étoiles, merci Ilan ============================================
+// ===== 5. Il savoure : c'est chaud, bouchées, cœurs, 5 étoiles ==========================================
 const Joy: React.FC = () => {
-  const f = useCurrentFrame();          // 0..90 (images 465 → 555)
-  const open = lerp(f, [0, 10], [1, 0], outExpo);
+  const f = useCurrentFrame();          // 0..120
+  const open = lerp(f, [0, 12], [1, 0], outExpo);
+  const logoIn = spring({ frame: f, fps: 30, config: { damping: 12, stiffness: 260, mass: 0.6 } });
   const bite = (f % 24) / 24, toMouth = Math.max(0, Math.sin(Math.PI * Math.min(1, bite * 1.6)));
   const chew = f % 24 > 14 && Math.floor(f / 3) % 2 === 0;
-  const phone = useSpring(28, 13, 220, 0.6);
-  const thanks = useSpring(58, 11, 240, 0.6);
+  const phone = useSpring(56, 13, 220, 0.6);
+  const thanks = useSpring(84, 11, 240, 0.6);
   return (
     <AbsoluteFill style={{ background: WALL, overflow: 'hidden' }}>
-      <Room minutes={22} lampOn={1} table={<g>
+      <Room minutes={14} table={<g>
         <rect x={420} y={1478} width={240} height={56} rx={6} fill="#F2E3C6" stroke="#D9C29A" strokeWidth={4} />
         <path d="M 420 1478 L 440 1380 L 640 1380 L 660 1478 Z" fill="#F7EBD3" stroke="#D9C29A" strokeWidth={4} />
         <circle cx={540} cy={1500} r={8} fill="#E04F2F" /><circle cx={600} cy={1500} r={8} fill="#E04F2F" /><circle cx={480} cy={1505} r={8} fill="#E04F2F" />
-        <g transform="translate(760 1500)"><Bag s={0.7} /></g>
+        <Steam x={540} y={1470} s={1.2} n={4} />
+        <g transform="translate(770 1500)"><Bag s={0.7} /></g>
       </g>}>
         <g transform="translate(540 1180) scale(1.55)">
-          <Person sit={1} aR={20 + toMouth * 30} fR={20 + toMouth * 120} hold={<Slice r={-40 - toMouth * 40} />} aL={14} fL={10}
+          <Person sit={1} aR={20 + toMouth * 30} fR={20 + toMouth * 120} hold={<g><Slice r={-40 - toMouth * 40} /><Steam x={36} y={-80} s={0.45} n={2} /></g>} aL={14} fL={10}
             eyes="happy" mouth={chew ? 'chew' : toMouth > 0.6 ? 'o' : 'grin'} head={Math.sin(f / 10) * 4} bob={Math.sin(f / 6) * 2} />
         </g>
       </Room>
-      {/* cœurs et étoiles qui montent */}
       {Array.from({ length: 10 }).map((_, k) => {
         const t = ((f + k * 9) % 60) / 60;
         return <div key={k} style={{ position: 'absolute', left: 300 + random(`hx${k}`) * 480 + Math.sin(t * 6 + k) * 30, top: 900 - t * 600, fontSize: 50 + random(`hs${k}`) * 30, opacity: Math.sin(Math.PI * t) }}>{k % 3 ? '❤️' : '⭐'}</div>;
       })}
-      {/* téléphone : 5 étoiles */}
-      <div style={{ position: 'absolute', right: 50, top: 300, width: 420, padding: '34px 30px', borderRadius: 50, background: '#fff', boxShadow: '0 40px 80px rgba(15,31,61,.25)',
+      <div style={{ position: 'absolute', right: 50, top: 520, width: 420, padding: '34px 30px', borderRadius: 50, background: '#fff', boxShadow: '0 40px 80px rgba(15,31,61,.25)',
         transform: `translateX(${(1 - phone) * 600}px) rotate(${(1 - phone) * 10 + 3}deg)`, textAlign: 'center' }}>
         <div style={{ font: `700 40px/1 ${DISPLAY}`, color: C.navy, marginBottom: 20 }}>🛵 Ilan</div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8, ...iso }}>
-          {[0, 1, 2, 3, 4].map(k => { const s = spring({ frame: f - 30 - k * 4, fps: 30, config: { damping: 9, stiffness: 300, mass: 0.5 } });
+          {[0, 1, 2, 3, 4].map(k => { const s = spring({ frame: f - 58 - k * 4, fps: 30, config: { damping: 9, stiffness: 300, mass: 0.5 } });
             return <span key={k} style={{ fontSize: 58, transform: `scale(${0.6 + 0.4 * s})`, filter: s > 0.5 ? 'none' : 'grayscale(1) opacity(.35)', display: 'inline-block' }}>⭐</span>; })}
         </div>
         <div style={{ marginTop: 22, display: 'inline-block', padding: '16px 26px', borderRadius: 999, background: C.cream, color: C.orangeDeep, font: `700 36px/1 ${UI}`, transform: `scale(${thanks})` }}>{T.thanks}</div>
       </div>
-      <Caption t={T.c5} at={8} top={120} dark />
-      {/* ouverture depuis le sac orange */}
-      <AbsoluteFill style={{ background: C.orange, opacity: open }} />
+      <Punch t={T.hotBig} at={12} until={58} y={130} size={96} />
+      <Punch t={T.c5} at={64} y={130} size={84} rot={2} />
+      {/* ouverture depuis l'écran bleu nuit, avec le logo un instant */}
+      {open > 0.01 && <AbsoluteFill style={{ background: C.navy, opacity: open, alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ transform: `scale(${0.6 + 0.4 * logoIn})` }}><Wordmark width={640} /></div>
+      </AbsoluteFill>}
     </AbsoluteFill>
   );
 };
 
-// ===== 6. Logo, puis retour exact à la première image (boucle) ===========================================
+// ===== 6. Logo HOP! sur bleu nuit, puis retour exact à la première image (boucle) ========================
 const Loop: React.FC = () => {
-  const f = useCurrentFrame();          // 0..45 (images 555 → 600 ≡ 0)
-  const out = lerp(f, [28, 42], [0, 1], inOut);
+  const f = useCurrentFrame();          // 0..90
+  const out = lerp(f, [70, 86], [0, 1], inOut);
+  const sh = shake(f, 4, 16, 8);
   const letter = (i: number) => {
-    const s = spring({ frame: f - i * 2, fps: 30, config: { damping: i === 3 ? 7 : 11, stiffness: 260, mass: 0.6 } });
-    return { y: (1 - s) * -400, s: 0.5 + 0.5 * s, r: i === 3 ? (1 - s) * -80 : 0, o: f >= i * 2 ? 1 : 0 };
+    const s = spring({ frame: f - i * 3, fps: 30, config: { damping: i === 3 ? 7 : 11, stiffness: 260, mass: 0.6 } });
+    return { y: (1 - s) * -500, s: 0.5 + 0.5 * s, r: i === 3 ? (1 - s) * -90 : 0, o: f >= i * 3 ? 1 : 0 };
   };
-  const breath = Math.sin((f / 45) * Math.PI * 2) * 3 * 0;
   return (
     <AbsoluteFill style={{ background: WALL, overflow: 'hidden' }}>
-      {/* le salon du début, exactement comme à l'image 0 */}
-      <Room minutes={0}><g transform="translate(540 1180) scale(1.55)"><Person sit={1} bob={breath} aL={10} fL={0} aR={10} fR={0} eyes="open" mouth="smile" brows={0} head={0} /></g></Room>
-      <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 45%, ${C.navy2} 0%, ${C.navy} 70%)`, opacity: 1 - out, alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ transform: `scale(${1 - out * 0.3})`, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-          <Wordmark width={720} anim={letter} />
-          <div style={{ display: 'flex', gap: 26, marginTop: 50 }}>
-            {T.tag.map((w, k) => { const s = spring({ frame: f - 8 - k * 4, fps: 30, config: { damping: 12, stiffness: 260, mass: 0.5 } });
-              return <span key={k} style={{ font: `700 84px/1 ${DISPLAY}`, color: [C.orange, '#fff', '#FFC857'][k], transform: `translateY(${(1 - s) * 60}px)`, opacity: Math.min(1, s * 1.5), display: 'inline-block' }}>{w}</span>; })}
+      <Room minutes={0}><g transform="translate(540 1180) scale(1.55)"><Person sit={1} bob={0} aL={10} fL={0} aR={10} fR={0} eyes="open" mouth="smile" brows={0} head={0} /></g></Room>
+      {out < 1 && <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 45%, ${C.navy2} 0%, ${C.navy} 70%)`, opacity: 1 - out, alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ transform: `translate(${sh.x}px, ${sh.y}px) scale(${1 - out * 0.3})`, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Wordmark width={760} anim={letter} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px 26px', marginTop: 56, maxWidth: 1000 }}>
+            {T.tag.map((w, k) => { const s = spring({ frame: f - 14 - k * 6, fps: 30, config: { damping: 11, stiffness: 280, mass: 0.5 } });
+              return <span key={k} style={{ font: `700 88px/1.05 ${DISPLAY}`, color: ['#fff', '#fff', C.orange][k], transform: `translateY(${(1 - s) * 60}px) scale(${0.7 + 0.3 * s})`, opacity: Math.min(1, s * 1.5), display: 'inline-block' }}>{w}</span>; })}
           </div>
-          <div style={{ marginTop: 50, font: `700 42px/1 ${UI}`, color: '#A9B3CA', opacity: lerp(f, [16, 22], [0, 1]) }}>hop-livraison.vercel.app</div>
+          <div style={{ marginTop: 56, padding: '20px 40px', borderRadius: 999, background: C.orange, color: '#fff', font: `700 46px/1 ${UI}`, transform: `scale(${spring({ frame: f - 36, fps: 30, config: { damping: 10, stiffness: 260, mass: 0.5 } })})` }}>hop-livraison.vercel.app</div>
         </div>
-      </AbsoluteFill>
+      </AbsoluteFill>}
     </AbsoluteFill>
   );
 };
 
 export const Cycle: React.FC<{ music?: boolean; lang?: CycleLang }> = ({ music = true, lang = 'fr' }) => { T = STR[lang]; return (
   <AbsoluteFill style={{ background: WALL, direction: T.rtl ? 'rtl' : 'ltr' }}>
-    <Sequence durationInFrames={75}><Hungry /></Sequence>
-    <Sequence from={75} durationInFrames={90}><Order /></Sequence>
-    <Sequence from={165} durationInFrames={WAIT}><Wait /></Sequence>
-    <Sequence from={405} durationInFrames={60}><Door /></Sequence>
-    <Sequence from={465} durationInFrames={90}><Joy /></Sequence>
-    <Sequence from={555} durationInFrames={45}><Loop /></Sequence>
+    <Sequence durationInFrames={45}><Hungry /></Sequence>
+    <Sequence from={45} durationInFrames={75}><Order /></Sequence>
+    <Sequence from={120} durationInFrames={WAIT}><Wait /></Sequence>
+    <Sequence from={330} durationInFrames={60}><Door /></Sequence>
+    <Sequence from={390} durationInFrames={120}><Joy /></Sequence>
+    <Sequence from={510} durationInFrames={90}><Loop /></Sequence>
     <Vignette />
     <Grain />
     {music && <Audio src={staticFile('cycle-music.wav')} />}

@@ -436,7 +436,7 @@ const VIDEOS = [
   // Survol 3D de la page d'accueil (format 5:4, pour Facebook, LinkedIn, présentation, site)
   { id: "survol", aud: "client", title: "🎥 La page HOP! en 3D", ratio: "5 / 4" },
   { id: "survol", aud: "shop", title: "🎥 La page HOP! en 3D", ratio: "5 / 4" },
-  { id: "cycle", aud: "client", title: "🔁 Le cycle HOP! : commandé, livré en 18 min (20 s, en boucle)" },
+  { id: "cycle", aud: "client", title: "🔁 Le cycle HOP! : commandé, livré au plus vite, encore chaud (20 s, en boucle)" },
   { id: "itineraire", aud: "client", title: "🗺️ Vite, suivi, simple : l'itinéraire HOP!" },
   { id: "itineraire", aud: "shop", title: "🗺️ Vite, suivi, simple : l'itinéraire HOP!" },
   { id: "paiement", aud: "client", title: "💳 Payé à la livraison : Bit, PayBox, espèces" },

@@ -1,8 +1,8 @@
 """Musique du « Cycle HOP! » (20 s, 120 BPM, bouclable sans coupure : la fin retombe sur le début).
 
 Tout est synthétisé ici (pas de droits d'auteur) : python3 scripts/cycle_music.py -> public/cycle-music.wav
-Repères (images à 30 i/s) : ventre qui gargouille 12, touches 95 / 118, commande envoyée 130,
-sonnette 405, livré 420, « miam » 465, logo 555.
+Repères (images à 30 i/s) : ventre qui gargouille 6, touches 60 / 78, commande envoyée 81,
+sonnette 330, livré 346, « c'est chaud » 390, logo 510.
 """
 import os
 import wave
@@ -162,24 +162,25 @@ for bar in range(10):
         for k, m in enumerate(mel):
             add(pluck(m), t0 + k * BEAT / 2, 0.22, pan=-0.4 + 0.1 * k)
 
-# Bruitages
-add(growl(), f2s(12), 0.9)
-add(growl(), f2s(34), 0.55)
-add(whoosh(0.4), f2s(62), 0.6)
-for f in (95, 118):
+# Bruitages (calés sur src/Cycle.tsx)
+add(growl(), f2s(6), 0.95)
+add(growl(), f2s(22), 0.6)
+add(whoosh(0.4), f2s(32), 0.6)
+for f in (60, 78):                          # les touches
     add(tap(), f2s(f), 0.8)
-add(bell(84, 1.2), f2s(130), 0.45)
-add(bell(88, 1.2), f2s(136), 0.35)
-add(whoosh(0.35), f2s(158), 0.55)
-add(bell(76, 1.6), f2s(405), 0.9)        # ding…
-add(bell(72, 1.8), f2s(413), 0.9)        # …dong
-add(hit(), f2s(420), 0.8)
-add(whoosh(0.35), f2s(458), 0.55)
-add(keys([72, 76, 79, 84], 1.5), f2s(465), 0.5)
+add(bell(84, 1.2), f2s(81), 0.45)
+add(bell(88, 1.2), f2s(87), 0.35)
+add(whoosh(0.35), f2s(112), 0.55)
+add(bell(76, 1.6), f2s(330), 0.9)        # ding…
+add(bell(72, 1.8), f2s(338), 0.9)        # …dong
+add(hit(), f2s(346), 0.8)
+add(whoosh(0.45), f2s(374), 0.6)
+add(hit(), f2s(390), 0.6)
+add(keys([72, 76, 79, 84], 1.5), f2s(392), 0.5)
 for k in range(5):                          # les 5 étoiles
-    add(pluck(84 + [0, 2, 4, 7, 12][k], 0.4), f2s(495 + k * 4), 0.35, pan=-0.5 + 0.25 * k)
-add(hit(), f2s(555), 0.7)
-add(bell(81, 1.4), f2s(560), 0.4)
+    add(pluck(84 + [0, 2, 4, 7, 12][k], 0.4), f2s(448 + k * 4), 0.35, pan=-0.5 + 0.25 * k)
+add(hit(), f2s(510), 0.75)
+add(bell(81, 1.4), f2s(514), 0.4)
 
 mix = np.stack([L, R], axis=1)
 mix = hp(mix.T, 28).T
