@@ -30,8 +30,8 @@ const Hook: React.FC = () => {
           ))}
         </div>
         <div style={{ position: 'relative', marginTop: 90, height: 260, width: 1000, textAlign: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, font: `700 150px/1 ${DISPLAY}`, color: '#fff', opacity: q * (1 - a), transform: `translateY(${(1 - q) * 60 - a * 60}px)` }}>Payer ?</div>
-          <div style={{ position: 'absolute', inset: 0, font: `700 112px/1.05 ${DISPLAY}`, color: '#fff', opacity: a, transform: `translateY(${(1 - a) * 60}px)` }}>Comme vous<br /><span style={{ color: C.orange }}>voulez.</span></div>
+          <div style={{ position: 'absolute', inset: 0, font: `700 128px/1 ${DISPLAY}`, color: '#fff', opacity: q * (1 - a), transform: `translateY(${(1 - q) * 60 - a * 60}px)` }}>Et hop, livré !</div>
+          <div style={{ position: 'absolute', inset: 0, font: `700 112px/1.05 ${DISPLAY}`, color: '#fff', opacity: a, transform: `translateY(${(1 - a) * 60}px)` }}>Payé comme<br /><span style={{ color: C.orange }}>vous voulez.</span></div>
         </div>
       </AbsoluteFill>
     </AbsoluteFill>
@@ -41,11 +41,11 @@ const Easing2 = { inQuad: (t: number) => t * t };
 
 // ===== 2. Un moyen de paiement par temps ===================================================
 const WAYS = [
-  { w: 'BIT', e: '📱', bg: BIT, fg: '#fff', out: 'rgba(255,255,255,.2)', sub: 'au numéro de votre livreur' },
-  { w: 'PAYBOX', e: '📲', bg: C.navy, fg: '#8EC5FF', out: 'rgba(142,197,255,.14)', sub: 'aussi simple' },
-  { w: 'ESPÈCES', e: '💵', bg: C.green, fg: '#fff', out: 'rgba(255,255,255,.18)', sub: 'on vous rend la monnaie' },
-  { w: 'LIEN', e: '🔗', bg: '#fff', fg: C.orangeDeep, out: 'rgba(224,66,10,.1)', sub: 'du commerce, pour vos articles' },
-  { w: 'SANS CARTE', e: '🔒', bg: C.orange, fg: '#fff', out: 'rgba(255,255,255,.18)', sub: 'aucun numéro de carte à taper' },
+  { w: 'BIT', e: '📱', bg: BIT, fg: '#fff', out: 'rgba(255,255,255,.2)', sub: 'à votre livreur, à la livraison' },
+  { w: 'PAYBOX', e: '📲', bg: C.navy, fg: '#8EC5FF', out: 'rgba(142,197,255,.14)', sub: 'aussi simple, au livreur' },
+  { w: 'ESPÈCES', e: '💵', bg: C.green, fg: '#fff', out: 'rgba(255,255,255,.18)', sub: 'à la porte, il rend la monnaie' },
+  { w: 'LIEN', e: '🔗', bg: '#fff', fg: C.orangeDeep, out: 'rgba(224,66,10,.1)', sub: 'du commerce, pour vos articles livrés' },
+  { w: 'SANS CARTE', e: '🔒', bg: C.orange, fg: '#fff', out: 'rgba(255,255,255,.18)', sub: 'commandez, on livre, rien à taper' },
 ];
 const Way: React.FC<{ i: number }> = ({ i }) => {
   const f = useCurrentFrame();
@@ -72,7 +72,7 @@ const Way: React.FC<{ i: number }> = ({ i }) => {
         <div style={{ marginTop: 26, font: `700 48px/1.2 ${UI}`, color: w.fg, opacity: lerp(f, [4, 9], [0, 0.92]), transform: `translateY(${lerp(f, [4, 9], [20, 0], outExpo)}px)` }}>{w.sub}</div>
       </AbsoluteFill>
       <div style={{ position: 'absolute', top: 150, left: 0, right: 0, textAlign: 'center', font: `800 40px/1 ${UI}`, letterSpacing: '.35em', color: w.fg, opacity: 0.85 }}>
-        ON PAIE · {String(i + 1).padStart(2, '0')}/05
+        LIVRAISON · {String(i + 1).padStart(2, '0')}/05
       </div>
     </AbsoluteFill>
   );
@@ -107,14 +107,14 @@ const PhoneScene: React.FC = () => {
   const exit = lerp(f, [82, 90], [0, 1], inExpo);
   return (
     <AbsoluteFill style={{ background: `linear-gradient(160deg, #0E3A66 0%, ${NIGHT} 100%)`, overflow: 'hidden' }}>
-      <div style={{ position: 'absolute', top: 140, left: 0, right: 0, textAlign: 'center', font: `700 104px/1.05 ${DISPLAY}`, color: '#fff', opacity: head, transform: `translateY(${(1 - head) * 60}px)` }}>
-        Bit ou PayBox :<br /><span style={{ color: BIT }}>3 touches.</span>
+      <div style={{ position: 'absolute', top: 140, left: 0, right: 0, textAlign: 'center', font: `700 96px/1.05 ${DISPLAY}`, color: '#fff', opacity: head, transform: `translateY(${(1 - head) * 60}px)` }}>
+        Votre livraison :<br /><span style={{ color: BIT }}>payée en 3 touches.</span>
       </div>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', perspective: 1800 }}>
         <div style={{ position: 'relative', marginTop: 360, width: 700, height: 1180, borderRadius: 96, background: '#05070D', padding: 20, boxShadow: '0 80px 120px rgba(0,0,0,.5)',
           transform: `translateY(${(1 - enter) * 1500 + exit * 300}px) rotateX(${(1 - enter) * 20 + 4}deg) scale(${1 - exit * 0.1})` }}>
           <div style={{ position: 'absolute', inset: 20, borderRadius: 78, background: NIGHT, padding: '70px 40px', display: 'flex', flexDirection: 'column', gap: 26, overflow: 'hidden' }}>
-            <div style={{ font: `500 34px/1 ${UI}`, color: '#A9B3CA' }}>Course n° C261031-HOP1</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, font: `600 34px/1 ${UI}`, color: '#A9B3CA' }}><span style={{ width: 54, height: 54, borderRadius: '50%', background: C.orange, display: 'grid', placeItems: 'center', fontSize: 30 }}>🛵</span>Ilan vous livre · 4 min</div>
             <div style={{ font: `700 72px/1.05 ${DISPLAY}`, color: '#fff' }}>Payez <span style={{ color: BIT }}>25 ₪</span><br />à Ilan</div>
             {step(1, 'Ouvrir Bit', f >= 22, BIT)}
             {step(2, 'Coller le numéro', copied, BIT, copied ? <small style={{ display: 'block', font: `500 30px/1.2 ${UI}`, opacity: 0.9 }}>052-111-2233 ✓ copié</small> : null)}
@@ -152,14 +152,14 @@ const CashScene: React.FC = () => {
   return (
     <AbsoluteFill style={{ background: `linear-gradient(170deg, #15A36A 0%, #0B7A4E 100%)`, overflow: 'hidden' }}>
       {Array.from({ length: 12 }).map((_, k) => <Bill key={k} k={k} f={f} />)}
-      <div style={{ position: 'absolute', top: 150, left: 0, right: 0, textAlign: 'center', font: `700 112px/1.05 ${DISPLAY}`, color: '#fff', opacity: head, transform: `translateY(${(1 - head) * 60}px)` }}>
-        Espèces ?<br /><span style={{ color: '#FFE7A3' }}>On rend la monnaie.</span>
+      <div style={{ position: 'absolute', top: 150, left: 0, right: 0, textAlign: 'center', font: `700 96px/1.05 ${DISPLAY}`, color: '#fff', opacity: head, transform: `translateY(${(1 - head) * 60}px)` }}>
+        Espèces à la livraison ?<br /><span style={{ color: '#FFE7A3' }}>Il rend la monnaie.</span>
       </div>
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', transform: `translate(${sh.x}px, ${sh.y + 160}px)` }}>
         {coins.map((c, k) => f > 45 && <div key={k} style={{ position: 'absolute', left: '50%', top: '40%', width: 80, height: 80, borderRadius: '50%',
           background: 'radial-gradient(circle at 35% 30%, #FFE7A3, #F5B014 60%, #C98A12)', transform: `translate(${c.x * 1.4}px, ${c.y}px) rotateY(${c.r}deg)` }} />)}
         <div style={{ position: 'relative', width: 900, padding: 50, borderRadius: 48, background: '#fff', boxShadow: '0 50px 90px rgba(0,40,20,.4)', transform: `scale(${lerp(f, [0, 14], [0.85, 1], outExpo)})` }}>
-          <div style={{ font: `700 50px/1 ${UI}`, color: C.ink }}>Vous payez avec :</div>
+          <div style={{ font: `600 36px/1 ${UI}`, color: C.muted, marginBottom: 18 }}>🛵 Livraison 25 ₪</div><div style={{ font: `700 50px/1 ${UI}`, color: C.ink }}>Vous payez avec :</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 20, marginTop: 34 }}>
             {chips.map((c, k) => {
               const on = pick && k === 1;
@@ -190,13 +190,13 @@ const PaidScene: React.FC = () => {
       <AbsoluteFill style={{ background: 'repeating-linear-gradient(-45deg, rgba(18,183,106,.07) 0 40px, transparent 40px 80px)', transform: `translateX(${f * 3}px)` }} />
       <div style={{ position: 'absolute', left: 540, top: 900, width: 40 + ring * 2200, height: 40 + ring * 2200, borderRadius: '50%', border: `${lerp(ring, [0, 1], [20, 2])}px solid ${C.green}`, transform: 'translate(-50%,-50%)', opacity: 1 - ring }} />
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', transform: `translate(${sh.x}px, ${sh.y}px)` }}>
-        <div style={{ font: `800 46px/1.25 ${UI}`, letterSpacing: `${0.3 - 0.12 * lab}em`, color: '#067647', opacity: lab, marginBottom: 30, textAlign: 'center' }}>PAYÉ DIRECTEMENT<br />À VOTRE LIVREUR</div>
+        <div style={{ font: `800 46px/1.25 ${UI}`, letterSpacing: `${0.3 - 0.12 * lab}em`, color: '#067647', opacity: lab, marginBottom: 30, textAlign: 'center' }}>LA LIVRAISON<br />DANS NETANYA</div>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <Digit to={2} land={24} /><Digit to={5} land={30} />
           <div style={{ font: `700 260px/1 ${DISPLAY}`, color: C.orange, transform: `scale(${stamp}) rotate(${(1 - stamp) * -60}deg)`, marginLeft: 10 }}>₪</div>
         </div>
-        <div style={{ marginTop: 40, padding: '28px 60px', border: `12px solid ${C.green}`, borderRadius: 30, font: `800 96px/1 ${UI}`, color: C.green, letterSpacing: '.06em',
-          transform: `scale(${1 + Math.max(0, 1 - stamp) * 2.4}) rotate(-7deg)`, opacity: Math.min(1, stamp) }}>PAYÉ ✓</div>
+        <div style={{ marginTop: 40, padding: '28px 60px', border: `12px solid ${C.green}`, borderRadius: 30, font: `800 80px/1 ${UI}`, color: C.green, letterSpacing: '.04em', whiteSpace: 'nowrap',
+          transform: `scale(${1 + Math.max(0, 1 - stamp) * 2.4}) rotate(-7deg)`, opacity: Math.min(1, stamp) }}>LIVRÉ · PAYÉ ✓</div>
         <div style={{ display: 'flex', gap: 22, marginTop: 70 }}>
           {['🧾 Reçu envoyé', '💝 Pourboire 100 % livreur'].map((t, k) => <div key={k} style={{ transform: `scale(${chip(40 + k * 7)})`, padding: '22px 34px', borderRadius: 999, background: C.navy, color: '#fff', font: `700 40px/1 ${UI}` }}>{t}</div>)}
         </div>
@@ -208,9 +208,9 @@ const PaidScene: React.FC = () => {
 // ===== 6. Quatre tuiles, puis elles se replient en un point =====================================
 const TILES = [
   { big: '🔒', t: 'Aucune carte bancaire à taper', bg: C.orange, fg: '#fff' },
-  { big: '📱', t: 'Bit ou PayBox, au livreur', bg: BIT, fg: '#fff' },
+  { big: '📱', t: 'Bit ou PayBox, à la livraison', bg: BIT, fg: '#fff' },
   { big: '💵', t: 'Espèces : il rend la monnaie', bg: C.green, fg: '#fff' },
-  { big: '🔗', t: 'Commerces : leur lien ou leur Bit', bg: '#fff', fg: C.navy },
+  { big: '🛵', t: 'Livré à votre porte, suivi en direct', bg: '#fff', fg: C.navy },
 ];
 const TilesScene: React.FC = () => {
   const f = useCurrentFrame();
@@ -252,8 +252,8 @@ const Outro: React.FC = () => {
       <AbsoluteFill style={{ background: `radial-gradient(circle at 50% 45%, ${C.navy2} 0%, ${C.navy} 60%)`, opacity: open }} />
       <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center' }}>
         <Wordmark width={760} anim={letter} />
-        <div style={{ marginTop: 50, font: `700 84px/1.1 ${DISPLAY}`, color: '#fff', textAlign: 'center', opacity: sub, transform: `translateY(${(1 - sub) * 40}px)` }}>
-          Payez comme<br /><span style={{ color: C.orange }}>vous voulez.</span>
+        <div style={{ marginTop: 50, font: `700 76px/1.1 ${DISPLAY}`, color: '#fff', textAlign: 'center', opacity: sub, transform: `translateY(${(1 - sub) * 40}px)` }}>
+          Livré par HOP!<br /><span style={{ color: C.orange }}>payé comme vous voulez.</span>
         </div>
         <div style={{ display: 'flex', gap: 18, marginTop: 60 }}>
           {[['Bit', BIT], ['PayBox', '#3B82F6'], ['Espèces', C.green]].map(([t, c], k) => (
