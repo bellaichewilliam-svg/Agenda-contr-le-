@@ -68,4 +68,5 @@ ombres douces. Les cartes, photos, puces et le téléphone se soulèvent de 20 �
 ```bash
 python3 scripts/fly_music.py
 npx remotion render src/index.ts HopFly out/hop-landing-flythrough.mp4
+npx remotion render src/index.ts HopFlyHe out/hop-landing-flythrough-he.mp4   # en hébreu : page en miroir, fin en Frank Ruhl Libre
 ```

@@ -7,13 +7,14 @@ import '@fontsource/rubik/700.css';
 import '@fontsource/rubik/800.css';
 import '@fontsource/geist/500.css';
 import '@fontsource/instrument-serif/400-italic.css';
+import '@fontsource/frank-ruhl-libre/500.css';
 
 // Le rendu attend que les polices (latin + hébreu) soient chargées
 const handle = delayRender('Polices');
 const sample = 'Aé₪0 הופ';
 Promise.all([
   '600 80px Fredoka', '700 80px Fredoka',
-  '400 80px Rubik', '500 80px Rubik', '700 80px Rubik', '800 80px Rubik', '500 80px Geist', 'italic 400 80px "Instrument Serif"',
+  '400 80px Rubik', '500 80px Rubik', '700 80px Rubik', '800 80px Rubik', '500 80px Geist', 'italic 400 80px "Instrument Serif"', '500 80px "Frank Ruhl Libre"',
 ].map(f => document.fonts.load(f, sample)))
   .then(() => continueRender(handle))
   .catch(() => continueRender(handle));

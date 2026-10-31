@@ -11,6 +11,7 @@ export const Root: React.FC = () => (
     <Composition id="HopPromoHe" component={Promo} durationInFrames={totalFrames} fps={30} width={1080} height={1920} defaultProps={{ lang: 'he' as const, music: true }} />
     <Composition id="HopReel" component={Reel} durationInFrames={REEL_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
     <Composition id="HopReelHe" component={Reel} durationInFrames={REEL_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
-    <Composition id="HopFly" component={Fly} durationInFrames={FLY_FRAMES} fps={FLY_FPS} width={1440} height={1152} defaultProps={{ music: true }} />
+    <Composition id="HopFly" component={Fly} durationInFrames={FLY_FRAMES} fps={FLY_FPS} width={1440} height={1152} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="HopFlyHe" component={Fly} durationInFrames={FLY_FRAMES} fps={FLY_FPS} width={1440} height={1152} defaultProps={{ music: true, lang: 'he' as const }} />
   </>
 );
