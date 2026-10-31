@@ -418,6 +418,7 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
+  { id: "grille2", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram, 2e rangée : ce qu'on fait", desc: "3 publications sous « H · O · P! » : Tout Netanya livré · Comment ça marche · Pourquoi HOP!. Publiez d'abord « Pourquoi », puis « Comment », puis « Tout Netanya ». Si « H · O · P! » est déjà en ligne : épinglez ensuite P!, puis O, puis H pour qu'ils restent en haut.", formats: ["g6", "g5", "g4"] },
   { id: "grille", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram « H · O · P! »", desc: "3 publications qui forment le logo sur votre profil. Publiez dans cet ordre : d'abord P!, puis O, puis H (la dernière publiée se met à gauche).", formats: ["g3", "g2", "g1"] },
   { id: "chabbat", aud: "client", isNew: true, title: "🕯️ Courses de dernière minute avant Chabbat", desc: "Le vendredi : hallot, poulet, vin, fleurs… « Dites-nous ce qu'il vous faut, on achète et on livre. »", formats: ["post", "story", "flyer"] },
   { id: "halot", aud: "client", isNew: true, title: "🥖 Pensez à vos hallot !", desc: "Boulangerie livrée le vendredi : hallot tressées, gâteaux, biscuits, viennoiseries.", formats: ["post", "story", "flyer"] },
@@ -433,7 +434,8 @@ const CAMPS = [
   { id: "shop", aud: "shop", title: "🏪 Votre commerce livre avec HOP!", desc: "La présentation générale pour les commerces.", formats: ["post", "story", "flyer"] },
   { id: "rider", aud: "rider", title: "🛵 Deviens livreur partenaire", desc: "Le recrutement : tu choisis tes courses, pourboires 100 % pour toi.", formats: ["post", "story", "flyer"] }
 ];
-const FMT = { post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »" };
+const FMT = { post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
+  g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
   // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public
   // Nouveau : « On livre TOUT, partout à Netanya » (15 s)
