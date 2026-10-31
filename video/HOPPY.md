@@ -16,7 +16,7 @@ Version détourée (fond transparent) : `video/public/hoppy-cut.png`, pour le po
 | Fourrure | fauve / caramel chaud, ventre, poitrine et poche **crème-sable** |
 | Extrémités | bout des pattes et des pieds **brun foncé** |
 | Tête | grandes oreilles dressées (intérieur rose), grands yeux bruns expressifs, sourcils marqués, nez brun, moustaches, grand sourire |
-| Équipement | sac à dos à bretelles **bleu marine** + **sac isotherme bleu marine « HOP! »** (lettres blanches) qui dépasse de la poche, avec un peu de vapeur |
+| Équipement | sac à dos à bretelles **bleu marine** + **sac isotherme bleu marine « HOP! »** (« HOP » en blanc, **« ! » en orange** `#FF6A13`) qui dépasse de la poche, avec un peu de vapeur |
 | Attitude | en plein saut, pouce levé ou geste joyeux |
 | Fond | blanc ou bleu nuit HOP! `#0F1F3D` (avec la version détourée) |
 
@@ -29,7 +29,7 @@ Version détourée (fond transparent) : `video/public/hoppy-cut.png`, pour le po
 ```
 Keep exactly the same character as in the attached image: "Hoppy", the kangaroo mascot of HOP! (a delivery app in Netanya, Israel).
 Same 3D animated-movie style (Pixar/Disney quality), same warm caramel fur with cream belly and pouch, dark brown paw and foot tips, big upright ears with pink inside, big expressive brown eyes, whiskers, big friendly smile.
-Same navy-blue backpack straps and the same navy-blue insulated delivery bag with "HOP!" in white letters sticking out of its pouch, with a little steam (the food is still hot).
+Same navy-blue backpack straps and the same navy-blue insulated delivery bag sticking out of its pouch, with "HOP" in white letters and the "!" in bright orange (#FF6A13), with a little steam (the food is still hot).
 Do not change his face, colors or proportions. No other text or logo.
 
 New scene: [CHOISIR UNE SCÈNE CI-DESSOUS]
