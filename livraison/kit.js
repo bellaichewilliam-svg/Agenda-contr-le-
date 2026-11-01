@@ -456,6 +456,9 @@ const CAPS = {
   "hoppy-histoire": {
     fr: `🦘 Une envie ? Et hop, livré !\nVos courses, vos boutiques préférées, des fleurs, un repas, la pharmacie, un colis… Vous commandez, Hoppy arrive. Vous profitez, on vous livre.\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Découvrez HOP! : ${APP_URL}\n${TAGS.fr}`,
     he: `🦘 בא לכם משהו? והופ! זה מגיע.\nקניות, החנויות שאתם אוהבים, פרחים, אוכל, פארם, חבילות… אתם מזמינים, הופי כבר בדרך. אתם נהנים, אנחנו מגיעים.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 גלו את HOP!: ${APP_URL}?lang=he\n${TAGS.he}` },
+  "hoppy-resto": {
+    fr: `🍽️ Votre resto préféré ? HOP! vous le livre.\nCommandez directement auprès du restaurant, au prix du resto : HOP! récupère votre repas et vous l'apporte, encore chaud.\n💸 Payez moins cher : livraison à prix fixe, ${delFr} à Netanya, 0 frais de service\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Demandez votre livraison : ${APP_URL}\n${TAGS.fr} #restaurant`,
+    he: `🍽️ המסעדה האהובה עליכם? HOP! מביאים עד אליכם.\nמזמינים ישירות מהמסעדה, במחיר המסעדה: HOP! אוספים את האוכל ומביאים אליכם, עדיין חם.\n💸 משלמים פחות: משלוח במחיר קבוע, ${delFr} בנתניה, 0 ₪ דמי שירות\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 מזמינים משלוח: ${APP_URL}?lang=he\n${TAGS.he} #מסעדות` },
   "hoppy-sacs": {
     fr: `🛍️ Vos courses sont prêtes ? HOP! vient les chercher.\nFaites vos courses dans vos magasins préférés, laissez vos sacs à la caisse : on les récupère et on vous les livre. Vous repartez les mains libres.\n🛵 Livraison à Netanya : ${delFr}\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Demandez votre livraison : ${APP_URL}\n${TAGS.fr}`,
     he: `🛍️ סיימתם את הקניות? HOP! מגיעים לאסוף.\nקונים בחנויות שאתם אוהבים, משאירים את השקיות בקופה: אנחנו אוספים ומביאים אליכם. אתם הולכים בידיים ריקות.\n🛵 משלוח בנתניה: ${delFr}\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 מזמינים משלוח: ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -493,6 +496,7 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
+  { id: "hoppy-resto", aud: "client", isNew: true, thumb: "post", title: "🍽️ Votre resto préféré ? HOP! vous le livre.", desc: "Vous commandez au restaurant, le livreur HOP! récupère le repas et vous l'apporte. FR et HE.", formats: ["post"] },
   { id: "hoppy-sacs", aud: "client", isNew: true, thumb: "post", title: "🛍️ Vos courses sont prêtes ? HOP! vient les chercher.", desc: "Vous faites vos courses, le livreur HOP! récupère les sacs au magasin et vous les livre. FR et HE.", formats: ["post"] },
   { id: "hoppy-porte", aud: "client", isNew: true, thumb: "post", title: "📦 Colis, médicaments, petites courses ? HOP! vous les apporte.", desc: "Hoppy livre une voisine à sa porte : idéal pour parler aux familles et aux personnes âgées. FR et HE.", formats: ["post"] },
   { id: "hoppy-boutique", aud: "client", isNew: true, thumb: "post", title: "🛍️ Repéré en boutique ? HOP! vous le livre.", desc: "Hoppy en mode shopping : l'article vu en magasin, livré chez vous. FR et HE.", formats: ["post"] },
