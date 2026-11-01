@@ -164,18 +164,20 @@ for bar in range(13):
         for k, m in enumerate(mel):
             add(pluck(m), t0 + k * BEAT / 2, 0.22, pan=-0.4 + 0.1 * k)
 
-# Bruitages (calés sur src/Lancement.tsx) : un volet à chaque scène, la touche dans l'appli, le logo à la fin
-for c in (105, 210, 315, 420, 525, 630):
+# Bruitages (calés sur src/Lancement.tsx) : le logo d'ouverture, un volet à chaque affiche, le logo et Hoppy à la fin
+for k in range(4):                          # les lettres du logo d'ouverture
+    add(pluck(72 + [0, 4, 7, 12][k], 0.4), f2s(2 + k * 3), 0.4)
+add(hit(), f2s(14), 0.7)
+for c in (60, 160, 260, 360, 460, 560, 660):
     add(whoosh(0.4), f2s(c - 8), 0.6)
-add(tap(), f2s(68), 0.8)
-add(bell(84, 1.2), f2s(72), 0.45)
-add(bell(88, 1.2), f2s(77), 0.35)
-for k in range(4):                          # les lettres du logo
-    add(pluck(72 + [0, 4, 7, 12][k], 0.4), f2s(636 + k * 3), 0.4)
-add(hit(), f2s(648), 0.8)
-add(bell(81, 1.4), f2s(660), 0.4)
-add(whoosh(0.45), f2s(678), 0.5)            # Hoppy saute
-add(hit(), f2s(696), 0.55)
+for c in (60, 160, 260, 360, 460, 560):     # le reflet sur chaque affiche
+    add(bell(88, 0.8), f2s(c + 18), 0.22)
+for k in range(4):                          # les lettres du logo de fin
+    add(pluck(72 + [0, 4, 7, 12][k], 0.4), f2s(664 + k * 3), 0.4)
+add(hit(), f2s(676), 0.8)
+add(bell(81, 1.4), f2s(688), 0.4)
+add(whoosh(0.45), f2s(706), 0.5)            # Hoppy saute
+add(hit(), f2s(724), 0.55)
 
 mix = np.stack([L, R], axis=1)
 mix = hp(mix.T, 28).T
