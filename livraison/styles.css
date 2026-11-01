@@ -3878,3 +3878,56 @@ form.wiz fieldset.wiz-empty { display: none !important; }
 /* L'écran dit déjà « Étape 1 sur 3 » et le titre : pas de second gros titre au-dessus */
 #commander .wrap:has(form.wiz) > h2, #commander .wrap:has(form.wiz) > p.sub { display: none; }
 html[dir="rtl"] .wiz-more-btn i { transform: scaleX(-1); } html[dir="rtl"] form.wiz.wiz-more .wiz-more-btn i { transform: rotate(-90deg); }
+
+/* ============================================================================
+   Rayons façon grande appli de courses : recherche, rubriques en une ligne collante, grille de produits
+============================================================================ */
+#pharmaBox .ph-shell { display: grid; gap: 10px; min-width: 0; }
+#pharmaBox .ph-top { display: grid; gap: 8px; }
+#pharmaBox .ph-head small { font-size: 13px; line-height: 1.4; }
+.ph-search { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1.5px solid var(--border); border-radius: 14px; padding: 0 12px; min-height: 46px; }
+.ph-search:focus-within { border-color: var(--rc, var(--brand)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rc, #FF6A13) 18%, transparent); }
+.ph-search span { font-size: 16px; opacity: .7; }
+.ph-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; color: var(--ink); padding: 10px 0; }
+/* Rubriques : une seule ligne qui défile sur le côté, collée en haut pendant qu'on fait défiler les produits */
+#pharmaBox .ph-cats { position: sticky; top: var(--ph-top, 0px); z-index: 6; display: flex; grid-template-columns: none; gap: 8px; overflow-x: auto; scrollbar-width: none;
+  margin: 0 -12px; padding: 8px 12px; background: color-mix(in srgb, var(--rc, #059669) 6%, var(--panel)); border-bottom: 1px solid var(--border); }
+#pharmaBox .ph-cats::-webkit-scrollbar { display: none; }
+#pharmaBox .ph-cat { flex: none; flex-direction: row; align-items: center; gap: 6px; min-height: 40px; padding: 5px 13px 5px 6px; border-radius: 999px; font-size: 14px; font-weight: 700;
+  background: var(--panel); border: 1.5px solid var(--border); color: var(--ink); white-space: nowrap; box-shadow: none; }
+#pharmaBox .ph-cat img { width: 28px; height: 28px; }
+#pharmaBox .ph-cat i { font-size: 20px; line-height: 28px; height: 28px; }
+#pharmaBox .ph-cat span { display: inline; -webkit-line-clamp: unset; overflow: visible; }
+#pharmaBox .ph-cat.on { background: var(--rc, #059669); border-color: var(--rc, #059669); color: #fff; box-shadow: 0 4px 12px color-mix(in srgb, var(--rc, #059669) 35%, transparent); }
+#pharmaBox .ph-cat em { position: static; min-width: 20px; height: 20px; line-height: 20px; padding: 0 6px; border-radius: 99px; background: var(--brand); color: #fff; font-size: 11.5px; font-style: normal; font-weight: 800; }
+#pharmaBox .ph-cats-h { display: none; }
+#pharmaBox .ph-cur { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; font-size: 18px; }
+#pharmaBox .ph-cur small { margin-inline-start: auto; color: var(--muted); font-size: 13px; font-weight: 600; }
+/* Produits : grille de 3 (2 sur petit téléphone), image en haut, « + » posé sur l'image, prix, nom complet */
+#pharmaBox .ph-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 359px) { #pharmaBox .ph-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 640px) { #pharmaBox .ph-list { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+#pharmaBox .ph-item { display: flex; flex-direction: column; align-items: stretch; gap: 3px; padding: 0; border: 0; background: transparent; box-shadow: none; border-radius: 0; min-width: 0; }
+#pharmaBox .ph-item.in { border: 0; box-shadow: none; }
+#pharmaBox .ph-pic { position: relative; aspect-ratio: 1; border-radius: 16px; display: grid; place-items: center; overflow: visible;
+  background: color-mix(in srgb, var(--rc, #059669) 9%, var(--panel)); border: 1.5px solid transparent; transition: border-color .15s; }
+#pharmaBox .ph-item.in .ph-pic { border-color: var(--rc, #10B981); }
+#pharmaBox .ph-pic img { width: 64%; height: 64%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(15,31,61,.18)); }
+#pharmaBox .ph-pic.photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 14px; filter: none; }
+#pharmaBox .ph-pic > i { font-style: normal; font-size: 40px; }
+#pharmaBox .ph-item.in .ph-pic img { animation: kindHop .45s cubic-bezier(.2, 1.8, .4, 1); }
+#pharmaBox .ph-pic .cg-plus { position: absolute; bottom: -8px; inset-inline-end: -6px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--panel); color: var(--brand);
+  font-size: 24px; font-weight: 700; line-height: 1; box-shadow: 0 3px 10px rgba(15,31,61,.22); display: grid; place-items: center; cursor: pointer; }
+#pharmaBox .ph-pic .cg-qty { position: absolute; bottom: -8px; inset-inline: 4px; display: flex; align-items: center; justify-content: space-between; gap: 2px; height: 38px; padding: 0 4px;
+  border-radius: 99px; background: var(--brand); color: #fff; box-shadow: 0 4px 12px rgba(255,106,19,.35); }
+#pharmaBox .ph-pic .cg-qty button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(255,255,255,.2); color: #fff; font-size: 18px; font-weight: 800; line-height: 1; cursor: pointer; }
+#pharmaBox .ph-pic .cg-qty b { font-size: 15px; color: #fff; }
+#pharmaBox .ph-price { margin-top: 12px; font-size: 14px; font-weight: 800; color: var(--ink); }
+#pharmaBox .ph-name { font-size: 13px; line-height: 1.3; font-weight: 600; color: var(--ink); overflow-wrap: anywhere; }
+#pharmaBox .ph-item select { width: 100%; min-width: 0; margin-top: 2px; font: inherit; font-size: 12px; padding: 5px 4px; border-radius: 9px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); }
+.ph-none { margin: 4px 0; padding: 14px; border-radius: 14px; background: var(--bg-2); color: var(--muted); font-size: 14px; line-height: 1.45; }
+#pharmaBox .ph-meter { padding: 8px 11px; gap: 4px; }
+#pharmaBox .ph-meter small { font-size: 12px; }
+/* Écran 1 : le titre de l'étape vient avant le rayon */
+#pharmaBox .ph-shell > *, #pharmaBox .ph-rest, #pharmaBox .ph-top { min-width: 0; max-width: 100%; }
+#pharmaBox .ph-shell { width: 100%; }

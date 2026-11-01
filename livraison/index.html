@@ -90,7 +90,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202611011142" />
+  <link rel="stylesheet" href="styles.css?v=202611011154" />
 <style id="splashCss">#splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0F1F3D;color:#fff;transition:opacity .35s ease}#splash.out{opacity:0;pointer-events:none}#splash svg{width:min(58vw,300px);height:auto;display:block}#splash span{font:700 16px/1 Rubik,-apple-system,Arial,sans-serif;letter-spacing:.42em;margin-inline-start:.42em;opacity:.92}</style>
 </head>
 <body>
@@ -324,6 +324,12 @@
 
     <form id="orderForm" class="order-layout" action="javascript:void(0)" novalidate>
       <div>
+        <!-- Commande en 3 petits écrans : 1. Quoi et où ? · 2. Précisions · 3. Vous et le paiement -->
+        <div class="wiz-bar" id="wizBar" aria-live="polite">
+          <div class="wiz-top"><button type="button" class="wiz-back" id="wizBack" data-i18n="wizBack"></button><small id="wizStepTxt"></small></div>
+          <div class="wiz-seg"><i></i><i></i><i></i></div>
+          <h3 class="wiz-title" id="wizTitle"></h3>
+        </div>
         <div data-wiz="1" class="shop-hero hidden" id="shopHero"></div>
         <!-- Pharmacie : les essentiels sans ordonnance, tout en haut de la commande -->
         <div data-wiz="1" class="pharma-box hidden" id="pharmaBox"></div>
@@ -339,12 +345,6 @@
         <div class="form-progress" id="formProgress">
           <div class="fp-track"><div class="fp-fill" id="fpFill"></div><span class="fp-scooter" id="fpScooter">🛵</span><span class="fp-flag">🏁</span></div>
           <small id="fpText"></small>
-        </div>
-        <!-- Commande en 3 petits écrans : 1. Quoi et où ? · 2. Précisions · 3. Vous et le paiement -->
-        <div class="wiz-bar" id="wizBar" aria-live="polite">
-          <div class="wiz-top"><button type="button" class="wiz-back" id="wizBack" data-i18n="wizBack"></button><small id="wizStepTxt"></small></div>
-          <div class="wiz-seg"><i></i><i></i><i></i></div>
-          <h3 class="wiz-title" id="wizTitle"></h3>
         </div>
         <fieldset class="fs-service" data-wiz="1">
           <legend data-i18n="s1"></legend>
@@ -767,16 +767,16 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202611011142"></script>
-<script src="i18n.js?v=202611011142"></script>
-<script src="pricing.js?v=202611011142"></script>
-<script src="store.js?v=202611011142"></script>
-<script src="chat.js?v=202611011142"></script>
-<script src="common.js?v=202611011142"></script>
-<script src="enseignes.js?v=202611011142"></script>
-<script src="places.js?v=202611011142"></script>
-<script src="rayons.js?v=202611011142"></script>
-<script src="client.js?v=202611011142"></script>
+<script src="config.js?v=202611011154"></script>
+<script src="i18n.js?v=202611011154"></script>
+<script src="pricing.js?v=202611011154"></script>
+<script src="store.js?v=202611011154"></script>
+<script src="chat.js?v=202611011154"></script>
+<script src="common.js?v=202611011154"></script>
+<script src="enseignes.js?v=202611011154"></script>
+<script src="places.js?v=202611011154"></script>
+<script src="rayons.js?v=202611011154"></script>
+<script src="client.js?v=202611011154"></script>
 <script>(function(){var s=document.getElementById("splash");if(!s)return;var t0=Date.now();function off(){var w=Math.max(0,650-(Date.now()-t0));setTimeout(function(){s.classList.add("out");setTimeout(function(){s.remove()},400)},w)}if(document.readyState==="complete")off();else addEventListener("load",off);setTimeout(off,3500)})();</script>
 </body>
 </html>
