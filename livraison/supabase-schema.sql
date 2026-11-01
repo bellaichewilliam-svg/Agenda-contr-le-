@@ -8463,3 +8463,6 @@ grant select, insert, update, delete on public.carts to authenticated;
 -- * admin_wait_fix(id, montant) : le patron seul fixe un montant (orders.wait_fix), le client doit l'accepter.
 -- * courier_update('attente_refusee') : client qui avait accepté (bouton) puis ne paie pas => numéro bloqué (blocked_phones), le patron peut débloquer.
 -- * Commission HOP! : toujours sur le total final (course + supplément), comme avant.
+-- Achats (01/11/2026), migration « achat_boutique_8 » : makolet / supermarché et cigarettes = 5 ₪, 5 min sur place comprises
+-- (settings.purchase_min) ; vrai achat en boutique (vêtements, sandwich pas commandé, pharmacie, boulangerie, cadeaux…) = 8 ₪,
+-- 8 min comprises (settings.purchase_min_shop = 8, orders_purchase_min) ; au-delà, l'attente annoncée avec photo.

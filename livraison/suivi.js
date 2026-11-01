@@ -929,7 +929,9 @@ load().then(checkChat);
 // En direct : toutes les 5 s pendant la course
 // En direct : toutes les 2 s tant qu'un livreur peut accepter ou poser une question (heure, attente), sinon 5 s
 (function livePoll() {
-  const fast = !order || ["nouvelle", "confirmee"].includes(order.status);
+  // Aussi pendant la livraison quand un paiement ou un ticket attend : le client voit la réponse du livreur tout de suite
+  const fast = !order || ["nouvelle", "confirmee"].includes(order.status)
+    || (order.status === "recuperee" && (order.payment_status !== "paye" || order.wait_status === "a_payer" || ["a_completer", "a_rendre"].includes(order.goods_refund_status)));
   setTimeout(async () => { if (!order || ["nouvelle", "confirmee", "recuperee"].includes(order.status)) await Promise.resolve(load()).catch(() => {}); livePoll(); }, fast ? 2000 : 5000);
 })();
 setInterval(checkChat, 15000);

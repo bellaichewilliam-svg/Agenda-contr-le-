@@ -3667,3 +3667,10 @@ html.d2 .item-art.k2-art img { width: 100% !important; height: 100% !important; 
 /* Fenêtre « réponse attendue » (attente, heure d'arrivée) : au-dessus du suivi plein écran, jamais coupée */
 .ask-pop { z-index: 900; max-height: calc(100dvh - 32px); overflow-y: auto; box-shadow: 0 0 0 100vmax rgba(11, 24, 48, .55), 0 18px 40px rgba(0, 0, 0, .35); }
 .ask-pop .wa-photo img { max-height: 30vh; }
+
+/* Achat en boutique : mettre en avant la commande en direct (on ne paie que la livraison) */
+.direct-tip { display: grid; gap: 4px; margin: 0 0 10px; padding: 12px 14px; border-radius: 14px; background: rgba(255, 106, 19, .1); border: 1.5px solid #FF6A13; text-align: start; }
+.direct-tip b { font-size: 15px; }
+.direct-tip span { font-size: 13.5px; line-height: 1.4; }
+.direct-tip .direct-soon { font-weight: 700; color: #FF6A13; }
+html.d2 .direct-tip { background: rgba(255, 106, 19, .14); color: #fff; }

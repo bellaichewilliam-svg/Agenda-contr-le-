@@ -30,7 +30,7 @@ if (window.QRCode) new QRCode($("#qr"), { text: livre + "?utm_source=qr&utm_medi
 const featured = ["netanya", "nordia", "even-yehuda", "kadima", "kfar-yona", "hadera", "raanana", "kfar-saba", "herzliya"];
 $("#kitPrices").innerHTML = `<tr><th>Trajet</th><th>Prix</th></tr>` + featured.map(id =>
   `<tr><td>${id === home ? "Dans " + UI.cityFr(home) : `${UI.cityFr(home)} ⇄ ${UI.cityFr(id)}`}</td><td><b>${price(id)}</b></td></tr>`).join("")
-  + `<tr><td>Suppléments</td><td>express +${UI.money(P.express)} · poste/Super-Pharm +${UI.money(P.pickupPoint)} · achat +${UI.money(P.purchase)} · colis moyen +${UI.money(P.sizes.moyen)}</td></tr>`;
+  + `<tr><td>Suppléments</td><td>express +${UI.money(P.express)} · poste/Super-Pharm +${UI.money(P.pickupPoint)} · achat makolet / tabac +${UI.money(P.purchase)}, en boutique +${UI.money(P.purchaseShop || P.purchase)} · colis moyen +${UI.money(P.sizes.moyen)}</td></tr>`;
 
 $("#kitOffers").innerHTML = [
   `<b>BIENVENUE</b> (français) / <b>BRUCHIM</b> (hébreu) : -${UI.money(PR.codes.BIENVENUE.amount)} sur la première course (${welcome} dans ${UI.cityFr(home)}), une seule fois par numéro, téléphone et IP.`,
@@ -367,7 +367,7 @@ Chabbat chalom ! 🕯️ 👉 Commander en 1 minute : ${livre}` },
 
 Hallot fraîches de la boulangerie que vous aimez, livrées chez vous le vendredi. Et avec, le gâteau du Chabbat 😉
 🥐 Viennoiseries · 🍪 Biscuits · 🍰 Gâteaux : écrivez votre liste, on passe la prendre.
-🛵 Achat + livraison dans ${UI.cityFr(home)} : ${UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase)}
+🛵 Achat + livraison dans ${UI.cityFr(home)} : ${UI.money(Pricing.cityToCity(CONFIG, home, home) + (P.purchaseShop || P.purchase))}
 
 Chabbat chalom ! 👉 ${livre}` },
   { title: "🥖 אל תשכחו את החלות! (עברית)", dir: "rtl", text:
@@ -375,7 +375,7 @@ Chabbat chalom ! 👉 ${livre}` },
 
 חלות טריות מהמאפייה שאתם אוהבים, עד הבית ביום שישי. ועם זה, עוגה לשבת 😉
 🥐 מאפים · 🍪 עוגיות · 🍰 עוגות: כתבו את הרשימה, אנחנו עוברים לקחת.
-🛵 קנייה + משלוח בתוך ${heHome}: ${UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase)}
+🛵 קנייה + משלוח בתוך ${heHome}: ${UI.money(Pricing.cityToCity(CONFIG, home, home) + (P.purchaseShop || P.purchase))}
 
 שבת שלום! 👈 ${livreHe}` },
   { title: "🍷 Tout pour la table de Chabbat (français)", dir: "ltr", text:
@@ -414,7 +414,8 @@ const CAPTION = {
   he: `HOP! 🛵 משלוחים בנתניה: מסעדות, קניות, חבילות… מגיעים הכי מהר, עדיין חמים.\n👉 ${APP_URL}\n#נתניה #משלוחים #HOP`,
 };
 // Légende prête pour chaque campagne et chaque vidéo (Instagram, TikTok, Facebook) : copiée toute seule au moment de publier
-const buyFr = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase), delFr = price(home);
+// Achat + livraison : makolet / tabac (petit achat), vrai achat en boutique (boulangerie, vêtements…) plus cher
+const buyFr = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase), buyShop = UI.money(Pricing.cityToCity(CONFIG, home, home) + (P.purchaseShop || P.purchase)), delFr = price(home);
 const TAGS = { fr: "#Netanya #נתניה #livraison #HOP", he: "#נתניה #משלוחים #HOP #Netanya" };
 const CAPS = {
   "partenaire-marchefr": {
@@ -430,17 +431,17 @@ const CAPS = {
     fr: `🦘 Voici Hoppy, la mascotte HOP!\nIl saute partout dans Netanya et livre votre commande… dans sa poche !\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🦘 תכירו את הופי, הקנגורו של HOP!\nקופץ בכל נתניה ומביא לכם את ההזמנה… בכיס!\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   chabbat: {
-    fr: `🕯️ Courses de dernière minute avant Chabbat ?\nDites-nous ce qu'il vous faut : on achète et on vous livre, vous préparez tranquillement.\n🥖 Hallot · 🍗 Poulet et viande · 🍷 Vin · 💐 Fleurs\n🛒 Achat + livraison à Netanya : ${buyFr}\n👉 ${livre}\nChabbat chalom ! ${TAGS.fr} #Chabbat`,
-    he: `🕯️ קניות של הרגע האחרון לפני שבת?\nכתבו לנו מה צריך: אנחנו קונים ומביאים, ואתם מתכוננים בנחת.\n🥖 חלות · 🍗 עוף ובשר · 🍷 יין · 💐 פרחים\n🛒 קנייה ומשלוח בנתניה: ${buyFr}\n👈 ${livreHe}\nשבת שלום! ${TAGS.he} #שבת` },
+    fr: `🕯️ Courses de dernière minute avant Chabbat ?\nDites-nous ce qu'il vous faut : on achète et on vous livre, vous préparez tranquillement.\n🥖 Hallot · 🍗 Poulet et viande · 🍷 Vin · 💐 Fleurs\n🛒 Achat + livraison à Netanya : dès ${buyFr}\n👉 ${livre}\nChabbat chalom ! ${TAGS.fr} #Chabbat`,
+    he: `🕯️ קניות של הרגע האחרון לפני שבת?\nכתבו לנו מה צריך: אנחנו קונים ומביאים, ואתם מתכוננים בנחת.\n🥖 חלות · 🍗 עוף ובשר · 🍷 יין · 💐 פרחים\n🛒 קנייה ומשלוח בנתניה: החל מ־${buyFr}\n👈 ${livreHe}\nשבת שלום! ${TAGS.he} #שבת` },
   halot: {
-    fr: `🥖 Vos hallot livrées pour Chabbat !\nHallot, gâteaux, biscuits et viennoiseries de la boulangerie que vous voulez.\n🛒 Achat + livraison à Netanya : ${buyFr} · le vendredi\n👉 ${livre}\n${TAGS.fr} #Chabbat #hallot`,
-    he: `🥖 החלות שלכם מגיעות לשבת!\nחלות, עוגות, עוגיות ומאפים מהמאפייה שאתם אוהבים.\n🛒 קנייה ומשלוח בנתניה: ${buyFr} · ביום שישי\n👈 ${livreHe}\n${TAGS.he} #שבת #חלות` },
+    fr: `🥖 Vos hallot livrées pour Chabbat !\nHallot, gâteaux, biscuits et viennoiseries de la boulangerie que vous voulez.\n🛒 Achat + livraison à Netanya : ${buyShop} · le vendredi\n👉 ${livre}\n${TAGS.fr} #Chabbat #hallot`,
+    he: `🥖 החלות שלכם מגיעות לשבת!\nחלות, עוגות, עוגיות ומאפים מהמאפייה שאתם אוהבים.\n🛒 קנייה ומשלוח בנתניה: ${buyShop} · ביום שישי\n👈 ${livreHe}\n${TAGS.he} #שבת #חלות` },
   table: {
-    fr: `🍷 Tout pour votre table de Chabbat\nVin, fleurs, pâtisserie, salades : on fait vos courses à Netanya et on vous livre.\n🛒 Achat + livraison : ${buyFr} · vendredi jusqu'à la dernière minute\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 ${livre}\n${TAGS.fr} #Chabbat`,
-    he: `🍷 כל מה שצריך לשולחן השבת\nיין, פרחים, עוגות, סלטים: עושים לכם את הקניות בנתניה ומביאים עד הבית.\n🛒 קנייה ומשלוח: ${buyFr} · ביום שישי, עד הרגע האחרון\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ${livreHe}\n${TAGS.he} #שבת` },
+    fr: `🍷 Tout pour votre table de Chabbat\nVin, fleurs, pâtisserie, salades : on fait vos courses à Netanya et on vous livre.\n🛒 Achat + livraison : dès ${buyFr} · vendredi jusqu'à la dernière minute\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 ${livre}\n${TAGS.fr} #Chabbat`,
+    he: `🍷 כל מה שצריך לשולחן השבת\nיין, פרחים, עוגות, סלטים: עושים לכם את הקניות בנתניה ומביאים עד הבית.\n🛒 קנייה ומשלוח: החל מ־${buyFr} · ביום שישי, עד הרגע האחרון\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ${livreHe}\n${TAGS.he} #שבת` },
   courses: {
-    fr: `🛒 Vous demandez, HOP! on livre.\nCourses, pharmacie, restaurants, colis et bien plus, dans tous les magasins de Netanya, même les petits.\n🧾 Le prix du magasin · 0 frais de service\n🛵 Achat + livraison à Netanya : ${buyFr}\n👉 ${livre}\n${TAGS.fr}`,
-    he: `🛒 אתם מבקשים, HOP! מביאים.\nסופר, פארם, מסעדות, חבילות ועוד, מכל החנויות בנתניה, גם הקטנות.\n🧾 מחיר החנות · 0 ₪ דמי שירות\n🛵 קנייה ומשלוח בנתניה: ${buyFr}\n👈 ${livreHe}\n${TAGS.he}` },
+    fr: `🛒 Vous demandez, HOP! on livre.\nCourses, pharmacie, restaurants, colis et bien plus, dans tous les magasins de Netanya, même les petits.\n🧾 Le prix du magasin · 0 frais de service\n🛵 Achat + livraison à Netanya : dès ${buyFr}\n👉 ${livre}\n${TAGS.fr}`,
+    he: `🛒 אתם מבקשים, HOP! מביאים.\nסופר, פארם, מסעדות, חבילות ועוד, מכל החנויות בנתניה, גם הקטנות.\n🧾 מחיר החנות · 0 ₪ דמי שירות\n🛵 קנייה ומשלוח בנתניה: החל מ־${buyFr}\n👈 ${livreHe}\n${TAGS.he}` },
   visite: {
     fr: `👀 De nouveaux commerces chaque semaine sur HOP! !\nRestaurants, épiceries, boulangeries et boutiques de Netanya arrivent dans l'appli : venez voir les nouveautés.\n🛵 Livraison à Netanya : ${delFr}\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `👀 עסקים חדשים כל שבוע ב-HOP!\nמסעדות, מכולות, מאפיות וחנויות מנתניה מצטרפים לאפליקציה: בואו לראות מה חדש.\n🛵 משלוח בנתניה: ${delFr}\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
