@@ -28,7 +28,7 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - **Règles d'argent** : demander avant de changer un prix, une commission, une règle de paiement.
 - **Base de données** : migrations en `create` / `create or replace` / `if not exists` seulement ; jamais de `drop` ni de `delete` de vraies données. Ne pas mettre en ligne du code qui écrit de nouvelles colonnes avant la migration en ligne.
 - Le compte patron « Will » reste tel quel. Personne ne tape de numéro de carte bancaire dans HOP!.
-- Cigarettes : ni prix ni images. Le livreur ne fait jamais de calcul.
+- Cigarettes : jamais de prix ; images seulement d'un paquet SANS marque (comme l'icône du kit), jamais une vraie marque. Le livreur ne fait jamais de calcul.
 - Vercel : 100 déploiements / jour maximum, grouper les mises en ligne.
 
 ## Repères techniques
