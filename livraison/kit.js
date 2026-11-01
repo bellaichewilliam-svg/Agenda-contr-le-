@@ -450,6 +450,9 @@ const CAPS = {
   client: {
     fr: `🎁 Et hop, c'est livré ! Votre première course à Netanya : ${welcome} au lieu de ${delFr}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute (code BIENVENUE) : ${APP_URL}\n${TAGS.fr}`,
     he: `🎁 והופ, זה מגיע! המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה (קוד BRUCHIM): ${APP_URL}?lang=he\n${TAGS.he}` },
+  lancement: {
+    fr: `🚀 Une envie ? Hoppy arrive.\nVos courses, vos boutiques, des fleurs, un repas, un colis, la pharmacie… Vous demandez, HOP! on livre, partout à Netanya.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais de service\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `🚀 בא לכם משהו? הופי מגיע.\nקניות, חנויות, פרחים, אוכל, חבילות, פארם… אתם מבקשים, HOP! מביאים, בכל נתניה.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 0 ₪ דמי שירות\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   "hoppy-histoire": {
     fr: `🦘 Une envie ? Et hop, livré !\nVos courses, vos boutiques préférées, des fleurs, un repas, la pharmacie, un colis… Vous commandez, Hoppy arrive. Vous profitez, on vous livre.\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Découvrez HOP! : ${APP_URL}\n${TAGS.fr}`,
     he: `🦘 בא לכם משהו? והופ! זה מגיע.\nקניות, החנויות שאתם אוהבים, פרחים, אוכל, פארם, חבילות… אתם מזמינים, הופי כבר בדרך. אתם נהנים, אנחנו מגיעים.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 גלו את HOP!: ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -509,6 +512,9 @@ const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)",
 const VIDEOS = [
   // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public
   // Nouveau : « On livre TOUT, partout à Netanya » (15 s)
+  // Nouveau : le film de lancement (26 s), refait en motion design (video/src/Lancement.tsx)
+  { id: "lancement", aud: "client", title: "🚀 Nouveau · Le film de lancement HOP! (26 s)" },
+  { id: "lancement", aud: "shop", title: "🚀 Nouveau · Le film de lancement HOP! (26 s)" },
   // Nouveau : la vidéo Hoppy du patron (20 s), faite à partir de ses visuels
   { id: "hoppy-histoire", aud: "client", title: "🦘 Nouveau · Une envie ? Et hop ! Hoppy en 20 s" },
   { id: "tout", aud: "client", title: "🛍️ Nouveau · On livre TOUT, partout à Netanya (15 s)" },
