@@ -2684,6 +2684,9 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .camp-info b { font-size: 16px; line-height: 1.25; }
 .camp-info small { font-size: 13px; line-height: 1.35; color: var(--muted); }
 .camp-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.camp-cap { margin-top: 2px; font-size: 13px; }
+.camp-cap summary { cursor: pointer; color: var(--muted); font-weight: 600; padding: 4px 0; }
+.camp-cap .post { margin: 6px 0; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .kit-pane .vid-grid figcaption { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
 .kpost { display: grid; gap: 8px; padding: 12px; border-radius: 16px; background: var(--panel); border: 1px solid var(--border); margin-bottom: 10px; }
 .kpost .post { max-height: 9.5em; overflow: auto; margin: 0; }

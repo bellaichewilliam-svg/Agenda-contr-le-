@@ -413,6 +413,51 @@ const CAPTION = {
   fr: `HOP! 🛵 Livraison à Netanya : restaurants, courses, colis… livrés au plus vite, encore chauds.\n👉 ${APP_URL}\n#Netanya #livraison #HOP`,
   he: `HOP! 🛵 משלוחים בנתניה: מסעדות, קניות, חבילות… מגיעים הכי מהר, עדיין חמים.\n👉 ${APP_URL}\n#נתניה #משלוחים #HOP`,
 };
+// Légende prête pour chaque campagne et chaque vidéo (Instagram, TikTok, Facebook) : copiée toute seule au moment de publier
+const buyFr = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase), delFr = price(home);
+const TAGS = { fr: "#Netanya #נתניה #livraison #HOP", he: "#נתניה #משלוחים #HOP #Netanya" };
+const CAPS = {
+  "partenaire-marchefr": {
+    fr: `🥐 Le Marché Français chez vous !\nBonne Maman, LU, Président, Andros… toute l'épicerie française de Netanya, livrée avec HOP!\n🛵 Livraison à Netanya : ${delFr} · livré au plus vite\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Commander : ${url}?c=MARCHEFR\n${TAGS.fr} #produitsfrançais`,
+    he: `🥐 השוק הצרפתי מגיע אליכם הביתה!\nבון מאמן, LU, פרזידנט, אנדרוס… כל המכולת הצרפתית של נתניה, עד הבית עם HOP!\n🛵 משלוח בנתניה: ${delFr} · מגיע הכי מהר\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 להזמנה: ${url}?c=MARCHEFR&lang=he\n${TAGS.he}` },
+  "hoppy-magasins": {
+    fr: `🛍️ On va dans vos magasins préférés !\nVêtements, chaussures, cadeaux, déco… Hoppy y va pour vous et vous les rapporte.\n🛒 Le prix du magasin + la livraison, 0 frais de service\n👉 ${livre}\n${TAGS.fr} #shopping`,
+    he: `🛍️ הולכים בשבילכם לחנויות שאתם אוהבים!\nבגדים, נעליים, מתנות, עיצוב… הופי הולך ומביא לכם.\n🛒 מחיר החנות + משלוח, 0 ₪ דמי שירות\n👈 ${livreHe}\n${TAGS.he}` },
+  "hoppy-fleurs": {
+    fr: `💐 On livre aussi vos fleurs !\nAnniversaire, Chabbat ou juste pour dire merci : Hoppy arrive avec le bouquet.\n🛒 Le fleuriste de votre choix à Netanya, livré au plus vite\n👉 ${livre}\n${TAGS.fr} #fleurs`,
+    he: `💐 מביאים גם פרחים!\nיום הולדת, שבת או סתם להגיד תודה: הופי מגיע עם הזר.\n🛒 חנות הפרחים שבחרתם בנתניה, הכי מהר\n👈 ${livreHe}\n${TAGS.he}` },
+  hoppy: {
+    fr: `🦘 Voici Hoppy, la mascotte HOP!\nIl saute partout dans Netanya et livre votre commande… dans sa poche !\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `🦘 תכירו את הופי, הקנגורו של HOP!\nקופץ בכל נתניה ומביא לכם את ההזמנה… בכיס!\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+  chabbat: {
+    fr: `🕯️ Courses de dernière minute avant Chabbat ?\nDites-nous ce qu'il vous faut : on achète et on vous livre, vous préparez tranquillement.\n🥖 Hallot · 🍗 Poulet et viande · 🍷 Vin · 💐 Fleurs\n🛒 Achat + livraison à Netanya : ${buyFr}\n👉 ${livre}\nChabbat chalom ! ${TAGS.fr} #Chabbat`,
+    he: `🕯️ קניות של הרגע האחרון לפני שבת?\nכתבו לנו מה צריך: אנחנו קונים ומביאים, ואתם מתכוננים בנחת.\n🥖 חלות · 🍗 עוף ובשר · 🍷 יין · 💐 פרחים\n🛒 קנייה ומשלוח בנתניה: ${buyFr}\n👈 ${livreHe}\nשבת שלום! ${TAGS.he} #שבת` },
+  halot: {
+    fr: `🥖 Vos hallot livrées pour Chabbat !\nHallot, gâteaux, biscuits et viennoiseries de la boulangerie que vous voulez.\n🛒 Achat + livraison à Netanya : ${buyFr} · le vendredi\n👉 ${livre}\n${TAGS.fr} #Chabbat #hallot`,
+    he: `🥖 החלות שלכם מגיעות לשבת!\nחלות, עוגות, עוגיות ומאפים מהמאפייה שאתם אוהבים.\n🛒 קנייה ומשלוח בנתניה: ${buyFr} · ביום שישי\n👈 ${livreHe}\n${TAGS.he} #שבת #חלות` },
+  table: {
+    fr: `🍷 Tout pour votre table de Chabbat\nVin, fleurs, pâtisserie, salades : on fait vos courses à Netanya et on vous livre.\n🛒 Achat + livraison : ${buyFr} · vendredi jusqu'à la dernière minute\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 ${livre}\n${TAGS.fr} #Chabbat`,
+    he: `🍷 כל מה שצריך לשולחן השבת\nיין, פרחים, עוגות, סלטים: עושים לכם את הקניות בנתניה ומביאים עד הבית.\n🛒 קנייה ומשלוח: ${buyFr} · ביום שישי, עד הרגע האחרון\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ${livreHe}\n${TAGS.he} #שבת` },
+  courses: {
+    fr: `🛒 Vous demandez, HOP! on livre.\nCourses, pharmacie, restaurants, colis et bien plus, dans tous les magasins de Netanya, même les petits.\n🧾 Le prix du magasin · 0 frais de service\n🛵 Achat + livraison à Netanya : ${buyFr}\n👉 ${livre}\n${TAGS.fr}`,
+    he: `🛒 אתם מבקשים, HOP! מביאים.\nסופר, פארם, מסעדות, חבילות ועוד, מכל החנויות בנתניה, גם הקטנות.\n🧾 מחיר החנות · 0 ₪ דמי שירות\n🛵 קנייה ומשלוח בנתניה: ${buyFr}\n👈 ${livreHe}\n${TAGS.he}` },
+  visite: {
+    fr: `👀 L'appli HOP! évolue chaque semaine !\nDe nouveaux commerces de Netanya arrivent les uns après les autres : venez voir ce qu'il y a de nouveau.\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `👀 האפליקציה של HOP! מתפתחת כל שבוע!\nעסקים חדשים מנתניה מצטרפים אחד אחרי השני: בואו לראות מה חדש.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+  nouveaux: {
+    fr: `🆕 Nouveaux partenaires sur HOP! : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush…\nLeur carte est dans l'appli : commandez en 1 minute, suivez le livreur en direct.\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `🆕 שותפים חדשים ב-HOP!: נינה סושי, פריז טקסס, סמאש איט, השוק הצרפתי, פיצה קראש…\nהתפריט שלהם באפליקציה: מזמינים בדקה, עוקבים אחרי השליח בזמן אמת.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+  adopte: {
+    fr: `💸 Arrête de payer plus cher. Adopte HOP!\nLe prix du resto, une livraison à prix fixe, 0 frais de service. Et ton plat arrive chaud.\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `💸 די לשלם יותר. עוברים ל-HOP!\nמחיר המסעדה, משלוח במחיר קבוע, 0 ₪ דמי שירות. והאוכל מגיע חם.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+  tout: {
+    fr: `🛍️ On livre TOUT, partout à Netanya !\nRestaurants, courses, pressing, colis, pharmacie, fleurs… vous demandez, HOP! on livre.\n👉 ${livre}\n${TAGS.fr}`,
+    he: `🛍️ מביאים הכול, לכל נתניה!\nמסעדות, קניות, ניקוי יבש, חבילות, פארם, פרחים… אתם מבקשים, HOP! מביאים.\n👈 ${livreHe}\n${TAGS.he}` },
+  cycle: {
+    fr: `🔁 On commande, on suit, c'est livré… et votre plat arrive chaud.\nHOP!, la livraison de Netanya, au plus vite.\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `🔁 מזמינים, עוקבים, וזה כבר אצלכם… והאוכל מגיע חם.\nHOP!, המשלוחים של נתניה, הכי מהר.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+};
+const capFor = id => { const c = CAPS[id]; return (c && (c[ui.lang] || c.fr)) || CAPTION[ui.lang] || CAPTION.fr; };
 const UPLOAD = [["Instagram", "https://www.instagram.com/"], ["TikTok", "https://www.tiktok.com/tiktokstudio/upload"], ["Facebook", "https://www.facebook.com/"]];
 const V = "kit/visuels/";
 const CAMPS = [
@@ -484,11 +529,13 @@ function renderKit() {
       <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
         <div class="camp-btns">${c.formats.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
           ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4${VQ}" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}
-          ${c.formats.includes("story") ? shareBtn(f(c.id, "story"), `hop-${c.id}-story-${L}.png`, "📲 Publier la story") : ""}</div></div></div>`).join("")
+          ${c.formats.includes("post") ? shareBtn(f(c.id, "post"), `hop-${c.id}-post-${L}.png`, "📲 Publier le post", c.id) : ""}
+          ${c.formats.includes("story") ? shareBtn(f(c.id, "story"), `hop-${c.id}-story-${L}.png`, "📲 Publier la story", c.id) : ""}</div>
+        ${CAPS[c.id] ? `<details class="camp-cap"><summary>✍️ Sa légende (copiée toute seule en publiant)</summary><div class="post" id="cap-${c.id}" dir="${L === "he" ? "rtl" : "ltr"}">${UI.esc(capFor(c.id))}</div><button type="button" class="btn btn-sm btn-primary" data-copy="cap-${c.id}">Copier la légende</button></details>` : ""}</div></div>`).join("")
     || `<p class="muted small">Rien pour l'instant.</p>`;
   const vids = VIDEOS.filter(v => v.aud === ui.aud);
   $("#kitVideos").innerHTML = vids.map(v => `<figure${v.ratio ? ' class="wide"' : ""}><video src="${V}${v.id}-video-${L}.mp4${VQ}" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
-      <figcaption><b>${UI.esc(v.title)}</b><span class="kshare-row">${shareBtn(`${V}${v.id}-video-${L}.mp4${VQ}`, `hop-${v.id}-${L}.mp4`)}<a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4${VQ}" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></span></figcaption></figure>`).join("")
+      <figcaption><b>${UI.esc(v.title)}</b><span class="kshare-row">${shareBtn(`${V}${v.id}-video-${L}.mp4${VQ}`, `hop-${v.id}-${L}.mp4`, "", v.id)}<a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4${VQ}" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></span></figcaption></figure>`).join("")
     || `<p class="muted small">Pas encore de vidéo pour eux : les visuels sont dans l'onglet 🖼️.</p>`;
   // Les textes bilingues (statut, phrases courtes, fiche Google) apparaissent dans les deux langues
   const bi = p => p.dir === "ltr" && /[\u0590-\u05FF]/.test(p.text);
@@ -514,11 +561,11 @@ renderKit();
 // Sur téléphone : la feuille de partage du téléphone, avec le fichier déjà joint (Instagram Reels / Story,
 // TikTok, Facebook, WhatsApp y apparaissent). Sur ordinateur, ces applis n'acceptent pas d'envoi depuis une
 // page web : on enregistre le fichier et on ouvre leur page d'envoi. La légende est copiée pour être collée.
-function shareBtn(url, name, label) {
-  return `<button type="button" class="btn btn-sm btn-share" data-share="${UI.esc(url)}" data-name="${UI.esc(name)}">${label || "📲 Insta · TikTok · Facebook"}</button>`;
+function shareBtn(url, name, label, cap) {
+  return `<button type="button" class="btn btn-sm btn-share" data-share="${UI.esc(url)}" data-name="${UI.esc(name)}"${cap ? ` data-cap="${UI.esc(cap)}"` : ""}>${label || "📲 Insta · TikTok · Facebook"}</button>`;
 }
 const shareFiles = new Map();
-const copyCaption = () => { try { navigator.clipboard && navigator.clipboard.writeText(CAPTION[ui.lang] || CAPTION.fr).catch(() => {}); } catch (_) { /* rien */ } };
+const copyCaption = id => { try { navigator.clipboard && navigator.clipboard.writeText(capFor(id)).catch(() => {}); } catch (_) { /* rien */ } };
 function shareHelp(btn, url, name, mobile) {
   const old = btn.parentElement.querySelector(".kshare-help");
   if (old) old.remove();
@@ -534,7 +581,7 @@ function shareHelp(btn, url, name, mobile) {
 }
 async function shareMedia(btn) {
   const url = btn.dataset.share, name = btn.dataset.name;
-  copyCaption();
+  copyCaption(btn.dataset.cap);
   if (!navigator.share || !navigator.canShare) return shareHelp(btn, url, name, false);
   let file = shareFiles.get(url);
   const label = btn.dataset.label || btn.innerHTML;
@@ -549,7 +596,7 @@ async function shareMedia(btn) {
     btn.disabled = false;
   }
   if (!navigator.canShare({ files: [file] })) { btn.innerHTML = label; return shareHelp(btn, url, name, true); }
-  try { await navigator.share({ files: [file], text: CAPTION[ui.lang] || CAPTION.fr }); btn.innerHTML = label; }
+  try { await navigator.share({ files: [file], text: capFor(btn.dataset.cap) }); btn.innerHTML = label; }
   catch (ex) {
     // Le téléchargement a pris trop de temps : le téléphone demande un 2e toucher pour ouvrir le partage
     if (ex && ex.name === "NotAllowedError") { btn.innerHTML = "📲 Publier maintenant"; btn.classList.add("ready"); }
