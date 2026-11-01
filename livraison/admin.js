@@ -1567,23 +1567,29 @@ function renderClients(view) {
     </div>
     <p class="muted small" style="margin:-8px 0 12px">Un client crée son compte dans l'appli (« Mes courses ») avec son téléphone et un mot de passe : accepté tout de suite, sans e-mail de confirmation pour l'instant. Les clients sans compte apparaissent ici d'après leur numéro de téléphone.</p>
     <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" /></div>
-    ${list.length ? `<div class="orders">${list.map(c => { const k = "u:" + (c.client_id || d9(c.phone)), sh = shopOfClient(c); return `
+    ${list.length ? `<div class="orders">${list.map(c => { const k = "u:" + (c.client_id || d9(c.phone)), sh = shopOfClient(c);
+      // Ses vraies courses (les plus récentes d'abord), en fiche complète comme dans l'onglet Courses
+      const mine = orders.filter(o => (d9(o.contact_phone) && d9(o.contact_phone) === d9(c.phone)) || (sh && o.shop_id === sh.id && o.shop_sent))
+        .sort((a, b) => String(b.created_at || b.pickup_at).localeCompare(String(a.created_at || a.pickup_at))).slice(0, 15);
+      return `
       <details class="order-fold shop-fold" data-fold="${UI.esc(k)}"${foldOpen(k)}><summary>
-        <span>${c.client_id ? "👤" : "📞"} <b>${UI.esc(c.name || "—")}</b>${sh ? " · 🏪 " + UI.esc(sh.name) : ""}${c.blocked ? " · ⛔" : ""}</span>
+        <span>${sh ? "🏪" : c.client_id ? "👤" : "📞"} <b>${UI.esc(c.name || "—")}</b>${sh && sh.name !== c.name ? " · 🏪 " + UI.esc(sh.name) : ""}${c.blocked ? " · ⛔" : ""}</span>
         <b>${Number(c.delivered || 0)} 📦</b></summary>
       <article class="order" data-client="${UI.esc(c.client_id || "")}">
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name || "—")}</span>
-          <span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte" : "Sans compte"}</span>
+          ${sh ? `<span class="pill paid">🏪 Commerce partenaire</span>` : `<span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte client" : "📞 Sans compte client"}</span>`}
           ${c.blocked ? `<span class="pill" style="background:#FDE2E2;color:#9B1C1C">⛔ Bloqué</span>` : ""}
-          ${sh ? `<span class="pill">🏪 Enseigne : ${UI.esc(sh.name)}</span>` : ""}
           <span class="order-price">${Number(c.delivered || 0)} livrée(s)</span>
         </div>
+        <p class="small muted" style="margin:6px 0 2px">${sh ? "Un commerce n'a pas besoin de compte client : il envoie ses courses depuis son espace commerce (« Envoyer une course »)." : c.client_id ? "" : "Il commande avec son numéro de téléphone, sans avoir créé de compte (c'est permis)."}</p>
         <div class="kv">
           <div><span>📞</span><span>${tel(c.name, c.phone)}${c.email ? " · " + UI.esc(c.email) + (c.email_verified ? " ✅" : " (à vérifier)") : ""}</span></div>
           <div><span>📦</span><span>${Number(c.orders || 0)} commande(s) · ${UI.money(Number(c.spent || 0))} livrés${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
           <div><span>📅</span><span>${c.client_id ? "Compte créé le " + day(c.account_at) + " · " : ""}dernière commande : ${c.orders ? day(c.last_at) : "—"}</span></div>
         </div>
+        ${mine.length ? `<details class="client-orders"><summary>📋 Voir le détail de ses courses (${mine.length}${Number(c.orders || 0) > mine.length ? " dernières" : ""})</summary>
+          <div class="orders">${mine.map(o => card(o, true)).join("")}</div></details>` : ""}
         <div class="actions">
           ${c.client_id ? `<button class="btn btn-sm" data-client-reset="${UI.esc(c.client_id)}" data-cname="${UI.esc(c.name || "")}">🔑 Nouveau mot de passe</button>` : ""}
           ${c.blocked ? `<button class="btn btn-sm" data-unblock="${UI.esc(c.phone)}">🔓 Débloquer</button>` : ""}
