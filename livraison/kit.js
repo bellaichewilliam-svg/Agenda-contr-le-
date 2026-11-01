@@ -460,6 +460,9 @@ const CAPS = {
   "hoppy-histoire": {
     fr: `🦘 Une envie ? Et hop, livré !\nVos courses, vos boutiques préférées, des fleurs, un repas, la pharmacie, un colis… Vous commandez, Hoppy arrive. Vous profitez, on vous livre.\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Découvrez HOP! : ${APP_URL}\n${TAGS.fr}`,
     he: `🦘 בא לכם משהו? והופ! זה מגיע.\nקניות, החנויות שאתם אוהבים, פרחים, אוכל, פארם, חבילות… אתם מזמינים, הופי כבר בדרך. אתם נהנים, אנחנו מגיעים.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 גלו את HOP!: ${APP_URL}?lang=he\n${TAGS.he}` },
+  simple: {
+    fr: `🛵 Commander votre livreur n'a jamais été aussi simple.\nVous choisissez le restaurant, le magasin, la pharmacie ou le colis : HOP! le récupère et vous le livre, partout à Netanya.\n💸 Prix fixe : ${delFr} à Netanya, 0 frais de service\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Demandez votre livraison : ${APP_URL}\n${TAGS.fr}`,
+    he: `🛵 מעולם לא היה קל יותר להזמין שליח.\nאתם בוחרים מסעדה, חנות, בית מרקחת או חבילה: HOP! אוספת ומביאה עד אליכם, בכל נתניה.\n💸 מחיר קבוע: ${delFr} בנתניה, 0 ₪ דמי שירות\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 מזמינים משלוח: ${APP_URL}?lang=he\n${TAGS.he}` },
   "pas-encore": {
     fr: `🏪 Votre commerce n'est pas encore sur HOP! ?\nPas de souci : commandez directement auprès du commerce, attendez que ce soit prêt, puis demandez à HOP! d'aller le chercher. On vous le livre.\n🆕 De nouveaux catalogues arrivent chaque jour dans l'appli.\n🛵 Livraison à Netanya : ${delFr} · 📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Demander une livraison : ${APP_URL}\n${TAGS.fr}`,
     he: `🏪 העסק שלכם עדיין לא מופיע ב-HOP!?\nאין בעיה: מזמינים ישירות מבית העסק, מחכים שההזמנה תהיה מוכנה, ומזמינים שליח HOP! שיאסוף ויביא אליכם.\n🆕 קטלוגים חדשים מצטרפים לאפליקציה בכל יום.\n🛵 משלוח בנתניה: ${delFr} · 📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 מזמינים משלוח: ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -523,6 +526,8 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
+  // Langues en formats différents : le français en post (4:5), l'hébreu en story (9:16) ; chaque langue montre le sien
+  { id: "simple", aud: "client", isNew: true, thumb: { fr: "post", he: "story" }, title: "🛵 Commander votre livreur n'a jamais été aussi simple", desc: "Vous choisissez, HOP! récupère et vous livre : la cliente commande sur son téléphone, Hoppy et le livreur arrivent. Français en post, hébreu en story.", formats: { fr: ["post"], he: ["story"] } },
   { id: "pas-encore", aud: "client", isNew: true, thumb: "post", title: "🏪 Votre commerce n'est pas encore sur HOP! ?", desc: "Commandez directement au commerce, puis demandez à HOP! d'aller la chercher. En 1re pub à l'ouverture de l'appli. FR et HE.", formats: ["post"] },
   { id: "hoppy-resto", aud: "client", isNew: true, thumb: "post", title: "🍽️ Votre resto préféré ? HOP! vous le livre.", desc: "Vous commandez au restaurant, le livreur HOP! récupère le repas et vous l'apporte. FR et HE.", formats: ["post"] },
   { id: "hoppy-sacs", aud: "client", isNew: true, thumb: "post", title: "🛍️ Vos courses sont prêtes ? HOP! vient les chercher.", desc: "Vous faites vos courses, le livreur HOP! récupère les sacs au magasin et vous les livre. FR et HE.", formats: ["post"] },
@@ -600,14 +605,17 @@ function renderKit() {
   // Les visuels portent la version de la page : un visuel refait est rechargé, pas repris du cache du téléphone
   const VQ = (() => { const sc = document.querySelector('script[src*="kit.js"]'); const m = sc && /v=(\d+)/.exec(sc.getAttribute("src") || ""); return m ? `?v=${m[1]}` : ""; })();
   const L = ui.lang, f = (id, fmt) => `${V}${id}-${fmt}-${L}.png${VQ}`;
+  // Une campagne peut avoir des formats différents selon la langue ({ fr: ["post"], he: ["story"] })
+  const fmts = c => (Array.isArray(c.formats) ? c.formats : (c.formats[L] || []));
+  const th = c => (typeof c.thumb === "object" && c.thumb ? c.thumb[L] : c.thumb) || fmts(c)[0] || "story";
   $("#kitCamps").innerHTML = CAMPS.filter(c => c.aud === ui.aud).map(c => `<div class="camp">
-      <a class="camp-thumb" href="${f(c.id, c.thumb || "story")}" data-vis data-src="${f(c.id, c.thumb || "story")}"><img src="${f(c.id, c.thumb || "story")}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
+      <a class="camp-thumb" href="${f(c.id, th(c))}" data-vis data-src="${f(c.id, th(c))}"><img src="${f(c.id, th(c))}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
       <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
-        <div class="camp-btns">${c.formats.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
+        <div class="camp-btns">${fmts(c).map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
           ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4${VQ}" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}
-          ${c.formats.includes("post") ? shareBtn(f(c.id, "post"), `hop-${c.id}-post-${L}.png`, "📲 Publier le post", c.id) : ""}
-          ${c.formats.includes("story") ? shareBtn(f(c.id, "story"), `hop-${c.id}-story-${L}.png`, "📲 Publier la story", c.id) : ""}</div>
-        ${CAPS[c.id] ? `<details class="camp-cap"><summary>✍️ Sa légende (copiée toute seule en publiant)</summary><div class="post" id="cap-${c.id}" dir="${L === "he" ? "rtl" : "ltr"}">${UI.esc(capFor(c.id, "post"))}</div><button type="button" class="btn btn-sm btn-primary" data-copy="cap-${c.id}">Copier la légende</button></details>` : ""}</div></div>`).join("")
+          ${fmts(c).includes("post") ? shareBtn(f(c.id, "post"), `hop-${c.id}-post-${L}.png`, "📲 Publier le post", c.id) : ""}
+          ${fmts(c).includes("story") ? shareBtn(f(c.id, "story"), `hop-${c.id}-story-${L}.png`, "📲 Publier la story", c.id) : ""}</div>
+        ${CAPS[c.id] ? `<details class="camp-cap"><summary>✍️ Sa légende (copiée toute seule en publiant)</summary><div class="post" id="cap-${c.id}" dir="${L === "he" ? "rtl" : "ltr"}">${UI.esc(capFor(c.id, fmts(c)[0] || "post"))}</div><button type="button" class="btn btn-sm btn-primary" data-copy="cap-${c.id}">Copier la légende</button></details>` : ""}</div></div>`).join("")
     || `<p class="muted small">Rien pour l'instant.</p>`;
   const vids = VIDEOS.filter(v => v.aud === ui.aud);
   $("#kitVideos").innerHTML = vids.map(v => `<figure${v.ratio ? ' class="wide"' : ""}><video src="${V}${v.id}-video-${L}.mp4${VQ}" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
