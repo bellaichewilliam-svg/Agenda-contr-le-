@@ -90,7 +90,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202611011051" />
+  <link rel="stylesheet" href="styles.css?v=202611011142" />
 <style id="splashCss">#splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0F1F3D;color:#fff;transition:opacity .35s ease}#splash.out{opacity:0;pointer-events:none}#splash svg{width:min(58vw,300px);height:auto;display:block}#splash span{font:700 16px/1 Rubik,-apple-system,Arial,sans-serif;letter-spacing:.42em;margin-inline-start:.42em;opacity:.92}</style>
 </head>
 <body>
@@ -324,23 +324,29 @@
 
     <form id="orderForm" class="order-layout" action="javascript:void(0)" novalidate>
       <div>
-        <div class="shop-hero hidden" id="shopHero"></div>
+        <div data-wiz="1" class="shop-hero hidden" id="shopHero"></div>
         <!-- Pharmacie : les essentiels sans ordonnance, tout en haut de la commande -->
-        <div class="pharma-box hidden" id="pharmaBox"></div>
-        <div class="addon-bar hidden" id="addonBar" role="status"></div>
-        <div class="shop-banner hidden" id="shopBanner"><span id="shopBannerText"></span><button type="button" class="btn btn-sm" id="shopBannerOff" data-i18n="shBannerOff"></button></div>
+        <div data-wiz="1" class="pharma-box hidden" id="pharmaBox"></div>
+        <div data-wiz="1" class="addon-bar hidden" id="addonBar" role="status"></div>
+        <div data-wiz="1" class="shop-banner hidden" id="shopBanner"><span id="shopBannerText"></span><button type="button" class="btn btn-sm" id="shopBannerOff" data-i18n="shBannerOff"></button></div>
         <!-- HOP! Pro : le client écrit sa commande, le commerce la prépare -->
-        <div class="shop-order hidden" id="shopOrderBox">
+        <div data-wiz="1" class="shop-order hidden" id="shopOrderBox">
           <div class="cg hidden" id="catalogBox"></div>
           <label class="f"><span id="shopOrderLabel"></span><textarea name="shop_order" rows="3" maxlength="1000" data-i18n-ph="spOrderPh"></textarea></label>
           <p class="small muted" id="shopOrderNote"></p>
         </div>
-        <label class="f shop-ref hidden" id="shopRefBox"><span data-i18n="shopRef"></span><input name="shop_ref" inputmode="numeric" maxlength="3" pattern="[0-9]{3}" autocomplete="off" data-i18n-ph="shopRefPh" /></label>
+        <label data-wiz="1" class="f shop-ref hidden" id="shopRefBox"><span data-i18n="shopRef"></span><input name="shop_ref" inputmode="numeric" maxlength="3" pattern="[0-9]{3}" autocomplete="off" data-i18n-ph="shopRefPh" /></label>
         <div class="form-progress" id="formProgress">
           <div class="fp-track"><div class="fp-fill" id="fpFill"></div><span class="fp-scooter" id="fpScooter">🛵</span><span class="fp-flag">🏁</span></div>
           <small id="fpText"></small>
         </div>
-        <fieldset class="fs-service">
+        <!-- Commande en 3 petits écrans : 1. Quoi et où ? · 2. Précisions · 3. Vous et le paiement -->
+        <div class="wiz-bar" id="wizBar" aria-live="polite">
+          <div class="wiz-top"><button type="button" class="wiz-back" id="wizBack" data-i18n="wizBack"></button><small id="wizStepTxt"></small></div>
+          <div class="wiz-seg"><i></i><i></i><i></i></div>
+          <h3 class="wiz-title" id="wizTitle"></h3>
+        </div>
+        <fieldset class="fs-service" data-wiz="1">
           <legend data-i18n="s1"></legend>
           <div class="choices four">
             <label class="choice"><input type="radio" name="service" value="colis" checked /><span><i>📦</i><b data-i18n="svc_colis"></b><small data-i18n="svc_colis_d"></small></span></label>
@@ -365,7 +371,7 @@
           </div>
         </fieldset>
 
-        <fieldset class="fs-when">
+        <fieldset class="fs-when" data-wiz="1">
           <legend data-i18n="s4"></legend>
           <div class="choices three compact">
             <label class="choice"><input type="radio" name="urgency" value="asap" checked /><span><i>🕐</i><b data-i18n="w_asap"></b><small id="asapSmall" data-i18n="w_asap_d"></small></span></label>
@@ -379,10 +385,10 @@
           <p class="notice err hidden" id="scheduleError" style="margin-top:12px"></p>
         </fieldset>
 
-        <fieldset class="fs-from">
+        <fieldset class="fs-from" data-wiz="1 2">
           <legend id="pickupLegend" data-i18n="s2"></legend>
           <div class="fields">
-            <label class="f full show-retrait"><span data-i18n="placeKind"></span>
+            <label data-wiz="1" class="f full show-retrait"><span data-i18n="placeKind"></span>
               <select name="place_kind">
                 <option value="poste" data-i18n="place_poste"></option>
                 <option value="superpharm" data-i18n="place_superpharm"></option>
@@ -391,93 +397,93 @@
                 <option value="autre" data-i18n="place_autre"></option>
               </select>
             </label>
-            <p class="notice full near-note hidden" id="nearNote"></p>
-            <div class="saved-addrs full hidden pick-addr" data-for="from"></div>
-            <div class="addr-tools full pick-addr"><button type="button" class="btn btn-sm" data-geo="from" data-i18n="useMyPos"></button><button type="button" class="btn btn-sm btn-link hidden" data-save-addr="from" data-i18n="saveAddr"></button></div>
-            <label class="f full pick-addr"><span data-i18n="addrSearch"></span><input name="pickup_address" data-i18n-ph="addrSearchPh" /></label>
-            <label class="f pick-addr"><span data-i18n="houseNo"></span><input name="pickup_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
-            <label class="f pick-addr"><span data-i18n="city"></span><select name="from_city" class="city-select with-other"></select></label>
-            <label class="f other-city hidden pick-addr" data-for="from"><span data-i18n="otherCityName"></span><input name="from_other" /></label>
-            <div class="kind-chips full hide-retrait pick-addr" role="radiogroup" data-kind="pickup"><span class="kind-label" data-i18n="kindLabel"></span>
+            <p data-wiz="1" class="notice full near-note hidden" id="nearNote"></p>
+            <div data-wiz="1" class="saved-addrs full hidden pick-addr" data-for="from"></div>
+            <div data-wiz="1" class="addr-tools full pick-addr"><button type="button" class="btn btn-sm" data-geo="from" data-i18n="useMyPos"></button><button type="button" class="btn btn-sm btn-link hidden" data-save-addr="from" data-i18n="saveAddr"></button></div>
+            <label data-wiz="1" class="f full pick-addr"><span data-i18n="addrSearch"></span><input name="pickup_address" data-i18n-ph="addrSearchPh" /></label>
+            <label data-wiz="1" class="f pick-addr"><span data-i18n="houseNo"></span><input name="pickup_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
+            <label data-wiz="1" class="f pick-addr"><span data-i18n="city"></span><select name="from_city" class="city-select with-other"></select></label>
+            <label data-wiz="1" class="f other-city hidden pick-addr" data-for="from"><span data-i18n="otherCityName"></span><input name="from_other" /></label>
+            <div data-wiz="2" data-more class="kind-chips full hide-retrait pick-addr" role="radiogroup" data-kind="pickup"><span class="kind-label" data-i18n="kindLabel"></span>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="maison" hidden /><span data-i18n="kind_maison"></span></label>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="appartement" hidden /><span data-i18n="kind_appartement"></span></label>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="bureau" hidden /><span data-i18n="kind_bureau"></span></label>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="commerce" hidden /><span data-i18n="kind_commerce"></span></label>
             </div>
-            <div class="fields4 full hide-retrait pick-addr" data-details="pickup">
+            <div data-wiz="2" data-more class="fields4 full hide-retrait pick-addr" data-details="pickup">
               <label class="f"><span data-i18n="building"></span><input name="pickup_building" data-i18n-ph="buildingPh" /></label>
               <label class="f"><span data-i18n="floor"></span><input name="pickup_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="pickup_apt" data-i18n-ph="aptPh" /></label>
               <label class="f"><span data-i18n="entryCode"></span><input name="pickup_code" data-i18n-ph="codePh" /></label>
             </div>
-            <label class="f full addr-note pick-addr"><span data-i18n="addrNote"></span><input name="pickup_note" data-i18n-ph="addrNotePh" /></label>
-            <label class="f show-retrait"><span data-i18n="tracking"></span><input name="tracking_number" data-i18n-ph="trackingPh" /></label>
-            <label class="f show-retrait hide-locker"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
-            <label class="f show-locker"><span data-i18n="retraitCode"></span><input name="retrait_code" data-i18n-ph="retraitCodePh" autocomplete="off" /></label>
-            <label class="f full show-poste"><span data-i18n="apptLabel"></span><input name="appt_at" type="datetime-local" /></label>
-            <p class="notice warn full show-poste" id="apptNote" data-i18n="apptNote"></p>
-            <div class="docs-box full hidden" id="docsBox"></div>
-            <label class="check full show-achat near-store"><input type="checkbox" name="nearest_store" /> <span data-i18n="nearStore"></span></label>
-            <p class="notice warn full show-achat hidden" id="superNote" data-i18n="superNote"></p>
-            <p class="notice full show-achat no-cat" id="noCatNote"></p>
-            <label class="f full show-achat shop-list"><span id="shopListLabel" data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
-            <div class="adult-box full show-achat">
+            <label data-wiz="2" data-more class="f full addr-note pick-addr"><span data-i18n="addrNote"></span><input name="pickup_note" data-i18n-ph="addrNotePh" /></label>
+            <label data-wiz="2" class="f show-retrait"><span data-i18n="tracking"></span><input name="tracking_number" data-i18n-ph="trackingPh" /></label>
+            <label data-wiz="2" class="f show-retrait hide-locker"><span data-i18n="parcelName"></span><input name="parcel_name" data-i18n-ph="parcelNamePh" /></label>
+            <label data-wiz="2" class="f show-locker"><span data-i18n="retraitCode"></span><input name="retrait_code" data-i18n-ph="retraitCodePh" autocomplete="off" /></label>
+            <label data-wiz="2" class="f full show-poste"><span data-i18n="apptLabel"></span><input name="appt_at" type="datetime-local" /></label>
+            <p data-wiz="2" class="notice warn full show-poste" id="apptNote" data-i18n="apptNote"></p>
+            <div data-wiz="2" class="docs-box full hidden" id="docsBox"></div>
+            <label data-wiz="1" class="check full show-achat near-store"><input type="checkbox" name="nearest_store" /> <span data-i18n="nearStore"></span></label>
+            <p data-wiz="1" class="notice warn full show-achat hidden" id="superNote" data-i18n="superNote"></p>
+            <p data-wiz="1" class="notice full show-achat no-cat" id="noCatNote"></p>
+            <label data-wiz="1" class="f full show-achat shop-list"><span id="shopListLabel" data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
+            <div data-wiz="2" class="adult-box full show-achat">
               <label class="check"><input type="checkbox" name="has_tobacco" /> <span data-i18n="hasTobacco"></span></label>
               <label class="check"><input type="checkbox" name="has_alcohol" /> <span data-i18n="hasAlcohol"></span></label>
               <label class="check adult-ok hidden" id="adultOkBox"><input type="checkbox" name="adult_ok" /> <span data-i18n="adultOk"></span></label>
               <p class="notice warn small hidden" id="alcoholNote" data-i18n="alcoholNote"></p>
             </div>
-            <label class="check full show-achat"><input type="checkbox" name="rx" /> <span data-i18n="rxLabel"></span></label>
-            <label class="check full show-colis"><input type="checkbox" name="post_send" /> <span data-i18n="postSend"></span></label>
-            <label class="check full show-colis"><input type="checkbox" name="p2p_sale" /> <span data-i18n="p2pSale"></span></label>
-            <label class="check full sale-paid hidden"><input type="checkbox" name="sale_paid" /> <span data-i18n="salePaid"></span></label>
-            <label class="check full show-colis"><input type="checkbox" name="handoff" /> <span data-i18n="handoffLabel"></span></label>
-            <div class="goods-mode full show-achat" id="goodsModeBox">
+            <label data-wiz="2" class="check full show-achat"><input type="checkbox" name="rx" /> <span data-i18n="rxLabel"></span></label>
+            <label data-wiz="2" data-more class="check full show-colis"><input type="checkbox" name="post_send" /> <span data-i18n="postSend"></span></label>
+            <label data-wiz="2" data-more class="check full show-colis"><input type="checkbox" name="p2p_sale" /> <span data-i18n="p2pSale"></span></label>
+            <label data-wiz="2" data-more class="check full sale-paid hidden"><input type="checkbox" name="sale_paid" /> <span data-i18n="salePaid"></span></label>
+            <label data-wiz="2" data-more class="check full show-colis"><input type="checkbox" name="handoff" /> <span data-i18n="handoffLabel"></span></label>
+            <div data-wiz="2" class="goods-mode full show-achat" id="goodsModeBox">
               <span class="kind-label" data-i18n="gmTitle"></span>
               <label class="choice"><input type="radio" name="goods_mode" value="prepay" checked /><span><i>💳</i><b data-i18n="gmPrepay"></b><small data-i18n="gmPrepayD"></small></span></label>
               <label class="choice"><input type="radio" name="goods_mode" value="self" /><span><i>🏪</i><b data-i18n="gmSelf"></b><small data-i18n="gmSelfD"></small></span></label>
               <label class="f gm-budget"><span data-i18n="budget"></span><input name="budget" type="number" min="0" step="1" inputmode="numeric" /></label>
               <div class="gm-sum" id="goodsSum"></div>
             </div>
-            <label class="check full show-achat"><input type="checkbox" name="fits_topcase" /> <span data-i18n="fitsTopcase"></span></label>
-            <label class="f hide-retrait there-contact pick-addr"><span data-i18n="contactThere"></span><input name="pickup_contact" data-i18n-ph="namePh" /></label>
-            <label class="f hide-retrait there-contact pick-addr"><span data-i18n="phoneThere"></span><input name="pickup_phone" type="tel" data-i18n-ph="phonePh" /></label>
+            <label data-wiz="2" class="check full show-achat"><input type="checkbox" name="fits_topcase" /> <span data-i18n="fitsTopcase"></span></label>
+            <label data-wiz="2" data-more class="f hide-retrait there-contact pick-addr"><span data-i18n="contactThere"></span><input name="pickup_contact" data-i18n-ph="namePh" /></label>
+            <label data-wiz="2" data-more class="f hide-retrait there-contact pick-addr"><span data-i18n="phoneThere"></span><input name="pickup_phone" type="tel" data-i18n-ph="phonePh" /></label>
           </div>
         </fieldset>
 
-        <fieldset class="fs-to">
+        <fieldset class="fs-to" data-wiz="1 2">
           <legend data-i18n="s3"></legend>
           <div class="fields">
-            <div class="saved-addrs full hidden" data-for="to"></div>
-            <div class="addr-sum full hidden" id="toSum"></div>
-            <div class="addr-tools full drop-addr"><button type="button" class="btn btn-sm" data-geo="to" data-i18n="useMyPos"></button><button type="button" class="btn btn-sm btn-link hidden" data-save-addr="to" data-i18n="saveAddr"></button></div>
-            <label class="f full drop-addr"><span data-i18n="addrSearch"></span><input name="dropoff_address" data-i18n-ph="addrSearchPh" /></label>
-            <label class="f drop-addr"><span data-i18n="houseNo"></span><input name="dropoff_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
-            <label class="f drop-addr"><span data-i18n="city"></span><select name="to_city" class="city-select with-other"></select></label>
-            <label class="f other-city hidden drop-addr" data-for="to"><span data-i18n="otherCityName"></span><input name="to_other" /></label>
-            <div class="kind-chips full drop-addr" role="radiogroup" data-kind="dropoff"><span class="kind-label" data-i18n="kindLabel"></span>
+            <div data-wiz="1" class="saved-addrs full hidden" data-for="to"></div>
+            <div data-wiz="1" class="addr-sum full hidden" id="toSum"></div>
+            <div data-wiz="1" class="addr-tools full drop-addr"><button type="button" class="btn btn-sm" data-geo="to" data-i18n="useMyPos"></button><button type="button" class="btn btn-sm btn-link hidden" data-save-addr="to" data-i18n="saveAddr"></button></div>
+            <label data-wiz="1" class="f full drop-addr"><span data-i18n="addrSearch"></span><input name="dropoff_address" data-i18n-ph="addrSearchPh" /></label>
+            <label data-wiz="1" class="f drop-addr"><span data-i18n="houseNo"></span><input name="dropoff_number" data-i18n-ph="houseNoPh" autocomplete="off" /></label>
+            <label data-wiz="1" class="f drop-addr"><span data-i18n="city"></span><select name="to_city" class="city-select with-other"></select></label>
+            <label data-wiz="1" class="f other-city hidden drop-addr" data-for="to"><span data-i18n="otherCityName"></span><input name="to_other" /></label>
+            <div data-wiz="2" class="kind-chips full drop-addr" role="radiogroup" data-kind="dropoff"><span class="kind-label" data-i18n="kindLabel"></span>
               <label class="ch-chip"><input type="radio" name="dropoff_kind" value="maison" hidden /><span data-i18n="kind_maison"></span></label>
               <label class="ch-chip"><input type="radio" name="dropoff_kind" value="appartement" hidden /><span data-i18n="kind_appartement"></span></label>
               <label class="ch-chip"><input type="radio" name="dropoff_kind" value="bureau" hidden /><span data-i18n="kind_bureau"></span></label>
               <label class="ch-chip"><input type="radio" name="dropoff_kind" value="commerce" hidden /><span data-i18n="kind_commerce"></span></label>
             </div>
-            <div class="fields4 full drop-addr" data-details="dropoff">
+            <div data-wiz="2" class="fields4 full drop-addr" data-details="dropoff">
               <label class="f"><span data-i18n="building"></span><input name="dropoff_building" data-i18n-ph="buildingPh" /></label>
               <label class="f"><span data-i18n="floor"></span><input name="dropoff_floor" inputmode="numeric" data-i18n-ph="floorPh" /></label>
               <label class="f"><span data-i18n="apt"></span><input name="dropoff_apt" data-i18n-ph="aptPh" /></label>
               <label class="f"><span data-i18n="entryCode"></span><input name="dropoff_code" data-i18n-ph="codePh" /></label>
               <label class="check nocode"><input type="checkbox" name="dropoff_nocode" /> <span data-i18n="noCode"></span></label>
             </div>
-            <label class="f full addr-note drop-addr"><span data-i18n="addrNote"></span><input name="dropoff_note" data-i18n-ph="addrNotePh" /></label>
-            <label class="check full door-check"><input type="checkbox" name="leave_at_door" /> <span><b data-i18n="leaveDoor"></b><br><small class="muted" data-i18n="leaveDoorNote"></small></span></label>
-            <label class="check full drop-me"><input type="checkbox" name="drop_me" checked /> <span><b data-i18n="dropMe"></b><br><small class="muted" id="dropMeWho"></small></span></label>
-            <label class="f drop-other"><span data-i18n="recipient"></span><input name="dropoff_contact" data-i18n-ph="namePh" /></label>
-            <label class="f drop-other"><span data-i18n="recipientPhone"></span><input name="dropoff_phone" type="tel" data-i18n-ph="phonePh" /></label>
+            <label data-wiz="2" class="f full addr-note drop-addr"><span data-i18n="addrNote"></span><input name="dropoff_note" data-i18n-ph="addrNotePh" /></label>
+            <label data-wiz="2" data-more class="check full door-check"><input type="checkbox" name="leave_at_door" /> <span><b data-i18n="leaveDoor"></b><br><small class="muted" data-i18n="leaveDoorNote"></small></span></label>
+            <label data-wiz="2" data-more class="check full drop-me"><input type="checkbox" name="drop_me" checked /> <span><b data-i18n="dropMe"></b><br><small class="muted" id="dropMeWho"></small></span></label>
+            <label data-wiz="2" data-more class="f drop-other"><span data-i18n="recipient"></span><input name="dropoff_contact" data-i18n-ph="namePh" /></label>
+            <label data-wiz="2" data-more class="f drop-other"><span data-i18n="recipientPhone"></span><input name="dropoff_phone" type="tel" data-i18n-ph="phonePh" /></label>
           </div>
         </fieldset>
 
 
-        <fieldset class="fs-size">
+        <fieldset class="fs-size" data-wiz="2">
           <legend id="sizeLegend" data-i18n="s5"></legend>
           <div class="choices three">
             <label class="choice"><input type="radio" name="size" value="petit" checked /><span><i>✉️</i><b data-i18n="sz_petit"></b><small data-i18n="sz_petit_d"></small></span></label>
@@ -486,9 +492,9 @@
           </div>
           <button type="button" class="btn btn-link rules-link" data-rules data-i18n="rlLink"></button>
           <div class="fields" style="margin-top:12px">
-            <label class="check full"><input type="checkbox" name="round_trip" /> <span data-i18n="roundTrip"></span></label>
+            <label data-wiz="2" data-more class="check full"><input type="checkbox" name="round_trip" /> <span data-i18n="roundTrip"></span></label>
             <input type="hidden" name="extra_stops" value="0" />
-            <div class="stops-box full" id="stopsBox">
+            <div data-wiz="2" data-more class="stops-box full" id="stopsBox">
               <b data-i18n="stTitle"></b>
               <small class="muted" data-i18n="stSub"></small>
               <div id="stopsList"></div>
@@ -498,8 +504,9 @@
             <p class="notice warn hidden" id="noteTime"></p>
           </div>
         </fieldset>
+        <button type="button" class="wiz-more-btn" data-wiz="2" data-wiz-more><span><b data-i18n="wizMore"></b><small data-i18n="wizMoreSub2"></small></span><i>›</i></button>
 
-        <fieldset>
+        <fieldset data-wiz="3">
           <legend data-i18n="s6"></legend>
           <div class="goods-box hidden" id="goodsBox"></div>
           <p class="notice ok hidden" id="giftNote"></p>
@@ -518,7 +525,7 @@
             <small class="muted" id="cashRule"></small>
           </div>
           <div class="fields" style="margin-top:12px">
-            <label class="f full"><span data-i18n="payer"></span>
+            <label data-wiz="3" data-more class="f full"><span data-i18n="payer"></span>
               <select name="payer"><option value="moi" data-i18n="payer_moi"></option><option value="destinataire" data-i18n="payer_dest"></option></select>
             </label>
             <details class="f full fold-line" id="promoFold">
@@ -532,7 +539,7 @@
           </div>
         </fieldset>
 
-        <fieldset id="coordsBox">
+        <fieldset id="coordsBox" data-wiz="3">
           <legend data-i18n="s7"></legend>
           <div class="coords-summary hidden" id="coordsSummary">
             <span id="coordsText"></span>
@@ -541,12 +548,13 @@
           <div class="fields" id="coordsFields">
             <label class="f"><span data-i18n="yourName"></span><input name="contact_name" autocomplete="name" /></label>
             <label class="f"><span data-i18n="yourPhone"></span><input name="contact_phone" type="tel" autocomplete="tel" /></label>
-            <label class="f"><span data-i18n="company"></span><input name="company" autocomplete="organization" /></label>
+            <label data-wiz="3" data-more class="f"><span data-i18n="company"></span><input name="company" autocomplete="organization" /></label>
             <!-- Email retiré pour un formulaire plus court : le reçu est dans « Mes courses » -->
             <input type="hidden" name="contact_email" />
           </div>
           <p class="muted small" style="margin-top:10px" data-i18n="remember"></p>
         </fieldset>
+        <button type="button" class="wiz-more-btn" data-wiz="3" data-wiz-more><span><b data-i18n="wizMore"></b><small data-i18n="wizMoreSub3"></small></span><i>›</i></button>
       </div>
 
       <aside class="summary card" id="summary">
@@ -759,16 +767,16 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202611011051"></script>
-<script src="i18n.js?v=202611011051"></script>
-<script src="pricing.js?v=202611011051"></script>
-<script src="store.js?v=202611011051"></script>
-<script src="chat.js?v=202611011051"></script>
-<script src="common.js?v=202611011051"></script>
-<script src="enseignes.js?v=202611011051"></script>
-<script src="places.js?v=202611011051"></script>
-<script src="rayons.js?v=202611011051"></script>
-<script src="client.js?v=202611011051"></script>
+<script src="config.js?v=202611011142"></script>
+<script src="i18n.js?v=202611011142"></script>
+<script src="pricing.js?v=202611011142"></script>
+<script src="store.js?v=202611011142"></script>
+<script src="chat.js?v=202611011142"></script>
+<script src="common.js?v=202611011142"></script>
+<script src="enseignes.js?v=202611011142"></script>
+<script src="places.js?v=202611011142"></script>
+<script src="rayons.js?v=202611011142"></script>
+<script src="client.js?v=202611011142"></script>
 <script>(function(){var s=document.getElementById("splash");if(!s)return;var t0=Date.now();function off(){var w=Math.max(0,650-(Date.now()-t0));setTimeout(function(){s.classList.add("out");setTimeout(function(){s.remove()},400)},w)}if(document.readyState==="complete")off();else addEventListener("load",off);setTimeout(off,3500)})();</script>
 </body>
 </html>

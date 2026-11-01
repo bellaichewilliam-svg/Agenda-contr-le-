@@ -12,6 +12,8 @@ const form = $("#orderForm");
 const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
+// Commande en 3 petits écrans (1. quoi et où · 2. précisions · 3. vous et le paiement)
+const wiz = { on: !!(form && form.querySelector("[data-wiz]")), step: 1, n: 3, probe: false, lastTarget: null, toast: null };
 const state = { pharma: {}, pharmaCat: "", shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null }, stops: [] };
 const ac = {};
 
@@ -36,12 +38,19 @@ function setView(v, push) {
 // Un champ de l'adresse repliée en fiche doit être corrigé (erreur à l'envoi) : les champs reviennent
 const nativeFocus = HTMLElement.prototype.focus;
 HTMLElement.prototype.focus = function (o) {
+  // Vérification d'un écran (« Continuer ») : on note seulement le champ à corriger, sans y aller
+  if (wiz.probe && form.contains(this)) { wiz.lastTarget = this; return; }
+  if (wiz.on && form.contains(this)) wizReveal(this);
   if (this.closest && this.closest(".drop-addr") && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
   return nativeFocus.call(this, o);
 };
 // Tout ce qui « fait défiler jusqu'à » une partie de la page ouvre d'abord le bon écran
 const nativeScrollIntoView = Element.prototype.scrollIntoView;
-Element.prototype.scrollIntoView = function (o) { setView(viewOf(this), true); return nativeScrollIntoView.call(this, o); };
+Element.prototype.scrollIntoView = function (o) {
+  if (wiz.probe && form.contains(this)) { wiz.lastTarget = this; return; }
+  if (wiz.on && form.contains(this)) wizReveal(this);
+  setView(viewOf(this), true); return nativeScrollIntoView.call(this, o);
+};
 function routeHash() {
   const el = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
   setView(el ? viewOf(el) || "home" : "home");
@@ -588,6 +597,7 @@ function updateProgress() {
   $("#formProgress").classList.toggle("complete", !left);
 }
 function goNext(fs) {
+  if (wiz.on) return;
   let next = fs && fs.nextElementSibling;
   while (next && next.tagName !== "FIELDSET") next = next.nextElementSibling;
   if (next) setTimeout(() => next.scrollIntoView({ behavior: "smooth", block: "start" }), 180);
@@ -997,7 +1007,7 @@ function renderQuote() {
     : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { mid: est.mid }) : goods ? t("barGoodsHint") : "";
   $("#mobileHint").textContent = addonOn() ? t("qAddon", { ref: state.addon.ref }) : hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
-  $("#submitBtn").textContent = t("submit", { total: money(all) });
+  $("#submitBtn").textContent = wiz.on && wiz.step < 3 ? t("wizNext") : t("submit", { total: money(all) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
   if (proShopOn() && state.shop.pay_ask) notes.push(t("askNote", { name: UI.bi(state.shop.name) }));
@@ -1092,10 +1102,101 @@ function rememberProfile() {
   Store.saveProfile(p);
 }
 
+// --- Commande en 3 petits écrans -------------------------------------------------------------
+// Chaque bloc porte data-wiz="1|2|3" (un bloc à cheval : "1 2"), les options rares data-more (repliées).
+// Les règles ne changent pas : « Continuer » lance les mêmes contrôles que l'envoi et s'arrête
+// seulement sur un problème de l'écran affiché (ou d'avant).
+function wizStepOf(el) {
+  const w = el && el.closest && el.closest("[data-wiz]");
+  if (!w) return el && el.closest && el.closest("#summary") ? wiz.n : null;
+  const st = w.dataset.wiz.split(" ").map(Number);
+  return st.includes(wiz.step) ? wiz.step : st[0];
+}
+// Une option déjà choisie (idée de l'accueil, brouillon, adresse enregistrée) : les options restent ouvertes
+function wizUsedMore() {
+  if (state.stops.length || val("payer") === "destinataire" || !form.drop_me.checked) return true;
+  return ["post_send", "p2p_sale", "handoff", "round_trip", "leave_at_door"].some(n => form.elements[n] && form.elements[n].checked)
+    || ["pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "pickup_note"].some(n => val(n).trim());
+}
+// Un bloc dont tout est caché sur cet écran (ex. « Où récupérer ? » à l'écran 2 pour un colis) disparaît
+function wizEmpty() {
+  if (!wiz.on) return;
+  form.querySelectorAll("fieldset[data-wiz]").forEach(fs => {
+    fs.classList.remove("wiz-empty");
+    const kids = [...fs.children].filter(k => k.tagName !== "LEGEND");
+    const inner = kids.length === 1 && kids[0].matches(".fields") ? [...kids[0].children] : kids;
+    if (inner.length && !inner.some(k => k.getClientRects().length)) fs.classList.add("wiz-empty");
+  });
+}
+function wizLabels() {
+  if (!wiz.on) return;
+  wizEmpty();
+  const n = wiz.step;
+  $("#wizStepTxt").textContent = t("wizStep", { n, of: wiz.n });
+  $("#wizTitle").textContent = t("wizT" + n);
+  $("#wizBack").classList.toggle("off", n === 1);
+  form.querySelectorAll(".wiz-seg i").forEach((i, k) => i.classList.toggle("on", k < n));
+  const more = form.classList.contains("wiz-more");
+  form.querySelectorAll("[data-wiz-more] b").forEach(b => { b.textContent = t(more ? "wizLess" : "wizMore"); });
+  if (n < wiz.n) $("#submitBtn").textContent = t("wizNext");
+  $("#mobileGo").textContent = n < wiz.n ? t("wizNext") : t("navOrder");
+}
+function wizGo(n, stay) {
+  if (!wiz.on) return;
+  wiz.step = Math.max(1, Math.min(wiz.n, n));
+  form.dataset.step = wiz.step;
+  if (wizUsedMore()) form.classList.add("wiz-more");
+  wizShowErr("");
+  renderQuote();
+  wizLabels();
+  if (!stay) requestAnimationFrame(() => { const bar = $("#wizBar"); if (bar) window.scrollTo({ top: Math.max(0, bar.getBoundingClientRect().top + window.scrollY - 76), behavior: "smooth" }); });
+}
+// Un champ d'un autre écran (ou dans les options) doit être corrigé : on l'affiche d'abord
+function wizReveal(el) {
+  const st = wizStepOf(el);
+  if (st && st !== wiz.step) wizGo(st, true);
+  if (el.closest && el.closest("[data-more]") && !form.classList.contains("wiz-more")) { form.classList.add("wiz-more"); wizLabels(); }
+}
+function wizNext() {
+  if (!wiz.on) return;
+  wiz.probe = true; wiz.lastTarget = null;
+  let ok = false;
+  try { ok = validateOrder(); } finally { wiz.probe = false; }
+  const msg = $("#formError").textContent, tgt = wiz.lastTarget;
+  const st = ok ? wiz.n + 1 : tgt ? wizStepOf(tgt) || wiz.step : wiz.step;
+  if (st > wiz.step) { showError(""); UI.track && UI.track("order_step_" + (wiz.step + 1)); return wizGo(wiz.step + 1); }
+  // Le problème est sur cet écran (ou un écran d'avant) : on y va et on le montre
+  showError(msg);
+  if (tgt) { if (typeof tgt.focus === "function" && tgt.matches("input, select, textarea, button")) tgt.focus(); else tgt.scrollIntoView({ block: "center", behavior: "smooth" }); }
+}
+function wizShowErr(msg) {
+  let box = $("#wizToast");
+  if (!box) { box = document.createElement("div"); box.id = "wizToast"; box.className = "wiz-toast hidden"; box.setAttribute("role", "alert"); document.body.appendChild(box); }
+  clearTimeout(wiz.toast);
+  box.textContent = msg || "";
+  box.classList.toggle("hidden", !msg);
+  if (msg) wiz.toast = setTimeout(() => box.classList.add("hidden"), 7000);
+}
+if (wiz.on) {
+  form.classList.add("wiz");
+  form.dataset.step = "1";
+  $("#wizBack").addEventListener("click", () => wizGo(wiz.step - 1));
+  form.addEventListener("change", () => requestAnimationFrame(wizEmpty));
+  form.addEventListener("click", e => {
+    if (!e.target.closest("[data-wiz-more]")) return;
+    form.classList.toggle("wiz-more");
+    wizLabels();
+  });
+}
+
 function showError(msg) {
   $("#formError").textContent = msg || "";
   $("#formError").classList.toggle("hidden", !msg);
+  // Commande en 3 écrans : le message s'affiche aussi sur l'écran du problème
+  if (msg && wiz.on && !wiz.probe) wizShowErr(msg);
+  else if (!msg) wizShowErr("");
 }
+const showErrorFalse = msg => { showError(msg); return false; };
 
 // --- Adresses choisies dans la liste (carte) -----------------------------------------
 // Repère le type de lieu de retrait d'après le nom de l'enseigne
@@ -1695,95 +1796,111 @@ async function locate(address, cityId, point) {
   return found || (c ? { lat: c.lat, lon: c.lon } : point);
 }
 
-async function submit(e) {
-  e.preventDefault();
-  showError("");
+// Tous les contrôles de la commande, rangés dans l'ordre des 3 écrans (1. quoi et où · 2. précisions · 3. vous et le paiement) :
+// le premier problème trouvé s'affiche sur son écran (mêmes règles qu'avant, seul l'ordre a changé)
+function validateOrder() {
   // Vitrine de démonstration (montrée aux commerces) : on peut tout essayer, sauf envoyer une vraie course
-  if (state.shop && state.shop.demo) return showError(t("errDemoShop"));
+  if (state.shop && state.shop.demo) return showErrorFalse(t("errDemoShop"));
   const near = nearMode();
   const fromCity = near ? cityOf("to") : cityOf("from"), toCity = cityOf("to");
-  const required = [near ? null : "pickup_address", "dropoff_address", "contact_name", "contact_phone"].filter(Boolean);
+  const required = [near ? null : "pickup_address", "dropoff_address"].filter(Boolean);
   const missing = required.find(k => !val(k).trim());
   if (missing || !fromCity || !toCity) {
     if (missing) form.elements[missing].focus();
-    return showError(t("errRequired"));
+    return showErrorFalse(t("errRequired"));
   }
   // Adresses : uniquement celles proposées par la carte (si le service répond)
   if (Places.serviceOk && ((!near && !ac.from.isPicked()) || !ac.to.isPicked())) {
     form.elements[!near && !ac.from.isPicked() ? "pickup_address" : "dropoff_address"].focus();
-    return showError(t("errAddrPick"));
+    return showErrorFalse(t("errAddrPick"));
   }
-  const badPhone = ["contact_phone", form.drop_me.checked ? null : "dropoff_phone", val("service") !== "retrait" && !near ? "pickup_phone" : null]
-    .find(k => k && val(k).trim() && !phoneOk(val(k)));
-  if (badPhone) { form.elements[badPhone].focus(); return showError(t("errPhone")); }
   const isBrand = w => !!(state.pick[w] && state.pick[w].brand && !needsNo(state.pick[w]));
   const missingNo = [["from", "pickup_number"], ["to", "dropoff_number"]].find(([w, k]) => !(near && w === "from") && !isBrand(w) && !val(k).trim());
-  if (missingNo) { form.elements[missingNo[1]].focus(); return showError(t("errHouseNo")); }
+  if (missingNo) { form.elements[missingNo[1]].focus(); return showErrorFalse(t("errHouseNo")); }
   const err = scheduleError();
-  if (err) return showError(t(err.key, err.vars));
-  if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showError(t(catalogOn() ? "errCart" : "errShopOrder", { name: UI.bi(state.shop.name) })); }
-  // Espèces au-dessus du plafond : refusé ici (le serveur le refuserait aussi), le client choisit Bit sans perdre sa commande
-  if (val("payment_method") === "cash") { const ci = cashIssue(currentQuote()); if (ci && ci.hard) { $("#cashBox").scrollIntoView({ block: "center" }); return showError(ci.text); } }
-  if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showError(t("errShopRef")); }
+  if (err) return showErrorFalse(t(err.key, err.vars));
+  // Zones pas encore ouvertes (ex. Tel Aviv) : « bientôt »
+  const closedCity = [fromCity, toCity].find(c => !UI.cityActive(c));
+  if (closedCity) return showErrorFalse(t("errZone", { city: cityLabel(closedCity) }));
+  // Écran 2 : les précisions
+  if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showErrorFalse(t(catalogOn() ? "errCart" : "errShopOrder", { name: UI.bi(state.shop.name) })); }
+  if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showErrorFalse(t("errShopRef")); }
   if (phoneOn()) {
-    if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showError(t("errPhoneName")); }
-    if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showError(t("errPhoneReady")); }
-    if (!form.phone_paid.checked) { form.phone_paid.focus(); return showError(t("errPhonePaid")); }
+    if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showErrorFalse(t("errPhoneName")); }
+    if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showErrorFalse(t("errPhoneReady")); }
+    if (!form.phone_paid.checked) { form.phone_paid.focus(); return showErrorFalse(t("errPhonePaid")); }
   }
-  if (val("service") === "achat" && shopListText().trim().length < 3) { form.shopping_list.focus(); return showError(t("errShopList")); }
-  if (goodsPrepay() && !goodsBudget()) { form.budget.focus(); return showError(t("errGoodsBudget")); }
-  if (goodsPrepay() && goodsBudget() > goodsCap()) { form.budget.focus(); return showError(t("errGoodsCap", capVars())); }
-  if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showError(t("errTopcase")); }
+  if (val("service") === "achat" && shopListText().trim().length < 3) { form.shopping_list.focus(); return showErrorFalse(t("errShopList")); }
+  const badPhone = [form.drop_me.checked ? null : "dropoff_phone", val("service") !== "retrait" && !near ? "pickup_phone" : null]
+    .find(k => k && val(k).trim() && !phoneOk(val(k)));
+  if (badPhone) { form.elements[badPhone].focus(); return showErrorFalse(t("errPhone")); }
+  if (goodsPrepay() && !goodsBudget()) { form.budget.focus(); return showErrorFalse(t("errGoodsBudget")); }
+  if (goodsPrepay() && goodsBudget() > goodsCap()) { form.budget.focus(); return showErrorFalse(t("errGoodsCap", capVars())); }
+  if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showErrorFalse(t("errTopcase")); }
   // Arrivée chez quelqu'un (pas un commerce) : tout ce qu'il faut pour trouver la porte, sinon pas d'envoi
   if (!(state.pick.to && state.pick.to.brand)) {
     const k = kindOf("dropoff"), flat = k === "appartement";
     const miss = !k ? "Kind" : (flat || k === "bureau") && !val("dropoff_floor").trim() ? "Floor"
       : flat && !val("dropoff_apt").trim() ? "Apt" : flat && !val("dropoff_code").trim() ? "Code" : null;
-    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showError(t("errToKind")); }
-    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showError(t("errTo" + miss)); }
+    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showErrorFalse(t("errToKind")); }
+    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showErrorFalse(t("errTo" + miss)); }
   }
   // Un mot pour le livreur : seulement s'il manque une précision (un appartement sans étage ni n°)
   const vague = (near ? ["dropoff"] : ["pickup", "dropoff"]).find(pre => { const w = pre === "pickup" ? "from" : "to";
     return !(state.pick[w] && state.pick[w].brand) && kindOf(pre) === "appartement" && !val(pre + "_floor").trim() && !val(pre + "_apt").trim(); });
-  if (vague && notesText().length < 3) { form.elements[vague + "_apt"].focus(); return showError(t("errNotes")); }
+  if (vague && notesText().length < 3) { form.elements[vague + "_apt"].focus(); return showErrorFalse(t("errNotes")); }
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
   if (form.leave_at_door.checked) {
     const k = kindOf("dropoff");
-    if (!k) { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showError(t("errDoorKind")); }
-    if (k !== "maison" && !val("dropoff_code").trim()) { form.dropoff_code.focus(); return showError(t("errDoorCode")); }
-    if (k === "appartement" && !val("dropoff_apt").trim()) { form.dropoff_apt.focus(); return showError(t("errDoorCode")); }
+    if (!k) { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showErrorFalse(t("errDoorKind")); }
+    if (k !== "maison" && !val("dropoff_code").trim()) { form.dropoff_code.focus(); return showErrorFalse(t("errDoorCode")); }
+    if (k === "appartement" && !val("dropoff_apt").trim()) { form.dropoff_apt.focus(); return showErrorFalse(t("errDoorCode")); }
   }
   // Colis à récupérer : tout ce qu'il faut au guichet, avant d'envoyer la commande
   if (val("service") === "retrait") {
     const place = val("place_kind"), locker = place === "locker";
-    if (!val("tracking_number").trim()) { form.tracking_number.focus(); return showError(t("errTracking")); }
-    if (locker ? !val("retrait_code").trim() : !val("parcel_name").trim()) { (locker ? form.retrait_code : form.parcel_name).focus(); return showError(t(locker ? "errRetraitCode" : "errParcelName")); }
+    if (!val("tracking_number").trim()) { form.tracking_number.focus(); return showErrorFalse(t("errTracking")); }
+    if (locker ? !val("retrait_code").trim() : !val("parcel_name").trim()) { (locker ? form.retrait_code : form.parcel_name).focus(); return showErrorFalse(t(locker ? "errRetraitCode" : "errParcelName")); }
     if (place === "poste") {
       const a = new Date(val("appt_at")).getTime();
-      if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showError(t("errAppt")); }
+      if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showErrorFalse(t("errAppt")); }
     }
   }
   // Dépôt à la poste : rendez-vous ; vente entre particuliers : déjà payée au vendeur
   if (val("service") === "colis" && form.post_send.checked) {
     const a = new Date(val("appt_at")).getTime();
-    if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showError(t("errPostAppt")); }
+    if (!(a >= Date.now() - 15 * 60000 && a <= Date.now() + 30 * 86400000)) { form.appt_at.focus(); return showErrorFalse(t("errPostAppt")); }
   }
-  if (val("service") === "colis" && form.p2p_sale.checked && !form.sale_paid.checked) { form.sale_paid.focus(); return showError(t("errSaleUnpaid")); }
+  if (val("service") === "colis" && form.p2p_sale.checked && !form.sale_paid.checked) { form.sale_paid.focus(); return showErrorFalse(t("errSaleUnpaid")); }
   // Les photos demandées (colis à récupérer, ordonnance, dépôt à la poste)
   const missDoc = docsMissing();
   if (missDoc) {
     $("#docsBox").scrollIntoView({ block: "center" });
-    return showError(t("errDoc", { doc: t(missDoc === "identite" && val("service") === "achat" ? "doc_identite_rx" : "doc_" + missDoc) }));
+    return showErrorFalse(t("errDoc", { doc: t(missDoc === "identite" && val("service") === "achat" ? "doc_identite_rx" : "doc_" + missDoc) }));
   }
   if (val("service") === "achat" && adultItems().length) {
-    if (!form.adult_ok.checked) { form.adult_ok.focus(); return showError(t("errAdult")); }
-    if (form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())) return showError(t("errAlcoholHours"));
+    if (!form.adult_ok.checked) { form.adult_ok.focus(); return showErrorFalse(t("errAdult")); }
+    if (form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())) return showErrorFalse(t("errAlcoholHours"));
   }
   const badStop = state.stops.findIndex(s => !stopPoint(s));
-  if (badStop >= 0) { $(`#stopsList [data-stop-addr="${badStop}"]`).focus(); return showError(t("errStopPick")); }
-  // Zones pas encore ouvertes (ex. Tel Aviv) : « bientôt »
-  const closedCity = [fromCity, toCity].find(c => !UI.cityActive(c));
-  if (closedCity) return showError(t("errZone", { city: cityLabel(closedCity) }));
+  if (badStop >= 0) { $(`#stopsList [data-stop-addr="${badStop}"]`).focus(); return showErrorFalse(t("errStopPick")); }
+  // Écran 3 : vos coordonnées
+  const missMe = ["contact_name", "contact_phone"].find(k => !val(k).trim());
+  if (missMe) { form.elements[missMe].focus(); return showErrorFalse(t("errRequired")); }
+  if (!phoneOk(val("contact_phone"))) { form.contact_phone.focus(); return showErrorFalse(t("errPhone")); }
+  // Espèces au-dessus du plafond : refusé ici (le serveur le refuserait aussi), le client choisit Bit sans perdre sa commande
+  if (val("payment_method") === "cash") { const ci = cashIssue(currentQuote()); if (ci && ci.hard) { $("#cashBox").scrollIntoView({ block: "center" }); return showErrorFalse(ci.text); } }
+  return true;
+}
+
+async function submit(e) {
+  e.preventDefault();
+  // Écrans 1 et 2 : « Continuer » (Entrée ou bouton) passe à l'écran suivant
+  if (wiz.on && wiz.step < 3) { wizNext(); return; }
+  showError("");
+  if (!validateOrder()) return;
+  const near = nearMode();
+  const fromCity = near ? cityOf("to") : cityOf("from"), toCity = cityOf("to");
   if (state.promo) {
     const r = validatePromo(val("promo"));
     state.promo = r.promo;
@@ -1957,6 +2074,7 @@ async function submit(e) {
     if (saved.payment_method === "carnet" && state.pro) state.pro.credits--;
     confetti();
     hopBurst(t("hopSent"));
+    if (wiz.on) wizGo(1, true);
     // Pas encore de compte : un mot de passe et c'est fait (nom et téléphone viennent de la commande)
     const da = $("#doneAccount");
     if (Store.ONLINE && !Store.clientAccount()) {
@@ -2361,6 +2479,7 @@ async function onListClick(e) {
 // --- Langue et rendu global ---------------------------------------------------------
 function renderAll() {
   I18N.apply();
+  wizLabels();
   fillCitySelects();
   renderStatic();
   renderQuick();
@@ -3295,6 +3414,7 @@ function homeGo() {
     return;
   }
   // Tout est prêt pour les adresses : on continue là où il manque quelque chose
+  if (wiz.on) { setView("order", true); wizGo(1, true); wizNext(); return; }
   const missing = stepStates().find(([fs, ok]) => fs && !ok);
   (missing ? missing[0] : $("#summary")).scrollIntoView({ behavior: "smooth", block: missing ? "start" : "center" });
 }
@@ -4169,7 +4289,11 @@ form.addEventListener("click", e => {
 document.addEventListener("click", e => { if (e.target.closest("[data-support]")) { e.preventDefault(); openSupport(); } });
 setTimeout(checkChats, 1500);
 setInterval(checkChats, 20000);
-$("#mobileGo").addEventListener("click", e => { e.preventDefault(); $("#summary").scrollIntoView({ behavior: "smooth", block: "center" }); });
+$("#mobileGo").addEventListener("click", e => {
+  e.preventDefault();
+  if (wiz.on && wiz.step < 3) return wizNext();
+  $("#summary").scrollIntoView({ behavior: "smooth", block: "center" });
+});
 
 // Barre du bas : visible dans le formulaire, cachée quand le récapitulatif est à l'écran
 if ("IntersectionObserver" in window) {
