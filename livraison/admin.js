@@ -206,6 +206,7 @@ async function load() {
   syncRing();
   $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   if (tab === "clients") loadClients();
+  loadCarts();
   await refreshChats();
   renderAvail();
   // Ne pas effacer un champ en cours de saisie
@@ -882,6 +883,8 @@ function render() {
     if (keep) $("#dirCard").replaceWith(keep); else initDirCard();
   } else if (tab === "clients") {
     renderClients(view);
+  } else if (tab === "paniers") {
+    renderCarts(view);
   } else if (tab === "messages") {
     renderMessages(view);
   } else if (tab === "demandes") {
@@ -1460,6 +1463,65 @@ function renderShops(view) {
 }
 
 // --- Clients : comptes créés, clients sans compte (par téléphone), compteurs ---------------
+// ===== Paniers des clients : en cours, laissés (abandonnés), relancés, commandés ==========================
+// Un panier sans changement depuis 30 min et pas commandé = abandonné. « Relancer » ouvre WhatsApp avec un message
+// prêt (dans la langue du client) et le marque « relancé ».
+let carts = [], cartsFilter = "abandon";
+const CART_IDLE = 30 * 60000;
+const cartState = c => c.status === "commande" ? "commande" : c.status === "relance" ? "relance" : Date.now() - new Date(c.updated_at) > CART_IDLE ? "abandon" : "encours";
+const CART_LBL = { abandon: "😴 Abandonnés", relance: "💬 Relancés", encours: "🛒 En cours", commande: "✅ Commandés", tous: "Tous" };
+async function loadCarts() {
+  carts = (await Store.adminCarts().catch(() => null)) || carts;
+  const n = carts.filter(c => cartState(c) === "abandon").length;
+  const b = $("#cartsBadge"); if (b) b.textContent = n ? String(n) : "";
+  if (tab === "paniers") render();
+}
+function cartRelance(c) {
+  const he = c.lang === "he", n = (c.client_name || "").split(" ")[0];
+  const items = (c.items || []).slice(0, 6).map(i => `• ${i.q} × ${i.n}`).join("\n") + ((c.items || []).length > 6 ? "\n…" : "");
+  const base = location.origin + "/app/", link = c.shop_code ? `${base}?c=${encodeURIComponent(c.shop_code)}${he ? "&lang=he" : ""}` : base + (he ? "?lang=he" : "");
+  return he
+    ? `שלום${n ? " " + n : ""} 👋\nהסל שלכם ב-HOP! מחכה לכם 🛒${c.shop_name ? " (" + c.shop_name + ")" : ""}:\n${items}\n\nנשאר רק ללחוץ "להזמנה" ו-HOP! מביאים לכם עד הבית 🛵\n👈 ${link}`
+    : `Bonjour${n ? " " + n : ""} 👋\nVotre panier HOP! vous attend 🛒${c.shop_name ? " (" + c.shop_name + ")" : ""} :\n${items}\n\nIl ne reste qu'à toucher « Commander » et HOP! vous l'apporte chez vous 🛵\n👉 ${link}`;
+}
+function renderCarts(view) {
+  const by = k => carts.filter(c => k === "tous" || cartState(c) === k);
+  const list = by(cartsFilter);
+  const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
+  const sumAb = by("abandon").reduce((a, c) => a + (Number(c.total) || 0), 0);
+  view.innerHTML = `
+    <div class="stats">
+      <div class="stat"><small>Paniers abandonnés</small><b>${by("abandon").length}</b></div>
+      <div class="stat"><small>Valeur laissée (indicatif)</small><b>${UI.money(sumAb)}</b></div>
+      <div class="stat"><small>Relancés</small><b>${by("relance").length}</b></div>
+      <div class="stat"><small>Commandés</small><b>${by("commande").length}</b></div>
+    </div>
+    <p class="muted small" style="margin:-8px 0 12px">Chaque client a son panier, gardé 7 jours sur son téléphone. Sans changement depuis 30 min et pas commandé : il est « abandonné ». « Relancer » ouvre WhatsApp avec un message prêt, dans sa langue. Le nom et le numéro apparaissent quand le client les a déjà donnés (compte ou commande précédente).</p>
+    <div class="toolbar cart-filters">${Object.keys(CART_LBL).map(k => `<button type="button" class="btn btn-sm${k === cartsFilter ? " btn-primary" : ""}" data-cartf="${k}">${CART_LBL[k]} (${by(k).length})</button>`).join("")}
+      <button type="button" class="btn btn-sm" data-cart-reload>↻</button></div>
+    ${list.length ? `<div class="orders">${list.map(c => { const st = cartState(c); return `
+      <article class="order cart-card cs-${st}">
+        <div class="order-head"><span class="order-time">${UI.esc(c.client_name || "Client sans nom")}${c.lang === "he" ? " · 🇮🇱" : ""}</span><span class="pill">${CART_LBL[st]}</span></div>
+        <p class="muted small" style="margin:2px 0 8px">${c.shop_name ? "🏪 " + UI.esc(c.shop_name) + " · " : ""}${c.count} article(s)${Number(c.total) ? " · ≈ " + UI.money(Number(c.total)) : ""} · ${ago(c.updated_at)}${c.order_ref ? " · commande " + UI.esc(c.order_ref) : ""}${c.remind_count ? " · relancé " + c.remind_count + " fois" : ""}</p>
+        <ul class="cart-items">${(c.items || []).map(i => `<li><b>${i.q} ×</b> ${UI.esc(i.e ? i.e + " " : "")}${UI.esc(i.n)}${i.p ? ` <small>≈ ${UI.money(i.p * i.q)}</small>` : ""}</li>`).join("")}</ul>
+        <div class="order-actions">${c.client_phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waLink(c.client_phone, cartRelance(c)))}" target="_blank" rel="noopener" data-cart-relance="${UI.esc(c.device)}">💬 Relancer sur WhatsApp</a>
+          <a class="btn btn-sm" href="tel:${UI.esc(c.client_phone)}">📞 ${UI.esc(c.client_phone)}</a>` : `<span class="muted small">Pas de numéro : le client n'a encore jamais commandé ni créé de compte.</span>`}</div>
+      </article>`; }).join("")}</div>` : `<p class="muted">Aucun panier ici pour l'instant.</p>`}`;
+}
+document.addEventListener("click", e => {
+  const f = e.target.closest("[data-cartf]");
+  if (f) { cartsFilter = f.dataset.cartf; render(); return; }
+  if (e.target.closest("[data-cart-reload]")) { loadCarts(); return; }
+  const r = e.target.closest("[data-cart-relance]");
+  if (r) {
+    const c = carts.find(x => x.device === r.dataset.cartRelance);
+    if (!c) return;
+    const ch = { status: "relance", reminded_at: new Date().toISOString(), remind_count: (c.remind_count || 0) + 1 };
+    Object.assign(c, ch);
+    Store.cartMark(c.device, ch).catch(() => null);
+    setTimeout(render, 300);
+  }
+});
 async function loadClients() {
   clients = (await Store.adminClients().catch(() => null)) || clients;
   if (tab === "clients") render();
@@ -2412,7 +2474,7 @@ $("#logoutBtn").addEventListener("click", async e => {
   UI.dutyNotice(false);
   Store.logout(); showLogin();
 });
-$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); if (tab === "rayons") loadRayons(); } });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); if (tab === "rayons") loadRayons(); if (tab === "paniers") loadCarts(); } });
 // Une rubrique : on retrouve son dernier onglet (sinon le premier)
 const lastTab = {};
 $("#admGroups").addEventListener("click", e => {
@@ -2421,6 +2483,7 @@ $("#admGroups").addEventListener("click", e => {
   tab = lastTab[b.dataset.group] || document.querySelector(`#tabs [data-group="${b.dataset.group}"]`).dataset.tab;
   render();
   if (tab === "clients") loadClients();
+  if (tab === "paniers") loadCarts();
   if (tab === "visites") loadVisits();
 });
 $("#reloadBtn").addEventListener("click", load);

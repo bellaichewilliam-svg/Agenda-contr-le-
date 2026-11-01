@@ -75,6 +75,7 @@ const D2 = document.documentElement.classList.contains("d2");
 const SCOOT_SVG = `<svg class="k2-scoot" viewBox="0 0 32 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 3h4.2c.6 0 1 .3 1.2.8l2.4 6.4a5.5 5.5 0 1 1-2.2 1l-.7-1.8-4.3 6.1a1 1 0 0 1-.8.4h-6.9a5.5 5.5 0 1 1-10.6-2.6A3 3 0 0 1 4.8 10H15l3.6-4H20V5h-1V3zM6.8 15.5a2.6 2.6 0 1 0 5.1.6zM26.3 13a2.6 2.6 0 1 0 1.2-.2l.9 2.3-1.9.7zM9 4h5a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/></svg>`;
 const K2_BG = { pharm: ["#013335", "#027363"], tabac: ["#28071E", "#531A3E"], bakery: ["#411C05", "#B35D1B"], shop: ["#081F39", "#0E2847"], baby: ["#021D3E", "#0F365C"],
   pets: ["#013936", "#106D61"], home: ["#051932", "#0D2D4F"], gift: ["#2E071E", "#45112F"] };
+const K2_FOND = { pharm: "pharmacie", tabac: "cigarettes-alcool", bakery: "boulangerie", shop: "courses", baby: "bebe-enfants", pets: "animaux", home: "maison-depannage", gift: "fleurs-cadeaux" };
 const K2_ICON = { ta: 1,  pharm: 1, tabac: 1, bakery: 1, shop: 1, baby: 1, pets: 1, home: 1, gift: 1, pressing: 1, poste: 1, resto: 1, docs: 1, yad2: 1, keys: 1 };
 const k2Icon = id => `<span class="k2-ic"><img src="img/k2/i-${id}.webp" alt="" loading="lazy" decoding="async" /></span>`;
 // Exemples cliquables : ils pré-remplissent le formulaire
@@ -837,7 +838,7 @@ function renderHomePharma() {
     $("#homePharma").innerHTML = `<div class="hp-row k2-row">${Rayons.ALL.map(r => {
       const on = state.homeKind === r.kind, title = phName(r.card).replace(/^\P{L}+/u, "");
       const bg = K2_BG[r.kind] || ["#0F1D36", "#1C3157"];
-      return `<button type="button" class="k2-card${on ? " on" : ""}" data-pharma-go="${r.id}" style="--c1:${bg[0]};--c2:${bg[1]}">
+      return `<button type="button" class="k2-card${K2_FOND[r.kind] ? " hop-fond-" + K2_FOND[r.kind] : ""}${on ? " on" : ""}" data-pharma-go="${r.id}" style="--c1:${bg[0]};--c2:${bg[1]}">
         <span class="k2-txt"><em>${UI.esc(t(on ? "hpOnTag" : "hpTag"))}</em><b>${UI.esc(title)}</b>
           <small>${UI.esc(on ? t("hpOnSub") : phName(r.cardSub).replace("{n}", Rayons.items(r).length))}</small>
           <span class="k2-go">${UI.esc(t("k2Discover"))} <i aria-hidden="true">›</i></span></span>
@@ -909,7 +910,7 @@ $("#pharmaBox").addEventListener("click", e => {
   if (rayonUnits() > 0) form.fits_topcase.checked = true;
   renderPharma();
   renderQuote();
-  saveDraft();
+  saveDraft();  cartPersist();
 });
 $("#pharmaBox").addEventListener("change", e => {
   const s = e.target.closest("[data-ph-opt]");
@@ -1903,6 +1904,7 @@ async function submit(e) {
       renderDocs();
     }
     clearDraft();
+    cartDone();
     rememberAddresses(saved, pf, pt);
     // Paiement direct : le client paiera son livreur (Bit ou PayBox) dès qu'il accepte ; avant : Bit à HOP tout de suite
     // Deux paiements, dans l'ordre : ① les articles au commerce, tout de suite ; ② la livraison au livreur
@@ -2455,7 +2457,7 @@ $("#catalogBox").addEventListener("click", e => {
   else return;
   renderCatalog();
   renderQuote();
-  saveDraft();
+  saveDraft();  cartPersist();
 });
 
 // Fiche d'un article : grande image, description, prix, quantité, « Ajouter · total »
@@ -2505,7 +2507,7 @@ $("#cartSheet").addEventListener("click", e => {
   if (plus || minus) {
     const id = (plus || minus).dataset[plus ? "csPlus" : "csMinus"];
     state.cart[id] = Math.max(0, Math.min(50, (state.cart[id] || 0) + (plus ? 1 : -1)));
-    renderCatalog(); renderQuote(); saveDraft(); renderCart();
+    renderCatalog(); renderQuote(); saveDraft(); renderCart(); cartPersist();
     return;
   }
   if (e.target.closest("#cartGo")) {
@@ -2523,7 +2525,7 @@ $("#itemSheet").addEventListener("click", e => {
   if (!add && !del) return;
   state.cart[item.id] = add ? item.qty : 0;
   $("#itemSheet").classList.add("hidden");
-  renderCatalog(); renderQuote(); saveDraft();
+  renderCatalog(); renderQuote(); saveDraft(); cartPersist();
 });
 
 // --- Commerce partenaire (lien index.html?c=CODE) : départ rempli depuis le commerce ----------
@@ -2822,6 +2824,13 @@ function renderWhenHints() {
     syncVisibility(); renderQuote();
   } else if (!exOk && exInput.checked) asapInput.checked = true;
 }
+document.addEventListener("click", e => {
+  if (!e.target.closest("[data-ob-plan]")) return;
+  const w = $("#homeWhen");
+  if (!w) return;
+  w.scrollIntoView({ behavior: "smooth", block: "center" });
+  w.classList.remove("flash"); void w.offsetWidth; w.classList.add("flash");
+});
 function renderOpenBadge() {
   renderWhenHints();
   const open = openNow(), online = (home.nearby || []).length;
@@ -2829,7 +2838,15 @@ function renderOpenBadge() {
   const key = !state.settings.accepting ? "closedNow"
     : open ? (courierFree() || !online ? "openNow" : "openBusy")
     : online ? "allBusy" : "allOff";
-  $("#openBadge").textContent = t(key);
+  const txt = t(key);
+  if (D2 && !open) {
+    // Comme la maquette : « 😴 Nos livreurs sont indisponibles » + l'explication + « Programmer une course »
+    const short = key === "allOff" ? `😴 ${t("k2OffT")} · ${t("k2OffS")}` : txt;
+    const [head, ...rest] = short.split(" · "), m = head.match(/^(\P{L}*)\s*(.*)$/u) || ["", "", head];
+    const title = UI.esc(m[2]).replace(/(déconnectés|indisponibles|occupés|en course|fermé|fermés|לא זמינים|לא מחוברים|עסוקים|תפוסים|סגור|סגורים)/, "<span>$1</span>");
+    $("#openBadge").innerHTML = `<i aria-hidden="true">${UI.esc(m[1].trim() || "😴")}</i><span class="ob-txt"><b>${title}</b>${rest.length ? `<small>${UI.esc(rest.join(" · ").replace(/^./, c => c.toUpperCase()))}</small>` : ""}</span>
+      <button type="button" class="ob-plan" data-ob-plan>${UI.calIcon ? UI.calIcon() : "📅"} <span>${UI.esc(t("k2Plan"))}</span></button>`;
+  } else $("#openBadge").textContent = txt;
   $("#openBadge").classList.toggle("closed", !open);
   return open;
 }
@@ -3259,6 +3276,13 @@ function renderMapBtn() {
   const on = $("#accueil").classList.contains("map-open");
   let n = 0;
   try { n = restos.list.filter(e => !e.offMap).length; } catch (e) { /* carte pas encore prête */ }
+  if (D2) {
+    const route = $("#accueil .ch-route");
+    if (route && route.nextElementSibling !== b && !on) route.after(b);
+    b.innerHTML = on ? `<span class="mb-ico">⌃</span><b>${UI.esc(t("hmMapClose").replace(/^\S+\s/, ""))}</b>`
+      : `<svg class="mb-map" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3.6 6.2a1 1 0 0 0-.6.9v12.4a.6.6 0 0 0 .8.6L9 18l6 2.2 5.4-2.2a1 1 0 0 0 .6-.9V4.7a.6.6 0 0 0-.8-.6L15 6.2 9 4zm0 0v14m6-11.8V20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><b>${UI.esc(t("hmMapOpen").replace(/^\S+\s/, ""))}</b><span class="mb-go">›</span>`;
+    return;
+  }
   b.innerHTML = on ? `<span class="mb-ico">⌃</span><b>${UI.esc(t("hmMapClose").replace(/^\S+\s/, ""))}</b>`
     : `<img src="img/qc/worldmap.webp" alt="" /><span class="mb-txt"><b>${UI.esc(t("hmMapOpen").replace(/^\S+\s/, ""))}</b>${n ? `<small>${UI.esc(t("hmMapSub", { n }))}</small>` : ""}</span><span class="mb-go">›</span>`;
 }
@@ -4154,4 +4178,91 @@ UI.markClientApp();
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;
 
+// ===== Panier : gardé 7 jours sur le téléphone, enregistré pour le patron (paniers abandonnés, relances) =====
+// Un seul panier à la fois : les produits d'un commerce (catalogue) ou les articles d'un rayon (pharmacie, makolet…).
+// Il se met à jour seulement quand le client ajoute ou enlève un article : quitter la page ne le vide pas.
+const LS_CART = "livraison.cart.v1", CART_DAYS = 7;
+function cartSnap() {
+  if (state.shop && cartLines().length) {
+    const lines = cartLines();
+    return { kind: "shop", shop_code: state.shop.code, shop_name: UI.bi(state.shop.name),
+      items: lines.map(l => ({ n: UI.bi(l.p.name), q: l.qty, p: Number(l.p.price) || null })), count: cartCount(), total: cartTotal() };
+  }
+  const r = rayonOn();
+  const picked = r ? rayonPicked(r) : [];
+  if (picked.length) {
+    // Prix indicatif seulement quand il est affiché au client (jamais pour le tabac)
+    const items = picked.map(([k, q]) => { const e = rayonEntry(r, k); return e ? { n: phName(e.x) + (e.v ? " · " + phName(e.v) : ""), e: e.x.e, q, p: e.p ? priceMid(e.p) : null } : null; }).filter(Boolean);
+    return { kind: "rayon:" + r.id, shop_name: phName(r.card).replace(/^\P{L}+/u, ""), items, count: items.reduce((a, i) => a + i.q, 0),
+      total: items.reduce((a, i) => a + (i.p || 0) * i.q, 0) || null };
+  }
+  return { kind: null, items: [], count: 0, total: null };
+}
+const cartStored = () => { try { const c = JSON.parse(localStorage.getItem(LS_CART)); return c && Date.now() - c.at < CART_DAYS * 86400000 ? c : null; } catch (e) { return null; } };
+let cartSyncT = null, cartSent = "";
+function cartSync(snap) {
+  clearTimeout(cartSyncT);
+  cartSyncT = setTimeout(() => {
+    const prof = Store.getProfile() || {};
+    const body = Object.assign({}, snap, { lang: I18N.lang, name: prof.contact_name || "", phone: prof.contact_phone || "" });
+    const key = JSON.stringify(body);
+    if (key === cartSent) return;
+    cartSent = key;
+    Store.cartSave(body).catch(() => { cartSent = ""; });
+  }, 2000);
+}
+function cartPersist() {
+  const snap = cartSnap();
+  try {
+    if (snap.count) localStorage.setItem(LS_CART, JSON.stringify({ at: Date.now(), snap, cart: state.cart, pharma: state.pharma, pharmaOpt: state.pharmaOpt,
+      homeKind: state.homeKind, shop: snap.kind === "shop" ? { code: state.shop.code, dir: state.shopDir || "" } : null }));
+    else localStorage.removeItem(LS_CART);
+  } catch (e) { /* stockage plein */ }
+  renderCartIcon();
+  cartSync(snap);
+}
+function cartDone() {
+  try { localStorage.removeItem(LS_CART); } catch (e) { /* ignore */ }
+  renderCartIcon();
+}
+function renderCartIcon() {
+  const b = $("#tbCart");
+  if (!b) return;
+  const c = cartStored(), n = c ? c.snap.count : 0;
+  $("#tbCartN").textContent = n > 99 ? "99+" : String(n);
+  $("#tbCartN").classList.toggle("hidden", !n);
+  b.setAttribute("aria-label", n ? t("cartIconN", { n }) : t("cartIcon"));
+}
+// Toucher le panier : on retrouve ses articles là où il les avait mis
+async function openStoredCart() {
+  const c = cartStored();
+  if (!c) { toastCart(t("cartEmpty")); return; }
+  if (c.shop) {
+    if (!state.shop || state.shop.code !== c.shop.code) { state.shopDir = c.shop.dir || ""; await loadShop(c.shop.code, true); }
+    const ids = cgProducts().map(p => p.id);
+    state.cart = Object.fromEntries(Object.entries(c.cart || {}).filter(([id, q]) => ids.includes(id) && q > 0));
+    renderCatalog(); renderQuote(); saveDraft();
+    if (cartCount()) openCart(); else { cartDone(); toastCart(t("cartGone")); }
+    return;
+  }
+  if (state.shop) leaveShop(true);
+  state.pharma = Object.assign({}, c.pharma || {}); state.pharmaOpt = Object.assign({}, c.pharmaOpt || {});
+  if (c.homeKind) { state.homeKind = null; applyKind(c.homeKind); }
+  goPharma();
+}
+function toastCart(msg) {
+  const d = document.createElement("div");
+  d.className = "cart-toast"; d.setAttribute("role", "status"); d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(() => d.classList.add("out"), 2200); setTimeout(() => d.remove(), 2600);
+}
+if ($("#tbCart")) {
+  $("#tbCart").addEventListener("click", openStoredCart);
+  renderCartIcon();
+  // Un panier gardé d'une autre visite : le patron le voit aussi (avec le nom et le n° si le client est connu)
+  const c0 = cartStored();
+  if (c0) cartSync(c0.snap);
+}
+
 })();
+

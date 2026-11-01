@@ -3561,3 +3561,54 @@ html.d2 #homeNotices .notice-card, html.d2 .notice-cards > * { background: #172A
 html.d2 .ch-map .leaflet-tile-pane { filter: invert(1) hue-rotate(185deg) brightness(.92) contrast(.88) saturate(.7); }
 html.d2 .sc-row-h { font-size: 20px; margin: 14px 0 4px; color: #fff; }
 html.d2 .sc-row-h small { font-size: 14px; }
+
+/* Fonds officiels des 8 grands encarts (kit du patron, fonds/fonds-encarts.css) */
+html.d2 .k2-card.hop-fond-pharmacie {background: radial-gradient(circle at 88% 18%, #15998a 0%, transparent 48%), linear-gradient(135deg,#043d43,#006d65 70%,#075159); }
+html.d2 .k2-card.hop-fond-cigarettes-alcool {background: radial-gradient(circle at 88% 18%,#963d86 0%,transparent 48%),linear-gradient(135deg,#30142f,#5d2451 70%,#391b48); }
+html.d2 .k2-card.hop-fond-boulangerie {background: radial-gradient(circle at 88% 18%,#c97a24 0%,transparent 48%),linear-gradient(135deg,#4b2811,#8a4a18 70%,#542c12); }
+html.d2 .k2-card.hop-fond-courses {background: radial-gradient(circle at 88% 18%,#0d86a0 0%,transparent 48%),linear-gradient(135deg,#07364c,#08516b 70%,#092c4f); }
+html.d2 .k2-card.hop-fond-bebe-enfants {background: radial-gradient(circle at 88% 18%,#477aba 0%,transparent 48%),linear-gradient(135deg,#102d55,#225786 70%,#102f5c); }
+html.d2 .k2-card.hop-fond-animaux {background: radial-gradient(circle at 88% 18%,#22a77e 0%,transparent 48%),linear-gradient(135deg,#05463d,#087e61 70%,#064b4b); }
+html.d2 .k2-card.hop-fond-maison-depannage {background: radial-gradient(circle at 88% 18%,#367ac0 0%,transparent 48%),linear-gradient(135deg,#0b274a,#164a7b 70%,#0a2b51); }
+html.d2 .k2-card.hop-fond-fleurs-cadeaux {background: radial-gradient(circle at 88% 18%,#b04e83 0%,transparent 48%),linear-gradient(135deg,#43203c,#7d305d 70%,#4a244d); }
+
+/* Panier en haut (nouveau design), comme la maquette : rond bleu nuit, chariot blanc, pastille orange */
+.tb-cart { display: none; }
+html.d2 .tb-cart { position: relative; display: inline-grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; border: 0; background: #16284A; color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); cursor: pointer; padding: 0; }
+html.d2 .tb-cart svg { width: 23px; height: 23px; }
+html.d2 .tb-cart em { position: absolute; top: -3px; inset-inline-end: -3px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 99px; background: var(--brand); color: #fff; font: 800 11.5px/20px Rubik, sans-serif; font-style: normal; text-align: center; box-shadow: 0 0 0 2px #0B1830; }
+html.d2 .tb-cart em.hidden { display: none; }
+html.d2 .topbar .nav { gap: 8px; }
+@media (max-width: 380px) { html.d2 .topbar .lang-btn { padding: 0 11px; font-size: 13px; } html.d2 .topbar .nav { gap: 6px; } }
+.cart-toast { position: fixed; z-index: 95; left: 50%; bottom: calc(110px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #0F1F3D; color: #fff; font-weight: 700; padding: 12px 18px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.35); transition: opacity .3s; }
+.cart-toast.out { opacity: 0; }
+
+/* « Nos livreurs sont indisponibles » : carte sur la carte, avec « Programmer une course » (comme la maquette) */
+html.d2 .ch-top { inset-inline: 16px; max-width: none; align-items: stretch; }
+html.d2 #openBadge.closed { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px; border-radius: 22px; background: rgba(15,29,54,.94); border: 1px solid rgba(255,255,255,.12); white-space: normal; text-align: start; box-shadow: 0 10px 28px rgba(0,0,0,.4); }
+html.d2 #openBadge.closed > i { font-style: normal; font-size: 28px; flex: none; }
+html.d2 #openBadge .ob-txt { flex: 1; min-width: 0; display: grid; gap: 3px; }
+html.d2 #openBadge .ob-txt b { font-size: 15.5px; color: #fff; line-height: 1.2; }
+html.d2 #openBadge .ob-txt b span { color: var(--brand); }
+html.d2 #openBadge .ob-txt small { font-size: 13px; color: #B6C2DA; line-height: 1.3; font-weight: 500; }
+html.d2 .ob-plan { flex: none; display: inline-flex; align-items: center; gap: 8px; max-width: 46%; padding: 10px 12px; border: 0; border-radius: 16px; background: var(--brand); color: #fff; font: 800 14px/1.15 Rubik, sans-serif; text-align: start; cursor: pointer; box-shadow: 0 6px 16px rgba(255,106,19,.35); }
+html.d2 .ob-plan svg, html.d2 .ob-plan img { width: 22px; height: 22px; flex: none; }
+html.d2 #homeWhen.flash { animation: whenFlash 1.2s ease; border-radius: 16px; }
+@keyframes whenFlash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px var(--brand); } }
+
+/* « Voir la carte » sous les adresses : grand bouton dégradé, icône carte, flèche (comme la maquette) */
+html.d2 .ch-mapbtn { width: 100%; min-height: 58px; padding: 0 18px; gap: 14px; justify-content: flex-start; border-radius: 18px; background: linear-gradient(90deg, #FF6A13 0%, #FF3D6E 55%, #A855F7 100%); font-size: 18px; animation: none; }
+html.d2 .ch-mapbtn::after { display: none; }
+html.d2 .ch-mapbtn .mb-map { width: 28px; height: 28px; color: #fff; flex: none; }
+html.d2 .ch-mapbtn b { font-size: 18px; font-weight: 800; }
+html.d2 .ch-mapbtn .mb-go { margin-inline-start: auto; font-size: 26px; }
+html.d2 .ch.map-open .ch-mapbtn { background: #13233F; }
+html.d2 #openBadge.closed::before { display: none; }
+html.d2 .ob-plan { max-width: 42%; font-size: 13.5px; }
+@media (max-width: 860px) { html.d2 .ch-zoom { top: calc(var(--mapH) - 180px); } }
+@media (max-width: 860px) {
+  html.d2 .ch { --mapH: max(46vh, 300px); }
+  html.d2 .ch.map-open { --mapH: max(calc(100dvh - 230px), 320px); }
+  html.d2 .ch-zoom { top: calc(var(--mapH) - 204px); }
+  html.d2 .ch-locate { top: calc(var(--mapH) - 104px); }
+}
