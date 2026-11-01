@@ -72,7 +72,7 @@ routeHash();
 // Nouveau design (html.d2) : icônes 3D du kit (img/k2), même cadre pour toutes les catégories
 const D2 = document.documentElement.classList.contains("d2");
 // Petit scooter décoratif du bouton Commander (le libellé reste le vrai texte traduit)
-const SCOOT_SVG = `<svg class="k2-scoot" viewBox="0 0 32 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 3h4.2c.6 0 1 .3 1.2.8l2.4 6.4a5.5 5.5 0 1 1-2.2 1l-.7-1.8-4.3 6.1a1 1 0 0 1-.8.4h-6.9a5.5 5.5 0 1 1-10.6-2.6A3 3 0 0 1 4.8 10H15l3.6-4H20V5h-1V3zM6.8 15.5a2.6 2.6 0 1 0 5.1.6zM26.3 13a2.6 2.6 0 1 0 1.2-.2l.9 2.3-1.9.7zM9 4h5a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/></svg>`;
+const SCOOT_SVG = `<svg class="k2-scoot" viewBox="1 2 35 20" overflow="visible" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 3h4.2c.6 0 1 .3 1.2.8l2.4 6.4a5.5 5.5 0 1 1-2.2 1l-.7-1.8-4.3 6.1a1 1 0 0 1-.8.4h-6.9a5.5 5.5 0 1 1-10.6-2.6A3 3 0 0 1 4.8 10H15l3.6-4H20V5h-1V3zM6.8 15.5a2.6 2.6 0 1 0 5.1.6zM26.3 13a2.6 2.6 0 1 0 1.2-.2l.9 2.3-1.9.7zM9 4h5a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/></svg>`;
 const K2_BG = { pharm: ["#013335", "#027363"], tabac: ["#28071E", "#531A3E"], bakery: ["#411C05", "#B35D1B"], shop: ["#081F39", "#0E2847"], baby: ["#021D3E", "#0F365C"],
   pets: ["#013936", "#106D61"], home: ["#051932", "#0D2D4F"], gift: ["#2E071E", "#45112F"] };
 const K2_FOND = { pharm: "pharmacie", tabac: "cigarettes-alcool", bakery: "boulangerie", shop: "courses", baby: "bebe-enfants", pets: "animaux", home: "maison-depannage", gift: "fleurs-cadeaux" };
