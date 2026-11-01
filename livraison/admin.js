@@ -1579,10 +1579,12 @@ function promoCard() {
         </div></div>`).join("")}</div>` : `<p class="muted small">Aucune pub pour l'instant.</p>`}
     ${f.open ? `<div class="promo-form">
       <label class="f"><span>Titre (pour vous)</span><input id="pfTitle" maxlength="80" placeholder="ex. Soirée sushis -10 %" /></label>
-      <label class="f"><span>Visuel</span><select id="pfKit">${KIT_PROMO_IMGS.map((k, j) => `<option value="${j}" ${j === kitSel ? "selected" : ""}>${UI.esc(k[0])}</option>`).join("")}<option value="own" ${kitSel < 0 ? "selected" : ""}>📷 Ma propre image…</option></select></label>
+      <div class="f"><span>Visuel : touchez l'image choisie</span>
+        <div class="pf-grid">${KIT_PROMO_IMGS.map((k, j) => `<button type="button" class="pf-tile${j === kitSel ? " on" : ""}" data-pf-kit="${j}"><img src="${UI.esc(k[1])}" alt="" loading="lazy" /><small>${UI.esc(k[0])}</small></button>`).join("")}
+          <button type="button" class="pf-tile pf-own-tile${kitSel < 0 ? " on" : ""}" data-pf-kit="own"><span>📷</span><small>Ma propre image…</small></button></div></div>
       ${kitSel < 0 ? `<div class="pf-own"><label class="btn btn-sm">📷 Image en français<input type="file" accept="image/*" id="pfOwn" hidden /></label> ${f.own ? "✅" : ""}
         <label class="btn btn-sm">📷 Image en hébreu (facultatif)<input type="file" accept="image/*" id="pfOwnHe" hidden /></label> ${f.ownHe ? "✅" : ""}
-        <small class="muted">Format conseillé : vertical (story 1080 × 1920).</small></div>` : `<img class="pf-prev" src="${UI.esc(f.img)}" alt="" />`}
+        <small class="muted">Format conseillé : portrait (1080 × 1350, comme Instagram) ou story (1080 × 1920).</small></div>` : `<img class="pf-prev" src="${UI.esc(f.img)}" alt="" />`}
       <label class="f"><span>Bouton sous la pub</span><select id="pfCta">${Object.entries(PROMO_CTA).map(([k, l]) => `<option value="${k}">${UI.esc(l)}</option>`).join("")}</select></label>
       <label class="f hidden" id="pfShopRow"><span>Quel commerce ?</span><select id="pfShop">${shops.filter(x => x.status === "actif" && !x.demo).map(x => `<option value="${UI.esc(x.code)}">${UI.esc(x.name)}</option>`).join("")}</select></label>
       <label class="f hidden" id="pfUrlRow"><span>Lien (https://…)</span><input id="pfUrl" placeholder="https://" /></label>
@@ -1611,6 +1613,20 @@ document.addEventListener("change", async e => {
       render(); $("#pfTitle").value = keep.title;
     } catch (ex) { alert("Image illisible ou trop lourde."); }
   }
+});
+// Choix du visuel d'une pub : vignettes (on voit l'image avant de choisir)
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-pf-kit]");
+  if (!b) return;
+  const v = b.dataset.pfKit, titleEl = $("#pfTitle");
+  let title = titleEl ? titleEl.value : "";
+  if (v === "own") { promoForm.img = null; promoForm.imgHe = null; }
+  else {
+    const k = KIT_PROMO_IMGS[Number(v)]; promoForm.img = k[1]; promoForm.imgHe = k[2];
+    if (!title.trim()) title = k[0].replace(/^🦘\s*Hoppy\s*:\s*/, "").replace(/\s*\((story|carré)\)$/, "");
+  }
+  render(); if ($("#pfTitle")) $("#pfTitle").value = title;
+  const pv = document.querySelector(".pf-prev"); if (pv) pv.scrollIntoView({ block: "nearest", behavior: "smooth" });
 });
 // Lien de bienvenue au nouveau client : WhatsApp s'ouvre, l'envoi est noté sur la course
 document.addEventListener("click", e => {

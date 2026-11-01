@@ -2637,7 +2637,7 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .promo-row-a .pr-txt small { color: var(--muted); }
 .promo-row-a .pr-btns { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
 .promo-form { display: grid; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
-.promo-form .pf-prev { width: 120px; border-radius: 12px; }
+.promo-form .pf-prev { display: block; width: 100%; max-width: 300px; margin: 10px auto; border-radius: 12px; }
 .promo-form .pf-own { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 /* ===== « Ce qu'on livre » (on-livre.html) : page d'arrivée des flyers et des QR codes ===== */
@@ -3407,3 +3407,11 @@ body.shop-compact #commander > .wrap > h2, body.shop-compact #commander > .wrap 
 .kshare-help { flex-basis: 100%; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2); color: var(--ink); font-size: 13px; line-height: 1.45; }
 .kshare-help span { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .vis-view .kshare-help { max-width: 420px; margin-left: auto; }
+
+/* Patron : choix du visuel d'une pub de l'appli, en vignettes */
+.pf-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.pf-tile { display: flex; flex-direction: column; gap: 4px; padding: 4px; border: 2px solid var(--border); border-radius: 12px; background: var(--panel); color: var(--ink); text-align: start; cursor: pointer; min-width: 0; }
+.pf-tile img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 8px; background: var(--bg-2); }
+.pf-tile small { font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
+.pf-tile.on { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand); }
+.pf-own-tile span { display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 5; border-radius: 8px; background: var(--bg-2); font-size: 34px; }
