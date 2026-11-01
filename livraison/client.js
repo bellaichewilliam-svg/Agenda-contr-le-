@@ -529,6 +529,14 @@ function tobaccoOnly() {
 }
 
 // « Pourquoi 30 ₪ et pas 25 ? » : la course touche un quartier hors du centre
+// Première course : -10 ₪ quel que soit le prix (25 → 15 ₪ ; quartier à 30 → 20 ₪), expliqué au client
+const welcomeLine = q => (q.lines || []).find(l => l.discount && l.vars && /^(BIENVENUE|BRUCHIM)$/i.test(l.vars.code || ""));
+function welcomeWhy(q) {
+  const l = welcomeLine(q);
+  if (!l) return "";
+  const off = Math.abs(l.amount);
+  return `<li class="area-why"><span>${UI.esc(t("qWelcomeWhy", { off: money(off), before: money(Number(q.total) + off), price: money(q.total) }))}</span></li>`;
+}
 function areaWhy(q) {
   const l = q.lines.find(x => x.key === "qBaseArea");
   if (!l) return "";
@@ -956,7 +964,7 @@ function renderQuote() {
     + (goods && !goodsAfter() && !(proShopOn() && cartCount()) ? `<li class="goods"><span>${UI.esc(t(proShopOn() ? "qGoodsPro" : goodsPrepay() ? "qGoodsPre" : "qGoods"))}</span></li>` : "")
     + (phoneOn() ? `<li class="goods"><span>${UI.esc(t("qGoodsPhone"))}</span></li>` : "")
     // Zone hors centre (Agamim, zones industrielles) : on explique tout de suite pourquoi ce n'est pas le prix habituel
-    + areaWhy(q);
+    + areaWhy(q) + welcomeWhy(q);
   // (achats en espèces : course + articles au maximum ; « ticket après » par Bit : la course seule d'avance)
   const all = Number(q.total) + (val("service") === "achat" && goodsPrepay() && !goodsAfter() ? goodsBudget() : 0);
   const total = (q.known ? "" : t("from") + " ") + money(all);
@@ -3227,7 +3235,9 @@ function syncHome() {
   if (ready) {
     const q = currentQuote();
     $("#homeGoPrice").textContent = (q.known ? "" : t("from") + " ") + money(q.total);
-    $("#homeGoSub").textContent = t("hmGoKm", { from: cityLabel(cityOf("from")), to: cityLabel(cityOf("to")) });
+    const wl = welcomeLine(q);
+    $("#homeGoSub").textContent = wl ? t("hmGoFirstOff", { off: money(Math.abs(wl.amount)), before: money(Number(q.total) + Math.abs(wl.amount)), price: money(q.total) })
+      : t("hmGoKm", { from: cityLabel(cityOf("from")), to: cityLabel(cityOf("to")) });
   } else {
     $("#homeGoPrice").textContent = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity));
     $("#homeGoSub").textContent = first ? t("hmGoFirst", { price: money(welcomePrice()) }) : t("hmGoKm", { from: I18N.cityName(CONFIG.homeCity), to: I18N.cityName(CONFIG.homeCity) });

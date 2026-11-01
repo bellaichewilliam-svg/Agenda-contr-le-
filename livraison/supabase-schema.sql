@@ -8443,3 +8443,7 @@ end $$;
 grant select, insert, update, delete on public.carts to authenticated;
 -- cart_save(p_device, p) et le déclencheur carts_on_order_trg (commande passée => panier « commandé ») :
 -- voir la migration « paniers_clients » appliquée sur Supabase (même contenu).
+
+-- Offre de bienvenue (01/11/2026) : une seule fois aussi par ADRESSE de livraison (même immeuble ~45 m, ou même adresse
+-- écrite), en plus du numéro / téléphone / IP ; montant fixé à 10 ₪ par la base (25 → 15 ₪, quartier à 30 → 20 ₪).
+-- Fonctions welcome_used_addr() et orders_welcome_guard(), déclencheur orders_guard_welcome : migration « bienvenue_par_adresse ».
