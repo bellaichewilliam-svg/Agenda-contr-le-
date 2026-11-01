@@ -450,6 +450,9 @@ const CAPS = {
   client: {
     fr: `🎁 Et hop, c'est livré ! Votre première course à Netanya : ${welcome} au lieu de ${delFr}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute (code BIENVENUE) : ${APP_URL}\n${TAGS.fr}`,
     he: `🎁 והופ, זה מגיע! המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה (קוד BRUCHIM): ${APP_URL}?lang=he\n${TAGS.he}` },
+  "hoppy-envie": {
+    fr: `🎉 Une envie ? Et hop !\nCourses, repas, fleurs, colis… Hoppy s'occupe de tout, partout à Netanya.\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `🎉 בא לכם משהו? והופ!\nקניות, אוכל, פרחים, חבילות… הופי דואג להכול, בכל נתניה.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   "hoppy-telephone": {
     fr: `📱 De votre téléphone à votre porte. Et hop !\nUn plat, vos courses, un bouquet, un colis, la pharmacie : vous commandez en 1 minute, Hoppy vous l'apporte.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais de service\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `📱 מהטלפון שלכם עד הדלת. והופ!\nאוכל, קניות, זר פרחים, חבילה, פארם: מזמינים בדקה, הופי מביא לכם.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 0 ₪ דמי שירות\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -475,6 +478,7 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
+  { id: "hoppy-envie", aud: "client", isNew: true, thumb: "post", title: "🎉 Une envie ? Et hop !", desc: "Hoppy jaillit du sac HOP! avec courses, plat, fleurs et colis. En hébreu pour l'instant (la version française arrive).", formats: ["post"] },
   { id: "hoppy-telephone", aud: "client", isNew: true, thumb: "post", title: "📱 De votre téléphone à votre porte. Et hop !", desc: "Hoppy sort du téléphone avec fleurs, courses, colis, pharmacie et plat. En hébreu pour l'instant (la version française arrive).", formats: ["post"] },
   { id: "hoppy-pensez", aud: "client", isNew: true, thumb: "post", title: "💭 Vous pensez à quoi ? Hoppy vous l'apporte !", desc: "Post carré : plat, courses, fleurs, colis, pharmacie… tout ce qu'on a en tête, Hoppy l'apporte.", formats: ["post"] },
   { id: "hoppy-repos", aud: "client", isNew: true, thumb: "post", title: "😌 Hoppy souffle : vous, restez tranquille", desc: "Post carré sans texte (le même en FR et HE) : le message est dans la légende. Idéal en fin de semaine.", formats: ["post"] },
