@@ -3897,7 +3897,9 @@ function renderShowcase() {
     // Mis en avant par le patron (🔥 dans son panel) d'abord, puis l'automatique : les commandes des 30 derniers jours
     const pop = list.filter(s => s.featured || Number(s.orders30) > 0).sort((a, b) => (!!b.featured - !!a.featured) || (Number(b.orders30) - Number(a.orders30))).slice(0, 8);
     const fresh = list.filter(recent).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 8);
-    body = row(t("rowFavs"), favL) + row(t("rowOpen"), openL) + row(t("rowPop"), pop) + row(t("rowNew"), fresh) + row(t("rowAll"), open.concat(closed));
+    // « Populaires » et « Nouveautés » : coupées par le patron pour l'instant (config.js → homeRows), à rallumer plus tard
+    const HR = CONFIG.homeRows || {};
+    body = row(t("rowFavs"), favL) + row(t("rowOpen"), openL) + (HR.popular === false ? "" : row(t("rowPop"), pop)) + (HR.fresh === false ? "" : row(t("rowNew"), fresh)) + row(t("rowAll"), open.concat(closed));
   } else body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
   const html = stories + body;
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
