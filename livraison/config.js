@@ -280,7 +280,8 @@ window.CONFIG = {
     // Parrainage : chaque client a un code AMI + 4 derniers chiffres de son téléphone
     referral: { prefix: "AMI", amount: 10 },
     // Carte de fidélité : la Nième course est offerte (jusqu'à max ₪)
-    loyalty: { every: 10, max: 30 },
+    // Carte de fidélité (une course offerte toutes les 10) : arrêtée par le patron le 01/11/2026 (on: false)
+    loyalty: { every: 10, max: 30, on: false },
     // Offres professionnelles affichées sur la page (commande par WhatsApp) ; la ligne du carnet seulement si partners.carnet.offered
     business: [
       { fr: "Commerces et restaurants : la course dans Netanya, à l'unité, 0 % sur vos ventes", he: "עסקים ומסעדות: משלוח בתוך נתניה, לפי משלוח, 0% מהמכירות", price: { fr: "25 ₪", he: "25 ₪" } },

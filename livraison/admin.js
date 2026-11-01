@@ -678,7 +678,7 @@ async function loadVisits(force) {
 }
 const SRC_LABEL = { direct: "✍️ Direct (lien tapé, favori, appli, WhatsApp privé)", google: "🔎 Google", facebook: "📘 Facebook", instagram: "📸 Instagram",
   tiktok: "🎵 TikTok", whatsapp: "💬 WhatsApp", twitter: "🐦 X / Twitter", bing: "🔎 Bing", flyer: "🧾 Flyers (QR)", qr: "🔳 QR du kit pub",
-  "qr-commerce": "🏪 QR d'un commerce (autocollant, lien du commerce)" };
+  "qr-commerce": "🏪 QR d'un commerce (autocollant, lien du commerce)", groupes: "👥 Groupes (Facebook, WhatsApp)", reseaux: "📣 Réseaux (kit pub)" };
 const PAGE_LABEL = { index: "🏠 Accueil et commande", suivi: "📍 Suivi d'une course", commerce: "🏪 Espace commerce", "on-livre": "📦 « Ce qu'on livre »",
   recu: "🧾 Reçus", kit: "📣 Kit pub" };
 const pct = (a, b) => (b ? Math.round(a * 100 / b) : 0) + " %";

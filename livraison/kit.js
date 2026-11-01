@@ -24,7 +24,7 @@ $("#appLink").textContent = url;
 $("#livreLink").textContent = livre;
 $("#livreLinkHe").textContent = livreHe;
 // QR codes : la visite est comptée « flyer » dans les visites du site (panel patron)
-if (window.QRCode) new QRCode($("#qr"), { text: livre + "?src=qr", width: 164, height: 164, correctLevel: QRCode.CorrectLevel.M });
+if (window.QRCode) new QRCode($("#qr"), { text: livre + "?utm_source=qr&utm_medium=print&utm_campaign=qr-kit", width: 164, height: 164, correctLevel: QRCode.CorrectLevel.M });
 
 // Seulement le Sharon pour l'instant (Tel Aviv et Gush Dan : bientôt)
 const featured = ["netanya", "nordia", "even-yehuda", "kadima", "kfar-yona", "hadera", "raanana", "kfar-saba", "herzliya"];
@@ -36,7 +36,7 @@ $("#kitOffers").innerHTML = [
   `<b>BIENVENUE</b> (français) / <b>BRUCHIM</b> (hébreu) : -${UI.money(PR.codes.BIENVENUE.amount)} sur la première course (${welcome} dans ${UI.cityFr(home)}), une seule fois par numéro, téléphone et IP.`,
   `<b>NETANYA</b> : -${UI.money(PR.codes.NETANYA.amount)} sur n'importe quelle course — à imprimer comme « bon de réduction » sur les flyers laissés chez les commerçants.`,
   `<b>Parrainage</b> : chaque client a son code ${PR.referral.prefix} + 4 chiffres (-${UI.money(PR.referral.amount)} pour le filleul ; offrez aussi ${UI.money(PR.referral.amount)} au parrain sur sa course suivante en ajustant le prix ✏️).`,
-  `<b>Fidélité</b> : la ${PR.loyalty.every}e course est offerte automatiquement (max ${UI.money(PR.loyalty.max)}).`,
+  ...(PR.loyalty.on ? [`<b>Fidélité</b> : la ${PR.loyalty.every}e course est offerte automatiquement (max ${UI.money(PR.loyalty.max)}).`] : []),
   // Le carnet de courses seulement s'il est proposé (mis de côté par le patron) ; HOP! Pro avec son prix
   ...PR.business.filter(b => !b.carnet || CONFIG.partners.carnet.offered)
     .map(b => `<b>Pro</b> : ${UI.esc(b.fr)} — ${UI.esc(b.pro ? `${UI.money(CONFIG.pro.monthly)} / mois, 1er mois offert` : typeof b.price === "object" ? b.price.fr : b.price)}`)
@@ -496,7 +496,27 @@ const CAPS = {
     fr: `🔁 On commande, on suit, c'est livré… et votre plat arrive chaud.\nHOP!, la livraison de Netanya, au plus vite.\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🔁 מזמינים, עוקבים, וזה כבר אצלכם… והאוכל מגיע חם.\nHOP!, המשלוחים של נתניה, הכי מהר.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
 };
-const capFor = id => { const c = CAPS[id]; return (c && (c[ui.lang] || c.fr)) || CAPTION[ui.lang] || CAPTION.fr; };
+// Marquage des liens pour les statistiques (onglet 📊 Visites du panel) : utm_source = le réseau où le patron publie
+// (choisi en haut du kit), utm_medium = le format (post, story, video, texte), utm_campaign = la pub (son identifiant).
+// Les liens déjà marqués d'un commerce (?c=CODE) gardent leur code.
+const CHANNELS = [["instagram", "📸 Instagram"], ["tiktok", "🎵 TikTok"], ["facebook", "👍 Facebook"], ["whatsapp", "💬 WhatsApp"], ["groupes", "👥 Groupes"]];
+const slugOf = v => String(v || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "texte";
+function tagUrl(u, campaign, medium, source) {
+  try {
+    const x = new URL(u);
+    if (!/hop-livraison\.vercel\.app$/.test(x.host) && x.host !== location.host) return u;
+    x.searchParams.set("utm_source", source || ui.channel || "reseaux");
+    x.searchParams.set("utm_medium", medium || "post");
+    x.searchParams.set("utm_campaign", campaign || "kit");
+    return x.toString();
+  } catch (e) { return u; }
+}
+// Tous les liens HOP! d'un texte, marqués (la ponctuation qui suit un lien reste hors du lien)
+const tagText = (text, campaign, medium, source) => String(text).replace(/https?:\/\/[^\s"'«»<>]+/g, m => {
+  const tail = (m.match(/[.,;:!?)\]]+$/) || [""])[0];
+  return tagUrl(m.slice(0, m.length - tail.length), campaign, medium, source) + tail;
+});
+const capFor = (id, medium) => { const c = CAPS[id]; return tagText((c && (c[ui.lang] || c.fr)) || CAPTION[ui.lang] || CAPTION.fr, id || "kit", medium || "post"); };
 const UPLOAD = [["Instagram", "https://www.instagram.com/"], ["TikTok", "https://www.tiktok.com/tiktokstudio/upload"], ["Facebook", "https://www.facebook.com/"]];
 const V = "kit/visuels/";
 const CAMPS = [
@@ -564,7 +584,7 @@ const VIDEOS = [
 
 // Onglet, public et langue choisis : gardés sur ce téléphone
 const UI_KEY = "livraison.kit.ui.v1";
-const ui = (() => { try { return Object.assign({ tab: "visuels", aud: "client", lang: "fr" }, JSON.parse(localStorage.getItem(UI_KEY)) || {}); } catch (e) { return { tab: "visuels", aud: "client", lang: "fr" }; } })();
+const ui = (() => { try { return Object.assign({ tab: "visuels", aud: "client", lang: "fr", channel: "instagram" }, JSON.parse(localStorage.getItem(UI_KEY)) || {}); } catch (e) { return { tab: "visuels", aud: "client", lang: "fr" }; } })();
 const TABS = ["visuels", "videos", "textes", "lien", "guide"];
 if (TABS.includes(location.hash.slice(1))) ui.tab = location.hash.slice(1);
 else if (location.hash === "#nouveaux") ui.tab = "visuels";
@@ -574,6 +594,7 @@ function renderKit() {
   document.querySelectorAll("[data-kpane]").forEach(p => p.classList.toggle("hidden", p.dataset.kpane !== ui.tab));
   document.querySelectorAll("[data-aud]").forEach(b => b.classList.toggle("on", b.dataset.aud === ui.aud));
   document.querySelectorAll("[data-klang]").forEach(b => b.classList.toggle("on", b.dataset.klang === ui.lang));
+  $("#kitChan").innerHTML = CHANNELS.map(([k, l]) => `<button type="button" data-kchan="${k}" class="${k === ui.channel ? "on" : ""}">${l}</button>`).join("");
   $("#kitFilters").classList.toggle("hidden", !["visuels", "videos", "textes"].includes(ui.tab));
   // Les visuels portent la version de la page : un visuel refait est rechargé, pas repris du cache du téléphone
   const VQ = (() => { const sc = document.querySelector('script[src*="kit.js"]'); const m = sc && /v=(\d+)/.exec(sc.getAttribute("src") || ""); return m ? `?v=${m[1]}` : ""; })();
@@ -585,7 +606,7 @@ function renderKit() {
           ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4${VQ}" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}
           ${c.formats.includes("post") ? shareBtn(f(c.id, "post"), `hop-${c.id}-post-${L}.png`, "📲 Publier le post", c.id) : ""}
           ${c.formats.includes("story") ? shareBtn(f(c.id, "story"), `hop-${c.id}-story-${L}.png`, "📲 Publier la story", c.id) : ""}</div>
-        ${CAPS[c.id] ? `<details class="camp-cap"><summary>✍️ Sa légende (copiée toute seule en publiant)</summary><div class="post" id="cap-${c.id}" dir="${L === "he" ? "rtl" : "ltr"}">${UI.esc(capFor(c.id))}</div><button type="button" class="btn btn-sm btn-primary" data-copy="cap-${c.id}">Copier la légende</button></details>` : ""}</div></div>`).join("")
+        ${CAPS[c.id] ? `<details class="camp-cap"><summary>✍️ Sa légende (copiée toute seule en publiant)</summary><div class="post" id="cap-${c.id}" dir="${L === "he" ? "rtl" : "ltr"}">${UI.esc(capFor(c.id, "post"))}</div><button type="button" class="btn btn-sm btn-primary" data-copy="cap-${c.id}">Copier la légende</button></details>` : ""}</div></div>`).join("")
     || `<p class="muted small">Rien pour l'instant.</p>`;
   const vids = VIDEOS.filter(v => v.aud === ui.aud);
   $("#kitVideos").innerHTML = vids.map(v => `<figure${v.ratio ? ' class="wide"' : ""}><video src="${V}${v.id}-video-${L}.mp4${VQ}" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
@@ -594,13 +615,13 @@ function renderKit() {
   // Les textes bilingues (statut, phrases courtes, fiche Google) apparaissent dans les deux langues
   const bi = p => p.dir === "ltr" && /[\u0590-\u05FF]/.test(p.text);
   const posts = ALL_POSTS.filter(p => p.aud === ui.aud && (bi(p) || (L === "he") === (p.dir === "rtl")));
-  $("#posts").innerHTML = posts.map((p, i) => `<div class="kpost">
+  $("#posts").innerHTML = posts.map((p, i) => { const txt = tagText(p.text, "texte-" + slugOf(p.title), "texte"); return `<div class="kpost">
       <b>${UI.esc(p.title)}</b>
-      <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(p.text)}</div>
+      <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(txt)}</div>
       <div class="kpost-btns"><button class="btn btn-sm btn-primary" data-copy="post${i}">Copier</button>
         ${navigator.share ? `<button class="btn btn-sm btn-share" data-share-text="post${i}">📲 Partager</button>` : ""}
-        <a class="btn btn-sm btn-fb" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(APP_URL)}" target="_blank" rel="noopener" data-fb-copy="post${i}">Facebook</a>
-        <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", p.text))}">Partager sur WhatsApp</a></div></div>`).join("")
+        <a class="btn btn-sm btn-fb" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(tagUrl(APP_URL, "texte-" + slugOf(p.title), "texte", "facebook"))}" target="_blank" rel="noopener" data-fb-copy="post${i}">Facebook</a>
+        <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", tagText(p.text, "texte-" + slugOf(p.title), "texte", "whatsapp")))}">Partager sur WhatsApp</a></div></div>`; }).join("")
     || `<p class="muted small">Pas de texte pour eux dans cette langue.</p>`;
 }
 document.addEventListener("click", e => {
@@ -608,6 +629,8 @@ document.addEventListener("click", e => {
   if (tb) { ui.tab = tb.dataset.ktab; history.replaceState(null, "", "#" + ui.tab); renderKit(); window.scrollTo({ top: 0 }); }
   if (au) { ui.aud = au.dataset.aud; renderKit(); }
   if (lg) { ui.lang = lg.dataset.klang; renderKit(); }
+  const ch = e.target.closest("[data-kchan]");
+  if (ch) { ui.channel = ch.dataset.kchan; renderKit(); }
 });
 renderKit();
 
@@ -619,7 +642,7 @@ function shareBtn(url, name, label, cap) {
   return `<button type="button" class="btn btn-sm btn-share" data-share="${UI.esc(url)}" data-name="${UI.esc(name)}"${cap ? ` data-cap="${UI.esc(cap)}"` : ""}>${label || "📲 Insta · TikTok · Facebook"}</button>`;
 }
 const shareFiles = new Map();
-const copyCaption = id => { try { navigator.clipboard && navigator.clipboard.writeText(capFor(id)).catch(() => {}); } catch (_) { /* rien */ } };
+const copyCaption = (id, medium) => { try { navigator.clipboard && navigator.clipboard.writeText(capFor(id, medium)).catch(() => {}); } catch (_) { /* rien */ } };
 function shareHelp(btn, url, name, mobile) {
   const old = btn.parentElement.querySelector(".kshare-help");
   if (old) old.remove();
@@ -635,7 +658,7 @@ function shareHelp(btn, url, name, mobile) {
 }
 async function shareMedia(btn) {
   const url = btn.dataset.share, name = btn.dataset.name;
-  copyCaption(btn.dataset.cap);
+  copyCaption(btn.dataset.cap, /\.mp4/i.test(btn.dataset.name || "") ? "video" : /story/.test(btn.dataset.name || "") ? "story" : "post");
   if (!navigator.share || !navigator.canShare) return shareHelp(btn, url, name, false);
   let file = shareFiles.get(url);
   const label = btn.dataset.label || btn.innerHTML;
@@ -650,7 +673,7 @@ async function shareMedia(btn) {
     btn.disabled = false;
   }
   if (!navigator.canShare({ files: [file] })) { btn.innerHTML = label; return shareHelp(btn, url, name, true); }
-  try { await navigator.share({ files: [file], text: capFor(btn.dataset.cap) }); btn.innerHTML = label; }
+  try { await navigator.share({ files: [file], text: capFor(btn.dataset.cap, /\.mp4/i.test(name) ? "video" : /story/.test(name) ? "story" : "post") }); btn.innerHTML = label; }
   catch (ex) {
     // Le téléchargement a pris trop de temps : le téléphone demande un 2e toucher pour ouvrir le partage
     if (ex && ex.name === "NotAllowedError") { btn.innerHTML = "📲 Publier maintenant"; btn.classList.add("ready"); }
@@ -734,6 +757,6 @@ $("#flyer").innerHTML = `
   </div>
   <p style="margin-top:6px;font-size:18px"><b>Et hop, c'est livré ! · <span dir="rtl">הופ, וזה אצלך!</span></b></p>
   <p style="margin-top:10px">📞 <b dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</b> · <span dir="ltr">${UI.esc(url)}</span></p>`;
-if (window.QRCode) new QRCode($("#flyerQr"), { text: livre + "?src=flyer", width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+if (window.QRCode) new QRCode($("#flyerQr"), { text: livre + "?utm_source=flyer&utm_medium=print&utm_campaign=flyer-kit", width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
 
 })();
