@@ -1009,10 +1009,13 @@ function renderQuote() {
   // Fleurs : bouquet déjà commandé chez son fleuriste = simple retrait, au prix de la livraison
   const flowers = val("service") === "achat" && !proShopOn() && purchaseKind() === "gift";
   const ridePrice = money(((q.lines || []).find(l => /^qBase/.test(l.key)) || { amount: CONFIG.pricing.base }).amount);
-  const direct = boutiqueBuy() || flowers ? `<div class="direct-tip"><b>${UI.esc(t(flowers ? "qDirectFlowT" : "qDirectT"))}</b>
-    <span>${escHop(t(flowers ? "qDirectFlowS" : "qDirectS", { price: ridePrice }))}</span>
-    <button type="button" class="btn btn-sm direct-ready" data-direct-ready>${UI.esc(t(flowers ? "qDirectFlowBtn" : "qDirectBtn", { price: ridePrice }))}</button>
-    <span class="direct-soon">${escHop(t("qDirectSoon"))}</span></div>` : "";
+  const direct = boutiqueBuy() || flowers ? `<div class="direct-tip">
+    <img class="dt-hoppy" src="img/hoppy-mini.webp" alt="" width="74" height="120" loading="lazy" decoding="async" />
+    <div class="dt-body"><em class="dt-tag">${UI.esc(t("qDirectTag"))}</em>
+      <b>${escHop(t(flowers ? "qDirectFlowT" : "qDirectT"))}</b>
+      <span>${escHop(t(flowers ? "qDirectFlowS" : "qDirectS", { price: ridePrice }))}</span>
+      <button type="button" class="dt-btn" data-direct-ready>${escHop(t(flowers ? "qDirectFlowBtn" : "qDirectBtn", { price: ridePrice }))}</button></div>
+    <p class="dt-soon">${escHop(t("qDirectSoon"))}</p></div>` : "";
   $("#quoteNote").innerHTML = `${direct}${UI.esc(main.join(" "))}${more.length ? ` <details class="q-more"${$("#quoteNote").querySelector("details[open]") ? " open" : ""}><summary>${UI.esc(t("qMore"))}</summary>${UI.esc(more.join(" "))}</details>` : ""}`;
   updateProgress();
   const err = scheduleError();
