@@ -73,7 +73,9 @@ routeHash();
 const D2 = document.documentElement.classList.contains("d2");
 // Petit scooter décoratif du bouton Commander (le libellé reste le vrai texte traduit)
 const SCOOT_SVG = `<svg class="k2-scoot" viewBox="0 0 32 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 3h4.2c.6 0 1 .3 1.2.8l2.4 6.4a5.5 5.5 0 1 1-2.2 1l-.7-1.8-4.3 6.1a1 1 0 0 1-.8.4h-6.9a5.5 5.5 0 1 1-10.6-2.6A3 3 0 0 1 4.8 10H15l3.6-4H20V5h-1V3zM6.8 15.5a2.6 2.6 0 1 0 5.1.6zM26.3 13a2.6 2.6 0 1 0 1.2-.2l.9 2.3-1.9.7zM9 4h5a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/></svg>`;
-const K2_ICON = { pharm: 1, tabac: 1, bakery: 1, shop: 1, baby: 1, pets: 1, home: 1, gift: 1, pressing: 1, poste: 1, resto: 1, docs: 1, yad2: 1, keys: 1 };
+const K2_BG = { pharm: ["#013335", "#027363"], tabac: ["#28071E", "#531A3E"], bakery: ["#411C05", "#B35D1B"], shop: ["#081F39", "#0E2847"], baby: ["#021D3E", "#0F365C"],
+  pets: ["#013936", "#106D61"], home: ["#051932", "#0D2D4F"], gift: ["#2E071E", "#45112F"] };
+const K2_ICON = { ta: 1,  pharm: 1, tabac: 1, bakery: 1, shop: 1, baby: 1, pets: 1, home: 1, gift: 1, pressing: 1, poste: 1, resto: 1, docs: 1, yad2: 1, keys: 1 };
 const k2Icon = id => `<span class="k2-ic"><img src="img/k2/i-${id}.webp" alt="" loading="lazy" decoding="async" /></span>`;
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
@@ -834,10 +836,11 @@ function renderHomePharma() {
     // Grands encarts façon maquette : illustration du kit, vrai titre et vrai texte des rayons, bouton visible
     $("#homePharma").innerHTML = `<div class="hp-row k2-row">${Rayons.ALL.map(r => {
       const on = state.homeKind === r.kind, title = phName(r.card).replace(/^\P{L}+/u, "");
-      return `<button type="button" class="k2-card${on ? " on" : ""}" data-pharma-go="${r.id}" style="--rc:${r.color}">
-        <span class="k2-txt">${on ? `<em>${UI.esc(t("hpOnTag"))}</em>` : ""}<b>${UI.esc(title)}</b>
+      const bg = K2_BG[r.kind] || ["#0F1D36", "#1C3157"];
+      return `<button type="button" class="k2-card${on ? " on" : ""}" data-pharma-go="${r.id}" style="--c1:${bg[0]};--c2:${bg[1]}">
+        <span class="k2-txt"><em>${UI.esc(t(on ? "hpOnTag" : "hpTag"))}</em><b>${UI.esc(title)}</b>
           <small>${UI.esc(on ? t("hpOnSub") : phName(r.cardSub).replace("{n}", Rayons.items(r).length))}</small>
-          <span class="k2-go">${UI.esc(t("hpGo"))} <i aria-hidden="true">›</i></span></span>
+          <span class="k2-go">${UI.esc(t("k2Discover"))} <i aria-hidden="true">›</i></span></span>
         <img class="k2-img" src="img/k2/e-${r.kind}.webp" alt="" loading="lazy" decoding="async" /></button>`;
     }).join("")}</div><div class="k2-dots" aria-hidden="true">${Rayons.ALL.map((_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</div>`;
     const row = $("#homePharma .k2-row");
@@ -3625,7 +3628,7 @@ function shopCard(s) {
     <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
       <small class="sc-meta">${Number(s.ratings) > 0 ? `<b class="sc-star">${UI.esc(t("scRating", { avg: String(s.rating).replace(".", ","), n: s.ratings }))}</b> · ` : ""}${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}${s.shop_pays ? `🎁 ${UI.esc(t("scGift"))}` : `🛵 ${UI.esc(money(proPrice(s)))}`}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
       ${UI.shopText(s, "tagline") ? `<small class="sc-tag">${UI.esc(UI.shopText(s, "tagline"))}</small>` : ""}</span>
-    ${st && !st.open ? `<span class="sc-prog-btn">${UI.calIcon()} ${UI.esc(t("scProgOrder"))}</span>` : `<span class="sc-go" aria-label="${UI.esc(t("proGo"))}">›</span>`}
+    ${st && !st.open ? `<span class="sc-prog-btn">${UI.calIcon()} ${UI.esc(t(D2 ? "k2Prog" : "scProgOrder"))}</span>` : `<span class="sc-go" aria-label="${UI.esc(t("proGo"))}">›</span>`}
   </div>`;
 }
 // Vitrine : les logos de tous les partenaires en haut, puis tous en grandes cartes photo (les ouverts d'abord) ;
