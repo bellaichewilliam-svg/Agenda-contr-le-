@@ -69,6 +69,12 @@ window.addEventListener("hashchange", () => { if (location.href !== here) routeH
 window.addEventListener("popstate", () => { onBack(); here = location.href; });
 routeHash();
 
+// Nouveau design (html.d2) : icônes 3D du kit (img/k2), même cadre pour toutes les catégories
+const D2 = document.documentElement.classList.contains("d2");
+// Petit scooter décoratif du bouton Commander (le libellé reste le vrai texte traduit)
+const SCOOT_SVG = `<svg class="k2-scoot" viewBox="0 0 32 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 3h4.2c.6 0 1 .3 1.2.8l2.4 6.4a5.5 5.5 0 1 1-2.2 1l-.7-1.8-4.3 6.1a1 1 0 0 1-.8.4h-6.9a5.5 5.5 0 1 1-10.6-2.6A3 3 0 0 1 4.8 10H15l3.6-4H20V5h-1V3zM6.8 15.5a2.6 2.6 0 1 0 5.1.6zM26.3 13a2.6 2.6 0 1 0 1.2-.2l.9 2.3-1.9.7zM9 4h5a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/></svg>`;
+const K2_ICON = { pharm: 1, tabac: 1, bakery: 1, shop: 1, baby: 1, pets: 1, home: 1, gift: 1, pressing: 1, poste: 1, resto: 1, docs: 1, yad2: 1, keys: 1 };
+const k2Icon = id => `<span class="k2-ic"><img src="img/k2/i-${id}.webp" alt="" loading="lazy" decoding="async" /></span>`;
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
   // Nouveautés en tête : boulangeries (petit-déjeuner) et pressing
@@ -824,6 +830,23 @@ function loadRayonsLive() {
 }
 function renderHomePharma() {
   if (!window.Rayons) return;
+  if (D2) {
+    // Grands encarts façon maquette : illustration du kit, vrai titre et vrai texte des rayons, bouton visible
+    $("#homePharma").innerHTML = `<div class="hp-row k2-row">${Rayons.ALL.map(r => {
+      const on = state.homeKind === r.kind, title = phName(r.card).replace(/^\P{L}+/u, "");
+      return `<button type="button" class="k2-card${on ? " on" : ""}" data-pharma-go="${r.id}" style="--rc:${r.color}">
+        <span class="k2-txt">${on ? `<em>${UI.esc(t("hpOnTag"))}</em>` : ""}<b>${UI.esc(title)}</b>
+          <small>${UI.esc(on ? t("hpOnSub") : phName(r.cardSub).replace("{n}", Rayons.items(r).length))}</small>
+          <span class="k2-go">${UI.esc(t("hpGo"))} <i aria-hidden="true">›</i></span></span>
+        <img class="k2-img" src="img/k2/e-${r.kind}.webp" alt="" loading="lazy" decoding="async" /></button>`;
+    }).join("")}</div><div class="k2-dots" aria-hidden="true">${Rayons.ALL.map((_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</div>`;
+    const row = $("#homePharma .k2-row");
+    row.addEventListener("scroll", () => {
+      const w = row.firstElementChild ? row.firstElementChild.offsetWidth + 12 : 1, i = Math.round(Math.abs(row.scrollLeft) / w);
+      $("#homePharma .k2-dots").querySelectorAll("i").forEach((d, j) => d.classList.toggle("on", j === i));
+    }, { passive: true });
+    return;
+  }
   $("#homePharma").innerHTML = `<div class="hp-row">${Rayons.ALL.map(r => {
     const on = state.homeKind === r.kind;
     return `<button type="button" class="hp-card${on ? " on" : ""}" data-pharma-go="${r.id}" style="--rc:${r.color}">
@@ -3020,7 +3043,7 @@ function renderHomeStatic() {
   $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
     const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip }, CONFIG);
     const art = KIND_ART[ex.id];
-    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b></button>`;
+    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${!D2 && RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${D2 && K2_ICON[ex.id] ? k2Icon(ex.id) : art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b></button>`;
   }).join("");
   loadRayonsLive();
   renderHomePharma();
@@ -3184,7 +3207,8 @@ function syncHome() {
     $("#homeGoPrice").textContent = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity));
     $("#homeGoSub").textContent = first ? t("hmGoFirst", { price: money(welcomePrice()) }) : t("hmGoKm", { from: I18N.cityName(CONFIG.homeCity), to: I18N.cityName(CONFIG.homeCity) });
   }
-  $("#homeGo").textContent = t(ready ? "hmGoNext" : "hmGo");
+  if (D2) $("#homeGo").innerHTML = `${SCOOT_SVG}<span>${UI.esc(t(ready ? "hmGoNext" : "hmGo"))}</span>`;
+  else $("#homeGo").textContent = t(ready ? "hmGoNext" : "hmGo");
   const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity));
   $("#homeFair").textContent = t("fairText", { price: ready && val("service") !== "achat" ? money(currentQuote().total) : base });
   $("#homeFairShop").textContent = t("fairShop", { price: ready && val("service") === "achat" ? money(currentQuote().total) : base });
