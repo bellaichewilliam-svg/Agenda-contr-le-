@@ -848,6 +848,14 @@ function loadRayonsLive() {
   Rayons.apply(Store.rayonsCached());
   Store.rayonsLive().then(live => { if (!live) return; Rayons.apply(live); renderHomePharma(); if (rayonOn()) renderQuote(); }).catch(() => {});
 }
+// Encart : texte court et complet (3 exemples, puis le nombre de produits), jamais coupé : la carte garde sa taille
+function k2Sub(text) {
+  const [list, rest] = String(text).split("…");
+  if (rest == null) return text;
+  const items = list.split(",").map(x => x.trim()).filter(Boolean).slice(0, 3).join(", ");
+  const count = rest.trim().split(/[.,]/)[0].trim();
+  return count || items;
+}
 function renderHomePharma() {
   if (!window.Rayons) return;
   if (D2) {
@@ -857,7 +865,7 @@ function renderHomePharma() {
       const bg = K2_BG[r.kind] || ["#0F1D36", "#1C3157"];
       return `<button type="button" class="k2-card${K2_FOND[r.kind] ? " hop-fond-" + K2_FOND[r.kind] : ""}${on ? " on" : ""}" data-pharma-go="${r.id}" style="--c1:${bg[0]};--c2:${bg[1]}">
         <span class="k2-txt"><em>${UI.esc(t(on ? "hpOnTag" : "hpTag"))}</em><b>${UI.esc(title)}</b>
-          <small>${UI.esc(on ? t("hpOnSub") : phName(r.cardSub).replace("{n}", Rayons.items(r).length))}</small>
+          <small>${UI.esc(on ? t("hpOnSub") : k2Sub(phName(r.cardSub).replace("{n}", Rayons.items(r).length)))}</small>
           <span class="k2-go">${UI.esc(t("k2Discover"))} <i aria-hidden="true">›</i></span></span>
         <img class="k2-img" src="img/k2/e-${r.kind}.webp" alt="" loading="lazy" decoding="async" /></button>`;
     }).join("")}</div><div class="k2-dots" aria-hidden="true">${Rayons.ALL.map((_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</div>`;
@@ -3675,6 +3683,8 @@ function isKosher(s) { return !!(s && (s.kosher || (state.partners || []).some(p
 // Sceau : étoile de David blanche dans un rond bleu, puis « Casher / כשר »
 const KOSHER_STAR = `<svg class="k-star" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.2l7.6 13.2H4.4zM12 20.8L4.4 7.6h15.2z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>`;
 function kosherTag(cls) { return `<em class="k-badge${cls ? " " + cls : ""}">${KOSHER_STAR}${UI.esc(t("kosher"))}</em>`; }
+// Accroche d'un commerce sur sa carte : la première phrase seulement (complète, jamais coupée au milieu)
+const firstPhrase = v => String(v || "").split(/\s[·•|–-]\s|\.\s/)[0].replace(/\.$/, "").trim();
 // Carte d'un commerce, compacte : bannière, logo, catégorie, ouvert / fermé, livraison ; toute la carte s'ouvre au toucher
 function shopCard(s) {
   const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = UI.openState(s.hours);
@@ -3685,8 +3695,9 @@ function shopCard(s) {
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
-      <small class="sc-meta">${Number(s.ratings) > 0 ? `<b class="sc-star">${UI.esc(t("scRating", { avg: String(s.rating).replace(".", ","), n: s.ratings }))}</b> · ` : ""}${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(openLabel(st))} · ` : ""}${s.shop_pays ? `🎁 ${UI.esc(t("scGift"))}` : `🛵 ${UI.esc(money(proPrice(s)))}`}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
-      ${UI.shopText(s, "tagline") ? `<small class="sc-tag">${UI.esc(UI.shopText(s, "tagline"))}</small>` : ""}</span>
+      ${st || Number(s.ratings) > 0 ? `<small class="sc-meta sc-st">${Number(s.ratings) > 0 ? `<b class="sc-star">${UI.esc(t("scRating", { avg: String(s.rating).replace(".", ","), n: s.ratings }))}</b>${st ? " · " : ""}` : ""}${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(D2 && st.open ? openLabel(st).split(" · ")[0] : openLabel(st))}` : ""}</small>` : ""}
+      <small class="sc-meta">${s.shop_pays ? `🎁 ${UI.esc(t("scGift"))}` : `🛵 ${UI.esc(money(proPrice(s)))}`}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
+      ${UI.shopText(s, "tagline") && !D2 ? `<small class="sc-tag">${UI.esc(firstPhrase(UI.shopText(s, "tagline")))}</small>` : ""}</span>
     ${st && !st.open ? `<span class="sc-prog-btn">${UI.calIcon()} ${UI.esc(t(D2 ? "k2Prog" : "scProgOrder"))}</span>` : `<span class="sc-go" aria-label="${UI.esc(t("proGo"))}">›</span>`}
   </div>`;
 }
