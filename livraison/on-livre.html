@@ -13,12 +13,28 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=202611010842" />
+  <link rel="stylesheet" href="styles.css?v=202611010959" />
   <script>
     // Nouveau design (aperçu ?design=2, mémorisé sur le téléphone ; ?design=1 pour revenir)
     try { var dq = new URLSearchParams(location.search).get("design");
       if (dq === "2") localStorage.setItem("hop.design", "2"); else if (dq) localStorage.removeItem("hop.design");
       if (localStorage.getItem("hop.design") === "2") document.documentElement.classList.add("d2"); } catch (e) { /* stockage bloqué */ }
+  </script>
+  <script>
+    // Nouveau design : blanc le jour, bleu nuit le soir (lever / coucher du soleil à Netanya), revu chaque minute. Essai : ?theme=jour ou ?theme=nuit
+    (function () { var h = document.documentElement, f = "";
+      try { var tq = new URLSearchParams(location.search).get("theme"); if (tq) sessionStorage.setItem("hop.theme", tq); f = sessionStorage.getItem("hop.theme") || ""; } catch (e) { /* stockage bloqué */ }
+      function night() { var R = Math.PI / 180, ms = Date.now(), lat = 32.33, lon = 34.86;
+        var n = Math.round(ms / 864e5 + 2440587.5 - 2451545 + 0.0008), J = n - lon / 360, M = (357.5291 + 0.98560028 * J) % 360;
+        var C = 1.9148 * Math.sin(M * R) + 0.02 * Math.sin(2 * M * R) + 0.0003 * Math.sin(3 * M * R), L = (M + C + 180 + 102.9372) % 360;
+        var T = 2451545 + J + 0.0053 * Math.sin(M * R) - 0.0069 * Math.sin(2 * L * R), d = Math.asin(Math.sin(L * R) * Math.sin(23.44 * R));
+        var w = Math.acos((Math.sin(-0.833 * R) - Math.sin(lat * R) * Math.sin(d)) / (Math.cos(lat * R) * Math.cos(d))) / R / 360;
+        return ms < (T - w - 2440587.5) * 864e5 || ms > (T + w - 2440587.5) * 864e5; }
+      function apply() { if (!h.classList.contains("d2")) return; var day = f === "jour" || (f !== "nuit" && !night());
+        if (h.classList.contains("d2-day") === day && apply.done) return; apply.done = 1; h.classList.toggle("d2-day", day);
+        var m = document.querySelectorAll('meta[name="theme-color"]'); for (var i = 0; i < m.length; i++) m[i].content = "#0B1830";
+        try { window.dispatchEvent(new Event("hop:daynight")); } catch (e) { /* vieux navigateur */ } }
+      apply(); document.addEventListener("DOMContentLoaded", apply); setInterval(apply, 60000); })();
   </script>
 </head>
 <body class="onlivre">
@@ -44,10 +60,10 @@
 
 <div class="ol-bar"><a class="btn btn-primary btn-lg" href="index.html" id="olGo"></a></div>
 
-<script src="config.js?v=202611010842"></script>
-<script src="i18n.js?v=202611010842"></script>
-<script src="pricing.js?v=202611010842"></script>
-<script src="common.js?v=202611010842"></script>
+<script src="config.js?v=202611010959"></script>
+<script src="i18n.js?v=202611010959"></script>
+<script src="pricing.js?v=202611010959"></script>
+<script src="common.js?v=202611010959"></script>
 <script>
 (function () {
   "use strict";
