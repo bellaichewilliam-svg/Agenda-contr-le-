@@ -1545,6 +1545,7 @@ function clientCount(days) {
 }
 // Visuels du kit pub proposés pour les pubs de l'appli (format story, FR et HE)
 const KIT_PROMO_IMGS = [
+  ["🦘 Hoppy : première course à 15 ₪", "kit/visuels/client-post-fr.png", "kit/visuels/client-post-he.png"],
   ["🦘 Hoppy : nouveaux commerces chaque semaine", "kit/visuels/visite-post-fr.png", "kit/visuels/visite-post-he.png"],
   ["🦘 Hoppy : vos hallot pour Chabbat", "kit/visuels/halot-post-fr.png", "kit/visuels/halot-post-he.png"],
   ["🦘 Hoppy : vous demandez, on livre", "kit/visuels/courses-post-fr.png", "kit/visuels/courses-post-he.png"],
@@ -1556,8 +1557,7 @@ const KIT_PROMO_IMGS = [
   ["Toutes vos courses (story)", "kit/visuels/courses-story-fr.png", "kit/visuels/courses-story-he.png"],
   ["Nouveaux partenaires (story)", "kit/visuels/nouveaux-story-fr.png", "kit/visuels/nouveaux-story-he.png"],
   ["Nouveaux partenaires (carré)", "kit/visuels/nouveaux-post-fr.png", "kit/visuels/nouveaux-post-he.png"],
-  ["Clients : première course (story)", "kit/visuels/client-story-fr.png", "kit/visuels/client-story-he.png"],
-  ["Clients : première course (carré)", "kit/visuels/client-post-fr.png", "kit/visuels/client-post-he.png"]
+  ["Clients : première course (story)", "kit/visuels/client-story-fr.png", "kit/visuels/client-story-he.png"]
 ];
 const PROMO_CTA = { "": "Pas de bouton", order: "🛵 Commander maintenant", pro: "🍽️ Voir les commerces", shop: "🍽️ La carte d'un commerce", url: "🔗 Un lien" };
 const ctaLabel = c => !c ? PROMO_CTA[""] : c.startsWith("shop:") ? `🍽️ ${((shops.find(x => x.code === c.slice(5)) || {}).name || c.slice(5))}` : c.startsWith("url:") ? "🔗 " + c.slice(4) : PROMO_CTA[c] || c;
