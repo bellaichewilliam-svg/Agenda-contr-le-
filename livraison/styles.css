@@ -3698,3 +3698,28 @@ html.d2 .direct-tip::after { background: radial-gradient(circle, rgba(255, 106, 
 html.d2 .direct-tip .dt-soon { background: rgba(255, 106, 19, .14); color: #FFB37F; }
 @media (max-width: 370px) { .direct-tip { grid-template-columns: 1fr 64px; } .direct-tip .dt-hoppy { width: 64px; } }
 .direct-tip bdi { white-space: nowrap; }
+
+/* Lisible de phrase en phrase, partout : les lignes se coupent joliment (pas de mot tout seul en fin de paragraphe),
+   les titres s'équilibrent sur leurs lignes */
+body { text-wrap: pretty; overflow-wrap: break-word; }
+h1, h2, h3, h4, .rd-title, .st-title, .k2-card b, .direct-tip b, .modal h2, .modal h3, summary, legend { text-wrap: balance; }
+input, textarea, select, .btn { text-wrap: wrap; }
+/* Encadré « Hop, l'astuce ! » : une phrase par ligne */
+.direct-tip .dt-body > span { white-space: pre-line; }
+/* Hoppy (officiel, détouré) qui arrive en sautant : panier vide, commande envoyée */
+.hoppy-pop { display: block; width: 74px; height: auto; margin: 0 auto 6px; filter: drop-shadow(0 6px 10px rgba(15, 31, 61, .2)); animation: hoppy-in .7s cubic-bezier(.3, 1.6, .5, 1) both; transform-origin: 50% 100%; }
+@keyframes hoppy-in { 0% { transform: translateY(-40px) scale(.6); opacity: 0; } 60% { transform: translateY(4px) scale(1.04, .94); opacity: 1; } 100% { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .hoppy-pop { animation: none; } }
+
+/* Règle du patron : AUCUN texte coupé (pas de « … », pas de lignes cachées). Les textes vont à la ligne et se lisent en entier. */
+.addr-chip, .eta-bubble .eb-text > *, .ch-repeat small, .ch-go-price small, .add-name small, .pc-body small, .view-bar b,
+.sp-tabs button span, .adm-groups button span, .sc-tag, .pro-row .sc-body b, .sc-body small.sc-meta, .sc-story > b,
+.sc-lb b, .sc-lb small, .live-r small, .trk-pill-txt small, html.d2 #openBadge .ob-txt, html.d2 .pro-row .sc-body b {
+  white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; }
+.ct-info small, .cg-info small, .choices.compact .choice span small, .cg-tcard b, #pharmaBox .ph-cat span, html.d2 .k2-txt small {
+  display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; }
+.sc-story > b { max-width: 76px; line-height: 1.15; text-align: center; }
+/* « Et aussi » : le titre passe sous l'image, jamais derrière */
+html.d2 .xp-img { width: 54px; height: 54px; top: 8px; inset-inline-end: 8px; }
+html.d2 .xp b { margin-top: 50px; font-size: 19px; line-height: 1.15; overflow-wrap: normal; word-break: normal; hyphens: manual; }
+html.d2 .xp small { padding-inline-end: 34px; }

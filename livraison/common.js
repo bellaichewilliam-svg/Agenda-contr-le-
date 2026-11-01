@@ -13,7 +13,8 @@ function esc(s) {
 function loc() { return window.I18N && I18N.lang === "he" ? "he-IL" : "fr-FR"; }
 
 function money(n) {
-  return (Math.round(n * 100) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + " " + CONFIG.currency;
+  // Espace insécable : le montant et le ₪ ne sont jamais séparés en fin de ligne
+  return (Math.round(n * 100) / 100).toLocaleString("fr-FR", { maximumFractionDigits: 2 }) + "\u00A0" + CONFIG.currency;
 }
 
 function fmtTime(iso) {

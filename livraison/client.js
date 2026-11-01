@@ -4307,6 +4307,7 @@ function emptyCartSheet() {
   box.className = "modal item-sheet cart-sheet"; box.id = "emptyCart"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true");
   box.innerHTML = `<div class="modal-box">
       <button type="button" class="it-x" data-ec-close aria-label="✕">✕</button>
+      <img class="hoppy-pop" src="img/hoppy-mini.webp" alt="" width="74" height="120" decoding="async" />
       <h3 class="cs-title">${UI.esc(t("csEmptyT"))}</h3>
       <div class="cs-smart"><b class="cs-steps-t">${escHop(t("csSmartT"))}</b>
         <ol class="cs-steps"><li><i>1</i><span>${escHop(t("csStep1"))}</span></li><li><i>2</i><span>${escHop(t("csStep2"))}</span></li></ol></div>

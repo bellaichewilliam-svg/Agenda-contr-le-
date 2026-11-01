@@ -241,12 +241,12 @@ fr: {
   qSize_moyen: "Colis moyen", qSize_gros: "Gros colis", qExpress: "Express (moins d'une heure)", qPickup: "Retrait au point de collecte",
   qPurchaseShop: "🛍️ Achat en boutique par le livreur ({min} min sur place comprises, sans file d'attente)",
   qDirectT: "Psst… le petit secret HOP! 😉",
-  qDirectS: "Commandez directement au magasin (téléphone, site ou sur place), et on file la chercher pour vous : vous ne payez que la livraison, {price} 🧡",
+  qDirectS: "Commandez directement au magasin : par téléphone, sur son site ou sur place.\nOn file la chercher pour vous, et vous ne payez que la livraison : {price} 🧡",
   qDirectSoon: "✨ On branche un maximum de magasins sur HOP! : bientôt leurs catalogues ici, pour commander en un clic 🛍️",
   qDirectTag: "Hop, l'astuce !",
   qDirectBtn: "📦 Ma commande est prête · {price}", qDirectReadyNote: "Commande déjà prête au commerce, à récupérer à mon nom.",
   qDirectFlowT: "Un joli bouquet ? 💐",
-  qDirectFlowS: "Déjà commandé chez votre fleuriste ? On file le chercher, vous ne payez que la livraison : {price} 🧡 Sinon, on vous le fait composer avec amour (+5 ₪, 5 min sur place comprises).",
+  qDirectFlowS: "Déjà commandé chez votre fleuriste ?\nOn file le chercher : vous ne payez que la livraison, {price} 🧡\nSinon, on vous le fait composer avec amour : +5 ₪, avec 5 min sur place comprises.",
   qDirectFlowBtn: "💐 Mon bouquet est prêt · {price}",
   qPurchase: "🛒 Arrêt et achat par le livreur ({min} min sur place comprises)", qStops: "{n} arrêt(s) supplémentaire(s)",
   qStopOnWay: "Arrêt {n} sur le chemin (−{p} %)", qStopFull: "Arrêt {n} (pas sur le chemin)",
@@ -979,12 +979,12 @@ he: {
   qSize_moyen: "חבילה בינונית", qSize_gros: "חבילה גדולה", qExpress: "אקספרס (פחות משעה)", qPickup: "איסוף מנקודת איסוף",
   qPurchaseShop: "🛍️ קנייה בחנות ע״י השליח ({min} דק' במקום כלולות, בלי תור)",
   qDirectT: "פססט… הסוד הקטן של HOP! 😉",
-  qDirectS: "הזמינו ישירות מהחנות (טלפון, אתר או במקום), ואנחנו קופצים לאסוף בשבילכם: משלמים רק על המשלוח, {price} 🧡",
+  qDirectS: "הזמינו ישירות מהחנות: בטלפון, באתר או במקום.\nאנחנו קופצים לאסוף בשבילכם, ומשלמים רק על המשלוח: {price} 🧡",
   qDirectSoon: "✨ אנחנו מחברים כמה שיותר חנויות ל־HOP!: בקרוב הקטלוגים שלהן כאן, להזמנה בקליק 🛍️",
   qDirectTag: "הופ, טיפ!",
   qDirectBtn: "📦 ההזמנה שלי מוכנה · {price}", qDirectReadyNote: "ההזמנה כבר מוכנה בעסק, לאסוף על שמי.",
   qDirectFlowT: "זר פרחים יפה? 💐",
-  qDirectFlowS: "כבר הזמנתם אצל מוכר הפרחים? אנחנו קופצים לאסוף, משלמים רק על המשלוח: {price} 🧡 אחרת, נדאג שירכיבו לכם זר באהבה (\u2066+5 ₪\u2069, 5 דק' במקום כלולות).",
+  qDirectFlowS: "כבר הזמנתם אצל מוכר הפרחים?\nאנחנו קופצים לאסוף: משלמים רק על המשלוח, {price} 🧡\nאחרת, נדאג שירכיבו לכם זר באהבה: \u2066+5 ₪\u2069, כולל 5 דק' במקום.",
   qDirectFlowBtn: "💐 הזר שלי מוכן · {price}",
   qPurchase: "🛒 עצירה וקנייה ע״י השליח ({min} דק' במקום כלולות)", qStops: "{n} עצירות נוספות",
   qStopOnWay: "עצירה {n} בדרך (−{p}%)", qStopFull: "עצירה {n} (לא בדרך)",
@@ -1499,13 +1499,48 @@ function t(key, vars) {
   // Français : espace insécable avant ? ! : ; » et après « (le signe ne part jamais seul à la ligne)
   if (typeof s === "string" && (DICT[lang][key] == null || lang === "fr")) s = s.replace(/ ([?!:;»])/g, "\u00A0$1").replace(/« /g, "«\u00A0");
   if (vars && typeof s === "string") s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+  // Toutes langues : un nombre reste collé à son unité (25 ₪, 5 min, 3 km, 8 דק׳) : lisible de phrase en phrase
+  if (typeof s === "string") s = s.replace(/(\d) (₪|min\b|km\b|h\b|דק|ק״מ)/g, "$1\u00A0$2").replace(/\+ (\d)/g, "+\u00A0$1");
   return s;
+}
+
+// « HOP! » toujours dans le bon sens (jamais « !HOP » en hébreu) : isolé de gauche à droite partout où il apparaît
+const escHtml = v => String(v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function setText(el, s) {
+  if (typeof s === "string" && s.indexOf("HOP!") >= 0) el.innerHTML = escHtml(s).replace(/HOP!\u200E?/g, '<bdi dir="ltr">HOP!</bdi>');
+  else el.textContent = s;
+}
+// Filet de sécurité pour les textes écrits par les écrans (titres, onglets…) : on isole « HOP! » après coup
+function fixHop(root) {
+  const w = document.createTreeWalker(root || document.body, NodeFilter.SHOW_TEXT);
+  const list = []; let n;
+  while ((n = w.nextNode())) {
+    if (n.textContent.indexOf("HOP!") < 0) continue;
+    const p = n.parentElement;
+    if (!p || p.closest("script,style,textarea,input,bdi,[contenteditable],svg,title,option")) continue;
+    list.push(n);
+  }
+  list.forEach(n => {
+    const frag = document.createDocumentFragment();
+    n.textContent.split(/(HOP!\u200E?)/).forEach(part => {
+      if (/^HOP!/.test(part)) { const b = document.createElement("bdi"); b.dir = "ltr"; b.textContent = "HOP!"; frag.appendChild(b); }
+      else if (part) frag.appendChild(document.createTextNode(part));
+    });
+    n.parentNode.replaceChild(frag, n);
+  });
+}
+if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+  let queued = false;
+  const run = () => { queued = false; if (document.documentElement.lang === "he") fixHop(document.body); };
+  const mo = new MutationObserver(() => { if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(run); } });
+  const start = () => { if (document.body) { mo.observe(document.body, { childList: true, subtree: true, characterData: true }); run(); } };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
 }
 
 function apply() {
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
-  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n]").forEach(el => { setText(el, t(el.dataset.i18n)); });
   document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
 }
