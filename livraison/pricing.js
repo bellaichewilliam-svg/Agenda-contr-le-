@@ -215,7 +215,7 @@ async function geocode(address, countryCode, timeoutMs) {
 // Achat : « petit » (makolet / supermarché, cigarettes : rayons cfg.pricing.purchaseSmall) ou « boutique » (tout le reste).
 // opts.purchaseKind = genre du rayon choisi (null : achat libre dans un commerce = boutique)
 function purchaseTier(cfg, opts) {
-  const small = cfg.pricing.purchaseSmall || ["shop", "tabac"];
+  const small = cfg.pricing.purchaseSmall || ["shop", "tabac", "gift"];
   return opts.purchaseKind && small.includes(opts.purchaseKind) ? "petit" : "boutique";
 }
 
