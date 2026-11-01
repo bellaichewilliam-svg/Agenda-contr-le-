@@ -3983,3 +3983,15 @@ html.d2 .pro-row .sc-logo { top: calc((min(100vw, 430px) - 28px) / 2 * 9 / 16 - 
 .client-orders > summary::-webkit-details-marker { display: none; }
 .client-orders[open] > summary { margin-bottom: 10px; }
 .client-orders .orders { display: grid; gap: 10px; }
+/* Patron · Clients : deux listes séparées (clients / enseignes) */
+.cli-sec { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 18px 0 10px; font-size: 18px; }
+.cli-sec small { font-size: 13px; font-weight: 600; color: var(--muted); }
+/* Patron · Facturation : « Pour la comptable » */
+.compta-box { margin: 0 0 16px; padding: 16px; display: grid; gap: 10px; border: 2px solid var(--brand); }
+.compta-box h3 { font-size: 18px; margin: 0; }
+.compta-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.compta-grid > div { background: var(--bg-2); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; }
+.compta-grid small { color: var(--muted); font-weight: 600; font-size: 12px; }
+.compta-grid b { font-size: 18px; }
+@media (min-width: 700px) { .compta-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.compta-box .actions { display: flex; flex-wrap: wrap; gap: 8px; }
