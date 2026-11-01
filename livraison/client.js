@@ -3843,6 +3843,8 @@ async function openEns(catId) {
   }
   if (mine === ens.seq) renderEnsList();
 }
+// Le vrai logo d'un partenaire HOP! (celui de sa boutique), jamais un simple dessin
+const partnerLogo = x => (x && x.partner && x.code ? UI.safeImg(((state.showcase || []).find(s => s.code === x.code) || {}).logo) : "") || "";
 function renderEnsList() {
   const n = norm($("#ensFilter").value);
   ens.shown = ens.items.filter(x => !n || norm(x.name + " " + x.street).includes(n));
@@ -3858,7 +3860,7 @@ function renderEnsList() {
     const addr = [`${x.street} ${x.number}`.trim(), x.city ? cityLabel(cityIdOf(x.city) || x.city) : ""].filter(Boolean).join(", ");
     // Enseigne inscrite sur HOP! : on entre dans sa boutique (catalogue), en touchant la ligne ou le bouton
     return `<div class="ens-item${x.partner && x.code ? " ens-partner" : ""}"${x.partner && x.code ? ` data-ens-shop="${UI.esc(x.code)}"` : ""}>
-      <span class="ens-ico">${UI.dirLogo(x) ? `<img src="${UI.esc(UI.dirLogo(x))}" alt="" loading="lazy" />` : x.icon}</span>
+      <span class="ens-ico">${(lg => lg ? `<img src="${UI.esc(lg)}" alt="" loading="lazy" />` : x.icon)(partnerLogo(x) || UI.dirLogo(x))}</span>
       <div class="ens-main"><b>${UI.esc(UI.bi(x.name))}${x.partner ? ` <i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}</b>${x.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}
         <small>${UI.esc(addr || t("ensAddrLater"))} · ${dist(x)}</small></div>
       <div class="ens-act">${x.partner && x.code ? `<button type="button" class="btn btn-sm btn-primary" data-ens-shop="${UI.esc(x.code)}">${UI.esc(t("ensShop"))}</button>`
