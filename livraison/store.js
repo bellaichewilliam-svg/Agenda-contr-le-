@@ -2115,6 +2115,26 @@ const DEMO_PROMOS = [
   { id: "p2", title: "Première course dans Netanya à 15 ₪", image_fr: "kit/visuels/client-story-fr.png", image_he: "kit/visuels/client-story-he.png", cta: "order", active: true, position: 2 }
 ];
 const localPromos = () => readJSON("livraison.promos.v1", DEMO_PROMOS);
+// Paniers : le téléphone enregistre le sien (une ligne par téléphone) ; le patron voit les paniers laissés et relance
+async function cartSave(body) {
+  if (ONLINE) return rest("/rest/v1/rpc/cart_save", { method: "POST", body: { p_device: deviceId(), p: body } });
+  const all = readJSON("livraison.carts.v1", {});
+  const prev = all[deviceId()] || {};
+  all[deviceId()] = Object.assign({ device: deviceId(), created_at: new Date().toISOString(), remind_count: 0 }, prev,
+    { lang: body.lang, client_name: body.name || prev.client_name || null, client_phone: body.phone || prev.client_phone || null, kind: body.kind, shop_code: body.shop_code || null,
+      shop_name: body.shop_name || null, items: body.items, count: body.count, total: body.total, status: body.count ? (prev.status === "relance" ? "relance" : "actif") : "vide", updated_at: new Date().toISOString() });
+  writeJSON("livraison.carts.v1", all);
+}
+async function adminCarts() {
+  if (ONLINE) return (await authRest("/rest/v1/carts?select=*&status=neq.vide&order=updated_at.desc&limit=300")) || [];
+  return Object.values(readJSON("livraison.carts.v1", {})).filter(c => c.status !== "vide").sort((a, b) => String(b.updated_at).localeCompare(a.updated_at));
+}
+async function cartMark(device, changes) {
+  if (ONLINE) return authRest("/rest/v1/carts?device=eq." + encodeURIComponent(device), { method: "PATCH", body: changes, prefer: "return=minimal" });
+  const all = readJSON("livraison.carts.v1", {});
+  if (all[device]) Object.assign(all[device], changes);
+  writeJSON("livraison.carts.v1", all);
+}
 async function appPromos() {
   if (ONLINE) return (await rest("/rest/v1/rpc/app_promos_live", { method: "POST", body: {} })) || [];
   return localPromos().filter(p => p.active).sort((a, b) => a.position - b.position);
@@ -2381,7 +2401,7 @@ window.Store = {
   listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
-  appPromos, adminPromos, promoSave, promoDelete,
+  appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
