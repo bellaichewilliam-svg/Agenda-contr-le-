@@ -1006,7 +1006,13 @@ function renderQuote() {
   // L'essentiel visible ; la règle d'attente (longue) derrière « En savoir plus »
   const main = notes.filter(n => !n.startsWith(t("qWait").slice(0, 12))), more = notes.filter(n => !main.includes(n));
   // Vrai achat en boutique : le plus simple et le moins cher, c'est de commander en direct (on ne paie que la livraison)
-  const direct = boutiqueBuy() ? `<div class="direct-tip"><b>${UI.esc(t("qDirectT"))}</b><span>${escHop(t("qDirectS", { price: money(((q.lines || []).find(l => /^qBase/.test(l.key)) || { amount: CONFIG.pricing.base }).amount) }))}</span><span class="direct-soon">${escHop(t("qDirectSoon"))}</span></div>` : "";
+  // Fleurs : bouquet déjà commandé chez son fleuriste = simple retrait, au prix de la livraison
+  const flowers = val("service") === "achat" && !proShopOn() && purchaseKind() === "gift";
+  const ridePrice = money(((q.lines || []).find(l => /^qBase/.test(l.key)) || { amount: CONFIG.pricing.base }).amount);
+  const direct = boutiqueBuy() || flowers ? `<div class="direct-tip"><b>${UI.esc(t(flowers ? "qDirectFlowT" : "qDirectT"))}</b>
+    <span>${escHop(t(flowers ? "qDirectFlowS" : "qDirectS", { price: ridePrice }))}</span>
+    <button type="button" class="btn btn-sm direct-ready" data-direct-ready>${UI.esc(t(flowers ? "qDirectFlowBtn" : "qDirectBtn", { price: ridePrice }))}</button>
+    <span class="direct-soon">${escHop(t("qDirectSoon"))}</span></div>` : "";
   $("#quoteNote").innerHTML = `${direct}${UI.esc(main.join(" "))}${more.length ? ` <details class="q-more"${$("#quoteNote").querySelector("details[open]") ? " open" : ""}><summary>${UI.esc(t("qMore"))}</summary>${UI.esc(more.join(" "))}</details>` : ""}`;
   updateProgress();
   const err = scheduleError();
@@ -4278,7 +4284,20 @@ async function openStoredCart() {
 }
 // Panier vide : la marche à suivre quand le commerce n'est pas encore sur HOP! (commander chez lui, puis la livraison ici)
 // « HOP! » toujours lisible dans une phrase en hébreu
-const escHop = v => UI.esc(v).replace(/HOP!\u200E?/g, '<bdi dir="ltr">HOP!</bdi>');
+// « Ma commande est déjà prête » : on passe en simple retrait au commerce (prix de la livraison seule)
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-direct-ready]");
+  if (!b) return;
+  e.preventDefault();
+  form.elements.service.value = "colis";
+  syncVisibility();
+  renderQuote();
+  const f = form.pickup_address;
+  if (f) { f.scrollIntoView({ behavior: "smooth", block: "center" }); setTimeout(() => f.focus(), 350); }
+  const n = form.notes;
+  if (n && !n.value.trim()) n.value = t("qDirectReadyNote");
+});
+const escHop = v => UI.esc(v).replace(/HOP!\u200E?/g, '<bdi dir="ltr">HOP!</bdi>').replace(/\u2066([^\u2069]*)\u2069/g, '<bdi dir="ltr">$1</bdi>');
 function emptyCartSheet() {
   const old = $("#emptyCart"); if (old) old.remove();
   const box = document.createElement("div");

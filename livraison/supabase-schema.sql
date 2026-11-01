@@ -8466,3 +8466,5 @@ grant select, insert, update, delete on public.carts to authenticated;
 -- Achats (01/11/2026), migration « achat_boutique_8 » : makolet / supermarché et cigarettes = 5 ₪, 5 min sur place comprises
 -- (settings.purchase_min) ; vrai achat en boutique (vêtements, sandwich pas commandé, pharmacie, boulangerie, cadeaux…) = 8 ₪,
 -- 8 min comprises (settings.purchase_min_shop = 8, orders_purchase_min) ; au-delà, l'attente annoncée avec photo.
+-- Fleuriste (01/11/2026) : faire composer un bouquet = petit achat (5 ₪, 5 min comprises) ; bouquet déjà commandé et prêt
+-- = simple retrait (prix de la livraison seule, bouton « déjà prête » du devis). Rien à changer dans la base.

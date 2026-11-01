@@ -3674,3 +3674,4 @@ html.d2 .item-art.k2-art img { width: 100% !important; height: 100% !important; 
 .direct-tip span { font-size: 13.5px; line-height: 1.4; }
 .direct-tip .direct-soon { font-weight: 700; color: #FF6A13; }
 html.d2 .direct-tip { background: rgba(255, 106, 19, .14); color: #fff; }
+.direct-tip .direct-ready { justify-self: start; margin: 4px 0 2px; white-space: normal; text-align: start; font-weight: 700; }
