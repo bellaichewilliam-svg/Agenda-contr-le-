@@ -404,6 +404,10 @@ function nextOpenDate(st, from) {
   return d;
 }
 const artImg = (k, h) => `<span class="item-art" style="--h:${h}"><img src="img/items/${k}.webp" alt="" loading="lazy" /></span>`;
+// Catégorie (pharmacie, colis…) : avec le nouveau design (html.d2), l'icône 3D du kit, sinon l'illustration habituelle
+const K2_CAT = ["pharm", "tabac", "bakery", "shop", "baby", "pets", "home", "gift", "pressing", "poste", "resto", "docs", "yad2", "keys", "ta"];
+const catImg = (id, k, h) => document.documentElement.classList.contains("d2") && K2_CAT.includes(id)
+  ? `<span class="item-art k2-art"><img src="img/k2/i-${id}.webp" alt="" loading="lazy" /></span>` : artImg(k, h);
 
 // Article sans photo : une illustration qui lui ressemble (pressing, boulangerie, restaurant…) sur un fond coloré
 const ITEM_ART = [
@@ -910,7 +914,7 @@ function routeLayer(a, b, opts) {
 
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  track, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
+  track, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

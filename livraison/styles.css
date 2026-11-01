@@ -3438,8 +3438,30 @@ html.d2 .topbar .nav a { color: #fff; }
 html.d2 .topbar .lang-btn { background: #fff; color: #0F1F3D; font-weight: 800; border-radius: 999px; min-height: 40px; padding: 0 16px; }
 html.d2 .view-bar { background: #0B1830; color: #fff; }
 
-html.d2 .ch { --panel: #13233F; --ink: #F3F6FC; --muted: #A9B6CF; --border: rgba(255,255,255,.1); --bg: #172A4B; --bg-2: #1C3157; --brand-soft: rgba(255,106,19,.16);
-  background: #0B1830; color: var(--ink); }
+/* Toutes les pages du client : mêmes couleurs que la maquette (variables du site redéfinies) */
+html.d2 { color-scheme: dark; --bg: #0B1830; --bg-2: #172A4B; --panel: #13233F; --ink: #F3F6FC; --muted: #A9B6CF; --subtle: #7E8EAE; --border: #26395E;
+  --brand-soft: #3A2414; --brand-ink: #FFB27F; --green-soft: #0F3324; --green-ink: #6CE9A6; --blue-soft: #10294A; --blue-ink: #84CAFF;
+  --amber-soft: #3A2A0B; --amber-ink: #FEC84B; --red-soft: #3D1513; --shadow: 0 1px 2px rgba(0,0,0,.3), 0 8px 22px rgba(0,0,0,.28); }
+html.d2 .ch { --bg: #172A4B; --bg-2: #1C3157; }
+html.d2 body { background: #0B1830; }
+html.d2 .topbar { background: #0B1830; color: #fff; border-bottom: 0; box-shadow: none; }
+html.d2 .topbar .logo, html.d2 .topbar .logo-name { color: #fff; }
+html.d2 .topbar-c .wordmark b { color: #fff; font-size: 36px; }
+html.d2 .topbar-c .wordmark b i { color: var(--brand); }
+html.d2 .topbar-c .tb-profile { color: #fff; padding: 4px; }
+html.d2 .topbar-c .tb-profile span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+html.d2 .topbar-c .tb-profile:hover { background: rgba(255,255,255,.06); }
+html.d2 .tb-ava { width: 42px; height: 42px; padding: 10px; background: #16284A; fill: var(--brand); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+html.d2 .topbar .nav-rider { width: 42px; height: 42px; display: inline-grid; place-items: center; border-radius: 50%; background: #16284A; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); font-size: 20px; }
+html.d2 .topbar .nav a { color: #fff; }
+html.d2 .topbar .lang-btn { background: #fff; color: #0F1F3D; font-weight: 800; border-radius: 999px; min-height: 40px; padding: 0 16px; }
+html.d2 .view-bar { background: #0B1830; color: #fff; }
+
+/* Toutes les pages du client : mêmes couleurs que la maquette (variables du site redéfinies) */
+html.d2 { --panel: #13233F; --ink: #F3F6FC; --muted: #A9B6CF; --subtle: #8293B3; --border: rgba(255,255,255,.1); --bg: #172A4B; --bg-2: #1C3157; --brand-soft: rgba(255,106,19,.16);
+  --green-soft: rgba(18,183,106,.14); --green-ink: #6CE9A6; --amber-soft: rgba(253,176,34,.14); --amber-ink: #FEC84B; --red-soft: rgba(240,68,56,.14); color-scheme: dark; }
+html.d2 body { background: #0B1830; color: var(--ink); }
+html.d2 .ch { background: #0B1830; color: var(--ink); }
 html.d2 .ch-sheet { background: #0F1D36; box-shadow: 0 -10px 40px rgba(0,0,0,.45); gap: 14px; }
 html.d2 .ch-grip i { background: rgba(255,255,255,.25); }
 html.d2 .ch-hello { color: var(--muted); font-size: 16px; }
@@ -3583,16 +3605,12 @@ html.d2 .topbar .nav { gap: 8px; }
 .cart-toast { position: fixed; z-index: 95; left: 50%; bottom: calc(110px + env(safe-area-inset-bottom)); transform: translateX(-50%); background: #0F1F3D; color: #fff; font-weight: 700; padding: 12px 18px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.35); transition: opacity .3s; }
 .cart-toast.out { opacity: 0; }
 
-/* « Nos livreurs sont indisponibles » : carte sur la carte, avec « Programmer une course » (comme la maquette) */
-html.d2 .ch-top { inset-inline: 16px; max-width: none; align-items: stretch; }
-html.d2 #openBadge.closed { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 14px; border-radius: 22px; background: rgba(15,29,54,.94); border: 1px solid rgba(255,255,255,.12); white-space: normal; text-align: start; box-shadow: 0 10px 28px rgba(0,0,0,.4); }
-html.d2 #openBadge.closed > i { font-style: normal; font-size: 28px; flex: none; }
-html.d2 #openBadge .ob-txt { flex: 1; min-width: 0; display: grid; gap: 3px; }
-html.d2 #openBadge .ob-txt b { font-size: 15.5px; color: #fff; line-height: 1.2; }
-html.d2 #openBadge .ob-txt b span { color: var(--brand); }
-html.d2 #openBadge .ob-txt small { font-size: 13px; color: #B6C2DA; line-height: 1.3; font-weight: 500; }
-html.d2 .ob-plan { flex: none; display: inline-flex; align-items: center; gap: 8px; max-width: 46%; padding: 10px 12px; border: 0; border-radius: 16px; background: var(--brand); color: #fff; font: 800 14px/1.15 Rubik, sans-serif; text-align: start; cursor: pointer; box-shadow: 0 6px 16px rgba(255,106,19,.35); }
-html.d2 .ob-plan svg, html.d2 .ob-plan img { width: 22px; height: 22px; flex: none; }
+/* « Livreurs indisponibles » : fine pastille d'une ligne en haut de la carte (la carte reste dégagée) */
+html.d2 .ch-top { inset-inline-end: 16px; align-items: flex-end; }
+html.d2 #openBadge.closed { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 4px 0 14px; border-radius: 99px; background: rgba(15,29,54,.9); border: 1px solid rgba(255,255,255,.14); color: #fff; font-size: 13.5px; font-weight: 700; white-space: nowrap; box-shadow: 0 6px 18px rgba(0,0,0,.3); backdrop-filter: blur(6px); }
+html.d2 #openBadge.closed::before { display: none; }
+html.d2 #openBadge .ob-txt { overflow: hidden; text-overflow: ellipsis; }
+html.d2 .ob-plan { flex: none; height: 30px; padding: 0 12px; border: 0; border-radius: 99px; background: var(--brand); color: #fff; font: 800 13px/30px Rubik, sans-serif; cursor: pointer; }
 html.d2 #homeWhen.flash { animation: whenFlash 1.2s ease; border-radius: 16px; }
 @keyframes whenFlash { 0%, 100% { box-shadow: none; } 30% { box-shadow: 0 0 0 3px var(--brand); } }
 
@@ -3603,8 +3621,6 @@ html.d2 .ch-mapbtn .mb-map { width: 28px; height: 28px; color: #fff; flex: none;
 html.d2 .ch-mapbtn b { font-size: 18px; font-weight: 800; }
 html.d2 .ch-mapbtn .mb-go { margin-inline-start: auto; font-size: 26px; }
 html.d2 .ch.map-open .ch-mapbtn { background: #13233F; }
-html.d2 #openBadge.closed::before { display: none; }
-html.d2 .ob-plan { max-width: 42%; font-size: 13.5px; }
 @media (max-width: 860px) { html.d2 .ch-zoom { top: calc(var(--mapH) - 180px); } }
 @media (max-width: 860px) {
   html.d2 .ch { --mapH: max(46vh, 300px); }
@@ -3612,3 +3628,16 @@ html.d2 .ob-plan { max-width: 42%; font-size: 13.5px; }
   html.d2 .ch-zoom { top: calc(var(--mapH) - 204px); }
   html.d2 .ch-locate { top: calc(var(--mapH) - 104px); }
 }
+
+/* Panier : la marche à suivre (commerce sans paiement en ligne, ou panier vide) */
+.cs-note .cs-steps-t, .cs-smart .cs-steps-t { display: block; font-size: 15px; color: var(--ink); margin-bottom: 6px; text-align: start; }
+.cs-smart { text-align: start; background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+.cs-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; text-align: start; }
+.cs-steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--ink); line-height: 1.35; }
+.cs-steps i { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff; font: 800 13px/26px Rubik, sans-serif; font-style: normal; text-align: center; }
+.cs-call { margin-top: 10px; width: 100%; }
+#emptyCart .cs-btns .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+#emptyCart .k2-scoot { width: 28px; height: 21px; }
+/* Icônes 3D du kit partout (nouveau design) : même cadre bleu que l'accueil */
+html.d2 .item-art.k2-art { background: #0A2646 !important; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,.13); }
+html.d2 .item-art.k2-art img { width: 100% !important; height: 100% !important; object-fit: cover; }

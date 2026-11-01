@@ -20,6 +20,16 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - Toujours **français + hébreu** (l'hébreu bien visible : gras, assez grand), droite à gauche correct (`HOP!` isolé en LTR).
 - Pages et visuels **niveau pro**, jamais amateur ; textes jamais coupés (tester 360–412 px, FR et HE).
 
+## Charte du nouveau design (maquette validée par le patron, kit `HOP_kit_pour_Claude`)
+- **Toujours suivre la maquette au millimètre** : `references/maquette-inspiration.png`, `modele-encarts-valide.png`, `proposition-carte-recherche.png`, `proposition-partenaires-bas.png`. Même tailles, mêmes fonds, mêmes couleurs, mêmes icônes. Comparer avec des captures avant de montrer.
+- **Rendu homogène sur toutes les pages client** (accueil, commande, commerce, mes courses, tarifs, suivi, « ce qu'on livre », bienvenue) : fond bleu nuit `#0B1830`, cartes `#13233F`, champs `#172A4B`, textes blancs, orange `#FF6A13` pour l'action. Activé par `html.d2` (aperçu `?design=2`) jusqu'à validation « valide » du patron, puis pour tous.
+- **Épuré** : rien de gros par-dessus la carte (une fine pastille d'une ligne au plus, ex. « 😴 Livreurs indisponibles · Programmer »). La carte doit respirer.
+- **Icônes** : les icônes 3D du kit (`livraison/img/k2/i-*.webp`), même cadre bleu arrondi, 4 visibles par ligne sur l'accueil. Catégorie partout = `UI.catImg()`.
+- **Grands encarts** : fonds officiels `fonds-encarts.css` (`.hop-fond-*`), objet en bas à droite fondu dans la carte, « ✨ NOUVEAU », titre gras, bouton blanc « Découvrir ».
+- **Commerces** : 2 cartes par ligne, photo + vrai logo, pastille catégorie + cœur, « ● Fermé · ouvre à … » sous le nom, bouton « Programmer » ; jamais de grand bandeau sur la photo.
+- **Barre du haut** : profil (rond), logo HOP!, panier (rond, pastille orange = nombre d'articles), livreur, langue. **Commander** : bouton orange avec le petit scooter + vrai prix.
+- **Panier** : gardé 7 jours, visible du patron (onglet 🛒 Paniers, relance WhatsApp). Commerce sans paiement en ligne ou panier vide : guider « 1. commandez au commerce · 2. revenez sur HOP! pour la livraison ».
+
 ## Interdits et règles
 - **Ne jamais citer de concurrent** par son nom (dire « une autre appli », « les grandes plateformes »).
 - **Pas de durée chiffrée** de livraison (pas de « 18 min ») : dire « au plus vite », « votre plat arrive chaud ».

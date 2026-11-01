@@ -2499,7 +2499,14 @@ function renderCart() {
       <span class="it-qty cs-qty"><button type="button" data-cs-minus="${UI.esc(p.id)}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${UI.esc(p.id)}" aria-label="+">+</button></span></div>`;
   }).join("");
   $("#cartSum").textContent = money(cartTotal());
-  $("#cartNote").textContent = t(shopPrepay() ? "csNotePrepay" : "csNote", { name: state.shop ? UI.bi(state.shop.name) : "" });
+  const nm = state.shop ? shopShortName() : "";
+  if (state.shop && !state.shop.pay_link && !state.shop.pay_bit) {
+    // Pas de paiement en ligne chez ce commerce : on commande d'abord chez lui, puis HOP! va chercher la commande
+    const tel = String(state.shop.phone || state.shop.whatsapp || "").split(/[;,]/)[0].replace(/[^\d+]/g, "");
+    $("#cartNote").innerHTML = `<b class="cs-steps-t">${escHop(t("csNoPayT", { name: nm }))}</b>
+      <ol class="cs-steps"><li><i>1</i><span>${UI.esc(t("csNoPay1", { name: nm }))}</span></li><li><i>2</i><span>${escHop(t("csNoPay2"))}</span></li></ol>
+      ${tel ? `<a class="btn btn-ghost cs-call" href="tel:${UI.esc(tel)}">📞 ${UI.esc(t("csCall", { name: nm }))}</a>` : ""}`;
+  } else $("#cartNote").textContent = t(shopPrepay() ? "csNotePrepay" : "csNote", { name: state.shop ? UI.bi(state.shop.name) : "" });
 }
 $("#cartSheet").addEventListener("click", e => {
   if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) return $("#cartSheet").classList.add("hidden");
@@ -2840,12 +2847,10 @@ function renderOpenBadge() {
     : online ? "allBusy" : "allOff";
   const txt = t(key);
   if (D2 && !open) {
-    // Comme la maquette : « 😴 Nos livreurs sont indisponibles » + l'explication + « Programmer une course »
-    const short = key === "allOff" ? `😴 ${t("k2OffT")} · ${t("k2OffS")}` : txt;
-    const [head, ...rest] = short.split(" · "), m = head.match(/^(\P{L}*)\s*(.*)$/u) || ["", "", head];
-    const title = UI.esc(m[2]).replace(/(déconnectés|indisponibles|occupés|en course|fermé|fermés|לא זמינים|לא מחוברים|עסוקים|תפוסים|סגור|סגורים)/, "<span>$1</span>");
-    $("#openBadge").innerHTML = `<i aria-hidden="true">${UI.esc(m[1].trim() || "😴")}</i><span class="ob-txt"><b>${title}</b>${rest.length ? `<small>${UI.esc(rest.join(" · ").replace(/^./, c => c.toUpperCase()))}</small>` : ""}</span>
-      <button type="button" class="ob-plan" data-ob-plan>${UI.calIcon ? UI.calIcon() : "📅"} <span>${UI.esc(t("k2Plan"))}</span></button>`;
+    // Nouveau design : une fine pastille sur une ligne (la carte reste dégagée) + « Programmer »
+    const short = (t("k2Short") || {})[key] || txt.split(" · ")[0];
+    $("#openBadge").innerHTML = `<span class="ob-txt">${UI.esc(short)}</span><button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>`;
+    $("#openBadge").title = txt;
   } else $("#openBadge").textContent = txt;
   $("#openBadge").classList.toggle("closed", !open);
   return open;
@@ -4236,7 +4241,7 @@ function renderCartIcon() {
 // Toucher le panier : on retrouve ses articles là où il les avait mis
 async function openStoredCart() {
   const c = cartStored();
-  if (!c) { toastCart(t("cartEmpty")); return; }
+  if (!c) { emptyCartSheet(); return; }
   if (c.shop) {
     if (!state.shop || state.shop.code !== c.shop.code) { state.shopDir = c.shop.dir || ""; await loadShop(c.shop.code, true); }
     const ids = cgProducts().map(p => p.id);
@@ -4249,6 +4254,27 @@ async function openStoredCart() {
   state.pharma = Object.assign({}, c.pharma || {}); state.pharmaOpt = Object.assign({}, c.pharmaOpt || {});
   if (c.homeKind) { state.homeKind = null; applyKind(c.homeKind); }
   goPharma();
+}
+// Panier vide : la marche à suivre quand le commerce n'est pas encore sur HOP! (commander chez lui, puis la livraison ici)
+// « HOP! » toujours lisible dans une phrase en hébreu
+const escHop = v => UI.esc(v).replace(/HOP!\u200E?/g, '<bdi dir="ltr">HOP!</bdi>');
+function emptyCartSheet() {
+  const old = $("#emptyCart"); if (old) old.remove();
+  const box = document.createElement("div");
+  box.className = "modal item-sheet cart-sheet"; box.id = "emptyCart"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true");
+  box.innerHTML = `<div class="modal-box">
+      <button type="button" class="it-x" data-ec-close aria-label="✕">✕</button>
+      <h3 class="cs-title">${UI.esc(t("csEmptyT"))}</h3>
+      <div class="cs-smart"><b class="cs-steps-t">${escHop(t("csSmartT"))}</b>
+        <ol class="cs-steps"><li><i>1</i><span>${escHop(t("csStep1"))}</span></li><li><i>2</i><span>${escHop(t("csStep2"))}</span></li></ol></div>
+      <div class="cs-btns"><button type="button" class="btn btn-primary btn-lg" data-ec-start>${D2 ? SCOOT_SVG : "🛵"} <span>${UI.esc(t("csStart"))}</span></button>
+        <button type="button" class="btn btn-link" data-ec-shops>${UI.esc(t("csShops"))} ›</button></div></div>`;
+  box.addEventListener("click", e => {
+    if (e.target === box || e.target.closest("[data-ec-close]")) return box.remove();
+    if (e.target.closest("[data-ec-start]")) { box.remove(); if (document.body.dataset.view !== "home") location.hash = "#accueil"; setTimeout(() => { const i = $("#homeFrom"); if (i) { i.scrollIntoView({ block: "center", behavior: "smooth" }); i.focus({ preventScroll: true }); } }, 250); }
+    if (e.target.closest("[data-ec-shops]")) { box.remove(); if (document.body.dataset.view !== "home") location.hash = "#accueil"; setTimeout(() => { const b = $("#homeProBox"); if (b) b.scrollIntoView({ block: "start", behavior: "smooth" }); }, 250); }
+  });
+  document.body.appendChild(box);
 }
 function toastCart(msg) {
   const d = document.createElement("div");
