@@ -447,6 +447,9 @@ const CAPS = {
   nouveaux: {
     fr: `🆕 Nouveaux partenaires sur HOP! : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush…\nLeur carte est dans l'appli : commandez en 1 minute, suivez le livreur en direct.\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🆕 שותפים חדשים ב-HOP!: נינה סושי, פריז טקסס, סמאש איט, השוק הצרפתי, פיצה קראש…\nהתפריט שלהם באפליקציה: מזמינים בדקה, עוקבים אחרי השליח בזמן אמת.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+  client: {
+    fr: `🎁 Et hop, c'est livré ! Votre première course à Netanya : ${welcome} au lieu de ${delFr}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute (code BIENVENUE) : ${APP_URL}\n${TAGS.fr}`,
+    he: `🎁 והופ, זה מגיע! המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה (קוד BRUCHIM): ${APP_URL}?lang=he\n${TAGS.he}` },
   adopte: {
     fr: `💸 Arrête de payer plus cher. Adopte HOP!\nLe prix du resto, une livraison à prix fixe, 0 frais de service. Et ton plat arrive chaud.\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `💸 די לשלם יותר. עוברים ל-HOP!\nמחיר המסעדה, משלוח במחיר קבוע, 0 ₪ דמי שירות. והאוכל מגיע חם.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
