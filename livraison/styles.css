@@ -3995,3 +3995,7 @@ html.d2 .pro-row .sc-logo { top: calc((min(100vw, 430px) - 28px) / 2 * 9 / 16 - 
 .compta-grid b { font-size: 18px; }
 @media (min-width: 700px) { .compta-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .compta-box .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* Espace patron · « Je prends des commandes » : lisible en clair comme en sombre (téléphone en mode sombre) */
+.boss-first .boss-only { color: var(--ink); }
+.zones-row .chip { background: var(--panel); color: var(--ink); border-color: var(--border); }
+.zones-row .chip.on { background: var(--green-soft); color: var(--green-ink); border-color: var(--green, #12B76A); }
