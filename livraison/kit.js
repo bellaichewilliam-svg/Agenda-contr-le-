@@ -456,6 +456,9 @@ const CAPS = {
   "hoppy-histoire": {
     fr: `🦘 Une envie ? Et hop, livré !\nVos courses, vos boutiques préférées, des fleurs, un repas, la pharmacie, un colis… Vous commandez, Hoppy arrive. Vous profitez, on vous livre.\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Découvrez HOP! : ${APP_URL}\n${TAGS.fr}`,
     he: `🦘 בא לכם משהו? והופ! זה מגיע.\nקניות, החנויות שאתם אוהבים, פרחים, אוכל, פארם, חבילות… אתם מזמינים, הופי כבר בדרך. אתם נהנים, אנחנו מגיעים.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 גלו את HOP!: ${APP_URL}?lang=he\n${TAGS.he}` },
+  "hoppy-porte": {
+    fr: `📦 Colis, médicaments, petites courses ? HOP! vous les apporte.\nOn récupère pour vous à la poste, à la pharmacie ou au magasin, et on vous livre à la porte.\nPratique pour vous… et pour vos parents : commandez pour eux, ils sont livrés chez eux.\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `📦 חבילות, תרופות וקניות קטנות? HOP! מביאים עד אליכם.\nאוספים בשבילכם מהדואר, מבית המרקחת או מהחנות, ומביאים עד הדלת.\nנוח לכם… וגם להורים: מזמינים בשבילם, והם מקבלים עד הבית.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   "hoppy-boutique": {
     fr: `🛍️ Repéré en boutique ? HOP! vous le livre.\nUne veste, des chaussures, un cadeau… Dites-nous quoi et où : on l'achète au prix du magasin et on vous l'apporte, partout à Netanya.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais de service\n👉 ${APP_URL}\n${TAGS.fr} #shopping`,
     he: `🛍️ מצאתם משהו בחנות? HOP! מביאים עד אליכם.\nז׳קט, נעליים, מתנה… ספרו לנו מה ואיפה: קונים במחיר החנות ומביאים לכם, בכל נתניה.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 0 ₪ דמי שירות\n👈 ${APP_URL}?lang=he\n${TAGS.he} #קניות` },
@@ -487,6 +490,7 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
+  { id: "hoppy-porte", aud: "client", isNew: true, thumb: "post", title: "📦 Colis, médicaments, petites courses ? HOP! vous les apporte.", desc: "Hoppy livre une voisine à sa porte : idéal pour parler aux familles et aux personnes âgées. FR et HE.", formats: ["post"] },
   { id: "hoppy-boutique", aud: "client", isNew: true, thumb: "post", title: "🛍️ Repéré en boutique ? HOP! vous le livre.", desc: "Hoppy en mode shopping : l'article vu en magasin, livré chez vous. FR et HE.", formats: ["post"] },
   { id: "hoppy-envie", aud: "client", isNew: true, thumb: "post", title: "🎉 Une envie ? Et hop !", desc: "Hoppy jaillit du sac HOP! avec courses, plat, fleurs et colis. En hébreu pour l'instant (la version française arrive).", formats: ["post"] },
   { id: "hoppy-telephone", aud: "client", isNew: true, thumb: "post", title: "📱 De votre téléphone à votre porte. Et hop !", desc: "Hoppy sort du téléphone avec fleurs, courses, colis, pharmacie et plat. En hébreu pour l'instant (la version française arrive).", formats: ["post"] },
