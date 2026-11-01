@@ -1545,6 +1545,7 @@ function clientCount(days) {
 }
 // Visuels du kit pub proposés pour les pubs de l'appli (format story, FR et HE)
 const KIT_PROMO_IMGS = [
+  ["🦘 Hoppy : vous pensez à quoi ?", "kit/visuels/hoppy-pensez-post-fr.png", "kit/visuels/hoppy-pensez-post-he.png"],
   ["🦘 Hoppy : première course à 15 ₪", "kit/visuels/client-post-fr.png", "kit/visuels/client-post-he.png"],
   ["🦘 Hoppy : nouveaux commerces chaque semaine", "kit/visuels/visite-post-fr.png", "kit/visuels/visite-post-he.png"],
   ["🦘 Hoppy : vos hallot pour Chabbat", "kit/visuels/halot-post-fr.png", "kit/visuels/halot-post-he.png"],

@@ -450,6 +450,12 @@ const CAPS = {
   client: {
     fr: `🎁 Et hop, c'est livré ! Votre première course à Netanya : ${welcome} au lieu de ${delFr}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute (code BIENVENUE) : ${APP_URL}\n${TAGS.fr}`,
     he: `🎁 והופ, זה מגיע! המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה (קוד BRUCHIM): ${APP_URL}?lang=he\n${TAGS.he}` },
+  "hoppy-pensez": {
+    fr: `💭 Vous pensez à quoi ?\nUn bon plat, vos courses, un bouquet, un colis, la pharmacie… Hoppy vous l'apporte !\n🛵 Partout à Netanya, livré au plus vite\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Dites-nous ce qu'il vous faut : ${livre}\n${TAGS.fr}`,
+    he: `💭 על מה חשבתם?\nאוכל טוב, קניות, זר פרחים, חבילה, פארם… הופי מביא לכם!\n🛵 בכל נתניה, הכי מהר\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ספרו לנו מה צריך: ${livreHe}\n${TAGS.he}` },
+  "hoppy-repos": {
+    fr: `😌 Vous, vous restez tranquille.\nCourses, colis, pharmacie, resto : Hoppy fait les allers-retours à votre place.\nIl ne vous reste plus qu'à souffler.\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `😌 אתם נשארים רגועים.\nקניות, חבילות, פארם, מסעדה: הופי רץ הלוך וחזור במקומכם.\nנשאר לכם רק לנשום עמוק.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   adopte: {
     fr: `💸 Arrête de payer plus cher. Adopte HOP!\nLe prix du resto, une livraison à prix fixe, 0 frais de service. Et ton plat arrive chaud.\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `💸 די לשלם יותר. עוברים ל-HOP!\nמחיר המסעדה, משלוח במחיר קבוע, 0 ₪ דמי שירות. והאוכל מגיע חם.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -466,6 +472,8 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
+  { id: "hoppy-pensez", aud: "client", isNew: true, thumb: "post", title: "💭 Vous pensez à quoi ? Hoppy vous l'apporte !", desc: "Post carré : plat, courses, fleurs, colis, pharmacie… tout ce qu'on a en tête, Hoppy l'apporte.", formats: ["post"] },
+  { id: "hoppy-repos", aud: "client", isNew: true, thumb: "post", title: "😌 Hoppy souffle : vous, restez tranquille", desc: "Post carré sans texte (le même en FR et HE) : le message est dans la légende. Idéal en fin de semaine.", formats: ["post"] },
   { id: "hoppy-magasins", aud: "client", isNew: true, thumb: "post", title: "🛍️ Hoppy va dans vos magasins préférés", desc: "Vêtements, chaussures, cadeaux, déco… Hoppy vous les rapporte.", formats: ["post"] },
   { id: "hoppy-fleurs", aud: "client", isNew: true, thumb: "post", title: "💐 Hoppy livre aussi vos fleurs", desc: "Anniversaire, Chabbat ou juste pour dire merci : Hoppy arrive avec le bouquet. Le modèle de style pour tous les visuels réseaux.", formats: ["post"] },
   { id: "hoppy", aud: "client", isNew: true, title: "🦘 Notre mascotte : Hoppy (הופי)", thumb: "fiche", desc: "Le kangourou HOP! : l'image officielle (à joindre à ChatGPT pour chaque nouveau visuel, voir le prompt dans video/HOPPY.md) et Hoppy sans fond.", formats: ["fiche", "detoure"] },
