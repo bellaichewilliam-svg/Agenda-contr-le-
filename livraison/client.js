@@ -432,13 +432,15 @@ function validatePromo(raw) {
   return { promo: null, msg: t("promoBad"), bad: true };
 }
 
-function refuseWelcome() {
+function refuseWelcome(kind) {
   state.promo = null;
-  $("#promoMsg").textContent = t("errWelcomeUsed");
+  // Même bureau / même maison (même porte) déjà livré avec l'offre : on le dit gentiment, avec une astuce
+  const msg = (kind && (t("errWelcomeAddr") || {})[kind]) || t("errWelcomeUsed");
+  $("#promoMsg").textContent = msg;
   $("#promoMsg").className = "promo-msg bad";
   renderQuote();
   renderQuick();
-  showError(t("errWelcomeUsed"));
+  showError(msg);
 }
 
 function applyPromo() {
@@ -1976,7 +1978,7 @@ async function submit(e) {
     renderSavedAddrs();
     await loadMine();
   } catch (ex) {
-    if (/welcome_used/.test(ex.message)) { state.welcomeUsed = true; refuseWelcome(); return; }
+    if (/welcome_used/.test(ex.message)) { state.welcomeUsed = true; refuseWelcome((String(ex.message).match(/welcome_used_addr:(\w+)/) || [])[1]); return; }
     if (/carnet_/.test(ex.message)) { if (state.pro) state.pro.credits = 0; syncVisibility(); return showError(t("errCarnet")); }
     if (/cash_max/.test(ex.message)) return showError(t("errCashMax", { max: money(cashMax()) }));
     if (/cash_first/.test(ex.message)) return showError(t("errCashFirst"));

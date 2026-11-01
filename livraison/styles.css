@@ -3644,3 +3644,13 @@ html.d2 .item-art.k2-art img { width: 100% !important; height: 100% !important; 
 .kit-chan { flex-basis: 100%; display: grid; gap: 4px; }
 .kit-chan small { color: var(--muted); font-weight: 600; }
 #kitChan { flex-wrap: wrap; }
+
+/* Course donnée par le patron : le livreur confirme « Je la ferai » / « Je ne peux pas » */
+.give-ask { margin: 8px 0; padding: 12px; border-radius: 14px; background: rgba(255,106,19,.12); border: 2px solid #FF6A13; display: flex; flex-direction: column; gap: 4px; }
+.give-ask b { font-size: 16px; }
+.give-ask span { font-size: 14px; opacity: .85; }
+.give-btns { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.give-btns .btn { flex: 1 1 140px; min-height: 44px; font-weight: 700; }
+.pill.give-wait { background: #fff3e0; color: #8a4b00; }
+.pill.give-ok { background: #e3f6e8; color: #1b6b34; }
+.pill.give-no { background: #fde7e7; color: #9b1c1c; }
