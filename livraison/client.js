@@ -154,7 +154,7 @@ function renderStatic() {
   $("#offers").innerHTML = `
     <div class="card offer hot"><div class="ico">🎁</div><h3>${UI.esc(t("offWelcome_t", { price: money(welcomePrice()) }))}</h3><p>${UI.esc(t("offWelcome_d", { amount: money(PROMOS.codes.BIENVENUE.amount) }))}</p></div>
     <div class="card offer"><div class="ico">🤝</div><h3>${t("offRef_t")}</h3><p>${UI.esc(t("offRef_d", { amount: money(PROMOS.referral.amount) }))}</p></div>
-    <div class="card offer"><div class="ico">⭐</div><h3>${t("offLoyal_t")}</h3><p>${UI.esc(t("offLoyal_d", { every: PROMOS.loyalty.every, max: money(PROMOS.loyalty.max) }))}</p></div>
+    ${PROMOS.loyalty.on ? `<div class="card offer"><div class="ico">⭐</div><h3>${t("offLoyal_t")}</h3><p>${UI.esc(t("offLoyal_d", { every: PROMOS.loyalty.every, max: money(PROMOS.loyalty.max) }))}</p></div>` : ""}
     <div class="card offer"><div class="ico">🏢</div><h3>${t("offPro_t")}</h3><ul class="pro-list">${pro}</ul>
       <button type="button" class="btn btn-sm btn-primary" style="margin-top:10px" data-devis="tournee">${t("offPro_cta")}</button></div>`;
 
@@ -411,7 +411,7 @@ function ownReferralCode(phone) {
   const d = String(phone || "").replace(/\D/g, "");
   return d.length >= 4 ? PROMOS.referral.prefix + d.slice(-4) : null;
 }
-function loyaltyDue() { return (deliveredCount() + 1) % PROMOS.loyalty.every === 0; }
+function loyaltyDue() { return !!PROMOS.loyalty.on && (deliveredCount() + 1) % PROMOS.loyalty.every === 0; }
 
 function validatePromo(raw) {
   const code = String(raw || "").trim().toUpperCase().replace(/\s+/g, "");
@@ -2179,9 +2179,9 @@ function renderClub() {
   const url = UI.appUrl();
   const refMsg = code && t("refMsg", { name: I18N.businessName(), code, amount: money(PROMOS.referral.amount), url });
   $("#clubCards").innerHTML = `
-    <div class="card club"><h3>⭐ ${t("loyaltyTitle")}</h3>
+    ${L.on ? `<div class="card club"><h3>⭐ ${t("loyaltyTitle")}</h3>
       <div class="stamps">${stamps}</div>
-      <p class="muted small">${loyaltyDue() ? t("loyaltyNext") : UI.esc(t("loyaltyText", { n, every: L.every, left: L.every - 1 - n }))}</p></div>
+      <p class="muted small">${loyaltyDue() ? t("loyaltyNext") : UI.esc(t("loyaltyText", { n, every: L.every, left: L.every - 1 - n }))}</p></div>` : ""}
     ${code ? `<div class="card club"><h3>🤝 ${t("refTitle")}</h3>
       <div class="ref-code" dir="ltr">${code}</div>
       <p class="muted small">${UI.esc(t("refText", { amount: money(PROMOS.referral.amount) }))}</p>

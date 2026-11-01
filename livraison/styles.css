@@ -3641,3 +3641,6 @@ html.d2 .ch.map-open .ch-mapbtn { background: #13233F; }
 /* Icônes 3D du kit partout (nouveau design) : même cadre bleu que l'accueil */
 html.d2 .item-art.k2-art { background: #0A2646 !important; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,.13); }
 html.d2 .item-art.k2-art img { width: 100% !important; height: 100% !important; object-fit: cover; }
+.kit-chan { flex-basis: 100%; display: grid; gap: 4px; }
+.kit-chan small { color: var(--muted); font-weight: 600; }
+#kitChan { flex-wrap: wrap; }
