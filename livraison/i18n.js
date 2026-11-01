@@ -9,6 +9,10 @@
 const DICT = {
 fr: {
   langSwitch: "עברית",
+  wizStep: "Étape {n} sur {of}", wizT1: "On livre quoi, et où ?", wizT2: "Quelques précisions", wizT3: "Vous et le paiement",
+  wizNext: "Continuer ›", wizBack: "‹ Retour", wizMore: "➕ Plus d'options", wizLess: "− Moins d'options",
+  wizMoreSub2: "Aller-retour, arrêt en plus, poste, clés, sans contact, autre destinataire, contact sur place…",
+  wizMoreSub3: "Qui paie la course, entreprise",
   navIdeas: "Idées", navPrices: "Tarifs", navMine: "Mes courses", navMe: "Profil", navOrder: "Commander",
   restoTake: "📍 Récupérer ici", restoOrder: "⭐ Commander chez {name}", restoSchedule: "📅 Programmer chez {name}", pinClosed: "fermé", restoHop: "Partenaire HOP!", hmMapOpen: "🗺️ Voir la carte", mcAll: "Tout", hmMapSub: "{n} restos et commerces autour de vous", hmMapClose: "⌃ Revenir à la commande", fk: { "🍣": "Sushi", "🍕": "Pizza", "🍔": "Burgers", "🥗": "Salades", "🥡": "Asiatique", "🥙": "Falafel, chawarma", "🍦": "Glaces", "🥐": "Boulangerie, pâtisserie", "🍝": "Italien", "🥩": "Grill, viandes", "🍗": "Poulet, schnitzel", "🐟": "Poisson", "🥪": "Sandwichs", "🍺": "Bar", "☕": "Café", "🍽️": "Restaurant" }, vbHome: "Accueil", infosTitle: "Tout savoir sur HOP!", infosSub: "Les prix pour toutes les distances, des idées, nos offres et vos questions.", ordTitle: "Ma commande",
   inQuote: "💰 Prix d'une course", inWhy: "✨ Pourquoi HOP!", inOffers: "🎁 Offres", inShops: "🏪 Commerçants", inFaq: "❓ Questions",
@@ -746,6 +750,10 @@ fr: {
 
 he: {
   langSwitch: "Français",
+  wizStep: "שלב {n} מתוך {of}", wizT1: "מה שולחים, ולאן?", wizT2: "עוד כמה פרטים", wizT3: "הפרטים שלך והתשלום",
+  wizNext: "המשך ‹", wizBack: "› חזרה", wizMore: "➕ עוד אפשרויות", wizLess: "− פחות אפשרויות",
+  wizMoreSub2: "הלוך ושוב, עצירה בדרך, דואר, מפתחות, בלי מגע, נמען אחר, איש קשר במקום…",
+  wizMoreSub3: "מי משלם על המשלוח, חברה",
   navIdeas: "רעיונות", navPrices: "מחירים", navMine: "המשלוחים שלי", navMe: "פרופיל", navOrder: "להזמנה",
   restoTake: "📍 לאסוף מכאן", restoOrder: "⭐ להזמין מ{name}", restoSchedule: "📅 לתזמן אצל {name}", pinClosed: "סגור", restoHop: "שותף של HOP!", hmMapOpen: "🗺️ לראות את המפה", mcAll: "הכול", hmMapSub: "{n} מסעדות ועסקים סביבכם", hmMapClose: "⌃ חזרה להזמנה", fk: { "🍣": "סושי", "🍕": "פיצה", "🍔": "המבורגרים", "🥗": "סלטים", "🥡": "אסייתי", "🥙": "פלאפל, שווארמה", "🍦": "גלידה", "🥐": "מאפייה, קונדיטוריה", "🍝": "איטלקי", "🥩": "גריל, בשרים", "🍗": "עוף, שניצל", "🐟": "דגים", "🥪": "כריכים", "🍺": "בר", "☕": "בית קפה", "🍽️": "מסעדה" }, vbHome: "בית", infosTitle: "כל מה שצריך לדעת על HOP!", infosSub: "מחירים לכל מרחק, רעיונות, מבצעים ושאלות.", ordTitle: "ההזמנה שלי",
   inQuote: "💰 מחיר משלוח", inWhy: "✨ למה HOP!", inOffers: "🎁 מבצעים", inShops: "🏪 לעסקים", inFaq: "❓ שאלות",
