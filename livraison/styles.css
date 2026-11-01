@@ -3654,3 +3654,16 @@ html.d2 .item-art.k2-art img { width: 100% !important; height: 100% !important; 
 .pill.give-wait { background: #fff3e0; color: #8a4b00; }
 .pill.give-ok { background: #e3f6e8; color: #1b6b34; }
 .pill.give-no { background: #fde7e7; color: #9b1c1c; }
+
+/* Attente au départ : photo du livreur + montant à valider par le client */
+.wait-ask .wa-photo { margin: 0; border-radius: 12px; overflow: hidden; background: #000; }
+.wait-ask .wa-photo img { display: block; width: 100%; max-height: 220px; object-fit: cover; }
+.wait-ask .wa-photo figcaption { font-size: 12px; padding: 4px 8px; background: rgba(0,0,0,.55); color: #fff; }
+.wait-ask .wa-amount { font-size: 30px; font-weight: 900; color: #FF6A13; text-align: center; line-height: 1.1; }
+.wait-ask .wa-rule { opacity: .85; }
+.wait-chips .ch-chip.wa-snap { display: inline-flex; flex-direction: column; align-items: center; line-height: 1.15; cursor: pointer; }
+.wait-chips .ch-chip.wa-snap small { font-size: 12px; opacity: .85; font-weight: 700; }
+.wait-ann .wa-warn { display: block; margin-top: 4px; color: #9b1c1c; font-weight: 700; }
+/* Fenêtre « réponse attendue » (attente, heure d'arrivée) : au-dessus du suivi plein écran, jamais coupée */
+.ask-pop { z-index: 900; max-height: calc(100dvh - 32px); overflow-y: auto; box-shadow: 0 0 0 100vmax rgba(11, 24, 48, .55), 0 18px 40px rgba(0, 0, 0, .35); }
+.ask-pop .wa-photo img { max-height: 30vh; }

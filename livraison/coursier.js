@@ -965,19 +965,53 @@ document.addEventListener("click", e => {
   const o = mine().find(x => x.id === b.dataset.showref);
   if (o) refFull(o);
 });
-// Attente au départ : le livreur l'annonce tout de suite, le client accepte (ou laisse tomber)
+// Attente au départ : le livreur l'annonce TOUT DE SUITE avec une photo prise sur place (envoyée au client),
+// il choisit seulement les minutes ; le montant est calculé par HOP! (1 ₪ la minute après les minutes offertes)
+// et le client le valide. Seul le patron peut fixer un autre montant.
 function waitAnn(o) {
   const pro = !!o.shop_status;
-  const chips = (list, plus) => `<div class="wait-chips">${list.map(m => `<button type="button" class="ch-chip" data-wait-ann="${UI.esc(o.id)}" data-min="${m}">${plus ? "+" : ""}${m} min</button>`).join("")}</div>`;
-  if (!o.wait_ann_status) return `<div class="wait-ann"><b>${pro ? "⏳ Pas prête ? Prévenez le client du retard" : "⏳ On vous annonce une attente ? Dites-le tout de suite au client"}</b>${chips([5, 10, 15, 20, 30])}
-    ${pro ? "" : `<small>Sans annonce, l'attente n'est pas payée.</small>`}</div>`;
-  const left = Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000));
+  const chips = (list, plus) => `<div class="wait-chips">${list.map(m => {
+    const fee = pro ? 0 : Store.waitAnnPreview(o, settings, m);
+    return `<label class="ch-chip wa-snap">📷 ${plus ? "+" : ""}${m} min${pro ? "" : `<small>${fee > 0 ? "+" + UI.esc(UI.money(fee)) + " max" : "offert"}</small>`}<input type="file" accept="image/*" capture="environment" data-wa-snap="${UI.esc(o.id)}" data-min="${m}" hidden /></label>`;
+  }).join("")}</div>`;
+  const left = o.wait_ann_at ? Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000)) : 0;
+  const clock = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  const pending = o.wait_ann_status === "attente" && left > 0;
+  if (o.wait_fix != null) {
+    const st = pending ? `⏳ Le client répond… <b>${clock}</b>` : `✅ ${o.wait_ann_status === "ok" ? "Le client accepte" : "Accepté d'office (pas de réponse)"}`;
+    return `<div class="wait-ann ${pending ? "pending" : "ok"}">💰 HOP! a fixé le supplément d'attente : <b>+${UI.money(o.wait_fix)}</b><br>${st}</div>`;
+  }
+  if (!o.wait_ann_status) return `<div class="wait-ann"><b>${pro ? "⏳ Pas prête ? Prévenez le client du retard" : "⏳ On vous annonce une attente ? Annoncez-la TOUT DE SUITE"}</b>
+    <small>Touchez le temps annoncé : l'appareil photo s'ouvre, prenez la commande en préparation ou le comptoir, la photo part au client.</small>${chips([3, 5, 10, 15, 20, 30])}
+    ${pro ? "" : `<small>HOP! calcule le prix (1 ₪ la minute après les minutes offertes). Sans annonce, l'attente n'est pas payée ; annoncée en retard, les minutes d'avant ne comptent pas.</small>`}</div>`;
   const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings, o));
   const st = o.wait_ann_status === "info" ? `ℹ️ Client prévenu : environ <b>${o.wait_ann_min} min</b> de retard (l'attente est payée par le commerce)`
-    : o.wait_ann_status === "attente" && left > 0 ? `⏳ Annoncé au client : <b>${o.wait_ann_min} min</b> (+${fee} max) · sa réponse… <b>${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}</b>`
+    : pending ? `⏳ Annoncé au client avec la photo : <b>${o.wait_ann_min} min</b> (+${fee} max) · sa réponse… <b>${clock}</b>
+      <small class="wa-warn">Attendez sa réponse avant de récupérer, sinon cette attente n'est pas payée.</small>`
     : `✅ ${o.wait_ann_status === "ok" ? "Le client accepte" : "Accepté d'office (pas de réponse)"} : jusqu'à <b>${o.wait_ann_cap} min</b> sur place, <b>+${fee}</b> max`;
-  return `<div class="wait-ann ${o.wait_ann_status === "attente" && left > 0 ? "pending" : "ok"}">${st}<small>Encore de l'attente ?</small>${chips([5, 10], true)}</div>`;
+  return `<div class="wait-ann ${pending ? "pending" : "ok"}">${st}<small>Encore de l'attente ? (nouvelle photo)</small>${chips([5, 10], true)}</div>`;
 }
+// Photo prise → envoyée au client dans la conversation de la course → annonce (la base refuse sans photo récente)
+document.addEventListener("change", async e => {
+  const inp = e.target.closest("input[data-wa-snap]");
+  if (!inp || !inp.files || !inp.files[0]) return;
+  const f = inp.files[0], id = inp.dataset.waSnap, min = Number(inp.dataset.min);
+  inp.value = "";
+  const o = orders.find(x => x.id === id);
+  if (!o) return;
+  const fee = o.shop_status ? 0 : Store.waitAnnPreview(o, settings, min);
+  if (!confirm(o.shop_status ? `Prévenir le client : environ ${min} min de retard (avec la photo) ?`
+    : `Annoncer ${o.wait_ann_status ? "encore " : ""}${min} min d'attente au client, avec la photo ?\n\nSupplément calculé par HOP! : ${fee > 0 ? "+" + UI.money(fee) + " au plus" : "aucun (minutes offertes)"}.\nLe client accepte ou laisse tomber (3 min pour répondre, sinon c'est accepté).`)) return;
+  const lbl = inp.closest("label");
+  if (lbl) lbl.classList.add("busy");
+  try {
+    const data = await UI.docPhoto(f);
+    await Store.chatSend("o:" + o.id, "courier", me.name, I18N.forLang(o.lang || "fr", "rdMsgWaitPhoto", { min: (Number(o.wait_ann_min) || 0) + min, name: String(me.name || "").split(" ")[0] }), data);
+  } catch (ex) { if (lbl) lbl.classList.remove("busy"); return alert("Photo non envoyée, vérifiez la connexion et réessayez."); }
+  const r = await Store.courierWaitAnnounce(o.id, min).catch(() => null);
+  if (!r || !r.ok) alert(r && r.why === "photo" ? "La photo n'est pas arrivée : reprenez la photo." : r && r.why === "fixed" ? "HOP! a déjà fixé le supplément de cette course." : "Annonce impossible, actualisez la page.");
+  load();
+});
 // Plusieurs courses à récupérer au même endroit (même commerce, à moins de 80 m) : « commande 1 sur 2 »,
 // une à la fois ; une fois la première récupérée, on passe à la suivante
 function pickupGroup(o) {
@@ -1394,15 +1428,6 @@ async function onViewClick(e) {
     }
     return load();
   }
-  if (el.dataset.waitAnn) {
-    const o = orders.find(x => x.id === el.dataset.waitAnn);
-    if (!o || !confirm(o.shop_status ? `Prévenir le client : environ ${el.dataset.min} min de retard ?`
-      : `Annoncer ${o.wait_ann_status ? "encore " : ""}${el.dataset.min} min d'attente au client ? Il accepte ou laisse tomber (3 min pour répondre, sinon c'est accepté).`)) return;
-    el.disabled = true;
-    const r = await Store.courierWaitAnnounce(o.id, Number(el.dataset.min)).catch(() => null);
-    if (!r || !r.ok) alert("Annonce impossible, actualisez la page.");
-    return load();
-  }
   if (el.dataset.act) {
     const id = el.closest("article").dataset.id;
     const o = orders.find(x => x.id === id);
@@ -1410,6 +1435,9 @@ async function onViewClick(e) {
     if (el.dataset.act === "liberer" && !confirm(paidMe
       ? `⚠️ Le client vous a déjà payé (ou dit l'avoir fait) ${UI.money(UI.payTotal(o))}. Si vous rendez la course, vous devez le rembourser tout de suite par Bit / PayBox, et vous ne recevrez plus de course avant. Rendre la course ?`
       : "Remettre cette course en attente pour un autre livreur ? Le client est prévenu tout de suite.")) return;
+    // Récupérer pendant que le client n'a pas encore répondu à l'attente : elle ne sera pas payée
+    if (el.dataset.act === "recuperee" && o && !o.shop_status && Store.waitPending(o)
+      && !confirm("⏳ Le client n'a pas encore répondu à votre annonce d'attente.\n\nSi vous récupérez maintenant, cette attente ne sera pas payée. Récupérer quand même ?")) return;
     // « Je suis arrivé » : la base vérifie la dernière position, on l'envoie tout de suite
     if (el.dataset.act === "arrivee" && !o.unlocked && !freeNow()) {
       el.disabled = true;

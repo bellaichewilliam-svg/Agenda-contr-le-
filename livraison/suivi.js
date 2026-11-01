@@ -230,23 +230,43 @@ setInterval(() => { if (order) { etaAsk(order); waitAsk(order); } }, 1000);
 
 // Attente annoncée par le livreur au départ : le client accepte, ou laisse tomber (la moitié de la course reste due)
 let lastAnn = null;
+// Photo prise sur place par le livreur (obligatoire pour annoncer l'attente) : montrée au client avec le montant
+let waPhoto = { key: null, src: "" };
+async function loadWaitPhoto(o) {
+  const key = o.id + o.wait_ann_at;
+  if (waPhoto.key === key) return;
+  waPhoto = { key, src: "" };
+  try {
+    const list = await Store.chatOrder(token);
+    const from = new Date(o.wait_ann_at).getTime() - 6 * 60000;
+    const m = (list || []).filter(x => x.author === "courier" && x.image && new Date(x.created_at).getTime() >= from).pop();
+    if (waPhoto.key === key && m) { waPhoto.src = m.image; waitAsk(o); }
+  } catch (e) { /* ignore */ }
+}
 function waitAsk(o) {
   const box = $("#waitAsk");
   const st = o.wait_ann_status, open = o.status === "confirmee" && !!st && st !== "refus";
   box.classList.toggle("hidden", !open);
   askPop(box, open && st === "attente" && Date.now() - new Date(o.wait_ann_at) < 180000, "wait:" + o.wait_ann_at);
-  if (!open) { box.innerHTML = ""; return; }
+  if (!open) { box.innerHTML = ""; box.dataset.html = ""; return; }
   // Nouvelle annonce : le téléphone vibre
   if (o.wait_ann_at && lastAnn && lastAnn !== o.wait_ann_at && navigator.vibrate) navigator.vibrate([300, 120, 300]);
   lastAnn = o.wait_ann_at;
+  if (st === "attente") loadWaitPhoto(o);
   const left = Math.max(0, 180 - Math.floor((Date.now() - new Date(o.wait_ann_at)) / 1000));
-  const fee = UI.money(Store.waitFeeFor(o.wait_ann_cap, settings, o));
+  const fix = o.wait_fix != null;
+  const fee = UI.money(fix ? Number(o.wait_fix) : Store.waitFeeFor(o.wait_ann_cap, settings, o));
+  const clock = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`;
+  const photo = waPhoto.src && waPhoto.key === o.id + o.wait_ann_at
+    ? `<figure class="wa-photo"><img src="${UI.esc(waPhoto.src)}" alt="" /><figcaption>${UI.esc(t("waPhotoCap"))}</figcaption></figure>` : "";
   const html = st === "info" ? `<b>${UI.esc(t("waInfo", { min: o.wait_ann_min }))}</b>`
-    : st === "attente" && left > 0 ? `<b>${UI.esc(t("waAnnTitle", { min: o.wait_ann_min }))}</b>
-      <small>${UI.esc(t("waAnnFee", { fee, free: Store.freeMinOf(o, settings), price: UI.money(settings.wait_step_price), left: `${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}` }))}</small>
+    : st === "attente" && left > 0 ? `<b>${UI.esc(fix ? t("waFixTitle") : t("waAnnTitle", { min: o.wait_ann_min }))}</b>${photo}
+      <div class="wa-amount">${UI.esc(fix ? t("waAmountFix", { fee: "\u2066+" + fee + "\u2069" }) : t("waAmount", { fee: "\u2066+" + fee + "\u2069" }))}</div>
+      <small>${UI.esc(fix ? t("waFixFee", { left: clock }) : t("waAnnFee", { fee, free: Store.freeMinOf(o, settings), price: UI.money(settings.wait_step_price), left: clock }))}</small>
+      ${fix ? "" : `<small class="wa-rule">${UI.esc(t("waRule"))}</small>`}
       <div class="btns"><button type="button" class="btn btn-primary" data-wa-ok>${UI.esc(t("waOk"))}</button>
         <button type="button" class="btn" data-wa-drop>${UI.esc(t("waDrop"))}</button></div>`
-    : `<b>${UI.esc(t("waAccepted", { fee, min: o.wait_ann_min }))}</b>`;
+    : `<b>${UI.esc(fix ? t("waFixAccepted", { fee }) : t("waAccepted", { fee, min: o.wait_ann_min }))}</b>`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
 $("#waitAsk").addEventListener("click", async e => {

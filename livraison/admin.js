@@ -523,7 +523,7 @@ function card(o, withDay) {
   if (o.p2p_sale) meta.push(`<span class="pill">🤝 Vente entre particuliers · déjà payée au vendeur</span>`);
   if (o.handoff) meta.push(`<span class="pill ${o.handoff_ok_at ? "paid" : "unpaid"}">🔐 Code de remise${o.handoff_ok_at ? " vérifié" : ""}</span>`);
   if (o.phone_order) meta.push(`<span class="pill star-pill">📞 Commandée par tél. au nom de ${UI.esc(o.pickup_name || "")}${o.phone_ref ? " · n° " + UI.esc(o.phone_ref) : ""} · prête ${o.ready_at ? UI.fmtTime(o.ready_at) : ""}</span>`);
-  if (Number(o.wait_fee) > 0) meta.push(`<span class="pill unpaid">⏱️ Attente ${o.wait_minutes} min · +${UI.money(o.wait_fee)} (au livreur)</span>`);
+  if (Number(o.wait_fee) > 0) meta.push(`<span class="pill unpaid">⏱️ Attente ${o.wait_minutes} min · +${UI.money(o.wait_fee)} (au livreur)${o.wait_status === "a_payer" ? " · à encaisser" : o.wait_status === "refuse" ? " · ❌ impayée" : ""}</span>`);
   else if (o.arrived_at && o.status === "confirmee") meta.push(`<span class="pill">⏱️ Livreur au départ depuis ${Math.floor((Date.now() - new Date(o.arrived_at)) / 60000)} min</span>`);
   if (o.rating != null) meta.push(`<span class="pill ${o.rating <= 3 ? "st-annulee" : "paid"}" title="${UI.esc(o.rating_note || "")}">${UI.esc(UI.ratingText(o))}${o.rating_note ? " 💬" : ""}</span>`);
   if (o.issue) meta.push(`<button class="pill pill-btn st-annulee" data-act="issue" title="Cliquer quand le souci est réglé">⚠️ Souci signalé par le livreur : ${UI.esc(o.issue)} · ✓ réglé ?</button>`);
@@ -554,6 +554,12 @@ function card(o, withDay) {
   if (o.status === "confirmee" && o.assign_status === "attente") meta.push(`<span class="pill give-wait" title="Il voit la course dès qu'il ouvre HOP! Livreur et doit répondre">⏳ Attend la réponse de ${UI.esc(o.courier_name || "livreur")}${o.assigned_at ? " · donnée à " + hm(o.assigned_at) : ""}</span>`);
   if (["confirmee", "recuperee"].includes(o.status) && o.assign_status === "ok") meta.push(`<span class="pill give-ok">✅ ${UI.esc(o.courier_name || "Le livreur")} a confirmé${o.assign_answered_at ? " à " + hm(o.assign_answered_at) : ""}</span>`);
   if (o.status === "nouvelle" && o.assign_status === "refus") meta.push(`<span class="pill give-no">❌ ${UI.esc(o.assign_refused_name || "Le livreur")} ne peut pas${o.assign_answered_at ? " (" + hm(o.assign_answered_at) + ")" : ""} · donnez-la à un autre</span>`);
+  // Attente au départ : annonce (avec photo) et réponse du client, ou montant fixé par le patron
+  if (o.status === "confirmee" && o.wait_ann_status && o.wait_ann_status !== "refus") {
+    const pend = Store.waitPending(o), feeA = o.wait_fix != null ? Number(o.wait_fix) : Store.waitFeeFor(o.wait_ann_cap, settings, o);
+    const who = o.wait_ann_status === "info" ? "commerce prévenu" : pend ? "client : réponse en attente" : o.wait_ann_status === "ok" ? "client : accepté" : "client : sans réponse, accepté d'office";
+    meta.push(`<span class="pill ${pend ? "give-wait" : "give-ok"}">${o.wait_fix != null ? `💰 Supplément fixé ${UI.money(feeA)}` : `⏳ Attente annoncée ${o.wait_ann_min} min (photo) · +${UI.money(feeA)} max`} · ${who}</span>`);
+  }
   if (o.courier_id && !isMine(o)) meta.push(`<span class="pill courier-pill">🛵 ${UI.esc(o.courier_name || "Livreur")} · commission ${o.network ? "réseau " : ""}${UI.money(o.commission || 0)}${Number(o.hop_share) > 0 ? ` + part Pro ${UI.money(o.hop_share)}` : ""}</span>`);
   if (o.adult_items) meta.push(o.id_checked_at ? `<span class="pill paid">🪪 ${UI.esc(o.adult_items.replace(",", " + "))} · identité vérifiée ${UI.esc(UI.fmtTime(o.id_checked_at))}</span>` : `<span class="pill unpaid">🔞 ${UI.esc(o.adult_items.replace(",", " + "))} · pièce d'identité à vérifier</span>`);
   if (o.shop_ref) meta.push(`<span class="pill star-pill">🛍️ Sac n° ${UI.esc(o.shop_ref)}</span>`);
@@ -578,6 +584,7 @@ function card(o, withDay) {
       // Redonner à un autre livreur (l'ancien est prévenu), ou la reprendre soi-même
       // (aussi quand c'est le patron qui l'a prise : il la redonne à un livreur, en ligne ou non — hors ligne, elle l'attend dans son appli et on peut l'appeler)
       + (o.courier_id ? `<select class="btn btn-sm" data-act="assign"><option value="">${isMine(o) ? "🔁 Donner à un livreur…" : "🔁 Donner à un autre…"}</option>${active.filter(({ c }) => c.id !== o.courier_id && c.role !== "admin").map(({ c, km }) => `<option value="${UI.esc(c.id)}">${onlineOf(c).on ? "🟢" : "⚪"} ${UI.esc(c.name)}${km != null ? ` · 📍 ${km.toFixed(1)} km` : ""}${onlineOf(c).on ? "" : " · hors ligne"}</option>`).join("")}</select>${isMine(o) ? "" : `<button class="btn btn-sm" data-act="take">✋ Je la reprends</button>`}` : "")
+      + (o.shop_status ? "" : `<button class="btn btn-sm" data-act="waitfix" title="Vous seul pouvez fixer un montant ; le client doit l'accepter">💰 Supplément d'attente</button>`)
       + `<button class="btn btn-sm" data-act="release">↩︎ Remettre en attente</button>` + b("annulee", "✖ Annuler"),
     // Photo obligatoire (devant la porte, ou demandée par le client) : l'appareil photo s'ouvre, la photo part au client, puis « Livré »
     recuperee: needPhoto(o) && !photoDone.has(o.id)
@@ -2359,6 +2366,15 @@ async function onViewClick(e) {
     refusing = o;
     $("#refuseForm").reset();
     $("#refuseModal").classList.remove("hidden");
+  } else if (el.dataset.act === "waitfix") {
+    // Le patron (lui seul) fixe le supplément d'attente ; le client doit l'accepter (vide = revenir au compteur 1 ₪ / min)
+    const cur = o.wait_fix != null ? String(o.wait_fix).replace(".00", "") : "";
+    const v = prompt(`Supplément d'attente pour la course n° ${o.ref} (en ₪, ${Number(settings.wait_max) || 60} au plus).\nLe client reçoit le montant et doit l'accepter (ou laisser tomber : la moitié de la course reste due).\nLaisser vide pour revenir au compteur (1 ₪ la minute).`, cur);
+    if (v === null) return;
+    const fee = v.trim() === "" ? null : Number(v.replace(",", "."));
+    if (fee != null && (!isFinite(fee) || fee < 0)) return alert("Montant invalide.");
+    try { const r = await Store.adminWaitFix(o.id, fee); if (!r || !r.ok) alert("Impossible : la course n'est plus en attente de récupération."); await load(); }
+    catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
   } else if (el.dataset.act === "release") {
     change(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0 });
   } else if (el.dataset.act === "issue") {
