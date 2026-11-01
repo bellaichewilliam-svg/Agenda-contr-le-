@@ -3961,3 +3961,18 @@ html[dir="rtl"] #pharmaBox .ph-cats::after { background: linear-gradient(to left
   html.d2 .ch:not(.map-open) .ch-hello { display: none; }
 }
 @media (max-width: 860px) { html.d2 .ch:not(.map-open) .ch-map, html.d2 .ch:not(.map-open) .ch-map.leaflet-container { min-height: 170px; } }
+/* Commerce sans logo : ses initiales en bleu nuit, bien lisibles dans le rond blanc (la ligne des logos et la carte) */
+html.d2 .sc-story .sc-ring b { color: #0F1F3D; font-family: "Fredoka", "Rubik", sans-serif; font-size: 20px; font-weight: 700; letter-spacing: .02em; }
+html.d2 .pro-row .sc-logo, html.d2 .ens-pro .sc-logo { color: #0F1F3D; font-family: "Fredoka", "Rubik", sans-serif; font-size: 17px; font-weight: 700; }
+/* Cartes des commerces (2 par ligne) : un peu plus larges (photo plus grande), un peu moins hautes */
+html.d2 .pro-row { gap: 8px; }
+html.d2 .pro-row .sc-card { flex-basis: calc((min(100vw, 430px) - 36px) / 2); }
+html.d2 .pro-row .sc-logo { top: calc((min(100vw, 430px) - 36px) / 2 * 9 / 16 - 28px); width: 42px; height: 42px; border-radius: 11px; inset-inline-start: 10px; }
+html.d2 .pro-row .sc-body { padding: 17px 10px 2px; gap: 1px; }
+html.d2 .pro-row .sc-body b { font-size: 15.5px; line-height: 1.2; }
+html.d2 .pro-row .sc-body small.sc-meta { font-size: 12.5px !important; line-height: 1.35; }
+html.d2 .pro-row .sc-prog-btn { margin: 6px 8px 9px; padding: 6px 6px; border-radius: 12px; font-size: 14px; gap: 6px; }
+html.d2 .pro-row .sc-prog-btn svg, html.d2 .pro-row .sc-prog-btn img { width: 18px; height: 18px; }
+html.d2 .pro-row { margin-inline: -10px; padding-inline: 4px; scroll-padding-inline: 4px; }
+html.d2 .pro-row .sc-card { flex-basis: calc((min(100vw, 430px) - 28px) / 2); }
+html.d2 .pro-row .sc-logo { top: calc((min(100vw, 430px) - 28px) / 2 * 9 / 16 - 28px); }
