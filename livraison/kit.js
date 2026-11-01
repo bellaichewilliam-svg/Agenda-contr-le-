@@ -442,8 +442,8 @@ const CAPS = {
     fr: `🛒 Vous demandez, HOP! on livre.\nCourses, pharmacie, restaurants, colis et bien plus, dans tous les magasins de Netanya, même les petits.\n🧾 Le prix du magasin · 0 frais de service\n🛵 Achat + livraison à Netanya : ${buyFr}\n👉 ${livre}\n${TAGS.fr}`,
     he: `🛒 אתם מבקשים, HOP! מביאים.\nסופר, פארם, מסעדות, חבילות ועוד, מכל החנויות בנתניה, גם הקטנות.\n🧾 מחיר החנות · 0 ₪ דמי שירות\n🛵 קנייה ומשלוח בנתניה: ${buyFr}\n👈 ${livreHe}\n${TAGS.he}` },
   visite: {
-    fr: `👀 L'appli HOP! évolue chaque semaine !\nDe nouveaux commerces de Netanya arrivent les uns après les autres : venez voir ce qu'il y a de nouveau.\n👉 ${APP_URL}\n${TAGS.fr}`,
-    he: `👀 האפליקציה של HOP! מתפתחת כל שבוע!\nעסקים חדשים מנתניה מצטרפים אחד אחרי השני: בואו לראות מה חדש.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+    fr: `👀 De nouveaux commerces chaque semaine sur HOP! !\nRestaurants, épiceries, boulangeries et boutiques de Netanya arrivent dans l'appli : venez voir les nouveautés.\n🛵 Livraison à Netanya : ${delFr}\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `👀 עסקים חדשים כל שבוע ב-HOP!\nמסעדות, מכולות, מאפיות וחנויות מנתניה מצטרפים לאפליקציה: בואו לראות מה חדש.\n🛵 משלוח בנתניה: ${delFr}\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   nouveaux: {
     fr: `🆕 Nouveaux partenaires sur HOP! : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush…\nLeur carte est dans l'appli : commandez en 1 minute, suivez le livreur en direct.\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🆕 שותפים חדשים ב-HOP!: נינה סושי, פריז טקסס, סמאש איט, השוק הצרפתי, פיצה קראש…\nהתפריט שלהם באפליקציה: מזמינים בדקה, עוקבים אחרי השליח בזמן אמת.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
