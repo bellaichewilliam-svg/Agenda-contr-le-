@@ -655,10 +655,21 @@ function renderStats() {
   $("#stUnpaid").textContent = UI.money(sum(orders.filter(o => isMine(o) && o.payment_status !== "paye" && ["confirmee", "recuperee", "livree"].includes(o.status))));
   // Chiffre du mois = toutes les courses livrées (les vôtres et celles des livreurs) ;
   // Com HOP = les commissions des livreurs + la part HOP des commandes Pro − les codes promo payés par HOP + les abonnements
-  const delivered = orders.filter(o => o.status === "livree" && !o.is_test && UI.dayKey(o.pickup_at).startsWith(month));
-  $("#stMonthRev").textContent = UI.money(sum(delivered, o => Number(o.price) + Number(o.discount || 0) + Number(o.shop_share || 0)));
-  $("#stMonthHop").textContent = UI.money(sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
-    + sum(planSales.filter(p => String(p.created_at).startsWith(month)), p => Number(p.amount) - Number(p.referrer_share || 0)));
+  const monthFig = m => {
+    const delivered = orders.filter(o => o.status === "livree" && !o.is_test && UI.dayKey(o.pickup_at).startsWith(m));
+    return { n: delivered.length, rev: sum(delivered, o => Number(o.price) + Number(o.discount || 0) + Number(o.shop_share || 0)),
+      hop: sum(delivered.filter(o => !isMine(o)), o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0))
+        + sum(planSales.filter(p => String(p.created_at).startsWith(m)), p => Number(p.amount) - Number(p.referrer_share || 0)) };
+  };
+  // Le 1er du mois, les compteurs repartent à zéro : le mois précédent reste affiché en dessous (rien n'est perdu)
+  const [y, mo] = month.split("-").map(Number), prevKey = mo === 1 ? `${y - 1}-12` : `${y}-${String(mo - 1).padStart(2, "0")}`;
+  const cur = monthFig(month), prev = monthFig(prevKey);
+  const prevName = new Date(Date.UTC(mo === 1 ? y - 1 : y, (mo + 10) % 12, 15)).toLocaleDateString("fr-FR", { month: "long", timeZone: "UTC" });
+  const prevLine = (id, txt) => { const el = $(id); if (el) el.textContent = prev.n || prev.hop ? txt : ""; };
+  $("#stMonthRev").textContent = UI.money(cur.rev);
+  $("#stMonthHop").textContent = UI.money(cur.hop);
+  prevLine("#stMonthRevPrev", `${prevName} : ${UI.money(prev.rev)} · ${prev.n} course${prev.n > 1 ? "s" : ""}`);
+  prevLine("#stMonthHopPrev", `${prevName} : ${UI.money(prev.hop)}`);
   const pending = couriers.filter(c => c.status === "en_attente").length + unfinished().length;
   const pendingShops = shops.filter(x => !x.demo && x.status === "en_attente").length;
   const newReqs = requests.filter(x => x.status === "nouvelle").length;
