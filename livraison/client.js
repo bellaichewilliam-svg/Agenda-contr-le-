@@ -2998,8 +2998,10 @@ function initHome() {
     if (e.target.closest("[data-ens-retry]")) return openEns(ens.cat);
     const b = e.target.closest("[data-ens-pick]");
     if (b) return pickEnseigne(b.dataset.ensPick, ens.shown[Number(b.dataset.i)]);
-    const sh = e.target.closest("[data-ens-shop]");
-    if (sh) { $("#ensModal").classList.add("hidden"); state.shopDir = ""; loadShop(sh.dataset.ensShop); }
+    const fv = e.target.closest("[data-fav]");
+    if (fv) { e.stopPropagation(); toggleFav(fv.dataset.fav); return renderEnsList(); }
+    const sh = e.target.closest("[data-ens-shop], [data-pro]");
+    if (sh) { $("#ensModal").classList.add("hidden"); state.shopDir = ""; loadShop(sh.dataset.ensShop || sh.dataset.pro); }
   });
   state.partnersReady = loadPartners();
   loadShowcase();
@@ -3845,7 +3847,14 @@ function renderEnsList() {
   const n = norm($("#ensFilter").value);
   ens.shown = ens.items.filter(x => !n || norm(x.name + " " + x.street).includes(n));
   const dist = x => (x.km < 1 ? `${Math.max(50, Math.round(x.km * 20) * 50)} m` : `${x.km.toFixed(1).replace(".", ",")} km`);
-  $("#ensList").innerHTML = ens.shown.length ? ens.shown.map((x, i) => {
+  // Nouveau design : nos partenaires de la rubrique en belles cartes (photo, logo, ouvert / fermé, Programmer),
+  // puis les autres commerces du quartier en liste simple
+  const cards = D2 ? ens.shown.map(x => x.partner && x.code && (state.showcase || []).find(s => s.code === x.code)).filter(Boolean)
+    .filter((s, i, a) => a.findIndex(z => z.code === s.code) === i) : [];
+  const shownCodes = new Set(cards.map(s => s.code));
+  const top = cards.length ? `<h4 class="ens-h">${UI.esc(t("ensOurs"))}</h4><div class="pro-row ens-pro">${cards.map(shopCard).join("")}</div>` : "";
+  const rest = ens.shown.map((x, i) => [x, i]).filter(([x]) => !(x.code && shownCodes.has(x.code)));
+  $("#ensList").innerHTML = top + (cards.length && rest.length ? `<h4 class="ens-h">${UI.esc(t("ensOthers"))}</h4>` : "") + (!ens.shown.length ? "" : rest.map(([x, i]) => {
     const addr = [`${x.street} ${x.number}`.trim(), x.city ? cityLabel(cityIdOf(x.city) || x.city) : ""].filter(Boolean).join(", ");
     // Enseigne inscrite sur HOP! : on entre dans sa boutique (catalogue), en touchant la ligne ou le bouton
     return `<div class="ens-item${x.partner && x.code ? " ens-partner" : ""}"${x.partner && x.code ? ` data-ens-shop="${UI.esc(x.code)}"` : ""}>
@@ -3856,7 +3865,7 @@ function renderEnsList() {
         : `<button type="button" class="btn btn-sm btn-primary" data-ens-pick="from" data-i="${i}">${UI.esc(t("ensFrom"))}</button>
         <button type="button" class="btn btn-sm" data-ens-pick="to" data-i="${i}">${UI.esc(t("ensTo"))}</button>`}</div>
     </div>`;
-  }).join("") : `<p class="ens-empty">${UI.esc(t("ensNone"))}</p>`;
+  }).join("")) + (ens.shown.length ? "" : `<p class="ens-empty">${UI.esc(t("ensNone"))}</p>`);
 }
 // Enseigne choisie : adresse complétée par la carte si OpenStreetMap ne la connaît pas
 async function pickEnseigne(which, x) {
