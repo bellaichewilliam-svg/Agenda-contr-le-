@@ -3737,3 +3737,7 @@ html.d2 .k2-txt { width: 60%; }
 html.d2 .k2-txt b { font-size: 21px; }
 html.d2 .pro-row .sc-body b { font-size: 15.5px; line-height: 1.2; }
 html.d2 .pro-row .sc-body small.sc-meta:last-of-type { padding-inline-end: 40px; }
+/* Encarts un peu plus larges (demande du patron) : la carte voisine dépasse juste un peu pour inviter à glisser */
+html.d2 .k2-card { width: 93%; max-width: 440px; }
+html.d2 .k2-txt { width: 62%; }
+html.d2 .k2-txt small { max-width: 92%; }
