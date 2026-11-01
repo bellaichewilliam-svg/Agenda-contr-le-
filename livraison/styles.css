@@ -3931,3 +3931,12 @@ html[dir="rtl"] .wiz-more-btn i { transform: scaleX(-1); } html[dir="rtl"] form.
 /* Écran 1 : le titre de l'étape vient avant le rayon */
 #pharmaBox .ph-shell > *, #pharmaBox .ph-rest, #pharmaBox .ph-top { min-width: 0; max-width: 100%; }
 #pharmaBox .ph-shell { width: 100%; }
+/* Rayons : « + » orange bien visible, entièrement DANS l'image (rien ne dépasse, jour comme nuit) ;
+   la ligne des rubriques s'efface doucement au bord (on voit qu'elle défile, pas un mot coupé net) */
+#pharmaBox .ph-pic .cg-plus { bottom: 6px; inset-inline-end: 6px; width: 36px; height: 36px; background: var(--brand); color: #fff; font-size: 24px;
+  box-shadow: 0 0 0 3px var(--panel), 0 4px 10px rgba(255,106,19,.35); }
+#pharmaBox .ph-pic .cg-qty { bottom: 6px; inset-inline: 6px; height: 36px; box-shadow: 0 0 0 3px var(--panel), 0 4px 12px rgba(255,106,19,.35); }
+#pharmaBox .ph-pic .cg-qty button { width: 28px; height: 28px; }
+#pharmaBox .ph-price { margin-top: 6px; }
+#pharmaBox .ph-cats { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); padding-inline-end: 44px; }
+html[dir="rtl"] #pharmaBox .ph-cats { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }
