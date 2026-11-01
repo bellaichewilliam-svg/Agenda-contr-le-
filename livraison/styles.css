@@ -3723,3 +3723,17 @@ input, textarea, select, .btn { text-wrap: wrap; }
 html.d2 .xp-img { width: 54px; height: 54px; top: 8px; inset-inline-end: 8px; }
 html.d2 .xp b { margin-top: 50px; font-size: 19px; line-height: 1.15; overflow-wrap: normal; word-break: normal; hyphens: manual; }
 html.d2 .xp small { padding-inline-end: 34px; }
+/* Encarts : texte court sur 2 lignes (exemples + nombre de produits), la carte garde la taille de la maquette */
+html.d2 .k2-txt small { white-space: pre-line; }
+
+/* Cartes des commerces compactes (maquette) : statut sur une ligne, prix et menu sur la suivante, accroche courte ;
+   le texte ne passe jamais sous le bouton rond */
+.pro-row .sc-body small.sc-meta { line-height: 1.35; }
+.pro-row .sc-body .sc-tag { padding-inline-end: 38px; line-height: 1.35; margin-top: 2px; }
+html.d2 .pro-row .sc-body { gap: 2px; }
+html.d2 .pro-row .sc-body small.sc-meta { font-size: 12.5px !important; }
+/* Maquette : encarts et cartes compacts */
+html.d2 .k2-txt { width: 60%; }
+html.d2 .k2-txt b { font-size: 21px; }
+html.d2 .pro-row .sc-body b { font-size: 15.5px; line-height: 1.2; }
+html.d2 .pro-row .sc-body small.sc-meta:last-of-type { padding-inline-end: 40px; }
