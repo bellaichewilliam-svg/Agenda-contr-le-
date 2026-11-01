@@ -90,3 +90,25 @@ Background: [plain white / plain deep navy blue #0F1F3D]. Format 4:5 (Instagram 
 - `hoppy-story-fr.png` : la même en story (1080 × 1920)
 - `hoppy-detoure-fr.png` : Hoppy sans fond (PNG transparent)
 - Le premier dessin (`video/src/Mascot.tsx`) n'est plus la référence : c'était l'esquisse avant l'image officielle.
+
+## Les versions en hébreu des visuels du patron
+On ne refait pas tout : dans ChatGPT, on **joint le visuel français** et on colle le prompt ci-dessous, avec les textes du visuel.
+Si le QR code de la version hébreu ne marche plus, on remet celui de la version française (copie de la zone du QR).
+Fichier final : `livraison/kit/visuels/<id>-post-he.png` (1080 × 1350), original dans `video/public/reseaux/<nom>-he-original.png`.
+
+```
+Edit the attached image. Keep EXACTLY the same image: same layout, same Hoppy, same colors, same photos, same QR code, same HOP! logos ("HOP!" stays in Latin letters, white with an orange "!").
+Only replace the French texts with these Hebrew texts, right-to-left, bold, big and very readable, spelled exactly letter by letter:
+[TEXTES]
+Same format (4:5, 1080x1350).
+```
+
+| Visuel (id) | [TEXTES] |
+|---|---|
+| Hallot (`halot`) | "VOS HALLOT LIVRÉES POUR CHABBAT !" → "החלות שלכם עד הבית לשבת!" · "Hallot, gâteaux, biscuits et viennoiseries." → "חלות, עוגות, עוגיות ומאפים." · "Boulangerie" → "מאפייה" · "LIVRAISON" → "משלוחים" · "ACHAT + LIVRAISON À NETANYA :" → "קנייה + משלוח בנתניה:" · "La boulangerie que vous voulez · Livraison le vendredi" → "המאפייה שאתם רוצים · משלוח ביום שישי" · "Commander" → "להזמנה" |
+| Avant Chabbat (`chabbat`) | "COURSES DE DERNIÈRE MINUTE AVANT CHABBAT ?" → "קניות של הרגע האחרון לפני שבת?" · "On achète et on vous livre. Vous préparez tranquillement." → "אנחנו קונים ומביאים. אתם מתכוננים בשקט." · "Hallot" → "חלות" · "Poulet et viande" → "עוף ובשר" · "Vin et jus de raisin" → "יין ומיץ ענבים" · "Fleurs" → "פרחים" · "ACHAT + LIVRAISON À NETANYA :" → "קנייה + משלוח בנתניה:" · "CHABBAT CHALOM !" → "שבת שלום!" · "Commander en 1 minute" → "מזמינים בדקה" · "LIVRAISON" → "משלוחים" |
+| Table de Chabbat (`table`) | "TOUT POUR VOTRE TABLE DE CHABBAT" → "כל מה שצריך לשולחן השבת" · "On fait vos courses à Netanya et on vous livre." → "עושים לכם את הקניות בנתניה ומביאים עד הבית." · "ACHAT + LIVRAISON :" → "קנייה + משלוח:" · "Vin · fleurs · pâtisserie · salades" → "יין · פרחים · עוגות · סלטים" · "Vendredi jusqu'à la dernière minute" → "ביום שישי, עד הרגע האחרון" · "Suivi en direct · espèces ou Bit" → "מעקב בזמן אמת · מזומן או ביט" · "Commander" → "להזמנה" · "LIVRAISON" → "משלוחים" |
+| Marché Français (`partenaire-marchefr`) | "LE MARCHÉ FRANÇAIS CHEZ VOUS !" → "השוק הצרפתי אצלכם בבית!" · "Votre épicerie française de Netanya, livrée avec HOP!" → "המכולת הצרפתית של נתניה, עד הבית עם HOP!" · "LIVRAISON À NETANYA :" → "משלוח בנתניה:" · "Livré en 30 min environ" → "מגיע הכי מהר" · "Commandez · Suivez en direct" → "מזמינים · עוקבים בזמן אמת" · "Payez en espèces ou par Bit" → "משלמים במזומן או בביט" · "Commander" → "להזמנה" (le logo du magasin reste tel quel) |
+| On livre tout (`courses`) | "VOUS DEMANDEZ, HOP! ON LIVRE." → "אתם מבקשים, HOP! אנחנו מביאים." · "Courses, pharmacie, restaurants, colis et bien plus." → "סופר, פארם, מסעדות, חבילות ועוד הרבה." · "ACHAT + LIVRAISON À NETANYA :" → "קנייה + משלוח בנתניה:" · "Prix du magasin · 0 frais de service" → "מחיר החנות · 0 ₪ דמי שירות" · "Tous les magasins, même les petits" → "כל החנויות, גם הקטנות" · "Découvrez HOP!" → "גלו את HOP!" |
+
+Fleurs et magasins ont déjà l'hébreu sur l'image (la même image sert en FR et en HE).
