@@ -8420,3 +8420,26 @@ end;
 $$;
 create or replace trigger orders_zy_hidden before insert or update on public.orders
   for each row execute function public.orders_zy_hidden();
+
+-- =====================================================================================================
+-- Paniers des clients (en ligne le 01/11/2026) : gardés en mémoire, visibles par le patron
+-- (abandonnés, relancés, commandés). Une ligne par téléphone (device).
+-- =====================================================================================================
+create table if not exists public.carts (
+  device text primary key,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  lang text, client_name text, client_phone text, kind text, shop_code text, shop_name text,
+  items jsonb not null default '[]'::jsonb, count int not null default 0, total numeric,
+  status text not null default 'actif', ordered_at timestamptz, order_ref text, reminded_at timestamptz, remind_count int not null default 0
+);
+create index if not exists carts_updated_idx on public.carts (updated_at desc);
+alter table public.carts enable row level security;
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname='public' and tablename='carts' and policyname='carts_admin') then
+    create policy carts_admin on public.carts for all to authenticated using (public.is_admin()) with check (public.is_admin());
+  end if;
+end $$;
+grant select, insert, update, delete on public.carts to authenticated;
+-- cart_save(p_device, p) et le déclencheur carts_on_order_trg (commande passée => panier « commandé ») :
+-- voir la migration « paniers_clients » appliquée sur Supabase (même contenu).
