@@ -62,6 +62,16 @@ function landingVars() {
   const st = Object.assign({ pro_monthly: CONFIG.pro.monthly }, state.settings || {});
   return Object.assign(payVars(), { price: payVars().full, monthly: UI.money(st.pro_monthly), monthlyN: Number(st.pro_monthly) });
 }
+// Nouveau design : « Ils livrent déjà avec HOP! » avec les vrais logos des commerces partenaires
+async function landingTrust() {
+  const box = $("#slTrust"); if (!box) return;
+  try {
+    const list = ((await Store.shopsShowcase()) || []).filter(x => UI.safeImg(x.logo)).slice(0, 8);
+    if (list.length < 2) return;
+    $("#slLogos").innerHTML = list.map(x => `<a class="sl-logo" href="${UI.esc(UI.appUrl() + "?c=" + x.code)}" target="_blank" rel="noopener"><img src="${UI.esc(UI.safeImg(x.logo))}" alt="" loading="lazy" /><small>${UI.esc(UI.bi(x.name))}</small></a>`).join("");
+    box.classList.remove("hidden");
+  } catch (e) { /* la page marche sans */ }
+}
 function renderLanding() {
   const v = landingVars(), e = k => UI.esc(t(k, v));
   const demo = UI.esc(UI.appUrl() + "?c=" + DEMO_SHOP);
@@ -95,6 +105,8 @@ function renderLanding() {
         </div>
       </div>
     </section>
+
+    ${document.documentElement.classList.contains("d2") ? `<section class="sl-trust hidden" id="slTrust"><h3>${e("slTrust")}</h3><div class="sl-logos" id="slLogos"></div></section>` : ""}
 
     <section class="sl-block">
       <h2>${e("slPlansTitle")}</h2>
@@ -152,6 +164,7 @@ function renderLanding() {
     </section>`;
   renderCalc();
   renderPlanPick();
+  landingTrust();
 }
 function renderCalc() {
   const v = landingVars(), big = Math.round(calcSales * 0.3), diff = big - v.monthlyN;
