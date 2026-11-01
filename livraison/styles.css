@@ -3976,3 +3976,10 @@ html.d2 .pro-row .sc-prog-btn svg, html.d2 .pro-row .sc-prog-btn img { width: 18
 html.d2 .pro-row { margin-inline: -10px; padding-inline: 4px; scroll-padding-inline: 4px; }
 html.d2 .pro-row .sc-card { flex-basis: calc((min(100vw, 430px) - 28px) / 2); }
 html.d2 .pro-row .sc-logo { top: calc((min(100vw, 430px) - 28px) / 2 * 9 / 16 - 28px); }
+/* Patron · Clients : « Voir le détail de ses courses » (fiches complètes, comme dans l'onglet Courses) */
+.client-orders { margin: 10px 0 4px; }
+.client-orders > summary { list-style: none; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; border-radius: 12px;
+  background: var(--brand-soft); color: var(--brand-ink); font-weight: 800; font-size: 14px; }
+.client-orders > summary::-webkit-details-marker { display: none; }
+.client-orders[open] > summary { margin-bottom: 10px; }
+.client-orders .orders { display: grid; gap: 10px; }
