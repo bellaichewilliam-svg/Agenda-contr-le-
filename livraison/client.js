@@ -3899,7 +3899,7 @@ function renderShowcase() {
     const fresh = list.filter(recent).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 8);
     // « Populaires » et « Nouveautés » : coupées par le patron pour l'instant (config.js → homeRows), à rallumer plus tard
     const HR = CONFIG.homeRows || {};
-    body = row(t("rowFavs"), favL) + row(t("rowOpen"), openL) + (HR.popular === false ? "" : row(t("rowPop"), pop)) + (HR.fresh === false ? "" : row(t("rowNew"), fresh)) + row(t("rowAll"), open.concat(closed));
+    body = row(t("rowFavs"), favL) + row(t("rowOpen"), openL) + (HR.popular === false ? "" : row(t("rowPop"), pop)) + (HR.fresh === false ? "" : row(t("rowNew"), fresh)) + (HR.all === false ? "" : row(t("rowAll"), open.concat(closed)));
   } else body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
   const html = stories + body;
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }

@@ -3938,5 +3938,14 @@ html[dir="rtl"] .wiz-more-btn i { transform: scaleX(-1); } html[dir="rtl"] form.
 #pharmaBox .ph-pic .cg-qty { bottom: 6px; inset-inline: 6px; height: 36px; box-shadow: 0 0 0 3px var(--panel), 0 4px 12px rgba(255,106,19,.35); }
 #pharmaBox .ph-pic .cg-qty button { width: 28px; height: 28px; }
 #pharmaBox .ph-price { margin-top: 6px; }
-#pharmaBox .ph-cats { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 44px), transparent); padding-inline-end: 44px; }
-html[dir="rtl"] #pharmaBox .ph-cats { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 44px), transparent); }
+/* Fondu au bord de la ligne des rubriques : un voile collé au bord (le fond reste opaque, rien ne transparaît dessous) */
+#pharmaBox .ph-cats::after { content: ""; position: sticky; inset-inline-end: -12px; flex: none; width: 44px; margin-inline-start: -44px; align-self: stretch; pointer-events: none;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--rc, #059669) 6%, var(--panel)) 80%); }
+html[dir="rtl"] #pharmaBox .ph-cats::after { background: linear-gradient(to left, transparent, color-mix(in srgb, var(--rc, #059669) 6%, var(--panel)) 80%); }
+
+/* « 18+ » : une petite pastille à côté du nom (jamais un grand bloc noir) */
+#pharmaBox .ph-name .ph-18 { display: inline-block; width: auto; height: auto; vertical-align: 2px; margin-inline-start: 4px; padding: 1px 6px; border-radius: 6px; font-size: 10.5px; line-height: 1.5;
+  background: #E11D48; color: #fff; }
+/* Commande sur téléphone : de la place sous le dernier bouton, il n'est jamais caché par la barre du bas (prix + Continuer) */
+@media (max-width: 960px) { #commander { padding-bottom: 120px; } }
+#pharmaBox .ph-item .ph-name { display: block; }
