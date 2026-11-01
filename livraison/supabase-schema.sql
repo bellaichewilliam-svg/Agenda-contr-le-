@@ -8455,3 +8455,11 @@ grant select, insert, update, delete on public.carts to authenticated;
 -- Colonnes orders.assign_status (attente | ok | refus), assigned_at, assign_answered_at, assign_refused_name ;
 -- déclencheur orders_assign_state (le patron donne à un livreur => attente) ; RPC courier_assign_answer(p_id, p_ok).
 -- Migration « course_donnee_a_confirmer ».
+-- Attente au départ « sans faille » (01/11/2026), migration « attente_sans_faille » :
+-- * courier_wait_announce : photo du livreur obligatoire (prise juste avant, envoyée au client), le livreur choisit des MINUTES, jamais un prix ;
+--   annonce tardive : les minutes passées avant la 1re annonce ne sont pas payées (orders.wait_free_upto).
+-- * wait_fee_final(order, minutes) : seul calcul du supplément (minutes offertes, puis settings.wait_step_price par minute, plafond wait_max) ;
+--   une annonce encore sans réponse du client ne compte pas (orders.wait_ok_cap = minutes déjà acceptées) ; 3 min sans réponse = accepté.
+-- * admin_wait_fix(id, montant) : le patron seul fixe un montant (orders.wait_fix), le client doit l'accepter.
+-- * courier_update('attente_refusee') : client qui avait accepté (bouton) puis ne paie pas => numéro bloqué (blocked_phones), le patron peut débloquer.
+-- * Commission HOP! : toujours sur le total final (course + supplément), comme avant.

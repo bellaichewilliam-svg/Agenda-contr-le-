@@ -1196,27 +1196,75 @@ async function courierGoodsRefund(id, action) {
 // Supplément d'attente / d'achats (même calcul qu'en ligne)
 // Supplément pour un nombre de minutes sur place : minutes offertes, puis le prix par minute, avec un maximum
 // Achats : les 10 min d'achats déjà payées remplacent les minutes offertes (l'attente payée commence après)
-const freeMinOf = (o, st) => Math.max(Number(st.wait_free_min), Number((o && o.purchase_min) || 0));
+// Annonce tardive : les minutes passées sur place avant la 1re annonce ne sont pas payées (wait_free_upto, posé par la base)
+const freeMinOf = (o, st) => Math.max(Number(st.wait_free_min), Number((o && o.purchase_min) || 0), Number((o && !o.shop_status && o.wait_free_upto) || 0));
 function waitFeeFor(m, st, o) {
   return Math.min(Number(st.wait_max), Math.ceil(Math.max(0, Number(m || 0) - freeMinOf(o, st)) / Number(st.wait_step_min)) * Number(st.wait_step_price));
 }
+// Annonce acceptée : « oui » du client, ou 3 min sans réponse (même règle que la base : wait_ann_accepted)
+const WAIT_ANSWER_MS = 180000;
+const waitAccepted = o => o.wait_ann_status === "ok" || (o.wait_ann_status === "attente" && Date.now() - new Date(o.wait_ann_at) >= WAIT_ANSWER_MS);
+const waitPending = o => o.wait_ann_status === "attente" && Date.now() - new Date(o.wait_ann_at) < WAIT_ANSWER_MS;
+// Supplément final, même calcul que la base (wait_fee_final) : le livreur ne choisit jamais un prix
 function waitFee(o, st) {
-  if (!o.arrived_at) return { mins: 0, fee: 0 };
+  const from = o.arrived_at ? Math.max(new Date(o.arrived_at), o.ready_at ? new Date(o.ready_at) : 0) : 0;
+  const mins = from ? Math.max(0, Math.floor((Date.now() - from) / 60000)) : 0;
   // Commande d'un commerce HOP! Pro : l'attente compte à partir de l'heure annoncée par le commerce (il la paie)
-  const from = Math.max(new Date(o.arrived_at), o.ready_at ? new Date(o.ready_at) : 0);
-  const mins = Math.max(0, Math.floor((Date.now() - from) / 60000));
-  // Client : seulement l'attente annoncée sur place et pas refusée, jusqu'au plafond annoncé
-  if (!o.shop_status && (o.wait_ann_cap == null || o.wait_ann_status === "refus")) return { mins, fee: 0, unannounced: true };
-  return { mins, fee: waitFeeFor(o.shop_status ? mins : Math.min(mins, Number(o.wait_ann_cap)), st, o) };
+  if (o.shop_status) return { mins, fee: o.arrived_at ? waitFeeFor(mins, st, o) : 0 };
+  if (o.wait_ann_status === "refus") return { mins, fee: 0 };
+  const ok = waitAccepted(o);
+  // Montant fixé par le patron, accepté par le client
+  if (o.wait_fix != null && ok) return { mins, fee: Math.min(Number(st.wait_max), Math.max(0, Number(o.wait_fix))), fixed: true };
+  if (!o.arrived_at) return { mins, fee: 0 };
+  // Annonce encore sans réponse : seulement ce que le client a déjà accepté avant
+  const cap = ok && o.wait_fix == null ? o.wait_ann_cap : o.wait_ok_cap;
+  if (cap == null) return { mins, fee: 0, unannounced: o.wait_ann_cap == null, pending: waitPending(o) };
+  return { mins, fee: waitFeeFor(Math.min(mins, Number(cap)), st, o), pending: waitPending(o) };
+}
+// Aperçu pour le livreur : ce que rapporterait une annonce de m minutes maintenant (calcul de la base, jamais choisi par lui)
+function waitAnnPreview(o, st, m) {
+  const since = o.arrived_at ? Math.max(0, Math.floor((Date.now() - new Date(o.arrived_at)) / 60000)) : 0;
+  const first = o.wait_ann_cap == null;
+  const cap = first ? since + m : Number(o.wait_ann_cap) + m;
+  return waitFeeFor(cap, st, first && !o.shop_status ? Object.assign({}, o, { wait_free_upto: since }) : o);
+}
+// Patron : fixer le supplément d'attente d'une course (le client doit l'accepter) ; null = revenir au compteur
+async function adminWaitFix(id, fee) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_wait_fix", { method: "POST", body: { p_id: id, p_fee: fee } });
+  const all = localOrders(), o = all.find(x => x.id === id && x.status === "confirmee" && !x.shop_status);
+  if (!o) return { ok: false };
+  if (fee == null) o.wait_fix = null;
+  else Object.assign(o, { wait_ok_cap: o.wait_fix == null && waitAccepted(o) ? o.wait_ann_cap : o.wait_ok_cap, wait_fix: Math.min(60, Math.max(0, Math.round(fee * 2) / 2)),
+    wait_ann_min: o.wait_ann_min || 0, wait_ann_last: 0, wait_ann_at: new Date().toISOString(), wait_ann_status: "attente" });
+  saveLocalOrders(all);
+  return { ok: true };
 }
 // Attente annoncée : le livreur la dit au client, qui accepte ou laisse tomber (moitié de la course)
 async function courierWaitAnnounce(id, min) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_wait_announce", { method: "POST", body: { p_id: id, p_min: min } });
-  return { ok: false };
+  // Démo : mêmes règles que la base (photo prise juste avant, minutes seulement)
+  const all = localOrders(), o = all.find(x => x.id === id && x.courier_id === myId() && x.status === "confirmee" && x.arrived_at);
+  if (!o || o.wait_ann_status === "refus") return { ok: false };
+  if (o.wait_fix != null) return { ok: false, why: "fixed" };
+  const after = Math.max(Date.now() - 300000, new Date(o.wait_ann_at || o.arrived_at).getTime());
+  if (!chatLocal().some(m => m.thread === "o:" + id && m.author === "courier" && m.image && new Date(m.created_at).getTime() >= after)) return { ok: false, why: "photo" };
+  const m = Math.min(60, Math.max(1, Number(min) || 0)), since = Math.floor((Date.now() - new Date(o.arrived_at)) / 60000);
+  Object.assign(o, { wait_ok_cap: waitAccepted(o) ? o.wait_ann_cap : o.wait_ok_cap, wait_ann_min: (o.wait_ann_min || 0) + m,
+    wait_ann_cap: o.wait_ann_cap == null ? since + m : Number(o.wait_ann_cap) + m, wait_ann_last: m,
+    wait_free_upto: o.wait_free_upto == null ? since : o.wait_free_upto, wait_ann_at: new Date().toISOString(), wait_ann_status: o.shop_status ? "info" : "attente" });
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + id, author: "system", body: "status:wait_ann" });
+  return { ok: true, min: o.wait_ann_min, cap: o.wait_ann_cap };
 }
 async function clientWaitAnswer(token, ok) {
   if (ONLINE) return rest("/rest/v1/rpc/client_wait_answer", { method: "POST", body: { p_token: token, p_ok: !!ok } });
-  return { ok: false };
+  const all = localOrders(), o = all.find(x => x.token === token);
+  if (!o || o.status !== "confirmee" || !waitPending(o)) return { ok: false, error: "too_late" };
+  if (ok) Object.assign(o, { wait_ann_status: "ok", wait_ok_cap: o.wait_fix == null ? o.wait_ann_cap : o.wait_ok_cap });
+  else { const half = Math.round(Number(o.price)) / 2; Object.assign(o, { status: "annulee", wait_ann_status: "refus", drop_fee: half, wait_due: half, wait_status: "a_payer" }); }
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "o:" + o.id, author: "system", body: ok ? "status:wait_ok" : "status:wait_drop" });
+  return { ok: true };
 }
 
 // Livreur : en ligne / hors ligne
@@ -2419,7 +2467,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
+  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
