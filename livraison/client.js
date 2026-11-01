@@ -3308,7 +3308,8 @@ function initHomeMap() {
     .setView([c.lat, c.lon], 14);
   $("#homeZoomIn").addEventListener("click", () => home.map.zoomIn());
   $("#homeZoomOut").addEventListener("click", () => home.map.zoomOut());
-  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  // Nouveau design : la carte suit le jour et la nuit (le filtre de nuit est dans styles.css), sinon le réglage du téléphone
+  const dark = !D2 && matchMedia("(prefers-color-scheme: dark)").matches;
   UI.mapTiles(home.map, dark, true);
   addEventListener("resize", () => home.map.invalidateSize());
   initRestos();
