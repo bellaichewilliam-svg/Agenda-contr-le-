@@ -14,6 +14,7 @@ import { HoppyPhoto } from './HoppyPhoto';
 import { HoppyFleurs } from './HoppyFleurs';
 import { AdoptHop, ADOPT_FRAMES } from './Adopt';
 import { Tout, TOUT_FRAMES } from './Tout';
+import { Lancement, LANCEMENT_FRAMES } from './Lancement';
 
 export const Root: React.FC = () => (
   <>
@@ -33,6 +34,8 @@ export const Root: React.FC = () => (
     <Composition id="HopAdoptHe" component={AdoptHop} durationInFrames={ADOPT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Composition id="HopTout" component={Tout} durationInFrames={TOUT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
     <Composition id="HopToutHe" component={Tout} durationInFrames={TOUT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
+    <Composition id="HopLancement" component={Lancement} durationInFrames={LANCEMENT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="HopLancementHe" component={Lancement} durationInFrames={LANCEMENT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Still id="HopGrid1" component={Grid} width={1080} height={1350} defaultProps={{ tile: 0 }} />
     <Still id="HopGrid2" component={Grid} width={1080} height={1350} defaultProps={{ tile: 1 }} />
     <Still id="HopGrid3" component={Grid} width={1080} height={1350} defaultProps={{ tile: 2 }} />
