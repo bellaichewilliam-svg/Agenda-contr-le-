@@ -22,7 +22,7 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 
 ## Charte du nouveau design (maquette validée par le patron, kit `HOP_kit_pour_Claude`)
 - **Toujours suivre la maquette au millimètre** : `references/maquette-inspiration.png`, `modele-encarts-valide.png`, `proposition-carte-recherche.png`, `proposition-partenaires-bas.png`. Même tailles, mêmes fonds, mêmes couleurs, mêmes icônes. Comparer avec des captures avant de montrer.
-- **Rendu homogène sur toutes les pages client** (accueil, commande, commerce, mes courses, tarifs, suivi, « ce qu'on livre », bienvenue) : fond bleu nuit `#0B1830`, cartes `#13233F`, champs `#172A4B`, textes blancs, orange `#FF6A13` pour l'action. Activé par `html.d2` (aperçu `?design=2`) jusqu'à validation « valide » du patron, puis pour tous.
+- **Rendu homogène sur toutes les pages client** (accueil, commande, commerce, mes courses, tarifs, suivi, « ce qu'on livre », bienvenue) : fond bleu nuit `#0B1830`, cartes `#13233F`, champs `#172A4B`, textes blancs, orange `#FF6A13` pour l'action. Activé par `html.d2` : **validé par le patron le 01/11/2026, pour tout le monde** (`?design=1` garde l'ancien sur un téléphone, `?design=2` revient au nouveau). Blanc le jour, bleu nuit le soir (`d2-day`).
 - **Épuré** : rien de gros par-dessus la carte (une fine pastille d'une ligne au plus, ex. « 😴 Livreurs indisponibles · Programmer »). La carte doit respirer.
 - **Icônes** : les icônes 3D du kit (`livraison/img/k2/i-*.webp`), même cadre bleu arrondi, 4 visibles par ligne sur l'accueil. Catégorie partout = `UI.catImg()`.
 - **Grands encarts** : fonds officiels `fonds-encarts.css` (`.hop-fond-*`), objet en bas à droite fondu dans la carte, « ✨ NOUVEAU », titre gras, bouton blanc « Découvrir ».
