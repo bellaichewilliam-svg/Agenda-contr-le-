@@ -3949,3 +3949,15 @@ html[dir="rtl"] #pharmaBox .ph-cats::after { background: linear-gradient(to left
 /* Commande sur téléphone : de la place sous le dernier bouton, il n'est jamais caché par la barre du bas (prix + Continuer) */
 @media (max-width: 960px) { #commander { padding-bottom: 120px; } }
 #pharmaBox .ph-item .ph-name { display: block; }
+/* Accueil à l'ouverture : la carte prend juste la place qu'il faut pour que « Récupérer à » ET « Livrer à »
+   soient entiers au-dessus de la barre « Commander », sur tous les téléphones (comme la photo validée par le patron) */
+@media (max-width: 860px) {
+  html.d2 .ch:not(.map-open) { --mapH: clamp(170px, calc(100vh - 478px), 46vh); --mapH: clamp(170px, calc(100dvh - 478px), 46vh); }
+  html.d2 .ch:not(.map-open) .ch-zoom { top: max(64px, calc(var(--mapH) - 204px)); }
+}
+/* Petits écrans : sans le « Bonjour » ni les + / − (on zoome avec deux doigts), les deux adresses tiennent */
+@media (max-width: 860px) and (max-height: 740px) {
+  html.d2 .ch:not(.map-open) .ch-zoom { display: none; }
+  html.d2 .ch:not(.map-open) .ch-hello { display: none; }
+}
+@media (max-width: 860px) { html.d2 .ch:not(.map-open) .ch-map, html.d2 .ch:not(.map-open) .ch-map.leaflet-container { min-height: 170px; } }
