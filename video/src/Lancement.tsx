@@ -3,13 +3,14 @@ import { AbsoluteFill, Audio, Img, Sequence, interpolate, spring, staticFile, us
 import { HoppyHop } from './HoppyHop';
 import { C, DISPLAY, UI } from './theme';
 import { Grain, Vignette, Wordmark } from './Reel';
+import { SPLASH_SVG } from './splashLogo';
 
 // « Film de lancement » HOP! : 26 s, 1080 × 1920, construit sur les vraies affiches du patron (public/lancement/affiches,
 // versions FR et HE). Ouverture logo (2 s), 6 affiches de 3,3 s (entrée en 3D, reflet, mouvement de caméra vers le prix),
 // fin « Demandez. On livre ! » avec l'adresse et Hoppy qui arrive en sautant.
 export const LANCEMENT_FRAMES = 780;
 export type LancementLang = 'fr' | 'he';
-const INTRO = 60, P = 100, OUT = INTRO + 6 * P; // 660
+const INTRO = 60, P = 100, OUT = INTRO + 6 * P, END = 735; // 660 ; écran d'ouverture final à 735
 const CUTS = [INTRO, ...Array.from({ length: 5 }, (_, i) => INTRO + (i + 1) * P), OUT];
 
 type Poster = { id: string; sq?: boolean; fx: number; fy: number; cap: string };
@@ -21,11 +22,11 @@ const POSTERS: Omit<Poster, 'cap'>[] = [
   { id: 'visite', fx: 0.83, fy: 0.38 },
   { id: 'client', fx: 0.82, fy: 0.38 },
 ];
-const STR: Record<LancementLang, { rtl: boolean; city: string; tag: string; caps: string[]; out: [string, string]; info: string }> = {
-  fr: { rtl: false, city: 'NETANYA', tag: 'La livraison qui fait HOP !',
+const STR: Record<LancementLang, { rtl: boolean; city: string; tag: string; word: string; caps: string[]; out: [string, string]; info: string }> = {
+  fr: { rtl: false, city: 'NETANYA', tag: 'La livraison qui fait HOP !', word: 'LIVRAISON',
     caps: ['Vous y pensez…', '… on vous le livre.', 'Vos magasins préférés', 'Les hallot du vendredi', 'Du nouveau chaque semaine', 'Votre 1re course : 15 ₪'],
     out: ['Demandez.', 'On livre !'], info: '📍 Suivi en direct · 💵 Espèces ou Bit' },
-  he: { rtl: true, city: 'נתניה', tag: 'המשלוחים שעושים הופ!',
+  he: { rtl: true, city: 'נתניה', tag: 'המשלוחים שעושים הופ!', word: 'משלוחים',
     caps: ['חושבים על משהו…', '… ואנחנו מביאים.', 'החנויות שאתם אוהבים', 'החלות של יום שישי', 'חדש בכל שבוע', 'המשלוח הראשון: 15 ₪'],
     out: ['אתם מבקשים.', 'אנחנו מביאים!'], info: '📍 מעקב בזמן אמת · 💵 מזומן או ביט' },
 };
@@ -51,24 +52,17 @@ const Speed: React.FC<{ o?: number }> = ({ o = 0.35 }) => {
   );
 };
 
-// ===== Ouverture : le logo se monte, la promesse, Netanya ==========================================
-const Intro: React.FC = () => {
+// ===== L'écran d'ouverture de l'appli, à l'identique (bleu nuit, logo HOP!, « LIVRAISON » espacé) ========
+// Au début : il apparaît comme quand on ouvre HOP!. À la fin : on y revient.
+const Splash: React.FC<{ fadeIn?: number }> = ({ fadeIn = 8 }) => {
   const f = useCurrentFrame();
-  const letter = (i: number) => {
-    const s = spring({ frame: f - 2 - i * 3, fps: 30, config: { damping: i === 3 ? 7 : 11, stiffness: 240, mass: 0.6 } });
-    return { y: (1 - s) * 500, s: 0.5 + 0.5 * s, r: i === 3 ? (1 - s) * 80 : 0, o: f >= 2 + i * 3 ? 1 : 0 };
-  };
-  const a = sp(f, 16, 12, 220, 0.6), b = sp(f, 24, 9, 260, 0.5);
-  const ring = lerp(f, [0, 30], [0, 1], Easing.out(Easing.cubic));
+  const o = lerp(f, [0, fadeIn], [0, 1]);
+  const s = sp(f, 0, 16, 120, 0.8);
+  const w = lerp(f, [6, 18], [0, 1], Easing.out(Easing.cubic));
   return (
-    <AbsoluteFill style={{ background: NAVY, overflow: 'hidden' }}>
-      <Speed />
-      <div style={{ position: 'absolute', left: 540, top: 820, width: 1400, height: 1400, marginLeft: -700, marginTop: -700, borderRadius: '50%', border: `40px solid ${C.orange}`, opacity: 0.25 * (1 - ring), transform: `scale(${0.2 + ring})` }} />
-      <AbsoluteFill style={{ alignItems: 'center', justifyContent: 'center', paddingBottom: 120 }}>
-        <Wordmark width={800} anim={letter} />
-        <div style={{ marginTop: 60, font: `700 ${T.rtl ? 78 : 76}px/1.1 ${DISPLAY}`, color: '#fff', textAlign: 'center', direction: T.rtl ? 'rtl' : 'ltr', transform: `translateY(${(1 - a) * 60}px)`, opacity: Math.min(1, a * 1.5) }}>{T.tag}</div>
-        <div style={{ marginTop: 40, padding: '20px 40px', borderRadius: 999, background: C.orange, color: '#fff', font: `800 48px/1 ${UI}`, letterSpacing: T.rtl ? 0 : 6, transform: `scale(${b})` }}>📍 {T.city}</div>
-      </AbsoluteFill>
+    <AbsoluteFill style={{ background: '#0F1F3D', alignItems: 'center', justifyContent: 'center', gap: 34, opacity: o }}>
+      <div style={{ width: 640, transform: `scale(${0.9 + 0.1 * s})` }} dangerouslySetInnerHTML={{ __html: SPLASH_SVG.replace('<svg ', '<svg style="width:100%;height:auto;display:block" ') }} />
+      <div style={{ font: `700 ${T.rtl ? 46 : 42}px/1 Rubik, sans-serif`, letterSpacing: T.rtl ? '0.25em' : '0.42em', marginInlineStart: T.rtl ? 0 : '0.42em', color: '#fff', opacity: 0.92 * w, direction: T.rtl ? 'rtl' : 'ltr' }}>{T.word}</div>
     </AbsoluteFill>
   );
 };
@@ -78,10 +72,10 @@ const PosterScene: React.FC<{ i: number }> = ({ i }) => {
   const f = useCurrentFrame();
   const p = { ...POSTERS[i], cap: T.caps[i] };
   const src = staticFile(`lancement/affiches/${p.id}-${LANG}.jpg`);
-  const W = 940, H = p.sq ? 940 : 1175, L = 70, TOP = p.sq ? 380 : 300;
+  const W = 1000, H = p.sq ? 1000 : 1250, L = 40, TOP = p.sq ? 390 : 290;
   const dir = i % 2 ? -1 : 1;
   const e = sp(f, 0, 14, 120, 0.9);
-  const cam = lerp(f, [40, 96], [1, 1.17], io);
+  const cam = lerp(f, [30, 100], [1, 1.045], io); // léger : l'affiche reste toujours entière
   const ox = L + p.fx * W, oy = TOP + p.fy * H;
   const shine = lerp(f, [14, 34], [-0.4, 1.4]);
   const c = sp(f, 18, 12, 220, 0.6);
@@ -100,7 +94,7 @@ const PosterScene: React.FC<{ i: number }> = ({ i }) => {
           </div>
         </div>
       </AbsoluteFill>
-      <div style={{ position: 'absolute', left: 60, right: 60, top: p.sq ? 1400 : 1530, textAlign: 'center', direction: T.rtl ? 'rtl' : 'ltr', opacity: capOut, transform: `translateY(${(1 - c) * 80 + (1 - capOut) * 40}px)` }}>
+      <div style={{ position: 'absolute', left: 60, right: 60, top: p.sq ? 1450 : 1585, textAlign: 'center', direction: T.rtl ? 'rtl' : 'ltr', opacity: capOut, transform: `translateY(${(1 - c) * 80 + (1 - capOut) * 40}px)` }}>
         <span style={{ display: 'inline-block', padding: '24px 46px', borderRadius: 999, background: C.orange, color: '#fff', font: `700 ${T.rtl ? 64 : 62}px/1.1 ${DISPLAY}`, boxShadow: '0 24px 50px rgba(255,106,19,.45)', transform: `scale(${0.6 + 0.4 * c})` }}>{p.cap}</span>
       </div>
     </AbsoluteFill>
@@ -130,7 +124,7 @@ const Outro: React.FC = () => {
         <div style={{ marginTop: 64, padding: '24px 44px', borderRadius: 30, background: '#fff', color: C.navy, font: `700 50px/1 ${UI}`, transform: `translateY(${(1 - u) * 80}px)`, opacity: u, direction: 'ltr' }}>hop-livraison.vercel.app</div>
         <div style={{ marginTop: 34, font: `600 ${T.rtl ? 40 : 38}px/1.2 ${UI}`, color: '#C9D3EA', opacity: lerp(f, [42, 52], [0, 1]), direction: T.rtl ? 'rtl' : 'ltr' }}>{T.info}</div>
       </AbsoluteFill>
-      <HoppyHop x={T.rtl ? 820 : 260} bottom={1900} h={560} at={1.6} from={T.rtl ? 'right' : 'left'} />
+      <HoppyHop x={T.rtl ? 820 : 260} bottom={1900} h={560} at={0.9} from={T.rtl ? 'right' : 'left'} />
     </AbsoluteFill>
   );
 };
@@ -178,9 +172,10 @@ export const Lancement: React.FC<{ music?: boolean; lang?: LancementLang }> = ({
   T = STR[lang]; LANG = lang;
   return (
     <AbsoluteFill style={{ background: C.navy }}>
-      <Sequence durationInFrames={INTRO}><Intro /></Sequence>
+      <Sequence durationInFrames={INTRO}><Splash fadeIn={6} /></Sequence>
       {POSTERS.map((_, i) => <Sequence key={i} from={INTRO + i * P} durationInFrames={P}><PosterScene i={i} /></Sequence>)}
-      <Sequence from={OUT} durationInFrames={LANCEMENT_FRAMES - OUT}><Outro /></Sequence>
+      <Sequence from={OUT} durationInFrames={END - OUT + 10}><Outro /></Sequence>
+      <Sequence from={END}><Splash fadeIn={10} /></Sequence>
       <Chrome />
       <Wipes />
       <Vignette />

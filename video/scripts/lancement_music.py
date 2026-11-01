@@ -165,9 +165,8 @@ for bar in range(13):
             add(pluck(m), t0 + k * BEAT / 2, 0.22, pan=-0.4 + 0.1 * k)
 
 # Bruitages (calés sur src/Lancement.tsx) : le logo d'ouverture, un volet à chaque affiche, le logo et Hoppy à la fin
-for k in range(4):                          # les lettres du logo d'ouverture
-    add(pluck(72 + [0, 4, 7, 12][k], 0.4), f2s(2 + k * 3), 0.4)
-add(hit(), f2s(14), 0.7)
+add(bell(84, 1.6), f2s(2), 0.5)            # l'écran d'ouverture apparaît
+add(bell(91, 1.4), f2s(8), 0.35)
 for c in (60, 160, 260, 360, 460, 560, 660):
     add(whoosh(0.4), f2s(c - 8), 0.6)
 for c in (60, 160, 260, 360, 460, 560):     # le reflet sur chaque affiche
@@ -176,8 +175,10 @@ for k in range(4):                          # les lettres du logo de fin
     add(pluck(72 + [0, 4, 7, 12][k], 0.4), f2s(664 + k * 3), 0.4)
 add(hit(), f2s(676), 0.8)
 add(bell(81, 1.4), f2s(688), 0.4)
-add(whoosh(0.45), f2s(706), 0.5)            # Hoppy saute
-add(hit(), f2s(724), 0.55)
+add(whoosh(0.45), f2s(684), 0.5)            # Hoppy saute
+add(hit(), f2s(703), 0.55)
+add(bell(84, 1.4), f2s(736), 0.5)           # retour à l'écran d'ouverture
+add(bell(91, 1.2), f2s(742), 0.35)
 
 mix = np.stack([L, R], axis=1)
 mix = hp(mix.T, 28).T
