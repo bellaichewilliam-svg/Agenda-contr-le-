@@ -3571,7 +3571,7 @@ html.d2 .ch-go { background: linear-gradient(to top, #0F1D36 78%, transparent); 
 html.d2 .ch-go-price small { color: var(--muted); font-size: 13px; }
 html.d2 .ch-go-price b { color: #FF9A5C; font-size: 28px; }
 html.d2 #homeGo { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 58px; border-radius: 20px; font-size: 19px; padding: 0 22px; box-shadow: 0 10px 24px rgba(255,106,19,.38); }
-html.d2 .k2-scoot { width: 30px; height: 23px; flex: none; color: #fff; }
+html.d2 .k2-scoot { width: 35px; height: 20px; flex: none; color: #fff; }
 html[dir="rtl"].d2 .k2-scoot { transform: scaleX(-1); }
 
 /* Carte et disponibilité */
@@ -3637,7 +3637,7 @@ html.d2 .ch.map-open .ch-mapbtn { background: #13233F; }
 .cs-steps i { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff; font: 800 13px/26px Rubik, sans-serif; font-style: normal; text-align: center; }
 .cs-call { margin-top: 10px; width: 100%; }
 #emptyCart .cs-btns .btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
-#emptyCart .k2-scoot { width: 28px; height: 21px; }
+#emptyCart .k2-scoot { width: 32px; height: 18px; }
 /* Icônes 3D du kit partout (nouveau design) : même cadre bleu que l'accueil */
 html.d2 .item-art.k2-art { background: #0A2646 !important; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255,255,255,.13); }
 html.d2 .item-art.k2-art img { width: 100% !important; height: 100% !important; object-fit: cover; }
