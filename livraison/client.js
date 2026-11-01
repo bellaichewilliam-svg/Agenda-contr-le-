@@ -810,37 +810,64 @@ function shopArt(p) {
   return logo ? `<span class="item-art logo-art"><img src="${logo}" alt="" loading="lazy" /></span>` : UI.itemArt(p.name, state.shop && state.shop.kind);
 }
 const notesText = () => (val("service") === "achat" ? val("notes").trim() : pharmaLines().concat(val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
+// Rayon façon grande appli de courses : recherche, rubriques en une ligne collante, produits en grille (3 par ligne)
+const phNorm = x => String(x || "").toLowerCase().normalize("NFD").replace(/[̀-֑ͯ-ׇ]/g, "");
 function renderPharma() {
   const box = $("#pharmaBox"), r = rayonOn();
   box.classList.toggle("hidden", !r);
   if (!r) return;
   const cats = Rayons.cats(r), items = Rayons.items(r);
   if (!cats.some(c => c.id === state.pharmaCat)) state.pharmaCat = (cats[0] || {}).id;
+  // Le cadre (avec la recherche) n'est construit qu'une fois par rayon : on peut taper sans perdre le clavier
+  if (box.dataset.ray !== r.id || !box.querySelector(".ph-shell")) {
+    state.phQ = "";
+    box.innerHTML = `<div class="ph-shell"><div class="ph-top"></div>
+      <label class="ph-search"><span aria-hidden="true">🔎</span><input type="search" data-ph-q enterkeyhint="search" autocomplete="off" /></label>
+      <div class="ph-rest"></div></div>`;
+    box.dataset.ray = r.id; box.dataset.top = ""; box.dataset.rest = "";
+  }
+  const qIn = box.querySelector("[data-ph-q]");
+  qIn.placeholder = t("phSearchPh");
   // Image d'un produit ou d'une catégorie : photo du patron, sinon pictogramme, sinon emoji
   const pic = x => (x.photo ? `<img src="${x.photo}" alt="" loading="lazy" />` : x.img ? `<img src="img/qc/${x.img}.webp" alt="" loading="lazy" />` : `<i>${x.e}</i>`);
   const picked = rayonPicked(r), n = picked.reduce((a, [, q]) => a + q, 0);
   const inCat = c => picked.filter(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).c === c).reduce((a, [, q]) => a + q, 0);
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
-  const html = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small></div>
-    ${rayonMeter(n)}
-    <p class="ph-cats-h">${UI.esc(t("phCatsHint", { n: cats.length }))}</p>
-    <div class="ph-cats">${cats.map(c => { const k = inCat(c.id); return `<button type="button" class="ph-cat${state.pharmaCat === c.id ? " on" : ""}" data-ph-cat="${c.id}" aria-pressed="${state.pharmaCat === c.id}">${pic(c)}<span>${UI.esc(phName(c))}</span>${k ? `<em>${k}</em>` : ""}</button>`; }).join("")}</div>
-    <p class="ph-cur">${(cur => cur ? `${pic(cur)}<b>${UI.esc(phName(cur))}</b>` : "")(cats.find(c => c.id === state.pharmaCat))}</p>
-    <div class="ph-list">${items.filter(x => x.c === state.pharmaCat).map(x => {
-      const sel = Number((state.pharmaOpt || {})[r.id + ":" + x.id] || 0), k = key(x, x.opt ? sel : 0), q = state.pharma[k] || 0;
-      const pr = (x.opt && x.opt[sel] && x.opt[sel].p) || x.p;
-      return `<div class="ph-item${q ? " in" : ""}${x.img || x.photo ? "" : " no-img"}">${x.img || x.photo ? `<span class="ph-ico${x.photo ? " photo" : ""}">${pic(x)}</span>` : ""}<span class="ph-name"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${pr ? `<small class="ph-price">≈ ${priceTxt(pr)}</small>` : ""}
-        ${x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : ""}</span>
-        ${q ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${q}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
-          : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>`;
-    }).join("")}</div>
-    ${(i => { const prev = cats[i - 1], next = cats[i + 1], rtl = document.documentElement.dir === "rtl";
+  const top = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small></div>
+    ${rayonMeter(n)}`;
+  // Recherche : dans tout le rayon (français et hébreu), sinon la rubrique choisie
+  const q = phNorm((state.phQ || "").trim());
+  const shown = q ? items.filter(x => phNorm(x.fr + " " + x.he + " " + (x.opt || []).map(o => o.fr + " " + o.he).join(" ")).includes(q)) : items.filter(x => x.c === state.pharmaCat);
+  const cur = cats.find(c => c.id === state.pharmaCat);
+  const card = x => {
+    const sel = Number((state.pharmaOpt || {})[r.id + ":" + x.id] || 0), k = key(x, x.opt ? sel : 0), qn = state.pharma[k] || 0;
+    const pr = (x.opt && x.opt[sel] && x.opt[sel].p) || x.p;
+    return `<div class="ph-item${qn ? " in" : ""}">
+      <div class="ph-pic${x.photo ? " photo" : ""}">${pic(x)}
+        ${qn ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${qn}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
+          : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`}</div>
+      ${pr ? `<span class="ph-price">≈ ${priceTxt(pr)}</span>` : ""}
+      <b class="ph-name">${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>
+      ${x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : ""}
+    </div>`;
+  };
+  const rest = `<div class="ph-cats" role="tablist">${cats.map(c => { const k = inCat(c.id), on = !q && state.pharmaCat === c.id;
+      return `<button type="button" class="ph-cat${on ? " on" : ""}" role="tab" data-ph-cat="${c.id}" aria-selected="${on}">${pic(c)}<span>${UI.esc(phName(c))}</span>${k ? `<em>${k}</em>` : ""}</button>`; }).join("")}</div>
+    <p class="ph-cur">${q ? `<b>${UI.esc(t("phFound", { n: shown.length, q: state.phQ.trim() }))}</b>` : cur ? `${pic(cur)}<b>${UI.esc(phName(cur))}</b><small>${UI.esc(t("phCount2", { n: shown.length }))}</small>` : ""}</p>
+    ${shown.length ? `<div class="ph-list">${shown.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
+    ${q ? "" : (i => { const prev = cats[i - 1], next = cats[i + 1], rtl = document.documentElement.dir === "rtl";
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
       return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">${rtl ? "›" : "‹"} ${UI.esc(phName(prev))}</button>` : "<span></span>"}
         ${next ? `<button type="button" class="ph-next" data-ph-cat="${next.id}" data-ph-nav="1">${UI.esc(t("phNext"))} : ${UI.esc(phName(next))} ${rtl ? "‹" : "›"}</button>` : ""}</div>`; })(cats.findIndex(c => c.id === state.pharmaCat))}
     ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { mid: g.mid }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
   box.style.setProperty("--rc", r.color);
-  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  if (box.dataset.top !== top) { box.querySelector(".ph-top").innerHTML = top; box.dataset.top = top; }
+  if (box.dataset.rest !== rest) { box.querySelector(".ph-rest").innerHTML = rest; box.dataset.rest = rest; }
+  // Les rubriques restent collées sous la barre du haut ; la rubrique choisie reste visible dans la ligne
+  const bar = ["#viewBar", ".topbar"].map(s2 => document.querySelector(s2)).find(el => el && el.offsetHeight);
+  if (bar) box.style.setProperty("--ph-top", (parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight - 1 + "px");
+  const on = box.querySelector(".ph-cat.on"), row = box.querySelector(".ph-cats");
+  if (on && row) { const a2 = on.getBoundingClientRect(), b2 = row.getBoundingClientRect(); if (a2.left < b2.left || a2.right > b2.right) row.scrollLeft += (a2.left + a2.width / 2) - (b2.left + b2.width / 2); }
 }
 // Jauge : combien d'articles (10 compris, puis +2 ₪ l'article, 24 au plus) et la place prise dans le top case
 function rayonMeter(n) {
@@ -923,13 +950,21 @@ $("#homePharma").addEventListener("click", e => {
 });
 $("#ensClose").addEventListener("click", () => { if (state.pharmaGo) { state.pharmaGo = false; goPharma(); } });
 $("#ensModal").addEventListener("click", e => { if (e.target.id === "ensModal" && state.pharmaGo) { state.pharmaGo = false; goPharma(); } });
+$("#pharmaBox").addEventListener("input", e => {
+  if (!e.target.matches("[data-ph-q]")) return;
+  e.stopPropagation();
+  state.phQ = e.target.value;
+  renderPharma();
+});
+$("#pharmaBox").addEventListener("keydown", e => { if (e.target.matches("[data-ph-q]") && e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
 $("#pharmaBox").addEventListener("click", e => {
   const c = e.target.closest("[data-ph-cat]"), plus = e.target.closest("[data-ph-plus]"), minus = e.target.closest("[data-ph-minus]");
   state.pharmaMsg = "";
   if (c) {
     state.pharmaCat = c.dataset.phCat;
     // Changé depuis le bas de la liste : on remonte au début du rayon
-    if (c.dataset.phNav) requestAnimationFrame(() => { const h = $("#pharmaBox .ph-cur"); if (h) h.scrollIntoView({ block: "start", behavior: "smooth" }); });
+    state.phQ = ""; const qi = $("#pharmaBox [data-ph-q]"); if (qi) qi.value = "";
+    requestAnimationFrame(() => { const h = $("#pharmaBox .ph-rest"); if (h && (c.dataset.phNav || h.getBoundingClientRect().top < 0)) h.scrollIntoView({ block: "start", behavior: "smooth" }); });
   }
   else if (plus) {
     // 24 articles au plus, et tout doit tenir dans le top case
