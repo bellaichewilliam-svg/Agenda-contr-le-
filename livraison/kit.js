@@ -301,18 +301,18 @@ const PARTNERS = [
 
 Envie de produits français sans bouger de chez vous ? Bonne Maman, LU, Président, Andros, et toute l'épicerie fine du Marché Français : sa carte est maintenant dans l'appli ${nameFr}.
 🛒 Commandez en 1 minute · 📍 suivez le livreur en direct · 💵 espèces ou Bit
-🛵 Livraison dans ${UI.cityFr(home)} : ${price(home)}, livré en 30 min environ
+🛵 Livraison dans ${UI.cityFr(home)} : ${price(home)}, livré au plus vite
 
 👉 Commander chez Le Marché Français : ${url}?c=MARCHEFR`,
     he: `🥐 השוק הצרפתי מגיע אליכם!
 
 בא לכם מוצרים צרפתיים בלי לצאת מהבית? בון מאמן, LU, פרזידנט, אנדרוס וכל המעדנייה של השוק הצרפתי: התפריט עכשיו באפליקציית ${nameHe}.
 🛒 מזמינים תוך דקה · 📍 עוקבים אחרי השליח בזמן אמת · 💵 מזומן או ביט
-🛵 משלוח בתוך ${heHome}: ${price(home)}, מגיע תוך כ-30 דקות
+🛵 משלוח בתוך ${heHome}: ${price(home)}, מגיע הכי מהר
 
 👈 להזמין מהשוק הצרפתי: ${url}?c=MARCHEFR&lang=he`,
-    short: `🥐 Le Marché Français vous livre ! Produits français, commandés en 1 minute, livrés en 30 min : ${url}?c=MARCHEFR
-🥐 השוק הצרפתי מגיע אליכם! מוצרים צרפתיים, הזמנה תוך דקה, משלוח תוך 30 דקות: ${url}?c=MARCHEFR&lang=he` }
+    short: `🥐 Le Marché Français vous livre ! Produits français, commandés en 1 minute, livrés au plus vite : ${url}?c=MARCHEFR
+🥐 השוק הצרפתי מגיע אליכם! מוצרים צרפתיים, הזמנה תוך דקה, משלוח הכי מהר: ${url}?c=MARCHEFR&lang=he` }
 ];
 const PARTNER_POSTS = PARTNERS.flatMap(p => [
   { title: `🏪 ${p.name.fr} vous livre ! (français)`, dir: "ltr", text: p.fr },

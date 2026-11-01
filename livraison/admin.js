@@ -1545,12 +1545,13 @@ function clientCount(days) {
 }
 // Visuels du kit pub proposés pour les pubs de l'appli (format story, FR et HE)
 const KIT_PROMO_IMGS = [
+  ["🦘 Hoppy : vous demandez, on livre", "kit/visuels/courses-post-fr.png", "kit/visuels/courses-post-he.png"],
+  ["🦘 Hoppy : Le Marché Français chez vous", "kit/visuels/partenaire-marchefr-post-fr.png", "kit/visuels/partenaire-marchefr-post-he.png"],
   ["🦘 Hoppy : la table de Chabbat", "kit/visuels/table-post-fr.png", "kit/visuels/table-post-he.png"],
   ["🦘 Hoppy : courses avant Chabbat", "kit/visuels/chabbat-post-fr.png", "kit/visuels/chabbat-post-he.png"],
   ["🦘 Hoppy : on livre aussi vos fleurs", "kit/visuels/hoppy-fleurs-post-fr.png", "kit/visuels/hoppy-fleurs-post-he.png"],
   ["🦘 Hoppy : vos magasins préférés", "kit/visuels/hoppy-magasins-post-fr.png", "kit/visuels/hoppy-magasins-post-he.png"],
   ["Toutes vos courses (story)", "kit/visuels/courses-story-fr.png", "kit/visuels/courses-story-he.png"],
-  ["Toutes vos courses (carré)", "kit/visuels/courses-post-fr.png", "kit/visuels/courses-post-he.png"],
   ["Nouveaux partenaires (story)", "kit/visuels/nouveaux-story-fr.png", "kit/visuels/nouveaux-story-he.png"],
   ["Nouveaux partenaires (carré)", "kit/visuels/nouveaux-post-fr.png", "kit/visuels/nouveaux-post-he.png"],
   ["Clients : première course (story)", "kit/visuels/client-story-fr.png", "kit/visuels/client-story-he.png"],
