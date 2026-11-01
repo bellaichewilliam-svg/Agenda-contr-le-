@@ -144,6 +144,10 @@ window.CONFIG = {
     pickupPoint: 0,     // retrait à la poste / Super-Pharm / point relais : plus de supplément fixe (l'attente au-delà de 10 min est payée au temps, voir waiting)
     purchase: 5,        // « J'achète pour vous » : 5 ₪ pour l'arrêt et l'achat, toujours (même sans queue, même un paquet de cigarettes) ;
     purchaseMinutes: 5, // 5 min sur place comprises, puis 1 ₪ la minute (attente habituelle). En ligne : settings.purchase_min
+    // Vrai achat en boutique (vêtements, sandwich pas commandé, pharmacie, boulangerie, cadeaux, bébé, animaux, maison…) :
+    // 8 ₪, 8 min sur place comprises (sans file d'attente), puis l'attente annoncée avec photo. En ligne : settings.purchase_min_shop.
+    // Le prix « petit achat » ci-dessus reste pour la makolet / le supermarché et les cigarettes (rayons purchaseSmall).
+    purchaseShop: 8, purchaseShopMinutes: 8, purchaseSmall: ["shop", "tabac"],
     // Articles cochés dans les rayons (pharmacie, makolet, boulangerie, tabac & alcool) : 10 compris dans le prix,
     // puis +2 ₪ par article (1 ₪ pour le livreur, 1 ₪ pour HOP!, retiré de son crédit), 24 au plus ;
     // place dans le top case (40 × 40 × 35 cm, 15 kg) : 30 « places » (un article = 1 à 4 selon sa taille).

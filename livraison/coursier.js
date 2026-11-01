@@ -2868,7 +2868,10 @@ function livePoll() {
   clearTimeout(pollTimer);
   const hot = mine().length || pool().length || offerShown || refunds.length;
   // Une réponse du client est attendue (heure, attente, paiement) : toutes les 2 s, pour la voir tout de suite
-  const waiting = mine().some(o => o.eta_status === "attente" || o.wait_ann_status === "attente" || (o.direct_pay && o.payment_status !== "paye" && o.status === "recuperee"));
+  // (heure, attente annoncée, paiement de la course ou des articles, ticket à compléter) : la réponse s'affiche dans les 2 s
+  const waiting = mine().some(o => o.eta_status === "attente" || Store.waitPending(o)
+    || (o.direct_pay && o.payment_status !== "paye" && ["confirmee", "recuperee"].includes(o.status))
+    || ["a_completer", "a_rendre"].includes(o.goods_refund_status) || o.wait_status === "a_payer");
   pollTimer = setTimeout(async () => { await load(); livePoll(); }, waiting ? 2000 : hot ? 5000 : 15000);
 }
 // Notification touchée : la conversation ou la course dont elle parle s'ouvre

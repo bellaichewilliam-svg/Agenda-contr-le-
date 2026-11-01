@@ -139,7 +139,7 @@ function renderStatic() {
   $("#examples").innerHTML = EXAMPLES.map(ex => {
     const q = Pricing.computeQuote({
       fromCity: ex.set.from_city || home, toCity: ex.set.to_city || home,
-      service: ex.set.service, urgency: ex.set.urgency, size: ex.set.size || "petit", roundTrip: ex.set.round_trip
+      service: ex.set.service, urgency: ex.set.urgency, size: ex.set.size || "petit", roundTrip: ex.set.round_trip, purchaseKind: ex.id
     }, CONFIG);
     return `<button type="button" class="example" data-ex="${ex.id}">
       <span class="ex-ico">${ex.icon}</span>
@@ -517,12 +517,19 @@ function baseQuote() {
   return Pricing.computeQuote({
     fromCity: nearMode() ? cityOf("to") : cityOf("from"), toCity: cityOf("to"),
     fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint,
-    service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(), units: rayonUnits(),
+    service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(), units: rayonUnits(), purchaseKind: purchaseKind(),
     couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
   }, CONFIG);
 }
+// Genre de l'achat : rayon makolet / supermarché ou tabac = petit achat (5 ₪) ; tout le reste = vrai achat en boutique (8 ₪)
+function purchaseKind() {
+  if (val("service") !== "achat") return null;
+  const r = rayonOn();
+  return r ? r.kind : tobaccoOnly() ? "tabac" : null;
+}
+const boutiqueBuy = () => val("service") === "achat" && !proShopOn() && Pricing.purchaseTier(CONFIG, { purchaseKind: purchaseKind() }) === "boutique";
 // Seulement des cigarettes (« 2 Marlboro ») : achat express, pas de temps d'achats compté
 function tobaccoOnly() {
   if (val("service") !== "achat") return false;
@@ -998,7 +1005,9 @@ function renderQuote() {
   renderGoodsBox(q);
   // L'essentiel visible ; la règle d'attente (longue) derrière « En savoir plus »
   const main = notes.filter(n => !n.startsWith(t("qWait").slice(0, 12))), more = notes.filter(n => !main.includes(n));
-  $("#quoteNote").innerHTML = `${UI.esc(main.join(" "))}${more.length ? ` <details class="q-more"${$("#quoteNote").querySelector("details[open]") ? " open" : ""}><summary>${UI.esc(t("qMore"))}</summary>${UI.esc(more.join(" "))}</details>` : ""}`;
+  // Vrai achat en boutique : le plus simple et le moins cher, c'est de commander en direct (on ne paie que la livraison)
+  const direct = boutiqueBuy() ? `<div class="direct-tip"><b>${UI.esc(t("qDirectT"))}</b><span>${escHop(t("qDirectS", { price: money(((q.lines || []).find(l => /^qBase/.test(l.key)) || { amount: CONFIG.pricing.base }).amount) }))}</span><span class="direct-soon">${escHop(t("qDirectSoon"))}</span></div>` : "";
+  $("#quoteNote").innerHTML = `${direct}${UI.esc(main.join(" "))}${more.length ? ` <details class="q-more"${$("#quoteNote").querySelector("details[open]") ? " open" : ""}><summary>${UI.esc(t("qMore"))}</summary>${UI.esc(more.join(" "))}</details>` : ""}`;
   updateProgress();
   const err = scheduleError();
   $("#scheduleError").textContent = err ? t(err.key, err.vars) : "";
@@ -1831,7 +1840,7 @@ async function submit(e) {
       sale_paid: svc === "colis" && form.p2p_sale.checked && form.sale_paid.checked,
       handoff: svc === "colis" && form.handoff.checked,
       shopping_list: svc === "achat" ? shopListText() || null : null,
-      purchase_min: svc === "achat" && CONFIG.pricing.purchase ? CONFIG.pricing.purchaseMinutes || 5 : null,
+      purchase_min: svc === "achat" && CONFIG.pricing.purchase ? (boutiqueBuy() ? CONFIG.pricing.purchaseShopMinutes || 8 : CONFIG.pricing.purchaseMinutes || 5) : null,
       budget: svc === "achat" ? (goodsPrepay() ? goodsBudget() : parseFloat(val("budget"))) || null : null,
       // Articles : payés d'avance au livreur (avec la course), ou réglés au magasin par le client lui-même
       goods_prepay: goodsPrepay(),
@@ -3076,7 +3085,7 @@ const KIND_ART = { tabac: ["wine", 280], bakery: ["croissant", 38], pressing: ["
 function renderHomeStatic() {
   const homeCity = CONFIG.homeCity;
   $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
-    const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip }, CONFIG);
+    const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip, purchaseKind: ex.id }, CONFIG);
     const art = KIND_ART[ex.id];
     return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${!D2 && RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${D2 && K2_ICON[ex.id] ? k2Icon(ex.id) : art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b></button>`;
   }).join("");

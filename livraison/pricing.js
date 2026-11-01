@@ -105,7 +105,10 @@ function computeQuote(opts, cfg) {
   if (opts.service === "retrait" && P.pickupPoint) lines.push({ key: "qPickup", amount: P.pickupPoint });
   // Achats : s'arrêter et acheter a toujours un prix (même sans queue, même un paquet de cigarettes),
   // quelques minutes sur place comprises, puis l'attente habituelle
-  if (opts.service === "achat" && P.purchase) lines.push({ key: "qPurchase", vars: { min: P.purchaseMinutes || 5 }, amount: P.purchase });
+  // Makolet / supermarché et cigarettes : petit achat ; tout le reste (boutique, sandwich, pharmacie…) : vrai achat en boutique
+  if (opts.service === "achat" && P.purchase) lines.push(purchaseTier(cfg, opts) === "boutique" && P.purchaseShop
+    ? { key: "qPurchaseShop", vars: { min: P.purchaseShopMinutes || 8 }, amount: P.purchaseShop }
+    : { key: "qPurchase", vars: { min: P.purchaseMinutes || 5 }, amount: P.purchase });
   // Articles cochés au-delà de ceux compris : 2 ₪ l'article (1 ₪ pour le livreur, 1 ₪ pour HOP!)
   const PI = P.purchaseItems;
   const extra = opts.service === "achat" && PI ? Math.max(0, Math.min(opts.units || 0, PI.max) - PI.included) : 0;
@@ -209,10 +212,17 @@ async function geocode(address, countryCode, timeoutMs) {
   }
 }
 
+// Achat : « petit » (makolet / supermarché, cigarettes : rayons cfg.pricing.purchaseSmall) ou « boutique » (tout le reste).
+// opts.purchaseKind = genre du rayon choisi (null : achat libre dans un commerce = boutique)
+function purchaseTier(cfg, opts) {
+  const small = cfg.pricing.purchaseSmall || ["shop", "tabac"];
+  return opts.purchaseKind && small.includes(opts.purchaseKind) ? "petit" : "boutique";
+}
+
 // Prix voiture (gros colis) entre la ville principale et une ville, ou null
 function carPrice(cfg, fromId, toId) { return cfg.pricing.carAvailable === false ? null : fixedPrice(cfg, fromId, toId, true); }
 
-const api = { areaOf, kmToArea, computeQuote, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
+const api = { areaOf, kmToArea, computeQuote, purchaseTier, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.Pricing = api;
 
