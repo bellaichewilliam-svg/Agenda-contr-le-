@@ -450,6 +450,9 @@ const CAPS = {
   client: {
     fr: `🎁 Et hop, c'est livré ! Votre première course à Netanya : ${welcome} au lieu de ${delFr}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute (code BIENVENUE) : ${APP_URL}\n${TAGS.fr}`,
     he: `🎁 והופ, זה מגיע! המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה (קוד BRUCHIM): ${APP_URL}?lang=he\n${TAGS.he}` },
+  "pro-prix-fixe": {
+    fr: `💼 Professionnels : vos livraisons, un prix fixe.\nCommerces, bureaux, restaurants : HOP! livre pour votre entreprise, partout à Netanya.\n💰 ${price(home)} la course dans ${UI.cityFr(home)}, connu à l'avance\n✅ 0 % de commission, sans abonnement, sans engagement\n🛵 Des livreurs de Netanya, suivi en direct pour vous et votre client\n📦 Colis, documents, commandes clients, repas…\n💬 Parlons de vos livraisons : 📞 ${bossTel}\n👉 ${APP_URL}\n${TAGS.fr} #entreprise #commerce`,
+    he: `💼 לבעלי עסקים: המשלוחים שלכם, במחיר קבוע.\nחנויות, משרדים ומסעדות: HOP! מביאים את המשלוחים של העסק שלכם, בכל נתניה.\n💰 ${price(home)} למשלוח בתוך ${heHome}, ידוע מראש\n✅ 0% עמלה, בלי מנוי, בלי התחייבות\n🛵 שליחים מנתניה, מעקב בזמן אמת לכם וללקוח\n📦 חבילות, מסמכים, הזמנות של לקוחות, אוכל…\n💬 בואו נדבר על המשלוחים שלכם: 📞 ${bossTel}\n👈 ${APP_URL}?lang=he\n${TAGS.he} #עסקים` },
   lancement: {
     fr: `🚀 Une envie ? Hoppy arrive.\nVos courses, vos boutiques, des fleurs, un repas, un colis, la pharmacie… Vous demandez, HOP! on livre, partout à Netanya.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais de service\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🚀 בא לכם משהו? הופי מגיע.\nקניות, חנויות, פרחים, אוכל, חבילות, פארם… אתם מבקשים, HOP! מביאים, בכל נתניה.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 0 ₪ דמי שירות\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -520,6 +523,7 @@ const CAMPS = [
   { id: "courses", aud: "client", title: "🛒 On fait toutes vos courses", desc: "Les catégories de l'appli en 3 étapes. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story", "flyer"], video: true },
   { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires", desc: "Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush, avec leurs vrais logos.", formats: ["post", "story"], video: true },
   { id: "client", aud: "client", title: "🎁 Première course à 15 ₪", desc: "Le message de lancement : prix, suivi en direct, espèces ou Bit.", formats: ["post", "story", "flyer"] },
+  { id: "pro-prix-fixe", aud: "shop", isNew: true, thumb: "post", title: "💼 Professionnels : vos livraisons, un prix fixe.", desc: "Pour les réseaux : commerces, bureaux, restaurants, HOP! livre pour votre entreprise. FR et HE.", formats: ["post"] },
   { id: "resto", aud: "shop", title: "🔥 Restaurants : « Gardez 100 % de vos ventes »", desc: "Le calcul qui fait réagir : 0 % de commission.", formats: ["post", "story", "flyer"] },
   { id: "pro", aud: "shop", title: "⚡ Tout commerce : « Vos clients veulent être livrés ? »", desc: "Un livreur en quelques minutes, sans contrat.", formats: ["post", "story", "flyer"] },
   { id: "quartier", aud: "shop", title: "🏪 Commerces de quartier", desc: "« Vendez aussi à ceux qui ne viennent pas » : pharmacie, fleuriste, pressing…", formats: ["post", "story", "flyer"] },
