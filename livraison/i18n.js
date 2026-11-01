@@ -1504,10 +1504,43 @@ function t(key, vars) {
   return s;
 }
 
+// « HOP! » toujours dans le bon sens (jamais « !HOP » en hébreu) : isolé de gauche à droite partout où il apparaît
+const escHtml = v => String(v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+function setText(el, s) {
+  if (typeof s === "string" && s.indexOf("HOP!") >= 0) el.innerHTML = escHtml(s).replace(/HOP!\u200E?/g, '<bdi dir="ltr">HOP!</bdi>');
+  else el.textContent = s;
+}
+// Filet de sécurité pour les textes écrits par les écrans (titres, onglets…) : on isole « HOP! » après coup
+function fixHop(root) {
+  const w = document.createTreeWalker(root || document.body, NodeFilter.SHOW_TEXT);
+  const list = []; let n;
+  while ((n = w.nextNode())) {
+    if (n.textContent.indexOf("HOP!") < 0) continue;
+    const p = n.parentElement;
+    if (!p || p.closest("script,style,textarea,input,bdi,[contenteditable],svg,title,option")) continue;
+    list.push(n);
+  }
+  list.forEach(n => {
+    const frag = document.createDocumentFragment();
+    n.textContent.split(/(HOP!\u200E?)/).forEach(part => {
+      if (/^HOP!/.test(part)) { const b = document.createElement("bdi"); b.dir = "ltr"; b.textContent = "HOP!"; frag.appendChild(b); }
+      else if (part) frag.appendChild(document.createTextNode(part));
+    });
+    n.parentNode.replaceChild(frag, n);
+  });
+}
+if (typeof MutationObserver !== "undefined" && typeof document !== "undefined") {
+  let queued = false;
+  const run = () => { queued = false; if (document.documentElement.lang === "he") fixHop(document.body); };
+  const mo = new MutationObserver(() => { if (!queued) { queued = true; (window.requestAnimationFrame || setTimeout)(run); } });
+  const start = () => { if (document.body) { mo.observe(document.body, { childList: true, subtree: true, characterData: true }); run(); } };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+}
+
 function apply() {
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
-  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n]").forEach(el => { setText(el, t(el.dataset.i18n)); });
   document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll("[data-i18n-title]").forEach(el => { el.title = t(el.dataset.i18nTitle); });
 }
