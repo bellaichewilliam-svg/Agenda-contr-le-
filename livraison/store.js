@@ -851,7 +851,30 @@ async function courierFields(c, o) {
 
 // Le patron attribue une course à un livreur (ou à lui-même)
 async function assignOrder(o, courier) {
-  return updateOrder(o.id, await courierFields(courier, o));
+  const f = await courierFields(courier, o);
+  // Démo : comme en ligne (la base le fait seule), le livreur doit confirmer « Je la ferai »
+  if (!ONLINE) Object.assign(f, courier.role !== "admin" && courier.id !== myId()
+    ? { assign_status: "attente", assigned_at: new Date().toISOString(), assign_answered_at: null }
+    : { assign_status: null, assigned_at: null, assign_answered_at: null });
+  return updateOrder(o.id, f);
+}
+// Le livreur répond à une course que le patron lui a donnée : « Je la ferai » (ok) ou « Je ne peux pas »
+async function assignAnswer(id, ok) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_assign_answer", { method: "POST", body: { p_id: id, p_ok: !!ok } });
+  const all = localOrders();
+  const o = all.find(x => x.id === id && x.courier_id === myId() && x.status === "confirmee");
+  if (!o) return { ok: false, why: "gone" };
+  if (o.assign_status !== "attente") return { ok: true, already: o.assign_status };
+  const cr = localCouriers().find(x => x.id === myId()) || {};
+  if (ok) Object.assign(o, { assign_status: "ok", assign_answered_at: new Date().toISOString() });
+  else {
+    if (o.arrived_at || o.goods_spent != null) return { ok: false, why: "started" };
+    Object.assign(o, { status: "nouvelle", courier_id: null, courier_name: null, courier_phone: null, courier_bit: null, commission: 0,
+      assign_status: "refus", assign_answered_at: new Date().toISOString(), assign_refused_name: cr.name || "" });
+  }
+  saveLocalOrders(all);
+  chatLocalAdd({ thread: "c:" + myId(), author: "courier", body: (ok ? "✅ Course n° " : "❌ Course n° ") + o.ref + (ok ? " : je la ferai." : " : je ne peux pas la faire.") });
+  return { ok: true };
 }
 
 // Un livreur accepte une course libre (le premier qui accepte la prend)
@@ -2398,7 +2421,7 @@ window.Store = {
   welcomeUsed, deviceId,
   createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
-  listOrders, updateOrder, assignOrder, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
+  listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,

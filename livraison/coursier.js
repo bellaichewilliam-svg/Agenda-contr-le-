@@ -622,13 +622,43 @@ function watchGiven() {
   mine().filter(o => o.status === "confirmee").forEach(o => {
     if (mineSeen.has(o.id)) return;
     mineSeen.add(o.id); changed = true;
-    if (acceptedHere.has(o.id)) return;
+    // Course donnée par le patron, à confirmer : c'est la fenêtre « Je la ferai / Je ne peux pas » qui s'en charge
+    if (acceptedHere.has(o.id) || o.assign_status) return;
     askInfo.push(`📦 <b>HOP! vous a donné une course</b><br>Course n° ${UI.esc(o.ref)} · pour vous : <b>${UI.money(Store.courierGain(o))}</b>
       <br>📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}<br>🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}
       ${isOnline() ? "" : "<br><b>Passez en ligne</b> pour que le client vous suive sur la carte."}`);
   });
   if (changed) try { localStorage.setItem(LS_MINE, JSON.stringify([...mineSeen].slice(-200))); } catch (e) { /* ignore */ }
 }
+// Course donnée par le patron (même programmée plus tard, même à un livreur qui vient de s'inscrire) :
+// le livreur la voit dès qu'il ouvre l'appli et doit répondre « Je la ferai » ou « Je ne peux pas »
+const giveWaiting = () => mine().find(x => x.status === "confirmee" && x.assign_status === "attente" && !askLater.has("give:" + x.id));
+const giveBody = o => `<p class="small">Course n° ${UI.esc(o.ref)} · pour vous : <b>${UI.money(Store.courierGain(o))}</b>
+  ${isLater(o) ? `<br>⏰ <b>Plus tard</b> : ${UI.esc(startAt(o))}` : ""}
+  <br>📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}<br>🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</p>`;
+const giveBox = o => o.assign_status === "attente" && o.status === "confirmee"
+  ? `<div class="give-ask"><b>📦 HOP! vous donne la course n° ${UI.esc(o.ref)}</b><span>Confirmez au patron que vous la ferez.</span>
+      <div class="give-btns"><button type="button" class="btn btn-primary" data-give-ok="${UI.esc(o.id)}">✅ Je la ferai</button><button type="button" class="btn" data-give-no="${UI.esc(o.id)}">❌ Je ne peux pas</button></div></div>` : "";
+async function giveAnswer(b) {
+  const id = b.dataset.giveOk || b.dataset.giveNo, ok = !!b.dataset.giveOk;
+  if (!ok && !confirm("Vous ne pouvez pas faire cette course ?\n\nElle repart chez HOP! qui la donnera à un autre livreur.")) return;
+  document.querySelectorAll(`[data-give-ok="${id}"],[data-give-no="${id}"]`).forEach(x => { x.disabled = true; });
+  const r = await Store.assignAnswer(id, ok).catch(() => null);
+  if (!r || r.ok === false) {
+    document.querySelectorAll(`[data-give-ok="${id}"],[data-give-no="${id}"]`).forEach(x => { x.disabled = false; });
+    return alert(r && r.why === "started" ? "Course déjà commencée : écrivez à HOP! pour la rendre." : r && r.why === "gone" ? "Cette course n'est plus pour vous." : "Pas enregistré, vérifiez la connexion et réessayez.");
+  }
+  if (ok) acceptedHere.add(id);
+  const o = orders.find(x => x.id === id);
+  if (o) { if (ok) o.assign_status = "ok"; else Object.assign(o, { status: "nouvelle", courier_id: null, assign_status: "refus" }); }
+  $("#askModal").classList.add("hidden");
+  render(); showAsk();
+  load();
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-give-ok],[data-give-no]");
+  if (b && !b.closest("#askBox")) { e.preventDefault(); e.stopPropagation(); giveAnswer(b); }
+}, true);
 function watchAnswers() {
   orders.filter(o => o.courier_id === me.id).forEach(o => {
     const prev = answerPrev.get(o.id), now = { eta: o.eta_status, wait: o.wait_ann_status, status: o.status };
@@ -654,6 +684,15 @@ function showAsk() {
       <button class="btn btn-primary" data-ask-paid="${UI.esc(o.id)}">✅ Paiement reçu</button>
       <button class="btn" data-ask-missing="${UI.esc(o.id)}">❌ Pas reçu</button>
       <button class="btn btn-link" data-ask-later="${UI.esc(o.id + o.client_paid_at)}">Vérifier plus tard</button>`;
+  } else if (giveWaiting()) {
+    const g = giveWaiting();
+    key = "give:" + g.id;
+    html = `<div class="offer-top"><span>📦</span><b>HOP! vous donne une course</b></div>
+      ${giveBody(g)}
+      <p class="small"><b>Confirmez au patron que vous la ferez.</b></p>
+      <button class="btn btn-primary" data-give-ok="${UI.esc(g.id)}">✅ Je la ferai</button>
+      <button class="btn" data-give-no="${UI.esc(g.id)}">❌ Je ne peux pas</button>
+      <button class="btn btn-link" data-give-later="${UI.esc(g.id)}">Répondre plus tard</button>`;
   } else if (askInfo.length) {
     key = "info:" + askInfo[0];
     html = `<p class="msg-body">${askInfo[0]}</p><button class="btn btn-primary" data-ask-ok>OK</button>`;
@@ -671,6 +710,8 @@ $("#askBox").addEventListener("click", async e => {
   if (!b) return;
   if (b.dataset.askOk != null) { askInfo.shift(); return showAsk(); }
   if (b.dataset.askLater) { askLater.add(b.dataset.askLater); return showAsk(); }
+  if (b.dataset.giveLater) { askLater.add("give:" + b.dataset.giveLater); return showAsk(); }
+  if (b.dataset.giveOk || b.dataset.giveNo) return giveAnswer(b);
   b.disabled = true;
   if (b.dataset.askPaid) {
     const ok = await Store.courierAction(b.dataset.askPaid, "paye").catch(() => false);
@@ -1021,6 +1062,7 @@ function mineCard(o, x) {
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(x.total)}</span>
     </div>
+    ${giveBox(o)}
     ${newClient(o)}
     ${nbBlock(o)}
     <div class="mine-step">${isLater(o) ? `<b class="later-tag">⏰ PLUS TARD · dans ${UI.esc(nbDur(nbLeft(laterAt(o))))}</b> · rien à faire avant <b>${UI.esc(startAt(o))}</b> · ensuite : ` : ""}${UI.esc(mineStep(o, x.hopPaid))}${tripKm(o) ? ` <span class="mine-km">🛣️ ${tripKm(o)}</span>` : ""}</div>
@@ -2155,7 +2197,7 @@ function renderHome() {
   $("#sheetBody").innerHTML = `${refundCards()}${cashReturnCards()}
     <div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
-    ${cur.map(o => `<button type="button" class="rd-card course" data-tab="mine">
+    ${cur.map(o => `${giveBox(o)}<button type="button" class="rd-card course" data-tab="mine">
         <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>${o.first_order ? "🆕 nouveau client · " : ""}n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
           <em class="rc-step">${isLater(o) ? `⏰ PLUS TARD · ${UI.esc(dueLabel(o))} · rien à faire avant ${UI.esc(startAt(o))}` : `${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}`}</em>
           <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>

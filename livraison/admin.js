@@ -549,6 +549,11 @@ function card(o, withDay) {
     const ref = couriers.find(c => c.id === o.referrer_id);
     meta.push(`<span class="pill star-pill">🏪 ${UI.esc(o.shop_name)}${ref && ref.role !== "admin" ? ` · parrain ${UI.esc(ref.name)} +${UI.money(o.referral_bonus || 0)}` : ""}</span>`);
   }
+  // Course donnée par le patron : le livreur doit confirmer qu'il la fera
+  const hm = d => d ? new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
+  if (o.status === "confirmee" && o.assign_status === "attente") meta.push(`<span class="pill give-wait" title="Il voit la course dès qu'il ouvre HOP! Livreur et doit répondre">⏳ Attend la réponse de ${UI.esc(o.courier_name || "livreur")}${o.assigned_at ? " · donnée à " + hm(o.assigned_at) : ""}</span>`);
+  if (["confirmee", "recuperee"].includes(o.status) && o.assign_status === "ok") meta.push(`<span class="pill give-ok">✅ ${UI.esc(o.courier_name || "Le livreur")} a confirmé${o.assign_answered_at ? " à " + hm(o.assign_answered_at) : ""}</span>`);
+  if (o.status === "nouvelle" && o.assign_status === "refus") meta.push(`<span class="pill give-no">❌ ${UI.esc(o.assign_refused_name || "Le livreur")} ne peut pas${o.assign_answered_at ? " (" + hm(o.assign_answered_at) + ")" : ""} · donnez-la à un autre</span>`);
   if (o.courier_id && !isMine(o)) meta.push(`<span class="pill courier-pill">🛵 ${UI.esc(o.courier_name || "Livreur")} · commission ${o.network ? "réseau " : ""}${UI.money(o.commission || 0)}${Number(o.hop_share) > 0 ? ` + part Pro ${UI.money(o.hop_share)}` : ""}</span>`);
   if (o.adult_items) meta.push(o.id_checked_at ? `<span class="pill paid">🪪 ${UI.esc(o.adult_items.replace(",", " + "))} · identité vérifiée ${UI.esc(UI.fmtTime(o.id_checked_at))}</span>` : `<span class="pill unpaid">🔞 ${UI.esc(o.adult_items.replace(",", " + "))} · pièce d'identité à vérifier</span>`);
   if (o.shop_ref) meta.push(`<span class="pill star-pill">🛍️ Sac n° ${UI.esc(o.shop_ref)}</span>`);
@@ -2040,7 +2045,7 @@ async function assignTo(o, courier) {
     await load();
     // Livreur hors ligne : la course l'attend dans son appli (elle s'ouvre au premier plan) ; on peut l'appeler
     if (courier.role !== "admin" && !onlineOf(courier).on && courier.phone
-      && confirm(`${courier.name} est hors ligne : la course n° ${o.ref} l'attend dans son appli HOP! Livreur (elle s'ouvrira dès qu'il l'ouvre).\n\nL'appeler maintenant ?`))
+      && confirm(`${courier.name} est hors ligne : la course n° ${o.ref} l'attend dans son appli HOP! Livreur. Elle s'ouvrira dès qu'il l'ouvre et il devra vous confirmer « Je la ferai » (vous le verrez ici).\n\nL'appeler maintenant ?`))
       location.href = "tel:" + String(courier.phone).replace(/[^\d+]/g, "");
 
   } catch (e) { alert("Attribution impossible, vérifiez la connexion."); }

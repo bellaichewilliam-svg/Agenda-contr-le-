@@ -8447,3 +8447,11 @@ grant select, insert, update, delete on public.carts to authenticated;
 -- Offre de bienvenue (01/11/2026) : une seule fois aussi par ADRESSE de livraison (même immeuble ~45 m, ou même adresse
 -- écrite), en plus du numéro / téléphone / IP ; montant fixé à 10 ₪ par la base (25 → 15 ₪, quartier à 30 → 20 ₪).
 -- Fonctions welcome_used_addr() et orders_welcome_guard(), déclencheur orders_guard_welcome : migration « bienvenue_par_adresse ».
+-- Offre de bienvenue par PORTE (01/11/2026) : même immeuble + même étage + même porte déjà livré avec l'offre
+-- => pas d'offre, même pour une autre personne (voisins des autres appartements : offre normale).
+-- welcome_addr_kind() renvoie le type (bureau / maison / appartement / commerce) pour un message gentil dans l'appli
+-- (« votre bureau a déjà profité… commandez groupé ») ; erreur « welcome_used_addr:<type> ». Migration « bienvenue_par_porte ».
+-- Course donnée par le patron (01/11/2026) : le livreur confirme « Je la ferai » / « Je ne peux pas ».
+-- Colonnes orders.assign_status (attente | ok | refus), assigned_at, assign_answered_at, assign_refused_name ;
+-- déclencheur orders_assign_state (le patron donne à un livreur => attente) ; RPC courier_assign_answer(p_id, p_ok).
+-- Migration « course_donnee_a_confirmer ».
