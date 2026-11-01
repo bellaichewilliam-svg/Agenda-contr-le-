@@ -1558,16 +1558,21 @@ function renderClients(view) {
   // Client qui est aussi une enseigne (même numéro) : on le montre
   const d9 = v => String(v || "").replace(/\D/g, "").slice(-9);
   const shopOfClient = c => d9(c.phone) && shops.find(x => !x.demo && (d9(x.phone) === d9(c.phone) || d9(x.whatsapp) === d9(c.phone)));
-  view.innerHTML = `
+  // Deux listes bien séparées : les enseignes (commerces qui envoient leurs courses) et les vrais clients
+  const shopList = list.filter(c => shopOfClient(c)), clientList = list.filter(c => !shopOfClient(c));
+  const realClients = clients.filter(c => !shopOfClient(c));
+  const sent = welcomeSent();
+  const head = `
     <div class="stats">
       <div class="stat"><small>Comptes clients</small><b>${withAcc.length}</b></div>
       <div class="stat"><small>Nouveaux comptes ce mois</small><b>${withAcc.filter(c => String(c.account_at || "").startsWith(month)).length}</b></div>
-      <div class="stat"><small>Clients au total</small><b>${clients.length}</b></div>
+      <div class="stat"><small>Clients au total</small><b>${realClients.length}</b></div>
+      <div class="stat"><small>Clients sans compte</small><b>${realClients.filter(c => !c.client_id).length}</b></div>
       <div class="stat"><small>Commerces · livreurs actifs</small><b>${shops.filter(x => !x.demo && x.status === "actif").length} · ${couriers.filter(c => c.role !== "admin" && c.status === "actif").length}</b></div>
     </div>
     <p class="muted small" style="margin:-8px 0 12px">Un client crée son compte dans l'appli (« Mes courses ») avec son téléphone et un mot de passe : accepté tout de suite, sans e-mail de confirmation pour l'instant. Les clients sans compte apparaissent ici d'après leur numéro de téléphone.</p>
-    <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" /></div>
-    ${list.length ? `<div class="orders">${list.map(c => { const k = "u:" + (c.client_id || d9(c.phone)), sh = shopOfClient(c);
+    <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" /></div>`;
+  const fold = c => { const k = "u:" + (c.client_id || d9(c.phone)), sh = shopOfClient(c);
       // Ses vraies courses (les plus récentes d'abord), en fiche complète comme dans l'onglet Courses
       const mine = orders.filter(o => (d9(o.contact_phone) && d9(o.contact_phone) === d9(c.phone)) || (sh && o.shop_id === sh.id && o.shop_sent))
         .sort((a, b) => String(b.created_at || b.pickup_at).localeCompare(String(a.created_at || a.pickup_at))).slice(0, 15);
@@ -1591,11 +1596,33 @@ function renderClients(view) {
         ${mine.length ? `<details class="client-orders"><summary>📋 Voir le détail de ses courses (${mine.length}${Number(c.orders || 0) > mine.length ? " dernières" : ""})</summary>
           <div class="orders">${mine.map(o => card(o, true)).join("")}</div></details>` : ""}
         <div class="actions">
+          ${!sh && !c.client_id && c.phone ? `<a class="btn btn-sm${sent[d9(c.phone)] ? "" : " btn-wa"}" data-welcome="${UI.esc(d9(c.phone))}" href="${UI.esc(UI.waPersonal(c.phone, welcomeText(c)))}" target="_blank" rel="noopener" title="Message tout prêt dans WhatsApp (français + hébreu) : il suffit d'appuyer sur Envoyer">🟢 ${sent[d9(c.phone)] ? "Renvoyer « Bienvenue, créez votre compte »" : "WhatsApp : « Bienvenue, créez votre compte »"}</a>` : ""}
           ${c.client_id ? `<button class="btn btn-sm" data-client-reset="${UI.esc(c.client_id)}" data-cname="${UI.esc(c.name || "")}">🔑 Nouveau mot de passe</button>` : ""}
           ${c.blocked ? `<button class="btn btn-sm" data-unblock="${UI.esc(c.phone)}">🔓 Débloquer</button>` : ""}
         </div>
-      </article></details>`; }).join("")}</div>` : `<div class="empty card">${clients.length ? "Aucun client ne correspond." : "Aucun client pour l'instant."}</div>`}`;
+      </article></details>`; };
+  view.innerHTML = head + (list.length ? `
+    <h3 class="cli-sec">👤 Clients <small>${clientList.length} · ceux qui commandent eux-mêmes dans l'appli</small></h3>
+    ${clientList.length ? `<div class="orders">${clientList.map(fold).join("")}</div>` : `<div class="empty card">Aucun client ne correspond.</div>`}
+    <h3 class="cli-sec">🏪 Enseignes <small>${shopList.length} · commerces partenaires qui envoient leurs courses depuis leur espace</small></h3>
+    ${shopList.length ? `<div class="orders">${shopList.map(fold).join("")}</div>` : `<div class="empty card">Aucune enseigne n'a encore envoyé de course.</div>`}`
+    : `<div class="empty card">${clients.length ? "Aucun client ne correspond." : "Aucun client pour l'instant."}</div>`);
 }
+// « Bienvenue chez HOP! » : message WhatsApp tout prêt pour un client qui a commandé sans créer de compte
+const WELCOME_SENT = "livraison.welcomeSent.v1";
+const welcomeSent = () => { try { return JSON.parse(localStorage.getItem(WELCOME_SENT)) || {}; } catch (e) { return {}; } };
+function markWelcome(k) { try { localStorage.setItem(WELCOME_SENT, JSON.stringify(Object.assign(welcomeSent(), { [k]: new Date().toISOString() }))); } catch (e) { /* ignore */ } }
+function welcomeText(c) {
+  const first = String(c.name || "").trim().split(/\s+/)[0] || "";
+  const link = UI.appUrl("app/") + "#mes-courses";
+  return `Bonjour${first ? " " + first : ""} 😊 Merci pour votre commande avec HOP! 🛵\n`
+    + `Pour commander encore plus vite la prochaine fois (vos adresses enregistrées, le suivi de vos courses), créez votre compte en 30 secondes, avec votre téléphone : ${link}\n`
+    + `Bienvenue chez HOP! 🧡\n\n`
+    + `שלום${first ? " " + first : ""} 😊 תודה על ההזמנה ב-HOP! 🛵\n`
+    + `כדי להזמין עוד יותר מהר בפעם הבאה (כתובות שמורות, מעקב אחרי המשלוחים), פתחו חשבון ב-30 שניות עם הטלפון שלכם: ${link}\n`
+    + `ברוכים הבאים ל-HOP! 🧡`;
+}
+document.addEventListener("click", e => { const a = e.target.closest("[data-welcome]"); if (a) { markWelcome(a.dataset.welcome); setTimeout(render, 400); } });
 
 // --- Demandes de devis (tournée quotidienne, carnet…) -------------------------------------
 function renderRequests(view) {
@@ -1828,10 +1855,25 @@ function renderBilling(view) {
   });
   const rows = Object.entries(byClient).sort((a, b) => b[1].total - a[1].total);
   const bit = sum(list.filter(o => o.payment_method === "bit")), cash = sum(list.filter(o => o.payment_method === "cash"));
+  const r = monthRecap();
   view.innerHTML = `<div class="toolbar">
       <label class="small muted">Mois <input type="month" id="billMonth" value="${billMonth}" /></label>
-      <button class="btn btn-sm" id="csvBtn" ${list.length ? "" : "disabled"}>⬇️ Export CSV</button>
       <span class="small muted">💵 Espèces ${UI.money(cash)} · 📱 Bit ${UI.money(bit)} (toutes courses, livreurs compris)</span>
+    </div>
+    <div class="card compta-box">
+      <h3>📒 Pour la comptable · ${UI.esc(monthName(billMonth))}</h3>
+      <p class="small muted">Deux documents à lui envoyer chaque mois (WhatsApp ou e-mail) : le récapitulatif (PDF) et le détail de toutes les courses (Excel).</p>
+      <div class="compta-grid">
+        <div><small>Courses livrées</small><b>${r.n}</b></div>
+        <div><small>Total des courses</small><b>${UI.money(r.gross)}</b></div>
+        <div><small>Gagné par HOP!</small><b>${UI.money(r.hop)}</b></div>
+        <div><small>Abonnements Pro</small><b>${UI.money(r.plans)}</b></div>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" id="recapBtn" ${r.n || r.plans ? "" : "disabled"}>📄 Récapitulatif du mois (PDF)</button>
+        <button class="btn" id="csvBtn" ${list.length ? "" : "disabled"}>📊 Détail des courses (Excel)</button>
+      </div>
+      <p class="small muted" style="margin-top:8px">PDF : le bouton ouvre la page d'impression ; choisissez « Enregistrer en PDF », puis envoyez le fichier. Excel : le fichier s'ouvre dans Excel ou Google Sheets.</p>
     </div>
     <table class="bill">
       <thead><tr><th>Client</th><th class="num">Courses</th><th class="num">Montant</th><th class="num">Reste dû</th><th></th></tr></thead>
@@ -1851,12 +1893,73 @@ function download(name, content, type) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+// --- Comptabilité : récapitulatif du mois (PDF) et détail des courses (Excel) ---------------------------
+const monthName = m => { const [y, mo] = m.split("-").map(Number); return new Date(Date.UTC(y, mo - 1, 15)).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" }); };
+const courierName = id => (couriers.find(c => c.id === id) || {}).name || "";
+const shopName = id => (shops.find(x => x.id === id) || {}).name || "";
+// Ce que HOP! gagne sur une course : la course entière si c'est le patron qui l'a faite, sinon la commission
+// du livreur + la part HOP! des commandes Pro − la réduction payée par HOP! (même calcul que « Com HOP du mois »)
+const hopOf = o => isMine(o) ? Number(o.price) : Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0);
+function monthRecap() {
+  const list = monthOrders();
+  const plansL = planSales.filter(p => String(p.created_at).startsWith(billMonth));
+  const by = k => list.filter(o => o.payment_method === k).reduce((a, o) => a + Number(o.price), 0);
+  const plans = plansL.reduce((a, p) => a + Number(p.amount || 0), 0), plansShare = plansL.reduce((a, p) => a + Number(p.referrer_share || 0), 0);
+  return {
+    list, n: list.length, gross: list.reduce((a, o) => a + Number(o.price) + Number(o.discount || 0), 0), paid: list.reduce((a, o) => a + Number(o.price), 0),
+    discounts: list.reduce((a, o) => a + Number(o.discount || 0), 0),
+    mine: list.filter(o => isMine(o)), commissions: list.filter(o => !isMine(o)).reduce((a, o) => a + Number(o.commission || 0), 0),
+    proShare: list.filter(o => !isMine(o)).reduce((a, o) => a + Number(o.hop_share || 0), 0),
+    plansL, plans, plansShare, hop: list.reduce((a, o) => a + hopOf(o), 0) + plans - plansShare,
+    cash: by("cash"), bit: by("bit"), carnet: by("carnet")
+  };
+}
 function exportCsv() {
-  const cols = ["ref", "pickup_at", "company", "contact_name", "contact_phone", "service", "from_city", "to_city", "price", "promo_code", "payment_method", "payment_status", "courier_name", "commission"];
+  // Colonnes en français, séparateur « ; », accents gardés : s'ouvre tel quel dans Excel / Google Sheets
+  const cols = [
+    ["Date", o => UI.fmtDateTime(o.pickup_at)], ["N° course", o => o.ref], ["Client", o => o.contact_name], ["Téléphone", o => o.contact_phone],
+    ["Entreprise", o => o.company], ["Envoyée par le commerce", o => o.shop_sent ? shopName(o.shop_id) || o.shop_name : ""],
+    ["Commerce", o => o.shop_name || shopName(o.shop_id)], ["Service", o => UI.SERVICE_FR[o.service] || o.service],
+    ["Départ", o => UI.cityFr(o.from_city)], ["Arrivée", o => UI.cityFr(o.to_city)],
+    ["Prix de la course (₪)", o => Number(o.price) + Number(o.discount || 0)], ["Réduction payée par HOP! (₪)", o => Number(o.discount || 0)],
+    ["Payé par le client (₪)", o => Number(o.price)], ["Paiement", o => UI.PAY_FR[o.payment_method] || o.payment_method || ""], ["Encaissé", o => o.payment_status === "paye" ? "oui" : "non"],
+    ["Livreur", o => isMine(o) ? "Patron (HOP!)" : courierName(o.courier_id) || o.courier_name || ""],
+    ["Commission HOP! (₪)", o => isMine(o) ? 0 : Number(o.commission || 0)], ["Part HOP! Pro (₪)", o => isMine(o) ? 0 : Number(o.hop_share || 0)],
+    ["Gagné par HOP! (₪)", o => hopOf(o)], ["Code promo", o => o.promo_code || ""]
+  ];
   const cell = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
-  const lines = [cols.join(";")].concat(monthOrders().sort(byTime).map(o =>
-    cols.map(c => cell(c === "pickup_at" ? UI.fmtDateTime(o[c]) : c.endsWith("_city") ? UI.cityFr(o[c]) : o[c])).join(";")));
-  download(`courses-${billMonth}.csv`, "﻿" + lines.join("\r\n"), "text/csv;charset=utf-8");
+  const lines = [cols.map(c => cell(c[0])).join(";")].concat(monthOrders().sort(byTime).map(o => cols.map(c => cell(c[1](o))).join(";")));
+  download(`HOP-courses-${billMonth}.csv`, "﻿" + lines.join("\r\n"), "text/csv;charset=utf-8");
+}
+function exportRecap() {
+  const r = monthRecap(), m = UI.money, esc = UI.esc;
+  const row = (l, v, b) => `<tr${b ? ' class="b"' : ""}><td>${esc(l)}</td><td class="n">${v}</td></tr>`;
+  const short = d => new Date(d).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(",", "");
+  const pay = o => String(UI.PAY_FR[o.payment_method] || "").replace(/^[^\p{L}]+/u, "");
+  const nmDisc = r.list.filter(o => !isMine(o)).reduce((a, o) => a + Number(o.discount || 0), 0);
+  const html = `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HOP! · récapitulatif ${esc(monthName(billMonth))}</title>
+<style>body{font:14px/1.45 Arial,sans-serif;color:#0F1F3D;margin:24px}h1{font-size:21px;margin:0}h2{font-size:15px;margin:22px 0 6px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:3px solid #FF6A13;padding-bottom:10px}.logo{font:800 26px Arial;background:#0F1F3D;color:#fff;padding:4px 12px;border-radius:8px}.logo i{color:#FF6A13;font-style:normal}
+table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid #e3e7ee;text-align:left;vertical-align:top}.n{text-align:right;white-space:nowrap}tr.b td{font-weight:700;background:#FFF4EC}small{color:#56627A}.det td,.det th{font-size:12px;padding:5px 4px;overflow-wrap:anywhere}
+@media print{body{margin:12mm}.noprint{display:none}}</style></head><body>
+<div class="top"><div><h1>Récapitulatif du mois · ${esc(monthName(billMonth))}</h1><small>${esc(CONFIG.businessName)} · édité le ${esc(new Date().toLocaleDateString("fr-FR"))}</small></div><div class="logo">HOP<i>!</i></div></div>
+<h2>Courses</h2><table>
+${row("Courses livrées", r.n)}${row("Total des courses (prix affiché)", m(r.gross))}${row("Réductions payées par HOP! (codes promo, bienvenue)", "− " + m(r.discounts))}${row("Total payé par les clients", m(r.paid))}
+${row("dont espèces", m(r.cash))}${row("dont Bit / PayBox", m(r.bit))}${r.carnet ? row("dont carnets prépayés", m(r.carnet)) : ""}</table>
+<h2>Ce que gagne HOP!</h2><table>
+${row(`Courses faites par le patron (${r.mine.length}), encaissées par HOP!`, m(r.mine.reduce((a, o) => a + Number(o.price), 0)))}
+${row("Commissions des livreurs", m(r.commissions))}${row("Part HOP! des commandes Pro", m(r.proShare))}
+${row(`Abonnements HOP! Pro (${r.plansL.length})`, m(r.plans))}${r.plansShare ? row("− part reversée aux livreurs (abonnements)", "− " + m(r.plansShare)) : ""}
+${nmDisc ? row("− réductions payées par HOP! (sur les courses des livreurs)", "− " + m(nmDisc)) : ""}${row("Total gagné par HOP! ce mois", m(r.hop), true)}</table>
+${r.plansL.length ? `<h2>Abonnements HOP! Pro</h2><table><tr><th>Date</th><th>Commerce</th><th class="n">Montant</th></tr>${r.plansL.map(p => `<tr><td>${esc(new Date(p.created_at).toLocaleDateString("fr-FR"))}</td><td>${esc(shopName(p.shop_id))}</td><td class="n">${m(p.amount)}</td></tr>`).join("")}</table>` : ""}
+<h2>Détail des courses</h2><table class="det"><tr><th>Date</th><th>N°</th><th>Client</th><th>Livreur</th><th>Paiement</th><th class="n">Prix</th><th class="n">HOP!</th></tr>
+${r.list.slice().sort(byTime).map(o => `<tr><td>${esc(short(o.pickup_at))}</td><td>${esc(o.ref || "")}</td><td>${esc(o.company || o.contact_name || "")}</td><td>${esc(isMine(o) ? "Patron" : courierName(o.courier_id))}</td><td>${esc(pay(o))}</td><td class="n">${m(o.price)}</td><td class="n">${m(hopOf(o))}</td></tr>`).join("")}</table>
+<p><small>Montants en shekels (₪), tels que payés par les clients. Le détail complet est dans le fichier Excel « HOP-courses-${esc(billMonth)}.csv ».</small></p>
+<p class="noprint"><button onclick="print()" style="font-size:16px;padding:10px 18px">🖨️ Imprimer / Enregistrer en PDF</button></p>
+<script>setTimeout(function(){print()},500)<\/script></body></html>`;
+  const w = window.open("", "_blank");
+  if (!w) { download(`HOP-recapitulatif-${billMonth}.html`, html, "text/html"); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 function icsEvent(o) {
@@ -2111,6 +2214,7 @@ async function onViewClick(e) {
     return;
   }
   if (el.id === "csvBtn") return exportCsv();
+  if (el.id === "recapBtn") return exportRecap();
   if (el.dataset.vdays) { visits.days = Number(el.dataset.vdays); visits.data = null; render(); return loadVisits(true); }
   // Rayons à cocher (patron)
   if (el.dataset.ray) { ray.id = el.dataset.ray; ray.edit = null; return render(); }

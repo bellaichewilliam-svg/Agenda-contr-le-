@@ -408,7 +408,12 @@ const ALL_POSTS = PARTNER_POSTS.concat(CHABBAT_POSTS, VISITE_POSTS, COURSES_POST
   .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
 
 // Campagnes de visuels : chaque carte = un message, avec ses formats (post carré, story, flyer A5) et sa vidéo
-const APP_URL = location.origin + location.pathname.replace(/[^/]*$/, "");
+// Liens des messages : TOUJOURS l'appli client (jamais l'adresse de la page ouverte : le kit s'ouvre aussi
+// depuis l'espace patron, /patron/kit.html, et le lien menait alors… à l'espace patron)
+const LOCAL_KIT = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || location.protocol === "file:";
+const APP_URL = CONFIG.siteUrl && !LOCAL_KIT ? CONFIG.siteUrl + "app/" : location.origin + location.pathname.replace(/[^/]*$/, "");
+// Messages pour les commerçants : la page « Commerçants » (inscription gratuite)
+const PRO_URL = APP_URL + "commerce.html?inscription=1";
 const CAPTION = {
   fr: `HOP! 🛵 Livraison à Netanya : restaurants, courses, colis… livrés au plus vite, encore chauds.\n👉 ${APP_URL}\n#Netanya #livraison #HOP`,
   he: `HOP! 🛵 משלוחים בנתניה: מסעדות, קניות, חבילות… מגיעים הכי מהר, עדיין חמים.\n👉 ${APP_URL}\n#נתניה #משלוחים #HOP`,
@@ -452,8 +457,8 @@ const CAPS = {
     fr: `🎁 Et hop, c'est livré ! Votre première course à Netanya : ${welcome} au lieu de ${delFr}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute (code BIENVENUE) : ${APP_URL}\n${TAGS.fr}`,
     he: `🎁 והופ, זה מגיע! המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה (קוד BRUCHIM): ${APP_URL}?lang=he\n${TAGS.he}` },
   "pro-prix-fixe": {
-    fr: `💼 Professionnels : vos livraisons, un prix fixe.\nCommerces, bureaux, restaurants : HOP! livre pour votre entreprise, partout à Netanya.\n💰 ${price(home)} la course dans ${UI.cityFr(home)}, connu à l'avance\n✅ 0 % de commission, sans abonnement, sans engagement\n🛵 Des livreurs de Netanya, suivi en direct pour vous et votre client\n📦 Colis, documents, commandes clients, repas…\n💬 Parlons de vos livraisons : 📞 ${bossTel}\n👉 ${APP_URL}\n${TAGS.fr} #entreprise #commerce`,
-    he: `💼 לבעלי עסקים: המשלוחים שלכם, במחיר קבוע.\nחנויות, משרדים ומסעדות: HOP! מביאים את המשלוחים של העסק שלכם, בכל נתניה.\n💰 ${price(home)} למשלוח בתוך ${heHome}, ידוע מראש\n✅ 0% עמלה, בלי מנוי, בלי התחייבות\n🛵 שליחים מנתניה, מעקב בזמן אמת לכם וללקוח\n📦 חבילות, מסמכים, הזמנות של לקוחות, אוכל…\n💬 בואו נדבר על המשלוחים שלכם: 📞 ${bossTel}\n👈 ${APP_URL}?lang=he\n${TAGS.he} #עסקים` },
+    fr: `💼 Professionnels : vos livraisons, un prix fixe.\nCommerces, bureaux, restaurants : HOP! livre pour votre entreprise, partout à Netanya.\n💰 ${price(home)} la course dans ${UI.cityFr(home)}, connu à l'avance\n✅ 0 % de commission, sans abonnement, sans engagement\n🛵 Des livreurs de Netanya, suivi en direct pour vous et votre client\n📦 Colis, documents, commandes clients, repas…\n💬 Parlons de vos livraisons : 📞 ${bossTel}\n👉 ${PRO_URL}\n${TAGS.fr} #entreprise #commerce`,
+    he: `💼 לבעלי עסקים: המשלוחים שלכם, במחיר קבוע.\nחנויות, משרדים ומסעדות: HOP! מביאים את המשלוחים של העסק שלכם, בכל נתניה.\n💰 ${price(home)} למשלוח בתוך ${heHome}, ידוע מראש\n✅ 0% עמלה, בלי מנוי, בלי התחייבות\n🛵 שליחים מנתניה, מעקב בזמן אמת לכם וללקוח\n📦 חבילות, מסמכים, הזמנות של לקוחות, אוכל…\n💬 בואו נדבר על המשלוחים שלכם: 📞 ${bossTel}\n👈 ${PRO_URL}&lang=he\n${TAGS.he} #עסקים` },
   lancement: {
     fr: `🚀 Une envie ? Hoppy arrive.\nVos courses, vos boutiques, des fleurs, un repas, un colis, la pharmacie… Vous demandez, HOP! on livre, partout à Netanya.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais de service\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🚀 בא לכם משהו? הופי מגיע.\nקניות, חנויות, פרחים, אוכל, חבילות, פארם… אתם מבקשים, HOP! מביאים, בכל נתניה.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 0 ₪ דמי שירות\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
