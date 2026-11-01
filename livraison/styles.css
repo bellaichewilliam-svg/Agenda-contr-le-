@@ -3746,3 +3746,16 @@ html.d2 .ens-pro { flex-wrap: wrap; overflow: visible; scroll-snap-type: none; p
 html.d2 .ens-pro .sc-card { flex: 1 1 calc(50% - 6px); max-width: calc(50% - 6px); }
 html.d2 .ens-h { margin: 6px 2px 10px; font-size: 16px; font-weight: 800; color: #fff; }
 html.d2 .ens-h + .ens-item { border-top: 0; }
+/* Page de présentation aux commerçants (nouveau design) : logo HOP! blanc + « ! » orange, logos des partenaires */
+html.d2-land .topbar { background: #0B1830; border-bottom: 1px solid rgba(255,255,255,.08); }
+html.d2-land .topbar .logo-mark { display: none; }
+html.d2-land .topbar .logo-name.wordmark { display: flex; }
+html.d2-land .topbar .wordmark b { display: inline; font-size: 30px; }
+html.d2-land .lang-btn { background: #fff; color: #0F1F3D; }
+.sl-trust { text-align: center; }
+.sl-trust h3 { font-size: 18px; font-weight: 800; margin-bottom: 14px; }
+.sl-logos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.sl-logo { display: grid; justify-items: center; gap: 6px; text-decoration: none; color: inherit; }
+.sl-logo img { width: 64px; height: 64px; border-radius: 18px; object-fit: contain; background: #fff; padding: 4px; box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+.sl-logo small { font-size: 12px; font-weight: 700; line-height: 1.2; text-align: center; }
+html.d2 .sl-logo small { color: #DCE3F0; }

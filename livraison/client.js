@@ -2386,7 +2386,8 @@ async function loadSettings() {
 
 // --- Catalogue du commerce HOP! Pro : le client choisit ses articles (payés directement au commerce) ---
 state.catalog = null; state.cart = {};
-const cgProducts = () => (state.catalog && state.catalog.products) || [];
+// Produit épuisé = hors ligne : le client ne le voit plus du tout (le commerçant le remet en vente dans son espace)
+const cgProducts = () => ((state.catalog && state.catalog.products) || []).filter(p => p.available !== false);
 const cartLines = () => cgProducts().filter(p => p.available && state.cart[p.id] > 0).map(p => ({ p, qty: state.cart[p.id] }));
 const cartCount = () => cartLines().reduce((s, l) => s + l.qty, 0);
 const cartTotal = () => cartLines().reduce((s, l) => s + Number(l.p.price) * l.qty, 0);
