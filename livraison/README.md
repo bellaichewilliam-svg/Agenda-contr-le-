@@ -767,3 +767,6 @@ livraison/
 - L'adresse enregistrée du client (dernière livrée, sinon 🏠 Maison) est mise d'office ; une adresse avec appartement est reconnue comme « appartement » (plus de question en plus).
 - Message clair s'il manque l'adresse : « Où doit-on vous livrer ? Choisissez 🏠 Maison ou tapez votre adresse juste ici. » (FR/HE), et on l'amène au champ.
 - Patron, fiche client : ses adresses enregistrées (rue, étage, appartement, code, Waze) et son panier en cours, même s'il a un compte.
+
+### Accueil : d'abord « Votre adresse », ensuite « On récupère où ? » (02/11)
+- Les clients tapaient leur propre adresse dans la 1re case « Récupérer à » (נקודת איסוף). Désormais la 1re case est **Votre adresse** (où on livre, הכתובת שלכם), déjà remplie avec l'adresse enregistrée (dernière livrée, sinon Maison) ; la 2e est **On récupère où ?** (magasin, resto, adresse… / מאיפה לאסוף?).

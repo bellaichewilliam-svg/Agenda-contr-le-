@@ -731,7 +731,7 @@ fr: {
   ensNone: "Rien trouvé dans le coin. Tapez le nom dans « Récupérer à ».", ensDown: "La liste des enseignes ne répond pas pour le moment : réessayez, ou tapez le nom dans « Récupérer à ».", ensRetry: "↻ Réessayer",
   ensPartner: "👑 Partenaire HOP!", ensAddrLater: "adresse complétée au choix", ensNearYou: "Les plus proches de vous", ensNearCity: "Autour de {city} · touchez ◎ pour les plus proches de vous",
   // Accueil façon appli
-  hmFrom: "Récupérer à", hmTo: "Livrer à", hmFromPh: "Adresse, magasin, restaurant…", hmToPh: "Où on livre ?", hmNo: "N°",
+  hmFrom: "On récupère où ?", hmTo: "Votre adresse", hmFromPh: "Magasin, resto, adresse…", hmToPh: "Rue et numéro", hmNo: "N°",
   hmHello: "Bonjour {name} 👋", hmHelloNew: "Bienvenue chez HOP! 👋", hmWhat: "Qu'est-ce qu'on livre ?",
   hmLive: "🛵 {n} livreur(s) dans le coin · au départ en ~{min} min", hmLiveBusy: "🛵 {n} livreur(s) en course dans le coin",
   hmLiveNone: "🛵 Commandez : on vous trouve un livreur très vite",
@@ -1474,7 +1474,7 @@ he: {
   ensNone: "לא נמצא באזור. הקלידו את השם בשדה האיסוף.", ensDown: "רשימת העסקים לא זמינה כרגע: נסו שוב, או הקלידו את השם בשדה האיסוף.", ensRetry: "↻ לנסות שוב",
   ensPartner: "👑 שותף HOP!", ensAddrLater: "הכתובת תושלם בבחירה", ensNearYou: "הקרובים אליכם", ensNearCity: "באזור {city} · געו ב-◎ לקרובים אליכם",
   // Accueil façon appli
-  hmFrom: "נקודת איסוף", hmTo: "יעד", hmFromPh: "כתובת, חנות, מסעדה…", hmToPh: "לאן משלוח?", hmNo: "מס׳",
+  hmFrom: "מאיפה לאסוף?", hmTo: "הכתובת שלכם", hmFromPh: "חנות, מסעדה, כתובת…", hmToPh: "רחוב ומספר", hmNo: "מס׳",
   hmHello: "שלום {name} 👋", hmHelloNew: "ברוכים הבאים להופ! 👋", hmWhat: "מה שולחים?",
   hmLive: "🛵 {n} שליחים באזור · באיסוף תוך כ-{min} דק׳", hmLiveBusy: "🛵 {n} שליחים במשלוח באזור",
   hmLiveNone: "🛵 הזמינו: נמצא לכם שליח מהר",
