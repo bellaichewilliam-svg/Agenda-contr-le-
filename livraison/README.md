@@ -774,3 +774,8 @@ livraison/
 ### Kit pub : « Une envie de jus ? Et hop, c'est livré ! » (02/11)
 - Visuels du patron (FR et HE) en tête des campagnes Clients : `kit/visuels/jus-post-fr|he.png` (1080 × 1350), originaux dans `video/public/reseaux/jus-fr|he.png`. Légende FR/HE prête avec le lien direct du catalogue (`?c=HOPJUS`).
 - Textes « Jus » dans l'onglet ✍️ Textes du kit (en tête) : post FR, post HE, phrases courtes (story, statut, TikTok), message WhatsApp FR + HE, tous avec le lien du catalogue.
+
+### Achats à 30 ₪, boutique HOP! payée au livreur, plafond espèces des nouveaux clients (02/11, règles du patron)
+- **Tout ce qu'on achète pour le client = un achat** : commande sur catalogue dont l'argent des articles passe par le livreur (espèces, ou boutique HOP!) → + 5 ₪ « Achat de vos articles » (25 → 30 ₪ dans Netanya). Les achats en rayon/magasin avaient déjà leur supplément.
+- **Aucun commerce n'encaisse lui-même** : boutique `cash_ok` (HOP! Jus de fruits) → plus de cadre « payé directement au commerce » ; « 💵 Un seul paiement, au livreur » ; seul « Espèces » est proposé ; le livreur rapporte l'argent des articles à HOP!.
+- **Nouveaux clients** : espèces au plus 100 ₪ tout compris tant qu'ils n'ont pas 3 courses livrées, puis le plafond habituel (200 ₪). Réglable : `settings.cash_first_max`, `settings.cash_first_orders`.

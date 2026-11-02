@@ -8570,3 +8570,14 @@ language sql stable security definer set search_path = public as $function$
       from clients c where not exists (select 1 from orders o where public.phone_digits(o.contact_phone) = c.phone)
   ) x), '[]'::json) end;
 $function$;
+
+-- ============================================================================
+-- Boutique « payée au livreur » (shops.cash_ok, ex. HOP! Jus de fruits) : le client paie tout au livreur en espèces
+-- (articles + livraison) ; aucun commerce n'encaisse lui-même. Plafond espèces des nouveaux clients :
+-- settings.cash_first_max (100 ₪, tout compris) tant que moins de settings.cash_first_orders (3) courses livrées.
+-- Colonnes + shop_public : appliqués le 02/11 (migration cash_ok_shops_first_cap_columns).
+-- Garde des espèces + réglage du catalogue Jus : supabase/pending/cash-first-guard.sql, à appliquer à la mise en ligne.
+-- ============================================================================
+alter table public.shops add column if not exists cash_ok boolean not null default false;
+alter table public.settings add column if not exists cash_first_max numeric not null default 100;
+alter table public.settings add column if not exists cash_first_orders int not null default 3;
