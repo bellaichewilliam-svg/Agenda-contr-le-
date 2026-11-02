@@ -482,7 +482,23 @@ function applyPromo() {
 
 function currentDiscount() {
   if (loyaltyDue()) return { kind: "loyalty", code: "FIDELITE", max: PROMOS.loyalty.max };
+  if (!state.promo && cartGiftDue()) return { kind: "gift", code: "PANIER", amount: CART_GIFT.off };
   return state.promo;
+}
+// 🎁 Panier retrouvé (règle du patron, 02/11) : un client qui a DÉJÀ fait sa 1re commande (celle à prix réduit) et revient
+// finir un panier laissé depuis 30 min à 24 h : −5 ₪ sur la livraison. Au plus une fois par semaine sur ce téléphone.
+const CART_GIFT = { off: 5, minMin: 30, maxH: 24, everyDays: 7 }, LS_GIFT = "livraison.cartGift.v1";
+var cartAtStart;   // panier retrouvé au lancement de l'appli (rempli plus bas, une fois le panier lu)
+function cartGiftDue(atHome) {
+  const c = cartAtStart;
+  if (!c || !(c.snap && c.snap.count)) return false;
+  const age = Date.now() - c.at;
+  if (age < CART_GIFT.minMin * 60000 || age > CART_GIFT.maxH * 3600000) return false;
+  if (!Array.isArray(state.mine) || !state.mine.some(o => o.status === "livree")) return false;
+  let last = 0;
+  try { last = Number(localStorage.getItem(LS_GIFT)) || 0; } catch (e) { /* ignore */ }
+  if (Date.now() - last < CART_GIFT.everyDays * 86400000) return false;
+  return atHome ? true : cartSnap().count > 0;
 }
 
 // Carnet pro : le commerce lui-même (sa clé sur cet appareil), course simple dans Netanya
@@ -2169,6 +2185,7 @@ async function submit(e) {
     // (la base marque la livraison offerte ; l'écran de confirmation le sait déjà)
     if (q.gift) saved.shop_pays = true;
     UI.track("order_sent", { order_ref: saved.ref, amount: Number(saved.price) || 0, shop_code: state.shop ? state.shop.code : null });
+    if (order.promo_code === "PANIER") { try { localStorage.setItem(LS_GIFT, String(Date.now())); } catch (e) { /* ignore */ } cartAtStart = null; }
     try { sessionStorage.removeItem("hop.started"); } catch (e) { /* ignore */ }
     if (gp) Object.assign(saved, { goods_pay: "a_payer", items_total: gp.total || saved.items_total || 0 });
     // Les photos des documents partent juste après la commande (le patron les vérifie avant d'envoyer un livreur)
@@ -2288,6 +2305,7 @@ async function loadMine() {
   // Offre de bienvenue déjà utilisée avec ce numéro / cet appareil ?
   const phone = Store.getProfile().contact_phone;
   try { state.welcomeUsed = await Store.welcomeUsed(phone || ""); } catch (e) { /* vérifié à l'envoi */ }
+  renderCartIcon();
   renderMine();
   renderQuote();
   renderQuick();
@@ -4040,7 +4058,10 @@ function renderShowcase() {
   const isOpen = s => { const st = UI.openState(s.hours); return !st || st.open; };
   // Favoris du client d'abord, puis les enseignes placées par HOP! (position 1 = en premier), puis les ouvertes
   const rk = s => (s.rank != null ? Number(s.rank) : Infinity);
-  all.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (rk(a) - rk(b) || 0) || (isOpen(b) - isOpen(a)));
+  // (ouverts toujours devant les fermés : un commerce fermé le soir fait partir le client)
+  all.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (isOpen(b) - isOpen(a)) || (rk(a) - rk(b) || 0));
+  // Ouvert jusqu'à quelle heure (sans horaires : toute la journée)
+  const until = s => { const st = UI.openState(s.hours); return !st ? 1440 : st.open ? st.until : -1; };
   $("#homeProBox").classList.toggle("hidden", !all.length);
   // Filtres : seulement les métiers présents
   const kinds = [...new Set(all.map(s => s.kind).filter(Boolean))];
@@ -4051,7 +4072,7 @@ function renderShowcase() {
     + kinds.map(k => chip("k:" + k, scFilter.kind === k, (t("shKinds") || {})[k] || k)).join("");
   const list = all.filter(s => (!scFilter.kind || s.kind === scFilter.kind) && (!scFilter.open || isOpen(s)) && (!scFilter.kosher || isKosher(s)));
   const placed = list.filter(s => rk(s) < Infinity || f.includes(s.code)), rest = list.filter(s => !placed.includes(s));
-  const open = placed.concat(rest.filter(isOpen)), closed = rest.filter(s => !isOpen(s));
+  const open = placed.filter(isOpen).concat(rest.filter(isOpen)), closed = placed.filter(s => !isOpen(s)).concat(rest.filter(s => !isOpen(s)));
   const stories = `<div class="sc-stories">${all.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
         ${shopLogo(s, "sc-ring")}${isKosher(s) ? `<i class="k-dot" title="${UI.esc(t("kosher"))}">${KOSHER_STAR}</i>` : ""}<i class="sc-sdot ${isOpen(s) ? "on" : "off"}"></i><b>${UI.esc(UI.bi(s.name))}</b></button>`).join("")}</div>`;
   // Façon appli de livraison, dès qu'il y a de quoi : rangées « Mes favoris », « Ouverts maintenant », « Populaires »
@@ -4060,7 +4081,8 @@ function renderShowcase() {
   const recent = s => s.created_at && Date.now() - new Date(s.created_at) < 30 * 86400000;
   let body;
   if (list.length >= 4 && none) {
-    const favL = list.filter(s => f.includes(s.code)), openL = list.filter(isOpen);
+    // « Ouverts maintenant » : ceux qui ferment le plus tard d'abord (le soir, on voit tout de suite qui livre encore)
+    const favL = list.filter(s => f.includes(s.code)), openL = list.filter(isOpen).sort((a, b) => until(b) - until(a));
     // Mis en avant par le patron (🔥 dans son panel) d'abord, puis l'automatique : les commandes des 30 derniers jours
     const pop = list.filter(s => s.featured || Number(s.orders30) > 0).sort((a, b) => (!!b.featured - !!a.featured) || (Number(b.orders30) - Number(a.orders30))).slice(0, 8);
     const fresh = list.filter(recent).sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 8);
@@ -4591,6 +4613,7 @@ function cartSnap() {
   return { kind: null, items: [], count: 0, total: null };
 }
 const cartStored = () => { try { const c = JSON.parse(localStorage.getItem(LS_CART)); return c && Date.now() - c.at < CART_DAYS * 86400000 ? c : null; } catch (e) { return null; } };
+cartAtStart = cartStored();
 let cartSyncT = null, cartSent = "";
 function cartSync(snap) {
   clearTimeout(cartSyncT);
@@ -4637,7 +4660,8 @@ function renderCartIcon() {
   if (!pill && $("#homeNotices")) { pill = document.createElement("button"); pill.type = "button"; pill.id = "homeCartPill"; pill.className = "cart-resume hidden"; $("#homeNotices").before(pill); }
   if (pill) {
     pill.classList.toggle("hidden", !n);
-    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>${document.documentElement.dir === "rtl" ? "‹" : "›"}</i>`;
+    const gift = n && cartGiftDue(true);
+    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${gift ? ` <em class="cr-gift"><bdi dir="ltr">🎁 −${UI.esc(money(CART_GIFT.off))}</bdi></em>` : c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>${document.documentElement.dir === "rtl" ? "‹" : "›"}</i>`;
   }
   $("#tbCartN").textContent = n > 99 ? "99+" : String(n);
   $("#tbCartN").classList.toggle("hidden", !n);
