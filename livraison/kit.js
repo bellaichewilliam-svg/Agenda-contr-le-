@@ -271,6 +271,55 @@ const NEW_POSTS = [
 🍣🍔🥐🍕 הסושי, ההמבורגרים והפיצות הכשרים והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
 👉 ${livre}` }
 ];
+// « Votre McDonald's livré par HOP! » : textes des visuels McDo (Hoppy et son plateau). Toujours « service de livraison indépendant »
+const MCD_URL = `${url}?c=MCDTAHANA`, MCD_URL_HE = `${url}?c=MCDTAHANA&lang=he`;
+const MCD_POSTS = [
+  { title: "🍔 Votre McDonald's livré par HOP! (français)", dir: "ltr", text:
+`🍔 Votre McDonald's livré par HOP! 🦘
+
+Envie d'un Big Mac, d'un McChicken ou de nuggets, sans bouger du canapé ?
+Vous commandez sur HOP!, on passe la commande au McDo et on vous l'apporte encore chaud.
+
+🍟 Tous les menus, comme vous les aimez : sans oignons, sans ketchup, bien cuit…
+🛵 Partout à ${UI.cityFr(home)}, livré au plus vite · 📍 suivi en direct
+💳 Payez comme vous voulez : lien de paiement, Bit ou espèces
+
+👉 Commandez votre livreur : ${MCD_URL}
+
+HOP! Livraison, votre service de livraison indépendant à ${UI.cityFr(home)}.` },
+  { title: "🍔 המקדונלד'ס שלכם מגיע עם HOP! (עברית)", dir: "rtl", text:
+`🍔 המקדונלד'ס שלכם מגיע עם HOP! 🦘
+
+בא לכם ביג מק, מק צ'יקן או נאגטס בלי לקום מהספה?
+מזמינים ב-HOP!, אנחנו מזמינים בשבילכם מהמקדונלד'ס ומביאים אליכם, עוד חם.
+
+🍟 כל הארוחות, בדיוק כמו שאתם אוהבים: בלי בצל, בלי קטשופ, עשוי היטב…
+🛵 בכל ${heHome}, מגיע הכי מהר · 📍 מעקב בזמן אמת
+💳 משלמים איך שנוח: קישור תשלום, ביט או מזומן
+
+👈 הזמינו שליח: ${MCD_URL_HE}
+
+HOP! שירות משלוחים עצמאי ב${heHome}.` },
+  { title: "🍔 McDo : phrases courtes (story, statut, TikTok)", dir: "ltr", text:
+`🍔 Votre McDo livré par HOP!, encore chaud : ${MCD_URL}
+🍟 Une envie de frites à 23 h ? Hoppy saute au McDo pour vous : ${MCD_URL}
+🦘 Big Mac, nuggets, McChicken… on va le chercher, vous restez au chaud : ${MCD_URL}
+🍔 Sans oignons ? Sans ketchup ? Dites-le, on s'en occupe : ${MCD_URL}
+🍔 המקדונלד'ס שלכם עם HOP!, עוד חם: ${MCD_URL_HE}
+🍟 בא לכם צ'יפס ב־23:00? הופי קופץ למקדונלד'ס בשבילכם: ${MCD_URL_HE}
+🦘 ביג מק, נאגטס, מק צ'יקן… אנחנו אוספים, אתם נשארים בבית: ${MCD_URL_HE}
+🍔 בלי בצל? בלי קטשופ? רק תגידו, אנחנו דואגים: ${MCD_URL_HE}` },
+  { title: "🍔 McDo : message WhatsApp à vos clients (FR + HE)", dir: "ltr", text:
+`Bonjour 👋 Nouveau chez HOP! : votre McDonald's livré à la maison 🍔
+Big Mac, McChicken, nuggets… vous choisissez sur HOP!, on le récupère au McDo et on vous l'apporte encore chaud.
+👉 ${MCD_URL}
+
+שלום 👋 חדש ב-HOP!: המקדונלד'ס שלכם עד הבית 🍔
+ביג מק, מק צ'יקן, נאגטס… בוחרים ב-HOP!, אנחנו אוספים מהמקדונלד'ס ומביאים אליכם עוד חם.
+👈 ${MCD_URL_HE}
+
+HOP! Livraison · שירות משלוחים עצמאי` }
+];
 // « Une envie de jus ? » : textes qui vont avec les visuels du catalogue Jus de fruits (HOPJUS)
 const JUS_URL = `${url}?c=HOPJUS`, JUS_URL_HE = `${url}?c=HOPJUS&lang=he`;
 const JUS_POSTS = [
@@ -441,7 +490,7 @@ Chabbat chalom ! 🕯️ 👉 ${livre}` },
 ];
 // Pour qui est chaque texte de POSTS (dans l'ordre) : clients, commerces ou livreurs
 const POST_AUD = ["client", "client", "shop", "shop", "client", "client", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "rider", "rider", "client", "client"];
-const ALL_POSTS = JUS_POSTS.concat(PARTNER_POSTS, CHABBAT_POSTS, VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
+const ALL_POSTS = MCD_POSTS.concat(JUS_POSTS, PARTNER_POSTS, CHABBAT_POSTS, VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
   .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
 
 // Campagnes de visuels : chaque carte = un message, avec ses formats (post carré, story, flyer A5) et sa vidéo
@@ -460,6 +509,9 @@ const CAPTION = {
 const buyFr = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase), buyShop = UI.money(Pricing.cityToCity(CONFIG, home, home) + (P.purchaseShop || P.purchase)), delFr = price(home);
 const TAGS = { fr: "#Netanya #נתניה #livraison #HOP", he: "#נתניה #משלוחים #HOP #Netanya" };
 const CAPS = {
+  mcdo: {
+    fr: `🍔 Votre McDonald's livré par HOP! 🦘\nBig Mac, McChicken, nuggets… on passe la commande au McDo et on vous l'apporte encore chaud.\n🍟 Comme vous l'aimez : sans oignons, sans ketchup…\n🛵 Partout à Netanya, livré au plus vite · 📍 Suivi en direct\n👉 Commandez votre livreur : ${url}?c=MCDTAHANA\nHOP! Livraison, service de livraison indépendant.\n${TAGS.fr} #McDo #burger`,
+    he: `🍔 המקדונלד'ס שלכם מגיע עם HOP! 🦘\nביג מק, מק צ'יקן, נאגטס… אנחנו מזמינים בשבילכם ומביאים אליכם עוד חם.\n🍟 בדיוק כמו שאתם אוהבים: בלי בצל, בלי קטשופ…\n🛵 בכל נתניה, מגיע הכי מהר · 📍 מעקב בזמן אמת\n👈 הזמינו שליח: ${url}?c=MCDTAHANA&lang=he\nHOP! שירות משלוחים עצמאי.\n${TAGS.he} #מקדונלדס #המבורגר` },
   jus: {
     fr: `🧃 Une envie de jus ? Et hop, c'est livré !\nNos jus de fruits et smoothies frais : Tutti Frutti, Chaperon rouge, Extra Green, Halva… 10 recettes à 32 ₪.\n🌙 Livraison tous les jours jusqu'à 22 h, partout à Netanya\n💳 Payé par Bit · 📍 Suivi en direct\n👉 Commander : ${url}?c=HOPJUS\n${TAGS.fr} #jus #smoothie`,
     he: `🧃 בא לכם מיץ? והופ, זה אצלכם!\nהמיצים והשייקים הטריים שלנו: תותי פרוטי, כיפה אדומה, אקסטרה גרין, חלווה… 10 טעמים ב־32 ₪.\n🌙 משלוחים כל יום עד 22:00, בכל נתניה\n💳 תשלום בביט · 📍 מעקב בזמן אמת\n👈 להזמנה: ${url}?c=HOPJUS&lang=he\n${TAGS.he} #מיצים #שייק` },
@@ -569,6 +621,7 @@ const capFor = (id, medium) => { const c = CAPS[id]; return tagText((c && (c[ui.
 const UPLOAD = [["Instagram", "https://www.instagram.com/"], ["TikTok", "https://www.tiktok.com/tiktokstudio/upload"], ["Facebook", "https://www.facebook.com/"]];
 const V = "kit/visuels/";
 const CAMPS = [
+  { id: "mcdo", aud: "client", isNew: true, thumb: "post", title: "🍔 Nouveau · Votre McDonald's livré par HOP!", desc: "Hoppy apporte votre McDo, encore chaud. À publier dès que McDonald's est ouvert aux clients sur HOP! (il est encore caché). Le lien de la légende ouvre directement le McDo du centre. FR et HE.", formats: ["post"] },
   { id: "jus", aud: "client", isNew: true, thumb: "post", title: "🧃 Nouveau · Une envie de jus ? Et hop, c'est livré !", desc: "Notre catalogue Jus de fruits et smoothies (10 recettes à 32 ₪), livré jusqu'à 22 h. Le lien de la légende ouvre directement le catalogue. FR et HE.", formats: ["post"] },
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),

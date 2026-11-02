@@ -2198,7 +2198,7 @@ async function submit(e) {
       // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
       shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
       items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,
-      items_note: proShopOn() && cartCount() ? val("shop_order").trim() || null : null,
+      items_note: proShopOn() && cartCount() ? [cartLines().filter(l => modText(l.p.id, "fr")).map(l => `${UI.bi(baseOf(l.p), "fr")}${sizeOf(l.p) ? " (" + UI.bi(sizeOf(l.p), "fr") + ")" : ""} : ${modText(l.p.id, "fr")}`).join(" | "), val("shop_order").trim()].filter(Boolean).join(" | ").slice(0, 300) || null : null,
       goods_choice: proShopOn() && linkOk() && hasShopGoods() ? goodsChoice() : null,
       shop_ref: shopSelf() ? val("shop_ref").trim() : null,
       phone_order: phoneOn(),
@@ -2747,6 +2747,18 @@ const pName = p => UI.bi(baseOf(p)) + (sizeOf(p) ? " · " + UI.bi(sizeOf(p)) : "
 const groupFirst = list => list.filter((p, i) => !sizeOf(p) || list.findIndex(x => sizeOf(x) && x.category_id === p.category_id && baseOf(x) === baseOf(p)) === i);
 const groupQty = p => sizesOf(p).reduce((n, x) => n + (state.cart[x.id] || 0), 0);
 const groupPrice = p => { const sz = sizesOf(p); return sz.length > 1 ? t("cgFrom", { price: UI.money(Math.min(...sz.map(x => Number(x.price)))) }) : UI.money(p.price); };
+// Burger, menu, tortilla… : le client peut retirer des ingrédients (« sans oignons », « sans ketchup ») et écrire une demande.
+// Gardé par article (state.cartMods), écrit en clair dans la commande (le patron le recopie au commerce)
+const MODS = ["onion", "pickle", "ketchup", "mustard", "sauce", "lettuce", "tomato", "cheese"];
+const modsFor = p => /burger|royal|mac|chicken|cheese|steak|tortilla|wrap|sandwich|crunch|crispy|המבורגר|בורגר|טורטי|צ'יקן|רויאל|סנדוויץ/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
+const modText = (id, lang) => {
+  const m = (state.cartMods || {})[id];
+  if (!m) return "";
+  // Dans la commande (lue par le patron), toujours en français ; à l'écran, dans la langue du client
+  const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage" };
+  const lab = k => (lang === "fr" ? "sans " + fr[k] : t("modNo") + " " + t("mod_" + k));
+  return [...(m.off || []).map(lab), m.note ? "« " + m.note + " »" : ""].filter(Boolean).join(", ");
+};
 // Taille proposée en ouvrant la fiche : celle déjà au panier, sinon la moyenne / normale, sinon la première
 function sizeDefault(p) {
   const sz = sizesOf(p);
@@ -2892,6 +2904,7 @@ $("#catalogBox").addEventListener("click", e => {
   saveDraft();  cartPersist();
 });
 
+document.addEventListener("input", e => { if (e.target.matches && e.target.matches("[data-it-note]")) item.note = e.target.value; });
 // Fiche d'un article : grande image, description, prix, quantité, « Ajouter · total »
 const item = { id: null, qty: 1 };
 function openItem(id) {
@@ -2899,6 +2912,8 @@ function openItem(id) {
   if (!p) return;
   if (sizesOf(p).length > 1 && !state.cart[p.id]) p = sizeDefault(p);
   item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
+  const m0 = (state.cartMods || {})[p.id] || {};
+  item.off = [...(m0.off || [])]; item.note = m0.note || "";
   renderItem();
   $("#itemSheet").classList.remove("hidden");
 }
@@ -2910,6 +2925,8 @@ function renderItem() {
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
       ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
+      ${modsFor(p) && p.available ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p><div class="it-mods">${MODS.map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
+        <input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
   $("#itemAdd").disabled = !p.available;
@@ -2931,7 +2948,7 @@ function renderCart() {
     const id = UI.esc(p.id);
     // On glisse la ligne : Supprimer · + 1 · Modifier (les − / + restent là pour ceux qui ne glissent pas)
     return UI.swipeRow(`<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</span>
-      <span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b><small>${UI.esc(money(Number(p.price) * qty))}</small></span>
+      <span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b>${modText(p.id) ? `<em class="cs-mods">${UI.esc(modText(p.id))}</em>` : ""}<small>${UI.esc(money(Number(p.price) * qty))}</small></span>
       <span class="it-qty cs-qty"><button type="button" data-cs-minus="${id}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${id}" aria-label="+">+</button></span></div>`,
       [{ icon: "🗑", label: t("swDel"), attrs: `data-cs-del="${id}"`, cls: "sw-red" }, { icon: "＋", label: t("swDup"), attrs: `data-cs-plus="${id}"` },
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
@@ -2981,6 +2998,8 @@ $("#cartSheet").addEventListener("click", e => {
 });
 $("#itemSheet").addEventListener("click", e => {
   if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
+  const md = e.target.closest("[data-it-mod]");
+  if (md) { const k = md.dataset.itMod; item.off = (item.off || []).includes(k) ? item.off.filter(x => x !== k) : [...(item.off || []), k]; return renderItem(); }
   const sz = e.target.closest("[data-it-size]");
   if (sz) { item.id = sz.dataset.itSize; item.qty = Math.max(1, state.cart[item.id] || item.qty || 1); return renderItem(); }
   if (e.target.closest("#itemMinus")) { item.qty = Math.max(1, item.qty - 1); return renderItem(); }
@@ -2988,6 +3007,9 @@ $("#itemSheet").addEventListener("click", e => {
   const add = e.target.closest("#itemAdd"), del = e.target.closest("#itemDel");
   if (!add && !del) return;
   state.cart[item.id] = add ? item.qty : 0;
+  state.cartMods = state.cartMods || {};
+  if (add && ((item.off || []).length || (item.note || "").trim())) state.cartMods[item.id] = { off: item.off || [], note: (item.note || "").trim().slice(0, 80) };
+  else delete state.cartMods[item.id];
   $("#itemSheet").classList.add("hidden");
   renderCatalog(); renderQuote(); saveDraft(); cartPersist();
 });
@@ -4729,7 +4751,7 @@ function cartPersist() {
   const snap = cartSnap();
   cartWho(snap);
   try {
-    if (snap.count) localStorage.setItem(LS_CART, JSON.stringify({ at: Date.now(), snap, cart: state.cart, pharma: state.pharma, pharmaOpt: state.pharmaOpt,
+    if (snap.count) localStorage.setItem(LS_CART, JSON.stringify({ at: Date.now(), snap, cart: state.cart, mods: state.cartMods || {}, pharma: state.pharma, pharmaOpt: state.pharmaOpt,
       homeKind: state.homeKind, shop: snap.kind === "shop" ? { code: state.shop.code, dir: state.shopDir || "" } : null }));
     else localStorage.removeItem(LS_CART);
   } catch (e) { /* stockage plein */ }
@@ -4764,6 +4786,7 @@ async function openStoredCart() {
     if (!state.shop || state.shop.code !== c.shop.code) { state.shopDir = c.shop.dir || ""; await loadShop(c.shop.code, true); }
     const ids = cgProducts().map(p => p.id);
     state.cart = Object.fromEntries(Object.entries(c.cart || {}).filter(([id, q]) => ids.includes(id) && q > 0));
+    state.cartMods = Object.fromEntries(Object.entries(c.mods || {}).filter(([id]) => state.cart[id]));
     renderCatalog(); renderQuote(); saveDraft();
     if (cartCount()) openCart(); else { cartDone(); toastCart(t("cartGone")); }
     return;
