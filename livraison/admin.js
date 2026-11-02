@@ -497,6 +497,16 @@ function card(o, withDay) {
   if (o.shop_status && o.shop_status !== "refusee") meta.push(`<span class="pill">${o.shop_status === "attente" ? "🍳 Attente du commerce"
     : o.shop_status === "prete" ? "✅ Prête au commerce" : `🍳 Prête à ${UI.esc(new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}`}${Number(o.shop_share) > 0 ? ` · commerce ${UI.money(o.shop_share)}` : ""}</span>`);
   if (o.shop_order) meta.push(`<span class="pill">🧾 ${UI.esc(o.shop_order.slice(0, 80))}</span>`);
+  // Commerce non partenaire : comment le client paie ses articles, et ce qu'il reste à faire au patron
+  if (o.goods_choice) {
+    const lab = { lien: "🔗 Articles : lien de paiement du commerce", bit: "📱 Articles : Bit à HOP! avant", especes: "💵 Articles : espèces au livreur" }[o.goods_choice] || "";
+    const st = { a_payer: o.goods_choice === "lien" && !o.goods_link ? "lien à envoyer" : "à payer", declare: "le client dit avoir payé", recu: "✅ payés", pas_recu: "❌ pas reçu" }[o.goods_pay] || "";
+    meta.push(`<span class="pill ${o.goods_pay === "recu" ? "paid" : o.goods_pay ? "unpaid" : ""}">${lab}${Number(o.items_total) > 0 ? " · " + UI.money(o.items_total) : ""}${st ? " · " + st : ""}</span>`);
+    if (!["annulee", "refusee", "livree"].includes(o.status) && o.goods_pay && o.goods_pay !== "recu") {
+      if (o.goods_choice === "lien") meta.push(`<button class="pill pill-btn${o.goods_link ? "" : " unpaid"}" data-act="goodslink" title="Préparez la commande dans l'appli du commerce, puis collez son lien de paiement : il part au client sur WhatsApp">${o.goods_link ? "🔗 Renvoyer le lien au client" : "🔗 Envoyer le lien de paiement au client"}</button>`);
+      meta.push(`<button class="pill pill-btn paid" data-act="goodsok" title="Le client a bien payé ses articles : le livreur peut les récupérer">✅ Articles payés</button><button class="pill pill-btn st-annulee" data-act="goodsko">❌ Pas reçu</button>`);
+    }
+  }
   if (o.photo_wanted || o.leave_at_door) meta.push(`<span class="pill unpaid">📷 Photo du colis obligatoire${o.photo_wanted ? " (demandée par le client)" : " (devant la porte)"}</span>`);
   // Colis à récupérer : les documents du client, à vérifier avant d'envoyer un livreur
   if (o.docs_status) {
@@ -1376,6 +1386,44 @@ const HOME_ROWS = [["popular", "🔥 Populaires", "les commerces mis en avant (�
   ["fresh", "✨ Nouveautés", "les commerces arrivés depuis moins de 30 jours"],
   ["all", "🏪 Nos commerces partenaires", "tous les commerces partenaires, à la suite"]];
 const homeRows = () => Object.assign({}, CONFIG.homeRows || {}, (settings && settings.home_rows) || {});
+// Commerces à démarcher : les commerces non partenaires où nos clients commandent le plus (30 derniers jours).
+// Avec ces chiffres, le patron va les voir pour un partenariat (message prêt, avec leurs vrais chiffres)
+function prospectsCard() {
+  const since = Date.now() - 30 * 86400000, digits = v => String(v || "").replace(/\D/g, "").slice(-9);
+  const partner = sh => !!sh && !sh.cash_ok;   // les commerces où HOP! commande pour le client ont « payé au livreur »
+  const groups = new Map();
+  orders.filter(o => !o.is_test && !["annulee", "refusee"].includes(o.status) && new Date(o.created_at).getTime() >= since).forEach(o => {
+    const sh = o.shop_id ? shops.find(x => x.id === o.shop_id) : null;
+    if (sh && (partner(sh) || /^HOP/.test(sh.code || "") || sh.demo)) return;
+    const name = sh ? sh.name : o.service === "achat" ? "" : String(o.pickup_place || "").trim();
+    if (!name) return;
+    const k = sh ? "s:" + sh.id : "p:" + name.toLowerCase();
+    const g = groups.get(k) || { name, sh, phone: sh ? sh.whatsapp || sh.phone : o.pickup_phone, lang: sh ? sh.lang : "he", list: [] };
+    if (!g.phone && o.pickup_phone) g.phone = o.pickup_phone;
+    g.list.push(o); groups.set(k, g);
+  });
+  const rows = [...groups.values()].map(g => {
+    const phones = g.list.map(o => digits(o.contact_phone)).filter(Boolean), count = {};
+    phones.forEach(p => { count[p] = (count[p] || 0) + 1; });
+    return Object.assign(g, { n: g.list.length, goods: sum(g.list, o => Number(o.items_total || 0)), clients: Object.keys(count).length,
+      back: Object.values(count).filter(x => x > 1).length });
+  }).sort((a, b) => b.n - a.n || b.goods - a.goods).slice(0, 12);
+  const pitch = g => {
+    const amount = g.goods > 0 ? UI.money(g.goods) : "";
+    return g.lang === "fr"
+      ? `Bonjour, ici HOP! Livraison à Netanya 🛵\nCes 30 derniers jours, nos clients ont commandé ${g.n} fois chez ${g.name}${amount ? " (" + amount + " d'achats)" : ""}, ${g.clients} clients différents${g.back ? ", dont " + g.back + " qui reviennent" : ""}. On est venus chercher chaque commande au comptoir.\nOn aimerait vous proposer un partenariat : les commandes vous arrivent directement, prêtes à l'heure, payées en ligne, avec votre page sur HOP!. On passe vous voir ?`
+      : `שלום, כאן HOP! משלוחים בנתניה 🛵\nב-30 הימים האחרונים הלקוחות שלנו הזמינו ${g.n} פעמים מ${g.name}${amount ? " (קניות ב-" + amount + ")" : ""}, ${g.clients} לקוחות שונים${g.back ? ", מתוכם " + g.back + " שחוזרים" : ""}. אספנו כל הזמנה מהדלפק.\nנשמח להציע לכם שיתוף פעולה: ההזמנות מגיעות אליכם ישירות, מוכנות בזמן, משולמות אונליין, עם עמוד משלכם ב-HOP!. נקפוץ אליכם?`;
+  };
+  return `<details class="card adm-fold" style="margin-bottom:14px" data-fold="c:prospect"${foldOpen("c:prospect")}>
+    <summary><b>📈 Commerces à démarcher</b>${rows.some(g => g.n >= 15) ? ` <span class="pill paid">🔥 ${rows.filter(g => g.n >= 15).length} prêt(s)</span>` : ""}</summary>
+    <p class="muted small" style="margin:4px 0 8px">Les commerces non partenaires où nos clients commandent le plus (30 derniers jours). À partir d'environ 15 commandes par mois, allez les voir avec ces chiffres : le message est prêt, dans sa langue.</p>
+    ${rows.length ? `<div class="prospects">${rows.map((g, i) => `<div class="pr-row${g.n >= 15 ? " hot" : ""}">
+        <span class="pr-n">${i + 1}</span>
+        <span class="pr-main"><b>${UI.esc(g.name)}</b><small>${g.n} commande(s)${g.goods > 0 ? " · " + UI.money(g.goods) + " d'achats" : ""} · ${g.clients} client(s)${g.back ? " · " + g.back + " qui reviennent" : ""}${g.n >= 15 ? " · 🔥 prêt à démarcher" : ""}</small></span>
+        ${g.phone ? `<a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.waLink(g.phone, pitch(g)))}">💬 Proposer</a>` : `<button class="btn btn-sm" data-copy="${UI.esc(pitch(g))}" title="Pas de numéro : copier le message">📋 Message</button>`}
+      </div>`).join("")}</div>` : `<p class="small">Pas encore de commande chez un commerce non partenaire ces 30 derniers jours.</p>`}
+  </details>`;
+}
 function homeRowsCard() {
   const hr = homeRows(), vit = vitrineShops(), byCode = c => shops.find(x => x.code === c);
   return `<div class="card home-rows" style="margin-bottom:14px">
@@ -1454,6 +1502,7 @@ function renderShops(view) {
       <p class="muted small" style="margin:4px 0 8px">Le lien de son espace (catalogue, commandes), son code et le lien pour ses clients : le message est déjà écrit dans sa langue, appuyez sur Envoyer dans WhatsApp.</p>
       ${toSend.map(x => `<div class="access-row"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.contact_name || "")} · ${UI.esc(x.whatsapp || x.phone)}</span>${accessBtn(x)}</div>`).join("")}
     </div>` : ""}
+    ${prospectsCard()}
     ${homeRowsCard()}
     <details class="card adm-fold" style="margin-bottom:14px" id="dirCard" data-fold="c:dir"${foldOpen("c:dir")}>
       <summary><b>📖 Annuaire : ajouter un commerce</b></summary>
@@ -2666,6 +2715,23 @@ async function onViewClick(e) {
       if (changes.payment_status) await load();
 
     }
+  } else if (el.dataset.act === "goodslink") {
+    const shop = o.shop_name || "le commerce";
+    const link = prompt(`Course n° ${o.ref} : passez la commande chez ${shop} (dans son appli, « à emporter »), puis collez ici son lien de paiement.`, o.goods_link || "https://");
+    if (link === null) return;
+    const v = link.trim();
+    if (!/^https:\/\/\S{4,600}$/.test(v)) return alert("Le lien doit commencer par https://");
+    try { if (!(await Store.adminGoodsLink(o.id, v))) return alert("Non enregistré (course annulée ou déjà payée ?)."); } catch (ex) { return alert("Non enregistré, vérifiez la connexion."); }
+    const amount = Number(o.items_total) > 0 ? UI.money(o.items_total) : "", first = String(o.contact_name || "").split(" ")[0];
+    const msg = o.lang === "he"
+      ? `שלום ${first}, כאן HOP! 🛵\nההזמנה שלכם מ${shop}${amount ? " (" + amount + ")" : ""} מחכה לתשלום: ${v}\nאחרי התשלום לוחצים „שילמתי” בעמוד המעקב: ${UI.trackUrl(o)}\nאת המשלוח משלמים לשליח.`
+      : `Bonjour ${first}, ici HOP! 🛵\nVotre commande chez ${shop}${amount ? " (" + amount + ")" : ""} vous attend pour le paiement : ${v}\nUne fois payé, touchez « J'ai payé » sur votre suivi : ${UI.trackUrl(o)}\nLa livraison se paie au livreur.`;
+    if (o.contact_phone) window.open(UI.waLink(o.contact_phone, msg), "_blank");
+    await load();
+  } else if (el.dataset.act === "goodsok" || el.dataset.act === "goodsko") {
+    const ok = el.dataset.act === "goodsok";
+    if (!confirm(ok ? `Course n° ${o.ref} : le client a bien payé ses articles ? Le livreur pourra les récupérer.` : `Course n° ${o.ref} : paiement des articles pas reçu ? Le client est prévenu sur son suivi.`)) return;
+    try { if (!(await Store.adminGoodsPay(o.id, ok))) return alert("Non enregistré."); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
   } else if (el.dataset.act === "claimok") {
     if (!confirm(`Course n° ${o.ref} : vérifié, elle a bien été livrée ? Le signalement est classé, rien n'est retenu au livreur.`)) return;
     try { await Store.claimClose(o.id); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }

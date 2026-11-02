@@ -46,6 +46,11 @@ let settings = { wait_free_min: W.freeMinutes, wait_step_min: W.stepMinutes, wai
 Store.getSettings().then(s => { Object.assign(settings, s); UI.setZonesOpen(s.zones_open); if (order) render(); }).catch(() => {});
 let map = null, markers = {}, fitted = false, courierSeen = false;
 
+// Commerce non partenaire : articles payés avec le lien du commerce (envoyé par HOP!) ou par Bit à HOP! avant la commande
+const goodsSp = o => (o.goods_choice === "lien" ? { name: UI.bi(o.shop_name || (o.shop_pay && o.shop_pay.name) || ""), link: o.goods_link || null }
+  : o.goods_choice === "bit" ? { name: "HOP!", bit: CONFIG.bitPhone } : o.shop_pay);
+const goodsLinkWait = o => (o.goods_choice === "lien" && !o.goods_link && o.goods_pay === "a_payer"
+  ? t("gcWaitLink", { name: UI.bi(o.shop_name || ""), amount: Number(o.items_total) > 0 ? UI.money(o.items_total) : t("gpAmountShop") }) : "");
 function cityLabel(id) { return CONFIG.cities.some(c => c.id === id) ? I18N.cityName(id) : id; }
 
 function initMap() {
@@ -450,7 +455,7 @@ function render() {
   } else
   // Articles payés d'avance au commerce : ① le commerce, ② la livraison
   // (commerce sans lien ni Bit : le montant des articles et à qui le payer, quand même)
-  pay.innerHTML = `${o.goods_pay && o.shop_pay ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(o, o.shop_pay)}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>`
+  pay.innerHTML = `${o.goods_pay && goodsSp(o) ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${goodsLinkWait(o) ? `<div class="goods-pay wait"><b>${UI.esc(goodsLinkWait(o))}</b></div>` : UI.goodsPay(o, goodsSp(o))}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>`
     : o.shop_pay && Number(o.items_total) > 0 && o.payment_method !== "cash" ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay todo"><b class="gp-step">${UI.esc(t("gpStep1", { name: UI.bi(o.shop_pay.name), amount: UI.money(o.items_total) }))}</b><small>${UI.esc(t("gbAsk", { name: UI.bi(o.shop_pay.name) }))}</small></div><p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>` : ""}${refund}${missing}<small class="muted">${UI.esc(t("trPay"))}</small>
     <div class="amount">${UI.money(o.payment_method === "cash" ? Number(o.price) + Number(o.cash_goods || 0) : UI.payTotal(o))}${o.budget && !o.goods_prepay ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${UI.areaWhy(o) ? `<p class="area-why-note">${UI.esc(UI.areaWhy(o))}</p>` : ""}

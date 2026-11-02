@@ -8592,3 +8592,67 @@ alter table public.settings add column if not exists cash_first_orders int not n
 -- du téléphone, marqué quand le panel patron ou l'appli livreur s'ouvre, via staff_visitor_mark) ; admin_analytics
 -- et admin_funnel ignorent ces visiteurs, y compris leurs visites passées. Appliqué en ligne (migration staff_visitors_excluded).
 create table if not exists public.staff_visitors (visitor text primary key, marked_at timestamptz not null default now());
+
+-- ============================================================================
+-- Commerces non partenaires (shops.cash_ok, HOP! commande pour le client) : comment le client paie ses articles
+-- (migration goods_choice_link_non_partners, appliquée le 02/11)
+--   lien : le patron colle le lien de paiement du commerce (admin_goods_link), envoyé au client sur WhatsApp ; livraison normale
+--   bit : articles payés à HOP! par Bit avant que le patron commande (+ 5 ₪ d'achat) ; especes : tout au livreur (+ 5 ₪)
+--   Le patron confirme « Articles payés » (admin_goods_pay) : sans ça le livreur ne peut pas récupérer (goods_unpaid)
+-- ============================================================================
+alter table public.orders add column if not exists goods_choice text;
+alter table public.orders add column if not exists goods_link text;
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'orders_goods_choice_ok') then
+    alter table public.orders add constraint orders_goods_choice_ok check (goods_choice is null or goods_choice in ('lien', 'bit', 'especes'));
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'orders_goods_link_ok') then
+    alter table public.orders add constraint orders_goods_link_ok check (goods_link is null or goods_link ~ '^https://[^[:space:]]{4,600}$');
+  end if;
+end $$;
+create or replace function public.orders_shop_prepay() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare hop_buys boolean; has_goods boolean;
+begin
+  new.goods_pay := null; new.goods_pay_at := null; new.goods_link := null;
+  has_goods := coalesce(new.items_total, 0) > 0 or coalesce(trim(new.shop_order), '') <> '';
+  hop_buys := new.shop_id is not null and exists (select 1 from shops s where s.id = new.shop_id and s.cash_ok);
+  if not hop_buys or not has_goods then new.goods_choice := null; end if;
+  if new.goods_choice = 'especes' and new.payment_method <> 'cash' then raise exception 'goods_cash'; end if;
+  if new.shop_id is not null and has_goods
+     and (new.goods_choice in ('lien', 'bit')
+          or exists (select 1 from shops s where s.id = new.shop_id and (s.pay_link is not null or s.pay_bit is not null))) then
+    new.goods_pay := 'a_payer';
+  end if;
+  return new;
+end;
+$$;
+create or replace function public.admin_goods_link(p_id uuid, p_link text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  if coalesce(p_link, '') !~ '^https://[^[:space:]]{4,600}$' then raise exception 'bad_link'; end if;
+  update orders set goods_link = p_link where id = p_id and goods_choice = 'lien' and status not in ('annulee', 'refusee');
+  get diagnostics n = row_count;
+  return n > 0;
+end;
+$$;
+revoke execute on function public.admin_goods_link(uuid, text) from public, anon;
+grant execute on function public.admin_goods_link(uuid, text) to authenticated;
+create or replace function public.admin_goods_pay(p_id uuid, p_ok boolean) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  update orders set goods_pay = case when p_ok then 'recu' else 'pas_recu' end, goods_pay_at = now()
+   where id = p_id and goods_choice in ('lien', 'bit') and goods_pay is not null and status not in ('annulee', 'refusee');
+  get diagnostics n = row_count;
+  if n > 0 then
+    insert into chat_messages (thread, author, body) values ('o:' || p_id::text, 'system', case when p_ok then 'status:goods_recu' else 'status:goods_pas_recu' end);
+  end if;
+  return n > 0;
+end;
+$$;
+revoke execute on function public.admin_goods_pay(uuid, boolean) from public, anon;
+grant execute on function public.admin_goods_pay(uuid, boolean) to authenticated;

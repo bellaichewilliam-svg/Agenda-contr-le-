@@ -278,6 +278,12 @@ async function createOrder(order) {
           shop_order: (list.map(i => `${i.qty} × ${i.name}`).join("\n") + (note ? "\n💬 " + note : "")).slice(0, 1000) });
       } else order.items = null;
     } else order.items = null;
+    // Commerce non partenaire (HOP! commande pour le client) : articles par lien du commerce, Bit à HOP! ou espèces
+    order.goods_link = null;
+    const hasGoods = Number(order.items_total) > 0 || !!String(order.shop_order || "").trim();
+    if (!(shop && shop.cash_ok && hasGoods) || !["lien", "bit", "especes"].includes(order.goods_choice)) order.goods_choice = null;
+    if (order.goods_choice === "especes" && order.payment_method !== "cash") throw new Error("goods_cash");
+    order.goods_pay = shop && hasGoods && (["lien", "bit"].includes(order.goods_choice) || shop.pay_link || shop.pay_bit) ? "a_payer" : null;
     // Réduction seulement avec un code (au plus 30 ₪, payée par HOP), part HOP du Pro, pas de pourboire
     Object.assign(order, {
       discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
@@ -908,6 +914,19 @@ async function adminClientReset(id, password) {
 async function adminUnblock(phone) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_unblock_phone", { method: "POST", body: { p_phone: phone } });
   return true;
+}
+// Commerce non partenaire : le patron colle le lien de paiement du commerce (envoyé au client), puis confirme le paiement
+async function adminGoodsLink(id, link) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_goods_link", { method: "POST", body: { p_id: id, p_link: link } });
+  const all = localOrders(), o = all.find(x => x.id === id);
+  if (!o || o.goods_choice !== "lien" || !/^https:\/\/\S{4,600}$/.test(link)) return false;
+  o.goods_link = link; saveLocalOrders(all); return true;
+}
+async function adminGoodsPay(id, ok) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_goods_pay", { method: "POST", body: { p_id: id, p_ok: !!ok } });
+  const all = localOrders(), o = all.find(x => x.id === id);
+  if (!o || !["lien", "bit"].includes(o.goods_choice) || !o.goods_pay) return false;
+  o.goods_pay = ok ? "recu" : "pas_recu"; o.goods_pay_at = new Date().toISOString(); saveLocalOrders(all); return true;
 }
 // Tabac / alcool : « j'ai vérifié la pièce d'identité » avant de livrer (gardé sur la course)
 async function courierIdChecked(id) {
@@ -2480,6 +2499,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
+  adminGoodsLink, adminGoodsPay,
   createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
