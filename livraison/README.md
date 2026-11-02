@@ -745,3 +745,4 @@ livraison/
 - Kit pub : « Restaurants : Gardez 100 % de vos ventes » = nouveaux visuels du patron (FR/HE), post 1080×1080 + story 1080×1920 (originaux video/public/reseaux/resto-100-original-*.png). Le flyer PDF reste l'ancien.
 - Kit pub : « Tout commerce : Vos clients veulent être livrés ? » = nouveaux visuels du patron (FR/HE), post + story (originaux video/public/reseaux/pro-livres-original-*.png). Flyer PDF : l'ancien.
 - Kit pub : « Commerces de quartier » = nouveaux visuels du patron (FR/HE), post + story (originaux video/public/reseaux/quartier-original-*.png). Flyer PDF : l'ancien.
+- Kit pub : « Relance après une visite » = nouveaux visuels du patron (FR/HE), post + story (originaux video/public/reseaux/relance-original-*.png). Flyer PDF : l'ancien.
