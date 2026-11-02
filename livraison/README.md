@@ -822,3 +822,4 @@ livraison/
 - **Commande plus courte** : adresse enregistrée complète → on passe directement de l'écran 1 au récapitulatif (l'écran « Quelques précisions » vide est sauté) ; « Un mot pour le livreur » rangé dans « Plus d'options » pour une commande chez un commerce ; appartement enregistré sans code : la case du code apparaît dans la fiche résumée (rien d'autre ne se rouvre) et le code est gardé dans l'adresse ; « Maison individuelle » (type de lieu) ne se confond plus avec l'adresse « Maison » ; « Quand ? » : les trois choix tiennent dans leur case.
 - Panel, Commerces : une fiche « à vérifier » refermée reste fermée.
 - Base : `shop_catalog` montre aussi le catalogue d'un commerce « à vérifier » par son lien (aperçu avant ouverture ; jamais suspendu).
+- Bureau : plus de code d'entrée demandé (ni dans l'adresse, ni pour « sans contact ») ; le code n'est demandé qu'une fois, pour un appartement, puis gardé dans l'adresse.

@@ -1658,7 +1658,7 @@ function kindOf(pre) { const r = form.querySelector(`input[name="${pre}_kind"]:c
 function setKind(pre, v) {
   form.querySelectorAll(`input[name="${pre}_kind"]`).forEach(r => { r.checked = r.value === v; r.closest(".ch-chip").classList.toggle("on", r.checked); });
   const box = form.querySelector(`[data-details="${pre}"]`);
-  if (box) box.classList.toggle("is-house", v === "maison");
+  if (box) { box.classList.toggle("is-house", v === "maison"); box.classList.toggle("is-office", v === "bureau"); }   // bureau : pas de code d'entrée
 }
 // « Pas de code d'entrée » : la case remplit le code (le livreur le lit sur sa fiche) et le bloque
 const NO_CODE = /^(Pas de code|אין קוד)$/;
@@ -2067,7 +2067,7 @@ function validateOrder() {
   if (form.leave_at_door.checked) {
     const k = kindOf("dropoff");
     if (!k) { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showErrorFalse(t("errDoorKind")); }
-    if (k !== "maison" && !val("dropoff_code").trim()) { form.dropoff_code.focus(); return showErrorFalse(t("errDoorCode")); }
+    if (k === "appartement" && !val("dropoff_code").trim()) { form.dropoff_code.focus(); return showErrorFalse(t("errDoorCode")); }
     if (k === "appartement" && !val("dropoff_apt").trim()) { form.dropoff_apt.focus(); return showErrorFalse(t("errDoorCode")); }
   }
   // Colis à récupérer : tout ce qu'il faut au guichet, avant d'envoyer la commande
