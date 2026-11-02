@@ -8521,3 +8521,29 @@ end;
 $function$;
 -- (mise à jour) chat_support_send : + réponse automatique de bienvenue (hébreu si le client écrit en hébreu, sinon français),
 -- une fois par 12 h et par client tant que HOP! n'a pas répondu. Voir la migration « chat_support_auto_reply ».
+
+-- ============================================================================
+-- Traduction auto des catalogues : une rubrique (shop_categories) n'a pas de colonne description.
+-- L'ancienne version lisait new.description pour les rubriques aussi → toute nouvelle rubrique était refusée
+-- depuis le 29/10. Appliqué en ligne le 02/11 (migration catalog_auto_fr_categories_fix).
+-- ============================================================================
+create or replace function public.catalog_auto_fr() returns trigger
+language plpgsql security definer set search_path = public as $function$
+declare fr text; lim int;
+begin
+  lim := case when tg_table_name = 'shop_categories' then 40 else 80 end;
+  if new.name ~ '[א-ת]' and new.name !~ '[A-Za-zÀ-ÿ]' then
+    fr := public.hop_tr_clean(new.name);
+    if fr !~ '[א-ת]' and length(fr || ' · ' || new.name) <= lim then new.name := fr || ' · ' || new.name; end if;
+  end if;
+  if tg_table_name = 'shop_products' then
+    if new.description ~ '[א-ת]' and new.description !~ '[A-Za-zÀ-ÿ]' then
+      fr := public.hop_tr_clean(new.description);
+      if fr !~ '[א-ת]' and length(fr || ' · ' || new.description) <= 300 then new.description := fr || ' · ' || new.description; end if;
+    end if;
+  end if;
+  return new;
+end;
+$function$;
+-- Catalogue HOP! Jus de fruits (code HOPJUS, service du patron) : créé en ligne le 02/11 à partir de
+-- livraison/supabase/seed-hop-jus.json (10 boissons à 32 ₪, rubrique « Recommandés », livraison 09:00-22:00).

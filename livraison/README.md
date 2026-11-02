@@ -754,3 +754,10 @@ livraison/
 - En haut : grande photo arrondie en bas, logo rond centré, nom, accroche, ouvert/fermé et livraison centrés, bouton « Infos ».
 - Catalogue : barre « 🔍 Rechercher chez … » (nom + description, FR/HE, sans accents) et rubriques en pastilles, collées sous la barre du haut (position calculée au défilement) ; « Aucun article pour … » si rien ne correspond.
 - Lignes d'articles : photo paysage 132×92, description sur 3 lignes, prix en gras.
+
+### Catalogue HOP! Jus de fruits (02/11)
+- Premier catalogue « à HOP! » (le patron propose le service, ce n'est pas un commerce) : code `HOPJUS`, lien client `?c=HOPJUS`.
+- 10 boissons à 32 ₪ (FR · HE), rubrique « 💎 Recommandés », ouvert 09:00-22:00, paiement des boissons par Bit au numéro HOP!, livraison payée par le client.
+- Photos, logo et couverture : dessins originaux (`img/jus/`, script `video/scripts/jus_photos.js`), données dans `supabase/seed-hop-jus.json`.
+- Mis en avant (🔥) et premier dans la vitrine de l'accueil ; le patron gère les articles depuis Commerces → HOP! Jus de fruits → 🔑 Son espace.
+- Correction base : la traduction automatique empêchait de créer une rubrique de catalogue depuis le 29/10 (réparé).
