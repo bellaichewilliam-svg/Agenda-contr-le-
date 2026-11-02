@@ -32,7 +32,7 @@ function setView(v, push) {
   if (push) { history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]); here = location.href; }
   window.scrollTo(0, 0);
   // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
-  if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); });
+  if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); try { ensureDefaultTo(); } catch (e) { /* ignore */ } });
   if (v === "order") requestAnimationFrame(() => { if (wiz.on) wizLabels(); });
   return true;
 }
@@ -1550,6 +1550,7 @@ function quickPlaces(which, isHome) {
 
 function renderSavedAddrs() {
   const list = Store.getAddresses();
+  if (list.length) setTimeout(() => { try { ensureDefaultTo(); } catch (e) { /* ignore */ } }, 0);
   if (home.ac.from) renderHomeStatic();
   // Comme dans les applis : 🏠 Maison et 💼 Travail toujours proposés (à ajouter s'ils manquent), puis les autres adresses
   const slot = tag => { const i = list.findIndex(a => a.tag === tag); return i >= 0
@@ -1834,6 +1835,15 @@ function rememberAddresses(o, pf, pt) {
 const LS_LAST_DROP = "livraison.lastDrop.v1";
 const addrKey = a => [a.street, a.number, a.city, a.apt].join("|").toLowerCase();
 // Commande chez une enseigne : on livre d'office à la dernière adresse livrée, sinon à la Maison (le client peut changer)
+// L'adresse du client se met toute seule dans « Votre adresse » (dès qu'il en a une : au démarrage, quand ses adresses
+// arrivent de son compte, en revenant à l'accueil). Il ne la retape jamais ; il peut la changer. S'il l'a effacée exprès, on ne la remet pas.
+function ensureDefaultTo() {
+  if (state.toCleared || state.pick.to || val("dropoff_address").trim() || /[?&]c=/.test(location.search)) return;
+  const d = defaultDropAddr();
+  if (!d) return;
+  applySavedAddr("to", d);
+  try { syncHome(); } catch (e) { /* accueil pas encore prêt */ }
+}
 function defaultDropAddr() {
   const list = Store.getAddresses().filter(a => !a.brand);
   let last = null;
@@ -3298,6 +3308,7 @@ const isRtl = () => document.documentElement.dir === "rtl";
 const syncHomeX = which => $(`[data-hclear="${which}"]`).classList.toggle("hidden", !homeInput(which).value);
 function clearHomeAddr(which, quiet) {
   const input = homeInput(which), pre = prefixOf(which);
+  if (which === "to" && !quiet) state.toCleared = true;
   input.value = "";
   input.dispatchEvent(new Event("input", { bubbles: true }));
   state.pick[which] = null; state[which + "Point"] = null;
@@ -4642,7 +4653,7 @@ document.addEventListener("click", e => { if (e.target.closest("[data-shop-call]
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveDraft(true); });
 try { restoreDraft(); } catch (e) { /* brouillon illisible : on repart de zéro */ }
 // Accueil : l'adresse du client (dernière livrée, sinon Maison) est déjà dans « Livrer à » ; il choisit ensuite quoi / où récupérer
-try { if (!state.pick.to && !val("dropoff_address").trim() && !/[?&]c=/.test(location.search)) { const d = defaultDropAddr(); if (d) applySavedAddr("to", d); } } catch (e) { /* ignore */ }
+try { ensureDefaultTo(); } catch (e) { /* ignore */ }
 // Fenêtre de l'appli client : l'espace livreur ouvert d'ici proposera d'installer sa propre appli
 UI.markClientApp();
 
