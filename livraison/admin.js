@@ -695,7 +695,10 @@ const visits = { days: 7, data: null, at: 0, busy: false };
 async function loadVisits(force) {
   if (visits.busy || (!force && visits.data && Date.now() - visits.at < 60000)) return;
   visits.busy = true;
-  try { visits.data = (await Store.adminAnalytics(visits.days)) || { empty: true }; } catch (e) { visits.data = { error: true }; }
+  try {
+    const [d, f] = await Promise.all([Store.adminAnalytics(visits.days), Store.adminFunnel(visits.days)]);
+    visits.data = d ? Object.assign(d, { funnel: f }) : { empty: true };
+  } catch (e) { visits.data = { error: true }; }
   visits.busy = false; visits.at = Date.now();
   if (tab === "visites") render();
 }
@@ -708,6 +711,20 @@ const pct = (a, b) => (b ? Math.round(a * 100 / b) : 0) + " %";
 function vBars(rows, key, label) {
   const max = Math.max(1, ...rows.map(r => Number(r[key]) || 0));
   return `<div class="v-bars">${rows.map(r => `<div class="v-bar" title="${UI.esc(label(r))} : ${Number(r[key]) || 0}"><b>${Number(r[key]) || ""}</b><i style="height:${Math.round((Number(r[key]) || 0) * 100 / max)}%"></i><small>${UI.esc(label(r))}</small></div>`).join("")}</div>`;
+}
+// Entonnoir : à chaque étape, combien de visites arrivent jusque-là, et ce qui bloque « Continuer »
+const BLOCK_LABEL = { dropoff_address: "adresse de livraison", dropoff_number: "n° de rue (livraison)", pickup_address: "adresse de départ", pickup_number: "n° de rue (départ)",
+  contact_name: "nom", contact_phone: "téléphone", dropoff_floor: "étage", dropoff_apt: "appartement", dropoff_code: "code d'entrée", shop_order: "commande au commerce (vide)",
+  shopping_list: "liste de courses", fits_topcase: "case « tient dans le top case »", budget: "budget des courses", date: "date", time: "heure", shop_ref: "n° de commande du commerce" };
+function funnelCard(f) {
+  if (!f) return "";
+  const steps = [["👀 Visites", f.visits], ["🛵 Commande ouverte", f.started], ["🛒 1er article ajouté", f.cart], ["2️⃣ Écran 2 (détails)", f.step2], ["3️⃣ Écran 3 (paiement)", f.step3], ["✅ Commande envoyée", f.sent]];
+  const max = Math.max(1, Number(f.visits) || 0);
+  const lbl = w => { const m = /^e(\d):(.*)$/.exec(w || ""); return m ? `Écran ${m[1]} · ${BLOCK_LABEL[m[2]] || m[2]}` : w || "?"; };
+  return `<div class="card" style="margin-top:12px"><h3>🧲 Où les clients s'arrêtent</h3>
+    <div class="v-rows">${steps.map(([l, n]) => `<div class="v-row"><span>${l}</span><b>${Number(n) || 0}</b><small><span class="fn-bar"><i style="width:${Math.round((Number(n) || 0) * 100 / max)}%"></i></span> ${pct(Number(n) || 0, max)} des visites</small></div>`).join("")}</div>
+    ${(f.blocks || []).length ? `<p class="small" style="margin:10px 0 4px"><b>« Continuer » refusé, à cause de :</b></p><div class="v-rows">${f.blocks.map(b => `<div class="v-row"><span>⛔ ${UI.esc(lbl(b.what))}</span><b>${b.n}</b><small>${b.sessions} visite${b.sessions > 1 ? "s" : ""}</small></div>`).join("")}</div>`
+      : `<p class="muted small">Les blocages s'afficheront ici dès la mise en ligne de la nouvelle version.</p>`}</div>`;
 }
 function renderVisits(view) {
   loadVisits();
@@ -730,6 +747,7 @@ function renderVisits(view) {
       <div class="stat"><small>Commandes envoyées</small><b>${d.sent}</b><em class="muted small">${pct(d.sent, d.sessions)} des visites · ${UI.money(d.sent_amount)}</em></div>
       <div class="stat"><small>Depuis l'appli installée</small><b>${d.app}</b><em class="muted small">${pct(d.app, d.sessions)} des visites</em></div>
     </div>
+    ${funnelCard(d.funnel)}
     <div class="card" style="margin-top:12px"><h3>📈 Visites par jour</h3>${days.length ? vBars(days, "sessions", r => r.label) : `<p class="muted small">Pas encore de visite.</p>`}</div>
     <div class="card" style="margin-top:12px"><h3>🧭 D'où ils viennent</h3>
       ${rows((d.sources || []).map(s => row(UI.esc(SRC_LABEL[s.source] || "🔗 " + s.source), `${s.sessions} visite${s.sessions > 1 ? "s" : ""}`,

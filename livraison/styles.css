@@ -4092,3 +4092,15 @@ body.shop-compact #shopHero .sh-meta-r { justify-content: center; }
 .cg-head > * { min-width: 0; }
 .cg-search { width: 100%; box-sizing: border-box; }
 .cg-search input { width: 100%; }
+
+/* Accueil : pastille fine « Reprendre mon panier » (une ligne, ne couvre pas la carte) */
+.cart-resume { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin: 0 0 8px; padding: 7px 14px; border-radius: 999px;
+  border: 1px solid rgba(255,106,19,.55); background: rgba(255,106,19,.14); color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap; overflow: hidden; }
+.cart-resume b { font-weight: 800; }
+.cart-resume small { opacity: .75; overflow: hidden; text-overflow: ellipsis; }
+.cart-resume i { font-style: normal; color: #FF6A13; font-weight: 900; }
+html.d2 .cart-resume { color: #fff; }
+html.d2.d2-day .cart-resume { color: #0F1F3D; }
+.cs-keep { margin: 4px 0 8px; font-size: 14px; }
+.fn-bar { display: inline-block; vertical-align: middle; width: 90px; height: 7px; border-radius: 9px; background: rgba(127,127,127,.25); overflow: hidden; margin-inline-end: 6px; }
+.fn-bar i { display: block; height: 100%; background: #FF6A13; border-radius: 9px; }

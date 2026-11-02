@@ -937,7 +937,7 @@ function renderPharma() {
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
       return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">${rtl ? "›" : "‹"} ${UI.esc(phName(prev))}</button>` : "<span></span>"}
         ${next ? `<button type="button" class="ph-next" data-ph-cat="${next.id}" data-ph-nav="1">${UI.esc(t("phNext"))} : ${UI.esc(phName(next))} ${rtl ? "‹" : "›"}</button>` : ""}</div>`; })(cats.findIndex(c => c.id === state.pharmaCat))}
-    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { mid: g.mid }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small></div>` : ""}`;
+    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { mid: g.mid }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small>${supportWho() ? "" : `<button type="button" class="btn btn-ghost btn-block cs-keep" data-cart-keep>📲 ${UI.esc(t("cartKeepBtn"))}</button>`}</div>` : ""}`;
   box.style.setProperty("--rc", r.color);
   if (box.dataset.top !== top) { box.querySelector(".ph-top").innerHTML = top; box.dataset.top = top; }
   if (box.dataset.rest !== rest) { box.querySelector(".ph-rest").innerHTML = rest; box.dataset.rest = rest; }
@@ -1291,6 +1291,7 @@ function wizNext() {
   const st = ok ? wiz.n + 1 : tgt ? wizStepOf(tgt) || wiz.step : wiz.step;
   if (st > wiz.step) { showError(""); UI.track && UI.track("order_step_" + (wiz.step + 1)); return wizGo(wiz.step + 1); }
   // Le problème est sur cet écran (ou un écran d'avant) : on y va et on le montre
+  if (UI.track) UI.track("order_block", { page: ("e" + wiz.step + ":" + (tgt ? tgt.name || tgt.id || tgt.className : "?")).slice(0, 40) });
   showError(msg);
   if (tgt) { if (typeof tgt.focus === "function" && tgt.matches("input, select, textarea, button")) tgt.focus(); else tgt.scrollIntoView({ block: "center", behavior: "smooth" }); }
 }
@@ -2843,6 +2844,9 @@ function renderCart() {
   }).join("");
   $("#cartSum").textContent = money(cartTotal());
   const nm = state.shop ? shopShortName() : "";
+  let keep = $("#cartKeep");
+  if (!keep) { keep = document.createElement("div"); keep.id = "cartKeep"; $("#cartNote").after(keep); }
+  keep.innerHTML = supportWho() ? "" : `<button type="button" class="btn btn-ghost btn-block cs-keep" data-cart-keep>📲 ${UI.esc(t("cartKeepBtn"))}</button>`;
   if (state.shop && shopCashOnly()) $("#cartNote").textContent = t("pay1Cart");
   else if (state.shop && !state.shop.pay_link && !state.shop.pay_bit) {
     // Pas de paiement en ligne chez ce commerce : on commande d'abord chez lui, puis HOP! va chercher la commande
@@ -2852,6 +2856,11 @@ function renderCart() {
       ${tel ? `<a class="btn btn-ghost cs-call" href="tel:${UI.esc(tel)}">📞 ${UI.esc(t("csCall", { name: nm }))}</a>` : ""}`;
   } else $("#cartNote").textContent = t(shopPrepay() ? "csNotePrepay" : "csNote", { name: state.shop ? UI.bi(state.shop.name) : "" });
 }
+// « Garder mon panier » (facultatif) : nom + téléphone, pour retrouver le panier et être rappelé
+document.addEventListener("click", e => {
+  if (!e.target.closest("[data-cart-keep]")) return;
+  askWho(() => { cartSync(cartSnap()); if (!$("#cartSheet").classList.contains("hidden")) renderCart(); renderPharma(); }, "cart");
+});
 $("#cartSheet").addEventListener("click", e => {
   if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) return $("#cartSheet").classList.add("hidden");
   const plus = e.target.closest("[data-cs-plus]"), minus = e.target.closest("[data-cs-minus]");
@@ -4597,11 +4606,12 @@ function cartSync(snap) {
 // Panier : dès le premier article, le nom et le téléphone (pour garder le panier et pouvoir rappeler le client).
 // Redemandés à chaque nouvel article tant qu'ils manquent ; la commande les exige de toute façon.
 var cartLastCount = ((cartStored() || {}).snap || {}).count || 0;   // panier retrouvé au lancement : on ne redemande pas tout de suite
+// (Avant : une fenêtre « nom + téléphone » s'ouvrait dès le 1er article : la plupart des clients partaient là.
+// Maintenant on ne coupe plus le client : il garde son panier s'il le veut, depuis le panier lui-même.)
 function cartWho(snap) {
   const grew = snap.count > cartLastCount;
   cartLastCount = snap.count;
-  if (!grew || supportWho() || !$("#whoModal").classList.contains("hidden")) return;
-  setTimeout(() => askWho(() => cartSync(cartSnap()), "cart"), 350);
+  if (grew && snap.count === 1) UI.track("cart_add", { shop_code: state.shop ? state.shop.code : null, page: String(snap.kind || "").slice(0, 40) });
 }
 function cartPersist() {
   const snap = cartSnap();
@@ -4622,6 +4632,13 @@ function renderCartIcon() {
   const b = $("#tbCart");
   if (!b) return;
   const c = cartStored(), n = c ? c.snap.count : 0;
+  // Accueil : une fine pastille pour reprendre le panier gardé sur ce téléphone
+  let pill = $("#homeCartPill");
+  if (!pill && $("#homeNotices")) { pill = document.createElement("button"); pill.type = "button"; pill.id = "homeCartPill"; pill.className = "cart-resume hidden"; $("#homeNotices").before(pill); }
+  if (pill) {
+    pill.classList.toggle("hidden", !n);
+    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>${document.documentElement.dir === "rtl" ? "‹" : "›"}</i>`;
+  }
   $("#tbCartN").textContent = n > 99 ? "99+" : String(n);
   $("#tbCartN").classList.toggle("hidden", !n);
   b.setAttribute("aria-label", n ? t("cartIconN", { n }) : t("cartIcon"));
@@ -4686,6 +4703,7 @@ function toastCart(msg) {
 }
 if ($("#tbCart")) {
   $("#tbCart").addEventListener("click", openStoredCart);
+  document.addEventListener("click", e => { if (e.target.closest("#homeCartPill")) openStoredCart(); });
   renderCartIcon();
   // Un panier gardé d'une autre visite : le patron le voit aussi (avec le nom et le n° si le client est connu)
   const c0 = cartStored();
