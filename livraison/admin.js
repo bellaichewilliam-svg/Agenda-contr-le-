@@ -1359,22 +1359,54 @@ const HOME_ROWS = [["popular", "🔥 Populaires", "les commerces mis en avant (�
   ["all", "🏪 Nos commerces partenaires", "tous les commerces partenaires, à la suite"]];
 const homeRows = () => Object.assign({}, CONFIG.homeRows || {}, (settings && settings.home_rows) || {});
 function homeRowsCard() {
-  const hr = homeRows();
+  const hr = homeRows(), vit = vitrineShops(), byCode = c => shops.find(x => x.code === c);
   return `<div class="card home-rows" style="margin-bottom:14px">
       <b>🏠 Accueil des clients : rangées de commerces</b>
-      <p class="muted small" style="margin:4px 0 8px">Touchez une rangée pour l'afficher ou la cacher chez tous les clients. « Mes favoris » et « Ouverts maintenant » restent toujours affichés.</p>
-      <div class="hr-list">${HOME_ROWS.map(([k, label, sub]) => { const on = hr[k] !== false; return `<button type="button" class="hr-row${on ? " on" : ""}" data-homerow="${k}" aria-pressed="${on}">
-        <span><b>${label}</b><small>${sub}</small></span><i class="hr-sw" aria-hidden="true"></i><em>${on ? "Affichée" : "Cachée"}</em></button>`; }).join("")}</div>
+      <p class="muted small" style="margin:4px 0 8px">Pour chaque rangée : l'interrupteur l'affiche ou la cache chez tous les clients, et « Choisir les commerces » vous laisse mettre ceux que vous voulez, dans l'ordre. Rien de choisi = automatique. « Mes favoris » et « Ouverts maintenant » restent toujours affichés.</p>
+      <div class="hr-list">${HOME_ROWS.map(([k, label, sub]) => {
+        const on = hr[k] !== false, list = hrList(hr, k).filter(byCode);
+        const opts = vit.filter(x => !list.includes(x.code));
+        return `<div class="hr-item${on ? " on" : ""}">
+        <button type="button" class="hr-row${on ? " on" : ""}" data-homerow="${k}" aria-pressed="${on}">
+          <span><b>${label}</b><small>${list.length ? `${list.length} commerce${list.length > 1 ? "s" : ""} choisi${list.length > 1 ? "s" : ""}, dans votre ordre` : "Automatique : " + sub}</small></span><i class="hr-sw" aria-hidden="true"></i><em>${on ? "Affichée" : "Cachée"}</em></button>
+        <details class="hr-pick" data-fold="hr:${k}"${foldOpen("hr:" + k)}><summary>📋 Choisir les commerces et leur ordre${list.length ? ` (${list.length})` : ""}</summary>
+          ${list.length ? `<ol class="hr-ol">${list.map((c, i) => `<li><span class="hr-n">${i + 1}</span><b>${UI.esc(byCode(c).name)}</b>
+            <button type="button" class="hr-btn" data-hrmove="${k}|${i}|-1" ${i ? "" : "disabled"} aria-label="Monter">↑</button>
+            <button type="button" class="hr-btn" data-hrmove="${k}|${i}|1" ${i < list.length - 1 ? "" : "disabled"} aria-label="Descendre">↓</button>
+            <button type="button" class="hr-btn hr-del" data-hrdel="${k}|${i}" aria-label="Retirer">✕</button></li>`).join("")}</ol>`
+            : `<p class="muted small" style="margin:6px 0">Aucun commerce choisi : la rangée se remplit toute seule (${sub}).</p>`}
+          ${opts.length ? `<select class="hr-add" data-hradd="${k}" aria-label="Ajouter un commerce"><option value="">➕ Ajouter un commerce…</option>${opts.map(x => `<option value="${UI.esc(x.code)}">${UI.esc(x.name)}</option>`).join("")}</select>`
+            : `<p class="muted small" style="margin:6px 0">${vit.length ? "Tous les commerces de l'accueil sont déjà dans la rangée." : "Aucun commerce sur l'accueil pour l'instant (HOP! Pro ou « vitrine » activée)."}</p>`}
+          ${list.length ? `<button type="button" class="btn btn-sm" data-hrauto="${k}">↺ Revenir à l'automatique</button>` : ""}
+        </details></div>`; }).join("")}</div>
     </div>`;
 }
-document.addEventListener("click", async e => {
-  const b = e.target.closest("[data-homerow]");
-  if (!b) return;
-  const k = b.dataset.homerow, hr = homeRows(), next = Object.assign({}, hr, { [k]: hr[k] === false });
-  b.disabled = true;
+// Liste choisie d'une rangée (codes des commerces, dans l'ordre) ; vide = automatique
+const hrList = (hr, k) => (Array.isArray(hr[k + "_list"]) ? hr[k + "_list"].slice() : []);
+async function saveHomeRows(next, el) {
+  if (el) el.disabled = true;
   try { await Store.saveSettings({ home_rows: next }); settings.home_rows = next; }
   catch (ex) { alert("Réglage non enregistré, vérifiez la connexion."); }
   render();
+}
+document.addEventListener("click", e => {
+  const sw = e.target.closest("[data-homerow]"), mv = e.target.closest("[data-hrmove]"), del = e.target.closest("[data-hrdel]"), auto = e.target.closest("[data-hrauto]");
+  if (!sw && !mv && !del && !auto) return;
+  const hr = homeRows(), next = Object.assign({}, hr);
+  if (sw) { const k = sw.dataset.homerow; next[k] = hr[k] === false; return saveHomeRows(next, sw); }
+  if (auto) { if (!confirm("Vider la liste ? La rangée se remplira de nouveau toute seule.")) return; next[auto.dataset.hrauto + "_list"] = []; return saveHomeRows(next, auto); }
+  const [k, i, d] = (mv || del).dataset[mv ? "hrmove" : "hrdel"].split("|"), list = hrList(hr, k).filter(c => shops.some(x => x.code === c)), n = Number(i);
+  if (mv) { const j = n + Number(d); if (j < 0 || j >= list.length) return; [list[n], list[j]] = [list[j], list[n]]; }
+  else list.splice(n, 1);
+  next[k + "_list"] = list;
+  saveHomeRows(next, mv || del);
+});
+document.addEventListener("change", e => {
+  const sel = e.target.closest("[data-hradd]");
+  if (!sel || !sel.value) return;
+  const k = sel.dataset.hradd, hr = homeRows(), list = hrList(hr, k).filter(c => shops.some(x => x.code === c));
+  if (!list.includes(sel.value)) list.push(sel.value);
+  saveHomeRows(Object.assign({}, hr, { [k + "_list"]: list }), sel);
 });
 function renderShops(view) {
   const month = today().slice(0, 7);
