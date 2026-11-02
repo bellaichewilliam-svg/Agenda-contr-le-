@@ -770,3 +770,6 @@ livraison/
 
 ### Accueil : d'abord « Votre adresse », ensuite « On récupère où ? » (02/11)
 - Les clients tapaient leur propre adresse dans la 1re case « Récupérer à » (נקודת איסוף). Désormais la 1re case est **Votre adresse** (où on livre, הכתובת שלכם), déjà remplie avec l'adresse enregistrée (dernière livrée, sinon Maison) ; la 2e est **On récupère où ?** (magasin, resto, adresse… / מאיפה לאסוף?).
+
+### Kit pub : « Une envie de jus ? Et hop, c'est livré ! » (02/11)
+- Visuels du patron (FR et HE) en tête des campagnes Clients : `kit/visuels/jus-post-fr|he.png` (1080 × 1350), originaux dans `video/public/reseaux/jus-fr|he.png`. Légende FR/HE prête avec le lien direct du catalogue (`?c=HOPJUS`).
