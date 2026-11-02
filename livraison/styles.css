@@ -4059,3 +4059,4 @@ html.d2:not(.d2-day) .gm-total { background: #0B1830; border: 1px solid rgba(255
 .gm-pay.off { opacity: .45; cursor: not-allowed; }
 .gm-notes { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 6px; }
 .gm-ok { margin: 4px 0 8px; padding: 9px 12px; border-radius: 12px; background: #ECFDF3; color: #067647; font: 600 14px/1.35 Rubik, sans-serif; }
+.cli-note { display: grid; gap: 6px; justify-items: start; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1.5px solid #FF6A13; color: var(--ink); }

@@ -1647,7 +1647,7 @@ function renderClients(view) {
   const allPeople = clients.concat(writers);
   const everyone = showHidden ? allPeople : allPeople.filter(c => !hid[keyOf(c)]);
   const nHid = allPeople.filter(c => hid[keyOf(c)]).length;
-  const list = everyone.filter(c => !q || String(c.name || "").toLowerCase().includes(q) || (qd && String(c.phone || "").replace(/\D/g, "").includes(qd)));
+  const list = everyone.filter(c => (!onlyNew || c.writer) && (!q || String(c.name || "").toLowerCase().includes(q) || (qd && String(c.phone || "").replace(/\D/g, "").includes(qd))));
   const day = iso => iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
   // Client qui est aussi une enseigne (même numéro) : on le montre
   const d9 = v => String(v || "").replace(/\D/g, "").slice(-9);
@@ -1661,10 +1661,18 @@ function renderClients(view) {
       <div class="stat"><small>Comptes clients</small><b>${withAcc.length}</b></div>
       <div class="stat"><small>Nouveaux comptes ce mois</small><b>${withAcc.filter(c => String(c.account_at || "").startsWith(month)).length}</b></div>
       <div class="stat"><small>Clients au total</small><b>${realClients.length}</b></div>
+      <div class="stat"><small>Inscrits sans commande</small><b>${everyone.filter(c => c.writer).length}</b></div>
       <div class="stat"><small>Clients sans compte</small><b>${realClients.filter(c => !c.client_id).length}</b></div>
       <div class="stat"><small>Commerces · livreurs actifs</small><b>${shops.filter(x => !x.demo && x.status === "actif").length} · ${couriers.filter(c => c.role !== "admin" && c.status === "actif").length}</b></div>
     </div>
     <p class="muted small" style="margin:-8px 0 12px">Un client crée son compte dans l'appli (« Mes courses ») avec son téléphone et un mot de passe : accepté tout de suite, sans e-mail de confirmation pour l'instant. Les clients sans compte apparaissent ici d'après leur numéro de téléphone.</p>
+    ${(() => { // Note intelligente : ceux qui ont laissé nom + téléphone sans commander ni créer de compte
+      const w = everyone.filter(c => c.writer), withCart = w.filter(c => c.cart && c.cart.count).length;
+      if (!w.length && !onlyNew) return "";
+      return `<div class="notice cli-note"><b>📝 ${w.length} inscrit${w.length > 1 ? "s" : ""} n'${w.length > 1 ? "ont" : "a"} pas encore commandé ni créé de compte</b>
+        <span class="small">${withCart ? `${withCart} avec un panier en attente. ` : ""}Ils ont laissé leur nom et leur téléphone (panier ou service client) : un WhatsApp « Comment commander » ou une relance du panier, et ils passent souvent leur 1re commande.</span>
+        <button type="button" class="btn btn-sm${onlyNew ? " btn-primary" : ""}" data-cli-onlynew>${onlyNew ? "Voir tous les clients" : (w.length > 1 ? `📝 Voir seulement ces ${w.length} inscrits` : "📝 Voir seulement cet inscrit")}</button></div>`;
+    })()}
     <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" />
       ${nHid ? `<button type="button" class="btn btn-sm" data-cli-showhid>${showHidden ? "Cacher les retirés" : `🗑️ Voir les retirés (${nHid})`}</button>` : ""}</div>`;
   const fold = c => { const k = "u:" + (c.client_id || d9(c.phone)), sh = shopOfClient(c);
@@ -1714,10 +1722,11 @@ function renderClients(view) {
 }
 // Clients retirés de la liste par le patron (ses courses restent dans l'historique et la compta)
 const HID_CLI = "livraison.hiddenClients.v1";
-let showHidden = false;
+let showHidden = false, onlyNew = false;
 const hiddenClients = () => { try { return JSON.parse(localStorage.getItem(HID_CLI)) || {}; } catch (e) { return {}; } };
 document.addEventListener("click", e => {
   if (e.target.closest("[data-cli-showhid]")) { showHidden = !showHidden; render(); return; }
+  if (e.target.closest("[data-cli-onlynew]")) { onlyNew = !onlyNew; render(); return; }
   const b = e.target.closest("[data-cli-hide]");
   if (!b) return;
   const h = hiddenClients(), k = b.dataset.cliHide;
