@@ -226,8 +226,8 @@ UI.bindHours($("#shopExtra"));
 $("#shopExtra").addEventListener("change", async e => {
   const k = e.target.dataset && e.target.dataset.sgPic;
   if (!k || !e.target.files[0]) return;
-  try { extra[k] = await (k === "logo" ? cropPhoto(e.target.files[0], 320, 320, 120000) : cropPhoto(e.target.files[0], 960, 480, 260000)); }
-  catch (ex) { return alert(t("ctPhotoErr")); }
+  try { extra[k] = await (k === "logo" ? cropPhoto(e.target.files[0], 320, 320, 120000, t("cropTitleLogo")) : cropPhoto(e.target.files[0], 960, 480, 260000, t("cropTitleCover"))); }
+  catch (ex) { e.target.value = ""; return ex.message === "cancel" ? null : alert(t("ctPhotoErr")); }
   renderExtra();
 });
 $("#shopExtra").addEventListener("click", e => {
@@ -602,25 +602,16 @@ $("#spPlan").addEventListener("click", e => {
 // --- Vitrine HOP! Pro : logo, photo de couverture, phrase d'accroche (ce que voient les clients) ------
 const brand = { logo: undefined, cover: undefined, shown: false, busy: false };
 // Photo recadrée au centre (logo carré, couverture en bandeau), légère pour l'accueil des clients
-function cropPhoto(file, w, h, maxLen) {
-  return new Promise((resolve, reject) => {
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const k = Math.max(w / img.width, h / img.height);
-      const sw = w / k, sh = h / k;
-      const c = document.createElement("canvas");
-      c.width = w; c.height = h;
-      c.getContext("2d").drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, w, h);
-      for (const q of [0.85, 0.75, 0.65, 0.55, 0.45]) {
-        const data = c.toDataURL("image/jpeg", q);
-        if (data.length < maxLen) return resolve(data);
-      }
-      reject(new Error("too_big"));
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
-    img.src = url;
-  });
+async function cropPhoto(file, w, h, maxLen, title) {
+  // Le commerçant place sa photo lui-même dans le cadre (glisser, zoomer), puis elle est réduite pour les clients
+  const r = await UI.cropPick(file, w / h, title);
+  if (!r) throw new Error("cancel");
+  const c = UI.cropDraw(r, w, h);
+  for (const q of [0.85, 0.75, 0.65, 0.55, 0.45]) {
+    const data = c.toDataURL("image/jpeg", q);
+    if (data.length < maxLen) return data;
+  }
+  throw new Error("too_big");
 }
 function brandValues() {
   const shop = state.dash.shop, input = $("#brTagline");
@@ -660,8 +651,8 @@ $("#spBrand").addEventListener("change", async e => {
   const inp = e.target.closest("[data-br]");
   if (!inp || !inp.files[0]) return;
   const logo = inp.dataset.br === "logo";
-  try { brand[inp.dataset.br] = await cropPhoto(inp.files[0], logo ? 320 : 1200, logo ? 320 : 500, logo ? 150000 : 290000); }
-  catch (ex) { return alert(t("ctPhotoErr")); }
+  try { brand[inp.dataset.br] = await cropPhoto(inp.files[0], logo ? 320 : 1200, logo ? 320 : 500, logo ? 150000 : 290000, t(logo ? "cropTitleLogo" : "cropTitleCover")); }
+  catch (ex) { inp.value = ""; return ex.message === "cancel" ? null : alert(t("ctPhotoErr")); }
   renderBrand(true);
 });
 $("#spBrand").addEventListener("input", e => { if (e.target.id === "brTagline") brandPreview(); });
@@ -798,23 +789,7 @@ async function loadCatalog() {
 }
 // Photo réduite (480 px, JPEG) : légère pour les clients
 function shrinkPhoto(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image(), url = URL.createObjectURL(file);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      for (const [max, q] of [[480, 0.72], [360, 0.62], [280, 0.55]]) {
-        const k = Math.min(1, max / Math.max(img.width, img.height));
-        const c = document.createElement("canvas");
-        c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
-        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
-        const data = c.toDataURL("image/jpeg", q);
-        if (data.length < 280000) return resolve(data);
-      }
-      reject(new Error("too_big"));
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
-    img.src = url;
-  });
+  return cropPhoto(file, 480, 480, 280000, t("cropTitleItem"));
 }
 function prodForm(p, catId) {
   const { categories } = cat.data;
@@ -936,7 +911,7 @@ $("#spCatalog").addEventListener("click", e => {
 });
 $("#spCatalog").addEventListener("change", async e => {
   if (!e.target.matches("[data-photo]") || !e.target.files[0]) return;
-  try { cat.photo = await shrinkPhoto(e.target.files[0]); } catch (ex) { return alert(t("ctPhotoErr")); }
+  try { cat.photo = await shrinkPhoto(e.target.files[0]); } catch (ex) { e.target.value = ""; return ex.message === "cancel" ? null : alert(t("ctPhotoErr")); }
   renderCatalog();
 });
 $("#spCatalog").addEventListener("submit", e => {
