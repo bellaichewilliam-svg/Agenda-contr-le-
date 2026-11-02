@@ -4036,3 +4036,5 @@ html.d2 .pro-row .sc-logo { top: calc((min(100vw, 430px) - 28px) / 2 * 9 / 16 - 
 .hr-btn:disabled { opacity: .35; cursor: default; }
 .hr-del { color: #D92D20; }
 .hr-add { width: 100%; min-height: 40px; margin: 4px 0 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); padding: 0 10px; font: inherit; }
+.client-msgs { display: grid; gap: 8px; margin: 10px 0 4px; padding: 10px 12px; border-radius: 12px; background: var(--panel); border: 1px dashed var(--border); }
+.client-msgs .cm-row { display: grid; gap: 6px; justify-items: start; }

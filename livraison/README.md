@@ -729,3 +729,6 @@ livraison/
 - `video/src/Stop.tsx` (compositions `HopStop` / `HopStopHe`), musique `video/scripts/stop_music.py` → `public/stop-music.wav`.
 - L'étiquette de prix gonfle et éclate, les mots claquent, écran coupé en deux (ailleurs les frais s'empilent et s'écroulent / HOP! : prix du resto, 0 ₪ de frais de service, livraison dès 25 ₪), « dès 25 ₪ », on livre tout, fin avec Hoppy.
 - Dans le kit : `kit/visuels/stop-video-fr.mp4` et `stop-video-he.mp4`.
+- **Réponse automatique** (base) : au premier message d'un client (puis toutes les 12 h sans réponse du patron), HOP! répond tout seul « Bienvenue chez HOP! » + comment commander en 3 étapes, en hébreu si le client écrit en hébreu, sinon en français.
+- **Fiche client** (Espace patron → Clients) : ses messages au service client sont joints (« 💬 Ouvrir ses messages »), reconnus à son numéro ; ceux qui ont seulement écrit ont aussi leur fiche (« 💬 A écrit, pas encore commandé »).
+- **WhatsApp « Comment commander »** (français + hébreu, prêt à envoyer) : sur chaque fiche client et dans la boîte de réception.
