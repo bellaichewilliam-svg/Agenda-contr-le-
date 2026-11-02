@@ -4011,3 +4011,17 @@ html.d2 .pro-row .sc-logo { top: calc((min(100vw, 430px) - 28px) / 2 * 9 / 16 - 
 #shopCall { display: flex; flex-wrap: wrap; gap: 8px; }
 #shopCall .shop-site { background: var(--panel, #fff); color: var(--ink, #0F1F3D); border: 1px solid var(--border, #DDE3EE); }
 #shopCall .btn bdi { overflow-wrap: anywhere; }
+
+/* Espace patron : rangées de l'accueil des clients (interrupteurs) */
+.hr-list { display: grid; gap: 8px; }
+.hr-row { display: grid; grid-template-columns: 1fr auto; grid-template-areas: "t sw" "t st"; align-items: center; column-gap: 12px; row-gap: 2px;
+  width: 100%; text-align: start; padding: 10px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); cursor: pointer; font: inherit; }
+.hr-row > span { grid-area: t; display: grid; gap: 2px; min-width: 0; }
+.hr-row b { font-size: 15px; }
+.hr-row small { color: var(--muted); font-size: 12.5px; }
+.hr-row em { grid-area: st; font-style: normal; font-size: 12px; font-weight: 700; color: var(--muted); justify-self: center; }
+.hr-sw { grid-area: sw; position: relative; width: 46px; height: 26px; border-radius: 999px; background: #C9D1DE; transition: background .2s; }
+.hr-sw::after { content: ""; position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: inset-inline-start .2s; }
+.hr-row.on .hr-sw { background: #12B76A; }
+.hr-row.on .hr-sw::after { inset-inline-start: 23px; }
+.hr-row.on em { color: var(--green-ink, #067647); }

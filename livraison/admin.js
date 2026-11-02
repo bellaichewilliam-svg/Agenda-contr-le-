@@ -1353,6 +1353,29 @@ function vitrineShops() {
   return shops.filter(x => !x.demo && x.status === "actif" && (Store.planActive(x) || x.showcase))
     .sort((a, b) => ((a.rank == null ? 1e9 : a.rank) - (b.rank == null ? 1e9 : b.rank)) || (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || String(a.name).localeCompare(String(b.name)));
 }
+// Rangées de commerces sur l'accueil des clients : le patron les allume ou les éteint d'un geste (pour tout le monde)
+const HOME_ROWS = [["popular", "🔥 Populaires", "les commerces mis en avant (🔥) et ceux qui ont le plus de commandes"],
+  ["fresh", "✨ Nouveautés", "les commerces arrivés depuis moins de 30 jours"],
+  ["all", "🏪 Nos commerces partenaires", "tous les commerces partenaires, à la suite"]];
+const homeRows = () => Object.assign({}, CONFIG.homeRows || {}, (settings && settings.home_rows) || {});
+function homeRowsCard() {
+  const hr = homeRows();
+  return `<div class="card home-rows" style="margin-bottom:14px">
+      <b>🏠 Accueil des clients : rangées de commerces</b>
+      <p class="muted small" style="margin:4px 0 8px">Touchez une rangée pour l'afficher ou la cacher chez tous les clients. « Mes favoris » et « Ouverts maintenant » restent toujours affichés.</p>
+      <div class="hr-list">${HOME_ROWS.map(([k, label, sub]) => { const on = hr[k] !== false; return `<button type="button" class="hr-row${on ? " on" : ""}" data-homerow="${k}" aria-pressed="${on}">
+        <span><b>${label}</b><small>${sub}</small></span><i class="hr-sw" aria-hidden="true"></i><em>${on ? "Affichée" : "Cachée"}</em></button>`; }).join("")}</div>
+    </div>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-homerow]");
+  if (!b) return;
+  const k = b.dataset.homerow, hr = homeRows(), next = Object.assign({}, hr, { [k]: hr[k] === false });
+  b.disabled = true;
+  try { await Store.saveSettings({ home_rows: next }); settings.home_rows = next; }
+  catch (ex) { alert("Réglage non enregistré, vérifiez la connexion."); }
+  render();
+});
 function renderShops(view) {
   const month = today().slice(0, 7);
   const viaShop = orders.filter(o => o.shop_id && o.status === "livree" && !o.is_test);
@@ -1381,6 +1404,7 @@ function renderShops(view) {
       <p class="muted small" style="margin:4px 0 8px">Le lien de son espace (catalogue, commandes), son code et le lien pour ses clients : le message est déjà écrit dans sa langue, appuyez sur Envoyer dans WhatsApp.</p>
       ${toSend.map(x => `<div class="access-row"><span><b>${UI.esc(x.name)}</b> · ${UI.esc(x.contact_name || "")} · ${UI.esc(x.whatsapp || x.phone)}</span>${accessBtn(x)}</div>`).join("")}
     </div>` : ""}
+    ${homeRowsCard()}
     <details class="card adm-fold" style="margin-bottom:14px" id="dirCard" data-fold="c:dir"${foldOpen("c:dir")}>
       <summary><b>📖 Annuaire : ajouter un commerce</b></summary>
       <p class="muted small" style="margin:4px 0 8px">Un restaurant, une makolet, une épicerie… qui ne sort pas dans la recherche : ajoutez-le ici. Il apparaît tout de suite chez tous les clients (« Catalogue à venir » tant qu'il n'est pas partenaire).</p>

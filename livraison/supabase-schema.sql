@@ -8493,3 +8493,9 @@ language sql stable security definer set search_path = public as $$
            'hours', hours, 'kosher', kosher, 'whatsapp', whatsapp, 'phone', phone, 'website', website) order by name), '[]'::json)
     from shops where status = 'actif' and not demo;
 $$;
+
+-- ============================================================================
+-- RANGÉES DE L'ACCUEIL CLIENT : « Populaires », « Nouveautés », « Nos commerces partenaires »
+-- allumées / éteintes par le patron (Espace patron → Commerces → Accueil des clients)
+-- ============================================================================
+alter table public.settings add column if not exists home_rows jsonb not null default '{"popular": false, "fresh": false, "all": false}'::jsonb;

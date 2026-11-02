@@ -265,7 +265,8 @@ window.CONFIG = {
   // hopShareClient : part de HOP quand le commerce a choisi « le client paie la livraison » : 0 (était 1 ₪, pris sur le crédit du livreur)
   pro: { monthly: 299, shopShare: 12, hopShare: 2, hopShareClient: 0, leadMinutes: 8, prepChoices: [10, 15, 20, 30], referrerPercent: 0, referrerMonths: 12 },   // part livreur des abonnements : 0 % tant que le patron ne la débloque pas (était 20 %)
 
-  // Rangées de commerces sur l'accueil : « 🔥 Populaires », « ✨ Nouveautés » et « 🏪 Nos commerces partenaires » coupées par le patron (01/11/2026) ; true pour les remettre
+  // Rangées de commerces sur l'accueil (valeur de départ) : le patron les allume ou les éteint lui-même dans
+  // Espace patron → 🏪 Commerces → « 🏠 Accueil des clients » (enregistré dans settings.home_rows)
   homeRows: { popular: false, fresh: false, all: false },
 
   // Messages prêts à envoyer aux livreurs depuis l'espace patron
