@@ -735,3 +735,9 @@ livraison/
 - Fiche client : le détail des courses reste ouvert quand la page se rafraîchit ; l'heure apparaît (dernière commande « à 15:40 », et chaque course « · 🕐 15:40 »).
 - **Panier** : dès le premier article, « 🛒 Votre panier est gardé » demande nom + téléphone (redemandés à chaque nouvel article tant qu'ils manquent) : les paniers abandonnés ont maintenant les coordonnées pour la relance WhatsApp.
 - **Tout supprimer côté patron** : paniers (« 🗑️ Supprimer », « Supprimer les paniers sans numéro » → statut `vide`, le panier ne revient que si le client en remplit un nouveau) ; clients (« 🗑️ Supprimer de la liste », « Voir les retirés » pour les remettre ; leurs courses restent dans l'historique et la compta) ; discussions (« 🗑️ Terminer / supprimer »). Rien n'est effacé de la base.
+
+### « Comment payer vos courses ? » refait (le livreur avance les achats)
+- Option principale « 🛵 Le livreur avance vos courses » + pastille « LE PLUS SIMPLE », puis 3 étapes numérotées (il achète jusqu'au budget max, photo du ticket, vous payez livraison + ticket).
+- Encadré total : livraison + articles (≈ prix indicatif) = à payer au livreur.
+- « Vous payez comment ? » (💵 Espèces / 📱 Bit / PayBox) directement dans la carte (mêmes champs que l'étape paiement), et en espèces « Avez-vous l'appoint ? » (J'ai l'appoint / billet de 100 / 200 ₪) → le livreur prépare la monnaie.
+- Règles d'argent inchangées (budget max, plafond espèces, Bit d'avance pour la livraison).

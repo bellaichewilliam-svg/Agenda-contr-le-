@@ -701,6 +701,19 @@ function renderGoodsBox(q) {
     ${goods ? `<div class="gb-row gb-total"><span><b>${UI.esc(t("gbTotal"))}</b></span><b class="gb-amt" dir="ltr">${money(goods + Number(q.total))}</b></div>` : ""}
     <small class="gb-never">${UI.esc(t("gbNever"))}</small>`;
 }
+// Carte « Le livreur avance vos courses » : espèces / Bit et l'appoint choisis directement ici (mêmes champs que l'étape paiement)
+$("#goodsModeBox").addEventListener("click", e => {
+  const pay = e.target.closest("[data-gm-pay]"), nb = e.target.closest("[data-gm-note]");
+  if (!pay && !nb) return;
+  e.preventDefault();
+  if (pay) {
+    if (pay.classList.contains("off")) return;
+    const r = form.querySelector(`input[name=payment_method][value=${pay.dataset.gmPay}]`);
+    if (r) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }
+  } else form.cash_note.value = nb.dataset.gmNote;
+  renderCash();
+  renderQuote();
+});
 $("#cashNotes").addEventListener("click", e => {
   const b = e.target.closest("[data-cash-note]");
   if (!b) return;
@@ -783,11 +796,34 @@ function renderGoodsMode(q) {
   // à la livraison ; total ≤ plafond des espèces, et seulement après une 1re course livrée
   const cashErr = !cash ? "" : b + Number(q.total) > cashMax() ? t("errCashMax", { max: money(cashMax()) }) : "";
   form.budget.closest("label").querySelector("span").textContent = t("gmGoods") + " (₪)";
-  sum.innerHTML = `<small class="gm-how">${UI.esc(t(goodsMin() ? "gmGoodsD" : "gmGoodsFree"))}</small>
-    <div class="gb-row"><span><b>${UI.esc(t("gmRide"))}</b></span><b class="gb-amt" dir="ltr">${money(q.total)}</b></div>
-    <div class="gb-row gb-total"><span><b>${UI.esc(t(cash ? "gmTotalCash" : "gmTotalAfter"))}</b></span><b class="gb-amt" dir="ltr">${cash ? (b ? money(b + Number(q.total)) : "—") : money(q.total)}</b></div>
-    <small class="gm-how">${UI.esc(cash ? t("gmHowCash") : t("gmHowAfter", { max: b ? money(b) : "—" }))}</small>
-    ${cashErr ? `<small class="gm-cap bad">${UI.esc(cashErr)}</small>` : ""}
+  // « Le livreur avance vos courses » : 3 étapes, le total à payer, puis espèces / Bit et l'appoint, au même endroit
+  const g = rayonGoods(), mid = g ? Math.round(g.mid) : 0, ride = Number(q.total) || 0;
+  const cashOff = b + ride > cashMax(), note = Number(form.cash_note.value) || 0;
+  const notes = [50, 100, 200].filter(n => n >= (mid || b) + ride);
+  const step = (n, txt) => `<div class="gm-st"><span>${n}</span><p>${txt}</p></div>`;
+  const strong = (txt, bold) => UI.esc(txt).replace(UI.esc(bold), `<b>${UI.esc(bold)}</b>`);
+  sum.innerHTML = `<div class="gm-steps">
+      ${step(1, b ? strong(t("gmStep1", { max: money(b) }), money(b)) : UI.esc(t("gmGoodsFree")))}
+      ${step(2, UI.esc(t("gmStep2")))}
+      ${step(3, UI.esc(t(cash ? "gmStep3Cash" : "gmStep3Bit")))}
+    </div>
+    <div class="gm-total">
+      <div><span>🛵 ${UI.esc(t("gmRide"))}</span><b dir="ltr">${money(ride)}</b></div>
+      <div><span>🧾 ${UI.esc(t("gmArts"))}</span><b class="o" dir="ltr">${mid ? "≈ " + money(mid) : b ? "≤ " + money(b) : "—"}</b></div>
+      <div class="tot"><span>${UI.esc(t("gmToPay"))}</span><b dir="ltr">${mid ? "≈ " + money(mid + ride) : b ? "≤ " + money(b + ride) : money(ride)}</b></div>
+    </div>
+    <span class="kind-label">${UI.esc(t("gmPayQ"))}</span>
+    <div class="gm-pays">
+      <button type="button" class="gm-pay${cash ? " on" : ""}${cashOff ? " off" : ""}" data-gm-pay="cash"><i>💵</i>${UI.esc(t("gmCash"))}</button>
+      <button type="button" class="gm-pay${!cash ? " on" : ""}" data-gm-pay="bit"><i>📱</i>${UI.esc(t("gmBit"))}</button>
+    </div>
+    ${cashOff ? `<small class="gm-cap bad">${UI.esc(t("gmCashOff", { max: money(cashMax()) }))}</small>` : ""}
+    ${cash && !cashOff ? `<span class="kind-label">${UI.esc(t("gmChangeQ"))}</span>
+      <div class="gm-notes"><button type="button" class="ch-chip${!note ? " on" : ""}" data-gm-note="0">${!note ? "✓ " : ""}${UI.esc(t("gmExact"))}</button>${notes.map(n =>
+        `<button type="button" class="ch-chip${note === n ? " on" : ""}" data-gm-note="${n}">${note === n ? "✓ " : ""}${UI.esc(t("gmNote", { n: money(n) }))}</button>`).join("")}</div>
+      <p class="gm-ok">${UI.esc(note ? t("gmOkNote", { change: money(Math.max(0, note - (mid || b) - ride)) }) : t("gmOkExact"))}</p>` : ""}
+    ${cashErr && !cashOff ? `<small class="gm-cap bad">${UI.esc(cashErr)}</small>` : ""}
+    <small class="gm-how">${UI.esc(t("gmBudgetLine", { max: b ? money(b) : "—" }))}</small>
     <small class="gm-cap${over ? " bad" : ""}">${UI.esc(t(over ? "errGoodsCap" : "gmCap", capVars()))}</small>`;
 }
 function pharmaLines() {
