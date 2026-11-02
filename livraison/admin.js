@@ -2800,6 +2800,7 @@ async function start() {
   $("#dashboard").classList.remove("hidden");
   $("#logoutBtn").classList.remove("hidden");
   try { me = await Store.me(); } catch (e) { /* rechargé par load() */ }
+  Store.staffVisitorMark();   // vos propres visites de l'appli client ne comptent pas dans « Visites du site »
   $("#demoNotice").classList.toggle("hidden", Store.ONLINE);
   // Alertes déjà autorisées : nouvelles commandes et messages aussi quand HOP! est fermé
   UI.pushSubscribe();

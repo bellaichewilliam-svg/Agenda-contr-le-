@@ -179,6 +179,7 @@ async function route() {
   if (!Store.session()) { $("#welcome").classList.remove("hidden"); showInstallCard(true); return; }
   let meErr = false;
   try { me = await Store.me(); } catch (e) { me = null; meErr = true; }
+  if (me) Store.staffVisitorMark();   // visites de l'appli client depuis ce téléphone : pas comptées
   // Un vrai livreur ira directement dans son espace depuis l'appli HOP! ; le patron garde l'accueil client (voir index.html)
   if (me) try { localStorage.setItem("hop.role", me.role === "admin" ? "admin" : "coursier"); } catch (e) { /* ignore */ }
   if (!me && meErr) {

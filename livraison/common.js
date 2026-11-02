@@ -821,7 +821,10 @@ const track = (() => {
   const cfg = CONFIG.supabase || {};
   let test = false;
   try { test = !!localStorage.getItem("hop.trackTest"); } catch (e) { /* ignore */ }
-  const on = !!(cfg.url && cfg.anonKey) && !staff && !/[?&]demo=/.test(location.search) && (!LOCAL || test);
+  // Téléphone du patron ou d'un livreur (il a ouvert le panel ou l'appli livreur) : ses visites de l'appli client ne comptent pas
+  let staffDevice = false;
+  try { if (staff) localStorage.setItem("hop.staff", "1"); staffDevice = !!localStorage.getItem("hop.staff"); } catch (e) { /* ignore */ }
+  const on = !!(cfg.url && cfg.anonKey) && !staff && !staffDevice && !/[?&]demo=/.test(location.search) && (!LOCAL || test);
   const rid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
   const keep = (st, k, make) => { try { let v = st.getItem(k); if (!v) { v = make(); st.setItem(k, v); } return v; } catch (e) { return make(); } };
   const visitor = keep(localStorage, "hop.visitor", rid), session = keep(sessionStorage, "hop.session", rid);
