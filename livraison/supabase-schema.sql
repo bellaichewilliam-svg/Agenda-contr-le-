@@ -8587,3 +8587,8 @@ alter table public.settings add column if not exists cash_first_orders int not n
 -- (page = « e<écran>:<champ qui bloque> ») ; admin_funnel(p_days) pour l'onglet 📊 Visites du site.
 -- Appliqué en ligne le 02/11 (migration site_track_funnel).
 -- ============================================================================
+
+-- Visites du patron et des livreurs retirées des chiffres (02/11) : table staff_visitors (n° de visiteur au hasard
+-- du téléphone, marqué quand le panel patron ou l'appli livreur s'ouvre, via staff_visitor_mark) ; admin_analytics
+-- et admin_funnel ignorent ces visiteurs, y compris leurs visites passées. Appliqué en ligne (migration staff_visitors_excluded).
+create table if not exists public.staff_visitors (visitor text primary key, marked_at timestamptz not null default now());
