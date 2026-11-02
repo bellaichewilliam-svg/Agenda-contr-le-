@@ -790,3 +790,7 @@ livraison/
 - **Relance** (onglet 🛒 Paniers) : bandeau « ⏰ N paniers à relancer maintenant » (abandonnés depuis 1 h à 24 h, avec numéro, jamais relancés), en tête de liste ; message WhatsApp prêt avec le petit plus (−5 ₪ pour un client déjà livré, 1re course réduite pour un nouveau). L'envoi WhatsApp tout seul demande l'API WhatsApp Business (payante, validée par Meta) : un toucher suffit en attendant.
 - **Accueil** : commerces ouverts toujours devant les fermés ; « Ouverts maintenant » triés par heure de fermeture (ceux qui ferment le plus tard d'abord).
 - **Vos visites ne comptent pas** : dès que le panel patron (ou l'appli livreur) s'ouvre sur un téléphone, ce téléphone est marqué ; ses visites de l'appli client, passées et futures, sont retirées de « 📊 Visites du site » et de l'entonnoir.
+
+### « Un service de livraison avant tout » (02/11)
+- Accueil : ligne sous le titre « 🛵 On livre depuis n'importe quel commerce de Netanya » (HE : « 🛵 משלוחים מכל עסק בנתניה »).
+- Section « ⭐ Nos partenaires » : encart « Votre commerce n'est pas dans la liste ? On livre quand même ! » + bouton « 🛵 Commander une livraison » qui amène à la case « On récupère où ? ».

@@ -4116,3 +4116,14 @@ html.d2.d2-day .cart-resume { color: #0F1F3D; }
 .client-orders, .client-orders .orders { min-width: 0; max-width: 100%; }
 /* Rubriques du panel : un mot n'est jamais coupé en deux (« Messages », « Commerces » tiennent sur une ligne) */
 .adm-groups button span { overflow-wrap: normal !important; word-break: keep-all; font-size: 11px; letter-spacing: -.2px; }
+
+/* « Service de livraison avant tout » : une ligne sous le titre, et l'encart « On livre quand même » chez les partenaires */
+.ch-tagline { margin: 2px 0 12px; font-size: 15px; font-weight: 700; line-height: 1.35; color: var(--muted); }
+html.d2 .ch-tagline { color: rgba(255,255,255,.88); }
+html.d2.d2-day .ch-tagline { color: #0F1F3D; }
+.any-shop { display: grid; gap: 4px; margin: 10px 0 14px; padding: 12px 14px; border-radius: 16px; border: 1px dashed rgba(255,106,19,.6); background: rgba(255,106,19,.08); }
+.any-shop b { font-size: 15px; line-height: 1.3; }
+.any-shop small { font-size: 13.5px; line-height: 1.4; opacity: .85; }
+.any-shop .btn { justify-self: start; margin-top: 6px; }
+html.d2 .any-shop { color: #fff; }
+html.d2.d2-day .any-shop { color: #0F1F3D; }

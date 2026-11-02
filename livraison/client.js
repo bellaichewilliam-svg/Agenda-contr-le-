@@ -4728,6 +4728,14 @@ function toastCart(msg) {
 if ($("#tbCart")) {
   $("#tbCart").addEventListener("click", openStoredCart);
   document.addEventListener("click", e => { if (e.target.closest("#homeCartPill")) openStoredCart(); });
+  // « On livre quand même » : n'importe quel commerce → la case « On récupère où ? » de l'accueil
+  document.addEventListener("click", e => {
+    if (!e.target.closest("[data-any-shop]")) return;
+    const i = $("#homeFrom");
+    if (!i) return;
+    i.scrollIntoView({ block: "center", behavior: "smooth" });
+    setTimeout(() => i.focus({ preventScroll: true }), 400);
+  });
   renderCartIcon();
   // Un panier gardé d'une autre visite : le patron le voit aussi (avec le nom et le n° si le client est connu)
   const c0 = cartStored();
