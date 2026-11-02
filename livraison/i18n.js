@@ -96,7 +96,7 @@ fr: {
   addrNone: "Aucun résultat : vérifiez l'orthographe ou ajoutez la ville", addrNotOnMap: "« {q} » n'est pas sur la carte : indiquez son adresse", addrNotOnMapSub: "Tapez ensuite la rue et le numéro de l'enseigne", addrBrandAddr: "Adresse de « {q} » : rue et numéro", addrSoon: "📖 Catalogue bientôt sur HOP!", errAddrPick: "Choisissez chaque adresse dans la liste proposée (adresses vérifiées sur la carte).",
   addrNote: "Remarque", addrNotePh: "Ex. bâtiment B, sonner deux fois, attention au chien…",
   building: "Bâtiment / entrée", buildingPh: "Ex. B",
-  kindLabel: "Emplacement :", kind_maison: "🏠 Maison", kind_appartement: "🏢 Appartement", kind_bureau: "💼 Bureau", kind_commerce: "🏪 Commerce",
+  kindLabel: "Emplacement :", kind_maison: "🏡 Maison individuelle", kind_appartement: "🏢 Appartement", kind_bureau: "💼 Bureau", kind_commerce: "🏪 Commerce",
   prepayNote: "🗓️ Course programmée : paiement à l'avance par Bit pour réserver votre créneau.",
   donePrepay: "💳 Pour réserver votre créneau, payez maintenant {total} par Bit au {phone}, en indiquant la commande n° {ref}.",
   trPrepay: "💳 À régler maintenant par Bit pour réserver votre créneau",

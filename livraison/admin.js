@@ -38,10 +38,11 @@ let planSales = [];
 let clients = [];   // clients (avec ou sans compte), chargés à l'ouverture de l'onglet
 let clientsQ = "", shopsQ = "";
 // Fiches repliées (courses terminées, commerces) : celles que le patron a ouvertes le restent quand l'écran se rafraîchit
-const openFolds = new Set();
+// (et celles qu'il a refermées restent fermées, même un commerce « à vérifier »)
+const openFolds = new Set(), closedFolds = new Set();
 document.addEventListener("toggle", e => {
   const k = e.target && e.target.dataset && e.target.dataset.fold;
-  if (k) { if (e.target.open) openFolds.add(k); else openFolds.delete(k); }
+  if (k) { if (e.target.open) { openFolds.add(k); closedFolds.delete(k); } else { openFolds.delete(k); closedFolds.add(k); } }
 }, true);
 const foldOpen = k => openFolds.has(k) ? " open" : "";
 let penalties = [];   // retenues aux livreurs (courses pas faites, pas reçues)
@@ -1550,7 +1551,7 @@ function renderShops(view) {
     ${list.length ? `<div class="orders">${list.map(x => {
       const done = viaShop.filter(o => o.shop_id === x.id);
       // Fiche repliée en une ligne (nom, état, courses) ; celles à vérifier restent ouvertes
-      const k = "s:" + x.id, open = x.status === "en_attente" || openFolds.has(k);
+      const k = "s:" + x.id, open = openFolds.has(k) || (x.status === "en_attente" && !closedFolds.has(k));
       return `<details class="order-fold shop-fold" data-shop="${UI.esc(x.id)}" data-fold="${UI.esc(k)}"${open ? " open" : ""}><summary>
         <span>${vpos(x) < 1e9 ? `<em class="vit-n" title="Position sur l'accueil">${vpos(x) + 1}</em> ` : ""}${x.status === "en_attente" ? "⏳" : x.status === "suspendu" ? "⛔" : "✅"} <b>${UI.esc(x.name)}</b>${Store.planActive(x) ? " · ⭐ Pro" : ""}${x.address ? " · " + UI.esc(x.address) : ""}</span>
         ${vpos(x) < 1e9 ? `<span class="vit-move"><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="-1"${vpos(x) ? "" : " disabled"} aria-label="Monter">▲</button><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="1"${vpos(x) < vitIds.length - 1 ? "" : " disabled"} aria-label="Descendre">▼</button></span>` : ""}
