@@ -1510,7 +1510,8 @@ async function knownPlaceDelete(id) {
 async function shopsDirectory() {
   if (ONLINE) return rest("/rest/v1/rpc/shops_directory", { method: "POST", body: {} });
   return localShops().filter(x => x.status === "actif")
-    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, address: x.address, lat: x.lat, lon: x.lon, pro: planActive(x), hours: x.hours || null, kosher: !!x.kosher }));
+    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, address: x.address, lat: x.lat, lon: x.lon, pro: planActive(x), hours: x.hours || null, kosher: !!x.kosher,
+      whatsapp: x.whatsapp || null, phone: x.phone || null, website: x.website || null }));
 }
 
 // Vitrine HOP! Pro : les commerces abonnés pour l'accueil, et le logo / la couverture / l'accroche du commerce
@@ -2002,7 +2003,7 @@ const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISO
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
       pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null, tagline_he: s.tagline_he || null, about_he: s.about_he || null, client_pays: !!s.client_pays,
-      hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null, phone: s.phone || null, pay_link: s.pay_link || null, pay_bit: s.pay_bit || null, demo: !!s.demo, shop_pays: !!s.shop_pays, pay_ask: !!s.pay_ask,
+      hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null, phone: s.phone || null, website: s.website || null, pay_link: s.pay_link || null, pay_bit: s.pay_bit || null, demo: !!s.demo, shop_pays: !!s.shop_pays, pay_ask: !!s.pay_ask,
       gallery: s.gallery || [], promo: s.promo || null, promo_he: s.promo_he || null,
       shop_share: s.client_pays ? 0 : DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 

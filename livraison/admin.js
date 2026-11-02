@@ -1443,8 +1443,9 @@ function renderShops(view) {
           ${CONFIG.partners.carnet.offered || Number(x.credits || 0) > 0 ? `<div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
             ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>` : ""}
           <div><span>📅</span><span>Inscrit le ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))}</span></div>
-          <details class="shop-fiche"><summary>📝 Fiche pour les clients : WhatsApp, paiement, horaires, présentation${x.whatsapp ? " · 💬 " + UI.esc(x.whatsapp) : ""}${x.pay_link || x.pay_bit ? " · 💳" : ""}</summary>
+          <details class="shop-fiche"><summary>📝 Fiche pour les clients : WhatsApp, site, paiement, horaires, présentation${x.whatsapp ? " · 💬 " + UI.esc(x.whatsapp) : ""}${x.pay_link || x.pay_bit ? " · 💳" : ""}</summary>
             <label class="f"><span>WhatsApp du commerce (les clients peuvent l'écrire directement)</span><input data-fiche="whatsapp" inputmode="tel" placeholder="053-373-3785" value="${UI.esc(x.whatsapp ? "0" + String(x.whatsapp).replace(/^972/, "") : "")}" /></label>
+            <label class="f"><span>🌐 Site internet ou page Instagram / Facebook du commerce (affiché aux clients, avec son numéro)</span><input data-fiche="website" type="url" inputmode="url" dir="ltr" placeholder="https://" value="${UI.esc(x.website || "")}" /></label>
             <label class="f"><span>💳 Lien de paiement du commerce (carte bancaire : Grow, Cardcom, Tranzila, PayPlus…) : les clients paient leurs articles directement au commerce</span><input data-fiche="pay_link" type="url" inputmode="url" dir="ltr" placeholder="https://" value="${UI.esc(x.pay_link || "")}" /></label>
             <label class="f"><span>Bit / PayBox du commerce</span><input data-fiche="pay_bit" inputmode="tel" placeholder="053-373-3785" value="${UI.esc(x.pay_bit || "")}" /></label>
             <label class="f"><span>Présentation (600 caractères)</span><textarea data-fiche="about" maxlength="600" rows="3" placeholder="Ce que fait le commerce, ses spécialités…">${UI.esc(x.about || "")}</textarea></label>
@@ -2335,8 +2336,11 @@ async function onViewClick(e) {
       let bit = v("pay_bit").replace(/\D/g, "");
       if (bit.startsWith("972")) bit = "0" + bit.slice(3);
       if (link && !/^https:\/\/\S{4,250}$/.test(link)) return alert("Le lien de paiement doit commencer par https://");
+      let web = v("website");
+      if (web && !/^https?:\/\//i.test(web)) web = "https://" + web;
+      if (web && !/^https?:\/\/\S{4,250}$/.test(web)) return alert("Site internet invalide (ex. https://www.moncommerce.co.il).");
       if (bit && !/^0\d{8,9}$/.test(bit)) return alert("Numéro Bit / PayBox invalide (ex. 053-373-3785).");
-      changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null, pay_link: link || null, pay_bit: bit || null };
+      changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null, pay_link: link || null, pay_bit: bit || null, website: web || null };
     } else if (el.dataset.sact === "showcase") {
       changes = { showcase: !shop.showcase };
     } else if (el.dataset.sact === "kosher") {

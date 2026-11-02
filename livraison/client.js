@@ -245,6 +245,23 @@ function fillDefaults() {
   ["company", "contact_name", "contact_phone", "contact_email"].forEach(k => { if (p[k]) form[k].value = p[k]; });
 }
 
+// Numéro et site d'une enseigne (bulle de la carte, fiche « Infos », commande par téléphone) :
+// on appelle d'un geste, et le site s'ouvre à côté (son adresse courte : « aroma.co.il », ou « Instagram »)
+const telOf = n => String(n || "").split(/[;,]/)[0].trim();
+const telHref = n => "tel:" + telOf(n).replace(/[^\d+]/g, "");
+const webOf = u => { u = String(u || "").trim(); if (u && !/^https?:\/\//i.test(u)) u = "https://" + u; return /^https?:\/\/[^\s"'<>]{4,}$/i.test(u) ? u : ""; };
+function siteLabel(u) {
+  try { const h = new URL(u).hostname.replace(/^(www|m)\./, ""); return /(^|\.)instagram\.com$/.test(h) ? "Instagram" : /(^|\.)facebook\.com$/.test(h) ? "Facebook" : h; }
+  catch (e) { return t("shSite"); }
+}
+// Numéro d'un commerce partenaire : son téléphone, sinon son WhatsApp (enregistré en 972…)
+const shopNum = s => (s && (s.phone || (s.whatsapp ? "0" + String(s.whatsapp).replace(/^972/, "") : ""))) || "";
+function contactRow(num, web) {
+  const tel = telOf(num), url = webOf(web);
+  if (!tel && !url) return "";
+  return `<div class="rp-contact">${tel ? `<a href="${UI.esc(telHref(tel))}" data-shop-call>📞 <bdi dir="ltr">${UI.esc(tel)}</bdi></a>` : ""}${url
+    ? `<a href="${UI.esc(url)}" target="_blank" rel="noopener">🌐 <bdi dir="ltr">${UI.esc(siteLabel(url))}</bdi></a>` : ""}</div>`;
+}
 // Commande par téléphone chez un commerce pas sur HOP! : repas, ou départ d'une enseigne (pas pour les achats)
 const PH_READY = [0, 10, 15, 20, 30, 45, 60];
 function phoneOrderOk() { return !proShopOn() && val("service") !== "achat" && (val("service") === "repas" || !!(state.pick.from && state.pick.from.brand)); }
@@ -256,9 +273,11 @@ function renderShopCall() {
   box.classList.remove("hidden");
   const show = num => {
     if (state.pick.from !== p) return;
-    box.innerHTML = num
-      ? `<a class="btn btn-sm btn-wa" href="tel:${UI.esc(String(num).split(/[;,]/)[0].replace(/[^\d+]/g, ""))}" data-shop-call>📞 ${UI.esc(t("phCall", { name: p.brand }))} · <bdi>${UI.esc(String(num).split(/[;,]/)[0])}</bdi></a>`
-      : `<small class="muted">${UI.esc(t("phNoNumber", { name: p.brand }))}</small>`;
+    const url = webOf(p.website);
+    box.innerHTML = (num
+      ? `<a class="btn btn-sm btn-wa" href="${UI.esc(telHref(num))}" data-shop-call>📞 ${UI.esc(t("phCall", { name: p.brand }))} · <bdi dir="ltr">${UI.esc(telOf(num))}</bdi></a>`
+      : `<small class="muted">${UI.esc(t("phNoNumber", { name: p.brand }))}</small>`)
+      + (url ? `<a class="btn btn-sm shop-site" href="${UI.esc(url)}" target="_blank" rel="noopener">🌐 ${UI.esc(t("phSite"))} · <bdi dir="ltr">${UI.esc(siteLabel(url))}</bdi></a>` : "");
   };
   if (callFor === p) return;
   callFor = p;
@@ -2748,7 +2767,8 @@ function shopOpenNow(hours) {
   return !!(today && today.h && String(today.h).split(",").some(r => { const [a, b] = r.split("-"); return a && b && m >= mins(a) && m < mins(b); }));
 }
 function shopInfo(s, noWa) {
-  if (!s || !(s.whatsapp || s.about || s.about_he || (s.hours && s.hours.length))) return "";
+  if (!s || !(s.whatsapp || s.phone || s.website || s.about || s.about_he || (s.hours && s.hours.length))) return "";
+  const tel = telOf(shopNum(s)), url = webOf(s.website);
   const days = DAYS[I18N.lang] || DAYS.fr, today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" })).getDay();
   const fmt = h => (h ? String(h).split(",").map(r => r.replace("-", "–")).join(" · ") : t("shClosed"));
   const hours = (s.hours || []).slice().sort((a, b) => a.d - b.d);
@@ -2761,6 +2781,8 @@ function shopInfo(s, noWa) {
       ${s.address ? `<div class="sh-line"><span>📍</span><b><bdi>${UI.esc(s.address)}</bdi>${s.city ? ", " + UI.esc(cityLabel(cityIdOf(s.city, s) || s.city)) : ""}</b></div>` : ""}
       ${hours.length ? `<div class="sh-line"><span>🕘</span><b class="sh-open ${open ? "on" : "off"}">${UI.esc(openLabel(UI.openState(hours)) || t(open ? "shOpenNow" : "shClosedNow"))}</b>
         <small>${UI.esc(t("shToday"))} : ${UI.esc(fmt((hours.find(x => Number(x.d) === today) || {}).h))}</small></div>` : ""}
+      ${tel ? `<a class="sh-line sh-link" href="${UI.esc(telHref(tel))}" data-shop-call><span>📞</span><b><bdi dir="ltr">${UI.esc(tel)}</bdi></b><small>${UI.esc(t("shCallSub"))}</small></a>` : ""}
+      ${url ? `<a class="sh-line sh-link" href="${UI.esc(url)}" target="_blank" rel="noopener"><span>🌐</span><b><bdi dir="ltr">${UI.esc(siteLabel(url))}</bdi></b><small>${UI.esc(t("shSiteSub"))}</small></a>` : ""}
     </div>
     ${wa ? `<a class="sh-wa" href="https://wa.me/${UI.esc(wa)}?text=${waText}" target="_blank" rel="noopener">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2c2 1.1 4.3 1.7 6.6 1.7 7.2 0 13-5.7 13-12.8C29 8.7 23.2 3 16 3zm0 23.4c-2.1 0-4.1-.6-5.9-1.7l-.4-.3-3.8 1.2 1.2-3.7-.3-.4a10.4 10.4 0 0 1-1.7-5.7C5.1 10 10 5.2 16 5.2S26.9 10 26.9 15.8 22 26.4 16 26.4zm6-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a9 9 0 0 1-2.6-1.6 9.8 9.8 0 0 1-1.8-2.2c-.2-.3 0-.5.1-.7l.5-.6.3-.5v-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.1 1.1-1.1 2.7 1.2 3.1 1.3 3.3 2.3 3.5 5.6 4.9c.8.3 1.4.5 1.9.7.8.2 1.5.2 2.1.1.6-.1 1.9-.8 2.2-1.5s.3-1.4.2-1.5-.3-.2-.6-.3z"/></svg>
@@ -3661,6 +3683,7 @@ function drawRestos() {
       html: `<div class="resto-pin${more ? " many" : ""}${hop ? " hop" : ""}${shut ? " shut" : ""}${logo ? " has-logo" : ""}${!g.label && !hop && z < 17 ? " small" : ""}${pop ? " pop" : ""}" style="--pc:${FOOD_COLOR[Places.foodIcon(g.e.n, g.e.k)] || "#FF6A13"};${pop ? `--pd:${(popN % 20) * 18}ms;` : ""}${logo ? `--lg:${lg}px` : ""}"><b>${ico}</b>${g.label ? `<span>${UI.esc(label)}</span>` : ""}</div>` }) })
       .bindPopup(`<div class="resto-pop">${g.ids.slice(0, 8).map(i => { const e = restos.list[i], name = UI.bi(Places.dirName(e, I18N.lang)), pl = rowLogo(e); return `<div class="rp-row">
           <div class="rp-head">${pl ? `<span class="rp-logo"><img src="${pl}" alt="" /></span>` : ""}<span><b>${UI.esc(name)}</b><em class="rp-kind">${UI.esc(restoKind(e))}</em>${e.partner ? `<i class="ac-partner">${UI.esc(t("ensPartner"))}</i>` : ""}${e.partner && e.partner.kosher ? kosherTag() : ""}${partnerState(e)}${e.s ? `<small>${UI.esc(e.s)}</small>` : ""}${e.partner ? "" : `<i class="ac-soon">${UI.esc(t("addrSoon"))}</i>`}</span></div>
+          ${contactRow(e.partner ? shopNum(e.partner) : e.p, e.partner ? e.partner.website : e.w)}
           <button type="button" class="btn btn-primary btn-sm" data-resto="${i}">${UI.esc(e.partner ? t(partnerShut(e) ? "restoSchedule" : "restoOrder", { name: String(name).split(" · ")[0] }) : t("restoTake"))}</button></div>`; }).join("")}</div>`,
         { closeButton: false, offset: [0, -6], maxWidth: 260, maxHeight: 210, autoPanPaddingTopLeft: [12, 150], autoPanPaddingBottomRight: [76, 24] })
       .addTo(restos.layer);
@@ -3816,7 +3839,7 @@ function learnedPlace(x) {
 function partnerPlace(sh) {
   const cityId = cityIdOf(sh.city, sh);
   const m = String(sh.address || "").match(/^(.*?)\s+(\d+[a-zA-Zא-ת]?)$/);
-  return { lat: Number(sh.lat), lon: Number(sh.lon), brand: sh.name, phone: sh.phone || null, partner: true, partnerCode: sh.code, kind: sh.kind || null,
+  return { lat: Number(sh.lat), lon: Number(sh.lon), brand: sh.name, phone: shopNum(sh) || null, website: sh.website || null, partner: true, partnerCode: sh.code, kind: sh.kind || null,
     streetName: m ? m[1] : sh.address || "", housenumber: m ? m[2] : "", street: sh.address || "", city: cityLabel(cityId || sh.city), cityId, exact: true,
     label: [sh.name, sh.address, cityLabel(cityId || sh.city)].filter(Boolean).join(", ") };
 }

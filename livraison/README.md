@@ -702,3 +702,10 @@ livraison/
 - **Patron · Clients** : deux listes séparées, **👤 Clients** (ceux qui commandent eux-mêmes) et **🏪 Enseignes** (commerces partenaires qui envoient leurs courses depuis leur espace). Client sans compte : bouton **« 🟢 WhatsApp : Bienvenue, créez votre compte »** (message FR + HE tout prêt avec le lien de l'appli, « Renvoyer » une fois envoyé).
 - **Pour la comptable** (Compta → 🧾 Facturation, choisir le mois) : **📄 Récapitulatif du mois (PDF)** (courses, réductions, espèces / Bit, ce que gagne HOP! : courses du patron, commissions, part Pro, abonnements ; détail des courses) et **📊 Détail des courses (Excel)** (`HOP-courses-AAAA-MM.csv`, colonnes en français : date, n°, client, commerce, service, prix, réduction, paiement, livreur, commission, gagné par HOP!).
 - **Kit pub** : les liens des messages mènent toujours à l'appli client (`/app/`), jamais à l'adresse de la page ouverte (le kit ouvert depuis l'espace patron donnait un lien vers l'espace patron). Message « Professionnels / לבעלי עסקים » → page Commerçants (`commerce.html?inscription=1`).
+
+### Numéro et site des enseignes (carte, « Infos », commerce sans catalogue)
+- Bulle de la carte : sous chaque enseigne, 📞 son numéro (appel d'un geste) et 🌐 son site (adresse courte : « aroma.co.il », ou « Instagram » / « Facebook »).
+- Enseigne choisie sans catalogue : à côté de « Appeler … », un bouton « 🌐 Son site ».
+- Fiche « Infos » d'un commerce (avec ou sans catalogue) : lignes 📞 téléphone et 🌐 site.
+- Commerces partenaires : nouvelle colonne `shops.website` (migration `shops_website`), champ « 🌐 Site internet » dans la fiche du commerce (Espace patron → Commerces), renvoyée par `shop_public` et `shops_directory` (avec le téléphone et le WhatsApp).
+- Annuaire : 128 sites repris d'OpenStreetMap (champ `w` de `annuaire.json`, version 17), surtout les chaînes (Aroma, McDonald's, Golda, Super-Pharm, Shufersal…). Les autres enseignes n'ont pas de site connu : le patron peut l'ajouter quand elles deviennent partenaires.

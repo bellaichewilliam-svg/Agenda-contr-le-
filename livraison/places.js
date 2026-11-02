@@ -91,7 +91,7 @@ function dedupeDir(list) {
   list.forEach(e => {
     const k = e.lat + "," + e.lon + "," + String(e.s || "").trim();
     const twin = (byPlace[k] || []).find(o => sameShop(o, e));
-    if (twin) { twin.alt = (twin.alt || []).concat([e.n, e.fr].filter(Boolean), e.alt || []); return; }
+    if (twin) { twin.alt = (twin.alt || []).concat([e.n, e.fr].filter(Boolean), e.alt || []); if (!twin.p && e.p) twin.p = e.p; if (!twin.w && e.w) twin.w = e.w; return; }
     (byPlace[k] = byPlace[k] || []).push(e);
     out.push(e);
   });
@@ -174,7 +174,7 @@ function kindRx(q) {
   const k = KINDS.find(([ws]) => ws.has(nq) || (nq.length >= 4 && [...ws].some(w => w.startsWith(nq) && nq.length >= w.length - 3)));
   return k ? k[1] : null;
 }
-const DIR_VERSION = "16";
+const DIR_VERSION = "17";
 // Ce que les clients tapent en français / anglais → le nom en hébreu (chaînes, mots courants)
 const ALIASES = [
   ["mcdonalds", "מקדונלד"], ["mcdonald", "מקדונלד"], ["mcdo", "מקדונלד"], ["macdo", "מקדונלד"], ["burgerking", "בורגרקינג"],
@@ -273,7 +273,7 @@ function dirPlace(e, lang) {
   const name = dirName(e, lang);
   return { lat: e.lat, lon: e.lon, city, type: "house", streetName, housenumber, hit: true, dir: true,
     cityId: matchCity(city) || nearestCity(e.lat, e.lon), brand: name, street: e.s || e.n, exact: true,
-    phone: e.p || null, hours: e.h || null, kind: e.k || null, food: e.t !== "shop",
+    phone: e.p || null, website: e.w || null, hours: e.h || null, kind: e.k || null, food: e.t !== "shop",
     label: [name, e.s, city].filter(Boolean).join(", ") };
 }
 
