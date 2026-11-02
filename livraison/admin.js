@@ -497,6 +497,10 @@ function card(o, withDay) {
   if (o.shop_status && o.shop_status !== "refusee") meta.push(`<span class="pill">${o.shop_status === "attente" ? "🍳 Attente du commerce"
     : o.shop_status === "prete" ? "✅ Prête au commerce" : `🍳 Prête à ${UI.esc(new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}`}${Number(o.shop_share) > 0 ? ` · commerce ${UI.money(o.shop_share)}` : ""}</span>`);
   if (o.shop_order) meta.push(`<span class="pill">🧾 ${UI.esc(o.shop_order.slice(0, 80))}</span>`);
+  // Le patron passe lui-même la commande au commerce (non partenaire) : « Commandé » (n° + prête dans…), puis « Prête »
+  const oShop = o.shop_id && o.status === "nouvelle" ? shops.find(x => x.id === o.shop_id && x.token) : null;
+  if (oShop && o.shop_status === "attente") meta.push(`<button class="pill pill-btn unpaid" data-act="shopok" title="Vous avez passé la commande au commerce : son n° et dans combien de temps c'est prêt. Le livreur part au bon moment, le client est prévenu">✅ Commandé chez le commerce</button>`);
+  if (oShop && o.shop_status === "acceptee") meta.push(`<button class="pill pill-btn paid" data-act="shopready" title="La commande est prête au commerce : le livreur peut la récupérer">✅ Prête</button>`);
   // Commerce non partenaire : comment le client paie ses articles, et ce qu'il reste à faire au patron
   if (o.goods_choice) {
     const lab = { lien: "🔗 Articles : lien de paiement du commerce", bit: "📱 Articles : Bit à HOP! avant", especes: "💵 Articles : espèces au livreur" }[o.goods_choice] || "";
@@ -2727,6 +2731,28 @@ async function onViewClick(e) {
       ? `שלום ${first}, כאן HOP! 🛵\nההזמנה שלכם מ${shop}${amount ? " (" + amount + ")" : ""} מחכה לתשלום: ${v}\nאחרי התשלום לוחצים „שילמתי” בעמוד המעקב: ${UI.trackUrl(o)}\nאת המשלוח משלמים לשליח.`
       : `Bonjour ${first}, ici HOP! 🛵\nVotre commande chez ${shop}${amount ? " (" + amount + ")" : ""} vous attend pour le paiement : ${v}\nUne fois payé, touchez « J'ai payé » sur votre suivi : ${UI.trackUrl(o)}\nLa livraison se paie au livreur.`;
     if (o.contact_phone) window.open(UI.waLink(o.contact_phone, msg), "_blank");
+    await load();
+  } else if (el.dataset.act === "shopok" || el.dataset.act === "shopready") {
+    const sh = shops.find(x => x.id === o.shop_id);
+    if (!sh || !sh.token) return alert("Commerce introuvable.");
+    if (el.dataset.act === "shopready") {
+      try { if (!(await Store.shopOrderAction(sh.token, o.id, "prete"))) return alert("Non enregistré."); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+      return;
+    }
+    const ref = prompt(`Course n° ${o.ref} : n° de la commande chez ${sh.name} (les 3 derniers chiffres), donné au comptoir par le livreur.`, "");
+    if (ref === null) return;
+    const r = ref.replace(/\D/g, "").slice(-3);
+    if (r.length !== 3) return alert("Il faut 3 chiffres (les 3 derniers du n° de commande).");
+    const mins = prompt("Prête dans combien de minutes ?", "15");
+    if (mins === null) return;
+    const m = Math.min(90, Math.max(5, parseInt(mins, 10) || 15));
+    try { if (!(await Store.shopOrderAction(sh.token, o.id, "accepter", m, null, r))) return alert("Non enregistré (commande déjà passée ou annulée ?)."); }
+    catch (ex) { return alert("Non enregistré, vérifiez la connexion."); }
+    const at = new Date(Date.now() + m * 60000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }), first = String(o.contact_name || "").split(" ")[0];
+    const msg = o.lang === "he"
+      ? `שלום ${first}, כאן HOP! 🛵\nההזמנה שלכם מ${sh.name} הוזמנה (מס' ${r}) ותהיה מוכנה בסביבות ${at}. השליח יוצא לאסוף אותה ומביא אליכם.\nמעקב: ${UI.trackUrl(o)}`
+      : `Bonjour ${first}, ici HOP! 🛵\nVotre commande chez ${sh.name} est passée (n° ${r}) : elle sera prête vers ${at}. Le livreur part la chercher et vous l'apporte.\nSuivi : ${UI.trackUrl(o)}`;
+    if (o.contact_phone && confirm("Prévenir le client sur WhatsApp ?")) window.open(UI.waLink(o.contact_phone, msg), "_blank");
     await load();
   } else if (el.dataset.act === "goodsok" || el.dataset.act === "goodsko") {
     const ok = el.dataset.act === "goodsok";

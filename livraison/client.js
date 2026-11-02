@@ -670,7 +670,7 @@ const linkOk = () => shopCashOnly() && !/^HOP/.test(state.shop.code || "");
 const hasShopGoods = () => cartCount() > 0 || !!val("shop_order").trim();
 const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? "especes" : ["lien", "bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "lien");
 // (aussi une commande écrite à la main dans un commerce « payé au livreur ») ; avec le lien, le client paie le commerce lui-même
-const shopBuy = () => !!(proShopOn() && (cartCount() > 0 || (shopCashOnly() && !!val("shop_order").trim())) && !shopPrepay()
+const shopBuy = () => !!(proShopOn() && !linkOk() && (cartCount() > 0 || (shopCashOnly() && !!val("shop_order").trim())) && !shopPrepay()
   && (shopCashOnly() ? goodsChoice() !== "lien" : val("payment_method") === "cash"));
 function applyCashOnly() {
   const only = shopCashOnly() && hasShopGoods() && goodsChoice() === "especes", bit = form.querySelector('input[name=payment_method][value=bit]');
@@ -3059,7 +3059,7 @@ function shopMeta(s) {
         <small>${UI.esc(price)} · ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</small></div>
       <div class="sh-meta-r">${wa ? `<a class="sh-ic sh-ic-wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t(hop ? "shWaHelloHop" : "shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener" aria-label="${UI.esc(t(hop ? "shWaHop" : "shWa"))}">${WA_SVG}</a>` : ""}
         <button type="button" class="sh-ic sh-ic-info" data-sh-info="1"><i>i</i><span>${UI.esc(t("shInfoBtn"))}</span></button></div>
-    </div>${hop && (wa || s.phone) ? `<p class="sh-hop-note">${UI.esc(t("shHopNote", { name: UI.bi(s.name) }))}</p>` : ""}`;
+    </div>${st && (st.open || st.inDays != null) ? `<p class="sh-last15">⏰ ${UI.esc(t("shLast15"))}</p>` : ""}${hop && (wa || s.phone) ? `<p class="sh-hop-note">${UI.esc(t("shHopNote", { name: UI.bi(s.name) }))}</p>` : ""}`;
 }
 // Fiche « Infos » (s'ouvre par-dessus) : photos, présentation, adresse, horaires, WhatsApp, avis
 function shopSheet(s) {

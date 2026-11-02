@@ -808,3 +808,10 @@ livraison/
 - Panel, fiche de la course : « 🔗 Envoyer le lien de paiement au client » (le patron colle le lien, WhatsApp prêt dans la langue du client, lien aussi sur la page de suivi), puis « ✅ Articles payés » / « ❌ Pas reçu ». Tant que ce n'est pas payé, le livreur ne peut pas récupérer.
 - Fiche du commerce : « 💬 Ici, c'est HOP! qui vous répond (WhatsApp et téléphone), pas … » ; bouton WhatsApp « Écrire à HOP! ».
 - Panel, Commerces : « 📈 Commerces à démarcher » : les commerces non partenaires où nos clients commandent le plus sur 30 jours (commandes, montant, clients, clients qui reviennent), 🔥 à partir de 15, message de partenariat prêt (FR / HE) avec leurs chiffres.
+
+### Le patron passe la commande au commerce (03/11)
+- Commerces non partenaires (HOP! commande pour le client) : **plus de 5 ₪ d'achat**, la commande est prête quand le livreur arrive (livraison au prix normal, quel que soit le paiement). Les boutiques HOP! (jus) gardent l'achat.
+- Panel, fiche de la course : « ✅ Commandé chez le commerce » (n° de commande, 3 derniers chiffres, et prête dans X min : le livreur part au bon moment, WhatsApp prêt pour le client), puis « ✅ Prête ».
+- Page de chaque commerce : « ⏰ Pensez à commander au moins 15 minutes avant la fermeture » (FR / HE).
+- Panel : nom des commerces repliés à la ligne (plus sous « 0 🛵 ») ; rubriques du haut lisibles à 360 px.
+- McDonald's (cachés) : 21 menus au centre, 18 au casher (sans poisson ni fromage), photos originales `img/mcd/` (`supabase/seed-mcd-photos.json`).
