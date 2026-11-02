@@ -802,3 +802,9 @@ livraison/
 ### Commande écrite dans une boutique « payée au livreur » (02/11)
 - Une commande écrite à la main (sans panier) dans un commerce « payé au livreur » (ex. McDonald's) est un achat : livraison + 5 ₪ (30 ₪), comme avec le panier.
 - McDonald's : on ne renvoie jamais le client vers leur site (il s'y perdrait) ; la carte et les prix sont dans le catalogue HOP!. Texte « service de livraison indépendant, sans lien officiel avec McDonald's » ; jamais leurs photos de produits.
+
+### Commerces non partenaires : HOP! commande pour le client (02/11)
+- Commerce « payé au livreur » (`shops.cash_ok`) qui n'est pas une boutique HOP! (code HOP…) : sous la commande, le client choisit comment payer ses articles : 🔗 **lien de paiement du commerce** (recommandé, livraison au prix normal), 📱 **Bit à HOP! avant** ou 💵 **espèces au livreur** (+ 5 ₪ d'achat dans ces deux cas). `orders.goods_choice`.
+- Panel, fiche de la course : « 🔗 Envoyer le lien de paiement au client » (le patron colle le lien, WhatsApp prêt dans la langue du client, lien aussi sur la page de suivi), puis « ✅ Articles payés » / « ❌ Pas reçu ». Tant que ce n'est pas payé, le livreur ne peut pas récupérer.
+- Fiche du commerce : « 💬 Ici, c'est HOP! qui vous répond (WhatsApp et téléphone), pas … » ; bouton WhatsApp « Écrire à HOP! ».
+- Panel, Commerces : « 📈 Commerces à démarcher » : les commerces non partenaires où nos clients commandent le plus sur 30 jours (commandes, montant, clients, clients qui reviennent), 🔥 à partir de 15, message de partenariat prêt (FR / HE) avec leurs chiffres.
