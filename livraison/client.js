@@ -259,7 +259,9 @@ function siteLabel(u) {
   catch (e) { return t("shSite"); }
 }
 // Numéro d'un commerce partenaire : son téléphone, sinon son WhatsApp (enregistré en 972…)
-const shopNum = s => (s && (s.phone || (s.whatsapp ? "0" + String(s.whatsapp).replace(/^972/, "") : ""))) || "";
+const shopNum = s => (s && s.cash_ok && !/^HOP/.test(s.code || "") ? CONFIG.bitPhone : s && (s.phone || (s.whatsapp ? "0" + String(s.whatsapp).replace(/^972/, "") : ""))) || "";
+// WhatsApp affiché : celui de HOP! pour un commerce géré par HOP! (c'est HOP! qui répond), sinon celui du commerce
+const shopWa = s => String((s && s.cash_ok && !/^HOP/.test(s.code || "") ? CONFIG.whatsapp : s && s.whatsapp) || "").replace(/\D/g, "");
 function contactRow(num, web) {
   const tel = telOf(num), url = webOf(web);
   if (!tel && !url) return "";
@@ -677,6 +679,7 @@ const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? "especes" : ["li
 const shopBuy = () => !!(proShopOn() && !linkOk() && (cartCount() > 0 || (shopCashOnly() && !!val("shop_order").trim())) && !shopPrepay()
   && (shopCashOnly() ? goodsChoice() !== "lien" : val("payment_method") === "cash"));
 function applyCashOnly() {
+  if (linkOk() && hasShopGoods() && goodsChoice() === "bit" && val("payment_method") !== "bit") form.querySelector('input[name=payment_method][value=bit]').checked = true;
   const only = shopCashOnly() && hasShopGoods() && goodsChoice() === "especes", bit = form.querySelector('input[name=payment_method][value=bit]');
   bit.closest(".choice").classList.toggle("hidden", only);
   if (only && val("payment_method") !== "cash") form.querySelector('input[name=payment_method][value=cash]').checked = true;
@@ -2015,6 +2018,8 @@ async function locate(address, cityId, point) {
 function validateOrder() {
   // Vitrine de démonstration (montrée aux commerces) : on peut tout essayer, sauf envoyer une vraie course
   if (state.shop && state.shop.demo) return showErrorFalse(t("errDemoShop"));
+  // Commerce mis en pause par le patron : visible, mais pas de commande pour le moment
+  if (state.shop && state.shop.paused && proShopOn()) return showErrorFalse(t("shPaused"));
   const near = nearMode();
   const fromCity = near ? cityOf("to") : cityOf("from"), toCity = cityOf("to");
   const required = [near ? null : "pickup_address", "dropoff_address"].filter(Boolean);
@@ -2282,9 +2287,10 @@ async function submit(e) {
     const gift2 = () => (saved.shop_pays ? t("gpStep2Gift", { name: UI.bi(state.shop.name) }) : t("gpStep2", { amount: money(saved.price) }));
     // Commerce non partenaire : ① lien du commerce envoyé par HOP!, ou Bit à HOP! avant la commande
     const gc = order.goods_choice, gcName = UI.bi(state.shop ? state.shop.name : ""), gcAmount = cartCount() ? money(cartTotal()) : t("gpAmountShop");
-    if (gc === "lien" || gc === "bit") Object.assign(saved, { goods_pay: "a_payer", goods_choice: gc, items_total: cartCount() ? cartTotal() : saved.items_total || 0 });
+    if (gc === "lien") Object.assign(saved, { goods_pay: "a_payer", goods_choice: gc, items_total: cartCount() ? cartTotal() : saved.items_total || 0 });
+    if (gc === "bit") Object.assign(saved, { goods_choice: gc, items_total: cartCount() ? cartTotal() : saved.items_total || 0 });
     const gcHtml = gc === "lien" ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay wait"><b>${UI.esc(t("gcDoneLink", { name: gcName, amount: gcAmount }))}</b></div><p class="gp-step2"><b>${UI.esc(gift2())}</b></p>`
-      : gc === "bit" ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(saved, { name: "HOP!", bit: CONFIG.bitPhone })}<p class="gp-step2"><b>${UI.esc(gift2())}</b></p>` : "";
+      : gc === "bit" ? `<p class="promo-msg ok">${UI.esc(t("gcDoneBit", { amount: gcAmount }))}</p>` : "";
     const goodsAsk = !gp && !gcHtml && proShopOn() && cartCount() && saved.payment_method !== "cash"
       ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay todo"><b class="gp-step">${UI.esc(t("gpStep1", { name: UI.bi(state.shop.name), amount: money(cartTotal()) }))}</b><small>${UI.esc(t("gbAsk", { name: UI.bi(state.shop.name) }))}</small></div><p class="gp-step2"><b>${UI.esc(gift2())}</b></p>` : "";
     $("#donePrepay").innerHTML = gcHtml + goodsAsk + (gp ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${UI.goodsPay(saved, gp)}<p class="gp-step2"><b>${UI.esc(gift2())}</b></p>` : "")
@@ -2357,6 +2363,7 @@ async function submit(e) {
     if (/phone_unpaid/.test(ex.message)) return showError(t("errPhonePaid"));
     if (/goods_pay_required/.test(ex.message)) return showError(t("errGoodsPay"));
     if (/goods_cash/.test(ex.message)) return showError(t("errGoodsCash"));
+    if (/shop_paused/.test(ex.message)) return showError(t("shPaused"));
     if (/goods_cap_/.test(ex.message)) { const cap = Number((/goods_cap_(\d+)/.exec(ex.message) || [])[1]) || goodsCap(); return showError(t("errGoodsCap", { cap: money(cap), more: cap < 300 ? t("gmCapNew") : "" })); }
     if (/goods_budget_required/.test(ex.message)) return showError(t("errGoodsBudget"));
     if (/goods_prepay_bit/.test(ex.message)) return showError(t("errGoodsBit"));
@@ -3073,7 +3080,7 @@ function shopInfo(s, noWa) {
   const fmt = h => (h ? String(h).split(",").map(r => r.replace("-", "–")).join(" · ") : t("shClosed"));
   const hours = (s.hours || []).slice().sort((a, b) => a.d - b.d);
   const open = hours.length && shopOpenNow(hours);
-  const wa = noWa ? "" : String(s.whatsapp || "").replace(/\D/g, "");
+  const wa = noWa ? "" : shopWa(s);
   const hop = hopRun(s), waText = encodeURIComponent(t(hop ? "shWaHelloHop" : "shWaHello", { name: UI.bi(s.name) }));
   return `<div class="sh-info">
     ${UI.shopText(s, "about") ? `<p class="sh-about">${UI.esc(UI.shopText(s, "about"))}</p>` : ""}
@@ -3126,14 +3133,14 @@ const WA_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentC
 // Commerce non partenaire géré par HOP! (le patron commande pour le client) : son WhatsApp et son téléphone sont ceux de HOP!
 const hopRun = s => !!(s && s.cash_ok && !/^HOP/.test(s.code || ""));
 function shopMeta(s) {
-  const st = UI.openState(s.hours), wa = String(s.whatsapp || "").replace(/\D/g, ""), hop = hopRun(s);
+  const st = UI.openState(s.hours), wa = shopWa(s), hop = hopRun(s);
   const price = s.shop_pays ? "🎁 " + t("scGift") : "🛵 " + t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) });
   return `<div class="sh-meta">
       <div class="sh-meta-l">${st ? `<b class="sh-dot ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</b>` : ""}
         <small>${UI.esc(price)} · ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</small></div>
       <div class="sh-meta-r">${wa ? `<a class="sh-ic sh-ic-wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t(hop ? "shWaHelloHop" : "shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener" aria-label="${UI.esc(t(hop ? "shWaHop" : "shWa"))}">${WA_SVG}</a>` : ""}
         <button type="button" class="sh-ic sh-ic-info" data-sh-info="1"><i>i</i><span>${UI.esc(t("shInfoBtn"))}</span></button></div>
-    </div>${st && (st.open || st.inDays != null) ? `<p class="sh-last15">⏰ ${UI.esc(t("shLast15"))}</p>` : ""}${hop && (wa || s.phone) ? `<p class="sh-hop-note">${UI.esc(t("shHopNote", { name: UI.bi(s.name) }))}</p>` : ""}`;
+    </div>${s.paused ? `<p class="sh-paused">⏸️ ${UI.esc(t("shPaused"))}</p>` : ""}${st && (st.open || st.inDays != null) ? `<p class="sh-last15">⏰ ${UI.esc(t("shLast15"))}</p>` : ""}${hop && (wa || s.phone) ? `<p class="sh-hop-note">${UI.esc(t("shHopNote", { name: UI.bi(s.name) }))}</p>` : ""}`;
 }
 // Fiche « Infos » (s'ouvre par-dessus) : photos, présentation, adresse, horaires, WhatsApp, avis
 function shopSheet(s) {
@@ -4181,6 +4188,7 @@ function shopCard(s) {
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
+      ${s.paused ? `<small class="sc-meta sc-paused">⏸️ ${UI.esc(t("scPaused"))}</small>` : ""}
       ${st || Number(s.ratings) > 0 ? `<small class="sc-meta sc-st">${Number(s.ratings) > 0 ? `<b class="sc-star">${UI.esc(t("scRating", { avg: String(s.rating).replace(".", ","), n: s.ratings }))}</b>${st ? " · " : ""}` : ""}${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(D2 && st.open ? openLabel(st).split(" · ")[0] : openLabel(st))}` : ""}</small>` : ""}
       <small class="sc-meta">${s.shop_pays ? `🎁 ${UI.esc(t("scGift"))}` : `🛵 ${UI.esc(money(proPrice(s)))}`}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
       ${UI.shopText(s, "tagline") && !D2 ? `<small class="sc-tag">${UI.esc(firstPhrase(UI.shopText(s, "tagline")))}</small>` : ""}</span>

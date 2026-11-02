@@ -680,7 +680,7 @@ const BIT_APP = "intent://#Intent;package=com.bnhp.payments.paymentsapp;S.browse
 // Ce que le client envoie au livreur : la course, et les articles (au maximum) quand ils sont payés d'avance
 // (en espèces, une fois le ticket pris : la course + le ticket exact)
 // (« ticket après » : seule la course est payée d'avance ; le ticket est envoyé à part, après la photo)
-const payTotal = o => Number(o.price || 0) + (!o.goods_prepay || o.goods_after ? 0 : o.payment_method === "cash" && o.goods_spent != null ? Number(o.goods_spent) : Number(o.goods_budget || 0));
+const payTotal = o => Number(o.price || 0) + (o.goods_choice === "bit" ? Number(o.items_total || 0) : 0) + (!o.goods_prepay || o.goods_after ? 0 : o.payment_method === "cash" && o.goods_spent != null ? Number(o.goods_spent) : Number(o.goods_budget || 0));
 // Course vers / depuis un quartier hors centre (Agamim, zones industrielles) : pourquoi ce prix
 function areaWhy(o) {
   if (!window.Pricing || !o || o.from_city !== o.to_city || !CONFIG.pricing.areas) return "";
