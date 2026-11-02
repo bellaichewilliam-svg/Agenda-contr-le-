@@ -4106,3 +4106,13 @@ html.d2.d2-day .cart-resume { color: #0F1F3D; }
 .fn-bar i { display: block; height: 100%; background: #FF6A13; border-radius: 9px; }
 .cart-resume .cr-gift { font-style: normal; font-weight: 800; color: #FF6A13; }
 .cart-due { margin: 0 0 12px; padding: 12px 14px; border: 1px solid rgba(255,106,19,.5); background: rgba(255,106,19,.1); border-radius: 14px; }
+
+/* Fiche d'une course (onglet Courses et fiche client) : rien ne dépasse à droite sur le téléphone ;
+   les étiquettes longues (articles, paiement, commerce) passent à la ligne, les boutons aussi */
+.order { min-width: 0; max-width: 100%; }
+.order .meta .pill { white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
+.order .actions, .order .order-actions { flex-wrap: wrap; min-width: 0; }
+.order .actions > *, .order .order-actions > * { max-width: 100%; }
+.client-orders, .client-orders .orders { min-width: 0; max-width: 100%; }
+/* Rubriques du panel : un mot n'est jamais coupé en deux (« Messages », « Commerces » tiennent sur une ligne) */
+.adm-groups button span { overflow-wrap: normal !important; word-break: keep-all; font-size: 11px; letter-spacing: -.2px; }
