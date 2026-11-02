@@ -271,6 +271,43 @@ const NEW_POSTS = [
 🍣🍔🥐🍕 הסושי, ההמבורגרים והפיצות הכשרים והמוצרים הצרפתיים שלכם, עד הבית ב${heHome} בלחיצה.
 👉 ${livre}` }
 ];
+// « Une envie de jus ? » : textes qui vont avec les visuels du catalogue Jus de fruits (HOPJUS)
+const JUS_URL = `${url}?c=HOPJUS`, JUS_URL_HE = `${url}?c=HOPJUS&lang=he`;
+const JUS_POSTS = [
+  { title: "🧃 Une envie de jus ? Et hop, c'est livré ! (français)", dir: "ltr", text:
+`🧃 Une envie de jus ? Et hop, c'est livré !
+
+Nouveau sur ${nameFr} : nos jus de fruits et smoothies, livrés chez vous tous les jours jusqu'à 22 h.
+🍓 Tutti Frutti · ❤️ Chaperon rouge · 🥬 Extra Green · 🍈 Souffle pur · 🥭 Douceur zen · 🍫 Jardin réconfort · 🌰 Halva · Green&Sweet · Green&Sour · Green Shake
+💰 32 ₪ le smoothie · 💳 payé par Bit en 2 secondes
+🛵 Partout à ${UI.cityFr(home)}, livré au plus vite · 📍 suivi en direct
+
+👉 Choisissez le vôtre : ${JUS_URL}` },
+  { title: "🧃 בא לכם מיץ? והופ, זה אצלכם! (עברית)", dir: "rtl", text:
+`🧃 בא לכם מיץ? והופ, זה אצלכם!
+
+חדש ב${nameHe}: המיצים והשייקים שלנו, עד הבית כל יום עד 22:00.
+🍓 תותי פרוטי · ❤️ כיפה אדומה · 🥬 אקסטרה גרין · 🍈 מטהר נשימה · 🥭 הרגעה לנפש · 🍫 גן נחמה · 🌰 חלווה · Green&Sweet · Green&Sour · גרין שייק
+💰 32 ₪ לשייק · 💳 תשלום בביט בשתי שניות
+🛵 בכל ${heHome}, מגיע הכי מהר · 📍 מעקב בזמן אמת
+
+👈 בחרו את שלכם: ${JUS_URL_HE}` },
+  { title: "🧃 Jus : phrases courtes (story, statut, TikTok)", dir: "ltr", text:
+`🧃 Une envie de jus ? Et hop, c'est livré ! Jusqu'à 22 h : ${JUS_URL}
+🍓 Smoothies frais à 32 ₪, livrés chez vous ce soir. Lequel vous tente ? ${JUS_URL}
+🌙 Petite soif à 21 h ? HOP! vous apporte votre smoothie : ${JUS_URL}
+🧃 בא לכם מיץ? והופ, זה אצלכם! עד 22:00: ${JUS_URL_HE}
+🍓 שייקים טריים ב־32 ₪, עד הבית הערב. איזה מתאים לכם? ${JUS_URL_HE}
+🌙 צמאים ב־21:00? HOP! מביאים לכם שייק: ${JUS_URL_HE}` },
+  { title: "🧃 Jus : message WhatsApp à vos clients (FR + HE)", dir: "ltr", text:
+`Bonjour 👋 Nouveau chez HOP! : nos jus de fruits et smoothies 🧃
+10 recettes à 32 ₪ (Tutti Frutti, Chaperon rouge, Extra Green, Halva…), livrées chez vous tous les jours jusqu'à 22 h.
+👉 ${JUS_URL}
+
+שלום 👋 חדש ב-HOP!: המיצים והשייקים שלנו 🧃
+10 טעמים ב־32 ₪ (תותי פרוטי, כיפה אדומה, אקסטרה גרין, חלווה…), עד הבית כל יום עד 22:00.
+👈 ${JUS_URL_HE}` }
+];
 // « On fait toutes vos courses » : textes qui vont avec les visuels et la vidéo des catégories
 const COURSES_POSTS = [
   { title: "🛒 On fait toutes vos courses (français)", dir: "ltr", text:
@@ -404,7 +441,7 @@ Chabbat chalom ! 🕯️ 👉 ${livre}` },
 ];
 // Pour qui est chaque texte de POSTS (dans l'ordre) : clients, commerces ou livreurs
 const POST_AUD = ["client", "client", "shop", "shop", "client", "client", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "rider", "rider", "client", "client"];
-const ALL_POSTS = PARTNER_POSTS.concat(CHABBAT_POSTS, VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
+const ALL_POSTS = JUS_POSTS.concat(PARTNER_POSTS, CHABBAT_POSTS, VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
   .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
 
 // Campagnes de visuels : chaque carte = un message, avec ses formats (post carré, story, flyer A5) et sa vidéo

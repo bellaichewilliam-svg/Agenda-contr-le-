@@ -773,3 +773,4 @@ livraison/
 
 ### Kit pub : « Une envie de jus ? Et hop, c'est livré ! » (02/11)
 - Visuels du patron (FR et HE) en tête des campagnes Clients : `kit/visuels/jus-post-fr|he.png` (1080 × 1350), originaux dans `video/public/reseaux/jus-fr|he.png`. Légende FR/HE prête avec le lien direct du catalogue (`?c=HOPJUS`).
+- Textes « Jus » dans l'onglet ✍️ Textes du kit (en tête) : post FR, post HE, phrases courtes (story, statut, TikTok), message WhatsApp FR + HE, tous avec le lien du catalogue.
