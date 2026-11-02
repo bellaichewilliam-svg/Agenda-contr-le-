@@ -1610,14 +1610,25 @@ function renderClients(view) {
   const q = clientsQ.trim().toLowerCase(), qd = q.replace(/\D/g, "");
   const withAcc = clients.filter(c => c.client_id);
   const month = today().slice(0, 7);
-  const list = clients.filter(c => !q || String(c.name || "").toLowerCase().includes(q) || (qd && String(c.phone || "").replace(/\D/g, "").includes(qd)));
+  // Ceux qui ont seulement écrit au service client (nom + téléphone), sans commander ni créer de compte : une fiche aussi
+  const known = new Set(clients.map(c => String(c.phone || "").replace(/\D/g, "").slice(-9)).filter(Boolean));
+  const writers = [];
+  chatRecentList.forEach(m => {
+    if (!String(m.thread).startsWith("u:") || m.author !== "client") return;
+    const ph = (String(m.author_name || "").match(/0[\d\-\s]{8,}/) || [])[0], k = ph && ph.replace(/\D/g, "").slice(-9);
+    if (!k || known.has(k)) return;
+    known.add(k);
+    writers.push({ name: String(m.author_name).split("·")[0].trim(), phone: ph.trim(), orders: 0, delivered: 0, spent: 0, writer: true });
+  });
+  const everyone = clients.concat(writers);
+  const list = everyone.filter(c => !q || String(c.name || "").toLowerCase().includes(q) || (qd && String(c.phone || "").replace(/\D/g, "").includes(qd)));
   const day = iso => iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
   // Client qui est aussi une enseigne (même numéro) : on le montre
   const d9 = v => String(v || "").replace(/\D/g, "").slice(-9);
   const shopOfClient = c => d9(c.phone) && shops.find(x => !x.demo && (d9(x.phone) === d9(c.phone) || d9(x.whatsapp) === d9(c.phone)));
   // Deux listes bien séparées : les enseignes (commerces qui envoient leurs courses) et les vrais clients
   const shopList = list.filter(c => shopOfClient(c)), clientList = list.filter(c => !shopOfClient(c));
-  const realClients = clients.filter(c => !shopOfClient(c));
+  const realClients = everyone.filter(c => !shopOfClient(c));
   const sent = welcomeSent();
   const head = `
     <div class="stats">
@@ -1635,16 +1646,16 @@ function renderClients(view) {
         .sort((a, b) => String(b.created_at || b.pickup_at).localeCompare(String(a.created_at || a.pickup_at))).slice(0, 15);
       return `
       <details class="order-fold shop-fold" data-fold="${UI.esc(k)}"${foldOpen(k)}><summary>
-        <span>${sh ? "🏪" : c.client_id ? "👤" : "📞"} <b>${UI.esc(c.name || "—")}</b>${sh && sh.name !== c.name ? " · 🏪 " + UI.esc(sh.name) : ""}${c.blocked ? " · ⛔" : ""}</span>
+        <span>${sh ? "🏪" : c.client_id ? "👤" : c.writer ? "💬" : "📞"} <b>${UI.esc(c.name || "—")}</b>${sh && sh.name !== c.name ? " · 🏪 " + UI.esc(sh.name) : ""}${c.blocked ? " · ⛔" : ""}</span>
         <b>${Number(c.delivered || 0)} 📦</b></summary>
       <article class="order" data-client="${UI.esc(c.client_id || "")}">
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name || "—")}</span>
-          ${sh ? `<span class="pill paid">🏪 Commerce partenaire</span>` : `<span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte client" : "📞 Sans compte client"}</span>`}
+          ${sh ? `<span class="pill paid">🏪 Commerce partenaire</span>` : `<span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte client" : c.writer ? "💬 A écrit, pas encore commandé" : "📞 Sans compte client"}</span>`}
           ${c.blocked ? `<span class="pill" style="background:#FDE2E2;color:#9B1C1C">⛔ Bloqué</span>` : ""}
           <span class="order-price">${Number(c.delivered || 0)} livrée(s)</span>
         </div>
-        <p class="small muted" style="margin:6px 0 2px">${sh ? "Un commerce n'a pas besoin de compte client : il envoie ses courses depuis son espace commerce (« Envoyer une course »)." : c.client_id ? "" : "Il commande avec son numéro de téléphone, sans avoir créé de compte (c'est permis)."}</p>
+        <p class="small muted" style="margin:6px 0 2px">${sh ? "Un commerce n'a pas besoin de compte client : il envoie ses courses depuis son espace commerce (« Envoyer une course »)." : c.client_id ? "" : c.writer ? "Il a écrit au service client, mais n'a encore ni commandé ni créé de compte : envoyez-lui « Comment commander »." : "Il commande avec son numéro de téléphone, sans avoir créé de compte (c'est permis)."}</p>
         <div class="kv">
           <div><span>📞</span><span>${tel(c.name, c.phone)}${c.email ? " · " + UI.esc(c.email) + (c.email_verified ? " ✅" : " (à vérifier)") : ""}</span></div>
           <div><span>📦</span><span>${Number(c.orders || 0)} commande(s) · ${UI.money(Number(c.spent || 0))} livrés${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
@@ -1652,7 +1663,13 @@ function renderClients(view) {
         </div>
         ${mine.length ? `<details class="client-orders"><summary>📋 Voir le détail de ses courses (${mine.length}${Number(c.orders || 0) > mine.length ? " dernières" : ""})</summary>
           <div class="orders">${mine.map(o => card(o, true)).join("")}</div></details>` : ""}
+        ${(() => { // Ses messages au service client (reconnus à son numéro), joints à sa fiche
+          const ths = msgThreadsOf(c.phone);
+          return ths.length ? `<div class="client-msgs">${ths.map(x => `<div class="cm-row"><span class="small muted">💬 ${UI.esc(UI.fmtDateTime(x.last.created_at))} · ${x.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(x.last.body || "📷 Photo").slice(0, 90))}</span>
+            ${chatBtn(x.thread, "💬 Client : " + (x.name || c.name || ""), c.phone || "", `💬 Ouvrir ses messages (${x.n})`)}</div>`).join("")}</div>` : "";
+        })()}
         <div class="actions">
+          ${!sh ? howBtn(c.phone, c.name) : ""}
           ${!sh && !c.client_id && c.phone ? `<a class="btn btn-sm${sent[d9(c.phone)] ? "" : " btn-wa"}" data-welcome="${UI.esc(d9(c.phone))}" href="${UI.esc(UI.waPersonal(c.phone, welcomeText(c)))}" target="_blank" rel="noopener" title="Message tout prêt dans WhatsApp (français + hébreu) : il suffit d'appuyer sur Envoyer">🟢 ${sent[d9(c.phone)] ? "Renvoyer « Bienvenue, créez votre compte »" : "WhatsApp : « Bienvenue, créez votre compte »"}</a>` : ""}
           ${c.client_id ? `<button class="btn btn-sm" data-client-reset="${UI.esc(c.client_id)}" data-cname="${UI.esc(c.name || "")}">🔑 Nouveau mot de passe</button>` : ""}
           ${c.blocked ? `<button class="btn btn-sm" data-unblock="${UI.esc(c.phone)}">🔓 Débloquer</button>` : ""}
@@ -1680,6 +1697,38 @@ function welcomeText(c) {
     + `ברוכים הבאים ל-HOP! 🧡`;
 }
 document.addEventListener("click", e => { const a = e.target.closest("[data-welcome]"); if (a) { markWelcome(a.dataset.welcome); setTimeout(render, 400); } });
+// Fils du service client d'un numéro (le client écrit avec « nom · téléphone ») : pour les joindre à sa fiche
+function msgThreadsOf(phone) {
+  const k = String(phone || "").replace(/\D/g, "").slice(-9);
+  if (k.length < 9) return [];
+  const by = {};
+  chatRecentList.forEach(m => { if (String(m.thread).startsWith("u:")) (by[m.thread] = by[m.thread] || []).push(m); });
+  return Object.entries(by).filter(([, ms]) => ms.some(m => m.author === "client" && String(m.author_name || "").replace(/\D/g, "").endsWith(k)))
+    .map(([thread, ms]) => { ms.sort((a, b) => (a.created_at < b.created_at ? 1 : -1)); const who = ms.find(m => m.author === "client" && m.author_name);
+      return { thread, last: ms[0], n: ms.length, name: who ? String(who.author_name).split("·")[0].trim() : "" }; });
+}
+// « Comment commander » : présentation + mode d'emploi, français + hébreu, tout prêt dans WhatsApp (client bloqué, nouveau client…)
+function howText(name) {
+  const first = String(name || "").trim().split(/\s+/)[0] || "";
+  const link = UI.appUrl("app/");
+  return `Bonjour${first ? " " + first : ""} 😊 Bienvenue chez HOP! 🛵\n`
+    + `HOP!, c'est la livraison à Netanya : vos restos, vos courses (supermarché, makolet, pharmacie), vos colis, vos clés oubliées… on vous livre tout, au plus vite.\n\n`
+    + `Pour commander, ça prend une minute : ${link}\n`
+    + `1️⃣ Choisissez ce qu'on vous livre (repas, courses, colis…)\n`
+    + `2️⃣ L'adresse de départ et la vôtre\n`
+    + `3️⃣ Touchez « Commander » ✅\n`
+    + `Pour des courses : « J'achète pour vous », écrivez votre liste, on achète et on vous livre.\n`
+    + `Livraison dès 25 ₪ dans Netanya, 0 frais de service. Un souci ? Répondez ici, on vous aide 🧡\n\n`
+    + `שלום${first ? " " + first : ""} 😊 ברוכים הבאים ל-HOP! 🛵\n`
+    + `HOP! זה משלוחים בנתניה: מסעדות, קניות (סופר, מכולת, בית מרקחת), חבילות, מפתחות ששכחתם… אנחנו מביאים הכול, הכי מהר שאפשר.\n\n`
+    + `להזמנה, זה לוקח דקה: ${link}\n`
+    + `1️⃣ בוחרים מה להביא (אוכל, קניות, חבילה…)\n`
+    + `2️⃣ כתובת האיסוף והכתובת שלכם\n`
+    + `3️⃣ לוחצים «להזמין» ✅\n`
+    + `לקניות: «קונים בשבילכם», כותבים את הרשימה, ואנחנו קונים ומביאים.\n`
+    + `משלוח החל מ-25 ₪ בנתניה, בלי דמי שירות. משהו לא מסתדר? עונים כאן ואנחנו עוזרים 🧡`;
+}
+const howBtn = (phone, name) => phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(phone, howText(name)))}" target="_blank" rel="noopener" title="Présentation de HOP! et comment commander (français + hébreu), prêt dans WhatsApp">📲 WhatsApp : « Comment commander »</a>` : "";
 
 // --- Demandes de devis (tournée quotidienne, carnet…) -------------------------------------
 function renderRequests(view) {
@@ -2213,6 +2262,8 @@ function renderInbox(view) {
     return `<article class="order inbox-row${n ? " is-new" : ""}" data-thread="${UI.esc(t.thread)}" data-ctitle="${UI.esc(label)}">
       <div class="order-head"><span class="order-time">${UI.esc(label)}</span>${n ? `<span class="chat-badge">${n}</span>` : ""}<span class="order-ref">${UI.esc(UI.fmtDateTime(t.last.created_at))}</span></div>
       <p class="small muted" style="margin-top:4px">${t.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(lastText).slice(0, 120))}</p>
+      ${(() => { if (!t.thread.startsWith("u:")) return ""; const m = t.msgs.find(v => v.author === "client" && v.author_name), ph = m && (String(m.author_name).match(/0[\d\-\s]{8,}/) || [])[0];
+        return ph ? `<div style="margin-top:6px">${howBtn(ph.trim(), String(m.author_name).split("·")[0])}</div>` : ""; })()}
       <button type="button" class="btn btn-sm btn-link" data-close-thread="${UI.esc(t.thread)}">✓ Terminer la discussion</button>
     </article>`;
   }).join("")}</div>` : `<div class="empty card">Aucun message ces 30 derniers jours. Les clients, livreurs et commerces vous écrivent ici, dans l'application.</div>`;

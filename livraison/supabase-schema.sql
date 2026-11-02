@@ -8519,3 +8519,5 @@ begin
   return true;
 end;
 $function$;
+-- (mise à jour) chat_support_send : + réponse automatique de bienvenue (hébreu si le client écrit en hébreu, sinon français),
+-- une fois par 12 h et par client tant que HOP! n'a pas répondu. Voir la migration « chat_support_auto_reply ».
