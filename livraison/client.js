@@ -529,8 +529,12 @@ function renderAddonBar() {
 setInterval(renderAddonBar, 1000);
 function currentQuote() {
   if (addonOn()) return { total: state.addon.price, known: true, distanceKm: 0, lines: [{ key: "qAddon", vars: { ref: state.addon.ref }, amount: state.addon.price }] };
-  const q = baseQuote();
+  let q = baseQuote();
   if (!proShopOn()) return q;
+  if (shopBuy() && !shopGift()) {
+    const fee = Number(CONFIG.pricing.purchase || 5);
+    q = Object.assign({}, q, { total: q.total + fee, lines: q.lines.concat([{ key: "qShopBuy", vars: { name: UI.bi(state.shop.name) }, amount: fee }]) });
+  }
   if (shopGift()) return Object.assign({}, q, { total: 0, course: q.total, gift: true,
     lines: q.lines.concat([{ key: "qShopGift", vars: { name: UI.bi(state.shop.name) }, amount: -q.total, discount: true }]) });
   // Le commerce paie sa part (12 − 2 = 10 ₪ de moins pour le client), sauf s'il a choisi « le client paie »
@@ -639,7 +643,16 @@ const cashMax = () => Number((state.settings && state.settings.cash_max) || 200)
 // Le commerce a un lien de paiement ou un Bit : les articles lui sont payés d'avance (jamais avancés par le livreur)
 // Commerce Pro sans paiement en ligne (ni lien, ni Bit) : le client commande et paie chez lui par WhatsApp,
 // demande l'heure exacte où c'est prêt, puis commande ici la livraison (pas d'attente, pas de supplément)
-const shopNoPay = () => !!((proShopOn() || shopDropOn()) && state.shop && !state.shop.pay_link && !state.shop.pay_bit);
+const shopNoPay = () => !!((proShopOn() || shopDropOn()) && state.shop && !state.shop.pay_link && !state.shop.pay_bit && !state.shop.cash_ok);
+// Boutique HOP! (commerce « payé au livreur ») : le client paie tout au livreur à la livraison, en espèces (articles + livraison)
+const shopCashOnly = () => !!(proShopOn() && state.shop && state.shop.cash_ok && !state.shop.pay_link && !state.shop.pay_bit);
+// Articles achetés pour le client (l'argent des articles passe par le livreur) : c'est un achat, + le prix d'un petit achat (5 ₪)
+const shopBuy = () => !!(proShopOn() && cartCount() > 0 && !shopPrepay() && (shopCashOnly() || val("payment_method") === "cash"));
+function applyCashOnly() {
+  const only = shopCashOnly() && cartCount() > 0, bit = form.querySelector('input[name=payment_method][value=bit]');
+  bit.closest(".choice").classList.toggle("hidden", only);
+  if (only && val("payment_method") !== "cash") form.querySelector('input[name=payment_method][value=cash]').checked = true;
+}
 function noPayBox(titleKey, noTitle) {
   const sh = state.shop, name = UI.bi(sh.name), num = sh.whatsapp || sh.phone || "";
   const shown = num ? (String(num).replace(/\D/g, "").replace(/^972/, "0")) : "";
@@ -659,18 +672,27 @@ const shopPrepay = () => !!(proShopOn() && (state.shop.pay_link || state.shop.pa
 const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() ? cartTotal() : goodsPrepay() ? goodsBudget() : 0);
 // Espèces impossibles pour cette commande (mêmes règles que le serveur : plafond, et articles avancés par le livreur
 // seulement après une 1re course livrée) : dit sous le choix « Espèces » tout de suite, pas en erreur après l'envoi
+// Nouveaux clients : en espèces, tout compris (articles + livraison), au plus cash_first_max (100 ₪) tant qu'ils n'ont pas
+// cash_first_orders (3) courses livrées. 0 = pas de plafond « nouveau client » (règle coupée, ou historique inconnu : la base décide)
+function cashFirstCap() {
+  const s = state.settings || {}, n = Number(s.cash_first_orders), max = Number(s.cash_first_max);
+  if (!(n > 0) || !(max > 0) || !Array.isArray(state.mine) || state.mineError) return 0;
+  return state.mine.filter(o => o.status === "livree").length < n ? max : 0;
+}
 function cashIssue(q) {
   // Le plafond ne concerne que ce que le livreur avance lui-même (achats) ; les articles d'un commerce partenaire sont encaissés
   // chez le client et rapportés au commerce, sans avance
   const adv = goodsPrepay() ? goodsBudget() : 0;
   if (Number(q.total) + adv > cashMax()) return { hard: true, text: t("errCashMax", { max: money(cashMax()) }) };
+  const cap = cashFirstCap();
+  if (cap && Number(q.total) + cashGoods() > cap) return { hard: true, text: t("errCashNew", { max: money(cap), n: Number(state.settings.cash_first_orders) }) };
   return null;
 }
 function renderCash() {
   const on = val("payment_method") === "cash";
   const issue = cashIssue(currentQuote());
   $("#cashChoice").classList.toggle("choice-off", !!(issue && issue.hard));
-  $("#cashSmall").textContent = issue && issue.hard ? t("pay_cash_off", { max: money(cashMax()) }) : t("pay_cash_d2", { max: money(cashMax()) });
+  $("#cashSmall").textContent = issue && issue.hard ? t("pay_cash_off", { max: money(cashMax()) }) : t("pay_cash_d2", { max: money(cashFirstCap() || cashMax()) });
   $("#cashBox").classList.toggle("hidden", !on);
   if (!on) return;
   const q = currentQuote(), goods = cashGoods(), total = Number(q.total) + goods;
@@ -1072,6 +1094,7 @@ function renderShopList() {
   form.rx.closest("label").classList.toggle("hidden", !svcAchat || (r && r.id !== "pharm"));
 }
 function renderQuote() {
+  applyCashOnly();
   renderShopBanner();
   renderShopList();
   renderPharma();
@@ -1083,7 +1106,7 @@ function renderQuote() {
     // Pas de frais cachés : on le montre noir sur blanc
     + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
-    + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t("qItems", { total: money(cartTotal()), name: UI.bi(state.shop.name) }))}</span></li>` : "")
+    + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t(shopBuy() ? "qItemsCash" : "qItems", { total: money(cartTotal()), name: UI.bi(state.shop.name) }))}</span></li>` : "")
     // Achats payés au livreur : le montant des articles (au maximum) est dans le prix, comme la course
     + (goods && goodsPrepay() && !goodsAfter() ? `<li class="goods-amt"><span>${UI.esc(t("qGoodsMax"))}</span><span dir="ltr">${goodsBudget() ? money(goodsBudget()) : "—"}</span></li>` : "")
     + (goods && goodsAfter() ? `<li class="goods"><span>${UI.esc(t("qGoodsAfter", { max: goodsBudget() ? money(goodsBudget()) : "—" }))}</span></li>` : "")
@@ -1102,7 +1125,7 @@ function renderQuote() {
   // Articles d'un rayon : la fourchette des prix indicatifs ; cigarettes (sans prix) : le prix du magasin, sans calcul
   const r0 = goods ? rayonOn() : null, est = r0 ? rayonGoods() : null;
   const unpriced = r0 ? rayonPicked(r0).some(([k]) => { const e = rayonEntry(r0, k); return e && !e.p && !e.pb; }) : false;
-  const hint = withMax ? "" : items ? t("barItems", { total: money(items), name: UI.bi(state.shop.name) })
+  const hint = withMax ? "" : items ? t(shopBuy() ? "barItemsCash" : "barItems", { total: money(items), name: UI.bi(state.shop.name) })
     : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { mid: est.mid }) : goods ? t("barGoodsHint") : "";
   $("#mobileHint").textContent = addonOn() ? t("qAddon", { ref: state.addon.ref }) : hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
@@ -2228,6 +2251,7 @@ async function submit(e) {
     if (/welcome_used/.test(ex.message)) { state.welcomeUsed = true; refuseWelcome((String(ex.message).match(/welcome_used_addr:(\w+)/) || [])[1]); return; }
     if (/carnet_/.test(ex.message)) { if (state.pro) state.pro.credits = 0; syncVisibility(); return showError(t("errCarnet")); }
     if (/cash_max/.test(ex.message)) return showError(t("errCashMax", { max: money(cashMax()) }));
+    if (/cash_first_max/.test(ex.message)) return showError(t("errCashNew", { max: money(Number((state.settings || {}).cash_first_max) || 100), n: Number((state.settings || {}).cash_first_orders) || 3 }));
     if (/cash_first/.test(ex.message)) return showError(t("errCashFirst"));
     if (/demo_shop/.test(ex.message)) return showError(t("errDemoShop"));
     if (/cash_note_small/.test(ex.message)) return showError(t("errCashNote"));
@@ -2713,6 +2737,7 @@ function renderCatalog() {
         <p><i>1</i><span>${UI.esc(t("pay2Goods", { name: UI.bi(state.shop.name), amount: n ? money(cartTotal()) : "" }))}</span></p>
         <p><i>2</i><span>${UI.esc(t("pay2Ride"))}</span></p>
         <small>${UI.esc(t("pay2Note"))}</small></div>`
+      : shopCashOnly() ? `<div class="pay2 pay1"><b>${UI.esc(t("pay1Title"))}</b><p><i>💵</i><span>${UI.esc(t("pay1Body", { amount: n ? money(cartTotal()) : "" }))}</span></p></div>`
       : shopNoPay() ? `<p class="cg-pay">${UI.esc(t("nopayShort", { name: UI.bi(state.shop.name) }))}</p>`
       : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: UI.bi(state.shop.name) }))}</p>`}
     ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
@@ -2818,7 +2843,8 @@ function renderCart() {
   }).join("");
   $("#cartSum").textContent = money(cartTotal());
   const nm = state.shop ? shopShortName() : "";
-  if (state.shop && !state.shop.pay_link && !state.shop.pay_bit) {
+  if (state.shop && shopCashOnly()) $("#cartNote").textContent = t("pay1Cart");
+  else if (state.shop && !state.shop.pay_link && !state.shop.pay_bit) {
     // Pas de paiement en ligne chez ce commerce : on commande d'abord chez lui, puis HOP! va chercher la commande
     const tel = String(state.shop.phone || state.shop.whatsapp || "").split(/[;,]/)[0].replace(/[^\d+]/g, "");
     $("#cartNote").innerHTML = `<b class="cs-steps-t">${escHop(t("csNoPayT", { name: nm }))}</b>
@@ -2990,7 +3016,7 @@ function renderShopBanner() {
   $("#shopRefBox").classList.toggle("hidden", !shopSelf());
   if (pro) {
     $("#shopOrderLabel").textContent = t("spOrderLabel", { name: UI.bi(state.shop.name) });
-    $("#shopOrderNote").textContent = t("spOrderNote", { name: UI.bi(state.shop.name) });
+    $("#shopOrderNote").textContent = t(shopCashOnly() ? "spOrderNoteCash" : "spOrderNote", { name: UI.bi(state.shop.name) });
   }
   renderCatalog();
 }
