@@ -1616,6 +1616,7 @@ document.addEventListener("click", e => {
 });
 async function loadClients() {
   clients = (await Store.adminClients().catch(() => null)) || clients;
+  if (!carts.length) carts = (await Store.adminCarts().catch(() => null)) || carts;   // ceux qui ont laissé leurs coordonnées dans un panier
   if (tab === "clients") render();
 }
 function renderClients(view) {
@@ -1630,7 +1631,17 @@ function renderClients(view) {
     const ph = (String(m.author_name || "").match(/0[\d\-\s]{8,}/) || [])[0], k = ph && ph.replace(/\D/g, "").slice(-9);
     if (!k || known.has(k)) return;
     known.add(k);
-    writers.push({ name: String(m.author_name).split("·")[0].trim(), phone: ph.trim(), orders: 0, delivered: 0, spent: 0, writer: true });
+    writers.push({ name: String(m.author_name).split("·")[0].trim(), phone: ph.trim(), orders: 0, delivered: 0, spent: 0, writer: true, via: "msg" });
+  });
+  // … et ceux qui ont laissé nom + téléphone dans un panier, sans encore commander
+  carts.forEach(ct => {
+    const k = String(ct.client_phone || "").replace(/\D/g, "").slice(-9);
+    if (k.length < 9) return;
+    const w = writers.find(x => String(x.phone).replace(/\D/g, "").slice(-9) === k);
+    if (w) { w.cart = ct; return; }
+    if (known.has(k)) return;
+    known.add(k);
+    writers.push({ name: ct.client_name || "", phone: ct.client_phone, orders: 0, delivered: 0, spent: 0, writer: true, via: "cart", cart: ct, last_at: ct.updated_at });
   });
   const hid = hiddenClients(), keyOf = c => c.client_id || String(c.phone || "").replace(/\D/g, "").slice(-9);
   const allPeople = clients.concat(writers);
@@ -1662,20 +1673,21 @@ function renderClients(view) {
         .sort((a, b) => String(b.created_at || b.pickup_at).localeCompare(String(a.created_at || a.pickup_at))).slice(0, 15);
       return `
       <details class="order-fold shop-fold" data-fold="${UI.esc(k)}"${foldOpen(k)}><summary>
-        <span>${sh ? "🏪" : c.client_id ? "👤" : c.writer ? "💬" : "📞"} <b>${UI.esc(c.name || "—")}</b>${sh && sh.name !== c.name ? " · 🏪 " + UI.esc(sh.name) : ""}${c.blocked ? " · ⛔" : ""}</span>
+        <span>${sh ? "🏪" : c.client_id ? "👤" : c.writer ? "📝" : "📞"} <b>${UI.esc(c.name || "—")}</b>${sh && sh.name !== c.name ? " · 🏪 " + UI.esc(sh.name) : ""}${c.blocked ? " · ⛔" : ""}</span>
         <b>${Number(c.delivered || 0)} 📦</b></summary>
       <article class="order" data-client="${UI.esc(c.client_id || "")}">
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name || "—")}</span>
-          ${sh ? `<span class="pill paid">🏪 Commerce partenaire</span>` : `<span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte client" : c.writer ? "💬 A écrit, pas encore commandé" : "📞 Sans compte client"}</span>`}
+          ${sh ? `<span class="pill paid">🏪 Commerce partenaire</span>` : `<span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte client" : c.writer ? "📝 Inscrit, pas encore commandé" : "📞 Sans compte client"}</span>`}
           ${c.blocked ? `<span class="pill" style="background:#FDE2E2;color:#9B1C1C">⛔ Bloqué</span>` : ""}
           <span class="order-price">${Number(c.delivered || 0)} livrée(s)</span>
         </div>
-        <p class="small muted" style="margin:6px 0 2px">${sh ? "Un commerce n'a pas besoin de compte client : il envoie ses courses depuis son espace commerce (« Envoyer une course »)." : c.client_id ? "" : c.writer ? "Il a écrit au service client, mais n'a encore ni commandé ni créé de compte : envoyez-lui « Comment commander »." : "Il commande avec son numéro de téléphone, sans avoir créé de compte (c'est permis)."}</p>
+        <p class="small muted" style="margin:6px 0 2px">${sh ? "Un commerce n'a pas besoin de compte client : il envoie ses courses depuis son espace commerce (« Envoyer une course »)." : c.client_id ? "" : c.writer ? (c.via === "cart" ? "Inscrit avec son nom et son téléphone (laissés dans son panier), pas encore de commande : relancez-le ou envoyez-lui « Comment commander »." : "Inscrit avec son nom et son téléphone (au service client), pas encore de commande : envoyez-lui « Comment commander ».") : "Il commande avec son numéro de téléphone, sans avoir créé de compte (c'est permis)."}</p>
         <div class="kv">
           <div><span>📞</span><span>${tel(c.name, c.phone)}${c.email ? " · " + UI.esc(c.email) + (c.email_verified ? " ✅" : " (à vérifier)") : ""}</span></div>
           <div><span>📦</span><span>${Number(c.orders || 0)} commande(s) · ${UI.money(Number(c.spent || 0))} livrés${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
           <div><span>📅</span><span>${c.client_id ? "Compte créé le " + day(c.account_at) + " · " : ""}dernière commande : ${c.orders ? day(c.last_at) + (c.last_at ? " à " + UI.fmtTime(c.last_at) : "") : "—"}</span></div>
+          ${c.cart && c.cart.count ? `<div><span>🛒</span><span>Panier non commandé (${UI.esc(UI.fmtDateTime(c.cart.updated_at))}) : ${UI.esc((c.cart.items || []).map(i => i.q + " × " + i.n).join(", ").slice(0, 160))}</span></div>` : ""}
         </div>
         ${mine.length ? `<details class="client-orders" data-fold="co:${UI.esc(k)}"${foldOpen("co:" + k)}><summary>📋 Voir le détail de ses courses (${mine.length}${Number(c.orders || 0) > mine.length ? " dernières" : ""})</summary>
           <div class="orders">${mine.map(o => card(o, true)).join("")}</div></details>` : ""}
