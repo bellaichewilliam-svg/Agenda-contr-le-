@@ -741,3 +741,4 @@ livraison/
 - Encadré total : livraison + articles (≈ prix indicatif) = à payer au livreur.
 - « Vous payez comment ? » (💵 Espèces / 📱 Bit / PayBox) directement dans la carte (mêmes champs que l'étape paiement), et en espèces « Avez-vous l'appoint ? » (J'ai l'appoint / billet de 100 / 200 ₪) → le livreur prépare la monnaie.
 - Règles d'argent inchangées (budget max, plafond espèces, Bit d'avance pour la livraison).
+- Kit pub : campagne « 🆕 Vos adresses préférées, livrées chez vous » = nouveaux visuels du patron (Hoppy + 5 partenaires, FR/HE), post 1080×1080 + story 1080×1920 (originaux dans video/public/reseaux/nouveaux-adresses-original-*.png ; QR vérifié → on-livre.html).
