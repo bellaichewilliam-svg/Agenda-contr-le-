@@ -2451,8 +2451,11 @@ function supportWho() {
   const name = String(p.contact_name || (acct && acct.name) || "").trim(), phone = String(p.contact_phone || (acct && acct.phone) || "").trim();
   return name.length >= 2 && phoneOk(phone) ? { name, phone } : null;
 }
-function askWho(then) {
+function askWho(then, kind) {
   const m = $("#whoModal"), fm = $("#whoForm"), p = Store.getProfile();
+  // Même petite fenêtre pour le service client et pour le panier (textes adaptés)
+  $("#whoTitle").textContent = t(kind === "cart" ? "whoCartTitle" : "whoTitle");
+  $("#whoSub").textContent = t(kind === "cart" ? "whoCartSub" : "whoSub");
   fm.who_name.value = p.contact_name || ""; fm.who_phone.value = p.contact_phone || "";
   $("#whoErr").textContent = "";
   m.dir = document.documentElement.dir;
@@ -4490,8 +4493,18 @@ function cartSync(snap) {
     Store.cartSave(body).catch(() => { cartSent = ""; });
   }, 2000);
 }
+// Panier : dès le premier article, le nom et le téléphone (pour garder le panier et pouvoir rappeler le client).
+// Redemandés à chaque nouvel article tant qu'ils manquent ; la commande les exige de toute façon.
+var cartLastCount = ((cartStored() || {}).snap || {}).count || 0;   // panier retrouvé au lancement : on ne redemande pas tout de suite
+function cartWho(snap) {
+  const grew = snap.count > cartLastCount;
+  cartLastCount = snap.count;
+  if (!grew || supportWho() || !$("#whoModal").classList.contains("hidden")) return;
+  setTimeout(() => askWho(() => cartSync(cartSnap()), "cart"), 350);
+}
 function cartPersist() {
   const snap = cartSnap();
+  cartWho(snap);
   try {
     if (snap.count) localStorage.setItem(LS_CART, JSON.stringify({ at: Date.now(), snap, cart: state.cart, pharma: state.pharma, pharmaOpt: state.pharmaOpt,
       homeKind: state.homeKind, shop: snap.kind === "shop" ? { code: state.shop.code, dir: state.shopDir || "" } : null }));
