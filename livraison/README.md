@@ -732,3 +732,4 @@ livraison/
 - **Réponse automatique** (base) : au premier message d'un client (puis toutes les 12 h sans réponse du patron), HOP! répond tout seul « Bienvenue chez HOP! » + comment commander en 3 étapes, en hébreu si le client écrit en hébreu, sinon en français.
 - **Fiche client** (Espace patron → Clients) : ses messages au service client sont joints (« 💬 Ouvrir ses messages »), reconnus à son numéro ; ceux qui ont seulement écrit ont aussi leur fiche (« 💬 A écrit, pas encore commandé »).
 - **WhatsApp « Comment commander »** (français + hébreu, prêt à envoyer) : sur chaque fiche client et dans la boîte de réception.
+- Fiche client : le détail des courses reste ouvert quand la page se rafraîchit ; l'heure apparaît (dernière commande « à 15:40 », et chaque course « · 🕐 15:40 »).

@@ -600,7 +600,7 @@ function card(o, withDay) {
   return fold(`
   <article class="order${o.status === "nouvelle" ? " is-new" : ""}" data-id="${UI.esc(o.id)}">
     <div class="order-head">
-      <span class="order-time">${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}${when}</span>
+      <span class="order-time">${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}${when}${withDay && o.urgency !== "programmee" && !nbOn ? " · 🕐 " + UI.esc(UI.fmtTime(o.created_at || o.pickup_at)) : ""}</span>
       <span class="pill st-${UI.esc(o.status)}">${st.icon} ${st.label}</span>${o.is_test ? ` <span class="pill">🧪 Test · hors chiffre</span>` : ""}
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(o.price)}</span>
@@ -1659,9 +1659,9 @@ function renderClients(view) {
         <div class="kv">
           <div><span>📞</span><span>${tel(c.name, c.phone)}${c.email ? " · " + UI.esc(c.email) + (c.email_verified ? " ✅" : " (à vérifier)") : ""}</span></div>
           <div><span>📦</span><span>${Number(c.orders || 0)} commande(s) · ${UI.money(Number(c.spent || 0))} livrés${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
-          <div><span>📅</span><span>${c.client_id ? "Compte créé le " + day(c.account_at) + " · " : ""}dernière commande : ${c.orders ? day(c.last_at) : "—"}</span></div>
+          <div><span>📅</span><span>${c.client_id ? "Compte créé le " + day(c.account_at) + " · " : ""}dernière commande : ${c.orders ? day(c.last_at) + (c.last_at ? " à " + UI.fmtTime(c.last_at) : "") : "—"}</span></div>
         </div>
-        ${mine.length ? `<details class="client-orders"><summary>📋 Voir le détail de ses courses (${mine.length}${Number(c.orders || 0) > mine.length ? " dernières" : ""})</summary>
+        ${mine.length ? `<details class="client-orders" data-fold="co:${UI.esc(k)}"${foldOpen("co:" + k)}><summary>📋 Voir le détail de ses courses (${mine.length}${Number(c.orders || 0) > mine.length ? " dernières" : ""})</summary>
           <div class="orders">${mine.map(o => card(o, true)).join("")}</div></details>` : ""}
         ${(() => { // Ses messages au service client (reconnus à son numéro), joints à sa fiche
           const ths = msgThreadsOf(c.phone);
