@@ -2709,17 +2709,6 @@ async function loadCatalogFor(shop) {
   renderCatalog();
   renderQuote();
 }
-// Commerce sans catalogue HOP! mais avec sa carte en ligne (ex. McDonald's) : le lien vers sa carte passe avant tout,
-// puis le client écrit sa commande ; avec un catalogue, le même lien sert pour « autre chose »
-function renderMenuLink(cg) {
-  const box = $("#shopMenuLink"), s = state.shop, url = s && proShopOn() ? webOf(s.website) : "";
-  box.classList.toggle("hidden", !url);
-  if (!url) { box.innerHTML = ""; return; }
-  const name = UI.bi(String(s.name || "").split(" · ")[0]);
-  box.innerHTML = `<a class="sh-menu-btn${cg ? " more" : ""}" href="${UI.esc(url)}" target="_blank" rel="noopener"><i aria-hidden="true">📋</i>
-    <span><b>${UI.esc(t(cg ? "smlMore" : "smlBtn", { name }))}</b>${cg ? "" : `<small>${UI.esc(t("smlSub"))}</small>`}</span><em aria-hidden="true">↗</em></a>`;
-  if (!cg) form.shop_order.placeholder = t("smlPh");
-}
 function renderCatalog() {
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
@@ -2727,7 +2716,6 @@ function renderCatalog() {
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   form.shop_order.placeholder = on ? t("cgNotePh") : t("spOrderPh");
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
-  renderMenuLink(on);
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgProducts().some(p => p.category_id === c.id));
   const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
