@@ -715,3 +715,8 @@ livraison/
 - Enregistré dans `settings.home_rows` (migration `settings_home_rows`, valeur de départ : tout caché). `config.js → homeRows` ne sert plus que de valeur par défaut.
 - « Mes favoris » et « Ouverts maintenant » restent toujours affichés.
 - Chaque rangée a aussi « 📋 Choisir les commerces et leur ordre » : ajouter (liste des commerces de l'accueil), monter ↑ / descendre ↓, retirer ✕, « ↺ Revenir à l'automatique ». Enregistré dans `settings.home_rows.<rangée>_list` (codes dans l'ordre) ; liste vide = automatique.
+
+### Nouveau design : plus de fenêtre « Enseignes près de vous » par-dessus l'accueil
+- « Repas de restaurant » ouvre la grande carte des restaurants (logos, numéro, site) ; on touche le sien → la commande remonte.
+- Pressing, poste, fleurs… : directement la commande (le départ se cherche dans le champ d'adresse).
+- L'ancienne fenêtre reste seulement pour l'ancien design (`?design=1`).
