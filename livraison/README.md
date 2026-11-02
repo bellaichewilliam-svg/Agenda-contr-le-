@@ -709,3 +709,8 @@ livraison/
 - Fiche « Infos » d'un commerce (avec ou sans catalogue) : lignes 📞 téléphone et 🌐 site.
 - Commerces partenaires : nouvelle colonne `shops.website` (migration `shops_website`), champ « 🌐 Site internet » dans la fiche du commerce (Espace patron → Commerces), renvoyée par `shop_public` et `shops_directory` (avec le téléphone et le WhatsApp).
 - Annuaire : 128 sites repris d'OpenStreetMap (champ `w` de `annuaire.json`, version 17), surtout les chaînes (Aroma, McDonald's, Golda, Super-Pharm, Shufersal…). Les autres enseignes n'ont pas de site connu : le patron peut l'ajouter quand elles deviennent partenaires.
+
+### Rangées de l'accueil client : le patron les allume ou les éteint
+- Espace patron → 🏪 Commerces → « 🏠 Accueil des clients » : 🔥 Populaires, ✨ Nouveautés, 🏪 Nos commerces partenaires, chacune avec son interrupteur (Affichée / Cachée), pour tous les clients.
+- Enregistré dans `settings.home_rows` (migration `settings_home_rows`, valeur de départ : tout caché). `config.js → homeRows` ne sert plus que de valeur par défaut.
+- « Mes favoris » et « Ouverts maintenant » restent toujours affichés.
