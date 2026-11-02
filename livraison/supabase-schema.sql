@@ -8468,3 +8468,28 @@ grant select, insert, update, delete on public.carts to authenticated;
 -- 8 min comprises (settings.purchase_min_shop = 8, orders_purchase_min) ; au-delà, l'attente annoncée avec photo.
 -- Fleuriste (01/11/2026) : faire composer un bouquet = petit achat (5 ₪, 5 min comprises) ; bouquet déjà commandé et prêt
 -- = simple retrait (prix de la livraison seule, bouton « déjà prête » du devis). Rien à changer dans la base.
+
+-- ============================================================================
+-- SITE WEB DES COMMERCES : affiché dans la bulle de la carte et dans « Infos » (avec le téléphone)
+-- ============================================================================
+alter table public.shops add column if not exists website text check (website is null or website ~ '^https?://\S{4,250}$');
+
+create or replace function public.shop_public(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object('id', id, 'code', code, 'name', name, 'kind', kind, 'city', city,
+                           'address', address, 'lat', lat, 'lon', lon, 'status', status,
+                           'pro', coalesce(plan_until >= current_date, false),
+                           'logo', logo, 'cover', cover, 'tagline', tagline, 'tagline_he', tagline_he, 'client_pays', client_pays,
+                           'whatsapp', whatsapp, 'phone', phone, 'website', website, 'hours', hours, 'about', about, 'about_he', about_he, 'pay_link', pay_link, 'pay_bit', pay_bit, 'demo', demo, 'gallery', gallery, 'shop_pays', shop_pays, 'pay_ask', pay_ask, 'promo', promo, 'promo_he', promo_he,
+                           'shop_share', case when client_pays then 0
+                                              else (select pro_shop_share - pro_hop_share from settings where id = 1) end)
+    from shops where code = upper(p_code) and status <> 'suspendu';
+$$;
+
+create or replace function public.shops_directory() returns json
+language sql stable security definer set search_path = public as $$
+  select coalesce(json_agg(json_build_object('code', code, 'name', name, 'kind', kind, 'city', city,
+           'address', address, 'lat', lat, 'lon', lon, 'pro', coalesce(plan_until >= current_date, false),
+           'hours', hours, 'kosher', kosher, 'whatsapp', whatsapp, 'phone', phone, 'website', website) order by name), '[]'::json)
+    from shops where status = 'actif' and not demo;
+$$;
