@@ -794,3 +794,7 @@ livraison/
 ### « Un service de livraison avant tout » (02/11)
 - Accueil : ligne sous le titre « 🛵 On livre depuis n'importe quel commerce de Netanya » (HE : « 🛵 משלוחים מכל עסק בנתניה »).
 - Section « ⭐ Nos partenaires » : encart « Votre commerce n'est pas dans la liste ? On livre quand même ! » + bouton « 🛵 Commander une livraison » qui amène à la case « On récupère où ? ».
+
+### Lignes à glisser (02/11)
+- `UI.swipeRow(contenu, boutons)` (common.js) : on glisse une ligne et ses boutons apparaissent derrière (vers la gauche en français, vers la droite en hébreu) ; un toucher ailleurs la referme.
+- Panier : 🗑 Supprimer · ＋ 1 · ✏️ Modifier (les − / + restent visibles). Mes courses : 📍 Suivre (ou 🧾 Reçu) · 💬 Message · ✖ Annuler (commande pas encore acceptée). Petite astuce affichée sous la liste.

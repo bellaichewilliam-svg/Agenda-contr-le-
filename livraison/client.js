@@ -2505,7 +2505,8 @@ function renderMine() {
   // Annulées : plus affichées ; refusées : 2 h, le temps de lire la raison et de recommander
   const list = state.mine.filter(shownInMine).sort((a, b) => new Date(b.created_at || b.pickup_at) - new Date(a.created_at || a.pickup_at));
   if (!list.length) { box.innerHTML = `<div class="empty card">${t("mineEmpty")} <a href="#commander">${t("mineFirst")}</a></div>`; return; }
-  box.innerHTML = list.map(o => `
+  const live = o => ["nouvelle", "confirmee", "recuperee"].includes(o.status);
+  box.innerHTML = list.map(o => UI.swipeRow(`
     <article class="mini-order">
       <div class="mo-ico">${{ colis: "📦", retrait: "📮", achat: "🛒", repas: "🍔" }[o.service] || "📦"}</div>
       <div class="mo-main">
@@ -2524,7 +2525,11 @@ function renderMine() {
         </div>
       </div>
       <div class="mo-side"><span class="pill st-${UI.esc(o.status)}">${t("st_" + o.status)}</span><b>${money(o.price)}</b></div>
-    </article>`).join("");
+    </article>`, [
+      live(o) ? { icon: "📍", label: t("swTrack"), href: UI.trackUrl(o), cls: "sw-blue" } : UI.receiptNo(o) ? { icon: "🧾", label: t("swReceipt"), href: UI.receiptUrl(o) } : null,
+      { icon: "💬", label: t("swChat"), attrs: `data-chat="${UI.esc(o.token)}"`, cls: "sw-green" },
+      o.status === "nouvelle" ? { icon: "✖", label: t("cancel"), attrs: `data-cancel="${UI.esc(o.token)}"`, cls: "sw-red" } : null
+    ], "sw-order")).join("") + `<p class="sw-hint">${UI.esc(t("swHintOrder"))}</p>`;
 }
 
 // --- Messagerie : la course (livreur + service client) ou le service client -----------------
@@ -2647,7 +2652,7 @@ async function checkChats() {
 async function onListClick(e) {
   const chat = e.target.closest("[data-chat]");
   if (chat) { const o = state.mine.find(x => x.token === chat.dataset.chat); if (o) openOrderChat(o); return; }
-  const token = e.target.dataset.cancel;
+  const cb = e.target.closest("[data-cancel]"), token = cb && cb.dataset.cancel;
   if (!token || !confirm(t("cancelConfirm"))) return;
   try { await Store.cancelMyOrder(token); } catch (ex) { alert(t("cancelFail")); }
   loadMine();
@@ -2856,10 +2861,14 @@ function renderCart() {
   $("#cartTitle").textContent = t("csTitle", { name: state.shop ? UI.bi(state.shop.name) : "" });
   $("#cartBody").innerHTML = lines.map(({ p, qty }) => {
     const photo = UI.safeImg(p.photo);
-    return `<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</span>
+    const id = UI.esc(p.id);
+    // On glisse la ligne : Supprimer · + 1 · Modifier (les − / + restent là pour ceux qui ne glissent pas)
+    return UI.swipeRow(`<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</span>
       <span class="cs-txt"><b><bdi>${UI.esc(UI.bi(p.name))}</bdi></b><small>${UI.esc(money(Number(p.price) * qty))}</small></span>
-      <span class="it-qty cs-qty"><button type="button" data-cs-minus="${UI.esc(p.id)}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${UI.esc(p.id)}" aria-label="+">+</button></span></div>`;
-  }).join("");
+      <span class="it-qty cs-qty"><button type="button" data-cs-minus="${id}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${id}" aria-label="+">+</button></span></div>`,
+      [{ icon: "🗑", label: t("swDel"), attrs: `data-cs-del="${id}"`, cls: "sw-red" }, { icon: "＋", label: t("swDup"), attrs: `data-cs-plus="${id}"` },
+        { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
+  }).join("") + `<p class="sw-hint">${UI.esc(t("swHint"))}</p>`;
   $("#cartSum").textContent = money(cartTotal());
   const nm = state.shop ? shopShortName() : "";
   let keep = $("#cartKeep");
@@ -2881,6 +2890,14 @@ document.addEventListener("click", e => {
 });
 $("#cartSheet").addEventListener("click", e => {
   if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) return $("#cartSheet").classList.add("hidden");
+  const del = e.target.closest("[data-cs-del]"), edit = e.target.closest("[data-cs-edit]");
+  if (edit) { $("#cartSheet").classList.add("hidden"); openItem(edit.dataset.csEdit); return; }
+  if (del) {
+    delete state.cart[del.dataset.csDel];
+    renderCatalog(); renderQuote(); saveDraft(); cartPersist();
+    if (cartCount()) renderCart(); else $("#cartSheet").classList.add("hidden");
+    return;
+  }
   const plus = e.target.closest("[data-cs-plus]"), minus = e.target.closest("[data-cs-minus]");
   if (plus || minus) {
     const id = (plus || minus).dataset[plus ? "csPlus" : "csMinus"];

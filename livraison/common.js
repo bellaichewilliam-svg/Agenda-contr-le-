@@ -812,6 +812,59 @@ if (typeof MutationObserver !== "undefined") {
   if (document.body) startCal(); else document.addEventListener("DOMContentLoaded", startCal);
 }
 
+// --- Lignes à glisser (façon grandes applis) : on glisse une ligne (article du panier, course…) et ses boutons
+// apparaissent derrière (Supprimer, + 1, Modifier…). Vers la gauche en français, vers la droite en hébreu.
+// swipeRow(contenu, boutons, classe) → <div class="sw"> ; boutons = [{ icon, label, attrs, cls, href }]
+function swipeRow(inner, acts, cls) {
+  const btns = (acts || []).filter(Boolean).map(a => {
+    const body = `<i>${a.icon}</i><span>${esc(a.label)}</span>`;
+    return a.href ? `<a class="sw-act ${a.cls || ""}" href="${esc(a.href)}" ${a.attrs || ""}>${body}</a>`
+      : `<button type="button" class="sw-act ${a.cls || ""}" ${a.attrs || ""}>${body}</button>`;
+  }).join("");
+  return `<div class="sw ${cls || ""}"><div class="sw-acts">${btns}</div><div class="sw-fg">${inner}</div></div>`;
+}
+(() => {
+  if (typeof document === "undefined") return;
+  let cur = null, sx = 0, sy = 0, dx = 0, w = 0, drag = false, moved = false, open = null;
+  const rtl = () => document.documentElement.dir === "rtl";
+  const put = (fg, x, anim) => { fg.style.transition = anim ? "" : "none"; fg.style.transform = x ? `translateX(${x}px)` : ""; };
+  const close = sw => { if (!sw) return; const fg = sw.querySelector(".sw-fg"); if (fg) put(fg, 0, true); sw.classList.remove("open"); if (open === sw) open = null; };
+  document.addEventListener("pointerdown", e => {
+    const fg = e.target.closest && e.target.closest(".sw-fg");
+    if (open && !(e.target.closest && e.target.closest(".sw-acts")) && (!fg || fg.parentNode !== open)) close(open);
+    if (!fg || (e.pointerType === "mouse" && e.button !== 0)) return;
+    cur = fg; sx = e.clientX; sy = e.clientY; dx = 0; drag = false; moved = false;
+    w = fg.parentNode.querySelector(".sw-acts").offsetWidth;
+  }, true);
+  document.addEventListener("pointermove", e => {
+    if (!cur) return;
+    const mx = e.clientX - sx, my = e.clientY - sy;
+    if (!drag) { if (Math.abs(mx) < 8 && Math.abs(my) < 8) return; if (Math.abs(my) >= Math.abs(mx)) { cur = null; return; } drag = true; }
+    const sw = cur.parentNode, base = sw.classList.contains("open") ? (rtl() ? w : -w) : 0;
+    let x = base + mx;
+    x = rtl() ? Math.max(0, Math.min(w + 24, x)) : Math.min(0, Math.max(-w - 24, x));
+    dx = x; moved = true; put(cur, x, false);
+  });
+  const end = () => {
+    if (!cur) return;
+    const sw = cur.parentNode;
+    if (drag) {
+      if (Math.abs(dx) > w / 2) { if (open && open !== sw) close(open); put(cur, rtl() ? w : -w, true); sw.classList.add("open"); open = sw; }
+      else close(sw);
+    }
+    cur = null;
+  };
+  document.addEventListener("pointerup", end);
+  document.addEventListener("pointercancel", () => { if (cur) { close(cur.parentNode); cur = null; } });
+  // Un glissement n'est pas un toucher : la ligne ne s'ouvre pas en plus
+  document.addEventListener("click", e => {
+    if (moved && e.target.closest && e.target.closest(".sw-fg")) { e.preventDefault(); e.stopPropagation(); }
+    moved = false;
+  }, true);
+  // Un bouton touché : il fait son travail, puis la ligne se referme
+  document.addEventListener("click", e => { const a = e.target.closest && e.target.closest(".sw-act"); if (a) setTimeout(() => close(a.closest(".sw")), 60); });
+})();
+
 // --- Visites du site (analytique du patron) : pages vues, commandes commencées / envoyées, commerces ouverts,
 // et d'où vient la visite (Google, Facebook, Instagram, TikTok, WhatsApp, flyer ?src=…, QR d'un commerce ?c=…, utm_…).
 // Visiteur et visite : numéros au hasard gardés sur ce téléphone, ni nom ni téléphone. Pas pour le patron ni les livreurs.
@@ -918,7 +971,7 @@ function routeLayer(a, b, opts) {
 
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  track, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
+  track, swipeRow, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
