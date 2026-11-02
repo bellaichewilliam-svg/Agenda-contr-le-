@@ -761,3 +761,9 @@ livraison/
 - Photos, logo et couverture : dessins originaux (`img/jus/`, script `video/scripts/jus_photos.js`), données dans `supabase/seed-hop-jus.json`.
 - Mis en avant (🔥) et premier dans la vitrine de l'accueil ; le patron gère les articles depuis Commerces → HOP! Jus de fruits → 🔑 Son espace.
 - Correction base : la traduction automatique empêchait de créer une rubrique de catalogue depuis le 29/10 (réparé).
+
+### Courses près de chez soi : l'adresse ne disparaît plus (02/11)
+- Bug : venu de l'accueil (tuile courses, pharmacie…), le bloc « Adresse de livraison » était caché à l'écran 1 (calculé pendant que la commande était encore cachée) : le client restait bloqué sur « champs obligatoires » jusqu'à un rafraîchissement. Corrigé (recalcul à l'ouverture de la commande).
+- L'adresse enregistrée du client (dernière livrée, sinon 🏠 Maison) est mise d'office ; une adresse avec appartement est reconnue comme « appartement » (plus de question en plus).
+- Message clair s'il manque l'adresse : « Où doit-on vous livrer ? Choisissez 🏠 Maison ou tapez votre adresse juste ici. » (FR/HE), et on l'amène au champ.
+- Patron, fiche client : ses adresses enregistrées (rue, étage, appartement, code, Waze) et son panier en cours, même s'il a un compte.

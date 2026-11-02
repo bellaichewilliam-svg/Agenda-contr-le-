@@ -1619,6 +1619,17 @@ async function loadClients() {
   if (!carts.length) carts = (await Store.adminCarts().catch(() => null)) || carts;   // ceux qui ont laissé leurs coordonnées dans un panier
   if (tab === "clients") render();
 }
+// Adresses enregistrées dans le compte du client (Maison, Travail…) : rue, étage, appartement, code, et Waze
+function clientAddrs(c) {
+  const list = Array.isArray(c.addresses) ? c.addresses.filter(a => a && !a.brand && (a.street || a.lat != null)) : [];
+  if (!list.length) return c.client_id ? `<div><span>🏠</span><span class="muted">Pas encore d'adresse enregistrée dans son compte</span></div>` : "";
+  return list.map(a => {
+    const tag = a.tag === "home" ? "Maison" : a.tag === "work" ? "Travail" : a.name || "Adresse";
+    const det = [a.building ? "bât. " + a.building : "", a.floor ? "étage " + a.floor : "", a.apt ? "appt " + a.apt : "", a.code ? "code " + a.code : "", a.note || ""].filter(Boolean).join(" · ");
+    const waze = a.lat != null ? `https://waze.com/ul?ll=${a.lat},${a.lon}&navigate=yes` : "";
+    return `<div><span>${a.tag === "work" ? "💼" : a.tag === "home" ? "🏠" : "📍"}</span><span><b>${UI.esc(tag)}</b> : <bdi>${UI.esc([a.street, a.number].filter(Boolean).join(" "))}</bdi>${a.city ? ", " + UI.esc(UI.cityFr(a.cityId || a.city)) : ""}${det ? " · " + UI.esc(det) : ""}${waze ? ` · <a href="${UI.esc(waze)}" target="_blank" rel="noopener">🧭 Waze</a>` : ""}</span></div>`;
+  }).join("");
+}
 function renderClients(view) {
   const q = clientsQ.trim().toLowerCase(), qd = q.replace(/\D/g, "");
   const withAcc = clients.filter(c => c.client_id);
@@ -1634,12 +1645,18 @@ function renderClients(view) {
     writers.push({ name: String(m.author_name).split("·")[0].trim(), phone: ph.trim(), orders: 0, delivered: 0, spent: 0, writer: true, via: "msg" });
   });
   // … et ceux qui ont laissé nom + téléphone dans un panier, sans encore commander
+  // (un client qui a déjà un compte ou des commandes : son panier en cours est joint à sa fiche)
+  clients.forEach(c => { delete c.cart; });
   carts.forEach(ct => {
     const k = String(ct.client_phone || "").replace(/\D/g, "").slice(-9);
     if (k.length < 9) return;
     const w = writers.find(x => String(x.phone).replace(/\D/g, "").slice(-9) === k);
     if (w) { w.cart = ct; return; }
-    if (known.has(k)) return;
+    if (known.has(k)) {
+      const c = clients.find(x => String(x.phone || "").replace(/\D/g, "").slice(-9) === k);
+      if (c && ct.status !== "commande" && ct.status !== "vide" && (!c.cart || String(ct.updated_at) > String(c.cart.updated_at))) c.cart = ct;
+      return;
+    }
     known.add(k);
     writers.push({ name: ct.client_name || "", phone: ct.client_phone, orders: 0, delivered: 0, spent: 0, writer: true, via: "cart", cart: ct, last_at: ct.updated_at });
   });
@@ -1695,6 +1712,7 @@ function renderClients(view) {
           <div><span>📞</span><span>${tel(c.name, c.phone)}${c.email ? " · " + UI.esc(c.email) + (c.email_verified ? " ✅" : " (à vérifier)") : ""}</span></div>
           <div><span>📦</span><span>${Number(c.orders || 0)} commande(s) · ${UI.money(Number(c.spent || 0))} livrés${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
           <div><span>📅</span><span>${c.client_id ? "Compte créé le " + day(c.account_at) + " · " : ""}dernière commande : ${c.orders ? day(c.last_at) + (c.last_at ? " à " + UI.fmtTime(c.last_at) : "") : "—"}</span></div>
+          ${clientAddrs(c)}
           ${c.cart && c.cart.count ? `<div><span>🛒</span><span>Panier non commandé (${UI.esc(UI.fmtDateTime(c.cart.updated_at))}) : ${UI.esc((c.cart.items || []).map(i => i.q + " × " + i.n).join(", ").slice(0, 160))}</span></div>` : ""}
         </div>
         ${mine.length ? `<details class="client-orders" data-fold="co:${UI.esc(k)}"${foldOpen("co:" + k)}><summary>📋 Voir le détail de ses courses (${mine.length}${Number(c.orders || 0) > mine.length ? " dernières" : ""})</summary>

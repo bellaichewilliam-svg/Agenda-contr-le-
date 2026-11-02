@@ -33,6 +33,7 @@ function setView(v, push) {
   window.scrollTo(0, 0);
   // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
   if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); });
+  if (v === "order") requestAnimationFrame(() => { if (wiz.on) wizLabels(); });
   return true;
 }
 // Un champ de l'adresse repliée en fiche doit être corrigé (erreur à l'envoi) : les champs reviennent
@@ -993,7 +994,12 @@ function goKind(id) {
   if (f && f.brand) clearHomeAddr("from", true);
   if (state.homeKind === id) state.homeKind = null;   // (applyKind le remet, sans l'enlever)
   // Pharmacie, tabac, makolet… : pas de magasin à choisir, on va droit aux produits (le livreur va au plus proche)
-  if (RAYON_KINDS.includes(id)) { applyKind(id); return goPharma(); }
+  if (RAYON_KINDS.includes(id)) {
+    applyKind(id);
+    // Livré chez le client : son adresse enregistrée (la dernière livrée, sinon Maison) est mise d'office
+    if (!state.pick.to && !val("dropoff_address").trim()) { const d = defaultDropAddr(); if (d) applySavedAddr("to", d); }
+    return goPharma();
+  }
   // Nouveau design : « Repas de restaurant » ouvre la grande carte des restaurants (logos, numéro, site),
   // on touche le sien et la commande remonte ; pas de liste par-dessus l'accueil
   if (D2 && id === "resto" && !state.pick.from) { applyKind(id); setMapOpen(true); return; }
@@ -1214,6 +1220,9 @@ function wizUsedMore() {
 // Un bloc dont tout est caché sur cet écran (ex. « Où récupérer ? » à l'écran 2 pour un colis) disparaît
 function wizEmpty() {
   if (!wiz.on) return;
+  // Formulaire caché (on est sur l'accueil) : rien n'a de taille, tout paraîtrait vide ; on recalcule à l'ouverture
+  // de la commande (sinon « Adresse de livraison » restait cachée jusqu'à un rafraîchissement)
+  if (!form.getClientRects().length) { form.querySelectorAll("fieldset.wiz-empty").forEach(fs => fs.classList.remove("wiz-empty")); return; }
   form.querySelectorAll("fieldset[data-wiz]").forEach(fs => {
     fs.classList.remove("wiz-empty");
     const kids = [...fs.children].filter(k => k.tagName !== "LEGEND");
@@ -1586,7 +1595,8 @@ function applySavedAddr(which, a) {
   DETAIL.forEach(k => { form.elements[pre + "_" + k].value = a[k] || ""; });
   if (pre === "dropoff") { form.dropoff_nocode.checked = NO_CODE.test(a.code || ""); syncNoCode(); }
   form.elements[pre + "_note"].value = a.note || "";
-  setKind(pre, a.kind || null);
+  // Adresse enregistrée sans type de lieu mais avec appartement / étage : c'est un appartement (on ne le redemande pas)
+  setKind(pre, a.kind || (!a.brand && a.apt ? "appartement" : null));
   state.pick[which] = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, label, exact: a.exact };
   setBrandMode(which, !!a.brand);
   state[which + "Point"] = a.lat != null ? { lat: a.lat, lon: a.lon } : null;
@@ -1900,7 +1910,7 @@ function validateOrder() {
   const missing = required.find(k => !val(k).trim());
   if (missing || !fromCity || !toCity) {
     if (missing) form.elements[missing].focus();
-    return showErrorFalse(t("errRequired"));
+    return showErrorFalse(t(missing === "dropoff_address" ? "errDropAddr" : "errRequired"));
   }
   // Adresses : uniquement celles proposées par la carte (si le service répond)
   if (Places.serviceOk && ((!near && !ac.from.isPicked()) || !ac.to.isPicked())) {
