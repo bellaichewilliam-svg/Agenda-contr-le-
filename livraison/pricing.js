@@ -136,6 +136,7 @@ function computeQuote(opts, cfg) {
     let amount = 0, key = "qPromo";
     if (d.kind === "loyalty") { amount = Math.min(subtotal, d.max); key = "qLoyalty"; }
     else if (d.kind === "referral") { amount = d.amount; key = "qReferral"; }
+    else if (d.kind === "gift") { amount = d.amount; key = "qCartGift"; }
     else if (d.percent) amount = Math.min(Math.round(subtotal * d.percent / 100), d.max || Infinity);
     else amount = d.amount || 0;
     amount = Math.min(amount, subtotal);

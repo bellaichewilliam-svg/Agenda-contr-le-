@@ -786,3 +786,6 @@ livraison/
 - Accueil : pastille fine « 🛒 Reprendre mon panier (n) » quand un panier est gardé sur le téléphone.
 - Mesure : 1er article ajouté, écran 2, écran 3, et le champ qui bloque « Continuer » → carte « 🧲 Où les clients s'arrêtent » dans 📊 Visites du site.
 - Avec les correctifs déjà prêts (adresse de livraison qui disparaissait, « Votre adresse » en 1re case remplie d'office, cadre de paiement faux retiré).
+- **🎁 Cadeau « panier retrouvé »** (accord du patron, 02/11) : client qui a DÉJÀ fait sa 1re commande (celle à prix réduit) et revient finir un panier laissé depuis 30 min à 24 h → −5 ₪ sur la livraison (code PANIER), au plus une fois par semaine sur ce téléphone. Pastille « 🛒 Reprendre mon panier (n) 🎁 −5 ₪ ». Jamais cumulé avec un autre code.
+- **Relance** (onglet 🛒 Paniers) : bandeau « ⏰ N paniers à relancer maintenant » (abandonnés depuis 1 h à 24 h, avec numéro, jamais relancés), en tête de liste ; message WhatsApp prêt avec le petit plus (−5 ₪ pour un client déjà livré, 1re course réduite pour un nouveau). L'envoi WhatsApp tout seul demande l'API WhatsApp Business (payante, validée par Meta) : un toucher suffit en attendant.
+- **Accueil** : commerces ouverts toujours devant les fermés ; « Ouverts maintenant » triés par heure de fermeture (ceux qui ferment le plus tard d'abord).

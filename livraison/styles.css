@@ -4104,3 +4104,5 @@ html.d2.d2-day .cart-resume { color: #0F1F3D; }
 .cs-keep { margin: 4px 0 8px; font-size: 14px; }
 .fn-bar { display: inline-block; vertical-align: middle; width: 90px; height: 7px; border-radius: 9px; background: rgba(127,127,127,.25); overflow: hidden; margin-inline-end: 6px; }
 .fn-bar i { display: block; height: 100%; background: #FF6A13; border-radius: 9px; }
+.cart-resume .cr-gift { font-style: normal; font-weight: 800; color: #FF6A13; }
+.cart-due { margin: 0 0 12px; padding: 12px 14px; border: 1px solid rgba(255,106,19,.5); background: rgba(255,106,19,.1); border-radius: 14px; }

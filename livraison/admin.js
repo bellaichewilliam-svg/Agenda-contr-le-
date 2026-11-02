@@ -1569,6 +1569,8 @@ const CART_IDLE = 30 * 60000;
 const cartState = c => c.status === "commande" ? "commande" : c.status === "relance" ? "relance" : Date.now() - new Date(c.updated_at) > CART_IDLE ? "abandon" : "encours";
 const CART_LBL = { abandon: "😴 Abandonnés", relance: "💬 Relancés", encours: "🛒 En cours", commande: "✅ Commandés", tous: "Tous" };
 async function loadCarts() {
+  // (les fiches clients servent au message de relance : client déjà livré → cadeau, nouveau → 1re course réduite)
+  if (!clients.length) Store.adminClients().then(c => { if (c) clients = c; }).catch(() => {});
   carts = (await Store.adminCarts().catch(() => null)) || carts;
   const n = carts.filter(c => cartState(c) === "abandon").length;
   const b = $("#cartsBadge"); if (b) b.textContent = n ? String(n) : "";
@@ -1576,15 +1578,24 @@ async function loadCarts() {
 }
 function cartRelance(c) {
   const he = c.lang === "he", n = (c.client_name || "").split(" ")[0];
+  // Le petit plus : client déjà livré → −5 ₪ sur la livraison s'il finit aujourd'hui (même téléphone) ; nouveau → sa 1re course à prix réduit
+  const d9c = String(c.client_phone || "").replace(/\D/g, "").slice(-9), known = (clients || []).find(x => String(x.phone || "").replace(/\D/g, "").slice(-9) === d9c);
+  const done = !!(known && Number(known.delivered) > 0), first = (CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || 25) - Number((CONFIG.promos.codes.BIENVENUE || {}).amount || 10);
+  const plus = d9c.length < 9 ? "" : done
+    ? (he ? "\n🎁 מתנה: 5 ₪ פחות על המשלוח אם מסיימים את ההזמנה היום, מאותו טלפון." : "\n🎁 Petit cadeau : 5 ₪ de moins sur la livraison si vous finissez votre commande aujourd'hui, depuis ce téléphone.")
+    : (he ? `\n🎁 המשלוח הראשון שלכם רק ${first} ₪.` : `\n🎁 Votre 1re livraison ne coûte que ${first} ₪.`);
   const items = (c.items || []).slice(0, 6).map(i => `• ${i.q} × ${i.n}`).join("\n") + ((c.items || []).length > 6 ? "\n…" : "");
   const base = location.origin + "/app/", link = c.shop_code ? `${base}?c=${encodeURIComponent(c.shop_code)}${he ? "&lang=he" : ""}` : base + (he ? "?lang=he" : "");
   return he
-    ? `שלום${n ? " " + n : ""} 👋\nהסל שלכם ב-HOP! מחכה לכם 🛒${c.shop_name ? " (" + c.shop_name + ")" : ""}:\n${items}\n\nנשאר רק ללחוץ "להזמנה" ו-HOP! מביאים לכם עד הבית 🛵\n👈 ${link}`
-    : `Bonjour${n ? " " + n : ""} 👋\nVotre panier HOP! vous attend 🛒${c.shop_name ? " (" + c.shop_name + ")" : ""} :\n${items}\n\nIl ne reste qu'à toucher « Commander » et HOP! vous l'apporte chez vous 🛵\n👉 ${link}`;
+    ? `שלום${n ? " " + n : ""} 👋\nהסל שלכם ב-HOP! מחכה לכם 🛒${c.shop_name ? " (" + c.shop_name + ")" : ""}:\n${items}\n\nנשאר רק ללחוץ "להזמנה" ו-HOP! מביאים לכם עד הבית 🛵${plus}\n👈 ${link}`
+    : `Bonjour${n ? " " + n : ""} 👋\nVotre panier HOP! vous attend 🛒${c.shop_name ? " (" + c.shop_name + ")" : ""} :\n${items}\n\nIl ne reste qu'à toucher « Commander » et HOP! vous l'apporte chez vous 🛵${plus}\n👉 ${link}`;
 }
 function renderCarts(view) {
   const by = k => carts.filter(c => k === "tous" || cartState(c) === k);
-  const list = by(cartsFilter);
+  // À relancer maintenant : abandonné depuis 1 h à 24 h, avec un numéro, jamais relancé (en tête de liste)
+  const due = c => cartState(c) === "abandon" && c.client_phone && !c.remind_count && Date.now() - new Date(c.updated_at) >= 3600000 && Date.now() - new Date(c.updated_at) < 86400000;
+  const list = by(cartsFilter).sort((x, y) => (due(y) - due(x)) || (new Date(y.updated_at) - new Date(x.updated_at)));
+  const nDue = carts.filter(due).length;
   const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
   const sumAb = by("abandon").reduce((a, c) => a + (Number(c.total) || 0), 0);
   view.innerHTML = `
@@ -1594,13 +1605,14 @@ function renderCarts(view) {
       <div class="stat"><small>Relancés</small><b>${by("relance").length}</b></div>
       <div class="stat"><small>Commandés</small><b>${by("commande").length}</b></div>
     </div>
+    ${nDue ? `<div class="card cart-due">⏰ <b>${nDue} panier${nDue > 1 ? "s" : ""} à relancer maintenant</b> : laissé${nDue > 1 ? "s" : ""} depuis plus d'1 h, avec un numéro. Un toucher sur « 💬 Relancer » : le message est prêt, avec le petit cadeau (−5 ₪ pour un client déjà livré, 1re course réduite pour un nouveau).</div>` : ""}
     <p class="muted small" style="margin:-8px 0 12px">Chaque client a son panier, gardé 7 jours sur son téléphone. Sans changement depuis 30 min et pas commandé : il est « abandonné ». « Relancer » ouvre WhatsApp avec un message prêt, dans sa langue. Le nom et le numéro apparaissent quand le client les a déjà donnés (compte ou commande précédente).</p>
     <div class="toolbar cart-filters">${Object.keys(CART_LBL).map(k => `<button type="button" class="btn btn-sm${k === cartsFilter ? " btn-primary" : ""}" data-cartf="${k}">${CART_LBL[k]} (${by(k).length})</button>`).join("")}
       <button type="button" class="btn btn-sm" data-cart-reload>↻</button>
       ${carts.some(c => !c.client_phone) ? `<button type="button" class="btn btn-sm" data-cart-del-anon>🗑️ Supprimer les paniers sans numéro (${carts.filter(c => !c.client_phone).length})</button>` : ""}</div>
     ${list.length ? `<div class="orders">${list.map(c => { const st = cartState(c); return `
       <article class="order cart-card cs-${st}">
-        <div class="order-head"><span class="order-time">${UI.esc(c.client_name || "Client sans nom")}${c.lang === "he" ? " · 🇮🇱" : ""}</span><span class="pill">${CART_LBL[st]}</span></div>
+        <div class="order-head"><span class="order-time">${UI.esc(c.client_name || "Client sans nom")}${c.lang === "he" ? " · 🇮🇱" : ""}</span><span class="pill">${CART_LBL[st]}</span>${due(c) ? `<span class="pill unpaid">⏰ À relancer</span>` : ""}</div>
         <p class="muted small" style="margin:2px 0 8px">${c.shop_name ? "🏪 " + UI.esc(c.shop_name) + " · " : ""}${c.count} article(s)${Number(c.total) ? " · ≈ " + UI.money(Number(c.total)) : ""} · ${ago(c.updated_at)}${c.order_ref ? " · commande " + UI.esc(c.order_ref) : ""}${c.remind_count ? " · relancé " + c.remind_count + " fois" : ""}</p>
         <ul class="cart-items">${(c.items || []).map(i => `<li><b>${i.q} ×</b> ${UI.esc(i.e ? i.e + " " : "")}${UI.esc(i.n)}${i.p ? ` <small>≈ ${UI.money(i.p * i.q)}</small>` : ""}</li>`).join("")}</ul>
         <div class="order-actions">${c.client_phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waLink(c.client_phone, cartRelance(c)))}" target="_blank" rel="noopener" data-cart-relance="${UI.esc(c.device)}">💬 Relancer sur WhatsApp</a>
