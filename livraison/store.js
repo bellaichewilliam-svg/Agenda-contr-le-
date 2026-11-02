@@ -278,12 +278,14 @@ async function createOrder(order) {
           shop_order: (list.map(i => `${i.qty} × ${i.name}`).join("\n") + (note ? "\n💬 " + note : "")).slice(0, 1000) });
       } else order.items = null;
     } else order.items = null;
+    if (shop && shop.paused && String(order.shop_order || "").trim()) throw new Error("shop_paused");
     // Commerce non partenaire (HOP! commande pour le client) : articles par lien du commerce, Bit à HOP! ou espèces
     order.goods_link = null;
     const hasGoods = Number(order.items_total) > 0 || !!String(order.shop_order || "").trim();
     if (!(shop && shop.cash_ok && hasGoods) || !["lien", "bit", "especes"].includes(order.goods_choice)) order.goods_choice = null;
     if (order.goods_choice === "especes" && order.payment_method !== "cash") throw new Error("goods_cash");
-    order.goods_pay = shop && hasGoods && (["lien", "bit"].includes(order.goods_choice) || shop.pay_link || shop.pay_bit) ? "a_payer" : null;
+    if (order.goods_choice === "bit" && order.payment_method !== "bit") throw new Error("goods_bit");
+    order.goods_pay = shop && hasGoods && (order.goods_choice === "lien" || (!order.goods_choice && (shop.pay_link || shop.pay_bit))) ? "a_payer" : null;
     // Réduction seulement avec un code (au plus 30 ₪, payée par HOP), part HOP du Pro, pas de pourboire
     Object.assign(order, {
       discount: order.promo_code ? Math.min(30, Math.max(0, Number(order.discount) || 0)) : 0,
@@ -921,6 +923,16 @@ async function adminGoodsLink(id, link) {
   const all = localOrders(), o = all.find(x => x.id === id);
   if (!o || o.goods_choice !== "lien" || !/^https:\/\/\S{4,600}$/.test(link)) return false;
   o.goods_link = link; saveLocalOrders(all); return true;
+}
+// Le patron change le paiement des articles (le lien ne marche pas…) : lien, Bit au livreur ou espèces au livreur
+async function adminGoodsChoice(id, choice) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_goods_choice", { method: "POST", body: { p_id: id, p_choice: choice } });
+  const all = localOrders(), o = all.find(x => x.id === id);
+  if (!o || !o.goods_choice || !["nouvelle", "confirmee"].includes(o.status)) return false;
+  if (choice === "lien") Object.assign(o, { goods_choice: "lien", goods_pay: o.goods_pay === "recu" ? "recu" : "a_payer", cash_goods: 0, cash_shop_after: false });
+  else if (choice === "bit") Object.assign(o, { goods_choice: "bit", goods_pay: null, goods_link: null, payment_method: "bit", cash_note: null, cash_goods: 0, cash_shop_after: false });
+  else Object.assign(o, { goods_choice: "especes", goods_pay: null, goods_link: null, payment_method: "cash", cash_goods: Number(o.items_total || 0), cash_shop_after: Number(o.items_total || 0) > 0 });
+  saveLocalOrders(all); return true;
 }
 async function adminGoodsPay(id, ok) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_goods_pay", { method: "POST", body: { p_id: id, p_ok: !!ok } });
@@ -2034,7 +2046,7 @@ const planActive = s => !!(s && s.plan_until && s.plan_until >= new Date().toISO
 const publicShop = s => s && s.status !== "suspendu"
   ? { id: s.id, code: s.code, name: s.name, kind: s.kind, city: s.city, address: s.address, lat: s.lat, lon: s.lon, status: s.status,
       pro: planActive(s), logo: s.logo || null, cover: s.cover || null, tagline: s.tagline || null, tagline_he: s.tagline_he || null, about_he: s.about_he || null, client_pays: !!s.client_pays,
-      hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null, phone: s.phone || null, website: s.website || null, pay_link: s.pay_link || null, pay_bit: s.pay_bit || null, demo: !!s.demo, shop_pays: !!s.shop_pays, pay_ask: !!s.pay_ask, cash_ok: !!s.cash_ok,
+      hours: s.hours || null, about: s.about || null, whatsapp: s.whatsapp || null, phone: s.phone || null, website: s.website || null, pay_link: s.pay_link || null, pay_bit: s.pay_bit || null, demo: !!s.demo, shop_pays: !!s.shop_pays, pay_ask: !!s.pay_ask, cash_ok: !!s.cash_ok, paused: !!s.paused,
       gallery: s.gallery || [], promo: s.promo || null, promo_he: s.promo_he || null,
       shop_share: s.client_pays ? 0 : DEFAULT_SETTINGS.pro_shop_share - DEFAULT_SETTINGS.pro_hop_share } : null;
 
@@ -2499,7 +2511,7 @@ window.Store = {
   ONLINE, STATUSES, LIVE, LS,
   getSettings, saveSettings,
   welcomeUsed, deviceId,
-  adminGoodsLink, adminGoodsPay,
+  adminGoodsLink, adminGoodsPay, adminGoodsChoice,
   createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,

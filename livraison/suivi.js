@@ -48,7 +48,7 @@ let map = null, markers = {}, fitted = false, courierSeen = false;
 
 // Commerce non partenaire : articles payés avec le lien du commerce (envoyé par HOP!) ou par Bit à HOP! avant la commande
 const goodsSp = o => (o.goods_choice === "lien" ? { name: UI.bi(o.shop_name || (o.shop_pay && o.shop_pay.name) || ""), link: o.goods_link || null }
-  : o.goods_choice === "bit" ? { name: "HOP!", bit: CONFIG.bitPhone } : o.shop_pay);
+  : o.goods_choice === "bit" ? null : o.shop_pay);
 const goodsLinkWait = o => (o.goods_choice === "lien" && !o.goods_link && o.goods_pay === "a_payer"
   ? t("gcWaitLink", { name: UI.bi(o.shop_name || ""), amount: Number(o.items_total) > 0 ? UI.money(o.items_total) : t("gpAmountShop") }) : "");
 function cityLabel(id) { return CONFIG.cities.some(c => c.id === id) ? I18N.cityName(id) : id; }

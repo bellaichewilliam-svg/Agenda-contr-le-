@@ -504,9 +504,10 @@ function card(o, withDay) {
   if (oShop && o.shop_status === "acceptee") meta.push(`<button class="pill pill-btn paid" data-act="shopready" title="La commande est prête au commerce : le livreur peut la récupérer">✅ Prête</button>`);
   // Commerce non partenaire : comment le client paie ses articles, et ce qu'il reste à faire au patron
   if (o.goods_choice) {
-    const lab = { lien: "🔗 Articles : lien de paiement du commerce", bit: "📱 Articles : Bit à HOP! avant", especes: "💵 Articles : espèces au livreur" }[o.goods_choice] || "";
+    const lab = { lien: "🔗 Articles : lien de paiement du commerce", bit: "📱 Articles : Bit au livreur (avec la livraison)", especes: "💵 Articles : espèces au livreur" }[o.goods_choice] || "";
     const st = { a_payer: o.goods_choice === "lien" && !o.goods_link ? "lien à envoyer" : "à payer", declare: "le client dit avoir payé", recu: "✅ payés", pas_recu: "❌ pas reçu" }[o.goods_pay] || "";
     meta.push(`<span class="pill ${o.goods_pay === "recu" ? "paid" : o.goods_pay ? "unpaid" : ""}">${lab}${Number(o.items_total) > 0 ? " · " + UI.money(o.items_total) : ""}${st ? " · " + st : ""}</span>`);
+    if (["nouvelle", "confirmee"].includes(o.status)) meta.push(`<button class="pill pill-btn" data-act="goodschoice" title="Le lien ne marche pas ? Passez au Bit sur le numéro du livreur ou aux espèces ; le client est prévenu sur WhatsApp">💳 Changer le paiement</button>`);
     if (!["annulee", "refusee", "livree"].includes(o.status) && o.goods_pay && o.goods_pay !== "recu") {
       if (o.goods_choice === "lien") meta.push(`<button class="pill pill-btn${o.goods_link ? "" : " unpaid"}" data-act="goodslink" title="Préparez la commande dans l'appli du commerce, puis collez son lien de paiement : il part au client sur WhatsApp">${o.goods_link ? "🔗 Renvoyer le lien au client" : "🔗 Envoyer le lien de paiement au client"}</button>`);
       meta.push(`<button class="pill pill-btn paid" data-act="goodsok" title="Le client a bien payé ses articles : le livreur peut les récupérer">✅ Articles payés</button><button class="pill pill-btn st-annulee" data-act="goodsko">❌ Pas reçu</button>`);
@@ -1553,7 +1554,7 @@ function renderShops(view) {
       // Fiche repliée en une ligne (nom, état, courses) ; celles à vérifier restent ouvertes
       const k = "s:" + x.id, open = openFolds.has(k) || (x.status === "en_attente" && !closedFolds.has(k));
       return `<details class="order-fold shop-fold" data-shop="${UI.esc(x.id)}" data-fold="${UI.esc(k)}"${open ? " open" : ""}><summary>
-        <span>${vpos(x) < 1e9 ? `<em class="vit-n" title="Position sur l'accueil">${vpos(x) + 1}</em> ` : ""}${x.status === "en_attente" ? "⏳" : x.status === "suspendu" ? "⛔" : "✅"} <b>${UI.esc(x.name)}</b>${Store.planActive(x) ? " · ⭐ Pro" : ""}${x.address ? " · " + UI.esc(x.address) : ""}</span>
+        <span>${vpos(x) < 1e9 ? `<em class="vit-n" title="Position sur l'accueil">${vpos(x) + 1}</em> ` : ""}${x.status === "en_attente" ? "⏳" : x.status === "suspendu" ? "⛔" : x.paused ? "⏸️" : "✅"} <b>${UI.esc(x.name)}</b>${Store.planActive(x) ? " · ⭐ Pro" : ""}${x.address ? " · " + UI.esc(x.address) : ""}</span>
         ${vpos(x) < 1e9 ? `<span class="vit-move"><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="-1"${vpos(x) ? "" : " disabled"} aria-label="Monter">▲</button><button class="btn btn-sm" data-vmove="${UI.esc(x.id)}" data-dir="1"${vpos(x) < vitIds.length - 1 ? "" : " disabled"} aria-label="Descendre">▼</button></span>` : ""}
         <b>${done.length} 🛵</b></summary>
       <article class="order${x.status === "en_attente" ? " is-new" : ""}" data-shop="${UI.esc(x.id)}">
@@ -1599,6 +1600,7 @@ function renderShops(view) {
           <button class="btn btn-sm${Store.planActive(x) ? "" : " btn-primary"}" data-sact="plan" title="Le commerce a payé ${UI.esc(UI.money(settings.pro_monthly))}">⭐ HOP! Pro : +1 mois payé</button>
           <button class="btn btn-sm" data-sact="plangift">🎁 +1 mois offert</button>
           <button class="btn btn-sm" data-sact="enrich" title="Horaires, photo et menu repris de sa page publique (seulement ce qui est vide)">🤖 Remplir sa fiche</button>
+          <button class="btn btn-sm${x.paused ? " btn-primary" : ""}" data-sact="paused" title="Le commerce reste visible, mais personne ne peut commander tant qu'il est en pause">${x.paused ? "▶️ Reprendre les commandes" : "⏸️ Ne prend plus de commandes"}</button>
           <button class="btn btn-sm${x.kosher ? " btn-primary" : ""}" data-sact="kosher" title="Badge « Casher » sur sa vitrine, sa page et la carte">${x.kosher ? "✡️ Casher ✓" : "✡️ Casher ?"}</button>
           ${"featured" in x ? `<button class="btn btn-sm${x.featured ? " btn-primary" : ""}" data-sact="featured" title="Dans la rangée 🔥 Populaires de l'accueil, en tête, même sans commande ce mois-ci (l'automatique suit derrière)">${x.featured ? "🔥 Mis en avant ✓" : "🔥 Mettre en avant"}</button>` : ""}
           ${Store.planActive(x) ? `<button class="btn btn-sm" data-sact="planoff">Arrêter HOP! Pro</button>`
@@ -2605,6 +2607,8 @@ async function onViewClick(e) {
       changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null, pay_link: link || null, pay_bit: bit || null, website: web || null };
     } else if (el.dataset.sact === "showcase") {
       changes = { showcase: !shop.showcase };
+    } else if (el.dataset.sact === "paused") {
+      changes = { paused: !shop.paused };
     } else if (el.dataset.sact === "kosher") {
       changes = { kosher: !shop.kosher };
     } else if (el.dataset.sact === "featured") {
@@ -2754,6 +2758,24 @@ async function onViewClick(e) {
       ? `שלום ${first}, כאן HOP! 🛵\nההזמנה שלכם מ${sh.name} הוזמנה (מס' ${r}) ותהיה מוכנה בסביבות ${at}. השליח יוצא לאסוף אותה ומביא אליכם.\nמעקב: ${UI.trackUrl(o)}`
       : `Bonjour ${first}, ici HOP! 🛵\nVotre commande chez ${sh.name} est passée (n° ${r}) : elle sera prête vers ${at}. Le livreur part la chercher et vous l'apporte.\nSuivi : ${UI.trackUrl(o)}`;
     if (o.contact_phone && confirm("Prévenir le client sur WhatsApp ?")) window.open(UI.waLink(o.contact_phone, msg), "_blank");
+    await load();
+  } else if (el.dataset.act === "goodschoice") {
+    const cur = { lien: "1", bit: "2", especes: "3" }[o.goods_choice] || "";
+    const pick = prompt(`Course n° ${o.ref} : comment le client paie ses articles ?\n1 = lien de paiement du commerce\n2 = Bit sur le numéro du livreur (articles + livraison)\n3 = espèces au livreur (articles + livraison)`, cur === "1" ? "2" : "1");
+    if (pick === null) return;
+    const choice = { 1: "lien", 2: "bit", 3: "especes" }[pick.trim()];
+    if (!choice) return alert("Tapez 1, 2 ou 3.");
+    try { if (!(await Store.adminGoodsChoice(o.id, choice))) return alert("Non enregistré (course déjà partie ou annulée ?)."); } catch (ex) { return alert("Non enregistré, vérifiez la connexion."); }
+    const c = couriers.find(x => x.id === o.courier_id), bit = c ? c.bit_phone || c.phone || "" : "", cn = c ? String(c.name || "").split(" ")[0] : "";
+    const goods = Number(o.items_total || 0), total = Number(o.price || 0) + goods, first = String(o.contact_name || "").split(" ")[0], he = o.lang === "he";
+    const amt = `${UI.money(total)}${goods ? (he ? ` (מוצרים ${UI.money(goods)} + משלוח ${UI.money(o.price)})` : ` (articles ${UI.money(goods)} + livraison ${UI.money(o.price)})`) : ""}`;
+    const msg = choice === "bit"
+      ? (he ? `שלום ${first}, כאן HOP! 🛵\nלהזמנה שלכם: משלמים ${amt} בביט ${bit ? `לשליח ${cn}, למספר ${bit}` : "לשליח, המספר שלו יופיע בעמוד המעקב"}.\nמעקב: ${UI.trackUrl(o)}`
+            : `Bonjour ${first}, ici HOP! 🛵\nPour votre commande, payez ${amt} par Bit ${bit ? `à votre livreur ${cn}, au ${bit}` : "à votre livreur : son numéro s'affiche sur votre suivi"}.\nSuivi : ${UI.trackUrl(o)}`)
+      : choice === "especes"
+      ? (he ? `שלום ${first}, כאן HOP! 🛵\nלהזמנה שלכם: משלמים ${amt} במזומן לשליח, במסירה.\nמעקב: ${UI.trackUrl(o)}` : `Bonjour ${first}, ici HOP! 🛵\nPour votre commande, vous payez ${amt} en espèces au livreur, à la livraison.\nSuivi : ${UI.trackUrl(o)}`)
+      : "";
+    if (msg && o.contact_phone && confirm("Prévenir le client sur WhatsApp ?")) window.open(UI.waLink(o.contact_phone, msg), "_blank");
     await load();
   } else if (el.dataset.act === "goodsok" || el.dataset.act === "goodsko") {
     const ok = el.dataset.act === "goodsok";

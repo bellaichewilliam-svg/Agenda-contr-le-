@@ -8656,3 +8656,11 @@ end;
 $$;
 revoke execute on function public.admin_goods_pay(uuid, boolean) from public, anon;
 grant execute on function public.admin_goods_pay(uuid, boolean) to authenticated;
+
+-- ============================================================================
+-- (03/11) Pause d'un commerce (shops.paused : visible, mais pas de commande), Bit au livreur pour les articles
+-- d'un commerce non partenaire (articles + livraison sur le Bit du livreur), le patron change le paiement d'une course
+-- (admin_goods_choice). Appliqué le 03/11 (orders_ac_shop_paused, shop_public / shops_showcase avec paused,
+-- orders_shop_prepay : seul le lien attend un paiement avant). Sans « drop » : create or replace trigger.
+-- ============================================================================
+alter table public.shops add column if not exists paused boolean not null default false;

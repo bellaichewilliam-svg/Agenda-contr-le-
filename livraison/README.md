@@ -823,3 +823,7 @@ livraison/
 - Panel, Commerces : une fiche « à vérifier » refermée reste fermée.
 - Base : `shop_catalog` montre aussi le catalogue d'un commerce « à vérifier » par son lien (aperçu avant ouverture ; jamais suspendu).
 - Bureau : plus de code d'entrée demandé (ni dans l'adresse, ni pour « sans contact ») ; le code n'est demandé qu'une fois, pour un appartement, puis gardé dans l'adresse.
+- **Pause d'un commerce** (panel, fiche du commerce : « ⏸️ Ne prend plus de commandes » / « ▶️ Reprendre ») : il reste visible (« ⏸️ Ne prend plus de commandes pour le moment »), mais personne ne peut commander (la base refuse aussi, `shop_paused`).
+- **Bit au livreur** (commerces non partenaires) : les articles et la livraison se paient ensemble par Bit au livreur (son numéro s'affiche quand il accepte) ; le livreur sait qu'il rapporte l'argent des articles à HOP!.
+- **Panel : « 💳 Changer le paiement »** sur la course : lien du commerce, Bit au livreur ou espèces ; WhatsApp prêt pour le client avec le montant et le numéro Bit du livreur.
+- Fiche d'un commerce géré par HOP! : le WhatsApp et le téléphone affichés sont ceux de HOP!.

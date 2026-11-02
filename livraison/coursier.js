@@ -360,8 +360,12 @@ function payLine(o) {
 // Argent de la course en une case de couleur, en haut de la fiche : vert « déjà payé, rien à encaisser »,
 // orange « à encaisser » avec qui paie, combien, comment et quand (le doute « payé ou pas ? » n'existe plus)
 // Articles d'un catalogue sans lien de paiement : le client les règle au commerce, le livreur n'avance rien et n'encaisse que la course
-const goodsSelf = o => Number(o.items_total) > 0 && !o.goods_pay && o.payment_method !== "cash" && !o.shop_sent && !o.shop_pays
-  ? `🛍️ Articles ${UI.money(o.items_total)} : le client les règle au commerce, pas à vous · vous n'avancez rien` : "";
+// Commerce non partenaire : c'est HOP! qui a commandé et payé ; l'argent des articles se rapporte à HOP!
+const owedTo = o => (o.goods_choice ? "HOP!" : o.shop_name || "le commerce");
+const goodsSelf = o => (o.goods_choice === "bit" && Number(o.items_total) > 0
+  ? `🛍️ Articles ${UI.money(o.items_total)} : déjà payés au commerce par HOP!, le client vous les paie par Bit avec la livraison · à rapporter à HOP!`
+  : Number(o.items_total) > 0 && !o.goods_pay && o.payment_method !== "cash" && !o.shop_sent && !o.shop_pays
+  ? `🛍️ Articles ${UI.money(o.items_total)} : le client les règle au commerce, pas à vous · vous n'avancez rien` : "");
 function moneyBox(o) {
   const how = o.payment_method === "cash" ? "en espèces" : "par Bit";
   const total = o.payment_method === "cash" ? cashTotal(o) : UI.payTotal(o);
@@ -376,7 +380,7 @@ function moneyBox(o) {
     `${UI.esc(o.shop_name || "Le commerce")} vous paie en vous donnant le colis.<br>🙋 Le client ne paie rien : tout est déjà payé au magasin`);
   if (o.shop_sent) return box(false, `💰 À encaisser chez le client : ${UI.money(o.price)} ${how}`, `${goodsPaid}. Seulement la livraison, à l'arrivée`);
   if (o.payment_method === "cash") return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`,
-    Number(o.cash_goods) > 0 ? `${UI.money(total)} = articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)} · les articles ${o.cash_shop_after ? `sont à rapporter ensuite à ${UI.esc(o.shop_name || "le commerce")}` : "se paient au commerce au départ"}` : "À la livraison");
+    Number(o.cash_goods) > 0 ? `${UI.money(total)} = articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)} · les articles ${o.cash_shop_after ? `sont à rapporter ensuite à ${UI.esc(owedTo(o))}` : "se paient au commerce au départ"}` : "À la livraison");
   return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`, [`Sur votre numéro, avant de récupérer la commande`, goodsSelf(o)].filter(Boolean).join("<br>"));
 }
 // Colis en route : prévenir le client d'un toucher (« j'arrive dans 5 min », « je suis en bas »)
@@ -932,7 +936,7 @@ function cashStop(o, which, now) {
   const marked = o.cash_courier_mode ? `<small class="cash-marked">✍️ Vous avez noté : ${o.cash_courier_mode === "avance" ? "payé au commerce en prenant la commande" : "rendu au commerce"} · ${UI.esc(UI.fmtTime(o.cash_courier_at))}</small>` : "";
   const markBtn = o.cash_courier_mode ? "" : `<button type="button" class="btn btn-sm btn-primary" data-cashmark="avance" data-id="${UI.esc(o.id)}">✍️ J'ai payé ${UI.money(o.cash_goods)} au commerce</button>`;
   if (which === "pickup" && Number(o.cash_goods) > 0 && o.cash_shop_after) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu les <b>${UI.money(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods)}</b> des articles${marked}</div>`
-    : `<div class="cash-stop">🛍️ Prenez la commande sans payer<small>à la livraison, le client vous doit <b>${UI.money(cashTotal(o))}</b> en espèces (articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)}) ; vous rapportez ensuite les <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}, ou vous le payez maintenant si vous avez les espèces</small>${marked || markBtn}</div>`;
+    : `<div class="cash-stop">🛍️ Prenez la commande sans payer<small>à la livraison, le client vous doit <b>${UI.money(cashTotal(o))}</b> en espèces (articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)}) ; vous rapportez ensuite les <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(owedTo(o))}, ou vous le payez maintenant si vous avez les espèces</small>${marked || markBtn}</div>`;
   if (which === "pickup" && Number(o.cash_goods) > 0) return o.cash_shop_at ? `<div class="cash-stop ok">✅ ${UI.esc(o.shop_name || "Le commerce")} a reçu vos <b>${UI.money(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods)}</b>${marked}</div>`
     : `<div class="cash-stop">💵 Payez <b>${UI.money(o.cash_goods)}</b> en espèces au commerce<small>il touche « Espèces reçues », puis vous récupérez la commande</small>${marked || markBtn}</div>`;
   if (which === "dropoff" && o.payment_status !== "paye") {
@@ -2246,7 +2250,7 @@ function renderHome() {
 // Articles encaissés chez le client en espèces : à rapporter au commerce, tant qu'il n'a pas touché « Espèces reçues »
 function cashReturnCards() {
   return orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at)
-    .map(o => `<div class="rd-card refund-card cash-return"><span>💵 Rapportez <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(o.shop_name || "le commerce")}
+    .map(o => `<div class="rd-card refund-card cash-return"><span>💵 Rapportez <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(owedTo(o))}
       <small>Les articles de la course n° ${UI.esc(o.ref)}, encaissés chez le client. Le commerce touche « Espèces reçues » quand c'est fait${o.pickup_phone ? ` · <a href="tel:${UI.esc(o.pickup_phone)}">appeler</a>` : ""}.</small>
       ${o.cash_courier_mode ? `<small class="cash-marked">✍️ Vous avez noté : ${o.cash_courier_mode === "avance" ? "payé en prenant la commande" : "rendu au commerce"} · ${UI.esc(UI.fmtTime(o.cash_courier_at))} · en attente de « Espèces reçues » du commerce</small>`
         : `<span class="refund-btns"><button type="button" class="btn btn-sm btn-primary" data-cashmark="rendu" data-id="${UI.esc(o.id)}">✍️ J'ai rendu ${UI.money(o.cash_goods)} au commerce</button><button type="button" class="btn btn-sm" data-cashmark="avance" data-id="${UI.esc(o.id)}">J'avais payé en prenant la commande</button></span>`}</span></div>`).join("");
@@ -2257,7 +2261,7 @@ async function onCashMarkClick(e) {
   if (!b) return false;
   const o = orders.find(x => x.id === b.dataset.id), mode = b.dataset.cashmark;
   if (!o) return true;
-  if (!confirm(mode === "rendu" ? `Vous avez bien rendu ${UI.money(o.cash_goods)} à ${o.shop_name || "le commerce"} ? C'est noté sur la course, le commerce et HOP! le voient.`
+  if (!confirm(mode === "rendu" ? `Vous avez bien rendu ${UI.money(o.cash_goods)} à ${owedTo(o)} ? C'est noté sur la course, le commerce et HOP! le voient.`
     : `Vous avez bien payé ${UI.money(o.cash_goods)} à ${o.shop_name || "le commerce"} en prenant la commande ? C'est noté sur la course, le commerce et HOP! le voient.`)) return true;
   b.disabled = true;
   try { await Store.courierCashMark(o.id, mode); } catch (ex) { alert("Pas enregistré, réessayez."); }
@@ -2836,7 +2840,7 @@ async function toggleDuty(quiet) {
   if (duty.watch != null) {
     // Des espèces d'articles encaissées chez un client et pas encore rendues au commerce : on le redit avant de partir
     const owe = orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at && !o.cash_courier_mode);
-    if (owe.length && !quiet && !confirm(`💵 Avant de finir : vous avez ${owe.map(o => `${UI.money(o.cash_goods)} à rapporter à ${o.shop_name || "un commerce"}`).join(", ")}.
+    if (owe.length && !quiet && !confirm(`💵 Avant de finir : vous avez ${owe.map(o => `${UI.money(o.cash_goods)} à rapporter à ${o.goods_choice ? "HOP!" : o.shop_name || "un commerce"}`).join(", ")}.
 
 Rapportez l'argent des articles, puis touchez « J'ai rendu » sur l'accueil. Terminer quand même ?`)) { renderDuty(); return; }
     navigator.geolocation.clearWatch(duty.watch);
