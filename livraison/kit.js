@@ -565,6 +565,8 @@ const CAMPS = [
 const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
+  // Nouveau : « Arrêtez de payer plus cher. Optez pour HOP! » (18 s, motion design : video/src/Stop.tsx)
+  { id: "stop", aud: "client", title: "🛑 Nouveau · Arrêtez de payer plus cher. Optez pour HOP! (18 s)" },
   // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public
   // Nouveau : « On livre TOUT, partout à Netanya » (15 s)
   // Nouveau : le film de lancement (26 s), refait en motion design (video/src/Lancement.tsx)
