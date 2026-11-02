@@ -4219,3 +4219,13 @@ html.d2.d2-day .cart-sheet .sw-fg { background-color: #fff; }
 .it-mod.on { border-color: #FF6A13; background: rgba(255, 106, 19, .14); color: #FF6A13; }
 .it-note { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-2, #172A4B); color: var(--ink); font: inherit; font-size: 14px; }
 .cs-mods { display: block; font-style: normal; font-size: 12px; color: #FF6A13; font-weight: 700; }
+/* Adresse enregistrée sans code : la case du code dans la fiche résumée */
+.sum-code { display: grid; gap: 6px; margin: 8px 0 4px; padding: 10px; border-radius: 12px; background: rgba(255, 106, 19, .08); }
+.sum-code.need { box-shadow: 0 0 0 2px #FF6A13; }
+.sum-code .f { margin: 0; }
+/* « Quand ? » : les trois choix tiennent toujours dans leur case (« Programmer » n'en sort plus) */
+form.wiz .fs-when .choices.compact { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+form.wiz .fs-when .choices.compact .choice span { min-width: 0; padding: 9px 4px; gap: 4px; }
+form.wiz .fs-when .choices.compact .choice span { flex-direction: column; }
+form.wiz .fs-when .choices.compact .choice span b { min-width: 0; font-size: 13px; line-height: 1.2; overflow-wrap: normal; word-break: keep-all; hyphens: none; text-align: center; }
+form.wiz .fs-when .choices.compact .choice span i, form.wiz .fs-when .choices.compact .choice span img { flex: none; width: 18px; height: 18px; font-size: 16px; }

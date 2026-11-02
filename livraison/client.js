@@ -40,7 +40,10 @@ function setView(v, push) {
 const nativeFocus = HTMLElement.prototype.focus;
 HTMLElement.prototype.focus = function (o) {
   // Vérification d'un écran (« Continuer ») : on note seulement le champ à corriger, sans y aller
-  if (wiz.probe && form.contains(this)) { wiz.lastTarget = this; return; }
+  // Adresse enregistrée sans code d'entrée : on le demande dans sa fiche résumée, sans rouvrir toute l'adresse
+  const sumCode = this === form.dropoff_code && form.classList.contains("to-saved") ? $("#toSum [data-sum-code]") : null;
+  if (wiz.probe && form.contains(this)) { wiz.lastTarget = sumCode || this; return; }
+  if (sumCode) { if (wiz.on) wizReveal(sumCode); sumCode.closest(".sum-code").classList.add("need"); return nativeFocus.call(sumCode, o); }
   if (wiz.on && form.contains(this)) wizReveal(this);
   if (this.closest && this.closest(".drop-addr") && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
   return nativeFocus.call(this, o);
@@ -336,6 +339,7 @@ function syncDropMe() {
 }
 function syncVisibility() {
   const svc = val("service");
+  form.notes.closest("label").toggleAttribute("data-more", !!(state.shop && proShopOn()) && !val("notes").trim());
   renderPhone();
   syncDropMe();
   // Gros colis (voiture) : seulement quand une voiture est disponible
@@ -1295,7 +1299,7 @@ function wizEmpty() {
   form.querySelectorAll("fieldset[data-wiz]").forEach(fs => {
     fs.classList.remove("wiz-empty");
     const kids = [...fs.children].filter(k => k.tagName !== "LEGEND");
-    const inner = kids.length === 1 && kids[0].matches(".fields") ? [...kids[0].children] : kids;
+    const inner = kids.flatMap(k => (k.matches(".fields") ? [...k.children] : [k]));
     if (inner.length && !inner.some(k => k.getClientRects().length)) fs.classList.add("wiz-empty");
   });
 }
@@ -1312,8 +1316,19 @@ function wizLabels() {
   if (n < wiz.n) $("#submitBtn").textContent = t("wizNext");
   $("#mobileGo").textContent = n < wiz.n ? t("wizNext") : t("navOrder");
 }
+// Un écran sans rien à remplir (adresse enregistrée complète, commande chez un commerce) : on passe par-dessus
+function wizStepEmpty(n) {
+  const was = form.dataset.step;
+  form.dataset.step = String(n);
+  wizEmpty();
+  const any = [...form.querySelectorAll("fieldset[data-wiz]")].some(fs => fs.dataset.wiz.split(" ").includes(String(n)) && !fs.classList.contains("wiz-empty") && fs.getClientRects().length);
+  form.dataset.step = was;
+  wizEmpty();
+  return !any;
+}
 function wizGo(n, stay) {
   if (!wiz.on) return;
+  if (n === 2 && n !== wiz.step && wiz.n >= 3 && proShopOn() && wizStepEmpty(2)) n = wiz.step < 2 ? 3 : 1;
   wiz.step = Math.max(1, Math.min(wiz.n, n));
   form.dataset.step = wiz.step;
   if (wizUsedMore()) form.classList.add("wiz-more");
@@ -1869,11 +1884,27 @@ function renderToSum() {
   if (!on) return;
   const det = [a.kind ? t("kind_" + a.kind) : "", a.building ? t("building") + " : " + a.building : "", a.floor ? t("floor") + " : " + a.floor : "",
     NO_CODE.test(a.code || "") ? t("noCode") : a.code ? t("entryCode") + " : " + a.code : "", a.note || ""].filter(Boolean);
+  // Appartement enregistré sans code : seulement la case du code (ou « Pas de code d'entrée »), gardée ensuite dans l'adresse
+  const needCode = (a.kind || kindOf("dropoff")) === "appartement" && !String(a.code || "").trim();
   const html = `<b>${addrChip(a)}</b>${det.length ? `<small>${det.map(UI.esc).join(" · ")}</small>` : ""}
+    ${needCode ? `<div class="sum-code" data-i="${i}"><label class="f"><span>${UI.esc(t("entryCode"))}</span><input data-sum-code inputmode="text" autocomplete="off" placeholder="${UI.esc(t("codePh"))}" /></label>
+      <label class="check"><input type="checkbox" data-sum-nocode /> <span>${UI.esc(t("noCode"))}</span></label></div>` : ""}
     <span class="addr-sum-btns"><button type="button" class="btn btn-sm" data-sum-edit="${i}">${UI.esc(t("accEdit"))}</button>
       <button type="button" class="btn btn-sm btn-link" data-sum-other>📍 ${UI.esc(t("sumOther"))}</button></span>`;
   if ($("#toSum").dataset.html !== html) { $("#toSum").innerHTML = html; $("#toSum").dataset.html = html; }
 }
+// Code tapé dans la fiche résumée : dans la commande tout de suite, et gardé dans l'adresse (on ne le redemande plus)
+$("#toSum").addEventListener("input", e => { if (e.target.matches("[data-sum-code]")) { form.dropoff_code.value = e.target.value; form.dropoff_nocode.checked = false; syncNoCode(); } });
+$("#toSum").addEventListener("change", e => {
+  const box = e.target.closest(".sum-code");
+  if (!box) return;
+  const i = Number(box.dataset.i), none = e.target.matches("[data-sum-nocode]") && e.target.checked;
+  const code = none ? t("noCodeVal") : (box.querySelector("[data-sum-code]").value || "").trim();
+  if (!code) return;
+  form.dropoff_nocode.checked = none; form.dropoff_code.value = code; syncNoCode();
+  try { Store.updateAddress(i, { code }); } catch (ex) { /* ignore */ }
+  renderToSum(); renderSavedAddrs(); renderQuote();
+});
 $("#toSum").addEventListener("click", e => {
   const ed = e.target.closest("[data-sum-edit]");
   if (ed) { const a = Store.getAddresses()[Number(ed.dataset.sumEdit)]; if (a) openAddrSheet(a.tag || "other", "to", Number(ed.dataset.sumEdit)); return; }
