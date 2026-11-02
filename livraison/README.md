@@ -747,3 +747,4 @@ livraison/
 - Kit pub : « Commerces de quartier » = nouveaux visuels du patron (FR/HE), post + story (originaux video/public/reseaux/quartier-original-*.png). Flyer PDF : l'ancien.
 - Kit pub : « Relance après une visite » = nouveaux visuels du patron (FR/HE), post + story (originaux video/public/reseaux/relance-original-*.png). Flyer PDF : l'ancien.
 - Kit pub : une campagne peut être réservée à une langue (`only: "he"`) : « Une envie ? Et hop ! » et « De votre téléphone à votre porte » (visuels seulement en hébreu) n'apparaissent plus quand le kit est en français.
+- Clients : toute personne qui a laissé nom + téléphone (panier ou service client) a sa fiche « 📝 Inscrit, pas encore commandé », avec son panier non commandé et le WhatsApp « Comment commander ».
