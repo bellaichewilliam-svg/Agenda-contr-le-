@@ -749,3 +749,8 @@ livraison/
 - Kit pub : une campagne peut être réservée à une langue (`only: "he"`) : « Une envie ? Et hop ! » et « De votre téléphone à votre porte » (visuels seulement en hébreu) n'apparaissent plus quand le kit est en français.
 - Clients : toute personne qui a laissé nom + téléphone (panier ou service client) a sa fiche « 📝 Inscrit, pas encore commandé », avec son panier non commandé et le WhatsApp « Comment commander ».
 - Clients : note « 📝 N inscrits n'ont pas encore commandé ni créé de compte » (avec paniers en attente), stat « Inscrits sans commande » et bouton pour n'afficher qu'eux.
+
+### Page d'un commerce façon grandes applis de livraison
+- En haut : grande photo arrondie en bas, logo rond centré, nom, accroche, ouvert/fermé et livraison centrés, bouton « Infos ».
+- Catalogue : barre « 🔍 Rechercher chez … » (nom + description, FR/HE, sans accents) et rubriques en pastilles, collées sous la barre du haut (position calculée au défilement) ; « Aucun article pour … » si rien ne correspond.
+- Lignes d'articles : photo paysage 132×92, description sur 3 lignes, prix en gras.
