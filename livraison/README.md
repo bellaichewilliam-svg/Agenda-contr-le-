@@ -720,3 +720,12 @@ livraison/
 - « Repas de restaurant » ouvre la grande carte des restaurants (logos, numéro, site) ; on touche le sien → la commande remonte.
 - Pressing, poste, fleurs… : directement la commande (le départ se cherche dans le champ d'adresse).
 - L'ancienne fenêtre reste seulement pour l'ancien design (`?design=1`).
+
+### Service client : plus de message anonyme
+- Avant d'écrire au service client, le client sans nom ni téléphone voit « 💬 Avant d'écrire au service client » : nom + téléphone obligatoires (vérifiés), gardés sur le téléphone et repris dans la commande.
+- La base refuse aussi tout message sans nom et sans vrai numéro (`chat_support_send` → `who_required`), même depuis une ancienne version de l'appli.
+
+### Vidéo « Arrêtez de payer plus cher. Optez pour HOP! » (18,5 s, FR + HE)
+- `video/src/Stop.tsx` (compositions `HopStop` / `HopStopHe`), musique `video/scripts/stop_music.py` → `public/stop-music.wav`.
+- L'étiquette de prix gonfle et éclate, les mots claquent, écran coupé en deux (ailleurs les frais s'empilent et s'écroulent / HOP! : prix du resto, 0 ₪ de frais de service, livraison dès 25 ₪), « dès 25 ₪ », on livre tout, fin avec Hoppy.
+- Dans le kit : `kit/visuels/stop-video-fr.mp4` et `stop-video-he.mp4`.

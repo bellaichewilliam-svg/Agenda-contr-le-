@@ -8499,3 +8499,23 @@ $$;
 -- allumées / éteintes par le patron (Espace patron → Commerces → Accueil des clients)
 -- ============================================================================
 alter table public.settings add column if not exists home_rows jsonb not null default '{"popular": false, "fresh": false, "all": false}'::jsonb;
+
+-- ============================================================================
+-- SERVICE CLIENT : plus de message anonyme (nom + téléphone obligatoires, sinon « who_required »)
+-- ============================================================================
+create or replace function public.chat_support_send(p_device uuid, p_name text, p_body text, p_image text)
+ returns boolean
+ language plpgsql
+ security definer
+ set search_path to 'public'
+as $function$
+begin
+  if length(regexp_replace(coalesce(p_name, ''), '\D', '', 'g')) < 9
+     or length(trim(regexp_replace(coalesce(p_name, ''), '[\d\s·+\-()]', '', 'g'))) < 2 then
+    raise exception 'who_required';
+  end if;
+  insert into chat_messages (thread, author, author_name, body, image)
+  values ('u:' || p_device::text, 'client', left(nullif(trim(p_name), ''), 80), nullif(trim(p_body), ''), p_image);
+  return true;
+end;
+$function$;

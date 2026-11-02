@@ -2445,8 +2445,36 @@ function openOrderChat(o) {
   Chat.open({ thread: "o:" + o.id, title: t("chOrder", { ref: o.ref }), sub: t("chOrderSub"), me: "client",
     fetch: () => Store.chatOrder(o.token), send: (b, i) => Store.chatOrderSend(o.token, b, i), onClose: checkChats });
 }
+// Service client : jamais de message anonyme ; sans nom ni téléphone, on les demande d'abord (gardés sur le téléphone)
+function supportWho() {
+  const p = Store.getProfile(), acct = (Store.clientAccount() || {}).client;
+  const name = String(p.contact_name || (acct && acct.name) || "").trim(), phone = String(p.contact_phone || (acct && acct.phone) || "").trim();
+  return name.length >= 2 && phoneOk(phone) ? { name, phone } : null;
+}
+function askWho(then) {
+  const m = $("#whoModal"), fm = $("#whoForm"), p = Store.getProfile();
+  fm.who_name.value = p.contact_name || ""; fm.who_phone.value = p.contact_phone || "";
+  $("#whoErr").textContent = "";
+  m.dir = document.documentElement.dir;
+  m.classList.remove("hidden");
+  setTimeout(() => (fm.who_name.value ? fm.who_phone : fm.who_name).focus(), 60);
+  fm.onsubmit = e => {
+    e.preventDefault();
+    const name = fm.who_name.value.trim(), phone = fm.who_phone.value.trim();
+    if (name.length < 2) { fm.who_name.focus(); $("#whoErr").textContent = t("whoErrName"); return; }
+    if (!phoneOk(phone)) { fm.who_phone.focus(); $("#whoErr").textContent = t("errPhone"); return; }
+    Store.saveProfile(Object.assign({}, Store.getProfile(), { contact_name: name, contact_phone: formatPhone(phone) }));
+    if (form.contact_name && !val("contact_name").trim()) form.contact_name.value = name;
+    if (form.contact_phone && !val("contact_phone").trim()) form.contact_phone.value = formatPhone(phone);
+    m.classList.add("hidden");
+    then();
+  };
+}
+$("#whoClose").addEventListener("click", () => $("#whoModal").classList.add("hidden"));
+$("#whoModal").addEventListener("click", e => { if (e.target.id === "whoModal") $("#whoModal").classList.add("hidden"); });
 function openSupport(prefill) {
-  const p = Store.getProfile();
+  if (!supportWho()) return askWho(() => openSupport(prefill));
+  const p = Object.assign({}, Store.getProfile(), { contact_name: supportWho().name, contact_phone: supportWho().phone });
   Chat.open({ thread: "u:" + Store.deviceId(), title: t("chSupport"), sub: t("chSupportSub"), me: "client", prefill,
     fetch: () => Store.chatSupport(),
     send: (b, i) => Store.chatSupportSend([p.contact_name, p.contact_phone].filter(Boolean).join(" · "), b, i), onClose: checkChats });
