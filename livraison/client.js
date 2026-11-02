@@ -958,6 +958,9 @@ function goKind(id) {
   if (state.homeKind === id) state.homeKind = null;   // (applyKind le remet, sans l'enlever)
   // Pharmacie, tabac, makolet… : pas de magasin à choisir, on va droit aux produits (le livreur va au plus proche)
   if (RAYON_KINDS.includes(id)) { applyKind(id); return goPharma(); }
+  // Nouveau design : « Repas de restaurant » ouvre la grande carte des restaurants (logos, numéro, site),
+  // on touche le sien et la commande remonte ; pas de liste par-dessus l'accueil
+  if (D2 && id === "resto" && !state.pick.from) { applyKind(id); setMapOpen(true); return; }
   state.pharmaGo = true;
   applyKind(id);
   if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); }
@@ -3372,7 +3375,8 @@ function applyKind(id) {
   renderHomeStatic();
   // Poste, Super-Pharm, restaurant… sans départ choisi : on propose tout de suite les plus proches
   const cat = { poste: "post", pharm: "pharm", resto: "food", shop: "super", gift: "flower", bakery: "breakfast", pressing: "pressing", baby: "baby", pets: "pet", home: "home" }[id];
-  if (state.homeKind && cat && !state.pick.from && !RAYON_KINDS.includes(id)) openEns(cat);
+  // (nouveau design : plus de grande fenêtre par-dessus l'accueil ; les restaurants se choisissent sur la carte)
+  if (!D2 && state.homeKind && cat && !state.pick.from && !RAYON_KINDS.includes(id)) openEns(cat);
 }
 
 // Inverser départ et arrivée
