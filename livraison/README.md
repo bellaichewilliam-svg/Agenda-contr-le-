@@ -714,3 +714,4 @@ livraison/
 - Espace patron → 🏪 Commerces → « 🏠 Accueil des clients » : 🔥 Populaires, ✨ Nouveautés, 🏪 Nos commerces partenaires, chacune avec son interrupteur (Affichée / Cachée), pour tous les clients.
 - Enregistré dans `settings.home_rows` (migration `settings_home_rows`, valeur de départ : tout caché). `config.js → homeRows` ne sert plus que de valeur par défaut.
 - « Mes favoris » et « Ouverts maintenant » restent toujours affichés.
+- Chaque rangée a aussi « 📋 Choisir les commerces et leur ordre » : ajouter (liste des commerces de l'accueil), monter ↑ / descendre ↓, retirer ✕, « ↺ Revenir à l'automatique ». Enregistré dans `settings.home_rows.<rangée>_list` (codes dans l'ordre) ; liste vide = automatique.

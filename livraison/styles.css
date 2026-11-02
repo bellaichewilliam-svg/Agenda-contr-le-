@@ -4025,3 +4025,14 @@ html.d2 .pro-row .sc-logo { top: calc((min(100vw, 430px) - 28px) / 2 * 9 / 16 - 
 .hr-row.on .hr-sw { background: #12B76A; }
 .hr-row.on .hr-sw::after { inset-inline-start: 23px; }
 .hr-row.on em { color: var(--green-ink, #067647); }
+.hr-item { display: grid; gap: 6px; padding-bottom: 4px; }
+.hr-pick { border: 1px dashed var(--border); border-radius: 12px; padding: 8px 10px; background: var(--bg, transparent); }
+.hr-pick summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--ink); }
+.hr-ol { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 6px; }
+.hr-ol li { display: grid; grid-template-columns: 26px 1fr auto auto auto; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 10px; background: var(--panel); border: 1px solid var(--border); }
+.hr-ol li b { min-width: 0; overflow-wrap: anywhere; font-size: 14px; color: var(--ink); }
+.hr-n { width: 24px; height: 24px; border-radius: 50%; background: #0F1F3D; color: #fff; display: grid; place-items: center; font-size: 12px; font-weight: 800; }
+.hr-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); font-size: 16px; cursor: pointer; }
+.hr-btn:disabled { opacity: .35; cursor: default; }
+.hr-del { color: #D92D20; }
+.hr-add { width: 100%; min-height: 40px; margin: 4px 0 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); padding: 0 10px; font: inherit; }
