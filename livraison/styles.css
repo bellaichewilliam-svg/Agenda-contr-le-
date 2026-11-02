@@ -4127,3 +4127,27 @@ html.d2.d2-day .ch-tagline { color: #0F1F3D; }
 .any-shop .btn { justify-self: start; margin-top: 6px; }
 html.d2 .any-shop { color: #fff; }
 html.d2.d2-day .any-shop { color: #0F1F3D; }
+
+/* Lignes à glisser : les boutons sont derrière la ligne, du côté où on la pousse */
+.sw { position: relative; overflow: hidden; border-radius: 16px; }
+.sw-acts { position: absolute; inset-block: 0; inset-inline-end: 0; display: flex; align-items: stretch; }
+.sw-act { display: grid; place-items: center; align-content: center; gap: 3px; width: 70px; padding: 6px 4px; border: 0; font: inherit; font-size: 12px; font-weight: 800; text-decoration: none;
+  color: #fff; background: #2B3D63; cursor: pointer; }
+.sw-act i { font-style: normal; font-size: 20px; line-height: 1; }
+.sw-act span { line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
+.sw-act.sw-red { background: #D93B3B; }
+.sw-act.sw-blue { background: #2D6CDF; }
+.sw-act.sw-green { background: #1FA45B; }
+.sw-fg { position: relative; z-index: 1; background: var(--panel); touch-action: pan-y; transition: transform .22s ease; will-change: transform; }
+html.d2 .sw-fg { background: #13233F; }
+html.d2.d2-day .sw-fg { background: #fff; }
+.cart-sheet .sw { border-radius: 0; }
+.cart-sheet .sw-fg { background: var(--panel); }
+html.d2 .cart-sheet .sw-fg { background: inherit; background-color: #13233F; }
+html.d2.d2-day .cart-sheet .sw-fg { background-color: #fff; }
+.sw.sw-order { margin: 0; border-radius: var(--r); }
+.sw.sw-order + .sw.sw-order { margin-top: 10px; }
+.sw-order .mini-order { box-shadow: none; }
+.sw-hint { margin: 8px 2px 0; font-size: 12.5px; opacity: .7; }
+.sw-act { width: 80px; font-size: 11.5px; }
+.sw-act span { overflow-wrap: normal; word-break: keep-all; }
