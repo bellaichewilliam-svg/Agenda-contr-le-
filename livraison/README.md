@@ -733,3 +733,4 @@ livraison/
 - **Fiche client** (Espace patron → Clients) : ses messages au service client sont joints (« 💬 Ouvrir ses messages »), reconnus à son numéro ; ceux qui ont seulement écrit ont aussi leur fiche (« 💬 A écrit, pas encore commandé »).
 - **WhatsApp « Comment commander »** (français + hébreu, prêt à envoyer) : sur chaque fiche client et dans la boîte de réception.
 - Fiche client : le détail des courses reste ouvert quand la page se rafraîchit ; l'heure apparaît (dernière commande « à 15:40 », et chaque course « · 🕐 15:40 »).
+- **Panier** : dès le premier article, « 🛒 Votre panier est gardé » demande nom + téléphone (redemandés à chaque nouvel article tant qu'ils manquent) : les paniers abandonnés ont maintenant les coordonnées pour la relance WhatsApp.
