@@ -423,6 +423,9 @@ const CAPTION = {
 const buyFr = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase), buyShop = UI.money(Pricing.cityToCity(CONFIG, home, home) + (P.purchaseShop || P.purchase)), delFr = price(home);
 const TAGS = { fr: "#Netanya #נתניה #livraison #HOP", he: "#נתניה #משלוחים #HOP #Netanya" };
 const CAPS = {
+  jus: {
+    fr: `🧃 Une envie de jus ? Et hop, c'est livré !\nNos jus de fruits et smoothies frais : Tutti Frutti, Chaperon rouge, Extra Green, Halva… 10 recettes à 32 ₪.\n🌙 Livraison tous les jours jusqu'à 22 h, partout à Netanya\n💳 Payé par Bit · 📍 Suivi en direct\n👉 Commander : ${url}?c=HOPJUS\n${TAGS.fr} #jus #smoothie`,
+    he: `🧃 בא לכם מיץ? והופ, זה אצלכם!\nהמיצים והשייקים הטריים שלנו: תותי פרוטי, כיפה אדומה, אקסטרה גרין, חלווה… 10 טעמים ב־32 ₪.\n🌙 משלוחים כל יום עד 22:00, בכל נתניה\n💳 תשלום בביט · 📍 מעקב בזמן אמת\n👈 להזמנה: ${url}?c=HOPJUS&lang=he\n${TAGS.he} #מיצים #שייק` },
   "partenaire-marchefr": {
     fr: `🥐 Le Marché Français chez vous !\nBonne Maman, LU, Président, Andros… toute l'épicerie française de Netanya, livrée avec HOP!\n🛵 Livraison à Netanya : ${delFr} · livré au plus vite\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Commander : ${url}?c=MARCHEFR\n${TAGS.fr} #produitsfrançais`,
     he: `🥐 השוק הצרפתי מגיע אליכם הביתה!\nבון מאמן, LU, פרזידנט, אנדרוס… כל המכולת הצרפתית של נתניה, עד הבית עם HOP!\n🛵 משלוח בנתניה: ${delFr} · מגיע הכי מהר\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 להזמנה: ${url}?c=MARCHEFR&lang=he\n${TAGS.he}` },
@@ -529,6 +532,7 @@ const capFor = (id, medium) => { const c = CAPS[id]; return tagText((c && (c[ui.
 const UPLOAD = [["Instagram", "https://www.instagram.com/"], ["TikTok", "https://www.tiktok.com/tiktokstudio/upload"], ["Facebook", "https://www.facebook.com/"]];
 const V = "kit/visuels/";
 const CAMPS = [
+  { id: "jus", aud: "client", isNew: true, thumb: "post", title: "🧃 Nouveau · Une envie de jus ? Et hop, c'est livré !", desc: "Notre catalogue Jus de fruits et smoothies (10 recettes à 32 ₪), livré jusqu'à 22 h. Le lien de la légende ouvre directement le catalogue. FR et HE.", formats: ["post"] },
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
   ...PARTNERS.map(p => ({ id: `partenaire-${p.code.toLowerCase()}`, aud: "client", isNew: true, title: `🏪 ${p.name.fr} vous livre !`, desc: `${p.tagline.fr} Le QR ouvre sa page dans l'appli.`, formats: ["post", "story"] })),
   // Langues en formats différents : le français en post (4:5), l'hébreu en story (9:16) ; chaque langue montre le sien
