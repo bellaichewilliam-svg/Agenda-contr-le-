@@ -799,7 +799,6 @@ livraison/
 - `UI.swipeRow(contenu, boutons)` (common.js) : on glisse une ligne et ses boutons apparaissent derrière (vers la gauche en français, vers la droite en hébreu) ; un toucher ailleurs la referme.
 - Panier : 🗑 Supprimer · ＋ 1 · ✏️ Modifier (les − / + restent visibles). Mes courses : 📍 Suivre (ou 🧾 Reçu) · 💬 Message · ✖ Annuler (commande pas encore acceptée). Petite astuce affichée sous la liste.
 
-### Carte en ligne d'un commerce, avant tout (02/11)
-- Commerce HOP! (« payé au livreur ») avec un site (`shops.website`) : gros bouton orange « 📋 Voir la carte et les prix de … ↗ » tout en haut de la commande, puis la case où le client recopie sa commande (FR / HE). Avec un catalogue, le même lien devient « Autre chose ? Toute la carte de … ».
-- Une commande écrite à la main dans ces commerces est un achat : livraison + 5 ₪ (30 ₪), comme avec le panier.
-- McDonald's Kanyon HaSharon et Tahana Merkazit : lien vers leur commande en ligne, texte « service de livraison indépendant, sans lien officiel avec McDonald's » ; jamais leurs photos de produits.
+### Commande écrite dans une boutique « payée au livreur » (02/11)
+- Une commande écrite à la main (sans panier) dans un commerce « payé au livreur » (ex. McDonald's) est un achat : livraison + 5 ₪ (30 ₪), comme avec le panier.
+- McDonald's : on ne renvoie jamais le client vers leur site (il s'y perdrait) ; la carte et les prix sont dans le catalogue HOP!. Texte « service de livraison indépendant, sans lien officiel avec McDonald's » ; jamais leurs photos de produits.

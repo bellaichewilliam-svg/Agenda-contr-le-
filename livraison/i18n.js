@@ -614,8 +614,6 @@ fr: {
   chWho: "À qui voulez-vous écrire ?", chMyOrder: "🛵 Ma course n° {ref}", chOpen: "💬 Écrire au livreur ou au service client",
   chShop: "HOP! · votre espace pro", chNew: "💬 Nouveau message",
   // HOP! Pro
-  smlBtn: "Voir la carte et les prix de {name}", smlSub: "Choisissez sur leur site, puis écrivez votre commande juste en dessous : on l'achète pour vous et on vous la livre.",
-  smlMore: "Autre chose ? Toute la carte de {name}", smlPh: "Recopiez les noms de leur carte : ex. 1 menu grand, boisson Coca, sans cornichons…",
   spOrderLabel: "🧾 Votre commande chez {name}", spOrderPh: "Ex. : 2 shawarma, 1 Coca, sans oignons…",
   spOrderNote: "{name} confirme votre commande et annonce quand elle sera prête : le livreur arrive à ce moment-là. Vos articles se paient directement à {name}.",
   qShopShare: "Livraison payée en partie par {name}", errShopOrder: "Écrivez votre commande pour {name}.",
@@ -1366,8 +1364,6 @@ he: {
   chWho: "למי לכתוב?", chMyOrder: "🛵 המשלוח שלי מס' {ref}", chOpen: "💬 לכתוב לשליח או לשירות הלקוחות",
   chShop: "הופ! · האזור העסקי", chNew: "💬 הודעה חדשה",
   // הופ! Pro
-  smlBtn: "לתפריט ולמחירים של {name}", smlSub: "בוחרים באתר שלהם, וכותבים כאן למטה את ההזמנה: אנחנו קונים בשבילכם ומביאים עד הבית.",
-  smlMore: "משהו אחר? כל התפריט של {name}", smlPh: "העתיקו את השמות מהתפריט שלהם: למשל ארוחה גדולה, קולה, בלי חמוצים…",
   spOrderLabel: "🧾 ההזמנה שלכם אצל {name}", spOrderPh: "לדוגמה: 2 שווארמה, קולה, בלי בצל…",
   spOrderNote: "{name} מאשר את ההזמנה ומודיע מתי היא תהיה מוכנה: השליח מגיע בדיוק אז. את המוצרים משלמים ישירות ל{name}.",
   qShopShare: "{name} משתתף בדמי המשלוח", errShopOrder: "כתבו את ההזמנה ל{name}.",
