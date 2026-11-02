@@ -779,3 +779,10 @@ livraison/
 - **Tout ce qu'on achète pour le client = un achat** : commande sur catalogue dont l'argent des articles passe par le livreur (espèces, ou boutique HOP!) → + 5 ₪ « Achat de vos articles » (25 → 30 ₪ dans Netanya). Les achats en rayon/magasin avaient déjà leur supplément.
 - **Aucun commerce n'encaisse lui-même** : boutique `cash_ok` (HOP! Jus de fruits) → plus de cadre « payé directement au commerce » ; « 💵 Un seul paiement, au livreur » ; seul « Espèces » est proposé ; le livreur rapporte l'argent des articles à HOP!.
 - **Nouveaux clients** : espèces au plus 100 ₪ tout compris tant qu'ils n'ont pas 3 courses livrées, puis le plafond habituel (200 ₪). Réglable : `settings.cash_first_max`, `settings.cash_first_orders`.
+
+### Paniers abandonnés : la stratégie (02/11)
+- Constat (7 jours) : 174 visiteurs → 54 commandes ouvertes → 2 envoyées ; les paniers abandonnés anonymes ont presque tous **1 seul article** : la fenêtre « nom + téléphone » s'ouvrait dès le 1er « + » (et à chaque article suivant) et coupait le client.
+- Plus de fenêtre automatique : bouton facultatif « 📲 Garder mon panier (nom + téléphone) » dans le panier et sous la liste des rayons ; le nom et le téléphone restent demandés au moment de commander.
+- Accueil : pastille fine « 🛒 Reprendre mon panier (n) » quand un panier est gardé sur le téléphone.
+- Mesure : 1er article ajouté, écran 2, écran 3, et le champ qui bloque « Continuer » → carte « 🧲 Où les clients s'arrêtent » dans 📊 Visites du site.
+- Avec les correctifs déjà prêts (adresse de livraison qui disparaissait, « Votre adresse » en 1re case remplie d'office, cadre de paiement faux retiré).

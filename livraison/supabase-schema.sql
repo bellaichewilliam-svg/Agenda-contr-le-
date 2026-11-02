@@ -8581,3 +8581,9 @@ $function$;
 alter table public.shops add column if not exists cash_ok boolean not null default false;
 alter table public.settings add column if not exists cash_first_max numeric not null default 100;
 alter table public.settings add column if not exists cash_first_orders int not null default 3;
+
+-- ============================================================================
+-- Entonnoir de commande (02/11) : site_track accepte aussi cart_add, order_step_2, order_step_3, order_block
+-- (page = « e<écran>:<champ qui bloque> ») ; admin_funnel(p_days) pour l'onglet 📊 Visites du site.
+-- Appliqué en ligne le 02/11 (migration site_track_funnel).
+-- ============================================================================

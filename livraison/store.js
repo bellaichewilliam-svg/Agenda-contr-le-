@@ -741,6 +741,11 @@ async function adminAnalytics(days) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_analytics", { method: "POST", body: { p_days: days } });
   return null;
 }
+// Entonnoir de commande (où les clients s'arrêtent) : null si la base n'est pas encore à jour
+async function adminFunnel(days) {
+  if (!ONLINE) return null;
+  return authRest("/rest/v1/rpc/admin_funnel", { method: "POST", body: { p_days: days } }).catch(() => null);
+}
 async function adminAccounts() {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_signups", { method: "POST", body: {} });
   return localCouriers().map(c => ({ id: c.id, email: c.email, created_at: c.created_at, confirmed: true, last_sign_in_at: null, has_fiche: true, push_n: 0 }));
@@ -2476,7 +2481,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
