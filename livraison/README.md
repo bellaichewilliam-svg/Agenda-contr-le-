@@ -743,3 +743,4 @@ livraison/
 - Règles d'argent inchangées (budget max, plafond espèces, Bit d'avance pour la livraison).
 - Kit pub : campagne « 🆕 Vos adresses préférées, livrées chez vous » = nouveaux visuels du patron (Hoppy + 5 partenaires, FR/HE), post 1080×1080 + story 1080×1920 (originaux dans video/public/reseaux/nouveaux-adresses-original-*.png ; QR vérifié → on-livre.html).
 - Kit pub : « Restaurants : Gardez 100 % de vos ventes » = nouveaux visuels du patron (FR/HE), post 1080×1080 + story 1080×1920 (originaux video/public/reseaux/resto-100-original-*.png). Le flyer PDF reste l'ancien.
+- Kit pub : « Tout commerce : Vos clients veulent être livrés ? » = nouveaux visuels du patron (FR/HE), post + story (originaux video/public/reseaux/pro-livres-original-*.png). Flyer PDF : l'ancien.
