@@ -1578,20 +1578,32 @@ function renderCarts(view) {
     </div>
     <p class="muted small" style="margin:-8px 0 12px">Chaque client a son panier, gardé 7 jours sur son téléphone. Sans changement depuis 30 min et pas commandé : il est « abandonné ». « Relancer » ouvre WhatsApp avec un message prêt, dans sa langue. Le nom et le numéro apparaissent quand le client les a déjà donnés (compte ou commande précédente).</p>
     <div class="toolbar cart-filters">${Object.keys(CART_LBL).map(k => `<button type="button" class="btn btn-sm${k === cartsFilter ? " btn-primary" : ""}" data-cartf="${k}">${CART_LBL[k]} (${by(k).length})</button>`).join("")}
-      <button type="button" class="btn btn-sm" data-cart-reload>↻</button></div>
+      <button type="button" class="btn btn-sm" data-cart-reload>↻</button>
+      ${carts.some(c => !c.client_phone) ? `<button type="button" class="btn btn-sm" data-cart-del-anon>🗑️ Supprimer les paniers sans numéro (${carts.filter(c => !c.client_phone).length})</button>` : ""}</div>
     ${list.length ? `<div class="orders">${list.map(c => { const st = cartState(c); return `
       <article class="order cart-card cs-${st}">
         <div class="order-head"><span class="order-time">${UI.esc(c.client_name || "Client sans nom")}${c.lang === "he" ? " · 🇮🇱" : ""}</span><span class="pill">${CART_LBL[st]}</span></div>
         <p class="muted small" style="margin:2px 0 8px">${c.shop_name ? "🏪 " + UI.esc(c.shop_name) + " · " : ""}${c.count} article(s)${Number(c.total) ? " · ≈ " + UI.money(Number(c.total)) : ""} · ${ago(c.updated_at)}${c.order_ref ? " · commande " + UI.esc(c.order_ref) : ""}${c.remind_count ? " · relancé " + c.remind_count + " fois" : ""}</p>
         <ul class="cart-items">${(c.items || []).map(i => `<li><b>${i.q} ×</b> ${UI.esc(i.e ? i.e + " " : "")}${UI.esc(i.n)}${i.p ? ` <small>≈ ${UI.money(i.p * i.q)}</small>` : ""}</li>`).join("")}</ul>
         <div class="order-actions">${c.client_phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waLink(c.client_phone, cartRelance(c)))}" target="_blank" rel="noopener" data-cart-relance="${UI.esc(c.device)}">💬 Relancer sur WhatsApp</a>
-          <a class="btn btn-sm" href="tel:${UI.esc(c.client_phone)}">📞 ${UI.esc(c.client_phone)}</a>` : `<span class="muted small">Pas de numéro : le client n'a encore jamais commandé ni créé de compte.</span>`}</div>
+          <a class="btn btn-sm" href="tel:${UI.esc(c.client_phone)}">📞 ${UI.esc(c.client_phone)}</a>` : `<span class="muted small">Pas de numéro : le client n'a encore jamais commandé ni créé de compte.</span>`}
+          <button type="button" class="btn btn-sm btn-link" data-cart-del="${UI.esc(c.device)}">🗑️ Supprimer</button></div>
       </article>`; }).join("")}</div>` : `<p class="muted">Aucun panier ici pour l'instant.</p>`}`;
 }
 document.addEventListener("click", e => {
   const f = e.target.closest("[data-cartf]");
   if (f) { cartsFilter = f.dataset.cartf; render(); return; }
   if (e.target.closest("[data-cart-reload]")) { loadCarts(); return; }
+  // Supprimer : le panier sort de la liste (il revient seulement si le client remplit un nouveau panier)
+  const del = e.target.closest("[data-cart-del]"), anon = e.target.closest("[data-cart-del-anon]");
+  if (del || anon) {
+    const list = del ? carts.filter(x => x.device === del.dataset.cartDel) : carts.filter(x => !x.client_phone);
+    if (!list.length || !confirm(del ? "Supprimer ce panier de la liste ?" : `Supprimer les ${list.length} paniers sans numéro ?`)) return;
+    list.forEach(c => Store.cartMark(c.device, { status: "vide" }).catch(() => null));
+    carts = carts.filter(x => !list.includes(x));
+    render();
+    return;
+  }
   const r = e.target.closest("[data-cart-relance]");
   if (r) {
     const c = carts.find(x => x.device === r.dataset.cartRelance);
@@ -1620,7 +1632,10 @@ function renderClients(view) {
     known.add(k);
     writers.push({ name: String(m.author_name).split("·")[0].trim(), phone: ph.trim(), orders: 0, delivered: 0, spent: 0, writer: true });
   });
-  const everyone = clients.concat(writers);
+  const hid = hiddenClients(), keyOf = c => c.client_id || String(c.phone || "").replace(/\D/g, "").slice(-9);
+  const allPeople = clients.concat(writers);
+  const everyone = showHidden ? allPeople : allPeople.filter(c => !hid[keyOf(c)]);
+  const nHid = allPeople.filter(c => hid[keyOf(c)]).length;
   const list = everyone.filter(c => !q || String(c.name || "").toLowerCase().includes(q) || (qd && String(c.phone || "").replace(/\D/g, "").includes(qd)));
   const day = iso => iso ? new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" }) : "—";
   // Client qui est aussi une enseigne (même numéro) : on le montre
@@ -1639,7 +1654,8 @@ function renderClients(view) {
       <div class="stat"><small>Commerces · livreurs actifs</small><b>${shops.filter(x => !x.demo && x.status === "actif").length} · ${couriers.filter(c => c.role !== "admin" && c.status === "actif").length}</b></div>
     </div>
     <p class="muted small" style="margin:-8px 0 12px">Un client crée son compte dans l'appli (« Mes courses ») avec son téléphone et un mot de passe : accepté tout de suite, sans e-mail de confirmation pour l'instant. Les clients sans compte apparaissent ici d'après leur numéro de téléphone.</p>
-    <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" /></div>`;
+    <div class="toolbar"><input id="clientsQ" type="search" placeholder="Rechercher un client (nom ou téléphone)" value="${UI.esc(clientsQ)}" />
+      ${nHid ? `<button type="button" class="btn btn-sm" data-cli-showhid>${showHidden ? "Cacher les retirés" : `🗑️ Voir les retirés (${nHid})`}</button>` : ""}</div>`;
   const fold = c => { const k = "u:" + (c.client_id || d9(c.phone)), sh = shopOfClient(c);
       // Ses vraies courses (les plus récentes d'abord), en fiche complète comme dans l'onglet Courses
       const mine = orders.filter(o => (d9(o.contact_phone) && d9(o.contact_phone) === d9(c.phone)) || (sh && o.shop_id === sh.id && o.shop_sent))
@@ -1673,6 +1689,8 @@ function renderClients(view) {
           ${!sh && !c.client_id && c.phone ? `<a class="btn btn-sm${sent[d9(c.phone)] ? "" : " btn-wa"}" data-welcome="${UI.esc(d9(c.phone))}" href="${UI.esc(UI.waPersonal(c.phone, welcomeText(c)))}" target="_blank" rel="noopener" title="Message tout prêt dans WhatsApp (français + hébreu) : il suffit d'appuyer sur Envoyer">🟢 ${sent[d9(c.phone)] ? "Renvoyer « Bienvenue, créez votre compte »" : "WhatsApp : « Bienvenue, créez votre compte »"}</a>` : ""}
           ${c.client_id ? `<button class="btn btn-sm" data-client-reset="${UI.esc(c.client_id)}" data-cname="${UI.esc(c.name || "")}">🔑 Nouveau mot de passe</button>` : ""}
           ${c.blocked ? `<button class="btn btn-sm" data-unblock="${UI.esc(c.phone)}">🔓 Débloquer</button>` : ""}
+          ${hid[keyOf(c)] ? `<button type="button" class="btn btn-sm" data-cli-hide="${UI.esc(keyOf(c))}" data-undo="1">↩️ Remettre dans la liste</button>`
+            : `<button type="button" class="btn btn-sm btn-link" data-cli-hide="${UI.esc(keyOf(c))}">🗑️ Supprimer de la liste</button>`}
         </div>
       </article></details>`; };
   view.innerHTML = head + (list.length ? `
@@ -1682,6 +1700,20 @@ function renderClients(view) {
     ${shopList.length ? `<div class="orders">${shopList.map(fold).join("")}</div>` : `<div class="empty card">Aucune enseigne n'a encore envoyé de course.</div>`}`
     : `<div class="empty card">${clients.length ? "Aucun client ne correspond." : "Aucun client pour l'instant."}</div>`);
 }
+// Clients retirés de la liste par le patron (ses courses restent dans l'historique et la compta)
+const HID_CLI = "livraison.hiddenClients.v1";
+let showHidden = false;
+const hiddenClients = () => { try { return JSON.parse(localStorage.getItem(HID_CLI)) || {}; } catch (e) { return {}; } };
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-cli-showhid]")) { showHidden = !showHidden; render(); return; }
+  const b = e.target.closest("[data-cli-hide]");
+  if (!b) return;
+  const h = hiddenClients(), k = b.dataset.cliHide;
+  if (b.dataset.undo) delete h[k];
+  else { if (!confirm("Supprimer ce client de la liste ?\n\nSes courses restent dans l'historique et la compta. Vous pourrez le remettre avec « Voir les retirés ».")) return; h[k] = new Date().toISOString(); }
+  try { localStorage.setItem(HID_CLI, JSON.stringify(h)); } catch (ex) { /* ignore */ }
+  render();
+});
 // « Bienvenue chez HOP! » : message WhatsApp tout prêt pour un client qui a commandé sans créer de compte
 const WELCOME_SENT = "livraison.welcomeSent.v1";
 const welcomeSent = () => { try { return JSON.parse(localStorage.getItem(WELCOME_SENT)) || {}; } catch (e) { return {}; } };
@@ -2264,7 +2296,7 @@ function renderInbox(view) {
       <p class="small muted" style="margin-top:4px">${t.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(lastText).slice(0, 120))}</p>
       ${(() => { if (!t.thread.startsWith("u:")) return ""; const m = t.msgs.find(v => v.author === "client" && v.author_name), ph = m && (String(m.author_name).match(/0[\d\-\s]{8,}/) || [])[0];
         return ph ? `<div style="margin-top:6px">${howBtn(ph.trim(), String(m.author_name).split("·")[0])}</div>` : ""; })()}
-      <button type="button" class="btn btn-sm btn-link" data-close-thread="${UI.esc(t.thread)}">✓ Terminer la discussion</button>
+      <button type="button" class="btn btn-sm btn-link" data-close-thread="${UI.esc(t.thread)}">🗑️ Terminer / supprimer la discussion</button>
     </article>`;
   }).join("")}</div>` : `<div class="empty card">Aucun message ces 30 derniers jours. Les clients, livreurs et commerces vous écrivent ici, dans l'application.</div>`;
 }

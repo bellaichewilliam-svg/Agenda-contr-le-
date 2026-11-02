@@ -734,3 +734,4 @@ livraison/
 - **WhatsApp « Comment commander »** (français + hébreu, prêt à envoyer) : sur chaque fiche client et dans la boîte de réception.
 - Fiche client : le détail des courses reste ouvert quand la page se rafraîchit ; l'heure apparaît (dernière commande « à 15:40 », et chaque course « · 🕐 15:40 »).
 - **Panier** : dès le premier article, « 🛒 Votre panier est gardé » demande nom + téléphone (redemandés à chaque nouvel article tant qu'ils manquent) : les paniers abandonnés ont maintenant les coordonnées pour la relance WhatsApp.
+- **Tout supprimer côté patron** : paniers (« 🗑️ Supprimer », « Supprimer les paniers sans numéro » → statut `vide`, le panier ne revient que si le client en remplit un nouveau) ; clients (« 🗑️ Supprimer de la liste », « Voir les retirés » pour les remettre ; leurs courses restent dans l'historique et la compta) ; discussions (« 🗑️ Terminer / supprimer »). Rien n'est effacé de la base.
