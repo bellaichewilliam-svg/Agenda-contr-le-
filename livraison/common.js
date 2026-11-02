@@ -454,6 +454,88 @@ function proCard(s, o) {
   </button>`;
 }
 
+// Placer sa photo soi-même (logo, couverture, article) : on la fait glisser, on zoome (curseur, deux doigts ou molette),
+// « Tout voir » la montre en entier (bandes blanches). Ce qui est dans le cadre est exactement ce que verront les clients.
+// Rend { img, sx, sy, sw, sh } (le cadre, en pixels de l'image), ou null si on annule
+function cropPick(file, ratio, title) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
+    img.onload = () => {
+      const t = k => I18N.t(k);
+      const d = document.createElement("div");
+      d.className = "crop-modal";
+      d.innerHTML = `<div class="crop-card" role="dialog" aria-modal="true"><b class="crop-title">${esc(title || t("cropTitle"))}</b><small class="crop-help">${esc(t("cropHelp"))}</small>
+        <div class="crop-frame" style="aspect-ratio:${ratio}"><img alt="" draggable="false" /></div>
+        <div class="crop-zoom-row"><span aria-hidden="true">➖</span><input type="range" class="crop-zoom" step="0.01" aria-label="Zoom" /><span aria-hidden="true">➕</span></div>
+        <div class="crop-btns"><button type="button" class="btn btn-sm" data-crop="fit">${esc(t("cropFit"))}</button><button type="button" class="btn btn-sm" data-crop="center">${esc(t("cropCenter"))}</button></div>
+        <div class="crop-btns"><button type="button" class="btn" data-crop="cancel">${esc(t("cropCancel"))}</button><button type="button" class="btn btn-primary" data-crop="ok">${esc(t("cropOk"))}</button></div></div>`;
+      document.body.appendChild(d);
+      const frame = d.querySelector(".crop-frame"), im = d.querySelector("img"), zoom = d.querySelector(".crop-zoom");
+      im.src = url;
+      let W = 1, H = 1, base = 1, zMin = 1, z = 1, x = 0, y = 0;
+      const layout = () => {
+        W = frame.clientWidth; H = frame.clientHeight;
+        base = Math.max(W / img.width, H / img.height);
+        zMin = Math.min(W / img.width, H / img.height) / base;
+        zoom.min = String(zMin); zoom.max = "4";
+      };
+      const draw = () => {
+        z = Math.min(4, Math.max(zMin, z));
+        const sc = base * z, iw = img.width * sc, ih = img.height * sc, mx = Math.max(0, (iw - W) / 2), my = Math.max(0, (ih - H) / 2);
+        x = Math.min(mx, Math.max(-mx, x)); y = Math.min(my, Math.max(-my, y));
+        im.style.width = iw + "px"; im.style.height = ih + "px";
+        im.style.transform = `translate(${W / 2 - iw / 2 + x}px, ${H / 2 - ih / 2 + y}px)`;
+        zoom.value = String(z);
+      };
+      requestAnimationFrame(() => { layout(); draw(); });
+      const onResize = () => { layout(); draw(); };
+      window.addEventListener("resize", onResize);
+      // Glisser (un doigt / souris), pincer (deux doigts)
+      const pts = new Map();
+      let last = null;
+      const gap = () => { const [a, b] = [...pts.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+      frame.addEventListener("pointerdown", e => { frame.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); last = pts.size === 2 ? gap() : null; });
+      frame.addEventListener("pointermove", e => {
+        const p = pts.get(e.pointerId);
+        if (!p) return;
+        if (pts.size === 1) { x += e.clientX - p.x; y += e.clientY - p.y; }
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (pts.size === 2) { const g = gap(); if (last) z *= g / last; last = g; }
+        draw();
+      });
+      const up = e => { pts.delete(e.pointerId); last = pts.size === 2 ? gap() : null; };
+      frame.addEventListener("pointerup", up); frame.addEventListener("pointercancel", up);
+      frame.addEventListener("wheel", e => { e.preventDefault(); z *= e.deltaY < 0 ? 1.08 : 1 / 1.08; draw(); }, { passive: false });
+      zoom.addEventListener("input", () => { z = Number(zoom.value); draw(); });
+      const close = r => { window.removeEventListener("resize", onResize); d.remove(); URL.revokeObjectURL(url); resolve(r); };
+      d.addEventListener("click", e => {
+        const b = e.target.closest("[data-crop]");
+        if (!b) return;
+        const a = b.dataset.crop;
+        if (a === "fit") { z = zMin; x = y = 0; draw(); }
+        else if (a === "center") { x = y = 0; draw(); }
+        else if (a === "cancel") close(null);
+        else {
+          const sc = base * z, ox = W / 2 - img.width * sc / 2 + x, oy = H / 2 - img.height * sc / 2 + y;
+          close({ img, sx: -ox / sc, sy: -oy / sc, sw: W / sc, sh: H / sc });
+        }
+      });
+    };
+    img.src = url;
+  });
+}
+// Le cadre choisi, dessiné à la taille voulue (fond blanc autour si la photo est entière)
+function cropDraw(r, w, h) {
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const g = c.getContext("2d");
+  g.fillStyle = "#fff"; g.fillRect(0, 0, w, h);
+  const k = w / r.sw, ky = h / r.sh;
+  const x0 = Math.max(0, r.sx), y0 = Math.max(0, r.sy), x1 = Math.min(r.img.width, r.sx + r.sw), y1 = Math.min(r.img.height, r.sy + r.sh);
+  if (x1 > x0 && y1 > y0) g.drawImage(r.img, x0, y0, x1 - x0, y1 - y0, (x0 - r.sx) * k, (y0 - r.sy) * ky, (x1 - x0) * k, (y1 - y0) * ky);
+  return c;
+}
 // Photo d'un document (avis, carte d'identité…) : assez nette pour être lue au guichet, assez légère pour la base
 function docPhoto(file) {
   return new Promise((resolve, reject) => {
@@ -971,7 +1053,7 @@ function routeLayer(a, b, opts) {
 
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  track, swipeRow, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
+  track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

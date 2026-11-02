@@ -4191,3 +4191,15 @@ html.d2.d2-day .cart-sheet .sw-fg { background-color: #fff; }
 .order-fold > summary > span b { white-space: normal; overflow-wrap: anywhere; }
 .order-fold > summary > b { flex: 0 0 auto; }
 @media (max-width: 400px) { .adm-groups { gap: 2px; padding: 4px; } .adm-groups button { font-size: 11px; padding: 8px 0; letter-spacing: -.2px; } }
+
+/* Placer sa photo (logo, couverture, article) : glisser et zoomer dans le cadre */
+.crop-modal { position: fixed; inset: 0; z-index: 1000; display: grid; place-items: center; padding: 16px; background: rgba(6, 14, 30, .72); }
+.crop-card { width: min(440px, 100%); display: grid; gap: 10px; padding: 16px; border-radius: 20px; background: var(--panel, #13233F); color: var(--ink, #fff); box-shadow: 0 20px 60px rgba(0, 0, 0, .4); }
+.crop-title { font-size: 17px; }
+.crop-help { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.crop-frame { position: relative; width: 100%; overflow: hidden; border-radius: 14px; background: #fff; touch-action: none; cursor: grab; outline: 3px solid #FF6A13; outline-offset: -3px; }
+.crop-frame img { position: absolute; left: 0; top: 0; max-width: none; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+.crop-zoom-row { display: flex; align-items: center; gap: 8px; }
+.crop-zoom { flex: 1; accent-color: #FF6A13; }
+.crop-btns { display: flex; gap: 8px; }
+.crop-btns .btn { flex: 1; }

@@ -815,3 +815,4 @@ livraison/
 - Page de chaque commerce : « ⏰ Pensez à commander au moins 15 minutes avant la fermeture » (FR / HE).
 - Panel : nom des commerces repliés à la ligne (plus sous « 0 🛵 ») ; rubriques du haut lisibles à 360 px.
 - McDonald's (cachés) : 21 menus au centre, 18 au casher (sans poisson ni fromage), photos originales `img/mcd/` (`supabase/seed-mcd-photos.json`).
+- Espace commerce : **le commerçant place lui-même ses photos** (logo, couverture, photo d'un article) dans le cadre exact que verront les clients : glisser, zoomer (curseur, deux doigts, molette), « 🖼️ Tout voir », « 🎯 Centrer ». `UI.cropPick` / `UI.cropDraw` (common.js), FR / HE.
