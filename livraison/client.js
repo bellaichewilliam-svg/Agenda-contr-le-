@@ -4527,6 +4527,8 @@ form.addEventListener("change", saveDraft);
 document.addEventListener("click", e => { if (e.target.closest("[data-shop-call], [data-ready]")) saveDraft(true); });
 document.addEventListener("visibilitychange", () => { if (document.hidden) saveDraft(true); });
 try { restoreDraft(); } catch (e) { /* brouillon illisible : on repart de zéro */ }
+// Accueil : l'adresse du client (dernière livrée, sinon Maison) est déjà dans « Livrer à » ; il choisit ensuite quoi / où récupérer
+try { if (!state.pick.to && !val("dropoff_address").trim() && !/[?&]c=/.test(location.search)) { const d = defaultDropAddr(); if (d) applySavedAddr("to", d); } } catch (e) { /* ignore */ }
 // Fenêtre de l'appli client : l'espace livreur ouvert d'ici proposera d'installer sa propre appli
 UI.markClientApp();
 
@@ -4645,7 +4647,7 @@ function emptyCartSheet() {
         <button type="button" class="btn btn-link" data-ec-shops>${UI.esc(t("csShops"))} ›</button></div></div>`;
   box.addEventListener("click", e => {
     if (e.target === box || e.target.closest("[data-ec-close]")) return box.remove();
-    if (e.target.closest("[data-ec-start]")) { box.remove(); if (document.body.dataset.view !== "home") location.hash = "#accueil"; setTimeout(() => { const i = $("#homeFrom"); if (i) { i.scrollIntoView({ block: "center", behavior: "smooth" }); i.focus({ preventScroll: true }); } }, 250); }
+    if (e.target.closest("[data-ec-start]")) { box.remove(); if (document.body.dataset.view !== "home") location.hash = "#accueil"; setTimeout(() => { const i = $("#homeTo"); if (i) { i.scrollIntoView({ block: "center", behavior: "smooth" }); i.focus({ preventScroll: true }); } }, 250); }
     if (e.target.closest("[data-ec-shops]")) { box.remove(); if (document.body.dataset.view !== "home") location.hash = "#accueil"; setTimeout(() => { const b = $("#homeProBox"); if (b) b.scrollIntoView({ block: "start", behavior: "smooth" }); }, 250); }
   });
   document.body.appendChild(box);
