@@ -4151,3 +4151,15 @@ html.d2.d2-day .cart-sheet .sw-fg { background-color: #fff; }
 .sw-hint { margin: 8px 2px 0; font-size: 12.5px; opacity: .7; }
 .sw-act { width: 80px; font-size: 11.5px; }
 .sw-act span { overflow-wrap: normal; word-break: keep-all; }
+
+/* Panel · fiche d'un commerce : jamais plus large que l'écran (tout passe à la ligne) */
+.orders > .shop-fold, .shop-fold > article, .shop-fold .kv, .shop-fold .kv > div, .shop-fold .kv > div > span,
+.shop-fiche, .shop-fiche .f, .shop-fiche .fh, .shop-fiche .fh-day { min-width: 0; max-width: 100%; }
+.shop-fold > summary > span, .shop-fold .kv > div > span, .shop-fiche > summary, .shop-fold .order-time { overflow-wrap: anywhere; }
+.shop-fold .kv select, .shop-fiche input, .shop-fiche textarea { max-width: 100%; }
+.shop-fold .kv select { min-width: 0; }
+.shop-fold .order-head { flex-wrap: wrap; }
+.shop-fold .actions { flex-wrap: wrap; }
+.shop-fold .actions .btn { white-space: normal; max-width: 100%; }
+.shop-fold .admin-note { width: 100%; box-sizing: border-box; }
+@media (max-width: 420px) { .shop-fiche .fh-day { grid-template-columns: 70px auto minmax(0, 1fr); gap: 6px; padding: 8px; } }
