@@ -2737,6 +2737,21 @@ async function loadSettings() {
 state.catalog = null; state.cart = {};
 // Produit épuisé = hors ligne : le client ne le voit plus du tout (le commerçant le remet en vente dans son espace)
 const cgProducts = () => ((state.catalog && state.catalog.products) || []).filter(p => p.available !== false);
+// Tailles d'un même menu (ex. McDonald's petit / moyen / grand) : des articles « Nom · שם [Grand · גדולה] » de la même rubrique.
+// Une seule carte (« dès 49 ₪ »), la taille se choisit dans la fiche de l'article ; le panier garde la taille choisie
+const SIZE_RX = /\s*\[([^\]]+)\]\s*$/;
+const baseOf = p => String((p && p.name) || "").replace(SIZE_RX, "");
+const sizeOf = p => ((String((p && p.name) || "").match(SIZE_RX) || [])[1] || "");
+const sizesOf = p => (sizeOf(p) ? cgProducts().filter(x => x.category_id === p.category_id && sizeOf(x) && baseOf(x) === baseOf(p)) : [p]);
+const pName = p => UI.bi(baseOf(p)) + (sizeOf(p) ? " · " + UI.bi(sizeOf(p)) : "");
+const groupFirst = list => list.filter((p, i) => !sizeOf(p) || list.findIndex(x => sizeOf(x) && x.category_id === p.category_id && baseOf(x) === baseOf(p)) === i);
+const groupQty = p => sizesOf(p).reduce((n, x) => n + (state.cart[x.id] || 0), 0);
+const groupPrice = p => { const sz = sizesOf(p); return sz.length > 1 ? t("cgFrom", { price: UI.money(Math.min(...sz.map(x => Number(x.price)))) }) : UI.money(p.price); };
+// Taille proposée en ouvrant la fiche : celle déjà au panier, sinon la moyenne / normale, sinon la première
+function sizeDefault(p) {
+  const sz = sizesOf(p);
+  return sz.find(x => state.cart[x.id]) || sz.find(x => /moyen|normal|regular|רגיל|בינוני/i.test(sizeOf(x))) || sz[0] || p;
+}
 const cartLines = () => cgProducts().filter(p => p.available && state.cart[p.id] > 0).map(p => ({ p, qty: state.cart[p.id] }));
 const cartCount = () => cartLines().reduce((s, l) => s + l.qty, 0);
 const cartTotal = () => cartLines().reduce((s, l) => s + Number(l.p.price) * l.qty, 0);
@@ -2766,8 +2781,8 @@ function renderCatalog() {
   const cats = state.catalog.categories.filter(c => cgProducts().some(p => p.category_id === c.id));
   const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
   // Le menu entier par rubriques ; les onglets mènent à leur rubrique et suivent le défilement
-  const allSecs = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: cgProducts().filter(p => p.category_id === c.id) }))
-    .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: cgProducts().filter(p => !cats.some(c => c.id === p.category_id)) }] : []);
+  const allSecs = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: groupFirst(cgProducts().filter(p => p.category_id === c.id)) }))
+    .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: groupFirst(cgProducts().filter(p => !cats.some(c => c.id === p.category_id))) }] : []);
   // Recherche dans le catalogue (nom, description, français et hébreu, sans accents)
   const cq = phNorm(state.cgQ || "");
   const sections = cq ? allSecs.map(x => Object.assign({}, x, { items: x.items.filter(p => phNorm(`${p.name} ${p.description || ""}`).includes(cq)) })).filter(x => x.items.length) : allSecs;
@@ -2775,7 +2790,7 @@ function renderCatalog() {
   // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
   // Les incontournables : les premiers articles du menu, en grandes cartes qui défilent
   const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : shopArt(p));
-  const top = cgProducts().filter(p => p.available).slice(0, 8);
+  const top = groupFirst(cgProducts().filter(p => p.available)).slice(0, 8);
   const head = `${cats.length > 1 && !cq ? `<div class="cg-cats" role="tablist">${sections.filter(x => x.title).map(x =>
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}`;
   // Le champ de recherche est posé une seule fois par commerce (il garde le clavier et ce qui est tapé)
@@ -2789,16 +2804,17 @@ function renderCatalog() {
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   const html = `${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
-    ${cgProducts().length >= 5 && !cq ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = state.cart[p.id] || 0;
+    ${cgProducts().length >= 5 && !cq ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = groupQty(p), multi = sizesOf(p).length > 1;
       return `<div class="cg-tcard${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}"><div class="cg-tpic">${pic(p)}
-        <button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button></div>
-        <span class="cg-price">${UI.money(p.price)}</span><b><bdi>${UI.esc(UI.bi(p.name))}</bdi></b></div>`; }).join("")}</div></div>` : ""}
+        <button type="button" class="cg-plus" ${multi ? "data-cg-pick" : "data-cg-plus"}="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button></div>
+        <span class="cg-price">${UI.esc(groupPrice(p))}</span><b><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b></div>`; }).join("")}</div></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
-      const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
+      const q = groupQty(p), multi = sizesOf(p).length > 1, photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
-        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(p.name))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.money(p.price)}</span></div>
+        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : shopArt(p)}
         ${!p.available ? `<span class="cg-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
+          : multi ? `<button type="button" class="cg-plus" data-cg-pick="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
       </div>`;
@@ -2867,6 +2883,7 @@ $("#catalogBox").addEventListener("click", e => {
     if (h) scrollTo({ top: scrollY + h.getBoundingClientRect().top - cgEdge() + 4, behavior: "smooth" });
     return;
   }
+  if (b.dataset.cgPick) return openItem(b.dataset.cgPick);
   if (b.dataset.cgPlus) state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1);
   else if (b.dataset.cgMinus) state.cart[b.dataset.cgMinus] = Math.max(0, (state.cart[b.dataset.cgMinus] || 0) - 1);
   else return;
@@ -2878,9 +2895,10 @@ $("#catalogBox").addEventListener("click", e => {
 // Fiche d'un article : grande image, description, prix, quantité, « Ajouter · total »
 const item = { id: null, qty: 1 };
 function openItem(id) {
-  const p = cgProducts().find(x => x.id === id);
+  let p = cgProducts().find(x => x.id === id);
   if (!p) return;
-  item.id = id; item.qty = Math.max(1, state.cart[id] || 1);
+  if (sizesOf(p).length > 1 && !state.cart[p.id]) p = sizeDefault(p);
+  item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
   renderItem();
   $("#itemSheet").classList.remove("hidden");
 }
@@ -2889,7 +2907,8 @@ function renderItem() {
   if (!p) return;
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
   $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</div>
-    <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(p.name))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
+    <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
+      ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
@@ -2912,7 +2931,7 @@ function renderCart() {
     const id = UI.esc(p.id);
     // On glisse la ligne : Supprimer · + 1 · Modifier (les − / + restent là pour ceux qui ne glissent pas)
     return UI.swipeRow(`<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</span>
-      <span class="cs-txt"><b><bdi>${UI.esc(UI.bi(p.name))}</bdi></b><small>${UI.esc(money(Number(p.price) * qty))}</small></span>
+      <span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b><small>${UI.esc(money(Number(p.price) * qty))}</small></span>
       <span class="it-qty cs-qty"><button type="button" data-cs-minus="${id}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${id}" aria-label="+">+</button></span></div>`,
       [{ icon: "🗑", label: t("swDel"), attrs: `data-cs-del="${id}"`, cls: "sw-red" }, { icon: "＋", label: t("swDup"), attrs: `data-cs-plus="${id}"` },
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
@@ -2962,6 +2981,8 @@ $("#cartSheet").addEventListener("click", e => {
 });
 $("#itemSheet").addEventListener("click", e => {
   if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
+  const sz = e.target.closest("[data-it-size]");
+  if (sz) { item.id = sz.dataset.itSize; item.qty = Math.max(1, state.cart[item.id] || item.qty || 1); return renderItem(); }
   if (e.target.closest("#itemMinus")) { item.qty = Math.max(1, item.qty - 1); return renderItem(); }
   if (e.target.closest("#itemPlus")) { item.qty = Math.min(50, item.qty + 1); return renderItem(); }
   const add = e.target.closest("#itemAdd"), del = e.target.closest("#itemDel");

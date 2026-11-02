@@ -816,3 +816,4 @@ livraison/
 - Panel : nom des commerces repliés à la ligne (plus sous « 0 🛵 ») ; rubriques du haut lisibles à 360 px.
 - McDonald's (cachés) : 21 menus au centre, 18 au casher (sans poisson ni fromage), photos originales `img/mcd/` (`supabase/seed-mcd-photos.json`).
 - Espace commerce : **le commerçant place lui-même ses photos** (logo, couverture, photo d'un article) dans le cadre exact que verront les clients : glisser, zoomer (curseur, deux doigts, molette), « 🖼️ Tout voir », « 🎯 Centrer ». `UI.cropPick` / `UI.cropDraw` (common.js), FR / HE.
+- **Tailles d'un menu** (petit / moyen / grand, comme McDo) : des articles de la même rubrique nommés « Nom · שם [Taille · גודל] » forment une seule carte (« dès 49 ₪ », tailles listées) ; la fiche de l'article montre les tailles avec leur prix (la moyenne choisie d'office), le panier et la commande gardent la taille. Aucune colonne en plus.
