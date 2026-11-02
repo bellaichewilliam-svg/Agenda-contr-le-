@@ -4060,3 +4060,35 @@ html.d2:not(.d2-day) .gm-total { background: #0B1830; border: 1px solid rgba(255
 .gm-notes { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 6px; }
 .gm-ok { margin: 4px 0 8px; padding: 9px 12px; border-radius: 12px; background: #ECFDF3; color: #067647; font: 600 14px/1.35 Rubik, sans-serif; }
 .cli-note { display: grid; gap: 6px; justify-items: start; margin: 0 0 12px; padding: 12px 14px; border-radius: 14px; background: var(--panel); border: 1.5px solid #FF6A13; color: var(--ink); }
+
+/* Catalogue façon grandes applis : recherche + rubriques en pastilles, collées en haut ; lignes avec photo paysage */
+.cg-head { position: sticky; top: var(--cg-top, 112px); z-index: 5; background: var(--bg); padding: 8px 0 8px; margin: 0 -2px 4px; display: grid; gap: 8px; }
+.shop-order.with-cg .cg-head { background: var(--panel); margin: 0 -14px 4px; padding: 8px 14px; width: calc(100% + 28px); max-width: none; box-sizing: border-box; }
+.cg-search { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 16px; border-radius: 999px; background: var(--panel); border: 1px solid var(--border); }
+.shop-order.with-cg .cg-search { background: var(--bg); }
+.cg-search span { font-size: 16px; opacity: .7; }
+.cg-search input { flex: 1; min-width: 0; border: 0; background: none; font: 500 16px/1.2 Rubik, sans-serif; color: var(--ink); padding: 12px 0; outline: none; }
+.cg-head .cg-cats { position: static; border: 0; margin: 0; padding: 0; gap: 8px; background: none; width: auto; max-width: 100%; }
+.shop-order.with-cg .cg-head .cg-cats { background: none; margin: 0; padding: 0; width: auto; }
+.cg-head .cg-tab { border: 1px solid var(--border); border-radius: 999px; padding: 9px 16px; font-size: 14.5px; background: var(--panel); color: var(--ink); }
+.cg-head .cg-tab.on { background: var(--brand, #FF6A13); border-color: var(--brand, #FF6A13); color: #fff; }
+.cg-none { color: var(--muted); text-align: center; padding: 24px 8px; }
+/* Lignes : la photo en format paysage, la description sur 3 lignes, le prix en couleur */
+.cg-item { grid-template-columns: minmax(0, 1fr) 132px; }
+.cg-pic { width: 132px; height: 92px; }
+.cg-pic > img, .cg-pic .item-art { width: 132px; height: 92px; border-radius: 14px; }
+.cg-info small { -webkit-line-clamp: 3; }
+.cg-info .cg-price { font-weight: 800; }
+
+/* Page d'un commerce (catalogue) façon grandes applis : grande photo arrondie en bas, logo rond, nom et infos centrés */
+body.shop-compact #shopHero .sh-cover { aspect-ratio: auto; height: 210px; max-height: none; border-bottom-left-radius: 50% 26px; border-bottom-right-radius: 50% 26px; }
+body.shop-compact #shopHero .sh-row { flex-direction: column; align-items: center; text-align: center; gap: 8px; margin-top: -48px; }
+body.shop-compact #shopHero .sh-logo { width: 92px; height: 92px; border-radius: 50%; }
+body.shop-compact #shopHero .sh-txt { padding-top: 0; justify-items: center; }
+body.shop-compact #shopHero .sh-txt b { font-size: 28px; }
+body.shop-compact #shopHero .sh-meta { flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+body.shop-compact #shopHero .sh-meta-l { justify-items: center; align-items: center; text-align: center; }
+body.shop-compact #shopHero .sh-meta-r { justify-content: center; }
+.cg-head > * { min-width: 0; }
+.cg-search { width: 100%; box-sizing: border-box; }
+.cg-search input { width: 100%; }

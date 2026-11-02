@@ -33,6 +33,7 @@ function setView(v, push) {
   window.scrollTo(0, 0);
   // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
   if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); });
+  if (v === "order") requestAnimationFrame(() => { if (wiz.on) wizLabels(); });
   return true;
 }
 // Un champ de l'adresse repliée en fiche doit être corrigé (erreur à l'envoi) : les champs reviennent
@@ -993,7 +994,12 @@ function goKind(id) {
   if (f && f.brand) clearHomeAddr("from", true);
   if (state.homeKind === id) state.homeKind = null;   // (applyKind le remet, sans l'enlever)
   // Pharmacie, tabac, makolet… : pas de magasin à choisir, on va droit aux produits (le livreur va au plus proche)
-  if (RAYON_KINDS.includes(id)) { applyKind(id); return goPharma(); }
+  if (RAYON_KINDS.includes(id)) {
+    applyKind(id);
+    // Livré chez le client : son adresse enregistrée (la dernière livrée, sinon Maison) est mise d'office
+    if (!state.pick.to && !val("dropoff_address").trim()) { const d = defaultDropAddr(); if (d) applySavedAddr("to", d); }
+    return goPharma();
+  }
   // Nouveau design : « Repas de restaurant » ouvre la grande carte des restaurants (logos, numéro, site),
   // on touche le sien et la commande remonte ; pas de liste par-dessus l'accueil
   if (D2 && id === "resto" && !state.pick.from) { applyKind(id); setMapOpen(true); return; }
@@ -1214,6 +1220,9 @@ function wizUsedMore() {
 // Un bloc dont tout est caché sur cet écran (ex. « Où récupérer ? » à l'écran 2 pour un colis) disparaît
 function wizEmpty() {
   if (!wiz.on) return;
+  // Formulaire caché (on est sur l'accueil) : rien n'a de taille, tout paraîtrait vide ; on recalcule à l'ouverture
+  // de la commande (sinon « Adresse de livraison » restait cachée jusqu'à un rafraîchissement)
+  if (!form.getClientRects().length) { form.querySelectorAll("fieldset.wiz-empty").forEach(fs => fs.classList.remove("wiz-empty")); return; }
   form.querySelectorAll("fieldset[data-wiz]").forEach(fs => {
     fs.classList.remove("wiz-empty");
     const kids = [...fs.children].filter(k => k.tagName !== "LEGEND");
@@ -1586,7 +1595,8 @@ function applySavedAddr(which, a) {
   DETAIL.forEach(k => { form.elements[pre + "_" + k].value = a[k] || ""; });
   if (pre === "dropoff") { form.dropoff_nocode.checked = NO_CODE.test(a.code || ""); syncNoCode(); }
   form.elements[pre + "_note"].value = a.note || "";
-  setKind(pre, a.kind || null);
+  // Adresse enregistrée sans type de lieu mais avec appartement / étage : c'est un appartement (on ne le redemande pas)
+  setKind(pre, a.kind || (!a.brand && a.apt ? "appartement" : null));
   state.pick[which] = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, label, exact: a.exact };
   setBrandMode(which, !!a.brand);
   state[which + "Point"] = a.lat != null ? { lat: a.lat, lon: a.lon } : null;
@@ -1900,7 +1910,7 @@ function validateOrder() {
   const missing = required.find(k => !val(k).trim());
   if (missing || !fromCity || !toCity) {
     if (missing) form.elements[missing].focus();
-    return showErrorFalse(t("errRequired"));
+    return showErrorFalse(t(missing === "dropoff_address" ? "errDropAddr" : "errRequired"));
   }
   // Adresses : uniquement celles proposées par la carte (si le service répond)
   if (Places.serviceOk && ((!near && !ac.from.isPicked()) || !ac.to.isPicked())) {
@@ -2657,24 +2667,37 @@ function renderCatalog() {
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   form.shop_order.placeholder = on ? t("cgNotePh") : t("spOrderPh");
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
-  if (!on) { box.innerHTML = ""; box.dataset.html = ""; return; }
+  if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgProducts().some(p => p.category_id === c.id));
   const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
   // Le menu entier par rubriques ; les onglets mènent à leur rubrique et suivent le défilement
-  const sections = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: cgProducts().filter(p => p.category_id === c.id) }))
+  const allSecs = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: cgProducts().filter(p => p.category_id === c.id) }))
     .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: cgProducts().filter(p => !cats.some(c => c.id === p.category_id)) }] : []);
+  // Recherche dans le catalogue (nom, description, français et hébreu, sans accents)
+  const cq = phNorm(state.cgQ || "");
+  const sections = cq ? allSecs.map(x => Object.assign({}, x, { items: x.items.filter(p => phNorm(`${p.name} ${p.description || ""}`).includes(cq)) })).filter(x => x.items.length) : allSecs;
   const n = cartCount();
   // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
   // Les incontournables : les premiers articles du menu, en grandes cartes qui défilent
   const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : shopArt(p));
   const top = cgProducts().filter(p => p.available).slice(0, 8);
+  const head = `${cats.length > 1 && !cq ? `<div class="cg-cats" role="tablist">${sections.filter(x => x.title).map(x =>
+      `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}`;
+  // Le champ de recherche est posé une seule fois par commerce (il garde le clavier et ce qui est tapé)
+  if (box.dataset.shell !== state.shop.code + I18N.lang) {
+    box.innerHTML = `<div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
+    box.dataset.shell = state.shop.code + I18N.lang; box.dataset.html = ""; box.dataset.head = "";
+    state.cgQ = "";
+  }
+  const qIn = box.querySelector("[data-cg-q]");
+  qIn.placeholder = t("cgSearch", { name: UI.bi(state.shop.name) });
+  if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   const html = `${shopNoPay() ? noPayMini() : ""}
-    ${cgProducts().length >= 5 ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = state.cart[p.id] || 0;
+    ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
+    ${cgProducts().length >= 5 && !cq ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = state.cart[p.id] || 0;
       return `<div class="cg-tcard${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}"><div class="cg-tpic">${pic(p)}
         <button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button></div>
         <span class="cg-price">${UI.money(p.price)}</span><b><bdi>${UI.esc(UI.bi(p.name))}</bdi></b></div>`; }).join("")}</div></div>` : ""}
-    ${cats.length > 1 ? `<div class="cg-cats" role="tablist">${sections.filter(x => x.title).map(x =>
-      `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
       const q = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
@@ -2695,7 +2718,7 @@ function renderCatalog() {
     ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
       : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
-  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  if (box.dataset.html !== html) { box.querySelector(".cg-body").innerHTML = html; box.dataset.html = html; }
   if (state.findItem) {
     const id = state.findItem; state.findItem = null;
     requestAnimationFrame(() => { const el = box.querySelector(`.cg-item[data-cg-open="${CSS.escape(id)}"]`) || box.querySelector(`[data-cg-open="${CSS.escape(id)}"]`); if (el) { el.classList.add("cg-found"); el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.classList.remove("cg-found"), 4000); } });
@@ -2706,8 +2729,15 @@ function renderCatalog() {
   syncCgTabs();
 }
 // Onglet allumé = la rubrique en cours de lecture
-const cgEdge = () => { const tabs = $("#catalogBox .cg-cats"); return tabs ? (parseFloat(getComputedStyle(tabs).top) || 0) + tabs.offsetHeight + 12 : 0; };
+const cgEdge = () => { const h = $("#catalogBox .cg-head"); return h ? (parseFloat(getComputedStyle(h).top) || 0) + h.offsetHeight + 12 : 0; };
 function syncCgTabs() {
+  // Le bloc recherche + rubriques se colle juste sous les barres du haut (leur vraie position à l'écran)
+  const cb = $("#catalogBox");
+  if (cb && cb.querySelector(".cg-head")) {
+    const low = ["#viewBar", ".topbar"].map(q => document.querySelector(q)).filter(el => el && el.offsetHeight && /fixed|sticky/.test(getComputedStyle(el).position))
+      .reduce((m, el) => Math.max(m, el.getBoundingClientRect().bottom), 0);
+    if (low > 0) cb.style.setProperty("--cg-top", Math.round(low) - 1 + "px");
+  }
   const tabs = $("#catalogBox .cg-cats");
   if (!tabs) return;
   const secs = [...$("#catalogBox").querySelectorAll("[data-cg-sec]")], edge = cgEdge();
@@ -2723,6 +2753,13 @@ function syncCgTabs() {
 }
 let cgTick = 0;
 addEventListener("scroll", () => { if (!cgTick) cgTick = requestAnimationFrame(() => { cgTick = 0; syncCgTabs(); }); }, { passive: true });
+$("#catalogBox").addEventListener("input", e => {
+  if (!e.target.matches("[data-cg-q]")) return;
+  e.stopPropagation();
+  state.cgQ = e.target.value;
+  renderCatalog();
+});
+$("#catalogBox").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-cg-q]")) { e.preventDefault(); e.target.blur(); } });
 $("#catalogBox").addEventListener("click", e => {
   const b = e.target.closest("button");
   if (!b) { const card = e.target.closest("[data-cg-open]"); if (card) openItem(card.dataset.cgOpen); return; }

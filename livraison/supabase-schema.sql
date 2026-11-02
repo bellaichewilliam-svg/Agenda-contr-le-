@@ -8521,3 +8521,52 @@ end;
 $function$;
 -- (mise à jour) chat_support_send : + réponse automatique de bienvenue (hébreu si le client écrit en hébreu, sinon français),
 -- une fois par 12 h et par client tant que HOP! n'a pas répondu. Voir la migration « chat_support_auto_reply ».
+
+-- ============================================================================
+-- Traduction auto des catalogues : une rubrique (shop_categories) n'a pas de colonne description.
+-- L'ancienne version lisait new.description pour les rubriques aussi → toute nouvelle rubrique était refusée
+-- depuis le 29/10. Appliqué en ligne le 02/11 (migration catalog_auto_fr_categories_fix).
+-- ============================================================================
+create or replace function public.catalog_auto_fr() returns trigger
+language plpgsql security definer set search_path = public as $function$
+declare fr text; lim int;
+begin
+  lim := case when tg_table_name = 'shop_categories' then 40 else 80 end;
+  if new.name ~ '[א-ת]' and new.name !~ '[A-Za-zÀ-ÿ]' then
+    fr := public.hop_tr_clean(new.name);
+    if fr !~ '[א-ת]' and length(fr || ' · ' || new.name) <= lim then new.name := fr || ' · ' || new.name; end if;
+  end if;
+  if tg_table_name = 'shop_products' then
+    if new.description ~ '[א-ת]' and new.description !~ '[A-Za-zÀ-ÿ]' then
+      fr := public.hop_tr_clean(new.description);
+      if fr !~ '[א-ת]' and length(fr || ' · ' || new.description) <= 300 then new.description := fr || ' · ' || new.description; end if;
+    end if;
+  end if;
+  return new;
+end;
+$function$;
+-- Catalogue HOP! Jus de fruits (code HOPJUS, service du patron) : créé en ligne le 02/11 à partir de
+-- livraison/supabase/seed-hop-jus.json (10 boissons à 32 ₪, rubrique « Recommandés », livraison 09:00-22:00).
+
+-- Fiche client du patron : les adresses enregistrées dans le compte (Maison, Travail…) sont renvoyées
+-- (champ addresses). Appliqué en ligne le 02/11 (migration admin_clients_addresses).
+create or replace function public.admin_clients() returns json
+language sql stable security definer set search_path = public as $function$
+  select case when public.is_admin() then coalesce((select json_agg(x order by x.last_at desc nulls last) from (
+    select coalesce(c.id::text, 'p:' || k.phone) as key, c.id as client_id, coalesce(c.name, k.name) as name, '0' || k.phone as phone,
+           c.email, c.email_verified_at is not null as email_verified, c.created_at as account_at,
+           (c.blocked or exists (select 1 from blocked_phones b where b.phone = k.phone)) as blocked,
+           k.orders, k.delivered, k.spent, k.first_at, k.last_at, k.city, c.addresses
+      from (select public.phone_digits(o.contact_phone) as phone, (array_agg(o.contact_name order by o.created_at desc))[1] as name,
+                   count(*) as orders, count(*) filter (where o.status = 'livree') as delivered,
+                   coalesce(sum(o.price) filter (where o.status = 'livree'), 0) as spent,
+                   min(o.created_at) as first_at, max(o.created_at) as last_at,
+                   (array_agg(o.to_city order by o.created_at desc))[1] as city
+              from orders o where length(public.phone_digits(o.contact_phone)) = 9 group by 1) k
+      left join clients c on c.phone = k.phone
+    union all
+    select c.id::text, c.id, c.name, '0' || c.phone, c.email, c.email_verified_at is not null, c.created_at, c.blocked,
+           0, 0, 0, null, c.created_at, null, c.addresses
+      from clients c where not exists (select 1 from orders o where public.phone_digits(o.contact_phone) = c.phone)
+  ) x), '[]'::json) end;
+$function$;
