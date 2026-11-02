@@ -538,8 +538,8 @@ const CAMPS = [
   { id: "hoppy-sacs", aud: "client", isNew: true, thumb: "post", title: "🛍️ Vos courses sont prêtes ? HOP! vient les chercher.", desc: "Vous faites vos courses, le livreur HOP! récupère les sacs au magasin et vous les livre. FR et HE.", formats: ["post"] },
   { id: "hoppy-porte", aud: "client", isNew: true, thumb: "post", title: "📦 Colis, médicaments, petites courses ? HOP! vous les apporte.", desc: "Hoppy livre une voisine à sa porte : idéal pour parler aux familles et aux personnes âgées. FR et HE.", formats: ["post"] },
   { id: "hoppy-boutique", aud: "client", isNew: true, thumb: "post", title: "🛍️ Repéré en boutique ? HOP! vous le livre.", desc: "Hoppy en mode shopping : l'article vu en magasin, livré chez vous. FR et HE.", formats: ["post"] },
-  { id: "hoppy-envie", aud: "client", isNew: true, thumb: "post", title: "🎉 Une envie ? Et hop !", desc: "Hoppy jaillit du sac HOP! avec courses, plat, fleurs et colis. En hébreu pour l'instant (la version française arrive).", formats: ["post"] },
-  { id: "hoppy-telephone", aud: "client", isNew: true, thumb: "post", title: "📱 De votre téléphone à votre porte. Et hop !", desc: "Hoppy sort du téléphone avec fleurs, courses, colis, pharmacie et plat. En hébreu pour l'instant (la version française arrive).", formats: ["post"] },
+  { id: "hoppy-envie", aud: "client", isNew: true, only: "he", thumb: "post", title: "🎉 Une envie ? Et hop !", desc: "Hoppy jaillit du sac HOP! avec courses, plat, fleurs et colis.", formats: ["post"] },
+  { id: "hoppy-telephone", aud: "client", isNew: true, only: "he", thumb: "post", title: "📱 De votre téléphone à votre porte. Et hop !", desc: "Hoppy sort du téléphone avec fleurs, courses, colis, pharmacie et plat.", formats: ["post"] },
   { id: "hoppy-pensez", aud: "client", isNew: true, thumb: "post", title: "💭 Vous pensez à quoi ? Hoppy vous l'apporte !", desc: "Post carré : plat, courses, fleurs, colis, pharmacie… tout ce qu'on a en tête, Hoppy l'apporte.", formats: ["post"] },
   { id: "hoppy-repos", aud: "client", isNew: true, thumb: "post", title: "😌 Hoppy souffle : vous, restez tranquille", desc: "Post carré sans texte (le même en FR et HE) : le message est dans la légende. Idéal en fin de semaine.", formats: ["post"] },
   { id: "hoppy-magasins", aud: "client", isNew: true, thumb: "post", title: "🛍️ Hoppy va dans vos magasins préférés", desc: "Vêtements, chaussures, cadeaux, déco… Hoppy vous les rapporte.", formats: ["post"] },
@@ -615,7 +615,7 @@ function renderKit() {
   // Une campagne peut avoir des formats différents selon la langue ({ fr: ["post"], he: ["story"] })
   const fmts = c => (Array.isArray(c.formats) ? c.formats : (c.formats[L] || []));
   const th = c => (typeof c.thumb === "object" && c.thumb ? c.thumb[L] : c.thumb) || fmts(c)[0] || "story";
-  $("#kitCamps").innerHTML = CAMPS.filter(c => c.aud === ui.aud).map(c => `<div class="camp">
+  $("#kitCamps").innerHTML = CAMPS.filter(c => c.aud === ui.aud && (!c.only || c.only === L)).map(c => `<div class="camp">
       <a class="camp-thumb" href="${f(c.id, th(c))}" data-vis data-src="${f(c.id, th(c))}"><img src="${f(c.id, th(c))}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
       <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
         <div class="camp-btns">${fmts(c).map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
