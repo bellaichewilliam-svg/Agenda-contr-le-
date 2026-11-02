@@ -4163,3 +4163,15 @@ html.d2.d2-day .cart-sheet .sw-fg { background-color: #fff; }
 .shop-fold .actions .btn { white-space: normal; max-width: 100%; }
 .shop-fold .admin-note { width: 100%; box-sizing: border-box; }
 @media (max-width: 420px) { .shop-fiche .fh-day { grid-template-columns: 70px auto minmax(0, 1fr); gap: 6px; padding: 8px; } }
+
+/* Commerce avec sa carte en ligne : le lien vers la carte, avant tout le reste */
+.sh-menu { margin: 0 0 12px; }
+.sh-menu-btn { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: 16px; background: #FF6A13; color: #fff; text-decoration: none; box-shadow: 0 6px 18px rgba(255, 106, 19, .28); }
+.sh-menu-btn i { font-style: normal; font-size: 24px; flex: none; }
+.sh-menu-btn span { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.sh-menu-btn b { font-size: 16px; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; }
+.sh-menu-btn small { font-size: 12.5px; line-height: 1.35; opacity: .95; }
+.sh-menu-btn em { font-style: normal; font-size: 20px; font-weight: 800; flex: none; }
+.sh-menu-btn.more { background: var(--panel, #13233F); color: inherit; border: 1px solid var(--border); box-shadow: none; padding: 10px 14px; }
+.sh-menu-btn.more b { font-size: 14px; }
+html[dir="rtl"] .sh-menu-btn em { transform: scaleX(-1); }
