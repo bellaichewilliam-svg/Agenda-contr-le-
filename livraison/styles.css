@@ -4229,3 +4229,5 @@ form.wiz .fs-when .choices.compact .choice span { min-width: 0; padding: 9px 4px
 form.wiz .fs-when .choices.compact .choice span { flex-direction: column; }
 form.wiz .fs-when .choices.compact .choice span b { min-width: 0; font-size: 13px; line-height: 1.2; overflow-wrap: normal; word-break: keep-all; hyphens: none; text-align: center; }
 form.wiz .fs-when .choices.compact .choice span i, form.wiz .fs-when .choices.compact .choice span img { flex: none; width: 18px; height: 18px; font-size: 16px; }
+/* Bureau : pas de code d'entrée à demander */
+.fields4.is-office label:nth-child(4), .fields4.is-office .nocode { display: none; }
