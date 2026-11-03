@@ -2777,6 +2777,35 @@ async function loadSettings() {
 state.catalog = null; state.cart = {};
 // Produit épuisé = hors ligne : le client ne le voit plus du tout (le commerçant le remet en vente dans son espace)
 const cgProducts = () => ((state.catalog && state.catalog.products) || []).filter(p => p.available !== false);
+// Photos de produits sur fond blanc (détourées : McDonald's, épicerie…) : montrées en entier et centrées, sur fond blanc,
+// au lieu d'être coupées par le cadre. Les vraies photos (plat posé sur une table) restent en plein cadre.
+const whitePics = new Map();
+function checkWhitePic(img) {
+  const src = img.currentSrc || img.src;
+  if (!src || !img.naturalWidth) return;
+  const k = src.length + ":" + src.slice(-80);
+  if (!whitePics.has(k)) {
+    try {
+      const n = 24, c = document.createElement("canvas");
+      c.width = n; c.height = n;
+      const g = c.getContext("2d", { willReadFrequently: true });
+      g.drawImage(img, 0, 0, n, n);
+      const d = g.getImageData(0, 0, n, n).data;
+      let white = 0, all = 0;
+      for (let i = 0; i < n; i++) for (const [x, y] of [[i, 0], [i, n - 1], [0, i], [n - 1, i]]) {
+        const o = (y * n + x) * 4; all++;
+        if ((d[o] > 225 && d[o + 1] > 225 && d[o + 2] > 225) || d[o + 3] < 24) white++;
+      }
+      whitePics.set(k, white / all > 0.6);   // fond blanc sur la plupart des bords (le produit peut toucher un bord)
+    } catch (e) { return; }   // photo d'un autre site (lecture interdite) : on la laisse telle quelle
+  }
+  img.classList.toggle("pic-white", whitePics.get(k));
+}
+document.addEventListener("load", e => {
+  const el = e.target;
+  if (el && el.tagName === "IMG" && el.closest(".cg-pic, .cg-tpic, .it-pic, .cs-pic")) checkWhitePic(el);
+}, true);
+
 // Tailles d'un même menu (ex. McDonald's petit / moyen / grand) : des articles « Nom · שם [Grand · גדולה] » de la même rubrique.
 // Une seule carte (« dès 49 ₪ »), la taille se choisit dans la fiche de l'article ; le panier garde la taille choisie
 const SIZE_RX = /\s*\[([^\]]+)\]\s*$/;
@@ -2790,6 +2819,8 @@ const groupPrice = p => { const sz = sizesOf(p); return sz.length > 1 ? t("cgFro
 // Burger, menu, tortilla… : le client peut retirer des ingrédients (« sans oignons », « sans ketchup ») et écrire une demande.
 // Gardé par article (state.cartMods), écrit en clair dans la commande (le patron le recopie au commerce)
 const MODS = ["onion", "pickle", "ketchup", "mustard", "sauce", "lettuce", "tomato", "cheese"];
+// Restaurant casher (viande) : pas de « sans fromage » (il n'y a jamais de fromage, pas de mélange)
+const shopMods = () => MODS.filter(k => k !== "cheese" || !(isKosher(state.shop) || /casher|cacher|כשר/i.test((state.shop && state.shop.name) || "")));
 const modsFor = p => /burger|royal|mac|chicken|cheese|steak|tortilla|wrap|sandwich|crunch|crispy|המבורגר|בורגר|טורטי|צ'יקן|רויאל|סנדוויץ/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
 const modText = (id, lang) => {
   const m = (state.cartMods || {})[id];
@@ -2965,7 +2996,7 @@ function renderItem() {
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
       ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
-      ${modsFor(p) && p.available ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p><div class="it-mods">${MODS.map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
+      ${modsFor(p) && p.available ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p><div class="it-mods">${shopMods().map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
         <input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
