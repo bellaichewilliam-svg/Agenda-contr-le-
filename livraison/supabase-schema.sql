@@ -8787,3 +8787,4 @@ begin
   return decode(substring(ph from position(',' in ph) + 1), 'base64');
 end $$;
 -- (shop_catalog utilise p.photo_h ; shops_showcase et shop_public renvoient img_ref(id, logo, '1') / img_ref(id, cover, '2') : voir la base)
+-- Pubs de l'accueil (03/11) : une image envoyée part en lien (shop_pic, v « 3 » FR / « 4 » HE) ; voir app_promos_live et shop_pic dans la base
