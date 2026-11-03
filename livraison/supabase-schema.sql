@@ -8788,3 +8788,9 @@ begin
 end $$;
 -- (shop_catalog utilise p.photo_h ; shops_showcase et shop_public renvoient img_ref(id, logo, '1') / img_ref(id, cover, '2') : voir la base)
 -- Pubs de l'accueil (03/11) : une image envoyée part en lien (shop_pic, v « 3 » FR / « 4 » HE) ; voir app_promos_live et shop_pic dans la base
+-- Commerce HOP! sans paiement en ligne (03/11) : le client appelle, commande et paie chez lui, puis choisit « prête dans… »
+create or replace function public.shop_direct(p_id uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from shops s where s.id = p_id and s.pay_link is null and s.pay_bit is null and not coalesce(s.cash_ok, false));
+$$;
+-- orders_phone_order accepte aussi shop_id quand public.shop_direct(shop_id) (voir la base)

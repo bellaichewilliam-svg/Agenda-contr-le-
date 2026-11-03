@@ -4246,3 +4246,14 @@ form.wiz .fs-when .choices.compact .choice span i, form.wiz .fs-when .choices.co
 
 .cs-addon { padding: 6px 12px; opacity: .85; }
 .it-drinks .it-mod small { font-weight: 700; opacity: .8; }
+
+/* Commerce sans paiement en ligne : « Appelez le commerce » + « Prête dans… » */
+.nopay-ready { margin-top: 12px; padding: 14px; border-radius: 16px; background: rgba(255,106,19,.08); border: 1.5px solid rgba(255,106,19,.45); display: grid; gap: 8px; }
+.nopay-ready .npr-h { font-size: 1rem; line-height: 1.3; }
+.nopay-ready small { opacity: .85; line-height: 1.4; }
+.nopay-ready .npr-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.nopay-ready .npr-btns .btn { flex: 1 1 auto; justify-content: center; }
+.nopay-ready .npr-chips .ch-chip.on { background: #FF6A13; border-color: #FF6A13; color: #fff; }
+.nopay-ready .npr-call { flex-direction: column; gap: 2px; line-height: 1.2; }
+.nopay-ready .npr-call small { opacity: .9; font-weight: 600; font-size: .85em; }
+.nopay-ready .npr-btns .btn-wa { flex: 0 1 auto; min-width: 120px; }
