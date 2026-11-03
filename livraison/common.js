@@ -440,8 +440,14 @@ const isService = s => !!s && ["pressing", "bureau"].includes(s.kind);
 // Logo d'un commerce de l'annuaire : un fichier de l'appli (img/logos/…) ou le logo officiel d'une enseigne sur Wikipédia
 const dirLogo = e => { const v = String((e && e.lg) || "");
   return /^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(v) || /^https:\/\/(upload|thumb)\.wikimedia\.org\/wikipedia\/[A-Za-z0-9%._\/()\-]+$/.test(v) ? v : ""; };
-// Photo d'article : une image envoyée (data:…) ou un fichier de l'appli (img/mcd/…), beaucoup plus léger à charger
-const safeImg = s => (typeof s === "string" && (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || /^img\/[a-z0-9-]+\/[a-z0-9-]+\.(webp|png|jpg)$/.test(s)) ? s : "");
+// Photo d'article : une image envoyée (data:…), un fichier de l'appli (img/mcd/…), ou « ph:<article>:<empreinte> » :
+// la photo servie à part par la base (shop_pic), le catalogue reste léger et le navigateur garde l'image en mémoire
+const PIC_RX = /^ph:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):([0-9a-f]{6,32})$/;
+const picUrl = s => { const m = PIC_RX.exec(s), sb = (typeof CONFIG !== "undefined" && CONFIG.supabase) || {};
+  return m && sb.url && sb.anonKey ? `${sb.url}/rest/v1/rpc/shop_pic?p=${m[1]}&v=${m[2]}&apikey=${sb.anonKey}` : ""; };
+const safeImg = s => (typeof s !== "string" ? "" : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || /^img\/[a-z0-9-]+\/[a-z0-9-]+\.(webp|png|jpg)$/.test(s) ? s : picUrl(s));
+// Image d'une autre adresse (photo servie par la base) : « crossorigin » pour que l'appli puisse voir si son fond est blanc
+const imgCors = src => (/^https:/.test(src || "") ? ' crossorigin="anonymous"' : "");
 // Vitrines de démonstration : leurs images sont des fichiers de l'appli (img/demo/demo-resto-cover.jpg…)
 const demoImg = (s, k) => (s && s.demo && /^DEMO-[A-Z]+$/.test(s.code || "") ? `img/demo/${s.code.toLowerCase()}-${k}.jpg` : "");
 function proCard(s, o) {
@@ -1054,7 +1060,7 @@ function routeLayer(a, b, opts) {
 
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
+  track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

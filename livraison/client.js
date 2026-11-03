@@ -2944,7 +2944,7 @@ function renderCatalog() {
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}</div>
-        <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : shopArt(p)}
+        <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
         ${!p.available ? `<span class="cg-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
           : multi ? `<button type="button" class="cg-plus" data-cg-pick="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
@@ -3041,7 +3041,7 @@ function renderItem() {
   const p = cgProducts().find(x => x.id === item.id);
   if (!p) return;
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
-  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</div>
+  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</div>
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
       ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
@@ -3083,7 +3083,7 @@ function renderCart() {
     // Supplément de boisson : suit tout seul la quantité des menus, pas de boutons
     if (isAddon(p)) return `<div class="cs-row cs-addon"><span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b><small>${qty} × ${UI.esc(money(p.price))} = ${UI.esc(money(Number(p.price) * qty))}</small></span></div>`;
     // On glisse la ligne : Supprimer · + 1 · Modifier (les − / + restent là pour ceux qui ne glissent pas)
-    return UI.swipeRow(`<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</span>
+    return UI.swipeRow(`<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</span>
       <span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b>${modText(p.id) ? `<em class="cs-mods">${UI.esc(modText(p.id))}</em>` : ""}<small>${UI.esc(money(Number(p.price) * qty))}</small></span>
       <span class="it-qty cs-qty"><button type="button" data-cs-minus="${id}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${id}" aria-label="+">+</button></span></div>`,
       [{ icon: "🗑", label: t("swDel"), attrs: `data-cs-del="${id}"`, cls: "sw-red" }, { icon: "＋", label: t("swDup"), attrs: `data-cs-plus="${id}"` },

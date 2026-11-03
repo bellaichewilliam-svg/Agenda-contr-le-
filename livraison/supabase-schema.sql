@@ -8686,3 +8686,46 @@ language sql stable security definer set search_path = public as $$
     from shops s
    where s.code = upper(trim(p_code)) and s.status in ('actif', 'en_attente') and s.plan_until >= current_date;
 $$;
+
+-- ===== Tous les catalogues légers (03/11) : chaque photo d'article est servie à part, comme une vraie image =====
+-- Domaine « */* » : PostgREST renvoie l'image telle quelle (Content-Type et cache posés par la fonction)
+do $$ begin
+  if not exists (select 1 from pg_type where typname = '*/*' and typnamespace = 'public'::regnamespace) then
+    create domain public."*/*" as bytea;
+  end if;
+end $$;
+-- GET /rest/v1/rpc/shop_pic?p=<article>&v=<empreinte>&apikey=… : v change quand la photo change, le navigateur garde l'image
+create or replace function public.shop_pic(p uuid, v text default '') returns public."*/*"
+language plpgsql stable security definer set search_path = public as $$
+declare ph text;
+begin
+  select pp.photo into ph from shop_products pp join shops s on s.id = pp.shop_id
+   where pp.id = p and s.status in ('actif', 'en_attente') and pp.photo like 'data:image/%';
+  if ph is null then
+    perform set_config('response.status', '404', true);
+    return null;
+  end if;
+  perform set_config('response.headers', json_build_array(
+    json_build_object('Content-Type', substring(ph from '^data:(image/[a-z]+);base64,')),
+    json_build_object('Cache-Control', 'public, max-age=31536000, immutable'))::text, true);
+  return decode(substring(ph from position(',' in ph) + 1), 'base64');
+end $$;
+grant execute on function public.shop_pic(uuid, text) to anon, authenticated;
+-- Le catalogue : fichier de l'appli si on le connaît, sinon « ph:<article>:<empreinte> » (UI.safeImg en fait l'adresse de shop_pic)
+create or replace function public.shop_catalog(p_code text) returns json
+language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'categories', coalesce((select json_agg(json_build_object('id', c.id, 'name', c.name) order by c.position, c.created_at)
+                              from shop_categories c where c.shop_id = s.id), '[]'::json),
+    'products', coalesce((select json_agg(json_build_object('id', p.id, 'category_id', p.category_id, 'name', p.name,
+                              'description', p.description, 'price', p.price,
+                              'photo', case when p.photo is null then null
+                                            else coalesce((select f.path from shop_photo_files f where f.h = md5(p.photo)),
+                                                          'ph:' || p.id || ':' || left(md5(p.photo), 12)) end,
+                              'available', p.available)
+                              order by p.position, p.created_at)
+                            from shop_products p where p.shop_id = s.id), '[]'::json))
+    from shops s
+   where s.code = upper(trim(p_code)) and s.status in ('actif', 'en_attente') and s.plan_until >= current_date;
+$$;
+notify pgrst, 'reload schema';
