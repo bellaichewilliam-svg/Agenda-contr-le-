@@ -553,8 +553,13 @@ function attach(input, opts) {
         const saved = (opts.quick ? opts.quick() : []).filter(x => x.match && normalize(x.match).includes(nq));
         // Un produit tapé (« eau », « couches », « sushi ») : les rayons HOP! et les catalogues qui l'ont, en premier
         const sugg = opts.suggest ? opts.suggest(q) : [];
-        items = sugg.concat(saved, list); active = -1;
-        if (offer() && !saved.length) items = items.concat([notOnMap(q)]);
+        // Un produit de nos rayons (eau, lait, couches…) : pas de restaurants dans la liste, on ne va pas chercher l'eau au resto
+        const noFood = sugg.length > 0;
+        // … seulement les supermarchés, makolets, kiosques, pharmacies (pas un salon de beauté qui ressemble au mot tapé)
+        const GROCERY = /super|market|makolet|grocery|convenience|kiosk|pharm|carrefour|am:?pm|tiv ?taam|shufersal|rami ?levy|victory|yochananof|keshet|osher|מכולת|סופר|קיוסק|פארם|מרקחת|שופרסל|רמי לוי|ויקטורי|יוחננוף|קשת טעמים|טיב טעם|אושר עד|יש חסד|קרפור|מגה|פיצוציה/i;
+        const keep = p => !noFood || p.quick || (!p.food && GROCERY.test(`${p.kind || ""} ${p.brand || ""} ${(p.partner && p.partner.kind) || ""}`));
+        items = sugg.concat(saved, list.filter(keep)); active = -1;
+        if (offer() && !saved.length && !sugg.length) items = items.concat([notOnMap(q)]);
         render();
         if (opts.suggestLater) opts.suggestLater(q).then(more => {
           if (mine !== seq || !more || !more.length) return;
@@ -563,7 +568,7 @@ function attach(input, opts) {
           if (active >= 0) active += more.length;
           render();
         }).catch(() => {});
-        const extra = await moreNearby(q, opts.lang(), list);
+        const extra = (await moreNearby(q, opts.lang(), list)).filter(keep);
         if (mine !== seq || !extra.length) return;
         const found = extra.some(p => normalize(p.brand).includes(normalize(q)));
         items = extra.concat(items.filter(p => !(found && p.apply)));

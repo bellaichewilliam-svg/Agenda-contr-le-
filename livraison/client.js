@@ -1576,7 +1576,9 @@ const prodSuggest = q => rayonHits(q, 4).map(({ r, i }) => ({ quick: true, prod:
   title: I18N.lang === "he" ? i.he || i.fr : i.fr, sub: t("acRayon", { rayon: phName(r.title) }), apply: () => goRayonFind(r, q) }));
 async function prodSuggestLater(q) {
   if (phNorm(q).trim().length < 3) return [];
-  const list = (await Store.productsSearch(q)) || [];
+  // Produit de nos rayons (eau, lait…) : seulement les commerces qui en vendent vraiment, pas les restaurants
+  const staple = rayonHits(q, 1).length > 0;
+  const list = ((await Store.productsSearch(q)) || []).filter(p => !staple || !/restaurant|resto|cafe/i.test(p.kind || ""));
   const seen = new Set();
   return list.filter(p => !seen.has(p.code) && seen.add(p.code)).slice(0, 4).map(p => ({ quick: true, prod: true, icon: "⭐",
     title: UI.bi(p.name), sub: t("acCatalog", { shop: UI.bi(p.shop), price: money(p.price) }),
@@ -4460,8 +4462,10 @@ async function homeFind(q) {
   const seq = ++findSeq;
   const sc = code => (state.showcase || []).find(x => x.code === code) || {};
   const shops = (state.showcase || []).filter(s => norm(`${s.name} ${(t("shKinds") || {})[s.kind] || ""} ${s.tagline || ""} ${s.tagline_he || ""}`).includes(n)).slice(0, 5);
+  const staple = rayonHits(q, 1).length > 0;
   const render = products => {
     if (seq !== findSeq) return;
+    if (staple) products = products.filter(p => !/restaurant|resto|cafe/i.test(p.kind || ""));
     const prodHtml = products.slice(0, 8).map(p => `<button type="button" data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}"><span class="fi-pic">${UI.safeImg(sc(p.code).logo) ? `<img src="${UI.safeImg(sc(p.code).logo)}" alt="" />` : (UI.KIND_ICON[p.kind] || "🍽️")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(p.name))}</b><small>${UI.esc(t("findAt", { shop: UI.bi(p.shop) }))}${p.category ? " · " + UI.esc(UI.bi(p.category)) : ""}</small></span><span class="fi-price" dir="ltr">${money(p.price)}</span></button>`).join("");
     const shopHtml = shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}${UI.shopText(s, "tagline") ? " · " + UI.esc(UI.shopText(s, "tagline")) : ""}</small></span></button>`).join("");
     // Les rayons HOP! (eau, couches, Acamol…) : le livreur va au magasin le plus proche
