@@ -119,16 +119,16 @@ $$;
 -- Importer la dernière réponse du site BOOOM (ou p_req) : produits forts + promos en cours
 create or replace function public.booom_import(p_req bigint default null) returns json
 language plpgsql security definer set search_path = public, net as $$
-declare sid uuid; req bigint; body json; p json; tr booom_tr; he text; dhe text; fr text; nm text; descr text;
+declare sid uuid; v_req bigint; body json; p json; tr booom_tr; he text; dhe text; fr text; nm text; descr text;
         pr numeric; lot int; m text[]; promo boolean; k text; cid uuid; pid uuid; img text; ph text; path text;
         seen uuid[] := '{}'; n int := 0; pos int := 0; res json;
 begin
   select id into sid from shops where code = 'HOPBOOOM';
   if sid is null then return json_build_object('error', 'no_shop'); end if;
-  req := coalesce(p_req, (select s.req from booom_sync s join net._http_response h on h.id = s.req and h.status_code = 200
+  v_req := coalesce(p_req, (select s.req from booom_sync s join net._http_response h on h.id = s.req and h.status_code = 200
                             order by s.req desc limit 1));
-  select h.content::json into body from net._http_response h where h.id = req and h.status_code = 200;
-  if body is null or json_typeof(body->'products') <> 'array' then return json_build_object('error', 'no_response', 'req', req); end if;
+  select h.content::json into body from net._http_response h where h.id = v_req and h.status_code = 200;
+  if body is null or json_typeof(body->'products') <> 'array' then return json_build_object('error', 'no_response', 'req', v_req); end if;
   insert into shop_categories (id, shop_id, name, position) values
     (md5('HOPBOOOM:cat:promo')::uuid, sid, '🏷️ Promos de la semaine · מבצעי השבוע', 0),
     (md5('HOPBOOOM:cat:forts')::uuid, sid, '🔥 Produits forts · המוצרים החזקים', 1)
@@ -150,7 +150,6 @@ begin
     promo := nullif(p->>'expiry', '') is not null;
     select * into tr from booom_tr where id = (p->>'id')::int;
     fr := tr.fr;
-    if fr is null and lot is not null then fr := null; end if;
     nm := case when fr is not null then hop_market_name(fr, case when lot is not null then lot || ' ב-' || pr || ' · ' || he else he end)
                else left(case when lot is not null then lot || ' ב-' || pr || ' · ' || he else he end, 80) end;
     descr := left(concat_ws(' · ',
@@ -174,12 +173,14 @@ begin
   end loop;
   -- Plus sur leur site, ou promo finie : invisible pour les clients (jamais effacé)
   update shop_products set available = false where shop_id = sid and available and not (id = any(seen));
-  res := json_build_object('req', req, 'products', n);
-  update booom_sync set done_at = now(), result = res where booom_sync.req = req;
+  res := json_build_object('req', v_req, 'products', n);
+  update booom_sync set done_at = now(), result = res where booom_sync.req = v_req;
   return res;
 end $$;
 revoke all on function public.booom_fetch(), public.booom_import(bigint), public.hop_market_put(public.rayon_items) from public, anon, authenticated;
 
 -- 5) Mise à jour toute seule (si pg_cron est là) : on demande le site, puis on importe 5 min après
--- select cron.schedule('booom-fetch',  '7 */6 * * *',  'select public.booom_fetch()');
--- select cron.schedule('booom-import', '12 */6 * * *', 'select public.booom_import()');
+select cron.schedule('hop-booom-fetch',  '7 */6 * * *',  'select public.booom_fetch()');
+select cron.schedule('hop-booom-import', '12 */6 * * *', 'select public.booom_import()');
+-- Les eaux gazeuses (🫧) vont dans « Eaux » ; pictogramme de la rubrique si le produit n'en a pas (voir hop_market_put en ligne).
+-- Logos / couvertures : petite image dans shops.logo / cover, reliée par son empreinte (shop_photo_files) au vrai fichier img/market/….
