@@ -36,3 +36,18 @@ Aujourd'hui, plusieurs menus partagent la même photo. Même style commun que ci
 | 16 | 5 Crunchies | 5 Crunchies | Une boîte blanche ouverte avec **5 aiguillettes de poulet pané** (allongées), frites et gobelet blanc. |
 | 17 | Bâtonnets de maïs | 10 bouchées au maïs | Une boîte blanche ouverte avec **10 bâtonnets panés au maïs** (petits cylindres dorés), frites et gobelet blanc. |
 | 18 | Menu 2 tortillas | 2 Tortillas | **2 tortillas** roulées coupées en deux, frites et gobelet blanc. |
+
+## 3e série : accompagnements, boissons, sauces (03/11)
+
+| # | Image | Pour quels produits | Demande à ChatGPT |
+|---|-------|---------------------|-------------------|
+| 19 | Potato géant | Potato géant | Un grand cornet blanc rempli de quartiers de pommes de terre dorés avec la peau, épicés. |
+| 20 | Mini chou-fleur | Mini chou-fleur | Une petite boîte blanche ouverte remplie de bouchées de chou-fleur panées et dorées. |
+| 21 | Rondelles d'oignon | Rondelles d'oignon | Une petite boîte blanche ouverte remplie de rondelles d'oignon panées et dorées. |
+| 22 | Carottes | Bâtonnets de carotte | Un petit sachet transparent rempli de bâtonnets de carotte crue bien orange. |
+| 23 | Compote à presser | Compote pomme-banane à presser | Une gourde de compote à presser blanche, sans étiquette, à côté d'une pomme et d'une banane. |
+| 24 | Petit pain | Pain Royal, pain classique, pain sans gluten | Un petit pain à burger doré aux graines de sésame, seul. |
+| 25 | Soda en bouteille | Coca-Cola bouteille, Coca-Cola Zero bouteille | Une petite bouteille en plastique de soda cola foncé avec des gouttes de fraîcheur, étiquette noire unie **sans aucun texte ni logo**. |
+| 26 | Thé glacé pêche | Fuze Tea pêche | Une petite bouteille de thé glacé couleur ambre avec des gouttes de fraîcheur, étiquette blanche unie sans texte, une demi-pêche à côté. |
+| 27 | Jus d'orange | Jus d'orange pressé | Une petite bouteille de jus d'orange pressé, bien orange, bouchon blanc, sans étiquette, une demi-orange à côté. |
+| 28 | Sauce | Toutes les sauces | Un petit pot de sauce blanc ouvert rempli de sauce barbecue, avec une sauce jaune et une sauce rouge en petits pots à côté. |
