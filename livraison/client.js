@@ -291,6 +291,25 @@ function renderShopCall() {
   Places.phoneOf(p).then(show, () => show(null));
 }
 function phoneOn() { return phoneOrderOk() && form.phone_order.checked; }
+// Commerce HOP! sans paiement en ligne (on commande et on paie directement chez lui) : « Appelez le commerce », puis
+// « Elle sera prête dans… » (10, 20, 30 min…) : le livreur est envoyé pour arriver quand c'est prêt (comme une commande par téléphone)
+const noPayReadyOn = () => !!(proShopOn() && shopNoPay());
+function renderNoPayReady() {
+  const box = $("#noPayReady");
+  if (!box) return;
+  const on = noPayReadyOn();
+  box.classList.toggle("hidden", !on);
+  if (!on) { box.innerHTML = ""; box.dataset.html = ""; return; }
+  const sh = state.shop, name = UI.bi(sh.name), tel = sh.phone || (sh.whatsapp ? "0" + String(sh.whatsapp).replace(/\D/g, "").replace(/^972/, "") : "");
+  const html = `<b class="npr-h">📞 ${UI.esc(t("nprTitle", { name }))}</b>
+    <small>${UI.esc(t("nprSub", { name }))}</small>
+    <div class="npr-btns">${tel ? `<a class="btn btn-primary npr-call" href="${UI.esc(telHref(tel))}" data-shop-call><span>📞 ${UI.esc(t("phCall", { name }))}</span><small dir="ltr">${UI.esc(telOf(tel))}</small></a>` : ""}
+      ${sh.whatsapp ? `<a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.esc(UI.waLink(sh.whatsapp, t("nopayMsg", { name })))}">💬 WhatsApp</a>` : ""}</div>
+    <b class="npr-h">⏱️ ${UI.esc(t("nprReady"))}</b>
+    <div class="rate-tags npr-chips">${PH_READY.map(n => `<button type="button" class="ch-chip${state.phoneReady === n ? " on" : ""}" data-ready="${n}">${UI.esc(n ? (n === 60 ? t("nprHour") : t("phMin", { n })) : t("phNow"))}</button>`).join("")}</div>
+    <small>${UI.esc(t("nprRule"))}</small>`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+}
 function renderPhone() {
   $("#phoneBox").classList.toggle("hidden", !phoneOrderOk());
   renderShopCall();
@@ -2056,6 +2075,7 @@ function validateOrder() {
   // Écran 2 : les précisions
   if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showErrorFalse(t(catalogOn() ? "errCart" : "errShopOrder", { name: UI.bi(state.shop.name) })); }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showErrorFalse(t("errShopRef")); }
+  if (noPayReadyOn() && state.phoneReady == null) { $("#noPayReady").scrollIntoView({ block: "center" }); return showErrorFalse(t("errNprReady", { name: UI.bi(state.shop.name) })); }
   if (phoneOn()) {
     if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showErrorFalse(t("errPhoneName")); }
     if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showErrorFalse(t("errPhoneReady")); }
@@ -2249,11 +2269,11 @@ async function submit(e) {
       items_note: proShopOn() && cartCount() ? [cartLines().filter(l => modText(l.p.id, "fr")).map(l => `${UI.bi(baseOf(l.p), "fr")}${sizeOf(l.p) ? " (" + UI.bi(sizeOf(l.p), "fr") + ")" : ""} : ${modText(l.p.id, "fr")}`).join(" | "), val("shop_order").trim()].filter(Boolean).join(" | ").slice(0, 300) || null : null,
       goods_choice: proShopOn() && shopCashOnly() && hasShopGoods() ? goodsChoice() : null,
       shop_ref: shopSelf() ? val("shop_ref").trim() : null,
-      phone_order: phoneOn(),
-      pickup_name: phoneOn() ? val("pickup_name").trim() : null,
+      phone_order: phoneOn() || noPayReadyOn(),
+      pickup_name: phoneOn() ? val("pickup_name").trim() : noPayReadyOn() ? (val("contact_name").trim() || null) : null,
       phone_ref: phoneOn() ? val("phone_ref").trim() || null : null,
-      phone_paid: phoneOn() && form.phone_paid.checked,
-      phone_ready_at: phoneOn() ? new Date(Date.now() + state.phoneReady * 60000).toISOString() : null,
+      phone_paid: (phoneOn() && form.phone_paid.checked) || noPayReadyOn(),
+      phone_ready_at: phoneOn() || noPayReadyOn() ? new Date(Date.now() + (state.phoneReady || 0) * 60000).toISOString() : null,
       company: val("company").trim() || null,
       contact_name: val("contact_name").trim(),
       contact_phone: formatPhone(val("contact_phone").trim()),
@@ -3323,8 +3343,9 @@ function renderShopBanner() {
   $("#shopRefBox").classList.toggle("hidden", !shopSelf());
   if (pro) {
     $("#shopOrderLabel").textContent = t("spOrderLabel", { name: UI.bi(state.shop.name) });
-    $("#shopOrderNote").textContent = t(linkOk() ? "spOrderNoteLink" : shopCashOnly() ? "spOrderNoteHop" : "spOrderNote", { name: UI.bi(state.shop.name) });
+    $("#shopOrderNote").textContent = t(linkOk() ? "spOrderNoteLink" : shopCashOnly() ? "spOrderNoteHop" : shopNoPay() ? "spOrderNoteDirect" : "spOrderNote", { name: UI.bi(state.shop.name) });
   }
+  renderNoPayReady();
   renderCatalog();
 }
 
@@ -4792,7 +4813,7 @@ $("#rulesClose").addEventListener("click", () => $("#rulesModal").classList.add(
 $("#rulesModal").addEventListener("click", e => { if (e.target.id === "rulesModal") $("#rulesModal").classList.add("hidden"); });
 form.addEventListener("click", e => {
   const rd = e.target.closest("[data-ready]");
-  if (rd) { state.phoneReady = Number(rd.dataset.ready); return renderPhone(); }
+  if (rd) { state.phoneReady = Number(rd.dataset.ready); renderNoPayReady(); return renderPhone(); }
   const g = e.target.closest("[data-geo]");
   if (g) return useMyPosition(g.dataset.geo, g);
   const s = e.target.closest("[data-save-addr]");

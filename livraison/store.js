@@ -345,7 +345,9 @@ async function createOrder(order) {
     order.handoff_ok_at = null;
     order.handoff_code = order.handoff ? String(Math.floor(Math.random() * 10000)).padStart(4, "0") : null;
     // Commande passée par téléphone (commerce pas sur HOP!) : nom, déjà payée, heure « prête » (au plus 3 h)
-    if (order.phone_order && !order.shop_id && order.service !== "achat") {
+    // (aussi chez un commerce HOP! sans paiement en ligne : le client commande et paie chez lui, puis dit quand c'est prêt)
+    const directShop = order.shop_id && localShops().some(x => x.id === order.shop_id && !x.pay_link && !x.pay_bit && !x.cash_ok);
+    if (order.phone_order && (!order.shop_id || directShop) && order.service !== "achat") {
       if (!String(order.pickup_name || "").trim()) throw new Error("phone_name_required");
       if (!order.phone_paid) throw new Error("phone_unpaid");
       const ready = new Date(Math.min(Math.max(new Date(order.phone_ready_at || Date.now()).getTime(), Date.now()), Date.now() + 3 * 3600000));
