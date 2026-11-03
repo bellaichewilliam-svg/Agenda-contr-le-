@@ -2819,6 +2819,8 @@ const groupPrice = p => { const sz = sizesOf(p); return sz.length > 1 ? t("cgFro
 // Burger, menu, tortilla… : le client peut retirer des ingrédients (« sans oignons », « sans ketchup ») et écrire une demande.
 // Gardé par article (state.cartMods), écrit en clair dans la commande (le patron le recopie au commerce)
 const MODS = ["onion", "pickle", "ketchup", "mustard", "sauce", "lettuce", "tomato", "cheese"];
+// Restaurant casher (viande) : pas de « sans fromage » (il n'y a jamais de fromage, pas de mélange)
+const shopMods = () => MODS.filter(k => k !== "cheese" || !(isKosher(state.shop) || /casher|cacher|כשר/i.test((state.shop && state.shop.name) || "")));
 const modsFor = p => /burger|royal|mac|chicken|cheese|steak|tortilla|wrap|sandwich|crunch|crispy|המבורגר|בורגר|טורטי|צ'יקן|רויאל|סנדוויץ/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
 const modText = (id, lang) => {
   const m = (state.cartMods || {})[id];
@@ -2994,7 +2996,7 @@ function renderItem() {
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
       ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
-      ${modsFor(p) && p.available ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p><div class="it-mods">${MODS.map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
+      ${modsFor(p) && p.available ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p><div class="it-mods">${shopMods().map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
         <input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
