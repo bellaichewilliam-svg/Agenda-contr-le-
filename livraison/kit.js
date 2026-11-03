@@ -275,47 +275,53 @@ const NEW_POSTS = [
 const MCD_URL = `${url}?c=MCDSHARON`, MCD_URL_HE = `${url}?c=MCDSHARON&lang=he`;   // le McDo casher (Kanyon HaSharon), ouvert aux clients
 const MCD_POSTS = [
   { title: "🍔 Votre McDonald's livré par HOP! (français)", dir: "ltr", text:
-`🍔 Votre McDonald's livré par HOP! 🦘
+`🍔 Le McDo casher livré chez vous ! 🦘
 
-Envie d'un Big Mac, d'un McChicken ou de nuggets, sans bouger du canapé ?
-Vous commandez sur HOP!, on passe la commande au McDo et on vous l'apporte encore chaud.
+Big Mac, Mac Royal, McNuggets, Crispy Chicken… sans sortir de chez vous.
+Vous choisissez sur HOP!, on le récupère au McDonald's casher du Kanyon HaSharon et votre plat arrive chaud.
 
-🍟 Tous les menus, comme vous les aimez : sans oignons, sans ketchup, bien cuit…
-🛵 Partout à ${UI.cityFr(home)}, livré au plus vite · 📍 suivi en direct
-💳 Payez comme vous voulez : lien de paiement, Bit ou espèces
+🍟 Tous les menus et les vrais prix du McDo : Normal, Grand ou Géant
+🥤 Votre boisson au choix · potatoes, rondelles d'oignon en plus
+🧒 Menus enfants, glaces, milkshakes, salades
+💳 Lien de paiement, Bit ou espèces · 📍 suivi en direct
 
 👉 Commandez votre livreur : ${MCD_URL}
 
 HOP! Livraison, votre service de livraison indépendant à ${UI.cityFr(home)}.` },
   { title: "🍔 המקדונלד'ס שלכם מגיע עם HOP! (עברית)", dir: "rtl", text:
-`🍔 המקדונלד'ס שלכם מגיע עם HOP! 🦘
+`🍔 מקדונלד'ס כשר עד הבית! 🦘
 
-בא לכם ביג מק, מק צ'יקן או נאגטס בלי לקום מהספה?
-מזמינים ב-HOP!, אנחנו מזמינים בשבילכם מהמקדונלד'ס ומביאים אליכם, עוד חם.
+ביג מק, מק רויאל, מק נאגטס, קריספי צ'יקן… בלי לצאת מהבית.
+בוחרים ב-HOP!, אנחנו אוספים מהמקדונלד'ס הכשר בקניון השרון והאוכל מגיע אליכם חם.
 
-🍟 כל הארוחות, בדיוק כמו שאתם אוהבים: בלי בצל, בלי קטשופ, עשוי היטב…
-🛵 בכל ${heHome}, מגיע הכי מהר · 📍 מעקב בזמן אמת
-💳 משלמים איך שנוח: קישור תשלום, ביט או מזומן
+🍟 כל הארוחות במחירים של מקדונלד'ס: רגיל, גדול או ענק
+🥤 שתייה לבחירה · פוטטו, טבעות בצל בתוספת
+🧒 ארוחות ילדים, גלידות, מילקשייקים, סלטים
+💳 קישור תשלום, ביט או מזומן · 📍 מעקב בזמן אמת
 
 👈 הזמינו שליח: ${MCD_URL_HE}
 
 HOP! שירות משלוחים עצמאי ב${heHome}.` },
-  { title: "🍔 McDo : phrases courtes (story, statut, TikTok)", dir: "ltr", text:
-`🍔 Votre McDo livré par HOP!, encore chaud : ${MCD_URL}
-🍟 Une envie de frites à 23 h ? Hoppy saute au McDo pour vous : ${MCD_URL}
-🦘 Big Mac, nuggets, McChicken… on va le chercher, vous restez au chaud : ${MCD_URL}
-🍔 Sans oignons ? Sans ketchup ? Dites-le, on s'en occupe : ${MCD_URL}
-🍔 המקדונלד'ס שלכם עם HOP!, עוד חם: ${MCD_URL_HE}
-🍟 בא לכם צ'יפס ב־23:00? הופי קופץ למקדונלד'ס בשבילכם: ${MCD_URL_HE}
-🦘 ביג מק, נאגטס, מק צ'יקן… אנחנו אוספים, אתם נשארים בבית: ${MCD_URL_HE}
-🍔 בלי בצל? בלי קטשופ? רק תגידו, אנחנו דואגים: ${MCD_URL_HE}` },
+  { title: "🍔 McDo : phrases courtes qui accrochent (story, statut, TikTok)", dir: "ltr", text:
+`🍔 Le McDo casher livré chez vous, encore chaud : ${MCD_URL}
+🍟 Envie de McDo ? Vous restez sur le canapé, Hoppy y va : ${MCD_URL}
+🦘 Big Mac, nuggets, Crispy… on va le chercher, vous profitez : ${MCD_URL}
+🥤 Menu Géant, Coca Zero, potatoes ? Vous choisissez, on livre : ${MCD_URL}
+🧒 Soirée film avec les enfants ? Les menus enfants arrivent chez vous : ${MCD_URL}
+🌙 Samedi soir, après Chabbat : le McDo casher livré dès la réouverture : ${MCD_URL}
+🍔 מקדונלד'ס כשר עד הבית, עוד חם: ${MCD_URL_HE}
+🍟 בא לכם מקדונלד'ס? אתם על הספה, הופי קופץ בשבילכם: ${MCD_URL_HE}
+🦘 ביג מק, נאגטס, קריספי… אנחנו אוספים, אתם נהנים: ${MCD_URL_HE}
+🥤 ארוחה ענקית, קולה זירו, פוטטו? אתם בוחרים, אנחנו מביאים: ${MCD_URL_HE}
+🧒 ערב סרט עם הילדים? ארוחות הילדים מגיעות אליכם: ${MCD_URL_HE}
+🌙 מוצאי שבת: מקדונלד'ס כשר עד הבית מהרגע שהוא נפתח: ${MCD_URL_HE}` },
   { title: "🍔 McDo : message WhatsApp à vos clients (FR + HE)", dir: "ltr", text:
 `Bonjour 👋 Nouveau chez HOP! : votre McDonald's livré à la maison 🍔
-Big Mac, McChicken, nuggets… vous choisissez sur HOP!, on le récupère au McDo et on vous l'apporte encore chaud.
+Big Mac, Mac Royal, McNuggets… vous choisissez sur HOP!, on le récupère au McDonald's casher du Kanyon HaSharon et votre plat arrive chaud.
 👉 ${MCD_URL}
 
 שלום 👋 חדש ב-HOP!: המקדונלד'ס שלכם עד הבית 🍔
-ביג מק, מק צ'יקן, נאגטס… בוחרים ב-HOP!, אנחנו אוספים מהמקדונלד'ס ומביאים אליכם עוד חם.
+ביג מק, מק רויאל, מק נאגטס… בוחרים ב-HOP!, אנחנו אוספים מהמקדונלד'ס הכשר בקניון השרון ומביאים אליכם עוד חם.
 👈 ${MCD_URL_HE}
 
 HOP! Livraison · שירות משלוחים עצמאי` }
@@ -510,8 +516,8 @@ const buyFr = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase), buy
 const TAGS = { fr: "#Netanya #נתניה #livraison #HOP", he: "#נתניה #משלוחים #HOP #Netanya" };
 const CAPS = {
   mcdo: {
-    fr: `🍔 Votre McDonald's livré par HOP! 🦘\nBig Mac, McChicken, nuggets… on passe la commande au McDo et on vous l'apporte encore chaud.\n🍟 Comme vous l'aimez : sans oignons, sans ketchup…\n🛵 Partout à Netanya, livré au plus vite · 📍 Suivi en direct\n👉 Commandez votre livreur : ${url}?c=MCDSHARON\nHOP! Livraison, service de livraison indépendant.\n${TAGS.fr} #McDo #burger`,
-    he: `🍔 המקדונלד'ס שלכם מגיע עם HOP! 🦘\nביג מק, מק צ'יקן, נאגטס… אנחנו מזמינים בשבילכם ומביאים אליכם עוד חם.\n🍟 בדיוק כמו שאתם אוהבים: בלי בצל, בלי קטשופ…\n🛵 בכל נתניה, מגיע הכי מהר · 📍 מעקב בזמן אמת\n👈 הזמינו שליח: ${url}?c=MCDSHARON&lang=he\nHOP! שירות משלוחים עצמאי.\n${TAGS.he} #מקדונלדס #המבורגר` },
+    fr: `🍔 Le McDo casher livré chez vous ! 🦘\nBig Mac, Mac Royal, McNuggets, Crispy Chicken… on le récupère au McDonald's casher du Kanyon HaSharon et votre plat arrive chaud.\n🍟 Les vrais prix du McDo · Normal, Grand ou Géant · boisson au choix\n🧒 Menus enfants, glaces, milkshakes\n🛵 Partout à Netanya, livré au plus vite · 📍 Suivi en direct\n👉 Commandez votre livreur : ${url}?c=MCDSHARON\nHOP! Livraison, votre service de livraison indépendant.\n${TAGS.fr} #McDo #casher #burger`,
+    he: `🍔 מקדונלד'ס כשר עד הבית! 🦘\nביג מק, מק רויאל, מק נאגטס, קריספי צ'יקן… אנחנו אוספים מהמקדונלד'ס הכשר בקניון השרון והאוכל מגיע אליכם חם.\n🍟 המחירים של מקדונלד'ס · רגיל, גדול או ענק · שתייה לבחירה\n🧒 ארוחות ילדים, גלידות, מילקשייקים\n🛵 בכל נתניה, מגיע הכי מהר · 📍 מעקב בזמן אמת\n👈 הזמינו שליח: ${url}?c=MCDSHARON&lang=he\nHOP! שירות משלוחים עצמאי.\n${TAGS.he} #מקדונלדס #כשר #המבורגר` },
   jus: {
     fr: `🧃 Une envie de jus ? Et hop, c'est livré !\nNos jus de fruits et smoothies frais : Tutti Frutti, Chaperon rouge, Extra Green, Halva… 10 recettes à 32 ₪.\n🌙 Livraison tous les jours jusqu'à 22 h, partout à Netanya\n💳 Payé par Bit · 📍 Suivi en direct\n👉 Commander : ${url}?c=HOPJUS\n${TAGS.fr} #jus #smoothie`,
     he: `🧃 בא לכם מיץ? והופ, זה אצלכם!\nהמיצים והשייקים הטריים שלנו: תותי פרוטי, כיפה אדומה, אקסטרה גרין, חלווה… 10 טעמים ב־32 ₪.\n🌙 משלוחים כל יום עד 22:00, בכל נתניה\n💳 תשלום בביט · 📍 מעקב בזמן אמת\n👈 להזמנה: ${url}?c=HOPJUS&lang=he\n${TAGS.he} #מיצים #שייק` },
