@@ -2840,24 +2840,36 @@ const MENU_DRINKS = [["coke", "Coca-Cola", "קוקה קולה"], ["zero", "Coca-
   ["fuze", "Fuze Tea pêche", "פיוז טי אפרסק", true], ["orange", "Jus d'orange pressé", "תפוזים סחוט", true]];
 // Menus tortilla McDonald's : le goût de chaque tortilla est à choisir (2 choix pour « 2 Tortillas »)
 const TORT_FLAVORS = [["steak", "Chicken Steak", "צ'יקן סטייק"], ["crispy", "Crispy Chicken", "קריספי צ'יקן"], ["hot", "Crispy Chicken épicé 🌶", "קריספי צ'יקן חריף 🌶"]];
-const flavorCount = p => (/^MCD/i.test((state.shop && state.shop.code) || "") && /tortilla|טורטי/i.test((p && p.name) || "") && !/crispy|קריספי/i.test((p && p.name) || "")
-  ? (/^2\s/.test((p && p.name) || "") ? 2 : 1) : 0);
+const isMcd = () => /^MCD/i.test((state.shop && state.shop.code) || "");
+// Seulement les menus « Tortilla » et « 2 Tortillas » (pas les tortillas seules ni les formules, dont le goût est déjà dans le nom)
+const flavorCount = p => (isMcd() && /^(2 )?Tortillas? · /.test((p && p.name) || "") ? (/^2\s/.test(p.name) ? 2 : 1) : 0);
 const flavorName = (k, lang) => { const d = TORT_FLAVORS.find(x => x[0] === k); return d ? (lang === "fr" ? `${d[1]} (${d[2]})` : (I18N.lang === "he" ? d[2] : d[1])) : ""; };
-const isAddon = p => /^Supplément boisson/i.test((p && p.name) || "");
+// Menus avec frites : frites (comprises) ou potato géant (+9 ₪), et « en plus » : mini chou-fleur (+15 ₪), rondelles d'oignon (+14 ₪)
+const MENU_SIDES = [["fries", "Frites", "צ'יפס"], ["potato", "Potato géant", "פוטטו ענק", true]];
+const MENU_EXTRAS = [["cauli", "Mini chou-fleur", "מיני כרובית", true], ["rings", "Rondelles d'oignon", "טבעות בצל", true]];
+const optName = (list, k, lang) => { const d = list.find(x => x[0] === k); return d ? (lang === "fr" ? `${d[1]} (${d[2]})` : (I18N.lang === "he" ? d[2] : d[1])) : ""; };
+const isAddon = p => /^Supplément (boisson|menu)/i.test((p && p.name) || "");
 const cgShown = () => cgProducts().filter(p => !isAddon(p));
-const drinkAddon = k => { const d = MENU_DRINKS.find(x => x[0] === k); return d && d[3] ? cgProducts().find(p => isAddon(p) && p.name.includes(d[1])) || null : null; };
+const addonOf = (list, k) => { const d = list.find(x => x[0] === k); return d && d[3] ? cgProducts().find(p => isAddon(p) && p.name.includes(d[1])) || null : null; };
+const drinkAddon = k => addonOf(MENU_DRINKS, k);
 const menuDrinks = () => MENU_DRINKS.filter(d => !d[3] || drinkAddon(d[0]));
+const menuSides = () => MENU_SIDES.filter(d => !d[3] || addonOf(MENU_SIDES, d[0]));
+const menuExtras = () => MENU_EXTRAS.filter(d => addonOf(MENU_EXTRAS, d[0]));
+// Les suppléments choisis pour un article (boisson, accompagnement, en plus)
+const modAddons = m => [m && m.drink && drinkAddon(m.drink), m && m.side && addonOf(MENU_SIDES, m.side), ...((m && m.extras) || []).map(k => addonOf(MENU_EXTRAS, k))].filter(Boolean);
 function syncAddons() {
   const addons = cgProducts().filter(isAddon);
   if (!addons.length) return;
   const want = {};
   for (const [id, q] of Object.entries(state.cart || {})) {
-    const m = q > 0 && (state.cartMods || {})[id], a = m && m.drink && drinkAddon(m.drink);
-    if (a) want[a.id] = (want[a.id] || 0) + q;
+    if (!(q > 0) || addons.some(a => a.id === id)) continue;
+    for (const a of modAddons((state.cartMods || {})[id])) want[a.id] = (want[a.id] || 0) + q;
   }
   for (const a of addons) { if (want[a.id]) state.cart[a.id] = want[a.id]; else delete state.cart[a.id]; }
 }
-const needsDrink = p => /^MCD/i.test((state.shop && state.shop.code) || "") && /boisson|שתייה|Menu enfant/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
+// Un vrai menu (boisson comprise) : pas les produits seuls (« sans frites ni boisson »), ni les suppléments
+const needsDrink = p => isMcd() && !isAddon(p) && !/ni boisson|sans boisson/i.test((p && p.description) || "") && /boisson|Menu enfant/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
+const needsSide = p => isMcd() && !isAddon(p) && /frites et boisson/i.test((p && p.description) || "");
 const drinkName = (k, lang) => { const d = MENU_DRINKS.find(x => x[0] === k); return d ? (lang === "fr" ? `${d[1]} (${d[2]})` : (I18N.lang === "he" ? d[2] : d[1])) : ""; };
 const modText = (id, lang) => {
   const m = (state.cartMods || {})[id];
@@ -2868,7 +2880,9 @@ const modText = (id, lang) => {
   const drink = m.drink ? (lang === "fr" ? "boisson : " : t("drinkLbl") + " : ") + drinkName(m.drink, lang) : "";
   const fl = (m.flavors || []).filter(Boolean);
   const flavor = fl.length ? (lang === "fr" ? "goût : " : t("flavorLbl") + " : ") + fl.map(k => flavorName(k, lang)).join(" + ") : "";
-  return [flavor, drink, ...(m.off || []).map(lab), m.note ? "« " + m.note + " »" : ""].filter(Boolean).join(", ");
+  const side = m.side && m.side !== "fries" ? (lang === "fr" ? "accompagnement : " : t("sideLbl") + " : ") + optName(MENU_SIDES, m.side, lang) : "";
+  const extras = (m.extras || []).length ? (lang === "fr" ? "en plus : " : t("extraLbl") + " : ") + m.extras.map(k => optName(MENU_EXTRAS, k, lang)).join(", ") : "";
+  return [flavor, drink, side, extras, ...(m.off || []).map(lab), m.note ? "« " + m.note + " »" : ""].filter(Boolean).join(", ");
 };
 // Taille proposée en ouvrant la fiche : celle déjà au panier, sinon la moyenne / normale, sinon la première
 function sizeDefault(p) {
@@ -3019,7 +3033,7 @@ function openItem(id) {
   if (sizesOf(p).length > 1 && !state.cart[p.id]) p = sizeDefault(p);
   item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
   const m0 = (state.cartMods || {})[p.id] || {};
-  item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false; item.flavors = [...(m0.flavors || [])];
+  item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false; item.flavors = [...(m0.flavors || [])]; item.side = m0.side || "fries"; item.extras = [...(m0.extras || [])];
   renderItem();
   $("#itemSheet").classList.remove("hidden");
 }
@@ -3037,12 +3051,19 @@ function renderItem() {
       ${needsDrink(p) && p.available ? `<p class="it-size-h">${UI.esc(t("drinkTitle"))}</p>${item.needDrink && !item.drink ? `<p class="it-need">${UI.esc(t("drinkNeed"))}</p>` : ""}
         <div class="it-mods it-drinks" role="radiogroup">${menuDrinks().map(([k]) => { const a = drinkAddon(k);
           return `<button type="button" class="it-mod${item.drink === k ? " on" : ""}" role="radio" aria-checked="${item.drink === k}" data-it-drink="${k}">${item.drink === k ? "✓ " : ""}${UI.esc(drinkName(k))}${a ? ` <small>+${UI.esc(money(a.price))}</small>` : ""}</button>`; }).join("")}</div>` : ""}
+      ${needsSide(p) && p.available && menuSides().length > 1 ? `<p class="it-size-h">${UI.esc(t("sideTitle"))}</p>
+        <div class="it-mods it-drinks" role="radiogroup">${menuSides().map(([k]) => { const a = addonOf(MENU_SIDES, k), on = (item.side || "fries") === k;
+          return `<button type="button" class="it-mod${on ? " on" : ""}" role="radio" aria-checked="${on}" data-it-side="${k}">${on ? "✓ " : ""}${UI.esc(optName(MENU_SIDES, k))}${a ? ` <small>+${UI.esc(money(a.price))}</small>` : ""}</button>`; }).join("")}</div>` : ""}
+      ${needsSide(p) && p.available && menuExtras().length ? `<p class="it-size-h">${UI.esc(t("extraTitle"))}</p>
+        <div class="it-mods it-drinks">${menuExtras().map(([k]) => { const a = addonOf(MENU_EXTRAS, k), on = (item.extras || []).includes(k);
+          return `<button type="button" class="it-mod${on ? " on" : ""}" aria-pressed="${on}" data-it-extra="${k}">${on ? "✓ " : "＋ "}${UI.esc(optName(MENU_EXTRAS, k))} <small>+${UI.esc(money(a.price))}</small></button>`; }).join("")}</div>` : ""}
       ${modsFor(p) && p.available ? `${shopMods(p).length ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p>` : ""}<div class="it-mods">${shopMods(p).map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
         <input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
   $("#itemAdd").disabled = !p.available;
-  const extra = needsDrink(p) && item.drink && drinkAddon(item.drink) ? Number(drinkAddon(item.drink).price) : 0;
+  const extra = modAddons({ drink: needsDrink(p) ? item.drink : "", side: needsSide(p) ? item.side : "", extras: needsSide(p) ? item.extras : [] })
+    .reduce((s, a) => s + Number(a.price || 0), 0);
   $("#itemAdd").innerHTML = `<span>${UI.esc(t(inCart ? "itUpdate" : "itAdd"))}</span><b>${UI.esc(money((Number(p.price) + extra) * item.qty))}</b>`;
   $("#itemDel").classList.toggle("hidden", !inCart);
 }
@@ -3119,6 +3140,10 @@ $("#itemSheet").addEventListener("click", e => {
   if (dk) { item.drink = dk.dataset.itDrink; return renderItem(); }
   const fk = e.target.closest("[data-it-flavor]");
   if (fk) { const [i, k] = fk.dataset.itFlavor.split(":"); item.flavors = [...(item.flavors || [])]; item.flavors[+i] = k; return renderItem(); }
+  const sd = e.target.closest("[data-it-side]");
+  if (sd) { item.side = sd.dataset.itSide; return renderItem(); }
+  const ex = e.target.closest("[data-it-extra]");
+  if (ex) { const k = ex.dataset.itExtra; item.extras = (item.extras || []).includes(k) ? item.extras.filter(x => x !== k) : [...(item.extras || []), k]; return renderItem(); }
   const sz = e.target.closest("[data-it-size]");
   if (sz) { item.id = sz.dataset.itSize; item.qty = Math.max(1, state.cart[item.id] || item.qty || 1); return renderItem(); }
   if (e.target.closest("#itemMinus")) { item.qty = Math.max(1, item.qty - 1); return renderItem(); }
@@ -3136,7 +3161,9 @@ $("#itemSheet").addEventListener("click", e => {
   state.cart[item.id] = add ? item.qty : 0;
   state.cartMods = state.cartMods || {};
   const flavors = cur ? (item.flavors || []).slice(0, flavorCount(cur)) : [];
-  if (add && ((item.off || []).length || (item.note || "").trim() || item.drink || flavors.length)) state.cartMods[item.id] = { off: item.off || [], note: (item.note || "").trim().slice(0, 80), drink: item.drink || "", flavors };
+  const side = cur && needsSide(cur) && item.side !== "fries" ? item.side || "" : "", extras = cur && needsSide(cur) ? item.extras || [] : [];
+  if (add && ((item.off || []).length || (item.note || "").trim() || item.drink || flavors.length || side || extras.length))
+    state.cartMods[item.id] = { off: item.off || [], note: (item.note || "").trim().slice(0, 80), drink: item.drink || "", flavors, side, extras };
   else delete state.cartMods[item.id];
   $("#itemSheet").classList.add("hidden");
   renderCatalog(); renderQuote(); saveDraft(); cartPersist();
