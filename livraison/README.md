@@ -827,3 +827,4 @@ livraison/
 - **Bit au livreur** (commerces non partenaires) : les articles et la livraison se paient ensemble par Bit au livreur (son numéro s'affiche quand il accepte) ; le livreur sait qu'il rapporte l'argent des articles à HOP!.
 - **Panel : « 💳 Changer le paiement »** sur la course : lien du commerce, Bit au livreur ou espèces ; WhatsApp prêt pour le client avec le montant et le numéro Bit du livreur.
 - Fiche d'un commerce géré par HOP! : le WhatsApp et le téléphone affichés sont ceux de HOP!.
+- **Jus (boutique HOP!)** : le client choisit Bit à son livreur ou espèces (jus + livraison ensemble, livraison 30 ₪ inchangée). HOP! ne commande que pour McDonald's et ses jus ; les autres commerces restent « le client commande et paie le commerce ».

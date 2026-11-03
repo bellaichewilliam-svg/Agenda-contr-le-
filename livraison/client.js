@@ -674,29 +674,31 @@ const shopCashOnly = () => !!(proShopOn() && state.shop && state.shop.cash_ok &&
 // Les boutiques HOP! (code HOP…, ex. les jus) restent en espèces au livreur.
 const linkOk = () => shopCashOnly() && !/^HOP/.test(state.shop.code || "");
 const hasShopGoods = () => cartCount() > 0 || !!val("shop_order").trim();
-const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? "especes" : ["lien", "bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "lien");
+// Boutique HOP! (les jus) : Bit au livreur ou espèces (pas de lien) ; McDonald's : lien, Bit au livreur ou espèces
+const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? (["bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "especes")
+  : ["lien", "bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "lien");
 // (aussi une commande écrite à la main dans un commerce « payé au livreur ») ; avec le lien, le client paie le commerce lui-même
 const shopBuy = () => !!(proShopOn() && !linkOk() && (cartCount() > 0 || (shopCashOnly() && !!val("shop_order").trim())) && !shopPrepay()
   && (shopCashOnly() ? goodsChoice() !== "lien" : val("payment_method") === "cash"));
 function applyCashOnly() {
-  if (linkOk() && hasShopGoods() && goodsChoice() === "bit" && val("payment_method") !== "bit") form.querySelector('input[name=payment_method][value=bit]').checked = true;
+  if (shopCashOnly() && hasShopGoods() && goodsChoice() === "bit" && val("payment_method") !== "bit") form.querySelector('input[name=payment_method][value=bit]').checked = true;
   const only = shopCashOnly() && hasShopGoods() && goodsChoice() === "especes", bit = form.querySelector('input[name=payment_method][value=bit]');
   bit.closest(".choice").classList.toggle("hidden", only);
   if (only && val("payment_method") !== "cash") form.querySelector('input[name=payment_method][value=cash]').checked = true;
 }
 // Texte de la ligne « vos articles » : payés au commerce, au livreur, par lien ou par Bit à HOP!
-const itemsKey = base => (linkOk() && goodsChoice() === "lien" ? base + "Link" : linkOk() && goodsChoice() === "bit" ? base + "Bit" : shopBuy() ? base + "Cash" : base);
+const itemsKey = base => (linkOk() && goodsChoice() === "lien" ? base + "Link" : shopCashOnly() && goodsChoice() === "bit" ? base + "Bit" : shopBuy() ? base + "Cash" : base);
 function renderGoodsChoice() {
   const box = $("#goodsChoiceBox");
   if (!box) return;
-  const on = proShopOn() && linkOk();
+  const on = proShopOn() && shopCashOnly();
   box.classList.toggle("hidden", !on);
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; return; }
   const c = goodsChoice(), name = UI.bi(state.shop.name), fee = Number(CONFIG.pricing.purchase || 5);
   const opt = (v, ic, title, sub, best) => `<button type="button" class="gc-opt${c === v ? " on" : ""}" data-goods-choice="${v}" aria-pressed="${c === v}"><i aria-hidden="true">${ic}</i>
     <span><b>${UI.esc(title)}${best ? ` <em>${UI.esc(t("gcBest"))}</em>` : ""}</b><small>${UI.esc(sub)}</small></span></button>`;
   const html = `<p class="gc-title">${UI.esc(t("gcTitle"))}</p>`
-    + opt("lien", "🔗", t("gcLink", { name }), t("gcLinkSub"), true) + opt("bit", "📱", t("gcBit"), t("gcBitSub", { fee })) + opt("especes", "💵", t("gcCash"), t("gcCashSub", { fee }));
+    + (linkOk() ? opt("lien", "🔗", t("gcLink", { name }), t("gcLinkSub"), true) : "") + opt("bit", "📱", t("gcBit"), t("gcBitSub", { fee })) + opt("especes", "💵", t("gcCash"), t("gcCashSub", { fee }));
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
 document.addEventListener("click", e => {
@@ -721,7 +723,7 @@ function noPayMini() {
   return `<details class="nopay-mini"><summary><i>💬</i><span><b>${UI.esc(t("nopayMini", { name }))}</b><small>${UI.esc(t("nopayMiniSub"))}</small></span></summary>${noPayBox(null, true)}</details>`;
 }
 const shopPrepay = () => !!(proShopOn() && (state.shop.pay_link || state.shop.pay_bit) && (cartCount() || val("shop_order").trim()));
-const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() && !(linkOk() && goodsChoice() !== "especes") ? cartTotal() : goodsPrepay() ? goodsBudget() : 0);
+const cashGoods = () => (proShopOn() && cartCount() && !shopPrepay() && !(shopCashOnly() && goodsChoice() !== "especes") ? cartTotal() : goodsPrepay() ? goodsBudget() : 0);
 // Espèces impossibles pour cette commande (mêmes règles que le serveur : plafond, et articles avancés par le livreur
 // seulement après une 1re course livrée) : dit sous le choix « Espèces » tout de suite, pas en erreur après l'envoi
 // Nouveaux clients : en espèces, tout compris (articles + livraison), au plus cash_first_max (100 ₪) tant qu'ils n'ont pas
@@ -2235,7 +2237,7 @@ async function submit(e) {
       shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
       items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,
       items_note: proShopOn() && cartCount() ? [cartLines().filter(l => modText(l.p.id, "fr")).map(l => `${UI.bi(baseOf(l.p), "fr")}${sizeOf(l.p) ? " (" + UI.bi(sizeOf(l.p), "fr") + ")" : ""} : ${modText(l.p.id, "fr")}`).join(" | "), val("shop_order").trim()].filter(Boolean).join(" | ").slice(0, 300) || null : null,
-      goods_choice: proShopOn() && linkOk() && hasShopGoods() ? goodsChoice() : null,
+      goods_choice: proShopOn() && shopCashOnly() && hasShopGoods() ? goodsChoice() : null,
       shop_ref: shopSelf() ? val("shop_ref").trim() : null,
       phone_order: phoneOn(),
       pickup_name: phoneOn() ? val("pickup_name").trim() : null,
@@ -2874,7 +2876,7 @@ function renderCatalog() {
         <p><i>1</i><span>${UI.esc(t("pay2Goods", { name: UI.bi(state.shop.name), amount: n ? money(cartTotal()) : "" }))}</span></p>
         <p><i>2</i><span>${UI.esc(t("pay2Ride"))}</span></p>
         <small>${UI.esc(t("pay2Note"))}</small></div>`
-      : linkOk() ? ""
+      : shopCashOnly() ? ""
       : shopCashOnly() ? `<div class="pay2 pay1"><b>${UI.esc(t("pay1Title"))}</b><p><i>💵</i><span>${UI.esc(t("pay1Body", { amount: n ? money(cartTotal()) : "" }))}</span></p></div>`
       : shopNoPay() ? `<p class="cg-pay">${UI.esc(t("nopayShort", { name: UI.bi(state.shop.name) }))}</p>`
       : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: UI.bi(state.shop.name) }))}</p>`}
@@ -2996,7 +2998,7 @@ function renderCart() {
   let keep = $("#cartKeep");
   if (!keep) { keep = document.createElement("div"); keep.id = "cartKeep"; $("#cartNote").after(keep); }
   keep.innerHTML = supportWho() ? "" : `<button type="button" class="btn btn-ghost btn-block cs-keep" data-cart-keep>📲 ${UI.esc(t("cartKeepBtn"))}</button>`;
-  if (state.shop && shopCashOnly()) $("#cartNote").textContent = t(linkOk() ? "gcCart" : "pay1Cart");
+  if (state.shop && shopCashOnly()) $("#cartNote").textContent = t(linkOk() ? "gcCart" : "gcCartHop");
   else if (state.shop && !state.shop.pay_link && !state.shop.pay_bit) {
     // Pas de paiement en ligne chez ce commerce : on commande d'abord chez lui, puis HOP! va chercher la commande
     const tel = String(state.shop.phone || state.shop.whatsapp || "").split(/[;,]/)[0].replace(/[^\d+]/g, "");
@@ -3191,7 +3193,7 @@ function renderShopBanner() {
   $("#shopRefBox").classList.toggle("hidden", !shopSelf());
   if (pro) {
     $("#shopOrderLabel").textContent = t("spOrderLabel", { name: UI.bi(state.shop.name) });
-    $("#shopOrderNote").textContent = t(linkOk() ? "spOrderNoteLink" : shopCashOnly() ? "spOrderNoteCash" : "spOrderNote", { name: UI.bi(state.shop.name) });
+    $("#shopOrderNote").textContent = t(linkOk() ? "spOrderNoteLink" : shopCashOnly() ? "spOrderNoteHop" : "spOrderNote", { name: UI.bi(state.shop.name) });
   }
   renderCatalog();
 }
