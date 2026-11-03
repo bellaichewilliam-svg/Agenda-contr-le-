@@ -2871,9 +2871,7 @@ function renderCatalog() {
   const sections = cq ? allSecs.map(x => Object.assign({}, x, { items: x.items.filter(p => phNorm(`${p.name} ${p.description || ""}`).includes(cq)) })).filter(x => x.items.length) : allSecs;
   const n = cartCount();
   // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
-  // Les incontournables : les premiers articles du menu, en grandes cartes qui défilent
-  const pic = p => (UI.safeImg(p.photo) ? `<img src="${UI.safeImg(p.photo)}" alt="" loading="lazy" />` : shopArt(p));
-  const top = groupFirst(cgProducts().filter(p => p.available)).slice(0, 8);
+  // (Plus de rangée « Les incontournables » : elle répétait les premiers articles du menu, en doublon — demande du patron)
   const head = `${cats.length > 1 && !cq ? `<div class="cg-cats" role="tablist">${sections.filter(x => x.title).map(x =>
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}`;
   // Le champ de recherche est posé une seule fois par commerce (il garde le clavier et ce qui est tapé)
@@ -2887,10 +2885,6 @@ function renderCatalog() {
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   const html = `${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
-    ${cgProducts().length >= 5 && !cq ? `<div class="cg-top"><h4 class="cg-sec">${UI.esc(t("cgTop"))}</h4><div class="cg-top-row">${top.map(p => { const q = groupQty(p), multi = sizesOf(p).length > 1;
-      return `<div class="cg-tcard${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}"><div class="cg-tpic">${pic(p)}
-        <button type="button" class="cg-plus" ${multi ? "data-cg-pick" : "data-cg-plus"}="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button></div>
-        <span class="cg-price">${UI.esc(groupPrice(p))}</span><b><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b></div>`; }).join("")}</div></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
       const q = groupQty(p), multi = sizesOf(p).length > 1, photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">

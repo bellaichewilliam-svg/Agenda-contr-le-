@@ -21,3 +21,18 @@ Une fois les images faites : me les envoyer dans la discussion, je les recadre e
 | 10 | (facultatif) Entrecôte croustillante | Entrecôte Croustillante Royal | Un burger au bœuf épais avec des oignons frits croustillants, salade et sauce, un cornet blanc de frites et un gobelet blanc. |
 
 À ne jamais faire : pas d'arches jaunes, pas de rouge et jaune McDonald's sur les emballages, pas de nom de marque. Ce sont **nos** photos.
+
+## 2e série : une photo à chaque menu (pour que deux menus ne se ressemblent plus)
+
+Aujourd'hui, plusieurs menus partagent la même photo. Même style commun que ci-dessus (fond blanc, emballages blancs sans logo, gobelet + cornet de frites à côté).
+
+| # | Image | Pour quels produits | Demande à ChatGPT |
+|---|-------|---------------------|-------------------|
+| 11 | Steak de poulet grillé | Chicken Steak, Mega Chicken Steak | Un burger avec un filet de poulet **grillé** (marques de grill), salade, tomate, cornet de frites et gobelet blanc. |
+| 12 | Poulet croustillant épicé | Mega Crispy Chicken épicé, très épicé | Un grand burger au poulet pané croustillant avec une **sauce rouge pimentée** qui coule et des piments, frites et gobelet blanc. |
+| 13 | Mac Royal aux oignons | Mac Royal aux rondelles d'oignon | Un burger au bœuf avec **2 grosses rondelles d'oignon panées** dedans, frites et gobelet blanc. |
+| 14 | Entrecôte | Hamburger Rib Entrecôte, Entrecôte Croustillante Royal | Un burger au bœuf **très épais**, juteux, oignon rouge et salade, frites et gobelet blanc. |
+| 15 | Double entrecôte | Double Rib Entrecôte | Le même burger épais mais avec **2 steaks**, frites et gobelet blanc. |
+| 16 | 5 Crunchies | 5 Crunchies | Une boîte blanche ouverte avec **5 aiguillettes de poulet pané** (allongées), frites et gobelet blanc. |
+| 17 | Bâtonnets de maïs | 10 bouchées au maïs | Une boîte blanche ouverte avec **10 bâtonnets panés au maïs** (petits cylindres dorés), frites et gobelet blanc. |
+| 18 | Menu 2 tortillas | 2 Tortillas | **2 tortillas** roulées coupées en deux, frites et gobelet blanc. |
