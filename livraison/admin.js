@@ -2744,10 +2744,17 @@ async function onViewClick(e) {
     const v = link.trim();
     if (!/^https:\/\/\S{4,600}$/.test(v)) return alert("Le lien doit commencer par https://");
     try { if (!(await Store.adminGoodsLink(o.id, v))) return alert("Non enregistré (course annulée ou déjà payée ?)."); } catch (ex) { return alert("Non enregistré, vérifiez la connexion."); }
+    // Un seul message, les deux paiements en même temps : ① le lien du commerce (carte) ② la livraison par Bit au livreur
     const amount = Number(o.items_total) > 0 ? UI.money(o.items_total) : "", first = String(o.contact_name || "").split(" ")[0];
+    const c = couriers.find(x => x.id === o.courier_id), cBit = c ? String(c.bit_phone || c.phone || "").replace(/\D/g, "").replace(/^972/, "0") : "", cName = c ? String(c.name || "").split(" ")[0] : "";
+    const ride = UI.money(o.price), bitRide = o.payment_method === "bit" && o.payment_status !== "paye" && !o.client_paid_at;
+    const rideFr = !bitRide ? (o.payment_method === "cash" ? `② La livraison (${ride}) : en espèces au livreur, à la livraison.` : "")
+      : cBit ? `② La livraison (${ride}) : par Bit à votre livreur ${cName}, au ${cBit}.` : `② La livraison (${ride}) : par Bit à votre livreur, son numéro s'affiche sur votre suivi.`;
+    const rideHe = !bitRide ? (o.payment_method === "cash" ? `② המשלוח (${ride}): במזומן לשליח, במסירה.` : "")
+      : cBit ? `② המשלוח (${ride}): בביט לשליח ${cName}, למספר ${cBit}.` : `② המשלוח (${ride}): בביט לשליח, המספר שלו מופיע בעמוד המעקב.`;
     const msg = o.lang === "he"
-      ? `שלום ${first}, כאן HOP! 🛵\nההזמנה שלכם מ${shop}${amount ? " (" + amount + ")" : ""} מחכה לתשלום: ${v}\nאחרי התשלום לוחצים „שילמתי” בעמוד המעקב: ${UI.trackUrl(o)}\nאת המשלוח משלמים לשליח.`
-      : `Bonjour ${first}, ici HOP! 🛵\nVotre commande chez ${shop}${amount ? " (" + amount + ")" : ""} vous attend pour le paiement : ${v}\nUne fois payé, touchez « J'ai payé » sur votre suivi : ${UI.trackUrl(o)}\nLa livraison se paie au livreur.`;
+      ? `שלום ${first}, כאן HOP! 🛵\n① ההזמנה שלכם מ${shop}${amount ? " (" + amount + ")" : ""}: משלמים בכרטיס אשראי בקישור: ${v}\n${rideHe ? rideHe + "\n" : ""}ברגע שהתשלום ל${shop} מתקבל, השליח יוצא לאסוף את ההזמנה שלכם.\nמעקב: ${UI.trackUrl(o)}`
+      : `Bonjour ${first}, ici HOP! 🛵\n① Votre commande chez ${shop}${amount ? " (" + amount + ")" : ""} : payez par carte avec ce lien : ${v}\n${rideFr ? rideFr + "\n" : ""}Dès que ${shop} a reçu votre paiement, le livreur part récupérer votre commande.\nSuivi : ${UI.trackUrl(o)}`;
     if (o.contact_phone) window.open(UI.waLink(o.contact_phone, msg), "_blank");
     await load();
   } else if (el.dataset.act === "shopok" || el.dataset.act === "shopready") {

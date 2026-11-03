@@ -733,7 +733,7 @@ function goodsPay(o, sp) {
   return `<div class="goods-pay todo">
     ${o.goods_pay === "pas_recu" ? `<p class="promo-msg bad">${esc(t("gpNo", { name }))}</p>` : ""}
     <b class="gp-step">${esc(t("gpStep1", { name, amount }))}</b>
-    <small>${esc(t("gpWhy", { name }))}</small>
+    <small>${esc(t(o.goods_choice === "lien" ? "gpWhyLink" : "gpWhy", { name }))}</small>
     <div class="bit-btns">
       ${sp.link ? `<a class="btn btn-primary gp-link" href="${esc(sp.link)}" target="_blank" rel="noopener">💳 ${esc(t("gpPayLink", { name }))}</a>` : ""}
       ${sp.link && Number(o.items_total) > 0 ? `<button type="button" class="btn btn-sm" data-bit-copy="${esc(String(Number(o.items_total)))}">${esc(t("gpCopyAmount", { amount }))}</button>` : ""}

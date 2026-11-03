@@ -8746,3 +8746,14 @@ language sql stable security definer set search_path = public as $$
                             from shop_products p where p.shop_id = o.shop_id and p.available), '[]'::json)) end
     from orders o where o.token = p_token;
 $$;
+-- « Nouveau client » (03/11) : un numéro déjà livré, même par une course d'essai, n'est plus « nouveau »
+create or replace function public.orders_aa_first_order() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  new.first_order := public.phone_digits(new.contact_phone) <> '' and not exists (
+    select 1 from orders o
+     where public.phone_digits(o.contact_phone) = public.phone_digits(new.contact_phone)
+       and o.status not in ('annulee', 'refusee') and (not coalesce(o.is_test, false) or o.status = 'livree'));
+  return new;
+end;
+$$;
