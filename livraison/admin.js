@@ -42,9 +42,19 @@ let clientsQ = "", shopsQ = "";
 const openFolds = new Set(), closedFolds = new Set();
 document.addEventListener("toggle", e => {
   const k = e.target && e.target.dataset && e.target.dataset.fold;
-  if (k) { if (e.target.open) { openFolds.add(k); closedFolds.delete(k); } else { openFolds.delete(k); closedFolds.add(k); } }
+  if (k) { if (e.target.open) { openFolds.add(k); closedFolds.delete(k); } else { openFolds.delete(k); closedFolds.add(k); ficheDirty.delete(k); } }
 }, true);
 const foldOpen = k => openFolds.has(k) ? " open" : "";
+// Fiche d'un commerce modifiée mais pas encore enregistrée : l'écran ne se rafraîchit pas (rien n'est perdu)
+const ficheDirty = new Set();
+document.addEventListener("input", e => {
+  const box = e.target && e.target.closest && e.target.closest(".shop-fiche[data-fold]");
+  if (box) ficheDirty.add(box.dataset.fold);
+}, true);
+document.addEventListener("change", e => {
+  const box = e.target && e.target.closest && e.target.closest(".shop-fiche[data-fold]");
+  if (box) ficheDirty.add(box.dataset.fold);
+}, true);
 let penalties = [];   // retenues aux livreurs (courses pas faites, pas reçues)
 let credits = { credits: [], topups: [] };   // crédit prépayé des livreurs et leurs recharges
 let accounts = [];   // comptes (inscription finie ou pas, notifications activées), voir Store.adminAccounts
@@ -213,7 +223,7 @@ async function load() {
   // Ne pas effacer un champ en cours de saisie
   const typing = document.activeElement && $("#view").contains(document.activeElement)
     && /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
-  if (typing) renderStats(); else render();
+  if (typing || ficheDirty.size) renderStats(); else render();
   // Course ouverte dans la fenêtre du patron : fermée si elle est prise entre-temps ; adresse de la notification au 1er chargement
   // « Je ne prends pas de courses » : pas de service repris tout seul à l'ouverture
   if (!bossTakes() && duty.watch != null) toggleDuty();
@@ -810,7 +820,7 @@ function renderRayons(view) {
       <div class="actions ray-btns"><button type="button" class="btn btn-primary" data-ray-new="item">➕ Produit</button><button type="button" class="btn" data-ray-new="cat">➕ Catégorie</button></div></div>
     ${cats.map(c => `<div class="card ray-cat"><h4>${rayPic(c, "ray-img")}<span>${UI.esc(c.fr)} <small dir="rtl">${UI.esc(c.he)}</small></span><span class="ray-act"><button type="button" class="btn btn-sm" data-ray-cedit="${c.id}" title="Modifier">✏️</button><button type="button" class="btn btn-sm" data-ray-chide="${c.id}" data-on="1" title="Masquer la catégorie">🚫</button></span></h4>
       ${r.items.filter(i => i.c === c.id && !i.hidden).map(row).join("") || `<p class="muted small">Aucun produit : « ➕ Produit », puis choisissez cette catégorie.</p>`}</div>`).join("")}
-    ${hiddenItems.length || hiddenCats.length ? `<details class="card ray-off"><summary>🚫 Masqués (${hiddenItems.length + hiddenCats.length}) : les clients ne les voient pas</summary>${hiddenCats.map(c => `<div class="ray-row off">${rayPic(c, "ray-img")}<div class="ray-txt"><b>${UI.esc(c.fr)}</b><small>catégorie entière</small></div><span class="ray-act"><button type="button" class="btn btn-sm" data-ray-chide="${c.id}" data-on="0">↩️ Rétablir</button></span></div>`).join("")}${hiddenItems.map(row).join("")}</details>` : ""}`;
+    ${hiddenItems.length || hiddenCats.length ? `<details class="card ray-off" data-fold="rayoff"${foldOpen("rayoff")}><summary>🚫 Masqués (${hiddenItems.length + hiddenCats.length}) : les clients ne les voient pas</summary>${hiddenCats.map(c => `<div class="ray-row off">${rayPic(c, "ray-img")}<div class="ray-txt"><b>${UI.esc(c.fr)}</b><small>catégorie entière</small></div><span class="ray-act"><button type="button" class="btn btn-sm" data-ray-chide="${c.id}" data-on="0">↩️ Rétablir</button></span></div>`).join("")}${hiddenItems.map(row).join("")}</details>` : ""}`;
 }
 // Formulaire produit / catégorie : ce qui est tapé est gardé (vals) quand on choisit une image ou une photo
 function rayForm(r) {
@@ -905,6 +915,7 @@ async function rayHide(kind, id, hidden) {
 }
 const groupOf = t => (document.querySelector(`#tabs [data-tab="${t}"]`) || {}).dataset?.group || "courses";
 function render() {
+  ficheDirty.clear();   // l'écran est reconstruit : plus de fiche en cours de modification
   renderStats();
   const grp = groupOf(tab);
   document.querySelectorAll(".tab").forEach(b => { b.classList.toggle("on", b.dataset.tab === tab); b.classList.toggle("hidden", b.dataset.group !== grp); });
@@ -1277,7 +1288,7 @@ function renderWeek(view) {
 
     </div>
     <div class="week-sum"><small>Solde total de la semaine</small><b>${UI.money(Math.abs(total))}</b><span>${total > 0 ? "à recevoir des livreurs" : total < 0 ? "à verser aux livreurs" : "rien à régler"}</span></div>
-    <details class="fin-more" style="margin:10px 0"><summary>ℹ️ Comment c'est calculé</summary><p class="small muted" style="margin-top:8px">Nouvelles courses : les clients paient les livreurs directement, et tout passe par leur crédit HOP (carte ci-dessus) ; « ✓ Réglé » ne sert que pour un échange d'argent en dehors du crédit. Anciennes courses : les livreurs encaissaient les clients et vous versaient leur commission chaque semaine : ${UI.commissionText()}, ou ${UI.networkText()} sur les courses des commerces qu'ils ont amenés. Vous leur reversez : les courses payées à HOP (Bit, programmées, carnets), la part des commerces Pro, les codes promo, les pourboires reçus, leurs bonus réseau${CONFIG.pro.referrerPercent ? ` et ${CONFIG.pro.referrerPercent} % des abonnements Pro qu'ils ont fait signer` : " (pas de part sur les abonnements Pro pour l'instant)"}. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</p></details>
+    <details class="fin-more" data-fold="finmore"${foldOpen("finmore")} style="margin:10px 0"><summary>ℹ️ Comment c'est calculé</summary><p class="small muted" style="margin-top:8px">Nouvelles courses : les clients paient les livreurs directement, et tout passe par leur crédit HOP (carte ci-dessus) ; « ✓ Réglé » ne sert que pour un échange d'argent en dehors du crédit. Anciennes courses : les livreurs encaissaient les clients et vous versaient leur commission chaque semaine : ${UI.commissionText()}, ou ${UI.networkText()} sur les courses des commerces qu'ils ont amenés. Vous leur reversez : les courses payées à HOP (Bit, programmées, carnets), la part des commerces Pro, les codes promo, les pourboires reçus, leurs bonus réseau${CONFIG.pro.referrerPercent ? ` et ${CONFIG.pro.referrerPercent} % des abonnements Pro qu'ils ont fait signer` : " (pas de part sur les abonnements Pro pour l'instant)"}. Au-delà de ${UI.money(settings.max_debt)} dus, un livreur ne peut plus accepter de course. Attente ou achats au départ : ${UI.esc(UI.waitRule(settings))}, ajoutés au prix et versés en entier au livreur.</p></details>
     <div class="table-scroll"><table class="bill">
       <thead><tr><th>Livreur</th><th class="num">Courses</th><th class="num">Encaissé par lui</th><th class="num">💳 Payé à HOP</th><th class="num">Commission</th><th class="num">🤝 Bonus</th><th class="num">🎁 Pro, promos, 💝, ⭐</th><th class="num">💸 Retenues</th><th class="num">Solde</th><th></th></tr></thead>
       <tbody>${rows.map(r => `<tr data-courier="${UI.esc(r.c.id)}"><td><b>${UI.esc(r.c.name)}</b><br><span class="small muted">${UI.esc(r.c.phone)}</span></td>
@@ -1522,7 +1533,7 @@ function renderShops(view) {
         <p class="small" id="dirMsg"></p>
       </div>
       <div id="dirCheck" class="dir-check small"></div>
-      <details style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
+      <details data-fold="dirlist"${foldOpen("dirlist")} style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
     </details>
     <details class="card adm-fold" style="margin-bottom:14px" data-fold="c:demo"${foldOpen("c:demo")}>
       <summary><b>🎬 Vitrines de démonstration</b></summary>
@@ -1572,7 +1583,7 @@ function renderShops(view) {
           ${CONFIG.partners.carnet.offered || Number(x.credits || 0) > 0 ? `<div><span>🎟️</span><span>Carnet pro : <b>${Number(x.credits || 0)}</b> course(s) restante(s)${sales.filter(v => v.shop_id === x.id).map(v =>
             ` · <a href="${UI.esc(UI.carnetReceiptUrl(v))}" target="_blank" rel="noopener">🧾 Reçu n° ${v.receipt_number}</a>`).join("")}</span></div>` : ""}
           <div><span>📅</span><span>Inscrit le ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))}</span></div>
-          <details class="shop-fiche"><summary>📝 Fiche pour les clients : WhatsApp, site, paiement, horaires, présentation${x.whatsapp ? " · 💬 " + UI.esc(x.whatsapp) : ""}${x.pay_link || x.pay_bit ? " · 💳" : ""}</summary>
+          <details class="shop-fiche" data-fold="f:${UI.esc(x.id)}"${foldOpen("f:" + x.id)}><summary>📝 Fiche pour les clients : WhatsApp, site, paiement, horaires, présentation${x.whatsapp ? " · 💬 " + UI.esc(x.whatsapp) : ""}${x.pay_link || x.pay_bit ? " · 💳" : ""}</summary>
             <label class="f"><span>WhatsApp du commerce (les clients peuvent l'écrire directement)</span><input data-fiche="whatsapp" inputmode="tel" placeholder="053-373-3785" value="${UI.esc(x.whatsapp ? "0" + String(x.whatsapp).replace(/^972/, "") : "")}" /></label>
             <label class="f"><span>🌐 Site internet ou page Instagram / Facebook du commerce (affiché aux clients, avec son numéro)</span><input data-fiche="website" type="url" inputmode="url" dir="ltr" placeholder="https://" value="${UI.esc(x.website || "")}" /></label>
             <label class="f"><span>💳 Lien de paiement du commerce (carte bancaire : Grow, Cardcom, Tranzila, PayPlus…) : les clients paient leurs articles directement au commerce</span><input data-fiche="pay_link" type="url" inputmode="url" dir="ltr" placeholder="https://" value="${UI.esc(x.pay_link || "")}" /></label>
@@ -2604,6 +2615,7 @@ async function onViewClick(e) {
       if (web && !/^https?:\/\//i.test(web)) web = "https://" + web;
       if (web && !/^https?:\/\/\S{4,250}$/.test(web)) return alert("Site internet invalide (ex. https://www.moncommerce.co.il).");
       if (bit && !/^0\d{8,9}$/.test(bit)) return alert("Numéro Bit / PayBox invalide (ex. 053-373-3785).");
+      ficheDirty.delete(box.dataset.fold);
       changes = { whatsapp: wa || null, about: v("about") || null, hours: hours.some(h => h.h) ? hours : null, pay_link: link || null, pay_bit: bit || null, website: web || null };
     } else if (el.dataset.sact === "showcase") {
       changes = { showcase: !shop.showcase };
