@@ -42,6 +42,11 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - Cigarettes : jamais de prix ; images seulement d'un paquet SANS marque (comme l'icône du kit), jamais une vraie marque. Le livreur ne fait jamais de calcul.
 - **Vercel : mises en ligne groupées** (demande du patron, 03/11/2026). Chaque mise en ligne consomme le crédit du jour et nous bloque ensuite. Donc : coder, tester, PR et fusionner comme d'habitude, mais **ne mettre en ligne tout de suite que ce qui est important** (ce qui fait vendre, ou une panne / un blocage pour les clients, livreurs, commerces). Le reste attend et part **en une seule fois en fin de journée** (un seul déploiement du dernier commit). Toujours dire au patron si c'est « en ligne » ou « prêt, part ce soir ». Les changements de la base Supabase (catalogue, prix, photos) ne demandent pas de mise en ligne.
 
+## Catalogues : toujours légers, photos par lien (règle du patron, 03/11/2026)
+- **Jamais de photo intégrée dans le catalogue envoyé au client.** `shop_catalog` renvoie pour chaque photo un lien : le fichier de l'appli (`img/<dossier>/….webp`, table `shop_photo_files`) ou `ph:<article>:<empreinte>` (servi par `shop_pic`, gardé en mémoire par le téléphone). C'est automatique pour tous les commerces, y compris les prochains et les photos ajoutées par les commerces eux-mêmes.
+- Toute nouvelle fonction qui envoie des articles aux clients (recherche, ajout à une commande, rangées…) doit suivre la même règle : jamais de `p.photo` brut, toujours le lien.
+- Nouveau catalogue préparé par nous : photos en `.webp` (≈ 20–60 Ko) dans `livraison/img/<commerce>/`, empreinte md5 ajoutée à `shop_photo_files`. Ensuite, vérifier que `length(shop_catalog('<CODE>')::text)` reste sous **150 Ko**.
+
 ## Repères techniques
 - Appli : `livraison/` (PWA statique : `client.js`, `coursier.js`, `admin.js`, `commerce`, `suivi`, `kit.js`…), `./bump-version.sh` après chaque modification.
 - Vidéos et visuels : `video/` (Remotion). Rendu : `npx remotion render src/index.ts <Composition> out/x.mp4 --browser-executable=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell`, puis ffmpeg (crf 24, faststart) vers `livraison/kit/visuels/<id>-video-<fr|he>.mp4` et entrée dans `VIDEOS` de `kit.js`.
