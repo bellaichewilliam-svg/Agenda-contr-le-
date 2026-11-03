@@ -4257,3 +4257,13 @@ form.wiz .fs-when .choices.compact .choice span i, form.wiz .fs-when .choices.co
 .nopay-ready .npr-call { flex-direction: column; gap: 2px; line-height: 1.2; }
 .nopay-ready .npr-call small { opacity: .9; font-weight: 600; font-size: .85em; }
 .nopay-ready .npr-btns .btn-wa { flex: 0 1 auto; min-width: 120px; }
+
+/* Barre du bas (prix + Continuer) : le bouton ne se coupe jamais, le détail tient sur 2 lignes,
+   et « Voir la commande » se pose juste au-dessus de la barre, quelle que soit sa hauteur (--mb-h, mesurée) */
+.mobile-bar #mobileGo { flex: 0 0 auto; white-space: nowrap; }
+.mobile-bar .mb-hint { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+@media (max-width: 960px) {
+  .cg-cart { bottom: calc(var(--mb-h, 86px) + 10px); }
+  .mobile-bar.show ~ .wa-fab, .mobile-bar.show ~ .eta-bubble { bottom: calc(var(--mb-h, 76px) + 8px); }
+  body.cg-cart-on .wa-fab { bottom: calc(var(--mb-h, 86px) + 84px) !important; }
+}
