@@ -444,10 +444,17 @@ const dirLogo = e => { const v = String((e && e.lg) || "");
 // la photo servie à part par la base (shop_pic), le catalogue reste léger et le navigateur garde l'image en mémoire
 const PIC_RX = /^ph:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):([0-9a-f]{6,32})$/;
 const picUrl = s => { const m = PIC_RX.exec(s), sb = (typeof CONFIG !== "undefined" && CONFIG.supabase) || {};
-  return m && sb.url && sb.anonKey ? `${sb.url}/rest/v1/rpc/shop_pic?p=${m[1]}&v=${m[2]}&apikey=${sb.anonKey}` : ""; };
-const safeImg = s => (typeof s !== "string" ? "" : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || /^img\/[a-z0-9-]+\/[a-z0-9-]+\.(webp|png|jpg)$/.test(s) ? s : picUrl(s));
+  if (m) return sb.url && sb.anonKey ? `${sb.url}/rest/v1/rpc/shop_pic?p=${m[1]}&v=${m[2]}&apikey=${sb.anonKey}` : "";
+  // Photo d'un produit des rayons ajoutée par le patron : rp:<rayon>:<produit>:<empreinte>, servie par rayon_pic
+  const r = /^rp:([a-z0-9_-]{1,20}):([a-z0-9_-]{1,40}):([0-9a-f]{6,32})$/.exec(s || "");
+  return r && sb.url && sb.anonKey ? `${sb.url}/rest/v1/rpc/rayon_pic?r=${r[1]}&i=${r[2]}&v=${r[3]}&apikey=${sb.anonKey}` : ""; };
+// Vraies photos des produits des magasins (Carrefour, BOOOM) : prises directement sur leur site, par lien
+const EXT_PIC = /^https:\/\/(d226b0iufwcjmj\.cloudfront\.net\/gs1-products\/|booomisrael\.co\.il\/uploads\/)[A-Za-z0-9._~\/%?=&:-]+$/;
+const extPic = s => typeof s === "string" && EXT_PIC.test(s);
+const safeImg = s => (typeof s !== "string" ? "" : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || /^img\/[a-z0-9-]+\/[a-z0-9-]+\.(webp|png|jpg)$/.test(s) || extPic(s) ? s : picUrl(s));
 // Image d'une autre adresse (photo servie par la base) : « crossorigin » pour que l'appli puisse voir si son fond est blanc
-const imgCors = src => (/^https:/.test(src || "") ? ' crossorigin="anonymous"' : "");
+// (pas pour les photos des magasins : leur site ne le permet pas ; ce sont des produits sur fond blanc)
+const imgCors = src => (/^https:/.test(src || "") && !extPic(src) ? ' crossorigin="anonymous"' : "");
 // Vitrines de démonstration : leurs images sont des fichiers de l'appli (img/demo/demo-resto-cover.jpg…)
 const demoImg = (s, k) => (s && s.demo && /^DEMO-[A-Z]+$/.test(s.code || "") ? `img/demo/${s.code.toLowerCase()}-${k}.jpg` : "");
 function proCard(s, o) {
@@ -1060,7 +1067,7 @@ function routeLayer(a, b, opts) {
 
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
+  track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR

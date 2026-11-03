@@ -121,7 +121,7 @@ create or replace function public.booom_import(p_req bigint default null) return
 language plpgsql security definer set search_path = public, net as $$
 declare sid uuid; v_req bigint; body json; p json; tr booom_tr; he text; dhe text; fr text; nm text; descr text;
         pr numeric; lot int; m text[]; promo boolean; k text; cid uuid; pid uuid; img text; ph text; path text;
-        seen uuid[] := '{}'; n int := 0; pos int := 0; res json;
+        seen uuid[] := '{}'; n int := 0; pos int := 0; res json; url text;
 begin
   select id into sid from shops where code = 'HOPBOOOM';
   if sid is null then return json_build_object('error', 'no_shop'); end if;
@@ -165,10 +165,13 @@ begin
       path := 'img/qc/' || img || '.webp';
       if ph is not null then insert into shop_photo_files (h, path) values (md5(ph), path) on conflict (h) do nothing; end if;
     end if;
-    insert into shop_products (id, shop_id, category_id, name, description, price, photo, available, position)
-    values (pid, sid, cid, nm, nullif(descr, ''), pr, ph, true, pos)
+    -- La vraie photo du produit sur leur site (par lien), le pictogramme en secours
+    url := 'https://booomisrael.co.il' || coalesce(p->>'image_url', '');
+    if not ext_photo_ok(url) then url := null; end if;
+    insert into shop_products (id, shop_id, category_id, name, description, price, photo, photo_url, available, position)
+    values (pid, sid, cid, nm, nullif(descr, ''), pr, ph, url, true, pos)
     on conflict (id) do update set category_id = excluded.category_id, name = excluded.name, description = excluded.description,
-      price = excluded.price, photo = coalesce(excluded.photo, shop_products.photo), available = true, position = excluded.position;
+      price = excluded.price, photo = coalesce(excluded.photo, shop_products.photo), photo_url = excluded.photo_url, available = true, position = excluded.position;
     seen := seen || pid; n := n + 1; pos := pos + 1;
   end loop;
   -- Plus sur leur site, ou promo finie : invisible pour les clients (jamais effacé)
@@ -184,3 +187,12 @@ select cron.schedule('hop-booom-fetch',  '7 */6 * * *',  'select public.booom_fe
 select cron.schedule('hop-booom-import', '12 */6 * * *', 'select public.booom_import()');
 -- Les eaux gazeuses (🫧) vont dans « Eaux » ; pictogramme de la rubrique si le produit n'en a pas (voir hop_market_put en ligne).
 -- Logos / couvertures : petite image dans shops.logo / cover, reliée par son empreinte (shop_photo_files) au vrai fichier img/market/….
+
+-- ============================================================================
+-- Vraies photos des produits (03/11/2026) : prises par lien sur le site du magasin (jamais copiées dans le catalogue)
+--   • shop_products.photo_url / rayon_items.photo_url (Carrefour : image « medium » du site, BOOOM : /uploads/…)
+--   • ext_photo_ok(url) : seuls ces deux sites sont acceptés ; l'appli fait la même vérification (UI.extPic)
+--   • shop_catalog / order_addable / rayons_live renvoient ce lien ; le pictogramme reste en secours
+--   • carrefour_import remplit photo_url à chaque import ; booom_import aussi
+-- (fonctions en ligne : voir les migrations vraies_photos, booom_vraies_photos, rayon_photo_url)
+-- ============================================================================

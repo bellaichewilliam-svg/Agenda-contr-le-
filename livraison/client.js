@@ -983,7 +983,7 @@ function renderPharma() {
   const qIn = box.querySelector("[data-ph-q]");
   qIn.placeholder = t("phSearchPh");
   // Image d'un produit ou d'une catégorie : photo du patron, sinon pictogramme, sinon emoji
-  const pic = x => (x.photo ? `<img src="${x.photo}" alt="" loading="lazy" />` : x.img ? `<img src="img/qc/${x.img}.webp" alt="" loading="lazy" />` : `<i>${x.e}</i>`);
+  const pic = x => (UI.safeImg(x.photo) ? `<img src="${UI.safeImg(x.photo)}" alt="" loading="lazy" />` : x.img ? `<img src="img/qc/${x.img}.webp" alt="" loading="lazy" />` : `<i>${x.e}</i>`);
   const picked = rayonPicked(r), n = picked.reduce((a, [, q]) => a + q, 0);
   const inCat = c => picked.filter(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).c === c).reduce((a, [, q]) => a + q, 0);
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
@@ -997,7 +997,7 @@ function renderPharma() {
     const sel = Number((state.pharmaOpt || {})[r.id + ":" + x.id] || 0), k = key(x, x.opt ? sel : 0), qn = state.pharma[k] || 0;
     const pr = (x.opt && x.opt[sel] && x.opt[sel].p) || x.p;
     return `<div class="ph-item${qn ? " in" : ""}">
-      <div class="ph-pic${x.photo ? " photo" : ""}">${pic(x)}
+      <div class="ph-pic${x.photo ? " photo" : ""}${UI.extPic(x.photo) ? " pack" : ""}">${pic(x)}
         ${qn ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${qn}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`}</div>
       ${pr ? `<span class="ph-price">≈ ${priceTxt(pr)}</span>` : ""}
@@ -2863,6 +2863,7 @@ const whitePics = new Map();
 function checkWhitePic(img) {
   const src = img.currentSrc || img.src;
   if (!src || !img.naturalWidth) return;
+  if (UI.extPic(src)) { img.classList.add("pic-white"); return; }   // photo d'un magasin : produit sur fond blanc
   const k = src.length + ":" + src.slice(-80);
   if (!whitePics.has(k)) {
     try {

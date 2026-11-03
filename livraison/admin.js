@@ -806,7 +806,7 @@ async function loadRayons(force) {
   if (tab === "rayons") render();
 }
 const rayName = x => x.fr || x.he || "";
-const rayPic = (x, cls) => (x.photo ? `<img class="${cls}" src="${x.photo}" alt="" />` : x.img ? `<img class="${cls}" src="img/qc/${x.img}.webp" alt="" />` : `<i class="${cls}">${x.e || "🛒"}</i>`);
+const rayPic = (x, cls) => (UI.safeImg(x.photo) ? `<img class="${cls}" src="${UI.safeImg(x.photo)}" alt="" loading="lazy" />` : x.img ? `<img class="${cls}" src="img/qc/${x.img}.webp" alt="" />` : `<i class="${cls}">${x.e || "🛒"}</i>`);
 const rayPrice = x => (x.p ? (x.p[0] === x.p[1] ? `${x.p[0]} ₪` : `${x.p[0]}-${x.p[1]} ₪`) : "");
 function renderRayons(view) {
   loadRayons();

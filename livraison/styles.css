@@ -3914,6 +3914,7 @@ html[dir="rtl"] .wiz-more-btn i { transform: scaleX(-1); } html[dir="rtl"] form.
 #pharmaBox .ph-item.in .ph-pic { border-color: var(--rc, #10B981); }
 #pharmaBox .ph-pic img { width: 64%; height: 64%; object-fit: contain; filter: drop-shadow(0 4px 6px rgba(15,31,61,.18)); }
 #pharmaBox .ph-pic.photo img { width: 100%; height: 100%; object-fit: cover; border-radius: 14px; filter: none; }
+#pharmaBox .ph-pic.photo.pack img { object-fit: contain; background: #fff; padding: 8px; box-sizing: border-box; }
 #pharmaBox .ph-pic > i { font-style: normal; font-size: 40px; }
 #pharmaBox .ph-item.in .ph-pic img { animation: kindHop .45s cubic-bezier(.2, 1.8, .4, 1); }
 #pharmaBox .ph-pic .cg-plus { position: absolute; bottom: -8px; inset-inline-end: -6px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--panel); color: var(--brand);
