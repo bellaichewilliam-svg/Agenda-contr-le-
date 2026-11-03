@@ -551,9 +551,18 @@ function attach(input, opts) {
         // Ses adresses déjà utilisées (Simaki Sushi, Maison…) qui correspondent au texte : en premier
         const nq = normalize(q);
         const saved = (opts.quick ? opts.quick() : []).filter(x => x.match && normalize(x.match).includes(nq));
-        items = saved.concat(list); active = -1;
+        // Un produit tapé (« eau », « couches », « sushi ») : les rayons HOP! et les catalogues qui l'ont, en premier
+        const sugg = opts.suggest ? opts.suggest(q) : [];
+        items = sugg.concat(saved, list); active = -1;
         if (offer() && !saved.length) items = items.concat([notOnMap(q)]);
         render();
+        if (opts.suggestLater) opts.suggestLater(q).then(more => {
+          if (mine !== seq || !more || !more.length) return;
+          const at = items.findIndex(p => !p.prod);
+          items.splice(at < 0 ? items.length : at, 0, ...more);
+          if (active >= 0) active += more.length;
+          render();
+        }).catch(() => {});
         const extra = await moreNearby(q, opts.lang(), list);
         if (mine !== seq || !extra.length) return;
         const found = extra.some(p => normalize(p.brand).includes(normalize(q)));
