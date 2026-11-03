@@ -1584,6 +1584,12 @@ async function prodSuggestLater(q) {
     title: UI.bi(p.name), sub: t("acCatalog", { shop: UI.bi(p.shop), price: money(p.price) }),
     apply: () => { state.findItem = p.id || null; state.shopDir = ""; loadShop(p.code); } }));
 }
+// Hauteur réelle de la barre du bas (elle grandit avec le détail du prix) : « Voir la commande » se pose au-dessus, jamais dessous
+(function watchMobileBar() {
+  const bar = document.getElementById("mobileBar");
+  if (!bar || !window.ResizeObserver) return;
+  new ResizeObserver(() => { const h = bar.offsetHeight; if (h) document.documentElement.style.setProperty("--mb-h", h + "px"); }).observe(bar);
+})();
 function attachPlaces() {
   ["from", "to"].forEach(which => {
     ac[which] = Places.attach(form.elements[which === "from" ? "pickup_address" : "dropoff_address"], {
