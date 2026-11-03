@@ -8729,3 +8729,20 @@ language sql stable security definer set search_path = public as $$
    where s.code = upper(trim(p_code)) and s.status in ('actif', 'en_attente') and s.plan_until >= current_date;
 $$;
 notify pgrst, 'reload schema';
+-- Règle « catalogues légers » : le lien d'une photo d'article (fichier de l'appli ou « ph:<article>:<empreinte> »), jamais la photo brute
+create or replace function public.photo_ref(p_id uuid, p_photo text) returns text
+language sql stable security definer set search_path = public as $$
+  select case when p_photo is null then null
+              else coalesce((select f.path from shop_photo_files f where f.h = md5(p_photo)), 'ph:' || p_id || ':' || left(md5(p_photo), 12)) end;
+$$;
+-- Ajouter des articles à une commande (suivi) : mêmes liens de photos que le catalogue
+create or replace function public.order_addable(p_token uuid) returns json
+language sql stable security definer set search_path = public as $$
+  select case when public.order_add_until(o) > now() then json_build_object(
+    'until', public.order_add_until(o),
+    'shop', (select s.name from shops s where s.id = o.shop_id),
+    'products', coalesce((select json_agg(json_build_object('id', p.id, 'name', p.name, 'description', p.description,
+                                  'price', p.price, 'photo', public.photo_ref(p.id, p.photo)) order by p.position, p.created_at)
+                            from shop_products p where p.shop_id = o.shop_id and p.available), '[]'::json)) end
+    from orders o where o.token = p_token;
+$$;
