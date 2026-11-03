@@ -2833,8 +2833,30 @@ const shopMods = p => {
 };
 const modsFor = p => /burger|royal|mac|chicken|cheese|steak|tortilla|wrap|sandwich|crunch|crispy|המבורגר|בורגר|טורטי|צ'יקן|רויאל|סנדוויץ/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
 // Menus McDonald's : le client choisit sa boisson (comprise dans le menu, sans supplément)
+// Boissons avec supplément (Fuze Tea, jus d'orange) : un article caché du catalogue « Supplément boisson : … » est ajouté au panier
+// avec la même quantité que le menu (le prix est donc compté par la base, comme les autres articles)
 const MENU_DRINKS = [["coke", "Coca-Cola", "קוקה קולה"], ["zero", "Coca-Cola Zero", "קוקה קולה זירו"], ["sprite", "Sprite", "ספרייט"],
-  ["fanta", "Fanta", "פאנטה"], ["grape", "Raisin", "ענבים"], ["soda", "Eau gazeuse", "סודה"], ["water", "Eau", "מים"]];
+  ["fanta", "Fanta", "פאנטה"], ["grape", "Raisin", "ענבים"], ["soda", "Eau gazeuse", "סודה"], ["water", "Eau", "מים"],
+  ["fuze", "Fuze Tea pêche", "פיוז טי אפרסק", true], ["orange", "Jus d'orange pressé", "תפוזים סחוט", true]];
+// Menus tortilla McDonald's : le goût de chaque tortilla est à choisir (2 choix pour « 2 Tortillas »)
+const TORT_FLAVORS = [["steak", "Chicken Steak", "צ'יקן סטייק"], ["crispy", "Crispy Chicken", "קריספי צ'יקן"], ["hot", "Crispy Chicken épicé 🌶", "קריספי צ'יקן חריף 🌶"]];
+const flavorCount = p => (/^MCD/i.test((state.shop && state.shop.code) || "") && /tortilla|טורטי/i.test((p && p.name) || "") && !/crispy|קריספי/i.test((p && p.name) || "")
+  ? (/^2\s/.test((p && p.name) || "") ? 2 : 1) : 0);
+const flavorName = (k, lang) => { const d = TORT_FLAVORS.find(x => x[0] === k); return d ? (lang === "fr" ? `${d[1]} (${d[2]})` : (I18N.lang === "he" ? d[2] : d[1])) : ""; };
+const isAddon = p => /^Supplément boisson/i.test((p && p.name) || "");
+const cgShown = () => cgProducts().filter(p => !isAddon(p));
+const drinkAddon = k => { const d = MENU_DRINKS.find(x => x[0] === k); return d && d[3] ? cgProducts().find(p => isAddon(p) && p.name.includes(d[1])) || null : null; };
+const menuDrinks = () => MENU_DRINKS.filter(d => !d[3] || drinkAddon(d[0]));
+function syncAddons() {
+  const addons = cgProducts().filter(isAddon);
+  if (!addons.length) return;
+  const want = {};
+  for (const [id, q] of Object.entries(state.cart || {})) {
+    const m = q > 0 && (state.cartMods || {})[id], a = m && m.drink && drinkAddon(m.drink);
+    if (a) want[a.id] = (want[a.id] || 0) + q;
+  }
+  for (const a of addons) { if (want[a.id]) state.cart[a.id] = want[a.id]; else delete state.cart[a.id]; }
+}
 const needsDrink = p => /^MCD/i.test((state.shop && state.shop.code) || "") && /boisson|שתייה|Menu enfant/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
 const drinkName = (k, lang) => { const d = MENU_DRINKS.find(x => x[0] === k); return d ? (lang === "fr" ? `${d[1]} (${d[2]})` : (I18N.lang === "he" ? d[2] : d[1])) : ""; };
 const modText = (id, lang) => {
@@ -2844,15 +2866,17 @@ const modText = (id, lang) => {
   const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage" };
   const lab = k => (lang === "fr" ? "sans " + fr[k] : t("modNo") + " " + t("mod_" + k));
   const drink = m.drink ? (lang === "fr" ? "boisson : " : t("drinkLbl") + " : ") + drinkName(m.drink, lang) : "";
-  return [drink, ...(m.off || []).map(lab), m.note ? "« " + m.note + " »" : ""].filter(Boolean).join(", ");
+  const fl = (m.flavors || []).filter(Boolean);
+  const flavor = fl.length ? (lang === "fr" ? "goût : " : t("flavorLbl") + " : ") + fl.map(k => flavorName(k, lang)).join(" + ") : "";
+  return [flavor, drink, ...(m.off || []).map(lab), m.note ? "« " + m.note + " »" : ""].filter(Boolean).join(", ");
 };
 // Taille proposée en ouvrant la fiche : celle déjà au panier, sinon la moyenne / normale, sinon la première
 function sizeDefault(p) {
   const sz = sizesOf(p);
   return sz.find(x => state.cart[x.id]) || sz.find(x => /moyen|normal|regular|רגיל|בינוני/i.test(sizeOf(x))) || sz[0] || p;
 }
-const cartLines = () => cgProducts().filter(p => p.available && state.cart[p.id] > 0).map(p => ({ p, qty: state.cart[p.id] }));
-const cartCount = () => cartLines().reduce((s, l) => s + l.qty, 0);
+const cartLines = () => { syncAddons(); return cgProducts().filter(p => p.available && state.cart[p.id] > 0).map(p => ({ p, qty: state.cart[p.id] })); };
+const cartCount = () => cartLines().filter(l => !isAddon(l.p)).reduce((s, l) => s + l.qty, 0);
 const cartTotal = () => cartLines().reduce((s, l) => s + Number(l.p.price) * l.qty, 0);
 const shopDropOn = () => !!(state.shop && state.shop.pro && state.pick.to && state.pick.to.shopId === state.shop.id);
 const catalogOn = () => (proShopOn() || shopDropOn()) && cgProducts().length > 0;
@@ -2877,11 +2901,11 @@ function renderCatalog() {
   form.shop_order.placeholder = on ? t("cgNotePh") : t("spOrderPh");
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
-  const cats = state.catalog.categories.filter(c => cgProducts().some(p => p.category_id === c.id));
-  const hasLoose = cgProducts().some(p => !cats.some(c => c.id === p.category_id));
+  const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
+  const hasLoose = cgShown().some(p => !cats.some(c => c.id === p.category_id));
   // Le menu entier par rubriques ; les onglets mènent à leur rubrique et suivent le défilement
-  const allSecs = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: groupFirst(cgProducts().filter(p => p.category_id === c.id)) }))
-    .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: groupFirst(cgProducts().filter(p => !cats.some(c => c.id === p.category_id))) }] : []);
+  const allSecs = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: groupFirst(cgShown().filter(p => p.category_id === c.id)) }))
+    .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: groupFirst(cgShown().filter(p => !cats.some(c => c.id === p.category_id))) }] : []);
   // Recherche dans le catalogue (nom, description, français et hébreu, sans accents)
   const cq = phNorm(state.cgQ || "");
   const sections = cq ? allSecs.map(x => Object.assign({}, x, { items: x.items.filter(p => phNorm(`${p.name} ${p.description || ""}`).includes(cq)) })).filter(x => x.items.length) : allSecs;
@@ -2995,7 +3019,7 @@ function openItem(id) {
   if (sizesOf(p).length > 1 && !state.cart[p.id]) p = sizeDefault(p);
   item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
   const m0 = (state.cartMods || {})[p.id] || {};
-  item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false;
+  item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false; item.flavors = [...(m0.flavors || [])];
   renderItem();
   $("#itemSheet").classList.remove("hidden");
 }
@@ -3007,14 +3031,19 @@ function renderItem() {
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
       ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
+      ${p.available ? Array.from({ length: flavorCount(p) }, (_, i) => `<p class="it-size-h">${UI.esc(t("flavorTitle"))}${flavorCount(p) > 1 ? ` ${i + 1}` : ""}</p>${item.needDrink && !(item.flavors || [])[i] ? `<p class="it-need">${UI.esc(t("flavorNeed"))}</p>` : ""}
+        <div class="it-mods it-drinks it-flavors" role="radiogroup">${TORT_FLAVORS.map(([k]) => { const on = (item.flavors || [])[i] === k;
+          return `<button type="button" class="it-mod${on ? " on" : ""}" role="radio" aria-checked="${on}" data-it-flavor="${i}:${k}">${on ? "✓ " : ""}${UI.esc(flavorName(k))}</button>`; }).join("")}</div>`).join("") : ""}
       ${needsDrink(p) && p.available ? `<p class="it-size-h">${UI.esc(t("drinkTitle"))}</p>${item.needDrink && !item.drink ? `<p class="it-need">${UI.esc(t("drinkNeed"))}</p>` : ""}
-        <div class="it-mods it-drinks" role="radiogroup">${MENU_DRINKS.map(([k]) => `<button type="button" class="it-mod${item.drink === k ? " on" : ""}" role="radio" aria-checked="${item.drink === k}" data-it-drink="${k}">${item.drink === k ? "✓ " : ""}${UI.esc(drinkName(k))}</button>`).join("")}</div>` : ""}
+        <div class="it-mods it-drinks" role="radiogroup">${menuDrinks().map(([k]) => { const a = drinkAddon(k);
+          return `<button type="button" class="it-mod${item.drink === k ? " on" : ""}" role="radio" aria-checked="${item.drink === k}" data-it-drink="${k}">${item.drink === k ? "✓ " : ""}${UI.esc(drinkName(k))}${a ? ` <small>+${UI.esc(money(a.price))}</small>` : ""}</button>`; }).join("")}</div>` : ""}
       ${modsFor(p) && p.available ? `${shopMods(p).length ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p>` : ""}<div class="it-mods">${shopMods(p).map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
         <input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
   $("#itemAdd").disabled = !p.available;
-  $("#itemAdd").innerHTML = `<span>${UI.esc(t(inCart ? "itUpdate" : "itAdd"))}</span><b>${UI.esc(money(Number(p.price) * item.qty))}</b>`;
+  const extra = needsDrink(p) && item.drink && drinkAddon(item.drink) ? Number(drinkAddon(item.drink).price) : 0;
+  $("#itemAdd").innerHTML = `<span>${UI.esc(t(inCart ? "itUpdate" : "itAdd"))}</span><b>${UI.esc(money((Number(p.price) + extra) * item.qty))}</b>`;
   $("#itemDel").classList.toggle("hidden", !inCart);
 }
 // Le panier : modifier les quantités, voir le total, puis continuer vers l'adresse ou le récapitulatif
@@ -3030,6 +3059,8 @@ function renderCart() {
   $("#cartBody").innerHTML = lines.map(({ p, qty }) => {
     const photo = UI.safeImg(p.photo);
     const id = UI.esc(p.id);
+    // Supplément de boisson : suit tout seul la quantité des menus, pas de boutons
+    if (isAddon(p)) return `<div class="cs-row cs-addon"><span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b><small>${qty} × ${UI.esc(money(p.price))} = ${UI.esc(money(Number(p.price) * qty))}</small></span></div>`;
     // On glisse la ligne : Supprimer · + 1 · Modifier (les − / + restent là pour ceux qui ne glissent pas)
     return UI.swipeRow(`<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}" alt="" />` : shopArt(p)}</span>
       <span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b>${modText(p.id) ? `<em class="cs-mods">${UI.esc(modText(p.id))}</em>` : ""}<small>${UI.esc(money(Number(p.price) * qty))}</small></span>
@@ -3086,6 +3117,8 @@ $("#itemSheet").addEventListener("click", e => {
   if (md) { const k = md.dataset.itMod; item.off = (item.off || []).includes(k) ? item.off.filter(x => x !== k) : [...(item.off || []), k]; return renderItem(); }
   const dk = e.target.closest("[data-it-drink]");
   if (dk) { item.drink = dk.dataset.itDrink; return renderItem(); }
+  const fk = e.target.closest("[data-it-flavor]");
+  if (fk) { const [i, k] = fk.dataset.itFlavor.split(":"); item.flavors = [...(item.flavors || [])]; item.flavors[+i] = k; return renderItem(); }
   const sz = e.target.closest("[data-it-size]");
   if (sz) { item.id = sz.dataset.itSize; item.qty = Math.max(1, state.cart[item.id] || item.qty || 1); return renderItem(); }
   if (e.target.closest("#itemMinus")) { item.qty = Math.max(1, item.qty - 1); return renderItem(); }
@@ -3094,14 +3127,16 @@ $("#itemSheet").addEventListener("click", e => {
   if (!add && !del) return;
   // Menu : la boisson est obligatoire avant d'ajouter
   const cur = cgProducts().find(x => x.id === item.id);
-  if (add && cur && needsDrink(cur) && !item.drink) {
+  const flavOk = !cur || Array.from({ length: flavorCount(cur) }, (_, i) => (item.flavors || [])[i]).every(Boolean);
+  if (add && cur && ((needsDrink(cur) && !item.drink) || !flavOk)) {
     item.needDrink = true; renderItem();
-    const h = $("#itemBody .it-drinks"); if (h) h.scrollIntoView({ behavior: "smooth", block: "center" });
+    const h = $("#itemBody .it-need"); if (h) h.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
   state.cart[item.id] = add ? item.qty : 0;
   state.cartMods = state.cartMods || {};
-  if (add && ((item.off || []).length || (item.note || "").trim() || item.drink)) state.cartMods[item.id] = { off: item.off || [], note: (item.note || "").trim().slice(0, 80), drink: item.drink || "" };
+  const flavors = cur ? (item.flavors || []).slice(0, flavorCount(cur)) : [];
+  if (add && ((item.off || []).length || (item.note || "").trim() || item.drink || flavors.length)) state.cartMods[item.id] = { off: item.off || [], note: (item.note || "").trim().slice(0, 80), drink: item.drink || "", flavors };
   else delete state.cartMods[item.id];
   $("#itemSheet").classList.add("hidden");
   renderCatalog(); renderQuote(); saveDraft(); cartPersist();
