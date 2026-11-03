@@ -828,3 +828,4 @@ livraison/
 - **Panel : « 💳 Changer le paiement »** sur la course : lien du commerce, Bit au livreur ou espèces ; WhatsApp prêt pour le client avec le montant et le numéro Bit du livreur.
 - Fiche d'un commerce géré par HOP! : le WhatsApp et le téléphone affichés sont ceux de HOP!.
 - **Jus (boutique HOP!)** : le client choisit Bit à son livreur ou espèces (jus + livraison ensemble, livraison 30 ₪ inchangée). HOP! ne commande que pour McDonald's et ses jus ; les autres commerces restent « le client commande et paie le commerce ».
+- **Photos de produits sur fond blanc** (McDonald's, épicerie…) : repérées automatiquement (`checkWhitePic` dans `client.js`, bords blancs) et montrées en entier, centrées sur fond blanc, dans la liste, les cartes du haut, la fiche de l'article et le panier ; les vraies photos (plat sur une table) restent en plein cadre. Photos McDonald's recadrées en paysage, produit au centre.

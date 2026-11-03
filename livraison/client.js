@@ -2777,6 +2777,35 @@ async function loadSettings() {
 state.catalog = null; state.cart = {};
 // Produit épuisé = hors ligne : le client ne le voit plus du tout (le commerçant le remet en vente dans son espace)
 const cgProducts = () => ((state.catalog && state.catalog.products) || []).filter(p => p.available !== false);
+// Photos de produits sur fond blanc (détourées : McDonald's, épicerie…) : montrées en entier et centrées, sur fond blanc,
+// au lieu d'être coupées par le cadre. Les vraies photos (plat posé sur une table) restent en plein cadre.
+const whitePics = new Map();
+function checkWhitePic(img) {
+  const src = img.currentSrc || img.src;
+  if (!src || !img.naturalWidth) return;
+  const k = src.length + ":" + src.slice(-80);
+  if (!whitePics.has(k)) {
+    try {
+      const n = 24, c = document.createElement("canvas");
+      c.width = n; c.height = n;
+      const g = c.getContext("2d", { willReadFrequently: true });
+      g.drawImage(img, 0, 0, n, n);
+      const d = g.getImageData(0, 0, n, n).data;
+      let white = 0, all = 0;
+      for (let i = 0; i < n; i++) for (const [x, y] of [[i, 0], [i, n - 1], [0, i], [n - 1, i]]) {
+        const o = (y * n + x) * 4; all++;
+        if ((d[o] > 225 && d[o + 1] > 225 && d[o + 2] > 225) || d[o + 3] < 24) white++;
+      }
+      whitePics.set(k, white / all > 0.6);   // fond blanc sur la plupart des bords (le produit peut toucher un bord)
+    } catch (e) { return; }   // photo d'un autre site (lecture interdite) : on la laisse telle quelle
+  }
+  img.classList.toggle("pic-white", whitePics.get(k));
+}
+document.addEventListener("load", e => {
+  const el = e.target;
+  if (el && el.tagName === "IMG" && el.closest(".cg-pic, .cg-tpic, .it-pic, .cs-pic")) checkWhitePic(el);
+}, true);
+
 // Tailles d'un même menu (ex. McDonald's petit / moyen / grand) : des articles « Nom · שם [Grand · גדולה] » de la même rubrique.
 // Une seule carte (« dès 49 ₪ »), la taille se choisit dans la fiche de l'article ; le panier garde la taille choisie
 const SIZE_RX = /\s*\[([^\]]+)\]\s*$/;
