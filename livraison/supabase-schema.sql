@@ -8757,3 +8757,33 @@ begin
   return new;
 end;
 $$;
+
+-- ===== Accueil léger (03/11) : logos et couvertures des commerces par lien, empreinte des photos calculée une fois =====
+alter table public.shop_products add column if not exists photo_h text generated always as (md5(photo)) stored;
+-- Lien d'une image de commerce (logo « 1 », couverture « 2 ») : fichier de l'appli si connu, sinon servie par shop_pic
+create or replace function public.img_ref(p_id uuid, p_img text, p_k text) returns text
+language sql stable security definer set search_path = public as $$
+  select case when p_img is null or p_img not like 'data:image/%' then p_img
+              else coalesce((select f.path from shop_photo_files f where f.h = md5(p_img)), 'ph:' || p_id || ':' || p_k || left(md5(p_img), 11)) end;
+$$;
+create or replace function public.shop_pic(p uuid, v text default '') returns public."*/*"
+language plpgsql stable security definer set search_path = public as $$
+declare ph text;
+begin
+  select pp.photo into ph from shop_products pp join shops s on s.id = pp.shop_id
+   where pp.id = p and s.status in ('actif', 'en_attente') and pp.photo like 'data:image/%';
+  if ph is null then
+    select case when left(v, 1) = '1' then s.logo when left(v, 1) = '2' then s.cover end into ph
+      from shops s where s.id = p and s.status <> 'suspendu';
+    if ph is not null and ph not like 'data:image/%' then ph := null; end if;
+  end if;
+  if ph is null then
+    perform set_config('response.status', '404', true);
+    return null;
+  end if;
+  perform set_config('response.headers', json_build_array(
+    json_build_object('Content-Type', substring(ph from '^data:(image/[a-z]+);base64,')),
+    json_build_object('Cache-Control', 'public, max-age=31536000, immutable'))::text, true);
+  return decode(substring(ph from position(',' in ph) + 1), 'base64');
+end $$;
+-- (shop_catalog utilise p.photo_h ; shops_showcase et shop_public renvoient img_ref(id, logo, '1') / img_ref(id, cover, '2') : voir la base)

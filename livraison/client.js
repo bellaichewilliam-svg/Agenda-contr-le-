@@ -2909,8 +2909,13 @@ async function loadCatalogFor(shop) {
   state.catalog = null; state.cart = {};
   renderCatalog();   // l'ancien menu disparaît tout de suite (jamais les plats d'un autre commerce)
   if (!shop || !shop.pro) return;
+  // Réseau du téléphone qui coupe : on réessaie (3 fois, de plus en plus espacé) au lieu de laisser le commerce sans menu
   let cat = null;
-  try { cat = await Store.shopCatalog(shop.code); } catch (e) { cat = null; }
+  for (let i = 0; i < 3 && !cat; i++) {
+    if (i) await new Promise(r => setTimeout(r, 1200 * i));
+    if (seq !== shopSeq) return;
+    try { cat = await Store.shopCatalog(shop.code); } catch (e) { cat = null; }
+  }
   // Le client a touché un autre commerce entre-temps : ce menu-là n'est plus le bon
   if (seq !== shopSeq || !state.shop || state.shop.code !== shop.code) return;
   state.catalog = cat;
