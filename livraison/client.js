@@ -1548,6 +1548,40 @@ function applyNearest() {
   onPlacePicked("from", p, true);
 }
 
+// « Récupérer où ? » : le client tape un produit (eau, couches, Acamol, sushi…) au lieu d'un magasin.
+// On lui propose le rayon HOP! qui l'a (le livreur va au magasin le plus proche) et les catalogues des commerces.
+function rayonHits(q, max) {
+  const n = phNorm(q).trim();
+  if (n.length < 3 || !window.Rayons) return [];
+  const out = [], seen = new Set();
+  // Début d'un mot seulement (« eau » ne trouve pas « gâteau », « מים » pas « קונדומים ») ; les courses du quotidien d'abord
+  const at = (txt, k) => k === 0 || /[\s(/'-]/.test(txt[k - 1]);
+  const word = txt => { for (let k = txt.indexOf(n); k >= 0; k = txt.indexOf(n, k + 1)) if (at(txt, k)) return k; return -1; };
+  for (const r of Rayons.ALL) for (const i of Rayons.items(r)) {
+    const name = phNorm(`${i.fr} ${i.he}`), opts = phNorm((i.opt || []).map(o => `${o.fr} ${o.he}`).join(" "));
+    const k = word(name), ko = k < 0 ? word(opts) : -1;
+    if (k < 0 && ko < 0) continue;
+    out.push({ r, i, s: (k === 0 ? 0 : k > 0 ? 1 : 2) * 2 + (r.id === "super" ? 0 : 1) });
+  }
+  return out.sort((a, b) => a.s - b.s).filter(x => { const key = phNorm(x.i.fr); if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, max);
+}
+function goRayonFind(r, q) {
+  goKind(r.kind);
+  state.phQ = q;
+  renderPharma();
+  const qIn = document.querySelector("#pharmaBox [data-ph-q]");
+  if (qIn) qIn.value = q;
+}
+const prodSuggest = q => rayonHits(q, 4).map(({ r, i }) => ({ quick: true, prod: true, icon: i.e || "🛒",
+  title: I18N.lang === "he" ? i.he || i.fr : i.fr, sub: t("acRayon", { rayon: phName(r.title) }), apply: () => goRayonFind(r, q) }));
+async function prodSuggestLater(q) {
+  if (phNorm(q).trim().length < 3) return [];
+  const list = (await Store.productsSearch(q)) || [];
+  const seen = new Set();
+  return list.filter(p => !seen.has(p.code) && seen.add(p.code)).slice(0, 4).map(p => ({ quick: true, prod: true, icon: "⭐",
+    title: UI.bi(p.name), sub: t("acCatalog", { shop: UI.bi(p.shop), price: money(p.price) }),
+    apply: () => { state.findItem = p.id || null; state.shopDir = ""; loadShop(p.code); } }));
+}
 function attachPlaces() {
   ["from", "to"].forEach(which => {
     ac[which] = Places.attach(form.elements[which === "from" ? "pickup_address" : "dropoff_address"], {
@@ -1555,6 +1589,8 @@ function attachPlaces() {
       texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon"), didYouMean: t("addrDidYou") }),
       onPick: p => onPlacePicked(which, p),
       quick: () => quickPlaces(which, false),
+      suggest: which === "from" ? prodSuggest : null,
+      suggestLater: which === "from" ? prodSuggestLater : null,
       onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
     });
   });
@@ -3570,6 +3606,8 @@ function initHome() {
         else if (which === "from" && !state.pick.to) setTimeout(() => homeInput("to").focus(), 60);
       },
       quick: () => quickPlaces(which, true),
+      suggest: which === "from" ? prodSuggest : null,
+      suggestLater: which === "from" ? prodSuggestLater : null,
       onClear: () => {
         state.pick[which] = null;
         if (ac[which]) ac[which].reset();
@@ -4426,7 +4464,9 @@ async function homeFind(q) {
     if (seq !== findSeq) return;
     const prodHtml = products.slice(0, 8).map(p => `<button type="button" data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}"><span class="fi-pic">${UI.safeImg(sc(p.code).logo) ? `<img src="${UI.safeImg(sc(p.code).logo)}" alt="" />` : (UI.KIND_ICON[p.kind] || "🍽️")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(p.name))}</b><small>${UI.esc(t("findAt", { shop: UI.bi(p.shop) }))}${p.category ? " · " + UI.esc(UI.bi(p.category)) : ""}</small></span><span class="fi-price" dir="ltr">${money(p.price)}</span></button>`).join("");
     const shopHtml = shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}${UI.shopText(s, "tagline") ? " · " + UI.esc(UI.shopText(s, "tagline")) : ""}</small></span></button>`).join("");
-    box.innerHTML = (prodHtml ? `<h5>${UI.esc(t("findProducts"))}</h5>${prodHtml}` : "") + (shopHtml ? `<h5>${UI.esc(t("findShops"))}</h5>${shopHtml}` : "")
+    // Les rayons HOP! (eau, couches, Acamol…) : le livreur va au magasin le plus proche
+    const rayHtml = rayonHits(q, 4).map(({ r, i }) => `<button type="button" data-find-ray="${UI.esc(r.id)}"><span class="fi-pic">${UI.esc(i.e || "🛒")}</span><span><b>${UI.esc(phName(i))}</b><small>${UI.esc(t("acRayon", { rayon: phName(r.title) }))}</small></span></button>`).join("");
+    box.innerHTML = (rayHtml ? `<h5>${UI.esc(t("findRayons"))}</h5>${rayHtml}` : "") + (prodHtml ? `<h5>${UI.esc(t("findProducts"))}</h5>${prodHtml}` : "") + (shopHtml ? `<h5>${UI.esc(t("findShops"))}</h5>${shopHtml}` : "")
       || `<p class="fi-none">${UI.esc(t("findNone", { q }))}</p>`;
     box.classList.remove("hidden");
   };
@@ -4438,6 +4478,8 @@ $("#homeFind").addEventListener("input", e => { clearTimeout(findTimer); findTim
 $("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });
 document.addEventListener("click", e => { if (!e.target.closest(".sc-find")) $("#homeFindList").classList.add("hidden"); });
 $("#homeFindList").addEventListener("click", e => {
+  const ry = e.target.closest("[data-find-ray]");
+  if (ry) { const r = Rayons.byId(ry.dataset.findRay); $("#homeFindList").classList.add("hidden"); if (r) goRayonFind(r, $("#homeFind").value.trim()); return; }
   const b = e.target.closest("[data-find-pro]");
   if (!b) return;
   state.findItem = b.dataset.findItem || null;
