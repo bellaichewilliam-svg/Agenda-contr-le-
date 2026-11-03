@@ -4358,7 +4358,10 @@ function renderShowcase() {
     const HR = Object.assign({}, CONFIG.homeRows || {}, (state.settings && state.settings.home_rows) || {});
     // Commerces choisis par le patron pour une rangée, dans son ordre ; rien de choisi = l'automatique
     const pick = (k, auto) => { const l = Array.isArray(HR[k + "_list"]) ? HR[k + "_list"] : []; const m = l.map(c => list.find(s => s.code === c)).filter(Boolean); return m.length ? m : auto; };
-    body = row(t("rowFavs"), favL) + row(t("rowOpen"), openL) + (HR.popular === false ? "" : row(t("rowPop"), pick("popular", pop))) + (HR.fresh === false ? "" : row(t("rowNew"), pick("fresh", fresh))) + (HR.all === false ? "" : row(t("rowAll"), pick("all", open.concat(closed))));
+    // « Ouverts maintenant » : les commerces choisis par le patron passent devant, dans son ordre (s'ils sont ouverts), puis les autres ouverts
+    const openPick = (Array.isArray(HR.open_list) ? HR.open_list : []).map(c => openL.find(s => s.code === c)).filter(Boolean);
+    const openRow = openPick.concat(openL.filter(s => !openPick.includes(s)));
+    body = row(t("rowFavs"), favL) + (HR.open === false ? "" : row(t("rowOpen"), openRow)) + (HR.popular === false ? "" : row(t("rowPop"), pick("popular", pop))) + (HR.fresh === false ? "" : row(t("rowNew"), pick("fresh", fresh))) + (HR.all === false ? "" : row(t("rowAll"), pick("all", open.concat(closed))));
   } else body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
   const html = stories + body;
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }

@@ -1399,7 +1399,8 @@ function vitrineShops() {
     .sort((a, b) => ((a.rank == null ? 1e9 : a.rank) - (b.rank == null ? 1e9 : b.rank)) || (!!b.cover - !!a.cover) || (!!b.logo - !!a.logo) || String(a.name).localeCompare(String(b.name)));
 }
 // Rangées de commerces sur l'accueil des clients : le patron les allume ou les éteint d'un geste (pour tout le monde)
-const HOME_ROWS = [["popular", "🔥 Populaires", "les commerces mis en avant (🔥) et ceux qui ont le plus de commandes"],
+const HOME_ROWS = [["open", "🟢 Ouverts maintenant", "les commerces ouverts, ceux qui ferment le plus tard d'abord ; ceux que vous choisissez passent devant, dans votre ordre (seulement quand ils sont ouverts)"],
+  ["popular", "🔥 Populaires", "les commerces mis en avant (🔥) et ceux qui ont le plus de commandes"],
   ["fresh", "✨ Nouveautés", "les commerces arrivés depuis moins de 30 jours"],
   ["all", "🏪 Nos commerces partenaires", "tous les commerces partenaires, à la suite"]];
 const homeRows = () => Object.assign({}, CONFIG.homeRows || {}, (settings && settings.home_rows) || {});
@@ -1445,7 +1446,7 @@ function homeRowsCard() {
   const hr = homeRows(), vit = vitrineShops(), byCode = c => shops.find(x => x.code === c);
   return `<div class="card home-rows" style="margin-bottom:14px">
       <b>🏠 Accueil des clients : rangées de commerces</b>
-      <p class="muted small" style="margin:4px 0 8px">Pour chaque rangée : l'interrupteur l'affiche ou la cache chez tous les clients, et « Choisir les commerces » vous laisse mettre ceux que vous voulez, dans l'ordre. Rien de choisi = automatique. « Mes favoris » et « Ouverts maintenant » restent toujours affichés.</p>
+      <p class="muted small" style="margin:4px 0 8px">Pour chaque rangée : l'interrupteur l'affiche ou la cache chez tous les clients, et « Choisir les commerces » vous laisse mettre ceux que vous voulez, dans l'ordre. Rien de choisi = automatique. « Mes favoris » reste toujours affiché.</p>
       <div class="hr-list">${HOME_ROWS.map(([k, label, sub]) => {
         const on = hr[k] !== false, list = hrList(hr, k).filter(byCode);
         const opts = vit.filter(x => !list.includes(x.code));
