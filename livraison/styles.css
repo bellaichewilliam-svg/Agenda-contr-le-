@@ -4239,3 +4239,7 @@ form.wiz .fs-when .choices.compact .choice span i, form.wiz .fs-when .choices.co
 .cg-pic > img.pic-white, .cg-tpic > img.pic-white { padding: 4px 6px; }
 .it-pic > img.pic-white { padding: 12px 0 4px; }
 .cs-pic img.pic-white { padding: 2px; }
+
+/* Menu : boisson à choisir (obligatoire) */
+.it-need { color: #E5484D; font-weight: 700; margin: 2px 0 6px; }
+.it-drinks .it-mod.on { background: var(--brand, #FF6A13); border-color: var(--brand, #FF6A13); color: #fff; }

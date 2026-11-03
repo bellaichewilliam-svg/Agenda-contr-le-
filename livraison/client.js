@@ -2832,13 +2832,19 @@ const shopMods = p => {
   return MODS.filter(k => MOD_RX[k].test(txt) && !(k === "cheese" && kosher));
 };
 const modsFor = p => /burger|royal|mac|chicken|cheese|steak|tortilla|wrap|sandwich|crunch|crispy|המבורגר|בורגר|טורטי|צ'יקן|רויאל|סנדוויץ/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
+// Menus McDonald's : le client choisit sa boisson (comprise dans le menu, sans supplément)
+const MENU_DRINKS = [["coke", "Coca-Cola", "קוקה קולה"], ["zero", "Coca-Cola Zero", "קוקה קולה זירו"], ["sprite", "Sprite", "ספרייט"],
+  ["fanta", "Fanta", "פאנטה"], ["grape", "Raisin", "ענבים"], ["soda", "Eau gazeuse", "סודה"], ["water", "Eau", "מים"]];
+const needsDrink = p => /^MCD/i.test((state.shop && state.shop.code) || "") && /boisson|שתייה|Menu enfant/i.test(`${(p && p.name) || ""} ${(p && p.description) || ""}`);
+const drinkName = (k, lang) => { const d = MENU_DRINKS.find(x => x[0] === k); return d ? (lang === "fr" ? `${d[1]} (${d[2]})` : (I18N.lang === "he" ? d[2] : d[1])) : ""; };
 const modText = (id, lang) => {
   const m = (state.cartMods || {})[id];
   if (!m) return "";
   // Dans la commande (lue par le patron), toujours en français ; à l'écran, dans la langue du client
   const fr = { onion: "oignons", pickle: "cornichons", ketchup: "ketchup", mustard: "moutarde", sauce: "sauce", lettuce: "salade", tomato: "tomate", cheese: "fromage" };
   const lab = k => (lang === "fr" ? "sans " + fr[k] : t("modNo") + " " + t("mod_" + k));
-  return [...(m.off || []).map(lab), m.note ? "« " + m.note + " »" : ""].filter(Boolean).join(", ");
+  const drink = m.drink ? (lang === "fr" ? "boisson : " : t("drinkLbl") + " : ") + drinkName(m.drink, lang) : "";
+  return [drink, ...(m.off || []).map(lab), m.note ? "« " + m.note + " »" : ""].filter(Boolean).join(", ");
 };
 // Taille proposée en ouvrant la fiche : celle déjà au panier, sinon la moyenne / normale, sinon la première
 function sizeDefault(p) {
@@ -2896,7 +2902,8 @@ function renderCatalog() {
   const html = `${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
-      const q = groupQty(p), multi = sizesOf(p).length > 1, photo = UI.safeImg(p.photo);
+      // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
+      const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}" alt="" loading="lazy" />` : shopArt(p)}
@@ -2988,7 +2995,7 @@ function openItem(id) {
   if (sizesOf(p).length > 1 && !state.cart[p.id]) p = sizeDefault(p);
   item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
   const m0 = (state.cartMods || {})[p.id] || {};
-  item.off = [...(m0.off || [])]; item.note = m0.note || "";
+  item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false;
   renderItem();
   $("#itemSheet").classList.remove("hidden");
 }
@@ -3000,6 +3007,8 @@ function renderItem() {
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
       ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
+      ${needsDrink(p) && p.available ? `<p class="it-size-h">${UI.esc(t("drinkTitle"))}</p>${item.needDrink && !item.drink ? `<p class="it-need">${UI.esc(t("drinkNeed"))}</p>` : ""}
+        <div class="it-mods it-drinks" role="radiogroup">${MENU_DRINKS.map(([k]) => `<button type="button" class="it-mod${item.drink === k ? " on" : ""}" role="radio" aria-checked="${item.drink === k}" data-it-drink="${k}">${item.drink === k ? "✓ " : ""}${UI.esc(drinkName(k))}</button>`).join("")}</div>` : ""}
       ${modsFor(p) && p.available ? `${shopMods(p).length ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p>` : ""}<div class="it-mods">${shopMods(p).map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
         <input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
@@ -3075,15 +3084,24 @@ $("#itemSheet").addEventListener("click", e => {
   if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
   const md = e.target.closest("[data-it-mod]");
   if (md) { const k = md.dataset.itMod; item.off = (item.off || []).includes(k) ? item.off.filter(x => x !== k) : [...(item.off || []), k]; return renderItem(); }
+  const dk = e.target.closest("[data-it-drink]");
+  if (dk) { item.drink = dk.dataset.itDrink; return renderItem(); }
   const sz = e.target.closest("[data-it-size]");
   if (sz) { item.id = sz.dataset.itSize; item.qty = Math.max(1, state.cart[item.id] || item.qty || 1); return renderItem(); }
   if (e.target.closest("#itemMinus")) { item.qty = Math.max(1, item.qty - 1); return renderItem(); }
   if (e.target.closest("#itemPlus")) { item.qty = Math.min(50, item.qty + 1); return renderItem(); }
   const add = e.target.closest("#itemAdd"), del = e.target.closest("#itemDel");
   if (!add && !del) return;
+  // Menu : la boisson est obligatoire avant d'ajouter
+  const cur = cgProducts().find(x => x.id === item.id);
+  if (add && cur && needsDrink(cur) && !item.drink) {
+    item.needDrink = true; renderItem();
+    const h = $("#itemBody .it-drinks"); if (h) h.scrollIntoView({ behavior: "smooth", block: "center" });
+    return;
+  }
   state.cart[item.id] = add ? item.qty : 0;
   state.cartMods = state.cartMods || {};
-  if (add && ((item.off || []).length || (item.note || "").trim())) state.cartMods[item.id] = { off: item.off || [], note: (item.note || "").trim().slice(0, 80) };
+  if (add && ((item.off || []).length || (item.note || "").trim() || item.drink)) state.cartMods[item.id] = { off: item.off || [], note: (item.note || "").trim().slice(0, 80), drink: item.drink || "" };
   else delete state.cartMods[item.id];
   $("#itemSheet").classList.add("hidden");
   renderCatalog(); renderQuote(); saveDraft(); cartPersist();
