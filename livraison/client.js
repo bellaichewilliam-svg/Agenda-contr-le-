@@ -698,7 +698,7 @@ function renderGoodsChoice() {
   const opt = (v, ic, title, sub, best) => `<button type="button" class="gc-opt${c === v ? " on" : ""}" data-goods-choice="${v}" aria-pressed="${c === v}"><i aria-hidden="true">${ic}</i>
     <span><b>${UI.esc(title)}${best ? ` <em>${UI.esc(t("gcBest"))}</em>` : ""}</b><small>${UI.esc(sub)}</small></span></button>`;
   const html = `<p class="gc-title">${UI.esc(t("gcTitle"))}</p>`
-    + (linkOk() ? opt("lien", "🔗", t("gcLink", { name }), t("gcLinkSub"), true) : "") + opt("bit", "📱", t("gcBit"), t("gcBitSub", { fee })) + opt("especes", "💵", t("gcCash"), t("gcCashSub", { fee }));
+    + (linkOk() ? opt("lien", "🔗", t("gcLink", { name }), t("gcLinkSub", { name }), true) : "") + opt("bit", "📱", t("gcBit"), t("gcBitSub", { fee })) + opt("especes", "💵", t("gcCash"), t("gcCashSub", { fee }));
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
 document.addEventListener("click", e => {
@@ -771,7 +771,10 @@ function renderGoodsBox(q) {
   const name = UI.bi(state.shop.name), goods = cartCount() ? cartTotal() : 0, cash = val("payment_method") === "cash";
   const bit = String(state.shop.pay_bit || "");
   const how = [state.shop.pay_link ? t("gbHowLink") : "", bit ? t("gbHowBit", { phone: bit }) : ""].filter(Boolean).join(t("gbHowOr"));
-  const goodsHow = shopPrepay() ? t("gbPrepay", { name, how }) : cash && cashGoods() ? t("gbCash") : t("gbAsk", { name });
+  // Commerce où HOP! commande pour le client (McDonald's…) : le choix du client (lien de paiement par carte, Bit au livreur, espèces)
+  const gc = shopCashOnly() ? goodsChoice() : null;
+  const goodsHow = shopPrepay() ? t("gbPrepay", { name, how }) : gc === "lien" ? t("gbLinkAfter", { name }) : gc === "bit" ? t("gbBitCourier")
+    : cash && cashGoods() ? t("gbCash") : t("gbAsk", { name });
   box.innerHTML = `<b class="gb-h">${UI.esc(t("gbTitle"))}</b>
     <div class="gb-row"><span><b>${UI.esc(t("gbGoods", { name }))}</b><small>${UI.esc(goodsHow)}</small></span>${goods ? `<b class="gb-amt" dir="ltr">${money(goods)}</b>` : `<small class="gb-free">${UI.esc(t("gbGoodsFree", { name }))}</small>`}</div>
     <div class="gb-row"><span><b>${UI.esc(t("gbRide"))}</b><small>${UI.esc(t(cash ? "gbRideCash" : "gbRideHow"))}</small></span><b class="gb-amt" dir="ltr">${money(q.total)}</b></div>
@@ -1597,7 +1600,10 @@ function openAddrSheet(tag, which, idx) {
   document.querySelector("#addrSheet .as-name").classList.toggle("hidden", tag !== "other");
   $("#asName").value = a && a.tag === "other" ? a.name || "" : "";
   $("#asNo").value = a ? a.number || "" : ""; $("#asFloor").value = a ? a.floor || "" : ""; $("#asApt").value = a ? a.apt || "" : "";
-  $("#asCode").value = a ? a.code || "" : ""; $("#asNote").value = a ? a.note || "" : "";
+  // Le code d'entrée (ou « Pas de code d'entrée ») est gardé dans l'adresse : on ne le redemande plus à la commande
+  $("#asNoCodeLbl").textContent = t("noCode"); $("#asNoCode").checked = !!(a && NO_CODE.test(a.code || ""));
+  $("#asCode").value = a && !NO_CODE.test(a.code || "") ? a.code || "" : ""; $("#asCode").disabled = $("#asNoCode").checked;
+  $("#asNote").value = a ? a.note || "" : "";
   $("#asErr").classList.add("hidden");
   $("#asDel").classList.toggle("hidden", sheet.idx < 0);
   if (!sheet.ac) sheet.ac = Places.attach($("#asAddr"), {
@@ -1622,10 +1628,13 @@ function saveAddrSheet() {
   if (!p || p.lat == null) return err(t("asNeedAddr"));
   const number = $("#asNo").value.trim() || p.housenumber || "";
   if (!number && !p.brand) return err(t("errHouseNo"));
+  // Appartement (n° d'appartement ou étage) : le code d'entrée ou « Pas de code d'entrée », pour ne plus le demander ensuite
+  const code = $("#asNoCode").checked ? t("noCodeVal") : $("#asCode").value.trim();
+  if (($("#asApt").value.trim() || $("#asFloor").value.trim()) && !code) { $("#asCode").focus(); return err(t("asNeedCode")); }
   const cityId = p.cityId || cityIdOf(p.city, p);
   const addr = { street: p.streetName || (p.brand ? "" : p.street) || "", number, brand: p.brand || null,
     city: p.city || cityId, cityId: CONFIG.cities.some(c => c.id === cityId) ? cityId : null, lat: p.lat, lon: p.lon, exact: !!(p.exact || number),
-    floor: $("#asFloor").value.trim() || null, apt: $("#asApt").value.trim() || null, code: $("#asCode").value.trim() || null,
+    floor: $("#asFloor").value.trim() || null, apt: $("#asApt").value.trim() || null, code: code || null,
     note: $("#asNote").value.trim() || null, building: null, kind: null, tag: sheet.tag, name: sheet.tag === "other" ? name : null };
   if (sheet.idx >= 0) Store.deleteAddress(sheet.idx);
   Store.saveAddress(addr);
@@ -1637,6 +1646,7 @@ function saveAddrSheet() {
 $("#asClose").addEventListener("click", closeAddrSheet);
 $("#addrSheet").addEventListener("click", e => { if (e.target.id === "addrSheet") closeAddrSheet(); });
 $("#asSave").addEventListener("click", saveAddrSheet);
+$("#asNoCode").addEventListener("change", e => { $("#asCode").disabled = e.target.checked; if (e.target.checked) $("#asCode").value = ""; });
 $("#asDel").addEventListener("click", () => { if (sheet.idx >= 0 && confirm(t("accDelete") + " ?")) { Store.deleteAddress(sheet.idx); closeAddrSheet(); renderSavedAddrs(); renderAccount(); } });
 $("#asPos").addEventListener("click", async () => {
   const b = $("#asPos"); b.disabled = true; b.textContent = t("geoLocating");

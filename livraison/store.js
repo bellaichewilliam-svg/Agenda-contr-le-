@@ -478,6 +478,8 @@ function deleteAddress(i) { const list = getAddresses(); list.splice(i, 1); writ
 function updateAddress(i, patch) {
   let list = getAddresses();
   if (!list[i]) return;
+  // Seul le code (ou la note…) change : l'adresse garde son étiquette Maison / Travail et son nom
+  if (!("tag" in patch)) patch = Object.assign({}, patch, { tag: list[i].tag || null, name: list[i].name || null });
   const tag = patch.tag === "other" && !patch.name ? null : patch.tag || null;
   if (tag === "home" || tag === "work") list = list.map((x, j) => (j !== i && x.tag === tag ? Object.assign({}, x, { tag: null, name: null }) : x));
   list[i] = Object.assign({}, list[i], patch, { tag, name: tag === "other" ? patch.name : null });
