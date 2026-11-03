@@ -6,16 +6,21 @@
 --    → ajoute / met à jour les produits (prix Carrefour normal, sans promo), item_id = 'cf' || id Carrefour.
 --    Un produit déjà importé garde son nom français (on ne met à jour que le prix et l'hébreu).
 -- 3) les lignes rendues avec « a_traduire = true » ont un nom français provisoire : le traduire (update rayon_items set name_fr = …).
+-- Le nom garde le % (lait 3 %) ; seules la taille et la mention « מחיר בפיקוח » sont retirées.
 -- Agence de référence : Carrefour Online Kfar Saba (3003), la plus proche de Netanya. Le site exige le Referer (sinon Cloudflare 403).
 -- ============================================================================
 create table if not exists public.carrefour_brands (he text primary key, fr text not null);
 insert into public.carrefour_brands (he, fr) values
- ('מי עדן','Mei Eden'),('נורדיק מיסט','Nordic Mist'),('סן בנדטו','San Benedetto'),('סן פלגרינו','San Pellegrino'),('שוופס','Schweppes'),
- ('סודה סטרים','SodaStream'),('טמפו','Tempo'),('קינלי','Kinley'),('עין גדי','Ein Gedi'),('נביעות','Neviot'),('אקווה נובה','Aqua Nova'),
- ('קוקה קולה','Coca-Cola'),('ספרייט','Sprite'),('פאנטה','Fanta'),('פפסי','Pepsi'),('פריגת','Prigat'),('ספרינג','Spring'),('תפוזינה','Tapuzina'),
- ('פרימור','Primor'),('טרופיקנה','Tropicana'),('תנובה','Tnuva'),('טרה','Tara'),('יטבתה','Yotvata'),('שטראוס','Strauss'),('אסם','Osem'),
- ('עלית','Elite'),('תלמה','Telma'),('ויסוצקי','Wissotzky'),('נסקפה','Nescafé'),('קרפור','Carrefour'),('יופלה','Yoplait'),('דנונה','Danone'),
- ('גולדסטאר','Goldstar'),('מכבי','Maccabee'),('קרלסברג','Carlsberg'),('הייניקן','Heineken'),('טובורג','Tuborg'),('רד בול','Red Bull'),('XL','XL')
+ ('7 אפ','7Up'),('אחוה','Achva'),('אקווה נובה','Aqua Nova'),('עסיס','Asis'),('בלו','Blue'),('קרלסברג','Carlsberg'),('כרמית','Carmit'),
+ ('קרפור','Carrefour'),('צ''יפס','Chips'),('קוקה קולה','Coca-Cola'),('קריסטל','Crystal'),('דנונה','Danone'),('עין גדי','Ein Gedi'),('עלית','Elite'),
+ ('אנרגי''ז','Energy''z'),('פאנטה','Fanta'),('פרוט & ווג''','Fruit & Veg'),('פיוז טי','Fuze Tea'),('גולדסטאר','Goldstar'),('הייניקן','Heineken'),('איילנד','Island'),
+ ('ג''אמפ','Jump'),('קינלי','Kinley'),('ליפטון','Lipton'),('מכבי','Maccabee'),('מי עדן','Mei Eden'),('משק צוריאל','Meshek Tzuriel'),('מירינדה','Mirinda'),
+ ('מונסטר','Monster'),('נסקפה','Nescafé'),('נסטי','Nestea'),('נביעות','Neviot'),('נורדיק מיסט','Nordic Mist'),('אסם','Osem'),('פפסי','Pepsi'),
+ ('פרי הגליל','Pri HaGalil'),('פריניב','Pri Niv'),('פריגת','Prigat'),('פרימור','Primor'),('מחלבת רמת הגולן','Ramat HaGolan'),('מחלבות רמת הגולן','Ramat HaGolan'),('רד בול','Red Bull'),
+ ('סן בנדטו','San Benedetto'),('סן פלגרינו','San Pellegrino'),('שוופס','Schweppes'),('סודה סטרים','SodaStream'),('ספרינג','Spring'),('ספרייט','Sprite'),('שטראוס','Strauss'),
+ ('טעמי הגליל','Taamei HaGalil'),('תפוזינה','Tapuzina'),('טרה','Tara'),('מחלבת טרה','Tara'),('תלמה','Telma'),('טמפו','Tempo'),('תנובה','Tnuva'),
+ ('טרופיקנה','Tropicana'),('טובורג','Tuborg'),('ויטמינצ''יק','Vitaminchik'),('ויסוצקי','Wissotzky'),('XL','XL'),('יכין','Yachin'),('יופלה','Yoplait'),
+ ('יטבתה','Yotvata')
 on conflict (he) do nothing;
 alter table public.carrefour_brands enable row level security;
 
@@ -53,8 +58,8 @@ begin
   ), up as (
     insert into rayon_items as i (rayon, item_id, cat, name_fr, name_he, price_lo, price_hi, img, emoji, sz, hidden, position, updated_at)
     select p_rayon, 'cf' || t.pid, p_cat,
-      left(t.brfr || ' · ' || regexp_replace(t.nm, '\s+\d.*$', '') || case when t.num = '' then '' else ' ' || case when t.n > 1 then t.n || ' × ' else '' end || replace(t.num, '.', ',') || ' ' || t.ufr end, 80),
-      left(t.br || ' · ' || regexp_replace(t.nm, '\s+\d.*$', '') || case when t.num = '' then '' else ' ' || case when t.n > 1 then t.n || ' × ' else '' end || t.num || ' ' || t.uom end, 80),
+      left(t.brfr || ' · ' || regexp_replace(regexp_replace(t.nm, '\s*-\s*מחיר בפיקוח.*$', ''), '\s+(?=\d)(?![\d.,]*\s*%).*$', '') || case when t.num = '' then '' else ' ' || case when t.n > 1 then t.n || ' × ' else '' end || replace(t.num, '.', ',') || ' ' || t.ufr end, 80),
+      left(t.br || ' · ' || regexp_replace(regexp_replace(t.nm, '\s*-\s*מחיר בפיקוח.*$', ''), '\s+(?=\d)(?![\d.,]*\s*%).*$', '') || case when t.num = '' then '' else ' ' || case when t.n > 1 then t.n || ' × ' else '' end || t.num || ' ' || t.uom end, 80),
       round(t.price, 1), round(t.price, 1), p_img, p_emoji, least(8, greatest(1, ceil(t.qty * t.n * 0.9)))::int, false, 100 + t.rn::int, now()
     from t
     on conflict (rayon, item_id) do update set price_lo = excluded.price_lo, price_hi = excluded.price_hi, name_he = excluded.name_he, updated_at = now()
