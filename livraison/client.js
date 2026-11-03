@@ -2444,6 +2444,12 @@ async function submit(e) {
     if (/goods_budget_required/.test(ex.message)) return showError(t("errGoodsBudget"));
     if (/goods_prepay_bit/.test(ex.message)) return showError(t("errGoodsBit"));
     if (/topcase_required/.test(ex.message)) return showError(t("errTopcase"));
+    // Commerce fermé (la base refuse « tout de suite ») : on passe en « Programmer », à son ouverture
+    if (/shop_closed/.test(ex.message) && state.shop) {
+      const st = UI.openState(state.shop.hours), at = UI.nextOpenDate(st);
+      if (at) { const d = new Date(at.getTime() + 15 * 60000); form.elements.urgency.value = "programmee"; form.date.value = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; form.time.value = `${pad(d.getHours())}:${pad(d.getMinutes())}`; state.shopSched = d; syncVisibility(); renderQuote(); }
+      return showError(t("errShopClosed", { name: shopShortName(), opens: openLabel(st) }));
+    }
     if (/door_kind/.test(ex.message)) return showError(t("errDoorKind"));
     if (/door_code/.test(ex.message)) return showError(t("errDoorCode"));
     if (/retrait_tracking/.test(ex.message)) return showError(t("errTracking"));

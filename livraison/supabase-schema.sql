@@ -8794,3 +8794,8 @@ language sql stable security definer set search_path = public as $$
   select exists (select 1 from shops s where s.id = p_id and s.pay_link is null and s.pay_bit is null and not coalesce(s.cash_ok, false));
 $$;
 -- orders_phone_order accepte aussi shop_id quand public.shop_direct(shop_id) (voir la base)
+
+-- ===== Commerce fermé (04/11) : pas de course « tout de suite », seulement « Programmer » (même avec une vieille appli) =====
+-- hours_open_at(hours, at) : heure d'Israël, {d: 0 = dimanche, h: "11:00-22:00,18:00-01:00"}, vide = fermé, pas d'horaires = ouvert
+-- orders_shop_open (before insert) : shop_id fermé maintenant et dans 10 min, urgency ≠ programmee → exception 'shop_closed'
+-- (voir les fonctions dans la base : public.hours_open_at, public.orders_shop_open, trigger orders_shop_open)
