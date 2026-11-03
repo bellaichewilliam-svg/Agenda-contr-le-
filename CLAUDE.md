@@ -40,7 +40,7 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - Le compte patron « Will » reste tel quel. Personne ne tape de numéro de carte bancaire dans HOP!.
 - **Casher, pas de mélange** : dans un restaurant casher de viande (Paris Texas, Smash It, McDonald's casher…), jamais de mot laitier dans les textes (beurre, fromage, crème, lait, parmesan, cheddar…). Écrire « végétal » / « parve » (HE « צמחי » / « פרווה »), ou le vrai ingrédient (« graisse de bœuf »). Les commerces laitiers (Nini Deli, Pizza Crush…) gardent leurs fromages. Les glaces du McDonald's casher sont au lait (comptoir séparé) : ne rien ajouter sur elles. Ne pas faire de changement que le patron n'a pas demandé.
 - Cigarettes : jamais de prix ; images seulement d'un paquet SANS marque (comme l'icône du kit), jamais une vraie marque. Le livreur ne fait jamais de calcul.
-- Vercel : 100 déploiements / jour maximum, grouper les mises en ligne.
+- **Vercel : mises en ligne groupées** (demande du patron, 03/11/2026). Chaque mise en ligne consomme le crédit du jour et nous bloque ensuite. Donc : coder, tester, PR et fusionner comme d'habitude, mais **ne mettre en ligne tout de suite que ce qui est important** (ce qui fait vendre, ou une panne / un blocage pour les clients, livreurs, commerces). Le reste attend et part **en une seule fois en fin de journée** (un seul déploiement du dernier commit). Toujours dire au patron si c'est « en ligne » ou « prêt, part ce soir ». Les changements de la base Supabase (catalogue, prix, photos) ne demandent pas de mise en ligne.
 
 ## Repères techniques
 - Appli : `livraison/` (PWA statique : `client.js`, `coursier.js`, `admin.js`, `commerce`, `suivi`, `kit.js`…), `./bump-version.sh` après chaque modification.
