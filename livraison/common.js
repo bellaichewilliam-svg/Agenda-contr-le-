@@ -440,7 +440,8 @@ const isService = s => !!s && ["pressing", "bureau"].includes(s.kind);
 // Logo d'un commerce de l'annuaire : un fichier de l'appli (img/logos/…) ou le logo officiel d'une enseigne sur Wikipédia
 const dirLogo = e => { const v = String((e && e.lg) || "");
   return /^img\/logos\/[a-z0-9-]+\.(jpg|png|webp)$/.test(v) || /^https:\/\/(upload|thumb)\.wikimedia\.org\/wikipedia\/[A-Za-z0-9%._\/()\-]+$/.test(v) ? v : ""; };
-const safeImg = s => (typeof s === "string" && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) ? s : "");
+// Photo d'article : une image envoyée (data:…) ou un fichier de l'appli (img/mcd/…), beaucoup plus léger à charger
+const safeImg = s => (typeof s === "string" && (/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || /^img\/[a-z0-9-]+\/[a-z0-9-]+\.(webp|png|jpg)$/.test(s)) ? s : "");
 // Vitrines de démonstration : leurs images sont des fichiers de l'appli (img/demo/demo-resto-cover.jpg…)
 const demoImg = (s, k) => (s && s.demo && /^DEMO-[A-Z]+$/.test(s.code || "") ? `img/demo/${s.code.toLowerCase()}-${k}.jpg` : "");
 function proCard(s, o) {
