@@ -47,6 +47,14 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - Toute nouvelle fonction qui envoie des articles aux clients (recherche, ajout à une commande, rangées…) doit suivre la même règle : jamais de `p.photo` brut, toujours le lien.
 - Nouveau catalogue préparé par nous : photos en `.webp` (≈ 20–60 Ko) dans `livraison/img/<commerce>/`, empreinte md5 ajoutée à `shop_photo_files`. Ensuite, vérifier que `length(shop_catalog('<CODE>')::text)` reste sous **150 Ko**.
 
+## Produits Carrefour dans les rayons (méthode validée par le patron, 04/11/2026)
+Quand le patron envoie une page `carrefour.co.il/categories/<n°>/products…`, on importe toute la catégorie dans le bon rayon, **au prix Carrefour normal** (pas la promo du jour), dans la base (pas de mise en ligne) :
+1. `select public.carrefour_fetch(<n°>);` (plus de 100 produits : `carrefour_fetch(<n°>, 100)`, puis 200…) → un id ; attendre ~5 s.
+2. `select * from public.carrefour_import(<id>, '<rayon>', '<rubrique>', '<pictogramme>', '<emoji>');` (ex. `'super', 'bois', 'water', '💧'`).
+3. Traduire en français les lignes `a_traduire = true` (nom : « Marque · produit taille », ex. « Neviot · Eau minérale 6 × 1,5 L ») ; ajouter les nouvelles marques à `carrefour_brands`. Masquer les doublons (`hidden = true`, jamais de `delete`).
+4. Refaire l'import plus tard met seulement à jour les prix et l'hébreu (le nom français et les produits masqués sont gardés).
+Détail : `livraison/supabase/carrefour-import.sql` (agence Carrefour Online Kfar Saba 3003, la plus proche de Netanya ; le site exige le Referer, sinon Cloudflare 403).
+
 ## Repères techniques
 - Appli : `livraison/` (PWA statique : `client.js`, `coursier.js`, `admin.js`, `commerce`, `suivi`, `kit.js`…), `./bump-version.sh` après chaque modification.
 - Vidéos et visuels : `video/` (Remotion). Rendu : `npx remotion render src/index.ts <Composition> out/x.mp4 --browser-executable=/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell`, puis ffmpeg (crf 24, faststart) vers `livraison/kit/visuels/<id>-video-<fr|he>.mp4` et entrée dans `VIDEOS` de `kit.js`.
