@@ -864,7 +864,7 @@ function card(o, kind) {
       + (o.direct_pay && !hopPaid && o.client_paid_at && o.payment_status !== "paye" ? `<button class="btn btn-sm" data-paymissing="${UI.esc(o.id)}">❌ Pas reçu</button>` : "")
       + `<button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.id)}">💬 Client${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>`
       + (o.status === "recuperee" && (!needPhoto(o) || photoDone.has(o.id)) ? photoBtn(o, false) : "")
-      + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waLink(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
+      + (o.dropoff_phone ? `<a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waPersonal(o.dropoff_phone, I18N.forLang(o.lang || "fr", "trShareMsg", { url: UI.trackUrl(o) }))}">💬 Destinataire</a>` : "");
   }
 
   if (kind === "mine") return mineCard(o, { when, extra, actions, total, net, hopPaid, mineShop });
@@ -1941,7 +1941,7 @@ function renderRef(view) {
       <div class="ref-code"><small>Votre code</small><b>${UI.esc(me.ref_code || "—")}</b></div>
       <div class="promo-row"><input readonly value="${UI.esc(shareLink())}" dir="ltr" /><button class="btn btn-sm" data-copy="${UI.esc(shareLink())}">Copier</button></div>
       <div class="btns" style="margin-top:10px">
-        <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waShare(pitch())}">💬 Envoyer à un commerce</a>
+        <a class="btn btn-wa" target="_blank" rel="noopener" href="${UI.waPersonal("", pitch())}">💬 Envoyer à un commerce</a>
         <button class="btn" data-qr="1">📱 Montrer mon QR code</button>
         <button class="btn" data-print="1">🖨️ Imprimer mon affiche</button>
       </div>
