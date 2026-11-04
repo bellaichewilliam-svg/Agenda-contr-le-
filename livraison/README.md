@@ -295,6 +295,12 @@ Tant qu'une commande attend un livreur, **ça sonne toutes les 3 s** avec un ban
 ### Trois applis, trois icônes
 Client (orange), **HOP! Livreur** (bleue « LIVREUR ») et **HOP! Patron** (noire « PATRON »). Sur le site, l'appli client est à **/app/**, l'espace livreur à **/livreur/** et l'espace patron à **/patron/** (`vercel.json`, et `config.js` renvoie chaque page à la bonne adresse) : chaque appli s'installe à part sur Android. Depuis l'appli client, le bouton **🛵** en haut ouvre l'espace livreur. Le livreur a un bouton « 📲 Mettre HOP! Livreur sur l'écran d'accueil », le patron « 📲 Installer HOP! Patron ». Le patron et les livreurs ont aussi « Mot de passe oublié ? » sous la connexion.
 
+### Mode patron sur la page client
+Sur le téléphone du patron (connecté comme patron), chaque produit d'un commerce a un crayon ✏️ : nom français / hébreu, prix, visible ou masqué (les produits masqués restent visibles pour lui, grisés). « 👁️ Vue client » montre la page comme un client. Boutiques HOP! (Carrefour, BOOOM) : le choix du patron reste par-dessus les mises à jour automatiques du magasin ; « ↩️ Revenir au magasin » remet ce que dit le magasin (`supabase/mode-patron-produits.sql`, historique dans `shop_product_log`).
+
+### Ouvert / fermé = le service du patron
+HOP! prend les commandes immédiates quand le patron est en service (« Passer en service ») et passe en « Fermé pour le moment · Programmer » quand il termine. « Je suis complet » ferme à la main. Les boutiques HOP! n'utilisent plus les horaires du magasin (gardés dans `shops.hours_store`). Crédit de départ des livreurs : 25 ₪, réglable dans le panneau (💳 Crédits des livreurs : ➕ / ➖ par livreur). (`supabase/patron-service-credit.sql`)
+
 ### Zones
 Seulement le Sharon est ouvert (`zones` dans `config.js`). Tel Aviv – Gush Dan, Petah Tikva et Rishon apparaissent « bientôt » chez les clients et dans l'écran « 📍 Zones » des livreurs, qui montre aussi la demande en direct. Mettez `active: true` pour ouvrir une zone.
 
