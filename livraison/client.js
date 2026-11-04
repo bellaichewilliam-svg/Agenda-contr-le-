@@ -705,7 +705,9 @@ const shopBuy = () => !!(proShopOn() && !linkOk() && (cartCount() > 0 || (shopCa
   && (shopCashOnly() ? goodsChoice() !== "lien" : val("payment_method") === "cash"));
 function applyCashOnly() {
   if (shopCashOnly() && hasShopGoods() && goodsChoice() === "bit" && val("payment_method") !== "bit") form.querySelector('input[name=payment_method][value=bit]').checked = true;
-  const only = shopCashOnly() && hasShopGoods() && goodsChoice() === "especes", bit = form.querySelector('input[name=payment_method][value=bit]');
+  // Bit reste toujours proposé à côté d'Espèces (le client peut changer d'avis) ; seul un commerce à lien de paiement
+  // (McDonald's…) le cache quand les articles sont payés en espèces au livreur
+  const only = shopCashOnly() && linkOk() && hasShopGoods() && goodsChoice() === "especes", bit = form.querySelector('input[name=payment_method][value=bit]');
   bit.closest(".choice").classList.toggle("hidden", only);
   if (only && val("payment_method") !== "cash") form.querySelector('input[name=payment_method][value=cash]').checked = true;
 }
@@ -732,11 +734,12 @@ document.addEventListener("click", e => {
 });
 // Le client touche « Espèces » ou « Bit » en bas : c'est aussi le choix pour les articles (sinon Bit, choisi d'office,
 // reviendrait tout seul et Espèces ne se cocherait jamais)
-form.addEventListener("change", e => {
-  if (e.target.name !== "payment_method" || !shopCashOnly() || linkOk()) return;
+// (noté dès le toucher : « click » et « input » arrivent avant « change », et le prix recalculé entre-temps recochait Bit)
+["click", "input", "change"].forEach(ev => form.addEventListener(ev, e => {
+  if (e.target.name !== "payment_method" || !e.target.checked || !shopCashOnly() || linkOk()) return;
   if (e.target.value === "cash") state.goodsChoice = "especes";
   else if (e.target.value === "bit") state.goodsChoice = "bit";
-}, true);
+}, true));
 function noPayBox(titleKey, noTitle) {
   const sh = state.shop, name = UI.bi(sh.name), num = sh.whatsapp || sh.phone || "";
   const shown = num ? (String(num).replace(/\D/g, "").replace(/^972/, "0")) : "";

@@ -23,7 +23,7 @@ window.CONFIG = {
   // ⚠️ Ce fichier est public : n'écrivez ici que ce qui doit figurer sur un reçu.
   business: {
     legalName: "בלאיש ויליאם אברהם",
-    tradeName: "DIGITAL AND CO",
+    tradeName: "HOP",
     status: "עוסק פטור",
     number: "332342807",
     address: "יהודה הלוי 20, נתניה",
