@@ -1832,6 +1832,8 @@ function renderSaveBtns() {
 }
 // Position du téléphone : on écoute le GPS quelques secondes et on garde la plus précise
 // (la 1re réponse vient souvent du Wi-Fi, à 50-100 m près : de quoi tomber sur l'immeuble d'à côté)
+// Navigateur intégré d'une appli (Facebook, Instagram, Messenger, TikTok…) : position et adresses enregistrées souvent absentes
+const inAppBrowser = () => /FBAN|FBAV|FB_IAB|Instagram|Messenger|musical_ly|TikTok|Line\//i.test(navigator.userAgent || "");
 function myPosition(maxMs) {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error("nogeo"));
@@ -1848,7 +1850,7 @@ function myPosition(maxMs) {
 // Adresse à la position du téléphone ; renvoie la clé du message d'erreur, ou null
 async function locateInto(which) {
   let pos;
-  try { pos = await myPosition(); } catch (e) { return "geoDenied"; }
+  try { pos = await myPosition(); } catch (e) { return inAppBrowser() ? "geoInApp" : "geoDenied"; }
   setHomePos(pos);
   let list = [];
   try { list = await Places.reverse(pos.lat, pos.lon, I18N.lang, pos.acc); } catch (e) { /* message ci-dessous */ }
@@ -1887,7 +1889,8 @@ async function useMyPosition(which, btn) {
   btn.textContent = t("geoLocating");
   showError("");
   try {
-    const err = await locateInto(which);
+    // Jamais d'attente sans fin (navigateur de Facebook / Instagram : le téléphone ne répond parfois jamais) : 15 s au plus
+    const err = await Promise.race([locateInto(which), new Promise(r => setTimeout(() => r(inAppBrowser() ? "geoInApp" : "geoNone"), 15000))]);
     if (err) showError(t(err));
     else if (!val(prefixOf(which) + "_number").trim()) { form.elements[prefixOf(which) + "_number"].focus(); showError(t("errHouseNo")); }
   } finally {
@@ -5175,6 +5178,18 @@ try { ensureDefaultTo(); } catch (e) { /* ignore */ }
 // Fenêtre de l'appli client : l'espace livreur ouvert d'ici proposera d'installer sa propre appli
 UI.markClientApp();
 
+// Ouvert depuis Facebook / Instagram : bandeau « ouvrez HOP! dans votre navigateur » (position et adresses enregistrées)
+(function inAppBar() {
+  if (!inAppBrowser()) return;
+  try { if (sessionStorage.getItem("hop.inAppOff")) return; } catch (e) { /* ignore */ }
+  const android = /Android/i.test(navigator.userAgent), bar = document.createElement("div");
+  bar.className = "inapp-bar";
+  const url = `intent://${location.host}${location.pathname}${location.search}#Intent;scheme=https;package=com.android.chrome;end`;
+  const draw = () => { bar.innerHTML = `<span>🌐 ${UI.esc(t("inAppMsg"))}</span>${android ? `<a class="btn btn-sm" href="${UI.esc(url)}">${UI.esc(t("inAppBtn"))}</a>` : `<b>${UI.esc(t("inAppIos"))}</b>`}<button type="button" class="ia-x" aria-label="✕">✕</button>`; };
+  draw();
+  bar.addEventListener("click", e => { if (e.target.closest(".ia-x")) { bar.remove(); try { sessionStorage.setItem("hop.inAppOff", "1"); } catch (x) { /* ignore */ } } });
+  document.body.appendChild(bar);
+})();
 // Téléphone du patron : mode patron sur la page client (crayon ✏️ sur chaque produit)
 Store.amBoss().then(b => { if (!b) return; state.boss = true; if (state.shop) { renderCatalog(); bossMapLoad(state.shop.code); } }).catch(() => {});
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
