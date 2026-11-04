@@ -1790,8 +1790,9 @@ function applySavedAddr(which, a) {
   DETAIL.forEach(k => { form.elements[pre + "_" + k].value = a[k] || ""; });
   if (pre === "dropoff") { form.dropoff_nocode.checked = NO_CODE.test(a.code || ""); syncNoCode(); }
   form.elements[pre + "_note"].value = a.note || "";
-  // Adresse enregistrée sans type de lieu mais avec appartement / étage : c'est un appartement (on ne le redemande pas)
-  setKind(pre, a.kind || (!a.brand && a.apt ? "appartement" : null));
+  // Adresse enregistrée sans type de lieu : on le devine (appartement s'il y a un n° d'appartement, bureau pour « Travail »,
+  // maison sinon) ; le client peut toujours le changer dans « Modifier ». Jamais de commande bloquée pour ça.
+  setKind(pre, a.kind || (a.brand ? null : a.apt ? "appartement" : a.tag === "work" ? "bureau" : (a.tag || a.street) ? "maison" : null));
   state.pick[which] = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, label, exact: a.exact };
   setBrandMode(which, !!a.brand);
   state[which + "Point"] = a.lat != null ? { lat: a.lat, lon: a.lon } : null;
@@ -2173,6 +2174,8 @@ function validateOrder() {
     const k = kindOf("dropoff"), flat = k === "appartement";
     const miss = !k ? "Kind" : (flat || k === "bureau") && !val("dropoff_floor").trim() ? "Floor"
       : flat && !val("dropoff_apt").trim() ? "Apt" : flat && !val("dropoff_code").trim() ? "Code" : null;
+    // Adresse enregistrée affichée en fiche résumée : on la rouvre pour que le client voie les cases à choisir
+    if (miss && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
     if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showErrorFalse(t("errToKind")); }
     if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showErrorFalse(t("errTo" + miss)); }
   }
@@ -5009,7 +5012,14 @@ function doneAuto(saved) {
 $("#refreshMine").addEventListener("click", loadMine);
 $("#myOrders").addEventListener("click", onListClick);
 $("#waFab").addEventListener("click", openChatMenu);
-form.addEventListener("change", e => { const m = /^(pickup|dropoff)_kind$/.exec(e.target.name || ""); if (m) setKind(m[1], e.target.value); });
+form.addEventListener("change", e => {
+  const m = /^(pickup|dropoff)_kind$/.exec(e.target.name || "");
+  if (!m) return;
+  setKind(m[1], e.target.value);
+  // Adresse enregistrée : le type de lieu choisi y est gardé (on ne le redemande plus)
+  const w = m[1] === "pickup" ? "from" : "to", list = Store.getAddresses(), i = list.findIndex(a => isSavedPick(state.pick[w], a));
+  if (i >= 0 && !list[i].brand && list[i].kind !== e.target.value) { try { Store.updateAddress(i, { kind: e.target.value }); renderToSum(); } catch (ex) { /* ignore */ } }
+});
 form.addEventListener("change", e => {
   if (e.target.name === "nearest_store" || e.target.name === "service") applyNearest();
   if (["has_tobacco", "has_alcohol", "service", "urgency", "date", "time"].includes(e.target.name)) syncAdult();
