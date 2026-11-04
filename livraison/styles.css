@@ -4327,6 +4327,14 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .sa-card.sa-work { padding: 10px 14px; gap: 10px; }
 .sa-card.sa-work > i { font-size: 20px; width: 36px; height: 36px; border-radius: 11px; }
 .sa-card.sa-work b { font-size: 15px; }
+/* Adresse choisie : une seule carte, les détails en petit, un seul bouton « Changer » */
+.sa-card.sa-picked { cursor: default; padding: 12px 14px; }
+.sa-card.sa-picked.sa-work > i { font-size: 26px; width: 46px; height: 46px; border-radius: 14px; }
+.sa-card.sa-picked.sa-work b { font-size: 17px; }
+.sa-card.sa-picked { row-gap: 8px; }
+.sa-card.sa-picked .sa-det { grid-column: 1 / -1; font-size: 13px; line-height: 1.4; padding-top: 8px; border-top: 1px solid var(--border); }
+.sa-change { align-self: center; border: 1.5px solid var(--brand); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 800; color: var(--brand); background: transparent; cursor: pointer; white-space: nowrap; }
+.sa-edit { margin-top: 2px; }
 .sa-adds { display: flex; flex-wrap: wrap; gap: 6px 14px; }
 .sa-add { border: 0; background: none; padding: 2px 0; color: var(--brand); font-size: 13px; font-weight: 700; }
 .sa-more { font-size: 13px; }

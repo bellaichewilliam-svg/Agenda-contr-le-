@@ -1688,10 +1688,13 @@ function toAddrsHtml(list) {
   const h = idx("home"), w = idx("work");
   // Adresse enregistrée déjà choisie : seulement SA carte (pas de « Travail », « Autres adresses »…) ; « Changer d'adresse » rouvre la liste
   const pi = list.findIndex(a => !a.brand && isSavedPick(state.pick.to, a));
+  const pickName = a => a.tag === "home" ? t("tagHome") : a.tag === "work" ? t("tagWork") : a.name || t("asOther");
   if (pi >= 0 && !state.toOpen && !state.toChoose) {
-    const a = list[pi], tg = a.tag === "home" || a.tag === "work" ? a.tag : "";
-    return tg ? card(tg, pi) : `<button type="button" class="sa-card sa-other on" data-addr="${pi}"><i aria-hidden="true">📍</i>
-      <span><b>${UI.esc(a.name || t("asOther"))}</b><small>${sub(a)}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`;
+    // Au plus simple : UNE carte (où, et les détails en petit) et UN bouton « Changer »
+    const a = list[pi], tg = a.tag === "home" || a.tag === "work" ? a.tag : "other", det = addrDet(a);
+    return `<div class="sa-card sa-${tg} on sa-picked"><i aria-hidden="true">${tg === "home" ? "🏠" : tg === "work" ? "💼" : "📍"}</i>
+      <span><b>${UI.esc(pickName(a))}</b><small>${sub(a)}</small></span>
+      <button type="button" class="sa-change" data-sum-change>${UI.esc(t("sumChangeShort"))}</button>${det ? `<small class="sa-det">${UI.esc(det)}</small>` : ""}</div>`;
   }
   const others = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand && x.a.tag !== "home" && x.a.tag !== "work").slice(0, 5);
   const adds = [h < 0 ? add("home") : "", w < 0 ? add("work") : ""].join("");
@@ -1699,7 +1702,13 @@ function toAddrsHtml(list) {
     <details class="sa-more"${others.some(x => isSavedPick(state.pick.to, x.a)) ? " open" : ""}><summary>${UI.esc(t("saOthers"))}${others.length ? ` <span>(${others.length})</span>` : ""}</summary>
       <div class="sa-list">${others.map(x => `<button type="button" class="sa-link" data-addr="${x.i}">${x.a.tag ? "⭐ <b>" + UI.esc(x.a.name || "") + "</b> · " : "📍 "}${sub(x.a)}</button>`).join("")}
         <button type="button" class="sa-link sa-new" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button>
-        <button type="button" class="sa-link" data-sum-other>📍 ${UI.esc(t("sumOther"))}</button></div></details>`;
+        <button type="button" class="sa-link" data-sum-other>📍 ${UI.esc(t("sumOther"))}</button></div></details>
+    ${pi >= 0 && state.toChoose ? `<button type="button" class="sa-link sa-edit" data-sum-edit="${pi}">${UI.esc(t("accEdit"))} · ${UI.esc(pickName(list[pi]))}</button>` : ""}`;
+}
+// Détails d'une adresse enregistrée, en une ligne (type, bâtiment, étage, code, note)
+function addrDet(a) {
+  return [a.kind ? t("kind_" + a.kind) : "", a.building ? t("building") + " : " + a.building : "", a.floor ? t("floor") + " : " + a.floor : "",
+    NO_CODE.test(a.code || "") ? t("noCode") : a.code ? t("entryCode") + " : " + a.code : "", a.note || ""].filter(Boolean).join(" · ");
 }
 
 // --- Fenêtre « Ajouter / modifier une adresse » (Maison, Travail, autre) ----------------------
@@ -2046,24 +2055,19 @@ function renderToSum() {
   const on = !!a && !state.toOpen;
   form.classList.toggle("to-saved", on);
   // La liste « Où livrer » suit : une seule carte quand l'adresse est choisie, toute la liste quand on change
-  const key = `${i}|${state.toOpen ? 1 : 0}|${state.toChoose ? 1 : 0}`;
+  const key = `${i}|${state.toOpen ? 1 : 0}|${state.toChoose ? 1 : 0}|${a ? addrDet(a) + "|" + addrKey(a) : ""}`;
   document.querySelectorAll('.saved-addrs[data-for="to"]').forEach(box => {
     if (box.dataset.key === key || box.classList.contains("hidden")) return;
     box.dataset.key = key;
     box.innerHTML = toAddrsHtml(list);
     box.querySelectorAll("[data-addr]").forEach(b => b.classList.toggle("on", isSavedPick(state.pick.to, list[Number(b.dataset.addr)])));
   });
-  $("#toSum").classList.toggle("hidden", !on || !!state.toChoose);
-  if (!on || state.toChoose) return;
-  const det = [a.kind ? t("kind_" + a.kind) : "", a.building ? t("building") + " : " + a.building : "", a.floor ? t("floor") + " : " + a.floor : "",
-    NO_CODE.test(a.code || "") ? t("noCode") : a.code ? t("entryCode") + " : " + a.code : "", a.note || ""].filter(Boolean);
-  // Appartement enregistré sans code : seulement la case du code (ou « Pas de code d'entrée »), gardée ensuite dans l'adresse
-  const needCode = (a.kind || kindOf("dropoff")) === "appartement" && !String(a.code || "").trim();
-  const html = `${det.length ? `<small>${det.map(UI.esc).join(" · ")}</small>` : ""}
-    ${needCode ? `<div class="sum-code" data-i="${i}"><label class="f"><span>${UI.esc(t("entryCode"))}</span><input data-sum-code inputmode="text" autocomplete="off" placeholder="${UI.esc(t("codePh"))}" /></label>
-      <label class="check"><input type="checkbox" data-sum-nocode /> <span>${UI.esc(t("noCode"))}</span></label></div>` : ""}
-    <span class="addr-sum-btns"><button type="button" class="btn btn-sm" data-sum-edit="${i}">${UI.esc(t("accEdit"))}</button>
-      <button type="button" class="btn btn-sm btn-link" data-sum-change>🔄 ${UI.esc(t("sumChange"))}</button></span>`;
+  // La carte dit tout ; la fiche en dessous ne sert plus qu'au code d'entrée s'il manque (appartement)
+  const needCode = on && !state.toChoose && (a.kind || kindOf("dropoff")) === "appartement" && !String(a.code || "").trim();
+  $("#toSum").classList.toggle("hidden", !needCode);
+  if (!needCode) return;
+  const html = `<div class="sum-code" data-i="${i}"><label class="f"><span>${UI.esc(t("entryCode"))}</span><input data-sum-code inputmode="text" autocomplete="off" placeholder="${UI.esc(t("codePh"))}" /></label>
+      <label class="check"><input type="checkbox" data-sum-nocode /> <span>${UI.esc(t("noCode"))}</span></label></div>`;
   if ($("#toSum").dataset.html !== html) { $("#toSum").innerHTML = html; $("#toSum").dataset.html = html; }
 }
 // Code tapé dans la fiche résumée : dans la commande tout de suite, et gardé dans l'adresse (on ne le redemande plus)
@@ -2078,7 +2082,7 @@ $("#toSum").addEventListener("change", e => {
   try { Store.updateAddress(i, { code }); } catch (ex) { /* ignore */ }
   renderToSum(); renderSavedAddrs(); renderQuote();
 });
-$("#toSum").addEventListener("click", e => {
+document.addEventListener("click", e => {
   const ed = e.target.closest("[data-sum-edit]");
   if (ed) { const a = Store.getAddresses()[Number(ed.dataset.sumEdit)]; if (a) openAddrSheet(a.tag || "other", "to", Number(ed.dataset.sumEdit)); return; }
   if (e.target.closest("[data-sum-change]")) { state.toChoose = true; renderToSum(); return; }
