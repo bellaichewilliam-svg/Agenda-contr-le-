@@ -96,7 +96,13 @@ window.CONFIG = {
     { id: "rishon",      fr: "Rishon LeZion & Shfela",  he: "ראשון לציון והשפלה",   active: false }
   ],
   // Regroupement : deux courses d'un coup quand les arrivées sont proches (mêmes règles que la base, pair_ok)
-  grouping: { dropKm: 1.2, pickupKm: 0.6, shopsKm: 1.5, minutes: 15, detourKm: 1, maxOrders: 3, maxBags: 4 },   // shopsKm : départs de commerces différents ; maxBags : place dans le top case
+  grouping: { dropKm: 1.2, pickupKm: 0.6, shopsKm: 1.5, minutes: 15, detourKm: 1, maxOrders: 3, maxBags: 4 },
+  // Boutiques HOP! : c'est le livreur HOP! qui fait les courses (achat : 25 ₪ dans Netanya + 5 ₪, minutes d'achats comprises,
+  // puis l'attente annoncée ; 6 articles compris, puis +2 ₪ l'article). Pendant ses achats, il peut prendre d'autres commandes
+  // du même magasin : 3 au plus en tout, s'il reste de la place dans le top case, et si sa plus ancienne course en cours a été
+  // acceptée il y a moins de hopJoinMinutes min. Mêmes règles dans la base (supabase/hop-boutiques-achat.sql).
+  hopShops: ["HOPCARREFOUR", "HOPBOOOM"],
+  hopJoinMinutes: 15,   // shopsKm : départs de commerces différents ; maxBags : place dans le top case
   // Heures de pointe habituelles, affichées aux livreurs
   peakHours: { fr: "12\u00a0h–14\u00a0h et 18\u00a0h–21\u00a0h", he: "12:00–14:00 ו-18:00–21:00" },
 
@@ -155,6 +161,8 @@ window.CONFIG = {
     // place dans le top case (40 × 40 × 35 cm, 15 kg) : 30 « places » (un article = 1 à 4 selon sa taille).
     // (La base compte la part HOP! de la même façon : orders_money_guard.)
     purchaseItems: { included: 10, max: 24, extraCourier: 1, extraHop: 1, topcase: 30 },
+    // Boutiques HOP! (hopShops) : 6 articles compris, puis les mêmes +2 ₪ l'article, même maximum, même top case
+    hopIncluded: 6,
     extraStop: 10,      // (ancien) par arrêt supplémentaire sans adresse
     // Arrêt en plus, avec son adresse : sur le chemin (détour d'au plus onWayKm km) → onWayPercent % du
     // prix d'une course ; sinon le prix d'une course (base). Au plus maxStops arrêts.

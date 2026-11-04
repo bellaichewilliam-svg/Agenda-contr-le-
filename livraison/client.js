@@ -572,7 +572,8 @@ function currentQuote() {
   if (addonOn()) return { total: state.addon.price, known: true, distanceKm: 0, lines: [{ key: "qAddon", vars: { ref: state.addon.ref }, amount: state.addon.price }] };
   let q = baseQuote();
   if (!proShopOn()) return q;
-  if (shopBuy() && !shopGift()) {
+  // Boutique HOP! : c'est un achat, déjà compté dans baseQuote (petit achat + articles au-delà des 6 compris)
+  if (shopBuy() && !shopGift() && !hopBuyOn()) {
     const fee = Number(CONFIG.pricing.purchase || 5);
     q = Object.assign({}, q, { total: q.total + fee, lines: q.lines.concat([{ key: "qShopBuy", vars: { name: UI.bi(state.shop.name) }, amount: fee }]) });
   }
@@ -591,7 +592,8 @@ function baseQuote() {
   return Pricing.computeQuote({
     fromCity: nearMode() ? cityOf("to") : cityOf("from"), toCity: cityOf("to"),
     fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint,
-    service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(), units: rayonUnits(), purchaseKind: purchaseKind(),
+    service: hopBuyOn() ? "achat" : val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
+    units: hopBuyOn() ? cartCount() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
     couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
@@ -693,8 +695,9 @@ const shopCashOnly = () => !!(proShopOn() && state.shop && state.shop.cash_ok &&
 // Les boutiques HOP! (code HOP…, ex. les jus) restent en espèces au livreur.
 const linkOk = () => shopCashOnly() && !/^HOP/.test(state.shop.code || "");
 const hasShopGoods = () => cartCount() > 0 || !!val("shop_order").trim();
-// Boutique HOP! (les jus) : Bit au livreur ou espèces (pas de lien) ; McDonald's : lien, Bit au livreur ou espèces
-const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? (["bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "especes")
+// Boutique HOP! (jus, Carrefour, BOOOM) : Bit au livreur (choisi d'office, demande du patron) ou espèces (pas de lien) ;
+// McDonald's : lien, Bit au livreur ou espèces
+const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? (["bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "bit")
   : ["lien", "bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "lien");
 // (aussi une commande écrite à la main dans un commerce « payé au livreur ») ; avec le lien, le client paie le commerce lui-même
 const shopBuy = () => !!(proShopOn() && !linkOk() && (cartCount() > 0 || (shopCashOnly() && !!val("shop_order").trim())) && !shopPrepay()
@@ -3259,6 +3262,11 @@ $("#itemSheet").addEventListener("click", e => {
 // HOP! Pro : le départ est un commerce abonné → le client écrit sa commande, le commerce la prépare
 const shopPicked = () => !!(state.shop && state.pick.from && state.pick.from.shopId === state.shop.id);
 const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method") !== "carnet";
+// Boutique HOP! (CONFIG.hopShops : HOP! chez Carrefour, HOP! chez BOOOM) : le livreur HOP! fait les courses = un achat
+// (petit achat comme le supermarché, 6 articles compris puis +2 ₪ l'article, même maximum et même top case)
+const isHopShop = s => !!(s && (CONFIG.hopShops || []).includes(String(s.code || "").toUpperCase()));
+const hopBuyOn = () => proShopOn() && isHopShop(state.shop);
+const HOP_INC = (CONFIG.pricing.purchaseItems || {}).hopIncluded || 6;
 // Fiche du commerce : présentation, adresse, horaires (ouvert / fermé maintenant), WhatsApp pour le joindre
 const DAYS = { fr: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], he: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] };
 // « Ouvert · ferme à 19:00 » / « Fermé · ouvre demain à 08:30 » / « Fermé · ouvre lundi à 08:30 »
@@ -4363,6 +4371,8 @@ function partnerPlace(sh) {
 // --- Vitrine : les commerces HOP! Pro abonnés, mis en avant sur l'accueil (logo, photo, accroche) -------
 state.showcase = [];
 function proPrice(s) {
+  // Boutique HOP! : la course + le petit achat (25 + 5 = 30 ₪ dans Netanya)
+  if (isHopShop(s)) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity] + Number(CONFIG.pricing.purchase || 0);
   if (s && (s.client_pays || s.pro === false)) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
   const st = state.settings || {};
   const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
