@@ -1844,8 +1844,10 @@ async function hasDoorPhoto(o) {
 function renderLock() {
   const box = $("#lockBox");
   const b = busy() && busyOrder();
-  box.classList.toggle("hidden", !locked() && !b && !freeNow());
-  if (freeNow()) {
+  // Le patron n'est jamais contrôlé : pas de bandeau « Débloqué par HOP » pour lui (seulement pour un livreur débloqué)
+  const boss = !!(me && me.role === "admin");
+  box.classList.toggle("hidden", !locked() && !b && (!freeNow() || boss));
+  if (freeNow() && !boss) {
     box.className = "lock-box free";
     box.innerHTML = `<div><b>🔓 Débloqué par HOP</b><br><span class="small">jusqu'au ${UI.esc(UI.fmtDateTime(me.unlocked_until))}</span></div>`;
     return;
