@@ -182,16 +182,20 @@ create or replace trigger orders_hop_buy_step before update of status on public.
   for each row execute function public.orders_hop_buy_step();
 
 -- Le livreur de la course (lui seul) coche un article : 'ok', 'manque' (retiré : prix des articles recalculé, client prévenu),
--- '' pour décocher ; 'done' = « Tout est dans le panier » (chaque article coché ou manquant, au moins un dans le panier)
+-- '' pour décocher ; 'done' = « Tout est dans le panier » (chaque article coché ou manquant, au moins un dans le panier).
+-- Décision du patron : un article manquant n'est pas acheté → son supplément « +2 ₪ au-delà de 6 articles » disparaît aussi
+-- (prix de la course recalculé sur les articles vraiment achetés : 1 ₪ de moins pour HOP! (hop_share), 1 ₪ pour le livreur),
+-- et la commission de HOP! est recalculée sur la nouvelle valeur de la course (même règle qu'à l'acceptation).
 create or replace function public.courier_buy_check(p_id uuid, p_item text, p_state text) returns json
 language plpgsql security definer set search_path = public as $$
-declare o orders; bc jsonb; st jsonb; was text; n int; okc int; missc int; total numeric; lines text; nm text; done boolean := false;
-        ph text; he boolean;
+declare o orders; bc jsonb; st jsonb; st0 jsonb; was text; n int; okc int; missc int; total numeric; lines text; nm text; done boolean := false;
+        ph text; he boolean; u0 int; u1 int; d int; v_price numeric; v_hop numeric; v_com numeric; v_val numeric;
 begin
   if not public.is_active_courier() then return json_build_object('ok', false); end if;
   select * into o from orders where id = p_id and courier_id = auth.uid() and status = 'confirmee' and hop_buy for update;
   if not found or o.items is null or jsonb_typeof(o.items) <> 'array' then return json_build_object('ok', false); end if;
   st := coalesce(o.buy_check->'items', '{}'::jsonb);
+  st0 := st;
   if p_state = 'done' then
     select count(*), count(*) filter (where st->>(x->>'id') = 'ok'), count(*) filter (where st->>(x->>'id') = 'manque')
       into n, okc, missc from jsonb_array_elements(o.items) x;
@@ -210,11 +214,23 @@ begin
          string_agg((x->>'qty') || ' × ' || (x->>'name'), E'\n' order by t.ord)
     into total, lines
     from jsonb_array_elements(o.items) with ordinality as t(x, ord) where coalesce(st->>(x->>'id'), '') <> 'manque';
-  update orders set buy_check = bc, items_total = total,
+  -- Supplément d'articles : 6 compris, puis 2 ₪ l'article (1 ₪ HOP!, 1 ₪ livreur), 24 au plus ; d = articles en plus gagnés / perdus
+  select coalesce(sum(coalesce((x->>'qty')::int, 1)) filter (where coalesce(st0->>(x->>'id'), '') <> 'manque'), 0),
+         coalesce(sum(coalesce((x->>'qty')::int, 1)) filter (where coalesce(st->>(x->>'id'), '') <> 'manque'), 0)
+    into u0, u1 from jsonb_array_elements(o.items) x;
+  d := greatest(0, least(u1, 24) - 6) - greatest(0, least(u0, 24) - 6);
+  v_price := greatest(0, coalesce(o.price, 0) + 2 * d);
+  v_hop := greatest(0, coalesce(o.hop_share, 0) + d);
+  v_com := o.commission;
+  if d <> 0 then
+    v_val := v_price + coalesce(o.discount, 0) + coalesce(o.shop_share, 0) - v_hop;
+    v_com := case when coalesce(o.network, false) then public.commission_network(v_val) else public.commission_for(v_val) end;
+  end if;
+  update orders set buy_check = bc, items_total = total, price = v_price, hop_share = v_hop, commission = v_com,
          shop_order = left(coalesce(lines, '') || coalesce(E'\n💬 ' || nullif(trim(items_note), ''), ''), 1000),
          cash_goods = case when payment_method = 'cash' then total else cash_goods end,
-         cash_change = case when payment_method = 'cash' and coalesce(cash_note, 0) > 0 then cash_note - price - total else cash_change end,
-         cash_need = case when payment_method = 'cash' then case when coalesce(cash_note, 0) > 0 then cash_note - price - total else 0 end else cash_need end,
+         cash_change = case when payment_method = 'cash' and coalesce(cash_note, 0) > 0 then cash_note - v_price - total else cash_change end,
+         cash_need = case when payment_method = 'cash' then case when coalesce(cash_note, 0) > 0 then cash_note - v_price - total else 0 end else cash_need end,
          -- Espèces : le livreur a payé le magasin en caisse (« payé au départ »)
          cash_shop_at = case when payment_method = 'cash' and done and total > 0 then now() when payment_method = 'cash' then null else cash_shop_at end,
          cash_shop_amount = case when payment_method = 'cash' and done and total > 0 then total when payment_method = 'cash' then null else cash_shop_amount end,
@@ -225,8 +241,8 @@ begin
   -- Le client est prévenu : article manquant (ou finalement trouvé), puis le total à payer quand tout est dans le panier
   if p_state = 'manque' and was is distinct from 'manque' then
     insert into chat_messages (thread, author, author_name, body) values ('o:' || o.id::text, 'admin', 'HOP!',
-      case when he then '❌ ' || nm || ': חסר בחנות, הוסר מההזמנה. לא תשלמו עליו.'
-           else '❌ ' || nm || ' : manquant au magasin, retiré de votre commande. Vous ne le payez pas.' end);
+      case when he then '❌ ' || nm || ': חסר בחנות, הוסר מההזמנה. לא תשלמו עליו' || case when d < 0 then ', וגם לא על התוספת שלו (' || (-2 * d) || ' ₪). משלוח: ' || replace(o.price::text, '.00', '') || ' ₪.' else '.' end
+           else '❌ ' || nm || ' : manquant au magasin, retiré de votre commande. Vous ne le payez pas' || case when d < 0 then ', ni son supplément (' || (-2 * d) || ' ₪). Livraison : ' || replace(o.price::text, '.00', '') || ' ₪.' else '.' end end);
   elsif was = 'manque' and p_state is distinct from 'manque' and not done then
     insert into chat_messages (thread, author, author_name, body) values ('o:' || o.id::text, 'admin', 'HOP!',
       case when he then '✅ ' || nm || ': נמצא בסוף, חזר להזמנה.' else '✅ ' || nm || ' : finalement trouvé, remis dans votre commande.' end);
@@ -241,7 +257,7 @@ begin
                        || ' (articles ' || replace(total::text, '.00', '') || ' ₪ + livraison ' || replace(o.price::text, '.00', '') || ' ₪), puis touchez « J''ai payé ».' end
            else case when he then '✅ הקניות מוכנות והשליח בדרך אליכם.' else '✅ Vos courses sont prêtes, votre livreur arrive.' end end);
   end if;
-  return json_build_object('ok', true, 'items_total', total, 'buy_check', o.buy_check);
+  return json_build_object('ok', true, 'items_total', total, 'price', o.price, 'buy_check', o.buy_check);
 end;
 $$;
 revoke execute on function public.courier_buy_check(uuid, text, text) from public, anon;

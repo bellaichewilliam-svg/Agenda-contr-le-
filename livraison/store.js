@@ -418,6 +418,7 @@ async function courierBuyCheck(id, item, state) {
   if (!o) return false;
   const bc = Object.assign({ items: {}, done: false }, o.buy_check || {});
   bc.items = Object.assign({}, bc.items);
+  const units = items => items.reduce((n, i) => n + (Number(i.qty) || 1), 0), u0 = units(buyTotals(o).left);
   const wasMiss = bc.items[item] === "manque";
   if (state === "done") {
     const t = buyTotals(Object.assign({}, o, { buy_check: bc }));
@@ -431,6 +432,15 @@ async function courierBuyCheck(id, item, state) {
   o.buy_check = bc;
   const t = buyTotals(o);
   o.items_total = t.total;
+  // Article manquant : son supplément « +2 ₪ au-delà de 6 » part aussi (1 ₪ HOP!, 1 ₪ livreur), commission recalculée
+  // (décision du patron, même règle que la base : courier_buy_check)
+  const PI = CONFIG.pricing.purchaseItems || {}, inc = PI.hopIncluded || 6, max = PI.max || 24;
+  const xtra = u => Math.max(0, Math.min(u, max) - inc), d = xtra(units(t.left)) - xtra(u0);
+  if (d) {
+    o.price = Math.max(0, Number(o.price) + d * ((PI.extraCourier || 1) + (PI.extraHop || 1)));
+    o.hop_share = Math.max(0, Number(o.hop_share || 0) + d * (PI.extraHop || 1));
+    o.commission = commissionFor(courseValue(o), await getSettings(), !!o.network);
+  }
   o.shop_order = t.left.map(i => `${i.qty} × ${i.name}`).join("\n");
   if (o.payment_method === "cash") {
     o.cash_goods = t.total;
@@ -442,7 +452,8 @@ async function courierBuyCheck(id, item, state) {
   // Le client est prévenu dans sa langue (mêmes messages que la base)
   const he = o.lang === "he", it0 = o.items.find(i => i.id === item);
   const it = it0 && Object.assign({}, it0, { name: window.UI ? UI.bi(it0.name, he ? "he" : "fr") : it0.name }), say = body => chatLocalAdd({ thread: "o:" + o.id, author: "admin", author_name: "HOP!", image: null, body });
-  if (it && state === "manque" && !wasMiss) say(he ? `❌ ${it.name}: חסר בחנות, הוסר מההזמנה. לא תשלמו עליו.` : `❌ ${it.name} : manquant au magasin, retiré de votre commande. Vous ne le payez pas.`);
+  if (it && state === "manque" && !wasMiss) say(he ? `❌ ${it.name}: חסר בחנות, הוסר מההזמנה. לא תשלמו עליו${d < 0 ? `, וגם לא על התוספת שלו (${-2 * d} ₪). משלוח: ${o.price} ₪.` : "."}`
+    : `❌ ${it.name} : manquant au magasin, retiré de votre commande. Vous ne le payez pas${d < 0 ? `, ni son supplément (${-2 * d} ₪). Livraison : ${o.price} ₪.` : "."}`);
   else if (it && wasMiss && state !== "manque") say(he ? `✅ ${it.name}: נמצא בסוף, חזר להזמנה.` : `✅ ${it.name} : finalement trouvé, remis dans votre commande.`);
   if (state === "done") {
     const tot = Number(o.price) + t.total, ph = o.courier_bit || o.courier_phone;

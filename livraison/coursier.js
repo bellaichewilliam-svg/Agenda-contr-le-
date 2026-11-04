@@ -1071,7 +1071,7 @@ function buyBlock(o) {
     <div class="hb-head"><b class="hb-bag">🛍️ Sac ${b.n || 1}</b><span>${UI.esc(String(o.dropoff_contact || o.contact_name || "").split(" ")[0])} · n° ${UI.esc(o.ref)}</span><em>${t.ok}/${t.n - t.miss.length}</em></div>
     ${b.of > 1 ? `<p class="hb-tip">Un sac par client : mettez ses articles dans le sac ${b.n || 1}.</p>` : ""}
     <ul>${rows}</ul>
-    ${t.miss.length ? `<p class="hb-miss-note">❌ ${t.miss.length} manquant(s), retiré(s) : le client est prévenu, il ne les paie pas. Articles : <b>${UI.money(t.total)}</b></p>` : ""}
+    ${t.miss.length ? `<p class="hb-miss-note">❌ ${t.miss.length} manquant(s), retiré(s) : le client est prévenu, il ne les paie pas (ni leur supplément d'article). Articles : <b>${UI.money(t.total)}</b> · course : <b>${UI.money(o.price)}</b></p>` : ""}
     ${done ? `<p class="hb-done">✅ Tout est dans le panier · articles <b>${UI.money(t.total)}</b></p>`
       : `<button type="button" class="btn btn-primary btn-block hb-all" data-buydone="${id}"${all && t.ok ? "" : " disabled"}>✅ Tout est dans le panier</button>
          <small class="hb-left">${all ? (t.ok ? "Payez en caisse, puis touchez ce bouton" : "Aucun article trouvé : appelez HOP!") : `Encore ${t.n - t.ok - t.miss.length} article(s) à cocher ou marquer « Manquant »`}</small>`}
