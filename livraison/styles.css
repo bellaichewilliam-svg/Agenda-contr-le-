@@ -4387,3 +4387,7 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .order-who .ow-kind { font-size: 12px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: #9FB3D6; }
 .order-who.is-firm .ow-kind { color: #FFB27A; }
 .order-who .ow-place { font-size: 14px; color: #DCE5F5; }
+.num-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: -2px 0 6px; }
+.num-chips small { width: 100%; font-weight: 700; color: var(--muted, #5B6B86); }
+.num-chips .ch-chip { min-width: 44px; justify-content: center; font-weight: 800; }
+.num-chips .ch-chip.on { background: #FF6A13; color: #fff; border-color: #FF6A13; }
