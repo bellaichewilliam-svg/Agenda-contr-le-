@@ -709,7 +709,7 @@ function applyCashOnly() {
   if (only && val("payment_method") !== "cash") form.querySelector('input[name=payment_method][value=cash]').checked = true;
 }
 // Texte de la ligne « vos articles » : payés au commerce, au livreur, par lien ou par Bit à HOP!
-const itemsKey = base => (linkOk() && goodsChoice() === "lien" ? base + "Link" : shopCashOnly() && goodsChoice() === "bit" ? base + "Bit" : shopBuy() ? base + "Cash" : base);
+const itemsKey = base => (hopBuyOn() ? base + "Hop" + (goodsChoice() === "especes" ? "Cash" : "Bit") : linkOk() && goodsChoice() === "lien" ? base + "Link" : shopCashOnly() && goodsChoice() === "bit" ? base + "Bit" : shopBuy() ? base + "Cash" : base);
 function renderGoodsChoice() {
   const box = $("#goodsChoiceBox");
   if (!box) return;
@@ -720,7 +720,7 @@ function renderGoodsChoice() {
   const opt = (v, ic, title, sub, best) => `<button type="button" class="gc-opt${c === v ? " on" : ""}" data-goods-choice="${v}" aria-pressed="${c === v}"><i aria-hidden="true">${ic}</i>
     <span><b>${UI.esc(title)}${best ? ` <em>${UI.esc(t("gcBest"))}</em>` : ""}</b><small>${UI.esc(sub)}</small></span></button>`;
   const html = `<p class="gc-title">${UI.esc(t("gcTitle"))}</p>`
-    + (linkOk() ? opt("lien", "🔗", t("gcLink", { name }), t("gcLinkSub", { name }), true) : "") + opt("bit", "📱", t("gcBit"), t("gcBitSub", { fee })) + opt("especes", "💵", t("gcCash"), t("gcCashSub", { fee }));
+    + (linkOk() ? opt("lien", "🔗", t("gcLink", { name }), t("gcLinkSub", { name }), true) : "") + opt("bit", "📱", t("gcBit"), t(hopBuyOn() ? "gcBitSubHop" : "gcBitSub", { fee })) + opt("especes", "💵", t("gcCash"), t(hopBuyOn() ? "gcCashSubHop" : "gcCashSub", { fee }));
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
 document.addEventListener("click", e => {
@@ -795,7 +795,7 @@ function renderGoodsBox(q) {
   const how = [state.shop.pay_link ? t("gbHowLink") : "", bit ? t("gbHowBit", { phone: bit }) : ""].filter(Boolean).join(t("gbHowOr"));
   // Commerce où HOP! commande pour le client (McDonald's…) : le choix du client (lien de paiement par carte, Bit au livreur, espèces)
   const gc = shopCashOnly() ? goodsChoice() : null;
-  const goodsHow = shopPrepay() ? t("gbPrepay", { name, how }) : gc === "lien" ? t("gbLinkAfter", { name }) : gc === "bit" ? t("gbBitCourier")
+  const goodsHow = hopBuyOn() ? t("gbHopTicket") : shopPrepay() ? t("gbPrepay", { name, how }) : gc === "lien" ? t("gbLinkAfter", { name }) : gc === "bit" ? t("gbBitCourier")
     : cash && cashGoods() ? t("gbCash") : t("gbAsk", { name });
   box.innerHTML = `<b class="gb-h">${UI.esc(t("gbTitle"))}</b>
     <div class="gb-row"><span><b>${UI.esc(t("gbGoods", { name }))}</b><small>${UI.esc(goodsHow)}</small></span>${goods ? `<b class="gb-amt" dir="ltr">${money(goods)}</b>` : `<small class="gb-free">${UI.esc(t("gbGoodsFree", { name }))}</small>`}</div>

@@ -438,6 +438,15 @@ function render() {
   const goodsLine = x => {
     const name = String(x.courier_name || "").split(" ")[0], ph = String(x.courier_bit || x.courier_phone || "").replace(/\D/g, "");
     const cash = x.payment_method === "cash";
+    // Boutique HOP! : la livraison d'avance, les articles au ticket de caisse (− les suppléments des articles manquants)
+    const bc = x.buy_check || {}, credit = Number(bc.credit) || 0;
+    if (x.hop_buy && !cash && x.goods_spent != null && (credit > 0 || Number(bc.due) <= 0)) {
+      const v = { spent: UI.money(x.goods_spent), credit: UI.money(credit), due: UI.money(Math.max(0, Number(bc.due))), refund: UI.money(-Number(bc.due)), name };
+      const due = x.goods_refund_status === "a_completer";
+      return `<div class="refund-box${due ? " wait-due" : ""}"><p><b>🧾 ${UI.esc(t(Number(bc.due) <= 0 ? "hbTicketRefund" : due ? "hbTicketDue" : "hbTicketOk", v))}</b></p>
+        ${due && ph ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(ph)}">${UI.esc(t("bpCopy"))}</button></div>${sentBtn(x.goods_refund, name, "ticket")}` : ""}</div>`;
+    }
+    if (x.hop_buy && x.goods_spent == null) return `<p class="small muted" style="margin:2px 0 0">${UI.esc(t(cash ? "hbHeadCash" : "hbHeadBit", { ride: UI.money(x.price) }))}</p>`;
     const head = `<p class="small muted" style="margin:2px 0 0">${UI.esc(t(cash ? "trGoodsSplitCash" : x.goods_after ? "trGoodsAfterSplit" : "trGoodsSplit", { ride: UI.money(x.price), goods: UI.money(x.goods_budget) }))}</p>`;
     if (x.goods_spent == null) return head;
     // Ticket après : le client envoie le montant exact du ticket au livreur, qui livre dès réception
@@ -474,7 +483,7 @@ function render() {
   // (commerce sans lien ni Bit : le montant des articles et à qui le payer, quand même)
   pay.innerHTML = `${o.goods_pay && goodsSp(o) ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${goodsLinkWait(o) ? `<div class="goods-pay wait"><b>${UI.esc(goodsLinkWait(o))}</b></div>` : UI.goodsPay(o, goodsSp(o))}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>`
     : o.shop_pay && Number(o.items_total) > 0 && o.payment_method !== "cash" ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay todo"><b class="gp-step">${UI.esc(t("gpStep1", { name: UI.bi(o.shop_pay.name), amount: UI.money(o.items_total) }))}</b><small>${UI.esc(t("gbAsk", { name: UI.bi(o.shop_pay.name) }))}</small></div><p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>` : ""}${refund}${missing}<small class="muted">${UI.esc(t("trPay"))}</small>
-    <div class="amount">${UI.money(o.payment_method === "cash" ? Number(o.price) + Number(o.cash_goods || 0) : UI.payTotal(o))}${o.budget && !o.goods_prepay ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
+    <div class="amount">${UI.money(o.payment_method === "cash" ? Number(o.price) + Number(o.cash_goods || 0) : UI.payTotal(o) + Store.hopCredit(o))}${o.budget && !o.goods_prepay ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${UI.areaWhy(o) ? `<p class="area-why-note">${UI.esc(UI.areaWhy(o))}</p>` : ""}
     ${o.goods_prepay ? goodsLine(o) : ""}
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
@@ -482,7 +491,6 @@ function render() {
       ${o.courier_bit || o.courier_phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit || o.courier_phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>${sentBtn(o.wait_due, String(o.courier_name || "").split(" ")[0], "wait")}` : ""}</div>`
       : o.wait_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trWaitDueOk"))}</p>` : ""}
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${UI.esc(t("receiptLink"))}</a>` : ""}`
-      : o.payment_method === "bit" && o.hop_buy && !Store.buyDone(o) && o.status !== "recuperee" ? `<p class="notice">${UI.esc(t("hbPayAfter"))}</p>`
       : o.payment_method === "bit"
         ? `${o.prepaid_required && !o.direct_pay ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}${UI.bitPay(o)}`
         : `<div class="cash-box"><p class="cash-total">${UI.esc(t("trCashPay", { total: UI.money(Number(o.price) + Number(o.cash_goods || 0)) }))}</p>

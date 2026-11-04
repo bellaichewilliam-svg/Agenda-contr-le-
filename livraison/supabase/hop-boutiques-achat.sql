@@ -8,13 +8,17 @@
 --      par l'appli (comme toutes les courses) ; la base ne le recalcule pas et ne le refuse pas : rien à changer de ce côté.
 --   2. La commande devient un achat (service « achat », pas de commerce à confirmer : elle part tout de suite aux
 --      livreurs). Articles du catalogue gardés (items, avec le lien de leur photo), place prise dans le top case (buy_places).
---      Paiement des articles : le flux déjà en place pour ces boutiques (goods_choice) : Bit au livreur (articles + livraison,
---      après les courses) ou espèces à la livraison. Le livreur avance les articles en caisse ; le client le rembourse.
+--      Paiement (décision du patron) : la LIVRAISON par Bit d'avance, comme les autres courses (demande de paiement dès que
+--      le livreur accepte) ; les ARTICLES à la fin, au prix exact du TICKET DE CAISSE (flux « ticket après » des achats :
+--      goods_prepay + goods_after) : le livreur avance les articles, envoie la photo du ticket et son montant
+--      (courier_hop_ticket), le client lui envoie ce montant par Bit (ou paie tout en espèces à la livraison).
+--      Article manquant : son supplément de 2 ₪, déjà payé avec la livraison, est déduit du ticket (70 − 2 = 68 ₪).
 --   3. Regroupement : pendant ses achats, le livreur peut prendre d'autres commandes du MÊME magasin, 3 au plus en tout,
 --      s'il reste de la place dans le top case (30 places, 4 sacs) et si sa plus ancienne course en cours a été acceptée
 --      il y a moins de 15 min (hop_join_why). Deux nouvelles commandes du même magasin vont ensemble (pair_ok).
 --   4. Liste à cocher (buy_check) : le livreur coche chaque article ou le marque « Manquant » (retiré de la commande,
---      prix des articles recalculé, le client prévenu), puis « Tout est dans le panier » ; avant ça, pas de « récupérée ».
+--      prix des articles recalculé, le client prévenu), puis « Tout est dans le panier », puis la photo du ticket ;
+--      avant ça, pas de « récupérée ».
 -- Mêmes règles dans l'appli (config.js : hopShops, hopIncluded, hopJoinMinutes ; store.js en mode démo).
 -- À coller tel quel dans Supabase › SQL Editor. Sans « drop » ni « delete » ; peut être relancé sans risque.
 -- ============================================================================
@@ -78,8 +82,10 @@ begin
   new.shop_status := null; new.prep_minutes := null; new.ready_at := null; new.shop_share := 0;
   new.fits_topcase := true;
   new.purchase_min := (select nullif(purchase_min, 0) from settings where id = 1);
-  new.goods_prepay := false; new.goods_budget := 0; new.goods_after := false; new.goods_self_pay := false;
-  new.goods_pay := null;
+  -- Articles payés à la fin, au ticket de caisse (flux « ticket après » des achats) : Bit, ou espèces à la livraison
+  new.goods_prepay := true; new.goods_after := new.payment_method = 'bit'; new.goods_self_pay := false;
+  new.goods_budget := coalesce(new.items_total, 0);
+  new.goods_choice := null; new.goods_pay := null;
   new.buy_places := least(coalesce(places, 1), 200);
   -- 6 articles compris, puis 1 ₪ pour HOP! par article en plus (l'autre ₪ est pour le livreur), 24 au plus
   new.hop_share := coalesce(new.hop_share, 0) + greatest(0, least(coalesce(units, 0), 24) - 6);
@@ -170,9 +176,9 @@ begin
       if why is not null then raise exception 'hop_join_%', why; end if;
     end if;
   end if;
-  if new.status = 'recuperee' and old.status = 'confirmee' and new.hop_buy and mine
-     and not coalesce((new.buy_check->>'done')::boolean, false) then
-    raise exception 'buy_check';
+  if new.status = 'recuperee' and old.status = 'confirmee' and new.hop_buy and mine then
+    if not coalesce((new.buy_check->>'done')::boolean, false) then raise exception 'buy_check'; end if;
+    if new.goods_spent is null then raise exception 'ticket_required'; end if;
   end if;
   return new;
 end;
@@ -194,6 +200,9 @@ begin
   if not public.is_active_courier() then return json_build_object('ok', false); end if;
   select * into o from orders where id = p_id and courier_id = auth.uid() and status = 'confirmee' and hop_buy for update;
   if not found or o.items is null or jsonb_typeof(o.items) <> 'array' then return json_build_object('ok', false); end if;
+  -- Bit : la livraison est payée d'avance, avant de commencer les courses
+  if o.payment_method <> 'cash' and o.payment_status <> 'paye' then return json_build_object('ok', false, 'error', 'not_paid'); end if;
+  if o.goods_spent is not null then return json_build_object('ok', false, 'error', 'ticket_done'); end if;
   st := coalesce(o.buy_check->'items', '{}'::jsonb);
   st0 := st;
   if p_state = 'done' then
@@ -226,36 +235,28 @@ begin
     v_val := v_price + coalesce(o.discount, 0) + coalesce(o.shop_share, 0) - v_hop;
     v_com := case when coalesce(o.network, false) then public.commission_network(v_val) else public.commission_for(v_val) end;
   end if;
-  update orders set buy_check = bc, items_total = total, price = v_price, hop_share = v_hop, commission = v_com,
+  update orders set buy_check = bc, items_total = total, goods_budget = total, price = v_price, hop_share = v_hop, commission = v_com,
          shop_order = left(coalesce(lines, '') || coalesce(E'\n💬 ' || nullif(trim(items_note), ''), ''), 1000),
          cash_goods = case when payment_method = 'cash' then total else cash_goods end,
          cash_change = case when payment_method = 'cash' and coalesce(cash_note, 0) > 0 then cash_note - v_price - total else cash_change end,
-         cash_need = case when payment_method = 'cash' then case when coalesce(cash_note, 0) > 0 then cash_note - v_price - total else 0 end else cash_need end,
-         -- Espèces : le livreur a payé le magasin en caisse (« payé au départ »)
-         cash_shop_at = case when payment_method = 'cash' and done and total > 0 then now() when payment_method = 'cash' then null else cash_shop_at end,
-         cash_shop_amount = case when payment_method = 'cash' and done and total > 0 then total when payment_method = 'cash' then null else cash_shop_amount end,
-         cash_courier_mode = case when payment_method = 'cash' and done and total > 0 then 'avance' when payment_method = 'cash' then null else cash_courier_mode end,
-         cash_courier_at = case when payment_method = 'cash' and done and total > 0 then now() when payment_method = 'cash' then null else cash_courier_at end
+         cash_need = case when payment_method = 'cash' then case when coalesce(cash_note, 0) > 0 then cash_note - v_price - total else 0 end else cash_need end
    where id = o.id returning * into o;
   he := o.lang = 'he';
   -- Le client est prévenu : article manquant (ou finalement trouvé), puis le total à payer quand tout est dans le panier
   if p_state = 'manque' and was is distinct from 'manque' then
     insert into chat_messages (thread, author, author_name, body) values ('o:' || o.id::text, 'admin', 'HOP!',
-      case when he then '❌ ' || nm || ': חסר בחנות, הוסר מההזמנה. לא תשלמו עליו' || case when d < 0 then ', וגם לא על התוספת שלו (' || (-2 * d) || ' ₪). משלוח: ' || replace(o.price::text, '.00', '') || ' ₪.' else '.' end
-           else '❌ ' || nm || ' : manquant au magasin, retiré de votre commande. Vous ne le payez pas' || case when d < 0 then ', ni son supplément (' || (-2 * d) || ' ₪). Livraison : ' || replace(o.price::text, '.00', '') || ' ₪.' else '.' end end);
+      case when he then '❌ ' || nm || ': חסר בחנות, הוסר מההזמנה. לא תשלמו עליו' || case when d < 0 and o.payment_method <> 'cash' then ', וגם לא על התוספת שלו (' || (-2 * d) || ' ₪, יורדים מהקבלה).'
+                                     when d < 0 then ', וגם לא על התוספת שלו (' || (-2 * d) || ' ₪). משלוח: ' || replace(o.price::text, '.00', '') || ' ₪.' else '.' end
+           else '❌ ' || nm || ' : manquant au magasin, retiré de votre commande. Vous ne le payez pas' || case when d < 0 and o.payment_method <> 'cash' then ', ni son supplément (' || (-2 * d) || ' ₪, déduits du ticket).'
+                                     when d < 0 then ', ni son supplément (' || (-2 * d) || ' ₪). Livraison : ' || replace(o.price::text, '.00', '') || ' ₪.' else '.' end end);
   elsif was = 'manque' and p_state is distinct from 'manque' and not done then
     insert into chat_messages (thread, author, author_name, body) values ('o:' || o.id::text, 'admin', 'HOP!',
       case when he then '✅ ' || nm || ': נמצא בסוף, חזר להזמנה.' else '✅ ' || nm || ' : finalement trouvé, remis dans votre commande.' end);
   end if;
   if done then
-    ph := coalesce(o.courier_bit, o.courier_phone);
     insert into chat_messages (thread, author, author_name, body) values ('o:' || o.id::text, 'admin', 'HOP!',
-      case when o.payment_method = 'bit' and o.payment_status <> 'paye' and ph is not null then
-             case when he then '💳 הקניות מוכנות! שלחו עכשיו ' || replace((o.price + total)::text, '.00', '') || ' ₪ בביט למספר ' || ph
-                               || ' (מוצרים ' || replace(total::text, '.00', '') || ' ₪ + משלוח ' || replace(o.price::text, '.00', '') || ' ₪), ואז לגעת ב"שילמתי".'
-                  else '💳 Vos courses sont prêtes ! Envoyez maintenant ' || replace((o.price + total)::text, '.00', '') || ' ₪ par Bit au ' || ph
-                       || ' (articles ' || replace(total::text, '.00', '') || ' ₪ + livraison ' || replace(o.price::text, '.00', '') || ' ₪), puis touchez « J''ai payé ».' end
-           else case when he then '✅ הקניות מוכנות והשליח בדרך אליכם.' else '✅ Vos courses sont prêtes, votre livreur arrive.' end end);
+      case when he then '✅ הקניות בעגלה: השליח עובר בקופה ושולח לכם צילום של הקבלה.'
+           else '✅ Vos courses sont dans le panier : votre livreur passe en caisse et vous envoie la photo du ticket.' end);
   end if;
   return json_build_object('ok', true, 'items_total', total, 'price', o.price, 'buy_check', o.buy_check);
 end;
@@ -263,17 +264,68 @@ $$;
 revoke execute on function public.courier_buy_check(uuid, text, text) from public, anon;
 grant execute on function public.courier_buy_check(uuid, text, text) to authenticated;
 
--- Boutique HOP! payée par Bit : pas de demande de paiement dès l'acceptation (le montant des articles n'est connu
--- qu'après les courses) ; elle part avec « Tout est dans le panier » (courier_buy_check)
+-- Le ticket de caisse (après « Tout est dans le panier ») : photo + montant exact, envoyés au client.
+-- Bit : le client paie au livreur le ticket − les suppléments des articles manquants (déjà payés avec la livraison) ;
+-- si c'est négatif (cas extrême), HOP! rembourse le client. Espèces : livraison + ticket à la livraison.
+-- Ensuite, le flux habituel des achats « ticket après » : « Ticket reçu » (courier_goods_refund) avant « Livré ».
+create or replace function public.courier_hop_ticket(p_id uuid, p_amount numeric, p_photo text) returns json
+language plpgsql security definer set search_path = public as $$
+declare o orders; cash boolean; st jsonb; u_all int; u_left int; credit numeric := 0; due numeric; he boolean; ph text; amt text;
+begin
+  if not public.is_active_courier() then raise exception 'not_courier'; end if;
+  select * into o from orders where id = p_id and courier_id = auth.uid() and hop_buy and status = 'confirmee' for update;
+  if not found then raise exception 'not_found'; end if;
+  if not coalesce((o.buy_check->>'done')::boolean, false) then raise exception 'buy_check'; end if;
+  if o.goods_spent is not null then raise exception 'ticket_done'; end if;
+  cash := o.payment_method = 'cash';
+  if not cash and o.payment_status <> 'paye' then raise exception 'not_paid'; end if;
+  if p_amount is null or p_amount <= 0 or p_amount > 1000 then raise exception 'bad_amount'; end if;
+  if p_photo is null or length(p_photo) > 400000 or p_photo !~ '^data:image/(jpeg|png|webp);base64,' then raise exception 'bad_photo'; end if;
+  st := coalesce(o.buy_check->'items', '{}'::jsonb);
+  select coalesce(sum(coalesce((x->>'qty')::int, 1)), 0),
+         coalesce(sum(coalesce((x->>'qty')::int, 1)) filter (where coalesce(st->>(x->>'id'), '') <> 'manque'), 0)
+    into u_all, u_left from jsonb_array_elements(o.items) x;
+  -- Bit : suppléments (2 ₪ l'article au-delà de 6) des articles manquants, déjà payés d'avance avec la livraison
+  if not cash then credit := 2 * (greatest(0, least(u_all, 24) - 6) - greatest(0, least(u_left, 24) - 6)); end if;
+  due := round(p_amount - credit, 2);
+  he := o.lang = 'he'; amt := replace(round(p_amount, 2)::text, '.00', '');
+  ph := coalesce(o.courier_bit, o.courier_phone);
+  insert into chat_messages (thread, author, author_name, body, image) values ('o:' || p_id::text, 'courier', o.courier_name,
+    case when cash then case when he then '🧾 קבלה מהחנות: ' || amt || ' ₪. במסירה, במזומן: ' || replace((o.price + p_amount)::text, '.00', '') || ' ₪ (משלוח ' || replace(o.price::text, '.00', '') || ' ₪ + קבלה).'
+                             else '🧾 Ticket du magasin : ' || amt || ' ₪. À la livraison, en espèces : ' || replace((o.price + p_amount)::text, '.00', '') || ' ₪ (livraison ' || replace(o.price::text, '.00', '') || ' ₪ + ticket).' end
+         when due <= 0 then case when he then '🧾 קבלה מהחנות: ' || amt || ' ₪ − ' || credit || ' ₪ (מוצר חסר): אין מה לשלם. HOP! מחזירה לכם ' || replace((-due)::text, '.00', '') || ' ₪.'
+                                 else '🧾 Ticket du magasin : ' || amt || ' ₪ − ' || credit || ' ₪ (article manquant) : rien à payer. HOP! vous rembourse ' || replace((-due)::text, '.00', '') || ' ₪.' end
+         else case when he then '🧾 קבלה מהחנות: ' || amt || ' ₪' || case when credit > 0 then ' − ' || credit || ' ₪ (מוצר חסר) = ' || replace(due::text, '.00', '') || ' ₪' else '' end
+                                || '. שלחו לי ' || replace(due::text, '.00', '') || ' ₪ בביט' || coalesce(' למספר ' || ph, '') || ', ואני מביא לכם.'
+                   else '🧾 Ticket du magasin : ' || amt || ' ₪' || case when credit > 0 then ' − ' || credit || ' ₪ (article manquant) = ' || replace(due::text, '.00', '') || ' ₪' else '' end
+                        || ' à payer. Envoyez-moi ' || replace(due::text, '.00', '') || ' ₪ par Bit' || coalesce(' au ' || ph, '') || ', et je vous livre.' end end,
+    p_photo);
+  if cash then
+    update orders set goods_spent = p_amount, goods_ticket_at = now(), goods_refund = 0, goods_refund_status = 'ok',
+           cash_goods = p_amount, cash_change = case when coalesce(cash_note, 0) > 0 then greatest(0, cash_note - (price + p_amount)) else 0 end,
+           -- le livreur a payé le magasin en caisse (« payé au départ »)
+           cash_shop_at = now(), cash_shop_amount = p_amount, cash_courier_mode = 'avance', cash_courier_at = now(),
+           buy_check = coalesce(buy_check, '{}'::jsonb) || jsonb_build_object('ticket', p_amount, 'credit', 0, 'due', price + p_amount)
+     where id = p_id;
+    return json_build_object('ok', true, 'refund', 0, 'cash', o.price + p_amount);
+  end if;
+  update orders set goods_spent = p_amount, goods_ticket_at = now(),
+         goods_refund = abs(due), goods_refund_status = case when due > 0 then 'a_completer' else 'ok' end,
+         buy_check = coalesce(buy_check, '{}'::jsonb) || jsonb_build_object('ticket', p_amount, 'credit', credit, 'due', due)
+   where id = p_id;
+  return json_build_object('ok', true, 'after', true, 'due', due, 'credit', credit, 'refund', -due);
+end;
+$$;
+revoke execute on function public.courier_hop_ticket(uuid, numeric, text) from public, anon;
+grant execute on function public.courier_hop_ticket(uuid, numeric, text) to authenticated;
+
+-- La livraison se paie par Bit d'avance, comme les autres courses : la demande de paiement dès l'acceptation reste
+-- (une version précédente de ce script la coupait pour ces boutiques : on la rétablit)
 do $$
-declare d text; n text;
+declare d text;
 begin
   d := pg_get_functiondef('public.orders_pay_ask()'::regprocedure);
-  if position('hop_buy' in d) = 0 then
-    n := replace(d, 'or coalesce(new.shop_sent, false)', 'or coalesce(new.shop_sent, false) or coalesce(new.hop_buy, false)');
-    if n = d then raise notice 'orders_pay_ask : motif introuvable, demande de paiement laissée telle quelle';
-    else execute n; end if;
-  end if;
+  if position(' or coalesce(new.hop_buy, false)' in d) > 0 then execute replace(d, ' or coalesce(new.hop_buy, false)', ''); end if;
 exception when undefined_function then raise notice 'orders_pay_ask absente : rien à changer';
 end $$;
 

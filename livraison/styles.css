@@ -4339,3 +4339,4 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .sa-link.on { color: var(--brand); font-weight: 700; }
 .sa-link.on::before { content: "✓ "; }
 .sa-link.sa-new { color: var(--brand); font-weight: 700; }
+.hb-lock { margin: 8px 0 2px; padding: 10px; border-radius: 12px; background: var(--amber-soft); color: var(--amber-ink); font-size: 14px; line-height: 1.4; }

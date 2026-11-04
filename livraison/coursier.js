@@ -379,10 +379,11 @@ function moneyBox(o) {
   if (o.shop_sent && o.payer === "moi") return box(false, `💰 À encaisser au commerce : ${UI.money(o.price)} ${how}`,
     `${UI.esc(o.shop_name || "Le commerce")} vous paie en vous donnant le colis.<br>🙋 Le client ne paie rien : tout est déjà payé au magasin`);
   if (o.shop_sent) return box(false, `💰 À encaisser chez le client : ${UI.money(o.price)} ${how}`, `${goodsPaid}. Seulement la livraison, à l'arrivée`);
-  if (o.hop_buy && o.payment_method !== "cash") return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`,
-    `Articles ${UI.money(o.items_total)} + livraison ${UI.money(o.price)}, sur votre numéro <b>après les courses</b>, avant de partir du magasin.<br>🛒 Vous avancez les articles en caisse`);
-  if (o.hop_buy) return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`,
-    `${UI.money(total)} = articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)} · 🛒 vous avancez les articles en caisse`);
+  // Boutique HOP! : la livraison par Bit d'avance (avant les courses), les articles au ticket de caisse après
+  if (o.hop_buy && o.payment_method !== "cash") return box(false, `💰 La livraison par Bit : ${UI.money(o.price)}`,
+    `Sur votre numéro, <b>avant de commencer les courses</b>.<br>🧾 Les articles : le montant exact du ticket, après (photo)`);
+  if (o.hop_buy) return box(false, `💰 À encaisser chez le client : ${o.goods_spent != null ? UI.money(total) : "livraison + ticket"} en espèces`,
+    `livraison ${UI.money(o.price)} + ${o.goods_spent != null ? `ticket ${UI.money(o.goods_spent)}` : `le ticket de caisse (≈ ${UI.money(o.cash_goods)})`} · 🛒 vous avancez les articles en caisse`);
   if (o.payment_method === "cash") return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`,
     Number(o.cash_goods) > 0 ? `${UI.money(total)} = articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)} · les articles ${o.cash_shop_after ? `sont à rapporter ensuite à ${UI.esc(owedTo(o))}` : "se paient au commerce au départ"}` : "À la livraison");
   return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`, [`Sur votre numéro, avant de récupérer la commande`, goodsSelf(o)].filter(Boolean).join("<br>"));
@@ -811,8 +812,7 @@ function card(o, kind) {
     : o.client_paid_at ? `<br><b>📲 Le client dit avoir payé : vérifiez votre Bit / PayBox, puis touchez « 📱 Payé par Bit ».</b>`
     : ` · à recevoir <b>avant de récupérer la commande</b>`}</div>`;
   // Course acceptée, Bit pas encore reçu : on demande tout de suite le paiement au client (SMS ou WhatsApp, prêts à envoyer)
-  if (kind === "mine" && o.status === "confirmee" && o.direct_pay && !hopPaid && o.payment_method === "bit" && o.payment_status !== "paye" && !o.client_paid_at && !o.shop_sent && !o.shop_pays && o.contact_phone
-      && (!o.hop_buy || Store.buyDone(o))) {
+  if (kind === "mine" && o.status === "confirmee" && o.direct_pay && !hopPaid && o.payment_method === "bit" && o.payment_status !== "paye" && !o.client_paid_at && !o.shop_sent && !o.shop_pays && o.contact_phone) {
     const amount = UI.money(UI.payTotal(o)), bit = o.courier_bit || me.bit_phone || me.phone || "";
     const msg = I18N.forLang(o.lang || "fr", "payAskMsg", { name: String(me.name || o.courier_name || "").split(" ")[0], ref: o.ref, total: amount, phone: bit, url: UI.trackUrl(o) });
     extra += `<div class="pay-ask"><b>⏳ Le client doit vous payer ${amount} par Bit avant que vous partiez récupérer</b>
@@ -838,7 +838,7 @@ function card(o, kind) {
         ? (o.arrived_at
             ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Store.freeMinOf(o, settings) - w.mins)} min ${o.purchase_min ? "d'achats comprises" : "encore offertes"}`}</p>${waitAnn(o)}`
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
-          + (o.hop_buy && !Store.buyDone(o) ? `<button class="btn btn-sm" type="button" disabled title="Cochez d'abord chaque article">🛵 Courses récupérées</button>`
+          + (o.hop_buy && (!Store.buyDone(o) || o.goods_spent == null) ? `<button class="btn btn-sm" type="button" disabled title="Cochez chaque article, puis la photo du ticket">🛵 Courses récupérées</button>`
             : `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 ${o.hop_buy ? "Courses récupérées" : "Colis récupéré"}</button>`)
           + `<button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : o.wait_status === "a_payer"
@@ -939,8 +939,8 @@ function readyBanner(o, etaToPickup) {
 function cashStop(o, which, now) {
   if (o.payment_method !== "cash" || !now) return "";
   // Boutique HOP! : vous payez les articles en caisse, le client vous rembourse tout à la livraison
-  if (o.hop_buy && which === "pickup") return o.cash_shop_at ? `<div class="cash-stop ok">🧾 Articles payés en caisse : <b>${UI.money(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods)}</b></div>`
-    : `<div class="cash-stop">🛒 Vous payez les articles en caisse (≈ <b>${UI.money(o.cash_goods)}</b>)<small>à la livraison, le client vous rembourse tout en espèces : <b>${UI.money(cashTotal(o))}</b> (articles + livraison)</small></div>`;
+  if (o.hop_buy && which === "pickup") return o.goods_spent != null ? `<div class="cash-stop ok">🧾 Ticket <b>${UI.money(o.goods_spent)}</b> payé en caisse</div>`
+    : `<div class="cash-stop">🛒 Vous payez les articles en caisse (≈ <b>${UI.money(o.cash_goods)}</b>)<small>puis 🧾 photo du ticket ; à la livraison, le client vous paie en espèces la livraison + le ticket</small></div>`;
   // (achat sans partenaire : le livreur paie le magasin, au plus le maximum prévu, puis photo du ticket)
   if (which === "pickup" && o.goods_prepay) return o.goods_spent != null ? `<div class="cash-stop ok">🧾 Ticket <b>${UI.money(o.goods_spent)}</b> payé au magasin</div>`
     : `<div class="cash-stop">💵 Payez le magasin en espèces : <b>${UI.money(o.goods_budget)}</b> au plus<small>puis 🧾 photo du ticket ; le client vous rembourse à la livraison</small></div>`;
@@ -1049,8 +1049,8 @@ function hopBuyLine(o, kind) {
   const n = (o.items || []).reduce((s, i) => s + (Number(i.qty) || 1), 0);
   return `<div class="small hb-line">🛒 <b>Vous faites les courses</b> chez ${UI.esc(o.shop_name || "le magasin")} : ${n} article(s), ≈ ${UI.money(o.items_total)}`
     + `${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}`
-    + `<br>${o.payment_method === "cash" ? "💵 Vous avancez les articles en caisse ; le client vous rembourse tout en espèces à la livraison"
-      : "📱 Vous avancez les articles en caisse ; le client vous paie articles + livraison par Bit juste après les courses"}`
+    + `<br>${o.payment_method === "cash" ? "💵 Vous avancez les articles en caisse ; à la livraison, le client paie en espèces la livraison + le ticket"
+      : "📱 Le client paie la livraison par Bit avant les courses ; vous avancez les articles, puis il vous paie le ticket de caisse (photo) par Bit"}`
     + `${kind === "pool" ? `<br>📦 Place dans le top case : ${Number(o.buy_places) || 1} / ${(CONFIG.pricing.purchaseItems || {}).topcase || 30}` : ""}</div>`;
 }
 // Liste à cocher, une par client (Sac 1, Sac 2, Sac 3 : chacun sa couleur) ; « Manquant » retire l'article
@@ -1058,6 +1058,9 @@ function buyBlock(o) {
   if (!o.hop_buy || o.status !== "confirmee" || !Array.isArray(o.items)) return "";
   const st = Store.buyState(o), done = Store.buyDone(o), t = Store.buyTotals(o), b = Store.hopBags(mine(), o);
   const all = t.ok + t.miss.length === t.n, id = UI.esc(o.id);
+  if (o.payment_method !== "cash" && o.payment_status !== "paye") return `<section class="hb-list hb-c${((b.n || 1) - 1) % 3 + 1}">
+    <div class="hb-head"><b class="hb-bag">🛍️ Sac ${b.n || 1}</b><span>${UI.esc(String(o.dropoff_contact || o.contact_name || "").split(" ")[0])} · n° ${UI.esc(o.ref)}</span><em>${t.n}</em></div>
+    <p class="hb-lock">🔒 Faites-vous payer la livraison (<b>${UI.money(o.price)}</b> par Bit) avant de commencer les courses. La liste s'ouvre dès « 📱 Payé par Bit ».</p></section>`;
   const rows = o.items.map(i => {
     const s = st[i.id] || "", pic = UI.safeImg(i.photo), iid = UI.esc(i.id);
     return `<li class="hb-it${s ? " " + s : ""}">
@@ -1072,9 +1075,9 @@ function buyBlock(o) {
     ${b.of > 1 ? `<p class="hb-tip">Un sac par client : mettez ses articles dans le sac ${b.n || 1}.</p>` : ""}
     <ul>${rows}</ul>
     ${t.miss.length ? `<p class="hb-miss-note">❌ ${t.miss.length} manquant(s), retiré(s) : le client est prévenu, il ne les paie pas (ni leur supplément d'article). Articles : <b>${UI.money(t.total)}</b> · course : <b>${UI.money(o.price)}</b></p>` : ""}
-    ${done ? `<p class="hb-done">✅ Tout est dans le panier · articles <b>${UI.money(t.total)}</b></p>`
+    ${done ? `<p class="hb-done">✅ Tout est dans le panier · articles ≈ <b>${UI.money(t.total)}</b></p>${o.goods_spent == null ? `<p class="hb-tip">Passez en caisse, puis 🧾 « Ticket du magasin » : photo du ticket et son montant exact.</p>` : ""}`
       : `<button type="button" class="btn btn-primary btn-block hb-all" data-buydone="${id}"${all && t.ok ? "" : " disabled"}>✅ Tout est dans le panier</button>
-         <small class="hb-left">${all ? (t.ok ? "Payez en caisse, puis touchez ce bouton" : "Aucun article trouvé : appelez HOP!") : `Encore ${t.n - t.ok - t.miss.length} article(s) à cocher ou marquer « Manquant »`}</small>`}
+         <small class="hb-left">${all ? (t.ok ? "Touchez ce bouton, puis passez en caisse" : "Aucun article trouvé : appelez HOP!") : `Encore ${t.n - t.ok - t.miss.length} article(s) à cocher ou marquer « Manquant »`}</small>`}
   </section>`;
 }
 document.addEventListener("click", async e => {
@@ -1083,16 +1086,21 @@ document.addEventListener("click", async e => {
   e.preventDefault();
   const id = b.dataset.buy || b.dataset.buydone, o = orders.find(x => x.id === id);
   if (!o) return;
-  if (b.dataset.buydone != null && !confirm(`✅ Tout est dans le panier ?\n\nArticles : ${UI.money(Store.buyTotals(o).total)}. Le client est prévenu${o.payment_method === "cash" ? " (il vous paiera en espèces à la livraison)" : " et vous paie par Bit"}.`)) return;
+  if (b.dataset.buydone != null && !confirm(`✅ Tout est dans le panier ?\n\nLe client est prévenu. Ensuite : passez en caisse, puis 🧾 photo du ticket et son montant exact.`)) return;
   b.disabled = true;
   const r = await Store.courierBuyCheck(id, b.dataset.item || null, b.dataset.buydone != null ? "done" : b.dataset.state || "").catch(() => false);
-  if (!r || r.ok === false) { alert("Non enregistré, vérifiez la connexion et réessayez."); b.disabled = false; return; }
+  if (!r || r.ok === false) { alert(r && r.error === "not_paid" ? "💳 Faites-vous d'abord payer la livraison par Bit (« 📱 Payé par Bit »)." : "Non enregistré, vérifiez la connexion et réessayez."); b.disabled = false; return; }
   await load();
 });
 function goodsActs(o) {
   if (!o.goods_prepay || !["confirmee", "recuperee"].includes(o.status) || (o.payment_method !== "cash" && o.payment_status !== "paye")) return "";
   const id = UI.esc(o.id);
+  if (o.hop_buy && o.goods_spent == null && !Store.buyDone(o)) return "";
   if (o.goods_spent == null) return `<button type="button" class="btn btn-sm btn-primary" data-goods-ticket="${id}">🧾 Ticket du magasin (photo + montant)</button>`;
+  const bc = o.buy_check || {};
+  if (o.hop_buy && o.goods_after && Number(bc.due) <= 0) return `<span class="pill paid">🧾 Ticket ${UI.money(o.goods_spent)} − ${UI.money(bc.credit)} (article manquant) : rien à encaisser${Number(bc.due) < 0 ? ` · HOP! rembourse ${UI.money(-bc.due)} au client` : ""}</span>`;
+  if (o.hop_buy && o.goods_after && o.goods_refund_status === "a_completer") return `<p class="wait-live">🧾 Ticket <b>${UI.money(o.goods_spent)}</b>${Number(bc.credit) > 0 ? ` − ${UI.money(bc.credit)} (article manquant)` : ""} : le client vous envoie <b>${UI.money(o.goods_refund)}</b> par Bit. Livrez dès réception.</p>
+    <button type="button" class="btn btn-sm btn-primary" data-goods-refund="complement" data-id="${id}">✅ Ticket reçu (${UI.money(o.goods_refund)})</button>`;
   if (o.goods_refund_status === "a_rendre") return `<p class="wait-live">💸 Rendez <b>${UI.money(o.goods_refund)}</b> au client par Bit (ticket ${UI.money(o.goods_spent)} sur ${UI.money(o.goods_budget)} reçus)</p>
     <button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.contact_phone || "").replace(/\D/g, ""))}">📋 Copier son numéro</button><button type="button" class="btn btn-sm btn-primary" data-goods-refund="rendu" data-id="${id}">✅ C'est rendu</button>`;
   if (o.goods_after && o.goods_refund_status === "a_completer") return `<p class="wait-live">🧾 Ticket <b>${UI.money(o.goods_spent)}</b> envoyé au client : il vous envoie ce montant par Bit. Livrez dès réception.</p>
@@ -1106,9 +1114,10 @@ function mineStep(o, hopPaid) {
   // Boutique HOP! : les courses d'abord (liste à cocher), puis le paiement Bit, puis on part
   if (o.hop_buy && o.status === "confirmee") {
     const b = Store.hopBags(mine(), o), sac = b.of > 1 ? ` (sac ${b.n})` : "";
+    if (o.payment_method !== "cash" && o.payment_status !== "paye") return `1️⃣ Faites-vous payer la livraison : ${UI.money(o.price)} par Bit, avant les courses`;
     if (!Store.buyDone(o)) return o.arrived_at ? `2️⃣ Faites les courses${sac} : cochez chaque article, ou « Manquant »` : `2️⃣ Allez au magasin · ${o.shop_name || ""}`;
-    if (o.payment_method !== "cash" && o.payment_status !== "paye") return `3️⃣ Le client vous paie ${UI.money(UI.payTotal(o))} par Bit (articles + livraison), puis « Courses récupérées »`;
-    return "3️⃣ Touchez « Courses récupérées » et livrez";
+    if (o.goods_spent == null) return "3️⃣ Passez en caisse, puis 🧾 photo du ticket et son montant";
+    return "4️⃣ Touchez « Courses récupérées » et livrez";
   }
   // Course envoyée par un commerce : le commerce paie en donnant le colis, ou le client à la livraison (Bit ou espèces)
   if (o.shop_pays && o.payment_status !== "paye") return o.status === "recuperee" ? "3️⃣ Livrez le client"
@@ -1405,13 +1414,15 @@ function goodsTicket(id) {
     if (!f) return;
     let photo;
     try { photo = await UI.docPhoto(f); } catch (e) { return alert("Photo illisible, reprenez-la."); }
-    const a = prompt(`🧾 Montant total du ticket (₪) ?\n${o.payment_method === "cash" || o.goods_after ? "Maximum prévu" : "Payé d'avance"} : ${UI.money(o.goods_budget)}`);
+    const a = prompt(o.hop_buy ? `🧾 Montant exact du ticket de caisse (₪) ?\nArticles prévus : ≈ ${UI.money(o.items_total)}` : `🧾 Montant total du ticket (₪) ?\n${o.payment_method === "cash" || o.goods_after ? "Maximum prévu" : "Payé d'avance"} : ${UI.money(o.goods_budget)}`);
     if (a == null) return;
     const amount = Math.round(parseFloat(String(a).replace(",", ".")) * 100) / 100;
     if (!(amount > 0)) return alert("Montant incorrect.");
-    const r = await Store.courierGoodsTicket(o.id, amount, photo).catch(e => ({ err: e.message }));
+    const r = await Store.courierGoodsTicket(o.id, amount, photo, !!o.hop_buy).catch(e => ({ err: e.message }));
     if (!r || r.err) return alert(/not_paid/.test((r && r.err) || "") ? "💳 Le client doit d'abord vous payer (« 📱 Payé par Bit »)." : "Ticket non enregistré, réessayez.");
     const d = Number(r.refund);
+    if (o.hop_buy && r.after) { alert(Number(r.due) > 0 ? `✅ Ticket envoyé au client : il vous envoie ${UI.money(r.due)} par Bit${Number(r.credit) > 0 ? ` (ticket ${UI.money(amount)} − ${UI.money(r.credit)} d'article manquant, déjà payés avec la livraison)` : ""}. Touchez « Ticket reçu » dès que c'est arrivé.`
+      : `✅ Ticket envoyé : rien à encaisser.${Number(r.due) < 0 ? ` HOP! rembourse ${UI.money(-r.due)} au client.` : ""}`); return load(); }
     alert(r.after ? `✅ Ticket envoyé au client : il vous envoie ${UI.money(amount)} par Bit. Touchez « Ticket reçu » dès que c'est arrivé, puis livrez.` : r.cash ? `✅ Ticket envoyé au client. À la livraison, encaissez ${UI.money(r.cash)} en espèces (course + ticket).` : d > 0 ? `✅ Ticket envoyé au client. Rendez-lui ${UI.money(d)} par Bit, puis « C'est rendu ».`
       : d < 0 ? `⚠️ Il manque ${UI.money(-d)} : le client est prévenu. Attendez son complément avant de payer le magasin.` : "✅ Ticket envoyé au client : compte juste.");
     load();

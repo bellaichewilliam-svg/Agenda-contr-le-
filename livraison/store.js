@@ -391,8 +391,9 @@ function hopBuyOrder(order, shop, settings) {
   order.items = order.items.map(i => { const p = ph.find(x => x.id === i.id); return Object.assign({}, i, { photo: p && p.photo ? p.photo : null }); });
   Object.assign(order, {
     service: "achat", shop_status: null, prep_minutes: null, ready_at: null, shop_share: 0, fits_topcase: true,
-    purchase_min: CONFIG.pricing.purchaseMinutes || 5, goods_prepay: false, goods_budget: 0, goods_after: false, goods_self_pay: false,
-    goods_pay: null, buy_places: itemsPlaces(order.items),
+    // Livraison par Bit d'avance ; articles à la fin, au ticket de caisse (flux « ticket après » des achats)
+    purchase_min: CONFIG.pricing.purchaseMinutes || 5, goods_prepay: true, goods_budget: Number(order.items_total || 0),
+    goods_after: order.payment_method === "bit", goods_self_pay: false, goods_choice: null, goods_pay: null, buy_places: itemsPlaces(order.items),
     hop_share: Number(order.hop_share || 0) + Math.max(0, Math.min(units, PI.max || 24) - (PI.hopIncluded || 6)) * (PI.extraHop || 1)
   });
   if (order.payment_method === "cash") {
@@ -416,6 +417,9 @@ async function courierBuyCheck(id, item, state) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_buy_check", { method: "POST", body: { p_id: id, p_item: item, p_state: state } });
   const all = localOrders(), o = all.find(x => x.id === id && x.courier_id === myId() && x.status === "confirmee" && x.hop_buy);
   if (!o) return false;
+  // Bit : la livraison est payée d'avance, avant de commencer les courses ; plus rien à cocher après le ticket
+  if (o.payment_method !== "cash" && o.payment_status !== "paye") return { ok: false, error: "not_paid" };
+  if (o.goods_spent != null) return { ok: false, error: "ticket_done" };
   const bc = Object.assign({ items: {}, done: false }, o.buy_check || {});
   bc.items = Object.assign({}, bc.items);
   const units = items => items.reduce((n, i) => n + (Number(i.qty) || 1), 0), u0 = units(buyTotals(o).left);
@@ -431,7 +435,7 @@ async function courierBuyCheck(id, item, state) {
   }
   o.buy_check = bc;
   const t = buyTotals(o);
-  o.items_total = t.total;
+  o.items_total = t.total; o.goods_budget = t.total;
   // Article manquant : son supplément « +2 ₪ au-delà de 6 » part aussi (1 ₪ HOP!, 1 ₪ livreur), commission recalculée
   // (décision du patron, même règle que la base : courier_buy_check)
   const PI = CONFIG.pricing.purchaseItems || {}, inc = PI.hopIncluded || 6, max = PI.max || 24;
@@ -447,23 +451,52 @@ async function courierBuyCheck(id, item, state) {
     o.cash_change = Number(o.cash_note) > 0 ? Number(o.cash_note) - Number(o.price) - t.total : 0;
     o.cash_need = o.cash_change;
   }
-  if (state === "done" && o.payment_method === "cash" && t.total > 0)
-    Object.assign(o, { cash_shop_at: new Date().toISOString(), cash_shop_amount: t.total, cash_courier_mode: "avance", cash_courier_at: new Date().toISOString() });
   // Le client est prévenu dans sa langue (mêmes messages que la base)
   const he = o.lang === "he", it0 = o.items.find(i => i.id === item);
   const it = it0 && Object.assign({}, it0, { name: window.UI ? UI.bi(it0.name, he ? "he" : "fr") : it0.name }), say = body => chatLocalAdd({ thread: "o:" + o.id, author: "admin", author_name: "HOP!", image: null, body });
-  if (it && state === "manque" && !wasMiss) say(he ? `❌ ${it.name}: חסר בחנות, הוסר מההזמנה. לא תשלמו עליו${d < 0 ? `, וגם לא על התוספת שלו (${-2 * d} ₪). משלוח: ${o.price} ₪.` : "."}`
-    : `❌ ${it.name} : manquant au magasin, retiré de votre commande. Vous ne le payez pas${d < 0 ? `, ni son supplément (${-2 * d} ₪). Livraison : ${o.price} ₪.` : "."}`);
+  if (it && state === "manque" && !wasMiss) say(he ? `❌ ${it.name}: חסר בחנות, הוסר מההזמנה. לא תשלמו עליו${d < 0 ? (o.payment_method !== "cash" ? `, וגם לא על התוספת שלו (${-2 * d} ₪, יורדים מהקבלה).` : `, וגם לא על התוספת שלו (${-2 * d} ₪). משלוח: ${o.price} ₪.`) : "."}`
+    : `❌ ${it.name} : manquant au magasin, retiré de votre commande. Vous ne le payez pas${d < 0 ? (o.payment_method !== "cash" ? `, ni son supplément (${-2 * d} ₪, déduits du ticket).` : `, ni son supplément (${-2 * d} ₪). Livraison : ${o.price} ₪.`) : "."}`);
   else if (it && wasMiss && state !== "manque") say(he ? `✅ ${it.name}: נמצא בסוף, חזר להזמנה.` : `✅ ${it.name} : finalement trouvé, remis dans votre commande.`);
-  if (state === "done") {
-    const tot = Number(o.price) + t.total, ph = o.courier_bit || o.courier_phone;
-    say(o.payment_method === "bit" && o.payment_status !== "paye" && ph
-      ? (he ? `💳 הקניות מוכנות! שלחו עכשיו ${tot} ₪ בביט למספר ${ph} (מוצרים ${t.total} ₪ + משלוח ${o.price} ₪), ואז לגעת ב"שילמתי".`
-        : `💳 Vos courses sont prêtes ! Envoyez maintenant ${tot} ₪ par Bit au ${ph} (articles ${t.total} ₪ + livraison ${o.price} ₪), puis touchez « J'ai payé ».`)
-      : (he ? "✅ הקניות מוכנות והשליח בדרך אליכם." : "✅ Vos courses sont prêtes, votre livreur arrive."));
-  }
+  if (state === "done") say(he ? "✅ הקניות בעגלה: השליח עובר בקופה ושולח לכם צילום של הקבלה."
+    : "✅ Vos courses sont dans le panier : votre livreur passe en caisse et vous envoie la photo du ticket.");
   saveLocalOrders(all);
   return true;
+}
+
+// Bit : suppléments (2 ₪ l'article au-delà de 6) des articles manquants, déjà payés d'avance avec la livraison → déduits du ticket
+function hopCredit(o) {
+  if (!o || !o.hop_buy || o.payment_method === "cash" || !Array.isArray(o.items)) return 0;
+  const PI = CONFIG.pricing.purchaseItems || {}, inc = PI.hopIncluded || 6, max = PI.max || 24;
+  const xtra = u => Math.max(0, Math.min(u, max) - inc), units = l => l.reduce((n, i) => n + (Number(i.qty) || 1), 0);
+  return (xtra(units(o.items)) - xtra(units(buyTotals(o).left))) * ((PI.extraCourier || 1) + (PI.extraHop || 1));
+}
+// Boutique HOP! : le ticket de caisse (photo + montant exact), même règle que la base (courier_hop_ticket)
+function hopTicketLocal(all, o, a, photo) {
+  if (!buyDone(o)) throw new Error("buy_check");
+  if (o.goods_spent != null) throw new Error("ticket_done");
+  const cash = o.payment_method === "cash";
+  if (!cash && o.payment_status !== "paye") throw new Error("not_paid");
+  const credit = hopCredit(o), due = Math.round((a - credit) * 100) / 100, he = o.lang === "he", ph = o.courier_bit || o.courier_phone || "";
+  const body = cash ? (he ? `🧾 קבלה מהחנות: ${num2(a)} ₪. במסירה, במזומן: ${num2(Number(o.price) + a)} ₪ (משלוח ${num2(Number(o.price))} ₪ + קבלה).`
+      : `🧾 Ticket du magasin : ${num2(a)} ₪. À la livraison, en espèces : ${num2(Number(o.price) + a)} ₪ (livraison ${num2(Number(o.price))} ₪ + ticket).`)
+    : due <= 0 ? (he ? `🧾 קבלה מהחנות: ${num2(a)} ₪ − ${credit} ₪ (מוצר חסר): אין מה לשלם. HOP! מחזירה לכם ${num2(-due)} ₪.`
+      : `🧾 Ticket du magasin : ${num2(a)} ₪ − ${credit} ₪ (article manquant) : rien à payer. HOP! vous rembourse ${num2(-due)} ₪.`)
+    : he ? `🧾 קבלה מהחנות: ${num2(a)} ₪${credit ? ` − ${credit} ₪ (מוצר חסר) = ${num2(due)} ₪` : ""}. שלחו לי ${num2(due)} ₪ בביט${ph ? " למספר " + ph : ""}, ואני מביא לכם.`
+    : `🧾 Ticket du magasin : ${num2(a)} ₪${credit ? ` − ${credit} ₪ (article manquant) = ${num2(due)} ₪` : ""} à payer. Envoyez-moi ${num2(due)} ₪ par Bit${ph ? " au " + ph : ""}, et je vous livre.`;
+  chatLocalAdd({ thread: "o:" + o.id, author: "courier", author_name: o.courier_name, image: photo, body });
+  const now = new Date().toISOString();
+  if (cash) {
+    Object.assign(o, { goods_spent: a, goods_ticket_at: now, goods_refund: 0, goods_refund_status: "ok", cash_goods: a,
+      cash_change: Number(o.cash_note) > 0 ? Math.max(0, Number(o.cash_note) - Number(o.price) - a) : 0,
+      cash_shop_at: now, cash_shop_amount: a, cash_courier_mode: "avance", cash_courier_at: now,
+      buy_check: Object.assign({}, o.buy_check, { ticket: a, credit: 0, due: Number(o.price) + a }) });
+    saveLocalOrders(all);
+    return { ok: true, refund: 0, cash: Number(o.price) + a };
+  }
+  Object.assign(o, { goods_spent: a, goods_ticket_at: now, goods_refund: Math.abs(due), goods_refund_status: due > 0 ? "a_completer" : "ok",
+    buy_check: Object.assign({}, o.buy_check, { ticket: a, credit, due }) });
+  saveLocalOrders(all);
+  return { ok: true, after: true, due, credit, refund: -due };
 }
 
 async function myOrders() {
@@ -1279,6 +1312,7 @@ async function courierAction(id, action) {
   } else if (action === "recuperee" && o.status === "confirmee") {
     // Boutique HOP! : chaque article coché ou « manquant », puis « Tout est dans le panier », avant de partir
     if (o.hop_buy && !buyDone(o) && !(cr && cr.role === "admin")) throw new Error("buy_check");
+    if (o.hop_buy && o.goods_spent == null && !(cr && cr.role === "admin")) throw new Error("ticket_required");
     // Même règle qu'en ligne : en paiement direct, payé avant de récupérer la commande
     if (!freeOf() && o.direct_pay && o.paid_to === "livreur" && o.payment_status !== "paye" && cr && cr.role !== "admin") throw new Error("payment_required_pickup");
     // HOP! Pro : c'est le commerce qui paie l'attente (sa part de la livraison augmente)
@@ -1340,9 +1374,16 @@ async function courierAction(id, action) {
 
 // Achat payé d'avance : à la caisse, le livreur photographie le ticket et dit son montant (même règle qu'en ligne)
 const num2 = n => String(Math.round(n * 100) / 100).replace(".", ",");
-async function courierGoodsTicket(id, amount, photo) {
-  if (ONLINE) return authRest("/rest/v1/rpc/courier_goods_ticket", { method: "POST", body: { p_id: id, p_amount: amount, p_photo: photo } });
+async function courierGoodsTicket(id, amount, photo, hop) {
+  if (ONLINE) return authRest("/rest/v1/rpc/" + (hop ? "courier_hop_ticket" : "courier_goods_ticket"), { method: "POST", body: { p_id: id, p_amount: amount, p_photo: photo } });
   const all = localOrders();
+  const h = all.find(x => x.id === id && x.courier_id === myId() && x.hop_buy && x.status === "confirmee");
+  if (h) {
+    const a = Number(amount);
+    if (!(a > 0 && a <= 1000)) throw new Error("bad_amount");
+    if (!/^data:image\/(jpeg|png|webp);base64,/.test(String(photo || "")) || String(photo).length > 400000) throw new Error("bad_photo");
+    return hopTicketLocal(all, h, a, photo);
+  }
   const o = all.find(x => x.id === id && x.courier_id === myId() && x.goods_prepay && ["confirmee", "recuperee"].includes(x.status));
   if (!o) throw new Error("not_found");
   if (o.payment_status !== "paye") throw new Error("not_paid");
@@ -2655,7 +2696,7 @@ window.Store = {
   getSettings, saveSettings,
   welcomeUsed, deviceId,
   adminGoodsLink, adminGoodsPay, adminGoodsChoice,
-  createOrder, myOrders, isHopShop, hopPlace, itemsPlaces, hopJoin, hopJoinWhy, hopBags, buyState, buyDone, buyTotals, courierBuyCheck, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
+  createOrder, myOrders, isHopShop, hopPlace, itemsPlaces, hopCredit, hopJoin, hopJoinWhy, hopBags, buyState, buyDone, buyTotals, courierBuyCheck, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
