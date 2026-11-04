@@ -527,6 +527,9 @@ const CAPS = {
   "hoppy-magasins": {
     fr: `🛍️ On va dans vos magasins préférés !\nVêtements, chaussures, cadeaux, déco… Hoppy y va pour vous et vous les rapporte.\n🛒 Le prix du magasin + la livraison, 0 frais de service\n👉 ${livre}\n${TAGS.fr} #shopping`,
     he: `🛍️ הולכים בשבילכם לחנויות שאתם אוהבים!\nבגדים, נעליים, מתנות, עיצוב… הופי הולך ומביא לכם.\n🛒 מחיר החנות + משלוח, 0 ₪ דמי שירות\n👈 ${livreHe}\n${TAGS.he}` },
+  "hoppy-carrefour": {
+    fr: `🛒 On fait vos courses chez Carrefour !\nEaux, boissons, jus, lait… vous choisissez dans l'appli, on fait les courses pour vous et on vous livre au plus vite.\n🏷️ Au prix Carrefour · 🧾 vous payez les articles au ticket\n🛵 Livraison partout à Netanya · 📍 Suivi en direct\n👉 Commander : ${url}?c=HOPCARREFOUR\n${TAGS.fr} #Carrefour #courses`,
+    he: `🛒 עושים לכם את הקניות בקרפור!\nמים, משקאות, מיצים, חלב… בוחרים באפליקציה, אנחנו קונים בשבילכם ומביאים הכי מהר.\n🏷️ במחיר של קרפור · 🧾 משלמים על המוצרים לפי הקבלה\n🛵 משלוחים בכל נתניה · 📍 מעקב בזמן אמת\n👈 להזמנה: ${url}?c=HOPCARREFOUR&lang=he\n${TAGS.he} #קרפור #קניות` },
   "hoppy-fleurs": {
     fr: `💐 On livre aussi vos fleurs !\nAnniversaire, Chabbat ou juste pour dire merci : Hoppy arrive avec le bouquet.\n🛒 Le fleuriste de votre choix à Netanya, livré au plus vite\n👉 ${livre}\n${TAGS.fr} #fleurs`,
     he: `💐 מביאים גם פרחים!\nיום הולדת, שבת או סתם להגיד תודה: הופי מגיע עם הזר.\n🛒 חנות הפרחים שבחרתם בנתניה, הכי מהר\n👈 ${livreHe}\n${TAGS.he}` },
@@ -643,6 +646,7 @@ const CAMPS = [
   { id: "hoppy-pensez", aud: "client", isNew: true, thumb: "post", title: "💭 Vous pensez à quoi ? Hoppy vous l'apporte !", desc: "Post carré : plat, courses, fleurs, colis, pharmacie… tout ce qu'on a en tête, Hoppy l'apporte.", formats: ["post"] },
   { id: "hoppy-repos", aud: "client", isNew: true, thumb: "post", title: "😌 Hoppy souffle : vous, restez tranquille", desc: "Post carré sans texte (le même en FR et HE) : le message est dans la légende. Idéal en fin de semaine.", formats: ["post"] },
   { id: "hoppy-magasins", aud: "client", isNew: true, thumb: "post", title: "🛍️ Hoppy va dans vos magasins préférés", desc: "Vêtements, chaussures, cadeaux, déco… Hoppy vous les rapporte.", formats: ["post"] },
+  { id: "hoppy-carrefour", aud: "client", isNew: true, thumb: "post", title: "🛒 On fait vos courses chez Carrefour", desc: "Hoppy et son panier Carrefour : « Au prix Carrefour, livré chez vous à Netanya ». Français et hébreu sur la même image. Lien direct vers HOP! chez Carrefour.", formats: ["post"] },
   { id: "hoppy-fleurs", aud: "client", isNew: true, thumb: "post", title: "💐 Hoppy livre aussi vos fleurs", desc: "Anniversaire, Chabbat ou juste pour dire merci : Hoppy arrive avec le bouquet. Le modèle de style pour tous les visuels réseaux.", formats: ["post"] },
   { id: "hoppy", aud: "client", isNew: true, title: "🦘 Notre mascotte : Hoppy (הופי)", thumb: "fiche", desc: "Le kangourou HOP! : l'image officielle (à joindre à ChatGPT pour chaque nouveau visuel, voir le prompt dans video/HOPPY.md) et Hoppy sans fond.", formats: ["fiche", "detoure"] },
   { id: "grille2", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram, 2e rangée : ce qu'on fait", desc: "3 publications sous « H · O · P! » : Tout Netanya livré · Comment ça marche · Pourquoi HOP!. Publiez d'abord « Pourquoi », puis « Comment », puis « Tout Netanya ». Si « H · O · P! » est déjà en ligne : épinglez ensuite P!, puis O, puis H pour qu'ils restent en haut.", formats: ["g6", "g5", "g4"] },
