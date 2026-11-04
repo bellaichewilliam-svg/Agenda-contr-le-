@@ -1033,10 +1033,10 @@ function renderPharma() {
       return `<button type="button" class="ph-cat${on ? " on" : ""}" role="tab" data-ph-cat="${c.id}" aria-selected="${on}">${pic(c)}<span>${UI.esc(phName(c))}</span>${k ? `<em>${k}</em>` : ""}</button>`; }).join("")}</div>
     <p class="ph-cur">${q ? `<b>${UI.esc(t("phFound", { n: shown.length, q: state.phQ.trim() }))}</b>` : cur ? `${pic(cur)}<b>${UI.esc(phName(cur))}</b><small>${UI.esc(t("phCount2", { n: shown.length }))}</small>` : ""}</p>
     ${shown.length ? `<div class="ph-list">${shown.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
-    ${q ? "" : (i => { const prev = cats[i - 1], next = cats[i + 1], rtl = document.documentElement.dir === "rtl";
+    ${q ? "" : (i => { const prev = cats[i - 1], next = cats[i + 1];
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
-      return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">${rtl ? "›" : "‹"} ${UI.esc(phName(prev))}</button>` : "<span></span>"}
-        ${next ? `<button type="button" class="ph-next" data-ph-cat="${next.id}" data-ph-nav="1">${UI.esc(t("phNext"))} : ${UI.esc(phName(next))} ${rtl ? "‹" : "›"}</button>` : ""}</div>`; })(cats.findIndex(c => c.id === state.pharmaCat))}
+      return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">‹ ${UI.esc(phName(prev))}</button>` : "<span></span>"}
+        ${next ? `<button type="button" class="ph-next" data-ph-cat="${next.id}" data-ph-nav="1">${UI.esc(t("phNext"))} : ${UI.esc(phName(next))} ›</button>` : ""}</div>`; })(cats.findIndex(c => c.id === state.pharmaCat))}
     ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { mid: g.mid }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small>${supportWho() ? "" : `<button type="button" class="btn btn-ghost btn-block cs-keep" data-cart-keep>📲 ${UI.esc(t("cartKeepBtn"))}</button>`}</div>` : ""}`;
   box.style.setProperty("--rc", r.color);
   if (box.dataset.top !== top) { box.querySelector(".ph-top").innerHTML = top; box.dataset.top = top; }
@@ -5367,7 +5367,7 @@ function renderCartIcon() {
   if (pill) {
     pill.classList.toggle("hidden", !n);
     const gift = n && cartGiftDue(true);
-    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${gift ? ` <em class="cr-gift"><bdi dir="ltr">🎁 −${UI.esc(money(CART_GIFT.off))}</bdi></em>` : c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>${document.documentElement.dir === "rtl" ? "‹" : "›"}</i>`;
+    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${gift ? ` <em class="cr-gift"><bdi dir="ltr">🎁 −${UI.esc(money(CART_GIFT.off))}</bdi></em>` : c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>›</i>`;
   }
   $("#tbCartN").textContent = n > 99 ? "99+" : String(n);
   $("#tbCartN").classList.toggle("hidden", !n);
