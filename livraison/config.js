@@ -147,7 +147,7 @@ window.CONFIG = {
       gros: 25      // 15 à 30 kg (voiture) — remplacé par fixedCarFromHome quand il existe
     },
     express: 20,        // en moins d'une heure
-    pickupPoint: 0,     // retrait à la poste / Super-Pharm / point relais : plus de supplément fixe (l'attente au-delà de 10 min est payée au temps, voir waiting)
+    pickupPoint: 5,     // « Récupérer un colis » (poste, Super-Pharm, point relais, colis prêt) : +5 ₪, soit 30 ₪ dans Netanya (règle du patron, 04/11) ; l'attente au-delà de 10 min reste payée au temps
     purchase: 5,        // « J'achète pour vous » : 5 ₪ pour l'arrêt et l'achat, toujours (même sans queue, même un paquet de cigarettes) ;
     purchaseMinutes: 5, // 5 min sur place comprises, puis 1 ₪ la minute (attente habituelle). En ligne : settings.purchase_min
     // Vrai achat en boutique (vêtements, sandwich pas commandé, pharmacie, boulangerie, cadeaux, bébé, animaux, maison…) :
