@@ -370,6 +370,22 @@ function setMapFull(on) {
 }
 $("#trkFull").addEventListener("click", () => setMapFull(!document.body.classList.contains("map-full")));
 $("#trkCard").addEventListener("click", e => { if (e.target.closest("[data-trk-chat]")) { if (document.body.classList.contains("map-full")) setMapFull(false); $("#chatBtn").click(); } });
+// Boutique HOP! : le livreur fait les courses → en direct « 🛒 7/10 dans le panier », et ce qui manque (retiré, pas payé)
+function renderBuyLive(o) {
+  const box = $("#buyLive");
+  if (!box) return;
+  const on = !!(o && o.hop_buy && Array.isArray(o.items) && ["nouvelle", "confirmee", "recuperee"].includes(o.status));
+  box.classList.toggle("hidden", !on);
+  if (!on) { box.innerHTML = ""; return; }
+  const t2 = Store.buyTotals(o), done = Store.buyDone(o) || o.status === "recuperee";
+  // (le nom de la boutique, avec « HOP! », reste de gauche à droite dans une phrase en hébreu)
+  const withName = key => UI.esc(t(key, { name: "\u0001" })).replace("\u0001", `<bdi>${UI.esc(UI.bi(o.shop_name || "", I18N.lang))}</bdi>`);
+  const want = t2.n - t2.miss.length, pct = want ? Math.round(t2.ok / want * 100) : 0;
+  const miss = t2.miss.length ? `<small class="bl-miss">${UI.esc(t("hbMissing", { list: t2.miss.map(i => UI.bi(i.name, I18N.lang)).join(", ") }))}</small>` : "";
+  box.innerHTML = done ? `<b>${UI.esc(t("hbDone", { total: UI.money(t2.total) }))}</b>${miss}`
+    : o.status === "nouvelle" || (!t2.ok && !t2.miss.length) ? `<small>${withName("hbLiveWait")}</small>`
+    : `<b dir="auto">${UI.esc(t("hbLive", { n: t2.ok, total: want }))}</b><div class="bl-bar"><i style="width:${pct}%"></i></div><small>${withName("hbLiveSub")}</small>${miss}`;
+}
 function render() {
   const o = order;
   I18N.apply();
@@ -390,6 +406,7 @@ function render() {
   renderTip(o);
   renderShopRate(o);
   renderDoneFlow(o);
+  renderBuyLive(o);
   applyDayNight();
 
   const step = FLOW.indexOf(o.status);
@@ -465,6 +482,7 @@ function render() {
       ${o.courier_bit || o.courier_phone ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(o.courier_bit || o.courier_phone).replace(/\D/g, ""))}">${UI.esc(t("bpCopy"))}</button></div>${sentBtn(o.wait_due, String(o.courier_name || "").split(" ")[0], "wait")}` : ""}</div>`
       : o.wait_status === "recu" ? `<p class="promo-msg ok">${UI.esc(t("trWaitDueOk"))}</p>` : ""}
     ${o.payment_status === "paye" ? `<p class="promo-msg ok">${UI.esc(t("trPaid"))}</p>${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${UI.esc(t("receiptLink"))}</a>` : ""}`
+      : o.payment_method === "bit" && o.hop_buy && !Store.buyDone(o) && o.status !== "recuperee" ? `<p class="notice">${UI.esc(t("hbPayAfter"))}</p>`
       : o.payment_method === "bit"
         ? `${o.prepaid_required && !o.direct_pay ? `<p class="promo-msg bad" style="margin-top:6px">${UI.esc(t("trPrepay"))}</p>` : ""}${UI.bitPay(o)}`
         : `<div class="cash-box"><p class="cash-total">${UI.esc(t("trCashPay", { total: UI.money(Number(o.price) + Number(o.cash_goods || 0)) }))}</p>

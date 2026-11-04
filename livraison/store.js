@@ -355,6 +355,7 @@ async function createOrder(order) {
         phone_ready_at: ready.toISOString(), ready_at: ready.toISOString(),
         pickup_at: new Date(Math.max(new Date(order.pickup_at).getTime(), ready.getTime())).toISOString() });
     } else Object.assign(order, { phone_order: false, pickup_name: null, phone_ref: null, phone_ready_at: null, phone_paid: false });
+    hopBuyOrder(order, shop, settings);
     order.id = uuid();
     order.created_at = new Date().toISOString();
     order.commission = 0;
@@ -367,6 +368,91 @@ async function createOrder(order) {
   tokens.push(order.token);
   writeJSON(LS.tokens, tokens);
   return order;
+}
+
+// --- Boutiques HOP! (CONFIG.hopShops) : c'est le livreur HOP! qui fait les courses -------------------------
+// Même règle que la base (orders_zzz_hop_buy) : la commande devient un achat (service « achat », pas de commerce à
+// confirmer), 6 articles compris puis +1 ₪ pour HOP! par article en plus (24 au plus), place prise dans le top case.
+const isHopShop = s => !!(s && (CONFIG.hopShops || []).includes(String(s.code || "").toUpperCase()));
+// Place d'un article dans le top case, d'après sa taille écrite dans le nom (« 6 × 1,5 L » → 8, « 500 g » → 1) : 1 à 8
+function hopPlace(name) {
+  const m = String(name || "").match(/(?:(\d+)\s*[×x]\s*)?(\d+(?:[.,]\d+)?)\s*(kg|ml|l|g)(?![a-zà-ÿ])/i);
+  let q = 0.3;
+  if (m) { const v = parseFloat(m[2].replace(",", ".")), u = m[3].toLowerCase(); q = (u === "ml" || u === "g" ? v / 1000 : v) * (parseInt(m[1], 10) || 1); }
+  return Math.min(8, Math.max(1, Math.ceil(q * 0.9)));
+}
+const itemsPlaces = items => (Array.isArray(items) ? items : []).reduce((n, i) => n + (Number(i.qty) || 1) * hopPlace(i.name), 0);
+function hopBuyOrder(order, shop, settings) {
+  order.hop_buy = !!(shop && isHopShop(shop) && Array.isArray(order.items) && order.items.length);
+  order.buy_check = null; order.taken_at = null;
+  if (!order.hop_buy) { order.buy_places = null; return; }
+  const PI = CONFIG.pricing.purchaseItems || {}, units = order.items.reduce((n, i) => n + (Number(i.qty) || 1), 0);
+  const ph = (localCatalog(shop.id).cat.products || []);
+  order.items = order.items.map(i => { const p = ph.find(x => x.id === i.id); return Object.assign({}, i, { photo: p && p.photo ? p.photo : null }); });
+  Object.assign(order, {
+    service: "achat", shop_status: null, prep_minutes: null, ready_at: null, shop_share: 0, fits_topcase: true,
+    purchase_min: CONFIG.pricing.purchaseMinutes || 5, goods_prepay: false, goods_budget: 0, goods_after: false, goods_self_pay: false,
+    goods_pay: null, buy_places: itemsPlaces(order.items),
+    hop_share: Number(order.hop_share || 0) + Math.max(0, Math.min(units, PI.max || 24) - (PI.hopIncluded || 6)) * (PI.extraHop || 1)
+  });
+  if (order.payment_method === "cash") {
+    const goods = Number(order.items_total || 0), note = [20, 50, 100, 200, 500].includes(Number(order.cash_note)) ? Number(order.cash_note) : 0;
+    if (note && note < Number(order.price) + goods) throw new Error("cash_note_small");
+    Object.assign(order, { cash_goods: goods, cash_note: note, cash_change: note ? note - Number(order.price) - goods : 0, cash_shop_after: false });
+    order.cash_need = order.cash_change;
+  } else Object.assign(order, { cash_goods: 0, cash_change: 0, cash_need: 0, cash_shop_after: false });
+}
+// La liste à cocher du livreur : { items: { <article>: "ok" | "manque" }, done } ; un article manquant est retiré
+// (prix des articles recalculé, le client est prévenu)
+const buyState = o => (o && o.buy_check && o.buy_check.items) || {};
+const buyDone = o => !!(o && o.buy_check && o.buy_check.done);
+function buyTotals(o) {
+  const st = buyState(o), items = Array.isArray(o.items) ? o.items : [];
+  const left = items.filter(i => st[i.id] !== "manque");
+  return { n: items.length, ok: items.filter(i => st[i.id] === "ok").length, miss: items.filter(i => st[i.id] === "manque"),
+    total: left.reduce((s, i) => s + Number(i.price) * (Number(i.qty) || 1), 0), left };
+}
+async function courierBuyCheck(id, item, state) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_buy_check", { method: "POST", body: { p_id: id, p_item: item, p_state: state } });
+  const all = localOrders(), o = all.find(x => x.id === id && x.courier_id === myId() && x.status === "confirmee" && x.hop_buy);
+  if (!o) return false;
+  const bc = Object.assign({ items: {}, done: false }, o.buy_check || {});
+  bc.items = Object.assign({}, bc.items);
+  const wasMiss = bc.items[item] === "manque";
+  if (state === "done") {
+    const t = buyTotals(Object.assign({}, o, { buy_check: bc }));
+    if (t.ok + t.miss.length < t.n || !t.left.length) return false;
+    bc.done = true;
+  } else {
+    if (!o.items.some(i => i.id === item)) return false;
+    if (state === "ok" || state === "manque") bc.items[item] = state; else delete bc.items[item];
+    bc.done = false;
+  }
+  o.buy_check = bc;
+  const t = buyTotals(o);
+  o.items_total = t.total;
+  o.shop_order = t.left.map(i => `${i.qty} × ${i.name}`).join("\n");
+  if (o.payment_method === "cash") {
+    o.cash_goods = t.total;
+    o.cash_change = Number(o.cash_note) > 0 ? Number(o.cash_note) - Number(o.price) - t.total : 0;
+    o.cash_need = o.cash_change;
+  }
+  if (state === "done" && o.payment_method === "cash" && t.total > 0)
+    Object.assign(o, { cash_shop_at: new Date().toISOString(), cash_shop_amount: t.total, cash_courier_mode: "avance", cash_courier_at: new Date().toISOString() });
+  // Le client est prévenu dans sa langue (mêmes messages que la base)
+  const he = o.lang === "he", it0 = o.items.find(i => i.id === item);
+  const it = it0 && Object.assign({}, it0, { name: window.UI ? UI.bi(it0.name, he ? "he" : "fr") : it0.name }), say = body => chatLocalAdd({ thread: "o:" + o.id, author: "admin", author_name: "HOP!", image: null, body });
+  if (it && state === "manque" && !wasMiss) say(he ? `❌ ${it.name}: חסר בחנות, הוסר מההזמנה. לא תשלמו עליו.` : `❌ ${it.name} : manquant au magasin, retiré de votre commande. Vous ne le payez pas.`);
+  else if (it && wasMiss && state !== "manque") say(he ? `✅ ${it.name}: נמצא בסוף, חזר להזמנה.` : `✅ ${it.name} : finalement trouvé, remis dans votre commande.`);
+  if (state === "done") {
+    const tot = Number(o.price) + t.total, ph = o.courier_bit || o.courier_phone;
+    say(o.payment_method === "bit" && o.payment_status !== "paye" && ph
+      ? (he ? `💳 הקניות מוכנות! שלחו עכשיו ${tot} ₪ בביט למספר ${ph} (מוצרים ${t.total} ₪ + משלוח ${o.price} ₪), ואז לגעת ב"שילמתי".`
+        : `💳 Vos courses sont prêtes ! Envoyez maintenant ${tot} ₪ par Bit au ${ph} (articles ${t.total} ₪ + livraison ${o.price} ₪), puis touchez « J'ai payé ».`)
+      : (he ? "✅ הקניות מוכנות והשליח בדרך אליכם." : "✅ Vos courses sont prêtes, votre livreur arrive."));
+  }
+  saveLocalOrders(all);
+  return true;
 }
 
 async function myOrders() {
@@ -868,7 +954,7 @@ async function courierFields(c, o) {
   // Taux réseau seulement si le patron a accordé les avantages réseau à ce livreur
   const network = !!o.referrer_id && o.referrer_id === c.id && !!c.network_perks;
   return {
-    status: "confirmee", courier_id: c.id, courier_name: c.name, courier_phone: c.phone, network,
+    status: "confirmee", courier_id: c.id, courier_name: c.name, courier_phone: c.phone, network, taken_at: new Date().toISOString(),
     courier_bit: c.bit_phone || c.phone, commission: commissionFor(courseValue(o), settings, network)   // patron compris : ses courses paient la commission comme un livreur
   };
 }
@@ -971,6 +1057,7 @@ const bagsOf = o => Math.max(1, Number(o.bags_count) || 1);
 // Deux courses d'un coup : départs au même endroit ou chez deux commerces voisins (shopsKm), arrivées proches
 function pairOk(a, b) {
   const G = CONFIG.grouping || { dropKm: 1.2, pickupKm: 0.6, shopsKm: 1.5, minutes: 15, maxBags: 4 };
+  if (a && b && a.hop_buy && b.hop_buy) return hopPair(a, b);
   return !!a && !!b && a.id !== b.id && groupable(a) && groupable(b) && !(a.size === "moyen" && b.size === "moyen")
     && bagsOf(a) + bagsOf(b) <= (G.maxBags || 4)
     && kmBetween(+a.pickup_lat, +a.pickup_lon, +b.pickup_lat, +b.pickup_lon) <= (G.shopsKm || G.pickupKm)
@@ -982,6 +1069,7 @@ function pairOk(a, b) {
 // n'est pas encore récupérée, ou à 1 km de détour max sur la route vers son arrivée si elle l'est (prête dans 10 min).
 // Renvoie la course de référence (pour l'expliquer au livreur), ou null.
 function onWay(pos, mineList, o) {
+  if (o && o.hop_buy) return hopJoin(mineList, o);
   const G = CONFIG.grouping || { dropKm: 1.2, pickupKm: 0.6, minutes: 15 };
   const act = (mineList || []).filter(x => ["confirmee", "recuperee"].includes(x.status) && x.id !== o.id);
   if (!act.length || act.length >= 3 || !groupable(o) || act.some(x => !groupable(x))) return null;
@@ -993,6 +1081,41 @@ function onWay(pos, mineList, o) {
     : !!pos && readySoon(o)
       && km(pos.lat, pos.lon, o.pickup_lat, o.pickup_lon) + km(o.pickup_lat, o.pickup_lon, x.dropoff_lat, x.dropoff_lon)
          <= km(pos.lat, pos.lon, x.dropoff_lat, x.dropoff_lon) + (G.detourKm || 1))) || null;
+}
+// Boutique HOP! : deux commandes du même magasin d'un coup (place dans le top case, 15 min d'écart au plus)
+const PLACES = () => (CONFIG.pricing.purchaseItems || {}).topcase || 30;
+const placesOf = o => Number(o.buy_places) || itemsPlaces(o.items) || 1;
+function hopPair(a, b) {
+  const G = CONFIG.grouping || {};
+  return !!a && !!b && a.id !== b.id && a.hop_buy && b.hop_buy && a.shop_id === b.shop_id
+    && placesOf(a) + placesOf(b) <= PLACES() && bagsOf(a) + bagsOf(b) <= (G.maxBags || 4)
+    && Math.abs(new Date(a.pickup_at) - new Date(b.pickup_at)) <= (G.minutes || 15) * 60000;
+}
+// Le livreur fait déjà les courses dans cette boutique HOP! : une commande du même magasin en plus, 3 au plus en tout,
+// s'il reste de la place dans le top case et si sa plus ancienne course en cours a été acceptée il y a moins de 15 min.
+// Renvoie sa course dans ce magasin (la référence), ou null ; hopJoinWhy dit pourquoi pas (« full », « late », « max »).
+const takenAt = x => new Date(x.taken_at || x.eta_at || x.assigned_at || x.created_at).getTime();
+function hopJoinWhy(mineList, o) {
+  if (!o || !o.hop_buy) return "none";
+  const G = CONFIG.grouping || {};
+  const act = (mineList || []).filter(x => ["confirmee", "recuperee"].includes(x.status) && x.id !== o.id);
+  const ref = act.find(x => x.hop_buy && x.shop_id === o.shop_id && x.status === "confirmee");
+  if (!ref) return "none";
+  if (act.length + 1 > (G.maxOrders || 3)) return "max";
+  const places = placesOf(o) + act.filter(x => x.hop_buy).reduce((n, x) => n + placesOf(x), 0);
+  if (places > PLACES() || bagsOf(o) + act.reduce((n, x) => n + bagsOf(x), 0) > (G.maxBags || 4)) return "full";
+  if (Date.now() - Math.min(...act.map(takenAt)) > (CONFIG.hopJoinMinutes || 15) * 60000) return "late";
+  return null;
+}
+function hopJoin(mineList, o) {
+  if (hopJoinWhy(mineList, o)) return null;
+  return (mineList || []).find(x => x.hop_buy && x.shop_id === o.shop_id && x.status === "confirmee" && x.id !== o.id) || null;
+}
+// Sacs des courses HOP! d'un livreur dans un même magasin : « Sac 1, Sac 2, Sac 3 » (ordre d'acceptation)
+function hopBags(mineList, o) {
+  const same = (mineList || []).filter(x => x.hop_buy && x.shop_id === o.shop_id && ["confirmee", "recuperee"].includes(x.status))
+    .sort((a, b) => takenAt(a) - takenAt(b) || String(a.ref).localeCompare(String(b.ref)));
+  return { n: same.findIndex(x => x.id === o.id) + 1, of: same.length };
 }
 // À prendre en route seulement si elle est prête (ou le sera dans 10 min) : départ dans 10 min au plus (règle de la base),
 // et pour une commande de commerce, marquée « prête » ou prête dans 10 min (pas d'attente au comptoir)
@@ -1022,6 +1145,9 @@ async function acceptOrder(id, eta) {
     const act = all.filter(x => x.courier_id === c.id && ["confirmee", "recuperee"].includes(x.status));
     if (act.length >= ((CONFIG.grouping || {}).maxOrders || 3)) throw new Error("max3");
     if (act.some(x => x.status === "recuperee") && !onWay(c.lat != null ? { lat: c.lat, lon: c.lon } : null, act, o)) throw new Error("busy");
+    // Boutique HOP! : rejoindre ses courses en cours dans le même magasin, seulement si ça tient (place, 15 min)
+    const why = hopJoinWhy(act, o);
+    if (why && why !== "none") throw new Error("hop_join_" + why);
   }
   if (c.role === "coursier" && !onlineNow(c)) throw new Error("offline");
   const was = o.status;
@@ -1140,6 +1266,8 @@ async function courierAction(id, action) {
     o.arrived_at = new Date().toISOString();
     chatLocalAdd({ thread: "o:" + o.id, author: "system", body: "status:arrivee" });
   } else if (action === "recuperee" && o.status === "confirmee") {
+    // Boutique HOP! : chaque article coché ou « manquant », puis « Tout est dans le panier », avant de partir
+    if (o.hop_buy && !buyDone(o) && !(cr && cr.role === "admin")) throw new Error("buy_check");
     // Même règle qu'en ligne : en paiement direct, payé avant de récupérer la commande
     if (!freeOf() && o.direct_pay && o.paid_to === "livreur" && o.payment_status !== "paye" && cr && cr.role !== "admin") throw new Error("payment_required_pickup");
     // HOP! Pro : c'est le commerce qui paie l'attente (sa part de la livraison augmente)
@@ -2516,7 +2644,7 @@ window.Store = {
   getSettings, saveSettings,
   welcomeUsed, deviceId,
   adminGoodsLink, adminGoodsPay, adminGoodsChoice,
-  createOrder, myOrders, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
+  createOrder, myOrders, isHopShop, hopPlace, itemsPlaces, hopJoin, hopJoinWhy, hopBags, buyState, buyDone, buyTotals, courierBuyCheck, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,

@@ -3869,7 +3869,8 @@ form.wiz .fs-service .choice span b { font-size: 15px; line-height: 1.2; }
 form.wiz .fs-when .choices.compact .choice span { padding: 9px 6px; flex-direction: row; justify-content: center; gap: 6px; }
 form.wiz .fs-when .choices.compact .choice span i { font-size: 17px; margin: 0; }
 form.wiz .saved-addrs .addr-chip.add, form.wiz .saved-addrs > small { display: none; }
-form.wiz .saved-addrs:not(:has(.addr-chip:not(.add))) { display: none !important; }
+form.wiz .saved-addrs:not([data-for="to"]):not(:has(.addr-chip:not(.add))) { display: none !important; }
+form.wiz .saved-addrs[data-for="to"]:not(:has(.sa-card, .sa-link[data-addr])) { display: none !important; }
 @media (max-width: 600px) {
   form.wiz .fs-from .fields, form.wiz .fs-to .fields { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
 }
@@ -4268,3 +4269,73 @@ form.wiz .fs-when .choices.compact .choice span i, form.wiz .fs-when .choices.co
   .mobile-bar.show ~ .wa-fab, .mobile-bar.show ~ .eta-bubble { bottom: calc(var(--mb-h, 76px) + 8px); }
   body.cg-cart-on .wa-fab { bottom: calc(var(--mb-h, 86px) + 84px) !important; }
 }
+
+/* ===== Boutiques HOP! : le livreur fait les courses (liste à cocher, un sac par client) ===== */
+#catalogBox .hop-meter { margin: 10px 0 8px; }
+.hb-list { --hb: #FF6A13; --hb-soft: #FFF0E6; margin: 10px -6px; border: 2px solid var(--hb); border-radius: 16px; padding: 8px; background: var(--panel); }
+.hb-list.hb-c2 { --hb: #175CD3; --hb-soft: #E0F0FF; }
+.hb-list.hb-c3 { --hb: #12B76A; --hb-soft: #DCFAE6; }
+.hb-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hb-bag { background: var(--hb); color: #fff; border-radius: 999px; padding: 4px 12px; font-size: 16px; white-space: nowrap; }
+.hb-head span { flex: 1 1 auto; min-width: 0; color: var(--muted); font-size: 14px; }
+.hb-head em { margin-inline-start: auto; font-style: normal; font-weight: 800; font-size: 18px; color: var(--hb); }
+.hb-tip { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
+.hb-list ul { list-style: none; margin: 8px 0 0; display: grid; gap: 6px; }
+.hb-it { display: grid; grid-template-columns: 34px 38px minmax(0, 1fr) auto; grid-template-areas: "box pic name qty" "box pic miss miss"; align-items: center; gap: 4px 7px;
+  padding: 6px 7px; border-radius: 12px; background: var(--bg-2); }
+.hb-it.ok { background: var(--hb-soft); }
+.hb-it.manque { opacity: .62; }
+.hb-it.manque .hb-name b { text-decoration: line-through; }
+.hb-box { grid-area: box; width: 34px; height: 34px; border-radius: 10px; border: 2px solid var(--hb); background: var(--panel); color: #fff; font-size: 22px; font-weight: 800; line-height: 1; }
+.hb-it.ok .hb-box { background: var(--hb); }
+.hb-pic { grid-area: pic; width: 38px; height: 38px; border-radius: 10px; object-fit: cover; background: #fff; display: grid; place-items: center; font-size: 22px; }
+.hb-name { grid-area: name; display: grid; min-width: 0; }
+.hb-name b { font-size: 15px; line-height: 1.25; overflow-wrap: anywhere; }
+.hb-name small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; text-align: left; }
+.hb-qty { grid-area: qty; font-weight: 800; font-size: 18px; text-align: end; }
+.hb-miss { grid-area: miss; justify-self: start; border: 1px solid var(--red); color: var(--red); background: transparent; border-radius: 999px; padding: 3px 9px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+.hb-miss.on { background: var(--red-soft); }
+.hb-miss-note { margin: 8px 0 0; font-size: 13px; color: var(--red); }
+.hb-all { margin-top: 10px; }
+.hb-all:disabled { opacity: .45; }
+.hb-left { display: block; text-align: center; margin-top: 4px; color: var(--muted); font-size: 13px; }
+.hb-done { margin: 10px 0 0; padding: 8px 10px; border-radius: 12px; background: var(--green-soft); color: var(--green-ink); font-weight: 700; text-align: center; }
+/* Suivi du client : « 🛒 7/10 dans le panier » en direct, et ce qui manque */
+.buy-live { margin: 10px 0 4px; padding: 10px 12px; border-radius: 14px; background: var(--brand-soft); color: var(--ink); display: grid; gap: 4px; }
+.buy-live b { font-size: 16px; }
+.buy-live .bl-bar { height: 6px; border-radius: 999px; background: rgba(255, 106, 19, .2); overflow: hidden; }
+.buy-live .bl-bar i { display: block; height: 100%; background: #FF6A13; border-radius: 999px; }
+.buy-live small { color: var(--muted); line-height: 1.35; }
+.buy-live .bl-miss { color: var(--red); }
+html.d2:not(.d2-day) .buy-live { background: #13233F; color: #fff; }
+html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
+
+/* ===== « Où livrer ? » : Maison en grande carte, Travail plus petit, les autres adresses repliées (jamais un commerce) ===== */
+.saved-addrs[data-for="to"] { display: grid; gap: 8px; }
+.sa-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; width: 100%; text-align: start;
+  padding: 14px 16px; border-radius: 16px; border: 2px solid var(--border); background: var(--panel); color: var(--ink); transition: border-color .15s, background .15s; }
+.sa-card > i { font-style: normal; font-size: 26px; width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; background: var(--bg-2); }
+.sa-card span { display: grid; gap: 2px; min-width: 0; }
+.sa-card b { font-size: 17px; line-height: 1.2; }
+.sa-card small { color: var(--muted); font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.sa-tick { font-style: normal; width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--border); display: grid; place-items: center; font-size: 14px; font-weight: 800; color: transparent; }
+.sa-card.on { border-color: var(--brand); background: var(--brand-soft); }
+.sa-card.on .sa-tick { background: var(--brand); border-color: var(--brand); color: #fff; }
+.sa-card.sa-work { padding: 10px 14px; gap: 10px; }
+.sa-card.sa-work > i { font-size: 20px; width: 36px; height: 36px; border-radius: 11px; }
+.sa-card.sa-work b { font-size: 15px; }
+.sa-adds { display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.sa-add { border: 0; background: none; padding: 2px 0; color: var(--brand); font-size: 13px; font-weight: 700; }
+.sa-more { font-size: 13px; }
+.sa-more summary { cursor: pointer; list-style: none; color: var(--muted); font-weight: 700; padding: 4px 0; }
+.sa-more summary::-webkit-details-marker { display: none; }
+.sa-more summary::after { content: " ›"; display: inline-block; transition: transform .15s; }
+.sa-more[open] summary::after { transform: rotate(90deg); }
+[dir="rtl"] .sa-more summary::after { content: " ‹"; }
+[dir="rtl"] .sa-more[open] summary::after { transform: rotate(-90deg); }
+.sa-more summary span { font-weight: 600; }
+.sa-list { display: grid; gap: 2px; padding: 2px 0 4px; }
+.sa-link { border: 0; background: none; text-align: start; padding: 6px 2px; color: var(--ink); font-size: 14px; line-height: 1.35; overflow-wrap: anywhere; border-radius: 8px; }
+.sa-link.on { color: var(--brand); font-weight: 700; }
+.sa-link.on::before { content: "✓ "; }
+.sa-link.sa-new { color: var(--brand); font-weight: 700; }

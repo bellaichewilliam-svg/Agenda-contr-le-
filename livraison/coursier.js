@@ -379,6 +379,10 @@ function moneyBox(o) {
   if (o.shop_sent && o.payer === "moi") return box(false, `💰 À encaisser au commerce : ${UI.money(o.price)} ${how}`,
     `${UI.esc(o.shop_name || "Le commerce")} vous paie en vous donnant le colis.<br>🙋 Le client ne paie rien : tout est déjà payé au magasin`);
   if (o.shop_sent) return box(false, `💰 À encaisser chez le client : ${UI.money(o.price)} ${how}`, `${goodsPaid}. Seulement la livraison, à l'arrivée`);
+  if (o.hop_buy && o.payment_method !== "cash") return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`,
+    `Articles ${UI.money(o.items_total)} + livraison ${UI.money(o.price)}, sur votre numéro <b>après les courses</b>, avant de partir du magasin.<br>🛒 Vous avancez les articles en caisse`);
+  if (o.hop_buy) return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`,
+    `${UI.money(total)} = articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)} · 🛒 vous avancez les articles en caisse`);
   if (o.payment_method === "cash") return box(false, `💰 À encaisser chez le client : ${UI.money(total)} en espèces`,
     Number(o.cash_goods) > 0 ? `${UI.money(total)} = articles ${UI.money(o.cash_goods)} + livraison ${UI.money(o.price)} · les articles ${o.cash_shop_after ? `sont à rapporter ensuite à ${UI.esc(owedTo(o))}` : "se paient au commerce au départ"}` : "À la livraison");
   return box(false, `💰 À recevoir par Bit : ${UI.money(total)}`, [`Sur votre numéro, avant de récupérer la commande`, goodsSelf(o)].filter(Boolean).join("<br>"));
@@ -571,7 +575,7 @@ async function load() {
   // Toute course disponible encore jamais montrée s'ouvre en fenêtre (dès la 1re connexion aussi)
   // Hors ligne : ni fenêtre, ni son (la base ne montre d'ailleurs plus les courses)
   // Déjà une course récupérée : seulement une course vraiment sur le chemin (3 au plus en tout)
-  if (!locked() && isOnline() && mine().length < MAX_ORDERS) fresh.forEach(o => { if (!busy() || Store.onWay(lastPos, mine(), o)) offerQueue.push(o.id); });
+  if (!locked() && isOnline() && mine().length < MAX_ORDERS) fresh.forEach(o => { if ((!busy() || Store.onWay(lastPos, mine(), o)) && !(o.hop_buy && HOP_WHY[Store.hopJoinWhy(mine(), o)])) offerQueue.push(o.id); });
   showNextOffer();
   if (!firstLoad && fresh.length && isOnline()) {
     if (!offerShown) beep();
@@ -778,7 +782,8 @@ function card(o, kind) {
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
   if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
-  if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
+  if (o.hop_buy) extra += hopBuyLine(o, kind);
+  else if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
     ? `💵 <b>Espèces : vous payez le magasin, ${UI.money(o.goods_budget)} au plus</b> (vous avez annoncé avoir les espèces). 🧾 Photo du ticket, puis le client vous paie la course + le ticket exact à la livraison.`
     : o.goods_after ? `🧾 <b>Vous avancez les articles : ${UI.money(o.goods_budget)} au plus.</b> Le client paie d'abord la course (« 📱 Payé par Bit » ✅), puis vous achetez. Plus cher que ${UI.money(o.goods_budget)} ? Appelez-le avant de payer. 🧾 Photo du ticket : le client vous envoie le montant exact par Bit, touchez « Ticket reçu », puis livrez.`
     : o.goods_prepay ? `💳 <b>Articles payés d'avance : ${UI.money(o.goods_budget)} au plus</b>, avec la course. N'achetez qu'après « 📱 Payé par Bit » ✅ et payez le magasin avec cet argent. Plus cher ? Le client vous envoie d'abord le complément. Puis 🧾 photo du ticket et la différence rendue par Bit avant « Livré ».`
@@ -806,7 +811,8 @@ function card(o, kind) {
     : o.client_paid_at ? `<br><b>📲 Le client dit avoir payé : vérifiez votre Bit / PayBox, puis touchez « 📱 Payé par Bit ».</b>`
     : ` · à recevoir <b>avant de récupérer la commande</b>`}</div>`;
   // Course acceptée, Bit pas encore reçu : on demande tout de suite le paiement au client (SMS ou WhatsApp, prêts à envoyer)
-  if (kind === "mine" && o.status === "confirmee" && o.direct_pay && !hopPaid && o.payment_method === "bit" && o.payment_status !== "paye" && !o.client_paid_at && !o.shop_sent && !o.shop_pays && o.contact_phone) {
+  if (kind === "mine" && o.status === "confirmee" && o.direct_pay && !hopPaid && o.payment_method === "bit" && o.payment_status !== "paye" && !o.client_paid_at && !o.shop_sent && !o.shop_pays && o.contact_phone
+      && (!o.hop_buy || Store.buyDone(o))) {
     const amount = UI.money(UI.payTotal(o)), bit = o.courier_bit || me.bit_phone || me.phone || "";
     const msg = I18N.forLang(o.lang || "fr", "payAskMsg", { name: String(me.name || o.courier_name || "").split(" ")[0], ref: o.ref, total: amount, phone: bit, url: UI.trackUrl(o) });
     extra += `<div class="pay-ask"><b>⏳ Le client doit vous payer ${amount} par Bit avant que vous partiez récupérer</b>
@@ -821,6 +827,7 @@ function card(o, kind) {
     actions = locked() ? `<span class="pill st-annulee">💳 Rechargez votre crédit HOP pour accepter</span>`
       : mine().length >= MAX_ORDERS ? `<span class="pill st-annulee">🔒 ${MAX_ORDERS} courses au plus en même temps : livrez d'abord</span>`
       : busy() && !Store.onWay(lastPos, mine(), o) ? `<span class="pill st-annulee">🔒 Livrez d'abord votre course en cours</span>`
+      : o.hop_buy && HOP_WHY[Store.hopJoinWhy(mine(), o)] ? `<span class="pill st-annulee">🔒 ${HOP_WHY[Store.hopJoinWhy(mine(), o)]}</span>`
       : `<button class="btn btn-primary" data-accept="${UI.esc(o.id)}">✅ J'accepte cette course</button><button class="btn" data-decline="${UI.esc(o.id)}">✖ Refuser</button>`;
   } else {
     // Au départ : « Je suis arrivé » lance le compteur d'attente (payée au-delà des minutes offertes)
@@ -831,7 +838,9 @@ function card(o, kind) {
         ? (o.arrived_at
             ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Store.freeMinOf(o, settings) - w.mins)} min ${o.purchase_min ? "d'achats comprises" : "encore offertes"}`}</p>${waitAnn(o)}`
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
-          + `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 Colis récupéré</button><button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
+          + (o.hop_buy && !Store.buyDone(o) ? `<button class="btn btn-sm" type="button" disabled title="Cochez d'abord chaque article">🛵 Courses récupérées</button>`
+            : `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 ${o.hop_buy ? "Courses récupérées" : "Colis récupéré"}</button>`)
+          + `<button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : o.wait_status === "a_payer"
           ? `<p class="wait-live">⏱️ Supplément d'attente : <b>${UI.money(o.wait_due)}</b> à encaisser par Bit / PayBox avant de livrer (la course est déjà payée)</p>
              <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Supplément reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`
@@ -929,6 +938,9 @@ function readyBanner(o, etaToPickup) {
 // Espèces, dans le bloc du point en cours : payer le commerce au départ, encaisser le client à l'arrivée
 function cashStop(o, which, now) {
   if (o.payment_method !== "cash" || !now) return "";
+  // Boutique HOP! : vous payez les articles en caisse, le client vous rembourse tout à la livraison
+  if (o.hop_buy && which === "pickup") return o.cash_shop_at ? `<div class="cash-stop ok">🧾 Articles payés en caisse : <b>${UI.money(o.cash_shop_amount != null ? o.cash_shop_amount : o.cash_goods)}</b></div>`
+    : `<div class="cash-stop">🛒 Vous payez les articles en caisse (≈ <b>${UI.money(o.cash_goods)}</b>)<small>à la livraison, le client vous rembourse tout en espèces : <b>${UI.money(cashTotal(o))}</b> (articles + livraison)</small></div>`;
   // (achat sans partenaire : le livreur paie le magasin, au plus le maximum prévu, puis photo du ticket)
   if (which === "pickup" && o.goods_prepay) return o.goods_spent != null ? `<div class="cash-stop ok">🧾 Ticket <b>${UI.money(o.goods_spent)}</b> payé au magasin</div>`
     : `<div class="cash-stop">💵 Payez le magasin en espèces : <b>${UI.money(o.goods_budget)}</b> au plus<small>puis 🧾 photo du ticket ; le client vous rembourse à la livraison</small></div>`;
@@ -1031,6 +1043,52 @@ function pickupRank(o) {
   return { k: Math.min(g.length, done + 1), n: g.length, group: g, current: g.find(x => x.status === "confirmee") };
 }
 // Achat payé d'avance : 🧾 ticket du magasin (photo + montant), puis la différence rendue (ou le complément reçu)
+// --- Boutique HOP! : le livreur fait les courses ------------------------------------------------------------
+// Ce qu'il voit dans la fiche (et dans les courses à prendre) : combien d'articles, comment le client paie
+function hopBuyLine(o, kind) {
+  const n = (o.items || []).reduce((s, i) => s + (Number(i.qty) || 1), 0);
+  return `<div class="small hb-line">🛒 <b>Vous faites les courses</b> chez ${UI.esc(o.shop_name || "le magasin")} : ${n} article(s), ≈ ${UI.money(o.items_total)}`
+    + `${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}`
+    + `<br>${o.payment_method === "cash" ? "💵 Vous avancez les articles en caisse ; le client vous rembourse tout en espèces à la livraison"
+      : "📱 Vous avancez les articles en caisse ; le client vous paie articles + livraison par Bit juste après les courses"}`
+    + `${kind === "pool" ? `<br>📦 Place dans le top case : ${Number(o.buy_places) || 1} / ${(CONFIG.pricing.purchaseItems || {}).topcase || 30}` : ""}</div>`;
+}
+// Liste à cocher, une par client (Sac 1, Sac 2, Sac 3 : chacun sa couleur) ; « Manquant » retire l'article
+function buyBlock(o) {
+  if (!o.hop_buy || o.status !== "confirmee" || !Array.isArray(o.items)) return "";
+  const st = Store.buyState(o), done = Store.buyDone(o), t = Store.buyTotals(o), b = Store.hopBags(mine(), o);
+  const all = t.ok + t.miss.length === t.n, id = UI.esc(o.id);
+  const rows = o.items.map(i => {
+    const s = st[i.id] || "", pic = UI.safeImg(i.photo), iid = UI.esc(i.id);
+    return `<li class="hb-it${s ? " " + s : ""}">
+      <button type="button" class="hb-box" data-buy="${id}" data-item="${iid}" data-state="${s === "ok" ? "" : "ok"}" aria-pressed="${s === "ok"}" aria-label="Dans le panier">${s === "ok" ? "✓" : ""}</button>
+      ${pic ? `<img class="hb-pic" src="${pic}"${UI.imgCors(pic)} alt="" loading="lazy" />` : `<span class="hb-pic hb-nopic">🛒</span>`}
+      <span class="hb-name"><b>${UI.esc(UI.bi(i.name, "fr"))}</b>${UI.bi(i.name, "he") !== UI.bi(i.name, "fr") ? `<small dir="rtl"><bdi>${UI.esc(UI.bi(i.name, "he"))}</bdi></small>` : ""}</span>
+      <span class="hb-qty">×${Number(i.qty) || 1}</span>
+      <button type="button" class="hb-miss${s === "manque" ? " on" : ""}" data-buy="${id}" data-item="${iid}" data-state="${s === "manque" ? "" : "manque"}">${s === "manque" ? "↩︎ Trouvé" : "Manquant"}</button></li>`;
+  }).join("");
+  return `<section class="hb-list hb-c${((b.n || 1) - 1) % 3 + 1}">
+    <div class="hb-head"><b class="hb-bag">🛍️ Sac ${b.n || 1}</b><span>${UI.esc(String(o.dropoff_contact || o.contact_name || "").split(" ")[0])} · n° ${UI.esc(o.ref)}</span><em>${t.ok}/${t.n - t.miss.length}</em></div>
+    ${b.of > 1 ? `<p class="hb-tip">Un sac par client : mettez ses articles dans le sac ${b.n || 1}.</p>` : ""}
+    <ul>${rows}</ul>
+    ${t.miss.length ? `<p class="hb-miss-note">❌ ${t.miss.length} manquant(s), retiré(s) : le client est prévenu, il ne les paie pas. Articles : <b>${UI.money(t.total)}</b></p>` : ""}
+    ${done ? `<p class="hb-done">✅ Tout est dans le panier · articles <b>${UI.money(t.total)}</b></p>`
+      : `<button type="button" class="btn btn-primary btn-block hb-all" data-buydone="${id}"${all && t.ok ? "" : " disabled"}>✅ Tout est dans le panier</button>
+         <small class="hb-left">${all ? (t.ok ? "Payez en caisse, puis touchez ce bouton" : "Aucun article trouvé : appelez HOP!") : `Encore ${t.n - t.ok - t.miss.length} article(s) à cocher ou marquer « Manquant »`}</small>`}
+  </section>`;
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-buy], [data-buydone]");
+  if (!b) return;
+  e.preventDefault();
+  const id = b.dataset.buy || b.dataset.buydone, o = orders.find(x => x.id === id);
+  if (!o) return;
+  if (b.dataset.buydone != null && !confirm(`✅ Tout est dans le panier ?\n\nArticles : ${UI.money(Store.buyTotals(o).total)}. Le client est prévenu${o.payment_method === "cash" ? " (il vous paiera en espèces à la livraison)" : " et vous paie par Bit"}.`)) return;
+  b.disabled = true;
+  const r = await Store.courierBuyCheck(id, b.dataset.item || null, b.dataset.buydone != null ? "done" : b.dataset.state || "").catch(() => false);
+  if (!r || r.ok === false) { alert("Non enregistré, vérifiez la connexion et réessayez."); b.disabled = false; return; }
+  await load();
+});
 function goodsActs(o) {
   if (!o.goods_prepay || !["confirmee", "recuperee"].includes(o.status) || (o.payment_method !== "cash" && o.payment_status !== "paye")) return "";
   const id = UI.esc(o.id);
@@ -1045,6 +1103,13 @@ function goodsActs(o) {
 }
 function mineStep(o, hopPaid) {
   if (o.status === "annulee") return `❌ Le client a laissé tomber (attente) : la moitié de la course vous est due`;
+  // Boutique HOP! : les courses d'abord (liste à cocher), puis le paiement Bit, puis on part
+  if (o.hop_buy && o.status === "confirmee") {
+    const b = Store.hopBags(mine(), o), sac = b.of > 1 ? ` (sac ${b.n})` : "";
+    if (!Store.buyDone(o)) return o.arrived_at ? `2️⃣ Faites les courses${sac} : cochez chaque article, ou « Manquant »` : `2️⃣ Allez au magasin · ${o.shop_name || ""}`;
+    if (o.payment_method !== "cash" && o.payment_status !== "paye") return `3️⃣ Le client vous paie ${UI.money(UI.payTotal(o))} par Bit (articles + livraison), puis « Courses récupérées »`;
+    return "3️⃣ Touchez « Courses récupérées » et livrez";
+  }
   // Course envoyée par un commerce : le commerce paie en donnant le colis, ou le client à la livraison (Bit ou espèces)
   if (o.shop_pays && o.payment_status !== "paye") return o.status === "recuperee" ? "3️⃣ Livrez le client"
     : `1️⃣ Au départ : ${o.shop_name || "le commerce"} vous paie ${UI.money(o.price)} par Bit en vous donnant la commande`;
@@ -1107,6 +1172,7 @@ function mineCard(o, x) {
     <div class="mine-step">${isLater(o) ? `<b class="later-tag">⏰ PLUS TARD · dans ${UI.esc(nbDur(nbLeft(laterAt(o))))}</b> · rien à faire avant <b>${UI.esc(startAt(o))}</b> · ensuite : ` : ""}${UI.esc(mineStep(o, x.hopPaid))}${tripKm(o) ? ` <span class="mine-km">🛣️ ${tripKm(o)}</span>` : ""}</div>
     ${UI.doorBig(o)}
     ${stop("pickup", "📍 DÉPART", !to)}
+    ${buyBlock(o)}
     ${UI.stopsLegs(o, true)}
     ${stop("dropoff", "🏁 ARRIVÉE", to)}
     ${o.dropoff_phone && o.dropoff_phone !== o.contact_phone ? `<div class="client-line">👤 Client : ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}"><b>${UI.esc(o.contact_phone)}</b></a></div>` : ""}
@@ -1270,6 +1336,10 @@ function render() {
       // Au même départ : seulement la commande à récupérer maintenant, les autres en liste
       r.group.forEach(x => shown.add(x.id));
       const place = r.current.pickup_place || r.current.shop_name || r.current.pickup_address;
+      // Boutique HOP! : on fait les courses de tous en même temps → toutes les listes à l'écran, un sac par client
+      if (r.group.every(x => x.hop_buy)) return `<div class="pick-group hb-group">
+        <div class="pick-head"><span>🛒 ${r.n} clients chez <b>${UI.esc(UI.bi(r.current.shop_name || place, "fr"))}</b> : une liste et un sac par client</span></div>
+        ${r.group.map(x => card(x, "mine")).join("")}</div>`;
       return `<div class="pick-group">
         <div class="pick-head"><span>📦 ${r.n} commandes à récupérer${place ? ` chez <b>${UI.esc(place)}</b>` : ""}</span>
           <b class="pick-count">${r.k} sur ${r.n}</b></div>
@@ -1486,7 +1556,8 @@ async function onViewClick(e) {
         }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /id_check_required/.test(e.message) ? "idcheck" : /payment_required/.test(e.message) ? "pay" : /too_far_recup/.test(e.message) ? "farrecup" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /ticket_required/.test(e.message) ? "ticket" : /goods_refund_pending/.test(e.message) ? "refund" : /goods_bought/.test(e.message) ? "bought" : false);
+    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /buy_check/.test(e.message) ? "buycheck" : /id_check_required/.test(e.message) ? "idcheck" : /payment_required/.test(e.message) ? "pay" : /too_far_recup/.test(e.message) ? "farrecup" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /ticket_required/.test(e.message) ? "ticket" : /goods_refund_pending/.test(e.message) ? "refund" : /goods_bought/.test(e.message) ? "bought" : false);
+    if (ok === "buycheck") { render(); return alert("🛒 Cochez d'abord chaque article (ou « Manquant »), puis « ✅ Tout est dans le panier »."); }
     if (ok === "idcheck") { idChecked.delete(id); render(); return alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus)."); }
     if (ok === "ticket") { render(); return alert("🧾 Touchez d'abord « Ticket du magasin » : photo du ticket et son montant."); }
     if (ok === "refund") { render(); return alert(o.goods_refund_status === "a_completer" ? (o.goods_after ? "🧾 Le client doit d'abord vous envoyer le montant du ticket : touchez « Ticket reçu »." : "⚠️ Le client doit d'abord vous envoyer le complément : touchez « Complément reçu ».") : "💸 Rendez d'abord la différence au client par Bit, puis touchez « C'est rendu »."); }
@@ -1702,7 +1773,11 @@ function bundleCards(list) {
   });
   return out.join("");
 }
+// Boutique HOP! : pourquoi on ne peut pas ajouter cette commande à ses courses en cours
+const HOP_WHY = { full: "Plus de place dans le top case pour cette commande", late: "Vos courses ont commencé il y a plus de 15 min : livrez d'abord", max: `${(CONFIG.grouping || {}).maxOrders || 3} courses au plus en même temps` };
 function acceptError(e) {
+  const hj = /hop_join_(full|late|max)/.exec(e.message);
+  if (hj) { alert(`🛒 ${HOP_WHY[hj[1]]}.`); return "shown"; }
   if (/refund_pending/.test(e.message)) { alert("💸 Remboursez d'abord le client de la course que vous avez rendue, puis touchez « J'ai remboursé ». Ensuite vous pourrez reprendre des courses."); return "shown"; }
   if (/express_busy/.test(e.message)) { alert("⚡ Course express : elle est réservée à un livreur sans autre course, qui y va directement. Terminez d'abord votre course en cours."); return "shown"; }
   if (/express_running/.test(e.message)) { alert("⚡ Vous avez une course express en cours : livrez-la d'abord, sans autre course."); return "shown"; }
@@ -2004,7 +2079,8 @@ function showNextOffer() {
   const total = Store.courseValue(o);
   const star = !!o.referrer_id && o.referrer_id === me.id;
   const com = Store.commissionFor(total, settings, star);
-  $("#offerTitle").textContent = mate ? "2 courses d'un coup !" : onWay ? "➕ Une course en plus ?" : "Nouvelle course !";
+  const sameShop = onWay && onWay.hop_buy && o.hop_buy;
+  $("#offerTitle").textContent = mate ? "2 courses d'un coup !" : sameShop ? "À prendre en plus, même magasin" : onWay ? "➕ Une course en plus ?" : "Nouvelle course !";
   if (mate) {
     const t2 = Store.courseValue(mate), c2 = Store.commissionFor(t2, settings, !!mate.referrer_id && mate.referrer_id === me.id);
     $("#offerIcon").textContent = "📦📦";
@@ -2018,7 +2094,8 @@ function showNextOffer() {
   const early = !star && duty.watch != null && Date.now() - new Date(o.created_at) < 2 * Number(settings.wave_seconds) * 1000;
   const again = backAgain.has(o.id);
   const dropGap = (a, b) => Math.round(Store.kmBetween(+a.dropoff_lat, +a.dropoff_lon, +b.dropoff_lat, +b.dropoff_lon) * 1000 / 50) * 50;
-  $("#offerStar").innerHTML = onWay ? `🔗 <b>Vraiment sur votre chemin</b> : ${onWay.status === "recuperee" ? "départ sur votre route" : Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +onWay.pickup_lat, +onWay.pickup_lon) < 0.08 ? "même départ" : "départ à côté (autre commerce)"} que votre course n° ${UI.esc(onWay.ref)}, arrivées à ${dropGap(onWay, o)} m l'une de l'autre${mine().length >= 2 ? ` (ce sera votre ${mine().length + 1}e course, le maximum)` : ""}.<br><b>Voulez-vous accepter cette course en plus ?</b>`
+  $("#offerStar").innerHTML = sameShop ? `🛒 <b>Même magasin</b> que votre course n° ${UI.esc(onWay.ref)} (${UI.esc(UI.bi(o.shop_name || "", "fr"))}) : faites ses courses en même temps, dans le <b>sac ${Store.hopBags(mine(), onWay).of + 1}</b>${mine().length >= 2 ? ` (ce sera votre ${mine().length + 1}e course, le maximum)` : ""}.<br><b>Voulez-vous la prendre en plus ?</b>`
+    : onWay ? `🔗 <b>Vraiment sur votre chemin</b> : ${onWay.status === "recuperee" ? "départ sur votre route" : Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +onWay.pickup_lat, +onWay.pickup_lon) < 0.08 ? "même départ" : "départ à côté (autre commerce)"} que votre course n° ${UI.esc(onWay.ref)}, arrivées à ${dropGap(onWay, o)} m l'une de l'autre${mine().length >= 2 ? ` (ce sera votre ${mine().length + 1}e course, le maximum)` : ""}.<br><b>Voulez-vous accepter cette course en plus ?</b>`
     : again ? "↩️ Personne d'autre ne l'a prise : elle vous est reproposée"
     : star ? `⭐ Course de <b>votre</b> commerce ${UI.esc(o.shop_name || "")}${priorityLeft(o)}`
     : early ? "🎯 Vous êtes parmi les plus proches : elle vous est proposée en premier" : "";

@@ -1631,7 +1631,8 @@ function quickPlaces(which, isHome) {
     const err = await locateInto(which);
     if (err) (isHome ? showHomeErr : showError)(t(err)); else after();
   } }];
-  Store.getAddresses().slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
+  // Livraison : chez le client, jamais à l'adresse d'un commerce enregistré (les commerces restent pour « Récupérer où ? »)
+  Store.getAddresses().filter(a => which !== "to" || !a.brand).slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
     match: [tagName(a), addrLabel(a)].join(" "),
     apply: () => { applySavedAddr(which, a); after(); } }));
   return list;
@@ -1649,8 +1650,24 @@ function renderSavedAddrs() {
   const html = `<small>${UI.esc(t("savedTitle"))}</small>${slot("home")}${slot("work")}`
     + others.map(x => `<button type="button" class="addr-chip" data-addr="${x.i}">${addrChip(x.a)}</button>`).join("")
     + `<button type="button" class="addr-chip add" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button>`;
-  document.querySelectorAll(".saved-addrs").forEach(box => { box.classList.remove("hidden"); box.innerHTML = html; });
+  document.querySelectorAll(".saved-addrs").forEach(box => { box.classList.remove("hidden"); box.innerHTML = box.dataset.for === "to" ? toAddrsHtml(list) : html; });
   markAddrChips();
+}
+// « Où livrer ? » : on livre le client chez lui → 🏠 Maison en grande carte, 💼 Travail en plus petit, les autres adresses
+// repliées en une ligne ; jamais un commerce enregistré (il reste proposé seulement pour « Récupérer où ? »)
+function toAddrsHtml(list) {
+  const idx = tag => list.findIndex(a => a.tag === tag && !a.brand);
+  const sub = a => UI.esc([`${a.street || ""} ${a.number || ""}`.trim(), cityLabel(a.cityId || a.city)].filter(Boolean).join(", ") + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
+  const card = (tag, i) => `<button type="button" class="sa-card sa-${tag}" data-addr="${i}" data-addr-tag="${tag}"><i aria-hidden="true">${tag === "home" ? "🏠" : "💼"}</i>
+    <span><b>${UI.esc(t(tag === "home" ? "tagHome" : "tagWork"))}</b><small>${sub(list[i])}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`;
+  const add = tag => `<button type="button" class="sa-add" data-add-tag="${tag}">＋ ${tag === "home" ? "🏠" : "💼"} ${UI.esc(t(tag === "home" ? "tagHome" : "tagWork"))}</button>`;
+  const h = idx("home"), w = idx("work");
+  const others = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand && x.a.tag !== "home" && x.a.tag !== "work").slice(0, 5);
+  const adds = [h < 0 ? add("home") : "", w < 0 ? add("work") : ""].join("");
+  return `${h >= 0 ? card("home", h) : ""}${w >= 0 ? card("work", w) : ""}${adds ? `<div class="sa-adds">${adds}</div>` : ""}
+    <details class="sa-more"${others.some(x => isSavedPick(state.pick.to, x.a)) ? " open" : ""}><summary>${UI.esc(t("saOthers"))}${others.length ? ` <span>(${others.length})</span>` : ""}</summary>
+      <div class="sa-list">${others.map(x => `<button type="button" class="sa-link" data-addr="${x.i}">${x.a.tag ? "⭐ <b>" + UI.esc(x.a.name || "") + "</b> · " : "📍 "}${sub(x.a)}</button>`).join("")}
+        <button type="button" class="sa-link sa-new" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button></div></details>`;
 }
 
 // --- Fenêtre « Ajouter / modifier une adresse » (Maison, Travail, autre) ----------------------
@@ -2120,7 +2137,12 @@ function validateOrder() {
   const closedCity = [fromCity, toCity].find(c => !UI.cityActive(c));
   if (closedCity) return showErrorFalse(t("errZone", { city: cityLabel(closedCity) }));
   // Écran 2 : les précisions
-  if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showErrorFalse(t(catalogOn() ? "errCart" : "errShopOrder", { name: UI.bi(state.shop.name) })); }
+  // Catalogue sans article : c'est le panier qu'on montre (la précision reste facultative, jamais signalée) ;
+  // boutique HOP! : au moins un article du catalogue (le livreur fait les courses d'après la liste)
+  if (proShopOn() && !cartCount() && (hopBuyOn() || !val("shop_order").trim())) {
+    if (catalogOn()) { $("#catalogBox").scrollIntoView({ block: "start", behavior: "smooth" }); return showErrorFalse(t("errCartEmpty", { name: UI.bi(state.shop.name) })); }
+    form.shop_order.focus(); return showErrorFalse(t("errShopOrder", { name: UI.bi(state.shop.name) }));
+  }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showErrorFalse(t("errShopRef")); }
   if (noPayReadyOn() && state.phoneReady == null) { $("#noPayReady").scrollIntoView({ block: "center" }); return showErrorFalse(t("errNprReady", { name: UI.bi(state.shop.name) })); }
   if (phoneOn()) {
@@ -3001,7 +3023,7 @@ function renderCatalog() {
   box.classList.toggle("hidden", !on);
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
-  form.shop_order.placeholder = on ? t("cgNotePh") : t("spOrderPh");
+  form.shop_order.placeholder = on ? t(hopBuyOn() ? "hopNotePh" : "cgNotePh") : t("spOrderPh");
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
@@ -3049,6 +3071,7 @@ function renderCatalog() {
       : shopCashOnly() ? `<div class="pay2 pay1"><b>${UI.esc(t("pay1Title"))}</b><p><i>💵</i><span>${UI.esc(t("pay1Body", { amount: n ? money(cartTotal()) : "" }))}</span></p></div>`
       : shopNoPay() ? `<p class="cg-pay">${UI.esc(t("nopayShort", { name: UI.bi(state.shop.name) }))}</p>`
       : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: UI.bi(state.shop.name) }))}</p>`}
+    ${n && hopBuyOn() ? hopMeter(n) : ""}
     ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
       : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
@@ -3061,6 +3084,24 @@ function renderCatalog() {
   const bar = ["#viewBar", ".topbar"].map(q => document.querySelector(q)).find(el => el && el.offsetHeight);
   if (bar) box.style.setProperty("--cg-top", (parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight - 1 + "px");
   syncCgTabs();
+}
+// Boutique HOP! : le livreur fait les courses → 24 articles au plus et la place du top case (comme les rayons) ;
+// un article de trop n'est pas ajouté, on le dit
+const hopPlaces = () => cartLines().reduce((n, l) => n + l.qty * Store.hopPlace(l.p.name), 0);
+function hopCartFix(id) {
+  if (!hopBuyOn() || !state.cart[id]) return;
+  let cut = false;
+  while (state.cart[id] > 0 && (cartCount() > PI.max || hopPlaces() > PI.topcase)) { state.cart[id]--; cut = true; }
+  if (!state.cart[id]) delete state.cart[id];
+  if (cut) toastCart(t("phFull"));
+}
+// Jauge sous le panier : articles (6 compris, puis +2 ₪ l'article) et place prise dans le top case
+function hopMeter(n) {
+  const place = Math.min(100, Math.round(hopPlaces() / PI.topcase * 100)), extra = Math.max(0, n - HOP_INC), each = PI.extraCourier + PI.extraHop;
+  const lvl = place >= 100 || n >= PI.max ? "full" : place >= 75 || n > HOP_INC ? "warn" : "ok";
+  return `<div class="ph-meter hop-meter ${lvl}"><div class="pm-row"><b>🛵 ${UI.esc(t("phTopcase", { p: place }))}</b><span>${UI.esc(t("phCount", { n, max: PI.max }))}</span></div>
+    <div class="pm-bar"><i style="width:${place}%"></i></div>
+    <small>${UI.esc(extra ? t("phExtra", { n: extra, each, inc: HOP_INC }) : t("phIncluded", { inc: HOP_INC, each, max: PI.max }))}</small></div>`;
 }
 // Onglet allumé = la rubrique en cours de lecture
 const cgEdge = () => { const h = $("#catalogBox .cg-head"); return h ? (parseFloat(getComputedStyle(h).top) || 0) + h.offsetHeight + 12 : 0; };
@@ -3105,7 +3146,7 @@ $("#catalogBox").addEventListener("click", e => {
     return;
   }
   if (b.dataset.cgPick) return openItem(b.dataset.cgPick);
-  if (b.dataset.cgPlus) state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1);
+  if (b.dataset.cgPlus) { state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1); hopCartFix(b.dataset.cgPlus); }
   else if (b.dataset.cgMinus) state.cart[b.dataset.cgMinus] = Math.max(0, (state.cart[b.dataset.cgMinus] || 0) - 1);
   else return;
   renderCatalog();
@@ -3211,6 +3252,7 @@ $("#cartSheet").addEventListener("click", e => {
   if (plus || minus) {
     const id = (plus || minus).dataset[plus ? "csPlus" : "csMinus"];
     state.cart[id] = Math.max(0, Math.min(50, (state.cart[id] || 0) + (plus ? 1 : -1)));
+    if (plus) hopCartFix(id);
     renderCatalog(); renderQuote(); saveDraft(); renderCart(); cartPersist();
     return;
   }
@@ -3248,6 +3290,7 @@ $("#itemSheet").addEventListener("click", e => {
     return;
   }
   state.cart[item.id] = add ? item.qty : 0;
+  if (add) hopCartFix(item.id);
   state.cartMods = state.cartMods || {};
   const flavors = cur ? (item.flavors || []).slice(0, flavorCount(cur)) : [];
   const side = cur && needsSide(cur) && item.side !== "fries" ? item.side || "" : "", extras = cur && needsSide(cur) ? item.extras || [] : [];
@@ -3402,7 +3445,7 @@ function renderShopBanner() {
   $("#shopRefBox").classList.toggle("hidden", !shopSelf());
   if (pro) {
     $("#shopOrderLabel").textContent = t("spOrderLabel", { name: UI.bi(state.shop.name) });
-    $("#shopOrderNote").textContent = t(linkOk() ? "spOrderNoteLink" : shopCashOnly() ? "spOrderNoteHop" : shopNoPay() ? "spOrderNoteDirect" : "spOrderNote", { name: UI.bi(state.shop.name) });
+    $("#shopOrderNote").textContent = t(linkOk() ? "spOrderNoteLink" : hopBuyOn() ? "spOrderNoteHopBuy" : shopCashOnly() ? "spOrderNoteHop" : shopNoPay() ? "spOrderNoteDirect" : "spOrderNote", { name: UI.bi(state.shop.name) });
   }
   renderNoPayReady();
   renderCatalog();
@@ -3682,7 +3725,8 @@ function initHome() {
     const a = e.target.closest("[data-haddr]");
     if (a) {
       const addr = Store.getAddresses()[Number(a.dataset.haddr)];
-      if (addr) applySavedAddr(!state.pick.from ? "from" : "to", addr);
+      // (un commerce enregistré sert de départ, jamais d'adresse de livraison)
+      if (addr) applySavedAddr(addr.brand || !state.pick.from ? "from" : "to", addr);
       return;
     }
     if (e.target.closest("#homeRepeatBtn")) repeatLast();

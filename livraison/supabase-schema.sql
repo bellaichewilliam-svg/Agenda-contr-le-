@@ -8799,3 +8799,7 @@ $$;
 -- hours_open_at(hours, at) : heure d'Israël, {d: 0 = dimanche, h: "11:00-22:00,18:00-01:00"}, vide = fermé, pas d'horaires = ouvert
 -- orders_shop_open (before insert) : shop_id fermé maintenant et dans 10 min, urgency ≠ programmee → exception 'shop_closed'
 -- (voir les fonctions dans la base : public.hours_open_at, public.orders_shop_open, trigger orders_shop_open)
+
+-- Boutiques HOP! (HOPCARREFOUR, HOPBOOOM) = un achat fait par le livreur (04/11) : colonnes orders.hop_buy, buy_places,
+-- buy_check, taken_at ; déclencheurs orders_zzz_hop_buy, orders_hop_buy_step ; hop_join_why, hop_pair, pair_ok / on_way,
+-- RPC courier_buy_check. Voir supabase/hop-boutiques-achat.sql (à coller dans le SQL Editor).
