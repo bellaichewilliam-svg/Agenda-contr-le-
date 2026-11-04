@@ -1302,6 +1302,17 @@ async function courierHandoff(id, code) {
   return ok;
 }
 
+// « Valider quand même » : le GPS dit « trop loin » mais le livreur est sur place ; noté sur la course (gps_forced)
+async function courierActionForce(id, action) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_update_force", { method: "POST", body: { p_id: id, p_action: action } });
+  const all = localOrders(), o = all.find(x => x.id === id && x.courier_id === myId());
+  if (!o) return false;
+  const was = !!o.unlocked;
+  o.gps_forced = (o.gps_forced || []).concat([{ step: action, at: new Date().toISOString(), m: null }]);
+  o.unlocked = true; saveLocalOrders(all);
+  try { return await courierAction(id, action); }
+  finally { const a2 = localOrders(), x = a2.find(y => y.id === id); if (x) { x.unlocked = was; saveLocalOrders(a2); } }
+}
 async function courierAction(id, action) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_update", { method: "POST", body: { p_id: id, p_action: action } });
   const all = localOrders();
@@ -2762,7 +2773,7 @@ window.Store = {
   myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
-  claimOrder, penaltyAdd, creditRemove, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
+  claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
   chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };
