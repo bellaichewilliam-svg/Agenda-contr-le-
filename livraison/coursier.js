@@ -433,7 +433,7 @@ function tourBlock(list) {
     const fresh = tourNew(o);
     const due = dueAt(o) ? `<em class="due">⏰ pour ${UI.esc(UI.fmtTime(new Date(dueAt(o))))}</em> · `
       : pick && o.pickup_ready_at && new Date(o.pickup_ready_at) > Date.now() ? `<em class="due">⏳ prêt à ${UI.esc(UI.fmtTime(o.pickup_ready_at))}</em> · ` : "";
-    return `<div class="tour-stop${i === 0 ? " now" : ""}"><b class="tour-n">${i + 1}</b><div class="tour-txt"><b>${pick ? "📍" : "🏁"} <bdi>${UI.esc(place || "")}</bdi></b>
+    return `<div class="tour-stop${i === 0 ? " now" : ""}" data-fiche-stop="${UI.esc(o.id)}|${pick ? "pickup" : "dropoff"}"><b class="tour-n">${i + 1}</b><div class="tour-txt"><b>${pick ? "📍" : "🏁"} <bdi>${UI.esc(place || "")}</bdi></b>
       <small>${fresh}${i === 0 ? "<em>Prochain arrêt</em> · " : ""}${due}n° ${UI.esc(o.ref)}${who ? " · " + UI.esc(who) : ""}${d != null && d >= 0.05 ? ` · ≈ ${d.toFixed(1).replace(".", ",")} km` : ""}${pick && o.shop_ref ? ` · sac n° <b>${UI.esc(o.shop_ref)}</b>` : ""}</small></div>
       <a class="tour-nav" href="${navLink(o, st.kind)}" target="_blank" rel="noopener" aria-label="Itinéraire">${riderSet.nav === "maps" ? "🧭" : WAZE_SVG}</a></div>`;
   });
@@ -1189,6 +1189,7 @@ function mineCard(o, x) {
     return `<section class="stop-block${now ? " now" : " done"}">
       <div class="stop-tag">${label}${which === "pickup" ? readyChip(o) : ""}</div>
       <div class="stop-addr">${UI.brand(o[pre + "_place"])}<bdi>${UI.esc(o[pre + "_address"])}</bdi>, ${UI.esc(UI.cityFr(city))}</div>
+      <button type="button" class="stop-fiche" data-fiche="${UI.esc(o.id)}" data-which="${which}"><em>📋</em><span><b>Fiche ${which === "pickup" ? "du départ" : "du client"}</b><small>${which === "pickup" ? "infos · articles à prendre" : "adresse · code · articles"}</small></span><i>›</i></button>
       ${which === "pickup" && o.pickup_near ? `<div class="small near-tip">📍 Le magasin le plus proche du client. Fermé ? Allez au suivant ouvert : pas de contrôle GPS au départ.</div>` : ""}
       ${which === "pickup" && !to ? showRef(o) : ""}${cashStop(o, which, now)}
       ${which === "dropoff" && sameClient(o).length ? `<div class="twin-line">👥 Même client : <b>${sameClient(o).length + 1} commandes</b> (celle-ci + ${sameClient(o).map(t => UI.esc(twinName(t))).join(", ")}).<br>Touchez « Livré » sur <b>chaque</b> commande, une par enseigne.</div>` : ""}
@@ -1339,7 +1340,170 @@ function financesView(start, week, d) {
     </details>`;
 }
 
+// ===== Fiche d'arrêt (04/11) : une fiche claire par destination, façon appli pro =========================
+// En haut « Livraison à / Récupération chez », le nom en gros, l'adresse ; onglets INFOS (type de lieu, nom du lieu,
+// société, code, entrée · étage · appartement, remarques, appel, Waze) et ARTICLES (ce qu'il y a dans le sac, du
+// commerce d'où il vient) ; en bas, on GLISSE pour valider. Le glissé touche le vrai bouton de la course : mêmes
+// contrôles qu'avant (paiement, photo, pièce d'identité, GPS), rien n'est contourné.
+let fiche = null;   // { id, which: "pickup" | "dropoff", tab: "infos" | "articles" }
+const FI_KIND = { bureau: "💼 Bureau", maison: "🏡 Maison", appartement: "🏢 Appartement", commerce: "🏪 Commerce" };
+const fiNoCode = v => /^\s*(0|-|—|non|aucun|pas de code.*|אין.*)\s*$/i.test(String(v || ""));
+function ficheItems(o) {
+  return (Array.isArray(o.items) ? o.items : []).map(i => {
+    const nm = String(i.name || "Article"), m = nm.match(/^(.*?)\s*\[(.+)\]\s*$/);
+    return { qty: Math.max(1, Number(i.qty) || 1), name: UI.bi(m ? m[1] : nm, "fr"), opt: m ? UI.bi(m[2], "fr") : "", price: Number(i.price) || 0 };
+  });
+}
+const ficheCount = o => ficheItems(o).reduce((a, i) => a + i.qty, 0);
+function fiRow(label, val, cls) {
+  return val == null || String(val).trim() === "" ? "" : `<div class="fi-row${cls ? " " + cls : ""}"><small>${UI.esc(label)}</small><b><bdi>${UI.esc(String(val))}</bdi></b></div>`;
+}
+// Le bouton de la course que le glissé va toucher (celui de l'étape en cours), et son texte
+function ficheAct(o, which) {
+  const card = document.querySelector(`article.mine-card[data-id="${CSS.escape(o.id)}"]`);
+  if (!card) return null;
+  const q = s => card.querySelector(s);
+  if (which === "pickup" && o.status === "confirmee") {
+    const r = q('[data-act="recuperee"]:not([disabled])'), a = q('[data-act="arrivee"]:not([disabled])');
+    if (r) return { el: r, label: o.hop_buy ? "Courses récupérées" : "Commande récupérée" };
+    if (a) return { el: a, label: "Je suis arrivé au départ" };
+  }
+  if (which === "dropoff" && o.status === "recuperee") {
+    const l = q('[data-act="livree"]:not([disabled])'), ph = q("input[data-dphoto][data-then]");
+    if (l) return { el: l, label: "Commande livrée !" };
+    if (ph) return { el: ph, label: "📷 Photo du colis, puis livrée" };
+  }
+  return null;
+}
+function ficheInfos(o, pick) {
+  const pre = pick ? "pickup" : "dropoff";
+  const code = o[pre + "_code"], kind = o[pre + "_kind"];
+  const grid = [["Étage", o[pre + "_floor"]], ["Appartement", o[pre + "_apt"]]];
+  const notes = [o[pre + "_note"], pick ? "" : o.notes].filter(x => String(x || "").trim());
+  const phone = pick ? o.pickup_phone : (o.dropoff_phone || o.contact_phone);
+  const who = pick ? (o.pickup_contact || UI.bi(o.shop_name || "", "fr")) : (o.dropoff_contact || o.contact_name);
+  const firm = String(o.company || "").trim();
+  return `${!pick && o.leave_at_door ? `<div class="fi-door"><b>🚪 SANS CONTACT</b><span>Déposer devant la porte · 📷 photo obligatoire avant « Livrée »</span></div>` : ""}
+    ${pick ? readyChip(o) : ""}${pick && o.status === "confirmee" ? showRef(o) : ""}
+    <h4 class="fi-h">Détails de l'adresse</h4>
+    <div class="fi-list">
+      ${fiRow("Type de lieu", FI_KIND[kind] || "")}
+      ${fiRow(pick ? "Commerce / lieu" : "Nom du lieu", UI.bi(o[pre + "_place"] || "", "fr"))}
+      ${!pick && firm ? fiRow("Nom de la société", firm) : ""}
+      ${code != null && String(code).trim() !== "" ? (fiNoCode(code) ? fiRow("Code d'entrée", "Pas de code") : fiRow("Code d'entrée", code, "fi-code")) : ""}
+      ${fiRow("Entrée / bâtiment", o[pre + "_building"])}
+      ${grid.some(g => String(g[1] || "").trim()) ? `<div class="fi-grid">${grid.map(([l, v]) => `<div><small>${UI.esc(l)}</small><b><bdi>${UI.esc(String(v || "").trim() || "—")}</bdi></b></div>`).join("")}</div>` : ""}
+      ${fiRow("Adresse", `${o[pre + "_address"] || ""}, ${UI.cityFr(pick ? o.from_city : o.to_city)}`)}
+    </div>
+    ${notes.length ? `<h4 class="fi-h">Remarques</h4><div class="fi-notes">${notes.map(n => `<p><bdi>${UI.esc(n)}</bdi></p>`).join("")}</div>` : ""}
+    <div class="fi-btns">${callBig(who, phone)}${navBtn(o, pick ? "pickup" : "dropoff")}</div>`;
+}
+function ficheArticles(o) {
+  const items = ficheItems(o), shop = UI.bi(o.shop_name || o.pickup_place || "", "fr");
+  const head = `<div class="fi-shop"><b>🏪 <bdi>${UI.esc(shop || "Commerce")}</bdi></b>${o.shop_ref ? `<span>Sac n° <b>${UI.esc(o.shop_ref)}</b></span>` : ""}</div>`;
+  if (!items.length) {
+    const list = String(o.notes || "").trim();
+    return head + (o.service === "achat" && list ? `<h4 class="fi-h">📝 Liste du client</h4><div class="fi-notes"><p><bdi>${UI.esc(list)}</bdi></p></div>`
+      : `<p class="fi-empty">Pas de liste d'articles pour cette course : c'est une commande préparée par le commerce (ou un colis). Prenez ce qu'on vous remet${o.shop_ref ? ` au n° <b>${UI.esc(o.shop_ref)}</b>` : ""}.</p>`);
+  }
+  const total = items.reduce((a, i) => a + i.qty * i.price, 0) || Number(o.items_total) || 0;
+  return head + `<div class="fi-items">${items.map(i => `<div class="fi-item"><b class="fi-q">${i.qty}×</b><span><bdi>${UI.esc(i.name)}</bdi>${i.opt ? `<small><bdi>${UI.esc(i.opt)}</bdi></small>` : ""}</span>${i.price ? `<em>${UI.esc(UI.money(i.qty * i.price))}</em>` : ""}</div>`).join("")}</div>
+    <div class="fi-total"><span>${ficheCount(o)} article${ficheCount(o) > 1 ? "s" : ""}</span>${total ? `<b>${UI.esc(UI.money(total))}</b>` : ""}</div>
+    ${goodsSelf(o) ? `<p class="fi-pay">${UI.esc(goodsSelf(o))}</p>` : o.goods_pay === "recu" ? `<p class="fi-pay">✅ Articles déjà payés au commerce : rien à avancer</p>` : ""}`;
+}
+function renderFiche() {
+  let box = $("#fiche");
+  const o = fiche && mine().find(x => x.id === fiche.id);
+  if (!o) {
+    fiche = null;
+    if (box) box.classList.add("hidden");
+    document.body.classList.remove("fiche-open");
+    return;
+  }
+  if (!box) { box = document.createElement("div"); box.id = "fiche"; box.className = "fiche hidden"; document.body.appendChild(box); }
+  const pick = fiche.which === "pickup", n = ficheCount(o);
+  const firm = String(o.company || "").trim();
+  const title = pick ? UI.bi(o.shop_name || o.pickup_place || "", "fr") || o.pickup_contact || "Départ" : (o.dropoff_contact || o.contact_name || "Client");
+  const act = ficheAct(o, fiche.which);
+  const wait = !act && (pick ? o.status === "recuperee" : o.status === "confirmee");
+  // (le doigt est en train de glisser : on ne redessine pas sous lui)
+  if (box.querySelector(".fi-slide.drag")) return;
+  const keepTop = box.querySelector(".fi-body") ? box.querySelector(".fi-body").scrollTop : 0;
+  const html = `<div class="fi-back" data-fi-close></div>
+    <div class="fi-box" role="dialog" aria-modal="true">
+      <div class="fi-grab" data-fi-close><i></i></div>
+      <button type="button" class="fi-x" data-fi-close aria-label="Fermer">✕</button>
+      <div class="fi-head">
+        <small>${pick ? "Récupération chez" : "Livraison à"} · n° ${UI.esc(o.ref)}</small>
+        <h3 class="${pick ? "pick" : "drop"}"><bdi>${UI.esc(title)}</bdi></h3>
+        ${!pick && firm ? `<p class="fi-firm">🏪 <bdi>${UI.esc(firm)}</bdi></p>` : ""}
+        <p class="fi-addr"><bdi>${UI.esc(o[pick ? "pickup_address" : "dropoff_address"] || "")}</bdi><small>, ${UI.esc(UI.cityFr(pick ? o.from_city : o.to_city))}</small></p>
+        ${!pick && o.first_order ? `<span class="ow-new">🆕 Nouveau client · 1re commande</span>` : ""}${o.first_shop ? ` <span class="ow-new">🆕 1re livraison pour ce commerce</span>` : ""}
+      </div>
+      <div class="fi-tabs"><button type="button" data-fi-tab="infos" class="${fiche.tab === "infos" ? "on" : ""}">INFOS</button><button type="button" data-fi-tab="articles" class="${fiche.tab === "articles" ? "on" : ""}">ARTICLES${n ? ` (${n})` : ""}</button></div>
+      <div class="fi-body">${fiche.tab === "articles" ? ficheArticles(o) : ficheInfos(o, pick)}</div>
+      <div class="fi-foot">${act ? `<div class="fi-slide" data-fi-slide><span class="fi-knob">›</span><b>${UI.esc(act.label)}</b></div>`
+        : wait ? `<p class="fi-wait">${pick ? "✅ Commande déjà récupérée" : "D'abord : récupérer la commande au départ"}</p>`
+        : `<button type="button" class="btn btn-block" data-fi-close>Voir la course</button>`}</div>
+    </div>`;
+  // Rien n'a changé (rafraîchissement automatique) : on ne touche à rien, la fiche ne clignote pas
+  if (html === box._html && !box.classList.contains("hidden")) return;
+  box._html = html;
+  box.innerHTML = html;
+  box.classList.remove("hidden");
+  document.body.classList.add("fiche-open");
+  const body = box.querySelector(".fi-body");
+  if (body && keepTop) body.scrollTop = keepTop;
+  fiSlideBind(box.querySelector("[data-fi-slide]"));
+}
+// Glisser pour valider : il faut aller jusqu'au bout (un simple toucher ne valide rien, pas d'erreur de poche)
+function fiSlideBind(sl) {
+  if (!sl) return;
+  const knob = sl.querySelector(".fi-knob");
+  let x0 = null, dx = 0, max = 0;
+  const rtl = getComputedStyle(sl).direction === "rtl";
+  const set = v => { knob.style.transform = `translateX(${rtl ? -v : v}px)`; sl.style.setProperty("--fi-p", String(max ? v / max : 0)); };
+  knob.addEventListener("pointerdown", e => { x0 = e.clientX; max = sl.clientWidth - knob.offsetWidth - 8; knob.setPointerCapture(e.pointerId); sl.classList.add("drag"); });
+  knob.addEventListener("pointermove", e => { if (x0 == null) return; dx = Math.max(0, Math.min(max, (rtl ? x0 - e.clientX : e.clientX - x0))); set(dx); });
+  const end = () => {
+    if (x0 == null) return;
+    x0 = null; sl.classList.remove("drag");
+    if (dx >= max * 0.86) { set(max); sl.classList.add("done"); fiDo(); }
+    else { set(0); if (dx < 8) { sl.classList.remove("hint"); void sl.offsetWidth; sl.classList.add("hint"); } }
+    dx = 0;
+  };
+  knob.addEventListener("pointerup", end);
+  knob.addEventListener("pointercancel", end);
+  sl.addEventListener("click", e => { if (!e.target.closest(".fi-knob")) { sl.classList.remove("hint"); void sl.offsetWidth; sl.classList.add("hint"); } });
+}
+function fiDo() {
+  const o = fiche && mine().find(x => x.id === fiche.id);
+  const act = o && ficheAct(o, fiche.which);
+  if (!act) { renderFiche(); return; }
+  act.el.click();   // le vrai bouton de la course : mêmes questions et mêmes contrôles qu'avant
+  // Le glissé revient au départ (photo annulée, paiement à marquer, GPS…) ; course validée : la fiche se ferme toute seule
+  setTimeout(() => { const box = $("#fiche"); if (box) box._html = ""; if (fiche) renderFiche(); }, 1200);
+}
+document.addEventListener("click", e => {
+  const open = e.target.closest("[data-fiche]");
+  if (open) { ficheOpen(open.dataset.fiche, open.dataset.which); return; }
+  const stopRow = e.target.closest(".tour-stop[data-fiche-stop]");
+  if (stopRow && !e.target.closest("a")) { const [id, which] = stopRow.dataset.ficheStop.split("|"); ficheOpen(id, which); return; }
+  if (!e.target.closest("#fiche")) return;
+  const tb = e.target.closest("[data-fi-tab]");
+  if (tb && fiche) { fiche.tab = tb.dataset.fiTab; renderFiche(); const b = $("#fiche .fi-body"); if (b) b.scrollTop = 0; return; }
+  if (e.target.closest("[data-fi-close]")) { fiche = null; renderFiche(); }
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape" && fiche) { fiche = null; renderFiche(); } });
+// Ouverte depuis la carte : « Mes courses » passe derrière la fiche, pour que le glissé trouve le bouton de la course
+function ficheOpen(id, which) {
+  fiche = { id, which: which === "pickup" ? "pickup" : "dropoff", tab: "infos" };
+  if (!document.querySelector(`article.mine-card[data-id="${CSS.escape(id)}"]`) && mine().some(o => o.id === id)) { try { openPage("mine"); } catch (e) { /* la fiche s'ouvre quand même */ } }
+  renderFiche();
+}
+
 function render() {
+  queueMicrotask(renderFiche);   // la fiche ouverte suit la course (après que la page est dessinée)
   const start = UI.weekStart(today());
   const week = weekOrders(start);
   const due = orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.commission_status !== "regle");
@@ -2359,9 +2523,20 @@ function renderHome() {
   // Même départ : une seule carte, celle de la commande à récupérer maintenant (« 1 sur 2 »)
   const cur = mine().filter(o => { const r = pickupRank(o); return !r || r.current.id === o.id; });
   const p = pool();
+  // En course : la prochaine destination toujours en haut du panneau (comme une appli pro), un toucher ouvre sa fiche
+  const nextStop = (() => { try { const st = tourStops(mine().filter(o => !isLater(o))); return st[0] || null; } catch (e) { return null; } })();
+  const dest = nextStop && nextStop.o ? (() => {
+    const o = nextStop.o, pick = nextStop.kind === "pickup";
+    const nm = pick ? (UI.bi(o.shop_name || o.pickup_place || "", "fr") || o.pickup_contact || "Départ") : (o.dropoff_contact || o.contact_name || "Client");
+    return `<button type="button" class="rd-dest" data-fiche="${UI.esc(o.id)}" data-which="${pick ? "pickup" : "dropoff"}">
+      <small>${pick ? "Récupération à partir de" : "Livraison à"}</small>
+      <b class="${pick ? "pick" : "drop"}"><bdi>${UI.esc(nm)}</bdi></b>
+      <span><bdi>${UI.esc(o[pick ? "pickup_address" : "dropoff_address"] || "")}</bdi><em>, ${UI.esc(UI.cityFr(pick ? o.from_city : o.to_city))}</em></span>
+      <i>📋 Fiche · infos et articles ›</i></button>`;
+  })() : "";
   $("#sheetBody").innerHTML = `${refundCards()}${cashReturnCards()}
-    <div class="rd-title">${UI.esc(title)}</div>
-    <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
+    ${dest || `<div class="rd-title">${UI.esc(title)}</div>
+    <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>`}
     ${cur.map(o => `${giveBox(o)}<button type="button" class="rd-card course" data-tab="mine">
         <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>${o.first_shop ? "🆕 nouveau commerce · " : ""}${o.first_order && !(o.first_shop && isFirm(o)) ? "🆕 nouveau client · " : ""}n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
           <em class="rc-step">${isLater(o) ? `⏰ PLUS TARD · ${UI.esc(dueLabel(o))} · rien à faire avant ${UI.esc(startAt(o))}` : `${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}`}</em>
