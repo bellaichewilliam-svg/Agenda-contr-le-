@@ -602,8 +602,10 @@ function attach(input, opts) {
         // … seulement les supermarchés, makolets, kiosques, pharmacies (pas un salon de beauté qui ressemble au mot tapé)
         const GROCERY = /super|market|makolet|grocery|convenience|kiosk|pharm|carrefour|am:?pm|tiv ?taam|shufersal|rami ?levy|victory|yochananof|keshet|osher|מכולת|סופר|קיוסק|פארם|מרקחת|שופרסל|רמי לוי|ויקטורי|יוחננוף|קשת טעמים|טיב טעם|אושר עד|יש חסד|קרפור|מגה|פיצוציה/i;
         const keep = p => !noFood || p.quick || (!p.food && GROCERY.test(`${p.kind || ""} ${p.brand || ""} ${(p.partner && p.partner.kind) || ""}`));
-        items = sugg.concat(saved, list.filter(keep)); active = -1;
-        if (offer() && !saved.length && !sugg.length) items = items.concat([notOnMap(q)]);
+        // Adresse de livraison (Maison, Travail, bureau…) : seulement des rues, jamais les commerces ni les points de retrait
+        const street = p => !opts.streetsOnly || (!p.brand && !p.dir && !p.partner && !p.prod);
+        items = sugg.concat(saved, list.filter(keep)).filter(street); active = -1;
+        if (!opts.streetsOnly && offer() && !saved.length && !sugg.length) items = items.concat([notOnMap(q)]);
         render();
         if (opts.suggestLater) opts.suggestLater(q).then(more => {
           if (mine !== seq || !more || !more.length) return;
@@ -612,7 +614,7 @@ function attach(input, opts) {
           if (active >= 0) active += more.length;
           render();
         }).catch(() => {});
-        const extra = (await moreNearby(q, opts.lang(), list)).filter(keep);
+        const extra = opts.streetsOnly ? [] : (await moreNearby(q, opts.lang(), list)).filter(keep);
         if (mine !== seq || !extra.length) return;
         const found = extra.some(p => normalize(p.brand).includes(normalize(q)));
         items = extra.concat(items.filter(p => !(found && p.apply)));

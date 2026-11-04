@@ -1674,6 +1674,7 @@ function attachPlaces() {
       quick: () => quickPlaces(which, false),
       suggest: which === "from" ? prodSuggest : null,
       suggestLater: which === "from" ? prodSuggestLater : null,
+      streetsOnly: which === "to",
       onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
     });
   });
@@ -1744,9 +1745,6 @@ function fromAddrsHtml(list) {
 function toAddrsHtml(list) {
   const idx = tag => list.findIndex(a => a.tag === tag && !a.brand);
   const sub = a => UI.esc([`${a.street || ""} ${a.number || ""}`.trim(), cityLabel(a.cityId || a.city)].filter(Boolean).join(", ") + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
-  const card = (tag, i) => `<button type="button" class="sa-card sa-${tag}" data-addr="${i}" data-addr-tag="${tag}"><i aria-hidden="true">${tag === "home" ? "🏠" : "💼"}</i>
-    <span><b>${UI.esc(t(tag === "home" ? "tagHome" : "tagWork"))}</b><small>${sub(list[i])}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`;
-  const add = tag => `<button type="button" class="sa-add" data-add-tag="${tag}">＋ ${tag === "home" ? "🏠" : "💼"} ${UI.esc(t(tag === "home" ? "tagHome" : "tagWork"))}</button>`;
   const h = idx("home"), w = idx("work");
   // Adresse enregistrée déjà choisie : seulement SA carte (pas de « Travail », « Autres adresses »…) ; « Changer d'adresse » rouvre la liste
   const pi = list.findIndex(a => !a.brand && isSavedPick(state.pick.to, a));
@@ -1758,13 +1756,16 @@ function toAddrsHtml(list) {
       <span><b>${UI.esc(pickName(a))}</b><small>${sub(a)}</small></span>
       <button type="button" class="sa-change" data-sum-change>${UI.esc(t("sumChangeShort"))}</button>${det ? `<small class="sa-det">${UI.esc(det)}</small>` : ""}</div>`;
   }
-  const others = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand && x.a.tag !== "home" && x.a.tag !== "work").slice(0, 5);
-  const adds = [h < 0 ? add("home") : "", w < 0 ? add("work") : ""].join("");
-  return `${h >= 0 ? card("home", h) : ""}${w >= 0 ? card("work", w) : ""}${adds ? `<div class="sa-adds">${adds}</div>` : ""}
-    <details class="sa-more"${others.some(x => isSavedPick(state.pick.to, x.a)) ? " open" : ""}><summary>${UI.esc(t("saOthers"))}${others.length ? ` <span>(${others.length})</span>` : ""}</summary>
-      <div class="sa-list">${others.map(x => `<button type="button" class="sa-link" data-addr="${x.i}">${x.a.tag ? "⭐ <b>" + UI.esc(x.a.name || "") + "</b> · " : "📍 "}${sub(x.a)}</button>`).join("")}
-        <button type="button" class="sa-link sa-new" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button>
-        <button type="button" class="sa-link" data-sum-other>📍 ${UI.esc(t("sumOther"))}</button></div></details>
+  // Liste propre (comme « Récupérer où ? ») : Maison, Travail, les autres adresses, puis « Une autre adresse »
+  const rows = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand)
+    .sort((x, y) => ({ home: 0, work: 1 }[x.a.tag] ?? 2) - ({ home: 0, work: 1 }[y.a.tag] ?? 2)).slice(0, 6);
+  const rTitle = a => tagName(a) || `${a.street || ""} ${a.number || ""}`.trim();
+  const rLine = a => tagName(a) ? sub(a) : UI.esc(cityLabel(a.cityId || a.city) + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
+  const rIco = a => a.tag === "home" ? "🏠" : a.tag === "work" ? "💼" : "📍";
+  const addRow = tag => `<button type="button" class="pk-row pk-add" data-add-tag="${tag}"><i aria-hidden="true">${tag === "home" ? "🏠" : "💼"}</i><span><b>＋ ${UI.esc(t(tag === "home" ? "tagHome" : "tagWork"))}</b><small>${UI.esc(t("pkAddSub"))}</small></span></button>`;
+  return `<div class="pk-list">${rows.map(x => `<button type="button" class="pk-row" data-addr="${x.i}" data-addr-tag="${x.a.tag || "other"}"><i aria-hidden="true">${rIco(x.a)}</i><span><b>${UI.esc(rTitle(x.a))}</b><small>${rLine(x.a)}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`).join("")}
+    ${h < 0 ? addRow("home") : ""}${w < 0 ? addRow("work") : ""}
+    <button type="button" class="pk-row pk-new" data-sum-other><i aria-hidden="true">✏️</i><span><b>${UI.esc(t("sumOther"))}</b><small>${UI.esc(t("pkOtherSub"))}</small></span></button></div>
     ${pi >= 0 && state.toChoose ? `<button type="button" class="sa-link sa-edit" data-sum-edit="${pi}">${UI.esc(t("accEdit"))} · ${UI.esc(pickName(list[pi]))}</button>` : ""}`;
 }
 // Détails d'une adresse enregistrée, en une ligne (type, bâtiment, étage, code, note)
@@ -1793,7 +1794,7 @@ function openAddrSheet(tag, which, idx) {
   $("#asErr").classList.add("hidden");
   $("#asDel").classList.toggle("hidden", sheet.idx < 0);
   if (!sheet.ac) sheet.ac = Places.attach($("#asAddr"), {
-    lang: () => I18N.lang,
+    lang: () => I18N.lang, streetsOnly: true,
     texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon"), didYouMean: t("addrDidYou") }),
     onPick: p => { sheet.pick = p; $("#asErr").classList.add("hidden"); if (p.housenumber && !$("#asNo").value) $("#asNo").value = p.housenumber; if (!p.housenumber && !p.brand) setTimeout(() => $("#asNo").focus(), 50); },
     onClear: () => { sheet.pick = null; }
@@ -3960,6 +3961,7 @@ function initHome() {
       quick: () => quickPlaces(which, true),
       suggest: which === "from" ? prodSuggest : null,
       suggestLater: which === "from" ? prodSuggestLater : null,
+      streetsOnly: which === "to",
       onClear: () => {
         state.pick[which] = null;
         if (ac[which]) ac[which].reset();
