@@ -63,7 +63,7 @@ function routeHash() {
 // Bouton retour du téléphone : il ferme d'abord la fenêtre ouverte (vérification des adresses, panier,
 // fiche article…) et on reste sur le même écran, au lieu de changer de page sous la fenêtre
 let here = location.href;
-const MODAL_CLOSE = { checkModal: "#checkBack", itemSheet: "#itemClose", cartSheet: "#cartClose", ensModal: "#ensClose",
+const MODAL_CLOSE = { checkModal: "#checkBack", itemSheet: "#itemClose", cartSheet: "#cartClose", ensModal: "#ensClose", buyInfo: "#biClose",
   noticeModal: "#noticeClose", addrSheet: "#asClose", rulesModal: "#rulesClose", reqModal: "#reqClose", doneModal: "#doneClose" };
 function closeTopModal() {
   const open = [...document.querySelectorAll("body > .modal:not(.hidden)")].pop();
@@ -596,6 +596,35 @@ function currentQuote() {
   if (!(share > 0)) return q;
   return Object.assign({}, q, { total: q.total - share, lines: q.lines.concat([{ key: "qShopShare", vars: { name: UI.bi(state.shop.name) }, amount: -share, discount: true }]) });
 }
+// Achats : ce que couvre le supplément (articles et minutes compris) et ce qui s'ajoute seulement si nécessaire.
+// Tout vient des vraies règles (config / réglages en ligne) : rien n'est changé dans les prix.
+function buyInfo(q) {
+  const lines = (q || {}).lines || [], buy = lines.find(l => l.key === "qPurchase" || l.key === "qPurchaseShop");
+  if (!buy) return null;
+  const PI = CONFIG.pricing.purchaseItems || {}, st = state.settings || {};
+  const items = PI.included && (hopBuyOn() || rayonOn()) ? { inc: hopBuyOn() ? HOP_INC : PI.included, each: PI.extraCourier + PI.extraHop, max: PI.max } : null;
+  return { buy, base: lines.find(l => /^qBase/.test(l.key)), items, min: Math.max(Number(st.wait_free_min || 0), Number((buy.vars || {}).min || 0)),
+    wait: st.wait_step_price != null ? { price: Number(st.wait_step_price), step: Number(st.wait_step_min || 1) } : null };
+}
+function openBuyInfo() {
+  const bi = buyInfo(currentQuote());
+  if (!bi) return;
+  const row = (ico, title, sub, amt) => `<div class="bi-row"><i aria-hidden="true">${ico}</i><span><b>${UI.esc(title)}</b>${sub ? `<small>${UI.esc(sub)}</small>` : ""}</span>${amt ? `<em>${amt}</em>` : ""}</div>`;
+  const m = n => `<bdi dir="ltr">${UI.esc(money(n))}</bdi>`;   // montant toujours lisible, en hébreu aussi
+  const incl = [bi.items ? t("biInclItems", { n: bi.items.inc }) : "", t("biInclMin", { n: bi.min }), t("biInclTicket"), t("biInclFees")].filter(Boolean);
+  const ifs = [bi.items ? row("🧺", t("biIfItem"), t("biIfItemSub", { max: bi.items.max }), UI.esc(t("biIfItemV", { each: "§" })).replace("§", m(bi.items.each))) : "",
+    bi.wait ? row("⏱️", t("biIfWait"), t("biIfWaitSub", { min: bi.min }), bi.wait.step === 1 ? UI.esc(t("biIfWaitV", { price: "§" })).replace("§", m(bi.wait.price)) : UI.esc(t("biIfWaitVN", { price: "§", n: bi.wait.step })).replace("§", m(bi.wait.price))) : ""].join("");
+  $("#biBody").innerHTML = `<h3 class="bi-title">${UI.esc(t("biTitle"))}</h3>
+    <div class="bi-card">${bi.base ? row("🛵", lineLabel(bi.base), t("biDelivSub"), m(bi.base.amount)) : ""}${row("🛒", t("biBuy"), t("biBuySub"), "+ " + m(bi.buy.amount))}</div>
+    <p class="bi-h">${UI.esc(t("biIncl"))}</p><ul class="bi-incl">${incl.map(x => `<li>${UI.esc(x)}</li>`).join("")}</ul>
+    ${ifs ? `<p class="bi-h">${UI.esc(t("biIf"))}</p><div class="bi-card bi-if">${ifs}</div>` : ""}
+    <button type="button" class="btn btn-primary btn-lg bi-ok" data-bi-ok>${UI.esc(t("biOk"))}</button>`;
+  $("#buyInfo").classList.remove("hidden");
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-buy-info]")) { e.preventDefault(); return openBuyInfo(); }
+  if (e.target.id === "buyInfo" || e.target.closest("#biClose") || e.target.closest("[data-bi-ok]")) $("#buyInfo").classList.add("hidden");
+});
 function baseQuote() {
   if (val("payment_method") === "carnet" && carnetOk()) {
     return { total: carnetUnit(), known: true, distanceKm: 0, lines: [{ key: "qCarnet", vars: { n: state.pro.credits - 1 }, amount: carnetUnit() }] };
@@ -1202,8 +1231,12 @@ function renderQuote() {
   const q = currentQuote();
   // Courses faites par HOP (ou commande chez un commerce Pro) : les articles au prix du magasin, en plus
   const goods = val("service") === "achat" || proShopOn();
-  $("#quoteLines").innerHTML = q.lines.map(l =>
-    `<li class="${l.discount ? "disc" : ""}"><span>${UI.esc(lineLabel(l))}</span><span dir="ltr">${l.amount < 0 ? "−" : ""}${money(Math.abs(l.amount))}</span></li>`).join("")
+  const bi = buyInfo(q);
+  $("#quoteLines").innerHTML = q.lines.map(l => bi && l === bi.buy
+    // Achat : un intitulé simple, et en petit ce qui est compris ; le détail au toucher
+    ? `<li class="q-buy"><span><span>${UI.esc(t("qBuyT"))}</span><small class="q-sub">${UI.esc(bi.items ? t("qBuySubItems", { n: bi.items.inc, min: bi.min }) : t("qBuySubMin", { min: bi.min }))}
+        · <button type="button" class="q-more" data-buy-info>${UI.esc(t("qBuyMore"))}</button></small></span><span dir="ltr">${money(l.amount)}</span></li>`
+    : `<li class="${l.discount ? "disc" : ""}"><span>${UI.esc(lineLabel(l))}</span><span dir="ltr">${l.amount < 0 ? "−" : ""}${money(Math.abs(l.amount))}</span></li>`).join("")
     // Pas de frais cachés : on le montre noir sur blanc
     + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
     + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
@@ -3423,7 +3456,8 @@ function cartExtras() {
   if (!box) { box = document.createElement("div"); box.id = "cartInfo"; $("#cartNote").before(box); }
   if (!s) { box.innerHTML = ""; return; }
   const fp = firstDelivPrice(s);
-  const deliv = s.shop_pays ? "" : `<p class="cs-deliv">${UI.esc(t("csDeliv", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}${fp != null ? ` · <b>${UI.esc(t("csDelivFirst", { price: money(fp) }))}</b>` : ""}</p>`;
+  const why = isHopShop(s) && !addonOn() && buyInfo(currentQuote()) ? ` <button type="button" class="cs-why" data-buy-info>${UI.esc(t("csWhy", { fee: money(Number(CONFIG.pricing.purchase || 0)) }))} <i aria-hidden="true">ⓘ</i></button>` : "";
+  const deliv = s.shop_pays ? "" : `<p class="cs-deliv">${UI.esc(t("csDeliv", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}${fp != null ? ` · <b>${UI.esc(t("csDelivFirst", { price: money(fp) }))}</b>` : ""}${why}</p>`;
   const st = shopState(s), shut = !!(st && st.open === false && !st.hop), closed = shut || !state.settings.accepting;
   let cl = "";
   if (closed) {
