@@ -1458,6 +1458,8 @@ function setBrandMode(which, on) {
 }
 
 function onPlacePicked(which, p, quiet) {
+  // Une autre adresse choisie (pas « Ma position ») : les numéros voisins proposés ne valent plus
+  if (!p.gps) { const old = document.querySelector(`.num-chips[data-for="${prefixOf(which)}"]`); if (old) old.remove(); }
   // Partenaire avec catalogue (HOP! Pro) choisi dans la recherche ou sur la carte : on ouvre sa boutique
   const stay = pc => !(state.partners.find(x => x.code === pc) || {}).pro;
   if (which === "from" && p.partnerCode) { state.shopDir = "from"; loadShop(p.partnerCode, stay(p.partnerCode)); return; }
@@ -1756,11 +1758,12 @@ $("#asPos").addEventListener("click", async () => {
   const b = $("#asPos"); b.disabled = true; b.textContent = t("geoLocating");
   try {
     const pos = await myPosition(); setHomePos(pos);
-    const r = (await Places.reverse(pos.lat, pos.lon, I18N.lang))[0];
+    const r = (await Places.reverse(pos.lat, pos.lon, I18N.lang, pos.acc))[0];
     if (!r) throw new Error("none");
     sheet.pick = Object.assign(r, { lat: pos.lat, lon: pos.lon, exact: true });
     sheet.ac.setPicked(r.label);
     if (r.housenumber) $("#asNo").value = r.housenumber;
+    numChipsFor($("#asNo"), "as", r.nearNums);
   } catch (e) { $("#asErr").textContent = t("geoDenied"); $("#asErr").classList.remove("hidden"); }
   b.disabled = false; b.textContent = t("myPosChip");
 });
@@ -1827,11 +1830,19 @@ function renderSaveBtns() {
     if (!state.pick[w] && b.parentNode) b.parentNode.querySelectorAll(".save-tags").forEach(x => x.remove());
   });
 }
-function myPosition() {
+// Position du téléphone : on écoute le GPS quelques secondes et on garde la plus précise
+// (la 1re réponse vient souvent du Wi-Fi, à 50-100 m près : de quoi tomber sur l'immeuble d'à côté)
+function myPosition(maxMs) {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) return reject(new Error("nogeo"));
-    navigator.geolocation.getCurrentPosition(p => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }), reject,
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 10000 });
+    let best = null, id = null, done = false;
+    const finish = () => { if (done) return; done = true; if (id != null) navigator.geolocation.clearWatch(id); best ? resolve(best) : reject(new Error("nogeo")); };
+    id = navigator.geolocation.watchPosition(p => {
+      const c = p.coords, acc = Number(c.accuracy) || 999;
+      if (!best || acc < best.acc) best = { lat: c.latitude, lon: c.longitude, acc };
+      if (acc <= 20) finish();
+    }, err => { if (!best) { done = true; if (id != null) navigator.geolocation.clearWatch(id); reject(err); } }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    setTimeout(finish, maxMs || 7000);
   });
 }
 // Adresse à la position du téléphone ; renvoie la clé du message d'erreur, ou null
@@ -1840,14 +1851,36 @@ async function locateInto(which) {
   try { pos = await myPosition(); } catch (e) { return "geoDenied"; }
   setHomePos(pos);
   let list = [];
-  try { list = await Places.reverse(pos.lat, pos.lon, I18N.lang); } catch (e) { /* message ci-dessous */ }
+  try { list = await Places.reverse(pos.lat, pos.lon, I18N.lang, pos.acc); } catch (e) { /* message ci-dessous */ }
   const p = list[0];
   if (!p) return "geoNone";
   // Le point exact est celui du téléphone (plus précis que le centre de la rue)
   Object.assign(p, { lat: pos.lat, lon: pos.lon, exact: true, gps: true });
   onPlacePicked(which, p, true);
   if (ac[which]) ac[which].setPicked(p.label);
+  numChips(which, p.nearNums);
   return null;
+}
+// Les numéros voisins de la rue, à toucher pour corriger d'un geste (le GPS se trompe parfois d'un immeuble)
+function numChips(which, nums) {
+  const pre = prefixOf(which), input = form.elements[pre + "_number"];
+  if (input) numChipsFor(input, pre, nums);
+}
+function numChipsFor(input, key, nums) {
+  const label = input.closest("label") || input;
+  let box = document.querySelector(`.num-chips[data-for="${key}"]`);
+  if (!box) { box = document.createElement("div"); box.className = "num-chips full"; box.dataset.for = key; label.after(box); }
+  const list = (nums || []).filter(Boolean);
+  if (list.length < 2) { box.remove(); return; }
+  const cur = input.value.trim();
+  box.innerHTML = `<small>${UI.esc(t("numCheck"))}</small>` + list.map(n => `<button type="button" class="ch-chip${n === cur ? " on" : ""}" data-num="${UI.esc(n)}">${UI.esc(n)}</button>`).join("");
+  box.onclick = e => {
+    const b = e.target.closest("[data-num]");
+    if (!b) return;
+    input.value = b.dataset.num;
+    input.dispatchEvent(new Event("input", { bubbles: true })); input.dispatchEvent(new Event("change", { bubbles: true }));
+    box.querySelectorAll("[data-num]").forEach(x => x.classList.toggle("on", x === b));
+  };
 }
 async function useMyPosition(which, btn) {
   btn.disabled = true;
@@ -3813,7 +3846,7 @@ function initHome() {
     if (b.classList.contains("busy")) return;
     b.classList.add("busy");
     try {
-      const pos = await myPosition();
+      const pos = await myPosition(3500);
       setHomePos(pos); renderHomeMap(false); renderLive();
       if (home.map) home.map.flyTo([pos.lat, pos.lon], Math.max(home.map.getZoom(), 17), { duration: 0.6 });
       showHomeErr("");
@@ -3873,7 +3906,7 @@ function initHome() {
   // Position déjà autorisée : on centre la carte sur le client (sans rien lui demander)
   if (navigator.permissions && navigator.geolocation) {
     navigator.permissions.query({ name: "geolocation" }).then(r => {
-      if (r.state === "granted") myPosition().then(pos => { setHomePos(pos); renderHomeMap(true); renderLive(); }, () => {});
+      if (r.state === "granted") myPosition(3500).then(pos => { setHomePos(pos); renderHomeMap(true); renderLive(); }, () => {});
     }).catch(() => {});
   }
   loadNearby();

@@ -414,7 +414,7 @@ async function phoneOf(p) {
 // Adresse la plus proche d'une position GPS (« 📍 Ma position »)
 // « Ma position » : d'abord l'adresse avec numéro la plus proche, sinon la rue la plus proche
 // (si aucune n'a de numéro, on demande à Nominatim, qui le connaît plus souvent)
-async function reverse(lat, lon, lang) {
+async function reverse(lat, lon, lang, acc) {
   const res = await fetch(`${API.replace("/api/", "/reverse")}?lat=${lat}&lon=${lon}&limit=10&radius=0.15` + (lang === "fr" ? "&lang=fr" : ""));
   if (!res.ok) throw new Error("photon " + res.status);
   const data = await res.json();
@@ -424,6 +424,20 @@ async function reverse(lat, lon, lang) {
     .map(p => Object.assign(p, { d: km(here, p) }))
     .sort((a, b) => (!!b.housenumber - !!a.housenumber) || (!!a.brand - !!b.brand) || a.d - b.d);
   const best = list.find(p => !p.brand) || list[0];
+  // Le numéro le plus juste : l'immeuble numéroté le plus proche du téléphone (pas seulement le plus proche connu du moteur de recherche)
+  const near = await numbersAround(lat, lon, acc && acc > 40 ? Math.min(acc + 30, 120) : 70).catch(() => null);
+  if (best && !best.brand && near && near.length) {
+    const n0 = near[0];
+    if (n0.d <= 0.035 || !best.housenumber || best.d > 0.08) {
+      best.streetName = n0.street;
+      best.housenumber = n0.number;
+      best.street = [n0.street, n0.number].join(" ");
+      best.label = [n0.street, best.city].filter(Boolean).join(", ");
+      best.exact = true;
+    }
+    best.nearNums = streetNumbers(near, best.streetName);
+    return [best].concat(list.filter(p => p !== best));
+  }
   if (best && !best.brand && (!best.housenumber || best.d > 0.08)) {
     const n = await houseNumberAt(lat, lon, lang).catch(() => null);
     if (n && (!n.street || !best.streetName || n.street === best.streetName || !best.housenumber)) {
@@ -435,6 +449,31 @@ async function reverse(lat, lon, lang) {
     }
   }
   return best ? [best].concat(list.filter(p => p !== best)) : list;
+}
+
+// Les vrais numéros autour d'une position (OpenStreetMap : immeubles et entrées qui ont un numéro), du plus proche au plus loin
+async function numbersAround(lat, lon, radius) {
+  const q = `[out:json][timeout:6];nwr(around:${Math.round(radius || 70)},${Number(lat)},${Number(lon)})["addr:housenumber"]["addr:street"];out center tags;`;
+  for (const url of OVERPASS) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 6000);
+    try {
+      const res = await fetch(url, { method: "POST", signal: ctl.signal, headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: "data=" + encodeURIComponent(q) });
+      if (!res.ok) continue;
+      const here = { lat, lon };
+      return ((await res.json()).elements || []).map(e => {
+        const c = e.center || e, g = e.tags || {};
+        return { street: g["addr:street"], number: String(g["addr:housenumber"]).trim(), lat: +c.lat, lon: +c.lon };
+      }).filter(x => x.street && x.number && isFinite(x.lat)).map(x => Object.assign(x, { d: km(here, x) })).sort((a, b) => a.d - b.d);
+    } catch (e) { /* serveur suivant */ } finally { clearTimeout(timer); }
+  }
+  return null;
+}
+const sameStreet = (a, b) => !!a && !!b && normalize(a).replace(/^(rehov|rue|רחוב)\s+/, "") === normalize(b).replace(/^(rehov|rue|רחוב)\s+/, "");
+// Numéros voisins dans la même rue, dans l'ordre (pour corriger d'un geste : 22 · 24 · 26 · 28)
+function streetNumbers(list, street) {
+  const nums = [...new Set(list.filter(x => sameStreet(x.street, street)).map(x => x.number))];
+  return nums.sort((a, b) => (parseInt(a, 10) - parseInt(b, 10)) || String(a).localeCompare(String(b))).slice(0, 12);
 }
 
 // Numéro de rue à une position (Nominatim, OpenStreetMap)
