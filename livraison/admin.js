@@ -288,7 +288,7 @@ async function sendPosition(pos) {
 
 // En service : reste actif quand on passe sur Waze (ou qu'on recharge la page), jusqu'à « Terminer le service »
 const LS_DUTY = "livraison.adminDuty.v1";
-async function toggleDuty() {
+async function toggleDuty(ev) {
   if (duty.watch != null) {
     navigator.geolocation.clearWatch(duty.watch);
     duty.watch = null;
@@ -311,6 +311,9 @@ async function toggleDuty() {
   Store.setOnline(true).catch(() => {});
   UI.dutyNotice(true, "Vos clients vous voient sur la carte. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
   renderDuty();
+  // (seulement quand il touche le bouton, pas au rechargement de la page)
+  // En service mais toujours en « Complet » : les clients voient « Fermé pour le moment ». On propose de rouvrir.
+  if (ev && !settings.accepting && confirm("Vous êtes en « Complet » : les clients voient « Fermé pour le moment » et ne peuvent que programmer.\n\nReprendre les commandes immédiates maintenant ?")) toggleAvail();
 }
 // De retour dans HOP! (après Waze) : position tout de suite, écran allumé, notification « En service » remise
 async function dutyBack() {

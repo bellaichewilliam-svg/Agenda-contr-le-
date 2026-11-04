@@ -3834,15 +3834,21 @@ async function showAppPromo() {
   document.body.appendChild(box);
 }
 
-// Nouvelle version de l'appli mise en ligne pendant que le téléphone la gardait en arrière-plan : au retour,
-// si le client est sur l'accueil sans panier en cours, on recharge (sinon on attend, rien n'est perdu)
+// Nouvelle version de l'appli mise en ligne pendant que le téléphone la gardait en arrière-plan : au retour, on recharge
+// si le client est sur l'accueil ou sur le 1er écran d'un commerce (son panier est gardé sur le téléphone et rouvert après).
+// Avant, un panier en cours bloquait la mise à jour : le téléphone restait des jours sur l'ancienne version.
+// En pleine commande (adresse, paiement…), on attend : rien n'est perdu.
+const reloadSafe = () => document.body.dataset.view === "home"
+  || (!!state.shop && !!cartStored() && Number(form.dataset.step || 1) <= 1);
 async function checkNewVersion() {
   const mine = ((document.querySelector('script[src*="client.js"]') || {}).src || "").match(/[?&]v=(\d+)/);
-  if (!mine || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length) return;
+  if (!mine || !reloadSafe()) return;
   try {
     const html = await (await fetch(`${location.pathname}?fresh=${Date.now()}`, { cache: "no-store" })).text();
     const live = html.match(/client\.js\?v=(\d+)/);
-    if (live && live[1] !== mine[1] && document.body.dataset.view === "home") location.reload();
+    if (!live || live[1] === mine[1] || !reloadSafe()) return;
+    if (document.body.dataset.view !== "home") { try { sessionStorage.setItem("hop.reopenCart", "1"); } catch (e) { /* ignore */ } }
+    location.reload();
   } catch (e) { /* hors ligne : on garde la version ouverte */ }
 }
 
@@ -5169,6 +5175,10 @@ if ($("#tbCart")) {
   // Un panier gardé d'une autre visite : le patron le voit aussi (avec le nom et le n° si le client est connu)
   const c0 = cartStored();
   if (c0) cartSync(c0.snap);
+  // Rechargé pour une nouvelle version pendant que le client remplissait son panier : on le lui rouvre
+  let reopen = false;
+  try { reopen = sessionStorage.getItem("hop.reopenCart") === "1"; sessionStorage.removeItem("hop.reopenCart"); } catch (e) { /* ignore */ }
+  if (reopen && c0) setTimeout(() => openStoredCart().catch(() => {}), 600);
 }
 
 })();
