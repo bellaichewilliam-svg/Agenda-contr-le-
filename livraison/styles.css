@@ -4517,3 +4517,28 @@ body.fiche-open { overflow: hidden; }
 /* Calendrier du bouton « Programmer » : posé dans sa case, jamais sur le texte (05/11) */
 .choice span i { line-height: 1; }
 .choice span i > .cal-ico { vertical-align: top; }
+
+/* Achats : « Courses faites pour vous » expliqué sobrement (ligne du prix, panier, fenêtre de détail) */
+#quoteLines li.q-buy > span:first-child { display: grid; gap: 2px; }
+#quoteLines .q-sub { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.q-more, .cs-why { border: 0; background: none; padding: 0; font: inherit; color: var(--brand); font-weight: 700; cursor: pointer; }
+.q-more { text-decoration: underline; text-underline-offset: 2px; }
+.cs-why { color: var(--muted); font-weight: 600; font-size: 13px; }
+.cs-why i { font-style: normal; color: var(--brand); }
+.bi-sheet .modal-box { padding: 22px 18px calc(18px + env(safe-area-inset-bottom)); gap: 10px; }
+.bi-title { font-size: 20px; margin: 4px 40px 6px 0; text-align: start; }
+[dir="rtl"] .bi-title { margin: 4px 0 6px 40px; }
+.bi-card { display: grid; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+.bi-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 12px 14px; }
+.bi-row + .bi-row { border-top: 1px solid var(--border); }
+.bi-row > i { font-style: normal; font-size: 20px; text-align: center; }
+.bi-row span { display: grid; gap: 2px; min-width: 0; }
+.bi-row b { font-size: 15px; }
+.bi-row small { color: var(--muted); font-size: 12.5px; line-height: 1.35; }
+.bi-row em { font-style: normal; font-weight: 800; white-space: nowrap; }
+.bi-if .bi-row em { color: var(--muted); font-weight: 700; font-size: 13.5px; }
+.bi-h { margin: 8px 0 0; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.bi-incl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.bi-incl li { position: relative; padding-inline-start: 26px; font-size: 14.5px; line-height: 1.35; }
+.bi-incl li::before { content: "✓"; position: absolute; inset-inline-start: 0; top: 0; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 900; background: var(--green-soft); color: var(--green-ink); }
+.bi-ok { margin-top: 10px; width: 100%; }
