@@ -415,6 +415,10 @@ function tourStops(list) {
   while (drops.length) { drops.sort((a, b) => km(pos, a) - km(pos, b)); const st = drops.shift(); stops.push(st); if (st.lat != null) pos = st; }
   return stops;
 }
+// Nouveau client / 1re livraison pour un commerce : petites pastilles de la tournée
+const isFirm = o => !!String(o.company || (o.shop_sent ? o.shop_name : "") || "").trim();
+const tourNew = o => (o.first_shop ? `<span class="tour-new">🆕 Nouveau commerce</span> ` : "")
+  + (o.first_order && !(o.first_shop && isFirm(o)) ? `<span class="tour-new">🆕 Nouveau client</span> ` : "");
 function tourBlock(list) {
   const stops = tourStops(list), later = list.filter(isLater);
   if (stops.length < 2 && !later.length) return "";
@@ -426,7 +430,7 @@ function tourBlock(list) {
     const o = st.o, pick = st.kind === "pickup";
     const place = pick ? (o.shop_name || o.pickup_place || o.pickup_address) : (o.dropoff_place || o.dropoff_address);
     const who = pick ? "" : (o.contact_name || "");
-    const fresh = o.first_order ? `<span class="tour-new">🆕 Nouveau client</span> ` : "";
+    const fresh = tourNew(o);
     const due = dueAt(o) ? `<em class="due">⏰ pour ${UI.esc(UI.fmtTime(new Date(dueAt(o))))}</em> · `
       : pick && o.pickup_ready_at && new Date(o.pickup_ready_at) > Date.now() ? `<em class="due">⏳ prêt à ${UI.esc(UI.fmtTime(o.pickup_ready_at))}</em> · ` : "";
     return `<div class="tour-stop${i === 0 ? " now" : ""}"><b class="tour-n">${i + 1}</b><div class="tour-txt"><b>${pick ? "📍" : "🏁"} <bdi>${UI.esc(place || "")}</bdi></b>
@@ -439,7 +443,7 @@ function tourBlock(list) {
   const lt = later.length ? `<div class="tour-head later-head">⏰ <b>PLUS TARD</b> · ${later.length} course${later.length > 1 ? "s" : ""}</div>${later.map(o => {
     const place = o.shop_name || o.pickup_place || o.pickup_address, drop = o.dropoff_place || o.dropoff_address;
     return `<div class="tour-stop later"><b class="tour-n">⏰</b><div class="tour-txt"><b><bdi>${UI.esc(dueLabel(o))}</bdi> · n° ${UI.esc(o.ref)}</b>
-      <small>${o.first_order ? `<span class="tour-new">🆕 Nouveau client</span> ` : ""}📍 <bdi>${UI.esc(place || "")}</bdi> → 🏁 <bdi>${UI.esc(drop || "")}</bdi>${o.contact_name ? " · " + UI.esc(o.contact_name) : ""}</small>
+      <small>${tourNew(o)}📍 <bdi>${UI.esc(place || "")}</bdi> → 🏁 <bdi>${UI.esc(drop || "")}</bdi>${o.contact_name ? " · " + UI.esc(o.contact_name) : ""}</small>
       <small><em>Dans ${UI.esc(nbDur(nbLeft(laterAt(o))))}</em> · rejoint votre tournée à <b>${UI.esc(startAt(o))}</b> · ne partez pas avant</small></div></div>`;
   }).join("")}` : "";
   return `<div class="tour">${now}${lt}</div>`;
@@ -745,7 +749,8 @@ function weekOrders(start) {
 }
 
 // Première commande de ce client (même numéro de téléphone) : le livreur le sait tout de suite
-const newClient = o => (o.first_order ? `<span class="new-client">🆕 Nouveau client · 1re commande</span>` : "")
+const newClient = o => (o.first_shop ? `<span class="new-client">🆕 1re livraison pour ce commerce</span> ` : "")
+  + (o.first_order && !(o.first_shop && isFirm(o)) ? `<span class="new-client">🆕 Nouveau client · 1re commande</span>` : "")
   + (o.addon_ref ? `<span class="addon-pill">➕ Ajout à la commande n° ${UI.esc(o.addon_ref)} · même client, même adresse</span>` : "");
 // « Pas avant 16 h » : le client l'a écrit dans sa note (ou l'a choisi) → en gros et en orange, impossible de le rater
 const nbLeft = d => Math.ceil((d - Date.now()) / 60000);
@@ -1170,9 +1175,9 @@ function whoBox(o) {
   const place = String(o.shop_name || (o.pickup_place ? String(o.pickup_place).split(" · ")[0] : "") || "").trim();
   const ph = o.contact_phone;
   return `<div class="order-who${firm ? " is-firm" : ""}"><span class="ow-txt">
-      <small class="ow-kind">${firm ? "🏪 Commande d'un commerce" : "👤 Commande d'un client"}${o.first_order ? ` <span class="ow-new">🆕 Nouveau client · 1re commande</span>` : ""}</small>
+      <small class="ow-kind">${firm ? "🏪 Commande d'un commerce" : "👤 Commande d'un client"}${firm && o.first_shop ? ` <span class="ow-new">🆕 Nouveau commerce · 1re livraison</span>` : o.first_order ? ` <span class="ow-new">🆕 Nouveau client · 1re commande</span>` : ""}${!firm && o.first_shop && !(place) ? ` <span class="ow-new">🆕 1re livraison pour ce commerce</span>` : ""}</small>
       ${firm ? `<b class="ow-shop">${UI.esc(UI.bi(firm, "fr"))}</b><span>👤 ${UI.esc(o.contact_name || "—")}</span>` : `<b class="ow-shop">${UI.esc(o.contact_name || "—")}</b>`}
-      ${place && place !== firm ? `<span class="ow-place">📍 À récupérer chez <b>${UI.esc(UI.bi(place, "fr"))}</b></span>` : ""}</span>
+      ${place && place !== firm ? `<span class="ow-place">📍 À récupérer chez <b>${UI.esc(UI.bi(place, "fr"))}</b>${o.first_shop && !firm ? ` <span class="ow-new">🆕 1re livraison pour ce commerce</span>` : ""}</span>` : ""}</span>
     ${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler</a>` : ""}</div>`;
 }
 function mineCard(o, x) {
@@ -2358,7 +2363,7 @@ function renderHome() {
     <div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>
     ${cur.map(o => `${giveBox(o)}<button type="button" class="rd-card course" data-tab="mine">
-        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>${o.first_order ? "🆕 nouveau client · " : ""}n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
+        <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>${o.first_shop ? "🆕 nouveau commerce · " : ""}${o.first_order && !(o.first_shop && isFirm(o)) ? "🆕 nouveau client · " : ""}n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
           <em class="rc-step">${isLater(o) ? `⏰ PLUS TARD · ${UI.esc(dueLabel(o))} · rien à faire avant ${UI.esc(startAt(o))}` : `${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}`}</em>
           <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>
           <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}

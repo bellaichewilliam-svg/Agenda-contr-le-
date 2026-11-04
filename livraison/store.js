@@ -226,6 +226,8 @@ async function createOrder(order) {
     const shops = localShops();
     const digits = p => String(p || "").replace(/\D/g, "").slice(-9);
     order.first_order = !!digits(order.contact_phone) && !localOrders().some(x => digits(x.contact_phone) === digits(order.contact_phone) && !["annulee", "refusee"].includes(x.status));
+    const firmKey = x => String(x.company || "").trim().toLowerCase();
+    order.first_shop = !!(order.shop_id || firmKey(order)) && !localOrders().some(x => ((order.shop_id && x.shop_id === order.shop_id) || (firmKey(order) && firmKey(x) === firmKey(order))) && !["annulee", "refusee"].includes(x.status));
     const shop = order.shop_id && shops.find(x => x.id === order.shop_id && x.status !== "suspendu");
     const referrer = shop && localCouriers().find(c => c.id === shop.referrer_id);
     Object.assign(order, {
