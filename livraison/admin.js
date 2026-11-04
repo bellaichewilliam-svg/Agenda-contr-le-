@@ -482,6 +482,36 @@ function tel(name, phone) {
   return phone ? `${UI.esc(name || "")} · <a href="tel:${UI.esc(phone)}">${UI.esc(phone)}</a>` : UI.esc(name || "");
 }
 
+// --- Qui a commandé (commerce + personne, gros bouton Appeler), heure « prêt » au départ, ordre de mes courses ---
+const shopOf = o => String(o.shop_name || o.company || (o.pickup_place ? String(o.pickup_place).split(" · ")[0] : "") || "").trim();
+function whoLine(o) {
+  const shop = shopOf(o), ph = o.contact_phone;
+  return `<div class="order-who"><span class="ow-txt">${shop ? `<b class="ow-shop">🏪 ${UI.esc(UI.bi(shop, "fr"))}</b>` : ""}<span>${shop ? "" : "Commandé par "}👤 <b>${UI.esc(o.contact_name || "—")}</b></span></span>${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler · <bdi>${UI.esc(ph)}</bdi></a>` : ""}</div>`;
+}
+function readyLine(o) {
+  if (!o.pickup_ready_at || !["nouvelle", "confirmee"].includes(o.status)) return "";
+  const l = Math.ceil((new Date(o.pickup_ready_at) - Date.now()) / 60000);
+  return l > 0 ? `<div class="ready-line wait">⏳ Colis prêt à <em>${UI.esc(UI.fmtTime(o.pickup_ready_at))}</em> · dans ${l} min : arrivez pour cette heure</div>`
+    : `<div class="ready-line ok">✅ Colis prêt (depuis ${UI.esc(UI.fmtTime(o.pickup_ready_at))})</div>`;
+}
+// Mes courses en cours (le patron livre aussi) : d'abord tous les départs (dans l'ordre où ils sont prêts), puis les livraisons
+function myTour() {
+  const list = orders.filter(o => isMine(o) && ["confirmee", "recuperee"].includes(o.status));
+  if (list.length < 2) return "";
+  const t0 = o => new Date(o.pickup_ready_at || o.ready_at || o.created_at || o.pickup_at).getTime();
+  const picks = list.filter(o => o.status === "confirmee").sort((a, b) => t0(a) - t0(b));
+  const drops = list.slice().sort((a, b) => (picks.indexOf(a) < 0 ? -1 : picks.indexOf(a)) - (picks.indexOf(b) < 0 ? -1 : picks.indexOf(b)) || t0(a) - t0(b));
+  const steps = picks.map(o => ({ o, k: "pickup" })).concat(drops.map(o => ({ o, k: "dropoff" })));
+  return `<div class="card my-tour"><b>🧭 Ma tournée · ${list.length} courses, dans cet ordre</b><ol>${steps.map(({ o, k }, i) => {
+    const pick = k === "pickup", who = pick ? shopOf(o) || o.pickup_contact || "" : o.dropoff_contact || o.contact_name || "";
+    const rl = pick && o.pickup_ready_at && new Date(o.pickup_ready_at) > Date.now() ? ` · ⏳ prêt à ${UI.esc(UI.fmtTime(o.pickup_ready_at))}` : "";
+    return `<li class="${i === 0 ? "now" : ""}"><a href="#o-${UI.esc(o.id)}" data-tour-go="${UI.esc(o.id)}">${pick ? "📍 Récupérer" : "🏁 Livrer"} ${who ? `<b>${UI.esc(UI.bi(who, "fr"))}</b> · ` : ""}<bdi>${UI.esc(pick ? o.pickup_address : o.dropoff_address)}</bdi>${rl} <small>n° ${UI.esc(String(o.ref).split("-").pop())}</small></a></li>`;
+  }).join("")}</ol></div>`;
+}
+const tourNo = o => { const l = orders.filter(x => isMine(x) && ["confirmee", "recuperee"].includes(x.status)); if (l.length < 2) return 0;
+  const t0 = x => new Date(x.pickup_ready_at || x.ready_at || x.created_at || x.pickup_at).getTime();
+  return l.sort((a, b) => (a.status === "recuperee") - (b.status === "recuperee") || t0(a) - t0(b)).indexOf(o) + 1; };
+
 // --- Carte d'une course -------------------------------------------------------------
 function card(o, withDay) {
   const st = Store.STATUSES[o.status] || { label: o.status, icon: "" };
@@ -597,7 +627,6 @@ function card(o, withDay) {
   if (o.extra_stops && !(o.stops || []).length) meta.push(`<span class="pill">+${o.extra_stops} arrêt(s)</span>`);
   if (o.distance_km) meta.push(`<span class="pill">${Number(o.distance_km).toFixed(0)} km</span>`);
   if (o.promo_code) meta.push(`<span class="pill">🎁 ${UI.esc(o.promo_code)} −${UI.money(o.discount || 0)}</span>`);
-  meta.push(`<span class="pill">👤 ${tel(o.contact_name, o.contact_phone)}${o.company ? " · " + UI.esc(o.company) : ""}</span>`);
   meta.push(`<span class="pill">${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>`);
 
   const b = (status, label, cls = "") => `<button class="btn btn-sm ${cls}" data-status="${status}">${label}</button>`;
@@ -626,15 +655,16 @@ function card(o, withDay) {
       <span>${st.icon} ${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}N° ${UI.esc(o.ref)} · ${UI.esc(o.dropoff_contact || o.contact_name || "")}${o.courier_name ? " · 🛵 " + UI.esc(o.courier_name.split(" ")[0]) : ""}${o.is_test ? " · 🧪 test" : ""}</span>
       <b>${UI.money(o.price)}</b></summary>${inner}</details>` : inner;
   return fold(`
-  <article class="order${o.status === "nouvelle" ? " is-new" : ""}" data-id="${UI.esc(o.id)}">
+  <article class="order${o.status === "nouvelle" ? " is-new" : ""}" data-id="${UI.esc(o.id)}" id="o-${UI.esc(o.id)}">
     <div class="order-head">
-      <span class="order-time">${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}${when}${withDay && o.urgency !== "programmee" && !nbOn ? " · 🕐 " + UI.esc(UI.fmtTime(o.created_at || o.pickup_at)) : ""}</span>
+      ${tourNo(o) ? `<b class="tour-no" title="Ordre dans votre tournée">${tourNo(o)}</b>` : ""}<span class="order-time">${withDay ? UI.esc(UI.fmtDay(o.pickup_at)) + " · " : ""}${when}${withDay && o.urgency !== "programmee" && !nbOn ? " · 🕐 " + UI.esc(UI.fmtTime(o.created_at || o.pickup_at)) : ""}</span>
       <span class="pill st-${UI.esc(o.status)}">${st.icon} ${st.label}</span>${o.is_test ? ` <span class="pill">🧪 Test · hors chiffre</span>` : ""}
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(o.price)}</span>
     </div>
+    ${whoLine(o)}
     <div class="legs">
-      <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b><bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</b>${UI.addrDetails(o, "pickup")}${UI.addrNote(o.pickup_note)}${pickupExtra}<span class="small muted">${tel(o.pickup_contact, o.pickup_phone)}</span>${nav("pickup")}</div></div>
+      <div class="leg"><span>📍</span><div>${UI.brand(o.pickup_place)}<b><bdi>${UI.esc(o.pickup_address)}</bdi>, ${UI.esc(UI.cityFr(o.from_city))}</b>${UI.addrDetails(o, "pickup")}${UI.addrNote(o.pickup_note)}${readyLine(o)}${pickupExtra}<span class="small muted">${tel(o.pickup_contact, o.pickup_phone)}</span>${nav("pickup")}</div></div>
       ${UI.stopsLegs(o, true)}
       <div class="leg"><span>🏁</span><div>${UI.brand(o.dropoff_place)}<b><bdi>${UI.esc(o.dropoff_address)}</bdi>, ${UI.esc(UI.cityFr(o.to_city))}</b>${UI.addrDetails(o, "dropoff")}${UI.addrNote(o.dropoff_note)}${UI.doorTag(o)}<span class="small muted">${tel(o.dropoff_contact, o.dropoff_phone)}</span>${nav("dropoff")}</div></div>
     </div>
@@ -932,7 +962,7 @@ function render() {
     updateLiveMap();
   } else if (tab === "agenda") {
     const list = agendaList();
-    view.innerHTML = list.length ? groupedByDay(list) : empty('Aucune course à venir. Partagez votre page avec le <a href="kit.html">kit pub</a> !');
+    view.innerHTML = list.length ? myTour() + groupedByDay(list) : empty('Aucune course à venir. Partagez votre page avec le <a href="kit.html">kit pub</a> !');
   } else if (tab === "nouvelles") {
     const list = orders.filter(o => o.status === "nouvelle").sort(byTime);
     view.innerHTML = list.length ? `<div class="orders">${list.map(o => card(o, true)).join("")}</div>` : empty("Aucune course à accepter 👍");

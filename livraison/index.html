@@ -91,7 +91,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202611041105" />
+  <link rel="stylesheet" href="styles.css?v=202611041217" />
 <style id="splashCss">#splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0F1F3D;color:#fff;transition:opacity .35s ease}#splash.out{opacity:0;pointer-events:none}#splash svg{width:min(58vw,300px);height:auto;display:block}#splash span{font:700 16px/1 Rubik,-apple-system,Arial,sans-serif;letter-spacing:.42em;margin-inline-start:.42em;opacity:.92}</style>
 </head>
 <body>
@@ -416,6 +416,12 @@
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="appartement" hidden /><span data-i18n="kind_appartement"></span></label>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="bureau" hidden /><span data-i18n="kind_bureau"></span></label>
               <label class="ch-chip"><input type="radio" name="pickup_kind" value="commerce" hidden /><span data-i18n="kind_commerce"></span></label>
+            </div>
+            <div data-wiz="2" class="kind-chips full ready-chips pick-addr hidden" role="radiogroup" id="readyChips"><span class="kind-label" data-i18n="readyLabel"></span>
+              <label class="ch-chip on"><input type="radio" name="pickup_ready" value="0" checked hidden /><span data-i18n="ready0"></span></label>
+              <label class="ch-chip"><input type="radio" name="pickup_ready" value="15" hidden /><span data-i18n="ready15"></span></label>
+              <label class="ch-chip"><input type="radio" name="pickup_ready" value="30" hidden /><span data-i18n="ready30"></span></label>
+              <label class="ch-chip"><input type="radio" name="pickup_ready" value="60" hidden /><span data-i18n="ready60"></span></label>
             </div>
             <div data-wiz="2" data-more class="fields4 full hide-retrait pick-addr" data-details="pickup">
               <label class="f"><span data-i18n="building"></span><input name="pickup_building" data-i18n-ph="buildingPh" /></label>
@@ -787,16 +793,16 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202611041105"></script>
-<script src="i18n.js?v=202611041105"></script>
-<script src="pricing.js?v=202611041105"></script>
-<script src="store.js?v=202611041105"></script>
-<script src="chat.js?v=202611041105"></script>
-<script src="common.js?v=202611041105"></script>
-<script src="enseignes.js?v=202611041105"></script>
-<script src="places.js?v=202611041105"></script>
-<script src="rayons.js?v=202611041105"></script>
-<script src="client.js?v=202611041105"></script>
+<script src="config.js?v=202611041217"></script>
+<script src="i18n.js?v=202611041217"></script>
+<script src="pricing.js?v=202611041217"></script>
+<script src="store.js?v=202611041217"></script>
+<script src="chat.js?v=202611041217"></script>
+<script src="common.js?v=202611041217"></script>
+<script src="enseignes.js?v=202611041217"></script>
+<script src="places.js?v=202611041217"></script>
+<script src="rayons.js?v=202611041217"></script>
+<script src="client.js?v=202611041217"></script>
 <script>(function(){var s=document.getElementById("splash");if(!s)return;var t0=Date.now();function off(){var w=0;setTimeout(function(){s.classList.add("out");setTimeout(function(){s.remove()},400)},w)}off()})();</script>
 </body>
 </html>
