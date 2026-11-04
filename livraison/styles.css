@@ -4450,7 +4450,12 @@ body.fiche-open { overflow: hidden; }
 .fi-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.08); }
 .fi-tabs button { flex: 1; padding: 12px 6px 10px; border: 0; background: none; color: #8C9BB8; font: inherit; font-weight: 900; font-size: 15px; letter-spacing: .04em; border-bottom: 3px solid transparent; cursor: pointer; }
 .fi-tabs button.on { color: #6EC8FF; border-bottom-color: #6EC8FF; }
-.fi-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 6px 20px 14px; }
+.fi-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 22px 20px 18px; }
+.fi-body > :first-child { margin-top: 0; }
+.fi-tabs { margin-top: 6px; }
+.fi-body .fi-h { margin-top: 22px; }
+.fi-body > .fi-h:first-child, .fi-body > .fi-shop:first-child { margin-top: 0; }
+.fi-door { margin: 0 0 6px; }
 .fi-h { margin: 16px 0 6px; font-size: 20px; font-weight: 900; color: #fff; }
 .fi-row { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.08); min-width: 0; }
 .fi-row small, .fi-grid small { display: block; color: #8FA6CC; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
