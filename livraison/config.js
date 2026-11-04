@@ -101,7 +101,7 @@ window.CONFIG = {
   // puis l'attente annoncée ; 6 articles compris, puis +2 ₪ l'article). Pendant ses achats, il peut prendre d'autres commandes
   // du même magasin : 3 au plus en tout, s'il reste de la place dans le top case, et si sa plus ancienne course en cours a été
   // acceptée il y a moins de hopJoinMinutes min. Mêmes règles dans la base (supabase/hop-boutiques-achat.sql).
-  hopShops: ["HOPCARREFOUR", "HOPBOOOM"],
+  hopShops: ["HOPCARREFOUR", "HOPBOOOM", "HOPPANZER"],
   hopJoinMinutes: 15,   // shopsKm : départs de commerces différents ; maxBags : place dans le top case
   // Heures de pointe habituelles, affichées aux livreurs
   peakHours: { fr: "12\u00a0h–14\u00a0h et 18\u00a0h–21\u00a0h", he: "12:00–14:00 ו-18:00–21:00" },
