@@ -415,7 +415,10 @@ async function phoneOf(p) {
 // « Ma position » : d'abord l'adresse avec numéro la plus proche, sinon la rue la plus proche
 // (si aucune n'a de numéro, on demande à Nominatim, qui le connaît plus souvent)
 async function reverse(lat, lon, lang, acc) {
-  const res = await fetch(`${API.replace("/api/", "/reverse")}?lat=${lat}&lon=${lon}&limit=10&radius=0.15` + (lang === "fr" ? "&lang=fr" : ""));
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 7000);
+  let res;
+  try { res = await fetch(`${API.replace("/api/", "/reverse")}?lat=${lat}&lon=${lon}&limit=10&radius=0.15` + (lang === "fr" ? "&lang=fr" : ""), { signal: ctl.signal }); }
+  finally { clearTimeout(timer); }
   if (!res.ok) throw new Error("photon " + res.status);
   const data = await res.json();
   lastOk = true;

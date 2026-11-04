@@ -4391,3 +4391,9 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .num-chips small { width: 100%; font-weight: 700; color: var(--muted, #5B6B86); }
 .num-chips .ch-chip { min-width: 44px; justify-content: center; font-weight: 800; }
 .num-chips .ch-chip.on { background: #FF6A13; color: #fff; border-color: #FF6A13; }
+.inapp-bar { position: fixed; left: 8px; right: 8px; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 1500; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  padding: 10px 40px 10px 12px; border-radius: 14px; background: #0F1F3D; color: #fff; font-size: 13.5px; line-height: 1.35; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.inapp-bar span { flex: 1 1 200px; }
+.inapp-bar .btn { background: #FF6A13; border-color: #FF6A13; color: #fff; font-weight: 800; }
+.inapp-bar b { color: #FFB27A; }
+.inapp-bar .ia-x { position: absolute; top: 6px; inset-inline-end: 8px; border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; }
