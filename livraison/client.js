@@ -4563,7 +4563,9 @@ $("#homePro").addEventListener("click", e => {
 }, true);
 $("#homePro").addEventListener("keydown", e => { const c = e.target.closest("[data-pro]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); c.click(); } });
 async function loadShowcase() {
-  try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { state.showcase = []; }
+  // La dernière liste gardée sur le téléphone s'affiche tout de suite ; la base la remplace dès qu'elle répond
+  if (!state.showcase.length) { try { const kept = JSON.parse(localStorage.getItem("livraison.showcase.v1") || "null"); if (Array.isArray(kept) && kept.length) { state.showcase = kept; renderShowcase(); } } catch (e) { /* ignore */ } }
+  try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { /* base lente : on garde ce qui est affiché */ }
   if (home.map && restos.layer) drawRestos();   // les logos des partenaires sur la carte
   renderShowcase();
 }

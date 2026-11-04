@@ -1751,8 +1751,22 @@ async function productsSearch(q) {
     .filter(pr => pr.available && (String(pr.name).toLowerCase().includes(n) || String(pr.description || "").toLowerCase().includes(n)))
     .map(pr => ({ id: pr.id, name: pr.name, price: pr.price, has_photo: !!pr.photo, code: x.code, shop: x.name, kind: x.kind, category: null }))).slice(0, 20);
 }
+// Boutiques de l'accueil : 3 essais (la base peut être lente un instant au réveil), puis la dernière liste
+// gardée sur le téléphone : l'accueil ne reste jamais vide
+const SHOWCASE_KEY = "livraison.showcase.v1";
 async function shopsShowcase() {
-  if (ONLINE) return (await rest("/rest/v1/rpc/shops_showcase", { method: "POST", body: {} })) || [];
+  if (ONLINE) {
+    for (let i = 0; i < 3; i++) {
+      try {
+        const r = await rest("/rest/v1/rpc/shops_showcase", { method: "POST", body: {} });
+        if (Array.isArray(r) && r.length) { try { writeJSON(SHOWCASE_KEY, r); } catch (e) { /* plein */ } return r; }
+        if (Array.isArray(r)) return r;
+      } catch (e) { if (i < 2) await new Promise(res => setTimeout(res, 800 * (i + 1))); }
+    }
+    const kept = readJSON(SHOWCASE_KEY, null);
+    if (Array.isArray(kept) && kept.length) return kept;
+    throw new Error("showcase_unavailable");
+  }
   const cat = readJSON(LS.catalog, {});
   return localShops().filter(x => x.status === "actif" && (planActive(x) || x.showcase))
     .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, kosher: !!x.kosher, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null, tagline_he: x.tagline_he || null,
