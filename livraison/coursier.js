@@ -1164,8 +1164,15 @@ function sameClient(o) {
 const twinName = x => `n° ${x.ref}${x.shop_name ? " · " + x.shop_name : x.pickup_place ? " · " + String(x.pickup_place).split(" · ")[0] : ""}`;
 // Qui a commandé : le commerce (s'il y en a un) et la personne, avec un gros bouton pour l'appeler
 function whoBox(o) {
-  const shop = String(o.shop_name || o.company || (o.pickup_place ? String(o.pickup_place).split(" · ")[0] : "") || "").trim(), ph = o.contact_phone;
-  return `<div class="order-who"><span class="ow-txt">${shop ? `<b class="ow-shop">🏪 ${UI.esc(UI.bi(shop, "fr"))}</b>` : ""}<span>${shop ? "" : "Commandé par "}👤 <b>${UI.esc(o.contact_name || "—")}</b></span></span>${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler</a>` : ""}</div>`;
+  // Qui commande ? Un commerce ou un client particulier ; le commerce où l'on va chercher la commande est dit à part
+  const firm = String(o.company || (o.shop_sent ? o.shop_name : "") || "").trim();
+  const place = String(o.shop_name || (o.pickup_place ? String(o.pickup_place).split(" · ")[0] : "") || "").trim();
+  const ph = o.contact_phone;
+  return `<div class="order-who${firm ? " is-firm" : ""}"><span class="ow-txt">
+      <small class="ow-kind">${firm ? "🏪 Commande d'un commerce" : "👤 Commande d'un client"}</small>
+      ${firm ? `<b class="ow-shop">${UI.esc(UI.bi(firm, "fr"))}</b><span>👤 ${UI.esc(o.contact_name || "—")}</span>` : `<b class="ow-shop">${UI.esc(o.contact_name || "—")}</b>`}
+      ${place && place !== firm ? `<span class="ow-place">📍 À récupérer chez <b>${UI.esc(UI.bi(place, "fr"))}</b></span>` : ""}</span>
+    ${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler</a>` : ""}</div>`;
 }
 function mineCard(o, x) {
   const to = o.status === "recuperee";
@@ -1202,7 +1209,7 @@ function mineCard(o, x) {
     ${stop("dropoff", "🏁 ARRIVÉE", to)}
     ${o.notes ? `<p class="mine-note">📝 ${UI.esc(o.notes)}</p>` : ""}
     <div class="mine-extra">${x.extra}
-      ${needPhoto(o) ? `<div class="small">${photoWhy(o)}</div>` : ""}
+      ${needPhoto(o) ? `<div class="small">${photoWhy(o)}</div>` : o.photo_wanted ? `<div class="small">📷 Le client aimerait une photo du colis : facultatif, envoyez-la par 💬 si vous pouvez</div>` : ""}
       ${o.goods_pay === "recu" ? `<div class="small pay-direct">✅ Articles déjà payés au commerce : rien à avancer</div>` : ""}
       ${x.hopPaid ? `<div class="small pay-direct">${o.payment_status === "paye" ? "✅ Déjà payée à HOP : rien à encaisser" : "📱 Le client paie HOP : n'encaissez rien"}</div>` : ""}</div>
     <div class="actions">${x.actions}</div>
@@ -1747,7 +1754,8 @@ const isOnline = () => duty.watch != null;
 // --- Blocages (le patron peut tout débloquer) ----------------------------------------------
 const PHOTO_MSG = "📷 Photo du colis obligatoire : touchez « 📷 Photo du colis, puis Livré », prenez la photo, elle part au client et la course est validée.";
 // Photo à la livraison : obligatoire devant la porte, ou quand le client l'a demandée (« 📷 Je veux une photo »)
-const needPhoto = o => !!(o.leave_at_door || o.photo_wanted);
+// Photo obligatoire seulement devant la porte (sans contact) ; demandée par le client : facultative (règle du 04/11)
+const needPhoto = o => !!o.leave_at_door;
 const photoWhy = o => o.leave_at_door ? "📷 Devant la porte : photo obligatoire avant « Livré »" : "📷 Le client a demandé une photo : obligatoire avant « Livré »";
 const photoDone = new Set();
 // Tabac / alcool : le livreur coche « j'ai vérifié la pièce d'identité » avant de pouvoir livrer

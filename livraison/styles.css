@@ -4384,3 +4384,6 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .my-tour li small { color: #6B7A93; font-weight: 600; }
 .ready-chips .ch-chip.on { background: #FF6A13; color: #fff; border-color: #FF6A13; }
 .ready-line em { font-style: normal; font-weight: 900; }
+.order-who .ow-kind { font-size: 12px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: #9FB3D6; }
+.order-who.is-firm .ow-kind { color: #FFB27A; }
+.order-who .ow-place { font-size: 14px; color: #DCE5F5; }

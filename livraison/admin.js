@@ -425,7 +425,8 @@ function showOrder(id) {
   }, 200);
 }
 // Photo à la livraison : obligatoire devant la porte, ou quand le client l'a demandée (« 📷 Je veux une photo »)
-const needPhoto = o => !!(o.leave_at_door || o.photo_wanted);
+// Photo obligatoire seulement devant la porte (sans contact) ; demandée par le client : facultative (règle du 04/11)
+const needPhoto = o => !!o.leave_at_door;
 const photoDone = new Set();
 document.addEventListener("change", async e => {
   const inp = e.target.closest("input[data-aphoto]");
@@ -485,8 +486,16 @@ function tel(name, phone) {
 // --- Qui a commandé (commerce + personne, gros bouton Appeler), heure « prêt » au départ, ordre de mes courses ---
 const shopOf = o => String(o.shop_name || o.company || (o.pickup_place ? String(o.pickup_place).split(" · ")[0] : "") || "").trim();
 function whoLine(o) {
-  const shop = shopOf(o), ph = o.contact_phone;
-  return `<div class="order-who"><span class="ow-txt">${shop ? `<b class="ow-shop">🏪 ${UI.esc(UI.bi(shop, "fr"))}</b>` : ""}<span>${shop ? "" : "Commandé par "}👤 <b>${UI.esc(o.contact_name || "—")}</b></span></span>${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler · <bdi>${UI.esc(ph)}</bdi></a>` : ""}</div>`;
+  // Qui commande ? Un commerce (son nom d'entreprise, ou une course envoyée depuis son espace) ou un client particulier.
+  // Le commerce où l'on va chercher la commande n'est PAS forcément celui qui commande : il est dit à part.
+  const firm = String(o.company || (o.shop_sent ? o.shop_name : "") || "").trim();
+  const place = String(o.shop_name || (o.pickup_place ? String(o.pickup_place).split(" · ")[0] : "") || "").trim();
+  const ph = o.contact_phone;
+  return `<div class="order-who${firm ? " is-firm" : ""}"><span class="ow-txt">
+      <small class="ow-kind">${firm ? "🏪 Commande d'un commerce" : "👤 Commande d'un client"}</small>
+      ${firm ? `<b class="ow-shop">${UI.esc(UI.bi(firm, "fr"))}</b><span>👤 ${UI.esc(o.contact_name || "—")}</span>` : `<b class="ow-shop">${UI.esc(o.contact_name || "—")}</b>`}
+      ${place && place !== firm ? `<span class="ow-place">📍 À récupérer chez <b>${UI.esc(UI.bi(place, "fr"))}</b></span>` : ""}</span>
+    ${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler · <bdi>${UI.esc(ph)}</bdi></a>` : ""}</div>`;
 }
 function readyLine(o) {
   if (!o.pickup_ready_at || !["nouvelle", "confirmee"].includes(o.status)) return "";
@@ -555,7 +564,8 @@ function card(o, withDay) {
       meta.push(`<button class="pill pill-btn paid" data-act="goodsok" title="Le client a bien payé ses articles : le livreur peut les récupérer">✅ Articles payés</button><button class="pill pill-btn st-annulee" data-act="goodsko">❌ Pas reçu</button>`);
     }
   }
-  if (o.photo_wanted || o.leave_at_door) meta.push(`<span class="pill unpaid">📷 Photo du colis obligatoire${o.photo_wanted ? " (demandée par le client)" : " (devant la porte)"}</span>`);
+  if (o.leave_at_door) meta.push(`<span class="pill unpaid">📷 Photo du colis obligatoire (devant la porte)</span>`);
+  else if (o.photo_wanted) meta.push(`<span class="pill">📷 Le client aimerait une photo (facultatif)</span>`);
   // Colis à récupérer : les documents du client, à vérifier avant d'envoyer un livreur
   if (o.docs_status) {
     meta.push(`<button class="pill pill-btn ${o.docs_status === "ok" ? "paid" : o.docs_status === "refuse" ? "st-annulee" : "unpaid"}" data-act="docs" title="Voir les photos envoyées par le client">${o.docs_status === "ok" ? "✅ Documents vérifiés" : o.docs_status === "refuse" ? `📄 Demandé au client : ${UI.esc(o.docs_note || "")}` : "📄 Documents à vérifier"} · voir</button>`);
