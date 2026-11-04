@@ -157,3 +157,11 @@ revoke execute on function public.panzer_import(bigint) from public, anon, authe
 -- Horaires (patron, 05/11) : dim–jeu 10 h–19 h ; vendredi 10 h–14 h en attendant sa confirmation ; chabbat fermé.
 -- Téléphones de Panzer : seulement dans la note du patron (admin_note). Le téléphone et le WhatsApp de la boutique sont ceux de HOP!
 -- (commande HOP! : le client appelle HOP!, jamais le magasin).
+
+-- Logo et couverture (04/11/2026, demande du patron : même logo que les autres boutiques HOP!) :
+--   img/market/panzer-logo.webp (tuile bleu nuit + viande 3D, « HOP! chez Panzer / HOP! בפנזר »)
+--   img/market/panzer-cover.webp (fond crème, icônes 3D : herbes, poulet, viande, baguette, piment, ail ; rien de laitier)
+-- shops.logo / cover = petites versions ; liées au vrai fichier APRÈS la mise en ligne des fichiers :
+-- insert into public.shop_photo_files (h, path) values
+--   ('047488c413dde6bd095d3f0005d527dd', 'img/market/panzer-logo.webp'),
+--   ('b28fcde40bcce16be3dbdc01e5388e12', 'img/market/panzer-cover.webp') on conflict do nothing;
