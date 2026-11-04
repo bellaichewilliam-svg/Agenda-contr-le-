@@ -35,6 +35,8 @@ Spell every text exactly as written, letter by letter.
 | Pharmacie | VOTRE PHARMACIE / SANS BOUGER | בית המרקחת, בלי לזוז | holding a small white pharmacy bag with a green cross | Super-Pharm et les autres, livrés chez vous. / סופר-פארם ועוד, עד הבית. |
 | Colis | VOS COLIS / ENVOYÉS, RÉCUPÉRÉS | חבילות: שולחים ואוספים | carrying a stack of cardboard parcels | La poste, les retraits, les envois : on s'en occupe. / דואר, איסוף ומשלוח: אנחנו דואגים. |
 | Pressing | VOTRE PRESSING / ALLER ET RETOUR | ניקוי יבש הלוך וחזור | holding a clean shirt on a hanger in a plastic cover | On dépose, on récupère, vous ne bougez pas. / מביאים, מחזירים, אתם לא זזים. |
+| HOP! chez Carrefour | ON FAIT VOS COURSES / CHEZ CARREFOUR | עושים לכם את הקניות בקרפור | holding a big blue supermarket shopping basket full of groceries: a six-pack of water bottles, milk, orange juice, fresh fruit and vegetables, a baguette (generic products, no brand logos, no readable labels) | Au prix Carrefour, livré chez vous à Netanya. / במחיר של קרפור, עד הבית בנתניה. |
+| HOP! chez BOOOM | LES PROMOS BOOOM / LIVRÉES CHEZ VOUS | המבצעים של בום עד הבית | holding a big paper shopping bag overflowing with groceries (pasta, rice, cookies, juice bottles, cleaning products), with bright red and yellow promo price tags flying around (no readable text on the tags, no brand logos) | Les produits forts et les promos de BOOOM, on fait les courses pour vous. / המוצרים החזקים והמבצעים של בום, אנחנו קונים בשבילכם. |
 | Présentation | VOICI / HOPPY ! | תכירו את הופי! | giving a big friendly thumbs up | Il livre tout Netanya… dans sa poche. / מביא את כל נתניה… בכיס. |
 
 Le visuel reçu : l'envoyer dans la conversation, il est redimensionné en 1080 × 1350 et ajouté au kit.
