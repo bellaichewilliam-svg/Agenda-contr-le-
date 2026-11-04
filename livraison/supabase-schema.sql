@@ -8803,3 +8803,5 @@ $$;
 -- Boutiques HOP! (HOPCARREFOUR, HOPBOOOM) = un achat fait par le livreur (04/11) : colonnes orders.hop_buy, buy_places,
 -- buy_check, taken_at ; déclencheurs orders_zzz_hop_buy, orders_hop_buy_step ; hop_join_why, hop_pair, pair_ok / on_way,
 -- RPC courier_buy_check. Voir supabase/hop-boutiques-achat.sql (à coller dans le SQL Editor).
+
+-- « Nouveau commerce » (04/11) : orders.first_shop, déclencheur orders_zzzz_first_shop (voir supabase/nouveau-commerce.sql)
