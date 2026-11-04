@@ -606,24 +606,34 @@ function buyInfo(q) {
   return { buy, base: lines.find(l => /^qBase/.test(l.key)), items, min: Math.max(Number(st.wait_free_min || 0), Number((buy.vars || {}).min || 0)),
     wait: st.wait_step_price != null ? { price: Number(st.wait_step_price), step: Number(st.wait_step_min || 1) } : null };
 }
+// Zones à part d'une ville (Agamim, zones industrielles…) : prix fixe dans la ville, areas.price entre la ville et une zone
+function zoneInfo(city) {
+  const A = CONFIG.pricing.areas || {}, list = (A.list || []).filter(z => z.city === city);
+  return list.length && A.price ? { names: list.map(z => z[I18N.lang] || z.fr), price: Number(A.price), city } : null;
+}
 function openBuyInfo() {
-  const bi = buyInfo(currentQuote());
-  if (!bi) return;
+  const q = currentQuote(), bi = buyInfo(q) || {}, base = bi.base || (q.lines || []).find(l => /^qBase/.test(l.key));
+  const zi = base && zoneInfo((base.vars || {}).city || (base.vars || {}).from);
+  if (!bi.buy && !zi) return;
   const row = (ico, title, sub, amt) => `<div class="bi-row"><i aria-hidden="true">${ico}</i><span><b>${UI.esc(title)}</b>${sub ? `<small>${UI.esc(sub)}</small>` : ""}</span>${amt ? `<em>${amt}</em>` : ""}</div>`;
   const m = n => `<bdi dir="ltr">${UI.esc(money(n))}</bdi>`;   // montant toujours lisible, en hébreu aussi
-  const incl = [bi.items ? t("biInclItems", { n: bi.items.inc }) : "", t("biInclMin", { n: bi.min }), t("biInclTicket"), t("biInclFees")].filter(Boolean);
-  const ifs = [bi.items ? row("🧺", t("biIfItem"), t("biIfItemSub", { max: bi.items.max }), UI.esc(t("biIfItemV", { each: "§" })).replace("§", m(bi.items.each))) : "",
+  const incl = !bi.buy ? [] : [bi.items ? t("biInclItems", { n: bi.items.inc }) : "", t("biInclMin", { n: bi.min }), t("biInclTicket"), t("biInclFees")].filter(Boolean);
+  const ifs = !bi.buy ? "" : [bi.items ? row("🧺", t("biIfItem"), t("biIfItemSub", { max: bi.items.max }), UI.esc(t("biIfItemV", { each: "§" })).replace("§", m(bi.items.each))) : "",
     bi.wait ? row("⏱️", t("biIfWait"), t("biIfWaitSub", { min: bi.min }), bi.wait.step === 1 ? UI.esc(t("biIfWaitV", { price: "§" })).replace("§", m(bi.wait.price)) : UI.esc(t("biIfWaitVN", { price: "§", n: bi.wait.step })).replace("§", m(bi.wait.price))) : ""].join("");
   $("#biBody").innerHTML = `<h3 class="bi-title">${UI.esc(t("biTitle"))}</h3>
-    <div class="bi-card">${bi.base ? row("🛵", lineLabel(bi.base), t("biDelivSub"), m(bi.base.amount)) : ""}${row("🛒", t("biBuy"), t("biBuySub"), "+ " + m(bi.buy.amount))}</div>
-    <p class="bi-h">${UI.esc(t("biIncl"))}</p><ul class="bi-incl">${incl.map(x => `<li>${UI.esc(x)}</li>`).join("")}</ul>
+    <div class="bi-card">${base ? row("🛵", lineLabel(base), zi ? t("biDelivCity", { city: cityLabel(zi.city) }) : t("biDelivSub"), m(base.amount)) : ""}${bi.buy ? row("🛒", t("biBuy"), t("biBuySub"), "+ " + m(bi.buy.amount)) : ""}</div>
+    ${zi ? `<p class="bi-h">${UI.esc(t("biZonesH"))}</p><div class="bi-card bi-if">${row("📍", zi.names.join(", "), t("biZonesSub", { city: cityLabel(zi.city) }), m(zi.price))}</div>` : ""}
+    ${incl.length ? `<p class="bi-h">${UI.esc(t("biIncl"))}</p><ul class="bi-incl">${incl.map(x => `<li>${UI.esc(x)}</li>`).join("")}</ul>` : ""}
     ${ifs ? `<p class="bi-h">${UI.esc(t("biIf"))}</p><div class="bi-card bi-if">${ifs}</div>` : ""}
     <button type="button" class="btn btn-primary btn-lg bi-ok" data-bi-ok>${UI.esc(t("biOk"))}</button>`;
   $("#buyInfo").classList.remove("hidden");
+  biOpenedAt = Date.now();
 }
+// (un « toucher fantôme » juste après l'ouverture ne referme pas la fenêtre par le fond)
+let biOpenedAt = 0;
 document.addEventListener("click", e => {
   if (e.target.closest("[data-buy-info]")) { e.preventDefault(); return openBuyInfo(); }
-  if (e.target.id === "buyInfo" || e.target.closest("#biClose") || e.target.closest("[data-bi-ok]")) $("#buyInfo").classList.add("hidden");
+  if ((e.target.id === "buyInfo" && Date.now() - biOpenedAt > 400) || e.target.closest("#biClose") || e.target.closest("[data-bi-ok]")) $("#buyInfo").classList.add("hidden");
 });
 function baseQuote() {
   if (val("payment_method") === "carnet" && carnetOk()) {
@@ -818,7 +828,7 @@ function renderCash() {
   const on = val("payment_method") === "cash";
   const issue = cashIssue(currentQuote());
   $("#cashChoice").classList.toggle("choice-off", !!(issue && issue.hard));
-  $("#cashSmall").textContent = issue && issue.hard ? t("pay_cash_off", { max: money(cashMax()) }) : t("pay_cash_d2", { max: money(cashFirstCap() || cashMax()) });
+  $("#cashSmall").textContent = issue && issue.hard ? t("pay_cash_off", { max: money(cashMax()) }) : t("pay_cash_d2", { max: money(Number((state.settings || {}).cash_first_max) || 100) });
   $("#cashBox").classList.toggle("hidden", !on);
   if (!on) return;
   const q = currentQuote(), goods = cashGoods(), total = Number(q.total) + goods;
@@ -1235,6 +1245,10 @@ function renderQuote() {
   $("#quoteLines").innerHTML = q.lines.map(l => bi && l === bi.buy
     // Achat : un intitulé simple, et en petit ce qui est compris ; le détail au toucher
     ? `<li class="q-buy"><span><span>${UI.esc(t("qBuyT"))}</span><small class="q-sub">${UI.esc(bi.items ? t("qBuySubItems", { n: bi.items.inc, min: bi.min }) : t("qBuySubMin", { min: bi.min }))}
+        · <button type="button" class="q-more" data-buy-info>${UI.esc(t("qBuyMore"))}</button></small></span><span dir="ltr">${money(l.amount)}</span></li>`
+    : l.key === "qBaseSame" && zoneInfo(l.vars.city)
+    // Prix fixe dans la ville ; les zones à part (30 ₪) expliquées au toucher
+    ? `<li class="q-buy"><span><span>${UI.esc(lineLabel(l))}</span><small class="q-sub">${UI.esc(t("qFixedCity", { city: cityLabel(l.vars.city) }))}
         · <button type="button" class="q-more" data-buy-info>${UI.esc(t("qBuyMore"))}</button></small></span><span dir="ltr">${money(l.amount)}</span></li>`
     : `<li class="${l.discount ? "disc" : ""}"><span>${UI.esc(lineLabel(l))}</span><span dir="ltr">${l.amount < 0 ? "−" : ""}${money(Math.abs(l.amount))}</span></li>`).join("")
     // Pas de frais cachés : on le montre noir sur blanc
@@ -3590,19 +3604,20 @@ function shopInfo(s, noWa) {
   const hours = (s.hours || []).slice().sort((a, b) => a.d - b.d);
   const open = hours.length && shopOpenNow(hours);
   const wa = noWa ? "" : shopWa(s);
-  const hop = hopRun(s), waText = encodeURIComponent(t(hop ? "shWaHelloHop" : "shWaHello", { name: UI.bi(s.name) }));
+  // Boutique HOP! (Carrefour, BOOOM, Panzer…) : c'est HOP! qu'on appelle pour commander, pas le magasin
+  const own = isHopShop(s), hop = hopRun(s) || own, waText = encodeURIComponent(t(hop ? "shWaHelloHop" : "shWaHello", { name: UI.bi(s.name) }));
   return `<div class="sh-info">
     ${UI.shopText(s, "about") ? `<p class="sh-about">${UI.esc(UI.shopText(s, "about"))}</p>` : ""}
     <div class="sh-lines">
       ${s.address ? `<div class="sh-line"><span>📍</span><b><bdi>${UI.esc(s.address)}</bdi>${s.city ? ", " + UI.esc(cityLabel(cityIdOf(s.city, s) || s.city)) : ""}</b></div>` : ""}
       ${hours.length ? `<div class="sh-line"><span>🕘</span><b class="sh-open ${open ? "on" : "off"}">${UI.esc(openLabel(UI.openState(hours)) || t(open ? "shOpenNow" : "shClosedNow"))}</b>
         <small>${UI.esc(t("shToday"))} : ${UI.esc(fmt((hours.find(x => Number(x.d) === today) || {}).h))}</small></div>` : ""}
-      ${tel ? `<a class="sh-line sh-link" href="${UI.esc(telHref(tel))}" data-shop-call><span>📞</span><b><bdi dir="ltr">${UI.esc(tel)}</bdi></b><small>${UI.esc(t(hop ? "shCallHopSub" : "shCallSub"))}</small></a>` : ""}
+      ${tel ? `<a class="sh-line sh-link" href="${UI.esc(telHref(tel))}" data-shop-call><span>📞</span><b><bdi dir="ltr">${UI.esc(tel)}</bdi></b><small>${UI.esc(t(own ? "shCallHopShop" : hop ? "shCallHopSub" : "shCallSub"))}</small></a>` : ""}
       ${url ? `<a class="sh-line sh-link" href="${UI.esc(url)}" target="_blank" rel="noopener"><span>🌐</span><b><bdi dir="ltr">${UI.esc(siteLabel(url))}</bdi></b><small>${UI.esc(t("shSiteSub"))}</small></a>` : ""}
     </div>
     ${wa ? `<a class="sh-wa" href="https://wa.me/${UI.esc(wa)}?text=${waText}" target="_blank" rel="noopener">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentColor" d="M16 3C8.8 3 3 8.7 3 15.8c0 2.5.7 4.9 2 7L3 29l6.4-2c2 1.1 4.3 1.7 6.6 1.7 7.2 0 13-5.7 13-12.8C29 8.7 23.2 3 16 3zm0 23.4c-2.1 0-4.1-.6-5.9-1.7l-.4-.3-3.8 1.2 1.2-3.7-.3-.4a10.4 10.4 0 0 1-1.7-5.7C5.1 10 10 5.2 16 5.2S26.9 10 26.9 15.8 22 26.4 16 26.4zm6-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7.1a9 9 0 0 1-2.6-1.6 9.8 9.8 0 0 1-1.8-2.2c-.2-.3 0-.5.1-.7l.5-.6.3-.5v-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6c-.2 0-.6.1-.9.4s-1.1 1.1-1.1 2.7 1.2 3.1 1.3 3.3 2.3 3.5 5.6 4.9c.8.3 1.4.5 1.9.7.8.2 1.5.2 2.1.1.6-.1 1.9-.8 2.2-1.5s.3-1.4.2-1.5-.3-.2-.6-.3z"/></svg>
-        <span><b>${UI.esc(t(hop ? "shWaHop" : "shWa"))}</b><small>${UI.esc(t(hop ? "shWaHopSub" : "shWaSub", { name: UI.bi(s.name) }))}</small></span></a>` : ""}
+        <span><b>${UI.esc(t(hop ? "shWaHop" : "shWa"))}</b><small>${UI.esc(t(own ? "shWaHopShopSub" : hop ? "shWaHopSub" : "shWaSub", { name: UI.bi(s.name) }))}</small></span></a>` : ""}
     ${hours.length ? `<details class="sh-hours"><summary>${UI.esc(t("shAllHours"))}</summary><table>${hours.map(x =>
       `<tr class="${Number(x.d) === today ? "today" : ""}"><th>${UI.esc(days[x.d])}</th><td>${UI.esc(fmt(x.h))}</td></tr>`).join("")}</table></details>` : ""}
   </div>`;
