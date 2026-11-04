@@ -426,10 +426,11 @@ function tourBlock(list) {
     const o = st.o, pick = st.kind === "pickup";
     const place = pick ? (o.shop_name || o.pickup_place || o.pickup_address) : (o.dropoff_place || o.dropoff_address);
     const who = pick ? "" : (o.contact_name || "");
+    const fresh = o.first_order ? `<span class="tour-new">🆕 Nouveau client</span> ` : "";
     const due = dueAt(o) ? `<em class="due">⏰ pour ${UI.esc(UI.fmtTime(new Date(dueAt(o))))}</em> · `
       : pick && o.pickup_ready_at && new Date(o.pickup_ready_at) > Date.now() ? `<em class="due">⏳ prêt à ${UI.esc(UI.fmtTime(o.pickup_ready_at))}</em> · ` : "";
     return `<div class="tour-stop${i === 0 ? " now" : ""}"><b class="tour-n">${i + 1}</b><div class="tour-txt"><b>${pick ? "📍" : "🏁"} <bdi>${UI.esc(place || "")}</bdi></b>
-      <small>${i === 0 ? "<em>Prochain arrêt</em> · " : ""}${due}n° ${UI.esc(o.ref)}${who ? " · " + UI.esc(who) : ""}${d != null && d >= 0.05 ? ` · ≈ ${d.toFixed(1).replace(".", ",")} km` : ""}${pick && o.shop_ref ? ` · sac n° <b>${UI.esc(o.shop_ref)}</b>` : ""}</small></div>
+      <small>${fresh}${i === 0 ? "<em>Prochain arrêt</em> · " : ""}${due}n° ${UI.esc(o.ref)}${who ? " · " + UI.esc(who) : ""}${d != null && d >= 0.05 ? ` · ≈ ${d.toFixed(1).replace(".", ",")} km` : ""}${pick && o.shop_ref ? ` · sac n° <b>${UI.esc(o.shop_ref)}</b>` : ""}</small></div>
       <a class="tour-nav" href="${navLink(o, st.kind)}" target="_blank" rel="noopener" aria-label="Itinéraire">${riderSet.nav === "maps" ? "🧭" : WAZE_SVG}</a></div>`;
   });
   const now = stops.length
@@ -438,7 +439,7 @@ function tourBlock(list) {
   const lt = later.length ? `<div class="tour-head later-head">⏰ <b>PLUS TARD</b> · ${later.length} course${later.length > 1 ? "s" : ""}</div>${later.map(o => {
     const place = o.shop_name || o.pickup_place || o.pickup_address, drop = o.dropoff_place || o.dropoff_address;
     return `<div class="tour-stop later"><b class="tour-n">⏰</b><div class="tour-txt"><b><bdi>${UI.esc(dueLabel(o))}</bdi> · n° ${UI.esc(o.ref)}</b>
-      <small>📍 <bdi>${UI.esc(place || "")}</bdi> → 🏁 <bdi>${UI.esc(drop || "")}</bdi>${o.contact_name ? " · " + UI.esc(o.contact_name) : ""}</small>
+      <small>${o.first_order ? `<span class="tour-new">🆕 Nouveau client</span> ` : ""}📍 <bdi>${UI.esc(place || "")}</bdi> → 🏁 <bdi>${UI.esc(drop || "")}</bdi>${o.contact_name ? " · " + UI.esc(o.contact_name) : ""}</small>
       <small><em>Dans ${UI.esc(nbDur(nbLeft(laterAt(o))))}</em> · rejoint votre tournée à <b>${UI.esc(startAt(o))}</b> · ne partez pas avant</small></div></div>`;
   }).join("")}` : "";
   return `<div class="tour">${now}${lt}</div>`;
@@ -1169,7 +1170,7 @@ function whoBox(o) {
   const place = String(o.shop_name || (o.pickup_place ? String(o.pickup_place).split(" · ")[0] : "") || "").trim();
   const ph = o.contact_phone;
   return `<div class="order-who${firm ? " is-firm" : ""}"><span class="ow-txt">
-      <small class="ow-kind">${firm ? "🏪 Commande d'un commerce" : "👤 Commande d'un client"}</small>
+      <small class="ow-kind">${firm ? "🏪 Commande d'un commerce" : "👤 Commande d'un client"}${o.first_order ? ` <span class="ow-new">🆕 Nouveau client · 1re commande</span>` : ""}</small>
       ${firm ? `<b class="ow-shop">${UI.esc(UI.bi(firm, "fr"))}</b><span>👤 ${UI.esc(o.contact_name || "—")}</span>` : `<b class="ow-shop">${UI.esc(o.contact_name || "—")}</b>`}
       ${place && place !== firm ? `<span class="ow-place">📍 À récupérer chez <b>${UI.esc(UI.bi(place, "fr"))}</b></span>` : ""}</span>
     ${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler</a>` : ""}</div>`;
@@ -1199,7 +1200,6 @@ function mineCard(o, x) {
     </div>
     ${whoBox(o)}
     ${giveBox(o)}
-    ${newClient(o)}
     ${nbBlock(o)}
     <div class="mine-step">${isLater(o) ? `<b class="later-tag">⏰ PLUS TARD · dans ${UI.esc(nbDur(nbLeft(laterAt(o))))}</b> · rien à faire avant <b>${UI.esc(startAt(o))}</b> · ensuite : ` : ""}${UI.esc(mineStep(o, x.hopPaid))}${tripKm(o) ? ` <span class="mine-km">🛣️ ${tripKm(o)}</span>` : ""}</div>
     ${UI.doorBig(o)}
