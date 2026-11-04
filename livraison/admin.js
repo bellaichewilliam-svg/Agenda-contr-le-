@@ -1484,7 +1484,7 @@ function prospectsCard() {
     ${rows.length ? `<div class="prospects">${rows.map((g, i) => `<div class="pr-row${g.n >= 15 ? " hot" : ""}">
         <span class="pr-n">${i + 1}</span>
         <span class="pr-main"><b>${UI.esc(g.name)}</b><small>${g.n} commande(s)${g.goods > 0 ? " · " + UI.money(g.goods) + " d'achats" : ""} · ${g.clients} client(s)${g.back ? " · " + g.back + " qui reviennent" : ""}${g.n >= 15 ? " · 🔥 prêt à démarcher" : ""}</small></span>
-        ${g.phone ? `<a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.waLink(g.phone, pitch(g)))}">💬 Proposer</a>` : `<button class="btn btn-sm" data-copy="${UI.esc(pitch(g))}" title="Pas de numéro : copier le message">📋 Message</button>`}
+        ${g.phone ? `<a class="btn btn-sm" target="_blank" rel="noopener" href="${UI.esc(UI.waPersonal(g.phone, pitch(g)))}">💬 Proposer</a>` : `<button class="btn btn-sm" data-copy="${UI.esc(pitch(g))}" title="Pas de numéro : copier le message">📋 Message</button>`}
       </div>`).join("")}</div>` : `<p class="small">Pas encore de commande chez un commerce non partenaire ces 30 derniers jours.</p>`}
   </details>`;
 }
@@ -1729,7 +1729,7 @@ function renderCarts(view) {
         <div class="order-head"><span class="order-time">${UI.esc(c.client_name || "Client sans nom")}${c.lang === "he" ? " · 🇮🇱" : ""}</span><span class="pill">${CART_LBL[st]}</span>${due(c) ? `<span class="pill unpaid">⏰ À relancer</span>` : ""}</div>
         <p class="muted small" style="margin:2px 0 8px">${c.shop_name ? "🏪 " + UI.esc(c.shop_name) + " · " : ""}${c.count} article(s)${Number(c.total) ? " · ≈ " + UI.money(Number(c.total)) : ""} · ${ago(c.updated_at)}${c.order_ref ? " · commande " + UI.esc(c.order_ref) : ""}${c.remind_count ? " · relancé " + c.remind_count + " fois" : ""}</p>
         <ul class="cart-items">${(c.items || []).map(i => `<li><b>${i.q} ×</b> ${UI.esc(i.e ? i.e + " " : "")}${UI.esc(i.n)}${i.p ? ` <small>≈ ${UI.money(i.p * i.q)}</small>` : ""}</li>`).join("")}</ul>
-        <div class="order-actions">${c.client_phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waLink(c.client_phone, cartRelance(c)))}" target="_blank" rel="noopener" data-cart-relance="${UI.esc(c.device)}">💬 Relancer sur WhatsApp</a>
+        <div class="order-actions">${c.client_phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(c.client_phone, cartRelance(c)))}" target="_blank" rel="noopener" data-cart-relance="${UI.esc(c.device)}">💬 Relancer sur WhatsApp</a>
           <a class="btn btn-sm" href="tel:${UI.esc(c.client_phone)}">📞 ${UI.esc(c.client_phone)}</a>` : `<span class="muted small">Pas de numéro : le client n'a encore jamais commandé ni créé de compte.</span>`}
           <button type="button" class="btn btn-sm btn-link" data-cart-del="${UI.esc(c.device)}">🗑️ Supprimer</button></div>
       </article>`; }).join("")}</div>` : `<p class="muted">Aucun panier ici pour l'instant.</p>`}`;
@@ -2819,7 +2819,7 @@ async function onViewClick(e) {
     const msg = o.lang === "he"
       ? `שלום ${first}, כאן HOP! 🛵\n① ההזמנה שלכם מ${shop}${amount ? " (" + amount + ")" : ""}: משלמים בכרטיס אשראי בקישור: ${v}\n${rideHe ? rideHe + "\n" : ""}ברגע שהתשלום ל${shop} מתקבל, השליח יוצא לאסוף את ההזמנה שלכם.\nמעקב: ${UI.trackUrl(o)}`
       : `Bonjour ${first}, ici HOP! 🛵\n① Votre commande chez ${shop}${amount ? " (" + amount + ")" : ""} : payez par carte avec ce lien : ${v}\n${rideFr ? rideFr + "\n" : ""}Dès que ${shop} a reçu votre paiement, le livreur part récupérer votre commande.\nSuivi : ${UI.trackUrl(o)}`;
-    if (o.contact_phone) window.open(UI.waLink(o.contact_phone, msg), "_blank");
+    if (o.contact_phone) window.open(UI.waPersonal(o.contact_phone, msg), "_blank");
     await load();
   } else if (el.dataset.act === "shopok" || el.dataset.act === "shopready") {
     const sh = shops.find(x => x.id === o.shop_id);
@@ -2841,7 +2841,7 @@ async function onViewClick(e) {
     const msg = o.lang === "he"
       ? `שלום ${first}, כאן HOP! 🛵\nההזמנה שלכם מ${sh.name} הוזמנה (מס' ${r}) ותהיה מוכנה בסביבות ${at}. השליח יוצא לאסוף אותה ומביא אליכם.\nמעקב: ${UI.trackUrl(o)}`
       : `Bonjour ${first}, ici HOP! 🛵\nVotre commande chez ${sh.name} est passée (n° ${r}) : elle sera prête vers ${at}. Le livreur part la chercher et vous l'apporte.\nSuivi : ${UI.trackUrl(o)}`;
-    if (o.contact_phone && confirm("Prévenir le client sur WhatsApp ?")) window.open(UI.waLink(o.contact_phone, msg), "_blank");
+    if (o.contact_phone && confirm("Prévenir le client sur WhatsApp ?")) window.open(UI.waPersonal(o.contact_phone, msg), "_blank");
     await load();
   } else if (el.dataset.act === "goodschoice") {
     const cur = { lien: "1", bit: "2", especes: "3" }[o.goods_choice] || "";
@@ -2859,7 +2859,7 @@ async function onViewClick(e) {
       : choice === "especes"
       ? (he ? `שלום ${first}, כאן HOP! 🛵\nלהזמנה שלכם: משלמים ${amt} במזומן לשליח, במסירה.\nמעקב: ${UI.trackUrl(o)}` : `Bonjour ${first}, ici HOP! 🛵\nPour votre commande, vous payez ${amt} en espèces au livreur, à la livraison.\nSuivi : ${UI.trackUrl(o)}`)
       : "";
-    if (msg && o.contact_phone && confirm("Prévenir le client sur WhatsApp ?")) window.open(UI.waLink(o.contact_phone, msg), "_blank");
+    if (msg && o.contact_phone && confirm("Prévenir le client sur WhatsApp ?")) window.open(UI.waPersonal(o.contact_phone, msg), "_blank");
     await load();
   } else if (el.dataset.act === "goodsok" || el.dataset.act === "goodsko") {
     const ok = el.dataset.act === "goodsok";
