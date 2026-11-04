@@ -572,7 +572,8 @@ function currentQuote() {
   if (addonOn()) return { total: state.addon.price, known: true, distanceKm: 0, lines: [{ key: "qAddon", vars: { ref: state.addon.ref }, amount: state.addon.price }] };
   let q = baseQuote();
   if (!proShopOn()) return q;
-  if (shopBuy() && !shopGift()) {
+  // Boutique HOP! : c'est un achat, déjà compté dans baseQuote (petit achat + articles au-delà des 6 compris)
+  if (shopBuy() && !shopGift() && !hopBuyOn()) {
     const fee = Number(CONFIG.pricing.purchase || 5);
     q = Object.assign({}, q, { total: q.total + fee, lines: q.lines.concat([{ key: "qShopBuy", vars: { name: UI.bi(state.shop.name) }, amount: fee }]) });
   }
@@ -591,7 +592,8 @@ function baseQuote() {
   return Pricing.computeQuote({
     fromCity: nearMode() ? cityOf("to") : cityOf("from"), toCity: cityOf("to"),
     fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint,
-    service: val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(), units: rayonUnits(), purchaseKind: purchaseKind(),
+    service: hopBuyOn() ? "achat" : val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
+    units: hopBuyOn() ? cartCount() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
     couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
@@ -693,8 +695,9 @@ const shopCashOnly = () => !!(proShopOn() && state.shop && state.shop.cash_ok &&
 // Les boutiques HOP! (code HOP…, ex. les jus) restent en espèces au livreur.
 const linkOk = () => shopCashOnly() && !/^HOP/.test(state.shop.code || "");
 const hasShopGoods = () => cartCount() > 0 || !!val("shop_order").trim();
-// Boutique HOP! (les jus) : Bit au livreur ou espèces (pas de lien) ; McDonald's : lien, Bit au livreur ou espèces
-const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? (["bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "especes")
+// Boutique HOP! (jus, Carrefour, BOOOM) : Bit au livreur (choisi d'office, demande du patron) ou espèces (pas de lien) ;
+// McDonald's : lien, Bit au livreur ou espèces
+const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? (["bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "bit")
   : ["lien", "bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "lien");
 // (aussi une commande écrite à la main dans un commerce « payé au livreur ») ; avec le lien, le client paie le commerce lui-même
 const shopBuy = () => !!(proShopOn() && !linkOk() && (cartCount() > 0 || (shopCashOnly() && !!val("shop_order").trim())) && !shopPrepay()
@@ -706,7 +709,7 @@ function applyCashOnly() {
   if (only && val("payment_method") !== "cash") form.querySelector('input[name=payment_method][value=cash]').checked = true;
 }
 // Texte de la ligne « vos articles » : payés au commerce, au livreur, par lien ou par Bit à HOP!
-const itemsKey = base => (linkOk() && goodsChoice() === "lien" ? base + "Link" : shopCashOnly() && goodsChoice() === "bit" ? base + "Bit" : shopBuy() ? base + "Cash" : base);
+const itemsKey = base => (hopBuyOn() ? base + "Hop" + (goodsChoice() === "especes" ? "Cash" : "Bit") : linkOk() && goodsChoice() === "lien" ? base + "Link" : shopCashOnly() && goodsChoice() === "bit" ? base + "Bit" : shopBuy() ? base + "Cash" : base);
 function renderGoodsChoice() {
   const box = $("#goodsChoiceBox");
   if (!box) return;
@@ -717,7 +720,7 @@ function renderGoodsChoice() {
   const opt = (v, ic, title, sub, best) => `<button type="button" class="gc-opt${c === v ? " on" : ""}" data-goods-choice="${v}" aria-pressed="${c === v}"><i aria-hidden="true">${ic}</i>
     <span><b>${UI.esc(title)}${best ? ` <em>${UI.esc(t("gcBest"))}</em>` : ""}</b><small>${UI.esc(sub)}</small></span></button>`;
   const html = `<p class="gc-title">${UI.esc(t("gcTitle"))}</p>`
-    + (linkOk() ? opt("lien", "🔗", t("gcLink", { name }), t("gcLinkSub", { name }), true) : "") + opt("bit", "📱", t("gcBit"), t("gcBitSub", { fee })) + opt("especes", "💵", t("gcCash"), t("gcCashSub", { fee }));
+    + (linkOk() ? opt("lien", "🔗", t("gcLink", { name }), t("gcLinkSub", { name }), true) : "") + opt("bit", "📱", t("gcBit"), t(hopBuyOn() ? "gcBitSubHop" : "gcBitSub", { fee })) + opt("especes", "💵", t("gcCash"), t(hopBuyOn() ? "gcCashSubHop" : "gcCashSub", { fee }));
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
 document.addEventListener("click", e => {
@@ -792,7 +795,7 @@ function renderGoodsBox(q) {
   const how = [state.shop.pay_link ? t("gbHowLink") : "", bit ? t("gbHowBit", { phone: bit }) : ""].filter(Boolean).join(t("gbHowOr"));
   // Commerce où HOP! commande pour le client (McDonald's…) : le choix du client (lien de paiement par carte, Bit au livreur, espèces)
   const gc = shopCashOnly() ? goodsChoice() : null;
-  const goodsHow = shopPrepay() ? t("gbPrepay", { name, how }) : gc === "lien" ? t("gbLinkAfter", { name }) : gc === "bit" ? t("gbBitCourier")
+  const goodsHow = hopBuyOn() ? t("gbHopTicket") : shopPrepay() ? t("gbPrepay", { name, how }) : gc === "lien" ? t("gbLinkAfter", { name }) : gc === "bit" ? t("gbBitCourier")
     : cash && cashGoods() ? t("gbCash") : t("gbAsk", { name });
   box.innerHTML = `<b class="gb-h">${UI.esc(t("gbTitle"))}</b>
     <div class="gb-row"><span><b>${UI.esc(t("gbGoods", { name }))}</b><small>${UI.esc(goodsHow)}</small></span>${goods ? `<b class="gb-amt" dir="ltr">${money(goods)}</b>` : `<small class="gb-free">${UI.esc(t("gbGoodsFree", { name }))}</small>`}</div>
@@ -1628,7 +1631,8 @@ function quickPlaces(which, isHome) {
     const err = await locateInto(which);
     if (err) (isHome ? showHomeErr : showError)(t(err)); else after();
   } }];
-  Store.getAddresses().slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
+  // Livraison : chez le client, jamais à l'adresse d'un commerce enregistré (les commerces restent pour « Récupérer où ? »)
+  Store.getAddresses().filter(a => which !== "to" || !a.brand).slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
     match: [tagName(a), addrLabel(a)].join(" "),
     apply: () => { applySavedAddr(which, a); after(); } }));
   return list;
@@ -1646,8 +1650,24 @@ function renderSavedAddrs() {
   const html = `<small>${UI.esc(t("savedTitle"))}</small>${slot("home")}${slot("work")}`
     + others.map(x => `<button type="button" class="addr-chip" data-addr="${x.i}">${addrChip(x.a)}</button>`).join("")
     + `<button type="button" class="addr-chip add" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button>`;
-  document.querySelectorAll(".saved-addrs").forEach(box => { box.classList.remove("hidden"); box.innerHTML = html; });
+  document.querySelectorAll(".saved-addrs").forEach(box => { box.classList.remove("hidden"); box.innerHTML = box.dataset.for === "to" ? toAddrsHtml(list) : html; });
   markAddrChips();
+}
+// « Où livrer ? » : on livre le client chez lui → 🏠 Maison en grande carte, 💼 Travail en plus petit, les autres adresses
+// repliées en une ligne ; jamais un commerce enregistré (il reste proposé seulement pour « Récupérer où ? »)
+function toAddrsHtml(list) {
+  const idx = tag => list.findIndex(a => a.tag === tag && !a.brand);
+  const sub = a => UI.esc([`${a.street || ""} ${a.number || ""}`.trim(), cityLabel(a.cityId || a.city)].filter(Boolean).join(", ") + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
+  const card = (tag, i) => `<button type="button" class="sa-card sa-${tag}" data-addr="${i}" data-addr-tag="${tag}"><i aria-hidden="true">${tag === "home" ? "🏠" : "💼"}</i>
+    <span><b>${UI.esc(t(tag === "home" ? "tagHome" : "tagWork"))}</b><small>${sub(list[i])}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`;
+  const add = tag => `<button type="button" class="sa-add" data-add-tag="${tag}">＋ ${tag === "home" ? "🏠" : "💼"} ${UI.esc(t(tag === "home" ? "tagHome" : "tagWork"))}</button>`;
+  const h = idx("home"), w = idx("work");
+  const others = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand && x.a.tag !== "home" && x.a.tag !== "work").slice(0, 5);
+  const adds = [h < 0 ? add("home") : "", w < 0 ? add("work") : ""].join("");
+  return `${h >= 0 ? card("home", h) : ""}${w >= 0 ? card("work", w) : ""}${adds ? `<div class="sa-adds">${adds}</div>` : ""}
+    <details class="sa-more"${others.some(x => isSavedPick(state.pick.to, x.a)) ? " open" : ""}><summary>${UI.esc(t("saOthers"))}${others.length ? ` <span>(${others.length})</span>` : ""}</summary>
+      <div class="sa-list">${others.map(x => `<button type="button" class="sa-link" data-addr="${x.i}">${x.a.tag ? "⭐ <b>" + UI.esc(x.a.name || "") + "</b> · " : "📍 "}${sub(x.a)}</button>`).join("")}
+        <button type="button" class="sa-link sa-new" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button></div></details>`;
 }
 
 // --- Fenêtre « Ajouter / modifier une adresse » (Maison, Travail, autre) ----------------------
@@ -2117,7 +2137,12 @@ function validateOrder() {
   const closedCity = [fromCity, toCity].find(c => !UI.cityActive(c));
   if (closedCity) return showErrorFalse(t("errZone", { city: cityLabel(closedCity) }));
   // Écran 2 : les précisions
-  if (proShopOn() && !val("shop_order").trim() && !cartCount()) { form.shop_order.focus(); return showErrorFalse(t(catalogOn() ? "errCart" : "errShopOrder", { name: UI.bi(state.shop.name) })); }
+  // Catalogue sans article : c'est le panier qu'on montre (la précision reste facultative, jamais signalée) ;
+  // boutique HOP! : au moins un article du catalogue (le livreur fait les courses d'après la liste)
+  if (proShopOn() && !cartCount() && (hopBuyOn() || !val("shop_order").trim())) {
+    if (catalogOn()) { $("#catalogBox").scrollIntoView({ block: "start", behavior: "smooth" }); return showErrorFalse(t("errCartEmpty", { name: UI.bi(state.shop.name) })); }
+    form.shop_order.focus(); return showErrorFalse(t("errShopOrder", { name: UI.bi(state.shop.name) }));
+  }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showErrorFalse(t("errShopRef")); }
   if (noPayReadyOn() && state.phoneReady == null) { $("#noPayReady").scrollIntoView({ block: "center" }); return showErrorFalse(t("errNprReady", { name: UI.bi(state.shop.name) })); }
   if (phoneOn()) {
@@ -2998,7 +3023,7 @@ function renderCatalog() {
   box.classList.toggle("hidden", !on);
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
-  form.shop_order.placeholder = on ? t("cgNotePh") : t("spOrderPh");
+  form.shop_order.placeholder = on ? t(hopBuyOn() ? "hopNotePh" : "cgNotePh") : t("spOrderPh");
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
@@ -3046,6 +3071,7 @@ function renderCatalog() {
       : shopCashOnly() ? `<div class="pay2 pay1"><b>${UI.esc(t("pay1Title"))}</b><p><i>💵</i><span>${UI.esc(t("pay1Body", { amount: n ? money(cartTotal()) : "" }))}</span></p></div>`
       : shopNoPay() ? `<p class="cg-pay">${UI.esc(t("nopayShort", { name: UI.bi(state.shop.name) }))}</p>`
       : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: UI.bi(state.shop.name) }))}</p>`}
+    ${n && hopBuyOn() ? hopMeter(n) : ""}
     ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
       : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
@@ -3058,6 +3084,24 @@ function renderCatalog() {
   const bar = ["#viewBar", ".topbar"].map(q => document.querySelector(q)).find(el => el && el.offsetHeight);
   if (bar) box.style.setProperty("--cg-top", (parseFloat(getComputedStyle(bar).top) || 0) + bar.offsetHeight - 1 + "px");
   syncCgTabs();
+}
+// Boutique HOP! : le livreur fait les courses → 24 articles au plus et la place du top case (comme les rayons) ;
+// un article de trop n'est pas ajouté, on le dit
+const hopPlaces = () => cartLines().reduce((n, l) => n + l.qty * Store.hopPlace(l.p.name), 0);
+function hopCartFix(id) {
+  if (!hopBuyOn() || !state.cart[id]) return;
+  let cut = false;
+  while (state.cart[id] > 0 && (cartCount() > PI.max || hopPlaces() > PI.topcase)) { state.cart[id]--; cut = true; }
+  if (!state.cart[id]) delete state.cart[id];
+  if (cut) toastCart(t("phFull"));
+}
+// Jauge sous le panier : articles (6 compris, puis +2 ₪ l'article) et place prise dans le top case
+function hopMeter(n) {
+  const place = Math.min(100, Math.round(hopPlaces() / PI.topcase * 100)), extra = Math.max(0, n - HOP_INC), each = PI.extraCourier + PI.extraHop;
+  const lvl = place >= 100 || n >= PI.max ? "full" : place >= 75 || n > HOP_INC ? "warn" : "ok";
+  return `<div class="ph-meter hop-meter ${lvl}"><div class="pm-row"><b>🛵 ${UI.esc(t("phTopcase", { p: place }))}</b><span>${UI.esc(t("phCount", { n, max: PI.max }))}</span></div>
+    <div class="pm-bar"><i style="width:${place}%"></i></div>
+    <small>${UI.esc(extra ? t("phExtra", { n: extra, each, inc: HOP_INC }) : t("phIncluded", { inc: HOP_INC, each, max: PI.max }))}</small></div>`;
 }
 // Onglet allumé = la rubrique en cours de lecture
 const cgEdge = () => { const h = $("#catalogBox .cg-head"); return h ? (parseFloat(getComputedStyle(h).top) || 0) + h.offsetHeight + 12 : 0; };
@@ -3102,7 +3146,7 @@ $("#catalogBox").addEventListener("click", e => {
     return;
   }
   if (b.dataset.cgPick) return openItem(b.dataset.cgPick);
-  if (b.dataset.cgPlus) state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1);
+  if (b.dataset.cgPlus) { state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1); hopCartFix(b.dataset.cgPlus); }
   else if (b.dataset.cgMinus) state.cart[b.dataset.cgMinus] = Math.max(0, (state.cart[b.dataset.cgMinus] || 0) - 1);
   else return;
   renderCatalog();
@@ -3208,6 +3252,7 @@ $("#cartSheet").addEventListener("click", e => {
   if (plus || minus) {
     const id = (plus || minus).dataset[plus ? "csPlus" : "csMinus"];
     state.cart[id] = Math.max(0, Math.min(50, (state.cart[id] || 0) + (plus ? 1 : -1)));
+    if (plus) hopCartFix(id);
     renderCatalog(); renderQuote(); saveDraft(); renderCart(); cartPersist();
     return;
   }
@@ -3245,6 +3290,7 @@ $("#itemSheet").addEventListener("click", e => {
     return;
   }
   state.cart[item.id] = add ? item.qty : 0;
+  if (add) hopCartFix(item.id);
   state.cartMods = state.cartMods || {};
   const flavors = cur ? (item.flavors || []).slice(0, flavorCount(cur)) : [];
   const side = cur && needsSide(cur) && item.side !== "fries" ? item.side || "" : "", extras = cur && needsSide(cur) ? item.extras || [] : [];
@@ -3259,6 +3305,11 @@ $("#itemSheet").addEventListener("click", e => {
 // HOP! Pro : le départ est un commerce abonné → le client écrit sa commande, le commerce la prépare
 const shopPicked = () => !!(state.shop && state.pick.from && state.pick.from.shopId === state.shop.id);
 const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method") !== "carnet";
+// Boutique HOP! (CONFIG.hopShops : HOP! chez Carrefour, HOP! chez BOOOM) : le livreur HOP! fait les courses = un achat
+// (petit achat comme le supermarché, 6 articles compris puis +2 ₪ l'article, même maximum et même top case)
+const isHopShop = s => !!(s && (CONFIG.hopShops || []).includes(String(s.code || "").toUpperCase()));
+const hopBuyOn = () => proShopOn() && isHopShop(state.shop);
+const HOP_INC = (CONFIG.pricing.purchaseItems || {}).hopIncluded || 6;
 // Fiche du commerce : présentation, adresse, horaires (ouvert / fermé maintenant), WhatsApp pour le joindre
 const DAYS = { fr: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], he: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] };
 // « Ouvert · ferme à 19:00 » / « Fermé · ouvre demain à 08:30 » / « Fermé · ouvre lundi à 08:30 »
@@ -3394,7 +3445,7 @@ function renderShopBanner() {
   $("#shopRefBox").classList.toggle("hidden", !shopSelf());
   if (pro) {
     $("#shopOrderLabel").textContent = t("spOrderLabel", { name: UI.bi(state.shop.name) });
-    $("#shopOrderNote").textContent = t(linkOk() ? "spOrderNoteLink" : shopCashOnly() ? "spOrderNoteHop" : shopNoPay() ? "spOrderNoteDirect" : "spOrderNote", { name: UI.bi(state.shop.name) });
+    $("#shopOrderNote").textContent = t(linkOk() ? "spOrderNoteLink" : hopBuyOn() ? "spOrderNoteHopBuy" : shopCashOnly() ? "spOrderNoteHop" : shopNoPay() ? "spOrderNoteDirect" : "spOrderNote", { name: UI.bi(state.shop.name) });
   }
   renderNoPayReady();
   renderCatalog();
@@ -3674,7 +3725,8 @@ function initHome() {
     const a = e.target.closest("[data-haddr]");
     if (a) {
       const addr = Store.getAddresses()[Number(a.dataset.haddr)];
-      if (addr) applySavedAddr(!state.pick.from ? "from" : "to", addr);
+      // (un commerce enregistré sert de départ, jamais d'adresse de livraison)
+      if (addr) applySavedAddr(addr.brand || !state.pick.from ? "from" : "to", addr);
       return;
     }
     if (e.target.closest("#homeRepeatBtn")) repeatLast();
@@ -4363,6 +4415,8 @@ function partnerPlace(sh) {
 // --- Vitrine : les commerces HOP! Pro abonnés, mis en avant sur l'accueil (logo, photo, accroche) -------
 state.showcase = [];
 function proPrice(s) {
+  // Boutique HOP! : la course + le petit achat (25 + 5 = 30 ₪ dans Netanya)
+  if (isHopShop(s)) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity] + Number(CONFIG.pricing.purchase || 0);
   if (s && (s.client_pays || s.pro === false)) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
   const st = state.settings || {};
   const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
@@ -4509,7 +4563,9 @@ $("#homePro").addEventListener("click", e => {
 }, true);
 $("#homePro").addEventListener("keydown", e => { const c = e.target.closest("[data-pro]"); if (c && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); c.click(); } });
 async function loadShowcase() {
-  try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { state.showcase = []; }
+  // La dernière liste gardée sur le téléphone s'affiche tout de suite ; la base la remplace dès qu'elle répond
+  if (!state.showcase.length) { try { const kept = JSON.parse(localStorage.getItem("livraison.showcase.v1") || "null"); if (Array.isArray(kept) && kept.length) { state.showcase = kept; renderShowcase(); } } catch (e) { /* ignore */ } }
+  try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { /* base lente : on garde ce qui est affiché */ }
   if (home.map && restos.layer) drawRestos();   // les logos des partenaires sur la carte
   renderShowcase();
 }

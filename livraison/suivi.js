@@ -370,6 +370,22 @@ function setMapFull(on) {
 }
 $("#trkFull").addEventListener("click", () => setMapFull(!document.body.classList.contains("map-full")));
 $("#trkCard").addEventListener("click", e => { if (e.target.closest("[data-trk-chat]")) { if (document.body.classList.contains("map-full")) setMapFull(false); $("#chatBtn").click(); } });
+// Boutique HOP! : le livreur fait les courses → en direct « 🛒 7/10 dans le panier », et ce qui manque (retiré, pas payé)
+function renderBuyLive(o) {
+  const box = $("#buyLive");
+  if (!box) return;
+  const on = !!(o && o.hop_buy && Array.isArray(o.items) && ["nouvelle", "confirmee", "recuperee"].includes(o.status));
+  box.classList.toggle("hidden", !on);
+  if (!on) { box.innerHTML = ""; return; }
+  const t2 = Store.buyTotals(o), done = Store.buyDone(o) || o.status === "recuperee";
+  // (le nom de la boutique, avec « HOP! », reste de gauche à droite dans une phrase en hébreu)
+  const withName = key => UI.esc(t(key, { name: "\u0001" })).replace("\u0001", `<bdi>${UI.esc(UI.bi(o.shop_name || "", I18N.lang))}</bdi>`);
+  const want = t2.n - t2.miss.length, pct = want ? Math.round(t2.ok / want * 100) : 0;
+  const miss = t2.miss.length ? `<small class="bl-miss">${UI.esc(t("hbMissing", { list: t2.miss.map(i => UI.bi(i.name, I18N.lang)).join(", ") }))}</small>` : "";
+  box.innerHTML = done ? `<b>${UI.esc(t("hbDone", { total: UI.money(t2.total) }))}</b>${miss}`
+    : o.status === "nouvelle" || (!t2.ok && !t2.miss.length) ? `<small>${withName("hbLiveWait")}</small>`
+    : `<b dir="auto">${UI.esc(t("hbLive", { n: t2.ok, total: want }))}</b><div class="bl-bar"><i style="width:${pct}%"></i></div><small>${withName("hbLiveSub")}</small>${miss}`;
+}
 function render() {
   const o = order;
   I18N.apply();
@@ -390,6 +406,7 @@ function render() {
   renderTip(o);
   renderShopRate(o);
   renderDoneFlow(o);
+  renderBuyLive(o);
   applyDayNight();
 
   const step = FLOW.indexOf(o.status);
@@ -421,6 +438,15 @@ function render() {
   const goodsLine = x => {
     const name = String(x.courier_name || "").split(" ")[0], ph = String(x.courier_bit || x.courier_phone || "").replace(/\D/g, "");
     const cash = x.payment_method === "cash";
+    // Boutique HOP! : la livraison d'avance, les articles au ticket de caisse (− les suppléments des articles manquants)
+    const bc = x.buy_check || {}, credit = Number(bc.credit) || 0;
+    if (x.hop_buy && !cash && x.goods_spent != null && (credit > 0 || Number(bc.due) <= 0)) {
+      const v = { spent: UI.money(x.goods_spent), credit: UI.money(credit), due: UI.money(Math.max(0, Number(bc.due))), refund: UI.money(-Number(bc.due)), name };
+      const due = x.goods_refund_status === "a_completer";
+      return `<div class="refund-box${due ? " wait-due" : ""}"><p><b>🧾 ${UI.esc(t(Number(bc.due) <= 0 ? "hbTicketRefund" : due ? "hbTicketDue" : "hbTicketOk", v))}</b></p>
+        ${due && ph ? `<div class="bit-btns"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(ph)}">${UI.esc(t("bpCopy"))}</button></div>${sentBtn(x.goods_refund, name, "ticket")}` : ""}</div>`;
+    }
+    if (x.hop_buy && x.goods_spent == null) return `<p class="small muted" style="margin:2px 0 0">${UI.esc(t(cash ? "hbHeadCash" : "hbHeadBit", { ride: UI.money(x.price) }))}</p>`;
     const head = `<p class="small muted" style="margin:2px 0 0">${UI.esc(t(cash ? "trGoodsSplitCash" : x.goods_after ? "trGoodsAfterSplit" : "trGoodsSplit", { ride: UI.money(x.price), goods: UI.money(x.goods_budget) }))}</p>`;
     if (x.goods_spent == null) return head;
     // Ticket après : le client envoie le montant exact du ticket au livreur, qui livre dès réception
@@ -457,7 +483,7 @@ function render() {
   // (commerce sans lien ni Bit : le montant des articles et à qui le payer, quand même)
   pay.innerHTML = `${o.goods_pay && goodsSp(o) ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p>${goodsLinkWait(o) ? `<div class="goods-pay wait"><b>${UI.esc(goodsLinkWait(o))}</b></div>` : UI.goodsPay(o, goodsSp(o))}<p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>`
     : o.shop_pay && Number(o.items_total) > 0 && o.payment_method !== "cash" ? `<p class="pay2-h">${UI.esc(t("pay2Title"))}</p><div class="goods-pay todo"><b class="gp-step">${UI.esc(t("gpStep1", { name: UI.bi(o.shop_pay.name), amount: UI.money(o.items_total) }))}</b><small>${UI.esc(t("gbAsk", { name: UI.bi(o.shop_pay.name) }))}</small></div><p class="gp-step2"><b>${UI.esc(t("gpStep2", { amount: UI.money(o.price) }))}</b></p>` : ""}${refund}${missing}<small class="muted">${UI.esc(t("trPay"))}</small>
-    <div class="amount">${UI.money(o.payment_method === "cash" ? Number(o.price) + Number(o.cash_goods || 0) : UI.payTotal(o))}${o.budget && !o.goods_prepay ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
+    <div class="amount">${UI.money(o.payment_method === "cash" ? Number(o.price) + Number(o.cash_goods || 0) : UI.payTotal(o) + Store.hopCredit(o))}${o.budget && !o.goods_prepay ? ` <small class="muted">${UI.esc(t("qPurchaseNote"))}</small>` : ""}</div>
     ${UI.areaWhy(o) ? `<p class="area-why-note">${UI.esc(UI.areaWhy(o))}</p>` : ""}
     ${o.goods_prepay ? goodsLine(o) : ""}
     ${Number(o.wait_fee) > 0 ? `<p class="small muted" style="margin:2px 0 0">⏱️ ${UI.esc(t("trWaitFee", { fee: UI.money(o.wait_fee), min: o.wait_minutes }))}</p>` : ""}
