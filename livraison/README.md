@@ -863,3 +863,7 @@ livraison/
 ### Appli livreur : fiche par destination (04/11)
 - Bouton « 📋 Fiche du départ / du client » dans chaque course, un arrêt de la tournée, ou la destination en haut du panneau de la carte : « Récupération chez / Livraison à », nom, adresse en jaune ; onglets INFOS (type de lieu, nom du lieu, société, code d'entrée, entrée, étage, appartement, remarques, appel, Waze) et ARTICLES (commerce, n° de sac, quantités, options, prix, total).
 - En bas : glisser pour valider (« Commande récupérée », « Commande livrée ! », « Photo du colis, puis livrée »). Le glissé touche le vrai bouton de la course : mêmes contrôles (paiement, photo, pièce d'identité, GPS).
+
+### Boutique HOP! chez Panzer (05/11)
+- Code `HOPPANZER` (comme Carrefour et BOOOM : le livreur fait l'achat). Charcuterie casher Panzer, 24 Moshe Smilansky, Netanya (09-866-6533 · 053-238-6533).
+- Catalogue lu sur panzer-delicatessen.com (collection charcuterie) : 38 produits, une ligne par taille « Nom · שם [100 g · 100 גרם] » (une carte avec le choix de la taille), prix du site, photos du site par lien. Prix mis à jour chaque nuit (`panzer_fetch` / `panzer_import`). SQL : `supabase/panzer-boutique.sql`.

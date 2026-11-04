@@ -468,7 +468,7 @@ const picUrl = s => { const m = PIC_RX.exec(s), sb = (typeof CONFIG !== "undefin
   const r = /^rp:([a-z0-9_-]{1,20}):([a-z0-9_-]{1,40}):([0-9a-f]{6,32})$/.exec(s || "");
   return r && sb.url && sb.anonKey ? `${sb.url}/rest/v1/rpc/rayon_pic?r=${r[1]}&i=${r[2]}&v=${r[3]}&apikey=${sb.anonKey}` : ""; };
 // Vraies photos des produits des magasins (Carrefour, BOOOM) : prises directement sur leur site, par lien
-const EXT_PIC = /^https:\/\/(d226b0iufwcjmj\.cloudfront\.net\/gs1-products\/|booomisrael\.co\.il\/uploads\/)[A-Za-z0-9._~\/%?=&:-]+$/;
+const EXT_PIC = /^https:\/\/(d226b0iufwcjmj\.cloudfront\.net\/gs1-products\/|booomisrael\.co\.il\/uploads\/|cdn\.shopify\.com\/s\/files\/1\/0371\/7965\/4281\/)[A-Za-z0-9._~\/%?=&:-]+$/;
 const extPic = s => typeof s === "string" && EXT_PIC.test(s);
 const safeImg = s => (typeof s !== "string" ? "" : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || /^img\/[a-z0-9-]+\/[a-z0-9-]+\.(webp|png|jpg)$/.test(s) || extPic(s) ? s : picUrl(s));
 // Image d'une autre adresse (photo servie par la base) : « crossorigin » pour que l'appli puisse voir si son fond est blanc
