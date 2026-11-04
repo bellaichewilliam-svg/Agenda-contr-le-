@@ -1570,6 +1570,7 @@ async function onViewClick(e) {
     if (el.dataset.act === "cash_impaye" && !confirm(`❌ Le client ne vous paie pas ${UI.money(cashTotal(o))} en espèces ? Gardez la commande : HOP! est prévenu, le client est bloqué et HOP! décide.`)) return;
     if (el.dataset.act === "paye" && o.payment_method === "cash" && !confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`)) return;
     if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`)) return;
+    let gpsForce = false;
     if (el.dataset.act === "livree") {
       if (idNeeded(o)) { render(); return alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus)."); }
       el.disabled = true;
@@ -1578,7 +1579,11 @@ async function onViewClick(e) {
       el.textContent = "📍 Vérification de votre position…";
       if (!o.unlocked && !freeNow()) {
         const here = await checkAtDropoff(o);
-        if (!here.ok) { render(); return alert(here.msg); }
+        // Le GPS ne bloque jamais un livreur sur place (règle du patron, 04/11) : il peut valider quand même, HOP! le voit
+        if (!here.ok) {
+          if (!confirm(`${here.msg.replace(/ Vous pourrez valider.*$/, "")}\n\nLe GPS se trompe parfois (immeubles, parking…). Vous êtes bien chez le client ?\nOK = valider quand même (HOP! le voit sur la course)\nAnnuler = attendre`)) { render(); return; }
+          gpsForce = true;
+        }
         // Clés ou objet de valeur : le code de remise donné par le destinataire
         if (o.handoff && !o.handoff_ok_at) {
           const code = prompt("🔐 Code de remise : demandez au destinataire son code à 4 chiffres.");
@@ -1589,7 +1594,15 @@ async function onViewClick(e) {
         }
       }
     }
-    const ok = await Store.courierAction(id, el.dataset.act).catch(e => /buy_check/.test(e.message) ? "buycheck" : /id_check_required/.test(e.message) ? "idcheck" : /payment_required/.test(e.message) ? "pay" : /too_far_recup/.test(e.message) ? "farrecup" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /ticket_required/.test(e.message) ? "ticket" : /goods_refund_pending/.test(e.message) ? "refund" : /goods_bought/.test(e.message) ? "bought" : false);
+    const errKey = e => /buy_check/.test(e.message) ? "buycheck" : /id_check_required/.test(e.message) ? "idcheck" : /payment_required/.test(e.message) ? "pay" : /too_far_recup/.test(e.message) ? "farrecup" : /too_far_pickup/.test(e.message) ? "farpick" : /too_far/.test(e.message) ? "far" : /photo_required/.test(e.message) ? "photo" : /handoff_required/.test(e.message) ? "handoff" : /wait_unpaid/.test(e.message) ? "wait" : /cash_shop/.test(e.message) ? "cash" : /ticket_required/.test(e.message) ? "ticket" : /goods_refund_pending/.test(e.message) ? "refund" : /goods_bought/.test(e.message) ? "bought" : false;
+    let ok = await (gpsForce ? Store.courierActionForce : Store.courierAction)(id, el.dataset.act).catch(errKey);
+    // Le GPS ne bloque jamais un livreur sur place (règle du patron, 04/11) : « trop loin » → il peut valider quand même,
+    // HOP! le voit sur la course (étape, heure, distance)
+    if (["farpick", "farrecup", "far"].includes(ok)) {
+      const where = ok === "far" ? "l'adresse de livraison" : "l'adresse de départ";
+      if (!confirm(`📍 Le GPS ne vous voit pas encore à ${where} (il se trompe parfois, surtout entre les immeubles).\n\nVous êtes bien sur place ?\nOK = valider quand même (HOP! le voit sur la course)\nAnnuler = attendre`)) { render(); return; }
+      ok = await Store.courierActionForce(id, el.dataset.act).catch(errKey);
+    }
     if (ok === "buycheck") { render(); return alert("🛒 Cochez d'abord chaque article (ou « Manquant »), puis « ✅ Tout est dans le panier »."); }
     if (ok === "idcheck") { idChecked.delete(id); render(); return alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus)."); }
     if (ok === "ticket") { render(); return alert("🧾 Touchez d'abord « Ticket du magasin » : photo du ticket et son montant."); }
@@ -1783,7 +1796,8 @@ document.addEventListener("change", async e => {
   if (then === "livree") { const b = document.querySelector(`article[data-id="${CSS.escape(id)}"] [data-act="livree"]`); if (b && b.disabled) alert("📷 Photo envoyée. 🔞 Tabac / alcool : cochez « J'ai vérifié la pièce d'identité », puis « Livré »."); else if (b) b.click(); }
 });
 // Livreur débloqué par HOP jusqu'à une date
-const freeNow = () => !!(me && me.unlocked_until && new Date(me.unlocked_until) > new Date());
+// Libre de tout contrôle GPS : débloqué par le patron, ou le patron lui-même (règle du 04/11)
+const freeNow = () => !!(me && (me.role === "admin" || (me.unlocked_until && new Date(me.unlocked_until) > new Date())));
 // Crédit prépayé : il doit couvrir au moins la commission minimum de HOP (le patron aussi, quand il fait une course)
 const available = () => Number(wallet.credit || 0) - Number(wallet.reserved || 0);
 const locked = () => !freeNow() && me && Store.ONLINE && available() < Number(settings.commission_min || 3);

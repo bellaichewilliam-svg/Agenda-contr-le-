@@ -564,6 +564,8 @@ function card(o, withDay) {
       meta.push(`<button class="pill pill-btn paid" data-act="goodsok" title="Le client a bien payé ses articles : le livreur peut les récupérer">✅ Articles payés</button><button class="pill pill-btn st-annulee" data-act="goodsko">❌ Pas reçu</button>`);
     }
   }
+  // Le livreur a validé une étape alors que le GPS le voyait loin (« Valider quand même ») : visible ici
+  (Array.isArray(o.gps_forced) ? o.gps_forced : []).forEach(g => meta.push(`<span class="pill unpaid" title="Le GPS le voyait loin : il a confirmé être sur place">📍 ${UI.esc({ arrivee: "Arrivée", recuperee: "Récupération", livree: "Livraison" }[g.step] || g.step)} validée hors GPS${g.m != null ? ` (à ${g.m >= 1000 ? (g.m / 1000).toFixed(1).replace(".", ",") + " km" : g.m + " m"})` : ""}${g.at ? " · " + UI.esc(UI.fmtTime(g.at)) : ""}</span>`));
   if (o.leave_at_door) meta.push(`<span class="pill unpaid">📷 Photo du colis obligatoire (devant la porte)</span>`);
   else if (o.photo_wanted) meta.push(`<span class="pill">📷 Le client aimerait une photo (facultatif)</span>`);
   // Colis à récupérer : les documents du client, à vérifier avant d'envoyer un livreur
