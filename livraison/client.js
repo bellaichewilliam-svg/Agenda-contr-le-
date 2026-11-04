@@ -1382,6 +1382,7 @@ function wizGo(n, stay) {
   if (n === 2 && n !== wiz.step && wiz.n >= 3 && proShopOn() && wizStepEmpty(2)) n = wiz.step < 2 ? 3 : 1;
   wiz.step = Math.max(1, Math.min(wiz.n, n));
   form.dataset.step = wiz.step;
+  cartStepSet("e" + wiz.step + "/" + wiz.n);
   if (wizUsedMore()) form.classList.add("wiz-more");
   wizShowErr("");
   renderQuote();
@@ -2278,6 +2279,7 @@ async function submit(e) {
   // Écrans 1 et 2 : « Continuer » (Entrée ou bouton) passe à l'écran suivant
   if (wiz.on && wiz.step < 3) { wizNext(); return; }
   showError("");
+  cartStepSet("envoi");
   if (!validateOrder()) return;
   const near = nearMode();
   const fromCity = near ? cityOf("to") : cityOf("from"), toCity = cityOf("to");
@@ -3368,6 +3370,7 @@ function renderCart() {
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
   }).join("") + `<p class="sw-hint">${UI.esc(t("swHint"))}</p>`;
   $("#cartSum").textContent = money(cartTotal());
+  cartExtras();
   const nm = state.shop ? shopShortName() : "";
   let keep = $("#cartKeep");
   if (!keep) { keep = document.createElement("div"); keep.id = "cartKeep"; $("#cartNote").after(keep); }
@@ -3381,6 +3384,45 @@ function renderCart() {
       ${tel ? `<a class="btn btn-ghost cs-call" href="tel:${UI.esc(tel)}">📞 ${UI.esc(t("csCall", { name: nm }))}</a>` : ""}`;
   } else $("#cartNote").textContent = t(shopPrepay() ? "csNotePrepay" : "csNote", { name: state.shop ? UI.bi(state.shop.name) : "" });
 }
+// Panier : le prix de la livraison dit tout de suite (et la 1re livraison à prix réduit), et si c'est fermé :
+// l'heure d'ouverture, la commande déjà programmée, « 🔔 Prévenez-moi à l'ouverture »
+// (1re livraison : seulement au prix normal de la ville, le seul qu'on sait calculer d'avance sans se tromper)
+function firstDelivPrice(s) {
+  const base = CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
+  if (!s || s.shop_pays || addonOn() || activeOrders().length || state.welcomeUsed || proPrice(s) !== base) return null;
+  const w = welcomePrice();
+  return w < base ? w : null;
+}
+function cartExtras() {
+  const s = state.shop;
+  let box = $("#cartInfo");
+  if (!box) { box = document.createElement("div"); box.id = "cartInfo"; $("#cartNote").before(box); }
+  if (!s) { box.innerHTML = ""; return; }
+  const fp = firstDelivPrice(s);
+  const deliv = s.shop_pays ? "" : `<p class="cs-deliv">${UI.esc(t("csDeliv", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}${fp != null ? ` · <b>${UI.esc(t("csDelivFirst", { price: money(fp) }))}</b>` : ""}</p>`;
+  const st = shopState(s), shut = !!(st && st.open === false && !st.hop), closed = shut || !state.settings.accepting;
+  let cl = "";
+  if (closed) {
+    const when = shut ? openLabel(st) : "";
+    cl = `<div class="cs-closed"><b>${escHop(t("ccClosed", { name: shut ? shopShortName() : "HOP!" }))}</b>
+      ${state.shopSched && val("urgency") === "programmee" ? `<small>${UI.esc(t("ccSched", { when: UI.fmtDateTime(state.shopSched) }))}</small>` : when ? `<small>${UI.esc(when)}</small>` : ""}
+      ${state.openNotice ? `<span class="cs-notified">${UI.esc(t("ccNotified"))}</span>` : `<button type="button" class="btn btn-sm cs-notify" data-open-notice>${UI.esc(t("ccNotify"))}</button>`}</div>`;
+  }
+  box.innerHTML = cl + deliv;
+}
+// « Prévenez-moi à l'ouverture » : par notification si le client l'accepte, sinon son numéro (HOP! le prévient)
+document.addEventListener("click", async e => {
+  if (!e.target.closest("[data-open-notice]")) return;
+  const done = () => {
+    state.openNotice = true;
+    const s = cartSnap();
+    if (s.count) cartSync(s);
+    if (!$("#cartSheet").classList.contains("hidden")) renderCart();
+    toastCart(t("ccNotified"));
+  };
+  if (await UI.cartPushSubscribe(true) || supportWho()) return done();
+  askWho(done, "cart");
+});
 // « Garder mon panier » (facultatif) : nom + téléphone, pour retrouver le panier et être rappelé
 document.addEventListener("click", e => {
   if (!e.target.closest("[data-cart-keep]")) return;
@@ -3457,10 +3499,10 @@ const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method"
 // (petit achat comme le supermarché, 6 articles compris puis +2 ₪ l'article, même maximum et même top case)
 const isHopShop = s => !!(s && (CONFIG.hopShops || []).includes(String(s.code || "").toUpperCase()));
 const hopBuyOn = () => proShopOn() && isHopShop(state.shop);
-// Boutiques HOP! (Carrefour, BOOOM) : pas les horaires du magasin, mais le service du patron (règle du 04/11) :
-// ouvertes quand il est en service (la base passe alors « accepting » à vrai), « Fermé pour le moment » sinon
+// Boutiques HOP! (Carrefour, BOOOM) : ouvertes quand le patron est en service (« accepting », règle du 04/11)
+// ET dans les horaires qu'il leur a mis (s'il en a mis : 04/11 soir, BOOOM 9 h 30 – 19 h) ; « Fermé pour le moment » sinon
 function shopState(s) {
-  if (isHopShop(s)) return state.settings.accepting ? null : { open: false, hop: true };
+  if (isHopShop(s)) return state.settings.accepting ? UI.openState(s.hours) : { open: false, hop: true };
   return UI.openState(s.hours);
 }
 const HOP_INC = (CONFIG.pricing.purchaseItems || {}).hopIncluded || 6;
@@ -3543,7 +3585,8 @@ const WA_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true"><path fill="currentC
 const hopRun = s => !!(s && s.cash_ok && !/^HOP/.test(s.code || ""));
 function shopMeta(s) {
   const st = UI.openState(s.hours), wa = shopWa(s), hop = hopRun(s);
-  const price = s.shop_pays ? "🎁 " + t("scGift") : "🛵 " + t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) });
+  const fp = firstDelivPrice(s);
+  const price = s.shop_pays ? "🎁 " + t("scGift") : "🛵 " + t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }) + (fp != null ? " · 🎁 " + t("delivFirst", { price: money(fp) }) : "");
   return `<div class="sh-meta">
       <div class="sh-meta-l">${st ? `<b class="sh-dot ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</b>` : ""}
         <small>${UI.esc(price)} · ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</small></div>
@@ -5218,11 +5261,24 @@ function cartSnap() {
 const cartStored = () => { try { const c = JSON.parse(localStorage.getItem(LS_CART)); return c && Date.now() - c.at < CART_DAYS * 86400000 ? c : null; } catch (e) { return null; } };
 cartAtStart = cartStored();
 let cartSyncT = null, cartSent = "";
+// L'étape où en est le client (panier, écrans de la commande, envoi) : le patron voit où il s'arrête
+let cartStep = "panier";
+function cartStepSet(s) {
+  if (s === cartStep) return;
+  cartStep = s;
+  const snap = cartSnap();
+  if (snap.count) cartSync(snap);
+}
+// Le téléphone du patron : ses paniers d'essai sont mis à part dans l'onglet Paniers
+let bossDev = false;
+try { bossDev = !!localStorage.getItem("livraison.session.admin.v1") || localStorage.getItem("livraison.demoBoss") === "1"; } catch (e) { /* ignore */ }
+if (!bossDev) Store.amBoss().then(v => { if (v) bossDev = true; }).catch(() => {});
 function cartSync(snap) {
   clearTimeout(cartSyncT);
   cartSyncT = setTimeout(() => {
     const prof = Store.getProfile() || {};
-    const body = Object.assign({}, snap, { lang: I18N.lang, name: prof.contact_name || "", phone: prof.contact_phone || "" });
+    const body = Object.assign({}, snap, { lang: I18N.lang, name: prof.contact_name || "", phone: prof.contact_phone || "",
+      step: cartStep, boss: bossDev, open_notice: !!state.openNotice });
     const key = JSON.stringify(body);
     if (key === cartSent) return;
     cartSent = key;
@@ -5237,8 +5293,31 @@ var cartLastCount = ((cartStored() || {}).snap || {}).count || 0;   // panier re
 function cartWho(snap) {
   const grew = snap.count > cartLastCount;
   cartLastCount = snap.count;
-  if (grew && snap.count === 1) UI.track("cart_add", { shop_code: state.shop ? state.shop.code : null, page: String(snap.kind || "").slice(0, 40) });
+  if (grew && snap.count === 1) { UI.track("cart_add", { shop_code: state.shop ? state.shop.code : null, page: String(snap.kind || "").slice(0, 40) }); setTimeout(cartNotifAsk, 1500); }
 }
+// 1er article : « On vous prévient ? » (une fine barre, une fois tous les 3 jours au plus). Accepté : ce téléphone recevra
+// « 🛒 Votre panier vous attend » 30 min après, même sans nom ni numéro (et ses notifications de commande ensuite)
+const LS_CN = "livraison.cartNotifAsked.v1";
+function cartNotifAsk() {
+  if (!window.Notification || !(CONFIG.push && CONFIG.push.publicKey)) return;
+  if (Notification.permission === "granted") { UI.cartPushSubscribe(false); return; }
+  if (Notification.permission !== "default" || !cartSnap().count) return;
+  let last = 0;
+  try { last = Number(localStorage.getItem(LS_CN)) || 0; } catch (e) { /* ignore */ }
+  if (Date.now() - last < 3 * 86400000) return;
+  try { localStorage.setItem(LS_CN, String(Date.now())); } catch (e) { /* ignore */ }
+  let bar = $("#cartNotif");
+  if (!bar) { bar = document.createElement("div"); bar.id = "cartNotif"; bar.className = "cart-notif"; document.body.appendChild(bar); }
+  bar.innerHTML = `<span>${UI.esc(t("cnAsk"))}</span><button type="button" class="btn btn-sm btn-primary" data-cn-yes>${UI.esc(t("cnYes"))}</button><button type="button" class="cn-x" data-cn-no aria-label="✕">✕</button>`;
+  bar.classList.remove("hidden");
+}
+document.addEventListener("click", async e => {
+  const yes = e.target.closest("[data-cn-yes]"), no = e.target.closest("[data-cn-no]");
+  if (!yes && !no) return;
+  const bar = $("#cartNotif");
+  if (bar) bar.classList.add("hidden");
+  if (yes && await UI.cartPushSubscribe(true)) toastCart(t("cnOk"));
+});
 function cartPersist() {
   const snap = cartSnap();
   cartWho(snap);
@@ -5344,10 +5423,12 @@ if ($("#tbCart")) {
   // Un panier gardé d'une autre visite : le patron le voit aussi (avec le nom et le n° si le client est connu)
   const c0 = cartStored();
   if (c0) cartSync(c0.snap);
+  if (c0 && window.Notification && Notification.permission === "granted") UI.cartPushSubscribe(false);
   // Rechargé pour une nouvelle version pendant que le client remplissait son panier : on le lui rouvre
   let reopen = false;
   try { reopen = sessionStorage.getItem("hop.reopenCart") === "1"; sessionStorage.removeItem("hop.reopenCart"); } catch (e) { /* ignore */ }
-  if (reopen && c0) setTimeout(() => openStoredCart().catch(() => {}), 600);
+  // (la notification « 🛒 Votre panier vous attend » ouvre l'appli avec ?cart=1 : le panier s'ouvre tout de suite)
+  if ((reopen || new URLSearchParams(location.search).has("cart")) && c0) setTimeout(() => openStoredCart().catch(() => {}), 600);
 }
 
 })();

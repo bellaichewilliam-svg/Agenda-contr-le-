@@ -4400,3 +4400,22 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .inapp-bar .btn { background: #FF6A13; border-color: #FF6A13; color: #fff; font-weight: 800; }
 .inapp-bar b { color: #FFB27A; }
 .inapp-bar .ia-x { position: absolute; top: 6px; inset-inline-end: 8px; border: 0; background: none; color: #fff; font-size: 16px; cursor: pointer; }
+
+/* Panier (04/11) : « On vous prévient ? » au 1er article, livraison annoncée, commerce fermé + « Prévenez-moi à l'ouverture » */
+.cart-notif { position: fixed; left: 12px; right: 12px; bottom: calc(88px + env(safe-area-inset-bottom)); z-index: 1200; display: flex; align-items: center; gap: 8px;
+  padding: 10px 10px 10px 14px; border-radius: 16px; background: #0F1F3D; color: #fff; box-shadow: 0 10px 30px rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.12);
+  font-size: 14px; line-height: 1.35; max-width: 560px; margin: 0 auto; animation: cnIn .3s ease; }
+.cart-notif.hidden { display: none; }
+.cart-notif span { flex: 1; min-width: 0; }
+.cart-notif .btn { flex: none; white-space: nowrap; }
+.cart-notif .cn-x { flex: none; background: none; border: 0; color: #9FB3D6; font-size: 18px; padding: 4px 6px; cursor: pointer; }
+@keyframes cnIn { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+.cs-deliv { margin: 6px 0 2px; font-size: 14px; color: inherit; opacity: .9; }
+.cs-deliv b { color: #FF6A13; }
+.cs-closed { display: flex; flex-direction: column; gap: 6px; margin: 10px 0 4px; padding: 12px 14px; border-radius: 14px; background: rgba(255,106,19,.10); border: 1px solid rgba(255,106,19,.35); }
+.cs-closed b { font-size: 15px; }
+.cs-closed small { font-size: 13px; opacity: .9; }
+.cs-closed .cs-notify { align-self: flex-start; background: #FF6A13; color: #fff; border: 0; font-weight: 800; }
+.cs-notified { font-weight: 800; color: #16A34A; font-size: 14px; }
+.cart-steps { margin: 0 0 6px; }
+.cart-meta { margin: -4px 0 8px; color: #64748B; }
