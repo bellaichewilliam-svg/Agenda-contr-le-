@@ -729,6 +729,13 @@ document.addEventListener("click", e => {
   state.goodsChoice = b.dataset.goodsChoice;
   renderQuote();
 });
+// Le client touche « Espèces » ou « Bit » en bas : c'est aussi le choix pour les articles (sinon Bit, choisi d'office,
+// reviendrait tout seul et Espèces ne se cocherait jamais)
+form.addEventListener("change", e => {
+  if (e.target.name !== "payment_method" || !shopCashOnly() || linkOk()) return;
+  if (e.target.value === "cash") state.goodsChoice = "especes";
+  else if (e.target.value === "bit") state.goodsChoice = "bit";
+}, true);
 function noPayBox(titleKey, noTitle) {
   const sh = state.shop, name = UI.bi(sh.name), num = sh.whatsapp || sh.phone || "";
   const shown = num ? (String(num).replace(/\D/g, "").replace(/^972/, "0")) : "";
