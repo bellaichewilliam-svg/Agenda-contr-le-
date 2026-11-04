@@ -165,3 +165,6 @@ revoke execute on function public.panzer_import(bigint) from public, anon, authe
 -- insert into public.shop_photo_files (h, path) values
 --   ('047488c413dde6bd095d3f0005d527dd', 'img/market/panzer-logo.webp'),
 --   ('b28fcde40bcce16be3dbdc01e5388e12', 'img/market/panzer-cover.webp') on conflict do nothing;
+-- (04/11, plus tard) Logo et couverture en grand directement dans shops.logo / cover (≈ 9 et 13 Ko) : servis par lien
+-- (img_ref → ph:… → shop_pic), nets tout de suite, sans mise en ligne Vercel. Fichiers recopiés depuis GitHub par pg_net
+-- et vérifiés par leur empreinte md5 avant la mise à jour. La liaison shop_photo_files ci-dessus n'est plus nécessaire.

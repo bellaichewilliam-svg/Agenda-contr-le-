@@ -2605,12 +2605,12 @@ input[readonly][name="dropoff_code"] { background: var(--bg-2); color: var(--mut
 .ph-nav .ph-next { margin-inline-start: auto; background: var(--rc, #059669); border-color: var(--rc, #059669); color: #fff; }
 
 /* Badge « Casher » d'un partenaire : sceau bleu (étoile de David blanche dans un rond), dégradé, léger relief */
-.k-badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; padding: 2px 10px 2px 2px; border-radius: 999px; background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 55%, #3B82F6 100%); color: #fff; font-style: normal; font-size: 11px; font-weight: 800; line-height: 18px; letter-spacing: .03em; white-space: nowrap; box-shadow: 0 2px 8px rgba(29, 78, 216, .35), inset 0 1px 0 rgba(255, 255, 255, .28); }
+.k-badge { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; padding: 2px; padding-inline-end: 10px; border-radius: 999px; background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 55%, #3B82F6 100%); color: #fff; font-style: normal; font-size: 11px; font-weight: 800; line-height: 18px; letter-spacing: .03em; white-space: nowrap; box-shadow: 0 2px 8px rgba(29, 78, 216, .35), inset 0 1px 0 rgba(255, 255, 255, .28); }
 .k-star { width: 18px; height: 18px; flex: none; box-sizing: border-box; padding: 2.5px; border-radius: 50%; background: #fff; color: #1D4ED8; box-shadow: 0 0 0 1.5px rgba(255, 255, 255, .55); }
 /* Sur la photo de la carte vitrine : en bas, côté fin de lecture */
 .k-on-cover { position: absolute; bottom: 10px; inset-inline-end: 10px; z-index: 3; font-size: 12px; border: 1.5px solid rgba(255, 255, 255, .85); }
 /* Page du commerce : sous le nom, un peu plus grand */
-.k-lg { font-size: 12.5px; line-height: 20px; padding: 2px 12px 2px 2px; margin: 2px 0; justify-self: start; }
+.k-lg { font-size: 12.5px; line-height: 20px; padding: 2px; padding-inline-end: 12px; margin: 2px 0; justify-self: start; }
 .k-lg .k-star { width: 20px; height: 20px; }
 /* Pastilles rondes du haut : petit sceau au coin du logo */
 .k-dot { position: absolute; top: -2px; inset-inline-end: 4px; z-index: 2; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: linear-gradient(135deg, #1E3A8A, #3B82F6); border: 2px solid #fff; box-shadow: 0 2px 6px rgba(29, 78, 216, .4); }
@@ -4091,6 +4091,8 @@ body.shop-compact #shopHero .sh-row { flex-direction: column; align-items: cente
 body.shop-compact #shopHero .sh-logo { width: 92px; height: 92px; border-radius: 50%; }
 body.shop-compact #shopHero .sh-txt { padding-top: 0; justify-items: center; }
 body.shop-compact #shopHero .sh-txt b { font-size: 28px; }
+/* « Casher » : centré sous le nom, comme un label (plus collé à gauche) */
+body.shop-compact #shopHero .sh-txt .k-lg { justify-self: center; margin: 6px 0 4px; }
 body.shop-compact #shopHero .sh-meta { flex-direction: column; align-items: center; text-align: center; gap: 10px; }
 body.shop-compact #shopHero .sh-meta-l { justify-items: center; align-items: center; text-align: center; }
 body.shop-compact #shopHero .sh-meta-r { justify-content: center; }
