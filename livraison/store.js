@@ -1352,7 +1352,7 @@ async function courierAction(id, action) {
       throw new Error("too_far");
     }
     // « Déposer devant la porte » : photo du colis obligatoire dans la conversation
-    if ((o.leave_at_door || o.photo_wanted) && !chatLocal().some(m => m.thread === "o:" + o.id && ["courier", "admin"].includes(m.author) && m.image)) throw new Error("photo_required");
+    if (o.leave_at_door && !chatLocal().some(m => m.thread === "o:" + o.id && ["courier", "admin"].includes(m.author) && m.image)) throw new Error("photo_required");
     // Clés ou objet de valeur : le destinataire a donné le bon code de remise
     if (!free && o.handoff && !o.handoff_ok_at) throw new Error("handoff_required");
     // Paiement direct : « 💳 Paiement reçu » avant « Livré »
