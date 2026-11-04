@@ -1686,7 +1686,7 @@ async function loadCarts() {
   // (les fiches clients servent au message de relance : client déjà livré → cadeau, nouveau → 1re course réduite)
   if (!clients.length) Store.adminClients().then(c => { if (c) clients = c; }).catch(() => {});
   carts = (await Store.adminCarts().catch(() => null)) || carts;
-  const n = carts.filter(c => cartState(c) === "abandon").length;
+  const n = carts.filter(c => !c.boss && cartState(c) === "abandon").length;
   const b = $("#cartsBadge"); if (b) b.textContent = n ? String(n) : "";
   if (tab === "paniers") render();
 }
@@ -1704,12 +1704,24 @@ function cartRelance(c) {
     ? `שלום${n ? " " + n : ""} 👋\nהסל שלכם ב-HOP! מחכה לכם 🛒${c.shop_name ? " (" + c.shop_name + ")" : ""}:\n${items}\n\nנשאר רק ללחוץ "להזמנה" ו-HOP! מביאים לכם עד הבית 🛵${plus}\n👈 ${link}`
     : `Bonjour${n ? " " + n : ""} 👋\nVotre panier HOP! vous attend 🛒${c.shop_name ? " (" + c.shop_name + ")" : ""} :\n${items}\n\nIl ne reste qu'à toucher « Commander » et HOP! vous l'apporte chez vous 🛵${plus}\n👉 ${link}`;
 }
+// Où le client s'est arrêté (enregistré par son téléphone) : au panier, à un écran de la commande, ou après « Commander »
+function cartStepLbl(c) {
+  const s = String(c.step || "panier"), m = s.match(/^e(\d)\/(\d)$/);
+  if (s === "envoi") return "📤 a touché « Commander »";
+  if (m) return +m[1] === 1 ? "📍 à l'adresse" : +m[1] >= +m[2] ? "✅ au récapitulatif" : "📝 aux détails";
+  return "🛒 au panier";
+}
 function renderCarts(view) {
-  const by = k => carts.filter(c => k === "tous" || cartState(c) === k);
+  // Les paniers faits depuis le téléphone du patron (essais) : mis à part, ils ne faussent pas les chiffres
+  const mine = carts.filter(c => c.boss), real = carts.filter(c => !c.boss);
+  const by = k => real.filter(c => k === "tous" || cartState(c) === k);
   // À relancer maintenant : abandonné depuis 1 h à 24 h, avec un numéro, jamais relancé (en tête de liste)
   const due = c => cartState(c) === "abandon" && c.client_phone && !c.remind_count && Date.now() - new Date(c.updated_at) >= 3600000 && Date.now() - new Date(c.updated_at) < 86400000;
   const list = by(cartsFilter).sort((x, y) => (due(y) - due(x)) || (new Date(y.updated_at) - new Date(x.updated_at)));
-  const nDue = carts.filter(due).length;
+  const nDue = real.filter(due).length;
+  const steps = {};
+  by("abandon").forEach(c => { const l = cartStepLbl(c); steps[l] = (steps[l] || 0) + 1; });
+  const nPush = real.filter(c => c.push_ok).length, waitOpen = real.filter(c => c.open_notice && !c.open_noticed_at && cartState(c) !== "commande");
   const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
   const sumAb = by("abandon").reduce((a, c) => a + (Number(c.total) || 0), 0);
   view.innerHTML = `
@@ -1719,15 +1731,19 @@ function renderCarts(view) {
       <div class="stat"><small>Relancés</small><b>${by("relance").length}</b></div>
       <div class="stat"><small>Commandés</small><b>${by("commande").length}</b></div>
     </div>
+    ${Object.keys(steps).length ? `<p class="small cart-steps"><b>Où ils s'arrêtent :</b> ${Object.entries(steps).sort((a, b) => b[1] - a[1]).map(([l, n]) => `${UI.esc(l)} <b>${n}</b>`).join(" · ")}</p>` : ""}
+    <p class="muted small" style="margin:-4px 0 10px">🔔 ${nPush} client${nPush > 1 ? "s acceptent" : " accepte"} les notifications : leur panier laissé est relancé tout seul après 30 min (9 h – 22 h), même sans nom ni numéro.${mine.length ? ` · 🧪 ${mine.length} panier${mine.length > 1 ? "s" : ""} fait${mine.length > 1 ? "s" : ""} depuis votre téléphone (essais) : pas comptés.` : ""}</p>
+    ${waitOpen.length ? `<div class="card cart-due">🔔 <b>${waitOpen.length} client${waitOpen.length > 1 ? "s" : ""} attend${waitOpen.length > 1 ? "ent" : ""} l'ouverture</b> : prévenus tout seuls par notification dès que c'est ouvert quand ils l'ont acceptée ; sinon ils ont laissé leur numéro : « 💬 Relancer » dès que vous ouvrez.</div>` : ""}
     ${nDue ? `<div class="card cart-due">⏰ <b>${nDue} panier${nDue > 1 ? "s" : ""} à relancer maintenant</b> : laissé${nDue > 1 ? "s" : ""} depuis plus d'1 h, avec un numéro. Un toucher sur « 💬 Relancer » : le message est prêt, avec le petit cadeau (−5 ₪ pour un client déjà livré, 1re course réduite pour un nouveau).</div>` : ""}
     <p class="muted small" style="margin:-8px 0 12px">Chaque client a son panier, gardé 7 jours sur son téléphone. Sans changement depuis 30 min et pas commandé : il est « abandonné ». « Relancer » ouvre WhatsApp avec un message prêt, dans sa langue. Le nom et le numéro apparaissent quand le client les a déjà donnés (compte ou commande précédente).</p>
     <div class="toolbar cart-filters">${Object.keys(CART_LBL).map(k => `<button type="button" class="btn btn-sm${k === cartsFilter ? " btn-primary" : ""}" data-cartf="${k}">${CART_LBL[k]} (${by(k).length})</button>`).join("")}
       <button type="button" class="btn btn-sm" data-cart-reload>↻</button>
-      ${carts.some(c => !c.client_phone) ? `<button type="button" class="btn btn-sm" data-cart-del-anon>🗑️ Supprimer les paniers sans numéro (${carts.filter(c => !c.client_phone).length})</button>` : ""}</div>
+      ${real.some(c => !c.client_phone) ? `<button type="button" class="btn btn-sm" data-cart-del-anon>🗑️ Supprimer les paniers sans numéro (${real.filter(c => !c.client_phone).length})</button>` : ""}</div>
     ${list.length ? `<div class="orders">${list.map(c => { const st = cartState(c); return `
       <article class="order cart-card cs-${st}">
-        <div class="order-head"><span class="order-time">${UI.esc(c.client_name || "Client sans nom")}${c.lang === "he" ? " · 🇮🇱" : ""}</span><span class="pill">${CART_LBL[st]}</span>${due(c) ? `<span class="pill unpaid">⏰ À relancer</span>` : ""}</div>
+        <div class="order-head"><span class="order-time">${UI.esc(c.client_name || "Client sans nom")}${c.lang === "he" ? " · 🇮🇱" : ""}</span><span class="pill">${CART_LBL[st]}</span>${due(c) ? `<span class="pill unpaid">⏰ À relancer</span>` : ""}${c.open_notice && st !== "commande" ? `<span class="pill unpaid">🔔 ${c.open_noticed_at ? "Prévenu de l'ouverture" : "Attend l'ouverture"}</span>` : ""}</div>
         <p class="muted small" style="margin:2px 0 8px">${c.shop_name ? "🏪 " + UI.esc(c.shop_name) + " · " : ""}${c.count} article(s)${Number(c.total) ? " · ≈ " + UI.money(Number(c.total)) : ""} · ${ago(c.updated_at)}${c.order_ref ? " · commande " + UI.esc(c.order_ref) : ""}${c.remind_count ? " · relancé " + c.remind_count + " fois" : ""}</p>
+        <p class="small cart-meta">${st === "commande" ? "" : `Arrêté ${UI.esc(cartStepLbl(c))}`}${c.push_ok ? `${st === "commande" ? "" : " · "}🔔 notifications acceptées${c.push_reminded_at ? " · relancé par notification " + UI.esc(ago(c.push_reminded_at)) : ""}` : ""}</p>
         <ul class="cart-items">${(c.items || []).map(i => `<li><b>${i.q} ×</b> ${UI.esc(i.e ? i.e + " " : "")}${UI.esc(i.n)}${i.p ? ` <small>≈ ${UI.money(i.p * i.q)}</small>` : ""}</li>`).join("")}</ul>
         <div class="order-actions">${c.client_phone ? `<a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal(c.client_phone, cartRelance(c)))}" target="_blank" rel="noopener" data-cart-relance="${UI.esc(c.device)}">💬 Relancer sur WhatsApp</a>
           <a class="btn btn-sm" href="tel:${UI.esc(c.client_phone)}">📞 ${UI.esc(c.client_phone)}</a>` : `<span class="muted small">Pas de numéro : le client n'a encore jamais commandé ni créé de compte.</span>`}
@@ -1741,7 +1757,7 @@ document.addEventListener("click", e => {
   // Supprimer : le panier sort de la liste (il revient seulement si le client remplit un nouveau panier)
   const del = e.target.closest("[data-cart-del]"), anon = e.target.closest("[data-cart-del-anon]");
   if (del || anon) {
-    const list = del ? carts.filter(x => x.device === del.dataset.cartDel) : carts.filter(x => !x.client_phone);
+    const list = del ? carts.filter(x => x.device === del.dataset.cartDel) : carts.filter(x => !x.client_phone && !x.boss);
     if (!list.length || !confirm(del ? "Supprimer ce panier de la liste ?" : `Supprimer les ${list.length} paniers sans numéro ?`)) return;
     list.forEach(c => Store.cartMark(c.device, { status: "vide" }).catch(() => null));
     carts = carts.filter(x => !list.includes(x));

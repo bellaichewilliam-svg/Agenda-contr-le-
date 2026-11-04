@@ -176,6 +176,19 @@ Deno.serve(async req => {
     if (t) sent += await sendClient(o, { title: t[0], body: `${t[1]} · ${o.ref}`, url: `suivi.html?t=${o.token}`, tag: "c-" + o.id }, site);
     // Message d'un commerce à ses clients (nouveautés, promo) : il s'ouvre sur l'accueil HOP!
     if (ev.event === "notice") sent += await sendClient(o, { title: String(ev.title || "📣 HOP!"), body: String(ev.body || ""), url: "index.html", tag: "n-" + String(o.shop_id || o.id) }, site);
+  } else if (ev.cart_device) {
+    // Panier laissé (client sans nom ni numéro) : son téléphone, s'il a accepté les notifications au 1er article
+    const { data: subs } = await db.from("client_push_subs").select("endpoint, p256dh, auth").eq("device", String(ev.cart_device));
+    const note = { title: String(ev.title || "🛒 HOP!"), body: String(ev.body || ""), url: site + "index.html?cart=1", tag: "cart" };
+    await Promise.all((subs || []).map(async s => {
+      try {
+        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(note), { TTL: 3600, urgency: "normal" });
+        sent++;
+      } catch (e) {
+        const code = (e as { statusCode?: number }).statusCode;
+        if (code === 404 || code === 410) await db.from("client_push_subs").delete().eq("endpoint", s.endpoint);
+      }
+    }));
   } else if (ev.courier_id && ev.title) {
     // Message de HOP! à un livreur (ex. « Toujours là ? » quand il n'est plus sur l'appli)
     sent += await sendTo([String(ev.courier_id)], { title: String(ev.title), body: String(ev.body || ""),

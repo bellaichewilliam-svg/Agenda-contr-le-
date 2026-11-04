@@ -1989,6 +1989,11 @@ async function clientPushSubscribe(token, endpoint, p256dh, auth) {
   if (!ONLINE) return false;
   return rest("/rest/v1/rpc/client_push_subscribe", { method: "POST", body: { p_token: token, p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth } });
 }
+// Panier sans commande (client sans nom ni numéro) : ce téléphone recevra « votre panier vous attend » / « c'est ouvert »
+async function cartPushSubscribe(endpoint, p256dh, auth, lang) {
+  if (!ONLINE) return true;
+  return rest("/rest/v1/rpc/cart_push_subscribe", { method: "POST", body: { p_device: deviceId(), p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth, p_lang: lang || null } });
+}
 // Le client demande une photo du colis à la livraison (obligatoire ensuite pour « Livré »)
 async function clientPhotoWanted(token, on) {
   if (ONLINE) return rest("/rest/v1/rpc/client_photo_wanted", { method: "POST", body: { p_token: token, p_on: on !== false } });
@@ -2489,7 +2494,8 @@ async function cartSave(body) {
   const prev = all[deviceId()] || {};
   all[deviceId()] = Object.assign({ device: deviceId(), created_at: new Date().toISOString(), remind_count: 0 }, prev,
     { lang: body.lang, client_name: body.name || prev.client_name || null, client_phone: body.phone || prev.client_phone || null, kind: body.kind, shop_code: body.shop_code || null,
-      shop_name: body.shop_name || null, items: body.items, count: body.count, total: body.total, status: body.count ? (prev.status === "relance" ? "relance" : "actif") : "vide", updated_at: new Date().toISOString() });
+      shop_name: body.shop_name || null, items: body.items, count: body.count, total: body.total, status: body.count ? (prev.status === "relance" ? "relance" : "actif") : "vide", updated_at: new Date().toISOString(),
+      step: body.step || prev.step || "panier", boss: !!(prev.boss || body.boss), open_notice: !!(prev.open_notice || body.open_notice) });
   writeJSON("livraison.carts.v1", all);
 }
 async function adminCarts() {
@@ -2768,7 +2774,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, cartPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
