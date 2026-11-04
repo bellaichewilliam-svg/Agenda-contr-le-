@@ -549,6 +549,8 @@ function attach(input, opts) {
           <span><b>${UI.esc(UI.bi(p.brand || p.street || p.city))}</b><small>${p.fuzzy && opts.texts().didYouMean ? `<i class="ac-fuzzy">${UI.esc(opts.texts().didYouMean)}</i> ` : ""}${p.partner ? `<i class="ac-partner">${UI.esc(opts.texts().partner || "")}</i> ` : p.dir && opts.texts().soon ? `<i class="ac-soon">${UI.esc(opts.texts().soon)}</i> ` : ""}${UI.esc((p.brand ? [p.street, p.city].filter(Boolean).join(", ") : p.city) + (distText(p) ? " · " + distText(p) : ""))}</small></span>
         </button>`).join("")
       : `<div class="ac-empty">${UI.esc(opts.texts().none)}</div>`;
+    // Résultats arrivés après que le client a quitté le champ : on ne rouvre pas la liste par-dessus le reste de la page
+    if (document.activeElement !== input) return close();
     box.classList.remove("hidden");
   };
   const pick = i => {
@@ -621,7 +623,7 @@ function attach(input, opts) {
         if (mine !== seq) return;
         items = [];
         box.innerHTML = `<div class="ac-empty">⚠️ ${UI.esc(opts.texts().down)}</div>`;
-        box.classList.remove("hidden");
+        if (document.activeElement === input) box.classList.remove("hidden");
       }
     }, 300);
   });
