@@ -4364,3 +4364,23 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .bs-btns { display: grid; gap: 8px; }
 .bs-btns .btn-primary { background: #FF6A13; border-color: #FF6A13; color: #fff; }
 .bs-note { color: #4A5875; font-size: 12.5px; line-height: 1.4; }
+
+/* ===== Fiche course : qui a commandé, prêt au départ, ordre de la tournée (04/11) ===== */
+.order-who { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 8px 0 4px; padding: 10px 12px;
+  border-radius: 14px; background: #0F1F3D; color: #fff; }
+.order-who .ow-txt { display: grid; gap: 2px; font-size: 15px; line-height: 1.3; min-width: 0; }
+.order-who .ow-shop { font-size: 17px; color: #fff; }
+.order-who .ow-txt b { color: #fff; }
+.order-who .ow-call { background: #FF6A13; border-color: #FF6A13; color: #fff; font-weight: 800; white-space: nowrap; }
+.ready-line { margin: 6px 0; padding: 7px 10px; border-radius: 10px; font-size: 14.5px; line-height: 1.35; }
+.ready-line.wait { background: #FFF3E0; color: #8A4B00; }
+.ready-line.ok { background: #E7F7EC; color: #1B6B33; }
+.tour-no { display: inline-grid; place-items: center; min-width: 30px; height: 30px; border-radius: 50%; background: #FF6A13; color: #fff; font-size: 16px; font-weight: 900; margin-inline-end: 6px; }
+.my-tour { margin-bottom: 14px; border: 2px solid #FF6A13; }
+.my-tour ol { margin: 8px 0 0; padding-inline-start: 22px; display: grid; gap: 6px; }
+.my-tour li { font-size: 15px; line-height: 1.35; }
+.my-tour li.now { font-weight: 800; }
+.my-tour li a { color: inherit; text-decoration: none; }
+.my-tour li small { color: #6B7A93; font-weight: 600; }
+.ready-chips .ch-chip.on { background: #FF6A13; color: #fff; border-color: #FF6A13; }
+.ready-line em { font-style: normal; font-weight: 900; }

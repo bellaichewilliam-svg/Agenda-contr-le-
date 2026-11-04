@@ -358,6 +358,11 @@ function syncDropMe() {
   const name = val("contact_name").trim(), phone = val("contact_phone").trim();
   $("#dropMeWho").textContent = !me ? "" : name || phone ? t("dropMeWho", { who: [name, phone].filter(Boolean).join(" · ") }) : t("dropMeNote");
 }
+const readyAsk = () => ["colis", "repas"].includes(val("service")) && val("urgency") !== "programmee" && !proShopOn() && !phoneOn() && !noPayReadyOn() && !shopMode();
+function pickReady(v) {
+  form.querySelectorAll('input[name="pickup_ready"]').forEach(r => { r.checked = r.value === String(v); r.closest(".ch-chip").classList.toggle("on", r.checked); });
+}
+form.addEventListener("change", e => { if (e.target.name === "pickup_ready") pickReady(e.target.value); });
 function syncVisibility() {
   const svc = val("service");
   form.notes.closest("label").toggleAttribute("data-more", !!(state.shop && proShopOn()) && !val("notes").trim());
@@ -386,6 +391,11 @@ function syncVisibility() {
   $("#pickupLegend").textContent = t(near ? "s2_near" : svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
+  // « Le colis est prêt : tout de suite / dans 15, 30 min, 1 h » : course dès que possible, colis ou repas à récupérer
+  // (pas pour un commerce HOP! Pro ni une commande par téléphone : ils ont déjà leur heure « prête »)
+  const readyOn = readyAsk();
+  $("#readyChips").classList.toggle("hidden", !readyOn);
+  pickReady(readyOn ? val("pickup_ready") || "0" : "0");
   // Commande chez une enseigne (HOP! Pro ou vitrine) : seulement l'essentiel (articles, adresse du client, heure, mot pour le livreur, paiement)
   const side = shopMode();
   form.classList.toggle("shop-mode", !!side);
@@ -2357,6 +2367,7 @@ async function submit(e) {
       phone_ref: phoneOn() ? val("phone_ref").trim() || null : null,
       phone_paid: (phoneOn() && form.phone_paid.checked) || noPayReadyOn(),
       phone_ready_at: phoneOn() || noPayReadyOn() ? new Date(Date.now() + (state.phoneReady || 0) * 60000).toISOString() : null,
+      ...(readyAsk() && Number(val("pickup_ready")) > 0 ? { pickup_ready_at: new Date(Date.now() + Number(val("pickup_ready")) * 60000).toISOString() } : {}),
       company: val("company").trim() || null,
       contact_name: val("contact_name").trim(),
       contact_phone: formatPhone(val("contact_phone").trim()),

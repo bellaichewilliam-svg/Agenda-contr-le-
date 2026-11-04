@@ -408,7 +408,9 @@ function tourStops(list) {
   let pos = lastPos ? { lat: lastPos.lat, lon: lastPos.lon } : null;
   const stops = [];
   const picks = act.filter(o => o.status === "confirmee").map(o => ({ o, kind: "pickup", lat: o.pickup_lat, lon: o.pickup_lon }));
-  while (picks.length) { picks.sort((a, b) => km(pos, a) - km(pos, b)); const st = picks.shift(); stops.push(st); if (st.lat != null) pos = st; }
+  // Un colis annoncé « prêt dans 15 min… » passe après ceux qui sont déjà prêts (sinon le plus proche d'abord)
+  const wait = st => (st.o.pickup_ready_at && new Date(st.o.pickup_ready_at) > Date.now() ? 1 : 0);
+  while (picks.length) { picks.sort((a, b) => wait(a) - wait(b) || km(pos, a) - km(pos, b)); const st = picks.shift(); stops.push(st); if (st.lat != null) pos = st; }
   const drops = act.map(o => ({ o, kind: "dropoff", lat: o.dropoff_lat, lon: o.dropoff_lon }));
   while (drops.length) { drops.sort((a, b) => km(pos, a) - km(pos, b)); const st = drops.shift(); stops.push(st); if (st.lat != null) pos = st; }
   return stops;
@@ -424,7 +426,8 @@ function tourBlock(list) {
     const o = st.o, pick = st.kind === "pickup";
     const place = pick ? (o.shop_name || o.pickup_place || o.pickup_address) : (o.dropoff_place || o.dropoff_address);
     const who = pick ? "" : (o.contact_name || "");
-    const due = dueAt(o) ? `<em class="due">⏰ pour ${UI.esc(UI.fmtTime(new Date(dueAt(o))))}</em> · ` : "";
+    const due = dueAt(o) ? `<em class="due">⏰ pour ${UI.esc(UI.fmtTime(new Date(dueAt(o))))}</em> · `
+      : pick && o.pickup_ready_at && new Date(o.pickup_ready_at) > Date.now() ? `<em class="due">⏳ prêt à ${UI.esc(UI.fmtTime(o.pickup_ready_at))}</em> · ` : "";
     return `<div class="tour-stop${i === 0 ? " now" : ""}"><b class="tour-n">${i + 1}</b><div class="tour-txt"><b>${pick ? "📍" : "🏁"} <bdi>${UI.esc(place || "")}</bdi></b>
       <small>${i === 0 ? "<em>Prochain arrêt</em> · " : ""}${due}n° ${UI.esc(o.ref)}${who ? " · " + UI.esc(who) : ""}${d != null && d >= 0.05 ? ` · ≈ ${d.toFixed(1).replace(".", ",")} km` : ""}${pick && o.shop_ref ? ` · sac n° <b>${UI.esc(o.shop_ref)}</b>` : ""}</small></div>
       <a class="tour-nav" href="${navLink(o, st.kind)}" target="_blank" rel="noopener" aria-label="Itinéraire">${riderSet.nav === "maps" ? "🧭" : WAZE_SVG}</a></div>`;
@@ -900,6 +903,11 @@ function callBig(name, phone) {
 }
 // Commande prête ? Le temps qui reste, en direct (commerce Pro ou commande par téléphone)
 function readyChip(o) {
+  // Colis annoncé « prêt dans 15 min… » par le client au moment de commander
+  if (o.status === "confirmee" && o.pickup_ready_at && !o.shop_status && !o.phone_order) {
+    const l = Math.ceil((new Date(o.pickup_ready_at) - Date.now()) / 60000);
+    return l > 0 ? `<span class="ready-chip${l <= 5 ? " soon" : ""}">⏳ Prêt à <b>${UI.esc(UI.fmtTime(o.pickup_ready_at))}</b> · ${l} min</span>` : `<span class="ready-chip ok">✅ Prêt</span>`;
+  }
   if (o.status !== "confirmee" || !(o.ready_at || o.shop_status)) return "";
   const left = o.ready_at ? Math.ceil((new Date(o.ready_at) - Date.now()) / 60000) : null, nb = UI.notBefore(o);
   return o.shop_status === "prete" ? `<span class="ready-chip ok">✅ Prête</span>`
@@ -923,6 +931,8 @@ function readiness(o) {
     return l <= 0 ? { ok: false, text: `⏱️ <b>Prête maintenant</b> (annoncée pour ${hh(o.ready_at)}) : ${o.shop_name ? UI.esc(o.shop_name) : "le commerce"} n'a pas confirmé · appelez-le avant de partir` }
       : { ok: false, left: l, text: `⏳ <b>Pas encore prête</b> : il reste <b>${dur(l)}</b> (prête à ${hh(o.ready_at)})` };
   }
+  if (o.pickup_ready_at && mins(o.pickup_ready_at) > 0)
+    return { ok: false, left: mins(o.pickup_ready_at), text: `⏳ <b>Colis prêt à ${hh(o.pickup_ready_at)}</b> (dans ${dur(mins(o.pickup_ready_at))}) : le client l'a dit en commandant, arrivez pour cette heure` };
   if (o.appt_at && mins(o.appt_at) > 0) return { ok: false, left: mins(o.appt_at), text: `📅 Rendez-vous à <b>${hh(o.appt_at)}</b> (dans ${dur(mins(o.appt_at))})` };
   if (o.urgency === "programmee" && o.pickup_at && mins(o.pickup_at) > 0)
     return { ok: false, left: mins(o.pickup_at), text: `📅 À récupérer à <b>${hh(o.pickup_at)}</b> (dans ${dur(mins(o.pickup_at))})` };
@@ -1152,6 +1162,11 @@ function sameClient(o) {
       || Store.kmBetween(+x.dropoff_lat, +x.dropoff_lon, +o.dropoff_lat, +o.dropoff_lon) < 0.06));
 }
 const twinName = x => `n° ${x.ref}${x.shop_name ? " · " + x.shop_name : x.pickup_place ? " · " + String(x.pickup_place).split(" · ")[0] : ""}`;
+// Qui a commandé : le commerce (s'il y en a un) et la personne, avec un gros bouton pour l'appeler
+function whoBox(o) {
+  const shop = String(o.shop_name || o.company || (o.pickup_place ? String(o.pickup_place).split(" · ")[0] : "") || "").trim(), ph = o.contact_phone;
+  return `<div class="order-who"><span class="ow-txt">${shop ? `<b class="ow-shop">🏪 ${UI.esc(UI.bi(shop, "fr"))}</b>` : ""}<span>${shop ? "" : "Commandé par "}👤 <b>${UI.esc(o.contact_name || "—")}</b></span></span>${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler</a>` : ""}</div>`;
+}
 function mineCard(o, x) {
   const to = o.status === "recuperee";
   const stop = (which, label, now) => {
@@ -1175,6 +1190,7 @@ function mineCard(o, x) {
       <span class="order-ref">N° ${UI.esc(o.ref)}</span>
       <span class="order-price">${UI.money(x.total)}</span>
     </div>
+    ${whoBox(o)}
     ${giveBox(o)}
     ${newClient(o)}
     ${nbBlock(o)}
@@ -1184,7 +1200,6 @@ function mineCard(o, x) {
     ${buyBlock(o)}
     ${UI.stopsLegs(o, true)}
     ${stop("dropoff", "🏁 ARRIVÉE", to)}
-    ${o.dropoff_phone && o.dropoff_phone !== o.contact_phone ? `<div class="client-line">👤 Client : ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}"><b>${UI.esc(o.contact_phone)}</b></a></div>` : ""}
     ${o.notes ? `<p class="mine-note">📝 ${UI.esc(o.notes)}</p>` : ""}
     <div class="mine-extra">${x.extra}
       ${needPhoto(o) ? `<div class="small">${photoWhy(o)}</div>` : ""}
