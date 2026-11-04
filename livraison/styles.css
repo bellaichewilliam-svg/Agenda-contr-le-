@@ -4340,3 +4340,27 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .sa-link.on::before { content: "✓ "; }
 .sa-link.sa-new { color: var(--brand); font-weight: 700; }
 .hb-lock { margin: 8px 0 2px; padding: 10px; border-radius: 12px; background: var(--amber-soft); color: var(--amber-ink); font-size: 14px; line-height: 1.4; }
+
+/* ===== Mode patron sur la page client (04/11) : crayon sur chaque produit ===== */
+.boss-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 0 10px; padding: 9px 12px; border-radius: 14px;
+  background: #0F1F3D; color: #fff; font-size: 13.5px; line-height: 1.35; border: 1px solid rgba(255,106,19,.55); }
+.boss-bar b { color: #FF6A13; }
+.boss-bar .btn { flex: none; background: #fff; color: #0F1F3D; border: 0; }
+.cg-boss { position: absolute; top: 6px; inset-inline-start: 6px; z-index: 3; width: 34px; height: 34px; border-radius: 50%; border: 0;
+  background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); font-size: 16px; line-height: 34px; padding: 0; cursor: pointer; }
+.cg-item.boss-ch .cg-price::after { content: " ✏️"; font-size: 12px; }
+.cg-item.off .cg-boss { opacity: 1; }
+.boss-sheet { position: fixed; inset: 0; z-index: 2000; background: rgba(5,12,26,.6); display: flex; align-items: flex-end; justify-content: center; }
+.bs-card { width: 100%; max-width: 480px; max-height: 92vh; overflow: auto; background: #fff; color: #0F1F3D; border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); display: grid; gap: 10px; }
+.bs-head { display: flex; align-items: center; justify-content: space-between; font-size: 17px; }
+.bs-x { border: 0; background: #EEF1F6; width: 34px; height: 34px; border-radius: 50%; font-size: 16px; cursor: pointer; color: #0F1F3D; }
+.bs-card .f { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: #4A5875; }
+.bs-card .f input, .bs-card .f select { font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid #CBD3E1; background: #fff; color: #0F1F3D; font-weight: 600; }
+.bs-vis { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; padding: 6px 2px; }
+.bs-vis input { width: 22px; height: 22px; accent-color: #FF6A13; }
+.bs-src { color: #4A5875; margin-top: -4px; }
+.bs-err { color: #C62828; font-weight: 700; margin: 0; }
+.bs-btns { display: grid; gap: 8px; }
+.bs-btns .btn-primary { background: #FF6A13; border-color: #FF6A13; color: #fff; }
+.bs-note { color: #4A5875; font-size: 12.5px; line-height: 1.4; }

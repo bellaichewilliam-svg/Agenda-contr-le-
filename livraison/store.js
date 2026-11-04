@@ -1246,6 +1246,16 @@ async function penaltyAdd(courierId, orderId, amount, reason) {
     body: `💸 Retenue de ${p.amount} ₪${p.order_ref ? " · course n° " + p.order_ref : ""} : ${p.reason}. Elle est déduite de votre prochain versement. Vous pouvez répondre ici avec vos preuves (photo, position).` });
   return p.id;
 }
+// Le patron retire du crédit à un livreur (correction) : enregistré comme une retenue, message clair au livreur
+async function creditRemove(courierId, amount, reason) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_credit_remove", { method: "POST", body: { p_courier: courierId, p_amount: amount, p_reason: reason || null } });
+  const why = String(reason || "").trim().slice(0, 300) || "Crédit ajusté par HOP";
+  const p = { id: uuid(), courier_id: courierId, order_id: null, order_ref: null, amount: Math.round(Number(amount) * 100) / 100,
+    reason: why, status: "du", created_at: new Date().toISOString(), settled_at: null };
+  writeJSON(LS.penalties, [p, ...readJSON(LS.penalties, [])]);
+  chatLocalAdd({ thread: "c:" + courierId, author: "admin", author_name: "HOP!", image: null, body: `➖ ${p.amount} ₪ retirés de votre crédit HOP : ${why}.` });
+  return p.id;
+}
 async function penaltyCancel(id) {
   if (ONLINE) return authRest("/rest/v1/rpc/admin_penalty_cancel", { method: "POST", body: { p_id: id } });
   const list = readJSON(LS.penalties, []), p = list.find(x => x.id === id && x.status === "du");
@@ -2286,6 +2296,37 @@ async function shopCatalog(code) {
   if (!s || s.status !== "actif" || !planActive(s)) return null;
   return localCatalog(s.id).cat;
 }
+// Mode patron sur la page client : changer un produit (nom, prix, visible), ou revenir à ce que dit le magasin (boutiques HOP!)
+async function adminShopProductSet(id, ch) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_shop_product_set", { method: "POST", body: { p_id: id, p_name: ch.name == null ? null : ch.name,
+    p_price: ch.price == null ? null : Number(ch.price), p_available: ch.available == null ? null : !!ch.available, p_reset: !!ch.reset } });
+  const all = readJSON(LS.catalog, {});
+  const cat = Object.values(all).find(c => (c.products || []).some(x => x.id === id));
+  const x = cat && cat.products.find(y => y.id === id);
+  if (!x) throw new Error("not_found");
+  if (ch.reset) { if (x._src) Object.assign(x, x._src); delete x._src; x._boss = false; }
+  else {
+    x._src = x._src || { name: x.name, price: x.price, available: x.available };
+    if (ch.name != null && String(ch.name).trim()) x.name = String(ch.name).trim().slice(0, 80);
+    if (ch.price != null) x.price = Math.round(Number(ch.price) * 100) / 100;
+    if (ch.available != null) x.available = !!ch.available;
+    x._boss = true;
+  }
+  writeJSON(LS.catalog, all);
+  return { id: x.id, name: x.name, price: x.price, available: x.available, boss: !!x._boss, src_price: x._src ? x._src.price : null };
+}
+async function adminShopBoss(code) {
+  if (ONLINE) return authRest("/rest/v1/rpc/admin_shop_boss", { method: "POST", body: { p_code: code } });
+  const out = {};
+  Object.values(readJSON(LS.catalog, {})).forEach(c => (c.products || []).forEach(x => { if (x._boss) out[x.id] = { src_price: x._src && x._src.price, src_name: x._src && x._src.name }; }));
+  return out;
+}
+// Le téléphone est celui du patron (mode patron sur la page client). Démo : livraison.demoBoss = 1
+async function amBoss() {
+  if (!ONLINE) { try { return localStorage.getItem("livraison.demoBoss") === "1"; } catch (e) { return false; } }
+  if (!session()) return false;
+  try { const m = await me(); return !!(m && m.role === "admin"); } catch (e) { return false; }
+}
 // Le catalogue complet, pour le commerce lui-même
 async function shopCatalogMine(token) {
   if (ONLINE) return rest("/rest/v1/rpc/shop_catalog_mine", { method: "POST", body: { p_token: token } });
@@ -2707,7 +2748,7 @@ function sandboxReset() { Object.keys(localStorage).filter(k => k.startsWith("sa
 window.Store = {
   sandbox: SANDBOX, sandboxSeed, sandboxReset,
   ONLINE, STATUSES, LIVE, LS,
-  getSettings, saveSettings,
+  getSettings, saveSettings, adminShopProductSet, adminShopBoss, amBoss,
   welcomeUsed, deviceId,
   adminGoodsLink, adminGoodsPay, adminGoodsChoice,
   createOrder, myOrders, isHopShop, hopPlace, itemsPlaces, hopCredit, hopJoin, hopJoinWhy, hopBags, buyState, buyDone, buyTotals, courierBuyCheck, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
@@ -2721,7 +2762,7 @@ window.Store = {
   myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
-  claimOrder, penaltyAdd, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
+  claimOrder, penaltyAdd, creditRemove, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
   chatOrder, chatOrderSend, chatSupport, chatSupportSend, chatShop, chatShopSend, chatThread, chatSend, broadcastClients, chatRecent,
   sendMessage, listMessages, replyMessage, createRequest, listRequests, updateRequest
 };

@@ -245,7 +245,8 @@ async function load() {
 function renderAvail() {
   const on = settings.accepting;
   $("#avail").classList.toggle("on", on);
-  $("#availTitle").textContent = on ? "🟢 Je prends des commandes immédiates" : "🔴 Complet : les clients ne peuvent que programmer pour plus tard";
+  $("#availTitle").textContent = on ? "🟢 Je prends des commandes immédiates" : "🔴 Fermé : les clients ne peuvent que programmer pour plus tard";
+  $("#availAuto").textContent = "Automatique : ouvert dès que vous passez en service, fermé quand vous terminez. « Je suis complet » ferme à la main pendant le service.";
   $("#availBtn").textContent = on ? "Je suis complet" : "Je reprends les commandes";
   if (document.activeElement !== $("#availMsg")) $("#availMsg").value = settings.message || "";
   const takes = bossTakes();
@@ -288,13 +289,13 @@ async function sendPosition(pos) {
 
 // En service : reste actif quand on passe sur Waze (ou qu'on recharge la page), jusqu'à « Terminer le service »
 const LS_DUTY = "livraison.adminDuty.v1";
-async function toggleDuty(ev) {
+async function toggleDuty() {
   if (duty.watch != null) {
     navigator.geolocation.clearWatch(duty.watch);
     duty.watch = null;
     if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
     try { localStorage.removeItem(LS_DUTY); } catch (e) { /* ignore */ }
-    Store.setOnline(false).catch(() => {});
+    Store.setOnline(false).then(() => Store.getSettings()).then(st => { if (st) { settings.accepting = st.accepting; renderAvail(); } }).catch(() => {});
     UI.dutyNotice(false);
     renderDuty();
     return;
@@ -308,12 +309,10 @@ async function toggleDuty(ev) {
   // Garder l'écran allumé : les navigateurs coupent le GPS quand l'écran s'éteint
   try { if (navigator.wakeLock) duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* facultatif */ }
   try { localStorage.setItem(LS_DUTY, "1"); } catch (e) { /* ignore */ }
-  Store.setOnline(true).catch(() => {});
+  // En service = HOP! ouvert (la base passe « accepting » à vrai toute seule ; fin du service = « Fermé pour le moment »)
+  Store.setOnline(true).then(() => { settings.accepting = true; renderAvail(); }).catch(() => {});
   UI.dutyNotice(true, "Vos clients vous voient sur la carte. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
   renderDuty();
-  // (seulement quand il touche le bouton, pas au rechargement de la page)
-  // En service mais toujours en « Complet » : les clients voient « Fermé pour le moment ». On propose de rouvrir.
-  if (ev && !settings.accepting && confirm("Vous êtes en « Complet » : les clients voient « Fermé pour le moment » et ne peuvent que programmer.\n\nReprendre les commandes immédiates maintenant ?")) toggleAvail();
 }
 // De retour dans HOP! (après Waze) : position tout de suite, écran allumé, notification « En service » remise
 async function dutyBack() {
@@ -1253,8 +1252,9 @@ function creditsCard() {
       <span><button class="btn btn-sm btn-primary" data-topup-ok="${UI.esc(x.id)}">✅ Reçue</button> <button class="btn btn-sm" data-topup-no="${UI.esc(x.id)}">❌ Pas reçue</button></span></div>`).join("")}` : `<p class="small muted">Aucune recharge à vérifier.</p>`}
     <div class="table-scroll" style="margin-top:8px"><table class="bill"><thead><tr><th>Livreur</th><th class="num">Crédit</th><th class="num">Réservé</th><th></th></tr></thead><tbody>
       ${list.map(c => { const x = byId[c.id] || { credit: 0, reserved: 0 }; return `<tr><td>${UI.esc(c.name)}</td><td class="num"><b class="${Number(x.credit) < Number(settings.commission_min || 3) ? "neg" : ""}">${UI.money(x.credit)}</b></td>
-        <td class="num">${Number(x.reserved) ? UI.money(x.reserved) : "—"}</td><td class="num"><button class="btn btn-sm" data-credit-add="${UI.esc(c.id)}" data-name="${UI.esc(c.name)}">➕ Crédit</button></td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Pas encore de livreur.</td></tr>`}
+        <td class="num">${Number(x.reserved) ? UI.money(x.reserved) : "—"}</td><td class="num"><span class="credit-btns"><button class="btn btn-sm" data-credit-add="${UI.esc(c.id)}" data-name="${UI.esc(c.name)}">➕</button> <button class="btn btn-sm" data-credit-remove="${UI.esc(c.id)}" data-name="${UI.esc(c.name)}" data-credit="${Number(x.credit) || 0}">➖</button></span></td></tr>`; }).join("") || `<tr><td colspan="4" class="muted">Pas encore de livreur.</td></tr>`}
     </tbody></table></div>
+    <p class="small" style="margin:8px 0 0">🎁 Crédit de départ offert à chaque nouveau livreur validé : <b>${UI.money(settings.welcome_credit ?? 25)}</b> <button class="btn btn-sm" data-welcome-credit>Modifier</button></p>
     ${(credits.topups || []).filter(x => x.status !== "attente").slice(0, 8).map(x => `<p class="small muted topup-line">${UI.esc(x.courier_name || "")} · ${UI.money(x.amount)} · ${TOPUP_ST[x.status] || ""}${x.status === "ok" && x.paid === false ? " · offert" : ""}${x.note ? " · " + UI.esc(x.note) : ""}${x.receipt_number ? ` · <a href="${UI.esc(UI.topupReceiptUrl(x))}" target="_blank" rel="noopener">🧾 Reçu n° ${x.receipt_number}</a>` : ""}</p>`).join("")}
   </div>`;
 }
@@ -2533,6 +2533,24 @@ async function onViewClick(e) {
     const paid = confirm(`Avez-vous reçu ces ${UI.money(n)} de ${el.dataset.name} ?\nOK = argent reçu (un reçu HOP est fait)\nAnnuler = crédit offert (pas de reçu)`);
     const note = prompt("Note (facultatif) :", "") || "";
     try { await Store.addTopup(el.dataset.creditAdd, n, note, paid); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
+  if (el.dataset.creditRemove) {
+    const a = prompt(`Crédit à retirer à ${el.dataset.name} (₪) ? Il a ${UI.money(el.dataset.credit)} aujourd'hui.`, "");
+    if (a == null || !String(a).trim()) return;
+    const n = Number(String(a).replace(",", "."));
+    if (!(n > 0 && n <= 2000)) return alert("Montant entre 1 et 2000 ₪.");
+    const why = prompt("Raison (le livreur la voit dans ses messages) :", "Crédit ajusté par HOP");
+    if (why == null) return;
+    try { await Store.creditRemove(el.dataset.creditRemove, n, why); await load(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
+  if (el.dataset.welcomeCredit != null) {
+    const a = prompt("Crédit de départ offert à chaque nouveau livreur validé (₪, 0 = aucun) :", String(settings.welcome_credit ?? 25));
+    if (a == null) return;
+    const n = Number(String(a).replace(",", "."));
+    if (!(n >= 0 && n <= 500)) return alert("Montant entre 0 et 500 ₪.");
+    try { await Store.saveSettings({ welcome_credit: n }); settings.welcome_credit = n; render(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
     return;
   }
   if (el.dataset.penCancel) {

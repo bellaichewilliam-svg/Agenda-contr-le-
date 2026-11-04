@@ -402,7 +402,8 @@ function syncVisibility() {
     form.payer.value = "moi";
   }
   $("#payChoices").classList.toggle("hidden", gift);
-  const payerOn = !gift && val("service") === "colis" && !shopMode();
+  // « Qui paie la course ? » retiré (demande du patron, 04/11) : c'est toujours le client qui commande
+  const payerOn = false;
   form.payer.closest("label").classList.toggle("hidden", !payerOn);
   if (!payerOn) form.payer.value = "moi";
   // Carnet pro proposé seulement quand il s'applique
@@ -2888,7 +2889,9 @@ async function loadSettings() {
 // --- Catalogue du commerce HOP! Pro : le client choisit ses articles (payés directement au commerce) ---
 state.catalog = null; state.cart = {};
 // Produit épuisé = hors ligne : le client ne le voit plus du tout (le commerçant le remet en vente dans son espace)
-const cgProducts = () => ((state.catalog && state.catalog.products) || []).filter(p => p.available !== false);
+const cgProducts = () => ((state.catalog && state.catalog.products) || []).filter(p => p.available !== false || bossEditOn());
+// Mode patron (le téléphone du patron) : un crayon ✏️ sur chaque produit, les produits masqués restent visibles (grisés)
+const bossEditOn = () => !!(state.boss && state.bossEdit !== false);
 // Photos de produits sur fond blanc (détourées : McDonald's, épicerie…) : montrées en entier et centrées, sur fond blanc,
 // au lieu d'être coupées par le cadre. Les vraies photos (plat posé sur une table) restent en plein cadre.
 const whitePics = new Map();
@@ -3024,6 +3027,86 @@ async function loadCatalogFor(shop) {
   state.catalog = cat;
   renderCatalog();
   renderQuote();
+  if (state.boss) bossMapLoad(shop.code);
+}
+
+// ===== Mode patron sur la page client (règle du 04/11) : le patron change un produit là où le client le voit =====
+// Nom (français · hébreu), prix, visible ou masqué. Boutiques HOP! (mises à jour toutes seules depuis le magasin) :
+// le choix du patron reste par-dessus chaque mise à jour, et « Revenir au magasin » remet ce que dit le magasin.
+function bossBar() {
+  const n = ((state.catalog && state.catalog.products) || []).filter(p => p.available === false).length;
+  return `<div class="boss-bar"><span>👑 <b>Mode patron</b>${bossEditOn() ? ` · touchez ✏️ sur un produit${n ? ` · ${n} masqué${n > 1 ? "s" : ""}` : ""}` : " · vue client"}</span>
+    <button type="button" class="btn btn-sm" data-boss-toggle>${bossEditOn() ? "👁️ Vue client" : "✏️ Modifier"}</button></div>`;
+}
+async function bossMapLoad(code) {
+  try { const m = await Store.adminShopBoss(code); if (state.shop && state.shop.code === code) { state.bossMap = m || {}; renderCatalog(); } } catch (e) { /* le crayon marche quand même */ }
+}
+const isHeTxt = x => /[\u0590-\u05FF]/.test(x);
+function bossEdit(id) {
+  const all = (state.catalog && state.catalog.products) || [], p0 = all.find(x => x.id === id);
+  if (!p0) return;
+  const group = sizeOf(p0) ? all.filter(x => x.category_id === p0.category_id && sizeOf(x) && baseOf(x) === baseOf(p0)) : [p0];
+  let p = p0;
+  const box = document.createElement("div");
+  box.className = "boss-sheet";
+  const draw = () => {
+    const parts = String(p.name || "").split(/\s+·\s+/), he = parts.filter(isHeTxt).join(" · "), fr = parts.filter(x => !isHeTxt(x)).join(" · ");
+    const bm = (state.bossMap || {})[p.id], hop = isHopShop(state.shop);
+    box.innerHTML = `<form class="bs-card" novalidate>
+      <div class="bs-head"><b>✏️ Modifier le produit</b><button type="button" class="bs-x" data-bs-close aria-label="Fermer">✕</button></div>
+      ${group.length > 1 ? `<label class="f">Taille<select data-bs-var>${group.map(x => `<option value="${UI.esc(x.id)}"${x.id === p.id ? " selected" : ""}>${UI.esc(UI.bi(sizeOf(x)) || UI.bi(x.name))} · ${UI.esc(money(x.price))}</option>`).join("")}</select></label>` : ""}
+      <label class="f">Nom en français<input name="fr" maxlength="60" value="${UI.esc(fr)}" /></label>
+      <label class="f">Nom en hébreu<input name="he" maxlength="60" dir="rtl" value="${UI.esc(he)}" /></label>
+      <label class="f">Prix (₪)<input name="price" inputmode="decimal" value="${UI.esc(String(p.price).replace(".", ","))}" /></label>
+      ${bm && bm.src_price != null && Number(bm.src_price) !== Number(p.price) ? `<small class="bs-src">Prix du magasin : ${UI.esc(money(bm.src_price))}</small>` : ""}
+      <label class="bs-vis"><input type="checkbox" name="vis"${p.available !== false ? " checked" : ""} /> <span>Visible pour les clients</span></label>
+      <p class="bs-err hidden"></p>
+      <div class="bs-btns"><button type="submit" class="btn btn-primary btn-block">Enregistrer</button>
+        ${hop && bm ? `<button type="button" class="btn btn-block" data-bs-reset>↩️ Revenir au magasin</button>` : ""}</div>
+      ${hop ? `<small class="bs-note">Boutique HOP! : votre choix reste, même après les mises à jour automatiques du magasin.</small>` : ""}
+    </form>`;
+  };
+  draw();
+  document.body.appendChild(box);
+  const close = () => box.remove();
+  const done = async ch => {
+    const err = box.querySelector(".bs-err"), btns = box.querySelectorAll("button");
+    btns.forEach(b => { b.disabled = true; });
+    try {
+      const r = await Store.adminShopProductSet(p.id, ch);
+      if (r) Object.assign(p, { name: r.name, price: Number(r.price), available: r.available });
+      state.bossMap = state.bossMap || {};
+      if (r && r.boss) state.bossMap[p.id] = Object.assign({}, state.bossMap[p.id], { src_price: r.src_price }); else delete state.bossMap[p.id];
+      close();
+      box.dataset.html = "";
+      renderCatalog(); renderQuote();
+      toastCart(ch.reset ? "↩️ Remis comme au magasin" : "✅ Enregistré : vos clients le voient tout de suite");
+    } catch (ex) {
+      btns.forEach(b => { b.disabled = false; });
+      err.textContent = "Pas enregistré (connexion ?). Réessayez.";
+      err.classList.remove("hidden");
+    }
+  };
+  box.addEventListener("click", e => {
+    if (e.target === box || e.target.closest("[data-bs-close]")) return close();
+    if (e.target.closest("[data-bs-reset]")) { e.preventDefault(); done({ reset: true }); }
+  });
+  box.addEventListener("change", e => { if (e.target.matches("[data-bs-var]")) { p = group.find(x => x.id === e.target.value) || p; draw(); } });
+  box.addEventListener("submit", e => {
+    e.preventDefault();
+    const f = e.target, fr = f.fr.value.trim().replace(/\s+/g, " "), he = f.he.value.trim().replace(/\s+/g, " ");
+    const price = Number(String(f.price.value).replace(",", ".").replace(/[^\d.]/g, ""));
+    const err = box.querySelector(".bs-err");
+    if (!fr && !he) { err.textContent = "Le nom ne peut pas être vide."; err.classList.remove("hidden"); return; }
+    if (!(price >= 0 && price <= 5000) || String(f.price.value).trim() === "") { err.textContent = "Prix invalide."; err.classList.remove("hidden"); return; }
+    const name = [fr, he].filter(Boolean).join(" · ");
+    const ch = {};
+    if (name !== p.name) ch.name = name;
+    if (Math.abs(price - Number(p.price)) > 0.001) ch.price = price;
+    if (f.vis.checked !== (p.available !== false)) ch.available = f.vis.checked;
+    if (!Object.keys(ch).length) return close();
+    done(ch);
+  });
 }
 function renderCatalog() {
   const box = $("#catalogBox"), on = catalogOn();
@@ -3055,15 +3138,17 @@ function renderCatalog() {
   const qIn = box.querySelector("[data-cg-q]");
   qIn.placeholder = t("cgSearch", { name: UI.bi(state.shop.name) });
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
-  const html = `${shopNoPay() ? noPayMini() : ""}
+  const html = `${state.boss ? bossBar() : ""}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
-      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}" data-cg-open="${UI.esc(p.id)}">
+      const bm = bossEditOn() && (state.bossMap || {})[p.id];
+      return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
-        ${!p.available ? `<span class="cg-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
+        ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
+        ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
           : multi ? `<button type="button" class="cg-plus" data-cg-pick="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button>`
           : q ? `<span class="cg-qty"><button type="button" data-cg-minus="${UI.esc(p.id)}" aria-label="−">−</button><b>${q}</b><button type="button" data-cg-plus="${UI.esc(p.id)}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
@@ -3143,6 +3228,9 @@ $("#catalogBox").addEventListener("input", e => {
 });
 $("#catalogBox").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-cg-q]")) { e.preventDefault(); e.target.blur(); } });
 $("#catalogBox").addEventListener("click", e => {
+  const be = e.target.closest("[data-boss-edit]"), bt = e.target.closest("[data-boss-toggle]");
+  if (be) { e.preventDefault(); e.stopPropagation(); return bossEdit(be.dataset.bossEdit); }
+  if (bt) { e.preventDefault(); state.bossEdit = !bossEditOn(); return renderCatalog(); }
   const b = e.target.closest("button");
   if (!b) { const card = e.target.closest("[data-cg-open]"); if (card) openItem(card.dataset.cgOpen); return; }
   // « Voir la commande » : le panier s'ouvre (articles, quantités, total), puis « Continuer »
@@ -3316,12 +3404,19 @@ const proShopOn = () => shopPicked() && !!state.shop.pro && val("payment_method"
 // (petit achat comme le supermarché, 6 articles compris puis +2 ₪ l'article, même maximum et même top case)
 const isHopShop = s => !!(s && (CONFIG.hopShops || []).includes(String(s.code || "").toUpperCase()));
 const hopBuyOn = () => proShopOn() && isHopShop(state.shop);
+// Boutiques HOP! (Carrefour, BOOOM) : pas les horaires du magasin, mais le service du patron (règle du 04/11) :
+// ouvertes quand il est en service (la base passe alors « accepting » à vrai), « Fermé pour le moment » sinon
+function shopState(s) {
+  if (isHopShop(s)) return state.settings.accepting ? null : { open: false, hop: true };
+  return UI.openState(s.hours);
+}
 const HOP_INC = (CONFIG.pricing.purchaseItems || {}).hopIncluded || 6;
 // Fiche du commerce : présentation, adresse, horaires (ouvert / fermé maintenant), WhatsApp pour le joindre
 const DAYS = { fr: ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"], he: ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"] };
 // « Ouvert · ferme à 19:00 » / « Fermé · ouvre demain à 08:30 » / « Fermé · ouvre lundi à 08:30 »
 function openLabel(st) {
   if (!st) return "";
+  if (st.hop) return t("shClosedNow");
   if (st.open) return t("stOpenUntil", { time: UI.hhmmOf(st.until) });
   if (st.inDays == null) return t("shClosed");
   const time = UI.hhmmOf(st.at);
@@ -4453,7 +4548,7 @@ function kosherTag(cls) { return `<em class="k-badge${cls ? " " + cls : ""}">${K
 const firstPhrase = v => String(v || "").split(/\s[·•|–-]\s|\.\s/)[0].replace(/\.$/, "").trim();
 // Carte d'un commerce, compacte : bannière, logo, catégorie, ouvert / fermé, livraison ; toute la carte s'ouvre au toucher
 function shopCard(s) {
-  const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = UI.openState(s.hours);
+  const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = shopState(s);
   const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">
     <span class="sc-cover${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
@@ -4478,13 +4573,13 @@ function shopLogo(s, cls) {
 const scFilter = { kind: "", open: false, kosher: false };
 function renderShowcase() {
   const all = (state.showcase || []).slice(), f = favs();
-  const isOpen = s => { const st = UI.openState(s.hours); return !st || st.open; };
+  const isOpen = s => { const st = shopState(s); return !st || st.open; };
   // Favoris du client d'abord, puis les enseignes placées par HOP! (position 1 = en premier), puis les ouvertes
   const rk = s => (s.rank != null ? Number(s.rank) : Infinity);
   // (ouverts toujours devant les fermés : un commerce fermé le soir fait partir le client)
   all.sort((a, b) => (f.includes(b.code) - f.includes(a.code)) || (isOpen(b) - isOpen(a)) || (rk(a) - rk(b) || 0));
   // Ouvert jusqu'à quelle heure (sans horaires : toute la journée)
-  const until = s => { const st = UI.openState(s.hours); return !st ? 1440 : st.open ? st.until : -1; };
+  const until = s => { const st = shopState(s); return !st ? 1440 : st.open ? st.until : -1; };
   $("#homeProBox").classList.toggle("hidden", !all.length);
   // Filtres : seulement les métiers présents
   const kinds = [...new Set(all.map(s => s.kind).filter(Boolean))];
@@ -5023,6 +5118,8 @@ try { ensureDefaultTo(); } catch (e) { /* ignore */ }
 // Fenêtre de l'appli client : l'espace livreur ouvert d'ici proposera d'installer sa propre appli
 UI.markClientApp();
 
+// Téléphone du patron : mode patron sur la page client (crayon ✏️ sur chaque produit)
+Store.amBoss().then(b => { if (!b) return; state.boss = true; if (state.shop) { renderCatalog(); bossMapLoad(state.shop.code); } }).catch(() => {});
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;
 
