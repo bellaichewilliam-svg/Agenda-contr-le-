@@ -154,4 +154,6 @@ revoke execute on function public.panzer_import(bigint) from public, anon, authe
 -- Appliqué en deux migrations (boutique_hop_panzer_1 et _2), import du 05/11 : 150 articles (38 produits × tailles).
 -- Mise à jour chaque nuit : cron « hop-panzer-fetch » 02:17 UTC (panzer_fetch) puis « hop-panzer-import » 02:22 (panzer_import).
 -- La boutique est créée « suspendu » ; passée « actif » quand l'appli (config.hopShops + photos cdn.shopify.com) est en ligne.
--- Horaires mis par défaut (dim–jeu 9 h–19 h, ven 8 h 30–14 h, chabbat fermé) : à confirmer par le patron.
+-- Horaires (patron, 05/11) : dim–jeu 10 h–19 h ; vendredi 10 h–14 h en attendant sa confirmation ; chabbat fermé.
+-- Téléphones de Panzer : seulement dans la note du patron (admin_note). Le téléphone et le WhatsApp de la boutique sont ceux de HOP!
+-- (commande HOP! : le client appelle HOP!, jamais le magasin).

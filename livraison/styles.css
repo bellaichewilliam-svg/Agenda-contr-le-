@@ -4506,3 +4506,6 @@ body.fiche-open { overflow: hidden; }
 .rd-dest span { display: block; font-size: 22px; line-height: 1.25; font-weight: 900; color: #FFD166; overflow-wrap: anywhere; }
 .rd-dest span em { font-style: normal; font-size: 16px; font-weight: 700; color: #C9D5EA; }
 .rd-dest i { display: inline-block; margin-top: 8px; padding: 6px 12px; border-radius: 99px; background: rgba(110,200,255,.14); color: #6EC8FF; font-style: normal; font-weight: 800; font-size: 13px; }
+/* Calendrier du bouton « Programmer » : posé dans sa case, jamais sur le texte (05/11) */
+.choice span i { line-height: 1; }
+.choice span i > .cal-ico { vertical-align: top; }
