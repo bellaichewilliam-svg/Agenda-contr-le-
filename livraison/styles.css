@@ -4419,3 +4419,85 @@ html.d2:not(.d2-day) .buy-live small { color: #B8C4D9; }
 .cs-notified { font-weight: 800; color: #16A34A; font-size: 14px; }
 .cart-steps { margin: 0 0 6px; }
 .cart-meta { margin: -4px 0 8px; color: #64748B; }
+
+/* ===== Appli livreur : fiche d'arrêt (04/11) — « Livraison à / Récupération chez », INFOS · ARTICLES, glisser pour valider ===== */
+.stop-fiche { display: flex; align-items: center; gap: 10px; width: 100%; margin: 10px 0 6px; padding: 10px 14px; border-radius: 14px; border: 0;
+  background: #0F1F3D; color: #fff; font: inherit; text-align: start; cursor: pointer; box-shadow: 0 4px 12px rgba(15,31,61,.25); }
+.stop-fiche em { font-style: normal; font-size: 22px; }
+.stop-fiche span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.stop-fiche b { font-size: 16px; font-weight: 900; }
+.stop-fiche small { font-size: 12px; font-weight: 600; color: #9FB3D6; }
+.stop-fiche i { font-style: normal; font-size: 24px; font-weight: 900; color: #FF6A13; }
+.tour-stop[data-fiche-stop] { cursor: pointer; }
+body.fiche-open { overflow: hidden; }
+.fiche { position: fixed; inset: 0; z-index: 3000; display: flex; flex-direction: column; justify-content: flex-end; }
+.fiche.hidden { display: none; }
+.fi-back { position: absolute; inset: 0; background: rgba(4,9,20,.55); }
+.fi-box { position: relative; display: flex; flex-direction: column; max-height: 94vh; max-height: 94dvh; background: #141B2E; color: #F3F6FB;
+  border-radius: 24px 24px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.5); animation: fiUp .22s ease; width: 100%; max-width: 640px; margin: 0 auto; }
+@keyframes fiUp { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+.fi-grab { display: flex; justify-content: center; padding: 10px 0 2px; cursor: pointer; }
+.fi-grab i { width: 44px; height: 5px; border-radius: 9px; background: #3B4A68; }
+.fi-x { position: absolute; top: 10px; inset-inline-end: 12px; width: 36px; height: 36px; border-radius: 50%; border: 0; background: rgba(255,255,255,.08); color: #C9D5EA; font-size: 16px; cursor: pointer; }
+.fi-head { padding: 4px 20px 10px; }
+.fi-head small { display: block; color: #9FB3D6; font-size: 14px; font-weight: 700; }
+.fi-head h3 { margin: 2px 0 4px; font-size: 28px; line-height: 1.15; font-weight: 900; overflow-wrap: anywhere; padding-inline-end: 34px; }
+.fi-head h3.drop { color: #3DDC84; }
+.fi-head h3.pick { color: #FF8A3D; }
+.fi-firm { margin: 0 0 2px; font-weight: 800; color: #EAF0FA; }
+.fi-addr { margin: 2px 0 8px; font-size: 23px; line-height: 1.25; font-weight: 900; color: #FFD166; overflow-wrap: anywhere; }
+.fi-addr small { display: inline; font-size: 16px; font-weight: 700; color: #C9D5EA; }
+.fi-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,.08); }
+.fi-tabs button { flex: 1; padding: 12px 6px 10px; border: 0; background: none; color: #8C9BB8; font: inherit; font-weight: 900; font-size: 15px; letter-spacing: .04em; border-bottom: 3px solid transparent; cursor: pointer; }
+.fi-tabs button.on { color: #6EC8FF; border-bottom-color: #6EC8FF; }
+.fi-body { flex: 1; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; padding: 6px 20px 14px; }
+.fi-h { margin: 16px 0 6px; font-size: 20px; font-weight: 900; color: #fff; }
+.fi-row { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.08); min-width: 0; }
+.fi-row small, .fi-grid small { display: block; color: #8FA6CC; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+.fi-row b { display: block; font-size: 18px; font-weight: 800; overflow-wrap: anywhere; }
+.fi-row.fi-code b { font-size: 26px; letter-spacing: .06em; color: #FFD166; }
+.fi-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+.fi-grid b { display: block; font-size: 20px; font-weight: 900; overflow-wrap: anywhere; }
+.fi-notes p { margin: 0 0 6px; padding: 10px 12px; border-radius: 12px; background: rgba(255,209,102,.10); border: 1px solid rgba(255,209,102,.28); font-size: 16px; font-weight: 600; overflow-wrap: anywhere; white-space: pre-line; }
+.fi-door { display: flex; flex-direction: column; gap: 2px; margin: 10px 0 4px; padding: 10px 12px; border-radius: 14px; background: #7C2D12; border: 1px solid #FB923C; }
+.fi-door b { font-size: 18px; }
+.fi-door span { font-size: 13px; }
+.fi-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.fi-btns .call-big, .fi-btns .btn-waze { margin: 0; }
+.fi-shop { display: flex; flex-direction: column; gap: 4px; margin: 12px 0 8px; font-size: 17px; }
+.fi-shop > b { overflow-wrap: anywhere; }
+.fi-shop span { color: #9FB3D6; font-size: 14px; }
+.fi-shop span b { color: #FFD166; font-size: 16px; }
+.fi-items { border-top: 1px solid rgba(255,255,255,.08); }
+.fi-item { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+.fi-q { flex: none; min-width: 36px; padding: 3px 0; border-radius: 9px; background: rgba(110,200,255,.14); color: #6EC8FF; text-align: center; font-size: 15px; }
+.fi-item span { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.fi-item span small { display: block; margin-top: 2px; color: #FFB27A; font-size: 13px; font-weight: 700; }
+.fi-item em { flex: none; font-style: normal; color: #C9D5EA; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.fi-total { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0 4px; font-weight: 800; color: #C9D5EA; }
+.fi-total b { color: #fff; font-size: 18px; }
+.fi-pay { margin: 8px 0 0; font-size: 13px; color: #9FB3D6; }
+.fi-empty { margin: 8px 0; padding: 14px; border-radius: 14px; background: rgba(255,255,255,.05); color: #C9D5EA; font-size: 15px; }
+.fi-foot { padding: 12px 16px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid rgba(255,255,255,.06); background: #141B2E; border-radius: 0; }
+.fi-wait { margin: 0; padding: 14px; text-align: center; border-radius: 16px; background: rgba(255,255,255,.06); color: #C9D5EA; font-weight: 800; }
+.fi-slide { --fi-p: 0; position: relative; height: 66px; border-radius: 40px; background: linear-gradient(90deg, #5CC8F2 calc(var(--fi-p) * 100%), #78D2F5 calc(var(--fi-p) * 100%));
+  display: flex; align-items: center; justify-content: center; overflow: hidden; user-select: none; -webkit-user-select: none; touch-action: none; }
+.fi-slide b { padding-inline-start: 62px; padding-inline-end: 12px; color: #0B2233; font-size: 19px; font-weight: 900; text-align: center; opacity: calc(1 - var(--fi-p) * .8); line-height: 1.15; }
+.fi-knob { position: absolute; inset-inline-start: 4px; top: 4px; width: 58px; height: 58px; border-radius: 50%; background: #0B1222; color: #6EC8FF; display: grid; place-items: center;
+  font-size: 34px; font-weight: 900; cursor: grab; touch-action: none; box-shadow: 0 4px 12px rgba(0,0,0,.35); }
+[dir="rtl"] .fi-knob { transform: scaleX(1); }
+.fi-slide.drag .fi-knob { cursor: grabbing; }
+.fi-slide:not(.drag) .fi-knob { transition: transform .25s ease; }
+.fi-slide.done { background: #3DDC84; }
+.fi-slide.hint { animation: fiHint .5s ease; }
+@keyframes fiHint { 20% { transform: translateX(10px); } 50% { transform: translateX(-6px); } 80% { transform: translateX(3px); } }
+@media (max-width: 370px) { .fi-head h3 { font-size: 24px; } .fi-slide b { font-size: 17px; } .fi-grid b { font-size: 17px; } }
+/* Panneau de la carte (livreur) : la destination en cours toujours en haut */
+.rd-dest { display: block; width: 100%; margin: 2px 0 10px; padding: 4px 0 10px; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,.08); }
+.rd-dest small { display: block; font-size: 17px; font-weight: 800; color: #DCE6F5; }
+.rd-dest b { display: block; margin: 2px 0; font-size: 30px; line-height: 1.12; font-weight: 900; overflow-wrap: anywhere; }
+.rd-dest b.pick { color: #5CC8F2; }
+.rd-dest b.drop { color: #3DDC84; }
+.rd-dest span { display: block; font-size: 22px; line-height: 1.25; font-weight: 900; color: #FFD166; overflow-wrap: anywhere; }
+.rd-dest span em { font-style: normal; font-size: 16px; font-weight: 700; color: #C9D5EA; }
+.rd-dest i { display: inline-block; margin-top: 8px; padding: 6px 12px; border-radius: 99px; background: rgba(110,200,255,.14); color: #6EC8FF; font-style: normal; font-weight: 800; font-size: 13px; }
