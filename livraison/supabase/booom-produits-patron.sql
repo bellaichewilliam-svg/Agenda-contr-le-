@@ -23,3 +23,8 @@ on conflict (id) do update set name = excluded.name, description = excluded.desc
 -- Espace commerce (04/11 soir) : shop_catalog_mine renvoie la même photo que le client (vraie photo du site du magasin,
 -- fichier de l'appli ou lien ph:), plus la photo brute (avant : pictogrammes chez BOOOM, catalogue lourd)
 -- (voir la migration « espace_commerce_vraies_photos »)
+
+-- Anciennes promos du flux BOOOM (fin 30/06, ids 78–94 sauf 85 déjà là) : ajoutées MASQUÉES (available = false) dans
+-- « 🏷️ Promos de la semaine », avec la photo du site BOOOM, nom FR · HE, prix de la promo. Le patron les remet en vente
+-- (bouton « En vente » de l'espace commerce) s'il les voit encore en boutique. Même id que l'import : pas de doublon.
+-- (migration « booom_anciennes_promos_masquees »)
