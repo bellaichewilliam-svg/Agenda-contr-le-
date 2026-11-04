@@ -389,7 +389,8 @@ function syncVisibility() {
   $("#nearNote").classList.toggle("hidden", !near);
   if (near) $("#nearNote").textContent = t("nearNote", { shop: t("near_" + state.homeKind) });
   $("#pickupLegend").textContent = t(near ? "s2_near" : svc === "retrait" ? "s2_retrait" : svc === "achat" ? "s2_achat" : "s2");
-  form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("addressPh");
+  $("#pickupSub").textContent = near || svc === "retrait" ? "" : t("pkSub");
+  form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("pkSearchPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
   // « Le colis est prêt : tout de suite / dans 15, 30 min, 1 h » : course dès que possible, colis ou repas à récupérer
   // (pas pour un commerce HOP! Pro ni une commande par téléphone : ils ont déjà leur heure « prête »)
@@ -1721,8 +1722,22 @@ function renderSavedAddrs() {
   const html = `<small>${UI.esc(t("savedTitle"))}</small>${slot("home")}${slot("work")}`
     + others.map(x => `<button type="button" class="addr-chip" data-addr="${x.i}">${addrChip(x.a)}</button>`).join("")
     + `<button type="button" class="addr-chip add" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button>`;
-  document.querySelectorAll(".saved-addrs").forEach(box => { box.classList.remove("hidden"); box.dataset.key = ""; box.innerHTML = box.dataset.for === "to" ? toAddrsHtml(list) : html; });
+  document.querySelectorAll(".saved-addrs").forEach(box => { box.classList.remove("hidden"); box.dataset.key = ""; box.innerHTML = box.dataset.for === "to" ? toAddrsHtml(list) : box.dataset.for === "from" ? fromAddrsHtml(list) : html; });
   markAddrChips();
+}
+// « Récupérer où ? » : la recherche d'abord (voir styles), puis une liste propre : Ma position, puis les adresses et
+// commerces enregistrés (une ligne chacun : nom en gras, adresse dessous) ; celle choisie est cochée
+function fromAddrsHtml(list) {
+  const sub = a => UI.esc([`${a.street || ""} ${a.number || ""}`.trim(), cityLabel(a.cityId || a.city)].filter(Boolean).join(", ") + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
+  const title = a => a.brand ? UI.bi(a.brand) : tagName(a) || `${a.street || ""} ${a.number || ""}`.trim();
+  // adresse sans nom : la rue en titre, seulement la ville (et l'appartement) dessous
+  const line = a => a.brand || tagName(a) ? sub(a) : UI.esc(cityLabel(a.cityId || a.city) + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
+  const ico = a => a.brand ? "🏪" : a.tag === "home" ? "🏠" : a.tag === "work" ? "💼" : "📍";
+  const rows = list.map((a, i) => ({ a, i })).slice(0, 6);
+  return `<p class="pk-h">${UI.esc(t("pkSaved"))}</p><div class="pk-list">
+    <button type="button" class="pk-row pk-pos" data-geo="from"><i aria-hidden="true">🧭</i><span><b>${UI.esc(t("pkPos"))}</b><small>${UI.esc(t("pkPosSub"))}</small></span></button>
+    ${rows.map(x => `<button type="button" class="pk-row" data-addr="${x.i}"><i aria-hidden="true">${ico(x.a)}</i><span><b>${UI.esc(title(x.a))}</b><small>${line(x.a)}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`).join("")}
+  </div>`;
 }
 // « Où livrer ? » : on livre le client chez lui → 🏠 Maison en grande carte, 💼 Travail en plus petit, les autres adresses
 // repliées en une ligne ; jamais un commerce enregistré (il reste proposé seulement pour « Récupérer où ? »)
