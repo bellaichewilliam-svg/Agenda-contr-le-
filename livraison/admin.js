@@ -1699,7 +1699,7 @@ function cartRelance(c) {
   const done = !!(known && Number(known.delivered) > 0), first = (CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || 25) - Number((CONFIG.promos.codes.BIENVENUE || {}).amount || 10);
   const plus = d9c.length < 9 ? "" : done
     ? (he ? "\n🎁 מתנה: 5 ₪ פחות על המשלוח אם מסיימים את ההזמנה היום, מאותו טלפון." : "\n🎁 Petit cadeau : 5 ₪ de moins sur la livraison si vous finissez votre commande aujourd'hui, depuis ce téléphone.")
-    : (he ? `\n🎁 המשלוח הראשון שלכם רק ${first} ₪.` : `\n🎁 Votre 1re livraison ne coûte que ${first} ₪.`);
+    : CONFIG.promos.welcomeOn === false ? "" : (he ? `\n🎁 המשלוח הראשון שלכם רק ${first} ₪.` : `\n🎁 Votre 1re livraison ne coûte que ${first} ₪.`);
   const items = (c.items || []).slice(0, 6).map(i => `• ${i.q} × ${i.n}`).join("\n") + ((c.items || []).length > 6 ? "\n…" : "");
   const base = location.origin + "/app/", link = c.shop_code ? `${base}?c=${encodeURIComponent(c.shop_code)}${he ? "&lang=he" : ""}` : base + (he ? "?lang=he" : "");
   return he
