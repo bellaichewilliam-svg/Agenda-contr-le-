@@ -516,7 +516,7 @@ function render() {
     $("#callCourier").textContent = t("callCourier", { name: first });
     $("#callCourier").href = "tel:" + o.courier_phone;
   }
-  $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: UI.appUrl("suivi.html") + location.search }));
+  $("#shareBtn").href = UI.waShare(t("trShareMsg", { url: UI.trackUrl({ token: new URLSearchParams(location.search).get("t") || "" }) }));
   $("#trkShare").href = $("#shareBtn").href;
   $("#trkLang").textContent = I18N.lang === "he" ? "FR" : "עב";
   $("#trkBackStatus").textContent = t("trBackStatus");
