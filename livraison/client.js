@@ -1077,16 +1077,16 @@ function renderPharma() {
       <div class="ph-pic${x.photo ? " photo" : ""}${UI.extPic(x.photo) ? " pack" : ""}">${pic(x)}
         ${qn ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${qn}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`}</div>
-      ${pr ? `<span class="ph-price">≈ ${priceTxt(pr)}</span>` : ""}
+      <div class="ph-info"><span class="ph-price">${pr ? `≈ ${priceTxt(pr)}` : ""}</span>
       <b class="ph-name">${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>
-      ${x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : ""}
+      <span class="ph-slot">${x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : ""}</span></div>
     </div>`;
   };
   const rest = `<div class="ph-cats" role="tablist">${cats.map(c => { const k = inCat(c.id), on = !q && state.pharmaCat === c.id;
       return `<button type="button" class="ph-cat${on ? " on" : ""}" role="tab" data-ph-cat="${c.id}" aria-selected="${on}">${pic(c)}<span>${UI.esc(phName(c))}</span>${k ? `<em>${k}</em>` : ""}</button>`; }).join("")}</div>
     <p class="ph-cur">${q ? `<b>${UI.esc(t("phFound", { n: shown.length, q: state.phQ.trim() }))}</b>` : cur ? `${pic(cur)}<b>${UI.esc(phName(cur))}</b><small>${UI.esc(t("phCount2", { n: shown.length }))}</small>` : ""}</p>
     ${rows && shown.some(x => x.pb) ? `<p class="ph-pnote">${UI.esc(t("phPriceNote"))}</p>` : ""}
-    ${shown.length ? `<div class="ph-list${rows ? " ph-lines" : ""}">${shown.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
+    ${shown.length ? `<div class="ph-list${rows ? " ph-lines" : " ph-tiles"}">${shown.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
     ${q ? "" : (i => { const prev = cats[i - 1], next = cats[i + 1];
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
       return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">‹ ${UI.esc(phName(prev))}</button>` : "<span></span>"}
@@ -3325,6 +3325,17 @@ function bossEdit(id) {
 // photo sur fond blanc, prix en grand, contenance et prix au 100 g / 100 ml (comme les applis de supermarché)
 // (étendu à tous les commerces sauf restaurants et services, demande du patron du 06/11/2026 : pâtisserie, traiteur, boutique…)
 const grocShop = () => !!(state.shop && !/restaurant/.test(String(state.shop.kind || "")) && !UI.isService(state.shop));
+// Cartes produits dans TOUS les catalogues (restaurants et services compris, demande du patron du 06/11/2026) ;
+// la contenance et le prix au 100 g restent pour les commerces de produits (grocShop)
+const tileShop = () => !!state.shop;
+// Ligne du bas des cartes (2 lignes fixes, toutes les cartes à la même hauteur) : contenance + prix au 100 g,
+// sinon les tailles à choisir, sinon (restaurant, service) le début de la description
+function tileMeta(p, multi) {
+  if (grocShop() && !multi && packInfo(p)) return `<span class="cg-meta"><span dir="ltr">${UI.esc(packInfo(p).label)}</span><span dir="ltr">${UI.esc(unitPrice(p))}</span></span>`;
+  if (multi && sizesOf(p).length > 1) return `<span class="cg-meta cg-mtxt">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>`;
+  if (!grocShop() && p.description) return `<span class="cg-meta cg-mtxt">${UI.esc(UI.bi(p.description))}</span>`;
+  return `<span class="cg-meta"></span>`;
+}
 // Contenance lue dans le nom (« 6 × 1,5 L », « 200 גרם », « 1 ק"ג ») : total en g ou ml, et un libellé court
 const PACK_RE = /(?:(\d+)\s*[×xX*]\s*)?(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grammes?|ml|cl|l|litres?|ליטר|גרם|גר'?|ק[״"]ג|קילו|מ[״"]ל)(?![a-zà-ÿ])/i;
 function packInfo(p) {
@@ -3383,12 +3394,12 @@ function renderCatalog() {
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   const html = `${state.boss ? bossBar() : ""}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
-    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${grocShop() ? " cg-tiles" : ""}">${sec.items.map(p => {
+    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}" data-cg-open="${UI.esc(p.id)}">
-        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${grocShop() ? (!multi && packInfo(p) ? `<span class="cg-meta"><span dir="ltr">${UI.esc(packInfo(p).label)}</span><span dir="ltr">${UI.esc(unitPrice(p))}</span></span>` : `<span class="cg-meta"></span>`) : ""}</div>
+        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
@@ -3502,7 +3513,7 @@ function openItem(id) {
   item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
   const m0 = (state.cartMods || {})[p.id] || {};
   item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false; item.flavors = [...(m0.flavors || [])]; item.side = m0.side || "fries"; item.extras = [...(m0.extras || [])];
-  $("#itemSheet").classList.toggle("groc", grocShop());
+  $("#itemSheet").classList.toggle("groc", tileShop());
   renderItem();
   $("#itemSheet").classList.remove("hidden");
 }
