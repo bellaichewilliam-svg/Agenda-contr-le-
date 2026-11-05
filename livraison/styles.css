@@ -4595,3 +4595,14 @@ body.fiche-open { overflow: hidden; }
 .dj-line { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
 .dj-line span { color: var(--muted); }
 .dj-line.dj-miss b { color: #E5484D; }
+.dj-detail { margin-top: 10px; display: grid; gap: 0; }
+.dj-detail h4 { margin: 4px 0 6px; font-size: 15px; }
+.dj-detail h4 + .dj-row { border-top: 0; }
+.dj-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-top: 1px solid var(--border); }
+.dj-h { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.dj-who, .dj-amt { display: grid; gap: 1px; min-width: 0; }
+.dj-who b { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dj-who small, .dj-amt small { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dj-amt { text-align: end; }
+.dj-lostrow .dj-amt b { color: #E5484D; }
+.dj-detail h4:not(:first-child) { margin-top: 12px; }

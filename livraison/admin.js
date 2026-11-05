@@ -1744,7 +1744,7 @@ function renderDaily(view) {
     const lostCom = sum(lostCarts, c => Store.commissionFor(cartDelivery(c), settings)) + sum(lostOrders, o => Store.commissionFor(Number(o.price) + Number(o.discount || 0), settings));
     return { k, n: done.length, nMine: mine.length, nTheirs: theirs.length, meRides, meCom, plans, me: meRides + meCom + plans,
       couriers: sum(theirs, o => courierKeep(o) + courierExtras(o)), total: sum(done, o => Number(o.price) + Number(o.discount || 0) + Number(o.shop_share || 0)),
-      nCarts: lostCarts.length, nLost: lostOrders.length, lostFull, lostCom };
+      nCarts: lostCarts.length, nLost: lostOrders.length, lostFull, lostCom, done, lostCarts, lostOrders };
   };
   const rows = days.map(fig);
   if (!rows.some(r => r.k === dailySel)) dailySel = rows[0].k;
@@ -1763,6 +1763,7 @@ function renderDaily(view) {
         <div><small>🛵 Pour les livreurs</small><b>${m(d0.couriers)}</b><span>${d0.nTheirs} course${d0.nTheirs > 1 ? "s" : ""} (attentes et pourboires compris)</span></div>
         <div class="dj-lost"><small>😴 Raté en livraison</small><b>${m(d0.lostFull)}</b><span>${d0.nCarts} panier${d0.nCarts > 1 ? "s" : ""} laissé${d0.nCarts > 1 ? "s" : ""}${d0.nLost ? ` · ${d0.nLost} course${d0.nLost > 1 ? "s" : ""} annulée${d0.nLost > 1 ? "s" : ""}` : ""}<br>Si je livrais moi-même : ${m(d0.lostFull)} · si un livreur livrait : ${m(d0.lostCom)} pour moi</span></div>
       </div></div>
+    ${dayDetail(d0, m)}
     <div class="card dj-period"><small>Sur ${dailyDays} jours</small>
       <div class="dj-line"><span>👑 Moi</span><b>${m(tot.me || 0)}</b></div>
       <div class="dj-line"><span>🛵 Livreurs</span><b>${m(tot.couriers || 0)}</b></div>
@@ -1778,6 +1779,27 @@ function renderDaily(view) {
   if (on && st) st.scrollLeft = on.offsetLeft - st.offsetLeft - (st.clientWidth - on.offsetWidth) / 2;   // sans faire bouger la page
 }
 let dailySel = "";
+// Détail du jour choisi : chaque course (heure, client, qui l'a faite, prix, pour moi, pour le livreur),
+// puis ce qui a été raté (paniers laissés, courses annulées) avec la livraison qu'on aurait faite
+function dayDetail(r, m) {
+  const hm = iso => new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" });
+  const done = r.done.slice().sort((a, b) => new Date(a.pickup_at) - new Date(b.pickup_at));
+  const ride = o => { const me = isMine(o), hop = me ? Number(o.price) + Number(o.shop_share || 0) : hopOf(o), keep = me ? 0 : courierKeep(o) + courierExtras(o);
+    return `<div class="dj-row"><span class="dj-h">${hm(o.pickup_at)}</span>
+      <span class="dj-who"><b>${UI.esc(o.shop_name || o.contact_name || "Client")}</b><small>n° ${UI.esc(o.ref || "")} · ${me ? "👑 faite par moi" : "🛵 " + UI.esc(o.courier_name || courierName(o.courier_id) || "livreur")}${Number(o.discount) ? ` · 🎁 −${m(Number(o.discount))}` : ""}</small></span>
+      <span class="dj-amt"><b>${m(Number(o.price) + Number(o.discount || 0) + Number(o.shop_share || 0))}</b><small>moi ${m(hop)}${me ? "" : ` · lui ${m(keep)}`}</small></span></div>`; };
+  const cart = c => `<div class="dj-row dj-lostrow"><span class="dj-h">${hm(c.updated_at)}</span>
+      <span class="dj-who"><b>🛒 ${UI.esc(c.shop_name || (String(c.kind || "").startsWith("rayon") ? "Rayon " + (String(c.kind).split(":")[1] || "") : "Panier"))}</b><small>${UI.esc(c.client_name || "Client sans nom")} · ${c.count} article${c.count > 1 ? "s" : ""} · arrêté ${UI.esc(cartStepLbl(c))}</small></span>
+      <span class="dj-amt"><b>${m(cartDelivery(c))}</b><small>livreur : ${m(Store.commissionFor(cartDelivery(c), settings))}</small></span></div>`;
+  const lost = o => `<div class="dj-row dj-lostrow"><span class="dj-h">${hm(o.pickup_at)}</span>
+      <span class="dj-who"><b>❌ ${UI.esc(o.shop_name || o.contact_name || "Course")}</b><small>n° ${UI.esc(o.ref || "")} · ${o.status === "refusee" ? "refusée" : "annulée"}</small></span>
+      <span class="dj-amt"><b>${m(Number(o.price) + Number(o.discount || 0))}</b><small>livreur : ${m(Store.commissionFor(Number(o.price) + Number(o.discount || 0), settings))}</small></span></div>`;
+  if (!done.length && !r.lostCarts.length && !r.lostOrders.length) return `<p class="muted small" style="margin:10px 2px">Rien ce jour-là.</p>`;
+  return `<div class="card dj-detail">
+    ${done.length ? `<h4>🧾 Les courses (${done.length})</h4>${done.map(ride).join("")}` : ""}
+    ${r.lostCarts.length || r.lostOrders.length ? `<h4>😴 Raté (${r.lostCarts.length + r.lostOrders.length}) <small class="muted">· livraison si je livre / ma commission si un livreur livre</small></h4>${r.lostOrders.map(lost).join("")}${r.lostCarts.map(cart).join("")}` : ""}
+  </div>`;
+}
 document.addEventListener("click", e => { const d = e.target.closest("[data-djday]"); if (d) { dailySel = d.dataset.djday; render(); } });
 document.addEventListener("click", e => { const b = e.target.closest("[data-djdays]"); if (b) { dailyDays = Number(b.dataset.djdays); render(); } });
 function renderCarts(view) {
