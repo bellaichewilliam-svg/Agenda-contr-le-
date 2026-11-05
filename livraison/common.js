@@ -257,7 +257,14 @@ async function dutyNotice(on, text, force) {
   pushSubscribe();
   let shown = false;
   try { shown = !!localStorage.getItem(DUTY_KEY); localStorage.setItem(DUTY_KEY, "1"); } catch (e) { /* ignore */ }
-  if (shown && !force) return true;
+  // Déjà affichée ? On regarde vraiment (balayée, appli réinstallée, téléphone redémarré : elle n'y est plus → on la remet)
+  if (shown && !force) {
+    try {
+      const reg = await swReady;
+      if (!reg || !reg.getNotifications) return true;
+      if ((await reg.getNotifications({ tag: "hop-duty" })).length) return true;
+    } catch (e) { return true; }
+  }
   return notify("🟢 HOP! · En service", { body: text || "Vous recevez les courses. Touchez ici pour revenir dans HOP!.", tag: "hop-duty",
     requireInteraction: true, silent: true, renotify: false });
 }
