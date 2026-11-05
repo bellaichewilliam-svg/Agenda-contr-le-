@@ -4701,7 +4701,7 @@ html[dir="rtl"] .cg-tiles .cg-pic .cg-plus { border-radius: 0 0 22px 0; }
 .cg-tiles .cg-pic .cg-qty { bottom: 6px; }
 .cg-tiles .cg-info { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; flex: 1; }
 .cg-tiles .cg-info .cg-price { order: -1; margin: 0; font-size: 19px; font-weight: 800; color: var(--brand); }
-.cg-tiles .cg-info b { font-size: 15px; line-height: 1.3; height: 2.6em; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.cg-tiles .cg-info b { flex: none; font-size: 15px; line-height: 1.3; height: 2.6em; min-height: 2.6em; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .cg-grid.cg-tiles .cg-info small { display: none !important; }   /* la description reste dans la fiche ouverte */
 .cg-tiles .cg-info .cg-sizes { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
 .cg-tiles .cg-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin-top: auto; padding-top: 4px; height: calc(2 * 1.35em + 5px); line-height: 1.35; font-size: 13px; }
@@ -4716,3 +4716,27 @@ html[dir="rtl"] .cg-tiles .cg-pic .cg-plus { border-radius: 0 0 22px 0; }
 .it-prow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .item-sheet.groc .it-prow .cg-price { font-size: 22px; font-weight: 800; color: var(--brand); margin: 0; }
 .it-unit { color: var(--muted); font-size: 16px; font-weight: 600; }
+
+/* Tous les catalogues en cartes identiques (demande du patron du 06/11/2026) :
+   restaurants et services : la ligne du bas montre les tailles ou le début de la description (2 lignes fixes) */
+.cg-tiles .cg-info .cg-sizes { display: none; }
+.cg-tiles .cg-meta.cg-mtxt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--muted); overflow-wrap: anywhere; }
+.cg-tiles .cg-pic .item-art { display: grid; place-items: center; }
+/* Rayons HOP! (supermarché, pharmacie…) : mêmes cartes que les commerces (2 par ligne, carré blanc, « + » dans le coin,
+   prix orange, nom sur 2 lignes, choix en bas) ; le tabac reste en liste sans image */
+#pharmaBox .ph-list.ph-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 640px) { #pharmaBox .ph-list.ph-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+#pharmaBox .ph-tiles .ph-item { gap: 0; border-radius: 16px; overflow: hidden; background: var(--panel); box-shadow: inset 0 0 0 1px var(--border); }
+#pharmaBox .ph-tiles .ph-item.in { box-shadow: inset 0 0 0 2px var(--brand); }
+#pharmaBox .ph-tiles .ph-pic { flex: none; aspect-ratio: 1 / 1; border: 0; border-radius: 0; overflow: hidden; background: #fff; }
+#pharmaBox .ph-tiles .ph-pic img { width: 66%; height: 66%; }
+#pharmaBox .ph-tiles .ph-pic.photo img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; object-fit: cover; }
+#pharmaBox .ph-tiles .ph-pic.photo.pack img { object-fit: contain; padding: 8px 10px; }
+#pharmaBox .ph-tiles .ph-pic .cg-plus { top: 0; bottom: auto; inset-inline-end: 0; width: 46px; height: 46px; border-radius: 0 0 0 22px;
+  background: #0F1F3D; color: #FF6A13; font-size: 30px; box-shadow: none; }
+html[dir="rtl"] #pharmaBox .ph-tiles .ph-pic .cg-plus { border-radius: 0 0 22px 0; }
+#pharmaBox .ph-tiles .ph-info { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; flex: 1; min-width: 0; }
+#pharmaBox .ph-tiles .ph-price { margin: 0; min-height: 1.3em; line-height: 1.3; font-size: 19px; font-weight: 800; color: var(--brand); }
+#pharmaBox .ph-tiles .ph-name { flex: none; font-size: 15px; line-height: 1.3; height: 2.6em; min-height: 2.6em; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#pharmaBox .ph-tiles .ph-slot { display: block; margin-top: auto; height: 32px; }
+#pharmaBox .ph-tiles .ph-slot select { margin: 0; height: 32px; }
