@@ -1087,7 +1087,7 @@ function renderPharma() {
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
       return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">‹ ${UI.esc(phName(prev))}</button>` : "<span></span>"}
         ${next ? `<button type="button" class="ph-next" data-ph-cat="${next.id}" data-ph-nav="1">${UI.esc(t("phNext"))} : ${UI.esc(phName(next))} ›</button>` : ""}</div>`; })(cats.findIndex(c => c.id === state.pharmaCat))}
-    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { mid: g.mid }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small>${supportWho() ? "" : `<button type="button" class="btn btn-ghost btn-block cs-keep" data-cart-keep>📲 ${UI.esc(t("cartKeepBtn"))}</button>`}</div>` : ""}`;
+    ${n ? `<div class="ph-sum"><b>${UI.esc(t("phSum", { n }))}</b>${(g => g ? `<span class="ph-goods">${UI.esc(t("phGoods", { mid: g.mid }))}</span>` : "")(rayonGoods())}<small>${pharmaLines().map(UI.esc).join("<br>")}</small>${supportWho() ? "" : `<button type="button" class="btn btn-ghost btn-block cs-keep" data-cart-keep>📲 ${UI.esc(t("cartKeepBtn"))}</button>`}<button type="button" class="cs-clear" data-cart-clear>🗑 ${UI.esc(t("cartClear"))}</button></div>` : ""}`;
   box.style.setProperty("--rc", r.color);
   if (box.dataset.top !== top) { box.querySelector(".ph-top").innerHTML = top; box.dataset.top = top; }
   if (box.dataset.rest !== rest) { box.querySelector(".ph-rest").innerHTML = rest; box.dataset.rest = rest; }
@@ -3494,7 +3494,8 @@ function renderCart() {
   const nm = state.shop ? shopShortName() : "";
   let keep = $("#cartKeep");
   if (!keep) { keep = document.createElement("div"); keep.id = "cartKeep"; $("#cartNote").after(keep); }
-  keep.innerHTML = supportWho() ? "" : `<button type="button" class="btn btn-ghost btn-block cs-keep" data-cart-keep>📲 ${UI.esc(t("cartKeepBtn"))}</button>`;
+  keep.innerHTML = (supportWho() ? "" : `<button type="button" class="btn btn-ghost btn-block cs-keep" data-cart-keep>📲 ${UI.esc(t("cartKeepBtn"))}</button>`)
+    + `<button type="button" class="cs-clear" data-cart-clear>🗑 ${UI.esc(t("cartClear"))}</button>`;
   if (state.shop && shopCashOnly()) $("#cartNote").textContent = t(linkOk() ? "gcCart" : "gcCartHop");
   else if (state.shop && !state.shop.pay_link && !state.shop.pay_bit) {
     // Pas de paiement en ligne chez ce commerce : on commande d'abord chez lui, puis HOP! va chercher la commande
@@ -5515,6 +5516,20 @@ function cartPersist() {
   renderCartIcon();
   cartSync(snap);
 }
+// « Vider le panier » (panier d'un commerce, rayon, ou panier gardé 7 jours) : tout repart à zéro, le patron le voit « vide »
+function cartClearAll() {
+  state.cart = {}; state.cartMods = {}; state.pharma = {}; state.pharmaMsg = "";
+  const sh = $("#cartSheet"); if (sh) sh.classList.add("hidden");
+  try { renderCatalog(); } catch (e) { /* pas de commerce ouvert */ }
+  try { renderPharma(); } catch (e) { /* ignore */ }
+  renderQuote(); saveDraft(); cartPersist(); cartDone();
+  toastCart(t("cartCleared"));
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest("[data-cart-clear]")) return;
+  e.preventDefault(); e.stopPropagation();
+  if (window.confirm(t("cartClearQ"))) cartClearAll();
+}, true);
 function cartDone() {
   try { localStorage.removeItem(LS_CART); } catch (e) { /* ignore */ }
   renderCartIcon();
@@ -5529,7 +5544,7 @@ function renderCartIcon() {
   if (pill) {
     pill.classList.toggle("hidden", !n);
     const gift = n && cartGiftDue(true);
-    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${gift ? ` <em class="cr-gift"><bdi dir="ltr">🎁 −${UI.esc(money(CART_GIFT.off))}</bdi></em>` : c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>›</i>`;
+    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${gift ? ` <em class="cr-gift"><bdi dir="ltr">🎁 −${UI.esc(money(CART_GIFT.off))}</bdi></em>` : c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>›</i><span class="cr-x" role="button" tabindex="0" data-cart-clear aria-label="${UI.esc(t("cartClear"))}">✕</span>`;
   }
   $("#tbCartN").textContent = n > 99 ? "99+" : String(n);
   $("#tbCartN").classList.toggle("hidden", !n);
@@ -5596,7 +5611,7 @@ function toastCart(msg) {
 }
 if ($("#tbCart")) {
   $("#tbCart").addEventListener("click", openStoredCart);
-  document.addEventListener("click", e => { if (e.target.closest("#homeCartPill")) openStoredCart(); });
+  document.addEventListener("click", e => { if (e.target.closest("#homeCartPill") && !e.target.closest("[data-cart-clear]")) openStoredCart(); });
   // « On livre quand même » : n'importe quel commerce → la case « On récupère où ? » de l'accueil
   document.addEventListener("click", e => {
     if (!e.target.closest("[data-any-shop]")) return;
