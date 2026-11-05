@@ -3323,7 +3323,8 @@ function bossEdit(id) {
 }
 // Épiceries / supermarchés (HOP! chez Carrefour, BOOOM, Marché Français…) : fiches produits en cartes, 2 par ligne,
 // photo sur fond blanc, prix en grand, contenance et prix au 100 g / 100 ml (comme les applis de supermarché)
-const grocShop = () => !!(state.shop && /epicerie|supermarche|superette|makolet|primeur/.test(String(state.shop.kind || "")));
+// (étendu à tous les commerces sauf restaurants et services, demande du patron du 06/11/2026 : pâtisserie, traiteur, boutique…)
+const grocShop = () => !!(state.shop && !/restaurant/.test(String(state.shop.kind || "")) && !UI.isService(state.shop));
 // Contenance lue dans le nom (« 6 × 1,5 L », « 200 גרם », « 1 ק"ג ») : total en g ou ml, et un libellé court
 const PACK_RE = /(?:(\d+)\s*[×xX*]\s*)?(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grammes?|ml|cl|l|litres?|ליטר|גרם|גר'?|ק[״"]ג|קילו|מ[״"]ל)(?![a-zà-ÿ])/i;
 function packInfo(p) {
@@ -3387,7 +3388,7 @@ function renderCatalog() {
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}" data-cg-open="${UI.esc(p.id)}">
-        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${grocShop() && !multi && packInfo(p) ? `<span class="cg-meta"><span dir="ltr">${UI.esc(packInfo(p).label)}</span><span dir="ltr">${UI.esc(unitPrice(p))}</span></span>` : ""}</div>
+        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${grocShop() ? (!multi && packInfo(p) ? `<span class="cg-meta"><span dir="ltr">${UI.esc(packInfo(p).label)}</span><span dir="ltr">${UI.esc(unitPrice(p))}</span></span>` : `<span class="cg-meta"></span>`) : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
