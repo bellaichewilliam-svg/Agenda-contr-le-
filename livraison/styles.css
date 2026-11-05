@@ -4631,3 +4631,24 @@ body.fiche-open { overflow: hidden; }
 @keyframes boot-spin { to { transform: rotate(360deg); } }
 .sa-card.sa-picked .sa-far { grid-column: 1 / -1; font-size: 13px; line-height: 1.4; font-weight: 700; color: #B45309; background: #FEF3C7; border-radius: 10px; padding: 7px 10px; }
 html.d2:not(.d2-day) .sa-card.sa-picked .sa-far { color: #FCD34D; background: rgba(251, 191, 36, .12); }
+
+/* Rayon sans images (tabac) : liste nette, une ligne par produit, prix approximatif bien visible, « + » à droite */
+#pharmaBox .ph-list.ph-lines { display: flex; flex-direction: column; gap: 8px; }
+#pharmaBox .ph-line { display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 10px 12px; border-radius: 16px;
+  background: var(--panel); border: 1.5px solid var(--border); box-sizing: border-box; min-width: 0; transition: border-color .15s, box-shadow .15s; }
+#pharmaBox .ph-line.in { border-color: var(--rc, #7C3AED); box-shadow: 0 0 0 3px color-mix(in srgb, var(--rc, #7C3AED) 16%, transparent); }
+#pharmaBox .pl-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+#pharmaBox .pl-txt b { font-size: 16px; font-weight: 800; color: var(--ink); line-height: 1.25; overflow-wrap: anywhere; }
+#pharmaBox .pl-txt select { align-self: flex-start; max-width: 100%; font: inherit; font-size: 13px; padding: 4px 8px; border-radius: 9px; border: 1px solid var(--border); background: var(--bg-2, var(--panel)); color: var(--ink); }
+#pharmaBox .pl-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; line-height: 1.1; }
+#pharmaBox .pl-price b { font-size: 17px; font-weight: 900; color: var(--ink); white-space: nowrap; }
+#pharmaBox .pl-price small { font-size: 11.5px; color: var(--muted); font-weight: 600; white-space: nowrap; }
+#pharmaBox .pl-act { flex: none; display: flex; }
+#pharmaBox .pl-act .cg-plus { position: static; width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--brand); color: #fff; font-size: 24px; font-weight: 700;
+  line-height: 1; display: grid; place-items: center; padding: 0; cursor: pointer; box-shadow: 0 4px 10px rgba(255,106,19,.3); }
+#pharmaBox .pl-act .cg-qty { position: static; display: flex; align-items: center; gap: 6px; height: 40px; padding: 0 5px; border-radius: 99px; background: var(--brand); color: #fff; box-shadow: 0 4px 10px rgba(255,106,19,.3); }
+#pharmaBox .pl-act .cg-qty button { width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(255,255,255,.22); color: #fff; font-size: 18px; font-weight: 800; line-height: 1; padding: 0; cursor: pointer; }
+#pharmaBox .pl-act .cg-qty b { color: #fff; font-size: 16px; min-width: 16px; text-align: center; }
+#pharmaBox .ph-pnote { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+/* Barre du bas : le total des articles bien lisible (pas en tout petit) */
+.mobile-bar .mb-hint.mb-goods { font-size: 13px; font-weight: 800; color: var(--ink); }
