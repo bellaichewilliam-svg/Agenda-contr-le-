@@ -609,7 +609,8 @@ function attach(input, opts) {
         render();
         if (opts.suggestLater) opts.suggestLater(q).then(more => {
           if (mine !== seq || !more || !more.length) return;
-          const at = items.findIndex(p => !p.prod);
+          // (vrais catalogues avec articles et prix : en tête de liste)
+          const at = more[0] && more[0].top ? 0 : items.findIndex(p => !p.prod);
           items.splice(at < 0 ? items.length : at, 0, ...more);
           if (active >= 0) active += more.length;
           render();

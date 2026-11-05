@@ -196,3 +196,9 @@ select cron.schedule('hop-booom-import', '12 */6 * * *', 'select public.booom_im
 --   • carrefour_import remplit photo_url à chaque import ; booom_import aussi
 -- (fonctions en ligne : voir les migrations vraies_photos, booom_vraies_photos, rayon_photo_url)
 -- ============================================================================
+
+-- (05/11/2026) Recherche d'un produit depuis l'accueil : products_search_shops(p_q) → un résultat PAR COMMERCE
+-- (nombre d'articles trouvés, prix le plus bas, 3 exemples), seulement les mots qui commencent par le texte tapé,
+-- sans le choix entre crochets. L'appli ouvre le commerce avec la recherche déjà remplie : tous les articles.
+-- (avant : products_search, 20 articles au total et un seul gardé par commerce → « eau » ne montrait qu'une eau de Carrefour)
+-- Fonction en ligne : migrations products_search_shops et products_search_shops_v2.
