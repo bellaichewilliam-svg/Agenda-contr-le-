@@ -4572,3 +4572,13 @@ body.fiche-open { overflow: hidden; }
 /* « Ma position » est déjà dans la liste : pas de 2e bouton */
 .fs-from .saved-addrs:not(.hidden) ~ .addr-tools [data-geo="from"] { display: none; }
 .pk-new b, .pk-add b { color: var(--brand); }
+/* Panneau patron · 📅 Compta par jour */
+.dj-today h3 { margin: 0 0 10px; }
+.dj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.dj-grid > div { display: grid; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--bg-2); border: 1px solid var(--border); }
+.dj-grid small { color: var(--muted); font-weight: 700; }
+.dj-grid b { font-size: 26px; line-height: 1.1; }
+.dj-grid span { color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.dj-me { border-color: var(--brand) !important; }
+.dj-me b { color: var(--brand); }
+.dj-lost b, .dj-table .dj-miss { color: #E5484D; }

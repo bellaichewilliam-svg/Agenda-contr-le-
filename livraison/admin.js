@@ -998,6 +998,8 @@ function render() {
     renderClients(view);
   } else if (tab === "paniers") {
     renderCarts(view);
+  } else if (tab === "jours") {
+    renderDaily(view);
   } else if (tab === "messages") {
     renderMessages(view);
   } else if (tab === "demandes") {
@@ -1688,7 +1690,7 @@ async function loadCarts() {
   carts = (await Store.adminCarts().catch(() => null)) || carts;
   const n = carts.filter(c => !c.boss && cartState(c) === "abandon").length;
   const b = $("#cartsBadge"); if (b) b.textContent = n ? String(n) : "";
-  if (tab === "paniers") render();
+  if (tab === "paniers" || tab === "jours") render();
 }
 function cartRelance(c) {
   const he = c.lang === "he", n = (c.client_name || "").split(" ")[0];
@@ -1711,6 +1713,67 @@ function cartStepLbl(c) {
   if (m) return +m[1] === 1 ? "📍 à l'adresse" : +m[1] >= +m[2] ? "✅ au récapitulatif" : "📝 aux détails";
   return "🛒 au panier";
 }
+// --- 📅 Compta par jour : ce que HOP! (le patron) gagne, ce que gardent les livreurs, ce qui a été raté --------------
+// Moi (HOP!) = mes propres courses au prix entier + les commissions et parts HOP des courses des livreurs − les réductions
+// payées par HOP + les abonnements Pro. Livreurs = ce qu'ils gardent (course + réduction + part du commerce − parts HOP)
+// + attentes et pourboires reçus. Raté = paniers laissés et courses annulées / refusées, comptés EN LIVRAISON :
+// « si je livre » = prix de la livraison entier, « si un livreur livre » = seulement ma commission.
+let dailyDays = 14;
+const courierKeep = o => Number(o.price || 0) + Number(o.discount || 0) + Number(o.shop_share || 0) - Number(o.hop_share || 0) - Number(o.commission || 0);
+const courierExtras = o => (Number(o.wait_fee) > 0 && o.wait_status !== "refuse" ? Number(o.wait_fee) : 0) + (Number(o.tip) > 0 && (o.tip_status === "recu" || o.direct_pay) && o.tip_status !== "promis" ? Number(o.tip) : 0);
+// Prix de la livraison qu'aurait payé un panier laissé : course en ville, + l'achat pour les rayons et les boutiques HOP!
+function cartDelivery(c) {
+  const P = CONFIG.pricing, base = Number(P.fixedFromHome[CONFIG.homeCity] || P.base || 25);
+  const kind = String(c.kind || ""), rayon = /^rayon/.test(kind) ? kind.split(":")[1] || "shop" : null;
+  if ((CONFIG.hopShops || []).includes(String(c.shop_code || "").toUpperCase())) return base + Number(P.purchase || 0);
+  if (rayon) return base + Number((P.purchaseSmall || []).includes(rayon) ? P.purchase || 0 : P.purchaseShop || P.purchase || 0);
+  return base;
+}
+function renderDaily(view) {
+  const days = [...Array(dailyDays)].map((_, i) => addDays(today(), -i));
+  const real = carts.filter(c => !c.boss && Number(c.count) > 0 && c.status !== "commande" && c.status !== "vide" && cartState(c) !== "encours");
+  const fig = k => {
+    const done = orders.filter(o => o.status === "livree" && !o.is_test && UI.dayKey(o.pickup_at) === k);
+    const mine = done.filter(isMine), theirs = done.filter(o => !isMine(o));
+    const plans = planSales.filter(p => UI.dayKey(p.created_at) === k).reduce((a, p) => a + Number(p.amount || 0) - Number(p.referrer_share || 0), 0);
+    const meRides = sum(mine, o => Number(o.price) + Number(o.shop_share || 0));
+    const meCom = sum(theirs, o => Number(o.commission || 0) + Number(o.hop_share || 0) - Number(o.discount || 0));
+    const lostCarts = real.filter(c => UI.dayKey(c.updated_at) === k);
+    const lostOrders = orders.filter(o => ["annulee", "refusee"].includes(o.status) && !o.is_test && UI.dayKey(o.pickup_at) === k);
+    const lostFull = sum(lostCarts, cartDelivery) + sum(lostOrders, o => Number(o.price) + Number(o.discount || 0));
+    const lostCom = sum(lostCarts, c => Store.commissionFor(cartDelivery(c), settings)) + sum(lostOrders, o => Store.commissionFor(Number(o.price) + Number(o.discount || 0), settings));
+    return { k, n: done.length, nMine: mine.length, nTheirs: theirs.length, meRides, meCom, plans, me: meRides + meCom + plans,
+      couriers: sum(theirs, o => courierKeep(o) + courierExtras(o)), total: sum(done, o => Number(o.price) + Number(o.discount || 0) + Number(o.shop_share || 0)),
+      nCarts: lostCarts.length, nLost: lostOrders.length, lostFull, lostCom };
+  };
+  const rows = days.map(fig), d0 = rows[0];
+  const tot = rows.reduce((a, r) => { Object.keys(r).forEach(x => { if (typeof r[x] === "number") a[x] = (a[x] || 0) + r[x]; }); return a; }, {});
+  const dayName = k => { const d = new Date(k + "T12:00:00"); return k === today() ? "Aujourd'hui" : k === addDays(today(), -1) ? "Hier" : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }); };
+  const m = n => UI.money(Math.round(n * 2) / 2);
+  view.innerHTML = `
+    <div class="card dj-today"><h3>📅 ${UI.esc(dayName(d0.k))}</h3>
+      <div class="dj-grid">
+        <div class="dj-me"><small>👑 Pour moi (HOP!)</small><b>${m(d0.me)}</b><span>${d0.nMine ? `${d0.nMine} course${d0.nMine > 1 ? "s" : ""} faite${d0.nMine > 1 ? "s" : ""} par moi : ${m(d0.meRides)}` : "Aucune course faite par moi"}<br>${d0.nTheirs ? `Commissions sur ${d0.nTheirs} course${d0.nTheirs > 1 ? "s" : ""} des livreurs, codes promo déduits : ${m(d0.meCom)}` : "Pas de commission"}${d0.plans ? `<br>Abonnements Pro : ${m(d0.plans)}` : ""}</span></div>
+        <div><small>🛵 Pour les livreurs</small><b>${m(d0.couriers)}</b><span>${d0.nTheirs} course${d0.nTheirs > 1 ? "s" : ""} (attentes et pourboires compris)</span></div>
+        <div class="dj-lost"><small>😴 Raté en livraison</small><b>${m(d0.lostFull)}</b><span>${d0.nCarts} panier${d0.nCarts > 1 ? "s" : ""} laissé${d0.nCarts > 1 ? "s" : ""}${d0.nLost ? ` · ${d0.nLost} course${d0.nLost > 1 ? "s" : ""} annulée${d0.nLost > 1 ? "s" : ""}` : ""}<br>Si je livrais moi-même : ${m(d0.lostFull)} · si un livreur livrait : ${m(d0.lostCom)} pour moi</span></div>
+      </div></div>
+    <div class="toolbar">${[7, 14, 30].map(n => `<button type="button" class="btn btn-sm${n === dailyDays ? " btn-primary" : ""}" data-djdays="${n}">${n} jours</button>`).join("")}</div>
+    <div class="table-scroll"><table class="bill dj-table">
+      <thead><tr><th>Jour</th><th class="num">Courses</th><th class="num">👑 Moi (HOP!)</th><th class="num">dont mes courses</th><th class="num">dont commissions</th><th class="num">🛵 Livreurs</th><th class="num">Total des courses</th><th class="num">😴 Raté si je livre</th><th class="num">Raté si un livreur livre</th></tr></thead>
+      <tbody>${rows.filter(r => r.n || r.nCarts || r.nLost || r.plans).map(r => `<tr><td><b>${UI.esc(dayName(r.k))}</b>${r.nCarts || r.nLost ? `<br><span class="small muted">${r.nCarts} panier${r.nCarts > 1 ? "s" : ""}${r.nLost ? ` · ${r.nLost} annulée${r.nLost > 1 ? "s" : ""}` : ""}</span>` : ""}</td>
+        <td class="num">${r.n || "—"}</td><td class="num"><b>${r.me ? m(r.me) : "—"}</b></td><td class="num">${r.meRides ? m(r.meRides) : "—"}</td><td class="num">${r.meCom || r.plans ? m(r.meCom + r.plans) : "—"}</td>
+        <td class="num">${r.couriers ? m(r.couriers) : "—"}</td><td class="num">${r.total ? m(r.total) : "—"}</td><td class="num dj-miss">${r.lostFull ? m(r.lostFull) : "—"}</td><td class="num dj-miss">${r.lostCom ? m(r.lostCom) : "—"}</td></tr>`).join("")}</tbody>
+      ${rows.some(r => !(r.n || r.nCarts || r.nLost || r.plans)) ? `<tr><td colspan="9" class="muted small">Les jours sans course ni panier ne sont pas affichés.</td></tr>` : ""}
+      <tfoot><tr><th>Total ${dailyDays} jours</th><th class="num">${tot.n || 0}</th><th class="num">${m(tot.me || 0)}</th><th class="num">${m(tot.meRides || 0)}</th><th class="num">${m((tot.meCom || 0) + (tot.plans || 0))}</th><th class="num">${m(tot.couriers || 0)}</th><th class="num">${m(tot.total || 0)}</th><th class="num">${m(tot.lostFull || 0)}</th><th class="num">${m(tot.lostCom || 0)}</th></tr></tfoot>
+    </table></div>
+    <details class="fin-more" style="margin-top:10px"><summary>ℹ️ Comment c'est calculé</summary><p class="small muted" style="margin-top:8px">
+      <b>Moi (HOP!)</b> : les courses que je fais moi-même, au prix entier ; plus, sur les courses des livreurs, ma commission et la part HOP des commerces Pro, moins les codes promo que HOP paie ; plus les abonnements Pro.<br>
+      <b>Livreurs</b> : ce qu'ils gardent (prix de la course + réduction payée par HOP + part du commerce − ce qui revient à HOP), plus les attentes et les pourboires reçus.<br>
+      <b>Raté</b> : paniers laissés sans commande (pas les essais faits sur mon téléphone) et courses annulées ou refusées. On ne compte pas les articles : seulement la livraison qu'on aurait faite (course en ville, + l'achat pour les rayons et les boutiques HOP!). « Si un livreur livre » = seulement ma commission.<br>
+      Seulement les courses livrées comptent (pas les essais). Jour = jour de la course, à l'heure d'Israël.</p></details>`;
+  labelTables(view);
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-djdays]"); if (b) { dailyDays = Number(b.dataset.djdays); render(); } });
 function renderCarts(view) {
   // Les paniers faits depuis le téléphone du patron (essais) : mis à part, ils ne faussent pas les chiffres
   const mine = carts.filter(c => c.boss), real = carts.filter(c => !c.boss);
@@ -1723,11 +1786,14 @@ function renderCarts(view) {
   by("abandon").forEach(c => { const l = cartStepLbl(c); steps[l] = (steps[l] || 0) + 1; });
   const nPush = real.filter(c => c.push_ok).length, waitOpen = real.filter(c => c.open_notice && !c.open_noticed_at && cartState(c) !== "commande");
   const ago = iso => { const m = Math.round((Date.now() - new Date(iso)) / 60000); return m < 60 ? `il y a ${m} min` : m < 1440 ? `il y a ${Math.round(m / 60)} h` : `il y a ${Math.round(m / 1440)} j`; };
-  const sumAb = by("abandon").reduce((a, c) => a + (Number(c.total) || 0), 0);
+  // Ce qui compte pour le patron : la LIVRAISON ratée (pas la valeur des articles)
+  const ab = by("abandon").filter(c => Number(c.count) > 0), lostFull = ab.reduce((a, c) => a + cartDelivery(c), 0),
+    lostCom = ab.reduce((a, c) => a + Store.commissionFor(cartDelivery(c), settings), 0);
   view.innerHTML = `
     <div class="stats">
       <div class="stat"><small>Paniers abandonnés</small><b>${by("abandon").length}</b></div>
-      <div class="stat"><small>Valeur laissée (indicatif)</small><b>${UI.money(sumAb)}</b></div>
+      <div class="stat"><small>Livraisons ratées (si je livre)</small><b>${UI.money(lostFull)}</b></div>
+      <div class="stat"><small>Si un livreur livrait (ma commission)</small><b>${UI.money(lostCom)}</b></div>
       <div class="stat"><small>Relancés</small><b>${by("relance").length}</b></div>
       <div class="stat"><small>Commandés</small><b>${by("commande").length}</b></div>
     </div>
@@ -3044,7 +3110,7 @@ $("#logoutBtn").addEventListener("click", async e => {
   UI.dutyNotice(false);
   Store.logout(); showLogin();
 });
-$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); if (tab === "rayons") loadRayons(); if (tab === "paniers") loadCarts(); } });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); if (tab === "rayons") loadRayons(); if (tab === "paniers" || tab === "jours") loadCarts(); } });
 // Une rubrique : on retrouve son dernier onglet (sinon le premier)
 const lastTab = {};
 $("#admGroups").addEventListener("click", e => {
@@ -3053,7 +3119,7 @@ $("#admGroups").addEventListener("click", e => {
   tab = lastTab[b.dataset.group] || document.querySelector(`#tabs [data-group="${b.dataset.group}"]`).dataset.tab;
   render();
   if (tab === "clients") loadClients();
-  if (tab === "paniers") loadCarts();
+  if (tab === "paniers" || tab === "jours") loadCarts();
   if (tab === "visites") loadVisits();
 });
 $("#reloadBtn").addEventListener("click", load);
