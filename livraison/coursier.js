@@ -1855,15 +1855,28 @@ function demandLevel(d) {
   return score >= 2.5 ? { label: "Forte", n: 3, cls: "hi" } : score >= 1 ? { label: "Moyenne", n: 2, cls: "mid" } : { label: "Faible", n: 1, cls: "lo" };
 }
 const bars = lv => `<span class="dbars ${lv.cls}">${[1, 2, 3].map(i => `<i class="${i <= lv.n ? "on" : ""}"></i>`).join("")}</span>`;
+// Zone de travail du livreur (volet « passer en ligne » et Réglages) : seulement le Sharon / Netanya pour l'instant,
+// les autres zones « à venir ». (Ce que les clients peuvent commander, Tel Aviv compris, se règle à part chez le patron.)
+const riderZoneOpen = id => (CONFIG.riderZones || ["sharon"]).includes(id);
+function zoneListHtml() {
+  return CONFIG.zones.map(z => `<div class="zone-row${riderZoneOpen(z.id) ? "" : " off"}">
+      <span class="zone-radio${riderZoneOpen(z.id) ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
+      <span class="zone-dem">${riderZoneOpen(z.id) ? `<span class="zone-open">Ma zone</span>` : "À venir"}</span>
+    </div>`).join("");
+}
+function renderRiderZone() {
+  const box = $("#riderZone");
+  if (!box) return;
+  const mine = CONFIG.zones.filter(z => riderZoneOpen(z.id)).map(z => z.id === "sharon" ? "Netanya · " + z.fr : z.fr).join(", ");
+  const html = `<summary>📍 Je travaille à : <b>${UI.esc(mine || "HaSharon")}</b> <span class="muted">· zones</span></summary>
+    <div class="rd-zone-list">${zoneListHtml()}<p class="muted small" style="margin:8px 0 0">Les autres zones ouvriront plus tard : vous serez prévenu.</p></div>`;
+  if (box.dataset.html !== html) { const open = box.open; box.innerHTML = html; box.dataset.html = html; box.open = open; }
+}
+// Demande en direct (sans la liste des villes : la zone de travail est dans le volet « passer en ligne »)
 function renderZones(view) {
   view.innerHTML = `<div class="card">
-      <h3>Zone de livraison</h3>
-      <p class="muted small" style="margin:4px 0 12px">HOP! livre dans les zones ouvertes ci-dessous${CONFIG.cities.some(c => c.closed) ? ` (sauf ${UI.esc(CONFIG.cities.filter(c => c.closed).map(c => c.fr).join(", "))} pour l'instant)` : ""} ; les autres ouvriront plus tard.</p>
-      ${CONFIG.zones.map(z => `<div class="zone-row${UI.zoneActive(z.id) ? "" : " off"}">
-          <span class="zone-radio${UI.zoneActive(z.id) ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
-          <span class="zone-dem">${UI.zoneActive(z.id) ? `<span class="zone-open">Ouverte</span>` : "À venir"}</span>
-        </div>`).join("")}
-      ${demand ? `<p class="small" style="margin-top:12px">En ce moment : <b>${demand.waiting}</b> course(s) en attente · <b>${demand.last_hour}</b> commande(s) cette dernière heure · <b>${demand.on_duty}</b> livreur(s) en ligne.</p>` : ""}
+      <h3>📍 En ce moment</h3>
+      ${demand ? `<p class="small" style="margin-top:6px"><b>${demand.waiting}</b> course(s) en attente · <b>${demand.last_hour}</b> commande(s) cette dernière heure · <b>${demand.on_duty}</b> livreur(s) en ligne.</p>` : `<p class="muted small">…</p>`}
       <p class="muted small" style="margin-top:6px">Heures de pointe habituelles : ${UI.esc(CONFIG.peakHours.fr)}.</p>
     </div>
     ${forecastCard()}`;
@@ -2492,7 +2505,7 @@ function applyRiderSettings() {
   riderLightNow = light;
 }
 setInterval(() => { if (riderLight() !== riderLightNow) applyRiderSettings(); }, 60000);
-const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Zones et demande", week: "Finances", stats: "Statistiques",
+const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Demande", week: "Finances", stats: "Statistiques",
   ref: "Gagner plus", rules: "Engagements et assurance", settings: "Réglages", help: "Centre d'aide", inbox: "Messages de HOP!" };
 function openPage(t) {
   if (t === "ref" && !refOn()) t = "home";
@@ -2518,6 +2531,7 @@ function navLink(o, which) {
 
 // Panneau du bas : demande, course en cours, courses disponibles, « gagner plus »
 function renderHome() {
+  renderRiderZone();
   const lv = demandLevel(demand);
   const title = !isOnline() ? "Vous êtes hors ligne" : !lv ? "Bonjour " + String(me.name || "").split(" ")[0] + " !" : lv.n === 3 ? "🔥 Ça vaut le coup de sortir !" : lv.n === 2 ? "Ça roule tranquille" : "C'est calme pour l'instant";
   // Même départ : une seule carte, celle de la commande à récupérer maintenant (« 1 sur 2 »)
@@ -2620,7 +2634,7 @@ function initSheetDrag() {
   // On glisse n'importe où sur le panneau (sauf sur un bouton, un lien ou la glissière « HOP! »)
   sheet.addEventListener("pointerdown", e => {
     fromGrab = !!e.target.closest("#sheetGrab");
-    if (!fromGrab && e.target.closest("button, a, input, select, textarea, .rd-slide")) return;
+    if (!fromGrab && e.target.closest("button, a, input, select, textarea, summary, .rd-slide")) return;
     y0 = e.clientY; dy = 0; sheet.classList.add("dragging");
     try { sheet.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
   });
@@ -2706,6 +2720,7 @@ function renderDuty() {
   $("#drawerStatus").classList.toggle("on", on);
   if (!on) $("#dutyText").textContent = "Hors ligne : vous ne recevez pas de course. En ligne, les courses proches de vous arrivent d'abord chez vous.";
   if (me) renderHome();
+  renderRiderZone();
   updateRiderMap();
 }
 // Glisser le bouton jusqu'au bout pour passer en service (ou terminer) : pas de clic par erreur
@@ -2954,6 +2969,8 @@ function renderSettings(view) {
   view.innerHTML = `<div class="card set-list">
       ${UI.inOwnApp() ? "" : `<h3>Application</h3>
       <div class="set-row"><span>HOP! Livreur sur l'écran d'accueil<small class="muted" style="display:block">Son icône « LIVREUR » à part, même si l'appli client HOP! est déjà installée</small></span><button type="button" class="btn btn-sm btn-primary" data-install="1">📲 Installer</button></div>`}
+      <h3>Zone de travail</h3>
+      <div class="set-zones">${zoneListHtml()}</div>
       <h3>Navigation</h3>
       <div class="set-row"><span>Application de navigation</span><select data-set="nav">${opt("nav", "waze", "Waze")}${opt("nav", "maps", "Google Maps")}</select></div>
       <div class="set-row"><span>Mode de déplacement</span><select data-set="mode">${opt("mode", "scooter", "Scooter / moto")}${opt("mode", "car", "Voiture")}${opt("mode", "bike", "Vélo")}${opt("mode", "walk", "À pied")}</select></div>

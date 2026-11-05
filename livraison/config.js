@@ -89,6 +89,10 @@ window.CONFIG = {
   // Les villes sans « zone » sont dans le Sharon. active: false ferme une zone ; closed: true sur une ville la ferme seule
   // Seule HaSharon est ouverte ici ; le patron ouvre ou ferme les autres depuis son espace (« 🗺️ Zones ouvertes »,
   // settings.zones_open), ce qui prend le pas sur ces valeurs.
+  // Zones de TRAVAIL des livreurs (à part de ce que les clients peuvent commander) : seulement le Sharon / Netanya
+  // pour l'instant ; les autres zones s'affichent « à venir » dans l'appli livreur (règle du patron, 05/11/2026).
+  // Les courses vers Tel Aviv… restent possibles côté client (settings.zones_open) : le patron les accepte lui-même.
+  riderZones: ["sharon"],
   zones: [
     { id: "sharon",      fr: "HaSharon",                he: "השרון",                active: true },
     { id: "tlv",         fr: "Tel Aviv – Gush Dan",     he: "תל אביב – גוש דן",      active: false },
