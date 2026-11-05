@@ -2612,6 +2612,9 @@ async function submit(e) {
     if (canNotif && Notification.permission === "granted") UI.clientPushSubscribe(saved.token, false);
     const shareMsg = I18N.forLang(saved.lang, "trShareMsg", { url: UI.trackUrl(saved) });
     $("#doneShare").href = saved.dropoff_phone ? UI.waLink(saved.dropoff_phone, shareMsg) : UI.waShare(shareMsg);
+    // Le suivi est dans l'appli : « Envoyer le suivi » seulement quand quelqu'un d'autre reçoit la course
+    const d9 = v => String(v || "").replace(/\D/g, "").slice(-9);
+    $("#doneShare").classList.toggle("hidden", !saved.dropoff_phone || d9(saved.dropoff_phone) === d9(saved.contact_phone));
     $("#doneModal").classList.remove("hidden");
     doneAuto(saved);
     ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "retrait_code", "appt_at", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]

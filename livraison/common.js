@@ -326,7 +326,9 @@ function iosInstallHint(appName) {
 // Lien à partager : toujours vers l'adresse officielle (sauf en test sur l'ordinateur)
 const LOCAL = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || location.protocol === "file:";
 function appUrl(page) { return new URL(page || "./", CONFIG.siteUrl && !LOCAL ? CONFIG.siteUrl : location.href).href; }
-function trackUrl(o) { return appUrl("suivi.html") + "?t=" + o.token; }
+// Pages du client (suivi, reçu) DANS l'appli installée (/app/…) : le suivi s'ouvre dans HOP!, jamais dans un navigateur à part
+const IN_APP = LOCAL ? "" : "app/";
+function trackUrl(o) { return appUrl(IN_APP + "suivi.html") + "?t=" + o.token; }
 
 const SERVICE_FR = { colis: "Envoi de colis", retrait: "Retrait de colis", achat: "Achat pour le client", repas: "Repas / restaurant" };
 const PLACE_FR = { poste: "Bureau de poste", superpharm: "Super-Pharm", relais: "Point relais", locker: "Casier / locker", autre: "Magasin" };
@@ -812,7 +814,7 @@ function clientMessage(o) {
   return receiptNo(o) ? msg + "\n" + f("msg_receipt", { url: receiptUrl(o) }) : msg;
 }
 
-function receiptUrl(o) { return appUrl("recu.html") + "?t=" + o.token; }
+function receiptUrl(o) { return appUrl(IN_APP + "recu.html") + "?t=" + o.token; }
 // Une course a un reçu : de HOP (ses propres courses) ou du livreur (paiement direct)
 const receiptNo = o => o.receipt_number || o.courier_receipt_number || null;
 function topupReceiptUrl(t) { return appUrl("recu.html") + "?k=" + t.token; }
