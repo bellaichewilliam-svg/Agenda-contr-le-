@@ -4652,3 +4652,7 @@ html.d2:not(.d2-day) .sa-card.sa-picked .sa-far { color: #FCD34D; background: rg
 #pharmaBox .ph-pnote { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
 /* Barre du bas : le total des articles bien lisible (pas en tout petit) */
 .mobile-bar .mb-hint.mb-goods { font-size: 13px; font-weight: 800; color: var(--ink); }
+
+/* « Vider le panier » : discret mais visible (rouge, centré) ; ✕ sur la pastille « Reprendre mon panier » */
+.cs-clear { display: block; margin: 8px auto 0; padding: 8px 14px; border: 0; background: none; color: #DC2626; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.cart-resume .cr-x { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-inline-start: 6px; border-radius: 50%; background: rgba(127,127,127,.18); font-size: 13px; font-style: normal; cursor: pointer; flex: none; }
