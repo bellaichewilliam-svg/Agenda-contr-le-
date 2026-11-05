@@ -3321,6 +3321,32 @@ function bossEdit(id) {
     done(ch);
   });
 }
+// Épiceries / supermarchés (HOP! chez Carrefour, BOOOM, Marché Français…) : fiches produits en cartes, 2 par ligne,
+// photo sur fond blanc, prix en grand, contenance et prix au 100 g / 100 ml (comme les applis de supermarché)
+const grocShop = () => !!(state.shop && /epicerie|supermarche|superette|makolet|primeur/.test(String(state.shop.kind || "")));
+// Contenance lue dans le nom (« 6 × 1,5 L », « 200 גרם », « 1 ק"ג ») : total en g ou ml, et un libellé court
+const PACK_RE = /(?:(\d+)\s*[×xX*]\s*)?(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grammes?|ml|cl|l|litres?|ליטר|גרם|גר'?|ק[״"]ג|קילו|מ[״"]ל)(?![a-zà-ÿ])/i;
+function packInfo(p) {
+  const raw = String(UI.bi(baseOf(p)) || ""), all = String(p.name || "");
+  const m = PACK_RE.exec(raw) || PACK_RE.exec(all);
+  if (!m) return null;
+  const n = m[1] ? Number(m[1]) : 1, v = Number(String(m[2]).replace(",", ".")), u = m[3].toLowerCase();
+  if (!v || !isFinite(v)) return null;
+  const kind = /^(kg|g|gr|gramm|גרם|גר|ק|קילו)/.test(u) ? "g" : "ml";
+  const per = /^(kg|ק|קילו)/.test(u) ? 1000 : /^(l|litre|ליטר)/.test(u) ? 1000 : /^cl/.test(u) ? 10 : 1;
+  const total = n * v * per;
+  const fmt = x => String(Math.round(x * 100) / 100).replace(".", ",");
+  const unit = kind === "g" ? (per === 1000 ? "kg" : "g") : (per === 1000 ? "L" : per === 10 ? "cl" : "ml");
+  return { total, kind, label: (n > 1 ? n + " × " : "") + fmt(v) + " " + unit };
+}
+// Prix au 100 g / 100 ml (cartes) ou au kg / litre (fiche ouverte)
+function unitPrice(p, big) {
+  const k = packInfo(p), price = Number(p.price);
+  if (!k || !k.total || !price) return "";
+  const base = big ? 1000 : 100, val = price / k.total * base;
+  const u = k.kind === "g" ? (big ? "kg" : "100g") : (big ? "L" : "100ml");
+  return money(Math.round(val * 100) / 100) + "/" + u;
+}
 function renderCatalog() {
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
@@ -3356,12 +3382,12 @@ function renderCatalog() {
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   const html = `${state.boss ? bossBar() : ""}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
-    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid">${sec.items.map(p => {
+    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${grocShop() ? " cg-tiles" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}" data-cg-open="${UI.esc(p.id)}">
-        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}</div>
+        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${grocShop() && !multi && packInfo(p) ? `<span class="cg-meta"><span dir="ltr">${UI.esc(packInfo(p).label)}</span><span dir="ltr">${UI.esc(unitPrice(p))}</span></span>` : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
@@ -3475,6 +3501,7 @@ function openItem(id) {
   item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
   const m0 = (state.cartMods || {})[p.id] || {};
   item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false; item.flavors = [...(m0.flavors || [])]; item.side = m0.side || "fries"; item.extras = [...(m0.extras || [])];
+  $("#itemSheet").classList.toggle("groc", grocShop());
   renderItem();
   $("#itemSheet").classList.remove("hidden");
 }
@@ -3483,7 +3510,7 @@ function renderItem() {
   if (!p) return;
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
   $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</div>
-    <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3><span class="cg-price">${UI.money(p.price)}</span>
+    <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3>${grocShop() && packInfo(p) ? `<p class="it-pack"><bdi dir="ltr">${UI.esc(packInfo(p).label)}</bdi></p>` : ""}<div class="it-prow"><span class="cg-price">${UI.money(p.price)}</span>${grocShop() && unitPrice(p, true) ? `<span class="it-unit"><bdi dir="ltr">${UI.esc(unitPrice(p, true))}</bdi></span>` : ""}</div>
       ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
       ${p.available ? Array.from({ length: flavorCount(p) }, (_, i) => `<p class="it-size-h">${UI.esc(t("flavorTitle"))}${flavorCount(p) > 1 ? ` ${i + 1}` : ""}</p>${item.needDrink && !(item.flavors || [])[i] ? `<p class="it-need">${UI.esc(t("flavorNeed"))}</p>` : ""}
