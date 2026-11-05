@@ -138,7 +138,8 @@ function renderStatic() {
   $("#brandName").innerHTML = UI.wordmark();
   $("#footerName").textContent = I18N.businessName();
   document.title = `${I18N.businessName()} · ${t("orderTitle")}`;
-  $("#perkWelcome").textContent = t("perkWelcome", { price: money(welcomePrice()) });
+  $("#perkWelcome").textContent = PROMOS.welcomeOn === false ? "" : t("perkWelcome", { price: money(welcomePrice()) });
+  $("#perkWelcome").classList.toggle("hidden", PROMOS.welcomeOn === false);
   const avail = state.settings.accepting;
   $("#availBanner").classList.toggle("hidden", avail);
   $("#availText").textContent = (state.settings.message || "").trim() || t("closedBanner");
@@ -165,7 +166,7 @@ function renderStatic() {
   const proPrice = b => b.pro ? `${money(CONFIG.pro.monthly)} / ${I18N.lang === "he" ? "חודש" : "mois"}` : typeof b.price === "object" ? b.price[I18N.lang] || b.price.fr : b.price;
   const pro = PROMOS.business.filter(b => !b.carnet || CONFIG.partners.carnet.offered).map(b => `<li><span>${UI.esc(b[I18N.lang] || b.fr)}</span><b>${UI.esc(proPrice(b))}</b></li>`).join("");
   $("#offers").innerHTML = `
-    <div class="card offer hot"><div class="ico">🎁</div><h3>${UI.esc(t("offWelcome_t", { price: money(welcomePrice()) }))}</h3><p>${UI.esc(t("offWelcome_d", { amount: money(PROMOS.codes.BIENVENUE.amount) }))}</p></div>
+    ${PROMOS.welcomeOn === false ? "" : `<div class="card offer hot"><div class="ico">🎁</div><h3>${UI.esc(t("offWelcome_t", { price: money(welcomePrice()) }))}</h3><p>${UI.esc(t("offWelcome_d", { amount: money(PROMOS.codes.BIENVENUE.amount) }))}</p></div>`}
     <div class="card offer"><div class="ico">🤝</div><h3>${t("offRef_t")}</h3><p>${UI.esc(t("offRef_d", { amount: money(PROMOS.referral.amount) }))}</p></div>
     ${PROMOS.loyalty.on ? `<div class="card offer"><div class="ico">⭐</div><h3>${t("offLoyal_t")}</h3><p>${UI.esc(t("offLoyal_d", { every: PROMOS.loyalty.every, max: money(PROMOS.loyalty.max) }))}</p></div>` : ""}
     <div class="card offer"><div class="ico">🏢</div><h3>${t("offPro_t")}</h3><ul class="pro-list">${pro}</ul>
@@ -200,6 +201,8 @@ function welcomePrice() {
     discount: Object.assign({ kind: "promo", code: "BIENVENUE" }, PROMOS.codes.BIENVENUE) }, CONFIG).total;
 }
 
+// Offre de 1re course (arrêtée par le patron le 05/11/2026 : PROMOS.welcomeOn = false) : encore possible pour ce client ?
+const welcomeOpen = () => PROMOS.welcomeOn !== false && !state.welcomeUsed;
 // Code de bienvenue selon la langue (BIENVENUE / BRUCHIM)
 function welcomeCode() { return I18N.lang === "he" ? "BRUCHIM" : "BIENVENUE"; }
 
@@ -207,7 +210,7 @@ function welcomeCode() { return I18N.lang === "he" ? "BRUCHIM" : "BIENVENUE"; }
 function renderQuick() {
   const from = $("#quickFrom").value, to = $("#quickTo").value;
   const full = Pricing.cityToCity(CONFIG, from, to);
-  const first = activeOrders().length === 0 && !state.welcomeUsed;
+  const first = activeOrders().length === 0 && welcomeOpen();
   const code = welcomeCode();
   const promo = Object.assign({ kind: "promo", code }, PROMOS.codes[code]);
   const withPromo = first ? Pricing.computeQuote({ fromCity: from, toCity: to, size: "petit", discount: promo }, CONFIG).total : full;
@@ -484,6 +487,7 @@ function validatePromo(raw) {
   if (!code) return { promo: null, msg: "" };
   const first = activeOrders().length === 0;
   const def = PROMOS.codes[code];
+  if (def && def.welcome && PROMOS.welcomeOn === false) return { promo: null, msg: t("promoBad"), bad: true };
   if (def) {
     if (def.firstOrderOnly && !first) return { promo: null, msg: t("promoFirstOnly"), bad: true };
     if (def.welcome && state.welcomeUsed) return { promo: null, msg: t("errWelcomeUsed"), bad: true };
@@ -3510,7 +3514,7 @@ function renderCart() {
 // (1re livraison : seulement au prix normal de la ville, le seul qu'on sait calculer d'avance sans se tromper)
 function firstDelivPrice(s) {
   const base = CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
-  if (!s || s.shop_pays || addonOn() || activeOrders().length || state.welcomeUsed || proPrice(s) !== base) return null;
+  if (!s || s.shop_pays || addonOn() || activeOrders().length || !welcomeOpen() || proPrice(s) !== base) return null;
   const w = welcomePrice();
   return w < base ? w : null;
 }
@@ -4400,7 +4404,7 @@ function syncHome() {
   $("#homeHello").textContent = name ? t("hmHello", { name }) : t("hmHelloNew");
   renderWhen();
   const ready = addrReady("from") && addrReady("to");
-  const first = activeOrders().length === 0 && !state.welcomeUsed;
+  const first = activeOrders().length === 0 && welcomeOpen();
   if (ready) {
     const q = currentQuote();
     $("#homeGoPrice").textContent = (q.known ? "" : t("from") + " ") + money(q.total);
@@ -5149,7 +5153,7 @@ $("#quickGo").addEventListener("click", () => {
   form.from_city.value = $("#quickFrom").value;
   form.to_city.value = $("#quickTo").value;
   // Première commande : le code de bienvenue est déjà appliqué
-  if (activeOrders().length === 0 && !state.welcomeUsed && !state.promo) { form.promo.value = welcomeCode(); applyPromo(); }
+  if (activeOrders().length === 0 && welcomeOpen() && !state.promo) { form.promo.value = welcomeCode(); applyPromo(); }
   if (quickWhen === "later") {
     form.elements.urgency.value = "programmee";
     form.date.value = $("#quickDate").value;

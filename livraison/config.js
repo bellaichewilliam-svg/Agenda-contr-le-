@@ -299,6 +299,8 @@ window.CONFIG = {
       BRUCHIM:   { amount: 10, firstOrderOnly: true, welcome: true },  // « Bienvenue » en hébreu
       NETANYA:   { amount: 5 }
     },
+    // Première course à prix réduit (BIENVENUE / BRUCHIM) : arrêtée par le patron le 05/11/2026 (welcomeOn: false)
+    welcomeOn: false,
     // Parrainage : chaque client a un code AMI + 4 derniers chiffres de son téléphone
     referral: { prefix: "AMI", amount: 10 },
     // Carte de fidélité : la Nième course est offerte (jusqu'à max ₪)

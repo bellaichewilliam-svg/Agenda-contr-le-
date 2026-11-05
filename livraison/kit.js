@@ -16,6 +16,8 @@ const PR = CONFIG.promos;
 const nameFr = CONFIG.businessName, nameHe = CONFIG.businessNameHe;
 const heHome = CONFIG.cities.find(c => c.id === home).he;
 const welcome = UI.money(Pricing.cityToCity(CONFIG, home, home) - PR.codes.BIENVENUE.amount);
+// Offre de 1re course arrêtée (05/11/2026) : plus aucun texte du kit ne l'annonce
+const WELCOME_ON = PR.welcomeOn !== false;
 const pickupFrom = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.pickupPoint);
 // Numéro du patron dans les argumentaires (0XX-XXX-XXXX)
 const bossTel = (d => d.length === 10 ? `${d.slice(0, 3)}-${d.slice(3, 6)}-${d.slice(6)}` : d)("0" + String(CONFIG.whatsapp || "").replace(/^972/, ""));
@@ -33,7 +35,7 @@ $("#kitPrices").innerHTML = `<tr><th>Trajet</th><th>Prix</th></tr>` + featured.m
   + `<tr><td>Suppléments</td><td>express +${UI.money(P.express)} · poste/Super-Pharm +${UI.money(P.pickupPoint)} · achat makolet / tabac +${UI.money(P.purchase)}, en boutique +${UI.money(P.purchaseShop || P.purchase)} · colis moyen +${UI.money(P.sizes.moyen)}</td></tr>`;
 
 $("#kitOffers").innerHTML = [
-  `<b>BIENVENUE</b> (français) / <b>BRUCHIM</b> (hébreu) : -${UI.money(PR.codes.BIENVENUE.amount)} sur la première course (${welcome} dans ${UI.cityFr(home)}), une seule fois par numéro, téléphone et IP.`,
+  ...(WELCOME_ON ? [`<b>BIENVENUE</b> (français) / <b>BRUCHIM</b> (hébreu) : -${UI.money(PR.codes.BIENVENUE.amount)} sur la première course (${welcome} dans ${UI.cityFr(home)}), une seule fois par numéro, téléphone et IP.`] : []),
   `<b>NETANYA</b> : -${UI.money(PR.codes.NETANYA.amount)} sur n'importe quelle course — à imprimer comme « bon de réduction » sur les flyers laissés chez les commerçants.`,
   `<b>Parrainage</b> : chaque client a son code ${PR.referral.prefix} + 4 chiffres (-${UI.money(PR.referral.amount)} pour le filleul ; offrez aussi ${UI.money(PR.referral.amount)} au parrain sur sa course suivante en ajustant le prix ✏️).`,
   ...(PR.loyalty.on ? [`<b>Fidélité</b> : la ${PR.loyalty.every}e course est offerte automatiquement (max ${UI.money(PR.loyalty.max)}).`] : []),
@@ -58,8 +60,7 @@ const POSTS = [
 💵 Paiement en espèces ou par Bit
 
 🏪 Tous les magasins, même les petits : on y va pour vous !
-🎁 Votre première course dans ${UI.cityFr(home)} à ${welcome} avec le code BIENVENUE
-👉 Tout ce qu'on livre (et commander en 1 minute) : ${livre}` },
+${WELCOME_ON ? `🎁 Votre première course dans ${UI.cityFr(home)} à ${welcome} avec le code BIENVENUE\n` : ""}👉 Tout ce qu'on livre (et commander en 1 minute) : ${livre}` },
 
   { title: "פוסט לקבוצות פייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
 `🛵 הופ, וזה אצלך! חדש ב${heHome}: ${nameHe}, משלוחים במחיר קבוע.
@@ -76,8 +77,7 @@ const POSTS = [
 💵 תשלום במזומן או בביט
 
 🏪 כל החנויות, גם הקטנות: אנחנו מגיעים בשבילכם!
-🎁 משלוח ראשון בתוך ${heHome} ב-${welcome} עם הקוד BRUCHIM
-👈 כל מה שאנחנו מביאים (ולהזמין תוך דקה): ${livreHe}` },
+${WELCOME_ON ? `🎁 משלוח ראשון בתוך ${heHome} ב-${welcome} עם הקוד BRUCHIM\n` : ""}👈 כל מה שאנחנו מביאים (ולהזמין תוך דקה): ${livreHe}` },
 
   { title: "Message direct à un commerce (français)", dir: "ltr", text:
 `Bonjour, ici ${nameFr}, société de livraison à ${UI.cityFr(home)}.
@@ -558,8 +558,8 @@ const CAPS = {
     fr: `🆕 Nouveaux partenaires sur HOP! : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush…\nLeur carte est dans l'appli : commandez en 1 minute, suivez le livreur en direct.\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🆕 שותפים חדשים ב-HOP!: נינה סושי, פריז טקסס, סמאש איט, השוק הצרפתי, פיצה קראש…\nהתפריט שלהם באפליקציה: מזמינים בדקה, עוקבים אחרי השליח בזמן אמת.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   client: {
-    fr: `🎁 Et hop, c'est livré ! Votre première course à Netanya : ${welcome} au lieu de ${delFr}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute (code BIENVENUE) : ${APP_URL}\n${TAGS.fr}`,
-    he: `🎁 והופ, זה מגיע! המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה (קוד BRUCHIM): ${APP_URL}?lang=he\n${TAGS.he}` },
+    fr: `🎁 Et hop, c'est livré ! ${WELCOME_ON ? `Votre première course à Netanya : ${welcome} au lieu de ${delFr}` : `Livraison à Netanya : ${delFr}, prix fixe`}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute${WELCOME_ON ? " (code BIENVENUE)" : ""} : ${APP_URL}\n${TAGS.fr}`,
+    he: `🎁 והופ, זה מגיע! ${WELCOME_ON ? `המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}` : `משלוח בנתניה: ${delFr}, מחיר קבוע`}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה${WELCOME_ON ? " (קוד BRUCHIM)" : ""}: ${APP_URL}?lang=he\n${TAGS.he}` },
   "pro-prix-fixe": {
     fr: `💼 Professionnels : vos livraisons, un prix fixe.\nCommerces, bureaux, restaurants : HOP! livre pour votre entreprise, partout à Netanya.\n💰 ${price(home)} la course dans ${UI.cityFr(home)}, connu à l'avance\n✅ 0 % de commission, sans abonnement, sans engagement\n🛵 Des livreurs de Netanya, suivi en direct pour vous et votre client\n📦 Colis, documents, commandes clients, repas…\n💬 Parlons de vos livraisons : 📞 ${bossTel}\n👉 ${PRO_URL}\n${TAGS.fr} #entreprise #commerce`,
     he: `💼 לבעלי עסקים: המשלוחים שלכם, במחיר קבוע.\nחנויות, משרדים ומסעדות: HOP! מביאים את המשלוחים של העסק שלכם, בכל נתניה.\n💰 ${price(home)} למשלוח בתוך ${heHome}, ידוע מראש\n✅ 0% עמלה, בלי מנוי, בלי התחייבות\n🛵 שליחים מנתניה, מעקב בזמן אמת לכם וללקוח\n📦 חבילות, מסמכים, הזמנות של לקוחות, אוכל…\n💬 בואו נדבר על המשלוחים שלכם: 📞 ${bossTel}\n👈 ${PRO_URL}&lang=he\n${TAGS.he} #עסקים` },
@@ -661,7 +661,8 @@ const CAMPS = [
   { id: "visite", aud: "client", isNew: true, title: "👀 L'appli évolue : pensez à nous visiter", desc: "De nouveaux commerces se rajoutent chaque semaine : invitation à revenir voir l'appli. Le QR ouvre l'accueil.", formats: ["post", "story", "flyer"] },
   { id: "courses", aud: "client", title: "🛒 On fait toutes vos courses", desc: "Les catégories de l'appli en 3 étapes. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story", "flyer"], video: true },
   { id: "nouveaux", aud: "client", isNew: true, title: "🆕 Vos adresses préférées, livrées chez vous", desc: "Hoppy et nos partenaires : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush. Livraison à Netanya : 25 ₪. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story"], video: true },
-  { id: "client", aud: "client", title: "🎁 Première course à 15 ₪", desc: "Le message de lancement : prix, suivi en direct, espèces ou Bit.", formats: ["post", "story", "flyer"] },
+  // Visuels « Première course à 15 ₪ » : retirés tant que l'offre est arrêtée (les images affichent ce prix)
+  ...(WELCOME_ON ? [{ id: "client", aud: "client", title: "🎁 Première course à 15 ₪", desc: "Le message de lancement : prix, suivi en direct, espèces ou Bit.", formats: ["post", "story", "flyer"] }] : []),
   { id: "pro-prix-fixe", aud: "shop", isNew: true, thumb: "post", title: "💼 Professionnels : vos livraisons, un prix fixe.", desc: "Pour les réseaux : commerces, bureaux, restaurants, HOP! livre pour votre entreprise. FR et HE.", formats: ["post"] },
   { id: "resto", aud: "shop", isNew: true, title: "🔥 Restaurants : « Gardez 100 % de vos ventes »", desc: "Nouveaux visuels : le restaurateur remet le sac au livreur HOP!, le calcul 100 commandes × 80 ₪, 0 % de commission, Hoppy et le numéro à appeler.", formats: ["post", "story", "flyer"] },
   { id: "pro", aud: "shop", isNew: true, title: "⚡ Tout commerce : « Vos clients veulent être livrés ? »", desc: "Nouveaux visuels : restaurants, boutiques, pharmacies, pressings · 0 % de commission · suivi en direct · livraison dans Netanya 25 ₪, prix fixe.", formats: ["post", "story", "flyer"] },
@@ -876,8 +877,8 @@ $("#flyer").innerHTML = `
       </ul></div>
   </div>
   <div class="two">
-    <p><b>📍 Suivi en direct · 💵 Espèces / Bit</b><br><span style="font-size:19px">🎁 Première course dans ${UI.esc(UI.cityFr(home))} : <b>${welcome}</b> · code <b>BIENVENUE</b></span></p>
-    <p dir="rtl" style="font-family:Rubik,Arial"><b>📍 מעקב בזמן אמת · 💵 מזומן / ביט</b><br><span style="font-size:19px">🎁 משלוח ראשון בתוך ${UI.esc(heHome)}: <b>${welcome}</b> · קוד <b>BRUCHIM</b></span></p>
+    <p><b>📍 Suivi en direct · 💵 Espèces / Bit</b>${WELCOME_ON ? `<br><span style="font-size:19px">🎁 Première course dans ${UI.esc(UI.cityFr(home))} : <b>${welcome}</b> · code <b>BIENVENUE</b></span>` : ""}</p>
+    <p dir="rtl" style="font-family:Rubik,Arial"><b>📍 מעקב בזמן אמת · 💵 מזומן / ביט</b>${WELCOME_ON ? `<br><span style="font-size:19px">🎁 משלוח ראשון בתוך ${UI.esc(heHome)}: <b>${welcome}</b> · קוד <b>BRUCHIM</b></span>` : ""}</p>
   </div>
   <p style="margin-top:6px;font-size:18px"><b>Et hop, c'est livré ! · <span dir="rtl">הופ, וזה אצלך!</span></b></p>
   <p style="margin-top:10px">📞 <b dir="ltr">${UI.esc(CONFIG.phoneDisplay)}</b> · <span dir="ltr">${UI.esc(url)}</span></p>`;
