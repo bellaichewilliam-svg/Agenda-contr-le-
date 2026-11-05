@@ -1864,14 +1864,21 @@ function zoneListHtml() {
       <span class="zone-dem">${riderZoneOpen(z.id) ? `<span class="zone-open">Ma zone</span>` : "À venir"}</span>
     </div>`).join("");
 }
+let zoneOpen = false, zoneAt = 0;
 function renderRiderZone() {
   const box = $("#riderZone");
   if (!box) return;
   const mine = CONFIG.zones.filter(z => riderZoneOpen(z.id)).map(z => z.id === "sharon" ? "Netanya · " + z.fr : z.fr).join(", ");
-  const html = `<summary>📍 Je travaille à : <b>${UI.esc(mine || "HaSharon")}</b> <span class="muted">· zones</span></summary>
-    <div class="rd-zone-list">${zoneListHtml()}<p class="muted small" style="margin:8px 0 0">Les autres zones ouvriront plus tard : vous serez prévenu.</p></div>`;
-  if (box.dataset.html !== html) { const open = box.open; box.innerHTML = html; box.dataset.html = html; box.open = open; }
+  const html = `<button type="button" class="rd-zone-btn" data-zone-toggle>📍 Je travaille à : <b>${UI.esc(mine || "HaSharon")}</b> <span>${zoneOpen ? "▴" : "▾"}</span></button>
+    ${zoneOpen ? `<div class="rd-zone-list">${zoneListHtml()}<p class="muted small" style="margin:8px 0 0">Les autres zones ouvriront plus tard : vous serez prévenu.</p>
+      <button type="button" class="btn btn-sm rd-zone-close" data-zone-toggle>✕ Fermer</button></div>` : ""}`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
+// Ouvrir / fermer la liste des zones (un toucher fantôme juste après ne la rouvre pas)
+document.addEventListener("click", e => {
+  if (!e.target.closest("[data-zone-toggle]") || Date.now() - zoneAt < 350) return;
+  zoneAt = Date.now(); zoneOpen = !zoneOpen; renderRiderZone();
+});
 // Demande en direct (sans la liste des villes : la zone de travail est dans le volet « passer en ligne »)
 function renderZones(view) {
   view.innerHTML = `<div class="card">
@@ -2634,7 +2641,7 @@ function initSheetDrag() {
   // On glisse n'importe où sur le panneau (sauf sur un bouton, un lien ou la glissière « HOP! »)
   sheet.addEventListener("pointerdown", e => {
     fromGrab = !!e.target.closest("#sheetGrab");
-    if (!fromGrab && e.target.closest("button, a, input, select, textarea, summary, .rd-slide")) return;
+    if (!fromGrab && e.target.closest("button, a, input, select, textarea, summary, .rd-slide, .rd-zone")) return;
     y0 = e.clientY; dy = 0; sheet.classList.add("dragging");
     try { sheet.setPointerCapture(e.pointerId); } catch (x) { /* ignore */ }
   });
@@ -2714,6 +2721,7 @@ function renderToday() {
 // État « en service » : glissière, menu, texte
 function renderDuty() {
   const on = duty.watch != null;
+  if (renderDuty.was !== on) { renderDuty.was = on; zoneOpen = false; }
   $("#slide").classList.toggle("on", on);
   $("#slideText").textContent = on ? "En ligne · glisser pour finir" : "Glisser pour passer en ligne";
   $("#drawerStatus").textContent = on ? "🟢 En ligne" : "Hors ligne";
