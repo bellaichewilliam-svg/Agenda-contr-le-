@@ -2204,7 +2204,19 @@ function isReturning() {
 }
 
 // Client connu : ses coordonnées sont repliées en une ligne « Marc · 052-… ✏️ »
+// « Installer l'application » (comme dans HOP! Livreur) : dans Mes courses / mon compte, tant que HOP! n'est pas installée
+const hopLtr = v => UI.esc(v).replace(/HOP!/g, '<bdi dir="ltr">HOP!</bdi>');
+function renderInstallClient() {
+  const ic = $("#installClient");
+  if (!ic) return;
+  const show = !UI.isStandalone();
+  ic.classList.toggle("hidden", !show);
+  if (show) ic.innerHTML = `<div class="ic-row"><img src="icon-192.png" alt="" width="48" height="48" /><span><b>${hopLtr(t("instT"))}</b><small>${hopLtr(t("instSub"))}</small></span></div>
+    <button type="button" class="btn btn-primary btn-block" data-install-client>📲 ${UI.esc(t("instBtn"))}</button>`;
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-install-client]")) UI.installApp("HOP!", "app/").then(ok => { if (ok) renderInstallClient(); }); });
 function renderAccount() {
+  renderInstallClient();
   // Un livreur connecté sur ce téléphone : son espace en un geste depuis l'appli principale
   let rider = false;
   try { rider = !!localStorage.getItem("livraison.session.coursier.v1"); } catch (e) { /* ignore */ }
