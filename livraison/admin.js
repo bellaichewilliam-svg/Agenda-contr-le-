@@ -296,7 +296,6 @@ async function toggleDuty() {
     if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
     try { localStorage.removeItem(LS_DUTY); } catch (e) { /* ignore */ }
     Store.setOnline(false).then(() => Store.getSettings()).then(st => { if (st) { settings.accepting = st.accepting; renderAvail(); } }).catch(() => {});
-    UI.dutyNotice(false);
     renderDuty();
     return;
   }
@@ -311,7 +310,6 @@ async function toggleDuty() {
   try { localStorage.setItem(LS_DUTY, "1"); } catch (e) { /* ignore */ }
   // En service = HOP! ouvert (la base passe « accepting » à vrai toute seule ; fin du service = « Fermé pour le moment »)
   Store.setOnline(true).then(() => { settings.accepting = true; renderAvail(); }).catch(() => {});
-  UI.dutyNotice(false);  // la notification « En service » est celle de HOP! Livreur, plus de doublon au nom du Patron
   renderDuty();
 }
 // De retour dans HOP! (après Waze) : position tout de suite, écran allumé, notification « En service » remise
@@ -319,7 +317,6 @@ async function dutyBack() {
   if (duty.watch == null) return;
   duty.lastSent = 0;
   navigator.geolocation.getCurrentPosition(sendPosition, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-  UI.dutyNotice(false);  // la notification « En service » est celle de HOP! Livreur, plus de doublon au nom du Patron
 }
 
 function renderDuty() {
@@ -3135,7 +3132,6 @@ $("#logoutBtn").addEventListener("click", async e => {
   if (duty.watch != null) await toggleDuty();
   else await Store.setOnline(false).catch(() => {});
   try { localStorage.removeItem(LS_DUTY); } catch (ex) { /* ignore */ }
-  UI.dutyNotice(false);
   Store.logout(); showLogin();
 });
 $("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); if (tab === "rayons") loadRayons(); if (tab === "paniers" || tab === "jours") loadCarts(); } });
@@ -3220,7 +3216,7 @@ document.addEventListener("visibilitychange", async () => {
   if (document.visibilityState === "visible" && duty.watch != null && navigator.wakeLock) {
     try { duty.wakeLock = await navigator.wakeLock.request("screen"); } catch (e) { /* ignore */ }
   }
-  if (document.visibilityState === "visible") { if (duty.watch == null) UI.dutyNotice(false); else dutyBack(); }
+  if (document.visibilityState === "visible" && duty.watch != null) dutyBack();
 });
 
 if (window.Notification && Notification.permission === "granted") $("#notifBtn").textContent = "🔔 Alertes activées";
@@ -3231,7 +3227,8 @@ Store.adoptLinkSession().catch(() => false).then(async how => {
   if (Store.session()) start(); else showLogin();
 });
 // Le service était en cours avant de recharger la page : on le reprend
-try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); else UI.dutyNotice(false); } catch (e) { /* ignore */ }
+// (la notification « 🟢 En service » appartient à HOP! Livreur : le Patron n'y touche jamais, sinon Android l'efface aussi chez le livreur)
+try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); } catch (e) { /* ignore */ }
 
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 UI.iosInstallHint("HOP! Patron");
