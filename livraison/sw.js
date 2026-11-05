@@ -12,7 +12,15 @@ const markSeen = (tag, title) => tag && tag !== "hop-duty" ? caches.open(SEEN).t
 const isSeen = (tag, title) => !tag ? Promise.resolve(false) : caches.open(SEEN).then(c => c.match(seenKey(tag, title))).then(r => !!r).catch(() => false);
 // Nettoyage : on oublie les alertes vues depuis plus de 2 jours
 const purgeSeen = () => caches.open(SEEN).then(c => c.keys().then(ks => Promise.all(ks.map(k => c.match(k).then(r => r && r.text()).then(v => { if (Date.now() - Number(v || 0) > 2 * 86400000) return c.delete(k); })))) ).catch(() => {});
-self.addEventListener("notificationclose", e => { e.waitUntil(markSeen(e.notification.tag || "", e.notification.title)); });
+// …et on le dit au serveur (adresse fournie dans la notification) : il arrête de renvoyer cette sonnerie à ce téléphone
+const ackSeen = n => {
+  const a = n.data && n.data.ack, tag = n.tag || "";
+  if (!a || !a.u || !a.k || !/^o-/.test(tag)) return Promise.resolve();
+  return self.registration.pushManager.getSubscription().then(sub => sub && fetch(a.u, { method: "POST", keepalive: true,
+    headers: { "Content-Type": "application/json", apikey: a.k, Authorization: "Bearer " + a.k },
+    body: JSON.stringify({ p_endpoint: sub.endpoint, p_tag: tag }) })).catch(() => {});
+};
+self.addEventListener("notificationclose", e => { e.waitUntil(Promise.all([markSeen(e.notification.tag || "", e.notification.title), ackSeen(e.notification)])); });
 
 // Notification « push » envoyée par HOP! (nouvelle commande, message) : affichée même appli fermée
 self.addEventListener("push", e => {
@@ -36,7 +44,7 @@ self.addEventListener("push", e => {
     return self.registration.showNotification(d.title || "HOP!", {
       body: d.body || "", tag: d.tag || undefined, renotify: !!d.tag && !quiet, icon: "icon-192.png", badge: "badge-96.png",
       requireInteraction: course && !quiet, silent: !!quiet, actions: Array.isArray(d.actions) ? d.actions.slice(0, 2) : [],
-      vibrate: quiet ? [] : course ? [900, 300, 900, 300, 900, 300, 900] : [250, 120, 250], data: { url: d.url || self.registration.scope }
+      vibrate: quiet ? [] : course ? [900, 300, 900, 300, 900, 300, 900] : [250, 120, 250], data: { url: d.url || self.registration.scope, ack: d.ack || null }
     });
   }
 });
@@ -49,7 +57,7 @@ self.addEventListener("notificationclick", e => {
   if (/^(m|o|pay|refund|late)-/.test(tag) && !/[?&]tag=/.test(url)) url += (url.includes("?") ? "&" : "?") + "tag=" + encodeURIComponent(tag);
   // Bouton de la notification du patron (« Je la prends », « Donner à un livreur ») : la page ouvre la course
   if (e.action) url += (url.includes("?") ? "&" : "?") + "do=" + encodeURIComponent(e.action);
-  if (e.notification.tag !== "hop-duty") { e.notification.close(); e.waitUntil(markSeen(tag, e.notification.title)); }
+  if (e.notification.tag !== "hop-duty") { e.notification.close(); e.waitUntil(Promise.all([markSeen(tag, e.notification.title), ackSeen(e.notification)])); }
   e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
     const page = url.split("?")[0].split("#")[0];
     const open = list.find(c => c.url.split("?")[0].split("#")[0] === page) || list[0];

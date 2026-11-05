@@ -11,16 +11,26 @@ const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SE
 
 type Note = { title: string; body: string; url: string; tag: string; actions?: { action: string; title: string }[] };
 
+// Le téléphone dit « vue » (touchée ou balayée) à cette adresse : les rappels suivants de la même sonnerie ne lui sont plus envoyés
+const ACK = { u: Deno.env.get("SUPABASE_URL") + "/rest/v1/rpc/push_seen_mark", k: Deno.env.get("SUPABASE_ANON_KEY") || "" };
+
 const money = (n: unknown) => `${Math.round(Number(n) * 100) / 100} ₪`.replace(".", ",");
 
-async function sendTo(ids: string[], note: Note, site: string, ttl = 3600) {
+async function sendTo(ids: string[], note: Note, site: string, ttl = 3600, reminder = false) {
   if (!ids.length) return 0;
-  const { data: subs } = await db.from("push_subs").select("endpoint, p256dh, auth").in("courier_id", ids);
+  let { data: subs } = await db.from("push_subs").select("endpoint, p256dh, auth").in("courier_id", ids);
+  // Rappel d'une sonnerie (ring / boss_ring) : pas aux téléphones qui l'ont déjà vue
+  if (reminder && subs && subs.length) {
+    const { data: seen } = await db.from("push_seen").select("endpoint").eq("tag", note.tag)
+      .gt("seen_at", new Date(Date.now() - 86400000).toISOString());
+    const out = new Set((seen || []).map(x => x.endpoint));
+    subs = subs.filter(s => !out.has(s.endpoint));
+  }
   let sent = 0;
   await Promise.all((subs || []).map(async s => {
     try {
       await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-        JSON.stringify(Object.assign({}, note, { url: site + note.url })), { TTL: ttl, urgency: "high" });
+        JSON.stringify(Object.assign({}, note, { url: site + note.url, ack: ACK })), { TTL: ttl, urgency: "high" });
       sent++;
     } catch (e) {
       // Abonnement expiré (téléphone changé, notifications coupées) : on l'oublie
@@ -100,7 +110,7 @@ Deno.serve(async req => {
         sent += await sendTo(await admins(), { title: `🔔 Nouvelle course · ${money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}${takes ? "" : " · chez les livreurs"}`,
           body: `${o.ref} · ${when}\n${route}\n${takes ? "Touchez : je la prends, ou je la donne à un livreur" : "Envoyée aux livreurs : touchez pour la suivre ou la donner vous-même"}`,
           url: `patron/?o=${o.id}`, tag: "o-" + o.id,
-          actions: takes ? [{ action: "take", title: "✅ Je la prends" }, { action: "give", title: "🛵 Donner à un livreur" }] : [{ action: "give", title: "🛵 Donner à un livreur" }] }, site, 10);
+          actions: takes ? [{ action: "take", title: "✅ Je la prends" }, { action: "give", title: "🛵 Donner à un livreur" }] : [{ action: "give", title: "🛵 Donner à un livreur" }] }, site, 10, true);
       }
     } else if (ev.event === "nobody") {
       // Personne ne l'a prise 2 min après les livreurs : le patron la prend ou la donne (même à un livreur hors ligne)
@@ -153,7 +163,7 @@ Deno.serve(async req => {
       } else if (o.appt_at && left(o.appt_at) > 0) ready = `📅 rendez-vous dans ${dur(left(o.appt_at))}`;
       else if (o.urgency === "programmee" && o.pickup_at && left(o.pickup_at) > 0) ready = `📅 à récupérer dans ${dur(left(o.pickup_at))}`;
       sent += await sendTo(await onDuty(o.id), { title: `${ev.event === "ring" ? "🔔" : "🛵"} Nouvelle course · ${money(o.price)} · ${ready}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}`,
-        body: `${when} · ${route}\nTouchez pour accepter ou refuser`, url: "livreur/", tag: "o-" + o.id }, site, ev.event === "ring" ? 10 : 3600);
+        body: `${when} · ${route}\nTouchez pour accepter ou refuser`, url: "livreur/", tag: "o-" + o.id }, site, ev.event === "ring" ? 10 : 3600, ev.event === "ring");
     }
   } else if (ev.client_order) {
     // Le client (abonné depuis son suivi) : une seule notification par course, remplacée à chaque étape
