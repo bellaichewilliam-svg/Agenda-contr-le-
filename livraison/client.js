@@ -996,7 +996,7 @@ function pharmaLines() {
     const e = rayonEntry(r, k);
     if (!e) return null;
     // (le prix indicatif aide le livreur à voir un prix anormal ; « ×N » reste en fin de ligne : la base compte les articles)
-    return `${e.x.e} ${phName(e.x)}${e.v ? " · " + phName(e.v) : ""}${e.p ? ` (≈ ${priceTxt(e.p)})` : ""} ×${q}`;
+    return `${e.x.e} ${phName(e.x)}${e.v ? " · " + phName(e.v) : ""}${e.p || e.pb ? ` (≈ ${priceTxt(e.p || e.pb)})` : ""} ×${q}`;
   }).filter(Boolean);
 }
 // Tabac / alcool cochés : les cases « 18 ans et plus » suivent
@@ -1057,9 +1057,18 @@ function renderPharma() {
   const q = phNorm((state.phQ || "").trim());
   const shown = q ? items.filter(x => phNorm(x.fr + " " + x.he + " " + (x.opt || []).map(o => o.fr + " " + o.he).join(" ")).includes(q)) : items.filter(x => x.c === state.pharmaCat);
   const cur = cats.find(c => c.id === state.pharmaCat);
+  const rows = shown.length > 0 && shown.every(x => !x.img && !UI.safeImg(x.photo));
   const card = x => {
     const sel = Number((state.pharmaOpt || {})[r.id + ":" + x.id] || 0), k = key(x, x.opt ? sel : 0), qn = state.pharma[k] || 0;
-    const pr = (x.opt && x.opt[sel] && x.opt[sel].p) || x.p;
+    // Prix indicatif affiché sur chaque produit (tabac compris : prix approximatif du paquet, demande du patron)
+    const o = x.opt && x.opt[sel], pr = (o && o.p) || x.p || (o && o.pb) || x.pb;
+    const step = qn ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${qn}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
+      : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`;
+    const sel2 = x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o2, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o2))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : "";
+    // Rubrique sans images (tabac : la loi interdit les visuels) : une liste nette, une ligne par produit, prix bien visible
+    if (rows) return `<div class="ph-line${qn ? " in" : ""}"><span class="pl-txt"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${sel2}</span>
+      ${pr ? `<span class="pl-price"><b>≈ ${priceTxt(pr)}</b>${x.c === "cig" && x.id !== "cartouche" ? `<small>${UI.esc(t("phPerPack"))}</small>` : ""}</span>` : ""}
+      <span class="pl-act">${step}</span></div>`;
     return `<div class="ph-item${qn ? " in" : ""}">
       <div class="ph-pic${x.photo ? " photo" : ""}${UI.extPic(x.photo) ? " pack" : ""}">${pic(x)}
         ${qn ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${qn}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
@@ -1072,7 +1081,8 @@ function renderPharma() {
   const rest = `<div class="ph-cats" role="tablist">${cats.map(c => { const k = inCat(c.id), on = !q && state.pharmaCat === c.id;
       return `<button type="button" class="ph-cat${on ? " on" : ""}" role="tab" data-ph-cat="${c.id}" aria-selected="${on}">${pic(c)}<span>${UI.esc(phName(c))}</span>${k ? `<em>${k}</em>` : ""}</button>`; }).join("")}</div>
     <p class="ph-cur">${q ? `<b>${UI.esc(t("phFound", { n: shown.length, q: state.phQ.trim() }))}</b>` : cur ? `${pic(cur)}<b>${UI.esc(phName(cur))}</b><small>${UI.esc(t("phCount2", { n: shown.length }))}</small>` : ""}</p>
-    ${shown.length ? `<div class="ph-list">${shown.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
+    ${rows && shown.some(x => x.pb) ? `<p class="ph-pnote">${UI.esc(t("phPriceNote"))}</p>` : ""}
+    ${shown.length ? `<div class="ph-list${rows ? " ph-lines" : ""}">${shown.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
     ${q ? "" : (i => { const prev = cats[i - 1], next = cats[i + 1];
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
       return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">‹ ${UI.esc(phName(prev))}</button>` : "<span></span>"}
@@ -1275,9 +1285,10 @@ function renderQuote() {
   const r0 = goods ? rayonOn() : null, est = r0 ? rayonGoods() : null;
   const unpriced = r0 ? rayonPicked(r0).some(([k]) => { const e = rayonEntry(r0, k); return e && !e.p && !e.pb; }) : false;
   const hint = withMax ? "" : items ? t(itemsKey("barItems"), { total: money(items), name: UI.bi(state.shop.name) })
-    : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { mid: est.mid }) : goods ? t("barGoodsHint") : "";
+    : unpriced && r0.id === "tabac" ? t("barGoodsShop") : est && !unpriced ? t("barGoodsEst", { mid: est.mid, tot: Number(q.total) + est.mid }) : goods ? t("barGoodsHint") : "";
   $("#mobileHint").textContent = addonOn() ? t("qAddon", { ref: state.addon.ref }) : hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
+  $("#mobileHint").classList.toggle("mb-goods", !!(est && !unpriced && !withMax && !items && !addonOn()));
   $("#submitBtn").textContent = wiz.on && wiz.step < 3 ? t("wizNext") : t("submit", { total: money(all) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));

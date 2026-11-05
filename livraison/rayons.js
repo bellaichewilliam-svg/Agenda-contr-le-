@@ -7,8 +7,8 @@
 // Chaque produit : rayon, image, nom FR / HE, parfois une variante (taille, marque…) et « adult »
 // (tabac / alcool : 18 ans et plus, pièce d'identité à la livraison), p = prix indicatif en magasin [min, max] en ₪
 // (relevé moyen ; le vrai prix est celui du magasin), sz = place dans le top case (1 par défaut). Une variante peut avoir son propre p / sz (bière : bouteille ou pack).
-// Tabac (cigarettes, IQOS, à rouler) : ni prix ni images (loi israélienne sur la publicité et l'affichage du tabac) ;
-// pb = prix caché, jamais affiché sur le produit, seulement pour estimer le total et pré-remplir le budget.
+// Tabac (cigarettes, IQOS, à rouler) : pas d'images (loi israélienne sur la publicité du tabac) ; un prix approximatif en texte
+// (pb = prix indicatif du tabac, affiché « ≈ 40 ₪ le paquet » en liste, demande du patron du 05/11/2026).
 // ============================================================================
 (function () {
 "use strict";
