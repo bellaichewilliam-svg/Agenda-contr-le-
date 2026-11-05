@@ -4618,8 +4618,8 @@ body.fiche-open { overflow: hidden; }
 .ro-go { justify-self: start; margin-top: 2px; font-size: 13px; font-weight: 800; color: #fff; background: var(--brand); border-radius: 999px; padding: 7px 12px; }
 /* Appli livreur : zone de travail sous le bouton « passer en ligne » (repliée) */
 .rd-zone { margin: 4px 2px 8px; font-size: 13.5px; }
-.rd-zone > summary { cursor: pointer; list-style: none; color: var(--ink); text-align: center; padding: 6px 0; }
-.rd-zone > summary::-webkit-details-marker { display: none; }
-.rd-zone[open] > summary { font-weight: 700; }
+.rd-zone-btn { display: block; width: 100%; border: 0; background: none; color: var(--ink); font: inherit; text-align: center; padding: 8px 0; cursor: pointer; }
+.rd-zone-btn span { color: var(--muted); }
 .rd-zone-list { padding: 4px 4px 2px; }
+.rd-zone-close { display: block; margin: 10px auto 0; }
 .set-zones { padding: 0 2px 6px; }
