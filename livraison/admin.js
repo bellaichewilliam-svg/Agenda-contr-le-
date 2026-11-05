@@ -1746,33 +1746,39 @@ function renderDaily(view) {
       couriers: sum(theirs, o => courierKeep(o) + courierExtras(o)), total: sum(done, o => Number(o.price) + Number(o.discount || 0) + Number(o.shop_share || 0)),
       nCarts: lostCarts.length, nLost: lostOrders.length, lostFull, lostCom };
   };
-  const rows = days.map(fig), d0 = rows[0];
+  const rows = days.map(fig);
+  if (!rows.some(r => r.k === dailySel)) dailySel = rows[0].k;
+  const d0 = rows.find(r => r.k === dailySel);
   const tot = rows.reduce((a, r) => { Object.keys(r).forEach(x => { if (typeof r[x] === "number") a[x] = (a[x] || 0) + r[x]; }); return a; }, {});
   const dayName = k => { const d = new Date(k + "T12:00:00"); return k === today() ? "Aujourd'hui" : k === addDays(today(), -1) ? "Hier" : d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }); };
   const m = n => UI.money(Math.round(n * 2) / 2);
+  const busy = r => r.n || r.nCarts || r.nLost || r.plans;
   view.innerHTML = `
-    <div class="card dj-today"><h3>📅 ${UI.esc(dayName(d0.k))}</h3>
+    <div class="toolbar">${[7, 14, 30].map(n => `<button type="button" class="btn btn-sm${n === dailyDays ? " btn-primary" : ""}" data-djdays="${n}">${n} jours</button>`).join("")}</div>
+    <div class="dj-strip" id="djStrip">${rows.map(r => `<button type="button" class="dj-day${r.k === dailySel ? " on" : ""}${busy(r) ? "" : " off"}" data-djday="${r.k}">
+      <small>${UI.esc(dayName(r.k))}</small><b>${r.me ? m(r.me) : "—"}</b><em>${r.n ? `${r.n} course${r.n > 1 ? "s" : ""}` : r.nCarts ? `${r.nCarts} panier${r.nCarts > 1 ? "s" : ""}` : "rien"}</em></button>`).join("")}</div>
+    <div class="card dj-today"><h3>📅 ${UI.esc(dayName(d0.k))}${d0.k !== today() && d0.k !== addDays(today(), -1) ? "" : ` <span class="small muted">${UI.esc(new Date(d0.k + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "long" }))}</span>`}</h3>
       <div class="dj-grid">
         <div class="dj-me"><small>👑 Pour moi (HOP!)</small><b>${m(d0.me)}</b><span>${d0.nMine ? `${d0.nMine} course${d0.nMine > 1 ? "s" : ""} faite${d0.nMine > 1 ? "s" : ""} par moi : ${m(d0.meRides)}` : "Aucune course faite par moi"}<br>${d0.nTheirs ? `Commissions sur ${d0.nTheirs} course${d0.nTheirs > 1 ? "s" : ""} des livreurs, codes promo déduits : ${m(d0.meCom)}` : "Pas de commission"}${d0.plans ? `<br>Abonnements Pro : ${m(d0.plans)}` : ""}</span></div>
         <div><small>🛵 Pour les livreurs</small><b>${m(d0.couriers)}</b><span>${d0.nTheirs} course${d0.nTheirs > 1 ? "s" : ""} (attentes et pourboires compris)</span></div>
         <div class="dj-lost"><small>😴 Raté en livraison</small><b>${m(d0.lostFull)}</b><span>${d0.nCarts} panier${d0.nCarts > 1 ? "s" : ""} laissé${d0.nCarts > 1 ? "s" : ""}${d0.nLost ? ` · ${d0.nLost} course${d0.nLost > 1 ? "s" : ""} annulée${d0.nLost > 1 ? "s" : ""}` : ""}<br>Si je livrais moi-même : ${m(d0.lostFull)} · si un livreur livrait : ${m(d0.lostCom)} pour moi</span></div>
       </div></div>
-    <div class="toolbar">${[7, 14, 30].map(n => `<button type="button" class="btn btn-sm${n === dailyDays ? " btn-primary" : ""}" data-djdays="${n}">${n} jours</button>`).join("")}</div>
-    <div class="table-scroll"><table class="bill dj-table">
-      <thead><tr><th>Jour</th><th class="num">Courses</th><th class="num">👑 Moi (HOP!)</th><th class="num">dont mes courses</th><th class="num">dont commissions</th><th class="num">🛵 Livreurs</th><th class="num">Total des courses</th><th class="num">😴 Raté si je livre</th><th class="num">Raté si un livreur livre</th></tr></thead>
-      <tbody>${rows.filter(r => r.n || r.nCarts || r.nLost || r.plans).map(r => `<tr><td><b>${UI.esc(dayName(r.k))}</b>${r.nCarts || r.nLost ? `<br><span class="small muted">${r.nCarts} panier${r.nCarts > 1 ? "s" : ""}${r.nLost ? ` · ${r.nLost} annulée${r.nLost > 1 ? "s" : ""}` : ""}</span>` : ""}</td>
-        <td class="num">${r.n || "—"}</td><td class="num"><b>${r.me ? m(r.me) : "—"}</b></td><td class="num">${r.meRides ? m(r.meRides) : "—"}</td><td class="num">${r.meCom || r.plans ? m(r.meCom + r.plans) : "—"}</td>
-        <td class="num">${r.couriers ? m(r.couriers) : "—"}</td><td class="num">${r.total ? m(r.total) : "—"}</td><td class="num dj-miss">${r.lostFull ? m(r.lostFull) : "—"}</td><td class="num dj-miss">${r.lostCom ? m(r.lostCom) : "—"}</td></tr>`).join("")}</tbody>
-      ${rows.some(r => !(r.n || r.nCarts || r.nLost || r.plans)) ? `<tr><td colspan="9" class="muted small">Les jours sans course ni panier ne sont pas affichés.</td></tr>` : ""}
-      <tfoot><tr><th>Total ${dailyDays} jours</th><th class="num">${tot.n || 0}</th><th class="num">${m(tot.me || 0)}</th><th class="num">${m(tot.meRides || 0)}</th><th class="num">${m((tot.meCom || 0) + (tot.plans || 0))}</th><th class="num">${m(tot.couriers || 0)}</th><th class="num">${m(tot.total || 0)}</th><th class="num">${m(tot.lostFull || 0)}</th><th class="num">${m(tot.lostCom || 0)}</th></tr></tfoot>
-    </table></div>
+    <div class="card dj-period"><small>Sur ${dailyDays} jours</small>
+      <div class="dj-line"><span>👑 Moi</span><b>${m(tot.me || 0)}</b></div>
+      <div class="dj-line"><span>🛵 Livreurs</span><b>${m(tot.couriers || 0)}</b></div>
+      <div class="dj-line"><span>🧾 Total des courses (${tot.n || 0})</span><b>${m(tot.total || 0)}</b></div>
+      <div class="dj-line dj-miss"><span>😴 Raté si je livre · si un livreur livre</span><b>${m(tot.lostFull || 0)} · ${m(tot.lostCom || 0)}</b></div></div>
     <details class="fin-more" style="margin-top:10px"><summary>ℹ️ Comment c'est calculé</summary><p class="small muted" style="margin-top:8px">
       <b>Moi (HOP!)</b> : les courses que je fais moi-même, au prix entier ; plus, sur les courses des livreurs, ma commission et la part HOP des commerces Pro, moins les codes promo que HOP paie ; plus les abonnements Pro.<br>
       <b>Livreurs</b> : ce qu'ils gardent (prix de la course + réduction payée par HOP + part du commerce − ce qui revient à HOP), plus les attentes et les pourboires reçus.<br>
       <b>Raté</b> : paniers laissés sans commande (pas les essais faits sur mon téléphone) et courses annulées ou refusées. On ne compte pas les articles : seulement la livraison qu'on aurait faite (course en ville, + l'achat pour les rayons et les boutiques HOP!). « Si un livreur livre » = seulement ma commission.<br>
       Seulement les courses livrées comptent (pas les essais). Jour = jour de la course, à l'heure d'Israël.</p></details>`;
-  labelTables(view);
+  // le jour choisi reste visible dans la bande
+  const on = view.querySelector(".dj-day.on"), st = view.querySelector("#djStrip");
+  if (on && st) st.scrollLeft = on.offsetLeft - st.offsetLeft - (st.clientWidth - on.offsetWidth) / 2;   // sans faire bouger la page
 }
+let dailySel = "";
+document.addEventListener("click", e => { const d = e.target.closest("[data-djday]"); if (d) { dailySel = d.dataset.djday; render(); } });
 document.addEventListener("click", e => { const b = e.target.closest("[data-djdays]"); if (b) { dailyDays = Number(b.dataset.djdays); render(); } });
 function renderCarts(view) {
   // Les paniers faits depuis le téléphone du patron (essais) : mis à part, ils ne faussent pas les chiffres
