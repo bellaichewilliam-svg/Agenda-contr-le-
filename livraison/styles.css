@@ -4629,3 +4629,5 @@ body.fiche-open { overflow: hidden; }
 .booting small { color: var(--muted); }
 .boot-dot { width: 34px; height: 34px; border-radius: 50%; border: 4px solid var(--border); border-top-color: var(--brand); animation: boot-spin .8s linear infinite; }
 @keyframes boot-spin { to { transform: rotate(360deg); } }
+.sa-card.sa-picked .sa-far { grid-column: 1 / -1; font-size: 13px; line-height: 1.4; font-weight: 700; color: #B45309; background: #FEF3C7; border-radius: 10px; padding: 7px 10px; }
+html.d2:not(.d2-day) .sa-card.sa-picked .sa-far { color: #FCD34D; background: rgba(251, 191, 36, .12); }
