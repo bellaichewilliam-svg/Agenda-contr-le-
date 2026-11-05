@@ -286,6 +286,8 @@ function isStandalone() {
 // Ouvert dans la fenêtre de l'appli client HOP! (on y arrive par le bouton 🛵) : pas l'appli Livreur/Patron
 let appKind = null;
 try { appKind = sessionStorage.getItem("hop.app"); } catch (e) { /* ignore */ }
+// Bouton « Installer l'application » : seulement sur Android (sur iPhone, l'installation à la main déroute les gens)
+function canInstall() { return /Android/i.test(navigator.userAgent) && !isStandalone(); }
 function inOwnApp() { return isStandalone() && appKind !== "client"; }
 function markClientApp() { if (isStandalone()) { appKind = "client"; try { sessionStorage.setItem("hop.app", "client"); } catch (e) { /* ignore */ } } }
 async function installApp(appName, path) {
@@ -1094,7 +1096,7 @@ function routeLayer(a, b, opts) {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
