@@ -4616,3 +4616,10 @@ body.fiche-open { overflow: hidden; }
 .ro-title { font-size: 15px; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ro-sub { color: var(--muted); font-size: 12.5px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.7em; }
 .ro-go { justify-self: start; margin-top: 2px; font-size: 13px; font-weight: 800; color: #fff; background: var(--brand); border-radius: 999px; padding: 7px 12px; }
+/* Appli livreur : zone de travail sous le bouton « passer en ligne » (repliée) */
+.rd-zone { margin: 4px 2px 8px; font-size: 13.5px; }
+.rd-zone > summary { cursor: pointer; list-style: none; color: var(--ink); text-align: center; padding: 6px 0; }
+.rd-zone > summary::-webkit-details-marker { display: none; }
+.rd-zone[open] > summary { font-weight: 700; }
+.rd-zone-list { padding: 4px 4px 2px; }
+.set-zones { padding: 0 2px 6px; }
