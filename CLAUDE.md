@@ -27,7 +27,7 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - **Icônes** : les icônes 3D du kit (`livraison/img/k2/i-*.webp`), même cadre bleu arrondi, 4 visibles par ligne sur l'accueil. Catégorie partout = `UI.catImg()`.
 - **Grands encarts** : fonds officiels `fonds-encarts.css` (`.hop-fond-*`), objet en bas à droite fondu dans la carte, « ✨ NOUVEAU », titre gras, bouton blanc « Découvrir ».
 - **Commerces** : 2 cartes par ligne, photo + vrai logo, pastille catégorie + cœur, « ● Fermé · ouvre à … » sous le nom, bouton « Programmer » ; jamais de grand bandeau sur la photo.
-- **Barre du haut** : profil (rond), logo HOP!, panier (rond, pastille orange = nombre d'articles), livreur, langue. **Commander** : bouton orange avec le petit scooter + vrai prix.
+- **Barre du haut** : profil (rond), logo HOP!, panier (rond, pastille orange = nombre d'articles), langue. Pas de bouton livreur en haut (demande du patron, 05/11/2026) : « Devenir livreur » est en bas de l'accueil (rubrique Explorer). **Commander** : bouton orange avec le petit scooter + vrai prix.
 - **Panier** : gardé 7 jours, visible du patron (onglet 🛒 Paniers, relance WhatsApp). Commerce sans paiement en ligne ou panier vide : guider « 1. commandez au commerce · 2. revenez sur HOP! pour la livraison ».
 
 ## Interdits et règles
