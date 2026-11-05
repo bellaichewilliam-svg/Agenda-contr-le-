@@ -2577,6 +2577,7 @@ function renderHome() {
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-line" data-tab="zones">⏰ Pas de course · pointe ${UI.esc(CONFIG.peakHours.fr)}<span class="go">›</span></button>`) : ""}
+    ${!window.Notification && /iPhone|iPad|iPod/.test(navigator.userAgent) && !UI.isStandalone() ? `<button type="button" class="rd-line rd-alert" data-install="1" title="Sur iPhone, les alertes ne marchent que dans l'appli installée">🔕 Pas d'alertes dans Safari : installez HOP! Livreur sur l'écran d'accueil<span class="go">›</span></button>` : ""}
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-line rd-alert" data-notif="1" title="Pour « En service » et les nouvelles courses, même appli fermée">${Notification.permission === "denied" ? "🔕 Alertes bloquées : touchez pour voir comment" : "🔔 Activer les alertes"}<span class="go">›</span></button>` : ""}
     ${!isOnline() && !UI.inOwnApp() && UI.canInstall() ? `<button type="button" class="rd-card" data-install="1"><span>📲 Installer HOP! Livreur<small>Son icône « LIVREUR » à part, et les courses qui sonnent appli fermée</small></span><span class="go">›</span></button>` : ""}
     ${!isOnline() && refOn() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>${me.network_perks ? `+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons` : "Leurs courses vous sont proposées en premier"}</small></span><span class="go">›</span></button>` : ""}`;
@@ -2984,7 +2985,7 @@ function renderStats(view) {
 }
 function renderSettings(view) {
   const opt = (k, v, label) => `<option value="${v}" ${riderSet[k] === v ? "selected" : ""}>${label}</option>`;
-  const notif = window.Notification ? (Notification.permission === "granted" ? "🔔 Activées" : "Activer") : "Indisponible";
+  const notif = window.Notification ? (Notification.permission === "granted" ? "🔔 Activées" : "Activer") : /iPhone|iPad|iPod/.test(navigator.userAgent) ? "Installez d'abord l'appli" : "Indisponible";
   view.innerHTML = `<div class="card set-list">
       ${UI.inOwnApp() || !UI.canInstall() ? "" : `<h3>Application</h3>
       <div class="set-row"><span>HOP! Livreur sur l'écran d'accueil<small class="muted" style="display:block">Son icône « LIVREUR » à part, même si l'appli client HOP! est déjà installée</small></span><button type="button" class="btn btn-sm btn-primary" data-install="1">📲 Installer</button></div>`}
