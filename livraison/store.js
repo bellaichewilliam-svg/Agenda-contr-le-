@@ -1774,6 +1774,19 @@ async function productsSearch(q) {
     .filter(pr => pr.available && (String(pr.name).toLowerCase().includes(n) || String(pr.description || "").toLowerCase().includes(n)))
     .map(pr => ({ id: pr.id, name: pr.name, price: pr.price, has_photo: !!pr.photo, code: x.code, shop: x.name, kind: x.kind, category: null }))).slice(0, 20);
 }
+// Recherche d'un produit depuis l'accueil : un résultat par commerce (nombre d'articles, prix le plus bas, exemples)
+async function productsSearchShops(q) {
+  if (String(q || "").trim().length < 2) return [];
+  if (ONLINE) {
+    const r = await rest("/rest/v1/rpc/products_search_shops", { method: "POST", body: { p_q: q } }).catch(() => null);
+    if (Array.isArray(r)) return r;
+    // (base pas encore à jour : l'ancienne recherche, regroupée ici par commerce)
+  }
+  const by = {};
+  ((await productsSearch(q)) || []).forEach(p => { const x = by[p.code] = by[p.code] || { code: p.code, shop: p.shop, kind: p.kind, n: 0, min: p.price, sample: [] };
+    x.n++; x.min = Math.min(Number(x.min), Number(p.price)); if (x.sample.length < 3) x.sample.push(p.name); });
+  return Object.values(by).sort((a, b) => b.n - a.n);
+}
 // Boutiques de l'accueil : 3 essais (la base peut être lente un instant au réveil), puis la dernière liste
 // gardée sur le téléphone : l'accueil ne reste jamais vide
 const SHOWCASE_KEY = "livraison.showcase.v1";
@@ -2778,7 +2791,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, productsSearchShops, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

@@ -1653,11 +1653,14 @@ async function prodSuggestLater(q) {
   if (phNorm(q).trim().length < 3) return [];
   // Produit de nos rayons (eau, lait…) : seulement les commerces qui en vendent vraiment, pas les restaurants
   const staple = rayonHits(q, 1).length > 0;
-  const list = ((await Store.productsSearch(q)) || []).filter(p => !staple || !/restaurant|resto|cafe/i.test(p.kind || ""));
-  const seen = new Set();
-  return list.filter(p => !seen.has(p.code) && seen.add(p.code)).slice(0, 4).map(p => ({ quick: true, prod: true, icon: "⭐",
-    title: UI.bi(p.name), sub: t("acCatalog", { shop: UI.bi(p.shop), price: money(p.price) }),
-    apply: () => { state.findItem = p.id || null; state.shopDir = ""; loadShop(p.code); } }));
+  // Un résultat par commerce : « 61 articles “eau” chez HOP! chez Carrefour · dès 2,5 ₪ » ; le toucher ouvre le commerce
+  // avec la recherche déjà remplie (tous les articles trouvés, pas un seul)
+  const shops = ((await Store.productsSearchShops(q)) || []).filter(p => !staple || !/restaurant|resto|cafe/i.test(p.kind || ""));
+  const qq = q.trim();
+  return shops.slice(0, 4).map(p => ({ quick: true, prod: true, top: true, icon: "⭐",
+    title: t(Number(p.n) > 1 ? "acShopHits" : "acShopHit", { n: p.n, q: qq, shop: UI.bi(p.shop) }),
+    sub: (Number(p.n) > 1 ? t("acFrom", { price: money(p.min) }) : money(p.min)) + ((p.sample || []).length ? " · " + p.sample.slice(0, 2).map(x => UI.bi(String(x).replace(/\s*\[[^\]]*\]\s*$/, ""))).join(", ") : ""),
+    apply: () => { state.findItem = null; state.cgQNext = qq; state.shopDir = ""; loadShop(p.code); } }));
 }
 // Hauteur réelle de la barre du bas (elle grandit avec le détail du prix) : « Voir la commande » se pose au-dessus, jamais dessous
 (function watchMobileBar() {
@@ -3265,7 +3268,9 @@ function renderCatalog() {
     .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: groupFirst(cgShown().filter(p => !cats.some(c => c.id === p.category_id))) }] : []);
   // Recherche dans le catalogue (nom, description, français et hébreu, sans accents)
   const cq = phNorm(state.cgQ || "");
-  const sections = cq ? allSecs.map(x => Object.assign({}, x, { items: x.items.filter(p => phNorm(`${p.name} ${p.description || ""}`).includes(cq)) })).filter(x => x.items.length) : allSecs;
+  // (début d'un mot : « eau » trouve « Eau minérale », pas « gâteau » ; le choix entre crochets ne compte pas)
+  const cqHit = txt => { for (let k = txt.indexOf(cq); k >= 0; k = txt.indexOf(cq, k + 1)) if (k === 0 || /[\s(/'·-]/.test(txt[k - 1])) return true; return false; };
+  const sections = cq ? allSecs.map(x => Object.assign({}, x, { items: x.items.filter(p => cqHit(phNorm(`${String(p.name).replace(/\s*\[[^\]]*\]\s*$/, "")} ${p.description || ""}`))) })).filter(x => x.items.length) : allSecs;
   const n = cartCount();
   // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
   // (Plus de rangée « Les incontournables » : elle répétait les premiers articles du menu, en doublon — demande du patron)
@@ -3275,7 +3280,8 @@ function renderCatalog() {
   if (box.dataset.shell !== state.shop.code + I18N.lang) {
     box.innerHTML = `<div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
     box.dataset.shell = state.shop.code + I18N.lang; box.dataset.html = ""; box.dataset.head = "";
-    state.cgQ = "";
+    state.cgQ = state.cgQNext || ""; state.cgQNext = "";
+    if (state.cgQ) box.querySelector("[data-cg-q]").value = state.cgQ;
   }
   const qIn = box.querySelector("[data-cg-q]");
   qIn.placeholder = t("cgSearch", { name: UI.bi(state.shop.name) });
