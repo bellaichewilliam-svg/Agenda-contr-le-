@@ -4663,3 +4663,19 @@ html.d2:not(.d2-day) .sa-card.sa-picked .sa-far { color: #FCD34D; background: rg
 .install-client .ic-row span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .install-client .ic-row b { font-size: 16px; }
 .install-client .ic-row small { color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+/* Guide iPhone « Installer l'application » : 3 étapes, flèche vers le bouton Partager de Safari */
+.ios-guide { position: fixed; inset: 0; z-index: 9999; background: rgba(11,24,48,.72); display: flex; align-items: flex-end; justify-content: center; padding: 16px 16px 92px; box-sizing: border-box; }
+.ios-guide .ig-box { position: relative; width: 100%; max-width: 420px; background: #fff; color: #0F1F3D; border-radius: 22px; padding: 22px 18px 18px; box-shadow: 0 18px 50px rgba(0,0,0,.35); text-align: start; }
+.ios-guide .ig-x { position: absolute; top: 10px; inset-inline-end: 10px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: #EEF2F7; color: #0F1F3D; font-size: 16px; cursor: pointer; }
+.ios-guide .ig-ico { display: block; width: 64px; height: 64px; border-radius: 16px; margin: 0 auto 10px; }
+.ios-guide h3 { margin: 0 0 8px; font-size: 19px; text-align: center; line-height: 1.3; }
+.ios-guide p { margin: 0 0 10px; font-size: 14px; color: #475569; text-align: center; line-height: 1.45; }
+.ios-guide .ig-steps { list-style: none; margin: 8px 0 12px; padding: 0; display: grid; gap: 10px; }
+.ios-guide .ig-steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 15.5px; line-height: 1.45; }
+.ios-guide .ig-steps li > i { flex: none; width: 28px; height: 28px; border-radius: 50%; background: #FF6A13; color: #fff; font-style: normal; font-weight: 800; display: grid; place-items: center; }
+.ios-guide .ig-k { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 8px; background: #EAF2FF; color: #0A84FF; vertical-align: middle; font-style: normal; margin: 0 2px; }
+.ios-guide .ig-note { font-size: 13.5px; color: #0F1F3D; background: #FFF4EC; border-radius: 12px; padding: 9px 10px; }
+.ios-guide .ig-arrow { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); font-size: 46px; color: #FF6A13; text-shadow: 0 4px 14px rgba(0,0,0,.4); animation: igBounce 1s ease-in-out infinite; }
+@keyframes igBounce { 0%, 100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, 10px); } }
+@media (prefers-reduced-motion: reduce) { .ios-guide .ig-arrow { animation: none; } }

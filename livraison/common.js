@@ -286,8 +286,48 @@ function isStandalone() {
 // Ouvert dans la fenêtre de l'appli client HOP! (on y arrive par le bouton 🛵) : pas l'appli Livreur/Patron
 let appKind = null;
 try { appKind = sessionStorage.getItem("hop.app"); } catch (e) { /* ignore */ }
-// Bouton « Installer l'application » : seulement sur Android (sur iPhone, l'installation à la main déroute les gens)
-function canInstall() { return /Android/i.test(navigator.userAgent) && !isStandalone(); }
+// Bouton « Installer l'application » : Android (installation en un geste) et iPhone (guide en images, Apple n'autorise
+// pas l'installation directe : la personne ajoute HOP! elle-même à l'écran d'accueil, depuis Safari)
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function canInstall() { return (/Android/i.test(navigator.userAgent) || IOS) && !isStandalone(); }
+// iPhone : ouvert dans WhatsApp / Instagram / Facebook… (pas Safari ni Chrome) : impossible d'installer d'ici
+function iosInApp() { const u = navigator.userAgent; return IOS && (/FBAN|FBAV|Instagram|Line\/|Snapchat|TikTok|musical_ly|WhatsApp|GSA\//.test(u) || (!/Safari\//.test(u) && !/CriOS|FxiOS|EdgiOS/.test(u))); }
+const SHARE_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11H6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+const ADD_SVG = '<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v8M8 12h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+// Guide iPhone : 3 étapes en images (FR / HE), une flèche qui montre le bouton Partager de Safari
+function iosInstallGuide(appName, url) {
+  const he = !!(window.I18N && I18N.lang === "he"), T = (fr, h) => he ? h : fr;
+  const old = document.getElementById("iosGuide"); if (old) old.remove();
+  const d = document.createElement("div");
+  d.id = "iosGuide"; d.className = "ios-guide"; d.setAttribute("role", "dialog"); d.setAttribute("aria-modal", "true");
+  if (he) d.setAttribute("dir", "rtl");
+  const name = `<bdi dir="ltr">${esc(appName)}</bdi>`;
+  d.innerHTML = iosInApp()
+    ? `<div class="ig-box"><button type="button" class="ig-x" aria-label="✕">✕</button>
+        <img class="ig-ico" src="icon-192.png" alt="" width="64" height="64" />
+        <h3>${T("Ouvrez d'abord ce lien dans Safari", "פתחו קודם את הקישור בספארי")}</h3>
+        <p>${T("Ici (WhatsApp, Instagram…), l'iPhone ne permet pas d'installer une appli.", "כאן (וואטסאפ, אינסטגרם…) האייפון לא מאפשר להתקין אפליקציה.")}</p>
+        <ol class="ig-steps"><li><i>1</i><span>${T("Touchez le bouton ci-dessous : le lien est copié.", "לחצו על הכפתור למטה: הקישור יועתק.")}</span></li>
+          <li><i>2</i><span>${T("Ouvrez <b>Safari</b>, touchez la barre d'adresse et collez.", "פתחו את <b>ספארי</b>, לחצו על שורת הכתובת והדביקו.")}</span></li>
+          <li><i>3</i><span>${T("Touchez à nouveau « Installer l'application ».", "לחצו שוב על „להתקין את האפליקציה”.")}</span></li></ol>
+        <button type="button" class="btn btn-primary btn-block ig-copy">📋 ${T("Copier le lien", "להעתיק את הקישור")}</button></div>`
+    : `<div class="ig-box"><button type="button" class="ig-x" aria-label="✕">✕</button>
+        <img class="ig-ico" src="icon-192.png" alt="" width="64" height="64" />
+        <h3>${T(`Installez ${name} en 3 gestes`, `מתקינים את ${name} ב-3 צעדים`)}</h3>
+        <ol class="ig-steps">
+          <li><i>1</i><span>${T(`Touchez <b>Partager</b> <em class="ig-k">${SHARE_SVG}</em> en bas de Safari (ou dans le menu <b>···</b>).`, `לחצו על <b>שיתוף</b> <em class="ig-k">${SHARE_SVG}</em> בתחתית ספארי (או בתפריט <b>···</b>).`)}</span></li>
+          <li><i>2</i><span>${T(`Faites défiler et touchez <b>« Sur l'écran d'accueil »</b> <em class="ig-k">${ADD_SVG}</em>.`, `גללו ולחצו על <b>„הוסף למסך הבית”</b> <em class="ig-k">${ADD_SVG}</em>.`)}</span></li>
+          <li><i>3</i><span>${T(`Touchez <b>« Ajouter »</b> en haut à droite. L'icône ${name} est sur votre téléphone !`, `לחצו על <b>„הוסף”</b> למעלה. האייקון ${name} בטלפון שלכם!`)}</span></li></ol>
+        <p class="ig-note">${T("Ensuite, ouvrez HOP! depuis son icône : les alertes et la sonnerie marchent.", "אחר כך פתחו את HOP! מהאייקון: ההתראות והצלצול עובדים.")}</p>
+        <button type="button" class="btn btn-primary btn-block ig-ok">${T("J'ai compris", "הבנתי")}</button></div>
+      <div class="ig-arrow" aria-hidden="true">⬇</div>`;
+  d.addEventListener("click", e => {
+    if (e.target === d || e.target.closest(".ig-x, .ig-ok")) return d.remove();
+    const c = e.target.closest(".ig-copy");
+    if (c) { if (navigator.clipboard) navigator.clipboard.writeText(url).catch(() => {}); c.textContent = "✅ " + T("Lien copié : collez-le dans Safari", "הקישור הועתק: הדביקו בספארי"); }
+  });
+  document.body.appendChild(d);
+}
 function inOwnApp() { return isStandalone() && appKind !== "client"; }
 function markClientApp() { if (isStandalone()) { appKind = "client"; try { sessionStorage.setItem("hop.app", "client"); } catch (e) { /* ignore */ } } }
 async function installApp(appName, path) {
@@ -304,7 +344,8 @@ async function installApp(appName, path) {
     installEvt = null;
     return !!(r && r.outcome === "accepted");
   }
-  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const ios = IOS;
+  if (ios) { iosInstallGuide(appName, url); return false; }
   if (window.I18N && I18N.lang === "he") {
     alert(ios ? `באייפון, בספארי: לחצו על שיתוף ⬆️ בתחתית המסך ואז על „הוסף למסך הבית”. האייקון ${appName} יופיע בטלפון וההתראות יעבדו.`
       : `בכרום, בכתובת ${url}: תפריט ⋮ ← „התקנת אפליקציה”. האייקון ${appName} יופיע עם שאר האפליקציות.`);
