@@ -2220,8 +2220,9 @@ function renderAccount() {
   // Un livreur connecté sur ce téléphone : son espace en un geste depuis l'appli principale
   let rider = false;
   try { rider = !!localStorage.getItem("livraison.session.coursier.v1"); } catch (e) { /* ignore */ }
-  $("#navRider").classList.toggle("mine", rider);
-  $("#navRider").title = rider ? t("navRiderMine") : t("navRider");
+  // (plus de bouton livreur en haut : « Devenir livreur » est en bas de l'accueil, rubrique Explorer)
+  const nr = $("#navRider");
+  if (nr) { nr.classList.toggle("mine", rider); nr.title = rider ? t("navRiderMine") : t("navRider"); }
   const p = Store.getProfile();
   const known = isReturning();
   $("#navMine").textContent = known ? t("hello", { name: p.contact_name.split(" ")[0] }) : t("navMe");
