@@ -1699,6 +1699,12 @@ function addrChip(a) {
   return `${addrIcon(a)} ${name ? `<b>${UI.esc(name)}</b> · ` : ""}${UI.esc(addrLabel(a))}`;
 }
 
+// Netanya d'abord : nos clients habitent Netanya, leurs adresses de Netanya (ou de la ville de départ) passent en tête
+function cityRank(a) {
+  const c = a && (a.cityId || a.city), from = (typeof cityOf === "function" && cityOf("from")) || CONFIG.homeCity;
+  return c === from ? 0 : c === CONFIG.homeCity ? 1 : 2;
+}
+const byCityFirst = (x, y) => cityRank(x.a || x) - cityRank(y.a || y);
 function tagName(a) { return a.tag === "home" ? t("tagHome") : a.tag === "work" ? t("tagWork") : a.tag ? a.name : ""; }
 // Raccourcis de la liste des adresses : « Ma position » puis les adresses enregistrées
 function quickPlaces(which, isHome) {
@@ -1708,7 +1714,7 @@ function quickPlaces(which, isHome) {
     if (err) (isHome ? showHomeErr : showError)(t(err)); else after();
   } }];
   // Livraison : chez le client, jamais à l'adresse d'un commerce enregistré (les commerces restent pour « Récupérer où ? »)
-  Store.getAddresses().filter(a => which !== "to" || !a.brand).slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
+  Store.getAddresses().filter(a => which !== "to" || !a.brand).sort(byCityFirst).slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
     match: [tagName(a), addrLabel(a)].join(" "),
     apply: () => { applySavedAddr(which, a); after(); } }));
   return list;
@@ -1722,7 +1728,7 @@ function renderSavedAddrs() {
   const slot = tag => { const i = list.findIndex(a => a.tag === tag); return i >= 0
     ? `<button type="button" class="addr-chip tagged" data-addr="${i}">${addrChip(list[i])}</button>`
     : `<button type="button" class="addr-chip add" data-add-tag="${tag}">＋ ${tag === "home" ? "🏠 " + UI.esc(t("tagHome")) : "💼 " + UI.esc(t("tagWork"))}</button>`; };
-  const others = list.map((a, i) => ({ a, i })).filter(x => x.a.tag !== "home" && x.a.tag !== "work").slice(0, 4);
+  const others = list.map((a, i) => ({ a, i })).filter(x => x.a.tag !== "home" && x.a.tag !== "work").sort(byCityFirst).slice(0, 4);
   const html = `<small>${UI.esc(t("savedTitle"))}</small>${slot("home")}${slot("work")}`
     + others.map(x => `<button type="button" class="addr-chip" data-addr="${x.i}">${addrChip(x.a)}</button>`).join("")
     + `<button type="button" class="addr-chip add" data-add-tag="other">＋ ${UI.esc(t("asAddOther"))}</button>`;
@@ -1737,7 +1743,7 @@ function fromAddrsHtml(list) {
   // adresse sans nom : la rue en titre, seulement la ville (et l'appartement) dessous
   const line = a => a.brand || tagName(a) ? sub(a) : UI.esc(cityLabel(a.cityId || a.city) + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
   const ico = a => a.brand ? "🏪" : a.tag === "home" ? "🏠" : a.tag === "work" ? "💼" : "📍";
-  const rows = list.map((a, i) => ({ a, i })).slice(0, 6);
+  const rows = list.map((a, i) => ({ a, i })).sort(byCityFirst).slice(0, 6);
   return `<p class="pk-h">${UI.esc(t("pkSaved"))}</p><div class="pk-list">
     <button type="button" class="pk-row pk-pos" data-geo="from"><i aria-hidden="true">🧭</i><span><b>${UI.esc(t("pkPos"))}</b><small>${UI.esc(t("pkPosSub"))}</small></span></button>
     ${rows.map(x => `<button type="button" class="pk-row" data-addr="${x.i}"><i aria-hidden="true">${ico(x.a)}</i><span><b>${UI.esc(title(x.a))}</b><small>${line(x.a)}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`).join("")}
@@ -1761,7 +1767,7 @@ function toAddrsHtml(list) {
   }
   // Liste propre (comme « Récupérer où ? ») : Maison, Travail, les autres adresses, puis « Une autre adresse »
   const rows = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand)
-    .sort((x, y) => ({ home: 0, work: 1 }[x.a.tag] ?? 2) - ({ home: 0, work: 1 }[y.a.tag] ?? 2)).slice(0, 6);
+    .sort((x, y) => byCityFirst(x, y) || ({ home: 0, work: 1 }[x.a.tag] ?? 2) - ({ home: 0, work: 1 }[y.a.tag] ?? 2)).slice(0, 6);
   const rTitle = a => tagName(a) || `${a.street || ""} ${a.number || ""}`.trim();
   const rLine = a => tagName(a) ? sub(a) : UI.esc(cityLabel(a.cityId || a.city) + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
   const rIco = a => a.tag === "home" ? "🏠" : a.tag === "work" ? "💼" : "📍";
