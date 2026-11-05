@@ -161,7 +161,14 @@ async function notify(title, opts) {
 // Notifications push (même quand HOP! est fermé) : on abonne ce téléphone au compte connecté.
 // Rien à faire si les alertes ne sont pas autorisées, en mode démo ou sans clé (config.js).
 let pushDone = false;
-async function pushSubscribe() {
+// Une seule inscription à la fois : deux appels en même temps créaient deux abonnements, et le 2e annulait le 1er
+let pushRun = null;
+function pushSubscribe() {
+  if (pushRun) return pushRun;
+  pushRun = pushSubscribeOnce().finally(() => { pushRun = null; });
+  return pushRun;
+}
+async function pushSubscribeOnce() {
   const key = CONFIG.push && CONFIG.push.publicKey;
   if (pushDone || !key || !window.Notification || Notification.permission !== "granted" || !Store.ONLINE || !Store.session()) return false;
   try {
