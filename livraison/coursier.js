@@ -178,7 +178,14 @@ async function route() {
   $("#logoutBtn").classList.toggle("hidden", !Store.session());
   if (!Store.session()) { $("#welcome").classList.remove("hidden"); showInstallCard(true); return; }
   let meErr = false;
+  // Pendant qu'on charge sa fiche : jamais un écran vide (« Chargement… », puis « Réessayer » si c'est lent)
+  const boot = document.getElementById("booting") || Object.assign(document.createElement("div"), { id: "booting", className: "booting" });
+  if (!boot.parentNode) document.querySelector("main, body").appendChild(boot);
+  boot.innerHTML = `<span class="boot-dot"></span><b>Chargement de votre espace…</b>`;
+  boot.classList.remove("hidden");
+  const slow = setTimeout(() => { boot.innerHTML = `<b>La connexion est lente…</b><small>Vérifiez le réseau.</small><button type="button" class="btn btn-primary" onclick="location.reload()">⟳ Réessayer</button>`; }, 8000);
   try { me = await Store.me(); } catch (e) { me = null; meErr = true; }
+  clearTimeout(slow); boot.classList.add("hidden");
   if (me) Store.staffVisitorMark();   // visites de l'appli client depuis ce téléphone : pas comptées
   // Un vrai livreur ira directement dans son espace depuis l'appli HOP! ; le patron garde l'accueil client (voir index.html)
   if (me) try { localStorage.setItem("hop.role", me.role === "admin" ? "admin" : "coursier"); } catch (e) { /* ignore */ }
@@ -1868,7 +1875,7 @@ function zoneListHtml() {
       <span class="zone-dem">${riderZoneOpen(z.id) ? `<span class="zone-open">Ma zone</span>` : "À venir"}</span>
     </div>`).join("");
 }
-let zoneOpen = false, zoneAt = 0;
+var zoneOpen = false, zoneAt = 0;   // (var : lu aussi au démarrage, quand le service en ligne est repris avant cette ligne)
 function renderRiderZone() {
   const box = $("#riderZone");
   if (!box) return;
