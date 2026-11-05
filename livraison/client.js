@@ -2209,7 +2209,7 @@ const hopLtr = v => UI.esc(v).replace(/HOP!/g, '<bdi dir="ltr">HOP!</bdi>');
 function renderInstallClient() {
   const ic = $("#installClient");
   if (!ic) return;
-  const show = !UI.isStandalone();
+  const show = UI.canInstall();
   ic.classList.toggle("hidden", !show);
   if (show) ic.innerHTML = `<div class="ic-row"><img src="icon-192.png" alt="" width="48" height="48" /><span><b>${hopLtr(t("instT"))}</b><small>${hopLtr(t("instSub"))}</small></span></div>
     <button type="button" class="btn btn-primary btn-block" data-install-client>📲 ${UI.esc(t("instBtn"))}</button>`;

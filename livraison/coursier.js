@@ -168,7 +168,7 @@ async function onLogin(e) {
 // Carte « Installez HOP! Livreur » : à l'accueil et en attente de validation, sauf déjà dans l'appli livreur
 function showInstallCard(on) {
   const card = $("#installCard");
-  card.classList.toggle("hidden", !on || UI.inOwnApp());
+  card.classList.toggle("hidden", !on || UI.inOwnApp() || !UI.canInstall());
   if (UI.isStandalone && UI.isStandalone()) $("#installText").textContent = "Vous êtes dans l'appli client « HOP! ». Pour livrer, installez l'autre icône, « HOP! Livreur », et ouvrez-la à la place : tout y est.";
 }
 async function route() {
@@ -2578,7 +2578,7 @@ function renderHome() {
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
       : `<button type="button" class="rd-line" data-tab="zones">⏰ Pas de course · pointe ${UI.esc(CONFIG.peakHours.fr)}<span class="go">›</span></button>`) : ""}
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-line rd-alert" data-notif="1" title="Pour « En service » et les nouvelles courses, même appli fermée">${Notification.permission === "denied" ? "🔕 Alertes bloquées : touchez pour voir comment" : "🔔 Activer les alertes"}<span class="go">›</span></button>` : ""}
-    ${!isOnline() && !UI.inOwnApp() ? `<button type="button" class="rd-card" data-install="1"><span>📲 Installer HOP! Livreur<small>Son icône « LIVREUR » à part, et les courses qui sonnent appli fermée</small></span><span class="go">›</span></button>` : ""}
+    ${!isOnline() && !UI.inOwnApp() && UI.canInstall() ? `<button type="button" class="rd-card" data-install="1"><span>📲 Installer HOP! Livreur<small>Son icône « LIVREUR » à part, et les courses qui sonnent appli fermée</small></span><span class="go">›</span></button>` : ""}
     ${!isOnline() && refOn() ? `<button type="button" class="rd-card" data-tab="ref"><span>🏆 Gagnez plus en amenant des commerces<small>${me.network_perks ? `+${UI.money(settings.referral_bonus)} sur chacune de leurs livraisons` : "Leurs courses vous sont proposées en premier"}</small></span><span class="go">›</span></button>` : ""}`;
   [...$("#sheetBody").querySelectorAll(".rd-card")].forEach((c, i) => c.classList.toggle("rd-more", i >= 2));
   $("#dutyText").classList.toggle("rd-more", !/⚠️/.test($("#dutyText").textContent));
@@ -2986,7 +2986,7 @@ function renderSettings(view) {
   const opt = (k, v, label) => `<option value="${v}" ${riderSet[k] === v ? "selected" : ""}>${label}</option>`;
   const notif = window.Notification ? (Notification.permission === "granted" ? "🔔 Activées" : "Activer") : "Indisponible";
   view.innerHTML = `<div class="card set-list">
-      ${UI.inOwnApp() ? "" : `<h3>Application</h3>
+      ${UI.inOwnApp() || !UI.canInstall() ? "" : `<h3>Application</h3>
       <div class="set-row"><span>HOP! Livreur sur l'écran d'accueil<small class="muted" style="display:block">Son icône « LIVREUR » à part, même si l'appli client HOP! est déjà installée</small></span><button type="button" class="btn btn-sm btn-primary" data-install="1">📲 Installer</button></div>`}
       <h3>Zone de travail</h3>
       <div class="set-zones">${zoneListHtml()}</div>

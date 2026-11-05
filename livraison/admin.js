@@ -3181,7 +3181,7 @@ $("#bossFirst").addEventListener("change", async e => {
   try { await Store.saveSettings(changes); Object.assign(settings, changes); renderAvail(); }
   catch (ex) { alert("Réglage non enregistré, vérifiez la connexion."); renderAvail(); }
 });
-$("#installBtn").classList.toggle("hidden", UI.inOwnApp());
+$("#installBtn").classList.toggle("hidden", UI.inOwnApp() || !UI.canInstall());
 $("#installBtn").addEventListener("click", () => UI.installApp("HOP! Patron", "patron/").then(ok => { if (ok) $("#installBtn").classList.add("hidden"); }));
 $("#notifBtn").addEventListener("click", () => {
   if (!window.Notification) return alert("Les notifications ne sont pas disponibles sur ce navigateur.");
