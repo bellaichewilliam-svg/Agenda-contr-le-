@@ -1757,7 +1757,7 @@ function toAddrsHtml(list) {
     const a = list[pi], tg = a.tag === "home" || a.tag === "work" ? a.tag : "other", det = addrDet(a);
     return `<div class="sa-card sa-${tg} on sa-picked"><i aria-hidden="true">${tg === "home" ? "🏠" : tg === "work" ? "💼" : "📍"}</i>
       <span><b>${UI.esc(pickName(a))}</b><small>${sub(a)}</small></span>
-      <button type="button" class="sa-change" data-sum-change>${UI.esc(t("sumChangeShort"))}</button>${det ? `<small class="sa-det">${UI.esc(det)}</small>` : ""}</div>`;
+      <button type="button" class="sa-change" data-sum-change>${UI.esc(t("sumChangeShort"))}</button>${det ? `<small class="sa-det">${UI.esc(det)}</small>` : ""}${farNote(a)}</div>`;
   }
   // Liste propre (comme « Récupérer où ? ») : Maison, Travail, les autres adresses, puis « Une autre adresse »
   const rows = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand)
@@ -1770,6 +1770,12 @@ function toAddrsHtml(list) {
     ${h < 0 ? addRow("home") : ""}${w < 0 ? addRow("work") : ""}
     <button type="button" class="pk-row pk-new" data-sum-other><i aria-hidden="true">✏️</i><span><b>${UI.esc(t("sumOther"))}</b><small>${UI.esc(t("pkOtherSub"))}</small></span></button></div>
     ${pi >= 0 && state.toChoose ? `<button type="button" class="sa-link sa-edit" data-sum-edit="${pi}">${UI.esc(t("accEdit"))} · ${UI.esc(pickName(list[pi]))}</button>` : ""}`;
+}
+// Adresse de livraison dans une autre ville que le départ : on le dit clairement sur la carte (prix entre deux villes)
+function farNote(a) {
+  const to = a.cityId || a.city, from = cityOf("from") || CONFIG.homeCity;
+  if (!to || !from || to === from) return "";
+  return `<small class="sa-far">🚗 ${UI.esc(t("saFar", { city: cityLabel(to), from: cityLabel(from) }))}</small>`;
 }
 // Détails d'une adresse enregistrée, en une ligne (type, bâtiment, étage, code, note)
 function addrDet(a) {
@@ -2099,11 +2105,14 @@ function ensureDefaultTo() {
   applySavedAddr("to", d);
   try { syncHome(); } catch (e) { /* accueil pas encore prêt */ }
 }
+// Adresse proposée d'office : seulement dans la même ville que le départ (ou la ville de HOP!). Jamais une adresse
+// d'une autre ville en silence (ex. « Maison » enregistrée à Herzliya → 105 ₪ sans que le client comprenne).
 function defaultDropAddr() {
-  const list = Store.getAddresses().filter(a => !a.brand);
+  const city = (state.pick.from && state.pick.from.cityId) || CONFIG.homeCity;
+  const list = Store.getAddresses().filter(a => !a.brand && (a.cityId || a.city) === city);
   let last = null;
   try { last = localStorage.getItem(LS_LAST_DROP); } catch (e) { /* ignore */ }
-  return (last && list.find(a => addrKey(a) === last)) || list.find(a => a.tag === "home") || null;
+  return (last && list.find(a => addrKey(a) === last)) || list.find(a => a.tag === "home") || list.find(a => a.tag === "work") || null;
 }
 // L'adresse enregistrée choisie est marquée (pleine, ✓) dans « Mes adresses »
 const isSavedPick = (p, a) => !!(p && a && a.lat != null && p.lat === a.lat && p.lon === a.lon && String(p.housenumber || "") === String(a.number || ""));
