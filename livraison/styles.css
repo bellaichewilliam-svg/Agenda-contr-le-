@@ -4689,9 +4689,11 @@ html.d2:not(.d2-day) .sa-card.sa-picked .sa-far { color: #FCD34D; background: rg
 .cg-tiles .cg-item:last-child { border-bottom: 0; }
 .cg-tiles .cg-item.in::before { display: none; }
 .cg-tiles .cg-item.in { box-shadow: inset 0 0 0 2px var(--brand); }
-.cg-tiles .cg-pic { order: -1; width: 100%; height: auto; aspect-ratio: 16 / 10; background: #fff; }
-.cg-tiles .cg-pic > img, .cg-tiles .cg-pic .item-art { width: 100%; height: 100%; border-radius: 0; object-fit: contain; padding: 8px 10px; box-sizing: border-box; background: #fff; }
-.cg-tiles .cg-pic > img.pic-white { padding: 8px 10px; }
+.cg-tiles .cg-pic { order: -1; flex: none; width: 100%; height: auto; min-height: 0; aspect-ratio: 1 / 1; overflow: hidden; background: #fff; }
+/* toutes les cartes identiques (demande du patron) : photo carrée de même taille, quelle que soit la photo d'origine.
+   vraie photo (gâteau, plat) : plein cadre ; produit détouré sur fond blanc : en entier, sur blanc */
+.cg-tiles .cg-pic > img, .cg-tiles .cg-pic .item-art { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 0; object-fit: cover; padding: 0; box-sizing: border-box; background: #fff; }
+.cg-tiles .cg-pic > img.pic-white { object-fit: contain; padding: 8px 10px; }
 .cg-tiles .cg-pic .cg-plus { top: 0; bottom: auto; inset-inline-end: 0; inset-inline-start: auto; width: 46px; height: 46px; border: 0; border-radius: 0 0 0 22px;
   background: #0F1F3D; color: #FF6A13; font-size: 30px; font-weight: 700; box-shadow: none; }
 html[dir="rtl"] .cg-tiles .cg-pic .cg-plus { border-radius: 0 0 22px 0; }
@@ -4699,14 +4701,16 @@ html[dir="rtl"] .cg-tiles .cg-pic .cg-plus { border-radius: 0 0 22px 0; }
 .cg-tiles .cg-pic .cg-qty { bottom: 6px; }
 .cg-tiles .cg-info { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px 12px; flex: 1; }
 .cg-tiles .cg-info .cg-price { order: -1; margin: 0; font-size: 19px; font-weight: 800; color: var(--brand); }
-.cg-tiles .cg-info b { font-size: 15px; line-height: 1.3; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
-.cg-tiles .cg-info small { display: none; }
-.cg-tiles .cg-meta { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 6px; margin-top: auto; padding-top: 4px; font-size: 13px; }
+.cg-tiles .cg-info b { font-size: 15px; line-height: 1.3; height: 2.6em; font-weight: 700; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.cg-grid.cg-tiles .cg-info small { display: none !important; }   /* la description reste dans la fiche ouverte */
+.cg-tiles .cg-info .cg-sizes { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.cg-tiles .cg-meta { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; margin-top: auto; padding-top: 4px; height: calc(2 * 1.35em + 5px); line-height: 1.35; font-size: 13px; }
 .cg-tiles .cg-meta span:first-child { color: var(--ink); font-weight: 600; white-space: nowrap; }
 .cg-tiles .cg-meta span:last-child { color: var(--muted); white-space: nowrap; }
 /* Fiche produit ouverte (épiceries) : grande photo sur blanc, titre en gros, contenance, prix + prix au kg */
 .item-sheet.groc .it-pic { background: #fff; border-radius: 26px 26px 0 0; }
-.item-sheet.groc .it-pic > img, .item-sheet.groc .it-pic > .item-art { height: 260px; object-fit: contain; padding: 18px; box-sizing: border-box; background: #fff; }
+.item-sheet.groc .it-pic > img, .item-sheet.groc .it-pic > .item-art { height: 260px; object-fit: cover; box-sizing: border-box; background: #fff; }
+.item-sheet.groc .it-pic > img.pic-white { object-fit: contain; padding: 18px; }
 .item-sheet.groc .it-txt h3 { font-size: 25px; font-weight: 800; line-height: 1.2; }
 .it-txt p.it-pack { margin: 2px 0 0; color: var(--ink); font-size: 17px; font-weight: 600; }
 .it-prow { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
