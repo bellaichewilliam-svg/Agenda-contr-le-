@@ -2209,12 +2209,33 @@ const hopLtr = v => UI.esc(v).replace(/HOP!/g, '<bdi dir="ltr">HOP!</bdi>');
 function renderInstallClient() {
   const ic = $("#installClient");
   if (!ic) return;
+  // Appli installée mais alertes pas encore autorisées (iPhone : la demande ne peut venir que d'un toucher)
+  const askNotif = UI.isStandalone() && window.Notification && Notification.permission !== "granted" && !!(CONFIG.push && CONFIG.push.publicKey);
+  if (askNotif) {
+    const denied = Notification.permission === "denied";
+    ic.classList.remove("hidden");
+    ic.innerHTML = `<div class="ic-row"><img src="icon-192.png" alt="" width="48" height="48" /><span><b>${hopLtr(t("notifT"))}</b><small>${hopLtr(t(denied ? "notifDenied" : "notifSub"))}</small></span></div>
+      ${denied ? "" : `<button type="button" class="btn btn-primary btn-block" data-notif-client>🔔 ${UI.esc(t("notifBtn"))}</button>`}`;
+    return;
+  }
   const show = UI.canInstall();
   ic.classList.toggle("hidden", !show);
   if (show) ic.innerHTML = `<div class="ic-row"><img src="icon-192.png" alt="" width="48" height="48" /><span><b>${hopLtr(t("instT"))}</b><small>${hopLtr(t("instSub"))}</small></span></div>
     <button type="button" class="btn btn-primary btn-block" data-install-client>📲 ${UI.esc(t("instBtn"))}</button>`;
 }
 document.addEventListener("click", e => { if (e.target.closest("[data-install-client]")) UI.installApp("HOP!", "app/").then(ok => { if (ok) renderInstallClient(); }); });
+// « Activer les notifications » (appli client installée) : la demande part du toucher (obligatoire sur iPhone),
+// puis ce téléphone est inscrit : à sa dernière course (et aux suivantes, par son numéro), sinon au téléphone seul
+document.addEventListener("click", async e => {
+  if (!e.target.closest("[data-notif-client]")) return;
+  try { if (Notification.permission === "default") await Notification.requestPermission(); } catch (x) { /* ignore */ }
+  if (Notification.permission === "granted") {
+    const last = (state.mine || []).find(o => o && o.token);
+    const ok = last ? await UI.clientPushSubscribe(last.token, false) : await UI.cartPushSubscribe(false);
+    toastCart(t(ok ? "notifOk" : "notifFail"));
+  }
+  renderInstallClient();
+});
 function renderAccount() {
   renderInstallClient();
   // Un livreur connecté sur ce téléphone : son espace en un geste depuis l'appli principale
