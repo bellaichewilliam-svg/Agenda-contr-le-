@@ -311,7 +311,7 @@ async function toggleDuty() {
   try { localStorage.setItem(LS_DUTY, "1"); } catch (e) { /* ignore */ }
   // En service = HOP! ouvert (la base passe « accepting » à vrai toute seule ; fin du service = « Fermé pour le moment »)
   Store.setOnline(true).then(() => { settings.accepting = true; renderAvail(); }).catch(() => {});
-  UI.dutyNotice(true, "Vos clients vous voient sur la carte. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
+  UI.dutyNotice(false);  // la notification « En service » est celle de HOP! Livreur, plus de doublon au nom du Patron
   renderDuty();
 }
 // De retour dans HOP! (après Waze) : position tout de suite, écran allumé, notification « En service » remise
@@ -319,7 +319,7 @@ async function dutyBack() {
   if (duty.watch == null) return;
   duty.lastSent = 0;
   navigator.geolocation.getCurrentPosition(sendPosition, () => {}, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-  UI.dutyNotice(true, "Vos clients vous voient sur la carte. Touchez ici pour revenir dans HOP! (Waze reste ouvert).");
+  UI.dutyNotice(false);  // la notification « En service » est celle de HOP! Livreur, plus de doublon au nom du Patron
 }
 
 function renderDuty() {
