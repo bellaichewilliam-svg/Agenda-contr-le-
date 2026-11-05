@@ -4656,3 +4656,10 @@ html.d2:not(.d2-day) .sa-card.sa-picked .sa-far { color: #FCD34D; background: rg
 /* « Vider le panier » : discret mais visible (rouge, centré) ; ✕ sur la pastille « Reprendre mon panier » */
 .cs-clear { display: block; margin: 8px auto 0; padding: 8px 14px; border: 0; background: none; color: #DC2626; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .cart-resume .cr-x { display: inline-grid; place-items: center; width: 26px; height: 26px; margin-inline-start: 6px; border-radius: 50%; background: rgba(127,127,127,.18); font-size: 13px; font-style: normal; cursor: pointer; flex: none; }
+
+/* « Installer l'application » (client, Mes courses) */
+.install-client .ic-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.install-client .ic-row img { width: 48px; height: 48px; border-radius: 12px; flex: none; }
+.install-client .ic-row span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.install-client .ic-row b { font-size: 16px; }
+.install-client .ic-row small { color: var(--muted); font-size: 13px; line-height: 1.4; }

@@ -303,6 +303,11 @@ async function installApp(appName, path) {
     return !!(r && r.outcome === "accepted");
   }
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (window.I18N && I18N.lang === "he") {
+    alert(ios ? `באייפון, בספארי: לחצו על שיתוף ⬆️ בתחתית המסך ואז על „הוסף למסך הבית”. האייקון ${appName} יופיע בטלפון וההתראות יעבדו.`
+      : `בכרום, בכתובת ${url}: תפריט ⋮ ← „התקנת אפליקציה”. האייקון ${appName} יופיע עם שאר האפליקציות.`);
+    return false;
+  }
   alert(ios
     ? `Sur iPhone, dans Safari : touchez Partager ⬆️ en bas de l'écran, puis « Sur l'écran d'accueil ». L'icône « ${appName} » apparaît sur votre téléphone, et les alertes marchent.`
     : `Dans Chrome, à l'adresse ${url} : menu ⋮ → « Installer l'application ». L'icône « ${appName} » apparaît avec vos applis.\n\nSi Chrome dit « déjà installée », c'est l'ancienne icône HOP! : supprimez-la, rechargez la page, puis réessayez.`);
