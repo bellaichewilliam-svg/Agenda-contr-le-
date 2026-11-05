@@ -2516,6 +2516,7 @@ async function submit(e) {
     // (la base marque la livraison offerte ; l'écran de confirmation le sait déjà)
     if (q.gift) saved.shop_pays = true;
     UI.track("order_sent", { order_ref: saved.ref, amount: Number(saved.price) || 0, shop_code: state.shop ? state.shop.code : null });
+    if (state.shop && order.items) { try { const m = JSON.parse(localStorage.getItem(LS_REORDER) || "{}"); m[saved.ref] = state.shop.code; localStorage.setItem(LS_REORDER, JSON.stringify(m)); } catch (e) { /* ignore */ } }
     if (order.promo_code === "PANIER") { try { localStorage.setItem(LS_GIFT, String(Date.now())); } catch (e) { /* ignore */ } cartAtStart = null; }
     try { sessionStorage.removeItem("hop.started"); } catch (e) { /* ignore */ }
     if (gp) Object.assign(saved, { goods_pay: "a_payer", items_total: gp.total || saved.items_total || 0 });
@@ -4023,7 +4024,6 @@ function initHome() {
       if (addr) applySavedAddr(addr.brand || !state.pick.from ? "from" : "to", addr);
       return;
     }
-    if (e.target.closest("#homeRepeatBtn")) repeatLast();
     const en = e.target.closest("[data-ens]");
     if (en) openEns(en.dataset.ens);
     const pr = e.target.closest("[data-pro]");
@@ -4264,27 +4264,93 @@ function swapRoute() {
   renderSaveBtns();
 }
 
-// « Refaire » la dernière course : mêmes adresses, même type, d'un seul geste
-function lastTrip() {
-  const o = state.mine.filter(x => !["annulee", "refusee"].includes(x.status))
-    .sort((a, b) => new Date(b.created_at || b.pickup_at) - new Date(a.created_at || a.pickup_at))[0];
-  if (!o) return null;
-  const list = Store.getAddresses();
-  const near = (a, lat, lon) => a.lat != null && lat != null && Math.abs(a.lat - lat) < 1e-5 && Math.abs(a.lon - lon) < 1e-5;
-  const from = list.find(a => near(a, Number(o.pickup_lat), Number(o.pickup_lon)));
-  const to = list.find(a => near(a, Number(o.dropoff_lat), Number(o.dropoff_lon)));
-  return from && to ? { o, from, to } : null;
+// --- 🔁 « Commander à nouveau » : les commandes déjà passées, les plus fréquentes d'abord (puis la dernière) ---------
+// Commande dans un commerce : un toucher ouvre le commerce avec les mêmes articles dans le panier et la même adresse ;
+// course simple : mêmes adresses, même type de course.
+const LS_REORDER = "livraison.reorder.v1";
+const addrOfOrder = (o, pre) => {
+  const lat = Number(o[pre + "_lat"]), lon = Number(o[pre + "_lon"]), txt = String(o[pre + "_address"] || "").trim();
+  if (!txt || !isFinite(lat) || !isFinite(lon) || (!lat && !lon)) return null;
+  const m = /^(.*?)[\s,]+(\d+[א-תa-zA-Z]?)$/.exec(txt), city = pre === "pickup" ? o.from_city : o.to_city;
+  return { street: m ? m[1] : txt, number: m ? m[2] : "", cityId: city, city, lat, lon, exact: true, kind: o[pre + "_kind"] || null,
+    building: o[pre + "_building"] || "", floor: o[pre + "_floor"] || "", apt: o[pre + "_apt"] || "", code: o[pre + "_code"] || "", note: o[pre + "_note"] || "" };
+};
+function reorderList() {
+  const done = (state.mine || []).filter(o => !["annulee", "refusee"].includes(o.status) && !o.is_test);
+  const groups = {};
+  done.forEach(o => {
+    const items = Array.isArray(o.items) ? o.items.filter(i => i && i.id) : [];
+    const key = items.length && o.shop_name ? "s|" + o.shop_name + "|" + items.map(i => i.id + ":" + i.qty).sort().join(",")
+      : "t|" + o.service + "|" + Number(o.pickup_lat).toFixed(4) + "," + Number(o.pickup_lon).toFixed(4) + "|" + Number(o.dropoff_lat).toFixed(4) + "," + Number(o.dropoff_lon).toFixed(4);
+    const g = groups[key] = groups[key] || { key, n: 0, o, items };
+    g.n++;
+    if (new Date(o.created_at || o.pickup_at) > new Date(g.o.created_at || g.o.pickup_at)) g.o = o;
+  });
+  const last = Object.values(groups).sort((a, b) => new Date(b.o.created_at || b.o.pickup_at) - new Date(a.o.created_at || a.o.pickup_at))[0];
+  return Object.values(groups).filter(g => g.items.length || (addrOfOrder(g.o, "pickup") && addrOfOrder(g.o, "dropoff")))
+    .sort((a, b) => (b.n - a.n) || (new Date(b.o.created_at || b.o.pickup_at) - new Date(a.o.created_at || a.o.pickup_at)))
+    .slice(0, 6).map(g => Object.assign(g, { last: g === last }));
 }
-function repeatLast() {
-  const r = lastTrip();
-  if (!r) return;
-  applySavedAddr("from", r.from);
-  applySavedAddr("to", r.to);
-  if (r.o.service) form.elements.service.value = r.o.service;
-  if (r.o.size && !(r.o.size === "gros" && P.carAvailable === false)) form.elements.size.value = r.o.size;
-  syncVisibility();
-  renderQuote();
+const shopCodeOfOrder = o => {
+  try { const m = JSON.parse(localStorage.getItem(LS_REORDER) || "{}"); if (m[o.ref]) return m[o.ref]; } catch (e) { /* ignore */ }
+  const n = String(o.shop_name || "").trim().toLowerCase();
+  const hit = (state.showcase || []).concat(state.partners || []).find(x => String(x.name || "").trim().toLowerCase() === n);
+  return hit ? hit.code : null;
+};
+function renderReorder() {
+  const box = $("#homeRepeat");
+  if (!box) return;
+  const list = reorderList();
+  if (!list.length) { box.innerHTML = ""; return; }
+  const short = a => a ? `${a.street} ${a.number}`.trim() : "";
+  const sc = o => (state.showcase || []).find(x => String(x.name || "").trim().toLowerCase() === String(o.shop_name || "").trim().toLowerCase());
+  const card = (g, i) => {
+    const o = g.o, shop = g.items.length, logo = shop && sc(o) ? UI.safeImg(sc(o).logo) : null;
+    const lines = shop ? String(o.shop_order || "").split("\n").filter(l => l && !/^💬/.test(l))
+      .map(l => { const m = /^(\d+)\s*×\s*(.*)$/.exec(l); return m ? `${m[1]} × ${UI.bi(m[2])}` : UI.bi(l); }) : [];
+    // (adresses isolées : deux adresses en hébreu ne se mélangent pas ; flèche dans le sens de la langue)
+    const title = shop ? escHop(UI.bi(o.shop_name)) : `<bdi>${UI.esc(short(addrOfOrder(o, "pickup")))}</bdi> ${I18N.lang === "he" ? "←" : "→"} <bdi>${UI.esc(short(addrOfOrder(o, "dropoff")))}</bdi>`;
+    const sub = shop ? lines.slice(0, 2).join(" · ") + (lines.length > 2 ? ` +${lines.length - 2}` : "") : (t("svc_" + o.service) || "");
+    const tag = g.n > 1 && i === 0 ? `⭐ ${t("reoOften", { n: g.n })}` : g.last ? `🕘 ${t("reoLast")}` : g.n > 1 ? t("reoTimes", { n: g.n }) : "";
+    return `<button type="button" class="ro-card" data-reorder="${i}">
+      <span class="ro-top"><i class="ro-ico">${logo ? `<img src="${UI.esc(logo)}" alt="" />` : shop ? "🛍️" : "📦"}</i>${tag ? `<em class="ro-tag">${UI.esc(tag)}</em>` : ""}</span>
+      <b class="ro-title">${title}</b><small class="ro-sub">${UI.esc(sub)}</small>
+      <span class="ro-go">🔁 ${UI.esc(t("reoGo"))}</span></button>`;
+  };
+  state.reorder = list;
+  const html = `<h3 class="ch-h">${UI.esc(t("reoTitle"))}</h3><div class="ro-row">${list.map(card).join("")}</div>`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
+async function reorderGo(i) {
+  const g = (state.reorder || [])[i];
+  if (!g) return;
+  const o = g.o, savedTo = Store.getAddresses().find(a => !a.brand && a.lat != null && Math.abs(a.lat - Number(o.dropoff_lat)) < 1e-4 && Math.abs(a.lon - Number(o.dropoff_lon)) < 1e-4);
+  const to = savedTo || addrOfOrder(o, "dropoff");
+  const code = g.items.length ? shopCodeOfOrder(o) : null;
+  UI.track("reorder", { kind: code ? "shop" : "trip", n: g.n });
+  if (code) {
+    state.findItem = null; state.cgQNext = ""; state.shopDir = "";
+    await loadShop(code);
+    if (!state.shop) return showHomeErr(t("reoGone"));
+    const have = new Map(cgProducts().filter(p => p.available).map(p => [p.id, p]));
+    let missing = 0;
+    state.cart = {};
+    g.items.forEach(it => { if (have.has(it.id)) state.cart[it.id] = Math.min(50, Number(it.qty) || 1); else missing++; });
+    if (to) applySavedAddr("to", to);
+    renderCatalog(); renderQuote();
+    if (cartCount()) { openCart(); if (missing) setTimeout(() => alert(t(missing > 1 ? "reoMissingN" : "reoMissing1", { n: missing })), 300); }
+    else alert(t("reoAllGone"));
+    return;
+  }
+  const from = Store.getAddresses().find(a => a.lat != null && Math.abs(a.lat - Number(o.pickup_lat)) < 1e-4 && Math.abs(a.lon - Number(o.pickup_lon)) < 1e-4) || addrOfOrder(o, "pickup");
+  if (from) applySavedAddr("from", from);
+  if (to) applySavedAddr("to", to);
+  if (o.service) form.elements.service.value = o.service;
+  if (o.size && !(o.size === "gros" && P.carAvailable === false)) form.elements.size.value = o.size;
+  syncVisibility(); renderQuote(); syncHome();
+  homeGo();
+}
+document.addEventListener("click", e => { const b = e.target.closest("[data-reorder]"); if (b) { e.preventDefault(); reorderGo(Number(b.dataset.reorder)); } });
 
 // Le formulaire et l'accueil restent synchronisés (adresses, numéro, heure, prix, carte)
 function syncHome() {
@@ -4323,9 +4389,7 @@ function syncHome() {
   const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity));
   $("#homeFair").textContent = t("fairText", { price: ready && val("service") !== "achat" ? money(currentQuote().total) : base });
   $("#homeFairShop").textContent = t("fairShop", { price: ready && val("service") === "achat" ? money(currentQuote().total) : base });
-  const r = lastTrip();
-  $("#homeRepeat").innerHTML = r && !ready ? `<button type="button" class="ch-repeat" id="homeRepeatBtn"><span>🔁</span><div><b>${UI.esc(t("hmRepeat"))}</b>
-      <small>${UI.esc(t("hmRepeatSub", { from: r.from.brand || `${r.from.street} ${r.from.number}`.trim(), to: r.to.brand || `${r.to.street} ${r.to.number}`.trim() }))}</small></div><b>${money(r.o.price)}</b></button>` : "";
+  renderReorder();
   const key = JSON.stringify([state.fromPoint, state.toPoint]);
   if (key !== home.key) { home.key = key; renderHomeMap(true); renderLive(); }
 }
