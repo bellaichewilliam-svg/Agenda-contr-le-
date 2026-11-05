@@ -1571,6 +1571,10 @@ function render() {
     renderInbox(view);
   } else if (tab === "zones") {
     renderZones(view);
+  } else if (tab === "workzone") {
+    view.innerHTML = `<div class="card"><h3>📍 Ma zone de travail</h3>
+      <p class="muted small" style="margin:4px 0 10px">Vous recevez les courses de votre zone. Les autres zones ouvriront plus tard : vous serez prévenu.</p>
+      ${zoneListHtml()}</div>`;
   } else if (tab === "ref" && refOn()) {
     renderRef(view);
   } else {
@@ -2512,7 +2516,7 @@ function applyRiderSettings() {
   riderLightNow = light;
 }
 setInterval(() => { if (riderLight() !== riderLightNow) applyRiderSettings(); }, 60000);
-const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Demande", week: "Finances", stats: "Statistiques",
+const PAGE_TITLES = { mine: "Mes courses", pool: "Courses disponibles", zones: "Demande", workzone: "Ma zone", week: "Finances", stats: "Statistiques",
   ref: "Gagner plus", rules: "Engagements et assurance", settings: "Réglages", help: "Centre d'aide", inbox: "Messages de HOP!" };
 function openPage(t) {
   if (t === "ref" && !refOn()) t = "home";
