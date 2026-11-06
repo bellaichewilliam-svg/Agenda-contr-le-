@@ -3407,7 +3407,7 @@ function renderCatalog() {
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   const html = `${state.boss ? bossBar() : ""}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
-    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}">${sec.items.map(p => {
+    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
@@ -3437,6 +3437,8 @@ function renderCatalog() {
   if (box.dataset.html !== html) { box.querySelector(".cg-body").innerHTML = html; box.dataset.html = html; }
   if (state.findItem) {
     const id = state.findItem; state.findItem = null;
+    // Produit touché dans la recherche de l'accueil : sa fiche s'ouvre tout de suite (photo, prix, Ajouter)
+    if (state.findOpen) { state.findOpen = false; if (cgProducts().some(p => p.id === id)) setTimeout(() => openItem(id), 250); }
     requestAnimationFrame(() => { const el = box.querySelector(`.cg-item[data-cg-open="${CSS.escape(id)}"]`) || box.querySelector(`[data-cg-open="${CSS.escape(id)}"]`); if (el) { el.classList.add("cg-found"); el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.classList.remove("cg-found"), 4000); } });
   }
   // Les onglets restent collés juste sous la barre du haut (« ‹ Accueil · Ma commande »)
@@ -4116,15 +4118,16 @@ function vitRender() {
   try { vitRenderNow(); } catch (e) { /* accueil pas encore prêt : redessiné au prochain passage */ }
 }
 function vitRenderNow() {
-  const street = val("dropoff_address").trim(), no = val("dropoff_number").trim();
+  const street = val("dropoff_address").split(",")[0].trim(), no = val("dropoff_number").trim();
   const txt = street ? (no && !new RegExp("\\b" + no + "\\b").test(street) ? `${street} ${no}` : street) : "";
   const saved = txt && Store.getAddresses().find(a => !a.brand && state.pick.to && a.lat != null && Math.abs(a.lat - state.pick.to.lat) < 1e-4 && Math.abs(a.lon - state.pick.to.lon) < 1e-4);
   const tag = saved && saved.tag ? (saved.tag === "home" ? "🏠" : saved.tag === "work" ? "💼" : "") : "";
-  $("#vitAddrTxt").innerHTML = txt ? `${tag ? tag + " " : ""}<bdi>${UI.esc(txt)}</bdi>` : UI.esc(t("vitAddrPick"));
+  $("#vitAddrTxt").innerHTML = txt ? `<bdi>${UI.esc(txt)}</bdi>` : UI.esc(t("vitAddrPick"));
+  $("#vitAddr > i").textContent = tag || "📍";
   const cur = currentWhen(), opt = whenOptions().find(o => o.id === cur);
   const at = val("urgency") === "programmee" && pickupDate();
   $("#vitWhenTxt").textContent = cur === "now" ? t("hmNow").replace(/^\P{L}+/u, "")
-    : at ? UI.fmtDateTime(at) : t({ in1h: "hmIn1h", tonight: "hmTonight", tomorrow: "hmTomorrow", opens: "hmOpens", other: "vitOther" }[cur] || "vitOther", { h: (opt && (opt.h || (opt.d ? hhmm(opt.d) : ""))) || "" });
+    : at ? vitWhenShort(at) : t({ in1h: "hmIn1h", tonight: "hmTonight", tomorrow: "hmTomorrow", opens: "hmOpens", other: "vitOther" }[cur] || "vitOther", { h: (opt && (opt.h || (opt.d ? hhmm(opt.d) : ""))) || "" });
   $("#vitWhen").classList.toggle("on", $("#accueil").classList.contains("when-open"));
   const open = openNow(), st = $("#vitStatus");
   if (!open) {
@@ -4132,9 +4135,53 @@ function vitRenderNow() {
     st.innerHTML = `<span>${UI.esc(short)}</span><button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>`;
   }
   st.classList.toggle("hidden", open);
-  $("#vitCoursePrice").textContent = t("vitCoursePrice", { city: I18N.cityName(CONFIG.homeCity), price: money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)) });
+  const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)), city = I18N.cityName(CONFIG.homeCity);
+  $("#vitCoursePrice").textContent = t("vitCoursePrice", { city, price: base });
+  const trust = [t("vitTrust1"), t("vitTrust2", { price: base, city }), t("vitTrust3")].map(x => `<span>${UI.esc(x)}</span>`).join("");
+  if ($("#vitTrust").dataset.html !== trust) { $("#vitTrust").innerHTML = trust; $("#vitTrust").dataset.html = trust; }
+}
+// « Qu'est-ce qu'on vous apporte ? » : ce que le client écrit devient sa commande (« J'achète pour vous » : le livreur
+// va au magasin et l'achète), même dans un commerce qui n'est pas sur HOP!
+function startFreeOrder(q) {
+  q = String(q || "").trim();
+  if (norm(q).length < 2) return;
+  $("#homeFindList").classList.add("hidden");
+  $("#homeFind").value = ""; $("#homeFind").blur();
+  UI.track("home_any", { q: q.slice(0, 40) });
+  goKind("shop");
+  const cur = form.shopping_list.value.trim();
+  form.shopping_list.value = cur && !cur.includes(q) ? cur + "\n" + q : cur || q;
+  form.shopping_list.dispatchEvent(new Event("input", { bubbles: true }));
+}
+// Exemples qui s'écrivent tout seuls dans la recherche (on comprend tout de suite qu'on peut tout demander)
+function vitTypewriter() {
+  const inp = $("#homeFind");
+  if (!inp) return;
+  let i = 0, n = 0, wait = 0;
+  setInterval(() => {
+    if (document.hidden || document.activeElement === inp || inp.value || !vitOn()) return;
+    const list = t("vitAskEx");
+    if (!Array.isArray(list) || !list.length) return;
+    if (wait > 0) { wait--; return; }
+    const ex = list[i % list.length];
+    n++;
+    inp.placeholder = "🔎 " + ex.slice(0, n);
+    if (n >= ex.length) { n = 0; i++; wait = 22; }
+  }, 70);
+}
+// « Quand » en court : 21:00 · Demain 09:00 · Ven. 09:00 (jamais coupé)
+function vitWhenShort(at) {
+  const d = new Date(at), h = hhmm(d), day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day(d) - day(new Date())) / 86400000);
+  if (diff === 0) return t("vitToday", { h });
+  if (diff === 1) return t("vitTomorrow", { h });
+  const nm = (DAYS[I18N.lang] || DAYS.fr)[d.getDay()];
+  return `${I18N.lang === "he" ? nm : nm.slice(0, 3) + "."} ${h}`;
 }
 function initVitrine() {
+  const h = $("#homeProBox .ch-h");
+  if (h) { h.dataset.i18n = "vitShopsT"; h.textContent = t("vitShopsT"); }
+  if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) vitTypewriter();
   const find = $("#homeProBox .sc-find");
   if (find) $("#vitTop").appendChild(find);
   $("#vitAddr").addEventListener("click", () => enterCourse("to"));
@@ -5079,7 +5126,7 @@ function renderShowcase() {
   } else body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
   const html = stories + body;
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
-  if (VIT) renderHomePharma();
+  if (VIT) { renderHomePharma(); $("#homeFilters").classList.toggle("hidden", all.length < 6); }
 }
 $("#homeFilters").addEventListener("click", e => {
   const b = e.target.closest("[data-scf]");
@@ -5104,12 +5151,15 @@ async function homeFind(q) {
   const staple = rayonHits(q, 1).length > 0;
   const render = products => {
     if (seq !== findSeq) return;
+    if (VIT) return vitFindRender(q, products, shops, staple, box);
     if (staple) products = products.filter(p => !/restaurant|resto|cafe/i.test(p.kind || ""));
     const prodHtml = products.slice(0, 8).map(p => `<button type="button" data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}"><span class="fi-pic">${UI.safeImg(sc(p.code).logo) ? `<img src="${UI.safeImg(sc(p.code).logo)}" alt="" />` : (UI.KIND_ICON[p.kind] || "🍽️")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(p.name))}</b><small>${UI.esc(t("findAt", { shop: UI.bi(p.shop) }))}${p.category ? " · " + UI.esc(UI.bi(p.category)) : ""}</small></span><span class="fi-price" dir="ltr">${money(p.price)}</span></button>`).join("");
     const shopHtml = shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}${UI.shopText(s, "tagline") ? " · " + UI.esc(UI.shopText(s, "tagline")) : ""}</small></span></button>`).join("");
     // Les rayons HOP! (eau, couches, Acamol…) : le livreur va au magasin le plus proche
     const rayHtml = rayonHits(q, 4).map(({ r, i }) => `<button type="button" data-find-ray="${UI.esc(r.id)}"><span class="fi-pic">${UI.esc(i.e || "🛒")}</span><span><b>${UI.esc(phName(i))}</b><small>${UI.esc(t("acRayon", { rayon: phName(r.title) }))}</small></span></button>`).join("");
-    box.innerHTML = (rayHtml ? `<h5>${UI.esc(t("findRayons"))}</h5>${rayHtml}` : "") + (prodHtml ? `<h5>${UI.esc(t("findProducts"))}</h5>${prodHtml}` : "") + (shopHtml ? `<h5>${UI.esc(t("findShops"))}</h5>${shopHtml}` : "")
+    // Accueil vitrine : en premier, « On vous l'apporte » (n'importe quoi, de n'importe quel commerce : le livreur l'achète)
+    const anyHtml = VIT ? `<button type="button" class="fi-any" data-find-any><span class="fi-pic">🛵</span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>` : "";
+    box.innerHTML = anyHtml + (rayHtml ? `<h5>${UI.esc(t("findRayons"))}</h5>${rayHtml}` : "") + (prodHtml ? `<h5>${UI.esc(t("findProducts"))}</h5>${prodHtml}` : "") + (shopHtml ? `<h5>${UI.esc(t("findShops"))}</h5>${shopHtml}` : "")
       || `<p class="fi-none">${UI.esc(t("findNone", { q }))}</p>`;
     box.classList.remove("hidden");
   };
@@ -5118,14 +5168,52 @@ async function homeFind(q) {
   UI.track("home_find", { q: q.slice(0, 40) });
 }
 $("#homeFind").addEventListener("input", e => { clearTimeout(findTimer); findTimer = setTimeout(() => homeFind(e.target.value), 250); });
+// Résultats de la vitrine : « On vous l'apporte », puis les produits rangés PAR COMMERCE (logo, nom, « Tout voir »)
+// en cartes avec photo et prix (un toucher ouvre la fiche du produit dans son commerce), les courses HOP! (rayons), les commerces
+function vitFindRender(q, products, shops, staple, box) {
+  if (staple) products = products.filter(p => !/restaurant|resto|cafe/i.test(p.kind || ""));
+  const sc = code => (state.showcase || []).find(x => x.code === code) || {};
+  const qa = UI.esc(q.trim());
+  const any = `<button type="button" class="fi-any" data-find-any><span class="fi-pic">🛵</span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>`;
+  const groups = [];
+  products.forEach(p => { let g = groups.find(x => x.code === p.code); if (!g) groups.push(g = { code: p.code, shop: p.shop, kind: p.kind, items: [] }); g.items.push(p); });
+  const card = (attrs, pic, white, price, name) => `<button type="button" class="fr-card" ${attrs}><span class="fr-pic${white ? " white" : ""}">${pic}</span>
+    <span class="fr-price">${price}</span><span class="fr-nm">${name}</span></button>`;
+  const prodHtml = groups.map(g => {
+    const logo = UI.safeImg(sc(g.code).logo);
+    return `<section class="fr-group"><div class="fr-head"><span class="fr-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(UI.KIND_ICON[g.kind] || "🏪")}</span>
+      <span class="fr-name"><b>${escHop(UI.bi(g.shop))}</b><small>${UI.esc(t(g.items.length === 1 ? "vitFindN1" : "vitFindN", { n: g.items.length }))}</small></span>
+      <button type="button" class="fr-all" data-find-pro="${UI.esc(g.code)}" data-find-q="${qa}">${UI.esc(t("vitFindAll"))} ›</button></div>
+      <div class="fr-row">${g.items.slice(0, 12).map(p => { const ph = UI.safeImg(p.photo);
+        return card(`data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}" data-find-open="1"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : `<i>${UI.esc(UI.KIND_ICON[g.kind] || "🛍️")}</i>`,
+          !!ph && UI.extPic(ph), `<bdi dir="ltr">${UI.esc(money(p.price))}</bdi>`, UI.esc(UI.bi(p.name))); }).join("")}</div></section>`;
+  }).join("");
+  const rays = rayonHits(q, 8);
+  const rayHtml = rays.length ? `<section class="fr-group"><div class="fr-head"><span class="fr-logo hop">🛒</span><span class="fr-name"><b>${escHop(t("vitFindRay").replace(/^\P{L}+/u, ""))}</b><small>${UI.esc(t("vitFindRaySub"))}</small></span></div>
+    <div class="fr-row">${rays.map(({ r, i }) => { const ph = UI.safeImg(i.photo) || (i.img ? `img/qc/${i.img}.webp` : ""), pr = i.p || (i.opt && i.opt[0] && (i.opt[0].p || i.opt[0].pb)) || i.pb;
+      return card(`data-find-ray="${UI.esc(r.id)}"`, ph ? `<img src="${ph}" alt="" loading="lazy" />` : `<i>${UI.esc(i.e || "🛒")}</i>`, true, pr ? `≈ <bdi dir="ltr">${priceTxt(pr)}</bdi>` : "&nbsp;", UI.esc(phName(i))); }).join("")}</div></section>` : "";
+  const shopHtml = shops.length ? `<h5>${UI.esc(t("vitFindShops"))}</h5>` + shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${escHop(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}</small></span></button>`).join("") : "";
+  // (les rayons d'abord pour les courses du quotidien : lait, eau, couches…)
+  box.innerHTML = any + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
+  box.classList.remove("hidden");
+}
+$("#homeFind").addEventListener("keydown", e => {
+  if (e.key !== "Enter" || !VIT) return;
+  e.preventDefault();
+  const q = e.target.value.trim();
+  if (norm(q).length >= 2) startFreeOrder(q);
+});
 $("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });
 document.addEventListener("click", e => { if (!e.target.closest(".sc-find")) $("#homeFindList").classList.add("hidden"); });
 $("#homeFindList").addEventListener("click", e => {
+  if (e.target.closest("[data-find-any]")) return startFreeOrder($("#homeFind").value.trim());
   const ry = e.target.closest("[data-find-ray]");
   if (ry) { const r = Rayons.byId(ry.dataset.findRay); $("#homeFindList").classList.add("hidden"); if (r) goRayonFind(r, $("#homeFind").value.trim()); return; }
   const b = e.target.closest("[data-find-pro]");
   if (!b) return;
   state.findItem = b.dataset.findItem || null;
+  state.findOpen = !!b.dataset.findOpen;
+  state.cgQNext = b.dataset.findQ || "";
   $("#homeFindList").classList.add("hidden");
   state.shopDir = ""; loadShop(b.dataset.findPro);
 });

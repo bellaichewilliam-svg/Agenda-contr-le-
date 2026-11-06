@@ -4834,3 +4834,83 @@ html.vit.d2-day #accueil.course .ch-back { background: #fff; color: #0F1F3D; box
   html.vit #accueil:not(.course) .ch-go { margin: 8px -16px 0; padding: 12px 16px 16px; background: #0B1830; box-shadow: 0 -8px 20px rgba(0,0,0,.35); }
   html.vit.d2-day #accueil:not(.course) .ch-go { background: #fff; box-shadow: 0 -8px 20px rgba(15,31,61,.1); }
 }
+
+/* Vitrine, version serrée et nette (patron, 06/11/2026) : boutons « Découvrir » compacts, marges régulières,
+   grande question « Qu'est-ce qu'on vous apporte ? », bandeau de promesses, Hoppy qui saute */
+html.vit #accueil:not(.course) .ch-sheet { gap: 14px; }
+.vit-ask { display: none; }
+html.vit #accueil:not(.course) .vit-ask { display: block; margin: 4px 2px -4px; font-family: "Fredoka", "Rubik", sans-serif; font-size: 25px; line-height: 1.15; font-weight: 700; color: #fff; letter-spacing: -.01em; }
+html.vit.d2-day #accueil:not(.course) .vit-ask { color: #0F1F3D; }
+/* La première ligne des résultats : « On vous l'apporte » */
+.sc-find-list .fi-any { display: flex; align-items: center; gap: 10px; width: 100%; text-align: start; border: 0; border-radius: 14px; padding: 10px 12px; margin-bottom: 6px;
+  background: linear-gradient(90deg, rgba(255,106,19,.16), rgba(255,106,19,.06)); box-shadow: inset 0 0 0 1px rgba(255,106,19,.35); color: inherit; font: inherit; cursor: pointer; }
+.sc-find-list .fi-any .fi-pic { flex: none; width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--brand); font-size: 20px; }
+.sc-find-list .fi-any .fi-txt { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.sc-find-list .fi-any b { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+.sc-find-list .fi-any small { font-size: 12.5px; color: var(--muted); line-height: 1.3; }
+.sc-find-list .fi-any .fi-go { flex: none; color: var(--brand); font-size: 24px; font-weight: 800; line-height: 1; }
+html[dir="rtl"] .sc-find-list .fi-any .fi-go { transform: scaleX(-1); }
+/* Bandeaux : plus compacts, bouton serré */
+html.vit #accueil:not(.course) .k2-card { min-height: 172px; border-radius: 22px; }
+html.vit #accueil:not(.course) .k2-txt { min-height: 172px; gap: 5px; padding: 14px 0 14px; padding-inline-start: 16px; }
+html.vit #accueil:not(.course) .k2-txt em { font-size: 11.5px; padding: 4px 10px; letter-spacing: .03em; }
+html.vit #accueil:not(.course) .k2-txt b { font-size: 21px; line-height: 1.12; }
+html.vit #accueil:not(.course) .k2-txt small { font-size: 13.5px; line-height: 1.35; }
+html.vit #accueil:not(.course) .k2-go { margin-top: auto; padding: 8px 14px; gap: 6px; font-size: 14.5px; box-shadow: 0 4px 10px rgba(0,0,0,.22); }
+html.vit #accueil:not(.course) .k2-go i { font-size: 17px; }
+html.vit #accueil:not(.course) .k2-img { width: 46%; }
+html.vit #accueil:not(.course) .vit-ban .vb-logo { width: 50px; height: 50px; border-radius: 14px; bottom: 12px; inset-inline-end: 12px; padding: 4px; }
+html.vit #accueil:not(.course) .k2-dots { margin-top: -4px; }
+@media (max-width: 360px) { html.vit #accueil:not(.course) .k2-txt b { font-size: 19px; } }
+/* Course libre : plus compacte, bouton serré, Hoppy qui saute de temps en temps */
+html.vit .vit-course { min-height: 150px; border-radius: 22px; }
+html.vit .vit-course .vc-txt { gap: 5px; padding: 16px 0 14px; padding-inline-start: 16px; }
+html.vit .vit-course .vc-txt > b { font-size: 21px; }
+html.vit .vit-course .vc-txt > small { font-size: 13.5px; line-height: 1.35; }
+html.vit .vit-course .vc-go { margin-top: 4px; padding: 8px 14px; font-size: 14.5px; box-shadow: 0 4px 12px rgba(255,106,19,.3); }
+html.vit .vit-course img { animation: hoppyHop 4.5s ease-in-out infinite; transform-origin: 50% 100%; }
+html[dir="rtl"].vit .vit-course img { animation-name: hoppyHopRtl; }
+@keyframes hoppyHop { 0%, 72%, 100% { transform: translateY(0); } 80% { transform: translateY(-14px) rotate(-4deg); } 88% { transform: translateY(0) scaleY(.96); } 93% { transform: translateY(-4px); } }
+@keyframes hoppyHopRtl { 0%, 72%, 100% { transform: scaleX(-1) translateY(0); } 80% { transform: scaleX(-1) translateY(-14px) rotate(-4deg); } 88% { transform: scaleX(-1) translateY(0) scaleY(.96); } 93% { transform: scaleX(-1) translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { html.vit .vit-course img { animation: none; } }
+/* Promesses : trois petites pastilles nettes */
+.vit-trust { display: none; }
+html.vit #accueil:not(.course) .vit-trust { order: 9; display: flex; flex-wrap: wrap; gap: 8px; margin-top: -4px; }
+.vit-trust span { display: inline-flex; align-items: center; padding: 7px 11px; border-radius: 99px; font-size: 13px; font-weight: 700; line-height: 1.2;
+  background: rgba(18,183,106,.12); color: #A6F4C5; box-shadow: inset 0 0 0 1px rgba(18,183,106,.25); }
+html.vit.d2-day .vit-trust span { background: #ECFDF3; color: #067647; box-shadow: inset 0 0 0 1px #ABEFC6; }
+/* Titres de rubriques de la vitrine : même taille partout, serrés */
+html.vit #accueil:not(.course) .ch-h { font-size: 22px; margin: 6px 0 -4px; }
+html.vit #accueil:not(.course) .sc-row-h { margin-top: 4px; }
+/* Rubrique avec un seul produit : une grande carte en largeur (photo à gauche, prix et nom à droite), jamais une carte seule sur sa ligne */
+.cg-grid.cg-tiles.cg-one { grid-template-columns: 1fr; }
+.cg-tiles.cg-one .cg-item { flex-direction: row; min-height: 0; }
+.cg-tiles.cg-one .cg-pic { flex: none; width: 42%; max-width: 220px; height: auto; aspect-ratio: 1 / 1; }
+.cg-tiles.cg-one .cg-info { padding: 14px 16px; justify-content: center; gap: 6px; }
+.cg-tiles.cg-one .cg-info .cg-price { font-size: 22px; }
+.cg-tiles.cg-one .cg-info b { font-size: 16.5px; height: auto; min-height: 0; -webkit-line-clamp: 3; }
+.cg-tiles.cg-one .cg-meta { margin-top: 0; height: auto; }
+.cg-tiles.cg-one .cg-meta:empty { display: none; }
+/* Résultats de la recherche (vitrine) : rangés par commerce, cartes photo + prix + nom, qui défilent */
+html.vit .vit-top .sc-find-list { max-height: min(70vh, 560px); padding: 8px; border-radius: 18px; background: #13233F; border: 1px solid rgba(255,255,255,.1); box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+html.vit.d2-day .vit-top .sc-find-list { background: #fff; border-color: rgba(15,31,61,.1); box-shadow: 0 18px 40px rgba(15,31,61,.18); }
+.sc-find-list .fr-group { margin: 6px 0 10px; }
+.sc-find-list .fr-head { display: flex; align-items: center; gap: 10px; padding: 4px 4px 8px; }
+.sc-find-list .fr-logo { flex: none; width: 36px; height: 36px; border-radius: 10px; background: #fff; display: grid; place-items: center; overflow: hidden; font-size: 18px; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.sc-find-list .fr-logo img { width: 100%; height: 100%; object-fit: contain; }
+.sc-find-list .fr-logo.hop { background: var(--brand); }
+.sc-find-list .fr-name { flex: 1; min-width: 0; display: grid; line-height: 1.25; }
+.sc-find-list .fr-name b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-find-list .fr-name small { font-size: 12.5px; color: var(--muted); }
+.sc-find-list button.fr-all { flex: none; width: auto; padding: 6px 12px; border-radius: 99px; background: rgba(255,106,19,.14); color: var(--brand); font-size: 13px; font-weight: 800; white-space: nowrap; }
+.sc-find-list .fr-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 0 4px 4px; scroll-snap-type: x proximity; }
+.sc-find-list .fr-row::-webkit-scrollbar { display: none; }
+.sc-find-list button.fr-card { flex: none; width: 124px; display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding: 0 0 8px; border-radius: 14px; overflow: hidden;
+  background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); scroll-snap-align: start; }
+html.vit.d2-day .sc-find-list button.fr-card { background: #F7F8FB; box-shadow: inset 0 0 0 1px rgba(15,31,61,.08); }
+.sc-find-list .fr-pic { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 1 / 1; background: #fff; overflow: hidden; }
+.sc-find-list .fr-pic img { width: 100%; height: 100%; object-fit: cover; }
+.sc-find-list .fr-pic.white img { object-fit: contain; padding: 8px; box-sizing: border-box; }
+.sc-find-list .fr-pic > i { font-style: normal; font-size: 38px; }
+.sc-find-list .fr-price { padding: 2px 8px 0; font-size: 15px; font-weight: 800; color: var(--brand); line-height: 1.2; }
+.sc-find-list .fr-nm { padding: 0 8px; font-size: 12.5px; font-weight: 600; line-height: 1.3; height: 2.6em; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }

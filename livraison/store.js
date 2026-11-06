@@ -1768,11 +1768,16 @@ async function shopsDirectory() {
 // Accueil : un plat / produit dans tous les catalogues des commerces de la vitrine (sans photo : trop lourd)
 async function productsSearch(q) {
   if (String(q || "").trim().length < 2) return [];
-  if (ONLINE) return (await rest("/rest/v1/rpc/products_search", { method: "POST", body: { p_q: q } })) || [];
+  if (ONLINE) {
+    // v2 : avec le lien de la photo (06/11/2026) ; l'ancienne si la base n'est pas encore à jour
+    const r = await rest("/rest/v1/rpc/products_search_v2", { method: "POST", body: { p_q: q } }).catch(() => null);
+    if (Array.isArray(r)) return r;
+    return (await rest("/rest/v1/rpc/products_search", { method: "POST", body: { p_q: q } })) || [];
+  }
   const n = String(q).trim().toLowerCase(), cat = readJSON(LS.catalog, {});
   return localShops().filter(x => x.status === "actif" && (planActive(x) || x.showcase)).flatMap(x => ((cat[x.id] || {}).products || [])
     .filter(pr => pr.available && (String(pr.name).toLowerCase().includes(n) || String(pr.description || "").toLowerCase().includes(n)))
-    .map(pr => ({ id: pr.id, name: pr.name, price: pr.price, has_photo: !!pr.photo, code: x.code, shop: x.name, kind: x.kind, category: null }))).slice(0, 20);
+    .map(pr => ({ id: pr.id, name: pr.name, price: pr.price, has_photo: !!pr.photo, photo: typeof pr.photo === "string" && pr.photo.length < 600 ? pr.photo : null, code: x.code, shop: x.name, kind: x.kind, category: null }))).slice(0, 24);
 }
 // Recherche d'un produit depuis l'accueil : un résultat par commerce (nombre d'articles, prix le plus bas, exemples)
 async function productsSearchShops(q) {
