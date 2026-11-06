@@ -5023,3 +5023,15 @@ html.vit #accueil:not(.course) .pro-row .sc-card { flex: 0 0 var(--scw); display
 html.vit #accueil:not(.course) .pro-row .sc-logo { top: calc(var(--scw) * 9 / 16 - 30px); }
 html.vit #accueil:not(.course) .pro-row .sc-body { flex: 1; }
 html.vit #accueil:not(.course) .pro-row .sc-prog-btn { margin-top: auto; }
+/* Le moins de place possible (patron, 06/11/2026) : promesses sur UNE ligne fine, adresses et pastilles plus serrées */
+html.vit #accueil:not(.course) .vit-trust { flex-wrap: nowrap; gap: 0; overflow-x: auto; scrollbar-width: none; margin: -6px -16px 0; padding: 0 16px; }
+html.vit #accueil:not(.course) .vit-trust::-webkit-scrollbar { display: none; }
+html.vit #accueil:not(.course) .vit-trust span { flex: none; padding: 0; background: none; box-shadow: none; font-size: 12.5px; font-weight: 700; white-space: nowrap; color: #6CE9A6; }
+html.vit #accueil:not(.course) .vit-trust span + span::before { content: "·"; margin: 0 8px; color: var(--muted); }
+html.vit.d2-day #accueil:not(.course) .vit-trust span { background: none; box-shadow: none; color: #067647; }
+html.vit #accueil:not(.course) #homeChips .ch-chip { font-size: 13.5px; padding: 7px 12px; }
+html.vit #accueil:not(.course) .ch-route .ch-line { min-height: 54px; padding-block: 4px; }
+html.vit #accueil:not(.course) .ch-route .ch-in small { font-size: 11px; }
+html.vit #accueil:not(.course) .ch-route .ch-gps { width: 36px; height: 36px; }
+html.vit #accueil:not(.course) .ch-route .ch-no { padding: 6px; width: 56px; }
+html.vit #accueil:not(.course) .ch-route .ch-in small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em; }
