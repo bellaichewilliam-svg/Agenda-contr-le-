@@ -8,6 +8,10 @@
 
 const $ = s => document.querySelector(s);
 Store.useSpace("coursier");
+// Langue de l'appli livreur (Réglages › Langue) : voir coursier-lang.js
+const CLANG = window.COURIER_LANG === "he" ? "he" : "fr";
+const LOC = CLANG === "he" ? "he-IL" : "fr-FR";
+if (I18N.use) I18N.use(CLANG);
 
 const TERMS = [
   "Je possède un permis de conduire valide pour mon véhicule et je le garde valide.",
@@ -54,7 +58,7 @@ function renderWelcome() {
     "Les pourboires sont 100 % pour vous, et les codes promo sont payés par HOP, pas par vous.",
     "Pas d'abonnement, pas de frais d'inscription."
   ].map(x => `<li>✅ ${UI.esc(x)}</li>`).join("");
-  $("#citySelect").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(c.fr)}</option>`).join("");
+  $("#citySelect").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(c[CLANG] || c.fr)}</option>`).join("");
   $("#citySelect").value = CONFIG.homeCity;
   $("#terms").innerHTML = TERMS.map((t, i) =>
     `<label class="check" style="align-items:flex-start"><input type="checkbox" name="term${i}" required /> <span>${UI.esc(t)}</span></label>`).join("");
@@ -317,7 +321,7 @@ function note(ctx, freq, at, vol, len) {
 function phoneLine(o) {
   const at = o.ready_at ? new Date(o.ready_at) : null;
   const left = at ? Math.ceil((at - Date.now()) / 60000) : null;
-  const hh = at ? at.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
+  const hh = at ? at.toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }) : "";
   return `<div class="small pro-line">📞 Commande au nom de <b>${UI.esc(o.pickup_name || "")}</b>${o.phone_ref ? ` · n° <b>${UI.esc(o.phone_ref)}</b>` : ""} · déjà payée au commerce
     <br>${left != null && left > 0 ? `⏱️ Prête à <b>${hh}</b> (dans ${left} min) : arrivez à l'heure, pas avant` : "✅ <b>Prête</b> : allez-y"}</div>`;
 }
@@ -514,8 +518,8 @@ function proLine(o) {
   const nb = UI.notBefore(o);
   const state = o.shop_status === "prete" ? "✅ <b>Commande prête</b>"
     : nb && nbLeft(nb) > 0 ? `⏰ <b>Pour ${UI.esc(UI.fmtTime(nb))}</b> : le client a demandé à partir de cette heure, ne partez pas avant`
-    : left != null && left <= 0 ? `⏱️ <b>Prête maintenant</b> (annoncée pour ${new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}) · ${UI.esc(o.shop_name || "le commerce")} n'a pas encore confirmé, demandez-lui`
-    : left != null ? `🍳 <b>Prête dans ${left} min</b> chez ${UI.esc(o.shop_name || "le commerce")} <small class="muted">(à ${new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })})</small>` : "🍳 En attente du commerce";
+    : left != null && left <= 0 ? `⏱️ <b>Prête maintenant</b> (annoncée pour ${new Date(o.ready_at).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" })}) · ${UI.esc(o.shop_name || "le commerce")} n'a pas encore confirmé, demandez-lui`
+    : left != null ? `🍳 <b>Prête dans ${left} min</b> chez ${UI.esc(o.shop_name || "le commerce")} <small class="muted">(à ${new Date(o.ready_at).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" })})</small>` : "🍳 En attente du commerce";
   return `<div class="small pro-line">${state}${o.shop_order ? `<br>🧾 ${UI.esc(o.shop_order)}` : ""}
     ${shopPart(o) && !o.direct_pay ? `<br>🏪 Le commerce paie ${UI.money(shopPart(o))} de votre course : HOP vous le reverse` : ""}</div>`;
 }
@@ -620,7 +624,7 @@ async function load() {
   watchGiven();
   showAsk();
   firstLoad = false;
-  $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  $("#lastSync").textContent = "Mis à jour à " + new Date().toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" });
   await checkChats();
   render();
   checkBadges();
@@ -794,7 +798,7 @@ function card(o, kind) {
     const s = Math.max(0, Math.round((new Date(o.eta_until) - Date.now()) / 1000));
     extra += `<div class="bag-line">⏳ Vous avez annoncé ${o.eta_min} min : le client a encore <b>${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}</b> pour refuser ce temps. Partez quand même au départ.</div>`;
   }
-  else if (o.eta_at && o.status === "confirmee" && !o.arrived_at) extra += `<div class="small">🕐 Attendu au départ vers ${UI.esc(new Date(o.eta_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))} (${o.eta_min} min annoncées)</div>`;
+  else if (o.eta_at && o.status === "confirmee" && !o.arrived_at) extra += `<div class="small">🕐 Attendu au départ vers ${UI.esc(new Date(o.eta_at).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))} (${o.eta_min} min annoncées)</div>`;
   if (o.service === "achat" && o.rx) extra += `<div class="bag-line">💊 Médicament sur ordonnance : carte d'identité du patient et ordonnance vérifiées par HOP!, à montrer à la pharmacie</div>`;
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
@@ -931,7 +935,7 @@ function readyChip(o) {
 // Dès que ça sonne : prête ou pas, et dans combien de temps (commerce, commande par téléphone, rendez-vous, heure programmée)
 function readiness(o) {
   const mins = d => Math.ceil((new Date(d) - Date.now()) / 60000);
-  const hh = d => new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const hh = d => new Date(d).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" });
   const dur = m => m >= 60 ? `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, "0")}` : `${m} min`;
   const READY = { ok: true, text: "✅ Commande <b>PRÊTE</b> : allez-y" };
   const nb = UI.notBefore(o);
@@ -1241,7 +1245,7 @@ function mineCard(o, x) {
 }
 
 // --- Finances, façon appli : gains de la semaine en gros, puis l'historique semaine par semaine ---------
-const shortDate = (k, year) => new Date(k + "T12:00:00").toLocaleDateString("fr-FR", year ? { day: "numeric", month: "short", year: "numeric" } : { day: "numeric", month: "short" });
+const shortDate = (k, year) => new Date(k + "T12:00:00").toLocaleDateString(LOC, year ? { day: "numeric", month: "short", year: "numeric" } : { day: "numeric", month: "short" });
 function weekGain(s) {
   const e = UI.addDays(s, 6), inW = d => UI.dayKey(d) >= s && UI.dayKey(d) <= e;
   const list = weekOrders(s);
@@ -1298,16 +1302,16 @@ function creditView() {
       ${topupPick ? `<p class="small" style="margin:8px 0 0">1. Envoyez <b>${UI.money(topupPick)}</b> par Bit au <b dir="ltr">${UI.esc(CONFIG.bitPhone)}</b> (HOP).<br>2. Touchez « J'ai rechargé » : HOP vérifie et l'ajoute à votre crédit.</p>
         <div class="btns" style="justify-content:flex-start;margin-top:8px"><button type="button" class="btn btn-sm" data-bit-copy="${UI.esc(String(CONFIG.bitPhone).replace(/\D/g, ""))}">📋 Copier le numéro</button>
         <button type="button" class="btn btn-sm btn-primary" data-topup-send="${topupPick}">✅ J'ai rechargé ${UI.money(topupPick)}</button></div>` : ""}
-      ${(wallet.topups || []).slice(0, 6).map(x => `<p class="small topup-line">${UI.money(x.amount)} · ${UI.esc(new Date(x.created_at).toLocaleDateString("fr-FR"))} · ${TOPUP_FR[x.status] || ""}${x.status === "ok" && x.paid === false ? " · offerte par HOP" : ""}${x.note ? " · " + UI.esc(x.note) : ""}${x.receipt_number ? ` · <a href="${UI.esc(UI.topupReceiptUrl(x))}" target="_blank" rel="noopener">🧾 Reçu HOP n° ${x.receipt_number}</a>` : ""}</p>`).join("")}
+      ${(wallet.topups || []).slice(0, 6).map(x => `<p class="small topup-line">${UI.money(x.amount)} · ${UI.esc(new Date(x.created_at).toLocaleDateString(LOC))} · ${TOPUP_FR[x.status] || ""}${x.status === "ok" && x.paid === false ? " · offerte par HOP" : ""}${x.note ? " · " + UI.esc(x.note) : ""}${x.receipt_number ? ` · <a href="${UI.esc(UI.topupReceiptUrl(x))}" target="_blank" rel="noopener">🧾 Reçu HOP n° ${x.receipt_number}</a>` : ""}</p>`).join("")}
       <div class="btns" style="justify-content:flex-start;margin-top:10px">${[0, 1].map(i => { const d = new Date(); d.setDate(1); d.setMonth(d.getMonth() - i); const m = d.toISOString().slice(0, 7);
-        return `<a class="btn btn-sm" href="${UI.esc(UI.appUrl("recu.html") + "?m=" + m)}" target="_blank" rel="noopener">📄 Relevé de ${UI.esc(d.toLocaleDateString("fr-FR", { month: "long" }))}</a>`; }).join("")}</div>
+        return `<a class="btn btn-sm" href="${UI.esc(UI.appUrl("recu.html") + "?m=" + m)}" target="_blank" rel="noopener">📄 Relevé de ${UI.esc(d.toLocaleDateString(LOC, { month: "long" }))}</a>`; }).join("")}</div>
       ${pending.length ? `<p class="muted small">HOP valide vos recharges dès réception.</p>` : ""}
     </div>`;
 }
 // Une ligne par course : jour, n°, client, prix, commission, ce que le livreur gagne
 function finCourses(list) {
   return list.slice().sort((a, b) => new Date(b.pickup_at) - new Date(a.pickup_at)).map(o => `<div class="fin-course">
-      <span><small>${UI.esc(new Date(o.pickup_at).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }))} · n° ${UI.esc(String(o.ref).split("-").pop())}${o.is_test ? " · 🧪 test" : ""}</small>${UI.esc(o.dropoff_contact || o.contact_name || "")}</span>
+      <span><small>${UI.esc(new Date(o.pickup_at).toLocaleDateString(LOC, { weekday: "short", day: "numeric", month: "short" }))} · n° ${UI.esc(String(o.ref).split("-").pop())}${o.is_test ? " · 🧪 test" : ""}</small>${UI.esc(o.dropoff_contact || o.contact_name || "")}</span>
       <span class="fin-course-n"><small>${UI.money(o.price)}${Number(o.commission) > 0 ? ` · commission −${UI.money(o.commission)}` : " · sans commission"}</small><b>${UI.money(Store.courierGain(o))}</b></span></div>`).join("");
 }
 function financesView(start, week, d) {
@@ -1585,15 +1589,15 @@ function render() {
   } else if (tab === "ref" && refOn()) {
     renderRef(view);
   } else {
-    const exp = d => d ? `${new Date(d) < new Date() ? "⛔ expiré le" : "✅ valable jusqu'au"} ${new Date(d).toLocaleDateString("fr-FR")}` : "— (envoyez-le à HOP)";
+    const exp = d => d ? `${new Date(d) < new Date() ? "⛔ expiré le" : "✅ valable jusqu'au"} ${new Date(d).toLocaleDateString(LOC)}` : "— (envoyez-le à HOP)";
     view.innerHTML = `<div class="card"><h3>🛡️ Permis et assurance</h3>
         <table class="prices" style="margin-top:8px">
           <tr><td>Permis n° ${UI.esc(me.license_number || "—")}</td><td>${exp(me.license_expiry)}</td></tr>
-          <tr><td>Assurance</td><td>✅ déclarée le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString("fr-FR") : "—"}</td></tr>
+          <tr><td>Assurance</td><td>✅ déclarée le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString(LOC) : "—"}</td></tr>
           <tr><td>N° d'עוסק</td><td>${UI.esc(me.business_number || "—")}</td></tr>
         </table>
         <p class="muted small" style="margin-top:8px">Vous avez déclaré être assuré (véhicule et responsabilité civile). Vous êtes indépendant : HOP n'est pas responsable des accidents, dommages ou pertes pendant vos courses.</p></div>
-      <div class="card" style="margin-top:14px"><h3>📜 Vos engagements (acceptés le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString("fr-FR") : "—"})</h3>
+      <div class="card" style="margin-top:14px"><h3>📜 Vos engagements (acceptés le ${me.accepted_terms_at ? new Date(me.accepted_terms_at).toLocaleDateString(LOC) : "—"})</h3>
       <ol style="margin-top:10px;padding-inline-start:20px;display:grid;gap:6px">${TERMS.map(t => `<li>${UI.esc(t)}</li>`).join("")}</ol></div>`;
   }
 }
@@ -1818,12 +1822,12 @@ async function onViewClick(e) {
 let chatUnread = {};
 let chatTotal = 0;
 function openBossChat(prefill, photo) {
-  Chat.open({ thread: "c:" + me.id, title: "💬 HOP!", sub: "Vos messages avec l'équipe HOP!", me: "courier", lang: "fr", prefill, photo,
+  Chat.open({ thread: "c:" + me.id, title: "💬 HOP!", sub: "Vos messages avec l'équipe HOP!", me: "courier", lang: CLANG, prefill, photo,
     fetch: () => Store.chatThread("c:" + me.id), send: (b, i) => Store.chatSend("c:" + me.id, "courier", me.name, b, i), onClose: checkChats });
 }
 function openOrderChat(o, photo) {
   Chat.open({ thread: "o:" + o.id, title: `Course n° ${o.ref}`, sub: `${o.contact_name || "Client"} · ${o.lang === "he" ? "parle hébreu 🇮🇱" : "parle français 🇫🇷"} · HOP voit aussi`,
-    me: "courier", lang: "fr", photo,
+    me: "courier", lang: CLANG, photo,
     prefill: photo ? I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }) : "",
     fetch: () => Store.chatThread("o:" + o.id), send: (b, i) => Store.chatSend("o:" + o.id, "courier", me.name, b, i), onClose: checkChats });
 }
@@ -1871,7 +1875,7 @@ const bars = lv => `<span class="dbars ${lv.cls}">${[1, 2, 3].map(i => `<i class
 const riderZoneOpen = id => (CONFIG.riderZones || ["sharon"]).includes(id);
 function zoneListHtml() {
   return CONFIG.zones.map(z => `<div class="zone-row${riderZoneOpen(z.id) ? "" : " off"}">
-      <span class="zone-radio${riderZoneOpen(z.id) ? " on" : ""}"></span><b>${UI.esc(z.fr)}</b>
+      <span class="zone-radio${riderZoneOpen(z.id) ? " on" : ""}"></span><b>${UI.esc(z[CLANG] || z.fr)}</b>
       <span class="zone-dem">${riderZoneOpen(z.id) ? `<span class="zone-open">Ma zone</span>` : "À venir"}</span>
     </div>`).join("");
 }
@@ -1879,7 +1883,7 @@ var zoneOpen = false, zoneAt = 0;   // (var : lu aussi au démarrage, quand le s
 function renderRiderZone() {
   const box = $("#riderZone");
   if (!box) return;
-  const mine = CONFIG.zones.filter(z => riderZoneOpen(z.id)).map(z => z.id === "sharon" ? "Netanya · " + z.fr : z.fr).join(", ");
+  const mine = CONFIG.zones.filter(z => riderZoneOpen(z.id)).map(z => z.id === "sharon" ? "Netanya · " + (z[CLANG] || z.fr) : (z[CLANG] || z.fr)).join(", ");
   const html = `<button type="button" class="rd-zone-btn" data-zone-toggle>📍 Je travaille à : <b>${UI.esc(mine || "HaSharon")}</b> <span>${zoneOpen ? "▴" : "▾"}</span></button>
     ${zoneOpen ? `<div class="rd-zone-list">${zoneListHtml()}<p class="muted small" style="margin:8px 0 0">Les autres zones ouvriront plus tard : vous serez prévenu.</p>
       <button type="button" class="btn btn-sm rd-zone-close" data-zone-toggle>✕ Fermer</button></div>` : ""}`;
@@ -1895,7 +1899,7 @@ function renderZones(view) {
   view.innerHTML = `<div class="card">
       <h3>📍 En ce moment</h3>
       ${demand ? `<p class="small" style="margin-top:6px"><b>${demand.waiting}</b> course(s) en attente · <b>${demand.last_hour}</b> commande(s) cette dernière heure · <b>${demand.on_duty}</b> livreur(s) en ligne.</p>` : `<p class="muted small">…</p>`}
-      <p class="muted small" style="margin-top:6px">Heures de pointe habituelles : ${UI.esc(CONFIG.peakHours.fr)}.</p>
+      <p class="muted small" style="margin-top:6px">Heures de pointe habituelles : ${UI.esc(CONFIG.peakHours[CLANG] || CONFIG.peakHours.fr)}.</p>
     </div>
     ${forecastCard()}`;
 }
@@ -1909,7 +1913,7 @@ function forecastCard() {
   const any = hours.some(x => x.n > 0);
   return `<div class="card" style="margin-top:14px"><h3>📈 Prévisions de demande aujourd'hui</h3>
     <div class="fc-bars">${hours.map(x => `<div class="${x.h === now ? "now" : ""}"><i style="height:${Math.round(90 * x.n / top) + 3}px" class="${x.n / top > 0.66 ? "hi" : x.n / top > 0.33 ? "mid" : "lo"}"></i><span>${x.h}</span></div>`).join("")}</div>
-    <p class="muted small">${any ? "Commandes moyennes par heure, d'après les 4 derniers " + new Date().toLocaleDateString("fr-FR", { weekday: "long" }) + "s. Les barres hautes : le meilleur moment pour être en ligne."
+    <p class="muted small">${any ? "Commandes moyennes par heure, d'après les 4 derniers " + new Date().toLocaleDateString(LOC, { weekday: "long" }) + (CLANG === "he" ? "" : "s") + ". Les barres hautes : le meilleur moment pour être en ligne."
       : "Pas encore assez de commandes pour une prévision : elle se remplit avec les premières semaines."}</p></div>`;
 }
 
@@ -2182,7 +2186,7 @@ function seenMsgs() { try { return new Set(JSON.parse(localStorage.getItem(LS_MS
 let msgShown = null;
 
 function myReply(id) { const r = msgs.replies.find(x => x.message_id === id && x.courier_id === me.id); return r && r.answer; }
-const msgTime = m => new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const msgTime = m => new Date(m.created_at).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" });
 // Le ton HOP! : « Salut les Hopers ! » pour tous, « Salut Dan ! » pour un message perso
 const msgHello = m => m.to_courier ? `👋 Salut ${String((me && me.name) || "").split(" ")[0] || "à toi"} !` : "👋 Salut les Hopers !";
 // Les messages s'affichent en pop-up seulement (et dans la cloche 🔔), pas dans le panneau
@@ -2576,7 +2580,7 @@ function renderHome() {
           <small class="${o.status === "recuperee" ? "now" : ""}">🏁 ${UI.esc(o.dropoff_address)}, ${UI.esc(UI.cityFr(o.to_city))}</small></span><span class="go">›</span></button>`).join("")}
     ${!isOnline() && !cur.length ? `<button type="button" class="rd-card" data-tab="zones"><span>📈 ${lv && lv.n === 3 ? "Beaucoup de commandes en ce moment : passez en ligne !" : "Passez en ligne pour recevoir des courses"}<small>Voir les prévisions de la journée</small></span><span class="go">›</span></button>` : ""}
     ${isOnline() && (p.length || !cur.length) ? (p.length ? `<button type="button" class="rd-card hot" data-tab="pool"><span>🆕 ${p.length} course(s) disponible(s)<small>Touchez pour voir et accepter</small></span><span class="go">›</span></button>`
-      : `<button type="button" class="rd-line" data-tab="zones">⏰ Pas de course · pointe ${UI.esc(CONFIG.peakHours.fr)}<span class="go">›</span></button>`) : ""}
+      : `<button type="button" class="rd-line" data-tab="zones">⏰ Pas de course · pointe ${UI.esc(CONFIG.peakHours[CLANG] || CONFIG.peakHours.fr)}<span class="go">›</span></button>`) : ""}
     ${!window.Notification && /iPhone|iPad|iPod/.test(navigator.userAgent) && !UI.isStandalone() ? `<button type="button" class="rd-line rd-alert" data-install="1" title="Sur iPhone, les alertes ne marchent que dans l'appli installée">🔕 Pas d'alertes dans Safari : installez HOP! Livreur sur l'écran d'accueil<span class="go">›</span></button>` : ""}
     ${window.Notification && Notification.permission !== "granted" ? `<button type="button" class="rd-line rd-alert" data-notif="1" title="Pour « En service » et les nouvelles courses, même appli fermée">${Notification.permission === "denied" ? "🔕 Alertes bloquées : touchez pour voir comment" : "🔔 Activer les alertes"}<span class="go">›</span></button>` : ""}
     ${!isOnline() && !UI.inOwnApp() && UI.canInstall() ? `<button type="button" class="rd-card" data-install="1"><span>📲 Installer HOP! Livreur<small>Son icône « LIVREUR » à part, et les courses qui sonnent appli fermée</small></span><span class="go">›</span></button>` : ""}
@@ -2955,7 +2959,7 @@ function renderStats(view) {
   const month = today().slice(0, 7);
   const mList = done.filter(o => UI.dayKey(o.pickup_at).startsWith(month));
   const days = {};
-  done.forEach(o => { const d = new Date(o.pickup_at).toLocaleDateString("fr-FR", { weekday: "long" }); days[d] = (days[d] || 0) + 1; });
+  done.forEach(o => { const d = new Date(o.pickup_at).toLocaleDateString(LOC, { weekday: "long" }); days[d] = (days[d] || 0) + 1; });
   const best = Object.entries(days).sort((a, b) => b[1] - a[1])[0];
   const km = sum(done, o => Number(o.distance_km || 0) * 1.3);
   view.innerHTML = `<div class="stats">
@@ -2994,6 +2998,8 @@ function renderSettings(view) {
       <h3>Navigation</h3>
       <div class="set-row"><span>Application de navigation</span><select data-set="nav">${opt("nav", "waze", "Waze")}${opt("nav", "maps", "Google Maps")}</select></div>
       <div class="set-row"><span>Mode de déplacement</span><select data-set="mode">${opt("mode", "scooter", "Scooter / moto")}${opt("mode", "car", "Voiture")}${opt("mode", "bike", "Vélo")}${opt("mode", "walk", "À pied")}</select></div>
+      <h3>Langue · שפה</h3>
+      <div class="set-row no-tr"><span>Langue de l'appli · שפת האפליקציה</span><select data-set="lang"><option value="fr" ${CLANG === "fr" ? "selected" : ""}>🇫🇷 Français</option><option value="he" ${CLANG === "he" ? "selected" : ""}>🇮🇱 עברית</option></select></div>
       <h3>Affichage et sons</h3>
       <div class="set-row"><span>Apparence</span><select data-set="theme">${opt("theme", "auto", "Auto (jour / nuit)")}${opt("theme", "dark", "Sombre")}${opt("theme", "light", "Clair")}</select></div>
       <div class="set-row"><span>Son des nouvelles courses</span><select data-set="sound"><option value="1" ${riderSet.sound !== false ? "selected" : ""}>Activé</option><option value="0" ${riderSet.sound === false ? "selected" : ""}>Coupé</option></select></div>
@@ -3334,12 +3340,19 @@ $("#view").addEventListener("change", e => {
   }
   const k = e.target.dataset.set;
   if (!k) return;
+  if (k === "lang") { if (e.target.value !== CLANG) window.courierSetLang(e.target.value); return; }
   riderSet[k] = k === "sound" ? e.target.value === "1" : e.target.value;
   saveRiderSet();
   applyRiderSettings();
   render();
 });
 $("#work").addEventListener("click", onWorkClick);
+// Choix de la langue dès l'écran de connexion / d'inscription (en haut à droite)
+const langBtn = $("#langBtn");
+if (langBtn) {
+  langBtn.textContent = CLANG === "he" ? "🇫🇷 Français" : "🇮🇱 עברית";
+  langBtn.addEventListener("click", e => { e.preventDefault(); window.courierSetLang(CLANG === "he" ? "fr" : "he"); });
+}
 $("#bossChat").addEventListener("click", () => { closeDrawer(); openBossChat(); });
 $("#msgModal").addEventListener("click", e => { if (e.target.closest("[data-welcome]")) return; const el = e.target.closest("button"); if (el && el.dataset.reply) onReply(el); });
 document.addEventListener("click", e => { onWelcomeClick(e); });

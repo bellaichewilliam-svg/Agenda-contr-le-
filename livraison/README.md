@@ -3,7 +3,7 @@
 Application web de livraison pour Netanya, le Sharon et Tel Aviv. Elle fonctionne sur téléphone et ordinateur et s'installe comme une application.
 
 - **Côté clients :** en français et en hébreu.
-- **Côté patron et livreurs :** en français.
+- **Côté patron :** en français. **Appli livreur : français ou hébreu**, au choix du livreur (Réglages › « Langue · שפה », ou le bouton en haut de l'écran de connexion ; par défaut la langue du téléphone). En hébreu, l'appli passe de droite à gauche et tous ses textes sont traduits (`coursier-lang.js` + dictionnaire `coursier-he-dict.js` ; nouveau texte dans `coursier.js` → ajouter sa traduction dans le dictionnaire). Les messages envoyés aux clients restent dans la langue du client, et ceux envoyés au patron en français.
 
 ## Les pages
 
