@@ -1194,6 +1194,18 @@ function goPharma() {
 // « Qu'est-ce qu'on livre ? » (tuiles) et cartes des rayons : on choisit, et on avance — d'abord le magasin
 // le plus proche quand il y a une liste (pharmacie, boulangerie, poste…), puis la commande avec ses produits
 function goKind(id) {
+  // (en premier : même si « restaurant » était déjà choisi avant, on montre les restaurants, pas la commande)
+  // Accueil vitrine : « Repas de restaurant » montre les restaurants sur HOP! (leurs vrais menus), pas la carte
+  if (vitOn() && id === "resto" && (state.showcase || []).some(x => x.kind === "restaurant")) {
+    Object.assign(scFilter, { kind: "restaurant", open: false, kosher: false });
+    renderShowcase(); $("#homeFilters").classList.remove("hidden");
+    // (le filtre « Restaurant » bien en vue dans sa rangée)
+    requestAnimationFrame(() => { const r = $("#homeFilters"), on = r && r.querySelector(".ch-chip.on"); if (on) { const a = r.getBoundingClientRect(), b = on.getBoundingClientRect(); r.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); } });
+    requestAnimationFrame(() => { const b = $("#homeProBox"), bar = document.querySelector(".topbar");
+      if (b) window.scrollTo({ top: Math.max(0, b.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 8), behavior: "smooth" }); });
+    UI.track("home_resto");
+    return;
+  }
   // Même type de course, rien d'autre de choisi : on reprend la commande
   if (state.homeKind === id && !state.shop) return goPharma();
   // Sinon on repart de la liste : le commerce ouvert avant (la fiche Nini…) ou le magasin choisi avant
@@ -1211,17 +1223,6 @@ function goKind(id) {
   }
   // Nouveau design : « Repas de restaurant » ouvre la grande carte des restaurants (logos, numéro, site),
   // on touche le sien et la commande remonte ; pas de liste par-dessus l'accueil
-  // Accueil vitrine : « Repas de restaurant » montre les restaurants sur HOP! (leurs vrais menus), pas la carte
-  if (vitOn() && id === "resto" && (state.showcase || []).some(x => x.kind === "restaurant")) {
-    Object.assign(scFilter, { kind: "restaurant", open: false, kosher: false });
-    renderShowcase(); $("#homeFilters").classList.remove("hidden");
-    // (le filtre « Restaurant » bien en vue dans sa rangée)
-    requestAnimationFrame(() => { const r = $("#homeFilters"), on = r && r.querySelector(".ch-chip.on"); if (on) { const a = r.getBoundingClientRect(), b = on.getBoundingClientRect(); r.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); } });
-    requestAnimationFrame(() => { const b = $("#homeProBox"), bar = document.querySelector(".topbar");
-      if (b) window.scrollTo({ top: Math.max(0, b.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 8), behavior: "smooth" }); });
-    UI.track("home_resto");
-    return;
-  }
   if (D2 && id === "resto" && !state.pick.from) { applyKind(id); if (vitOn()) enterCourse(); setMapOpen(true); return; }
   state.pharmaGo = true;
   applyKind(id);
