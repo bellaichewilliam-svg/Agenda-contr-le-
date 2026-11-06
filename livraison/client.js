@@ -5367,15 +5367,25 @@ function magicFind(name) {
   const k = norm(name);
   if (!magicCache.has(k)) magicCache.set(k, (async () => {
     let prods = [];
-    try { prods = (await Store.productsSearch(name)) || []; } catch (e) { /* les rayons suffisent */ }
-    const nn = phNorm(name).trim(), wantDiet = /diet|zero|light|דיאט|זירו|לייט/i.test(name);
-    const clean = x => phNorm(UI.bi(x.name)).replace(/^[^·]*·\s*/, "");
+    // « 6 œufs » : on cherche « œufs » (le nombre reste affiché sur la ligne)
+    const q = String(name).replace(/^\d+\s*(x|×)?\s*/i, "").trim() || name;
+    try { prods = (await Store.productsSearch(q)) || []; } catch (e) { /* les rayons suffisent */ }
+    const nn = phNorm(q).trim(), wantDiet = /diet|zero|light|דיאט|זירו|לייט/i.test(q);
+    const esc = nn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Nom sans la marque (« Tnuva · Lait 1 % » → « lait 1 % », « Brossard - Pain d'épices » → « pain d'épices »)
+    const clean = x => phNorm(UI.bi(x.name)).replace(/^[^·]*·\s*/, "").replace(/^[^-–]+\s[-–]\s+/, "");
+    // « pain » = du pain, pas du « pain d'épices » ni du « pain au chocolat » : le mot cherché suivi de « d' / de / au… »
+    // décrit un autre produit
+    const other = new RegExp("^" + esc + "s?\\s+(d['’]|de\\s|du\\s|des\\s|au\\s|aux\\s|à\\s|a\\s|en\\s)");
     const score = x => { const a = phNorm(UI.bi(x.name)), b = clean(x); let sc = 0;
-      if (b.startsWith(nn) || a.startsWith(nn)) sc += 30; else if (a.includes(nn)) sc += 10;
+      const wd = new RegExp("^" + esc + "(s|x)?(\\s|$|[^a-z\u0590-\u05ff])");
+      if (wd.test(b) || wd.test(a)) sc += 30; else if (b.startsWith(nn) || a.startsWith(nn)) sc += 15; else if (a.includes(nn)) sc += 5;
+      if (other.test(b)) sc -= 28;
       if (!wantDiet && /diet|zero|light|דיאט|זירו|לייט/i.test(x.name)) sc -= 25;
       return sc - a.length / 40; };
     const cands = prods.filter(x => !/restaurant|resto|cafe/i.test(x.kind || "")).sort((a, b) => score(b) - score(a)).slice(0, 12);
-    return { cands, r: rayonHits(name, 1)[0] || null };
+    // Un vrai produit d'un magasin seulement s'il correspond bien ; sinon les courses HOP! (pain, œufs…) passent devant
+    return { cands, strong: !!cands.length && score(cands[0]) >= 25, r: rayonHits(q, 1)[0] || null };
   })());
   return magicCache.get(k);
 }
@@ -5389,7 +5399,7 @@ async function vitMagic(q, box, seq) {
   const res = await Promise.all(items.map(i => magicFind(i.name)));
   if (seq !== findSeq) return;
   // Choix de départ : le meilleur produit trouvé, sinon les courses HOP!, sinon « on le trouve pour vous »
-  state.magic = { q, open: -1, lines: items.map((it, k) => ({ qty: it.qty, name: it.name, cands: res[k].cands, r: res[k].r, pick: res[k].cands.length ? 0 : res[k].r ? "r" : "x", on: true })) };
+  state.magic = { q, open: -1, lines: items.map((it, k) => ({ qty: it.qty, name: it.name, cands: res[k].cands, r: res[k].r, pick: res[k].strong ? 0 : res[k].r ? "r" : res[k].cands.length ? 0 : "x", on: true })) };
   renderMagic(true);
   UI.track("home_magic", { n: items.length });
 }
@@ -5497,7 +5507,10 @@ $("#homeFind").addEventListener("keydown", e => {
   startFreeOrder(q);
 });
 $("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });
-document.addEventListener("click", e => { if (!(e.composedPath ? e.composedPath() : [e.target]).some(n => n.classList && n.classList.contains("sc-find"))) $("#homeFindList").classList.add("hidden"); });
+// (toucher une idée sous la recherche, « Ma liste de courses »… ouvre la liste : elle ne doit pas se refermer aussitôt)
+document.addEventListener("click", e => { if (!(e.composedPath ? e.composedPath() : [e.target]).some(n => n.classList && (n.classList.contains("sc-find") || n.classList.contains("vit-ideas")))) $("#homeFindList").classList.add("hidden"); });
+// Retoucher la recherche déjà remplie (même sans quitter le champ) : la liste revient
+$("#homeFind").addEventListener("click", e => { if (norm(e.target.value).length >= 2 && $("#homeFindList").classList.contains("hidden")) homeFind(e.target.value); });
 $("#homeFindList").addEventListener("click", e => {
   if (e.target.closest("[data-find-any]")) return startFreeOrder($("#homeFind").value.trim());
   if (e.target.closest(".mg")) return;
