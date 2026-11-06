@@ -1803,6 +1803,9 @@ function tagName(a) { return a.tag === "home" ? t("tagHome") : a.tag === "work" 
 // Raccourcis de la liste des adresses : « Ma position » puis les adresses enregistrées
 function quickPlaces(which, isHome) {
   const after = () => { const p = state.pick[which]; if (p && home.ac[which]) home.ac[which].setPicked(p.label); if (p && ac[which]) ac[which].setPicked(p.label); syncHome(); };
+  // « Où acheter ? » : ni « Ma position » ni la maison, seulement les commerces enregistrés (la recherche trouve les autres)
+  if (which === "from" && val("service") === "achat") return (val("shopping_list") + val("notes")).trim() ? [] : Store.getAddresses().filter(a => a.brand).sort(byCityFirst).slice(0, 6).map(a => ({ quick: true, icon: addrIcon(a), title: addrLabel(a), sub: "",
+    match: addrLabel(a), apply: () => { applySavedAddr(which, a); after(); } }));
   const list = [{ quick: true, icon: "📍", title: t("myPosChip").replace(/^📍\s*/, ""), sub: t("qpPosSub"), apply: async () => {
     const err = await locateInto(which);
     if (err) (isHome ? showHomeErr : showError)(t(err)); else after();
@@ -1837,12 +1840,45 @@ function fromAddrsHtml(list) {
   // adresse sans nom : la rue en titre, seulement la ville (et l'appartement) dessous
   const line = a => a.brand || tagName(a) ? sub(a) : UI.esc(cityLabel(a.cityId || a.city) + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
   const ico = a => a.brand ? "🏪" : a.tag === "home" ? "🏠" : a.tag === "work" ? "💼" : "📍";
+  // « Où acheter ? » : jamais la maison ni « Ma position » ; les magasins qui vont avec la commande (demande du patron, 06/11/2026)
+  // (ses commerces enregistrés, restaurants compris, seulement tant qu'il n'a pas dit ce qu'il veut)
+  if (val("service") === "achat") return buyShopsHtml((val("shopping_list") + val("notes")).trim() ? [] : list.map((a, i) => ({ a, i })).filter(x => x.a.brand).sort(byCityFirst).slice(0, 4), ico, title, line);
   const rows = list.map((a, i) => ({ a, i })).sort(byCityFirst).slice(0, 6);
   return `<p class="pk-h">${UI.esc(t("pkSaved"))}</p><div class="pk-list">
     <button type="button" class="pk-row pk-pos" data-geo="from"><i aria-hidden="true">🧭</i><span><b>${UI.esc(t("pkPos"))}</b><small>${UI.esc(t("pkPosSub"))}</small></span></button>
     ${rows.map(x => `<button type="button" class="pk-row" data-addr="${x.i}"><i aria-hidden="true">${ico(x.a)}</i><span><b>${UI.esc(title(x.a))}</b><small>${line(x.a)}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`).join("")}
   </div>`;
 }
+// Les magasins pour la commande : d'après ce qu'il a écrit (lait, pain → supermarchés ; Acamol → pharmacies…),
+// les boutiques HOP! qui ont ces produits (HOP! chez Carrefour…), « le plus proche » (le livreur choisit), ses commerces enregistrés
+const RAY_ENS = { super: "super", pharm: "pharm", bakery: "breakfast", baby: "baby", pets: "pet", home: "home", gift: "flower", tabac: "super" };
+function buyCats() {
+  const txt = [val("shopping_list"), val("notes")].join(",");
+  const cats = [];
+  parseList(txt).concat(txt.trim() && !parseList(txt).length ? [{ name: txt }] : []).forEach(it => {
+    const h = rayonHits(it.name, 1)[0], c = h && RAY_ENS[h.r.id];
+    if (c && !cats.includes(c)) cats.push(c);
+  });
+  return cats.length ? cats.slice(0, 3) : ["super"];
+}
+function buyShopsHtml(saved, ico, title, line) {
+  const cats = buyCats();
+  const hop = cats.includes("super") ? (state.showcase || []).filter(x => isHopShop(x) && x.products).slice(0, 2) : [];
+  const row = (attrs, icon, b, sm) => `<button type="button" class="pk-row" ${attrs}><i aria-hidden="true">${icon}</i><span><b>${b}</b><small>${sm}</small></span></button>`;
+  return `<p class="pk-h">${UI.esc(t("pkBuyH"))}</p><div class="pk-list">
+    ${hop.map(x => row(`data-pro="${UI.esc(x.code)}"`, "🛒", escHop(UI.bi(x.name)), UI.esc(t("pkHopSub")))).join("")}
+    ${cats.map(c => row(`data-buy-ens="${c}"`, "🏪", UI.esc(String(t("ens_" + c)).replace(/^\P{L}+/u, "")), UI.esc(t("pkEnsSub")))).join("")}
+    ${row("data-buy-near", "🧭", UI.esc(String(t("pkNear")).replace(/^\P{L}+/u, "")), UI.esc(t("pkNearSub")))}
+    ${saved.map(x => `<button type="button" class="pk-row" data-addr="${x.i}"><i aria-hidden="true">${ico(x.a)}</i><span><b>${UI.esc(title(x.a))}</b><small>${line(x.a)}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`).join("")}
+  </div>`;
+}
+document.addEventListener("click", e => {
+  const en = e.target.closest(".saved-addrs [data-buy-ens]");
+  if (en) return openEns(en.dataset.buyEns);
+  if (e.target.closest(".saved-addrs [data-buy-near]")) { form.nearest_store.checked = true; form.nearest_store.dispatchEvent(new Event("change", { bubbles: true })); return; }
+  const pr = e.target.closest(".saved-addrs [data-pro]");
+  if (pr) { state.shopDir = ""; loadShop(pr.dataset.pro); }
+});
 // « Où livrer ? » : on livre le client chez lui → 🏠 Maison en grande carte, 💼 Travail en plus petit, les autres adresses
 // repliées en une ligne ; jamais un commerce enregistré (il reste proposé seulement pour « Récupérer où ? »)
 function toAddrsHtml(list) {
@@ -4369,7 +4405,8 @@ function initHome() {
     if (a) {
       const addr = Store.getAddresses()[Number(a.dataset.haddr)];
       // (un commerce enregistré sert de départ, jamais d'adresse de livraison)
-      if (addr) applySavedAddr(addr.brand || !state.pick.from ? "from" : "to", addr);
+      // (accueil vitrine : une adresse perso est l'adresse de LIVRAISON ; un commerce enregistré reste le départ)
+      if (addr) applySavedAddr(addr.brand || (!VIT && !state.pick.from) ? "from" : "to", addr);
       return;
     }
     const en = e.target.closest("[data-ens]");
@@ -5744,6 +5781,12 @@ form.addEventListener("input", e => {
 form.addEventListener("change", e => {
   if (e.target.name === "service" && e.isTrusted) state.svcChosen = true;   // choisi à la main : on n'y touche plus
   if (e.target.name === "urgency" && e.isTrusted) state.autoSched = false;
+  // « Où acheter ? » : la maison ou le travail n'est jamais le magasin ; la liste des magasins suit la commande
+  if (e.target.name === "service" || e.target.name === "shopping_list" || e.target.name === "notes") {
+    const p = state.pick.from;
+    if (val("service") === "achat" && p && !p.brand && !p.nearest && Store.getAddresses().some(a => !a.brand && isSavedPick(p, a))) clearHomeAddr("from", true);
+    renderSavedAddrs();
+  }
   if (e.target.name === "service" || (e.target.name === "urgency" && e.target.value !== "programmee")) goNext(e.target.closest("fieldset"));
 });
 form.addEventListener("change", e => {

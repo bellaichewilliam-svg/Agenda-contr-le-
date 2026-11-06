@@ -3872,7 +3872,7 @@ form.wiz .fs-service .choice span b { font-size: 15px; line-height: 1.2; }
 form.wiz .fs-when .choices.compact .choice span { padding: 9px 6px; flex-direction: row; justify-content: center; gap: 6px; }
 form.wiz .fs-when .choices.compact .choice span i { font-size: 17px; margin: 0; }
 form.wiz .saved-addrs .addr-chip.add, form.wiz .saved-addrs > small { display: none; }
-form.wiz .saved-addrs:not([data-for="to"]):not(:has(.addr-chip:not(.add), .pk-row[data-addr])) { display: none !important; }
+form.wiz .saved-addrs:not([data-for="to"]):not(:has(.addr-chip:not(.add), .pk-row[data-addr], .pk-row[data-buy-near])) { display: none !important; }
 form.wiz .saved-addrs[data-for="to"]:not(:has(.sa-card, .sa-link[data-addr], .pk-row[data-addr])) { display: none !important; }
 @media (max-width: 600px) {
   form.wiz .fs-from .fields, form.wiz .fs-to .fields { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); }
