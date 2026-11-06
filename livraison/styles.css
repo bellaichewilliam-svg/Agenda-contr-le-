@@ -5114,3 +5114,12 @@ html.d2:not(.d2-day) .when-closed { background: #172A4B; color: #fff; }
 html.d2:not(.d2-day) .sc-find-list .mg-add button { background: #FF6A13; }
 .sc-find-list .mg-add > button { width: auto !important; min-width: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; margin: 0; }
 .sc-find-list .mg-add > input { width: auto; flex: 1 1 auto; }
+/* Fiche d'un produit des rayons HOP! (toucher le produit) : grande photo sur blanc, prix indicatif, choix, quantité */
+#pharmaBox .ph-tiles .ph-item[data-ph-open] { cursor: pointer; }
+.ray-item .it-pic { background: #fff; border-radius: 26px 26px 0 0; display: grid; place-items: center; min-height: 220px; }
+.ray-item .it-pic.ri-photo > img { width: 100%; height: 260px; object-fit: contain; padding: 14px; box-sizing: border-box; border-radius: 26px 26px 0 0; }
+.ray-item .it-pic.ri-picto > img { width: 55%; height: auto; max-height: 200px; object-fit: contain; }
+.ray-item .it-pic > i { font-style: normal; font-size: 90px; }
+.ray-item .ri-other { margin: -4px 0 6px; opacity: .7; font-weight: 600; }
+.ray-item .ri-note { margin: 10px 0 0; font-size: 13px; opacity: .75; }
+.ray-item .ri-msg { margin: 8px 16px 0; padding: 8px 12px; border-radius: 12px; background: #FFF1E8; color: #B4400B; font-weight: 700; font-size: 14px; }
