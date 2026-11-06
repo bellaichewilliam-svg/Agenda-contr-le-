@@ -5046,7 +5046,8 @@ html.vit #accueil:not(.course) .ch-route .ch-in small { white-space: nowrap; ove
   html.vit #accueil:not(.course) .ch-kind:nth-child(5) { animation-delay: 200ms; }
   html.vit #accueil:not(.course) .ch-kind:nth-child(n+6) { animation-delay: 250ms; }
   html.vit #accueil:not(.course) .vit-hero { animation: vitUp .55s cubic-bezier(.2, .8, .2, 1) both; }
-  html.vit #accueil:not(.course) .k2-row > .k2-card:first-child { animation: vitIn .6s cubic-bezier(.2, .8, .2, 1) .15s both; }
+  /* (premier bandeau : fondu seulement ; un glissement faisait « accrocher » la rangée de travers, bandeau collé à gauche) */
+  html.vit #accueil:not(.course) .k2-row > .k2-card:first-child { animation: vitFade .6s ease .15s both; }
   /* Toucher : le bouton s'enfonce légèrement, l'icône de la rubrique fait un petit saut */
   html.vit #accueil :is(.ch-kind, .sc-card, .vit-chip, .vit-ideas button, .vit-course, .ro-card, .xp, .k2-go, .vc-go) { transition: transform .18s ease, box-shadow .18s ease; }
   html.vit #accueil :is(.ch-kind, .sc-card, .vit-chip, .vit-ideas button, .ro-card, .xp):active { transform: scale(.96); }
@@ -5060,6 +5061,7 @@ html.vit #accueil:not(.course) .ch-route .ch-in small { white-space: nowrap; ove
 }
 /* (translate / scale, pas transform : l'effet « bouton enfoncé » reste possible pendant et après l'animation) */
 @keyframes vitUp { from { opacity: 0; translate: 0 14px; } to { opacity: 1; translate: 0 0; } }
+@keyframes vitFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes vitIn { from { opacity: 0; translate: var(--vit-in, 24px) 0; } to { opacity: 1; translate: 0 0; } }
 html[dir="rtl"] { --vit-in: -24px; }
 @keyframes vitReveal { from { opacity: 0; translate: 0 18px; scale: .98; } to { opacity: 1; translate: 0 0; scale: 1; } }
@@ -5101,3 +5103,6 @@ html.d2:not(.d2-day) .when-closed { background: #172A4B; color: #fff; }
 .shop-hero .sh-sched { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 .shop-hero .sh-sched .sh-sched-go { flex: none; border: 0; background: #FF6A13; color: #fff; font: inherit; font-weight: 800; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
 .shop-hero .sh-sched .sl-when { white-space: nowrap; }
+/* Bandeaux qui défilent : chaque bandeau s'arrête à 16 px du bord (comme les rubriques), jamais collé ni coupé à gauche */
+.hp-row { scroll-padding-inline: 16px; }
+@media (min-width: 861px) { .hp-row { scroll-padding-inline: 22px; } }
