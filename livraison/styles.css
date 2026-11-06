@@ -5015,3 +5015,11 @@ html.vit.d2-day .sc-find-list button.mg-alt { background: #F7F8FB; box-shadow: i
 .sc-find-list button.mg-cart + button.mg-cart { background: rgba(255,106,19,.16); color: inherit; box-shadow: inset 0 0 0 1px rgba(255,106,19,.45); }
 .sc-find-list .mg, .sc-find-list .mg-list, .sc-find-list .mg-item { grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .sc-find-list .mg-alts { max-width: 100%; min-width: 0; }
+
+/* Vitrine : cartes des commerces plus larges (une grande carte + le début de la suivante) et toutes alignées :
+   le bouton « Programmer » / la flèche toujours en bas, quelle que soit la longueur des textes */
+html.vit #accueil:not(.course) .pro-row { --scw: min(80vw, 330px); align-items: stretch; }
+html.vit #accueil:not(.course) .pro-row .sc-card { flex: 0 0 var(--scw); display: flex; flex-direction: column; }
+html.vit #accueil:not(.course) .pro-row .sc-logo { top: calc(var(--scw) * 9 / 16 - 30px); }
+html.vit #accueil:not(.course) .pro-row .sc-body { flex: 1; }
+html.vit #accueil:not(.course) .pro-row .sc-prog-btn { margin-top: auto; }

@@ -3731,7 +3731,8 @@ function openLabel(st) {
   if (st.open) return t("stOpenUntil", { time: UI.hhmmOf(st.until) });
   if (st.inDays == null) return t("shClosed");
   const time = UI.hhmmOf(st.at);
-  return st.inDays === 0 ? t("stOpensAt", { time }) : st.inDays === 1 ? t("stOpensTomorrow", { time })
+  // (le jour en toutes lettres plutôt que « demain » : à 3 h du matin, « demain » ne veut plus rien dire)
+  return st.inDays === 0 ? t("stOpensAt", { time })
     : t("stOpensDay", { day: (DAYS[I18N.lang] || DAYS.fr)[st.day].toLowerCase(), time });
 }
 function shopOpenNow(hours) {
