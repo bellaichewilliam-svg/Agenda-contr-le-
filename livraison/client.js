@@ -4116,7 +4116,7 @@ function vitRender() {
   try { vitRenderNow(); } catch (e) { /* accueil pas encore prêt : redessiné au prochain passage */ }
 }
 function vitRenderNow() {
-  const street = val("dropoff_address").trim(), no = val("dropoff_number").trim();
+  const street = val("dropoff_address").split(",")[0].trim(), no = val("dropoff_number").trim();
   const txt = street ? (no && !new RegExp("\\b" + no + "\\b").test(street) ? `${street} ${no}` : street) : "";
   const saved = txt && Store.getAddresses().find(a => !a.brand && state.pick.to && a.lat != null && Math.abs(a.lat - state.pick.to.lat) < 1e-4 && Math.abs(a.lon - state.pick.to.lon) < 1e-4);
   const tag = saved && saved.tag ? (saved.tag === "home" ? "🏠" : saved.tag === "work" ? "💼" : "") : "";
@@ -4132,9 +4132,44 @@ function vitRenderNow() {
     st.innerHTML = `<span>${UI.esc(short)}</span><button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>`;
   }
   st.classList.toggle("hidden", open);
-  $("#vitCoursePrice").textContent = t("vitCoursePrice", { city: I18N.cityName(CONFIG.homeCity), price: money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)) });
+  const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)), city = I18N.cityName(CONFIG.homeCity);
+  $("#vitCoursePrice").textContent = t("vitCoursePrice", { city, price: base });
+  const trust = [t("vitTrust1"), t("vitTrust2", { price: base, city }), t("vitTrust3")].map(x => `<span>${UI.esc(x)}</span>`).join("");
+  if ($("#vitTrust").dataset.html !== trust) { $("#vitTrust").innerHTML = trust; $("#vitTrust").dataset.html = trust; }
+}
+// « Qu'est-ce qu'on vous apporte ? » : ce que le client écrit devient sa commande (« J'achète pour vous » : le livreur
+// va au magasin et l'achète), même dans un commerce qui n'est pas sur HOP!
+function startFreeOrder(q) {
+  q = String(q || "").trim();
+  if (norm(q).length < 2) return;
+  $("#homeFindList").classList.add("hidden");
+  $("#homeFind").value = ""; $("#homeFind").blur();
+  UI.track("home_any", { q: q.slice(0, 40) });
+  goKind("shop");
+  const cur = form.shopping_list.value.trim();
+  form.shopping_list.value = cur && !cur.includes(q) ? cur + "\n" + q : cur || q;
+  form.shopping_list.dispatchEvent(new Event("input", { bubbles: true }));
+}
+// Exemples qui s'écrivent tout seuls dans la recherche (on comprend tout de suite qu'on peut tout demander)
+function vitTypewriter() {
+  const inp = $("#homeFind");
+  if (!inp) return;
+  let i = 0, n = 0, wait = 0;
+  setInterval(() => {
+    if (document.hidden || document.activeElement === inp || inp.value || !vitOn()) return;
+    const list = t("vitAskEx");
+    if (!Array.isArray(list) || !list.length) return;
+    if (wait > 0) { wait--; return; }
+    const ex = list[i % list.length];
+    n++;
+    inp.placeholder = "🔎 " + ex.slice(0, n);
+    if (n >= ex.length) { n = 0; i++; wait = 22; }
+  }, 70);
 }
 function initVitrine() {
+  const h = $("#homeProBox .ch-h");
+  if (h) { h.dataset.i18n = "vitShopsT"; h.textContent = t("vitShopsT"); }
+  if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) vitTypewriter();
   const find = $("#homeProBox .sc-find");
   if (find) $("#vitTop").appendChild(find);
   $("#vitAddr").addEventListener("click", () => enterCourse("to"));
@@ -5079,7 +5114,7 @@ function renderShowcase() {
   } else body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
   const html = stories + body;
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
-  if (VIT) renderHomePharma();
+  if (VIT) { renderHomePharma(); $("#homeFilters").classList.toggle("hidden", all.length < 6); }
 }
 $("#homeFilters").addEventListener("click", e => {
   const b = e.target.closest("[data-scf]");
@@ -5109,7 +5144,9 @@ async function homeFind(q) {
     const shopHtml = shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${UI.esc(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}${UI.shopText(s, "tagline") ? " · " + UI.esc(UI.shopText(s, "tagline")) : ""}</small></span></button>`).join("");
     // Les rayons HOP! (eau, couches, Acamol…) : le livreur va au magasin le plus proche
     const rayHtml = rayonHits(q, 4).map(({ r, i }) => `<button type="button" data-find-ray="${UI.esc(r.id)}"><span class="fi-pic">${UI.esc(i.e || "🛒")}</span><span><b>${UI.esc(phName(i))}</b><small>${UI.esc(t("acRayon", { rayon: phName(r.title) }))}</small></span></button>`).join("");
-    box.innerHTML = (rayHtml ? `<h5>${UI.esc(t("findRayons"))}</h5>${rayHtml}` : "") + (prodHtml ? `<h5>${UI.esc(t("findProducts"))}</h5>${prodHtml}` : "") + (shopHtml ? `<h5>${UI.esc(t("findShops"))}</h5>${shopHtml}` : "")
+    // Accueil vitrine : en premier, « On vous l'apporte » (n'importe quoi, de n'importe quel commerce : le livreur l'achète)
+    const anyHtml = VIT ? `<button type="button" class="fi-any" data-find-any><span class="fi-pic">🛵</span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>` : "";
+    box.innerHTML = anyHtml + (rayHtml ? `<h5>${UI.esc(t("findRayons"))}</h5>${rayHtml}` : "") + (prodHtml ? `<h5>${UI.esc(t("findProducts"))}</h5>${prodHtml}` : "") + (shopHtml ? `<h5>${UI.esc(t("findShops"))}</h5>${shopHtml}` : "")
       || `<p class="fi-none">${UI.esc(t("findNone", { q }))}</p>`;
     box.classList.remove("hidden");
   };
@@ -5118,9 +5155,16 @@ async function homeFind(q) {
   UI.track("home_find", { q: q.slice(0, 40) });
 }
 $("#homeFind").addEventListener("input", e => { clearTimeout(findTimer); findTimer = setTimeout(() => homeFind(e.target.value), 250); });
+$("#homeFind").addEventListener("keydown", e => {
+  if (e.key !== "Enter" || !VIT) return;
+  e.preventDefault();
+  const q = e.target.value.trim();
+  if (norm(q).length >= 2) startFreeOrder(q);
+});
 $("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });
 document.addEventListener("click", e => { if (!e.target.closest(".sc-find")) $("#homeFindList").classList.add("hidden"); });
 $("#homeFindList").addEventListener("click", e => {
+  if (e.target.closest("[data-find-any]")) return startFreeOrder($("#homeFind").value.trim());
   const ry = e.target.closest("[data-find-ray]");
   if (ry) { const r = Rayons.byId(ry.dataset.findRay); $("#homeFindList").classList.add("hidden"); if (r) goRayonFind(r, $("#homeFind").value.trim()); return; }
   const b = e.target.closest("[data-find-pro]");
