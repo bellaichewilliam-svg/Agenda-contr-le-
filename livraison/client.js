@@ -5507,7 +5507,10 @@ $("#homeFind").addEventListener("keydown", e => {
   startFreeOrder(q);
 });
 $("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });
-document.addEventListener("click", e => { if (!(e.composedPath ? e.composedPath() : [e.target]).some(n => n.classList && n.classList.contains("sc-find"))) $("#homeFindList").classList.add("hidden"); });
+// (toucher une idée sous la recherche, « Ma liste de courses »… ouvre la liste : elle ne doit pas se refermer aussitôt)
+document.addEventListener("click", e => { if (!(e.composedPath ? e.composedPath() : [e.target]).some(n => n.classList && (n.classList.contains("sc-find") || n.classList.contains("vit-ideas")))) $("#homeFindList").classList.add("hidden"); });
+// Retoucher la recherche déjà remplie (même sans quitter le champ) : la liste revient
+$("#homeFind").addEventListener("click", e => { if (norm(e.target.value).length >= 2 && $("#homeFindList").classList.contains("hidden")) homeFind(e.target.value); });
 $("#homeFindList").addEventListener("click", e => {
   if (e.target.closest("[data-find-any]")) return startFreeOrder($("#homeFind").value.trim());
   if (e.target.closest(".mg")) return;
