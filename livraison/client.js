@@ -5449,10 +5449,32 @@ function renderMagic(anim) {
   const n = on.reduce((a, l) => a + l.qty, 0);
   box.innerHTML = `<div class="mg"><div class="mg-head"><b>${UI.esc(t("mgTitle"))}</b><small>${UI.esc(t("mgN", { n }))}</small></div>
     <div class="mg-list">${rows || `<p class="fi-none">${UI.esc(t("mgEmpty"))}</p>`}</div>
+    <div class="mg-add" data-mg-add><input type="text" enterkeyhint="done" autocomplete="off" placeholder="${UI.esc(t("mgAddPh"))}" aria-label="${UI.esc(t("mgAddBtn"))}" /><button type="button" data-mg-add-go>${UI.esc(t("mgAddBtn"))}</button></div>
     ${on.length ? `<div class="mg-sum"><b>${sum ? UI.esc(t("mgTotal", { sum: money(Math.round(sum * 10) / 10) })) : ""}</b><small>${UI.esc(t("mgFee", { fee }))}</small></div>
     <div class="mg-acts">${shopBtns}<button type="button" class="mg-go${shops.length ? " alt" : ""}" data-mg-go>${UI.esc(t("mgGo"))}</button></div>` : ""}</div>`;
   box.classList.remove("hidden");
 }
+// « ➕ Ajouter un article » sous la liste : n'importe quel produit de n'importe quel magasin (ou des courses HOP!),
+// cherché comme le reste ; les choix déjà faits (quantités, magasins) ne bougent pas
+async function mgAdd(txt) {
+  const m = state.magic, items = parseList(txt).length ? parseList(txt) : [{ qty: 1, name: txt }];
+  if (!m || !items.length) return;
+  const res = await Promise.all(items.map(i => magicFind(i.name)));
+  if (state.magic !== m) return;
+  items.forEach((it, k) => m.lines.push({ qty: it.qty, name: it.name, cands: res[k].cands, r: res[k].r, pick: res[k].strong ? 0 : res[k].r ? "r" : res[k].cands.length ? 0 : "x", on: true }));
+  const inp = $("#homeFind"); inp.value = inp.value.trim().replace(/[,،;]\s*$/, "") + ", " + txt; m.q = inp.value;
+  renderMagic(false);
+  const list = $("#homeFindList .mg-list"); if (list) list.scrollTop = list.scrollHeight;
+  UI.track("home_magic_add", { n: items.length });
+}
+function mgAddGo(f) {
+  const inp = f.querySelector("input"), v = inp.value.trim();
+  if (norm(v).length < 2) return inp.focus();
+  inp.value = ""; inp.disabled = true;
+  mgAdd(v).finally(() => { const i2 = $("#homeFindList [data-mg-add] input"); if (i2) i2.disabled = false; });
+}
+$("#homeFindList").addEventListener("keydown", e => { const f = e.key === "Enter" && e.target.closest("[data-mg-add]"); if (f) { e.preventDefault(); mgAddGo(f); } });
+$("#homeFindList").addEventListener("click", e => { const b = e.target.closest("[data-mg-add-go]"); if (b) mgAddGo(b.closest("[data-mg-add]")); });
 // La liste telle que le livreur la lira (produit, magasin, prix indicatif)
 function mgText() {
   return state.magic.lines.filter(l => l.on).map(l => {

@@ -5106,3 +5106,11 @@ html.d2:not(.d2-day) .when-closed { background: #172A4B; color: #fff; }
 /* Bandeaux qui défilent : chaque bandeau s'arrête à 16 px du bord (comme les rubriques), jamais collé ni coupé à gauche */
 .hp-row { scroll-padding-inline: 16px; }
 @media (min-width: 861px) { .hp-row { scroll-padding-inline: 22px; } }
+/* Liste de Hoppy : « ➕ Ajouter un article » (n'importe quel produit, de n'importe quel magasin) */
+.sc-find-list .mg-add { display: flex; gap: 8px; margin: 8px 0 4px; min-width: 0; }
+.sc-find-list .mg-add input { flex: 1; min-width: 0; height: 44px; border: 1.5px dashed var(--line, #d0d6e2); border-radius: 14px; padding: 0 12px; font: inherit; font-size: 15px; background: transparent; color: inherit; }
+.sc-find-list .mg-add input:focus { outline: none; border-style: solid; border-color: #FF6A13; }
+.sc-find-list .mg-add button { flex: none; height: 44px; border: 0; border-radius: 14px; padding: 0 14px; background: #0F1F3D; color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+html.d2:not(.d2-day) .sc-find-list .mg-add button { background: #FF6A13; }
+.sc-find-list .mg-add > button { width: auto !important; min-width: 0; flex: none; display: inline-flex; align-items: center; justify-content: center; margin: 0; }
+.sc-find-list .mg-add > input { width: auto; flex: 1 1 auto; }
