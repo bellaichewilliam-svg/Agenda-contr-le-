@@ -6000,6 +6000,64 @@ async function openStoredCart() {
   state.pharma = Object.assign({}, c.pharma || {}); state.pharmaOpt = Object.assign({}, c.pharmaOpt || {});
   if (c.homeKind) { state.homeKind = null; applyKind(c.homeKind); }
   goPharma();
+  // Le bouton panier ouvre un vrai panier : la liste des produits choisis (− / +, total), puis « Continuer »
+  setTimeout(openRayCart, 350);
+}
+// --- Panier des rayons HOP! (pharmacie, courses, bébé…) : comme le panier d'un magasin -------------------------
+function rayLines() {
+  const out = [];
+  for (const r of (window.Rayons ? Rayons.ALL : [])) for (const [k, q] of rayonPicked(r)) {
+    const [rid, rest] = [r.id, k.slice(r.id.length + 1)], [iid, oi] = rest.split("|");
+    const it = r.items.find(i => i.id === iid);
+    if (!it) continue;
+    const o = it.opt && it.opt[Number(oi) || 0], pr = (o && o.p) || it.p || (o && o.pb) || it.pb;
+    const unit = !pr ? 0 : Array.isArray(pr) ? priceMid(pr) : Number(pr) || 0;
+    out.push({ k, q, r, it, o, unit, rid });
+  }
+  return out;
+}
+function openRayCart() {
+  if (!rayLines().length) return;
+  renderRayCart();
+  $("#rayCart").classList.remove("hidden");
+}
+function renderRayCart() {
+  let m = $("#rayCart");
+  if (!m) {
+    m = document.createElement("div"); m.id = "rayCart"; m.className = "modal hidden item-sheet cart-sheet"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true");
+    m.innerHTML = `<div class="modal-box"><button type="button" class="it-x" data-ry-close aria-label="✕">✕</button><h3 class="cs-title" id="rayCartTitle"></h3>
+      <div class="cs-list" id="rayCartBody"></div><div class="cs-total"><span id="rayCartTot"></span><b id="rayCartSum"></b></div><p class="cs-note" id="rayCartNote"></p>
+      <div class="cs-btns"><button type="button" class="btn btn-primary btn-lg" data-ry-go></button><button type="button" class="btn btn-ghost btn-block" data-ry-more></button>
+      <button type="button" class="cs-clear" data-cart-clear>🗑 <span></span></button></div></div>`;
+    document.body.appendChild(m);
+    m.addEventListener("click", e => {
+      if (e.target === m || e.target.closest("[data-ry-close]")) return m.classList.add("hidden");
+      const b = e.target.closest("[data-ry-plus], [data-ry-minus]");
+      if (b) {
+        const k = b.dataset.ryPlus || b.dataset.ryMinus, plus = !!b.dataset.ryPlus;
+        state.pharma[k] = Math.max(0, (state.pharma[k] || 0) + (plus ? 1 : -1));
+        if (!state.pharma[k]) delete state.pharma[k];
+        try { renderPharma(); } catch (er) { /* ignore */ }
+        renderQuote(); saveDraft(); cartPersist();
+        if (!rayLines().length) { m.classList.add("hidden"); return; }
+        return renderRayCart();
+      }
+      if (e.target.closest("[data-ry-more]")) { m.classList.add("hidden"); return goPharma(); }
+      if (e.target.closest("[data-ry-go]")) { m.classList.add("hidden"); const g = $("#mobileGo"); if (g) g.click(); }
+    });
+  }
+  const lines = rayLines(), sum = lines.reduce((a, l) => a + l.unit * l.q, 0), n = lines.reduce((a, l) => a + l.q, 0);
+  const pic = it => { const ph = UI.safeImg(it.photo) || (it.img ? `img/qc/${it.img}.webp` : ""); return ph ? `<img src="${ph}" alt="" />` : `<i>${UI.esc(it.e || "🛒")}</i>`; };
+  $("#rayCartTitle").textContent = t("ryCartTitle", { n });
+  $("#rayCartBody").innerHTML = lines.map(l => `<div class="cs-row"><span class="cs-pic white">${pic(l.it)}</span>
+    <span class="cs-txt"><b><bdi>${UI.esc(phName(l.it))}</bdi></b>${l.o ? `<em class="cs-mods">${UI.esc(phName(l.o))}</em>` : ""}<small>${l.unit ? `≈ ${UI.esc(money(l.unit * l.q))}` : UI.esc(t("ryNoPrice"))}</small></span>
+    <span class="it-qty cs-qty"><button type="button" data-ry-minus="${UI.esc(l.k)}" aria-label="−">${l.q > 1 ? "−" : "🗑"}</button><b>${l.q}</b><button type="button" data-ry-plus="${UI.esc(l.k)}" aria-label="+">+</button></span></div>`).join("");
+  $("#rayCartTot").textContent = t("ryCartTot");
+  $("#rayCartSum").textContent = sum ? "≈ " + money(Math.round(sum)) : "";
+  $("#rayCartNote").textContent = t("ryCartNote");
+  m.querySelector("[data-ry-go]").textContent = t("ryCartGo");
+  m.querySelector("[data-ry-more]").textContent = "+ " + t("ryCartMore");
+  m.querySelector("[data-cart-clear] span").textContent = t("cartClear");
 }
 // Panier vide : la marche à suivre quand le commerce n'est pas encore sur HOP! (commander chez lui, puis la livraison ici)
 // « HOP! » toujours lisible dans une phrase en hébreu
