@@ -5976,7 +5976,10 @@ function renderCartIcon() {
     const gift = n && cartGiftDue(true);
     if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${gift ? ` <em class="cr-gift"><bdi dir="ltr">🎁 −${UI.esc(money(CART_GIFT.off))}</bdi></em>` : c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>›</i><span class="cr-x" role="button" tabindex="0" data-cart-clear aria-label="${UI.esc(t("cartClear"))}">✕</span>`;
   }
-  $("#tbCartN").textContent = n > 99 ? "99+" : String(n);
+  // Petit saut de la pastille quand un article arrive dans le panier
+  const nb = $("#tbCartN"), was = Number(nb.dataset.n || 0);
+  nb.textContent = n > 99 ? "99+" : String(n); nb.dataset.n = n;
+  if (n > was) { nb.classList.remove("pop"); void nb.offsetWidth; nb.classList.add("pop"); }
   $("#tbCartN").classList.toggle("hidden", !n);
   b.setAttribute("aria-label", n ? t("cartIconN", { n }) : t("cartIcon"));
 }

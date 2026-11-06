@@ -5035,3 +5035,32 @@ html.vit #accueil:not(.course) .ch-route .ch-in small { font-size: 11px; }
 html.vit #accueil:not(.course) .ch-route .ch-gps { width: 36px; height: 36px; }
 html.vit #accueil:not(.course) .ch-route .ch-no { padding: 6px; width: 56px; }
 html.vit #accueil:not(.course) .ch-route .ch-in small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .02em; }
+
+/* Petites animations, fluides et discrètes (patron, 06/11/2026) ; rien si le téléphone demande « moins d'animations » */
+@media (prefers-reduced-motion: no-preference) {
+  /* Rubriques : elles arrivent l'une après l'autre à l'ouverture */
+  html.vit #accueil:not(.course) .ch-kind { animation: vitUp .5s cubic-bezier(.2, .8, .2, 1) both; }
+  html.vit #accueil:not(.course) .ch-kind:nth-child(2) { animation-delay: 50ms; }
+  html.vit #accueil:not(.course) .ch-kind:nth-child(3) { animation-delay: 100ms; }
+  html.vit #accueil:not(.course) .ch-kind:nth-child(4) { animation-delay: 150ms; }
+  html.vit #accueil:not(.course) .ch-kind:nth-child(5) { animation-delay: 200ms; }
+  html.vit #accueil:not(.course) .ch-kind:nth-child(n+6) { animation-delay: 250ms; }
+  html.vit #accueil:not(.course) .vit-hero { animation: vitUp .55s cubic-bezier(.2, .8, .2, 1) both; }
+  html.vit #accueil:not(.course) .k2-row > .k2-card:first-child { animation: vitIn .6s cubic-bezier(.2, .8, .2, 1) .15s both; }
+  /* Toucher : le bouton s'enfonce légèrement, l'icône de la rubrique fait un petit saut */
+  html.vit #accueil :is(.ch-kind, .sc-card, .vit-chip, .vit-ideas button, .vit-course, .ro-card, .xp, .k2-go, .vc-go) { transition: transform .18s ease, box-shadow .18s ease; }
+  html.vit #accueil :is(.ch-kind, .sc-card, .vit-chip, .vit-ideas button, .ro-card, .xp):active { transform: scale(.96); }
+  html.vit #accueil .ch-kind:active .k2-ic img { transform: translateY(-4px) rotate(-4deg); }
+  html.vit #accueil .ch-kind .k2-ic img { transition: transform .25s cubic-bezier(.2, 1.6, .4, 1); }
+  /* En descendant : les cartes apparaissent doucement (navigateurs qui le savent ; sinon elles sont simplement là) */
+  @supports (animation-timeline: view()) {
+    html.vit #accueil:not(.course) :is(.vit-course, .pro-row .sc-card, .ro-card, .xp, .sc-story) { animation: vitReveal linear both; animation-timeline: view(); animation-range: entry 0% entry 35%; }
+  }
+  .tb-cart em.pop { animation: cartPop .45s cubic-bezier(.2, 1.8, .4, 1); }
+}
+/* (translate / scale, pas transform : l'effet « bouton enfoncé » reste possible pendant et après l'animation) */
+@keyframes vitUp { from { opacity: 0; translate: 0 14px; } to { opacity: 1; translate: 0 0; } }
+@keyframes vitIn { from { opacity: 0; translate: var(--vit-in, 24px) 0; } to { opacity: 1; translate: 0 0; } }
+html[dir="rtl"] { --vit-in: -24px; }
+@keyframes vitReveal { from { opacity: 0; translate: 0 18px; scale: .98; } to { opacity: 1; translate: 0 0; scale: 1; } }
+@keyframes cartPop { 0% { transform: scale(1); } 40% { transform: scale(1.45); } 100% { transform: scale(1); } }
