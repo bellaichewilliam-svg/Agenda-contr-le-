@@ -39,7 +39,6 @@ function setView(v, push) {
 // Un champ de l'adresse repliée en fiche doit être corrigé (erreur à l'envoi) : les champs reviennent
 const nativeFocus = HTMLElement.prototype.focus;
 HTMLElement.prototype.focus = function (o) {
-  if (this.closest && this.closest("#accueil .ch-route") && vitOn() && document.body.dataset.view === "home") enterCourse();
   // Vérification d'un écran (« Continuer ») : on note seulement le champ à corriger, sans y aller
   // Adresse enregistrée sans code d'entrée : on le demande dans sa fiche résumée, sans rouvrir toute l'adresse
   const sumCode = this === form.dropoff_code && form.classList.contains("to-saved") ? $("#toSum [data-sum-code]") : null;
@@ -4184,10 +4183,12 @@ function initVitrine() {
   if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) vitTypewriter();
   const find = $("#homeProBox .sc-find");
   if (find) $("#vitTop").appendChild(find);
-  $("#vitAddr").addEventListener("click", () => enterCourse("to"));
+  // (une seule page : l'adresse et la course libre se remplissent ici, sans changer d'écran)
+  const goField = which => { const i = homeInput(which); if (!i) return; nativeScrollIntoView.call(i.closest(".ch-line") || i, { block: "center", behavior: "smooth" }); setTimeout(() => nativeFocus.call(i, { preventScroll: true }), 380); };
+  $("#vitAddr").addEventListener("click", () => goField("to"));
   $("#vitWhen").addEventListener("click", () => { $("#accueil").classList.toggle("when-open"); vitRender(); });
   $("#homeWhen").addEventListener("click", e => { const w = e.target.closest("[data-when]"); if (w && w.dataset.when !== "other") setTimeout(() => { $("#accueil").classList.remove("when-open"); vitRender(); }, 0); });
-  $("#vitCourse").addEventListener("click", () => enterCourse());
+  $("#vitCourse").addEventListener("click", () => goField(addrReady("to") ? "from" : "to"));
   $("#homeBack").addEventListener("click", leaveCourse);
   // Bandeaux : ils défilent seuls (toutes les 5 s), s'arrêtent quand on les touche
   let touchAt = 0;
@@ -4649,7 +4650,6 @@ function syncHome() {
 
 function homeGo() {
   showHomeErr("");
-  if (vitOn() && !(addrReady("from") && addrReady("to"))) { enterCourse(addrReady("to") ? "from" : "to"); return; }
   for (const which of ["from", "to"]) {
     if (addrReady(which)) continue;
     const typed = !!val(prefixOf(which) + "_address").trim();
