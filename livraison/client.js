@@ -39,6 +39,7 @@ function setView(v, push) {
 // Un champ de l'adresse repliée en fiche doit être corrigé (erreur à l'envoi) : les champs reviennent
 const nativeFocus = HTMLElement.prototype.focus;
 HTMLElement.prototype.focus = function (o) {
+  if (this.closest && this.closest("#accueil .ch-route") && vitOn() && document.body.dataset.view === "home") enterCourse();
   // Vérification d'un écran (« Continuer ») : on note seulement le champ à corriger, sans y aller
   // Adresse enregistrée sans code d'entrée : on le demande dans sa fiche résumée, sans rouvrir toute l'adresse
   const sumCode = this === form.dropoff_code && form.classList.contains("to-saved") ? $("#toSum [data-sum-code]") : null;
@@ -56,6 +57,10 @@ Element.prototype.scrollIntoView = function (o) {
   setView(viewOf(this), true); return nativeScrollIntoView.call(this, o);
 };
 function routeHash() {
+  if (document.documentElement.classList.contains("vit")) {
+    const ch = document.getElementById("accueil"), c = location.hash === "#course";
+    if (ch && ch.classList.contains("course") !== c) { ch.classList.toggle("course", c); if (!c) { ch.classList.remove("when-open"); try { setMapOpen(false); } catch (e) { /* accueil pas encore prêt */ } } }
+  }
   const el = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
   setView(el ? viewOf(el) || "home" : "home");
   if (el && !/^(accueil|commander|mes-courses|infos)$/.test(el.id)) requestAnimationFrame(() => nativeScrollIntoView.call(el, { block: "start" }));
@@ -84,13 +89,17 @@ routeHash();
 
 // Nouveau design (html.d2) : icônes 3D du kit (img/k2), même cadre pour toutes les catégories
 const D2 = document.documentElement.classList.contains("d2");
+// Accueil vitrine (demande du patron du 06/11/2026) : adresse et heure en haut, recherche, rubriques en grandes vignettes
+// colorées, bandeaux qui défilent (commerces à la une + rayons), commerces ; la carte ne s'ouvre que pour une course libre
+const VIT = document.documentElement.classList.contains("vit");
+function vitOn() { const ch = document.getElementById("accueil"); return VIT && !!ch && !ch.classList.contains("course"); }
 // Petit scooter décoratif du bouton Commander (le libellé reste le vrai texte traduit)
 const SCOOT_SVG = `<svg class="k2-scoot" viewBox="1 2 35 20" overflow="visible" aria-hidden="true" focusable="false"><path fill="currentColor" d="M20 3h4.2c.6 0 1 .3 1.2.8l2.4 6.4a5.5 5.5 0 1 1-2.2 1l-.7-1.8-4.3 6.1a1 1 0 0 1-.8.4h-6.9a5.5 5.5 0 1 1-10.6-2.6A3 3 0 0 1 4.8 10H15l3.6-4H20V5h-1V3zM6.8 15.5a2.6 2.6 0 1 0 5.1.6zM26.3 13a2.6 2.6 0 1 0 1.2-.2l.9 2.3-1.9.7zM9 4h5a1 1 0 0 1 0 2H9a1 1 0 0 1 0-2z"/></svg>`;
 const K2_BG = { pharm: ["#013335", "#027363"], tabac: ["#28071E", "#531A3E"], bakery: ["#411C05", "#B35D1B"], shop: ["#081F39", "#0E2847"], baby: ["#021D3E", "#0F365C"],
   pets: ["#013936", "#106D61"], home: ["#051932", "#0D2D4F"], gift: ["#2E071E", "#45112F"] };
 const K2_FOND = { pharm: "pharmacie", tabac: "cigarettes-alcool", bakery: "boulangerie", shop: "courses", baby: "bebe-enfants", pets: "animaux", home: "maison-depannage", gift: "fleurs-cadeaux" };
 const K2_ICON = { ta: 1,  pharm: 1, tabac: 1, bakery: 1, shop: 1, baby: 1, pets: 1, home: 1, gift: 1, pressing: 1, poste: 1, resto: 1, docs: 1, yad2: 1, keys: 1 };
-const k2Icon = id => `<span class="k2-ic"><img src="img/k2/i-${id}.webp" alt="" loading="lazy" decoding="async" /></span>`;
+const k2Icon = (id, e) => `<span class="k2-ic${e ? " k2-e" : ""}"><img src="img/k2/${e ? "e" : "i"}-${id}.webp" alt="" loading="lazy" decoding="async" /></span>`;
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
   // Nouveautés en tête : boulangeries (petit-déjeuner) et pressing
@@ -1129,7 +1138,9 @@ function renderHomePharma() {
   if (!window.Rayons) return;
   if (D2) {
     // Grands encarts façon maquette : illustration du kit, vrai titre et vrai texte des rayons, bouton visible
-    $("#homePharma").innerHTML = `<div class="hp-row k2-row">${Rayons.ALL.map(r => {
+    // (accueil vitrine : les commerces à la une passent devant, avec leur photo et leur logo)
+    const bans = VIT ? vitBanners() : [];
+    const html = `<div class="hp-row k2-row">${bans.join("")}${Rayons.ALL.map(r => {
       const on = state.homeKind === r.kind, title = phName(r.card).replace(/^\P{L}+/u, "");
       const bg = K2_BG[r.kind] || ["#0F1D36", "#1C3157"];
       return `<button type="button" class="k2-card${K2_FOND[r.kind] ? " hop-fond-" + K2_FOND[r.kind] : ""}${on ? " on" : ""}" data-pharma-go="${r.id}" style="--c1:${bg[0]};--c2:${bg[1]}">
@@ -1137,7 +1148,9 @@ function renderHomePharma() {
           <small>${UI.esc(on ? t("hpOnSub") : k2Sub(phName(r.cardSub).replace("{n}", Rayons.items(r).length)))}</small>
           <span class="k2-go">${UI.esc(t("k2Discover"))} <i aria-hidden="true">›</i></span></span>
         <img class="k2-img" src="img/k2/e-${r.kind}.webp" alt="" loading="lazy" decoding="async" /></button>`;
-    }).join("")}</div><div class="k2-dots" aria-hidden="true">${Rayons.ALL.map((_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</div>`;
+    }).join("")}</div><div class="k2-dots" aria-hidden="true">${bans.concat(Rayons.ALL).map((_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</div>`;
+    if ($("#homePharma").dataset.html === html) return;
+    $("#homePharma").innerHTML = html; $("#homePharma").dataset.html = html;
     const row = $("#homePharma .k2-row");
     row.addEventListener("scroll", () => {
       const w = row.firstElementChild ? row.firstElementChild.offsetWidth + 12 : 1, i = Math.round(Math.abs(row.scrollLeft) / w);
@@ -1178,7 +1191,7 @@ function goKind(id) {
   }
   // Nouveau design : « Repas de restaurant » ouvre la grande carte des restaurants (logos, numéro, site),
   // on touche le sien et la commande remonte ; pas de liste par-dessus l'accueil
-  if (D2 && id === "resto" && !state.pick.from) { applyKind(id); setMapOpen(true); return; }
+  if (D2 && id === "resto" && !state.pick.from) { applyKind(id); if (vitOn()) enterCourse(); setMapOpen(true); return; }
   state.pharmaGo = true;
   applyKind(id);
   if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); }
@@ -4013,6 +4026,7 @@ document.addEventListener("click", e => {
   if (!e.target.closest("[data-ob-plan]")) return;
   const w = $("#homeWhen");
   if (!w) return;
+  if (vitOn()) $("#accueil").classList.add("when-open");
   w.scrollIntoView({ behavior: "smooth", block: "center" });
   w.classList.remove("flash"); void w.offsetWidth; w.classList.add("flash");
 });
@@ -4031,6 +4045,7 @@ function renderOpenBadge() {
     $("#openBadge").title = txt;
   } else $("#openBadge").textContent = txt;
   $("#openBadge").classList.toggle("closed", !open);
+  vitRender();
   return open;
 }
 // Le commerce commande lui-même une course (son téléphone) : n° de commande à 3 chiffres pour le sac
@@ -4059,6 +4074,88 @@ function clearHomeAddr(which, quiet) {
 const addrReady = which => { const pre = prefixOf(which); const p = state.pick[which];
   return !!val(pre + "_address").trim() && (!!val(pre + "_number").trim() || !!(p && p.brand)); };
 
+// --- Accueil vitrine ---------------------------------------------------------------------------------
+// Bandeaux des commerces à la une : ceux que le patron met en avant (🔥), sinon les boutiques HOP! ; photo, logo, accroche
+function vitBanners() {
+  try {
+    const list = (state.showcase || []).filter(s => UI.safeImg(s.cover) && !s.paused && (s.featured || isHopShop(s)))
+      .sort((a, b) => (!!b.featured - !!a.featured) || ((a.rank != null ? Number(a.rank) : 99) - (b.rank != null ? Number(b.rank) : 99))).slice(0, 4);
+    return list.map(s => {
+      const st = shopState(s), shut = st && !st.open, logo = UI.safeImg(s.logo);
+      const recent = s.created_at && Date.now() - new Date(s.created_at) < 30 * 86400000;
+      const sub = isHopShop(s) ? t("vitBanHop") : firstPhrase(UI.shopText(s, "tagline")) || t("vitBanAny");
+      return `<button type="button" class="k2-card vit-ban" data-pro="${UI.esc(s.code)}">
+        <img class="vb-cover" src="${UI.safeImg(s.cover)}" alt="" loading="lazy" decoding="async" />
+        <span class="k2-txt"><em>${UI.esc(t(recent ? "hpTag" : "vitBanTop"))}</em><b>${escHop(UI.bi(s.name))}</b><small>${UI.esc(sub)}</small>
+          <span class="k2-go">${UI.esc(t(shut ? "k2Prog" : "k2Discover"))} <i aria-hidden="true">›</i></span></span>
+        ${logo ? `<span class="vb-logo"><img src="${logo}" alt="" loading="lazy" /></span>` : ""}</button>`;
+    });
+  } catch (e) { return []; }
+}
+// Course libre (colis, documents, commerce hors appli) : la carte et les adresses s'ouvrent ; le retour revient à la vitrine
+function enterCourse(focusWhich) {
+  if (!VIT) return;
+  const ch = $("#accueil");
+  setView("home", false);
+  if (!ch.classList.contains("course")) {
+    ch.classList.add("course"); ch.classList.remove("when-open");
+    if (location.hash !== "#course") { history.pushState(null, "", location.pathname + location.search + "#course"); here = location.href; state.courseFromVit = true; }
+    window.scrollTo(0, 0);
+    requestAnimationFrame(() => { if (home.map) { home.map.invalidateSize(); renderHomeMap(true); } });
+    UI.track("home_course");
+  }
+  if (focusWhich) setTimeout(() => { const i = homeInput(focusWhich); if (i) nativeFocus.call(i); }, 320);
+}
+function leaveCourse() {
+  if (state.courseFromVit && location.hash === "#course") { state.courseFromVit = false; history.back(); return; }
+  history.replaceState(null, "", location.pathname + location.search); here = location.href; routeHash();
+}
+// Haut de la vitrine : l'adresse de livraison, l'heure, et une fine pastille si on ne peut pas partir maintenant
+function vitRender() {
+  if (!VIT || !$("#vitAddr")) return;
+  try { vitRenderNow(); } catch (e) { /* accueil pas encore prêt : redessiné au prochain passage */ }
+}
+function vitRenderNow() {
+  const street = val("dropoff_address").trim(), no = val("dropoff_number").trim();
+  const txt = street ? (no && !new RegExp("\\b" + no + "\\b").test(street) ? `${street} ${no}` : street) : "";
+  const saved = txt && Store.getAddresses().find(a => !a.brand && state.pick.to && a.lat != null && Math.abs(a.lat - state.pick.to.lat) < 1e-4 && Math.abs(a.lon - state.pick.to.lon) < 1e-4);
+  const tag = saved && saved.tag ? (saved.tag === "home" ? "🏠" : saved.tag === "work" ? "💼" : "") : "";
+  $("#vitAddrTxt").innerHTML = txt ? `${tag ? tag + " " : ""}<bdi>${UI.esc(txt)}</bdi>` : UI.esc(t("vitAddrPick"));
+  const cur = currentWhen(), opt = whenOptions().find(o => o.id === cur);
+  const at = val("urgency") === "programmee" && pickupDate();
+  $("#vitWhenTxt").textContent = cur === "now" ? t("hmNow").replace(/^\P{L}+/u, "")
+    : at ? UI.fmtDateTime(at) : t({ in1h: "hmIn1h", tonight: "hmTonight", tomorrow: "hmTomorrow", opens: "hmOpens", other: "vitOther" }[cur] || "vitOther", { h: (opt && (opt.h || (opt.d ? hhmm(opt.d) : ""))) || "" });
+  $("#vitWhen").classList.toggle("on", $("#accueil").classList.contains("when-open"));
+  const open = openNow(), st = $("#vitStatus");
+  if (!open) {
+    const short = ($("#openBadge .ob-txt") || $("#openBadge")).textContent.trim();
+    st.innerHTML = `<span>${UI.esc(short)}</span><button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>`;
+  }
+  st.classList.toggle("hidden", open);
+  $("#vitCoursePrice").textContent = t("vitCoursePrice", { city: I18N.cityName(CONFIG.homeCity), price: money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)) });
+}
+function initVitrine() {
+  const find = $("#homeProBox .sc-find");
+  if (find) $("#vitTop").appendChild(find);
+  $("#vitAddr").addEventListener("click", () => enterCourse("to"));
+  $("#vitWhen").addEventListener("click", () => { $("#accueil").classList.toggle("when-open"); vitRender(); });
+  $("#homeWhen").addEventListener("click", e => { const w = e.target.closest("[data-when]"); if (w && w.dataset.when !== "other") setTimeout(() => { $("#accueil").classList.remove("when-open"); vitRender(); }, 0); });
+  $("#vitCourse").addEventListener("click", () => enterCourse());
+  $("#homeBack").addEventListener("click", leaveCourse);
+  // Bandeaux : ils défilent seuls (toutes les 5 s), s'arrêtent quand on les touche
+  let touchAt = 0;
+  document.addEventListener("pointerdown", e => { if (e.target.closest && e.target.closest("#homePharma")) touchAt = Date.now(); }, true);
+  setInterval(() => {
+    const row = $("#homePharma .k2-row");
+    if (!row || document.hidden || !vitOn() || document.body.dataset.view !== "home" || Date.now() - touchAt < 9000) return;
+    if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const r = row.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > innerHeight || !row.firstElementChild) return;
+    const w = row.firstElementChild.offsetWidth + 12, n = row.children.length, i = Math.round(Math.abs(row.scrollLeft) / w), nx = (i + 1) % n;
+    row.scrollTo({ left: (isRtl() ? -1 : 1) * nx * w, behavior: nx ? "smooth" : "auto" });
+  }, 5000);
+  vitRender();
+}
 function initHome() {
   ["from", "to"].forEach(which => {
     const input = homeInput(which), pre = prefixOf(which);
@@ -4149,6 +4246,7 @@ function initHome() {
     const sh = e.target.closest("[data-ens-shop], [data-pro]");
     if (sh) { $("#ensModal").classList.add("hidden"); state.shopDir = ""; loadShop(sh.dataset.ensShop || sh.dataset.pro); }
   });
+  if (VIT) initVitrine();
   state.partnersReady = loadPartners();
   loadShowcase();
   initHomeMap();
@@ -4258,7 +4356,7 @@ function renderHomeStatic() {
   $("#homeKinds").innerHTML = HOME_KINDS.map(ex => {
     const q = Pricing.computeQuote({ fromCity: homeCity, toCity: homeCity, service: ex.set.service, size: ex.set.size || "petit", roundTrip: ex.set.round_trip, purchaseKind: ex.id }, CONFIG);
     const art = KIND_ART[ex.id];
-    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${!D2 && RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${D2 && K2_ICON[ex.id] ? k2Icon(ex.id) : art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b></button>`;
+    return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${!D2 && RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${D2 && K2_ICON[ex.id] ? k2Icon(ex.id, VIT && !!K2_FOND[ex.id]) : art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b></button>`;
   }).join("");
   loadRayonsLive();
   renderHomePharma();
@@ -4497,12 +4595,14 @@ function syncHome() {
   $("#homeFair").textContent = t("fairText", { price: ready && val("service") !== "achat" ? money(currentQuote().total) : base });
   $("#homeFairShop").textContent = t("fairShop", { price: ready && val("service") === "achat" ? money(currentQuote().total) : base });
   renderReorder();
+  vitRender();
   const key = JSON.stringify([state.fromPoint, state.toPoint]);
   if (key !== home.key) { home.key = key; renderHomeMap(true); renderLive(); }
 }
 
 function homeGo() {
   showHomeErr("");
+  if (vitOn() && !(addrReady("from") && addrReady("to"))) { enterCourse(addrReady("to") ? "from" : "to"); return; }
   for (const which of ["from", "to"]) {
     if (addrReady(which)) continue;
     const typed = !!val(prefixOf(which) + "_address").trim();
@@ -4979,6 +5079,7 @@ function renderShowcase() {
   } else body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
   const html = stories + body;
   if ($("#homePro").dataset.html !== html) { $("#homePro").innerHTML = html; $("#homePro").dataset.html = html; }
+  if (VIT) renderHomePharma();
 }
 $("#homeFilters").addEventListener("click", e => {
   const b = e.target.closest("[data-scf]");
