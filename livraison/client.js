@@ -1683,18 +1683,54 @@ function applyNearest() {
 
 // « Récupérer où ? » : le client tape un produit (eau, couches, Acamol, sushi…) au lieu d'un magasin.
 // On lui propose le rayon HOP! qui l'a (le livreur va au magasin le plus proche) et les catalogues des commerces.
+// Recherche intelligente (06/11/2026) : synonymes FR / HE / translittération (pain = לחם = lehem), singulier / pluriel,
+// petites fautes de frappe ; les synonymes viennent de la base (search_synonyms, le patron peut en ajouter)
+const synNorm = x => phNorm(String(x || "").replace(/œ/gi, "oe")).replace(/\s+/g, " ").trim();
+let SYN = [];
+Store.searchSynonyms().then(l => { if (Array.isArray(l)) SYN = l.map(g => (g || []).map(synNorm)); }).catch(() => {});
+function searchTerms(q) {
+  const n = synNorm(q), out = new Set([n]);
+  if (n.length > 3 && /[sx]$/.test(n)) out.add(n.slice(0, -1));
+  for (const g of SYN) if ([...out].some(t => g.includes(t))) g.forEach(w => out.add(w));
+  return [...out].filter(t => t.length >= 2);
+}
+// Distance d'édition (fautes de frappe), arrêtée dès qu'elle dépasse max
+function editDist(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]; let low = i;
+    for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); low = Math.min(low, cur[j]); }
+    if (low > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
 function rayonHits(q, max) {
-  const n = phNorm(q).trim();
+  const n = synNorm(q);
   if (n.length < 3 || !window.Rayons) return [];
-  const out = [], seen = new Set();
+  const terms = searchTerms(q), out = [], seen = new Set();
   // Début d'un mot seulement (« eau » ne trouve pas « gâteau », « מים » pas « קונדומים ») ; les courses du quotidien d'abord
   const at = (txt, k) => k === 0 || /[\s(/'-]/.test(txt[k - 1]);
-  const word = txt => { for (let k = txt.indexOf(n); k >= 0; k = txt.indexOf(n, k + 1)) if (at(txt, k)) return k; return -1; };
+  const word = txt => { let best = -1; for (const t of terms) for (let k = txt.indexOf(t); k >= 0; k = txt.indexOf(t, k + 1)) if (at(txt, k)) { if (best < 0 || k < best) best = k; break; } return best; };
+  const all = [];
   for (const r of Rayons.ALL) for (const i of Rayons.items(r)) {
-    const name = phNorm(`${i.fr} ${i.he}`), opts = phNorm((i.opt || []).map(o => `${o.fr} ${o.he}`).join(" "));
+    const name = synNorm(`${i.fr} ${i.he}`), opts = synNorm((i.opt || []).map(o => `${o.fr} ${o.he}`).join(" "));
+    all.push({ r, i, name, opts });
     const k = word(name), ko = k < 0 ? word(opts) : -1;
     if (k < 0 && ko < 0) continue;
     out.push({ r, i, s: (k === 0 ? 0 : k > 0 ? 1 : 2) * 2 + (r.id === "super" ? 0 : 1) });
+  }
+  // Rien trouvé : une faute de frappe ? (« chocolta », « bnaane ») : un mot du produit presque pareil
+  if (!out.length && n.length >= 4) {
+    const lim = n.length >= 7 ? 2 : 1;
+    for (const x of all) {
+      const ws = `${x.name} ${x.opts}`.split(/[\s(/,'-]+/).filter(w => w.length >= 3);
+      let d = lim + 1, at0 = false;
+      ws.forEach((w, k) => { const e = editDist(n, w, lim); if (e < d || (e === d && k === 0)) { d = e; at0 = k === 0; } });
+      // (le mot presque pareil au début du nom passe devant : « chocolta » → « Chocolat » avant « Lait chocolaté »)
+      if (d <= lim) out.push({ r: x.r, i: x.i, s: 10 + d * 4 + (at0 ? 0 : 2) + (x.r.id === "super" ? 0 : 1) });
+    }
   }
   return out.sort((a, b) => a.s - b.s).filter(x => { const key = phNorm(x.i.fr); if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, max);
 }

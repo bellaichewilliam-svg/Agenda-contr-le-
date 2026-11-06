@@ -1769,7 +1769,9 @@ async function shopsDirectory() {
 async function productsSearch(q) {
   if (String(q || "").trim().length < 2) return [];
   if (ONLINE) {
-    // v2 : avec le lien de la photo (06/11/2026) ; l'ancienne si la base n'est pas encore à jour
+    // v3 : recherche intelligente (synonymes FR / HE, pluriels, fautes de frappe) ; v2 puis l'ancienne si la base n'est pas à jour
+    const r3 = await rest("/rest/v1/rpc/products_search_v3", { method: "POST", body: { p_q: q } }).catch(() => null);
+    if (Array.isArray(r3)) return r3;
     const r = await rest("/rest/v1/rpc/products_search_v2", { method: "POST", body: { p_q: q } }).catch(() => null);
     if (Array.isArray(r)) return r;
     return (await rest("/rest/v1/rpc/products_search", { method: "POST", body: { p_q: q } })) || [];
@@ -1778,6 +1780,15 @@ async function productsSearch(q) {
   return localShops().filter(x => x.status === "actif" && (planActive(x) || x.showcase)).flatMap(x => ((cat[x.id] || {}).products || [])
     .filter(pr => pr.available && (String(pr.name).toLowerCase().includes(n) || String(pr.description || "").toLowerCase().includes(n)))
     .map(pr => ({ id: pr.id, name: pr.name, price: pr.price, has_photo: !!pr.photo, photo: typeof pr.photo === "string" && pr.photo.length < 600 ? pr.photo : null, code: x.code, shop: x.name, kind: x.kind, category: null }))).slice(0, 24);
+}
+// Synonymes de la recherche (pain = לחם = lehem…) : ceux de la base (le patron peut en ajouter), gardés sur le téléphone
+async function searchSynonyms() {
+  const KEY = "livraison.syn.v1";
+  if (ONLINE) {
+    const r = await rest("/rest/v1/rpc/search_synonyms_all", { method: "POST", body: {} }).catch(() => null);
+    if (Array.isArray(r) && r.length) { writeJSON(KEY, r); return r; }
+  }
+  return readJSON(KEY, null);
 }
 // Recherche d'un produit depuis l'accueil : un résultat par commerce (nombre d'articles, prix le plus bas, exemples)
 async function productsSearchShops(q) {
@@ -2796,7 +2807,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, productsSearchShops, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, productsSearch, productsSearchShops, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
