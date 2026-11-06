@@ -1750,6 +1750,8 @@ function cityName(id) {
 
 window.I18N = {
   t, apply, setLang, cityName,
+  // Langue d'un écran sans la garder pour les autres (appli livreur)
+  use(l) { lang = DICT[l] ? l : "fr"; apply(); },
   get lang() { return lang; },
   other() { return lang === "he" ? "fr" : "he"; },
   businessName() { return lang === "he" ? CONFIG.businessNameHe : CONFIG.businessName; },
