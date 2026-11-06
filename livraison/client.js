@@ -1102,7 +1102,7 @@ function renderPharma() {
     if (rows) return `<div class="ph-line${qn ? " in" : ""}"><span class="pl-txt"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${sel2}</span>
       ${pr ? `<span class="pl-price"><b>≈ ${priceTxt(pr)}</b>${x.c === "cig" && x.id !== "cartouche" ? `<small>${UI.esc(t("phPerPack"))}</small>` : ""}</span>` : ""}
       <span class="pl-act">${step}</span></div>`;
-    return `<div class="ph-item${qn ? " in" : ""}">
+    return `<div class="ph-item${qn ? " in" : ""}" data-ph-open="${UI.esc(x.id)}">
       <div class="ph-pic${x.photo ? " photo" : ""}${UI.extPic(x.photo) ? " pack" : ""}">${pic(x)}
         ${qn ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${qn}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`}</div>
@@ -1255,6 +1255,68 @@ $("#pharmaBox").addEventListener("click", e => {
   renderQuote();
   saveDraft();  cartPersist();
 });
+// Toucher un produit (pas son « + » ni son choix) : sa fiche s'ouvre, comme dans les catalogues des commerces
+$("#pharmaBox").addEventListener("click", e => {
+  const it = e.target.closest("[data-ph-open]");
+  if (!it || e.target.closest("button, select, input, a")) return;
+  openRayItem(it.dataset.phOpen);
+});
+const rayIt = { id: null, opt: 0, qty: 1 };
+function openRayItem(id) {
+  const r = rayonOn(), x = r && r.items.find(i => i.id === id);
+  if (!x) return;
+  rayIt.id = id; rayIt.opt = Number((state.pharmaOpt || {})[r.id + ":" + id] || 0); rayIt.qty = 1;
+  renderRayItem();
+  $("#rayItem").classList.remove("hidden");
+}
+function renderRayItem() {
+  let m = $("#rayItem");
+  if (!m) {
+    m = document.createElement("div"); m.id = "rayItem"; m.className = "modal hidden item-sheet ray-item"; m.setAttribute("role", "dialog"); m.setAttribute("aria-modal", "true");
+    m.innerHTML = `<div class="modal-box"><button type="button" class="it-x" data-ri-close aria-label="✕">✕</button><div id="rayItemBody"></div>
+      <p class="ri-msg hidden" id="rayItemMsg"></p>
+      <div class="it-bar"><div class="it-qty"><button type="button" data-ri-qty="-1" aria-label="−">−</button><b id="rayItemQty">1</b><button type="button" data-ri-qty="1" aria-label="+">+</button></div>
+      <button type="button" class="btn btn-primary it-add" data-ri-add></button></div></div>`;
+    document.body.appendChild(m);
+    m.addEventListener("click", e => {
+      if (e.target === m || e.target.closest("[data-ri-close]")) return m.classList.add("hidden");
+      const q = e.target.closest("[data-ri-qty]"), o = e.target.closest("[data-ri-opt]");
+      if (q) { rayIt.qty = Math.max(1, Math.min(20, rayIt.qty + Number(q.dataset.riQty))); return renderRayItem(); }
+      if (o) { rayIt.opt = Number(o.dataset.riOpt); return renderRayItem(); }
+      if (!e.target.closest("[data-ri-add]")) return;
+      // Même règle que le « + » : 24 articles au plus, et tout doit tenir dans le top case
+      const r = rayonOn(), k = `${r.id}:${rayIt.id}|${rayIt.opt}`, en = rayonEntry(r, k);
+      let added = 0, msg = "";
+      for (let i = 0; i < rayIt.qty; i++) {
+        if (rayonUnits() >= PI.max) { msg = t("phMax", { max: PI.max }); break; }
+        if (en && rayonPlace() + en.sz > PI.topcase) { msg = t("phFull"); break; }
+        state.pharma[k] = (state.pharma[k] || 0) + 1; added++;
+      }
+      if (added) {
+        state.pharmaOpt = Object.assign(state.pharmaOpt || {}, { [r.id + ":" + rayIt.id]: rayIt.opt });
+        rayonAdult();
+        if (rayonUnits() > 0) form.fits_topcase.checked = true;
+        renderPharma(); renderQuote(); saveDraft(); cartPersist(); renderCartIcon();
+      }
+      if (msg) { $("#rayItemMsg").textContent = msg; $("#rayItemMsg").classList.remove("hidden"); if (!added) return; }
+      if (!msg) m.classList.add("hidden");
+    });
+  }
+  const r = rayonOn(), x = r && r.items.find(i => i.id === rayIt.id);
+  if (!x) return;
+  const o = x.opt && x.opt[rayIt.opt], pr = (o && o.p) || x.p || (o && o.pb) || x.pb, ph = UI.safeImg(x.photo);
+  const k = `${r.id}:${x.id}|${x.opt ? rayIt.opt : 0}`, inCart = state.pharma[k] || 0;
+  const other = I18N.lang === "he" ? x.fr : x.he;
+  $("#rayItemBody").innerHTML = `<div class="it-pic${ph ? " ri-photo" : " ri-picto"}">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" />` : x.img ? `<img src="img/qc/${x.img}.webp" alt="" />` : `<i>${UI.esc(x.e || "🛒")}</i>`}</div>
+    <div class="it-txt"><h3><bdi>${UI.esc(phName(x))}</bdi>${x.adult ? ` <i class="ph-18">18+</i>` : ""}</h3>${other && other !== phName(x) ? `<p class="ri-other"><bdi>${UI.esc(other)}</bdi></p>` : ""}
+      <div class="it-prow"><span class="cg-price">${pr ? `≈ ${UI.esc(priceTxt(pr))}` : UI.esc(t("ryNoPrice"))}</span>${inCart ? `<span class="it-unit">🛒 ${inCart}</span>` : ""}</div>
+      ${x.opt ? `<p class="it-size-h">${UI.esc(t("riChoose"))}</p><div class="it-sizes" role="radiogroup">${x.opt.map((v, i) => `<button type="button" class="it-size${i === rayIt.opt ? " on" : ""}" role="radio" aria-checked="${i === rayIt.opt}" data-ri-opt="${i}"><b>${UI.esc(phName(v))}</b>${v.p ? `<small>≈ ${UI.esc(priceTxt(v.p))}</small>` : ""}${state.pharma[`${r.id}:${x.id}|${i}`] ? `<em>${state.pharma[`${r.id}:${x.id}|${i}`]}×</em>` : ""}</button>`).join("")}</div>` : ""}
+      <p class="ri-note">${UI.esc(t("ryCartNote"))}</p></div>`;
+  $("#rayItemQty").textContent = rayIt.qty;
+  $("#rayItemMsg").classList.add("hidden");
+  const each = pr ? priceMid(pr) : 0;
+  m.querySelector("[data-ri-add]").innerHTML = `<span>${UI.esc(t("itAdd"))}</span>${each ? `<b>≈ ${UI.esc(money(each * rayIt.qty))}</b>` : ""}`;
+}
 $("#pharmaBox").addEventListener("change", e => {
   const s = e.target.closest("[data-ph-opt]");
   if (!s) return;
