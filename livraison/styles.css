@@ -4936,3 +4936,54 @@ html.vit .vit-course img { bottom: 12px; inset-inline-end: 10px; height: auto; w
 html.vit #accueil:not(.course) .k2-card { box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
 html.vit #accueil:not(.course) .k2-card.on { box-shadow: 0 0 0 3px var(--brand); }
 html.vit.d2-day #accueil:not(.course) .k2-card { box-shadow: 0 4px 12px rgba(15,31,61,.12); }
+
+/* ✨ Héros « Dites-le à Hoppy » : grand bloc lumineux (la question, la recherche, les idées en un geste) */
+.vit-hero { display: none; }
+html.vit #accueil:not(.course) .vit-hero { position: relative; display: grid; gap: 12px; padding: 16px; margin-top: 2px; border-radius: 24px; overflow: visible; z-index: 6;
+  background: radial-gradient(120% 90% at 100% 0%, rgba(255,106,19,.30), transparent 55%), radial-gradient(90% 80% at 0% 100%, rgba(46,144,250,.22), transparent 60%), linear-gradient(160deg, #15305C, #0F1F3D 70%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.1), 0 14px 34px rgba(0,0,0,.35); }
+html.vit #accueil:not(.course) .vit-hero::before { content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1; pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,.10) 45%, transparent 60%) no-repeat; background-size: 250% 100%; animation: heroShine 5.5s ease-in-out infinite; }
+@keyframes heroShine { 0%, 55% { background-position: 130% 0; } 100% { background-position: -130% 0; } }
+@media (prefers-reduced-motion: reduce) { html.vit #accueil:not(.course) .vit-hero::before { animation: none; } }
+html.vit #accueil:not(.course) .vit-hero .vit-ask { margin: 0; color: #fff; font-size: 26px; }
+html.vit #accueil:not(.course) .vit-hero .sc-find input { background: rgba(255,255,255,.96); color: #0F1F3D; box-shadow: 0 0 0 4px rgba(255,106,19,.25), 0 8px 20px rgba(0,0,0,.25); font-weight: 600; }
+html.vit #accueil:not(.course) .vit-hero .sc-find input::placeholder { color: #5B6B85; }
+html.vit #accueil:not(.course) .vit-hero .sc-find input:focus { box-shadow: 0 0 0 4px rgba(255,106,19,.55), 0 8px 20px rgba(0,0,0,.25); }
+.vit-ideas { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 2px; }
+.vit-ideas::-webkit-scrollbar { display: none; }
+.vit-ideas button { flex: none; border: 0; border-radius: 99px; padding: 8px 12px; font: inherit; font-size: 13.5px; font-weight: 700; color: #fff; cursor: pointer;
+  background: rgba(255,255,255,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); white-space: nowrap; }
+.vit-ideas button:first-child { background: var(--brand); box-shadow: 0 6px 14px rgba(255,106,19,.35); }
+.vit-ideas button:active { transform: scale(.96); }
+html.vit.d2-day #accueil:not(.course) .vit-hero .vit-ask { color: #fff; }
+/* La liste comprise par Hoppy */
+.sc-find-list .mg { display: grid; gap: 8px; padding: 4px; }
+.sc-find-list .mg-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 2px 4px; }
+.sc-find-list .mg-head b { font-size: 16px; }
+.sc-find-list .mg-head small { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
+.sc-find-list .mg-list { display: grid; gap: 6px; }
+.sc-find-list .mg-row { display: flex; align-items: center; gap: 10px; padding: 6px; border-radius: 14px; background: rgba(255,255,255,.05); box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+  animation: mgIn .45s cubic-bezier(.2, 1.4, .4, 1) both; animation-delay: var(--d, 0ms); }
+html.vit.d2-day .sc-find-list .mg-row { background: #F7F8FB; box-shadow: inset 0 0 0 1px rgba(15,31,61,.07); }
+@keyframes mgIn { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+.sc-find-list .mg-row.wait { animation: none; opacity: .7; }
+.sc-find-list .mg-pic { flex: none; width: 52px; height: 52px; border-radius: 12px; display: grid; place-items: center; overflow: hidden; background: rgba(255,106,19,.14); font-size: 24px; }
+.sc-find-list .mg-pic.white { background: #fff; }
+.sc-find-list .mg-pic img { width: 100%; height: 100%; object-fit: cover; }
+.sc-find-list .mg-pic.white img { object-fit: contain; padding: 4px; box-sizing: border-box; }
+.sc-find-list .mg-spin { width: 20px; height: 20px; border-radius: 50%; border: 3px solid rgba(255,106,19,.3); border-top-color: var(--brand); animation: mgSpin .8s linear infinite; }
+@keyframes mgSpin { to { transform: rotate(360deg); } }
+.sc-find-list .mg-txt { flex: 1; min-width: 0; display: grid; gap: 2px; line-height: 1.25; }
+.sc-find-list .mg-txt b { font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+.sc-find-list .mg-txt b em { font-style: normal; color: var(--brand); }
+.sc-find-list .mg-txt small { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-find-list .mg-price { flex: none; font-weight: 800; color: var(--brand); font-size: 14.5px; white-space: nowrap; }
+.sc-find-list .mg-sum { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; padding: 4px 6px 0; }
+.sc-find-list .mg-sum b { font-size: 17px; }
+.sc-find-list .mg-sum small { color: var(--muted); font-size: 13px; }
+.sc-find-list .mg-acts { display: grid; gap: 8px; }
+.sc-find-list button.mg-cart, .sc-find-list button.mg-go { justify-content: center; width: 100%; min-height: 50px; border-radius: 16px; font-size: 16px; font-weight: 800; color: #fff; background: var(--brand); box-shadow: 0 8px 18px rgba(255,106,19,.35); }
+.sc-find-list button.mg-go.alt { background: rgba(255,255,255,.08); color: inherit; box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); min-height: 44px; font-size: 15px; }
+html.vit.d2-day .sc-find-list button.mg-go.alt { background: #F4F6FA; box-shadow: inset 0 0 0 1px rgba(15,31,61,.12); }
+html.vit #accueil:not(.course) .vit-hero .sc-find-list { max-height: calc(100dvh - 230px); }

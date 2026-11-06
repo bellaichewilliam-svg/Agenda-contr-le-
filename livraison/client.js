@@ -4177,14 +4177,28 @@ function vitWhenShort(at) {
   const nm = (DAYS[I18N.lang] || DAYS.fr)[d.getDay()];
   return `${I18N.lang === "he" ? nm : nm.slice(0, 3) + "."} ${h}`;
 }
+let goField = () => {};
 function initVitrine() {
   const h = $("#homeProBox .ch-h");
   if (h) { h.dataset.i18n = "vitShopsT"; h.textContent = t("vitShopsT"); }
   if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) vitTypewriter();
   const find = $("#homeProBox .sc-find");
-  if (find) $("#vitTop").appendChild(find);
+  if (find) $("#vitHero").appendChild(find);
+  // Idées en un geste : elles remplissent la recherche (la liste montre tout de suite la magie de Hoppy)
+  const ideas = document.createElement("div");
+  ideas.className = "vit-ideas"; ideas.id = "vitIdeas";
+  $("#vitHero").appendChild(ideas);
+  const drawIdeas = () => { const l = t("vitIdeas"); ideas.innerHTML = Array.isArray(l) ? l.map((x, i) => `<button type="button" data-idea="${i}">${UI.esc(x[0])}</button>`).join("") : ""; };
+  drawIdeas(); window.addEventListener("hop:lang", drawIdeas);
+  ideas.addEventListener("click", e => {
+    const b = e.target.closest("[data-idea]"); if (!b) return;
+    const x = (t("vitIdeas") || [])[Number(b.dataset.idea)];
+    if (!x) return;
+    if (!x[1]) return goField(addrReady("to") ? "from" : "to");
+    const inp = $("#homeFind"); inp.value = x[1]; inp.focus(); homeFind(x[1]);
+  });
   // (une seule page : l'adresse et la course libre se remplissent ici, sans changer d'écran)
-  const goField = which => { const i = homeInput(which); if (!i) return; nativeScrollIntoView.call(i.closest(".ch-line") || i, { block: "center", behavior: "smooth" }); setTimeout(() => nativeFocus.call(i, { preventScroll: true }), 380); };
+  goField = which => { const i = homeInput(which); if (!i) return; nativeScrollIntoView.call(i.closest(".ch-line") || i, { block: "center", behavior: "smooth" }); setTimeout(() => nativeFocus.call(i, { preventScroll: true }), 380); };
   $("#vitAddr").addEventListener("click", () => goField("to"));
   $("#vitWhen").addEventListener("click", () => { $("#accueil").classList.toggle("when-open"); vitRender(); });
   $("#homeWhen").addEventListener("click", e => { const w = e.target.closest("[data-when]"); if (w && w.dataset.when !== "other") setTimeout(() => { $("#accueil").classList.remove("when-open"); vitRender(); }, 0); });
@@ -5146,6 +5160,8 @@ async function homeFind(q) {
   const box = $("#homeFindList"), n = norm(q);
   if (n.length < 2) { box.classList.add("hidden"); box.innerHTML = ""; return; }
   const seq = ++findSeq;
+  // Une liste (« 2 lait, du pain, 6 œufs ») : Hoppy la comprend et la range, avec les vrais produits
+  if (VIT && parseList(q).length >= 2) return vitMagic(q, box, seq);
   const sc = code => (state.showcase || []).find(x => x.code === code) || {};
   const shops = (state.showcase || []).filter(s => norm(`${s.name} ${(t("shKinds") || {})[s.kind] || ""} ${s.tagline || ""} ${s.tagline_he || ""}`).includes(n)).slice(0, 5);
   const staple = rayonHits(q, 1).length > 0;
@@ -5197,16 +5213,105 @@ function vitFindRender(q, products, shops, staple, box) {
   box.innerHTML = any + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
   box.classList.remove("hidden");
 }
+// --- ✨ « Dites-le à Hoppy » : une phrase → la liste rangée, avec le vrai produit, sa photo, son prix et le total ----------
+const LIST_SPLIT = /\s*(?:,|،|;|\n|\+|\s(?:et|and|puis|avec)\s|\sוגם\s|\sו(?=[\u05d0-\u05ea]{2}))\s*/i;
+function parseList(q) {
+  return String(q || "").split(LIST_SPLIT).map(x => x.trim()).filter(x => norm(x).length >= 2).slice(0, 8).map(p => {
+    let qty = 1, name = p, m = /^(\d{1,2})\s*(?:x|×|\*)?\s+(.+)$/i.exec(p) || /^(\d{1,2})(?:x|×)\s*(.+)$/i.exec(p);
+    if (m) { qty = Number(m[1]); name = m[2]; } else if ((m = /^(.+?)\s*(?:x|×|\*)\s*(\d{1,2})$/i.exec(p))) { qty = Number(m[2]); name = m[1]; }
+    // « 6 œufs », « 12 rouleaux » : le nombre fait partie du produit (une boîte), pas 6 boîtes
+    if (qty > 5) { qty = 1; name = p; }
+    name = name.replace(/^(?:(?:du|de la|des|un|une|le|la|les)\s+|(?:de l|l)['’]\s*)/i, "").trim() || p;
+    return { qty: Math.max(1, Math.min(20, qty)), name, raw: p };
+  });
+}
+const magicCache = new Map();
+function magicBest(name) {
+  const k = norm(name);
+  if (!magicCache.has(k)) magicCache.set(k, (async () => {
+    let prods = [];
+    try { prods = (await Store.productsSearch(name)) || []; } catch (e) { /* les rayons suffisent */ }
+    const nn = phNorm(name).trim(), starts = x => phNorm(UI.bi(x.name)).replace(/^.*?·\s*/, "").startsWith(nn) || phNorm(UI.bi(x.name)).startsWith(nn);
+    const shopP = prods.filter(x => !/restaurant|resto|cafe/i.test(x.kind || ""));
+    const p = shopP.find(starts) || shopP[0] || null;
+    const hit = rayonHits(name, 1)[0] || null;
+    return { p, r: hit };
+  })());
+  return magicCache.get(k);
+}
+const rayPrice = i => { const o = i.opt && i.opt[0], pr = i.p || (o && (o.p || o.pb)) || i.pb; return !pr ? 0 : Array.isArray(pr) ? priceMid(pr) : Number(pr) || 0; };
+async function vitMagic(q, box, seq) {
+  const items = parseList(q);
+  const head = `<div class="mg-head"><b>${UI.esc(t("mgTitle"))}</b><small>${UI.esc(t("mgN", { n: items.length }))}</small></div>`;
+  box.innerHTML = `<div class="mg">${head}${items.map(i => `<div class="mg-row wait"><span class="mg-pic"><i class="mg-spin"></i></span><span class="mg-txt"><b>${UI.esc(i.qty > 1 ? i.qty + " × " : "")}${UI.esc(i.name)}</b><small>${UI.esc(t("mgWait"))}</small></span></div>`).join("")}</div>`;
+  box.classList.remove("hidden");
+  const res = await Promise.all(items.map(i => magicBest(i.name)));
+  if (seq !== findSeq) return;
+  let sum = 0;
+  const codes = new Set();
+  const rows = items.map((it, k) => {
+    const { p, r } = res[k];
+    if (p) {
+      codes.add(p.code); sum += Number(p.price) * it.qty;
+      const ph = UI.safeImg(p.photo);
+      return `<div class="mg-row" style="--d:${k * 90}ms"><span class="mg-pic${ph && UI.extPic(ph) ? " white" : ""}">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : "🛍️"}</span>
+        <span class="mg-txt"><b>${it.qty > 1 ? `<em>${it.qty}×</em> ` : ""}${UI.esc(UI.bi(p.name))}</b><small>${escHop(t("mgAt", { shop: UI.bi(p.shop) }))}</small></span>
+        <span class="mg-price"><bdi dir="ltr">${UI.esc(money(Number(p.price) * it.qty))}</bdi></span></div>`;
+    }
+    codes.add("*");
+    if (r) {
+      const ph = UI.safeImg(r.i.photo) || (r.i.img ? `img/qc/${r.i.img}.webp` : ""), v = rayPrice(r.i) * it.qty;
+      sum += v;
+      return `<div class="mg-row" style="--d:${k * 90}ms"><span class="mg-pic white">${ph ? `<img src="${ph}" alt="" loading="lazy" />` : UI.esc(r.i.e || "🛒")}</span>
+        <span class="mg-txt"><b>${it.qty > 1 ? `<em>${it.qty}×</em> ` : ""}${UI.esc(phName(r.i))}</b><small>${escHop(t("mgRay"))}</small></span>
+        <span class="mg-price">${v ? `≈ <bdi dir="ltr">${UI.esc(money(v))}</bdi>` : ""}</span></div>`;
+    }
+    return `<div class="mg-row" style="--d:${k * 90}ms"><span class="mg-pic">🛵</span><span class="mg-txt"><b>${it.qty > 1 ? `<em>${it.qty}×</em> ` : ""}${UI.esc(it.name)}</b><small>${UI.esc(t("mgAny"))}</small></span><span class="mg-price"></span></div>`;
+  });
+  const one = codes.size === 1 && !codes.has("*") ? [...codes][0] : null;
+  state.magic = { items, res, code: one, text: items.map(i => (i.qty > 1 ? i.qty + " × " : "") + i.name).join("\n") };
+  const fee = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity));
+  box.innerHTML = `<div class="mg">${head}<div class="mg-list">${rows.join("")}</div>
+    <div class="mg-sum"><b>${sum ? UI.esc(t("mgTotal", { sum: money(Math.round(sum * 10) / 10) })) : ""}</b><small>${UI.esc(t("mgFee", { fee }))}</small></div>
+    <div class="mg-acts">${one ? `<button type="button" class="mg-cart" data-mg-cart>${UI.esc(t("mgCart"))}</button>` : ""}<button type="button" class="mg-go${one ? " alt" : ""}" data-mg-go>${UI.esc(t("mgGo"))}</button></div></div>`;
+  box.classList.remove("hidden");
+  UI.track("home_magic", { n: items.length, one: !!one });
+}
+async function magicToCart() {
+  const m = state.magic;
+  if (!m || !m.code) return;
+  $("#homeFindList").classList.add("hidden"); $("#homeFind").value = ""; $("#homeFind").blur();
+  state.findItem = null; state.cgQNext = ""; state.shopDir = "";
+  await loadShop(m.code);
+  if (!state.shop) return;
+  const have = new Set(cgProducts().filter(p => p.available).map(p => p.id));
+  m.items.forEach((it, i) => { const p = m.res[i].p; if (p && have.has(p.id)) state.cart[p.id] = Math.min(50, (state.cart[p.id] || 0) + it.qty); });
+  renderCatalog(); renderQuote();
+  if (cartCount()) setTimeout(openCart, 250);
+}
+// Vitrine : dès qu'on écrit, la recherche remonte en haut de l'écran (les résultats ont toute la place)
+function vitFindTop() {
+  if (!VIT) return;
+  const inp = $("#homeFind"), bar = document.querySelector(".topbar");
+  const y = inp.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 12;
+  if (Math.abs(window.scrollY - y) > 8) window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+}
+$("#homeFind").addEventListener("focus", () => setTimeout(vitFindTop, 120));
+$("#homeFind").addEventListener("input", vitFindTop);
 $("#homeFind").addEventListener("keydown", e => {
   if (e.key !== "Enter" || !VIT) return;
   e.preventDefault();
   const q = e.target.value.trim();
-  if (norm(q).length >= 2) startFreeOrder(q);
+  if (norm(q).length < 2) return;
+  if (parseList(q).length >= 2 && state.magic) return startFreeOrder(state.magic.text);
+  startFreeOrder(q);
 });
 $("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });
 document.addEventListener("click", e => { if (!e.target.closest(".sc-find")) $("#homeFindList").classList.add("hidden"); });
 $("#homeFindList").addEventListener("click", e => {
   if (e.target.closest("[data-find-any]")) return startFreeOrder($("#homeFind").value.trim());
+  if (e.target.closest("[data-mg-cart]")) return magicToCart();
+  if (e.target.closest("[data-mg-go]")) return startFreeOrder((state.magic && state.magic.text) || $("#homeFind").value.trim());
   const ry = e.target.closest("[data-find-ray]");
   if (ry) { const r = Rayons.byId(ry.dataset.findRay); $("#homeFindList").classList.add("hidden"); if (r) goRayonFind(r, $("#homeFind").value.trim()); return; }
   const b = e.target.closest("[data-find-pro]");
@@ -5537,6 +5642,7 @@ document.querySelector(".seg").addEventListener("click", e => {
 $("#langBtn").addEventListener("click", () => {
   I18N.setLang(I18N.other());
   renderAll();
+  try { window.dispatchEvent(new Event("hop:lang")); } catch (e) { /* vieux navigateur */ }
   // La carte de l'accueil et son bouton changent de langue aussi (noms des commerces en hébreu / en français)
   renderMapBtn();
   if (home.map && restos.layer) { restos.key = ""; if (restos.open) home.map.closePopup(); drawRestos(); }
