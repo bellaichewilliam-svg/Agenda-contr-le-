@@ -23,14 +23,21 @@ const VIEW_OF = { accueil: "home", commander: "order", "mes-courses": "mine" };
 const VIEW_HASH = { order: "commander", mine: "mes-courses", infos: "infos" };
 const viewOf = el => { const sec = el && el.closest && el.closest("body > section"); return sec ? VIEW_OF[sec.id] || "infos" : null; };
 const viewTitle = () => { $("#viewTitle").textContent = { order: t("ordTitle"), mine: t("navMine"), infos: t("infosTitle") }[document.body.dataset.view] || ""; };
+// Retour du téléphone : chaque écran retrouve l'endroit où on l'avait laissé (pas de retour en haut, rien de perdu)
+const scrollMem = {};
+try { history.scrollRestoration = "manual"; } catch (e) { /* vieux navigateur */ }
 function setView(v, push) {
   if (!v || document.body.dataset.view === v) return false;
+  if (document.body.dataset.view) scrollMem[document.body.dataset.view] = window.scrollY;
   document.body.dataset.view = v;
   viewTitle();
   // Analytique : la commande ouverte (une fois par visite)
   if (v === "order") { let s = null; try { s = sessionStorage.getItem("hop.started"); sessionStorage.setItem("hop.started", "1"); } catch (e) { /* ignore */ } if (!s) UI.track("order_start"); }
   if (push) { history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]); here = location.href; }
   window.scrollTo(0, 0);
+  // (retour en arrière : on redescend là où on était, une fois l'écran dessiné)
+  const back = !push && scrollMem[v];
+  if (back) requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, back)));
   // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
   if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); try { ensureDefaultTo(); } catch (e) { /* ignore */ } });
   if (v === "order") requestAnimationFrame(() => { if (wiz.on) wizLabels(); });
@@ -58,7 +65,15 @@ Element.prototype.scrollIntoView = function (o) {
 function routeHash() {
   if (document.documentElement.classList.contains("vit")) {
     const ch = document.getElementById("accueil"), c = location.hash === "#course";
-    if (ch && ch.classList.contains("course") !== c) { ch.classList.toggle("course", c); if (!c) { ch.classList.remove("when-open"); try { setMapOpen(false); } catch (e) { /* accueil pas encore prêt */ } } }
+    if (ch && ch.classList.contains("course") !== c) {
+      ch.classList.toggle("course", c);
+      if (!c) {
+        ch.classList.remove("when-open"); try { setMapOpen(false); } catch (e) { /* accueil pas encore prêt */ }
+        // Retour de la carte : la vitrine reprend là où on l'avait laissée
+        const y = typeof state !== "undefined" && state.vitY;
+        if (y && document.body.dataset.view === "home") requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y)));
+      }
+    }
   }
   const el = location.hash.length > 1 && document.getElementById(decodeURIComponent(location.hash.slice(1)));
   setView(el ? viewOf(el) || "home" : "home");
@@ -81,6 +96,11 @@ function onBack() {
   // (si la fenêtre emmène ailleurs en se fermant, comme « Voir mes courses », on la laisse faire)
   if (closeTopModal()) { if (location.href === popped && popped !== here) history.pushState(null, "", here); return; }
   routeHash();
+  // Commande en 3 écrans : le retour revient à l'écran d'avant (pas à l'accueil)
+  if (wiz.on && location.hash === "#commander") {
+    const n = (history.state && history.state.wiz) || 1, y = history.state && history.state.y;
+    if (n !== wiz.step) { wizGo(n, y != null, true); if (y != null) requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, y))); }
+  }
 }
 window.addEventListener("hashchange", () => { if (location.href !== here) routeHash(); here = location.href; });
 window.addEventListener("popstate", () => { onBack(); here = location.href; });
@@ -403,6 +423,7 @@ function syncVisibility() {
   $("#pickupSub").textContent = near || svc === "retrait" ? "" : t("pkSub");
   form.pickup_address.placeholder = svc === "retrait" ? t("placeAddrPh") : t("pkSearchPh");
   $("#whenFields").classList.toggle("hidden", val("urgency") !== "programmee");
+  try { renderSlots(); } catch (e) { /* au tout début du chargement : redessiné au passage suivant */ }
   // « Le colis est prêt : tout de suite / dans 15, 30 min, 1 h » : course dès que possible, colis ou repas à récupérer
   // (pas pour un commerce HOP! Pro ni une commande par téléphone : ils ont déjà leur heure « prête »)
   const readyOn = readyAsk();
@@ -1452,10 +1473,19 @@ function wizStepEmpty(n) {
   wizEmpty();
   return !any;
 }
-function wizGo(n, stay) {
+function wizGo(n, stay, fromBack) {
   if (!wiz.on) return;
+  // (noté avant toute vérification : en vérifiant, l'écran change un instant de hauteur)
+  const y0 = wiz.y0 != null ? wiz.y0 : window.scrollY; wiz.y0 = null;
   if (n === 2 && n !== wiz.step && wiz.n >= 3 && proShopOn() && wizStepEmpty(2)) n = wiz.step < 2 ? 3 : 1;
+  const was = wiz.step;
   wiz.step = Math.max(1, Math.min(wiz.n, n));
+  // Écran suivant : une page de plus dans l'historique (le retour du téléphone revient à l'écran d'avant)
+  // (l'endroit de la page est noté sur l'écran qu'on quitte, pour y revenir pile)
+  if (!fromBack && wiz.step > was && document.body.dataset.view === "order") {
+    try { history.replaceState(Object.assign({}, history.state, { y: y0 }), ""); } catch (e) { /* ignore */ }
+    history.pushState({ wiz: wiz.step }, "", "#commander"); here = location.href;
+  }
   form.dataset.step = wiz.step;
   cartStepSet("e" + wiz.step + "/" + wiz.n);
   if (wizUsedMore()) form.classList.add("wiz-more");
@@ -1472,6 +1502,7 @@ function wizReveal(el) {
 }
 function wizNext() {
   if (!wiz.on) return;
+  wiz.y0 = window.scrollY;
   wiz.probe = true; wiz.lastTarget = null;
   let ok = false;
   try { ok = validateOrder(); } finally { wiz.probe = false; }
@@ -1494,7 +1525,7 @@ function wizShowErr(msg) {
 if (wiz.on) {
   form.classList.add("wiz");
   form.dataset.step = "1";
-  $("#wizBack").addEventListener("click", () => wizGo(wiz.step - 1));
+  $("#wizBack").addEventListener("click", () => { if (history.state && history.state.wiz === wiz.step && wiz.step > 1) history.back(); else wizGo(wiz.step - 1); });
   form.addEventListener("change", () => requestAnimationFrame(wizEmpty));
   form.addEventListener("click", e => {
     if (!e.target.closest("[data-wiz-more]")) return;
@@ -4015,12 +4046,19 @@ function renderWhenHints() {
   // Enseigne fermée maintenant : seulement « Programmer » (à son heure d'ouverture)
   const shut = !!(state.shop && shopSide() && !shopOpenAt(new Date())), asapInput = form.querySelector('input[name=urgency][value=asap]');
   if (shut) { const lb = t("shClosedShort", { name: shopShortName() }); $("#asapSmall").textContent = lb; ex.textContent = lb; }
-  exInput.disabled = !exOk || shut;
-  exInput.closest(".choice").classList.toggle("disabled", !exOk || shut);
-  asapInput.disabled = shut;
-  asapInput.closest(".choice").classList.toggle("disabled", shut);
-  if (shut && !form.querySelector('input[name=urgency][value=programmee]').checked) {
+  // (HOP! ne prend pas de course maintenant : pareil, on programme d'office au premier créneau)
+  const noNow = shut || !state.settings.accepting;
+  exInput.disabled = !exOk || noNow;
+  exInput.closest(".choice").classList.toggle("disabled", !exOk || noNow);
+  asapInput.disabled = noNow;
+  asapInput.closest(".choice").classList.toggle("disabled", noNow);
+  if (noNow && !form.querySelector('input[name=urgency][value=programmee]').checked) {
     form.querySelector('input[name=urgency][value=programmee]').checked = true;
+    if (!shut) state.autoSched = true;
+    syncVisibility(); renderQuote();
+  } else if (!noNow && state.autoSched && val("urgency") === "programmee") {
+    // HOP! reprend les courses : l'heure mise d'office (pas choisie par le client) redevient « Dès que possible »
+    state.autoSched = false; asapInput.checked = true;
     syncVisibility(); renderQuote();
   } else if (!exOk && exInput.checked) asapInput.checked = true;
 }
@@ -4028,7 +4066,7 @@ document.addEventListener("click", e => {
   if (!e.target.closest("[data-ob-plan]")) return;
   const w = $("#homeWhen");
   if (!w) return;
-  if (vitOn()) $("#accueil").classList.add("when-open");
+  if (vitOn()) { $("#accueil").classList.add("when-open"); renderSlots(); }
   w.scrollIntoView({ behavior: "smooth", block: "center" });
   w.classList.remove("flash"); void w.offsetWidth; w.classList.add("flash");
 });
@@ -4101,6 +4139,7 @@ function enterCourse(focusWhich) {
   setView("home", false);
   if (!ch.classList.contains("course")) {
     ch.classList.add("course"); ch.classList.remove("when-open");
+    state.vitY = window.scrollY;
     if (location.hash !== "#course") { history.pushState(null, "", location.pathname + location.search + "#course"); here = location.href; state.courseFromVit = true; }
     window.scrollTo(0, 0);
     requestAnimationFrame(() => { if (home.map) { home.map.invalidateSize(); renderHomeMap(true); } });
@@ -4202,7 +4241,7 @@ function initVitrine() {
   // (une seule page : l'adresse et la course libre se remplissent ici, sans changer d'écran)
   goField = which => { const i = homeInput(which); if (!i) return; nativeScrollIntoView.call(i.closest(".ch-line") || i, { block: "center", behavior: "smooth" }); setTimeout(() => nativeFocus.call(i, { preventScroll: true }), 380); };
   $("#vitAddr").addEventListener("click", () => goField("to"));
-  $("#vitWhen").addEventListener("click", () => { $("#accueil").classList.toggle("when-open"); vitRender(); });
+  $("#vitWhen").addEventListener("click", () => { $("#accueil").classList.toggle("when-open"); renderSlots(); vitRender(); });
   $("#homeWhen").addEventListener("click", e => { const w = e.target.closest("[data-when]"); if (w && w.dataset.when !== "other") setTimeout(() => { $("#accueil").classList.remove("when-open"); vitRender(); }, 0); });
   $("#vitCourse").addEventListener("click", () => goField(addrReady("to") ? "from" : "to"));
   $("#homeBack").addEventListener("click", leaveCourse);
@@ -4481,6 +4520,7 @@ function renderWhen() {
 function applyWhen(id) {
   const opt = whenOptions().find(o => o.id === id);
   if (!opt) return;
+  state.autoSched = false;
   if (id === "now") form.elements.urgency.value = "asap";
   else {
     form.elements.urgency.value = "programmee";
@@ -4490,6 +4530,78 @@ function applyWhen(id) {
   renderQuote();
   if (id === "other") fieldsetOf('legend[data-i18n="s4"]').scrollIntoView({ behavior: "smooth", block: "start" });
 }
+// « Programmer » : de vrais boutons, le jour puis l'heure, seulement les créneaux possibles (horaires de HOP!,
+// délai minimum, commerce ouvert à ce moment-là) ; les champs date / heure restent derrière, cachés
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function slotDays() {
+  const lead = CONFIG.minLeadMinutes * 60000, out = [];
+  const ok = d => d - Date.now() >= lead && !Pricing.checkSchedule(d, CONFIG) && shopOpenAt(d);
+  for (let i = 0; i < 9 && out.length < 7; i++) {
+    const day = new Date(); day.setDate(day.getDate() + i); day.setHours(0, 0, 0, 0);
+    const times = [];
+    for (let m = 6 * 60; m <= 23 * 60 + 30; m += 30) { const d = new Date(day); d.setMinutes(m); if (ok(d)) times.push(d); }
+    if (times.length) out.push({ i, day, times });
+  }
+  return out;
+}
+function slotsHtml(days, cur, tm) {
+  if (!days.length) return `<p class="sl-none">${UI.esc(t("slNone"))}</p>`;
+  const names = DAYS[I18N.lang] || DAYS.fr;
+  const dayLbl = x => (x.i === 0 ? t("slToday") : `${names[x.day.getDay()]} ${x.day.getDate()}`);
+  return `<b class="sl-h">${UI.esc(t("slDay"))}</b><div class="sl-row sl-days">${days.map(x => `<button type="button" class="sl-chip${x === cur ? " on" : ""}" data-sl-day="${dkey(x.day)}">${UI.esc(dayLbl(x))}</button>`).join("")}</div>
+      <b class="sl-h">${UI.esc(t("slTime"))}</b><div class="sl-row sl-times">${cur.times.map(d => `<button type="button" class="sl-chip${tm && d.getTime() === tm.getTime() ? " on" : ""}" data-sl-time="${hhmm(d)}">${hhmm(d)}</button>`).join("")}</div>`;
+}
+function paintSlots(box, html) {
+  if (box.dataset.html === html) return;
+  box.innerHTML = html; box.dataset.html = html;
+  // Le jour et l'heure choisis bien en vue dans leur rangée (sans faire bouger la page)
+  requestAnimationFrame(() => box.querySelectorAll(".sl-row .on").forEach(on => {
+    const r = on.parentNode, a = r.getBoundingClientRect(), b = on.getBoundingClientRect();
+    if (a.width) r.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2);
+  }));
+}
+function renderSlots() {
+  const box = $("#slotPick"), hb = VIT && $("#homeSlots"), prog = val("urgency") === "programmee";
+  if (!prog && !hb) return;
+  const days = slotDays();
+  let cur = days.find(x => dkey(x.day) === val("date")), tm = prog && cur && cur.times.find(d => hhmm(d) === val("time"));
+  if (prog && box) {
+    $("#whenFields").classList.toggle("sl-on", !!days.length);
+    // Heure vide, passée ou fermée : le premier créneau possible (le même jour quand on peut)
+    if (days.length && !tm) { cur = cur || days[0]; tm = cur.times[0]; form.date.value = dkey(tm); form.time.value = hhmm(tm); }
+    paintSlots(box, slotsHtml(days, cur, tm));
+  }
+  // Accueil vitrine, « Quand » ouvert : les mêmes boutons (le jour regardé reste affiché tant qu'on n'a pas choisi l'heure)
+  if (hb) {
+    const look = days.find(x => dkey(x.day) === state.slDay);
+    paintSlots(hb, slotsHtml(days, look || (prog && cur) || days[0], tm));
+  }
+}
+function onSlotClick(e) {
+  const db = e.target.closest("[data-sl-day]"), tb = e.target.closest("[data-sl-time]"), home = e.currentTarget.id === "homeSlots";
+  if (!db && !tb) return;
+  const prog = val("urgency") === "programmee";
+  if (db) {
+    state.slDay = db.dataset.slDay;
+    // (sur l'accueil, sans heure programmée : on regarde seulement les heures de ce jour-là)
+    if (home && !prog) return renderSlots();
+    const x = slotDays().find(y => dkey(y.day) === db.dataset.slDay);
+    if (!x) return;
+    const d = x.times.find(y => hhmm(y) === val("time")) || x.times[0];
+    form.date.value = dkey(d); form.time.value = hhmm(d);
+  } else {
+    const on = e.currentTarget.querySelector(".sl-days .on");
+    if (on) form.date.value = on.dataset.slDay;
+    form.time.value = tb.dataset.slTime;
+    if (!prog) { form.querySelector('input[name=urgency][value=programmee]').checked = true; state.slDay = null; }
+    if (home) setTimeout(() => { $("#accueil").classList.remove("when-open"); vitRender(); }, 0);
+  }
+  if (state.shopSched) state.shopSched = pickupDate();
+  state.autoSched = false;   // choisi par le client : on n'y touche plus
+  form.time.dispatchEvent(new Event("change", { bubbles: true }));
+}
+$("#slotPick").addEventListener("click", onSlotClick);
+$("#homeSlots").addEventListener("click", onSlotClick);
 
 // Type de course choisi d'un geste (un 2e appui revient au colis simple), sans toucher aux adresses
 function applyKind(id) {
@@ -5538,6 +5650,7 @@ form.addEventListener("input", e => {
 // Choix d'un service ou d'un moment (hors « programmer ») : on passe à l'étape suivante
 form.addEventListener("change", e => {
   if (e.target.name === "service" && e.isTrusted) state.svcChosen = true;   // choisi à la main : on n'y touche plus
+  if (e.target.name === "urgency" && e.isTrusted) state.autoSched = false;
   if (e.target.name === "service" || (e.target.name === "urgency" && e.target.value !== "programmee")) goNext(e.target.closest("fieldset"));
 });
 form.addEventListener("change", e => {
