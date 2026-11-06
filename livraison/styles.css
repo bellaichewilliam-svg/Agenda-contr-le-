@@ -4987,3 +4987,31 @@ html.vit.d2-day .sc-find-list .mg-row { background: #F7F8FB; box-shadow: inset 0
 .sc-find-list button.mg-go.alt { background: rgba(255,255,255,.08); color: inherit; box-shadow: inset 0 0 0 1px rgba(255,255,255,.16); min-height: 44px; font-size: 15px; }
 html.vit.d2-day .sc-find-list button.mg-go.alt { background: #F4F6FA; box-shadow: inset 0 0 0 1px rgba(15,31,61,.12); }
 html.vit #accueil:not(.course) .vit-hero .sc-find-list { max-height: calc(100dvh - 230px); }
+/* Liste de Hoppy interactive : chaque ligne se touche (autres choix), quantité − / +, ✕ ; « Tout chez … » avec le total */
+.sc-find-list .mg-item { display: grid; gap: 6px; }
+.sc-find-list .mg-row { gap: 6px; padding: 6px; }
+.sc-find-list .mg-row.still { animation: none; }
+.sc-find-list button.mg-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.sc-find-list .mg-txt small u { color: var(--brand); text-decoration: none; font-weight: 700; }
+.sc-find-list .mg-side { flex: none; display: grid; justify-items: end; gap: 4px; }
+.sc-find-list .mg-qty { display: inline-flex; align-items: center; gap: 2px; border-radius: 99px; background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); }
+html.vit.d2-day .sc-find-list .mg-qty { background: #fff; box-shadow: inset 0 0 0 1px rgba(15,31,61,.14); }
+.sc-find-list .mg-qty button { width: 30px; height: 30px; padding: 0; justify-content: center; border-radius: 50%; font-size: 16px; font-weight: 800; color: var(--brand); }
+.sc-find-list .mg-qty b { min-width: 16px; text-align: center; font-size: 14px; }
+.sc-find-list .mg-item.open .mg-row { box-shadow: inset 0 0 0 2px var(--brand); }
+.sc-find-list .mg-alts { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 6px; scroll-snap-type: x proximity; animation: mgIn .3s ease both; }
+.sc-find-list .mg-alts::-webkit-scrollbar { display: none; }
+.sc-find-list button.mg-alt { flex: none; width: 112px; display: flex; flex-direction: column; align-items: stretch; gap: 3px; padding: 0 0 8px; border-radius: 14px; overflow: hidden; scroll-snap-align: start;
+  background: rgba(255,255,255,.04); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1); }
+html.vit.d2-day .sc-find-list button.mg-alt { background: #F7F8FB; box-shadow: inset 0 0 0 1px rgba(15,31,61,.1); }
+.sc-find-list button.mg-alt.on { box-shadow: inset 0 0 0 2px var(--brand); }
+.sc-find-list .mg-alt .fr-pic { aspect-ratio: 1 / 1; }
+.sc-find-list .mg-alt .fr-nm { font-size: 12px; }
+.sc-find-list .mg-alt-shop { padding: 0 8px; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-find-list button.mg-cart { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 16px; text-align: start; position: relative; }
+.sc-find-list button.mg-cart span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
+.sc-find-list button.mg-cart b { flex: none; font-size: 17px; }
+.sc-find-list button.mg-cart em { position: absolute; top: -9px; inset-inline-end: 12px; font-style: normal; font-size: 11.5px; font-weight: 800; padding: 3px 8px; border-radius: 99px; background: #12B76A; color: #fff; }
+.sc-find-list button.mg-cart + button.mg-cart { background: rgba(255,106,19,.16); color: inherit; box-shadow: inset 0 0 0 1px rgba(255,106,19,.45); }
+.sc-find-list .mg, .sc-find-list .mg-list, .sc-find-list .mg-item { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.sc-find-list .mg-alts { max-width: 100%; min-width: 0; }
