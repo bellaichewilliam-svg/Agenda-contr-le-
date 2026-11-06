@@ -5092,3 +5092,12 @@ html.d2:not(.d2-day) .slot-pick .sl-chip:not(.on) { background: #172A4B; border-
 #homeSlots { display: none; }
 html.vit #accueil:not(.course).when-open #homeSlots { display: block; order: 4; margin-top: 10px; }
 html.vit #accueil:not(.course) #homeWhen [data-when="other"] { display: none; }
+/* Fermé maintenant : pas de choix « Dès que possible / Express / Programmer », le calendrier directement */
+form.no-now .fs-when .choices { display: none; }
+.when-closed { display: none; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--brand-soft, #fff1e8); font-weight: 600; font-size: .9rem; line-height: 1.35; }
+form.no-now .when-closed { display: block; }
+form.no-now #whenFields { margin-top: 0 !important; }
+html.d2:not(.d2-day) .when-closed { background: #172A4B; color: #fff; }
+.shop-hero .sh-sched { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.shop-hero .sh-sched .sh-sched-go { flex: none; border: 0; background: #FF6A13; color: #fff; font: inherit; font-weight: 800; padding: 7px 12px; border-radius: 999px; cursor: pointer; }
+.shop-hero .sh-sched .sl-when { white-space: nowrap; }
