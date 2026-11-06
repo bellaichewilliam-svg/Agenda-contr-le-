@@ -5071,3 +5071,24 @@ html[dir="rtl"] { --vit-in: -24px; }
 #rayCart .cs-btns { display: grid; gap: 8px; }
 /* Points sous les bandeaux : un peu d'air, plus jamais collés à la carte */
 html.vit #accueil:not(.course) .k2-dots { margin-top: 12px; gap: 10px; }
+
+/* « Programmer » : le jour puis l'heure en boutons (les champs date / heure restent cachés derrière) */
+#whenFields.sl-on { display: block; }
+#whenFields.sl-on.hidden { display: none; }
+#whenFields.sl-on .sl-native { display: none; }
+.slot-pick { min-width: 0; grid-column: 1 / -1; }
+.slot-pick .sl-h { display: block; font-size: .82rem; font-weight: 800; margin: 2px 0 8px; opacity: .85; }
+.slot-pick .sl-h + .sl-row { margin-bottom: 14px; }
+.slot-pick .sl-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding: 2px 2px 4px; scroll-behavior: smooth; overscroll-behavior-x: contain; }
+.slot-pick .sl-row::-webkit-scrollbar { display: none; }
+.slot-pick .sl-chip { flex: none; border: 1.5px solid var(--line, #d9dee8); background: var(--card, #fff); color: inherit; font: inherit; font-weight: 700; font-size: .92rem;
+  padding: 10px 14px; border-radius: 12px; white-space: nowrap; cursor: pointer; transition: background .15s, border-color .15s, color .15s; }
+.slot-pick .sl-times .sl-chip { min-width: 68px; text-align: center; direction: ltr; }
+.slot-pick .sl-chip.on { background: #FF6A13; border-color: #FF6A13; color: #fff; }
+.slot-pick .sl-chip:active { scale: .96; }
+.slot-pick .sl-none { margin: 0; font-weight: 600; }
+html.d2:not(.d2-day) .slot-pick .sl-chip:not(.on) { background: #172A4B; border-color: #22385F; color: #fff; }
+/* Accueil vitrine : le « Quand » ouvert montre les mêmes boutons (jour puis heure) sous « Maintenant » */
+#homeSlots { display: none; }
+html.vit #accueil:not(.course).when-open #homeSlots { display: block; order: 4; margin-top: 10px; }
+html.vit #accueil:not(.course) #homeWhen [data-when="other"] { display: none; }
