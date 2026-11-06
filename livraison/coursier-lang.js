@@ -55,7 +55,7 @@
     else {
       out = n.replace(re, function (m) { return exact.get(m); });
       // Unités et jours encore en français autour des nombres
-      out = out.replace(/(\d) ?min\b/g, "$1 דק׳").replace(/(\d) ?km\b/g, "$1 ק״מ").replace(/(\d) courses?\b/g, "$1 משלוחים").replace(/(\d) commandes?\b/g, "$1 הזמנות")
+      out = out.replace(/(\d) ?min\b/g, "$1 דק׳").replace(/(\d) ?km\b/g, "$1 ק״מ").replace(/(\d) courses?\b/g, "$1 משלוחים").replace(/(\d) arrêts?/g, "$1 עצירות").replace(/(\d) s(?![\p{L}])/gu, "$1 שנ׳").replace(/(\d) commandes?\b/g, "$1 הזמנות")
         .replace(/\b(lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche)\b/gi, function (m) { return DAYS[m.toLowerCase()]; })
         .replace(/\bn°\s?/g, "מס׳ ");
     }
