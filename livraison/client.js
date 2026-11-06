@@ -3871,7 +3871,7 @@ function renderShopBanner() {
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}`}
       ${UI.shopText(s, "promo") ? `<p class="sh-promo"><i>📣</i><span>${UI.esc(UI.shopText(s, "promo"))}</span></p>` : ""}
       ${s.pro && !compact ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
-      ${state.shopSched && val("urgency") === "programmee" ? `<p class="sh-sched">🗓️ ${UI.esc(t("shSched", { name: UI.bi(s.name), when: UI.fmtDateTime(state.shopSched) }))}</p>` : ""}
+      ${schedLine()}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
         <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: UI.bi(s.name) }))}</small></span></button>
         <button type="button" class="${side === "from" ? "on" : ""}" data-shop-dir="from"><i>👔</i><span><b>${UI.esc(t("shDirFrom"))}</b><small>${UI.esc(t("shDirFromSub", { name: UI.bi(s.name) }))}</small></span></button>
@@ -4048,6 +4048,11 @@ function renderWhenHints() {
   if (shut) { const lb = t("shClosedShort", { name: shopShortName() }); $("#asapSmall").textContent = lb; ex.textContent = lb; }
   // (HOP! ne prend pas de course maintenant : pareil, on programme d'office au premier créneau)
   const noNow = shut || !state.settings.accepting;
+  // Fermé : pas de choix à faire, le calendrier est là tout de suite (jour et heure déjà mis), on passe à la suite
+  const was = form.classList.contains("no-now");
+  form.classList.toggle("no-now", noNow);
+  $("#whenClosed").textContent = noNow ? t("slNoNow") : "";
+  if (was !== noNow) setTimeout(renderShopBanner, 0);
   exInput.disabled = !exOk || noNow;
   exInput.closest(".choice").classList.toggle("disabled", !exOk || noNow);
   asapInput.disabled = noNow;
@@ -4599,8 +4604,25 @@ function onSlotClick(e) {
   if (state.shopSched) state.shopSched = pickupDate();
   state.autoSched = false;   // choisi par le client : on n'y touche plus
   form.time.dispatchEvent(new Event("change", { bubbles: true }));
+  renderShopBanner();
 }
 $("#slotPick").addEventListener("click", onSlotClick);
+// « Changer » sur la vitrine du commerce : on descend au calendrier
+document.addEventListener("click", e => { if (e.target.closest("[data-sl-goto]")) { const f = $("#slotPick"); if (f) f.closest("fieldset").scrollIntoView({ behavior: "smooth", block: "center" }); } });
+// Vitrine du commerce, course programmée (fermé maintenant, ou à l'ouverture) : le jour et l'heure en haut + « Changer »
+function schedLine() {
+  try {
+    const at = val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate();
+    return at ? `<p class="sh-sched"><span>${UI.esc(t("slBanner"))} <b class="sl-when">${UI.esc(vitWhenLong(at))}</b></span><button type="button" class="sh-sched-go" data-sl-goto>${UI.esc(t("slChange"))} ›</button></p>` : "";
+  } catch (e) { return ""; }
+}
+// « Dimanche 8 · 10:30 » / « Aujourd'hui · 10:30 » (le jour en toutes lettres, jamais « demain »)
+function vitWhenLong(d) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const day = new Date(d); day.setHours(0, 0, 0, 0);
+  const names = DAYS[I18N.lang] || DAYS.fr;
+  return `${day.getTime() === today.getTime() ? t("slToday") : `${names[d.getDay()]} ${d.getDate()}`} · ${hhmm(d)}`;
+}
 $("#homeSlots").addEventListener("click", onSlotClick);
 
 // Type de course choisi d'un geste (un 2e appui revient au colis simple), sans toucher aux adresses
