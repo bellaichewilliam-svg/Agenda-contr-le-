@@ -1211,6 +1211,17 @@ function goKind(id) {
   }
   // Nouveau design : « Repas de restaurant » ouvre la grande carte des restaurants (logos, numéro, site),
   // on touche le sien et la commande remonte ; pas de liste par-dessus l'accueil
+  // Accueil vitrine : « Repas de restaurant » montre les restaurants sur HOP! (leurs vrais menus), pas la carte
+  if (vitOn() && id === "resto" && (state.showcase || []).some(x => x.kind === "restaurant")) {
+    Object.assign(scFilter, { kind: "restaurant", open: false, kosher: false });
+    renderShowcase(); $("#homeFilters").classList.remove("hidden");
+    // (le filtre « Restaurant » bien en vue dans sa rangée)
+    requestAnimationFrame(() => { const r = $("#homeFilters"), on = r && r.querySelector(".ch-chip.on"); if (on) { const a = r.getBoundingClientRect(), b = on.getBoundingClientRect(); r.scrollLeft += (b.left + b.width / 2) - (a.left + a.width / 2); } });
+    requestAnimationFrame(() => { const b = $("#homeProBox"), bar = document.querySelector(".topbar");
+      if (b) window.scrollTo({ top: Math.max(0, b.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 8), behavior: "smooth" }); });
+    UI.track("home_resto");
+    return;
+  }
   if (D2 && id === "resto" && !state.pick.from) { applyKind(id); if (vitOn()) enterCourse(); setMapOpen(true); return; }
   state.pharmaGo = true;
   applyKind(id);
@@ -1877,7 +1888,8 @@ function quickPlaces(which, isHome) {
     if (err) (isHome ? showHomeErr : showError)(t(err)); else after();
   } }];
   // Livraison : chez le client, jamais à l'adresse d'un commerce enregistré (les commerces restent pour « Récupérer où ? »)
-  Store.getAddresses().filter(a => which !== "to" || !a.brand).sort(byCityFirst).slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
+  const other = state.pick[which === "from" ? "to" : "from"];
+  Store.getAddresses().filter(a => (which !== "to" || !a.brand) && !(other && isSavedPick(other, a))).sort(byCityFirst).slice(0, 10).forEach(a => list.push({ quick: true, icon: addrIcon(a), title: tagName(a) || addrLabel(a), sub: tagName(a) ? addrLabel(a) : "",
     match: [tagName(a), addrLabel(a)].join(" "),
     apply: () => { applySavedAddr(which, a); after(); } }));
   return list;
@@ -1909,7 +1921,8 @@ function fromAddrsHtml(list) {
   // « Où acheter ? » : jamais la maison ni « Ma position » ; les magasins qui vont avec la commande (demande du patron, 06/11/2026)
   // (ses commerces enregistrés, restaurants compris, seulement tant qu'il n'a pas dit ce qu'il veut)
   if (val("service") === "achat") return buyShopsHtml((val("shopping_list") + val("notes")).trim() ? [] : list.map((a, i) => ({ a, i })).filter(x => x.a.brand).sort(byCityFirst).slice(0, 4), ico, title, line);
-  const rows = list.map((a, i) => ({ a, i })).sort(byCityFirst).slice(0, 6);
+  // (l'adresse déjà choisie pour la livraison n'est jamais proposée comme départ, et inversement)
+  const rows = list.map((a, i) => ({ a, i })).filter(x => !(state.pick.to && isSavedPick(state.pick.to, x.a))).sort(byCityFirst).slice(0, 6);
   return `<p class="pk-h">${UI.esc(t("pkSaved"))}</p><div class="pk-list">
     <button type="button" class="pk-row pk-pos" data-geo="from"><i aria-hidden="true">🧭</i><span><b>${UI.esc(t("pkPos"))}</b><small>${UI.esc(t("pkPosSub"))}</small></span></button>
     ${rows.map(x => `<button type="button" class="pk-row" data-addr="${x.i}"><i aria-hidden="true">${ico(x.a)}</i><span><b>${UI.esc(title(x.a))}</b><small>${line(x.a)}</small></span><em class="sa-tick" aria-hidden="true">✓</em></button>`).join("")}
@@ -1962,7 +1975,7 @@ function toAddrsHtml(list) {
       <button type="button" class="sa-change" data-sum-change>${UI.esc(t("sumChangeShort"))}</button>${det ? `<small class="sa-det">${UI.esc(det)}</small>` : ""}${farNote(a)}</div>`;
   }
   // Liste propre (comme « Récupérer où ? ») : Maison, Travail, les autres adresses, puis « Une autre adresse »
-  const rows = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand)
+  const rows = list.map((a, i) => ({ a, i })).filter(x => !x.a.brand && !(state.pick.from && isSavedPick(state.pick.from, x.a)))
     .sort((x, y) => byCityFirst(x, y) || ({ home: 0, work: 1 }[x.a.tag] ?? 2) - ({ home: 0, work: 1 }[y.a.tag] ?? 2)).slice(0, 6);
   const rTitle = a => tagName(a) || `${a.street || ""} ${a.number || ""}`.trim();
   const rLine = a => tagName(a) ? sub(a) : UI.esc(cityLabel(a.cityId || a.city) + (a.apt ? ` · ${t("aptShort")} ${a.apt}` : ""));
@@ -2320,6 +2333,9 @@ function defaultDropAddr() {
 const isSavedPick = (p, a) => !!(p && a && a.lat != null && p.lat === a.lat && p.lon === a.lon && String(p.housenumber || "") === String(a.number || ""));
 function markAddrChips() {
   const list = Store.getAddresses();
+  // « Récupérer où ? » suit l'adresse de livraison choisie (elle n'y est jamais proposée) et le type de course
+  const fk = JSON.stringify([state.pick.to && state.pick.to.label, val("service"), !!(val("shopping_list") + val("notes")).trim(), list.length]);
+  document.querySelectorAll('.saved-addrs[data-for="from"]').forEach(box => { if (box.dataset.fk !== fk) { box.dataset.fk = fk; box.innerHTML = fromAddrsHtml(list); } });
   document.querySelectorAll(".saved-addrs").forEach(box => {
     const p = state.pick[box.dataset.for];
     box.querySelectorAll("[data-addr]").forEach(b => b.classList.toggle("on", isSavedPick(p, list[Number(b.dataset.addr)])));
