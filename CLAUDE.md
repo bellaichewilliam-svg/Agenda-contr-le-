@@ -32,6 +32,7 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - **Panier** : gardé 7 jours, visible du patron (onglet 🛒 Paniers, relance WhatsApp). Commerce sans paiement en ligne ou panier vide : guider « 1. commandez au commerce · 2. revenez sur HOP! pour la livraison ».
 
 ## Interdits et règles
+- **Aucun commerce partenaire pour l'instant** (patron, 06/11/2026) : côté client, jamais « partenaire(s) », « Partenaire HOP! », « catalogue bientôt » ; dire « Faites vos courses », « Magasins HOP! », « Sur HOP! », « On y va pour vous ». Les boutiques HOP! (HOP! chez Carrefour, BOOOM…) sont à nous, pas des partenaires.
 - **Ne jamais citer de concurrent** par son nom (dire « une autre appli », « les grandes plateformes »).
 - **Pas de durée chiffrée** de livraison (pas de « 18 min ») : dire « au plus vite », « votre plat arrive chaud ».
 - Ne jamais envoyer l'e-mail du patron ; `config.js` est public : aucun secret dedans.
