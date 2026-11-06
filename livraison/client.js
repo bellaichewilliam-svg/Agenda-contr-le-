@@ -4136,7 +4136,8 @@ function vitRenderNow() {
   st.classList.toggle("hidden", open);
   const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)), city = I18N.cityName(CONFIG.homeCity);
   $("#vitCoursePrice").textContent = t("vitCoursePrice", { city, price: base });
-  const trust = [t("vitTrust1"), t("vitTrust2", { price: base, city }), t("vitTrust3")].map(x => `<span>${UI.esc(x)}</span>`).join("");
+  const zone = money(((CONFIG.pricing || {}).areas || {}).price || 30);
+  const trust = [t("vitTrust1"), t("vitTrust2", { price: base, city, zone }), t("vitTrust3")].map(x => `<span>${UI.esc(x)}</span>`).join("");
   if ($("#vitTrust").dataset.html !== trust) { $("#vitTrust").innerHTML = trust; $("#vitTrust").dataset.html = trust; }
 }
 // « Qu'est-ce qu'on vous apporte ? » : ce que le client écrit devient sa commande (« J'achète pour vous » : le livreur

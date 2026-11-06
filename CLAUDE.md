@@ -34,6 +34,7 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 ## Interdits et règles
 - **Aucun commerce partenaire pour l'instant** (patron, 06/11/2026) : côté client, jamais « partenaire(s) », « Partenaire HOP! », « catalogue bientôt » ; dire « Faites vos courses », « Magasins HOP! », « Sur HOP! », « On y va pour vous ». Les boutiques HOP! (HOP! chez Carrefour, BOOOM…) sont à nous, pas des partenaires.
 - **Ne jamais citer de concurrent** par son nom (dire « une autre appli », « les grandes plateformes »).
+- **Prix dans Netanya** : 25 ₪ en ville, **30 ₪ dans les zones industrielles** (nouvelle / ancienne, `pricing.areas`) et les quartiers à part (Agamim, Neot Shaked, Ir Yamim…). Jamais « 25 ₪ dans tout Netanya » : dire « 25 ₪ en ville », « dès 25 ₪ ».
 - **Pas de durée chiffrée** de livraison (pas de « 18 min ») : dire « au plus vite », « votre plat arrive chaud ».
 - Ne jamais envoyer l'e-mail du patron ; `config.js` est public : aucun secret dedans.
 - Aucun identifiant de modèle d'IA dans les commits, PR ou fichiers.
