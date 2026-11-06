@@ -598,14 +598,16 @@ function attach(input, opts) {
         // Un produit tapé (« eau », « couches », « sushi ») : les rayons HOP! et les catalogues qui l'ont, en premier
         const sugg = opts.suggest ? opts.suggest(q) : [];
         // Un produit de nos rayons (eau, lait, couches…) : pas de restaurants dans la liste, on ne va pas chercher l'eau au resto
-        const noFood = sugg.length > 0;
+        // (« Où acheter ? » avec un produit tapé : pareil, seulement les magasins qui le vendent, sans la ligne du produit)
+        const grocery = !!(opts.groceryOnly && opts.groceryOnly(q));
+        const noFood = sugg.length > 0 || grocery;
         // … seulement les supermarchés, makolets, kiosques, pharmacies (pas un salon de beauté qui ressemble au mot tapé)
         const GROCERY = /super|market|makolet|grocery|convenience|kiosk|pharm|carrefour|am:?pm|tiv ?taam|shufersal|rami ?levy|victory|yochananof|keshet|osher|מכולת|סופר|קיוסק|פארם|מרקחת|שופרסל|רמי לוי|ויקטורי|יוחננוף|קשת טעמים|טיב טעם|אושר עד|יש חסד|קרפור|מגה|פיצוציה/i;
         const keep = p => !noFood || p.quick || (!p.food && GROCERY.test(`${p.kind || ""} ${p.brand || ""} ${(p.partner && p.partner.kind) || ""}`));
         // Adresse de livraison (Maison, Travail, bureau…) : seulement des rues, jamais les commerces ni les points de retrait
         const street = p => !opts.streetsOnly || (!p.brand && !p.dir && !p.partner && !p.prod);
         items = sugg.concat(saved, list.filter(keep)).filter(street); active = -1;
-        if (!opts.streetsOnly && offer() && !saved.length && !sugg.length) items = items.concat([notOnMap(q)]);
+        if (!opts.streetsOnly && offer() && !saved.length && !sugg.length && !grocery) items = items.concat([notOnMap(q)]);
         render();
         if (opts.suggestLater) opts.suggestLater(q).then(more => {
           if (mine !== seq || !more || !more.length) return;

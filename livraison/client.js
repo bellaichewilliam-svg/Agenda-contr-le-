@@ -1805,6 +1805,9 @@ function goRayonFind(r, q) {
 }
 const prodSuggest = q => rayonHits(q, 4).map(({ r, i }) => ({ quick: true, prod: true, icon: i.e || "🛒",
   title: I18N.lang === "he" ? i.he || i.fr : i.fr, sub: t("acRayon", { rayon: phName(r.title) }), apply: () => goRayonFind(r, q) }));
+// « Où acheter ? » : on cherche un magasin ou une adresse, jamais un produit (demande du patron, 06/11/2026)
+const buySuggest = q => (val("service") === "achat" ? [] : prodSuggest(q));
+const buySuggestLater = q => (val("service") === "achat" ? Promise.resolve([]) : prodSuggestLater(q));
 async function prodSuggestLater(q) {
   if (phNorm(q).trim().length < 3) return [];
   // Produit de nos rayons (eau, lait…) : seulement les commerces qui en vendent vraiment, pas les restaurants
@@ -1831,8 +1834,9 @@ function attachPlaces() {
       texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon"), didYouMean: t("addrDidYou") }),
       onPick: p => onPlacePicked(which, p),
       quick: () => quickPlaces(which, false),
-      suggest: which === "from" ? prodSuggest : null,
-      suggestLater: which === "from" ? prodSuggestLater : null,
+      suggest: which === "from" ? buySuggest : null,
+      groceryOnly: which === "from" ? (q => val("service") === "achat" && rayonHits(q, 1).length > 0) : null,
+      suggestLater: which === "from" ? buySuggestLater : null,
       streetsOnly: which === "to",
       onClear: () => { state.pick[which] = null; setBrandMode(which, false); renderQuote(); renderShopBanner(); renderSaveBtns(); }
     });
@@ -4412,8 +4416,9 @@ function initHome() {
         else if (which === "from" && !state.pick.to) setTimeout(() => homeInput("to").focus(), 60);
       },
       quick: () => quickPlaces(which, true),
-      suggest: which === "from" ? prodSuggest : null,
-      suggestLater: which === "from" ? prodSuggestLater : null,
+      suggest: which === "from" ? buySuggest : null,
+      groceryOnly: which === "from" ? (q => val("service") === "achat" && rayonHits(q, 1).length > 0) : null,
+      suggestLater: which === "from" ? buySuggestLater : null,
       streetsOnly: which === "to",
       onClear: () => {
         state.pick[which] = null;
