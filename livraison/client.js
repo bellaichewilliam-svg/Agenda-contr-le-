@@ -5536,11 +5536,17 @@ function magicFind(name) {
     const other = new RegExp("^" + esc + "s?\\s+(d['’]|de\\s|du\\s|des\\s|au\\s|aux\\s|à\\s|a\\s|en\\s)");
     const score = x => { const a = phNorm(UI.bi(x.name)), b = clean(x); let sc = 0;
       const wd = new RegExp("^" + esc + "(s|x)?(\\s|$|[^a-z\u0590-\u05ff])");
-      if (wd.test(b) || wd.test(a)) sc += 30; else if (b.startsWith(nn) || a.startsWith(nn)) sc += 15; else if (a.includes(nn)) sc += 5;
+      if (wd.test(b) || wd.test(a)) sc += 30; else if (b.startsWith(nn) || a.startsWith(nn)) sc += 15;
+      else if (new RegExp("(^|[^a-z\u0590-\u05ff])" + esc).test(a)) sc += 5; else return -99;   // « œufs » n'est pas dans « bœuf »
       if (other.test(b)) sc -= 28;
+      // « 6 œufs » = des œufs, pas des « œufs mayonnaise » : d'autres mots que le produit (hors taille, marque, %) = un autre produit
+      const rest = b.replace(new RegExp("(^|\\s)" + esc + "\\S*"), " ").replace(/\[[^\]]*\]|\([^)]*\)/g, " ");
+      if ((rest.match(/[a-z\u00e0-\u00ff\u0590-\u05ff]{3,}/g) || []).some(w => !/^(pack|lot|bio|frais|fraiche|frais|maxi|mini|grand|gros|petit|classique|nature|blanc|blancs|extra|tranche|tranches|bouteille|carton|boite|sachet|paquet)$/.test(w))) sc -= 12;
+      // Plats tout prêts (traiteur, restaurant) : seulement si c'est exactement ce qui est écrit
+      if (/traiteur|restaurant|resto|cafe/i.test(x.kind || "")) sc -= 10;
       if (!wantDiet && /diet|zero|light|דיאט|זירו|לייט/i.test(x.name)) sc -= 25;
       return sc - a.length / 40; };
-    const cands = prods.filter(x => !/restaurant|resto|cafe/i.test(x.kind || "")).sort((a, b) => score(b) - score(a)).slice(0, 12);
+    const cands = prods.filter(x => !/restaurant|resto|cafe/i.test(x.kind || "") && score(x) > 0).sort((a, b) => score(b) - score(a)).slice(0, 12);
     // Un vrai produit d'un magasin seulement s'il correspond bien ; sinon les courses HOP! (pain, œufs…) passent devant
     return { cands, strong: !!cands.length && score(cands[0]) >= 25, r: rayonHits(q, 1)[0] || null };
   })());
