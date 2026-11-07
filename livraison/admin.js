@@ -771,7 +771,7 @@ async function loadVisits(force) {
   if (tab === "visites") render();
 }
 const SRC_LABEL = { direct: "✍️ Direct (lien tapé, favori, appli, WhatsApp privé)", google: "🔎 Google", facebook: "📘 Facebook", instagram: "📸 Instagram",
-  tiktok: "🎵 TikTok", whatsapp: "💬 WhatsApp", twitter: "🐦 X / Twitter", bing: "🔎 Bing", flyer: "🧾 Flyers (QR)", qr: "🔳 QR du kit pub",
+  tiktok: "🎵 TikTok", ig: "📸 Instagram", fb: "📘 Facebook", whatsapp: "💬 WhatsApp", twitter: "🐦 X / Twitter", bing: "🔎 Bing", flyer: "🧾 Flyers (QR)", qr: "🔳 QR du kit pub",
   "qr-commerce": "🏪 QR d'un commerce (autocollant, lien du commerce)", groupes: "👥 Groupes (Facebook, WhatsApp)", reseaux: "📣 Réseaux (kit pub)" };
 const PAGE_LABEL = { index: "🏠 Accueil et commande", suivi: "📍 Suivi d'une course", commerce: "🏪 Espace commerce", "on-livre": "📦 « Ce qu'on livre »",
   recu: "🧾 Reçus", kit: "📣 Kit pub" };
@@ -794,6 +794,20 @@ function funnelCard(f) {
     ${(f.blocks || []).length ? `<p class="small" style="margin:10px 0 4px"><b>« Continuer » refusé, à cause de :</b></p><div class="v-rows">${f.blocks.map(b => `<div class="v-row"><span>⛔ ${UI.esc(lbl(b.what))}</span><b>${b.n}</b><small>${b.sessions} visite${b.sessions > 1 ? "s" : ""}</small></div>`).join("")}</div>`
       : `<p class="muted small">Les blocages s'afficheront ici dès la mise en ligne de la nouvelle version.</p>`}</div>`;
 }
+// Commandes ouvertes et pas envoyées (07/11) : une ligne par visite, sans nom ni téléphone (rien n'a été envoyé)
+const REACH_LABEL = ["a ouvert la commande, rien rempli", "🛒 a ajouté un article", "2️⃣ est allé à l'écran 2 (détails)", "3️⃣ est allé jusqu'au paiement"];
+function openedCard(list) {
+  if (!Array.isArray(list)) return "";
+  const hh = d => d ? new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" }) : "";
+  const day = d => new Date(d).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short", timeZone: "Asia/Jerusalem" });
+  const blk = w => { const m = /^e(\d):(.*)$/.exec(w || ""); return m ? `bloqué à l'écran ${m[1]} : ${BLOCK_LABEL[m[2]] || m[2]}` : ""; };
+  return `<div class="card" id="openedCard" style="margin-top:12px;scroll-margin-top:150px"><h3>🛵 Commandes ouvertes, pas envoyées (${list.length})</h3>
+    <p class="muted small" style="margin:0 0 8px">Des clients ont ouvert l'écran de commande puis sont partis sans envoyer. Rien n'a été envoyé : pas de nom ni de téléphone, seulement ce qu'ils ont fait. Ceux qui ont mis un article dans un panier avec leur téléphone sont dans l'onglet 🛒 Paniers.</p>
+    ${list.length ? `<div class="v-rows">${list.map(o => `<div class="v-row"><span>${visits.days > 1 ? UI.esc(day(o.at)) + " · " : ""}<b>${hh(o.at)}</b> · ${UI.esc(SRC_LABEL[o.source] || "🔗 " + o.source)}${o.campaign ? " · " + UI.esc(o.campaign) : ""}</span>
+        <b>${o.reached ? "étape " + o.reached : "0"}</b>
+        <small>${UI.esc(REACH_LABEL[o.reached] || "")}${o.block ? " · ⛔ " + UI.esc(blk(o.block)) : ""}${o.shops ? "<br>🏪 A regardé : " + UI.esc(String(o.shops).split(" · HOP! ")[0]) : ""}<br>${o.device === "mobile" ? "📱" : o.device === "tablette" ? "📟" : "💻"} ${o.lang === "he" ? "🇮🇱 hébreu" : "🇫🇷 français"}${o.app ? " · appli installée" : ""} · ${o.client_orders ? `déjà client (${o.client_orders} commande${o.client_orders > 1 ? "s" : ""})` : o.returning ? "déjà venu sur HOP!" : "1ʳᵉ visite"} · parti vers ${hh(o.last_at)}</small></div>`).join("")}</div>`
+      : `<p class="muted small">Aucune sur cette période.</p>`}</div>`;
+}
 function renderVisits(view) {
   loadVisits();
   const d = visits.data;
@@ -811,11 +825,12 @@ function renderVisits(view) {
     <div class="stats">
       <div class="stat"><small>Visiteurs</small><b>${d.visitors}</b><em class="muted small">dont ${d.new_visitors} nouveaux</em></div>
       <div class="stat"><small>Visites</small><b>${d.sessions}</b><em class="muted small">${d.views} pages vues</em></div>
-      <div class="stat"><small>Commande ouverte</small><b>${d.started}</b><em class="muted small">${pct(d.started, d.sessions)} des visites</em></div>
+      <div class="stat" data-opened-go="1" style="cursor:pointer"><small>Commande ouverte</small><b>${d.started}</b><em class="muted small">${pct(d.started, d.sessions)} des visites · voir ›</em></div>
       <div class="stat"><small>Commandes envoyées</small><b>${d.sent}</b><em class="muted small">${pct(d.sent, d.sessions)} des visites · ${UI.money(d.sent_amount)}</em></div>
       <div class="stat"><small>Depuis l'appli installée</small><b>${d.app}</b><em class="muted small">${pct(d.app, d.sessions)} des visites</em></div>
     </div>
     ${funnelCard(d.funnel)}
+    ${openedCard(d.opened)}
     <div class="card" style="margin-top:12px"><h3>📈 Visites par jour</h3>${days.length ? vBars(days, "sessions", r => r.label) : `<p class="muted small">Pas encore de visite.</p>`}</div>
     <div class="card" style="margin-top:12px"><h3>🧭 D'où ils viennent</h3>
       ${rows((d.sources || []).map(s => row(UI.esc(SRC_LABEL[s.source] || "🔗 " + s.source), `${s.sessions} visite${s.sessions > 1 ? "s" : ""}`,
@@ -3235,3 +3250,10 @@ UI.iosInstallHint("HOP! Patron");
 window.hopReady = true;
 
 })();
+
+// 📊 « Commande ouverte » touché : descend jusqu'à la liste des commandes ouvertes et pas envoyées
+document.addEventListener("click", e => {
+  if (!e.target.closest || !e.target.closest("[data-opened-go]")) return;
+  const c = document.getElementById("openedCard");
+  if (c) c.scrollIntoView({ behavior: "smooth", block: "start" });
+});
