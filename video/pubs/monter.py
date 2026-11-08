@@ -232,14 +232,14 @@ def render(pid, cfg, src, lang, xoff, outdir, dest):
     end = cfg.get("end", {})
     price = {"fr": "À PARTIR DE 25 ₪", "he": "משלוחים החל מ-25 ₪"}
     S["price"] = pill_sprite([(end.get("pill", price)[lang], WHITE)], 78, ORANGE)
-    S["price_o"] = text_sprite(end.get("pill", price)[other], 54, WHITE, wght=800)
+    S["price_o"] = text_sprite(end.get("pill", price)[other], 54, WHITE, wght=800, wrap=False)
     if cfg.get("sub"):
-        S["sub"] = text_sprite(cfg["sub"][lang], 46, (225, 236, 255), wght=600)
+        S["sub"] = text_sprite(cfg["sub"][lang], 46, (225, 236, 255), wght=600, wrap=False)
     S["logo_b"] = logo(210, 90, 40, (255, 255, 255, 230))
     S["end_pill"] = pill_sprite([(end.get("pill", price)[lang], WHITE)], 84, ORANGE)
     l1 = end.get("line", {"fr": "Livraison à Netanya", "he": "משלוחים עד הבית בנתניה"})
-    S["end1"] = text_sprite(l1[lang], 62, WHITE, wght=800)
-    S["end2"] = text_sprite(l1[other], 56, SKY, wght=700)
+    S["end1"] = text_sprite(l1[lang], 62, WHITE, wght=800, wrap=False)
+    S["end2"] = text_sprite(l1[other], 56, SKY, wght=700, wrap=False)
 
     # Positions en hauteur : les lignes s'empilent sous le petit logo, quelle que soit leur taille (1 ou 2 lignes)
     Y, top, PAD = {}, 150, 40
@@ -248,9 +248,9 @@ def render(pid, cfg, src, lang, xoff, outdir, dest):
     Y["p1"] = top + S["p1"].height / 2
     y_end = Y["p1"] + S["p1"].height / 2 - PAD
     if S["p2"]:
-        Y["p2"] = y_end - PAD + S["p2"].height / 2 - 18
+        Y["p2"] = y_end + 4 + S["p2"].height / 2 - PAD
         y_end = Y["p2"] + S["p2"].height / 2 - PAD
-    Y["p_o"] = y_end - PAD + S["p_o"].height / 2 + 22
+    Y["p_o"] = y_end + 18 + S["p_o"].height / 2 - PAD
     if vertical:
         vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
         fw, fh = 1080, 1920
