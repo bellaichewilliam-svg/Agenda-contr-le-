@@ -69,3 +69,6 @@ begin
 end $$;
 revoke all on function public.carrefour_fetch(int, int, int) from public, anon, authenticated;
 revoke all on function public.carrefour_import(bigint, text, text, text, text) from public, anon, authenticated;
+
+-- 08/11 (en ligne) : produit sans marque → plus de « · » en tête du nom hébreu
+-- (carrefour_import : case when t.br = '' then '' else t.br || ' · ' end, au lieu de t.br || ' · ')
