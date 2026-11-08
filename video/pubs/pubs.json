@@ -1,0 +1,437 @@
+{
+  "_aide": "Textes des pubs vidéo (video/PUBS-VIDEO.md). hook = accroche (0,3 → 2,5 s) ; punch = réponse [ligne blanche, ligne orange] ; sub = petite ligne facultative ; end = fin différente du prix (recrutement, commerces). monter.py fait la version FR (gros français, hébreu dessous) et HE (gros hébreu, français dessous).",
+  "frigo-desert": {
+    "hook": {
+      "fr": "UN DÉSERT DANS LE FRIGO ?",
+      "he": "מדבר במקרר?"
+    },
+    "punch": {
+      "fr": [
+        "ON LE",
+        "REMPLIT !"
+      ],
+      "he": [
+        "אנחנו",
+        "ממלאים אותו!"
+      ]
+    },
+    "sub": {
+      "fr": "Supermarché, épicerie, makolet : on fait vos courses.",
+      "he": "סופר, מכולת, פארם: עושים לכם את הקניות."
+    },
+    "titre": "🏜️ Nouveau · Un désert dans le frigo ? On le remplit (10 s)",
+    "aud": "client"
+  },
+  "everest": {
+    "hook": {
+      "fr": "L'EVEREST DU 4ᵉ ÉTAGE ?",
+      "he": "האוורסט של הקומה הרביעית?"
+    },
+    "punch": {
+      "fr": [
+        "HOPPY EST",
+        "DÉJÀ EN HAUT."
+      ],
+      "he": [
+        "הופי",
+        "כבר למעלה."
+      ]
+    },
+    "sub": {
+      "fr": "Packs d'eau, lait, courses lourdes : on monte tout.",
+      "he": "שישיות מים, חלב, קניות כבדות: מעלים הכול."
+    },
+    "titre": "🏔️ Nouveau · L'Everest du 4ᵉ étage (10 s)",
+    "aud": "client"
+  },
+  "liste-origami": {
+    "hook": {
+      "fr": "ÉCRIVEZ VOTRE LISTE…",
+      "he": "כתבו את הרשימה…"
+    },
+    "punch": {
+      "fr": [
+        "HOPPY FAIT",
+        "LE RESTE !"
+      ],
+      "he": [
+        "הופי עושה",
+        "את השאר!"
+      ]
+    },
+    "sub": {
+      "fr": "Tapez-la sur HOP! : on trouve chaque article.",
+      "he": "כתבו אותה ב-HOP!: אנחנו מוצאים כל מוצר."
+    },
+    "titre": "🕊️ Nouveau · Écrivez votre liste, Hoppy fait le reste (10 s)",
+    "aud": "client"
+  },
+  "musee": {
+    "hook": {
+      "fr": "LE CHEF-D'ŒUVRE DU JOUR",
+      "he": "יצירת המופת של היום"
+    },
+    "punch": {
+      "fr": [
+        "LIVRÉ",
+        "CHEZ VOUS."
+      ],
+      "he": [
+        "עד",
+        "הבית."
+      ]
+    },
+    "sub": {
+      "fr": "Même les courses pas glamour.",
+      "he": "גם הקניות הכי פחות זוהרות."
+    },
+    "titre": "🖼️ Nouveau · Le chef-d'œuvre du jour (10 s)",
+    "aud": "client"
+  },
+  "pizza-vinyle": {
+    "hook": {
+      "fr": "CE SOIR, VOUS MIXEZ ?",
+      "he": "הערב אתם על הפטיפון?"
+    },
+    "punch": {
+      "fr": [
+        "NOUS,",
+        "ON LIVRE."
+      ],
+      "he": [
+        "ואנחנו",
+        "על המשלוח."
+      ]
+    },
+    "sub": {
+      "fr": "Votre resto préféré, livré chaud.",
+      "he": "המסעדה האהובה, חמה עד הבית."
+    },
+    "titre": "🎧 Nouveau · Ce soir vous mixez, nous on livre (10 s)",
+    "aud": "client"
+  },
+  "sushi-surf": {
+    "hook": {
+      "fr": "LA VAGUE DU SOIR ?",
+      "he": "הגל של הערב?"
+    },
+    "punch": {
+      "fr": [
+        "SUSHI FRAIS,",
+        "LIVRÉ CHEZ VOUS."
+      ],
+      "he": [
+        "סושי טרי,",
+        "עד הבית."
+      ]
+    },
+    "titre": "🏄 Nouveau · La vague du soir : sushi livré (10 s)",
+    "aud": "client"
+  },
+  "lune": {
+    "hook": {
+      "fr": "ON NE LIVRE PAS ENCORE SUR LA LUNE…",
+      "he": "לירח עוד לא מגיעים…"
+    },
+    "punch": {
+      "fr": [
+        "…MAIS DANS",
+        "TOUT NETANYA !"
+      ],
+      "he": [
+        "…אבל לכל",
+        "נתניה, כן!"
+      ]
+    },
+    "titre": "🌙 Nouveau · Pas encore sur la Lune… mais dans tout Netanya (10 s)",
+    "aud": "client"
+  },
+  "grippe": {
+    "hook": {
+      "fr": "LA GRIPPE DE L'HOMME ?",
+      "he": "שפעת של גברים?"
+    },
+    "punch": {
+      "fr": [
+        "LA PHARMACIE ARRIVE",
+        "AVANT LE DERNIER ACTE."
+      ],
+      "he": [
+        "בית המרקחת מגיע",
+        "לפני המערכה האחרונה."
+      ]
+    },
+    "sub": {
+      "fr": "Même avec ordonnance.",
+      "he": "גם עם מרשם."
+    },
+    "titre": "🤧 Nouveau · La grippe de l'homme (10 s)",
+    "aud": "client"
+  },
+  "mission-bebe": {
+    "hook": {
+      "fr": "MISSION : NE PAS RÉVEILLER BÉBÉ",
+      "he": "משימה: לא להעיר את התינוק"
+    },
+    "punch": {
+      "fr": [
+        "DÉPOSÉ DEVANT LA PORTE,",
+        "SANS SONNER."
+      ],
+      "he": [
+        "משאירים ליד הדלת,",
+        "בלי לצלצל."
+      ]
+    },
+    "sub": {
+      "fr": "Couches, lait, lingettes : livrés sans contact.",
+      "he": "חיתולים, תמ״ל, מגבונים: בלי מגע."
+    },
+    "titre": "👶 Nouveau · Mission : ne pas réveiller bébé (10 s)",
+    "aud": "client"
+  },
+  "chien": {
+    "hook": {
+      "fr": "MÊME LUI SAIT COMMANDER.",
+      "he": "אפילו הוא יודע להזמין."
+    },
+    "punch": {
+      "fr": [
+        "ET VOUS ?"
+      ],
+      "he": [
+        "ואתם?"
+      ]
+    },
+    "sub": {
+      "fr": "Croquettes et litière, livrées.",
+      "he": "אוכל וחול לחתולים, עד הבית."
+    },
+    "titre": "🐶 Nouveau · Même lui sait commander (10 s)",
+    "aud": "client"
+  },
+  "costume": {
+    "hook": {
+      "fr": "VOTRE COSTUME VA AU PRESSING…",
+      "he": "החליפה הולכת לניקוי יבש…"
+    },
+    "punch": {
+      "fr": [
+        "…SANS",
+        "VOUS !"
+      ],
+      "he": [
+        "…בלי",
+        "אתכם!"
+      ]
+    },
+    "sub": {
+      "fr": "On dépose, on récupère : aller et retour.",
+      "he": "מביאים, מחזירים: הלוך וחזור."
+    },
+    "titre": "👔 Nouveau · Le costume va au pressing sans vous (10 s)",
+    "aud": "client"
+  },
+  "romeo": {
+    "hook": {
+      "fr": "IL A OUBLIÉ LES FLEURS ?",
+      "he": "הוא שכח את הפרחים?"
+    },
+    "punch": {
+      "fr": [
+        "HOPPY",
+        "S'EN CHARGE !"
+      ],
+      "he": [
+        "הופי",
+        "דואג לזה!"
+      ]
+    },
+    "titre": "💐 Nouveau · Il a oublié les fleurs ? Hoppy s'en charge (10 s)",
+    "aud": "client"
+  },
+  "sablier": {
+    "hook": {
+      "fr": "VENDREDI, LA COURSE CONTRE LA MONTRE ?",
+      "he": "שישי, מרוץ נגד השעון?"
+    },
+    "punch": {
+      "fr": [
+        "LES HALLOT",
+        "ARRIVENT À TEMPS."
+      ],
+      "he": [
+        "החלות",
+        "מגיעות בזמן."
+      ]
+    },
+    "sub": {
+      "fr": "Hallot, gâteaux, courses de Chabbat.",
+      "he": "חלות, עוגות, קניות לשבת."
+    },
+    "titre": "🕯️ Nouveau · Vendredi, les hallot arrivent à temps (10 s)",
+    "aud": "client"
+  },
+  "documentaire": {
+    "hook": {
+      "fr": "ESPÈCE OBSERVÉE : LA QUEUE À LA POSTE",
+      "he": "מין נדיר: התור בדואר"
+    },
+    "punch": {
+      "fr": [
+        "EN VOIE DE",
+        "DISPARITION."
+      ],
+      "he": [
+        "בסכנת",
+        "הכחדה."
+      ]
+    },
+    "sub": {
+      "fr": "On y va à votre place.",
+      "he": "אנחנו הולכים במקומכם."
+    },
+    "titre": "🦒 Nouveau · La queue à la poste, en voie de disparition (10 s)",
+    "aud": "client"
+  },
+  "colis-hop": {
+    "hook": {
+      "fr": "VOS COLIS…",
+      "he": "החבילות שלכם…"
+    },
+    "punch": {
+      "fr": [
+        "…FONT",
+        "HOP!"
+      ],
+      "he": [
+        "…עושות",
+        "HOP!"
+      ]
+    },
+    "sub": {
+      "fr": "Envois, retraits, casiers : on s'en occupe.",
+      "he": "שליחה, איסוף, לוקרים: אנחנו דואגים."
+    },
+    "titre": "📦 Nouveau · Vos colis font HOP! (10 s)",
+    "aud": "client"
+  },
+  "netanya-mini": {
+    "hook": {
+      "fr": "TOUT NETANYA…",
+      "he": "כל נתניה…"
+    },
+    "punch": {
+      "fr": [
+        "…À PORTÉE",
+        "DE MAIN."
+      ],
+      "he": [
+        "…בהישג",
+        "יד."
+      ]
+    },
+    "titre": "🏙️ Nouveau · Tout Netanya à portée de main (10 s)",
+    "aud": "client"
+  },
+  "poche": {
+    "hook": {
+      "fr": "TOUT CE QUE VOUS VOULEZ…",
+      "he": "כל מה שתרצו…"
+    },
+    "punch": {
+      "fr": [
+        "…MÊME",
+        "ÇA !"
+      ],
+      "he": [
+        "…אפילו",
+        "את זה!"
+      ]
+    },
+    "sub": {
+      "fr": "Repas, courses, pharmacie, colis, fleurs…",
+      "he": "אוכל, קניות, פארם, חבילות, פרחים…"
+    },
+    "titre": "🦘 Nouveau · La poche sans fond de Hoppy (10 s)",
+    "aud": "client"
+  },
+  "telecommande": {
+    "hook": {
+      "fr": "TÉLÉCOMMANDE EN RÉANIMATION ?",
+      "he": "השלט בטיפול נמרץ?"
+    },
+    "punch": {
+      "fr": [
+        "ON APPORTE",
+        "LES PILES."
+      ],
+      "he": [
+        "מביאים",
+        "סוללות."
+      ]
+    },
+    "titre": "📺 Nouveau · Télécommande en réanimation (10 s)",
+    "aud": "client"
+  },
+  "bureau-mer": {
+    "hook": {
+      "fr": "TON BUREAU…",
+      "he": "המשרד שלך…"
+    },
+    "punch": {
+      "fr": [
+        "…A VUE",
+        "SUR LA MER."
+      ],
+      "he": [
+        "…עם נוף",
+        "לים."
+      ]
+    },
+    "sub": {
+      "fr": "Tu choisis tes courses, quand tu veux.",
+      "he": "בוחרים משלוחים, מתי שרוצים."
+    },
+    "end": {
+      "pill": {
+        "fr": "DEVIENS LIVREUR HOP!",
+        "he": "בואו להיות שליחים ב-HOP!"
+      },
+      "line": {
+        "fr": "Inscription dans l'appli HOP! Livreur",
+        "he": "הרשמה באפליקציית HOP! Livreur"
+      }
+    },
+    "titre": "🛵 Nouveau · Ton bureau a vue sur la mer (10 s)",
+    "aud": "rider"
+  },
+  "avion-papier": {
+    "hook": {
+      "fr": "PAS DE LIVREUR ?",
+      "he": "אין לכם שליח?"
+    },
+    "punch": {
+      "fr": [
+        "LANCEZ LA COMMANDE,",
+        "ON L'ATTRAPE."
+      ],
+      "he": [
+        "שולחים הזמנה,",
+        "אנחנו תופסים."
+      ]
+    },
+    "end": {
+      "pill": {
+        "fr": "VOTRE COMMERCE SUR HOP!",
+        "he": "העסק שלכם ב-HOP!"
+      },
+      "line": {
+        "fr": "Inscription gratuite en 1 minute",
+        "he": "הרשמה חינם בדקה"
+      }
+    },
+    "titre": "✈️ Nouveau · Pas de livreur ? Lancez la commande (10 s)",
+    "aud": "shop"
+  }
+}

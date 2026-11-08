@@ -1,295 +1,217 @@
-# HOP! : pubs vidéo, une idée pour chaque chose qu'on livre
+# HOP! : 20 pubs vidéo qui sortent de l'ordinaire
 
-> Carnet de prompts du 08/11/2026. Suite du brief `video/pubs/BRIEF.md` (la pub « Il pleut ? » est déjà faite).
-> Aucune idée du brief n'est reprise ici (duel du fromage, Hoppy au-dessus de Netanya, ouverture ASMR, pluie de pizzas) : ce sont **23 angles nouveaux**.
+> Carnet du 08/11/2026 (remplace la première liste, trop classique). Méthode du brief `video/pubs/BRIEF.md` : l'IA fait **l'image seule**, je fais **tout le reste au montage**.
+> Chaque idée a un **id** : c'est le nom à me donner avec la vidéo Veo, les textes sont déjà prêts dans `video/pubs/pubs.json`.
 
-## Comment s'en servir (3 étapes, toujours les mêmes)
+## Le circuit (toujours le même)
 
-1. **L'image de départ** (ChatGPT ou Gemini) : coller le **prompt image**. Pour les pubs avec Hoppy, **joindre `livraison/kit/visuels/hoppy-officiel.png`** et commencer le message par : « Garde exactement ce personnage (même visage, même fourrure, même sac HOP!) ».
-   Vérifier que « HOP! » est bien écrit sur la boîte, le sac ou l'autocollant avant de passer à l'étape 2.
-2. **L'animation** (Veo, dans Gemini ou Flow) : joindre l'image de l'étape 1 (elle devient la **première image** de la vidéo) et coller le **prompt Veo**. 8 secondes au maximum, caméra fixe.
-3. **Le montage** : m'envoyer la vidéo Veo. J'ajoute les **textes FR + HE**, la fin avec le logo, « À partir de 25 ₪ » et les bruitages (`video/pubs/render.py` + `sfx.py`), puis je vérifie chaque image avant de dire « prêt ».
-
-## Règles déjà en place dans chaque prompt
-
-- L'IA ne fait que l'image : **aucun texte** demandé à Veo (il abîme l'hébreu).
-- **Format 9:16** ; le haut (22 %) et le bas (20 %) restent calmes pour les titres et la légende d'Instagram et de TikTok.
-- **Hoppy** est le personnage officiel. Il ne marche ni ne saute jamais sur de la nourriture, et ne fait aucun geste de la main ambigu. Il apparaît dans 5 pubs sur 23 (n° 6, 8, 14, 20, 21), pas partout.
-- **Aucune autre marque** à l'image (pas de logo de chaîne ni de produit) : seulement HOP!.
-- **Casher** : jamais de viande et de lait dans la même image. Le burger est sans fromage, et la pizza est seule.
-- **Pas de durée chiffrée** (« au plus vite », jamais « en 20 min ») et pas de « partenaire ». Le prix : « à partir de 25 ₪ », jamais « 25 ₪ partout ».
-- Pas de pub tabac ni alcool (la loi les encadre).
+1. **Image** (ChatGPT ou Gemini) : coller le prompt image. Pour Hoppy, **joindre `livraison/kit/visuels/hoppy-officiel.png`** et commencer par : « Garde exactement ce personnage (même visage, même fourrure, même sac HOP!) ». Vérifier que « HOP! » est bien écrit.
+2. **Vidéo** (Veo, dans Gemini ou Flow) : joindre l'image (elle devient la première image), coller le prompt Veo. **Format vertical 9:16** si possible.
+3. **Me l'envoyer** en disant l'id (ex. « frigo-desert »). Je monte les **deux versions**, l'une en gros français avec l'hébreu dessous, l'autre en gros hébreu avec le français dessous. Chaque version a les textes animés, le logo, le prix et les bruitages. Je les vérifie image par image, puis je les range dans le **kit pub** (onglet Vidéos).
 
 **Bloc à coller à la fin de chaque prompt image :**
 ```
-Vertical 9:16 (1080x1920). Keep the top 22% and the bottom 20% of the frame calm and uncluttered (simple background only). No text, no letters, no numbers, no brand logos anywhere, except the HOP! logo when it is asked (white "HOP" with an orange "!", on a navy-blue #0F1F3D background). Modern Israeli Mediterranean city look (Netanya), natural modest clothing, premium commercial photography, rich warm colors.
+Vertical 9:16 (1080x1920). Keep the top 25% and the bottom 22% of the frame visually simple (sky, wall, floor, soft blur) for titles. No text, no letters, no numbers, no brand logos anywhere, except the HOP! logo when asked (white "HOP" with an orange "!", on navy blue #0F1F3D). Modern Israeli Mediterranean look (Netanya), premium commercial quality, cinematic lighting.
 ```
-
-**Fin commune à toutes les pubs** (faite au montage) : gros logo HOP! avec les traits orange, puis « À PARTIR DE 25 ₪ / משלוחים החל מ-25 ₪ », puis « Livraison à Netanya / משלוחים עד הבית בנתניה ».
-
----
-
-## 🍕 Restaurants
-
-### 1. Le dernier morceau
-**L'idée :** une famille tend la main vers la dernière part de pizza en même temps. Qui la prendra ?
-**Image :**
-```
-Overhead close-up of an open kraft pizza box on a living-room coffee table, only ONE slice of margherita left, steaming. Four hands (a child, a teenager, two adults) reach for it from four sides at the same time, freezing just before touching it. The box lid shows a clean navy-blue HOP! logo sticker. Warm evening lamp light, cozy family atmosphere.
-```
-**Veo :** `Locked static overhead camera. The four hands slowly creep toward the last slice, fingers twitching, then all freeze; the steam keeps rising. No text.`
-**Textes :** « LE DERNIER MORCEAU ? » / « הפרוסה האחרונה? » → « COMMANDEZ-EN UNE AUTRE ! » / « מזמינים עוד אחת! »
-
-### 2. Le burger en apesanteur
-**L'idée :** le burger se construit tout seul dans les airs, couche par couche (sans fromage : il est casher viande).
-**Image :**
-```
-A gourmet beef burger exploded into floating layers in mid-air: toasted sesame brioche bun, crisp lettuce, thick juicy grilled patty with grill marks, tomato slices, red onion rings, pickles, top bun. NO cheese, no sauce dripping on a plate. Dark navy-blue background with an orange rim light, flying sesame seeds and tiny drops, ultra sharp food commercial.
-```
-**Veo :** `Locked static camera. The floating layers slowly drift, then snap together one by one into a perfect burger, a puff of steam rises. No text.`
-**Textes :** « TOUT EST PRÊT… » / « הכול מוכן… » → « IL NE MANQUE QUE VOUS. » / « חסרים רק אתם. »
-
-### 3. Les baguettes qui tremblent
-**L'idée :** des baguettes saisissent un sushi au-dessus de la ville, la nuit, sur un balcon de Netanya.
-**Image :**
-```
-Close-up of chopsticks lifting a glossy salmon nigiri above a small bowl of soy sauce, on a balcony table at night, blurred city lights of Netanya and the sea in the background, a small navy delivery bag with a HOP! logo on the chair behind. Moody cinematic light, bokeh.
-```
-**Veo :** `Locked static camera. The chopsticks dip the nigiri into the soy sauce in slow motion, a tiny splash, the city lights twinkle. No text.`
-**Textes :** « UNE ENVIE DE SUSHI ? » / « בא לכם סושי? » → « ON Y VA. » / « יוצאים לדרך. »
-
-### 4. Le jus qui éclabousse
-**L'idée :** des oranges tombent au ralenti, s'ouvrent et deviennent un jus dans un gobelet HOP! (HOP! Jus de fruits).
-**Image :**
-```
-Fresh oranges, strawberries and mango pieces falling in slow motion into a tall clear cup of fresh juice, big splash crown, droplets frozen in the air, the cup has a navy-blue sleeve with the HOP! logo. Bright sunny background with soft orange gradient, studio light.
-```
-**Veo :** `Locked static camera. Fruits keep falling into the cup in slow motion, the juice splashes and settles, condensation drops slide down. No text.`
-**Textes :** « PRESSÉ À LA MINUTE » / « סחוט טרי » → « LIVRÉ CHEZ VOUS » / « עד הבית »
+**Règles déjà respectées dans les idées :**
+- Hoppy officiel dans 4 pubs seulement. Il ne monte jamais sur de la nourriture et ne fait aucun geste de la main ambigu.
+- Aucune autre marque à l'image.
+- Casher : jamais de viande et de lait ensemble.
+- Pas de durée de livraison chiffrée ; le prix est « à partir de 25 ₪ ».
+- Pas de tabac ni d'alcool.
 
 ---
 
 ## 🛒 Courses
 
-### 5. Le frigo vide (2 générations Veo)
-**L'idée :** on ouvre le frigo : un citron tout seul. On le rouvre : il est plein.
-**Image A :**
+### frigo-desert : le désert dans le frigo
+On ouvre le frigo et c'est un désert : du sable, une boule d'herbes sèches qui roule, le vent. Un plan qu'on n'oublie pas.
 ```
-A modern fridge opening toward the camera, its light switching on, completely empty except for ONE lonely lemon rolling on the middle shelf. Slightly dark kitchen, a bit of comic sadness.
+Close-up of a modern home fridge with its door wide open, but inside there is a tiny surreal desert landscape: golden sand dunes on the shelves, a small tumbleweed, heat haze, a tiny cactus, warm desert light glowing from inside, while the kitchen around it is normal and cool-toned. Photorealistic, playful, wide angle.
 ```
-**Image B :**
-```
-The same fridge, same angle, now completely full and colorful: milk, eggs, fresh vegetables, fruit, yogurts, bread, juice, a navy HOP! paper bag on the floor in front of it. Bright happy light.
-```
-**Veo A :** `Locked static camera. The door opens, the light flickers on, the lemon rolls slowly and stops. No text.`
-**Veo B :** `Locked static camera. The door swings fully open, cold mist flows out, everything sparkles. No text.`
-**Textes :** « FRIGO VIDE ? » / « המקרר ריק? » → (plan B) « ON LE REMPLIT. » / « אנחנו ממלאים אותו. »
+Veo : `Locked static camera. A warm wind blows sand grains out of the fridge, the tiny tumbleweed rolls across the shelf and falls out onto the kitchen floor. No text.`
+Textes : « UN DÉSERT DANS LE FRIGO ? / מדבר במקרר? » → « ON LE REMPLIT ! / אנחנו ממלאים אותו! »
 
-### 6. La liste qui s'envole (avec Hoppy)
-**L'idée :** la liste de courses aimantée sur le frigo s'envole par la fenêtre ; Hoppy la rattrape au vol. C'est exactement « Hoppy a compris votre liste » dans l'appli.
-**Image :**
+### everest : l'Everest du 4ᵉ étage (avec Hoppy)
+Une vraie expédition d'alpinistes, avec cordes, lampe frontale et drapeaux de prière, mais dans la cage d'escalier d'un immeuble. Ils peinent avec les packs d'eau. En haut, Hoppy les attend déjà, tout frais, les packs à ses pieds.
 ```
-[Hoppy, exactly as in the attached image] mid-jump outside an open kitchen window of a Netanya apartment, catching in the air a small paper shopping list covered only with little doodle icons (milk carton, bread, eggs, apple — no letters), sunny sky and rooftops behind him.
+A narrow apartment building stairwell in Netanya staged like a Himalayan expedition: two climbers in full mountaineering gear (helmets with headlamps, ropes, ice axes, colorful prayer flags tied to the railing) struggling up the stairs with six-packs of water bottles on their backs. At the top landing, [Hoppy, exactly as in the attached image] stands relaxed and smiling next to a neat stack of six-packs (plain bottles, no labels). Funny cinematic wide shot from below.
 ```
-**Veo :** `Locked static camera. The paper flutters in the wind, Hoppy catches it mid-air with a happy grin and lands softly on the balcony railing side, ears bouncing. No text.`
-**Textes :** « ÉCRIVEZ VOTRE LISTE… » / « כתבו את הרשימה… » → « HOPPY FAIT LE RESTE ! » / « הופי עושה את השאר! »
+Veo : `Locked static camera. The climbers take one more exhausted step, look up and freeze in surprise; Hoppy gives a cheerful little hop on the landing. No text.`
+Textes : « L'EVEREST DU 4ᵉ ÉTAGE ? / האוורסט של הקומה הרביעית? » → « HOPPY EST DÉJÀ EN HAUT. / הופי כבר למעלה. »
 
-### 7. Le chariot fantôme
-**L'idée :** un chariot de supermarché roule tout seul dans les rayons et les produits sautent dedans.
-**Image :**
+### liste-origami : la liste qui s'envole
+La liste de courses accrochée au frigo se plie toute seule en oiseau en papier et s'envole par la fenêtre, au-dessus des toits de Netanya.
 ```
-An empty shopping cart alone in the middle of a bright, clean supermarket aisle, shelves full of colorful generic products (no brands, no readable labels), a navy HOP! tag hanging on the cart handle. Wide symmetrical shot, magical soft light.
+A kitchen window open on the sunny rooftops of Netanya and the sea; in front of it, a sheet of paper with only small doodle drawings (milk carton, bread, eggs, an apple, no letters) is folding itself into an origami bird, half-folded, floating in the air. Soft morning light, poetic mood.
 ```
-**Veo :** `Locked static camera. The cart rolls slowly forward by itself while products hop from the shelves into it one after another, landing softly. No text.`
-**Textes :** « VOUS RESTEZ ASSIS… » / « אתם נשארים בבית… » → « LES COURSES ARRIVENT. » / « הקניות מגיעות. »
+Veo : `Locked static camera. The paper finishes folding into an origami bird, flaps its wings and flies out of the window toward the sea. No text.`
+Textes : « ÉCRIVEZ VOTRE LISTE… / כתבו את הרשימה… » → « HOPPY FAIT LE RESTE ! / הופי עושה את השאר! »
 
-### 8. Le 4ᵉ étage sans ascenseur (avec Hoppy)
-**L'idée :** les packs d'eau, l'escalier, le 4ᵉ étage… Hoppy monte en sautant, une marche à la fois, tout sourire.
-**Image :**
+### musee : le chef-d'œuvre du jour
+Une salle de grand musée, des visiteurs émus devant une vitrine éclairée comme un trésor. Dans la vitrine : un simple rouleau de papier toilette. Humour absurde, et très partageable.
 ```
-[Hoppy, exactly as in the attached image] hopping up the stairs of a typical Netanya apartment building stairwell, carrying two six-packs of water bottles (no labels), floor number signs replaced by plain colored dots, bright daylight through the window.
+An elegant marble museum gallery with dramatic spotlights; a small crowd of well-dressed visitors stands in silent admiration around a glass display case on a pedestal, and inside the case, lit like a priceless treasure, is a single ordinary roll of white toilet paper on a velvet cushion. A navy HOP! paper bag is placed discreetly at the foot of the pedestal. Photorealistic, deadpan humor.
 ```
-**Veo :** `Locked static camera at the top of the stairs. Hoppy hops up the last steps with the water packs, lands on the landing and gives a happy proud smile. No text.`
-**Textes :** « 4ᵉ ÉTAGE SANS ASCENSEUR ? » / « קומה רביעית בלי מעלית? » → « ON MONTE LES PACKS. » / « אנחנו מעלים את השישיות. »
+Veo : `Locked static camera. A visitor slowly raises her glasses in awe, another wipes a tear, the spotlight gently shimmers on the roll. No text.`
+Textes : « LE CHEF-D'ŒUVRE DU JOUR / יצירת המופת של היום » → « LIVRÉ CHEZ VOUS. / עד הבית. »
 
 ---
 
-## 💊 Pharmacie
+## 🍕 Restaurants
 
-### 9. Restez au lit
-**L'idée :** quelqu'un de malade sous la couette ; la sonnette ; un sac de pharmacie apparaît sur la table de nuit.
-**Image :**
+### pizza-vinyle : la pizza sur la platine
+Une soirée entre amis : sur la platine du DJ, le disque est une pizza entière qui tourne. Le DJ « scratche » une part.
 ```
-A person sick in bed under a thick duvet, tissues and a cup of tea on the bedside table, cozy dim bedroom, and on the bedside table a small white pharmacy paper bag with a green cross and a small HOP! sticker. Soft morning light through curtains.
+A DJ turntable on a party table in a cozy apartment with colorful lights, but the record spinning on the turntable is a whole fresh margherita pizza, the tonearm resting on it; an open kraft pizza box with a HOP! logo next to the turntable; friends dancing in the blurred background. Fun, vibrant, cinematic.
 ```
-**Veo :** `Locked static camera. The person slowly pulls the duvet down, sees the pharmacy bag, smiles weakly and gives a tiny relieved sigh. No text.`
-**Textes :** « MALADE ? RESTEZ AU LIT. » / « חולים? תישארו במיטה. » → « LA PHARMACIE VIENT À VOUS » / « בית המרקחת מגיע אליכם » · sous-titre : « Même avec ordonnance » / « גם עם מרשם »
+Veo : `Locked static camera. The pizza spins on the turntable, a hand playfully scratches it back and forth, the party lights pulse. No text.`
+Textes : « CE SOIR, VOUS MIXEZ ? / הערב אתם על הפטיפון? » → « NOUS, ON LIVRE. / ואנחנו על המשלוח. »
+
+### sushi-surf : le sushi surfeur
+Un minuscule surfeur glisse sur une vague de sauce soja, debout sur un nigiri au saumon. Vu en macro, c'est magique.
+```
+Macro food photography: a tiny miniature surfer figure riding a curling wave of glossy soy sauce, standing on a salmon nigiri like a surfboard, on a dark slate plate with chopsticks and wasabi, dramatic backlight, droplets frozen in the air, a navy HOP! delivery bag softly blurred in the background.
+```
+Veo : `Locked static camera. The soy sauce wave curls in slow motion and the tiny surfer rides it across the plate. No text.`
+Textes : « LA VAGUE DU SOIR ? / הגל של הערב? » → « SUSHI FRAIS, LIVRÉ CHEZ VOUS. / סושי טרי, עד הבית. »
+
+### lune : Hoppy sur la Lune
+Hoppy saute au ralenti sur la Lune (la gravité du kangourou idéal) et tend une boîte de pizza HOP! à un astronaute. La Terre brille derrière.
+```
+[Hoppy, exactly as in the attached image] wearing a clear round space helmet, floating mid-hop in slow motion over the grey lunar surface, handing a kraft pizza box with a HOP! logo to a delighted astronaut; the blue Earth glowing in the black starry sky behind. Epic, funny, cinematic.
+```
+Veo : `Locked static camera. Hoppy drifts down in low gravity, lands softly raising a little dust, and hands over the box; the astronaut gives a happy wave. No text.`
+Textes : « ON NE LIVRE PAS ENCORE SUR LA LUNE… / לירח עוד לא מגיעים… » → « …MAIS DANS TOUT NETANYA ! / …אבל לכל נתניה, כן! »
 
 ---
 
-## 🥖 Boulangerie et Chabbat
+## 💊 Pharmacie, 👶 bébé, 🐾 animaux
 
-### 10. Vendredi, 13 h
-**L'idée :** une table de Chabbat prête, il ne manque qu'une chose ; les hallot dorées arrivent, encore fumantes.
-**Image :**
+### grippe : la grippe de l'homme
+Un homme enrhumé « agonise » sur le canapé comme un ténor d'opéra : lumière de scène, rideau rouge, mouchoir à la main. Il exagère, et tout le monde se reconnaîtra.
 ```
-A beautiful Shabbat table set with a white tablecloth, silver candlesticks with unlit candles, wine cups, salads, and an empty challah board in the center. Next to it, two golden braided challot just placed on a navy HOP! paper bag, a little steam rising. Warm Friday afternoon light.
+A man with a cold lying dramatically on a living-room sofa like a dying opera tenor, one hand on his forehead, holding a tissue, a red theater curtain and a single stage spotlight surrounding the sofa, his partner in the background rolling her eyes and holding a small white pharmacy bag with a green cross and a HOP! sticker. Theatrical, hilarious.
 ```
-**Veo :** `Locked static camera. Steam rises from the warm challot, sunlight slowly shifts across the tablecloth. No text.`
-**Textes :** « VENDREDI, PAS LE TEMPS ? » / « שישי, אין זמן? » → « LES HALLOT ARRIVENT. » / « החלות כבר בדרך. »
+Veo : `Locked static camera. The man raises a trembling hand to the sky in a dramatic sigh, his partner places the pharmacy bag on his chest; he instantly stops acting. No text.`
+Textes : « LA GRIPPE DE L'HOMME ? / שפעת של גברים? » → « LA PHARMACIE ARRIVE AVANT LE DERNIER ACTE. / בית המרקחת מגיע לפני המערכה האחרונה. »
 
----
+### mission-bebe : ne pas réveiller bébé
+Un parent traverse la chambre du bébé comme un espion : des lasers rouges, la lumière de nuit, la tension. Le but : récupérer le sac HOP! déposé devant la porte. C'est le « sans contact » de l'appli, sans sonnette.
+```
+A dark baby nursery at night lit only by a soft star nightlight, thin red laser beams crisscrossing the room like a spy movie, a parent in pajamas contorting carefully between the beams toward the half-open door, where a navy HOP! bag of diapers waits on the doormat; the baby sleeps peacefully in the crib. Cinematic, funny suspense.
+```
+Veo : `Locked static camera. The parent slowly slides under the last laser beam, reaches the bag, and freezes as the baby sighs in her sleep, then smiles in relief. No text.`
+Textes : « MISSION : NE PAS RÉVEILLER BÉBÉ / משימה: לא להעיר את התינוק » → « DÉPOSÉ DEVANT LA PORTE, SANS SONNER. / משאירים ליד הדלת, בלי לצלצל. »
 
-## 📦 Colis, poste, documents, clés
-
-### 11. La queue à la poste
-**L'idée :** une file interminable à la poste ; une chaise vide au milieu : « votre » place, c'est nous qui la prenons.
-**Image :**
+### chien : même lui sait commander
+Un chien appuie sur l'écran d'un téléphone avec sa truffe, puis s'assoit fièrement à côté d'un sac HOP! de croquettes.
 ```
-A long queue of tired people in a post office waiting room, ticket machine and counters (no readable signs), one empty plastic chair in the middle of the row with a small navy HOP! parcel waiting on it. Neutral fluorescent light, slightly comic mood.
+A smart golden retriever in a bright living room carefully pressing a smartphone screen lying on the floor with his nose (the screen shows only colored shapes, no text), a navy HOP! paper bag with a plain pet food bag already next to him. Funny, heartwarming, sharp photo.
 ```
-**Veo :** `Locked static camera. People sigh, check their watches and shift their weight; the parcel on the empty chair stays calm and still. No text.`
-**Textes :** « LA QUEUE À LA POSTE ? » / « התור בדואר? » → « ON Y VA À VOTRE PLACE. » / « אנחנו הולכים במקומכם. »
-
-### 12. Le colis qui fait HOP!
-**L'idée :** un carton avec l'autocollant HOP! traverse la rue en faisant des petits bonds, comme un kangourou.
-**Image :**
-```
-A small cardboard parcel with a navy HOP! sticker standing on a sunny Netanya sidewalk lined with palm trees and white buildings, slightly squashed as if about to jump, a cute cartoon feeling in a realistic street. Low angle.
-```
-**Veo :** `Locked static camera. The parcel makes three joyful little hops along the sidewalk like a kangaroo and lands in front of a front door. No text.`
-**Textes :** « VOS COLIS… » / « החבילות שלכם… » → « FONT HOP! » / « עושות HOP! » (HOP! reste en lettres latines, isolé)
-
-### 13. Les clés oubliées
-**L'idée :** on est devant la porte, on fouille ses poches… les clés sont restées au bureau.
-**Image :**
-```
-A person standing in front of a closed apartment door at dusk, patting their empty pockets with a worried face; through the small glass window of the door, a set of keys is visible lying on a shelf inside the apartment. Warm hallway light.
-```
-**Veo :** `Locked static camera. The person pats pocket after pocket, looks up with a comic sigh; the hallway light flickers on. No text.`
-**Textes :** « CLÉS OUBLIÉES ? » / « שכחתם את המפתחות? » → « ON VOUS LES APPORTE. » / « אנחנו מביאים אותם. »
-
-### 14. Vendu sur Internet (avec Hoppy)
-**L'idée :** un fauteuil vendu entre deux voisins ; Hoppy le porte d'un immeuble à l'autre.
-**Image :**
-```
-[Hoppy, exactly as in the attached image] jumping happily across a sunny Netanya street holding a small cozy armchair above his head with a bow on it, a smiling young couple waiting at the door of the building on the right. Bright day.
-```
-**Veo :** `Locked static camera. Hoppy lands gently in front of the couple and sets the armchair down, they clap happily. No text.`
-**Textes :** « VENDU SUR INTERNET ? » / « מכרתם משהו באינטרנט? » → « ON LE LIVRE AU CLIENT. » / « אנחנו מעבירים אותו לקונה. »
+Veo : `Locked static camera. The dog taps the phone with his nose, then sits up proudly next to the bag, tail wagging. No text.`
+Textes : « MÊME LUI SAIT COMMANDER. / אפילו הוא יודע להזמין. » → « ET VOUS ? / ואתם? »
 
 ---
 
-## 👔 Pressing
+## 👔 Pressing, 💐 fleurs, 🕯️ Chabbat
 
-### 15. La chemise qui vole
-**L'idée :** une chemise blanche impeccable traverse la ville sur son cintre et rentre toute seule dans l'armoire.
-**Image :**
+### costume : le costume qui y va tout seul
+Un costume vide, sans personne dedans, marche tout seul sur la promenade de Netanya, cintre sur l'épaule, vers le pressing.
 ```
-A crisp white shirt on a wooden hanger inside a clear garment cover with a small navy HOP! tag, floating in the air in front of an open wardrobe in a bright bedroom, the window behind shows the sea of Netanya. Soft clean light.
+An empty elegant navy suit walking by itself on the sunny Netanya seaside promenade, no person inside (invisible man effect), the sleeves swinging naturally, a hanger hooked on its shoulder and a small HOP! tag on the lapel; palm trees and the sea in the background, passersby surprised. Surreal, photorealistic.
 ```
-**Veo :** `Locked static camera. The floating shirt drifts gently into the wardrobe and hangs itself on the rail, the wardrobe door closes softly. No text.`
-**Textes :** « VOTRE PRESSING… » / « ניקוי יבש… » → « ALLER ET RETOUR. » / « הלוך וחזור. »
+Veo : `Locked static camera. The empty suit strolls across the frame with a confident walk, a passerby turns around in disbelief. No text.`
+Textes : « VOTRE COSTUME VA AU PRESSING… / החליפה הולכת לניקוי יבש… » → « …SANS VOUS ! / …בלי אתכם! »
+
+### romeo : Roméo a oublié les fleurs (avec Hoppy)
+La scène du balcon de Roméo et Juliette à Netanya, mais c'est Hoppy qui saute jusqu'au 3ᵉ étage pour tendre le bouquet.
+```
+A romantic evening scene on a Netanya building: a woman on a third-floor balcony with flowers on the railing, string lights, and [Hoppy, exactly as in the attached image] in a spectacular high jump from the street right up to the balcony level, holding out a beautiful bouquet tied with a navy ribbon. Golden-hour sky, cinematic, magical.
+```
+Veo : `Locked static camera. Hoppy reaches the top of his jump, hands the bouquet to the delighted woman and gently glides back down out of frame. No text.`
+Textes : « IL A OUBLIÉ LES FLEURS ? / הוא שכח את הפרחים? » → « HOPPY S'EN CHARGE ! / הופי דואג לזה! »
+
+### sablier : le sablier du vendredi
+Sur la table de Chabbat, un sablier géant coule. Le sable tombe… et dans le bas du sablier, à la place du sable, deux hallot dorées se forment.
+```
+A beautifully set Shabbat table (white tablecloth, silver candlesticks with unlit candles, wine cups) with a giant glass hourglass in the center; golden sand pours from the top bulb, and in the bottom bulb the sand is forming two golden braided challot. Warm Friday afternoon light, magical realism.
+```
+Veo : `Locked static camera. The sand keeps pouring and the challot slowly take shape and turn golden in the lower bulb; light shifts across the table. No text.`
+Textes : « VENDREDI, LA COURSE CONTRE LA MONTRE ? / שישי, מרוץ נגד השעון? » → « LES HALLOT ARRIVENT À TEMPS. / החלות מגיעות בזמן. »
 
 ---
 
-## 💐 Fleurs et cadeaux
+## 📦 Colis et poste
 
-### 16. Vous avez oublié ?
-**L'idée :** un homme réalise sur son téléphone que c'est l'anniversaire de sa femme ; la sonnette ; le bouquet est déjà là.
-**Image :**
+### documentaire : la queue à la poste, façon documentaire animalier
+Filmée comme un documentaire sur la savane, au téléobjectif et à travers des feuillages : la file d'attente de la poste, comme un troupeau qui avance très lentement.
 ```
-A woman opening her front door with a huge happy surprise smile, holding a big colorful bouquet of flowers tied with a navy ribbon and a small HOP! tag; behind her, inside the apartment, her husband peeks with a relieved grin. Warm light.
+Wildlife documentary style telephoto shot through out-of-focus leaves in the foreground: a long slow queue of people in a post office waiting hall seen from afar, like a herd at a watering hole, warm dusty documentary color grading, slight camera-trap feeling (but no text, no timestamp).
 ```
-**Veo :** `Locked static camera. She smells the flowers, laughs and turns toward her husband, who gives a discreet relieved smile. No text.`
-**Textes :** « VOUS AVEZ OUBLIÉ ? » / « שכחתם? » → « ON LIVRE LA SURPRISE. » / « אנחנו מביאים את ההפתעה. »
+Veo : `Locked static camera. The queue barely moves, one person yawns, another stretches; leaves sway gently in the foreground. No text.`
+Textes : « ESPÈCE OBSERVÉE : LA QUEUE À LA POSTE / מין נדיר: התור בדואר » → « EN VOIE DE DISPARITION. / בסכנת הכחדה. »
 
----
-
-## 👶 Bébé et 🐾 animaux
-
-### 17. Le dernier paquet de couches
-**L'idée :** un parent ouvre le paquet de couches : vide. Panique silencieuse, très drôle.
-**Image :**
+### colis-hop : le colis qui fait HOP!
+Un carton avec l'autocollant HOP! traverse la rue en petits bonds, comme un kangourou.
 ```
-A young parent in a cozy nursery holding a baby on one arm and an EMPTY diaper box (plain, no brand) upside down with the other hand, with a comically shocked face; the baby laughs. Soft pastel light.
+A small cardboard parcel with a navy HOP! sticker standing on a sunny Netanya sidewalk lined with palm trees and white buildings, slightly squashed as if about to jump. Low angle, cute cartoon feeling in a realistic street.
 ```
-**Veo :** `Locked static camera. The parent shakes the empty box, nothing falls out, the baby giggles and grabs the parent's nose. No text.`
-**Textes :** « PLUS DE COUCHES ? » / « נגמרו החיתולים? » → « PAS DE PANIQUE. » / « בלי פאניקה. »
-
-### 18. Le chat qui attend
-**L'idée :** un chat assis devant sa gamelle vide fixe la caméra ; le sac de croquettes arrive.
-**Image :**
-```
-A fluffy cat sitting very straight in front of an empty food bowl on a kitchen floor, staring at the camera with a judging face; next to it a plain bag of pet food (no brand) standing in a navy HOP! paper bag. Warm afternoon light.
-```
-**Veo :** `Locked static camera. The cat slowly turns its head to the HOP! bag, then back to the camera, blinks slowly and licks its lips. No text.`
-**Textes :** « IL A FAIM ? » / « החתול רעב? » → « SES CROQUETTES ARRIVENT. » / « האוכל שלו כבר בדרך. »
+Veo : `Locked static camera. The parcel makes three joyful little hops along the sidewalk like a kangaroo and lands in front of a front door. No text.`
+Textes : « VOS COLIS… / החבילות שלכם… » → « …FONT HOP! / …עושות HOP! »
 
 ---
 
-## 🏠 Maison
+## 🦘 La marque
 
-### 19. La télécommande morte
-**L'idée :** le soir du match, la télécommande ne répond plus ; les piles arrivent.
-**Image :**
+### netanya-mini : tout Netanya en maquette
+Netanya filmée comme une maquette miniature (effet tilt-shift) : la falaise, la mer, les tours, et un minuscule scooter HOP! qui file entre les rues.
 ```
-A man on a sofa at night pointing a TV remote at the screen with desperation, pressing the button, the TV showing only a blurred green sports field (no logos, no text); on the coffee table a small navy HOP! bag with a pack of plain batteries peeking out.
+Tilt-shift miniature effect aerial view of Netanya: the cliffs, the beach, the white towers and palm-lined streets look like a tiny toy model; one tiny delivery scooter with a navy HOP! top case is visible in the middle of a street. Bright sunny colors, shallow depth of field.
 ```
-**Veo :** `Locked static camera. He presses the button again and again, shakes the remote, then notices the HOP! bag and his face lights up. No text.`
-**Textes :** « LA TÉLÉCOMMANDE EST MORTE ? » / « השלט מת? » → « ON APPORTE LES PILES. » / « מביאים סוללות. »
+Veo : `Locked static camera. Tiny cars move like toys, the little HOP! scooter zips along the street and turns a corner, waves roll on the beach. No text.`
+Textes : « TOUT NETANYA… / כל נתניה… » → « …À PORTÉE DE MAIN. / …בהישג יד. »
 
----
+### poche : la poche sans fond (avec Hoppy)
+Hoppy sort de sa poche une pizza, des fleurs, un colis, une baguette… et pour finir, un frigo entier.
+```
+[Hoppy, exactly as in the attached image] standing on a plain deep navy-blue (#0F1F3D) background with soft orange rim light, objects that came out of his pouch floating around him: a pizza box, a bouquet, a cardboard parcel, a baguette, a white pharmacy bag; and he is pulling a full-size refrigerator out of his pouch with a mischievous grin. Magical sparkles, character fully visible.
+```
+Veo : `Locked static camera. The floating objects circle around Hoppy, then he pulls the whole refrigerator out of his pouch with a pop, and looks at the camera, amused. No text.`
+Textes : « TOUT CE QUE VOUS VOULEZ… / כל מה שתרצו… » → « …MÊME ÇA ! / …אפילו את זה! »
 
-## 🦘 La marque HOP!
-
-### 20. La poche magique de Hoppy
-**L'idée :** comme un magicien, Hoppy sort de sa poche tout ce qu'on livre : une pizza, un bouquet, un colis, une baguette, un sac de pharmacie… C'est la pub qui dit tout en 8 secondes.
-**Image :**
+### telecommande : la télécommande en réanimation
+En miniature : une télécommande allongée sur un minuscule lit d'hôpital, sous perfusion, avec un moniteur cardiaque plat. Le soir du match.
 ```
-[Hoppy, exactly as in the attached image] standing on a plain deep navy-blue (#0F1F3D) background with soft orange rim light, pulling out of his pouch, one after another, items that float around him: a pizza box, a bouquet of flowers, a cardboard parcel, a baguette, a small white pharmacy bag, a bottle of milk. Magical sparkles. Character fully visible, centered.
+Miniature diorama: a TV remote control lying in a tiny hospital bed under a little blanket, with a tiny IV drip and a heart monitor showing a flat green line (no numbers, no text), worried tiny figurines around it; in the blurred background a living room with a TV showing a green sports field. Funny, detailed macro photo.
 ```
-**Veo :** `Locked static camera. Hoppy pulls the items out of his pouch one by one, each one pops into the air and floats around him in a circle; he ends with a big friendly smile. No text.`
-**Textes :** « TOUT CE QUE VOUS VOULEZ… » / « כל מה שתרצו… » → « …DANS LA POCHE DE HOPPY ! » / « …בכיס של הופי! »
-
-### 21. Hoppy au feu rouge
-**L'idée :** Hoppy attend au feu rouge sur son scooter HOP!, à côté des voitures ; le feu passe au vert et il part en souriant.
-**Image :**
-```
-[Hoppy, exactly as in the attached image] sitting on a small navy delivery scooter with a navy HOP! top case, waiting at a red traffic light on a sunny Netanya boulevard between ordinary cars, helmet strap on, ears up, looking at the camera with a mischievous smile.
-```
-**Veo :** `Locked static camera. The light turns green, Hoppy winks at the camera and rides off smoothly out of frame, his ears flowing in the wind. No text.`
-**Textes :** « NETANYA… » / « נתניה… » → « ON ARRIVE ! » / « אנחנו מגיעים! »
+Veo : `Locked static camera. The heart monitor line stays flat, a tiny nurse figure shakes her head; then a pack of batteries slides into frame and the line starts beeping up and down. No text.`
+Textes : « TÉLÉCOMMANDE EN RÉANIMATION ? / השלט בטיפול נמרץ? » → « ON APPORTE LES PILES. / מביאים סוללות. »
 
 ---
 
 ## 🛵 Recrutement et commerces
 
-### 22. Deviens livreur
-**L'idée :** un livreur sur son scooter au coucher du soleil, sur la route des falaises de Netanya. Liberté.
-**Image :**
+### bureau-mer : ton bureau a vue sur la mer
+Un livreur sur son scooter, sur la route des falaises, au coucher du soleil : c'est son « bureau ».
 ```
-A smiling young delivery rider on a scooter with a navy HOP! top case, riding along the Netanya cliff road at golden hour, the Mediterranean sea glowing orange, helmet and safety jacket, phone mounted on the handlebar showing a simple map (no text).
+A smiling young delivery rider on a scooter with a navy HOP! top case, riding along the Netanya cliff road at golden hour, the Mediterranean glowing orange, helmet and safety jacket, phone on the handlebar showing a simple map (no text). Cinematic freedom.
 ```
-**Veo :** `Locked static camera. The rider passes from left to right at a calm speed, the sunset light flickers through the palm trees. No text.`
-**Textes :** « DEVIENS LIVREUR HOP! » / « בואו להיות שליחים ב-HOP! » → « TES COURSES, QUAND TU VEUX » / « בוחרים משלוחים, מתי שרוצים »
-(La fin de cette pub est différente : logo + « Inscription dans l'appli HOP! Livreur » / « הרשמה באפליקציית HOP! Livreur », sans le prix.)
+Veo : `Locked static camera. The rider passes from left to right at a calm speed, sunset light flickering through the palm trees. No text.`
+Textes : « TON BUREAU… / המשרד שלך… » → « …A VUE SUR LA MER. / …עם נוף לים. » Fin : « DEVIENS LIVREUR HOP! » et l'inscription dans l'appli HOP! Livreur, sans prix.
 
-### 23. Votre commerce n'a pas de livreur ?
-**L'idée :** un commerçant derrière son comptoir, le téléphone sonne, une commande : le livreur HOP! entre déjà.
-**Image :**
+### avion-papier : lancez la commande, on l'attrape
+Un boulanger plie le bon de commande en avion en papier et le lance par la porte. Dehors, un livreur HOP! l'attrape au vol.
 ```
-A friendly shop owner behind the counter of a small neighborhood bakery in Netanya, looking at a phone that just lit up, while through the glass door a HOP! delivery rider with a navy HOP! bag is about to enter. Warm morning light, pastries on display (no text, no prices).
+A friendly baker in his small Netanya bakery throwing a paper airplane (plain paper, no writing) out of the open shop door; outside on the sunny street a HOP! delivery rider with a navy HOP! bag reaches up to catch it. Warm morning light, pastries on display (no text, no prices).
 ```
-**Veo :** `Locked static camera. The owner smiles at the phone, packs a paper bag, the rider opens the door and waves. No text.`
-**Textes :** « PAS DE LIVREUR ? » / « אין לכם שליח? » → « MAINTENANT, SI. » / « עכשיו יש. »
-(Fin : logo + « Inscrivez votre commerce sur HOP! » / « רשמו את העסק שלכם ב-HOP! », sans le prix.)
+Veo : `Locked static camera. The paper airplane glides out of the shop, the rider catches it with a grin and gives a nod to the baker. No text.`
+Textes : « PAS DE LIVREUR ? / אין לכם שליח? » → « LANCEZ LA COMMANDE, ON L'ATTRAPE. / שולחים הזמנה, אנחנו תופסים. » Fin : « VOTRE COMMERCE SUR HOP! », inscription gratuite, sans prix.
 
 ---
 
-## Par où commencer
+## Les 3 à faire en premier
 
-Les 3 qui vendent le plus vite, à faire en premier :
-1. **n°20 La poche magique de Hoppy** : elle montre tout ce qu'on livre en une seule pub.
-2. **n°5 Le frigo vide** : tout le monde s'y reconnaît.
-3. **n°1 Le dernier morceau** : ça donne faim et c'est drôle.
+1. **frigo-desert** : une image qu'on n'a jamais vue, tout le monde s'arrête de défiler.
+2. **poche** : Hoppy montre tout ce qu'on livre, et la chute du frigo fait rire.
+3. **grippe** : très drôle et très partagé, en français comme en hébreu.
