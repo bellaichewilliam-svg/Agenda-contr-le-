@@ -734,7 +734,10 @@ function stepStates() {
     [fieldsetOf('legend[data-i18n="s1"]'), true],
     [fieldsetOf('legend[data-i18n="s4"]'), !scheduleError()],
     [fieldsetOf("#pickupLegend"), nearMode() ? rayonUnits() > 0 || shopListText().trim().length >= 3 : filled("pickup_address") && (filled("pickup_number") || !!(state.pick.from && state.pick.from.brand))],
-    [fieldsetOf('legend[data-i18n="s3"]'), filled("dropoff_address") && (filled("dropoff_number") || !!(state.pick.to && state.pick.to.brand))],
+    // (✅ seulement quand le livreur trouvera la porte : type de lieu, étage, appartement, code ; jamais à côté d'une erreur)
+    [fieldsetOf('legend[data-i18n="s3"]'), filled("dropoff_address") && (!!(state.pick.to && state.pick.to.brand)
+      || (filled("dropoff_number") && (() => { const k = kindOf("dropoff"), flat = k === "appartement";
+        return !!k && (!(flat || k === "bureau") || filled("dropoff_floor")) && (!flat || (filled("dropoff_apt") && filled("dropoff_code"))); })()))],
     [$("#coordsBox"), filled("contact_name") && phoneOk(val("contact_phone"))],
     ...(proShopOn() ? [[$("#shopOrderBox"), filled("shop_order") || cartCount() > 0]] : [])
   ];
@@ -976,7 +979,9 @@ const priceTxt = p => `${priceMid(p)} ₪`;
 const goodsPrepay = () => val("service") === "achat" && !proShopOn() && val("goods_mode") !== "self";
 const goodsAfter = () => goodsPrepay() && val("payment_method") !== "cash";
 const goodsCap = () => ((state.mine || []).filter(o => o.status === "livree").length >= 3 ? 200 : 100);
-const goodsMin = () => { const g = rayonGoods(); return g ? Math.ceil(g.hi) : 0; };
+// (le haut des fourchettes, mais ramené au plafond quand ce que le client voit, le prix du milieu, y entre : sinon un
+// nouveau client était bloqué à 105 ₪ pour 84 ₪ d'articles affichés, sans pouvoir baisser)
+const goodsMin = () => { const g = rayonGoods(); if (!g) return 0; const hi = Math.ceil(g.hi), cap = goodsCap(); return hi > cap && Math.ceil(g.mid) <= cap ? cap : hi; };
 const goodsBudget = () => Math.max(goodsMin(), Math.round(parseFloat(val("budget")) || 0));
 const capVars = () => ({ cap: money(goodsCap()), more: goodsCap() < 200 ? t("gmCapNew") : "" });
 function renderGoodsMode(q) {
@@ -1358,6 +1363,9 @@ function renderShopList() {
 }
 function renderQuote() {
   try { renderMulti(); } catch (e) { /* (pas encore prêt au tout début) */ }
+  // Des articles en plus (panier, rayon) : ce total-là est celui de la livraison (le total articles + livraison est
+  // dans l'encart du paiement) : deux « Total » différents sur le même écran perdaient le client
+  try { const lb = $("#summary .total > span"); if (lb) lb.textContent = t(cartCount() > 0 || rayonGoods() ? "totalDeliv" : "total"); } catch (e) { /* ignore */ }
   applyCashOnly();
   renderGoodsChoice();
   renderShopBanner();
@@ -2099,7 +2107,8 @@ form.dropoff_nocode.addEventListener("change", () => {
   syncNoCode();
 });
 // Conditions de livraison d'objets : pour tout envoi, sauf un repas ou une commande chez un commerce HOP! Pro
-const needsRules = () => val("service") !== "repas" && !proShopOn() && !shopMode();
+// (conditions de livraison d'objets : pour un colis, pas pour des courses achetées par le livreur ni un repas)
+const needsRules = () => !["repas", "achat"].includes(val("service")) && !proShopOn() && !shopMode();
 function openRules() { $("#rulesModal").classList.remove("hidden"); }
 
 function applySavedAddr(which, a) {
@@ -4323,7 +4332,8 @@ function renderWhenHints() {
   const shut = !!(state.shop && shopSide() && !shopOpenAt(new Date())), asapInput = form.querySelector('input[name=urgency][value=asap]');
   if (shut) { const lb = t("shClosedShort", { name: shopShortName() }); $("#asapSmall").textContent = lb; ex.textContent = lb; }
   // (HOP! ne prend pas de course maintenant : pareil, on programme d'office au premier créneau)
-  const noNow = shut || !state.settings.accepting;
+  // (hors horaires sans livreur libre aussi : la pastille dit « on vous livre dès l'ouverture », la commande suit)
+  const noNow = shut || !state.settings.accepting || !openNow();
   // Fermé : pas de choix à faire, le calendrier est là tout de suite (jour et heure déjà mis), on passe à la suite
   const was = form.classList.contains("no-now");
   form.classList.toggle("no-now", noNow);
@@ -5862,7 +5872,7 @@ async function magicToCart(code, withRest) {
     form.shop_order.value = (cur ? cur + "\n" : "") + t("mgAlso") + "\n" + lines.join("\n");
     form.shop_order.dispatchEvent(new Event("input", { bubbles: true }));
   }
-  renderCatalog(); renderQuote(); renderCartIcon();
+  renderCatalog(); renderQuote(); saveDraft(); cartPersist();
   if (cartCount()) setTimeout(openCart, 250);
 }
 // Vitrine : dès qu'on écrit, la recherche remonte en haut de l'écran (les résultats ont toute la place)

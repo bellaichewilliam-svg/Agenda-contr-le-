@@ -5213,3 +5213,9 @@ html.for-client .wa-list { display: none !important; }
 .cr-pic img { width: 100%; height: 100%; object-fit: contain; }
 .cr-n { flex: 1; min-width: 0; }
 .cr-row em { font-style: normal; font-weight: 800; color: #FF6A13; white-space: nowrap; }
+/* Achat par le livreur (rayons, boulangerie…) : pas de « taille du colis » à choisir (le top case est déjà vérifié) */
+.svc-achat .fs-size > legend, .svc-achat .fs-size > .choices, .svc-achat .fs-size > .rules-link { display: none !important; }
+.svc-achat .fs-size > .fields { margin-top: 0 !important; }
+/* Ronds des commerces : le nom va à la ligne entre les mots, jamais au milieu d'un mot (« La Boulangeri / e ») */
+.sc-story { width: 78px; }
+.sc-story > b { max-width: 78px !important; font-size: 11.5px; overflow-wrap: normal !important; word-break: normal; hyphens: manual; }
