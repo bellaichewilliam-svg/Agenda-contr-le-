@@ -154,3 +154,9 @@ Vertical 9:16, playful cinematic shot. Dozens of kraft pizza boxes floating down
 - **Toute question passe par le widget de question** (choix cliquables), jamais une ligne glissée en fin de texte.
 - **Tout tester avant de dire « prêt »** : il ne doit jamais découvrir un défaut lui-même.
 - Ne pas re-proposer des angles déjà produits : un nouveau lot = **de nouveaux angles**.
+
+---
+
+## 8. Montage automatique (08/11/2026)
+
+`python3 video/pubs/monter.py <id> <video_veo.mp4>` : textes de `video/pubs/pubs.json`, sortie des deux versions (FR et HE) dans `livraison/kit/visuels/<id>-video-<fr|he>.mp4`, ajout dans l'onglet Vidéos du kit (`kit.js`), planche de contrôle dans `video/out/pubs/`. Vidéo Veo verticale : plein écran avec voile bleu nuit en haut et en bas ; horizontale : bande carrée (`--x` pour recadrer). `--test` : essai sans toucher au kit. Les idées : `video/PUBS-VIDEO.md`.
