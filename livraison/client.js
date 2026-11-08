@@ -949,6 +949,24 @@ async function nearestShop(kind, at) {
 }
 const NEAR_FR = { pharm: "Pharmacie", tabac: "Kiosque / tabac", bakery: "Boulangerie", shop: "Makolet / supermarché", baby: "Magasin bébé ou pharmacie", pets: "Animalerie", home: "Quincaillerie / bazar", gift: "Fleuriste" };
 const phName = x => (I18N.lang === "he" ? x.he : x.fr) || x.fr || x.he || "";
+const NEAR_HE = { pharm: "בית מרקחת", tabac: "קיוסק", bakery: "מאפייה", shop: "מכולת / סופר", baby: "חנות תינוקות או בית מרקחת", pets: "חנות חיות", home: "כלי בית / בזאר", gift: "חנות פרחים" };
+// Produit Carrefour des rayons (importé du site, id « cf… ») : le livreur le prend chez Carrefour
+const isCfItem = x => /^cf\d+$/.test(String((x && x.id) || ""));
+// Où le livreur achète les articles du rayon : le magasin choisi, sinon le plus proche du client
+function rayonWhere(r) {
+  const f = state.pick.from, name = f && !nearMode() ? String(f.brand || f.label || "").trim() : "";
+  if (name) return name;
+  return t("phWhereNear", { shop: (I18N.lang === "he" ? NEAR_HE : NEAR_FR)[r.kind] || t("phWhereShop") });
+}
+// Mode patron : d'où vient la photo de l'article (seulement sur le téléphone du patron)
+function rayPicSrc(x) {
+  const ph = String(x.photo || "");
+  if (/cloudfront\.net\//.test(ph)) return ["ok", "📷 Photo Carrefour"];
+  if (/booomisrael/.test(ph)) return ["ok", "📷 Photo BOOOM"];
+  if (/cdn\.shopify/.test(ph)) return ["ok", "📷 Photo du magasin"];
+  if (/^(data:image|rp:)/.test(ph)) return ["ok", "📷 Votre photo"];
+  return ["no", "⚠️ Pas de vraie photo"];
+}
 const rayonPicked = r => Object.entries(state.pharma).filter(([k, q]) => q > 0 && k.startsWith(r.id + ":"));
 // Produit + variante d'une clé « rayon:produit|variante » ; son prix indicatif et sa place (la variante peut avoir les siens)
 function rayonEntry(r, k) {
@@ -1036,7 +1054,7 @@ function pharmaLines() {
     const e = rayonEntry(r, k);
     if (!e) return null;
     // (le prix indicatif aide le livreur à voir un prix anormal ; « ×N » reste en fin de ligne : la base compte les articles)
-    return `${e.x.e} ${phName(e.x)}${e.v ? " · " + phName(e.v) : ""}${e.p || e.pb ? ` (≈ ${priceTxt(e.p || e.pb)})` : ""} ×${q}`;
+    return `${e.x.e} ${phName(e.x)}${e.v ? " · " + phName(e.v) : ""}${isCfItem(e.x) ? " [Carrefour]" : ""}${e.p || e.pb ? ` (≈ ${priceTxt(e.p || e.pb)})` : ""} ×${q}`;
   }).filter(Boolean);
 }
 // Tabac / alcool cochés : les cases « 18 ans et plus » suivent
@@ -1074,7 +1092,7 @@ function renderPharma() {
   const box = $("#pharmaBox"), r = rayonOn();
   box.classList.toggle("hidden", !r);
   if (!r) return;
-  const cats = Rayons.cats(r), items = Rayons.items(r);
+  const rEdit = bossEditOn(), cats = Rayons.cats(r), items = rEdit ? r.items.filter(i => !r.cats.some(c => c.id === i.c && c.hidden)) : Rayons.items(r);
   if (!cats.some(c => c.id === state.pharmaCat)) state.pharmaCat = (cats[0] || {}).id;
   // Le cadre (avec la recherche) n'est construit qu'une fois par rayon : on peut taper sans perdre le clavier
   if (box.dataset.ray !== r.id || !box.querySelector(".ph-shell")) {
@@ -1092,6 +1110,8 @@ function renderPharma() {
   const inCat = c => picked.filter(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).c === c).reduce((a, [, q]) => a + q, 0);
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
   const top = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small>${r.id === "tabac" ? "" : `<button type="button" class="ph-share" data-share-ray="${UI.esc(r.id)}" aria-label="${UI.esc(t("shareShop"))}">${SHARE_SVG}</button>`}</div>
+    ${state.boss ? rayBossBar(r) : ""}
+    ${val("service") === "achat" ? `<p class="ph-where">🛵 ${UI.esc(t("phWhere"))} <b dir="auto">${UI.esc(rayonWhere(r))}</b>${r.items.some(isCfItem) ? `<small>${UI.esc(t("phWhereCf"))}</small>` : ""}</p>` : ""}
     ${rayonMeter(n)}`;
   // Recherche : dans tout le rayon (français et hébreu), sinon la rubrique choisie
   const q = phNorm((state.phQ || "").trim());
@@ -1106,15 +1126,19 @@ function renderPharma() {
       : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`;
     const sel2 = x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o2, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o2))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : "";
     // Rubrique sans images (tabac : la loi interdit les visuels) : une liste nette, une ligne par produit, prix bien visible
-    if (rows) return `<div class="ph-line${qn ? " in" : ""}"><span class="pl-txt"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${sel2}</span>
+    if (rows) return `<div class="ph-line${qn ? " in" : ""}${x.hidden ? " off" : ""}">${rEdit ? `<button type="button" class="pl-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">✏️</button>` : ""}<span class="pl-txt"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${sel2}</span>
       ${pr ? `<span class="pl-price"><b>≈ ${priceTxt(pr)}</b>${x.c === "cig" && x.id !== "cartouche" ? `<small>${UI.esc(t("phPerPack"))}</small>` : ""}</span>` : ""}
       <span class="pl-act">${step}</span></div>`;
-    return `<div class="ph-item${qn ? " in" : ""}" data-ph-open="${UI.esc(x.id)}">
+    const src = state.boss ? rayPicSrc(x) : null;
+    return `<div class="ph-item${qn ? " in" : ""}${x.hidden ? " off" : ""}" data-ph-open="${UI.esc(x.id)}">
       <div class="ph-pic${x.photo ? " photo" : ""}${UI.extPic(x.photo) ? " pack" : ""}">${pic(x)}
+        ${rEdit ? `<button type="button" class="cg-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">✏️</button>` : ""}
+        ${isCfItem(x) ? `<span class="ph-store">Carrefour</span>` : ""}
         ${qn ? `<span class="cg-qty"><button type="button" data-ph-minus="${k}" aria-label="−">−</button><b>${qn}</b><button type="button" data-ph-plus="${k}" aria-label="+">+</button></span>`
           : `<button type="button" class="cg-plus" data-ph-plus="${k}" aria-label="${UI.esc(t("cgAdd"))} ${UI.esc(phName(x))}">+</button>`}</div>
       <div class="ph-info"><span class="ph-price">${pr ? `≈ ${priceTxt(pr)}` : ""}</span>
       <b class="ph-name">${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>
+      ${src ? `<span class="ph-src ${src[0]}">${src[1]}${x.hidden ? " · 🙈 masqué" : ""}</span>` : ""}
       <span class="ph-slot">${x.opt ? `<select data-ph-opt="${r.id}:${x.id}" aria-label="${UI.esc(phName(x))}">${x.opt.map((o, i) => `<option value="${i}"${i === sel ? " selected" : ""}>${UI.esc(phName(o))}${state.pharma[key(x, i)] ? ` (×${state.pharma[key(x, i)]})` : ""}</option>`).join("")}</select>` : ""}</span></div>
     </div>`;
   };
@@ -1145,6 +1169,94 @@ function rayonMeter(n) {
     <div class="pm-bar"><i style="width:${place}%"></i></div>
     <small>${UI.esc(extra ? t("phExtra", { n: extra, each: PI.extraCourier + PI.extraHop, inc: PI.included }) : t("phIncluded", { inc: PI.included, each: PI.extraCourier + PI.extraHop, max: PI.max }))}</small>
     ${state.pharmaMsg ? `<p class="pm-msg">${UI.esc(state.pharmaMsg)}</p>` : ""}</div>`;
+}
+// ===== Mode patron dans les rayons (08/11) : comme dans les magasins, un crayon sur chaque article =====
+function rayBossBar(r) {
+  const all = r.items.filter(i => !r.cats.some(c => c.id === i.c && c.hidden));
+  const noPic = all.filter(i => !i.hidden && rayPicSrc(i)[0] === "no").length, hid = all.filter(i => i.hidden).length;
+  return `<div class="boss-bar"><span>👑 <b>Mode patron</b>${bossEditOn() ? ` · touchez ✏️ sur un article${noPic ? ` · ${noPic} sans vraie photo` : ""}${hid ? ` · ${hid} masqué${hid > 1 ? "s" : ""}` : ""}` : " · vue client"}</span>
+    <button type="button" class="btn btn-sm" data-ray-boss-toggle>${bossEditOn() ? "👁️ Vue client" : "✏️ Modifier"}</button></div>`;
+}
+// Photo prise sur le téléphone : carrée, légère (comme dans le panneau patron)
+function rayPhotoCrop(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const w = 240, k = Math.max(w / img.width, w / img.height), sw = w / k, sh = w / k, c = document.createElement("canvas");
+      c.width = c.height = w;
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, w);
+      g.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, 0, 0, w, w);
+      for (const q of [0.85, 0.7, 0.55, 0.4]) { const d = c.toDataURL("image/jpeg", q); if (d.length < 80000) return resolve(d); }
+      reject(new Error("too_big"));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("bad_image")); };
+    img.src = url;
+  });
+}
+function rayBossEdit(id) {
+  const r = rayonOn(), x = r && r.items.find(i => i.id === id);
+  if (!x) return;
+  let photo;   // undefined = inchangée, "" = enlevée, sinon la nouvelle
+  const box = document.createElement("div");
+  box.className = "boss-sheet";
+  const cur = () => (photo !== undefined ? photo : x.photo || "");
+  const draw = () => {
+    const ph = cur(), shown = UI.safeImg(ph), src = rayPicSrc({ photo: ph }), pr = x.p || [];
+    box.innerHTML = `<form class="bs-card" novalidate>
+      <div class="bs-head"><b>✏️ Modifier l'article</b><button type="button" class="bs-x" data-bs-close aria-label="Fermer">✕</button></div>
+      <div class="bs-pic">${shown ? `<img src="${shown}" alt="" />` : x.img ? `<img src="img/qc/${UI.esc(x.img)}.webp" alt="" />` : `<i>${UI.esc(x.e || "🛒")}</i>`}
+        <span class="ph-src ${src[0]}">${src[1]}</span></div>
+      <div class="bs-row"><label class="btn btn-sm bs-file">📷 Choisir une photo<input type="file" accept="image/*" data-bs-file hidden /></label>
+        ${ph ? `<button type="button" class="btn btn-sm" data-bs-nopic>🗑 Enlever la photo</button>` : ""}</div>
+      <label class="f">Ou le lien d'une photo (site Carrefour ou BOOOM)<input name="url" inputmode="url" placeholder="https://…" value="${UI.extPic(ph) ? UI.esc(ph) : ""}" /></label>
+      <label class="f">Nom en français<input name="fr" maxlength="80" value="${UI.esc(x.fr || "")}" /></label>
+      <label class="f">Nom en hébreu<input name="he" maxlength="80" dir="rtl" value="${UI.esc(x.he || "")}" /></label>
+      <div class="bs-row"><label class="f">Prix min (₪)<input name="lo" inputmode="decimal" value="${pr[0] != null ? UI.esc(String(pr[0]).replace(".", ",")) : ""}" /></label>
+        <label class="f">Prix max (₪)<input name="hi" inputmode="decimal" value="${pr[1] != null ? UI.esc(String(pr[1]).replace(".", ",")) : ""}" /></label></div>
+      <label class="bs-vis"><input type="checkbox" name="vis"${x.hidden ? "" : " checked"} /> <span>Visible pour les clients</span></label>
+      <p class="bs-err hidden"></p>
+      <div class="bs-btns"><button type="submit" class="btn btn-primary btn-block">Enregistrer</button></div>
+      <small class="bs-note">${isCfItem(x) ? "Produit Carrefour : le prix et l'hébreu se remettent à jour au prochain import ; votre nom français, votre photo et « masqué » restent." : "Le livreur l'achète au magasin de la commande, ou au plus proche."}</small>
+    </form>`;
+  };
+  draw();
+  document.body.appendChild(box);
+  const close = () => box.remove();
+  const err = m => { const el = box.querySelector(".bs-err"); el.textContent = m; el.classList.remove("hidden"); };
+  box.addEventListener("click", e => {
+    if (e.target === box || e.target.closest("[data-bs-close]")) return close();
+    if (e.target.closest("[data-bs-nopic]")) { e.preventDefault(); photo = ""; draw(); }
+  });
+  box.addEventListener("change", async e => {
+    if (!e.target.matches("[data-bs-file]") || !e.target.files[0]) return;
+    try { photo = await rayPhotoCrop(e.target.files[0]); draw(); } catch (ex) { err("Photo illisible ou trop lourde."); }
+  });
+  box.addEventListener("submit", async e => {
+    e.preventDefault();
+    const f = e.target, fr = f.fr.value.trim().replace(/\s+/g, " "), he = f.he.value.trim().replace(/\s+/g, " "), url = f.url.value.trim();
+    const num = v => (String(v).trim() === "" ? null : Number(String(v).replace(",", ".").replace(/[^\d.]/g, "")));
+    let lo = num(f.lo.value), hi = num(f.hi.value);
+    if (!fr) return err("Le nom en français ne peut pas être vide.");
+    if (url && !UI.extPic(url)) return err("Ce lien n'est pas une photo du site Carrefour ou BOOOM.");
+    if ((lo != null && !(lo >= 0 && lo <= 5000)) || (hi != null && !(hi >= 0 && hi <= 5000))) return err("Prix invalide.");
+    if (lo == null && hi != null) lo = hi;
+    if (lo != null && (hi == null || hi < lo)) hi = lo;
+    const p = { rayon: r.id, item_id: x.id, name_fr: fr, name_he: he || null, hidden: !f.vis.checked };
+    if (lo != null) { p.price_lo = lo; p.price_hi = hi; }
+    if (url && url !== x.photo) p.photo = url; else if (photo !== undefined) p.photo = photo || null;
+    f.querySelectorAll("button").forEach(b => { b.disabled = true; });
+    try {
+      await Store.adminRayonSave("item", p);
+      Rayons.apply({ items: [p] });
+      close();
+      renderPharma(); renderQuote();
+      toastCart("✅ Enregistré : vos clients le voient tout de suite");
+    } catch (ex) {
+      f.querySelectorAll("button").forEach(b => { b.disabled = false; });
+      err("Pas enregistré (connexion ?). Réessayez.");
+    }
+  });
 }
 // Accueil : les rayons mis en avant (pharmacie, tabac & alcool, boulangerie, makolet), en cartes qui défilent
 // Les changements du patron (produits ajoutés, photos, prix) : le cache local tout de suite, la base ensuite
@@ -1248,6 +1360,13 @@ $("#pharmaBox").addEventListener("input", e => {
   state.phQ = e.target.value;
   renderPharma();
 });
+$("#pharmaBox").addEventListener("click", e => {
+  const be = e.target.closest("[data-ray-edit]"), bt = e.target.closest("[data-ray-boss-toggle]");
+  if (!be && !bt) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  if (be) return rayBossEdit(be.dataset.rayEdit);
+  state.bossEdit = !bossEditOn(); renderPharma();
+}, true);
 $("#pharmaBox").addEventListener("keydown", e => { if (e.target.matches("[data-ph-q]") && e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
 $("#pharmaBox").addEventListener("click", e => {
   const c = e.target.closest("[data-ph-cat]"), plus = e.target.closest("[data-ph-plus]"), minus = e.target.closest("[data-ph-minus]");
@@ -6509,7 +6628,7 @@ UI.markClientApp();
   document.body.appendChild(bar);
 })();
 // Téléphone du patron : mode patron sur la page client (crayon ✏️ sur chaque produit)
-Store.amBoss().then(b => { if (!b) return; state.boss = true; if (state.shop) { renderCatalog(); bossMapLoad(state.shop.code); } }).catch(() => {});
+Store.amBoss().then(b => { if (!b) return; state.boss = true; if (state.shop) { renderCatalog(); bossMapLoad(state.shop.code); } if (rayonOn()) renderPharma(); }).catch(() => {});
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;
 
