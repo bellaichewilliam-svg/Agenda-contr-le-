@@ -4537,7 +4537,11 @@ function initHome() {
     if (hiddenAt && Date.now() - hiddenAt > 30 * 60000) setTimeout(showAppPromo, 900);
   });
   window.addEventListener("pageshow", e => { if (e.persisted) refreshShops(); });
-  if (kindParam && EXAMPLES.some(x => x.id === kindParam && !x.set.to_city)) setTimeout(() => goKind(kindParam), 400);
+  if (listParam.trim()) setTimeout(() => {
+    form.shopping_list.value = ""; startFreeOrder(listParam);
+    setTimeout(() => form.shopping_list.scrollIntoView({ block: "center", behavior: "smooth" }), 700);
+  }, 400);
+  else if (kindParam && EXAMPLES.some(x => x.id === kindParam && !x.set.to_city)) setTimeout(() => goKind(kindParam), 400);
   else setTimeout(showAppPromo, 1500);
   // Sur téléphone, la bulle « Nous écrire » remonte au-dessus du bouton Commander
   if ("IntersectionObserver" in window) new IntersectionObserver(es => document.body.classList.toggle("in-home", es[0].isIntersecting)).observe($("#homeSheet"));
@@ -4547,7 +4551,7 @@ function initHome() {
 // ouverture, à tour de rôle. Jamais par-dessus une commande en cours, une page de commerce ou une autre fenêtre.
 const LS_PROMO = "livraison.promo.v1";
 async function showAppPromo() {
-  if (shopCode || kindParam || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length
+  if (shopCode || kindParam || listParam || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length
     || document.querySelector(".promo-modal") || !$("#noticeModal").classList.contains("hidden")) return;
   let list;
   try { list = ((await Store.appPromos()) || []).filter(p => p.image_fr); } catch (e) { return; }
@@ -5823,6 +5827,9 @@ const shopCode = new URLSearchParams(location.search).get("c");
 const kindParam = new URLSearchParams(location.search).get("k");
 // Lien « Ajouter un autre commerce » du suivi : la commande à laquelle on ajoute (livraison à 10 ₪)
 const addonToken = new URLSearchParams(location.search).get("addon");
+// Lien « commande prête » envoyé par le patron sur WhatsApp (?liste=…) : « J'achète pour vous » avec la liste déjà écrite,
+// le client met son adresse et valide (la commande passe par l'appli : suivi, livreurs, paiement comme d'habitude)
+const listParam = (new URLSearchParams(location.search).get("liste") || "").slice(0, 1500);
 // Adresse nettoyée (paramètres laissés par une ancienne version ou un rechargement forcé)
 if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 I18N.apply();

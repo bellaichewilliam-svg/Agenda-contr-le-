@@ -808,6 +808,75 @@ function openedCard(list) {
         <small>${UI.esc(REACH_LABEL[o.reached] || "")}${o.block ? " · ⛔ " + UI.esc(blk(o.block)) : ""}${o.shops ? "<br>🏪 A regardé : " + UI.esc(String(o.shops).split(" · HOP! ")[0]) : ""}<br>${o.device === "mobile" ? "📱" : o.device === "tablette" ? "📟" : "💻"} ${o.lang === "he" ? "🇮🇱 hébreu" : "🇫🇷 français"}${o.app ? " · appli installée" : ""} · ${o.client_orders ? `déjà client (${o.client_orders} commande${o.client_orders > 1 ? "s" : ""})` : o.returning ? "déjà venu sur HOP!" : "1ʳᵉ visite"} · parti vers ${hh(o.last_at)}</small></div>`).join("")}</div>`
       : `<p class="muted small">Aucune sur cette période.</p>`}</div>`;
 }
+// --- ✅ Réponses WhatsApp (patron, 08/11) ---------------------------------------------------------------
+// Le client écrit sur WhatsApp (bouton « Envoyez votre liste ») : réponses toutes faites à copier, puis le lien
+// « commande prête » (?liste=…) : le client met son adresse et valide dans l'appli → suivi, livreurs, paiement normaux.
+const waKit = { lang: "fr", list: "", phone: "" };
+function waKitTexts() {
+  const base = UI.appUrl("");
+  const link = base + "?" + (waKit.list.trim() ? "liste=" + encodeURIComponent(waKit.list.trim().slice(0, 1500)) + "&" : "") + "src=wa";
+  const app = base + "?src=partage";
+  const FR = [
+    ["👋 Bonjour", "Bonjour 👋 Merci pour votre message, ici HOP! 🛵\nDites-moi ce que vous voulez : une photo de votre liste ou un vocal, c'est parfait. Et le magasin si vous en avez un en tête."],
+    ["🏪 Quel magasin ?", "Vous avez un magasin préféré (supermarché, pharmacie, boulangerie…) ? Sinon on prend le plus proche de chez vous."],
+    ["🕐 Pour quand ?", "Vous voulez être livré maintenant, ou plus tard ? Vous pouvez aussi choisir le jour et l'heure."],
+    ["💰 Le prix", "La livraison, c'est dès 25 ₪ en ville (30 ₪ pour la zone industrielle et certains quartiers), plus un petit supplément quand on fait les courses pour vous. Vos articles sont au prix exact du ticket de caisse : le livreur vous envoie la photo. Le prix exact s'affiche dans l'appli avant de valider."],
+    ["💳 Paiement", "Vous payez directement au livreur : Bit, PayBox ou espèces. Aucune carte bancaire à donner."],
+    ["✅ Commande prête (lien)", "Votre commande est prête ✅\nIl ne vous reste qu'à mettre votre adresse et à valider, ça prend 30 secondes :\n" + link + "\nEnsuite, vous suivez votre livreur en direct dans l'appli 🛵", true],
+    ["🌙 Fermé pour le moment", "On est fermé pour le moment, mais vous pouvez commander dès maintenant : on vous livre dès l'ouverture 🌙\n" + link, true],
+    ["🔔 Relance", "Petit rappel 🙂 Votre commande vous attend ici, il manque juste votre adresse :\n" + link, true],
+    ["🙏 Merci", "Merci pour votre commande 🙏 Si vous avez aimé, partagez HOP! à vos proches : " + app]
+  ];
+  const HE = [
+    ["👋 שלום", "שלום 👋 תודה על ההודעה, כאן HOP! 🛵\nכתבו לנו מה אתם צריכים: תמונה של הרשימה או הודעה קולית, מעולה. ואת החנות, אם יש לכם העדפה."],
+    ["🏪 איזו חנות?", "יש לכם חנות מועדפת (סופר, בית מרקחת, מאפייה…)? אם לא, ניקח מהקרובה אליכם."],
+    ["🕐 מתי?", "רוצים את המשלוח עכשיו או מאוחר יותר? אפשר גם לבחור יום ושעה."],
+    ["💰 המחיר", "המשלוח החל מ-25 ₪ בעיר (30 ₪ לאזור התעשייה ולחלק מהשכונות), ועוד תוספת קטנה כשאנחנו עושים בשבילכם את הקניות. המוצרים במחיר המדויק של הקבלה: השליח שולח לכם תמונה. המחיר המדויק מופיע באפליקציה לפני האישור."],
+    ["💳 תשלום", "משלמים ישירות לשליח: ביט, פייבוקס או מזומן. לא צריך לתת כרטיס אשראי."],
+    ["✅ ההזמנה מוכנה (קישור)", "ההזמנה שלכם מוכנה ✅\nנשאר רק להוסיף כתובת ולאשר, זה לוקח 30 שניות:\n" + link + "\nאחר כך עוקבים אחרי השליח בזמן אמת באפליקציה 🛵", true],
+    ["🌙 סגור כרגע", "אנחנו סגורים כרגע, אבל אפשר כבר להזמין: נביא לכם ברגע שנפתח 🌙\n" + link, true],
+    ["🔔 תזכורת", "תזכורת קטנה 🙂 ההזמנה שלכם מחכה כאן, חסרה רק הכתובת:\n" + link, true],
+    ["🙏 תודה", "תודה על ההזמנה 🙏 אם נהניתם, שתפו את HOP! עם החברים: " + app]
+  ];
+  return waKit.lang === "he" ? HE : FR;
+}
+function waKitList() {
+  return waKitTexts().map(([title, text, withLink], i) => `<div class="wk-item${withLink ? " wk-link" : ""}"><b>${UI.esc(title)}</b>
+    <p dir="${waKit.lang === "he" ? "rtl" : "ltr"}">${UI.esc(text)}</p>
+    <div class="wk-btns"><button type="button" class="btn btn-sm" data-wk-copy="${i}">📋 Copier</button><a class="btn btn-sm wk-wa" data-wk-wa="${i}" href="#" target="_blank" rel="noopener">WhatsApp ›</a></div></div>`).join("");
+}
+function renderWaKit(view) {
+  view.innerHTML = `<div class="card wa-kit" id="waKit">
+    <h3>✅ Réponses WhatsApp toutes faites</h3>
+    <p class="muted small">Un client vous écrit (bouton « Envoyez votre liste sur WhatsApp ») : copiez une réponse et collez-la dans la conversation.
+      À la fin, envoyez <b>« Commande prête »</b> : le lien ouvre HOP! avec sa liste déjà écrite. Le client met <b>son adresse et son téléphone</b> et valide :
+      la commande arrive dans « À accepter » comme toutes les autres (suivi en direct, livreurs, paiement, reçu). Si le client n'y arrive pas,
+      ouvrez vous-même le lien et remplissez pour lui.</p>
+    <div class="wk-lang"><button type="button" class="btn btn-sm${waKit.lang === "fr" ? " on" : ""}" data-wk-lang="fr">Français</button><button type="button" class="btn btn-sm${waKit.lang === "he" ? " on" : ""}" data-wk-lang="he">עברית</button></div>
+    <label class="f full"><span>📝 La liste du client (collez ou écrivez-la : elle sera déjà remplie dans sa commande)</span>
+      <textarea id="wkList" rows="4" placeholder="Ex. 2 lait, 6 œufs, 1 pain, Acamol">${UI.esc(waKit.list)}</textarea></label>
+    <label class="f"><span>📱 Numéro du client (facultatif, pour le bouton WhatsApp)</span><input id="wkPhone" type="tel" inputmode="tel" placeholder="05X-XXX-XXXX" value="${UI.esc(waKit.phone)}" /></label>
+    <div id="wkItems" class="wk-items">${waKitList()}</div>
+  </div>`;
+}
+document.addEventListener("input", e => {
+  if (e.target.id === "wkList") { waKit.list = e.target.value; $("#wkItems").innerHTML = waKitList(); }
+  else if (e.target.id === "wkPhone") waKit.phone = e.target.value;
+});
+document.addEventListener("click", async e => {
+  const lg = e.target.closest("[data-wk-lang]");
+  if (lg) { waKit.lang = lg.dataset.wkLang; const v = $("#view"); renderWaKit(v); return; }
+  const cp = e.target.closest("[data-wk-copy]");
+  if (cp) {
+    const txt = waKitTexts()[Number(cp.dataset.wkCopy)][1];
+    try { await navigator.clipboard.writeText(txt); cp.textContent = "✓ Copié"; } catch (err) { prompt("Copiez ce texte :", txt); }
+    setTimeout(() => { cp.textContent = "📋 Copier"; }, 1500);
+    return;
+  }
+  const wa = e.target.closest("[data-wk-wa]");
+  if (wa) wa.href = UI.waPersonal(waKit.phone.replace(/\D/g, ""), waKitTexts()[Number(wa.dataset.wkWa)][1]);
+}, true);
+
 function renderVisits(view) {
   loadVisits();
   const d = visits.data;
@@ -1006,6 +1075,10 @@ function render() {
     const keep = $("#dirCard");
     renderShops(view);
     if (keep) $("#dirCard").replaceWith(keep); else initDirCard();
+  } else if (tab === "wakit") {
+    // (les cases restent remplies quand l'écran se rafraîchit tout seul)
+    const keep = $("#waKit");
+    if (keep) view.replaceChildren(keep); else renderWaKit(view);
   } else if (tab === "clients") {
     renderClients(view);
   } else if (tab === "paniers") {

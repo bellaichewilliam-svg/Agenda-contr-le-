@@ -5163,3 +5163,14 @@ html.d2.d2-day .wa-list { background: #fff; color: #0F1F3D; box-shadow: 0 4px 14
 .vit-wa { display: none; }
 html.vit #accueil:not(.course) .vit-wa { display: flex; }
 form .wa-list { margin-top: 4px; }
+/* Panneau patron : ✅ Réponses WhatsApp */
+.wa-kit { display: grid; gap: 12px; }
+.wa-kit h3 { margin: 0; }
+.wk-lang { display: flex; gap: 8px; }
+.wk-lang .btn.on { background: #FF6A13; color: #fff; border-color: #FF6A13; }
+.wk-items { display: grid; gap: 10px; }
+.wk-item { display: grid; gap: 6px; padding: 12px; border-radius: 14px; background: rgba(127,127,127,.08); box-shadow: inset 0 0 0 1px rgba(127,127,127,.18); }
+.wk-item.wk-link { box-shadow: inset 0 0 0 1.5px rgba(37,211,102,.55); }
+.wk-item p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; line-height: 1.4; }
+.wk-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.wk-btns .wk-wa { background: #25D366; color: #fff; border-color: #25D366; text-decoration: none; }
