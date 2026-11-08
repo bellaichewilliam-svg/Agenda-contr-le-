@@ -3790,9 +3790,22 @@ function renderCart() {
       [{ icon: "🗑", label: t("swDel"), attrs: `data-cs-del="${id}"`, cls: "sw-red" }, { icon: "＋", label: t("swDup"), attrs: `data-cs-plus="${id}"` },
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
   }).join("") + `<p class="sw-hint">${UI.esc(t("swHint"))}</p>`;
-  $("#cartSum").textContent = money(cartTotal());
   const rest = form.shop_order.value.trim(), ex = (state.extras || []).filter(Boolean);
   const exOn = ex.length && rest.includes(t("mgAlso"));
+  // Total de TOUS les articles de la commande : ceux du magasin + ceux que le livreur prend au plus près (≈)
+  const exSum = exOn ? ex.reduce((a, x) => a + (Number(x.p) || 0), 0) : 0;
+  // … et ceux des autres magasins de la même commande (paniers gardés)
+  let others = [];
+  try { others = multiList().filter(m => Number(m.total) > 0); } catch (e) { others = []; }
+  const othSum = others.reduce((a, m) => a + Number(m.total), 0), all = Math.round((cartTotal() + exSum + othSum) * 10) / 10;
+  $("#cartSum").textContent = exSum || othSum ? "≈ " + money(all) : money(cartTotal());
+  let sub = $("#cartSumSub");
+  if (!sub) { sub = document.createElement("p"); sub.id = "cartSumSub"; sub.className = "cs-sum-sub"; document.querySelector("#cartSheet .cs-total").after(sub); }
+  const parts = [t("csSumAt", { a: money(cartTotal()), name: shopShortName() })]
+    .concat(others.map(m => t("csSumAt", { a: "≈ " + money(Math.round(Number(m.total) * 10) / 10), name: m.short || m.name })))
+    .concat(exSum ? [t("csSumNear", { b: money(Math.round(exSum)) })] : []);
+  sub.textContent = exSum || othSum ? parts.join(" + ") + " · " + t("csSumTicket") : "";
+  sub.classList.toggle("hidden", !(exSum || othSum));
   $("#cartRest").classList.toggle("hidden", !rest);
   $("#cartRest").innerHTML = exOn ? `<b class="cr-t">🛵 ${UI.esc(t("csRestT", { name: shopShortName() }))}</b>`
       + ex.map(x => `<div class="cr-row"><span class="cr-pic">${x.ph ? `<img src="${UI.esc(x.ph)}" alt="" loading="lazy" />` : UI.esc(x.e || "🛒")}</span><span class="cr-n">${x.q > 1 ? x.q + " × " : ""}${UI.esc(x.n)}</span><em>${x.p ? "≈ " + UI.esc(money(x.p)) : ""}</em></div>`).join("")
@@ -3835,7 +3848,9 @@ function cartExtras() {
   let cl = "";
   if (closed) {
     const when = shut ? openLabel(st) : "";
-    cl = `<div class="cs-closed"><b>${escHop(t("ccClosed", { name: shut ? shopShortName() : "HOP!" }))}</b>
+    // HOP! fermé (pas le magasin) : le même message que partout (on commande maintenant, livré dès l'ouverture)
+    if (!shut) cl = `<div class="cs-closed cs-open-later"><b>${UI.esc(t("closedNow"))}</b></div>`;
+    else cl = `<div class="cs-closed"><b>${escHop(t("ccClosed", { name: shopShortName() }))}</b>
       ${state.shopSched && val("urgency") === "programmee" ? `<small>${UI.esc(t("ccSched", { when: UI.fmtDateTime(state.shopSched) }))}</small>` : when ? `<small>${UI.esc(when)}</small>` : ""}
       ${state.openNotice ? `<span class="cs-notified">${UI.esc(t("ccNotified"))}</span>` : `<button type="button" class="btn btn-sm cs-notify" data-open-notice>${UI.esc(t("ccNotify"))}</button>`}</div>`;
   }
