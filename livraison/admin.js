@@ -852,6 +852,9 @@ function renderWaKit(view) {
       À la fin, envoyez <b>« Commande prête »</b> : le lien ouvre HOP! avec sa liste déjà écrite. Le client met <b>son adresse et son téléphone</b> et valide :
       la commande arrive dans « À accepter » comme toutes les autres (suivi en direct, livreurs, paiement, reçu). Si le client n'y arrive pas,
       ouvrez vous-même le lien et remplissez pour lui.</p>
+    <a class="btn btn-primary wk-enter" data-wk-enter href="#" target="_blank" rel="noopener">➕ Saisir moi-même la commande du client</a>
+    <p class="muted small">Ouvre HOP! avec sa liste : vous mettez son adresse (maison / appartement, étage, code), son nom et son téléphone, vous validez,
+      puis « 📲 Envoyer le suivi au client ». La commande arrive dans « À accepter » comme les autres : livreurs, liste à cocher, suivi en direct.</p>
     <div class="wk-lang"><button type="button" class="btn btn-sm${waKit.lang === "fr" ? " on" : ""}" data-wk-lang="fr">Français</button><button type="button" class="btn btn-sm${waKit.lang === "he" ? " on" : ""}" data-wk-lang="he">עברית</button></div>
     <label class="f full"><span>📝 La liste du client (collez ou écrivez-la : elle sera déjà remplie dans sa commande)</span>
       <textarea id="wkList" rows="4" placeholder="Ex. 2 lait, 6 œufs, 1 pain, Acamol">${UI.esc(waKit.list)}</textarea></label>
@@ -873,6 +876,8 @@ document.addEventListener("click", async e => {
     setTimeout(() => { cp.textContent = "📋 Copier"; }, 1500);
     return;
   }
+  const en = e.target.closest("[data-wk-enter]");
+  if (en) { const l = waKit.list.trim(); en.href = UI.appUrl("") + "?pour=1" + (l ? "&liste=" + encodeURIComponent(l.slice(0, 1500)) : ""); return; }
   const wa = e.target.closest("[data-wk-wa]");
   if (wa) wa.href = UI.waPersonal(waKit.phone.replace(/\D/g, ""), waKitTexts()[Number(wa.dataset.wkWa)][1]);
 }, true);

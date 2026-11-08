@@ -778,6 +778,39 @@ function whenOf(o, long) {
   if (o.urgency === "express") return long ? "⚡ EXPRESS : priorité, allez-y directement, sans autre course" : "⚡ Express : priorité, allez-y directement, sans autre course";
   return "Dès que possible";
 }
+// « J'achète pour vous » (liste écrite par le client ou saisie par le patron) : une case à cocher par article,
+// gardée sur le téléphone du livreur (patron, 08/11 : « la commande à cocher »)
+function freeListItems(o) {
+  const txt = String(o.shopping_list || "").trim();
+  if (!txt) return [];
+  const lines = txt.split(/\n+/).map(x => x.trim()).filter(Boolean);
+  return (lines.length > 1 ? lines : txt.split(/[,;]+/).map(x => x.trim()).filter(Boolean)).slice(0, 40);
+}
+const FL_KEY = id => "hop.flcheck." + id;
+function freeListBox(o) {
+  const items = freeListItems(o);
+  if (items.length < 2) return "";
+  let done = {};
+  try { done = JSON.parse(localStorage.getItem(FL_KEY(o.id)) || "{}"); } catch (e) { /* ignore */ }
+  const n = items.filter((x, i) => done[i]).length;
+  return `<div class="fl-box"><div class="fl-head">🛒 <b>Liste à cocher</b><span>${n} / ${items.length}</span></div>
+    <ul>${items.map((x, i) => `<li><label class="${done[i] ? "on" : ""}"><input type="checkbox" data-fl="${UI.esc(o.id)}:${i}"${done[i] ? " checked" : ""} /> <span>${UI.esc(x)}</span></label></li>`).join("")}</ul>
+    ${n === items.length ? `<p class="fl-done">✅ Tout est pris</p>` : ""}</div>`;
+}
+document.addEventListener("change", e => {
+  const c = e.target.closest && e.target.closest("[data-fl]");
+  if (!c) return;
+  const [id, i] = c.dataset.fl.split(":");
+  let done = {};
+  try { done = JSON.parse(localStorage.getItem(FL_KEY(id)) || "{}"); } catch (err) { /* ignore */ }
+  if (c.checked) done[i] = 1; else delete done[i];
+  try { localStorage.setItem(FL_KEY(id), JSON.stringify(done)); } catch (err) { /* ignore */ }
+  const box = c.closest(".fl-box"), all = box.querySelectorAll("[data-fl]"), n = [...all].filter(x => x.checked).length;
+  c.closest("label").classList.toggle("on", c.checked);
+  box.querySelector(".fl-head span").textContent = `${n} / ${all.length}`;
+  const fd = box.querySelector(".fl-done");
+  if (n === all.length && !fd) box.insertAdjacentHTML("beforeend", `<p class="fl-done">✅ Tout est pris</p>`); else if (n < all.length && fd) fd.remove();
+});
 function card(o, kind) {
   const when = whenOf(o, true);
   // Navigation avec l'application choisie dans les réglages
@@ -804,7 +837,7 @@ function card(o, kind) {
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
   if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
   if (o.hop_buy) extra += hopBuyLine(o, kind);
-  else if (o.service === "achat") extra += `<div class="small">🛒 ${UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
+  else if (o.service === "achat") extra += (kind === "mine" ? freeListBox(o) : "") + `<div class="small">🛒 ${kind === "mine" && freeListItems(o).length >= 2 ? "" : UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
     ? `💵 <b>Espèces : vous payez le magasin, ${UI.money(o.goods_budget)} au plus</b> (vous avez annoncé avoir les espèces). 🧾 Photo du ticket, puis le client vous paie la course + le ticket exact à la livraison.`
     : o.goods_after ? `🧾 <b>Vous avancez les articles : ${UI.money(o.goods_budget)} au plus.</b> Le client paie d'abord la course (« 📱 Payé par Bit » ✅), puis vous achetez. Plus cher que ${UI.money(o.goods_budget)} ? Appelez-le avant de payer. 🧾 Photo du ticket : le client vous envoie le montant exact par Bit, touchez « Ticket reçu », puis livrez.`
     : o.goods_prepay ? `💳 <b>Articles payés d'avance : ${UI.money(o.goods_budget)} au plus</b>, avec la course. N'achetez qu'après « 📱 Payé par Bit » ✅ et payez le magasin avec cet argent. Plus cher ? Le client vous envoie d'abord le complément. Puis 🧾 photo du ticket et la différence rendue par Bit avant « Livré ».`
@@ -1078,6 +1111,7 @@ function hopBuyLine(o, kind) {
     + `${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}`
     + `<br>${o.payment_method === "cash" ? "💵 Vous avancez les articles en caisse ; à la livraison, le client paie en espèces la livraison + le ticket"
       : "📱 Le client paie la livraison par Bit avant les courses ; vous avancez les articles, puis il vous paie le ticket de caisse (photo) par Bit"}`
+    + `${o.shop_order && !o.shop_status ? `<br>📝 <b>${UI.esc(o.shop_order)}</b>` : ""}`
     + `${kind === "pool" ? `<br>📦 Place dans le top case : ${Number(o.buy_places) || 1} / ${(CONFIG.pricing.purchaseItems || {}).topcase || 30}` : ""}</div>`;
 }
 // Liste à cocher, une par client (Sac 1, Sac 2, Sac 3 : chacun sa couleur) ; « Manquant » retire l'article

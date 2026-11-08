@@ -9,6 +9,9 @@
 const DICT = {
 fr: {
   langSwitch: "עברית",
+  forClientNote: "👤 Commande pour un client (WhatsApp) : mettez SON adresse (maison / appartement, étage, code), SON nom et SON téléphone. À la fin : « Envoyer le suivi au client ».", forClientSend: "📲 Envoyer le suivi au client (WhatsApp)",
+  listReady: "✅ Votre liste est prête : vérifiez-la, puis « Continuer »",
+  mgAlso: "À prendre aussi :",
   waListT: "Envoyez votre liste sur WhatsApp", waListS: "Une photo ou un vocal : on s'occupe de tout", waListText: "Bonjour HOP! 👋 Voici ce que je veux me faire livrer :\n\n\nMon adresse : ",
   shareApp: "Partager HOP!", shareAppS: "Envoyez-la à vos amis : repas, courses, pharmacie, colis… livrés",
   shareAppText: "HOP! : on vous livre tout à Netanya (repas, courses, pharmacie, colis…), dès 25 ₪ 🛵",
@@ -846,6 +849,9 @@ fr: {
 
 he: {
   langSwitch: "Français",
+  forClientNote: "👤 הזמנה בשביל לקוח (וואטסאפ): הכניסו את הכתובת שלו (בית / דירה, קומה, קוד), השם והטלפון שלו. בסוף: «לשלוח ללקוח את המעקב».", forClientSend: "📲 לשלוח ללקוח את המעקב (וואטסאפ)",
+  listReady: "✅ הרשימה שלכם מוכנה: בדקו אותה, ואז «להמשיך»",
+  mgAlso: "לקנות גם:",
   waListT: "שלחו לנו את הרשימה בוואטסאפ", waListS: "תמונה או הודעה קולית: אנחנו דואגים להכול", waListText: "שלום HOP! 👋 זה מה שאני רוצה שיביאו לי:\n\n\nהכתובת שלי: ",
   shareApp: "לשתף את HOP!", shareAppS: "שלחו לחברים: אוכל, קניות, פארם, חבילות… עד הבית",
   shareAppText: "HOP!: משלוחים של הכול בנתניה (אוכל, קניות, פארם, חבילות…), החל מ-25 ₪ 🛵",
