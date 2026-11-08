@@ -676,6 +676,7 @@ const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
   // Pub vidéo (video/pubs/monter.py)
+  { id: "kemia-envol", aud: "client", title: "🥗 Nouveau · Vendredi, les invités arrivent… la kemia est déjà prête (10 s)" },
   { id: "hoppy-bureau", aud: "client", title: "🦘 Nouveau · La pause, version Hoppy : snacks et boissons fraîches au bureau (10 s)" },
   { id: "liste-magique", aud: "client", title: "✨ Nouveau · Écrivez votre liste, on fait le reste (10 s)" },
   { id: "everest", aud: "client", title: "🏔️ Nouveau · L'Everest du 4ᵉ étage (10 s)" },
