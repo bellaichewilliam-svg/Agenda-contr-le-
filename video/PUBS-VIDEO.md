@@ -1,4 +1,4 @@
-# HOP! : 21 vidéos pensées pour devenir virales
+# HOP! : 25 vidéos pensées pour devenir virales
 
 > Version 4 (08/11/2026). Le patron veut des **vidéos virales**, pas des pubs. On ne garde que les idées qui font **rire, réagir ou partager**, et on écrit chaque prompt pour ça.
 > Dans le kit, seule « la liste » (liste-hoppy) reste, à la rigueur ; les sushis sont retirés.
@@ -301,6 +301,66 @@ Rules: Hoppy never jumps on desks or on any food, no ambiguous hand gestures, no
 ```
 Textes : « LA PAUSE, VERSION HOPPY / ההפסקה, בסגנון הופי » → « SNACKS ET BOISSONS FRAÎCHES AU BUREAU. / חטיפים ושתייה קרה עד המשרד. »
 Légende : « On passe à ton bureau quand ? 🦘 » / « מתי לבוא למשרד שלכם? 🦘 »
+
+---
+
+## 🫒 La kemia du vendredi
+
+> Thon à l'huile et harissa, salade méchouia, carottes au cumin, olives, crackers, charcuterie casher… La table d'avant Chabbat, que toute la communauté reconnaît.
+> **Casher dans chaque prompt** : le poisson (thon) et la viande (charcuterie) sur des assiettes séparées, aucun produit laitier, les bougies de Chabbat éteintes.
+> **Pas de boukha ni d'alcool à l'image** : la pub pour l'alcool est très encadrée en Israël. On peut la livrer, mais on n'en fait pas la vedette.
+
+### 22. kemia-envol : la kemia qui se pose toute seule ✨
+**Pourquoi ça marche :** l'image « satisfaisante » d'une table qui se remplit toute seule, et toute la communauté se reconnaît dans le vendredi.
+```
+Vertical 9:16, 8 seconds, photorealistic, warm golden Friday afternoon light, overhead-then-tilt camera, magical stop-motion feeling.
+0-2s: A beautiful empty table with a white tablecloth in a Netanya apartment, silver Shabbat candlesticks with unlit candles at the back; a navy HOP! paper bag (white "HOP", orange "!") sits on the corner.
+2-5s: One after another, small colorful bowls fly out of the HOP! bag and land on the table with a satisfying clink: tuna in olive oil with harissa, salade méchouia, carrots with cumin, green and black olives, red harissa, a plate of crackers; on a separate wooden board, kosher salami and pastrami slices.
+5-8s: The table is full and glowing; the front door opens and a family arrives, stopping in amazement; a grandfather already grabs a cracker.
+Audio: soft clinks of ceramic bowls, a joyful oud and darbuka melody, the door opening, happy surprised laughter. No dialogue, no words.
+Rules: fish and meat on separate plates, no dairy, candles unlit, no text, no brand logos except HOP!, keep the top quarter free.
+```
+Textes : « VENDREDI, LES INVITÉS ARRIVENT… / שישי, האורחים מגיעים… » → « LA KEMIA EST DÉJÀ PRÊTE. / הסלטים כבר על השולחן. »
+Légende : « Ta kemia préférée ? 👇 » / « מה הסלט האהוב עליכם? 👇 »
+
+### 23. tonton-verdict : le verdict de tonton 🧔
+**Pourquoi ça marche :** l'oncle qui goûte comme un juge, et toute la table suspendue à son avis. Chaque famille a le sien, alors tout le monde le tague.
+```
+Vertical 9:16, 8 seconds, photorealistic, warm family comedy, Friday afternoon light.
+0-2s: Around a full kemia table, a whole family (grandmother, cousins, kids) freezes in silence, all eyes on an elderly uncle with a mustache who slowly lifts a cracker topped with tuna and harissa like a precious jewel.
+2-5s: Extreme close-up on his face as he chews very slowly, eyes closed, eyebrows moving; a cousin bites her nails, a kid holds his breath.
+5-8s: He opens his eyes and gives one slow, solemn nod of approval; the whole family explodes in cheers and hugs; in the background, a navy HOP! paper bag on the kitchen counter.
+Audio: dramatic suspense drumroll, crunchy cracker sound, silence, then a joyful darbuka burst and cheers. No dialogue, no words.
+Rules: fish and meat on separate plates, no dairy, no ambiguous hand gestures, no text, no brand logos except HOP!, keep the top quarter free.
+```
+Textes : « LE VERDICT DE TONTON… / פסק הדין של הדוד… » → « VALIDÉ ! / מאושר! »
+Légende : « Tag le tonton qui juge la kemia 😂 » / « תייגו את הדוד שבודק את הסלטים 😂 »
+
+### 24. harissa-feu : trop de harissa 🔥
+**Pourquoi ça marche :** le gag de celui qui a mis trop de harissa, avec une fumée de dessin animé qui lui sort des oreilles. C'est drôle, et tout le monde a ce cousin.
+```
+Vertical 9:16, 8 seconds, photorealistic with cartoon visual effects, Friday kemia table.
+0-2s: A confident young man scoops a huge amount of red harissa on a cracker with tuna and pops it into his mouth, smiling to the camera.
+2-5s: His face slowly turns bright red, cartoon steam shoots out of his ears, his eyes water, a tiny cartoon fire appears above his head; the family laughs.
+5-8s: A hand slides an ice-cold plain bottle of water and a plain soda can (no logos) from a navy HOP! cooler bag; he drinks in relief, frost forming around his mouth.
+Audio: a crunchy bite, a rising whistle like a kettle, cartoon steam sounds, family laughter, a cold icy splash. No dialogue, no words.
+Rules: no alcohol, fish and meat on separate plates, no dairy, no text, no brand logos except HOP!, keep the top quarter free.
+```
+Textes : « TROP DE HARISSA ? / חריף מדי? » → « ON LIVRE AUSSI LA BOISSON FRAÎCHE. / יש לנו גם שתייה קרה. »
+Légende : « Toi, tu mets combien de harissa ? 🌶️ » / « כמה חריף אתם שמים? 🌶️ »
+
+### 25. soleil-kemia : vendredi, le soleil baisse 🌅
+**Pourquoi ça marche :** la course contre le coucher du soleil avant Chabbat, filmée comme un film épique, avec un vrai suspense qui se résout au moment où le soleil touche la mer.
+```
+Vertical 9:16, 8 seconds, photorealistic epic cinematic style, golden hour over the Netanya cliffs and the sea.
+0-2s: The sun sinks toward the sea; a family in a Netanya apartment looks anxiously out of the window at an almost empty Shabbat table (only the unlit candles and the challah cover).
+2-5s: A HOP! delivery rider on a scooter with a navy HOP! top case races along the cliff road in the golden light, the sun touching the horizon behind him, drone shot.
+5-8s: The doorbell; the family opens the door and the rider hands over two navy HOP! bags full of kemia salads, crackers and challah; relief and smiles as the last ray of sun shines through the window.
+Audio: a ticking clock under epic orchestral strings, scooter engine, a doorbell, warm relieved music. No dialogue, no words.
+Rules: candles unlit, no text, no brand logos except HOP!, keep the top quarter free.
+```
+Textes : « VENDREDI, LE SOLEIL BAISSE… / שישי, השמש יורדת… » → « LA KEMIA ARRIVE AVANT. / הסלטים מגיעים לפני. »
+Légende : « Chez toi, la kemia c'est quoi ? 👇 » / « מה חייב להיות על השולחן בשישי? 👇 »
 
 ---
 

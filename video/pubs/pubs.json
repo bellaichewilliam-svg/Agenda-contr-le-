@@ -783,5 +783,75 @@
     },
     "titre": "🦘 Nouveau · La pause, version Hoppy (10 s)",
     "aud": "client"
+  },
+  "kemia-envol": {
+    "hook": {
+      "fr": "VENDREDI, LES INVITÉS ARRIVENT…",
+      "he": "שישי, האורחים מגיעים…"
+    },
+    "punch": {
+      "fr": [
+        "LA KEMIA EST",
+        "DÉJÀ PRÊTE."
+      ],
+      "he": [
+        "הסלטים כבר",
+        "על השולחן."
+      ]
+    },
+    "titre": "🫒 Nouveau · Vendredi, la kemia est déjà prête (10 s)",
+    "aud": "client"
+  },
+  "tonton-verdict": {
+    "hook": {
+      "fr": "LE VERDICT DE TONTON…",
+      "he": "פסק הדין של הדוד…"
+    },
+    "punch": {
+      "fr": [
+        "VALIDÉ !"
+      ],
+      "he": [
+        "מאושר!"
+      ]
+    },
+    "titre": "🧔 Nouveau · Le verdict de tonton (10 s)",
+    "aud": "client"
+  },
+  "harissa-feu": {
+    "hook": {
+      "fr": "TROP DE HARISSA ?",
+      "he": "חריף מדי?"
+    },
+    "punch": {
+      "fr": [
+        "ON LIVRE AUSSI",
+        "LA BOISSON FRAÎCHE."
+      ],
+      "he": [
+        "יש לנו גם",
+        "שתייה קרה."
+      ]
+    },
+    "titre": "🌶️ Nouveau · Trop de harissa ? (10 s)",
+    "aud": "client"
+  },
+  "soleil-kemia": {
+    "hook": {
+      "fr": "VENDREDI, LE SOLEIL BAISSE…",
+      "he": "שישי, השמש יורדת…"
+    },
+    "punch": {
+      "fr": [
+        "LA KEMIA",
+        "ARRIVE AVANT."
+      ],
+      "he": [
+        "הסלטים",
+        "מגיעים לפני."
+      ]
+    },
+    "titre": "🌅 Nouveau · Vendredi, la kemia arrive avant (10 s)",
+    "aud": "client"
   }
 }
