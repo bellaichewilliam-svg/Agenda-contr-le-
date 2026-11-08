@@ -49,8 +49,20 @@ def measure(txt, f, rtl):
     return ImageDraw.Draw(Image.new("RGBA", (1, 1))).textbbox((0, 0), txt, font=f, **kw)
 
 
-def text_sprite(txt, size, color, wght=900, maxw=980, shadow=True, stroke=None):
-    """Texte (FR ou HE) avec ombre douce ; la taille baisse toute seule si la ligne est trop longue."""
+def text_sprite(txt, size, color, wght=900, maxw=980, shadow=True, stroke=None, wrap=True):
+    """Texte (FR ou HE) avec ombre douce. Trop long : d'abord sur 2 lignes équilibrées, puis la taille baisse."""
+    if wrap and " " in txt.strip():
+        f0 = font(size, wght); r0 = is_he(txt)
+        w0 = lambda t: (lambda b: b[2] - b[0])(measure(fix_hop(t), f0, r0))
+        if w0(txt) > maxw:
+            words = txt.split()
+            best = min(range(1, len(words)), key=lambda k: max(w0(" ".join(words[:k])), w0(" ".join(words[k:]))))
+            a = text_sprite(" ".join(words[:best]), size, color, wght, maxw, shadow, stroke, wrap=False)
+            b = text_sprite(" ".join(words[best:]), size, color, wght, maxw, shadow, stroke, wrap=False)
+            gap = -int(size * 0.42)
+            im = Image.new("RGBA", (max(a.width, b.width), a.height + b.height + gap), (0, 0, 0, 0))
+            im.alpha_composite(a, ((im.width - a.width) // 2, 0)); im.alpha_composite(b, ((im.width - b.width) // 2, a.height + gap))
+            return im
     txt = fix_hop(txt); rtl = is_he(txt)
     kw = dict(direction="rtl", language="he") if rtl else {}
     while True:
@@ -210,12 +222,13 @@ def render(pid, cfg, src, lang, xoff, outdir, dest):
     S = {}
     S["logo_s"] = logo(64, 56, 26, (255, 255, 255, 60))
     S["hook"] = text_sprite(cfg["hook"][lang], 132 if lang == "fr" else 140, WHITE)
-    S["hook2"] = text_sprite(cfg["hook"][other], 60, SKY, wght=700)
-    p1, p2 = cfg["punch"][lang] if isinstance(cfg["punch"][lang], list) else [cfg["punch"][lang], ""]
+    S["hook2"] = text_sprite(cfg["hook"][other], 60, SKY, wght=700, wrap=False)
+    pl = cfg["punch"][lang] if isinstance(cfg["punch"][lang], list) else [cfg["punch"][lang]]
+    p1, p2 = pl[0], (pl[1] if len(pl) > 1 else "")
     S["p1"] = text_sprite(p1, 104, WHITE)
     S["p2"] = text_sprite(p2, 104, ORANGE) if p2 else None
     po = cfg["punch"][other]; po = " ".join(po) if isinstance(po, list) else po
-    S["p_o"] = text_sprite(po, 52, SKY, wght=700)
+    S["p_o"] = text_sprite(po, 52, SKY, wght=700, wrap=False)
     end = cfg.get("end", {})
     price = {"fr": "À PARTIR DE 25 ₪", "he": "משלוחים החל מ-25 ₪"}
     S["price"] = pill_sprite([(end.get("pill", price)[lang], WHITE)], 78, ORANGE)
@@ -228,6 +241,16 @@ def render(pid, cfg, src, lang, xoff, outdir, dest):
     S["end1"] = text_sprite(l1[lang], 62, WHITE, wght=800)
     S["end2"] = text_sprite(l1[other], 56, SKY, wght=700)
 
+    # Positions en hauteur : les lignes s'empilent sous le petit logo, quelle que soit leur taille (1 ou 2 lignes)
+    Y, top, PAD = {}, 150, 40
+    Y["hook"] = top + S["hook"].height / 2
+    Y["hook2"] = Y["hook"] + S["hook"].height / 2 - PAD + S["hook2"].height / 2 - PAD + 22
+    Y["p1"] = top + S["p1"].height / 2
+    y_end = Y["p1"] + S["p1"].height / 2 - PAD
+    if S["p2"]:
+        Y["p2"] = y_end - PAD + S["p2"].height / 2 - 18
+        y_end = Y["p2"] + S["p2"].height / 2 - PAD
+    Y["p_o"] = y_end - PAD + S["p_o"].height / 2 + 22
     if vertical:
         vf = "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920"
         fw, fh = 1080, 1920
@@ -263,17 +286,17 @@ def render(pid, cfg, src, lang, xoff, outdir, dest):
         paste(c, S["logo_s"], 540, 110, s * out_k, clamp((t - 0.1) / 0.15) * out_k)
         # Accroche
         q_in = ease_out_back((t - 0.35) / 0.5, 2.2); q_out = 1 - ease_in_cubic((t - 2.55) / 0.25)
-        paste(c, S["hook"], 540, 285, q_in * (0.7 + 0.3 * q_out), clamp((t - 0.35) / 0.12) * q_out)
+        paste(c, S["hook"], 540, Y["hook"], q_in * (0.7 + 0.3 * q_out), clamp((t - 0.35) / 0.12) * q_out)
         h2 = ease_out_cubic((t - 0.75) / 0.45); dx = 260 if lang == "fr" else -260
-        paste(c, S["hook2"], 540 + dx * (1 - h2), 400, 1, h2 * q_out)
+        paste(c, S["hook2"], 540 + dx * (1 - h2), Y["hook2"], 1, h2 * q_out)
         # Réponse
         a_in = ease_out_back((t - 2.8) / 0.45, 2.0)
-        paste(c, S["p1"], 540, 225 if S["p2"] else 260, a_in * out_k, clamp((t - 2.8) / 0.1) * out_k)
+        paste(c, S["p1"], 540, Y["p1"], a_in * out_k, clamp((t - 2.8) / 0.1) * out_k)
         if S["p2"]:
             a2 = ease_out_back((t - 3.05) / 0.45, 2.4)
-            paste(c, S["p2"], 540, 325, a2 * out_k, clamp((t - 3.05) / 0.1) * out_k)
+            paste(c, S["p2"], 540, Y["p2"], a2 * out_k, clamp((t - 3.05) / 0.1) * out_k)
         ah = ease_out_cubic((t - 3.45) / 0.45)
-        paste(c, S["p_o"], 540 + dx * (1 - ah), 425, 1, ah * out_k)
+        paste(c, S["p_o"], 540 + dx * (1 - ah), Y["p_o"], 1, ah * out_k)
         # Prix en bas (au-dessus de la zone de la légende Instagram / TikTok)
         p_in = ease_out_back((t - 4.0) / 0.55, 1.7)
         pulse = 1 + 0.045 * max(0, math.sin((t - 4.6) * 2 * math.pi * 1.1)) if t > 4.6 else 1
