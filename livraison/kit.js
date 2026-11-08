@@ -676,8 +676,10 @@ const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
   // Pub vidéo (video/pubs/monter.py)
+  { id: "liste-magique", aud: "client", title: "✨ Nouveau · Écrivez votre liste, on fait le reste (10 s)" },
+  { id: "everest", aud: "client", title: "🏔️ Nouveau · L'Everest du 4ᵉ étage (10 s)" },
+  { id: "sushi-surf", aud: "client", title: "🏄 Nouveau · La vague du soir : sushi livré (10 s)" },
   { id: "frigo-desert", aud: "client", title: "🏜️ Nouveau · Un désert dans le frigo ? On le remplit (10 s)" },
-  { id: "liste-hoppy", aud: "client", title: "📝 Nouveau · Écrivez votre liste, Hoppy fait le reste (10 s)" },
   // Nouveau : « Arrêtez de payer plus cher. Optez pour HOP! » (18 s, motion design : video/src/Stop.tsx)
   { id: "stop", aud: "client", title: "🛑 Nouveau · Arrêtez de payer plus cher. Optez pour HOP! (18 s)" },
   // Le showreel HOP! (15 s) : pour tout le monde, en tête de chaque public

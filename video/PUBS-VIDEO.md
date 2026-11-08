@@ -1,4 +1,4 @@
-# HOP! : 15 vidéos pensées pour devenir virales
+# HOP! : 25 vidéos pensées pour devenir virales
 
 > Version 4 (08/11/2026). Le patron veut des **vidéos virales**, pas des pubs. On ne garde que les idées qui font **rire, réagir ou partager**, et on écrit chaque prompt pour ça.
 > Dans le kit, seule « la liste » (liste-hoppy) reste, à la rigueur ; les sushis sont retirés.
@@ -215,6 +215,152 @@ Rules: Hoppy's feet never touch any food; no text, no subtitles, keep the top qu
 ```
 Textes : « TOUT CE QUE VOUS VOULEZ… / כל מה שתרצו… » → « …MÊME ÇA ! / …אפילו את זה! »
 Légende : « Qu'est-ce qu'on te livre ce soir ? 👇 » / « מה להביא לכם הערב? 👇 »
+
+---
+
+## 🏢 Bureaux et call centers : la faim de 16 h
+
+> Ces vidéos s'adressent aux employés qui ont faim au travail : barres chocolatées, snacks, canettes bien fraîches livrés au bureau.
+> **Pas de marque à l'image** : Veo ne doit montrer que des emballages sans nom (les logos de marques sont protégés). Dans la **légende**, tu peux écrire les produits que les gens cherchent (barres chocolatées, Coca bien frais…).
+> **Pas de cigarettes** dans les vidéos : en Israël, la publicité pour le tabac est interdite par la loi. On continue à les livrer, mais on n'en fait pas de pub.
+
+### 16. call-center-zombies : 16 h au call center 🧟
+**Pourquoi ça marche :** tout le monde connaît le coup de barre de 16 h. Un plateau entier de « zombies » qui revit d'un coup, c'est drôle et ça se partage entre collègues.
+```
+Vertical 9:16, 8 seconds, photorealistic, cinematic comedy, cold fluorescent office light turning warm.
+0-2s: A big open-space call center at 4 pm: rows of agents with headsets slumped over their desks like exhausted zombies, one slowly sliding off his chair, a wilted plant on a desk, a clock on the wall (no numbers visible).
+2-5s: One agent lifts her head, taps her phone; the glass door swings open and a HOP! delivery rider (navy HOP! jacket) walks in carrying a navy HOP! bag full of plain chocolate bars (no brand) and a cooler of frosty plain red soda cans (no logo).
+5-8s: Like plants being watered in a time-lapse, every agent straightens up one row after another, eyes bright; ice-cold cans open with a "pssht" in slow motion, chocolate bars passed down the rows, the wilted plant even perks up.
+Audio: low tired office hum and a phone ringing unanswered, then a door swoosh, can openings, an energetic music hit and happy chatter. No dialogue, no words.
+Rules: no text, no screens with text, no brand logos on products, keep the top quarter free.
+```
+Textes : « 16 H AU CALL CENTER ? / 16:00 במוקד? » → « LE SUCRE ARRIVE. / הסוכר בדרך. »
+Légende : « Tag ton collègue de 16 h 🧟 » / « תייגו את הקולגה של 16:00 🧟 »
+
+### 17. distributeur-vide : le distributeur est vide 🥤
+**Pourquoi ça marche :** le distributeur vide qu'on secoue avec désespoir, tout le monde l'a vécu ; le papillon qui s'en échappe fait rire.
+```
+Vertical 9:16, 8 seconds, photorealistic office comedy, handheld camera.
+0-2s: An office corridor; an employee in a shirt and tie desperately shakes an empty snack vending machine (all spirals empty, no brands); a single moth flutters out of it.
+2-5s: He presses his forehead against the glass in despair; behind him a HOP! delivery rider appears holding an open navy HOP! cooler bag glowing with cold blue light, frosty plain soda cans and plain chocolate bars inside.
+5-8s: The employee turns around, sees it, and slowly raises both arms in victory; colleagues peek out of their doors and run toward the rider.
+Audio: a metal machine rattle, a tiny moth flutter, a dramatic sad violin, then an icy "whoosh" and an upbeat cheer. No dialogue, no words.
+Rules: no text, no brand logos, keep the top quarter free.
+```
+Textes : « LE DISTRIBUTEUR EST VIDE ? / המכונה ריקה? » → « ON EST MIEUX QU'UN DISTRIBUTEUR. / אנחנו יותר טובים ממכונה. »
+Légende : « Ton snack préféré au bureau ? 👇 » / « מה החטיף האהוב עליכם במשרד? 👇 »
+
+### 18. reunion-3h : la réunion de 3 heures 📊
+**Pourquoi ça marche :** les ventres qui gargouillent pendant la réunion qui ne finit pas, en open space ou en télétravail, ça parle à tout le monde.
+```
+Vertical 9:16, 8 seconds, photorealistic office comedy, meeting room with glass walls.
+0-2s: A long meeting; a manager points at an endless slideshow of colorful charts (no text, no numbers); employees stare blankly; on the table, the water in the glasses ripples every time a stomach growls.
+2-5s: One employee discreetly taps on her phone under the table; the growls get louder and the water ripples become waves; a colleague hides his face.
+5-8s: The glass door opens: a HOP! rider enters with two navy HOP! bags of snacks and frosty cans; everyone, including the manager, turns their head at the same time, and the manager closes his laptop with a smile.
+Audio: a boring monotone presentation hum (no words), comic stomach growls synced with water ripples, a door swoosh, a relieved laugh and a music sting. No dialogue.
+Rules: no text, no numbers on slides, no brand logos, keep the top quarter free.
+```
+Textes : « RÉUNION DE 3 HEURES ? / ישיבה של 3 שעות? » → « ON NOURRIT TOUTE LA SALLE. / מאכילים את כל החדר. »
+Légende : « Tag celui qui fait des réunions trop longues 😅 » / « תייגו את מי שעושה ישיבות ארוכות מדי 😅 »
+
+### 19. canette-glacee : la canette glacée (ASMR) 🧊
+**Pourquoi ça marche :** le plan ASMR d'une canette glacée qu'on ouvre au ralenti donne soif tout de suite. C'est la vidéo qu'on regarde en boucle quand il fait chaud.
+```
+Vertical 9:16, 8 seconds, photorealistic macro, premium beverage commercial lighting, on an office desk next to a keyboard, hot sunlight through the blinds.
+0-2s: Extreme slow-motion macro of a plain red soda can (no logo) covered in icy condensation, drops sliding down, cold mist rolling off it, while heat waves shimmer over the office window behind.
+2-5s: A finger pulls the tab: a burst of fizz and spray frozen in ultra slow motion, ice crystals sparkling in the sunbeam.
+5-8s: The can is lifted and the camera reveals a whole office desk with more frosty cans and plain chocolate bars coming out of a navy HOP! cooler bag; a relieved employee leans back in his chair.
+Audio: crisp ASMR condensation drips, a loud satisfying "pssht" of the can, fizz crackling, then a cool calm beat. No dialogue, no voices.
+Rules: no text, no brand logos on cans or wrappers, keep the top quarter free.
+```
+Textes : « 15 H, ET LA CLIM EST EN PANNE ? / 15:00, והמזגן התקלקל? » → « CANETTES GLACÉES, LIVRÉES AU BUREAU. / פחיות קרות כקרח, עד המשרד. »
+Légende : « Qui a soif au bureau ? 🧊 » / « מי צמא במשרד? 🧊 »
+
+### 20. bureau-stade : quand la commande arrive au bureau 📣
+**Pourquoi ça marche :** tout un plateau qui tape sur les bureaux et scande « HOP! HOP! » comme dans un stade : on voit le nom de la marque et on l'entend.
+```
+Vertical 9:16, 8 seconds, photorealistic, stadium-like energy inside an open-space office, dynamic camera.
+0-2s: A big open space; one employee sees through the window a HOP! scooter parking downstairs and starts drumming on his desk with both hands.
+2-5s: The whole floor joins in, drumming on desks in rhythm, standing up, building like a stadium crowd as the rider walks down the aisle carrying navy HOP! bags of snacks and frosty cans like a champion.
+5-8s: He lifts the bags high in the middle of the room; everyone cheers and throws their arms up; confetti made of sticky notes flies everywhere.
+Audio: desk drumming in a growing rhythm and a crowd chanting the single word "HOP! HOP! HOP!" like a stadium, then a big cheer. No other words.
+Rules: no text, no brand logos on products, keep the top quarter free.
+```
+Textes : « QUAND LA COMMANDE ARRIVE AU BUREAU… / כשההזמנה מגיעה למשרד… » → « ET HOP ! / והופ! »
+Légende : « Ton bureau, c'est ça à 16 h ? 📣 » / « ככה נראה המשרד שלכם ב-16:00? 📣 »
+
+### 21. hoppy-bureau : Hoppy fait la pause (avec Hoppy)
+**Pourquoi ça marche :** la mascotte qui débarque dans un vrai bureau et distribue la pause, c'est mignon et partageable.
+```
+Vertical 9:16, 8 seconds, high-end 3D animated film style (Pixar quality), the kangaroo "Hoppy" exactly as in the reference image, wearing a small navy tie, in a bright modern open-space office.
+0-2s: Tired cartoon office workers at their desks; the elevator doors open with a "ding" and Hoppy hops out with his HOP! bag.
+2-5s: Hoppy hops down the aisle between the desks, handing out plain chocolate bars and frosty plain soda cans from his pouch to each worker, who light up one after another.
+5-8s: At the end of the aisle, Hoppy turns around: the whole office is smiling, raising their cans; Hoppy straightens his tie proudly.
+Audio: elevator ding, bouncy hops, can openings, a cheerful jazzy office tune. No dialogue, no voices.
+Rules: Hoppy never jumps on desks or on any food, no ambiguous hand gestures, no text, no brand logos, keep the top quarter free.
+```
+Textes : « LA PAUSE, VERSION HOPPY / ההפסקה, בסגנון הופי » → « SNACKS ET BOISSONS FRAÎCHES AU BUREAU. / חטיפים ושתייה קרה עד המשרד. »
+Légende : « On passe à ton bureau quand ? 🦘 » / « מתי לבוא למשרד שלכם? 🦘 »
+
+---
+
+## 🫒 La kemia du vendredi
+
+> Thon à l'huile et harissa, salade méchouia, carottes au cumin, olives, crackers, charcuterie casher… La table d'avant Chabbat, que toute la communauté reconnaît.
+> **Casher dans chaque prompt** : le poisson (thon) et la viande (charcuterie) sur des assiettes séparées, aucun produit laitier, les bougies de Chabbat éteintes.
+> **Pas de boukha ni d'alcool à l'image** : la pub pour l'alcool est très encadrée en Israël. On peut la livrer, mais on n'en fait pas la vedette.
+
+### 22. kemia-envol : la kemia qui se pose toute seule ✨
+**Pourquoi ça marche :** l'image « satisfaisante » d'une table qui se remplit toute seule, et toute la communauté se reconnaît dans le vendredi.
+```
+Vertical 9:16, 8 seconds, photorealistic, warm golden Friday afternoon light, overhead-then-tilt camera, magical stop-motion feeling.
+0-2s: A beautiful empty table with a white tablecloth in a Netanya apartment, silver Shabbat candlesticks with unlit candles at the back; a navy HOP! paper bag (white "HOP", orange "!") sits on the corner.
+2-5s: One after another, small colorful bowls fly out of the HOP! bag and land on the table with a satisfying clink: tuna in olive oil with harissa, salade méchouia, carrots with cumin, green and black olives, red harissa, a plate of crackers; on a separate wooden board, kosher salami and pastrami slices.
+5-8s: The table is full and glowing; the front door opens and a family arrives, stopping in amazement; a grandfather already grabs a cracker.
+Audio: soft clinks of ceramic bowls, a joyful oud and darbuka melody, the door opening, happy surprised laughter. No dialogue, no words.
+Rules: fish and meat on separate plates, no dairy, candles unlit, no text, no brand logos except HOP!, keep the top quarter free.
+```
+Textes : « VENDREDI, LES INVITÉS ARRIVENT… / שישי, האורחים מגיעים… » → « LA KEMIA EST DÉJÀ PRÊTE. / הסלטים כבר על השולחן. »
+Légende : « Ta kemia préférée ? 👇 » / « מה הסלט האהוב עליכם? 👇 »
+
+### 23. tonton-verdict : le verdict de tonton 🧔
+**Pourquoi ça marche :** l'oncle qui goûte comme un juge, et toute la table suspendue à son avis. Chaque famille a le sien, alors tout le monde le tague.
+```
+Vertical 9:16, 8 seconds, photorealistic, warm family comedy, Friday afternoon light.
+0-2s: Around a full kemia table, a whole family (grandmother, cousins, kids) freezes in silence, all eyes on an elderly uncle with a mustache who slowly lifts a cracker topped with tuna and harissa like a precious jewel.
+2-5s: Extreme close-up on his face as he chews very slowly, eyes closed, eyebrows moving; a cousin bites her nails, a kid holds his breath.
+5-8s: He opens his eyes and gives one slow, solemn nod of approval; the whole family explodes in cheers and hugs; in the background, a navy HOP! paper bag on the kitchen counter.
+Audio: dramatic suspense drumroll, crunchy cracker sound, silence, then a joyful darbuka burst and cheers. No dialogue, no words.
+Rules: fish and meat on separate plates, no dairy, no ambiguous hand gestures, no text, no brand logos except HOP!, keep the top quarter free.
+```
+Textes : « LE VERDICT DE TONTON… / פסק הדין של הדוד… » → « VALIDÉ ! / מאושר! »
+Légende : « Tag le tonton qui juge la kemia 😂 » / « תייגו את הדוד שבודק את הסלטים 😂 »
+
+### 24. harissa-feu : trop de harissa 🔥
+**Pourquoi ça marche :** le gag de celui qui a mis trop de harissa, avec une fumée de dessin animé qui lui sort des oreilles. C'est drôle, et tout le monde a ce cousin.
+```
+Vertical 9:16, 8 seconds, photorealistic with cartoon visual effects, Friday kemia table.
+0-2s: A confident young man scoops a huge amount of red harissa on a cracker with tuna and pops it into his mouth, smiling to the camera.
+2-5s: His face slowly turns bright red, cartoon steam shoots out of his ears, his eyes water, a tiny cartoon fire appears above his head; the family laughs.
+5-8s: A hand slides an ice-cold plain bottle of water and a plain soda can (no logos) from a navy HOP! cooler bag; he drinks in relief, frost forming around his mouth.
+Audio: a crunchy bite, a rising whistle like a kettle, cartoon steam sounds, family laughter, a cold icy splash. No dialogue, no words.
+Rules: no alcohol, fish and meat on separate plates, no dairy, no text, no brand logos except HOP!, keep the top quarter free.
+```
+Textes : « TROP DE HARISSA ? / חריף מדי? » → « ON LIVRE AUSSI LA BOISSON FRAÎCHE. / יש לנו גם שתייה קרה. »
+Légende : « Toi, tu mets combien de harissa ? 🌶️ » / « כמה חריף אתם שמים? 🌶️ »
+
+### 25. soleil-kemia : vendredi, le soleil baisse 🌅
+**Pourquoi ça marche :** la course contre le coucher du soleil avant Chabbat, filmée comme un film épique, avec un vrai suspense qui se résout au moment où le soleil touche la mer.
+```
+Vertical 9:16, 8 seconds, photorealistic epic cinematic style, golden hour over the Netanya cliffs and the sea.
+0-2s: The sun sinks toward the sea; a family in a Netanya apartment looks anxiously out of the window at an almost empty Shabbat table (only the unlit candles and the challah cover).
+2-5s: A HOP! delivery rider on a scooter with a navy HOP! top case races along the cliff road in the golden light, the sun touching the horizon behind him, drone shot.
+5-8s: The doorbell; the family opens the door and the rider hands over two navy HOP! bags full of kemia salads, crackers and challah; relief and smiles as the last ray of sun shines through the window.
+Audio: a ticking clock under epic orchestral strings, scooter engine, a doorbell, warm relieved music. No dialogue, no words.
+Rules: candles unlit, no text, no brand logos except HOP!, keep the top quarter free.
+```
+Textes : « VENDREDI, LE SOLEIL BAISSE… / שישי, השמש יורדת… » → « LA KEMIA ARRIVE AVANT. / הסלטים מגיעים לפני. »
+Légende : « Chez toi, la kemia c'est quoi ? 👇 » / « מה חייב להיות על השולחן בשישי? 👇 »
 
 ---
 

@@ -24,7 +24,7 @@
   },
   "everest": {
     "hook": {
-      "fr": "L'EVEREST DU 4ᵉ ÉTAGE ?",
+      "fr": "L'EVEREST DU 4E ÉTAGE ?",
       "he": "האוורסט של הקומה הרביעית?"
     },
     "punch": {
@@ -675,6 +675,183 @@
       ]
     },
     "titre": "🕺 Nouveau · Quand ta commande arrive (10 s)",
+    "aud": "client"
+  },
+  "call-center-zombies": {
+    "hook": {
+      "fr": "16 H AU CALL CENTER ?",
+      "he": "16:00 במוקד?"
+    },
+    "punch": {
+      "fr": [
+        "LE SUCRE",
+        "ARRIVE."
+      ],
+      "he": [
+        "הסוכר",
+        "בדרך."
+      ]
+    },
+    "titre": "🧟 Nouveau · 16 h au call center (10 s)",
+    "aud": "client"
+  },
+  "distributeur-vide": {
+    "hook": {
+      "fr": "LE DISTRIBUTEUR EST VIDE ?",
+      "he": "המכונה ריקה?"
+    },
+    "punch": {
+      "fr": [
+        "ON EST MIEUX",
+        "QU'UN DISTRIBUTEUR."
+      ],
+      "he": [
+        "אנחנו יותר",
+        "טובים ממכונה."
+      ]
+    },
+    "titre": "🥤 Nouveau · Le distributeur est vide (10 s)",
+    "aud": "client"
+  },
+  "reunion-3h": {
+    "hook": {
+      "fr": "RÉUNION DE 3 HEURES ?",
+      "he": "ישיבה של 3 שעות?"
+    },
+    "punch": {
+      "fr": [
+        "ON NOURRIT",
+        "TOUTE LA SALLE."
+      ],
+      "he": [
+        "מאכילים",
+        "את כל החדר."
+      ]
+    },
+    "titre": "📊 Nouveau · La réunion de 3 heures (10 s)",
+    "aud": "client"
+  },
+  "canette-glacee": {
+    "hook": {
+      "fr": "15 H, ET LA CLIM EST EN PANNE ?",
+      "he": "15:00, והמזגן התקלקל?"
+    },
+    "punch": {
+      "fr": [
+        "CANETTES GLACÉES,",
+        "LIVRÉES AU BUREAU."
+      ],
+      "he": [
+        "פחיות קרות כקרח,",
+        "עד המשרד."
+      ]
+    },
+    "titre": "🧊 Nouveau · La canette glacée au bureau (10 s)",
+    "aud": "client"
+  },
+  "bureau-stade": {
+    "hook": {
+      "fr": "QUAND LA COMMANDE ARRIVE AU BUREAU…",
+      "he": "כשההזמנה מגיעה למשרד…"
+    },
+    "punch": {
+      "fr": [
+        "ET",
+        "HOP !"
+      ],
+      "he": [
+        "והופ!"
+      ]
+    },
+    "titre": "📣 Nouveau · Quand la commande arrive au bureau (10 s)",
+    "aud": "client"
+  },
+  "hoppy-bureau": {
+    "hook": {
+      "fr": "LA PAUSE, VERSION HOPPY",
+      "he": "ההפסקה, בסגנון הופי"
+    },
+    "punch": {
+      "fr": [
+        "SNACKS ET BOISSONS",
+        "FRAÎCHES AU BUREAU."
+      ],
+      "he": [
+        "חטיפים ושתייה קרה",
+        "עד המשרד."
+      ]
+    },
+    "titre": "🦘 Nouveau · La pause, version Hoppy (10 s)",
+    "aud": "client"
+  },
+  "kemia-envol": {
+    "hook": {
+      "fr": "VENDREDI, LES INVITÉS ARRIVENT…",
+      "he": "שישי, האורחים מגיעים…"
+    },
+    "punch": {
+      "fr": [
+        "LA KEMIA EST",
+        "DÉJÀ PRÊTE."
+      ],
+      "he": [
+        "הסלטים כבר",
+        "על השולחן."
+      ]
+    },
+    "titre": "🫒 Nouveau · Vendredi, la kemia est déjà prête (10 s)",
+    "aud": "client"
+  },
+  "tonton-verdict": {
+    "hook": {
+      "fr": "LE VERDICT DE TONTON…",
+      "he": "פסק הדין של הדוד…"
+    },
+    "punch": {
+      "fr": [
+        "VALIDÉ !"
+      ],
+      "he": [
+        "מאושר!"
+      ]
+    },
+    "titre": "🧔 Nouveau · Le verdict de tonton (10 s)",
+    "aud": "client"
+  },
+  "harissa-feu": {
+    "hook": {
+      "fr": "TROP DE HARISSA ?",
+      "he": "חריף מדי?"
+    },
+    "punch": {
+      "fr": [
+        "ON LIVRE AUSSI",
+        "LA BOISSON FRAÎCHE."
+      ],
+      "he": [
+        "יש לנו גם",
+        "שתייה קרה."
+      ]
+    },
+    "titre": "🌶️ Nouveau · Trop de harissa ? (10 s)",
+    "aud": "client"
+  },
+  "soleil-kemia": {
+    "hook": {
+      "fr": "VENDREDI, LE SOLEIL BAISSE…",
+      "he": "שישי, השמש יורדת…"
+    },
+    "punch": {
+      "fr": [
+        "LA KEMIA",
+        "ARRIVE AVANT."
+      ],
+      "he": [
+        "הסלטים",
+        "מגיעים לפני."
+      ]
+    },
+    "titre": "🌅 Nouveau · Vendredi, la kemia arrive avant (10 s)",
     "aud": "client"
   }
 }
