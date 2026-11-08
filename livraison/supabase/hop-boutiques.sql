@@ -202,3 +202,10 @@ select cron.schedule('hop-booom-import', '12 */6 * * *', 'select public.booom_im
 -- sans le choix entre crochets. L'appli ouvre le commerce avec la recherche déjà remplie : tous les articles.
 -- (avant : products_search, 20 articles au total et un seul gardé par commerce → « eau » ne montrait qu'une eau de Carrefour)
 -- Fonction en ligne : migrations products_search_shops et products_search_shops_v2.
+
+-- 08/11 (en ligne) : vraies photos Carrefour aussi dans les dossiers product-images/ et items/ du même site
+-- (œufs, pains, laitages…) ; même règle que UI.extPic dans common.js
+create or replace function public.ext_photo_ok(u text)
+ returns boolean language sql immutable as $function$
+  select coalesce(u ~ '^https://(d226b0iufwcjmj\.cloudfront\.net/(gs1-products|product-images|items)/|booomisrael\.co\.il/uploads/|cdn\.shopify\.com/s/files/1/0371/7965/4281/)[A-Za-z0-9._~/%?=&:-]+$', false);
+$function$;
