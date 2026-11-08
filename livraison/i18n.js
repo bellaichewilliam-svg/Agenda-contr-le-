@@ -9,13 +9,14 @@
 const DICT = {
 fr: {
   langSwitch: "עברית",
+  waListT: "Envoyez votre liste sur WhatsApp", waListS: "Une photo ou un vocal : on s'occupe de tout", waListText: "Bonjour HOP! 👋 Voici ce que je veux me faire livrer :\n\n\nMon adresse : ",
   shareApp: "Partager HOP!", shareAppS: "Envoyez-la à vos amis : repas, courses, pharmacie, colis… livrés",
   shareAppText: "HOP! : on vous livre tout à Netanya (repas, courses, pharmacie, colis…), dès 25 ₪ 🛵",
   shareShop: "Partager", shareShopText: "{name} sur HOP! : commandez, on vous livre à Netanya 🛵", shareShopText2: "{name} : commandez, on vous livre à Netanya 🛵",
   shareRayText: "{name} sur HOP! : on fait vos courses et on vous livre 🛵", shareCopied: "Lien copié ✓",
-  wizStep: "Étape {n} sur {of}", wizT1: "On livre quoi, et où ?", wizT2: "Quelques précisions", wizT3: "Vous et le paiement",
+  wizStep: "Étape {n} sur {of}", wizT1: "On livre quoi, et où ?", wizT2: "Presque fini : vous et le paiement", wizT3: "Vous et le paiement",
   wizNext: "Continuer ›", wizBack: "‹ Retour", wizMore: "➕ Plus d'options", wizLess: "− Moins d'options",
-  wizMoreSub2: "Aller-retour, arrêt en plus, poste, clés, sans contact, autre destinataire, contact sur place…",
+  wizMoreSub2: "Aller-retour, arrêt en plus, sans contact, autre destinataire, entreprise, code promo…",
   wizMoreSub3: "Entreprise, code promo",
   navIdeas: "Idées", navPrices: "Tarifs", navMine: "Mes courses", navMe: "Profil", navOrder: "Commander",
   restoTake: "📍 Récupérer ici", restoOrder: "⭐ Commander chez {name}", restoSchedule: "📅 Programmer chez {name}", pinClosed: "fermé", restoHop: "Sur HOP!", hmMapOpen: "🗺️ Voir la carte", mcAll: "Tout", hmMapSub: "{n} restos et commerces autour de vous", hmMapClose: "⌃ Revenir à la commande", fk: { "🍣": "Sushi", "🍕": "Pizza", "🍔": "Burgers", "🥗": "Salades", "🥡": "Asiatique", "🥙": "Falafel, chawarma", "🍦": "Glaces", "🥐": "Boulangerie, pâtisserie", "🍝": "Italien", "🥩": "Grill, viandes", "🍗": "Poulet, schnitzel", "🐟": "Poisson", "🥪": "Sandwichs", "🍺": "Bar", "☕": "Café", "🍽️": "Restaurant" }, vbHome: "Accueil", infosTitle: "Tout savoir sur HOP!", infosSub: "Les prix pour toutes les distances, des idées, nos offres et vos questions.", ordTitle: "Ma commande",
@@ -845,13 +846,14 @@ fr: {
 
 he: {
   langSwitch: "Français",
+  waListT: "שלחו לנו את הרשימה בוואטסאפ", waListS: "תמונה או הודעה קולית: אנחנו דואגים להכול", waListText: "שלום HOP! 👋 זה מה שאני רוצה שיביאו לי:\n\n\nהכתובת שלי: ",
   shareApp: "לשתף את HOP!", shareAppS: "שלחו לחברים: אוכל, קניות, פארם, חבילות… עד הבית",
   shareAppText: "HOP!: משלוחים של הכול בנתניה (אוכל, קניות, פארם, חבילות…), החל מ-25 ₪ 🛵",
   shareShop: "לשתף", shareShopText: "{name} ב-HOP!: מזמינים, ואנחנו מביאים עד הבית בנתניה 🛵", shareShopText2: "{name}: מזמינים, ואנחנו מביאים עד הבית בנתניה 🛵",
   shareRayText: "{name} ב-HOP!: עושים לכם את הקניות ומביאים עד הבית 🛵", shareCopied: "הקישור הועתק ✓",
-  wizStep: "שלב {n} מתוך {of}", wizT1: "מה שולחים, ולאן?", wizT2: "עוד כמה פרטים", wizT3: "הפרטים שלך והתשלום",
+  wizStep: "שלב {n} מתוך {of}", wizT1: "מה שולחים, ולאן?", wizT2: "כמעט סיימנו: הפרטים שלך והתשלום", wizT3: "הפרטים שלך והתשלום",
   wizNext: "המשך ›", wizBack: "‹ חזרה", wizMore: "➕ עוד אפשרויות", wizLess: "− פחות אפשרויות",
-  wizMoreSub2: "הלוך ושוב, עצירה בדרך, דואר, מפתחות, בלי מגע, נמען אחר, איש קשר במקום…",
+  wizMoreSub2: "הלוך ושוב, עצירה בדרך, בלי מגע, נמען אחר, חברה, קוד הנחה…",
   wizMoreSub3: "חברה, קוד הנחה",
   navIdeas: "רעיונות", navPrices: "מחירים", navMine: "המשלוחים שלי", navMe: "פרופיל", navOrder: "להזמנה",
   restoTake: "📍 לאסוף מכאן", restoOrder: "⭐ להזמין מ{name}", restoSchedule: "📅 לתזמן אצל {name}", pinClosed: "סגור", restoHop: "ב־HOP!", hmMapOpen: "🗺️ לראות את המפה", mcAll: "הכול", hmMapSub: "{n} מסעדות ועסקים סביבכם", hmMapClose: "⌃ חזרה להזמנה", fk: { "🍣": "סושי", "🍕": "פיצה", "🍔": "המבורגרים", "🥗": "סלטים", "🥡": "אסייתי", "🥙": "פלאפל, שווארמה", "🍦": "גלידה", "🥐": "מאפייה, קונדיטוריה", "🍝": "איטלקי", "🥩": "גריל, בשרים", "🍗": "עוף, שניצל", "🐟": "דגים", "🥪": "כריכים", "🍺": "בר", "☕": "בית קפה", "🍽️": "מסעדה" }, vbHome: "בית", infosTitle: "כל מה שצריך לדעת על HOP!", infosSub: "מחירים לכל מרחק, רעיונות, מבצעים ושאלות.", ordTitle: "ההזמנה שלי",

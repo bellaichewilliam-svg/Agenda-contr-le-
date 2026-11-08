@@ -323,6 +323,11 @@ Pas encore de voiture : l'option « Gros colis » est cachée. Pour l'ouvrir, me
 ### Fermé : « Commandez maintenant, on vous livre dès l'ouverture » (08/11)
 Quand le service est coupé (ou personne de connecté hors des heures), l'accueil n'affiche plus « Livreurs indisponibles » ni « Fermé » : une pastille « 🌙 Commandez maintenant, on vous livre dès l'ouverture » (sans heure), en français et en hébreu. La commande se fait normalement : elle est programmée d'office au premier créneau (le client peut changer le jour ou l'heure). Le bandeau rouge du haut n'apparaît plus sur l'accueil, sauf si le patron écrit son propre message de fermeture.
 
+### Commande plus courte + liste par WhatsApp (08/11)
+- **2 écrans au lieu de 3** : « 1. On livre quoi, et où ? » puis « 2. Presque fini : vous et le paiement » (précisions, coordonnées, paiement ; les options rares restent dans « Plus d'options »).
+- **Arrivée facultative** : type de lieu, étage, n° d'appartement, code d'entrée et mot au livreur ne sont plus obligatoires (le livreur appelle s'il lui manque quelque chose). Ils restent obligatoires pour « sans contact ».
+- **« Envoyez votre liste sur WhatsApp »** : carte verte sous la recherche de l'accueil, et sous la liste de « J'achète pour vous ». Ouvre le WhatsApp de HOP! (`CONFIG.whatsapp`) avec un message prêt (FR / HE) : le client envoie une photo, un vocal ou du texte, et le patron crée la commande. Chaque clic est compté (`wa_list` dans site_steps).
+
 ### Partager (bouton « Partager »)
 - **Partager HOP!** : en haut de l'accueil (petit bouton rond orange dans le coin de « Qu'est-ce qu'on vous apporte ? »), en bas de l'accueil (avant « Explorer ») et dans « Mes courses ». Envoie le lien du site avec un petit texte FR / HE.
 - **Partager un commerce / resto** : bouton « Partager » en haut de la photo du commerce → lien `?c=CODE` qui ouvre directement sa page.
