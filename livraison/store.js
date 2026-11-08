@@ -2337,8 +2337,21 @@ function localCatalog(shopId) {
 }
 const shopOfToken = token => localShops().find(x => x.token === token) || null;
 // Catalogue public d'un commerce Pro actif (pour ses clients)
+// Catalogue allégé (règle du patron : < 150 Ko) : liens des photos Carrefour raccourcis (« @… ») et champs vides
+// omis par la base ; le téléphone remet tout comme avant
+const CF_PIC = "https://d226b0iufwcjmj.cloudfront.net/gs1-products/1540/medium/";
+function unpackCatalog(c) {
+  if (c && Array.isArray(c.products)) c.products.forEach(p => {
+    if (typeof p.photo === "string" && p.photo[0] === "@") p.photo = CF_PIC + p.photo.slice(1);
+    if (p.photo === undefined) p.photo = null;
+    if (p.description === undefined) p.description = null;
+    if (p.category_id === undefined) p.category_id = null;
+    if (p.available === undefined) p.available = true;
+  });
+  return c;
+}
 async function shopCatalog(code) {
-  if (ONLINE) return rest("/rest/v1/rpc/shop_catalog", { method: "POST", body: { p_code: code } });
+  if (ONLINE) return unpackCatalog(await rest("/rest/v1/rpc/shop_catalog", { method: "POST", body: { p_code: code } }));
   const s = localShops().find(x => x.code === String(code || "").toUpperCase());
   if (!s || s.status !== "actif" || !planActive(s)) return null;
   return localCatalog(s.id).cat;
