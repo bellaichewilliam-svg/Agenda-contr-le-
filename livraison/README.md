@@ -351,6 +351,8 @@ Quand le service est coupé (ou personne de connecté hors des heures), l'accuei
 - Liste de Hoppy → panier gardé et visible (pastille 🛒, panier relancé par le patron).
 - Plus de « bientôt leurs catalogues » ; message « Ajoutez au moins un article… » sur un rayon vide.
 - Achat par le livreur : plus de « taille du colis » ni de « conditions de livraison d'objets » à cocher pour acheter du pain.
+- **Panier : un seul vrai total** de tous les articles de la commande (magasin + autres magasins gardés + « pris au plus près », ≈), avec le détail dessous (« 14,2 ₪ chez Carrefour + ≈ 24,9 ₪ chez Le Marché Français + ≈ 32 ₪ pris au plus près · le prix exact est celui du ticket »).
+- Panier quand HOP! est fermé : « 🌙 Commandez maintenant, on vous livre dès l'ouverture » (plus « HOP! est fermé pour le moment »).
 - « Où livrer ? ✅ » seulement quand le type de lieu (et étage / appartement / code) est rempli.
 - Un seul sens pour « Total » : « Total livraison » dans le bloc du prix quand il y a des articles (le total articles + livraison est dans l'encart du paiement).
 - « jusqu'à 6 articles … compris » ; HE « המוצרים מ-HOP! בקרפור » ; puce « Livrer à » en `dir=auto` ; noms des ronds de commerces jamais coupés au milieu d'un mot.
