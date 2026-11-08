@@ -3612,7 +3612,7 @@ function renderCatalog() {
   qIn.placeholder = t("cgSearch", { name: UI.bi(state.shop.name) });
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   const html = `${state.boss ? bossBar() : ""}${shopNoPay() ? noPayMini() : ""}
-    ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p>` : ""}
+    ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
@@ -3700,7 +3700,71 @@ $("#catalogBox").addEventListener("input", e => {
   e.stopPropagation();
   state.cgQ = e.target.value;
   renderCatalog();
+  clearTimeout(cgElseT); cgElseT = setTimeout(cgElseFill, 350);
 });
+// Pas dans ce magasin : on cherche ailleurs sur HOP! (patron, 08/11), marqué « autre magasin » (+10 ₪), ou dans les
+// courses HOP! (le livreur le prend au plus près). « Ajouter » le met dans le bon panier : rien n'est perdu.
+let cgElseT = null, cgElseSeq = 0;
+async function cgElseFill() {
+  const el = $("#cgElse");
+  if (!el || !state.shop) return;
+  const q = el.dataset.q || "", code = state.shop.code, seq = ++cgElseSeq;
+  if (phNorm(q).trim().length < 2) return;
+  el.innerHTML = `<p class="cg-else-wait">${UI.esc(t("cgElseWait"))}</p>`;
+  let prods = [];
+  try { prods = (await Store.productsSearch(q)) || []; } catch (e) { prods = []; }
+  if (seq !== cgElseSeq || !$("#cgElse") || !state.shop || state.shop.code !== code) return;
+  // (ici on cherche large : le mot tapé au début d'un mot du nom suffit, « confiture » trouve « Confiture de fraises »)
+  const sc = mgScorer(q), nq = phNorm(q).trim();
+  const hit = p => { const a = phNorm(UI.bi(p.name)); for (let k = a.indexOf(nq); k >= 0; k = a.indexOf(nq, k + 1)) if (k === 0 || /[\s(/'·-]/.test(a[k - 1])) return true; return false; };
+  const list = prods.filter(p => p.code && p.code !== code && !/restaurant|resto|cafe|traiteur/i.test(p.kind || "") && (sc(p) > 0 || hit(p))).sort((a, b) => sc(b) - sc(a)).slice(0, 4);
+  const r = (rayonHits(q, 1)[0] || null);
+  state.cgElse = { list, r };
+  if (!list.length && !r) { $("#cgElse").innerHTML = `<p class="cg-else-wait">${UI.esc(t("cgElseNo"))}</p>`; return; }
+  const row = (ph, name, sub, price, attr) => `<div class="cg-else-row"><span class="cr-pic">${ph}</span><span class="cg-else-txt"><b><bdi>${UI.esc(name)}</bdi></b><small>${sub}</small></span>
+    ${price ? `<em>${UI.esc(price)}</em>` : ""}<button type="button" class="btn btn-sm" ${attr}>${UI.esc(t("cgElseAdd"))}</button></div>`;
+  $("#cgElse").innerHTML = `<b class="cg-else-t">${escHop(t("cgElseT", { name: shopShortName() }))}</b>`
+    + list.map((c, i) => { const ph = UI.safeImg(c.photo), sh = String(UI.bi(c.shop || c.code)).split(" · ")[0], f = multiFee({ code: c.code });
+      return row(ph ? `<img src="${UI.esc(ph)}" alt="" loading="lazy" />` : "🛍️", UI.bi(c.name), `${escHop(t("cgElseShop", { shop: sh }))} · <b>${UI.esc(t("cgElseFee", { fee: money(f.price) }))}</b>`, money(Number(c.price) || 0), `data-else-shop="${i}"`); }).join("")
+    + (r ? row((UI.safeImg(r.i.photo) || r.i.img) ? `<img src="${UI.esc(UI.safeImg(r.i.photo) || `img/qc/${r.i.img}.webp`)}" alt="" loading="lazy" />` : UI.esc(r.i.e || "🛒"),
+        phName(r.i), escHop(t("cgElseNear")), rayPrice(r.i) ? "≈ " + money(rayPrice(r.i)) : "", `data-else-near="1"`) : "");
+}
+// Article d'un autre magasin → le panier (gardé) de ce magasin, livré avec la commande
+function multiAdd(c, qty) {
+  const sc = (state.showcase || []).find(x => x.code === c.code) || null, nm = String(UI.bi(c.shop || (sc && sc.name) || c.code));
+  const m = state.multi[c.code] || { cart: {}, lines: [], count: 0, total: 0, mods: {}, note: "" };
+  m.cart[c.id] = Math.min(50, (m.cart[c.id] || 0) + qty); m.lines.push({ n: UI.bi(c.name), q: qty }); m.count += qty; m.total += (Number(c.price) || 0) * qty;
+  state.multi[c.code] = Object.assign(m, { code: c.code, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null, at: Date.now() });
+  multiSave(); renderMulti(); renderCartIcon();
+  return m.short;
+}
+// « Pris au plus près » : la ligne s'ajoute aux articles que le livreur prend sur son chemin (et à la précision)
+function extrasNote() {
+  const ex = (state.extras || []).filter(Boolean);
+  const cur = form.shop_order.value.trim().split("\n").filter(x => x && !x.startsWith(t("mgAlso")) && !ex.some(y => x.startsWith(`${y.q > 1 ? y.q + " × " : ""}${y.n}`))).join("\n");
+  const lines = ex.map(x => `${x.q > 1 ? x.q + " × " : ""}${x.n}${x.p ? ` (≈ ${money(x.p)})` : ""}`);
+  form.shop_order.value = (cur ? cur + "\n" : "") + (lines.length ? t("mgAlso") + "\n" + lines.join("\n") : "");
+  form.shop_order.dispatchEvent(new Event("input", { bubbles: true }));
+}
+$("#catalogBox").addEventListener("click", e => {
+  const a = e.target.closest("[data-else-shop]"), b = e.target.closest("[data-else-near]");
+  if ((!a && !b) || !state.cgElse) return;
+  e.preventDefault(); e.stopPropagation();
+  if (a) {
+    const c = state.cgElse.list[Number(a.dataset.elseShop)];
+    if (!c) return;
+    const nm = multiAdd(c, 1);
+    a.textContent = "✓"; a.disabled = true;
+    toastCart(t("cgElseAdded", { shop: nm }));
+  } else {
+    const r = state.cgElse.r;
+    if (!r) return;
+    state.extras = (state.extras || []).concat([{ n: phName(r.i), q: 1, p: rayPrice(r.i), ph: UI.safeImg(r.i.photo) || (r.i.img ? `img/qc/${r.i.img}.webp` : ""), e: r.i.e || "" }]);
+    extrasNote(); renderQuote(); saveDraft();
+    b.textContent = "✓"; b.disabled = true;
+    toastCart(t("cgElseNearAdded"));
+  }
+}, true);
 $("#catalogBox").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-cg-q]")) { e.preventDefault(); e.target.blur(); } });
 $("#catalogBox").addEventListener("click", e => {
   const be = e.target.closest("[data-boss-edit]"), bt = e.target.closest("[data-boss-toggle]");
