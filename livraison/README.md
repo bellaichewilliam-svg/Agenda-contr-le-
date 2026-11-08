@@ -320,6 +320,12 @@ Seulement le Sharon est ouvert (`zones` dans `config.js`). Tel Aviv – Gush Dan
 ### Gros colis (voiture)
 Pas encore de voiture : l'option « Gros colis » est cachée. Pour l'ouvrir, mettez `pricing.carAvailable: true` dans `config.js` (les prix voiture du Sharon sont déjà dans `fixedCarFromHome`).
 
+### Partager (bouton « Partager »)
+- **Partager HOP!** : sur l'accueil (en bas, avant « Explorer ») et dans « Mes courses ». Envoie le lien du site avec un petit texte FR / HE.
+- **Partager un commerce / resto** : bouton « Partager » en haut de la photo du commerce → lien `?c=CODE` qui ouvre directement sa page.
+- **Partager un rayon** (pharmacie, supermarché, boulangerie…) : petit bouton rond orange à côté du titre → lien `?k=rayon` (pas sur le rayon tabac).
+- Sur téléphone : la feuille de partage du téléphone (WhatsApp, SMS, Instagram…). Sinon : lien copié + WhatsApp. Tous les liens portent `src=partage` : on les retrouve dans 📊 Visites du site (« d'où ils viennent »).
+
 ## 1. Personnaliser — `config.js`
 
 | Réglage | À quoi ça sert |
