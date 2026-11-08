@@ -1821,7 +1821,7 @@ async function shopsShowcase() {
   }
   const cat = readJSON(LS.catalog, {});
   return localShops().filter(x => x.status === "actif" && (planActive(x) || x.showcase))
-    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, kosher: !!x.kosher, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null, tagline_he: x.tagline_he || null,
+    .map(x => ({ code: x.code, name: x.name, kind: x.kind, city: x.city, lat: x.lat == null ? null : Number(x.lat), lon: x.lon == null ? null : Number(x.lon), kosher: !!x.kosher, logo: x.logo || null, cover: x.cover || null, tagline: x.tagline || null, tagline_he: x.tagline_he || null,
       pro: planActive(x), shop_pays: !!x.shop_pays, promo: x.promo || null, promo_he: x.promo_he || null, rank: x.rank == null ? null : Number(x.rank),
       created_at: x.created_at || null, orders30: localOrders().filter(o => o.shop_id === x.id && ["confirmee", "recuperee", "livree"].includes(o.status) && Date.now() - new Date(o.created_at) < 30 * 86400000).length,
       client_pays: !!x.client_pays, hours: x.hours || null, products: ((cat[x.id] || {}).products || []).filter(p => p.available).length,

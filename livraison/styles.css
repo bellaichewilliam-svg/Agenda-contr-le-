@@ -5193,3 +5193,17 @@ html.for-client .wa-list { display: none !important; }
 .mg-wa { display: block; margin-top: 10px; text-align: center; font-weight: 700; font-size: 14.5px; color: #25D366; text-decoration: none; padding: 8px; }
 #shopWa { margin-top: 10px; }
 #waFab.fab-off { display: none !important; }
+/* Panier dans plusieurs magasins */
+.multi-box { display: grid; gap: 8px; margin: 12px 0; padding: 12px; border-radius: 16px; background: rgba(255,106,19,.08); box-shadow: inset 0 0 0 1.5px rgba(255,106,19,.45); text-align: start; }
+.multi-box .mb-t { font-size: 15px; }
+.mb-row { display: flex; align-items: center; gap: 8px; }
+.mb-row > span:first-child { flex: 1; min-width: 0; display: grid; }
+.mb-row > span:first-child b { font-size: 14.5px; }
+.mb-row small { opacity: .75; font-size: 12.5px; }
+.mb-row > em { font-style: normal; font-weight: 800; color: #FF6A13; white-space: nowrap; }
+.mb-btns { display: flex; gap: 6px; }
+.mb-btns button { border: 0; border-radius: 99px; padding: 6px 10px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; background: rgba(127,127,127,.18); color: inherit; }
+.mb-why, .mb-how { font-size: 12.5px; opacity: .8; line-height: 1.35; }
+.multi-next .mb-next { white-space: normal; }
+.cs-extra { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(127,127,127,.1); font-size: 14px; font-weight: 600; line-height: 1.4; }
+.cs-extra small { display: block; margin-top: 4px; font-weight: 500; opacity: .75; font-size: 12.5px; }

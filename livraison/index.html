@@ -96,7 +96,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202611080258" />
+  <link rel="stylesheet" href="styles.css?v=202611080309" />
 <style id="splashCss">#splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0F1F3D;color:#fff;transition:opacity .35s ease}#splash.out{opacity:0;pointer-events:none}#splash svg{width:min(58vw,300px);height:auto;display:block}#splash span{font:700 16px/1 Rubik,-apple-system,Arial,sans-serif;letter-spacing:.42em;margin-inline-start:.42em;opacity:.92}</style>
 </head>
 <body>
@@ -599,6 +599,7 @@
         <h3 style="margin-bottom:8px" data-i18n="summary"></h3>
         <ul id="quoteLines"></ul>
         <div class="total"><span data-i18n="total"></span><b id="quoteTotal">—</b></div>
+        <div class="multi-box hidden" id="multiSum"></div>
         <p class="muted small" id="quoteNote" style="margin:8px 0 14px"></p>
         <p class="notice err hidden" id="formError" style="margin-bottom:12px"></p>
         <button class="btn btn-primary btn-block btn-lg" type="submit" id="submitBtn"></button>
@@ -737,6 +738,8 @@
     <h3 class="cs-title" id="cartTitle"></h3>
     <div class="cs-list" id="cartBody"></div>
     <div class="cs-total"><span data-i18n="csTotal"></span><b id="cartSum"></b></div>
+    <div class="cs-extra hidden" id="cartRest"></div>
+    <div class="multi-box hidden" id="multiCart"></div>
     <p class="cs-note" id="cartNote"></p>
     <div class="cs-btns">
       <button type="button" class="btn btn-primary btn-lg" id="cartGo" data-i18n="csGo"></button>
@@ -812,6 +815,7 @@
     <h3 data-i18n="doneTitle"></h3>
     <p id="doneText"></p>
     <p class="muted small" id="doneSub"></p>
+    <div class="multi-box multi-next hidden" id="multiDone"></div>
     <div class="pay-box hidden" id="donePrepay" style="margin-top:12px;text-align:start"></div>
     <div class="notice hidden" id="doneAccount" style="margin-top:10px;text-align:start"></div>
     <div class="confetti" id="confetti" aria-hidden="true"></div>
@@ -827,16 +831,16 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202611080258"></script>
-<script src="i18n.js?v=202611080258"></script>
-<script src="pricing.js?v=202611080258"></script>
-<script src="store.js?v=202611080258"></script>
-<script src="chat.js?v=202611080258"></script>
-<script src="common.js?v=202611080258"></script>
-<script src="enseignes.js?v=202611080258"></script>
-<script src="places.js?v=202611080258"></script>
-<script src="rayons.js?v=202611080258"></script>
-<script src="client.js?v=202611080258"></script>
+<script src="config.js?v=202611080309"></script>
+<script src="i18n.js?v=202611080309"></script>
+<script src="pricing.js?v=202611080309"></script>
+<script src="store.js?v=202611080309"></script>
+<script src="chat.js?v=202611080309"></script>
+<script src="common.js?v=202611080309"></script>
+<script src="enseignes.js?v=202611080309"></script>
+<script src="places.js?v=202611080309"></script>
+<script src="rayons.js?v=202611080309"></script>
+<script src="client.js?v=202611080309"></script>
 <script>(function(){var s=document.getElementById("splash");if(!s)return;var t0=Date.now();function off(){var w=0;setTimeout(function(){s.classList.add("out");setTimeout(function(){s.remove()},400)},w)}off()})();</script>
 </body>
 </html>
