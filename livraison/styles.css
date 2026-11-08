@@ -5207,3 +5207,9 @@ html.for-client .wa-list { display: none !important; }
 .multi-next .mb-next { white-space: normal; }
 .cs-extra { margin: 10px 0 0; padding: 10px 12px; border-radius: 12px; background: rgba(127,127,127,.1); font-size: 14px; font-weight: 600; line-height: 1.4; }
 .cs-extra small { display: block; margin-top: 4px; font-weight: 500; opacity: .75; font-size: 12.5px; }
+.cs-extra .cr-t { display: block; margin-bottom: 6px; }
+.cr-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.cr-pic { flex: none; width: 38px; height: 38px; border-radius: 10px; background: #fff; display: grid; place-items: center; overflow: hidden; font-size: 20px; }
+.cr-pic img { width: 100%; height: 100%; object-fit: contain; }
+.cr-n { flex: 1; min-width: 0; }
+.cr-row em { font-style: normal; font-weight: 800; color: #FF6A13; white-space: nowrap; }

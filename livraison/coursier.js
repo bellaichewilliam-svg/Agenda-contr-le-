@@ -836,7 +836,12 @@ function card(o, kind) {
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
   if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
-  if (o.hop_buy) extra += hopBuyLine(o, kind);
+  if (o.hop_buy) {
+    extra += hopBuyLine(o, kind);
+    // « À prendre aussi (au plus près) » : une case par article, comme la liste du magasin
+    const ex = String(o.shop_order || "").split("\n");
+    if (kind === "mine" && ex.length > 2) extra += freeListBox({ id: o.id + "-x", shopping_list: ex.slice(1).join("\n") });
+  }
   else if (o.service === "achat") extra += (kind === "mine" ? freeListBox(o) : "") + `<div class="small">🛒 ${kind === "mine" && freeListItems(o).length >= 2 ? "" : UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
     ? `💵 <b>Espèces : vous payez le magasin, ${UI.money(o.goods_budget)} au plus</b> (vous avez annoncé avoir les espèces). 🧾 Photo du ticket, puis le client vous paie la course + le ticket exact à la livraison.`
     : o.goods_after ? `🧾 <b>Vous avancez les articles : ${UI.money(o.goods_budget)} au plus.</b> Le client paie d'abord la course (« 📱 Payé par Bit » ✅), puis vous achetez. Plus cher que ${UI.money(o.goods_budget)} ? Appelez-le avant de payer. 🧾 Photo du ticket : le client vous envoie le montant exact par Bit, touchez « Ticket reçu », puis livrez.`

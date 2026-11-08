@@ -2872,7 +2872,7 @@ async function submit(e) {
     form.phone_order.checked = false; form.phone_paid.checked = false; form.fits_topcase.checked = false;
     form.querySelector('input[name=goods_mode][value=prepay]').checked = true; form.budget.dataset.manual = "";
     ["rx", "post_send", "p2p_sale", "sale_paid", "handoff"].forEach(k => { form.elements[k].checked = false; }); state.phoneReady = null;
-    state.cart = {}; renderCatalog();
+    state.cart = {}; state.extras = []; renderCatalog();
     state.pharma = {}; state.pharmaOpt = {};
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
@@ -3782,9 +3782,13 @@ function renderCart() {
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
   }).join("") + `<p class="sw-hint">${UI.esc(t("swHint"))}</p>`;
   $("#cartSum").textContent = money(cartTotal());
-  const rest = form.shop_order.value.trim();
+  const rest = form.shop_order.value.trim(), ex = (state.extras || []).filter(Boolean);
+  const exOn = ex.length && rest.includes(t("mgAlso"));
   $("#cartRest").classList.toggle("hidden", !rest);
-  $("#cartRest").innerHTML = rest ? `📝 ${UI.esc(rest)}<small>${UI.esc(t("csRestS"))}</small>` : "";
+  $("#cartRest").innerHTML = exOn ? `<b class="cr-t">🛵 ${UI.esc(t("csRestT", { name: shopShortName() }))}</b>`
+      + ex.map(x => `<div class="cr-row"><span class="cr-pic">${x.ph ? `<img src="${UI.esc(x.ph)}" alt="" loading="lazy" />` : UI.esc(x.e || "🛒")}</span><span class="cr-n">${x.q > 1 ? x.q + " × " : ""}${UI.esc(x.n)}</span><em>${x.p ? "≈ " + UI.esc(money(x.p)) : ""}</em></div>`).join("")
+      + `<small>${UI.esc(t("csRestS", { name: shopShortName() }))}</small>`
+    : rest ? `📝 ${UI.esc(rest)}` : "";
   renderMulti();
   cartExtras();
   const nm = state.shop ? shopShortName() : "";
@@ -5813,32 +5817,52 @@ $("#homeFindList").addEventListener("mousedown", e => { if (e.target.closest("bu
 async function magicToCart(code, withRest) {
   const m = state.magic;
   if (!m || !code) return;
-  // Les lignes sans produit de ce magasin dans la recherche : on les cherche ensuite dans SON catalogue (pain, œufs…)
-  const left = withRest ? m.lines.filter(l => l.on && !l.cands.some(c => c.code === code)) : [];
-  // Pour chaque article : le produit choisi s'il est de ce magasin, sinon le meilleur de ce magasin
-  const want = m.lines.filter(l => l.on).map(l => { const i = typeof l.pick === "number" && l.cands[l.pick].code === code ? l.pick : l.cands.findIndex(c => c.code === code); return i >= 0 ? { id: l.cands[i].id, qty: l.qty } : null; }).filter(Boolean);
+  const on = m.lines.filter(l => l.on);
+  // Chaque article va là où on l'a trouvé (patron, 08/11) :
+  //  1. produit de ce magasin → son panier ;
+  //  2. produit d'un AUTRE magasin sur HOP! → le panier de cet autre magasin (gardé : commande en plusieurs magasins) ;
+  //  3. sinon (courses HOP!, rien de précis) → d'abord le catalogue de ce magasin, puis « à prendre aussi » au plus
+  //     près par le livreur, avec l'équivalent trouvé, sa photo et son prix indicatif (rien ne se perd).
+  const mine = [], others = {}, left = [];
+  on.forEach(l => {
+    const i = typeof l.pick === "number" && l.cands[l.pick].code === code ? l.pick : l.cands.findIndex(c => c.code === code);
+    if (i >= 0) { mine.push({ id: l.cands[i].id, qty: l.qty }); return; }
+    const c = withRest && typeof l.pick === "number" ? l.cands[l.pick] : null;
+    if (c && c.code && c.code !== code) { (others[c.code] = others[c.code] || []).push({ c, qty: l.qty }); return; }
+    if (withRest) left.push(l);
+  });
   $("#homeFindList").classList.add("hidden"); $("#homeFind").value = ""; $("#homeFind").blur();
   state.findItem = null; state.cgQNext = ""; state.shopDir = "";
-  UI.track("home_magic_cart", { shop_code: code, n: want.length });
+  UI.track("home_magic_cart", { shop_code: code, n: mine.length });
   await loadShop(code);
   if (!state.shop) return;
   const have = new Set(cgProducts().filter(p => p.available).map(p => p.id));
-  want.forEach(w => { if (have.has(w.id)) state.cart[w.id] = Math.min(50, (state.cart[w.id] || 0) + w.qty); });
-  // Chaque ligne restante : le meilleur produit de ce catalogue (même règle que la liste de Hoppy) ; sinon, elle part
-  // dans la précision pour ce magasin (rien ne se perd)
-  const avail = cgProducts().filter(p => p.available), rest = [];
+  mine.forEach(w => { if (have.has(w.id)) state.cart[w.id] = Math.min(50, (state.cart[w.id] || 0) + w.qty); });
+  // Les autres magasins : leur panier est gardé, prêt à valider après (livraison +10 ₪ s'il est proche)
+  Object.entries(others).forEach(([oc, list]) => {
+    const sc = (state.showcase || []).find(x => x.code === oc) || null, nm = String(UI.bi(list[0].c.shop || (sc && sc.name) || oc));
+    const prev = state.multi[oc] || { cart: {}, lines: [], count: 0, total: 0 };
+    list.forEach(({ c, qty }) => { prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + qty); prev.lines.push({ n: UI.bi(c.name), q: qty }); prev.count += qty; prev.total += (Number(c.price) || 0) * qty; });
+    state.multi[oc] = Object.assign(prev, { code: oc, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null, mods: prev.mods || {}, note: prev.note || "", at: Date.now() });
+  });
+  if (Object.keys(others).length) multiSave();
+  // Le reste : d'abord dans le catalogue de ce magasin, sinon « à prendre aussi » au plus près
+  const avail = cgProducts().filter(p => p.available), extra = [];
   left.forEach(l => {
     const q = String(l.name).replace(/^\d+\s*(x|×)?\s*/i, "").replace(/^(du|de la|de l'|des|un|une|le|la|les|d')\s*/i, "").trim() || l.name;
     const sc = mgScorer(q), best = avail.map(p => [p, sc(p)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0];
-    if (best) state.cart[best[0].id] = Math.min(50, (state.cart[best[0].id] || 0) + l.qty);
-    else rest.push((l.qty > 1 ? l.qty + " × " : "") + (l.pick === "r" && l.r ? phName(l.r.i) : l.name));
+    if (best) { state.cart[best[0].id] = Math.min(50, (state.cart[best[0].id] || 0) + l.qty); return; }
+    const r = l.pick === "r" && l.r ? l.r.i : (l.r && l.pick !== "x" ? l.r.i : null);
+    extra.push({ n: r ? phName(r) : l.name, q: l.qty, p: r ? rayPrice(r) * l.qty : 0, ph: r ? (UI.safeImg(r.photo) || (r.img ? `img/qc/${r.img}.webp` : "")) : "", e: r ? r.e || "" : "" });
   });
-  if (rest.length && form.shop_order) {
-    const cur = form.shop_order.value.trim();
-    form.shop_order.value = (cur ? cur + "\n" : "") + t("mgAlso") + " " + rest.join(", ");
+  state.extras = extra;
+  if (extra.length && form.shop_order) {
+    const cur = form.shop_order.value.trim().split("\n").filter(x => x && !x.startsWith(t("mgAlso"))).join("\n");
+    const lines = extra.map(x => `${x.q > 1 ? x.q + " × " : ""}${x.n}${x.p ? ` (≈ ${money(x.p)})` : ""}`);
+    form.shop_order.value = (cur ? cur + "\n" : "") + t("mgAlso") + "\n" + lines.join("\n");
     form.shop_order.dispatchEvent(new Event("input", { bubbles: true }));
   }
-  renderCatalog(); renderQuote();
+  renderCatalog(); renderQuote(); renderCartIcon();
   if (cartCount()) setTimeout(openCart, 250);
 }
 // Vitrine : dès qu'on écrit, la recherche remonte en haut de l'écran (les résultats ont toute la place)
@@ -6123,6 +6147,7 @@ if (location.hash === "#devis") setTimeout(() => openRequest("tournee"), 300);
 // On quitte le commerce choisi (« Ne plus commander chez… », ou une autre tuile de l'accueil)
 function leaveShop(quiet) {
   multiPark();
+  state.extras = [];
   const side = shopSide() || "from";
   forgetOpenShop();
   state.shop = null;
