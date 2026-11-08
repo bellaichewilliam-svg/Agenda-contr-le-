@@ -225,8 +225,8 @@ def render(pid, cfg, src, lang, xoff, outdir, dest):
     S["hook2"] = text_sprite(cfg["hook"][other], 60, SKY, wght=700, wrap=False)
     pl = cfg["punch"][lang] if isinstance(cfg["punch"][lang], list) else [cfg["punch"][lang]]
     p1, p2 = pl[0], (pl[1] if len(pl) > 1 else "")
-    S["p1"] = text_sprite(p1, 104, WHITE)
-    S["p2"] = text_sprite(p2, 104, ORANGE) if p2 else None
+    S["p1"] = text_sprite(p1, 104, WHITE, wrap=False)
+    S["p2"] = text_sprite(p2, 104, ORANGE, wrap=False) if p2 else None
     po = cfg["punch"][other]; po = " ".join(po) if isinstance(po, list) else po
     S["p_o"] = text_sprite(po, 52, SKY, wght=700, wrap=False)
     end = cfg.get("end", {})

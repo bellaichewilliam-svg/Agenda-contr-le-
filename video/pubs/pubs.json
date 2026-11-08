@@ -676,5 +676,112 @@
     },
     "titre": "🕺 Nouveau · Quand ta commande arrive (10 s)",
     "aud": "client"
+  },
+  "call-center-zombies": {
+    "hook": {
+      "fr": "16 H AU CALL CENTER ?",
+      "he": "16:00 במוקד?"
+    },
+    "punch": {
+      "fr": [
+        "LE SUCRE",
+        "ARRIVE."
+      ],
+      "he": [
+        "הסוכר",
+        "בדרך."
+      ]
+    },
+    "titre": "🧟 Nouveau · 16 h au call center (10 s)",
+    "aud": "client"
+  },
+  "distributeur-vide": {
+    "hook": {
+      "fr": "LE DISTRIBUTEUR EST VIDE ?",
+      "he": "המכונה ריקה?"
+    },
+    "punch": {
+      "fr": [
+        "ON EST MIEUX",
+        "QU'UN DISTRIBUTEUR."
+      ],
+      "he": [
+        "אנחנו יותר",
+        "טובים ממכונה."
+      ]
+    },
+    "titre": "🥤 Nouveau · Le distributeur est vide (10 s)",
+    "aud": "client"
+  },
+  "reunion-3h": {
+    "hook": {
+      "fr": "RÉUNION DE 3 HEURES ?",
+      "he": "ישיבה של 3 שעות?"
+    },
+    "punch": {
+      "fr": [
+        "ON NOURRIT",
+        "TOUTE LA SALLE."
+      ],
+      "he": [
+        "מאכילים",
+        "את כל החדר."
+      ]
+    },
+    "titre": "📊 Nouveau · La réunion de 3 heures (10 s)",
+    "aud": "client"
+  },
+  "canette-glacee": {
+    "hook": {
+      "fr": "15 H, ET LA CLIM EST EN PANNE ?",
+      "he": "15:00, והמזגן התקלקל?"
+    },
+    "punch": {
+      "fr": [
+        "CANETTES GLACÉES,",
+        "LIVRÉES AU BUREAU."
+      ],
+      "he": [
+        "פחיות קרות כקרח,",
+        "עד המשרד."
+      ]
+    },
+    "titre": "🧊 Nouveau · La canette glacée au bureau (10 s)",
+    "aud": "client"
+  },
+  "bureau-stade": {
+    "hook": {
+      "fr": "QUAND LA COMMANDE ARRIVE AU BUREAU…",
+      "he": "כשההזמנה מגיעה למשרד…"
+    },
+    "punch": {
+      "fr": [
+        "ET",
+        "HOP !"
+      ],
+      "he": [
+        "והופ!"
+      ]
+    },
+    "titre": "📣 Nouveau · Quand la commande arrive au bureau (10 s)",
+    "aud": "client"
+  },
+  "hoppy-bureau": {
+    "hook": {
+      "fr": "LA PAUSE, VERSION HOPPY",
+      "he": "ההפסקה, בסגנון הופי"
+    },
+    "punch": {
+      "fr": [
+        "SNACKS ET BOISSONS",
+        "FRAÎCHES AU BUREAU."
+      ],
+      "he": [
+        "חטיפים ושתייה קרה",
+        "עד המשרד."
+      ]
+    },
+    "titre": "🦘 Nouveau · La pause, version Hoppy (10 s)",
+    "aud": "client"
   }
 }
