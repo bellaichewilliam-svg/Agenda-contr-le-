@@ -329,10 +329,10 @@ def render(pid, cfg, src, lang, xoff, outdir, dest):
     final = os.path.join(dest, f"{pid}-video-{lang}.mp4")
     if has_audio:
         fc = ("[0:a]aresample=48000,apad=whole_dur=10,afade=t=out:st=8.2:d=1.8,volume=1.1[amb];[1:a]aresample=48000[s];"
-              "[amb][s]amix=inputs=2:normalize=0:duration=longest,atrim=0:10,alimiter=limit=0.7,aformat=channel_layouts=stereo[aout]")
+              "[amb][s]amix=inputs=2:normalize=0:duration=longest,atrim=0:10,alimiter=limit=0.7:level=0,aformat=channel_layouts=stereo[aout]")
         cmd = ["ffmpeg", "-v", "error", "-y", "-i", src, "-i", sfx, "-i", tmpv, "-filter_complex", fc, "-map", "2:v", "-map", "[aout]"]
     else:
-        fc = "[0:a]aresample=48000,apad=whole_dur=10,atrim=0:10,alimiter=limit=0.7,aformat=channel_layouts=stereo[aout]"
+        fc = "[0:a]aresample=48000,apad=whole_dur=10,atrim=0:10,alimiter=limit=0.7:level=0,aformat=channel_layouts=stereo[aout]"
         cmd = ["ffmpeg", "-v", "error", "-y", "-i", sfx, "-i", tmpv, "-filter_complex", fc, "-map", "1:v", "-map", "[aout]"]
     subprocess.run(cmd + ["-c:v", "libx264", "-crf", "24", "-preset", "medium", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", final], check=True)
     os.remove(tmpv)
