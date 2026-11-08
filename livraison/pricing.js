@@ -167,8 +167,30 @@ function checkSchedule(date, cfg, now) {
   const { day, hour } = localParts(date, cfg.timezone);
   const slot = cfg.hours[day];
   if (!slot) return { key: "errClosedDay" };
-  if (hour < slot[0] || hour > slot[1]) return { key: "errHours", vars: { open: slot[0], close: slot[1] } };
+  if (hour < slot[0] || hour > slot[1]) return { key: "errHours", vars: { open: hourTxt(slot[0]), close: hourTxt(slot[1]) } };
   return null;
+}
+
+// 8 → « 8:00 », 7.5 → « 7:30 »
+function hourTxt(h) {
+  const m = Math.round(Number(h) * 60);
+  return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, "0")}`;
+}
+// Horaires choisis par le patron (settings.hours : { "0": [8, 23] ou null, … }) : remplacent ceux de config.js
+// (seulement s'ils sont valides : 7 jours, ouverture avant fermeture, entre 0 et 24 h)
+function applyHours(cfg, hours) {
+  if (!hours || typeof hours !== "object") return false;
+  const out = {};
+  for (let d = 0; d < 7; d++) {
+    const v = hours[d] != null ? hours[d] : hours[String(d)];
+    if (v === null || v === false) { out[d] = null; continue; }
+    if (!Array.isArray(v) || v.length !== 2) return false;
+    const a = Number(v[0]), b = Number(v[1]);
+    if (!(a >= 0 && b <= 24 && a < b)) return false;
+    out[d] = [a, b];
+  }
+  Object.assign(cfg.hours, out);
+  return true;
 }
 
 function isOpenNow(cfg, now) {
@@ -225,7 +247,7 @@ function purchaseTier(cfg, opts) {
 // Prix voiture (gros colis) entre la ville principale et une ville, ou null
 function carPrice(cfg, fromId, toId) { return cfg.pricing.carAvailable === false ? null : fixedPrice(cfg, fromId, toId, true); }
 
-const api = { areaOf, kmToArea, computeQuote, purchaseTier, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
+const api = { areaOf, kmToArea, computeQuote, purchaseTier, cityToCity, carPrice, cityById, checkSchedule, isOpenNow, hourTxt, applyHours, localParts, haversineKm, etaMinutes, geocode, stopDetourKm };
 if (typeof module !== "undefined" && module.exports) module.exports = api;
 else root.Pricing = api;
 

@@ -259,8 +259,52 @@ function renderAvail() {
   if (![...bf.options].some(x => x.value === v)) bf.add(new Option(v + " s", v));
   if (document.activeElement !== bf) bf.value = v;
   $("#zonesChips").innerHTML = CONFIG.zones.map(z => `<button type="button" class="chip${UI.zoneActive(z.id) ? " on" : ""}" data-zone="${UI.esc(z.id)}">${UI.zoneActive(z.id) ? "🟢" : "⚪"} ${UI.esc(z.fr)}</button>`).join("");
+  renderHoursNow();
   $("#bossOnlyText").textContent = bossOnly() ? "🔒 Seul vous recevez les courses : les livreurs ne voient rien tant que vous ne leur donnez pas une course." : "";
 }
+
+// --- Mes horaires (08/11) : le patron les change ici ; l'appli client les lit dans settings.hours ------------------
+const DAYS_FR = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
+const bossHours = () => { const h = JSON.parse(JSON.stringify(CONFIG.hours)); Pricing.applyHours({ hours: h }, settings.hours); return h; };
+const hToTime = h => { const m = Math.min(1439, Math.round(h * 60)); return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; };
+const timeToH = v => { const m = /^(\d{1,2}):(\d{2})$/.exec(v || ""); return m ? Number(m[1]) + Number(m[2]) / 60 : null; };
+function renderHoursNow() {
+  const h = bossHours(), d = new Date().getDay(), s = h[d];
+  $("#hoursNow").textContent = `🕘 Aujourd'hui : ${s ? `${Pricing.hourTxt(s[0])} – ${Pricing.hourTxt(s[1])}` : "fermé"}`;
+}
+function openHoursEd() {
+  const ed = $("#hoursEd"), h = bossHours();
+  if (!ed.classList.contains("hidden")) { ed.classList.add("hidden"); return; }
+  ed.innerHTML = `<p class="small muted">Vos heures d'ouverture pour les clients (heure d'Israël). En dehors, ils peuvent programmer pour plus tard ; avant l'ouverture, l'appli s'ouvre quand même si un livreur est en service.</p>
+    ${DAYS_FR.map((n, i) => `<div class="hd-row"><label class="hd-day"><input type="checkbox" name="on${i}"${h[i] ? " checked" : ""} /> ${n}</label>
+      <input type="time" name="a${i}" value="${h[i] ? hToTime(h[i][0]) : "08:00"}" step="900"${h[i] ? "" : " disabled"} /> <span>→</span> <input type="time" name="b${i}" value="${h[i] ? hToTime(Math.min(h[i][1], 23.99)) : "23:00"}" step="900"${h[i] ? "" : " disabled"} /></div>`).join("")}
+    <p class="hd-err hidden"></p>
+    <div class="hd-btns"><button type="submit" class="btn btn-primary">Enregistrer</button><button type="button" class="btn" data-hd-cancel>Annuler</button></div>`;
+  ed.classList.remove("hidden");
+}
+$("#hoursBtn").addEventListener("click", openHoursEd);
+$("#hoursEd").addEventListener("click", e => { if (e.target.closest("[data-hd-cancel]")) $("#hoursEd").classList.add("hidden"); });
+$("#hoursEd").addEventListener("change", e => {
+  const m = /^on(\d)$/.exec(e.target.name || "");
+  if (m) $("#hoursEd").querySelectorAll(`[name=a${m[1]}],[name=b${m[1]}]`).forEach(x => { x.disabled = !e.target.checked; });
+});
+$("#hoursEd").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = e.target, hours = {}, err = f.querySelector(".hd-err");
+  for (let i = 0; i < 7; i++) {
+    if (!f.elements["on" + i].checked) { hours[i] = null; continue; }
+    const a = timeToH(f.elements["a" + i].value), b0 = timeToH(f.elements["b" + i].value), b = b0 === 0 ? 24 : b0;
+    if (a == null || b == null || !(a < b)) { err.textContent = `${DAYS_FR[i]} : l'heure de fermeture doit être après l'ouverture.`; err.classList.remove("hidden"); return; }
+    hours[i] = [a, b];
+  }
+  try {
+    await Store.saveSettings({ hours });
+    settings.hours = hours;
+    f.classList.add("hidden");
+    renderHoursNow();
+    alert("✅ Horaires enregistrés : les clients les voient dès qu'ils ouvrent l'appli.");
+  } catch (ex) { err.textContent = "Pas enregistré (connexion ?). Réessayez."; err.classList.remove("hidden"); }
+});
 
 async function toggleAvail() {
   const changes = { accepting: !settings.accepting, message: $("#availMsg").value.trim() || null };

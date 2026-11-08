@@ -5264,3 +5264,13 @@ html.for-client .wa-list { display: none !important; }
 .bs-row { display: flex; gap: 10px; flex-wrap: wrap; }
 .bs-row .f { flex: 1 1 120px; }
 .bs-file { cursor: pointer; }
+/* Mes horaires (panneau patron) */
+.hours-row { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.hours-ed { margin-top: 8px; padding: 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--card, #fff); display: grid; gap: 6px; }
+.hd-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 4px 8px; padding: 6px 0; border-top: 1px solid var(--border); }
+.hd-day { grid-column: 1 / -1; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.hd-day input { width: 20px; height: 20px; accent-color: #FF6A13; }
+.hd-row input[type=time] { width: 100%; min-width: 0; font: inherit; font-size: 15px; padding: 6px; border-radius: 8px; border: 1px solid var(--border); box-sizing: border-box; }
+.hd-row input[type=time]:disabled { opacity: .4; }
+.hd-err { color: #C62828; font-weight: 700; margin: 0; }
+.hd-btns { display: flex; gap: 8px; }

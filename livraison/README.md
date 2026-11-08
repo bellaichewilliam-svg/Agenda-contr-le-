@@ -938,3 +938,8 @@ livraison/
 - Le patron voit d'où vient chaque photo (« 📷 Photo Carrefour », « 📷 Votre photo », « ⚠️ Pas de vraie photo ») et combien d'articles n'ont pas de vraie photo.
 - Pour tout le monde : « 🛵 Le livreur achète : … » (le magasin choisi, sinon le plus proche du client). Les produits Carrefour (id `cf…`) portent l'étiquette « Carrefour » et la mention « [Carrefour] » dans la liste du livreur.
 - Photos Carrefour acceptées : dossiers `gs1-products/`, `product-images/` et `items/` du site (`UI.extPic`, `ext_photo_ok`).
+
+### Mes horaires (08/11/2026)
+- Panneau patron, encart « Je prends des commandes » : « 🕘 Aujourd'hui : 8:00 – 23:00 » et le bouton « 🕘 Mes horaires » (chaque jour : ouvert ou fermé, heure d'ouverture et de fermeture, au quart d'heure ; 00:00 = minuit).
+- Enregistré dans `settings.hours` (`supabase/horaires-patron.sql`). L'appli client remplace les horaires de `config.js` au chargement des réglages (`Pricing.applyHours`) : tableau des horaires, « Ouvert maintenant », programmation (« Ce jour-là, nous travaillons de 7:30 à 16:00 »).
+- Avant l'ouverture, l'appli s'ouvre quand même si un livreur est en service avec une position récente (moins de 3 h).
