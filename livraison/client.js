@@ -221,7 +221,7 @@ function renderStatic() {
   const days = t("days");
   $("#hoursTable").innerHTML = days.map((d, i) => {
     const h = CONFIG.hours[i];
-    return `<tr><td>${d}</td><td dir="ltr">${h ? `${h[0]}:00 – ${h[1]}:00` : `<span class="muted">${t("closed")}</span>`}</td></tr>`;
+    return `<tr><td>${d}</td><td dir="ltr">${h ? `${Pricing.hourTxt(h[0])} – ${Pricing.hourTxt(h[1])}` : `<span class="muted">${t("closed")}</span>`}</td></tr>`;
   }).join("");
 }
 
@@ -3429,7 +3429,7 @@ function renderAll() {
 }
 
 async function loadSettings() {
-  try { state.settings = await Store.getSettings(); UI.setZonesOpen(state.settings.zones_open); } catch (e) { /* on garde « disponible » */ }
+  try { state.settings = await Store.getSettings(); UI.setZonesOpen(state.settings.zones_open); Pricing.applyHours(CONFIG, state.settings.hours); } catch (e) { /* on garde « disponible » */ }
   renderStatic();
   renderQuote();
   renderShowcase();   // les rangées de l'accueil choisies par le patron
