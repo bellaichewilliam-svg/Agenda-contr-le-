@@ -477,5 +477,27 @@
     },
     "titre": "🍣 Nouveau · Une envie de sushi ? Même Hoppy commande sur HOP! (10 s)",
     "aud": "client"
+  },
+  "liste-magique": {
+    "hook": {
+      "fr": "ÉCRIVEZ VOTRE LISTE…",
+      "he": "כתבו את הרשימה…"
+    },
+    "punch": {
+      "fr": [
+        "ON FAIT",
+        "LE RESTE !"
+      ],
+      "he": [
+        "אנחנו עושים",
+        "את השאר!"
+      ]
+    },
+    "sub": {
+      "fr": "Tapez-la sur HOP! : on trouve chaque article.",
+      "he": "כתבו אותה ב-HOP!: אנחנו מוצאים כל מוצר."
+    },
+    "titre": "✨ Nouveau · Écrivez votre liste, on fait le reste (10 s)",
+    "aud": "client"
   }
 }

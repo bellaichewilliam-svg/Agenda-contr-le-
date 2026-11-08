@@ -339,12 +339,13 @@ def main():
     ap.add_argument("--x", type=int, default=None, help="vidéo horizontale : décalage du recadrage carré")
     ap.add_argument("--only", choices=["fr", "he"])
     ap.add_argument("--test", action="store_true", help="essai : la vidéo reste dans video/out/pubs, pas dans le kit")
+    ap.add_argument("--kit", action="store_true", help="ajouter la pub à l'onglet Vidéos du kit (seulement quand le patron l'a validée)")
     a = ap.parse_args()
     cfg = json.load(open(os.path.join(HERE, "pubs.json"), encoding="utf-8"))[a.id]
     outdir = os.path.join(ROOT, "video", "out", "pubs"); os.makedirs(outdir, exist_ok=True)
     for lang in ([a.only] if a.only else ["fr", "he"]):
         render(a.id, cfg, a.src, lang, a.x, outdir, outdir if a.test else os.path.join(ROOT, "livraison", "kit", "visuels"))
-    if not a.test:
+    if a.kit and not a.test:
         add_to_kit(a.id, cfg)
 
 
