@@ -169,7 +169,9 @@ function renderStatic() {
   $("#perkWelcome").textContent = PROMOS.welcomeOn === false ? "" : t("perkWelcome", { price: money(welcomePrice()) });
   $("#perkWelcome").classList.toggle("hidden", PROMOS.welcomeOn === false);
   const avail = state.settings.accepting;
-  $("#availBanner").classList.toggle("hidden", avail);
+  // Accueil vitrine : la pastille « Commandez maintenant, on vous livre dès l'ouverture » suffit (pas de doublon),
+  // sauf si le patron a écrit son propre message de fermeture
+  $("#availBanner").classList.toggle("hidden", avail || (vitOn() && !(state.settings.message || "").trim()));
   $("#availText").textContent = (state.settings.message || "").trim() || t("closedBanner");
   renderOpenBadge();
   $("#expressSmall").textContent = `${t("w_express_d")} · +${money(P.express)}`;
@@ -4241,7 +4243,8 @@ function renderOpenBadge() {
   if (D2 && !open) {
     // Nouveau design : une fine pastille sur une ligne (la carte reste dégagée) + « Programmer »
     const short = (t("k2Short") || {})[key] || txt.split(" · ")[0];
-    $("#openBadge").innerHTML = `<span class="ob-txt">${UI.esc(short)}</span><button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>`;
+    // Fermé : « Commandez maintenant, on vous livre dès l'ouverture » (patron, 08/11) : la commande part programmée d'office
+    $("#openBadge").innerHTML = `<span class="ob-txt">${UI.esc(short)}</span>${key === "allBusy" ? `<button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>` : ""}`;
     $("#openBadge").title = txt;
   } else $("#openBadge").textContent = txt;
   $("#openBadge").classList.toggle("closed", !open);
@@ -4331,7 +4334,7 @@ function vitRenderNow() {
   const open = openNow(), st = $("#vitStatus");
   if (!open) {
     const short = ($("#openBadge .ob-txt") || $("#openBadge")).textContent.trim();
-    st.innerHTML = `<span>${UI.esc(short)}</span><button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>`;
+    st.innerHTML = `<span>${UI.esc(short)}</span>${$("#openBadge [data-ob-plan]") ? `<button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>` : ""}`;
   }
   st.classList.toggle("hidden", open);
   const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)), city = I18N.cityName(CONFIG.homeCity);

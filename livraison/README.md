@@ -320,6 +320,9 @@ Seulement le Sharon est ouvert (`zones` dans `config.js`). Tel Aviv – Gush Dan
 ### Gros colis (voiture)
 Pas encore de voiture : l'option « Gros colis » est cachée. Pour l'ouvrir, mettez `pricing.carAvailable: true` dans `config.js` (les prix voiture du Sharon sont déjà dans `fixedCarFromHome`).
 
+### Fermé : « Commandez maintenant, on vous livre dès l'ouverture » (08/11)
+Quand le service est coupé (ou personne de connecté hors des heures), l'accueil n'affiche plus « Livreurs indisponibles » ni « Fermé » : une pastille « 🌙 Commandez maintenant, on vous livre dès l'ouverture » (sans heure), en français et en hébreu. La commande se fait normalement : elle est programmée d'office au premier créneau (le client peut changer le jour ou l'heure). Le bandeau rouge du haut n'apparaît plus sur l'accueil, sauf si le patron écrit son propre message de fermeture.
+
 ### Partager (bouton « Partager »)
 - **Partager HOP!** : en haut de l'accueil (petit bouton rond orange dans le coin de « Qu'est-ce qu'on vous apporte ? »), en bas de l'accueil (avant « Explorer ») et dans « Mes courses ». Envoie le lien du site avec un petit texte FR / HE.
 - **Partager un commerce / resto** : bouton « Partager » en haut de la photo du commerce → lien `?c=CODE` qui ouvre directement sa page.
