@@ -305,7 +305,7 @@ HOP! שירות משלוחים עצמאי ב${heHome}.` },
   { title: "🍔 McDo : phrases courtes qui accrochent (story, statut, TikTok)", dir: "ltr", text:
 `🍔 Le McDo casher livré chez vous, encore chaud : ${MCD_URL}
 🍟 Envie de McDo ? Vous restez sur le canapé, Hoppy y va : ${MCD_URL}
-🦘 Big Mac, nuggets, Crispy… on va le chercher, vous profitez : ${MCD_URL}
+🦘 Big Mac, nuggets, Crispy… on va le chercher pour vous : ${MCD_URL}
 🥤 Menu Géant, Coca Zero, potatoes ? Vous choisissez, on livre : ${MCD_URL}
 🧒 Soirée film avec les enfants ? Les menus enfants arrivent chez vous : ${MCD_URL}
 🌙 Samedi soir, après Chabbat : le McDo casher livré dès la réouverture : ${MCD_URL}
@@ -567,11 +567,11 @@ const CAPS = {
     fr: `🚀 Une envie ? Hoppy arrive.\nVos courses, vos boutiques, des fleurs, un repas, un colis, la pharmacie… Vous demandez, HOP! on livre, partout à Netanya.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais de service\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🚀 בא לכם משהו? הופי מגיע.\nקניות, חנויות, פרחים, אוכל, חבילות, פארם… אתם מבקשים, HOP! מביאים, בכל נתניה.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 0 ₪ דמי שירות\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   "hoppy-histoire": {
-    fr: `🦘 Une envie ? Et hop, livré !\nVos courses, vos boutiques préférées, des fleurs, un repas, la pharmacie, un colis… Vous commandez, Hoppy arrive. Vous profitez, on vous livre.\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Découvrez HOP! : ${APP_URL}\n${TAGS.fr}`,
-    he: `🦘 בא לכם משהו? והופ! זה מגיע.\nקניות, החנויות שאתם אוהבים, פרחים, אוכל, פארם, חבילות… אתם מזמינים, הופי כבר בדרך. אתם נהנים, אנחנו מגיעים.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 גלו את HOP!: ${APP_URL}?lang=he\n${TAGS.he}` },
+    fr: `🦘 Une envie ? Et hop, livré !\nVos courses, vos boutiques préférées, des fleurs, un repas, la pharmacie, un colis… Vous commandez, Hoppy arrive.\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Commander : ${APP_URL}\n${TAGS.fr}`,
+    he: `🦘 בא לכם משהו? והופ! זה מגיע.\nקניות, החנויות שאתם אוהבים, פרחים, אוכל, פארם, חבילות… אתם מזמינים, הופי כבר בדרך.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 להזמנה: ${APP_URL}?lang=he\n${TAGS.he}` },
   simple: {
-    fr: `🛵 Commander votre livreur n'a jamais été aussi simple.\nVous choisissez le restaurant, le magasin, la pharmacie ou le colis : HOP! le récupère et vous le livre, partout à Netanya.\n💸 Prix fixe : ${delFr} à Netanya, 0 frais de service\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Demandez votre livraison : ${APP_URL}\n${TAGS.fr}`,
-    he: `🛵 מעולם לא היה קל יותר להזמין שליח.\nאתם בוחרים מסעדה, חנות, בית מרקחת או חבילה: HOP! אוספת ומביאה עד אליכם, בכל נתניה.\n💸 מחיר קבוע: ${delFr} בנתניה, 0 ₪ דמי שירות\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 מזמינים משלוח: ${APP_URL}?lang=he\n${TAGS.he}` },
+    fr: `🛵 Un resto, un magasin, la pharmacie, un colis ? Dites-nous lequel, on y va.\nHOP! le récupère et vous l'apporte, partout à Netanya.\n💸 Prix fixe : ${delFr} à Netanya, 0 frais de service\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Demandez votre livraison : ${APP_URL}\n${TAGS.fr}`,
+    he: `🛵 מסעדה, חנות, בית מרקחת או חבילה? תגידו לנו מה, ואנחנו יוצאים לדרך.\nHOP! אוספים ומביאים עד אליכם, בכל נתניה.\n💸 מחיר קבוע: ${delFr} בנתניה, 0 ₪ דמי שירות\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 מזמינים משלוח: ${APP_URL}?lang=he\n${TAGS.he}` },
   "pas-encore": {
     fr: `🏪 Votre commerce n'est pas encore sur HOP! ?\nPas de souci : commandez directement auprès du commerce, attendez que ce soit prêt, puis demandez à HOP! d'aller le chercher. On vous le livre.\n🆕 De nouveaux catalogues arrivent chaque jour dans l'appli.\n🛵 Livraison à Netanya : ${delFr} · 📍 Suivi en direct · 💵 Espèces ou Bit\n👉 Demander une livraison : ${APP_URL}\n${TAGS.fr}`,
     he: `🏪 העסק שלכם עדיין לא מופיע ב-HOP!?\nאין בעיה: מזמינים ישירות מבית העסק, מחכים שההזמנה תהיה מוכנה, ומזמינים שליח HOP! שיאסוף ויביא אליכם.\n🆕 קטלוגים חדשים מצטרפים לאפליקציה בכל יום.\n🛵 משלוח בנתניה: ${delFr} · 📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 מזמינים משלוח: ${APP_URL}?lang=he\n${TAGS.he}` },

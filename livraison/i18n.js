@@ -166,7 +166,7 @@ fr: {
   vitFindN: "{n} articles", vitFindN1: "1 article", vitFindAll: "Tout voir", vitFindRay: "🛒 Courses HOP!", vitFindRaySub: "Le livreur va au magasin le plus proche", vitFindShops: "Commerces", vitToday: "Auj. {h}", vitTomorrow: "Demain {h}", vitShopsT: "🛍️ Faites vos courses", vitOther: "Autre heure", vitAsk: "Qu'est-ce qu'on vous apporte ?", vitAskEx: ["Un chargeur de téléphone…", "Du pain chaud et 6 œufs…", "Mes clés chez un ami…", "Un colis à la poste…", "Acamol et des mouchoirs…", "Un bouquet de fleurs…", "Un plat de mon resto préféré…"],
   vitAny: "On vous l'apporte : « {q} »", vitAnySub: "N'importe quel commerce : le livreur l'achète et vous le livre", vitTrust1: "💸 0 frais", vitTrust2: "📍 {price} en ville · {zone} ↔ zone ind.", vitTrust3: "📦 Tout commerce",
   hpNew: "Nouveau", hpTag: "✨ NOUVEAU", hpOnTag: "✅ Choisi", hpTitle: "💊 La pharmacie livrée chez vous", hpGo: "Choisir mes produits", k2Discover: "Découvrir", k2Prog: "Programmer",
-  hpSub: "Acamol, Optalgin, couches, lait bébé, sirops… {n} produits sans ordonnance à cocher en 1 toucher.",
+  hpSub: "Acamol, Optalgin, couches, lait bébé, sirops… {n} produits sans ordonnance, il suffit de cocher.",
   hpOnSub: "Touchez ici pour cocher vos produits.",
   phWhere: "Le livreur achète :", phWhereNear: "{shop} la plus proche de chez vous", phWhereShop: "le magasin", phWhereCf: "Articles marqués Carrefour : pris chez Carrefour.",
   phTitle: "💊 Les essentiels sans ordonnance", phSub: "Touchez + pour ajouter : ça part dans le message au livreur. Vous payez les articles au livreur avec la course (Bit d'avance ou espèces), ou le magasin vous-même.",
