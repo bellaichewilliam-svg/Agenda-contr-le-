@@ -328,6 +328,10 @@ Quand le service est coupé (ou personne de connecté hors des heures), l'accuei
 - **Arrivée facultative** : type de lieu, étage, n° d'appartement, code d'entrée et mot au livreur ne sont plus obligatoires (le livreur appelle s'il lui manque quelque chose). Ils restent obligatoires pour « sans contact ».
 - **« Envoyez votre liste sur WhatsApp »** : carte verte sous la recherche de l'accueil, et sous la liste de « J'achète pour vous ». Ouvre le WhatsApp de HOP! (`CONFIG.whatsapp`) avec un message prêt (FR / HE) : le client envoie une photo, un vocal ou du texte, et le patron crée la commande. Chaque clic est compté (`wa_list` dans site_steps).
 
+### ✅ Réponses WhatsApp + lien « commande prête » (08/11)
+- Panneau patron → Messages → **✅ Réponses WhatsApp** : réponses toutes faites FR / עברית (bonjour, quel magasin, pour quand, prix, paiement, commande prête, fermé, relance, merci), chacune avec 📋 Copier (à coller dans WhatsApp) ou WhatsApp › (ouvre votre WhatsApp perso, au numéro du client si vous l'avez tapé).
+- **Commande prête** : collez la liste du client dans la case ; le lien `index.html?liste=…&src=wa` ouvre HOP! sur « J'achète pour vous » avec la liste déjà écrite. Le client met son adresse et son téléphone et valide : la commande arrive dans « À accepter » comme les autres (suivi en direct, livreurs, paiement, reçu). S'il n'y arrive pas, le patron ouvre le lien et remplit pour lui.
+
 ### Partager (bouton « Partager »)
 - **Partager HOP!** : en haut de l'accueil (petit bouton rond orange dans le coin de « Qu'est-ce qu'on vous apporte ? »), en bas de l'accueil (avant « Explorer ») et dans « Mes courses ». Envoie le lien du site avec un petit texte FR / HE.
 - **Partager un commerce / resto** : bouton « Partager » en haut de la photo du commerce → lien `?c=CODE` qui ouvre directement sa page.
