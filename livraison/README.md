@@ -943,3 +943,9 @@ livraison/
 - Panneau patron, encart « Je prends des commandes » : « 🕘 Aujourd'hui : 8:00 – 23:00 » et le bouton « 🕘 Mes horaires » (chaque jour : ouvert ou fermé, heure d'ouverture et de fermeture, au quart d'heure ; 00:00 = minuit).
 - Enregistré dans `settings.hours` (`supabase/horaires-patron.sql`). L'appli client remplace les horaires de `config.js` au chargement des réglages (`Pricing.applyHours`) : tableau des horaires, « Ouvert maintenant », programmation (« Ce jour-là, nous travaillons de 7:30 à 16:00 »).
 - Avant l'ouverture, l'appli s'ouvre quand même si un livreur est en service avec une position récente (moins de 3 h).
+
+### Panier : on n'est jamais coincé (08/11/2026)
+- Sous les articles du panier, l'encart « 🛍️ Continuez vos courses chez … » (`renderCartNav`) :
+  - les rayons du magasin en boutons (ferme le panier et descend au rayon), et « 🔎 Voir tout … » ;
+  - « ➕ Un article de plus ? » : trouvé dans ce magasin (`mgScorer`) → ajouté au panier, sinon pris au plus près par le livreur (`state.extras`) ;
+  - « 🏪 Ajouter un autre magasin (+10 ₪) » : retour à la liste des commerces, ce panier reste gardé (commande en plusieurs magasins).
