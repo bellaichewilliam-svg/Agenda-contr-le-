@@ -9,6 +9,10 @@
 const DICT = {
 fr: {
   langSwitch: "עברית",
+  shareApp: "Partager HOP!", shareAppS: "Envoyez-la à vos amis : repas, courses, pharmacie, colis… livrés",
+  shareAppText: "HOP! : on vous livre tout à Netanya (repas, courses, pharmacie, colis…), dès 25 ₪ 🛵",
+  shareShop: "Partager", shareShopText: "{name} sur HOP! : commandez, on vous livre à Netanya 🛵", shareShopText2: "{name} : commandez, on vous livre à Netanya 🛵",
+  shareRayText: "{name} sur HOP! : on fait vos courses et on vous livre 🛵", shareCopied: "Lien copié ✓",
   wizStep: "Étape {n} sur {of}", wizT1: "On livre quoi, et où ?", wizT2: "Quelques précisions", wizT3: "Vous et le paiement",
   wizNext: "Continuer ›", wizBack: "‹ Retour", wizMore: "➕ Plus d'options", wizLess: "− Moins d'options",
   wizMoreSub2: "Aller-retour, arrêt en plus, poste, clés, sans contact, autre destinataire, contact sur place…",
@@ -841,6 +845,10 @@ fr: {
 
 he: {
   langSwitch: "Français",
+  shareApp: "לשתף את HOP!", shareAppS: "שלחו לחברים: אוכל, קניות, פארם, חבילות… עד הבית",
+  shareAppText: "HOP!: משלוחים של הכול בנתניה (אוכל, קניות, פארם, חבילות…), החל מ-25 ₪ 🛵",
+  shareShop: "לשתף", shareShopText: "{name} ב-HOP!: מזמינים, ואנחנו מביאים עד הבית בנתניה 🛵", shareShopText2: "{name}: מזמינים, ואנחנו מביאים עד הבית בנתניה 🛵",
+  shareRayText: "{name} ב-HOP!: עושים לכם את הקניות ומביאים עד הבית 🛵", shareCopied: "הקישור הועתק ✓",
   wizStep: "שלב {n} מתוך {of}", wizT1: "מה שולחים, ולאן?", wizT2: "עוד כמה פרטים", wizT3: "הפרטים שלך והתשלום",
   wizNext: "המשך ›", wizBack: "‹ חזרה", wizMore: "➕ עוד אפשרויות", wizLess: "− פחות אפשרויות",
   wizMoreSub2: "הלוך ושוב, עצירה בדרך, דואר, מפתחות, בלי מגע, נמען אחר, איש קשר במקום…",

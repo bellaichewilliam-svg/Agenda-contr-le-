@@ -1084,7 +1084,7 @@ function renderPharma() {
   const picked = rayonPicked(r), n = picked.reduce((a, [, q]) => a + q, 0);
   const inCat = c => picked.filter(([k]) => (r.items.find(i => i.id === k.slice(r.id.length + 1).split("|")[0]) || {}).c === c).reduce((a, [, q]) => a + q, 0);
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
-  const top = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small></div>
+  const top = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small>${r.id === "tabac" ? "" : `<button type="button" class="ph-share" data-share-ray="${UI.esc(r.id)}" aria-label="${UI.esc(t("shareShop"))}">${SHARE_SVG}</button>`}</div>
     ${rayonMeter(n)}`;
   // Recherche : dans tout le rayon (français et hébreu), sinon la rubrique choisie
   const q = phNorm((state.phQ || "").trim());
@@ -4019,7 +4019,7 @@ function renderShopBanner() {
     const vit = !s.pro && !s.demo && side === "from";
     // Commerce Pro : vitrine compacte (photo, logo, nom, une ligne d'infos) et les produits juste dessous
     const compact = !!s.pro;
-    const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}</div>
+    const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}${s.demo ? "" : `<button type="button" class="sh-share" data-share-shop aria-label="${UI.esc(t("shareShop"))}">${SHARE_SVG}<span>${UI.esc(t("shareShop"))}</span></button>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small>${shopStars(s)}</div></div>
       ${compact ? shopMeta(s) : `${shopReviewsFold(s)}
@@ -6433,6 +6433,30 @@ function emptyCartSheet() {
   });
   document.body.appendChild(box);
 }
+// --- Partager : l'appli, un commerce, un rayon (le lien s'ouvre directement au bon endroit) -------------
+// Téléphone : la feuille de partage du téléphone (WhatsApp, Instagram, SMS…) ; ordinateur : lien copié + WhatsApp.
+// ?src=partage : les visites venues d'un partage ont leur ligne dans 📊 Visites (onglet Compta du panel).
+const SHARE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const shareBase = () => UI.appUrl("");
+async function shareLink(url, text) {
+  if (navigator.share) {
+    try { await navigator.share({ title: "HOP!", text, url }); return; } catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  try { await navigator.clipboard.writeText(text + " " + url); toastCart(t("shareCopied")); } catch (e) { /* ignore */ }
+  window.open(UI.waShare(text + " " + url), "_blank", "noopener");
+}
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-share-app], [data-share-shop], [data-share-ray]");
+  if (!a) return;
+  e.preventDefault(); e.stopPropagation();
+  if (a.hasAttribute("data-share-app")) return shareLink(shareBase() + "?src=partage", t("shareAppText"));
+  if (a.hasAttribute("data-share-shop") && state.shop) {
+    const s = state.shop;
+    return shareLink(shareBase() + "?c=" + encodeURIComponent(s.code) + "&src=partage", (/HOP!/.test(UI.bi(s.name)) ? t("shareShopText2", { name: UI.bi(s.name) }) : t("shareShopText", { name: UI.bi(s.name) })));
+  }
+  const r = a.dataset.shareRay && Rayons.byId(a.dataset.shareRay);
+  if (r) shareLink(shareBase() + "?k=" + encodeURIComponent(r.kind) + "&src=partage", t("shareRayText", { name: phName(r.title) }));
+}, true);
 function toastCart(msg) {
   const d = document.createElement("div");
   d.className = "cart-toast"; d.setAttribute("role", "status"); d.textContent = msg;
