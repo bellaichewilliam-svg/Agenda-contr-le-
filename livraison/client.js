@@ -2570,8 +2570,17 @@ function validateOrder() {
   if (goodsPrepay() && !goodsBudget()) { form.budget.focus(); return showErrorFalse(t("errGoodsBudget")); }
   if (goodsPrepay() && goodsBudget() > goodsCap()) { form.budget.focus(); return showErrorFalse(t("errGoodsCap", capVars())); }
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showErrorFalse(t("errTopcase")); }
-  // Arrivée chez quelqu'un : type de lieu, étage, appartement, code et mot au livreur facultatifs (patron, 08/11 :
-  // commande plus courte, le livreur appelle s'il lui manque quelque chose) ; tout reste obligatoire pour « sans contact »
+  // Arrivée chez quelqu'un (pas un commerce) : tout ce qu'il faut pour trouver la porte (maison / appartement / bureau,
+  // étage, n° d'appartement, code ou « pas de code ») : le patron le veut toujours (08/11), commande en 2 écrans ou non
+  if (!(state.pick.to && state.pick.to.brand)) {
+    const k = kindOf("dropoff"), flat = k === "appartement";
+    const miss = !k ? "Kind" : (flat || k === "bureau") && !val("dropoff_floor").trim() ? "Floor"
+      : flat && !val("dropoff_apt").trim() ? "Apt" : flat && !val("dropoff_code").trim() ? "Code" : null;
+    // Adresse enregistrée affichée en fiche résumée : on la rouvre pour que le client voie les cases à choisir
+    if (miss && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
+    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showErrorFalse(t("errToKind")); }
+    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showErrorFalse(t("errTo" + miss)); }
+  }
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
   if (form.leave_at_door.checked) {
     const k = kindOf("dropoff");
@@ -2837,6 +2846,14 @@ async function submit(e) {
     // Le suivi est dans l'appli : « Envoyer le suivi » seulement quand quelqu'un d'autre reçoit la course
     const d9 = v => String(v || "").replace(/\D/g, "").slice(-9);
     $("#doneShare").classList.toggle("hidden", !saved.dropoff_phone || d9(saved.dropoff_phone) === d9(saved.contact_phone));
+    // Commande saisie par le patron : le suivi part au client sur WhatsApp (son numéro), en français et en hébreu
+    if (forClient) {
+      const msg = I18N.forLang("fr", "trShareMsg", { url: UI.trackUrl(saved) }) + "\n\n" + I18N.forLang("he", "trShareMsg", { url: UI.trackUrl(saved) });
+      $("#doneShare").href = UI.waPersonal(saved.contact_phone, msg);
+      $("#doneShare").textContent = t("forClientSend");
+      $("#doneShare").classList.remove("hidden");
+      form.contact_name.value = ""; form.contact_phone.value = "";
+    }
     $("#doneModal").classList.remove("hidden");
     doneAuto(saved);
     ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "retrait_code", "appt_at", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
@@ -4342,7 +4359,16 @@ function startFreeOrder(q) {
   goKind("shop");
   const cur = form.shopping_list.value.trim();
   form.shopping_list.value = cur && !cur.includes(q) ? cur + "\n" + q : cur || q;
+  form.shopping_list.rows = Math.min(9, Math.max(3, form.shopping_list.value.split("\n").length + 1));
   form.shopping_list.dispatchEvent(new Event("input", { bubbles: true }));
+  // On montre tout de suite la liste écrite (sinon on arrivait en haut du rayon, « 0 / 24 articles » : on croyait que
+  // rien n'avait marché), avec un petit éclat
+  setTimeout(() => {
+    const box = form.shopping_list.closest("label") || form.shopping_list;
+    box.scrollIntoView({ block: "center", behavior: "smooth" });
+    box.classList.remove("list-flash"); void box.offsetWidth; box.classList.add("list-flash");
+    toastCart(t("listReady"));
+  }, 650);
 }
 // Exemples qui s'écrivent tout seuls dans la recherche (on comprend tout de suite qu'on peut tout demander)
 function vitTypewriter() {
@@ -4539,7 +4565,6 @@ function initHome() {
   window.addEventListener("pageshow", e => { if (e.persisted) refreshShops(); });
   if (listParam.trim()) setTimeout(() => {
     form.shopping_list.value = ""; startFreeOrder(listParam);
-    setTimeout(() => form.shopping_list.scrollIntoView({ block: "center", behavior: "smooth" }), 700);
   }, 400);
   else if (kindParam && EXAMPLES.some(x => x.id === kindParam && !x.set.to_city)) setTimeout(() => goKind(kindParam), 400);
   else setTimeout(showAppPromo, 1500);
@@ -5650,13 +5675,24 @@ $("#homeFindList").addEventListener("click", e => {
   if (pk) { const [k, v] = pk.dataset.mgPick.split(":"); m.lines[k].pick = v === "r" || v === "x" ? v : Number(v); m.open = -1; renderMagic(false); return; }
   if (qt) { const [k, d] = qt.dataset.mgQty.split(":").map(Number), l = m.lines[k]; l.qty += d; if (l.qty < 1) { l.on = false; l.qty = 1; } l.qty = Math.min(20, l.qty); renderMagic(false); return; }
   if (sh) return magicToCart(sh.dataset.mgShop);
-  if (e.target.closest("[data-mg-go]")) return startFreeOrder(mgText());
+  if (e.target.closest("[data-mg-go]")) {
+    // Des articles choisis viennent d'un magasin sur HOP! (ex. HOP! chez Carrefour) : la commande part chez lui, articles
+    // dans le panier (jamais « le magasin le plus proche ») ; le reste de la liste va dans la précision pour ce magasin
+    const cnt = {};
+    m.lines.filter(l => l.on && typeof l.pick === "number").forEach(l => { const c = l.cands[l.pick].code; if (c) cnt[c] = (cnt[c] || 0) + 1; });
+    const best = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+    if (best) return magicToCart(best, true);
+    return startFreeOrder(mgText());
+  }
 });
 // Téléphone : toucher la liste ne ferme pas le clavier (sinon la page bouge sous le doigt et le toucher tombe à côté)
 $("#homeFindList").addEventListener("mousedown", e => { if (e.target.closest("button")) e.preventDefault(); });
-async function magicToCart(code) {
+async function magicToCart(code, withRest) {
   const m = state.magic;
   if (!m || !code) return;
+  // Ce que ce magasin n'a pas dans son catalogue (pain, Acamol…) : écrit dans la précision pour lui, rien ne se perd
+  const rest = withRest ? m.lines.filter(l => l.on && !l.cands.some(c => c.code === code))
+    .map(l => (l.qty > 1 ? l.qty + " × " : "") + (l.pick === "r" && l.r ? phName(l.r.i) : l.name)) : [];
   // Pour chaque article : le produit choisi s'il est de ce magasin, sinon le meilleur de ce magasin
   const want = m.lines.filter(l => l.on).map(l => { const i = typeof l.pick === "number" && l.cands[l.pick].code === code ? l.pick : l.cands.findIndex(c => c.code === code); return i >= 0 ? { id: l.cands[i].id, qty: l.qty } : null; }).filter(Boolean);
   $("#homeFindList").classList.add("hidden"); $("#homeFind").value = ""; $("#homeFind").blur();
@@ -5666,6 +5702,11 @@ async function magicToCart(code) {
   if (!state.shop) return;
   const have = new Set(cgProducts().filter(p => p.available).map(p => p.id));
   want.forEach(w => { if (have.has(w.id)) state.cart[w.id] = Math.min(50, (state.cart[w.id] || 0) + w.qty); });
+  if (rest.length && form.shop_order) {
+    const cur = form.shop_order.value.trim();
+    form.shop_order.value = (cur ? cur + "\n" : "") + t("mgAlso") + " " + rest.join(", ");
+    form.shop_order.dispatchEvent(new Event("input", { bubbles: true }));
+  }
   renderCatalog(); renderQuote();
   if (cartCount()) setTimeout(openCart, 250);
 }
@@ -5830,6 +5871,16 @@ const addonToken = new URLSearchParams(location.search).get("addon");
 // Lien « commande prête » envoyé par le patron sur WhatsApp (?liste=…) : « J'achète pour vous » avec la liste déjà écrite,
 // le client met son adresse et valide (la commande passe par l'appli : suivi, livreurs, paiement comme d'habitude)
 const listParam = (new URLSearchParams(location.search).get("liste") || "").slice(0, 1500);
+// Commande saisie par le patron pour un client WhatsApp (?pour=1, panneau → ✅ Réponses WhatsApp) : adresse, nom et
+// téléphone du client (rien de l'appareil du patron : ni ses adresses, ni son nom), puis « Envoyer le suivi au client »
+const forClient = (() => { let on = new URLSearchParams(location.search).get("pour") === "1";
+  try { if (on) sessionStorage.setItem("hop.forClient", "1"); else on = sessionStorage.getItem("hop.forClient") === "1"; } catch (e) { /* ignore */ }
+  return on; })();
+if (forClient) {
+  Object.assign(Store, { getAddresses: () => [], saveAddress: () => {}, getProfile: () => ({}), saveProfile: () => {} });
+  document.documentElement.classList.add("for-client");
+  form.insertAdjacentHTML("afterbegin", `<p class="for-client-note" data-i18n="forClientNote"></p>`);
+}
 // Adresse nettoyée (paramètres laissés par une ancienne version ou un rechargement forcé)
 if (location.search) history.replaceState(null, "", location.pathname + location.hash);
 I18N.apply();

@@ -325,12 +325,19 @@ Quand le service est coupé (ou personne de connecté hors des heures), l'accuei
 
 ### Commande plus courte + liste par WhatsApp (08/11)
 - **2 écrans au lieu de 3** : « 1. On livre quoi, et où ? » puis « 2. Presque fini : vous et le paiement » (précisions, coordonnées, paiement ; les options rares restent dans « Plus d'options »).
-- **Arrivée facultative** : type de lieu, étage, n° d'appartement, code d'entrée et mot au livreur ne sont plus obligatoires (le livreur appelle s'il lui manque quelque chose). Ils restent obligatoires pour « sans contact ».
+- **Arrivée** : maison / appartement / bureau, étage, n° d'appartement et code (ou « pas de code ») restent **obligatoires** (patron, 08/11 : « il me faut ces infos »).
 - **« Envoyez votre liste sur WhatsApp »** : carte verte sous la recherche de l'accueil, et sous la liste de « J'achète pour vous ». Ouvre le WhatsApp de HOP! (`CONFIG.whatsapp`) avec un message prêt (FR / HE) : le client envoie une photo, un vocal ou du texte, et le patron crée la commande. Chaque clic est compté (`wa_list` dans site_steps).
 
 ### ✅ Réponses WhatsApp + lien « commande prête » (08/11)
 - Panneau patron → Messages → **✅ Réponses WhatsApp** : réponses toutes faites FR / עברית (bonjour, quel magasin, pour quand, prix, paiement, commande prête, fermé, relance, merci), chacune avec 📋 Copier (à coller dans WhatsApp) ou WhatsApp › (ouvre votre WhatsApp perso, au numéro du client si vous l'avez tapé).
 - **Commande prête** : collez la liste du client dans la case ; le lien `index.html?liste=…&src=wa` ouvre HOP! sur « J'achète pour vous » avec la liste déjà écrite. Le client met son adresse et son téléphone et valide : la commande arrive dans « À accepter » comme les autres (suivi en direct, livreurs, paiement, reçu). S'il n'y arrive pas, le patron ouvre le lien et remplit pour lui.
+
+### Commande saisie par le patron pour un client WhatsApp (08/11)
+- Panneau → ✅ Réponses WhatsApp → **➕ Saisir moi-même la commande du client** : ouvre HOP! (`index.html?pour=1&liste=…`) avec la liste du client. Bandeau vert « Commande pour un client » ; rien de l'appareil du patron (ni ses adresses, ni son nom, ni son téléphone) n'est proposé ni enregistré. On met l'adresse du client (maison / appartement, étage, code), son nom, son téléphone, on valide, puis **📲 Envoyer le suivi au client (WhatsApp)** (lien de suivi FR + HE, au numéro du client).
+- La commande arrive dans « À accepter » comme toutes les autres : livreurs, suivi en direct, paiement, reçu.
+- **Liste à cocher** pour le livreur : dans « J'achète pour vous », chaque ligne de la liste a sa case (gardée sur son téléphone), compteur « 2 / 4 », « ✅ Tout est pris ».
+- **Liste magique de l'accueil** (« Hoppy a compris votre liste ») : si des articles viennent d'un magasin HOP! (ex. HOP! chez Carrefour), « Commander cette liste » ouvre ce magasin avec ces articles dans le panier ; le reste (« À prendre aussi : … ») part dans la précision pour ce magasin, visible du livreur et du patron. Jamais « magasin le plus proche » quand la commande est de Carrefour.
+- Arrivée depuis une liste : on montre tout de suite la liste écrite (éclat orange + « ✅ Votre liste est prête »).
 
 ### Partager (bouton « Partager »)
 - **Partager HOP!** : en haut de l'accueil (petit bouton rond orange dans le coin de « Qu'est-ce qu'on vous apporte ? »), en bas de l'accueil (avant « Explorer ») et dans « Mes courses ». Envoie le lien du site avec un petit texte FR / HE.

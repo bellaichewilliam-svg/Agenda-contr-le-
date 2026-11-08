@@ -1292,4 +1292,6 @@ window.COURIER_HE = [["Je possède un permis de conduire valide pour mon véhicu
 ["min offertes, puis +","דק׳ חינם, ואז +"],
 ["par minute (max","לדקה (מקס׳"],
 ["arrêts","עצירות"],
-["Langue","שפה"]];
+["Langue","שפה"],
+["Liste à cocher","רשימה לסימון"],
+["✅ Tout est pris","✅ הכול נלקח"]];
