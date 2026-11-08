@@ -433,5 +433,49 @@
     },
     "titre": "✈️ Nouveau · Pas de livreur ? Lancez la commande (10 s)",
     "aud": "shop"
+  },
+  "liste-hoppy": {
+    "hook": {
+      "fr": "ÉCRIVEZ VOTRE LISTE…",
+      "he": "כתבו את הרשימה…"
+    },
+    "punch": {
+      "fr": [
+        "HOPPY FAIT",
+        "LE RESTE !"
+      ],
+      "he": [
+        "הופי עושה",
+        "את השאר!"
+      ]
+    },
+    "sub": {
+      "fr": "Tapez-la sur HOP! : on trouve chaque article.",
+      "he": "כתבו אותה ב-HOP!: אנחנו מוצאים כל מוצר."
+    },
+    "titre": "📝 Nouveau · Écrivez votre liste, Hoppy fait le reste (10 s)",
+    "aud": "client"
+  },
+  "sushi-hoppy": {
+    "hook": {
+      "fr": "UNE ENVIE DE SUSHI ?",
+      "he": "בא לכם סושי?"
+    },
+    "punch": {
+      "fr": [
+        "MÊME HOPPY",
+        "COMMANDE SUR HOP!"
+      ],
+      "he": [
+        "גם הופי",
+        "מזמין ב-HOP!"
+      ]
+    },
+    "sub": {
+      "fr": "Vos restos préférés, livrés frais.",
+      "he": "המסעדות האהובות, טריות עד הבית."
+    },
+    "titre": "🍣 Nouveau · Une envie de sushi ? Même Hoppy commande sur HOP! (10 s)",
+    "aud": "client"
   }
 }
