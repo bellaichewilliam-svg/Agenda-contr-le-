@@ -351,7 +351,7 @@ Quand le service est coupé (ou personne de connecté hors des heures), l'accuei
 - Liste de Hoppy → panier gardé et visible (pastille 🛒, panier relancé par le patron).
 - Plus de « bientôt leurs catalogues » ; message « Ajoutez au moins un article… » sur un rayon vide.
 - Achat par le livreur : plus de « taille du colis » ni de « conditions de livraison d'objets » à cocher pour acheter du pain.
-- **Panier : un seul vrai total** de tous les articles de la commande (magasin + autres magasins gardés + « pris au plus près », ≈), avec le détail dessous (« 14,2 ₪ chez Carrefour + ≈ 24,9 ₪ chez Le Marché Français + ≈ 32 ₪ pris au plus près · le prix exact est celui du ticket »).
+- **Un seul total, le même dans le panier et sur la commande** (patron, 08/11) dès qu'il y a plusieurs magasins ou des articles pris au plus près : une ligne par magasin (Carrefour 14,2 ₪, Le Marché Français ≈ 24,9 ₪), « Pris par le livreur au plus près ≈ 32 ₪ », « Livraisons (30 ₪ + 10 ₪) 40 ₪ », **Total ≈ 111 ₪**, puis « Les prix ≈ sont indicatifs : vous paierez le montant exact du ticket de caisse. » Il remplace « Total des articles » (panier) et « Total livraison » (commande) : jamais deux totaux à l'écran.
 - Panier quand HOP! est fermé : « 🌙 Commandez maintenant, on vous livre dès l'ouverture » (plus « HOP! est fermé pour le moment »).
 - « Où livrer ? ✅ » seulement quand le type de lieu (et étage / appartement / code) est rempli.
 - Un seul sens pour « Total » : « Total livraison » dans le bloc du prix quand il y a des articles (le total articles + livraison est dans l'encart du paiement).

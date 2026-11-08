@@ -5220,3 +5220,15 @@ html.for-client .wa-list { display: none !important; }
 .sc-story { width: 78px; }
 .sc-story > b { max-width: 78px !important; font-size: 11.5px; overflow-wrap: normal !important; word-break: normal; hyphens: manual; }
 .cs-sum-sub { margin: -4px 0 8px; font-size: 12.5px; opacity: .75; line-height: 1.35; }
+.mb-tot { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; padding-top: 6px; border-top: 1px dashed rgba(127,127,127,.35); }
+.mb-tot + .mb-tot { border-top: 0; padding-top: 0; }
+.mb-tot b { white-space: nowrap; }
+.mb-tot.mb-all { font-size: 16px; font-weight: 800; }
+.mb-tot.mb-all b { color: #FF6A13; }
+/* Total unique de la commande (panier et commande) */
+.gt { display: grid; gap: 6px; margin: 6px 0 10px; padding: 12px; border-radius: 14px; background: rgba(127,127,127,.1); text-align: start; }
+.gt-row { display: flex; justify-content: space-between; gap: 10px; font-size: 14.5px; }
+.gt-row b { white-space: nowrap; }
+.gt-tot { display: flex; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 1px dashed rgba(127,127,127,.4); font-size: 18px; font-weight: 800; }
+.gt-tot b { color: #FF6A13; white-space: nowrap; }
+.gt small { font-size: 12.5px; opacity: .8; line-height: 1.35; }
