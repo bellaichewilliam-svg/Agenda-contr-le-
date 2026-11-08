@@ -3798,14 +3798,13 @@ function renderCart() {
   let others = [];
   try { others = multiList().filter(m => Number(m.total) > 0); } catch (e) { others = []; }
   const othSum = others.reduce((a, m) => a + Number(m.total), 0), all = Math.round((cartTotal() + exSum + othSum) * 10) / 10;
-  $("#cartSum").textContent = exSum || othSum ? "≈ " + money(all) : money(cartTotal());
-  let sub = $("#cartSumSub");
-  if (!sub) { sub = document.createElement("p"); sub.id = "cartSumSub"; sub.className = "cs-sum-sub"; document.querySelector("#cartSheet .cs-total").after(sub); }
-  const parts = [t("csSumAt", { a: money(cartTotal()), name: shopShortName() })]
-    .concat(others.map(m => t("csSumAt", { a: "≈ " + money(Math.round(Number(m.total) * 10) / 10), name: m.short || m.name })))
-    .concat(exSum ? [t("csSumNear", { b: money(Math.round(exSum)) })] : []);
-  sub.textContent = exSum || othSum ? parts.join(" + ") + " · " + t("csSumTicket") : "";
-  sub.classList.toggle("hidden", !(exSum || othSum));
+  $("#cartSum").textContent = money(cartTotal());
+  void all;
+  // Plusieurs magasins ou des articles pris au plus près : le total unique remplace « Total des articles »
+  const g = grandHtml(), tr = document.querySelector("#cartSheet .cs-total");
+  let gb = $("#cartGrand");
+  if (!gb) { gb = document.createElement("div"); gb.id = "cartGrand"; tr.after(gb); }
+  gb.innerHTML = g; gb.classList.toggle("hidden", !g); tr.classList.toggle("hidden", !!g);
   $("#cartRest").classList.toggle("hidden", !rest);
   $("#cartRest").innerHTML = exOn ? `<b class="cr-t">🛵 ${UI.esc(t("csRestT", { name: shopShortName() }))}</b>`
       + ex.map(x => `<div class="cr-row"><span class="cr-pic">${x.ph ? `<img src="${UI.esc(x.ph)}" alt="" loading="lazy" />` : UI.esc(x.e || "🛒")}</span><span class="cr-n">${x.q > 1 ? x.q + " × " : ""}${UI.esc(x.n)}</span><em>${x.p ? "≈ " + UI.esc(money(x.p)) : ""}</em></div>`).join("")
@@ -4205,10 +4204,34 @@ function multiHtml(withBtns) {
     <small class="mb-why">${UI.esc(t(near ? "multiWhy" : "multiWhyFar", { price: money(addonPrice()), km: addonKm() }))}</small>
     <small class="mb-how">${UI.esc(t("multiHow", { name: shopShortName() }))}</small>`;
 }
+// UN seul total (patron, 08/11), le même dans le panier et sur la commande : chaque magasin, ce que le livreur prend au
+// plus près, les livraisons (dont +10 ₪ par magasin en plus), le total ; puis « on paie le montant exact du ticket »
+function grandHtml() {
+  if (!state.shop || !proShopOn()) return "";
+  let list = [];
+  try { list = multiList(); } catch (e) { list = []; }
+  const ex = (state.extras || []).filter(Boolean), exOn = ex.length && form.shop_order.value.includes(t("mgAlso"));
+  const exSum = exOn ? ex.reduce((a, x) => a + (Number(x.p) || 0), 0) : 0;
+  if (!list.length && !exSum) return "";
+  const q = currentQuote(), mainDel = q && q.total != null ? Number(q.total) : proPrice(state.shop);
+  const fees = list.map(m => multiFee(m).price), del = mainDel + fees.reduce((a, b) => a + b, 0);
+  const r1 = x => Math.round(x * 10) / 10;
+  const rows = [[shopShortName(), money(cartTotal())]]
+    .concat(list.map(m => [m.short || m.name, "≈ " + money(r1(Number(m.total) || 0))]))
+    .concat(exSum ? [[t("gtNear"), "≈ " + money(Math.round(exSum))]] : [])
+    .concat([[fees.length ? t("gtDelivN", { list: [money(mainDel)].concat(fees.map(f => money(f))).join(" + ") }) : t("gtDeliv"), money(del)]]);
+  const goods = cartTotal() + list.reduce((a, m) => a + (Number(m.total) || 0), 0) + exSum;
+  return `<div class="gt">${rows.map(([a, b]) => `<div class="gt-row"><span>${escHop(a)}</span><b>${UI.esc(b)}</b></div>`).join("")}
+    <div class="gt-tot"><span>${UI.esc(t("gtTotal"))}</span><b>≈ ${UI.esc(money(r1(goods + del)))}</b></div>
+    <small>${UI.esc(t("gtTicket"))}</small></div>`;
+}
 function renderMulti() {
   const h1 = multiHtml(true), h2 = multiHtml(false);
   if ($("#multiCart")) { $("#multiCart").innerHTML = h1; $("#multiCart").classList.toggle("hidden", !h1); }
-  if ($("#multiSum")) { $("#multiSum").innerHTML = h2; $("#multiSum").classList.toggle("hidden", !h2); }
+  const g = grandHtml();
+  if ($("#multiSum")) { $("#multiSum").innerHTML = h2 + g; $("#multiSum").classList.toggle("hidden", !(h2 || g)); }
+  // (un seul total à l'écran : la ligne « Total livraison » s'efface quand le total de toute la commande est là)
+  const tl = $("#summary .total"); if (tl) tl.classList.toggle("hidden", !!g);
 }
 // Commande envoyée : chaque autre magasin garé se valide en un toucher (ajout à cette commande, adresse déjà remplie)
 function renderMultiDone(saved) {
