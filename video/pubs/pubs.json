@@ -499,5 +499,182 @@
     },
     "titre": "✨ Nouveau · Écrivez votre liste, on fait le reste (10 s)",
     "aud": "client"
+  },
+  "hoppy-surveille": {
+    "hook": {
+      "fr": "TU N'AS PAS COMMANDÉ DEPUIS 3 JOURS…",
+      "he": "לא הזמנת כבר 3 ימים…"
+    },
+    "punch": {
+      "fr": [
+        "HOPPY",
+        "S'INQUIÈTE."
+      ],
+      "he": [
+        "הופי",
+        "דואג."
+      ]
+    },
+    "titre": "👀 Nouveau · Hoppy te surveille (10 s)",
+    "aud": "client"
+  },
+  "vendredi-rideaux": {
+    "hook": {
+      "fr": "POV : VENDREDI 14 H, PLUS DE PAIN",
+      "he": "POV: שישי 14:00, ואין לחם"
+    },
+    "punch": {
+      "fr": [
+        "HOPPY L'A GARDÉ",
+        "POUR TOI."
+      ],
+      "he": [
+        "הופי שמר",
+        "לך."
+      ]
+    },
+    "titre": "🥖 Nouveau · Vendredi 14 h, plus de pain (10 s)",
+    "aud": "client"
+  },
+  "super-vendredi": {
+    "hook": {
+      "fr": "LE SUPER, VENDREDI MIDI ?",
+      "he": "הסופר בשישי בצהריים?"
+    },
+    "punch": {
+      "fr": [
+        "ON Y VA",
+        "POUR VOUS."
+      ],
+      "he": [
+        "אנחנו הולכים",
+        "במקומכם."
+      ]
+    },
+    "titre": "⚔️ Nouveau · Le super, vendredi midi (10 s)",
+    "aud": "client"
+  },
+  "parking": {
+    "hook": {
+      "fr": "TROUVER UNE PLACE À NETANYA ?",
+      "he": "למצוא חניה בנתניה?"
+    },
+    "punch": {
+      "fr": [
+        "RESTEZ CHEZ VOUS.",
+        "ON VIENT."
+      ],
+      "he": [
+        "תישארו בבית.",
+        "אנחנו באים."
+      ]
+    },
+    "titre": "🚗 Nouveau · Une place à Netanya ? (10 s)",
+    "aud": "client"
+  },
+  "savta": {
+    "hook": {
+      "fr": "LIVRER CHEZ SAVTA…",
+      "he": "משלוח לסבתא…"
+    },
+    "punch": {
+      "fr": [
+        "ON NE REPART JAMAIS",
+        "LES MAINS VIDES."
+      ],
+      "he": [
+        "אף פעם לא יוצאים",
+        "בידיים ריקות."
+      ]
+    },
+    "titre": "👵 Nouveau · Livrer chez savta (10 s)",
+    "aud": "client"
+  },
+  "chat-juge": {
+    "hook": {
+      "fr": "MÊME TON CHAT SAIT QUE TU CUISINES MAL.",
+      "he": "אפילו החתול יודע שאתה לא יודע לבשל."
+    },
+    "punch": {
+      "fr": [
+        "COMMANDE."
+      ],
+      "he": [
+        "תזמין."
+      ]
+    },
+    "titre": "🐈 Nouveau · Même ton chat sait (10 s)",
+    "aud": "client"
+  },
+  "hamsin": {
+    "hook": {
+      "fr": "38 °C À NETANYA ?",
+      "he": "38 מעלות בנתניה?"
+    },
+    "punch": {
+      "fr": [
+        "ON LIVRE",
+        "LE FRAIS."
+      ],
+      "he": [
+        "מביאים",
+        "את הקר."
+      ]
+    },
+    "titre": "🥵 Nouveau · 38 °C à Netanya (10 s)",
+    "aud": "client"
+  },
+  "pizza-geante": {
+    "hook": {
+      "fr": "ON A UN PEU EXAGÉRÉ LA TAILLE…",
+      "he": "אולי קצת הגזמנו עם הגודל…"
+    },
+    "punch": {
+      "fr": [
+        "PAS",
+        "LE PRIX."
+      ],
+      "he": [
+        "לא",
+        "במחיר."
+      ]
+    },
+    "titre": "🍕 Nouveau · On a un peu exagéré la taille (10 s)",
+    "aud": "client"
+  },
+  "sac-parfait": {
+    "hook": {
+      "fr": "LE SAC DE COURSES PARFAIT EXISTE",
+      "he": "שקית הקניות המושלמת קיימת"
+    },
+    "punch": {
+      "fr": [
+        "ET ON TE",
+        "LE LIVRE."
+      ],
+      "he": [
+        "ואנחנו",
+        "מביאים אותה."
+      ]
+    },
+    "titre": "🛍️ Nouveau · Le sac de courses parfait (10 s)",
+    "aud": "client"
+  },
+  "hoppy-danse": {
+    "hook": {
+      "fr": "QUAND TA COMMANDE ARRIVE…",
+      "he": "כשההזמנה מגיעה…"
+    },
+    "punch": {
+      "fr": [
+        "ET",
+        "HOP !"
+      ],
+      "he": [
+        "והופ!"
+      ]
+    },
+    "titre": "🕺 Nouveau · Quand ta commande arrive (10 s)",
+    "aud": "client"
   }
 }

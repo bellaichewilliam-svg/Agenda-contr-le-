@@ -1,278 +1,224 @@
-# HOP! : 20 pubs vidéo, prompts Veo refaits pour un rendu « waouh »
+# HOP! : 15 vidéos pensées pour devenir virales
 
-> Version 3 (08/11/2026), refaite après les deux premiers essais (la liste et les sushis). Le patron les a trouvés « bof, rien de fou ».
-> Les **idées** restent les mêmes ; ce sont les **prompts** qui changent complètement.
+> Version 4 (08/11/2026). Le patron veut des **vidéos virales**, pas des pubs. On ne garde que les idées qui font **rire, réagir ou partager**, et on écrit chaque prompt pour ça.
+> Dans le kit, seule « la liste » (liste-hoppy) reste, à la rigueur ; les sushis sont retirés.
 
-## Pourquoi les deux premiers essais étaient « bof »
+## Ce qui rend une vidéo virale (et que chaque prompt applique)
 
-| Ce qui n'allait pas | Ce qu'on fait maintenant |
-|---|---|
-| Une image de départ figée puis « caméra fixe » : Veo anime à peine, tout est lent et plat. | **On écrit tout directement dans Veo** (texte → vidéo), avec une vraie **mise en scène caméra** (travelling, ralenti, drone, macro). Le logo et les textes sont posés au montage, donc la caméra peut bouger. |
-| Une seule action molle (« il attrape la feuille »). | **3 temps minutés** dans chaque prompt : **0–2 s** une image choc qui arrête le pouce, **2–5 s** ça monte, **5–8 s** la chute, le moment drôle ou magique. |
-| Rien sur le son. | Veo 3 fait le son : on décrit les **bruitages et la musique** (sans voix ni paroles). |
-| Hoppy collé dans une photo réaliste : on voit qu'il est rajouté. | Les pubs avec Hoppy sont **entièrement en film d'animation 3D**, qualité cinéma : tout va ensemble. |
-| Veo ajoute des choses non demandées (Hoppy qui mange les sushis). | Chaque prompt dit **ce qui est interdit** (personnage en trop, texte, sous-titres…). |
+1. **La 1ʳᵉ seconde arrête le pouce.** Pas d'intro : on ouvre sur l'action ou sur une image impossible. Le texte du haut pose la situation (« POV : … »).
+2. **On se reconnaît.** Les situations de chez nous : vendredi midi au super, la makolet qui ferme avant Chabbat, la place de parking à Netanya, le hamsin, chez savta. C'est ce qui fait partager, en français comme en hébreu.
+3. **Une chute à la fin.** Ce qui fait rire ou dire « waouh » arrive entre la 5ᵉ et la 7ᵉ seconde : les gens regardent jusqu'au bout et la relancent.
+4. **Court : 8 à 10 secondes,** avec une fin qui boucle si possible. Les vidéos revues plusieurs fois sont poussées par Instagram et TikTok.
+5. **Une mascotte un peu folle.** Les marques qui cartonnent ont une mascotte qui ose (la chouette d'une appli de langues, par exemple) : Hoppy peut « surveiller » les clients qui ne commandent pas.
+6. **Une question dans la légende** pour faire commenter (« Tag celui qui… »). Les commentaires font monter la vidéo.
 
-## Comment générer (Gemini ou Flow, modèle **Veo 3**)
+## Comment générer (Veo 3, dans Gemini ou Flow)
 
-1. **Pubs sans Hoppy** : coller le prompt tel quel en **texte → vidéo**, sans image jointe. Choisir le format vertical **9:16** (dans Flow : « Portrait »).
-2. **Pubs avec Hoppy** (4 pubs : everest, lune, romeo, poche) : dans **Flow**, mode **« Ingrédients → vidéo »**, joindre `livraison/kit/visuels/hoppy-officiel.png` comme ingrédient (et pas comme première image), puis coller le prompt. Sans Flow : faire d'abord l'image de départ dans ChatGPT avec le même texte, puis l'animer.
-3. Lancer **2 à 4 essais** par prompt et garder le meilleur : Veo change beaucoup d'un essai à l'autre.
-4. M'envoyer la meilleure vidéo **avec son nom** (ex. « frigo-desert »). Je la monte en version FR et en version HE, je vérifie chaque image, et elle n'entre dans le kit **que si tu la valides**.
-
-**Bloc final, déjà inclus dans chaque prompt :** pas de texte, pas de sous-titres, pas de voix, rien d'important dans le quart du haut (les titres y seront posés).
+- **Sans Hoppy :** coller le prompt en **texte → vidéo**, format **vertical 9:16** (« Portrait » dans Flow), sans image jointe.
+- **Avec Hoppy :** dans **Flow**, mode **« Ingrédients → vidéo »**, avec `livraison/kit/visuels/hoppy-officiel.png` comme ingrédient.
+- Faire **3 ou 4 essais** par prompt et m'envoyer le meilleur **avec son nom**. Je monte la version FR et la version HE, je vérifie, et la vidéo n'entre dans le kit qu'après ton accord.
+- **À la publication :** une vidéo en français et une en hébreu (pas les deux langues dans le même post), le soir entre 19 h et 21 h, avec la légende proposée. Sur TikTok, tu peux remplacer le son par un son tendance.
 
 ---
 
-## 🛒 Courses
-
-### frigo-desert : un désert dans le frigo
+## 1. hoppy-surveille : Hoppy te surveille 👀
+**Pourquoi ça marche :** la mascotte « inquiétante » qui relance le client fait rire, et chacun tague l'ami qui ne commande jamais.
 ```
-Vertical 9:16, 8 seconds, photorealistic premium TV commercial, anamorphic lens, rich cinematic color grade.
-0-2s: Night, a modern Netanya apartment kitchen. Close-up on a fridge door handle; a hand pulls it open and a blinding hot desert sunlight blasts out of the fridge, a gust of warm wind blows the person's hair and a cascade of golden sand pours out onto the floor tiles.
-2-5s: The camera pushes forward INTO the fridge: inside is an endless golden desert, dunes stretching to the horizon behind the shelves, heat haze, a tumbleweed rolls past a single lonely lemon sitting on a dune.
-5-8s: A navy-blue paper bag with a white "HOP" and orange "!" logo drops from above into the sand; with a burst of icy mist the whole desert instantly transforms into a perfectly full, colorful, glowing fridge (milk, fresh vegetables, fruit, juices, yogurts, eggs). The camera pulls back out to reveal the full fridge, cold light on the delighted face.
-Audio: desert wind and sand hiss, then a satisfying icy whoosh and a fridge hum at the transformation, short upbeat percussive music hit at 5s. No dialogue, no voices, no lyrics.
-Rules: no text, no subtitles, no other brand logos, keep the top quarter of the frame free of important action.
+Vertical 9:16, 8 seconds, high-end 3D animated film style (Pixar quality), the kangaroo "Hoppy" exactly as in the reference image (caramel fur, cream belly, navy backpack, navy HOP! bag in his pouch with white "HOP" and orange "!").
+0-2s: POV from inside a dark living room at night, a person's legs on the sofa in the foreground, TV glow. Outside the big window, Hoppy's face slowly rises from below the window sill, eyes wide, staring straight at the viewer.
+2-5s: Hoppy presses his face and both paws against the glass, fogging it with his breath, eyes never blinking, slowly tilting his head; his HOP! bag steams in the night.
+5-8s: He knocks twice on the glass, very politely, then holds up the HOP! bag next to his face with a huge, slightly too intense smile. Hold on his face.
+Audio: quiet TV murmur, a creepy-funny suspense music sting, two soft knocks on glass, then a cute "ding". No dialogue, no voices.
+Rules: comedic, not scary; no text, no subtitles, no ambiguous hand gestures, keep the top quarter free.
+```
+Textes : « TU N'AS PAS COMMANDÉ DEPUIS 3 JOURS… / לא הזמנת כבר 3 ימים… » → « HOPPY S'INQUIÈTE. / הופי דואג. »
+Légende : « Tag l'ami qui ne commande jamais 👀 » / « תייגו את החבר שאף פעם לא מזמין 👀 »
+
+## 2. vendredi-rideaux : vendredi 14 h, plus de pain 🥖
+**Pourquoi ça marche :** tout Israël a vécu ce sprint du vendredi, filmé ici comme un film d'action.
+```
+Vertical 9:16, 8 seconds, high-end 3D animated film style (Pixar quality), action-movie parody, warm Friday afternoon light on a Netanya street.
+0-2s: A man sprints down a street of small shops in dramatic slow motion; one after another, the metal shop shutters roll down in front of him like closing doors in an adventure movie.
+2-5s: He dives and slides on his knees toward the last open makolet; its shutter slams shut an inch in front of his face; he falls to his knees in the empty street, arms spread to the sky.
+5-8s: A shadow covers him: the kangaroo "Hoppy" (exactly as in the reference image) hops in behind him, holding out a golden braided challah and a crusty baguette with a big kind smile; the man turns around, stunned with joy.
+Audio: epic action-movie drums, the metallic rattle of shutters slamming one by one, a dramatic choir "aaah" on the fall, then a light comedic pluck when Hoppy appears. No dialogue, no words.
+Rules: Hoppy's feet never touch the food; no text, no signs, no subtitles, no other brand logos, keep the top quarter free.
+```
+Textes : « POV : VENDREDI 14 H, PLUS DE PAIN / POV: שישי 14:00, ואין לחם » → « HOPPY L'A GARDÉ POUR TOI. / הופי שמר לך. »
+Légende : « Qui a déjà fait ce sprint ? 😅 » / « מי כבר עשה את הריצה הזאת? 😅 »
+
+## 3. super-vendredi : le super, vendredi midi ⚔️
+**Pourquoi ça marche :** le supermarché du vendredi filmé comme une scène de guerre, puis le calme chez soi. Le contraste fait rire.
+```
+Vertical 9:16, 8 seconds, photorealistic, war-movie parody with handheld camera, smoke and slow motion.
+0-2s: A crowded supermarket on Friday noon shot like a battlefield: dust in the air, slow-motion shopping carts colliding, a man in a helmet-like cap dives through the air toward the last challah on the shelf.
+2-5s: Chaos continues: flour bursting like an explosion, a woman shielding her cart full of groceries, the camera shaking with each impact.
+5-8s: Hard cut to a calm sunny living room: a person on the sofa sips coffee with feet up, two navy HOP! paper bags of groceries placed gently at the door, birds chirping outside the window.
+Audio: war-movie drums, explosions-like thuds, slow-motion distorted crowd noise, then a sudden silence and calm birdsong with a soft coffee sip. No dialogue, no words.
+Rules: comedic, nobody hurt, no text, no signs, no subtitles, no other brand logos, keep the top quarter free.
+```
+Textes : « LE SUPER, VENDREDI MIDI ? / הסופר בשישי בצהריים? » → « ON Y VA POUR VOUS. / אנחנו הולכים במקומכם. »
+Légende : « Team commando ou team canapé ? » / « צוות קומנדו או צוות ספה? »
+
+## 4. parking : une place à Netanya 🚗
+**Pourquoi ça marche :** se garer à Netanya est un sujet de blague connu de tous ; la barbe qui pousse en accéléré, c'est la chute.
+```
+Vertical 9:16, 8 seconds, photorealistic, fixed time-lapse style shot of one Netanya street packed with parked cars.
+0-2s: A small car circles the same street again and again looking for a parking spot; the driver leans forward, desperate.
+2-5s: Time-lapse: the sun and moon race across the sky, it rains, leaves fall, it's sunny again; each pass the driver's beard is longer, until he has a huge white beard.
+5-8s: A delivery scooter with a navy HOP! top case zips past, slips into a tiny gap at the curb, the rider hops off and rings a doorbell; the bearded driver stares at him through the window, mouth open.
+Audio: engine hum looping, fast time-lapse whooshes, rain, a comedic slide-whistle, a cheerful doorbell. No dialogue, no words.
+Rules: no text, no signs, no license plates readable, no subtitles, no other brand logos, keep the top quarter free.
+```
+Textes : « TROUVER UNE PLACE À NETANYA ? / למצוא חניה בנתניה? » → « RESTEZ CHEZ VOUS. ON VIENT. / תישארו בבית. אנחנו באים. »
+Légende : « Ton record pour te garer en ville ? ⏳ » / « מה השיא שלכם למצוא חניה? ⏳ »
+
+## 5. savta : livrer chez savta 👵
+**Pourquoi ça marche :** la grand-mère qui ne laisse partir personne sans manger, tout le monde l'a connue. C'est attendrissant et drôle.
+```
+Vertical 9:16, 8 seconds, photorealistic, warm and funny, cozy Israeli grandmother's apartment.
+0-2s: A young HOP! delivery rider (navy HOP! jacket) hands a small bag to a tiny smiling grandmother at her door; she grabs his wrist and pulls him inside.
+2-5s: Quick comedic beats: he is seated at a kitchen table while she piles up plates of schnitzel, rice, salads and stuffed vegetables in front of him; he tries to stand up, she gently pushes him back down.
+5-8s: He walks out of the building with both arms full of stacked plastic food containers tied in a plastic bag, cheeks full, smiling; she waves proudly from the balcony.
+Audio: cheerful klezmer-style clarinet music, plates clinking, a happy sigh. Optional: the grandmother says one word in Hebrew, "Tochal!". No other dialogue.
+Rules: meat meal only, no dairy anywhere; no text, no subtitles, no other brand logos, keep the top quarter free.
+```
+Textes : « LIVRER CHEZ SAVTA… / משלוח לסבתא… » → « ON NE REPART JAMAIS LES MAINS VIDES. / אף פעם לא יוצאים בידיים ריקות. »
+Légende : « Tag ta savta 💛 » / « תייגו את הסבתא שלכם 💛 »
+
+## 6. chat-juge : même ton chat sait 🐈
+**Pourquoi ça marche :** un chat qui juge son maître : la valeur sûre des réseaux.
+```
+Vertical 9:16, 8 seconds, photorealistic, cozy kitchen comedy.
+0-2s: Thick smoke rises from a burnt pan on the stove, a smoke alarm blinks; a man coughs and waves a towel.
+2-5s: On the kitchen counter, a fluffy cat watches him with a deeply unimpressed face, then slowly and deliberately pushes a smartphone across the counter toward him with one paw (screen shows only colored shapes).
+5-8s: The phone slides off the counter and lands perfectly in the man's hand; he looks at the phone, then at the cat; the cat blinks slowly, satisfied.
+Audio: sizzling and a smoke alarm beep, a sliding phone sound, a soft catch, a tiny comedic "meow". No dialogue, no voices.
+Rules: no text, no subtitles, no brand logos on screen, keep the top quarter free.
+```
+Textes : « MÊME TON CHAT SAIT QUE TU CUISINES MAL. / אפילו החתול יודע שאתה לא יודע לבשל. » → « COMMANDE. / תזמין. »
+Légende : « Ton chat a raison ? 😼 » / « החתול צודק? 😼 »
+
+## 7. hamsin : 38 °C à Netanya 🥵
+**Pourquoi ça marche :** le hamsin, tout le monde le vit ; l'image d'une ville qui fond est surréaliste et drôle.
+```
+Vertical 9:16, 8 seconds, photorealistic surreal comedy, blinding heatwave light, heat haze.
+0-2s: The Netanya seaside promenade in an extreme heatwave: an ice cream cone melts instantly into a puddle, a man's sunglasses droop and melt like in a Dali painting, a dog lies flat like a rug.
+2-5s: Heat waves ripple; people move in slow motion, exhausted; a palm tree droops.
+5-8s: A HOP! delivery rider arrives and opens a navy HOP! cooler bag: an icy blue mist bursts out with frosty cold drinks and ice pops; everyone around turns and rushes toward him like toward an oasis.
+Audio: cicadas, a sizzling heat sound, a slow tired music, then an icy crystalline whoosh and happy cheers. No dialogue, no words.
+Rules: no alcohol, no text, no subtitles, no other brand logos, keep the top quarter free.
+```
+Textes : « 38 °C À NETANYA ? / 38 מעלות בנתניה? » → « ON LIVRE LE FRAIS. / מביאים את הקר. »
+Légende : « Tu tiens combien de temps sans clim ? 🥵 » / « כמה זמן אתם מחזיקים בלי מזגן? 🥵 »
+
+## 8. pizza-geante : on a un peu exagéré 🍕
+**Pourquoi ça marche :** l'image impossible et géante, filmée comme un film de science-fiction ; tout le monde veut la montrer.
+```
+Vertical 9:16, 8 seconds, photorealistic sci-fi blockbuster style, golden hour on Netanya beach.
+0-2s: People on Netanya beach look up in awe as a gigantic kraft pizza box, the size of a building, slowly descends from the clouds like a spaceship, with a navy logo (white "HOP", orange "!") on the lid.
+2-5s: It lands softly on the sand, the ground trembles, people film it with their phones (screens show only light), the sea wind blows.
+5-8s: The huge lid slowly opens and a massive cloud of steam rolls over the beach revealing a giant bubbling margherita; a tiny delivery scooter with a navy HOP! top case parks next to it.
+Audio: deep sci-fi drone, a low rumbling landing, crowd gasps, then a bright triumphant brass hit when the lid opens. No dialogue, no words.
+Rules: vegetarian pizza, no meat; no text, no subtitles, no other brand logos, keep the top quarter free.
+```
+Textes : « ON A UN PEU EXAGÉRÉ LA TAILLE… / אולי קצת הגזמנו עם הגודל… » → « PAS LE PRIX. / לא במחיר. »
+Légende : « Tu la partages avec qui ? 🍕 » / « עם מי אתם מתחלקים? 🍕 »
+
+## 9. sac-parfait : le sac de courses parfait (boucle ASMR) 🛍️
+**Pourquoi ça marche :** les vidéos « satisfaisantes » (rangement parfait, sons ASMR) sont regardées en boucle.
+```
+Vertical 9:16, 8 seconds, photorealistic top-down macro, clean white marble counter, soft studio light, perfectly satisfying motion.
+0-2s: An open empty navy paper bag with a white "HOP" and orange "!" logo in the center; groceries start to fly in from the edges of the frame.
+2-5s: Milk carton, eggs, apples, a baguette, pasta, juice, tomatoes slide and stack inside the bag in a perfectly satisfying Tetris-like order, each fitting with a precise click.
+5-8s: The last item, a lemon, lands exactly on top; the bag folds itself closed with a crisp crease. The final frame matches the composition of the first frame so the video can loop.
+Audio: crisp ASMR sounds for every item (paper rustle, soft thuds, clicks, a crunchy paper fold), no music. No dialogue, no voices.
+Rules: no text, no other brand logos on products (plain packaging), keep the top quarter free.
+```
+Textes : « LE SAC DE COURSES PARFAIT EXISTE / שקית הקניות המושלמת קיימת » → « ET ON TE LE LIVRE. / ואנחנו מביאים אותה. »
+Légende : « Tu l'as regardée combien de fois ? 😌 » / « כמה פעמים צפיתם? 😌 »
+
+## 10. hoppy-danse : quand ta commande arrive 🕺
+**Pourquoi ça marche :** une mascotte qui danse, avec des gens qui la rejoignent : facile à reprendre et à imiter.
+```
+Vertical 9:16, 8 seconds, high-end 3D animated film style (Pixar quality), the kangaroo "Hoppy" exactly as in the reference image, Netanya seaside promenade at sunset.
+0-2s: Hoppy stands still holding his HOP! bag, then suddenly bursts into a joyful, bouncy dance: big hops, spins, his tail swinging to the beat.
+2-5s: Passersby (a teenager, a grandmother, a man in a suit) stop, look at each other, then join in, copying his moves in sync.
+5-8s: Everyone lands together in a final group pose with Hoppy in the center lifting the HOP! bag high, confetti falling, sunset glow.
+Audio: a catchy upbeat dance beat with claps (no vocals, no lyrics), sneaker squeaks, cheers at the final pose.
+Rules: no hand signs or ambiguous gestures, Hoppy's feet never touch any food; no text, no subtitles, keep the top quarter free.
+```
+Textes : « QUAND TA COMMANDE ARRIVE… / כשההזמנה מגיעה… » → « ET HOP ! / והופ! »
+Légende : « Montre-nous ta danse 👇 » / « תראו לנו את הריקוד שלכם 👇 »
+
+## 11. frigo-desert : un désert dans le frigo 🏜️
+**Pourquoi ça marche :** une image jamais vue et une transformation magique.
+```
+Vertical 9:16, 8 seconds, photorealistic premium commercial, anamorphic lens, cinematic color.
+0-2s: Night kitchen in a Netanya apartment; a hand opens the fridge and a blinding desert sun blasts out, hot wind blows the person's hair, golden sand pours onto the floor.
+2-5s: The camera pushes INTO the fridge: an endless desert with dunes behind the shelves, heat haze, a tumbleweed rolling past one lonely lemon.
+5-8s: A navy HOP! paper bag (white "HOP", orange "!") drops into the sand; with a burst of icy mist the desert transforms into a perfectly full, colorful, glowing fridge; the camera pulls back out on the amazed face.
+Audio: desert wind, sand hiss, then an icy whoosh and fridge hum, an upbeat percussive hit at 5s. No dialogue, no voices.
+Rules: no text, no subtitles, no other brand logos, keep the top quarter free.
 ```
 Textes : « UN DÉSERT DANS LE FRIGO ? / מדבר במקרר? » → « ON LE REMPLIT ! / אנחנו ממלאים אותו! »
+Légende : « Ton frigo ce soir, c'est lequel ? 🏜️ » / « איך נראה המקרר שלכם הערב? 🏜️ »
 
-### everest : l'Everest du 4ᵉ étage (avec Hoppy)
-```
-Vertical 9:16, 8 seconds, high-end 3D animated feature film style (Pixar/Disney quality), the kangaroo "Hoppy" exactly as in the reference image (same face, caramel fur, cream belly, navy backpack, navy HOP! bag in his pouch with white "HOP" and orange "!").
-0-2s: Low angle in a narrow apartment stairwell turned into a Himalayan expedition: snow blowing sideways, two exhausted cartoon climbers roped together, headlamps, ice axes, colorful prayer flags tied along the banister, each carrying a six-pack of water bottles on their back.
-2-5s: The camera cranes up the spiral stairwell in one smooth vertigo move, past the 2nd and 3rd floors, wind and snow swirling, up to the 4th-floor landing bathed in warm sunlight.
-5-8s: Hoppy is waiting there, fresh and relaxed, next to a neat stack of water six-packs; the climbers arrive and collapse in disbelief; Hoppy gives a cheerful little hop and offers them a bottle of water. The snow stops, warm light.
-Audio: howling wind and an epic choir that suddenly cuts to a light comedic plucked melody when Hoppy appears. No dialogue, no voices.
-Rules: Hoppy's feet never touch any food; no text, no subtitles, no other characters, keep the top quarter of the frame free.
-```
-Textes : « L'EVEREST DU 4ᵉ ÉTAGE ? / האוורסט של הקומה הרביעית? » → « HOPPY EST DÉJÀ EN HAUT. / הופי כבר למעלה. »
-
-### liste-magique : la liste qui prend vie (remplace « la liste qui s'envole »)
-```
-Vertical 9:16, 8 seconds, photorealistic macro commercial with magical visual effects, warm morning sunlight, shallow depth of field.
-0-2s: Extreme close-up of a pen finishing a doodle of a red apple on a small paper shopping list on a wooden kitchen table; the list has only doodles (milk carton, baguette, egg box, orange juice, apple), no letters at all.
-2-5s: One by one the doodles peel off the paper and inflate into real, glossy, full-size products (milk carton, crusty baguette, egg box, orange juice bottle, shiny red apple), popping into the air with little sparkles and bouncing in slow motion.
-5-8s: The products arc gracefully through the sunbeam and land one after another in an open navy-blue paper bag with a white "HOP" and orange "!" logo; the bag crinkles shut. Camera ends on a clean hero shot of the full HOP! bag, the empty paper list next to it.
-Audio: pen scratch, magical pops for each product, a playful pizzicato melody, satisfying paper-bag crinkle at the end. No dialogue, no voices.
-Rules: no text, no letters, no subtitles, no people except the hand, no other brand logos, keep the top quarter free.
-```
-Textes : « ÉCRIVEZ VOTRE LISTE… / כתבו את הרשימה… » → « ON FAIT LE RESTE ! / אנחנו עושים את השאר! »
-
-### musee : le chef-d'œuvre du jour
-```
-Vertical 9:16, 8 seconds, photorealistic, elegant museum cinematography, deadpan comedy.
-0-2s: A slow, majestic dolly forward through a grand marble museum gallery with golden spotlights; well-dressed visitors whisper in awe; classical music swells.
-2-5s: Reveal of the centerpiece: inside a glass case on a velvet pedestal, lit like a priceless diamond, a single ordinary roll of white toilet paper. A visitor removes her glasses in shock, another wipes a tear, one man dramatically faints into his wife's arms.
-5-8s: A delivery rider with a navy HOP! jacket and a navy bag (white "HOP", orange "!") calmly walks in, lifts the glass, takes the roll, drops it in his HOP! bag and walks out with a nod; the whole crowd gasps and slowly turns to watch him leave.
-Audio: museum reverb, whispers, grand classical strings that stop abruptly when the rider takes the roll, then a single comedic cough. No dialogue, no words.
-Rules: no text, no signs, no subtitles, no other brand logos, keep the top quarter free.
-```
-Textes : « LE CHEF-D'ŒUVRE DU JOUR / יצירת המופת של היום » → « LIVRÉ CHEZ VOUS. / עד הבית. »
-
----
-
-## 🍕 Restaurants
-
-### pizza-vinyle : la pizza sur la platine
-```
-Vertical 9:16, 8 seconds, photorealistic music-video style, colorful club lights, dynamic handheld camera, slow motion moments.
-0-2s: Extreme close-up: a DJ turntable needle drops onto a whole fresh margherita pizza spinning as a vinyl record; the bass drops and the melted cheese wobbles to the beat.
-2-5s: The DJ scratches the pizza back and forth; in slow motion, slices fly off the spinning pizza into the hands of cheering friends in a living-room party, confetti and colored lights everywhere.
-5-8s: Hero shot on the DJ booth: an open kraft pizza box with a navy logo (white "HOP", orange "!"), steam rising in the colored lights, the crowd jumping behind it.
-Audio: an energetic house beat with real vinyl scratch sounds synced to the action, crowd cheering. No vocals, no lyrics, no dialogue.
-Rules: vegetarian margherita only, no meat anywhere, no text, no subtitles, no other brand logos, keep the top quarter free.
-```
-Textes : « CE SOIR, VOUS MIXEZ ? / הערב אתם על הפטיפון? » → « NOUS, ON LIVRE. / ואנחנו על המשלוח. »
-
-### sushi-surf : le sushi surfeur (remplace l'essai des sushis)
-```
-Vertical 9:16, 8 seconds, photorealistic macro food cinematography, ultra slow motion, dramatic backlight, dark slate background.
-0-2s: In a small black bowl, glossy soy sauce rises into a giant curling wave, like a tsunami in slow motion, droplets sparkling in the backlight.
-2-5s: A tiny miniature surfer standing on a salmon nigiri drops into the barrel of the soy sauce wave and carves through it, spray flying, the camera tracking alongside in macro.
-5-8s: The surfer rides out and lands perfectly on a dark slate plate among other sushi; chopsticks gently pick up the nigiri; a navy delivery bag with white "HOP" and orange "!" stands softly blurred behind.
-Audio: deep ocean wave rumble scaled to tiny size, a surf-rock guitar instrumental, a crisp splash at the landing. No dialogue, no voices.
-Rules: no animals, no mascot, no other characters, no text, no subtitles, no other brand logos, keep the top quarter free.
-```
-Textes : « LA VAGUE DU SOIR ? / הגל של הערב? » → « SUSHI FRAIS, LIVRÉ CHEZ VOUS. / סושי טרי, עד הבית. »
-
-### lune : Hoppy livre sur la Lune
-```
-Vertical 9:16, 8 seconds, high-end 3D animated feature film style (Pixar quality), the kangaroo "Hoppy" exactly as in the reference image, wearing a clear round space helmet.
-0-2s: The grey lunar surface, the blue Earth rising huge in a black starry sky; a lonely astronaut sits on a rock holding an empty bowl, sighing.
-2-5s: In the distance, Hoppy hops toward him in enormous slow-motion low-gravity leaps across the craters, holding a kraft pizza box with a navy logo (white "HOP", orange "!"), moon dust floating up in glittering plumes.
-5-8s: Hoppy lands softly beside the astronaut and opens the box; steam floats up in zero gravity; the pizza reflects in the astronaut's golden visor; the astronaut throws both arms up in joy and Hoppy gives a friendly wave.
-Audio: deep space ambience, soft thuds of each low-gravity landing, a playful orchestral theme that rises at the reveal. No dialogue, no voices.
-Rules: Hoppy's feet never touch the food; no text, no subtitles, keep the top quarter free.
-```
-Textes : « ON NE LIVRE PAS ENCORE SUR LA LUNE… / לירח עוד לא מגיעים… » → « …MAIS DANS TOUT NETANYA ! / …אבל לכל נתניה, כן! »
-
----
-
-## 💊 Pharmacie, 👶 bébé, 🐾 animaux
-
-### grippe : la grippe de l'homme
+## 12. grippe : la grippe de l'homme 🤧
+**Pourquoi ça marche :** une blague que tout le monde connaît. Chacun tague son conjoint.
 ```
 Vertical 9:16, 8 seconds, photorealistic theatrical comedy, stage lighting.
-0-2s: A living room; a stage spotlight snaps on a man wrapped in a blanket on the sofa, a red velvet theater curtain on both sides, used tissues around him; he lifts the back of his hand to his forehead like a dying opera tenor.
-2-5s: He performs an over-the-top tragic agony, reaching toward the ceiling, tissues fluttering down like confetti, while his partner leans in the doorway rolling her eyes, holding a small white pharmacy bag with a green cross and a navy HOP! sticker.
-5-8s: She drops the pharmacy bag on his chest; he instantly sits up perfectly healthy and smiling; the red curtain falls in front of the scene.
-Audio: dramatic orchestral opera music without singing, a timpani roll, a comedic stop when the bag lands, then light applause. No dialogue, no lyrics.
+0-2s: A stage spotlight snaps on a man wrapped in a blanket on the sofa, a red velvet theater curtain on both sides, tissues everywhere; he raises the back of his hand to his forehead like a dying opera tenor.
+2-5s: Over-the-top tragic agony, reaching toward the ceiling, tissues fluttering down like confetti; his partner in the doorway rolls her eyes, holding a small white pharmacy bag with a green cross and a navy HOP! sticker.
+5-8s: She drops the bag on his chest; he instantly sits up perfectly healthy; the red curtain falls.
+Audio: dramatic orchestral opera music without singing, timpani roll, comedic stop when the bag lands, light applause. No dialogue, no lyrics.
 Rules: no text, no subtitles, no other brand logos, keep the top quarter free.
 ```
 Textes : « LA GRIPPE DE L'HOMME ? / שפעת של גברים? » → « LA PHARMACIE ARRIVE AVANT LE DERNIER ACTE. / בית המרקחת מגיע לפני המערכה האחרונה. »
+Légende : « Tag celui qui fait ça 🤧 » / « תייגו את מי שעושה את זה 🤧 »
 
-### mission-bebe : ne pas réveiller bébé
+## 13. mission-bebe : ne pas réveiller bébé 👶
+**Pourquoi ça marche :** tous les parents se reconnaissent, et la parodie de film d'espionnage fait rire.
 ```
-Vertical 9:16, 8 seconds, photorealistic spy-movie parody, dark blue night light with sharp red laser beams, cinematic slow motion.
-0-2s: A dark nursery at night, a baby sleeping in a crib under a star nightlight; thin red laser beams flicker on, crisscrossing the room like a heist movie.
-2-5s: A parent in pajamas performs an absurdly acrobatic slow-motion slide and roll under and over the laser beams toward the half-open door, a drop of sweat on the forehead.
-5-8s: The parent grabs a navy HOP! bag of diapers waiting on the doormat outside; the baby sighs and turns in her sleep; the parent freezes, then gives a silent, relieved victory fist pump.
-Audio: tense spy suspense music, a soft creak of the floor, the baby's tiny sigh, music resolves in a quiet triumphant sting. No dialogue, no voices.
+Vertical 9:16, 8 seconds, photorealistic spy-movie parody, dark blue night light with sharp red laser beams, slow motion.
+0-2s: A dark nursery, a baby asleep under a star nightlight; red laser beams flicker on, crisscrossing the room.
+2-5s: A parent in pajamas does an absurdly acrobatic slow-motion slide and roll under the beams toward the half-open door.
+5-8s: The parent grabs a navy HOP! bag of diapers on the doormat; the baby sighs and turns; the parent freezes, then a silent relieved victory fist pump.
+Audio: tense spy music, a floor creak, the baby's tiny sigh, a quiet triumphant sting. No dialogue, no voices.
 Rules: no text, no subtitles, no other brand logos, keep the top quarter free.
 ```
 Textes : « MISSION : NE PAS RÉVEILLER BÉBÉ / משימה: לא להעיר את התינוק » → « DÉPOSÉ DEVANT LA PORTE, SANS SONNER. / משאירים ליד הדלת, בלי לצלצל. »
+Légende : « Parents, vous avez déjà fait pire ? 😂 » / « הורים, עשיתם כבר יותר גרוע? 😂 »
 
-### chien : même lui sait commander
+## 14. musee : le chef-d'œuvre du jour 🖼️
+**Pourquoi ça marche :** l'absurde pince-sans-rire, très partagé.
 ```
-Vertical 9:16, 8 seconds, photorealistic, bright cheerful home commercial, playful handheld camera.
-0-2s: A golden retriever stares at its empty food bowl, then slowly turns its head to a smartphone lying on the floor.
-2-5s: The dog carefully taps the phone screen with its nose (the screen shows only colorful shapes, no text), then sits up straight looking toward the front door, tail wagging; the doorbell rings.
-5-8s: The dog proudly trots back carrying a navy HOP! paper bag in its mouth and drops it next to the bowl; its owner on the sofa lowers her magazine in total disbelief.
-Audio: playful bouncy music, a phone tap, a doorbell chime, happy dog bark. No dialogue, no voices.
-Rules: no text, no subtitles, no other brand logos, keep the top quarter free.
-```
-Textes : « MÊME LUI SAIT COMMANDER. / אפילו הוא יודע להזמין. » → « ET VOUS ? / ואתם? »
-
----
-
-## 👔 Pressing, 💐 fleurs, 🕯️ Chabbat
-
-### costume : le costume qui y va tout seul
-```
-Vertical 9:16, 8 seconds, photorealistic, sunny cinematic street comedy, slow-motion "hero walk".
-0-2s: On the sunny Netanya seaside promenade with palm trees, an empty elegant navy suit with nobody inside walks toward the camera with a confident swagger, a hanger hooked on its shoulder.
-2-5s: Slow-motion hero walk: its jacket flaps in the sea breeze, a passerby drops her ice cream in shock, a cyclist turns his head.
-5-8s: Quick cut: the same suit walks back out of a dry cleaner's door, now wrapped in a clean transparent garment cover with a small navy HOP! tag, a tiny sparkle running along it.
-Audio: a funky bass-and-brass strut groove, footsteps, a sparkle chime. No dialogue, no voices.
-Rules: the suit stays empty (invisible-man effect), no text, no signs, no subtitles, no other brand logos, keep the top quarter free.
-```
-Textes : « VOTRE COSTUME VA AU PRESSING… / החליפה הולכת לניקוי יבש… » → « …SANS VOUS ! / …בלי אתכם! »
-
-### romeo : Roméo a oublié les fleurs (avec Hoppy)
-```
-Vertical 9:16, 8 seconds, high-end 3D animated feature film style (Pixar quality), magical golden-hour light, the kangaroo "Hoppy" exactly as in the reference image.
-0-2s: A pretty white building in Netanya at sunset; a woman waits on a third-floor balcony with string lights; below in the street, her partner pats his empty hands in panic: no flowers.
-2-5s: Hoppy bursts into frame and leaps in a spectacular slow-motion jump from the street all the way up to the balcony, holding a big colorful bouquet tied with a navy ribbon, petals trailing behind him.
-5-8s: At the top of his jump Hoppy hands the bouquet to the delighted woman, then glides back down; the partner below applauds with relief; a few petals float in the warm light.
-Audio: romantic strings with a playful comedic twist, a whoosh on the jump, a sparkle at the hand-over. No dialogue, no voices.
-Rules: no text, no subtitles, no ambiguous hand gestures, keep the top quarter free.
-```
-Textes : « IL A OUBLIÉ LES FLEURS ? / הוא שכח את הפרחים? » → « HOPPY S'EN CHARGE ! / הופי דואג לזה! »
-
-### sablier : le sablier du vendredi
-```
-Vertical 9:16, 8 seconds, photorealistic magical realism, warm Friday afternoon light, macro and slow motion.
-0-2s: Extreme macro of shimmering golden sand flowing through the neck of a giant glass hourglass standing on a white Shabbat tablecloth, a clock ticking.
-2-5s: The camera slowly pulls back: the beautiful Shabbat table (silver candlesticks with unlit candles, wine cups, salads); in the lower bulb, the falling sand swirls and gradually takes the shape of two braided challot that turn golden and start to steam.
-5-8s: The glass of the hourglass dissolves into sparkling dust and the two warm golden challot rest on the challah board, a soft beam of sunlight on them, a small navy HOP! paper bag folded beside the board.
-Audio: ticking clock that slows down, soft sand hiss, then a warm calm string melody. No dialogue, no voices.
-Rules: no text, no subtitles, no other brand logos, candles stay unlit, keep the top quarter free.
-```
-Textes : « VENDREDI, LA COURSE CONTRE LA MONTRE ? / שישי, מרוץ נגד השעון? » → « LES HALLOT ARRIVENT À TEMPS. / החלות מגיעות בזמן. »
-
----
-
-## 📦 Colis et poste
-
-### documentaire : la queue à la poste, façon documentaire animalier
-```
-Vertical 9:16, 8 seconds, wildlife documentary cinematography: long telephoto lens, out-of-focus leaves in the foreground, warm dusty documentary color grade.
-0-2s: Through the leaves, a long queue of people in a post office hall moves almost imperceptibly, like a herd at a watering hole.
-2-5s: Nature-film moments: one man yawns enormously like a hippo, a tall woman stretches her neck to see the counter like a giraffe, a teenager slowly sinks to the floor.
-5-8s: The camera pans to the exit: a HOP! delivery rider with a navy HOP! bag strolls out carrying parcels, totally relaxed; the whole queue slowly turns their heads to watch him leave.
-Audio: savanna ambience with birds and insects, soft documentary orchestral music, no narration. No dialogue, no voices.
-Rules: no text, no signs, no subtitles, no timestamps, no other brand logos, keep the top quarter free.
-```
-Textes : « ESPÈCE OBSERVÉE : LA QUEUE À LA POSTE / מין נדיר: התור בדואר » → « EN VOIE DE DISPARITION. / בסכנת הכחדה. »
-
-### colis-hop : le colis qui fait HOP!
-```
-Vertical 9:16, 8 seconds, photorealistic street with a playful cartoon-physics object, low ground-level tracking camera.
-0-2s: On a sunny Netanya sidewalk lined with palm trees, a small cardboard parcel with a navy HOP! sticker squashes down like a spring.
-2-5s: It bounces forward in big joyful kangaroo hops, the camera tracking at ground level beside it: it hops over a puddle with a splash reflection, past a surprised cat, and between pedestrians' legs.
-5-8s: It makes a final perfect hop and lands squarely on a doormat; the front door opens and a smiling woman picks it up.
-Audio: springy "boing" sounds on each hop, upbeat ukulele and whistle music, a splash, a soft landing thump. No dialogue, no voices.
-Rules: no text, no subtitles, no other brand logos, keep the top quarter free.
-```
-Textes : « VOS COLIS… / החבילות שלכם… » → « …FONT HOP! / …עושות HOP! »
-
----
-
-## 🦘 La marque
-
-### netanya-mini : tout Netanya en maquette
-```
-Vertical 9:16, 8 seconds, tilt-shift miniature effect, FPV drone cinematography, bright saturated sunny colors.
-0-2s: A fast FPV drone dives from the sky toward Netanya, which looks like a tiny toy model: cliffs, beach, white towers, palm-lined streets.
-2-5s: The drone chases a tiny delivery scooter with a navy HOP! top case zipping through the miniature streets, banking around corners, past tiny cars and tiny people.
-5-8s: The scooter stops in front of a tiny white building; the camera slows down and rises for a calm hero shot over the miniature city and the sparkling sea.
-Audio: rising drone whoosh, tiny toy-like scooter buzz, upbeat electronic music with a satisfying final chord. No dialogue, no voices.
+Vertical 9:16, 8 seconds, photorealistic, elegant museum cinematography, deadpan comedy.
+0-2s: A majestic dolly through a grand marble gallery, golden spotlights, visitors whispering in awe.
+2-5s: The centerpiece: in a glass case on a velvet pedestal, lit like a priceless diamond, a single roll of toilet paper; a visitor removes her glasses in shock, a man faints into his wife's arms.
+5-8s: A HOP! delivery rider (navy HOP! jacket and bag) calmly walks in, lifts the glass, puts the roll in his bag and walks out with a polite nod; the crowd gasps and turns to watch him go.
+Audio: museum reverb, whispers, grand strings that stop abruptly, a single comedic cough. No dialogue, no words.
 Rules: no text, no signs, no subtitles, no other brand logos, keep the top quarter free.
 ```
-Textes : « TOUT NETANYA… / כל נתניה… » → « …À PORTÉE DE MAIN. / …בהישג יד. »
+Textes : « LE CHEF-D'ŒUVRE DU JOUR / יצירת המופת של היום » → « LIVRÉ CHEZ VOUS. / עד הבית. »
+Légende : « L'objet le plus précieux de ta maison ? 😂 » / « מה החפץ הכי יקר בבית שלכם? 😂 »
 
-### poche : la poche sans fond (avec Hoppy)
+## 15. poche : la poche sans fond de Hoppy 🦘
+**Pourquoi ça marche :** le tour de magie qui part en vrille, avec un frigo qui sort de la poche.
 ```
-Vertical 9:16, 8 seconds, high-end 3D animated feature film style (Pixar quality), the kangaroo "Hoppy" exactly as in the reference image, on a deep navy-blue (#0F1F3D) stage with an orange rim light and a spotlight.
-0-2s: Hoppy, like a stage magician, reaches into his pouch and pulls out a pizza box, then a bouquet of flowers, then a cardboard parcel, each with a sparkling pop.
-2-5s: Faster and faster: a baguette, a white pharmacy bag, a milk bottle; all the objects orbit around him in a glittering circle.
-5-8s: He frowns, digs deeper, strains... and with a big comedic "pop" pulls a full-size refrigerator out of his pouch; it lands with a thud; Hoppy dusts off his paws and looks at the camera, amused.
-Audio: magic sparkle sounds, a drumroll building up, a cartoon "pop" and heavy thud for the fridge, a cymbal crash. No dialogue, no voices.
+Vertical 9:16, 8 seconds, high-end 3D animated film style (Pixar quality), the kangaroo "Hoppy" exactly as in the reference image, on a deep navy-blue (#0F1F3D) stage with an orange rim light and a spotlight.
+0-2s: Like a stage magician, Hoppy pulls out of his pouch a pizza box, a bouquet, a parcel, each with a sparkling pop.
+2-5s: Faster and faster: a baguette, a white pharmacy bag, a milk bottle; everything orbits around him in a glittering circle.
+5-8s: He digs deeper, strains... and with a big cartoon "pop" pulls out a full-size refrigerator; it lands with a thud; Hoppy dusts off his paws and looks at the camera, amused.
+Audio: magic sparkles, a building drumroll, a cartoon pop, a heavy thud, a cymbal crash. No dialogue, no voices.
 Rules: Hoppy's feet never touch any food; no text, no subtitles, keep the top quarter free.
 ```
 Textes : « TOUT CE QUE VOUS VOULEZ… / כל מה שתרצו… » → « …MÊME ÇA ! / …אפילו את זה! »
-
-### telecommande : la télécommande en réanimation
-```
-Vertical 9:16, 8 seconds, photorealistic miniature diorama, macro lens, dramatic hospital-drama lighting, slow motion.
-0-2s: A TV remote control lies in a tiny hospital bed under a tiny blanket, tiny doctor and nurse figurines around it; the tiny heart monitor shows a flat green line with a long beep.
-2-5s: A tiny doctor uses defibrillator paddles on the remote; it jolts; still flat; the tiny team looks devastated; in the blurred background a TV shows a green sports field.
-5-8s: A pack of plain batteries slides into frame; the tiny nurse inserts two batteries; the remote's red LED blinks; the monitor jumps into a strong rhythm and the tiny team cheers.
-Audio: hospital beeps, a defibrillator charge and zap, a long flatline tone, then a healthy rhythm beep and tiny cheers. No dialogue, no words.
-Rules: no text, no numbers on screens, no subtitles, no brand logos, keep the top quarter free.
-```
-Textes : « TÉLÉCOMMANDE EN RÉANIMATION ? / השלט בטיפול נמרץ? » → « ON APPORTE LES PILES. / מביאים סוללות. »
-
----
-
-## 🛵 Recrutement et commerces
-
-### bureau-mer : ton bureau a vue sur la mer
-```
-Vertical 9:16, 8 seconds, photorealistic, cinematic contrast between grey and golden.
-0-2s: A dull grey office cubicle under flickering fluorescent light; a young man stares blankly at a computer screen showing only grey shapes.
-2-5s: A fast whip-pan transition to the Netanya cliff road at golden hour: the same young man now rides a scooter with a navy HOP! top case, the Mediterranean glowing orange, a drone shot following him along the cliffs.
-5-8s: He stops at a viewpoint above the sea, lifts his helmet visor and smiles at the sunset, palm trees moving in the breeze.
-Audio: office hum and a phone buzzing, cut by a whoosh into an uplifting cinematic music track with wind and waves. No dialogue, no voices.
-Rules: no text, no subtitles, no other brand logos, keep the top quarter free.
-```
-Textes : « TON BUREAU… / המשרד שלך… » → « …A VUE SUR LA MER. / …עם נוף לים. » (fin : « DEVIENS LIVREUR HOP! »)
-
-### avion-papier : lancez la commande, on l'attrape
-```
-Vertical 9:16, 8 seconds, photorealistic, one continuous flowing camera move, warm morning light.
-0-2s: Inside a small Netanya bakery, a smiling baker folds a plain paper airplane (no writing) and throws it out of the open shop door.
-2-5s: The camera follows the paper airplane in one continuous shot as it glides down the sunny street, over café tables, between palm trees, past surprised passersby.
-5-8s: A HOP! delivery rider with a navy HOP! bag, standing by his scooter, catches the airplane in one hand without looking, smiles and gives a nod back toward the bakery.
-Audio: a soft whoosh following the plane, light street ambience, a cheerful acoustic guitar melody. No dialogue, no voices.
-Rules: no text, no signs, no subtitles, no other brand logos, keep the top quarter free.
-```
-Textes : « PAS DE LIVREUR ? / אין לכם שליח? » → « LANCEZ LA COMMANDE, ON L'ATTRAPE. / שולחים הזמנה, אנחנו תופסים. » (fin : « VOTRE COMMERCE SUR HOP! »)
+Légende : « Qu'est-ce qu'on te livre ce soir ? 👇 » / « מה להביא לכם הערב? 👇 »
 
 ---
 
 ## Les 3 à faire en premier
-1. **frigo-desert** : l'image qu'on n'a jamais vue, avec une transformation magique.
-2. **pizza-vinyle** : de l'énergie, du son, ça se partage.
-3. **poche** : Hoppy fait le show, et la chute du frigo fait rire.
+1. **hoppy-surveille** : la mascotte qui ose, c'est le format le plus partagé.
+2. **vendredi-rideaux** : 100 % israélien, tout le monde l'a vécu.
+3. **savta** : de l'émotion et de l'humour, on la tague en famille.
