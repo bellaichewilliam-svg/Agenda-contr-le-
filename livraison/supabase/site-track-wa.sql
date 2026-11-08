@@ -1,0 +1,2 @@
+-- 08/11 : site_track accepte aussi « wa_list » (clic sur « Envoyez votre liste sur WhatsApp »), rangé dans site_steps.
+-- (appliqué en ligne ; même fonction que commandes-ouvertes.sql avec 'wa_list' en plus dans la liste)

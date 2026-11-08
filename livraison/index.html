@@ -96,7 +96,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202611080230" />
+  <link rel="stylesheet" href="styles.css?v=202611080239" />
 <style id="splashCss">#splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0F1F3D;color:#fff;transition:opacity .35s ease}#splash.out{opacity:0;pointer-events:none}#splash svg{width:min(58vw,300px);height:auto;display:block}#splash span{font:700 16px/1 Rubik,-apple-system,Arial,sans-serif;letter-spacing:.42em;margin-inline-start:.42em;opacity:.92}</style>
 </head>
 <body>
@@ -147,6 +147,7 @@
       </div>
       <p class="vit-status hidden" id="vitStatus"></p>
       <div class="vit-hero" id="vitHero"><h2 class="vit-ask" data-i18n="vitAsk"></h2><button type="button" class="vit-share" data-share-app aria-label="Partager HOP! · לשתף את HOP!"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div>
+      <a class="wa-list vit-wa" data-wa-list href="#" target="_blank" rel="noopener"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg></i><span><b data-i18n="waListT"></b><small data-i18n="waListS"></small></span><em aria-hidden="true">›</em></a>
     </div>
     <h1 class="ch-title"><span data-i18n="heroTitle1"></span> <span class="accent" data-i18n="heroTitle2"></span></h1>
     <p class="ch-tagline" data-i18n="heroTag"></p>
@@ -352,7 +353,7 @@
         <!-- Commande en 3 petits écrans : 1. Quoi et où ? · 2. Précisions · 3. Vous et le paiement -->
         <div class="wiz-bar" id="wizBar" aria-live="polite">
           <div class="wiz-top"><button type="button" class="wiz-back" id="wizBack" data-i18n="wizBack"></button><small id="wizStepTxt"></small></div>
-          <div class="wiz-seg"><i></i><i></i><i></i></div>
+          <div class="wiz-seg"><i></i><i></i></div>
           <h3 class="wiz-title" id="wizTitle"></h3>
         </div>
         <div data-wiz="1" class="shop-hero hidden" id="shopHero"></div>
@@ -463,6 +464,7 @@
             <p data-wiz="1" class="notice warn full show-achat hidden" id="superNote" data-i18n="superNote"></p>
             <p data-wiz="1" class="notice full show-achat no-cat" id="noCatNote"></p>
             <label data-wiz="1" class="f full show-achat shop-list"><span id="shopListLabel" data-i18n="shoppingList"></span><textarea name="shopping_list" rows="3" data-i18n-ph="shoppingListPh"></textarea></label>
+            <a data-wiz="1" class="wa-list full show-achat" data-wa-list href="#" target="_blank" rel="noopener"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg></i><span><b data-i18n="waListT"></b><small data-i18n="waListS"></small></span><em aria-hidden="true">›</em></a>
             <div data-wiz="2" class="adult-box full show-achat">
               <label class="check"><input type="checkbox" name="has_tobacco" /> <span data-i18n="hasTobacco"></span></label>
               <label class="check"><input type="checkbox" name="has_alcohol" /> <span data-i18n="hasAlcohol"></span></label>
@@ -540,9 +542,8 @@
             <p class="notice warn hidden" id="noteTime"></p>
           </div>
         </fieldset>
-        <button type="button" class="wiz-more-btn" data-wiz="2" data-wiz-more><span><b data-i18n="wizMore"></b><small data-i18n="wizMoreSub2"></small></span><i>›</i></button>
 
-        <fieldset data-wiz="3">
+        <fieldset data-wiz="2">
           <legend data-i18n="s6"></legend>
           <div class="goods-box hidden" id="goodsBox"></div>
           <p class="notice ok hidden" id="giftNote"></p>
@@ -561,7 +562,7 @@
             <small class="muted" id="cashRule"></small>
           </div>
           <div class="fields" style="margin-top:12px">
-            <label data-wiz="3" data-more class="f full"><span data-i18n="payer"></span>
+            <label data-wiz="2" data-more class="f full"><span data-i18n="payer"></span>
               <select name="payer"><option value="moi" data-i18n="payer_moi"></option><option value="destinataire" data-i18n="payer_dest"></option></select>
             </label>
             <details class="f full fold-line" id="promoFold">
@@ -575,7 +576,7 @@
           </div>
         </fieldset>
 
-        <fieldset id="coordsBox" data-wiz="3">
+        <fieldset id="coordsBox" data-wiz="2">
           <legend data-i18n="s7"></legend>
           <div class="coords-summary hidden" id="coordsSummary">
             <span id="coordsText"></span>
@@ -584,13 +585,13 @@
           <div class="fields" id="coordsFields">
             <label class="f"><span data-i18n="yourName"></span><input name="contact_name" autocomplete="name" /></label>
             <label class="f"><span data-i18n="yourPhone"></span><input name="contact_phone" type="tel" autocomplete="tel" /></label>
-            <label data-wiz="3" data-more class="f"><span data-i18n="company"></span><input name="company" autocomplete="organization" /></label>
+            <label data-wiz="2" data-more class="f"><span data-i18n="company"></span><input name="company" autocomplete="organization" /></label>
             <!-- Email retiré pour un formulaire plus court : le reçu est dans « Mes courses » -->
             <input type="hidden" name="contact_email" />
           </div>
           <p class="muted small" style="margin-top:10px" data-i18n="remember"></p>
         </fieldset>
-        <button type="button" class="wiz-more-btn" data-wiz="3" data-wiz-more><span><b data-i18n="wizMore"></b><small data-i18n="wizMoreSub3"></small></span><i>›</i></button>
+        <button type="button" class="wiz-more-btn" data-wiz="2" data-wiz-more><span><b data-i18n="wizMore"></b><small data-i18n="wizMoreSub2"></small></span><i>›</i></button>
       </div>
 
       <aside class="summary card" id="summary">
@@ -825,16 +826,16 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202611080230"></script>
-<script src="i18n.js?v=202611080230"></script>
-<script src="pricing.js?v=202611080230"></script>
-<script src="store.js?v=202611080230"></script>
-<script src="chat.js?v=202611080230"></script>
-<script src="common.js?v=202611080230"></script>
-<script src="enseignes.js?v=202611080230"></script>
-<script src="places.js?v=202611080230"></script>
-<script src="rayons.js?v=202611080230"></script>
-<script src="client.js?v=202611080230"></script>
+<script src="config.js?v=202611080239"></script>
+<script src="i18n.js?v=202611080239"></script>
+<script src="pricing.js?v=202611080239"></script>
+<script src="store.js?v=202611080239"></script>
+<script src="chat.js?v=202611080239"></script>
+<script src="common.js?v=202611080239"></script>
+<script src="enseignes.js?v=202611080239"></script>
+<script src="places.js?v=202611080239"></script>
+<script src="rayons.js?v=202611080239"></script>
+<script src="client.js?v=202611080239"></script>
 <script>(function(){var s=document.getElementById("splash");if(!s)return;var t0=Date.now();function off(){var w=0;setTimeout(function(){s.classList.add("out");setTimeout(function(){s.remove()},400)},w)}off()})();</script>
 </body>
 </html>

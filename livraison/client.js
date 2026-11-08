@@ -13,7 +13,7 @@ const P = CONFIG.pricing;
 const PROMOS = CONFIG.promos;
 const OTHER = "__other";
 // Commande en 3 petits écrans (1. quoi et où · 2. précisions · 3. vous et le paiement)
-const wiz = { on: !!(form && form.querySelector("[data-wiz]")), step: 1, n: 3, probe: false, lastTarget: null, toast: null };
+const wiz = { on: !!(form && form.querySelector("[data-wiz]")), step: 1, n: 2, probe: false, lastTarget: null, toast: null };
 const state = { pharma: {}, pharmaCat: "", shop: null, pro: null, promo: null, promoMsg: "", fromPoint: null, toPoint: null, mine: [], settings: { accepting: true }, pick: { from: null, to: null }, stops: [] };
 const ac = {};
 
@@ -1402,7 +1402,7 @@ function renderQuote() {
   $("#mobileHint").textContent = addonOn() ? t("qAddon", { ref: state.addon.ref }) : hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
   $("#mobileHint").classList.toggle("mb-goods", !!(est && !unpriced && !withMax && !items && !addonOn()));
-  $("#submitBtn").textContent = wiz.on && wiz.step < 3 ? t("wizNext") : t("submit", { total: money(all) });
+  $("#submitBtn").textContent = wiz.on && wiz.step < wiz.n ? t("wizNext") : t("submit", { total: money(all) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
   if (proShopOn() && state.shop.pay_ask) notes.push(t("askNote", { name: UI.bi(state.shop.name) }));
@@ -1497,7 +1497,7 @@ function rememberProfile() {
   Store.saveProfile(p);
 }
 
-// --- Commande en 3 petits écrans -------------------------------------------------------------
+// --- Commande en 2 écrans (patron, 08/11 : 1. quoi et où · 2. précisions, vous et le paiement) -------------------------------------------------------------
 // Chaque bloc porte data-wiz="1|2|3" (un bloc à cheval : "1 2"), les options rares data-more (repliées).
 // Les règles ne changent pas : « Continuer » lance les mêmes contrôles que l'envoi et s'arrête
 // seulement sur un problème de l'écran affiché (ou d'avant).
@@ -2570,20 +2570,8 @@ function validateOrder() {
   if (goodsPrepay() && !goodsBudget()) { form.budget.focus(); return showErrorFalse(t("errGoodsBudget")); }
   if (goodsPrepay() && goodsBudget() > goodsCap()) { form.budget.focus(); return showErrorFalse(t("errGoodsCap", capVars())); }
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showErrorFalse(t("errTopcase")); }
-  // Arrivée chez quelqu'un (pas un commerce) : tout ce qu'il faut pour trouver la porte, sinon pas d'envoi
-  if (!(state.pick.to && state.pick.to.brand)) {
-    const k = kindOf("dropoff"), flat = k === "appartement";
-    const miss = !k ? "Kind" : (flat || k === "bureau") && !val("dropoff_floor").trim() ? "Floor"
-      : flat && !val("dropoff_apt").trim() ? "Apt" : flat && !val("dropoff_code").trim() ? "Code" : null;
-    // Adresse enregistrée affichée en fiche résumée : on la rouvre pour que le client voie les cases à choisir
-    if (miss && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
-    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showErrorFalse(t("errToKind")); }
-    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showErrorFalse(t("errTo" + miss)); }
-  }
-  // Un mot pour le livreur : seulement s'il manque une précision (un appartement sans étage ni n°)
-  const vague = (near ? ["dropoff"] : ["pickup", "dropoff"]).find(pre => { const w = pre === "pickup" ? "from" : "to";
-    return !(state.pick[w] && state.pick[w].brand) && kindOf(pre) === "appartement" && !val(pre + "_floor").trim() && !val(pre + "_apt").trim(); });
-  if (vague && notesText().length < 3) { form.elements[vague + "_apt"].focus(); return showErrorFalse(t("errNotes")); }
+  // Arrivée chez quelqu'un : type de lieu, étage, appartement, code et mot au livreur facultatifs (patron, 08/11 :
+  // commande plus courte, le livreur appelle s'il lui manque quelque chose) ; tout reste obligatoire pour « sans contact »
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
   if (form.leave_at_door.checked) {
     const k = kindOf("dropoff");
@@ -2631,7 +2619,7 @@ function validateOrder() {
 async function submit(e) {
   e.preventDefault();
   // Écrans 1 et 2 : « Continuer » (Entrée ou bouton) passe à l'écran suivant
-  if (wiz.on && wiz.step < 3) { wizNext(); return; }
+  if (wiz.on && wiz.step < wiz.n) { wizNext(); return; }
   showError("");
   cartStepSet("envoi");
   if (!validateOrder()) return;
@@ -6111,7 +6099,7 @@ setTimeout(checkChats, 1500);
 setInterval(checkChats, 20000);
 $("#mobileGo").addEventListener("click", e => {
   e.preventDefault();
-  if (wiz.on && wiz.step < 3) return wizNext();
+  if (wiz.on && wiz.step < wiz.n) return wizNext();
   $("#summary").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
@@ -6439,6 +6427,13 @@ function emptyCartSheet() {
 // --- Partager : l'appli, un commerce, un rayon (le lien s'ouvre directement au bon endroit) -------------
 // Téléphone : la feuille de partage du téléphone (WhatsApp, Instagram, SMS…) ; ordinateur : lien copié + WhatsApp.
 // ?src=partage : les visites venues d'un partage ont leur ligne dans 📊 Visites (onglet Compta du panel).
+// « Envoyez votre liste sur WhatsApp » (patron, 08/11) : photo, vocal ou texte, au WhatsApp de HOP!, qui crée la commande
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-wa-list]");
+  if (!a) return;
+  a.href = UI.waLink(CONFIG.whatsapp, t("waListText"));
+  if (UI.track) UI.track("wa_list", { page: a.classList.contains("vit-wa") ? "accueil" : "commande" });
+}, true);
 const SHARE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const shareBase = () => UI.appUrl("");
 async function shareLink(url, text) {
