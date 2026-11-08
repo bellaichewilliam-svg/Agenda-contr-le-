@@ -3973,6 +3973,7 @@ function renderCart() {
       [{ icon: "🗑", label: t("swDel"), attrs: `data-cs-del="${id}"`, cls: "sw-red" }, { icon: "＋", label: t("swDup"), attrs: `data-cs-plus="${id}"` },
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
   }).join("") + `<p class="sw-hint">${UI.esc(t("swHint"))}</p>`;
+  renderCartNav();
   const rest = form.shop_order.value.trim(), ex = (state.extras || []).filter(Boolean);
   const exOn = ex.length && rest.includes(t("mgAlso"));
   // Total de TOUS les articles de la commande : ceux du magasin + ceux que le livreur prend au plus près (≈)
@@ -4008,6 +4009,37 @@ function renderCart() {
       <ol class="cs-steps"><li><i>1</i><span>${UI.esc(t("csNoPay1", { name: nm }))}</span></li><li><i>2</i><span>${escHop(t("csNoPay2"))}</span></li></ol>
       ${tel ? `<a class="btn btn-ghost cs-call" href="tel:${UI.esc(tel)}">📞 ${UI.esc(t("csCall", { name: nm }))}</a>` : ""}`;
   } else $("#cartNote").textContent = t(shopPrepay() ? "csNotePrepay" : "csNote", { name: state.shop ? UI.bi(state.shop.name) : "" });
+}
+// Panier (08/11, demande du patron) : on n'est jamais coincé. Les rayons du magasin pour y retourner,
+// un article de plus (trouvé dans ce magasin, sinon pris au plus près), un autre magasin (+10 ₪)
+function renderCartNav() {
+  let nav = $("#cartNav");
+  if (!nav) { nav = document.createElement("div"); nav.id = "cartNav"; $("#cartBody").after(nav); }
+  if (!state.shop || !catalogOn() || !state.catalog) { nav.innerHTML = ""; return; }
+  const cats = (state.catalog.categories || []).filter(c => cgShown().some(p => p.category_id === c.id));
+  nav.innerHTML = `<div class="cs-nav"><b class="cn-t">🛍️ ${escHop(t("csNavT", { name: shopShortName() }))}</b>
+    ${cats.length > 1 ? `<div class="cn-cats">${cats.slice(0, 12).map(c => `<button type="button" class="cn-cat" data-cs-cat="${UI.esc(c.id)}">${UI.esc(UI.bi(c.name))}</button>`).join("")}</div>` : ""}
+    <button type="button" class="btn btn-ghost btn-block cn-all" data-cs-cat="">🔎 ${escHop(t("csNavAll", { name: shopShortName() }))}</button>
+    <div class="cn-add"><input type="text" data-cs-add maxlength="80" enterkeyhint="done" placeholder="${UI.esc(t("csAddPh"))}" /><button type="button" class="btn btn-sm" data-cs-addbtn>${UI.esc(t("mgAddBtn"))}</button></div>
+    <button type="button" class="btn btn-ghost btn-block cn-shop" data-cs-shops>🏪 ${UI.esc(t("csNavShop"))}</button></div>`;
+}
+// Un article tapé dans le panier : d'abord dans ce magasin (le meilleur résultat), sinon pris au plus près par le livreur
+function cartAddTyped(q) {
+  q = String(q || "").trim().replace(/\s+/g, " ");
+  if (!q) return;
+  const score = mgScorer(q), best = cgProducts().filter(p => p.available !== false).map(p => [p, score(p)]).sort((a, b) => b[1] - a[1])[0];
+  if (best && best[1] >= 14) {
+    const p = best[0];
+    state.cart[p.id] = Math.min(50, (state.cart[p.id] || 0) + 1);
+    hopCartFix(p.id);
+    toastCart(t("csAddedShop", { item: UI.bi(p.name) }));
+  } else {
+    state.extras = (state.extras || []).filter(Boolean);
+    state.extras.push({ n: q, q: 1, p: null, e: "🛒" });
+    extrasNote();
+    toastCart(t("csAddedNear", { item: q }));
+  }
+  renderCatalog(); renderQuote(); saveDraft(); renderCart(); cartPersist();
 }
 // Panier : le prix de la livraison dit tout de suite (et la 1re livraison à prix réduit), et si c'est fermé :
 // l'heure d'ouverture, la commande déjà programmée, « 🔔 Prévenez-moi à l'ouverture »
@@ -4060,6 +4092,28 @@ $("#cartSheet").addEventListener("click", e => {
   if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) return $("#cartSheet").classList.add("hidden");
   const del = e.target.closest("[data-cs-del]"), edit = e.target.closest("[data-cs-edit]");
   if (edit) { $("#cartSheet").classList.add("hidden"); openItem(edit.dataset.csEdit); return; }
+  // Retour dans le magasin : un rayon précis, ou tout le magasin
+  const cat = e.target.closest("[data-cs-cat]");
+  if (cat) {
+    $("#cartSheet").classList.add("hidden");
+    setView("order", true);
+    if (state.cgQ) { state.cgQ = ""; const qi = $("#catalogBox [data-cg-q]"); if (qi) qi.value = ""; renderCatalog(); }
+    const id = cat.dataset.csCat;
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const h = id ? $("#catalogBox").querySelector(`[data-cg-sec="${CSS.escape(id)}"]`) : $("#catalogBox");
+      if (h) scrollTo({ top: Math.max(0, scrollY + h.getBoundingClientRect().top - (id ? cgEdge() : 70) + 4), behavior: "smooth" });
+    }));
+    return;
+  }
+  if (e.target.closest("[data-cs-addbtn]")) { const inp = $("#cartSheet [data-cs-add]"); cartAddTyped(inp && inp.value); return; }
+  // Un autre magasin : l'accueil, à la liste des commerces (ce panier reste gardé, l'autre s'ajoute à la commande, +10 ₪)
+  if (e.target.closest("[data-cs-shops]")) {
+    $("#cartSheet").classList.add("hidden");
+    setView("home", true);
+    requestAnimationFrame(() => requestAnimationFrame(() => { const b = $("#homeProBox"); if (b) b.scrollIntoView({ block: "start", behavior: "smooth" }); }));
+    toastCart(t("csNavShopToast"));
+    return;
+  }
   if (del) {
     delete state.cart[del.dataset.csDel];
     renderCatalog(); renderQuote(); saveDraft(); cartPersist();
@@ -4081,6 +4135,7 @@ $("#cartSheet").addEventListener("click", e => {
     (next ? next[0] : $("#summary")).scrollIntoView({ behavior: "smooth", block: "start" });
   }
 });
+$("#cartSheet").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-cs-add]")) { e.preventDefault(); cartAddTyped(e.target.value); } });
 $("#itemSheet").addEventListener("click", e => {
   if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
   const md = e.target.closest("[data-it-mod]");
