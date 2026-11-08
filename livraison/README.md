@@ -339,6 +339,22 @@ Quand le service est coupé (ou personne de connecté hors des heures), l'accuei
 - **Liste magique de l'accueil** (« Hoppy a compris votre liste ») : si des articles viennent d'un magasin HOP! (ex. HOP! chez Carrefour), « Commander cette liste » ouvre ce magasin avec ces articles dans le panier ; le reste (« À prendre aussi : … ») part dans la précision pour ce magasin, visible du livreur et du patron. Jamais « magasin le plus proche » quand la commande est de Carrefour.
 - Arrivée depuis une liste : on montre tout de suite la liste écrite (éclat orange + « ✅ Votre liste est prête »).
 
+### Panier dans plusieurs magasins (08/11)
+- Le client passe d'un magasin à l'autre : son panier n'est plus perdu, il est **gardé** (toast « 🛒 Panier Carrefour gardé : il part avec votre commande »), même après un rechargement ou un lien vers un autre magasin. Pastille du panier = tous les articles.
+- **Récapitulatif** dans le panier et sur la commande : « 🛍️ Votre commande dans 2 magasins » · 1. magasin ouvert (livraison normale) · 2. autre magasin (+10 ₪, `settings.addon_price`, s'il est à 2 km ou moins, `addon_km` ; sinon « course à part, au prix normal ») avec l'explication (une autre adresse à récupérer sur le même trajet, tout livré ensemble), boutons Voir / ✕.
+- On valide le 1er magasin, puis « ➕ Valider aussi Carrefour · livraison 10 ₪ » en haut de l'écran « Commande envoyée » : le magasin s'ouvre avec son panier, l'adresse et le nom déjà remplis, en **ajout à la commande** (même mécanisme vérifié par la base que « Ajouter un autre commerce » du suivi : `orders_ab_addon`, même client, même adresse, 15 min). Pas de départ automatique vers le suivi tant qu'un panier attend.
+- **Liste de Hoppy → chaque article au bon endroit** (patron, 08/11) : produit du magasin principal → son panier ; produit trouvé dans un **autre magasin sur HOP!** → le panier de cet autre magasin (gardé, +10 ₪, à valider après) ; sinon on le cherche dans le catalogue du magasin principal ; et ce qui n'a **pas de magasin précis** (pain, œufs, Acamol… trouvés dans les courses HOP!) part en « 🛵 Aussi dans votre commande · le livreur les prend » avec photo et prix indicatif : le livreur les achète sur son chemin (dans le magasin s'il les a, sinon au plus proche), au prix du ticket. Ils sont écrits dans la précision de la commande (« À prendre aussi (au plus près) : » une ligne par article) et le livreur les a en **liste à cocher**.
+
+### Contrôle complet de l'appli client (08/11) : corrections
+- **Rayons au-dessus de 100 ₪** (1re commande) : le maximum des articles se calculait sur le haut des fourchettes (105 ₪ pour 84 ₪ affichés) et bloquait le client sans issue. Il est maintenant ramené au plafond quand ce que le client voit y entre.
+- **Hors horaires** : la commande est programmée d'office à l'ouverture (avant, la pastille disait « dès l'ouverture » mais la commande partait « au plus vite »).
+- Liste de Hoppy → panier gardé et visible (pastille 🛒, panier relancé par le patron).
+- Plus de « bientôt leurs catalogues » ; message « Ajoutez au moins un article… » sur un rayon vide.
+- Achat par le livreur : plus de « taille du colis » ni de « conditions de livraison d'objets » à cocher pour acheter du pain.
+- « Où livrer ? ✅ » seulement quand le type de lieu (et étage / appartement / code) est rempli.
+- Un seul sens pour « Total » : « Total livraison » dans le bloc du prix quand il y a des articles (le total articles + livraison est dans l'encart du paiement).
+- « jusqu'à 6 articles … compris » ; HE « המוצרים מ-HOP! בקרפור » ; puce « Livrer à » en `dir=auto` ; noms des ronds de commerces jamais coupés au milieu d'un mot.
+
 ### Partager (bouton « Partager »)
 - **Partager HOP!** : en haut de l'accueil (petit bouton rond orange dans le coin de « Qu'est-ce qu'on vous apporte ? »), en bas de l'accueil (avant « Explorer ») et dans « Mes courses ». Envoie le lien du site avec un petit texte FR / HE.
 - **Partager un commerce / resto** : bouton « Partager » en haut de la photo du commerce → lien `?c=CODE` qui ouvre directement sa page.

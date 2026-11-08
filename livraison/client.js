@@ -734,7 +734,10 @@ function stepStates() {
     [fieldsetOf('legend[data-i18n="s1"]'), true],
     [fieldsetOf('legend[data-i18n="s4"]'), !scheduleError()],
     [fieldsetOf("#pickupLegend"), nearMode() ? rayonUnits() > 0 || shopListText().trim().length >= 3 : filled("pickup_address") && (filled("pickup_number") || !!(state.pick.from && state.pick.from.brand))],
-    [fieldsetOf('legend[data-i18n="s3"]'), filled("dropoff_address") && (filled("dropoff_number") || !!(state.pick.to && state.pick.to.brand))],
+    // (✅ seulement quand le livreur trouvera la porte : type de lieu, étage, appartement, code ; jamais à côté d'une erreur)
+    [fieldsetOf('legend[data-i18n="s3"]'), filled("dropoff_address") && (!!(state.pick.to && state.pick.to.brand)
+      || (filled("dropoff_number") && (() => { const k = kindOf("dropoff"), flat = k === "appartement";
+        return !!k && (!(flat || k === "bureau") || filled("dropoff_floor")) && (!flat || (filled("dropoff_apt") && filled("dropoff_code"))); })()))],
     [$("#coordsBox"), filled("contact_name") && phoneOk(val("contact_phone"))],
     ...(proShopOn() ? [[$("#shopOrderBox"), filled("shop_order") || cartCount() > 0]] : [])
   ];
@@ -976,7 +979,9 @@ const priceTxt = p => `${priceMid(p)} ₪`;
 const goodsPrepay = () => val("service") === "achat" && !proShopOn() && val("goods_mode") !== "self";
 const goodsAfter = () => goodsPrepay() && val("payment_method") !== "cash";
 const goodsCap = () => ((state.mine || []).filter(o => o.status === "livree").length >= 3 ? 200 : 100);
-const goodsMin = () => { const g = rayonGoods(); return g ? Math.ceil(g.hi) : 0; };
+// (le haut des fourchettes, mais ramené au plafond quand ce que le client voit, le prix du milieu, y entre : sinon un
+// nouveau client était bloqué à 105 ₪ pour 84 ₪ d'articles affichés, sans pouvoir baisser)
+const goodsMin = () => { const g = rayonGoods(); if (!g) return 0; const hi = Math.ceil(g.hi), cap = goodsCap(); return hi > cap && Math.ceil(g.mid) <= cap ? cap : hi; };
 const goodsBudget = () => Math.max(goodsMin(), Math.round(parseFloat(val("budget")) || 0));
 const capVars = () => ({ cap: money(goodsCap()), more: goodsCap() < 200 ? t("gmCapNew") : "" });
 function renderGoodsMode(q) {
@@ -1357,6 +1362,10 @@ function renderShopList() {
   form.rx.closest("label").classList.toggle("hidden", !svcAchat || (r && r.id !== "pharm"));
 }
 function renderQuote() {
+  try { renderMulti(); } catch (e) { /* (pas encore prêt au tout début) */ }
+  // Des articles en plus (panier, rayon) : ce total-là est celui de la livraison (le total articles + livraison est
+  // dans l'encart du paiement) : deux « Total » différents sur le même écran perdaient le client
+  try { const lb = $("#summary .total > span"); if (lb) lb.textContent = t(cartCount() > 0 || rayonGoods() ? "totalDeliv" : "total"); } catch (e) { /* ignore */ }
   applyCashOnly();
   renderGoodsChoice();
   renderShopBanner();
@@ -2098,7 +2107,8 @@ form.dropoff_nocode.addEventListener("change", () => {
   syncNoCode();
 });
 // Conditions de livraison d'objets : pour tout envoi, sauf un repas ou une commande chez un commerce HOP! Pro
-const needsRules = () => val("service") !== "repas" && !proShopOn() && !shopMode();
+// (conditions de livraison d'objets : pour un colis, pas pour des courses achetées par le livreur ni un repas)
+const needsRules = () => !["repas", "achat"].includes(val("service")) && !proShopOn() && !shopMode();
 function openRules() { $("#rulesModal").classList.remove("hidden"); }
 
 function applySavedAddr(which, a) {
@@ -2854,6 +2864,7 @@ async function submit(e) {
       $("#doneShare").classList.remove("hidden");
       form.contact_name.value = ""; form.contact_phone.value = "";
     }
+    renderMultiDone(saved);
     $("#doneModal").classList.remove("hidden");
     doneAuto(saved);
     ["notes", "shop_order", "shop_ref", "pickup_name", "phone_ref", "tracking_number", "parcel_name", "retrait_code", "appt_at", "shopping_list", "budget", "promo", "pickup_address", "pickup_number", "pickup_note", "pickup_building", "pickup_floor", "pickup_apt", "pickup_code", "dropoff_address", "dropoff_number", "dropoff_note", "dropoff_building", "dropoff_floor", "dropoff_apt", "dropoff_code", "dropoff_contact", "dropoff_phone"]
@@ -2870,7 +2881,7 @@ async function submit(e) {
     form.phone_order.checked = false; form.phone_paid.checked = false; form.fits_topcase.checked = false;
     form.querySelector('input[name=goods_mode][value=prepay]').checked = true; form.budget.dataset.manual = "";
     ["rx", "post_send", "p2p_sale", "sale_paid", "handoff"].forEach(k => { form.elements[k].checked = false; }); state.phoneReady = null;
-    state.cart = {}; renderCatalog();
+    state.cart = {}; state.extras = []; renderCatalog();
     state.pharma = {}; state.pharmaOpt = {};
     $("#coordsBox").dataset.editing = "";
     renderSavedAddrs();
@@ -2909,6 +2920,7 @@ async function submit(e) {
     if (/retrait_appt/.test(ex.message)) return showError(t("errAppt"));
     if (/post_appt/.test(ex.message)) return showError(t("errPostAppt"));
     if (/sale_unpaid/.test(ex.message)) return showError(t("errSaleUnpaid"));
+    console.warn("envoi", ex && ex.message, ex && ex.stack && ex.stack.split("\n").slice(0, 3).join(" / "));
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
   } finally {
     btn.disabled = false;
@@ -3443,6 +3455,7 @@ async function loadCatalogFor(shop) {
   // Le client a touché un autre commerce entre-temps : ce menu-là n'est plus le bon
   if (seq !== shopSeq || !state.shop || state.shop.code !== shop.code) return;
   state.catalog = cat;
+  multiRestore(shop.code);
   renderCatalog();
   renderQuote();
   if (state.boss) bossMapLoad(shop.code);
@@ -3570,6 +3583,7 @@ function renderCatalog() {
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   form.shop_order.placeholder = on ? t(hopBuyOn() ? "hopNotePh" : "cgNotePh") : t("spOrderPh");
+  $("#shopWa").classList.toggle("hidden", !(state.shop && hopBuyOn()) || document.documentElement.classList.contains("for-client"));
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
@@ -3777,6 +3791,14 @@ function renderCart() {
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
   }).join("") + `<p class="sw-hint">${UI.esc(t("swHint"))}</p>`;
   $("#cartSum").textContent = money(cartTotal());
+  const rest = form.shop_order.value.trim(), ex = (state.extras || []).filter(Boolean);
+  const exOn = ex.length && rest.includes(t("mgAlso"));
+  $("#cartRest").classList.toggle("hidden", !rest);
+  $("#cartRest").innerHTML = exOn ? `<b class="cr-t">🛵 ${UI.esc(t("csRestT", { name: shopShortName() }))}</b>`
+      + ex.map(x => `<div class="cr-row"><span class="cr-pic">${x.ph ? `<img src="${UI.esc(x.ph)}" alt="" loading="lazy" />` : UI.esc(x.e || "🛒")}</span><span class="cr-n">${x.q > 1 ? x.q + " × " : ""}${UI.esc(x.n)}</span><em>${x.p ? "≈ " + UI.esc(money(x.p)) : ""}</em></div>`).join("")
+      + `<small>${UI.esc(t("csRestS", { name: shopShortName() }))}</small>`
+    : rest ? `📝 ${UI.esc(rest)}` : "";
+  renderMulti();
   cartExtras();
   const nm = state.shop ? shopShortName() : "";
   let keep = $("#cartKeep");
@@ -4103,9 +4125,110 @@ function applyShop() {
   renderWhenHints();
 }
 
+// ===== Panier dans plusieurs magasins (patron, 08/11) ===========================================================
+// Le client passe d'un magasin à l'autre : son panier n'est plus perdu, il est gardé (« garé »). Récapitulatif dans le
+// panier et sur la commande : magasin 1 (livraison normale) + magasin 2 (+10 ₪ : une autre adresse à récupérer, même
+// trajet, tout livré ensemble). On valide le 1er, puis chaque autre en un toucher : c'est l'« ajout à la commande »
+// déjà vérifié par la base (orders_ab_addon : même client, même adresse, magasin à 2 km, 15 min, prix addon_price).
+const LS_MULTI = "livraison.multi.v1";
+state.multi = (() => { try { const m = JSON.parse(localStorage.getItem(LS_MULTI)) || {};
+  Object.keys(m).forEach(k => { if (!m[k] || Date.now() - m[k].at > 7 * 86400000) delete m[k]; }); return m; } catch (e) { return {}; } })();
+const multiSave = () => { try { localStorage.setItem(LS_MULTI, JSON.stringify(state.multi)); } catch (e) { /* ignore */ } };
+const multiList = () => Object.values(state.multi).filter(m => m && (!state.shop || m.code !== state.shop.code));
+const addonPrice = () => Number(state.settings.addon_price) || 10;
+const addonKm = () => Number(state.settings.addon_km) || 2;
+// Coordonnées d'un magasin : les siennes, sinon celles de la vitrine
+const shopXY = x => { if (!x) return null; if (x.lat != null && x.lon != null) return x; const sc = (state.showcase || []).find(z => z.code === x.code); return sc && sc.lat != null ? sc : null; };
+const kmBetween = (a, b) => { a = shopXY(a); b = shopXY(b); return a && b ? 111.32 * Math.hypot(a.lat - b.lat, (a.lon - b.lon) * Math.cos(a.lat * Math.PI / 180)) : null; };
+// Prix de la livraison de ce magasin en plus : 10 ₪ s'il est à 2 km du magasin principal, sinon une course normale
+function multiFee(m) {
+  // (coordonnées du magasin garé : reprises de la vitrine si elles manquaient au moment de le garer)
+  if (m.lat == null) { const sc = (state.showcase || []).find(x => x.code === m.code); if (sc) { m.lat = sc.lat; m.lon = sc.lon; if (m.price == null) m.price = proPrice(sc); } }
+  const d = kmBetween(state.shop, m);
+  return d != null && d <= addonKm() ? { price: addonPrice(), near: true } : { price: m.price || addonPrice(), near: false };
+}
+function multiPark() {
+  if (!state.shop || !state.catalog || !cartCount() || addonOn() || state.shop.demo || document.documentElement.classList.contains("for-client")) return;
+  const s = state.shop;
+  state.multi[s.code] = { code: s.code, name: UI.bi(s.name), short: shopShortName(), lat: s.lat, lon: s.lon, price: proPrice(s),
+    cart: Object.assign({}, state.cart), mods: Object.assign({}, state.cartMods || {}), note: form.shop_order.value || "",
+    lines: cartLines().filter(l => !isAddon(l.p)).map(l => ({ n: pName(l.p), q: l.qty })), count: cartCount(), total: cartTotal(), at: Date.now() };
+  multiSave();
+  toastCart(t("multiParked", { name: shopShortName() }));
+}
+// Page rechargée ou lien d'un autre magasin : le panier gardé sur le téléphone (autre magasin) est garé aussi
+function multiParkStored(code) {
+  // (lu directement : au démarrage, ce code passe avant la partie « panier gardé » plus bas)
+  let c = null;
+  try { c = JSON.parse(localStorage.getItem("livraison.cart.v1")); if (c && Date.now() - c.at > 7 * 86400000) c = null; } catch (e) { c = null; }
+  if (!c || !c.shop || !c.snap || c.shop.code === code || state.multi[c.shop.code] || !c.snap.count) return;
+  const sc = (state.showcase || []).find(x => x.code === c.shop.code) || null, nm = String(c.snap.shop_name || c.shop.code);
+  state.multi[c.shop.code] = { code: c.shop.code, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null,
+    cart: c.cart || {}, mods: c.mods || {}, note: "", lines: (c.snap.items || []).map(i => ({ n: i.n, q: i.q })), count: c.snap.count, total: Number(c.snap.total) || 0, at: Date.now() };
+  multiSave();
+  toastCart(t("multiParked", { name: nm.split(" · ")[0] }));
+}
+function multiRestore(code) {
+  const m = state.multi[code];
+  if (!m) return;
+  const ids = cgProducts().filter(p => p.available).map(p => p.id);
+  state.cart = Object.fromEntries(Object.entries(m.cart || {}).filter(([id, q]) => ids.includes(id) && q > 0));
+  state.cartMods = Object.fromEntries(Object.entries(m.mods || {}).filter(([id]) => state.cart[id]));
+  if (m.note && !form.shop_order.value.trim()) form.shop_order.value = m.note;
+  delete state.multi[code]; multiSave();
+}
+function multiHtml(withBtns) {
+  const list = multiList();
+  if (!list.length || !state.shop || !proShopOn()) return "";
+  const q = currentQuote(), main = q && q.total != null ? money(q.total) : money(proPrice(state.shop));
+  const rows = list.map((m, i) => { const f = multiFee(m);
+    return `<div class="mb-row"><span><b>${i + 2}. ${UI.esc(m.short || m.name)}</b><small>${UI.esc(t("multiItems", { n: m.count, sum: money(Math.round(m.total * 10) / 10) }))}</small></span>
+      <em>+${UI.esc(money(f.price))}</em>${withBtns ? `<span class="mb-btns"><button type="button" data-multi-go="${UI.esc(m.code)}">${UI.esc(t("multiSee"))}</button><button type="button" data-multi-del="${UI.esc(m.code)}" aria-label="✕">✕</button></span>` : ""}</div>`; }).join("");
+  const near = list.every(m => multiFee(m).near);
+  return `<b class="mb-t">🛍️ ${UI.esc(t("multiTitle", { n: list.length + 1 }))}</b>
+    <div class="mb-row"><span><b>1. ${UI.esc(shopShortName())}</b><small>${UI.esc(t("multiItems", { n: cartCount(), sum: money(cartTotal()) }))}</small></span><em>${UI.esc(main)}</em></div>${rows}
+    <small class="mb-why">${UI.esc(t(near ? "multiWhy" : "multiWhyFar", { price: money(addonPrice()), km: addonKm() }))}</small>
+    <small class="mb-how">${UI.esc(t("multiHow", { name: shopShortName() }))}</small>`;
+}
+function renderMulti() {
+  const h1 = multiHtml(true), h2 = multiHtml(false);
+  if ($("#multiCart")) { $("#multiCart").innerHTML = h1; $("#multiCart").classList.toggle("hidden", !h1); }
+  if ($("#multiSum")) { $("#multiSum").innerHTML = h2; $("#multiSum").classList.toggle("hidden", !h2); }
+}
+// Commande envoyée : chaque autre magasin garé se valide en un toucher (ajout à cette commande, adresse déjà remplie)
+function renderMultiDone(saved) {
+  // L'ajout se rattache toujours à la 1re commande (la base refuse un ajout d'un ajout)
+  if (saved && !saved.addon_of) state.multiRoot = saved.token;
+  const tok = saved && (saved.addon_of ? state.multiRoot : saved.token);
+  if (saved) saved = Object.assign({}, saved, { token: tok });
+  const box = $("#multiDone"), list = Object.values(state.multi).filter(m => m && (!saved || m.code !== saved.shop_code));
+  box.classList.toggle("hidden", !list.length || !saved || !saved.token);
+  if (!list.length || !saved || !saved.token) { box.innerHTML = ""; return; }
+  box.innerHTML = `<b class="mb-t">🛍️ ${UI.esc(t("multiNextT"))}</b>` + list.map(m => `<button type="button" class="btn btn-primary btn-block mb-next" data-multi-next="${UI.esc(m.code)}" data-tok="${UI.esc(saved.token)}">
+    ➕ ${UI.esc(t("multiNext", { name: m.short || m.name, price: money(multiFee(m).price) }))}</button>`).join("")
+    + `<small class="mb-why">${UI.esc(t("multiNextS"))}</small>`;
+}
+document.addEventListener("click", async e => {
+  const go = e.target.closest("[data-multi-go]"), del = e.target.closest("[data-multi-del]"), nx = e.target.closest("[data-multi-next]");
+  if (!go && !del && !nx) return;
+  e.preventDefault();
+  if (del) { delete state.multi[del.dataset.multiDel]; multiSave(); renderMulti(); renderCartIcon(); return; }
+  $("#cartSheet").classList.add("hidden");
+  if (go) { await loadShop(go.dataset.multiGo); return; }
+  // Magasin suivant : ajout à la commande qui vient de partir (même adresse, livraison 10 ₪)
+  $("#doneModal").classList.add("hidden");
+  setView("order", true);
+  await loadShop(nx.dataset.multiNext, true);
+  await initAddon(nx.dataset.tok);
+  renderCatalog(); renderQuote();
+  if (cartCount()) setTimeout(openCart, 300);
+});
+
 // Chaque ouverture de commerce a son numéro : une réponse en retard d'un commerce touché avant est ignorée
 let shopSeq = 0;
 async function loadShop(code, stay) {
+  if (state.shop && state.shop.code !== code) multiPark();
+  else if (!state.shop) multiParkStored(code);
   const seq = ++shopSeq;
   // On vide tout de suite le menu affiché : rien du commerce précédent ne doit rester pendant le chargement
   state.catalog = null; state.cart = {};
@@ -4209,7 +4332,8 @@ function renderWhenHints() {
   const shut = !!(state.shop && shopSide() && !shopOpenAt(new Date())), asapInput = form.querySelector('input[name=urgency][value=asap]');
   if (shut) { const lb = t("shClosedShort", { name: shopShortName() }); $("#asapSmall").textContent = lb; ex.textContent = lb; }
   // (HOP! ne prend pas de course maintenant : pareil, on programme d'office au premier créneau)
-  const noNow = shut || !state.settings.accepting;
+  // (hors horaires sans livreur libre aussi : la pastille dit « on vous livre dès l'ouverture », la commande suit)
+  const noNow = shut || !state.settings.accepting || !openNow();
   // Fermé : pas de choix à faire, le calendrier est là tout de suite (jour et heure déjà mis), on passe à la suite
   const was = form.classList.contains("no-now");
   form.classList.toggle("no-now", noNow);
@@ -4976,6 +5100,12 @@ function syncHome() {
 }
 
 function homeGo() {
+  // Liste de Hoppy (ou recherche) ouverte : « Commander » en bas fait comme « Commander cette liste » (jamais une
+  // course vide qui oublie ce que le client vient d'écrire)
+  const fl = $("#homeFindList"), go = fl && !fl.classList.contains("hidden") && fl.querySelector("[data-mg-go]");
+  if (go) { go.click(); return; }
+  const q = $("#homeFind") && $("#homeFind").value.trim();
+  if (vitOn() && q && norm(q).length >= 2) { startFreeOrder(q); return; }
   showHomeErr("");
   for (const which of ["from", "to"]) {
     if (addrReady(which)) continue;
@@ -5540,13 +5670,9 @@ function parseList(q) {
 }
 const magicCache = new Map();
 // Tous les produits trouvés pour un article (tous les magasins), le meilleur d'abord ; et le produit des courses HOP!
-function magicFind(name) {
-  const k = norm(name);
-  if (!magicCache.has(k)) magicCache.set(k, (async () => {
-    let prods = [];
-    // « 6 œufs » : on cherche « œufs » (le nombre reste affiché sur la ligne)
-    const q = String(name).replace(/^\d+\s*(x|×)?\s*/i, "").trim() || name;
-    try { prods = (await Store.productsSearch(q)) || []; } catch (e) { /* les rayons suffisent */ }
+// Note d'un produit pour un mot cherché (« pain », « 6 œufs »…) : > 0 = c'est bien ce produit (même règle partout :
+// liste de Hoppy, recherche dans le catalogue d'un magasin)
+function mgScorer(q) {
     const nn = phNorm(q).trim(), wantDiet = /diet|zero|light|דיאט|זירו|לייט/i.test(q);
     const esc = nn.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     // Nom sans la marque (« Tnuva · Lait 1 % » → « lait 1 % », « Brossard - Pain d'épices » → « pain d'épices »)
@@ -5566,6 +5692,16 @@ function magicFind(name) {
       if (/traiteur|restaurant|resto|cafe/i.test(x.kind || "")) sc -= 10;
       if (!wantDiet && /diet|zero|light|דיאט|זירו|לייט/i.test(x.name)) sc -= 25;
       return sc - a.length / 40; };
+  return score;
+}
+function magicFind(name) {
+  const k = norm(name);
+  if (!magicCache.has(k)) magicCache.set(k, (async () => {
+    let prods = [];
+    // « 6 œufs » : on cherche « œufs » (le nombre reste affiché sur la ligne)
+    const q = String(name).replace(/^\d+\s*(x|×)?\s*/i, "").trim() || name;
+    try { prods = (await Store.productsSearch(q)) || []; } catch (e) { /* les rayons suffisent */ }
+    const score = mgScorer(q);
     const cands = prods.filter(x => !/restaurant|resto|cafe/i.test(x.kind || "") && score(x) > 0).sort((a, b) => score(b) - score(a)).slice(0, 12);
     // Un vrai produit d'un magasin seulement s'il correspond bien ; sinon les courses HOP! (pain, œufs…) passent devant
     return { cands, strong: !!cands.length && score(cands[0]) >= 25, r: rayonHits(q, 1)[0] || null };
@@ -5634,7 +5770,8 @@ function renderMagic(anim) {
     <div class="mg-list">${rows || `<p class="fi-none">${UI.esc(t("mgEmpty"))}</p>`}</div>
     <div class="mg-add" data-mg-add><input type="text" enterkeyhint="done" autocomplete="off" placeholder="${UI.esc(t("mgAddPh"))}" aria-label="${UI.esc(t("mgAddBtn"))}" /><button type="button" data-mg-add-go>${UI.esc(t("mgAddBtn"))}</button></div>
     ${on.length ? `<div class="mg-sum"><b>${sum ? UI.esc(t("mgTotal", { sum: money(Math.round(sum * 10) / 10) })) : ""}</b><small>${UI.esc(t("mgFee", { fee }))}</small></div>
-    <div class="mg-acts">${shopBtns}<button type="button" class="mg-go${shops.length ? " alt" : ""}" data-mg-go>${UI.esc(t("mgGo"))}</button></div>` : ""}</div>`;
+    <div class="mg-acts">${shopBtns}<button type="button" class="mg-go${shops.length ? " alt" : ""}" data-mg-go>${UI.esc(t("mgGo"))}</button></div>
+    <a class="mg-wa" data-wa-list data-wa-from="magic" href="#" target="_blank" rel="noopener">${UI.esc(t("mgWa"))}</a>` : ""}</div>`;
   box.classList.remove("hidden");
 }
 // « ➕ Ajouter un article » sous la liste : n'importe quel produit de n'importe quel magasin (ou des courses HOP!),
@@ -5690,24 +5827,52 @@ $("#homeFindList").addEventListener("mousedown", e => { if (e.target.closest("bu
 async function magicToCart(code, withRest) {
   const m = state.magic;
   if (!m || !code) return;
-  // Ce que ce magasin n'a pas dans son catalogue (pain, Acamol…) : écrit dans la précision pour lui, rien ne se perd
-  const rest = withRest ? m.lines.filter(l => l.on && !l.cands.some(c => c.code === code))
-    .map(l => (l.qty > 1 ? l.qty + " × " : "") + (l.pick === "r" && l.r ? phName(l.r.i) : l.name)) : [];
-  // Pour chaque article : le produit choisi s'il est de ce magasin, sinon le meilleur de ce magasin
-  const want = m.lines.filter(l => l.on).map(l => { const i = typeof l.pick === "number" && l.cands[l.pick].code === code ? l.pick : l.cands.findIndex(c => c.code === code); return i >= 0 ? { id: l.cands[i].id, qty: l.qty } : null; }).filter(Boolean);
+  const on = m.lines.filter(l => l.on);
+  // Chaque article va là où on l'a trouvé (patron, 08/11) :
+  //  1. produit de ce magasin → son panier ;
+  //  2. produit d'un AUTRE magasin sur HOP! → le panier de cet autre magasin (gardé : commande en plusieurs magasins) ;
+  //  3. sinon (courses HOP!, rien de précis) → d'abord le catalogue de ce magasin, puis « à prendre aussi » au plus
+  //     près par le livreur, avec l'équivalent trouvé, sa photo et son prix indicatif (rien ne se perd).
+  const mine = [], others = {}, left = [];
+  on.forEach(l => {
+    const i = typeof l.pick === "number" && l.cands[l.pick].code === code ? l.pick : l.cands.findIndex(c => c.code === code);
+    if (i >= 0) { mine.push({ id: l.cands[i].id, qty: l.qty }); return; }
+    const c = withRest && typeof l.pick === "number" ? l.cands[l.pick] : null;
+    if (c && c.code && c.code !== code) { (others[c.code] = others[c.code] || []).push({ c, qty: l.qty }); return; }
+    if (withRest) left.push(l);
+  });
   $("#homeFindList").classList.add("hidden"); $("#homeFind").value = ""; $("#homeFind").blur();
   state.findItem = null; state.cgQNext = ""; state.shopDir = "";
-  UI.track("home_magic_cart", { shop_code: code, n: want.length });
+  UI.track("home_magic_cart", { shop_code: code, n: mine.length });
   await loadShop(code);
   if (!state.shop) return;
   const have = new Set(cgProducts().filter(p => p.available).map(p => p.id));
-  want.forEach(w => { if (have.has(w.id)) state.cart[w.id] = Math.min(50, (state.cart[w.id] || 0) + w.qty); });
-  if (rest.length && form.shop_order) {
-    const cur = form.shop_order.value.trim();
-    form.shop_order.value = (cur ? cur + "\n" : "") + t("mgAlso") + " " + rest.join(", ");
+  mine.forEach(w => { if (have.has(w.id)) state.cart[w.id] = Math.min(50, (state.cart[w.id] || 0) + w.qty); });
+  // Les autres magasins : leur panier est gardé, prêt à valider après (livraison +10 ₪ s'il est proche)
+  Object.entries(others).forEach(([oc, list]) => {
+    const sc = (state.showcase || []).find(x => x.code === oc) || null, nm = String(UI.bi(list[0].c.shop || (sc && sc.name) || oc));
+    const prev = state.multi[oc] || { cart: {}, lines: [], count: 0, total: 0 };
+    list.forEach(({ c, qty }) => { prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + qty); prev.lines.push({ n: UI.bi(c.name), q: qty }); prev.count += qty; prev.total += (Number(c.price) || 0) * qty; });
+    state.multi[oc] = Object.assign(prev, { code: oc, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null, mods: prev.mods || {}, note: prev.note || "", at: Date.now() });
+  });
+  if (Object.keys(others).length) multiSave();
+  // Le reste : d'abord dans le catalogue de ce magasin, sinon « à prendre aussi » au plus près
+  const avail = cgProducts().filter(p => p.available), extra = [];
+  left.forEach(l => {
+    const q = String(l.name).replace(/^\d+\s*(x|×)?\s*/i, "").replace(/^(du|de la|de l'|des|un|une|le|la|les|d')\s*/i, "").trim() || l.name;
+    const sc = mgScorer(q), best = avail.map(p => [p, sc(p)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0];
+    if (best) { state.cart[best[0].id] = Math.min(50, (state.cart[best[0].id] || 0) + l.qty); return; }
+    const r = l.pick === "r" && l.r ? l.r.i : (l.r && l.pick !== "x" ? l.r.i : null);
+    extra.push({ n: r ? phName(r) : l.name, q: l.qty, p: r ? rayPrice(r) * l.qty : 0, ph: r ? (UI.safeImg(r.photo) || (r.img ? `img/qc/${r.img}.webp` : "")) : "", e: r ? r.e || "" : "" });
+  });
+  state.extras = extra;
+  if (extra.length && form.shop_order) {
+    const cur = form.shop_order.value.trim().split("\n").filter(x => x && !x.startsWith(t("mgAlso"))).join("\n");
+    const lines = extra.map(x => `${x.q > 1 ? x.q + " × " : ""}${x.n}${x.p ? ` (≈ ${money(x.p)})` : ""}`);
+    form.shop_order.value = (cur ? cur + "\n" : "") + t("mgAlso") + "\n" + lines.join("\n");
     form.shop_order.dispatchEvent(new Event("input", { bubbles: true }));
   }
-  renderCatalog(); renderQuote();
+  renderCatalog(); renderQuote(); saveDraft(); cartPersist();
   if (cartCount()) setTimeout(openCart, 250);
 }
 // Vitrine : dès qu'on écrit, la recherche remonte en haut de l'écran (les résultats ont toute la place)
@@ -5991,6 +6156,8 @@ $("#reqClose").addEventListener("click", () => $("#reqModal").classList.add("hid
 if (location.hash === "#devis") setTimeout(() => openRequest("tournee"), 300);
 // On quitte le commerce choisi (« Ne plus commander chez… », ou une autre tuile de l'accueil)
 function leaveShop(quiet) {
+  multiPark();
+  state.extras = [];
   const side = shopSide() || "from";
   forgetOpenShop();
   state.shop = null;
@@ -6098,7 +6265,8 @@ let doneTimer = null;
 function doneAuto(saved) {
   clearInterval(doneTimer);
   const el = $("#doneAuto");
-  if (!el || !$("#donePrepay").classList.contains("hidden") || !$("#doneWa").classList.contains("hidden")) { if (el) el.classList.add("hidden"); return; }
+  // (pas de départ automatique vers le suivi quand il reste un autre panier à valider)
+  if (!el || !$("#donePrepay").classList.contains("hidden") || !$("#doneWa").classList.contains("hidden") || !$("#multiDone").classList.contains("hidden")) { if (el) el.classList.add("hidden"); return; }
   let n = 8;
   const tick = () => { el.textContent = t("doneAuto", { n }); el.classList.remove("hidden"); if (n-- <= 0) { clearInterval(doneTimer); location.href = UI.trackUrl(saved); } };
   tick(); doneTimer = setInterval(tick, 1000);
@@ -6355,14 +6523,16 @@ function cartDone() {
 function renderCartIcon() {
   const b = $("#tbCart");
   if (!b) return;
-  const c = cartStored(), n = c ? c.snap.count : 0;
+  let parked = 0;
+  try { parked = multiList().reduce((a, m) => a + (Number(m.count) || 0), 0); } catch (e) { /* pas encore prêt */ }
+  const c = cartStored(), n = (c ? c.snap.count : 0) + parked;
   // Accueil : une fine pastille pour reprendre le panier gardé sur ce téléphone
   let pill = $("#homeCartPill");
   if (!pill && $("#homeNotices")) { pill = document.createElement("button"); pill.type = "button"; pill.id = "homeCartPill"; pill.className = "cart-resume hidden"; $("#homeNotices").before(pill); }
   if (pill) {
     pill.classList.toggle("hidden", !n);
     const gift = n && cartGiftDue(true);
-    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${gift ? ` <em class="cr-gift"><bdi dir="ltr">🎁 −${UI.esc(money(CART_GIFT.off))}</bdi></em>` : c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>›</i><span class="cr-x" role="button" tabindex="0" data-cart-clear aria-label="${UI.esc(t("cartClear"))}">✕</span>`;
+    if (n) pill.innerHTML = `🛒 <b>${UI.esc(t("cartResume", { n }))}</b>${gift ? ` <em class="cr-gift"><bdi dir="ltr">🎁 −${UI.esc(money(CART_GIFT.off))}</bdi></em>` : c && c.snap && c.snap.shop_name ? ` <small>${UI.esc(c.snap.shop_name)}</small>` : ""} <i>›</i><span class="cr-x" role="button" tabindex="0" data-cart-clear aria-label="${UI.esc(t("cartClear"))}">✕</span>`;
   }
   // Petit saut de la pastille quand un article arrive dans le panier
   const nb = $("#tbCartN"), was = Number(nb.dataset.n || 0);
@@ -6374,7 +6544,8 @@ function renderCartIcon() {
 // Toucher le panier : on retrouve ses articles là où il les avait mis
 async function openStoredCart() {
   const c = cartStored();
-  if (!c) { emptyCartSheet(); return; }
+  // Seulement un panier gardé dans un autre magasin : on y retourne, avec ses articles
+  if (!c) { const m = multiList()[0]; if (m) { await loadShop(m.code, true); setTimeout(() => { if (cartCount()) openCart(); }, 400); return; } emptyCartSheet(); return; }
   if (c.shop) {
     if (!state.shop || state.shop.code !== c.shop.code) { state.shopDir = c.shop.dir || ""; await loadShop(c.shop.code, true); }
     const ids = cgProducts().map(p => p.id);
@@ -6485,12 +6656,26 @@ function emptyCartSheet() {
 // --- Partager : l'appli, un commerce, un rayon (le lien s'ouvre directement au bon endroit) -------------
 // Téléphone : la feuille de partage du téléphone (WhatsApp, Instagram, SMS…) ; ordinateur : lien copié + WhatsApp.
 // ?src=partage : les visites venues d'un partage ont leur ligne dans 📊 Visites (onglet Compta du panel).
+// La bulle « 💬 Nous écrire » se cache tant que la liste de recherche / de Hoppy est ouverte (elle recouvrait
+// « Commander cette liste » : on touchait la bulle au lieu du bouton)
+new MutationObserver(() => $("#waFab").classList.toggle("fab-off", !$("#homeFindList").classList.contains("hidden")))
+  .observe($("#homeFindList"), { attributes: true, attributeFilter: ["class"] });
+// Le message WhatsApp avec ce que le client a déjà choisi : liste de Hoppy, panier d'un magasin, liste « J'achète pour vous »
+function waListMsg(from) {
+  let list = "";
+  try {
+    if (from === "magic" && state.magic) list = mgText();
+    else if (state.shop && proShopOn() && cartCount()) list = t("waListAt", { name: UI.bi(state.shop.name) }) + "\n" + cgProducts().filter(p => state.cart[p.id]).map(p => `${state.cart[p.id]} × ${UI.bi(p.name)}`).join("\n") + (form.shop_order.value.trim() ? "\n" + form.shop_order.value.trim() : "");
+    else if (form.shopping_list.value.trim()) list = form.shopping_list.value.trim();
+  } catch (e) { list = ""; }
+  return list ? t("waListText").replace(/\n\n\n/, "\n" + list + "\n\n") : t("waListText");
+}
 // « Envoyez votre liste sur WhatsApp » (patron, 08/11) : photo, vocal ou texte, au WhatsApp de HOP!, qui crée la commande
 document.addEventListener("click", e => {
   const a = e.target.closest("[data-wa-list]");
   if (!a) return;
-  a.href = UI.waLink(CONFIG.whatsapp, t("waListText"));
-  if (UI.track) UI.track("wa_list", { page: a.classList.contains("vit-wa") ? "accueil" : "commande" });
+  a.href = UI.waLink(CONFIG.whatsapp, waListMsg(a.dataset.waFrom));
+  if (UI.track) UI.track("wa_list", { page: a.dataset.waFrom || (a.classList.contains("vit-wa") ? "accueil" : "commande") });
 }, true);
 const SHARE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const shareBase = () => UI.appUrl("");
