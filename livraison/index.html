@@ -96,7 +96,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202611080253" />
+  <link rel="stylesheet" href="styles.css?v=202611080258" />
 <style id="splashCss">#splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0F1F3D;color:#fff;transition:opacity .35s ease}#splash.out{opacity:0;pointer-events:none}#splash svg{width:min(58vw,300px);height:auto;display:block}#splash span{font:700 16px/1 Rubik,-apple-system,Arial,sans-serif;letter-spacing:.42em;margin-inline-start:.42em;opacity:.92}</style>
 </head>
 <body>
@@ -366,6 +366,7 @@
           <div class="cg hidden" id="catalogBox"></div>
           <label class="f"><span id="shopOrderLabel"></span><textarea name="shop_order" rows="3" maxlength="1000" data-i18n-ph="spOrderPh"></textarea></label>
           <p class="small muted" id="shopOrderNote"></p>
+          <a class="wa-list hidden" id="shopWa" data-wa-from="shop" data-wa-list href="#" target="_blank" rel="noopener"><i><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg></i><span><b data-i18n="waListT"></b><small data-i18n="waListS"></small></span><em aria-hidden="true">›</em></a>
           <div class="nopay-ready hidden" id="noPayReady"></div>
           <div class="gc hidden" id="goodsChoiceBox" role="group"></div>
         </div>
@@ -826,16 +827,16 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202611080253"></script>
-<script src="i18n.js?v=202611080253"></script>
-<script src="pricing.js?v=202611080253"></script>
-<script src="store.js?v=202611080253"></script>
-<script src="chat.js?v=202611080253"></script>
-<script src="common.js?v=202611080253"></script>
-<script src="enseignes.js?v=202611080253"></script>
-<script src="places.js?v=202611080253"></script>
-<script src="rayons.js?v=202611080253"></script>
-<script src="client.js?v=202611080253"></script>
+<script src="config.js?v=202611080258"></script>
+<script src="i18n.js?v=202611080258"></script>
+<script src="pricing.js?v=202611080258"></script>
+<script src="store.js?v=202611080258"></script>
+<script src="chat.js?v=202611080258"></script>
+<script src="common.js?v=202611080258"></script>
+<script src="enseignes.js?v=202611080258"></script>
+<script src="places.js?v=202611080258"></script>
+<script src="rayons.js?v=202611080258"></script>
+<script src="client.js?v=202611080258"></script>
 <script>(function(){var s=document.getElementById("splash");if(!s)return;var t0=Date.now();function off(){var w=0;setTimeout(function(){s.classList.add("out");setTimeout(function(){s.remove()},400)},w)}off()})();</script>
 </body>
 </html>

@@ -3570,6 +3570,7 @@ function renderCatalog() {
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   form.shop_order.placeholder = on ? t(hopBuyOn() ? "hopNotePh" : "cgNotePh") : t("spOrderPh");
+  $("#shopWa").classList.toggle("hidden", !(state.shop && hopBuyOn()) || document.documentElement.classList.contains("for-client"));
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
@@ -4976,6 +4977,12 @@ function syncHome() {
 }
 
 function homeGo() {
+  // Liste de Hoppy (ou recherche) ouverte : « Commander » en bas fait comme « Commander cette liste » (jamais une
+  // course vide qui oublie ce que le client vient d'écrire)
+  const fl = $("#homeFindList"), go = fl && !fl.classList.contains("hidden") && fl.querySelector("[data-mg-go]");
+  if (go) { go.click(); return; }
+  const q = $("#homeFind") && $("#homeFind").value.trim();
+  if (vitOn() && q && norm(q).length >= 2) { startFreeOrder(q); return; }
   showHomeErr("");
   for (const which of ["from", "to"]) {
     if (addrReady(which)) continue;
@@ -5634,7 +5641,8 @@ function renderMagic(anim) {
     <div class="mg-list">${rows || `<p class="fi-none">${UI.esc(t("mgEmpty"))}</p>`}</div>
     <div class="mg-add" data-mg-add><input type="text" enterkeyhint="done" autocomplete="off" placeholder="${UI.esc(t("mgAddPh"))}" aria-label="${UI.esc(t("mgAddBtn"))}" /><button type="button" data-mg-add-go>${UI.esc(t("mgAddBtn"))}</button></div>
     ${on.length ? `<div class="mg-sum"><b>${sum ? UI.esc(t("mgTotal", { sum: money(Math.round(sum * 10) / 10) })) : ""}</b><small>${UI.esc(t("mgFee", { fee }))}</small></div>
-    <div class="mg-acts">${shopBtns}<button type="button" class="mg-go${shops.length ? " alt" : ""}" data-mg-go>${UI.esc(t("mgGo"))}</button></div>` : ""}</div>`;
+    <div class="mg-acts">${shopBtns}<button type="button" class="mg-go${shops.length ? " alt" : ""}" data-mg-go>${UI.esc(t("mgGo"))}</button></div>
+    <a class="mg-wa" data-wa-list data-wa-from="magic" href="#" target="_blank" rel="noopener">${UI.esc(t("mgWa"))}</a>` : ""}</div>`;
   box.classList.remove("hidden");
 }
 // « ➕ Ajouter un article » sous la liste : n'importe quel produit de n'importe quel magasin (ou des courses HOP!),
@@ -6485,12 +6493,26 @@ function emptyCartSheet() {
 // --- Partager : l'appli, un commerce, un rayon (le lien s'ouvre directement au bon endroit) -------------
 // Téléphone : la feuille de partage du téléphone (WhatsApp, Instagram, SMS…) ; ordinateur : lien copié + WhatsApp.
 // ?src=partage : les visites venues d'un partage ont leur ligne dans 📊 Visites (onglet Compta du panel).
+// La bulle « 💬 Nous écrire » se cache tant que la liste de recherche / de Hoppy est ouverte (elle recouvrait
+// « Commander cette liste » : on touchait la bulle au lieu du bouton)
+new MutationObserver(() => $("#waFab").classList.toggle("fab-off", !$("#homeFindList").classList.contains("hidden")))
+  .observe($("#homeFindList"), { attributes: true, attributeFilter: ["class"] });
+// Le message WhatsApp avec ce que le client a déjà choisi : liste de Hoppy, panier d'un magasin, liste « J'achète pour vous »
+function waListMsg(from) {
+  let list = "";
+  try {
+    if (from === "magic" && state.magic) list = mgText();
+    else if (state.shop && proShopOn() && cartCount()) list = t("waListAt", { name: UI.bi(state.shop.name) }) + "\n" + cgProducts().filter(p => state.cart[p.id]).map(p => `${state.cart[p.id]} × ${UI.bi(p.name)}`).join("\n") + (form.shop_order.value.trim() ? "\n" + form.shop_order.value.trim() : "");
+    else if (form.shopping_list.value.trim()) list = form.shopping_list.value.trim();
+  } catch (e) { list = ""; }
+  return list ? t("waListText").replace(/\n\n\n/, "\n" + list + "\n\n") : t("waListText");
+}
 // « Envoyez votre liste sur WhatsApp » (patron, 08/11) : photo, vocal ou texte, au WhatsApp de HOP!, qui crée la commande
 document.addEventListener("click", e => {
   const a = e.target.closest("[data-wa-list]");
   if (!a) return;
-  a.href = UI.waLink(CONFIG.whatsapp, t("waListText"));
-  if (UI.track) UI.track("wa_list", { page: a.classList.contains("vit-wa") ? "accueil" : "commande" });
+  a.href = UI.waLink(CONFIG.whatsapp, waListMsg(a.dataset.waFrom));
+  if (UI.track) UI.track("wa_list", { page: a.dataset.waFrom || (a.classList.contains("vit-wa") ? "accueil" : "commande") });
 }, true);
 const SHARE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const shareBase = () => UI.appUrl("");

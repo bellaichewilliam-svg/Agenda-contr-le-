@@ -5190,3 +5190,6 @@ html.for-client .wa-list { display: none !important; }
 .fl-box input { width: 22px; height: 22px; flex: none; margin: 0; accent-color: #12B76A; }
 .fl-box label.on span { text-decoration: line-through; opacity: .55; }
 .fl-done { margin: 6px 0 0; font-weight: 800; color: #12B76A; }
+.mg-wa { display: block; margin-top: 10px; text-align: center; font-weight: 700; font-size: 14.5px; color: #25D366; text-decoration: none; padding: 8px; }
+#shopWa { margin-top: 10px; }
+#waFab.fab-off { display: none !important; }
