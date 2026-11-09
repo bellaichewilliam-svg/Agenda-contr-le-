@@ -106,3 +106,50 @@ New pose: [POSE]
 - hoppy-saut : `in the middle of a big jump seen from the side, flying to the left, legs stretched behind, ears flying back, big happy smile`
 - hoppy-atterrit : `just landing on the ground, knees bent, tail touching the ground for balance, ears bouncing, joyful face, seen from three-quarter front`
 - hoppy-fier : `standing proudly, thumb up, big smile, seen from the front, as if standing next to a delivery bag`
+
+---
+
+## Les VRAIES MARQUES : effet « la marque arrive dessus » (patron, 09/11)
+On ne refait pas tout : on garde les images déjà faites et Gemini fait la même image AVEC la vraie marque.
+Dans la vidéo, un trait de lumière traverse le produit et « peint » la marque (du sans-marque vers la marque), avec des étincelles, puis le vrai prix HOP! rebondit.
+
+Pour chaque image : joindre 1) l'image sans marque déjà faite, 2) une vraie photo du produit
+(dans l'appli HOP! → rayon Carrefour, ou sur carrefour.co.il : enregistrer la photo du produit).
+
+### soda-000-marque  (joindre soda-000 + photo Coca-Cola Classique 1,5 L)
+```
+Reprends exactement la bouteille de la première image : même angle, même cadrage, même taille, même lumière, mêmes gouttes de condensation, même fond. Change seulement l'étiquette et le bouchon : mets l'étiquette exacte du produit de la deuxième image (logo, couleurs, textes, mise en page), bien droite, nette et lisible, qui suit la courbe de la bouteille. Photo hyper réaliste, rien d'autre ne change.
+```
+### soda-045-marque … soda-315-marque  (facultatif : joindre soda-045… + la même photo)
+même texte.
+
+### chips-a-marque, chips-b-marque, chips-c-marque  (joindre chips-a/b/c + photo Bamba Osem)
+```
+Reprends exactement le sachet de la première image : même angle, même forme, mêmes plis, même lumière, même fond. Change seulement l'impression du sachet : mets exactement l'emballage du produit de la deuxième image (logo, couleurs, dessins, textes), net et lisible, qui suit les plis du sachet. Photo hyper réaliste, rien d'autre ne change.
+```
+### chocolat-a-marque … (facultatif, joindre chocolat-a/b/c + photo Kinder Bueno)
+même texte que les chips, avec « l'emballage ».
+
+### Le lait : rien à faire
+Ta première série (lait-a/b/c avec Tnuva) sert de version « marque », la deuxième de version « sans marque ».
+
+### Prix affichés (vrais prix de l'appli)
+- Coca-Cola Classique 1,5 L : 9 ₪ (HOP! chez Carrefour)
+- Tnuva lait 3 % 1 L : 7,40 ₪ (HOP! chez Carrefour)
+- Bamba 60 g : 9,90 ₪ (Le Marché Français)
+- Kinder Bueno ×3 : 13,90 ₪ (HOP! chez Carrefour)
+
+---
+
+## Plans en plus pour une vraie super vidéo (facultatif)
+### livreur-porte
+```
+Photo publicitaire hyper réaliste, format vertical 1080×1920. Devant la porte d'un appartement moderne à Netanya, en fin de journée, lumière chaude. Une main tend le sac isotherme bleu nuit « HOP! » de l'image jointe (logo HOP! blanc, « ! » orange) à une cliente souriante qui le reçoit. On voit les mains et le sac au premier plan, la cliente un peu floue derrière. Aucun autre texte, aucune autre marque.
+```
+(joindre sac-000)
+### cuisine
+```
+Photo publicitaire hyper réaliste, format vertical 1080×1920. Comptoir de cuisine moderne, lumineux, en marbre clair, le matin. Le sac isotherme bleu nuit « HOP! » de l'image jointe est posé ouvert sur le comptoir, avec à côté une baguette, une brique de lait, des pommes rouges et une bouteille de soda. Profondeur de champ, arrière-plan flou. Aucun autre texte.
+```
+(joindre sac-000)
+L'appli HOP! sur un téléphone : je la fais moi-même avec les vraies captures de l'appli.
