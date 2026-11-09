@@ -146,15 +146,21 @@ function syncRing() {
   $("#ringBar").classList.toggle("hidden", !list.length);
   if (list.length) $("#ringBar b").textContent = list.length === 1 ? `🔔 Commande n° ${list[0].ref} à prendre · ${UI.money(list[0].price)}` : `🔔 ${list.length} commandes à prendre`;
   if (list.length && !ringA.timer) {
-    const ringNow = () => { beep(); if (navigator.vibrate) navigator.vibrate([200, 100, 200]); };
+    const ringNow = () => { ring(); if (navigator.vibrate) navigator.vibrate([200, 100, 200]); };
     ringNow();
     ringA.timer = setInterval(ringNow, 3000);
   }
   if (!list.length && ringA.timer) { clearInterval(ringA.timer); ringA.timer = null; }
 }
 
-function alertNew(list, title) {
-  beep();
+// Sonnerie HOP! des courses (choisie par le patron) : commandes à prendre et nouvelles commandes
+function ring() {
+  try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { actx = null; }
+  UI.ringTone(actx, 1);
+}
+["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => { try { if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)(); if (actx.state === "suspended") actx.resume(); UI.ringLoad(actx); } catch (e) { /* audio indisponible */ } }, { once: true, passive: true }));
+function alertNew(list, title, sound) {
+  (sound || beep)();
   if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
   if (window.Notification && Notification.permission === "granted") {
     list.forEach(x => UI.notify(title(x), { body: x.body || "", tag: "hop-" + (x.ref || x.id || Math.random()) }));
@@ -199,7 +205,7 @@ async function load() {
   if (!firstLoad && freshOrders.length && !bossId) bossAfterLoad = freshOrders[0].id;
   if (!firstLoad && freshOrders.length) {
     alertNew(freshOrders.map(o => ({ ref: o.ref, price: o.price, body: `${UI.whenFr(o)}\n${UI.cityFr(o.from_city)} → ${UI.cityFr(o.to_city)}` })),
-      x => `🆕 Commande n° ${x.ref} — ${UI.money(x.price)}`);
+      x => `🆕 Commande n° ${x.ref} — ${UI.money(x.price)}`, ring);
   }
   if (!firstLoad && freshCouriers.length) alertNew(freshCouriers, c => `👤 Nouveau livreur : ${c.name}`);
   if (!firstLoad && freshShops.length) alertNew(freshShops, x => `🏪 Nouveau commerce : ${x.name}`);

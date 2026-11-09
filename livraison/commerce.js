@@ -342,7 +342,7 @@ function audio() {
   catch (e) { audioCtx = null; }
   return audioCtx;
 }
-["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, audio, { once: true, passive: true }));
+["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => UI.ringLoad(audio()), { once: true, passive: true }));
 function note(ctx, freq, at, vol, len) {
   const o = ctx.createOscillator(), g = ctx.createGain();
   o.frequency.value = freq;
@@ -356,7 +356,7 @@ function note(ctx, freq, at, vol, len) {
 const ring = { timer: null };
 function ringOnce() {
   const ctx = audio();
-  if (ctx) try { const t0 = ctx.currentTime + 0.03; [[880, 0], [1109, 0.15], [1319, 0.3], [1760, 0.48]].forEach(([f, d]) => note(ctx, f, t0 + d, 0.25, 0.8)); } catch (e) { /* audio indisponible */ }
+  UI.ringTone(ctx || null, 1);   // la sonnerie HOP! des courses (choisie par le patron)
   if (navigator.vibrate) navigator.vibrate([250, 120, 250]);
 }
 function setRing(on) {

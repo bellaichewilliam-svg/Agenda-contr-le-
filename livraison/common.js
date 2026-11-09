@@ -148,6 +148,34 @@ function cityActive(id) {
 // --- Notifications : par le service worker (seule façon qui marche sur Android), sinon classiques -------
 const swReady = "serviceWorker" in navigator && location.protocol !== "file:"
   ? navigator.serviceWorker.register("sw.js").then(() => navigator.serviceWorker.ready).catch(() => null) : Promise.resolve(null);
+// Sonnerie HOP! des courses (09/11, choisie par le patron : sons/sonnerie-hop.mp3, 3 carillons, 2 s).
+// Jouée par le lecteur audio de la page (débloqué au premier geste) ; sinon par un simple lecteur <audio>.
+const RING_URL = new URL("sons/sonnerie-hop.mp3", document.baseURI).href;
+const ringBuf = new WeakMap();
+function ringLoad(ctx) {
+  if (!ctx || ringBuf.has(ctx)) return ringBuf.get(ctx);
+  const p = fetch(RING_URL).then(r => r.arrayBuffer()).then(b => new Promise((ok, ko) => ctx.decodeAudioData(b, ok, ko))).catch(() => null);
+  ringBuf.set(ctx, p);
+  return p;
+}
+let ringEl = null;
+function ringTone(ctx, vol) {
+  const v = Math.max(0.05, Math.min(1, vol == null ? 1 : vol));
+  const fallback = () => {
+    try { if (!ringEl) ringEl = new Audio(RING_URL); ringEl.volume = v; ringEl.currentTime = 0; const p = ringEl.play(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* audio indisponible */ }
+  };
+  if (!ctx) return fallback();
+  ringLoad(ctx).then(buf => {
+    if (!buf) return fallback();
+    try {
+      if (ctx.state === "suspended") ctx.resume();
+      const s = ctx.createBufferSource(), g = ctx.createGain();
+      s.buffer = buf; g.gain.value = v;
+      s.connect(g).connect(ctx.destination);
+      s.start();
+    } catch (e) { fallback(); }
+  });
+}
 async function notify(title, opts) {
   if (!window.Notification || Notification.permission !== "granted") return false;
   const o = Object.assign({ icon: "icon-192.png", badge: "badge-96.png", data: { url: location.href } }, opts || {});
@@ -1150,7 +1178,7 @@ function routeLayer(a, b, opts) {
 
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
-  track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
+  ringTone, ringLoad, track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
