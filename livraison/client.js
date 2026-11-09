@@ -2995,11 +2995,23 @@ async function submit(e) {
     if (wiz.on) wizGo(1, true);
     // Pas encore de compte : un mot de passe et c'est fait (nom et téléphone viennent de la commande)
     const da = $("#doneAccount");
-    if (Store.ONLINE && !Store.clientAccount()) {
-      da.innerHTML = `<b>${UI.esc(t("lgDoneTitle"))}</b><p class="small" style="margin:4px 0 8px">${UI.esc(t("lgDoneSub"))}</p>
-        <form class="lg-quick" id="doneAccForm"><input type="password" name="pw" minlength="6" autocomplete="new-password" placeholder="${UI.esc(t("lgPass"))}" required />
-        <button class="btn btn-primary btn-sm">${UI.esc(t("lgGoCreate"))}</button></form><p class="small lg-msg" id="doneAccMsg"></p>`;
-      da.classList.remove("hidden");
+    // (09/11, patron) Le compte se crée tout seul avec le nom, le numéro et l'adresse de la commande ;
+    // le mot de passe est facultatif (seulement pour retrouver le compte sur un autre téléphone).
+    // Jamais sur le téléphone du patron qui saisit la commande d'un client.
+    if (Store.ONLINE && !Store.clientAccount() && !document.documentElement.classList.contains("for-client")) {
+      da.innerHTML = ""; da.classList.add("hidden");
+      Store.clientAuto(order.contact_name, order.contact_phone, order.contact_email).then(() => {
+        da.innerHTML = `<b>${UI.esc(t("lgAutoOk"))}</b><p class="small" style="margin:4px 0 8px">${UI.esc(t("lgAutoPw"))}</p>
+          <form class="lg-quick" id="doneAccForm" data-auto="1"><input type="password" name="pw" minlength="6" autocomplete="new-password" placeholder="${UI.esc(t("lgPass"))}" required />
+          <button class="btn btn-primary btn-sm">${UI.esc(t("lgAutoPwGo"))}</button></form><p class="small lg-msg" id="doneAccMsg"></p>`;
+        da.classList.remove("hidden");
+        loadMine();
+      }).catch(ex => {
+        // Ce numéro a déjà un compte : on le dit simplement (la course rejoint le compte dès qu'il se connecte)
+        if (/phone_exists/.test((ex && ex.message) || "")) { da.textContent = t("lgAutoExists"); da.classList.remove("hidden"); }
+      });
+    } else if (document.documentElement.classList.contains("for-client")) {
+      da.classList.add("hidden");
     } else {
       da.textContent = t("doneAccount");
       da.classList.toggle("hidden", !firstOrder || !!Store.clientAccount());
@@ -3262,6 +3274,11 @@ $("#doneAccount").addEventListener("submit", async e => {
   if (e.target.id !== "doneAccForm") return;
   e.preventDefault();
   const p = Store.getProfile(), fm = e.target;
+  if (fm.dataset.auto) {
+    const ok = await accountSubmit(() => Store.clientSetPassword(fm.pw.value), $("#doneAccMsg"), fm.querySelector("button"));
+    if (ok) $("#doneAccount").textContent = t("lgAutoPwOk");
+    return;
+  }
   const ok = await accountSubmit(() => Store.clientRegister(p.contact_name, p.contact_phone, p.contact_email, fm.pw.value), $("#doneAccMsg"), fm.querySelector("button"));
   if (ok) { $("#doneAccount").textContent = t("lgDoneOk"); loadMine(); }
 });
