@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Audio, Easing, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, Easing, Img, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 import { HoppyHop } from './HoppyHop';
 
 // Spots courts (5–6 s) faits avec les images Gemini du patron (09/11) : public/spot/*.webp (objets détourés),
@@ -270,6 +270,36 @@ export const SpotLivraison: React.FC<{ lang: Lang; music?: boolean }> = ({ lang,
         {end > 0 && <Title lang={lang} lines={[lang === 'he' ? 'עד הבית' : 'Livré chez vous']} at={END + 0.35} top={960} size={84} />}
         {end > 0 && <PriceChip lang={lang} text={TXT[lang].price} at={END + 0.5} top={1110} />}
       </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
+
+// ===== Le film complet (≈ 18 s) : les 4 spots enchaînés, une seule musique, fondus entre les plans =====
+// Chaque spot est coupé juste avant son petit logo de fin, sauf le dernier (la livraison) qui garde l'écran de fin.
+const FILM: { C: React.FC<{ lang: Lang; music?: boolean }>; len: number }[] = [
+  { C: SpotSac, len: 110 }, { C: SpotPluie, len: 130 }, { C: SpotSoda, len: 98 }, { C: SpotLivraison, len: SPOT_LIVRAISON_FRAMES },
+];
+const XF = 3; // chevauchement entre deux plans (images)
+export const SPOT_FILM_FRAMES = FILM.reduce((s, p) => s + p.len, 0) - XF * (FILM.length - 1);
+// Coupe franche avec un éclair de lumière et un petit « zoom punch » (pas de fondu : deux sacs superposés, c'est laid)
+const FadeIn: React.FC<{ on: boolean; children: React.ReactNode }> = ({ on, children }) => {
+  const f = useCurrentFrame();
+  return (
+    <AbsoluteFill style={{ transform: `scale(${on ? interpolate(f, [0, 10], [1.07, 1], { ...clamp, easing: Easing.out(Easing.cubic) }) : 1})` }}>
+      {children}
+      {on && <AbsoluteFill style={{ background: 'radial-gradient(circle at 50% 50%, #fff 0%, #FFD2B0 45%, rgba(255,106,19,.6) 100%)', mixBlendMode: 'screen', opacity: interpolate(f, [0, 2, 10], [0.95, 0.7, 0], clamp) }} />}
+    </AbsoluteFill>
+  );
+};
+export const SpotFilm: React.FC<{ lang: Lang; music?: boolean }> = ({ lang, music = true }) => {
+  let at = 0;
+  return (
+    <AbsoluteFill style={{ background: NAVY }}>
+      {music && <Music frames={SPOT_FILM_FRAMES} />}
+      {FILM.map(({ C, len }, i) => {
+        const from = at; at += len - XF;
+        return <Sequence key={i} from={from} durationInFrames={len}><FadeIn on={i > 0}><C lang={lang} music={false} /></FadeIn></Sequence>;
+      })}
     </AbsoluteFill>
   );
 };
