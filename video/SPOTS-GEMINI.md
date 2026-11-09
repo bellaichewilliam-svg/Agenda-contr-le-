@@ -86,3 +86,23 @@ Photographie produit de studio, hyper réaliste, 4K, format carré 2048×2048. [
 Fines poussières lumineuses en suspension, éclairées par un faisceau de lumière venant d'en haut, sur un fond noir pur #000000. Format vertical 1080×1920. Rien d'autre.
 ```
 (Hoppy : l'image officielle, rien à générer.)
+
+---
+
+## HOPPY pour le spot 3 (facultatif mais conseillé) : 3 poses, avec ChatGPT (règle Hoppy)
+On a déjà : l'image officielle (`hoppy.png`), la version détourée (`hoppy-cut.png`) et son saut animé (`HoppyHop`).
+Pour un saut encore plus naturel, 3 poses faites avec ChatGPT (toujours joindre `hoppy-officiel.png`), sur fond vert pour le détourage.
+Commencer chaque message par : « Garde exactement ce personnage (même visage, même fourrure, même sac HOP!), change seulement la pose. »
+
+Texte commun (le prompt officiel de HOPPY.md) :
+```
+Keep exactly the same character as in the attached image: "Hoppy", the kangaroo mascot of HOP! (a delivery app in Netanya, Israel).
+Same 3D animated-movie style (Pixar/Disney quality), same warm caramel fur with cream belly and pouch, dark brown paw and foot tips, big upright ears with pink inside, big expressive brown eyes, whiskers, big friendly smile.
+Same navy-blue backpack straps and the same navy-blue insulated delivery bag sticking out of its pouch, with "HOP" in white letters and the "!" in bright orange (#FF6A13), with a little steam (the food is still hot).
+Do not change his face, colors or proportions. No other text or logo.
+Background: perfectly flat chroma green #00FF00, no shadow, no gradient. Square 2048x2048. Character fully visible, never cut, with space around.
+New pose: [POSE]
+```
+- hoppy-saut : `in the middle of a big jump seen from the side, flying to the left, legs stretched behind, ears flying back, big happy smile`
+- hoppy-atterrit : `just landing on the ground, knees bent, tail touching the ground for balance, ears bouncing, joyful face, seen from three-quarter front`
+- hoppy-fier : `standing proudly, thumb up, big smile, seen from the front, as if standing next to a delivery bag`
