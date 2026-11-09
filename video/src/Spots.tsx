@@ -7,7 +7,7 @@ import { HoppyHop } from './HoppyHop';
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 const NAVY = '#0F1F3D', ORANGE = '#FF6A13';
 // largeur / hauteur de chaque image détourée (pour les poser à une hauteur donnée)
-const AR: Record<string, number> = { 'baguette-a': 0.37, 'baguette-b': 0.58, 'baguette-c': 0.345, 'chips-a': 0.598, 'chips-b': 0.433, 'chips-c': 0.6, 'lait-a': 0.475, 'lait-b': 0.541, 'lait-c': 0.532, 'pommes-a': 0.913, 'pommes-b': 1.035, 'pommes-c': 0.888, 'sac-000': 0.779, 'sac-045': 0.837, 'sac-090': 0.57, 'sac-135': 0.765, 'sac-180': 0.757, 'sac-225': 0.769, 'sac-270': 0.611, 'sac-315': 0.803, 'sac-dessus': 0.882, 'sac-ferme': 1.137, 'soda-000': 0.294, 'soda-045': 0.311, 'soda-090': 0.315, 'soda-135': 0.319, 'soda-180': 0.31, 'soda-225': 0.316, 'soda-270': 0.31, 'soda-315': 0.298 };
+const AR: Record<string, number> = { 'baguette-a': 0.37, 'baguette-b': 0.58, 'baguette-c': 0.345, 'chips-a': 0.598, 'chips-b': 0.433, 'chips-c': 0.6, 'lait-a': 0.475, 'lait-b': 0.541, 'lait-c': 0.532, 'pommes-a': 0.913, 'pommes-b': 1.035, 'pommes-c': 0.888, 'sac-000': 0.779, 'sac-045': 0.837, 'sac-090': 0.57, 'sac-135': 0.765, 'sac-180': 0.757, 'sac-225': 0.769, 'sac-270': 0.611, 'sac-315': 0.803, 'sac-dessus': 0.882, 'sac-ferme': 1.137, 'soda-000': 0.294, 'soda-045': 0.311, 'soda-090': 0.315, 'soda-135': 0.319, 'soda-180': 0.31, 'soda-225': 0.316, 'soda-270': 0.31, 'soda-315': 0.298, 'bamba': 0.651, 'lait-marque-a': 0.475, 'lait-marque-b': 0.541, 'lait-marque-c': 0.532, 'coca-000': 0.295, 'soda-plain': 0.294 };
 type Lang = 'fr' | 'he';
 const font = (lang: Lang) => (lang === 'he' ? 'Rubik' : 'Fredoka');
 
@@ -70,8 +70,8 @@ const Music: React.FC<{ frames: number }> = ({ frames }) =>
   <Audio src={staticFile('lancement-music.wav')} volume={v => interpolate(v, [0, 6, frames - 18, frames], [0, 0.95, 0.95, 0], clamp)} />;
 
 const TXT = {
-  fr: { sac: ['Toutes vos courses,', 'livrées chez vous'], price: 'dès 25 ₪ en ville', soda: ['Bien frais,', 'livré chez vous'], soPrice: '≈ 9 ₪', pluie: ['Faites vos courses,', 'on y va pour vous'] },
-  he: { sac: ['כל הקניות שלכם,', 'עד הבית'], price: 'החל מ־25 ₪ בעיר', soda: ['קר וטרי,', 'עד הבית'], soPrice: '≈ 9 ₪', pluie: ['עושים קניות,', 'ואנחנו מביאים'] },
+  fr: { sac: ['Toutes vos courses,', 'livrées chez vous'], price: 'dès 25 ₪ en ville', soda: ['Bien frais,', 'livré chez vous'], soPrice: '9 ₪', pluie: ['Faites vos courses,', 'on y va pour vous'] },
+  he: { sac: ['כל הקניות שלכם,', 'עד הבית'], price: 'החל מ־25 ₪ בעיר', soda: ['קר וטרי,', 'עד הבית'], soPrice: '9 ₪', pluie: ['עושים קניות,', 'ואנחנו מביאים'] },
 };
 
 // ===== Spot 1 : le sac tourne sur lui-même (5 s) =====
@@ -112,55 +112,71 @@ export const SpotSac: React.FC<{ lang: Lang; music?: boolean }> = ({ lang, music
 
 // ===== Spot 2 : le soda frais (5 s) =====
 export const SPOT_SODA_FRAMES = 150;
-const SODA = ['soda-000', 'soda-045', 'soda-090', 'soda-135', 'soda-180', 'soda-225', 'soda-270', 'soda-315', 'soda-000'];
+// La bouteille arrive sans marque, puis un trait de lumière la traverse et « peint » la vraie étiquette Coca-Cola
+// (soda-plain et coca-000 : même photo Gemini, même cadrage), éclat, puis le vrai prix HOP! rebondit
 export const SpotSoda: React.FC<{ lang: Lang; music?: boolean }> = ({ lang, music = true }) => {
   const f = useCurrentFrame(); const { fps } = useVideoConfig(); const t = f / fps; const L = TXT[lang];
-  const FLOOR = 1430, H = 1150, CX = 540;
+  const FLOOR = 1480, H = 1060, CX = 520, W = H * 0.295;
   const inS = spring({ frame: f - 2, fps, config: { damping: 15, mass: 0.9 } });
-  const p = interpolate(t, [0.2, 4.0], [0, SODA.length - 1], { ...clamp, easing: Easing.inOut(Easing.sin) });
-  const i = Math.min(SODA.length - 2, Math.floor(p)), k = interpolate(p - Math.floor(p), [0.6, 1], [0, 1], clamp);
-  // Les reflets bougent comme si la bouteille tournait : bande de lumière qui traverse l'étiquette
-  const band = ((t * 0.45) % 1) * 1.6 - 0.3;
-  const flare = interpolate(t, [1.0, 1.25, 1.9], [0, 1, 0], clamp);
-  const w = H * 0.31;
+  const float = Math.sin(t * 2.2) * 8;
+  // Le trait de lumière : de -15 % à 115 % de la largeur entre 1,3 s et 2,2 s
+  const pos = interpolate(t, [1.3, 2.2], [-15, 115], { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const wiping = t > 1.25 && t < 2.3;
+  const flare = interpolate(t, [2.05, 2.3, 2.9], [0, 1, 0], clamp);
+  const shine = ((Math.max(0, t - 2.6) * 0.55) % 1) * 1.6 - 0.3;
+  const mask = `linear-gradient(100deg, #000 ${pos - 4}%, transparent ${pos + 4}%)`;
+  const bottle = (name: string, extra: React.CSSProperties = {}) => (
+    <Img src={staticFile(`spot/${name}.webp`)} style={{ position: 'absolute', left: CX - W / 2, top: FLOOR - H + float, width: W, height: H, filter: 'drop-shadow(0 30px 40px rgba(0,0,0,.45))', ...extra }} />
+  );
+  const shape = { WebkitMaskImage: `url(${staticFile('spot/coca-000.webp')})`, WebkitMaskSize: '100% 100%', maskImage: `url(${staticFile('spot/coca-000.webp')})`, maskSize: '100% 100%' } as React.CSSProperties;
   return (
-    <Stage zoom={[1.12, 1.02]} bokeh={0.45}>
+    <Stage zoom={[1.1, 1.0]} bokeh={0.45}>
       {music && <Music frames={SPOT_SODA_FRAMES} />}
-      <Fx src="lumiere-2.jpg" opacity={interpolate(t, [0, 0.8, 2.4, 3.2], [0, 0.45, 0.3, 0], clamp)} style={{ left: 0, top: 0, width: 1080, height: 1920, transform: `translateX(${interpolate(t, [0, 3.2], [-200, 200])}px)` }} />
-      <div style={{ position: 'absolute', left: CX - 230, top: FLOOR - 36, width: 460, height: 70, borderRadius: '50%', background: 'rgba(0,0,0,.55)', filter: 'blur(20px)', opacity: inS }} />
+      <Fx src="lumiere-2.jpg" opacity={interpolate(t, [0, 0.8, 1.6, 2.4], [0, 0.4, 0.25, 0], clamp)} style={{ left: 0, top: 0, width: 1080, height: 1920, transform: `translateX(${interpolate(t, [0, 2.4], [-200, 200])}px)` }} />
+      <div style={{ position: 'absolute', left: CX - 220, top: FLOOR - 34, width: 440, height: 68, borderRadius: '50%', background: 'rgba(0,0,0,.55)', filter: 'blur(20px)', opacity: inS }} />
       <AbsoluteFill style={{ transform: `scale(${0.85 + 0.15 * inS})`, transformOrigin: `${CX}px ${FLOOR}px`, opacity: inS }}>
-        <OnFloor name={SODA[i]} cx={CX} floor={FLOOR} h={H} opacity={1} refl={0.3} />
-        <OnFloor name={SODA[i + 1]} cx={CX} floor={FLOOR} h={H} opacity={k} refl={0.3} />
-        <div style={{ position: 'absolute', left: CX - w / 2, top: FLOOR - H, width: w, height: H, overflow: 'hidden', WebkitMaskImage: `url(${staticFile('spot/soda-000.webp')})`, WebkitMaskSize: '100% 100%', maskImage: `url(${staticFile('spot/soda-000.webp')})`, maskSize: '100% 100%' }}>
-          <div style={{ position: 'absolute', top: 0, bottom: 0, width: '30%', left: `${band * 100}%`, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent)' }} />
+        {/* reflet au sol */}
+        <Img src={staticFile(`spot/${t > 2.2 ? 'coca-000' : 'soda-plain'}.webp`)} style={{ position: 'absolute', left: CX - W / 2, top: FLOOR + float, width: W, height: H, opacity: 0.25, transform: 'scaleY(-1)', transformOrigin: '50% 0%',
+          WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,.9), transparent 40%)', maskImage: 'linear-gradient(to bottom, rgba(0,0,0,.9), transparent 40%)', filter: 'blur(2px)' }} />
+        {bottle('soda-plain')}
+        {bottle('coca-000', { WebkitMaskImage: mask, maskImage: mask })}
+        {/* le trait de lumière qui peint l'étiquette, puis un reflet qui passe de temps en temps */}
+        <div style={{ position: 'absolute', left: CX - W / 2, top: FLOOR - H + float, width: W, height: H, ...shape }}>
+          {wiping && <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${pos - 9}%`, width: '18%', background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.95), rgba(255,200,120,.6), transparent)', filter: 'blur(4px)' }} />}
+          {t > 2.6 && <div style={{ position: 'absolute', top: 0, bottom: 0, left: `${shine * 100}%`, width: '25%', background: 'linear-gradient(100deg, transparent, rgba(255,255,255,.28), transparent)' }} />}
         </div>
+        {/* étincelles le long du trait */}
+        {wiping && Array.from({ length: 10 }, (_, j) => { const yy = FLOOR - H * (0.25 + 0.5 * ((j * 37) % 10) / 10) + float, xx = CX - W / 2 + (pos / 100) * W + ((j % 3) - 1) * 14;
+          const o = 0.5 + 0.5 * Math.sin(t * 30 + j * 2);
+          return <div key={j} style={{ position: 'absolute', left: xx, top: yy, width: 8, height: 8, borderRadius: 4, background: '#FFF4D6', boxShadow: '0 0 14px 4px rgba(255,190,90,.9)', opacity: o }} />; })}
       </AbsoluteFill>
-      <Fx src="eclat-blanc.jpg" opacity={flare} style={{ left: CX - 60 - 330, top: FLOOR - H + 120 - 300, width: 660, height: 590, transform: `scale(${0.7 + 0.5 * flare})` }} />
-      <Title lang={lang} lines={L.soda} at={0.9} top={150} size={100} />
-      {/* Le prix en pastille, à côté de la bouteille */}
-      {(() => { const s = spring({ frame: f - Math.round(2.2 * fps), fps, config: { damping: 8, mass: 0.6 } });
-        return <div style={{ position: 'absolute', left: 690, top: 760, width: 270, height: 270, borderRadius: '50%', background: ORANGE, display: 'grid', placeItems: 'center', transform: `scale(${s}) rotate(${(1 - s) * -30 + 8}deg)`,
-          boxShadow: '0 20px 50px rgba(255,106,19,.5)', fontFamily: 'Rubik', fontWeight: 800, fontSize: 84, color: '#fff', direction: 'ltr' }}>{L.soPrice}</div>; })()}
-      <PriceChip lang={lang} text={TXT[lang].price} at={3.3} top={1540} />
-      <Logo at={3.6} top={1660} size={110} />
+      <Fx src="eclat-blanc.jpg" opacity={flare} style={{ left: CX + 40 - 330, top: FLOOR - H * 0.62 - 295, width: 660, height: 590, transform: `scale(${0.7 + 0.5 * flare})` }} />
+      <Title lang={lang} lines={L.soda} at={0.5} top={150} size={100} />
+      {/* Le vrai prix HOP! en pastille, à côté de la bouteille */}
+      {(() => { const sp = spring({ frame: f - Math.round(2.35 * fps), fps, config: { damping: 8, mass: 0.6 } });
+        return <div style={{ position: 'absolute', left: 700, top: 780, width: 260, height: 260, borderRadius: '50%', background: ORANGE, display: 'grid', placeItems: 'center', transform: `scale(${sp}) rotate(${(1 - sp) * -30 + 8}deg)`,
+          boxShadow: '0 20px 50px rgba(255,106,19,.5)', fontFamily: 'Rubik', fontWeight: 800, fontSize: 92, color: '#fff', direction: 'ltr' }}>{L.soPrice}</div>; })()}
+      <PriceChip lang={lang} text={TXT[lang].price} at={3.3} top={1560} />
+      <Logo at={3.6} top={1680} size={110} />
     </Stage>
   );
 };
 
 // ===== Spot 3 : la pluie de courses + Hoppy (6 s) =====
 export const SPOT_PLUIE_FRAMES = 180;
-const DROPS = [
-  { n: 'lait', x: 340, r: -25, h: 440, at: 0.5 },
-  { n: 'baguette', x: 500, r: 30, h: 560, at: 0.85 },
-  { n: 'chips', x: 370, r: -15, h: 440, at: 1.2 },
-  { n: 'pommes', x: 470, r: 20, h: 270, at: 1.55 },
-  { n: 'lait', x: 450, r: 15, h: 400, at: 1.9 },
-  { n: 'pommes', x: 340, r: -30, h: 250, at: 2.2 },
+const DROPS: { v: string[]; x: number; r: number; h: number; at: number }[] = [
+  { v: ['lait-marque-a', 'lait-marque-b', 'lait-marque-c'], x: 340, r: -25, h: 440, at: 0.5 },
+  { v: ['baguette-a', 'baguette-b', 'baguette-c'], x: 500, r: 30, h: 560, at: 0.85 },
+  { v: ['bamba'], x: 380, r: -18, h: 430, at: 1.2 },
+  { v: ['pommes-a', 'pommes-b', 'pommes-c'], x: 470, r: 20, h: 270, at: 1.55 },
+  { v: ['coca-000'], x: 440, r: 16, h: 560, at: 1.9 },
+  { v: ['pommes-a', 'pommes-b', 'pommes-c'], x: 340, r: -30, h: 250, at: 2.2 },
 ];
 export const SpotPluie: React.FC<{ lang: Lang; music?: boolean }> = ({ lang, music = true }) => {
   const f = useCurrentFrame(); const { fps } = useVideoConfig(); const t = f / fps; const L = TXT[lang];
   const FLOOR = 1430, CX = 410, BH = 700;
-  const MOUTH = FLOOR - BH + 140;
+  // bord avant de l'ouverture du sac ouvert (sac-000 : à 44,5 % de sa hauteur en partant du haut)
+  const RIM = FLOOR - BH * 0.555;
   const inS = spring({ frame: f - 2, fps, config: { damping: 13 } });
   const closed = t > 4.05;
   // Le sac se tasse un peu à chaque produit qui tombe dedans
@@ -173,19 +189,20 @@ export const SpotPluie: React.FC<{ lang: Lang; music?: boolean }> = ({ lang, mus
       {music && <Music frames={SPOT_PLUIE_FRAMES} />}
       <Fx src="poussieres.jpg" opacity={interpolate(t, [0, 0.6, 4, 4.6], [0, 0.75, 0.75, 0.2], clamp)} style={{ left: 0, top: 0, width: 1080, height: 900 }} />
       <div style={{ position: 'absolute', left: CX - 300, top: FLOOR - 40, width: 600, height: 90, borderRadius: '50%', background: 'rgba(0,0,0,.5)', filter: 'blur(22px)', opacity: inS }} />
-      {/* Les produits tombent en tournoyant (3 vues par produit) et plongent dans le sac */}
-      {DROPS.map((d, j) => {
-        const k = interpolate(t, [d.at, d.at + 0.9], [0, 1], { ...clamp, easing: Easing.in(Easing.quad) });
-        if (t < d.at || k >= 1) return null;
-        const view = ['a', 'b', 'c'][Math.floor(k * 6) % 3];
-        const name = `${d.n}-${view}`, w = d.h * (AR[name] || 0.6);
-        const y = interpolate(k, [0, 1], [-d.h - 100, MOUTH]);
-        const fade = interpolate(k, [0.82, 1], [1, 0], clamp);
-        return <Img key={j} src={staticFile(`spot/${name}.webp`)} style={{ position: 'absolute', left: d.x - w / 2, top: y - d.h / 2, width: w, height: d.h, opacity: fade,
-          transform: `rotate(${d.r + k * d.r * 2}deg)`, filter: `blur(${(1 - k) * 2 + (k > 0.6 ? 0 : 1)}px) drop-shadow(0 20px 26px rgba(0,0,0,.4))` }} />;
-      })}
       <AbsoluteFill style={{ transform: `translateY(${(1 - inS) * 400}px) scale(${1 + squash * 0.5}, ${1 - squash})`, transformOrigin: `${CX}px ${FLOOR}px` }}>
         <OnFloor name={bagImg} cx={CX} floor={FLOOR} h={bh} />
+      </AbsoluteFill>
+      {/* Les produits tombent en tournoyant (3 vues par produit) et passent DERRIÈRE la face avant du sac :
+          on ne les montre qu'au-dessus du bord avant de l'ouverture (RIM), ils s'enfoncent dedans au lieu de disparaître */}
+      <AbsoluteFill style={{ clipPath: `inset(0 0 ${1920 - RIM}px 0)` }}>
+        {DROPS.map((d, j) => {
+          const k = interpolate(t, [d.at, d.at + 0.9], [0, 1], { ...clamp, easing: Easing.in(Easing.quad) });
+          if (t < d.at || k >= 1 || closed) return null;
+          const name = d.v[Math.floor(k * 6) % d.v.length], w = d.h * (AR[name] || 0.6);
+          const y = interpolate(k, [0, 1], [-d.h - 100, RIM + d.h * 0.62]);
+          return <Img key={j} src={staticFile(`spot/${name}.webp`)} style={{ position: 'absolute', left: d.x - w / 2, top: y - d.h / 2, width: w, height: d.h,
+            transform: `rotate(${d.r * (1 - k * 0.85)}deg)`, filter: `blur(${(1 - k) * 1.5}px) drop-shadow(0 20px 26px rgba(0,0,0,.4))` }} />;
+        })}
       </AbsoluteFill>
       {/* Éclat quand le sac se ferme */}
       <Fx src="eclat.jpg" opacity={interpolate(t, [4.0, 4.2, 4.8], [0, 0.9, 0], clamp)} style={{ left: CX - 400, top: FLOOR - bh / 2 - 400, width: 800, height: 800 }} />
