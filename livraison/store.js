@@ -563,6 +563,18 @@ function pushAddresses() {
   clearTimeout(pushTimer);
   pushTimer = setTimeout(() => clientSave({ p_addresses: getAddresses() }).catch(() => {}), 800);
 }
+// Compte créé tout seul à la 1re commande (09/11) : mot de passe au hasard, le client en choisit un s'il veut
+async function clientAuto(name, phone, email) {
+  if (!ONLINE || clientAccount()) return null;
+  const a = new Uint8Array(18); crypto.getRandomValues(a);
+  const pw = Array.from(a, b => b.toString(36).padStart(2, "0")).join("");
+  return clientRegister(String(name || "").trim() || String(phone || "").trim(), phone, email, pw);
+}
+async function clientSetPassword(pw) {
+  const acct = clientAccount();
+  if (!ONLINE || !acct) throw new Error("demo");
+  return rest("/rest/v1/rpc/client_set_password", { method: "POST", body: { p_key: acct.key, p_password: pw } });
+}
 async function clientLogout() {
   const acct = clientAccount();
   if (ONLINE && acct) await rest("/rest/v1/rpc/client_logout", { method: "POST", body: { p_key: acct.key } }).catch(() => {});
@@ -2812,7 +2824,7 @@ window.Store = {
   getSettings, saveSettings, adminShopProductSet, adminShopBoss, amBoss,
   welcomeUsed, deviceId,
   adminGoodsLink, adminGoodsPay, adminGoodsChoice,
-  createOrder, myOrders, isHopShop, hopPlace, itemsPlaces, hopCredit, hopJoin, hopJoinWhy, hopBags, buyState, buyDone, buyTotals, courierBuyCheck, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
+  createOrder, myOrders, isHopShop, hopPlace, itemsPlaces, hopCredit, hopJoin, hopJoinWhy, hopBags, buyState, buyDone, buyTotals, courierBuyCheck, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientAuto, clientSetPassword, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,

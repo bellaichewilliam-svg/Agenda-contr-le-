@@ -961,3 +961,10 @@ livraison/
 - Prix à Netanya : 25 ₪ + 5 ₪ (récupération) + 15 ₪ (aller-retour +50 %) = 45 ₪ (règles de prix existantes).
 - Récupérer un colis : « Capture d'écran du SMS reçu (ou photo de l'avis de passage), avec le n° du colis » (obligatoire, comme avant).
 - Encart « Envoyer un colis » : « 📮 Vous venez chercher un colis ? Récupérer un colis › » bascule sur le bon service.
+
+### Compte client créé tout seul à la 1re commande (09/11/2026)
+- Avant : le compte n'existait que si le client choisissait un mot de passe après sa commande (facultatif) ; sinon rien côté serveur.
+- Maintenant : à la fin de la commande, le compte se crée tout seul avec le nom et le numéro de la commande (mot de passe au hasard, connu de personne) : la course y est rattachée, les adresses suivent (`Store.clientAuto`).
+- Le client peut ensuite choisir un mot de passe (facultatif, pour retrouver son compte sur un autre téléphone) : `client_set_password` (supabase, migration `client_set_password`).
+- Numéro déjà inscrit : « Ce numéro a déjà un compte HOP! : connectez-vous dans Mon compte » (la course rejoint le compte à la connexion).
+- Jamais sur le téléphone du patron qui saisit une commande pour un client (`?pour=1`).
