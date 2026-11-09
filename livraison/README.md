@@ -968,3 +968,9 @@ livraison/
 - Le client peut ensuite choisir un mot de passe (facultatif, pour retrouver son compte sur un autre téléphone) : `client_set_password` (supabase, migration `client_set_password`).
 - Numéro déjà inscrit : « Ce numéro a déjà un compte HOP! : connectez-vous dans Mon compte » (la course rejoint le compte à la connexion).
 - Jamais sur le téléphone du patron qui saisit une commande pour un client (`?pour=1`).
+
+### Sonnerie HOP! des courses (09/11/2026)
+- Le patron a choisi la sonnerie : `livraison/sons/sonnerie-hop.mp3` (3 carillons, 2 s, 25 Ko).
+- Elle sonne pour : une course qui arrive chez le livreur (en boucle, de plus en plus fort, jusqu'à la réponse), les commandes à prendre et les nouvelles commandes dans le panneau patron, les commandes à préparer dans l'espace commerce.
+- `UI.ringTone(ctx, vol)` / `UI.ringLoad(ctx)` (common.js) : jouée par le lecteur audio de la page (débloqué au premier geste), sinon par `<audio>`.
+- Appli fermée : la notification garde le son du téléphone (le navigateur ne permet pas de choisir le son d'une notification web).

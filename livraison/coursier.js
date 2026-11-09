@@ -301,7 +301,7 @@ function audio() {
   } catch (e) { audioCtx = null; }
   return audioCtx;
 }
-["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, audio, { once: true, passive: true }));
+["pointerdown", "keydown", "touchstart"].forEach(ev => addEventListener(ev, () => UI.ringLoad(audio()), { once: true, passive: true }));
 
 // Une note douce, façon marimba (fondamentale + harmonique, qui s'éteint en douceur)
 function note(ctx, freq, at, vol, len) {
@@ -534,20 +534,19 @@ function beep() {
 // Sonnerie de nouvelle course : une petite mélodie agréable qui revient toutes les 2,5 s,
 // de plus en plus fort, jusqu'à ce que le livreur accepte, refuse ou laisse passer la course
 const ring = { timer: null, n: 0 };
-const MELODY = [[784, 0], [988, 0.16], [1175, 0.32], [1568, 0.5], [1175, 0.8], [1568, 0.96]];   // sol, si, ré, sol…
 function ringOnce() {
   const ctx = riderSet.sound !== false && audio();
-  const vol = Math.min(0.32, 0.12 + ring.n * 0.04);
+  // La sonnerie HOP! (choisie par le patron), de plus en plus fort
+  const vol = Math.min(1, 0.55 + ring.n * 0.15);
   ring.n++;
-  if (ctx) try { const t = ctx.currentTime + 0.03; MELODY.forEach(([f, d]) => note(ctx, f, t + d, vol, 0.9)); }
-  catch (e) { /* audio indisponible */ }
+  if (riderSet.sound !== false) UI.ringTone(ctx || null, vol);
   if (navigator.vibrate) navigator.vibrate([250, 120, 250, 120, 400]);
 }
 function startRing() {
   stopRing();
   ring.n = 0;
   ringOnce();
-  ring.timer = setInterval(ringOnce, 2500);
+  ring.timer = setInterval(ringOnce, 2600);
 }
 function stopRing() {
   clearInterval(ring.timer);
