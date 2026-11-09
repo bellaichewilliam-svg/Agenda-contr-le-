@@ -3128,8 +3128,17 @@ setInterval(() => {
 
 // Passé hors ligne par HOP! (courses sans réponse, trop de refus, aucune nouvelle depuis 3 h) : on coupe aussi ici
 function serverWentOffline(card) {
-  if (duty.watch == null || !card || card.online || !card.auto_offline_at || !duty.since) return;
-  if (new Date(card.auto_offline_at).getTime() < duty.since) return;
+  if (duty.watch == null || !card || card.online || !duty.since) return;
+  // Mis hors ligne ailleurs (panneau HOP! Patron, autre téléphone) : on arrête aussi le service ici, notification
+  // « 🟢 En service » comprise (patron, 09/11 : elle restait affichée hors ligne). 30 s de marge juste après le passage
+  // en ligne, le temps que le serveur l'enregistre (sinon une fiche encore « hors ligne » nous ferait ressortir).
+  if (card.online === false && !(card.auto_offline_at && new Date(card.auto_offline_at).getTime() >= duty.since)) {
+    if (Date.now() - duty.since < 30000) return;
+    toggleDuty(true);
+    try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }
+    return;
+  }
+  if (!card.auto_offline_at || new Date(card.auto_offline_at).getTime() < duty.since) return;
   toggleDuty(true);
   try { localStorage.setItem("livraison.online.v1", ""); } catch (e) { /* ignore */ }
   $("#autoOffText").textContent = autoOffText();
