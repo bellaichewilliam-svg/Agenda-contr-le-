@@ -16,6 +16,7 @@ import { AdoptHop, ADOPT_FRAMES } from './Adopt';
 import { Tout, TOUT_FRAMES } from './Tout';
 import { Lancement, LANCEMENT_FRAMES } from './Lancement';
 import { Stop, STOP_FRAMES } from './Stop';
+import { SpotSac, SPOT_SAC_FRAMES, SpotSoda, SPOT_SODA_FRAMES, SpotPluie, SPOT_PLUIE_FRAMES } from './Spots';
 
 export const Root: React.FC = () => (
   <>
@@ -39,6 +40,12 @@ export const Root: React.FC = () => (
     <Composition id="HopLancementHe" component={Lancement} durationInFrames={LANCEMENT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Composition id="HopStop" component={Stop} durationInFrames={STOP_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
     <Composition id="HopStopHe" component={Stop} durationInFrames={STOP_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
+    <Composition id="SpotSac" component={SpotSac} durationInFrames={SPOT_SAC_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="SpotSacHe" component={SpotSac} durationInFrames={SPOT_SAC_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
+    <Composition id="SpotSoda" component={SpotSoda} durationInFrames={SPOT_SODA_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="SpotSodaHe" component={SpotSoda} durationInFrames={SPOT_SODA_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
+    <Composition id="SpotPluie" component={SpotPluie} durationInFrames={SPOT_PLUIE_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="SpotPluieHe" component={SpotPluie} durationInFrames={SPOT_PLUIE_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Still id="HopGrid1" component={Grid} width={1080} height={1350} defaultProps={{ tile: 0 }} />
     <Still id="HopGrid2" component={Grid} width={1080} height={1350} defaultProps={{ tile: 1 }} />
     <Still id="HopGrid3" component={Grid} width={1080} height={1350} defaultProps={{ tile: 2 }} />
