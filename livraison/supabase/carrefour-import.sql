@@ -7,7 +7,7 @@
 --    Un produit déjà importé garde son nom français (on ne met à jour que le prix et l'hébreu).
 -- 3) les lignes rendues avec « a_traduire = true » ont un nom français provisoire : le traduire (update rayon_items set name_fr = …).
 -- Le nom garde le % (lait 3 %) ; seules la taille et la mention « מחיר בפיקוח » sont retirées.
--- Agence de référence : Carrefour Online Kfar Saba (3003), la plus proche de Netanya. Le site exige le Referer (sinon Cloudflare 403).
+-- Agence de référence : Carrefour Online Or Akiva (2996), celle qui livre Netanya (avant le 09/11 : Kfar Saba 3003, mêmes prix). Le site exige le Referer (sinon Cloudflare 403).
 -- ============================================================================
 create table if not exists public.carrefour_brands (he text primary key, fr text not null);
 insert into public.carrefour_brands (he, fr) values
@@ -72,3 +72,14 @@ revoke all on function public.carrefour_import(bigint, text, text, text, text) f
 
 -- 08/11 (en ligne) : produit sans marque → plus de « · » en tête du nom hébreu
 -- (carrefour_import : case when t.br = '' then '' else t.br || ' · ' end, au lieu de t.br || ' · ')
+
+-- 09/11 (en ligne) : agence Or Akiva 2996 (elle livre Netanya) à la place de Kfar Saba 3003 ; prix identiques (81 produits comparés)
+create or replace function public.carrefour_fetch(p_cat int, p_from int default 0, p_size int default 100) returns bigint
+language sql security definer set search_path = public, net as $$
+  select net.http_get(
+    url := format('https://www.carrefour.co.il/v2/retailers/1540/branches/2996/categories/%s/products?appId=4&from=%s&size=%s', p_cat, p_from, p_size),
+    headers := jsonb_build_object('User-Agent', 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Mobile Safari/537.36',
+      'Accept', 'application/json, text/plain, */*', 'Referer', format('https://www.carrefour.co.il/categories/%s/products', p_cat), 'Accept-Language', 'he-IL,he;q=0.9'),
+    timeout_milliseconds := 30000);
+$$;
+revoke all on function public.carrefour_fetch(int, int, int) from public, anon, authenticated;

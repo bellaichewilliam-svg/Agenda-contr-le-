@@ -57,7 +57,7 @@ Quand le patron envoie une page `carrefour.co.il/categories/<n°>/products…`, 
 2. `select * from public.carrefour_import(<id>, '<rayon>', '<rubrique>', '<pictogramme>', '<emoji>');` (ex. `'super', 'bois', 'water', '💧'`).
 3. Traduire en français les lignes `a_traduire = true` (nom : « Marque · produit taille », ex. « Neviot · Eau minérale 6 × 1,5 L ») ; ajouter les nouvelles marques à `carrefour_brands`. Masquer les doublons (`hidden = true`, jamais de `delete`).
 4. Refaire l'import plus tard met seulement à jour les prix et l'hébreu (le nom français et les produits masqués sont gardés).
-Détail : `livraison/supabase/carrefour-import.sql` (agence Carrefour Online Kfar Saba 3003, la plus proche de Netanya ; le site exige le Referer, sinon Cloudflare 403).
+Détail : `livraison/supabase/carrefour-import.sql` (agence Carrefour Online **Or Akiva 2996**, celle qui livre Netanya, demande du patron du 09/11 ; mêmes prix que Kfar Saba 3003 ; le site exige le Referer, sinon Cloudflare 403).
 
 ## Repères techniques
 - Appli : `livraison/` (PWA statique : `client.js`, `coursier.js`, `admin.js`, `commerce`, `suivi`, `kit.js`…), `./bump-version.sh` après chaque modification.
