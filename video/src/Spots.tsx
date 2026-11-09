@@ -213,3 +213,63 @@ export const SpotPluie: React.FC<{ lang: Lang; music?: boolean }> = ({ lang, mus
     </Stage>
   );
 };
+
+// ===== Spot 4 : la livraison (6,5 s) : la cuisine puis la porte (photos Gemini du patron, format paysage) =====
+// Les photos sont paysage : on les montre dans une grande carte carrée, la caméra glisse dedans
+// (du sac vers les courses, puis du sac vers la cliente), sur un fond fait de la même photo floutée.
+export const SPOT_LIVRAISON_FRAMES = 195;
+const PW = 1376, PH = 740, CARD = 1000;
+const LTXT = {
+  fr: { a: ['Toutes vos courses,', 'au même endroit'], b: ['Et on vous les livre', 'jusqu’à votre porte'] },
+  he: { a: ['כל הקניות שלכם,', 'במקום אחד'], b: ['ואנחנו מביאים', 'עד הדלת'] },
+};
+// p : avancement 0→1 de la caméra ; from / to : point visé dans la photo (x, y) ; z : zoom
+const PhotoCard: React.FC<{ src: string; p: number; from: [number, number]; to: [number, number]; z: [number, number]; x: number; rot: number; o: number; s: number }> = ({ src, p, from, to, z, x, rot, o, s }) => {
+  const S = (CARD / PH) * interpolate(p, [0, 1], z), half = CARD / 2 / S;
+  const cx = Math.min(PW - half, Math.max(half, interpolate(p, [0, 1], [from[0], to[0]])));
+  const cy = Math.min(PH - half, Math.max(half, interpolate(p, [0, 1], [from[1], to[1]])));
+  if (o <= 0.001) return null;
+  return (
+    <div style={{ position: 'absolute', left: 540 - CARD / 2 + x, top: 470, width: CARD, height: CARD, borderRadius: 44, overflow: 'hidden', opacity: o,
+      transform: `rotate(${rot}deg) scale(${s})`, boxShadow: '0 40px 90px rgba(0,0,0,.55), 0 0 0 3px rgba(255,255,255,.12)' }}>
+      <Img src={staticFile(`spot/${src}`)} style={{ position: 'absolute', left: CARD / 2 - cx * S, top: CARD / 2 - cy * S, width: PW * S, height: PH * S }} />
+      <AbsoluteFill style={{ background: 'linear-gradient(180deg, transparent 70%, rgba(0,0,0,.25))' }} />
+    </div>
+  );
+};
+export const SpotLivraison: React.FC<{ lang: Lang; music?: boolean }> = ({ lang, music = true }) => {
+  const f = useCurrentFrame(); const { fps } = useVideoConfig(); const t = f / fps; const L = LTXT[lang];
+  const CUT = 3.0, END = 5.4;
+  const inS = spring({ frame: f - 2, fps, config: { damping: 14, mass: 0.8 } });
+  // Passage d'une photo à l'autre : la 1re part à gauche, la 2de arrive de la droite, avec un trait de lumière
+  const sw = interpolate(t, [CUT - 0.15, CUT + 0.3], [0, 1], { ...clamp, easing: Easing.inOut(Easing.cubic) });
+  const blur = Math.sin(Math.PI * sw) * 10;
+  const end = interpolate(t, [END, END + 0.4], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
+  const bg = t < CUT ? 'cuisine.jpg' : 'livreur-porte.jpg';
+  return (
+    <AbsoluteFill style={{ background: NAVY, overflow: 'hidden' }}>
+      {music && <Music frames={SPOT_LIVRAISON_FRAMES} />}
+      {/* Fond : la même photo, très floue et assombrie */}
+      <Img src={staticFile(`spot/${bg}`)} style={{ position: 'absolute', inset: -80, width: 1240, height: 2080, objectFit: 'cover', filter: 'blur(40px) brightness(.45) saturate(1.2)', transform: `scale(${1.05 + t * 0.01})` }} />
+      <AbsoluteFill style={{ background: `linear-gradient(180deg, rgba(15,31,61,.75) 0%, rgba(15,31,61,.2) 35%, rgba(15,31,61,.3) 70%, rgba(15,31,61,.85) 100%)` }} />
+      <AbsoluteFill style={{ filter: `blur(${blur}px)` }}>
+        <PhotoCard src="cuisine.jpg" p={interpolate(t, [0.2, CUT], [0, 1], { ...clamp, easing: Easing.inOut(Easing.sin) })} from={[470, 420]} to={[1010, 520]} z={[1.0, 1.12]}
+          x={-1150 * sw} rot={-4 * sw} o={inS * (1 - sw * 0.6)} s={0.9 + 0.1 * inS} />
+        <PhotoCard src="livreur-porte.jpg" p={interpolate(t, [CUT, END], [0, 1], { ...clamp, easing: Easing.inOut(Easing.sin) })} from={[600, 480]} to={[960, 330]} z={[1.0, 1.15]}
+          x={1150 * (1 - sw)} rot={4 * (1 - sw)} o={sw} s={1} />
+      </AbsoluteFill>
+      <Fx src="lumiere-1.jpg" opacity={interpolate(t, [CUT - 0.25, CUT, CUT + 0.5], [0, 0.95, 0], clamp)} style={{ left: interpolate(t, [CUT - 0.25, CUT + 0.5], [700, -700], clamp), top: 0, width: 1080, height: 1920 }} />
+      <Fx src="bokeh.jpg" opacity={0.18} style={{ left: 0, top: 0, width: 1080, height: 1920, filter: 'blur(6px)', transform: `translateY(${-f * 0.6}px) scale(1.15)` }} />
+      <Title lang={lang} lines={L.a} at={0.35} top={180} size={96} out={CUT - 0.3} />
+      {t > CUT - 0.1 && <Title lang={lang} lines={L.b} at={CUT + 0.15} top={180} size={96} out={END - 0.2} />}
+      <PriceChip lang={lang} text={TXT[lang].price} at={3.9} top={1560} />
+      {/* Écran de fin : bleu nuit, logo, prix */}
+      <AbsoluteFill style={{ background: NAVY, opacity: end }}>
+        <Fx src="eclat.jpg" opacity={interpolate(t, [END + 0.2, END + 0.45, END + 1.0], [0, 0.8, 0.25], clamp)} style={{ left: 760 - 380, top: 760 - 380, width: 760, height: 760, transform: `rotate(${t * 20}deg)` }} />
+        {end > 0 && <Logo at={END + 0.15} top={640} size={250} />}
+        {end > 0 && <Title lang={lang} lines={[lang === 'he' ? 'עד הבית' : 'Livré chez vous']} at={END + 0.35} top={960} size={84} />}
+        {end > 0 && <PriceChip lang={lang} text={TXT[lang].price} at={END + 0.5} top={1110} />}
+      </AbsoluteFill>
+    </AbsoluteFill>
+  );
+};
