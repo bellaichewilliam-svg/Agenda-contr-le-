@@ -5327,3 +5327,16 @@ html.vit.d2-day .sc-find-list .mg-sum2 .tot { border-top-color: rgba(15,31,61,.1
 .sc-find-list .mg-acts .mg-go { width: 100%; }
 .sc-find-list .mg-gh > .mg-enter { width: auto !important; min-width: 0; height: auto; margin: 0; display: inline-flex; align-items: center; flex: none; box-shadow: none; }
 .sc-find-list .mg-why > .mg-move { width: auto !important; height: auto; min-height: 0; margin: 5px 0 0; display: block; box-shadow: none; }
+/* L'article ajouté se voit : sa ligne s'allume, et un bandeau « ✓ Ajouté » avec sa photo */
+.sc-find-list .mg-item.flash .mg-row, .cs-row.flash { animation: hopFlash 2.2s ease-out; }
+@keyframes hopFlash { 0%, 30% { box-shadow: inset 0 0 0 2.5px #FF6A13; background: rgba(255,106,19,.16); } 100% { box-shadow: inset 0 0 0 0 transparent; } }
+.sc-find-list .mg-added { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin: 0 0 6px; border-radius: 14px; background: rgba(34,197,94,.14); box-shadow: inset 0 0 0 1px rgba(34,197,94,.35); animation: hopIn .3s ease-out; }
+.sc-find-list .mg-added .mg-pic { width: 44px; height: 44px; }
+.sc-find-list .mg-added b { display: block; color: #22C55E; font-size: 14px; }
+.sc-find-list .mg-added small { display: block; font-size: 12.5px; color: inherit; opacity: .9; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+@keyframes hopIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+/* Page d'un magasin : la règle de la commande, en une petite carte */
+.cg-rule { display: grid; gap: 3px; margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: rgba(255,106,19,.1); box-shadow: inset 0 0 0 1px rgba(255,106,19,.3); font-size: 13px; line-height: 1.35; }
+.cg-rule b { font-size: 14.5px; }
+.cg-rule span { opacity: .9; }
+.cg-rule .cg-rule-oth { font-weight: 700; color: #FF6A13; opacity: 1; }
