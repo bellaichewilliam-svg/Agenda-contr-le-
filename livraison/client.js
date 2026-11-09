@@ -396,8 +396,33 @@ function pickReady(v) {
   form.querySelectorAll('input[name="pickup_ready"]').forEach(r => { r.checked = r.value === String(v); r.closest(".ch-chip").classList.toggle("on", r.checked); });
 }
 form.addEventListener("change", e => { if (e.target.name === "pickup_ready") pickReady(e.target.value); });
+// Colis : « Qu'est-ce qu'on transporte ? » (clés, documents, sac…), écrit en tête du mot pour le livreur
+const WHAT = [["🔑", "whatKeys"], ["✉️", "whatDocs"], ["🛍️", "whatBag"], ["📦", "whatBox"], ["👕", "whatClothes"], ["🎁", "whatGift"]];
+const whatOn = () => val("service") === "colis" && !state.shop;
+const whatTxt = () => (whatOn() ? val("what_item").trim() : "");
+function renderWhat() {
+  const box = $("#whatBox");
+  if (!box) return;
+  box.classList.toggle("hidden", !whatOn());
+  const cur = val("what_item").trim().toLowerCase();
+  const html = WHAT.map(([e, k]) => { const w = t(k); return `<button type="button" class="what-chip${cur.includes(w.toLowerCase()) ? " on" : ""}" data-what="${UI.esc(w)}">${e} ${UI.esc(w)}</button>`; }).join("");
+  if ($("#whatChips").dataset.html !== html) { $("#whatChips").innerHTML = html; $("#whatChips").dataset.html = html; }
+}
+$("#whatChips").addEventListener("click", e => {
+  const b = e.target.closest("[data-what]");
+  if (!b) return;
+  const w = b.dataset.what, inp = form.what_item, cur = inp.value.trim();
+  const parts = cur ? cur.split(/\s*,\s*/) : [];
+  const i = parts.findIndex(x => x.toLowerCase() === w.toLowerCase());
+  if (i >= 0) parts.splice(i, 1); else parts.push(w);
+  inp.value = parts.join(", ");
+  inp.dispatchEvent(new Event("input", { bubbles: true }));
+  renderWhat(); saveDraft();
+});
+form.what_item.addEventListener("input", renderWhat);
 function syncVisibility() {
   const svc = val("service");
+  renderWhat();
   form.notes.closest("label").toggleAttribute("data-more", !!(state.shop && proShopOn()) && !val("notes").trim());
   renderPhone();
   syncDropMe();
@@ -1085,7 +1110,8 @@ function shopArt(p) {
   const logo = state.shop && UI.safeImg(state.shop.logo);
   return logo ? `<span class="item-art logo-art"><img src="${logo}" alt="" loading="lazy" /></span>` : UI.itemArt(p.name, state.shop && state.shop.kind);
 }
-const notesText = () => (val("service") === "achat" ? val("notes").trim() : pharmaLines().concat(val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
+const notesText = () => (val("service") === "achat" ? val("notes").trim()
+  : pharmaLines().concat(whatTxt() ? [`📦 ${t("whatNote")} : ${whatTxt()}`] : [], val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
 // Rayon façon grande appli de courses : recherche, rubriques en une ligne collante, produits en grille (3 par ligne)
 const phNorm = x => String(x || "").toLowerCase().normalize("NFD").replace(/[̀-֑ͯ-ׇ]/g, "");
 function renderPharma() {
@@ -2659,6 +2685,8 @@ function validateOrder() {
   if (state.shop && state.shop.paused && proShopOn()) return showErrorFalse(t("shPaused"));
   const near = nearMode();
   const fromCity = near ? cityOf("to") : cityOf("from"), toCity = cityOf("to");
+  // Colis : on doit savoir ce qu'on transporte (des clés, des documents…)
+  if (whatOn() && val("what_item").trim().length < 2) { form.what_item.focus(); return showErrorFalse(t("errWhat")); }
   const required = [near ? null : "pickup_address", "dropoff_address"].filter(Boolean);
   const missing = required.find(k => !val(k).trim());
   if (missing || !fromCity || !toCity) {

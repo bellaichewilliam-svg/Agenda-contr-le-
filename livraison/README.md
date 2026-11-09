@@ -949,3 +949,8 @@ livraison/
   - les rayons du magasin en boutons (ferme le panier et descend au rayon), et « 🔎 Voir tout … » ;
   - « ➕ Un article de plus ? » : trouvé dans ce magasin (`mgScorer`) → ajouté au panier, sinon pris au plus près par le livreur (`state.extras`) ;
   - « 🏪 Ajouter un autre magasin (+10 ₪) » : retour à la liste des commerces, ce panier reste gardé (commande en plusieurs magasins).
+
+### Colis : « Qu'est-ce qu'on transporte ? » (09/11/2026)
+- Une cliente a commandé un « Colis » pour faire récupérer des clés : la commande est arrivée sans aucune description.
+- Pour un colis (hors commerce), la question est maintenant obligatoire, juste sous le choix du service, avec des choix rapides (🔑 Clés, ✉️ Documents, 🛍️ Sac, 📦 Carton, 👕 Vêtements, 🎁 Cadeau) ou du texte libre.
+- La réponse part en tête du mot pour le livreur : « 📦 À transporter : Clés » (visible par le livreur et le patron, sans nouvelle colonne).
