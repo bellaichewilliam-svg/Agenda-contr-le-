@@ -346,6 +346,9 @@ async function toggleDuty() {
     if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
     try { localStorage.removeItem(LS_DUTY); } catch (e) { /* ignore */ }
     Store.setOnline(false).then(() => Store.getSettings()).then(st => { if (st) { settings.accepting = st.accepting; renderAvail(); } }).catch(() => {});
+    // Hors ligne : on retire aussi la notification « 🟢 En service » de l'appli HOP! Livreur du même téléphone
+    // (sinon elle reste affichée et dit « Vous recevez les courses » alors qu'on est hors ligne)
+    UI.dutyNotice(false);
     renderDuty();
     return;
   }
@@ -412,6 +415,7 @@ async function toggleBossTakes() {
     settings.boss_takes = on;
     if (!on && duty.watch != null) await toggleDuty();
     else if (!on) Store.setOnline(false).catch(() => {});
+    if (!on) UI.dutyNotice(false);
     renderAvail(); render();
   } catch (e) { alert("Réglage non enregistré, vérifiez la connexion."); }
 }
