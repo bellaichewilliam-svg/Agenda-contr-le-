@@ -39,7 +39,7 @@ function setView(v, push) {
   const back = !push && scrollMem[v];
   if (back) requestAnimationFrame(() => requestAnimationFrame(() => window.scrollTo(0, back)));
   // La carte de l'accueil était cachée : elle reprend sa vraie taille (sinon des bandes restent vides)
-  if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); try { ensureDefaultTo(); } catch (e) { /* ignore */ } });
+  if (v === "home") requestAnimationFrame(() => { if (home.map) home.map.invalidateSize(); try { ensureDefaultTo(); } catch (e) { /* ignore */ } if (!push) try { magicBack(); } catch (e) { /* pas encore prêt */ } });
   if (v === "order") requestAnimationFrame(() => { if (wiz.on) wizLabels(); });
   return true;
 }
@@ -4053,9 +4053,9 @@ function renderCart() {
   if (!gb) { gb = document.createElement("div"); gb.id = "cartGrand"; tr.after(gb); }
   gb.innerHTML = g; gb.classList.toggle("hidden", !g); tr.classList.toggle("hidden", !!g);
   $("#cartRest").classList.toggle("hidden", !rest);
-  $("#cartRest").innerHTML = exOn ? `<b class="cr-t">🛵 ${UI.esc(t("csRestT", { name: shopShortName() }))}</b>`
+  $("#cartRest").innerHTML = exOn ? `<b class="cr-t">🛵 ${UI.esc(t("csRestT", { name: mgShort(state.shop ? state.shop.name : "") }))}</b>`
       + ex.map(x => `<div class="cr-row"><span class="cr-pic">${x.ph ? `<img src="${UI.esc(x.ph)}" alt="" loading="lazy" />` : UI.esc(x.e || "🛒")}</span><span class="cr-n">${x.q > 1 ? x.q + " × " : ""}${UI.esc(x.n)}</span><em>${x.p ? "≈ " + UI.esc(money(x.p)) : ""}</em></div>`).join("")
-      + `<small>${UI.esc(t("csRestS", { name: shopShortName() }))}</small>`
+      + `<small>${UI.esc(t("csRestS", { name: mgShort(state.shop ? state.shop.name : "") }))}</small>`
     : rest ? `📝 ${UI.esc(rest)}` : "";
   renderMulti();
   cartExtras();
@@ -4080,29 +4080,50 @@ function renderCartNav() {
   if (!nav) { nav = document.createElement("div"); nav.id = "cartNav"; $("#cartBody").after(nav); }
   if (!state.shop || !catalogOn() || !state.catalog) { nav.innerHTML = ""; return; }
   const cats = (state.catalog.categories || []).filter(c => cgShown().some(p => p.category_id === c.id));
-  nav.innerHTML = `<div class="cs-nav"><b class="cn-t">🛍️ ${escHop(t("csNavT", { name: shopShortName() }))}</b>
+  nav.innerHTML = `<div class="cs-nav"><b class="cn-t">🛍️ ${escHop(t("csNavT", { name: mgShort(state.shop.name) }))}</b>
     ${cats.length > 1 ? `<div class="cn-cats">${cats.slice(0, 12).map(c => `<button type="button" class="cn-cat" data-cs-cat="${UI.esc(c.id)}">${UI.esc(UI.bi(c.name))}</button>`).join("")}</div>` : ""}
-    <button type="button" class="btn btn-ghost btn-block cn-all" data-cs-cat="">🔎 ${escHop(t("csNavAll", { name: shopShortName() }))}</button>
+    <button type="button" class="btn btn-ghost btn-block cn-all" data-cs-cat="">🔎 ${escHop(t("csNavAll", { name: mgShort(state.shop.name) }))}</button>
     <div class="cn-add"><input type="text" data-cs-add maxlength="80" enterkeyhint="done" placeholder="${UI.esc(t("csAddPh"))}" /><button type="button" class="btn btn-sm" data-cs-addbtn>${UI.esc(t("mgAddBtn"))}</button></div>
     <button type="button" class="btn btn-ghost btn-block cn-shop" data-cs-shops>🏪 ${UI.esc(t("csNavShop"))}</button></div>`;
 }
 // Un article tapé dans le panier : d'abord dans ce magasin (le meilleur résultat), sinon pris au plus près par le livreur
-function cartAddTyped(q) {
+async function cartAddTyped(q) {
   q = String(q || "").trim().replace(/\s+/g, " ");
   if (!q) return;
-  const score = mgScorer(q), best = cgProducts().filter(p => p.available !== false).map(p => [p, score(p)]).sort((a, b) => b[1] - a[1])[0];
-  if (best && best[1] >= 14) {
-    const p = best[0];
-    state.cart[p.id] = Math.min(50, (state.cart[p.id] || 0) + 1);
-    hopCartFix(p.id);
-    toastCart(t("csAddedShop", { item: UI.bi(p.name) }));
-  } else {
-    state.extras = (state.extras || []).filter(Boolean);
-    state.extras.push({ n: q, q: 1, p: null, e: "🛒" });
-    extrasNote();
-    toastCart(t("csAddedNear", { item: q }));
+  const inp = $("#cartSheet [data-cs-add]");
+  if (inp) { inp.value = ""; inp.disabled = true; }
+  try {
+    const it = parseList(q)[0] || { qty: 1, name: q };
+    const score = mgScorer(it.name), best = cgProducts().filter(p => p.available !== false).map(p => [p, score(p)]).sort((a, b) => b[1] - a[1])[0];
+    if (best && best[1] >= 14) {
+      const p = best[0];
+      state.cart[p.id] = Math.min(50, (state.cart[p.id] || 0) + it.qty);
+      hopCartFix(p.id);
+      toastCart(t("csAddedShop", { item: UI.bi(p.name) }));
+    } else {
+      // Pas dans ce magasin : on regarde les autres magasins sur HOP! (le patron, 09/11), la livraison en plus est annoncée
+      let f = null;
+      try { f = await magicFind(it.name); } catch (e) { f = null; }
+      const c = f && f.strong && state.shop && f.cands.find(x => x.code && x.code !== state.shop.code);
+      if (c && !addonOn()) {
+        const sc = (state.showcase || []).find(x => x.code === c.code) || null, nm = String(UI.bi(c.shop || (sc && sc.name) || c.code));
+        const prev = state.multi[c.code] || { cart: {}, lines: [], count: 0, total: 0 };
+        prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + it.qty); prev.lines.push({ n: UI.bi(c.name), q: it.qty }); prev.count += it.qty; prev.total += (Number(c.price) || 0) * it.qty;
+        state.multi[c.code] = Object.assign(prev, { code: c.code, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null, mods: prev.mods || {}, note: prev.note || "", at: Date.now() });
+        multiSave();
+        toastCart(t("csAddedOther", { item: UI.bi(c.name), shop: mgShort(nm), fee: money(multiFee(state.multi[c.code]).price) }));
+      } else {
+        state.extras = (state.extras || []).filter(Boolean);
+        const r = f && f.r ? f.r.i : null;
+        state.extras.push({ n: r ? phName(r) : it.name, q: it.qty, p: r ? rayPrice(r) * it.qty : null, ph: r ? (UI.safeImg(r.photo) || (r.img ? `img/qc/${r.img}.webp` : "")) : "", e: r ? r.e || "🛒" : "🛒" });
+        extrasNote();
+        toastCart(t("csAddedNear", { item: it.name, name: mgShort(state.shop ? state.shop.name : "") }));
+      }
+    }
+  } finally {
+    const i2 = $("#cartSheet [data-cs-add]"); if (i2) i2.disabled = false;
   }
-  renderCatalog(); renderQuote(); saveDraft(); renderCart(); cartPersist();
+  renderCatalog(); renderQuote(); saveDraft(); renderCart(); renderMulti(); cartPersist(); renderCartIcon();
 }
 // Panier : le prix de la livraison dit tout de suite (et la 1re livraison à prix réduit), et si c'est fermé :
 // l'heure d'ouverture, la commande déjà programmée, « 🔔 Prévenez-moi à l'ouverture »
@@ -4503,7 +4524,7 @@ function multiHtml(withBtns) {
   return `<b class="mb-t">🛍️ ${UI.esc(t("multiTitle", { n: list.length + 1 }))}</b>
     <div class="mb-row"><span><b>1. ${UI.esc(shopShortName())}</b><small>${UI.esc(t("multiItems", { n: cartCount(), sum: money(cartTotal()) }))}</small></span><em>${UI.esc(main)}</em></div>${rows}
     <small class="mb-why">${UI.esc(t(near ? "multiWhy" : "multiWhyFar", { price: money(addonPrice()), km: addonKm() }))}</small>
-    <small class="mb-how">${UI.esc(t("multiHow", { name: shopShortName() }))}</small>`;
+    ${withBtns ? "" : `<small class="mb-how">${UI.esc(t("multiHow", { name: shopShortName() }))}</small>`}`;
 }
 // UN seul total (patron, 08/11), le même dans le panier et sur la commande : chaque magasin, ce que le livreur prend au
 // plus près, les livraisons (dont +10 ₪ par magasin en plus), le total ; puis « on paie le montant exact du ticket »
@@ -6056,10 +6077,34 @@ async function vitMagic(q, box, seq) {
   box.classList.remove("hidden");
   const res = await Promise.all(items.map(i => magicFind(i.name)));
   if (seq !== findSeq) return;
-  // Choix de départ : le meilleur produit trouvé, sinon les courses HOP!, sinon « on le trouve pour vous »
-  state.magic = { q, open: -1, lines: items.map((it, k) => ({ qty: it.qty, name: it.name, cands: res[k].cands, r: res[k].r, pick: res[k].strong ? 0 : res[k].r ? "r" : res[k].cands.length ? 0 : "x", on: true })) };
+  // Choix de départ (patron, 09/11) : tout chez le magasin principal (HOP! chez Carrefour) quand il l'a ; sinon le meilleur
+  // produit d'un autre magasin (2ᵉ magasin, livraison en plus, annoncée) ; sinon les courses HOP! ; sinon « on le trouve »
+  const lines = items.map((it, k) => ({ qty: it.qty, name: it.name, cands: res[k].cands, r: res[k].r, strong: res[k].strong, on: true }));
+  state.magic = { id: Date.now(), q, open: -1, main: mgMainOf(lines), lines };
+  lines.forEach(l => { l.pick = mgPickFor(l, state.magic.main); });
   renderMagic(true);
   UI.track("home_magic", { n: items.length });
+}
+// Le magasin principal de la liste : le 1er magasin HOP! (Carrefour) qui a au moins un article, sinon celui qui en a le plus
+function mgMainOf(lines) {
+  const cnt = {};
+  lines.forEach(l => [...new Set(l.cands.map(c => c.code))].forEach(c => { cnt[c] = (cnt[c] || 0) + 1; }));
+  const hop = (CONFIG.hopShops || []).find(c => cnt[c]);
+  return hop || Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] || (CONFIG.hopShops || [])[0] || "";
+}
+function mgPickFor(l, main) {
+  const i = main ? l.cands.findIndex(c => c.code === main) : -1;
+  if (i >= 0) return i;
+  return l.strong ? 0 : l.r ? "r" : l.cands.length ? 0 : "x";
+}
+// Le magasin d'une ligne : celui du produit choisi ; courses HOP! et « on le trouve » = le magasin principal
+const mgCodeOf = (l, main) => (typeof l.pick === "number" ? l.cands[l.pick].code : main);
+const mgShort = name => String(UI.bi(name || "")).split(" · ")[0].replace(/^HOP!\u200E?\s*(?:chez\s+|ב)/i, "").trim();
+const mgSc = code => (state.showcase || []).find(z => z.code === code) || null;
+// Livraison d'un 2ᵉ magasin : +10 ₪ s'il est à 2 km du magasin principal, sinon une course à part (son prix normal)
+function mgFeeOf(code, main) {
+  const a = mgSc(main), b = mgSc(code), d = a && b ? kmBetween(a, b) : null;
+  return d != null && d <= addonKm() ? { price: addonPrice(), near: true } : { price: (b && proPrice(b)) || addonPrice(), near: d == null };
 }
 const mgLineCost = l => l.pick === "r" ? rayPrice(l.r.i) * l.qty : typeof l.pick === "number" ? Number(l.cands[l.pick].price) * l.qty : 0;
 // Magasins qui ont TOUTE la liste : le total chez chacun (meilleur produit de ce magasin pour chaque article)
@@ -6076,41 +6121,65 @@ function mgShopsAll(lines) {
 function renderMagic(anim) {
   const m = state.magic, box = $("#homeFindList");
   if (!m) return;
-  const lines = m.lines, on = lines.filter(l => l.on);
+  const lines = m.lines, on = lines.filter(l => l.on), main = m.main;
   const sum = on.reduce((a, l) => a + mgLineCost(l), 0);
   const pic = (ph, white) => `<span class="mg-pic${white ? " white" : ""}">${ph}</span>`;
-  const rows = lines.map((l, k) => {
-    if (!l.on) return "";
+  const mainNm = mgShort(mgShopName(main) || (on.map(l => l.cands.find(c => c.code === main)).find(Boolean) || {}).shop) || t("mgRayShort");
+  const row = (l, k) => {
     let picH, title, sub, price;
     if (typeof l.pick === "number") {
       const c = l.cands[l.pick], ph = UI.safeImg(c.photo);
       picH = pic(ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : "🛍️", ph && UI.extPic(ph));
-      title = UI.esc(UI.bi(c.name)); sub = escHop(t("mgAt", { shop: UI.bi(c.shop) })); price = `<bdi dir="ltr">${UI.esc(money(Number(c.price) * l.qty))}</bdi>`;
+      title = UI.esc(UI.bi(c.name)); sub = ""; price = `<bdi dir="ltr">${UI.esc(money(Number(c.price) * l.qty))}</bdi>`;
     } else if (l.pick === "r") {
       const ph = UI.safeImg(l.r.i.photo) || (l.r.i.img ? `img/qc/${l.r.i.img}.webp` : ""), v = rayPrice(l.r.i) * l.qty;
       picH = pic(ph ? `<img src="${ph}" alt="" loading="lazy" />` : UI.esc(l.r.i.e || "🛒"), true);
-      title = UI.esc(phName(l.r.i)); sub = escHop(t("mgRay")); price = v ? `≈ <bdi dir="ltr">${UI.esc(money(v))}</bdi>` : "";
-    } else { picH = pic("🛵"); title = UI.esc(l.name); sub = UI.esc(t("mgAny")); price = ""; }
+      title = UI.esc(phName(l.r.i)); sub = escHop(t("mgRayAt", { main: mainNm })); price = v ? `≈ <bdi dir="ltr">${UI.esc(money(v))}</bdi>` : "";
+    } else { picH = pic("🛵"); title = UI.esc(l.name); sub = UI.esc(t("mgAnyAt", { main: mainNm })); price = ""; }
     const alts = l.cands.length + (l.r ? 1 : 0) > 1 || (l.cands.length && l.r);
     const open = m.open === k;
     const altRow = open ? `<div class="mg-alts">${l.cands.map((c, i) => { const ph = UI.safeImg(c.photo);
         return `<button type="button" class="mg-alt${l.pick === i ? " on" : ""}" data-mg-pick="${k}:${i}"><span class="fr-pic${ph && UI.extPic(ph) ? " white" : ""}">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : "🛍️"}</span><span class="fr-price"><bdi dir="ltr">${UI.esc(money(c.price))}</bdi></span><span class="fr-nm">${UI.esc(UI.bi(c.name))}</span><span class="mg-alt-shop">${escHop(UI.bi(c.shop))}</span></button>`; }).join("")}
-        ${l.r ? `<button type="button" class="mg-alt${l.pick === "r" ? " on" : ""}" data-mg-pick="${k}:r"><span class="fr-pic white">${UI.safeImg(l.r.i.photo) || l.r.i.img ? `<img src="${UI.safeImg(l.r.i.photo) || `img/qc/${l.r.i.img}.webp`}" alt="" loading="lazy" />` : UI.esc(l.r.i.e || "🛒")}</span><span class="fr-price">${rayPrice(l.r.i) ? `≈ <bdi dir="ltr">${UI.esc(money(rayPrice(l.r.i)))}</bdi>` : "&nbsp;"}</span><span class="fr-nm">${UI.esc(phName(l.r.i))}</span><span class="mg-alt-shop">${escHop(t("mgRayShort"))}</span></button>` : ""}
-        <button type="button" class="mg-alt${l.pick === "x" ? " on" : ""}" data-mg-pick="${k}:x"><span class="fr-pic"><i>🛵</i></span><span class="fr-price">&nbsp;</span><span class="fr-nm">${UI.esc(t("mgLetHop"))}</span><span class="mg-alt-shop">${UI.esc(l.name)}</span></button></div>` : "";
+        ${l.r ? `<button type="button" class="mg-alt${l.pick === "r" ? " on" : ""}" data-mg-pick="${k}:r"><span class="fr-pic white">${UI.safeImg(l.r.i.photo) || l.r.i.img ? `<img src="${UI.safeImg(l.r.i.photo) || `img/qc/${l.r.i.img}.webp`}" alt="" loading="lazy" />` : UI.esc(l.r.i.e || "🛒")}</span><span class="fr-price">${rayPrice(l.r.i) ? `≈ <bdi dir="ltr">${UI.esc(money(rayPrice(l.r.i)))}</bdi>` : "&nbsp;"}</span><span class="fr-nm">${UI.esc(phName(l.r.i))}</span><span class="mg-alt-shop">${escHop(mainNm)}</span></button>` : ""}
+        <button type="button" class="mg-alt${l.pick === "x" ? " on" : ""}" data-mg-pick="${k}:x"><span class="fr-pic"><i>🛵</i></span><span class="fr-price">&nbsp;</span><span class="fr-nm">${UI.esc(t("mgLetHop"))}</span><span class="mg-alt-shop">${escHop(mainNm)}</span></button></div>` : "";
     return `<div class="mg-item${open ? " open" : ""}"><div class="mg-row${anim ? "" : " still"}" style="--d:${k * 90}ms">
-      <button type="button" class="mg-main" data-mg-row="${k}">${picH}<span class="mg-txt"><b>${title}</b><small>${sub}${alts ? ` · <u>${UI.esc(t(open ? "mgClose" : "mgChange"))}</u>` : ""}</small></span></button>
+      <button type="button" class="mg-main" data-mg-row="${k}">${picH}<span class="mg-txt"><b>${title}</b>${sub || alts ? `<small>${sub}${sub && alts ? " · " : ""}${alts ? `<u>${UI.esc(t(open ? "mgClose" : "mgChange"))}</u>` : ""}</small>` : ""}</span></button>
       <span class="mg-side"><span class="mg-price">${price}</span><span class="mg-qty"><button type="button" data-mg-qty="${k}:-1" aria-label="−">${l.qty > 1 ? "−" : "✕"}</button><b>${l.qty}</b><button type="button" data-mg-qty="${k}:1" aria-label="+">+</button></span></span>
     </div>${altRow}</div>`;
+  };
+  // Un bloc par magasin : le magasin principal d'abord (avec les courses HOP!), puis chaque autre magasin, sa livraison en plus dite
+  const groups = [];
+  lines.forEach((l, k) => { if (!l.on) return; const c = mgCodeOf(l, main) || ""; let g = groups.find(x => x.code === c); if (!g) groups.push(g = { code: c, ks: [] }); g.ks.push(k); });
+  groups.sort((a, b) => (b.code === main) - (a.code === main));
+  // (même prix que le panier : celui du magasin principal, achat compris pour les boutiques HOP!)
+  const fee = (mgSc(main) && proPrice(mgSc(main))) || Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity);
+  let fees = 0;
+  const blocks = groups.map(g => {
+    const sc = mgSc(g.code), logo = sc && UI.safeImg(sc.logo), isMain = g.code === main || !g.code;
+    const nm = isMain ? mainNm : mgShort(mgShopName(g.code) || (lines[g.ks[0]].cands[lines[g.ks[0]].pick] || {}).shop);
+    const n = g.ks.reduce((a, k) => a + lines[k].qty, 0), f = isMain ? null : mgFeeOf(g.code, main);
+    if (f) fees += f.price;
+    const canMove = !isMain && g.ks.some(k => lines[k].r || lines[k].cands.some(c => c.code === main));
+    return `<section class="mg-g${isMain ? " main" : " other"}"><div class="mg-gh"><span class="mg-gl">${logo ? `<img src="${logo}" alt="" />` : "🛒"}</span>
+        <span class="mg-gn"><b>${escHop(nm)}</b><small>${UI.esc(t(n === 1 ? "mgN1" : "mgN", { n }))}${isMain ? ` · ${UI.esc(t("mgDelFrom", { fee: money(fee) }))}` : ""}</small></span>
+        ${g.code ? `<button type="button" class="mg-enter" data-mg-enter="${UI.esc(g.code)}">${UI.esc(t("mgEnter"))}</button>` : ""}</div>
+      ${isMain ? "" : `<p class="mg-why">➕ ${escHop(t(f.near ? "mgOtherNear" : "mgOtherFar", { main: mainNm, fee: money(f.price) }))}${canMove ? ` <button type="button" class="mg-move" data-mg-move="${UI.esc(g.code)}">${escHop(t("mgMoveMain", { main: mainNm }))}</button>` : ""}</p>`}
+      ${g.ks.map(k => row(lines[k], k)).join("")}</section>`;
   }).join("");
-  const shops = mgShopsAll(lines), fee = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity));
-  const shopBtns = shops.map((x, i) => `<button type="button" class="mg-cart" data-mg-shop="${UI.esc(x.code)}"><span>🛒 ${escHop(t("mgAllAt", { shop: String(UI.bi(x.shop)).replace(/^HOP!\u200E?\s*(?:chez\s+|ב)/i, "") }))}</span><b><bdi dir="ltr">${UI.esc(money(Math.round(x.sum * 10) / 10))}</bdi></b>${shops.length > 1 && i === 0 ? `<em>${UI.esc(t("mgCheapest"))}</em>` : ""}</button>`).join("");
-  const n = on.reduce((a, l) => a + l.qty, 0);
+  const n = on.reduce((a, l) => a + l.qty, 0), others = groups.filter(g => g.code && g.code !== main);
+  const r1 = x => Math.round(x * 10) / 10;
+  const sumH = on.length ? `<div class="mg-sum2">
+      <div><span>${UI.esc(t("mgSumArt"))}</span><b>≈ <bdi dir="ltr">${UI.esc(money(r1(sum)))}</bdi></b></div>
+      <div><span>${UI.esc(t("mgSumDel", { name: mainNm }))}</span><b>${UI.esc(t("mgFrom", { fee: money(fee) }))}</b></div>
+      ${others.map(g => { const f = mgFeeOf(g.code, main); return `<div><span>${escHop(t("mgSumAdd", { name: mgShort(mgShopName(g.code) || (lines[g.ks[0]].cands[lines[g.ks[0]].pick] || {}).shop) }))}</span><b>+<bdi dir="ltr">${UI.esc(money(f.price))}</bdi></b></div>`; }).join("")}
+      <div class="tot"><span>${UI.esc(t("gtTotal"))}</span><b>≈ <bdi dir="ltr">${UI.esc(money(r1(sum + fee + fees)))}</bdi></b></div>
+      <small>${UI.esc(t("gtTicket"))}</small></div>` : "";
   box.innerHTML = `<div class="mg"><div class="mg-head"><b>${UI.esc(t("mgTitle"))}</b><small>${UI.esc(t("mgN", { n }))}</small></div>
-    <div class="mg-list">${rows || `<p class="fi-none">${UI.esc(t("mgEmpty"))}</p>`}</div>
+    <div class="mg-list">${blocks || `<p class="fi-none">${UI.esc(t("mgEmpty"))}</p>`}</div>
     <div class="mg-add" data-mg-add><input type="text" enterkeyhint="done" autocomplete="off" placeholder="${UI.esc(t("mgAddPh"))}" aria-label="${UI.esc(t("mgAddBtn"))}" /><button type="button" data-mg-add-go>${UI.esc(t("mgAddBtn"))}</button></div>
     <div class="mg-sugg hidden" data-mg-sugg></div>
-    ${on.length ? `<div class="mg-sum"><b>${sum ? UI.esc(t("mgTotal", { sum: money(Math.round(sum * 10) / 10) })) : ""}</b><small>${UI.esc(t("mgFee", { fee }))}</small></div>
-    <div class="mg-acts">${shopBtns}<button type="button" class="mg-go${shops.length ? " alt" : ""}" data-mg-go>${UI.esc(t("mgGo"))}</button></div>
+    ${sumH}
+    ${on.length ? `<div class="mg-acts"><button type="button" class="mg-go" data-mg-go>${escHop(t(others.length ? "mgGoMulti" : "mgGoAt", { name: mainNm, n: others.length + 1 }))}</button></div>
     <a class="mg-wa" data-wa-list data-wa-from="magic" href="#" target="_blank" rel="noopener">${UI.esc(t("mgWa"))}</a>` : ""}</div>`;
   box.classList.remove("hidden");
 }
@@ -6121,7 +6190,7 @@ async function mgAdd(txt) {
   if (!m || !items.length) return;
   const res = await Promise.all(items.map(i => magicFind(i.name)));
   if (state.magic !== m) return;
-  items.forEach((it, k) => m.lines.push({ qty: it.qty, name: it.name, cands: res[k].cands, r: res[k].r, pick: res[k].strong ? 0 : res[k].r ? "r" : res[k].cands.length ? 0 : "x", on: true }));
+  items.forEach((it, k) => { const l = { qty: it.qty, name: it.name, cands: res[k].cands, r: res[k].r, strong: res[k].strong, on: true }; if (!m.main) m.main = mgMainOf([l]); l.pick = mgPickFor(l, m.main); m.lines.push(l); });
   const inp = $("#homeFind"); inp.value = inp.value.trim().replace(/[,،;]\s*$/, "") + ", " + txt; m.q = inp.value;
   renderMagic(false);
   const list = $("#homeFindList .mg-list"); if (list) list.scrollTop = list.scrollHeight;
@@ -6189,22 +6258,41 @@ $("#homeFindList").addEventListener("click", e => {
   if (pk) { const [k, v] = pk.dataset.mgPick.split(":"); m.lines[k].pick = v === "r" || v === "x" ? v : Number(v); m.open = -1; renderMagic(false); return; }
   if (qt) { const [k, d] = qt.dataset.mgQty.split(":").map(Number), l = m.lines[k]; l.qty += d; if (l.qty < 1) { l.on = false; l.qty = 1; } l.qty = Math.min(20, l.qty); renderMagic(false); return; }
   if (sh) return magicToCart(sh.dataset.mgShop);
+  // « Tout prendre chez Carrefour à la place » : les articles de ce 2ᵉ magasin passent chez le magasin principal (son produit,
+  // sinon les courses HOP! qu'il prend là-bas) : plus de livraison en plus
+  const mv = e.target.closest("[data-mg-move]");
+  if (mv) { m.lines.forEach(l => { if (l.on && mgCodeOf(l, m.main) === mv.dataset.mgMove) { const i = l.cands.findIndex(c => c.code === m.main); l.pick = i >= 0 ? i : l.r ? "r" : "x"; } }); renderMagic(false); return; }
+  // « Entrer » dans un magasin de la liste : toute la commande est préparée (rien ne se perd), on arrive dans ce magasin
+  const en = e.target.closest("[data-mg-enter]");
+  if (en) return magicEnter(en.dataset.mgEnter);
   if (e.target.closest("[data-mg-go]")) {
-    // Des articles choisis viennent d'un magasin sur HOP! (ex. HOP! chez Carrefour) : la commande part chez lui, articles
-    // dans le panier (jamais « le magasin le plus proche ») ; le reste de la liste va dans la précision pour ce magasin
-    const cnt = {};
-    m.lines.filter(l => l.on && typeof l.pick === "number").forEach(l => { const c = l.cands[l.pick].code; if (c) cnt[c] = (cnt[c] || 0) + 1; });
-    const best = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
-    if (best) return magicToCart(best, true);
+    // La commande part chez le magasin principal (ex. HOP! chez Carrefour) : ses articles dans son panier, les courses HOP!
+    // dans la précision pour lui ; les autres magasins sont gardés et partent avec (livraison en plus annoncée)
+    const has = m.lines.some(l => l.on && typeof l.pick === "number");
+    if (m.main && (has || mgSc(m.main))) return magicToCart(m.main, true);
     return startFreeOrder(mgText());
   }
 });
 // Téléphone : toucher la liste ne ferme pas le clavier (sinon la page bouge sous le doigt et le toucher tombe à côté)
 $("#homeFindList").addEventListener("mousedown", e => { if (e.target.closest("button")) e.preventDefault(); });
-async function magicToCart(code, withRest) {
+async function magicEnter(code) {
+  const m = state.magic;
+  if (!m) return;
+  if (!m.main || code === m.main) return magicToCart(code, true);
+  await magicToCart(m.main, true, true);
+  $("#cartSheet").classList.add("hidden");
+  state.shopDir = ""; await loadShop(code);
+}
+async function magicToCart(code, withRest, quiet) {
   const m = state.magic;
   if (!m || !code) return;
   const on = m.lines.filter(l => l.on);
+  // La liste renvoyée une 2ᵉ fois (retour en arrière, puis « Commander ») : ce qu'elle avait mis la 1re fois est remplacé, pas ajouté
+  if (m.sent) {
+    (m.sent.ids || []).forEach(id => { delete state.cart[id]; });
+    Object.entries(m.sent.multi || {}).forEach(([oc, ids]) => { const x = state.multi[oc]; if (!x) return; ids.forEach(id => { delete x.cart[id]; }); x.lines = []; x.count = Object.values(x.cart).reduce((a, q) => a + q, 0); if (!x.count) delete state.multi[oc]; });
+  }
+  m.sent = { ids: [], multi: {} };
   // Chaque article va là où on l'a trouvé (patron, 08/11) :
   //  1. produit de ce magasin → son panier ;
   //  2. produit d'un AUTRE magasin sur HOP! → le panier de cet autre magasin (gardé : commande en plusieurs magasins) ;
@@ -6218,18 +6306,19 @@ async function magicToCart(code, withRest) {
     if (c && c.code && c.code !== code) { (others[c.code] = others[c.code] || []).push({ c, qty: l.qty }); return; }
     if (withRest) left.push(l);
   });
-  $("#homeFindList").classList.add("hidden"); $("#homeFind").value = ""; $("#homeFind").blur();
+  // (la liste et le texte restent : un retour en arrière vers l'accueil les remontre tels quels)
+  $("#homeFindList").classList.add("hidden"); $("#homeFind").blur();
   state.findItem = null; state.cgQNext = ""; state.shopDir = "";
   UI.track("home_magic_cart", { shop_code: code, n: mine.length });
   await loadShop(code);
   if (!state.shop) return;
   const have = new Set(cgProducts().filter(p => p.available).map(p => p.id));
-  mine.forEach(w => { if (have.has(w.id)) state.cart[w.id] = Math.min(50, (state.cart[w.id] || 0) + w.qty); });
+  mine.forEach(w => { if (have.has(w.id)) { state.cart[w.id] = Math.min(50, (state.cart[w.id] || 0) + w.qty); m.sent.ids.push(w.id); } });
   // Les autres magasins : leur panier est gardé, prêt à valider après (livraison +10 ₪ s'il est proche)
   Object.entries(others).forEach(([oc, list]) => {
     const sc = (state.showcase || []).find(x => x.code === oc) || null, nm = String(UI.bi(list[0].c.shop || (sc && sc.name) || oc));
     const prev = state.multi[oc] || { cart: {}, lines: [], count: 0, total: 0 };
-    list.forEach(({ c, qty }) => { prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + qty); prev.lines.push({ n: UI.bi(c.name), q: qty }); prev.count += qty; prev.total += (Number(c.price) || 0) * qty; });
+    list.forEach(({ c, qty }) => { prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + qty); prev.lines.push({ n: UI.bi(c.name), q: qty }); prev.count += qty; prev.total += (Number(c.price) || 0) * qty; (m.sent.multi[oc] = m.sent.multi[oc] || []).push(c.id); });
     state.multi[oc] = Object.assign(prev, { code: oc, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null, mods: prev.mods || {}, note: prev.note || "", at: Date.now() });
   });
   if (Object.keys(others).length) multiSave();
@@ -6250,7 +6339,15 @@ async function magicToCart(code, withRest) {
     form.shop_order.dispatchEvent(new Event("input", { bubbles: true }));
   }
   renderCatalog(); renderQuote(); saveDraft(); cartPersist();
-  if (cartCount()) setTimeout(openCart, 250);
+  if (cartCount() && !quiet) setTimeout(openCart, 250);
+}
+// Retour en arrière vers l'accueil après « Commander cette liste » : la liste de Hoppy revient telle qu'on l'avait laissée
+function magicBack() {
+  const m = state.magic;
+  if (!m || !m.sent || !VIT) return;
+  const inp = $("#homeFind");
+  if (!inp.value.trim()) inp.value = m.q;
+  renderMagic(false);
 }
 // Vitrine : dès qu'on écrit, la recherche remonte en haut de l'écran (les résultats ont toute la place)
 function vitFindTop() {
