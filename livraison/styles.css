@@ -5340,3 +5340,66 @@ html.vit.d2-day .sc-find-list .mg-sum2 .tot { border-top-color: rgba(15,31,61,.1
 .cg-rule b { font-size: 14.5px; }
 .cg-rule span { opacity: .9; }
 .cg-rule .cg-rule-oth { font-weight: 700; color: #FF6A13; opacity: 1; }
+
+/* ===== « Ma commande » (maquette validée par le patron, 09/11) : dernier écran d'une commande avec panier ===== */
+#orderForm:not(.ck-last) #ckTop, #orderForm:not(.ck-last) #ckTicket { display: none; }
+#orderForm.ck-last .ck-top { display: grid; gap: 12px; margin: 4px 0 14px; }
+.ck-card { background: var(--panel); border-radius: 22px; padding: 14px; box-shadow: inset 0 0 0 1px var(--border); min-width: 0; }
+.ck-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.ck-grow { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.ck-grow b { font-size: 15.5px; line-height: 1.25; overflow-wrap: anywhere; }
+.ck-grow small { color: var(--muted); font-size: 13px; }
+.ck-lbl { color: var(--muted) !important; font-size: 11.5px !important; font-weight: 700; letter-spacing: .04em; }
+.ck-ico { flex: none; width: 42px; height: 42px; border-radius: 14px; background: var(--bg-2); display: grid; place-items: center; font-size: 20px; }
+.ck-sep { height: 1px; background: var(--border); margin: 12px 0; }
+.ck-link { flex: none; border: 0; background: none; padding: 4px 0; color: var(--brand); font: inherit; font-weight: 800; font-size: 13.5px; cursor: pointer; }
+.ck-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.ck-chip { border: 0; border-radius: 999px; padding: 8px 13px; background: var(--bg-2); color: var(--ink); font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+.ck-chip.on { background: var(--brand-soft); color: var(--brand); box-shadow: inset 0 0 0 1.5px var(--brand); }
+.ck-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 10px 2px -2px; font-size: 18px; font-weight: 800; }
+.ck-h small { color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.ck-logo { flex: none; width: 46px; height: 46px; border-radius: 14px; overflow: hidden; background: #fff; display: grid; place-items: center; font-size: 22px; }
+.ck-logo img { width: 100%; height: 100%; object-fit: cover; }
+.ck-price { flex: none; font-weight: 800; font-size: 16px; white-space: nowrap; }
+.ck-th { display: flex; gap: 8px; margin-top: 12px; overflow: hidden; padding: 6px 6px 0 0; }
+.ck-t { position: relative; flex: none; width: 60px; height: 60px; border-radius: 15px; background: #fff; display: grid; place-items: center; }
+.ck-t img { width: 48px; height: 48px; object-fit: contain; }
+.ck-t .ck-e { font-style: normal; font-size: 26px; }
+.ck-t em { position: absolute; top: -6px; inset-inline-end: -6px; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; background: var(--brand); color: #fff; font: 800 12px/22px "Rubik", sans-serif; text-align: center; font-style: normal; box-shadow: 0 0 0 3px var(--panel); }
+.ck-t.more { background: var(--bg-2); color: var(--muted); font-weight: 800; }
+.ck-names { margin: 8px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.4; }
+.ck-names .ck-link { padding: 0; font-size: 12.5px; }
+.ck-also { margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border); }
+.ck-also > small { color: var(--muted); font-size: 12.5px; font-weight: 700; }
+.ck-also .ck-th { margin-top: 6px; } .ck-also .ck-t { width: 44px; height: 44px; border-radius: 12px; } .ck-also .ck-t img { width: 34px; height: 34px; }
+.ck-2 { box-shadow: inset 0 0 0 1.5px rgba(255,106,19,.55); }
+.ck-tag { display: inline-block; margin-inline-start: 6px; padding: 2px 8px; border-radius: 99px; background: var(--brand); color: #fff; font-size: 11px; font-weight: 800; font-style: normal; vertical-align: 2px; white-space: nowrap; }
+.ck-info { margin: 10px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--brand-soft); font-size: 12.5px; line-height: 1.4; }
+.ck-acts { display: flex; justify-content: space-between; margin-top: 6px; }
+.ck-acts .ck-del { color: var(--muted); }
+/* Paiement en 2 grandes cases ; l'ancien encart « Ce que vous payez » laisse la place au ticket */
+#orderForm.ck-last #goodsBox { display: none !important; }
+#orderForm.ck-last #payChoices { grid-template-columns: 1fr 1fr; }
+#orderForm.ck-last #payChoices .choice span { border-radius: 18px; min-height: 104px; background: var(--panel); border-color: var(--border); }
+#orderForm.ck-last #payChoices .choice input:checked + span { border-color: var(--brand); background: linear-gradient(180deg, var(--brand-soft), transparent); }
+/* Le ticket : un seul total */
+#orderForm.ck-last #summary > h3, #orderForm.ck-last #quoteLines, #orderForm.ck-last #summary > .total, #orderForm.ck-last #multiSum { display: none !important; }
+#orderForm.ck-last.ck-det #quoteLines { display: block !important; margin: 0 0 10px; padding: 8px 12px; border-radius: 14px; background: var(--bg-2); }
+.ck-ticket { background: #fff; color: #0F1F3D; border-radius: 22px; padding: 16px; margin-bottom: 12px; }
+.ck-l { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14.5px; padding: 4px 0; }
+.ck-l span { color: #5A6B88; min-width: 0; }
+.ck-l b { flex: none; font-weight: 700; white-space: nowrap; }
+.ck-det-b { border: 0; background: none; padding: 0; color: var(--brand); font: inherit; font-size: 12.5px; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.ck-dash { border-top: 2px dashed #D9DFEA; margin: 10px 0; }
+.ck-tot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.ck-tot span { font-size: 19px; font-weight: 800; }
+.ck-tot b { font-size: 26px; font-weight: 800; color: var(--brand); white-space: nowrap; }
+.ck-ticket > small { display: block; color: #6B7A93; font-size: 11.5px; line-height: 1.4; margin-top: 8px; }
+.ck-safe { margin: 10px 0 0; color: #3B4A66; font-size: 12.5px; font-weight: 600; text-align: center; }
+#orderForm.ck-last #summary { background: transparent; box-shadow: none; padding: 0; }
+#orderForm.ck-last #submitBtn { min-height: 58px; border-radius: 18px; font-size: 18px; box-shadow: 0 10px 24px rgba(255,106,19,.35); }
+/* Le ticket dit déjà tout : la note longue sous le prix et les doublons disparaissent sur « Ma commande » */
+#orderForm.ck-last #quoteNote { display: none; }
+#orderForm.ck-last #payChoices { margin-top: 4px; }
+#ckTicket .ck-safe { color: #3B4A66; }
+#ckTicket > small { color: #6B7A93; }

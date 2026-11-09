@@ -943,6 +943,97 @@ function renderGoodsBox(q) {
     ${goods ? `<div class="gb-row gb-total"><span><b>${UI.esc(t("gbTotal"))}</b></span><b class="gb-amt" dir="ltr">${money(goods + Number(q.total))}</b></div>` : ""}
     <small class="gb-never">${UI.esc(t("gbNever"))}</small>`;
 }
+// ===== « Ma commande » (maquette validée par le patron, 09/11) ======================================================
+// Commande chez un magasin avec un panier, dernier écran : une seule page claire. Où et quand, les courses magasin par
+// magasin (photos), le paiement en 2 grandes cases, UN seul ticket (articles, livraison, 2ᵉ magasin, total), vous,
+// et « Commander · total ». Les champs, contrôles et l'envoi ne changent pas : c'est l'écran qui change.
+const ckOn = () => !!(wiz.on && proShopOn() && state.shop && cartCount() > 0 && !addonOn());
+function ckTotals(q) {
+  let others = [];
+  try { others = multiList().filter(m => Number(m.count) > 0); } catch (e) { others = []; }
+  // (articles pris dans ce magasin par le livreur : comptés tant qu'ils sont dans la précision, quelle que soit la langue)
+  const ex = (state.extras || []).filter(Boolean), exOn = ex.length && !!form.shop_order.value.trim();
+  const exSum = exOn ? ex.reduce((a, x) => a + (Number(x.p) || 0), 0) : 0;
+  const fees = others.map(m => ({ m, f: multiFee(m) }));
+  const goods = cartTotal() + others.reduce((a, m) => a + (Number(m.total) || 0), 0) + exSum;
+  const del = Number(q.total) + fees.reduce((a, x) => a + x.f.price, 0);
+  const approx = isHopShop(state.shop) || !!others.length || !!exSum;
+  return { others, fees, ex: exOn ? ex : [], exSum, goods, del, all: Math.round((goods + del) * 10) / 10, approx };
+}
+function renderCheckout(q) {
+  const on = ckOn();
+  form.classList.toggle("ck", on);
+  form.classList.toggle("ck-last", on && wiz.step === wiz.n);
+  let top = $("#ckTop");
+  if (!on) { if (top) top.innerHTML = ""; const tk = $("#ckTicket"); if (tk) tk.innerHTML = ""; return; }
+  if (!top) { top = document.createElement("div"); top.id = "ckTop"; top.className = "ck-top"; $("#wizBar").after(top); }
+  const T = ckTotals(q), shop = state.shop, main = mgShort(shop.name), r1 = x => Math.round(x * 10) / 10;
+  const ap = x => `${T.approx ? "≈ " : ""}<bdi dir="ltr">${UI.esc(money(r1(x)))}</bdi>`;
+  // Où et quand
+  const street = [val("dropoff_address").trim(), val("dropoff_number").trim()].filter(Boolean).join(" ");
+  const apt = val("dropoff_apt").trim(), city = val("to_city") ? cityLabel(val("to_city") === OTHER ? val("to_other") : val("to_city")) : "";
+  const addr = [street + (apt ? `, ${t("ckApt", { n: apt })}` : ""), city].filter(Boolean).join(" · ") || t("ckNoAddr");
+  const urg = val("urgency"), sched = urg === "programmee";
+  const when = sched && state.shopSched ? UI.fmtDateTime(state.shopSched) : "";
+  // Les vignettes d'un magasin (photo + quantité), 5 au plus, puis « +N »
+  const thumbs = list => { const sh = list.slice(0, 5), more = list.length - sh.length;
+    return `<div class="ck-th">${sh.map(x => `<span class="ck-t">${x.ph ? `<img src="${UI.esc(x.ph)}"${UI.imgCors(x.ph)} alt="" loading="lazy" />` : `<i class="ck-e">${UI.esc(x.e || "🛍️")}</i>`}${x.q > 1 ? `<em>${x.q}</em>` : ""}</span>`).join("")}${more > 0 ? `<span class="ck-t more">+${more}</span>` : ""}</div>`; };
+  const mine = cartLines().filter(l => !isAddon(l.p)).map(l => ({ ph: UI.safeImg(l.p.photo), q: l.qty, n: pName(l.p) }));
+  const nItems = mine.reduce((a, x) => a + x.q, 0);
+  const logo = UI.safeImg(shop.logo);
+  const shopCard = `<div class="ck-card ck-shop"><div class="ck-row"><span class="ck-logo">${logo ? `<img src="${logo}" alt="" />` : "🛒"}</span>
+      <span class="ck-grow"><b>${escHop(UI.bi(shop.name))}</b><small>${UI.esc(t(nItems === 1 ? "ckItems1" : "ckItems", { n: nItems }))}</small></span><span class="ck-price">${ap(cartTotal())}</span></div>
+    ${thumbs(mine)}
+    <p class="ck-names">${UI.esc(mine.map(x => (x.q > 1 ? `${x.n} ×${x.q}` : x.n)).join(" · "))} <button type="button" class="ck-link" data-ck-cart>${UI.esc(t("ckEdit"))}</button></p>
+    ${T.ex.length ? `<div class="ck-also"><small>${escHop(t("ckAlso", { main }))}</small>${thumbs(T.ex.map(x => ({ ph: x.ph, q: x.q, e: x.e })))}<p class="ck-names">${UI.esc(T.ex.map(x => x.n).join(" · "))}</p></div>` : ""}</div>`;
+  const otherCards = T.fees.map(({ m, f }) => `<div class="ck-card ck-shop ck-2"><div class="ck-row"><span class="ck-logo">${(sc => sc && UI.safeImg(sc.logo) ? `<img src="${UI.safeImg(sc.logo)}" alt="" />` : "🛍️")(mgSc(m.code))}</span>
+      <span class="ck-grow"><b>${escHop(m.short || m.name)} <em class="ck-tag">${UI.esc(t("ckTag2"))}</em></b><small>${UI.esc(t(m.count === 1 ? "ckItems1" : "ckItems", { n: m.count }))}</small></span><span class="ck-price">${ap(Number(m.total) || 0)}</span></div>
+    ${thumbs((m.lines || []).map(x => ({ ph: x.ph, q: x.q })))}
+    <p class="ck-names">${UI.esc((m.lines || []).map(x => (x.q > 1 ? `${x.n} ×${x.q}` : x.n)).join(" · "))}</p>
+    <p class="ck-info">➕ ${escHop(t(f.near ? "ckOther" : "ckOtherFar", { main, fee: money(f.price) }))}</p>
+    <div class="ck-acts"><button type="button" class="ck-link" data-multi-go="${UI.esc(m.code)}">${UI.esc(t("ckSee"))}</button><button type="button" class="ck-link ck-del" data-multi-del="${UI.esc(m.code)}">${UI.esc(t("ckRemove"))}</button></div></div>`).join("");
+  const nShops = 1 + T.others.length;
+  top.innerHTML = `<div class="ck-card ck-where">
+      <div class="ck-row"><span class="ck-ico">📍</span><span class="ck-grow"><small class="ck-lbl">${UI.esc(t("mcTo"))}</small><b>${UI.esc(addr)}</b></span><button type="button" class="ck-link" data-ck-edit="to">${UI.esc(t("ckEdit"))}</button></div>
+      <div class="ck-sep"></div>
+      <div class="ck-row"><span class="ck-ico">🛵</span><span class="ck-grow"><small class="ck-lbl">${UI.esc(t("ckWhen"))}</small>
+        <span class="ck-chips"><button type="button" class="ck-chip${sched ? "" : " on"}" data-ck-when="asap">${UI.esc(t("ckAsap"))}</button><button type="button" class="ck-chip${sched ? " on" : ""}" data-ck-when="sched">${UI.esc(when || t("ckSched"))}</button></span></span></div></div>
+    <h3 class="ck-h">${UI.esc(t("ckShops"))}<small>${UI.esc(nShops > 1 ? t("ckShopsN", { n: nShops }) : "")}</small></h3>
+    ${shopCard}${otherCards}`;
+  // Le ticket : un seul total
+  let tk = $("#ckTicket");
+  if (!tk) { tk = document.createElement("div"); tk.id = "ckTicket"; tk.className = "ck-ticket"; $("#quoteLines").before(tk); }
+  const detOpen = form.classList.contains("ck-det");
+  tk.innerHTML = `<div class="ck-l"><span>${UI.esc(t("ckArt"))}</span><b>${ap(T.goods)}</b></div>
+    <div class="ck-l"><span>${UI.esc(t("ckDel", { name: main }))} <button type="button" class="ck-det-b" data-ck-det>${UI.esc(t(detOpen ? "mgClose" : "ckDetails"))}</button></span><b>${q.known ? "" : UI.esc(t("from")) + " "}<bdi dir="ltr">${UI.esc(money(q.total))}</bdi></b></div>
+    ${T.fees.map(({ m, f }) => `<div class="ck-l"><span>${escHop(t("ckDel2", { name: m.short || m.name }))}</span><b>+<bdi dir="ltr">${UI.esc(money(f.price))}</bdi></b></div>`).join("")}
+    <div class="ck-dash"></div>
+    <div class="ck-tot"><span>${UI.esc(t("gtTotal"))}</span><b>${ap(T.goods + T.del)}</b></div>
+    <small>${UI.esc(t(isHopShop(shop) ? "ckNote" : "ckNote2"))}</small>
+    ${shopPrepay() ? "" : `<p class="ck-safe">${UI.esc(t("ckSafe"))}</p>`}`;
+  if (wiz.step === wiz.n) {
+    const lbl = t("ckGo", { total: (T.approx ? "≈ " : "") + money(T.all) });
+    $("#submitBtn").textContent = lbl;
+    $("#mobileTotal").textContent = (T.approx ? "≈ " : "") + money(T.all);
+    $("#mobileLbl").textContent = t("gtTotal");
+    // (le total compte déjà les articles : plus de « + articles … » en dessous)
+    $("#mobileHint").classList.add("hidden");
+  }
+}
+form.addEventListener("click", e => {
+  const ed = e.target.closest("[data-ck-edit]"), wh = e.target.closest("[data-ck-when]"), ca = e.target.closest("[data-ck-cart]"), dt = e.target.closest("[data-ck-det]");
+  if (!ed && !wh && !ca && !dt) return;
+  e.preventDefault();
+  if (ca) return openCart();
+  if (dt) { form.classList.toggle("ck-det"); return renderQuote(); }
+  if (ed) { wizGo(1, true); requestAnimationFrame(() => { const fs = form.querySelector(".fs-to"); if (fs) nativeScrollIntoView.call(fs, { block: "start", behavior: "smooth" }); }); return; }
+  const v = wh.dataset.ckWhen === "asap" ? "asap" : "programmee";
+  const r = form.querySelector(`input[name=urgency][value=${v}]`);
+  if (r && !r.checked) { r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true })); }
+  // Programmer : le jour et l'heure se choisissent sur l'écran d'avant
+  if (v === "programmee") { wizGo(1, true); requestAnimationFrame(() => { const fs = form.querySelector(".fs-when"); if (fs) nativeScrollIntoView.call(fs, { block: "center", behavior: "smooth" }); }); }
+  else renderQuote();
+});
 // Carte « Le livreur avance vos courses » : espèces / Bit et l'appoint choisis directement ici (mêmes champs que l'étape paiement)
 $("#goodsModeBox").addEventListener("click", e => {
   const pay = e.target.closest("[data-gm-pay]"), nb = e.target.closest("[data-gm-note]");
@@ -1602,6 +1693,7 @@ function renderQuote() {
       <button type="button" class="dt-btn" data-direct-ready>${escHop(t(flowers ? "qDirectFlowBtn" : "qDirectBtn", { price: ridePrice }))}</button></div>
     <p class="dt-soon">${escHop(t("qDirectSoon"))}</p></div>` : "";
   $("#quoteNote").innerHTML = `${direct}${UI.esc(main.join(" "))}${more.length ? ` <details class="q-more"${$("#quoteNote").querySelector("details[open]") ? " open" : ""}><summary>${UI.esc(t("qMore"))}</summary>${UI.esc(more.join(" "))}</details>` : ""}`;
+  try { renderCheckout(q); } catch (e) { /* la page reste comme avant */ }
   updateProgress();
   const err = scheduleError();
   $("#scheduleError").textContent = err ? t(err.key, err.vars) : "";
@@ -1703,7 +1795,7 @@ function wizLabels() {
   wizEmpty();
   const n = wiz.step;
   $("#wizStepTxt").textContent = t("wizStep", { n, of: wiz.n });
-  $("#wizTitle").textContent = t("wizT" + n);
+  $("#wizTitle").textContent = n === wiz.n && ckOn() ? t("mcTitle") : t("wizT" + n);
   $("#wizBack").classList.toggle("off", n === 1);
   form.querySelectorAll(".wiz-seg i").forEach((i, k) => i.classList.toggle("on", k < n));
   const more = form.classList.contains("wiz-more");
@@ -4116,7 +4208,7 @@ async function cartAddTyped(q) {
       if (c && !addonOn()) {
         const sc = (state.showcase || []).find(x => x.code === c.code) || null, nm = String(UI.bi(c.shop || (sc && sc.name) || c.code));
         const prev = state.multi[c.code] || { cart: {}, lines: [], count: 0, total: 0 };
-        prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + it.qty); prev.lines.push({ n: UI.bi(c.name), q: it.qty }); prev.count += it.qty; prev.total += (Number(c.price) || 0) * it.qty;
+        prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + it.qty); prev.lines.push({ n: UI.bi(c.name), q: it.qty, ph: UI.safeImg(c.photo) || "" }); prev.count += it.qty; prev.total += (Number(c.price) || 0) * it.qty;
         state.multi[c.code] = Object.assign(prev, { code: c.code, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null, mods: prev.mods || {}, note: prev.note || "", at: Date.now() });
         multiSave();
         toastCart(t("csAddedOther", { item: UI.bi(c.name), shop: mgShort(nm), fee: money(multiFee(state.multi[c.code]).price) }));
@@ -4500,7 +4592,7 @@ function multiPark() {
   const s = state.shop;
   state.multi[s.code] = { code: s.code, name: UI.bi(s.name), short: shopShortName(), lat: s.lat, lon: s.lon, price: proPrice(s),
     cart: Object.assign({}, state.cart), mods: Object.assign({}, state.cartMods || {}), note: form.shop_order.value || "",
-    lines: cartLines().filter(l => !isAddon(l.p)).map(l => ({ n: pName(l.p), q: l.qty })), count: cartCount(), total: cartTotal(), at: Date.now() };
+    lines: cartLines().filter(l => !isAddon(l.p)).map(l => ({ n: pName(l.p), q: l.qty, ph: UI.safeImg(l.p.photo) || "" })), count: cartCount(), total: cartTotal(), at: Date.now() };
   multiSave();
   toastCart(t("multiParked", { name: shopShortName() }));
 }
@@ -6338,7 +6430,7 @@ async function magicToCart(code, withRest, quiet) {
   Object.entries(others).forEach(([oc, list]) => {
     const sc = (state.showcase || []).find(x => x.code === oc) || null, nm = String(UI.bi(list[0].c.shop || (sc && sc.name) || oc));
     const prev = state.multi[oc] || { cart: {}, lines: [], count: 0, total: 0 };
-    list.forEach(({ c, qty }) => { prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + qty); prev.lines.push({ n: UI.bi(c.name), q: qty }); prev.count += qty; prev.total += (Number(c.price) || 0) * qty; (m.sent.multi[oc] = m.sent.multi[oc] || []).push(c.id); });
+    list.forEach(({ c, qty }) => { prev.cart[c.id] = Math.min(50, (prev.cart[c.id] || 0) + qty); prev.lines.push({ n: UI.bi(c.name), q: qty, ph: UI.safeImg(c.photo) || "" }); prev.count += qty; prev.total += (Number(c.price) || 0) * qty; (m.sent.multi[oc] = m.sent.multi[oc] || []).push(c.id); });
     state.multi[oc] = Object.assign(prev, { code: oc, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null, mods: prev.mods || {}, note: prev.note || "", at: Date.now() });
   });
   if (Object.keys(others).length) multiSave();
