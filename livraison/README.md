@@ -337,6 +337,7 @@ Quand le service est coupé (ou personne de connecté hors des heures), l'accuei
 - La commande arrive dans « À accepter » comme toutes les autres : livreurs, suivi en direct, paiement, reçu.
 - **Liste à cocher** pour le livreur : dans « J'achète pour vous », chaque ligne de la liste a sa case (gardée sur son téléphone), compteur « 2 / 4 », « ✅ Tout est pris ».
 - **Liste magique de l'accueil** (« Hoppy a compris votre liste ») : si des articles viennent d'un magasin HOP! (ex. HOP! chez Carrefour), « Commander cette liste » ouvre ce magasin avec ces articles dans le panier ; le reste (« À prendre aussi : … ») part dans la précision pour ce magasin, visible du livreur et du patron. Jamais « magasin le plus proche » quand la commande est de Carrefour.
+- **« ➕ Ajouter un article » sous la liste de Hoppy** (patron, 09/11) : en tapant, les produits des magasins qui l'ont s'affichent (photo, « chez … », prix), puis les courses HOP! et « On le trouve pour vous » ; un toucher l'ajoute avec ce magasin-là. Entrée / « Ajouter » marche comme avant (Hoppy choisit).
 - Arrivée depuis une liste : on montre tout de suite la liste écrite (éclat orange + « ✅ Votre liste est prête »).
 
 ### Panier dans plusieurs magasins (08/11)
