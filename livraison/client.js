@@ -6108,6 +6108,7 @@ function renderMagic(anim) {
   box.innerHTML = `<div class="mg"><div class="mg-head"><b>${UI.esc(t("mgTitle"))}</b><small>${UI.esc(t("mgN", { n }))}</small></div>
     <div class="mg-list">${rows || `<p class="fi-none">${UI.esc(t("mgEmpty"))}</p>`}</div>
     <div class="mg-add" data-mg-add><input type="text" enterkeyhint="done" autocomplete="off" placeholder="${UI.esc(t("mgAddPh"))}" aria-label="${UI.esc(t("mgAddBtn"))}" /><button type="button" data-mg-add-go>${UI.esc(t("mgAddBtn"))}</button></div>
+    <div class="mg-sugg hidden" data-mg-sugg></div>
     ${on.length ? `<div class="mg-sum"><b>${sum ? UI.esc(t("mgTotal", { sum: money(Math.round(sum * 10) / 10) })) : ""}</b><small>${UI.esc(t("mgFee", { fee }))}</small></div>
     <div class="mg-acts">${shopBtns}<button type="button" class="mg-go${shops.length ? " alt" : ""}" data-mg-go>${UI.esc(t("mgGo"))}</button></div>
     <a class="mg-wa" data-wa-list data-wa-from="magic" href="#" target="_blank" rel="noopener">${UI.esc(t("mgWa"))}</a>` : ""}</div>`;
@@ -6132,7 +6133,44 @@ function mgAddGo(f) {
   inp.value = ""; inp.disabled = true;
   mgAdd(v).finally(() => { const i2 = $("#homeFindList [data-mg-add] input"); if (i2) i2.disabled = false; });
 }
-$("#homeFindList").addEventListener("keydown", e => { const f = e.key === "Enter" && e.target.closest("[data-mg-add]"); if (f) { e.preventDefault(); mgAddGo(f); } });
+// En tapant l'article : les produits des magasins qui l'ont (photo, magasin, prix), les courses HOP!, ou « Hoppy choisit »
+// (patron, 09/11) ; un toucher l'ajoute à la liste avec ce magasin-là
+let mgSugT = null, mgSug = null;
+function mgSuggest(v) {
+  const box = $("#homeFindList [data-mg-sugg]");
+  if (!box) return;
+  if (norm(v).length < 2) { mgSug = null; box.classList.add("hidden"); box.innerHTML = ""; return; }
+  magicFind(v).then(res => {
+    const inp = $("#homeFindList [data-mg-add] input");
+    if (!inp || inp.value.trim() !== v || !box.isConnected) return;
+    mgSug = { q: v, cands: res.cands, r: res.r };
+    const row = (attr, ph, white, name, sub, price) => `<button type="button" class="mg-row still mg-sug" ${attr}><span class="mg-pic${white ? " white" : ""}">${ph}</span><span class="mg-txt"><b>${name}</b><small>${sub}</small></span><span class="mg-price">${price}</span></button>`;
+    const html = res.cands.slice(0, 6).map((c, i) => { const ph = UI.safeImg(c.photo);
+        return row(`data-mg-sug="${i}"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : "🛍️", ph && UI.extPic(ph), UI.esc(UI.bi(c.name)), escHop(t("mgAt", { shop: UI.bi(c.shop) })), `<bdi dir="ltr">${UI.esc(money(c.price))}</bdi>`); }).join("")
+      + (res.r ? (() => { const i = res.r.i, ph = UI.safeImg(i.photo) || (i.img ? `img/qc/${i.img}.webp` : ""), pr = rayPrice(i);
+          return row(`data-mg-sug="r"`, ph ? `<img src="${ph}" alt="" loading="lazy" />` : UI.esc(i.e || "🛒"), true, UI.esc(phName(i)), escHop(t("mgRay")), pr ? `≈ <bdi dir="ltr">${UI.esc(money(pr))}</bdi>` : ""); })() : "")
+      + row(`data-mg-sug="x"`, "🛵", false, UI.esc(v), UI.esc(t("mgAny")), "");
+    box.innerHTML = html; box.classList.remove("hidden");
+  });
+}
+$("#homeFindList").addEventListener("input", e => {
+  const inp = e.target.closest("[data-mg-add] input");
+  if (!inp) return;
+  clearTimeout(mgSugT); mgSugT = setTimeout(() => mgSuggest(inp.value.trim()), 250);
+});
+$("#homeFindList").addEventListener("click", e => {
+  const b = e.target.closest("[data-mg-sug]"), m = state.magic;
+  if (!b || !m || !mgSug) return;
+  e.preventDefault(); e.stopPropagation();
+  const v = b.dataset.mgSug, s = mgSug, p = parseList(s.q)[0] || { qty: 1, name: s.q };
+  m.lines.push({ qty: p.qty, name: p.name, cands: s.cands, r: s.r, pick: v === "r" || v === "x" ? v : Number(v), on: true });
+  const inp = $("#homeFind"); inp.value = inp.value.trim().replace(/[,،;]\s*$/, "") + ", " + s.q; m.q = inp.value;
+  mgSug = null;
+  renderMagic(false);
+  const list = $("#homeFindList .mg-list"); if (list) list.scrollTop = list.scrollHeight;
+  UI.track("home_magic_add", { n: 1, pick: v });
+}, true);
+$("#homeFindList").addEventListener("keydown", e => { const f = e.key === "Enter" && e.target.closest("[data-mg-add]"); if (f) { e.preventDefault(); clearTimeout(mgSugT); mgSugT = null; mgSug = null; mgAddGo(f); } });
 $("#homeFindList").addEventListener("click", e => { const b = e.target.closest("[data-mg-add-go]"); if (b) mgAddGo(b.closest("[data-mg-add]")); });
 // La liste telle que le livreur la lira (produit, magasin, prix indicatif)
 function mgText() {
