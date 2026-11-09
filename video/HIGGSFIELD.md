@@ -1,55 +1,54 @@
-# Pub HOP! avec Higgsfield (patron, 09/11) : 6 plans de 5 s, format vertical 9:16
+# Pub HOP! « choc et sympa » avec Higgsfield (patron, 09/11) : « Frigo vide ? HOP! »
 
-Principe : dans Higgsfield, **Image → Vidéo**. On envoie une image qu'on a déjà, on colle le texte (en anglais, Higgsfield comprend mieux), on choisit le mouvement de caméra proposé. Durée 5 s, format **9:16**.
-**Aucun texte dans les vidéos** : Claude ajoute ensuite le logo HOP!, les titres FR + HE, le prix et la musique, puis monte le tout (≈ 25 s).
-Renvoyer chaque vidéo avec son nom : `plan1.mp4` … `plan6.mp4`.
+L'histoire en 20 s : un gars ouvre son frigo vide (gag) → il touche l'appli → un sac HOP! géant tombe du ciel dans la rue de Netanya comme une météorite → Hoppy en sort comme un super-héros → il saute de toit en toit avec les courses → il sonne : le frigo est plein, le gars est sous le choc et rit.
+Format **9:16**, 5 s par plan, **aucun texte dans les vidéos** (Claude ajoute logo, textes FR + HE, sons et musique au montage).
+Renvoyer : `plan1.mp4` … `plan6.mp4`.
 
 À coller à la fin de chaque texte :
 ```
-Photorealistic, cinematic commercial, 9:16 vertical, warm golden light, shallow depth of field, smooth motion. Keep the bag exactly as in the image: navy blue insulated delivery bag with white "HOP!" logo and orange "!". No other text, no other logos, no watermark.
+Photorealistic cinematic commercial, 9:16 vertical, punchy and fun, vivid colors, dynamic camera. The delivery bag is always exactly the navy blue insulated bag with the white "HOP!" logo and orange "!". No other text, no other logos, no watermark.
 ```
 
 ---
 
-## Plan 1 : le scooter dans Netanya (ouverture)
-Image : `sac-000.png` (le sac seul) · Mouvement : **FPV Drone** (ou Dolly)
+## Plan 1 : le frigo vide (gag d'ouverture)
+Sans image (texte → vidéo) · Mouvement : **Crash Zoom In**
 ```
-A delivery scooter rides through a sunny street of Netanya, Israel, palm trees and the Mediterranean sea in the background, late afternoon. The navy HOP! insulated bag from the image is strapped on the back of the scooter. The camera follows the scooter from behind like a drone, then swoops beside it.
-```
-
-## Plan 2 : le sac tourne, les courses arrivent
-Image : `sac-000.png` · Mouvement : **360 Orbit**
-```
-The navy HOP! insulated bag from the image stands open on a clean light grey studio floor. The camera orbits slowly around it while fresh groceries (a golden baguette, red apples, a milk carton) gently float down and settle naturally inside the bag. Soft studio light, orange rim light.
+A hungry young man in a small modern apartment in Israel opens his fridge at night: it is completely empty, the cold light hits his disappointed face, a single tumbleweed rolls slowly across the empty shelf. Funny comedic timing, the camera crash-zooms on his shocked face.
 ```
 
-## Plan 3 : le Coca-Cola bien frais
-Image : `coca-000.png` (la bouteille avec la vraie étiquette) · Mouvement : **Bullet Time** (ou Crash Zoom)
+## Plan 2 : la météorite HOP!
+Image : `sac-000.png` (le sac seul) · Mouvement : **Crash Zoom** ou **Bullet Time**
 ```
-A cold 1.5 L Coca-Cola bottle covered with big condensation drops, exactly as in the image, label sharp and readable. Ice cubes and water droplets burst around it in slow motion while the camera circles around the bottle. Dark navy background with warm orange highlights.
-```
-
-## Plan 4 : la cuisine
-Image : la photo **cuisine** (sac HOP! ouvert sur le comptoir) · Mouvement : **Dolly In**
-```
-A bright modern kitchen in the morning. The open navy HOP! bag sits on the counter next to fresh groceries, exactly as in the image. The camera slowly pushes in toward the bag, sunlight moves across the counter, steam rises from a coffee cup.
+The navy HOP! delivery bag from the image falls from the sky like a meteor with an orange fiery trail and lands in the middle of a sunny street of Netanya, Israel, palm trees and the sea in the background. Big impact, dust and sparks, passers-by jump back amazed. Epic slow motion at the impact.
 ```
 
-## Plan 5 : la livraison à la porte
-Image : la photo **livreur-porte** · Mouvement : **Dolly In** léger (ou Handheld)
+## Plan 3 : Hoppy sort du sac en super-héros
+Image : `hoppy-officiel.png` (le Hoppy officiel, jamais un autre) · Mouvement : **Dolly In** puis **Bullet Time**
 ```
-At the door of a modern apartment building at sunset, the delivery person hands the navy HOP! bag to a smiling woman, exactly as in the image. She takes it happily and smiles warmly. Natural movement, the camera slowly moves closer.
+The kangaroo mascot from the image, exactly the same character (same face, fur, colors, the same navy HOP! bag in its pouch), bursts out of the dust cloud and lands in a superhero landing pose on the street, then stands up proudly with a big smile. Pixar-quality 3D character in a real sunny street. No hand gestures. Do not change the character.
 ```
 
-## Plan 6 : Hoppy (fin)
-Image : `hoppy-officiel.png` (Hoppy officiel, ne pas en prendre un autre) · Mouvement : **Static** ou **Dolly Out**
+## Plan 4 : de toit en toit au-dessus de Netanya
+Image : `hoppy-officiel.png` · Mouvement : **FPV Drone**
 ```
-The kangaroo mascot from the image, exactly the same character (same face, fur, colors and the same navy HOP! bag in its pouch), does one happy hop toward the camera, lands softly and smiles. Pixar-style 3D animation, plain navy blue background (#0F1F3D). No hand gestures. Do not change the character.
+The same kangaroo mascot from the image hops joyfully from rooftop to rooftop above Netanya at golden hour, the Mediterranean sea and the city behind, the navy HOP! bag full of groceries in its pouch (a baguette sticking out). The drone camera flies along with it. Fun, energetic, exactly the same character.
+```
+
+## Plan 5 : ding-dong
+Image : `hoppy-officiel.png` · Mouvement : **Static** puis **Dolly In**
+```
+The young man from the first scene opens his apartment door: the same kangaroo mascot from the image stands there smiling and hands him the navy HOP! bag full of groceries. The man's jaw drops in surprise, then he bursts out laughing. Warm evening light, comedic timing. Exactly the same character.
+```
+
+## Plan 6 : le frigo plein (fin)
+Sans image · Mouvement : **Crash Zoom Out** ou **360 Orbit**
+```
+The same young man opens his fridge again: now it is completely full of colorful fresh groceries, the light glows warmly, he looks at the camera with a huge happy smile and a thumbs up. Confetti-like sparkles. Fun ending.
 ```
 
 ---
 
 ### Conseils
-- Si un plan change le logo du sac ou le visage de Hoppy : le refaire (bouton « regenerate »), ne pas le garder.
-- Faire 2 essais par plan et garder le plus beau.
-- Les textes à l'écran (FR + HE) : « Toutes vos courses, livrées chez vous », « Faites vos courses, on y va pour vous », « dès 25 ₪ en ville », logo HOP! à la fin. Claude les ajoute au montage, pas besoin de les mettre dans Higgsfield.
+- 2 essais par plan, garder le plus drôle. Si le logo du sac ou le visage de Hoppy change : refaire.
+- Sur le montage, Claude ajoute : « Frigo vide ? » / « ? מקרר ריק » au début, gros « HOP! » à l'impact de la météorite, « Faites vos courses, on y va pour vous » / « עושים קניות, ואנחנו מביאים », « dès 25 ₪ en ville » / « החל מ־25 ₪ בעיר », bruitages (frigo, impact, ding-dong) et musique, logo HOP! à la fin.
