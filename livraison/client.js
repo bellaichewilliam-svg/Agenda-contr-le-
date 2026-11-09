@@ -4069,6 +4069,56 @@ $("#catalogBox").addEventListener("click", e => {
   saveDraft();  cartPersist();
 });
 
+// Fiche article façon « compose ton plat » (patron, 09/11, comme la vidéo « Build your ceviche ») :
+// un onglet par choix (taille, goût, boisson, accompagnement, en plus, personnaliser) avec son compteur,
+// et des vignettes rondes (photo ou pastille, nom, prix, ✓). Les data-it-* restent ceux d'avant (mêmes clics).
+const ITB_IMG = { fries: "img/mcd/frites.webp", potato: "img/mcd/potato.webp", cauli: "img/mcd/choufleur.webp", rings: "img/mcd/rondelles.webp", fuze: "img/mcd/the.webp", orange: "img/mcd/jusorange.webp" };
+const ITB_DRINK = { coke: ["#E41E2B", "🥤"], zero: ["#262626", "🥤"], sprite: ["#1FA34A", "🥤"], fanta: ["#FF8A00", "🥤"], grape: ["#7B3FA0", "🍇"], soda: ["#4FA3D9", "🫧"], water: ["#2F7FD8", "💧"] };
+const ITB_FLAVOR = { steak: "🌯", crispy: "🍗", hot: "🌶️" };
+const ITB_MOD = { onion: "🧅", pickle: "🥒", ketchup: "🥫", mustard: "🟡", sauce: "🥣", lettuce: "🥬", tomato: "🍅", cheese: "🧀" };
+const itbOpt = o => `<button type="button" class="itb-opt${o.on ? " on" : ""}${o.x ? " x" : ""}" ${o.role ? `role="radio" aria-checked="${!!o.on}"` : `aria-pressed="${!!o.on}"`} ${o.attr}>
+  <span class="itb-pic"${o.bg ? ` style="background:${o.bg}"` : ""}>${o.img ? `<img src="${UI.esc(o.img)}"${UI.imgCors(o.img)} alt="" loading="lazy" />` : `<i>${o.emo || "🍽️"}</i>`}${o.on ? `<em>${o.x ? "✕" : "✓"}</em>` : ""}</span>
+  <b><bdi>${UI.esc(o.name)}</bdi></b>${o.price ? `<small><bdi>${UI.esc(o.price)}</bdi></small>` : ""}</button>`;
+function itGroups(p) {
+  const g = [];
+  if (sizesOf(p).length > 1) g.push({ k: "size", lbl: t("itbSize"), head: t("itSize"), one: true, n: 1, ok: true,
+    opts: sizesOf(p).map(x => itbOpt({ attr: `data-it-size="${UI.esc(x.id)}"`, role: 1, on: x.id === p.id, img: UI.safeImg(x.photo), emo: "📏", name: UI.bi(sizeOf(x)), price: UI.money(x.price) + (state.cart[x.id] ? ` · ${state.cart[x.id]}×` : "") })) });
+  if (!p.available) return g;
+  for (let i = 0; i < flavorCount(p); i++) {
+    const v = (item.flavors || [])[i];
+    g.push({ k: "fl" + i, lbl: t("flavorLbl") + (flavorCount(p) > 1 ? ` ${i + 1}` : ""), head: t("flavorTitle"), one: true, req: true, n: v ? 1 : 0, ok: !!v, need: t("flavorNeed"),
+      opts: TORT_FLAVORS.map(([k]) => itbOpt({ attr: `data-it-flavor="${i}:${k}"`, role: 1, on: v === k, emo: ITB_FLAVOR[k], name: flavorName(k) })) });
+  }
+  if (needsDrink(p)) g.push({ k: "drink", lbl: t("drinkLbl"), head: t("drinkTitle"), one: true, req: true, n: item.drink ? 1 : 0, ok: !!item.drink, need: t("drinkNeed"),
+    opts: menuDrinks().map(([k]) => { const a = drinkAddon(k), d = ITB_DRINK[k];
+      return itbOpt({ attr: `data-it-drink="${k}"`, role: 1, on: item.drink === k, img: ITB_IMG[k], emo: d && d[1], bg: d && !ITB_IMG[k] ? `radial-gradient(circle at 35% 30%, ${d[0]}bb, ${d[0]})` : "", name: drinkName(k), price: a ? "+" + money(a.price) : t("itbIncl") }); }) });
+  if (needsSide(p) && menuSides().length > 1) g.push({ k: "side", lbl: t("sideLbl"), head: t("sideTitle"), one: true, n: 1, ok: true,
+    opts: menuSides().map(([k]) => { const a = addonOf(MENU_SIDES, k);
+      return itbOpt({ attr: `data-it-side="${k}"`, role: 1, on: (item.side || "fries") === k, img: ITB_IMG[k], emo: "🍟", name: optName(MENU_SIDES, k), price: a ? "+" + money(a.price) : t("itbIncl") }); }) });
+  if (needsSide(p) && menuExtras().length) g.push({ k: "extra", lbl: t("extraLbl"), head: t("extraTitle"), n: (item.extras || []).length, ok: true,
+    opts: menuExtras().map(([k]) => { const a = addonOf(MENU_EXTRAS, k);
+      return itbOpt({ attr: `data-it-extra="${k}"`, on: (item.extras || []).includes(k), img: ITB_IMG[k], emo: "➕", name: optName(MENU_EXTRAS, k), price: "+" + money(a.price) }); }) });
+  if (modsFor(p)) g.push({ k: "mods", lbl: t("itbMods"), head: t("modTitle"), n: (item.off || []).length, ok: true, note: true,
+    opts: shopMods(p).map(k => itbOpt({ attr: `data-it-mod="${k}"`, x: true, on: (item.off || []).includes(k), emo: ITB_MOD[k], name: `${t("modNo")} ${t("mod_" + k)}` })) });
+  return g;
+}
+function itBuilder(p) {
+  const g = itGroups(p);
+  if (!g.length) return "";
+  if (!g.some(x => x.k === item.tab)) item.tab = (g.find(x => x.req && !x.ok) || g[0]).k;
+  const cur = g.find(x => x.k === item.tab);
+  const tabs = g.length > 1 ? `<div class="itb-tabs" role="tablist">${g.map(x => `<button type="button" role="tab" aria-selected="${x.k === cur.k}" class="itb-tab${x.k === cur.k ? " on" : ""}${item.needDrink && x.req && !x.ok ? " miss" : ""}" data-it-tab="${x.k}">${UI.esc(x.lbl)}${x.n ? `<i>${x.one ? "✓" : x.n}</i>` : x.req ? `<i class="req">!</i>` : ""}</button>`).join("")}</div>`
+    : `<p class="it-size-h">${UI.esc(cur.head)}</p>`;
+  return `<div class="itb">${tabs}${cur.req && !cur.ok ? `<p class="${item.needDrink ? "it-need" : "itb-req"}">${UI.esc(item.needDrink ? cur.need : t("itbReq"))}</p>` : ""}
+    ${cur.opts.length ? `<div class="itb-row" role="${cur.one ? "radiogroup" : "group"}">${cur.opts.join("")}</div>` : ""}
+    ${cur.note ? `<input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}</div>`;
+}
+// Après un choix obligatoire : on passe tout seul au prochain choix obligatoire qui manque (goût 1 → goût 2 → boisson)
+function itNext() {
+  const p = cgProducts().find(x => x.id === item.id);
+  const miss = p ? itGroups(p).find(x => x.req && !x.ok) : null;
+  if (miss) item.tab = miss.k;
+}
 document.addEventListener("input", e => { if (e.target.matches && e.target.matches("[data-it-note]")) item.note = e.target.value; });
 // Fiche d'un article : grande image, description, prix, quantité, « Ajouter · total »
 const item = { id: null, qty: 1 };
@@ -4078,7 +4128,7 @@ function openItem(id) {
   if (sizesOf(p).length > 1 && !state.cart[p.id]) p = sizeDefault(p);
   item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
   const m0 = (state.cartMods || {})[p.id] || {};
-  item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false; item.flavors = [...(m0.flavors || [])]; item.side = m0.side || "fries"; item.extras = [...(m0.extras || [])];
+  item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false; item.flavors = [...(m0.flavors || [])]; item.side = m0.side || "fries"; item.extras = [...(m0.extras || [])]; item.tab = "";
   $("#itemSheet").classList.toggle("groc", tileShop());
   renderItem();
   $("#itemSheet").classList.remove("hidden");
@@ -4089,22 +4139,8 @@ function renderItem() {
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
   $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</div>
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3>${grocShop() && packInfo(p) ? `<p class="it-pack"><bdi dir="ltr">${UI.esc(packInfo(p).label)}</bdi></p>` : ""}<div class="it-prow"><span class="cg-price">${UI.money(p.price)}</span>${grocShop() && unitPrice(p, true) ? `<span class="it-unit"><bdi dir="ltr">${UI.esc(unitPrice(p, true))}</bdi></span>` : ""}</div>
-      ${sizesOf(p).length > 1 ? `<p class="it-size-h">${UI.esc(t("itSize"))}</p><div class="it-sizes" role="radiogroup">${sizesOf(p).map(x => `<button type="button" class="it-size${x.id === p.id ? " on" : ""}" role="radio" aria-checked="${x.id === p.id}" data-it-size="${UI.esc(x.id)}"><b>${UI.esc(UI.bi(sizeOf(x)))}</b><small>${UI.esc(UI.money(x.price))}</small>${state.cart[x.id] ? `<em>${state.cart[x.id]}×</em>` : ""}</button>`).join("")}</div>` : ""}
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
-      ${p.available ? Array.from({ length: flavorCount(p) }, (_, i) => `<p class="it-size-h">${UI.esc(t("flavorTitle"))}${flavorCount(p) > 1 ? ` ${i + 1}` : ""}</p>${item.needDrink && !(item.flavors || [])[i] ? `<p class="it-need">${UI.esc(t("flavorNeed"))}</p>` : ""}
-        <div class="it-mods it-drinks it-flavors" role="radiogroup">${TORT_FLAVORS.map(([k]) => { const on = (item.flavors || [])[i] === k;
-          return `<button type="button" class="it-mod${on ? " on" : ""}" role="radio" aria-checked="${on}" data-it-flavor="${i}:${k}">${on ? "✓ " : ""}${UI.esc(flavorName(k))}</button>`; }).join("")}</div>`).join("") : ""}
-      ${needsDrink(p) && p.available ? `<p class="it-size-h">${UI.esc(t("drinkTitle"))}</p>${item.needDrink && !item.drink ? `<p class="it-need">${UI.esc(t("drinkNeed"))}</p>` : ""}
-        <div class="it-mods it-drinks" role="radiogroup">${menuDrinks().map(([k]) => { const a = drinkAddon(k);
-          return `<button type="button" class="it-mod${item.drink === k ? " on" : ""}" role="radio" aria-checked="${item.drink === k}" data-it-drink="${k}">${item.drink === k ? "✓ " : ""}${UI.esc(drinkName(k))}${a ? ` <small>+${UI.esc(money(a.price))}</small>` : ""}</button>`; }).join("")}</div>` : ""}
-      ${needsSide(p) && p.available && menuSides().length > 1 ? `<p class="it-size-h">${UI.esc(t("sideTitle"))}</p>
-        <div class="it-mods it-drinks" role="radiogroup">${menuSides().map(([k]) => { const a = addonOf(MENU_SIDES, k), on = (item.side || "fries") === k;
-          return `<button type="button" class="it-mod${on ? " on" : ""}" role="radio" aria-checked="${on}" data-it-side="${k}">${on ? "✓ " : ""}${UI.esc(optName(MENU_SIDES, k))}${a ? ` <small>+${UI.esc(money(a.price))}</small>` : ""}</button>`; }).join("")}</div>` : ""}
-      ${needsSide(p) && p.available && menuExtras().length ? `<p class="it-size-h">${UI.esc(t("extraTitle"))}</p>
-        <div class="it-mods it-drinks">${menuExtras().map(([k]) => { const a = addonOf(MENU_EXTRAS, k), on = (item.extras || []).includes(k);
-          return `<button type="button" class="it-mod${on ? " on" : ""}" aria-pressed="${on}" data-it-extra="${k}">${on ? "✓ " : "＋ "}${UI.esc(optName(MENU_EXTRAS, k))} <small>+${UI.esc(money(a.price))}</small></button>`; }).join("")}</div>` : ""}
-      ${modsFor(p) && p.available ? `${shopMods(p).length ? `<p class="it-size-h">${UI.esc(t("modTitle"))}</p>` : ""}<div class="it-mods">${shopMods(p).map(k => `<button type="button" class="it-mod${(item.off || []).includes(k) ? " on" : ""}" aria-pressed="${(item.off || []).includes(k)}" data-it-mod="${k}">${(item.off || []).includes(k) ? "✕ " : ""}${UI.esc(t("modNo"))} ${UI.esc(t("mod_" + k))}</button>`).join("")}</div>
-        <input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}
+      ${itBuilder(p)}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   $("#itemQty").textContent = item.qty;
   $("#itemAdd").disabled = !p.available;
@@ -4326,12 +4362,14 @@ $("#cartSheet").addEventListener("click", e => {
 $("#cartSheet").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-cs-add]")) { e.preventDefault(); cartAddTyped(e.target.value); } });
 $("#itemSheet").addEventListener("click", e => {
   if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
+  const tb = e.target.closest("[data-it-tab]");
+  if (tb) { item.tab = tb.dataset.itTab; renderItem(); const r = $("#itemBody .itb"); if (r) r.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
   const md = e.target.closest("[data-it-mod]");
   if (md) { const k = md.dataset.itMod; item.off = (item.off || []).includes(k) ? item.off.filter(x => x !== k) : [...(item.off || []), k]; return renderItem(); }
   const dk = e.target.closest("[data-it-drink]");
-  if (dk) { item.drink = dk.dataset.itDrink; return renderItem(); }
+  if (dk) { item.drink = dk.dataset.itDrink; itNext(); return renderItem(); }
   const fk = e.target.closest("[data-it-flavor]");
-  if (fk) { const [i, k] = fk.dataset.itFlavor.split(":"); item.flavors = [...(item.flavors || [])]; item.flavors[+i] = k; return renderItem(); }
+  if (fk) { const [i, k] = fk.dataset.itFlavor.split(":"); item.flavors = [...(item.flavors || [])]; item.flavors[+i] = k; itNext(); return renderItem(); }
   const sd = e.target.closest("[data-it-side]");
   if (sd) { item.side = sd.dataset.itSide; return renderItem(); }
   const ex = e.target.closest("[data-it-extra]");
@@ -4346,8 +4384,8 @@ $("#itemSheet").addEventListener("click", e => {
   const cur = cgProducts().find(x => x.id === item.id);
   const flavOk = !cur || Array.from({ length: flavorCount(cur) }, (_, i) => (item.flavors || [])[i]).every(Boolean);
   if (add && cur && ((needsDrink(cur) && !item.drink) || !flavOk)) {
-    item.needDrink = true; renderItem();
-    const h = $("#itemBody .it-need"); if (h) h.scrollIntoView({ behavior: "smooth", block: "center" });
+    item.needDrink = true; item.tab = ""; renderItem();
+    const h = $("#itemBody .itb"); if (h) h.scrollIntoView({ behavior: "smooth", block: "center" });
     return;
   }
   state.cart[item.id] = add ? item.qty : 0;
