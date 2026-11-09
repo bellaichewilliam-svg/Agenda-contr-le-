@@ -6844,6 +6844,9 @@ function cartPersist() {
 // « Vider le panier » (panier d'un commerce, rayon, ou panier gardé 7 jours) : tout repart à zéro, le patron le voit « vide »
 function cartClearAll() {
   state.cart = {}; state.cartMods = {}; state.pharma = {}; state.pharmaMsg = "";
+  // (aussi les paniers gardés dans les autres magasins : sinon la pastille « Reprendre mon panier » et le chiffre restaient)
+  state.multi = {}; multiSave();
+  try { renderMulti(); } catch (e) { /* ignore */ }
   const sh = $("#cartSheet"); if (sh) sh.classList.add("hidden");
   try { renderCatalog(); } catch (e) { /* pas de commerce ouvert */ }
   try { renderPharma(); } catch (e) { /* ignore */ }
