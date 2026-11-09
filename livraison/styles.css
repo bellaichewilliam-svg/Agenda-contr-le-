@@ -5284,3 +5284,11 @@ html.for-client .wa-list { display: none !important; }
 #cartNav .cn-add input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 9px 12px; border-radius: 12px; border: 1px solid rgba(127,140,165,.5); background: rgba(255,255,255,.06); color: inherit; }
 #cartNav .cn-add .btn { flex: none; background: #FF6A13; border-color: #FF6A13; color: #fff; }
 #cartNav .cn-all, #cartNav .cn-shop { font-weight: 700; }
+/* Colis : qu'est-ce qu'on transporte ? */
+.what-box { margin-top: 12px; padding: 12px; border-radius: 14px; border: 1.5px solid #FF6A13; background: rgba(255,106,19,.07); display: grid; gap: 8px; }
+.what-q { font-size: 15.5px; }
+.what-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.what-chip { font: inherit; font-size: 14px; font-weight: 700; padding: 7px 12px; border-radius: 99px; border: 1px solid rgba(127,140,165,.45); background: transparent; color: inherit; cursor: pointer; }
+.what-chip.on { background: #FF6A13; border-color: #FF6A13; color: #fff; }
+.what-box input { font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(127,140,165,.5); background: var(--card, #fff); color: inherit; width: 100%; box-sizing: border-box; }
+html.d2 .what-box input { background: #172A4B; color: #fff; }
