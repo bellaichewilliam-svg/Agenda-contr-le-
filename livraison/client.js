@@ -420,9 +420,25 @@ $("#whatChips").addEventListener("click", e => {
   renderWhat(); saveDraft();
 });
 form.what_item.addEventListener("input", renderWhat);
+$("#whatBox").addEventListener("click", e => {
+  if (!e.target.closest("[data-what-retrait]")) return;
+  const r = form.querySelector('input[name="service"][value="retrait"]');
+  r.checked = true; r.dispatchEvent(new Event("change", { bubbles: true }));
+  requestAnimationFrame(() => { const s = form.place_kind; if (s) s.scrollIntoView({ block: "center", behavior: "smooth" }); });
+});
+// Colis à la poste (09/11, patron) : la poste exige la VRAIE carte d'identité. Le livreur passe d'abord la prendre
+// chez le client, va à la poste, puis rapporte le colis et la carte : c'est un aller-retour (imposé)
+const posteIdOn = () => val("service") === "retrait" && val("place_kind") === "poste";
+function syncPosteId() {
+  const on = posteIdOn(), rt = form.round_trip;
+  $("#posteId").classList.toggle("hidden", !on);
+  if (on && !rt.disabled) { state.rtWas = rt.checked; rt.checked = true; rt.disabled = true; }
+  else if (!on && rt.disabled) { rt.disabled = false; rt.checked = !!state.rtWas; }
+}
 function syncVisibility() {
   const svc = val("service");
   renderWhat();
+  syncPosteId();
   form.notes.closest("label").toggleAttribute("data-more", !!(state.shop && proShopOn()) && !val("notes").trim());
   renderPhone();
   syncDropMe();
@@ -1111,7 +1127,9 @@ function shopArt(p) {
   return logo ? `<span class="item-art logo-art"><img src="${logo}" alt="" loading="lazy" /></span>` : UI.itemArt(p.name, state.shop && state.shop.kind);
 }
 const notesText = () => (val("service") === "achat" ? val("notes").trim()
-  : pharmaLines().concat(whatTxt() ? [`📦 ${t("whatNote")} : ${whatTxt()}`] : [], val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
+  : pharmaLines().concat(whatTxt() ? [`📦 ${t("whatNote")} : ${whatTxt()}`] : [], posteIdOn() ? [POSTE_ID_NOTE] : [], val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
+// (pour le livreur et le patron, en français comme leur appli, avec l'hébreu)
+const POSTE_ID_NOTE = "🪪 POSTE : passer D'ABORD chez le client prendre sa vraie carte d'identité (et la procuration signée), puis la poste, puis rapporter le colis + la carte au client (aller-retour) · קודם לאסוף מהלקוח את תעודת הזהות המקורית";
 // Rayon façon grande appli de courses : recherche, rubriques en une ligne collante, produits en grille (3 par ligne)
 const phNorm = x => String(x || "").toLowerCase().normalize("NFD").replace(/[̀-֑ͯ-ׇ]/g, "");
 function renderPharma() {

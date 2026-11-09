@@ -954,3 +954,10 @@ livraison/
 - Une cliente a commandé un « Colis » pour faire récupérer des clés : la commande est arrivée sans aucune description.
 - Pour un colis (hors commerce), la question est maintenant obligatoire, juste sous le choix du service, avec des choix rapides (🔑 Clés, ✉️ Documents, 🛍️ Sac, 📦 Carton, 👕 Vêtements, 🎁 Cadeau) ou du texte libre.
 - La réponse part en tête du mot pour le livreur : « 📦 À transporter : Clés » (visible par le livreur et le patron, sans nouvelle colonne).
+
+### Colis à la poste : la vraie carte d'identité, donc aller-retour (09/11/2026)
+- La poste exige la vraie carte d'identité : pour « Récupérer un colis » au bureau de poste, l'aller-retour est coché d'office (case bloquée), et le client lit pourquoi (`#posteId`).
+- Mot pour le livreur et le patron : « 🪪 POSTE : passer D'ABORD chez le client prendre sa vraie carte d'identité (et la procuration signée), puis la poste, puis rapporter le colis + la carte au client ».
+- Prix à Netanya : 25 ₪ + 5 ₪ (récupération) + 15 ₪ (aller-retour +50 %) = 45 ₪ (règles de prix existantes).
+- Récupérer un colis : « Capture d'écran du SMS reçu (ou photo de l'avis de passage), avec le n° du colis » (obligatoire, comme avant).
+- Encart « Envoyer un colis » : « 📮 Vous venez chercher un colis ? Récupérer un colis › » bascule sur le bon service.

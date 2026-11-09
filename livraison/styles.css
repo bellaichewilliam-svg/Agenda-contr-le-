@@ -5292,3 +5292,5 @@ html.for-client .wa-list { display: none !important; }
 .what-chip.on { background: #FF6A13; border-color: #FF6A13; color: #fff; }
 .what-box input { font: inherit; font-size: 16px; padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(127,140,165,.5); background: var(--card, #fff); color: inherit; width: 100%; box-sizing: border-box; }
 html.d2 .what-box input { background: #172A4B; color: #fff; }
+.what-pick { font: inherit; font-size: 13.5px; text-align: start; border: 0; background: none; color: inherit; padding: 2px 0; cursor: pointer; opacity: .9; }
+.what-pick b { color: #FF6A13; white-space: nowrap; }
