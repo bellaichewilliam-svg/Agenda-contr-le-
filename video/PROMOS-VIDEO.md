@@ -86,3 +86,30 @@ At the apartment door in Netanya, the kangaroo mascot from the reference image h
 ### Conseils
 - 2 essais par plan au maximum. Si un logo est mal écrit (ex. « Carefour », « Bamaba »), refaire ou me l'envoyer : je le corrige au montage.
 - Envoie-moi **d'abord les images**. Je vérifie que rien ne cloche (logo raté, Hoppy différent), puis tu lances les animations.
+
+---
+
+## ⚡ Version « un seul prompt » (peu de crédits)
+Une seule génération avec les 6 images jointes, **dans cet ordre** :
+1. `plan1-rate.jpg`
+2. `plan2-enseignes.jpg`
+3. `plan3-aspire.jpg`
+4. `plan4-hoppy-ramilevy.jpg`
+5. `plan5-sac.jpg`
+6. `plan6-livre.jpg`
+
+Les images sont rangées dans `video/ia/promos/`. Choisir la plus longue durée possible (10 à 15 s) et le format 9:16. Prendre un outil qui accepte plusieurs images et plusieurs plans : Seedance 2, Kling « multi-image » ou Higgsfield « multi-shot ».
+
+```
+One continuous 15-second vertical 9:16 commercial made of 6 quick shots, one per reference image, in this exact order, with fast fun cuts and energetic camera moves. Keep every character, product and logo exactly as in the reference images (same man, same kangaroo mascot, same navy HOP! bag).
+Shot 1 (image 1): in his Netanya kitchen the man stares at his phone, slaps his forehead in comic despair, the promo flyers flutter on the counter. Quick push-in on his face.
+Shot 2 (image 2): fast lateral camera sweep across the four supermarket aisles, sale banners swinging, products sliding toward the camera.
+Shot 3 (image 3): the products swirl in a glowing vortex and get sucked into his phone screen with orange sparkles; his eyes go wide, amazed.
+Shot 4 (image 4): the kangaroo mascot races the shopping cart down the aisle, grabbing products, joyful; dynamic follow camera.
+Shot 5 (image 5): products rain down in slow motion and land perfectly inside the open navy HOP! bag on the kitchen counter.
+Shot 6 (image 6): at the apartment door the kangaroo hands over the full HOP! bag, the man looks inside and bursts out laughing; warm golden light, gentle push-in, end on a happy freeze.
+Photorealistic cinematic look, the mascot is Pixar-quality 3D, vivid warm colors, upbeat rhythm. No subtitles, no added text, no watermark, no hand gestures from the mascot.
+```
+
+**Si l'outil n'accepte que 4 images :** retirer la 2 (enseignes) et la 5 (sac). Je les remets au montage en images fixes animées (zoom, mouvement), sans crédit en plus.
+**Musique, textes FR/HE, logo HOP!, prix réels de l'appli :** c'est moi qui les ajoute au montage.
