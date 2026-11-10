@@ -113,3 +113,19 @@ Photorealistic cinematic look, the mascot is Pixar-quality 3D, vivid warm colors
 
 **Si l'outil n'accepte que 4 images :** retirer la 2 (enseignes) et la 5 (sac). Je les remets au montage en images fixes animées (zoom, mouvement), sans crédit en plus.
 **Musique, textes FR/HE, logo HOP!, prix réels de l'appli :** c'est moi qui les ajoute au montage.
+
+---
+
+## 🎬 Prompt Gemini vidéo (Veo)
+**1re version reçue le 10/11 :** `ia/promos/gemini-v1-horizontal.mp4`, 10 s, très bonne. Elle est en **horizontal**.
+**Pour la version verticale :** joindre les 6 images dans l'ordre et coller le prompt ci-dessous. Si Gemini la refait quand même en horizontal, je fais la version verticale au montage (la vidéo au centre, les textes en haut et en bas).
+```
+Vertical 9:16 video, 10 seconds, one fun fast-paced commercial using the attached images in order, keeping every character, logo and product exactly the same.
+1. The man in his kitchen sees he missed the supermarket promotions on his phone and slaps his forehead.
+2. Quick sweep across the four supermarket aisles full of sale signs.
+3. The products swirl in a magic vortex into his phone screen, he is amazed.
+4. The kangaroo mascot with the navy HOP! bag races a shopping cart through the Rami Levy aisle, grabbing products.
+5. The products fall into the open navy HOP! bag on the kitchen counter.
+6. At his apartment door the kangaroo hands him the full HOP! bag, he laughs with joy.
+Cinematic, warm light, Pixar-style 3D kangaroo in a real photorealistic world. Upbeat music, fun sound effects, no voices, no subtitles, no added text.
+```
