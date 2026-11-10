@@ -3898,7 +3898,7 @@ function renderCatalog() {
     try { oth = multiList(); } catch (e) { oth = []; }
     rule = `<div class="cg-rule"><b>🛒 ${escHop(t("cgRuleT", { name: mgShort(state.shop.name) }))}</b><span>${escHop(t("cgRuleS", { fee: money(addonPrice()), km: addonKm() }))}</span>${oth.length ? `<span class="cg-rule-oth">${escHop(t("cgRuleOth", { list: oth.map(m => `${mgShort(m.name)} (${m.count})`).join(", ") }))}</span>` : ""}</div>`;
   }
-  const html = `${state.boss ? bossBar() : ""}${rule}${nearTip()}${shopNoPay() ? noPayMini() : ""}
+  const html = `${state.boss ? bossBar() : ""}${rule}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
@@ -4121,7 +4121,8 @@ $("#catalogBox").addEventListener("click", e => {
     return;
   }
   if (b.dataset.cgPick) return openItem(b.dataset.cgPick);
-  if (b.dataset.cgPlus) { state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1); hopCartFix(b.dataset.cgPlus); }
+  if (b.dataset.cgPlus) { const before = cartCount(); state.cart[b.dataset.cgPlus] = Math.min(50, (state.cart[b.dataset.cgPlus] || 0) + 1); hopCartFix(b.dataset.cgPlus);
+    if (hopBuyOn() && before === HOP_INC && cartCount() > HOP_INC) { const PI = CONFIG.pricing.purchaseItems || {}; toastCart(t("itemsToast", { inc: HOP_INC, each: money((PI.extraCourier || 1) + (PI.extraHop || 1)) })); } }
   else if (b.dataset.cgMinus) state.cart[b.dataset.cgMinus] = Math.max(0, (state.cart[b.dataset.cgMinus] || 0) - 1);
   else return;
   renderCatalog();
@@ -4627,7 +4628,7 @@ function shopMeta(s) {
   const price = s.shop_pays ? "🎁 " + t("scGift") : "🛵 " + t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }) + (fp != null ? " · 🎁 " + t("delivFirst", { price: money(fp) }) : "");
   return `<div class="sh-meta">
       <div class="sh-meta-l">${st ? `<b class="sh-dot ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</b>` : ""}
-        <small>${UI.esc(price)} · ${isHopShop(s) ? UI.esc(t("shHopIncl", { n: CONFIG.hopIncluded || 6, extra: money(((CONFIG.pricing.purchaseItems || {}).extraCourier || 1) + ((CONFIG.pricing.purchaseItems || {}).extraHop || 1)) })) : `${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}`}</small></div>
+        <small>${UI.esc(price)}${isHopShop(s) ? "" : ` · ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}`}</small></div>
       <div class="sh-meta-r">${wa ? `<a class="sh-ic sh-ic-wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t(hop ? "shWaHelloHop" : "shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener" aria-label="${UI.esc(t(hop ? "shWaHop" : "shWa"))}">${WA_SVG}</a>` : ""}
         <button type="button" class="sh-ic sh-ic-info" data-sh-info="1"><i>i</i><span>${UI.esc(t("shInfoBtn"))}</span></button></div>
     </div>${s.paused ? `<p class="sh-paused">⏸️ ${UI.esc(t("shPaused"))}</p>` : ""}${st && (st.open || st.inDays != null) ? `<p class="sh-last15">⏰ ${UI.esc(t("shLast15"))}</p>` : ""}${hop && (wa || s.phone) ? `<p class="sh-hop-note">${UI.esc(t("shHopNote", { name: UI.bi(s.name) }))}</p>` : ""}`;
@@ -4659,7 +4660,7 @@ function renderShopBanner() {
       ${compact ? shopMeta(s) : `${shopReviewsFold(s)}
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}`}
       ${UI.shopText(s, "promo") ? `<p class="sh-promo"><i>📣</i><span>${UI.esc(UI.shopText(s, "promo"))}</span></p>` : ""}
-      ${s.pro && !compact ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</em>${isHopShop(s) ? hopTags() : `<em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em>`}</div>` : ""}
+      ${s.pro && !compact ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</em>${isHopShop(s) ? "" : `<em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em>`}</div>` : ""}
       ${schedLine()}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
         <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: UI.bi(s.name) }))}</small></span></button>
@@ -6126,14 +6127,24 @@ state.showcase = [];
 // de ce magasin (zone industrielle : prix de la zone), les articles compris, puis +2 ₪, et l'attente en caisse. Chiffres tirés des réglages.
 function nearTip() {
   const s = state.shop;
-  if (!s || !isHopShop(s) || s.demo || !catalogOn() || state.cgQ) return "";
+  if (!s || !isHopShop(s) || s.demo || !catalogOn() || state.cgQ || !hopZone(s)) return "";
+  const n = cartCount();
+  if (n < 1 || n > 2) return "";
   const P = CONFIG.pricing, city = Number(P.fixedFromHome[CONFIG.homeCity] || 25), buy = Number(P.purchase || 0);
-  const zone = s.lat != null && Pricing.areaOf(CONFIG, CONFIG.homeCity, { lat: Number(s.lat), lon: Number(s.lon) });
-  const here = zone ? Number((P.areas || {}).price || city) : city, it = P.purchaseItems || {};
-  return `<div class="cg-tip"><b>💡 ${escHop(t("tipNearT"))}</b>
-    <span>${escHop(t("tipNearS", { city: money(city), buy: money(buy), inc: it.included || 10 }))}</span>
-    <span class="cg-tip-here">${escHop(t(zone ? "tipHereZ" : "tipHere", { price: money(here), buy: money(buy), inc: CONFIG.hopIncluded || 6, extra: money((it.extraCourier || 1) + (it.extraHop || 1)), min: P.purchaseMinutes || 5 }))}</span>
+  return `<div class="cg-tip"><b>💡 ${escHop(t(n === 1 ? "tipNearT1" : "tipNearT2"))}</b>
+    <span>${escHop(t("tipNearS2", { price: money(city + buy), here: money(proPrice(s)) }))}</span>
     <button type="button" class="btn btn-sm cg-tip-go" data-cg-near="1">${escHop(t("tipNearGo"))} ›</button></div>`;
+}
+// Articles compris (boutiques HOP!) : rien tant qu'on est loin ; à 1 article de la limite, on prévient ; au-delà, on dit combien
+// et pourquoi (patron, 10/11 : « les frais clairs, seulement quand il y a besoin »). Le prix, lui, est déjà calculé tout seul.
+function itemsTip() {
+  if (!hopBuyOn() || state.shop.demo || !catalogOn()) return "";
+  const PI = CONFIG.pricing.purchaseItems || {}, inc = HOP_INC, each = (PI.extraCourier || 1) + (PI.extraHop || 1), n = cartCount();
+  if (n < inc - 1) return "";
+  if (n < inc) return `<div class="cg-items"><b>🧺 ${escHop(t("itemsLeft", { n, inc }))}</b></div>`;
+  if (n === inc) return `<div class="cg-items"><b>🧺 ${escHop(t("itemsFull", { inc }))}</b><span>${escHop(t("itemsNext", { next: inc + 1, each: money(each) }))}</span></div>`;
+  const extra = Math.min(n, PI.max || 24) - inc;
+  return `<div class="cg-items on"><b>🧺 ${escHop(t(extra === 1 ? "itemsExtra1" : "itemsExtra", { extra, amount: money(extra * each), each: money(each) }))}</b><span>${escHop(t("itemsWhy", { inc }))}</span></div>`;
 }
 $("#catalogBox").addEventListener("click", e => {
   if (!e.target.closest("[data-cg-near]")) return;
@@ -6141,11 +6152,6 @@ $("#catalogBox").addEventListener("click", e => {
   UI.track("near_tip_go", { shop_code: state.shop && state.shop.code });
   leaveShop(true); goKind("shop");
 }, true);
-// Boutiques HOP! : on dit les vraies conditions (articles compris, puis +2 ₪ ; minutes d'achats offertes, puis l'attente au temps)
-function hopTags() {
-  const P = CONFIG.pricing, it = P.purchaseItems || {}, w = P.waiting || {};
-  return `<em>🧺 ${UI.esc(t("shHopIncl", { n: CONFIG.hopIncluded || 6, extra: money((it.extraCourier || 1) + (it.extraHop || 1)) }))}</em><em>⏱ ${UI.esc(t("shHopWait", { min: P.purchaseMinutes || 5, step: money(w.stepPrice || 1) }))}</em>`;
-}
 // Boutique HOP! dans une zone à part (zone industrielle…) : la course coûte le prix de la zone (comme le devis en bas)
 function hopZone(s) {
   try { return !!(s && s.lat != null && Pricing.areaOf(CONFIG, CONFIG.homeCity, { lat: Number(s.lat), lon: Number(s.lon) })); } catch (e) { return false; }

@@ -5526,3 +5526,9 @@ html[dir=rtl] .pa-x { transform: scaleX(-1); }
 .cg-tip span { color: var(--ink); }
 .cg-tip .cg-tip-here { color: var(--muted); font-size: 12.5px; }
 .cg-tip-go { justify-self: start; margin-top: 4px; background: #FF6A13; color: #fff; border: 0; font-weight: 800; }
+/* Articles compris (boutiques HOP!) : affiché seulement près de la limite ou au-delà */
+.cg-items { display: grid; gap: 3px; margin: 0 0 10px; padding: 8px 12px; border-radius: 12px; background: var(--bg-2); font-size: 13px; line-height: 1.35; }
+.cg-items b { font-size: 13.5px; }
+.cg-items span { color: var(--muted); font-size: 12.5px; }
+.cg-items.on { border: 1px solid rgba(255,106,19,.6); }
+.cg-items.on b { color: #FF6A13; }
