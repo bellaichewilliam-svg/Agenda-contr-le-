@@ -28,7 +28,7 @@ $function$;
 
 insert into public.shops (code, status, name, kind, city, address, lat, lon, contact_name, phone, whatsapp, lang, plan_until, client_pays, cash_ok, kosher,
   featured, showcase, rank, tagline, tagline_he, about, about_he, admin_note, logo, cover)
-select 'HOPVICTORY', 'suspendu', 'HOP! chez Victory · HOP! בויקטורי', 'epicerie', 'netanya', 'האורזים 4, נתניה', 32.2851, 34.8638,
+select 'HOPVICTORY', 'suspendu', 'HOP! chez Victory · HOP! בויקטורי', 'epicerie', 'netanya', 'האורזים 4, נתניה', 32.3208081, 34.8715060,
   'HOP!', '0527790361', '972527790361', 'fr', '2099-12-31', true, true, false, true, true, 5,
   '🛒 On fait vos courses pour vous chez Victory', '🛒 עושים לכם את הקניות בויקטורי',
   'Les promos de Victory, au vrai prix Victory. Vous choisissez, on fait les courses pour vous et on vous livre au plus vite.',
@@ -194,3 +194,6 @@ from t
 on conflict (id) do update set name = excluded.name, description = excluded.description, price = excluded.price, photo_url = excluded.photo_url, available = true;
 
 -- Après la mise en ligne de l'appli (config.hopShops) : update public.shops set status = 'actif' where code = 'HOPVICTORY';
+-- 10/11 (en ligne) : vraies positions (OpenStreetMap), zone industrielle ancienne (prix de la zone) — accord du patron :
+--   update public.shops set lat = 32.3220762, lon = 34.8714103 where code = 'HOPRAMILEVY';  -- Rami Lévy, האורזים 8
+--   update public.shops set lat = 32.3208081, lon = 34.8715060 where code = 'HOPVICTORY';   -- Victory, האורזים 4
