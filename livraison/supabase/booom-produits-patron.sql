@@ -28,3 +28,11 @@ on conflict (id) do update set name = excluded.name, description = excluded.desc
 -- « 🏷️ Promos de la semaine », avec la photo du site BOOOM, nom FR · HE, prix de la promo. Le patron les remet en vente
 -- (bouton « En vente » de l'espace commerce) s'il les voit encore en boutique. Même id que l'import : pas de doublon.
 -- (migration « booom_anciennes_promos_masquees »)
+
+-- 10/11 : papier toilette Vole 32 rouleaux à 25 ₪, envoyé par le patron (photo : img/booom/papier-toilette-vole.webp)
+insert into public.shop_photo_files (h, path) values ('80f871a97952ac38138713b946194e6a', 'img/booom/papier-toilette-vole.webp') on conflict (h) do update set path = excluded.path;
+insert into public.shop_products (id, shop_id, category_id, name, description, price, photo, available, position, hand_added) values
+  (md5('HOPBOOOM:hop:papier-toilette-vole')::uuid, (select id from shops where code = 'HOPBOOOM'), md5('HOPBOOOM:cat:forts')::uuid,
+   'Vole · Papier toilette 32 rouleaux · נייר טואלט VOLE 32 גלילים', 'Doux, résistant, agréable · 32 rouleaux · רך, עדין ונעים · 32 גלילים', 25,
+   'data:image/webp;base64,UklGRsICAABXRUJQVlA4ILYCAABwDACdASowADAAPrVMoEunJCMhqqlY4BaJbADG55fOYWA2wF2Z7y7/s6BxyAM14kZ9E4dVMTSvJdiUU5k/MJAQqLgUcSNC+kXX8pdrDiOQ1oqVJZaGeIQJZQnG0FMHrlqU6rXRi9HyLuJVngAA/v56ee1rzfD5zKq2cbA5HMtVgYiwkHXM+GIm2O3x0HJWnQF2cBYGXM3oPgwQ1uxdNADLZYPwmbBENl0pUvnu/vR9x8YbIx2yj7UeOv08lwZHPPZAWmv//Beg0vEXeY4wX6Di/+MtTY5tO97GnyTfOhpKCqTeTV4LZYWp+D62YygvpAOdMegmaup/Dr6qeMEwyQGms0+qAkC7Xut/lH7oWphXFehfrF2Yq5JMKOZ+KC5Wr3gfBnpcO6YUxLmTClAtIQjB/WXrJ7lzrijiAO3vnex38HdDWVJvnUjdkbjdGjNqWun/kp0d/K+AYcDbEVaA++JAfYT23si5AFCB9DEnnTn7yBen8CzjfRnq6yg5NPfzMNZ599mHGqXh1IIHHLSHxl1PkWnzu9FUehasaOpRFoG6Ol09hzdFbUhGnfxKXDH1IluzbUhwhI6AwnFKeh7lEwaUAFUduMzI+qmp9GLgCCqQs5kPTs9D7HhFhomYMEnTuL3T+JxpxPXWqzzMuiVPBrgVagQ7b+IOyj9M66+JloVQgdWC2HjCi1mPTvU9K0GZ6/Mw8/efW7zybIedmC8me+8VhfRtNPIIWkRAPQtohrsUvdOoqWThCt8tp7FvHmTTa4I5I5mR0rg4au6IL8yqw4qVInQd/dIQqI7sQXK3x+CxA8JEpmXOFEVuKS+VdN51gLQ/xbHGq81qff/35Nq4AkDjgdy4vujKJpEXl3kUAPSKPwj/nISShQmVqiAMAt+hHEHMBggEuUjH8Kgs8SwS5IO/HP24AAAA', true, -5, true)
+on conflict (id) do update set name = excluded.name, description = excluded.description, price = excluded.price, photo = excluded.photo, available = true, position = excluded.position, hand_added = true;
