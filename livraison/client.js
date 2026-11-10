@@ -2094,6 +2094,11 @@ async function prodSuggestLater(q) {
   // avec la recherche déjà remplie (tous les articles trouvés, pas un seul)
   const shops = ((await Store.productsSearchShops(q)) || []).filter(p => !staple || !/restaurant|resto|cafe/i.test(p.kind || ""));
   const qq = q.trim();
+  // Tout le magasin Rami Lévy : s'il a le produit (même hors promos), il apparaît aussi
+  if (!shops.some(p => p.code === RL_CODE) && (state.showcase || []).some(x => x.code === RL_CODE)) {
+    try { const rl = await Store.rlFind(qq, 20); if (rl.length) shops.splice(Math.min(1, shops.length), 0, { code: RL_CODE, shop: ((state.showcase || []).find(x => x.code === RL_CODE) || {}).name || "HOP! chez Rami Lévy", n: rl.length, min: Math.min(...rl.map(x => Number(x.p))), sample: rl.slice(0, 2).map(x => x.n) }); }
+    catch (e) { /* rien */ }
+  }
   return shops.slice(0, 4).map(p => ({ quick: true, prod: true, top: true, icon: "⭐",
     title: t(Number(p.n) > 1 ? "acShopHits" : "acShopHit", { n: p.n, q: qq, shop: UI.bi(p.shop) }),
     sub: (Number(p.n) > 1 ? t("acFrom", { price: money(p.min) }) : money(p.min)) + ((p.sample || []).length ? " · " + p.sample.slice(0, 2).map(x => UI.bi(String(x).replace(/\s*\[[^\]]*\]\s*$/, ""))).join(", ") : ""),
@@ -3893,7 +3898,7 @@ function renderCatalog() {
     rule = `<div class="cg-rule"><b>🛒 ${escHop(t("cgRuleT", { name: mgShort(state.shop.name) }))}</b><span>${escHop(t("cgRuleS", { fee: money(addonPrice()), km: addonKm() }))}</span>${oth.length ? `<span class="cg-rule-oth">${escHop(t("cgRuleOth", { list: oth.map(m => `${mgShort(m.name)} (${m.count})`).join(", ") }))}</span>` : ""}</div>`;
   }
   const html = `${state.boss ? bossBar() : ""}${rule}${shopNoPay() ? noPayMini() : ""}
-    ${cq && !sections.length ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
+    ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
@@ -3922,6 +3927,8 @@ function renderCatalog() {
       : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
   if (box.dataset.html !== html) { box.querySelector(".cg-body").innerHTML = html; box.dataset.html = html; }
+  if (isRlShop()) { const rl = box.querySelector(".cg-rl"); if (!rl || rl.dataset.q !== String(state.cgQ || "").trim()) { clearTimeout(rlAllT); rlAllT = setTimeout(rlAllFill, 200); } }
+  else { const rl = box.querySelector(".cg-rl"); if (rl) rl.remove(); }
   if (state.findItem) {
     const id = state.findItem; state.findItem = null;
     // Produit touché dans la recherche de l'accueil : sa fiche s'ouvre tout de suite (photo, prix, Ajouter)
@@ -3982,6 +3989,54 @@ $("#catalogBox").addEventListener("input", e => {
   state.cgQ = e.target.value;
   renderCatalog();
   clearTimeout(cgElseT); cgElseT = setTimeout(cgElseFill, 350);
+  clearTimeout(rlAllT); rlAllT = setTimeout(rlAllFill, 350);
+});
+// « Dans tout le magasin Rami Lévy » (patron, 10/11 : rien ne doit manquer) : sous les promos, tout le magasin (prix officiels),
+// cherché côté serveur. « Ajouter » met la ligne dans la commande (le livreur l'achète au magasin, prix ≈ indiqué).
+var RL_CODE = "HOPRAMILEVY", rlAllT = null, rlAllSeq = 0;
+function isRlShop() { return !!(state.shop && state.shop.code === "HOPRAMILEVY"); }
+const rlPh = c => `https://img.rami-levy.co.il/product/${encodeURIComponent(c)}/small.jpg`;
+const rlRow = (x, attr) => `<div class="cg-else-row rl-row"><span class="cr-pic"><img src="${UI.esc(rlPh(x.c))}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('🛒'))" /></span>
+  <span class="cg-else-txt"><b><bdi dir="rtl">${UI.esc(x.n)}</bdi></b><small>${UI.esc(x.w ? t("rlKg") : t("rlUnit"))}</small></span>
+  <em>${UI.esc(money(x.p))}</em><button type="button" class="btn btn-sm" ${attr}>${UI.esc(t("cgElseAdd"))}</button></div>`;
+async function rlAllFill() {
+  const box = $("#catalogBox");
+  if (!box || !isRlShop()) return;
+  let el = box.querySelector(".cg-rl");
+  if (!el) { el = document.createElement("div"); el.className = "cg-rl"; const body = box.querySelector(".cg-body"); if (!body) return; body.after(el); }
+  const q = String(state.cgQ || "").trim(), seq = ++rlAllSeq;
+  if (phNorm(q).length < 2) { el.innerHTML = ""; el.dataset.q = ""; return; }
+  if (el.dataset.q === q) return;
+  el.innerHTML = `<p class="cg-else-wait">${UI.esc(t("cgElseWait"))}</p>`;
+  const list = await Store.rlFind(q, 20);
+  if (seq !== rlAllSeq || !isRlShop()) return;
+  el.dataset.q = q; state.rlAll = list;
+  el.innerHTML = list.length ? `<div class="cg-else"><b class="cg-else-t">🔎 ${UI.esc(t("rlAllT"))}</b><small class="rl-sub">${UI.esc(t("rlAllS"))}</small>${list.map((x, i) => rlRow(x, `data-rl-add="${i}"`)).join("")}</div>`
+    : `<p class="cg-else-wait">${UI.esc(t("rlAllNo", { q }))}</p>`;
+}
+function rlAddExtra(x, btn) {
+  if (!x) return;
+  state.extras = (state.extras || []).filter(Boolean).concat([{ n: x.n, q: 1, p: Number(x.p) || null, ph: rlPh(x.c), e: "🛒" }]);
+  extrasNote(); renderQuote(); saveDraft(); cartPersist(); renderCartIcon();
+  if (btn) { btn.textContent = "✓"; btn.disabled = true; }
+  toastCart(t("rlAdded", { item: x.n }));
+}
+// Depuis un autre magasin : la ligne part dans le panier Rami Lévy (gardé, comme « autre magasin »), elle revient en entrant chez Rami Lévy
+function rlAddOther(x, btn) {
+  if (!x) return;
+  const sc = (state.showcase || []).find(s => s.code === RL_CODE) || null, nm = String(UI.bi((sc && sc.name) || "HOP! chez Rami Lévy"));
+  const m = state.multi[RL_CODE] || { cart: {}, lines: [], count: 0, total: 0, mods: {}, note: "" };
+  m.rlx = (m.rlx || []).concat([{ n: x.n, q: 1, p: Number(x.p) || null, ph: rlPh(x.c), e: "🛒" }]);
+  m.lines = (m.lines || []).concat([{ n: x.n, q: 1, ph: rlPh(x.c) }]); m.count = (m.count || 0) + 1; m.total = (Number(m.total) || 0) + (Number(x.p) || 0);
+  state.multi[RL_CODE] = Object.assign(m, { code: RL_CODE, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null, at: Date.now() });
+  multiSave(); renderMulti(); renderCartIcon();
+  if (btn) { btn.textContent = "✓"; btn.disabled = true; }
+  toastCart(t("cgElseAdded", { shop: nm.split(" · ")[0] }));
+}
+$("#catalogBox").addEventListener("click", e => {
+  const b = e.target.closest("[data-rl-add]"), o = e.target.closest("[data-else-rl]");
+  if (b) { e.preventDefault(); e.stopPropagation(); return rlAddExtra((state.rlAll || [])[Number(b.dataset.rlAdd)], b); }
+  if (o) { e.preventDefault(); e.stopPropagation(); return rlAddOther(((state.cgElse || {}).rl || [])[Number(o.dataset.elseRl)], o); }
 });
 // Pas dans ce magasin : on cherche ailleurs sur HOP! (patron, 08/11), marqué « autre magasin » (+10 ₪), ou dans les
 // courses HOP! (le livreur le prend au plus près). « Ajouter » le met dans le bon panier : rien n'est perdu.
@@ -4000,15 +4055,19 @@ async function cgElseFill() {
   const hit = p => { const a = phNorm(UI.bi(p.name)); for (let k = a.indexOf(nq); k >= 0; k = a.indexOf(nq, k + 1)) if (k === 0 || /[\s(/'·-]/.test(a[k - 1])) return true; return false; };
   const list = prods.filter(p => p.code && p.code !== code && !/restaurant|resto|cafe|traiteur/i.test(p.kind || "") && (sc(p) > 0 || hit(p))).sort((a, b) => sc(b) - sc(a)).slice(0, 4);
   const r = (rayonHits(q, 1)[0] || null);
-  state.cgElse = { list, r };
-  if (!list.length && !r) { $("#cgElse").innerHTML = `<p class="cg-else-wait">${UI.esc(t("cgElseNo"))}</p>`; return; }
+  let rl = [];
+  if (!r) { try { rl = (await Store.rlFind(q, 3)) || []; } catch (e) { rl = []; } }
+  if (seq !== cgElseSeq || !$("#cgElse") || !state.shop || state.shop.code !== code) return;
+  state.cgElse = { list, r, rl };
+  if (!list.length && !r && !rl.length) { $("#cgElse").innerHTML = `<p class="cg-else-wait">${UI.esc(t("cgElseNo"))}</p>`; return; }
   const row = (ph, name, sub, price, attr) => `<div class="cg-else-row"><span class="cr-pic">${ph}</span><span class="cg-else-txt"><b><bdi>${UI.esc(name)}</bdi></b><small>${sub}</small></span>
     ${price ? `<em>${UI.esc(price)}</em>` : ""}<button type="button" class="btn btn-sm" ${attr}>${UI.esc(t("cgElseAdd"))}</button></div>`;
   $("#cgElse").innerHTML = `<b class="cg-else-t">${escHop(t("cgElseT", { name: shopShortName() }))}</b>`
     + list.map((c, i) => { const ph = UI.safeImg(c.photo), sh = String(UI.bi(c.shop || c.code)).split(" · ")[0], f = multiFee({ code: c.code });
       return row(ph ? `<img src="${UI.esc(ph)}" alt="" loading="lazy" />` : "🛍️", UI.bi(c.name), `${escHop(t("cgElseShop", { shop: sh }))} · <b>${UI.esc(t("cgElseFee", { fee: money(f.price) }))}</b>`, money(Number(c.price) || 0), `data-else-shop="${i}"`); }).join("")
     + (r ? row((UI.safeImg(r.i.photo) || r.i.img) ? `<img src="${UI.esc(UI.safeImg(r.i.photo) || `img/qc/${r.i.img}.webp`)}" alt="" loading="lazy" />` : UI.esc(r.i.e || "🛒"),
-        phName(r.i), escHop(t("cgElseNear")), rayPrice(r.i) ? "≈ " + money(rayPrice(r.i)) : "", `data-else-near="1"`) : "");
+        phName(r.i), escHop(t("cgElseNear")), rayPrice(r.i) ? "≈ " + money(rayPrice(r.i)) : "", `data-else-near="1"`) : "")
+    + rl.map((x, i) => rlRow(x, `data-else-rl="${i}"`).replace('<small>', `<small>${escHop(t("rlNear"))} · <b>${UI.esc(t("cgElseFee", { fee: money(multiFee({ code: RL_CODE }).price) }))}</b> · `)).join("");
 }
 // Article d'un autre magasin → le panier (gardé) de ce magasin, livré avec la commande
 function multiAdd(c, qty) {
@@ -4720,6 +4779,8 @@ function multiRestore(code) {
   state.cart = Object.fromEntries(Object.entries(m.cart || {}).filter(([id, q]) => ids.includes(id) && q > 0));
   state.cartMods = Object.fromEntries(Object.entries(m.mods || {}).filter(([id]) => state.cart[id]));
   if (m.note && !form.shop_order.value.trim()) form.shop_order.value = m.note;
+  // Produits « tout le magasin » choisis depuis un autre magasin : ils reviennent dans « À prendre aussi »
+  if ((m.rlx || []).length) { state.extras = (state.extras || []).filter(Boolean).concat(m.rlx); extrasNote(); }
   delete state.multi[code]; multiSave();
 }
 function multiHtml(withBtns) {
@@ -7296,7 +7357,7 @@ function renderCartIcon() {
   if (!b) return;
   let parked = 0;
   try { parked = multiList().reduce((a, m) => a + (Number(m.count) || 0), 0); } catch (e) { /* pas encore prêt */ }
-  const c = cartStored(), n = (c ? c.snap.count : 0) + parked;
+  const c = cartStored(), n = (c ? c.snap.count : 0) + parked + (state.shop ? (state.extras || []).filter(Boolean).reduce((a, x) => a + (Number(x.q) || 1), 0) : 0);
   // Accueil : une fine pastille pour reprendre le panier gardé sur ce téléphone
   let pill = $("#homeCartPill");
   if (!pill && $("#homeNotices")) { pill = document.createElement("button"); pill.type = "button"; pill.id = "homeCartPill"; pill.className = "cart-resume hidden"; $("#homeNotices").before(pill); }

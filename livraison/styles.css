@@ -5474,3 +5474,8 @@ html.vit.d2-day .sc-find-list .mg-sum2 .tot { border-top-color: rgba(15,31,61,.1
 .pm-pr s { font-size: 13px; color: var(--muted); }
 .pm-go { align-self: flex-start; font-size: 13px; font-weight: 800; padding: 6px 12px; border-radius: 99px; background: #FF6A13; color: #fff; }
 .pm-go i { font-style: normal; }
+/* « Dans tout le magasin Rami Lévy » (patron, 10/11) */
+.cg-rl { margin: 6px 0 14px; min-width: 0; }
+.cg-rl .rl-sub { display: block; margin: -4px 0 8px; font-size: 12px; color: var(--muted); }
+.rl-row .cr-pic img { background: #fff; object-fit: contain; }
+.rl-row b bdi { unicode-bidi: isolate; }
