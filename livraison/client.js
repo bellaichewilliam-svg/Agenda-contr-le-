@@ -1639,8 +1639,9 @@ function renderQuote() {
         · <button type="button" class="q-more" data-buy-info>${UI.esc(t("qBuyMore"))}</button></small></span><span dir="ltr">${money(l.amount)}</span></li>`
     : `<li class="${l.discount ? "disc" : ""}"><span>${UI.esc(lineLabel(l))}</span><span dir="ltr">${l.amount < 0 ? "−" : ""}${money(Math.abs(l.amount))}</span></li>`).join("")
     // Pas de frais cachés : on le montre noir sur blanc
-    + `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
-    + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`
+    // (pas pour les courses : articles en plus et attente se paient, on ne met pas « 0 frais » qui tromperait — patron, 10/11)
+    + (goods ? "" : `<li class="zero"><span>${UI.esc(t("qService"))}</span><span dir="ltr">${t("qZero")}</span></li>`
+    + `<li class="zero"><span>${UI.esc(t("qSmall"))}</span><span dir="ltr">${t("qZero")}</span></li>`)
     + (goods && proShopOn() && cartCount() ? `<li class="goods"><span>${UI.esc(t(itemsKey("qItems"), { total: money(cartTotal()), name: UI.bi(state.shop.name) }))}</span></li>` : "")
     // Achats payés au livreur : le montant des articles (au maximum) est dans le prix, comme la course
     + (goods && goodsPrepay() && !goodsAfter() ? `<li class="goods-amt"><span>${UI.esc(t("qGoodsMax"))}</span><span dir="ltr">${goodsBudget() ? money(goodsBudget()) : "—"}</span></li>` : "")
@@ -4626,7 +4627,7 @@ function shopMeta(s) {
   const price = s.shop_pays ? "🎁 " + t("scGift") : "🛵 " + t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }) + (fp != null ? " · 🎁 " + t("delivFirst", { price: money(fp) }) : "");
   return `<div class="sh-meta">
       <div class="sh-meta-l">${st ? `<b class="sh-dot ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</b>` : ""}
-        <small>${UI.esc(price)} · ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</small></div>
+        <small>${UI.esc(price)} · ${isHopShop(s) ? UI.esc(t("shHopIncl", { n: CONFIG.hopIncluded || 6, extra: money(((CONFIG.pricing.purchaseItems || {}).extraCourier || 1) + ((CONFIG.pricing.purchaseItems || {}).extraHop || 1)) })) : `${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}`}</small></div>
       <div class="sh-meta-r">${wa ? `<a class="sh-ic sh-ic-wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t(hop ? "shWaHelloHop" : "shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener" aria-label="${UI.esc(t(hop ? "shWaHop" : "shWa"))}">${WA_SVG}</a>` : ""}
         <button type="button" class="sh-ic sh-ic-info" data-sh-info="1"><i>i</i><span>${UI.esc(t("shInfoBtn"))}</span></button></div>
     </div>${s.paused ? `<p class="sh-paused">⏸️ ${UI.esc(t("shPaused"))}</p>` : ""}${st && (st.open || st.inDays != null) ? `<p class="sh-last15">⏰ ${UI.esc(t("shLast15"))}</p>` : ""}${hop && (wa || s.phone) ? `<p class="sh-hop-note">${UI.esc(t("shHopNote", { name: UI.bi(s.name) }))}</p>` : ""}`;
@@ -4658,7 +4659,7 @@ function renderShopBanner() {
       ${compact ? shopMeta(s) : `${shopReviewsFold(s)}
       ${UI.openState(s.hours) ? `<p class="sh-status ${UI.openState(s.hours).open ? "on" : "off"}"><i></i>${UI.esc(openLabel(UI.openState(s.hours)))}</p>` : ""}`}
       ${UI.shopText(s, "promo") ? `<p class="sh-promo"><i>📣</i><span>${UI.esc(UI.shopText(s, "promo"))}</span></p>` : ""}
-      ${s.pro && !compact ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</em><em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em></div>` : ""}
+      ${s.pro && !compact ? `<div class="pc-tags sh-tags"><em>${s.shop_pays ? "🎁 " + UI.esc(t("scGift")) : "🛵 " + UI.esc(t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</em>${isHopShop(s) ? hopTags() : `<em>🧾 ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}</em>`}</div>` : ""}
       ${schedLine()}
       ${shopTwoWay() ? `<div class="sh-dir" role="group">
         <button type="button" class="${side === "to" ? "on" : ""}" data-shop-dir="to"><i>🧺</i><span><b>${UI.esc(t("shDirTo"))}</b><small>${UI.esc(t("shDirToSub", { name: UI.bi(s.name) }))}</small></span></button>
@@ -6140,9 +6141,18 @@ $("#catalogBox").addEventListener("click", e => {
   UI.track("near_tip_go", { shop_code: state.shop && state.shop.code });
   leaveShop(true); goKind("shop");
 }, true);
+// Boutiques HOP! : on dit les vraies conditions (articles compris, puis +2 ₪ ; minutes d'achats offertes, puis l'attente au temps)
+function hopTags() {
+  const P = CONFIG.pricing, it = P.purchaseItems || {}, w = P.waiting || {};
+  return `<em>🧺 ${UI.esc(t("shHopIncl", { n: CONFIG.hopIncluded || 6, extra: money((it.extraCourier || 1) + (it.extraHop || 1)) }))}</em><em>⏱ ${UI.esc(t("shHopWait", { min: P.purchaseMinutes || 5, step: money(w.stepPrice || 1) }))}</em>`;
+}
+// Boutique HOP! dans une zone à part (zone industrielle…) : la course coûte le prix de la zone (comme le devis en bas)
+function hopZone(s) {
+  try { return !!(s && s.lat != null && Pricing.areaOf(CONFIG, CONFIG.homeCity, { lat: Number(s.lat), lon: Number(s.lon) })); } catch (e) { return false; }
+}
 function proPrice(s) {
-  // Boutique HOP! : la course + le petit achat (25 + 5 = 30 ₪ dans Netanya)
-  if (isHopShop(s)) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity] + Number(CONFIG.pricing.purchase || 0);
+  // Boutique HOP! : la course + le petit achat (25 + 5 = 30 ₪ en ville ; 30 + 5 = 35 ₪ depuis la zone industrielle), le même prix que le devis
+  if (isHopShop(s)) return (hopZone(s) ? Number((CONFIG.pricing.areas || {}).price || CONFIG.pricing.fixedFromHome[CONFIG.homeCity]) : CONFIG.pricing.fixedFromHome[CONFIG.homeCity]) + Number(CONFIG.pricing.purchase || 0);
   if (s && (s.client_pays || s.pro === false)) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity];
   const st = state.settings || {};
   const share = Number(st.pro_shop_share != null ? st.pro_shop_share : CONFIG.pro.shopShare) - Number(st.pro_hop_share != null ? st.pro_hop_share : CONFIG.pro.hopShare);
