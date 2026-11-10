@@ -1,70 +1,74 @@
 # Vidéo « HOP! à vos promos » (patron, 10/11)
 **L'idée :** avec HOP!, on ne rate plus aucune promo des meilleures enseignes. Rami Lévy, Carrefour, Victory, BOOOM : toutes leurs promos sont réunies dans l'appli, et on se fait livrer.
 **Le slogan :** « HOP! à vos promos » / « HOP! למבצעים ».
-**Format :** 9:16, environ 20 s, version FR et version HE.
+**Format :** 9:16, environ 20 s, une version FR et une version HE.
 
-Même méthode que `HIGGSFIELD-METHODE.md` :
-1. Images de départ : Nano Banana Pro ou Seedream.
-2. Animation : 5 s par plan, avec Seedance, Kling ou OpenArt.
-3. Montage : c'est moi qui le fais.
+On suit la même méthode que `HIGGSFIELD-METHODE.md` :
+1. Les images de départ, avec Nano Banana Pro ou Seedream.
+2. L'animation, avec Seedance, Kling ou OpenArt (5 s par plan).
+3. Le montage, c'est moi qui le fais.
 
 **Règles à respecter :**
-- **Aucun texte, aucun logo, aucune marque lisible** dans les images. C'est moi qui ajoute au montage les noms des magasins (« HOP! chez Rami Lévy », « HOP! chez Carrefour », « HOP! chez BOOOM »), les prix, les « −50 % », le logo HOP! et la musique.
-- Paquets **sans marque**.
-- Hoppy = toujours joindre `hoppy-officiel.png` (ou `video/ia/fiche-hoppy.jpg`).
-- Le client = joindre `video/ia/fiche-client.jpg`.
-- Le sac = joindre `sac-000.png`.
+- **Les vraies marques** (demande du patron) : enseignes **Rami Levy, Carrefour, Victory, BOOOM**, et produits connus (**Coca-Cola, Bamba, Bissli, Nutella, Milka, Kinder, Pringles, Nescafé, Tnuva, Osem, Fairy, Sano**…).
+  - Les IA abîment souvent les logos (lettres tordues, mots inventés). Si c'est le cas, refaites l'image ou envoyez-la-moi : je recolle le vrai logo au montage.
+  - **Pour chaque enseigne, joindre sa vraie photo de devanture ou son logo** (une photo de la façade à Netanya prise au téléphone, c'est parfait). Sans ça, l'IA invente le logo.
+- **Hoppy :** toujours joindre `hoppy-officiel.png` (ou `video/ia/fiche-hoppy.jpg`).
+- **Le client :** joindre `video/ia/fiche-client.jpg`.
+- **Le sac :** joindre `sac-000.png`.
+- **Textes :** pas de prix ni de phrases dans les images. C'est moi qui ajoute au montage les prix, les « −50 % », les slogans, le logo HOP! et la musique.
 
 **À coller à la fin de chaque prompt :**
 ```
-Photorealistic cinematic commercial, 9:16 vertical, vivid warm colors, sharp details. All packaging is plain and unbranded: no readable text, no logos, no brand names anywhere in the image. The delivery bag is always exactly the navy blue insulated bag from the reference image.
+Photorealistic cinematic commercial, 9:16 vertical, vivid warm colors, sharp details. Real well-known product brands with clean, correctly spelled logos. Store signs and logos exactly like the attached reference photos. The delivery bag is always exactly the navy blue insulated bag from the reference image, with the white "HOP!" and orange "!". No other text, no prices, no watermark.
 ```
 
 ---
 
 ## Plan 1 : « Encore raté la promo ! » (le problème)
-Joindre : `fiche-client.jpg`
+**Joindre :** `fiche-client.jpg`
 ```
-The young man from the reference image stands in his kitchen in Netanya, looking at his phone with a frustrated, comically dramatic face, hand on his forehead, as if he just missed a great deal. Several crumpled paper supermarket flyers (blank, no text) lie on the counter. Evening light, funny mood.
+The young man from the reference image stands in his kitchen in Netanya, looking at his phone with a frustrated, comically dramatic face, hand on his forehead, as if he just missed a great deal. On the counter: crumpled paper promotion flyers from Rami Levy, Carrefour and Victory supermarkets, and an empty Nutella jar. Evening light, funny mood.
 ```
-**Animation :** il soupire, jette son téléphone sur le canapé, et les prospectus vides s'envolent. Caméra : léger zoom avant.
+**Animation :** il soupire, jette son téléphone sur le canapé, et les prospectus s'envolent. Caméra : léger zoom avant.
 
 ## Plan 2 : quatre enseignes, quatre avalanches de promos
-Rien à joindre.
+**Joindre :** les 4 photos de devanture ou de logo (Rami Levy, Carrefour, Victory, BOOOM).
 ```
-Split composition in four vertical panels: four different supermarket aisles in Israel (one bright red-and-white style, one blue style, one green style, one yellow-and-black discount style), shelves overflowing with colorful unbranded products, big blank red and yellow sale tags (no text) hanging everywhere, festive atmosphere.
+Split composition in four vertical panels, one per Israeli supermarket chain, each with its real store sign exactly like the reference photos: Rami Levy (red and white), Carrefour (blue, white and red), Victory (green), BOOOM (yellow and black discount store). Each aisle overflows with real products: Coca-Cola bottles, Bamba and Bissli bags, Milka and Kinder chocolate, Pringles, Nescafé, Tnuva milk, Osem pasta. Big bright red and yellow sale tags hanging everywhere, festive atmosphere.
 ```
-**Animation :** les étiquettes de promo se balancent, et des produits glissent des étagères vers la caméra. Caméra : travelling latéral rapide.
-*(Au montage : Rami Lévy / Carrefour / Victory / BOOOM au-dessus de chaque panneau.)*
+**Animation :** les étiquettes de promo se balancent, et les produits glissent des étagères vers la caméra. Caméra : travelling latéral rapide.
 
 ## Plan 3 : toutes les promos aspirées dans le téléphone (l'idée HOP!)
-Joindre : `fiche-client.jpg`
+**Joindre :** `fiche-client.jpg`
 ```
-Close-up of the young man's hand holding a smartphone with a glowing navy blue screen (no readable text). Colorful unbranded grocery products and blank red sale tags fly from all directions and get sucked into the phone screen like a magic vortex, with orange sparkles.
+Close-up of the young man's hand holding a smartphone with a glowing navy blue screen. Products from all four supermarkets fly in from every direction and get sucked into the phone screen like a magic vortex: Coca-Cola bottles, Bamba bags, Nutella jars, Milka bars, Kinder Bueno, Pringles cans, Fairy dish soap, with red sale tags and orange sparkles.
 ```
-**Animation :** l'effet « aspirateur magique », les produits tourbillonnent puis disparaissent dans l'écran. Caméra : orbite lente.
-*(Au montage : « Toutes vos promos réunies » / « כל המבצעים במקום אחד ».)*
+**Animation :** effet « aspirateur magique » : les produits tourbillonnent, puis disparaissent dans l'écran. Caméra : orbite lente.
 
-## Plan 4 : Hoppy fait les courses dans les 3 magasins
-Joindre : `hoppy-officiel.png`
+## Plan 4 : Hoppy fait les courses dans les 4 enseignes
+**Joindre :** `hoppy-officiel.png` + la photo de devanture de l'enseigne.
 ```
-The kangaroo mascot from the reference image, exactly the same character (same face, fur, colors, same navy HOP! bag in its pouch), pushes a shopping cart at full speed through a bright supermarket aisle full of unbranded products and blank red sale tags, grabbing products from the shelves with a joyful expression. Pixar-quality 3D character in a real store. No hand gestures. Do not change the character.
+The kangaroo mascot from the reference image, exactly the same character (same face, fur, colors, same navy HOP! bag in its pouch), pushes a shopping cart at full speed through a bright aisle of a Rami Levy supermarket (store sign exactly like the reference photo), grabbing Coca-Cola, Bamba and Nutella from shelves full of red sale tags, with a joyful expression. Pixar-quality 3D character in a real store. No hand gestures. Do not change the character.
 ```
-**Animation :** Hoppy dérape au bout du rayon, et le chariot se remplit. Faire **4 versions** (couleurs rouge, bleue, verte, jaune) pour donner l'impression de 4 enseignes. Caméra : FPV qui suit.
+**Animation :** Hoppy dérape au bout du rayon, et le chariot se remplit. Caméra : FPV qui suit.
+**Faire 4 versions**, en remplaçant « Rami Levy » par chaque enseigne et en changeant les produits :
+- **Carrefour :** Milka, Pringles, Nescafé.
+- **Victory :** Tnuva, Osem, Bissli.
+- **BOOOM :** Fairy, Sano, Kinder.
 
 ## Plan 5 : le sac qui se remplit de promos
-Joindre : `sac-000.png`
+**Joindre :** `sac-000.png`
 ```
-The navy blue insulated delivery bag from the reference image stands open on a kitchen counter; colorful unbranded grocery products (pasta, coffee, chocolate, cleaning spray, chips) rain down and fill it perfectly, each one with a small blank red sale tag. Warm kitchen light.
+The navy blue insulated delivery bag from the reference image stands open on a kitchen counter; real grocery products rain down and fill it perfectly: a Coca-Cola bottle, a Bamba bag, a Nutella jar, Milka chocolate, Osem pasta, a Nescafé jar, Fairy dish soap, each with a small red sale tag. Warm kitchen light.
 ```
-**Animation :** les produits tombent un par un dans le sac, au ralenti. Caméra : static, puis léger dolly in.
+**Animation :** les produits tombent un par un dans le sac, au ralenti. Caméra : fixe, puis léger rapprochement (dolly in).
 
 ## Plan 6 : livré, le client ravi
-Joindre : `fiche-client.jpg` + `hoppy-officiel.png`
+**Joindre :** `fiche-client.jpg` + `hoppy-officiel.png`
 ```
-At the apartment door in Netanya, the kangaroo mascot from the reference image hands the full navy HOP! bag to the young man from the other reference image. The man looks inside, amazed and delighted, then laughs. Warm evening light. Exactly the same characters, no hand gestures from the mascot.
+At the apartment door in Netanya, the kangaroo mascot from the reference image hands the full navy HOP! bag to the young man from the other reference image; a Coca-Cola bottle and a Bamba bag stick out of the bag. The man looks inside, amazed and delighted, then laughs. Warm evening light. Exactly the same characters, no hand gestures from the mascot.
 ```
-**Animation :** il regarde dans le sac, fait un « wow », et un petit ticket de caisse vide sort du sac. Caméra : static.
+**Animation :** il regarde dans le sac, fait un « wow », et un ticket de caisse sort du sac. Caméra : fixe.
 
 ---
 
@@ -75,10 +79,10 @@ At the apartment door in Netanya, the kangaroo mascot from the reference image h
 | Plan 2 | Rami Lévy · Carrefour · Victory · BOOOM | רמי לוי · קרפור · ויקטורי · BOOOM |
 | Plan 3 | « HOP! à vos promos » + « Ne ratez plus aucune promo » | « HOP! למבצעים » + « לא מפספסים אף מבצע » |
 | Plan 4 | « On y va pour vous » | « אנחנו הולכים בשבילכם » |
-| Plan 5 | Exemples de vraies promos de l'appli (−50 %, 3 pour 10 ₪) | הדוגמאות האמיתיות מהאפליקציה |
+| Plan 5 | Vraies promos de l'appli (−50 %, 3 pour 10 ₪) | המבצעים האמיתיים מהאפליקציה |
 | Plan 6 | « Faites-vous livrer · dès 25 ₪ en ville » | « משלוח עד הבית · החל מ־25 ₪ בעיר » |
 | Fin | « HOP! à vos promos » + logo HOP! | « HOP! למבצעים » + logo HOP! |
 
 ### Conseils
-- Pas plus de 2 essais par plan. Si un logo ou un texte apparaît sur un paquet, refaire avec « no text, no logo » en début de prompt.
-- M'envoyer les **images d'abord**. Je vérifie que rien ne cloche (marque visible, Hoppy différent), puis tu lances les animations.
+- 2 essais par plan au maximum. Si un logo est mal écrit (ex. « Carefour », « Bamaba »), refaire ou me l'envoyer : je le corrige au montage.
+- Envoie-moi **d'abord les images**. Je vérifie que rien ne cloche (logo raté, Hoppy différent), puis tu lances les animations.
