@@ -1,5 +1,6 @@
-# Vidéo « Toutes vos promos, livrées » (patron, 10/11)
-**Le message :** chaque magasin a ses belles promos (Rami Lévy, Carrefour, BOOOM…). Avec HOP!, on les voit toutes au même endroit, on ne rate plus rien, et on se fait livrer.
+# Vidéo « HOP! à vos promos » (patron, 10/11)
+**L'idée :** avec HOP!, on ne rate plus aucune promo des meilleures enseignes. Rami Lévy, Carrefour, Victory, BOOOM : toutes leurs promos sont réunies dans l'appli, et on se fait livrer.
+**Le slogan :** « HOP! à vos promos » / « HOP! למבצעים ».
 **Format :** 9:16, environ 20 s, version FR et version HE.
 
 Même méthode que `HIGGSFIELD-METHODE.md` :
@@ -28,13 +29,13 @@ The young man from the reference image stands in his kitchen in Netanya, looking
 ```
 **Animation :** il soupire, jette son téléphone sur le canapé, et les prospectus vides s'envolent. Caméra : léger zoom avant.
 
-## Plan 2 : trois magasins, trois avalanches de promos
+## Plan 2 : quatre enseignes, quatre avalanches de promos
 Rien à joindre.
 ```
-Split composition in three vertical panels: three different supermarket aisles in Israel (one bright red-and-white style, one blue style, one yellow-and-black discount style), shelves overflowing with colorful unbranded products, big blank red and yellow sale tags (no text) hanging everywhere, festive atmosphere.
+Split composition in four vertical panels: four different supermarket aisles in Israel (one bright red-and-white style, one blue style, one green style, one yellow-and-black discount style), shelves overflowing with colorful unbranded products, big blank red and yellow sale tags (no text) hanging everywhere, festive atmosphere.
 ```
 **Animation :** les étiquettes de promo se balancent, et des produits glissent des étagères vers la caméra. Caméra : travelling latéral rapide.
-*(Au montage : Rami Lévy / Carrefour / BOOOM au-dessus de chaque panneau.)*
+*(Au montage : Rami Lévy / Carrefour / Victory / BOOOM au-dessus de chaque panneau.)*
 
 ## Plan 3 : toutes les promos aspirées dans le téléphone (l'idée HOP!)
 Joindre : `fiche-client.jpg`
@@ -49,7 +50,7 @@ Joindre : `hoppy-officiel.png`
 ```
 The kangaroo mascot from the reference image, exactly the same character (same face, fur, colors, same navy HOP! bag in its pouch), pushes a shopping cart at full speed through a bright supermarket aisle full of unbranded products and blank red sale tags, grabbing products from the shelves with a joyful expression. Pixar-quality 3D character in a real store. No hand gestures. Do not change the character.
 ```
-**Animation :** Hoppy dérape au bout du rayon, et le chariot se remplit. Faire **3 versions** (couleurs rouge, bleue, jaune) pour donner l'impression de 3 magasins. Caméra : FPV qui suit.
+**Animation :** Hoppy dérape au bout du rayon, et le chariot se remplit. Faire **4 versions** (couleurs rouge, bleue, verte, jaune) pour donner l'impression de 4 enseignes. Caméra : FPV qui suit.
 
 ## Plan 5 : le sac qui se remplit de promos
 Joindre : `sac-000.png`
@@ -71,12 +72,12 @@ At the apartment door in Netanya, the kangaroo mascot from the reference image h
 | Moment | FR | HE |
 |---|---|---|
 | Plan 1 | « Encore raté la promo ? » | « שוב פספסת את המבצע? » |
-| Plan 2 | Rami Lévy · Carrefour · BOOOM… | רמי לוי · קרפור · BOOOM… |
-| Plan 3 | « Toutes vos promos réunies » | « כל המבצעים במקום אחד » |
+| Plan 2 | Rami Lévy · Carrefour · Victory · BOOOM | רמי לוי · קרפור · ויקטורי · BOOOM |
+| Plan 3 | « HOP! à vos promos » + « Ne ratez plus aucune promo » | « HOP! למבצעים » + « לא מפספסים אף מבצע » |
 | Plan 4 | « On y va pour vous » | « אנחנו הולכים בשבילכם » |
 | Plan 5 | Exemples de vraies promos de l'appli (−50 %, 3 pour 10 ₪) | הדוגמאות האמיתיות מהאפליקציה |
 | Plan 6 | « Faites-vous livrer · dès 25 ₪ en ville » | « משלוח עד הבית · החל מ־25 ₪ בעיר » |
-| Fin | logo HOP! | logo HOP! |
+| Fin | « HOP! à vos promos » + logo HOP! | « HOP! למבצעים » + logo HOP! |
 
 ### Conseils
 - Pas plus de 2 essais par plan. Si un logo ou un texte apparaît sur un paquet, refaire avec « no text, no logo » en début de prompt.
