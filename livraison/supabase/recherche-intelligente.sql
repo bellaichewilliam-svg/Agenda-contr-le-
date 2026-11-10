@@ -104,23 +104,29 @@ language sql stable security definer set search_path = public, extensions as $$
   with t as (select public.search_terms(p_q) terms, public.search_norm(trim(p_q)) q),
   cand as (
     select p.id, p.name, p.price, p.photo_url, p.photo_h, p.category_id, p.position, s.code, s.name as shop, s.kind, s.rank,
-           public.search_norm(p.name) nn, public.search_norm(coalesce(p.description, '')) dd
-      from shop_products p join shops s on s.id = p.shop_id
+           public.search_norm(p.name) nn, public.search_norm(coalesce(p.description, '')) dd, public.search_norm(coalesce(k.name, '')) cn
+      from shop_products p join shops s on s.id = p.shop_id left join shop_categories k on k.id = p.category_id
      where p.available and s.status = 'actif' and not s.demo and (s.plan_until >= current_date or s.showcase)
   ),
   scored as (
-    select c.*, (select coalesce(max(case when c.nn like tt || '%' then 4
-                                         when c.nn like '% ' || tt || '%' or c.nn like '%·' || tt || '%' or c.nn like '%· ' || tt || '%' then 3
+    -- (10/11, patron : « je tape lait et pas un lait qui ressort ») : le produit lui-même d'abord, mot entier en tête du nom
+    -- ou juste après la marque (« Tnuva · Lait 1 % ») = 7 ; mot entier plus loin (« chocolat au lait ») = 6 ; début d'un mot
+    -- plus long (« Milky », « Milkshake » pour milk) = 4 / 3 ; ensuite +1 si la rubrique va avec le mot (« Produits laitiers »)
+    select c.*, (select coalesce(max(case when c.nn ~ ('(^|·\s*)' || e || '($|[^[:alnum:]])') then 7
+                                         when c.nn ~ ('(^|[^[:alnum:]])' || e || '($|[^[:alnum:]])') then 6
+                                         when c.nn ~ ('(^|·\s*)' || e) then 4
+                                         when c.nn like '% ' || tt || '%' or c.nn like '%·' || tt || '%' or c.nn like '%(' || tt || '%' then 3
                                          when c.nn like '%' || tt || '%' then 2
-                                         when c.dd like '%' || tt || '%' then 1 end), 0)
-                   from unnest(t.terms) tt) as sc,
+                                         when c.dd like '%' || tt || '%' then 1 end), 0) * 2
+                        + coalesce(max(case when c.cn ~ ('(^|[^[:alnum:]])' || e) then 1 end), 0)
+                   from unnest(t.terms) tt, lateral (select regexp_replace(tt, '([.^$*+?()\[\]{}|\\])', '\\\1', 'g') e) z) as sc,
            extensions.word_similarity(t.q, c.nn) as sim
       from cand c, t
      where length(t.q) >= 2
   ),
-  hits as (select * from scored where sc > 0),
+  hits as (select * from scored where sc > 1),   -- (1 = seulement la rubrique : ça ne suffit pas)
   -- Fautes de frappe : seulement si on n'a presque rien trouvé
-  fuzzy as (select * from scored where sc = 0 and sim >= 0.5 and (select count(*) from hits) < 4)
+  fuzzy as (select * from scored where sc <= 1 and sim >= 0.5 and (select count(*) from hits) < 4)
   select coalesce(json_agg(json_build_object('id', x.id, 'name', x.name, 'price', x.price, 'photo', x.photo,
                                              'code', x.code, 'shop', x.shop, 'kind', x.kind, 'category', x.category)), '[]'::json)
     from (select y.id, y.name, y.price, y.code, y.shop, y.kind,
@@ -131,6 +137,6 @@ language sql stable security definer set search_path = public, extensions as $$
                  (select c.name from shop_categories c where c.id = y.category_id) as category
             from (select * from hits union all select * from fuzzy) y
            order by y.sc desc, y.sim desc, y.rank nulls last, y.position
-           limit 24) x
+           limit 30) x
 $$;
 grant execute on function public.products_search_v3(text) to anon, authenticated;
