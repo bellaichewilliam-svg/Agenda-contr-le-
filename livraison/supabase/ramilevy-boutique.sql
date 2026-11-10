@@ -93,3 +93,27 @@ begin
   return res;
 end $$;
 revoke all on function public.ramilevy_fetch(), public.ramilevy_import(bigint) from public, anon, authenticated;
+
+
+-- Bandeau « 🔥 Les promos du moment » de l'accueil (10/11, migration promos_home) : les plus grosses promos des boutiques HOP!
+create or replace function public.promos_home(p_limit int default 40)
+returns json language sql stable security definer set search_path = public as $$
+  with src as (
+    select p.id, s.code, s.name as shop, p.name, p.price, p.photo_url, c.name as cat,
+           regexp_match(coalesce(p.description, ''), '(\d+(?:[.,]\d+)?) ₪ au lieu de (\d+(?:[.,]\d+)?) ₪') m,
+           regexp_match(coalesce(p.description, ''), '^(\d+) pour ') lot
+      from shop_products p
+      join shops s on s.id = p.shop_id
+      left join shop_categories c on c.id = p.category_id
+     where hop_shop(s.id) and s.status = 'actif' and not coalesce(s.paused, false)
+       and p.available and p.photo_url is not null and ext_photo_ok(p.photo_url)
+  ), t as (
+    select *, replace(m[1], ',', '.')::numeric as now_p, replace(m[2], ',', '.')::numeric as old_p from src where m is not null
+  )
+  select coalesce(json_agg(json_build_object('id', id, 'code', code, 'shop', shop, 'name', name, 'price', price,
+           'old', old_p, 'off', round((1 - now_p / nullif(old_p, 0)) * 100), 'lot', (lot[1])::int, 'ph', photo_url, 'cat', cat)
+           order by (1 - now_p / nullif(old_p, 0)) desc), '[]'::json)
+    from (select * from t where old_p > 0 and now_p < old_p and (1 - now_p / old_p) >= 0.15
+          order by (1 - now_p / old_p) desc limit greatest(1, least(coalesce(p_limit, 40), 80))) x;
+$$;
+grant execute on function public.promos_home(int) to anon, authenticated;
