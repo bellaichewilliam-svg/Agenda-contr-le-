@@ -4199,25 +4199,66 @@ const RECO_PAIRS = [
   [/lessive|כביסה/i, /assouplissant|détachant|מרכך|מסיר כתמים/i],
   [/lave-vaisselle|מדיח/i, /lave-vaisselle|sel|rinçage|מדיח|הברקה/i],
   [/thon|טונה/i, /mayonnaise|maïs|מיונז|תירס/i],
-  [/chocolat|kinder|bueno|maltesers|snickers|gaufrette|biscuit|oreo|milka|bonbons?|שוקולד|קינדר|וופל|עוגיות|סוכריות/i, /caf[ée]|\bth[ée]\b|\blait\b|boisson|coca|jus|קפה|תה|חלב|משקה|מיץ/i],
+  [/chocolat|kinder|bueno|maltesers|snickers|gaufrette|biscuit|oreo|milka|bonbons?|שוקולד|קינדר|וופל|עוגיות|סוכריות/i, /caf[ée]|\bth[ée]\b|boisson|coca|jus|קפה|תה|משקה|מיץ/i],
 ];
 // Rayons « hors alimentaire » : on ne propose pas un spray ménager à côté d'un chocolat (et inversement)
 const RECO_NONFOOD = /hygi[eè]ne|beaut[ée]|maison|m[ée]nage|b[ée]b[ée]|animaux|טיפוח|היגיינה|ניקיון|תינוק|חיות/i;
 const recoDisc = p => { const m = String((p && p.description) || "").match(/(\d+(?:[.,]\d+)?) ₪ au lieu de (\d+(?:[.,]\d+)?) ₪/);
   if (!m) return 0; const a = parseFloat(m[1].replace(",", ".")), b = parseFloat(m[2].replace(",", "."));
   return b > 0 && a < b ? Math.round((1 - a / b) * 100) : 0; };
+// La « famille » d'un produit (patron, 10/11 : « les produits en rapport doivent être vraiment en rapport : toutes les gammes
+// de lait et tout ce qui s'ensuit ») : lu sur le nom du produit lui-même, après la marque (« Tnuva · Lait 1 % » → lait ;
+// « Elite · Chocolat au lait » → chocolat, pas lait). Une famille connue, sinon le premier mot (« Pâtes », « Eau », « Chips »…)
+const RECO_FAM = [["coco", /^lait (de |\/ ?)?coco|^creme de coco/], ["bebe", /^lait (infantile|bebe|1er|2e)|^materna|^similac|^nutrilon/],
+  ["corps", /^lait (corps|de toilette|hydratant|demaquillant)/], ["choco", /^oeufs? (surprise|en chocolat|de paques)/],
+  ["lait", /^(lait|boisson lactee|shoko|cafe au lait|lben|leben)\b/],
+  ["yaourt", /^(yaourt|yogourt|skyr|dessert|creme dessert|mousse|petit suisse)/], ["fromage", /^(fromage|cottage|labne|feta|mozzarella|emmental|gouda|parmesan|cheddar|brie|camembert|tzfatit|ricotta|mascarpone)/],
+  ["beurre", /^(beurre|margarine)/], ["creme", /^creme (fraiche|liquide|a fouetter|aigre|epaisse|cuisine)/], ["oeufs", /^oeufs?\b/],
+  ["cereales", /^(cereales|corn ?flakes|muesli|granola|flocons d'avoine)/], ["cafe", /^(cafe|capsules|nescafe|espresso)\b/], ["the", /^(the|infusion)\b/],
+  ["cacao", /^(cacao|chocolat en poudre|poudre (de )?chocolat|nesquik)/], ["biscuitsec", /^(petit.?beurre|biscuits? secs?|biscottes?)/],
+  ["soda", /^(coca|soda|boisson gazeuse|gazeuse|schweppes|sprite|fanta|pepsi|7 ?up|seven up|tempo|mirinda)/], ["eau", /^eau\b/], ["jus", /^(jus|nectar)\b/]];
+// Marque et nom du produit, en minuscules sans accents (« Tnuva · Lait 1 % · תנובה… » → brand « tnuva », head « lait 1 % »)
+function recoParts(p) {
+  const parts = String((p && p.name) || "").split(/\s+·\s+/), latin = parts.filter(x => !/[֐-׿]/.test(x)), n = x => phNorm(String(x || "").replace(/œ/gi, "oe")).trim();
+  return latin.length >= 2 ? { brand: n(latin[0]), head: n(latin[1]) } : { brand: "", head: n(latin[0] || parts[0]) };
+}
+function recoFam(p) {
+  const { brand, head } = recoParts(p);
+  const f = RECO_FAM.find(([, rx]) => rx.test(head)) || (brand && RECO_FAM.find(([, rx]) => rx.test(brand)));
+  return f ? f[0] : ((head.match(/[\p{L}]{3,}/u) || [""])[0]);
+}
+// Le mot doit ouvrir le nom du produit ou la marque (« Beurre 82,5 % » oui ; « Snickers · Creamy beurre de cacahuète » non ;
+// « Coca-Cola Zéro sans caféine » n'est pas du café)
+const recoStarts = (rx, x) => { const { brand, head } = recoParts(x); return [head, brand].some(t => { const m = t && t.match(rx); return !!m && m.index === 0; }); };
+// Ce qui va avec une famille (le lait → céréales, café, cacao, biscuits secs)
+// (et pour le lait, « tout ce qui s'ensuit » : yaourts, fromages, beurre, crème, œufs)
+const RECO_FAM_WITH = { lait: ["cereales", "cafe", "cacao", "biscuitsec", "yaourt", "fromage", "beurre", "creme", "oeufs"], cereales: ["lait", "yaourt"],
+  cafe: ["lait", "biscuitsec"], cacao: ["lait"], the: ["biscuitsec"], oeufs: ["fromage", "beurre", "pain"], pain: ["beurre", "fromage", "oeufs"],
+  yaourt: ["cereales", "lait"], beurre: ["pain", "fromage", "lait"], fromage: ["pain", "beurre", "lait"], creme: ["lait", "fromage", "beurre"] };
 function itRecoLists(p) {
   const all = groupFirst(cgShown().filter(x => x.available !== false && x.id !== p.id && baseOf(x) !== baseOf(p)));
   const promo = all.some(x => recoDisc(x) > 0);
   const order = list => promo ? [...list].sort((a, b) => recoDisc(b) - recoDisc(a)) : list;
-  const same = order(all.filter(x => x.category_id === p.category_id)).slice(0, 10);
+  // « Dans le même rayon » : d'abord toute la gamme du même produit (tous les laits, de tout le magasin), puis le reste du rayon
+  const fam = recoFam(p), fams = new Map(all.map(x => [x.id, recoFam(x)])), famOf = x => fams.get(x.id) === fam;
+  // (les plus proches d'abord : « Lait 1 % 1 L » → les autres laits 1 %, la même marque, avant le lait de chèvre)
+  const { brand: pb, head: ph } = recoParts(p), pw = new Set(ph.split(/[\s,()]+/).filter(Boolean));
+  const near = x => { const r = recoParts(x), w = r.head.split(/[\s,()]+/).filter(Boolean), same = w.filter(y => pw.has(y)).length;
+    return same - (w.length - same) / 2 + (pb && r.brand === pb ? 1 : 0); };
+  const sameFam = fam ? order(all.filter(famOf)).map((x, i) => [x, near(x), i]).sort((a, b) => b[1] - a[1] || a[2] - b[2]).map(z => z[0]) : [];
+  const same = sameFam.slice(0, 20).concat(order(all.filter(x => x.category_id === p.category_id && !sameFam.includes(x)))).slice(0, 20);
   const used = new Set(same.map(x => x.id));
   const name = `${p.name || ""} ${p.description || ""}`;
   const cats = (state.catalog && state.catalog.categories) || [], nf = x => RECO_NONFOOD.test((cats.find(c => c.id === x.category_id) || {}).name || "");
   let withs = [];
-  RECO_PAIRS.forEach(([a, b]) => { if (a.test(name)) withs.push(...all.filter(x => !used.has(x.id) && nf(x) === nf(p) && b.test(x.name || ""))); });
-  withs = order([...new Map(withs.map(x => [x.id, x])).values()]);
-  if (withs.length < 6) withs.push(...order(all.filter(x => !used.has(x.id) && x.category_id !== p.category_id && nf(x) === nf(p) && !withs.includes(x))).slice(0, 8 - withs.length));
+  // « Souvent pris avec » : les familles qui vont avec, dans l'ordre (le lait : céréales, puis café, cacao…)
+  // (à tour de rôle : 1 céréale, 1 yaourt, 1 fromage, 1 beurre… puis le 2e de chaque, pour voir de tout)
+  const fw = (RECO_FAM_WITH[fam] || []).map(k => order(all.filter(x => !used.has(x.id) && fams.get(x.id) === k)));
+  for (let i = 0; fw.some(l => l[i]); i++) fw.forEach(l => { if (l[i]) withs.push(l[i]); });
+  RECO_PAIRS.forEach(([a, b]) => { if (a.test(name)) withs.push(...order(all.filter(x => !used.has(x.id) && !famOf(x) && nf(x) === nf(p) && recoStarts(b, x)))); });
+  withs = [...new Map(withs.map(x => [x.id, x])).values()];
+  // Rien qui va vraiment avec : au restaurant, quelques autres plats ; au magasin, rien (pas de Bounty à côté du lait)
+  if (withs.length < 3 && !grocShop()) withs.push(...order(all.filter(x => !used.has(x.id) && x.category_id !== p.category_id && nf(x) === nf(p) && !withs.includes(x))).slice(0, 6 - withs.length));
   return { same, withs: withs.slice(0, 10) };
 }
 const itRecoTile = x => { const ph = UI.safeImg(x.photo), d = recoDisc(x), n = groupQty(x);
