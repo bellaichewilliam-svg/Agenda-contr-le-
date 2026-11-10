@@ -4113,6 +4113,68 @@ function itBuilder(p) {
     ${cur.opts.length ? `<div class="itb-row" role="${cur.one ? "radiogroup" : "group"}">${cur.opts.join("")}</div>` : ""}
     ${cur.note ? `<input class="it-note" data-it-note maxlength="80" placeholder="${UI.esc(t("modNotePh"))}" value="${UI.esc(item.note || "")}" />` : ""}</div>`;
 }
+// Fiche article : « Dans le même rayon » et « Souvent pris avec » (patron, 10/11 : faire acheter plus, comme les grandes applis).
+// Même rayon = même catégorie ; souvent pris avec = paires simples (pâtes → sauce, café → lait…), sinon d'autres rayons.
+// Boutiques promo (Rami Lévy, BOOOM) : les plus grosses réductions d'abord, avec le badge « −40 % ».
+const RECO_PAIRS = [
+  [/p[aâ]tes|spaghetti|pasta|nouilles|פסטה|ספגטי|אטריות/i, /sauce tomate|sauces tomate|tomates concass|tomates en morceaux|r[aâ]p[ée]e?|parmesan|רוטב עגבניות|מגורד|פרמזן/i],
+  [/caf[ée]|capsules|קפה|קפסולות/i, /\blait\b|biscuit|petits-beurre|חלב|עוגיות|פתי בר/i],
+  [/\bth[ée]\b|infusion|תה|חליטות/i, /biscuit|gaufrette|miel|עוגיות|וופל|דבש/i],
+  [/c[ée]r[ée]ales|corn.?flakes|muesli|דגני|קורנפלקס|מיזלי/i, /\blait\b|boisson lact|yaourt|חלב|יוגורט/i],
+  [/\bpain|baguette|pita|tortilla|לחם|חלה|פיתה|טורטיה/i, /beurre|fromage|labn[ée]|houmous|confiture|חמאה|גבינה|לאבנה|חומוס|ריבה/i],
+  [/chips|bamba|bisli|doritos|bretzel|pop-corn|במבה|ביסלי|צ'יפס|דוריטוס|בייגלה/i, /coca|soda|schweppes|sprite|fanta|boisson|נורדיק|קולה|משקה/i],
+  [/coca|soda|schweppes|sprite|fanta|קולה|ספרייט/i, /chips|bamba|bisli|doritos|bretzel|במבה|ביסלי|צ'יפס/i],
+  [/schnitzel|nuggets|burger|hamburger|שניצל|המבורגר/i, /ketchup|pains? à hamburger|frites|קטשופ|לחמניות|צ'יפס/i],
+  [/couches|pampers|huggies|חיתולים|פמפרס/i, /lingettes|talc|crème corps bébé|מגבונים|טלק/i],
+  [/shampo|שמפו/i, /après-shampooing|masque|מרכך|מסכת/i],
+  [/lessive|כביסה/i, /assouplissant|détachant|מרכך|מסיר כתמים/i],
+  [/lave-vaisselle|מדיח/i, /lave-vaisselle|sel|rinçage|מדיח|הברקה/i],
+  [/thon|טונה/i, /mayonnaise|maïs|מיונז|תירס/i],
+  [/chocolat|kinder|bueno|maltesers|snickers|gaufrette|biscuit|oreo|milka|bonbons?|שוקולד|קינדר|וופל|עוגיות|סוכריות/i, /caf[ée]|\bth[ée]\b|\blait\b|boisson|coca|jus|קפה|תה|חלב|משקה|מיץ/i],
+];
+// Rayons « hors alimentaire » : on ne propose pas un spray ménager à côté d'un chocolat (et inversement)
+const RECO_NONFOOD = /hygi[eè]ne|beaut[ée]|maison|m[ée]nage|b[ée]b[ée]|animaux|טיפוח|היגיינה|ניקיון|תינוק|חיות/i;
+const recoDisc = p => { const m = String((p && p.description) || "").match(/(\d+(?:[.,]\d+)?) ₪ au lieu de (\d+(?:[.,]\d+)?) ₪/);
+  if (!m) return 0; const a = parseFloat(m[1].replace(",", ".")), b = parseFloat(m[2].replace(",", "."));
+  return b > 0 && a < b ? Math.round((1 - a / b) * 100) : 0; };
+function itRecoLists(p) {
+  const all = groupFirst(cgShown().filter(x => x.available !== false && x.id !== p.id && baseOf(x) !== baseOf(p)));
+  const promo = all.some(x => recoDisc(x) > 0);
+  const order = list => promo ? [...list].sort((a, b) => recoDisc(b) - recoDisc(a)) : list;
+  const same = order(all.filter(x => x.category_id === p.category_id)).slice(0, 10);
+  const used = new Set(same.map(x => x.id));
+  const name = `${p.name || ""} ${p.description || ""}`;
+  const cats = (state.catalog && state.catalog.categories) || [], nf = x => RECO_NONFOOD.test((cats.find(c => c.id === x.category_id) || {}).name || "");
+  let withs = [];
+  RECO_PAIRS.forEach(([a, b]) => { if (a.test(name)) withs.push(...all.filter(x => !used.has(x.id) && nf(x) === nf(p) && b.test(x.name || ""))); });
+  withs = order([...new Map(withs.map(x => [x.id, x])).values()]);
+  if (withs.length < 6) withs.push(...order(all.filter(x => !used.has(x.id) && x.category_id !== p.category_id && nf(x) === nf(p) && !withs.includes(x))).slice(0, 8 - withs.length));
+  return { same, withs: withs.slice(0, 10) };
+}
+const itRecoTile = x => { const ph = UI.safeImg(x.photo), d = recoDisc(x), n = groupQty(x);
+  return `<div class="itr-card"><button type="button" class="itr-open" data-it-open="${UI.esc(x.id)}"><span class="itr-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : shopArt(x)}${d >= 5 ? `<em class="itr-off">−${d} %</em>` : ""}</span>
+    <b><bdi>${UI.esc(UI.bi(baseOf(x)))}</bdi></b><span class="itr-price">${sizesOf(x).length > 1 ? UI.esc(t("cgFrom", { price: money(Math.min(...sizesOf(x).map(y => Number(y.price)))) })) : UI.esc(money(x.price))}</span></button>
+    <button type="button" class="itr-add${n ? " on" : ""}" data-it-quick="${UI.esc(x.id)}" aria-label="+">${n ? n : "+"}</button></div>`; };
+function itRecos(p) {
+  if (!p || bossEditOn()) return "";
+  const { same, withs } = itRecoLists(p);
+  const row = (title, list) => list.length ? `<section class="itr"><h4>${UI.esc(title)}</h4><div class="itr-row">${list.map(itRecoTile).join("")}</div></section>` : "";
+  return row(t(grocShop() ? "itrSame" : "itrLike"), same) + row(t("itrWith"), withs);
+}
+// « + » d'une suggestion : ajouté tout de suite (1), ou la fiche s'ouvre s'il y a un choix à faire (taille, boisson, goût…)
+function itQuickAdd(id) {
+  const x = cgProducts().find(y => y.id === id);
+  if (!x) return;
+  if (sizesOf(x).length > 1 || needsDrink(x) || flavorCount(x) || needsSide(x)) return itOpen(id);
+  state.cart[x.id] = Math.min(50, (state.cart[x.id] || 0) + 1);
+  hopCartFix(x.id);
+  renderCatalog(); renderQuote(); saveDraft(); cartPersist();
+  renderItem();
+}
+function itOpen(id) {
+  openItem(id);
+  const box = $("#itemSheet .modal-box"); if (box) box.scrollTop = 0;
+}
 // Après un choix obligatoire : on passe tout seul au prochain choix obligatoire qui manque (goût 1 → goût 2 → boisson)
 function itNext() {
   const p = cgProducts().find(x => x.id === item.id);
@@ -4142,6 +4204,7 @@ function renderItem() {
       ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
       ${itBuilder(p)}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
+  ($("#itemBody .it-txt") || $("#itemBody")).insertAdjacentHTML("beforeend", itRecos(p));
   $("#itemQty").textContent = item.qty;
   $("#itemAdd").disabled = !p.available;
   const extra = modAddons({ drink: needsDrink(p) ? item.drink : "", side: needsSide(p) ? item.side : "", extras: needsSide(p) ? item.extras : [] })
@@ -4362,6 +4425,10 @@ $("#cartSheet").addEventListener("click", e => {
 $("#cartSheet").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-cs-add]")) { e.preventDefault(); cartAddTyped(e.target.value); } });
 $("#itemSheet").addEventListener("click", e => {
   if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
+  const qa = e.target.closest("[data-it-quick]");
+  if (qa) return itQuickAdd(qa.dataset.itQuick);
+  const io = e.target.closest("[data-it-open]");
+  if (io) return itOpen(io.dataset.itOpen);
   const tb = e.target.closest("[data-it-tab]");
   if (tb) { item.tab = tb.dataset.itTab; renderItem(); const r = $("#itemBody .itb"); if (r) r.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
   const md = e.target.closest("[data-it-mod]");
@@ -4909,11 +4976,12 @@ const addrReady = which => { const pre = prefixOf(which); const p = state.pick[w
   return !!val(pre + "_address").trim() && (!!val(pre + "_number").trim() || !!(p && p.brand)); };
 
 // --- Accueil vitrine ---------------------------------------------------------------------------------
-// Bandeaux des commerces à la une : ceux que le patron met en avant (🔥), sinon les boutiques HOP! ; photo, logo, accroche
+// Bandeaux des commerces à la une : ceux que le patron met en avant (🔥) et les boutiques HOP! (6 au plus) ; photo, logo, accroche
 function vitBanners() {
   try {
     const list = (state.showcase || []).filter(s => UI.safeImg(s.cover) && !s.paused && (s.featured || isHopShop(s)))
-      .sort((a, b) => (!!b.featured - !!a.featured) || ((a.rank != null ? Number(a.rank) : 99) - (b.rank != null ? Number(b.rank) : 99))).slice(0, 4);
+      // Dans l'ordre choisi par le patron (panneau patron → Commerces : ▲▼ ou « Position sur l'accueil »), puis les mis en avant
+      .sort((a, b) => ((a.rank != null ? Number(a.rank) : 99) - (b.rank != null ? Number(b.rank) : 99)) || (!!b.featured - !!a.featured)).slice(0, 6);
     return list.map(s => {
       const st = shopState(s), shut = st && !st.open, logo = UI.safeImg(s.logo);
       const recent = s.created_at && Date.now() - new Date(s.created_at) < 30 * 86400000;

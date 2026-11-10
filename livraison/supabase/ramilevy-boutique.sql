@@ -28,14 +28,14 @@ on conflict (h) do nothing;
 insert into public.shop_categories (id, shop_id, name, position)
 select md5('HOPRAMILEVY:cat:' || k)::uuid, (select id from public.shops where code = 'HOPRAMILEVY'), n, p from (values
   ('fruits', '🍎 Fruits & légumes · פירות וירקות', 1),
-  ('viande', '🥩 Viande, poulet & poisson · בשר, עוף ודגים', 2),
-  ('laitier', '🧀 Laitiers & œufs · חלב, גבינות וביצים', 3),
+  ('viande', '🥩 Viandes & poissons · בשר ודגים', 2),
+  ('laitier', '🧀 Laitiers & œufs · מוצרי חלב', 3),
   ('pain', '🍞 Pain & gâteaux · לחם ומאפים', 4),
   ('epicerie', '🥫 Épicerie · מזווה', 5),
   ('snacks', '🍫 Snacks & douceurs · חטיפים ומתוקים', 6),
   ('boissons', '🥤 Boissons & café · משקאות וקפה', 7),
   ('surgeles', '❄️ Surgelés · קפואים', 8),
-  ('hygiene', '🧴 Hygiène & beauté · טיפוח והיגיינה', 9),
+  ('hygiene', '🧴 Hygiène & beauté · טיפוח', 9),
   ('maison', '🧽 Maison & ménage · ניקיון ובית', 10),
   ('bebe', '👶 Bébé · תינוקות', 11)) v(k, n, p)
 on conflict (id) do nothing;
