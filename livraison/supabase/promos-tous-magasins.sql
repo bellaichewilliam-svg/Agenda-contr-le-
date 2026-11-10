@@ -2,7 +2,7 @@
 -- « Toutes vos promos réunies » (patron, 10/11/2026) : les promos de TOUS nos magasins au même endroit
 -- (Rami Lévy, Carrefour, BOOOM…), pour que les clients ne ratent plus aucune promo.
 -- • Carrefour : les vraies promos du site (branch.specials de chaque produit, agence Or Akiva 2996), relues tous les
---   jours : carrefour_specials_fetch() (lots de 100 produits) puis carrefour_specials_import(). Coupons exclus.
+--   jours : carrefour_specials_fetch() (lots de 100 produits), puis la tâche de nuit range les promos. Coupons exclus.
 -- • Rami Lévy : la description « X ₪ au lieu de Y ₪ » (fichier officiel des promos).
 -- • BOOOM : « Promos de la semaine » + « Produits forts » (petits prix BOOOM, sans ancien prix).
 -- • promos_all() : tout, en léger (photos par lien), pour la page « Toutes les promos ».
@@ -38,53 +38,19 @@ begin
   return n;
 end $$;
 
--- Lit les réponses de la dernière heure. Un produit relu sans promo voit sa promo finie (ends = now()), jamais effacée.
-create or replace function public.carrefour_specials_import() returns json
-language plpgsql security definer set search_path = public, net as $$
-declare n_ok int; n_sp int; n_end int;
-begin
-  create temp table if not exists _cfp (item_id text primary key, regular numeric, sp json) on commit drop;
-  truncate _cfp;
-  insert into _cfp (item_id, regular, sp)
-  select distinct on ('cf' || (p->>'id')) 'cf' || (p->>'id'), (p->'branch'->>'regularPrice')::numeric, p->'branch'->'specials'
-    from carrefour_specials_sync s join net._http_response h on h.id = s.req and h.status_code = 200,
-         json_array_elements(h.content::json->'products') p
-   where s.at > now() - interval '1 hour';
-  get diagnostics n_ok = row_count;
-  if n_ok = 0 then return json_build_object('error', 'no_response'); end if;
-  with sp as (
-    select c.item_id, c.regular, x,
-           x->'names'->'1'->>'promotionTag' as he, coalesce(x->'names'->'5'->>'promotionTag', x->'names'->'2'->>'promotionTag') as fr,
-           row_number() over (partition by c.item_id order by (x->>'endDate')::timestamptz) as rk
-      from _cfp c, json_array_elements(case when json_typeof(c.sp) = 'array' then c.sp else '[]'::json end) x
-     where not coalesce((x->>'isCoupon')::boolean, false) and not coalesce((x->>'isCouponOnEntireCart')::boolean, false)
-       and coalesce((x->>'endDate')::timestamptz, now() + interval '1 day') > now()
-       and coalesce((x->>'startDate')::timestamptz, now()) <= now()
-       and x->'names'->'1'->>'promotionTag' is not null
-  ), up as (
-    insert into carrefour_specials as cs (item_id, tag_fr, tag_he, lot, lot_total, regular, starts, ends, updated_at)
-    select item_id, fr, he,
-           case when he ~ '^\d+\s*ב-?\s*₪?\s*[\d.]+\s*₪?$' then (regexp_match(he, '^(\d+)'))[1]::int
-                when he ~ '^₪?\s*[\d.]+\s*₪?$' then 1 end,
-           case when he ~ '^\d+\s*ב-?\s*₪?\s*[\d.]+\s*₪?$' then (regexp_match(he, '([\d.]+)\s*₪?$'))[1]::numeric
-                when he ~ '^₪?\s*[\d.]+\s*₪?$' then (regexp_match(he, '([\d.]+)'))[1]::numeric end,
-           regular, (x->>'startDate')::timestamptz, (x->>'endDate')::timestamptz, now()
-      from sp where rk = 1
-    on conflict (item_id) do update set tag_fr = excluded.tag_fr, tag_he = excluded.tag_he, lot = excluded.lot, lot_total = excluded.lot_total,
-      regular = excluded.regular, starts = excluded.starts, ends = excluded.ends, updated_at = now()
-    returning cs.item_id
-  )
-  select count(*) into n_sp from up;
-  update carrefour_specials cs set ends = now(), updated_at = now()
-   where cs.ends > now() and cs.updated_at < now() - interval '1 minute' and exists (select 1 from _cfp c where c.item_id = cs.item_id);
-  get diagnostics n_end = row_count;
-  return json_build_object('produits_lus', n_ok, 'promos', n_sp, 'finies', n_end);
-end $$;
-revoke all on function public.carrefour_specials_fetch(), public.carrefour_specials_import() from public, anon, authenticated;
+-- Rangement des promos lues (pas de fonction : fait par la tâche de nuit « hop-carrefour-promos-import », 3 h 46,
+-- 5 min après « hop-carrefour-promos-fetch ») : une promo relue disparue du site est finie (ends = now()), jamais effacée.
+-- Étiquettes du site : « 3 ב-₪9 » (lot 3, total 9), « במבצע! ₪21.90 » (prix promo à l'unité). Coupons exclus.
+-- (texte exact de la tâche : select command from cron.job where jobname = 'hop-carrefour-promos-import')
+do $cron$ begin
+  if not exists (select 1 from cron.job where jobname = 'hop-carrefour-promos-fetch') then
+    perform cron.schedule('hop-carrefour-promos-fetch', '41 3 * * *', 'select public.carrefour_specials_fetch()');
+  end if;
+end $cron$;
 
--- Toutes les promos, toutes boutiques HOP! confondues (léger : liens de photos, champs courts)
---  i id produit · c code boutique · n nom « FR · HE » · p prix payé (lot compris) · o ancien prix (même quantité) · f % de remise
---  l nombre d'articles du lot · t étiquette du magasin (Carrefour, FR | HE) · k rubrique · ph photo (lien) · e fin de la promo · b petit prix (sans ancien prix)
+-- Toutes les promos, toutes boutiques HOP! confondues, en léger (89 Ko pour 459 promos le 10/11) :
+--   { at, shops: [codes], cats: [rubriques], items: [[id, n° boutique, nom « FR · HE », prix payé (lot compris), ancien prix,
+--     % remise, nb du lot, n° rubrique, photo raccourcie (r: Rami Lévy, c: Carrefour, b: BOOOM), fin « JJ/MM », 1 = petit prix BOOOM]] }
 create or replace function public.promos_all() returns json
 language sql stable security definer set search_path = public as $$
   with base as (
@@ -92,42 +58,35 @@ language sql stable security definer set search_path = public as $$
       from shop_products p join shops s on s.id = p.shop_id left join shop_categories c on c.id = p.category_id
      where hop_shop(s.id) and s.status = 'actif' and not coalesce(s.paused, false)
        and p.available and p.photo_url is not null and ext_photo_ok(p.photo_url)
-  ), rl as (   -- « 3 pour 10 ₪ au lieu de 22,80 ₪ », « 6,50 ₪ au lieu de 19,70 ₪ »
+  ), rl as (
     select b.*, replace(m[1], ',', '.')::numeric now_p, replace(m[2], ',', '.')::numeric old_p, (regexp_match(coalesce(b.description, ''), '^(\d+) pour '))[1]::int lot,
            (regexp_match(coalesce(b.description, ''), 'jusqu''au (\d\d/\d\d)'))[1] ends
       from base b, regexp_match(coalesce(b.description, ''), '(\d+(?:[.,]\d+)?) ₪ au lieu de (\d+(?:[.,]\d+)?) ₪') m
   ), cf as (
-    select b.*, sp.tag_fr, sp.tag_he, sp.lot, sp.lot_total, sp.regular, sp.ends
+    select b.*, sp.lot, sp.lot_total, sp.regular, sp.ends
       from base b join rayon_items ri on md5('HOPMARKET:' || ri.item_id)::uuid = b.id
       join carrefour_specials sp on sp.item_id = ri.item_id and sp.ends > now()
      where b.code = 'HOPCARREFOUR'
-  ), bo as (
-    select b.* from base b where b.code = 'HOPBOOOM'
   ), allp as (
-    select id, code, name, now_p as p, old_p as o, round((1 - now_p / nullif(old_p, 0)) * 100)::int as f, coalesce(lot, 1) as l, null::text as t,
-           cat, photo_url, ends as e, false as b
+    select id, code, name, now_p as p, old_p as o, round((1 - now_p / nullif(old_p, 0)) * 100)::int as f, coalesce(lot, 1) as l, cat, photo_url, ends as e, 0 as b
       from rl where old_p > 0 and now_p < old_p
     union all
-    select id, code, name, coalesce(lot_total, price), case when lot_total is not null then round(regular * lot, 2) end,
-           case when lot_total is not null and regular > 0 and lot_total < regular * lot then round((1 - lot_total / (regular * lot)) * 100)::int end,
-           coalesce(lot, 1), coalesce(tag_fr, tag_he) || ' | ' || coalesce(tag_he, tag_fr), cat, photo_url, to_char(ends at time zone 'Asia/Jerusalem', 'DD/MM'), false
+    select id, code, name, coalesce(lot_total, price), case when lot_total is not null then round(regular * coalesce(lot, 1), 2) end,
+           case when lot_total is not null and regular > 0 and lot_total < regular * coalesce(lot, 1) then round((1 - lot_total / (regular * coalesce(lot, 1))) * 100)::int end,
+           coalesce(lot, 1), cat, photo_url, to_char(ends at time zone 'Asia/Jerusalem', 'DD/MM'), 0
       from cf
     union all
-    select id, code, name, price, null, null, coalesce((regexp_match(name, '^Lot de (\d+)'))[1]::int, 1), null, cat, photo_url, null, true
-      from bo
-  )
-  select json_build_object('at', now(), 'items', coalesce(json_agg(json_build_object('i', id, 'c', code, 'n', name, 'p', p, 'o', o, 'f', f, 'l', l, 't', t, 'k', cat,
-           'ph', photo_url, 'e', e, 'b', b) order by b, coalesce(f, 0) desc), '[]'::json))
-    from allp where coalesce(f, 1) > 0;
+    select id, code, name, price, null, null, coalesce((regexp_match(name, '^Lot de (\d+)'))[1]::int, 1), cat, photo_url, null, 1
+      from base where code = 'HOPBOOOM'
+  ), ok as (select * from allp where coalesce(f, 1) > 0),
+  shops as (select array_agg(distinct code order by code) a from ok),
+  cats as (select array_agg(distinct coalesce(cat, '') order by coalesce(cat, '')) a from ok)
+  select json_build_object('at', now(), 'shops', (select a from shops), 'cats', (select a from cats),
+    'items', coalesce(json_agg(json_build_array(ok.id, array_position((select a from shops), ok.code) - 1, ok.name, ok.p, ok.o, ok.f, ok.l,
+       array_position((select a from cats), coalesce(ok.cat, '')) - 1,
+       regexp_replace(regexp_replace(regexp_replace(ok.photo_url, '^https://img\.rami-levy\.co\.il/product/', 'r:'),
+         '^https://d226b0iufwcjmj\.cloudfront\.net/gs1-products/1540/medium/', 'c:'), '^https://booomisrael\.co\.il/uploads/', 'b:'),
+       ok.e, ok.b) order by ok.b, coalesce(ok.f, 0) desc), '[]'::json))
+    from ok;
 $$;
 grant execute on function public.promos_all() to anon, authenticated;
-
--- Tous les jours (avant l'ouverture) : les promos Carrefour sont relues
-do $cron$ begin
-  if not exists (select 1 from cron.job where jobname = 'hop-carrefour-promos-fetch') then
-    perform cron.schedule('hop-carrefour-promos-fetch', '41 3 * * *', 'select public.carrefour_specials_fetch()');
-  end if;
-  if not exists (select 1 from cron.job where jobname = 'hop-carrefour-promos-import') then
-    perform cron.schedule('hop-carrefour-promos-import', '46 3 * * *', 'select public.carrefour_specials_import()');
-  end if;
-end $cron$;
