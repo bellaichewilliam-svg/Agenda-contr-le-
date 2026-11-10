@@ -1829,6 +1829,18 @@ async function homePromos() {
   return readJSON(PROMOS_KEY, []);
 }
 const homePromosCached = () => readJSON(PROMOS_KEY, []);
+// « HOP! à vos promos » : toutes les promos de toutes nos boutiques (léger : tableaux, liens de photos raccourcis), gardées 1 h
+const PROMOS_ALL_KEY = "livraison.promosAll.v1";
+async function promosAll(force) {
+  const c = readJSON(PROMOS_ALL_KEY, null);
+  if (!ONLINE) return c && c.d;
+  if (!force && c && c.d && Date.now() - c.t < 3600000) return c.d;
+  try {
+    const r = await rest("/rest/v1/rpc/promos_all", { method: "POST", body: {} });
+    if (r && Array.isArray(r.items)) { try { writeJSON(PROMOS_ALL_KEY, { t: Date.now(), d: r }); } catch (e) { /* plein */ } return r; }
+  } catch (e) { /* hors ligne : la dernière liste */ }
+  return c && c.d;
+}
 // Tout le magasin Rami Lévy (13 748 produits, prix officiels) : cherché côté serveur, jamais chargé en entier
 async function rlFind(q, limit) {
   if (!ONLINE || String(q || "").trim().length < 2) return [];
@@ -2849,7 +2861,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, rlFind, productsSearch, productsSearchShops, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, rlFind, productsSearch, productsSearchShops, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,

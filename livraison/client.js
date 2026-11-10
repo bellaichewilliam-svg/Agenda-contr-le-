@@ -6707,7 +6707,7 @@ function renderPromos() {
   const list = promo.list;
   box.classList.toggle("hidden", !list.length);
   if (!list.length) { box.innerHTML = ""; box.dataset.html = ""; return; }
-  const html = `<div class="pm-h"><h3 class="ch-h">🔥 ${UI.esc(t("pmTitle"))}</h3><span class="pm-n"><b>1</b> / ${list.length}</span></div>
+  const html = `<div class="pm-h"><h3 class="ch-h">🔥 ${UI.esc(t("pmTitle"))}</h3><button type="button" class="pm-all" data-pm-all>${UI.esc(t("paSee"))} ›</button></div>
     <div class="pm-row">${list.map((x, i) => `<button type="button" class="pm-card" data-promo="${UI.esc(x.code)}|${UI.esc(x.id)}" data-i="${i}">
       <span class="pm-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" /><em class="pm-off" dir="ltr">−${Number(x.off)} %</em></span>
       <span class="pm-txt"><small class="pm-shop">${UI.esc(mgShort(x.shop))}</small><b><bdi>${UI.esc(UI.bi(x.name))}</bdi></b>
@@ -6743,6 +6743,7 @@ async function loadPromos() {
   try { const l = await Store.homePromos(); if (Array.isArray(l)) { promo.list = promoOrder(l); renderPromos(); } } catch (e) { /* on garde */ }
 }
 $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
+  if (e.target.closest("[data-pm-all]")) return openPromosAll("");
   const c = e.target.closest("[data-promo]");
   if (!c) return;
   const [code, id] = c.dataset.promo.split("|");
@@ -6751,6 +6752,97 @@ $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
   await loadShop(code);
   if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) openItem(id);
 });
+
+// ===== « 🔥 HOP! à vos promos » (patron, 10/11) : toutes les promos de nos magasins réunies (Rami Lévy, Carrefour, BOOOM…),
+// pour ne plus en rater aucune. Une page plein écran : un onglet par magasin (avec le nombre de promos), les rubriques,
+// 2 cartes par ligne (vraie photo, −xx %, « 3 pour 9 ₪ », jusqu'au…), « + » ajoute au panier de ce magasin (gardé),
+// un toucher sur la carte ouvre le magasin et la fiche du produit. Données : Store.promosAll() (promos_all, léger).
+const PA_PH = { r: "https://img.rami-levy.co.il/product/", c: "https://d226b0iufwcjmj.cloudfront.net/gs1-products/1540/medium/", b: "https://booomisrael.co.il/uploads/" };
+const PA_COLOR = { HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C" };
+const pa = { data: null, shop: "", cat: -1 };
+const paPh = v => { const m = /^([rcb]):(.*)$/.exec(v || ""); const u = m ? PA_PH[m[1]] + m[2] : v; return UI.extPic(u) ? u : ""; };
+const PA_NAMES = { HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"] };
+const paShopName = code => { const sc = (state.showcase || []).find(x => x.code === code); return sc ? mgShort(sc.name) : (PA_NAMES[code] || [code.replace(/^HOP/, "")])[I18N.lang === "he" ? 1 : 0] || code; };
+function paItems() {
+  const d = pa.data; if (!d) return [];
+  return d.items.map(a => ({ id: a[0], code: d.shops[a[1]], name: a[2], p: Number(a[3]), o: a[4] != null ? Number(a[4]) : null, f: a[5], l: a[6] || 1, cat: d.cats[a[7]] || "", ph: paPh(a[8]), e: a[9], b: a[10] === 1 }))
+    .filter(x => x.ph);
+}
+function paRender() {
+  const box = $("#paPage"); if (!box) return;
+  const all = paItems(), shops = [...new Set(all.map(x => x.code))];
+  const inShop = all.filter(x => !pa.shop || x.code === pa.shop);
+  const cats = Object.entries(inShop.reduce((m, x) => { if (x.cat) m[x.cat] = (m[x.cat] || 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).slice(0, 10).map(c => c[0]);
+  const list = inShop.filter(x => pa.cat < 0 || x.cat === cats[pa.cat]);
+  const card = x => {
+    const badge = x.b ? `<em class="pa-off pa-small">${UI.esc(t("paSmall"))}</em>` : x.f ? `<em class="pa-off" dir="ltr">−${Number(x.f)} %</em>` : "";
+    const price = x.l > 1 && x.code === "HOPCARREFOUR" ? t("paLot", { n: x.l, price: money(x.p) }) : money(x.p);
+    return `<div class="pa-card" data-pa-open="${UI.esc(x.code)}|${UI.esc(x.id)}">
+      <span class="pa-pic"><img src="${UI.esc(x.ph)}" alt="" loading="lazy" decoding="async" />${badge}</span>
+      <span class="pa-shop" style="--c:${PA_COLOR[x.code] || "#FF6A13"}">${UI.esc(paShopName(x.code))}</span>
+      <b class="pa-name"><bdi>${UI.esc(UI.bi(x.name))}</bdi></b>
+      <span class="pa-pr"><strong><bdi>${UI.esc(price)}</bdi></strong>${x.o && x.o > x.p ? `<s>${UI.esc(money(x.o))}</s>` : ""}</span>
+      ${x.e ? `<small class="pa-end">${UI.esc(t("paUntil", { d: x.e }))}</small>` : ""}
+      <button type="button" class="pa-add" data-pa-add="${UI.esc(x.code)}|${UI.esc(x.id)}" aria-label="${UI.esc(t("paAdd"))}">+</button></div>`;
+  };
+  box.querySelector(".pa-tabs").innerHTML = [["", t("paAll"), all.length], ...shops.map(c => [c, paShopName(c), all.filter(x => x.code === c).length])]
+    .map(([c, n, k]) => `<button type="button" class="pa-tab${pa.shop === c ? " on" : ""}" data-pa-shop="${UI.esc(c)}" style="--c:${PA_COLOR[c] || "#FF6A13"}"><bdi>${UI.esc(n)}</bdi> <i>${k}</i></button>`).join("");
+  box.querySelector(".pa-cats").innerHTML = [`<button type="button" class="pa-cat${pa.cat < 0 ? " on" : ""}" data-pa-cat="-1">${UI.esc(t("paBest"))}</button>`,
+    ...cats.map((c, i) => `<button type="button" class="pa-cat${pa.cat === i ? " on" : ""}" data-pa-cat="${i}"><bdi>${UI.esc(UI.bi(c))}</bdi></button>`)].join("");
+  box.querySelector(".pa-grid").innerHTML = list.length ? list.map(card).join("") : `<p class="pa-none">${UI.esc(t("paNone"))}</p>`;
+  box.querySelector(".pa-count").textContent = t("paCount", { n: list.length });
+}
+async function openPromosAll(code) {
+  UI.track("promos_all_open", { shop_code: code || "" });
+  let box = $("#paPage");
+  if (!box) {
+    box = document.createElement("div"); box.id = "paPage"; box.className = "pa"; box.setAttribute("role", "dialog");
+    box.innerHTML = `<div class="pa-top"><button type="button" class="pa-x" data-pa-close aria-label="✕">‹</button>
+      <div class="pa-h"><b>🔥 ${escHop(t("paTitle"))}</b><small>${UI.esc(t("paSub"))}</small></div></div>
+      <div class="pa-tabs"></div><div class="pa-cats"></div><small class="pa-count"></small><div class="pa-grid"><p class="pa-none">${UI.esc(t("cgElseWait"))}</p></div>
+      <p class="pa-foot">${UI.esc(t("paFoot"))}</p>`;
+    document.body.appendChild(box);
+    box.addEventListener("click", paClick);
+  }
+  pa.shop = code || ""; pa.cat = -1;
+  box.classList.remove("hidden"); document.documentElement.classList.add("pa-on");
+  if (!pa.data) { try { pa.data = await Store.promosAll(); } catch (e) { pa.data = null; } }
+  paRender();
+}
+function closePromosAll() { const b = $("#paPage"); if (b) b.classList.add("hidden"); document.documentElement.classList.remove("pa-on"); }
+async function paClick(e) {
+  const b = e.target;
+  if (b.closest("[data-pa-close]")) return closePromosAll();
+  const sh = b.closest("[data-pa-shop]"); if (sh) { pa.shop = sh.dataset.paShop; pa.cat = -1; paRender(); $("#paPage").scrollTo({ top: 0 }); return; }
+  const ct = b.closest("[data-pa-cat]"); if (ct) { pa.cat = Number(ct.dataset.paCat); paRender(); return; }
+  const add = b.closest("[data-pa-add]");
+  if (add) {
+    e.stopPropagation();
+    const [code, id] = add.dataset.paAdd.split("|"), x = paItems().find(y => y.id === id && y.code === code);
+    if (!x) return;
+    const qty = x.code === "HOPCARREFOUR" ? x.l : 1;
+    if (state.shop && state.shop.code === code && cgProducts().some(p => p.id === id)) {
+      state.cart[id] = Math.min(50, (state.cart[id] || 0) + qty); renderCatalog(); renderQuote(); saveDraft(); cartPersist(); renderCartIcon();
+      toastCart(t("paAdded", { shop: paShopName(code) }));
+    } else {
+      const unit = x.code === "HOPCARREFOUR" && x.o ? x.o / x.l : x.p;
+      multiAdd({ code, id, name: x.name, price: unit, shop: ((state.showcase || []).find(s => s.code === code) || {}).name || code }, qty);
+      toastCart(t("paAdded", { shop: paShopName(code) }));
+    }
+    add.textContent = "✓"; add.classList.add("ok"); UI.track("promos_all_add", { shop_code: code });
+    return;
+  }
+  const op = b.closest("[data-pa-open]");
+  if (op) {
+    const [code, id] = op.dataset.paOpen.split("|");
+    closePromosAll(); state.shopDir = "";
+    await loadShop(code);
+    if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) openItem(id);
+  }
+}
+document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#paPage") && !$("#paPage").classList.contains("hidden")) closePromosAll(); });
+// Lien direct (pubs, réseaux) : index.html?promos=1 ouvre « HOP! à vos promos » (?promos=HOPCARREFOUR : un magasin)
+(() => { const q = new URLSearchParams(location.search).get("promos"); if (q != null) setTimeout(() => openPromosAll(/^HOP[A-Z]+$/.test(q) ? q : ""), 900); })();
 
 async function loadPartners() {
   try { state.partners = ((await Store.shopsDirectory()) || []).filter(x => x.lat != null); } catch (e) { state.partners = []; }
