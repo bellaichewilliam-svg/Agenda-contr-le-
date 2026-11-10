@@ -6757,11 +6757,11 @@ $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
 // pour ne plus en rater aucune. Une page plein écran : un onglet par magasin (avec le nombre de promos), les rubriques,
 // 2 cartes par ligne (vraie photo, −xx %, « 3 pour 9 ₪ », jusqu'au…), « + » ajoute au panier de ce magasin (gardé),
 // un toucher sur la carte ouvre le magasin et la fiche du produit. Données : Store.promosAll() (promos_all, léger).
-const PA_PH = { r: "https://img.rami-levy.co.il/product/", c: "https://d226b0iufwcjmj.cloudfront.net/gs1-products/1540/medium/", b: "https://booomisrael.co.il/uploads/" };
-const PA_COLOR = { HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C" };
+const PA_PH = { r: "https://img.rami-levy.co.il/product/", c: "https://d226b0iufwcjmj.cloudfront.net/gs1-products/1540/medium/", b: "https://booomisrael.co.il/uploads/", v: "https://dlv1nnscfbvda.cloudfront.net/" };
+const PA_COLOR = { HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C", HOPVICTORY: "#1F9D55" };
 const pa = { data: null, shop: "", cat: -1 };
-const paPh = v => { const m = /^([rcb]):(.*)$/.exec(v || ""); const u = m ? PA_PH[m[1]] + m[2] : v; return UI.extPic(u) ? u : ""; };
-const PA_NAMES = { HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"] };
+const paPh = v => { const m = /^([rcbv]):(.*)$/.exec(v || ""); const u = m ? PA_PH[m[1]] + m[2] : v; return UI.extPic(u) ? u : ""; };
+const PA_NAMES = { HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"] };
 const paShopName = code => { const sc = (state.showcase || []).find(x => x.code === code); return sc ? mgShort(sc.name) : (PA_NAMES[code] || [code.replace(/^HOP/, "")])[I18N.lang === "he" ? 1 : 0] || code; };
 function paItems() {
   const d = pa.data; if (!d) return [];

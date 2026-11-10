@@ -50,7 +50,7 @@ end $cron$;
 
 -- Toutes les promos, toutes boutiques HOP! confondues, en léger (89 Ko pour 459 promos le 10/11) :
 --   { at, shops: [codes], cats: [rubriques], items: [[id, n° boutique, nom « FR · HE », prix payé (lot compris), ancien prix,
---     % remise, nb du lot, n° rubrique, photo raccourcie (r: Rami Lévy, c: Carrefour, b: BOOOM), fin « JJ/MM », 1 = petit prix BOOOM]] }
+--     % remise, nb du lot, n° rubrique, photo raccourcie (r: Rami Lévy, c: Carrefour, b: BOOOM, v: Victory), fin « JJ/MM », 1 = petit prix BOOOM]] }
 create or replace function public.promos_all() returns json
 language sql stable security definer set search_path = public as $$
   with base as (
@@ -84,8 +84,9 @@ language sql stable security definer set search_path = public as $$
   select json_build_object('at', now(), 'shops', (select a from shops), 'cats', (select a from cats),
     'items', coalesce(json_agg(json_build_array(ok.id, array_position((select a from shops), ok.code) - 1, ok.name, ok.p, ok.o, ok.f, ok.l,
        array_position((select a from cats), coalesce(ok.cat, '')) - 1,
-       regexp_replace(regexp_replace(regexp_replace(ok.photo_url, '^https://img\.rami-levy\.co\.il/product/', 'r:'),
+       regexp_replace(regexp_replace(regexp_replace(regexp_replace(ok.photo_url, '^https://img\.rami-levy\.co\.il/product/', 'r:'),
          '^https://d226b0iufwcjmj\.cloudfront\.net/gs1-products/1540/medium/', 'c:'), '^https://booomisrael\.co\.il/uploads/', 'b:'),
+         '^https://dlv1nnscfbvda\.cloudfront\.net/', 'v:'),
        ok.e, ok.b) order by ok.b, coalesce(ok.f, 0) desc), '[]'::json))
     from ok;
 $$;
