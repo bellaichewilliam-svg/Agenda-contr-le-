@@ -2003,6 +2003,9 @@ label.check.door-check:has(> input:checked) { border-color: #12B76A; background:
 .it-del { margin: 6px 20px 0; justify-self: start; color: #F04438; }
 .item-sheet > .modal-box { margin-block: auto 0; }
 @media (min-width: 700px) { .item-sheet > .modal-box { margin-block: auto; } }
+/* Fiche produit longue (suggestions dessous) : « − 1 + · Ajouter » reste collé en bas de l'écran (patron, 10/11 : « comment j'ajoute ? ») */
+.item-sheet .it-bar { position: sticky; bottom: 0; z-index: 3; background: inherit; padding-bottom: calc(12px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 18px -8px rgba(0, 0, 0, .35); }
+.item-sheet .it-bar + .it-del { margin-top: 0; }
 
 /* Deux paiements clairs : ① les articles au commerce (avant la préparation), ② la livraison au livreur */
 .pay2 { display: grid; gap: 8px; margin-top: 12px; padding: 14px; border-radius: 16px; background: var(--bg-2); border: 1px solid var(--border); }

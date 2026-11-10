@@ -2053,14 +2053,22 @@ function rayonHits(q, max) {
   const terms = searchTerms(q), out = [], seen = new Set();
   // Début d'un mot seulement (« eau » ne trouve pas « gâteau », « מים » pas « קונדומים ») ; les courses du quotidien d'abord
   const at = (txt, k) => k === 0 || /[\s(/'-]/.test(txt[k - 1]);
-  const word = txt => { let best = -1; for (const t of terms) for (let k = txt.indexOf(t); k >= 0; k = txt.indexOf(t, k + 1)) if (at(txt, k)) { if (best < 0 || k < best) best = k; break; } return best; };
-  const all = [];
+  // Note du mot trouvé (plus petit = mieux) : 0 = le produit lui-même, en tête du nom ou juste après la marque, mot entier
+  // (« Tnuva · Lait 1 % ») ; 1 = mot entier plus loin (« chocolat au lait ») ; 2-3 = début d'un mot plus long (« Milky », « Milka »
+  // pour « lait » = milk) ; -1 = rien. Patron, 10/11 : « je tape lait et pas un lait qui ressort »
+  const word = txt => { let best = -1; for (const t of terms) for (let k = txt.indexOf(t); k >= 0; k = txt.indexOf(t, k + 1)) if (at(txt, k)) {
+    const whole = !/[\p{L}\p{N}]/u.test(txt[k + t.length] || ""), lead = k === 0 || /·\s*$/.test(txt.slice(Math.max(0, k - 3), k));
+    const sc = whole ? (lead ? 0 : 1) : (lead ? 2 : 3); if (best < 0 || sc < best) best = sc; } return best; };
+  const all = [], catHit = {};
   for (const r of Rayons.ALL) for (const i of Rayons.items(r)) {
     const name = synNorm(`${i.fr} ${i.he}`), opts = synNorm((i.opt || []).map(o => `${o.fr} ${o.he}`).join(" "));
     all.push({ r, i, name, opts });
     const k = word(name), ko = k < 0 ? word(opts) : -1;
     if (k < 0 && ko < 0) continue;
-    out.push({ r, i, s: (k === 0 ? 0 : k > 0 ? 1 : 2) * 2 + (r.id === "super" ? 0 : 1) });
+    // La rubrique du produit va avec le mot cherché (rubrique « Lait » pour « lait ») : il passe devant
+    const ck = r.id + ":" + i.c;
+    if (!(ck in catHit)) { const c = (r.cats || []).find(x => x.id === i.c); catHit[ck] = !!c && word(synNorm(`${c.id} ${c.fr || ""} ${c.he || ""}`)) >= 0; }
+    out.push({ r, i, s: ((k >= 0 ? k : 4) * 2 + (catHit[ck] ? 0 : 1)) * 2 + (r.id === "super" ? 0 : 1) });
   }
   // Rien trouvé : une faute de frappe ? (« chocolta », « bnaane ») : un mot du produit presque pareil
   if (!out.length && n.length >= 4) {
