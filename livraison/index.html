@@ -96,7 +96,7 @@
       } catch (e) { /* ignore */ }
     })();
   </script>
-  <link rel="stylesheet" href="styles.css?v=202611101431" />
+  <link rel="stylesheet" href="styles.css?v=202611101438" />
 <style id="splashCss">#splash{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0F1F3D;color:#fff;transition:opacity .35s ease}#splash.out{opacity:0;pointer-events:none}#splash svg{width:min(58vw,300px);height:auto;display:block}#splash span{font:700 16px/1 Rubik,-apple-system,Arial,sans-serif;letter-spacing:.42em;margin-inline-start:.42em;opacity:.92}</style>
 </head>
 <body>
@@ -176,6 +176,7 @@
     <h3 class="ch-h" data-i18n="hmWhat"></h3>
     <div class="ch-kinds" id="homeKinds"></div>
     <div id="homePharma"></div>
+    <div class="pm hidden" id="homePromos"></div>
     <div class="pro-home hidden" id="homeProBox"><h3 class="ch-h" data-i18n="proTitle"></h3><p class="pro-sub" data-i18n="proSub"></p>
       <!-- HOP! est d'abord un service de livraison : on livre depuis n'importe quel commerce, pas seulement nos partenaires -->
       <div class="any-shop"><b data-i18n="anyShopT"></b><small data-i18n="anyShopS"></small><button type="button" class="btn btn-primary btn-sm" data-any-shop data-i18n="anyShopBtn"></button></div>
@@ -839,16 +840,16 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="config.js?v=202611101431"></script>
-<script src="i18n.js?v=202611101431"></script>
-<script src="pricing.js?v=202611101431"></script>
-<script src="store.js?v=202611101431"></script>
-<script src="chat.js?v=202611101431"></script>
-<script src="common.js?v=202611101431"></script>
-<script src="enseignes.js?v=202611101431"></script>
-<script src="places.js?v=202611101431"></script>
-<script src="rayons.js?v=202611101431"></script>
-<script src="client.js?v=202611101431"></script>
+<script src="config.js?v=202611101438"></script>
+<script src="i18n.js?v=202611101438"></script>
+<script src="pricing.js?v=202611101438"></script>
+<script src="store.js?v=202611101438"></script>
+<script src="chat.js?v=202611101438"></script>
+<script src="common.js?v=202611101438"></script>
+<script src="enseignes.js?v=202611101438"></script>
+<script src="places.js?v=202611101438"></script>
+<script src="rayons.js?v=202611101438"></script>
+<script src="client.js?v=202611101438"></script>
 <script>(function(){var s=document.getElementById("splash");if(!s)return;var t0=Date.now();function off(){var w=0;setTimeout(function(){s.classList.add("out");setTimeout(function(){s.remove()},400)},w)}off()})();</script>
 </body>
 </html>

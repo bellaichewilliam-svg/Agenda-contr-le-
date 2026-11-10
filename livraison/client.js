@@ -4152,7 +4152,7 @@ function itRecoLists(p) {
   return { same, withs: withs.slice(0, 10) };
 }
 const itRecoTile = x => { const ph = UI.safeImg(x.photo), d = recoDisc(x), n = groupQty(x);
-  return `<div class="itr-card"><button type="button" class="itr-open" data-it-open="${UI.esc(x.id)}"><span class="itr-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : shopArt(x)}${d >= 5 ? `<em class="itr-off">−${d} %</em>` : ""}</span>
+  return `<div class="itr-card"><button type="button" class="itr-open" data-it-open="${UI.esc(x.id)}"><span class="itr-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : shopArt(x)}${d >= 5 ? `<em class="itr-off" dir="ltr">−${d} %</em>` : ""}</span>
     <b><bdi>${UI.esc(UI.bi(baseOf(x)))}</bdi></b><span class="itr-price">${sizesOf(x).length > 1 ? UI.esc(t("cgFrom", { price: money(Math.min(...sizesOf(x).map(y => Number(y.price)))) })) : UI.esc(money(x.price))}</span></button>
     <button type="button" class="itr-add${n ? " on" : ""}" data-it-quick="${UI.esc(x.id)}" aria-label="+">${n ? n : "+"}</button></div>`; };
 function itRecos(p) {
@@ -6613,7 +6613,83 @@ async function loadShowcase() {
   try { state.showcase = (await Store.shopsShowcase()) || []; } catch (e) { /* base lente : on garde ce qui est affiché */ }
   if (home.map && restos.layer) drawRestos();   // les logos des partenaires sur la carte
   renderShowcase();
+  loadPromos();
 }
+
+// Bandeau « 🔥 Les promos du moment » (patron, 10/11) : les plus grosses promos de nos boutiques (Rami Lévy, BOOOM…),
+// qui défilent toutes seules sous les grands bandeaux ; un toucher ouvre la boutique ET la fiche du produit.
+// Intelligent : selon l'heure (matin : café, lait, pain… ; midi : pâtes, riz… ; soir : snacks, boissons…), sans ce qui
+// est déjà au panier, et jamais trois fois de suite la même boutique. Il s'arrête quand on le touche ou qu'on ne le voit pas.
+const promo = { list: [], timer: null, hold: 0, seen: false };
+const PROMO_TIME = [[6, 11, /caf[ée]|\blait\b|c[ée]r[ée]ales|muesli|\bpain|beurre|confiture|\bth[ée]\b|yaourt|קפה|חלב|דגני|לחם|חמאה|ריבה|תה|יוגורט/i],
+  [11, 16, /p[aâ]tes|\briz\b|thon|sauce|schnitzel|houmous|salade|nouilles|פסטה|אורז|טונה|רוטב|שניצל|חומוס|סלט|אטריות/i],
+  [16, 24, /chips|chocolat|bonbons?|glace|boisson|coca|soda|biscuit|gaufrette|maltesers|kinder|צ'יפס|שוקולד|סוכריות|גלידה|משקה|קולה|עוגיות|במבה|וופל/i],
+  [0, 6, /chips|chocolat|glace|boisson|biscuit|צ'יפס|שוקולד|גלידה|משקה|עוגיות/i]];
+function promoOrder(list) {
+  const h = new Date().getHours(), rx = (PROMO_TIME.find(([a, b]) => h >= a && h < b) || [])[2];
+  const cart = new Set(Object.keys(state.cart || {}).filter(k => state.cart[k] > 0));
+  const scored = (list || []).filter(x => x && x.id && x.ph && UI.extPic(x.ph) && !cart.has(x.id))
+    .map(x => ({ x, s: Number(x.off || 0) + (rx && rx.test(`${x.name} ${x.cat || ""}`) ? 25 : 0) })).sort((a, b) => b.s - a.s).map(o => o.x);
+  // Pas trois fois de suite la même boutique : on intercale
+  const out = [], rest = scored.slice();
+  while (rest.length && out.length < 20) {
+    const last2 = out.slice(-2).map(x => x.code);
+    let k = rest.findIndex(x => !(last2.length === 2 && last2[0] === x.code && last2[1] === x.code));
+    if (k < 0) k = 0;
+    out.push(rest.splice(k, 1)[0]);
+  }
+  return out;
+}
+function renderPromos() {
+  const box = $("#homePromos");
+  if (!box) return;
+  const list = promo.list;
+  box.classList.toggle("hidden", !list.length);
+  if (!list.length) { box.innerHTML = ""; box.dataset.html = ""; return; }
+  const html = `<div class="pm-h"><h3 class="ch-h">🔥 ${UI.esc(t("pmTitle"))}</h3><span class="pm-n"><b>1</b> / ${list.length}</span></div>
+    <div class="pm-row">${list.map((x, i) => `<button type="button" class="pm-card" data-promo="${UI.esc(x.code)}|${UI.esc(x.id)}" data-i="${i}">
+      <span class="pm-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" /><em class="pm-off" dir="ltr">−${Number(x.off)} %</em></span>
+      <span class="pm-txt"><small class="pm-shop">${UI.esc(mgShort(x.shop))}</small><b><bdi>${UI.esc(UI.bi(x.name))}</bdi></b>
+        <span class="pm-pr"><strong>${UI.esc(money(x.price))}</strong>${Number(x.lot) > 1 ? `<i>${UI.esc(t("pmLot", { n: x.lot }))}</i>` : ""}<s>${UI.esc(money(x.old))}</s></span>
+        <span class="pm-go">${UI.esc(t("pmGo"))} <i aria-hidden="true">›</i></span></span></button>`).join("")}</div>`;
+  if (box.dataset.html === html) return;
+  box.innerHTML = html; box.dataset.html = html;
+  const row = box.querySelector(".pm-row");
+  // Le client touche ou fait défiler : le défilement automatique attend un peu
+  ["pointerdown", "touchstart", "wheel"].forEach(ev => row.addEventListener(ev, () => { promo.hold = Date.now() + 8000; }, { passive: true }));
+  row.addEventListener("scroll", () => { const n = box.querySelector(".pm-n b"); if (n) n.textContent = promoIndex(row) + 1; }, { passive: true });
+  if (window.IntersectionObserver) { if (promo.io) promo.io.disconnect(); promo.io = new IntersectionObserver(es => { promo.seen = es.some(e => e.isIntersecting); }, { threshold: 0.6 }); promo.io.observe(row); }
+  else promo.seen = true;
+  if (!promo.timer) promo.timer = setInterval(promoTick, 3800);
+}
+// La carte la plus à gauche visible (droite à gauche aussi)
+function promoIndex(row) {
+  const r = row.getBoundingClientRect(), cards = [...row.children];
+  let best = 0, d = Infinity;
+  cards.forEach((c, i) => { const b = c.getBoundingClientRect(), x = I18N.lang === "he" ? Math.abs(r.right - b.right) : Math.abs(b.left - r.left); if (x < d) { d = x; best = i; } });
+  return best;
+}
+function promoTick() {
+  const row = $("#homePromos .pm-row");
+  if (!row || !promo.seen || document.hidden || Date.now() < promo.hold || $("#homePromos").offsetParent === null) return;
+  const cards = row.children, i = (promoIndex(row) + 1) % cards.length, c = cards[i];
+  if (!c) return;
+  const r = row.getBoundingClientRect(), b = c.getBoundingClientRect();
+  row.scrollBy({ left: I18N.lang === "he" ? b.right - r.right : b.left - r.left, behavior: i ? "smooth" : "auto" });
+}
+async function loadPromos() {
+  if (!promo.list.length) { promo.list = promoOrder(Store.homePromosCached()); renderPromos(); }
+  try { const l = await Store.homePromos(); if (Array.isArray(l)) { promo.list = promoOrder(l); renderPromos(); } } catch (e) { /* on garde */ }
+}
+$("#homePromos") && $("#homePromos").addEventListener("click", async e => {
+  const c = e.target.closest("[data-promo]");
+  if (!c) return;
+  const [code, id] = c.dataset.promo.split("|");
+  UI.track("promo_click", { shop_code: code });
+  state.shopDir = "";
+  await loadShop(code);
+  if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) openItem(id);
+});
 
 async function loadPartners() {
   try { state.partners = ((await Store.shopsDirectory()) || []).filter(x => x.lat != null); } catch (e) { state.partners = []; }
