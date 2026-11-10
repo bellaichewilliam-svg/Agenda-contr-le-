@@ -91,3 +91,35 @@ language sql stable security definer set search_path = public as $$
     from ok;
 $$;
 grant execute on function public.promos_all() to anon, authenticated;
+
+-- Bandeau « 🔥 Les promos du moment » (accueil) : Rami Lévy, Victory (description « au lieu de ») et Carrefour (carrefour_specials),
+-- à tour de rôle (la meilleure promo de chaque magasin, puis la 2e…) : aucun magasin n'écrase les autres (patron : « pourquoi que Rami ? »)
+create or replace function public.promos_home(p_limit integer default 40)
+returns json language sql stable security definer set search_path = public as $$
+  with base as (
+    select p.id, s.code, s.name as shop, p.name, p.price, p.photo_url, p.description, c.name as cat
+      from shop_products p join shops s on s.id = p.shop_id left join shop_categories c on c.id = p.category_id
+     where hop_shop(s.id) and s.status = 'actif' and not coalesce(s.paused, false)
+       and p.available and p.photo_url is not null and ext_photo_ok(p.photo_url)
+  ), rl as (
+    select id, code, shop, name, replace(m[1], ',', '.')::numeric now_p, replace(m[2], ',', '.')::numeric old_p,
+           (regexp_match(coalesce(description, ''), '^(\d+) pour '))[1]::int lot, photo_url, cat
+      from base, regexp_match(coalesce(description, ''), '(\d+(?:[.,]\d+)?) ₪ au lieu de (\d+(?:[.,]\d+)?) ₪') m
+  ), cf as (
+    select b.id, b.code, b.shop, b.name, sp.lot_total now_p, round(sp.regular * sp.lot, 2) old_p, sp.lot, b.photo_url, b.cat
+      from base b join rayon_items ri on md5('HOPMARKET:' || ri.item_id)::uuid = b.id
+      join carrefour_specials sp on sp.item_id = ri.item_id and sp.ends > now() and sp.lot_total is not null and sp.regular > 0
+     where b.code = 'HOPCARREFOUR'
+  ), t as (select * from rl union all select * from cf),
+  pick as (
+    select *, row_number() over (partition by code order by (1 - now_p / old_p) desc) rk
+      from t where old_p > 0 and now_p < old_p and (1 - now_p / old_p) >= 0.15
+  )
+  select coalesce(json_agg(json_build_object('id', id, 'code', code, 'shop', shop, 'name', name, 'price', now_p,
+           'old', old_p, 'off', round((1 - now_p / old_p) * 100), 'lot', case when lot > 1 then lot end, 'ph', photo_url, 'cat', cat)
+           order by (1 - now_p / old_p) desc), '[]'::json)
+    from (select * from pick order by rk, (1 - now_p / old_p) desc limit greatest(1, least(coalesce(p_limit, 40), 80))) x;
+$$;
+
+-- Prix Carrefour (prix normal du site), relus chaque nuit après les promos : tâche « hop-carrefour-prix » (3 h 48), met à jour
+-- rayon_items.price_lo/price_hi ; le déclencheur recopie dans la boutique, et le prix fixé par le patron (boss_price) reste par-dessus.

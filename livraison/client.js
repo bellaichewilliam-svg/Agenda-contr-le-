@@ -3897,7 +3897,7 @@ function renderCatalog() {
     try { oth = multiList(); } catch (e) { oth = []; }
     rule = `<div class="cg-rule"><b>🛒 ${escHop(t("cgRuleT", { name: mgShort(state.shop.name) }))}</b><span>${escHop(t("cgRuleS", { fee: money(addonPrice()), km: addonKm() }))}</span>${oth.length ? `<span class="cg-rule-oth">${escHop(t("cgRuleOth", { list: oth.map(m => `${mgShort(m.name)} (${m.count})`).join(", ") }))}</span>` : ""}</div>`;
   }
-  const html = `${state.boss ? bossBar() : ""}${rule}${shopNoPay() ? noPayMini() : ""}
+  const html = `${state.boss ? bossBar() : ""}${rule}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
@@ -6120,6 +6120,26 @@ function partnerPlace(sh) {
 }
 // --- Vitrine : les commerces HOP! Pro abonnés, mis en avant sur l'accueil (logo, photo, accroche) -------
 state.showcase = [];
+// Grandes surfaces HOP! (Rami Lévy, Victory, BOOOM, Carrefour…) : on explique au client (patron, 10/11) que pour 1 ou 2 articles
+// (un Mars, du lait) « Au plus près » est plus rapide et moins cher : le livreur passe à la supérette la plus proche. Ici : le prix
+// de ce magasin (zone industrielle : prix de la zone), les articles compris, puis +2 ₪, et l'attente en caisse. Chiffres tirés des réglages.
+function nearTip() {
+  const s = state.shop;
+  if (!s || !isHopShop(s) || s.demo || !catalogOn() || state.cgQ) return "";
+  const P = CONFIG.pricing, city = Number(P.fixedFromHome[CONFIG.homeCity] || 25), buy = Number(P.purchase || 0);
+  const zone = s.lat != null && Pricing.areaOf(CONFIG, CONFIG.homeCity, { lat: Number(s.lat), lon: Number(s.lon) });
+  const here = zone ? Number((P.areas || {}).price || city) : city, it = P.purchaseItems || {};
+  return `<div class="cg-tip"><b>💡 ${escHop(t("tipNearT"))}</b>
+    <span>${escHop(t("tipNearS", { city: money(city), buy: money(buy), inc: it.included || 10 }))}</span>
+    <span class="cg-tip-here">${escHop(t(zone ? "tipHereZ" : "tipHere", { price: money(here), buy: money(buy), inc: CONFIG.hopIncluded || 6, extra: money((it.extraCourier || 1) + (it.extraHop || 1)), min: P.purchaseMinutes || 5 }))}</span>
+    <button type="button" class="btn btn-sm cg-tip-go" data-cg-near="1">${escHop(t("tipNearGo"))} ›</button></div>`;
+}
+$("#catalogBox").addEventListener("click", e => {
+  if (!e.target.closest("[data-cg-near]")) return;
+  e.preventDefault(); e.stopPropagation();
+  UI.track("near_tip_go", { shop_code: state.shop && state.shop.code });
+  leaveShop(true); goKind("shop");
+}, true);
 function proPrice(s) {
   // Boutique HOP! : la course + le petit achat (25 + 5 = 30 ₪ dans Netanya)
   if (isHopShop(s)) return CONFIG.pricing.fixedFromHome[CONFIG.homeCity] + Number(CONFIG.pricing.purchase || 0);
@@ -6789,7 +6809,7 @@ function paRender() {
     .map(([c, n, k]) => `<button type="button" class="pa-tab${pa.shop === c ? " on" : ""}" data-pa-shop="${UI.esc(c)}" style="--c:${PA_COLOR[c] || "#FF6A13"}"><bdi>${UI.esc(n)}</bdi> <i>${k}</i></button>`).join("");
   box.querySelector(".pa-cats").innerHTML = [`<button type="button" class="pa-cat${pa.cat < 0 ? " on" : ""}" data-pa-cat="-1">${UI.esc(t("paBest"))}</button>`,
     ...cats.map((c, i) => `<button type="button" class="pa-cat${pa.cat === i ? " on" : ""}" data-pa-cat="${i}"><bdi>${UI.esc(UI.bi(c))}</bdi></button>`)].join("");
-  box.querySelector(".pa-grid").innerHTML = list.length ? list.map(card).join("") : `<p class="pa-none">${UI.esc(t("paNone"))}</p>`;
+  box.querySelector(".pa-grid").innerHTML = list.length ? list.map(card).join("") : `<p class="pa-none">${UI.esc(t(pa.data ? "paNone" : "cgElseWait"))}</p>`;
   box.querySelector(".pa-count").textContent = t("paCount", { n: list.length });
 }
 async function openPromosAll(code) {
@@ -6806,8 +6826,10 @@ async function openPromosAll(code) {
   }
   pa.shop = code || ""; pa.cat = -1;
   box.classList.remove("hidden"); document.documentElement.classList.add("pa-on");
-  if (!pa.data) { try { pa.data = await Store.promosAll(); } catch (e) { pa.data = null; } }
+  // Tout de suite ce que le téléphone a gardé, puis la liste à jour (nouveaux magasins, nouvelles promos)
+  if (!pa.data) pa.data = (Store.promosAllCached && Store.promosAllCached()) || null;
   paRender();
+  try { const d = await Store.promosAll(true); if (d && Array.isArray(d.items)) { pa.data = d; paRender(); } } catch (e) { /* on garde */ }
 }
 function closePromosAll() { const b = $("#paPage"); if (b) b.classList.add("hidden"); document.documentElement.classList.remove("pa-on"); }
 async function paClick(e) {
