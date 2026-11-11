@@ -5557,3 +5557,15 @@ html.d2 .sms-found { background: rgba(34, 160, 90, .14); color: #fff; }
 /* Case « Qu'est-ce qu'on transporte ? » mise en avant à l'arrivée depuis l'accueil */
 @keyframes pulseOnce { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 106, 19, 0); } 40% { box-shadow: 0 0 0 6px rgba(255, 106, 19, .45); } }
 .pulse-once { animation: pulseOnce 1.4s ease-out 1; }
+
+/* Panneau patron : WhatsApp perso à tous les clients (11/11) */
+.wa-list { display: grid; gap: 8px; margin-top: 8px; max-height: 520px; overflow: hidden; }
+.wa-list.open { max-height: none; }
+.wa-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg-2, #F4F6FA); }
+.wa-row.sent { opacity: .55; }
+.wa-who { display: grid; gap: 2px; min-width: 0; }
+.wa-who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wa-who small { color: var(--muted); }
+.wa-row .btn { flex-shrink: 0; }
+.wa-count { margin: 10px 0 0; }
+.wa-card .addr-chip.on { background: #0F1F3D; color: #fff; border-color: #0F1F3D; }
