@@ -2958,6 +2958,9 @@ async function submit(e) {
   }
 
   const btn = $("#submitBtn");
+  // (gardée pour le secours WhatsApp si l'envoi échoue ; dates vérifiées : une date invalide ne doit jamais bloquer une commande)
+  let sentOrder = null;
+  const isoOk = d => (d instanceof Date && !isNaN(d.getTime()) ? d.toISOString() : null);
   btn.disabled = true;
   btn.textContent = t("sending");
   try {
@@ -2990,7 +2993,7 @@ async function submit(e) {
       lang: I18N.lang,
       service: svc,
       urgency: val("urgency"),
-      pickup_at: pickupDate().toISOString(),
+      pickup_at: isoOk(pickupDate()) || new Date().toISOString(),
       from_city: fromCity,
       pickup_address: nearShop ? nearAddr : pAddr,
       pickup_place: pf ? pf.brand : nearShop ? nearShop.name : null,
@@ -3013,7 +3016,7 @@ async function submit(e) {
       parcel_name: svc === "retrait" ? val("parcel_name").trim() || null : null,
       has_proxy: svc === "retrait" && val("place_kind") === "poste" && !!docs.procuration,
       retrait_code: svc === "retrait" && val("place_kind") === "locker" ? val("retrait_code").trim() : null,
-      appt_at: (svc === "retrait" && val("place_kind") === "poste") || (svc === "colis" && form.post_send.checked) ? new Date(val("appt_at")).toISOString() : null,
+      appt_at: (svc === "retrait" && val("place_kind") === "poste") || (svc === "colis" && form.post_send.checked) ? isoOk(new Date(val("appt_at"))) : null,
       rx: svc === "achat" && form.rx.checked,
       post_send: svc === "colis" && form.post_send.checked,
       p2p_sale: svc === "colis" && form.p2p_sale.checked,
@@ -3054,7 +3057,7 @@ async function submit(e) {
       promo_code: disc ? (disc.key === "qLoyalty" ? "FIDELITE" : disc.vars.code) : null,
       discount: disc ? -disc.amount : 0,
       payment_method: val("payment_method"),
-      not_before: noteNotBefore() ? noteNotBefore().toISOString() : null,
+      not_before: isoOk(noteNotBefore()),
       cash_note: val("payment_method") === "cash" ? Number(form.cash_note.value) || 0 : null,
       payer: val("payer"),
       notes: [shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText()].filter(Boolean).join("\n") || null,
@@ -3086,6 +3089,7 @@ async function submit(e) {
     const firstOrder = activeOrders().length === 0;
     // Articles à payer d'avance au commerce : on garde de quoi l'afficher après la commande
     const gp = shopPrepay() ? { name: state.shop.name, link: state.shop.pay_link || null, bit: state.shop.pay_bit || null, total: cartTotal() } : null;
+    sentOrder = order;
     const saved = await Store.createOrder(order);
     // (la base marque la livraison offerte ; l'écran de confirmation le sait déjà)
     if (q.gift) saved.shop_pays = true;
@@ -3236,7 +3240,15 @@ async function submit(e) {
     if (/post_appt/.test(ex.message)) return showError(t("errPostAppt"));
     if (/sale_unpaid/.test(ex.message)) return showError(t("errSaleUnpaid"));
     console.warn("envoi", ex && ex.message, ex && ex.stack && ex.stack.split("\n").slice(0, 3).join(" / "));
+    // L'erreur exacte part dans les statistiques (patron, 11/11 : un client bloqué sans qu'on sache pourquoi)
+    try { UI.track("order_block", { page: ("send:" + (ex && (ex.status || ex.name) || "?") + ":" + String(ex && ex.message || "")).replace(/\s+/g, " ").slice(0, 40) }); } catch (e2) { /* ignore */ }
     showError(t("errSend", { phone: CONFIG.phoneDisplay }));
+    // Secours : jamais de client perdu, la commande toute écrite part sur notre WhatsApp
+    if (sentOrder) {
+      let txt = "";
+      try { txt = UI.orderText(Object.assign({ ref: "—" }, sentOrder)); } catch (e2) { txt = [sentOrder.pickup_address, sentOrder.dropoff_address, sentOrder.contact_name, sentOrder.contact_phone, sentOrder.notes].filter(Boolean).join("\n"); }
+      $("#formError").insertAdjacentHTML("beforeend", `<a class="btn btn-wa send-wa" href="${UI.esc(UI.waLink(CONFIG.whatsapp, t("errSendWaMsg") + "\n\n" + txt))}" target="_blank" rel="noopener">${UI.esc(t("errSendWa"))}</a>`);
+    }
   } finally {
     btn.disabled = false;
     renderQuote();
@@ -5834,6 +5846,13 @@ function homeGo() {
     return;
   }
   // Tout est prêt pour les adresses : on continue là où il manque quelque chose
+  // Course libre (2 adresses) sans « ce qu'on transporte » : on montre tout de suite la case à remplir, sans message rouge
+  // (patron, 11/11 : un client arrivait sur une erreur, la case cachée en haut de la page)
+  if (wiz.on && whatOn() && val("what_item").trim().length < 2) {
+    setView("order", true); wizGo(1, true); renderWhat();
+    setTimeout(() => { const b = $("#whatBox"); if (b) { b.scrollIntoView({ behavior: "smooth", block: "center" }); b.classList.add("pulse-once"); setTimeout(() => b.classList.remove("pulse-once"), 1600); } }, 250);
+    return;
+  }
   if (wiz.on) { setView("order", true); wizGo(1, true); wizNext(); return; }
   const missing = stepStates().find(([fs, ok]) => fs && !ok);
   (missing ? missing[0] : $("#summary")).scrollIntoView({ behavior: "smooth", block: missing ? "start" : "center" });
