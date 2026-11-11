@@ -2232,6 +2232,78 @@ const CLIENT_TPL = [
   "🍔 Un petit creux ? Commandez au restaurant, on vous l'apporte vite. · רעבים? הזמינו מהמסעדה ואנחנו נביא מהר.",
   "🙏 Merci d'être client HOP! Votre avis compte : répondez-nous ici. · תודה שאתם לקוחות הופ! נשמח לשמוע מכם כאן."
 ];
+// --- 📲 WhatsApp perso à tous nos clients (patron, 11/11 : « envoyer les messages à toutes les personnes qui ont commandé,
+// sur mon WhatsApp normal, pas le pro ») : un bouton par client, son prénom et sa langue, coché une fois envoyé
+const WA_TPL = [
+  { id: "merci", t: "🙏 Merci + commander", fr: "Bonjour {prenom} 👋 Merci d'avoir commandé chez HOP! 🛵\nCourses, repas, pharmacie, colis : on vous livre tout à Netanya, dès 25 ₪ en ville.\nCommandez en 1 minute ici 👉 {lien}",
+    he: "שלום {prenom} 👋 תודה שהזמנתם בהופ! 🛵\nקניות, אוכל, בית מרקחת, חבילות: אנחנו מביאים הכול בנתניה, החל מ־25 ₪ בעיר.\nמזמינים בדקה כאן 👉 {lien}" },
+  { id: "courses", t: "🛒 Faites vos courses", fr: "Bonjour {prenom} 🛒 Faites vos courses sur HOP! : HOP! chez Carrefour, Rami Lévy, Victory, BOOOM… On y va pour vous et on vous livre à la maison.\n👉 {lien}",
+    he: "שלום {prenom} 🛒 עושים קניות בהופ!: קרפור, רמי לוי, ויקטורי, BOOOM… אנחנו הולכים בשבילכם ומביאים עד הבית.\n👉 {lien}" },
+  { id: "promos", t: "🔥 HOP! à vos promos", fr: "🔥 HOP! à vos promos, {prenom} ! Les promos des grandes enseignes au même endroit, et on vous les livre.\n👉 {lienPromos}",
+    he: "🔥 הופ! למבצעים, {prenom}! כל המבצעים של הרשתות הגדולות במקום אחד, ואנחנו מביאים עד הבית.\n👉 {lienPromos}" },
+  { id: "colis", t: "📦 Colis / poste", fr: "Bonjour {prenom} 📦 Un colis à récupérer à la poste ou au point relais ? Envoyez-nous le SMS reçu, HOP! va le chercher pour vous.\n👉 {lien}",
+    he: "שלום {prenom} 📦 יש לכם חבילה לאסוף מהדואר או מנקודת איסוף? שלחו לנו את ההודעה שקיבלתם והופ! יביא אותה אליכם.\n👉 {lien}" }
+];
+const waState = { tpl: 0, fr: null, he: null, lang: "all", open: false };
+const waD9 = p => String(p || "").replace(/\D/g, "").slice(-9);
+// Portable israélien seulement (05X…) : le WhatsApp d'un fixe ne marche pas
+const waMobile = p => { let d = String(p || "").replace(/\D/g, ""); if (d.startsWith("972")) d = "0" + d.slice(3); return /^05\d{8}$/.test(d) ? d : ""; };
+function waContacts() {
+  const staff = new Set(couriers.map(c => waD9(c.phone)).concat((shops || []).map(x => waD9(x.phone))).filter(Boolean));
+  const map = new Map();
+  const add = (phone, name, lang, at, role) => {
+    const m = waMobile(phone), k = waD9(m);
+    if (!m || staff.has(k)) return;
+    const c = map.get(k) || { key: k, phone: m, name: "", lang: "", n: 0, last: 0, roles: new Set() };
+    const t = new Date(at || 0).getTime();
+    if (t >= c.last) { c.last = t; if (String(name || "").trim()) c.name = String(name).trim(); if (lang) c.lang = lang; }
+    else if (!c.name && String(name || "").trim()) c.name = String(name).trim();
+    c.n++; c.roles.add(role); map.set(k, c);
+  };
+  // (une course envoyée par un commerce : le « client » est le commerce, on garde seulement la personne livrée)
+  const byShop = o => !!(o.shop_name && o.contact_name && String(o.contact_name).trim() === String(o.shop_name).trim());
+  orders.filter(o => !o.is_test).forEach(o => {
+    if (!byShop(o)) add(o.contact_phone, o.contact_name, o.lang, o.created_at, "cmd");
+    if (waD9(o.dropoff_phone) !== waD9(o.contact_phone)) add(o.dropoff_phone, o.dropoff_contact, o.lang, o.created_at, "recu");
+  });
+  return [...map.values()].sort((a, b) => b.last - a.last);
+}
+const waSentKey = () => "hop.waSent." + (WA_TPL[waState.tpl] || {}).id;
+const waSent = () => { try { return JSON.parse(localStorage.getItem(waSentKey()) || "[]"); } catch (e) { return []; } };
+const waMark = k => { try { const l = waSent(); if (!l.includes(k)) { l.push(k); localStorage.setItem(waSentKey(), JSON.stringify(l)); } } catch (e) { /* ignore */ } };
+const waText = c => {
+  const he = c.lang === "he", tpl = WA_TPL[waState.tpl] || WA_TPL[0];
+  const body = (he ? waState.he : waState.fr) != null ? (he ? waState.he : waState.fr) : (he ? tpl.he : tpl.fr);
+  let first = String(c.name || "").split(/\s+/)[0];
+  if (first.length < 2 || /^\d/.test(first)) first = "";
+  return (first ? body.replace(/\{prenom\}/g, first) : body.replace(/,?\s?\{prenom\}/g, "")).replace(/\{lien\}/g, CONFIG.siteUrl + "app/" + (he ? "?lang=he" : ""))
+    .replace(/\{lienPromos\}/g, CONFIG.siteUrl + "app/?promos=1" + (he ? "&lang=he" : ""));
+};
+function waCard() {
+  const all = waContacts(), list = all.filter(c => waState.lang === "all" || (waState.lang === "he" ? c.lang === "he" : c.lang !== "he"));
+  const sent = new Set(waSent()), done = list.filter(c => sent.has(c.key)).length, tpl = WA_TPL[waState.tpl] || WA_TPL[0];
+  const row = c => { const ok = sent.has(c.key), d = c.last ? new Date(c.last) : null;
+    return `<div class="wa-row${ok ? " sent" : ""}" data-wa-row="${c.key}"><span class="wa-who"><b>${UI.esc(c.name || "Sans nom")}</b>
+      <small><span dir="ltr">${UI.esc(c.phone)}</span> · ${c.lang === "he" ? "🇮🇱 HE" : "🇫🇷 FR"} · ${c.roles.has("cmd") ? `${c.n} commande${c.n > 1 ? "s" : ""}` : "a reçu une livraison"}${d ? " · " + UI.esc(d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })) : ""}</small></span>
+      <a class="btn btn-sm ${ok ? "" : "btn-wa"}" data-wa-send="${c.key}" href="${UI.esc(UI.waPersonal(c.phone, waText(c)))}" target="_blank" rel="noopener">${ok ? "✅ Envoyé" : "📲 Envoyer"}</a></div>`; };
+  return `<div class="card wa-card" style="margin-top:14px">
+    <b>📲 WhatsApp perso à vos clients</b>
+    <p class="muted small" style="margin:4px 0 10px">Tous ceux qui ont commandé (ou reçu une livraison) avec un portable : <b>${all.length}</b>. Chaque bouton ouvre <b>votre WhatsApp normal</b> avec le message déjà écrit, dans sa langue, avec son prénom. Vous appuyez sur Envoyer, vous revenez ici : il est coché ✅.</p>
+    <div class="tpl-list">${WA_TPL.map((m, i) => `<button class="addr-chip${i === waState.tpl ? " on" : ""}" data-wa-tpl="${i}">${UI.esc(m.t)}</button>`).join("")}</div>
+    <label class="small muted" style="display:block;margin-top:10px">🇫🇷 Message en français</label>
+    <textarea id="waFr" rows="4" style="width:100%">${UI.esc(waState.fr != null ? waState.fr : tpl.fr)}</textarea>
+    <label class="small muted" style="display:block;margin-top:6px">🇮🇱 Message en hébreu</label>
+    <textarea id="waHe" rows="4" dir="rtl" style="width:100%">${UI.esc(waState.he != null ? waState.he : tpl.he)}</textarea>
+    <p class="muted small" style="margin:4px 0 8px">{prenom} = le prénom du client · {lien} = l'appli HOP! · {lienPromos} = la page des promos</p>
+    <div class="promo-row">
+      <select id="waLang"><option value="all"${waState.lang === "all" ? " selected" : ""}>Tout le monde (${all.length})</option><option value="fr"${waState.lang === "fr" ? " selected" : ""}>Français (${all.filter(c => c.lang !== "he").length})</option><option value="he"${waState.lang === "he" ? " selected" : ""}>Hébreu (${all.filter(c => c.lang === "he").length})</option></select>
+      <a class="btn btn-primary" id="waNext"${list.some(c => !sent.has(c.key)) ? "" : " hidden"}>📲 Suivant</a>
+    </div>
+    <p class="wa-count"><b>${done}</b> / ${list.length} envoyés pour « ${UI.esc(tpl.t)} »${done ? ` · <button class="btn btn-link btn-sm" id="waReset">Recommencer la liste</button>` : ""}</p>
+    <div class="wa-list${waState.open ? " open" : ""}">${list.map(row).join("") || `<p class="muted small">Aucun client avec un portable pour l'instant.</p>`}</div>
+    ${list.length > 8 ? `<button class="btn btn-link btn-sm" id="waMore">${waState.open ? "Réduire la liste" : `Voir les ${list.length} clients`}</button>` : ""}
+  </div>`;
+}
 function clientCount(days) {
   const since = Date.now() - days * 86400000;
   return new Set(orders.filter(o => o.device_id && new Date(o.created_at) > since).map(o => o.device_id)).size;
@@ -2403,6 +2475,7 @@ function renderMessages(view) {
         <button class="btn btn-primary" id="cliSend">🎁 Envoyer aux clients</button>
       </div>
     </div>
+    ${waCard()}
     <h3 style="margin:18px 0 8px">Derniers messages (48 h)</h3>
     ${msgs.messages.length ? `<div class="orders">${msgs.messages.map(m => {
       const r = msgs.replies.filter(x => x.message_id === m.id);
@@ -3381,6 +3454,37 @@ try { if (localStorage.getItem(LS_DUTY) && Store.session()) toggleDuty(); } catc
 UI.iosInstallHint("HOP! Patron");
 window.hopReady = true;
 
+// 📲 WhatsApp perso à vos clients : modèles, langue, « Suivant », coché une fois envoyé
+function waRedraw() { const c = document.querySelector(".wa-card"); if (c) c.outerHTML = waCard(); }
+function waHrefs() {
+  const byKey = new Map(waContacts().map(c => [c.key, c]));
+  document.querySelectorAll("[data-wa-send]").forEach(a => { const c = byKey.get(a.dataset.waSend); if (c) a.href = UI.waPersonal(c.phone, waText(c)); });
+}
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-wa-tpl], [data-wa-send], #waNext, #waReset, #waMore");
+  if (!t || !t.closest(".wa-card")) return;
+  if (t.dataset.waTpl != null) { waState.tpl = Number(t.dataset.waTpl); waState.fr = null; waState.he = null; return waRedraw(); }
+  if (t.dataset.waSend) { waMark(t.dataset.waSend); setTimeout(waRedraw, 400); return; }   // (le lien s'ouvre, puis la ligne passe à ✅)
+  if (t.id === "waNext") {
+    const sent = new Set(waSent());
+    const next = document.querySelector(`.wa-row:not(.sent) [data-wa-send]`);
+    if (!next || sent.has(next.dataset.waSend)) return;
+    e.preventDefault();
+    next.closest(".wa-row").scrollIntoView({ block: "center", behavior: "smooth" });
+    waMark(next.dataset.waSend);
+    window.open(next.href, "_blank", "noopener");
+    setTimeout(waRedraw, 400);
+    return;
+  }
+  if (t.id === "waReset") { if (confirm("Recommencer la liste (tout le monde redevient « à envoyer ») ?")) { try { localStorage.removeItem(waSentKey()); } catch (e2) { /* ignore */ } waRedraw(); } return; }
+  if (t.id === "waMore") { waState.open = !waState.open; return waRedraw(); }
+});
+document.addEventListener("input", e => {
+  if (e.target.id === "waFr") { waState.fr = e.target.value; waHrefs(); }
+  else if (e.target.id === "waHe") { waState.he = e.target.value; waHrefs(); }
+});
+document.addEventListener("change", e => { if (e.target.id === "waLang") { waState.lang = e.target.value; waRedraw(); } });
+
 })();
 
 // 📊 « Commande ouverte » touché : descend jusqu'à la liste des commandes ouvertes et pas envoyées
@@ -3389,3 +3493,4 @@ document.addEventListener("click", e => {
   const c = document.getElementById("openedCard");
   if (c) c.scrollIntoView({ behavior: "smooth", block: "start" });
 });
+
