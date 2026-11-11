@@ -18,6 +18,7 @@ import { Lancement, LANCEMENT_FRAMES } from './Lancement';
 import { Stop, STOP_FRAMES } from './Stop';
 import { SpotSac, SPOT_SAC_FRAMES, SpotSoda, SPOT_SODA_FRAMES, SpotPluie, SPOT_PLUIE_FRAMES, SpotLivraison, SPOT_LIVRAISON_FRAMES, SpotFilm, SPOT_FILM_FRAMES } from './Spots';
 import { Promos, PROMOS_FRAMES } from './Promos';
+import { Mezouzot, MEZOUZOT_FRAMES } from './Mezouzot';
 
 export const Root: React.FC = () => (
   <>
@@ -53,6 +54,8 @@ export const Root: React.FC = () => (
     <Composition id="SpotFilmHe" component={SpotFilm} durationInFrames={SPOT_FILM_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Composition id="HopPromos" component={Promos} durationInFrames={PROMOS_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
     <Composition id="HopPromosHe" component={Promos} durationInFrames={PROMOS_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
+    <Composition id="HopMezouzot" component={Mezouzot} durationInFrames={MEZOUZOT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="HopMezouzotHe" component={Mezouzot} durationInFrames={MEZOUZOT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Still id="HopGrid1" component={Grid} width={1080} height={1350} defaultProps={{ tile: 0 }} />
     <Still id="HopGrid2" component={Grid} width={1080} height={1350} defaultProps={{ tile: 1 }} />
     <Still id="HopGrid3" component={Grid} width={1080} height={1350} defaultProps={{ tile: 2 }} />
