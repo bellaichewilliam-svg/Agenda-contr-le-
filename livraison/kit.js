@@ -675,6 +675,8 @@ const CAMPS = [
 const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
+  // Nouveau (11/11, validée par le patron) : « Vos mezouzot chez le sofer, et retour » (vidéo Gemini montée : video/src/Mezouzot.tsx)
+  { id: "mezouzot", aud: "client", title: "📜 Nouveau · Vos mezouzot chez le sofer, et retour (13 s)" },
   // Pub vidéo (video/pubs/monter.py)
   { id: "kemia-envol", aud: "client", title: "🥗 Nouveau · Vendredi, les invités arrivent… la kemia est déjà prête (10 s)" },
   { id: "hoppy-bureau", aud: "client", title: "🦘 Nouveau · La pause, version Hoppy : snacks et boissons fraîches au bureau (10 s)" },
