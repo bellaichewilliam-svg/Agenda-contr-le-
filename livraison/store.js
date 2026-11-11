@@ -214,7 +214,15 @@ async function createOrder(order) {
   if (ONLINE && acct) order.client_key = acct.key;
   if (!ONLINE && isWelcome(order.promo_code) && await welcomeUsed(order.contact_phone)) throw new Error("welcome_used");
   if (ONLINE) {
-    await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" });
+    // Coupure réseau (« Failed to fetch ») : un 2e essai 1,5 s plus tard ; si le 1er était en fait arrivé, le même jeton
+    // revient en doublon (409) : la commande est bien enregistrée
+    try { await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" }); }
+    catch (e) {
+      if (e.status) throw e;
+      await new Promise(r => setTimeout(r, 1500));
+      try { await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" }); }
+      catch (e2) { if (!(e2.status === 409 || /duplicate key/.test(e2.message))) throw e2; }
+    }
     delete order.client_key;
     delete order.send_key;
     // Même règle que la base : payée directement au livreur (sauf carnet)
