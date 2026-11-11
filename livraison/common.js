@@ -1176,11 +1176,48 @@ function routeLayer(a, b, opts) {
   return g;
 }
 
+
+// Texte avec liens cliquables (SMS de la poste dans la note : « après réception, cliquez ici… ») : le texte est échappé,
+// seuls les liens http(s) deviennent des boutons, avec leur site bien visible (ex. « 🔗 sop1.biz »)
+function linkify(txt) {
+  return esc(txt).replace(/https?:\/\/[^\s<>"']+/g, u => {
+    const clean = u.replace(/[.,;:!?)\]]+$/, ""), rest = u.slice(clean.length);
+    let host = ""; try { host = new URL(clean.replace(/&amp;/g, "&")).host; } catch (e) { return u; }
+    return `<a class="note-link" href="${clean}" target="_blank" rel="noopener noreferrer">🔗 ${host}</a>${rest}`;
+  });
+}
+// SMS de la poste ou d'un point relais (« להזכירך-משלוח RU003194374Z5 / ח 409 / ממתין לך ביחידת הדואר- מינימרקט אושר- כתובת
+// חנה סנש 1 נתניה… https://… ») : n° du colis, n° de casier / d'étagère, point relais, adresse, liens (le 1er après
+// « לאחר קבלת » = confirmer la réception), rendez-vous obligatoire ou non
+function parsePostSms(txt) {
+  const s = String(txt || "").replace(/\r/g, ""), out = { links: [] };
+  const tr = s.match(/\b([A-Z]{2}\d{8,10}[A-Z0-9]{2}|[A-Z]{2}\d{9}[A-Z]{2}|\d{12,22})\b/);
+  if (tr) out.tracking = tr[1];
+  const sh = s.match(/(?:^|\n)\s*([\u05D0-\u05EA])\s?-?\s?(\d{1,5})\s*(?=\n|$)/);
+  if (sh) out.shelf = sh[1] + " " + sh[2];
+  const u = s.match(/(?:ביחידת(?: ה)?דואר|בסניף(?: ה)?דואר|בנקודת(?: ה)?(?:איסוף|מסירה)|בנקודת חלוקה|בסניף)\s*[-–:]?\s*([^\n]*?)\s*[-–,]\s*כתובת\s*:?\s*([^\n.]+)/);
+  if (u) {
+    out.place = u[1].replace(/^[-–:\s]+|[-–:\s]+$/g, "");
+    out.address = u[2].trim();
+    const a = out.address.match(/^(.+?)\s+(\d+[\u05D0-\u05EA]?)\s*,?\s*(.*)$/);
+    if (a) { out.street = a[1].trim(); out.number = a[2]; out.city = a[3].trim(); }
+  }
+  out.post = /דואר ישראל|יחידת(?: ה)?דואר|סניף(?: ה)?דואר|israelpost/i.test(s);
+  out.appt = /תור מראש|לזמן תור|זימון תור/.test(s);
+  const re = /https?:\/\/[^\s<>"']+/g; let m;
+  while ((m = re.exec(s))) {
+    const url = m[0].replace(/[.,;:!?)\]]+$/, ""), before = s.slice(s.lastIndexOf("\n", m.index - 1) + 1, m.index) || s.slice(Math.max(0, m.index - 60), m.index);
+    out.links.push({ url, confirm: /לאחר קבלת|אישור קבלה|לאישור/.test(before), info: /למידע נוסף|לפרטים/.test(before) });
+  }
+  out.ok = !!(out.tracking || out.place || out.links.length);
+  return out;
+}
+
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   ringTone, ringLoad, track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
-  mapTiles, isNight, waitRule, ratingOf, ratingText, esc, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
+  mapTiles, isNight, waitRule, ratingOf, ratingText, esc, linkify, parsePostSms, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 

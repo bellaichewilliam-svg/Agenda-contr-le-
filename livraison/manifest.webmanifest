@@ -28,5 +28,14 @@
       "purpose": "any"
     }
   ],
-  "id": "hop-client"
+  "id": "hop-client",
+  "share_target": {
+    "action": "/app/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }
