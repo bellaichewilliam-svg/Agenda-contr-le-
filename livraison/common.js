@@ -88,9 +88,11 @@ function welcomeUrl(o) { return CONFIG.siteUrl + "app/bienvenue.html?t=" + encod
 function welcomeMsg(o) {
   const he = o.lang === "he", first = String(o.dropoff_contact || o.contact_name || "").trim().split(/\s+/)[0];
   const shop = o.shop_name ? bi(o.shop_name, he ? "he" : "fr") : "";
+  const name = first && first.length > 1 && !/^\d/.test(first) ? " " + first : "";
+  // (patron, 11/11 : « Vous avez été livré avec HOP! Nous pouvons aussi livrer tous les magasins… »)
   return he
-    ? `שלום${first ? " " + first : ""} 👋\nההזמנה שלכם${shop ? " מ" + shop : ""} נמסרה על ידי הופ! 🛵🧡\nהופ! זה פתרון המשלוחים שלכם בכל העיר: מסעדות, חנויות, קניות בסופר, חבילות, ניקוי יבש…\nכל הפרטים כאן 👉 ${welcomeUrl(o)}`
-    : `Bonjour${first ? " " + first : ""} 👋\nVotre commande${shop ? " chez " + shop : ""} vous a été livrée par HOP! 🛵🧡\nHOP!, c'est votre solution de livraison dans toute la ville : restos, commerces, courses, colis, pressing…\nDécouvrez tout ici 👉 ${welcomeUrl(o)}`;
+    ? `שלום${name} 👋\nקיבלתם משלוח עם הופ! 🛵🧡${shop ? " (ההזמנה מ" + shop + ")" : ""}\nאנחנו מביאים לכם גם מכל החנויות בנתניה: קניות בסופר, בית מרקחת, מסעדות, חבילות, ניקוי יבש… החל מ־25 ₪ בעיר.\nמזמינים כאן 👉 ${welcomeUrl(o)}`
+    : `Bonjour${name} 👋\nVous avez été livré avec HOP! 🛵🧡${shop ? " (votre commande chez " + shop + ")" : ""}\nOn vous livre aussi tous les magasins de Netanya : courses au supermarché, pharmacie, restos, colis, pressing… dès 25 ₪ en ville.\nCommandez ici 👉 ${welcomeUrl(o)}`;
 }
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 // Patron : le WhatsApp « normal », pas WhatsApp Business, même quand Business est l'appli par défaut sur Android

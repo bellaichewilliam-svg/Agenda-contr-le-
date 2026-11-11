@@ -635,8 +635,14 @@ function card(o, withDay) {
   if (o.first_shop) meta.push(`<span class="pill new-client">🆕 1re livraison pour ce commerce</span>`);
   if (o.first_order) meta.push(`<span class="pill new-client">🆕 Nouveau client · 1re commande</span>`);
   if (o.addon_ref) { const p = orders.find(x => x.ref === o.addon_ref); meta.push(`<span class="pill addon-pill">➕ Ajout à la commande n° ${UI.esc(o.addon_ref)}${p && p.courier_name ? ` · à donner à ${UI.esc(p.courier_name.split(" ")[0])}` : ""}</span>`); }
-  if (o.first_order && o.status === "livree") meta.push(o.welcome_sent_at ? `<span class="pill paid">📣 Lien HOP! envoyé ✓</span>`
-    : `<a class="pill pill-btn btn-wa" target="_blank" rel="noopener" data-welcome-wa="${UI.esc(o.id)}" href="${UI.esc(UI.waPersonal(o.dropoff_phone || o.contact_phone, UI.welcomeMsg(o)))}">📣 Envoyer « Livré avec HOP! » (WhatsApp)</a>`);
+  // « Livré avec HOP! » sur toute course livrée, dès qu'on a un portable : d'abord la personne livrée (la cliente d'une course
+  // envoyée par un commerce), sinon celui qui a commandé s'il n'est pas le commerce (patron, 11/11)
+  const welPhone = waMobile(o.dropoff_phone) || (!(o.shop_name && String(o.contact_name || "").trim() === String(o.shop_name).trim()) && waMobile(o.contact_phone)) || "";
+  if (o.status === "livree" && welPhone && !(couriers.some(c => waD9(c.phone) === waD9(welPhone)))) {
+    const welOrder = welPhone === waMobile(o.dropoff_phone) ? o : Object.assign({}, o, { dropoff_contact: o.contact_name });
+    meta.push(o.welcome_sent_at ? `<span class="pill paid">📣 « Livré avec HOP! » envoyé ✓</span><a class="pill pill-btn" target="_blank" rel="noopener" href="${UI.esc(UI.waPersonal(welPhone, UI.welcomeMsg(welOrder)))}">↻ Renvoyer</a>`
+      : `<a class="pill pill-btn btn-wa" target="_blank" rel="noopener" data-welcome-wa="${UI.esc(o.id)}" href="${UI.esc(UI.waPersonal(welPhone, UI.welcomeMsg(welOrder)))}">📣 « Livré avec HOP! » à ${UI.esc(String((welPhone === waMobile(o.dropoff_phone) ? o.dropoff_contact : o.contact_name) || "").trim().split(/\s+/)[0] || welPhone)} (WhatsApp)</a>`);
+  }
   if (nbOn) meta.push(`<span class="pill unpaid nb-pill">⏰ Livraison demandée à partir de ${UI.esc(UI.fmtTime(nb))}${o.not_before ? "" : " (lu dans la note)"}</span>`);
   if (o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at && !["annulee", "refusee"].includes(o.status))
     meta.push(`<span class="pill ${o.status === "livree" && o.delivered_at && Date.now() - new Date(o.delivered_at) > 3 * 3600000 ? "st-annulee" : "unpaid"}">💵 ${UI.money(o.cash_goods)} d'articles à rapporter à ${UI.esc(o.shop_name || "le commerce")} par ${UI.esc((o.courier_name || "le livreur").split(" ")[0])}${o.status === "livree" ? " · livrée, pas encore rapportés" : ""}</span>`);
@@ -2235,6 +2241,8 @@ const CLIENT_TPL = [
 // --- 📲 WhatsApp perso à tous nos clients (patron, 11/11 : « envoyer les messages à toutes les personnes qui ont commandé,
 // sur mon WhatsApp normal, pas le pro ») : un bouton par client, son prénom et sa langue, coché une fois envoyé
 const WA_TPL = [
+  { id: "livre", t: "📣 Livré avec HOP!", fr: "Bonjour {prenom} 👋\nVous avez été livré avec HOP! 🛵🧡\nOn vous livre aussi tous les magasins de Netanya : courses au supermarché, pharmacie, restos, colis, pressing… dès 25 ₪ en ville.\nCommandez ici 👉 {lien}",
+    he: "שלום {prenom} 👋\nקיבלתם משלוח עם הופ! 🛵🧡\nאנחנו מביאים לכם גם מכל החנויות בנתניה: קניות בסופר, בית מרקחת, מסעדות, חבילות, ניקוי יבש… החל מ־25 ₪ בעיר.\nמזמינים כאן 👉 {lien}" },
   { id: "merci", t: "🙏 Merci + commander", fr: "Bonjour {prenom} 👋 Merci d'avoir commandé chez HOP! 🛵\nCourses, repas, pharmacie, colis : on vous livre tout à Netanya, dès 25 ₪ en ville.\nCommandez en 1 minute ici 👉 {lien}",
     he: "שלום {prenom} 👋 תודה שהזמנתם בהופ! 🛵\nקניות, אוכל, בית מרקחת, חבילות: אנחנו מביאים הכול בנתניה, החל מ־25 ₪ בעיר.\nמזמינים בדקה כאן 👉 {lien}" },
   { id: "courses", t: "🛒 Faites vos courses", fr: "Bonjour {prenom} 🛒 Faites vos courses sur HOP! : HOP! chez Carrefour, Rami Lévy, Victory, BOOOM… On y va pour vous et on vous livre à la maison.\n👉 {lien}",
