@@ -5535,3 +5535,21 @@ html[dir=rtl] .pa-x { transform: scaleX(-1); }
 .cg-items span { color: var(--muted); font-size: 12.5px; }
 .cg-items.on { border: 1px solid rgba(255,106,19,.6); }
 .cg-items.on b { color: #FF6A13; }
+
+/* SMS de la poste collé dans « Récupérer un colis » (patron, 11/11) : ce qui a été lu, en clair */
+.sms-paste textarea { min-height: 84px; font-size: 15px; line-height: 1.45; }
+.sms-found { display: grid; gap: 6px; padding: 12px 14px; border-radius: 14px; background: var(--green-soft, #E8F7EE); color: var(--text, #0F1F3D); border: 1px solid rgba(34, 160, 90, .35); font-size: 14px; }
+.sms-found.hidden { display: none !important; }
+.sms-found p { margin: 0; }
+.sms-found .sms-ok { font-weight: 800; }
+.sms-found ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.sms-found li { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.sms-found li span { color: var(--muted); min-width: 82px; }
+.sms-found li b { font-weight: 800; overflow-wrap: anywhere; }
+.sms-found .sms-pick { font-weight: 800; color: var(--brand, #FF6A13); }
+html.d2 .sms-found { background: rgba(34, 160, 90, .14); color: #fff; }
+/* Liens de la poste dans la note d'une course (livreur, patron) : de vrais boutons */
+.note-link { display: inline-flex; align-items: center; gap: 4px; margin: 2px 0; padding: 4px 10px; border-radius: 999px; background: #FF6A13; color: #fff !important; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.mine-note { white-space: pre-line; }
+.svc-retrait .sms-found:not(.hidden) { display: grid !important; }
+.sms-paste { flex-direction: column; }

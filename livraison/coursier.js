@@ -824,6 +824,8 @@ function card(o, kind) {
     extra += `<div class="bag-line">🔗 Groupée avec la course n° ${UI.esc(twin.ref)} : récupérez les deux, puis livrez ${d(o) <= d(twin) ? "<b>celle-ci d'abord</b> (la plus proche)" : `d'abord la n° ${UI.esc(twin.ref)} (la plus proche)`}.</div>`;
   }
   if (o.service === "retrait") extra += `<div class="small">${UI.esc(UI.PLACE_FR[o.place_kind] || "")} · N° ${UI.esc(o.tracking_number || "—")}${o.retrait_code ? (kind === "mine" ? ` · code du casier <b>${UI.esc(o.retrait_code)}</b>` : " · casier avec code") : ` · au nom de ${UI.esc(o.parcel_name || "—")}`}</div>`
+    + (() => { const c = kind === "mine" && UI.parsePostSms(o.notes).links.find(l => l.confirm);
+      return c ? `<div class="bag-line">📩 Colis en main ? <a class="note-link" href="${UI.esc(c.url)}" target="_blank" rel="noopener noreferrer">✅ Confirmer la réception à la poste</a> (lien du SMS du client)</div>` : ""; })()
     + (o.appt_at ? `<div class="bag-line">📅 Rendez-vous à la poste : <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b> : soyez au guichet à l'heure</div>` : "")
     + (o.docs_status === "ok" ? `<div class="small">✅ Documents vérifiés par HOP! (${o.place_kind === "poste" ? "avis, carte d'identité, procuration, rendez-vous" : o.place_kind === "locker" ? "SMS du casier" : "avis, carte d'identité"}) : à montrer au guichet</div>` : "");
   if (o.eta_status === "attente" && o.status === "confirmee" && new Date(o.eta_until) > Date.now()) {
@@ -942,7 +944,7 @@ function card(o, kind) {
       ${hopPaid ? `<span class="pill ${o.payment_status === "paye" ? "paid" : "unpaid"}">${o.payment_status === "paye" ? `✅ Déjà payée à HOP : rien à encaisser, HOP vous reverse ${UI.money(net)}` : (o.payment_method === "bit" ? "📱 Le client paie par Bit à HOP : n'encaissez rien" : "💳 Paiement d'avance à HOP en attente : n'encaissez rien")}</span>` : ""}
       ${kind === "mine" ? `<span class="pill">👤 ${UI.esc(o.contact_name)} · <a href="tel:${UI.esc(o.contact_phone)}">${UI.esc(o.contact_phone)}</a> · ${o.lang === "he" ? "🇮🇱 parle hébreu" : "🇫🇷 parle français"}</span>` : ""}
     </div>
-    ${o.notes && kind === "mine" ? `<p class="notice" style="margin-top:10px">📝 ${UI.esc(o.notes)}</p>` : ""}
+    ${o.notes && kind === "mine" ? `<p class="notice" style="margin-top:10px;white-space:pre-line">📝 ${UI.linkify(o.notes)}</p>` : ""}
     <div class="actions">${actions}</div>
   </article>`;
 }
@@ -1262,7 +1264,7 @@ function mineCard(o, x) {
     ${buyBlock(o)}
     ${UI.stopsLegs(o, true)}
     ${stop("dropoff", "🏁 ARRIVÉE", to)}
-    ${o.notes ? `<p class="mine-note">📝 ${UI.esc(o.notes)}</p>` : ""}
+    ${o.notes ? `<p class="mine-note">📝 ${UI.linkify(o.notes)}</p>` : ""}
     <div class="mine-extra">${x.extra}
       ${needPhoto(o) ? `<div class="small">${photoWhy(o)}</div>` : o.photo_wanted ? `<div class="small">📷 Le client aimerait une photo du colis : facultatif, envoyez-la par 💬 si vous pouvez</div>` : ""}
       ${o.goods_pay === "recu" ? `<div class="small pay-direct">✅ Articles déjà payés au commerce : rien à avancer</div>` : ""}

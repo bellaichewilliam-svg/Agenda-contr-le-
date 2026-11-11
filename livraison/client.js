@@ -1218,7 +1218,12 @@ function shopArt(p) {
   return logo ? `<span class="item-art logo-art"><img src="${logo}" alt="" loading="lazy" /></span>` : UI.itemArt(p.name, state.shop && state.shop.kind);
 }
 const notesText = () => (val("service") === "achat" ? val("notes").trim()
-  : pharmaLines().concat(whatTxt() ? [`📦 ${t("whatNote")} : ${whatTxt()}`] : [], posteIdOn() ? [POSTE_ID_NOTE] : [], val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
+  : pharmaLines().concat(whatTxt() ? [`📦 ${t("whatNote")} : ${whatTxt()}`] : [], posteIdOn() ? [POSTE_ID_NOTE] : [], smsNote(), val("notes").trim() ? [val("notes").trim()] : []).join("\n"));
+// SMS de la poste collé ou partagé : il part tel quel avec la course (le livreur et le patron ont les liens cliquables)
+function smsNote() {
+  const sms = val("service") === "retrait" && form.parcel_sms ? form.parcel_sms.value.trim() : "";
+  return sms ? [`📩 SMS de la poste :\n${sms.slice(0, 900)}`] : [];
+}
 // (pour le livreur et le patron, en français comme leur appli, avec l'hébreu)
 const POSTE_ID_NOTE = "🪪 POSTE : passer D'ABORD chez le client prendre sa vraie carte d'identité (et la procuration signée), puis la poste, puis rapporter le colis + la carte au client (aller-retour) · קודם לאסוף מהלקוח את תעודת הזהות המקורית";
 // Rayon façon grande appli de courses : recherche, rubriques en une ligne collante, produits en grille (3 par ligne)
@@ -1447,6 +1452,32 @@ function goPharma() {
 }
 // « Qu'est-ce qu'on livre ? » (tuiles) et cartes des rayons : on choisit, et on avance — d'abord le magasin
 // le plus proche quand il y a une liste (pharmacie, boulangerie, poste…), puis la commande avec ses produits
+// « Collez le SMS de la poste » (ou partagé vers HOP! depuis Messages / WhatsApp) : on remplit tout ce qu'on peut
+// (n° du colis, poste, adresse du point relais à confirmer dans la liste de la carte) et on montre ce qu'on a trouvé
+function applyPostSms(txt, focusAddr) {
+  const r = UI.parsePostSms(txt), box = $("#smsFound");
+  if (!r.ok) { box.classList.add("hidden"); box.innerHTML = ""; return r; }
+  if (r.tracking && !val("tracking_number").trim()) form.tracking_number.value = r.tracking;
+  if (r.post && form.place_kind.value !== "poste") { form.place_kind.value = "poste"; syncVisibility(); }
+  if (r.street && !(ac.from && ac.from.isPicked())) {
+    form.pickup_address.value = r.street;
+    if (r.number) form.pickup_number.value = r.number;
+    const cid = r.city && Places.matchCity(r.city);
+    if (cid && form.from_city) form.from_city.value = cid;
+    if (focusAddr) form.pickup_address.focus({ preventScroll: true });
+    form.pickup_address.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  if (r.place && form.pickup_note && !form.pickup_note.value.trim()) form.pickup_note.value = r.place + (r.shelf ? ` · ${r.shelf}` : "");
+  const li = (k, v) => v ? `<li><span>${UI.esc(t(k))}</span><b dir="auto">${UI.esc(v)}</b></li>` : "";
+  box.innerHTML = `<p class="sms-ok">✅ ${UI.esc(t("smsFound"))}</p><ul>${li("smsTracking", r.tracking)}${li("smsShelf", r.shelf)}${li("smsPlace", r.place)}${li("smsAddr", r.address)}</ul>`
+    + (r.links.length ? `<p class="sms-links">🔗 ${UI.esc(t("smsLinks", { n: r.links.length }))}</p>` : "")
+    + (r.appt ? `<p class="sms-appt">⏰ ${UI.esc(t("smsAppt"))}</p>` : "")
+    + (r.street && !(ac.from && ac.from.isPicked()) ? `<p class="sms-pick">👉 ${UI.esc(t("smsPickAddr"))}</p>` : "");
+  box.classList.remove("hidden");
+  return r;
+}
+let smsTimer = null;
+if (form.parcel_sms) form.parcel_sms.addEventListener("input", () => { clearTimeout(smsTimer); smsTimer = setTimeout(() => applyPostSms(form.parcel_sms.value, true), 400); });
 function goKind(id) {
   // (en premier : même si « restaurant » était déjà choisi avant, on montre les restaurants, pas la commande)
   // Accueil vitrine : « Repas de restaurant » montre les restaurants sur HOP! (leurs vrais menus), pas la carte
@@ -1726,6 +1757,7 @@ function applyExample(id) {
   form.reset();
   resetPlaces();
   fillDefaults();
+  $("#smsFound").classList.add("hidden");
   Object.entries(ex.set).forEach(([k, v]) => {
     const el = form.elements[k];
     if (el instanceof RadioNodeList) el.value = v;
@@ -5369,7 +5401,12 @@ function initHome() {
     if (hiddenAt && Date.now() - hiddenAt > 30 * 60000) setTimeout(showAppPromo, 900);
   });
   window.addEventListener("pageshow", e => { if (e.persisted) refreshShops(); });
-  if (listParam.trim()) setTimeout(() => {
+  if (sharedText.trim() && UI.parsePostSms(sharedText).ok) setTimeout(() => {
+    goKind("poste");
+    setTimeout(() => { form.parcel_sms.value = sharedText; applyPostSms(sharedText, false); form.parcel_sms.scrollIntoView({ block: "center", behavior: "smooth" }); }, 500);
+  }, 400);
+  else if (sharedText.trim()) setTimeout(() => { form.shopping_list.value = ""; startFreeOrder(sharedText); }, 400);
+  else if (listParam.trim()) setTimeout(() => {
     form.shopping_list.value = ""; startFreeOrder(listParam);
   }, 400);
   else if (kindParam && EXAMPLES.some(x => x.id === kindParam && !x.set.to_city)) setTimeout(() => goKind(kindParam), 400);
@@ -5382,7 +5419,7 @@ function initHome() {
 // ouverture, à tour de rôle. Jamais par-dessus une commande en cours, une page de commerce ou une autre fenêtre.
 const LS_PROMO = "livraison.promo.v1";
 async function showAppPromo() {
-  if (shopCode || kindParam || listParam || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length
+  if (shopCode || kindParam || listParam || sharedText || document.body.dataset.view !== "home" || Object.keys(state.cart || {}).length
     || document.querySelector(".promo-modal") || !$("#noticeModal").classList.contains("hidden")) return;
   let list;
   try { list = ((await Store.appPromos()) || []).filter(p => p.image_fr); } catch (e) { return; }
@@ -7044,6 +7081,9 @@ const addonToken = new URLSearchParams(location.search).get("addon");
 // Lien « commande prête » envoyé par le patron sur WhatsApp (?liste=…) : « J'achète pour vous » avec la liste déjà écrite,
 // le client met son adresse et valide (la commande passe par l'appli : suivi, livreurs, paiement comme d'habitude)
 const listParam = (new URLSearchParams(location.search).get("liste") || "").slice(0, 1500);
+// Texte partagé vers HOP! (Android : appui long sur le SMS de la poste ou un message WhatsApp → Partager → HOP!) :
+// un SMS de colis ouvre « Récupérer un colis » déjà rempli ; une liste de courses ouvre « On fait vos courses »
+const sharedText = (() => { const q = new URLSearchParams(location.search); return [q.get("title"), q.get("text"), q.get("url")].filter(Boolean).join("\n").slice(0, 1500); })();
 // Commande saisie par le patron pour un client WhatsApp (?pour=1, panneau → ✅ Réponses WhatsApp) : adresse, nom et
 // téléphone du client (rien de l'appareil du patron : ni ses adresses, ni son nom), puis « Envoyer le suivi au client »
 const forClient = (() => { let on = new URLSearchParams(location.search).get("pour") === "1";
