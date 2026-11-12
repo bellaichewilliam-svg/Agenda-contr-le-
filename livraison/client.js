@@ -6538,6 +6538,8 @@ function hvDom() {
     if (e.target.closest("[data-hv-cam]")) { hvStopListen(); if (hv.mini) hvMini(false); return $("#hvPhotoIn").click(); }
     if (e.target.closest("[data-hv-mic]")) return hv.rec ? hvStopListen() : hvListen();
     if (e.target.closest("[data-hv-lang]")) { hv.lang = hv.lang === "he" ? "fr" : "he"; hvLabels(); return; }
+    const aa = e.target.closest("[data-hv-all]");
+    if (aa) return hvAll(aa.dataset.hvAll);
     const al = e.target.closest("[data-hv-alt]");
     if (al) { const [i, k] = al.dataset.hvAlt.split("|").map(Number); return hvAlt(i, k); }
     const c = e.target.closest("[data-hv-choice]");
@@ -6714,11 +6716,31 @@ function hvBasketDraw() {
       const alts = (f.alts || []).map((a, k) => { const d = f.price != null ? a.price - f.price : 0;
         return `<button type="button" data-hv-alt="${i}|${k}"><bdi>${UI.esc(a.shop)}</bdi> <b>${UI.esc(money(a.price))}</b>${d < -0.004 ? ` <em>${UI.esc(hvT("hvBkCheaper"))}</em>` : ""}</button>`; }).join("");
       return `<div class="hb-row"><span class="hb-n"><b>${q > 1 ? q + " × " : ""}<bdi>${UI.esc(b.name)}</bdi></b>${f.shop ? `<small><bdi>${UI.esc(f.shop)}</bdi></small>` : ""}</span><span class="hb-p">${UI.esc(price)}</span></div>${alts ? `<div class="hb-alts"><i>${UI.esc(hvT("hvBkAlso"))}</i>${alts}</div>` : ""}`; }).join("");
+    // Tout le panier dans un autre magasin (« finalement je veux tout chez Victory ») : son total, un toucher pour basculer
+    const codeOf = r => (String(r || "").startsWith("p:") ? String(r).split(":")[1] : ""), per = {};
+    let priced = 0, cur = 0, curOk = true;
+    items.forEach((b, i) => { const f = infos[i] || {}, q = b.qty || 1, mine = codeOf(b.ref);
+      if (f.price == null && !(f.alts || []).length) return;
+      priced++;
+      if (f.price != null) cur += f.price * q; else curOk = false;
+      const seen = {};
+      if (mine && f.price != null) seen[mine] = { p: f.price * q, shop: f.shop };
+      (f.alts || []).forEach(a => { const c = codeOf(a.ref); if (c && !seen[c]) seen[c] = { p: a.price * q, shop: a.shop }; });
+      Object.entries(seen).forEach(([c, v]) => { per[c] = per[c] || { n: 0, sum: 0, shop: v.shop, same: 0 }; per[c].n++; per[c].sum += v.p; if (c === mine) per[c].same++; }); });
+    const all = Object.entries(per).filter(([, v]) => priced >= 1 && v.n === priced && v.same < priced).sort((a, c) => a[1].sum - c[1].sum).slice(0, 3)
+      .map(([c, v]) => `<button type="button" data-hv-all="${UI.esc(c)}"><span>${UI.esc(hvT("hvBkAll", { shop: v.shop }))}</span><b>${UI.esc(money(v.sum))}</b>${curOk && v.sum < cur - 0.004 ? `<em>${UI.esc(hvT("hvBkCheaper"))}</em>` : ""}</button>`).join("");
     const base = Number(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || 25);
-    box.innerHTML = `${rows}<div class="hb-total"><span>${UI.esc(hvT("hvBkTotal"))}${unknown ? ` <small>${UI.esc(hvT("hvBkMore"))}</small>` : ""}</span><b>${infos.length ? UI.esc((unknown ? "≈ " : "") + money(sum)) : "…"}</b></div><div class="hb-del">🛵 ${UI.esc(hvT("hvBkDeliv", { p: money(base) }))}</div>`;
+    box.innerHTML = `${rows}<div class="hb-total"><span>${UI.esc(hvT("hvBkTotal"))}${unknown ? ` <small>${UI.esc(hvT("hvBkMore"))}</small>` : ""}</span><b>${infos.length ? UI.esc((unknown ? "≈ " : "") + money(sum)) : "…"}</b></div>${all ? `<div class="hb-all">${all}</div>` : ""}<div class="hb-del">🛵 ${UI.esc(hvT("hvBkDeliv", { p: money(base) }))}</div>`;
   };
   paint([]);
   Promise.all(items.map(b => hvPrice(b).catch(() => ({})))).then(infos => { if (seq === hv.bkSeq) { hv.bkInfos = infos; paint(infos); } });
+}
+// Tout le panier bascule dans un autre magasin : chaque article prend son équivalent là-bas
+function hvAll(code) {
+  const infos = hv.bkInfos || [];
+  hv.basket = hv.basket.map((b, i) => { const a = ((infos[i] || {}).alts || []).find(x => String(x.ref).split(":")[1] === code); return a ? { ref: a.ref, name: a.name, qty: b.qty } : b; });
+  hv.toldMulti = false; hvKeepSave(); hvBasketDraw();
+  UI.track("voice_all", {});
 }
 // Un autre magasin choisi pour un article (moins cher, ou préféré) : la ligne change, le total se recalcule
 function hvAlt(i, k) {

@@ -5784,3 +5784,10 @@ html.d2-day .hv-basket span { background: none; }
    (qui montaient jusqu'à z-index 700 et se voyaient à travers la conversation) */
 body.trk-v2 .modal { z-index: 1000; }
 body.trk-v2 .chat-modal { z-index: 1010; }
+
+/* Basculer tout le panier dans un autre magasin */
+.hv-basket .hb-all { display: grid; gap: 6px; margin-top: 8px; }
+.hv-basket .hb-all button { display: flex; align-items: center; gap: 8px; width: 100%; border: 1px solid rgba(255,106,19,.45); background: rgba(255,106,19,.1); color: inherit; border-radius: 12px; padding: 8px 12px; font: inherit; font-size: 13.5px; cursor: pointer; text-align: start; }
+.hv-basket .hb-all button span { flex: 1; min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.hv-basket .hb-all button b { flex: none; font-weight: 800; white-space: nowrap; }
+.hv-basket .hb-all em { flex: none; font-style: normal; font-weight: 800; color: #12B76A; font-size: 12px; }
