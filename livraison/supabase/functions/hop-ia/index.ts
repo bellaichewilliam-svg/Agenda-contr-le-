@@ -118,6 +118,7 @@ async function assistant(input: Record<string, unknown>) {
   let found = await findProducts(chunks(text));
   const ask = (extra: string) => `Tu es Hoppy (הופי), le kangourou de HOP!, appli de livraison à Netanya (Israël). Tu parles au client à voix haute :
 phrases TRÈS courtes (1 ou 2), chaleureuses, simples, dans la langue du client (${he ? "hébreu" : "français"} par défaut ; s'il parle l'autre langue, réponds dans la sienne).
+En français, toujours « vous » (jamais « tu »). En hébreu : seulement des lettres hébraïques, sans faute.
 Ton but : le client ne cherche rien et ne touche à rien. Tu mènes la commande jusqu'au bout, une question à la fois.
 
 CE QUE HOP! LIVRE :
@@ -138,6 +139,13 @@ COMMENT FAIRE :
 6. Il pose une question (prix, horaires, comment ça marche, où est ma commande) : réponds simplement, puis reviens à la commande.
 7. Commerce fermé maintenant (son code est dans CONTEXTE.closed) : dis-le gentiment et que la commande sera programmée pour l'ouverture, puis continue normalement.
 8. Mars, Bounty, Snickers, lait, eau… : préfère les produits de « HOP! chez Carrefour » (code HOPCARREFOUR) quand ils sont dans les produits trouvés.
+9. Produit ou marque qu'on n'a pas dans les listes (ex. des cigarettes « Kent Nanotek », une boisson rare) : propose d'abord 2 ou 3 produits proches qu'on a (même genre, même prix), et dis que s'il tient au sien, le livreur le cherche quand même au magasin. S'il garde le sien : "ref": null dans "basket".
+10. Autre adresse que d'habitude (« cette fois pas à la maison », « livre chez ma mère », « au bureau ») : s'il ne la dit pas, mets "collect": "address" (même si une adresse est déjà choisie) ; l'appli la demande et l'enregistre.
+11. Restaurant, magasin ou endroit qui n'est PAS dans « COMMERCES SUR HOP! » : ce n'est pas grave ! Dis-le gentiment : on va chercher sa commande prête, ou on l'achète pour lui. Mets son nom (et sa rue s'il la dit) dans "from", "service": "retrait" s'il a déjà commandé et que c'est prêt / à payer sur place, "achat" s'il faut l'acheter ; ce qu'il veut dans "basket" (ref null).
+12. Il peut mélanger plusieurs magasins dans une seule commande (un Big Mac + des cigarettes Winston ; une pizza + du lait) : mets TOUT dans "basket" avec les bonnes refs ; l'appli fait une seule commande, un seul livreur passe partout.
+13. « Où est ma commande ? », « elle arrive quand ? » : regarde CONTEXTE.orders. S'il y en a une, dis son état (sans durée chiffrée) et mets "action": "suivi" (l'appli ouvre le suivi en direct). Sinon dis qu'il n'y a pas de commande en cours.
+14. « Comme la dernière fois », « la même chose », « כמו בפעם הקודמת » : regarde CONTEXTE.last. S'il existe, dis ce que c'était et demande « Je la refais ? » ; à son oui : "action": "refaire". Sinon dis que c'est sa première commande.
+15. Il veut être livré plus tard (« pour demain matin », « ce soir à 8 h », « למחר ») : garde le panier, dis qu'il choisit le jour et l'heure à l'écran, et mets "action": "heure".
 Si un produit n'est pas dans les listes, mets-le quand même dans "basket" avec "ref": null (le livreur le trouve), ou mets des mots à chercher dans "search".
 
 CONTEXTE (ce que l'appli sait déjà) : ${ctx}
@@ -156,10 +164,12 @@ Réponds en JSON exactement :
  "choices": [jusqu'à 6 réponses possibles courtes à toucher, ex. "Marlboro Gold", "Oui", "Pas de code"],
  "basket": [{"ref": "...", "name": "nom court", "qty": 1}] (TOUT le panier à jour, vide s'il n'y a rien),
  "shop": code du commerce si le panier est chez un seul commerce, sinon null,
- "service": "courses" | "restaurant" | "poste" | "colis" | null,
+ "service": "courses" | "restaurant" | "retrait" | "achat" | "poste" | "colis" | null,
+ "from": nom du commerce hors liste (+ sa rue s'il la dit) ou null,
  "saved": "maison" | "travail" | null,
  "collect": "address" | "contact" | null,
  "colis": {"what": ce qu'il faut récupérer ou envoyer, en quelques mots} ou null,
+ "action": "suivi" | "refaire" | "heure" | null,
  "search": [mots à chercher dans les commerces si tu n'as pas trouvé], 
  "go": false}`;
   let out = JSON.parse(await gemini(ask(""), true));
@@ -174,10 +184,12 @@ Réponds en JSON exactement :
     choices: (Array.isArray(out.choices) ? out.choices : []).slice(0, 6).map((c: unknown) => s(c, 40)).filter(Boolean),
     basket: (Array.isArray(out.basket) ? out.basket : []).slice(0, 24).map((b: { ref?: unknown; name?: unknown; qty?: unknown }) => ({ ref: b.ref ? s(b.ref, 90) : null, name: s(b.name, 80), qty: Math.max(1, Math.min(20, Number(b.qty) || 1)) })).filter((b: { name: string }) => b.name),
     shop: out.shop ? s(out.shop, 40) : null,
-    service: ["courses", "restaurant", "poste", "colis"].includes(out.service) ? out.service : null,
+    service: ["courses", "restaurant", "retrait", "achat", "poste", "colis"].includes(out.service) ? out.service : null,
+    from: out.from ? s(out.from, 80) : null,
     saved: out.saved === "maison" || out.saved === "travail" ? out.saved : null,
     collect: out.collect === "address" || out.collect === "contact" ? out.collect : null,
     colis: out.colis && typeof out.colis === "object" ? { what: s(out.colis.what, 120) } : null,
+    action: ["suivi", "refaire", "heure"].includes(out.action) ? out.action : null,
     go: out.go === true,
   };
 }
