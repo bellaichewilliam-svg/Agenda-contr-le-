@@ -1014,3 +1014,4 @@ livraison/
 - **Suivi client** : rond et chiffres plus petits, contour qui tourne tant qu'on attend un livreur, puis vraie progression qui avance avec le livreur.
 - **Livreur et patron** : bloc « 🛒 À acheter » en gros (une ligne par article), aussi dans la fenêtre « Nouvelle course ! » avant d'accepter (`UI.buyList`).
 - Mise en avant de la voix refaite : Hoppy parle dans une bulle, les exemples défilent, ondes animées (plus de cadre).
+- **Fin de commande à la voix (12/11)** : tabac / alcool → Hoppy demande « Vous avez bien 18 ans ? », la case se coche toute seule (« oui j'ai plus de 18 ans » la coche aussi à l'écran) ; « commander » / « oui » enchaîne toutes les étapes jusqu'à l'envoi, puis le suivi s'ouvre ; s'il manque quelque chose, Hoppy le dit ; s'il ne comprend pas pendant ces étapes, il redit quoi dire au lieu de s'arrêter.

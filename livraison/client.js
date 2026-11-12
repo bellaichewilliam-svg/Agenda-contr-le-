@@ -6642,7 +6642,11 @@ async function hvUser(text) {
   hvStopListen(); hvChoices([]);
   // Hoppy en petit, sur un vrai écran (fiche d'un plat, rayon, panier) : ce qui est dit touche le bon bouton
   if (hv.mini) {
+    hv.auto = 0;
     if (hvVoiceClick(text)) { hvMiniLine("✓ " + text); return setTimeout(hvGuide, 900); }
+    // Pas compris pendant les dernières étapes : Hoppy redit quoi dire (il ne lâche pas le client)
+    const inCheckout = ["#checkModal", "#cartSheet"].some(q => $(q) && !$(q).classList.contains("hidden")) || (!$("#commander").classList.contains("hidden") && $("#wizTitle") && $("#wizTitle").getClientRects().length && !$("#pharmaBox .ph-list") );
+    if (inCheckout && norm(text).split(" ").length <= 5) return hvGuide(hvT("hvNotGot"));
     hvMini(false);
   }
   hvBubble("c", text);
@@ -6768,7 +6772,12 @@ async function hvAsk(text) {
   if (out.action === "heure") return hvSay(out.say, [], () => { hvMini(true); hvMiniLine(hvT("hvWhenHint")); if (!$("#accueil").classList.contains("when-open")) $("#vitWhen").click(); window.scrollTo({ top: 0, behavior: "smooth" }); });
   // « Qu'est-ce que tu as à grignoter ? », « montre-moi les pizzas » : la bonne page s'ouvre, on choisit à la voix dessus
   if (out.open && out.open.type) return hvSay(out.say, [], () => hvOpenTarget(out.open));
-  if (out.go) return hvSay(out.say, [], () => hvGo(out));
+  if (out.go) {
+    const needAge = !hv.adultOk && (hv.basket || []).some(b => { const m = /^r:([^:]+):([^|]+)/.exec(String(b.ref || "")), r = m && window.Rayons && Rayons.byId(m[1]); return !!(r && (Rayons.items(r).find(i => i.id === m[2]) || {}).adult); });
+    if (needAge) { hv.local = { kind: "adult", out }; return hvSay(hvT("hvAskAdult"), [hvT("hvYes"), hvT("hvNo")]); }
+    hv.auto = 8;
+    return hvSay(out.say, [], () => hvGo(out));
+  }
   // (aussi quand une adresse est déjà choisie : « cette fois pas à la maison, chez ma mère »)
   if (out.collect === "address") return hvStartLocal("address");
   if (out.collect === "contact") return hvStartLocal("contact");
@@ -6792,6 +6801,12 @@ function hvStartLocal(kind) {
 }
 async function hvLocal(text) {
   const L = hv.local;
+  if (L.kind === "adult") {
+    hv.local = null;
+    if (/^(non|pas|לא)\b/i.test(text.trim())) return hvSay(hvT("hvAdultNo"), []);
+    hv.adultOk = true; hv.auto = 8;
+    return hvSay(hvT("hvAdultOk"), [], () => hvGo(L.out));
+  }
   if (L.kind === "address") {
     if (L.step === "street") {
       const num = (text.match(/\d+[א-תa-z]?/i) || [""])[0], street = text.replace(num, "").replace(/\b(rue|avenue|bd|boulevard|רחוב|רח')\b\.?/gi, "").replace(/[,،.]/g, " ").replace(/\s+/g, " ").trim();
@@ -6870,6 +6885,10 @@ function hvVoiceClick(text) {
   const said = norm(text).replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
   if (!said) return false;
   const top = ["#itemSheet", "#cartSheet", "#checkModal", "#rayItem"].map(q => $(q)).find(el => el && !el.classList.contains("hidden")) || document;
+  // « Oui, j'ai plus de 18 ans » : la case se coche, et on avance
+  if (/\b18\b|dix[- ]huit|majeur|שמונה עשרה|בגיר/.test(said) && form.adult_ok && !/^(non|לא)\b/.test(said)) {
+    hv.adultOk = true; hvAdultTick(); hv.auto = 8; return true;
+  }
   if (HV_BACK.test(said)) { const x = top !== document && top.querySelector(".it-x, [id$=Close], .modal-x"); if (x) { x.click(); return true; } return false; }
   // Une ligne du rayon (« Marlboro Gold ») : la marque, puis la variante dans sa liste, puis « + »
   for (const row of [...top.querySelectorAll(".ph-line, .ph-item")].filter(hvVis)) {
@@ -6883,8 +6902,9 @@ function hvVoiceClick(text) {
   }
   // « Ajouter », « Continuer », « Commander » : le bouton principal de ce qui est ouvert
   if (HV_GO.test(said)) {
-    const b = ["#itemAdd", "#cartGo", "#checkModal .btn-primary", "[data-cg-go]", "#mobileGo", "#pharmaBox ~ * .btn-primary"].map(q => (top === document ? document : top).querySelector(q) || document.querySelector(q)).find(hvVis);
-    if (b) { b.click(); return true; }
+    const b = ["#itemAdd", "#cartGo", "#checkModal .btn-primary", "[data-cg-go]", "#mobileGo", "#submitBtn"].map(q => (top === document ? document : top).querySelector(q) || document.querySelector(q)).find(hvVis);
+    // (« commander », « c'est bon », « oui » : on enchaîne jusqu'à l'envoi ; « continuer » : une étape)
+    if (b) { hv.auto = /^(?:commander|je commande|valider|c'est bon|c'est tout|oui|ok|okay|vas[- ]y|go|להזמין|כן|יאללה|סיימתי|זהו)/i.test(said) ? 8 : 0; b.click(); return true; }
   }
   // Sinon : le bouton ou l'option dont le nom ressemble le plus à ce qui est dit (taille, boisson, supplément, sans oignon…)
   let best = null, bs = 0;
@@ -6900,19 +6920,28 @@ function hvVoiceClick(text) {
 // Guidage 100 % à la voix (patron, 12/11 : « qu'une personne âgée qui ne sait pas écrire puisse passer une commande ») :
 // après chaque choix, Hoppy DIT où on en est (ce qui manque, le total, la dernière vérification, « c'est commandé ») et
 // réécoute. On n'a rien à lire ni à toucher : « continuer », « c'est bon », « j'ai 18 ans », « commander ».
-function hvGuide() {
+function hvAdultTick() {
+  const c = form.adult_ok;
+  if (c && hv.adultOk && !c.checked && (form.has_tobacco.checked || form.has_alcohol.checked)) { c.checked = true; c.dispatchEvent(new Event("change", { bubbles: true })); }
+}
+function hvGuide(pre) {
   if (!hv.mini) return;
+  hvAdultTick();
+  pre = typeof pre === "string" ? pre + " " : "";
   const vis = q => { const el = $(q); return el && el.getClientRects().length && !el.closest(".hidden") ? el : null; };
   if (vis("#doneTrack")) { const say = hvT("hvDone"); hvMiniLine(say); hv.pending = null; hv.hist = []; hv.basket = []; UI.track("voice_done", {});
     return hvSayMini(say, () => { const h = $("#doneTrack").getAttribute("href"); hvClose(); if (h && h !== "#") location.href = h; }); }
   const err = vis("#wizToast") || vis("#formError") || vis("#rulesErr");
   let say = "";
-  if (err && err.textContent.trim()) say = err.textContent.trim().slice(0, 220);
+  if (err && err.textContent.trim()) { hv.auto = 0; say = err.textContent.trim().slice(0, 220); }
+  // « Commander » dit une fois : on enchaîne les étapes sans rien redemander, jusqu'à l'envoi (ou jusqu'à ce qui manque)
+  else if (hv.auto > 0 && (vis("#checkOk") || vis("#cartGo") || vis("#mobileGo") || vis("#submitBtn")) && !vis("#itemSheet")) { hv.auto--; (vis("#checkOk") || vis("#cartGo") || vis("#mobileGo") || vis("#submitBtn")).click(); return setTimeout(hvGuide, 1000); }
   else if (vis("#checkModal")) say = hvT("hvGuideCheck", { total: ($("#mobileTotal") || {}).textContent || "" });
   else if (vis("#itemSheet")) return hvListen();
   else if (vis("#cartSheet")) say = hvT("hvGuideCart", { total: ($("#cartSum") || {}).textContent || "" });
   else if (vis("#wizTitle")) say = `${$("#wizTitle").textContent.trim()}. ${hvT("hvGuideNext")}`;
   else say = hvT("hvMiniPick");
+  say = pre + say;
   hvMiniLine(say); hvSayMini(say);
 }
 // Ouvrir ce qu'il demande à voir : une rubrique d'un rayon, un commerce, les restaurants, les promos, une recherche
