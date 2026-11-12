@@ -86,3 +86,21 @@ begin
 end $$;
 revoke all on function public.ia_assist(jsonb, text) from public;
 grant execute on function public.ia_assist(jsonb, text) to anon, authenticated;
+
+-- 🎤 Dialogue Hoppy d'une course (patron seulement, 12/11) : ce que le client a dit à Hoppy et ce que Hoppy a répondu,
+-- sur le même téléphone, dans les 6 h avant la commande (et 30 min après). Sert aussi pour une course refusée.
+create or replace function public.admin_ia_dialog(p_order uuid) returns json
+language plpgsql stable security definer set search_path = public as $$
+declare o record;
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  select id, ref, device_id, created_at into o from orders where id = p_order;
+  if o.id is null or o.device_id is null then return '[]'::json; end if;
+  return coalesce((select json_agg(json_build_object('at', j.created_at, 'client', j.input->>'text', 'hoppy', coalesce(j.output->>'say', j.output->>'reply'),
+                                                     'panier', j.output->'basket', 'etat', j.status) order by j.created_at)
+                     from ia_jobs j
+                    where j.device = o.device_id::text and j.kind in ('assistant', 'commande_vocale')
+                      and j.created_at between o.created_at - interval '6 hours' and o.created_at + interval '30 minutes'), '[]'::json);
+end $$;
+revoke all on function public.admin_ia_dialog(uuid) from public, anon;
+grant execute on function public.admin_ia_dialog(uuid) to authenticated;

@@ -2616,6 +2616,11 @@ async function adminCarts() {
   if (ONLINE) return (await authRest("/rest/v1/carts?select=*&status=neq.vide&order=updated_at.desc&limit=300")) || [];
   return Object.values(readJSON("livraison.carts.v1", {})).filter(c => c.status !== "vide").sort((a, b) => String(b.updated_at).localeCompare(a.updated_at));
 }
+// 🎤 Dialogue Hoppy d'une course (patron) : ce que le client a dit à Hoppy avant de commander
+async function adminIaDialog(orderId) {
+  if (!ONLINE) return [];
+  return (await authRest("/rest/v1/rpc/admin_ia_dialog", { method: "POST", body: { p_order: orderId } })) || [];
+}
 async function cartMark(device, changes) {
   if (ONLINE) return authRest("/rest/v1/carts?device=eq." + encodeURIComponent(device), { method: "PATCH", body: changes, prefer: "return=minimal" });
   const all = readJSON("livraison.carts.v1", {});
@@ -2889,7 +2894,7 @@ window.Store = {
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, cartPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
-  appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,
+  appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
