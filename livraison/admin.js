@@ -745,6 +745,7 @@ function card(o, withDay) {
       ${steps[o.status] || ""}
       ${!["annulee", "refusee"].includes(o.status) ? `<button class="btn btn-sm" data-act="paid">${o.payment_status === "paye" ? "↩︎ Non encaissé" : "💵 Encaissé"}</button>` : ""}
       ${chatBtn("o:" + o.id, `Course n° ${o.ref}`, `${o.contact_name || "Client"} · ${o.lang === "he" ? "hébreu 🇮🇱" : "français 🇫🇷"}${o.courier_name && !isMine(o) ? " · livreur " + o.courier_name : ""}`, "💬 Client")}
+      ${o.device_id ? `<button type="button" class="btn btn-sm" data-hoppy="${UI.esc(o.id)}">🎤 Dialogue Hoppy</button>` : ""}
       ${o.courier_id && !isMine(o) ? chatBtn("c:" + o.courier_id, `Livreur : ${o.courier_name || ""}`, "Vos messages avec ce livreur", "💬 Livreur", `Course n° ${o.ref} — `) : ""}
       ${o.leave_at_door && ["recuperee", "livree"].includes(o.status) ? chatBtn("o:" + o.id, `Course n° ${o.ref}`, "Photo du dépôt devant la porte", "📷 Photo du dépôt", I18N.forLang(o.lang || "fr", "msg_door", { name: o.dropoff_contact || o.contact_name || "", ref: o.ref }), true) : ""}
       <a class="btn btn-sm" href="${UI.trackUrl(o)}" target="_blank" rel="noopener">📍 Suivi</a>
@@ -3494,6 +3495,26 @@ document.addEventListener("input", e => {
 });
 document.addEventListener("change", e => { if (e.target.id === "waLang") { waState.lang = e.target.value; waRedraw(); } });
 
+// 🎤 Dialogue Hoppy (patron, 12/11) : ce que le client a dit à Hoppy avant cette course (aussi pour une course refusée),
+// avec la référence de la course et du client en tête
+document.addEventListener("click", async e => {
+  const b = e.target.closest && e.target.closest("[data-hoppy]");
+  if (!b) return;
+  const o = (orders || []).find(x => x.id === b.dataset.hoppy) || {};
+  let m = document.getElementById("hoppyDlg");
+  if (!m) { m = document.createElement("div"); m.id = "hoppyDlg"; m.className = "modal"; m.innerHTML = `<div class="modal-box hd-box"><div class="as-head"><h3>🎤 Dialogue Hoppy</h3><button type="button" class="as-x" data-hd-x aria-label="Fermer">✕</button></div><div id="hoppyDlgBody"></div></div>`; document.body.appendChild(m);
+    m.addEventListener("click", ev => { if (ev.target === m || ev.target.closest("[data-hd-x]")) m.classList.add("hidden"); }); }
+  m.classList.remove("hidden");
+  const head = `<p class="hd-ref"><b>Course n° ${UI.esc(o.ref || "")}</b> · ${UI.esc(o.contact_name || "Client")}${o.contact_phone ? " · " + UI.esc(o.contact_phone) : ""}<br><small>${UI.esc(UI.fmtDateTime(o.created_at))} · ${UI.esc((Store.STATUSES && Store.STATUSES[o.status] && Store.STATUSES[o.status].label) || o.status || "")}</small></p>`;
+  const body = document.getElementById("hoppyDlgBody");
+  body.innerHTML = head + `<p class="muted">Chargement…</p>`;
+  let list = [];
+  try { list = await Store.adminIaDialog(o.id); } catch (err) { body.innerHTML = head + `<p class="notice err">Impossible de charger le dialogue.</p>`; return; }
+  if (!Array.isArray(list) || !list.length) { body.innerHTML = head + `<p class="muted">Pas de dialogue avec Hoppy pour cette course : le client a commandé à la main.</p>`; return; }
+  const last = list[list.length - 1], bk = Array.isArray(last.panier) ? last.panier : [];
+  body.innerHTML = head + `<div class="hd-log">${list.map(x => `<div class="hd-me"><small>${UI.esc(UI.fmtTime(x.at))}</small>${UI.esc(x.client || "")}</div>${x.hoppy ? `<div class="hd-hop">${UI.esc(x.hoppy)}</div>` : x.etat === "erreur" ? `<div class="hd-hop err">(Hoppy n'a pas répondu)</div>` : ""}`).join("")}</div>`
+    + (bk.length ? UI.buyList(bk.map(i => `${i.name} ×${i.qty || 1}`).join("\n"), "Panier compris par Hoppy") : "");
+});
 })();
 
 // 📊 « Commande ouverte » touché : descend jusqu'à la liste des commandes ouvertes et pas envoyées
