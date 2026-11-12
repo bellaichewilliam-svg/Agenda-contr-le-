@@ -965,6 +965,19 @@ function doorTag(o, lang) {
   return o.leave_at_door ? `<div class="door-tag">${esc(window.I18N ? I18N.forLang(lang || "fr", "doorTag") : "🚪")}</div>` : "";
 }
 
+// « À acheter » bien lisible pour le livreur et le patron (patron, 12/11 : « la commande est beaucoup trop petite, le
+// livreur ne voit rien de ce qu'il faut acheter ») : un bloc à part, une ligne par article, en gros, la quantité en pastille
+function buyList(text, title) {
+  const txt = String(text == null ? "" : text).trim();
+  if (!txt) return "";
+  const lines = txt.split(/\n+/).map(x => x.trim()).filter(Boolean);
+  const rows = lines.map(l => {
+    const m = /^(.*?)\s*[×x]\s*(\d{1,2})$/.exec(l) || null, m2 = m ? null : /^(\d{1,2})\s*[×x]\s*(.+)$/.exec(l);
+    const name = m ? m[1] : m2 ? m2[2] : l, qty = m ? m[2] : m2 ? m2[1] : "";
+    return `<li>${qty ? `<em>${esc(qty)}×</em>` : `<em class="dot">•</em>`}<span>${esc(name)}</span></li>`;
+  }).join("");
+  return `<div class="buy-list"><b class="bl-t">🛒 ${esc(title || "À acheter")}</b><ul>${rows}</ul></div>`;
+}
 // Remarque sur une adresse (étage, code…), affichée sous l'adresse
 // Nom de l'enseigne (Super-Pharm, restaurant…) au-dessus de l'adresse
 function brand(name) { return name ? `<span class="brand-tag">🏪 <bdi>${esc(name)}</bdi></span>` : ""; }
@@ -1219,7 +1232,7 @@ window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   ringTone, ringLoad, track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
-  mapTiles, isNight, waitRule, ratingOf, ratingText, esc, linkify, parsePostSms, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
+  mapTiles, isNight, waitRule, ratingOf, ratingText, esc, linkify, buyList, parsePostSms, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
 

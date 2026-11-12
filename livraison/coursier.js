@@ -843,7 +843,7 @@ function card(o, kind) {
     const ex = String(o.shop_order || "").split("\n");
     if (kind === "mine" && ex.length > 2) extra += freeListBox({ id: o.id + "-x", shopping_list: ex.slice(1).join("\n") });
   }
-  else if (o.service === "achat") extra += (kind === "mine" ? freeListBox(o) : "") + `<div class="small">🛒 ${kind === "mine" && freeListItems(o).length >= 2 ? "" : UI.esc(o.shopping_list || "—")}${o.budget && !o.goods_prepay ? ` · budget ≈ ${UI.money(o.budget)}` : ""}${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
+  else if (o.service === "achat") extra += (kind === "mine" ? freeListBox(o) : "") + (kind === "mine" && freeListItems(o).length >= 2 ? "" : UI.buyList(o.shopping_list)) + `<div class="small">${o.budget && !o.goods_prepay ? `💰 budget ≈ ${UI.money(o.budget)}<br>` : ""}${o.purchase_min ? `⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
     ? `💵 <b>Espèces : vous payez le magasin, ${UI.money(o.goods_budget)} au plus</b> (vous avez annoncé avoir les espèces). 🧾 Photo du ticket, puis le client vous paie la course + le ticket exact à la livraison.`
     : o.goods_after ? `🧾 <b>Vous avancez les articles : ${UI.money(o.goods_budget)} au plus.</b> Le client paie d'abord la course (« 📱 Payé par Bit » ✅), puis vous achetez. Plus cher que ${UI.money(o.goods_budget)} ? Appelez-le avant de payer. 🧾 Photo du ticket : le client vous envoie le montant exact par Bit, touchez « Ticket reçu », puis livrez.`
     : o.goods_prepay ? `💳 <b>Articles payés d'avance : ${UI.money(o.goods_budget)} au plus</b>, avec la course. N'achetez qu'après « 📱 Payé par Bit » ✅ et payez le magasin avec cet argent. Plus cher ? Le client vous envoie d'abord le complément. Puis 🧾 photo du ticket et la différence rendue par Bit avant « Livré ».`
@@ -2399,6 +2399,13 @@ function showNextOffer() {
   // Mis à jour pendant que ça sonne (le commerce peut la marquer prête entre-temps)
   const showReady = () => { $("#offerReady").innerHTML = readyBanner(pool().find(x => x.id === o.id) || o, pickEta); };
   showReady();
+  // Ce qu'il faut acheter, visible AVANT d'accepter (patron, 12/11 : « je reçois la course, mais je ne sais pas ce qu'il
+  // faut acheter ») : les 6 premières lignes, le reste compté
+  let ob = $("#offerBuy");
+  if (!ob) { ob = document.createElement("div"); ob.id = "offerBuy"; $("#offerReady").after(ob); }
+  const buyTxt = o.service === "achat" ? String(o.shopping_list || "").trim() : "";
+  const buyLines = buyTxt.split(/\n+/).map(x => x.trim()).filter(Boolean);
+  ob.innerHTML = buyLines.length ? UI.buyList(buyLines.slice(0, 6).join("\n")) + (buyLines.length > 6 ? `<p class="bl-more">+ ${buyLines.length - 6} autres articles</p>` : "") : "";
   // Deux courses : livrer d'abord l'arrivée la plus proche du départ
   const order2 = mate ? [o, mate].sort((a, b) => Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +a.dropoff_lat, +a.dropoff_lon) - Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +b.dropoff_lat, +b.dropoff_lon)) : null;
   const samePick = mate && Store.kmBetween(+o.pickup_lat, +o.pickup_lon, +mate.pickup_lat, +mate.pickup_lon) < 0.08;

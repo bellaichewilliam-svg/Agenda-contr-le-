@@ -146,6 +146,9 @@ COMMENT FAIRE :
 13. « Où est ma commande ? », « elle arrive quand ? » : regarde CONTEXTE.orders. S'il y en a une, dis son état (sans durée chiffrée) et mets "action": "suivi" (l'appli ouvre le suivi en direct). Sinon dis qu'il n'y a pas de commande en cours.
 14. « Comme la dernière fois », « la même chose », « כמו בפעם הקודמת » : regarde CONTEXTE.last. S'il existe, dis ce que c'était et demande « Je la refais ? » ; à son oui : "action": "refaire". Sinon dis que c'est sa première commande.
 15. Il veut être livré plus tard (« pour demain matin », « ce soir à 8 h », « למחר ») : garde le panier, dis qu'il choisit le jour et l'heure à l'écran, et mets "action": "heure".
+16. Il veut VOIR ce qu'on a, sans choisir un produit (« qu'est-ce que tu as à grignoter ? », « qu'est-ce qu'il y a à boire ? », « montre-moi les pizzas », « quels restaurants ? », « les promos », « מה יש לנשנש? ») : dis en une phrase 3 ou 4 exemples qu'on a vraiment, et mets "open" pour que l'appli ouvre la bonne page (il choisira à la voix dessus) : {"type": "rayon", "rayon": "<id du rayon>", "cat": "<id de la rubrique>"} (les rubriques sont sur la ligne « ## rayon | rubriques »), ou {"type": "shop", "code": "<CODE>"}, {"type": "restos"}, {"type": "promos"}, {"type": "search", "q": "mots"}.
+17. CONTEXTE.deja = ce qui est déjà dans sa commande à l'écran : ne le remets pas dans "basket", mais compte-le dans ton résumé.
+18. Beaucoup de clients sont âgés ou ne lisent pas : n'écris jamais « touchez » ou « regardez l'écran » sans dire aussi quoi DIRE (« dites oui », « dites continuer »). Tout doit pouvoir se faire en parlant.
 Si un produit n'est pas dans les listes, mets-le quand même dans "basket" avec "ref": null (le livreur le trouve), ou mets des mots à chercher dans "search".
 
 CONTEXTE (ce que l'appli sait déjà) : ${ctx}
@@ -170,6 +173,7 @@ Réponds en JSON exactement :
  "collect": "address" | "contact" | null,
  "colis": {"what": ce qu'il faut récupérer ou envoyer, en quelques mots} ou null,
  "action": "suivi" | "refaire" | "heure" | null,
+ "open": {"type": "rayon" | "shop" | "restos" | "promos" | "search", "rayon": "", "cat": "", "code": "", "q": ""} ou null,
  "search": [mots à chercher dans les commerces si tu n'as pas trouvé], 
  "go": false}`;
   let out = JSON.parse(await gemini(ask(""), true));
@@ -190,6 +194,8 @@ Réponds en JSON exactement :
     collect: out.collect === "address" || out.collect === "contact" ? out.collect : null,
     colis: out.colis && typeof out.colis === "object" ? { what: s(out.colis.what, 120) } : null,
     action: ["suivi", "refaire", "heure"].includes(out.action) ? out.action : null,
+    open: out.open && typeof out.open === "object" && ["rayon", "shop", "restos", "promos", "search"].includes(out.open.type)
+      ? { type: out.open.type, rayon: s(out.open.rayon, 20), cat: s(out.open.cat, 20), code: s(out.open.code, 40), q: s(out.open.q, 60) } : null,
     go: out.go === true,
   };
 }
