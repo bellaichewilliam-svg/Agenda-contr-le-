@@ -209,7 +209,10 @@ async function pushSubscribeOnce() {
     let sub = await reg.pushManager.getSubscription();
     if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appKey });
     const j = sub.toJSON();
-    pushDone = !!(await Store.pushSubscribe(j.endpoint, j.keys.p256dh, j.keys.auth));
+    // (chaque appli dit qui elle est : le patron reçoit ses alertes seulement dans HOP! Patron, un livreur dans HOP! Livreur,
+    // et plus en triple quand les 3 applis sont installées sur le même téléphone)
+    const app = /admin\.html/.test(location.pathname) ? "admin" : /coursier\.html/.test(location.pathname) ? "courier" : "client";
+    pushDone = !!(await Store.pushSubscribe(j.endpoint, j.keys.p256dh, j.keys.auth, app));
     return pushDone;
   } catch (e) { return false; }
 }

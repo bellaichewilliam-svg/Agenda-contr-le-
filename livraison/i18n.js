@@ -680,7 +680,7 @@ fr: {
   ckTitle: "Vérifiez vos adresses", ckSub: "Les épingles sont-elles au bon endroit ? Si besoin, faites-les glisser sur la carte : le livreur ira exactement là.",
   ckOk: "✅ C'est bon, je commande", ckBack: "✏️ Corriger", ckMoved: "✓ position corrigée sur la carte", ckFrom: "📍 Départ", ckTo: "🏁 Arrivée",
   // Messagerie dans l'application
-  chPh: "Votre message…", chEmpty: "Écrivez-nous ici : on vous répond dans l'application.",
+  chCmd: "Valider ma commande", chCmdNote: "Commande proposée", chPh: "Votre message…", chEmpty: "Écrivez-nous ici : on vous répond dans l'application.",
   chErr: "Message non envoyé, réessayez.", chBig: "Photo trop lourde, essayez-en une autre.",
   chYou: "Vous", a_client: "Client", a_courier: "Livreur", a_admin: "HOP! · service client", a_shop: "Commerce",
   cs_confirmee: "✅ Course acceptée par le livreur", cs_recuperee: "🛵 Colis récupéré, le livreur arrive", cs_livree: "📦 Livré ! Merci",
@@ -1537,7 +1537,7 @@ he: {
   qpPosSub: "איפה שאתם נמצאים עכשיו", tagHome: "בית", tagWork: "עבודה", tagOther: "שם אחר…", tagNamePh: "שם לכתובת (למשל: אמא, חדר כושר)", myPosChip: "📍 המיקום שלי",
   ckTitle: "בדקו את הכתובות", ckSub: "הסיכות במקום הנכון? אם צריך, גררו אותן על המפה: השליח יגיע בדיוק לשם.",
   ckOk: "✅ הכול נכון, מזמינים", ckBack: "✏️ לתקן", ckMoved: "✓ המיקום תוקן על המפה", ckFrom: "📍 איסוף", ckTo: "🏁 מסירה",
-  chPh: "ההודעה שלכם…", chEmpty: "כתבו לנו כאן: אנחנו עונים באפליקציה.",
+  chCmd: "לאישור ההזמנה", chCmdNote: "הזמנה שהוצעה", chPh: "ההודעה שלכם…", chEmpty: "כתבו לנו כאן: אנחנו עונים באפליקציה.",
   chErr: "ההודעה לא נשלחה, נסו שוב.", chBig: "התמונה כבדה מדי, נסו תמונה אחרת.",
   chYou: "אתם", a_client: "לקוח", a_courier: "שליח", a_admin: "הופ! · שירות לקוחות", a_shop: "עסק",
   cs_confirmee: "✅ השליח אישר את המשלוח", cs_recuperee: "🛵 החבילה נאספה, השליח בדרך", cs_livree: "📦 נמסר! תודה",

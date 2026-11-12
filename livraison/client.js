@@ -6824,6 +6824,13 @@ function hvIndex() {
     s += `r:${r.id}:${i.id} | ${i.fr}${i.he ? " / " + i.he : ""} | ${pr ? [].concat(pr).join("-") : ""}${i.opt ? " | " + i.opt.map((o, k) => `${k} ${o.fr || o}`).join(" / ") : ""}\n`; }); });
   return (hv.idx = s.slice(0, 26000));
 }
+// Bouton « Valider ma commande » du chat : Hoppy s'ouvre et reprend la demande du client, jusqu'à la vraie commande
+window.HopVoice = text => {
+  text = String(text || "").trim().slice(0, 400);
+  if (!window.Store || !Store.iaAssist) return;
+  hvOpen();
+  if (text) setTimeout(() => hvUser(text), 700);
+};
 async function hvUser(text) {
   text = String(text || "").trim();
   if (!text || hv.busy) return;
