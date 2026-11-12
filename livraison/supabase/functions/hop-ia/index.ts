@@ -78,7 +78,107 @@ Ne mets jamais d'adresse, de nom de personne ou de numéro de téléphone dans l
       reply: String(out.reply ?? "").slice(0, 200),
     };
   }
+  // 🎤 Hoppy, l'assistant qui parle (patron, 12/11) : une vraie conversation, à la voix ou par écrit, en français ou en hébreu.
+  // Il comprend, pose les questions qu'il faut (quelle marque, adresse, étage, code, nom, téléphone…), propose des
+  // produits proches (un Bounty avec un Mars), puis lance la commande dans l'appli. Le client ne cherche plus rien.
+  if (kind === "assistant") return await assistant(input);
   throw new Error("tache_inconnue");
+}
+
+// Recherche des vrais produits des commerces (même recherche que l'appli), plusieurs demandes en parallèle
+const STOP = new Set(("je j veux voudrais voulais aimerais besoin donne donnez moi me m un une des du de d la le les l et avec svp stp plait plaît s il te vous " +
+  "chez pour a à au aux en sur livrer livre livré livrez apporte apportez amener prendre commander commande acheter cherche trouve " +
+  "maison travail bureau aussi encore oui non merci bonjour salut paquet paquets bouteille bouteilles " +
+  "אני רוצה רציתי צריך צריכה תביא תביאו לי בבקשה של עם את גם הביתה לעבודה תודה כן לא שלום").split(/\s+/));
+function chunks(text: string): string[] {
+  return String(text || "").toLowerCase().split(/\s*(?:,|;|\n|\+|\s(?:et|puis|avec|and|ou)\s|\sוגם\s|\sו(?=[א-ת]{2}))\s*/)
+    .map(c => c.replace(/[«»"!?.:]/g, " ").split(/\s+/).filter(w => w && !STOP.has(w.replace(/^[ld]['’]/, "")) && !/^\d+$/.test(w)).join(" ").trim())
+    .filter(c => c.length >= 2).slice(0, 5);
+}
+async function findProducts(queries: string[]): Promise<string[]> {
+  const uniq = [...new Set(queries.map(q => q.trim()).filter(q => q.length >= 2))].slice(0, 6);
+  const res = await Promise.all(uniq.map(q => db.rpc("products_search_v3", { p_q: q }).then(r => (r.data as { id: string; name: string; price: number; code: string; shop: string }[] | null) ?? [], () => [])));
+  const out: string[] = [], seen = new Set<string>();
+  res.forEach((list, k) => list.slice(0, 7).forEach(p => {
+    const ref = `p:${p.code}:${p.id}`;
+    if (seen.has(ref)) return; seen.add(ref);
+    out.push(`${ref} | ${String(p.name).slice(0, 90)} | ${p.price} ₪ | ${String(p.shop).slice(0, 40)} | (cherché : ${uniq[k]})`);
+  }));
+  return out.slice(0, 40);
+}
+
+type Hist = { r: string; t: string };
+async function assistant(input: Record<string, unknown>) {
+  const he = input.lang === "he";
+  const hist = ((input.history as Hist[]) ?? []).slice(-14).map(h => `${h.r === "c" ? "CLIENT" : "HOPPY"} : ${String(h.t).slice(0, 300)}`).join("\n");
+  const text = String(input.text ?? "").slice(0, 400);
+  const ctx = JSON.stringify(input.ctx ?? {}).slice(0, 3000);
+  const rayons = String(input.rayons ?? "").slice(0, 26000);
+  const shops = JSON.stringify(((input.shops as unknown[]) ?? []).slice(0, 80)).slice(0, 5000);
+  let found = await findProducts(chunks(text));
+  const ask = (extra: string) => `Tu es Hoppy (הופי), le kangourou de HOP!, appli de livraison à Netanya (Israël). Tu parles au client à voix haute :
+phrases TRÈS courtes (1 ou 2), chaleureuses, simples, dans la langue du client (${he ? "hébreu" : "français"} par défaut ; s'il parle l'autre langue, réponds dans la sienne).
+Ton but : le client ne cherche rien et ne touche à rien. Tu mènes la commande jusqu'au bout, une question à la fois.
+
+CE QUE HOP! LIVRE :
+- « Courses HOP! » (rayons ci-dessous : pharmacie, tabac, boulangerie, supérette, bébé, animaux, maison…) : le livreur l'achète au magasin le plus proche, au prix du magasin. ref = "r:<rayon>:<id>|<n° option>" (option : le numéro dans la liste des options, sinon 0 ; sans options : "r:<rayon>:<id>").
+- Les commerces sur HOP! (restaurants, HOP! chez Carrefour, Victory…) : produits trouvés ci-dessous, ref = "p:<CODE>:<id>". Un plat de restaurant vient de ce restaurant.
+- Récupérer un colis (poste, point relais) : service "poste" (le client collera le SMS de la poste dans l'appli). Envoyer / déposer un objet, des clés, des documents : service "colis".
+- Livraison : 25 ₪ en ville, 30 ₪ vers une zone industrielle ou un quartier à part (dis « dès 25 ₪ »). Jamais de durée chiffrée : dis « au plus vite ». Ne cite jamais d'autre appli ni de « partenaire ».
+- Tabac / alcool : 18 ans et plus, pièce d'identité montrée au livreur. « Cigarettes » = le rayon tabac (Marlboro, Winston…), jamais des biscuits « cigares ». Prix du tabac : seulement « environ X ₪ le paquet ».
+
+COMMENT FAIRE :
+1. Comprends ce qu'il veut. Produit vague (« des cigarettes », « du lait », « une pizza ») : demande lequel avec 3 à 6 choix précis tirés des listes (marque + variante, ex. « Marlboro Gold »). Ne devine pas.
+2. Dès qu'un produit est choisi, mets-le dans "basket" (avec sa ref exacte). Puis propose UNE fois 1 à 3 produits proches ou qui vont avec, qui existent dans les listes (Mars → Bounty, Snickers ; cigarettes → briquet ; pâtes → sauce tomate).
+3. Adresse de livraison (CONTEXTE.addr) : "to" vrai → elle est déjà choisie, ne redemande rien. Sinon, si "home" est vrai, demande « Je livre à la maison ? » (oui → "saved": "maison" ; « au travail » → "saved": "travail"). Sinon mets "collect": "address" : l'appli pose elle-même les questions (rue, numéro, étage, appartement, code) sans toi.
+4. Nom et téléphone (CONTEXTE.contact) : s'il en manque un, mets "collect": "contact" (l'appli les demande elle-même).
+   Tu ne connais JAMAIS l'adresse, le nom ni le téléphone du client et tu ne les écris jamais : dis seulement « à la maison », « à votre adresse ».
+5. Quand tout y est (panier + adresse + contact) : résume en une phrase (les articles) et demande « Je lance la commande ? ». S'il dit oui (« vas-y », « כן », « יאללה ») : "go": true.
+6. Il pose une question (prix, horaires, comment ça marche, où est ma commande) : réponds simplement, puis reviens à la commande.
+7. Commerce fermé maintenant (son code est dans CONTEXTE.closed) : dis-le gentiment et que la commande sera programmée pour l'ouverture, puis continue normalement.
+8. Mars, Bounty, Snickers, lait, eau… : préfère les produits de « HOP! chez Carrefour » (code HOPCARREFOUR) quand ils sont dans les produits trouvés.
+Si un produit n'est pas dans les listes, mets-le quand même dans "basket" avec "ref": null (le livreur le trouve), ou mets des mots à chercher dans "search".
+
+CONTEXTE (ce que l'appli sait déjà) : ${ctx}
+COMMERCES SUR HOP! : ${shops}
+RAYONS « Courses HOP! » (ref | nom | prix indicatif ₪ | options numérotées) :
+${rayons}
+PRODUITS TROUVÉS DANS LES COMMERCES (ref | nom | prix | commerce) :
+${found.join("\n") || "(rien)"}${extra}
+
+CONVERSATION :
+${hist}
+CLIENT : ${text}
+
+Réponds en JSON exactement :
+{"say": ce que tu dis (court, à voix haute),
+ "choices": [jusqu'à 6 réponses possibles courtes à toucher, ex. "Marlboro Gold", "Oui", "Pas de code"],
+ "basket": [{"ref": "...", "name": "nom court", "qty": 1}] (TOUT le panier à jour, vide s'il n'y a rien),
+ "shop": code du commerce si le panier est chez un seul commerce, sinon null,
+ "service": "courses" | "restaurant" | "poste" | "colis" | null,
+ "saved": "maison" | "travail" | null,
+ "collect": "address" | "contact" | null,
+ "colis": {"what": ce qu'il faut récupérer ou envoyer, en quelques mots} ou null,
+ "search": [mots à chercher dans les commerces si tu n'as pas trouvé], 
+ "go": false}`;
+  let out = JSON.parse(await gemini(ask(""), true));
+  // Il manquait des produits : on cherche ce qu'il demande et on refait une seule fois
+  if (Array.isArray(out.search) && out.search.length && !out.go) {
+    const more = await findProducts(out.search.map(String));
+    if (more.length) { found = [...found, ...more].slice(0, 60); out = JSON.parse(await gemini(ask("\n(Nouvelle recherche faite : utilise ces produits.)"), true)); }
+  }
+  const s = (v: unknown, n = 80) => String(v ?? "").slice(0, n);
+  return {
+    say: s(out.say, 400),
+    choices: (Array.isArray(out.choices) ? out.choices : []).slice(0, 6).map((c: unknown) => s(c, 40)).filter(Boolean),
+    basket: (Array.isArray(out.basket) ? out.basket : []).slice(0, 24).map((b: { ref?: unknown; name?: unknown; qty?: unknown }) => ({ ref: b.ref ? s(b.ref, 90) : null, name: s(b.name, 80), qty: Math.max(1, Math.min(20, Number(b.qty) || 1)) })).filter((b: { name: string }) => b.name),
+    shop: out.shop ? s(out.shop, 40) : null,
+    service: ["courses", "restaurant", "poste", "colis"].includes(out.service) ? out.service : null,
+    saved: out.saved === "maison" || out.saved === "travail" ? out.saved : null,
+    collect: out.collect === "address" || out.collect === "contact" ? out.collect : null,
+    colis: out.colis && typeof out.colis === "object" ? { what: s(out.colis.what, 120) } : null,
+    go: out.go === true,
+  };
 }
 
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info" };
