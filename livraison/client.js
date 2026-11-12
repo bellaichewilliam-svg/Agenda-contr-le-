@@ -6739,9 +6739,18 @@ function hvSaveAddr(a0) {
   if (a.code == null) a.code = "";
   Store.saveAddress(a); applySavedAddr("to", a); vitRender();
 }
+// L'enseigne demandée dans notre répertoire : seulement si son nom correspond vraiment (pas « une autre pizzeria » à la place)
+const HV_GENERIC = /^(pizza|pizzas|pizzeria|restaurant|resto|cafe|bar|sushi|burger|burgers|boulangerie|patisserie|pharmacie|chez|the|les|des|du|de|la|le|rue|avenue|netanya|פיצה|פיצריה|מסעדה|סושי|בורגר|קפה|מאפייה|רחוב|נתניה)$/;
+async function hvPlaceFind(name) {
+  const nz = x => String(x || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\u0590-\u05ff]+/g, " ").trim();
+  const words = nz(String(name || "").split(/,|\brue\b|\bavenue\b|רחוב/i)[0]).split(" ").filter(w => w.length >= 3 && !HV_GENERIC.test(w));
+  if (!words.length) return null;
+  let list = [];
+  try { list = await Places.search(name, hv.lang); } catch (e) { list = []; }
+  return list.find(x => x.brand && x.lat != null && words.every(w => (" " + nz(x.brand) + " ").includes(" " + w))) || null;
+}
 async function hvPlaceCard(name) {
-  let p = null;
-  try { p = (await Places.search(name, hv.lang)).find(x => x.brand && x.lat != null) || null; } catch (e) { p = null; }
+  const p = await hvPlaceFind(name);
   hv.place = p ? { name, p } : null;
   if (!p) { Store.placeSuggest(name); return; }
   let tel = null;
@@ -7014,19 +7023,26 @@ async function hvGo(out) {
   const items = hv.basket, refs = items.map(b => String(b.ref || ""));
   hvStopListen();
   hvMini(true); hvMiniLine(hvT("hvMiniHint"));
-  setTimeout(() => { if (hv.mini && !hv.pending) hvGuide(); }, 1800);
+  hv.noGuide = false;
+  setTimeout(() => { if (hv.mini && !hv.pending && !hv.noGuide) hvGuide(); }, 1800);
   UI.track("voice_go", { n: items.length, service: out.service || "" });
   if (out.service === "poste") { goKind("poste"); setTimeout(() => toastCart(hvT("hvPoste"), 5000), 600); return; }
   // Restaurant ou magasin qui n'est pas sur HOP! : on va chercher la commande prête (ou on l'achète) à son adresse
   if (out.from && (out.service === "retrait" || out.service === "achat" || out.service === "restaurant")) {
     const what = items.map(b => `${b.qty > 1 ? b.qty + " × " : ""}${b.name}`).join(", ");
     let place = hv.place && hv.place.name === out.from ? hv.place.p : null;
-    if (!place) { try { place = (await Places.search(out.from, hv.lang)).find(x => x.brand && x.lat != null) || null; } catch (e) { place = null; } }
+    if (!place) place = await hvPlaceFind(out.from);
     if (!place) Store.placeSuggest(out.from);
     if (out.service === "achat") startFreeOrder(what || out.from);
     else { state.homeKind = null; applyKind("resto"); goPharma(); const n = form.elements.notes; if (n && what) { n.value = (n.value ? n.value + "\n" : "") + hvT("hvReadyAt", { what }); n.dispatchEvent(new Event("input", { bubbles: true })); } }
     if (place) setTimeout(() => { applySavedAddr("from", { brand: place.brand || out.from, street: place.streetName || "", number: place.housenumber || "", lat: place.lat, lon: place.lon, cityId: (place.city && Places.matchCity(place.city)) || CONFIG.homeCity, city: place.city || "" }); renderQuote(); saveDraft(); }, 500);
-    else setTimeout(() => { goField("from"); toastCart(hvT("hvFromAsk", { name: out.from }), 5000); }, 600);
+    else { hv.noGuide = true; setTimeout(() => {
+      // Le champ « départ » visible : celui de la commande, sinon celui de l'accueil ; il attend la rue de cette enseigne
+      const f = form.elements.pickup_address, wiz = f && f.getClientRects().length, a = wiz ? ac.from : (home.ac && home.ac.from) || ac.from;
+      if (wiz) f.scrollIntoView({ block: "center", behavior: "smooth" }); else goField("from");
+      setTimeout(() => { if (a && a.askBrand) a.askBrand(out.from); }, 450);
+      const m = hvT("hvFromAsk", { name: out.from }); hvMiniLine(m); hvSayMini(m);
+    }, 600); }
     return;
   }
   if (out.service === "colis" && !items.length) {

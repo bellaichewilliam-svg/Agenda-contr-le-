@@ -1543,6 +1543,7 @@ const DIR_KINDS = [["food", "🍽️ Restaurant"], ["breakfast", "🥐 Boulanger
   ["pharm", "💊 Pharmacie / beauté"], ["pressing", "👔 Pressing / laverie"], ["flower", "💐 Fleuriste"], ["mall", "🛍️ Boutique / vêtements"],
   ["tech", "📱 Téléphonie / électronique"], ["post", "📮 Poste / point relais"], ["autre", "🏪 Autre"]];
 const dirKindSelect = (cur, attrs) => `<select ${attrs}>${cur ? "" : `<option value="">Catégorie…</option>`}${DIR_KINDS.map(([v, l]) => `<option value="${v}"${cur === v ? " selected" : ""}>${l}</option>`).join("")}</select>`;
+let dirAskedId = null;
 async function initDirCard() {
   if (!$("#dirCard") || !window.Places) return;
   dirPick = null;
@@ -1553,6 +1554,12 @@ async function initDirCard() {
     texts: () => ({ none: "Aucune adresse trouvée : ajoutez le numéro et la ville", down: "Recherche d'adresse indisponible, réessayez" })
   });
   const list = await Store.knownPlaces().catch(() => []);
+  // Demandés à Hoppy, absents de l'annuaire : le patron vérifie l'enseigne (nom, adresse, catégorie) avant de l'ajouter
+  const asked = await Store.adminPlacesAsked().catch(() => []);
+  $("#dirAsked").innerHTML = asked.length ? `<p class="small"><b>🎤 ${asked.length} enseigne(s) demandée(s) à Hoppy, pas encore dans l'annuaire</b> (vérifiez le nom et l'adresse, puis ajoutez)</p>${asked.map(x => `<div class="dir-row to-check" data-asked="${UI.esc(x.id)}"><span><b><bdi>${UI.esc(x.name)}</bdi></b> · demandée ${Number(x.n || 1)} fois · ${UI.esc(UI.fmtDay(x.last_at))}</span>
+    <span class="dir-acts"><button type="button" class="btn btn-sm btn-primary" data-asked-add="1">➕ Vérifier et ajouter</button><button type="button" class="btn btn-sm" data-asked-done="1">Ignorer</button></span></div>`).join("")}` : "";
+  const sum = document.querySelector("#dirCard > summary b");
+  if (sum) sum.textContent = "📖 Annuaire : ajouter un commerce" + (asked.length ? ` · 🎤 ${asked.length} à vérifier` : "");
   // Enseignes tapées par des clients : cachées aux autres tant qu'elles ne sont pas vérifiées (faute de frappe ?)
   const check = list.filter(x => x.verified === false && Number(x.uses || 1) < 3), ok = list.filter(x => !check.includes(x));
   const row = (x, tocheck) => `<div class="dir-row${tocheck ? " to-check" : ""}" data-place="${UI.esc(x.id)}"><span>${dirKindSelect(x.kind || "", 'class="dir-kind" data-place-kind="1" aria-label="Catégorie"')} <b>${UI.esc(x.name)}</b> · ${UI.esc(x.address)}${x.city ? ", " + UI.esc(UI.cityFr(x.city) || x.city) : ""} · ${Number(x.uses || 1)} commande(s)</span>
@@ -1579,6 +1586,7 @@ async function saveDirPlace() {
     await Store.knownPlaceAdd({ name, address, city: dirPick.cityId || CONFIG.homeCity, lat: dirPick.lat, lon: dirPick.lon, kind });
     msg.textContent = `✅ « ${name} » ajouté : les clients le trouvent dès maintenant.`;
     $("#dirFr").value = ""; $("#dirHe").value = ""; $("#dirAddr").value = ""; $("#dirKind").value = ""; dirPick = null;
+    if (dirAskedId) { await Store.adminPlaceAskedDone(dirAskedId).catch(() => null); dirAskedId = null; }
     initDirCard();
   } catch (ex) {
     msg.textContent = /409|duplicate|unique/i.test(String(ex && ex.message)) ? "Déjà dans l'annuaire à cette adresse." : "⚠️ Non enregistré, vérifiez la connexion.";
@@ -1733,6 +1741,7 @@ function renderShops(view) {
         <button type="button" class="btn btn-primary btn-sm" id="dirSave">➕ Ajouter à l'annuaire</button>
         <p class="small" id="dirMsg"></p>
       </div>
+      <div id="dirAsked" class="dir-check small"></div>
       <div id="dirCheck" class="dir-check small"></div>
       <details data-fold="dirlist"${foldOpen("dirlist")} style="margin-top:8px"><summary class="small">Déjà ajoutés ou appris (<span id="dirCount">…</span>)</summary><div id="dirList" class="small"></div></details>
     </details>
@@ -3072,6 +3081,20 @@ async function onViewClick(e) {
     return;
   }
   if (el.id === "dirSave") { saveDirPlace(); return; }
+  if (el.dataset.askedAdd) {
+    // Le nom demandé est repris : le patron le corrige au besoin, choisit la catégorie et la vraie adresse, puis « Ajouter »
+    const r = el.closest("[data-asked]");
+    dirAskedId = r.dataset.asked;
+    $("#dirFr").value = r.querySelector("b").textContent; $("#dirHe").value = ""; $("#dirAddr").value = ""; dirPick = null;
+    $("#dirMsg").textContent = "Vérifiez le nom, choisissez la catégorie et l'adresse (rue et numéro) dans la liste, puis « Ajouter à l'annuaire ».";
+    $("#dirFr").scrollIntoView({ block: "center", behavior: "smooth" }); $("#dirAddr").focus({ preventScroll: true });
+    return;
+  }
+  if (el.dataset.askedDone) {
+    const r = el.closest("[data-asked]");
+    try { await Store.adminPlaceAskedDone(r.dataset.asked); if (dirAskedId === r.dataset.asked) dirAskedId = null; initDirCard(); } catch (ex) { alert("Non enregistré, vérifiez la connexion."); }
+    return;
+  }
   if (el.dataset.placeOk || el.dataset.placeFix) {
     const r = el.closest("[data-place]"), cur = r.querySelector("b").textContent;
     const name = el.dataset.placeFix ? (prompt("Le bon nom de l'enseigne (ex. Simaki Sushi · סימאקי סושי)", cur) || "").trim() : "";
