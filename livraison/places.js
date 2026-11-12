@@ -653,6 +653,8 @@ function attach(input, opts) {
 
   return {
     isPicked: () => !!input.dataset.picked,
+    // Enseigne absente de la carte, nommée ailleurs (Hoppy) : le client n'a plus qu'à donner sa rue et son numéro
+    askBrand(q) { notOnMap(String(q || "").trim().slice(0, 80)).apply(); },
     // Adresse reprise du carnet : considérée comme choisie sur la carte
     setPicked(label) { input.value = shortLabel(label, opts.lang()); input.dataset.picked = input.value; input.dataset.full = label; input.classList.add("ac-ok"); fitText(input); close(); },
     // Libellé complet de l'adresse choisie (la case n'en montre qu'une version courte)

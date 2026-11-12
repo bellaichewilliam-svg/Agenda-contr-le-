@@ -92,6 +92,27 @@ end $$;
 revoke all on function public.place_suggest(text, text) from public;
 grant execute on function public.place_suggest(text, text) to anon, authenticated;
 
+-- Patron : la liste des enseignes demandées à Hoppy et pas encore dans l'annuaire ; « traité » (ajoutée ou ignorée), sans rien effacer
+alter table public.places_asked add column if not exists done_at timestamptz;
+create or replace function public.admin_places_asked() returns json
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  return coalesce((select json_agg(json_build_object('id', a.id, 'name', a.name, 'n', a.n, 'last_at', a.last_at) order by a.last_at desc)
+                     from (select * from places_asked where done_at is null order by last_at desc limit 100) a), '[]'::json);
+end $$;
+revoke all on function public.admin_places_asked() from public, anon;
+grant execute on function public.admin_places_asked() to authenticated;
+create or replace function public.admin_place_asked_done(p_id uuid) returns boolean
+language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then raise exception 'forbidden'; end if;
+  update places_asked set done_at = now() where id = p_id and done_at is null;
+  return found;
+end $$;
+revoke all on function public.admin_place_asked_done(uuid) from public, anon;
+grant execute on function public.admin_place_asked_done(uuid) to authenticated;
+
 -- 🎤 Hoppy, l'assistant qui parle (patron, 12/11) : un tour de conversation (ce que le client vient de dire, l'historique,
 -- ce que l'appli sait déjà : adresse choisie oui / non, panier, rayons). Jamais d'adresse, de nom ni de téléphone dedans :
 -- l'appli les demande et les garde elle-même. Limites : 60 tours / 10 min par téléphone, 2000 / heure en tout.
