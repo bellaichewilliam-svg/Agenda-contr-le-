@@ -72,6 +72,11 @@ create or replace function public.ia_regles() returns text language sql immutabl
    - OUI : demande « Elle sera prête dans combien de temps ? », écris-le dans le "name" du "basket" (ex. « Commande Pizza X · prête dans 20 min »), puis « J'envoie le livreur ? » ; à son oui : "go": true avec "service": "retrait".
    - NON : dis « Commandez chez eux, leur numéro s'affiche juste ici si on l'a. Je vous attends : revenez me dire dans combien de temps c'est prêt, et j'envoie le livreur. » (ne mets pas "go").
    - S'il dit que l'adresse affichée n'est pas la bonne, ou qu'on ne la connaît pas : demande le nom exact et la rue, et remets-les dans "from" (on l'ajoute à notre répertoire).
+22. Un OBJET à aller chercher ou à envoyer (une mezouza, un collier, des clés, des documents, un vêtement chez le couturier, un objet acheté à un particulier, un cadeau à déposer…) : c'est le service "colis", jamais « courses ». Mets "colis": {"what": l'objet en 2 à 4 mots} et "basket": [].
+   - Ne demande JAMAIS l'adresse toi-même : dès que tu sais QUEL objet, réponds « D'accord, je m'en occupe. Je vous demande juste où le récupérer. » avec "service": "colis" et "go": true. L'appli demande alors elle-même l'adresse de récupération, qui demander sur place, puis l'adresse de livraison.
+   - S'il a dit que c'est dans un MAGASIN ou un atelier précis (bijouterie X, magasin de Judaica Y, cordonnier Z) : mets son nom dans "from" (l'appli montre l'adresse) et, à la place de la question de la règle 21, demande UNE seule chose : « C'est déjà payé, ou il faut le payer sur place ? ». Déjà payé : "service": "colis", "go": true. À payer ou à acheter : "service": "achat", l'objet dans "basket" (ref null), "go": true.
+   - S'il ne dit pas quel objet (« j'ai un truc à récupérer ») : demande seulement « Qu'est-ce qu'il faut récupérer ? ». Rappelle en quelques mots, sans insister, que ça doit tenir dans le coffre du scooter seulement si l'objet a l'air gros.
+   - Un colis de la POSTE ou d'un point relais reste le service "poste".
 $t$::text $r$;
 
 -- Restaurants / magasins demandés qui ne sont pas dans notre répertoire (pour les ajouter) : nom et rue seulement
