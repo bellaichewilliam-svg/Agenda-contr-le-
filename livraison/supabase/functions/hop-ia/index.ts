@@ -9,13 +9,14 @@ const MODELS = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.5
 const KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-async function gemini(prompt: string, json: boolean, image = ""): Promise<string> {
+async function gemini(prompt: string, json: boolean, image = "", level = "low"): Promise<string> {
   let last = "";
   for (const m of MODELS) {
     const t0 = Date.now();
-    // Peu de « réflexion » : réponse en quelques secondes au lieu de 20 s (assez pour ces petites tâches)
-    const thinking = { thinkingConfig: { thinkingLevel: "low" } };
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+    // Peu de « réflexion » : réponse en quelques secondes au lieu de 20 s (assez pour ces petites tâches) ;
+    // le chat demande le minimum (réponse en 1 à 2 s) et revient à « low » si le modèle ne le connaît pas
+    let thinking = { thinkingConfig: { thinkingLevel: level } };
+    let r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
       body: JSON.stringify({
@@ -23,8 +24,20 @@ async function gemini(prompt: string, json: boolean, image = ""): Promise<string
         generationConfig: { temperature: 0.2, ...thinking, ...(json ? { responseMimeType: "application/json" } : {}) },
       }),
     });
-    const t = await r.text();
-    console.log(`gemini ${m} ${r.status} ${Date.now() - t0} ms`);
+    let t = await r.text();
+    if (r.status === 400 && level !== "low" && /thinking/i.test(t)) {
+      thinking = { thinkingConfig: { thinkingLevel: "low" } };
+      r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: image ? [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: image } }] : [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, ...thinking, ...(json ? { responseMimeType: "application/json" } : {}) },
+        }),
+      });
+      t = await r.text();
+    }
+    console.log(`gemini ${m} ${level} ${r.status} ${Date.now() - t0} ms`);
     if (r.ok) {
       const d = JSON.parse(t);
       return (d.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
@@ -246,7 +259,7 @@ ${found.slice(0, 12).join("\n") || "(rien)"}
 CONVERSATION :
 ${conv}
 Réponds en JSON exactement : {"reply": "ta réponse", "mode": "auto" | "relai" | "silence"}`;
-  const out = JSON.parse(await gemini(prompt, true));
+  const out = JSON.parse(await gemini(prompt, true, "", "minimal"));
   const mode = ["auto", "relai", "silence"].includes(out.mode) ? out.mode : "auto";
   const reply = String(out.reply ?? "").trim().slice(0, 900);
   if (mode === "silence" || !reply) return { mode: "silence" };

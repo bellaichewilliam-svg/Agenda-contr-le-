@@ -2742,8 +2742,13 @@ async function chatOrder(token) {
   const o = localOrders().find(x => x.token === token);
   return o ? byDate(chatLocal().filter(m => m.thread === "o:" + o.id)) : [];
 }
+// La réponse de Hoppy (service client) : l'appli la lance tout de suite elle-même, sans attendre l'appel de la base
+async function chatAiNow(key) {
+  try { const id = await rest("/rest/v1/rpc/chat_ai_job", { method: "POST", body: { p_key: key } }); if (id) await rest("/functions/v1/hop-ia", { method: "POST", body: { id } }).catch(() => null); }
+  catch (e) { /* la base l'appelle de toute façon */ }
+}
 async function chatOrderSend(token, body, image) {
-  if (ONLINE) return rest("/rest/v1/rpc/chat_order_send", { method: "POST", body: { p_token: token, p_body: body || null, p_image: image || null } });
+  if (ONLINE) { const r = await rest("/rest/v1/rpc/chat_order_send", { method: "POST", body: { p_token: token, p_body: body || null, p_image: image || null } }); chatAiNow(token); return r; }
   const o = localOrders().find(x => x.token === token);
   return !!o && chatLocalAdd({ thread: "o:" + o.id, author: "client", author_name: o.contact_name, body: clean(body), image: image || null });
 }
@@ -2753,7 +2758,7 @@ async function chatSupport() {
   return byDate(chatLocal().filter(m => m.thread === "u:" + deviceId()));
 }
 async function chatSupportSend(name, body, image) {
-  if (ONLINE) return rest("/rest/v1/rpc/chat_support_send", { method: "POST", body: { p_device: deviceId(), p_name: name || null, p_body: body || null, p_image: image || null } });
+  if (ONLINE) { const r = await rest("/rest/v1/rpc/chat_support_send", { method: "POST", body: { p_device: deviceId(), p_name: name || null, p_body: body || null, p_image: image || null } }); chatAiNow(deviceId()); return r; }
   return chatLocalAdd({ thread: "u:" + deviceId(), author: "client", author_name: clean(name), body: clean(body), image: image || null });
 }
 // Commerce : sa conversation avec le patron (clé secrète)

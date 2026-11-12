@@ -82,8 +82,12 @@ function bubble(m, o) {
 function render() {
   const o = cur.opts, list = dom.list;
   const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 60;
-  list.innerHTML = cur.msgs.length ? cur.msgs.map(m => bubble(m, o)).join("")
-    : `<p class="chat-empty">${UI.esc(o.empty || tr(o.lang, "chEmpty"))}</p>`;
+  // « HOP! écrit… » : le client voit tout de suite qu'on lui répond (la réponse de Hoppy arrive en quelques secondes)
+  const lastM = cur.msgs[cur.msgs.length - 1];
+  if (cur.wait && (!lastM || lastM.author !== o.me || Date.now() > cur.wait)) cur.wait = 0;
+  const typing = cur.wait ? `<div class="chat-msg from-admin chat-typing" aria-live="polite"><small>${UI.esc(tr(o.lang, "a_admin"))}</small><p class="ct-dots"><i></i><i></i><i></i></p></div>` : "";
+  list.innerHTML = (cur.msgs.length ? cur.msgs.map(m => bubble(m, o)).join("")
+    : `<p class="chat-empty">${UI.esc(o.empty || tr(o.lang, "chEmpty"))}</p>`) + typing;
   if (atBottom || cur.first) { list.scrollTop = list.scrollHeight; cur.first = false; }
   const last = cur.msgs[cur.msgs.length - 1];
   if (last) markSeen(o.thread, last.created_at);
@@ -97,11 +101,20 @@ async function refresh() {
     if (cur !== mine) return;
     const changed = msgs.length !== mine.msgs.length;
     mine.msgs = msgs || [];
-    if (changed || mine.first) render();
+    if (changed || mine.first || (mine.wait && Date.now() > mine.wait)) render();
     if (mine.opts.onUpdate) mine.opts.onUpdate();
   } catch (e) { /* nouvel essai au prochain tour */ }
 }
 
+// Après un message du client au service client (ou dans sa course) : « HOP! écrit… » et un coup d'œil toutes les 1,2 s
+// pendant 25 s, pour afficher la réponse dès qu'elle arrive
+function waitReply() {
+  if (!cur || cur.opts.me !== "client" || !/^[ou]:/.test(String(cur.opts.thread || ""))) return;
+  const mine = cur;
+  mine.wait = Date.now() + 25000;
+  clearInterval(mine.fast);
+  mine.fast = setInterval(() => { if (cur !== mine || !mine.wait) { clearInterval(mine.fast); if (cur === mine) render(); return; } refresh(); }, 1200);
+}
 function showErr(msg) { dom.err.textContent = msg || ""; dom.err.classList.toggle("hidden", !msg); }
 
 async function sendText() {
@@ -112,7 +125,9 @@ async function sendText() {
   try {
     await cur.opts.send(body, null);
     dom.text.value = "";
+    waitReply();
     await refresh();
+    render();
     dom.list.scrollTop = dom.list.scrollHeight;
   } catch (e) { showErr(tr(cur.opts.lang, "chErr")); }
   finally { dom.send.disabled = false; dom.text.focus(); }
@@ -147,6 +162,7 @@ async function sendPhoto(file) {
   try {
     const data = await compress(file);
     await cur.opts.send(dom.text.value.trim() || null, data);
+    waitReply();
     dom.text.value = "";
     await refresh();
     dom.list.scrollTop = dom.list.scrollHeight;
