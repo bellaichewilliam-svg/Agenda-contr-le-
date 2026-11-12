@@ -825,6 +825,10 @@ fr: {
   payLater: "Vous pourrez changer à tout moment dans votre espace.", paySaved: "✅ Enregistré : ça compte pour les prochaines commandes.",
   payErr: "Impossible d'enregistrer pour le moment : vérifiez la connexion et réessayez.",
   // Enseignes près de vous
+  micBtn: "Commander à la voix", micListen: "🎤 Je vous écoute… « un Mars et un lait »", micThink: "Hoppy comprend votre commande…",
+  micNo: "La voix ne marche pas sur ce téléphone : écrivez votre commande.", micDenied: "Autorisez le micro pour commander à la voix.",
+  micAddrHome: "📍 livré à la maison", micAddrWork: "📍 livré au travail", micAddrAsk: "📍 Où on vous livre ? Touchez « Livrer à »",
+  micAddrNone: "📍 Indiquez votre adresse dans « Livrer à » (on la garde pour la prochaine fois)",
   findPh: "🔎 Un plat, un produit, un commerce…", findNone: "Rien trouvé pour « {q} »", findProducts: "Plats et produits", findShops: "Commerces", findAt: "chez {shop}",
   scAll: "Tous", scOpenF: "🟢 Ouverts", scKosherF: "✡️ Casher", rowFavs: "♥ Mes favoris", rowOpen: "🟢 Ouverts maintenant", rowPop: "🔥 Populaires", rowNew: "✨ Nouveautés", rowAll: "🛍️ Tous les magasins", rowOrders: "{n} commandes ce mois", scNoneF: "Aucun commerce avec ce filtre.",
   scOpenNow: "🟢 Ouverts maintenant", scClosedList: "🌙 Fermés · à programmer", scProg: "📅 Programmer", scClosedShort: "Fermé", scProgOrder: "Programmer une commande", proTitle: "🛍️ Faites vos courses", proSub: "Leur carte est dans l'appli : commandez ici, on livre.", heroTag: "🛵 On livre depuis n'importe quel commerce de Netanya", anyShopT: "Votre commerce n'est pas dans la liste ? On livre quand même !", anyShopS: "Restaurant, magasin, pharmacie… Vous commandez chez lui, HOP! va chercher et vous livre.", anyShopBtn: "🛵 Commander une livraison", proDelivery: "Livraison {price}", proMenu: "{n} au menu", proGo: "Commander ›",
@@ -1671,6 +1675,10 @@ he: {
   payLater: "אפשר לשנות בכל רגע באזור שלכם.", paySaved: "✅ נשמר: חל על ההזמנות הבאות.",
   payErr: "לא ניתן לשמור כרגע: בדקו את החיבור ונסו שוב.",
   // עסקים לידכם
+  micBtn: "להזמין בקול", micListen: "🎤 מקשיבים לך… «מארס וחלב»", micThink: "הופי מבין את ההזמנה שלך…",
+  micNo: "הקול לא עובד בטלפון הזה: כתבו את ההזמנה.", micDenied: "אשרו גישה למיקרופון כדי להזמין בקול.",
+  micAddrHome: "📍 משלוח הביתה", micAddrWork: "📍 משלוח לעבודה", micAddrAsk: "📍 לאן לשלוח? לחצו על «משלוח אל»",
+  micAddrNone: "📍 הזינו כתובת ב«משלוח אל» (נשמור אותה לפעם הבאה)",
   findPh: "🔎 מנה, מוצר, חנות…", findNone: "לא נמצא כלום עבור «{q}»", findProducts: "מנות ומוצרים", findShops: "חנויות", findAt: "ב{shop}",
   scAll: "הכול", scOpenF: "🟢 פתוחים", scKosherF: "✡️ כשר", rowFavs: "♥ המועדפים שלי", rowOpen: "🟢 פתוחים עכשיו", rowPop: "🔥 פופולריים", rowNew: "✨ חדשים", rowAll: "🛍️ כל החנויות", rowOrders: "{n} הזמנות החודש", scNoneF: "אין חנויות בסינון הזה.",
   scOpenNow: "🟢 פתוחים עכשיו", scClosedList: "🌙 סגורים · אפשר לתזמן", scProg: "📅 לתזמן", scClosedShort: "סגור", scProgOrder: "לתזמן הזמנה", proTitle: "🛍️ קניות עד הבית", proSub: "התפריט שלהם באפליקציה: מזמינים כאן, אנחנו מביאים.", heroTag: "🛵 משלוחים מכל עסק בנתניה", anyShopT: "העסק שלכם לא ברשימה? אנחנו מביאים בכל זאת!", anyShopS: "מסעדה, חנות, בית מרקחת… מזמינים אצלם, והופ! אוסף ומביא אליכם.", anyShopBtn: "🛵 להזמין משלוח", proDelivery: "משלוח {price}", proMenu: "{n} בתפריט", proGo: "להזמין ›",

@@ -2063,7 +2063,9 @@ let SYN = [];
 Store.searchSynonyms().then(l => { if (Array.isArray(l)) SYN = l.map(g => (g || []).map(synNorm)); }).catch(() => {});
 function searchTerms(q) {
   const n = synNorm(q), out = new Set([n]);
-  if (n.length > 3 && /[sx]$/.test(n)) out.add(n.slice(0, -1));
+  // (pluriel : pas sur les mots de 4 lettres, sinon « Mars » cherchait « mar » et trouvait « Marlboro »)
+  if (n.length > 4 && /[sx]$/.test(n)) out.add(n.slice(0, -1));
+  else if (n === "eaux") out.add("eau");
   for (const g of SYN) if ([...out].some(t => g.includes(t))) g.forEach(w => out.add(w));
   return [...out].filter(t => t.length >= 2);
 }
@@ -6399,6 +6401,100 @@ async function homeFind(q) {
   UI.track("home_find", { q: q.slice(0, 40) });
 }
 $("#homeFind").addEventListener("input", e => { clearTimeout(findTimer); findTimer = setTimeout(() => homeFind(e.target.value), 250); });
+// --- 🎤 Commander à la voix (patron, 12/11) -------------------------------------------------------------------------
+// « Je veux un Mars et un lait », « un riz tartare chez Nini Sushi, livré à la maison » : le téléphone écrit ce qui est dit,
+// l'IA (Gemini, via la base) comprend le commerce, les articles et « maison / travail ». Sans commerce : la liste de Hoppy
+// (les vrais produits, photo et prix) ; avec un commerce : on l'ouvre sur le plat. L'adresse : celle dite (Maison / Travail
+// enregistrée), sinon Maison par défaut s'il n'y en a pas encore, sinon on lui demande. Si l'IA ne répond pas : la recherche normale.
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let micRec = null, micSeq = 0;
+function micOff() { const b = $("#homeMic"); if (b) b.classList.remove("on"); micRec = null; }
+function micStart() {
+  if (!SpeechRec) return;
+  if (micRec) { try { micRec.stop(); } catch (e) { /* déjà arrêté */ } return; }
+  const inp = $("#homeFind"), b = $("#homeMic");
+  let r;
+  try { r = new SpeechRec(); } catch (e) { return toastCart(t("micNo")); }
+  r.lang = I18N.lang === "he" ? "he-IL" : "fr-FR";
+  r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
+  let said = "";
+  r.onresult = e => {
+    said = Array.from(e.results).map(x => x[0].transcript).join(" ").trim();
+    inp.value = said;
+  };
+  r.onerror = e => { micOff(); if (e.error === "not-allowed" || e.error === "service-not-allowed") toastCart(t("micDenied")); };
+  r.onend = () => { micOff(); if (norm(said).length >= 2) voiceOrder(said); };
+  micRec = r; b.classList.add("on");
+  inp.value = ""; inp.placeholder = t("micListen");
+  UI.track("voice_start", {});
+  try { r.start(); } catch (e) { micOff(); }
+}
+function micBox(html) {
+  const box = $("#homeFindList");
+  box.innerHTML = `<div class="mic-wait">${html}</div>`; box.classList.remove("hidden");
+}
+// L'adresse de livraison d'après ce qui a été dit
+function voiceAddr(to) {
+  const list = (Store.getAddresses && Store.getAddresses()) || [];
+  const tag = to === "travail" ? "work" : "home";
+  const a = list.find(x => x.tag === tag);
+  if (a && (to || !addrReady("to"))) { applySavedAddr("to", a); vitRender(); return t(tag === "work" ? "micAddrWork" : "micAddrHome"); }
+  if (!addrReady("to")) {
+    const v = $("#vitAddr");
+    if (v) setTimeout(() => { v.classList.remove("pulse-once"); void v.offsetWidth; v.classList.add("pulse-once"); setTimeout(() => v.classList.remove("pulse-once"), 1600); }, 900);
+    return t(to ? "micAddrNone" : "micAddrAsk");
+  }
+  return "";
+}
+async function voiceOrder(text) {
+  const seq = ++micSeq, inp = $("#homeFind");
+  inp.value = text; inp.placeholder = t("findPh");
+  micBox(`<img src="img/hoppy-mini.webp" alt="" width="37" height="60" /><span><b>${UI.esc(t("micThink"))}</b><small>« ${UI.esc(text.slice(0, 120))} »</small></span>`);
+  UI.track("voice_said", { q: text.slice(0, 60) });
+  let out = null;
+  try {
+    const id = await Store.iaVoice(text, I18N.lang);
+    out = id ? await Store.iaVoiceRun(id) : null;
+    for (let i = 0; id && !out && i < 20 && seq === micSeq; i++) {
+      await new Promise(ok => setTimeout(ok, i < 4 ? 700 : 1000));
+      const r = await Store.iaVoiceResult(id).catch(() => null);
+      if (r && r.status === "fait") { out = r.output; break; }
+      if (!r || r.status === "erreur") break;
+    }
+  } catch (e) { /* hors ligne, trop de demandes : la recherche normale */ }
+  if (seq !== micSeq) return;
+  if (!out || !Array.isArray(out.items)) { homeFind(text); return; }
+  const items = out.items.filter(x => x && x.name);
+  const addr = voiceAddr(out.to);
+  const msg = [out.reply, addr].filter(Boolean).join(" · ");
+  UI.track("voice_ok", { shop: out.shop || "", n: items.length });
+  if (out.shop && (state.showcase || []).some(x => x.code === out.shop)) {
+    $("#homeFindList").classList.add("hidden");
+    inp.value = ""; inp.blur();
+    state.findItem = null; state.findOpen = false;
+    state.cgQNext = items.length === 1 ? items[0].name : "";
+    state.shopDir = ""; loadShop(out.shop);
+    if (msg) setTimeout(() => toastCart(msg, 4500), 500);
+    return;
+  }
+  if (!items.length) { $("#homeFindList").classList.add("hidden"); if (msg) toastCart(msg, 4500); return; }
+  // La liste de Hoppy (2 articles ou plus) ou la recherche d'un article, avec les vrais produits
+  const q = items.map(x => (x.qty > 1 ? x.qty + " " : "") + x.name).join(", ");
+  inp.value = q;
+  homeFind(q);
+  if (msg) toastCart(msg, 4500);
+}
+if (SpeechRec && $("#homeFind")) {
+  const b = document.createElement("button");
+  b.type = "button"; b.id = "homeMic"; b.className = "sc-mic";
+  b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 1 0-7 0v6A3.5 3.5 0 0 0 12 15zm6.5-3.5a1 1 0 1 0-2 0 4.5 4.5 0 0 1-9 0 1 1 0 1 0-2 0 6.5 6.5 0 0 0 5.5 6.4V20H8.5a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2H13v-2.1a6.5 6.5 0 0 0 5.5-6.4z"/></svg>`;
+  const setLbl = () => { b.setAttribute("aria-label", t("micBtn")); b.title = t("micBtn"); };
+  setLbl(); window.addEventListener("hop:lang", setLbl);
+  $("#homeFind").after(b);
+  $("#homeFind").closest(".sc-find").classList.add("has-mic");
+  b.addEventListener("mousedown", e => e.preventDefault());
+  b.addEventListener("click", e => { e.stopPropagation(); micStart(); });
+}
 // Résultats de la vitrine : « On vous l'apporte », puis les produits rangés PAR COMMERCE (logo, nom, « Tout voir »)
 // en cartes avec photo et prix (un toucher ouvre la fiche du produit dans son commerce), les courses HOP! (rayons), les commerces
 function vitFindRender(q, products, shops, staple, box) {
@@ -7768,11 +7864,11 @@ document.addEventListener("click", e => {
   const r = a.dataset.shareRay && Rayons.byId(a.dataset.shareRay);
   if (r) shareLink(shareBase() + "?k=" + encodeURIComponent(r.kind) + "&src=partage", t("shareRayText", { name: phName(r.title) }));
 }, true);
-function toastCart(msg) {
-  const d = document.createElement("div");
+function toastCart(msg, ms) {
+  const d = document.createElement("div"), keep = ms || 2200;
   d.className = "cart-toast"; d.setAttribute("role", "status"); d.textContent = msg;
   document.body.appendChild(d);
-  setTimeout(() => d.classList.add("out"), 2200); setTimeout(() => d.remove(), 2600);
+  setTimeout(() => d.classList.add("out"), keep); setTimeout(() => d.remove(), keep + 400);
 }
 if ($("#tbCart")) {
   $("#tbCart").addEventListener("click", openStoredCart);

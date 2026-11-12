@@ -989,3 +989,9 @@ livraison/
 - Elle sonne pour : une course qui arrive chez le livreur (en boucle, de plus en plus fort, jusqu'à la réponse), les commandes à prendre et les nouvelles commandes dans le panneau patron, les commandes à préparer dans l'espace commerce.
 - `UI.ringTone(ctx, vol)` / `UI.ringLoad(ctx)` (common.js) : jouée par le lecteur audio de la page (débloqué au premier geste), sinon par `<audio>`.
 - Appli fermée : la notification garde le son du téléphone (le navigateur ne permet pas de choisir le son d'une notification web).
+
+### 🎤 Commander à la voix (12/11/2026)
+- Un micro orange dans la recherche de l'accueil (seulement si le téléphone sait écouter). Le client dit « je veux un Mars et un lait » ou « un riz tartare chez Nini Sushi, livré à la maison », en français ou en hébreu.
+- L'IA Gemini (quota gratuit du patron, fonction `hop-ia`, clé `GEMINI_API_KEY` dans les secrets Supabase) comprend le commerce, les articles et « maison / travail » en environ 2 s. On ne lui envoie que la phrase et la liste des commerces : jamais d'adresse, de nom ni de téléphone.
+- Un commerce nommé : on l'ouvre sur le plat. Sinon : la liste de Hoppy avec les vrais produits. L'adresse : Maison / Travail enregistrée si le client le dit (Maison par défaut s'il n'a encore rien choisi), sinon on lui demande « Où on vous livre ? ». Si l'IA ne répond pas : la recherche normale.
+- Base : `supabase/ia-gemini.sql` (`ia_jobs`, `ia_call`, `ia_voice` limité à 8 demandes / 10 min par téléphone et 400 / heure, `ia_voice_result`).

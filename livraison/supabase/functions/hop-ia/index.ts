@@ -1,0 +1,106 @@
+// hop-ia : l'IA Gemini de HOP! (quota gratuit du patron ; clé GEMINI_API_KEY dans les secrets Supabase, jamais dans l'appli).
+// Sécurité : la fonction ne traite QUE des demandes déjà écrites dans la table ia_jobs (par la base / le patron),
+// reçues par leur id. Un inconnu qui appelle la fonction ne peut donc rien faire avec le quota.
+// Jamais de nom, téléphone ou adresse de client envoyés à l'IA : seulement des produits, des textes, des questions générales.
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
+
+// (12/11 : les 2.5 ne sont plus ouverts aux nouvelles clés ; « lite » d'abord = réponse rapide, les autres en secours si Google est saturé)
+const MODELS = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-flash-latest", "gemini-3.6-flash"];
+const KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
+const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
+
+async function gemini(prompt: string, json: boolean): Promise<string> {
+  let last = "";
+  for (const m of MODELS) {
+    const t0 = Date.now();
+    // Peu de « réflexion » : réponse en quelques secondes au lieu de 20 s (assez pour ces petites tâches)
+    const thinking = { thinkingConfig: { thinkingLevel: "low" } };
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0.2, ...thinking, ...(json ? { responseMimeType: "application/json" } : {}) },
+      }),
+    });
+    const t = await r.text();
+    console.log(`gemini ${m} ${r.status} ${Date.now() - t0} ms`);
+    if (r.ok) {
+      const d = JSON.parse(t);
+      return (d.candidates?.[0]?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
+    }
+    last = `${m} ${r.status}: ${t.slice(0, 300)}`;
+    if (r.status === 401 || r.status === 403 || /API key/i.test(t)) break; // clé refusée : inutile d'essayer un autre modèle
+  }
+  throw new Error(last || "gemini_indisponible");
+}
+
+// Les tâches autorisées (rien d'autre)
+async function run(kind: string, input: Record<string, unknown>): Promise<unknown> {
+  // Les modèles Gemini ouverts à la clé (Google en retire de temps en temps : on choisit les bons avec ça)
+  if (kind === "modeles") {
+    const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200", { headers: { "x-goog-api-key": KEY } });
+    const d = await r.json();
+    return { models: (d.models ?? []).filter((m: { supportedGenerationMethods?: string[] }) => (m.supportedGenerationMethods ?? []).includes("generateContent")).map((m: { name: string }) => m.name) };
+  }
+  if (kind === "test") return { reply: await gemini("Réponds en une phrase en français puis la même en hébreu : « HOP! est prêt à livrer Netanya ».", false) };
+  if (kind === "traduire_produits") {
+    const items = (input.items as { id: string; he: string }[] ?? []).slice(0, 60);
+    if (!items.length) return { items: [] };
+    const prompt = `Tu traduis des noms de produits de supermarché israélien (hébreu) en français, pour une appli de livraison.
+Format exact de chaque nom : « Marque · produit taille » (ex. « Tnuva · Lait 3 % 1 L », « Osem · Bamba 80 g »). Marque en lettres latines si elle est connue.
+Pas de prix, pas de « promo », tailles en g / kg / ml / L, « × » pour les lots (ex. « 6 × 1,5 L »).
+Réponds en JSON : un tableau [{"id": "...", "fr": "..."}] dans le même ordre.
+Produits : ${JSON.stringify(items)}`;
+    return { items: JSON.parse(await gemini(prompt, true)) };
+  }
+  // Commande à la voix (patron, 12/11) : « je veux un Mars et un lait », « un riz tartare chez Nini Sushi, livré à la maison »
+  if (kind === "commande_vocale") {
+    const text = String(input.text ?? "").slice(0, 400);
+    const shops = (input.shops as { code: string; name: string }[] ?? []).slice(0, 200);
+    const prompt = `Tu es l'assistant de HOP!, une appli de livraison à Netanya (Israël). Un client a dit à voix haute (français ou hébreu, transcription automatique, peut contenir des fautes) :
+« ${text} »
+Comprends sa commande. Commerces disponibles sur l'appli (code et nom) : ${JSON.stringify(shops)}
+Réponds en JSON, exactement :
+{"shop": code du commerce SEULEMENT si le client dit lui-même le nom d'un commerce de la liste (même mal prononcé ou mal écrit, ex. « Nina Sushi » pour « Nini Sushi »). S'il ne dit aucun nom de commerce, null : ne choisis jamais un commerce à sa place,
+ "items": [{"name": nom court du produit ou du plat, dans la langue du client, sans quantité ni article (ex. "Mars", "lait", "riz tartare", "חלב"), "qty": nombre}],
+ "to": "maison" s'il dit chez moi / à la maison / הביתה, "travail" s'il dit au travail / au bureau / לעבודה, sinon null,
+ "lang": "fr" ou "he" (langue du client),
+ "reply": une phrase courte et chaleureuse dans la langue du client qui résume ce que tu as compris (ex. « 1 Mars et 1 lait, c'est noté ! »)}
+Ne mets jamais d'adresse, de nom de personne ou de numéro de téléphone dans la réponse. Si ce n'est pas une commande, renvoie "items": [] et une "reply" qui invite à dire ce qu'il veut.`;
+    const out = JSON.parse(await gemini(prompt, true));
+    const codes = new Set(shops.map(x => x.code));
+    return {
+      shop: typeof out.shop === "string" && codes.has(out.shop) ? out.shop : null,
+      items: (Array.isArray(out.items) ? out.items : []).slice(0, 12).map((i: { name?: unknown; qty?: unknown }) => ({ name: String(i.name ?? "").slice(0, 60), qty: Math.max(1, Math.min(20, Number(i.qty) || 1)) })).filter((i: { name: string }) => i.name),
+      to: out.to === "maison" || out.to === "travail" ? out.to : null,
+      lang: out.lang === "he" ? "he" : "fr",
+      reply: String(out.reply ?? "").slice(0, 200),
+    };
+  }
+  throw new Error("tache_inconnue");
+}
+
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info" };
+const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
+
+// Appelée par la base (pg_net) et, pour la commande à la voix, directement par l'appli (plus rapide) : le premier
+// qui prend la demande la traite (prise atomique), l'autre reçoit « introuvable » et lit le résultat dans la base.
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: CORS });
+  let id = "";
+  try { id = String((await req.json()).id ?? ""); } catch { /* corps vide */ }
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return reply({ error: "id" }, 400);
+  const { data: job } = await db.from("ia_jobs").update({ status: "en_cours" }).eq("id", id).eq("status", "attente").select("*").maybeSingle();
+  if (!job) return reply({ error: "introuvable" }, 404);
+  try {
+    if (!KEY) throw new Error("cle_absente");
+    const output = await run(job.kind, job.input ?? {});
+    await db.from("ia_jobs").update({ status: "fait", output, done_at: new Date().toISOString() }).eq("id", id);
+    return reply({ ok: true, output });
+  } catch (e) {
+    const msg = String((e as Error).message ?? e).slice(0, 500);
+    await db.from("ia_jobs").update({ status: "erreur", error: msg, done_at: new Date().toISOString() }).eq("id", id);
+    return reply({ error: msg }, 500);
+  }
+});
