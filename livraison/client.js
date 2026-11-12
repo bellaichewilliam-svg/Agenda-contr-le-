@@ -6555,7 +6555,14 @@ function hvOpen() {
   hvDom(); hv.lang = I18N.lang === "he" ? "he" : "fr"; hvLabels();
   $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
   UI.track("voice_start", {});
-  if (!hv.hist.length) { $("#hvLog").innerHTML = ""; hvSay(hvT("hvHello"), [hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]); }
+  if (!hv.hist.length) { $("#hvLog").innerHTML = "";
+    // Raccourcis de départ (patron, 12/11) : mes courses chez Carrefour / BOOOM, voir le catalogue (toutes les rubriques)
+    const has = c => (state.showcase || []).some(x => x.code === c);
+    hv.short = {};
+    if (has("HOPCARREFOUR")) hv.short[hvT("hvShopAt", { name: "Carrefour" })] = () => hvOpenTarget({ type: "shop", code: "HOPCARREFOUR" });
+    if (has("HOPBOOOM")) hv.short[hvT("hvShopAt", { name: "BOOOM" })] = () => hvOpenTarget({ type: "shop", code: "HOPBOOOM" });
+    hv.short[hvT("hvCatalog")] = () => { hvClose(); if (location.hash && location.hash !== "#accueil") location.hash = "#accueil"; setTimeout(() => { const k = $("#homeKinds"), bar = document.querySelector(".topbar"); if (k) window.scrollTo({ top: Math.max(0, k.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 12), behavior: "smooth" }); }, 250); };
+    hvSay(hvT("hvHello"), [...Object.keys(hv.short), hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]); }
   else hvListen();
 }
 function hvClose() {
@@ -6640,6 +6647,7 @@ async function hvUser(text) {
   text = String(text || "").trim();
   if (!text || hv.busy) return;
   hvStopListen(); hvChoices([]);
+  if (hv.short && hv.short[text]) { hvBubble("c", text); UI.track("voice_short", {}); return hv.short[text](); }
   // Hoppy en petit, sur un vrai écran (fiche d'un plat, rayon, panier) : ce qui est dit touche le bon bouton
   if (hv.mini) {
     hv.auto = 0;
