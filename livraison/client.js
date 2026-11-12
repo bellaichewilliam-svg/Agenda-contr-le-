@@ -5280,7 +5280,7 @@ function initVitrine() {
   if (!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) vitTypewriter();
   const find = $("#homeProBox .sc-find");
   if (find) $("#vitHero").appendChild(find);
-  const vp = document.querySelector(".vit-voice"); if (find && vp) find.after(vp);
+  const vp = document.querySelector(".vit-voice"); if (find && vp) find.after(vp); setTimeout(hvKeepBar, 0);
   // Idées en un geste : elles remplissent la recherche (la liste montre tout de suite la magie de Hoppy)
   const ideas = document.createElement("div");
   ideas.className = "vit-ideas"; ideas.id = "vitIdeas";
@@ -6555,6 +6555,14 @@ function hvOpen() {
   hvDom(); hv.lang = I18N.lang === "he" ? "he" : "fr"; hvLabels();
   $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
   UI.track("voice_start", {});
+  // Une commande gardée (Hoppy fermé avant la fin, page rechargée) : on la retrouve, « je l'envoie ou on recommence ? »
+  if (!hv.hist.length) { hv.pickDone = false; hv.afterAddr = null; }
+  const kept = !hv.hist.length && !hv.basket.length ? hvKeepGet() : null;
+  if (kept) {
+    $("#hvLog").innerHTML = ""; hv.hist = kept.hist || []; hv.basket = kept.basket; hv.lastOut = kept.last || null; hvBasketDraw();
+    hv.short = { [hvT("hvKeepNew")]: () => { hv.hist = []; hv.basket = []; hv.lastOut = null; hvKeepClear(); hvBasketDraw(); hvOpen(); } };
+    return hvSay(hvT("hvKeepSay", { list: hvKeepList(kept) }), [hvT("hvKeepOrder"), hvT("hvKeepNew")]);
+  }
   if (!hv.hist.length) { $("#hvLog").innerHTML = "";
     // Raccourcis de départ (patron, 12/11) : mes courses chez Carrefour / BOOOM, voir le catalogue (toutes les rubriques)
     const has = c => (state.showcase || []).some(x => x.code === c);
@@ -6564,6 +6572,31 @@ function hvOpen() {
     hv.short[hvT("hvCatalog")] = () => { hvClose(); if (location.hash && location.hash !== "#accueil") location.hash = "#accueil"; setTimeout(() => { const k = $("#homeKinds"), bar = document.querySelector(".topbar"); if (k) window.scrollTo({ top: Math.max(0, k.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 12), behavior: "smooth" }); }, 250); };
     hvSay(hvT("hvHello"), [...Object.keys(hv.short), hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]); }
   else hvListen();
+}
+// La commande préparée avec Hoppy est gardée sur le téléphone (24 h) tant qu'elle n'est pas partie dans le panier :
+// fermer Hoppy ou recharger la page ne la perd plus (patron, 12/11). Une barre « Reprendre » la remet d'un geste.
+const HV_KEEP = "livraison.hoppy.keep.v1";
+function hvKeepGet() { try { const k = JSON.parse(localStorage.getItem(HV_KEEP) || "null"); return k && Array.isArray(k.basket) && k.basket.length && Date.now() - k.at < 864e5 ? k : null; } catch (e) { return null; } }
+function hvKeepSave() {
+  try { if (hv.basket.length) localStorage.setItem(HV_KEEP, JSON.stringify({ at: Date.now(), basket: hv.basket, hist: hv.hist.slice(-12), last: hv.lastOut || null })); else localStorage.removeItem(HV_KEEP); } catch (e) { /* stockage plein */ }
+  hvKeepBar();
+}
+function hvKeepClear() { try { localStorage.removeItem(HV_KEEP); } catch (e) { /* rien */ } hvKeepBar(); }
+const hvKeepList = k => k.basket.map(b => `${b.qty > 1 ? b.qty + " × " : ""}${b.name}`).join(", ");
+function hvKeepBar() {
+  let bar = $("#hvKeep"); const k = hvKeepGet(), pill = document.querySelector(".vit-voice");
+  if (!k || !pill) { if (bar) bar.remove(); return; }
+  if (bar && bar.previousElementSibling !== pill) pill.after(bar);
+  if (!bar) {
+    bar = document.createElement("div"); bar.id = "hvKeep"; bar.className = "hv-keep"; pill.after(bar);
+    bar.addEventListener("click", e => {
+      if (e.target.closest("[data-keep-x]")) { hv.basket = []; hv.hist = []; return hvKeepClear(); }
+      const kk = hvKeepGet(); if (!kk) return hvKeepClear();
+      hv.lang = I18N.lang === "he" ? "he" : "fr"; hv.basket = kk.basket; hv.hist = kk.hist || []; hv.lastOut = kk.last || null;
+      hvDom(); hvLabels(); hv.auto = 0; hvGo(Object.assign({ service: null, from: null }, kk.last || {}, { go: true }));
+    });
+  }
+  bar.innerHTML = `<span class="hk-t"><b>🛒 ${UI.esc(t("hvKeepT"))}</b><small><bdi>${UI.esc(hvKeepList(k))}</bdi></small></span><button type="button" class="hk-go" data-keep-go>${UI.esc(t("hvKeepGo"))}</button><button type="button" class="hk-x" data-keep-x aria-label="✕">✕</button>`;
 }
 function hvClose() {
   hvStopListen(); hv.seq++; hv.mini = false; hv.pending = null; $("#hvSheet").classList.remove("mini");
@@ -6664,10 +6697,13 @@ async function hvUser(text) {
   }
   // « Je m'appelle Avraham Belaïch, j'habite au 13 rue Rémez, 3e étage, porte 33, code 1010-20 dièse » : tout est rempli
   // ici, sur le téléphone ; l'IA ne reçoit que le reste de la phrase (jamais le nom, l'adresse ni le téléphone)
-  const ex = hvExtract(text);
+  // (pendant qu'il donne l'adresse où RÉCUPÉRER un objet : ce n'est pas son adresse à lui, on ne l'enregistre pas comme telle)
+  const ex = hv.local && hv.local.kind === "pickup" ? { any: false } : hvExtract(text);
   if (ex.any) {
     const note = await hvApplyExtract(ex);
     if (hv.local) return;   // il manque un détail de l'adresse : le téléphone le demande
+    // (objet à récupérer : l'adresse de livraison vient d'être complétée, la commande s'ouvre sans repasser par l'IA)
+    if (hv.afterAddr && addrReady("to")) { const o = hv.afterAddr; hv.afterAddr = null; hv.auto = 8; return hvGo(o); }
     const FILL = new Set("j'habite habite au à a le la les mon ma mes et mais c'est est téléphone telephone numéro portable bonjour salut alors voilà je suis אני גר גרה הטלפון טלפון שלי הוא היא זה ו שלום".split(" "));
     const rest = ex.rest.replace(/[\s,.;:!?-]+/g, " ").trim().split(" ").filter(w => !FILL.has(w.toLowerCase())).join(" ");
     const msg = (norm(rest).length >= 3 ? rest + " " : "") + note;
@@ -6749,6 +6785,17 @@ async function hvPlaceFind(name) {
   try { list = await Places.search(name, hv.lang); } catch (e) { list = []; }
   return list.find(x => x.brand && x.lat != null && words.every(w => (" " + nz(x.brand) + " ").includes(" " + w))) || null;
 }
+// Le départ chez une enseigne : celle du répertoire est posée telle quelle ; inconnue, le champ « départ » attend sa rue
+function hvApplyFrom(name, place) {
+  if (place) return setTimeout(() => { applySavedAddr("from", { brand: place.brand || name, street: place.streetName || "", number: place.housenumber || "", lat: place.lat, lon: place.lon, cityId: (place.city && Places.matchCity(place.city)) || CONFIG.homeCity, city: place.city || "" }); renderQuote(); saveDraft(); }, 500);
+  hv.noGuide = true;
+  setTimeout(() => {
+    const f = form.elements.pickup_address, wiz = f && f.getClientRects().length, a = wiz ? ac.from : (home.ac && home.ac.from) || ac.from;
+    if (wiz) f.scrollIntoView({ block: "center", behavior: "smooth" }); else goField("from");
+    setTimeout(() => { if (a && a.askBrand) a.askBrand(name); }, 450);
+    const m = hvT("hvFromAsk", { name }); hvMiniLine(m); hvSayMini(m);
+  }, 600);
+}
 async function hvPlaceCard(name) {
   const p = await hvPlaceFind(name);
   hv.place = p ? { name, p } : null;
@@ -6794,6 +6841,8 @@ async function hvAsk(text) {
   if (!out || !out.say) { hvSay(hvT("hvErr"), [], () => {}); return; }
   hv.hist.push({ r: "h", t: out.say.slice(0, 300) });
   if (Array.isArray(out.basket)) { hv.basket = out.basket; hvBasketDraw(); }
+  hv.lastOut = { service: out.service || null, from: out.from || null, shop: out.shop || null, colis: out.colis || null };
+  hvKeepSave();
   if (out.saved) { const a = Store.getAddresses().find(x => x.tag === (out.saved === "travail" ? "work" : "home")); if (a) { applySavedAddr("to", a); vitRender(); } }
   UI.track("voice_turn", { n: hv.basket.length, go: out.go ? 1 : 0 });
   // Restaurant / magasin hors appli : on montre ce qu'on a dans le répertoire (adresse, téléphone à appeler) pour qu'il
@@ -6806,6 +6855,12 @@ async function hvAsk(text) {
   // « Qu'est-ce que tu as à grignoter ? », « montre-moi les pizzas » : la bonne page s'ouvre, on choisit à la voix dessus
   if (out.open && out.open.type) return hvSay(out.say, [], () => hvOpenTarget(out.open));
   if (out.go) {
+    // Un objet à aller chercher ou à envoyer (une mezouza, un collier, des clés…) : le téléphone demande tout de suite
+    // l'adresse de récupération, puis celle de livraison (rien de tout ça ne part à l'IA)
+    if (out.service === "colis" && !out.from && !hv.pickDone && !(hv.basket || []).some(b => b.ref)) {
+      hv.local = { kind: "pickup", step: "street", a: {}, tries: 0, out };
+      return hvSay(hvT("hvAskPickup"), Store.getAddresses().some(x => x.tag === "home") ? [hvT("hvAtHome")] : []);
+    }
     const needAge = !hv.adultOk && (hv.basket || []).some(b => { const m = /^r:([^:]+):([^|]+)/.exec(String(b.ref || "")), r = m && window.Rayons && Rayons.byId(m[1]); return !!(r && (Rayons.items(r).find(i => i.id === m[2]) || {}).adult); });
     if (needAge) { hv.local = { kind: "adult", out }; return hvSay(hvT("hvAskAdult"), [hvT("hvYes"), hvT("hvNo")]); }
     hv.auto = 8;
@@ -6840,6 +6895,33 @@ async function hvLocal(text) {
     hv.adultOk = true; hv.auto = 8;
     return hvSay(hvT("hvAdultOk"), [], () => hvGo(L.out));
   }
+  if (L.kind === "pickup") {
+    const done = () => {
+      hv.local = null; hv.pickDone = true;
+      applySavedAddr("from", L.a); saveDraft();
+      if (addrReady("to") && !L.home) { hv.auto = 8; return hvGo(L.out); }
+      hv.afterAddr = L.out; return hvStartLocal("address");
+    };
+    const who = () => { L.step = "who"; return hvSay(hvT("hvAskWho"), [hvT("hvNothing")]); };
+    if (L.step === "street") {
+      const h = Store.getAddresses().find(x => x.tag === "home");
+      if (h && (/chez moi|[aà] la maison|mon domicile|אצלי|בבית|מהבית/i.test(text) || norm(text) === norm(hvT("hvAtHome")))) { L.a = Object.assign({}, h); L.home = true; return done(); }
+      const num = (text.match(/\d+[א-תa-z]?/i) || [""])[0], street = text.replace(num, "").replace(/\b(rue|avenue|bd|boulevard|רחוב|רח')\b\.?/gi, "").replace(/[,،.]/g, " ").replace(/\s+/g, " ").trim();
+      if (!street) return hvSay(hvT("hvAskPickup"), []);
+      const cid = form.from_city.value && form.from_city.value !== OTHER ? form.from_city.value : CONFIG.homeCity;
+      let list = [];
+      try { list = await Places.search(`${street} ${num} ${cityLabel(cid)}`.trim(), hv.lang); } catch (e) { list = []; }
+      const hit = list.find(x => x.streetName && !x.brand && x.lat != null);
+      // (rue introuvable deux fois : la page s'ouvre, il l'écrit dans « départ »)
+      if (!hit) { L.tries++; if (L.tries >= 2) { hv.local = null; hv.pickDone = true; return hvGo(L.out); } return hvSay(hvT("hvAddrAgain"), []); }
+      L.a = { street: hit.streetName, number: num || hit.housenumber || "", lat: hit.lat, lon: hit.lon, cityId: (hit.city && Places.matchCity(hit.city)) || cid, exact: !!(num && hit.housenumber === num) };
+      L.a.city = L.a.cityId;
+      if (!L.a.number) { L.step = "number"; return hvSay(hvT("hvAskNumber"), []); }
+      return who();
+    }
+    if (L.step === "number") { const n = hvNum(text); if (!n) return hvSay(hvT("hvAskNumber"), []); L.a.number = n; return who(); }
+    if (L.step === "who") { if (!hvNo(text) && norm(text) !== norm(hvT("hvNothing"))) L.a.note = text.trim().slice(0, 120); return done(); }
+  }
   if (L.kind === "address") {
     if (L.step === "street") {
       const num = (text.match(/\d+[א-תa-z]?/i) || [""])[0], street = text.replace(num, "").replace(/\b(rue|avenue|bd|boulevard|רחוב|רח')\b\.?/gi, "").replace(/[,،.]/g, " ").replace(/\s+/g, " ").trim();
@@ -6867,6 +6949,8 @@ async function hvLocal(text) {
       L.a.code = hvNo(text) ? t("noCodeVal") : (text.replace(/dièse|diese|diez|סולמית/gi, "#").replace(/étoile|כוכבית/gi, "*").match(/[\d#*]+/g) || [text.trim().slice(0, 12)]).join("");
       hvSaveAddr(L.a);
       hv.local = null;
+      // (un objet à récupérer : les deux adresses sont là, la commande s'ouvre sans repasser par l'IA)
+      if (hv.afterAddr) { const o = hv.afterAddr; hv.afterAddr = null; hv.auto = 8; return hvGo(o); }
       hv.hist.push({ r: "c", t: hvT("hvAddrDoneAi") });
       return hvAsk(hvT("hvAddrDoneAi"));
     }
@@ -6962,7 +7046,7 @@ function hvGuide(pre) {
   hvAdultTick();
   pre = typeof pre === "string" ? pre + " " : "";
   const vis = q => { const el = $(q); return el && el.getClientRects().length && !el.closest(".hidden") ? el : null; };
-  if (vis("#doneTrack")) { const say = hvT("hvDone"); hvMiniLine(say); hv.pending = null; hv.hist = []; hv.basket = []; UI.track("voice_done", {});
+  if (vis("#doneTrack")) { const say = hvT("hvDone"); hvMiniLine(say); hv.pending = null; hv.hist = []; hv.basket = []; hvKeepClear(); UI.track("voice_done", {});
     return hvSayMini(say, () => { const h = $("#doneTrack").getAttribute("href"); hvClose(); if (h && h !== "#") location.href = h; }); }
   const err = vis("#wizToast") || vis("#formError") || vis("#rulesErr");
   let say = "";
@@ -7023,7 +7107,7 @@ async function hvGo(out) {
   const items = hv.basket, refs = items.map(b => String(b.ref || ""));
   hvStopListen();
   hvMini(true); hvMiniLine(hvT("hvMiniHint"));
-  hv.noGuide = false;
+  hv.noGuide = false; hvKeepClear();
   setTimeout(() => { if (hv.mini && !hv.pending && !hv.noGuide) hvGuide(); }, 1800);
   UI.track("voice_go", { n: items.length, service: out.service || "" });
   if (out.service === "poste") { goKind("poste"); setTimeout(() => toastCart(hvT("hvPoste"), 5000), 600); return; }
@@ -7035,19 +7119,24 @@ async function hvGo(out) {
     if (!place) Store.placeSuggest(out.from);
     if (out.service === "achat") startFreeOrder(what || out.from);
     else { state.homeKind = null; applyKind("resto"); goPharma(); const n = form.elements.notes; if (n && what) { n.value = (n.value ? n.value + "\n" : "") + hvT("hvReadyAt", { what }); n.dispatchEvent(new Event("input", { bubbles: true })); } }
-    if (place) setTimeout(() => { applySavedAddr("from", { brand: place.brand || out.from, street: place.streetName || "", number: place.housenumber || "", lat: place.lat, lon: place.lon, cityId: (place.city && Places.matchCity(place.city)) || CONFIG.homeCity, city: place.city || "" }); renderQuote(); saveDraft(); }, 500);
-    else { hv.noGuide = true; setTimeout(() => {
-      // Le champ « départ » visible : celui de la commande, sinon celui de l'accueil ; il attend la rue de cette enseigne
-      const f = form.elements.pickup_address, wiz = f && f.getClientRects().length, a = wiz ? ac.from : (home.ac && home.ac.from) || ac.from;
-      if (wiz) f.scrollIntoView({ block: "center", behavior: "smooth" }); else goField("from");
-      setTimeout(() => { if (a && a.askBrand) a.askBrand(out.from); }, 450);
-      const m = hvT("hvFromAsk", { name: out.from }); hvMiniLine(m); hvSayMini(m);
-    }, 600); }
+    hvApplyFrom(out.from, place);
     return;
   }
-  if (out.service === "colis" && !items.length) {
-    if (form.what_item && out.colis && out.colis.what) form.what_item.value = out.colis.what;
-    goField(addrReady("to") ? "from" : "to"); return;
+  // Un objet à aller chercher ou à envoyer : la commande « colis » s'ouvre, l'objet écrit, les adresses déjà là
+  if (out.service === "colis" && !items.some(b => b.ref)) {
+    state.homeKind = null; form.elements.service.value = "colis";
+    const w = (out.colis && out.colis.what) || items.map(b => b.name).join(", ");
+    if (form.what_item && w) { form.what_item.value = w.slice(0, 80); form.what_item.dispatchEvent(new Event("input", { bubbles: true })); }
+    if (out.from) {
+      let place = hv.place && hv.place.name === out.from ? hv.place.p : null;
+      if (!place) place = await hvPlaceFind(out.from);
+      if (!place) Store.placeSuggest(out.from);
+      goPharma(); syncVisibility(); hvApplyFrom(out.from, place);
+      return;
+    }
+    if (addrReady("from") && addrReady("to")) { goPharma(); syncVisibility(); renderQuote(); saveDraft(); }
+    else { hv.noGuide = true; goPharma(); syncVisibility(); setTimeout(() => { const f = form.elements[addrReady("from") ? "dropoff_address" : "pickup_address"]; if (f && f.getClientRects().length) { f.scrollIntoView({ block: "center", behavior: "smooth" }); f.focus({ preventScroll: true }); } else goField(addrReady("from") ? "to" : "from"); }, 600); }
+    return;
   }
   // Tout dans un même rayon « Courses HOP! » (ex. Marlboro Gold + briquet) : le rayon s'ouvre, les articles déjà cochés
   const ray = refs.every(r => r.startsWith("r:")) && new Set(refs.map(r => r.split(":")[1])).size === 1 ? Rayons.byId(refs[0].split(":")[1]) : null;
@@ -7125,11 +7214,14 @@ if ($("#homeFind")) {
   let vvI = 0;
   const vvEx = () => { const l = t("vitVoiceEx"); return Array.isArray(l) && l.length ? l : [t("vitVoice")]; };
   const drawPill = () => { pill.setAttribute("aria-label", t("vitVoice"));
-    pill.innerHTML = `<img class="vv-hop" src="img/hoppy-mini.webp" alt="" width="34" height="55" /><span class="vv-bub"><em>${UI.esc(t("vitVoiceTag"))}</em><b class="vv-say">${UI.esc(vvEx()[vvI % vvEx().length])}</b></span><span class="vv-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`; };
-  drawPill(); window.addEventListener("hop:lang", drawPill);
+    const tt = t("vitVoiceTitle"), T = Array.isArray(tt) ? tt : [t("vitVoice"), ""];
+    pill.innerHTML = `<span class="vv-head"><em class="vv-badge"><i class="vv-dot"></i>${UI.esc(t("vitVoiceBadge"))}</em><b class="vv-title">${UI.esc(T[0])} <span>${UI.esc(T[1])}</span></b><small class="vv-sub">${UI.esc(t("vitVoiceSub"))}</small></span>
+      <span class="vv-row"><img class="vv-hop" src="img/hoppy-mini.webp" alt="" width="34" height="55" /><span class="vv-bub"><em>${UI.esc(t("vitVoiceTag"))}</em><b class="vv-say">${UI.esc(vvEx()[vvI % vvEx().length])}</b></span><span class="vv-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></span>`; };
+  drawPill(); window.addEventListener("hop:lang", () => { drawPill(); hvKeepBar(); });
   setInterval(() => { const b = pill.querySelector(".vv-say"); if (!b || document.hidden) return; vvI++; b.classList.add("out"); setTimeout(() => { b.textContent = vvEx()[vvI % vvEx().length]; b.classList.remove("out"); }, 260); }, 2800);
   $("#homeFind").closest(".sc-find").after(pill);
   pill.addEventListener("click", e => { e.stopPropagation(); if (Store.iaAssist) hvOpen(); else micStart(); });
+  hvKeepBar();
 }
 // Résultats de la vitrine : « On vous l'apporte », puis les produits rangés PAR COMMERCE (logo, nom, « Tout voir »)
 // en cartes avec photo et prix (un toucher ouvre la fiche du produit dans son commerce), les courses HOP! (rayons), les commerces
