@@ -7124,8 +7124,17 @@ function hvGuide(pre) {
   const err = vis("#wizToast") || vis("#formError") || vis("#rulesErr");
   let say = "";
   if (err && err.textContent.trim()) { hv.auto = 0; say = err.textContent.trim().slice(0, 220); }
-  // « Commander » dit une fois : on enchaîne les étapes sans rien redemander, jusqu'à l'envoi (ou jusqu'à ce qui manque)
-  else if (hv.auto > 0 && (vis("#checkOk") || vis("#cartGo") || vis("#mobileGo") || vis("#submitBtn")) && !vis("#itemSheet")) { hv.auto--; (vis("#checkOk") || vis("#cartGo") || vis("#mobileGo") || vis("#submitBtn")).click(); return setTimeout(hvGuide, 1000); }
+  // « Commander » dit une fois : Hoppy enchaîne les étapes, mais à un rythme qu'on peut suivre (patron, 12/11 : « ça va
+  // beaucoup trop vite ») : il annonce chaque écran, laisse le temps de le regarder, puis avance. Le dernier écran
+  // n'est JAMAIS validé tout seul : il attend « c'est bon » (ou un toucher) avant d'envoyer la commande.
+  else if (hv.auto > 0 && !vis("#itemSheet") && !vis("#checkOk") && !(vis("#submitBtn") && !vis("#cartSheet")) && (vis("#cartGo") || vis("#mobileGo"))) {
+    hv.auto--;
+    const btn = vis("#cartGo") || vis("#mobileGo"), seq = hv.seq;
+    const line = vis("#cartSheet") ? hvT("hvAutoCart", { total: ($("#cartSum") || {}).textContent || "" }) : vis("#wizTitle") ? `${$("#wizTitle").textContent.trim()}. ${hvT("hvAutoNext")}` : hvT("hvAutoNext");
+    hvMiniLine(line);
+    return hvSayMini(line, () => setTimeout(() => { if (seq !== hv.seq || !hv.mini) return; if (btn.getClientRects().length) btn.click(); setTimeout(hvGuide, 1100); }, 2200));
+  }
+  else if (hv.auto > 0 && !vis("#itemSheet") && (vis("#checkOk") || vis("#submitBtn"))) { hv.auto = 0; say = hvT("hvGuideCheck", { total: ($("#mobileTotal") || {}).textContent || "" }); }
   else if (vis("#checkModal")) say = hvT("hvGuideCheck", { total: ($("#mobileTotal") || {}).textContent || "" });
   else if (vis("#itemSheet")) return hvListen();
   else if (vis("#cartSheet")) say = hvT("hvGuideCart", { total: ($("#cartSum") || {}).textContent || "" });
