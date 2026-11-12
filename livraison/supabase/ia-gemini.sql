@@ -66,6 +66,22 @@ $$;
 revoke all on function public.ia_voice_result(uuid) from public;
 grant execute on function public.ia_voice_result(uuid) to anon, authenticated;
 
+-- 📷 Photo de la liste de courses dans Hoppy (patron, 12/11) : l'appli envoie la photo réduite, puis appelle elle-même
+-- hop-ia avec l'id (pas de pg_net). La photo est effacée de la demande dès qu'elle est lue. 6 photos / 10 min par téléphone.
+create or replace function public.ia_photo(p_image text, p_lang text default 'fr', p_device text default null) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare d text := left(coalesce(p_device, ''), 64); j uuid;
+begin
+  if p_image is null or length(p_image) < 1000 or length(p_image) > 900000 or p_image !~ '^[A-Za-z0-9+/=]+$' then raise exception 'photo_invalide'; end if;
+  if d <> '' and (select count(*) from ia_jobs where device = d and kind = 'lire_liste' and created_at > now() - interval '10 minutes') >= 6 then raise exception 'trop_de_demandes'; end if;
+  if (select count(*) from ia_jobs where kind = 'lire_liste' and created_at > now() - interval '1 hour') >= 150 then raise exception 'trop_de_demandes'; end if;
+  insert into ia_jobs (kind, input, device) values ('lire_liste', jsonb_build_object('image', p_image, 'lang', case when p_lang = 'he' then 'he' else 'fr' end), nullif(d, ''))
+  returning id into j;
+  return j;
+end $$;
+revoke all on function public.ia_photo(text, text, text) from public;
+grant execute on function public.ia_photo(text, text, text) to anon, authenticated;
+
 -- Règles en plus du cerveau de Hoppy : on les change ici (create or replace), sans redéployer la fonction hop-ia.
 create or replace function public.ia_regles() returns text language sql immutable as $r$ select $t$
 21. Restaurant ou magasin qui n'est pas sur HOP! (règles 11 et 20) : mets "from" (son nom, et sa rue si tu la connais) DÈS que tu connais le nom : l'appli affiche alors au client l'adresse et le téléphone qu'elle a dans son répertoire, et il confirme. Puis demande : « Vous avez déjà passé la commande chez eux ? »

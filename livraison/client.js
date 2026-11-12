@@ -6528,19 +6528,21 @@ function hvDom() {
   el.innerHTML = `<div class="hv-box"><div class="hv-top"><img src="img/hoppy-mini.webp" alt="" width="30" height="48" /><b>Hoppy</b>
       <button type="button" class="hv-lang" data-hv-lang></button><button type="button" class="hv-x" data-hv-close aria-label="✕">✕</button></div>
     <div class="hv-log" id="hvLog" aria-live="polite"></div><div class="hv-basket hidden" id="hvBasket"></div><div class="hv-choices" id="hvChoices"></div>
-    <form class="hv-bar" id="hvForm"><input id="hvText" type="text" autocomplete="off" enterkeyhint="send" /><button type="submit" class="hv-send" aria-label="➤">➤</button>
+    <form class="hv-bar" id="hvForm"><button type="button" class="hv-cam" data-hv-cam aria-label="📷"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M4 8h3l1.6-2.4h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="13.2" r="3.4" fill="none" stroke="currentColor" stroke-width="2"/></svg></button><input id="hvPhotoIn" type="file" accept="image/*" hidden /><input id="hvText" type="text" autocomplete="off" enterkeyhint="send" /><button type="submit" class="hv-send" aria-label="➤">➤</button>
       <button type="button" class="hv-mic" data-hv-mic>${HV_MIC}</button></form></div>`;
   document.body.appendChild(el);
   el.addEventListener("click", e => {
     if (e.target.closest("[data-hv-close]")) return hvClose();
-    if (hv.mini && !e.target.closest("[data-hv-mic], form")) { hvMini(false); return; }
+    if (hv.mini && !e.target.closest("[data-hv-mic], [data-hv-cam], form")) { hvMini(false); return; }
     if (e.target === el) return hvClose();
+    if (e.target.closest("[data-hv-cam]")) { hvStopListen(); if (hv.mini) hvMini(false); return $("#hvPhotoIn").click(); }
     if (e.target.closest("[data-hv-mic]")) return hv.rec ? hvStopListen() : hvListen();
     if (e.target.closest("[data-hv-lang]")) { hv.lang = hv.lang === "he" ? "fr" : "he"; hvLabels(); return; }
     const c = e.target.closest("[data-hv-choice]");
     if (c) hvUser(c.dataset.hvChoice);
   });
   $("#hvForm").addEventListener("submit", e => { e.preventDefault(); const v = $("#hvText").value.trim(); if (v) { $("#hvText").value = ""; hvUser(v); } });
+  $("#hvPhotoIn").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; e.target.value = ""; if (f) hvPhoto(f); });
   return el;
 }
 function hvLabels() {
@@ -6570,7 +6572,8 @@ function hvOpen() {
     if (has("HOPCARREFOUR")) hv.short[hvT("hvShopAt", { name: "Carrefour" })] = () => hvOpenTarget({ type: "shop", code: "HOPCARREFOUR" });
     if (has("HOPBOOOM")) hv.short[hvT("hvShopAt", { name: "BOOOM" })] = () => hvOpenTarget({ type: "shop", code: "HOPBOOOM" });
     hv.short[hvT("hvCatalog")] = () => { hvClose(); if (location.hash && location.hash !== "#accueil") location.hash = "#accueil"; setTimeout(() => { const k = $("#homeKinds"), bar = document.querySelector(".topbar"); if (k) window.scrollTo({ top: Math.max(0, k.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 12), behavior: "smooth" }); }, 250); };
-    hvSay(hvT("hvHello"), [...Object.keys(hv.short), hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]); }
+    hvSay(hvT("hvHello"), [...Object.keys(hv.short), hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]);
+    const tip = document.createElement("div"); tip.className = "hv-tip"; tip.textContent = hvT("hvPhotoTip"); $("#hvLog").appendChild(tip); }
   else hvListen();
 }
 // La commande préparée avec Hoppy est gardée sur le téléphone (24 h) tant qu'elle n'est pas partie dans le panier :
@@ -6602,6 +6605,38 @@ function hvClose() {
   hvStopListen(); hv.seq++; hv.mini = false; hv.pending = null; $("#hvSheet").classList.remove("mini");
   try { speechSynthesis.cancel(); } catch (e) { /* pas de voix */ }
   $("#hvSheet").classList.add("hidden"); document.body.classList.remove("hv-on");
+}
+// 📷 La liste de courses en photo (écrite à la main, imprimée, ou un produit) : réduite sur le téléphone, lue par l'IA,
+// puis traitée comme si le client l'avait dite. La photo n'est pas gardée (patron, 12/11 : « sans passer par WhatsApp »).
+function hvShrink(file) {
+  return new Promise((ok, ko) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { try { const k = Math.min(1, 1280 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+      c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url); ok(c.toDataURL("image/jpeg", 0.72)); } catch (e) { ko(e); } };
+    img.onerror = () => { URL.revokeObjectURL(url); ko(new Error("image")); };
+    img.src = url;
+  });
+}
+async function hvPhoto(file) {
+  if (hv.busy) return;
+  hvChoices([]);
+  let data = "";
+  try { data = await hvShrink(file); } catch (e) { data = ""; }
+  if (!data) return hvSay(hvT("hvPhotoNo"), []);
+  const me = document.createElement("div"); me.className = "hv-msg me hv-pic"; me.innerHTML = `<img src="${data}" alt="" />`;
+  $("#hvLog").appendChild(me);
+  const seq = ++hv.seq, wait = hvBubble("w"); hv.busy = true;
+  UI.track("voice_photo", {});
+  let list = "";
+  try { const id = await Store.iaPhoto(data.split(",")[1], hv.lang); const out = id ? await Store.iaVoiceRun(id) : null; list = String((out && out.text) || "").trim(); } catch (e) { list = ""; }
+  wait.remove(); hv.busy = false;
+  if (seq !== hv.seq) return;
+  if (list.length < 2) return hvSay(hvT("hvPhotoNo"), []);
+  const msg = hvT("hvPhotoList", { list });
+  hvBubble("c", "📷 " + list);
+  hv.local = null; hv.hist.push({ r: "c", t: msg.slice(0, 300) });
+  hvAsk(msg);
 }
 function hvBubble(who, text) {
   const d = document.createElement("div");

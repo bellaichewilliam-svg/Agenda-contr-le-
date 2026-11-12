@@ -5723,3 +5723,20 @@ html:not(.vit) .vit-voice { display: none; }
 .hv-keep .hk-go { flex: none; border: 0; border-radius: 999px; padding: 9px 14px; background: #FF6A13; color: #fff; font-weight: 800; font-size: 14px; }
 .hv-keep .hk-x { flex: none; width: 30px; height: 30px; border: 0; border-radius: 50%; background: rgba(255,255,255,.1); color: #fff; font-size: 13px; }
 html:not(.vit) .hv-keep { display: none; }
+
+/* 📷 Photo de la liste dans Hoppy */
+.hv-cam { width: 44px; height: 44px; flex: none; border: 0; border-radius: 50%; background: #172A4B; color: #fff; display: grid; place-items: center; cursor: pointer; }
+.hv-cam svg { width: 23px; height: 23px; }
+html.d2-day .hv-cam { background: #E3E9F2; color: #0F1F3D; }
+.hv.mini .hv-cam { display: none; }
+.hv-msg.hv-pic { padding: 4px; }
+.hv-msg.hv-pic img { display: block; max-width: 150px; max-height: 190px; border-radius: 12px; object-fit: cover; }
+.hv-tip { align-self: center; margin: 2px 0 6px; font-size: 13px; opacity: .75; text-align: center; }
+/* WhatsApp : une ligne discrète en bas de l'accueil (Hoppy est la vedette) */
+.wa-list.vit-wa-low { margin: 12px 0 4px; padding: 9px 12px; border-radius: 14px; background: transparent; box-shadow: inset 0 0 0 1px rgba(37,211,102,.35); }
+.wa-list.vit-wa-low > i { width: 30px; height: 30px; }
+.wa-list.vit-wa-low > i svg { width: 18px; height: 18px; }
+.wa-list.vit-wa-low b { font-size: 14px; }
+.wa-list.vit-wa-low small { font-size: 12.5px; }
+.wa-list.vit-wa-low > em { font-size: 20px; }
+html.d2-day .wa-list.vit-wa-low { color: #0F1F3D; }
