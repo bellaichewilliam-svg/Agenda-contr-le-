@@ -1003,3 +1003,7 @@ livraison/
 - Base : `ia_assist` (60 tours / 10 min par téléphone, 2000 / heure en tout) dans `supabase/ia-gemini.sql` ; IA : `hop-ia` (type `assistant`).
 - Recherche « cigarettes » : le petit catalogue de cigarettes d'abord (plus de gaufrettes « cigarettes ») ; Entrée ouvre directement la rubrique.
 - Produit ouvert depuis une promo ou la recherche : quand on ferme sa fiche, on reste dessus dans le catalogue (friteuse Victory).
+- **Inscription en une phrase** (12/11) : « Je m'appelle Avraham Belaïch, j'habite au 13 rue Rémez, 3e étage, porte 33, le code c'est 10-10-20 dièse » (ou en hébreu, avec le téléphone) : prénom, adresse Maison, étage, porte, code et téléphone sont remplis d'un coup, sur le téléphone ; il manque un détail → Hoppy le demande. L'IA ne reçoit que « (infos enregistrées) ».
+- **Tous les choix à la voix, sur les vrais écrans** : après « commander », Hoppy passe en petite barre en bas, micro ouvert. On voit le rayon, la fiche du plat ou le panier, et on dit : « Winston Blue » (choisit la variante et l'ajoute), « grande », « Coca », « sans oignon », « ajouter », « continuer », « j'ai 18 ans », « fermer ». Un plat qui a des choix (taille, boisson, supplément) ouvre sa fiche et Hoppy lit les choix.
+- Suggestions du même magasin (makolet : une boisson, de l'eau ; Carrefour : Bounty avec un Mars ; restaurant : boisson, dessert, supplément).
+- Mise en avant discrète sous la recherche : « Nouveau · Tout se commande à la voix · La 1re appli de livraison où l'on fait tout en parlant » (FR / HE), un toucher ouvre Hoppy.
