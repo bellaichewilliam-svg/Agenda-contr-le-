@@ -106,7 +106,10 @@ function computeQuote(opts, cfg) {
   // Achats : s'arrêter et acheter a toujours un prix (même sans queue, même un paquet de cigarettes),
   // quelques minutes sur place comprises, puis l'attente habituelle
   // Makolet / supermarché et cigarettes : petit achat ; tout le reste (boutique, sandwich, pharmacie…) : vrai achat en boutique
-  if (opts.service === "achat" && P.purchase) lines.push(purchaseTier(cfg, opts) === "boutique" && P.purchaseShop
+  // (patron, 12/11) Petits achats de makolet (boisson, lait…) et tabac : pas de supplément, on n'attend pas : la course
+  // reste au prix de la livraison (25 ₪ en ville). Les boutiques HOP! (supermarché) gardent leur arrêt et achat.
+  const freeBuy = !opts.hopShop && (P.purchaseFree || []).includes(opts.purchaseKind);
+  if (opts.service === "achat" && P.purchase && !freeBuy) lines.push(purchaseTier(cfg, opts) === "boutique" && P.purchaseShop
     ? { key: "qPurchaseShop", vars: { min: P.purchaseShopMinutes || 8 }, amount: P.purchaseShop }
     : { key: "qPurchase", vars: { min: P.purchaseMinutes || 5 }, amount: P.purchase });
   // Articles cochés au-delà de ceux compris : 2 ₪ l'article (1 ₪ pour le livreur, 1 ₪ pour HOP!)

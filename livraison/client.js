@@ -720,7 +720,7 @@ function baseQuote() {
     fromCity: nearMode() ? cityOf("to") : cityOf("from"), toCity: cityOf("to"),
     fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint,
     service: hopBuyOn() ? "achat" : val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
-    units: hopBuyOn() ? cartCount() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
+    units: hopBuyOn() ? cartCount() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), hopShop: hopBuyOn(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
     couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
@@ -6538,6 +6538,8 @@ function hvDom() {
     if (e.target.closest("[data-hv-cam]")) { hvStopListen(); if (hv.mini) hvMini(false); return $("#hvPhotoIn").click(); }
     if (e.target.closest("[data-hv-mic]")) return hv.rec ? hvStopListen() : hvListen();
     if (e.target.closest("[data-hv-lang]")) { hv.lang = hv.lang === "he" ? "fr" : "he"; hvLabels(); return; }
+    const al = e.target.closest("[data-hv-alt]");
+    if (al) { const [i, k] = al.dataset.hvAlt.split("|").map(Number); return hvAlt(i, k); }
     const c = e.target.closest("[data-hv-choice]");
     if (c) hvUser(c.dataset.hvChoice);
   });
@@ -6670,10 +6672,61 @@ function hvBubble(who, text) {
 function hvChoices(list) {
   $("#hvChoices").innerHTML = (list || []).map(c => `<button type="button" data-hv-choice="${UI.esc(c)}">${UI.esc(c)}</button>`).join("");
 }
+// Le panier de Hoppy, lisible avant de valider (patron, 12/11 : « on doit voir les prix, le total, et si c'est moins cher
+// ailleurs ») : chaque article avec son magasin et son prix, les mêmes produits dans les autres magasins (un toucher
+// pour changer), le total des articles et le prix de la livraison.
+const hvPx = {};
+const hvTok = x => String(x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").split(/[^a-z0-9֐-׿]+/).filter(w => w.length >= 3 && !/^\d/.test(w));
+async function hvPrice(b) {
+  const key = (b.ref || "") + "|" + b.name;
+  if (hvPx[key]) return hvPx[key];
+  const ref = String(b.ref || ""), own = ref.startsWith("p:") ? { code: ref.split(":")[1], id: ref.split(":").slice(2).join(":") } : null;
+  const info = { price: null, lo: null, hi: null, shop: "", alts: [] };
+  if (ref.startsWith("r:")) { try { const [, rid, rest] = ref.split(":"), id = String(rest || "").split("|")[0], r = Rayons.byId(rid), it = r && Rayons.items(r).find(x => x.id === id);
+    if (it && it.p) { info.lo = it.p[0]; info.hi = it.p[1]; } } catch (e) { /* pas de prix indicatif */ } }
+  let list = [];
+  try { list = (await Store.productsSearch(b.name)) || []; } catch (e) { list = []; }
+  const me = own && list.find(x => x.id === own.id);
+  if (me) { info.price = Number(me.price); info.shop = String(UI.bi(me.shop || "")).split(" · ")[0]; }
+  else if (own) { const sc = (state.showcase || []).find(x => x.code === own.code); info.shop = sc ? String(UI.bi(sc.name)).split(" · ")[0] : ""; }
+  // Le même produit ailleurs : assez de mots en commun, un seul par magasin (le moins cher), 3 magasins au plus
+  const want = hvTok(b.name), resto = me && /restaurant|resto|cafe/i.test(me.kind || "");
+  const by = {};
+  list.forEach(x => { if (own && x.code === own.code) return; if (!resto && /restaurant|resto|cafe/i.test(x.kind || "")) return; if (!(Number(x.price) > 0)) return;
+    const have = hvTok(UI.bi(x.name)).concat(hvTok(x.name)), hit = want.filter(w => have.some(h => h === w || h.startsWith(w) || w.startsWith(h))).length;
+    if (!want.length || hit / want.length < 0.6) return;
+    if (!by[x.code] || Number(x.price) < by[x.code].price) by[x.code] = { ref: `p:${x.code}:${x.id}`, name: String(UI.bi(x.name)).slice(0, 80), price: Number(x.price), shop: String(UI.bi(x.shop || x.code)).split(" · ")[0] }; });
+  info.alts = Object.values(by).sort((a, c) => a.price - c.price).slice(0, 3);
+  return (hvPx[key] = info);
+}
 function hvBasketDraw() {
-  const b = $("#hvBasket");
-  b.classList.toggle("hidden", !hv.basket.length);
-  b.innerHTML = hv.basket.length ? `<b>🛒</b> ${hv.basket.map(x => `<span>${x.qty > 1 ? x.qty + " × " : ""}${UI.esc(x.name)}</span>`).join("")}` : "";
+  const box = $("#hvBasket");
+  box.classList.toggle("hidden", !hv.basket.length);
+  if (!hv.basket.length) { box.innerHTML = ""; return; }
+  const seq = (hv.bkSeq = (hv.bkSeq || 0) + 1), items = hv.basket.slice();
+  const paint = infos => {
+    let sum = 0, unknown = 0;
+    const rows = items.map((b, i) => { const f = infos[i] || {}, q = b.qty || 1;
+      let price = "";
+      if (f.price != null) { sum += f.price * q; price = money(f.price * q); }
+      else if (f.lo != null) { sum += f.lo * q; unknown++; price = "≈ " + money(f.lo * q); }
+      else { unknown++; price = hvT("hvBkStore"); }
+      const alts = (f.alts || []).map((a, k) => { const d = f.price != null ? a.price - f.price : 0;
+        return `<button type="button" data-hv-alt="${i}|${k}"><bdi>${UI.esc(a.shop)}</bdi> <b>${UI.esc(money(a.price))}</b>${d < -0.004 ? ` <em>${UI.esc(hvT("hvBkCheaper"))}</em>` : ""}</button>`; }).join("");
+      return `<div class="hb-row"><span class="hb-n"><b>${q > 1 ? q + " × " : ""}<bdi>${UI.esc(b.name)}</bdi></b>${f.shop ? `<small><bdi>${UI.esc(f.shop)}</bdi></small>` : ""}</span><span class="hb-p">${UI.esc(price)}</span></div>${alts ? `<div class="hb-alts"><i>${UI.esc(hvT("hvBkAlso"))}</i>${alts}</div>` : ""}`; }).join("");
+    const base = Number(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || 25);
+    box.innerHTML = `${rows}<div class="hb-total"><span>${UI.esc(hvT("hvBkTotal"))}${unknown ? ` <small>${UI.esc(hvT("hvBkMore"))}</small>` : ""}</span><b>${infos.length ? UI.esc((unknown ? "≈ " : "") + money(sum)) : "…"}</b></div><div class="hb-del">🛵 ${UI.esc(hvT("hvBkDeliv", { p: money(base) }))}</div>`;
+  };
+  paint([]);
+  Promise.all(items.map(b => hvPrice(b).catch(() => ({})))).then(infos => { if (seq === hv.bkSeq) { hv.bkInfos = infos; paint(infos); } });
+}
+// Un autre magasin choisi pour un article (moins cher, ou préféré) : la ligne change, le total se recalcule
+function hvAlt(i, k) {
+  const f = (hv.bkInfos || [])[i], a = f && f.alts && f.alts[k], b = hv.basket[i];
+  if (!a || !b) return;
+  hv.basket[i] = { ref: a.ref, name: a.name, qty: b.qty };
+  hv.toldMulti = false; hvKeepSave(); hvBasketDraw();
+  UI.track("voice_alt", {});
 }
 // Hoppy parle (voix du téléphone dans la bonne langue), puis écoute tout seul la réponse : on n'a rien à toucher
 function hvSay(text, choices, after) {

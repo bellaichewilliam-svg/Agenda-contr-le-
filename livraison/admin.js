@@ -1887,7 +1887,7 @@ function cartDelivery(c) {
   const P = CONFIG.pricing, base = Number(P.fixedFromHome[CONFIG.homeCity] || P.base || 25);
   const kind = String(c.kind || ""), rayon = /^rayon/.test(kind) ? kind.split(":")[1] || "shop" : null;
   if ((CONFIG.hopShops || []).includes(String(c.shop_code || "").toUpperCase())) return base + Number(P.purchase || 0);
-  if (rayon) return base + Number((P.purchaseSmall || []).includes(rayon) ? P.purchase || 0 : P.purchaseShop || P.purchase || 0);
+  if (rayon) return base + Number((P.purchaseFree || []).includes(rayon) ? 0 : (P.purchaseSmall || []).includes(rayon) ? P.purchase || 0 : P.purchaseShop || P.purchase || 0);
   return base;
 }
 function renderDaily(view) {
