@@ -2134,7 +2134,7 @@ function renderClients(view) {
           <div class="orders">${mine.map(o => card(o, true)).join("")}</div></details>` : ""}
         ${(() => { // Ses messages au service client (reconnus à son numéro), joints à sa fiche
           const ths = msgThreadsOf(c.phone);
-          return ths.length ? `<div class="client-msgs">${ths.map(x => `<div class="cm-row"><span class="small muted">💬 ${UI.esc(UI.fmtDateTime(x.last.created_at))} · ${x.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(x.last.body || "📷 Photo").slice(0, 90))}</span>
+          return ths.length ? `<div class="client-msgs">${ths.map(x => `<div class="cm-row"><span class="small muted">💬 ${UI.esc(UI.fmtDateTime(x.last.created_at))} · ${x.last.ai === "relai" ? "🙋 Hoppy vous passe la main : " : x.last.ai ? "🦘 Hoppy : " : x.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(x.last.body || "📷 Photo").slice(0, 90))}</span>
             ${chatBtn(x.thread, "💬 Client : " + (x.name || c.name || ""), c.phone || "", `💬 Ouvrir ses messages (${x.n})`)}</div>`).join("")}</div>` : "";
         })()}
         <div class="actions">
@@ -2822,7 +2822,7 @@ function renderInbox(view) {
     const label = threadLabel(t.thread, t.msgs);
     return `<article class="order inbox-row${n ? " is-new" : ""}" data-thread="${UI.esc(t.thread)}" data-ctitle="${UI.esc(label)}">
       <div class="order-head"><span class="order-time">${UI.esc(label)}</span>${n ? `<span class="chat-badge">${n}</span>` : ""}<span class="order-ref">${UI.esc(UI.fmtDateTime(t.last.created_at))}</span></div>
-      <p class="small muted" style="margin-top:4px">${t.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(lastText).slice(0, 120))}</p>
+      <p class="small muted" style="margin-top:4px">${t.last.ai === "relai" ? "<b class=\"ai-relai\">🙋 À reprendre par vous</b> · " : t.last.ai ? "🦘 Hoppy : " : t.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(lastText).slice(0, 120))}</p>
       ${(() => { if (!t.thread.startsWith("u:")) return ""; const m = t.msgs.find(v => v.author === "client" && v.author_name), ph = m && (String(m.author_name).match(/0[\d\-\s]{8,}/) || [])[0];
         return ph ? `<div style="margin-top:6px">${howBtn(ph.trim(), String(m.author_name).split("·")[0])}</div>` : ""; })()}
       <button type="button" class="btn btn-sm btn-link" data-close-thread="${UI.esc(t.thread)}">🗑️ Terminer / supprimer la discussion</button>

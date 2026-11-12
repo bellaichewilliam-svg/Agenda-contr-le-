@@ -68,8 +68,11 @@ function bubble(m, o) {
     return `<div class="chat-sys">${UI.esc(tr(lang, "cs_" + st))} · ${time}</div>`;
   }
   const mine = m.author === o.me;
-  const who = mine ? tr(lang, "chYou") : (m.author_name && m.author !== "admin" ? m.author_name + " · " : "") + tr(lang, "a_" + m.author);
-  return `<div class="chat-msg ${mine ? "mine" : ""} from-${UI.esc(m.author)}">
+  // (réponse de Hoppy : le client voit « HOP! · service client » ; le patron et le livreur voient que c'est l'automatique)
+  const bot = m.ai && o.me !== "client";
+  const who = bot ? (m.ai === "relai" ? "🦘 Hoppy (auto) · 🙋 à reprendre par vous" : "🦘 Hoppy (auto)")
+    : mine ? tr(lang, "chYou") : (m.author_name && m.author !== "admin" ? m.author_name + " · " : "") + tr(lang, "a_" + m.author);
+  return `<div class="chat-msg ${mine ? "mine" : ""}${bot ? " is-bot" : ""} from-${UI.esc(m.author)}">
       <small>${UI.esc(who)} · ${time}</small>
       ${m.image ? `<a href="${UI.esc(m.image)}" target="_blank" rel="noopener"><img src="${UI.esc(m.image)}" alt="" /></a>` : m.has_image ? `<span class="muted">📷</span>` : ""}
       ${m.body ? `<p>${UI.esc(m.body).replace(/\n/g, "<br>").replace(/https:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${/recu\.html/.test(u) ? "🧾 " + UI.esc(tr(lang, "receiptOpen")) : u}</a>`)}</p>` : ""}

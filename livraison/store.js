@@ -2831,7 +2831,7 @@ async function chatSend(thread, author, authorName, body, image) {
 // Derniers messages visibles (sans les photos, plus léger) : boîte de réception, badges
 async function chatRecent() {
   const since = new Date(Date.now() - 30 * 86400000).toISOString();
-  if (ONLINE) return authRest("/rest/v1/chat_messages?select=id,created_at,thread,author,author_name,body&order=created_at.desc&limit=1000&created_at=gte." + encodeURIComponent(since));
+  if (ONLINE) return authRest("/rest/v1/chat_messages?select=id,created_at,thread,author,author_name,body,ai&order=created_at.desc&limit=1000&created_at=gte." + encodeURIComponent(since));
   const id = myId();
   const me = localCouriers().find(c => c.id === id);
   const mine = me && me.role !== "admin" ? new Set(["c:" + id, ...localOrders().filter(o => o.courier_id === id).map(o => "o:" + o.id)]) : null;

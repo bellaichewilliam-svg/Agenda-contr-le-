@@ -95,6 +95,8 @@ Ne mets jamais d'adresse, de nom de personne ou de numéro de téléphone dans l
   // Il comprend, pose les questions qu'il faut (quelle marque, adresse, étage, code, nom, téléphone…), propose des
   // produits proches (un Bounty avec un Mars), puis lance la commande dans l'appli. Le client ne cherche plus rien.
   if (kind === "assistant") return await assistant(input);
+  // 💬 Le chat client (patron, 12/11) : Hoppy répond au nom du service client, passe la main à l'équipe quand il faut
+  if (kind === "chat") return await chatReply(input);
   throw new Error("tache_inconnue");
 }
 
@@ -216,6 +218,46 @@ Réponds en JSON exactement :
   };
 }
 
+// 💬 Chat client : une réponse courte au dernier message, ou le relais à l'équipe, ou le silence (message pour le livreur)
+async function chatReply(input: Record<string, unknown>) {
+  const thread = String(input.thread ?? "");
+  if (!/^[ou]:[0-9a-f-]{36}$/.test(thread)) return { mode: "silence" };
+  const he = input.lang === "he";
+  const hist = ((input.history as Hist[]) ?? []).slice(-12);
+  const roles: Record<string, string> = { c: "CLIENT", h: "HOP!", l: "LIVREUR", s: "ÉTAPE" };
+  const conv = hist.map(h => `${roles[h.r] ?? "?"} : ${String(h.t).slice(0, 400)}`).join("\n");
+  const last = [...hist].reverse().find(h => h.r === "c");
+  const found = last ? await findProducts(chunks(String(last.t))) : [];
+  const prompt = `Tu réponds dans le chat de HOP!, appli de livraison à Netanya (Israël), au nom du service client.
+Réponds au DERNIER message du CLIENT : 1 à 3 phrases courtes, chaleureuses, simples, dans sa langue (${he ? "hébreu" : "français"} ; s'il écrit dans l'autre langue, réponds dans la sienne). En français : « vous ». En hébreu : sans faute.
+Ce que tu sais :
+- HOP! livre tout dans Netanya : repas de n'importe quel restaurant, courses (makolet, supermarché, pharmacie, tabac 18+), colis, objets à récupérer ou envoyer, poste. Livraison dès 25 ₪ en ville, 30 ₪ vers une zone industrielle ou un quartier à part ; le prix exact s'affiche avant de commander. Paiement : Bit, ou au livreur. Jamais de durée chiffrée : « au plus vite ».
+- Pour commander : dans l'appli, touchez le micro orange de l'accueil et dites ce qu'il vous faut (Hoppy fait tout à la voix), ou choisissez une rubrique.
+- États d'une course : nouvelle = on cherche un livreur ; confirmee = un livreur l'a acceptée ; recuperee = en route vers vous ; livree = livrée ; annulee = annulée. Ne promets jamais d'heure.
+${String(input.regles ?? "").slice(0, 4000)}
+Ne dis JAMAIS « partenaire » et ne cite aucune autre appli. N'invente rien : si tu ne sais pas, passe la main.
+Tu ne fais JAMAIS toi-même : rembourser, annuler une course déjà payée ou acceptée, offrir un geste commercial, trancher une réclamation (article manquant ou abîmé, retard important, livreur introuvable, mauvais montant, problème de paiement). Dans ces cas, ou s'il demande à parler à quelqu'un : dis que tu transmets tout de suite à l'équipe qui lui répond ici même, et mets "mode": "relai".
+Message destiné au LIVREUR pendant une course (« je descends », « code 1234 », « laissez devant la porte », « je suis en bas »), simple « merci », « ok », emoji : "mode": "silence" (pas de réponse).
+S'il demande si tu es un robot ou une personne : réponds honnêtement que c'est l'assistant automatique de HOP!, et qu'une personne de l'équipe peut prendre le relais à tout moment.
+Tu ne connais ni son nom, ni son téléphone, ni son adresse : ne les demande pas ici, l'appli les a.
+CONTEXTE : ${JSON.stringify(input.ctx ?? {}).slice(0, 1500)}
+PRODUITS QU'ON A (si sa question porte sur un produit ; ref | nom | prix | magasin) :
+${found.slice(0, 12).join("\n") || "(rien)"}
+CONVERSATION :
+${conv}
+Réponds en JSON exactement : {"reply": "ta réponse", "mode": "auto" | "relai" | "silence"}`;
+  const out = JSON.parse(await gemini(prompt, true));
+  const mode = ["auto", "relai", "silence"].includes(out.mode) ? out.mode : "auto";
+  const reply = String(out.reply ?? "").trim().slice(0, 900);
+  if (mode === "silence" || !reply) return { mode: "silence" };
+  // (une personne de HOP! a répondu entre-temps : Hoppy se tait)
+  const { data: lastHuman } = await db.from("chat_messages").select("id").eq("thread", thread).eq("author", "admin").is("ai", null)
+    .gte("created_at", new Date(Date.now() - 30 * 60000).toISOString()).limit(1);
+  if (lastHuman && lastHuman.length) return { mode: "silence" };
+  await db.from("chat_messages").insert({ thread, author: "admin", author_name: "HOP!", body: reply, ai: mode });
+  return { mode, reply };
+}
+
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info" };
 const reply = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
 
@@ -238,6 +280,11 @@ Deno.serve(async (req) => {
   } catch (e) {
     const msg = String((e as Error).message ?? e).slice(0, 500);
     await db.from("ia_jobs").update({ status: "erreur", error: msg, done_at: new Date().toISOString(), ...(job.kind === "lire_liste" ? { input: {} } : {}) }).eq("id", id);
+    if (job.kind === "chat" && /^[ou]:[0-9a-f-]{36}$/.test(String(job.input?.thread ?? ""))) {
+      const he = job.input?.lang === "he";
+      await db.from("chat_messages").insert({ thread: job.input.thread, author: "admin", author_name: "HOP!", ai: "relai",
+        body: he ? "תודה על ההודעה! צוות HOP! עונה לכם כאן בהקדם 🙂" : "Merci pour votre message ! L'équipe HOP! vous répond ici au plus vite 🙂" });
+    }
     return reply({ error: msg }, 500);
   }
 });
