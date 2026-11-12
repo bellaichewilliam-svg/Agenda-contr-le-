@@ -5569,3 +5569,20 @@ html.d2 .sms-found { background: rgba(34, 160, 90, .14); color: #fff; }
 .wa-row .btn { flex-shrink: 0; }
 .wa-count { margin: 10px 0 0; }
 .wa-card .addr-chip.on { background: #0F1F3D; color: #fff; border-color: #0F1F3D; }
+/* 🎤 Commander à la voix : le micro dans la barre de recherche (côté fin, jamais par-dessus le texte) */
+.sc-find.has-mic input { padding-inline-end: 56px !important; }
+.sc-mic { position: absolute; inset-inline-end: 6px; top: 50%; transform: translateY(-50%); width: 42px; height: 42px; border: 0; border-radius: 50%;
+  display: grid; place-items: center; background: var(--brand, #FF6A13); color: #fff; cursor: pointer; padding: 0; z-index: 2;
+  box-shadow: 0 4px 12px rgba(255,106,19,.35); -webkit-tap-highlight-color: transparent; }
+.sc-mic svg { width: 22px; height: 22px; }
+.sc-find:not(.has-mic) .sc-mic, .sc-mic[hidden] { display: none; }
+.sc-mic.on { background: #E5383B; animation: micPulse 1.1s ease-in-out infinite; }
+@keyframes micPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(229,56,59,.55); } 50% { box-shadow: 0 0 0 10px rgba(229,56,59,0); } }
+@media (prefers-reduced-motion: reduce) { .sc-mic.on { animation: none; } }
+.sc-find-list .mic-wait { display: flex; align-items: center; gap: 12px; padding: 10px 12px; }
+.sc-find-list .mic-wait img { flex: none; width: 37px; height: 60px; object-fit: contain; animation: micHop .9s ease-in-out infinite; }
+.sc-find-list .mic-wait span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sc-find-list .mic-wait b { font-size: 15px; }
+.sc-find-list .mic-wait small { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+@keyframes micHop { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .sc-find-list .mic-wait img { animation: none; } }

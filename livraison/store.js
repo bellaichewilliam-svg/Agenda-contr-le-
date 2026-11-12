@@ -1801,6 +1801,22 @@ async function productsSearch(q) {
     .filter(pr => pr.available && (String(pr.name).toLowerCase().includes(n) || String(pr.description || "").toLowerCase().includes(n)))
     .map(pr => ({ id: pr.id, name: pr.name, price: pr.price, has_photo: !!pr.photo, photo: typeof pr.photo === "string" && pr.photo.length < 600 ? pr.photo : null, code: x.code, shop: x.name, kind: x.kind, category: null }))).slice(0, 24);
 }
+// 🎤 Commande à la voix (patron, 12/11) : la phrase dite part à l'IA (Gemini, via la base), qui renvoie le commerce,
+// les articles et « maison / travail ». Jamais d'adresse ni de nom envoyés. Hors ligne : rien (la recherche normale prend le relais).
+async function iaVoice(text, lang) {
+  if (!ONLINE) return null;
+  return rest("/rest/v1/rpc/ia_voice", { method: "POST", body: { p_text: String(text || "").slice(0, 300), p_lang: lang === "he" ? "he" : "fr", p_device: deviceId() } });
+}
+// L'appli lance elle-même l'IA sur sa demande (plus rapide que d'attendre la base) ; si la base l'a déjà prise, on lit le résultat
+async function iaVoiceRun(id) {
+  if (!ONLINE || !id) return null;
+  const r = await rest("/functions/v1/hop-ia", { method: "POST", body: { id } }).catch(() => null);
+  return r && r.ok ? r.output : null;
+}
+async function iaVoiceResult(id) {
+  if (!ONLINE || !id) return null;
+  return rest("/rest/v1/rpc/ia_voice_result", { method: "POST", body: { p_id: id } });
+}
 // Synonymes de la recherche (pain = לחם = lehem…) : ceux de la base (le patron peut en ajouter), gardés sur le téléphone
 async function searchSynonyms() {
   const KEY = "livraison.syn.v1";
@@ -2871,7 +2887,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, productsSearch, productsSearchShops, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, productsSearch, productsSearchShops, iaVoice, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
