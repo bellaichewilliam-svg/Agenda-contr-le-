@@ -6739,6 +6739,19 @@ function hvSaveAddr(a0) {
   if (a.code == null) a.code = "";
   Store.saveAddress(a); applySavedAddr("to", a); vitRender();
 }
+async function hvPlaceCard(name) {
+  let p = null;
+  try { p = (await Places.search(name, hv.lang)).find(x => x.brand && x.lat != null) || null; } catch (e) { p = null; }
+  hv.place = p ? { name, p } : null;
+  if (!p) { Store.placeSuggest(name); return; }
+  let tel = null;
+  try { tel = await Places.phoneOf(p); } catch (e) { tel = null; }
+  const d = document.createElement("div");
+  d.className = "hv-msg hop hv-place";
+  const addr = [p.streetName && `${p.streetName} ${p.housenumber || ""}`.trim(), p.city].filter(Boolean).join(", ");
+  d.innerHTML = `<b>📍 <bdi>${UI.esc(p.brand)}</bdi></b>${addr ? `<small><bdi>${UI.esc(addr)}</bdi></small>` : ""}${tel ? `<a class="hv-call" href="tel:${UI.esc(String(tel).replace(/[^\d+]/g, ""))}">📞 ${UI.esc(hvT("hvCall"))} · <bdi dir="ltr">${UI.esc(tel)}</bdi></a>` : ""}`;
+  $("#hvLog").appendChild(d); $("#hvLog").scrollTop = $("#hvLog").scrollHeight;
+}
 // Ouvrir le suivi de la commande en cours : celle qu'on vient d'envoyer, sinon la dernière en cours (liste rechargée),
 // sinon « Mes courses »
 const HV_TRACK = /(suivre|suivi|o[uù] (en )?est|elle est o[uù]|arrive quand).{0,25}(commande|course|livreur|livraison)|^(suivre|suivi)\b|איפה (ההזמנה|המשלוח|השליח)|מעקב/i;
@@ -6774,6 +6787,9 @@ async function hvAsk(text) {
   if (Array.isArray(out.basket)) { hv.basket = out.basket; hvBasketDraw(); }
   if (out.saved) { const a = Store.getAddresses().find(x => x.tag === (out.saved === "travail" ? "work" : "home")); if (a) { applySavedAddr("to", a); vitRender(); } }
   UI.track("voice_turn", { n: hv.basket.length, go: out.go ? 1 : 0 });
+  // Restaurant / magasin hors appli : on montre ce qu'on a dans le répertoire (adresse, téléphone à appeler) pour qu'il
+  // confirme ; inconnu → noté pour l'ajouter à notre base (patron, 12/11)
+  if (out.from && hv.fromShown !== out.from) { hv.fromShown = out.from; hvPlaceCard(out.from); }
   // Actions directes : suivre la commande en cours, refaire la dernière, choisir l'heure
   if (out.action === "suivi") return hvSay(out.say, [], () => hvTrack());
   if (out.action === "refaire") { const l = reorderList(), i = Math.max(0, l.findIndex(x => x.last)); if (l.length) return hvSay(out.say, [], () => { state.reorder = l; hvMini(true); hvMiniLine(hvT("hvMiniHint")); reorderGo(i); }); }
@@ -7004,8 +7020,9 @@ async function hvGo(out) {
   // Restaurant ou magasin qui n'est pas sur HOP! : on va chercher la commande prête (ou on l'achète) à son adresse
   if (out.from && (out.service === "retrait" || out.service === "achat" || out.service === "restaurant")) {
     const what = items.map(b => `${b.qty > 1 ? b.qty + " × " : ""}${b.name}`).join(", ");
-    let place = null;
-    try { place = (await Places.search(out.from, hv.lang)).find(x => x.lat != null) || null; } catch (e) { place = null; }
+    let place = hv.place && hv.place.name === out.from ? hv.place.p : null;
+    if (!place) { try { place = (await Places.search(out.from, hv.lang)).find(x => x.brand && x.lat != null) || null; } catch (e) { place = null; } }
+    if (!place) Store.placeSuggest(out.from);
     if (out.service === "achat") startFreeOrder(what || out.from);
     else { state.homeKind = null; applyKind("resto"); goPharma(); const n = form.elements.notes; if (n && what) { n.value = (n.value ? n.value + "\n" : "") + hvT("hvReadyAt", { what }); n.dispatchEvent(new Event("input", { bubbles: true })); } }
     if (place) setTimeout(() => { applySavedAddr("from", { brand: place.brand || out.from, street: place.streetName || "", number: place.housenumber || "", lat: place.lat, lon: place.lon, cityId: (place.city && Places.matchCity(place.city)) || CONFIG.homeCity, city: place.city || "" }); renderQuote(); saveDraft(); }, 500);

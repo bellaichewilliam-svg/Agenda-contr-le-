@@ -1812,6 +1812,11 @@ async function iaAssist(input) {
   if (!ONLINE) return null;
   return rest("/rest/v1/rpc/ia_assist", { method: "POST", body: { p_input: input, p_device: deviceId() } });
 }
+// Restaurant / magasin demandé à Hoppy qui n'est pas dans notre répertoire : noté pour l'ajouter (nom et rue seulement)
+async function placeSuggest(name) {
+  if (!ONLINE || !name) return null;
+  return rest("/rest/v1/rpc/place_suggest", { method: "POST", body: { p_name: String(name).slice(0, 120), p_device: deviceId() } }).catch(() => null);
+}
 // L'appli lance elle-même l'IA sur sa demande (plus rapide que d'attendre la base) ; si la base l'a déjà prise, on lit le résultat
 async function iaVoiceRun(id) {
   if (!ONLINE || !id) return null;
@@ -2897,7 +2902,7 @@ window.Store = {
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, productsSearch, productsSearchShops, iaVoice, iaAssist, placeSuggest, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
