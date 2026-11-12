@@ -720,7 +720,7 @@ function baseQuote() {
     fromCity: nearMode() ? cityOf("to") : cityOf("from"), toCity: cityOf("to"),
     fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint,
     service: hopBuyOn() ? "achat" : val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
-    units: hopBuyOn() ? cartCount() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), hopShop: hopBuyOn(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
+    units: hopBuyOn() ? cartCount() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), hopShop: hopBuyOn() || rayonHasCf(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
     couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
@@ -1084,6 +1084,7 @@ const phName = x => (I18N.lang === "he" ? x.he : x.fr) || x.fr || x.he || "";
 const NEAR_HE = { pharm: "בית מרקחת", tabac: "קיוסק", bakery: "מאפייה", shop: "מכולת / סופר", baby: "חנות תינוקות או בית מרקחת", pets: "חנות חיות", home: "כלי בית / בזאר", gift: "חנות פרחים" };
 // Produit Carrefour des rayons (importé du site, id « cf… ») : le livreur le prend chez Carrefour
 const isCfItem = x => /^cf\d+$/.test(String((x && x.id) || ""));
+const rayonHasCf = () => { try { const r = rayonOn(); return !!r && rayonPicked(r).some(([k]) => /^cf\d+/.test(k.slice(r.id.length + 1))); } catch (e) { return false; } };
 // Où le livreur achète les articles du rayon : le magasin choisi, sinon le plus proche du client
 function rayonWhere(r) {
   const f = state.pick.from, name = f && !nearMode() ? String(f.brand || f.label || "").trim() : "";
@@ -1232,7 +1233,14 @@ function renderPharma() {
   const box = $("#pharmaBox"), r = rayonOn();
   box.classList.toggle("hidden", !r);
   if (!r) return;
-  const rEdit = bossEditOn(), cats = Rayons.cats(r), items = rEdit ? r.items.filter(i => !r.cats.some(c => c.id === i.c && c.hidden)) : Rayons.items(r);
+  const rEdit = bossEditOn();
+  let cats = Rayons.cats(r), items = rEdit ? r.items.filter(i => !r.cats.some(c => c.id === i.c && c.hidden)) : Rayons.items(r);
+  // Makolet (patron, 12/11) : la page ne montre QUE les produits de base de la makolet (livraison seule, sans supplément) ;
+  // tout le reste (produits de supermarché, au prix du magasin) est dans un 2e onglet, jamais mélangé.
+  const split = !rEdit && r.kind === "shop" && items.some(isCfItem) && items.some(x => !isCfItem(x));
+  const src = split ? (state.phSrc === "cf" ? "cf" : "mak") : "";
+  const allItems = items;
+  if (src) { items = items.filter(x => (src === "cf") === isCfItem(x)); cats = cats.filter(c => items.some(x => x.c === c.id)); }
   if (!cats.some(c => c.id === state.pharmaCat)) state.pharmaCat = (cats[0] || {}).id;
   // Le cadre (avec la recherche) n'est construit qu'une fois par rayon : on peut taper sans perdre le clavier
   if (box.dataset.ray !== r.id || !box.querySelector(".ph-shell")) {
@@ -1251,7 +1259,8 @@ function renderPharma() {
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
   const top = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small>${r.id === "tabac" ? "" : `<button type="button" class="ph-share" data-share-ray="${UI.esc(r.id)}" aria-label="${UI.esc(t("shareShop"))}">${SHARE_SVG}</button>`}</div>
     ${state.boss ? rayBossBar(r) : ""}
-    ${val("service") === "achat" ? `<p class="ph-where">🛵 ${UI.esc(t("phWhere"))} <b dir="auto">${UI.esc(rayonWhere(r))}</b>${r.items.some(isCfItem) ? `<small>${UI.esc(t("phWhereCf"))}</small>` : ""}</p>` : ""}
+    ${val("service") === "achat" ? `<p class="ph-where">🛵 ${UI.esc(t("phWhere"))} <b dir="auto">${UI.esc(rayonWhere(r))}</b>${(src ? src === "cf" : r.items.some(isCfItem)) ? `<small>${UI.esc(t("phWhereCf"))}</small>` : ""}</p>` : ""}
+    ${src ? `<div class="ph-src-tabs" role="tablist"><button type="button" role="tab" class="${src === "mak" ? "on" : ""}" data-ph-src="mak"><b>${UI.esc(t("phSrcMak"))}</b><small>${UI.esc(t("phSrcMakS"))}</small></button><button type="button" role="tab" class="${src === "cf" ? "on" : ""}" data-ph-src="cf"><b>${UI.esc(t("phSrcCf"))}</b><small>${UI.esc(t("phSrcCfS"))}</small></button></div>` : ""}
     ${rayonMeter(n)}`;
   // Recherche : dans tout le rayon (français et hébreu), sinon la rubrique choisie
   const q = phNorm((state.phQ || "").trim());
@@ -1287,6 +1296,7 @@ function renderPharma() {
     <p class="ph-cur">${q ? `<b>${UI.esc(t("phFound", { n: shown.length, q: state.phQ.trim() }))}</b>` : cur ? `${pic(cur)}<b>${UI.esc(phName(cur))}</b><small>${UI.esc(t("phCount2", { n: shown.length }))}</small>` : ""}</p>
     ${rows && shown.some(x => x.pb) ? `<p class="ph-pnote">${UI.esc(t("phPriceNote"))}</p>` : ""}
     ${shown.length ? `<div class="ph-list${rows ? " ph-lines" : " ph-tiles"}">${shown.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
+    ${(nn => nn ? `<button type="button" class="ph-more-cf" data-ph-src="cf" data-keep-q="1">${UI.esc(t("phMoreCf", { n: nn }))}</button>` : "")(src === "mak" && q ? allItems.filter(x => isCfItem(x) && phNorm(x.fr + " " + x.he).includes(q)).length : 0)}
     ${q ? "" : (i => { const prev = cats[i - 1], next = cats[i + 1];
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
       return `<div class="ph-nav">${prev ? `<button type="button" class="ph-prev" data-ph-cat="${prev.id}" data-ph-nav="1">‹ ${UI.esc(phName(prev))}</button>` : "<span></span>"}
@@ -1535,6 +1545,8 @@ $("#pharmaBox").addEventListener("click", e => {
 }, true);
 $("#pharmaBox").addEventListener("keydown", e => { if (e.target.matches("[data-ph-q]") && e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
 $("#pharmaBox").addEventListener("click", e => {
+  const sr = e.target.closest("[data-ph-src]");
+  if (sr) { state.phSrc = sr.dataset.phSrc; if (!sr.dataset.keepQ) { state.phQ = ""; const qi0 = $("#pharmaBox [data-ph-q]"); if (qi0) qi0.value = ""; } state.pharmaCat = null; renderPharma(); return; }
   const c = e.target.closest("[data-ph-cat]"), plus = e.target.closest("[data-ph-plus]"), minus = e.target.closest("[data-ph-minus]");
   state.pharmaMsg = "";
   if (c) {
