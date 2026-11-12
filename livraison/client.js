@@ -6850,7 +6850,13 @@ async function hvUser(text) {
   // « Je m'appelle Avraham Belaïch, j'habite au 13 rue Rémez, 3e étage, porte 33, code 1010-20 dièse » : tout est rempli
   // ici, sur le téléphone ; l'IA ne reçoit que le reste de la phrase (jamais le nom, l'adresse ni le téléphone)
   // (pendant qu'il donne l'adresse où RÉCUPÉRER un objet : ce n'est pas son adresse à lui, on ne l'enregistre pas comme telle)
-  const ex = hv.local && hv.local.kind === "pickup" ? { any: false } : hvExtract(text);
+  let relNote = "";
+  if (!hv.local) {
+    const rel = hvAddrFor(text);
+    if (rel && rel.a) { applySavedAddr("to", rel.a); vitRender(); hv.addrJust = true; hv.addrFor = null; relNote = " " + hvT("hvAddrSavedAi"); }
+    else if (rel && rel.name) hv.addrFor = rel.name;
+  }
+  const ex = hv.local && hv.local.kind === "pickup" ? { any: false } : relNote ? { any: false } : hvExtract(text);
   if (ex.any) {
     const note = await hvApplyExtract(ex);
     if (hv.local) return;   // il manque un détail de l'adresse : le téléphone le demande
@@ -6863,8 +6869,8 @@ async function hvUser(text) {
     return hvAsk(msg);
   }
   if (hv.local) return hvLocal(text);
-  hv.hist.push({ r: "c", t: text.slice(0, 300) });
-  hvAsk(text);
+  hv.hist.push({ r: "c", t: (text + relNote).slice(0, 300) });
+  hvAsk(text + relNote);
 }
 // Ce que le client dit de lui (prénom, téléphone, adresse, étage, porte, code), en français ou en hébreu
 function hvExtract(text) {
@@ -6921,9 +6927,37 @@ async function hvFindStreet(street, num) {
   const cityId = (hit.city && Places.matchCity(hit.city)) || form.to_city.value || CONFIG.homeCity;
   return { street: hit.streetName, number: num || hit.housenumber || "", lat: hit.lat, lon: hit.lon, cityId, city: cityId, exact: !!(num && hit.housenumber === num) };
 }
+// « Livre chez ma mère », « chez maman », « לאמא », « chez Sarah » : l'adresse enregistrée sous ce nom est choisie ici,
+// sur le téléphone (l'IA ne reçoit ni le nom ni l'adresse). Inconnue : l'adresse demandée sera enregistrée sous ce nom.
+const HV_REL = [
+  ["maman", "mere", "mama", "ima", "אמא", "אימא", "אמי"], ["papa", "pere", "aba", "abba", "אבא"],
+  ["mamie", "grand-mere", "grand mere", "savta", "סבתא"], ["papi", "papy", "grand-pere", "grand pere", "saba", "סבא"],
+  ["soeur", "achot", "אחות", "אחותי"], ["frere", "אחי"], ["fils", "בני", "הבן שלי"], ["fille", "בתי", "הבת שלי"],
+  ["belle-mere", "belle mere", "hamot", "חמות", "חמותי"], ["copine", "copain", "chéri", "cheri", "chérie"]];
+const hvFold = x => String(x || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/œ/g, "oe").replace(/[’']/g, " ");
+function hvAddrFor(text) {
+  const tx = " " + hvFold(text).replace(/[.,!?;:«»"]/g, " ").replace(/\s+/g, " ") + " ";
+  // (seulement quand c'est un lieu : « chez / à / pour / livré… ma mère », « לאמא », « אצל אמא »)
+  const lead = "(?:chez|a|au|pour|livr\\w*|apport\\w*|amene\\w*|envoi\\w*|אצל|אל|ל)";
+  const said = w => { const e = hvFold(w).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return new RegExp(`(?:^|\\s)${lead}\\s*(?:ma|mon|la|le|l |ta|sa)?\\s*${e}(?=\\s|$)|(?:^|\\s)ל${e}(?=\\s|$)`).test(tx); };
+  const list = (Store.getAddresses && Store.getAddresses()) || [];
+  for (const a of list.filter(x => x.tag === "other" && x.name)) {
+    const nm = hvFold(a.name).replace(/^(chez|ma|mon|la|le)\s+/, "").trim();
+    const grp = HV_REL.find(g => g.some(w => hvFold(w) === nm || nm.split(/\s+/).includes(hvFold(w))));
+    if ((nm.length >= 3 && said(nm)) || (grp && grp.some(said))) return { a };
+  }
+  const grp = HV_REL.find(g => g.some(said));
+  if (!grp) return null;
+  const w = grp.find(said), he = /[\u0590-\u05ff]/.test(w);
+  const FR = ["Maman", "Papa", "Mamie", "Papi", "Ma sœur", "Mon frère", "Mon fils", "Ma fille", "Belle-maman", "Chéri(e)"];
+  return { name: he ? w : FR[HV_REL.indexOf(grp)] };
+}
 function hvSaveAddr(a0) {
   const list = Store.getAddresses() || [];
-  const a = Object.assign({ kind: a0.apt || a0.floor ? "appartement" : "maison" }, a0, { tag: list.some(x => x.tag === "home") ? null : "home" });
+  // (l'adresse d'un proche : enregistrée sous son nom, jamais comme « Maison »)
+  const forName = hv.addrFor; hv.addrFor = null;
+  const a = Object.assign({ kind: a0.apt || a0.floor ? "appartement" : "maison" }, a0, forName ? { tag: "other", name: forName } : { tag: list.some(x => x.tag === "home") ? null : "home" });
   if (a.code == null) a.code = "";
   Store.saveAddress(a); applySavedAddr("to", a); vitRender();
 }
@@ -7027,7 +7061,9 @@ async function hvAsk(text) {
     return hvSay(out.say, [], () => hvGo(out));
   }
   // (aussi quand une adresse est déjà choisie : « cette fois pas à la maison, chez ma mère »)
-  if (out.collect === "address") return hvStartLocal("address");
+  // (l'adresse enregistrée du proche vient d'être choisie : on ne la redemande pas)
+  const justAddr = hv.addrJust; hv.addrJust = false;
+  if (out.collect === "address" && !justAddr) return hvStartLocal("address");
   if (out.collect === "contact") return hvStartLocal("contact");
   hvSay(out.say, out.choices);
 }
