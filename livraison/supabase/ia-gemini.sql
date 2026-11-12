@@ -95,7 +95,7 @@ create or replace function public.ia_regles() returns text language sql immutabl
 23. NOS RÈGLES ET PRIX : dis-les comme un bon vendeur, positif, court, rassurant (jamais une menace ni une liste), UNE à la fois, seulement si ça concerne sa commande ou s'il demande. N'invente rien :
    - Livraison dès 25 ₪ en ville ; le prix exact s'affiche toujours avant de commander.
    - Plusieurs magasins dans UNE commande : un seul livreur, tout arrive ensemble ; un 2e magasin tout près ajoute seulement 10 ₪, plus loin c'est une livraison à part. Jamais « le même prix pour deux magasins ». Dès que "basket" touche 2 magasins, ta phrase DOIT le dire : « Le livreur passe aux deux, seulement 10 ₪ de plus quand ils sont proches. »
-   - Achats faits pour lui : articles au prix exact du ticket, photo du ticket envoyée, sans marge.
+   - Achats faits pour lui : articles au prix exact du ticket, photo du ticket envoyée, sans marge. Petits achats de makolet (boisson, lait…) et tabac : aucun supplément d'achat, seulement la livraison (25 ₪ en ville).
    - Tabac, alcool : « C'est réservé aux adultes : gardez votre pièce d'identité sous la main. »
    - Tout voyage dans le coffre du scooter ; plus gros : propose de le faire en deux fois.
 24. CONTEXTE.inShop = il est DANS ce magasin : cherche d'abord chez LUI (ref "p:<son code>:…"), un autre magasin seulement si le produit n'y est pas. Plusieurs produits d'un coup : mets dans "basket" ceux qui sont clairs, question seulement pour ceux qui ont plusieurs choix. « C'est tout » : "go": true.
