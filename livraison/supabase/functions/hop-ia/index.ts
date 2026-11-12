@@ -253,21 +253,26 @@ Tu ne fais JAMAIS toi-même : rembourser, annuler une course déjà payée ou ac
 Message destiné au LIVREUR pendant une course (« je descends », « code 1234 », « laissez devant la porte », « je suis en bas »), simple « merci », « ok », emoji : "mode": "silence" (pas de réponse).
 S'il demande si tu es un robot ou une personne : réponds honnêtement que c'est l'assistant automatique de HOP!, et qu'une personne de l'équipe peut prendre le relais à tout moment.
 Tu ne connais ni son nom, ni son téléphone, ni son adresse : ne les demande pas ici, l'appli les a.
+COMMANDE DANS LE CHAT : rien n'est commandé tant que le client n'a pas validé dans l'appli. Ne dis donc JAMAIS « je note », « je m'en occupe », « je m'occupe de tout », « c'est parti », « on vous l'apporte » ni « je vous demande où le récupérer ».
+Dès qu'il dit ce qu'il veut se faire livrer, acheter, récupérer ou envoyer (même vague) : en 1 phrase, dis ce que tu as compris, puis « Touchez « Valider ma commande » juste en dessous : Hoppy termine avec vous en quelques secondes (choix, adresse, prix). »
+(en hébreu : « לחצו על "לאישור ההזמנה" כאן למטה, והופי מסיים איתכם תוך כמה שניות ».) Et mets dans "commande" sa demande complète en peu de mots, dans sa langue, en reprenant ce qui a été dit avant (ex. « Dentifrice Sensodyne », « Récupérer un gros ours en peluche »). Sinon "commande": "".
 CONTEXTE : ${JSON.stringify(input.ctx ?? {}).slice(0, 1500)}
 PRODUITS QU'ON A (si sa question porte sur un produit ; ref | nom | prix | magasin) :
 ${found.slice(0, 12).join("\n") || "(rien)"}
 CONVERSATION :
 ${conv}
-Réponds en JSON exactement : {"reply": "ta réponse", "mode": "auto" | "relai" | "silence"}`;
+Réponds en JSON exactement : {"reply": "ta réponse", "mode": "auto" | "relai" | "silence", "commande": ""}`;
   const out = JSON.parse(await gemini(prompt, true, "", "minimal"));
   const mode = ["auto", "relai", "silence"].includes(out.mode) ? out.mode : "auto";
   const reply = String(out.reply ?? "").trim().slice(0, 900);
   if (mode === "silence" || !reply) return { mode: "silence" };
+  // (commande proposée : le client a un bouton « Valider ma commande » qui ouvre Hoppy avec sa demande)
+  const cmd = mode === "auto" ? String(out.commande ?? "").replace(/[\[\]\n]/g, " ").replace(/\s+/g, " ").trim().slice(0, 200) : "";
   // (une personne de HOP! a répondu entre-temps : Hoppy se tait)
   const { data: lastHuman } = await db.from("chat_messages").select("id").eq("thread", thread).eq("author", "admin").is("ai", null)
     .gte("created_at", new Date(Date.now() - 30 * 60000).toISOString()).limit(1);
   if (lastHuman && lastHuman.length) return { mode: "silence" };
-  await db.from("chat_messages").insert({ thread, author: "admin", author_name: "HOP!", body: reply, ai: mode });
+  await db.from("chat_messages").insert({ thread, author: "admin", author_name: "HOP!", body: cmd ? `${reply}\n[[cmd:${cmd}]]` : reply, ai: mode });
   return { mode, reply };
 }
 

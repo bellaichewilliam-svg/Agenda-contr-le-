@@ -53,7 +53,11 @@ function ensureDom() {
     file: wrap.querySelector("input[type=file]"), send: wrap.querySelector(".chat-send")
   };
   wrap.querySelector(".chat-x").addEventListener("click", close);
-  wrap.addEventListener("click", e => { if (e.target === wrap) close(); });
+  wrap.addEventListener("click", e => {
+    if (e.target === wrap) return close();
+    const b = e.target.closest(".chat-cmd");
+    if (b && window.HopVoice) { const t = b.dataset.cmd; close(); window.HopVoice(t); }
+  });
   dom.form.addEventListener("submit", e => { e.preventDefault(); sendText(); });
   dom.text.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendText(); } });
   dom.file.addEventListener("change", () => { const f = dom.file.files[0]; dom.file.value = ""; if (f) sendPhoto(f); });
@@ -68,6 +72,13 @@ function bubble(m, o) {
     return `<div class="chat-sys">${UI.esc(tr(lang, "cs_" + st))} · ${time}</div>`;
   }
   const mine = m.author === o.me;
+  // Hoppy propose une commande (« [[cmd:…]] » à la fin du message) : le client a un bouton qui ouvre Hoppy avec la demande,
+  // le patron et le livreur voient seulement ce qui a été proposé
+  const mk = String(m.body || "").match(/\n?\[\[cmd:([^\]]{1,400})\]\]\s*$/);
+  if (mk) m = Object.assign({}, m, { body: String(m.body).slice(0, mk.index).trim() });
+  const cmd = !mk ? "" : o.me === "client" && window.HopVoice
+    ? `<button type="button" class="btn btn-primary chat-cmd" data-cmd="${UI.esc(mk[1])}">🛒 ${UI.esc(tr(lang, "chCmd"))}</button>`
+    : `<p class="chat-cmd-note">🛒 ${UI.esc(tr(lang, "chCmdNote"))} : <bdi>${UI.esc(mk[1])}</bdi></p>`;
   // (réponse de Hoppy : le client voit « HOP! · service client » ; le patron et le livreur voient que c'est l'automatique)
   const bot = m.ai && o.me !== "client";
   const who = bot ? (m.ai === "relai" ? "🦘 Hoppy (auto) · 🙋 à reprendre par vous" : "🦘 Hoppy (auto)")
@@ -76,6 +87,7 @@ function bubble(m, o) {
       <small>${UI.esc(who)} · ${time}</small>
       ${m.image ? `<a href="${UI.esc(m.image)}" target="_blank" rel="noopener"><img src="${UI.esc(m.image)}" alt="" /></a>` : m.has_image ? `<span class="muted">📷</span>` : ""}
       ${m.body ? `<p>${UI.esc(m.body).replace(/\n/g, "<br>").replace(/https:\/\/[^\s<]+/g, u => `<a href="${u}" target="_blank" rel="noopener">${/recu\.html/.test(u) ? "🧾 " + UI.esc(tr(lang, "receiptOpen")) : u}</a>`)}</p>` : ""}
+      ${cmd}
     </div>`;
 }
 

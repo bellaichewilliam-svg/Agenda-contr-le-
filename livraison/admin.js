@@ -2822,7 +2822,7 @@ function renderInbox(view) {
     const label = threadLabel(t.thread, t.msgs);
     return `<article class="order inbox-row${n ? " is-new" : ""}" data-thread="${UI.esc(t.thread)}" data-ctitle="${UI.esc(label)}">
       <div class="order-head"><span class="order-time">${UI.esc(label)}</span>${n ? `<span class="chat-badge">${n}</span>` : ""}<span class="order-ref">${UI.esc(UI.fmtDateTime(t.last.created_at))}</span></div>
-      <p class="small muted" style="margin-top:4px">${t.last.ai === "relai" ? "<b class=\"ai-relai\">🙋 À reprendre par vous</b> · " : t.last.ai ? "🦘 Hoppy : " : t.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(lastText).slice(0, 120))}</p>
+      <p class="small muted" style="margin-top:4px">${t.last.ai === "relai" ? "<b class=\"ai-relai\">🙋 À reprendre par vous</b> · " : /\[\[cmd:/.test(t.last.body || "") ? "<b>🛒 Commande proposée par Hoppy</b> · " : t.last.ai ? "🦘 Hoppy : " : t.last.author === "admin" ? "Vous : " : ""}${UI.esc(String(lastText).replace(/\s*\[\[cmd:([^\]]*)\]\]\s*$/, " → $1").slice(0, 120))}</p>
       ${(() => { if (!t.thread.startsWith("u:")) return ""; const m = t.msgs.find(v => v.author === "client" && v.author_name), ph = m && (String(m.author_name).match(/0[\d\-\s]{8,}/) || [])[0];
         return ph ? `<div style="margin-top:6px">${howBtn(ph.trim(), String(m.author_name).split("·")[0])}</div>` : ""; })()}
       <button type="button" class="btn btn-sm btn-link" data-close-thread="${UI.esc(t.thread)}">🗑️ Terminer / supprimer la discussion</button>

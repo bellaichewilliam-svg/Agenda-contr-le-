@@ -2099,9 +2099,11 @@ async function tipOrder(token, amount) {
 }
 
 // Notifications push : le téléphone connecté (patron ou livreur) s'abonne
-async function pushSubscribe(endpoint, p256dh, auth) {
+async function pushSubscribe(endpoint, p256dh, auth, app) {
   if (!ONLINE || !session()) return false;
-  return authRest("/rest/v1/rpc/push_subscribe", { method: "POST", body: { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth } });
+  const body = { p_endpoint: endpoint, p_p256dh: p256dh, p_auth: auth };
+  try { return await authRest("/rest/v1/rpc/push_subscribe_app", { method: "POST", body: Object.assign({ p_app: app || "client" }, body) }); }
+  catch (e) { return authRest("/rest/v1/rpc/push_subscribe", { method: "POST", body }); }
 }
 
 // Le client s'abonne aux notifications de sa course (et des suivantes, par son numéro)

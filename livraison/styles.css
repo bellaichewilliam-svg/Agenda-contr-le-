@@ -5811,3 +5811,7 @@ body.trk-v2 .chat-modal { z-index: 1010; }
 .chat-typing .ct-dots i:nth-child(2) { animation-delay: .15s; } .chat-typing .ct-dots i:nth-child(3) { animation-delay: .3s; }
 @keyframes ctDot { 0%, 60%, 100% { transform: translateY(0); opacity: .35; } 30% { transform: translateY(-4px); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .chat-typing .ct-dots i { animation: none; opacity: .6; } }
+
+/* Chat : Hoppy propose la commande → bouton qui ouvre Hoppy avec la demande */
+.chat-msg .chat-cmd { display: block; width: 100%; margin-top: 8px; font-weight: 800; }
+.chat-msg .chat-cmd-note { margin: 6px 0 0; font-size: .85em; opacity: .85; }
