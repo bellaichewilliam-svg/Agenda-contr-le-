@@ -3952,7 +3952,7 @@ function renderCatalog() {
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}`;
   // Le champ de recherche est posé une seule fois par commerce (il garde le clavier et ce qui est tapé)
   if (box.dataset.shell !== state.shop.code + I18N.lang) {
-    box.innerHTML = `<div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /><button type="button" class="cg-mic" data-cg-mic aria-label="Hoppy">${HV_MIC}</button></label><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
+    box.innerHTML = `<div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label><button type="button" class="cg-voice" data-cg-mic><span class="cv-ic">${HV_MIC}</span><span class="cv-t"><b>${UI.esc(t("cgVoice"))}</b><small>${UI.esc(t("cgVoiceS"))}</small></span><i aria-hidden="true">›</i></button><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
     box.dataset.shell = state.shop.code + I18N.lang; box.dataset.html = ""; box.dataset.head = "";
     state.cgQ = state.cgQNext || ""; state.cgQNext = "";
     if (state.cgQ) box.querySelector("[data-cg-q]").value = state.cgQ;
@@ -6558,12 +6558,18 @@ function hvOpen() {
   $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
   UI.track("voice_start", {});
   // Une commande gardée (Hoppy fermé avant la fin, page rechargée) : on la retrouve, « je l'envoie ou on recommence ? »
-  if (!hv.hist.length) { hv.pickDone = false; hv.afterAddr = null; }
+  if (!hv.hist.length) { hv.pickDone = false; hv.afterAddr = null; hv.toldMulti = false; }
   const kept = !hv.hist.length && !hv.basket.length ? hvKeepGet() : null;
   if (kept) {
     $("#hvLog").innerHTML = ""; hv.hist = kept.hist || []; hv.basket = kept.basket; hv.lastOut = kept.last || null; hvBasketDraw();
     hv.short = { [hvT("hvKeepNew")]: () => { hv.hist = []; hv.basket = []; hv.lastOut = null; hvKeepClear(); hvBasketDraw(); hvOpen(); } };
     return hvSay(hvT("hvKeepSay", { list: hvKeepList(kept) }), [hvT("hvKeepOrder"), hvT("hvKeepNew")]);
+  }
+  const nxt = !kept && !hv.hist.length && !hv.basket.length ? hvNextGet() : null;
+  if (nxt) {
+    $("#hvLog").innerHTML = "";
+    hv.short = { [hvT("hvYes")]: () => hvNextGo(), [hvT("hvNo")]: () => { hvNextSet(""); hvOpen(); } };
+    return hvSay(hvT("hvNextAsk", { t: nxt.t }), [hvT("hvYes"), hvT("hvNo")]);
   }
   if (!hv.hist.length) { $("#hvLog").innerHTML = "";
     // Raccourcis de départ (patron, 12/11) : mes courses chez Carrefour / BOOOM, voir le catalogue (toutes les rubriques)
@@ -6573,14 +6579,26 @@ function hvOpen() {
     if (has("HOPBOOOM")) hv.short[hvT("hvShopAt", { name: "BOOOM" })] = () => hvOpenTarget({ type: "shop", code: "HOPBOOOM" });
     hv.short[hvT("hvCatalog")] = () => { hvClose(); if (location.hash && location.hash !== "#accueil") location.hash = "#accueil"; setTimeout(() => { const k = $("#homeKinds"), bar = document.querySelector(".topbar"); if (k) window.scrollTo({ top: Math.max(0, k.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 12), behavior: "smooth" }); }, 250); };
     const here = hvShopNow();
-    if (here) { hv.short = {}; hvSay(hvT("hvHelloShop", { name: here.name }), []); }
+    if (here) { hv.short = {}; const n = cartCount(); hvSay(n ? hvT("hvHelloShopCart", { name: here.name, n }) : hvT("hvHelloShop", { name: here.name }), n ? [hvT("hvKeepOrder")] : []); }
     else hvSay(hvT("hvHello"), [...Object.keys(hv.short), hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]);
     const tip = document.createElement("div"); tip.className = "hv-tip"; tip.textContent = hvT("hvPhotoTip"); $("#hvLog").appendChild(tip); }
   else hvListen();
 }
 // La commande préparée avec Hoppy est gardée sur le téléphone (24 h) tant qu'elle n'est pas partie dans le panier :
 // fermer Hoppy ou recharger la page ne la perd plus (patron, 12/11). Une barre « Reprendre » la remet d'un geste.
-const HV_KEEP = "livraison.hoppy.keep.v1";
+const HV_KEEP = "livraison.hoppy.keep.v1", HV_NEXT = "livraison.hoppy.next.v1";
+// La commande suivante annoncée par Hoppy (« le lait chez moi, les cigarettes chez ma mère ») : gardée 24 h, proposée
+// dès que la première est partie (barre sur l'accueil, et question à la réouverture de Hoppy)
+function hvNextGet() { try { const n = JSON.parse(localStorage.getItem(HV_NEXT) || "null"); return n && n.t && Date.now() - n.at < 864e5 ? n : null; } catch (e) { return null; } }
+function hvNextSet(txt) { try { if (txt) localStorage.setItem(HV_NEXT, JSON.stringify({ at: Date.now(), t: String(txt).slice(0, 80) })); else localStorage.removeItem(HV_NEXT); } catch (e) { /* rien */ } hvKeepBar(); }
+function hvNextGo() { const n = hvNextGet(); if (!n) return; hvNextSet(""); hv.hist = []; hv.basket = []; hv.lastOut = null; hvOpen(); setTimeout(() => hvUser(hvT("hvNextSay", { t: n.t })), 350); }
+function hvNextBar() {
+  let bar = $("#hvNext"); const n = hvKeepGet() ? null : hvNextGet(), pill = document.querySelector(".vit-voice");
+  if (!n || !pill) { if (bar) bar.remove(); return; }
+  if (!bar) { bar = document.createElement("div"); bar.id = "hvNext"; bar.className = "hv-keep"; pill.after(bar);
+    bar.addEventListener("click", e => { if (e.target.closest("[data-keep-x]")) return hvNextSet(""); hv.lang = I18N.lang === "he" ? "he" : "fr"; hvNextGo(); }); }
+  bar.innerHTML = `<span class="hk-t"><b>➡️ ${UI.esc(t("hvNextT"))}</b><small><bdi>${UI.esc(n.t)}</bdi></small></span><button type="button" class="hk-go">${UI.esc(t("hvNextGo"))}</button><button type="button" class="hk-x" data-keep-x aria-label="✕">✕</button>`;
+}
 function hvKeepGet() { try { const k = JSON.parse(localStorage.getItem(HV_KEEP) || "null"); return k && Array.isArray(k.basket) && k.basket.length && Date.now() - k.at < 864e5 ? k : null; } catch (e) { return null; } }
 function hvKeepSave() {
   try { if (hv.basket.length) localStorage.setItem(HV_KEEP, JSON.stringify({ at: Date.now(), basket: hv.basket, hist: hv.hist.slice(-12), last: hv.lastOut || null })); else localStorage.removeItem(HV_KEEP); } catch (e) { /* stockage plein */ }
@@ -6590,6 +6608,7 @@ function hvKeepClear() { try { localStorage.removeItem(HV_KEEP); } catch (e) { /
 const hvKeepList = k => k.basket.map(b => `${b.qty > 1 ? b.qty + " × " : ""}${b.name}`).join(", ");
 function hvKeepBar() {
   let bar = $("#hvKeep"); const k = hvKeepGet(), pill = document.querySelector(".vit-voice");
+  hvNextBar();
   if (!k || !pill) { if (bar) bar.remove(); return; }
   if (bar && bar.previousElementSibling !== pill) pill.after(bar);
   if (!bar) {
@@ -6731,6 +6750,10 @@ async function hvUser(text) {
     const inCheckout = ["#checkModal", "#cartSheet"].some(q => $(q) && !$(q).classList.contains("hidden")) || (!$("#commander").classList.contains("hidden") && $("#wizTitle") && $("#wizTitle").getClientRects().length && !$("#pharmaBox .ph-list") );
     if (inCheckout && norm(text).split(" ").length <= 5) return hvGuide(hvT("hvNotGot"));
     hvMini(false);
+  }
+  // Dans un magasin, panier déjà rempli à la main : « commander », « c'est tout » → le panier s'ouvre, Hoppy guide la fin
+  if (!hv.local && !hv.basket.length && hvShopNow() && cartCount() && /^(commander|commande|c'est tout|c'est bon|je commande|valider|להזמין|זה הכול|זה הכל|סיימתי)\b/i.test(text.trim())) {
+    hvBubble("c", text); hvMini(true); hvMiniLine(hvT("hvMiniCart")); openCart(); hv.auto = 8; return setTimeout(hvGuide, 900);
   }
   hvBubble("c", text);
   // « Suivre ma course », « où est ma commande ? » : le suivi s'ouvre tout de suite quand une commande est en cours
@@ -6881,6 +6904,14 @@ async function hvAsk(text) {
   wait.remove(); hv.busy = false;
   if (seq !== hv.seq) return;
   if (!out || !out.say) { hvSay(hvT("hvErr"), [], () => {}); return; }
+  // (la commande suivante, annoncée par Hoppy dans un choix « ➡️ … » : on la garde, on ne l'affiche pas comme réponse)
+  const nx = (out.choices || []).find(c => /^\s*➡/.test(c));
+  if (nx) { out.choices = out.choices.filter(c => c !== nx); hvNextSet(nx.replace(/^\s*➡\uFE0F?\s*/, "").trim()); }
+  // Deux magasins dans la même commande : l'appli annonce elle-même le supplément (une fois), au vrai prix du réglage
+  if (Array.isArray(out.basket) && !hv.toldMulti && new Set(out.basket.map(b => String(b.ref || "")).filter(r => r.startsWith("p:")).map(r => r.split(":")[1])).size >= 2) {
+    hv.toldMulti = true;
+    if (!/10\s*₪|\b10 shekels/.test(out.say)) out.say = (hvT("hvMultiNote", { fee: money(addonPrice()) }) + " " + out.say).trim();
+  }
   hv.hist.push({ r: "h", t: out.say.slice(0, 300) });
   if (Array.isArray(out.basket)) { hv.basket = out.basket; hvBasketDraw(); }
   hv.lastOut = { service: out.service || null, from: out.from || null, shop: out.shop || null, colis: out.colis || null };
