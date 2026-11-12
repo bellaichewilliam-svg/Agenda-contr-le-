@@ -995,3 +995,11 @@ livraison/
 - L'IA Gemini (quota gratuit du patron, fonction `hop-ia`, clé `GEMINI_API_KEY` dans les secrets Supabase) comprend le commerce, les articles et « maison / travail » en environ 2 s. On ne lui envoie que la phrase et la liste des commerces : jamais d'adresse, de nom ni de téléphone.
 - Un commerce nommé : on l'ouvre sur le plat. Sinon : la liste de Hoppy avec les vrais produits. L'adresse : Maison / Travail enregistrée si le client le dit (Maison par défaut s'il n'a encore rien choisi), sinon on lui demande « Où on vous livre ? ». Si l'IA ne répond pas : la recherche normale.
 - Base : `supabase/ia-gemini.sql` (`ia_jobs`, `ia_call`, `ia_voice` limité à 8 demandes / 10 min par téléphone et 400 / heure, `ia_voice_result`).
+
+### 🎤 Hoppy, l'assistant qui parle (12/11/2026)
+- Le micro de l'accueil ouvre une conversation avec Hoppy (français / hébreu, bouton pour changer). Il parle avec la voix du téléphone, écoute tout seul la réponse, propose des choix à toucher et accepte aussi l'écrit (on peut lui écrire ses questions).
+- Il demande ce qu'il faut : quelle marque (« Quelles cigarettes ? Marlboro Gold, Winston Blue… »), propose ce qui va avec (un Bounty avec un Mars, un briquet avec les cigarettes), puis l'adresse et le contact, et à « oui » il prépare tout : le rayon avec les articles cochés, ou le commerce avec le panier rempli (commerce fermé : « programmez-la »), ou la liste de Hoppy pour plusieurs magasins, ou la page colis / poste.
+- Inscription à la voix : rue + numéro, étage, appartement, code, prénom, portable. C'est le téléphone qui pose ces questions et les garde (adresse enregistrée comme Maison) : rien de personnel ne part à l'IA.
+- Base : `ia_assist` (60 tours / 10 min par téléphone, 2000 / heure en tout) dans `supabase/ia-gemini.sql` ; IA : `hop-ia` (type `assistant`).
+- Recherche « cigarettes » : le petit catalogue de cigarettes d'abord (plus de gaufrettes « cigarettes ») ; Entrée ouvre directement la rubrique.
+- Produit ouvert depuis une promo ou la recherche : quand on ferme sa fiche, on reste dessus dans le catalogue (friteuse Victory).

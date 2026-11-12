@@ -23,7 +23,7 @@ create or replace function public.ia_call(p_kind text, p_input jsonb default '{}
 language plpgsql security definer set search_path = public, net as $$
 declare j uuid;
 begin
-  if p_kind not in ('test', 'traduire_produits', 'commande_vocale', 'modeles') then raise exception 'tache_inconnue'; end if;
+  if p_kind not in ('test', 'traduire_produits', 'commande_vocale', 'modeles', 'assistant') then raise exception 'tache_inconnue'; end if;
   insert into ia_jobs (kind, input) values (p_kind, coalesce(p_input, '{}'::jsonb)) returning id into j;
   perform net.http_post(
     url := 'https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/hop-ia',
@@ -61,7 +61,28 @@ grant execute on function public.ia_voice(text, text, text) to anon, authenticat
 create or replace function public.ia_voice_result(p_id uuid) returns json
 language sql stable security definer set search_path = public as $$
   select json_build_object('status', j.status, 'output', j.output)
-    from ia_jobs j where j.id = p_id and j.kind = 'commande_vocale' and j.created_at > now() - interval '15 minutes'
+    from ia_jobs j where j.id = p_id and j.kind in ('commande_vocale', 'assistant') and j.created_at > now() - interval '15 minutes'
 $$;
 revoke all on function public.ia_voice_result(uuid) from public;
 grant execute on function public.ia_voice_result(uuid) to anon, authenticated;
+
+-- 🎤 Hoppy, l'assistant qui parle (patron, 12/11) : un tour de conversation (ce que le client vient de dire, l'historique,
+-- ce que l'appli sait déjà : adresse choisie oui / non, panier, rayons). Jamais d'adresse, de nom ni de téléphone dedans :
+-- l'appli les demande et les garde elle-même. Limites : 60 tours / 10 min par téléphone, 2000 / heure en tout.
+create or replace function public.ia_assist(p_input jsonb, p_device text default null) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare d text := left(coalesce(p_device, ''), 64); j uuid;
+begin
+  if p_input is null or length(p_input::text) > 45000 or length(btrim(coalesce(p_input->>'text', ''))) < 1 then raise exception 'demande_invalide'; end if;
+  if d <> '' and (select count(*) from ia_jobs where device = d and created_at > now() - interval '10 minutes') >= 60 then raise exception 'trop_de_demandes'; end if;
+  if (select count(*) from ia_jobs where kind = 'assistant' and created_at > now() - interval '1 hour') >= 2000 then raise exception 'trop_de_demandes'; end if;
+  j := ia_call('assistant', jsonb_build_object('text', left(p_input->>'text', 400), 'lang', case when p_input->>'lang' = 'he' then 'he' else 'fr' end,
+    'history', coalesce(p_input->'history', '[]'::jsonb), 'ctx', coalesce(p_input->'ctx', '{}'::jsonb),
+    'rayons', left(coalesce(p_input->>'rayons', ''), 26000),
+    'shops', coalesce((select jsonb_agg(jsonb_build_object('code', s.code, 'name', s.name, 'kind', s.kind) order by s.rank nulls last)
+                         from shops s where s.status = 'actif' and not s.demo and (s.plan_until >= current_date or s.showcase)), '[]'::jsonb)));
+  update ia_jobs set device = nullif(d, '') where id = j;
+  return j;
+end $$;
+revoke all on function public.ia_assist(jsonb, text) from public;
+grant execute on function public.ia_assist(jsonb, text) to anon, authenticated;

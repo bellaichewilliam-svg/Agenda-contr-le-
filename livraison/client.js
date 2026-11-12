@@ -2104,6 +2104,12 @@ function rayonHits(q, max) {
     if (!(ck in catHit)) { const c = (r.cats || []).find(x => x.id === i.c); catHit[ck] = !!c && word(synNorm(`${c.id} ${c.fr || ""} ${c.he || ""}`)) >= 0; }
     out.push({ r, i, s: ((k >= 0 ? k : 4) * 2 + (catHit[ck] ? 0 : 1)) * 2 + (r.id === "super" ? 0 : 1) });
   }
+  // Le mot est le nom d'une rubrique (« cigarettes », « bières », « vins ») : tous ses produits (patron, 12/11 : « cigarettes »
+  // doit montrer le petit catalogue de cigarettes, pas des gaufrettes)
+  if (!out.length) for (const r of Rayons.ALL) for (const c of (r.cats || [])) {
+    if (word(synNorm(`${c.fr || ""} ${c.he || ""}`)) < 0) continue;
+    Rayons.items(r).filter(i => i.c === c.id).forEach((i, k) => out.push({ r, i, s: 1 + k / 100 }));
+  }
   // Rien trouvé : une faute de frappe ? (« chocolta », « bnaane ») : un mot du produit presque pareil
   if (!out.length && n.length >= 4) {
     const lim = n.length >= 7 ? 2 : 1;
@@ -2117,7 +2123,16 @@ function rayonHits(q, max) {
   }
   return out.sort((a, b) => a.s - b.s).filter(x => { const key = phNorm(x.i.fr); if (seen.has(key)) return false; seen.add(key); return true; }).slice(0, max);
 }
+// « cigarettes », « bières »… : le nom d'une rubrique d'un rayon (→ on ouvre directement cette rubrique)
+function rayonCatHit(q) {
+  const n = synNorm(q);
+  if (n.length < 3 || !window.Rayons) return null;
+  for (const r of Rayons.ALL) for (const c of (r.cats || [])) if (synNorm(`${c.fr || ""} ${c.he || ""}`).split(/[\s,&]+/).some(w => w.length >= 3 && n.length >= 4 && (w === n || w.startsWith(n)))) return { r, c };
+  return null;
+}
 function goRayonFind(r, q) {
+  const ch = rayonCatHit(q);
+  if (ch && ch.r.id === r.id) { goKind(r.kind); state.pharmaCat = ch.c.id; state.phQ = ""; renderPharma(); return; }
   goKind(r.kind);
   state.phQ = q;
   renderPharma();
@@ -3987,7 +4002,7 @@ function renderCatalog() {
   if (state.findItem) {
     const id = state.findItem; state.findItem = null;
     // Produit touché dans la recherche de l'accueil : sa fiche s'ouvre tout de suite (photo, prix, Ajouter)
-    if (state.findOpen) { state.findOpen = false; if (cgProducts().some(p => p.id === id)) setTimeout(() => openItem(id), 250); }
+    if (state.findOpen) { state.findOpen = false; if (cgProducts().some(p => p.id === id)) setTimeout(() => { state.focusAfter = id; openItem(id); }, 250); }
     requestAnimationFrame(() => { const el = box.querySelector(`.cg-item[data-cg-open="${CSS.escape(id)}"]`) || box.querySelector(`[data-cg-open="${CSS.escape(id)}"]`); if (el) { el.classList.add("cg-found"); el.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(() => el.classList.remove("cg-found"), 4000); } });
   }
   // Les onglets restent collés juste sous la barre du haut (« ‹ Accueil · Ma commande »)
@@ -4579,6 +4594,17 @@ $("#cartSheet").addEventListener("click", e => {
   }
 });
 $("#cartSheet").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-cs-add]")) { e.preventDefault(); cartAddTyped(e.target.value); } });
+// Produit ouvert depuis une promo, un bandeau ou la recherche (patron, 12/11 : « quand on clique dessus et on ferme, on le perd ») :
+// à la fermeture de sa fiche, on reste sur lui dans le catalogue, bien en vue et en surbrillance
+new MutationObserver(() => {
+  if (!$("#itemSheet").classList.contains("hidden") || !state.focusAfter) return;
+  const id = state.focusAfter; state.focusAfter = null;
+  const el = $("#catalogBox") && $("#catalogBox").querySelector(`.cg-item[data-cg-open="${CSS.escape(id)}"]`);
+  if (!el) return;
+  el.scrollIntoView({ block: "center", behavior: "smooth" });
+  el.classList.remove("cg-found"); void el.offsetWidth; el.classList.add("cg-found");
+  setTimeout(() => el.classList.remove("cg-found"), 4000);
+}).observe($("#itemSheet"), { attributes: true, attributeFilter: ["class"] });
 $("#itemSheet").addEventListener("click", e => {
   if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
   const qa = e.target.closest("[data-it-quick]");
@@ -6484,21 +6510,297 @@ async function voiceOrder(text) {
   homeFind(q);
   if (msg) toastCart(msg, 4500);
 }
-if (SpeechRec && $("#homeFind")) {
+// ===== 🎤 Hoppy, l'assistant qui parle (patron, 12/11) ================================================================
+// « Le but, c'est de ne plus chercher et de ne plus rien faire dans l'application quand on passe par la voix. »
+// Une conversation : Hoppy parle (voix du téléphone), écoute, pose les questions qu'il faut (quelle marque, quelle taille…),
+// propose ce qui va avec (un Bounty avec un Mars), puis prépare tout et ouvre la commande, prête.
+// L'adresse, l'étage, le code, le prénom et le téléphone : Hoppy les demande, mais c'est le téléphone qui les comprend et les
+// garde (jamais envoyés à l'IA). Français et hébreu. Aussi par écrit (le champ en bas) : on peut lui écrire ses messages.
+const hv = { hist: [], basket: [], busy: false, lang: "fr", local: null, seq: 0, rec: null, idx: "", said: "" };
+const HV_MIC = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 1 0-7 0v6A3.5 3.5 0 0 0 12 15zm6.5-3.5a1 1 0 1 0-2 0 4.5 4.5 0 0 1-9 0 1 1 0 1 0-2 0 6.5 6.5 0 0 0 5.5 6.4V20H8.5a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2H13v-2.1a6.5 6.5 0 0 0 5.5-6.4z"/></svg>`;
+const hvT = (k, v) => I18N.forLang ? I18N.forLang(hv.lang, k, v) : t(k, v);
+function hvDom() {
+  let el = $("#hvSheet");
+  if (el) return el;
+  el = document.createElement("div");
+  el.id = "hvSheet"; el.className = "hv hidden"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
+  el.innerHTML = `<div class="hv-box"><div class="hv-top"><img src="img/hoppy-mini.webp" alt="" width="30" height="48" /><b>Hoppy</b>
+      <button type="button" class="hv-lang" data-hv-lang></button><button type="button" class="hv-x" data-hv-close aria-label="✕">✕</button></div>
+    <div class="hv-log" id="hvLog" aria-live="polite"></div><div class="hv-basket hidden" id="hvBasket"></div><div class="hv-choices" id="hvChoices"></div>
+    <form class="hv-bar" id="hvForm"><input id="hvText" type="text" autocomplete="off" enterkeyhint="send" /><button type="submit" class="hv-send" aria-label="➤">➤</button>
+      <button type="button" class="hv-mic" data-hv-mic>${HV_MIC}</button></form></div>`;
+  document.body.appendChild(el);
+  el.addEventListener("click", e => {
+    if (e.target === el || e.target.closest("[data-hv-close]")) return hvClose();
+    if (e.target.closest("[data-hv-mic]")) return hv.rec ? hvStopListen() : hvListen();
+    if (e.target.closest("[data-hv-lang]")) { hv.lang = hv.lang === "he" ? "fr" : "he"; hvLabels(); return; }
+    const c = e.target.closest("[data-hv-choice]");
+    if (c) hvUser(c.dataset.hvChoice);
+  });
+  $("#hvForm").addEventListener("submit", e => { e.preventDefault(); const v = $("#hvText").value.trim(); if (v) { $("#hvText").value = ""; hvUser(v); } });
+  return el;
+}
+function hvLabels() {
+  const el = hvDom();
+  el.querySelector("[data-hv-lang]").textContent = hv.lang === "he" ? "Français" : "עברית";
+  el.querySelector(".hv-top b").textContent = hv.lang === "he" ? "הופי" : "Hoppy";
+  el.setAttribute("dir", hv.lang === "he" ? "rtl" : "ltr");
+  $("#hvText").placeholder = hvT("hvPh");
+  el.querySelector("[data-hv-mic]").setAttribute("aria-label", hvT("micBtn"));
+}
+function hvOpen() {
+  hvDom(); hv.lang = I18N.lang === "he" ? "he" : "fr"; hvLabels();
+  $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
+  UI.track("voice_start", {});
+  if (!hv.hist.length) { $("#hvLog").innerHTML = ""; hvSay(hvT("hvHello"), [hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]); }
+  else hvListen();
+}
+function hvClose() {
+  hvStopListen(); hv.seq++;
+  try { speechSynthesis.cancel(); } catch (e) { /* pas de voix */ }
+  $("#hvSheet").classList.add("hidden"); document.body.classList.remove("hv-on");
+}
+function hvBubble(who, text) {
+  const d = document.createElement("div");
+  d.className = "hv-msg " + (who === "c" ? "me" : who === "w" ? "wait" : "hop");
+  d.innerHTML = who === "w" ? "<i></i><i></i><i></i>" : UI.esc(text);
+  $("#hvLog").appendChild(d);
+  $("#hvLog").scrollTop = $("#hvLog").scrollHeight;
+  return d;
+}
+function hvChoices(list) {
+  $("#hvChoices").innerHTML = (list || []).map(c => `<button type="button" data-hv-choice="${UI.esc(c)}">${UI.esc(c)}</button>`).join("");
+}
+function hvBasketDraw() {
+  const b = $("#hvBasket");
+  b.classList.toggle("hidden", !hv.basket.length);
+  b.innerHTML = hv.basket.length ? `<b>🛒</b> ${hv.basket.map(x => `<span>${x.qty > 1 ? x.qty + " × " : ""}${UI.esc(x.name)}</span>`).join("")}` : "";
+}
+// Hoppy parle (voix du téléphone dans la bonne langue), puis écoute tout seul la réponse : on n'a rien à toucher
+function hvSay(text, choices, after) {
+  hvBubble("h", text); hvChoices(choices);
+  const seq = hv.seq, next = () => { if (seq !== hv.seq || $("#hvSheet").classList.contains("hidden")) return; if (after) after(); else hvListen(); };
+  let synth = null;
+  try { synth = window.speechSynthesis; } catch (e) { synth = null; }
+  if (!synth || !window.SpeechSynthesisUtterance) return next();
+  try {
+    synth.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/HOP!/g, "Hop").replace(/₪/g, hv.lang === "he" ? " שקלים" : " shekels"));
+    const want = hv.lang === "he" ? /^(he|iw)/i : /^fr/i;
+    const v = synth.getVoices().find(x => want.test(x.lang));
+    u.lang = hv.lang === "he" ? "he-IL" : "fr-FR"; if (v) u.voice = v;
+    u.rate = 1.08;
+    let done = false; const fin = () => { if (!done) { done = true; next(); } };
+    u.onend = fin; u.onerror = fin;
+    setTimeout(fin, 1500 + text.length * 90);   // (certains téléphones n'envoient jamais la fin)
+    synth.speak(u);
+  } catch (e) { next(); }
+}
+function hvListen() {
+  if (!SpeechRec || hv.busy || hv.rec || $("#hvSheet").classList.contains("hidden")) return;
+  let r;
+  try { r = new SpeechRec(); } catch (e) { return; }
+  r.lang = hv.lang === "he" ? "he-IL" : "fr-FR"; r.interimResults = true; r.continuous = false;
+  hv.said = "";
+  r.onresult = e => { hv.said = Array.from(e.results).map(x => x[0].transcript).join(" ").trim(); $("#hvText").value = hv.said; };
+  r.onerror = e => { if (e.error === "not-allowed" || e.error === "service-not-allowed") toastCart(hvT("micDenied"), 4000); };
+  r.onend = () => { hv.rec = null; $("#hvSheet .hv-mic").classList.remove("on"); const v = hv.said; hv.said = ""; if (norm(v).length >= 1) { $("#hvText").value = ""; hvUser(v); } };
+  hv.rec = r; $("#hvSheet .hv-mic").classList.add("on");
+  try { r.start(); } catch (e) { hv.rec = null; $("#hvSheet .hv-mic").classList.remove("on"); }
+}
+function hvStopListen() { if (hv.rec) { try { hv.rec.stop(); } catch (e) { /* déjà arrêté */ } } }
+// Ce que l'appli sait déjà (sans aucune donnée personnelle) et les rayons « Courses HOP! » (noms, prix indicatifs, options)
+function hvCtx() {
+  const list = (Store.getAddresses && Store.getAddresses()) || [];
+  return { addr: { to: addrReady("to"), home: list.some(a => a.tag === "home"), work: list.some(a => a.tag === "work") },
+    contact: { name: !!val("contact_name").trim(), phone: phoneOk(val("contact_phone")) },
+    closed: (state.showcase || []).filter(x => { const st = shopState(x); return st && !st.open; }).map(x => x.code).slice(0, 60),
+    basket: hv.basket.map(b => `${b.qty} × ${b.name}${b.ref ? " (" + b.ref + ")" : ""}`) };
+}
+function hvIndex() {
+  if (hv.idx || !window.Rayons) return hv.idx;
+  let s = "";
+  Rayons.ALL.forEach(r => { s += `## ${r.id}\n`; Rayons.items(r).forEach(i => { const pr = i.p || i.pb;
+    s += `r:${r.id}:${i.id} | ${i.fr}${i.he ? " / " + i.he : ""} | ${pr ? [].concat(pr).join("-") : ""}${i.opt ? " | " + i.opt.map((o, k) => `${k} ${o.fr || o}`).join(" / ") : ""}\n`; }); });
+  return (hv.idx = s.slice(0, 26000));
+}
+async function hvUser(text) {
+  text = String(text || "").trim();
+  if (!text || hv.busy) return;
+  hvStopListen(); hvChoices([]);
+  hvBubble("c", text);
+  if (hv.local) return hvLocal(text);
+  hv.hist.push({ r: "c", t: text.slice(0, 300) });
+  hvAsk(text);
+}
+async function hvAsk(text) {
+  const seq = ++hv.seq, wait = hvBubble("w");
+  hv.busy = true;
+  let out = null;
+  try {
+    const id = await Store.iaAssist({ text, lang: hv.lang, history: hv.hist.slice(-14, -1), ctx: hvCtx(), rayons: hvIndex() });
+    out = id ? await Store.iaVoiceRun(id) : null;
+    for (let i = 0; id && !out && i < 20 && seq === hv.seq; i++) {
+      await new Promise(ok => setTimeout(ok, 800));
+      const r = await Store.iaVoiceResult(id).catch(() => null);
+      if (r && r.status === "fait") out = r.output;
+      else if (!r || r.status === "erreur") break;
+    }
+  } catch (e) { out = null; }
+  wait.remove(); hv.busy = false;
+  if (seq !== hv.seq) return;
+  if (!out || !out.say) { hvSay(hvT("hvErr"), [], () => {}); return; }
+  hv.hist.push({ r: "h", t: out.say.slice(0, 300) });
+  if (Array.isArray(out.basket)) { hv.basket = out.basket; hvBasketDraw(); }
+  if (out.saved) { const a = Store.getAddresses().find(x => x.tag === (out.saved === "travail" ? "work" : "home")); if (a) { applySavedAddr("to", a); vitRender(); } }
+  UI.track("voice_turn", { n: hv.basket.length, go: out.go ? 1 : 0 });
+  if (out.go) return hvSay(out.say, [], () => hvGo(out));
+  if (out.collect === "address" && !addrReady("to")) return hvStartLocal("address");
+  if (out.collect === "contact") return hvStartLocal("contact");
+  hvSay(out.say, out.choices);
+}
+// --- Ce que le téléphone demande lui-même (rien ne part à l'IA) : adresse, étage, appartement, code, prénom, téléphone ---
+const HV_NUM = { zero: 0, "zéro": 0, un: 1, une: 1, premier: 1, "première": 1, deux: 2, "deuxième": 2, trois: 3, "troisième": 3, quatre: 4, "quatrième": 4, cinq: 5, six: 6, sept: 7, huit: 8, neuf: 9, dix: 10,
+  "אחת": 1, "אחד": 1, "ראשונה": 1, "שתיים": 2, "שניים": 2, "שנייה": 2, "שלוש": 3, "שלישית": 3, "ארבע": 4, "רביעית": 4, "חמש": 5, "שש": 6, "שבע": 7, "שמונה": 8, "תשע": 9, "עשר": 10, "קרקע": 0 };
+function hvNum(text) {
+  const m = String(text).match(/\d+/);
+  if (m) return m[0];
+  const w = norm(text).split(/\s+/).find(x => x in HV_NUM || norm(x) in HV_NUM);
+  if (/rez|rdc|קרקע/i.test(text)) return "0";
+  return w != null ? String(HV_NUM[w] != null ? HV_NUM[w] : HV_NUM[norm(w)]) : "";
+}
+const hvNo = text => /^(non|pas|aucun|rien|sans|no|לא|אין|בלי)\b/i.test(String(text).trim()) || /pas de code|sans code|אין קוד|בלי קוד/i.test(text);
+function hvStartLocal(kind) {
+  if (kind === "address") { hv.local = { kind, step: "street", a: {}, tries: 0 }; return hvSay(hvT("hvAskStreet"), []); }
+  hv.local = { kind, step: val("contact_name").trim() ? "phone" : "name" };
+  hvSay(hvT(hv.local.step === "name" ? "hvAskName" : "hvAskPhone"), []);
+}
+async function hvLocal(text) {
+  const L = hv.local;
+  if (L.kind === "address") {
+    if (L.step === "street") {
+      const num = (text.match(/\d+[א-תa-z]?/i) || [""])[0], street = text.replace(num, "").replace(/\b(rue|avenue|bd|boulevard|רחוב|רח')\b\.?/gi, "").replace(/[,،.]/g, " ").replace(/\s+/g, " ").trim();
+      if (!street) return hvSay(hvT("hvAskStreet"), []);
+      const city = cityLabel(form.to_city.value || CONFIG.homeCity);
+      let list = [];
+      try { list = await Places.search(`${street} ${num} ${city}`.trim(), hv.lang); } catch (e) { list = []; }
+      const hit = list.find(x => x.streetName && !x.brand && x.lat != null);
+      if (!hit) { L.tries++; return L.tries >= 2 ? (hv.local = null, hvSay(hvT("hvAddrManual"), [], () => { hvClose(); goField("to"); })) : hvSay(hvT("hvAddrAgain"), []); }
+      Object.assign(L.a, { street: hit.streetName, number: num || hit.housenumber || "", lat: hit.lat, lon: hit.lon,
+        cityId: (hit.city && Places.matchCity(hit.city)) || form.to_city.value || CONFIG.homeCity, exact: !!(num && hit.housenumber === num) });
+      L.a.city = L.a.cityId;
+      if (!L.a.number) { L.step = "number"; return hvSay(hvT("hvAskNumber"), []); }
+      L.step = "floor"; return hvSay(hvT("hvAskFloor", { street: `${L.a.street} ${L.a.number}` }), [hvT("hvHouse"), "0", "1", "2", "3"]);
+    }
+    if (L.step === "number") { const n = hvNum(text); if (!n) return hvSay(hvT("hvAskNumber"), []); L.a.number = n; L.step = "floor"; return hvSay(hvT("hvAskFloor", { street: `${L.a.street} ${L.a.number}` }), [hvT("hvHouse"), "0", "1", "2", "3"]); }
+    if (L.step === "floor") {
+      // « non, ce n'est pas ça » : on redemande la rue
+      if (/^(non|pas ça|c'est pas|לא)\b/i.test(text.trim()) && !hvNum(text)) { L.step = "street"; L.a = {}; return hvSay(hvT("hvAskStreet"), []); }
+      if (/maison|villa|בית פרטי|^בית$/i.test(text) || norm(text) === norm(hvT("hvHouse"))) { L.a.kind = "maison"; L.step = "code"; return hvSay(hvT("hvAskCode"), [hvT("hvNoCode")]); }
+      L.a.floor = hvNum(text) || "0"; L.a.kind = "appartement"; L.step = "apt"; return hvSay(hvT("hvAskApt"), []);
+    }
+    if (L.step === "apt") { L.a.apt = hvNum(text); L.step = "code"; return hvSay(hvT("hvAskCode"), [hvT("hvNoCode")]); }
+    if (L.step === "code") {
+      L.a.code = hvNo(text) ? t("noCodeVal") : (text.match(/[\d#*]+/g) || [text.trim().slice(0, 12)]).join("");
+      const list = Store.getAddresses() || [];
+      const a = Object.assign({}, L.a, { tag: list.some(x => x.tag === "home") ? null : "home" });
+      Store.saveAddress(a); applySavedAddr("to", a); vitRender();
+      hv.local = null;
+      hv.hist.push({ r: "c", t: hvT("hvAddrDoneAi") });
+      return hvAsk(hvT("hvAddrDoneAi"));
+    }
+  }
+  if (L.kind === "contact") {
+    if (L.step === "name") {
+      const nm = text.replace(/^(je m'appelle|mon nom est|moi c'est|c'est|קוראים לי|שמי|אני)\s+/i, "").trim().split(/\s+/).slice(0, 3).join(" ").slice(0, 40);
+      form.contact_name.value = nm.charAt(0).toUpperCase() + nm.slice(1);
+      form.contact_name.dispatchEvent(new Event("input", { bubbles: true }));
+      if (phoneOk(val("contact_phone"))) { hv.local = null; return hvContactDone(); }
+      L.step = "phone"; return hvSay(hvT("hvAskPhone", { name: val("contact_name") }), []);
+    }
+    if (L.step === "phone") {
+      let d = text.replace(/\D/g, "");
+      if (d.startsWith("972")) d = "0" + d.slice(3);
+      if (!/^05\d{8}$/.test(d)) return hvSay(hvT("hvPhoneAgain"), []);
+      form.contact_phone.value = d; form.contact_phone.dispatchEvent(new Event("input", { bubbles: true }));
+      hv.local = null; return hvContactDone();
+    }
+  }
+}
+function hvContactDone() {
+  try { Store.saveProfile(Object.assign({}, Store.getProfile(), { contact_name: val("contact_name").trim(), contact_phone: val("contact_phone").trim() })); } catch (e) { /* gardé dans le formulaire */ }
+  saveDraft();
+  hv.hist.push({ r: "c", t: hvT("hvContactDoneAi") });
+  hvAsk(hvT("hvContactDoneAi"));
+}
+// --- C'est parti : tout est prêt dans l'appli, le client n'a plus qu'à vérifier et commander ------------------------------
+async function hvGo(out) {
+  const items = hv.basket, refs = items.map(b => String(b.ref || ""));
+  hvClose();
+  UI.track("voice_go", { n: items.length, service: out.service || "" });
+  if (out.service === "poste") { goKind("poste"); setTimeout(() => toastCart(hvT("hvPoste"), 5000), 600); return; }
+  if (out.service === "colis" && !items.length) {
+    if (form.what_item && out.colis && out.colis.what) form.what_item.value = out.colis.what;
+    goField(addrReady("to") ? "from" : "to"); return;
+  }
+  // Tout dans un même rayon « Courses HOP! » (ex. Marlboro Gold + briquet) : le rayon s'ouvre, les articles déjà cochés
+  const ray = refs.every(r => r.startsWith("r:")) && new Set(refs.map(r => r.split(":")[1])).size === 1 ? Rayons.byId(refs[0].split(":")[1]) : null;
+  if (ray && items.length) {
+    goKind(ray.kind);
+    setTimeout(() => {
+      items.forEach(b => { const [, rid, rest] = b.ref.split(":"); const [id, o] = String(rest || "").split("|");
+        state.pharma[`${rid}:${id}|${Number(o) || 0}`] = b.qty; (state.pharmaOpt = state.pharmaOpt || {})[`${rid}:${id}`] = Number(o) || 0; });
+      if (rayonUnits() > 0) form.fits_topcase.checked = true;
+      rayonAdult(); renderPharma(); renderQuote(); saveDraft(); cartPersist();
+      toastCart(hvT("hvReady"), 4000);
+    }, 350);
+    return;
+  }
+  // Tout chez un même commerce (un restaurant, HOP! chez Carrefour…) : on y va, le panier est rempli
+  const codes = new Set(refs.map(r => r.startsWith("p:") ? r.split(":")[1] : "?"));
+  if (items.length && codes.size === 1 && !codes.has("?")) {
+    const code = [...codes][0];
+    state.shopDir = ""; state.findItem = null; await loadShop(code);
+    if (state.shop && state.shop.code === code) {
+      let first = null;
+      items.forEach(b => { const id = b.ref.split(":").slice(2).join(":"); if (cgProducts().some(x => x.id === id)) { state.cart[id] = b.qty; first = first || id; } });
+      // Le plat demandé bien en vue (mis en avant dans le menu), puis le panier ; commerce fermé : on le dit, la commande se programme
+      state.findItem = first;
+      renderCatalog(); renderQuote(); saveDraft(); cartPersist();
+      const st = shopState(state.shop);
+      toastCart(st && !st.open ? hvT("hvShopClosed", { when: openLabel(st) }) : hvT("hvInCart"), 6000);
+      if (cartCount()) setTimeout(openCart, 900);
+    }
+    return;
+  }
+  // Plusieurs magasins : la liste de Hoppy range tout (vrais produits, magasin principal, livraison) puis la commande s'ouvre
+  if (items.length) {
+    const q = items.map(b => `${b.qty > 1 ? b.qty + " " : ""}${b.name}`).join(", ");
+    const inp = $("#homeFind"); inp.value = q;
+    await homeFind(q);
+    const go = $("#homeFindList [data-mg-go]");
+    if (go) go.click(); else startFreeOrder(q);
+  }
+}
+if ($("#homeFind")) {
   const b = document.createElement("button");
   b.type = "button"; b.id = "homeMic"; b.className = "sc-mic";
-  b.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 1 0-7 0v6A3.5 3.5 0 0 0 12 15zm6.5-3.5a1 1 0 1 0-2 0 4.5 4.5 0 0 1-9 0 1 1 0 1 0-2 0 6.5 6.5 0 0 0 5.5 6.4V20H8.5a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2H13v-2.1a6.5 6.5 0 0 0 5.5-6.4z"/></svg>`;
+  b.innerHTML = HV_MIC;
   const setLbl = () => { b.setAttribute("aria-label", t("micBtn")); b.title = t("micBtn"); };
   setLbl(); window.addEventListener("hop:lang", setLbl);
   $("#homeFind").after(b);
   $("#homeFind").closest(".sc-find").classList.add("has-mic");
   b.addEventListener("mousedown", e => e.preventDefault());
-  b.addEventListener("click", e => { e.stopPropagation(); micStart(); });
+  // (un toucher = Hoppy ouvre la conversation et écoute ; sans iaAssist dans le Store : l'ancienne commande à la voix)
+  b.addEventListener("click", e => { e.stopPropagation(); if (Store.iaAssist) hvOpen(); else micStart(); });
 }
 // Résultats de la vitrine : « On vous l'apporte », puis les produits rangés PAR COMMERCE (logo, nom, « Tout voir »)
 // en cartes avec photo et prix (un toucher ouvre la fiche du produit dans son commerce), les courses HOP! (rayons), les commerces
 function vitFindRender(q, products, shops, staple, box) {
   if (staple) products = products.filter(p => !/restaurant|resto|cafe/i.test(p.kind || ""));
+  // Rubrique tabac (« cigarettes ») : seulement les cigarettes (aucun commerce n'en vend : plus de gaufrettes « cigarettes »)
+  const ch = rayonCatHit(q);
+  if (ch && ch.r.kind === "tabac") products = [];
   const sc = code => (state.showcase || []).find(x => x.code === code) || {};
   const qa = UI.esc(q.trim());
   const any = `<button type="button" class="fi-any" data-find-any><span class="fi-pic">🛵</span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>`;
@@ -6880,6 +7182,9 @@ $("#homeFind").addEventListener("keydown", e => {
   const q = e.target.value.trim();
   if (norm(q).length < 2) return;
   if (parseList(q).length >= 2 && state.magic) return startFreeOrder(mgText());
+  // « cigarettes » + Entrée : le petit catalogue de cigarettes, pas la case « Autre chose ? »
+  const ch = rayonCatHit(q);
+  if (ch) { $("#homeFindList").classList.add("hidden"); e.target.blur(); return goRayonFind(ch.r, q); }
   startFreeOrder(q);
 });
 $("#homeFind").addEventListener("focus", e => { if (norm(e.target.value).length >= 2) homeFind(e.target.value); });
@@ -6987,7 +7292,7 @@ $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
   UI.track("promo_click", { shop_code: code });
   state.shopDir = "";
   await loadShop(code);
-  if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) openItem(id);
+  if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) { state.focusAfter = id; openItem(id); }
 });
 
 // ===== « 🔥 HOP! à vos promos » (patron, 10/11) : toutes les promos de nos magasins réunies (Rami Lévy, Carrefour, BOOOM…),
@@ -7076,7 +7381,7 @@ async function paClick(e) {
     const [code, id] = op.dataset.paOpen.split("|");
     closePromosAll(); state.shopDir = "";
     await loadShop(code);
-    if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) openItem(id);
+    if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) { state.focusAfter = id; openItem(id); }
   }
 }
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("#paPage") && !$("#paPage").classList.contains("hidden")) closePromosAll(); });
