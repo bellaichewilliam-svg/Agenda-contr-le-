@@ -5799,3 +5799,8 @@ body.trk-v2 .chat-modal { z-index: 1010; }
 .ph-src-tabs button small { font-size: 11.5px; opacity: .75; }
 .ph-src-tabs button.on { background: #FF6A13; border-color: #FF6A13; color: #fff; }
 .ph-more-cf { display: block; width: 100%; margin: 10px 0; padding: 11px 12px; border-radius: 14px; border: 1px dashed rgba(255,106,19,.6); background: none; color: inherit; font: inherit; font-weight: 700; font-size: 14px; cursor: pointer; }
+
+/* Réponses automatiques de Hoppy dans le chat (vues du patron et du livreur) */
+.chat-msg.is-bot { border-style: dashed; }
+.chat-msg.is-bot small { color: #FF6A13; font-weight: 700; }
+.ai-relai { color: #FF6A13; }

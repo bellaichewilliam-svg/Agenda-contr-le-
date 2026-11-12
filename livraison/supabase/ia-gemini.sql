@@ -180,3 +180,45 @@ begin
 end $$;
 revoke all on function public.admin_ia_dialog(uuid) from public, anon;
 grant execute on function public.admin_ia_dialog(uuid) to authenticated;
+
+-- ============================================================================
+-- 💬 Hoppy dans le chat client (patron, 12/11) : il répond tout de suite, au nom du service client (« HOP! · service client »),
+-- aux questions courantes (prix, zones, paiement, état de la commande, ce qu'on livre, comment commander) ; il passe la main
+-- à l'équipe (ai = 'relai') pour un remboursement, une annulation payée, une réclamation, ou si le client demande une personne ;
+-- il se tait quand le message est pour le livreur, et dès qu'un humain de HOP! a répondu (30 min) ou après un relais (2 h).
+-- L'IA ne reçoit ni nom, ni téléphone (numéros masqués), ni adresse de la course : seulement les textes du fil et l'état.
+-- ============================================================================
+alter table public.chat_messages add column if not exists ai text check (ai in ('auto', 'relai'));
+create or replace function public.chat_ai_kick() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare th text := new.thread; o jsonb; ctx jsonb; hist jsonb; he boolean; dev text;
+begin
+  if new.author <> 'client' or th !~ '^[ou]:' then return new; end if;
+  if exists (select 1 from chat_messages where thread = th and author = 'admin' and ai is null and created_at > now() - interval '30 minutes') then return new; end if;
+  if exists (select 1 from chat_messages where thread = th and ai = 'relai' and created_at > now() - interval '2 hours') then return new; end if;
+  if (select count(*) from chat_messages where thread = th and ai is not null and created_at > now() - interval '1 hour') >= 20 then return new; end if;
+  if (select count(*) from ia_jobs where kind = 'chat' and created_at > now() - interval '1 hour') >= 300 then return new; end if;
+  select coalesce(jsonb_agg(jsonb_build_object('r', case m.author when 'client' then 'c' when 'system' then 's' when 'courier' then 'l' else 'h' end,
+           't', left(regexp_replace(coalesce(m.body, '[photo]'), '\+?\d[\d \-]{6,}\d', '[numéro]', 'g'), 400)) order by m.created_at), '[]'::jsonb)
+    into hist from (select * from chat_messages where thread = th order by created_at desc limit 12) m;
+  if th like 'o:%' then
+    select to_jsonb(x) into o from orders x where x.id = substr(th, 3)::uuid;
+    ctx := jsonb_build_object('type', 'course', 'ref', o->>'ref', 'etat', o->>'status', 'service', o->>'service', 'prix', o->'price',
+      'urgence', o->>'urgency', 'prevue', o->>'pickup_at', 'prete', o->>'ready_at', 'livreur_attribue', (o->>'courier_id') is not null,
+      'commerce', (select s.name from shops s where s.id::text = o->>'shop_id'), 'paiement', o->>'payment', 'commandee', o->>'created_at');
+  else
+    dev := substr(th, 3);
+    ctx := jsonb_build_object('type', 'service_client', 'courses', coalesce((select jsonb_agg(jsonb_build_object('ref', y.ref, 'etat', y.status, 'service', y.service, 'commandee', y.created_at) order by y.created_at desc)
+      from (select * from orders where device_id::text = dev order by created_at desc limit 3) y), '[]'::jsonb));
+  end if;
+  he := coalesce(new.body, '') ~ '[א-ת]';
+  perform ia_call('chat', jsonb_build_object('thread', th, 'lang', case when he then 'he' else 'fr' end, 'history', hist, 'ctx', ctx, 'regles', ia_regles()));
+  return new;
+exception when others then return new;  -- (le chat ne doit jamais casser à cause de l'IA)
+end $$;
+revoke all on function public.chat_ai_kick() from public, anon, authenticated;
+create or replace trigger chat_ai_kick after insert on public.chat_messages for each row execute function public.chat_ai_kick();
+-- ia_call accepte la tâche « chat » ; le message de bienvenue automatique du service client est remplacé par la vraie réponse de Hoppy
+-- (en cas de panne de l'IA, hop-ia écrit lui-même un court message d'attente)
+-- Règle 27 ajoutée à ia_regles() (migration ia_regles_chat_etats) : dans le chat, « confirmee » = le livreur va d'abord chercher
+-- la commande ; excuse courte avant un relais ; hébreu au pluriel poli.
