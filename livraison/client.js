@@ -3952,7 +3952,7 @@ function renderCatalog() {
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}`;
   // Le champ de recherche est posé une seule fois par commerce (il garde le clavier et ce qui est tapé)
   if (box.dataset.shell !== state.shop.code + I18N.lang) {
-    box.innerHTML = `<div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
+    box.innerHTML = `<div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /><button type="button" class="cg-mic" data-cg-mic aria-label="Hoppy">${HV_MIC}</button></label><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
     box.dataset.shell = state.shop.code + I18N.lang; box.dataset.html = ""; box.dataset.head = "";
     state.cgQ = state.cgQNext || ""; state.cgQNext = "";
     if (state.cgQ) box.querySelector("[data-cg-q]").value = state.cgQ;
@@ -6572,7 +6572,9 @@ function hvOpen() {
     if (has("HOPCARREFOUR")) hv.short[hvT("hvShopAt", { name: "Carrefour" })] = () => hvOpenTarget({ type: "shop", code: "HOPCARREFOUR" });
     if (has("HOPBOOOM")) hv.short[hvT("hvShopAt", { name: "BOOOM" })] = () => hvOpenTarget({ type: "shop", code: "HOPBOOOM" });
     hv.short[hvT("hvCatalog")] = () => { hvClose(); if (location.hash && location.hash !== "#accueil") location.hash = "#accueil"; setTimeout(() => { const k = $("#homeKinds"), bar = document.querySelector(".topbar"); if (k) window.scrollTo({ top: Math.max(0, k.getBoundingClientRect().top + window.scrollY - ((bar && bar.offsetHeight) || 0) - 12), behavior: "smooth" }); }, 250); };
-    hvSay(hvT("hvHello"), [...Object.keys(hv.short), hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]);
+    const here = hvShopNow();
+    if (here) { hv.short = {}; hvSay(hvT("hvHelloShop", { name: here.name }), []); }
+    else hvSay(hvT("hvHello"), [...Object.keys(hv.short), hvT("hvEx1"), hvT("hvEx2"), hvT("hvEx3")]);
     const tip = document.createElement("div"); tip.className = "hv-tip"; tip.textContent = hvT("hvPhotoTip"); $("#hvLog").appendChild(tip); }
   else hvListen();
 }
@@ -6690,6 +6692,9 @@ function hvListen() {
 }
 function hvStopListen() { if (hv.rec) { try { hv.rec.stop(); } catch (e) { /* déjà arrêté */ } } }
 // Ce que l'appli sait déjà (sans aucune donnée personnelle) et les rayons « Courses HOP! » (noms, prix indicatifs, options)
+// Le magasin où le client se trouve (sa page est ouverte) : Hoppy y fait les courses avec lui (patron, 12/11)
+const hvShopNow = () => { try { return state.shop && state.catalog && !state.shop.demo && $("#catalogBox") && $("#catalogBox").getClientRects().length ? { code: state.shop.code, name: String(UI.bi(state.shop.name)).slice(0, 40) } : null; } catch (e) { return null; } };
+document.addEventListener("click", e => { const m = e.target.closest && e.target.closest("[data-cg-mic]"); if (m) { e.preventDefault(); e.stopPropagation(); if (Store.iaAssist) hvOpen(); } }, true);
 function hvCtx() {
   const list = (Store.getAddresses && Store.getAddresses()) || [];
   return { addr: { to: addrReady("to"), home: list.some(a => a.tag === "home"), work: list.some(a => a.tag === "work") },
@@ -6702,6 +6707,8 @@ function hvCtx() {
     last: (() => { try { const g = reorderList().find(x => x.last) || reorderList()[0]; if (!g) return null;
       return { chez: g.o.shop_name ? String(UI.bi(g.o.shop_name)).slice(0, 40) : "", quoi: g.items.length ? String(g.o.shop_order || "").split("\n").filter(l => l && !/^💬/.test(l)).slice(0, 5).map(l => String(UI.bi(l)).slice(0, 50)) : [I18N.forLang(hv.lang, "svc_" + g.o.service) || ""] }; } catch (e) { return null; } })(),
     deja: (() => { try { return cartLines().map(l => `${l.qty} × ${String(UI.bi(l.p.name)).slice(0, 40)}`).concat(Object.entries(state.pharma || {}).filter(x => x[1] > 0).map(([k, q]) => `${q} × ${k.split(":")[1]}`)).slice(0, 20); } catch (e) { return []; } })(),
+    // (dans un magasin : Hoppy cherche d'abord chez lui)
+    inShop: hvShopNow(),
     basket: hv.basket.map(b => `${b.qty} × ${b.name}${b.ref ? " (" + b.ref + ")" : ""}`) };
 }
 function hvIndex() {

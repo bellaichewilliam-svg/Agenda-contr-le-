@@ -1,5 +1,6 @@
 import React from 'react';
 import { Composition, Still } from 'remotion';
+import { Voix, VOIX_FRAMES } from './Voix';
 import './fonts';
 import { Promo, totalFrames } from './Promo';
 import { Reel, REEL_FRAMES } from './Reel';
@@ -54,6 +55,8 @@ export const Root: React.FC = () => (
     <Composition id="SpotFilmHe" component={SpotFilm} durationInFrames={SPOT_FILM_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Composition id="HopPromos" component={Promos} durationInFrames={PROMOS_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
     <Composition id="HopPromosHe" component={Promos} durationInFrames={PROMOS_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
+    <Composition id="HopVoix" component={Voix} durationInFrames={VOIX_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
+    <Composition id="HopVoixHe" component={Voix} durationInFrames={VOIX_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Composition id="HopMezouzot" component={Mezouzot} durationInFrames={MEZOUZOT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'fr' as const }} />
     <Composition id="HopMezouzotHe" component={Mezouzot} durationInFrames={MEZOUZOT_FRAMES} fps={30} width={1080} height={1920} defaultProps={{ music: true, lang: 'he' as const }} />
     <Still id="HopGrid1" component={Grid} width={1080} height={1350} defaultProps={{ tile: 0 }} />

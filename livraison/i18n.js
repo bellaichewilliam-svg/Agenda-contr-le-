@@ -825,7 +825,7 @@ fr: {
   payLater: "Vous pourrez changer à tout moment dans votre espace.", paySaved: "✅ Enregistré : ça compte pour les prochaines commandes.",
   payErr: "Impossible d'enregistrer pour le moment : vérifiez la connexion et réessayez.",
   // Enseignes près de vous
-  hvPh: "Écrivez à Hoppy…", hvHello: "Bonjour ! Je suis Hoppy. Dites-moi ce qu'il vous faut, je m'occupe de tout.", hvEx1: "Un paquet de cigarettes", hvEx2: "Un Mars et du lait", hvEx3: "Récupérer un colis",
+  hvPh: "Écrivez à Hoppy…", hvHello: "Bonjour ! Je suis Hoppy. Dites-moi ce qu'il vous faut, je m'occupe de tout.", hvHelloShop: "Dites-moi votre liste chez {name} : je remplis le panier pour vous. Vous pouvez aussi la prendre en photo.", hvEx1: "Un paquet de cigarettes", hvEx2: "Un Mars et du lait", hvEx3: "Récupérer un colis",
   hvErr: "Oups, je n'ai pas réussi. Réessayez, ou écrivez-le ici.", hvAskStreet: "À quelle adresse je livre ? Dites la rue et le numéro.", hvAskNumber: "Et le numéro de la maison ?",
   hvAddrAgain: "Je n'ai pas trouvé cette rue. Vous pouvez la redire ?", hvAddrManual: "Je n'arrive pas à trouver la rue : écrivez-la dans « Livrer à », c'est rapide.",
   hvAskFloor: "{street}, c'est noté. À quel étage ? Ou dites « maison ».", hvHouse: "Maison", hvAskApt: "Quel numéro d'appartement ?", hvAskCode: "Un code pour entrer dans l'immeuble ?", hvNoCode: "Pas de code",
@@ -1681,7 +1681,7 @@ he: {
   payLater: "אפשר לשנות בכל רגע באזור שלכם.", paySaved: "✅ נשמר: חל על ההזמנות הבאות.",
   payErr: "לא ניתן לשמור כרגע: בדקו את החיבור ונסו שוב.",
   // עסקים לידכם
-  hvPh: "כתבו להופי…", hvHello: "שלום! אני הופי. תגידו לי מה צריך, ואני מטפל בהכול.", hvEx1: "חפיסת סיגריות", hvEx2: "מארס וחלב", hvEx3: "לאסוף חבילה",
+  hvPh: "כתבו להופי…", hvHello: "שלום! אני הופי. תגידו לי מה צריך, ואני מטפל בהכול.", hvHelloShop: "תגידו לי את הרשימה שלכם אצל {name}: אני ממלא את העגלה בשבילכם. אפשר גם לצלם אותה.", hvEx1: "חפיסת סיגריות", hvEx2: "מארס וחלב", hvEx3: "לאסוף חבילה",
   hvErr: "אופס, זה לא הצליח. נסו שוב, או כתבו כאן.", hvAskStreet: "לאיזו כתובת לשלוח? תגידו רחוב ומספר.", hvAskNumber: "ומה מספר הבית?",
   hvAddrAgain: "לא מצאתי את הרחוב. אפשר לחזור עליו?", hvAddrManual: "לא מצליח למצוא את הרחוב: כתבו אותו ב«משלוח אל», זה מהיר.",
   hvAskFloor: "{street}, רשמתי. באיזו קומה? או תגידו «בית פרטי».", hvHouse: "בית פרטי", hvAskApt: "מה מספר הדירה?", hvAskCode: "יש קוד כניסה לבניין?", hvNoCode: "אין קוד",
