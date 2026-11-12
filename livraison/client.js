@@ -6626,12 +6626,13 @@ function hvCtx() {
       .map(o => ({ etat: I18N.forLang(hv.lang, "st_" + o.status), chez: o.shop_name ? String(UI.bi(o.shop_name)).slice(0, 40) : "" })),
     last: (() => { try { const g = reorderList().find(x => x.last) || reorderList()[0]; if (!g) return null;
       return { chez: g.o.shop_name ? String(UI.bi(g.o.shop_name)).slice(0, 40) : "", quoi: g.items.length ? String(g.o.shop_order || "").split("\n").filter(l => l && !/^💬/.test(l)).slice(0, 5).map(l => String(UI.bi(l)).slice(0, 50)) : [I18N.forLang(hv.lang, "svc_" + g.o.service) || ""] }; } catch (e) { return null; } })(),
+    deja: (() => { try { return cartLines().map(l => `${l.qty} × ${String(UI.bi(l.p.name)).slice(0, 40)}`).concat(Object.entries(state.pharma || {}).filter(x => x[1] > 0).map(([k, q]) => `${q} × ${k.split(":")[1]}`)).slice(0, 20); } catch (e) { return []; } })(),
     basket: hv.basket.map(b => `${b.qty} × ${b.name}${b.ref ? " (" + b.ref + ")" : ""}`) };
 }
 function hvIndex() {
   if (hv.idx || !window.Rayons) return hv.idx;
   let s = "";
-  Rayons.ALL.forEach(r => { s += `## ${r.id}\n`; Rayons.items(r).forEach(i => { const pr = i.p || i.pb;
+  Rayons.ALL.forEach(r => { s += `## ${r.id} | rubriques : ${(r.cats || []).map(c => `${c.id}=${c.fr}`).join(", ")}\n`; Rayons.items(r).forEach(i => { const pr = i.p || i.pb;
     s += `r:${r.id}:${i.id} | ${i.fr}${i.he ? " / " + i.he : ""} | ${pr ? [].concat(pr).join("-") : ""}${i.opt ? " | " + i.opt.map((o, k) => `${k} ${o.fr || o}`).join(" / ") : ""}\n`; }); });
   return (hv.idx = s.slice(0, 26000));
 }
@@ -6641,10 +6642,14 @@ async function hvUser(text) {
   hvStopListen(); hvChoices([]);
   // Hoppy en petit, sur un vrai écran (fiche d'un plat, rayon, panier) : ce qui est dit touche le bon bouton
   if (hv.mini) {
-    if (hvVoiceClick(text)) { hvMiniLine("✓ " + text); return setTimeout(hvListen, 350); }
+    if (hvVoiceClick(text)) { hvMiniLine("✓ " + text); return setTimeout(hvGuide, 900); }
     hvMini(false);
   }
   hvBubble("c", text);
+  // « Suivre ma course », « où est ma commande ? » : le suivi s'ouvre tout de suite quand une commande est en cours
+  if (!hv.local && HV_TRACK.test(text) && ((state.mine || []).some(x => ["nouvelle", "confirmee", "recuperee"].includes(x.status)) || ($("#doneTrack") && $("#doneTrack").getClientRects().length))) {
+    return hvSay(hvT("hvTrackGo"), [], () => hvTrack());
+  }
   // « Je m'appelle Avraham Belaïch, j'habite au 13 rue Rémez, 3e étage, porte 33, code 1010-20 dièse » : tout est rempli
   // ici, sur le téléphone ; l'IA ne reçoit que le reste de la phrase (jamais le nom, l'adresse ni le téléphone)
   const ex = hvExtract(text);
@@ -6722,6 +6727,20 @@ function hvSaveAddr(a0) {
   if (a.code == null) a.code = "";
   Store.saveAddress(a); applySavedAddr("to", a); vitRender();
 }
+// Ouvrir le suivi de la commande en cours : celle qu'on vient d'envoyer, sinon la dernière en cours (liste rechargée),
+// sinon « Mes courses »
+const HV_TRACK = /(suivre|suivi|o[uù] (en )?est|elle est o[uù]|arrive quand).{0,25}(commande|course|livreur|livraison)|^(suivre|suivi)\b|איפה (ההזמנה|המשלוח|השליח)|מעקב/i;
+async function hvTrack() {
+  const act = () => (Array.isArray(state.mine) ? state.mine : []).filter(x => ["nouvelle", "confirmee", "recuperee"].includes(x.status) && x.token)
+    .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0];
+  const done = $("#doneTrack"), href = done && done.getClientRects().length ? done.getAttribute("href") : "";
+  if (href && href !== "#") { location.href = href; return true; }
+  let o = act();
+  if (!o) { try { await loadMine(); } catch (e) { /* on essaie quand même */ } o = act(); }
+  if (o) { location.href = UI.trackUrl(o); return true; }
+  hvClose(); location.hash = "#mes-courses";
+  return false;
+}
 async function hvAsk(text) {
   const seq = ++hv.seq, wait = hvBubble("w");
   hv.busy = true;
@@ -6744,9 +6763,11 @@ async function hvAsk(text) {
   if (out.saved) { const a = Store.getAddresses().find(x => x.tag === (out.saved === "travail" ? "work" : "home")); if (a) { applySavedAddr("to", a); vitRender(); } }
   UI.track("voice_turn", { n: hv.basket.length, go: out.go ? 1 : 0 });
   // Actions directes : suivre la commande en cours, refaire la dernière, choisir l'heure
-  if (out.action === "suivi") { const o = (state.mine || []).find(x => ["nouvelle", "confirmee", "recuperee"].includes(x.status) && x.token); if (o) return hvSay(out.say, [], () => { location.href = UI.trackUrl(o); }); }
+  if (out.action === "suivi") return hvSay(out.say, [], () => hvTrack());
   if (out.action === "refaire") { const l = reorderList(), i = Math.max(0, l.findIndex(x => x.last)); if (l.length) return hvSay(out.say, [], () => { state.reorder = l; hvMini(true); hvMiniLine(hvT("hvMiniHint")); reorderGo(i); }); }
   if (out.action === "heure") return hvSay(out.say, [], () => { hvMini(true); hvMiniLine(hvT("hvWhenHint")); if (!$("#accueil").classList.contains("when-open")) $("#vitWhen").click(); window.scrollTo({ top: 0, behavior: "smooth" }); });
+  // « Qu'est-ce que tu as à grignoter ? », « montre-moi les pizzas » : la bonne page s'ouvre, on choisit à la voix dessus
+  if (out.open && out.open.type) return hvSay(out.say, [], () => hvOpenTarget(out.open));
   if (out.go) return hvSay(out.say, [], () => hvGo(out));
   // (aussi quand une adresse est déjà choisie : « cette fois pas à la maison, chez ma mère »)
   if (out.collect === "address") return hvStartLocal("address");
@@ -6876,6 +6897,38 @@ function hvVoiceClick(text) {
   if (best && bs >= 0.6) { best.click(); return true; }
   return false;
 }
+// Guidage 100 % à la voix (patron, 12/11 : « qu'une personne âgée qui ne sait pas écrire puisse passer une commande ») :
+// après chaque choix, Hoppy DIT où on en est (ce qui manque, le total, la dernière vérification, « c'est commandé ») et
+// réécoute. On n'a rien à lire ni à toucher : « continuer », « c'est bon », « j'ai 18 ans », « commander ».
+function hvGuide() {
+  if (!hv.mini) return;
+  const vis = q => { const el = $(q); return el && el.getClientRects().length && !el.closest(".hidden") ? el : null; };
+  if (vis("#doneTrack")) { const say = hvT("hvDone"); hvMiniLine(say); hv.pending = null; hv.hist = []; hv.basket = []; UI.track("voice_done", {});
+    return hvSayMini(say, () => { const h = $("#doneTrack").getAttribute("href"); hvClose(); if (h && h !== "#") location.href = h; }); }
+  const err = vis("#wizToast") || vis("#formError") || vis("#rulesErr");
+  let say = "";
+  if (err && err.textContent.trim()) say = err.textContent.trim().slice(0, 220);
+  else if (vis("#checkModal")) say = hvT("hvGuideCheck", { total: ($("#mobileTotal") || {}).textContent || "" });
+  else if (vis("#itemSheet")) return hvListen();
+  else if (vis("#cartSheet")) say = hvT("hvGuideCart", { total: ($("#cartSum") || {}).textContent || "" });
+  else if (vis("#wizTitle")) say = `${$("#wizTitle").textContent.trim()}. ${hvT("hvGuideNext")}`;
+  else say = hvT("hvMiniPick");
+  hvMiniLine(say); hvSayMini(say);
+}
+// Ouvrir ce qu'il demande à voir : une rubrique d'un rayon, un commerce, les restaurants, les promos, une recherche
+function hvOpenTarget(o) {
+  hvStopListen(); hvMini(true); hvMiniLine(hvT("hvMiniPick"));
+  UI.track("voice_open", { type: o.type || "" });
+  const after = () => setTimeout(() => { if (hv.mini) hvSayMini(hvT("hvMiniPick")); }, 1200);
+  const r = o.type === "rayon" && window.Rayons ? Rayons.byId(o.rayon) : null;
+  if (r) { goKind(r.kind); setTimeout(() => { if (o.cat && (r.cats || []).some(c => c.id === o.cat)) { state.pharmaCat = o.cat; state.phQ = ""; renderPharma(); } const h = $("#pharmaBox .ph-cur") || $("#pharmaBox"); if (h) h.scrollIntoView({ block: "start", behavior: "smooth" }); }, 400); return after(); }
+  if (o.type === "shop" && (state.showcase || []).some(x => x.code === o.code)) { state.shopDir = ""; state.findItem = null; state.cgQNext = String(o.q || ""); loadShop(o.code); return after(); }
+  if (o.type === "restos") { goKind("resto"); return after(); }
+  if (o.type === "promos") { openPromosAll(""); return after(); }
+  const q = String(o.q || "").trim();
+  if (q) { const inp = $("#homeFind"); inp.value = q; homeFind(q); vitFindTop(); return after(); }
+  hvMini(false);
+}
 // Fiche d'un plat avec des choix (taille, boisson, supplément) : Hoppy dit les choix, le client répond, « ajouter »
 function hvSheetChoices(id) {
   hvMini(true);
@@ -6887,12 +6940,12 @@ function hvSheetChoices(id) {
     hvMiniLine(say); hvSayMini(say);
   }, 450);
 }
-function hvSayMini(text) {
+function hvSayMini(text, then) {
   const seq = hv.seq;
   let synth = null; try { synth = window.speechSynthesis; } catch (e) { synth = null; }
-  const next = () => { if (seq === hv.seq && hv.mini) hvListen(); };
+  const next = () => { if (seq !== hv.seq) return; if (then) return then(); if (hv.mini) hvListen(); };
   if (!synth || !window.SpeechSynthesisUtterance) return next();
-  try { synth.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = hv.lang === "he" ? "he-IL" : "fr-FR"; const v = synth.getVoices().find(x => (hv.lang === "he" ? /^(he|iw)/i : /^fr/i).test(x.lang)); if (v) u.voice = v; u.rate = 1.08;
+  try { synth.cancel(); const u = new SpeechSynthesisUtterance(text.replace(/HOP!/g, "Hop").replace(/₪/g, hv.lang === "he" ? " שקלים" : " shekels").replace(/[›‹«»✅📍🗓️]/gu, " ")); u.lang = hv.lang === "he" ? "he-IL" : "fr-FR"; const v = synth.getVoices().find(x => (hv.lang === "he" ? /^(he|iw)/i : /^fr/i).test(x.lang)); if (v) u.voice = v; u.rate = 1.08;
     let done = false; const fin = () => { if (!done) { done = true; next(); } }; u.onend = fin; u.onerror = fin; setTimeout(fin, 1500 + text.length * 90); synth.speak(u); } catch (e) { next(); }
 }
 // Fiche fermée (ajouté) : le plat suivant qui a des choix s'ouvre, sinon le panier
@@ -6908,7 +6961,7 @@ async function hvGo(out) {
   const items = hv.basket, refs = items.map(b => String(b.ref || ""));
   hvStopListen();
   hvMini(true); hvMiniLine(hvT("hvMiniHint"));
-  setTimeout(() => { if (hv.mini && !hv.pending) hvSayMini(hvT("hvMiniHint")); }, 900);
+  setTimeout(() => { if (hv.mini && !hv.pending) hvGuide(); }, 1800);
   UI.track("voice_go", { n: items.length, service: out.service || "" });
   if (out.service === "poste") { goKind("poste"); setTimeout(() => toastCart(hvT("hvPoste"), 5000), 600); return; }
   // Restaurant ou magasin qui n'est pas sur HOP! : on va chercher la commande prête (ou on l'achète) à son adresse
@@ -6998,8 +7051,13 @@ if ($("#homeFind")) {
   // Mise en avant discrète (patron, 12/11) : une fine ligne sous la recherche, « Nouveau · Tout se commande à la voix »
   const pill = document.createElement("button");
   pill.type = "button"; pill.className = "vit-voice";
-  const drawPill = () => { pill.innerHTML = `<span class="vv-ic" aria-hidden="true">${HV_MIC}</span><span class="vv-t"><b>${UI.esc(t("vitVoice"))}</b><small>${UI.esc(t("vitVoiceSub"))}</small></span><img src="img/hoppy-mini.webp" alt="" width="22" height="36" />`; };
+  // (12/11, patron : « plus fun, moderne, pas un cadre ») : Hoppy parle dans une bulle, les exemples défilent, les ondes bougent
+  let vvI = 0;
+  const vvEx = () => { const l = t("vitVoiceEx"); return Array.isArray(l) && l.length ? l : [t("vitVoice")]; };
+  const drawPill = () => { pill.setAttribute("aria-label", t("vitVoice"));
+    pill.innerHTML = `<img class="vv-hop" src="img/hoppy-mini.webp" alt="" width="34" height="55" /><span class="vv-bub"><em>${UI.esc(t("vitVoiceTag"))}</em><b class="vv-say">${UI.esc(vvEx()[vvI % vvEx().length])}</b></span><span class="vv-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>`; };
   drawPill(); window.addEventListener("hop:lang", drawPill);
+  setInterval(() => { const b = pill.querySelector(".vv-say"); if (!b || document.hidden) return; vvI++; b.classList.add("out"); setTimeout(() => { b.textContent = vvEx()[vvI % vvEx().length]; b.classList.remove("out"); }, 260); }, 2800);
   $("#homeFind").closest(".sc-find").after(pill);
   pill.addEventListener("click", e => { e.stopPropagation(); if (Store.iaAssist) hvOpen(); else micStart(); });
 }

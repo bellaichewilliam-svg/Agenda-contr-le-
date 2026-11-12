@@ -120,6 +120,19 @@ function ringText(o) {
   const r = UI.etaRange(o);
   return r ? { big: r.text, unit: t("trMinUnit") } : { big: o.status === "nouvelle" ? "⏳" : "🛵", unit: "" };
 }
+// Vraie progression une fois la course acceptée (patron, 12/11) : l'anneau avance avec le livreur (temps restant comparé
+// au temps du départ), entre les paliers de l'étape ; avant l'acceptation, il tourne (on attend un livreur)
+function liveProgress(o) {
+  const base = UI.PROGRESS[o.status] || 0;
+  if (!["confirmee", "recuperee"].includes(o.status)) return base;
+  const eta = UI.deliveryEta ? UI.deliveryEta(o) : null;
+  if (eta == null) return base;
+  const k = "hop.eta0." + (o.ref || "") + "." + o.status;
+  let e0 = 0;
+  try { e0 = Number(sessionStorage.getItem(k)) || 0; if (!e0 || eta > e0) { e0 = eta; sessionStorage.setItem(k, String(eta)); } } catch (e) { e0 = e0 || eta; }
+  const lo = o.status === "confirmee" ? 0.25 : 0.6, hi = o.status === "confirmee" ? 0.6 : 0.97;
+  return lo + (hi - lo) * Math.max(0, Math.min(1, 1 - eta / Math.max(1, e0)));
+}
 function renderRing(o) {
   const show = ["nouvelle", "confirmee", "recuperee"].includes(o.status);
   $("#etaRing").classList.toggle("hidden", !show);
@@ -132,7 +145,10 @@ function renderRing(o) {
   $("#stSub").textContent = lastEta.sub;
   $("#stDetails").innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z M9 8V6a3 3 0 016 0v2" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>${UI.esc(t("trDetails"))}`;
   if (!show) { $("#stSteps").innerHTML = ""; return; }
-  const r = ringText(o), p = UI.PROGRESS[o.status] || 0;
+  const waiting = o.status === "nouvelle";
+  const r = ringText(o), p = waiting ? 0.2 : liveProgress(o);
+  ["#stRing", "#trkPill", "#etaRing"].forEach(q => $(q).classList.toggle("waiting", waiting));
+  $("#stMin").classList.toggle("long", r.big.length > 4);
   $("#pillSvg").innerHTML = UI.ringSvg(p, "hrg-pill");
   $("#pillMin").textContent = r.unit ? `${r.big} ${r.unit}` : r.big;
   $("#pillShop").textContent = shopName;

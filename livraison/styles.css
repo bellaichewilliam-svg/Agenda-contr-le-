@@ -5646,3 +5646,42 @@ html:not(.vit) .vit-voice { display: none; }
 .hv-mini-line { display: none; }
 .hv.mini .hv-mini-line { display: block; grid-column: 1; font-size: 13.5px; line-height: 1.3; opacity: .9; overflow-wrap: anywhere; }
 .hv.mini .hv-x { width: 30px; height: 30px; font-size: 13px; }
+/* « À acheter » bien lisible (livreur, patron, proposition de course) : un bloc à part, une ligne par article, en gros */
+.buy-list { margin: 10px 0 8px; padding: 12px 14px; border-radius: 14px; background: rgba(255,106,19,.12); border: 1.5px solid rgba(255,106,19,.55); text-align: start; }
+.buy-list .bl-t { display: block; font-size: 13px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #FF8A3D; margin-bottom: 6px; }
+.buy-list ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.buy-list li { display: flex; align-items: baseline; gap: 10px; font-size: 19px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.buy-list li em { flex: none; min-width: 34px; padding: 2px 8px; border-radius: 99px; background: #FF6A13; color: #fff; font-style: normal; font-size: 16px; font-weight: 800; text-align: center; }
+.buy-list li em.dot { background: none; color: #FF8A3D; min-width: 14px; padding: 0; }
+.bl-more { margin: 0 0 8px; font-size: 14px; font-weight: 700; opacity: .8; text-align: center; }
+#offerBuy .buy-list { margin: 10px 0; }
+/* Suivi (patron, 12/11) : chiffres moins gros, contour qui tourne tant qu'on attend un livreur, vraie progression ensuite */
+.trk-status .st-ring { width: 196px; height: 196px; box-shadow: 0 0 0 10px var(--bg); }
+.trk-status .st-ring .hop-ring { inset: 16px; width: calc(100% - 32px); height: calc(100% - 32px); }
+.trk-status .st-ring .hop-ring circle { stroke-width: 9; }
+.trk-status .st-ring b { font-size: 44px; }
+.trk-status .st-ring b.long { font-size: 36px; }
+.trk-status .st-ring small { font-size: 16px; margin-top: 2px; }
+.trk-status .st-side { margin-bottom: 14px; }
+.waiting .hop-ring .hr-arc { transform-box: view-box; transform-origin: 60px 60px; animation: ringSpin 1.8s linear infinite; }
+.waiting .hop-ring .hr-knob { display: none; }
+@keyframes ringSpin { from { transform: rotate(-90deg); } to { transform: rotate(270deg); } }
+.hop-ring .hr-knob { transform-box: fill-box; transform-origin: center; animation: knobPulse 1.6s ease-in-out infinite; }
+@keyframes knobPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.25); } }
+@media (prefers-reduced-motion: reduce) { .waiting .hop-ring .hr-arc, .hop-ring .hr-knob { animation: none; } }
+.hv.mini .hv-box { margin-bottom: calc(var(--mb-h, 0px) + 10px + env(safe-area-inset-bottom)); }
+/* Voix, version fun (12/11) : pas de cadre, Hoppy qui parle dans une bulle, exemples qui défilent, ondes qui bougent */
+.vit-voice { border: 0; background: none; padding: 0; margin: 12px 0 4px; gap: 8px; align-items: flex-end; }
+.vit-voice .vv-hop { flex: none; width: 34px; height: 55px; object-fit: contain; animation: vvHop 2.4s ease-in-out infinite; transform-origin: 50% 100%; }
+.vit-voice .vv-bub { position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding: 8px 14px 9px; border-radius: 18px 18px 18px 6px; background: #fff; color: #0F1F3D; box-shadow: 0 6px 18px rgba(0,0,0,.22); }
+.vit-voice .vv-bub em { font-style: normal; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #FF6A13; }
+.vit-voice .vv-say { font-size: 15.5px; font-weight: 800; line-height: 1.25; transition: opacity .25s, transform .25s; overflow-wrap: anywhere; }
+.vit-voice .vv-say.out { opacity: 0; transform: translateY(4px); }
+.vit-voice .vv-wave { flex: none; display: flex; align-items: center; gap: 3px; height: 44px; padding: 0 11px; border-radius: 22px; background: #FF6A13; box-shadow: 0 6px 16px rgba(255,106,19,.4); }
+.vit-voice .vv-wave i { width: 3.5px; border-radius: 3px; background: #fff; animation: vvBar 1s ease-in-out infinite; }
+.vit-voice .vv-wave i:nth-child(1) { height: 10px; animation-delay: -.9s; } .vit-voice .vv-wave i:nth-child(2) { height: 22px; animation-delay: -.6s; }
+.vit-voice .vv-wave i:nth-child(3) { height: 14px; animation-delay: -.3s; } .vit-voice .vv-wave i:nth-child(4) { height: 26px; animation-delay: -.75s; } .vit-voice .vv-wave i:nth-child(5) { height: 12px; animation-delay: -.15s; }
+@keyframes vvBar { 0%, 100% { transform: scaleY(.45); } 50% { transform: scaleY(1.1); } }
+@keyframes vvHop { 0%, 86%, 100% { transform: translateY(0) rotate(0); } 90% { transform: translateY(-5px) rotate(-4deg); } 95% { transform: translateY(0) rotate(2deg); } }
+[dir="rtl"] .vit-voice .vv-bub { border-radius: 18px 18px 6px 18px; }
+@media (prefers-reduced-motion: reduce) { .vit-voice .vv-hop, .vit-voice .vv-wave i { animation: none; } }
