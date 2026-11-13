@@ -5815,3 +5815,8 @@ body.trk-v2 .chat-modal { z-index: 1010; }
 /* Chat : Hoppy propose la commande → bouton qui ouvre Hoppy avec la demande */
 .chat-msg .chat-cmd { display: block; width: 100%; margin-top: 8px; font-weight: 800; }
 .chat-msg .chat-cmd-note { margin: 6px 0 0; font-size: .85em; opacity: .85; }
+
+/* Filet de sécurité : « Je ne sais pas → continuer, le livreur m'appellera » (jamais bloqué sur un détail d'adresse) */
+.soft-go { margin-top: 8px; background: #fff; color: #0F1F3D; border: 0; font-weight: 800; white-space: normal; text-align: center; }
+.wiz-toast .soft-go { pointer-events: auto; }
+#formError .soft-go { background: #FF6A13; color: #fff; }
