@@ -653,6 +653,24 @@ function attach(input, opts) {
 
   return {
     isPicked: () => !!input.dataset.picked,
+    // Adresse tapée sans toucher la liste (patron, 13/11 : des clients bloqués là) : on prend nous-mêmes la meilleure
+    // adresse de la carte (la 1ʳᵉ vraie adresse trouvée), au lieu de refuser « Continuer ». false si rien de sûr.
+    async autoPick(allowBrand) {
+      if (input.dataset.picked) return true;
+      const q = input.value.trim();
+      if (q.length < 3) return false;
+      let list = [];
+      try { list = await search(q, opts.lang()); } catch (e) { return false; }
+      // (une vraie rue d'abord, jamais un commerce pour la livraison ; le n° tapé, s'il existe sur la carte, en premier)
+      const ok = x => x && !x.quick && !x.apply && x.lat != null;
+      const no = (q.match(/\d+/) || [""])[0];
+      let i = list.findIndex(x => ok(x) && !x.brand && x.streetName && no && x.housenumber === no);
+      if (i < 0) i = list.findIndex(x => ok(x) && !x.brand && x.streetName);
+      if (i < 0 && allowBrand) i = list.findIndex(x => ok(x) && x.brand);
+      if (i < 0 || input.value.trim() !== q) return false;
+      items = list; pick(i);
+      return !!input.dataset.picked;
+    },
     // Enseigne absente de la carte, nommée ailleurs (Hoppy) : le client n'a plus qu'à donner sa rue et son numéro
     askBrand(q) { notOnMap(String(q || "").trim().slice(0, 80)).apply(); },
     // Adresse reprise du carnet : considérée comme choisie sur la carte

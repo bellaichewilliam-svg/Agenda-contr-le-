@@ -79,6 +79,8 @@ begin
     'sessions', (select count(*) from ss),
     'visitors', (select count(distinct visitor) from ss),
     'new_visitors', (select count(distinct visitor) from ss where not exists (select 1 from site_events o where o.visitor = ss.visitor and o.created_at < since)),
+    -- (13/11 : visiteurs revenus au moins une 2ᵉ fois pendant la période ; « nouveaux » vaut tout le monde quand la période remonte au début du suivi)
+    'back', (select count(*) from (select visitor from ss group by visitor having count(*) > 1) b),
     'started', (select count(distinct session) from e where kind = 'order_start'),
     'sent', (select count(*) from e where kind = 'order_sent'),
     'sent_amount', (select coalesce(sum(amount), 0) from e where kind = 'order_sent'),
