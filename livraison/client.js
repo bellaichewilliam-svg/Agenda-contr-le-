@@ -1891,7 +1891,7 @@ function wizNext() {
   wiz.probe = true; wiz.lastTarget = null;
   let ok = false;
   try { ok = validateOrder(); } finally { wiz.probe = false; }
-  const msg = $("#formError").textContent, tgt = wiz.lastTarget;
+  const msg = showError.last || "", tgt = wiz.lastTarget;
   const st = ok ? wiz.n + 1 : tgt ? wizStepOf(tgt) || wiz.step : wiz.step;
   if (st > wiz.step) { showError(""); UI.track && UI.track("order_step_" + (wiz.step + 1)); return wizGo(wiz.step + 1); }
   // Le problème est sur cet écran (ou un écran d'avant) : on y va et on le montre
@@ -1903,9 +1903,9 @@ function wizShowErr(msg) {
   let box = $("#wizToast");
   if (!box) { box = document.createElement("div"); box.id = "wizToast"; box.className = "wiz-toast hidden"; box.setAttribute("role", "alert"); document.body.appendChild(box); }
   clearTimeout(wiz.toast);
-  box.textContent = msg || "";
+  box.innerHTML = msg ? UI.esc(msg) + (softAsk ? `<br>${softBtn()}` : "") : "";
   box.classList.toggle("hidden", !msg);
-  if (msg) wiz.toast = setTimeout(() => box.classList.add("hidden"), 7000);
+  if (msg) wiz.toast = setTimeout(() => box.classList.add("hidden"), softAsk ? 15000 : 7000);
 }
 if (wiz.on) {
   form.classList.add("wiz");
@@ -1919,8 +1919,10 @@ if (wiz.on) {
   });
 }
 
+function softBtn() { return softAsk ? `<button type="button" class="btn btn-sm soft-go" data-soft-go="${softAsk}">${UI.esc(t("softGo"))}</button>` : ""; }
 function showError(msg) {
-  $("#formError").textContent = msg || "";
+  showError.last = msg || "";
+  $("#formError").innerHTML = msg ? UI.esc(msg) + (softAsk ? `<br>${softBtn()}` : "") : "";
   $("#formError").classList.toggle("hidden", !msg);
   // Commande en 3 écrans : le message s'affiche aussi sur l'écran du problème
   if (msg && wiz.on && !wiz.probe) wizShowErr(msg);
@@ -2863,7 +2865,19 @@ async function locate(address, cityId, point) {
 
 // Tous les contrôles de la commande, rangés dans l'ordre des 3 écrans (1. quoi et où · 2. précisions · 3. vous et le paiement) :
 // le premier problème trouvé s'affiche sur son écran (mêmes règles qu'avant, seul l'ordre a changé)
+// Filet de sécurité (patron, 13/11 : « plus aucun blocage ») : adresse introuvable sur la carte, n° de rue, détails de la
+// porte (type de lieu, étage, appartement, code) ne bloquent jamais le client. On le lui demande une fois ; s'il ne sait
+// pas ou ne trouve pas, un bouton « Continuer, le livreur m'appellera » laisse passer la commande, avec une note pour le livreur.
+let softAsk = null;
+const SOFT_NOTE = { addr: "adresse pas trouvée sur la carte", no: "n° de rue non indiqué", door: "détails de la porte non indiqués", ready: "heure où la commande sera prête (appeler le commerce)" };
+function softMark(key) { softAsk = key; return false; }
+function softNote() {
+  const k = Object.keys(state.soft || {}).filter(x => state.soft[x]);
+  return k.length ? `⚠️ À confirmer par téléphone avec le client : ${k.map(x => SOFT_NOTE[x]).join(", ")}.` : "";
+}
 function validateOrder() {
+  softAsk = null;
+  state.soft = state.soft || {};
   // Vitrine de démonstration (montrée aux commerces) : on peut tout essayer, sauf envoyer une vraie course
   if (state.shop && state.shop.demo) return showErrorFalse(t("errDemoShop"));
   // Commerce mis en pause par le patron : visible, mais pas de commande pour le moment
@@ -2879,13 +2893,13 @@ function validateOrder() {
     return showErrorFalse(t(missing === "dropoff_address" ? "errDropAddr" : "errRequired"));
   }
   // Adresses : uniquement celles proposées par la carte (si le service répond)
-  if (Places.serviceOk && ((!near && !ac.from.isPicked()) || !ac.to.isPicked())) {
+  if (!state.soft.addr && Places.serviceOk && ((!near && !ac.from.isPicked()) || !ac.to.isPicked())) {
     form.elements[!near && !ac.from.isPicked() ? "pickup_address" : "dropoff_address"].focus();
-    return showErrorFalse(t("errAddrPick"));
+    softMark("addr"); return showErrorFalse(t("errAddrPick"));
   }
   const isBrand = w => !!(state.pick[w] && state.pick[w].brand && !needsNo(state.pick[w]));
   const missingNo = [["from", "pickup_number"], ["to", "dropoff_number"]].find(([w, k]) => !(near && w === "from") && !isBrand(w) && !val(k).trim());
-  if (missingNo) { form.elements[missingNo[1]].focus(); return showErrorFalse(t("errHouseNo")); }
+  if (missingNo && !state.soft.no) { form.elements[missingNo[1]].focus(); softMark("no"); return showErrorFalse(t("errHouseNo")); }
   const err = scheduleError();
   if (err) return showErrorFalse(t(err.key, err.vars));
   // Zones pas encore ouvertes (ex. Tel Aviv) : « bientôt »
@@ -2899,7 +2913,7 @@ function validateOrder() {
     form.shop_order.focus(); return showErrorFalse(t("errShopOrder", { name: UI.bi(state.shop.name) }));
   }
   if (shopSelf() && !/^[0-9]{3}$/.test(val("shop_ref").trim())) { form.shop_ref.focus(); return showErrorFalse(t("errShopRef")); }
-  if (noPayReadyOn() && state.phoneReady == null) { $("#noPayReady").scrollIntoView({ block: "center" }); return showErrorFalse(t("errNprReady", { name: UI.bi(state.shop.name) })); }
+  if (noPayReadyOn() && state.phoneReady == null && !state.soft.ready) { $("#noPayReady").scrollIntoView({ block: "center" }); softMark("ready"); return showErrorFalse(t("errNprReady", { name: UI.bi(state.shop.name) })); }
   if (phoneOn()) {
     if (!val("pickup_name").trim()) { form.pickup_name.focus(); return showErrorFalse(t("errPhoneName")); }
     if (state.phoneReady == null) { $("#phReadyChips").scrollIntoView({ block: "center" }); return showErrorFalse(t("errPhoneReady")); }
@@ -2914,14 +2928,14 @@ function validateOrder() {
   if (val("service") === "achat" && !form.fits_topcase.checked) { form.fits_topcase.focus(); return showErrorFalse(t("errTopcase")); }
   // Arrivée chez quelqu'un (pas un commerce) : tout ce qu'il faut pour trouver la porte (maison / appartement / bureau,
   // étage, n° d'appartement, code ou « pas de code ») : le patron le veut toujours (08/11), commande en 2 écrans ou non
-  if (!(state.pick.to && state.pick.to.brand)) {
+  if (!(state.pick.to && state.pick.to.brand) && !state.soft.door) {
     const k = kindOf("dropoff"), flat = k === "appartement";
     const miss = !k ? "Kind" : (flat || k === "bureau") && !val("dropoff_floor").trim() ? "Floor"
       : flat && !val("dropoff_apt").trim() ? "Apt" : flat && !val("dropoff_code").trim() ? "Code" : null;
     // Adresse enregistrée affichée en fiche résumée : on la rouvre pour que le client voie les cases à choisir
     if (miss && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
-    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showErrorFalse(t("errToKind")); }
-    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showErrorFalse(t("errTo" + miss)); }
+    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); softMark("door"); return showErrorFalse(t("errToKind")); }
+    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); softMark("door"); return showErrorFalse(t("errTo" + miss)); }
   }
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
   if (form.leave_at_door.checked) {
@@ -2967,16 +2981,36 @@ function validateOrder() {
   return true;
 }
 
+// Adresse tapée mais pas choisie dans la liste : on la choisit pour le client (au lieu de lui refuser « Continuer »)
+// (avant chaque « Continuer » / « Commander », par le bouton du formulaire comme par celui du bas de l'écran)
+let autoPickBusy = false;
+async function autoPickAll() {
+  if (!Places.serviceOk && !["pickup_address", "dropoff_address"].some(k => val(k).trim().length >= 3)) return;
+  if (autoPickBusy) return;
+  const near = nearMode(), todo = [near ? null : "from", "to"].filter(w => w && ac[w] && !ac[w].isPicked() && val(w === "from" ? "pickup_address" : "dropoff_address").trim().length >= 3);
+  if (!todo.length) return;
+  autoPickBusy = true;
+  try { for (const w of todo) await ac[w].autoPick(w === "from"); } catch (e) { /* la vérification habituelle prend le relais */ } finally { autoPickBusy = false; }
+  // Toujours pas sur la carte : le n° tapé dans la rue (« Herzl 12 ») va dans la case « N° », pour ne pas le perdre
+  todo.forEach(w => {
+    const a = w === "from" ? "pickup" : "dropoff", inp = form.elements[a + "_address"], no = form.elements[a + "_number"];
+    if (!ac[w].isPicked() && no && !no.value.trim()) {
+      const m = inp.value.trim().match(/^(.*\D)\s+(\d{1,4}[a-zA-Z\u05D0-\u05EA]?)$/);
+      if (m) { inp.value = m[1].replace(/[\s,]+$/, ""); no.value = m[2]; }
+    }
+  });
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-soft-go]");
+  if (!b) return;
+  state.soft = state.soft || {}; state.soft[b.dataset.softGo] = true;
+  UI.track("order_block", { page: "soft:" + b.dataset.softGo });
+  showError(""); const box = $("#wizToast"); if (box) box.classList.add("hidden");
+  form.requestSubmit ? form.requestSubmit() : submit(new Event("submit"));
+});
 async function submit(e) {
   e.preventDefault();
-  // Adresse tapée mais pas choisie dans la liste : on la choisit pour le client (au lieu de lui refuser « Continuer »)
-  if (Places.serviceOk && !submit.busy) {
-    const near = nearMode(), todo = [near ? null : "from", "to"].filter(w => w && ac[w] && !ac[w].isPicked() && val(w === "from" ? "pickup_address" : "dropoff_address").trim().length >= 3);
-    if (todo.length) {
-      submit.busy = true;
-      try { for (const w of todo) await ac[w].autoPick(w === "from"); } finally { submit.busy = false; }
-    }
-  }
+  await autoPickAll();
   // Écrans 1 et 2 : « Continuer » (Entrée ou bouton) passe à l'écran suivant
   if (wiz.on && wiz.step < wiz.n) { wizNext(); return; }
   // Analytique : bouton « Commander » touché (une fois par visite) : la dernière marche avant l'envoi
@@ -3039,7 +3073,7 @@ async function submit(e) {
       pickup_near: near ? state.homeKind : null,
       pickup_learned: learnIt(pf),
       pickup_kind: svc !== "retrait" && !near ? kindOf("pickup") : null,
-      dropoff_kind: kindOf("dropoff"),
+      dropoff_kind: kindOf("dropoff") || (state.soft && state.soft.door ? "maison" : null),
       rules_accepted_at: checked.rulesOk ? new Date().toISOString() : null,
       pickup_building: svc !== "retrait" ? pv("pickup_building") || null : null,
       pickup_floor: svc !== "retrait" ? pv("pickup_floor") || null : null,
@@ -3099,7 +3133,7 @@ async function submit(e) {
       not_before: isoOk(noteNotBefore()),
       cash_note: val("payment_method") === "cash" ? Number(form.cash_note.value) || 0 : null,
       payer: val("payer"),
-      notes: [shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText()].filter(Boolean).join("\n") || null,
+      notes: [shopDropOn() && cartCount() ? `🧺 ${t("cgDropNote", { name: state.shop.name })}\n` + cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") : "", notesText(), softNote()].filter(Boolean).join("\n") || null,
       // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
       shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
       items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,
@@ -3110,7 +3144,7 @@ async function submit(e) {
       pickup_name: phoneOn() ? val("pickup_name").trim() : noPayReadyOn() ? (val("contact_name").trim() || null) : null,
       phone_ref: phoneOn() ? val("phone_ref").trim() || null : null,
       phone_paid: (phoneOn() && form.phone_paid.checked) || noPayReadyOn(),
-      phone_ready_at: phoneOn() || noPayReadyOn() ? new Date(Date.now() + (state.phoneReady || 0) * 60000).toISOString() : null,
+      phone_ready_at: phoneOn() || noPayReadyOn() ? new Date(Date.now() + (state.phoneReady != null ? state.phoneReady : state.soft && state.soft.ready ? 20 : 0) * 60000).toISOString() : null,
       ...(readyAsk() && Number(val("pickup_ready")) > 0 ? { pickup_ready_at: new Date(Date.now() + Number(val("pickup_ready")) * 60000).toISOString() } : {}),
       company: val("company").trim() || null,
       contact_name: val("contact_name").trim(),
@@ -8444,9 +8478,9 @@ form.addEventListener("click", e => {
 document.addEventListener("click", e => { if (e.target.closest("[data-support]")) { e.preventDefault(); openSupport(); } });
 setTimeout(checkChats, 1500);
 setInterval(checkChats, 20000);
-$("#mobileGo").addEventListener("click", e => {
+$("#mobileGo").addEventListener("click", async e => {
   e.preventDefault();
-  if (wiz.on && wiz.step < wiz.n) return wizNext();
+  if (wiz.on && wiz.step < wiz.n) { await autoPickAll(); return wizNext(); }
   $("#summary").scrollIntoView({ behavior: "smooth", block: "center" });
 });
 
