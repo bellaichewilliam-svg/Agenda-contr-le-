@@ -848,7 +848,7 @@ const BLOCK_LABEL = { dropoff_address: "adresse de livraison", dropoff_number: "
   shopping_list: "liste de courses", fits_topcase: "case « tient dans le top case »", budget: "budget des courses", date: "date", time: "heure", shop_ref: "n° de commande du commerce" };
 function funnelCard(f) {
   if (!f) return "";
-  const steps = [["👀 Visites", f.visits], ["🛵 Commande ouverte", f.started], ["🛒 1er article ajouté", f.cart], ["2️⃣ Écran 2 (détails)", f.step2], ["3️⃣ Écran 3 (paiement)", f.step3], ["✅ Commande envoyée", f.sent]];
+  const steps = [["👀 Visites", f.visits], ["🏪 Entré dans un commerce ou un rayon", f.started], ["🛒 A mis un article au panier", f.cart], ["2️⃣ Dernier écran (« Ma commande »)", f.step2], ["👆 A touché « Commander »", f.step3], ["✅ Commande envoyée", f.sent]];
   const max = Math.max(1, Number(f.visits) || 0);
   const lbl = w => { const m = /^e(\d):(.*)$/.exec(w || ""); return m ? `Écran ${m[1]} · ${BLOCK_LABEL[m[2]] || m[2]}` : w || "?"; };
   return `<div class="card" style="margin-top:12px"><h3>🧲 Où les clients s'arrêtent</h3>
@@ -857,7 +857,7 @@ function funnelCard(f) {
       : `<p class="muted small">Les blocages s'afficheront ici dès la mise en ligne de la nouvelle version.</p>`}</div>`;
 }
 // Commandes ouvertes et pas envoyées (07/11) : une ligne par visite, sans nom ni téléphone (rien n'a été envoyé)
-const REACH_LABEL = ["a ouvert la commande, rien rempli", "🛒 a ajouté un article", "2️⃣ est allé à l'écran 2 (détails)", "3️⃣ est allé jusqu'au paiement"];
+const REACH_LABEL = ["est entré dans un commerce ou un rayon, rien ajouté", "🛒 a mis un article au panier", "2️⃣ est allé au dernier écran (« Ma commande »)", "👆 a touché « Commander » sans que ça parte"];
 function openedCard(list) {
   if (!Array.isArray(list)) return "";
   const hh = d => d ? new Date(d).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jerusalem" }) : "";
@@ -959,9 +959,9 @@ function renderVisits(view) {
   const row = (label, big, sub) => `<div class="v-row"><span>${label}</span><b>${big}</b>${sub ? `<small>${sub}</small>` : ""}</div>`;
   view.innerHTML = chips + `
     <div class="stats">
-      <div class="stat"><small>Visiteurs</small><b>${d.visitors}</b><em class="muted small">dont ${d.new_visitors} nouveaux</em></div>
+      <div class="stat"><small>Visiteurs</small><b>${d.visitors}</b><em class="muted small">${d.back != null ? `dont ${d.back} revenu${d.back > 1 ? "s" : ""} plusieurs fois` : Number(d.new_visitors) >= Number(d.visitors) ? "1ʳᵉ visite pour tous (période depuis le début du suivi)" : `dont ${d.new_visitors} nouveaux`}</em></div>
       <div class="stat"><small>Visites</small><b>${d.sessions}</b><em class="muted small">${d.views} pages vues</em></div>
-      <div class="stat" data-opened-go="1" style="cursor:pointer"><small>Commande ouverte</small><b>${d.started}</b><em class="muted small">${pct(d.started, d.sessions)} des visites · voir ›</em></div>
+      <div class="stat" data-opened-go="1" style="cursor:pointer"><small>Entrés dans un commerce</small><b>${d.started}</b><em class="muted small">${pct(d.started, d.sessions)} des visites · voir ›</em></div>
       <div class="stat"><small>Commandes envoyées</small><b>${d.sent}</b><em class="muted small">${pct(d.sent, d.sessions)} des visites · ${UI.money(d.sent_amount)}</em></div>
       <div class="stat"><small>Depuis l'appli installée</small><b>${d.app}</b><em class="muted small">${pct(d.app, d.sessions)} des visites</em></div>
     </div>
@@ -970,7 +970,7 @@ function renderVisits(view) {
     <div class="card" style="margin-top:12px"><h3>📈 Visites par jour</h3>${days.length ? vBars(days, "sessions", r => r.label) : `<p class="muted small">Pas encore de visite.</p>`}</div>
     <div class="card" style="margin-top:12px"><h3>🧭 D'où ils viennent</h3>
       ${rows((d.sources || []).map(s => row(UI.esc(SRC_LABEL[s.source] || "🔗 " + s.source), `${s.sessions} visite${s.sessions > 1 ? "s" : ""}`,
-        `${s.visitors} visiteur${s.visitors > 1 ? "s" : ""} · ${s.started} commande ouverte · <b>${s.sent} envoyée${s.sent > 1 ? "s" : ""}</b> (${pct(s.sent, s.sessions)})`)))}
+        `${s.visitors} visiteur${s.visitors > 1 ? "s" : ""} · ${s.started} entrés dans un commerce · <b>${s.sent} envoyée${s.sent > 1 ? "s" : ""}</b> (${pct(s.sent, s.sessions)})`)))}
       <p class="muted small" style="margin-top:6px">Pour savoir ce que rapporte une pub, mettez dans son lien <b>?src=</b> suivi d'un nom (ex. <code>${UI.esc(UI.appUrl("on-livre.html"))}?src=insta-octobre</code>) : elle a sa propre ligne ici. Les flyers et QR du kit pub sont déjà comptés.</p></div>
     ${(d.campaigns || []).length ? `<div class="card" style="margin-top:12px"><h3>📣 Campagnes et commerces (QR)</h3>${rows(d.campaigns.map(c =>
       row(UI.esc(c.campaign), `${c.sessions} visite${c.sessions > 1 ? "s" : ""}`, `${UI.esc(SRC_LABEL[c.source] || c.source)} · ${c.sent} envoyée${c.sent > 1 ? "s" : ""}`)))}</div>` : ""}

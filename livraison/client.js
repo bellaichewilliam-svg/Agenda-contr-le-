@@ -2969,8 +2969,18 @@ function validateOrder() {
 
 async function submit(e) {
   e.preventDefault();
+  // Adresse tapée mais pas choisie dans la liste : on la choisit pour le client (au lieu de lui refuser « Continuer »)
+  if (Places.serviceOk && !submit.busy) {
+    const near = nearMode(), todo = [near ? null : "from", "to"].filter(w => w && ac[w] && !ac[w].isPicked() && val(w === "from" ? "pickup_address" : "dropoff_address").trim().length >= 3);
+    if (todo.length) {
+      submit.busy = true;
+      try { for (const w of todo) await ac[w].autoPick(w === "from"); } finally { submit.busy = false; }
+    }
+  }
   // Écrans 1 et 2 : « Continuer » (Entrée ou bouton) passe à l'écran suivant
   if (wiz.on && wiz.step < wiz.n) { wizNext(); return; }
+  // Analytique : bouton « Commander » touché (une fois par visite) : la dernière marche avant l'envoi
+  try { if (!sessionStorage.getItem("hop.go")) { sessionStorage.setItem("hop.go", "1"); UI.track("order_step_3"); } } catch (e2) { /* ignore */ }
   showError("");
   cartStepSet("envoi");
   if (!validateOrder()) return;
@@ -8577,7 +8587,9 @@ var cartLastCount = ((cartStored() || {}).snap || {}).count || 0;   // panier re
 function cartWho(snap) {
   const grew = snap.count > cartLastCount;
   cartLastCount = snap.count;
-  if (grew && snap.count === 1) { UI.track("cart_add", { shop_code: state.shop ? state.shop.code : null, page: String(snap.kind || "").slice(0, 40) }); setTimeout(cartNotifAsk, 1500); }
+  let once = false; try { once = !!sessionStorage.getItem("hop.cartAdd"); if (grew) sessionStorage.setItem("hop.cartAdd", "1"); } catch (e) { /* ignore */ }
+  if (grew && !once) UI.track("cart_add", { shop_code: state.shop ? state.shop.code : null, page: String(snap.kind || "").slice(0, 40) });
+  if (grew && snap.count === 1) setTimeout(cartNotifAsk, 1500);
 }
 // 1er article : « On vous prévient ? » (une fine barre, une fois tous les 3 jours au plus). Accepté : ce téléphone recevra
 // « 🛒 Votre panier vous attend » 30 min après, même sans nom ni numéro (et ses notifications de commande ensuite)
