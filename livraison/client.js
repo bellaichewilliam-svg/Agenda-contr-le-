@@ -6648,6 +6648,21 @@ function hvDom() {
     if (e.target.closest("[data-hv-lang]")) { hv.lang = hv.lang === "he" ? "fr" : "he"; hvLabels(); return; }
     const aa = e.target.closest("[data-hv-all]");
     if (aa) return hvAll(aa.dataset.hvAll);
+    // Le panier se modifie au doigt (patron, 14/11 : « comment il annule ou rajoute ? ») : − / + / Retirer / Tout annuler
+    const bq = e.target.closest("[data-hv-q]"), br = e.target.closest("[data-hv-rm]");
+    if (bq || br) {
+      const [i, d] = bq ? bq.dataset.hvQ.split("|").map(Number) : [Number(br.dataset.hvRm), -999], b = hv.basket[i];
+      if (!b) return;
+      const q = Math.max(0, Math.min(20, (b.qty || 1) + d));
+      if (q) b.qty = q; else hv.basket.splice(i, 1);
+      hv.hist.push({ r: "c", t: (q ? hvT("hvBkSetAi", { n: q, name: b.name }) : hvT("hvBkRmAi", { name: b.name })).slice(0, 300) });
+      hvKeepSave(); hvBasketDraw(); return;
+    }
+    if (e.target.closest("[data-hv-clear]")) {
+      hv.basket = []; hv.lastOut = null; hv.local = null; hvKeepClear(); hvBasketDraw();
+      hv.hist.push({ r: "c", t: hvT("hvBkClearAi") });
+      return hvSay(hvT("hvBkCleared"), []);
+    }
     const al = e.target.closest("[data-hv-alt]");
     if (al) { const [i, k] = al.dataset.hvAlt.split("|").map(Number); return hvAlt(i, k); }
     const c = e.target.closest("[data-hv-choice]");
@@ -6828,7 +6843,8 @@ function hvBasketDraw() {
       else { unknown++; price = hvT("hvBkStore"); }
       const alts = (f.alts || []).map((a, k) => { const d = f.price != null ? a.price - f.price : 0;
         return `<button type="button" data-hv-alt="${i}|${k}"><bdi>${UI.esc(a.shop)}</bdi> <b>${UI.esc(money(a.price))}</b>${d < -0.004 ? ` <em>${UI.esc(hvT("hvBkCheaper"))}</em>` : ""}</button>`; }).join("");
-      return `<div class="hb-row"><span class="hb-n"><b>${q > 1 ? q + " × " : ""}<bdi>${UI.esc(b.name)}</bdi></b>${f.shop ? `<small><bdi>${UI.esc(f.shop)}</bdi></small>` : ""}</span><span class="hb-p">${UI.esc(price)}</span></div>${alts ? `<div class="hb-alts"><i>${UI.esc(hvT("hvBkAlso"))}</i>${alts}</div>` : ""}`; }).join("");
+      return `<div class="hb-row"><span class="hb-n"><b><bdi>${UI.esc(b.name)}</bdi></b>${f.shop ? `<small><bdi>${UI.esc(f.shop)}</bdi></small>` : ""}</span><span class="hb-p">${UI.esc(price)}</span></div>
+        <div class="hb-qty"><button type="button" data-hv-q="${i}|-1" aria-label="−">−</button><b>${q}</b><button type="button" data-hv-q="${i}|1" aria-label="+">+</button><button type="button" class="hb-rm" data-hv-rm="${i}">${UI.esc(hvT("hvBkRemove"))}</button></div>${alts ? `<div class="hb-alts"><i>${UI.esc(hvT("hvBkAlso"))}</i>${alts}</div>` : ""}`; }).join("");
     // Tout le panier dans un autre magasin (« finalement je veux tout chez Victory ») : son total, un toucher pour basculer
     const codeOf = r => (String(r || "").startsWith("p:") ? String(r).split(":")[1] : ""), per = {};
     let priced = 0, cur = 0, curOk = true;
@@ -6843,7 +6859,7 @@ function hvBasketDraw() {
     const all = Object.entries(per).filter(([, v]) => priced >= 1 && v.n === priced && v.same < priced).sort((a, c) => a[1].sum - c[1].sum).slice(0, 3)
       .map(([c, v]) => `<button type="button" data-hv-all="${UI.esc(c)}"><span>${UI.esc(hvT("hvBkAll", { shop: v.shop }))}</span><b>${UI.esc(money(v.sum))}</b>${curOk && v.sum < cur - 0.004 ? `<em>${UI.esc(hvT("hvBkCheaper"))}</em>` : ""}</button>`).join("");
     const base = Number(CONFIG.pricing.fixedFromHome[CONFIG.homeCity] || 25);
-    box.innerHTML = `${rows}<div class="hb-total"><span>${UI.esc(hvT("hvBkTotal"))}${unknown ? ` <small>${UI.esc(hvT("hvBkMore"))}</small>` : ""}</span><b>${infos.length ? UI.esc((unknown ? "≈ " : "") + money(sum)) : "…"}</b></div>${all ? `<div class="hb-all">${all}</div>` : ""}<div class="hb-del">🛵 ${UI.esc(hvT("hvBkDeliv", { p: money(base) }))}</div>`;
+    box.innerHTML = `${rows}<div class="hb-total"><span>${UI.esc(hvT("hvBkTotal"))}${unknown ? ` <small>${UI.esc(hvT("hvBkMore"))}</small>` : ""}</span><b>${infos.length ? UI.esc(sum > 0 ? (unknown ? "≈ " : "") + money(sum) : hvT("hvBkStore")) : "…"}</b></div>${all ? `<div class="hb-all">${all}</div>` : ""}<div class="hb-del">🛵 ${UI.esc(hvT("hvBkDeliv", { p: money(base) }))}</div><button type="button" class="hb-clear" data-hv-clear>${UI.esc(hvT("hvBkClear"))}</button>`;
   };
   paint([]);
   Promise.all(items.map(b => hvPrice(b).catch(() => ({})))).then(infos => { if (seq === hv.bkSeq) { hv.bkInfos = infos; paint(infos); } });
@@ -7269,7 +7285,8 @@ function hvStartLocal(kind) {
 const HV_OFFTOPIC = /\?|\b(combien|prix|co[uû]te|cher|pourquoi|quand|c'est quoi|qu'est-ce|ajout|ajoute|enl[eè]ve|retire|aussi|plut[oô]t|annule|change|promo|livraison)\b|כמה|מחיר|למה|מתי|תוסיף|תוריד|גם/i;
 async function hvLocal(text) {
   const L = hv.local;
-  if (["address", "pickup", "contact"].includes(L.kind) && ["street", "name"].includes(L.step) && HV_OFFTOPIC.test(text) && !/\d/.test(text)) {
+  if ((["address", "pickup", "contact"].includes(L.kind) && ["street", "name"].includes(L.step) && HV_OFFTOPIC.test(text) && !/\d/.test(text))
+    || (L.kind === "contact" && L.step === "phone" && !/\d/.test(text))) {
     hv.local = null;
     hv.hist.push({ r: "c", t: text.slice(0, 300) });
     return hvAsk(text);

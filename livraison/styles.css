@@ -5836,3 +5836,10 @@ body.trk-v2 .chat-modal { z-index: 1010; }
 .hv.kb .hv-tip { display: none; }
 .hv.kb .hv-choices { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
 .hv.kb .hv-choices button { flex: none; white-space: nowrap; padding: 7px 12px; font-size: 14px; }
+
+/* Panier de Hoppy : quantité − / + , Retirer, Tout annuler */
+.hv-basket .hb-qty { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; }
+.hv-basket .hb-qty button { min-width: 34px; height: 34px; border-radius: 99px; border: 1.5px solid rgba(255,255,255,.25); background: #172A4B; color: #fff; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; }
+.hv-basket .hb-qty b { min-width: 18px; text-align: center; }
+.hv-basket .hb-qty .hb-rm { font-size: 13px; padding: 0 12px; margin-inline-start: auto; }
+.hv-basket .hb-clear { display: block; width: 100%; margin-top: 8px; padding: 9px; border-radius: 12px; border: 1px dashed rgba(255,255,255,.3); background: transparent; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
