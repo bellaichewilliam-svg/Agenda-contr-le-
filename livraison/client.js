@@ -662,7 +662,10 @@ function currentQuote() {
   let q = baseQuote();
   if (!proShopOn()) return q;
   // Boutique HOP! : c'est un achat, déjà compté dans baseQuote (petit achat + articles au-delà des 6 compris)
-  if (shopBuy() && !shopGift() && !hopBuyOn()) {
+  // Restaurant dont la commande est déjà prête (« Déjà prête » : le livreur la prend sans attendre) : pas les 5 ₪
+  // d'achat (règle du patron, 14/11) ; s'il faut attendre ou commander sur place, les 5 ₪ restent
+  const restoReady = /resto|restaurant|traiteur|pizz|sushi|burger|grill|cafe|café|snack/i.test(String((state.shop && state.shop.kind) || "")) && state.phoneReady === 0;
+  if (shopBuy() && !shopGift() && !hopBuyOn() && !restoReady) {
     const fee = Number(CONFIG.pricing.purchase || 5);
     q = Object.assign({}, q, { total: q.total + fee, lines: q.lines.concat([{ key: "qShopBuy", vars: { name: UI.bi(state.shop.name) }, amount: fee }]) });
   }
@@ -8624,7 +8627,7 @@ $("#rulesClose").addEventListener("click", () => $("#rulesModal").classList.add(
 $("#rulesModal").addEventListener("click", e => { if (e.target.id === "rulesModal") $("#rulesModal").classList.add("hidden"); });
 form.addEventListener("click", e => {
   const rd = e.target.closest("[data-ready]");
-  if (rd) { state.phoneReady = Number(rd.dataset.ready); renderNoPayReady(); return renderPhone(); }
+  if (rd) { state.phoneReady = Number(rd.dataset.ready); renderNoPayReady(); renderPhone(); return renderQuote(); }
   const g = e.target.closest("[data-geo]");
   if (g) return useMyPosition(g.dataset.geo, g);
   const s = e.target.closest("[data-save-addr]");
