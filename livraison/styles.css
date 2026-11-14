@@ -5820,3 +5820,8 @@ body.trk-v2 .chat-modal { z-index: 1010; }
 .soft-go { margin-top: 8px; background: #fff; color: #0F1F3D; border: 0; font-weight: 800; white-space: normal; text-align: center; }
 .wiz-toast .soft-go { pointer-events: auto; }
 #formError .soft-go { background: #FF6A13; color: #fff; }
+
+/* iPhone : Hoppy a parlé, le micro clignote doucement pour inviter à le toucher (pas d'écoute automatique sur iPhone) */
+.hv-mic.invite { animation: micInvite 1.6s ease-in-out infinite; }
+@keyframes micInvite { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,106,19,.55), 0 6px 18px rgba(255,106,19,.4); } 50% { box-shadow: 0 0 0 12px rgba(255,106,19,0), 0 6px 18px rgba(255,106,19,.4); } }
+@media (prefers-reduced-motion: reduce) { .hv-mic.invite { animation: none; outline: 3px solid #FF6A13; outline-offset: 3px; } }

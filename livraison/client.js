@@ -6592,7 +6592,7 @@ function hvDom() {
     if (hv.mini && !e.target.closest("[data-hv-mic], [data-hv-cam], form")) { hvMini(false); return; }
     if (e.target === el) return hvClose();
     if (e.target.closest("[data-hv-cam]")) { hvStopListen(); if (hv.mini) hvMini(false); return $("#hvPhotoIn").click(); }
-    if (e.target.closest("[data-hv-mic]")) return hv.rec ? hvStopListen() : hvListen();
+    if (e.target.closest("[data-hv-mic]")) return hv.rec ? hvStopListen() : hvListen(true);
     if (e.target.closest("[data-hv-lang]")) { hv.lang = hv.lang === "he" ? "fr" : "he"; hvLabels(); return; }
     const aa = e.target.closest("[data-hv-all]");
     if (aa) return hvAll(aa.dataset.hvAll);
@@ -6826,8 +6826,14 @@ function hvSay(text, choices, after) {
     synth.speak(u);
   } catch (e) { next(); }
 }
-function hvListen() {
+// iPhone / iPad (patron, 14/11) : chaque écoute fait afficher « Accès au micro autorisé » par le téléphone. Hoppy n'y
+// rallume donc plus le micro tout seul après chaque phrase : le bouton micro clignote, le client le touche pour parler.
+const HV_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+function hvListen(manual) {
   if (!SpeechRec || hv.busy || hv.rec || $("#hvSheet").classList.contains("hidden")) return;
+  const mic = $("#hvSheet .hv-mic");
+  if (HV_IOS && manual !== true) { if (mic) mic.classList.add("invite"); return; }
+  if (mic) mic.classList.remove("invite");
   let r;
   try { r = new SpeechRec(); } catch (e) { return; }
   r.lang = hv.lang === "he" ? "he-IL" : "fr-FR"; r.interimResults = true; r.continuous = false;
