@@ -7002,6 +7002,9 @@ async function hvRecord() {
   if (hv.busy) { toastCart(hvT("hvWaitAi"), 2500); return; }
   try { speechSynthesis.cancel(); } catch (e) { /* pas de voix */ }
   hvStep("tap");
+  // iPhone : l'enregistreur du téléphone (MediaRecorder) ne rend aucun son dans l'appli posée sur l'écran d'accueil
+  // (vu le 14/11 : 0 octet à chaque essai) → on capte le son nous-mêmes et on fabrique un fichier WAV
+  if (HV_IOS && (window.AudioContext || window.webkitAudioContext)) return hvRecordWav();
   if (!hvStreamOk()) {
     if (hv.stream) { try { hv.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ } hv.stream = null; }
     try { hv.stream = await navigator.mediaDevices.getUserMedia({ audio: HV_IOS ? true : { echoCancellation: true, noiseSuppression: true } }); }
@@ -7064,6 +7067,82 @@ async function hvRecord() {
   hv.recFinish = () => { const t1 = Date.now(); const w = () => (chunks.length || Date.now() - t1 > 6000 ? finish() : setTimeout(w, 300)); setTimeout(w, 2500); };
   try { HV_IOS ? rec.start() : rec.start(250); hvStep("rec:" + String(rec.mimeType || type || "?").slice(0, 16)); }
   catch (e) { hv.recorder = null; if (mic) mic.classList.remove("on"); hvStep("err:start:" + ((e && e.name) || "?")); toastCart(hvT("micErr", { e: "start" }), 5000); }
+}
+// --- Enregistrement « fait maison » (iPhone) : le son brut du micro, réduit à 16 kHz, mis dans un fichier WAV ---------------
+async function hvRecordWav() {
+  const mic = $("#hvSheet .hv-mic");
+  // (le « moteur son » doit être allumé pendant le toucher, avant toute attente, sinon l'iPhone le laisse éteint)
+  let ctx = hv.wctx;
+  try { if (!ctx || ctx.state === "closed") ctx = hv.wctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { hvStep("err:ctx"); toastCart(hvT("micNo"), 4000); return; }
+  const resumed = ctx.state !== "running" && ctx.resume ? ctx.resume().catch(() => {}) : null;
+  if (!hvStreamOk()) {
+    hvStreamDrop();
+    try { hv.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { hv.stream = null; hvStep("err:gum:" + ((e && e.name) || "?")); toastCart(hvT(e && e.name === "NotAllowedError" ? "micDenied" : "micNo"), 5000); return; }
+  }
+  if (resumed) await resumed;
+  if (ctx.state !== "running") { try { await ctx.resume(); } catch (e) { /* ignore */ } }
+  let src, proc;
+  try { src = ctx.createMediaStreamSource(hv.stream); proc = ctx.createScriptProcessor(4096, 1, 1); }
+  catch (e) { hvStep("err:wav:" + ((e && e.name) || "?")); toastCart(hvT("micNo"), 4000); return; }
+  const bufs = [], seq = hv.seq, t0 = Date.now(), rate = ctx.sampleRate;
+  let peak = 0, spoke = false, quiet = t0, stopped = false;
+  const rec = { state: "recording", mimeType: "audio/wav", requestData() {}, stop() { if (!stopped) { stopped = true; rec.state = "inactive"; setTimeout(finish, 60); } } };
+  proc.onaudioprocess = e => {
+    if (stopped) return;
+    const d = e.inputBuffer.getChannelData(0); bufs.push(new Float32Array(d));
+    let m = 0; for (let i = 0; i < d.length; i += 4) { const v = Math.abs(d[i]); if (v > m) m = v; }
+    if (m > peak) peak = m;
+    const now = Date.now();
+    if (m > 0.05) { spoke = true; quiet = now; }
+    // fin toute seule : 1,4 s de silence après avoir parlé, 12 s au plus
+    if ((spoke && now - quiet > 1400) || now - t0 > 12000) rec.stop();
+  };
+  src.connect(proc); proc.connect(ctx.destination);
+  hv.recorder = rec; hv.recFinish = null;
+  if (mic) { mic.classList.remove("invite"); mic.classList.add("on"); }
+  $("#hvText").placeholder = hvT("hvRecording");
+  hvStep("wav:" + rate);
+  const finish = async () => {
+    try { src.disconnect(); proc.disconnect(); } catch (e) { /* ignore */ }
+    proc.onaudioprocess = null;
+    hv.recorder = null; if (mic) mic.classList.remove("on"); $("#hvText").placeholder = hvT("hvPh");
+    if (seq !== hv.seq) return;
+    const n = bufs.reduce((a, b) => a + b.length, 0), secs = n / rate;
+    hvStep(`wavend:${secs.toFixed(1)}s:${Math.round(peak * 100)}`);
+    if (secs < 0.5 || peak < 0.01) { toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); if (peak < 0.01) hvStreamDrop(); return; }
+    const b64 = hvWav(bufs, n, rate);
+    hvStep(`send:${Math.round(b64.length * 0.75 / 1024)}k:audio/wav`);
+    const wait = hvBubble("w"); hv.busy = true;
+    let text = "";
+    try { const id = await Store.iaEcoute(b64, "audio/wav", hv.lang); const out = id ? await Store.iaVoiceRun(id) : null; text = String((out && out.text) || "").trim(); }
+    catch (e) { wait.remove(); hv.busy = false; const m = String((e && (e.message || e.status)) || "net").slice(0, 40); hvStep("err:net:" + m); toastCart(hvT("micErr", { e: m }), 6000); return; }
+    wait.remove(); hv.busy = false;
+    if (seq !== hv.seq) return;
+    if (text.length < 2) { hvStep("empty"); toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); return; }
+    hvStep("ok");
+    UI.track("voice_said", {});
+    hvUser(text);
+  };
+}
+// Son brut → WAV 16 kHz mono 16 bits, en base64 (≈ 32 Ko par seconde)
+function hvWav(bufs, n, rate) {
+  const out = 16000, ratio = rate / out, len = Math.floor(n / ratio);
+  const all = new Float32Array(n); let o = 0; bufs.forEach(b => { all.set(b, o); o += b.length; });
+  const view = new DataView(new ArrayBuffer(44 + len * 2));
+  const w = (p, str) => { for (let i = 0; i < str.length; i++) view.setUint8(p + i, str.charCodeAt(i)); };
+  w(0, "RIFF"); view.setUint32(4, 36 + len * 2, true); w(8, "WAVE"); w(12, "fmt "); view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, out, true); view.setUint32(28, out * 2, true);
+  view.setUint16(32, 2, true); view.setUint16(34, 16, true); w(36, "data"); view.setUint32(40, len * 2, true);
+  for (let i = 0; i < len; i++) {
+    const a = Math.floor(i * ratio), b = Math.min(n, Math.floor((i + 1) * ratio));
+    let sum = 0; for (let j = a; j < b; j++) sum += all[j];
+    const v = Math.max(-1, Math.min(1, (sum / Math.max(1, b - a)) * 1.6));
+    view.setInt16(44 + i * 2, v < 0 ? v * 0x8000 : v * 0x7FFF, true);
+  }
+  const bytes = new Uint8Array(view.buffer); let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
 }
 // Rien d'enregistré : la prochaine fois, micro neuf (celui-ci a pu être coupé par le téléphone)
 function hvStreamDrop() { if (hv.stream) { try { hv.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ } hv.stream = null; } }
