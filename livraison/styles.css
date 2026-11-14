@@ -5859,3 +5859,16 @@ html.vit #accueil.course .ch-back { height: 48px; font-size: 16px; padding: 0 18
 .cart-notif .cn-x::after, .inapp-bar .ia-x::after, .cart-resume .cr-x::after { content: ""; position: absolute; inset: -10px; }
 .cart-notif .cn-x, .inapp-bar .ia-x { font-size: 22px; padding: 6px 10px; }
 html[dir=rtl] .vb-arr { transform: scaleX(-1); }
+
+/* Fiche « porte » d'une adresse enregistrée (immeuble / maison individuelle, étage, porte, code) — patron, 14/11 */
+.sum-door .sd-t { font-size: 14px; }
+.sd-kind { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 2px 0 4px; }
+.sd-kind button { min-height: 46px; border-radius: 12px; border: 1.5px solid rgba(127,127,127,.35); background: transparent; color: inherit; font-weight: 700; font-size: 15px; cursor: pointer; }
+.sd-kind button.on { border-color: #FF6A13; background: rgba(255,106,19,.14); }
+.sd-kind button.hidden { display: none; }
+.as-kind:has(button[data-as-kind="bureau"]:not(.hidden)) { grid-template-columns: 1fr 1fr 1fr; }
+.sd-kind.need { box-shadow: 0 0 0 2px #FF6A13; border-radius: 12px; }
+.sd-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.sd-row .f:only-child { grid-column: 1 / -1; }
+html.d2 .sum-door input { background: #172A4B; color: #fff; }
+html.d2.d2-day .sum-door input { background: #fff; color: #0F1F3D; }
