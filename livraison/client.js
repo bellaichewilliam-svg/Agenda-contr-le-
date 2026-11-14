@@ -6688,7 +6688,7 @@ function hvOpen() {
   // Adresse, nom et téléphone déjà connus (adresse enregistrée ou dernière commande) : Hoppy ne les redemande pas
   fillKnown();
   $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
-  UI.track("voice_start", {});
+  UI.track("voice_start", {}); hvStep("open:" + (hvUseRecorder() ? "rec" : SpeechRec ? "sr" : "none"));
   // Une commande gardée (Hoppy fermé avant la fin, page rechargée) : on la retrouve, « je l'envoie ou on recommence ? »
   // (nouvelle conversation : plus aucune question en cours — téléphone, adresse… — d'une conversation d'avant)
   if (!hv.hist.length) { hv.pickDone = false; hv.afterAddr = null; hv.toldMulti = false; hv.local = null; }
@@ -6924,18 +6924,28 @@ function hvRecRelease() {
   if (hv.stream) { try { hv.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ } hv.stream = null; }
   if (hv.actx) { try { hv.actx.close(); } catch (e) { /* ignore */ } hv.actx = null; }
 }
+// Chaque étape de la voix est signalée (sans aucun son ni donnée perso) : on voit où un téléphone bloque (patron, 14/11)
+const hvStep = step => { try { UI.track("voice_mic", { page: String(step).slice(0, 40), shop_code: HV_IOS ? "IOS" : "" }); } catch (e) { /* ignore */ } };
+// Micro encore utilisable ? Sur iPhone, la voix de Hoppy coupe le micro ouvert avant (piste « muette » ou terminée) :
+// on en rouvre un neuf dans ce cas, sinon on garde le même (pas de nouvelle demande d'accès)
+const hvStreamOk = () => { try { const tr = hv.stream && hv.stream.active && hv.stream.getAudioTracks()[0]; return !!(tr && tr.readyState === "live" && !tr.muted && tr.enabled); } catch (e) { return false; } };
 async function hvRecord() {
   const mic = $("#hvSheet .hv-mic");
   if (hv.recorder && hv.recorder.state === "recording") return hvRecStop();
-  if (hv.busy || $("#hvSheet").classList.contains("hidden")) return;
+  if ($("#hvSheet").classList.contains("hidden")) return;
+  if (hv.busy) { toastCart(hvT("hvWaitAi"), 2500); return; }
   try { speechSynthesis.cancel(); } catch (e) { /* pas de voix */ }
-  if (!hv.stream || !hv.stream.active) {
-    try { hv.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
-    catch (e) { hv.stream = null; toastCart(hvT(e && e.name === "NotAllowedError" ? "micDenied" : "micNo"), 4000); return; }
+  hvStep("tap");
+  if (!hvStreamOk()) {
+    if (hv.stream) { try { hv.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ } hv.stream = null; }
+    try { hv.stream = await navigator.mediaDevices.getUserMedia({ audio: HV_IOS ? true : { echoCancellation: true, noiseSuppression: true } }); }
+    catch (e) { hv.stream = null; hvStep("err:gum:" + ((e && e.name) || "?")); toastCart(hvT(e && e.name === "NotAllowedError" ? "micDenied" : "micNo"), 5000); return; }
   }
   const type = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"].find(x => { try { return MediaRecorder.isTypeSupported(x); } catch (e) { return false; } }) || "";
   let rec;
-  try { rec = type ? new MediaRecorder(hv.stream, { mimeType: type, audioBitsPerSecond: 32000 }) : new MediaRecorder(hv.stream); } catch (e) { toastCart(hvT("micNo"), 4000); return; }
+  // (iPhone : aucun réglage de qualité, certains iPhone refusent alors d'enregistrer)
+  try { rec = type && !HV_IOS ? new MediaRecorder(hv.stream, { mimeType: type, audioBitsPerSecond: 32000 }) : type ? new MediaRecorder(hv.stream, { mimeType: type }) : new MediaRecorder(hv.stream); }
+  catch (e) { try { rec = new MediaRecorder(hv.stream); } catch (e2) { hvStep("err:new:" + ((e2 && e2.name) || "?")); toastCart(hvT("micNo"), 4000); return; } }
   const chunks = [], seq = hv.seq, t0 = Date.now();
   hv.recorder = rec; if (mic) { mic.classList.remove("invite"); mic.classList.add("on"); }
   $("#hvText").placeholder = hvT(HV_IOS ? "hvRecordingTap" : "hvRecording");
@@ -6960,30 +6970,37 @@ async function hvRecord() {
     raf = requestAnimationFrame(tick);
   } catch (e) { setTimeout(hvRecStop, 8000); }
   rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  rec.onerror = e => { toastCart(hvT("micErr", { e: String((e && e.error && e.error.name) || "rec") }), 5000); };
+  rec.onerror = e => { const n = String((e && e.error && e.error.name) || "rec"); hvStep("err:rec:" + n); toastCart(hvT("micErr", { e: n }), 5000); };
   let finished = false;
   const finish = async () => {
     if (finished) return; finished = true;
     cancelAnimationFrame(raf); hv.recorder = null; if (mic) mic.classList.remove("on"); $("#hvText").placeholder = hvT("hvPh");
     if (seq !== hv.seq) return;
-    if (!chunks.length || Date.now() - t0 < 600) { toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); return; }
+    const size = chunks.reduce((a, c) => a + (c.size || 0), 0);
+    if (!chunks.length || size < 700 || Date.now() - t0 < 600) { hvStep(`none:${chunks.length}:${size}:${Date.now() - t0}`); toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); hvStreamDrop(); return; }
     const blob = new Blob(chunks, { type: rec.mimeType || type || "audio/mp4" });
     const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => ok(""); r.readAsDataURL(blob); });
-    if (!b64) { toastCart(hvT("micErr", { e: "read" }), 5000); return; }
+    if (!b64) { hvStep("err:read"); toastCart(hvT("micErr", { e: "read" }), 5000); return; }
+    hvStep(`send:${Math.round(size / 1024)}k:${String(blob.type).slice(0, 12)}`);
     const wait = hvBubble("w"); hv.busy = true;
     let text = "";
     try { const id = await Store.iaEcoute(b64, blob.type, hv.lang); const out = id ? await Store.iaVoiceRun(id) : null; text = String((out && out.text) || "").trim(); }
-    catch (e) { text = ""; wait.remove(); hv.busy = false; toastCart(hvT("micErr", { e: String((e && (e.message || e.status)) || "net").slice(0, 40) }), 6000); return; }
+    catch (e) { text = ""; wait.remove(); hv.busy = false; const m = String((e && (e.message || e.status)) || "net").slice(0, 40); hvStep("err:net:" + m); toastCart(hvT("micErr", { e: m }), 6000); return; }
     wait.remove(); hv.busy = false;
     if (seq !== hv.seq) return;
-    if (text.length < 2) { toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); return; }
+    if (text.length < 2) { hvStep("empty"); toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); hvStreamDrop(); return; }
+    hvStep("ok");
     UI.track("voice_said", {});
     hvUser(text);
   };
-  rec.onstop = finish;
-  hv.recFinish = () => setTimeout(finish, 2500);   // (certains iPhone n'envoient jamais la fin : on s'en passe)
-  try { HV_IOS ? rec.start() : rec.start(250); } catch (e) { hv.recorder = null; if (mic) mic.classList.remove("on"); toastCart(hvT("micErr", { e: "start" }), 5000); }
+  rec.onstop = () => setTimeout(finish, 120);   // (le dernier morceau du son arrive parfois juste après la fin)
+  // Certains iPhone n'envoient jamais la fin : on s'en passe (en laissant au son le temps d'arriver)
+  hv.recFinish = () => { const t1 = Date.now(); const w = () => (chunks.length || Date.now() - t1 > 6000 ? finish() : setTimeout(w, 300)); setTimeout(w, 2500); };
+  try { HV_IOS ? rec.start() : rec.start(250); hvStep("rec:" + String(rec.mimeType || type || "?").slice(0, 16)); }
+  catch (e) { hv.recorder = null; if (mic) mic.classList.remove("on"); hvStep("err:start:" + ((e && e.name) || "?")); toastCart(hvT("micErr", { e: "start" }), 5000); }
 }
+// Rien d'enregistré : la prochaine fois, micro neuf (celui-ci a pu être coupé par le téléphone)
+function hvStreamDrop() { if (hv.stream) { try { hv.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ } hv.stream = null; } }
 function hvListen(manual) {
   const mic = $("#hvSheet .hv-mic");
   if (hvUseRecorder()) {
