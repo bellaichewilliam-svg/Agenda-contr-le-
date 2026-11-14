@@ -7296,7 +7296,15 @@ function hvNum(text) {
 }
 const hvNo = text => /^(non|pas|aucun|rien|sans|no|לא|אין|בלי)\b/i.test(String(text).trim()) || /pas de code|sans code|אין קוד|בלי קוד/i.test(text);
 function hvStartLocal(kind) {
-  if (kind === "address") { hv.local = { kind, step: "street", a: {}, tries: 0 }; return hvSay(hvT("hvAskStreet"), []); }
+  if (kind === "address") {
+    // Rue déjà connue (adresse enregistrée sans numéro, ex. « Trumpeldor ») : on demande seulement le numéro
+    const p = state.pick.to, st = val("dropoff_address").split(",")[0].trim();
+    if (!hv.addrFor && st && p && p.lat != null && !val("dropoff_number").trim()) {
+      hv.local = { kind, step: "number", a: { street: p.streetName || st, lat: p.lat, lon: p.lon, cityId: p.cityId || form.to_city.value || CONFIG.homeCity, city: p.cityId || form.to_city.value || CONFIG.homeCity }, tries: 0 };
+      return hvSay(hvT("hvAskNumberOf", { street: p.streetName || st }), []);
+    }
+    hv.local = { kind, step: "street", a: {}, tries: 0 }; return hvSay(hvT("hvAskStreet"), []);
+  }
   hv.local = { kind, step: val("contact_name").trim() ? "phone" : "name" };
   hvSay(hvT(hv.local.step === "name" ? "hvAskName" : "hvAskPhone"), []);
 }
