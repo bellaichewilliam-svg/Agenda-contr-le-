@@ -909,6 +909,12 @@ function renderCash() {
   const issue = cashIssue(currentQuote());
   $("#cashChoice").classList.toggle("choice-off", !!(issue && issue.hard));
   $("#cashSmall").textContent = issue && issue.hard ? t("pay_cash_off", { max: money(cashMax()) }) : t("pay_cash_d2", { max: money(Number((state.settings || {}).cash_first_max) || 100) });
+  // Espèces pas possibles pour cette commande (au-dessus du plafond) : on passe tout seul sur Bit, jamais
+  // « Espèces » coché avec un message qui dit le contraire (patron, 14/11)
+  if (on && issue && issue.hard) {
+    const b = form.querySelector('input[name=payment_method][value=bit]');
+    if (b && !b.disabled) { b.checked = true; $("#cashBox").classList.add("hidden"); b.dispatchEvent(new Event("change", { bubbles: true })); return; }
+  }
   $("#cashBox").classList.toggle("hidden", !on);
   if (!on) return;
   const q = currentQuote(), goods = cashGoods(), total = Number(q.total) + goods;
@@ -2425,6 +2431,13 @@ document.addEventListener("click", e => {
 });
 
 // --- Type de lieu (maison, appartement, bureau, commerce) : une maison n'a pas d'étage ni d'appartement ---
+// Étage, appartement, code : seulement pour un appartement ou un bureau (une maison n'en a pas besoin)
+function syncDoorFields() {
+  const k = kindOf("dropoff"), box = form.querySelector('[data-details="dropoff"]');
+  if (box) box.classList.toggle("door-hide", !(k === "appartement" || k === "bureau"));
+}
+form.addEventListener("change", e => { if (e.target.name === "dropoff_kind") syncDoorFields(); });
+setTimeout(syncDoorFields, 0);
 function kindOf(pre) { const r = form.querySelector(`input[name="${pre}_kind"]:checked`); return r ? r.value : null; }
 function setKind(pre, v) {
   form.querySelectorAll(`input[name="${pre}_kind"]`).forEach(r => { r.checked = r.value === v; r.closest(".ch-chip").classList.toggle("on", r.checked); });
@@ -2974,7 +2987,7 @@ function validateOrder() {
   if (badStop >= 0) { $(`#stopsList [data-stop-addr="${badStop}"]`).focus(); return showErrorFalse(t("errStopPick")); }
   // Écran 3 : vos coordonnées
   const missMe = ["contact_name", "contact_phone"].find(k => !val(k).trim());
-  if (missMe) { form.elements[missMe].focus(); return showErrorFalse(t("errRequired")); }
+  if (missMe) { form.elements[missMe].focus(); return showErrorFalse(t(missMe === "contact_name" ? "errMeName" : "errMePhone")); }
   if (!phoneOk(val("contact_phone"))) { form.contact_phone.focus(); return showErrorFalse(t("errPhone")); }
   // Espèces au-dessus du plafond : refusé ici (le serveur le refuserait aussi), le client choisit Bit sans perdre sa commande
   if (val("payment_method") === "cash") { const ci = cashIssue(currentQuote()); if (ci && ci.hard) { $("#cashBox").scrollIntoView({ block: "center" }); return showErrorFalse(ci.text); } }
