@@ -6687,7 +6687,8 @@ function hvOpen() {
   $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
   UI.track("voice_start", {});
   // Une commande gardée (Hoppy fermé avant la fin, page rechargée) : on la retrouve, « je l'envoie ou on recommence ? »
-  if (!hv.hist.length) { hv.pickDone = false; hv.afterAddr = null; hv.toldMulti = false; }
+  // (nouvelle conversation : plus aucune question en cours — téléphone, adresse… — d'une conversation d'avant)
+  if (!hv.hist.length) { hv.pickDone = false; hv.afterAddr = null; hv.toldMulti = false; hv.local = null; }
   // (un panier déjà là quand Hoppy recommence : on demande « je l'envoie ou on recommence ? », jamais un vieux panier sous « Bonjour »)
   const kept = !hv.hist.length ? (hv.basket.length ? { basket: hv.basket.slice(), hist: [], last: hv.lastOut } : hvKeepGet()) : null;
   if (kept) {
