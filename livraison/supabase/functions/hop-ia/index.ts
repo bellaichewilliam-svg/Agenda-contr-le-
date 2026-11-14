@@ -9,7 +9,7 @@ const MODELS = ["gemini-3.5-flash-lite", "gemini-flash-lite-latest", "gemini-3.5
 const KEY = Deno.env.get("GEMINI_API_KEY") ?? "";
 const db = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, { auth: { persistSession: false } });
 
-async function gemini(prompt: string, json: boolean, image = "", level = "low"): Promise<string> {
+async function gemini(prompt: string, json: boolean, image = "", level = "low", mime = "image/jpeg"): Promise<string> {
   let last = "";
   for (const m of MODELS) {
     const t0 = Date.now();
@@ -20,7 +20,7 @@ async function gemini(prompt: string, json: boolean, image = "", level = "low"):
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: image ? [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: image } }] : [{ text: prompt }] }],
+        contents: [{ role: "user", parts: image ? [{ text: prompt }, { inlineData: { mimeType: mime, data: image } }] : [{ text: prompt }] }],
         generationConfig: { temperature: 0.2, ...thinking, ...(json ? { responseMimeType: "application/json" } : {}) },
       }),
     });
@@ -31,7 +31,7 @@ async function gemini(prompt: string, json: boolean, image = "", level = "low"):
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": KEY },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: image ? [{ text: prompt }, { inlineData: { mimeType: "image/jpeg", data: image } }] : [{ text: prompt }] }],
+          contents: [{ role: "user", parts: image ? [{ text: prompt }, { inlineData: { mimeType: mime, data: image } }] : [{ text: prompt }] }],
           generationConfig: { temperature: 0.2, ...thinking, ...(json ? { responseMimeType: "application/json" } : {}) },
         }),
       });
@@ -68,6 +68,18 @@ Recopie UNIQUEMENT les articles à acheter, avec leur quantité s'il y en a une,
 N'écris JAMAIS un nom de personne, un numéro de téléphone, une adresse ou un prix, même s'ils sont sur la photo. Aucune phrase, aucun commentaire.
 Si la photo ne montre ni liste ni produit, ou si elle est illisible : réponds exactement ?`;
     const text = (await gemini(prompt, false, img)).replace(/\s+/g, " ").trim().slice(0, 380);
+    return { text: text.length < 2 || text === "?" ? "" : text };
+  }
+  // 🎤 iPhone (patron, 14/11) : la reconnaissance vocale du navigateur n'y marche pas ; l'appli envoie quelques secondes
+  // de voix, on les écrit. Rien d'autre (jamais de nom, téléphone ou adresse ajoutés), et l'enregistrement est effacé ensuite.
+  if (kind === "ecouter") {
+    const audio = String(input.audio ?? "");
+    if (audio.length < 800) return { text: "" };
+    const he = input.lang === "he";
+    const mime = ["audio/mp4", "audio/webm", "audio/ogg", "audio/wav"].includes(String(input.mime)) ? String(input.mime) : "audio/mp4";
+    const prompt = `Écris exactement ce que dit la personne dans cet enregistrement (une commande pour une appli de livraison à Netanya), dans la langue où elle parle (${he ? "hébreu le plus souvent" : "français le plus souvent"}, parfois l'autre, ou un mélange : écris chaque mot dans sa langue).
+Seulement les mots dits, sans guillemets, sans commentaire, sans traduction. Silence, bruit ou rien de compréhensible : réponds exactement ?`;
+    const text = (await gemini(prompt, false, audio, "minimal", mime)).replace(/\s+/g, " ").trim().slice(0, 400);
     return { text: text.length < 2 || text === "?" ? "" : text };
   }
   if (kind === "traduire_produits") {
@@ -292,12 +304,12 @@ Deno.serve(async (req) => {
     if (!KEY) throw new Error("cle_absente");
     const output = await run(job.kind, job.input ?? {});
     // (la photo d'une liste n'est jamais gardée : la demande ne conserve que la langue)
-    const wipe = job.kind === "lire_liste" ? { input: { lang: (job.input ?? {}).lang ?? "fr" } } : {};
+    const wipe = job.kind === "lire_liste" || job.kind === "ecouter" ? { input: { lang: (job.input ?? {}).lang ?? "fr" } } : {};
     await db.from("ia_jobs").update({ status: "fait", output, done_at: new Date().toISOString(), ...wipe }).eq("id", id);
     return reply({ ok: true, output });
   } catch (e) {
     const msg = String((e as Error).message ?? e).slice(0, 500);
-    await db.from("ia_jobs").update({ status: "erreur", error: msg, done_at: new Date().toISOString(), ...(job.kind === "lire_liste" ? { input: {} } : {}) }).eq("id", id);
+    await db.from("ia_jobs").update({ status: "erreur", error: msg, done_at: new Date().toISOString(), ...(job.kind === "lire_liste" || job.kind === "ecouter" ? { input: {} } : {}) }).eq("id", id);
     if (job.kind === "chat" && /^[ou]:[0-9a-f-]{36}$/.test(String(job.input?.thread ?? ""))) {
       const he = job.input?.lang === "he";
       await db.from("chat_messages").insert({ thread: job.input.thread, author: "admin", author_name: "HOP!", ai: "relai",
