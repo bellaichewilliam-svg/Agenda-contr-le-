@@ -6784,6 +6784,15 @@ function hvOpen() {
     const tip = document.createElement("div"); tip.className = "hv-tip"; tip.textContent = hvT("hvPhotoTip"); $("#hvLog").appendChild(tip); }
   else hvListen();
 }
+// « Toucher et parler » depuis l'accueil (patron, 14/11 : « plus simple pour les iPhone, sans chercher ni appuyer sur
+// envoyer ») : un seul toucher ouvre Hoppy ET lance l'écoute tout de suite ; la phrase finie, c'est envoyé tout seul
+function hvOpenTalk() {
+  if (!Store.iaAssist) return micStart();
+  if (!hvUseRecorder()) return hvOpen();   // (Android : Hoppy écoute déjà tout seul après « Bonjour »)
+  hv.quiet = true;
+  try { hvOpen(); } finally { hv.quiet = false; }
+  hvRecord();   // (dans le même toucher : obligatoire sur iPhone pour allumer le micro)
+}
 // La commande préparée avec Hoppy est gardée sur le téléphone (24 h) tant qu'elle n'est pas partie dans le panier :
 // fermer Hoppy ou recharger la page ne la perd plus (patron, 12/11). Une barre « Reprendre » la remet d'un geste.
 const HV_KEEP = "livraison.hoppy.keep.v1", HV_NEXT = "livraison.hoppy.next.v1";
@@ -6953,6 +6962,8 @@ function hvAlt(i, k) {
 // Hoppy parle (voix du téléphone dans la bonne langue), puis écoute tout seul la réponse : on n'a rien à toucher
 function hvSay(text, choices, after) {
   hvBubble("h", text); hvChoices(choices);
+  // (ouvert par « toucher et parler » : le micro écoute déjà, Hoppy ne parle pas par-dessus)
+  if (hv.quiet) return;
   const seq = hv.seq, next = () => { if (seq !== hv.seq || $("#hvSheet").classList.contains("hidden")) return; if (after) after(); else hvListen(); };
   let synth = null;
   try { synth = window.speechSynthesis; } catch (e) { synth = null; }
@@ -7188,7 +7199,7 @@ function hvStopListen() { if (hv.rec) { try { hv.rec.stop(); } catch (e) { /* d�
 // Ce que l'appli sait déjà (sans aucune donnée personnelle) et les rayons « Courses HOP! » (noms, prix indicatifs, options)
 // Le magasin où le client se trouve (sa page est ouverte) : Hoppy y fait les courses avec lui (patron, 12/11)
 const hvShopNow = () => { try { return state.shop && state.catalog && !state.shop.demo && $("#catalogBox") && $("#catalogBox").getClientRects().length ? { code: state.shop.code, name: String(UI.bi(state.shop.name)).slice(0, 40) } : null; } catch (e) { return null; } };
-document.addEventListener("click", e => { const m = e.target.closest && e.target.closest("[data-cg-mic]"); if (m) { e.preventDefault(); e.stopPropagation(); if (Store.iaAssist) hvOpen(); } }, true);
+document.addEventListener("click", e => { const m = e.target.closest && e.target.closest("[data-cg-mic]"); if (m) { e.preventDefault(); e.stopPropagation(); if (Store.iaAssist) hvOpenTalk(); } }, true);
 function hvCtx() {
   const list = (Store.getAddresses && Store.getAddresses()) || [];
   return { addr: { to: addrReady("to"), home: list.some(a => a.tag === "home"), work: list.some(a => a.tag === "work") },
@@ -7845,7 +7856,7 @@ if ($("#homeFind")) {
   $("#homeFind").closest(".sc-find").classList.add("has-mic");
   b.addEventListener("mousedown", e => e.preventDefault());
   // (un toucher = Hoppy ouvre la conversation et écoute ; sans iaAssist dans le Store : l'ancienne commande à la voix)
-  b.addEventListener("click", e => { e.stopPropagation(); if (Store.iaAssist) hvOpen(); else micStart(); });
+  b.addEventListener("click", e => { e.stopPropagation(); hvOpenTalk(); });
   // Mise en avant discrète (patron, 12/11) : une fine ligne sous la recherche, « Nouveau · Tout se commande à la voix »
   const pill = document.createElement("button");
   pill.type = "button"; pill.className = "vit-voice";
@@ -7859,7 +7870,7 @@ if ($("#homeFind")) {
   drawPill(); window.addEventListener("hop:lang", () => { drawPill(); hvKeepBar(); });
   setInterval(() => { const b = pill.querySelector(".vv-say"); if (!b || document.hidden) return; vvI++; b.classList.add("out"); setTimeout(() => { b.textContent = vvEx()[vvI % vvEx().length]; b.classList.remove("out"); }, 260); }, 2800);
   $("#homeFind").closest(".sc-find").after(pill);
-  pill.addEventListener("click", e => { e.stopPropagation(); if (Store.iaAssist) hvOpen(); else micStart(); });
+  pill.addEventListener("click", e => { e.stopPropagation(); hvOpenTalk(); });
   hvKeepBar();
 }
 // Résultats de la vitrine : « On vous l'apporte », puis les produits rangés PAR COMMERCE (logo, nom, « Tout voir »)
