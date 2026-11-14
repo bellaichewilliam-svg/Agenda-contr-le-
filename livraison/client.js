@@ -5447,6 +5447,7 @@ function initVitrine() {
   const find = $("#homeProBox .sc-find");
   if (find) $("#vitHero").appendChild(find);
   const vp = document.querySelector(".vit-voice"); if (find && vp) find.after(vp); setTimeout(hvKeepBar, 0);
+  const vi = document.querySelector(".vit-inst"); if (vp && vi) vp.after(vi);   // (« Installez HOP! sur votre iPhone » sous Hoppy)
   // Idées en un geste : elles remplissent la recherche (la liste montre tout de suite la magie de Hoppy)
   const ideas = document.createElement("div");
   ideas.className = "vit-ideas"; ideas.id = "vitIdeas";
@@ -7872,6 +7873,27 @@ if ($("#homeFind")) {
   $("#homeFind").closest(".sc-find").after(pill);
   pill.addEventListener("click", e => { e.stopPropagation(); hvOpenTalk(); });
   hvKeepBar();
+  // « Installez HOP! sur votre iPhone » sur l'accueil (patron, 14/11) : Apple n'autorise pas l'installation directe,
+  // le bandeau ouvre le guide en 3 gestes (flèche vers Partager) ; sur Android, l'installation se fait en un toucher
+  const inst = document.createElement("div");
+  inst.className = "vit-inst hidden";
+  pill.after(inst);
+  const IKEY = "livraison.instHide.v1";
+  const drawInst = () => {
+    let hid = 0; try { hid = Number(localStorage.getItem(IKEY)) || 0; } catch (e) { /* ignore */ }
+    const show = UI.canInstall() && Date.now() - hid > 3 * 86400000;
+    inst.classList.toggle("hidden", !show);
+    if (!show) return;
+    const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    inst.innerHTML = `<img src="icon-192.png" alt="" width="46" height="46" /><span><b>${hopLtr(t(ios ? "vitInstIos" : "vitInstAnd"))}</b><small>${hopLtr(t("vitInstS"))}</small></span>
+      <button type="button" class="vi-go" data-vit-inst>${UI.esc(t("vitInstBtn"))}</button><button type="button" class="vi-x" data-vit-inst-x aria-label="✕">✕</button>`;
+  };
+  drawInst(); window.addEventListener("hop:lang", drawInst);
+  inst.addEventListener("click", e => {
+    e.stopPropagation();
+    if (e.target.closest("[data-vit-inst-x]")) { try { localStorage.setItem(IKEY, String(Date.now())); } catch (ex) { /* ignore */ } return drawInst(); }
+    UI.installApp("HOP!", "app/").then(ok => { if (ok) { inst.classList.add("hidden"); renderInstallClient(); } });
+  });
 }
 // Résultats de la vitrine : « On vous l'apporte », puis les produits rangés PAR COMMERCE (logo, nom, « Tout voir »)
 // en cartes avec photo et prix (un toucher ouvre la fiche du produit dans son commerce), les courses HOP! (rayons), les commerces
