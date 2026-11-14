@@ -32,6 +32,7 @@ function setView(v, push) {
   document.body.dataset.view = v;
   viewTitle();
   // Analytique : la commande ouverte (une fois par visite)
+  if (v === "order") setTimeout(fillKnown, 0);
   if (v === "order") { let s = null; try { s = sessionStorage.getItem("hop.started"); sessionStorage.setItem("hop.started", "1"); } catch (e) { /* ignore */ } if (!s) UI.track("order_start"); }
   if (push) { history.pushState(null, "", v === "home" ? location.pathname : "#" + VIEW_HASH[v]); here = location.href; }
   window.scrollTo(0, 0);
@@ -827,8 +828,12 @@ const linkOk = () => shopCashOnly() && !/^HOP/.test(state.shop.code || "");
 const hasShopGoods = () => cartCount() > 0 || !!val("shop_order").trim();
 // Boutique HOP! (jus, Carrefour, BOOOM) : Bit au livreur (choisi d'office, demande du patron) ou espèces (pas de lien) ;
 // McDonald's : lien, Bit au livreur ou espèces
-const goodsChoice = () => (!shopCashOnly() ? null : !linkOk() ? (["bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "bit")
+const goodsChoiceRaw = () => (!shopCashOnly() ? null : !linkOk() ? (["bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "bit")
   : ["lien", "bit", "especes"].includes(state.goodsChoice) ? state.goodsChoice : "lien");
+// Le livreur n'avance jamais plus de 100 ₪ d'articles de sa poche (règle du patron, 14/11) : au-delà, pas d'espèces
+// pour les articles (Bit, ou le lien du commerce)
+const ADVANCE_MAX = 100;
+const goodsChoice = () => { const g = goodsChoiceRaw(); return g === "especes" && cartTotal() > ADVANCE_MAX ? (linkOk() ? "lien" : "bit") : g; };
 // (aussi une commande écrite à la main dans un commerce « payé au livreur ») ; avec le lien, le client paie le commerce lui-même
 const shopBuy = () => !!(proShopOn() && !linkOk() && (cartCount() > 0 || (shopCashOnly() && !!val("shop_order").trim())) && !shopPrepay()
   && (shopCashOnly() ? goodsChoice() !== "lien" : val("payment_method") === "cash"));
@@ -899,6 +904,8 @@ function cashIssue(q) {
   // Le plafond ne concerne que ce que le livreur avance lui-même (achats) ; les articles d'un commerce partenaire sont encaissés
   // chez le client et rapportés au commerce, sans avance
   const adv = goodsPrepay() ? goodsBudget() : 0;
+  // Articles payés par le livreur au magasin puis remboursés en espèces : au plus 100 ₪
+  if (shopBuy() && cartCount() && cartTotal() > ADVANCE_MAX) return { hard: true, text: t("errAdvance", { max: money(ADVANCE_MAX) }), small: t("payCashAdv", { max: money(ADVANCE_MAX) }) };
   if (Number(q.total) + adv > cashMax()) return { hard: true, text: t("errCashMax", { max: money(cashMax()) }) };
   const cap = cashFirstCap();
   if (cap && Number(q.total) + cashGoods() > cap) return { hard: true, text: t("errCashNew", { max: money(cap), n: Number(state.settings.cash_first_orders) }) };
@@ -908,7 +915,9 @@ function renderCash() {
   const on = val("payment_method") === "cash";
   const issue = cashIssue(currentQuote());
   $("#cashChoice").classList.toggle("choice-off", !!(issue && issue.hard));
-  $("#cashSmall").textContent = issue && issue.hard ? t("pay_cash_off", { max: money(cashMax()) }) : t("pay_cash_d2", { max: money(Number((state.settings || {}).cash_first_max) || 100) });
+  const advOver = shopCashOnly() && hasShopGoods() && cartTotal() > ADVANCE_MAX && goodsChoiceRaw() !== "lien";
+  $("#cashChoice").classList.toggle("choice-off", !!(issue && issue.hard) || advOver);
+  $("#cashSmall").textContent = advOver && !(issue && issue.hard) ? t("payCashAdv", { max: money(ADVANCE_MAX) }) : issue && issue.hard ? (issue.small || t("pay_cash_off", { max: money(cashMax()) })) : t("pay_cash_d2", { max: money(Number((state.settings || {}).cash_first_max) || 100) });
   // Espèces pas possibles pour cette commande (au-dessus du plafond) : on passe tout seul sur Bit, jamais
   // « Espèces » coché avec un message qui dit le contraire (patron, 14/11)
   if (on && issue && issue.hard) {
@@ -1135,7 +1144,7 @@ const priceTxt = p => `${priceMid(p)} ₪`;
 // vérifie aussi). En espèces : le client paie la course + le ticket exact à la livraison.
 const goodsPrepay = () => val("service") === "achat" && !proShopOn() && val("goods_mode") !== "self";
 const goodsAfter = () => goodsPrepay() && val("payment_method") !== "cash";
-const goodsCap = () => ((state.mine || []).filter(o => o.status === "livree").length >= 3 ? 200 : 100);
+const goodsCap = () => ADVANCE_MAX;   // (patron, 14/11 : le livreur avance au plus 100 ₪, même pour un client fidèle)
 // (le haut des fourchettes, mais ramené au plafond quand ce que le client voit, le prix du milieu, y entre : sinon un
 // nouveau client était bloqué à 105 ₪ pour 84 ₪ d'articles affichés, sans pouvoir baisser)
 const goodsMin = () => { const g = rayonGoods(); if (!g) return 0; const hi = Math.ceil(g.hi), cap = goodsCap(); return hi > cap && Math.ceil(g.mid) <= cap ? cap : hi; };
@@ -2680,6 +2689,25 @@ function ensureDefaultTo() {
 }
 // Adresse proposée d'office : seulement dans la même ville que le départ (ou la ville de HOP!). Jamais une adresse
 // d'une autre ville en silence (ex. « Maison » enregistrée à Herzliya → 105 ₪ sans que le client comprenne).
+// Ce que le client a déjà donné (patron, 14/11 : « il a déjà mis Trumpeldor, ça doit reprendre son adresse ») :
+// adresse enregistrée, sinon celle de sa dernière commande ; nom et téléphone de son profil, sinon de sa dernière commande
+function lastOrderDrop() {
+  const o = (state.mine || []).filter(x => x && x.dropoff_address && !x.dropoff_place).sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")))[0];
+  if (!o) return null;
+  const m = String(o.dropoff_address).match(/^(.*?)\s+(\d+[\w/-]*)$/);
+  return { street: m ? m[1] : o.dropoff_address, number: m ? m[2] : "", cityId: o.to_city, city: o.to_city, lat: o.dropoff_lat, lon: o.dropoff_lon,
+    exact: o.dropoff_lat != null, building: o.dropoff_building, floor: o.dropoff_floor, apt: o.dropoff_apt, code: o.dropoff_code, note: o.dropoff_note,
+    kind: o.dropoff_kind || (o.dropoff_apt ? "appartement" : o.dropoff_floor ? "bureau" : "maison") };
+}
+function fillKnown() {
+  try {
+    if (forClient) return;   // (commande saisie par le patron pour un client : rien de pré-rempli)
+    if (!state.pick.to && !val("dropoff_address").trim()) { const d = defaultDropAddr() || lastOrderDrop(); if (d) applySavedAddr("to", d); }
+    const p = Store.getProfile() || {}, last = (state.mine || []).find(x => x && x.contact_name) || {};
+    if (!val("contact_name").trim() && (p.contact_name || last.contact_name)) form.contact_name.value = p.contact_name || last.contact_name;
+    if (!val("contact_phone").trim() && (p.contact_phone || last.contact_phone)) form.contact_phone.value = p.contact_phone || last.contact_phone;
+  } catch (e) { /* rien de connu */ }
+}
 function defaultDropAddr() {
   const city = (state.pick.from && state.pick.from.cityId) || CONFIG.homeCity;
   const list = Store.getAddresses().filter(a => !a.brand && (a.cityId || a.city) === city);
