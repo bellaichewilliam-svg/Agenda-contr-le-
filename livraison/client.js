@@ -6912,7 +6912,13 @@ const HV_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platfo
 // et l'IA écrit ce qui a été dit. Sur Android, la reconnaissance du téléphone reste (plus rapide).
 const HV_REC_OK = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
 const hvUseRecorder = () => HV_REC_OK && (HV_IOS || !SpeechRec);
-function hvRecStop() { if (hv.recorder && hv.recorder.state === "recording") { try { hv.recorder.stop(); } catch (e) { /* déjà arrêté */ } } }
+function hvRecStop() {
+  if (hv.recorder && hv.recorder.state === "recording") {
+    try { hv.recorder.requestData && hv.recorder.requestData(); } catch (e) { /* ignore */ }
+    try { hv.recorder.stop(); } catch (e) { /* déjà arrêté */ }
+    if (hv.recFinish) hv.recFinish();
+  }
+}
 function hvRecRelease() {
   hvRecStop();
   if (hv.stream) { try { hv.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ } hv.stream = null; }
@@ -6932,10 +6938,12 @@ async function hvRecord() {
   try { rec = type ? new MediaRecorder(hv.stream, { mimeType: type, audioBitsPerSecond: 32000 }) : new MediaRecorder(hv.stream); } catch (e) { toastCart(hvT("micNo"), 4000); return; }
   const chunks = [], seq = hv.seq, t0 = Date.now();
   hv.recorder = rec; if (mic) { mic.classList.remove("invite"); mic.classList.add("on"); }
-  $("#hvText").placeholder = hvT("hvRecording");
-  // Fin toute seule : 1,4 s de silence après avoir parlé (12 s au plus)
+  $("#hvText").placeholder = hvT(HV_IOS ? "hvRecordingTap" : "hvRecording");
+  // Fin toute seule : 1,4 s de silence après avoir parlé (12 s au plus). Sur iPhone, l'analyse du son gêne
+  // l'enregistrement : on s'arrête au toucher du micro, ou au bout de 10 s.
   let raf = 0, spoke = false, quiet = 0;
-  try {
+  if (HV_IOS) setTimeout(() => { if (hv.recorder === rec) hvRecStop(); }, 10000);
+  else try {
     hv.actx = hv.actx || new (window.AudioContext || window.webkitAudioContext)();
     if (hv.actx.state === "suspended") hv.actx.resume();
     const an = hv.actx.createAnalyser(); an.fftSize = 1024; hv.actx.createMediaStreamSource(hv.stream).connect(an);
@@ -6952,22 +6960,29 @@ async function hvRecord() {
     raf = requestAnimationFrame(tick);
   } catch (e) { setTimeout(hvRecStop, 8000); }
   rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  rec.onstop = async () => {
+  rec.onerror = e => { toastCart(hvT("micErr", { e: String((e && e.error && e.error.name) || "rec") }), 5000); };
+  let finished = false;
+  const finish = async () => {
+    if (finished) return; finished = true;
     cancelAnimationFrame(raf); hv.recorder = null; if (mic) mic.classList.remove("on"); $("#hvText").placeholder = hvT("hvPh");
-    if (seq !== hv.seq || !chunks.length || Date.now() - t0 < 600) return;
+    if (seq !== hv.seq) return;
+    if (!chunks.length || Date.now() - t0 < 600) { toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); return; }
     const blob = new Blob(chunks, { type: rec.mimeType || type || "audio/mp4" });
     const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => ok(""); r.readAsDataURL(blob); });
-    if (!b64) return;
+    if (!b64) { toastCart(hvT("micErr", { e: "read" }), 5000); return; }
     const wait = hvBubble("w"); hv.busy = true;
     let text = "";
-    try { const id = await Store.iaEcoute(b64, blob.type, hv.lang); const out = id ? await Store.iaVoiceRun(id) : null; text = String((out && out.text) || "").trim(); } catch (e) { text = ""; }
+    try { const id = await Store.iaEcoute(b64, blob.type, hv.lang); const out = id ? await Store.iaVoiceRun(id) : null; text = String((out && out.text) || "").trim(); }
+    catch (e) { text = ""; wait.remove(); hv.busy = false; toastCart(hvT("micErr", { e: String((e && (e.message || e.status)) || "net").slice(0, 40) }), 6000); return; }
     wait.remove(); hv.busy = false;
     if (seq !== hv.seq) return;
     if (text.length < 2) { toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); return; }
     UI.track("voice_said", {});
     hvUser(text);
   };
-  try { rec.start(250); } catch (e) { hv.recorder = null; if (mic) mic.classList.remove("on"); }
+  rec.onstop = finish;
+  hv.recFinish = () => setTimeout(finish, 2500);   // (certains iPhone n'envoient jamais la fin : on s'en passe)
+  try { HV_IOS ? rec.start() : rec.start(250); } catch (e) { hv.recorder = null; if (mic) mic.classList.remove("on"); toastCart(hvT("micErr", { e: "start" }), 5000); }
 }
 function hvListen(manual) {
   const mic = $("#hvSheet .hv-mic");
@@ -7287,7 +7302,7 @@ function hvStartLocal(kind) {
 }
 // Pendant que Hoppy demande l'adresse ou le téléphone, le client pose une question (« combien coûte le Coca ? »,
 // « ajoute de l'eau ») : ce n'est pas une rue ! On la passe à Hoppy, qui répond puis redemande ce qui manque.
-const HV_OFFTOPIC = /\?|\b(combien|prix|co[uû]te|cher|pourquoi|quand|c'est quoi|qu'est-ce|ajout|ajoute|enl[eè]ve|retire|aussi|plut[oô]t|annule|change|promo|livraison)\b|כמה|מחיר|למה|מתי|תוסיף|תוריד|גם/i;
+const HV_OFFTOPIC = /\?|\b(combien|prix|co[uû]te|cher|pourquoi|quand|c'est quoi|qu'est-ce|ajout|ajoute|enl[eè]ve|retire|aussi|plut[oô]t|annule|annuler|change|promo|livraison|payer|paye|commander|commande|valider|envoie|envoyer)\b|^\s*(oui|non|ok|d'accord|merci|vas-y)\s*[.!]*\s*$|כמה|מחיר|למה|מתי|תוסיף|תוריד|גם/i;
 async function hvLocal(text) {
   const L = hv.local;
   if ((["address", "pickup", "contact"].includes(L.kind) && ["street", "name"].includes(L.step) && HV_OFFTOPIC.test(text) && !/\d/.test(text))
