@@ -5872,3 +5872,23 @@ html[dir=rtl] .vb-arr { transform: scaleX(-1); }
 .sd-row .f:only-child { grid-column: 1 / -1; }
 html.d2 .sum-door input { background: #172A4B; color: #fff; }
 html.d2.d2-day .sum-door input { background: #fff; color: #0F1F3D; }
+
+/* Bandeau « Installez HOP! sur votre iPhone » sur l'accueil (patron, 14/11) */
+.vit-inst { display: flex; align-items: center; gap: 10px; margin: 10px 16px 0; padding: 10px 10px 10px 12px; border-radius: 16px; background: #13233F; color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.vit-inst.hidden { display: none; }
+.vit-inst img { flex: none; width: 46px; height: 46px; border-radius: 12px; }
+.vit-inst span { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.vit-inst b { font-size: 15px; font-weight: 800; line-height: 1.25; }
+.vit-inst small { font-size: 12.5px; color: #B9C6DD; line-height: 1.3; }
+.vit-inst .vi-go { flex: none; min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: #FF6A13; color: #fff; font-weight: 800; font-size: 14.5px; cursor: pointer; }
+.vit-inst .vi-x { flex: none; width: 32px; height: 32px; border: 0; border-radius: 50%; background: rgba(255,255,255,.1); color: #fff; font-size: 14px; cursor: pointer; position: relative; }
+.vit-inst .vi-x::after { content: ""; position: absolute; inset: -6px; }
+html.d2-day .vit-inst { background: #fff; color: #0F1F3D; box-shadow: 0 2px 12px rgba(15,31,61,.08), inset 0 0 0 1px #E3E9F2; }
+html.d2-day .vit-inst small { color: #5B6B85; }
+html.d2-day .vit-inst .vi-x { background: #EEF1F6; color: #0F1F3D; }
+.vit-hero .vit-inst { margin: 12px 0 0; }
+.vit-inst { display: grid; grid-template-columns: 46px 1fr 32px; grid-template-areas: "ic tx x" "ic go go"; column-gap: 12px; row-gap: 8px; align-items: center; }
+.vit-inst img { grid-area: ic; align-self: start; }
+.vit-inst span { grid-area: tx; }
+.vit-inst .vi-x { grid-area: x; align-self: start; }
+.vit-inst .vi-go { grid-area: go; justify-self: start; min-height: 40px; padding: 0 22px; }
