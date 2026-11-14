@@ -6617,6 +6617,17 @@ async function voiceOrder(text) {
 const hv = { hist: [], basket: [], busy: false, lang: "fr", local: null, seq: 0, rec: null, idx: "", said: "" };
 const HV_MIC = `<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12 15a3.5 3.5 0 0 0 3.5-3.5v-6a3.5 3.5 0 1 0-7 0v6A3.5 3.5 0 0 0 12 15zm6.5-3.5a1 1 0 1 0-2 0 4.5 4.5 0 0 1-9 0 1 1 0 1 0-2 0 6.5 6.5 0 0 0 5.5 6.4V20H8.5a1 1 0 1 0 0 2h7a1 1 0 1 0 0-2H13v-2.1a6.5 6.5 0 0 0 5.5-6.4z"/></svg>`;
 const hvT = (k, v) => I18N.forLang ? I18N.forLang(hv.lang, k, v) : t(k, v);
+// iPhone : le clavier couvre le bas de l'écran ; Hoppy se cale sur la partie visible (au-dessus du clavier), la case
+// où l'on écrit reste toujours en vue (patron, 14/11 : « il voit pas ce qu'il écrit »)
+function hvFit() {
+  const el = $("#hvSheet"), vv = window.visualViewport;
+  if (!el || !vv || el.classList.contains("hidden")) return;
+  const kb = window.innerHeight - vv.height > 120;
+  el.classList.toggle("kb", kb);
+  el.style.top = kb ? vv.offsetTop + "px" : ""; el.style.height = kb ? vv.height + "px" : ""; el.style.bottom = kb ? "auto" : "";
+  if (kb) { const log = $("#hvLog"); if (log) log.scrollTop = log.scrollHeight; }
+}
+if (window.visualViewport) { visualViewport.addEventListener("resize", hvFit); visualViewport.addEventListener("scroll", hvFit); }
 function hvDom() {
   let el = $("#hvSheet");
   if (el) return el;
@@ -6633,7 +6644,7 @@ function hvDom() {
     if (hv.mini && !e.target.closest("[data-hv-mic], [data-hv-cam], form")) { hvMini(false); return; }
     if (e.target === el) return hvClose();
     if (e.target.closest("[data-hv-cam]")) { hvStopListen(); if (hv.mini) hvMini(false); return $("#hvPhotoIn").click(); }
-    if (e.target.closest("[data-hv-mic]")) return hv.rec ? hvStopListen() : hvListen(true);
+    if (e.target.closest("[data-hv-mic]")) return hv.rec ? hvStopListen() : (hv.recorder && hv.recorder.state === "recording") ? hvRecStop() : hvListen(true);
     if (e.target.closest("[data-hv-lang]")) { hv.lang = hv.lang === "he" ? "fr" : "he"; hvLabels(); return; }
     const aa = e.target.closest("[data-hv-all]");
     if (aa) return hvAll(aa.dataset.hvAll);
@@ -6656,6 +6667,8 @@ function hvLabels() {
 }
 function hvOpen() {
   hvDom(); hv.lang = I18N.lang === "he" ? "he" : "fr"; hvLabels();
+  // Adresse, nom et téléphone déjà connus (adresse enregistrée ou dernière commande) : Hoppy ne les redemande pas
+  fillKnown();
   $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
   UI.track("voice_start", {});
   // Une commande gardée (Hoppy fermé avant la fin, page rechargée) : on la retrouve, « je l'envoie ou on recommence ? »
@@ -6724,7 +6737,7 @@ function hvKeepBar() {
   bar.innerHTML = `<span class="hk-t"><b>🛒 ${UI.esc(t("hvKeepT"))}</b><small><bdi>${UI.esc(hvKeepList(k))}</bdi></small></span><button type="button" class="hk-go" data-keep-go>${UI.esc(t("hvKeepGo"))}</button><button type="button" class="hk-x" data-keep-x aria-label="✕">✕</button>`;
 }
 function hvClose() {
-  hvStopListen(); hv.seq++; hv.mini = false; hv.pending = null; $("#hvSheet").classList.remove("mini");
+  hvStopListen(); hvRecRelease(); hv.seq++; hv.mini = false; hv.pending = null; $("#hvSheet").classList.remove("mini");
   try { speechSynthesis.cancel(); } catch (e) { /* pas de voix */ }
   $("#hvSheet").classList.add("hidden"); document.body.classList.remove("hv-on");
 }
@@ -6781,8 +6794,11 @@ async function hvPrice(b) {
   if (hvPx[key]) return hvPx[key];
   const ref = String(b.ref || ""), own = ref.startsWith("p:") ? { code: ref.split(":")[1], id: ref.split(":").slice(2).join(":") } : null;
   const info = { price: null, lo: null, hi: null, shop: "", alts: [] };
+  // (rayons : prix indicatif de l'option choisie ; tabac : prix approximatif, règle du patron du 05/11 « ≈ 40 ₪ le paquet »)
   if (ref.startsWith("r:")) { try { const [, rid, rest] = ref.split(":"), id = String(rest || "").split("|")[0], r = Rayons.byId(rid), it = r && Rayons.items(r).find(x => x.id === id);
-    if (it && it.p) { info.lo = it.p[0]; info.hi = it.p[1]; } } catch (e) { /* pas de prix indicatif */ } }
+    let e = null; try { e = r && r.items ? rayonEntry(r, ref.slice(2)) : null; } catch (e2) { e = null; }
+    const pp = (e && (e.p || e.pb)) || (it && (it.p || it.pb));
+    if (pp) { const a = Array.isArray(pp) ? pp : [pp, pp]; info.lo = Number(a[0]) || null; info.hi = Number(a[1] != null ? a[1] : a[0]) || null; } } catch (e) { /* pas de prix indicatif */ } }
   let list = [];
   try { list = (await Store.productsSearch(b.name)) || []; } catch (e) { list = []; }
   const me = own && list.find(x => x.id === own.id);
@@ -6870,9 +6886,76 @@ function hvSay(text, choices, after) {
 // iPhone / iPad (patron, 14/11) : chaque écoute fait afficher « Accès au micro autorisé » par le téléphone. Hoppy n'y
 // rallume donc plus le micro tout seul après chaque phrase : le bouton micro clignote, le client le touche pour parler.
 const HV_IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-function hvListen(manual) {
-  if (!SpeechRec || hv.busy || hv.rec || $("#hvSheet").classList.contains("hidden")) return;
+// iPhone (et téléphone sans reconnaissance vocale) : l'appli enregistre la voix (micro ouvert une seule fois par
+// session de Hoppy : la bannière « Accès au micro » n'apparaît qu'une fois), s'arrête toute seule quand on se tait,
+// et l'IA écrit ce qui a été dit. Sur Android, la reconnaissance du téléphone reste (plus rapide).
+const HV_REC_OK = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+const hvUseRecorder = () => HV_REC_OK && (HV_IOS || !SpeechRec);
+function hvRecStop() { if (hv.recorder && hv.recorder.state === "recording") { try { hv.recorder.stop(); } catch (e) { /* déjà arrêté */ } } }
+function hvRecRelease() {
+  hvRecStop();
+  if (hv.stream) { try { hv.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ } hv.stream = null; }
+  if (hv.actx) { try { hv.actx.close(); } catch (e) { /* ignore */ } hv.actx = null; }
+}
+async function hvRecord() {
   const mic = $("#hvSheet .hv-mic");
+  if (hv.recorder && hv.recorder.state === "recording") return hvRecStop();
+  if (hv.busy || $("#hvSheet").classList.contains("hidden")) return;
+  try { speechSynthesis.cancel(); } catch (e) { /* pas de voix */ }
+  if (!hv.stream || !hv.stream.active) {
+    try { hv.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } }); }
+    catch (e) { hv.stream = null; toastCart(hvT(e && e.name === "NotAllowedError" ? "micDenied" : "micNo"), 4000); return; }
+  }
+  const type = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"].find(x => { try { return MediaRecorder.isTypeSupported(x); } catch (e) { return false; } }) || "";
+  let rec;
+  try { rec = type ? new MediaRecorder(hv.stream, { mimeType: type, audioBitsPerSecond: 32000 }) : new MediaRecorder(hv.stream); } catch (e) { toastCart(hvT("micNo"), 4000); return; }
+  const chunks = [], seq = hv.seq, t0 = Date.now();
+  hv.recorder = rec; if (mic) { mic.classList.remove("invite"); mic.classList.add("on"); }
+  $("#hvText").placeholder = hvT("hvRecording");
+  // Fin toute seule : 1,4 s de silence après avoir parlé (12 s au plus)
+  let raf = 0, spoke = false, quiet = 0;
+  try {
+    hv.actx = hv.actx || new (window.AudioContext || window.webkitAudioContext)();
+    if (hv.actx.state === "suspended") hv.actx.resume();
+    const an = hv.actx.createAnalyser(); an.fftSize = 1024; hv.actx.createMediaStreamSource(hv.stream).connect(an);
+    const buf = new Uint8Array(an.fftSize);
+    const tick = () => {
+      if (rec.state !== "recording") return;
+      an.getByteTimeDomainData(buf);
+      let peak = 0; for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i] - 128));
+      const now = Date.now();
+      if (peak > 14) { spoke = true; quiet = now; }
+      if ((spoke && now - quiet > 1400) || now - t0 > 12000 || (!spoke && now - t0 > 7000)) return hvRecStop();
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+  } catch (e) { setTimeout(hvRecStop, 8000); }
+  rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
+  rec.onstop = async () => {
+    cancelAnimationFrame(raf); hv.recorder = null; if (mic) mic.classList.remove("on"); $("#hvText").placeholder = hvT("hvPh");
+    if (seq !== hv.seq || !chunks.length || Date.now() - t0 < 600) return;
+    const blob = new Blob(chunks, { type: rec.mimeType || type || "audio/mp4" });
+    const b64 = await new Promise(ok => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(",")[1] || ""); r.onerror = () => ok(""); r.readAsDataURL(blob); });
+    if (!b64) return;
+    const wait = hvBubble("w"); hv.busy = true;
+    let text = "";
+    try { const id = await Store.iaEcoute(b64, blob.type, hv.lang); const out = id ? await Store.iaVoiceRun(id) : null; text = String((out && out.text) || "").trim(); } catch (e) { text = ""; }
+    wait.remove(); hv.busy = false;
+    if (seq !== hv.seq) return;
+    if (text.length < 2) { toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); return; }
+    UI.track("voice_said", {});
+    hvUser(text);
+  };
+  try { rec.start(250); } catch (e) { hv.recorder = null; if (mic) mic.classList.remove("on"); }
+}
+function hvListen(manual) {
+  const mic = $("#hvSheet .hv-mic");
+  if (hvUseRecorder()) {
+    if (manual === true) return hvRecord();
+    if (mic && !hv.busy) mic.classList.add("invite");
+    return;
+  }
+  if (!SpeechRec || hv.busy || hv.rec || $("#hvSheet").classList.contains("hidden")) return;
   if (HV_IOS && manual !== true) { if (mic) mic.classList.add("invite"); return; }
   if (mic) mic.classList.remove("invite");
   let r;
@@ -7181,8 +7264,16 @@ function hvStartLocal(kind) {
   hv.local = { kind, step: val("contact_name").trim() ? "phone" : "name" };
   hvSay(hvT(hv.local.step === "name" ? "hvAskName" : "hvAskPhone"), []);
 }
+// Pendant que Hoppy demande l'adresse ou le téléphone, le client pose une question (« combien coûte le Coca ? »,
+// « ajoute de l'eau ») : ce n'est pas une rue ! On la passe à Hoppy, qui répond puis redemande ce qui manque.
+const HV_OFFTOPIC = /\?|\b(combien|prix|co[uû]te|cher|pourquoi|quand|c'est quoi|qu'est-ce|ajout|ajoute|enl[eè]ve|retire|aussi|plut[oô]t|annule|change|promo|livraison)\b|כמה|מחיר|למה|מתי|תוסיף|תוריד|גם/i;
 async function hvLocal(text) {
   const L = hv.local;
+  if (["address", "pickup", "contact"].includes(L.kind) && ["street", "name"].includes(L.step) && HV_OFFTOPIC.test(text) && !/\d/.test(text)) {
+    hv.local = null;
+    hv.hist.push({ r: "c", t: text.slice(0, 300) });
+    return hvAsk(text);
+  }
   if (L.kind === "adult") {
     hv.local = null;
     if (/^(non|pas|לא)\b/i.test(text.trim())) return hvSay(hvT("hvAdultNo"), []);

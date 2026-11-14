@@ -5828,3 +5828,11 @@ body.trk-v2 .chat-modal { z-index: 1010; }
 
 /* Maison / commerce (ou rien choisi) : pas de cases étage, appartement, code */
 [data-details="dropoff"].door-hide { display: none !important; }
+
+/* Clavier ouvert (iPhone) : Hoppy occupe juste la partie visible, la case d'écriture reste au-dessus du clavier */
+.hv-box { max-height: 100%; }
+.hv.kb .hv-box { height: 100%; border-radius: 0; padding-bottom: 8px; }
+.hv.kb .hv-top { padding-bottom: 6px; }
+.hv.kb .hv-tip { display: none; }
+.hv.kb .hv-choices { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+.hv.kb .hv-choices button { flex: none; white-space: nowrap; padding: 7px 12px; font-size: 14px; }
