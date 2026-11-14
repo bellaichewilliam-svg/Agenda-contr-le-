@@ -49,7 +49,8 @@ const nativeFocus = HTMLElement.prototype.focus;
 HTMLElement.prototype.focus = function (o) {
   // Vérification d'un écran (« Continuer ») : on note seulement le champ à corriger, sans y aller
   // Adresse enregistrée sans code d'entrée : on le demande dans sa fiche résumée, sans rouvrir toute l'adresse
-  const sumCode = this === form.dropoff_code && form.classList.contains("to-saved") ? $("#toSum [data-sum-code]") : null;
+  const door = /^dropoff_(floor|apt|code)$/.exec(this.name || "");
+  const sumCode = door && form.classList.contains("to-saved") ? $(`#toSum [data-sum-${door[1]}]`) : null;
   if (wiz.probe && form.contains(this)) { wiz.lastTarget = sumCode || this; return; }
   if (sumCode) { if (wiz.on) wizReveal(sumCode); sumCode.closest(".sum-code").classList.add("need"); return nativeFocus.call(sumCode, o); }
   if (wiz.on && form.contains(this)) wizReveal(this);
@@ -2357,7 +2358,7 @@ function farNote(a) {
 // Détails d'une adresse enregistrée, en une ligne (type, bâtiment, étage, code, note)
 function addrDet(a) {
   return [a.kind ? t("kind_" + a.kind) : "", a.building ? t("building") + " : " + a.building : "", a.floor ? t("floor") + " : " + a.floor : "",
-    NO_CODE.test(a.code || "") ? t("noCode") : a.code ? t("entryCode") + " : " + a.code : "", a.note || ""].filter(Boolean).join(" · ");
+    a.apt ? t("apt") + " : " + a.apt : "", NO_CODE.test(a.code || "") ? t("noCode") : a.code ? t("entryCode") + " : " + a.code : "", a.note || ""].filter(Boolean).join(" · ");
 }
 
 // --- Fenêtre « Ajouter / modifier une adresse » (Maison, Travail, autre) ----------------------
@@ -2377,6 +2378,13 @@ function openAddrSheet(tag, which, idx) {
   $("#asNoCodeLbl").textContent = t("noCode"); $("#asNoCode").checked = !!(a && NO_CODE.test(a.code || ""));
   $("#asCode").value = a && !NO_CODE.test(a.code || "") ? a.code || "" : ""; $("#asCode").disabled = $("#asNoCode").checked;
   $("#asNote").value = a ? a.note || "" : "";
+  // Immeuble / maison individuelle (/ bureau pour « Travail ») : choisi une fois, étage + porte + code demandés pour un immeuble
+  sheet.kind = a && a.kind && a.kind !== "commerce" ? a.kind : a && (a.apt || a.floor) ? (tag === "work" ? "bureau" : "appartement") : null;
+  document.querySelectorAll("#asKind [data-as-kind]").forEach(b => {
+    const k = b.dataset.asKind; b.textContent = k === "appartement" ? "🏢 " + t("sdFlat") : k === "maison" ? "🏡 " + t("sdHouse") : t("kind_bureau");
+    b.classList.toggle("hidden", k === "bureau" && tag !== "work");
+  });
+  asKindSync();
   $("#asErr").classList.add("hidden");
   $("#asDel").classList.toggle("hidden", sheet.idx < 0);
   if (!sheet.ac) sheet.ac = Places.attach($("#asAddr"), {
@@ -2401,14 +2409,18 @@ function saveAddrSheet() {
   if (!p || p.lat == null) return err(t("asNeedAddr"));
   const number = $("#asNo").value.trim() || p.housenumber || "";
   if (!number && !p.brand) return err(t("errHouseNo"));
-  // Appartement (n° d'appartement ou étage) : le code d'entrée ou « Pas de code d'entrée », pour ne plus le demander ensuite
+  // Immeuble : étage, porte et code (ou « Pas de code d'entrée ») obligatoires (patron, 14/11) ; bureau : l'étage
   const code = $("#asNoCode").checked ? t("noCodeVal") : $("#asCode").value.trim();
-  if (($("#asApt").value.trim() || $("#asFloor").value.trim()) && !code) { $("#asCode").focus(); return err(t("asNeedCode")); }
+  if (!sheet.kind) { $("#asKind").classList.add("need"); return err(t("sdNeedKind")); }
+  if (sheet.kind !== "maison" && !$("#asFloor").value.trim()) { $("#asFloor").focus(); return err(t("errToFloor")); }
+  if (sheet.kind === "appartement" && !$("#asApt").value.trim()) { $("#asApt").focus(); return err(t("errToApt")); }
+  if (sheet.kind === "appartement" && !code) { $("#asCode").focus(); return err(t("asNeedCode")); }
   const cityId = p.cityId || cityIdOf(p.city, p);
   const addr = { street: p.streetName || (p.brand ? "" : p.street) || "", number, brand: p.brand || null,
     city: p.city || cityId, cityId: CONFIG.cities.some(c => c.id === cityId) ? cityId : null, lat: p.lat, lon: p.lon, exact: !!(p.exact || number),
     floor: $("#asFloor").value.trim() || null, apt: $("#asApt").value.trim() || null, code: code || null,
-    note: $("#asNote").value.trim() || null, building: null, kind: null, tag: sheet.tag, name: sheet.tag === "other" ? name : null };
+    note: $("#asNote").value.trim() || null, building: null, kind: sheet.kind, tag: sheet.tag, name: sheet.tag === "other" ? name : null };
+  if (sheet.kind === "maison") { addr.floor = null; addr.apt = null; }
   if (sheet.idx >= 0) Store.deleteAddress(sheet.idx);
   Store.saveAddress(addr);
   closeAddrSheet();
@@ -2419,6 +2431,14 @@ function saveAddrSheet() {
 $("#asClose").addEventListener("click", closeAddrSheet);
 $("#addrSheet").addEventListener("click", e => { if (e.target.id === "addrSheet") closeAddrSheet(); });
 $("#asSave").addEventListener("click", saveAddrSheet);
+function asKindSync() {
+  const k = sheet.kind;
+  document.querySelectorAll("#asKind [data-as-kind]").forEach(b => b.classList.toggle("on", b.dataset.asKind === k));
+  $("#asKind").classList.remove("need");
+  $("#asFloor").closest(".f").classList.toggle("hidden", k === "maison");
+  $("#asApt").closest(".f").classList.toggle("hidden", k === "maison" || k === "bureau");
+}
+$("#asKind").addEventListener("click", e => { const b = e.target.closest("[data-as-kind]"); if (!b) return; sheet.kind = b.dataset.asKind; asKindSync(); $("#asErr").classList.add("hidden"); if (sheet.kind !== "maison" && !$("#asFloor").value) $("#asFloor").focus(); });
 $("#asNoCode").addEventListener("change", e => { $("#asCode").disabled = e.target.checked; if (e.target.checked) $("#asCode").value = ""; });
 $("#asDel").addEventListener("click", () => { if (sheet.idx >= 0 && confirm(t("accDelete") + " ?")) { Store.deleteAddress(sheet.idx); closeAddrSheet(); renderSavedAddrs(); renderAccount(); } });
 $("#asPos").addEventListener("click", async () => {
@@ -2478,9 +2498,9 @@ function applySavedAddr(which, a) {
   DETAIL.forEach(k => { form.elements[pre + "_" + k].value = a[k] || ""; });
   if (pre === "dropoff") { form.dropoff_nocode.checked = NO_CODE.test(a.code || ""); syncNoCode(); }
   form.elements[pre + "_note"].value = a.note || "";
-  // Adresse enregistrée sans type de lieu : on le devine (appartement s'il y a un n° d'appartement, bureau pour « Travail »,
-  // maison sinon) ; le client peut toujours le changer dans « Modifier ». Jamais de commande bloquée pour ça.
-  setKind(pre, a.kind || (a.brand ? null : a.apt ? "appartement" : a.tag === "work" ? "bureau" : (a.tag || a.street) ? "maison" : null));
+  // Adresse enregistrée sans type de lieu : appartement s'il y a un étage ou un n° d'appartement, bureau pour « Travail » ;
+  // sinon la fiche résumée demande « Immeuble ou maison individuelle » (plus deviné « maison » : patron, 14/11)
+  setKind(pre, a.kind || (a.brand ? null : (a.apt || a.floor) ? "appartement" : a.tag === "work" ? "bureau" : null));
   state.pick[which] = { lat: a.lat, lon: a.lon, streetName: a.street, housenumber: a.number, brand: a.brand, cityId: a.cityId, city: a.city, label, exact: a.exact };
   setBrandMode(which, !!a.brand);
   state[which + "Point"] = a.lat != null ? { lat: a.lat, lon: a.lon } : null;
@@ -2744,25 +2764,60 @@ function renderToSum() {
     box.innerHTML = toAddrsHtml(list);
     box.querySelectorAll("[data-addr]").forEach(b => b.classList.toggle("on", isSavedPick(state.pick.to, list[Number(b.dataset.addr)])));
   });
-  // La carte dit tout ; la fiche en dessous ne sert plus qu'au code d'entrée s'il manque (appartement)
-  const needCode = on && !state.toChoose && (a.kind || kindOf("dropoff")) === "appartement" && !String(a.code || "").trim();
-  $("#toSum").classList.toggle("hidden", !needCode);
-  if (!needCode) return;
-  const html = `<div class="sum-code" data-i="${i}"><label class="f"><span>${UI.esc(t("entryCode"))}</span><input data-sum-code inputmode="text" autocomplete="off" placeholder="${UI.esc(t("codePh"))}" /></label>
-      <label class="check"><input type="checkbox" data-sum-nocode /> <span>${UI.esc(t("noCode"))}</span></label></div>`;
+  // La carte dit tout ; la fiche en dessous ne sert plus qu'à ce qui manque pour trouver la porte (patron, 14/11 :
+  // « adresse maison : il nous faut étage, porte, code ») : immeuble ou maison individuelle, étage, porte, code
+  const need = on && !state.toChoose && !a.brand ? doorNeed(a) : null;
+  $("#toSum").classList.toggle("hidden", !need);
+  if (!need) { $("#toSum").dataset.html = ""; return; }
+  const k = a.kind || "", inp = (key, lbl, ph, v, mode) => `<label class="f"><span>${UI.esc(t(lbl))}</span><input data-sum-${key} ${mode ? `inputmode="${mode}"` : ""} autocomplete="off" placeholder="${UI.esc(t(ph))}" value="${UI.esc(v || "")}" /></label>`;
+  const flat = k !== "bureau", noCode = NO_CODE.test(a.code || "");
+  const html = `<div class="sum-code sum-door" data-i="${i}"><b class="sd-t">🚪 ${UI.esc(t("sdDoorT"))}</b>
+      ${!k ? `<div class="sd-kind"><button type="button" data-sum-kind="appartement">🏢 ${UI.esc(t("sdFlat"))}</button><button type="button" data-sum-kind="maison">🏡 ${UI.esc(t("sdHouse"))}</button></div>` : ""}
+      <div class="sd-row">${inp("floor", "floor", "floorPh", a.floor, "numeric")}${flat ? inp("apt", "apt", "aptPh", a.apt) : ""}</div>
+      ${flat ? `${inp("code", "entryCode", "codePh", noCode ? "" : a.code)}<label class="check"><input type="checkbox" data-sum-nocode ${noCode ? "checked" : ""} /> <span>${UI.esc(t("noCode"))}</span></label>` : ""}</div>`;
   if ($("#toSum").dataset.html !== html) { $("#toSum").innerHTML = html; $("#toSum").dataset.html = html; }
 }
-// Code tapé dans la fiche résumée : dans la commande tout de suite, et gardé dans l'adresse (on ne le redemande plus)
-$("#toSum").addEventListener("input", e => { if (e.target.matches("[data-sum-code]")) { form.dropoff_code.value = e.target.value; form.dropoff_nocode.checked = false; syncNoCode(); } });
+// Ce qui manque pour trouver la porte d'une adresse enregistrée (rien pour une maison individuelle ou un commerce)
+function doorNeed(a) {
+  const k = a.kind || "";
+  if (k === "maison" || k === "commerce") return null;
+  if (k === "bureau") return a.floor ? null : "floor";
+  return !k ? "kind" : !String(a.floor || "").trim() ? "floor" : !String(a.apt || "").trim() ? "apt" : !String(a.code || "").trim() ? "code" : null;
+}
+// Ce qui est tapé dans la fiche résumée : dans la commande tout de suite, et gardé dans l'adresse (plus jamais redemandé)
+$("#toSum").addEventListener("input", e => {
+  const f = ["floor", "apt", "code"].find(x => e.target.matches(`[data-sum-${x}]`));
+  if (!f) return;
+  form.elements["dropoff_" + f].value = e.target.value;
+  if (f === "code") { form.dropoff_nocode.checked = false; syncNoCode(); const nc = $("#toSum [data-sum-nocode]"); if (nc) nc.checked = false; }
+  e.target.closest(".sum-door").classList.remove("need");
+});
+const sumSave = (box, patch) => { try { Store.updateAddress(Number(box.dataset.i), patch); } catch (ex) { /* ignore */ } };
 $("#toSum").addEventListener("change", e => {
-  const box = e.target.closest(".sum-code");
+  const box = e.target.closest(".sum-door");
   if (!box) return;
-  const i = Number(box.dataset.i), none = e.target.matches("[data-sum-nocode]") && e.target.checked;
-  const code = none ? t("noCodeVal") : (box.querySelector("[data-sum-code]").value || "").trim();
-  if (!code) return;
-  form.dropoff_nocode.checked = none; form.dropoff_code.value = code; syncNoCode();
-  try { Store.updateAddress(i, { code }); } catch (ex) { /* ignore */ }
+  if (e.target.matches("[data-sum-nocode]")) {
+    const none = e.target.checked, c = box.querySelector("[data-sum-code]");
+    if (c) { c.value = ""; c.disabled = none; }
+    form.dropoff_nocode.checked = none; form.dropoff_code.value = none ? t("noCodeVal") : ""; syncNoCode();
+    if (none) sumSave(box, { code: t("noCodeVal") });
+  } else {
+    const f = ["floor", "apt", "code"].find(x => e.target.matches(`[data-sum-${x}]`));
+    if (f) sumSave(box, { [f]: e.target.value.trim() || null });
+  }
+  // (tout est rempli : la fiche disparaît, la carte affiche les détails)
+  const a = Store.getAddresses()[Number(box.dataset.i)];
+  if (a && !doorNeed(a)) { renderToSum(); renderSavedAddrs(); }
+  renderQuote();
+});
+$("#toSum").addEventListener("click", e => {
+  const b = e.target.closest("[data-sum-kind]");
+  if (!b) return;
+  const box = b.closest(".sum-door");
+  setKind("dropoff", b.dataset.sumKind); syncDoorFields();
+  sumSave(box, { kind: b.dataset.sumKind });
   renderToSum(); renderSavedAddrs(); renderQuote();
+  const nx = $("#toSum [data-sum-floor]"); if (nx) nx.focus();
 });
 document.addEventListener("click", e => {
   const ed = e.target.closest("[data-sum-edit]");
@@ -2977,9 +3032,20 @@ function validateOrder() {
     const miss = !k ? "Kind" : (flat || k === "bureau") && !val("dropoff_floor").trim() ? "Floor"
       : flat && !val("dropoff_apt").trim() ? "Apt" : flat && !val("dropoff_code").trim() ? "Code" : null;
     // Adresse enregistrée affichée en fiche résumée : on la rouvre pour que le client voie les cases à choisir
-    if (miss && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
-    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); softMark("door"); return showErrorFalse(t("errToKind")); }
-    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); softMark("door"); return showErrorFalse(t("errTo" + miss)); }
+    if (miss && form.classList.contains("to-saved")) {
+      renderToSum();
+      const sd = $("#toSum .sum-door");
+      if (sd && !$("#toSum").classList.contains("hidden")) {
+        sd.classList.add("need");
+        const fi = miss === "Kind" ? sd.querySelector("[data-sum-kind]") : sd.querySelector(`[data-sum-${miss.toLowerCase()}]`);
+        if (wiz.on && fi) wizReveal(fi);
+        if (fi) { if (wiz.probe) wiz.lastTarget = fi; else { fi.scrollIntoView({ block: "center" }); if (miss !== "Kind") nativeFocus.call(fi); } }
+        return showErrorFalse(t(miss === "Kind" ? "sdNeedKind" : "errTo" + miss));
+      }
+      state.toOpen = true; renderToSum();
+    }
+    if (miss === "Kind") { form.querySelector('[data-kind="dropoff"]').scrollIntoView({ block: "center" }); return showErrorFalse(t("errToKind")); }
+    if (miss) { form.elements["dropoff_" + miss.toLowerCase()].focus(); return showErrorFalse(t("errTo" + miss)); }
   }
   // Sans contact : le livreur doit pouvoir arriver jusqu'à la porte (type de lieu, code d'entrée, n° d'appartement)
   if (form.leave_at_door.checked) {
@@ -7187,7 +7253,27 @@ function hvAddrFor(text) {
   const FR = ["Maman", "Papa", "Mamie", "Papi", "Ma sœur", "Mon frère", "Mon fils", "Ma fille", "Belle-maman", "Chéri(e)"];
   return { name: he ? w : FR[HV_REL.indexOf(grp)] };
 }
+function hvDoorAsk(out) {
+  if (!addrReady("to") || (state.pick.to && state.pick.to.brand)) return false;
+  const list = Store.getAddresses() || [], idx = list.findIndex(a => isSavedPick(state.pick.to, a)), a = list[idx];
+  const need = a ? doorNeed(a) : null;
+  if (!need) return false;
+  hv.afterAddr = out;
+  hv.local = { kind: "address", step: need === "kind" ? "floor" : need, a: Object.assign({}, a, { idx }), tries: 0 };
+  const where = `${a.street || ""} ${a.number || ""}`.trim();
+  if (hv.local.step === "floor") hvSay(hvT("hvAskFloor", { street: where }), [hvT("hvHouse"), "0", "1", "2", "3"]);
+  else hvSay(hvT(need === "apt" ? "hvAskApt" : "hvAskCode"), need === "code" ? [hvT("hvNoCode")] : []);
+  return true;
+}
 function hvSaveAddr(a0) {
+  // Adresse déjà enregistrée qu'on complète (étage, porte, code) : mise à jour, elle garde son nom (Maison…)
+  if (a0.idx != null && a0.idx >= 0) {
+    const patch = { kind: a0.kind || null, floor: a0.kind === "maison" ? null : a0.floor || null, apt: a0.kind === "maison" ? null : a0.apt || null, code: a0.code || "" };
+    try { Store.updateAddress(a0.idx, patch); } catch (e) { /* ignore */ }
+    const a = (Store.getAddresses() || [])[a0.idx];
+    if (a) { applySavedAddr("to", a); vitRender(); }
+    return;
+  }
   const list = Store.getAddresses() || [];
   // (l'adresse d'un proche : enregistrée sous son nom, jamais comme « Maison »)
   const forName = hv.addrFor; hv.addrFor = null;
@@ -7291,6 +7377,8 @@ async function hvAsk(text) {
     }
     const needAge = !hv.adultOk && (hv.basket || []).some(b => { const m = /^r:([^:]+):([^|]+)/.exec(String(b.ref || "")), r = m && window.Rayons && Rayons.byId(m[1]); return !!(r && (Rayons.items(r).find(i => i.id === m[2]) || {}).adult); });
     if (needAge) { hv.local = { kind: "adult", out }; return hvSay(hvT("hvAskAdult"), [hvT("hvYes"), hvT("hvNo")]); }
+    // Adresse enregistrée connue mais sans étage / porte / code (patron, 14/11) : Hoppy les demande avant d'envoyer
+    if (hvDoorAsk(out)) return;
     hv.auto = 8;
     return hvSay(out.say, [], () => hvGo(out));
   }
