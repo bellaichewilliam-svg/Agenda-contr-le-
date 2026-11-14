@@ -1671,7 +1671,7 @@ function renderShopList() {
   // Tabac / alcool : seulement là où on en vend ; ordonnance : seulement en pharmacie (sans rayon : tout reste possible)
   const svcAchat = val("service") === "achat";
   if (r) rayonAdult();   // (à chaque rendu : changement de rayon, article ajouté ou enlevé)
-  const noAdult = !svcAchat || (r && !Rayons.items(r).some(i => i.adult));
+  const noAdult = !exAdult().length && (!svcAchat || (r && !Rayons.items(r).some(i => i.adult)));
   document.querySelector(".adult-box").classList.toggle("hidden", noAdult);
   // Cases invisibles : rien ne doit rester coché (sinon la commande serait bloquée sans que le client voie pourquoi)
   if (noAdult && (form.has_tobacco.checked || form.has_alcohol.checked)) { form.has_tobacco.checked = form.has_alcohol.checked = form.adult_ok.checked = false; syncAdult(); }
@@ -2061,10 +2061,22 @@ function stopsForOrder() {
 // --- Tabac et alcool : 18 ans et plus, pas d'alcool entre 23 h et 6 h ; achat au plus près du client ---------
 const TOBACCO_RE = /cigar|clope|tabac|marlboro|winston|camel|נובלס|סיגרי|טבק|סיגר/i;
 const ALCOHOL_RE = /alcool|bi[eè]re|\bvins?\b|vodka|whisk|arak|rhum|champagne|tequila|\bgin\b|liqueur|בירה|יין|וודקה|ערק|ויסקי|אלכוהול|שמפניה/i;
-const adultItems = () => [form.has_tobacco.checked && "tabac", form.has_alcohol.checked && "alcool"].filter(Boolean);
+const adultItems = () => [...new Set([form.has_tobacco.checked && "tabac", form.has_alcohol.checked && "alcool"].concat(exAdult()).filter(Boolean))];
+// (panier unique) Tabac / alcool ajoutés à la commande d'un magasin (« à prendre aussi ») : 18+ demandé quel que soit le service
+const exAdult = () => state.shop ? [...new Set((state.extras || []).filter(x => x && x.adult).map(x => x.adult))] : [];
+const adultAsk = () => val("service") === "achat" || exAdult().length > 0;
 function alcoholForbiddenAt(d) { if (!d) return false; const h = Pricing.localParts(d, CONFIG.timezone).hour; return h >= 23 || h < 6; }
 function syncAdult() {
-  const achat = val("service") === "achat";
+  const achat = adultAsk();
+  form.classList.toggle("adult-on", exAdult().length > 0);
+  // (la case vit dans « Départ », caché pour une commande chez un commerce : elle vient juste avant la fin du formulaire)
+  const ab = document.querySelector(".adult-box");
+  if (ab) {
+    if (!ab._home) ab._home = { parent: ab.parentNode, next: ab.nextSibling };
+    const spot = form.querySelector('[data-wiz-more][data-wiz="2"]');
+    if (exAdult().length) { ab.classList.remove("hidden"); if (spot && ab.nextSibling !== spot) spot.before(ab); }
+    else if (ab.parentNode !== ab._home.parent) ab._home.parent.insertBefore(ab, ab._home.next);
+  }
   const any = achat && adultItems().length > 0;
   $("#adultOkBox").classList.toggle("hidden", !any);
   $("#alcoholNote").classList.toggle("hidden", !(achat && form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())));
@@ -3076,7 +3088,8 @@ function validateOrder() {
     $("#docsBox").scrollIntoView({ block: "center" });
     return showErrorFalse(t("errDoc", { doc: t(missDoc === "identite" && val("service") === "achat" ? "doc_identite_rx" : "doc_" + missDoc) }));
   }
-  if (val("service") === "achat" && adultItems().length) {
+  if (adultAsk() && adultItems().length) {
+    syncAdult();
     if (!form.adult_ok.checked) { form.adult_ok.focus(); return showErrorFalse(t("errAdult")); }
     if (form.has_alcohol.checked && alcoholForbiddenAt(pickupDate() || new Date())) return showErrorFalse(t("errAlcoholHours"));
   }
@@ -3234,7 +3247,7 @@ async function submit(e) {
       round_trip: form.round_trip.checked,
       extra_stops: state.stops.length,
       stops: state.stops.length ? stopsForOrder() : null,
-      adult_items: svc === "achat" && adultItems().length ? adultItems().join(",") : null,
+      adult_items: (svc === "achat" || exAdult().length) && adultItems().length ? adultItems().join(",") : null,
       distance_km: q.distanceKm,
       price: q.gift ? q.course : q.total,
       promo_code: disc ? (disc.key === "qLoyalty" ? "FIDELITE" : disc.vars.code) : null,
@@ -4588,9 +4601,11 @@ function renderCart() {
   if (!gb) { gb = document.createElement("div"); gb.id = "cartGrand"; tr.after(gb); }
   gb.innerHTML = g; gb.classList.toggle("hidden", !g); tr.classList.toggle("hidden", !!g);
   $("#cartRest").classList.toggle("hidden", !rest);
-  $("#cartRest").innerHTML = exOn ? `<b class="cr-t">🛵 ${UI.esc(t("csRestT", { name: mgShort(state.shop ? state.shop.name : "") }))}</b>`
+  // (boutique HOP! : le livreur les prend dans ce magasin ; restaurant, traiteur… : au plus près, sur le trajet)
+  const restK = state.shop && isHopShop(state.shop) ? "" : "Near";
+  $("#cartRest").innerHTML = exOn ? `<b class="cr-t">🛵 ${UI.esc(t("csRestT" + restK, { name: mgShort(state.shop ? state.shop.name : "") }))}</b>`
       + ex.map(x => `<div class="cr-row"><span class="cr-pic">${x.ph ? `<img src="${UI.esc(x.ph)}" alt="" loading="lazy" />` : UI.esc(x.e || "🛒")}</span><span class="cr-n">${x.q > 1 ? x.q + " × " : ""}${UI.esc(x.n)}</span><em>${x.p ? "≈ " + UI.esc(money(x.p)) : ""}</em></div>`).join("")
-      + `<small>${UI.esc(t("csRestS", { name: mgShort(state.shop ? state.shop.name : "") }))}</small>`
+      + `<small>${UI.esc(t("csRestS" + restK, { name: mgShort(state.shop ? state.shop.name : "") }))}</small>`
     : rest ? `📝 ${UI.esc(rest)}` : "";
   renderMulti();
   cartExtras();
@@ -5046,6 +5061,10 @@ function multiPark() {
   state.multi[s.code] = { code: s.code, name: UI.bi(s.name), short: shopShortName(), lat: s.lat, lon: s.lon, price: proPrice(s),
     cart: Object.assign({}, state.cart), mods: Object.assign({}, state.cartMods || {}), note: form.shop_order.value || "",
     lines: cartLines().filter(l => !isAddon(l.p)).map(l => ({ n: pName(l.p), q: l.qty, ph: UI.safeImg(l.p.photo) || "" })), count: cartCount(), total: cartTotal(), at: Date.now() };
+  // (panier unique, 14/11) : les articles « À prendre aussi » (rayons HOP!) restent avec leur magasin, jamais perdus
+  const ex = (state.extras || []).filter(Boolean);
+  if (ex.length) { const m = state.multi[s.code]; m.rlx = ex.map(x => Object.assign({}, x)); m.lines = m.lines.concat(ex.map(x => ({ n: x.n, q: x.q || 1, ph: x.ph || "" })));
+    m.count += ex.reduce((a, x) => a + (Number(x.q) || 1), 0); m.total += ex.reduce((a, x) => a + (Number(x.p) || 0), 0); }
   multiSave();
   toastCart(t("multiParked", { name: shopShortName() }));
 }
@@ -5058,6 +5077,9 @@ function multiParkStored(code) {
   const sc = (state.showcase || []).find(x => x.code === c.shop.code) || null, nm = String(c.snap.shop_name || c.shop.code);
   state.multi[c.shop.code] = { code: c.shop.code, name: nm, short: nm.split(" · ")[0], lat: sc && sc.lat, lon: sc && sc.lon, price: sc ? proPrice(sc) : null,
     cart: c.cart || {}, mods: c.mods || {}, note: "", lines: (c.snap.items || []).map(i => ({ n: i.n, q: i.q })), count: c.snap.count, total: Number(c.snap.total) || 0, at: Date.now() };
+  const ex = (c.extras || []).filter(Boolean);
+  if (ex.length) { const m = state.multi[c.shop.code]; m.rlx = ex; m.lines = m.lines.concat(ex.map(x => ({ n: x.n, q: x.q || 1, ph: x.ph || "" })));
+    m.count += ex.reduce((a, x) => a + (Number(x.q) || 1), 0); m.total += ex.reduce((a, x) => a + (Number(x.p) || 0), 0); }
   multiSave();
   toastCart(t("multiParked", { name: nm.split(" · ")[0] }));
 }
@@ -7212,7 +7234,11 @@ function hvCtx() {
       .map(o => ({ etat: I18N.forLang(hv.lang, "st_" + o.status), chez: o.shop_name ? String(UI.bi(o.shop_name)).slice(0, 40) : "" })),
     last: (() => { try { const g = reorderList().find(x => x.last) || reorderList()[0]; if (!g) return null;
       return { chez: g.o.shop_name ? String(UI.bi(g.o.shop_name)).slice(0, 40) : "", quoi: g.items.length ? String(g.o.shop_order || "").split("\n").filter(l => l && !/^💬/.test(l)).slice(0, 5).map(l => String(UI.bi(l)).slice(0, 50)) : [I18N.forLang(hv.lang, "svc_" + g.o.service) || ""] }; } catch (e) { return null; } })(),
-    deja: (() => { try { return cartLines().map(l => `${l.qty} × ${String(UI.bi(l.p.name)).slice(0, 40)}`).concat(Object.entries(state.pharma || {}).filter(x => x[1] > 0).map(([k, q]) => `${q} × ${k.split(":")[1]}`)).slice(0, 20); } catch (e) { return []; } })(),
+    deja: (() => { try { const here = state.shop ? ` (${String(shopShortName()).slice(0, 24)})` : "";
+      return cartLines().map(l => `${l.qty} × ${String(UI.bi(l.p.name)).slice(0, 40)}${here}`)
+        .concat((state.extras || []).filter(Boolean).map(x => `${x.q || 1} × ${String(x.n).slice(0, 40)} (au plus près)`))
+        .concat(rayLines().map(l => `${l.q} × ${String(phName(l.it)).slice(0, 40)} (Courses HOP!)`))
+        .concat(multiList().flatMap(m => (m.lines || []).map(x => `${x.q} × ${String(x.n).slice(0, 40)} (${String(m.short || m.name).slice(0, 24)})`))).slice(0, 24); } catch (e) { return []; } })(),
     // (dans un magasin : Hoppy cherche d'abord chez lui)
     inShop: hvShopNow(),
     basket: hv.basket.map(b => `${b.qty} × ${b.name}${b.ref ? " (" + b.ref + ")" : ""}`) };
@@ -7792,6 +7818,12 @@ async function hvGo(out) {
   // Tout dans un même rayon « Courses HOP! » (ex. Marlboro Gold + briquet) : le rayon s'ouvre, les articles déjà cochés
   const ray = refs.every(r => r.startsWith("r:")) && new Set(refs.map(r => r.split(":")[1])).size === 1 ? Rayons.byId(refs[0].split(":")[1]) : null;
   if (ray && items.length) {
+    // (panier unique : un magasin attend déjà dans le panier → ces articles rejoignent sa commande, un seul panier)
+    if (shopCartWaiting()) {
+      items.forEach(b => { const [, rid, rest] = b.ref.split(":"); const [id, o] = String(rest || "").split("|");
+        state.pharma[`${rid}:${id}|${Number(o) || 0}`] = (state.pharma[`${rid}:${id}|${Number(o) || 0}`] || 0) + b.qty; (state.pharmaOpt = state.pharmaOpt || {})[`${rid}:${id}`] = Number(o) || 0; });
+      return openOneCart();
+    }
     goKind(ray.kind);
     setTimeout(() => {
       items.forEach(b => { const [, rid, rest] = b.ref.split(":"); const [id, o] = String(rest || "").split("|");
@@ -9004,6 +9036,10 @@ function cartSnap() {
 }
 const cartStored = () => { try { const c = JSON.parse(localStorage.getItem(LS_CART)); return c && Date.now() - c.at < CART_DAYS * 86400000 ? c : null; } catch (e) { return null; } };
 cartAtStart = cartStored();
+// (panier unique) Les articles des rayons gardés sur le téléphone sont repris tout de suite (pas seulement au toucher du panier)
+if (cartAtStart && !cartAtStart.shop && cartAtStart.pharma && !Object.keys(state.pharma || {}).length) {
+  state.pharma = Object.assign({}, cartAtStart.pharma); state.pharmaOpt = Object.assign({}, cartAtStart.pharmaOpt || {});
+}
 let cartSyncT = null, cartSent = "";
 // L'étape où en est le client (panier, écrans de la commande, envoi) : le patron voit où il s'arrête
 let cartStep = "panier";
@@ -9064,11 +9100,62 @@ document.addEventListener("click", async e => {
   if (bar) bar.classList.add("hidden");
   if (yes && await UI.cartPushSubscribe(true)) toastCart(t("cnOk"));
 });
+// ===== Panier unique (patron, 14/11 : « il nous faut un seul panier ») ==========================================
+// Un magasin a des articles : c'est la commande principale. Les produits des rayons HOP! (tabac, courses, pharmacie…)
+// la rejoignent tout seuls dans « À prendre aussi » (le livreur les prend au plus près), avec un seul total.
+function rayFold() {
+  if (!state.shop || !state.catalog || !cartLines().length || state.shop.demo) return false;
+  const lines = rayLines();
+  if (!lines.length) return false;
+  state.extras = (state.extras || []).filter(Boolean);
+  const names = [];
+  lines.forEach(l => {
+    const e = rayonEntry(l.r, l.k), nm = e ? phName(e.x) + (e.v ? " · " + phName(e.v) : "") : phName(l.it);
+    const unit = e && e.p ? priceMid(e.p) : l.unit, ph = UI.safeImg(l.it.photo) || (l.it.img ? `img/qc/${l.it.img}.webp` : "");
+    const old = state.extras.find(x => x.rk === l.k);
+    if (old) { old.q = (Number(old.q) || 1) + l.q; old.p = unit ? unit * old.q : old.p; }
+    else state.extras.push({ n: nm, q: l.q, p: unit ? unit * l.q : null, ph, e: l.it.e || "🛒", rk: l.k, adult: l.it.adult || null });
+    if (l.it.adult === "tabac") form.has_tobacco.checked = true;
+    if (l.it.adult === "alcool") form.has_alcohol.checked = true;
+    names.push(nm);
+  });
+  state.pharma = {};
+  extrasNote(); syncAdult();
+  toastCart(t("ufFolded", { items: names.slice(0, 3).join(", "), name: shopShortName() }), 4500);
+  return true;
+}
+// Un magasin attend dans le panier (celui ouvert, celui gardé sur le téléphone, ou un autre magasin gardé)
+const shopCartWaiting = () => !!((state.shop && cartLines().length) || (cartStored() && cartStored().shop) || multiList().length);
+// Le bouton panier, de partout : la commande principale (le magasin) s'ouvre avec TOUT dedans (ses articles, les rayons,
+// les autres magasins) ; sans magasin : le panier des rayons ; seulement une commande préparée avec Hoppy : Hoppy
+async function openOneCart() {
+  if (state.shop && cartLines().length) { rayFold(); renderQuote(); saveDraft(); cartPersist(); return openCart(); }
+  const c = cartStored(), keepRay = Object.assign({}, state.pharma || {}, c && !c.shop ? c.pharma || {} : {}), keepOpt = Object.assign({}, state.pharmaOpt || {}, c && !c.shop ? c.pharmaOpt || {} : {});
+  if ((c && c.shop) || multiList().length) {
+    if (c && c.shop) return openStoredCart();
+    const m = multiList()[0];
+    await loadShop(m.code, true);
+    // (le menu arrive : les articles des rayons rejoignent la commande, puis le panier s'ouvre)
+    const t0 = Date.now();
+    await new Promise(ok => { const w = () => (state.catalog || Date.now() - t0 > 6000 ? ok() : setTimeout(w, 150)); w(); });
+    state.pharma = Object.assign({}, keepRay); state.pharmaOpt = keepOpt;
+    rayFold(); renderCatalog(); renderQuote(); saveDraft(); cartPersist();
+    if (cartCount()) openCart();
+    return;
+  }
+  if (c) return openStoredCart();
+  if (hvKeepGet && hvKeepGet() && Store.iaAssist) return hvOpen();
+  return openStoredCart();
+}
 function cartPersist() {
+  rayFold();
+  // (un panier de magasin gardé sur le téléphone n'est jamais écrasé par des articles de rayon : il est mis de côté, gardé)
+  if (!state.shop) { const c0 = cartStored(), s0 = cartSnap(); if (c0 && c0.shop && s0.count && s0.kind !== "shop") multiParkStored(""); }
   const snap = cartSnap();
   cartWho(snap);
   try {
     if (snap.count) localStorage.setItem(LS_CART, JSON.stringify({ at: Date.now(), snap, cart: state.cart, mods: state.cartMods || {}, pharma: state.pharma, pharmaOpt: state.pharmaOpt,
+      extras: snap.kind === "shop" ? (state.extras || []).filter(Boolean) : [],
       homeKind: state.homeKind, shop: snap.kind === "shop" ? { code: state.shop.code, dir: state.shopDir || "" } : null }));
     else localStorage.removeItem(LS_CART);
   } catch (e) { /* stockage plein */ }
@@ -9101,7 +9188,13 @@ function renderCartIcon() {
   if (!b) return;
   let parked = 0;
   try { parked = multiList().reduce((a, m) => a + (Number(m.count) || 0), 0); } catch (e) { /* pas encore prêt */ }
-  const c = cartStored(), n = (c ? c.snap.count : 0) + parked + (state.shop ? (state.extras || []).filter(Boolean).reduce((a, x) => a + (Number(x.q) || 1), 0) : 0);
+  const c = cartStored();
+  let ray = 0, hop = 0;
+  try { ray = rayLines().reduce((a, l) => a + l.q, 0); } catch (e) { ray = 0; }
+  if (!ray && c && !c.shop) ray = c.snap.count;
+  try { const k = !hv.hist.length && hvKeepGet(); hop = k && k.basket ? k.basket.reduce((a, b) => a + (Number(b.qty) || 1), 0) : 0; } catch (e) { hop = 0; }
+  const shopN = state.shop && state.catalog ? cartCount() : c && c.shop ? c.snap.count : 0;
+  const n = shopN + parked + ray + hop + (state.shop ? (state.extras || []).filter(Boolean).reduce((a, x) => a + (Number(x.q) || 1), 0) : 0);
   // Accueil : une fine pastille pour reprendre le panier gardé sur ce téléphone
   let pill = $("#homeCartPill");
   if (!pill && $("#homeNotices")) { pill = document.createElement("button"); pill.type = "button"; pill.id = "homeCartPill"; pill.className = "cart-resume hidden"; $("#homeNotices").before(pill); }
@@ -9127,7 +9220,8 @@ async function openStoredCart() {
     const ids = cgProducts().map(p => p.id);
     state.cart = Object.fromEntries(Object.entries(c.cart || {}).filter(([id, q]) => ids.includes(id) && q > 0));
     state.cartMods = Object.fromEntries(Object.entries(c.mods || {}).filter(([id]) => state.cart[id]));
-    renderCatalog(); renderQuote(); saveDraft();
+    if ((c.extras || []).length && !(state.extras || []).filter(Boolean).length) { state.extras = c.extras.filter(Boolean); extrasNote(); }
+    rayFold(); renderCatalog(); renderQuote(); saveDraft(); cartPersist();
     if (cartCount()) openCart(); else { cartDone(); toastCart(t("cartGone")); }
     return;
   }
@@ -9178,7 +9272,8 @@ function renderRayCart() {
         return renderRayCart();
       }
       if (e.target.closest("[data-ry-more]")) { m.classList.add("hidden"); return goPharma(); }
-      if (e.target.closest("[data-ry-go]")) { m.classList.add("hidden"); const g = $("#mobileGo"); if (g) g.click(); }
+      // (un magasin attend aussi dans le panier : une seule commande, le magasin d'abord avec ces articles dedans)
+      if (e.target.closest("[data-ry-go]")) { m.classList.add("hidden"); if (multiList().length) return openOneCart(); const g = $("#mobileGo"); if (g) g.click(); }
     });
   }
   const lines = rayLines(), sum = lines.reduce((a, l) => a + l.unit * l.q, 0), n = lines.reduce((a, l) => a + l.q, 0);
@@ -9189,8 +9284,9 @@ function renderRayCart() {
     <span class="it-qty cs-qty"><button type="button" data-ry-minus="${UI.esc(l.k)}" aria-label="−">${l.q > 1 ? "−" : "🗑"}</button><b>${l.q}</b><button type="button" data-ry-plus="${UI.esc(l.k)}" aria-label="+">+</button></span></div>`).join("");
   $("#rayCartTot").textContent = t("ryCartTot");
   $("#rayCartSum").textContent = sum ? "≈ " + money(Math.round(sum)) : "";
-  $("#rayCartNote").textContent = t("ryCartNote");
-  m.querySelector("[data-ry-go]").textContent = t("ryCartGo");
+  const par = multiList();
+  $("#rayCartNote").innerHTML = par.length ? `<span class="ry-also">🛍️ ${UI.esc(t("ufAlso", { list: par.map(x => `${x.short || x.name} (${x.count})`).join(", ") }))}</span>` : UI.esc(t("ryCartNote"));
+  m.querySelector("[data-ry-go]").textContent = par.length ? t("ufAllGo") : t("ryCartGo");
   m.querySelector("[data-ry-more]").textContent = "+ " + t("ryCartMore");
   m.querySelector("[data-cart-clear] span").textContent = t("cartClear");
 }
@@ -9281,7 +9377,7 @@ function toastCart(msg, ms) {
   setTimeout(() => d.classList.add("out"), keep); setTimeout(() => d.remove(), keep + 400);
 }
 if ($("#tbCart")) {
-  $("#tbCart").addEventListener("click", openStoredCart);
+  $("#tbCart").addEventListener("click", openOneCart);
   document.addEventListener("click", e => { if (e.target.closest("#homeCartPill") && !e.target.closest("[data-cart-clear]")) openStoredCart(); });
   // « On livre quand même » : n'importe quel commerce → la case « On récupère où ? » de l'accueil
   document.addEventListener("click", e => {
