@@ -6989,6 +6989,7 @@ function hvRecRelease() {
   hvRecStop();
   if (hv.stream) { try { hv.stream.getTracks().forEach(t => t.stop()); } catch (e) { /* ignore */ } hv.stream = null; }
   if (hv.actx) { try { hv.actx.close(); } catch (e) { /* ignore */ } hv.actx = null; }
+  if (hv.wctx) { try { hv.wctx.close(); } catch (e) { /* ignore */ } hv.wctx = null; }
 }
 // Chaque étape de la voix est signalée (sans aucun son ni donnée perso) : on voit où un téléphone bloque (patron, 14/11)
 const hvStep = step => { try { UI.track("voice_mic", { page: String(step).slice(0, 40), shop_code: HV_IOS ? "IOS" : "" }); } catch (e) { /* ignore */ } };
@@ -7072,11 +7073,13 @@ async function hvRecord() {
 async function hvRecordWav() {
   const mic = $("#hvSheet .hv-mic");
   // (le « moteur son » doit être allumé pendant le toucher, avant toute attente, sinon l'iPhone le laisse éteint)
-  let ctx = hv.wctx;
-  try { if (!ctx || ctx.state === "closed") ctx = hv.wctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { hvStep("err:ctx"); toastCart(hvT("micNo"), 4000); return; }
+  // Neuf à chaque toucher (vu le 14/11) : après la voix de Hoppy ou un passage hors de l'appli, l'iPhone coupe en silence
+  // le moteur son et le micro d'avant (0 seconde captée) → on rallume tout à chaque fois
+  hvWavReset();
+  let ctx;
+  try { ctx = hv.wctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { hvStep("err:ctx"); toastCart(hvT("micNo"), 4000); return; }
   const resumed = ctx.state !== "running" && ctx.resume ? ctx.resume().catch(() => {}) : null;
-  if (!hvStreamOk()) {
-    hvStreamDrop();
+  {
     try { hv.stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
     catch (e) { hv.stream = null; hvStep("err:gum:" + ((e && e.name) || "?")); toastCart(hvT(e && e.name === "NotAllowedError" ? "micDenied" : "micNo"), 5000); return; }
   }
@@ -7100,6 +7103,8 @@ async function hvRecordWav() {
   };
   src.connect(proc); proc.connect(ctx.destination);
   hv.recorder = rec; hv.recFinish = null;
+  // (aucun son reçu au bout de 1,5 s : le téléphone a bloqué le micro → on arrête, le prochain toucher repart de zéro)
+  setTimeout(() => { if (!stopped && !bufs.length) { hvStep("err:noframes:" + ctx.state); rec.stop(); } }, 1500);
   if (mic) { mic.classList.remove("invite"); mic.classList.add("on"); }
   $("#hvText").placeholder = hvT("hvRecording");
   hvStep("wav:" + rate);
@@ -7110,7 +7115,8 @@ async function hvRecordWav() {
     if (seq !== hv.seq) return;
     const n = bufs.reduce((a, b) => a + b.length, 0), secs = n / rate;
     hvStep(`wavend:${secs.toFixed(1)}s:${Math.round(peak * 100)}`);
-    if (secs < 0.5 || peak < 0.01) { toastCart(hvT("hvRecNone"), 3500); if (mic) mic.classList.add("invite"); if (peak < 0.01) hvStreamDrop(); return; }
+    if (secs < 0.5 || peak < 0.01) { toastCart(hvT(bufs.length ? "hvRecNone" : "hvMicAgain"), 3500); if (mic) mic.classList.add("invite"); hvWavReset(); return; }
+    hvWavReset();
     const b64 = hvWav(bufs, n, rate);
     hvStep(`send:${Math.round(b64.length * 0.75 / 1024)}k:audio/wav`);
     const wait = hvBubble("w"); hv.busy = true;
@@ -7125,6 +7131,16 @@ async function hvRecordWav() {
     hvUser(text);
   };
 }
+// Micro et moteur son éteints (le micro de l'iPhone ne reste pas allumé entre deux phrases)
+function hvWavReset() {
+  hvStreamDrop();
+  if (hv.wctx) { try { hv.wctx.close(); } catch (e) { /* ignore */ } hv.wctx = null; }
+}
+// L'appli passe en arrière-plan : on arrête l'écoute et on éteint tout (au retour, le prochain toucher rallume du neuf)
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "hidden" || !HV_IOS) return;
+  try { if (hv.recorder && hv.recorder.state === "recording") hvRecStop(); hvWavReset(); } catch (e) { /* ignore */ }
+});
 // Son brut → WAV 16 kHz mono 16 bits, en base64 (≈ 32 Ko par seconde)
 function hvWav(bufs, n, rate) {
   const out = 16000, ratio = rate / out, len = Math.floor(n / ratio);
