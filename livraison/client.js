@@ -6687,8 +6687,10 @@ function hvOpen() {
   $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
   UI.track("voice_start", {});
   // Une commande gardée (Hoppy fermé avant la fin, page rechargée) : on la retrouve, « je l'envoie ou on recommence ? »
-  if (!hv.hist.length) { hv.pickDone = false; hv.afterAddr = null; hv.toldMulti = false; }
-  const kept = !hv.hist.length && !hv.basket.length ? hvKeepGet() : null;
+  // (nouvelle conversation : plus aucune question en cours — téléphone, adresse… — d'une conversation d'avant)
+  if (!hv.hist.length) { hv.pickDone = false; hv.afterAddr = null; hv.toldMulti = false; hv.local = null; }
+  // (un panier déjà là quand Hoppy recommence : on demande « je l'envoie ou on recommence ? », jamais un vieux panier sous « Bonjour »)
+  const kept = !hv.hist.length ? (hv.basket.length ? { basket: hv.basket.slice(), hist: [], last: hv.lastOut } : hvKeepGet()) : null;
   if (kept) {
     $("#hvLog").innerHTML = ""; hv.hist = kept.hist || []; hv.basket = kept.basket; hv.lastOut = kept.last || null; hvBasketDraw();
     hv.short = { [hvT("hvKeepNew")]: () => { hv.hist = []; hv.basket = []; hv.lastOut = null; hvKeepClear(); hvBasketDraw(); hvOpen(); } };
