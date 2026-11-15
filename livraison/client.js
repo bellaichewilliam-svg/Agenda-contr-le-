@@ -55,13 +55,35 @@ HTMLElement.prototype.focus = function (o) {
   if (sumCode) { if (wiz.on) wizReveal(sumCode); sumCode.closest(".sum-code").classList.add("need"); return nativeFocus.call(sumCode, o); }
   if (wiz.on && form.contains(this)) wizReveal(this);
   if (this.closest && this.closest(".drop-addr") && form.classList.contains("to-saved")) { state.toOpen = true; renderToSum(); }
+  if (form.contains(this)) needLast = { el: this, at: Date.now() };
   return nativeFocus.call(this, o);
 };
+// ===== Une case obligatoire manque (patron, 15/11 : « que ça remonte à l'endroit, le client est perdu ») =====
+// L'écran défile jusqu'à la case, elle est entourée en orange et clignote quelques secondes (cases à cocher comprises)
+let needLast = null;
+function hopFlag(el) {
+  if (!el || !el.getClientRects) return;
+  let box = el.closest && el.closest("label.check, .check, .f, .sum-code, .sd-kind, .adult-box, [data-kind], .ch-chips, .soft-box") || el;
+  if (!box.getClientRects().length) box = el;
+  if (!box.getClientRects().length) { const v = el.closest && [...document.querySelectorAll("fieldset, .card")].find(x => x.contains(el) && x.getClientRects().length); if (!v) return; box = v; }
+  const bar = document.querySelector(".topbar"), wb = $("#wizBar"), off = ((bar && bar.offsetHeight) || 0) + ((wb && wb.getClientRects().length && getComputedStyle(wb).position === "sticky") ? wb.offsetHeight : 0);
+  const r = box.getBoundingClientRect(), y = r.top + window.scrollY - off - Math.max(16, (window.innerHeight - off - r.height) / 3);
+  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  document.querySelectorAll(".hop-need").forEach(x => x.classList.remove("hop-need"));
+  void box.offsetWidth; box.classList.add("hop-need");
+  clearTimeout(hopFlag.t); hopFlag.t = setTimeout(() => box.classList.remove("hop-need"), 6000);
+  // (une case à cocher : la toucher n'importe où dans son cadre la coche)
+  const inp = el.matches && el.matches("input[type=text], input[type=tel], input:not([type]), textarea") ? el : null;
+  if (inp) setTimeout(() => { try { nativeFocus.call(inp, { preventScroll: true }); } catch (e) { /* ignore */ } }, 450);
+}
+document.addEventListener("input", e => { const b = e.target.closest && e.target.closest(".hop-need"); if (b) b.classList.remove("hop-need"); }, true);
+document.addEventListener("change", e => { const b = e.target.closest && e.target.closest(".hop-need"); if (b) b.classList.remove("hop-need"); }, true);
 // Tout ce qui « fait défiler jusqu'à » une partie de la page ouvre d'abord le bon écran
 const nativeScrollIntoView = Element.prototype.scrollIntoView;
 Element.prototype.scrollIntoView = function (o) {
   if (wiz.probe && form.contains(this)) { wiz.lastTarget = this; return; }
   if (wiz.on && form.contains(this)) wizReveal(this);
+  if (form.contains(this)) needLast = { el: this, at: Date.now() };
   setView(viewOf(this), true); return nativeScrollIntoView.call(this, o);
 };
 function routeHash() {
@@ -1916,7 +1938,7 @@ function wizNext() {
   // Le problème est sur cet écran (ou un écran d'avant) : on y va et on le montre
   if (UI.track) UI.track("order_block", { page: ("e" + wiz.step + ":" + (tgt ? tgt.name || tgt.id || tgt.className : "?")).slice(0, 40) });
   showError(msg);
-  if (tgt) { if (typeof tgt.focus === "function" && tgt.matches("input, select, textarea, button")) tgt.focus(); else tgt.scrollIntoView({ block: "center", behavior: "smooth" }); }
+  if (tgt) { if (typeof tgt.focus === "function" && tgt.matches("input, select, textarea, button")) tgt.focus({ preventScroll: true }); else tgt.scrollIntoView({ block: "center", behavior: "smooth" }); needLast = null; setTimeout(() => hopFlag(tgt), 160); }
 }
 function wizShowErr(msg) {
   let box = $("#wizToast");
@@ -1941,6 +1963,7 @@ if (wiz.on) {
 function softBtn() { return softAsk ? `<button type="button" class="btn btn-sm soft-go" data-soft-go="${softAsk}">${UI.esc(t("softGo"))}</button>` : ""; }
 function showError(msg) {
   showError.last = msg || "";
+  if (msg && !wiz.probe && needLast && Date.now() - needLast.at < 800) { const el = needLast.el; needLast = null; setTimeout(() => hopFlag(el), 120); }
   $("#formError").innerHTML = msg ? UI.esc(msg) + (softAsk ? `<br>${softBtn()}` : "") : "";
   $("#formError").classList.toggle("hidden", !msg);
   // Commande en 3 écrans : le message s'affiche aussi sur l'écran du problème
@@ -2069,6 +2092,7 @@ function alcoholForbiddenAt(d) { if (!d) return false; const h = Pricing.localPa
 function syncAdult() {
   const achat = adultAsk();
   form.classList.toggle("adult-on", exAdult().length > 0);
+  exAdult().forEach(k => { const f = k === "tabac" ? form.has_tobacco : k === "alcool" ? form.has_alcohol : null; if (f && !f.checked) f.checked = true; });
   // (la case vit dans « Départ », caché pour une commande chez un commerce : elle vient juste avant la fin du formulaire)
   const ab = document.querySelector(".adult-box");
   if (ab) {
