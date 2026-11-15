@@ -76,8 +76,11 @@ function hopFlag(el) {
   const inp = el.matches && el.matches("input[type=text], input[type=tel], input:not([type]), textarea") ? el : null;
   if (inp) setTimeout(() => { try { nativeFocus.call(inp, { preventScroll: true }); } catch (e) { /* ignore */ } }, 450);
 }
-document.addEventListener("input", e => { const b = e.target.closest && e.target.closest(".hop-need"); if (b) b.classList.remove("hop-need"); }, true);
-document.addEventListener("change", e => { const b = e.target.closest && e.target.closest(".hop-need"); if (b) b.classList.remove("hop-need"); }, true);
+// (le client corrige : le cadre orange ET le message rouge s'effacent tout de suite, plus de vieux message qui traîne)
+const hopFixed = e => { const b = e.target.closest && e.target.closest(".hop-need"); if (!b) return; b.classList.remove("hop-need"); if (b.id === "rulesOkBox") $("#rulesErr").classList.add("hidden"); try { wizShowErr(""); $("#formError").classList.add("hidden"); } catch (x) { /* ignore */ } };
+document.addEventListener("input", hopFixed, true);
+document.addEventListener("change", hopFixed, true);
+document.addEventListener("click", e => { if (e.target.closest && e.target.closest(".hop-need [data-sum-kind], .hop-need .ch-chip, .hop-need button")) hopFixed(e); }, true);
 // Tout ce qui « fait défiler jusqu'à » une partie de la page ouvre d'abord le bon écran
 const nativeScrollIntoView = Element.prototype.scrollIntoView;
 Element.prototype.scrollIntoView = function (o) {
@@ -2010,10 +2013,10 @@ function onPlacePicked(which, p, quiet) {
   state[which + "Point"] = { lat: p.lat, lon: p.lon };
   // Numéro de rue : rempli si la carte le connaît, sinon on invite à le saisir (sauf enseigne)
   const num = form.elements[which === "from" ? "pickup_number" : "dropoff_number"];
-  num.value = p.housenumber || "";
+  num.value = p.housenumber || p.typedNo || "";
   // (sauf si le client est déjà passé à un autre champ entre-temps)
   const addr = form.elements[prefixOf(which) + "_address"];
-  if (!quiet && !p.housenumber && (!p.brand || needsNo(p))) setTimeout(() => { const a = document.activeElement; if (!a || a === document.body || a === addr) num.focus(); }, 50);
+  if (!quiet && !num.value && (!p.brand || needsNo(p))) setTimeout(() => { const a = document.activeElement; if (!a || a === document.body || a === addr) num.focus(); }, 50);
   // Départ dans un restaurant (annuaire, carte) : c'est un repas, pas un colis
   // Un pressing n'est jamais un repas : c'est une course d'objets (vêtements)
   if (which === "from" && isPressing(p) && val("service") === "repas" && !state.svcChosen) form.elements.service.value = "colis";
@@ -2426,7 +2429,7 @@ function openAddrSheet(tag, which, idx) {
   if (!sheet.ac) sheet.ac = Places.attach($("#asAddr"), {
     lang: () => I18N.lang, streetsOnly: true,
     texts: () => ({ none: t("addrNone"), down: t("addrDown"), partner: t("ensPartner"), notOnMap: t("addrNotOnMap"), notOnMapSub: t("addrNotOnMapSub"), brandAddr: t("addrBrandAddr"), soon: t("addrSoon"), didYouMean: t("addrDidYou") }),
-    onPick: p => { sheet.pick = p; $("#asErr").classList.add("hidden"); if (p.housenumber && !$("#asNo").value) $("#asNo").value = p.housenumber; if (!p.housenumber && !p.brand) setTimeout(() => $("#asNo").focus(), 50); },
+    onPick: p => { sheet.pick = p; $("#asErr").classList.add("hidden"); if ((p.housenumber || p.typedNo) && !$("#asNo").value) $("#asNo").value = p.housenumber || p.typedNo; if (!$("#asNo").value && !p.brand) setTimeout(() => $("#asNo").focus(), 50); },
     onClear: () => { sheet.pick = null; }
   });
   if (a) {
@@ -2704,7 +2707,7 @@ function confirmAddresses(pick, drop, pAddr, dAddr, fromCity, toCity) {
     }
     const done = ok => { $("#checkModal").classList.add("hidden"); $("#checkOk").onclick = $("#checkBack").onclick = $("#checkClose").onclick = $("#checkModal").onclick = null; resolve(ok ? legs : null); };
     $("#checkOk").onclick = () => {
-      if (rules && !$("#rulesOk").checked) { $("#rulesErr").classList.remove("hidden"); return; }
+      if (rules && !$("#rulesOk").checked) { $("#rulesErr").classList.remove("hidden"); const rb = $("#rulesOkBox"); rb.classList.remove("hop-need"); void rb.offsetWidth; rb.classList.add("hop-need"); nativeScrollIntoView.call(rb, { block: "center", behavior: "smooth" }); return; }
       legs.rulesOk = rules;
       done(true);
     };
@@ -5952,19 +5955,41 @@ const addrOfOrder = (o, pre) => {
   return { street: m ? m[1] : txt, number: m ? m[2] : "", cityId: city, city, lat, lon, exact: true, kind: o[pre + "_kind"] || null,
     building: o[pre + "_building"] || "", floor: o[pre + "_floor"] || "", apt: o[pre + "_apt"] || "", code: o[pre + "_code"] || "", note: o[pre + "_note"] || "" };
 };
+// Commande passée dans un rayon HOP! (cigarettes, courses, pharmacie…) : ses lignes retrouvées dans le rayon, pour la
+// refaire en un toucher (patron, 15/11 : plus simple et plus rapide pour le client)
+function rayOfOrder(o) {
+  if (!o || o.service !== "achat" || !o.shopping_list || !window.Rayons) return null;
+  const nz = x => String(x || "").trim().toLowerCase(), picks = [], rest = [];
+  String(o.shopping_list).split("\n").map(l => l.trim()).filter(Boolean).forEach(l => {
+    const m = /^(?:\S+\s+)?(.+?)(?:\s+\[Carrefour\])?(?:\s+\(≈[^)]*\))?\s+×(\d+)$/u.exec(l);
+    let hit = null;
+    if (m) for (const r of Rayons.ALL) { for (const it of Rayons.items(r)) {
+      const names = [it.fr, it.he].filter(Boolean).map(nz), full = nz(m[1]);
+      if (names.includes(full)) { hit = { r, k: `${r.id}:${it.id}|0`, id: it.id, o: 0 }; break; }
+      const oi = (it.opt || []).findIndex(v => names.some(n => [v.fr, v.he, typeof v === "string" ? v : ""].filter(Boolean).some(vn => full === n + " · " + nz(vn))));
+      if (oi >= 0) { hit = { r, k: `${r.id}:${it.id}|${oi}`, id: it.id, o: oi }; break; }
+    } if (hit) break; }
+    if (hit) picks.push(Object.assign(hit, { q: Math.min(20, Number(m[2]) || 1), n: m[1] })); else rest.push(l);
+  });
+  if (!picks.length) return null;
+  const r = picks[0].r;
+  return { r, picks: picks.filter(x => x.r === r), rest };
+}
 function reorderList() {
   const done = (state.mine || []).filter(o => !["annulee", "refusee"].includes(o.status) && !o.is_test);
   const groups = {};
   done.forEach(o => {
     const items = Array.isArray(o.items) ? o.items.filter(i => i && i.id) : [];
-    const key = items.length && o.shop_name ? "s|" + o.shop_name + "|" + items.map(i => i.id + ":" + i.qty).sort().join(",")
+    const ray = !items.length ? rayOfOrder(o) : null;
+    if (ray) o._ray = ray;
+    const key = ray ? "r|" + ray.r.id + "|" + ray.picks.map(x => x.k + ":" + x.q).sort().join(",") : items.length && o.shop_name ? "s|" + o.shop_name + "|" + items.map(i => i.id + ":" + i.qty).sort().join(",")
       : "t|" + o.service + "|" + Number(o.pickup_lat).toFixed(4) + "," + Number(o.pickup_lon).toFixed(4) + "|" + Number(o.dropoff_lat).toFixed(4) + "," + Number(o.dropoff_lon).toFixed(4);
     const g = groups[key] = groups[key] || { key, n: 0, o, items };
     g.n++;
     if (new Date(o.created_at || o.pickup_at) > new Date(g.o.created_at || g.o.pickup_at)) g.o = o;
   });
   const last = Object.values(groups).sort((a, b) => new Date(b.o.created_at || b.o.pickup_at) - new Date(a.o.created_at || a.o.pickup_at))[0];
-  return Object.values(groups).filter(g => g.items.length || (addrOfOrder(g.o, "pickup") && addrOfOrder(g.o, "dropoff")))
+  return Object.values(groups).filter(g => g.items.length || g.o._ray || (addrOfOrder(g.o, "pickup") && addrOfOrder(g.o, "dropoff")))
     .sort((a, b) => (b.n - a.n) || (new Date(b.o.created_at || b.o.pickup_at) - new Date(a.o.created_at || a.o.pickup_at)))
     .slice(0, 6).map(g => Object.assign(g, { last: g === last }));
 }
@@ -5986,6 +6011,15 @@ function renderReorder() {
     const lines = shop ? String(o.shop_order || "").split("\n").filter(l => l && !/^💬/.test(l))
       .map(l => { const m = /^(\d+)\s*×\s*(.*)$/.exec(l); return m ? `${m[1]} × ${UI.bi(m[2])}` : UI.bi(l); }) : [];
     // (adresses isolées : deux adresses en hébreu ne se mélangent pas ; flèche dans le sens de la langue)
+    const ray = !shop && o._ray;
+    if (ray) {
+      const tag = g.n > 1 && i === 0 ? `⭐ ${t("reoOften", { n: g.n })}` : g.last ? `🕘 ${t("reoLast")}` : g.n > 1 ? t("reoTimes", { n: g.n }) : "";
+      const sub = ray.picks.slice(0, 2).map(x => `${x.q} × ${x.n}`).join(" · ") + (ray.picks.length > 2 ? ` +${ray.picks.length - 2}` : "");
+      return `<button type="button" class="ro-card" data-reorder="${i}">
+      <span class="ro-top"><i class="ro-ico">${UI.esc((ray.r.card && ray.r.card.e) || "🛒")}</i>${tag ? `<em class="ro-tag">${UI.esc(tag)}</em>` : ""}</span>
+      <b class="ro-title">${UI.esc(phName(ray.r.card).replace(/^\P{L}+/u, ""))}</b><small class="ro-sub">${UI.esc(sub)}</small>
+      <span class="ro-go">🔁 ${UI.esc(t("reoGo"))}</span></button>`;
+    }
     const title = shop ? escHop(UI.bi(o.shop_name)) : `<bdi>${UI.esc(short(addrOfOrder(o, "pickup")))}</bdi> ${I18N.lang === "he" ? "←" : "→"} <bdi>${UI.esc(short(addrOfOrder(o, "dropoff")))}</bdi>`;
     const sub = shop ? lines.slice(0, 2).join(" · ") + (lines.length > 2 ? ` +${lines.length - 2}` : "") : (t("svc_" + o.service) || "");
     const tag = g.n > 1 && i === 0 ? `⭐ ${t("reoOften", { n: g.n })}` : g.last ? `🕘 ${t("reoLast")}` : g.n > 1 ? t("reoTimes", { n: g.n }) : "";
@@ -6017,6 +6051,22 @@ async function reorderGo(i) {
     renderCatalog(); renderQuote();
     if (cartCount()) { openCart(); if (missing) setTimeout(() => alert(t(missing > 1 ? "reoMissingN" : "reoMissing1", { n: missing })), 300); }
     else alert(t("reoAllGone"));
+    return;
+  }
+  // Rayon HOP! : le rayon s'ouvre, les mêmes articles déjà choisis, l'adresse déjà là → il ne reste qu'à commander
+  if (o._ray) {
+    const ry = o._ray;
+    if (state.shop) leaveShop(true);
+    goKind(ry.r.kind);
+    setTimeout(() => {
+      state.pharma = {}; state.pharmaOpt = state.pharmaOpt || {};
+      ry.picks.forEach(x => { state.pharma[x.k] = x.q; state.pharmaOpt[`${ry.r.id}:${x.id}`] = x.o; });
+      if (ry.rest.length && !form.shopping_list.value.trim()) form.shopping_list.value = ry.rest.join("\n");
+      if (to) applySavedAddr("to", to);
+      if (rayonUnits() > 0) form.fits_topcase.checked = true;
+      rayonAdult(); renderPharma(); renderQuote(); saveDraft(); cartPersist();
+      setTimeout(openRayCart, 250);
+    }, 350);
     return;
   }
   const from = Store.getAddresses().find(a => a.lat != null && Math.abs(a.lat - Number(o.pickup_lat)) < 1e-4 && Math.abs(a.lon - Number(o.pickup_lon)) < 1e-4) || addrOfOrder(o, "pickup");
@@ -7316,6 +7366,13 @@ async function hvUser(text) {
   const ex = hv.local && hv.local.kind === "pickup" ? { any: false } : relNote ? { any: false } : hvExtract(text);
   if (ex.any) {
     const note = await hvApplyExtract(ex);
+    // (Hoppy demandait le prénom ou le téléphone et le client vient de le donner : on avance, jamais de silence)
+    if (hv.local && hv.local.kind === "contact") {
+      const nm = !!val("contact_name").trim(), ph = phoneOk(val("contact_phone"));
+      if (nm && ph) { hv.local = null; return hvContactDone(); }
+      hv.local.step = nm ? "phone" : "name";
+      return hvSay(hvT(nm ? "hvAskPhone" : "hvAskName", { name: val("contact_name") }), []);
+    }
     if (hv.local) return;   // il manque un détail de l'adresse : le téléphone le demande
     // (objet à récupérer : l'adresse de livraison vient d'être complétée, la commande s'ouvre sans repasser par l'IA)
     if (hv.afterAddr && addrReady("to")) { const o = hv.afterAddr; hv.afterAddr = null; hv.auto = 8; return hvGo(o); }
@@ -9189,6 +9246,10 @@ function cartPersist() {
 // « Vider le panier » (panier d'un commerce, rayon, ou panier gardé 7 jours) : tout repart à zéro, le patron le voit « vide »
 function cartClearAll() {
   state.cart = {}; state.cartMods = {}; state.pharma = {}; state.pharmaMsg = "";
+  // (panier unique : les articles « à prendre aussi » et la commande gardée de Hoppy partent aussi)
+  if ((state.extras || []).length) { state.extras = []; try { extrasNote(); } catch (e) { /* ignore */ } }
+  try { hv.basket = []; hv.lastOut = null; hvKeepClear(); hvKeepBar(); } catch (e) { /* Hoppy pas encore prêt */ }
+  try { form.has_tobacco.checked = form.has_alcohol.checked = form.adult_ok.checked = false; syncAdult(); } catch (e) { /* ignore */ }
   // (aussi les paniers gardés dans les autres magasins : sinon la pastille « Reprendre mon panier » et le chiffre restaient)
   state.multi = {}; multiSave();
   try { renderMulti(); } catch (e) { /* ignore */ }
