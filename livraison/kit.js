@@ -611,6 +611,15 @@ const CAPTION = {
 const buyFr = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase), buyShop = UI.money(Pricing.cityToCity(CONFIG, home, home) + (P.purchaseShop || P.purchase)), delFr = price(home);
 const TAGS = { fr: "#Netanya #נתניה #livraison #HOP", he: "#נתניה #משלוחים #HOP #Netanya" };
 const CAPS = {
+  "hoppy-vocal": {
+    fr: `🎙️ Parlez. C'est livré.\nTouchez le micro dans l'appli et dites ce qu'il vous faut : « une pizza pour ce soir », « du lait et du pain »… on s'occupe du reste.\n🛵 Livraison partout à Netanya, dès ${delFr} en ville · 📍 Suivi en direct\n👉 ${APP_URL}\n${TAGS.fr} #commandevocale`,
+    he: `🎙️ דברו, וזה אצלכם!\nלוחצים על המיקרופון באפליקציה ואומרים מה צריך: "פיצה להערב", "חלב ולחם"… ואנחנו דואגים לשאר.\n🛵 משלוחים בכל נתניה, החל מ־${delFr} בעיר · 📍 מעקב בזמן אמת\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+  "hoppy-netanya": {
+    fr: `🦘 On livre tout Netanya !\nCourses, restos, pharmacie, colis, cadeaux… Hoppy apporte tout, au plus vite.\n🛵 Dès ${delFr} en ville · 📍 Suivi en direct\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `🦘 מביאים לכם הכול בנתניה!\nקניות, מסעדות, בית מרקחת, חבילות, מתנות… הופי מביא הכול, הכי מהר.\n🛵 החל מ־${delFr} בעיר · 📍 מעקב בזמן אמת\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+  "hoppy-francais": {
+    fr: `🥖 La livraison en français !\nTout Netanya livré, en français et en hébreu : restos, courses, boulangerie, colis… on vous comprend, on y va pour vous.\n🛵 Dès ${delFr} en ville · 📍 Suivi en direct\n👉 ${APP_URL}\n${TAGS.fr} #francophones #olim`,
+    he: `🥖 משלוחים גם בצרפתית!\nכל נתניה עד הבית, בצרפתית ובעברית: מסעדות, קניות, מאפייה, חבילות… אנחנו הולכים בשבילכם.\n🛵 החל מ־${delFr} בעיר · 📍 מעקב בזמן אמת\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   mcdo: {
     fr: `🍔 Le McDo casher livré chez vous ! 🦘\nBig Mac, Mac Royal, McNuggets, Crispy Chicken… on le récupère au McDonald's casher du Kanyon HaSharon et votre plat arrive chaud.\n🍟 Les vrais prix du McDo · Normal, Grand ou Géant · boisson au choix\n🧒 Menus enfants, glaces, milkshakes\n🛵 Partout à Netanya, livré au plus vite · 📍 Suivi en direct\n👉 Commandez votre livreur : ${url}?c=MCDSHARON\nHOP! Livraison, votre service de livraison indépendant.\n${TAGS.fr} #McDo #casher #burger`,
     he: `🍔 מקדונלד'ס כשר עד הבית! 🦘\nביג מק, מק רויאל, מק נאגטס, קריספי צ'יקן… אנחנו אוספים מהמקדונלד'ס הכשר בקניון השרון והאוכל מגיע אליכם חם.\n🍟 המחירים של מקדונלד'ס · רגיל, גדול או ענק · שתייה לבחירה\n🧒 ארוחות ילדים, גלידות, מילקשייקים\n🛵 בכל נתניה, מגיע הכי מהר · 📍 מעקב בזמן אמת\n👈 הזמינו שליח: ${url}?c=MCDSHARON&lang=he\nHOP! שירות משלוחים עצמאי.\n${TAGS.he} #מקדונלדס #כשר #המבורגר` },
@@ -729,6 +738,10 @@ const capFor = (id, medium, lang) => { const c = CAPS[id], l = lang || ui.lang; 
 const UPLOAD = [["Instagram", "https://www.instagram.com/"], ["TikTok", "https://www.tiktok.com/tiktokstudio/upload"], ["Facebook", "https://www.facebook.com/"]];
 const V = "kit/visuels/";
 const CAMPS = [
+  // Visuels faits par le patron avec Gemini (15/11) : français et hébreu sur la même image
+  { id: "hoppy-vocal", aud: "client", isNew: true, nolang: "Français et hébreu sur la même image", thumb: "post", title: "🎙️ Parlez. C'est livré.", desc: "Hoppy et son micro : on commande en parlant, il suffit de toucher le micro et de dire ce qu'il vous faut. Français et hébreu sur la même image.", formats: ["post"] },
+  { id: "hoppy-netanya", aud: "client", isNew: true, nolang: "Français et hébreu sur la même image", thumb: "post", title: "🦘 On livre tout Netanya", desc: "Hoppy les bras pleins (courses, pizza, cadeaux, colis) : courses, restos, pharmacie, colis… dès 25 ₪ en ville. Français et hébreu sur la même image.", formats: ["post"] },
+  { id: "hoppy-francais", aud: "client", isNew: true, nolang: "Français et hébreu sur la même image", thumb: "post", title: "🥖 La livraison en français", desc: "Hoppy, sa baguette et ses croissants : tout Netanya livré, en français et en hébreu. Idéal pour les groupes francophones. Français et hébreu sur la même image.", formats: ["post"] },
   // Demandés par le patron le 04/11 : en tête du kit
   { id: "hoppy-booom", aud: "client", isNew: true, todo: "he", thumb: "post", title: "💥 Vos courses BOOOM, livrées en un HOP !", desc: "Hoppy et son panier, fond rouge « Prix BOOOM ! » : les produits forts et les promos de BOOOM livrés à Netanya. Français et hébreu sur la même image. Lien direct vers HOP! chez BOOOM.", formats: ["post"] },
   { id: "hoppy-carrefour", aud: "client", isNew: true, todo: "he", thumb: "post", title: "🛒 On fait vos courses chez Carrefour", desc: "Hoppy et son panier Carrefour : « Au prix Carrefour, livré chez vous à Netanya ». Français et hébreu sur la même image. Lien direct vers HOP! chez Carrefour.", formats: ["post"] },
