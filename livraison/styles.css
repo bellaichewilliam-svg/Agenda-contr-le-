@@ -5931,3 +5931,10 @@ label.check.hop-need, .check.hop-need { padding: 10px 12px; background: rgba(255
 .it-promo span { display: inline-flex; align-items: center; gap: 8px; }
 .it-promo s { font-size: 15px; opacity: .9; }
 .it-promo em { font-style: normal; font-size: 14px; font-weight: 900; color: #E5484D; background: #fff; border-radius: 99px; padding: 3px 9px; }
+
+/* Encart Mezouzot : le sofer reste visible du côté opposé au texte */
+html[dir="rtl"] .vit-mez .vb-cover { transform: scaleX(-1); }
+.vit-mez .vb-cover { object-position: 100% 30%; }
+
+/* Boutique où l'on achète aussi hors liste (Laline) */
+.cg-any { margin: 0 0 10px; padding: 10px 12px; border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1.35; background: rgba(255,106,19,.1); border: 1px solid rgba(255,106,19,.35); }
