@@ -557,6 +557,11 @@ function attach(input, opts) {
     let p = items[i];
     if (!p) return;
     if (p.apply) { close(); p.apply(); return; }
+    // Le n° tapé par le client (« Weizmann 5 », « 5 Weizmann ») n'est pas perdu quand la carte ne connaît que la rue
+    if (!p.housenumber && !p.brand) {
+      const tv = String(input.value || "").trim(), m = tv.match(/\D[\s,]+(\d{1,4}[a-zA-Z\u05D0-\u05EA]?)$/) || tv.match(/^(\d{1,4}[a-zA-Z\u05D0-\u05EA]?)[\s,]+\D/);
+      if (m) p = Object.assign({}, p, { typedNo: m[1] });
+    }
     // Adresse de l'enseigne absente de la carte : la course garde son nom (et HOP! l'apprend)
     if (pendingBrand && !p.brand) {
       p = Object.assign({}, p, { brand: pendingBrand, learned: true, exact: !!p.housenumber,
