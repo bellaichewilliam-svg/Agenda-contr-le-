@@ -522,7 +522,7 @@ function nextOpenDate(st, from) {
 }
 const artImg = (k, h) => `<span class="item-art" style="--h:${h}"><img src="img/items/${k}.webp" alt="" loading="lazy" /></span>`;
 // Catégorie (pharmacie, colis…) : avec le nouveau design (html.d2), l'icône 3D du kit, sinon l'illustration habituelle
-const K2_CAT = ["pharm", "tabac", "bakery", "shop", "baby", "pets", "home", "gift", "pressing", "poste", "resto", "docs", "yad2", "keys", "ta"];
+const K2_CAT = ["pharm", "tabac", "bakery", "shop", "baby", "pets", "home", "gift", "pressing", "poste", "resto", "docs", "yad2", "keys", "ta", "mezouza"];
 const catImg = (id, k, h) => document.documentElement.classList.contains("d2") && K2_CAT.includes(id)
   ? `<span class="item-art k2-art"><img src="img/k2/i-${id}.webp" alt="" loading="lazy" /></span>` : artImg(k, h);
 
@@ -565,7 +565,7 @@ const picUrl = s => { const m = PIC_RX.exec(s), sb = (typeof CONFIG !== "undefin
   const r = /^rp:([a-z0-9_-]{1,20}):([a-z0-9_-]{1,40}):([0-9a-f]{6,32})$/.exec(s || "");
   return r && sb.url && sb.anonKey ? `${sb.url}/rest/v1/rpc/rayon_pic?r=${r[1]}&i=${r[2]}&v=${r[3]}&apikey=${sb.anonKey}` : ""; };
 // Vraies photos des produits des magasins (Carrefour, BOOOM) : prises directement sur leur site, par lien
-const EXT_PIC = /^https:\/\/(d226b0iufwcjmj\.cloudfront\.net\/(gs1-products|product-images|items)\/|booomisrael\.co\.il\/uploads\/|cdn\.shopify\.com\/s\/files\/1\/0371\/7965\/4281\/|img\.rami-levy\.co\.il\/product\/|dlv1nnscfbvda\.cloudfront\.net\/(gs1|media)\/)[A-Za-z0-9._~\/%?=&:-]+$/;
+const EXT_PIC = /^https:\/\/(d226b0iufwcjmj\.cloudfront\.net\/(gs1-products|product-images|items)\/|booomisrael\.co\.il\/uploads\/|cdn\.shopify\.com\/s\/files\/1\/(0371\/7965\/4281|0598\/4278\/9424)\/|img\.rami-levy\.co\.il\/product\/|dlv1nnscfbvda\.cloudfront\.net\/(gs1|media)\/)[A-Za-z0-9._~\/%?=&:-]+$/;
 const extPic = s => typeof s === "string" && EXT_PIC.test(s);
 const safeImg = s => (typeof s !== "string" ? "" : /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(s) || /^img\/[a-z0-9-]+\/[a-z0-9-]+\.(webp|png|jpg)$/.test(s) || extPic(s) ? s : picUrl(s));
 // Image d'une autre adresse (photo servie par la base) : « crossorigin » pour que l'appli puisse voir si son fond est blanc

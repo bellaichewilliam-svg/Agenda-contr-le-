@@ -144,13 +144,16 @@ const SCOOT_SVG = `<svg class="k2-scoot" viewBox="1 2 35 20" overflow="visible" 
 const K2_BG = { pharm: ["#013335", "#027363"], tabac: ["#28071E", "#531A3E"], bakery: ["#411C05", "#B35D1B"], shop: ["#081F39", "#0E2847"], baby: ["#021D3E", "#0F365C"],
   pets: ["#013936", "#106D61"], home: ["#051932", "#0D2D4F"], gift: ["#2E071E", "#45112F"] };
 const K2_FOND = { pharm: "pharmacie", tabac: "cigarettes-alcool", bakery: "boulangerie", shop: "courses", baby: "bebe-enfants", pets: "animaux", home: "maison-depannage", gift: "fleurs-cadeaux" };
-const K2_ICON = { ta: 1,  pharm: 1, tabac: 1, bakery: 1, shop: 1, baby: 1, pets: 1, home: 1, gift: 1, pressing: 1, poste: 1, resto: 1, docs: 1, yad2: 1, keys: 1 };
+const K2_ICON = { ta: 1,  pharm: 1, tabac: 1, bakery: 1, shop: 1, baby: 1, pets: 1, home: 1, gift: 1, pressing: 1, poste: 1, resto: 1, docs: 1, yad2: 1, keys: 1, mezouza: 1 };
 const k2Icon = (id, e) => `<span class="k2-ic${e ? " k2-e" : ""}"><img src="img/k2/${e ? "e" : "i"}-${id}.webp" alt="" loading="lazy" decoding="async" /></span>`;
 // Exemples cliquables : ils pré-remplissent le formulaire
 const EXAMPLES = [
   // Nouveautés en tête : boulangeries (petit-déjeuner) et pressing
   // Boulangerie : on achète pour le client, comme la pharmacie ou la makolet (même prix)
   { id: "bakery", icon: "🥐", set: { service: "achat" } },
+  // Récupération de mezouzot (patron, 15/11) : une course normale (dès 25 ₪ en ville), on sait tout de suite quoi récupérer ;
+  // l'aller-retour chez le sofer reste possible (case « aller-retour »)
+  { id: "mezouza", icon: "📜", set: { service: "colis" } },
   { id: "pressing", icon: "👔", set: { service: "colis" } },
   { id: "poste", icon: "📮", set: { service: "retrait", place_kind: "poste" } },
   // Pharmacie : « Acheter pour moi » ; la commande s'écrit dans le message au livreur (pas encore de catalogue)
@@ -1473,6 +1476,11 @@ function renderHomePharma() {
     // Grands encarts façon maquette : illustration du kit, vrai titre et vrai texte des rayons, bouton visible
     // (accueil vitrine : les commerces à la une passent devant, avec leur photo et leur logo)
     const bans = VIT ? vitBanners() : [];
+    // Mezouzot (patron, 15/11) : un grand encart aussi, avec le sofer (image de la vidéo validée)
+    bans.push(`<button type="button" class="k2-card vit-ban vit-mez${state.homeKind === "mezouza" ? " on" : ""}" data-kind-go="mezouza">
+        <img class="vb-cover" src="img/k2/b-mezouza.webp" alt="" loading="lazy" decoding="async" />
+        <span class="k2-txt"><em>${UI.esc(t("hpTag"))}</em><b>${UI.esc(t("mezBanT"))}</b><small>${UI.esc(t("mezBanS"))}</small>
+          <span class="k2-go">${UI.esc(t("k2Discover"))} <i aria-hidden="true">›</i></span></span></button>`);
     const html = `<div class="hp-row k2-row">${bans.join("")}${Rayons.ALL.map(r => {
       const on = state.homeKind === r.kind, title = phName(r.card).replace(/^\P{L}+/u, "");
       const bg = K2_BG[r.kind] || ["#0F1D36", "#1C3157"];
@@ -1568,6 +1576,8 @@ function goKind(id) {
   if (state.pick.from || $("#ensModal").classList.contains("hidden")) { state.pharmaGo = false; goPharma(); }
 }
 $("#homePharma").addEventListener("click", e => {
+  const k = e.target.closest("[data-kind-go]");
+  if (k) return goKind(k.dataset.kindGo);
   const b = e.target.closest("[data-pharma-go]");
   if (!b) return;
   goKind(Rayons.byId(b.dataset.pharmaGo).kind);
@@ -4139,7 +4149,7 @@ function renderCatalog() {
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   form.shop_order.placeholder = on ? t(hopBuyOn() ? "hopNotePh" : "cgNotePh") : t("spOrderPh");
   $("#shopWa").classList.toggle("hidden", !(state.shop && hopBuyOn()) || document.documentElement.classList.contains("for-client"));
-  if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t("cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
+  if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t((CONFIG.hopAnyItem || []).includes(String(state.shop.code || "").toUpperCase()) ? "cgAnyNote" : "cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
   const hasLoose = cgShown().some(p => !cats.some(c => c.id === p.category_id));
@@ -4173,7 +4183,9 @@ function renderCatalog() {
     try { oth = multiList(); } catch (e) { oth = []; }
     rule = `<div class="cg-rule"><b>🛒 ${escHop(t("cgRuleT", { name: mgShort(state.shop.name) }))}</b><span>${escHop(t("cgRuleS", { fee: money(addonPrice()), km: addonKm() }))}</span>${oth.length ? `<span class="cg-rule-oth">${escHop(t("cgRuleOth", { list: oth.map(m => `${mgShort(m.name)} (${m.count})`).join(", ") }))}</span>` : ""}</div>`;
   }
-  const html = `${state.boss ? bossBar() : ""}${rule}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
+  // Laline… (patron, 15/11) : la liste montre les meilleures ventes, mais on achète tout ce que le client veut dans la boutique
+  const anyTip = (CONFIG.hopAnyItem || []).includes(String(state.shop.code || "").toUpperCase()) ? `<div class="cg-any">🛍️ ${escHop(t("cgAnyItem"))}</div>` : "";
+  const html = `${state.boss ? bossBar() : ""}${rule}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
@@ -5364,7 +5376,9 @@ const shopSelf = () => shopPicked() && !!state.pro && !proShopOn();
 // (les rayons à cocher en premier — pharmacie, tabac & alcool, boulangerie, makolet : c'est nouveau, il faut les voir)
 // La makolet en premier (patron, 15/11) : le carré des produits de tous les jours
 const RAYON_KINDS = ["shop", "pharm", "tabac", "bakery", "baby", "pets", "home", "gift"];
-const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city).sort((a, b) => (RAYON_KINDS.indexOf(a.id) + 1 || 99) - (RAYON_KINDS.indexOf(b.id) + 1 || 99));
+// Ordre des petits carrés : la makolet et les rayons du quotidien, puis les mezouzot, puis le reste
+const HOME_ORDER = ["shop", "pharm", "tabac", "bakery", "mezouza", "baby", "pets", "home", "gift"];
+const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city).sort((a, b) => (HOME_ORDER.indexOf(a.id) + 1 || 99) - (HOME_ORDER.indexOf(b.id) + 1 || 99));
 const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
 const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
 const isRtl = () => document.documentElement.dir === "rtl";
@@ -5929,6 +5943,13 @@ function applyKind(id) {
     const el = form.elements[k];
     if (el && el.type === "checkbox") el.checked = v; else if (el) el.value = v;
   });
+  // Mezouzot : le livreur sait tout de suite quoi faire (le client peut compléter : nombre, nom du sofer…)
+  const msg = form.elements.what_item;
+  if (msg) {
+    const notes = ["fr", "he"].map(l => I18N.forLang(l, "mezNote"));
+    if (state.homeKind === "mezouza" && !msg.value.trim()) msg.value = t("mezNote");
+    else if (state.homeKind !== "mezouza" && notes.includes(msg.value.trim())) msg.value = "";
+  }
   syncVisibility();
   renderQuote();
   renderHomeStatic();
