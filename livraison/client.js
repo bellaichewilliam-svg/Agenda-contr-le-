@@ -3477,7 +3477,8 @@ async function submit(e) {
     console.warn("envoi", ex && ex.message, ex && ex.stack && ex.stack.split("\n").slice(0, 3).join(" / "));
     // L'erreur exacte part dans les statistiques (patron, 11/11 : un client bloqué sans qu'on sache pourquoi)
     try { UI.track("order_block", { page: ("send:" + (ex && (ex.status || ex.name) || "?") + ":" + String(ex && ex.message || "")).replace(/\s+/g, " ").slice(0, 40) }); } catch (e2) { /* ignore */ }
-    showError(t("errSend", { phone: CONFIG.phoneDisplay }));
+    // (jamais « vérifiez votre connexion » : le 15/11, la connexion marchait, c'était un filtre internet)
+    showError(t(sentOrder ? "errSend" : "errSendRetry", { phone: CONFIG.phoneDisplay }));
     // Secours : jamais de client perdu, la commande toute écrite part sur notre WhatsApp
     if (sentOrder) {
       let txt = "";
