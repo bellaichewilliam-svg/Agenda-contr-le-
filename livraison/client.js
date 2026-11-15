@@ -846,6 +846,8 @@ function confetti() {
 
 // --- Espèces : le client paie tout au livreur (articles + livraison) ; il dit avec quel billet ---------
 const cashMax = () => Number((state.settings && state.settings.cash_max) || 200);
+// Marge sur les plafonds des espèces (patron, 15/11 : « on dit 100, mais 102, 104, 108, ça va ») — même marge dans la base
+const CASH_SLACK = 10;
 // Le commerce a un lien de paiement ou un Bit : les articles lui sont payés d'avance (jamais avancés par le livreur)
 // Commerce Pro sans paiement en ligne (ni lien, ni Bit) : le client commande et paie chez lui par WhatsApp,
 // demande l'heure exacte où c'est prêt, puis commande ici la livraison (pas d'attente, pas de supplément)
@@ -938,9 +940,10 @@ function cashIssue(q) {
   const adv = goodsPrepay() ? goodsBudget() : 0;
   // Articles payés par le livreur au magasin puis remboursés en espèces : au plus 100 ₪
   if (shopBuy() && cartCount() && cartTotal() > ADVANCE_MAX) return { hard: true, text: t("errAdvance", { max: money(ADVANCE_MAX) }), small: t("payCashAdv", { max: money(ADVANCE_MAX) }) };
-  if (Number(q.total) + adv > cashMax()) return { hard: true, text: t("errCashMax", { max: money(cashMax()) }) };
+  if (Number(q.total) + adv > cashMax() + CASH_SLACK) return { hard: true, text: t("errCashMax", { max: money(cashMax()) }) };
   const cap = cashFirstCap();
-  if (cap && Number(q.total) + cashGoods() > cap) return { hard: true, text: t("errCashNew", { max: money(cap), n: Number(state.settings.cash_first_orders) }) };
+  // (on dit pourquoi sous « Espèces », jamais un choix grisé sans explication — patron, 15/11)
+  if (cap && Number(q.total) + cashGoods() > cap + CASH_SLACK) return { hard: true, text: t("errCashNew", { max: money(cap), n: Number(state.settings.cash_first_orders) }), small: t("pay_cash_new", { max: money(cap), n: Number(state.settings.cash_first_orders) }) };
   return null;
 }
 function renderCash() {
@@ -1195,11 +1198,11 @@ function renderGoodsMode(q) {
   const b = goodsBudget(), cap = goodsCap(), over = b > cap, cash = val("payment_method") === "cash";
   // Espèces (même règle que les catalogues) : le livreur avance les articles, le client paie la course + le ticket exact
   // à la livraison ; total ≤ plafond des espèces, et seulement après une 1re course livrée
-  const cashErr = !cash ? "" : b + Number(q.total) > cashMax() ? t("errCashMax", { max: money(cashMax()) }) : "";
+  const cashErr = !cash ? "" : b + Number(q.total) > cashMax() + CASH_SLACK ? t("errCashMax", { max: money(cashMax()) }) : "";
   form.budget.closest("label").querySelector("span").textContent = t("gmGoods") + " (₪)";
   // « Le livreur avance vos courses » : 3 étapes, le total à payer, puis espèces / Bit et l'appoint, au même endroit
   const g = rayonGoods(), mid = g ? Math.round(g.mid) : 0, ride = Number(q.total) || 0;
-  const cashOff = b + ride > cashMax(), note = Number(form.cash_note.value) || 0;
+  const cashOff = b + ride > cashMax() + CASH_SLACK, note = Number(form.cash_note.value) || 0;
   const notes = [50, 100, 200].filter(n => n >= (mid || b) + ride);
   const step = (n, txt) => `<div class="gm-st"><span>${n}</span><p>${txt}</p></div>`;
   const strong = (txt, bold) => UI.esc(txt).replace(UI.esc(bold), `<b>${UI.esc(bold)}</b>`);
