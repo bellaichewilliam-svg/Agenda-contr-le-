@@ -1141,7 +1141,7 @@ function rayonWhere(r) {
 // Mode patron : d'où vient la photo de l'article (seulement sur le téléphone du patron)
 function rayPicSrc(x) {
   const ph = String(x.photo || "");
-  if (/cloudfront\.net\//.test(ph)) return ["ok", "📷 Photo Carrefour"];
+  if (/cloudfront\.net\//.test(ph)) return ["ok", "📷 Vraie photo"];
   if (/booomisrael/.test(ph)) return ["ok", "📷 Photo BOOOM"];
   if (/cdn\.shopify/.test(ph)) return ["ok", "📷 Photo du magasin"];
   if (/^(data:image|rp:)/.test(ph)) return ["ok", "📷 Votre photo"];
@@ -1284,7 +1284,9 @@ function renderPharma() {
   let cats = Rayons.cats(r), items = rEdit ? r.items.filter(i => !r.cats.some(c => c.id === i.c && c.hidden)) : Rayons.items(r);
   // Makolet (patron, 12/11) : la page ne montre QUE les produits de base de la makolet (livraison seule, sans supplément) ;
   // tout le reste (produits de supermarché, au prix du magasin) est dans un 2e onglet, jamais mélangé.
-  const split = r.kind === "shop" && items.some(isCfItem) && items.some(x => !isCfItem(x));
+  // Makolet (patron, 15/11) : seulement les petits produits de tous les jours ; les produits Carrefour restent dans « HOP! chez Carrefour »
+  if (r.kind === "shop") { items = items.filter(x => !isCfItem(x)); cats = cats.filter(c => items.some(x => x.c === c.id)); }
+  const split = false;
   const src = split ? (state.phSrc === "cf" ? "cf" : "mak") : "";
   const allItems = items;
   if (src) { items = items.filter(x => (src === "cf") === isCfItem(x)); cats = cats.filter(c => items.some(x => x.c === c.id)); }
@@ -1306,7 +1308,7 @@ function renderPharma() {
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
   const top = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small>${r.id === "tabac" ? "" : `<button type="button" class="ph-share" data-share-ray="${UI.esc(r.id)}" aria-label="${UI.esc(t("shareShop"))}">${SHARE_SVG}</button>`}</div>
     ${state.boss ? rayBossBar(r) : ""}
-    ${val("service") === "achat" ? `<p class="ph-where">🛵 ${UI.esc(t("phWhere"))} <b dir="auto">${UI.esc(rayonWhere(r))}</b>${(src ? src === "cf" : r.items.some(isCfItem)) ? `<small>${UI.esc(t("phWhereCf"))}</small>` : ""}</p>` : ""}
+    ${val("service") === "achat" ? `<p class="ph-where">🛵 ${UI.esc(t("phWhere"))} <b dir="auto">${UI.esc(rayonWhere(r))}</b>${(r.kind !== "shop" && (src ? src === "cf" : r.items.some(isCfItem))) ? `<small>${UI.esc(t("phWhereCf"))}</small>` : ""}</p>` : ""}
     ${src ? `<div class="ph-src-tabs" role="tablist"><button type="button" role="tab" class="${src === "mak" ? "on" : ""}" data-ph-src="mak"><b>${UI.esc(t("phSrcMak"))}</b><small>${UI.esc(t("phSrcMakS"))}</small></button><button type="button" role="tab" class="${src === "cf" ? "on" : ""}" data-ph-src="cf"><b>${UI.esc(t("phSrcCf"))}</b><small>${UI.esc(t("phSrcCfS"))}</small></button></div>` : ""}
     ${rayonMeter(n)}`;
   // Recherche : dans tout le rayon (français et hébreu), sinon la rubrique choisie

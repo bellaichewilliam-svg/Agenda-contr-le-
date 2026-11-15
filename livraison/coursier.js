@@ -1658,6 +1658,8 @@ function goodsTicket(id) {
   ticketInput.onchange = async () => {
     const f = ticketInput.files[0];
     if (!f) return;
+    // Anti-retouche (patron, 15/11) : seulement une photo prise à l'instant, pas une image de la galerie (retouchée, d'un autre jour…)
+    if (f.lastModified && Date.now() - f.lastModified > 3 * 60000) return alert("📷 Prenez la photo du ticket maintenant, avec l'appareil photo (pas une image de la galerie).");
     let photo;
     try { photo = await UI.docPhoto(f); } catch (e) { return alert("Photo illisible, reprenez-la."); }
     const a = prompt(o.hop_buy ? `🧾 Montant exact du ticket de caisse (₪) ?\nArticles prévus : ≈ ${UI.money(o.items_total)}` : `🧾 Montant total du ticket (₪) ?\n${o.payment_method === "cash" || o.goods_after ? "Maximum prévu" : "Payé d'avance"} : ${UI.money(o.goods_budget)}`);

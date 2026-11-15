@@ -5938,3 +5938,6 @@ html[dir="rtl"] .vit-mez .vb-cover { transform: scaleX(-1); }
 
 /* Boutique où l'on achète aussi hors liste (Laline) */
 .cg-any { margin: 0 0 10px; padding: 10px 12px; border-radius: 14px; font-size: 14px; font-weight: 600; line-height: 1.35; background: rgba(255,106,19,.1); border: 1px solid rgba(255,106,19,.35); }
+
+/* Petits carrés : le texte reste dans la largeur du carré (« Récupération de mezouzot »), espacement régulier */
+html.d2 .ch-kind b { max-width: 100%; overflow-wrap: break-word; hyphens: auto; -webkit-hyphens: auto; }
