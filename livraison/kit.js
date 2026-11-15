@@ -496,8 +496,7 @@ Chabbat chalom ! 🕯️ 👉 ${livre}` },
 ];
 // Pour qui est chaque texte de POSTS (dans l'ordre) : clients, commerces ou livreurs
 const POST_AUD = ["client", "client", "shop", "shop", "client", "client", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "shop", "rider", "rider", "client", "client"];
-const ALL_POSTS = MCD_POSTS.concat(JUS_POSTS, PARTNER_POSTS, CHABBAT_POSTS, VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
-  .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
+
 
 // Campagnes de visuels : chaque carte = un message, avec ses formats (post carré, story, flyer A5) et sa vidéo
 // Liens des messages : TOUJOURS l'appli client (jamais l'adresse de la page ouverte : le kit s'ouvre aussi
@@ -506,6 +505,76 @@ const LOCAL_KIT = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) || locati
 const APP_URL = CONFIG.siteUrl && !LOCAL_KIT ? CONFIG.siteUrl + "app/" : location.origin + location.pathname.replace(/[^/]*$/, "");
 // Messages pour les commerçants : la page « Commerçants » (inscription gratuite)
 const PRO_URL = APP_URL + "commerce.html?inscription=1";
+// Textes pour les groupes (Facebook, WhatsApp) : un par groupe, espacés de quelques jours.
+// Le lien est marqué tout seul (Facebook / WhatsApp) : on voit d'où viennent les clients.
+const GROUPES_POSTS = [
+  { title: "👥 Groupes 1 · Présentation (français)", dir: "ltr", text:
+`🛵 Bonjour à tous ! Je vous présente HOP!, le nouveau service de livraison de Netanya.
+On vous livre TOUT : vos courses, un repas de votre restaurant préféré, vos médicaments, des cigarettes, un colis à récupérer à la poste, des clés oubliées…
+Livraison dès 25 ₪ en ville. Le prix s'affiche avant de commander, sans surprise.
+Tout est en français et en hébreu.
+👉 ${APP_URL}` },
+  { title: "👥 קבוצות 1 · היכרות (עברית)", dir: "rtl", text:
+`🛵 שלום לכולם! רוצים להכיר לכם את HOP!, שירות המשלוחים החדש של נתניה.
+אנחנו מביאים לכם הכול: קניות, ארוחה מהמסעדה האהובה, תרופות, סיגריות, חבילה מהדואר, מפתחות ששכחתם…
+משלוח החל מ-25 ₪ בעיר. המחיר מוצג לפני ההזמנה, בלי הפתעות.
+הכול בעברית ובצרפתית.
+👈 ${APP_URL}` },
+  { title: "👥 Groupes 2 · On commande en parlant (français)", dir: "ltr", text:
+`🎙️ À Netanya, on commande maintenant en parlant !
+Ouvrez HOP!, touchez le micro et dites : « des cigarettes et un Coca, à la maison ». C'est tout. Hoppy, notre kangourou, s'occupe du reste.
+Pratique quand on n'aime pas taper, ou pour nos parents et grands-parents.
+👉 ${APP_URL}` },
+  { title: "👥 קבוצות 2 · מזמינים בדיבור (עברית)", dir: "rtl", text:
+`🎙️ בנתניה מזמינים עכשיו בדיבור!
+פותחים את HOP!, לוחצים על המיקרופון ואומרים: "סיגריות וקולה, הביתה". זה הכול. הופי, הקנגורו שלנו, דואג לשאר.
+נוח למי שלא אוהב להקליד, וגם להורים ולסבא וסבתא.
+👈 ${APP_URL}` },
+  { title: "👥 Groupes 3 · Les petites galères du quotidien (français)", dir: "ltr", text:
+`Plus de lait ? Un colis qui attend à la poste ? Les clés restées chez un ami ? Une ordonnance à aller chercher ?
+🛵 HOP! y va pour vous, partout dans Netanya. Dès 25 ₪ en ville, et vous payez vos achats au prix exact du ticket.
+👉 ${APP_URL}` },
+  { title: "👥 קבוצות 3 · הסידורים הקטנים של היום-יום (עברית)", dir: "rtl", text:
+`נגמר החלב? חבילה מחכה בדואר? המפתחות נשארו אצל חבר? צריך לאסוף מרשם?
+🛵 HOP! הולך בשבילכם, בכל נתניה. החל מ-25 ₪ בעיר, ואתם משלמים על הקניות בדיוק לפי הקבלה.
+👈 ${APP_URL}` },
+  { title: "👥 Groupes 4 · Pour les groupes francophones (français)", dir: "ltr", text:
+`🇫🇷 Amis francophones de Netanya : une appli de livraison qui parle français, enfin !
+Courses, restaurants, pharmacie, tabac, colis… HOP! vous livre tout, et vous pouvez même commander en parlant.
+Service local, au plus vite, dès 25 ₪ en ville.
+👉 ${APP_URL}` },
+  { title: "👥 קבוצות 4 · לדוברי הצרפתית (עברית)", dir: "rtl", text:
+`🇫🇷 לדוברי הצרפתית בנתניה: סוף סוף אפליקציית משלוחים שמדברת גם צרפתית!
+קניות, מסעדות, בית מרקחת, טבק, חבילות… HOP! מביא הכול, ואפשר אפילו להזמין בדיבור.
+שירות מקומי, הכי מהר שאפשר, החל מ-25 ₪ בעיר.
+👈 ${APP_URL}` },
+  { title: "👥 Groupes 5 · Court : statut WhatsApp, story (français)", dir: "ltr", text:
+`🛵 HOP! livre tout à Netanya. Dès 25 ₪ en ville. Parlez, c'est livré !
+${APP_URL}` },
+  { title: "👥 קבוצות 5 · קצר: סטטוס, סטורי (עברית)", dir: "rtl", text:
+`🛵 HOP! מביא הכול בנתניה. החל מ-25 ₪ בעיר. דברו, וזה אצלכם!
+${APP_URL}` }
+];
+// Prompts d'image pour Gemini : un visuel par texte de groupe (joindre hoppy-officiel.png + le modèle « fleurs »)
+const gemini = (fmt, l1, l2, he, action, fr, he2) =>
+`Create a new ${fmt}, in EXACTLY the same style and layout as the second attached image (the HOP! "flowers" ad), with EXACTLY the same character as the first attached image (Hoppy the kangaroo: same face, fur, navy backpack straps, navy "HOP!" bag in its pouch with "HOP" in white and "!" in orange). Do not redesign the character.
+- Bright sky-blue gradient background with soft light and white speed lines behind Hoppy.
+- Top title, big bold rounded uppercase letters, line 1 in white: "${l1}", line 2 in bright orange: "${l2}", small orange burst strokes on both sides.
+- Under it, in bold white Hebrew letters: "${he}".
+- Center: Hoppy jumping happily, ${action}. Hoppy fully visible, not cropped, not mirrored.
+- Bottom right: navy rounded pill with the HOP! logo (white "HOP", orange "!").
+- Bottom: navy band with rounded top corners, white text "${fr}" and below it in orange Hebrew "${he2}".
+Spell every text exactly as written, letter by letter. Hebrew reads right to left. No other text, no other logo, no brand names on any object.`;
+const POST45 = "Instagram post, vertical 4:5 (1080x1350)", STORY = "story, vertical 9:16 (1080x1920)";
+const GEMINI_POSTS = [
+  { title: "🎨 Image Gemini 1 · Présentation", text: gemini(POST45, "ON LIVRE", "TOUT NETANYA", "מביאים לכם הכול בנתניה", "carrying a paper grocery bag, a pizza box and a small cardboard parcel at once", "Courses, restos, pharmacie, colis… dès 25 ₪ en ville.", "קניות, מסעדות, בית מרקחת, חבילות… החל מ-25 ₪ בעיר.") },
+  { title: "🎨 Image Gemini 2 · On commande en parlant", text: gemini(POST45, "PARLEZ.", "C'EST LIVRÉ.", "דברו, וזה אצלכם!", "holding a big orange microphone close to his mouth, with small white sound waves coming out of it", "Touchez le micro et dites ce qu'il vous faut.", "לוחצים על המיקרופון ואומרים מה צריך.") },
+  { title: "🎨 Image Gemini 3 · Les petites galères", text: gemini(POST45, "UN OUBLI ?", "ON Y VA POUR VOUS", "שכחתם משהו? אנחנו הולכים בשבילכם", "holding a plain white milk carton in one hand and a bunch of keys in the other, a small cardboard parcel under his arm", "Lait, colis, clés, ordonnance… dès 25 ₪ en ville.", "חלב, חבילה, מפתחות, מרשם… החל מ-25 ₪ בעיר.") },
+  { title: "🎨 Image Gemini 4 · Groupes francophones", text: gemini(POST45, "LA LIVRAISON", "EN FRANÇAIS", "משלוחים גם בצרפתית", "holding a fresh baguette and a paper bag with croissants", "Tout Netanya livré, en français et en hébreu.", "כל נתניה עד הבית, בצרפתית ובעברית.") },
+  { title: "🎨 Image Gemini 5 · Story / statut", text: gemini(STORY, "ET HOP !", "C'EST LIVRÉ", "והופ! זה אצלכם", "both arms up in celebration, with a little orange confetti around him", "On livre tout Netanya. Dès 25 ₪ en ville.", "מביאים הכול בנתניה. החל מ-25 ₪ בעיר.") }
+].map(p => Object.assign({ dir: "ltr", prompt: true }, p));
+const ALL_POSTS = GROUPES_POSTS.concat(GEMINI_POSTS, MCD_POSTS, JUS_POSTS, PARTNER_POSTS, CHABBAT_POSTS, VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
+  .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
 const CAPTION = {
   fr: `HOP! 🛵 Livraison à Netanya : restaurants, courses, colis… livrés au plus vite, encore chauds.\n👉 ${APP_URL}\n#Netanya #livraison #HOP`,
   he: `HOP! 🛵 משלוחים בנתניה: מסעדות, קניות, חבילות… מגיעים הכי מהר, עדיין חמים.\n👉 ${APP_URL}\n#נתניה #משלוחים #HOP`,
@@ -756,9 +825,10 @@ function renderKit() {
       <b>${UI.esc(p.title)}</b>
       <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(txt)}</div>
       <div class="kpost-btns"><button class="btn btn-sm btn-primary" data-copy="post${i}">Copier</button>
-        ${navigator.share ? `<button class="btn btn-sm btn-share" data-share-text="post${i}">📲 Partager</button>` : ""}
+        ${p.prompt ? `<a class="btn btn-sm" href="kit/visuels/hoppy-officiel.png" download="hoppy-officiel.png">⬇ Hoppy</a><a class="btn btn-sm" href="kit/visuels/hoppy-fleurs-post-fr.png" download="hop-modele.png">⬇ Modèle</a>
+        <span class="muted small" style="flex-basis:100%">Dans Gemini : joindre les 2 images (Hoppy, puis le modèle), coller le texte.</span>` : `${navigator.share ? `<button class="btn btn-sm btn-share" data-share-text="post${i}">📲 Partager</button>` : ""}
         <a class="btn btn-sm btn-fb" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(tagUrl(APP_URL, "texte-" + slugOf(p.title), "texte", "facebook"))}" target="_blank" rel="noopener" data-fb-copy="post${i}">Facebook</a>
-        <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", tagText(p.text, "texte-" + slugOf(p.title), "texte", "whatsapp")))}">Partager sur WhatsApp</a></div></div>`; }).join("")
+        <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", tagText(p.text, "texte-" + slugOf(p.title), "texte", "whatsapp")))}">Partager sur WhatsApp</a>`}</div></div>`; }).join("")
     || `<p class="muted small">Pas de texte pour eux dans cette langue.</p>`;
 }
 document.addEventListener("click", e => {

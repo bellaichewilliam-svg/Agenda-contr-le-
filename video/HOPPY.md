@@ -38,6 +38,13 @@ Spell every text exactly as written, letter by letter.
 | HOP! chez Carrefour | ON FAIT VOS COURSES / CHEZ CARREFOUR | עושים לכם את הקניות בקרפור | holding a big blue supermarket shopping basket full of groceries: a six-pack of water bottles, milk, orange juice, fresh fruit and vegetables, a baguette (generic products, no brand logos, no readable labels) | Au prix Carrefour, livré chez vous à Netanya. / במחיר של קרפור, עד הבית בנתניה. |
 | HOP! chez BOOOM | LES PROMOS BOOOM / LIVRÉES CHEZ VOUS | המבצעים של בום עד הבית | holding a big paper shopping bag overflowing with groceries (pasta, rice, cookies, juice bottles, cleaning products), with bright red and yellow promo price tags flying around (no readable text on the tags, no brand logos) | Les produits forts et les promos de BOOOM, on fait les courses pour vous. / המוצרים החזקים והמבצעים של בום, אנחנו קונים בשבילכם. |
 | Présentation | VOICI / HOPPY ! | תכירו את הופי! | giving a big friendly thumbs up | Il livre tout Netanya… dans sa poche. / מביא את כל נתניה… בכיס. |
+| Groupes 1 · Présentation | ON LIVRE / TOUT NETANYA | מביאים לכם הכול בנתניה | carrying a paper grocery bag, a pizza box and a small cardboard parcel at once | Courses, restos, pharmacie, colis… dès 25 ₪ en ville. / קניות, מסעדות, בית מרקחת, חבילות… החל מ-25 ₪ בעיר. |
+| Groupes 2 · À la voix | PARLEZ. / C'EST LIVRÉ. | דברו, וזה אצלכם! | holding a big orange microphone close to his mouth, with small white sound waves | Touchez le micro et dites ce qu'il vous faut. / לוחצים על המיקרופון ואומרים מה צריך. |
+| Groupes 3 · Petites galères | UN OUBLI ? / ON Y VA POUR VOUS | שכחתם משהו? אנחנו הולכים בשבילכם | holding a plain white milk carton in one hand and a bunch of keys in the other, a small parcel under his arm | Lait, colis, clés, ordonnance… dès 25 ₪ en ville. / חלב, חבילה, מפתחות, מרשם… החל מ-25 ₪ בעיר. |
+| Groupes 4 · Francophones | LA LIVRAISON / EN FRANÇAIS | משלוחים גם בצרפתית | holding a fresh baguette and a paper bag with croissants | Tout Netanya livré, en français et en hébreu. / כל נתניה עד הבית, בצרפתית ובעברית. |
+| Groupes 5 · Story (9:16) | ET HOP ! / C'EST LIVRÉ | והופ! זה אצלכם | both arms up in celebration, with a little orange confetti | On livre tout Netanya. Dès 25 ₪ en ville. / מביאים הכול בנתניה. החל מ-25 ₪ בעיר. |
+
+**Avec Gemini** : le même prompt marche (joindre les 2 images, Hoppy d'abord, le modèle ensuite). Les 5 prompts « Groupes » sont prêts à copier, déjà remplis, dans le kit : onglet ✍️ Textes, cartes « 🎨 Image Gemini » (avec les boutons pour enregistrer les 2 images à joindre). Ils vont avec les 5 textes « 👥 Groupes » du même onglet.
 
 Le visuel reçu : l'envoyer dans la conversation, il est redimensionné en 1080 × 1350 et ajouté au kit.
 
