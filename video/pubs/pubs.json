@@ -853,5 +853,27 @@
     },
     "titre": "🌅 Nouveau · Vendredi, la kemia arrive avant (10 s)",
     "aud": "client"
+  },
+  "sufganiya": {
+    "hook": {
+      "fr": "HANOUCCA : PAS TOUCHE À MA SOUFGANIA !",
+      "he": "חנוכה: לא נוגעים לי בסופגנייה!"
+    },
+    "punch": {
+      "fr": [
+        "LIVRÉE PAR HOP!",
+        "INTACTE."
+      ],
+      "he": [
+        "הגיעה עם HOP!",
+        "בשלמות."
+      ]
+    },
+    "sub": {
+      "fr": "Les beignets Roladin livrés chez vous, à l'heure choisie.",
+      "he": "הסופגניות של רולדין עד הבית, בשעה שבחרתם."
+    },
+    "titre": "🍩 Nouveau · Hanoucca : pas touche à ma soufgania ! (10 s)",
+    "aud": "client"
   }
 }
