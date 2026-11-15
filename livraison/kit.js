@@ -611,6 +611,9 @@ const CAPTION = {
 const buyFr = UI.money(Pricing.cityToCity(CONFIG, home, home) + P.purchase), buyShop = UI.money(Pricing.cityToCity(CONFIG, home, home) + (P.purchaseShop || P.purchase)), delFr = price(home);
 const TAGS = { fr: "#Netanya #נתניה #livraison #HOP", he: "#נתניה #משלוחים #HOP #Netanya" };
 const CAPS = {
+  sufganiya: {
+    fr: `🍩 Hanoucca : pas touche à ma soufgania !\nLes beignets Roladin livrés chez vous, intacts, à l'heure que vous choisissez.\n🛵 Livraison partout à Netanya, dès ${delFr} en ville · 📍 Suivi en direct\n👉 Commander : ${url}?c=HOPROLADIN\nHanoucca saméah ! ${TAGS.fr} #Hanoucca #soufganiot`,
+    he: `🍩 חנוכה: לא נוגעים לי בסופגנייה!\nהסופגניות של רולדין עד הבית, בשלמות, בשעה שבחרתם.\n🛵 משלוחים בכל נתניה, החל מ־${delFr} בעיר · 📍 מעקב בזמן אמת\n👈 להזמנה: ${url}?c=HOPROLADIN&lang=he\nחג שמח! ${TAGS.he} #חנוכה #סופגניות` },
   "hoppy-vocal": {
     fr: `🎙️ Parlez. C'est livré.\nTouchez le micro dans l'appli et dites ce qu'il vous faut : « une pizza pour ce soir », « du lait et du pain »… on s'occupe du reste.\n🛵 Livraison partout à Netanya, dès ${delFr} en ville · 📍 Suivi en direct\n👉 ${APP_URL}\n${TAGS.fr} #commandevocale`,
     he: `🎙️ דברו, וזה אצלכם!\nלוחצים על המיקרופון באפליקציה ואומרים מה צריך: "פיצה להערב", "חלב ולחם"… ואנחנו דואגים לשאר.\n🛵 משלוחים בכל נתניה, החל מ־${delFr} בעיר · 📍 מעקב בזמן אמת\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -786,6 +789,8 @@ const CAMPS = [
 const FMT = { fiche: "🦘 Image officielle", detoure: "✂️ Sans fond (PNG)", post: "◻️ Post carré", story: "📱 Story", flyer: "🖨️ Flyer A5", g3: "1. Publier « P! »", g2: "2. Puis « O »", g1: "3. Puis « H »",
   g6: "1. « Pourquoi HOP! »", g5: "2. « Comment ça marche »", g4: "3. « Tout Netanya »" };
 const VIDEOS = [
+  // Pub vidéo (video/pubs/monter.py)
+  { id: "sufganiya", aud: "client", title: "🍩 Nouveau · Hanoucca : pas touche à ma soufgania ! (10 s)" },
   // Nouveau (12/11) : « Parlez. C'est livré. » La 1re appli de livraison à commande vocale (23 s, motion design : video/src/Voix.tsx)
   { id: "voix", aud: "client", title: "🎙️ Nouveau · Parlez. C'est livré. La 1re appli de livraison à commande vocale (23 s)" },
   // Nouveau (11/11, validée par le patron) : « Vos mezouzot chez le sofer, et retour » (vidéo Gemini montée : video/src/Mezouzot.tsx)
