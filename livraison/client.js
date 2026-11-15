@@ -1281,7 +1281,7 @@ function renderPharma() {
   let cats = Rayons.cats(r), items = rEdit ? r.items.filter(i => !r.cats.some(c => c.id === i.c && c.hidden)) : Rayons.items(r);
   // Makolet (patron, 12/11) : la page ne montre QUE les produits de base de la makolet (livraison seule, sans supplément) ;
   // tout le reste (produits de supermarché, au prix du magasin) est dans un 2e onglet, jamais mélangé.
-  const split = !rEdit && r.kind === "shop" && items.some(isCfItem) && items.some(x => !isCfItem(x));
+  const split = r.kind === "shop" && items.some(isCfItem) && items.some(x => !isCfItem(x));
   const src = split ? (state.phSrc === "cf" ? "cf" : "mak") : "";
   const allItems = items;
   if (src) { items = items.filter(x => (src === "cf") === isCfItem(x)); cats = cats.filter(c => items.some(x => x.c === c.id)); }
@@ -4182,6 +4182,7 @@ function renderCatalog() {
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}" data-cg-open="${UI.esc(p.id)}">
         <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
+        ${p.available && promoOf(p) ? `<em class="cg-promo${promoOf(p).lot > 1 ? " lot" : ""}"><bdi>${UI.esc(promoTag(promoOf(p)))}</bdi></em>` : ""}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
           : multi ? `<button type="button" class="cg-plus" data-cg-pick="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button>`
@@ -4470,6 +4471,15 @@ const RECO_PAIRS = [
 ];
 // Rayons « hors alimentaire » : on ne propose pas un spray ménager à côté d'un chocolat (et inversement)
 const RECO_NONFOOD = /hygi[eè]ne|beaut[ée]|maison|m[ée]nage|b[ée]b[ée]|animaux|טיפוח|היגיינה|ניקיון|תינוק|חיות/i;
+// Promo d'un produit, lue dans sa description : « 9 pour 30,00 ₪ au lieu de 44,10 ₪ » (lot) ou « 21,90 ₪ au lieu de 30 ₪ »
+function promoOf(p) {
+  const m = String((p && p.description) || "").match(/(?:^(\d+) pour )?(\d+(?:[.,]\d+)?) ₪ au lieu de (\d+(?:[.,]\d+)?) ₪/);
+  if (!m) return null;
+  const a = parseFloat(m[2].replace(",", ".")), b = parseFloat(m[3].replace(",", "."));
+  return b > a && a > 0 ? { lot: m[1] ? Number(m[1]) : 1, price: a, old: b, off: Math.round((1 - a / b) * 100) } : null;
+}
+// « 9 pour 30 ₪ » en gros (patron, 15/11) ; sans lot : « −32 % »
+const promoTag = pr => (pr.lot > 1 ? t("paLot", { n: pr.lot, price: money(pr.price) }) : `−${pr.off} %`);
 const recoDisc = p => { const m = String((p && p.description) || "").match(/(\d+(?:[.,]\d+)?) ₪ au lieu de (\d+(?:[.,]\d+)?) ₪/);
   if (!m) return 0; const a = parseFloat(m[1].replace(",", ".")), b = parseFloat(m[2].replace(",", "."));
   return b > 0 && a < b ? Math.round((1 - a / b) * 100) : 0; };
@@ -4578,7 +4588,8 @@ function renderItem() {
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
   $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</div>
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3>${grocShop() && packInfo(p) ? `<p class="it-pack"><bdi dir="ltr">${UI.esc(packInfo(p).label)}</bdi></p>` : ""}<div class="it-prow"><span class="cg-price">${UI.money(p.price)}</span>${grocShop() && unitPrice(p, true) ? `<span class="it-unit"><bdi dir="ltr">${UI.esc(unitPrice(p, true))}</bdi></span>` : ""}</div>
-      ${p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
+      ${promoOf(p) ? (pr => `<div class="it-promo"><b><bdi>🔥 ${UI.esc(pr.lot > 1 ? t("paLot", { n: pr.lot, price: money(pr.price) }) : money(pr.price))}</bdi></b><span><s>${UI.esc(money(pr.old))}</s><em dir="ltr">−${pr.off} %</em></span></div>`)(promoOf(p))
+        : p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
       ${itBuilder(p)}
       ${p.available ? "" : `<p class="it-out">${UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</p>`}</div>`;
   ($("#itemBody .it-txt") || $("#itemBody")).insertAdjacentHTML("beforeend", itRecos(p));
@@ -5351,7 +5362,8 @@ function renderOpenBadge() {
 // Le commerce commande lui-même une course (son téléphone) : n° de commande à 3 chiffres pour le sac
 const shopSelf = () => shopPicked() && !!state.pro && !proShopOn();
 // (les rayons à cocher en premier — pharmacie, tabac & alcool, boulangerie, makolet : c'est nouveau, il faut les voir)
-const RAYON_KINDS = ["pharm", "tabac", "bakery", "shop", "baby", "pets", "home", "gift"];
+// La makolet en premier (patron, 15/11) : le carré des produits de tous les jours
+const RAYON_KINDS = ["shop", "pharm", "tabac", "bakery", "baby", "pets", "home", "gift"];
 const HOME_KINDS = EXAMPLES.filter(e => !e.set.to_city).sort((a, b) => (RAYON_KINDS.indexOf(a.id) + 1 || 99) - (RAYON_KINDS.indexOf(b.id) + 1 || 99));
 const homeInput = which => $(which === "from" ? "#homeFrom" : "#homeTo");
 const homeNo = which => $(which === "from" ? "#homeFromNo" : "#homeToNo");
@@ -8501,7 +8513,7 @@ function renderPromos() {
     <div class="pm-row">${list.map((x, i) => `<button type="button" class="pm-card" data-promo="${UI.esc(x.code)}|${UI.esc(x.id)}" data-i="${i}">
       <span class="pm-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" /><em class="pm-off" dir="ltr">−${Number(x.off)} %</em></span>
       <span class="pm-txt"><small class="pm-shop">${UI.esc(mgShort(x.shop))}</small><b><bdi>${UI.esc(UI.bi(x.name))}</bdi></b>
-        <span class="pm-pr"><strong>${UI.esc(money(x.price))}</strong>${Number(x.lot) > 1 ? `<i>${UI.esc(t("pmLot", { n: x.lot }))}</i>` : ""}<s>${UI.esc(money(x.old))}</s></span>
+        <span class="pm-pr${Number(x.lot) > 1 ? " lot" : ""}"><strong><bdi>${UI.esc(Number(x.lot) > 1 ? t("paLot", { n: x.lot, price: money(x.price) }) : money(x.price))}</bdi></strong><s>${UI.esc(money(x.old))}</s></span>
         <span class="pm-go">${UI.esc(t("pmGo"))} <i aria-hidden="true">›</i></span></span></button>`).join("")}</div>`;
   if (box.dataset.html === html) return;
   box.innerHTML = html; box.dataset.html = html;
@@ -8566,12 +8578,12 @@ function paRender() {
   const list = inShop.filter(x => pa.cat < 0 || x.cat === cats[pa.cat]);
   const card = x => {
     const badge = x.b ? `<em class="pa-off pa-small">${UI.esc(t("paSmall"))}</em>` : x.f ? `<em class="pa-off" dir="ltr">−${Number(x.f)} %</em>` : "";
-    const price = x.l > 1 && x.code === "HOPCARREFOUR" ? t("paLot", { n: x.l, price: money(x.p) }) : money(x.p);
+    const price = x.l > 1 ? t("paLot", { n: x.l, price: money(x.p) }) : money(x.p);
     return `<div class="pa-card" data-pa-open="${UI.esc(x.code)}|${UI.esc(x.id)}">
       <span class="pa-pic"><img src="${UI.esc(x.ph)}" alt="" loading="lazy" decoding="async" />${badge}</span>
       <span class="pa-shop" style="--c:${PA_COLOR[x.code] || "#FF6A13"}">${UI.esc(paShopName(x.code))}</span>
       <b class="pa-name"><bdi>${UI.esc(UI.bi(x.name))}</bdi></b>
-      <span class="pa-pr"><strong><bdi>${UI.esc(price)}</bdi></strong>${x.o && x.o > x.p ? `<s>${UI.esc(money(x.o))}</s>` : ""}</span>
+      <span class="pa-pr${x.l > 1 ? " lot" : ""}"><strong><bdi>${UI.esc(price)}</bdi></strong>${x.o && x.o > x.p ? `<s>${UI.esc(money(x.o))}</s>` : ""}</span>
       ${x.e ? `<small class="pa-end">${UI.esc(t("paUntil", { d: x.e }))}</small>` : ""}
       <button type="button" class="pa-add" data-pa-add="${UI.esc(x.code)}|${UI.esc(x.id)}" aria-label="${UI.esc(t("paAdd"))}">+</button></div>`;
   };

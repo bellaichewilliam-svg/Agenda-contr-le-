@@ -5921,3 +5921,13 @@ label.check.hop-need, .check.hop-need { padding: 10px 12px; background: rgba(255
 .klang button { white-space: nowrap; }
 .camp-thumb { aspect-ratio: 4 / 5; align-self: start; }
 .camp-thumb img { object-fit: contain; }
+
+/* Promos par lot « 9 pour 30 ₪ » : en gros partout (accueil, toutes les promos, catalogue, fiche) */
+.cg-promo { position: absolute; inset-inline: 0; bottom: 0; z-index: 2; font-style: normal; text-align: center; font-size: 13px; font-weight: 900; line-height: 1.15; color: #fff; background: #E5484D; padding: 5px 6px; }
+.cg-promo.lot { font-size: 16px; padding: 6px; }
+.pm .pm-pr.lot strong, .pa-pr.lot strong { font-size: 21px; line-height: 1.1; color: #fff; background: #E5484D; border-radius: 10px; padding: 4px 9px; }
+.it-promo { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin: 10px 0; padding: 12px 14px; border-radius: 16px; color: #fff; background: linear-gradient(135deg, #E5484D, #FF6A13); }
+.it-promo b { font-size: 24px; font-weight: 900; line-height: 1.1; }
+.it-promo span { display: inline-flex; align-items: center; gap: 8px; }
+.it-promo s { font-size: 15px; opacity: .9; }
+.it-promo em { font-style: normal; font-size: 14px; font-weight: 900; color: #E5484D; background: #fff; border-radius: 99px; padding: 3px 9px; }
