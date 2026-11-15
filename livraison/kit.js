@@ -614,6 +614,7 @@ const CAPS = {
   "hoppy-vocal": {
     fr: `🎙️ Parlez. C'est livré.\nTouchez le micro dans l'appli et dites ce qu'il vous faut : « une pizza pour ce soir », « du lait et du pain »… on s'occupe du reste.\n🛵 Livraison partout à Netanya, dès ${delFr} en ville · 📍 Suivi en direct\n👉 ${APP_URL}\n${TAGS.fr} #commandevocale`,
     he: `🎙️ דברו, וזה אצלכם!\nלוחצים על המיקרופון באפליקציה ואומרים מה צריך: "פיצה להערב", "חלב ולחם"… ואנחנו דואגים לשאר.\n🛵 משלוחים בכל נתניה, החל מ־${delFr} בעיר · 📍 מעקב בזמן אמת\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+  get "hoppy-vocal2"() { return this["hoppy-vocal"]; },
   "hoppy-netanya": {
     fr: `🦘 On livre tout Netanya !\nCourses, restos, pharmacie, colis, cadeaux… Hoppy apporte tout, au plus vite.\n🛵 Dès ${delFr} en ville · 📍 Suivi en direct\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `🦘 מביאים לכם הכול בנתניה!\nקניות, מסעדות, בית מרקחת, חבילות, מתנות… הופי מביא הכול, הכי מהר.\n🛵 החל מ־${delFr} בעיר · 📍 מעקב בזמן אמת\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -740,6 +741,7 @@ const V = "kit/visuels/";
 const CAMPS = [
   // Visuels faits par le patron avec Gemini (15/11) : français et hébreu sur la même image
   { id: "hoppy-vocal", aud: "client", isNew: true, nolang: "Français et hébreu sur la même image", thumb: "post", title: "🎙️ Parlez. C'est livré.", desc: "Hoppy et son micro : on commande en parlant, il suffit de toucher le micro et de dire ce qu'il vous faut. Français et hébreu sur la même image.", formats: ["post"] },
+  { id: "hoppy-vocal2", aud: "client", isNew: true, nolang: "Français et hébreu sur la même image", thumb: "post", title: "🎤 Parlez. C'est livré. (version violette)", desc: "La même pub en style « street » violet et jaune, plus percutante pour TikTok et les stories. Français et hébreu sur la même image.", formats: ["post"] },
   { id: "hoppy-netanya", aud: "client", isNew: true, nolang: "Français et hébreu sur la même image", thumb: "post", title: "🦘 On livre tout Netanya", desc: "Hoppy les bras pleins (courses, pizza, cadeaux, colis) : courses, restos, pharmacie, colis… dès 25 ₪ en ville. Français et hébreu sur la même image.", formats: ["post"] },
   { id: "hoppy-francais", aud: "client", isNew: true, nolang: "Français et hébreu sur la même image", thumb: "post", title: "🥖 La livraison en français", desc: "Hoppy, sa baguette et ses croissants : tout Netanya livré, en français et en hébreu. Idéal pour les groupes francophones. Français et hébreu sur la même image.", formats: ["post"] },
   // Demandés par le patron le 04/11 : en tête du kit
