@@ -177,7 +177,7 @@ On en parle 2 minutes ? 📞 ${bossTel}` },
 Avec ${nameFr}, vous vendez aussi à ceux qui ne se déplacent pas :
 📦 Une commande prête ? Un livreur la porte chez le client, à prix fixe (${price(home)} dans ${UI.cityFr(home)}).
 👔 Pressing : on vient chercher les vêtements chez le client et on les ramène.
-💊 Pharmacie, fleurs, cadeaux : livré le jour même, souvent en moins d'une heure.
+💊 Pharmacie, fleurs, cadeaux : livré le jour même, au plus vite.
 📍 Le client suit la livraison en direct, vous n'avez rien à gérer.
 💰 0 % de commission, pas d'abonnement, pas de minimum.
 En option, votre boutique en ligne dans l'appli HOP! (vos clients commandent chez vous, avec vos photos et vos prix) : ${UI.money(CONFIG.pro.monthly)} par mois.
@@ -239,7 +239,7 @@ Société de livraison à Netanya et dans tout le Sharon : colis, documents, ret
 
 // Nouveaux partenaires (kit/nouveaux/partenaires.json) : les phrases à publier avec les visuels et les vidéos
 const NEW_POSTS = [
-  { title: "Nouveaux partenaires : post Facebook / WhatsApp (français)", dir: "ltr", text:
+  { title: "🆕 Nouvelles adresses livrées : post Facebook / WhatsApp (français)", dir: "ltr", text:
 `🆕 Nouveau sur ${nameFr} : on vous livre maintenant vos adresses préférées à ${UI.cityFr(home)} !
 
 🍣 Nina Sushi, Kikar HaAtsmaout · ✡️ casher
@@ -251,7 +251,7 @@ const NEW_POSTS = [
 ➕ Et des centaines d'autres enseignes : restaurants, Super-Pharm, poste, supermarchés…
 🛵 Livraison dans ${UI.cityFr(home)} : ${price(home)} · suivi en direct · espèces ou Bit
 👉 Tout ce qu'on livre (et commander en 1 minute) : ${livre}` },
-  { title: "שותפים חדשים: פוסט לפייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
+  { title: "🆕 מקומות חדשים: פוסט לפייסבוק / וואטסאפ (עברית)", dir: "rtl", text:
 `🆕 חדש ב${nameHe}: עכשיו מביאים לכם את המקומות שאתם אוהבים ב${heHome}!
 
 🍣 נינה סושי, כיכר העצמאות · ✡️ כשר
@@ -575,6 +575,33 @@ const GEMINI_POSTS = [
 ].map(p => Object.assign({ dir: "ltr", prompt: true }, p));
 const ALL_POSTS = GROUPES_POSTS.concat(GEMINI_POSTS, MCD_POSTS, JUS_POSTS, PARTNER_POSTS, CHABBAT_POSTS, VISITE_POSTS, COURSES_POSTS, NEW_POSTS).map(p => Object.assign({ aud: "client" }, p))
   .concat(POSTS.map((p, i) => Object.assign({ aud: POST_AUD[i] || "client" }, p)));
+// Une carte par message : le français et, juste après lui dans la liste, sa version en hébreu
+const POST_CARDS = [];
+ALL_POSTS.forEach((p, i) => {
+  const prev = ALL_POSTS[i - 1], next = ALL_POSTS[i + 1];
+  if (p.dir === "rtl" && prev && prev.dir === "ltr" && prev.aud === p.aud && !prev.prompt) return;
+  const he = p.dir === "ltr" && !p.prompt && next && next.dir === "rtl" && next.aud === p.aud ? next : null;
+  POST_CARDS.push({ title: p.title.replace(/\s*\((français|FR \+ HE)\)\s*$/, ""), aud: p.aud, prompt: p.prompt, fr: p, he });
+});
+// Versions qui manquent : le prompt pour les faire (joindre l'image du kit, voir video/HOPPY.md)
+const toHe = (l1, l2, band) => `Edit the attached image. Keep EXACTLY the same image: same layout, same Hoppy, same colors, same objects, same HOP! logos ("HOP!" stays in Latin letters, white with an orange "!").
+Make it a Hebrew-only version:
+- Replace the big French title with this Hebrew title, same style (line 1 white, line 2 orange), right-to-left, bold, big: "${l1}" / "${l2}".
+- Remove the small Hebrew line under the title (it is now the title).
+- In the bottom band, remove the French sentence and keep only this Hebrew sentence, bigger: "${band}".
+Spell every Hebrew text exactly as written, letter by letter. Same format (4:5, 1080x1350).`;
+const toFr = pairs => `Edit the attached image. Keep EXACTLY the same image: same layout, same Hoppy, same colors, same objects, same HOP! logos.
+Only replace the Hebrew texts with these French texts, same style, bold, big and very readable, spelled exactly letter by letter:
+${pairs}
+Same format (4:5, 1080x1350).`;
+const TODO = {
+  "hoppy-magasins": toHe("הולכים בשבילכם", "לחנויות שאתם אוהבים", "בגדים, נעליים, מתנות, עיצוב… ואנחנו מביאים."),
+  "hoppy-fleurs": toHe("מביאים גם", "את הפרחים שלכם", "יום הולדת, שבת, או סתם להגיד תודה."),
+  "hoppy-carrefour": toHe("עושים לכם את הקניות", "בקרפור", "במחיר של קרפור, עד הבית בנתניה."),
+  "hoppy-booom": toHe("הקניות שלכם מבום", "עד הבית בהופ אחד!", "המבצעים של בום, עד הבית בנתניה!"),
+  "hoppy-telephone": toFr(`"מהטלפון שלכם עד הדלת." → "De votre téléphone à votre porte." · "והופ!" → "Et hop !" · "משלוחים" → "LIVRAISON"`),
+  "hoppy-envie": toFr(`"בא לכם משהו?" → "Une envie ?" · "והופ!" → "Et hop !" · "קניות, אוכל, פרחים, חבילות... הופי דואג להכול." → "Courses, repas, fleurs, colis… Hoppy s'occupe de tout." · "משלוחים" → "LIVRAISON"`)
+};
 const CAPTION = {
   fr: `HOP! 🛵 Livraison à Netanya : restaurants, courses, colis… livrés au plus vite, encore chauds.\n👉 ${APP_URL}\n#Netanya #livraison #HOP`,
   he: `HOP! 🛵 משלוחים בנתניה: מסעדות, קניות, חבילות… מגיעים הכי מהר, עדיין חמים.\n👉 ${APP_URL}\n#נתניה #משלוחים #HOP`,
@@ -624,8 +651,8 @@ const CAPS = {
     fr: `👀 De nouveaux commerces chaque semaine sur HOP! !\nRestaurants, épiceries, boulangeries et boutiques de Netanya arrivent dans l'appli : venez voir les nouveautés.\n🛵 Livraison à Netanya : ${delFr}\n📍 Suivi en direct · 💵 Espèces ou Bit\n👉 ${APP_URL}\n${TAGS.fr}`,
     he: `👀 עסקים חדשים כל שבוע ב-HOP!\nמסעדות, מכולות, מאפיות וחנויות מנתניה מצטרפים לאפליקציה: בואו לראות מה חדש.\n🛵 משלוח בנתניה: ${delFr}\n📍 מעקב בזמן אמת · 💵 מזומן או ביט\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   nouveaux: {
-    fr: `🆕 Nouveaux partenaires sur HOP! : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush…\nLeur carte est dans l'appli : commandez en 1 minute, suivez le livreur en direct.\n👉 ${APP_URL}\n${TAGS.fr}`,
-    he: `🆕 שותפים חדשים ב-HOP!: נינה סושי, פריז טקסס, סמאש איט, השוק הצרפתי, פיצה קראש…\nהתפריט שלהם באפליקציה: מזמינים בדקה, עוקבים אחרי השליח בזמן אמת.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
+    fr: `🆕 Nouveau sur HOP! : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush…\nLeur carte est dans l'appli : commandez en 1 minute, suivez le livreur en direct.\n👉 ${APP_URL}\n${TAGS.fr}`,
+    he: `🆕 חדש ב-HOP!: נינה סושי, פריז טקסס, סמאש איט, השוק הצרפתי, פיצה קראש…\nהתפריט שלהם באפליקציה: מזמינים בדקה, עוקבים אחרי השליח בזמן אמת.\n👈 ${APP_URL}?lang=he\n${TAGS.he}` },
   client: {
     fr: `🎁 Et hop, c'est livré ! ${WELCOME_ON ? `Votre première course à Netanya : ${welcome} au lieu de ${delFr}` : `Livraison à Netanya : ${delFr}, prix fixe`}.\nColis, poste, pharmacie, restaurants, courses : on livre tout, dans tout le Sharon.\n📍 Suivi en direct · 💵 Espèces ou Bit · 🧾 0 frais cachés\n👉 Commandez en 1 minute${WELCOME_ON ? " (code BIENVENUE)" : ""} : ${APP_URL}\n${TAGS.fr}`,
     he: `🎁 והופ, זה מגיע! ${WELCOME_ON ? `המשלוח הראשון שלכם בנתניה: ${welcome} במקום ${delFr}` : `משלוח בנתניה: ${delFr}, מחיר קבוע`}.\nחבילות, דואר, פארם, מסעדות, קניות: מביאים הכול, בכל אזור השרון.\n📍 מעקב בזמן אמת · 💵 מזומן או ביט · 🧾 ללא עמלות נסתרות\n👈 מזמינים בדקה${WELCOME_ON ? " (קוד BRUCHIM)" : ""}: ${APP_URL}?lang=he\n${TAGS.he}` },
@@ -698,13 +725,13 @@ const tagText = (text, campaign, medium, source) => String(text).replace(/https?
   const tail = (m.match(/[.,;:!?)\]]+$/) || [""])[0];
   return tagUrl(m.slice(0, m.length - tail.length), campaign, medium, source) + tail;
 });
-const capFor = (id, medium) => { const c = CAPS[id]; return tagText((c && (c[ui.lang] || c.fr)) || CAPTION[ui.lang] || CAPTION.fr, id || "kit", medium || "post"); };
+const capFor = (id, medium, lang) => { const c = CAPS[id], l = lang || ui.lang; return tagText((c && (c[l] || c.fr)) || CAPTION[l] || CAPTION.fr, id || "kit", medium || "post"); };
 const UPLOAD = [["Instagram", "https://www.instagram.com/"], ["TikTok", "https://www.tiktok.com/tiktokstudio/upload"], ["Facebook", "https://www.facebook.com/"]];
 const V = "kit/visuels/";
 const CAMPS = [
   // Demandés par le patron le 04/11 : en tête du kit
-  { id: "hoppy-booom", aud: "client", isNew: true, thumb: "post", title: "💥 Vos courses BOOOM, livrées en un HOP !", desc: "Hoppy et son panier, fond rouge « Prix BOOOM ! » : les produits forts et les promos de BOOOM livrés à Netanya. Français et hébreu sur la même image. Lien direct vers HOP! chez BOOOM.", formats: ["post"] },
-  { id: "hoppy-carrefour", aud: "client", isNew: true, thumb: "post", title: "🛒 On fait vos courses chez Carrefour", desc: "Hoppy et son panier Carrefour : « Au prix Carrefour, livré chez vous à Netanya ». Français et hébreu sur la même image. Lien direct vers HOP! chez Carrefour.", formats: ["post"] },
+  { id: "hoppy-booom", aud: "client", isNew: true, todo: "he", thumb: "post", title: "💥 Vos courses BOOOM, livrées en un HOP !", desc: "Hoppy et son panier, fond rouge « Prix BOOOM ! » : les produits forts et les promos de BOOOM livrés à Netanya. Français et hébreu sur la même image. Lien direct vers HOP! chez BOOOM.", formats: ["post"] },
+  { id: "hoppy-carrefour", aud: "client", isNew: true, todo: "he", thumb: "post", title: "🛒 On fait vos courses chez Carrefour", desc: "Hoppy et son panier Carrefour : « Au prix Carrefour, livré chez vous à Netanya ». Français et hébreu sur la même image. Lien direct vers HOP! chez Carrefour.", formats: ["post"] },
   { id: "mcdo", aud: "client", isNew: true, thumb: "post", title: "🍔 Nouveau · Votre McDonald's livré par HOP!", desc: "Hoppy apporte votre McDo, encore chaud. Le lien de la légende ouvre directement le McDonald's casher (Kanyon HaSharon). FR et HE.", formats: ["post"] },
   { id: "jus", aud: "client", isNew: true, thumb: "post", title: "🧃 Nouveau · Une envie de jus ? Et hop, c'est livré !", desc: "Notre catalogue Jus de fruits et smoothies (10 recettes à 32 ₪), livré jusqu'à 22 h. Le lien de la légende ouvre directement le catalogue. FR et HE.", formats: ["post"] },
   // Commerces partenaires (kit/partenaire/liste.json) : « X vous livre ! » avec le vrai logo, post et story
@@ -716,21 +743,21 @@ const CAMPS = [
   { id: "hoppy-sacs", aud: "client", isNew: true, thumb: "post", title: "🛍️ Vos courses sont prêtes ? HOP! vient les chercher.", desc: "Vous faites vos courses, le livreur HOP! récupère les sacs au magasin et vous les livre. FR et HE.", formats: ["post"] },
   { id: "hoppy-porte", aud: "client", isNew: true, thumb: "post", title: "📦 Colis, médicaments, petites courses ? HOP! vous les apporte.", desc: "Hoppy livre une voisine à sa porte : idéal pour parler aux familles et aux personnes âgées. FR et HE.", formats: ["post"] },
   { id: "hoppy-boutique", aud: "client", isNew: true, thumb: "post", title: "🛍️ Repéré en boutique ? HOP! vous le livre.", desc: "Hoppy en mode shopping : l'article vu en magasin, livré chez vous. FR et HE.", formats: ["post"] },
-  { id: "hoppy-envie", aud: "client", isNew: true, only: "he", thumb: "post", title: "🎉 Une envie ? Et hop !", desc: "Hoppy jaillit du sac HOP! avec courses, plat, fleurs et colis.", formats: ["post"] },
-  { id: "hoppy-telephone", aud: "client", isNew: true, only: "he", thumb: "post", title: "📱 De votre téléphone à votre porte. Et hop !", desc: "Hoppy sort du téléphone avec fleurs, courses, colis, pharmacie et plat.", formats: ["post"] },
+  { id: "hoppy-envie", aud: "client", isNew: true, todo: "fr", thumb: "post", title: "🎉 Une envie ? Et hop !", desc: "Hoppy jaillit du sac HOP! avec courses, plat, fleurs et colis.", formats: ["post"] },
+  { id: "hoppy-telephone", aud: "client", isNew: true, todo: "fr", thumb: "post", title: "📱 De votre téléphone à votre porte. Et hop !", desc: "Hoppy sort du téléphone avec fleurs, courses, colis, pharmacie et plat.", formats: ["post"] },
   { id: "hoppy-pensez", aud: "client", isNew: true, thumb: "post", title: "💭 Vous pensez à quoi ? Hoppy vous l'apporte !", desc: "Post carré : plat, courses, fleurs, colis, pharmacie… tout ce qu'on a en tête, Hoppy l'apporte.", formats: ["post"] },
-  { id: "hoppy-repos", aud: "client", isNew: true, thumb: "post", title: "😌 Hoppy souffle : vous, restez tranquille", desc: "Post carré sans texte (le même en FR et HE) : le message est dans la légende. Idéal en fin de semaine.", formats: ["post"] },
-  { id: "hoppy-magasins", aud: "client", isNew: true, thumb: "post", title: "🛍️ Hoppy va dans vos magasins préférés", desc: "Vêtements, chaussures, cadeaux, déco… Hoppy vous les rapporte.", formats: ["post"] },
-  { id: "hoppy-fleurs", aud: "client", isNew: true, thumb: "post", title: "💐 Hoppy livre aussi vos fleurs", desc: "Anniversaire, Chabbat ou juste pour dire merci : Hoppy arrive avec le bouquet. Le modèle de style pour tous les visuels réseaux.", formats: ["post"] },
-  { id: "hoppy", aud: "client", isNew: true, title: "🦘 Notre mascotte : Hoppy (הופי)", thumb: "fiche", desc: "Le kangourou HOP! : l'image officielle (à joindre à ChatGPT pour chaque nouveau visuel, voir le prompt dans video/HOPPY.md) et Hoppy sans fond.", formats: ["fiche", "detoure"] },
-  { id: "grille2", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram, 2e rangée : ce qu'on fait", desc: "3 publications sous « H · O · P! » : Tout Netanya livré · Comment ça marche · Pourquoi HOP!. Publiez d'abord « Pourquoi », puis « Comment », puis « Tout Netanya ». Si « H · O · P! » est déjà en ligne : épinglez ensuite P!, puis O, puis H pour qu'ils restent en haut.", formats: ["g6", "g5", "g4"] },
-  { id: "grille", aud: "client", isNew: true, thumb: "apercu", title: "🔠 Grille Instagram « H · O · P! »", desc: "3 publications qui forment le logo sur votre profil. Publiez dans cet ordre : d'abord P!, puis O, puis H (la dernière publiée se met à gauche).", formats: ["g3", "g2", "g1"] },
+  { id: "hoppy-repos", aud: "client", isNew: true, nolang: "Sans texte : la même image dans les deux langues", thumb: "post", title: "😌 Hoppy souffle : vous, restez tranquille", desc: "Post carré sans texte (le même en FR et HE) : le message est dans la légende. Idéal en fin de semaine.", formats: ["post"] },
+  { id: "hoppy-magasins", aud: "client", isNew: true, todo: "he", thumb: "post", title: "🛍️ Hoppy va dans vos magasins préférés", desc: "Vêtements, chaussures, cadeaux, déco… Hoppy vous les rapporte.", formats: ["post"] },
+  { id: "hoppy-fleurs", aud: "client", isNew: true, todo: "he", thumb: "post", title: "💐 Hoppy livre aussi vos fleurs", desc: "Anniversaire, Chabbat ou juste pour dire merci : Hoppy arrive avec le bouquet. Le modèle de style pour tous les visuels réseaux.", formats: ["post"] },
+  { id: "hoppy", aud: "client", isNew: true, nolang: "La même image dans les deux langues", title: "🦘 Notre mascotte : Hoppy (הופי)", thumb: "fiche", desc: "Le kangourou HOP! : l'image officielle (à joindre à ChatGPT pour chaque nouveau visuel, voir le prompt dans video/HOPPY.md) et Hoppy sans fond.", formats: ["fiche", "detoure"] },
+  { id: "grille2", aud: "client", isNew: true, nolang: "La même image dans les deux langues", thumb: "apercu", title: "🔠 Grille Instagram, 2e rangée : ce qu'on fait", desc: "3 publications sous « H · O · P! » : Tout Netanya livré · Comment ça marche · Pourquoi HOP!. Publiez d'abord « Pourquoi », puis « Comment », puis « Tout Netanya ». Si « H · O · P! » est déjà en ligne : épinglez ensuite P!, puis O, puis H pour qu'ils restent en haut.", formats: ["g6", "g5", "g4"] },
+  { id: "grille", aud: "client", isNew: true, nolang: "La même image dans les deux langues", thumb: "apercu", title: "🔠 Grille Instagram « H · O · P! »", desc: "3 publications qui forment le logo sur votre profil. Publiez dans cet ordre : d'abord P!, puis O, puis H (la dernière publiée se met à gauche).", formats: ["g3", "g2", "g1"] },
   { id: "chabbat", aud: "client", isNew: true, title: "🕯️ Courses de dernière minute avant Chabbat", desc: "Le vendredi : hallot, poulet, vin, fleurs… « Dites-nous ce qu'il vous faut, on achète et on livre. »", formats: ["post", "story", "flyer"] },
   { id: "halot", aud: "client", isNew: true, title: "🥖 Pensez à vos hallot !", desc: "Boulangerie livrée le vendredi : hallot tressées, gâteaux, biscuits, viennoiseries.", formats: ["post", "story", "flyer"] },
   { id: "table", aud: "client", isNew: true, title: "🍷 Tout pour la table de Chabbat", desc: "Vin, fleurs, pâtisserie, salades : courses dans tous les magasins de Netanya, livrées à la porte.", formats: ["post", "story", "flyer"] },
   { id: "visite", aud: "client", isNew: true, title: "👀 L'appli évolue : pensez à nous visiter", desc: "De nouveaux commerces se rajoutent chaque semaine : invitation à revenir voir l'appli. Le QR ouvre l'accueil.", formats: ["post", "story", "flyer"] },
   { id: "courses", aud: "client", title: "🛒 On fait toutes vos courses", desc: "Les catégories de l'appli en 3 étapes. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story", "flyer"], video: true },
-  { id: "nouveaux", aud: "client", isNew: true, title: "🆕 Vos adresses préférées, livrées chez vous", desc: "Hoppy et nos partenaires : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush. Livraison à Netanya : 25 ₪. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story"], video: true },
+  { id: "nouveaux", aud: "client", isNew: true, title: "🆕 Vos adresses préférées, livrées chez vous", desc: "Hoppy et les adresses qu'on livre : Nina Sushi, Paris Texas, Smash It, Le Marché Français, Pizza Crush. Livraison à Netanya : 25 ₪. Le QR ouvre « Ce qu'on livre ».", formats: ["post", "story"], video: true },
   // Visuels « Première course à 15 ₪ » : retirés tant que l'offre est arrêtée (les images affichent ce prix)
   ...(WELCOME_ON ? [{ id: "client", aud: "client", title: "🎁 Première course à 15 ₪", desc: "Le message de lancement : prix, suivi en direct, espèces ou Bit.", formats: ["post", "story", "flyer"] }] : []),
   { id: "pro-prix-fixe", aud: "shop", isNew: true, thumb: "post", title: "💼 Professionnels : vos livraisons, un prix fixe.", desc: "Pour les réseaux : commerces, bureaux, restaurants, HOP! livre pour votre entreprise. FR et HE.", formats: ["post"] },
@@ -782,7 +809,7 @@ const VIDEOS = [
   { id: "itineraire", aud: "shop", title: "🗺️ Vite, suivi, simple : l'itinéraire HOP!" },
   { id: "paiement", aud: "client", title: "💳 Payé à la livraison : Bit, PayBox, espèces" },
   { id: "courses", aud: "client", title: "🛒 On fait toutes vos courses" },
-  { id: "nouveaux", aud: "client", title: "🆕 Nouveaux partenaires" }
+  { id: "nouveaux", aud: "client", title: "🆕 Vos adresses préférées, livrées chez vous" }
 ];
 
 // Onglet, public et langue choisis : gardés sur ce téléphone
@@ -791,6 +818,11 @@ const ui = (() => { try { return Object.assign({ tab: "visuels", aud: "client", 
 const TABS = ["visuels", "videos", "textes", "lien", "guide"];
 if (TABS.includes(location.hash.slice(1))) ui.tab = location.hash.slice(1);
 else if (location.hash === "#nouveaux") ui.tab = "visuels";
+if (!ui.cl || typeof ui.cl !== "object") ui.cl = {};
+// Pour retrouver une pub : la recherche, et ces thèmes (mots cherchés dans le titre et la description)
+const THEMES = [["", "Tout", null], ["courses", "🛒 Courses", /course|carrefour|booom|magasin|boutique|marche|liste|frigo|snack/], ["restos", "🍔 Restos", /resto|restaurant|mcdo|mcdonald|sushi|pizza|\bjus\b|plat|repas|chaud/],
+  ["chabbat", "🕯️ Chabbat", /chabbat|hallot|kemia|table|vendredi/], ["services", "📦 Colis, pharmacie…", /colis|poste|pharmac|medicament|pressing|fleur|mezouz|cle/], ["hoppy", "🦘 Hoppy", /hoppy/],
+  ["marque", "⭐ Présenter HOP!", /lancement|showreel|grille|simple|cycle|voix|parl|present|groupes|statut|itineraire|paiement|page hop|evolue|adopte|arret|tout/]];
 function renderKit() {
   try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* navigation privée */ }
   document.querySelectorAll("[data-ktab]").forEach(b => b.classList.toggle("on", b.dataset.ktab === ui.tab));
@@ -801,55 +833,88 @@ function renderKit() {
   $("#kitFilters").classList.toggle("hidden", !["visuels", "videos", "textes"].includes(ui.tab));
   // Les visuels portent la version de la page : un visuel refait est rechargé, pas repris du cache du téléphone
   const VQ = (() => { const sc = document.querySelector('script[src*="kit.js"]'); const m = sc && /v=(\d+)/.exec(sc.getAttribute("src") || ""); return m ? `?v=${m[1]}` : ""; })();
-  const L = ui.lang, f = (id, fmt) => `${V}${id}-${fmt}-${L}.png${VQ}`;
-  // Une campagne peut avoir des formats différents selon la langue ({ fr: ["post"], he: ["story"] })
-  const fmts = c => (Array.isArray(c.formats) ? c.formats : (c.formats[L] || []));
-  const th = c => (typeof c.thumb === "object" && c.thumb ? c.thumb[L] : c.thumb) || fmts(c)[0] || "story";
-  $("#kitCamps").innerHTML = CAMPS.filter(c => c.aud === ui.aud && (!c.only || c.only === L)).map(c => `<div class="camp">
-      <a class="camp-thumb" href="${f(c.id, th(c))}" data-vis data-src="${f(c.id, th(c))}"><img src="${f(c.id, th(c))}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
+  // --- Chaque carte a son choix de langue : le patron lit le français, puis passe à l'hébreu pour télécharger ---
+  const norm = v => String(v || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  const q = norm(ui.q).trim(), theme = (THEMES.find(t => t[0] === ui.theme) || THEMES[0])[2];
+  const hit = s => { const n = norm(s); return (!q || q.split(/\s+/).every(w => n.includes(w))) && (!theme || theme.test(n)); };
+  const langOf = k => ui.cl[k] || ui.lang;
+  const seg = (k, L, both, short) => both ? `<span class="klang-both">${both}</span>`
+    : `<span class="kit-seg klang">${[["fr", short ? "Français" : "🇫🇷 Français"], ["he", short ? "עברית" : "🇮🇱 עברית"]].map(([l, t]) => `<button type="button" data-ckey="${k}" data-clang="${l}" class="${l === L ? "on" : ""}">${t}</button>`).join("")}</span>`;
+  const count = (n, one, many) => `<p class="kit-count muted small">${n} ${n > 1 ? many : one}${q || theme ? ` · <button type="button" class="linkish" data-kreset>tout revoir</button>` : ""}</p>`;
+  const none = `<p class="muted small">Rien ne correspond. <button type="button" class="linkish" data-kreset>Tout revoir</button></p>`;
+  $("#kitThemes").innerHTML = THEMES.map(([k, l]) => `<button type="button" data-ktheme="${k}" class="${k === (ui.theme || "") ? "on" : ""}">${l}</button>`).join("");
+
+  // Visuels
+  const camps = CAMPS.filter(c => c.aud === ui.aud && hit(c.title + " " + c.desc + " " + c.id));
+  $("#kitCamps").innerHTML = camps.map(c => {
+    const k = "c:" + c.id, L = c.nolang ? "fr" : langOf(k);
+    // Une version qui n'existe pas encore : on montre l'autre, et on le dit
+    const miss = c.todo === L, F = miss ? (L === "he" ? "fr" : "he") : L;
+    const f = (id, fmt) => `${V}${id}-${fmt}-${F}.png${VQ}`;
+    const fm = Array.isArray(c.formats) ? c.formats : (c.formats[F] || []);
+    const th = (typeof c.thumb === "object" && c.thumb ? c.thumb[F] : c.thumb) || fm[0] || "story";
+    const todo = miss && TODO[c.id];
+    return `<div class="camp">
+      <a class="camp-thumb" href="${f(c.id, th)}" data-vis data-src="${f(c.id, th)}"><img src="${f(c.id, th)}" alt="" loading="lazy" />${c.isNew ? `<em class="camp-new">Nouveau</em>` : ""}</a>
       <div class="camp-info"><b>${UI.esc(c.title)}</b><small>${UI.esc(c.desc)}</small>
-        <div class="camp-btns">${fmts(c).map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
-          ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${L}.mp4${VQ}" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}
-          ${fmts(c).includes("post") ? shareBtn(f(c.id, "post"), `hop-${c.id}-post-${L}.png`, "📲 Publier le post", c.id) : ""}
-          ${fmts(c).includes("story") ? shareBtn(f(c.id, "story"), `hop-${c.id}-story-${L}.png`, "📲 Publier la story", c.id) : ""}</div>
-        ${CAPS[c.id] ? `<details class="camp-cap"><summary>✍️ Sa légende (copiée toute seule en publiant)</summary><div class="post" id="cap-${c.id}" dir="${L === "he" ? "rtl" : "ltr"}">${UI.esc(capFor(c.id, fmts(c)[0] || "post"))}</div><button type="button" class="btn btn-sm btn-primary" data-copy="cap-${c.id}">Copier la légende</button></details>` : ""}</div></div>`).join("")
-    || `<p class="muted small">Rien pour l'instant.</p>`;
-  const vids = VIDEOS.filter(v => v.aud === ui.aud);
-  $("#kitVideos").innerHTML = vids.map(v => `<figure${v.ratio ? ' class="wide"' : ""}><video src="${V}${v.id}-video-${L}.mp4${VQ}" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
-      <figcaption><b>${UI.esc(v.title)}</b><span class="kshare-row">${shareBtn(`${V}${v.id}-video-${L}.mp4${VQ}`, `hop-${v.id}-${L}.mp4`, "", v.id)}<a class="btn btn-sm" href="${V}${v.id}-video-${L}.mp4${VQ}" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></span></figcaption></figure>`).join("")
-    || `<p class="muted small">Pas encore de vidéo pour eux : les visuels sont dans l'onglet 🖼️.</p>`;
-  // Les textes bilingues (statut, phrases courtes, fiche Google) apparaissent dans les deux langues
-  const bi = p => p.dir === "ltr" && /[\u0590-\u05FF]/.test(p.text);
-  const posts = ALL_POSTS.filter(p => p.aud === ui.aud && (bi(p) || (L === "he") === (p.dir === "rtl")));
-  $("#posts").innerHTML = posts.map((p, i) => { const txt = tagText(p.text, "texte-" + slugOf(p.title), "texte"); return `<div class="kpost">
+        ${seg(k, L, c.nolang)}
+        ${miss ? `<div class="klang-miss">⚠️ ${L === "he" ? "Pas encore de version tout en hébreu : cette image garde son titre en français." : "Pas encore de version française : cette image est en hébreu."}
+          ${todo ? `<div class="post hidden" id="todo-${c.id}" dir="ltr">${UI.esc(todo)}</div><button type="button" class="btn btn-sm" data-copy="todo-${c.id}">Copier le prompt pour la faire</button><small>Dans ChatGPT ou Gemini : joindre cette image, coller le prompt, puis m'envoyer le résultat.</small>` : ""}</div>` : ""}
+        <div class="camp-btns">${fm.map(x => `<a class="btn btn-sm" href="${x === "flyer" ? f(c.id, x).replace(/\.png(\?[^"]*)?$/, ".pdf$1") : f(c.id, x)}" data-vis data-src="${f(c.id, x)}">${FMT[x]}</a>`).join("")}
+          ${c.video ? `<a class="btn btn-sm" href="${V}${c.id}-video-${F}.mp4${VQ}" target="_blank" rel="noopener">🎬 Vidéo</a>` : ""}
+          ${fm.includes("post") ? shareBtn(f(c.id, "post"), `hop-${c.id}-post-${F}.png`, "📲 Publier le post", c.id, L) : ""}
+          ${fm.includes("story") ? shareBtn(f(c.id, "story"), `hop-${c.id}-story-${F}.png`, "📲 Publier la story", c.id, L) : ""}</div>
+        ${CAPS[c.id] ? `<details class="camp-cap"><summary>✍️ Sa légende en ${L === "he" ? "hébreu" : "français"} (copiée toute seule en publiant)</summary><div class="post" id="cap-${c.id}" dir="${L === "he" ? "rtl" : "ltr"}">${UI.esc(capFor(c.id, fm[0] || "post", L))}</div><button type="button" class="btn btn-sm btn-primary" data-copy="cap-${c.id}">Copier la légende</button></details>` : ""}</div></div>`; }).join("")
+    || (q || theme ? none : `<p class="muted small">Rien pour l'instant.</p>`);
+  if (camps.length) $("#kitCamps").insertAdjacentHTML("afterbegin", count(camps.length, "visuel", "visuels"));
+
+  // Vidéos
+  const vids = VIDEOS.filter(v => v.aud === ui.aud && hit(v.title + " " + v.id));
+  $("#kitVideos").innerHTML = vids.map(v => { const k = "v:" + v.id, L = langOf(k), src = `${V}${v.id}-video-${L}.mp4${VQ}`; return `<figure${v.ratio ? ' class="wide"' : ""}><video src="${src}" controls playsinline preload="metadata"${v.ratio ? ` style="aspect-ratio:${v.ratio}"` : ""}></video>
+      <figcaption><b>${UI.esc(v.title)}</b>${seg(k, L, "", true)}<span class="kshare-row">${shareBtn(src, `hop-${v.id}-${L}.mp4`, "", v.id, L)}<a class="btn btn-sm" href="${src}" download="hop-${v.id}-${L}.mp4">⬇ Enregistrer</a></span></figcaption></figure>`; }).join("")
+    || (q || theme ? none : `<p class="muted small">Pas encore de vidéo pour eux : les visuels sont dans l'onglet 🖼️.</p>`);
+
+  // Textes : le français et l'hébreu d'un même message dans une seule carte
+  const posts = POST_CARDS.filter(p => p.aud === ui.aud && hit(p.title + " " + p.fr.text));
+  $("#posts").innerHTML = posts.map((p, i) => {
+    const k = "t:" + slugOf(p.title), L = p.he ? langOf(k) : "fr", v = L === "he" ? p.he : p.fr, camp = "texte-" + slugOf(p.fr.title);
+    return `<div class="kpost">
       <b>${UI.esc(p.title)}</b>
-      <div class="post" id="post${i}" dir="${p.dir}">${UI.esc(txt)}</div>
+      ${p.prompt ? "" : seg(k, L, p.he ? "" : "🇫🇷 🇮🇱 Français et hébreu dans le même texte")}
+      <div class="post" id="post${i}" dir="${v.dir}">${UI.esc(tagText(v.text, camp, "texte"))}</div>
       <div class="kpost-btns"><button class="btn btn-sm btn-primary" data-copy="post${i}">Copier</button>
         ${p.prompt ? `<a class="btn btn-sm" href="kit/visuels/hoppy-officiel.png" download="hoppy-officiel.png">⬇ Hoppy</a><a class="btn btn-sm" href="kit/visuels/hoppy-fleurs-post-fr.png" download="hop-modele.png">⬇ Modèle</a>
         <span class="muted small" style="flex-basis:100%">Dans Gemini : joindre les 2 images (Hoppy, puis le modèle), coller le texte.</span>` : `${navigator.share ? `<button class="btn btn-sm btn-share" data-share-text="post${i}">📲 Partager</button>` : ""}
-        <a class="btn btn-sm btn-fb" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(tagUrl(APP_URL, "texte-" + slugOf(p.title), "texte", "facebook"))}" target="_blank" rel="noopener" data-fb-copy="post${i}">Facebook</a>
-        <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", tagText(p.text, "texte-" + slugOf(p.title), "texte", "whatsapp")))}">Partager sur WhatsApp</a>`}</div></div>`; }).join("")
-    || `<p class="muted small">Pas de texte pour eux dans cette langue.</p>`;
+        <a class="btn btn-sm btn-fb" href="https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(tagUrl(APP_URL, camp, "texte", "facebook"))}" target="_blank" rel="noopener" data-fb-copy="post${i}">Facebook</a>
+        <a class="btn btn-sm btn-wa" href="${UI.esc(UI.waPersonal("", tagText(v.text, camp, "texte", "whatsapp")))}">Partager sur WhatsApp</a>`}</div></div>`; }).join("")
+    || (q || theme ? none : `<p class="muted small">Pas de texte pour eux.</p>`);
 }
 document.addEventListener("click", e => {
   const tb = e.target.closest("[data-ktab]"), au = e.target.closest("[data-aud]"), lg = e.target.closest("[data-klang]");
   if (tb) { ui.tab = tb.dataset.ktab; history.replaceState(null, "", "#" + ui.tab); renderKit(); window.scrollTo({ top: 0 }); }
   if (au) { ui.aud = au.dataset.aud; renderKit(); }
-  if (lg) { ui.lang = lg.dataset.klang; renderKit(); }
+  if (lg) { ui.lang = lg.dataset.klang; ui.cl = {}; renderKit(); }
+  const cl = e.target.closest("[data-clang]");
+  if (cl) { ui.cl[cl.dataset.ckey] = cl.dataset.clang; renderKit(); }
+  const thm = e.target.closest("[data-ktheme]");
+  if (thm) { ui.theme = thm.dataset.ktheme; renderKit(); }
+  if (e.target.closest("[data-kreset]")) { ui.q = ""; ui.theme = ""; $("#kitSearch").value = ""; renderKit(); }
   const ch = e.target.closest("[data-kchan]");
   if (ch) { ui.channel = ch.dataset.kchan; renderKit(); }
 });
+$("#kitSearch").value = ui.q || "";
+$("#kitSearch").addEventListener("input", e => { ui.q = e.target.value; renderKit(); });
 renderKit();
 
 // --- Publier en direct sur Instagram, TikTok, Facebook (et WhatsApp…) ----------------------------------
 // Sur téléphone : la feuille de partage du téléphone, avec le fichier déjà joint (Instagram Reels / Story,
 // TikTok, Facebook, WhatsApp y apparaissent). Sur ordinateur, ces applis n'acceptent pas d'envoi depuis une
 // page web : on enregistre le fichier et on ouvre leur page d'envoi. La légende est copiée pour être collée.
-function shareBtn(url, name, label, cap) {
-  return `<button type="button" class="btn btn-sm btn-share" data-share="${UI.esc(url)}" data-name="${UI.esc(name)}"${cap ? ` data-cap="${UI.esc(cap)}"` : ""}>${label || "📲 Insta · TikTok · Facebook"}</button>`;
+function shareBtn(url, name, label, cap, lang) {
+  return `<button type="button" class="btn btn-sm btn-share" data-share="${UI.esc(url)}" data-name="${UI.esc(name)}"${cap ? ` data-cap="${UI.esc(cap)}"` : ""}${lang ? ` data-lang="${lang}"` : ""}>${label || "📲 Insta · TikTok · Facebook"}</button>`;
 }
 const shareFiles = new Map();
-const copyCaption = (id, medium) => { try { navigator.clipboard && navigator.clipboard.writeText(capFor(id, medium)).catch(() => {}); } catch (_) { /* rien */ } };
+const copyCaption = (id, medium, lang) => { try { navigator.clipboard && navigator.clipboard.writeText(capFor(id, medium, lang)).catch(() => {}); } catch (_) { /* rien */ } };
 function shareHelp(btn, url, name, mobile) {
   const old = btn.parentElement.querySelector(".kshare-help");
   if (old) old.remove();
@@ -865,7 +930,7 @@ function shareHelp(btn, url, name, mobile) {
 }
 async function shareMedia(btn) {
   const url = btn.dataset.share, name = btn.dataset.name;
-  copyCaption(btn.dataset.cap, /\.mp4/i.test(btn.dataset.name || "") ? "video" : /story/.test(btn.dataset.name || "") ? "story" : "post");
+  copyCaption(btn.dataset.cap, /\.mp4/i.test(btn.dataset.name || "") ? "video" : /story/.test(btn.dataset.name || "") ? "story" : "post", btn.dataset.lang);
   if (!navigator.share || !navigator.canShare) return shareHelp(btn, url, name, false);
   let file = shareFiles.get(url);
   const label = btn.dataset.label || btn.innerHTML;
@@ -880,7 +945,7 @@ async function shareMedia(btn) {
     btn.disabled = false;
   }
   if (!navigator.canShare({ files: [file] })) { btn.innerHTML = label; return shareHelp(btn, url, name, true); }
-  try { await navigator.share({ files: [file], text: capFor(btn.dataset.cap, /\.mp4/i.test(name) ? "video" : /story/.test(name) ? "story" : "post") }); btn.innerHTML = label; }
+  try { await navigator.share({ files: [file], text: capFor(btn.dataset.cap, /\.mp4/i.test(name) ? "video" : /story/.test(name) ? "story" : "post", btn.dataset.lang) }); btn.innerHTML = label; }
   catch (ex) {
     // Le téléchargement a pris trop de temps : le téléphone demande un 2e toucher pour ouvrir le partage
     if (ex && ex.name === "NotAllowedError") { btn.innerHTML = "📲 Publier maintenant"; btn.classList.add("ready"); }
