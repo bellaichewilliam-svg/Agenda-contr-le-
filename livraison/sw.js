@@ -33,10 +33,20 @@ self.addEventListener("push", e => {
   // L'appli ouverte (même en arrière-plan) se met à jour tout de suite : paiement, annulation, nouvelle course…
   self.clients.matchAll({ type: "window", includeUncontrolled: true })
     .then(list => list.forEach(c => c.postMessage({ hop: "refresh", tag: d.tag || "" }))).catch(() => {});
-  // Déjà vue (touchée / balayée) ou appli ouverte à l'écran (elle sonne elle-même) : plus de renvoi qui ressurgit
+  // Déjà vue (touchée / balayée) ou appli ouverte à l'écran (elle sonne elle-même) : plus de renvoi qui ressurgit.
+  // Seulement le panneau patron ou l'appli livreur de CE téléphone (celle qui a reçu la notification) : le 15/11, le patron
+  // passait une commande sur la page client, la notification de la course est restée muette et rien n'a sonné.
+  const appOf = u => { const p = String(u || "").split("?")[0].split("#")[0];
+    return /\/patron\/|\/admin\.html$/.test(p) ? "patron" : /\/livreur\/|\/coursier\.html$/.test(p) ? "livreur" : /\/commerce/.test(p) ? "commerce" : "client"; };
+  const mine = appOf(self.registration.scope), rootScope = new URL(self.registration.scope).pathname === "/";
   const visible = self.clients.matchAll({ type: "window", includeUncontrolled: true })
-    .then(list => list.some(c => c.visibilityState === "visible" && c.focused !== false)).catch(() => false);
-  e.waitUntil(Promise.all([off, isSeen(d.tag || "", d.title || "HOP!"), visible, purgeSeen()]).then(([, seen, vis]) => {
+    .then(list => list.some(c => c.visibilityState === "visible" && c.focused !== false
+      && /^(patron|livreur)$/.test(appOf(c.url)) && (rootScope || appOf(c.url) === mine))).catch(() => false);
+  // Accusé de réception au serveur (15/11) : on sait que la notification est bien arrivée sur ce téléphone
+  const got = d.ack && d.ack.u && d.ack.k ? self.registration.pushManager.getSubscription().then(sub => sub && fetch(String(d.ack.u).replace(/push_seen_mark$/, "push_got_mark"), {
+    method: "POST", keepalive: true, headers: { "Content-Type": "application/json", apikey: d.ack.k, Authorization: "Bearer " + d.ack.k },
+    body: JSON.stringify({ p_endpoint: sub.endpoint, p_tag: d.tag || "" }) })).catch(() => {}) : null;
+  e.waitUntil(Promise.all([off, isSeen(d.tag || "", d.title || "HOP!"), visible, purgeSeen(), got]).then(([, seen, vis]) => {
     if (vis && d.tag && /^(o|boss|ring)-/.test(d.tag)) return self.registration.getNotifications({ tag: d.tag }).then(l => { if (l.length) return; return show(true); });
     return show(seen);
   }));
