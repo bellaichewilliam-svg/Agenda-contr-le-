@@ -230,7 +230,7 @@ const BAKERY = {
     { id: "plateau", p: [60, 120], sz: 3, c: "bour", img: "stuffed", e: "🥟", fr: "Plateau de mini-bourekas (fête, bureau)", he: "מגש בורקס קטנים (אירוע, משרד)" },
     { id: "quiche", p: [20, 35], sz: 2, c: "bour", img: "pie", e: "🥧", fr: "Quiche / pashtida", he: "קיש / פשטידה" },
     { id: "pizzapart", p: [12, 18], c: "bour", img: "pizza", e: "🍕", fr: "Part de pizza", he: "משולש פיצה" },
-    { id: "sandwich", p: [20, 35], c: "bour", img: "sandwich", e: "🥪", fr: "Sandwich", he: "כריך", opt: V(["Thon", "טונה"], ["Œuf", "ביצה"], ["Fromage", "גבינה"], ["Avocat", "אבוקדו"]) },
+    { id: "sandwich", p: [20, 35], c: "bour", img: "sandwich", e: "🥪", fr: "Sandwich", he: "כריך", opt: V(["Thon", "טונה"], ["Œuf", "ביצה"], ["Fromage", "גבינה"], ["Avocat", "אבוקדו"], ["Thon + œuf", "טונה + ביצה"], ["Thon + avocat", "טונה + אבוקדו"], ["Œuf + avocat", "ביצה + אבוקדו"], ["Fromage + avocat", "גבינה + אבוקדו"], ["Fromage + œuf", "גבינה + ביצה"]) },
     { id: "gatchoc", p: [50, 90], sz: 3, c: "gat", img: "bdaycake", e: "🎂", fr: "Gâteau au chocolat", he: "עוגת שוקולד" },
     { id: "cheesecake", p: [50, 90], sz: 3, c: "gat", img: "shortcake", e: "🍰", fr: "Cheesecake", he: "עוגת גבינה" },
     { id: "tarte", p: [40, 80], sz: 3, c: "gat", img: "pie", e: "🥧", fr: "Tarte aux fruits", he: "טארט פירות" },
