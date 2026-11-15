@@ -86,12 +86,18 @@ async function rest(path, { method = "GET", body, token, prefer } = {}) {
   const res = await fetch(sb.url.replace(/\/$/, "") + path, {
     method, headers, body: body ? JSON.stringify(body) : undefined
   });
+  // Une page web à la place de la réponse de la base : une connexion filtrée (internet « casher », Wi-Fi d'hôtel…)
+  // a bloqué l'envoi (vu le 15/11 : un client au Beit Habad). On le signale pour essayer le 2e chemin.
+  const html = t => /^\s*</.test(t || "");
   if (!res.ok) {
-    const err = new Error((await res.text()) || res.statusText);
+    const t = await res.text();
+    const err = new Error(html(t) ? "blocked_html" : (t || res.statusText));
     err.status = res.status;
+    if (html(t)) err.html = true;
     throw err;
   }
   const text = await res.text();
+  if (html(text)) { const err = new Error("blocked_html"); err.html = true; throw err; }
   return text ? JSON.parse(text) : null;
 }
 
@@ -216,12 +222,21 @@ async function createOrder(order) {
   if (ONLINE) {
     // Coupure réseau (« Failed to fetch ») : un 2e essai 1,5 s plus tard ; si le 1er était en fait arrivé, le même jeton
     // revient en doublon (409) : la commande est bien enregistrée
+    // Connexion filtrée (la réponse est une page web) : 2e chemin tout de suite, la commande encodée par un appel de
+    // fonction neutre (mêmes contrôles dans la base) — patron, 15/11 : un client bloqué alors que tout le reste marchait
+    const dup = e => e.status === 409 || /duplicate key/.test(e.message);
+    const viaFn = () => rest("/rest/v1/rpc/hop_send", { method: "POST", body: { p: btoa(unescape(encodeURIComponent(JSON.stringify(order)))) } });
     try { await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" }); }
     catch (e) {
-      if (e.status) throw e;
-      await new Promise(r => setTimeout(r, 1500));
-      try { await rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" }); }
-      catch (e2) { if (!(e2.status === 409 || /duplicate key/.test(e2.message))) throw e2; }
+      if (e.status && !e.html) throw e;
+      if (!e.html) await new Promise(r => setTimeout(r, 1500));
+      try { await (e.html ? viaFn() : rest("/rest/v1/orders", { method: "POST", body: order, prefer: "return=minimal" })); }
+      catch (e2) {
+        if (dup(e2)) { /* le 1er envoi était bien arrivé */ }
+        else if (e2.status && !e2.html) throw e2;
+        else if (e.html) throw e2;
+        else { try { await viaFn(); } catch (e3) { if (!dup(e3)) throw e3; } }
+      }
     }
     delete order.client_key;
     delete order.send_key;
