@@ -4149,11 +4149,26 @@ function packInfo(p) {
 }
 // Prix au 100 g / 100 ml (cartes) ou au kg / litre (fiche ouverte)
 function unitPrice(p, big) {
+  // (patron, 15/11) pas de « ₪/kg » sur une bougie ou une crème : seulement dans les épiceries et supermarchés
+  if (state.shop && !/epicerie|super|market/.test(String(state.shop.kind || ""))) return "";
   const k = packInfo(p), price = Number(p.price);
   if (!k || !k.total || !price) return "";
   const base = big ? 1000 : 100, val = price / k.total * base;
   const u = k.kind === "g" ? (big ? "kg" : "100g") : (big ? "L" : "100ml");
   return money(Math.round(val * 100) / 100) + "/" + u;
+}
+// Favoris (patron, 15/11) : le cœur sur un produit le garde pour la prochaine fois, en tête du magasin (sur ce téléphone)
+const LS_FAV = "livraison.favItems.v1";
+const favAll = () => { try { return JSON.parse(localStorage.getItem(LS_FAV)) || {}; } catch (e) { return {}; } };
+const favOf = code => favAll()[String(code || "").toUpperCase()] || [];
+const isFav = id => !!(state.shop && favOf(state.shop.code).includes(id));
+function favToggle(id) {
+  if (!state.shop) return;
+  const all = favAll(), k = String(state.shop.code || "").toUpperCase(), cur = all[k] || [];
+  all[k] = cur.includes(id) ? cur.filter(x => x !== id) : [id, ...cur].slice(0, 60);
+  if (!all[k].length) delete all[k];
+  try { localStorage.setItem(LS_FAV, JSON.stringify(all)); } catch (e) { /* plein ou privé */ }
+  UI.track("fav_" + (cur.includes(id) ? "off" : "on"), { shop_code: k });
 }
 function renderCatalog() {
   const box = $("#catalogBox"), on = catalogOn();
@@ -4167,7 +4182,8 @@ function renderCatalog() {
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
   const hasLoose = cgShown().some(p => !cats.some(c => c.id === p.category_id));
   // Le menu entier par rubriques ; les onglets mènent à leur rubrique et suivent le défilement
-  const allSecs = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: groupFirst(cgShown().filter(p => p.category_id === c.id)) }))
+  const favIds = favOf(state.shop && state.shop.code), favItems = favIds.length ? groupFirst(cgShown().filter(p => favIds.includes(p.id))) : [];
+  const allSecs = (favItems.length ? [{ id: "_fav", title: t("favTitle"), items: favItems }] : []).concat(cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: groupFirst(cgShown().filter(p => p.category_id === c.id)) })))
     .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: groupFirst(cgShown().filter(p => !cats.some(c => c.id === p.category_id))) }] : []);
   // Recherche dans le catalogue (nom, description, français et hébreu, sans accents)
   const cq = phNorm(state.cgQ || "");
@@ -4615,7 +4631,7 @@ function renderItem() {
   const p = cgProducts().find(x => x.id === item.id);
   if (!p) return;
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
-  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</div>
+  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}<button type="button" class="it-fav${isFav(p.id) ? " on" : ""}" data-it-fav="${UI.esc(p.id)}" aria-label="${UI.esc(t("favAdd"))}" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? "❤️" : "🤍"}</button></div>
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3>${grocShop() && packInfo(p) ? `<p class="it-pack"><bdi dir="ltr">${UI.esc(packInfo(p).label)}</bdi></p>` : ""}<div class="it-prow"><span class="cg-price">${UI.money(p.price)}</span>${grocShop() && unitPrice(p, true) ? `<span class="it-unit"><bdi dir="ltr">${UI.esc(unitPrice(p, true))}</bdi></span>` : ""}</div>
       ${promoOf(p) ? (pr => `<div class="it-promo"><b><bdi>🔥 ${UI.esc(pr.lot > 1 ? t("paLot", { n: pr.lot, price: money(pr.price) }) : money(pr.price))}</bdi></b><span><s>${UI.esc(money(pr.old))}</s><em dir="ltr">−${pr.off} %</em></span></div>`)(promoOf(p))
         : p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
@@ -4869,6 +4885,8 @@ $("#itemSheet").addEventListener("click", e => {
   if (fk) { const [i, k] = fk.dataset.itFlavor.split(":"); item.flavors = [...(item.flavors || [])]; item.flavors[+i] = k; itNext(); return renderItem(); }
   const sd = e.target.closest("[data-it-side]");
   if (sd) { item.side = sd.dataset.itSide; return renderItem(); }
+  const fv = e.target.closest("[data-it-fav]");
+  if (fv) { favToggle(fv.dataset.itFav); renderItem(); renderCatalog(); return; }
   const chb = e.target.closest("[data-it-ch]");
   if (chb) { const k = chb.dataset.itCh, c = choicesFor(cgProducts().find(x => x.id === item.id)), cur = item.ch || [];
     item.ch = cur.includes(k) ? cur.filter(x => x !== k) : cur.length < ((c && c.max) || 5) ? [...cur, k] : cur; return renderItem(); }
