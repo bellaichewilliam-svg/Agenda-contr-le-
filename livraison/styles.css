@@ -5901,3 +5901,23 @@ html.d2-day .vit-inst .vi-x { background: #EEF1F6; color: #0F1F3D; }
 label.check.hop-need, .check.hop-need { padding: 10px 12px; background: rgba(255,106,19,.10); }
 @keyframes hopNeed { 0%, 100% { box-shadow: 0 0 0 3px #FF6A13, 0 0 0 8px rgba(255,106,19,.22); } 50% { box-shadow: 0 0 0 3px #FF6A13, 0 0 0 14px rgba(255,106,19,.05); } }
 @media (prefers-reduced-motion: reduce) { .hop-need { animation: none; } }
+
+/* Kit : langue dans chaque carte, recherche et thèmes */
+.kit-all { display: inline-flex; align-items: center; gap: 6px; }
+.kit-all small { color: var(--muted); font-weight: 600; }
+.kit-search { flex-basis: 100%; width: 100%; padding: 11px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--panel); color: inherit; font: 500 15px/1.2 "Rubik", system-ui, sans-serif; }
+.kit-themes { flex-basis: 100%; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.kit-themes::-webkit-scrollbar { display: none; }
+.kit-themes button { flex: none; border: 1px solid var(--border); background: var(--panel); color: inherit; border-radius: 99px; padding: 7px 12px; font: 600 13px/1 "Rubik", system-ui, sans-serif; cursor: pointer; white-space: nowrap; }
+.kit-themes button.on { background: #0F1F3D; border-color: #0F1F3D; color: #fff; }
+.kit-count { margin: 0 0 -4px; }
+.linkish { border: 0; background: none; padding: 0; color: var(--orange, #FF6A13); font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }
+.klang { justify-self: start; }
+.klang button { padding: 6px 10px; font-size: 12.5px; }
+.klang-both { justify-self: start; font-size: 12px; font-weight: 600; color: var(--muted); background: var(--bg, #f3f5f9); border: 1px solid var(--border); border-radius: 99px; padding: 5px 10px; }
+.klang-miss { display: grid; gap: 6px; justify-items: start; font-size: 13px; line-height: 1.35; padding: 9px 10px; border-radius: 12px; background: rgba(255, 106, 19, .1); border: 1px solid rgba(255, 106, 19, .35); }
+.klang-miss small { color: var(--muted); }
+.kit-pane .vid-grid figcaption .klang { flex-basis: 100%; }
+.klang button { white-space: nowrap; }
+.camp-thumb { aspect-ratio: 4 / 5; align-self: start; }
+.camp-thumb img { object-fit: contain; }
