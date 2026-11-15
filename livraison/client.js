@@ -4564,7 +4564,7 @@ const item = { id: null, qty: 1 };
 function openItem(id) {
   let p = cgProducts().find(x => x.id === id);
   if (!p) return;
-  if (sizesOf(p).length > 1 && !state.cart[p.id]) p = sizeDefault(p);
+  if (sizesOf(p).length > 1 && !state.cart[p.id] && !(hv.sizeRef && hv.sizeRef[p.id])) p = sizeDefault(p);
   item.id = p.id; item.qty = Math.max(1, state.cart[p.id] || 1);
   const m0 = (state.cartMods || {})[p.id] || {};
   item.off = [...(m0.off || [])]; item.note = m0.note || ""; item.drink = m0.drink || ""; item.needDrink = false; item.flavors = [...(m0.flavors || [])]; item.side = m0.side || "fries"; item.extras = [...(m0.extras || [])]; item.tab = "";
@@ -7946,8 +7946,16 @@ async function hvGo(out) {
     if (state.shop && state.shop.code === code) {
       let first = null; const pend = [];
       items.forEach(b => { const id = b.ref.split(":").slice(2).join(":"), p = cgProducts().find(x => x.id === id); if (!p) return;
-        // (un plat avec des choix à faire — taille, boisson, supplément : sa fiche s'ouvre, Hoppy les demande)
-        if (sizesOf(p).length > 1 || needsDrink(p) || flavorCount(p) || needsSide(p)) pend.push(id); else state.cart[id] = b.qty; first = first || id; });
+        // Ce que le client a précisé à Hoppy (« sans olives », « bien cuit », « + champignons ») suit le plat jusqu'au commerce
+        const nm = /(?:^|\s)(sans |avec |bien cuit|peu cuit|pas de |pas trop |extra |suppl[ée]ment |בלי |עם |תוספת ).*$|\+\s*\S.*$/i.exec(String(b.name || ""));
+        const note = nm ? nm[0].trim().replace(/^\+\s*/, "avec ").slice(0, 80) : "";
+        if (note) (state.cartMods = state.cartMods || {})[id] = Object.assign({ off: [], drink: "", flavors: [], side: "", extras: [] }, state.cartMods[id] || {}, { note });
+        // (un plat avec des choix à faire — boisson, goût, accompagnement : sa fiche s'ouvre, Hoppy les demande ;
+        //  la taille déjà choisie avec Hoppy — « menu grand » — est gardée, on ne la redemande pas)
+        const more = needsDrink(p) || flavorCount(p) || needsSide(p);
+        if (more) { pend.push(id); if (sizesOf(p).length > 1) (hv.sizeRef = hv.sizeRef || {})[id] = true; }
+        else state.cart[id] = b.qty;
+        first = first || id; });
       // Le plat demandé bien en vue (mis en avant dans le menu), puis le panier ; commerce fermé : on le dit, la commande se programme
       state.findItem = first;
       renderCatalog(); renderQuote(); saveDraft(); cartPersist();
