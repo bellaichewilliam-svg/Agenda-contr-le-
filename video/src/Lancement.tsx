@@ -20,14 +20,14 @@ const POSTERS: Omit<Poster, 'cap'>[] = [
   { id: 'magasins', fx: 0.5, fy: 0.52 },
   { id: 'halot', fx: 0.8, fy: 0.41 },
   { id: 'visite', fx: 0.83, fy: 0.38 },
-  { id: 'client', fx: 0.82, fy: 0.38 },
+  { id: 'resto', fx: 0.5, fy: 0.3 },
 ];
 const STR: Record<LancementLang, { rtl: boolean; city: string; tag: string; word: string; caps: string[]; out: [string, string]; info: string }> = {
   fr: { rtl: false, city: 'NETANYA', tag: 'La livraison qui fait HOP !', word: 'LIVRAISON',
-    caps: ['Vous y pensez…', '… on vous le livre.', 'Vos magasins préférés', 'Les hallot du vendredi', 'Du nouveau chaque semaine', 'Votre 1re course : 15 ₪'],
+    caps: ['Vous y pensez…', '… on vous le livre.', 'Vos magasins préférés', 'Les hallot du vendredi', 'Du nouveau chaque semaine', 'Votre resto préféré, livré'],
     out: ['Demandez.', 'On livre !'], info: '📍 Suivi en direct · 💵 Espèces ou Bit' },
   he: { rtl: true, city: 'נתניה', tag: 'המשלוחים שעושים הופ!', word: 'משלוחים',
-    caps: ['חושבים על משהו…', '… ואנחנו מביאים.', 'החנויות שאתם אוהבים', 'החלות של יום שישי', 'חדש בכל שבוע', 'המשלוח הראשון: 15 ₪'],
+    caps: ['חושבים על משהו…', '… ואנחנו מביאים.', 'החנויות שאתם אוהבים', 'החלות של יום שישי', 'חדש בכל שבוע', 'המסעדה האהובה, עד הבית'],
     out: ['אתם מבקשים.', 'אנחנו מביאים!'], info: '📍 מעקב בזמן אמת · 💵 מזומן או ביט' },
 };
 let T = STR.fr;
