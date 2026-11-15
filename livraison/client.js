@@ -7331,11 +7331,20 @@ window.HopVoice = text => {
   hvOpen();
   if (text) setTimeout(() => hvUser(text), 700);
 };
+const HV_CLEAR = /^\s*(?:non[ ,]+)?(?:j['’ ]?\s*)?(?:efface[rz]?|vide[rz]?|annule[rz]?|supprime[rz]?|enl[eè]ve[rz]?|retire[rz]?)\s+(?:moi\s+)?(?:tout|le panier|mon panier|tout le panier|la commande|ma commande|toute la commande)\s*[.!]*\s*$|^\s*(?:efface|annule|j['’]annule|recommence|on recommence|laisse tomber)\s*[.!]*\s*$|^\s*(?:תמחק|מחק|תבטל|בטל|תרוקן|רוקן)\s+(?:הכול|הכל|את הסל|את ההזמנה)\s*[.!]*\s*$/i;
 async function hvUser(text) {
   text = String(text || "").trim();
   if (!text || hv.busy) return;
   hvStopListen(); hvChoices([]);
   if (hv.short && hv.short[text]) { hvBubble("c", text); UI.track("voice_short", {}); return hv.short[text](); }
+  // « Efface tout », « vide le panier », « j'annule » : fait tout de suite par l'appli, sans attendre l'IA (patron, 15/11)
+  if (!hv.mini && hv.basket.length && HV_CLEAR.test(text)) {
+    hvBubble("c", text);
+    hv.basket = []; hv.lastOut = null; hv.local = null; hvKeepClear(); hvBasketDraw();
+    hv.hist.push({ r: "c", t: hvT("hvBkClearAi") });
+    UI.track("voice_clear", {});
+    return hvSay(hvT("hvBkCleared"), []);
+  }
   // Hoppy en petit, sur un vrai écran (fiche d'un plat, rayon, panier) : ce qui est dit touche le bon bouton
   if (hv.mini) {
     hv.auto = 0;
@@ -7567,6 +7576,20 @@ async function hvAsk(text) {
     hv.toldMulti = true;
     if (!/10\s*₪|\b10 shekels/.test(out.say)) out.say = (hvT("hvMultiNote", { fee: money(addonPrice()) }) + " " + out.say).trim();
   }
+  // --- Sécurités de l'appli (patron, 15/11 : « que le panier soit vraiment géré »), quoi que réponde l'IA ---
+  if (Array.isArray(out.basket)) {
+    // (le nom sans quantité : jamais « 3 × 3 × Marlboro »)
+    out.basket = out.basket.filter(b => b && b.name).map(b => Object.assign({}, b, { name: String(b.name).replace(/^\s*\d+\s*[×x]\s*/i, "").trim(), qty: Math.max(1, Math.min(20, Number(b.qty) || 1)) }));
+    // (un article ne disparaît du panier que si le client a demandé d'enlever, de remplacer ou d'effacer)
+    const removal = /enl[eè]v|retir|supprim|efface|annul|vide[rz]?\b|sans\b|pas de\b|plus de\b|plut[oô]t|à la place|remplac|chang|non pas|oublie|laisse tomber|recommenc|rien\b|הסר|תוריד|להוריד|מחק|תמחק|בטל|תבטל|בלי|במקום|תחליף|לא רוצה|עזוב|ריק/i.test(text);
+    if (hv.basket.length && !removal && !out.action && !out.open) {
+      const key = b => String(b.ref || b.name).toLowerCase(), have = new Set(out.basket.map(key));
+      const lost = hv.basket.filter(b => !have.has(key(b)));
+      if (lost.length) { out.basket = lost.concat(out.basket).slice(0, 24); UI.track("voice_keep", {}); }
+    }
+  }
+  // (« oui » : la commande se prépare, le client la valide à l'écran ; Hoppy ne dit jamais qu'elle est partie)
+  if (/commande est en route|c'est command[ée]|commande (est )?(envoy|partie)|c'est parti|ההזמנה (בדרך|נשלחה|יצאה)/i.test(out.say)) out.say = hvT("hvAdultOk");
   hv.hist.push({ r: "h", t: out.say.slice(0, 300) });
   if (Array.isArray(out.basket)) { hv.basket = out.basket; hvBasketDraw(); }
   hv.lastOut = { service: out.service || null, from: out.from || null, shop: out.shop || null, colis: out.colis || null };
