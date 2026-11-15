@@ -5262,6 +5262,12 @@ async function loadShop(code, stay) {
     } catch (e) { /* pas de carnet */ }
   }
   applyShop();
+  // Commerces à créneaux (patron, 15/11 : Roladin) : toujours programmé, le calendrier de la semaine (jour + heure) s'ouvre tout de suite
+  if ((CONFIG.slotShops || []).includes(String(state.shop.code || "").toUpperCase())) {
+    const pr = form.querySelector('input[name=urgency][value=programmee]');
+    if (pr && !pr.checked) { pr.checked = true; pr.dispatchEvent(new Event("change", { bubbles: true })); }
+    try { syncVisibility(); renderSlots(); renderQuote(); } catch (e) { /* ignore */ }
+  }
   try { sessionStorage.setItem(SS_SHOP, JSON.stringify({ code: state.shop.code, dir: state.shopDir || "" })); } catch (e) { /* ignore */ }
   const cat = loadCatalogFor(state.shop);
   if (!stay) setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);

@@ -108,6 +108,8 @@ window.CONFIG = {
   hopShops: ["HOPCARREFOUR", "HOPBOOOM", "HOPPANZER", "HOPRAMILEVY", "HOPVICTORY", "HOPLALINE"],
   // Boutiques HOP! où l'on achète aussi tout ce qui n'est pas dans la liste (le client l'écrit dans la note)
   hopAnyItem: ["HOPLALINE"],
+  // Commerces où l'on livre toujours sur créneau (le calendrier de la semaine s'ouvre : jour + heure)
+  slotShops: ["HOPROLADIN"],
   hopJoinMinutes: 15,   // shopsKm : départs de commerces différents ; maxBags : place dans le top case
   // Heures de pointe habituelles, affichées aux livreurs
   peakHours: { fr: "12\u00a0h–14\u00a0h et 18\u00a0h–21\u00a0h", he: "12:00–14:00 ו-18:00–21:00" },
