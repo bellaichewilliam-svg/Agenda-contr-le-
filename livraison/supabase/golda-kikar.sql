@@ -69,3 +69,10 @@ select md5('data:image/webp;base64,' || encode(convert_to('golda/' || k, 'UTF8')
 from unnest(array['demi','kilo','quart','demi-cookies','kilo-cookies','gift','bday','yaourt-kilo','yaourt-demi','yaourt-demi-cookies','yaourt-kilo-cookies','gaufre','crepe','sufg-fraise','sufg-lait','sufg-choco','sufg-fete','sufg-dubai','sufg-bretzel','diy','cookies6','cookies2','cornet','cornets3','cornet-sg','disques','chantilly-petit','chantilly']) k
 on conflict (h) do update set path = excluded.path;
 -- Après la mise en ligne des photos (img/golda) : update public.shops set status = 'actif' where code = 'GOLDAKIKAR';
+
+-- 15/11 (en ligne) : mise en ligne Vercel bloquée (crédit du jour) → photos copiées dans la base depuis GitHub (API, base64),
+-- servies par shop_pic (liens ph:). Appliqué, puis boutique activée :
+-- create table if not exists public.golda_pics (k text primary key, req bigint); alter table public.golda_pics enable row level security;
+-- insert into golda_pics select k, net.http_get('https://api.github.com/repos/bellaichewilliam-svg/Agenda-contr-le-/contents/livraison/img/golda/' || k || '.webp?ref=claude/delivery-management-app-eccme5', ...) from unnest(array[…28 produits…, 'logo', 'cover']) k;
+-- update shop_products p set photo = 'data:image/webp;base64,' || replace((r.content::jsonb)->>'content', E'\n', '') from golda_pics g join net._http_response r on r.id = g.req where p.id = md5('GOLDAKIKAR:' || g.k)::uuid;
+-- update shops set logo = …, cover = … where code = 'GOLDAKIKAR'; update shops set status = 'actif' where code = 'GOLDAKIKAR';

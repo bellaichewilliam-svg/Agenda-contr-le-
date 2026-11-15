@@ -1,0 +1,9 @@
+-- ============================================================================
+-- « HOP! chez Roladin » (HOPROLADIN, patron, 15/11/2026) : le livreur achète chez Roladin, Kanyon HaSharon (הרצל 60,
+-- tél. 09-973-0750). 226 produits de roladin.co.il (19 rubriques, sans les « חבילות אירוח » ni le vin), prix du site,
+-- noms français + hébreu (import/roladin-products.json), photos (img/roladin/<id>.webp, copiées dans la base : liens ph:).
+-- Toujours livré sur créneau : CONFIG.slotShops (le calendrier de la semaine s'ouvre tout seul).
+-- Appliqué en ligne le 15/11 :
+--   1. boutique (status 'suspendu'), 18 rubriques  2. produits depuis import/roladin-products.json (pg_net + raw.githubusercontent.com)
+--   3. photos depuis import/roladin-photos-0..3.json (base64)  4. status 'actif'. Coffret 248164 (contient du vin) : available = false.
+-- ============================================================================

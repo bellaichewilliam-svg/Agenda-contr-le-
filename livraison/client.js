@@ -1141,7 +1141,7 @@ function rayonWhere(r) {
 // Mode patron : d'où vient la photo de l'article (seulement sur le téléphone du patron)
 function rayPicSrc(x) {
   const ph = String(x.photo || "");
-  if (/cloudfront\.net\//.test(ph)) return ["ok", "📷 Photo Carrefour"];
+  if (/cloudfront\.net\//.test(ph)) return ["ok", "📷 Vraie photo"];
   if (/booomisrael/.test(ph)) return ["ok", "📷 Photo BOOOM"];
   if (/cdn\.shopify/.test(ph)) return ["ok", "📷 Photo du magasin"];
   if (/^(data:image|rp:)/.test(ph)) return ["ok", "📷 Votre photo"];
@@ -1284,7 +1284,9 @@ function renderPharma() {
   let cats = Rayons.cats(r), items = rEdit ? r.items.filter(i => !r.cats.some(c => c.id === i.c && c.hidden)) : Rayons.items(r);
   // Makolet (patron, 12/11) : la page ne montre QUE les produits de base de la makolet (livraison seule, sans supplément) ;
   // tout le reste (produits de supermarché, au prix du magasin) est dans un 2e onglet, jamais mélangé.
-  const split = r.kind === "shop" && items.some(isCfItem) && items.some(x => !isCfItem(x));
+  // Makolet (patron, 15/11) : seulement les petits produits de tous les jours ; les produits Carrefour restent dans « HOP! chez Carrefour »
+  if (r.kind === "shop") { items = items.filter(x => !isCfItem(x)); cats = cats.filter(c => items.some(x => x.c === c.id)); }
+  const split = false;
   const src = split ? (state.phSrc === "cf" ? "cf" : "mak") : "";
   const allItems = items;
   if (src) { items = items.filter(x => (src === "cf") === isCfItem(x)); cats = cats.filter(c => items.some(x => x.c === c.id)); }
@@ -1306,7 +1308,7 @@ function renderPharma() {
   const key = (x, o) => `${r.id}:${x.id}|${o}`;
   const top = `<div class="ph-head"><b>${UI.esc(phName(r.title))}</b><small>${UI.esc(t(val("service") === "achat" ? "phSub" : "phSubNotes"))}</small>${r.id === "tabac" ? "" : `<button type="button" class="ph-share" data-share-ray="${UI.esc(r.id)}" aria-label="${UI.esc(t("shareShop"))}">${SHARE_SVG}</button>`}</div>
     ${state.boss ? rayBossBar(r) : ""}
-    ${val("service") === "achat" ? `<p class="ph-where">🛵 ${UI.esc(t("phWhere"))} <b dir="auto">${UI.esc(rayonWhere(r))}</b>${(src ? src === "cf" : r.items.some(isCfItem)) ? `<small>${UI.esc(t("phWhereCf"))}</small>` : ""}</p>` : ""}
+    ${val("service") === "achat" ? `<p class="ph-where">🛵 ${UI.esc(t("phWhere"))} <b dir="auto">${UI.esc(rayonWhere(r))}</b>${(r.kind !== "shop" && (src ? src === "cf" : r.items.some(isCfItem))) ? `<small>${UI.esc(t("phWhereCf"))}</small>` : ""}</p>` : ""}
     ${src ? `<div class="ph-src-tabs" role="tablist"><button type="button" role="tab" class="${src === "mak" ? "on" : ""}" data-ph-src="mak"><b>${UI.esc(t("phSrcMak"))}</b><small>${UI.esc(t("phSrcMakS"))}</small></button><button type="button" role="tab" class="${src === "cf" ? "on" : ""}" data-ph-src="cf"><b>${UI.esc(t("phSrcCf"))}</b><small>${UI.esc(t("phSrcCfS"))}</small></button></div>` : ""}
     ${rayonMeter(n)}`;
   // Recherche : dans tout le rayon (français et hébreu), sinon la rubrique choisie
@@ -4147,11 +4149,26 @@ function packInfo(p) {
 }
 // Prix au 100 g / 100 ml (cartes) ou au kg / litre (fiche ouverte)
 function unitPrice(p, big) {
+  // (patron, 15/11) pas de « ₪/kg » sur une bougie ou une crème : seulement dans les épiceries et supermarchés
+  if (state.shop && !/epicerie|super|market/.test(String(state.shop.kind || ""))) return "";
   const k = packInfo(p), price = Number(p.price);
   if (!k || !k.total || !price) return "";
   const base = big ? 1000 : 100, val = price / k.total * base;
   const u = k.kind === "g" ? (big ? "kg" : "100g") : (big ? "L" : "100ml");
   return money(Math.round(val * 100) / 100) + "/" + u;
+}
+// Favoris (patron, 15/11) : le cœur sur un produit le garde pour la prochaine fois, en tête du magasin (sur ce téléphone)
+const LS_FAV = "livraison.favItems.v1";
+const favAll = () => { try { return JSON.parse(localStorage.getItem(LS_FAV)) || {}; } catch (e) { return {}; } };
+const favOf = code => favAll()[String(code || "").toUpperCase()] || [];
+const isFav = id => !!(state.shop && favOf(state.shop.code).includes(id));
+function favToggle(id) {
+  if (!state.shop) return;
+  const all = favAll(), k = String(state.shop.code || "").toUpperCase(), cur = all[k] || [];
+  all[k] = cur.includes(id) ? cur.filter(x => x !== id) : [id, ...cur].slice(0, 60);
+  if (!all[k].length) delete all[k];
+  try { localStorage.setItem(LS_FAV, JSON.stringify(all)); } catch (e) { /* plein ou privé */ }
+  UI.track("fav_" + (cur.includes(id) ? "off" : "on"), { shop_code: k });
 }
 function renderCatalog() {
   const box = $("#catalogBox"), on = catalogOn();
@@ -4165,7 +4182,8 @@ function renderCatalog() {
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
   const hasLoose = cgShown().some(p => !cats.some(c => c.id === p.category_id));
   // Le menu entier par rubriques ; les onglets mènent à leur rubrique et suivent le défilement
-  const allSecs = cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: groupFirst(cgShown().filter(p => p.category_id === c.id)) }))
+  const favIds = favOf(state.shop && state.shop.code), favItems = favIds.length ? groupFirst(cgShown().filter(p => favIds.includes(p.id))) : [];
+  const allSecs = (favItems.length ? [{ id: "_fav", title: t("favTitle"), items: favItems }] : []).concat(cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: groupFirst(cgShown().filter(p => p.category_id === c.id)) })))
     .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: groupFirst(cgShown().filter(p => !cats.some(c => c.id === p.category_id))) }] : []);
   // Recherche dans le catalogue (nom, description, français et hébreu, sans accents)
   const cq = phNorm(state.cgQ || "");
@@ -4613,7 +4631,7 @@ function renderItem() {
   const p = cgProducts().find(x => x.id === item.id);
   if (!p) return;
   const inCart = state.cart[p.id] || 0, photo = UI.safeImg(p.photo);
-  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</div>
+  $("#itemBody").innerHTML = `<div class="it-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}<button type="button" class="it-fav${isFav(p.id) ? " on" : ""}" data-it-fav="${UI.esc(p.id)}" aria-label="${UI.esc(t("favAdd"))}" aria-pressed="${isFav(p.id)}">${isFav(p.id) ? "❤️" : "🤍"}</button></div>
     <div class="it-txt"><h3><bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></h3>${grocShop() && packInfo(p) ? `<p class="it-pack"><bdi dir="ltr">${UI.esc(packInfo(p).label)}</bdi></p>` : ""}<div class="it-prow"><span class="cg-price">${UI.money(p.price)}</span>${grocShop() && unitPrice(p, true) ? `<span class="it-unit"><bdi dir="ltr">${UI.esc(unitPrice(p, true))}</bdi></span>` : ""}</div>
       ${promoOf(p) ? (pr => `<div class="it-promo"><b><bdi>🔥 ${UI.esc(pr.lot > 1 ? t("paLot", { n: pr.lot, price: money(pr.price) }) : money(pr.price))}</bdi></b><span><s>${UI.esc(money(pr.old))}</s><em dir="ltr">−${pr.off} %</em></span></div>`)(promoOf(p))
         : p.description ? `<p>${UI.esc(UI.bi(p.description))}</p>` : ""}
@@ -4867,6 +4885,8 @@ $("#itemSheet").addEventListener("click", e => {
   if (fk) { const [i, k] = fk.dataset.itFlavor.split(":"); item.flavors = [...(item.flavors || [])]; item.flavors[+i] = k; itNext(); return renderItem(); }
   const sd = e.target.closest("[data-it-side]");
   if (sd) { item.side = sd.dataset.itSide; return renderItem(); }
+  const fv = e.target.closest("[data-it-fav]");
+  if (fv) { favToggle(fv.dataset.itFav); renderItem(); renderCatalog(); return; }
   const chb = e.target.closest("[data-it-ch]");
   if (chb) { const k = chb.dataset.itCh, c = choicesFor(cgProducts().find(x => x.id === item.id)), cur = item.ch || [];
     item.ch = cur.includes(k) ? cur.filter(x => x !== k) : cur.length < ((c && c.max) || 5) ? [...cur, k] : cur; return renderItem(); }
@@ -5260,6 +5280,12 @@ async function loadShop(code, stay) {
     } catch (e) { /* pas de carnet */ }
   }
   applyShop();
+  // Commerces à créneaux (patron, 15/11 : Roladin) : toujours programmé, le calendrier de la semaine (jour + heure) s'ouvre tout de suite
+  if ((CONFIG.slotShops || []).includes(String(state.shop.code || "").toUpperCase())) {
+    const pr = form.querySelector('input[name=urgency][value=programmee]');
+    if (pr && !pr.checked) { pr.checked = true; pr.dispatchEvent(new Event("change", { bubbles: true })); }
+    try { syncVisibility(); renderSlots(); renderQuote(); } catch (e) { /* ignore */ }
+  }
   try { sessionStorage.setItem(SS_SHOP, JSON.stringify({ code: state.shop.code, dir: state.shopDir || "" })); } catch (e) { /* ignore */ }
   const cat = loadCatalogFor(state.shop);
   if (!stay) setTimeout(() => $("#commander").scrollIntoView({ behavior: "smooth" }), 300);
