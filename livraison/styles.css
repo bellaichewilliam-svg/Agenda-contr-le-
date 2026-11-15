@@ -5895,3 +5895,9 @@ html.d2-day .vit-inst .vi-x { background: #EEF1F6; color: #0F1F3D; }
 /* (panier unique) Tabac / alcool dans la commande d'un magasin : la case 18+ s'affiche aussi hors « courses » */
 .adult-on .adult-box.show-achat { display: grid !important; grid-template-columns: 1fr; }
 .adult-on .adult-box.show-achat #adultOkBox:not(.hidden) { display: flex !important; }
+
+/* Case obligatoire à remplir : entourée en orange, elle clignote (patron, 15/11 : « que ça remonte à l'endroit ») */
+.hop-need { position: relative; border-radius: 14px; box-shadow: 0 0 0 3px #FF6A13, 0 0 0 8px rgba(255,106,19,.22) !important; animation: hopNeed 1s ease-in-out 3; scroll-margin: 120px; }
+label.check.hop-need, .check.hop-need { padding: 10px 12px; background: rgba(255,106,19,.10); }
+@keyframes hopNeed { 0%, 100% { box-shadow: 0 0 0 3px #FF6A13, 0 0 0 8px rgba(255,106,19,.22); } 50% { box-shadow: 0 0 0 3px #FF6A13, 0 0 0 14px rgba(255,106,19,.05); } }
+@media (prefers-reduced-motion: reduce) { .hop-need { animation: none; } }
