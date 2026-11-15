@@ -5497,6 +5497,9 @@ function initVitrine() {
   if (find) $("#vitHero").appendChild(find);
   const vp = document.querySelector(".vit-voice"); if (find && vp) find.after(vp); setTimeout(hvKeepBar, 0);
   const vi = document.querySelector(".vit-inst"); if (vp && vi) vp.after(vi);   // (« Installez HOP! sur votre iPhone » sous Hoppy)
+  // « Commander à nouveau » tout en haut, juste sous la recherche (patron, 15/11 : le client fidèle retrouve sa commande
+  // habituelle en un toucher, sans chercher) ; vide pour un nouveau client, donc invisible
+  const rp = $("#homeRepeat"), vt = $("#vitTop"); if (rp && vt) vt.after(rp);
   // Idées en un geste : elles remplissent la recherche (la liste montre tout de suite la magie de Hoppy)
   const ideas = document.createElement("div");
   ideas.className = "vit-ideas"; ideas.id = "vitIdeas";
