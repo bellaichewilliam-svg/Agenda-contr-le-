@@ -1134,6 +1134,8 @@ const phName = x => (I18N.lang === "he" ? x.he : x.fr) || x.fr || x.he || "";
 const NEAR_HE = { pharm: "בית מרקחת", tabac: "קיוסק", bakery: "מאפייה", shop: "מכולת / סופר", baby: "חנות תינוקות או בית מרקחת", pets: "חנות חיות", home: "כלי בית / בזאר", gift: "חנות פרחים" };
 // Produit Carrefour des rayons (importé du site, id « cf… ») : le livreur le prend chez Carrefour
 const isCfItem = x => /^cf\d+$/.test(String((x && x.id) || ""));
+// Grands magasins HOP! proposés depuis la makolet (« Faites vos vraies courses »)
+const MAK_BIG = [["HOPCARREFOUR", "Carrefour", "קרפור"], ["HOPBOOOM", "BOOOM", "BOOOM"], ["HOPRAMILEVY", "Rami Lévy", "רמי לוי"], ["HOPVICTORY", "Victory", "ויקטורי"]];
 const rayonHasCf = () => { try { const r = rayonOn(); return !!r && rayonPicked(r).some(([k]) => /^cf\d+/.test(k.slice(r.id.length + 1))); } catch (e) { return false; } };
 // Où le livreur achète les articles du rayon : le magasin choisi, sinon le plus proche du client
 function rayonWhere(r) {
@@ -1319,6 +1321,15 @@ function renderPharma() {
   const shown = q ? items.filter(x => phNorm(x.fr + " " + x.he + " " + (x.opt || []).map(o => o.fr + " " + o.he).join(" ")).includes(q)) : items.filter(x => x.c === state.pharmaCat);
   const cur = cats.find(c => c.id === state.pharmaCat);
   const rows = shown.length > 0 && shown.every(x => !x.img && !UI.safeImg(x.photo));
+  // Makolet (patron, 16/11) : seulement l'essentiel de la makolet à l'écran (6 par rubrique, + ce qui est déjà dans le panier) ;
+  // le reste s'ouvre au toucher ou se trouve par la recherche. Pour les vraies courses : les grands magasins HOP!.
+  const MAK_MAX = 6, mak = r.kind === "shop" && !rEdit;
+  state.makAll = state.makAll || {};
+  const inCart = x => (x.opt || [0]).some((o, i) => state.pharma[key(x, i)]);
+  const list = mak && !q && !state.makAll[state.pharmaCat] && shown.length > MAK_MAX ? shown.filter((x, i) => i < MAK_MAX || inCart(x)) : shown;
+  const makMore = shown.length - list.length;
+  const bigs = mak ? MAK_BIG.filter(([code]) => (state.showcase || []).some(x => x.code === code)) : [];
+  const bigHtml = bigs.length ? `<div class="mak-big"><b>${UI.esc(t("makBigT"))}</b><small>${UI.esc(t("makBigS"))}</small><div class="mak-big-row">${bigs.map(([code, fr, he]) => `<button type="button" data-mak-shop="${code}"><bdi>${UI.esc(I18N.lang === "he" ? he : fr)}</bdi></button>`).join("")}</div></div>` : "";
   const card = x => {
     const sel = Number((state.pharmaOpt || {})[r.id + ":" + x.id] || 0), k = key(x, x.opt ? sel : 0), qn = state.pharma[k] || 0;
     // Prix indicatif affiché sur chaque produit (tabac compris : prix approximatif du paquet, demande du patron)
@@ -1347,7 +1358,9 @@ function renderPharma() {
       return `<button type="button" class="ph-cat${on ? " on" : ""}" role="tab" data-ph-cat="${c.id}" aria-selected="${on}">${pic(c)}<span>${UI.esc(phName(c))}</span>${k ? `<em>${k}</em>` : ""}</button>`; }).join("")}</div>
     <p class="ph-cur">${q ? `<b>${UI.esc(t("phFound", { n: shown.length, q: state.phQ.trim() }))}</b>` : cur ? `${pic(cur)}<b>${UI.esc(phName(cur))}</b><small>${UI.esc(t("phCount2", { n: shown.length }))}</small>` : ""}</p>
     ${rows && shown.some(x => x.pb) ? `<p class="ph-pnote">${UI.esc(t("phPriceNote"))}</p>` : ""}
-    ${shown.length ? `<div class="ph-list${rows ? " ph-lines" : " ph-tiles"}">${shown.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
+    ${shown.length ? `<div class="ph-list${rows ? " ph-lines" : " ph-tiles"}">${list.map(card).join("")}</div>` : `<p class="ph-none">${UI.esc(t("phNone"))}</p>`}
+    ${makMore > 0 ? `<button type="button" class="mak-more" data-mak-all="${UI.esc(state.pharmaCat)}">${UI.esc(t("makMore", { n: makMore }))}</button>` : ""}
+    ${bigHtml}
     ${(nn => nn ? `<button type="button" class="ph-more-cf" data-ph-src="cf" data-keep-q="1">${UI.esc(t("phMoreCf", { n: nn }))}</button>` : "")(src === "mak" && q ? allItems.filter(x => isCfItem(x) && phNorm(x.fr + " " + x.he).includes(q)).length : 0)}
     ${q ? "" : (i => { const prev = cats[i - 1], next = cats[i + 1];
       // En bas de la liste : passer au rayon suivant (ou revenir) sans remonter
@@ -1604,6 +1617,9 @@ $("#pharmaBox").addEventListener("click", e => {
 }, true);
 $("#pharmaBox").addEventListener("keydown", e => { if (e.target.matches("[data-ph-q]") && e.key === "Enter") { e.preventDefault(); e.target.blur(); } });
 $("#pharmaBox").addEventListener("click", e => {
+  const mkA = e.target.closest("[data-mak-all]"), mkS = e.target.closest("[data-mak-shop]");
+  if (mkA) { state.makAll = state.makAll || {}; state.makAll[mkA.dataset.makAll] = true; renderPharma(); return; }
+  if (mkS) { UI.track("mak_big", { code: mkS.dataset.makShop }); state.shopDir = ""; state.findItem = null; loadShop(mkS.dataset.makShop); return; }
   const sr = e.target.closest("[data-ph-src]");
   if (sr) { state.phSrc = sr.dataset.phSrc; if (!sr.dataset.keepQ) { state.phQ = ""; const qi0 = $("#pharmaBox [data-ph-q]"); if (qi0) qi0.value = ""; } state.pharmaCat = null; renderPharma(); return; }
   const c = e.target.closest("[data-ph-cat]"), plus = e.target.closest("[data-ph-plus]"), minus = e.target.closest("[data-ph-minus]");
