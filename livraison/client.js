@@ -5824,6 +5824,20 @@ function renderHomeStatic() {
     const art = KIND_ART[ex.id];
     return `<button type="button" class="ch-kind${state.homeKind === ex.id ? " on" : ""}" data-kind="${ex.id}">${!D2 && RAYON_KINDS.includes(ex.id) ? `<em class="kind-new">${UI.esc(t("hpNew"))}</em>` : ""}${D2 && K2_ICON[ex.id] ? k2Icon(ex.id, VIT && !!K2_FOND[ex.id]) : art ? UI.artImg(art[0], art[1]) : `<i>${ex.icon}</i>`}<b>${UI.esc(t("ex_" + ex.id + "_t"))}</b></button>`;
   }).join("");
+  // Design épuré : « Ce qu'on livre » en grille (8 rubriques, puis « Voir les 15 rubriques »), icônes au trait
+  if (document.documentElement.classList.contains("d3")) {
+    const hk = $("#homeKinds"), n = hk.children.length;
+    hk.dataset.title = t("d3Kinds");
+    [...hk.children].forEach((e, i) => e.style.setProperty("--i", i < 8 ? i : i - 8));
+    if (n > 8) {
+      const all = document.createElement("button");
+      all.type = "button"; all.className = "d3-kall";
+      const lab = () => { all.textContent = hk.classList.contains("all") ? t("d3KindsLess") : t("d3KindsAll", { n }); };
+      lab();
+      all.addEventListener("click", e => { e.stopPropagation(); hk.classList.toggle("all"); lab(); });
+      hk.appendChild(all);
+    }
+  }
   loadRayonsLive();
   renderHomePharma();
   const list = Store.getAddresses().slice(0, 5);
@@ -6667,6 +6681,18 @@ function kosherTag(cls) { return `<em class="k-badge${cls ? " " + cls : ""}">${K
 const firstPhrase = v => String(v || "").split(/\s[·•|–-]\s|\.\s/)[0].replace(/\.$/, "").trim();
 // Design épuré (d3) : le nom de l'enseigne seul, en gros (« Carrefour », pas « HOP! chez Carrefour »)
 const D3 = document.documentElement.classList.contains("d3");
+// Design épuré (d3) : les magasins apparaissent en montant légèrement quand ils arrivent à l'écran (jamais cachés si le téléphone ne sait pas faire)
+if (D3 && "IntersectionObserver" in window && !(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) (() => {
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("d3-in"); e.target.classList.remove("d3-wait"); io.unobserve(e.target); } }), { threshold: 0.12 });
+  const watch = root => root.querySelectorAll("#homeProBox .sc-card:not(.d3-in):not(.d3-wait)").forEach(c => {
+    if (c.getBoundingClientRect().top < innerHeight) { c.classList.add("d3-in"); return; }
+    c.classList.add("d3-wait"); io.observe(c);
+  });
+  const box = $("#homeProBox");
+  if (box) { new MutationObserver(() => watch(box)).observe(box, { childList: true, subtree: true }); watch(box); }
+  // filet de sécurité : rien ne reste invisible
+  setInterval(() => document.querySelectorAll("#homeProBox .sc-card.d3-wait").forEach(c => { const r = c.getBoundingClientRect(); if (r.top < innerHeight && r.bottom > 0) { c.classList.add("d3-in"); c.classList.remove("d3-wait"); } }), 1500);
+})();
 // Design épuré (d3) : barre du bas (Accueil, Course libre, Commandes, Compte), sur l'accueil et « Mes courses »
 if (D3) (() => {
   const ic = {
