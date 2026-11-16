@@ -5591,7 +5591,8 @@ function initVitrine() {
     const inp = $("#homeFind"); inp.value = x[1]; inp.focus(); homeFind(x[1]);
   });
   // (une seule page : l'adresse et la course libre se remplissent ici, sans changer d'écran)
-  goField = which => { const i = homeInput(which); if (!i) return; nativeScrollIntoView.call(i.closest(".ch-line") || i, { block: "center", behavior: "smooth" }); setTimeout(() => nativeFocus.call(i, { preventScroll: true }), 380); };
+  // (design épuré d3 : les champs d'adresse de la course libre ne s'ouvrent que quand on en a besoin)
+  goField = which => { if (document.documentElement.classList.contains("d3")) $("#accueil").classList.add("d3c"); const i = homeInput(which); if (!i) return; nativeScrollIntoView.call(i.closest(".ch-line") || i, { block: "center", behavior: "smooth" }); setTimeout(() => nativeFocus.call(i, { preventScroll: true }), 380); };
   $("#vitAddr").addEventListener("click", () => goField("to"));
   $("#vitWhen").addEventListener("click", () => { $("#accueil").classList.toggle("when-open"); renderSlots(); vitRender(); });
   $("#homeWhen").addEventListener("click", e => { const w = e.target.closest("[data-when]"); if (w && w.dataset.when !== "other") setTimeout(() => { $("#accueil").classList.remove("when-open"); vitRender(); }, 0); });

@@ -6071,3 +6071,28 @@ html.d3 .cv-ic { background: #111418 url("data:image/svg+xml,%3Csvg xmlns='http:
 html.d3 .sh-cover::before, html.d3 .sh-cover::after { display: none !important; }
 html.d3 .sc-fav { font-size: 0 !important; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M12 20s-7-4.500-7-10a4 4 0 017-2.500A4 4 0 0119 10c0 5.500-7 10-7 10z'/%3E%3C/svg%3E") center / 18px no-repeat !important; }
 html.d3 .sc-fav.on { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23111418' stroke='%23111418' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M12 20s-7-4.500-7-10a4 4 0 017-2.500A4 4 0 0119 10c0 5.500-7 10-7 10z'/%3E%3C/svg%3E") !important; }
+/* Course libre (retour du patron, 16/11 : « moche, au mauvais endroit ») : une ligne fine juste sous les rubriques ;
+   les adresses, les raccourcis et la barre « Commander » n'apparaissent qu'après l'avoir touchée */
+html.d3.vit #accueil:not(.course) #homeKinds { order: 6 !important; }
+html.d3.vit #accueil:not(.course) .vit-course { order: 7 !important; }
+html.d3.vit #accueil:not(.course) .ch-route { order: 8 !important; }
+html.d3.vit #accueil:not(.course) #homeChips { order: 9 !important; }
+html.d3.vit #accueil:not(.course) .vit-trust { order: 10 !important; }
+html.d3.vit #accueil:not(.course) #homeProBox { order: 11 !important; }
+html.d3.vit #accueil:not(.course):not(.d3c) .ch-route, html.d3.vit #accueil:not(.course):not(.d3c) #homeChips,
+html.d3.vit #accueil:not(.course):not(.d3c) .vit-trust, html.d3.vit #accueil:not(.course):not(.d3c) .ch-go { display: none !important; }
+html.d3 .vit-course { background: #fff !important; border: 1px solid #E6E8EB !important; border-radius: 14px !important; padding: 14px 16px !important; margin: 4px 16px 0 !important; width: auto !important;
+  display: flex !important; align-items: center !important; position: relative; text-align: start; }
+html.d3 .vit-course .vc-txt { display: grid !important; gap: 2px !important; padding: 0 !important; flex: 1; min-width: 0; padding-inline-end: 28px !important; }
+html.d3 .vit-course .vc-txt > b { font-size: 16px !important; font-weight: 700 !important; line-height: 1.25 !important; }
+html.d3 .vit-course .vc-txt > b br { display: none; }
+html.d3 .vit-course .vc-txt > small:not(.vc-price), html.d3 .vit-course .vc-go { display: none !important; }
+html.d3 .vit-course .vc-price { font-size: 14px !important; font-weight: 400 !important; color: #5A6270 !important; margin: 0 !important; }
+html.d3 .vit-course::after { content: ""; position: absolute; inset-inline-end: 16px; top: 50%; width: 9px; height: 9px; border-top: 2px solid #111418; border-inline-end: 2px solid #111418; transform: translateY(-50%) rotate(45deg); }
+html[dir="rtl"].d3 .vit-course::after { transform: translateY(-50%) rotate(-45deg); }
+html.d3 .ch-route { background: none !important; border: 0 !important; box-shadow: none !important; padding: 0 16px !important; margin-top: 10px !important; }
+html.d3 .ch-gps, html.d3 .ch-swap { background: #fff !important; box-shadow: none !important; border: 1px solid #E6E8EB !important; color: #111418 !important; }
+html.d3 .ch-dot { box-shadow: none !important; background: #111418 !important; width: 10px !important; height: 10px !important; }
+html.d3 .ch-dot.from { background: #E8590C !important; }
+html.d3 .vit-course { margin: 4px 0 0 !important; }
+html.d3 .ch-route { padding: 0 !important; }
