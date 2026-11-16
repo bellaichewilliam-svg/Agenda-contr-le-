@@ -6798,7 +6798,9 @@ function renderShowcase() {
   const row = (title, items, sub) => (items.length ? `<h4 class="sc-row-h"><span>${UI.esc(title)}</span>${sub ? `<small>${UI.esc(sub)}</small>` : ""}</h4><div class="pro-row">${items.map(shopCard).join("")}</div>` : "");
   const recent = s => s.created_at && Date.now() - new Date(s.created_at) < 30 * 86400000;
   let body;
-  if (list.length >= 4 && none) {
+  // Design épuré : une seule liste, TOUS les commerces (patron, 17/11 : même fermés, avec « Ouvre à … ») ; les ouverts d'abord
+  if (D3) body = list.length ? `<div class="pro-row">${open.concat(closed).map(shopCard).join("")}</div>` : `<p class="muted small sc-empty">${UI.esc(t("scNoneF"))}</p>`;
+  else if (list.length >= 4 && none) {
     // « Ouverts maintenant » : ceux qui ferment le plus tard d'abord (le soir, on voit tout de suite qui livre encore)
     const favL = list.filter(s => f.includes(s.code)), openL = list.filter(isOpen).sort((a, b) => until(b) - until(a));
     // Mis en avant par le patron (🔥 dans son panel) d'abord, puis l'automatique : les commandes des 30 derniers jours
