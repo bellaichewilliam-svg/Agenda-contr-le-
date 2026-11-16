@@ -6330,3 +6330,27 @@ html.d3 .ph-18 { background: #111418 !important; color: #fff !important; }
 html.d3 .ph-tiles .ph-pic.photo > img { margin-inline-end: 12px; }
 html.d3 .ph-tiles .ph-item { column-gap: 0; }
 html.d3 .ph-tiles .ph-info { padding-inline-end: 12px !important; }
+
+/* --- Makolet : « Voir les autres » et « Faites vos vraies courses » (grands magasins HOP!) --- */
+.mak-more { display: block; margin: 12px auto 0; font: 600 14px/1 inherit; color: var(--ink); background: var(--bg-2, #F2F3F5); border: 0; border-radius: 20px; padding: 11px 18px; cursor: pointer; }
+.mak-big { display: grid; gap: 4px; margin-top: 22px; padding: 18px 16px; border-radius: 16px; background: #0F1F3D; color: #fff; }
+.mak-big b { font-size: 19px; font-weight: 800; letter-spacing: -.3px; }
+.mak-big small { font-size: 14px; line-height: 1.4; color: rgba(255,255,255,.78); }
+.mak-big-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.mak-big-row button { font: 700 15px/1 inherit; color: #111418; background: #fff; border: 0; border-radius: 22px; padding: 12px 18px; cursor: pointer; transition: transform .15s ease; }
+.mak-big-row button:active { transform: scale(.95); }
+html.d3 .mak-more { background: #F2F3F5 !important; color: #111418 !important; font-family: Heebo, sans-serif; }
+html.d3 .mak-big, html.d3 .mak-big * { font-family: Heebo, sans-serif; }
+
+/* --- d3 : le micro de la recherche (demande du patron, 16/11) : pastille blanche, halo orange qui respire ; plein orange et ondes rapides quand on écoute --- */
+html.d3 .sc-mic { width: 40px !important; height: 40px !important; border-radius: 50% !important; background: #fff !important; color: #111418 !important; box-shadow: 0 1px 3px rgba(17,20,24,.12) !important; overflow: visible !important; transition: background-color .2s ease, color .2s ease, transform .15s ease; }
+html.d3 .sc-mic:active { transform: translateY(-50%) scale(.9); }
+html.d3 .sc-mic::before, html.d3 .sc-mic::after { content: "" !important; display: block !important; position: absolute; inset: 0; border-radius: 50%; border: 2px solid #E8590C; opacity: 0; pointer-events: none; background: none !important; }
+html.d3 .sc-mic.on { background: #E8590C !important; color: #fff !important; box-shadow: none !important; }
+@keyframes d3Mic { 0% { transform: scale(1); opacity: .55; } 70%, 100% { transform: scale(1.75); opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  html.d3 .sc-mic::before { animation: d3Mic 2.6s ease-out infinite; }
+  html.d3 .sc-mic::after { animation: d3Mic 2.6s ease-out 1.3s infinite; }
+  html.d3 .sc-mic.on::before { animation-duration: 1.1s; border-width: 3px; }
+  html.d3 .sc-mic.on::after { animation-duration: 1.1s; animation-delay: .55s; border-width: 3px; }
+}
