@@ -6280,3 +6280,46 @@ html.d3 #homeKinds .ch-kind[data-kind="keys"] .k2-ic { background-image: url("da
   html.d3 .d3-nav button:active { transform: scale(.92); }
 }
 html.d3 #homeKinds .ch-kind .k2-ic::before, html.d3 #homeKinds .ch-kind .k2-ic::after { content: none !important; display: none !important; }
+
+/* --- d3 : pages des rayons (pharmacie, makolet, tabac, boulangerie…) : liste sobre, sans couleurs de rayon ni pictos 3D ; les vraies photos restent en petite vignette --- */
+html.d3 .pharma-box { border: 0 !important; background: none !important; background-image: none !important; box-shadow: none !important; padding: 0 !important; border-radius: 0 !important; }
+html.d3 .ph-head b { font: 800 24px/1.2 Heebo, sans-serif !important; letter-spacing: -.4px; color: #111418 !important; }
+html.d3 .ph-head small { color: #5A6270 !important; }
+html.d3 .ph-share { background: #F2F3F5 !important; color: #111418 !important; }
+html.d3 .ph-share svg, html.d3 .ph-share path { color: #111418 !important; stroke: currentColor; }
+html.d3 .ph-where { background: #F2F3F5 !important; border: 0 !important; border-radius: 12px !important; }
+html.d3 .ph-meter { border: 1px solid #E6E8EB !important; border-radius: 14px !important; box-shadow: none !important; }
+html.d3 .ph-meter .pm-bar > * { background: #111418 !important; }
+html.d3 .ph-search { border: 0 !important; background: none !important; padding: 0 !important; box-shadow: none !important; }
+html.d3 .ph-search input { background: #F2F3F5 !important; border: 1px solid transparent !important; border-radius: 26px !important; height: 48px; padding-inline: 18px !important; }
+html.d3 .ph-cats { background: #fff !important; padding-inline: 0 !important; gap: 8px !important; }
+html.d3 .ph-cat { background: #F2F3F5 !important; border: 0 !important; box-shadow: none !important; border-radius: 20px !important; padding: 9px 16px !important; color: #111418 !important; font-weight: 600 !important; }
+html.d3 .ph-cat img, html.d3 .ph-cur img, html.d3 .ph-cat i { display: none !important; }
+html.d3 .ph-cat span { color: inherit !important; }
+html.d3 .ph-cat.on { background: #111418 !important; color: #fff !important; }
+html.d3 .ph-cur { font: 800 18px/1.2 Heebo, sans-serif !important; color: #111418 !important; }
+html.d3 .ph-list.ph-tiles { display: block !important; }
+html.d3 .ph-tiles .ph-item { display: grid !important; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 12px; padding: 14px 0 !important; margin: 0 !important; border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; min-height: 0 !important; height: auto !important; }
+html.d3 .ph-tiles .ph-pic { display: contents !important; }
+html.d3 .ph-tiles .ph-pic > img, html.d3 .ph-tiles .ph-pic > picture, html.d3 .ph-tiles .ph-pic > .item-art { display: none !important; }
+html.d3 .ph-tiles .ph-pic.photo > img { display: block !important; grid-column: 1; grid-row: 1; width: 60px !important; height: 60px !important; object-fit: contain; border-radius: 10px; background: #fff; position: static !important; }
+html.d3 .ph-tiles .ph-info { grid-column: 2; grid-row: 1; padding: 0 !important; display: flex !important; flex-direction: column; gap: 3px; min-width: 0; border: 0 !important; background: none !important; }
+html.d3 .ph-tiles .ph-name { order: 1; font: 600 16px/1.25 Heebo, sans-serif !important; color: #111418 !important; white-space: normal !important; -webkit-line-clamp: unset !important; display: block !important; overflow: visible !important; }
+html.d3 .ph-tiles .ph-price, html.d3 .ph-item .ph-price { order: 2; font: 500 15px/1.2 Heebo, sans-serif !important; color: #5A6270 !important; }
+html.d3 .ph-tiles .ph-slot { order: 3; }
+html.d3 .ph-tiles .ph-slot select, html.d3 .ph-item select { background-color: #F2F3F5 !important; border: 0 !important; border-radius: 10px !important; max-width: 200px; }
+html.d3 .ph-tiles .ph-pic > :not(img):not(picture):not(.item-art) { grid-column: 3; grid-row: 1; position: static !important; inset: auto !important; transform: none !important; }
+html.d3 .ph-item .cg-plus { width: 40px !important; height: 40px !important; border-radius: 20px !important; background: #F2F3F5 !important; box-shadow: none !important; color: #111418 !important; }
+html.d3 .ph-list:not(.ph-tiles) .ph-item { border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; box-shadow: none !important; background: none !important; padding-inline: 0 !important; }
+html.d3 .ph-next { background: #111418 !important; border: 0 !important; color: #fff !important; border-radius: 24px !important; box-shadow: none !important; }
+html.d3 .ph-nav { margin-top: 16px; }
+html.d3 .ph-tiles .ph-info > * { margin: 0 !important; min-height: 0 !important; height: auto !important; flex: 0 0 auto !important; }
+html.d3 .ph-tiles .ph-info { justify-content: center; }
+html.d3 .ph-item .cg-qty { background: #111418 !important; box-shadow: none !important; border: 0 !important; border-radius: 20px !important; height: 40px; display: inline-flex !important; align-items: center; color: #fff !important; }
+html.d3 .ph-item .cg-qty button { background: none !important; color: #fff !important; box-shadow: none !important; border: 0 !important; width: 36px !important; height: 40px !important; }
+html.d3 .ph-item .cg-qty b { color: #fff !important; min-width: 16px; text-align: center; }
+html.d3 .ph-cat em, html.d3 .ph-cat .n, html.d3 .ph-cat b { background: #E8590C !important; color: #fff !important; border: 0 !important; box-shadow: none !important; }
+html.d3 .ph-sum { background: #F2F3F5 !important; color: #111418 !important; border-radius: 14px !important; padding: 14px !important; }
+html.d3 .ph-sum small { color: #5A6270 !important; }
+html.d3 .ph-sum .btn { border: 1px solid #C9CED6 !important; background: #fff !important; border-radius: 24px !important; box-shadow: none !important; color: #111418 !important; }
+html.d3 .ph-list .ph-item { background: none !important; border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; box-shadow: none !important; padding: 14px 0 !important; }
