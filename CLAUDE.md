@@ -20,6 +20,13 @@ Quand le patron dit **« mets Hoppy »** (dans une vidéo, une image, un post, u
 - Toujours **français + hébreu** (l'hébreu bien visible : gras, assez grand), droite à gauche correct (`HOP!` isolé en LTR).
 - Pages et visuels **niveau pro**, jamais amateur ; textes jamais coupés (tester 360–412 px, FR et HE).
 
+## Design « clair et épuré » (validé par le patron le 16/11/2026, pour tout le monde côté client)
+- **C'est le design en vigueur** sur l'accueil, la page magasin, Ma commande, Mes courses, le suivi, les tarifs, « Ce qu'on livre » et « Bienvenue ». Activé par `html.d3` (par défaut) ; `?design=2` garde le précédent sur un téléphone, `?design=3` revient au nouveau. Toutes les règles sont dans `styles.css` sous `html.d3 …`.
+- **Pourquoi** : un investisseur trouvait que l'appli « faisait IA ». Donc : fond blanc, texte noir `#111418`, gris `#F2F3F5` / `#5A6270`, lignes fines `#E6E8EB`, police Heebo, **un seul orange `#E8590C` réservé au bouton d'action**. Pas de dégradés, pas d'ombres, pas d'émojis (retirés automatiquement), pas de vignettes 3D, pas de contours verts ni de pointillés. Choix sélectionné = contour noir.
+- Nom de l'enseigne seul en gros (« Carrefour », pas « HOP! chez Carrefour »). Barre du bas : Accueil, Course libre, Commandes, Compte (cachée dès qu'un bouton Commander ou un panier est à l'écran).
+- Le bleu nuit reste la couleur de la marque (logo, écran de lancement, en-tête de « Bienvenue »). Les applis livreur et patron ne sont pas encore dans ce style.
+- Toute nouvelle page ou nouveau bloc côté client doit être stylé en `html.d3` et vérifié en capture (FR + HE, 390 px). La charte ci-dessous décrit le design précédent (`?design=2`).
+
 ## Charte du nouveau design (maquette validée par le patron, kit `HOP_kit_pour_Claude`)
 - **Toujours suivre la maquette au millimètre** : `references/maquette-inspiration.png`, `modele-encarts-valide.png`, `proposition-carte-recherche.png`, `proposition-partenaires-bas.png`. Même tailles, mêmes fonds, mêmes couleurs, mêmes icônes. Comparer avec des captures avant de montrer.
 - **Rendu homogène sur toutes les pages client** (accueil, commande, commerce, mes courses, tarifs, suivi, « ce qu'on livre », bienvenue) : fond bleu nuit `#0B1830`, cartes `#13233F`, champs `#172A4B`, textes blancs, orange `#FF6A13` pour l'action. Activé par `html.d2` : **validé par le patron le 01/11/2026, pour tout le monde** (`?design=1` garde l'ancien sur un téléphone, `?design=2` revient au nouveau). Blanc le jour, bleu nuit le soir (`d2-day`).
