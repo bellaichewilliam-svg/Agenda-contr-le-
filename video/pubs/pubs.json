@@ -878,24 +878,24 @@
  },
  "meme-la-haut": {
   "hook": {
-   "fr": "LIVRÉ AU 163e ÉTAGE ?",
-   "he": "משלוח לקומה 163?"
+   "fr": "TROP HAUT ? TROP LOIN ?",
+   "he": "גבוה מדי? רחוק מדי?"
   },
   "punch": {
    "fr": [
     "HOP! VOUS LIVRE",
-    "MÊME LÀ-HAUT."
+    "LÀ OÙ VOUS ÊTES."
    ],
    "he": [
-    "HOP! מביאים לכם",
-    "גם לשם."
+    "HOP! מגיעים",
+    "איפה שלא תהיו."
    ]
   },
   "sub": {
    "fr": "Repas, courses, pharmacie, colis : on vous livre.",
    "he": "אוכל, קניות, פארם, חבילות: אנחנו מביאים."
   },
-  "titre": "🏙️ Nouveau · HOP! vous livre même là-haut (10 s)",
+  "titre": "🏙️ Nouveau · Trop haut ? Trop loin ? HOP! vous livre là où vous êtes (10 s)",
   "aud": "client"
  }
 }
