@@ -6198,3 +6198,34 @@ html.d3 .hop-ring .hr-knob { filter: none !important; }
 html.d3 .hop-ring .hr-track { stroke: #EEF0F2 !important; }
 html.d3 #infos.info-head { padding-bottom: 8px !important; }
 html.d3 #prix-rapide.hero { padding-top: 12px !important; min-height: 0 !important; }
+
+/* --- d3 : « Ce qu'on livre » et « Bienvenue » (listes sobres, sans vignettes 3D, noir + un seul orange) --- */
+html.d3 .onlivre .logo-mark { display: none !important; }
+html.d3 .onlivre .logo-name { display: inline-block !important; font: 800 0/1 Heebo, sans-serif; direction: ltr; unicode-bidi: isolate; }
+html.d3 .onlivre .logo-name::before { content: "HOP"; font-size: 24px; letter-spacing: -.5px; color: #0F1F3D; }
+html.d3 .onlivre .logo-name::after { content: "!"; font-size: 24px; color: #E8590C; }
+html.d3 .ol-hero h1, html.d3 .ol-h2, html.d3 .bv-h2, html.d3 .bv-hero h1 { font-family: Heebo, sans-serif !important; font-weight: 800 !important; letter-spacing: -.5px; }
+html.d3 .ol-hero h1 { font-size: 30px !important; }
+html.d3 .ol-hero h1 em { color: #111418 !important; }
+html.d3 .ol-steps { gap: 0 !important; }
+html.d3 .ol-steps li { border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; background: none !important; padding: 14px 0 !important; font-weight: 600 !important; }
+html.d3 .ol-steps b { background: #F2F3F5 !important; color: #111418 !important; font-family: Heebo, sans-serif !important; font-weight: 700; }
+html.d3 .ol-grid { gap: 0 !important; }
+html.d3 .ol-card { grid-template-columns: 1fr auto !important; border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; background: none !important; padding: 16px 0 !important; box-shadow: none !important; }
+html.d3 .ol-card .item-art, html.d3 .bv-tile .item-art { display: none !important; }
+html.d3 .ol-txt b { font-size: 17px !important; font-weight: 700; }
+html.d3 .ol-txt small { font-size: 14px !important; color: #5A6270 !important; }
+html.d3 .ol-price { color: #111418 !important; font-weight: 600 !important; font-size: 14px !important; padding-top: 2px !important; }
+html.d3 .ol-perks, html.d3 .bv-perks { gap: 0 !important; font-weight: 600 !important; }
+html.d3 .ol-perks li, html.d3 .bv-perks li { border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; background: none !important; padding: 14px 0 !important; }
+html.d3 .ol-bar { background: #fff !important; border-top: 1px solid #E6E8EB; }
+html.d3 .bv-hero { background: #0F1F3D !important; border-radius: 0 !important; }
+html.d3 .bv-done { background: #fff !important; color: #0F1F3D !important; font-weight: 700 !important; }
+html.d3 .bv-hero h1 em { color: #fff !important; }
+html.d3 .bv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+html.d3 .bv-tile { justify-items: start !important; text-align: start; border: 1px solid #E6E8EB !important; border-radius: 14px !important; background: #fff !important; padding: 14px !important; gap: 2px !important; box-shadow: none !important; }
+html.d3 .bv-tile b { font-size: 15px !important; font-weight: 700; }
+html.d3 .bv-tile small { color: #5A6270 !important; font-weight: 500 !important; font-size: 13px !important; }
+html.d3 .bv-logo span { border: 1px solid #E6E8EB !important; box-shadow: none !important; }
+html.d3 .bv-main .btn:not(.btn-primary):not(.btn-wa) { border: 1px solid #C9CED6 !important; border-radius: 28px !important; background: #fff !important; box-shadow: none !important; color: #111418 !important; }
+html.d3 .bv-main .btn-wa { background: #111418 !important; border: 0 !important; border-radius: 28px !important; }

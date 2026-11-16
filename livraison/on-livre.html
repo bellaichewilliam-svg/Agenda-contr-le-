@@ -12,14 +12,16 @@
   <link rel="apple-touch-icon" href="icon-180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=202611161204" />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Heebo:wght@400;500;600;700;800&family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css?v=202611161207" />
   <script>
     // Nouveau design (validé par le patron) : pour tout le monde ; ?design=1 garde l'ancien sur ce téléphone, ?design=2 revient au nouveau
     try { var dq = new URLSearchParams(location.search).get("design");
-      if (dq === "1") localStorage.setItem("hop.design", "1"); else if (dq) localStorage.removeItem("hop.design");
-      if (localStorage.getItem("hop.design") === "1") dq = "old"; } catch (e) { /* stockage bloqué */ }
+      if (dq === "1" || dq === "3") localStorage.setItem("hop.design", dq); else if (dq) localStorage.removeItem("hop.design");
+      var ds = localStorage.getItem("hop.design"); dq = ds === "1" ? "old" : ds === "3" ? "d3" : ""; } catch (e) { /* stockage bloqué */ }
     if (dq !== "old") document.documentElement.classList.add("d2");
+    // Design « clair et épuré » en aperçu (?design=3 sur ce téléphone)
+    if (dq === "d3") document.documentElement.classList.add("d3");
   </script>
   <script>
     // Nouveau design : blanc le jour, bleu nuit le soir (lever / coucher du soleil à Netanya), revu chaque minute. Essai : ?theme=jour ou ?theme=nuit
@@ -31,9 +33,9 @@
         var T = 2451545 + J + 0.0053 * Math.sin(M * R) - 0.0069 * Math.sin(2 * L * R), d = Math.asin(Math.sin(L * R) * Math.sin(23.44 * R));
         var w = Math.acos((Math.sin(-0.833 * R) - Math.sin(lat * R) * Math.sin(d)) / (Math.cos(lat * R) * Math.cos(d))) / R / 360;
         return ms < (T - w - 2440587.5) * 864e5 || ms > (T + w - 2440587.5) * 864e5; }
-      function apply() { if (!h.classList.contains("d2")) return; var day = f === "jour" || (f !== "nuit" && !night());
+      function apply() { if (!h.classList.contains("d2")) return; var day = h.classList.contains("d3") || f === "jour" || (f !== "nuit" && !night());
         if (h.classList.contains("d2-day") === day && apply.done) return; apply.done = 1; h.classList.toggle("d2-day", day);
-        var m = document.querySelectorAll('meta[name="theme-color"]'); for (var i = 0; i < m.length; i++) m[i].content = "#0B1830";
+        var m = document.querySelectorAll('meta[name="theme-color"]'); for (var i = 0; i < m.length; i++) m[i].content = h.classList.contains("d3") ? "#FFFFFF" : "#0B1830";
         try { window.dispatchEvent(new Event("hop:daynight")); } catch (e) { /* vieux navigateur */ } }
       apply(); document.addEventListener("DOMContentLoaded", apply); setInterval(apply, 60000); })();
   </script>
@@ -61,10 +63,10 @@
 
 <div class="ol-bar"><a class="btn btn-primary btn-lg" href="index.html" id="olGo"></a></div>
 
-<script src="config.js?v=202611161204"></script>
-<script src="i18n.js?v=202611161204"></script>
-<script src="pricing.js?v=202611161204"></script>
-<script src="common.js?v=202611161204"></script>
+<script src="config.js?v=202611161207"></script>
+<script src="i18n.js?v=202611161207"></script>
+<script src="pricing.js?v=202611161207"></script>
+<script src="common.js?v=202611161207"></script>
 <script>
 (function () {
   "use strict";
