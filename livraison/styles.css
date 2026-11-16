@@ -6422,3 +6422,24 @@ html.d3.d2-land .wa-fab, html.d3.d2-land .chat-fab { background-color: #111418 !
 html.d3 .pro-row .sc-card:has(.sc-prog-btn) { position: relative !important; }
 html.d3 .pro-row .sc-card:has(.sc-prog-btn) .sc-body { padding-inline-end: 118px !important; }
 html.d3 .pro-row .sc-prog-btn { position: absolute !important; inset-inline-end: 0 !important; bottom: 4px !important; margin: 0 !important; padding: 9px 14px !important; border-radius: 20px !important; background: #F2F3F5 !important; text-decoration: none !important; font-size: 13px !important; font-weight: 700 !important; color: #111418 !important; white-space: nowrap; line-height: 1 !important; width: auto !important; }
+
+/* --- d3 : touche de couleur « pastels doux » (choix C du patron, 17/11) : une couleur pâle par rubrique, le reste en bleu nuit HOP! --- */
+html.d3 #homeKinds .ch-kind[data-kind=shop] .k2-ic { background-color: #E8F5EC !important; }
+html.d3 #homeKinds .ch-kind[data-kind=pharm] .k2-ic { background-color: #E8F1FB !important; }
+html.d3 #homeKinds .ch-kind[data-kind=tabac] .k2-ic { background-color: #F3ECFA !important; }
+html.d3 #homeKinds .ch-kind[data-kind=bakery] .k2-ic { background-color: #FCF3E3 !important; }
+html.d3 #homeKinds .ch-kind[data-kind=mezouza] .k2-ic { background-color: #EAF0FA !important; }
+html.d3 #homeKinds .ch-kind[data-kind=baby] .k2-ic { background-color: #FCEDF2 !important; }
+html.d3 #homeKinds .ch-kind[data-kind=pets] .k2-ic { background-color: #FBEFE6 !important; }
+html.d3 #homeKinds .ch-kind[data-kind=home] .k2-ic { background-color: #EDF4F1 !important; }
+html.d3 #homeKinds .ch-kind[data-kind=gift] .k2-ic { background-color: #FDECEC !important; }
+html.d3 #homeKinds .ch-kind[data-kind=pressing] .k2-ic { background-color: #E9F4F8 !important; }
+html.d3 #homeKinds .ch-kind[data-kind=poste] .k2-ic { background-color: #FFF4DE !important; }
+html.d3 #homeKinds .ch-kind[data-kind=resto] .k2-ic { background-color: #FDEFE7 !important; }
+html.d3 #homeKinds .ch-kind[data-kind=docs] .k2-ic { background-color: #EEF0F6 !important; }
+html.d3 #homeKinds .ch-kind[data-kind=yad2] .k2-ic { background-color: #EFF6E6 !important; }
+html.d3 #homeKinds .ch-kind[data-kind=keys] .k2-ic { background-color: #F6F1E7 !important; }
+html.d3 #homeKinds .ch-kind:active .k2-ic { filter: brightness(.94); }
+html.d3 #homeKinds .ch-kind.on .k2-ic { filter: none !important; box-shadow: inset 0 0 0 2px #0F1F3D !important; }
+html.d3 #homeFilters .ch-chip.on, html.d3 .ph-cat.on { background: #0F1F3D !important; color: #fff !important; }
+html.d3 .d3-nav button.on { color: #0F1F3D !important; }
