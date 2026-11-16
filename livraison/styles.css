@@ -6323,3 +6323,10 @@ html.d3 .ph-sum { background: #F2F3F5 !important; color: #111418 !important; bor
 html.d3 .ph-sum small { color: #5A6270 !important; }
 html.d3 .ph-sum .btn { border: 1px solid #C9CED6 !important; background: #fff !important; border-radius: 24px !important; box-shadow: none !important; color: #111418 !important; }
 html.d3 .ph-list .ph-item { background: none !important; border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; box-shadow: none !important; padding: 14px 0 !important; }
+html.d3 .ph-line { background: none !important; border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; box-shadow: none !important; padding: 14px 0 !important; margin: 0 !important; }
+html.d3 .ph-line .cg-plus, html.d3 .ph-line button[data-ph-plus] { background: #F2F3F5 !important; box-shadow: none !important; border: 0 !important; color: #111418 !important; }
+html.d3 .ph-line select { background-color: #F2F3F5 !important; border: 0 !important; border-radius: 10px !important; }
+html.d3 .ph-18 { background: #111418 !important; color: #fff !important; }
+html.d3 .ph-tiles .ph-pic.photo > img { margin-inline-end: 12px; }
+html.d3 .ph-tiles .ph-item { column-gap: 0; }
+html.d3 .ph-tiles .ph-info { padding-inline-end: 12px !important; }
