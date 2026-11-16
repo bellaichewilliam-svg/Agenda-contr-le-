@@ -6229,3 +6229,5 @@ html.d3 .bv-tile small { color: #5A6270 !important; font-weight: 500 !important;
 html.d3 .bv-logo span { border: 1px solid #E6E8EB !important; box-shadow: none !important; }
 html.d3 .bv-main .btn:not(.btn-primary):not(.btn-wa) { border: 1px solid #C9CED6 !important; border-radius: 28px !important; background: #fff !important; box-shadow: none !important; color: #111418 !important; }
 html.d3 .bv-main .btn-wa { background: #111418 !important; border: 0 !important; border-radius: 28px !important; }
+html.d3 .wiz-toast { background: #111418 !important; color: #fff !important; border-radius: 14px !important; box-shadow: 0 6px 20px rgba(17,20,24,.18) !important; font-weight: 600; }
+html.d3 .pay-box, html.d3 #doneModal [class*="pay"] { border: 0 !important; background-color: #F2F3F5 !important; border-radius: 14px !important; }
