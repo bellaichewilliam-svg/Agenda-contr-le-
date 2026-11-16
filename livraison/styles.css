@@ -6096,3 +6096,55 @@ html.d3 .ch-dot { box-shadow: none !important; background: #111418 !important; w
 html.d3 .ch-dot.from { background: #E8590C !important; }
 html.d3 .vit-course { margin: 4px 0 0 !important; }
 html.d3 .ch-route { padding: 0 !important; }
+
+/* --- d3 : « Ma commande » (maquette B : pas de cartes, des lignes fines, le noir pour les choix) --- */
+html.d3 #orderForm fieldset, html.d3 #orderForm fieldset.step-done { border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; padding: 18px 0 20px !important; margin: 0 !important; }
+html.d3 #orderForm fieldset.step-done > legend::after { content: none !important; }
+html.d3 #orderForm legend { font-size: 18px !important; font-weight: 800 !important; letter-spacing: -.2px; padding: 0 !important; margin-bottom: 12px; color: #111418 !important; }
+html.d3 .wiz-seg { gap: 6px; }
+html.d3 .wiz-seg i { height: 3px !important; background: #E6E8EB !important; }
+html.d3 .wiz-seg i.on { background: #111418 !important; }
+html.d3 .wiz-title { font-size: 26px !important; font-weight: 800 !important; letter-spacing: -.5px; line-height: 1.15; }
+html.d3 #orderForm .choice span { border: 1px solid #C9CED6 !important; border-radius: 14px !important; background: #fff !important; box-shadow: none !important; }
+html.d3 #orderForm .choice input:checked + span { border-color: #111418 !important; box-shadow: inset 0 0 0 1px #111418 !important; background: #fff !important; background-image: none !important; }
+html.d3 #orderForm .choice.disabled span { background: #F7F8F9 !important; color: #9AA1AC !important; border-color: #E6E8EB !important; }
+html.d3 #orderForm input:not([type=checkbox]):not([type=radio]), html.d3 #orderForm select, html.d3 #orderForm textarea { background: #F2F3F5 !important; border: 1px solid transparent !important; border-radius: 12px !important; box-shadow: none !important; color: #111418 !important; }
+html.d3 #orderForm input:not([type=checkbox]):not([type=radio]):focus, html.d3 #orderForm select:focus, html.d3 #orderForm textarea:focus { border-color: #111418 !important; background: #fff !important; outline: 0 !important; }
+html.d3 #orderForm input.ac-ok { border-color: transparent !important; }
+html.d3 #orderForm input.need, html.d3 #orderForm .need input, html.d3 #orderForm input:user-invalid { border-color: #C0362C !important; background: #fff !important; }
+html.d3 #orderForm input[type=checkbox], html.d3 #orderForm input[type=radio] { accent-color: #111418; }
+html.d3 #orderForm .btn-sm:not(.btn-link):not(.btn-wa) { background: #F2F3F5 !important; border: 0 !important; border-radius: 20px !important; font-weight: 600 !important; color: #111418 !important; }
+html.d3 #orderForm .btn-link, html.d3 #orderForm summary, html.d3 #summary summary, html.d3 #summary a { color: #111418 !important; text-decoration: underline; text-underline-offset: 3px; font-weight: 600; }
+html.d3 #orderForm .btn-wa { border: 0 !important; border-radius: 14px !important; }
+html.d3 .wiz-more-btn { border: 0 !important; border-bottom: 1px solid #E6E8EB !important; border-radius: 0 !important; background: none !important; padding: 18px 0 !important; box-shadow: none !important; }
+html.d3 #summary { border: 0 !important; border-radius: 0 !important; background: none !important; box-shadow: none !important; padding: 18px 0 8px !important; }
+html.d3 #summary h3 { font-size: 18px !important; font-weight: 800 !important; }
+html.d3 #summary li span:last-child { color: #111418 !important; }
+html.d3 #summary .total { border-top: 1px solid #E6E8EB !important; font-size: 20px; font-weight: 800; }
+html.d3 #quoteTotal, html.d3 #mobileTotal { color: #111418 !important; font-weight: 800 !important; }
+html.d3 #formError:not(:empty), html.d3 .form-error:not(:empty) { background: #FDF1F0 !important; color: #A32A21 !important; border: 0 !important; border-radius: 12px !important; box-shadow: none !important; font-weight: 600; }
+html.d3 .mobile-bar .btn-primary { height: 52px; padding: 0 26px !important; display: inline-flex; align-items: center; font-size: 16px !important; }
+html.d3 .wiz-back { background: #F2F3F5 !important; }
+
+/* --- d3 : barre du bas (accueil et « Mes courses » seulement ; jamais par-dessus un bouton Commander) --- */
+.d3-nav { display: none; }
+html.d3 body[data-view="home"] .d3-nav, html.d3 body:not([data-view]) .d3-nav, html.d3 body[data-view="mine"] .d3-nav { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); position: fixed; inset-inline: 0; bottom: 0; z-index: 60; background: #fff; border-top: 1px solid #E6E8EB; padding: 8px 8px calc(8px + env(safe-area-inset-bottom)); }
+html.d3 .d3-nav button { all: unset; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 0; font: 500 11px/1.2 Heebo, sans-serif; color: #5A6270; min-width: 0; -webkit-tap-highlight-color: transparent; }
+html.d3 .d3-nav svg { width: 23px; height: 23px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+html.d3 .d3-nav button.on { color: #111418; font-weight: 700; }
+html.d3 .d3-nav button.on svg { stroke-width: 2.2; }
+html.d3 .d3-nav span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+html.d3 body.cg-cart-on .d3-nav, html.d3 body:has(.modal:not(.hidden)) .d3-nav, html.d3 body:has(.mobile-bar.show) .d3-nav { display: none !important; }
+html.d3 body[data-view="home"], html.d3 body:not([data-view]), html.d3 body[data-view="mine"] { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+html.d3 body[data-view="home"] .wa-fab, html.d3 body:not([data-view]) .wa-fab, html.d3 body[data-view="mine"] .wa-fab { bottom: calc(76px + env(safe-area-inset-bottom)) !important; }
+html.d3 #accueil.d3c .ch-go { bottom: calc(60px + env(safe-area-inset-bottom)) !important; box-shadow: none !important; border-top: 1px solid #E6E8EB; background: #fff !important; }
+/* d3 : « Mes courses » sur fond blanc, cartes sobres */
+html.d3 #mes-courses { background: #fff !important; }
+html.d3 #mes-courses h2 { font-size: 30px !important; font-weight: 800 !important; letter-spacing: -.6px; }
+html.d3 #mes-courses .card, html.d3 #mes-courses .app-share, html.d3 #mes-courses .orders > * { border: 1px solid #E6E8EB !important; border-radius: 16px !important; box-shadow: none !important; background: #fff !important; }
+html.d3 #mes-courses .card h3, html.d3 #mes-courses .card b, html.d3 #mes-courses .app-share b { color: #111418 !important; }
+html.d3 #mes-courses a { color: #111418 !important; }
+html.d3 #mes-courses .app-share em, html.d3 #mes-courses .app-share i { color: #5A6270 !important; }
+html.d3 #refreshMine { background: #F2F3F5 !important; border: 0 !important; border-radius: 20px !important; }
+html.d3 body:has(#accueil.d3c) .wa-fab { bottom: calc(150px + env(safe-area-inset-bottom)) !important; }
+html.d3 #accueil.d3c .ch-go b, html.d3 #accueil.d3c .ch-go strong { color: #111418 !important; }

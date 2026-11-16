@@ -6667,6 +6667,42 @@ function kosherTag(cls) { return `<em class="k-badge${cls ? " " + cls : ""}">${K
 const firstPhrase = v => String(v || "").split(/\s[·•|–-]\s|\.\s/)[0].replace(/\.$/, "").trim();
 // Design épuré (d3) : le nom de l'enseigne seul, en gros (« Carrefour », pas « HOP! chez Carrefour »)
 const D3 = document.documentElement.classList.contains("d3");
+// Design épuré (d3) : barre du bas (Accueil, Course libre, Commandes, Compte), sur l'accueil et « Mes courses »
+if (D3) (() => {
+  const ic = {
+    home: '<path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/>',
+    course: '<path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/>',
+    orders: '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 9h6M9 13h6M9 17h3"/>',
+    me: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/>',
+  };
+  const nav = document.createElement("nav");
+  nav.id = "d3Nav"; nav.className = "d3-nav";
+  nav.innerHTML = [["home", "d3Home"], ["course", "d3Course"], ["orders", "d3Orders"], ["me", "d3Me"]]
+    .map(([k, l]) => `<button type="button" data-d3nav="${k}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k]}</svg><span>${UI.esc(t(l))}</span></button>`).join("");
+  document.body.appendChild(nav);
+  let mineTab = "orders";
+  const paint = () => {
+    const v = document.body.dataset.view || "home";
+    const on = v === "mine" ? mineTab : v === "home" ? ($("#accueil").classList.contains("d3c") ? "course" : "home") : "";
+    nav.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.d3nav === on));
+  };
+  const home = () => { if ((document.body.dataset.view || "home") !== "home") { setView("home", true); } };
+  nav.addEventListener("click", e => {
+    const b = e.target.closest("[data-d3nav]"); if (!b) return;
+    const k = b.dataset.d3nav;
+    if (k === "home") { home(); $("#accueil").classList.remove("d3c"); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    if (k === "course") { home(); setTimeout(() => $("#vitCourse").click(), 60); }
+    if (k === "orders" || k === "me") {
+      mineTab = k; setView("mine", true);
+      const card = k === "me" && ($("#accountCard:not(.hidden)") || $("#loginCard:not(.hidden)"));
+      setTimeout(() => (card ? nativeScrollIntoView.call(card, { block: "start", behavior: "smooth" }) : window.scrollTo(0, 0)), 80);
+    }
+    setTimeout(paint, 90);
+  });
+  new MutationObserver(paint).observe(document.body, { attributes: true, attributeFilter: ["data-view"] });
+  new MutationObserver(paint).observe($("#accueil"), { attributes: true, attributeFilter: ["class"] });
+  paint();
+})();
 const d3Name = n => (D3 ? String(n || "").replace(/^HOP!\s+(chez\s+|ב)?/, "").replace(/^./, c => c.toUpperCase()) : n);
 // Carte d'un commerce, compacte : bannière, logo, catégorie, ouvert / fermé, livraison ; toute la carte s'ouvre au toucher
 function shopCard(s) {
