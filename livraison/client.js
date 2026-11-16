@@ -6664,6 +6664,9 @@ const KOSHER_STAR = `<svg class="k-star" viewBox="0 0 24 24" aria-hidden="true">
 function kosherTag(cls) { return `<em class="k-badge${cls ? " " + cls : ""}">${KOSHER_STAR}${UI.esc(t("kosher"))}</em>`; }
 // Accroche d'un commerce sur sa carte : la première phrase seulement (complète, jamais coupée au milieu)
 const firstPhrase = v => String(v || "").split(/\s[·•|–-]\s|\.\s/)[0].replace(/\.$/, "").trim();
+// Design épuré (d3) : le nom de l'enseigne seul, en gros (« Carrefour », pas « HOP! chez Carrefour »)
+const D3 = document.documentElement.classList.contains("d3");
+const d3Name = n => (D3 ? String(n || "").replace(/^HOP!\s+(chez\s+|ב)?/, "").replace(/^./, c => c.toUpperCase()) : n);
 // Carte d'un commerce, compacte : bannière, logo, catégorie, ouvert / fermé, livraison ; toute la carte s'ouvre au toucher
 function shopCard(s) {
   const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = shopState(s);
@@ -6673,9 +6676,9 @@ function shopCard(s) {
       ${st && !st.open ? `<em class="sc-closed"><span><b>🌙 ${UI.esc(t("scClosedShort"))}</b>${(lb => lb ? `<small>${UI.esc(lb)}</small>` : "")(openLabel(st).replace(/^[^·]*·\s*/, "").replace(/^(Fermé|סגור)$/, ""))}</span></em>` : ""}${isKosher(s) ? kosherTag("k-on-cover") : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
     <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
-    <span class="sc-body"><b>${UI.esc(UI.bi(s.name))}</b>
+    <span class="sc-body"><b>${UI.esc(d3Name(UI.bi(s.name)))}</b>
       ${s.paused ? `<small class="sc-meta sc-paused">⏸️ ${UI.esc(t("scPaused"))}</small>` : ""}
-      ${st || Number(s.ratings) > 0 ? `<small class="sc-meta sc-st">${Number(s.ratings) > 0 ? `<b class="sc-star">${UI.esc(t("scRating", { avg: String(s.rating).replace(".", ","), n: s.ratings }))}</b>${st ? " · " : ""}` : ""}${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(D2 && st.open ? openLabel(st).split(" · ")[0] : openLabel(st))}` : ""}</small>` : ""}
+      ${st || Number(s.ratings) > 0 ? `<small class="sc-meta sc-st${st && st.open ? " d3-open" : ""}">${Number(s.ratings) > 0 ? `<b class="sc-star">${UI.esc(t("scRating", { avg: String(s.rating).replace(".", ","), n: s.ratings }))}</b>${st ? " · " : ""}` : ""}${st ? `<i class="sc-dot ${st.open ? "on" : "off"}"></i>${UI.esc(D2 && st.open ? openLabel(st).split(" · ")[0] : openLabel(st))}` : ""}</small>` : ""}
       <small class="sc-meta">${s.shop_pays ? `🎁 ${UI.esc(t("scGift"))}` : `🛵 ${UI.esc(money(proPrice(s)))}`}${s.products ? " · " + UI.esc(t("proMenu", { n: s.products })) : s.pro === false ? " · " + UI.esc(t("scWa")) : ""}</small>
       ${UI.shopText(s, "tagline") && !D2 ? `<small class="sc-tag">${UI.esc(firstPhrase(UI.shopText(s, "tagline")))}</small>` : ""}</span>
     ${st && !st.open ? `<span class="sc-prog-btn">${UI.calIcon()} ${UI.esc(t(D2 ? "k2Prog" : "scProgOrder"))}</span>` : `<span class="sc-go" aria-label="${UI.esc(t("proGo"))}">›</span>`}

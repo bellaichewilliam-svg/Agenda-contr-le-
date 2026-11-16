@@ -5954,3 +5954,120 @@ html.d2 .ch-kind b { max-width: 100%; overflow-wrap: break-word; hyphens: auto; 
 .cg-voice::after { content: ""; position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.18) 50%, transparent 70%); transform: translateX(-100%); animation: cvShine 3.2s ease-in-out infinite; pointer-events: none; }
 @keyframes cvShine { 0%, 55% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
 @media (prefers-reduced-motion: reduce) { .cg-voice .cv-ic, .cg-voice::after { animation: none; } }
+
+/* ============================================================================
+   Design « clair et épuré » (d3) : choisi par le patron le 16/11/2026 (maquette B).
+   Blanc, texte noir, orange seulement sur l'action, aucun emoji, aucun dégradé ni lueur, police Heebo.
+   En aperçu avec ?design=3 ; rien ne change pour les autres tant que ce n'est pas validé.
+   ============================================================================ */
+html.d3, html.d3.d2.d2-day { color-scheme: light; --bg: #FFFFFF; --bg-2: #F2F3F5; --panel: #FFFFFF; --ink: #111418; --muted: #5A6270; --subtle: #7A828F;
+  --border: #E6E8EB; --brand: #E8590C; --brand-deep: #C94A07; --brand-soft: #F2F3F5; --brand-ink: #B5440A; --navy: #111418; --shadow: none; --r: 14px; }
+html.d3 body, html.d3 button, html.d3 input, html.d3 select, html.d3 textarea, html.d3 h1, html.d3 h2, html.d3 h3, html.d3 h4, html.d3 b, html.d3 .btn { font-family: "Heebo", "Rubik", system-ui, sans-serif !important; }
+html.d3 body, html.d3.d2.d2-day body, html.d3.d2.d2-day .ch, html.d3 .ch-sheet { background: #fff !important; color: #111418; box-shadow: none !important; }
+html.d3 *, html.d3 *::before, html.d3 *::after { text-shadow: none !important; }
+html.d3 i:empty:not([class]), html.d3 em:empty:not([class]) { display: none !important; }
+
+/* Barre du haut : blanche, logo bleu nuit */
+html.d3 .topbar, html.d3 .view-bar { background: #fff !important; box-shadow: none !important; border-bottom: 1px solid #E6E8EB; color: #111418 !important; }
+html.d3 .topbar .wordmark, html.d3 .topbar .wordmark b { color: #0F1F3D !important; }
+html.d3 .tb-profile, html.d3 .tb-cart, html.d3 .lang-btn { background: #F2F3F5 !important; color: #111418 !important; border: 0 !important; box-shadow: none !important; }
+html.d3 .tb-profile svg, html.d3 .tb-cart svg { color: #111418 !important; stroke: currentColor; }
+html.d3 .tb-profile svg circle, html.d3 .tb-profile svg path { fill: #111418 !important; }
+
+/* Boutons : un seul orange, plein, sans dégradé */
+html.d3 .btn-primary, html.d3 #homeGo, html.d3 .cart-bar, html.d3 .mobile-bar .btn-primary { background: #E8590C !important; background-image: none !important; color: #fff !important; box-shadow: none !important; border: 0 !important; border-radius: 28px !important; font-weight: 700 !important; }
+html.d3 .btn { box-shadow: none !important; background-image: none !important; }
+html.d3 .ch-chip, html.d3 .vit-ideas button { background: #F2F3F5 !important; color: #111418 !important; border: 0 !important; box-shadow: none !important; border-radius: 20px !important; font-weight: 600 !important; font-size: 14px !important; padding: 9px 16px !important; }
+html.d3 .ch-chip.on { background: #111418 !important; color: #fff !important; }
+
+/* Accueil : adresse et heure, titre, recherche */
+html.d3 .vit-chip { background: #fff !important; border: 1px solid #E6E8EB !important; box-shadow: none !important; border-radius: 14px !important; color: #111418 !important; }
+html.d3 .vit-chip > i, html.d3 .vit-chip > em { display: none !important; }
+html.d3 .vit-chip small { color: #5A6270 !important; } html.d3 .vit-chip b { color: #111418 !important; font-weight: 600 !important; }
+html.d3 .vit-hero { background: none !important; box-shadow: none !important; border: 0 !important; padding: 6px 0 0 !important; border-radius: 0 !important; }
+html.d3 .vit-hero::before, html.d3 .vit-hero::after { display: none !important; }
+html.d3 .vit-ask { color: #111418 !important; font-size: 30px !important; font-weight: 800 !important; letter-spacing: -.6px; line-height: 1.12 !important; }
+html.d3 .vit-share, html.d3 .vit-voice, html.d3 .sc-stories, html.d3 #homePharma, html.d3 .vit-status { display: none !important; }
+html.d3 .sc-find input, html.d3 #homeFind { background: #F2F3F5 !important; border: 0 !important; box-shadow: none !important; border-radius: 26px !important; color: #111418 !important; font-size: 16px !important; }
+html.d3 .sc-find input::placeholder { color: #5A6270 !important; }
+html.d3 .sc-mic { background: transparent !important; color: #111418 !important; box-shadow: none !important; animation: none !important; }
+html.d3 .sc-mic::before, html.d3 .sc-mic::after { display: none !important; }
+
+/* Rubriques : pastilles de texte, plus d'icônes 3D */
+html.d3 #homeKinds { display: flex !important; gap: 8px !important; overflow-x: auto; padding: 4px 16px 6px !important; scrollbar-width: none; }
+html.d3 #homeKinds .ch-kind { flex: 0 0 auto !important; width: auto !important; min-width: 0 !important; background: #F2F3F5 !important; border: 0 !important; border-radius: 20px !important; padding: 9px 16px !important; box-shadow: none !important; }
+html.d3 #homeKinds .ch-kind .k2-ic { display: none !important; }
+html.d3 #homeKinds .ch-kind b { font-size: 14px !important; font-weight: 600 !important; color: #111418 !important; white-space: nowrap !important; min-height: 0 !important; height: auto !important; display: block !important; }
+html.d3 #homeKinds .ch-kind.on { background: #111418 !important; } html.d3 #homeKinds .ch-kind.on b { color: #fff !important; }
+
+/* Course libre : une ligne sobre, sans illustration */
+html.d3 .vit-course { background: #F2F3F5 !important; background-image: none !important; box-shadow: none !important; border: 0 !important; border-radius: 16px !important; color: #111418 !important; min-height: 0 !important; padding: 18px !important; }
+html.d3 .vit-course > img { display: none !important; }
+html.d3 .vit-course b, html.d3 .vit-course small { color: #111418 !important; } html.d3 .vit-course small { color: #5A6270 !important; }
+html.d3 .vit-course .vc-go { background: #111418 !important; color: #fff !important; box-shadow: none !important; border-radius: 22px !important; }
+html.d3 .ch-line { background: #F2F3F5 !important; border: 0 !important; border-radius: 14px !important; }
+html.d3 .ch-go { background: #fff !important; box-shadow: none !important; border-top: 1px solid #E6E8EB !important; }
+html.d3 .vit-trust span { color: #5A6270 !important; background: none !important; }
+
+/* Titres de section */
+html.d3 .ch-h, html.d3 .sc-row-h, html.d3 .sc-row-h span { color: #111418 !important; font-size: 22px !important; font-weight: 800 !important; letter-spacing: -.3px; }
+
+/* Magasins : une grande photo par magasin, le nom en gros, l'état en une ligne */
+html.d3 .pro-row { display: flex !important; flex-direction: column !important; gap: 22px !important; overflow: visible !important; padding: 0 16px !important; }
+html.d3 .pro-row .sc-card { flex: none !important; width: 100% !important; background: none !important; border: 0 !important; box-shadow: none !important; border-radius: 0 !important; color: #111418 !important; }
+html.d3 .pro-row .sc-cover { aspect-ratio: 7 / 3 !important; border-radius: 16px !important; background-color: #F2F3F5; }
+html.d3 .sc-kind, html.d3 .pro-row .sc-logo, html.d3 .k-on-cover, html.d3 .sc-go, html.d3 .sc-tag { display: none !important; }
+html.d3 .sc-fav { background: #fff !important; box-shadow: none !important; color: #111418 !important; }
+html.d3 .pro-row .sc-body { padding: 10px 0 0 !important; gap: 2px !important; }
+html.d3 .pro-row .sc-body b { font-size: 19px !important; font-weight: 700 !important; color: #111418 !important; }
+html.d3 .pro-row .sc-meta { color: #5A6270 !important; font-size: 14px !important; padding: 0 !important; }
+html.d3 .sc-meta .sc-dot { display: none !important; }
+html.d3 .pro-row .sc-st { font-weight: 600 !important; } html.d3 .pro-row .sc-st.d3-open { color: #136C3F !important; }
+html.d3 .pro-row .sc-prog-btn { margin: 8px 0 0 !important; border: 0 !important; padding: 0 !important; justify-content: flex-start !important; color: #111418 !important; text-decoration: underline; text-underline-offset: 3px; font-size: 14px !important; font-weight: 600 !important; }
+html.d3 .pro-row .sc-prog-btn svg, html.d3 .pro-row .sc-prog-btn img { display: none !important; }
+
+/* « Et aussi », partage, WhatsApp : lignes sobres */
+html.d3 .xp, html.d3 .app-share, html.d3 .wa-list { background: #F2F3F5 !important; background-image: none !important; border: 0 !important; box-shadow: none !important; color: #111418 !important; border-radius: 16px !important; }
+html.d3 .xp > i, html.d3 .xp .xp-img, html.d3 .app-share > i { display: none !important; }
+html.d3 .xp { min-height: 0 !important; padding: 16px !important; } html.d3 .xp b, html.d3 .app-share b, html.d3 .wa-list b { color: #111418 !important; } html.d3 .xp small, html.d3 .app-share small, html.d3 .wa-list small { color: #5A6270 !important; }
+/* Une seule liste de magasins (plus de rangées « Ouverts », « Populaires »… qui répètent les mêmes) */
+html.d3 #homePro .sc-row-h, html.d3 #homePro .pro-row:not(:last-of-type) { display: none !important; }
+html.d3 .pro-row { margin: 0 !important; padding: 0 !important; }
+html.d3 .pro-row .sc-card { opacity: 1 !important; transform: none !important; animation: none !important; display: block !important; }
+html.d3 .pro-row .sc-cover { display: block !important; width: 100% !important; }
+html.d3 #vitIdeas { display: none !important; }
+html.d3 .tb-profile { color: #111418 !important; } html.d3 .tb-profile svg * { fill: #111418 !important; stroke: none !important; } html.d3 .tb-profile svg { background: none !important; }
+/* Ordre de l'accueil : les magasins d'abord, la course libre ensuite */
+html.d3.vit #accueil:not(.course) #homeProBox { order: 8 !important; }
+html.d3 .sc-fav { color: #111418 !important; font-size: 18px !important; }
+/* Bouton d'aide : une bulle noire au trait, plus de vert vif */
+html.d3 .chat-fab { background: #111418 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 6h14v10H10l-4 3v-3H5z'/%3E%3C/svg%3E") center / 24px no-repeat !important; box-shadow: none !important; width: 48px !important; height: 48px !important; border-radius: 24px !important; }
+
+/* Page d'un magasin et « Ma commande » : mêmes règles (blanc, filets fins, pas d'ombre) */
+html.d3 .card, html.d3 .panel, html.d3 .cs-head, html.d3 .cs-card, html.d3 .cg-card, html.d3 .oc-card, html.d3 .pay-choice, html.d3 .choice > span { box-shadow: none !important; background-image: none !important; }
+html.d3 .cg-promo, html.d3 .it-promo, html.d3 .k-badge { background: #111418 !important; color: #fff !important; box-shadow: none !important; }
+html.d3 .mobile-bar { background: #fff !important; box-shadow: none !important; border-top: 1px solid #E6E8EB !important; }
+html.d3 .vb-back { background: #F2F3F5 !important; box-shadow: none !important; color: #111418 !important; border: 0 !important; }
+html.d3 .shop-hero { box-shadow: none !important; border: 0 !important; border-radius: 0 !important; background: #fff !important; }
+html.d3 .sh-cover { border-radius: 16px !important; background-color: #F2F3F5 !important; }
+html.d3 .sh-cover:not([style*="url"]) { background-image: none !important; }
+html.d3 .sh-share { background: #fff !important; color: #111418 !important; box-shadow: none !important; }
+html.d3 .sh-logo { box-shadow: none !important; border: 1px solid #E6E8EB !important; }
+html.d3 .shop-hero h2, html.d3 .shop-hero .sh-name { font-size: 30px !important; font-weight: 800 !important; letter-spacing: -.6px; color: #111418 !important; }
+html.d3 .cg-voice { background: #F2F3F5 !important; background-image: none !important; color: #111418 !important; box-shadow: none !important; border: 0 !important; animation: none !important; }
+html.d3 .cg-voice::before, html.d3 .cg-voice::after { display: none !important; }
+html.d3 .cg-voice b, html.d3 .cg-voice small, html.d3 .cg-voice em { color: #111418 !important; }
+html.d3 .cv-ic { background: #111418 !important; box-shadow: none !important; animation: none !important; }
+html.d3 .cg-rule, html.d3 .nopay-mini, html.d3 .nopay, html.d3 .nopay-ready, html.d3 .notice, html.d3 .cg-any { background: #F2F3F5 !important; color: #111418 !important; border: 0 !important; box-shadow: none !important; }
+html.d3 .nopay b, html.d3 .nopay-mini b, html.d3 .nopay small, html.d3 .nopay-mini small { color: #111418 !important; }
+html.d3 .cg-item { box-shadow: none !important; border: 0 !important; background: #fff !important; }
+html.d3 .cg-item .item-art, html.d3 .item-art { background: #F2F3F5 !important; background-image: none !important; border-radius: 14px !important; }
+html.d3 .cg-price, html.d3 .pm-pr, html.d3 .pa-pr { color: #111418 !important; }
+html.d3 .cg-plus { background: #fff !important; color: #111418 !important; box-shadow: 0 1px 4px rgba(17,20,24,.18) !important; border-radius: 22px !important; }
+html.d3 .btn-wa { background: #111418 !important; color: #fff !important; }
+html.d3 .wa-fab.chat-fab { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 6h14v10H10l-4 3v-3H5z'/%3E%3C/svg%3E") !important; background-color: #111418 !important; }
+html.d3 .steps i.on, html.d3 .step-bar i.on { background: #111418 !important; }
+html.d3 .cv-ic { background: #111418 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='3' width='6' height='11' rx='3'/%3E%3Cpath d='M5 11a7 7 0 0014 0M12 18v3'/%3E%3C/svg%3E") center / 18px no-repeat !important; }
+html.d3 .sh-cover::before, html.d3 .sh-cover::after { display: none !important; }
+html.d3 .sc-fav { font-size: 0 !important; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M12 20s-7-4.500-7-10a4 4 0 017-2.500A4 4 0 0119 10c0 5.500-7 10-7 10z'/%3E%3C/svg%3E") center / 18px no-repeat !important; }
+html.d3 .sc-fav.on { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23111418' stroke='%23111418' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M12 20s-7-4.500-7-10a4 4 0 017-2.500A4 4 0 0119 10c0 5.500-7 10-7 10z'/%3E%3C/svg%3E") !important; }

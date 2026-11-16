@@ -1767,7 +1767,13 @@ function t(key, vars) {
   if (vars && typeof s === "string") s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
   // Toutes langues : un nombre reste collé à son unité (25 ₪, 5 min, 3 km, 8 דק׳) : lisible de phrase en phrase
   if (typeof s === "string") s = s.replace(/(\d) (₪|min\b|km\b|h\b|דק|ק״מ)/g, "$1\u00A0$2").replace(/\+ (\d)/g, "+\u00A0$1");
+  // Design épuré (d3, 16/11) : aucun emoji dans l'interface (c'est ce qui faisait « fabriqué par une IA »)
+  if (D3 && typeof s === "string") s = noEmoji(s);
   return s;
+}
+const D3 = typeof document !== "undefined" && document.documentElement.classList.contains("d3");
+function noEmoji(s) {
+  return String(s).replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}\uFE0F\u200D]/gu, "").replace(/[ \u00A0]{2,}/g, " ").replace(/^[ \u00A0·:]+/, "").replace(/(\n)[ \u00A0]+/g, "$1");
 }
 
 // « HOP! » toujours dans le bon sens (jamais « !HOP » en hébreu) : isolé de gauche à droite partout où il apparaît
@@ -1823,6 +1829,7 @@ function cityName(id) {
 }
 
 window.I18N = {
+  noEmoji: s => (D3 ? noEmoji(s) : s),
   t, apply, setLang, cityName,
   // Langue d'un écran sans la garder pour les autres (appli livreur)
   use(l) { lang = DICT[l] ? l : "fr"; apply(); },

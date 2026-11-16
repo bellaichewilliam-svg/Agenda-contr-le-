@@ -1243,3 +1243,19 @@ window.UI = {
 };
 
 })();
+
+// Design épuré (d3, 16/11) : aucun emoji à l'écran, même dans les textes écrits ailleurs que le dictionnaire (noms de rayons,
+// modèles de la page…). On nettoie les textes affichés au fur et à mesure ; les champs de saisie ne sont jamais touchés.
+(function d3NoEmoji() {
+  if (!document.documentElement.classList.contains("d3") || !window.I18N || !I18N.noEmoji) return;
+  const RE = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]/u;
+  const clean = n => { const v = n.nodeValue; if (v && RE.test(v)) { const c = I18N.noEmoji(v); if (c !== v) n.nodeValue = c; } };
+  const walk = root => { if (root.nodeType === 3) return clean(root); if (root.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA)$/.test(root.tagName)) return;
+    if (root.placeholder && RE.test(root.placeholder)) root.placeholder = I18N.noEmoji(root.placeholder);
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) clean(n);
+    root.querySelectorAll && root.querySelectorAll("[placeholder]").forEach(i => { if (RE.test(i.placeholder)) i.placeholder = I18N.noEmoji(i.placeholder); }); };
+  const start = () => { walk(document.body);
+    new MutationObserver(ms => ms.forEach(m => { if (m.type === "characterData") clean(m.target); else if (m.type === "attributes") walk(m.target); else m.addedNodes.forEach(walk); }))
+      .observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["placeholder"] }); };
+  if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
+})();
