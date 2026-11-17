@@ -1416,7 +1416,7 @@ function ficheItems(o) {
     return { qty: Math.max(1, Number(i.qty) || 1), name: UI.bi(m ? m[1] : nm, "fr"), opt: m ? UI.bi(m[2], "fr") : "", price: Number(i.price) || 0 };
   });
 }
-const ficheCount = o => ficheItems(o).reduce((a, i) => a + i.qty, 0);
+const ficheCount = o => ficheItems(o).reduce((a, i) => a + i.qty, 0) + (o.hop_buy ? (Number(o.extra_units) || hopExtras(o).length) : 0);
 function fiRow(label, val, cls) {
   return val == null || String(val).trim() === "" ? "" : `<div class="fi-row${cls ? " " + cls : ""}"><small>${UI.esc(label)}</small><b><bdi>${UI.esc(String(val))}</bdi></b></div>`;
 }
@@ -1470,7 +1470,8 @@ function ficheArticles(o) {
   }
   const total = items.reduce((a, i) => a + i.qty * i.price, 0) || Number(o.items_total) || 0;
   return head + `<div class="fi-items">${items.map(i => `<div class="fi-item"><b class="fi-q">${i.qty}×</b><span><bdi>${UI.esc(i.name)}</bdi>${i.opt ? `<small><bdi>${UI.esc(i.opt)}</bdi></small>` : ""}</span>${i.price ? `<em>${UI.esc(UI.money(i.qty * i.price))}</em>` : ""}</div>`).join("")}</div>
-    <div class="fi-total"><span>${ficheCount(o)} article${ficheCount(o) > 1 ? "s" : ""}</span>${total ? `<b>${UI.esc(UI.money(total))}</b>` : ""}</div>
+    ${o.hop_buy && hopExtras(o).length ? `<h4 class="fi-h">➕ En plus, hors catalogue (prix au ticket)</h4><div class="fi-items">${hopExtras(o).map(x => `<div class="fi-item fi-extra"><b class="fi-q">+</b><span><bdi>${UI.esc(x)}</bdi></span></div>`).join("")}</div>` : ""}
+    <div class="fi-total"><span>${ficheCount(o)} article${ficheCount(o) > 1 ? "s" : ""}</span>${total ? `<b>${o.hop_buy && hopExtras(o).length ? "≈ " : ""}${UI.esc(UI.money(total))}${o.hop_buy && hopExtras(o).length ? " + hors catalogue" : ""}</b>` : ""}</div>
     ${goodsSelf(o) ? `<p class="fi-pay">${UI.esc(goodsSelf(o))}</p>` : o.goods_pay === "recu" ? `<p class="fi-pay">✅ Articles déjà payés au commerce : rien à avancer</p>` : ""}`;
 }
 function renderFiche() {

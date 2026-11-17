@@ -6733,3 +6733,4 @@ html.d3 legend[data-i18n="s3"]::before { content: "B"; background: #E8590C; }
 .fl-box.fl-extra .fl-head b { color: #0F1F3D; }
 .fl-box.fl-extra .fl-head span { color: #0F1F3D; }
 .fl-sub { margin: 0 0 8px; font-size: 12.5px; color: #5A6270; line-height: 1.35; }
+.fi-item.fi-extra .fi-q { background: rgba(159, 176, 207, .22); }
