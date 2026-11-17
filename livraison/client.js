@@ -6721,6 +6721,13 @@ if (D3) (() => {
   nav.id = "d3Nav"; nav.className = "d3-nav";
   nav.innerHTML = [["home", "d3Home"], ["course", "d3Course"], ["orders", "d3Orders"], ["me", "d3Me"]]
     .map(([k, l]) => `<button type="button" data-d3nav="${k}"><svg viewBox="0 0 24 24" aria-hidden="true">${ic[k]}</svg><span>${UI.esc(t(l))}</span></button>`).join("");
+  // Au milieu : la commande vocale (Hoppy, l'assistant IA) — choix C du patron, 17/11 : rond blanc, point orange
+  const mic = document.createElement("button");
+  mic.type = "button"; mic.className = "d3-mic";
+  const micLbl = () => { mic.innerHTML = `<i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></i><span>${UI.esc(t("d3Talk"))}</span>`; mic.setAttribute("aria-label", t("d3Talk")); };
+  micLbl(); window.addEventListener("hop:lang", micLbl);
+  mic.addEventListener("click", e => { e.stopPropagation(); UI.track("voice_nav"); hvOpenTalk(); });
+  nav.children[1].after(mic);
   document.body.appendChild(nav);
   let mineTab = "orders";
   const paint = () => {

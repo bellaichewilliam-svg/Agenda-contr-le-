@@ -6443,3 +6443,15 @@ html.d3 #homeKinds .ch-kind:active .k2-ic { filter: brightness(.94); }
 html.d3 #homeKinds .ch-kind.on .k2-ic { filter: none !important; box-shadow: inset 0 0 0 2px #0F1F3D !important; }
 html.d3 #homeFilters .ch-chip.on, html.d3 .ph-cat.on { background: #0F1F3D !important; color: #fff !important; }
 html.d3 .d3-nav button.on { color: #0F1F3D !important; }
+
+/* --- d3 : commande vocale au milieu de la barre du bas (choix C du patron, 17/11) : rond blanc, micro noir, point orange, halo qui respire --- */
+html.d3 body[data-view="home"] .d3-nav, html.d3 body:not([data-view]) .d3-nav, html.d3 body[data-view="mine"] .d3-nav { grid-template-columns: repeat(2, minmax(0, 1fr)) 72px repeat(2, minmax(0, 1fr)) !important; overflow: visible; }
+html.d3 .d3-nav .d3-mic { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; margin-top: -26px; font: 700 11px/1.2 Heebo, sans-serif; color: #111418; -webkit-tap-highlight-color: transparent; }
+html.d3 .d3-nav .d3-mic i { position: relative; display: grid; place-items: center; width: 58px; height: 58px; border-radius: 50%; background: #fff; border: 2px solid #E6E8EB; box-sizing: border-box; box-shadow: 0 4px 12px rgba(17,20,24,.10); transition: transform .15s ease; }
+html.d3 .d3-nav .d3-mic svg { width: 26px; height: 26px; fill: none; stroke: #111418; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+html.d3 .d3-nav .d3-mic i::after { content: ""; position: absolute; top: 4px; inset-inline-end: 4px; width: 11px; height: 11px; border-radius: 50%; background: #E8590C; border: 2px solid #fff; }
+html.d3 .d3-nav .d3-mic i::before { content: ""; position: absolute; inset: -5px; border-radius: 50%; border: 2px solid #E8590C; opacity: 0; pointer-events: none; }
+html.d3 .d3-nav .d3-mic:active i { transform: scale(.92); }
+@keyframes d3MicNav { 0% { transform: scale(1); opacity: .5; } 70%, 100% { transform: scale(1.3); opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) { html.d3 .d3-nav .d3-mic i::before { animation: d3MicNav 2.6s ease-out infinite; } }
+html.d3 .d3-nav button span { white-space: normal !important; text-align: center; line-height: 1.15; }
