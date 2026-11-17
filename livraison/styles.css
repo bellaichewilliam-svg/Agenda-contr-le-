@@ -6484,3 +6484,11 @@ html.d3 .hv-call { background: #E8590C !important; box-shadow: none !important; 
 html.d3 .sc-mic::before, html.d3 .sc-mic::after { display: none !important; animation: none !important; }
 html.d3 .sc-mic { box-shadow: none !important; background: transparent !important; }
 html.d3 .sc-mic.on { background: #E8590C !important; color: #fff !important; }
+
+/* --- d3 : micro du milieu de la barre du bas : anneau pastel multicolore qui tourne doucement (patron, 17/11), au lieu du halo orange --- */
+html.d3 .d3-nav .d3-mic i::before { inset: -6px !important; border: 0 !important; opacity: 1 !important; animation: none !important;
+  background: conic-gradient(from 0deg, #8FD3A8, #8DBDF2, #C3A6EE, #F5CF7A, #F4A7C0, #F6B48E, #8FD3A8) !important;
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); mask: radial-gradient(farthest-side, transparent calc(100% - 3.5px), #000 calc(100% - 3px)); }
+@keyframes d3Spin { to { transform: rotate(360deg); } }
+@keyframes d3Glow { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) { html.d3 .d3-nav .d3-mic i::before { animation: d3Spin 5s linear infinite, d3Glow 2.6s ease-in-out infinite !important; } }
