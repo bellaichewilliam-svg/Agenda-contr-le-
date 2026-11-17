@@ -6734,3 +6734,7 @@ html.d3 legend[data-i18n="s3"]::before { content: "B"; background: #E8590C; }
 .fl-box.fl-extra .fl-head span { color: #0F1F3D; }
 .fl-sub { margin: 0 0 8px; font-size: 12.5px; color: #5A6270; line-height: 1.35; }
 .fi-item.fi-extra .fi-q { background: rgba(159, 176, 207, .22); }
+/* Articles hors catalogue dans la même liste « Sac » (patron, 17/11) */
+.hb-list .fl-box.hb-xbox { margin: 6px 0 8px; padding: 8px 10px; background: rgba(15, 31, 61, .04); box-shadow: inset 0 0 0 1px rgba(15, 31, 61, .15); }
+.hb-list .hb-xbox .fl-head b { font-size: 13.5px; color: inherit; }
+.hb-list .hb-xbox .fl-head span { color: inherit; }

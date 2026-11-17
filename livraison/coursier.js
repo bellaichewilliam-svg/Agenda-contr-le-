@@ -795,6 +795,17 @@ function hopExtras(o) {
   if (h >= 0) lines = lines.slice(h + 1);
   return lines.filter(l => !/prendre aussi|לקנות גם/.test(l)).slice(0, 30);
 }
+// Dans la liste « Sac » : les articles hors catalogue, à la suite des autres, avec leur propre case (gardée sur le téléphone)
+function hopExtrasIn(o) {
+  const ex = hopExtras(o);
+  if (!ex.length) return "";
+  const id = o.id + "-x";
+  let done = {};
+  try { done = JSON.parse(localStorage.getItem(FL_KEY(id)) || "{}"); } catch (e) { /* ignore */ }
+  const n = ex.filter((x, i) => done[i]).length;
+  return `<div class="fl-box hb-xbox"><div class="fl-head"><b>➕ Pas dans le catalogue · prix au ticket</b><span>${n} / ${ex.length}</span></div>
+    <ul>${ex.map((x, i) => `<li><label class="${done[i] ? "on" : ""}"><input type="checkbox" data-fl="${UI.esc(id)}:${i}"${done[i] ? " checked" : ""} /> <span>${UI.esc(x)}</span></label></li>`).join("")}</ul></div>`;
+}
 function freeListBox(o, title, sub) {
   const items = freeListItems(o);
   if (items.length < (title ? 1 : 2)) return "";
@@ -850,8 +861,8 @@ function card(o, kind) {
     extra += hopBuyLine(o, kind);
     // Articles hors catalogue (« À prendre aussi », écrits par le client) : leur propre liste, titrée, une case par article
     const ex = hopExtras(o);
-    if (ex.length) extra += kind === "mine" ? freeListBox({ id: o.id + "-x", shopping_list: ex.join("\n") }, `➕ En plus, hors catalogue (${ex.length})`, "Le client les a écrits lui-même : cherchez-les dans le magasin, sinon au plus près. Prix au ticket.")
-      : `<div class="small">➕ <b>${ex.length} article(s) en plus, hors catalogue</b> : ${UI.esc(ex.join(" · "))}</div>`;
+    // (sur « Mes courses », ils sont dans la même liste « Sac » que les autres articles, à la suite : buyBlock)
+    if (ex.length && (kind !== "mine" || o.status !== "confirmee")) extra += `<div class="small">➕ <b>${ex.length} article(s) en plus, hors catalogue</b> : ${UI.esc(ex.join(" · "))}</div>`;
   }
   else if (o.service === "achat") extra += (kind === "mine" ? freeListBox(o) : "") + (kind === "mine" && freeListItems(o).length >= 2 ? "" : UI.buyList(o.shopping_list)) + `<div class="small">${o.budget && !o.goods_prepay ? `💰 budget ≈ ${UI.money(o.budget)}<br>` : ""}${o.purchase_min ? `⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
     ? `💵 <b>Espèces : vous payez le magasin, ${UI.money(o.goods_budget)} au plus</b> (vous avez annoncé avoir les espèces). 🧾 Photo du ticket, puis le client vous paie la course + le ticket exact à la livraison.`
@@ -1152,6 +1163,7 @@ function buyBlock(o) {
     <div class="hb-head"><b class="hb-bag">🛍️ Sac ${b.n || 1}</b><span>${UI.esc(String(o.dropoff_contact || o.contact_name || "").split(" ")[0])} · n° ${UI.esc(o.ref)}</span><em>${t.ok}/${t.n - t.miss.length}</em></div>
     ${b.of > 1 ? `<p class="hb-tip">Un sac par client : mettez ses articles dans le sac ${b.n || 1}.</p>` : ""}
     <ul>${rows}</ul>
+    ${hopExtrasIn(o)}
     ${t.miss.length ? `<p class="hb-miss-note">❌ ${t.miss.length} manquant(s), retiré(s) : le client est prévenu, il ne les paie pas (ni leur supplément d'article). Articles : <b>${UI.money(t.total)}</b> · course : <b>${UI.money(o.price)}</b></p>` : ""}
     ${done ? `<p class="hb-done">✅ Tout est dans le panier · articles ≈ <b>${UI.money(t.total)}</b></p>${o.goods_spent == null ? `<p class="hb-tip">Passez en caisse, puis 🧾 « Ticket du magasin » : photo du ticket et son montant exact.</p>` : ""}`
       : `<button type="button" class="btn btn-primary btn-block hb-all" data-buydone="${id}"${all && t.ok ? "" : " disabled"}>✅ Tout est dans le panier</button>
