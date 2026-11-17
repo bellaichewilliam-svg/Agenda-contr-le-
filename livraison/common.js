@@ -771,10 +771,17 @@ function ringSvg(p, gid) {
     ${arc("hr-track", C - gap)}${k > 0 ? arc("hr-arc", len) + `<circle class="hr-knob" cx="${(60 + 50 * Math.cos(a)).toFixed(1)}" cy="${(60 + 50 * Math.sin(a)).toFixed(1)}" r="6"/>` : ""}</svg>`;
 }
 
+// Course programmée plus tard, déjà acceptée (patron, 17/11 : course pour 13 h 30, le client voyait « arrive dans 3 min ») :
+// l'heure prévue tant qu'on est à plus de 20 min de l'heure et que le livreur n'est pas au départ ; sinon null (suivi en direct)
+function laterStart(o) {
+  if (!o || o.status !== "confirmee" || o.arrived_at || o.urgency !== "programmee" || !o.pickup_at) return null;
+  const at = new Date(o.pickup_at);
+  return at - Date.now() > 20 * 60000 ? at : null;
+}
 // Minutes avant la livraison (position du livreur connue), sinon null.
 // Course acceptée : trajet jusqu'au départ + 5 min sur place + trajet jusqu'à l'arrivée.
 function deliveryEta(o) {
-  if (!o) return null;
+  if (!o || laterStart(o)) return null;
   // HOP! Pro : commande en préparation → l'heure annoncée par le commerce + le trajet
   const readyIn = o.ready_at && ["acceptee", "prete"].includes(o.shop_status) && ["nouvelle", "confirmee"].includes(o.status)
     ? Math.max(0, Math.ceil((new Date(o.ready_at) - Date.now()) / 60000)) : 0;
@@ -1237,7 +1244,7 @@ function parsePostSms(txt) {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   ringTone, ringLoad, track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, laterStart, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, linkify, buyList, parsePostSms, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

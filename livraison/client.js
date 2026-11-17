@@ -754,11 +754,20 @@ function baseQuote() {
     fromCity: nearMode() ? cityOf("to") : cityOf("from"), toCity: cityOf("to"),
     fromPoint: nearMode() ? state.toPoint : state.fromPoint, toPoint: state.toPoint,
     service: hopBuyOn() ? "achat" : val("service"), urgency: val("urgency"), size: val("size"), quickBuy: tobaccoOnly(),
-    units: hopBuyOn() ? cartCount() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), hopShop: hopBuyOn() || rayonHasCf(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
+    units: hopBuyOn() ? cartCount() + hopExtraUnits() : rayonUnits(), purchaseKind: hopBuyOn() ? "shop" : purchaseKind(), hopShop: hopBuyOn() || rayonHasCf(), itemsIncluded: hopBuyOn() ? HOP_INC : null,
     couriers: (home.nearby || []).filter(c => c.free),
     roundTrip: form.round_trip.checked, stops: state.stops.map(s => ({ onWay: stopOnWay(s) })),
     discount: currentDiscount()
   }, CONFIG);
+}
+// Boutique HOP! : articles que le client écrit lui-même (pas dans le catalogue), un par ligne, « 2 Schweppes… » = 2.
+// Comptés comme les autres : 6 compris, puis 2 ₪ l'article (accord du patron du 17/11/2026) ; la base fait le même compte.
+function hopExtraUnits() {
+  if (!hopBuyOn() || !form.shop_order) return 0;
+  const n = form.shop_order.value.split(/\n+/).map(x => x.replace(/^💬\s*/, "").trim())
+    .filter(x => x && !/prendre aussi|לקנות גם/.test(x) && !/:\s*$/.test(x))
+    .reduce((s, x) => { const m = /^(\d{1,2})\s*(?:[×x*]\s*)?\S/i.exec(x) || /[×x]\s*(\d{1,2})\s*$/i.exec(x); return s + Math.max(1, Math.min(20, m ? Number(m[1]) : 1)); }, 0);
+  return Math.min(24, n);
 }
 // Genre de l'achat : rayon makolet / supermarché ou tabac = petit achat (5 ₪) ; tout le reste = vrai achat en boutique (8 ₪)
 function purchaseKind() {
@@ -3319,6 +3328,7 @@ async function submit(e) {
       // Articles du catalogue : la base reprend noms et prix, et écrit la liste à préparer
       shop_order: proShopOn() ? (cartCount() ? cartLines().map(l => `${l.qty} × ${l.p.name}`).join("\n") + (val("shop_order").trim() ? "\n💬 " + val("shop_order").trim() : "") : val("shop_order").trim()) : null,
       items: proShopOn() && cartCount() ? cartLines().map(l => ({ id: l.p.id, qty: l.qty })) : null,
+      extra_units: hopBuyOn() && cartCount() ? hopExtraUnits() || null : null,
       items_note: proShopOn() && cartCount() ? [cartLines().filter(l => modText(l.p.id, "fr")).map(l => `${UI.bi(baseOf(l.p), "fr")}${sizeOf(l.p) ? " (" + UI.bi(sizeOf(l.p), "fr") + ")" : ""} : ${modText(l.p.id, "fr")}`).join(" | "), val("shop_order").trim()].filter(Boolean).join(" | ").slice(0, 300) || null : null,
       goods_choice: proShopOn() && shopCashOnly() && hasShopGoods() ? goodsChoice() : null,
       shop_ref: shopSelf() ? val("shop_ref").trim() : null,
@@ -4224,7 +4234,7 @@ function renderCatalog() {
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
   form.shop_order.placeholder = on ? t(hopBuyOn() ? "hopNotePh" : "cgNotePh") : t("spOrderPh");
   $("#shopWa").classList.toggle("hidden", !(state.shop && hopBuyOn()) || document.documentElement.classList.contains("for-client"));
-  if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t((CONFIG.hopAnyItem || []).includes(String(state.shop.code || "").toUpperCase()) ? "cgAnyNote" : "cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
+  if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t(hopBuyOn() ? "cgHopExtra" : (CONFIG.hopAnyItem || []).includes(String(state.shop.code || "").toUpperCase()) ? "cgAnyNote" : "cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
   const hasLoose = cgShown().some(p => !cats.some(c => c.id === p.category_id));
@@ -4307,7 +4317,7 @@ function renderCatalog() {
 }
 // Boutique HOP! : le livreur fait les courses → 24 articles au plus et la place du top case (comme les rayons) ;
 // un article de trop n'est pas ajouté, on le dit
-const hopPlaces = () => cartLines().reduce((n, l) => n + l.qty * Store.hopPlace(l.p.name), 0);
+const hopPlaces = () => cartLines().reduce((n, l) => n + l.qty * Store.hopPlace(l.p.name), 0) + 2 * hopExtraUnits();
 function hopCartFix(id) {
   if (!hopBuyOn() || !state.cart[id]) return;
   let cut = false;
@@ -4317,6 +4327,7 @@ function hopCartFix(id) {
 }
 // Jauge sous le panier : articles (6 compris, puis +2 ₪ l'article) et place prise dans le top case
 function hopMeter(n) {
+  n += hopExtraUnits();
   const place = Math.min(100, Math.round(hopPlaces() / PI.topcase * 100)), extra = Math.max(0, n - HOP_INC), each = PI.extraCourier + PI.extraHop;
   const lvl = place >= 100 || n >= PI.max ? "full" : place >= 75 || n > HOP_INC ? "warn" : "ok";
   return `<div class="ph-meter hop-meter ${lvl}"><div class="pm-row"><b>🛵 ${UI.esc(t("phTopcase", { p: place }))}</b><span>${UI.esc(t("phCount", { n, max: PI.max }))}</span></div>
@@ -4424,7 +4435,7 @@ async function cgElseFill() {
   if (!r) { try { rl = (await Store.rlFind(q, 3)) || []; } catch (e) { rl = []; } }
   if (seq !== cgElseSeq || !$("#cgElse") || !state.shop || state.shop.code !== code) return;
   state.cgElse = { list, r, rl };
-  if (!list.length && !r && !rl.length) { $("#cgElse").innerHTML = `<p class="cg-else-wait">${UI.esc(t("cgElseNo"))}</p>`; return; }
+  if (!list.length && !r && !rl.length) { $("#cgElse").innerHTML = `<p class="cg-else-wait">${UI.esc(t(hopBuyOn() ? "cgElseHop" : "cgElseNo"))}</p>`; return; }
   const row = (ph, name, sub, price, attr) => `<div class="cg-else-row"><span class="cr-pic">${ph}</span><span class="cg-else-txt"><b><bdi>${UI.esc(name)}</bdi></b><small>${sub}</small></span>
     ${price ? `<em>${UI.esc(price)}</em>` : ""}<button type="button" class="btn btn-sm" ${attr}>${UI.esc(t("cgElseAdd"))}</button></div>`;
   $("#cgElse").innerHTML = `<b class="cg-else-t">${escHop(t("cgElseT", { name: shopShortName() }))}</b>`
@@ -9979,3 +9990,5 @@ if ($("#tbCart")) {
 
 })();
 
+// Boutique HOP! : les articles écrits à la main comptent tout de suite dans la jauge (articles et top case)
+form.shop_order.addEventListener("input", () => { if (!hopBuyOn()) return; clearTimeout(form.shop_order._t); form.shop_order._t = setTimeout(() => { try { renderCatalog(); } catch (e) { /* ignore */ } }, 400); });

@@ -600,7 +600,12 @@ function card(o, withDay) {
   // HOP! Pro : préparation chez le commerce, et sa part de la livraison
   if (o.shop_status && o.shop_status !== "refusee") meta.push(`<span class="pill">${o.shop_status === "attente" ? "🍳 Attente du commerce"
     : o.shop_status === "prete" ? "✅ Prête au commerce" : `🍳 Prête à ${UI.esc(new Date(o.ready_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}`}${Number(o.shop_share) > 0 ? ` · commerce ${UI.money(o.shop_share)}` : ""}</span>`);
-  if (o.shop_order) meta.push(`<span class="pill">🧾 ${UI.esc(o.shop_order.slice(0, 80))}</span>`);
+  // Boutique HOP! : les articles du catalogue, puis ceux écrits par le client (hors catalogue), bien séparés (patron, 17/11)
+  if (o.hop_buy && Array.isArray(o.items) && o.items.length) {
+    meta.push(`<span class="pill">🛒 ${UI.esc(o.items.map(i => `${Number(i.qty) || 1} × ${UI.bi(i.name, "fr")}`).join(" · ").slice(0, 160))}</span>`);
+    const exs = String(o.items_note || "").split(/\n+/).map(x => x.replace(/^💬\s*/, "").trim()).filter(x => x && !/prendre aussi|לקנות גם/.test(x));
+    if (exs.length) meta.push(`<span class="pill unpaid" title="Écrits par le client : pas dans le catalogue, prix au ticket">➕ Hors catalogue : ${UI.esc(exs.join(" · ").slice(0, 160))}</span>`);
+  } else if (o.shop_order) meta.push(`<span class="pill">🧾 ${UI.esc(o.shop_order.slice(0, 80))}</span>`);
   // Le patron passe lui-même la commande au commerce (non partenaire) : « Commandé » (n° + prête dans…), puis « Prête »
   const oShop = o.shop_id && o.status === "nouvelle" ? shops.find(x => x.id === o.shop_id && x.token) : null;
   if (oShop && o.shop_status === "attente") meta.push(`<button class="pill pill-btn unpaid" data-act="shopok" title="Vous avez passé la commande au commerce : son n° et dans combien de temps c'est prêt. Le livreur part au bon moment, le client est prévenu">✅ Commandé chez le commerce</button>`);
