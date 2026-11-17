@@ -1412,6 +1412,15 @@ function creditView() {
     </div>`;
 }
 // Une ligne par course : jour, n°, client, prix, commission, ce que le livreur gagne
+// Rangées par jour (le plus récent en haut) : la date et le gain du jour ; on touche pour voir les courses du jour
+function finByDay(list) {
+  const days = new Map();
+  list.forEach(o => { const k = UI.dayKey(o.delivered_at || o.pickup_at); if (!days.has(k)) days.set(k, []); days.get(k).push(o); });
+  return [...days.entries()].sort((a, b) => (a[0] < b[0] ? 1 : -1)).map(([k, l]) => `<details class="fin-day">
+      <summary><span><b>${UI.esc(new Date(k + "T12:00:00").toLocaleDateString(LOC, { weekday: "long", day: "numeric", month: "long" }))}</b><small>${l.length} course${l.length > 1 ? "s" : ""}</small></span>
+        <b class="fin-day-n">${UI.money(sum(l, Store.courierGain))} ›</b></summary>
+      ${finCourses(l)}</details>`).join("");
+}
 function finCourses(list) {
   return list.slice().sort((a, b) => new Date(b.pickup_at) - new Date(a.pickup_at)).map(o => `<div class="fin-course">
       <span><small>${UI.esc(new Date(o.pickup_at).toLocaleDateString(LOC, { weekday: "short", day: "numeric", month: "short" }))} · n° ${UI.esc(String(o.ref).split("-").pop())}${o.is_test ? " · 🧪 test" : ""}</small>${UI.esc(o.dropoff_contact || o.contact_name || "")}</span>
@@ -1429,7 +1438,7 @@ function financesView(start, week, d) {
       <div class="fin-detail">
         ${line("Courses (après commission)", w.courses)}${line("💝 Pourboires", w.tips, "+")}${line("🤝 Bonus réseau", w.bonus, "+")}${line("⭐ Abonnements Pro", w.plans, "+")}
         ${line("Encaissé auprès des clients", w.cash)}${line("Commission HOP", w.commission)}${line("💸 Retenues", w.pen, "−")}
-        ${withCourses && w.list.length ? `<div class="fin-courses"><b class="small">Le détail de vos courses</b>${finCourses(w.list)}</div>` : ""}
+        ${withCourses && w.list.length ? `<div class="fin-courses"><b class="small">Détails journaliers</b>${finByDay(w.list)}</div>` : ""}
         ${w.pens.map(p => `<p class="small pen-line">💸 −${UI.money(p.amount)}${p.order_ref ? " · course n° " + UI.esc(p.order_ref) : ""} : ${UI.esc(p.reason)}${p.status === "regle" ? " · déduite ✓" : " · déduite de votre crédit"}</p>`).join("")}
       </div></details>`;
   return `<a class="fin-hero" href="#finWeekCourses" data-fin-scroll="1">
@@ -1438,8 +1447,8 @@ function financesView(start, week, d) {
       <span>${cur.list.length} course(s) · payées directement par vos clients</span>
     </a>
     <div class="fin-week-courses" id="finWeekCourses">
-      <b>🧾 Vos courses de la semaine</b>
-      ${cur.list.length ? finCourses(cur.list) + `<div class="fin-course fin-course-tot"><span>Total · ${cur.list.length} course(s)</span><span class="fin-course-n"><small>${UI.money(sum(cur.list, o => Number(o.price || 0)))} · commission −${UI.money(cur.commission)}</small><b>${UI.money(cur.courses)}</b></span></div>`
+      <b>🧾 Détails journaliers</b>
+      ${cur.list.length ? finByDay(cur.list) + `<div class="fin-course fin-course-tot"><span>Total · ${cur.list.length} course(s)</span><span class="fin-course-n"><small>${UI.money(sum(cur.list, o => Number(o.price || 0)))} · commission −${UI.money(cur.commission)}</small><b>${UI.money(cur.courses)}</b></span></div>`
         : `<p class="muted small" style="margin:6px 0 0">Pas encore de course livrée cette semaine.</p>`}
     </div>
     ${creditView()}
