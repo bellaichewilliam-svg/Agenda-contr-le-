@@ -1256,7 +1256,30 @@ function whoBox(o) {
       ${place && place !== firm ? `<span class="ow-place">📍 À récupérer chez <b>${UI.esc(UI.bi(place, "fr"))}</b>${o.first_shop && !firm ? ` <span class="ow-new">🆕 1re livraison pour ce commerce</span>` : ""}</span>` : ""}</span>
     ${ph ? `<a class="btn btn-sm ow-call" href="tel:${UI.esc(ph)}">📞 Appeler</a>` : ""}</div>`;
 }
+// Plusieurs courses : une seule ouverte à la fois, les autres repliées en une ligne (on touche pour l'ouvrir)
+let mineOpen = null, mineScroll = false;   // mineScroll : amener la course ouverte en haut de l'écran au prochain dessin
+function mineOpenId() {
+  const l = mine();
+  if (l.length < 2) return l[0] && l[0].id;
+  if (mineOpen && l.some(o => o.id === mineOpen)) return mineOpen;
+  const pick = l.find(o => o.status === "recuperee") || l.find(o => !isLater(o)) || l[0];
+  mineOpen = pick.id;
+  return mineOpen;
+}
+function mineFold(o, x) {
+  const n = mine().findIndex(y => y.id === o.id) + 1;
+  return `<article class="order mine-fold${isLater(o) ? " later" : ""}" data-id="${UI.esc(o.id)}" data-mine-open="${UI.esc(o.id)}" role="button" tabindex="0">
+    <span class="mf-n">${n}</span>
+    <div class="mf-main">
+      <b>${UI.esc(o.contact_name || "Client")}</b><small>N° ${UI.esc(o.ref)} · ${UI.esc(x.when)}</small>
+      <span class="mf-step">${isLater(o) ? "⏰ Plus tard · " : ""}${UI.esc(mineStep(o, x.hopPaid))}</span>
+      <span class="mf-to">🏁 <bdi>${UI.esc(o.dropoff_address || "")}</bdi></span>
+    </div>
+    <div class="mf-end"><b>${UI.money(x.total)}</b><span>Ouvrir ›</span></div>
+  </article>`;
+}
 function mineCard(o, x) {
+  if (mine().length >= 2 && mineOpenId() !== o.id) return mineFold(o, x);
   const to = o.status === "recuperee";
   const stop = (which, label, now) => {
     const pre = which === "pickup" ? "pickup" : "dropoff", city = which === "pickup" ? o.from_city : o.to_city;
@@ -1571,9 +1594,19 @@ document.addEventListener("click", e => {
   if (tb && fiche) { fiche.tab = tb.dataset.fiTab; renderFiche(); const b = $("#fiche .fi-body"); if (b) b.scrollTop = 0; return; }
   if (e.target.closest("[data-fi-close]")) { fiche = null; renderFiche(); }
 });
+// Toucher une course repliée : elle s'ouvre, l'autre se replie, et on remonte en haut de sa fiche
+document.addEventListener("click", e => {
+  const f = e.target.closest("[data-mine-open]");
+  if (f) { mineOpen = f.dataset.mineOpen; render(); const c = document.querySelector(`article.mine-card[data-id="${CSS.escape(mineOpen)}"]`); if (c) c.scrollIntoView({ block: "start", behavior: "smooth" }); return; }
+  const c = e.target.closest("article.mine-card[data-id]");
+  if (c) mineOpen = c.dataset.id;   // on agit sur cette course : elle reste ouverte
+}, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && fiche) { fiche = null; renderFiche(); } });
 // Ouverte depuis la carte : « Mes courses » passe derrière la fiche, pour que le glissé trouve le bouton de la course
 function ficheOpen(id, which) {
+  const was = mineOpen;
+  if (mine().some(o => o.id === id)) mineOpen = id;
+  if (was !== mineOpen && tab === "mine") render();
   fiche = { id, which: which === "pickup" ? "pickup" : "dropoff", tab: "infos" };
   if (!document.querySelector(`article.mine-card[data-id="${CSS.escape(id)}"]`) && mine().some(o => o.id === id)) { try { openPage("mine"); } catch (e) { /* la fiche s'ouvre quand même */ } }
   renderFiche();
@@ -1610,7 +1643,7 @@ function render() {
       if (shown.has(o.id)) return "";
       const r = pickupRank(o);
       if (!r) { shown.add(o.id); return card(o, "mine"); }
-      // Au même départ : seulement la commande à récupérer maintenant, les autres en liste
+      // Au même départ : une seule commande ouverte, les autres repliées (on touche pour passer de l'une à l'autre)
       r.group.forEach(x => shown.add(x.id));
       const place = r.current.pickup_place || r.current.shop_name || r.current.pickup_address;
       // Boutique HOP! : on fait les courses de tous en même temps → toutes les listes à l'écran, un sac par client
@@ -1620,13 +1653,11 @@ function render() {
       return `<div class="pick-group">
         <div class="pick-head"><span>📦 ${r.n} commandes à récupérer${place ? ` chez <b>${UI.esc(place)}</b>` : ""}</span>
           <b class="pick-count">${r.k} sur ${r.n}</b></div>
-        ${card(r.current, "mine")}
-        <div class="pick-rest">${r.group.filter(x => x.id !== r.current.id).map(x => `<div class="pick-line ${x.status === "recuperee" ? "ok" : ""}">
-          ${x.status === "recuperee" ? "✅" : "⏳"} N° <b>${UI.esc(x.ref)}</b> · ${UI.esc(x.contact_name || "")}${x.shop_ref ? ` · sac n° <b>${UI.esc(x.shop_ref)}</b>` : ""}
-          <small>${x.status === "recuperee" ? "récupérée" : "ensuite"}</small></div>`).join("")}</div>
+        ${r.group.map(x => card(x, "mine")).join("")}
       </div>`;
     }).join("");
     view.innerHTML = (list.length ? `<div class="orders">${tour}${blocks}</div>` : empty("Aucune course en cours.")) + doneList();
+    if (mineScroll && list.length >= 2) { mineScroll = false; const c = view.querySelector(`article.mine-card[data-id="${CSS.escape(mineOpenId())}"]`); if (c) setTimeout(() => c.scrollIntoView({ block: "start", behavior: "smooth" }), 60); }
   } else if (tab === "week") {
     const amountDue = sum(due, o => Number(o.commission || 0));
     const weekBonus = sum(refDelivered().filter(o => UI.dayKey(o.pickup_at) >= start && UI.dayKey(o.pickup_at) <= UI.addDays(start, 6)), o => Number(o.referral_bonus || 0));
@@ -1783,6 +1814,7 @@ async function onViewClick(e) {
     if (ok === "shown") { /* message déjà affiché */ }
     else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
     else {
+      mineOpen = el.dataset.accept; mineScroll = true;   // la course qu'on vient de prendre s'ouvre, les autres se replient
       openPage("mine");
       if (duty.watch == null && confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?")) toggleDuty();
     }
@@ -2570,6 +2602,7 @@ async function acceptOffer(eta) {
   if (ok === "shown") { /* message déjà affiché */ }
   else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
   else {
+    mineOpen = id; mineScroll = true;
     openPage("mine");
     if (duty.watch == null && confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?")) toggleDuty();
   }
@@ -3330,7 +3363,7 @@ function openFromNotif(url) {
     openFolds.add("d:" + o.id); openPage("mine"); render();
     return setTimeout(() => { const el = document.querySelector(`[data-fold="d:${CSS.escape(o.id)}"]`); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 300);
   }
-  if (o && o.courier_id === me.id) { openPage("mine"); setTimeout(() => { const el = document.querySelector(`.mine-card[data-id="${CSS.escape(id)}"]`); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 300); }
+  if (o && o.courier_id === me.id) { mineOpen = id; openPage("mine"); setTimeout(() => { const el = document.querySelector(`.mine-card[data-id="${CSS.escape(id)}"]`); if (el) el.scrollIntoView({ block: "start", behavior: "smooth" }); }, 300); }
   else if (o) openPage("pool");
 }
 if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", e => {

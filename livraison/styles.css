@@ -6743,3 +6743,16 @@ html.d3 legend[data-i18n="s3"]::before { content: "B"; background: #E8590C; }
 .dep-box b { display: block; margin-bottom: 6px; font-size: 14px; }
 .dep-box div { display: flex; flex-wrap: wrap; gap: 6px; }
 .dep-box .ch-chip.on { background: #0F1F3D; color: #fff; border-color: #0F1F3D; }
+
+/* Mes courses : plusieurs courses → une seule ouverte, les autres repliées en une ligne */
+.mine-fold { display: flex; align-items: center; gap: 12px; padding: 12px 14px; cursor: pointer; border: 1.5px solid var(--line, #E6E8EB); }
+.mine-fold .mf-n { flex: none; width: 34px; height: 34px; border-radius: 50%; background: #0F1F3D; color: #fff; font-weight: 800; font-size: 17px; display: grid; place-items: center; }
+.mine-fold .mf-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mine-fold .mf-main b { font-size: 17px; }
+.mine-fold .mf-main small { color: var(--muted); font-size: 13px; }
+.mine-fold .mf-step { font-size: 14px; font-weight: 700; color: #E8590C; }
+.mine-fold .mf-to { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mine-fold .mf-end { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.mine-fold .mf-end b { font-size: 17px; }
+.mine-fold .mf-end span { font-size: 13px; font-weight: 700; color: #fff; background: #0F1F3D; border-radius: 999px; padding: 5px 10px; }
+.mine-fold.later { border-style: dashed; }
