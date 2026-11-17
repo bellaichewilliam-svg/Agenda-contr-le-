@@ -6555,3 +6555,7 @@ html.d3 .pa-pr.lot { background: none !important; } html.d3 .pa-pr.lot strong { 
 html.d3 .pa-add { background: #F2F3F5 !important; color: #111418 !important; box-shadow: none !important; }
 html.d3 .pa-add.ok { background: #111418 !important; color: #fff !important; }
 html.d3 .pa-x { font-size: 0 !important; background: #F2F3F5 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6 6 6'/%3E%3C/svg%3E") center / 22px no-repeat !important; }
+
+/* --- d3 : carré « Promos » en tête de « Ce qu'on livre » (patron, 17/11) : rose pâle, étiquette % --- */
+html.d3 #homeKinds .ch-kind.d3-promo .k2-ic { background-color: #FCE4EA !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 12.5V4.5h8l9 9-8 8z'/%3E%3Cpath d='M9 15l5-5'/%3E%3Ccircle cx='9.5' cy='10' r='1'/%3E%3Ccircle cx='13.5' cy='14' r='1'/%3E%3C/svg%3E") !important; }
+html.d3 #homeKinds .ch-kind.d3-promo b { font-weight: 700 !important; }
