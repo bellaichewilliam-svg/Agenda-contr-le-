@@ -476,10 +476,12 @@ function doneList() {
 }
 const DONE_OPEN_MIN = 30;
 // Nouveau client livré : le bouton qui lui envoie « Vous avez été livré avec HOP! » sur WhatsApp, d'un toucher
-const welcomeBtn = o => !o.first_order ? "" : o.welcome_sent_at ? `<p class="small welcome-ok">📣 Lien HOP! envoyé au client ✓</p>`
+// (aussi la cliente d'une course envoyée par un commerce : le commerce a déjà commandé, mais elle découvre HOP!)
+const welNew = o => !!(o.first_order || (o.shop_name && o.dropoff_phone && String(o.contact_name || "").trim() === String(o.shop_name).trim()));
+const welcomeBtn = o => !welNew(o) ? "" : o.welcome_sent_at ? `<p class="small welcome-ok">📣 Lien HOP! envoyé au client ✓</p>`
   : `<a class="btn btn-sm btn-wa welcome-btn" target="_blank" rel="noopener" data-welcome="${UI.esc(o.id)}" href="${UI.esc(UI.waPersonal(o.dropoff_phone || o.contact_phone, UI.welcomeMsg(o)))}">📣 Envoyer « Livré avec HOP! » au client</a>`;
 function welcomeAsk(o) {
-  if (!o || !o.first_order || o.welcome_sent_at || !(o.dropoff_phone || o.contact_phone)) return;
+  if (!o || !welNew(o) || o.welcome_sent_at || !(o.dropoff_phone || o.contact_phone)) return;
   $("#msgTime").textContent = "🆕 Nouveau client";
   $("#msgBody").textContent = `${(o.dropoff_contact || o.contact_name || "Ce client").split(" ")[0]} commandait avec HOP! pour la première fois${o.shop_name ? ` (envoyé par ${UI.bi(o.shop_name, "fr")})` : ""}. Envoyez-lui le lien HOP! : il saura qu'on livre toute la ville.`;
   $("#msgModalBtns").innerHTML = welcomeBtn(o);
