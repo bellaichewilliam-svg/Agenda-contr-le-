@@ -853,6 +853,8 @@ function card(o, kind) {
     extra += `<div class="bag-line">⏳ Vous avez annoncé ${o.eta_min} min : le client a encore <b>${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")}</b> pour refuser ce temps. Partez quand même au départ.</div>`;
   }
   else if (o.eta_at && o.status === "confirmee" && !o.arrived_at) extra += `<div class="small">🕐 Attendu au départ vers ${UI.esc(new Date(o.eta_at).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))} (${o.eta_min} min annoncées)</div>`;
+  // « Je pars dans… » (patron, 17/11) : le livreur annonce quand il part ; le client est prévenu et voit l'heure
+  if (kind === "mine" && o.status === "confirmee" && !o.arrived_at) extra += `<div class="dep-box"><b>🛵 Je pars dans :</b><div>${[0, 10, 15, 20, 30].map(m => `<button type="button" class="ch-chip" data-dep="${UI.esc(o.id)}:${m}">${m ? m + " min" : "Maintenant"}</button>`).join("")}</div></div>`;
   if (o.service === "achat" && o.rx) extra += `<div class="bag-line">💊 Médicament sur ordonnance : carte d'identité du patient et ordonnance vérifiées par HOP!, à montrer à la pharmacie</div>`;
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
@@ -3473,4 +3475,20 @@ document.addEventListener("click", e => {
   e.preventDefault();
   const el = document.getElementById("finWeekCourses");
   if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
+// « Je pars dans… » : trajet estimé jusqu'au départ ajouté (le client voit l'heure d'arrivée au départ)
+document.addEventListener("click", async e => {
+  const b = e.target.closest && e.target.closest("[data-dep]");
+  if (!b) return;
+  e.preventDefault();
+  const [id, m] = b.dataset.dep.split(":"), o = orders.find(x => x.id === id);
+  if (!o) return;
+  const km = roadKm(lastPos, pt(o.pickup_lat, o.pickup_lon)), travel = km == null ? 0 : Math.ceil(km * 2.5 + 2);
+  b.disabled = true;
+  const r = await Store.courierEtaSet(id, Number(m), travel).catch(() => null);
+  if (!r || r.ok === false) { alert("Non enregistré, vérifiez la connexion et réessayez."); b.disabled = false; return; }
+  b.closest(".dep-box").querySelectorAll("[data-dep]").forEach(x => x.classList.toggle("on", x === b));
+  try { navigator.vibrate && navigator.vibrate(60); } catch (err) { /* ignore */ }
+  await load();
 });

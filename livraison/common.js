@@ -775,6 +775,8 @@ function ringSvg(p, gid) {
 // l'heure prévue tant qu'on est à plus de 20 min de l'heure et que le livreur n'est pas au départ ; sinon null (suivi en direct)
 function laterStart(o) {
   if (!o || o.status !== "confirmee" || o.arrived_at || o.urgency !== "programmee" || !o.pickup_at) return null;
+  // (le livreur a annoncé « je pars dans … » : suivi en direct, même avant l'heure prévue)
+  if (o.eta_status === "ok" && o.eta_until && o.eta_at) return null;
   const at = new Date(o.pickup_at);
   return at - Date.now() > 20 * 60000 ? at : null;
 }

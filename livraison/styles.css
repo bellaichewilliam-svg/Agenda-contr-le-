@@ -6738,3 +6738,8 @@ html.d3 legend[data-i18n="s3"]::before { content: "B"; background: #E8590C; }
 .hb-list .fl-box.hb-xbox { margin: 6px 0 8px; padding: 8px 10px; background: rgba(15, 31, 61, .04); box-shadow: inset 0 0 0 1px rgba(15, 31, 61, .15); }
 .hb-list .hb-xbox .fl-head b { font-size: 13.5px; color: inherit; }
 .hb-list .hb-xbox .fl-head span { color: inherit; }
+/* Livreur : « Je pars dans… » */
+.dep-box { margin: 8px 0; padding: 10px 12px; border-radius: 14px; background: rgba(15, 31, 61, .05); }
+.dep-box b { display: block; margin-bottom: 6px; font-size: 14px; }
+.dep-box div { display: flex; flex-wrap: wrap; gap: 6px; }
+.dep-box .ch-chip.on { background: #0F1F3D; color: #fff; border-color: #0F1F3D; }

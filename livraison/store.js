@@ -1243,6 +1243,16 @@ async function acceptOrder(id, eta) {
   return true;
 }
 // Le client : « D'accord » ou « Trop long : un autre livreur » (3 minutes pour répondre)
+// Le livreur annonce son départ sur une course déjà acceptée : « Je pars dans 0 / 10 / 15 / 20 / 30 min » (+ trajet jusqu'au départ)
+async function courierEtaSet(id, depart, travel) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_eta_set", { method: "POST", body: { p_id: id, p_depart: depart, p_travel: travel } });
+  const all = localOrders(), o = all.find(x => x.id === id);
+  if (!o || o.status !== "confirmee" || o.arrived_at) return { ok: false };
+  const tot = Math.max(1, depart + travel);
+  Object.assign(o, { eta_min: tot, eta_at: new Date(Date.now() + tot * 60000).toISOString(), eta_status: "ok", eta_until: new Date(Date.now() + depart * 60000).toISOString() });
+  saveLocalOrders(all);
+  return { ok: true };
+}
 async function answerEta(token, ok) {
   if (ONLINE) return rest("/rest/v1/rpc/order_eta_answer", { method: "POST", body: { p_token: token, p_ok: ok } });
   const all = localOrders(), o = all.find(x => x.token === token);
@@ -2937,7 +2947,7 @@ window.Store = {
   adminGoodsLink, adminGoodsPay, adminGoodsChoice,
   createOrder, myOrders, isHopShop, hopPlace, itemsPlaces, hopCredit, hopJoin, hopJoinWhy, hopBags, buyState, buyDone, buyTotals, courierBuyCheck, cancelMyOrder, trackOrder, orderAddable, orderAddItems, orderAddonInfo, courierWaitAnnounce, clientWaitAnswer, waitFeeFor, freeMinOf, waitAnnPreview, waitAccepted, waitPending, adminWaitFix, courierCashOk, adminUnblock, clientAccount, clientRegister, clientAuto, clientSetPassword, clientLogin, clientRefresh, clientSave, clientLogout, adminClients, adminClientReset, getProfile, saveProfile, getAddresses, saveAddress, deleteAddress, updateAddress, fixAddressBrands,
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
-  listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
+  listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, courierEtaSet, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, cartPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
