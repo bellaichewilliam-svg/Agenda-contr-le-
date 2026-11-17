@@ -5842,7 +5842,16 @@ function renderHomeStatic() {
   }).join("");
   // Design épuré : « Ce qu'on livre » en grille (8 rubriques, puis « Voir les 15 rubriques »), icônes au trait
   if (document.documentElement.classList.contains("d3")) {
-    const hk = $("#homeKinds"), n = hk.children.length;
+    const hk0 = $("#homeKinds");
+    // Carré « Promos » en premier (patron, 17/11) : ouvre « HOP! à vos promos »
+    if (window.Store && Store.promosAll) {
+      const pr = document.createElement("button");
+      pr.type = "button"; pr.className = "ch-kind d3-promo"; pr.dataset.d3promo = "1";
+      pr.innerHTML = `<span class="k2-ic"></span><b>${UI.esc(t("d3Promos"))}</b>`;
+      pr.addEventListener("click", e => { e.stopPropagation(); UI.track("promos_tile"); openPromosAll(""); });
+      hk0.prepend(pr);
+    }
+    const hk = hk0, n = hk.children.length;
     hk.dataset.title = t("d3Kinds");
     [...hk.children].forEach((e, i) => e.style.setProperty("--i", i < 8 ? i : i - 8));
     if (n > 8) {
