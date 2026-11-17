@@ -6504,3 +6504,54 @@ html.d3 .d3-nav .d3-mic span.d3-halo { display: none; }
   html.d3 .d3-nav .d3-mic i::before { animation: d3HaloRing 1.8s ease-out infinite, d3HaloCol 6s linear infinite !important; }
 }
 html.d3 .d3-nav .d3-mic i { border-color: #fff !important; }
+
+/* --- d3 : « Finissez à la voix » dans un commerce, bien en évidence (patron, 17/11) : fond pastel qui glisse, micro blanc avec halo pastel --- */
+@keyframes d3Pastel { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+html.d3 .cg-voice { background: linear-gradient(110deg, #E3F4E9, #E3EEFB, #EFE6FA, #FBE7EF, #FCF0DC, #E3F4E9) !important; background-size: 300% 100% !important;
+  border-radius: 18px !important; padding: 14px 14px !important; gap: 14px !important; min-height: 76px; }
+html.d3 .cg-voice b { font-size: 18px !important; font-weight: 800 !important; letter-spacing: -.2px; }
+html.d3 .cg-voice small { color: #3F4652 !important; font-size: 14px !important; }
+html.d3 .cv-ic { width: 50px !important; height: 50px !important; flex: none; border-radius: 50% !important; background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='9' y='3' width='6' height='11' rx='3'/%3E%3Cpath d='M5 11a7 7 0 0014 0M12 18v3'/%3E%3C/svg%3E") center / 24px no-repeat !important; }
+html.d3 .cv-ic svg { display: none !important; }
+html.d3 .cg-voice > i { flex: none; display: grid !important; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: #0F1F3D !important; color: #fff !important; font-style: normal; font-size: 20px; font-weight: 700; line-height: 1; }
+html[dir="rtl"].d3 .cg-voice > i { transform: scaleX(-1); }
+@media (prefers-reduced-motion: no-preference) {
+  html.d3 .cg-voice { animation: d3Pastel 9s ease-in-out infinite !important; }
+  html.d3 .cv-ic { animation: d3HaloGlow 6s linear infinite !important; }
+}
+html.d3 .cg-voice .cv-t { flex: 1 1 auto !important; min-width: 0 !important; }
+html.d3 .cg-voice .cv-t small, html.d3 .cg-voice .cv-t b { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+html.d3 [dir="rtl"] .cg-voice > i, html.d3[dir="rtl"] .cg-voice > i, html.d3 .cg-voice:dir(rtl) > i { transform: scaleX(-1); }
+/* (« › » est déjà retourné tout seul en hébreu : pas de second retournement) */
+html.d3 .cg-voice > i, html.d3[dir="rtl"] .cg-voice > i, html.d3 [dir="rtl"] .cg-voice > i { transform: none !important; }
+
+/* --- d3 : micro du milieu : halo plus sage, qui ne recouvre plus « Parler » ni le contenu (patron, 17/11) --- */
+html.d3 .d3-nav .d3-mic span { position: relative; z-index: 2; background: #fff; padding: 0 4px; border-radius: 6px; }
+html.d3 .d3-nav .d3-mic i { z-index: 1; }
+@keyframes d3HaloRing { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(1.18); opacity: 0; } }
+@keyframes d3HaloGlow { 0% { box-shadow: 0 0 10px 2px rgba(143,211,168,.6); } 20% { box-shadow: 0 0 10px 2px rgba(141,189,242,.6); } 40% { box-shadow: 0 0 10px 2px rgba(195,166,238,.6); } 60% { box-shadow: 0 0 10px 2px rgba(244,167,192,.6); } 80% { box-shadow: 0 0 10px 2px rgba(245,207,122,.65); } 100% { box-shadow: 0 0 10px 2px rgba(143,211,168,.6); } }
+html.d3 body[data-view="home"], html.d3 body:not([data-view]), html.d3 body[data-view="mine"] { padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important; }
+
+/* --- d3 : page « HOP! à vos promos » dans le design clair (patron, 17/11) --- */
+html.d3 .pa { background: #fff !important; color: #111418 !important; font-family: Heebo, sans-serif; }
+html.d3 .pa-top { background: #fff !important; color: #111418 !important; border-bottom: 1px solid #E6E8EB; box-shadow: none !important; }
+html.d3 .pa-x { background: #F2F3F5 !important; color: #111418 !important; }
+html.d3 .pa-h b { font-weight: 800 !important; font-size: 22px !important; letter-spacing: -.3px; color: #111418 !important; }
+html.d3 .pa-h small { color: #5A6270 !important; font-size: 13px !important; }
+html.d3 .pa-tab { border: 0 !important; background: #F2F3F5 !important; color: #111418 !important; font-weight: 600 !important; }
+html.d3 .pa-tab i { background: #fff !important; color: #111418 !important; }
+html.d3 .pa-tab.on { background: #0F1F3D !important; color: #fff !important; }
+html.d3 .pa-tab.on i { background: rgba(255,255,255,.18) !important; color: #fff !important; }
+html.d3 .pa-cat { border: 1px solid #E6E8EB !important; background: #fff !important; color: #111418 !important; font-weight: 600; }
+html.d3 .pa-cat.on { background: #0F1F3D !important; border-color: #0F1F3D !important; color: #fff !important; }
+html.d3 .pa-count { color: #5A6270 !important; font-weight: 600 !important; }
+html.d3 .pa-card { background: #fff !important; border: 1px solid #E6E8EB !important; box-shadow: none !important; border-radius: 16px !important; }
+html.d3 .pa-pic { background: #fff !important; }
+html.d3 .pa-off, html.d3 .pa-off.pa-small { background: #FBE7EF !important; color: #A32A4C !important; box-shadow: none !important; font-weight: 800 !important; }
+html.d3 .pa-shop { background: #F2F3F5 !important; color: #111418 !important; font-weight: 700 !important; }
+html.d3 .pa-name { font-weight: 700 !important; color: #111418 !important; }
+html.d3 .pa-pr strong { color: #111418 !important; font-weight: 800 !important; }
+html.d3 .pa-pr.lot { background: none !important; } html.d3 .pa-pr.lot strong { background: #FBE7EF !important; color: #A32A4C !important; box-shadow: none !important; font-size: 18px !important; }
+html.d3 .pa-add { background: #F2F3F5 !important; color: #111418 !important; box-shadow: none !important; }
+html.d3 .pa-add.ok { background: #111418 !important; color: #fff !important; }
+html.d3 .pa-x { font-size: 0 !important; background: #F2F3F5 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 6l-6 6 6 6'/%3E%3C/svg%3E") center / 22px no-repeat !important; }
