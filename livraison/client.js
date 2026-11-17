@@ -5568,6 +5568,7 @@ function vitRenderNow() {
     st.innerHTML = `<span>${UI.esc(short)}</span>${$("#openBadge [data-ob-plan]") ? `<button type="button" class="ob-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))} ›</button>` : ""}`;
   }
   st.classList.toggle("hidden", open);
+  vitMyShop();
   const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)), city = I18N.cityName(CONFIG.homeCity);
   $("#vitCoursePrice").textContent = t("vitCoursePrice", { city, price: base });
   // Design clair (patron, 17/11 : « qu'ils voient qu'il y a 25 ₪ la course ») : icône scooter sur carré pastel,
@@ -5583,6 +5584,21 @@ function vitRenderNow() {
   const zone = money(((CONFIG.pricing || {}).areas || {}).price || 30);
   const trust = [t("vitTrust1"), t("vitTrust2", { price: base, city, zone })].map(x => `<span>${UI.esc(x)}</span>`).join("");
   if ($("#vitTrust").dataset.html !== trust) { $("#vitTrust").innerHTML = trust; $("#vitTrust").dataset.html = trust; }
+}
+// Le téléphone d'un commerce (patron, 17/11 : Bluevie n'arrivait pas à son espace et refaisait une commande client avec
+// deux adresses) : en haut de l'accueil, « Votre commerce » + « Envoyer une course à un client » ouvre son espace,
+// formulaire ouvert (départ = sa boutique, déjà enregistrée ; il ne donne que l'adresse du client)
+function vitMyShop() {
+  const mine = (Store.myShops && Store.myShops()) || [], top = $("#vitTop");
+  let card = $("#vitMyShop");
+  if (!mine.length || !top) { if (card) card.remove(); return; }
+  const m = mine[0], sc = (state.showcase || []).find(x => x.code === m.code);
+  let saved = ""; try { saved = localStorage.getItem("hop.shopName." + m.code) || ""; } catch (e) { /* stockage bloqué */ }
+  const raw = String(m.code || "").replace(/^HOP/, ""), name = sc ? UI.bi(sc.name) : saved ? UI.bi(saved) : raw.charAt(0) + raw.slice(1).toLowerCase();
+  const html = `<span class="vms-t"><small>${UI.esc(t("vmsMine"))}</small><b>${UI.esc(t("vmsSend"))}</b><em>${UI.esc(name ? t("vmsSub", { name }) : t("vmsSub0"))}</em></span><span class="vms-go" aria-hidden="true"></span>`;
+  if (!card) { card = document.createElement("a"); card.id = "vitMyShop"; card.className = "vit-myshop"; top.prepend(card); card.addEventListener("click", () => UI.track("myshop_send", { shop_code: m.code || "" })); }
+  card.href = `commerce.html?k=${encodeURIComponent(m.token)}&send=1`;
+  if (card.dataset.html !== html) { card.innerHTML = html; card.dataset.html = html; }
 }
 // « Qu'est-ce qu'on vous apporte ? » : ce que le client écrit devient sa commande (« J'achète pour vous » : le livreur
 // va au magasin et l'achète), même dans un commerce qui n'est pas sur HOP!
