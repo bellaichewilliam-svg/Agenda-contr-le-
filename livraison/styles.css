@@ -6492,3 +6492,15 @@ html.d3 .d3-nav .d3-mic i::before { inset: -6px !important; border: 0 !important
 @keyframes d3Spin { to { transform: rotate(360deg); } }
 @keyframes d3Glow { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
 @media (prefers-reduced-motion: no-preference) { html.d3 .d3-nav .d3-mic i::before { animation: d3Spin 5s linear infinite, d3Glow 2.6s ease-in-out infinite !important; } }
+
+/* --- d3 : micro du milieu : halo pastel qui pulse vers l'extérieur et change de couleur (patron, 17/11 : « un halo, pas un effet figé ») --- */
+html.d3 .d3-nav .d3-mic i::before { inset: -2px !important; background: none !important; -webkit-mask: none !important; mask: none !important; border: 0 !important; opacity: 0; }
+html.d3 .d3-nav .d3-mic span.d3-halo { display: none; }
+@keyframes d3HaloRing { 0% { transform: scale(1); opacity: .8; } 100% { transform: scale(1.3); opacity: 0; } }
+@keyframes d3HaloCol { 0% { box-shadow: 0 0 0 2.5px #8FD3A8; } 20% { box-shadow: 0 0 0 2.5px #8DBDF2; } 40% { box-shadow: 0 0 0 2.5px #C3A6EE; } 60% { box-shadow: 0 0 0 2.5px #F4A7C0; } 80% { box-shadow: 0 0 0 2.5px #F5CF7A; } 100% { box-shadow: 0 0 0 2.5px #8FD3A8; } }
+@keyframes d3HaloGlow { 0% { box-shadow: 0 0 18px 6px rgba(143,211,168,.75); } 20% { box-shadow: 0 0 20px 7px rgba(141,189,242,.75); } 40% { box-shadow: 0 0 20px 7px rgba(195,166,238,.75); } 60% { box-shadow: 0 0 20px 7px rgba(244,167,192,.75); } 80% { box-shadow: 0 0 20px 7px rgba(245,207,122,.8); } 100% { box-shadow: 0 0 18px 6px rgba(143,211,168,.75); } }
+@media (prefers-reduced-motion: no-preference) {
+  html.d3 .d3-nav .d3-mic i { animation: d3HaloGlow 6s linear infinite; }
+  html.d3 .d3-nav .d3-mic i::before { animation: d3HaloRing 1.8s ease-out infinite, d3HaloCol 6s linear infinite !important; }
+}
+html.d3 .d3-nav .d3-mic i { border-color: #fff !important; }
