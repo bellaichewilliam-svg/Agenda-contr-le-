@@ -6563,3 +6563,75 @@ html.d3 #homeKinds .ch-kind.d3-promo b { font-weight: 700 !important; }
 /* « Ou choisissez » (Ma commande) : sans l'emoji, le nom et l'adresse prennent toute la largeur (ils étaient coupés « Ma… ») */
 html.d3 .pk-row { grid-template-columns: minmax(0, 1fr) auto; }
 html.d3 .pk-row > i { display: none !important; }
+
+/* ===== « Créer mon compte » (patron, 17/11 : hyper jolie, donne envie) — design clair ===== */
+html.d3 #loginCard.lgx-card { padding: 0 !important; border: 1px solid #E6E8EB !important; border-radius: 22px !important; overflow: hidden; background: #fff !important; box-shadow: none !important; }
+html.d3 .lgx { display: grid; gap: 16px; padding: 0 0 18px; }
+html.d3 .lgx-hero { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: end; padding: 18px 18px 0; background: #EAF0FA; }
+html.d3 .lgx-hop { align-self: end; height: 128px; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
+html.d3 .lgx-hop img { width: 86px; height: auto; display: block; animation: lgxHop 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes lgxHop { 0%, 70%, 100% { transform: translateY(0); } 78% { transform: translateY(-10px); } 86% { transform: translateY(0) scaleY(.96); } }
+html.d3 .lgx-hero > div:last-child { padding-bottom: 18px; min-width: 0; }
+html.d3 .lgx-hero h3 { margin: 0 0 6px; font-size: 24px; line-height: 1.15; font-weight: 800; color: #0F1F3D; letter-spacing: -.01em; }
+html.d3 .lgx-hero p { margin: 0; font-size: 14.5px; line-height: 1.4; color: #3B4556; }
+html.d3 .lgx-perks { list-style: none; margin: 0; padding: 0 18px; display: grid; gap: 12px; }
+html.d3 .lgx-p { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; align-items: center; animation: d3Up .45s ease both; }
+html.d3 .lgx-p:nth-child(2) { animation-delay: .06s; } html.d3 .lgx-p:nth-child(3) { animation-delay: .12s; } html.d3 .lgx-p:nth-child(4) { animation-delay: .18s; }
+html.d3 .lgx-p > i { width: 40px; height: 40px; border-radius: 12px; background-repeat: no-repeat; background-position: center; background-size: 22px; }
+html.d3 .lgx-one > i { background-color: #FDEFE7; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2L4 14h7l-1 8 9-12h-7z'/%3E%3C/svg%3E"); }
+html.d3 .lgx-live > i { background-color: #E8F5EC; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 21s-7-6.5-7-12a7 7 0 0114 0c0 5.5-7 12-7 12z'/%3E%3Ccircle cx='12' cy='9' r='2.5'/%3E%3C/svg%3E"); }
+html.d3 .lgx-addr > i { background-color: #F3ECFA; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 11l8-7 8 7v9h-5v-6H9v6H4z'/%3E%3C/svg%3E"); }
+html.d3 .lgx-all > i { background-color: #E8F1FB; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='7' y='2' width='10' height='20' rx='2'/%3E%3Cpath d='M11 18h2'/%3E%3C/svg%3E"); }
+html.d3 .lgx-p span { display: grid; gap: 1px; min-width: 0; }
+html.d3 .lgx-p b { font-size: 15px; font-weight: 700; color: #111418; line-height: 1.3; }
+html.d3 .lgx-p small { font-size: 13px; color: #5A6270; line-height: 1.35; }
+html.d3 .lgx-voice { margin: 4px 18px 0; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 14px; align-items: center; text-align: start; padding: 14px 16px; border-radius: 18px; border: 0; cursor: pointer; font: inherit; color: #fff; background: #0F1F3D; }
+html.d3 .lgx-voice > i { position: relative; width: 52px; height: 52px; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+html.d3 .lgx-voice > i::after { content: ""; position: absolute; top: 6px; inset-inline-end: 6px; width: 9px; height: 9px; border-radius: 50%; background: #E8590C; }
+html.d3 .lgx-voice > i::before { content: ""; position: absolute; inset: -5px; border-radius: 50%; animation: d3HaloCol 4s linear infinite, lgxRing 2.2s ease-out infinite; box-shadow: 0 0 0 3px #F8C8D8; }
+@keyframes lgxRing { 0% { transform: scale(.92); opacity: .9; } 100% { transform: scale(1.22); opacity: 0; } }
+html.d3 .lgx-voice svg { width: 24px; height: 24px; fill: none; stroke: #111418; stroke-width: 1.9; stroke-linecap: round; }
+html.d3 .lgx-voice span { display: grid; gap: 3px; min-width: 0; }
+html.d3 .lgx-voice b { font-size: 16.5px; font-weight: 800; line-height: 1.25; }
+html.d3 .lgx-voice small { font-size: 13px; line-height: 1.35; color: #C9D3E6; }
+html.d3 .lgx-or { display: flex; align-items: center; gap: 10px; padding: 0 18px; color: #5A6270; font-size: 13px; }
+html.d3 .lgx-or::before, html.d3 .lgx-or::after { content: ""; flex: 1; height: 1px; background: #E6E8EB; }
+html.d3 .lgx-form { padding: 0 18px; display: grid; gap: 10px; }
+html.d3 .lgx-form .f { margin: 0; }
+html.d3 .lgx-form .lgx-go { width: 100%; min-height: 50px; border-radius: 14px; font-size: 16px; font-weight: 700; background: #E8590C !important; border-color: #E8590C !important; color: #fff !important; }
+html.d3 .lgx-switch { margin: 0 18px; padding: 10px; border: 0; background: none; font: inherit; font-size: 14.5px; font-weight: 600; color: #0F1F3D; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+/* Hoppy : la carte de l'adresse trouvée (création du compte à la voix) */
+.hv-su { flex: none; margin: 6px 0; border: 1px solid #E6E8EB; border-radius: 16px; overflow: hidden; background: #fff; color: #111418; animation: d3Up .35s ease both; }
+.hv-su-map { height: 140px; background: #EEF0F3; }
+.hv-su-t { display: grid; gap: 2px; padding: 10px 12px 12px; font-size: 14px; }
+.hv-su-t b { font-size: 16px; }
+.hv-su-t span { color: #3B4556; }
+.hv-su-ok { color: #1E7B45; font-weight: 700; margin-top: 4px; }
+.hv-su-pin i { display: block; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E8590C; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+html.d3 #loginCard .lgx-p { display: grid !important; grid-template-columns: 40px minmax(0, 1fr) !important; }
+html.d3 #loginCard .lgx-p > i { display: block !important; }
+html.d3 #loginCard .lgx-p > span, html.d3 #loginCard .lgx-voice > span { display: grid !important; width: auto !important; }
+html.d3 #loginCard .lgx-voice { display: grid !important; grid-template-columns: 52px minmax(0, 1fr) !important; }
+html.d3 #loginCard .lgx-voice > i { display: grid !important; }
+html.d3 #loginCard .lgx-voice b { color: #fff !important; }
+html.d3 #loginCard .lgx-voice small { color: #C9D3E6 !important; }
+
+/* « Votre panier est vide » (patron, 17/11 : « Redesign ») — design clair : Hoppy sur un carré pastel, étapes en bleu nuit, un seul orange */
+html.d3 #emptyCart .modal-box { padding: 22px 18px 18px !important; background: #fff !important; box-shadow: none !important; display: grid; gap: 16px; text-align: start; }
+html.d3 #emptyCart .it-x { box-shadow: none !important; background: #F2F3F5 !important; border: 0 !important; color: #111418 !important; width: 40px; height: 40px; top: 14px; inset-inline-end: 14px; }
+html.d3 #emptyCart .ec-head { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 14px; align-items: center; padding-inline-end: 44px; }
+html.d3 #emptyCart .ec-hop { width: 76px; height: 76px; border-radius: 20px; background: #FCF3E3; display: flex; align-items: flex-end; justify-content: center; overflow: hidden; }
+html.d3 #emptyCart .ec-hop img { width: 54px; height: auto; margin-bottom: -16px; animation: lgxHop 2.6s ease-in-out infinite; transform-origin: 50% 100%; }
+html.d3 #emptyCart .cs-title { margin: 0 0 4px !important; font-size: 21px !important; font-weight: 800 !important; color: #111418 !important; line-height: 1.2; text-align: start !important; }
+html.d3 #emptyCart .ec-head p { margin: 0; font-size: 14px; line-height: 1.4; color: #5A6270; }
+html.d3 #emptyCart .cs-smart { background: #fff !important; border: 1px solid #E6E8EB !important; border-radius: 16px; padding: 16px !important; }
+html.d3 #emptyCart .cs-steps-t { font-size: 15.5px !important; font-weight: 700; color: #111418 !important; margin-bottom: 12px !important; line-height: 1.35; }
+html.d3 #emptyCart .cs-steps { gap: 12px !important; }
+html.d3 #emptyCart .cs-steps li { font-size: 14.5px !important; color: #3B4556 !important; align-items: center !important; }
+html.d3 #emptyCart .cs-steps i { width: 28px !important; height: 28px !important; background: #0F1F3D !important; font: 700 13px/28px Heebo, sans-serif !important; }
+html.d3 #emptyCart .cs-btns { display: grid; gap: 6px; }
+html.d3 #emptyCart [data-ec-start] { width: 100%; min-height: 54px; border-radius: 16px !important; background: #E8590C !important; border-color: #E8590C !important; box-shadow: none !important; font-size: 17px !important; font-weight: 700 !important; }
+html.d3 #emptyCart [data-ec-shops] { color: #0F1F3D !important; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.hv-su .hv-su-pin { background: none !important; border: 0 !important; z-index: 650 !important; }
+.hv-su .hv-su-pin i { display: block !important; width: 26px !important; height: 26px !important; border-radius: 50% 50% 50% 0 !important; transform: rotate(-45deg); background: #E8590C !important; border: 3px solid #fff !important; }
+.hv-su .hv-su-pin::before { content: ""; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E8590C; border: 3px solid #fff; }
