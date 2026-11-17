@@ -6756,3 +6756,4 @@ html.d3 legend[data-i18n="s3"]::before { content: "B"; background: #E8590C; }
 .mine-fold .mf-end b { font-size: 17px; }
 .mine-fold .mf-end span { font-size: 13px; font-weight: 700; color: #fff; background: #0F1F3D; border-radius: 999px; padding: 5px 10px; }
 .mine-fold.later { border-style: dashed; }
+.dep-ok { margin: 6px 0 8px; padding: 8px 10px; border-radius: 10px; background: #E7F6EC; color: #14532D; font-size: 14px; }

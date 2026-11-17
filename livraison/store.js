@@ -1380,7 +1380,6 @@ async function courierAction(id, action) {
   } else if (action === "recuperee" && o.status === "confirmee") {
     // Boutique HOP! : chaque article coché ou « manquant », puis « Tout est dans le panier », avant de partir
     if (o.hop_buy && !buyDone(o) && !(cr && cr.role === "admin")) throw new Error("buy_check");
-    if (o.hop_buy && o.goods_spent == null && !(cr && cr.role === "admin")) throw new Error("ticket_required");
     // Même règle qu'en ligne : en paiement direct, payé avant de récupérer la commande
     if (!freeOf() && o.direct_pay && o.paid_to === "livreur" && o.payment_status !== "paye" && cr && cr.role !== "admin") throw new Error("payment_required_pickup");
     // HOP! Pro : c'est le commerce qui paie l'attente (sa part de la livraison augmente)
@@ -1445,7 +1444,7 @@ const num2 = n => String(Math.round(n * 100) / 100).replace(".", ",");
 async function courierGoodsTicket(id, amount, photo, hop) {
   if (ONLINE) return authRest("/rest/v1/rpc/" + (hop ? "courier_hop_ticket" : "courier_goods_ticket"), { method: "POST", body: { p_id: id, p_amount: amount, p_photo: photo } });
   const all = localOrders();
-  const h = all.find(x => x.id === id && x.courier_id === myId() && x.hop_buy && x.status === "confirmee");
+  const h = all.find(x => x.id === id && x.courier_id === myId() && x.hop_buy && ["confirmee", "recuperee"].includes(x.status));
   if (h) {
     const a = Number(amount);
     if (!(a > 0 && a <= 1000)) throw new Error("bad_amount");
