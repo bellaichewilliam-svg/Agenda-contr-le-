@@ -1514,8 +1514,24 @@ function ficheArticles(o) {
     <div class="fi-total"><span>${ficheCount(o)} article${ficheCount(o) > 1 ? "s" : ""}</span>${total ? `<b>${o.hop_buy && hopExtras(o).length ? "≈ " : ""}${UI.esc(UI.money(total))}${o.hop_buy && hopExtras(o).length ? " + hors catalogue" : ""}</b>` : ""}</div>
     ${goodsSelf(o) ? `<p class="fi-pay">${UI.esc(goodsSelf(o))}</p>` : o.goods_pay === "recu" ? `<p class="fi-pay">✅ Articles déjà payés au commerce : rien à avancer</p>` : ""}`;
 }
+// Tournée guidée : les arrêts dans l'ordre (récupérations puis livraisons) ; l'étape faite, on passe tout seul à la suivante
+const fiStops = () => { try { return tourStops(mine()); } catch (e) { return []; } };
+const fiStepDone = (o, which) => !o || (which === "pickup" ? o.status !== "confirmee" : !["confirmee", "recuperee"].includes(o.status));
+function fiNext() {
+  const st = fiStops()[0];
+  if (!st) return false;
+  mineOpen = st.o.id;
+  fiche = { id: st.o.id, which: st.kind, tab: "infos" };
+  if (tab === "mine") render();
+  return true;
+}
 function renderFiche() {
   let box = $("#fiche");
+  if (fiche && fiche.adv && fiStepDone(mine().find(x => x.id === fiche.id), fiche.which)) {
+    const done = fiche.which === "pickup" ? "✅ Récupéré" : "✅ Livré";
+    if (fiNext()) { fiche.flash = done + " · étape suivante"; const f = fiche; setTimeout(() => { if (fiche === f) { f.flash = ""; renderFiche(); } }, 4000); }
+    else fiche = null;
+  }
   const o = fiche && mine().find(x => x.id === fiche.id);
   if (!o) {
     fiche = null;
@@ -1537,7 +1553,8 @@ function renderFiche() {
       <div class="fi-grab" data-fi-close><i></i></div>
       <button type="button" class="fi-x" data-fi-close aria-label="Fermer">✕</button>
       <div class="fi-head">
-        <small>${pick ? "Récupération chez" : "Livraison à"} · n° ${UI.esc(o.ref)}</small>
+        ${fiche.flash ? `<p class="fi-flash">${UI.esc(fiche.flash)}</p>` : ""}
+        <small>${(() => { const st = fiStops(), k = st.findIndex(x => x.o.id === o.id && x.kind === fiche.which); return st.length > 1 && k >= 0 ? `<b class="fi-step">${k ? `Arrêt ${k + 1}` : "Arrêt en cours"} · encore ${st.length} arrêts</b> · ` : ""; })()}${pick ? "Récupération chez" : "Livraison à"} · n° ${UI.esc(o.ref)}</small>
         <h3 class="${pick ? "pick" : "drop"}"><bdi>${UI.esc(title)}</bdi></h3>
         ${!pick && firm ? `<p class="fi-firm">🏪 <bdi>${UI.esc(firm)}</bdi></p>` : ""}
         <p class="fi-addr"><bdi>${UI.esc(o[pick ? "pickup_address" : "dropoff_address"] || "")}</bdi><small>, ${UI.esc(UI.cityFr(pick ? o.from_city : o.to_city))}</small></p>
@@ -1547,7 +1564,11 @@ function renderFiche() {
       <div class="fi-body">${fiche.tab === "articles" ? ficheArticles(o) : ficheInfos(o, pick)}</div>
       <div class="fi-foot">${act ? `<div class="fi-slide" data-fi-slide><span class="fi-knob">›</span><b>${UI.esc(act.label)}</b></div>`
         : wait ? `<p class="fi-wait">${pick ? "✅ Commande déjà récupérée" : "D'abord : récupérer la commande au départ"}</p>`
-        : `<button type="button" class="btn btn-block" data-fi-close>Voir la course</button>`}</div>
+        : `<button type="button" class="btn btn-block" data-fi-close>Étape à finir dans la course (paiement, ticket…) ›</button>`}
+        ${(() => { const st = fiStops(), k = st.findIndex(x => x.o.id === o.id && x.kind === fiche.which), nx = k >= 0 ? st[k + 1] : null;
+          if (!nx) return "";
+          const np = nx.kind === "pickup", nm = np ? (UI.bi(nx.o.shop_name || nx.o.pickup_place || "", "fr") || "Départ") : (nx.o.dropoff_contact || nx.o.contact_name || "Client");
+          return `<p class="fi-nextline">Ensuite : ${np ? "📍 récupération chez" : "🏁 livraison à"} <b><bdi>${UI.esc(nm)}</bdi></b></p>`; })()}</div>
     </div>`;
   // Rien n'a changé (rafraîchissement automatique) : on ne touche à rien, la fiche ne clignote pas
   if (html === box._html && !box.classList.contains("hidden")) return;
@@ -1583,6 +1604,7 @@ function fiDo() {
   const o = fiche && mine().find(x => x.id === fiche.id);
   const act = o && ficheAct(o, fiche.which);
   if (!act) { renderFiche(); return; }
+  fiche.adv = true; fiche.flash = "";
   act.el.click();   // le vrai bouton de la course : mêmes questions et mêmes contrôles qu'avant
   // Le glissé revient au départ (photo annulée, paiement à marquer, GPS…) ; course validée : la fiche se ferme toute seule
   setTimeout(() => { const box = $("#fiche"); if (box) box._html = ""; if (fiche) renderFiche(); }, 1200);
@@ -2684,7 +2706,10 @@ function renderHome() {
   $("#sheetBody").innerHTML = `${refundCards()}${cashReturnCards()}
     ${dest || `<div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>`}
-    ${cur.map(o => `${giveBox(o)}<button type="button" class="rd-card course" data-tab="mine">
+    ${dest ? (() => { const st = (() => { try { return tourStops(mine()); } catch (e) { return []; } })(), nx = st[1];
+        const nm = nx ? (nx.kind === "pickup" ? (UI.bi(nx.o.shop_name || nx.o.pickup_place || "", "fr") || "Départ") : (nx.o.dropoff_contact || nx.o.contact_name || "Client")) : "";
+        return `${cur.map(giveBox).join("")}<button type="button" class="rd-line" data-tab="mine">${st.length > 1 ? `Encore ${st.length} arrêts · ensuite : ${nx.kind === "pickup" ? "📍" : "🏁"} <bdi>${UI.esc(nm)}</bdi>` : "Ma course"} · tout voir<span class="go">›</span></button>`; })() : ""}
+    ${(dest ? [] : cur).map(o => `${giveBox(o)}<button type="button" class="rd-card course" data-tab="mine">
         <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>${o.first_shop ? "🆕 nouveau commerce · " : ""}${o.first_order && !(o.first_shop && isFirm(o)) ? "🆕 nouveau client · " : ""}n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
           <em class="rc-step">${isLater(o) ? `⏰ PLUS TARD · ${UI.esc(dueLabel(o))} · rien à faire avant ${UI.esc(startAt(o))}` : `${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}`}</em>
           <small class="${o.status === "confirmee" ? "now" : ""}">📍 ${UI.esc(o.pickup_place || o.pickup_address)}, ${UI.esc(UI.cityFr(o.from_city))}</small>
