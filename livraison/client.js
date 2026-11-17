@@ -122,6 +122,7 @@ function onBack() {
   const popped = location.href;
   // (si la fenêtre emmène ailleurs en se fermant, comme « Voir mes courses », on la laisse faire)
   if (closeTopModal()) { if (location.href === popped && popped !== here) history.pushState(null, "", here); return; }
+  if (paIsOpen()) { closePromosAll(true); return; }
   routeHash();
   // Commande en 3 écrans : le retour revient à l'écran d'avant (pas à l'accueil)
   if (wiz.on && location.hash === "#commander") {
@@ -8768,6 +8769,7 @@ function paRender() {
 }
 async function openPromosAll(code) {
   UI.track("promos_all_open", { shop_code: code || "" });
+  const wasOpen = paIsOpen();
   let box = $("#paPage");
   if (!box) {
     box = document.createElement("div"); box.id = "paPage"; box.className = "pa"; box.setAttribute("role", "dialog");
@@ -8779,13 +8781,22 @@ async function openPromosAll(code) {
     box.addEventListener("click", paClick);
   }
   pa.shop = code || ""; pa.cat = -1;
+  // Retour du téléphone (flèche ou glissé) : il ferme la page des promos et on retrouve l'écran d'avant
+  if (!wasOpen && !(history.state && history.state.pa)) { history.pushState({ pa: 1 }, "", location.href); here = location.href; }
   box.classList.remove("hidden"); document.documentElement.classList.add("pa-on");
   // Tout de suite ce que le téléphone a gardé, puis la liste à jour (nouveaux magasins, nouvelles promos)
   if (!pa.data) pa.data = (Store.promosAllCached && Store.promosAllCached()) || null;
   paRender();
   try { const d = await Store.promosAll(true); if (d && Array.isArray(d.items)) { pa.data = d; paRender(); } } catch (e) { /* on garde */ }
 }
-function closePromosAll() { const b = $("#paPage"); if (b) b.classList.add("hidden"); document.documentElement.classList.remove("pa-on"); }
+// (fermée par sa flèche : on retire aussi sa marque dans l'historique, pour que le retour suivant ne « saute » pas un écran)
+function closePromosAll(fromBack) {
+  const b = $("#paPage"); if (!b || b.classList.contains("hidden")) return Promise.resolve();
+  b.classList.add("hidden"); document.documentElement.classList.remove("pa-on");
+  if (fromBack || !(history.state && history.state.pa)) return Promise.resolve();
+  return new Promise(res => { const done = () => { window.removeEventListener("popstate", done); clearTimeout(tm); res(); }, tm = setTimeout(done, 600); window.addEventListener("popstate", done); history.back(); });
+}
+function paIsOpen() { const b = $("#paPage"); return !!b && !b.classList.contains("hidden"); }
 async function paClick(e) {
   const b = e.target;
   if (b.closest("[data-pa-close]")) return closePromosAll();
@@ -8811,7 +8822,7 @@ async function paClick(e) {
   const op = b.closest("[data-pa-open]");
   if (op) {
     const [code, id] = op.dataset.paOpen.split("|");
-    closePromosAll(); state.shopDir = "";
+    await closePromosAll(); state.shopDir = "";
     await loadShop(code);
     if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) { state.focusAfter = id; openItem(id); }
   }
