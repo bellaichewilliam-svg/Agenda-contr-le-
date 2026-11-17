@@ -104,6 +104,16 @@ function deliveredMsg(o) {
     ? `שלום${name} 👋\n📦 ההזמנה שלכם${shop ? " מ" + shop : ""} נמסרה${o.leave_at_door ? " ליד הדלת" : ""} ✅\nתמונת המסירה 👈 ${trackUrl(o)}\n\nהופ! 🛵 מביאים לכם גם מכל החנויות בנתניה, החל מ־25 ₪ בעיר: ${welcomeUrl(o)}`
     : `Bonjour${name} 👋\n📦 Votre commande${shop ? " " + shop : ""} est livrée${o.leave_at_door ? " devant votre porte" : ""} ✅\nLa photo de la livraison 👉 ${trackUrl(o)}\n\nHOP! 🛵 vous livre aussi tous les magasins de Netanya, dès 25 ₪ en ville : ${welcomeUrl(o)}`;
 }
+// Commerce : « envoyer le suivi à la personne livrée » (lien WhatsApp tout prêt, noté sur ce téléphone une fois touché)
+const trkSentKey = o => "hop.trkSent." + o.id;
+function shopTrackBtn(o, shopName, t) {
+  if (!o || !o.dropoff_phone || !["nouvelle", "confirmee", "recuperee"].includes(o.status)) return "";
+  let sent = false; try { sent = !!localStorage.getItem(trkSentKey(o)); } catch (e) { /* ignore */ }
+  const name = String(o.dropoff_contact || "").trim().split(/\s+/)[0] || "";
+  const href = waLink(o.dropoff_phone, t("sdShareMsg", { name, shop: shopName || o.shop_name || "", url: trackUrl(o) }));
+  return `<a class="btn btn-sm${sent ? "" : " btn-wa"} trk-send" target="_blank" rel="noopener" data-trk-sent="${esc(o.id)}" href="${esc(href)}">${esc(sent ? t("shSentTrack") : t("shSendTrack", { name: name || "client" }))}</a>`;
+}
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("[data-trk-sent]"); if (a) { try { localStorage.setItem("hop.trkSent." + a.dataset.trkSent, "1"); } catch (ex) { /* ignore */ } } });
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 // Patron : le WhatsApp « normal », pas WhatsApp Business, même quand Business est l'appli par défaut sur Android
 // (lien intent:// vers com.whatsapp ; sans WhatsApp normal, le lien wa.me habituel)
@@ -1256,7 +1266,7 @@ function parsePostSms(txt) {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   ringTone, ringLoad, track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, laterStart, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, deliveredMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, laterStart, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, deliveredMsg, shopTrackBtn, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, linkify, buyList, parsePostSms, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };

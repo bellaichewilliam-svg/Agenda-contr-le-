@@ -465,6 +465,13 @@ function render() {
   // Notifications sur ce téléphone (livreur accepté, en route, livré) : proposées tant que la course n'est pas finie
   renderNotif(o);
   renderPhotoAsk(o);
+  // Le commerce suit sa course (lien « &shop=1 ») : le rappel d'envoyer le suivi à la personne livrée, en haut
+  const sk = $("#shopTrk");
+  if (sk) {
+    const b = o.shop_sent && new URLSearchParams(location.search).has("shop") ? UI.shopTrackBtn(o, o.shop_name, t) : "";
+    sk.classList.toggle("hidden", !b);
+    if (b) sk.innerHTML = `${o.status !== "nouvelle" ? `<p class="small" style="margin:0 0 8px">${UI.esc(t("shSendTrackSub", { name: String(o.dropoff_contact || "").split(" ")[0] }))}</p>` : ""}${b.replace("btn btn-sm", "btn btn-block")}`;
+  }
 
   const pay = $("#payBox");
   const dropped = o.status === "annulee" && Number(o.drop_fee) > 0;
