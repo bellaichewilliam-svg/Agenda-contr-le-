@@ -322,7 +322,9 @@ async function openSpace(token) {
     return;
   }
   // Le patron qui regarde l'espace d'un commerce (?vu=1) : rien n'est gardé sur son téléphone
-  if (!params.has("vu")) Store.rememberShopToken(token, d.shop.code);
+  if (!params.has("vu")) { Store.rememberShopToken(token, d.shop.code); try { localStorage.setItem("hop.shopName." + d.shop.code, d.shop.name || ""); } catch (e) { /* stockage bloqué */ } }
+  // Arrivé depuis l'appli HOP! (« Envoyer une course » de son commerce) : le formulaire s'ouvre tout de suite
+  if (params.has("send")) setTimeout(() => { const b = $("#spOrder"); if (b && $("#spSend").classList.contains("hidden")) b.click(); }, 400);
   state.token = token;
   state.dash = d;
   $("#shopSignup").classList.add("hidden");
@@ -1327,7 +1329,10 @@ function renderSend(full) {
   const how = (val, k) => `<label class="choice"><input type="radio" name="how" value="${val}"${send.how === val ? " checked" : ""} /><span><b>${e(t(k))}</b></span></label>`;
   const payer = (val, k) => `<label class="choice"><input type="radio" name="payer" value="${val}"${send.payer === val ? " checked" : ""} /><span><b>${e(t(k))}</b><small>${e(t(k + "D", { price }))}</small></span></label>`;
   f.innerHTML = `<div class="sd-head"><h3>${e(t("sdTitle"))}</h3><button type="button" class="btn btn-sm btn-link" data-sd-close>${e(t("sdClose"))}</button></div>
-    <p class="muted small sd-sub">${e(t("sdSub"))}</p>
+    <div class="sd-route">
+      <div class="sd-r sd-r-a"><i>A</i><span><small>${e(t("sdFromL"))}</small><b>${e(shop.name || "")}</b><em>${e(shop.address || "")}${shop.address ? " · " : ""}${e(t("sdFromSaved"))}</em></span></div>
+      <div class="sd-r sd-r-b"><i>B</i><span><small>${e(t("sdToL"))}</small><b>${e(t("sdToB"))}</b><em>${e(t("sdToS"))}</em></span></div>
+    </div>
     <p class="sd-req">${e(t("sdReq"))}</p>
     <div class="sd-grid sd-two">
       ${fld("name", "sdName", 'required autocomplete="off" maxlength="60"')}

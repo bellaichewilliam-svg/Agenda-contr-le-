@@ -6676,3 +6676,54 @@ html.d3 .vit-course .vc-tag b { font-size: 24px !important; font-weight: 800 !im
 html.d3 .vit-course .vc-tag small { font-size: 11.5px !important; font-weight: 600; color: #C9D3E6 !important; }
 html.d3 .vit-course .vc-txt { max-width: none !important; width: auto !important; flex: none !important; }
 html.d3 .vit-course .vc-txt > b { font-size: 16.5px !important; }
+
+/* ===== Espace du commerçant en design clair (patron, 17/11) ===== */
+html.d3-sp body { background: #fff; }
+html.d3-sp .prep-card { border: 1px solid #E6E8EB !important; box-shadow: none !important; }
+html.d3-sp .bag-no, html.d3-sp .bag-line b { color: #0F1F3D !important; }
+html.d3-sp .sp-tabs { box-shadow: none !important; border: 1px solid #E6E8EB; background: #fff !important; }
+html.d3-sp .sp-tabs button { position: relative; color: #3B4556 !important; }
+html.d3-sp .sp-tabs button.on { background: #0F1F3D !important; color: #fff !important; box-shadow: none !important; }
+html.d3-sp .sp-badge { top: -6px !important; inset-inline-end: 2px !important; background: #E8590C !important; animation: none !important; }
+html.d3-sp .sp-head { box-shadow: none !important; border: 1px solid #E6E8EB; }
+html.d3-sp .choice input:checked + span, html.d3-sp .choice:has(input:checked) { border-color: #111418 !important; box-shadow: inset 0 0 0 1px #111418 !important; background: #fff !important; }
+html.d3-sp .f input:focus, html.d3-sp .f select:focus { border-color: #111418 !important; box-shadow: none !important; }
+html.d3-sp .sd-req { background: #F2F3F5 !important; color: #3B4556 !important; border: 0 !important; font-weight: 600; }
+/* « Envoyer une course à un client » : grande carte bleu nuit en haut */
+html.d3-sp .sp-order { display: grid !important; gap: 3px; justify-items: start; text-align: start; padding: 18px 20px 18px 74px !important; min-height: 0; margin: 4px 0 16px; border-radius: 18px !important; background: #0F1F3D url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='17' r='2.5'/%3E%3Ccircle cx='18' cy='17' r='2.5'/%3E%3Cpath d='M8.5 17h7M15 8h3l2.5 6.5M15 8l-2 6M4 12h7l2 2.5'/%3E%3Crect x='3' y='7' width='6' height='5' rx='1'/%3E%3C/svg%3E") no-repeat 20px center / 36px !important; border: 0 !important; box-shadow: none !important; color: #fff !important; }
+html[dir="rtl"].d3-sp .sp-order { padding: 18px 74px 18px 20px !important; background-position: calc(100% - 20px) center !important; }
+html.d3-sp .sp-order .spo-t { font-size: 18px; font-weight: 800; line-height: 1.25; }
+html.d3-sp .sp-order .spo-s { font-size: 13.5px; font-weight: 500; color: #C9D3E6; line-height: 1.35; margin: 0 !important; text-align: start !important; }
+/* Trajet du formulaire : A = la boutique (déjà enregistrée), B = le client */
+.sd-route { display: grid; gap: 0; margin: 4px 0 14px; padding: 12px 14px; border-radius: 14px; background: #F2F3F5; position: relative; }
+.sd-r { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 12px; align-items: start; padding: 6px 0; }
+.sd-r > i { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: 14px; color: #fff; background: #0F1F3D; position: relative; z-index: 1; }
+.sd-r-b > i { background: #E8590C; }
+.sd-route::before { content: ""; position: absolute; inset-inline-start: 28px; top: 36px; bottom: 36px; border-inline-start: 2px dotted #C9CDD3; }
+.sd-r span { display: grid; gap: 1px; min-width: 0; }
+.sd-r small { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #5A6270; }
+.sd-r b { font-size: 15.5px; color: #111418; line-height: 1.3; }
+.sd-r em { font-style: normal; font-size: 13px; color: #5A6270; line-height: 1.35; }
+/* Espace commerce : le logo HOP! bleu nuit de l'appli (pas l'ancien carré orange) */
+html.d3-sp .topbar .logo-mark { display: none !important; }
+html.d3-sp .topbar .logo-name { display: inline !important; }
+html.d3-sp .f input:focus, html.d3-sp .f select:focus, html.d3-sp .f input.field-bad:focus { outline: none !important; border-color: #111418 !important; box-shadow: 0 0 0 1px #111418 !important; }
+html.d3-sp .topbar .wordmark b { color: #0F1F3D !important; font-size: 28px; }
+html.d3-sp .topbar .wordmark b i { color: #FF6A13 !important; }
+html.d3-sp .topbar .wordmark small { color: #5A6270 !important; }
+html.d3-sp .topbar .logo-mark + .wordmark b { display: inline-block !important; }
+
+/* Téléphone d'un commerce : accès direct à « Envoyer une course à un client » (patron, 17/11) */
+.vit-myshop { display: grid; grid-template-columns: minmax(0, 1fr) 36px; gap: 12px; align-items: center; margin: 0 0 12px; padding: 14px 16px; border-radius: 16px; background: #0F1F3D; color: #fff; text-decoration: none; }
+.vit-myshop .vms-t { display: grid; gap: 2px; min-width: 0; }
+.vit-myshop small { font-size: 11.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #9FB0CF; }
+.vit-myshop b { font-size: 17px; font-weight: 800; line-height: 1.25; }
+.vit-myshop em { font-style: normal; font-size: 13px; line-height: 1.35; color: #C9D3E6; }
+.vit-myshop .vms-go { width: 36px; height: 36px; border-radius: 50%; background: #E8590C url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 6l6 6-6 6'/%3E%3C/svg%3E") center / 18px no-repeat; }
+html[dir="rtl"] .vit-myshop .vms-go { transform: scaleX(-1); }
+
+/* Ma commande : départ (A) et arrivée (B) bien distincts (patron, 17/11 : « pour beaucoup de clients, ce n'est pas clair ») */
+html.d3 #pickupLegend, html.d3 legend[data-i18n="s3"] { display: flex !important; align-items: center; gap: 10px; }
+html.d3 #pickupLegend::before, html.d3 legend[data-i18n="s3"]::before { flex: none; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 800; color: #fff; }
+html.d3 #pickupLegend::before { content: "A"; background: #0F1F3D; }
+html.d3 legend[data-i18n="s3"]::before { content: "B"; background: #E8590C; }
