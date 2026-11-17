@@ -23,8 +23,25 @@ function renderNotif(o) {
        <button type="button" class="btn btn-primary btn-block" id="notifOn">${UI.esc(I18N.t("trNotifBtn"))}</button>`;
 }
 // « 📷 Je veux une photo à la livraison » : le livreur HOP! doit alors prendre la photo du colis avant « Livré »
+// Livrée : la photo prise par le livreur, en grand (la personne livrée la reçoit par ce lien, même sans avoir commandé)
+let delPhoto = { id: null, src: "" };
+async function loadDelPhoto(o) {
+  if (delPhoto.id === o.id) return;
+  delPhoto = { id: o.id, src: "" };
+  try {
+    const m = (await Store.chatOrder(token) || []).filter(x => x.author === "courier" && x.image).pop();
+    if (delPhoto.id === o.id && m) { delPhoto.src = m.image; renderPhotoAsk(o); }
+  } catch (e) { /* ignore */ }
+}
 function renderPhotoAsk(o) {
   const box = $("#photoCard");
+  if (o.status === "livree") {
+    if (delPhoto.id !== o.id) loadDelPhoto(o);
+    const src = UI.safeImg ? UI.safeImg(delPhoto.src) : delPhoto.src;
+    box.classList.toggle("hidden", !src);
+    if (src) box.innerHTML = `<b>📷 ${UI.esc(I18N.t("trDelPhoto"))}</b><figure class="del-photo"><img src="${UI.esc(src)}" alt="" /></figure>`;
+    return;
+  }
   const live = ["nouvelle", "confirmee", "recuperee"].includes(o.status);
   box.classList.toggle("hidden", !live || !!o.leave_at_door);
   if (!live || o.leave_at_door) return;

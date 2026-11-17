@@ -477,7 +477,7 @@ fr: {
   trCourier: "Votre livreur HOP!", trCall: "📞 Appeler", trWa: "💬 WhatsApp",
   trPay: "À payer", trPayBit: "Payez avec Bit au {phone} (indiquez {ref})", trPayCash: "En espèces au coursier", trPaid: "✓ Payé, merci !",
   trCopy: "Copier le numéro", trCopied: "Copié ✓",
-  trShare: "Partager le suivi", trShareMsg: "Suivez votre livraison en direct : {url}",
+  trDelPhoto: "La photo de votre livraison", trShare: "Partager le suivi", trShareMsg: "Suivez votre livraison en direct : {url}",
   trPickup: "Récupération", trDrop: "Livraison",
   trThanks: "Merci ! Votre avis compte : recommandez-nous à un ami avec votre code de parrainage 🙏",
   // Commerces partenaires (commerce.html + bandeau de la page de commande)
@@ -1364,7 +1364,7 @@ he: {
   trCourier: "השליח שלכם מהופ!", trCall: "📞 להתקשר", trWa: "💬 וואטסאפ",
   trPay: "לתשלום", trPayBit: "שלמו בביט למספר {phone} (ציינו {ref})", trPayCash: "במזומן לשליח", trPaid: "✓ שולם, תודה!",
   trCopy: "העתקת המספר", trCopied: "הועתק ✓",
-  trShare: "לשתף מעקב", trShareMsg: "אפשר לעקוב אחרי המשלוח בזמן אמת: {url}",
+  trDelPhoto: "תמונת המסירה שלכם", trShare: "לשתף מעקב", trShareMsg: "אפשר לעקוב אחרי המשלוח בזמן אמת: {url}",
   trPickup: "איסוף", trDrop: "מסירה",
   trThanks: "תודה! ממליצים עלינו לחבר עם קוד החבר שלכם 🙏",
   shTitle: "העסק שלכם שולח עם הופ!",

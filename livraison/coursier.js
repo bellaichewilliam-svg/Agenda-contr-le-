@@ -478,10 +478,22 @@ const DONE_OPEN_MIN = 30;
 // Nouveau client livré : le bouton qui lui envoie « Vous avez été livré avec HOP! » sur WhatsApp, d'un toucher
 // (aussi la cliente d'une course envoyée par un commerce : le commerce a déjà commandé, mais elle découvre HOP!)
 const welNew = o => !!(o.first_order || (o.shop_name && o.dropoff_phone && String(o.contact_name || "").trim() === String(o.shop_name).trim()));
-const welcomeBtn = o => !welNew(o) ? "" : o.welcome_sent_at ? `<p class="small welcome-ok">📣 Lien HOP! envoyé au client ✓</p>`
+// La personne livrée n'est pas celle qui a commandé : elle reçoit la photo de livraison (son numéro à elle)
+const d9 = v => String(v || "").replace(/\D/g, "").slice(-9);
+const rcptOther = o => !!(o.dropoff_phone && d9(o.dropoff_phone) !== d9(o.contact_phone));
+const rcptBtn = o => `<a class="btn btn-sm btn-wa welcome-btn" target="_blank" rel="noopener" data-welcome="${UI.esc(o.id)}" href="${UI.esc(UI.waPersonal(o.dropoff_phone, UI.deliveredMsg(o)))}">📷 Envoyer la photo de livraison à ${UI.esc(String(o.dropoff_contact || "la cliente").split(" ")[0])}</a>`;
+const welcomeBtn = o => rcptOther(o) && !o.welcome_sent_at ? rcptBtn(o) : !welNew(o) ? "" : o.welcome_sent_at ? `<p class="small welcome-ok">📣 Lien HOP! envoyé au client ✓</p>`
   : `<a class="btn btn-sm btn-wa welcome-btn" target="_blank" rel="noopener" data-welcome="${UI.esc(o.id)}" href="${UI.esc(UI.waPersonal(o.dropoff_phone || o.contact_phone, UI.welcomeMsg(o)))}">📣 Envoyer « Livré avec HOP! » au client</a>`;
 function welcomeAsk(o) {
-  if (!o || !welNew(o) || o.welcome_sent_at || !(o.dropoff_phone || o.contact_phone)) return;
+  if (!o || o.welcome_sent_at || !(o.dropoff_phone || o.contact_phone)) return;
+  if (rcptOther(o)) {
+    $("#msgTime").textContent = "📷 Prévenir la personne livrée";
+    $("#msgBody").textContent = `${String(o.dropoff_contact || "La cliente").split(" ")[0]} n'a pas commandé elle-même${o.shop_name ? ` (c'est ${UI.bi(o.shop_name, "fr")})` : ""} : envoyez-lui la photo de livraison sur WhatsApp, avec le lien HOP!. Un toucher, puis « Envoyer ».`;
+    $("#msgModalBtns").innerHTML = rcptBtn(o);
+    $("#msgModal").classList.remove("hidden");
+    return;
+  }
+  if (!welNew(o)) return;
   $("#msgTime").textContent = "🆕 Nouveau client";
   $("#msgBody").textContent = `${(o.dropoff_contact || o.contact_name || "Ce client").split(" ")[0]} commandait avec HOP! pour la première fois${o.shop_name ? ` (envoyé par ${UI.bi(o.shop_name, "fr")})` : ""}. Envoyez-lui le lien HOP! : il saura qu'on livre toute la ville.`;
   $("#msgModalBtns").innerHTML = welcomeBtn(o);
