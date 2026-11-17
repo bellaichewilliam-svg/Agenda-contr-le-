@@ -3632,6 +3632,31 @@ function renderLogin() {
   }
   const p = Store.getProfile(), create = loginUi.mode === "create";
   const f = (name, label, attrs, val) => `<label class="f"><span>${UI.esc(t(label))}</span><input name="${name}" ${attrs} value="${UI.esc(val || "")}" /></label>`;
+  // Nouvelle page « Créer mon compte » (patron, 17/11 : « hyper jolie, qu'elle donne grave envie ») : Hoppy, les avantages,
+  // créer son compte à la voix (Hoppy vérifie l'adresse sur la carte), ou au clavier
+  if (document.documentElement.classList.contains("d3")) {
+    const perk = (k, n) => `<li class="lgx-p lgx-${k}"><i aria-hidden="true"></i><span><b>${UI.esc(t("lgxP" + n))}</b><small>${UI.esc(t("lgxP" + n + "s"))}</small></span></li>`;
+    box.classList.add("lgx-card");
+    box.innerHTML = `<div class="lgx">
+      <div class="lgx-hero"><div class="lgx-hop"><img src="img/hoppy-vit.webp" alt="" width="86" height="140" /></div>
+        <div><h3>${UI.esc(t(create ? "lgxTitle" : "lgxTitleIn")).replace(/HOP!/g, '<bdi dir="ltr">HOP!</bdi>')}</h3><p>${UI.esc(t(create ? "lgxSub" : "lgxSubIn"))}</p></div></div>
+      ${create ? `<ul class="lgx-perks">${perk("one", 1)}${perk("live", 2)}${perk("addr", 3)}${perk("all", 4)}</ul>
+      ${Store.iaAssist ? `<button type="button" class="lgx-voice" data-lg-voice><i aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></i>
+        <span><b>${UI.esc(t("lgxVoice"))}</b><small>${UI.esc(t("lgxVoiceS"))}</small></span></button>
+      <div class="lgx-or"><span>${UI.esc(t("lgxOr"))}</span></div>` : ""}` : ""}
+      <form id="lgForm" class="lg-form lgx-form" novalidate>
+        ${create ? f("lg_name", "lgName", 'autocomplete="name" maxlength="80"', p.contact_name) : ""}
+        ${f("lg_phone", "lgPhone", 'type="tel" inputmode="tel" autocomplete="tel" dir="ltr"', p.contact_phone)}
+        ${f("lg_pass", "lgPass", `type="password" minlength="6" autocomplete="${create ? "new-password" : "current-password"}"`, "")}
+        ${create ? f("lg_email", "lgEmail", 'type="email" autocomplete="email" dir="ltr"', p.contact_email) : ""}
+        <button class="btn btn-primary lgx-go">${UI.esc(t(create ? "lgxGo" : "lgGoLogin"))}</button>
+        <p class="small lg-msg" id="lgMsg"></p>
+        ${create ? "" : `<p class="muted small">${UI.esc(t("lgForgot"))}</p>`}
+      </form>
+      <button type="button" class="lgx-switch" data-lg-mode="${create ? "login" : "create"}">${UI.esc(t(create ? "lgxHave" : "lgxNew"))}</button>
+    </div>`;
+    return;
+  }
   box.innerHTML = `<details class="lg-fold"${loginUi.open ? " open" : ""}><summary><h3>${UI.esc(t("lgTitle"))}</h3><p class="muted small">${UI.esc(t("lgSub"))}</p></summary>
     <div class="lg-tabs"><button type="button" class="ch-chip${create ? " on" : ""}" data-lg-mode="create">${UI.esc(t("lgCreate"))}</button>
       <button type="button" class="ch-chip${create ? "" : " on"}" data-lg-mode="login">${UI.esc(t("lgLogin"))}</button></div>
@@ -3656,6 +3681,7 @@ $("#loginCard").addEventListener("toggle", e => { if (e.target.matches(".lg-fold
 $("#loginCard").addEventListener("click", async e => {
   const m = e.target.closest("[data-lg-mode]");
   if (m) { loginUi.mode = m.dataset.lgMode; return renderLogin(); }
+  if (e.target.closest("[data-lg-voice]")) return hvSignupStart();
   if (e.target.closest("#lgOut")) {
     await Store.clientLogout();
     loginUi.mode = "login";
@@ -7547,7 +7573,12 @@ async function hvUser(text) {
     hvBubble("c", text); hvMini(true); hvMiniLine(hvT("hvMiniCart")); openCart(); hv.auto = 8; return setTimeout(hvGuide, 900);
   }
   hvBubble("c", text);
+  if (hv.local && hv.local.kind === "signup") return hvSignup(text);
   // « Suivre ma course », « où est ma commande ? » : le suivi s'ouvre tout de suite quand une commande est en cours
+  // « Fais voir ce qu'il y a chez Carrefour », « montre-moi les laits chez Carrefour », « תראה לי חלב ברמי לוי » : le catalogue
+  // du magasin s'ouvre tout de suite, directement sur ces produits (patron, 17/11)
+  const show = !hv.local && hvShowShop(text);
+  if (show) { UI.track("voice_show_shop", { shop_code: show.code }); return hvSay(hvT(show.q ? "hvShowQ" : "hvShowShop", { name: show.name, q: show.q }), [], () => hvOpenTarget({ type: "shop", code: show.code, q: show.q })); }
   if (!hv.local && HV_TRACK.test(text) && ((state.mine || []).some(x => ["nouvelle", "confirmee", "recuperee"].includes(x.status)) || ($("#doneTrack") && $("#doneTrack").getClientRects().length))) {
     return hvSay(hvT("hvTrackGo"), [], () => hvTrack());
   }
@@ -7727,6 +7758,29 @@ async function hvPlaceCard(name) {
 }
 // Ouvrir le suivi de la commande en cours : celle qu'on vient d'envoyer, sinon la dernière en cours (liste rechargée),
 // sinon « Mes courses »
+const HV_SHOW = /\b(montre|montrez|montre-moi|fais[- ]voir|faites[- ]voir|fais[- ]moi voir|affiche|ouvre|ouvrez|je veux voir|je voudrais voir|on peut voir|qu'est-ce qu'il y a|qu'est-ce que (?:tu as|vous avez)|quoi comme)\b|תראה|תראי|תראו|הראה|תפתח|פתח|מה יש/i;
+const HV_SHOP_ALIAS = { HOPCARREFOUR: ["carrefour", "carfour", "קרפור", "קארפור"], HOPBOOOM: ["booom", "boom", "בום"], HOPRAMILEVY: ["rami levy", "ramilevi", "רמי לוי"], HOPVICTORY: ["victory", "ויקטורי"] };
+function hvShowShop(text) {
+  if (!HV_SHOW.test(text)) return null;
+  const n = norm(text), list = state.showcase || [];
+  let hit = null, said = "";
+  for (const x of list) {
+    const core = String(x.name || "").replace(/^HOP!\s*(chez\s*)?/i, "").trim();
+    const names = (HV_SHOP_ALIAS[x.code] || []).concat(core.length >= 4 ? [core] : []);
+    const w = names.find(a => n.includes(norm(a)));
+    if (w) { hit = x; said = w; break; }
+  }
+  if (!hit) return null;
+  const esc = v => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  let q = " " + text.toLowerCase() + " ";
+  q = q.replace(new RegExp(esc(said.toLowerCase()), "i"), " ").replace(HV_SHOW, " ")
+    .replace(/\b(moi|nous|ce que|ce qu'|qu'il y a|il y a|tu as|vous avez|t'as|dans|les|le|la|l'|des|du|de|d'|un|une|chez|à|au|aux|en|rayon|rayons|magasin|catalogue|svp|stp|s'il te plaît|s'il vous plaît|hop!?|comme|quoi)\b/gi, " ")
+    .replace(/(^|\s)(לי|לנו|את|מה|יש|ב|של|בבקשה)(?=\s|$)/g, " ").replace(/(^|\s)ב(?=[א-ת]{2})/g, " ")
+    .replace(/[?!.,;:«»"\-–]/g, " ").replace(/\s+/g, " ").trim();
+  q = q.split(" ").map(w => /^[a-zà-ÿ]{4,}[sx]$/i.test(w) ? w.slice(0, -1) : w).join(" ");
+  if (q.length < 2) q = "";
+  return { code: hit.code, name: UI.bi(hit.name || "").replace(/^HOP!\s*chez\s*/i, "").replace(/^HOP!\s*ב/, ""), q: q.slice(0, 40) };
+}
 const HV_TRACK = /(suivre|suivi|o[uù] (en )?est|elle est o[uù]|arrive quand).{0,25}(commande|course|livreur|livraison)|^(suivre|suivi)\b|איפה (ההזמנה|המשלוח|השליח)|מעקב/i;
 async function hvTrack() {
   const act = () => (Array.isArray(state.mine) ? state.mine : []).filter(x => ["nouvelle", "confirmee", "recuperee"].includes(x.status) && x.token)
@@ -7825,6 +7879,130 @@ function hvNum(text) {
   return w != null ? String(HV_NUM[w] != null ? HV_NUM[w] : HV_NUM[norm(w)]) : "";
 }
 const hvNo = text => /^(non|pas|aucun|rien|sans|no|לא|אין|בלי)\b/i.test(String(text).trim()) || /pas de code|sans code|אין קוד|בלי קוד/i.test(text);
+// ===== Créer son compte à la voix (patron, 17/11) =====================================================================
+// Nom, portable, rue et numéro, étage, appartement, code : tout se dit, d'un coup ou une chose après l'autre. Tout est
+// compris ici, sur le téléphone (jamais envoyé à l'IA) ; la rue est cherchée sur la carte et doit exister, puis Hoppy
+// montre l'adresse trouvée sur une petite carte et crée le compte.
+function hvSignupStart() {
+  hvDom(); hv.lang = I18N.lang === "he" ? "he" : "fr"; hvLabels();
+  hv.mini = false; $("#hvSheet").classList.remove("mini");
+  $("#hvSheet").classList.remove("hidden"); document.body.classList.add("hv-on");
+  $("#hvLog").innerHTML = ""; hv.short = {};
+  const p = Store.getProfile();
+  hv.local = { kind: "signup", step: "name", a: { name: (p.contact_name || "").trim(), phone: phoneOk(p.contact_phone || "") ? phoneDigits(p.contact_phone) : "" }, tries: 0 };
+  UI.track("signup_voice_start", {});
+  hvSay(hvT("hvSuHello"), [], () => hvSignupNext());
+}
+const hvCap = x => String(x || "").trim().split(/\s+/).slice(0, 3).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ").slice(0, 40);
+async function hvSignup(text) {
+  const L = hv.local, a = L.a, s = L.step;
+  // Carte de confirmation : « oui » crée le compte ; « l'adresse / le numéro » : on corrige ce morceau
+  if (!s) {
+    if (/adresse|rue|כתובת|רחוב/i.test(text)) return hvSuFix("addr");
+    if (/num[ée]ro|t[ée]l[ée]phone|portable|טלפון|נייד/i.test(text)) return hvSuFix("phone");
+    if (/\bnom\b|pr[ée]nom|שם/i.test(text)) return hvSuFix("name");
+    if (/^(oui|ok|okay|vas[- ]y|d'accord|c'est bon|parfait|cr[ée]e|valide|go|כן|יאללה|בסדר|מעולה|תיצור|צור)/i.test(text.trim())) return hvSignupCreate();
+    return hvSignupNext();
+  }
+  const ex = hvExtract(text);
+  if (ex.name) a.name = hvCap(ex.name.replace(/\s+(?:et|j'habite)$/i, ""));
+  if (ex.phone && /^05\d{8}$/.test(ex.phone)) a.phone = ex.phone;
+  if (ex.floor != null) { a.floor = ex.floor; a.kind = "appartement"; }
+  if (ex.apt) { a.apt = ex.apt; a.kind = "appartement"; }
+  if (ex.code) a.code = ex.code;
+  if (ex.addr) {
+    const hit = await hvFindStreet(ex.addr.street, ex.addr.number);
+    if (hit) Object.assign(a, hit); else if (s === "street" || !a.street) { L.tries++; return hvSay(hvT("hvAddrAgain"), []); }
+  }
+  // Rien de reconnu d'un coup : la réponse à la question posée
+  if (s === "name" && !ex.name) {
+    const nm = String(ex.rest || text).replace(/^(je m'appelle|mon nom est|moi c'est|c'est|קוראים לי|שמי|אני)\s+/i, "").replace(/[,.;:!?]/g, " ").replace(/\d+/g, " ").trim();
+    if (nm.length >= 2) a.name = hvCap(nm);
+  }
+  if (s === "phone" && !ex.phone) {
+    let d = text.replace(/\D/g, ""); if (d.startsWith("972")) d = "0" + d.slice(3);
+    if (/^05\d{8}$/.test(d)) a.phone = d; else return hvSay(hvT("hvPhoneAgain"), []);
+  }
+  if (s === "street" && !ex.addr) {
+    const num = (text.match(/\d+[א-תa-z]?/i) || [""])[0], street = text.replace(num, "").replace(/\b(j'habite|habite|au|à|rue|avenue|bd|boulevard|רחוב|רח'|גר|גרה|ב)\b\.?/gi, " ").replace(/[,،.]/g, " ").replace(/\s+/g, " ").trim();
+    if (!street) return hvSay(hvT("hvSuAskStreet"), []);
+    const hit = await hvFindStreet(street, num);
+    if (!hit) { L.tries++; return hvSay(hvT(L.tries >= 3 ? "hvSuAddrHelp" : "hvAddrAgain"), []); }
+    Object.assign(a, hit);
+  }
+  if (s === "number" && !a.number) { const n = hvNum(text); if (!n) return hvSay(hvT("hvAskNumber"), []); a.number = n; const hit = await hvFindStreet(a.street, n); if (hit) Object.assign(a, hit); }
+  if (s === "floor" && a.floor == null && a.kind !== "maison") {
+    if (/maison|villa|בית פרטי|^בית$/i.test(text) || norm(text) === norm(hvT("hvHouse"))) { a.kind = "maison"; a.floor = null; a.apt = null; }
+    else { a.floor = hvNum(text) || "0"; a.kind = "appartement"; }
+  }
+  if (s === "apt" && !a.apt) a.apt = hvNum(text) || text.trim().slice(0, 6);
+  if (s === "code" && a.code == null) a.code = hvNo(text) || norm(text) === norm(hvT("hvNoCode")) ? t("noCodeVal") : (text.replace(/dièse|diese|diez|סולמית/gi, "#").replace(/étoile|כוכבית/gi, "*").match(/[\d#*]+/g) || [text.trim().slice(0, 12)]).join("");
+  return hvSignupNext();
+}
+function hvSuMiss(a) {
+  return !a.name ? "name" : !/^05\d{8}$/.test(a.phone || "") ? "phone" : !a.street || a.lat == null ? "street" : !a.number ? "number"
+    : a.kind !== "maison" && a.floor == null ? "floor" : a.kind === "appartement" && !a.apt ? "apt" : a.code == null ? "code" : "";
+}
+function hvSignupNext() {
+  const L = hv.local; if (!L || L.kind !== "signup") return;
+  const a = L.a, miss = hvSuMiss(a);
+  L.step = miss;
+  hv.short = {};
+  if (miss === "name") return hvSay(hvT("hvSuAskName"), []);
+  if (miss === "phone") return hvSay(hvT("hvSuAskPhone", { name: a.name.split(" ")[0] }), []);
+  if (miss === "street") return hvSay(hvT("hvSuAskStreet"), []);
+  if (miss === "number") return hvSay(hvT("hvAskNumberOf", { street: a.street }), []);
+  if (miss === "floor") { hv.short[hvT("hvHouse")] = () => hvSignup(hvT("hvHouse")); return hvSay(hvT("hvAskFloor", { street: `${a.street} ${a.number}` }), [hvT("hvHouse"), "0", "1", "2", "3"]); }
+  if (miss === "apt") return hvSay(hvT("hvAskApt"), []);
+  if (miss === "code") { hv.short[hvT("hvNoCode")] = () => hvSignup(hvT("hvNoCode")); return hvSay(hvT("hvAskCode"), [hvT("hvNoCode")]); }
+  // Tout y est : la carte avec l'adresse trouvée, et « je crée votre compte ? »
+  hvSuCard(a);
+  hv.short = { [hvT("hvSuYes")]: () => hvSignupCreate(), [hvT("hvSuFixAddr")]: () => hvSuFix("addr"), [hvT("hvSuFixPhone")]: () => hvSuFix("phone") };
+  hvSay(hvT("hvSuConfirm"), [hvT("hvSuYes"), hvT("hvSuFixAddr"), hvT("hvSuFixPhone")]);
+}
+function hvSuFix(what) {
+  const a = hv.local.a;
+  if (what === "addr") ["street", "number", "lat", "lon", "floor", "apt", "code", "kind", "exact", "cityId", "city"].forEach(k => delete a[k]);
+  if (what === "phone") a.phone = "";
+  if (what === "name") a.name = "";
+  hv.local.tries = 0;
+  return hvSignupNext();
+}
+function hvSuLine(a) {
+  return [`${a.street} ${a.number}`, cityLabel(a.cityId || a.city), a.kind === "maison" ? t("lgxHouse") : [a.floor != null ? `${t("floor")} ${a.floor}` : "", a.apt ? `${t("aptShort")} ${a.apt}` : ""].filter(Boolean).join(" · "),
+    a.code && a.code !== t("noCodeVal") ? `${t("entryCode")} ${a.code}` : ""].filter(Boolean).join(" · ");
+}
+function hvSuCard(a) {
+  const old = $("#hvLog .hv-su"); if (old) old.remove();
+  const d = document.createElement("div"); d.className = "hv-su";
+  d.innerHTML = `<div class="hv-su-map"></div><div class="hv-su-t"><b>${UI.esc(a.name)}</b><span dir="ltr">${UI.esc(a.phone)}</span>
+    <span>${UI.esc(hvSuLine(a))}</span><small class="hv-su-ok">✓ ${UI.esc(t("lgxFound"))}</small></div>`;
+  $("#hvLog").appendChild(d); $("#hvLog").scrollTop = $("#hvLog").scrollHeight;
+  try {
+    const m = L.map(d.querySelector(".hv-su-map"), { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false, boxZoom: false, keyboard: false }).setView([a.lat, a.lon], 17);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 }).addTo(m);
+    L.marker([a.lat, a.lon], { icon: L.divIcon({ className: "hv-su-pin", html: "", iconSize: [26, 34], iconAnchor: [13, 34] }) }).addTo(m);
+    [60, 250, 600].forEach(ms => setTimeout(() => { m.invalidateSize(); m.setView([a.lat, a.lon], 17, { animate: false }); }, ms));
+  } catch (e) { console.warn("hv-su map", e); d.querySelector(".hv-su-map").remove(); }
+}
+async function hvSignupCreate() {
+  const a = hv.local && hv.local.a; if (!a || hvSuMiss(a)) return hvSignupNext();
+  hv.local = null; hv.short = {};
+  try { Store.saveProfile(Object.assign({}, Store.getProfile(), { contact_name: a.name, contact_phone: a.phone })); } catch (e) { /* ignore */ }
+  ["contact_name", "contact_phone"].forEach(k => { if (form[k] && !form[k].value) { form[k].value = k === "contact_name" ? a.name : a.phone; form[k].dispatchEvent(new Event("input", { bubbles: true })); } });
+  const addr = { tag: "home", kind: a.kind || "appartement", street: a.street, number: a.number, cityId: a.cityId, city: a.city || a.cityId, lat: a.lat, lon: a.lon, exact: !!a.exact,
+    floor: a.kind === "maison" ? null : a.floor, apt: a.kind === "maison" ? null : a.apt, code: a.code || "" };
+  try { Store.saveAddress(addr); applySavedAddr("to", addr); vitRender(); } catch (e) { /* gardée dans la commande */ }
+  UI.track("signup_voice_done", {});
+  if (!Store.ONLINE) return hvSay(t("lgDemo"), []);
+  const w = hvBubble("w");
+  try { await Store.clientAuto(a.name, a.phone, ""); }
+  catch (ex) { w.remove(); if (String(ex && ex.message).includes("phone_exists")) { loginUi.mode = "login"; renderLogin(); return hvSay(hvT("hvSuExists"), []); } return hvSay(hvT("hvErr"), []); }
+  w.remove();
+  try { renderSavedAddrs(); renderLogin(); loadMine(); } catch (e) { /* ignore */ }
+  hv.short = { [hvT("hvSuOrder")]: () => { hvClose(); setView("home", true); window.scrollTo({ top: 0, behavior: "smooth" }); } };
+  hvSay(hvT("hvSuDone", { name: a.name.split(" ")[0] }), [hvT("hvSuOrder")]);
+}
 function hvStartLocal(kind) {
   if (kind === "address") {
     // Rue déjà connue (adresse enregistrée sans numéro, ex. « Trumpeldor ») : on demande seulement le numéro
@@ -9626,8 +9804,10 @@ function emptyCartSheet() {
   box.className = "modal item-sheet cart-sheet"; box.id = "emptyCart"; box.setAttribute("role", "dialog"); box.setAttribute("aria-modal", "true");
   box.innerHTML = `<div class="modal-box">
       <button type="button" class="it-x" data-ec-close aria-label="✕">✕</button>
-      <img class="hoppy-pop" src="img/hoppy-mini.webp" alt="" width="74" height="120" decoding="async" />
-      <h3 class="cs-title">${UI.esc(t("csEmptyT"))}</h3>
+      ${document.documentElement.classList.contains("d3") ? `<div class="ec-head"><div class="ec-hop"><img src="img/hoppy-vit.webp" alt="" width="58" height="94" decoding="async" /></div>
+        <div><h3 class="cs-title">${UI.esc(t("csEmptyT"))}</h3><p>${escHop(t("csEmptyS"))}</p></div></div>`
+      : `<img class="hoppy-pop" src="img/hoppy-mini.webp" alt="" width="74" height="120" decoding="async" />
+      <h3 class="cs-title">${UI.esc(t("csEmptyT"))}</h3>`}
       <div class="cs-smart"><b class="cs-steps-t">${escHop(t("csSmartT"))}</b>
         <ol class="cs-steps"><li><i>1</i><span>${escHop(t("csStep1"))}</span></li><li><i>2</i><span>${escHop(t("csStep2"))}</span></li></ol></div>
       <div class="cs-btns"><button type="button" class="btn btn-primary btn-lg" data-ec-start>${D2 ? SCOOT_SVG : "🛵"} <span>${UI.esc(t("csStart"))}</span></button>
