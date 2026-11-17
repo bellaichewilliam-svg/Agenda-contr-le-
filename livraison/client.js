@@ -5570,6 +5570,16 @@ function vitRenderNow() {
   st.classList.toggle("hidden", open);
   const base = money(Pricing.cityToCity(CONFIG, CONFIG.homeCity, CONFIG.homeCity)), city = I18N.cityName(CONFIG.homeCity);
   $("#vitCoursePrice").textContent = t("vitCoursePrice", { city, price: base });
+  // Design clair (patron, 17/11 : « qu'ils voient qu'il y a 25 ₪ la course ») : icône scooter sur carré pastel,
+  // une phrase courte, et le prix en gros à droite (« dès 25 ₪ en ville »)
+  if (document.documentElement.classList.contains("d3")) {
+    const vc = $("#vitCourse");
+    if (!vc.querySelector(".vc-ic")) { const ic = document.createElement("s"); ic.className = "vc-ic"; ic.setAttribute("aria-hidden", "true"); vc.prepend(ic); }
+    let tag = vc.querySelector(".vc-tag"); if (!tag) { tag = document.createElement("span"); tag.className = "vc-tag"; vc.appendChild(tag); }
+    const th = `<small>${UI.esc(t("d3From"))}</small><b dir="ltr">${UI.esc(base)}</b><small>${UI.esc(t("d3InCity"))}</small>`;
+    if (tag.dataset.html !== th) { tag.innerHTML = th; tag.dataset.html = th; }
+    const sub = vc.querySelector(".vc-price"); if (sub.textContent !== t("d3CourseS")) sub.textContent = t("d3CourseS");
+  }
   const zone = money(((CONFIG.pricing || {}).areas || {}).price || 30);
   const trust = [t("vitTrust1"), t("vitTrust2", { price: base, city, zone })].map(x => `<span>${UI.esc(x)}</span>`).join("");
   if ($("#vitTrust").dataset.html !== trust) { $("#vitTrust").innerHTML = trust; $("#vitTrust").dataset.html = trust; }
