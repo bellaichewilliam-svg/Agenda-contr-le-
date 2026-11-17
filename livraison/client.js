@@ -8925,7 +8925,7 @@ $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
 // un toucher sur la carte ouvre le magasin et la fiche du produit. Données : Store.promosAll() (promos_all, léger).
 const PA_PH = { r: "https://img.rami-levy.co.il/product/", c: "https://d226b0iufwcjmj.cloudfront.net/gs1-products/1540/medium/", b: "https://booomisrael.co.il/uploads/", v: "https://dlv1nnscfbvda.cloudfront.net/" };
 const PA_COLOR = { HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C", HOPVICTORY: "#1F9D55" };
-const pa = { data: null, shop: "", cat: -1 };
+const pa = { data: null, shop: "", cat: -1, q: "" };
 const paPh = v => { const m = /^([rcbv]):(.*)$/.exec(v || ""); const u = m ? PA_PH[m[1]] + m[2] : v; return UI.extPic(u) ? u : ""; };
 const PA_NAMES = { HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"] };
 const paShopName = code => { const sc = (state.showcase || []).find(x => x.code === code); return sc ? mgShort(sc.name) : (PA_NAMES[code] || [code.replace(/^HOP/, "")])[I18N.lang === "he" ? 1 : 0] || code; };
@@ -8939,7 +8939,9 @@ function paRender() {
   const all = paItems(), shops = [...new Set(all.map(x => x.code))];
   const inShop = all.filter(x => !pa.shop || x.code === pa.shop);
   const cats = Object.entries(inShop.reduce((m, x) => { if (x.cat) m[x.cat] = (m[x.cat] || 0) + 1; return m; }, {})).sort((a, b) => b[1] - a[1]).slice(0, 10).map(c => c[0]);
-  const list = inShop.filter(x => pa.cat < 0 || x.cat === cats[pa.cat]);
+  // Recherche (patron, 17/11) : chaque mot dit ou tapé doit se trouver dans le nom (français ou hébreu) ou la rubrique
+  const words = paWords(pa.q);
+  const list = inShop.filter(x => (pa.cat < 0 || x.cat === cats[pa.cat]) && (!words.length || (h => words.every(w => h.includes(w)))(hvFold(x.name + " " + x.cat))));
   const card = x => {
     const badge = x.b ? `<em class="pa-off pa-small">${UI.esc(t("paSmall"))}</em>` : x.f ? `<em class="pa-off" dir="ltr">−${Number(x.f)} %</em>` : "";
     const price = x.l > 1 ? t("paLot", { n: x.l, price: money(x.p) }) : money(x.p);
@@ -8966,12 +8968,16 @@ async function openPromosAll(code) {
     box = document.createElement("div"); box.id = "paPage"; box.className = "pa"; box.setAttribute("role", "dialog");
     box.innerHTML = `<div class="pa-top"><button type="button" class="pa-x" data-pa-close aria-label="✕">‹</button>
       <div class="pa-h"><b>🔥 ${escHop(t("paTitle"))}</b><small>${UI.esc(t("paSub"))}</small></div></div>
+      <div class="pa-find"><input type="search" class="pa-q" enterkeyhint="search" autocomplete="off" placeholder="${UI.esc(t("paFindPh"))}" aria-label="${UI.esc(t("paFindPh"))}" />
+        <button type="button" class="pa-mic" data-pa-mic aria-label="${UI.esc(t("d3Talk"))}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button></div>
       <div class="pa-tabs"></div><div class="pa-cats"></div><small class="pa-count"></small><div class="pa-grid"><p class="pa-none">${UI.esc(t("cgElseWait"))}</p></div>
       <p class="pa-foot">${UI.esc(t("paFoot"))}</p>`;
     document.body.appendChild(box);
     box.addEventListener("click", paClick);
+    box.querySelector(".pa-q").addEventListener("input", e => { pa.q = e.target.value; paRender(); });
+    box.querySelector(".pa-q").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
   }
-  pa.shop = code || ""; pa.cat = -1;
+  pa.shop = code || ""; pa.cat = -1; pa.q = ""; box.querySelector(".pa-q").value = "";
   // Retour du téléphone (flèche ou glissé) : il ferme la page des promos et on retrouve l'écran d'avant
   if (!wasOpen && !(history.state && history.state.pa)) { history.pushState({ pa: 1 }, "", location.href); here = location.href; }
   box.classList.remove("hidden"); document.documentElement.classList.add("pa-on");
@@ -8988,8 +8994,47 @@ function closePromosAll(fromBack) {
   return new Promise(res => { const done = () => { window.removeEventListener("popstate", done); clearTimeout(tm); res(); }, tm = setTimeout(done, 600); window.addEventListener("popstate", done); history.back(); });
 }
 function paIsOpen() { const b = $("#paPage"); return !!b && !b.classList.contains("hidden"); }
+// Les mots de la recherche, sans les petits mots ni le nom du magasin (déjà choisi en onglet), pluriels ramenés au singulier
+const PA_STOP = new Set("je veux voudrais montre moi montrez fais voir les le la l des du de d un une promo promos en chez a au aux sur pour et ou il y qu est ce que quoi tu as vous avez הראה תראה תראי לי את של מבצע מבצעים יש מה ב על עם בבקשה רוצה אני".split(" "));
+const PA_SHOPW = new Set(["carrefour", "carfour", "booom", "boom", "rami", "levy", "victory", "panzer", "קרפור", "בום", "רמי", "לוי", "ויקטורי", "פנצר"]);
+function paWords(q) {
+  return hvFold(q).replace(/[^a-z0-9\u0590-\u05ff%]+/g, " ").split(" ")
+    .filter(w => w.length >= 2 && !PA_STOP.has(w) && !PA_SHOPW.has(w))
+    .map(w => /^[a-z]{4,}[sx]$/.test(w) ? w.slice(0, -1) : w).slice(0, 5);
+}
+// « Les promos Carrefour sur le lait » : le magasin dit devient l'onglet, le reste la recherche
+function paTake(text) {
+  let q = String(text || "");
+  const n = norm(q), shops = [...new Set(paItems().map(x => x.code))];
+  for (const c of shops) {
+    const names = (HV_SHOP_ALIAS[c] || []).concat(PA_NAMES[c] || [], [paShopName(c)]);
+    const w = names.find(a => a && norm(a).length >= 3 && n.includes(norm(a)));
+    if (w) { pa.shop = c; pa.cat = -1; q = q.replace(new RegExp(w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i"), " "); break; }
+  }
+  q = q.replace(/\s+/g, " ").trim();
+  pa.q = paWords(q).join(" ");
+  const inp = $("#paPage .pa-q"); if (inp) inp.value = pa.q;
+  paRender(); $("#paPage").scrollTo({ top: 0 });
+}
+let paRec = null;
+function paMic() {
+  const b = $("#paPage .pa-mic"), inp = $("#paPage .pa-q");
+  // Sans reconnaissance vocale dans le navigateur (iPhone) : le clavier s'ouvre, avec son micro de dictée
+  if (!SpeechRec) { inp.focus(); return; }
+  if (paRec) { try { paRec.stop(); } catch (e) { /* déjà arrêté */ } return; }
+  let r; try { r = new SpeechRec(); } catch (e) { inp.focus(); return; }
+  r.lang = I18N.lang === "he" ? "he-IL" : "fr-FR"; r.interimResults = true; r.continuous = false; r.maxAlternatives = 1;
+  let said = "";
+  r.onresult = e => { said = Array.from(e.results).map(x => x[0].transcript).join(" ").trim(); inp.value = said; };
+  const off = () => { paRec = null; b.classList.remove("on"); inp.placeholder = t("paFindPh"); };
+  r.onerror = e => { off(); if (e.error === "not-allowed" || e.error === "service-not-allowed") toastCart(t("micDenied")); };
+  r.onend = () => { off(); if (norm(said).length >= 2) { UI.track("promos_voice", {}); paTake(said); } };
+  paRec = r; b.classList.add("on"); inp.value = ""; inp.placeholder = t("micListen");
+  try { r.start(); } catch (e) { off(); }
+}
 async function paClick(e) {
   const b = e.target;
+  if (b.closest("[data-pa-mic]")) return paMic();
   if (b.closest("[data-pa-close]")) return closePromosAll();
   const sh = b.closest("[data-pa-shop]"); if (sh) { pa.shop = sh.dataset.paShop; pa.cat = -1; paRender(); $("#paPage").scrollTo({ top: 0 }); return; }
   const ct = b.closest("[data-pa-cat]"); if (ct) { pa.cat = Number(ct.dataset.paCat); paRender(); return; }

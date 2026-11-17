@@ -6652,3 +6652,15 @@ html.d3 .vit-status > span small { font-size: 13px; color: #7A4B0B; line-height:
 html.d3 .vit-status > .d3-dot { width: 10px !important; height: 10px !important; background: #E5A11A !important; }
 html.d3 .vit-status > .d3-dot::after { border-color: #E5A11A !important; }
 html.d3 .vit-status .d3-off-plan { padding: 8px 12px !important; border-radius: 99px !important; background: #0F1F3D !important; color: #fff !important; text-decoration: none !important; font-size: 13.5px; }
+
+/* « HOP! à vos promos » : recherche + micro (patron, 17/11) */
+.pa-find { display: flex; align-items: center; gap: 8px; margin: 12px 16px 2px; padding: 0 6px 0 14px; height: 50px; border-radius: 14px; background: #F2F3F5; }
+.pa-find .pa-q { flex: 1; min-width: 0; height: 100%; border: 0; background: none; font: inherit; font-size: 15.5px; color: #111418; outline: none; }
+.pa-find .pa-q::placeholder { color: #5A6270; }
+.pa-find .pa-q::-webkit-search-cancel-button { display: none; }
+.pa-mic { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 0; background: #fff; display: grid; place-items: center; cursor: pointer; }
+.pa-mic svg { width: 21px; height: 21px; fill: none; stroke: #111418; stroke-width: 1.9; stroke-linecap: round; }
+.pa-mic.on { background: #0F1F3D; animation: paMicOn 1.2s ease-in-out infinite; }
+.pa-mic.on svg { stroke: #fff; }
+@keyframes paMicOn { 50% { box-shadow: 0 0 0 7px rgba(15, 31, 61, .12); } }
+html[dir="rtl"] .pa-find { padding: 0 14px 0 6px; }
