@@ -786,13 +786,22 @@ function freeListItems(o) {
   return (lines.length > 1 ? lines : txt.split(/[,;]+/).map(x => x.trim()).filter(Boolean)).slice(0, 40);
 }
 const FL_KEY = id => "hop.flcheck." + id;
-function freeListBox(o) {
+// Articles écrits par le client dans une boutique HOP! (pas dans le catalogue) : les lignes après « À prendre aussi… : »
+// (ou toute la note s'il n'y a pas ce titre), sans le titre ni les 💬
+function hopExtras(o) {
+  const src = String(o.items_note || "").trim() || String(o.shop_order || "").split("\n").filter(l => !(o.items || []).some(i => l.includes(String(i.name || "").split(" · ")[0]))).join("\n");
+  let lines = src.split(/\n+/).map(x => x.replace(/^💬\s*/, "").trim()).filter(Boolean);
+  const h = lines.findIndex(l => /prendre aussi|לקנות גם|:\s*$/.test(l));
+  if (h >= 0) lines = lines.slice(h + 1);
+  return lines.filter(l => !/prendre aussi|לקנות גם/.test(l)).slice(0, 30);
+}
+function freeListBox(o, title, sub) {
   const items = freeListItems(o);
-  if (items.length < 2) return "";
+  if (items.length < (title ? 1 : 2)) return "";
   let done = {};
   try { done = JSON.parse(localStorage.getItem(FL_KEY(o.id)) || "{}"); } catch (e) { /* ignore */ }
   const n = items.filter((x, i) => done[i]).length;
-  return `<div class="fl-box"><div class="fl-head">🛒 <b>Liste à cocher</b><span>${n} / ${items.length}</span></div>
+  return `<div class="fl-box${title ? " fl-extra" : ""}"><div class="fl-head">${title ? `<b>${UI.esc(title)}</b>` : `🛒 <b>Liste à cocher</b>`}<span>${n} / ${items.length}</span></div>${sub ? `<p class="fl-sub">${UI.esc(sub)}</p>` : ""}
     <ul>${items.map((x, i) => `<li><label class="${done[i] ? "on" : ""}"><input type="checkbox" data-fl="${UI.esc(o.id)}:${i}"${done[i] ? " checked" : ""} /> <span>${UI.esc(x)}</span></label></li>`).join("")}</ul>
     ${n === items.length ? `<p class="fl-done">✅ Tout est pris</p>` : ""}</div>`;
 }
@@ -839,9 +848,10 @@ function card(o, kind) {
   if (o.handoff) extra += `<div class="bag-line">🔐 Clés / objet de valeur : demandez le <b>code de remise</b> au destinataire avant de donner${o.handoff_ok_at ? " · ✅ code vérifié" : ""}</div>`;
   if (o.hop_buy) {
     extra += hopBuyLine(o, kind);
-    // « À prendre aussi (au plus près) » : une case par article, comme la liste du magasin
-    const ex = String(o.shop_order || "").split("\n");
-    if (kind === "mine" && ex.length > 2) extra += freeListBox({ id: o.id + "-x", shopping_list: ex.slice(1).join("\n") });
+    // Articles hors catalogue (« À prendre aussi », écrits par le client) : leur propre liste, titrée, une case par article
+    const ex = hopExtras(o);
+    if (ex.length) extra += kind === "mine" ? freeListBox({ id: o.id + "-x", shopping_list: ex.join("\n") }, `➕ En plus, hors catalogue (${ex.length})`, "Le client les a écrits lui-même : cherchez-les dans le magasin, sinon au plus près. Prix au ticket.")
+      : `<div class="small">➕ <b>${ex.length} article(s) en plus, hors catalogue</b> : ${UI.esc(ex.join(" · "))}</div>`;
   }
   else if (o.service === "achat") extra += (kind === "mine" ? freeListBox(o) : "") + (kind === "mine" && freeListItems(o).length >= 2 ? "" : UI.buyList(o.shopping_list)) + `<div class="small">${o.budget && !o.goods_prepay ? `💰 budget ≈ ${UI.money(o.budget)}<br>` : ""}${o.purchase_min ? `⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}<br>${o.goods_prepay && o.payment_method === "cash"
     ? `💵 <b>Espèces : vous payez le magasin, ${UI.money(o.goods_budget)} au plus</b> (vous avez annoncé avoir les espèces). 🧾 Photo du ticket, puis le client vous paie la course + le ticket exact à la livraison.`
@@ -1112,12 +1122,13 @@ function pickupRank(o) {
 // --- Boutique HOP! : le livreur fait les courses ------------------------------------------------------------
 // Ce qu'il voit dans la fiche (et dans les courses à prendre) : combien d'articles, comment le client paie
 function hopBuyLine(o, kind) {
-  const n = (o.items || []).reduce((s, i) => s + (Number(i.qty) || 1), 0);
+  const n = (o.items || []).reduce((s, i) => s + (Number(i.qty) || 1), 0) + (Number(o.extra_units) || 0);
   return `<div class="small hb-line">🛒 <b>Vous faites les courses</b> chez ${UI.esc(o.shop_name || "le magasin")} : ${n} article(s), ≈ ${UI.money(o.items_total)}`
     + `${o.purchase_min ? `<br>⏱️ ${o.purchase_min} min d'achats comprises dans le prix ; au-delà, annoncez l'attente` : ""}`
     + `<br>${o.payment_method === "cash" ? "💵 Vous avancez les articles en caisse ; à la livraison, le client paie en espèces la livraison + le ticket"
       : "📱 Le client paie la livraison par Bit avant les courses ; vous avancez les articles, puis il vous paie le ticket de caisse (photo) par Bit"}`
-    + `${o.shop_order && !o.shop_status ? `<br>📝 <b>${UI.esc(o.shop_order)}</b>` : ""}`
+    // (les articles du catalogue ont leur liste à cocher ; les articles hors catalogue, leur propre liste : plus de pavé de texte)
+    + `${o.shop_order && !o.shop_status && !o.hop_buy ? `<br>📝 <b>${UI.esc(o.shop_order)}</b>` : ""}`
     + `${kind === "pool" ? `<br>📦 Place dans le top case : ${Number(o.buy_places) || 1} / ${(CONFIG.pricing.purchaseItems || {}).topcase || 30}` : ""}</div>`;
 }
 // Liste à cocher, une par client (Sac 1, Sac 2, Sac 3 : chacun sa couleur) ; « Manquant » retire l'article

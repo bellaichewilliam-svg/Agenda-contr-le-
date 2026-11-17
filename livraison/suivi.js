@@ -117,6 +117,8 @@ function moveCourier(lat, lon) {
 // Rond du temps restant avant la livraison (« 17-27 min ») ; touché, il ouvre la page d'état
 let lastEta = { main: "", sub: "" };
 function ringText(o) {
+  const later = UI.laterStart(o);
+  if (later) return { big: later.toLocaleTimeString(I18N.lang === "he" ? "he-IL" : "fr-FR", { hour: "2-digit", minute: "2-digit" }), unit: t("trLaterUnit") };
   const r = UI.etaRange(o);
   return r ? { big: r.text, unit: t("trMinUnit") } : { big: o.status === "nouvelle" ? "⏳" : "🛵", unit: "" };
 }
@@ -180,7 +182,7 @@ function updateMap(o) {
   if (!map) return;
   setMarker("pickup", o.pickup_lat, o.pickup_lon, "📍");
   setMarker("drop", o.dropoff_lat, o.dropoff_lon, "🏁");
-  const live = o.courier_lat != null;
+  const live = o.courier_lat != null && !UI.laterStart(o);
   if (live) moveCourier(Number(o.courier_lat), Number(o.courier_lon));
   else if (markers.courier) { map.removeLayer(markers.courier); delete markers.courier; }
   // Une belle courbe (pas un trajet routier) : commerce → vous en clair, et le livreur → son prochain arrêt en orange
@@ -301,7 +303,7 @@ $("#waitAsk").addEventListener("click", async e => {
 });
 
 function etaBox(o) {
-  const live = o.courier_lat != null;
+  const live = o.courier_lat != null && !UI.laterStart(o);
   const courier = live && { lat: o.courier_lat, lon: o.courier_lon };
   let main, sub = "";
   if (o.status === "annulee") { main = Number(o.drop_fee) > 0 ? t("trDropped") : t("trCancelled"); if (Number(o.drop_fee) > 0) sub = t("trDroppedSub", { fee: UI.money(o.drop_fee) }); }
@@ -319,6 +321,9 @@ function etaBox(o) {
     main = t("trArrived");
     sub = w.fee ? t("trWaitNow", { min: w.mins, fee: UI.money(w.fee) })
       : t("trWaitLeft", { min: w.mins, left: Math.max(0, Store.freeMinOf(o, st) - w.mins), price: UI.money(st.wait_step_price), step: Number(st.wait_step_min) === 1 ? t("stepMin1") : t("stepMinN", { n: st.wait_step_min }) });
+  } else if (o.status === "confirmee" && UI.laterStart(o)) {
+    // Programmée plus tard : l'heure prévue, pas de compte à rebours ni de position du livreur avant l'heure
+    main = t("trLater", { when: UI.fmtDateTime(o.pickup_at) }); sub = t("trLaterSub");
   } else if (o.status === "confirmee") {
     // Le plus long entre le GPS et le temps annoncé par le livreur (il peut finir une autre course)
     const said = o.eta_at ? Math.ceil((new Date(o.eta_at) - Date.now()) / 60000) : 0;
@@ -353,7 +358,7 @@ function etaBox(o) {
 
 // Carte du livreur sur la carte : prénom, « arrive dans ≈ X min · 1,2 km », appeler, écrire
 function renderCourierCard(o) {
-  const box = $("#trkCard"), live = o && o.courier_lat != null && ["confirmee", "recuperee"].includes(o.status);
+  const box = $("#trkCard"), live = o && o.courier_lat != null && ["confirmee", "recuperee"].includes(o.status) && !UI.laterStart(o);
   document.body.classList.toggle("trk-live", !!(o && ["confirmee", "recuperee"].includes(o.status)));
   $("#trkFull").classList.toggle("hidden", !live);
   box.classList.toggle("hidden", !live);
