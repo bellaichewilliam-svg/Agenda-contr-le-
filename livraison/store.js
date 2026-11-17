@@ -1380,6 +1380,7 @@ async function courierAction(id, action) {
   } else if (action === "recuperee" && o.status === "confirmee") {
     // Boutique HOP! : chaque article coché ou « manquant », puis « Tout est dans le panier », avant de partir
     if (o.hop_buy && !buyDone(o) && !(cr && cr.role === "admin")) throw new Error("buy_check");
+    if (o.hop_buy && o.goods_spent == null && !(cr && cr.role === "admin")) throw new Error("ticket_required");
     // Même règle qu'en ligne : en paiement direct, payé avant de récupérer la commande
     if (!freeOf() && o.direct_pay && o.paid_to === "livreur" && o.payment_status !== "paye" && cr && cr.role !== "admin") throw new Error("payment_required_pickup");
     // HOP! Pro : c'est le commerce qui paie l'attente (sa part de la livraison augmente)

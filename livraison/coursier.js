@@ -921,6 +921,7 @@ function card(o, kind) {
             ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Store.freeMinOf(o, settings) - w.mins)} min ${o.purchase_min ? "d'achats comprises" : "encore offertes"}`}</p>${waitAnn(o)}`
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
           + (o.hop_buy && !Store.buyDone(o) ? `<button class="btn btn-sm" type="button" disabled title="Cochez chaque article">🛵 Courses récupérées</button>`
+            : o.hop_buy && o.goods_spent == null ? `<button class="btn btn-sm" type="button" disabled>🧾 Rentrez d'abord le montant du ticket, puis « Courses récupérées »</button>`
             : `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 ${o.hop_buy ? "Courses récupérées" : "Colis récupéré"}</button>`)
           + `<button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : o.wait_status === "a_payer"
@@ -1208,7 +1209,7 @@ function mineStep(o, hopPaid) {
     const b = Store.hopBags(mine(), o), sac = b.of > 1 ? ` (sac ${b.n})` : "";
     if (o.payment_method !== "cash" && o.payment_status !== "paye") return `1️⃣ Faites-vous payer la livraison : ${UI.money(o.price)} par Bit, avant les courses`;
     if (!Store.buyDone(o)) return o.arrived_at ? `2️⃣ Faites les courses${sac} : cochez chaque article, ou « Manquant »` : `2️⃣ Allez au magasin · ${o.shop_name || ""}`;
-    if (o.goods_spent == null) return "3️⃣ Passez en caisse, puis « Courses récupérées » (le ticket peut se rentrer chez le client, avant « Livré »)";
+    if (o.goods_spent == null) return "3️⃣ Passez en caisse, puis 🧾 « Ticket du magasin » : photo + montant exact (obligatoire pour partir)";
     return "4️⃣ Touchez « Courses récupérées » et livrez";
   }
   // Course envoyée par un commerce : le commerce paie en donnant le colis, ou le client à la livraison (Bit ou espèces)
@@ -1230,7 +1231,6 @@ function mineStep(o, hopPaid) {
     if (o.goods_refund_status === "a_completer") return `2️⃣ Attendez le complément de ${UI.money(o.goods_refund)} avant de payer le magasin`;
     if (o.goods_refund_status === "a_rendre") return `${o.status === "recuperee" ? "3️⃣" : "2️⃣"} Rendez ${UI.money(o.goods_refund)} au client par Bit, puis livrez`;
   }
-  if (o.status === "recuperee" && o.hop_buy && o.goods_spent == null) return "3️⃣ Livrez · chez le client : 🧾 photo + montant du ticket, puis « Livré »";
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
   if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${o.goods_after ? "la course, " : ""}${UI.money(UI.payTotal(o))} (Bit / PayBox)${o.goods_prepay ? " avant d'acheter quoi que ce soit" : ", puis allez au départ"}`;
   const r = o.status === "confirmee" && pickupRank(o);
