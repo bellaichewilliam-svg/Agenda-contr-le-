@@ -5546,19 +5546,22 @@ function vitRenderNow() {
   $("#vitAddr > i").textContent = tag || "📍";
   const cur = currentWhen(), opt = whenOptions().find(o => o.id === cur);
   const at = val("urgency") === "programmee" && pickupDate();
-  $("#vitWhenTxt").textContent = cur === "now" ? t("hmNow").replace(/^\P{L}+/u, "")
+  const pausedAuto = !state.settings.accepting && state.autoSched && val("urgency") === "programmee" && document.documentElement.classList.contains("d3");
+  $("#vitWhenTxt").textContent = pausedAuto ? t("d3WhenBack") : cur === "now" ? t("hmNow").replace(/^\P{L}+/u, "")
     : at ? vitWhenShort(at) : t({ in1h: "hmIn1h", tonight: "hmTonight", tomorrow: "hmTomorrow", opens: "hmOpens", other: "vitOther" }[cur] || "vitOther", { h: (opt && (opt.h || (opt.d ? hhmm(opt.d) : ""))) || "" });
   $("#vitWhen").classList.toggle("on", $("#accueil").classList.contains("when-open"));
   const open = openNow(), st = $("#vitStatus");
   if (!open && document.documentElement.classList.contains("d3")) {
-    // Design clair (patron, 17/11 : « hyper subtil, propre, classe ») : un petit point qui respire et une ligne en gris,
-    // qui dit quand on repart (l'heure de la commande programmée d'office), sans bandeau ni couleur criarde
-    const busy = !!$("#openBadge [data-ob-plan]"), when = !busy && val("urgency") === "programmee" && pickupDate();
+    // Design clair (patron, 17/11) : un encart pâle bien lisible « Livraisons en pause », sans heure inventée quand le
+    // patron s'est mis lui-même hors service (on ne sait pas quand il reprend) ; hors des horaires : l'heure de reprise
+    const busy = !!$("#openBadge [data-ob-plan]"), paused = !state.settings.accepting;
+    const when = !busy && !paused && val("urgency") === "programmee" && pickupDate();
     const at = when && (() => { const d = new Date(when), z = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(), diff = Math.round((z(d) - z(new Date())) / 86400000);
       return diff === 0 ? t("d3AtToday", { h: hhmm(d) }) : diff === 1 ? t("d3AtTomorrow", { h: hhmm(d) }) : t("d3AtDay", { d: (DAYS[I18N.lang] || DAYS.fr)[d.getDay()].toLowerCase(), h: hhmm(d) }); })();
-    const msg = busy ? t("d3OffBusy") : at ? t("d3OffAt", { h: at }) : t("d3Off");
-    const html = `<s class="d3-dot" aria-hidden="true"></s><span>${UI.esc(msg)}</span>${busy ? `<button type="button" class="d3-off-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))}</button>` : ""}`;
+    const title = busy ? t("d3OffBusy") : t("d3OffT"), sub = busy ? t("d3OffBusyS") : at ? t("d3OffAt", { h: at }) : t("d3OffS");
+    const html = `<s class="d3-dot" aria-hidden="true"></s><span><b>${UI.esc(title)}</b><small>${UI.esc(sub)}</small></span>${busy ? `<button type="button" class="d3-off-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))}</button>` : ""}`;
     if (st.dataset.html !== html) { st.innerHTML = html; st.dataset.html = html; }
+    st.classList.toggle("busy", busy);
     st.title = $("#openBadge").title || $("#openBadge").textContent.trim();
   } else if (!open) {
     const short = ($("#openBadge .ob-txt") || $("#openBadge")).textContent.trim();

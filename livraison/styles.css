@@ -6644,3 +6644,11 @@ html.d3 .vit-status > .d3-dot::after { content: ""; position: absolute; inset: -
 html.d3 .vit-status > span { min-width: 0; }
 html.d3 .vit-status .d3-off-plan { flex: none; margin-inline-start: auto; border: 0; background: none; padding: 2px 0; font: inherit; font-weight: 700; color: #0F1F3D; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { html.d3 .vit-status > .d3-dot::after { animation: none; } }
+/* Hors service, plus visible (patron, 17/11 : « pas assez voyant ») : encart pâle ambré, titre en gras, point qui respire */
+html.d3 .vit-status:not(.hidden) { gap: 12px !important; margin: 4px 0 0 !important; padding: 12px 14px !important; background: #FFF4E2 !important; border: 1px solid #F6DFB8 !important; border-radius: 14px !important; color: #7A4B0B !important; }
+html.d3 .vit-status > span { display: grid; gap: 1px; flex: 1; }
+html.d3 .vit-status > span b { font-size: 15px; font-weight: 800; color: #5C3606; line-height: 1.25; }
+html.d3 .vit-status > span small { font-size: 13px; color: #7A4B0B; line-height: 1.35; }
+html.d3 .vit-status > .d3-dot { width: 10px !important; height: 10px !important; background: #E5A11A !important; }
+html.d3 .vit-status > .d3-dot::after { border-color: #E5A11A !important; }
+html.d3 .vit-status .d3-off-plan { padding: 8px 12px !important; border-radius: 99px !important; background: #0F1F3D !important; color: #fff !important; text-decoration: none !important; font-size: 13.5px; }
