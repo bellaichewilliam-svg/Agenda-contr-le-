@@ -1053,6 +1053,7 @@ function renderSpace() {
         <small class="muted">${UI.esc(UI.fmtDateTime(o.pickup_at))} · ${UI.esc(t("orderNo", { ref: o.ref }))}</small>${sentLine(o)}</div>
       <div class="num"><span class="pill st-${UI.esc(o.status)}">${UI.esc(t("st_" + o.status))}</span><br><b>${UI.money(o.price)}</b>
         ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<br><a class="small" href="${UI.trackUrl(o)}${o.shop_sent ? "&shop=1" : ""}">${UI.esc(t("shTrack"))}</a>` : ""}</div>
+      ${o.shop_sent ? `<div class="trk-send-row">${UI.shopTrackBtn(o, state.dash && state.dash.shop && state.dash.shop.name, t)}</div>` : ""}
     </div>`).join("") : `<p class="muted small">${UI.esc(t("shNoOrders"))}</p>`;
   foldTitles();
 }

@@ -6764,3 +6764,15 @@ html.d3 legend[data-i18n="s3"]::before { content: "B"; background: #E8590C; }
 /* Suivi : photo de livraison en grand */
 .del-photo { margin: 10px 0 0; }
 .del-photo img { display: block; width: 100%; max-height: 70vh; object-fit: contain; border-radius: 14px; background: #F2F3F5; }
+.trk-send-row { flex-basis: 100%; margin-top: 6px; }
+.shop-row { flex-wrap: wrap; }
+/* Finances livreur : détail rangé par jour */
+.fin-day { border-bottom: 1px solid rgba(127,127,127,.25); }
+.fin-day > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 2px; cursor: pointer; }
+.fin-day > summary::-webkit-details-marker { display: none; }
+.fin-day > summary span { display: flex; flex-direction: column; }
+.fin-day > summary span b { font-size: 16px; display: block; }
+.fin-day > summary span b::first-letter { text-transform: uppercase; }
+.fin-day > summary small { opacity: .7; font-size: 13px; }
+.fin-day-n { font-size: 17px; white-space: nowrap; }
+.fin-day[open] .fin-day-n { opacity: .6; }
