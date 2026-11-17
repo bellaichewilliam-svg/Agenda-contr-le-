@@ -6635,3 +6635,12 @@ html.d3 #emptyCart [data-ec-shops] { color: #0F1F3D !important; font-weight: 600
 .hv-su .hv-su-pin { background: none !important; border: 0 !important; z-index: 650 !important; }
 .hv-su .hv-su-pin i { display: block !important; width: 26px !important; height: 26px !important; border-radius: 50% 50% 50% 0 !important; transform: rotate(-45deg); background: #E8590C !important; border: 3px solid #fff !important; }
 .hv-su .hv-su-pin::before { content: ""; position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #E8590C; border: 3px solid #fff; }
+
+/* Hors service (patron, 17/11 : « hyper subtil, propre, classe ») : une ligne grise sous « Livrer à / Quand », un petit point qui respire */
+html.d3 .vit-status:not(.hidden) { display: flex !important; align-items: center; gap: 9px; justify-content: flex-start; margin: 2px 2px 0; padding: 0 !important; background: none !important; border: 0 !important; border-radius: 0; color: #5A6270 !important; font-size: 13.5px; font-weight: 500; line-height: 1.35; animation: d3Up .4s ease both; }
+html.d3 .vit-status > .d3-dot { flex: none; text-decoration: none; position: relative; width: 8px; height: 8px; border-radius: 50%; background: #C9CDD3; display: block !important; }
+html.d3 .vit-status > .d3-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid #C9CDD3; animation: d3Breath 2.8s ease-out infinite; }
+@keyframes d3Breath { 0% { transform: scale(.5); opacity: .9; } 100% { transform: scale(1.5); opacity: 0; } }
+html.d3 .vit-status > span { min-width: 0; }
+html.d3 .vit-status .d3-off-plan { flex: none; margin-inline-start: auto; border: 0; background: none; padding: 2px 0; font: inherit; font-weight: 700; color: #0F1F3D; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { html.d3 .vit-status > .d3-dot::after { animation: none; } }
