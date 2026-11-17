@@ -6664,3 +6664,15 @@ html.d3 .vit-status .d3-off-plan { padding: 8px 12px !important; border-radius: 
 .pa-mic.on svg { stroke: #fff; }
 @keyframes paMicOn { 50% { box-shadow: 0 0 0 7px rgba(15, 31, 61, .12); } }
 html[dir="rtl"] .pa-find { padding: 0 14px 0 6px; }
+
+/* « Une course, n'importe où » : le prix bien visible (patron, 17/11) */
+html.d3 .vit-course { display: grid !important; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 14px !important; padding: 16px !important; }
+html.d3 .vit-course::after { display: none !important; }
+html.d3 .vit-course .vc-ic { width: 52px; height: 52px; border-radius: 16px; background: #FCF3E3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='17' r='2.5'/%3E%3Ccircle cx='18' cy='17' r='2.5'/%3E%3Cpath d='M8.5 17h7M15 8h3l2.5 6.5M15 8l-2 6M4 12h7l2 2.5'/%3E%3Crect x='3' y='7' width='6' height='5' rx='1'/%3E%3C/svg%3E") center / 28px no-repeat; text-decoration: none; display: block !important; }
+html.d3 .vit-course .vc-txt { padding-inline-end: 0 !important; }
+html.d3 .vit-course .vc-txt > small.vc-price { display: block !important; font-size: 13.5px !important; line-height: 1.35; color: #5A6270 !important; margin-top: 2px !important; }
+html.d3 .vit-course .vc-tag { display: grid; justify-items: center; align-content: center; min-width: 74px; padding: 8px 10px; border-radius: 14px; background: #0F1F3D; color: #fff; text-align: center; line-height: 1.05; }
+html.d3 .vit-course .vc-tag b { font-size: 24px !important; font-weight: 800 !important; color: #fff !important; letter-spacing: -.01em; }
+html.d3 .vit-course .vc-tag small { font-size: 11.5px !important; font-weight: 600; color: #C9D3E6 !important; }
+html.d3 .vit-course .vc-txt { max-width: none !important; width: auto !important; flex: none !important; }
+html.d3 .vit-course .vc-txt > b { font-size: 16.5px !important; }
