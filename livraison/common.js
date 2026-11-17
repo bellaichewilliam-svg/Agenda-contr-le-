@@ -94,6 +94,16 @@ function welcomeMsg(o) {
     ? `שלום${name} 👋\nקיבלתם משלוח עם הופ! 🛵🧡${shop ? " (ההזמנה מ" + shop + ")" : ""}\nאנחנו מביאים לכם גם מכל החנויות בנתניה: קניות בסופר, בית מרקחת, מסעדות, חבילות, ניקוי יבש… החל מ־25 ₪ בעיר.\nמזמינים כאן 👉 ${welcomeUrl(o)}`
     : `Bonjour${name} 👋\nVous avez été livré avec HOP! 🛵🧡${shop ? " (votre commande chez " + shop + ")" : ""}\nOn vous livre aussi tous les magasins de Netanya : courses au supermarché, pharmacie, restos, colis, pressing… dès 25 ₪ en ville.\nCommandez ici 👉 ${welcomeUrl(o)}`;
 }
+// La personne livrée n'a pas commandé elle-même (course envoyée par un commerce ou pour quelqu'un d'autre) :
+// « votre colis est livré », le lien vers la photo de livraison (page de suivi), puis ce que HOP! livre aussi
+function deliveredMsg(o) {
+  const he = o.lang === "he", first = String(o.dropoff_contact || "").trim().split(/\s+/)[0];
+  const shop = o.shop_name ? bi(o.shop_name, he ? "he" : "fr") : "";
+  const name = first && first.length > 1 && !/^\d/.test(first) ? " " + first : "";
+  return he
+    ? `שלום${name} 👋\n📦 ההזמנה שלכם${shop ? " מ" + shop : ""} נמסרה${o.leave_at_door ? " ליד הדלת" : ""} ✅\nתמונת המסירה 👈 ${trackUrl(o)}\n\nהופ! 🛵 מביאים לכם גם מכל החנויות בנתניה, החל מ־25 ₪ בעיר: ${welcomeUrl(o)}`
+    : `Bonjour${name} 👋\n📦 Votre commande${shop ? " " + shop : ""} est livrée${o.leave_at_door ? " devant votre porte" : ""} ✅\nLa photo de la livraison 👉 ${trackUrl(o)}\n\nHOP! 🛵 vous livre aussi tous les magasins de Netanya, dès 25 ₪ en ville : ${welcomeUrl(o)}`;
+}
 function waShare(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
 // Patron : le WhatsApp « normal », pas WhatsApp Business, même quand Business est l'appli par défaut sur Android
 // (lien intent:// vers com.whatsapp ; sans WhatsApp normal, le lien wa.me habituel)
@@ -1246,7 +1256,7 @@ function parsePostSms(txt) {
 window.UI = {
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   ringTone, ringLoad, track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
-  deliveryEta, laterStart, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
+  deliveryEta, laterStart, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, deliveredMsg, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
   mapTiles, isNight, waitRule, ratingOf, ratingText, esc, linkify, buyList, parsePostSms, money, placeQuery, fmtTime, fmtDay, fmtDateTime, dayKey, noteTime, notBefore, curvePts, routeLayer, intlPhone, waLink, smsLink, waShare, waPersonal, wazeLink, mapsLink,
   cityFr, appUrl, trackUrl, orderText, whenFr, SERVICE_FR, PLACE_FR, SIZE_FR, PAY_FR
 };
