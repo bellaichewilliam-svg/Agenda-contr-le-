@@ -854,7 +854,7 @@ function card(o, kind) {
   }
   else if (o.eta_at && o.status === "confirmee" && !o.arrived_at) extra += `<div class="small">🕐 Attendu au départ vers ${UI.esc(new Date(o.eta_at).toLocaleTimeString(LOC, { hour: "2-digit", minute: "2-digit" }))} (${o.eta_min} min annoncées)</div>`;
   // « Je pars dans… » (patron, 17/11) : le livreur annonce quand il part ; le client est prévenu et voit l'heure
-  if (kind === "mine" && o.status === "confirmee" && !o.arrived_at) extra += `<div class="dep-box"><b>🛵 Je pars dans :</b><div>${[0, 10, 15, 20, 30].map(m => `<button type="button" class="ch-chip" data-dep="${UI.esc(o.id)}:${m}">${m ? m + " min" : "Maintenant"}</button>`).join("")}</div></div>`;
+  if (kind === "mine" && o.status === "confirmee" && !o.arrived_at) extra += `<div class="dep-box"><b>🛵 Je pars dans :</b>${o.eta_status === "ok" && o.eta_until ? `<p class="dep-ok">✅ Annoncé au client : départ vers <b>${UI.esc(new Date(o.eta_until).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}</b>${o.eta_at ? ` · au départ vers <b>${UI.esc(new Date(o.eta_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }))}</b>` : ""}</p>` : ""}<div>${[0, 10, 15, 20, 30].map(m => `<button type="button" class="ch-chip" data-dep="${UI.esc(o.id)}:${m}">${m ? m + " min" : "Maintenant"}</button>`).join("")}</div></div>`;
   if (o.service === "achat" && o.rx) extra += `<div class="bag-line">💊 Médicament sur ordonnance : carte d'identité du patient et ordonnance vérifiées par HOP!, à montrer à la pharmacie</div>`;
   if (o.post_send) extra += `<div class="bag-line">📮 Dépôt à la poste : rendez-vous <b>${UI.esc(UI.fmtDateTime(o.appt_at))}</b>. Envoi déjà payé (étiquette en photo) : n'avancez rien</div>`;
   if (o.p2p_sale) extra += `<div class="small">🤝 Vente entre particuliers : l'acheteur a déjà payé le vendeur. N'encaissez que la course, jamais le prix de l'objet</div>`;
@@ -920,7 +920,7 @@ function card(o, kind) {
         ? (o.arrived_at
             ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Store.freeMinOf(o, settings) - w.mins)} min ${o.purchase_min ? "d'achats comprises" : "encore offertes"}`}</p>${waitAnn(o)}`
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
-          + (o.hop_buy && (!Store.buyDone(o) || o.goods_spent == null) ? `<button class="btn btn-sm" type="button" disabled title="Cochez chaque article, puis la photo du ticket">🛵 Courses récupérées</button>`
+          + (o.hop_buy && !Store.buyDone(o) ? `<button class="btn btn-sm" type="button" disabled title="Cochez chaque article">🛵 Courses récupérées</button>`
             : `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 ${o.hop_buy ? "Courses récupérées" : "Colis récupéré"}</button>`)
           + `<button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
         : o.wait_status === "a_payer"
@@ -1208,7 +1208,7 @@ function mineStep(o, hopPaid) {
     const b = Store.hopBags(mine(), o), sac = b.of > 1 ? ` (sac ${b.n})` : "";
     if (o.payment_method !== "cash" && o.payment_status !== "paye") return `1️⃣ Faites-vous payer la livraison : ${UI.money(o.price)} par Bit, avant les courses`;
     if (!Store.buyDone(o)) return o.arrived_at ? `2️⃣ Faites les courses${sac} : cochez chaque article, ou « Manquant »` : `2️⃣ Allez au magasin · ${o.shop_name || ""}`;
-    if (o.goods_spent == null) return "3️⃣ Passez en caisse, puis 🧾 photo du ticket et son montant";
+    if (o.goods_spent == null) return "3️⃣ Passez en caisse, puis « Courses récupérées » (le ticket peut se rentrer chez le client, avant « Livré »)";
     return "4️⃣ Touchez « Courses récupérées » et livrez";
   }
   // Course envoyée par un commerce : le commerce paie en donnant le colis, ou le client à la livraison (Bit ou espèces)
@@ -1230,6 +1230,7 @@ function mineStep(o, hopPaid) {
     if (o.goods_refund_status === "a_completer") return `2️⃣ Attendez le complément de ${UI.money(o.goods_refund)} avant de payer le magasin`;
     if (o.goods_refund_status === "a_rendre") return `${o.status === "recuperee" ? "3️⃣" : "2️⃣"} Rendez ${UI.money(o.goods_refund)} au client par Bit, puis livrez`;
   }
+  if (o.status === "recuperee" && o.hop_buy && o.goods_spent == null) return "3️⃣ Livrez · chez le client : 🧾 photo + montant du ticket, puis « Livré »";
   if (o.status === "recuperee") return "3️⃣ Livrez le client";
   if (o.direct_pay && !hopPaid && o.payment_status !== "paye") return `1️⃣ Faites-vous payer ${o.goods_after ? "la course, " : ""}${UI.money(UI.payTotal(o))} (Bit / PayBox)${o.goods_prepay ? " avant d'acheter quoi que ce soit" : ", puis allez au départ"}`;
   const r = o.status === "confirmee" && pickupRank(o);
@@ -3499,17 +3500,6 @@ Store.adoptLinkSession().catch(() => false).then(async how => {
 UI.iosInstallHint("HOP! Livreur");
 window.hopReady = true;
 
-})();
-
-// « Gains de la semaine › » : descend jusqu'à la liste des courses de la semaine
-document.addEventListener("click", e => {
-  const a = e.target.closest("[data-fin-scroll]");
-  if (!a) return;
-  e.preventDefault();
-  const el = document.getElementById("finWeekCourses");
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-});
-
 // « Je pars dans… » : trajet estimé jusqu'au départ ajouté (le client voit l'heure d'arrivée au départ)
 document.addEventListener("click", async e => {
   const b = e.target.closest && e.target.closest("[data-dep]");
@@ -3525,3 +3515,14 @@ document.addEventListener("click", async e => {
   try { navigator.vibrate && navigator.vibrate(60); } catch (err) { /* ignore */ }
   await load();
 });
+})();
+
+// « Gains de la semaine › » : descend jusqu'à la liste des courses de la semaine
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-fin-scroll]");
+  if (!a) return;
+  e.preventDefault();
+  const el = document.getElementById("finWeekCourses");
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+});
+
