@@ -798,6 +798,8 @@ const VIDEOS = [
   { id: "sufganiya", aud: "client", title: "🍩 Nouveau · Hanoucca : pas touche à ma soufgania ! (10 s)" },
   // Nouveau (12/11) : « Parlez. C'est livré. » La 1re appli de livraison à commande vocale (23 s, motion design : video/src/Voix.tsx)
   { id: "voix", aud: "client", title: "🎙️ Nouveau · Parlez. C'est livré. La 1re appli de livraison à commande vocale (23 s)" },
+  // Nouveau (18/11) : « Votre vaisselle au mikvé, et retour » (vidéo Gemini du patron montée : video/src/Mikve.tsx), 85 ₪ tout compris
+  { id: "mikve", aud: "client", title: "🫧 Nouveau · Votre vaisselle au mikvé, et retour · 85 ₪ (13 s)" },
   // Nouveau (11/11, validée par le patron) : « Vos mezouzot chez le sofer, et retour » (vidéo Gemini montée : video/src/Mezouzot.tsx)
   { id: "mezouzot", aud: "client", title: "📜 Nouveau · Vos mezouzot chez le sofer, et retour (13 s)" },
   // Pub vidéo (video/pubs/monter.py)
@@ -846,7 +848,7 @@ else if (location.hash === "#nouveaux") ui.tab = "visuels";
 if (!ui.cl || typeof ui.cl !== "object") ui.cl = {};
 // Pour retrouver une pub : la recherche, et ces thèmes (mots cherchés dans le titre et la description)
 const THEMES = [["", "Tout", null], ["courses", "🛒 Courses", /course|carrefour|booom|magasin|boutique|marche|liste|frigo|snack/], ["restos", "🍔 Restos", /resto|restaurant|mcdo|mcdonald|sushi|pizza|\bjus\b|plat|repas|chaud/],
-  ["chabbat", "🕯️ Chabbat", /chabbat|hallot|kemia|table|vendredi/], ["services", "📦 Colis, pharmacie…", /colis|poste|pharmac|medicament|pressing|fleur|mezouz|cle/], ["hoppy", "🦘 Hoppy", /hoppy/],
+  ["chabbat", "🕯️ Chabbat", /chabbat|hallot|kemia|table|vendredi/], ["services", "📦 Colis, pharmacie…", /colis|poste|pharmac|medicament|pressing|fleur|mezouz|mikve|cle/], ["hoppy", "🦘 Hoppy", /hoppy/],
   ["marque", "⭐ Présenter HOP!", /lancement|showreel|grille|simple|cycle|voix|parl|present|groupes|statut|itineraire|paiement|page hop|evolue|adopte|arret|tout/]];
 function renderKit() {
   try { localStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* navigation privée */ }
