@@ -1,0 +1,68 @@
+{
+  "name": "HOP! Commerce · הופ! לעסקים",
+  "short_name": "HOP! Commerce",
+  "description": "L'espace commerce HOP! : envoyer une course à un client, suivre ses commandes",
+  "start_url": "/commerce.html",
+  "scope": "/commerce.html",
+  "display": "standalone",
+  "background_color": "#0F1F3D",
+  "theme_color": "#FFFFFF",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "splash-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "id": "/commerce.html",
+  "share_target": {
+    "action": "/app/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "shortcuts": [
+    {
+      "name": "Parler à Hoppy · לדבר עם הופי",
+      "short_name": "Hoppy",
+      "description": "Commander à la voix",
+      "url": "/app/?hoppy=1",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Toutes les promos · כל המבצעים",
+      "short_name": "Promos",
+      "url": "/app/?promos",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
