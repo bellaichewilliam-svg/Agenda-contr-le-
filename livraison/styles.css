@@ -6845,3 +6845,4 @@ html.d3 #homeKinds .ch-kind.d3-mikve .k2-ic { background-color: #E3F0FB !importa
 .sp-install .spi-head p { margin: 4px 0 0; font-size: 14px; line-height: 1.4; opacity: .8; }
 .sp-install .spi-steps { margin: 12px 0 0; padding-inline-start: 22px; display: grid; gap: 6px; font-size: 14px; }
 .sp-install .spi-btns { display: flex; gap: 8px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+html .pm-off.pm-pin { white-space: nowrap; letter-spacing: 0; }
