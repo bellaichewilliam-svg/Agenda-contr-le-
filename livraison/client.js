@@ -5928,6 +5928,12 @@ function renderHomeStatic() {
       pr.addEventListener("click", e => { e.stopPropagation(); UI.track("promos_tile"); openPromosAll(""); });
       hk0.prepend(pr);
     }
+    // Carré « Vaisselle au mikvé » (patron, 18/11) : juste après les promos, prix fixe, seulement l'adresse à donner
+    const mkb = document.createElement("button");
+    mkb.type = "button"; mkb.className = "ch-kind d3-mikve"; mkb.dataset.mikve = "1";
+    mkb.innerHTML = `<span class="k2-ic"></span><b>${UI.esc(t("mkTile"))}</b>`;
+    mkb.addEventListener("click", e => { e.stopPropagation(); mikveOpen(); });
+    if (hk0.firstChild) hk0.firstChild.after(mkb); else hk0.prepend(mkb);
     const hk = hk0, n = hk.children.length;
     hk.dataset.title = t("d3Kinds");
     [...hk.children].forEach((e, i) => e.style.setProperty("--i", i < 8 ? i : i - 8));
@@ -9988,7 +9994,123 @@ if ($("#tbCart")) {
   if ((reopen || new URLSearchParams(location.search).has("cart")) && c0) setTimeout(() => openStoredCart().catch(() => {}), 600);
 }
 
-})();
 
 // Boutique HOP! : les articles écrits à la main comptent tout de suite dans la jauge (articles et top case)
 form.shop_order.addEventListener("input", () => { if (!hopBuyOn()) return; clearTimeout(form.shop_order._t); form.shop_order._t = setTimeout(() => { try { renderCatalog(); } catch (e) { /* ignore */ } }, 400); });
+
+// ===== Vaisselle au mikvé (patron, 18/11) =====================================================================
+// « On emmène votre vaisselle au mikvé » : prix fixe (aller-retour 35 ₪ + service 50 ₪), tout est déjà défini ;
+// HOP! va au mikvé de kelim le plus proche : le client donne seulement son adresse (et son nom, son téléphone).
+// La course : départ = chez le client (on prend la vaisselle), arrivée = chez le client (on la ramène), aller-retour.
+const MK = () => Object.assign({ trip: 35, service: 50 }, CONFIG.pricing.mikve || {});
+const mkTotal = () => MK().trip + MK().service;
+const mk = { when: "now", pay: "cash", busy: false };
+function mikveOpen() {
+  UI.track("mikve_open");
+  let box = $("#mikveSheet");
+  if (!box) { box = document.createElement("div"); box.id = "mikveSheet"; box.className = "modal mk-modal hidden"; document.body.appendChild(box); }
+  const prof = Store.getProfile() || {}, list = Store.getAddresses().filter(a => !a.brand);
+  const d = defaultDropAddr() || list[0] || null, e = UI.esc;
+  const addrTxt = a => [a.street, a.number].filter(Boolean).join(" ");
+  box.innerHTML = `<div class="mk-card" role="dialog" aria-modal="true">
+    <button type="button" class="mk-x" data-mk-close aria-label="${e(t("mkClose"))}">✕</button>
+    <div class="mk-hero"><span class="mk-ic"></span><div><h2>${e(t("mkTitle"))}</h2><p>${e(t("mkSub"))}</p></div></div>
+    <ol class="mk-steps"><li>${e(t("mkStep1"))}</li><li>${e(t("mkStep2"))}</li><li>${e(t("mkStep3"))}</li></ol>
+    <div class="mk-price"><div><span>${e(t("mkTrip"))}</span><b>${e(UI.money(MK().trip))}</b></div><div><span>${e(t("mkService"))}</span><b>${e(UI.money(MK().service))}</b></div>
+      <div class="mk-tot"><span>${e(t("mkTotal"))}</span><b>${e(UI.money(mkTotal()))}</b></div></div>
+    <form class="mk-form" novalidate>
+      <h3>${e(t("mkWhere"))}</h3>
+      ${list.length ? `<div class="mk-chips">${list.slice(0, 4).map((a, i) => `<button type="button" class="ch-chip" data-mk-addr="${i}">${e(a.tag === "home" ? t("tagHome") : a.tag === "work" ? t("tagWork") : addrTxt(a))}</button>`).join("")}</div>` : ""}
+      <label class="mk-f mk-wide"><span>${e(t("mkStreet"))}</span><input name="street" autocomplete="street-address" value="${e(d ? addrTxt(d) : "")}" placeholder="${e(t("mkStreetPh"))}" /></label>
+      <label class="mk-f"><span>${e(t("mkFloor"))}</span><input name="floor" inputmode="numeric" value="${e(d && d.floor || "")}" /></label>
+      <label class="mk-f"><span>${e(t("mkApt"))}</span><input name="apt" value="${e(d && d.apt || "")}" /></label>
+      <label class="mk-f"><span>${e(t("mkCode"))}</span><input name="code" value="${e(d && d.code || "")}" /></label>
+      <label class="mk-f"><span>${e(t("mkCity"))}</span><select name="city">${CONFIG.cities.filter(c => UI.cityActive(c.id)).map(c => `<option value="${c.id}"${(d && (d.cityId || d.city) || CONFIG.homeCity) === c.id ? " selected" : ""}>${e(c[I18N.lang] || c.fr)}</option>`).join("")}</select></label>
+      <h3>${e(t("mkWho"))}</h3>
+      <label class="mk-f"><span>${e(t("mkName"))}</span><input name="name" autocomplete="name" value="${e(prof.contact_name || "")}" /></label>
+      <label class="mk-f"><span>${e(t("mkPhone"))}</span><input name="phone" type="tel" inputmode="tel" autocomplete="tel" value="${e(prof.contact_phone || "")}" /></label>
+      <label class="mk-f mk-wide"><span>${e(t("mkNote"))}</span><input name="note" placeholder="${e(t("mkNotePh"))}" /></label>
+      <h3>${e(t("mkWhen"))}</h3>
+      <div class="mk-seg" data-mk-seg="when"><button type="button" data-v="now" class="on">${e(t("mkNow"))}</button><button type="button" data-v="at">${e(t("mkLater"))}</button></div>
+      <label class="mk-f mk-wide mk-at hidden"><span>${e(t("mkAt"))}</span><input name="at" type="datetime-local" /></label>
+      <h3>${e(t("mkPay"))}</h3>
+      <div class="mk-seg" data-mk-seg="pay"><button type="button" data-v="cash" class="on">${e(t("mkCash"))}</button><button type="button" data-v="bit">Bit</button></div>
+      <p class="mk-err hidden"></p>
+      <button type="submit" class="btn btn-primary btn-block mk-go">${e(t("mkGo", { price: UI.money(mkTotal()) }))}</button>
+    </form></div>`;
+  Object.assign(mk, { when: "now", pay: "cash", busy: false, list });
+  const f = box.querySelector("form"), at = f.elements.at;
+  const pad = n => String(n).padStart(2, "0"), loc = x => `${x.getFullYear()}-${pad(x.getMonth() + 1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}`;
+  at.min = loc(new Date(Date.now() + 30 * 60000)); at.value = loc(new Date(Date.now() + 2 * 3600000));
+  box.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+  history.pushState({ mk: 1 }, "", location.href); here = location.href;
+}
+function mikveClose() { const b = $("#mikveSheet"); if (b) b.classList.add("hidden"); document.body.classList.remove("modal-open"); }
+document.addEventListener("click", e => {
+  const box = e.target.closest && e.target.closest("#mikveSheet");
+  if (!box) return;
+  if (e.target === box || e.target.closest("[data-mk-close]")) { mikveClose(); return; }
+  const seg = e.target.closest("[data-mk-seg] button");
+  if (seg) {
+    const w = seg.parentElement.dataset.mkSeg;
+    seg.parentElement.querySelectorAll("button").forEach(b => b.classList.toggle("on", b === seg));
+    mk[w] = seg.dataset.v;
+    if (w === "when") box.querySelector(".mk-at").classList.toggle("hidden", mk.when !== "at");
+    return;
+  }
+  const ch = e.target.closest("[data-mk-addr]");
+  if (ch) {
+    const a = mk.list[Number(ch.dataset.mkAddr)], f = box.querySelector("form");
+    if (!a) return;
+    f.elements.street.value = [a.street, a.number].filter(Boolean).join(" ");
+    f.elements.floor.value = a.floor || ""; f.elements.apt.value = a.apt || ""; f.elements.code.value = a.code || "";
+    if (a.cityId || a.city) f.elements.city.value = a.cityId || a.city;
+    mk.pickAddr = a;
+    box.querySelectorAll("[data-mk-addr]").forEach(b => b.classList.toggle("on", b === ch));
+  }
+});
+document.addEventListener("submit", async e => {
+  const f = e.target.closest && e.target.closest("#mikveSheet form");
+  if (!f) return;
+  e.preventDefault();
+  if (mk.busy) return;
+  const v = n => String(f.elements[n].value || "").trim(), err = f.querySelector(".mk-err");
+  const bad = msg => { err.textContent = msg; err.classList.remove("hidden"); };
+  const need = ["street", "floor", "apt", "name", "phone"].filter(n => !v(n));
+  f.querySelectorAll(".bad").forEach(x => x.classList.remove("bad"));
+  need.forEach(n => f.elements[n].classList.add("bad"));
+  if (need.length) { f.elements[need[0]].focus(); return bad(t("mkErrMissing")); }
+  const tel = String(v("phone")).replace(/\D/g, "").replace(/^972/, "0");
+  if (!/^05\d{8}$|^0[2-9]\d{7}$/.test(tel)) { f.elements.phone.classList.add("bad"); return bad(t("mkErrPhone")); }
+  let when = new Date();
+  if (mk.when === "at") { when = new Date(v("at")); if (isNaN(when) || when < Date.now() + 20 * 60000) { f.elements.at.classList.add("bad"); return bad(t("mkErrAt")); } }
+  err.classList.add("hidden");
+  mk.busy = true;
+  const btn = f.querySelector(".mk-go"); btn.disabled = true; btn.textContent = t("mkSending");
+  try {
+    const city = v("city") || CONFIG.homeCity, cityObj = Pricing.cityById(CONFIG, city);
+    const a = mk.pickAddr && [mk.pickAddr.street, mk.pickAddr.number].filter(Boolean).join(" ") === v("street") ? mk.pickAddr : null;
+    let pt = a && a.lat != null ? { lat: a.lat, lon: a.lon, exact: !!a.exact } : null;
+    if (!pt) { const g = await Pricing.geocode(`${v("street")}, ${cityObj ? cityObj.fr : ""}`, CONFIG.countryCode, 3000).catch(() => null); if (g) pt = { lat: g.lat, lon: g.lon, exact: false }; }
+    const note = [t("mkCourierNote"), v("note") ? "📦 " + v("note") : ""].filter(Boolean).join("\n");
+    const saved = await Store.createOrder({
+      service: "colis", size: "moyen", lang: I18N.lang, urgency: mk.when === "at" ? "programmee" : "asap", round_trip: true,
+      from_city: city, to_city: city, pickup_at: when.toISOString(),
+      pickup_address: v("street"), pickup_lat: pt ? pt.lat : null, pickup_lon: pt ? pt.lon : null, pickup_exact: !!(pt && pt.exact),
+      pickup_floor: v("floor"), pickup_apt: v("apt"), pickup_code: v("code") || null, pickup_contact: v("name"), pickup_phone: tel,
+      dropoff_address: v("street"), dropoff_lat: pt ? pt.lat : null, dropoff_lon: pt ? pt.lon : null, dropoff_exact: !!(pt && pt.exact),
+      dropoff_floor: v("floor"), dropoff_apt: v("apt"), dropoff_code: v("code") || null, dropoff_contact: v("name"), dropoff_phone: tel,
+      contact_name: v("name"), contact_phone: tel, payment_method: mk.pay, payer: "moi",
+      price: mkTotal(), discount: 0, distance_km: 0, notes: note
+    });
+    Store.saveProfile(Object.assign({}, Store.getProfile(), { contact_name: v("name"), contact_phone: tel }));
+    UI.track("mikve_order");
+    location.href = UI.trackUrl(saved);
+  } catch (ex) {
+    mk.busy = false; btn.disabled = false; btn.textContent = t("mkGo", { price: UI.money(mkTotal()) });
+    bad(t("mkErrSend", { phone: CONFIG.phoneDisplay }));
+  }
+});
+
+})();
