@@ -10,10 +10,17 @@ const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 const NAVY = '#0B1830', NAVY2 = '#0F1F3D', ORANGE = '#FF6A13';
 type Lang = 'fr' | 'he';
 const font = (lang: Lang) => (lang === 'he' ? 'Rubik' : 'Fredoka');
-const FPS = 30, VID = 300, END = 105;
+const FPS = 30, END = 105;
+// Les morceaux de la vidéo Gemini (secondes de la vidéo d'origine) mis bout à bout. Au mikvé, Gemini n'a jamais mis la
+// casserole entièrement sous l'eau (le bord dépasse) : on ne garde que le moment où elle ressort, pleine d'eau et qui
+// ruisselle, au ralenti (patron, 18/11 : la tevila doit être complète, les clients pratiquants le verraient).
+const SEGS = [{ from: 0, to: 4.46, rate: 1 }, { from: 5.55, to: 5.96, rate: 0.35 }, { from: 6, to: 10, rate: 1 }];
+const SEG_T: { at: number; len: number; from: number; rate: number }[] = [];
+SEGS.reduce((at, sg) => { const len = (sg.to - sg.from) / sg.rate; SEG_T.push({ at, len, from: sg.from, rate: sg.rate }); return at + len; }, 0);
+const VID = Math.round((SEG_T[SEG_T.length - 1].at + SEG_T[SEG_T.length - 1].len) * FPS);
 export const MIKVE_FRAMES = VID + END;
-// Les plans de la vidéo Gemini (secondes) : déballage, carton à Hoppy, scooter, mikvé, retour, table mise
-const CUTS = [0, 1.46, 3, 4.46, 6, 7.5, 10];
+// Les plans à l'écran (secondes) : déballage, carton à Hoppy, scooter, mikvé, retour, table mise
+const CUTS = [0, 1.46, 3, SEG_T[1].at, SEG_T[2].at, SEG_T[2].at + 1.5, VID / FPS];
 const VIDEO = 'mikve/gemini-v1.mp4';
 
 const TXT = {
@@ -57,8 +64,11 @@ const Film: React.FC = () => {
   const flash = c > 0 ? interpolate(since, [0, 2, 8], [0.35, 0.2, 0], clamp) : 0;
   return (
     <AbsoluteFill style={{ transform: `scale(${punch})` }}>
-      <OffthreadVideo src={staticFile(VIDEO)} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-        volume={v => interpolate(v, [0, 4, VID - 12, VID], [0, 1, 1, 0], clamp)} />
+      {SEG_T.map((sg, i) => (
+        <Sequence key={i} from={Math.round(sg.at * FPS)} durationInFrames={Math.round(sg.len * FPS) + (i === SEG_T.length - 1 ? 0 : 1)}>
+          <OffthreadVideo src={staticFile(VIDEO)} startFrom={Math.round(sg.from * FPS)} playbackRate={sg.rate} style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            volume={sg.rate < 1 ? 0 : 1} />
+        </Sequence>))}
       <AbsoluteFill style={{ background: 'linear-gradient(180deg, rgba(8,17,31,.82) 0%, rgba(8,17,31,.35) 26%, transparent 40%, transparent 72%, rgba(8,17,31,.75) 100%)' }} />
       <AbsoluteFill style={{ background: 'radial-gradient(circle, #fff 0%, rgba(255,106,19,.6) 100%)', mixBlendMode: 'screen', opacity: flash }} />
     </AbsoluteFill>
