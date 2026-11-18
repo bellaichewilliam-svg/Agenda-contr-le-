@@ -127,6 +127,8 @@ window.CONFIG = {
     // Pas encore de voiture : l'option « Gros colis » est cachée. Mettez true pour l'ouvrir
     // (les prix voiture ci-dessous sont déjà prêts).
     carAvailable: false,
+    // Vaisselle au mikvé (tevilat kelim, patron 18/11) : prix fixe, aller-retour chez le client + le service (on trempe pour lui)
+    mikve: { trip: 35, service: 50 },
     fixedFromHome: {
       "netanya": 25,
       "nordia": 35, "havatselet": 40, "beit-yitzhak": 40, "yakum": 40,
