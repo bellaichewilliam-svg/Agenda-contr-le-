@@ -2663,6 +2663,10 @@ async function cartSave(body) {
       step: body.step || prev.step || "panier", boss: !!(prev.boss || body.boss), open_notice: !!(prev.open_notice || body.open_notice) });
   writeJSON("livraison.carts.v1", all);
 }
+// API HOP! (restaurants) : clés par commerce, créées et coupées par le patron
+async function adminApiKeys() { if (!ONLINE) return []; return authRest("/rest/v1/rpc/admin_api_keys", { method: "POST", body: {} }); }
+async function adminApiKeyCreate(shopId, label, webhook) { return authRest("/rest/v1/rpc/admin_api_key_create", { method: "POST", body: { p_shop: shopId, p_label: label || null, p_webhook: webhook || null } }); }
+async function adminApiKeyUpdate(id, active, webhook) { return authRest("/rest/v1/rpc/admin_api_key_update", { method: "POST", body: { p_id: id, p_active: active, p_webhook: webhook == null ? null : webhook } }); }
 async function adminCarts() {
   if (ONLINE) return (await authRest("/rest/v1/carts?select=*&status=neq.vide&order=updated_at.desc&limit=300")) || [];
   return Object.values(readJSON("livraison.carts.v1", {})).filter(c => c.status !== "vide").sort((a, b) => String(b.updated_at).localeCompare(a.updated_at));
@@ -2950,7 +2954,7 @@ window.Store = {
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, courierEtaSet, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
   todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, cartPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
-  appPromos, adminPromos, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
+  appPromos, adminPromos, adminApiKeys, adminApiKeyCreate, adminApiKeyUpdate, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
   myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaPhoto, iaEcoute, placeSuggest, adminPlacesAsked, adminPlaceAskedDone, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,

@@ -1161,6 +1161,8 @@ function render() {
     renderDaily(view);
   } else if (tab === "messages") {
     renderMessages(view);
+  } else if (tab === "api") {
+    renderApi(view);
   } else if (tab === "demandes") {
     renderRequests(view);
   } else if (tab === "messagerie") {
@@ -3394,7 +3396,7 @@ $("#logoutBtn").addEventListener("click", async e => {
   try { localStorage.removeItem(LS_DUTY); } catch (ex) { /* ignore */ }
   Store.logout(); showLogin();
 });
-$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); if (tab === "rayons") loadRayons(); if (tab === "paniers" || tab === "jours") loadCarts(); } });
+$("#tabs").addEventListener("click", e => { const b = e.target.closest("[data-tab]"); if (b) { tab = b.dataset.tab; lastTab[groupOf(tab)] = tab; render(); if (tab === "clients") loadClients(); if (tab === "rayons") loadRayons(); if (tab === "paniers" || tab === "jours") loadCarts(); if (tab === "api") loadApi(); } });
 // Une rubrique : on retrouve son dernier onglet (sinon le premier)
 const lastTab = {};
 $("#admGroups").addEventListener("click", e => {
@@ -3545,7 +3547,6 @@ document.addEventListener("click", async e => {
   body.innerHTML = head + `<div class="hd-log">${list.map(x => `<div class="hd-me"><small>${UI.esc(UI.fmtTime(x.at))}</small>${UI.esc(x.client || "")}</div>${x.hoppy ? `<div class="hd-hop">${UI.esc(x.hoppy)}</div>` : x.etat === "erreur" ? `<div class="hd-hop err">(Hoppy n'a pas répondu)</div>` : ""}`).join("")}</div>`
     + (bk.length ? UI.buyList(bk.map(i => `${i.name} ×${i.qty || 1}`).join("\n"), "Panier compris par Hoppy") : "");
 });
-})();
 
 // 📊 « Commande ouverte » touché : descend jusqu'à la liste des commandes ouvertes et pas envoyées
 document.addEventListener("click", e => {
@@ -3554,3 +3555,62 @@ document.addEventListener("click", e => {
   if (c) c.scrollIntoView({ behavior: "smooth", block: "start" });
 });
 
+// ===== API HOP! (patron, 18/11) : une clé secrète par commerce pour l'appli d'un restaurant =====================
+// La clé n'est montrée qu'une fois (à la création) : seule son empreinte est gardée. On peut la couper à tout moment.
+let apiKeys = null, apiNew = null;
+const API_DOC = "https://hop-livraison.vercel.app/api.html";
+async function loadApi() { apiKeys = (await Store.adminApiKeys().catch(() => null)) || []; if (tab === "api") render(); }
+function renderApi(view) {
+  if (apiKeys == null) { view.innerHTML = `<div class="card"><p class="muted">Chargement…</p></div>`; loadApi(); return; }
+  const live = shops.filter(x => !x.demo && x.status !== "suspendu").sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const e = UI.esc, when = d => d ? UI.fmtDateTime(d) : "jamais";
+  view.innerHTML = `
+    <div class="card api-card">
+      <h3>🔌 API HOP! pour les applis de restaurants</h3>
+      <p class="muted small">Une appli de restaurant (comme celle de ton ami) crée elle-même ses courses chez HOP! : prix HOP! (25 / 30 ₪…), le client paie le livreur, départ = le restaurant. Chaque restaurant doit être un commerce HOP! et a <b>sa propre clé</b>. Documentation à envoyer au développeur : <a href="${API_DOC}" target="_blank" rel="noopener">${API_DOC}</a></p>
+      ${apiNew ? `<div class="api-new"><b>✅ Clé créée pour ${e(apiNew.shop)}</b>
+        <p class="small">Copiez-la maintenant et envoyez-la au développeur avec le lien de la documentation : <b>elle ne sera plus jamais affichée</b>.</p>
+        <label class="small">Clé API</label><div class="api-copy"><code>${e(apiNew.key)}</code><button type="button" class="btn btn-sm" data-api-copy="${e(apiNew.key)}">Copier</button></div>
+        <label class="small">Secret de l'avertissement automatique (webhook)</label><div class="api-copy"><code>${e(apiNew.webhook_secret)}</code><button type="button" class="btn btn-sm" data-api-copy="${e(apiNew.webhook_secret)}">Copier</button></div>
+        <button type="button" class="btn btn-sm btn-link" data-api-hide>J'ai copié, masquer</button></div>` : ""}
+      <form class="api-form" data-api-form>
+        <label>Commerce<select name="shop" required><option value="">Choisir le restaurant…</option>${live.map(x => `<option value="${e(x.id)}">${e(x.name)}</option>`).join("")}</select></label>
+        <label>Nom de la clé (pour s'y retrouver)<input name="label" placeholder="Ex. : appli de Yoni" /></label>
+        <label>Adresse de l'avertissement automatique (facultatif, https://…)<input name="webhook" placeholder="https://…" /></label>
+        <button class="btn btn-primary" type="submit">Créer une clé</button>
+      </form>
+    </div>
+    <div class="card"><h3>Clés existantes (${apiKeys.length})</h3>
+      ${apiKeys.length ? apiKeys.map(k => `<div class="api-row${k.active ? "" : " off"}">
+        <div><b>${e(k.shop_name)}</b> · ${e(k.label || "sans nom")} <span class="muted small">…${e(k.key_hint || "")}</span>
+          <br><small class="muted">${k.active ? "🟢 active" : "⚪ coupée"} · ${k.deliveries} course(s) · dernière utilisation : ${e(when(k.last_used_at))}${k.webhook_url ? " · avertissement : " + e(k.webhook_url) : ""}</small></div>
+        <button type="button" class="btn btn-sm${k.active ? "" : " btn-primary"}" data-api-toggle="${e(k.id)}" data-on="${k.active ? "0" : "1"}">${k.active ? "Couper" : "Rallumer"}</button>
+      </div>`).join("") : `<p class="muted small">Pas encore de clé.</p>`}
+    </div>`;
+}
+document.addEventListener("submit", async ev => {
+  const f = ev.target.closest && ev.target.closest("[data-api-form]");
+  if (!f) return;
+  ev.preventDefault();
+  const shopId = f.elements.shop.value, wh = f.elements.webhook.value.trim();
+  if (!shopId) return alert("Choisissez le restaurant.");
+  if (wh && !/^https:\/\//.test(wh)) return alert("L'adresse de l'avertissement doit commencer par https://");
+  try {
+    const r = await Store.adminApiKeyCreate(shopId, f.elements.label.value.trim(), wh);
+    apiNew = Object.assign({}, r, { shop: (shops.find(x => x.id === shopId) || {}).name || "" });
+    await loadApi();
+  } catch (ex) { alert("Clé non créée, réessayez."); }
+});
+document.addEventListener("click", async ev => {
+  const c = ev.target.closest("[data-api-copy]");
+  if (c) { try { await navigator.clipboard.writeText(c.dataset.apiCopy); c.textContent = "Copié ✓"; } catch (e) { prompt("Copiez :", c.dataset.apiCopy); } return; }
+  if (ev.target.closest("[data-api-hide]")) { apiNew = null; render(); return; }
+  const b = ev.target.closest("[data-api-toggle]");
+  if (!b) return;
+  const on = b.dataset.on === "1";
+  if (!on && !confirm("Couper cette clé ? L'appli qui l'utilise ne pourra plus créer de courses (les courses déjà créées continuent).")) return;
+  b.disabled = true;
+  try { await Store.adminApiKeyUpdate(b.dataset.apiToggle, on, null); } catch (e) { alert("Pas enregistré, réessayez."); }
+  await loadApi();
+});
+})();
