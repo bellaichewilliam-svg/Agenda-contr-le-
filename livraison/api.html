@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>API HOP! Livraison</title>
+<meta name="description" content="API HOP! : créer et suivre des livraisons depuis l'appli d'un restaurant (Netanya et HaSharon)." />
+<link rel="icon" href="logo.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root { --ink: #111418; --mut: #5A6270; --line: #E6E8EB; --soft: #F2F3F5; --navy: #0F1F3D; --or: #FF6A13; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; color: var(--ink); font: 400 16px/1.55 Heebo, system-ui, sans-serif; }
+  header { background: var(--navy); color: #fff; padding: 28px 16px 26px; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 0 16px; }
+  header .wrap { padding: 0; }
+  .logo { font-weight: 800; font-size: 28px; letter-spacing: -.5px; } .logo i { font-style: normal; color: var(--or); }
+  header h1 { margin: 8px 0 4px; font-size: 24px; line-height: 1.25; }
+  header p { margin: 0; opacity: .85; }
+  .lang { float: right; display: flex; gap: 6px; } [dir=rtl] .lang { float: left; }
+  .lang button { border: 1px solid rgba(255,255,255,.4); background: transparent; color: #fff; border-radius: 999px; padding: 4px 12px; font: 600 13px Heebo, sans-serif; cursor: pointer; }
+  .lang button.on { background: #fff; color: var(--navy); }
+  main { padding: 8px 0 60px; }
+  h2 { font-size: 21px; margin: 32px 0 8px; } h3 { font-size: 17px; margin: 22px 0 6px; }
+  .card { border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin: 12px 0; }
+  pre { background: var(--soft); border-radius: 12px; padding: 14px; overflow-x: auto; font: 13px/1.5 ui-monospace, Menlo, Consolas, monospace; direction: ltr; text-align: left; }
+  code { font: 13.5px ui-monospace, Menlo, Consolas, monospace; background: var(--soft); padding: 1px 6px; border-radius: 6px; direction: ltr; unicode-bidi: isolate; }
+  pre code { background: none; padding: 0; }
+  .ep { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-weight: 700; }
+  .m { display: inline-block; min-width: 52px; text-align: center; border-radius: 8px; padding: 1px 8px; font: 700 12px ui-monospace, monospace; color: #fff; background: var(--navy); }
+  .m.post { background: #E8590C; }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; } td, th { text-align: start; border-top: 1px solid var(--line); padding: 8px 6px; vertical-align: top; } th { color: var(--mut); font-weight: 500; }
+  .muted { color: var(--mut); }
+  td code, p code { word-break: break-all; } pre { max-width: 100%; } table { table-layout: fixed; } th { width: 34%; } main { overflow-wrap: anywhere; }
+  .pill { display: inline-block; background: var(--soft); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
+  .en { display: none; } body.l-en .fr { display: none; } body.l-en .en { display: initial; } body.l-en div.en, body.l-en p.en, body.l-en section.en { display: block; }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="lang"><button type="button" data-l="fr" class="on">FR</button><button type="button" data-l="en">EN</button></div>
+  <div class="logo">HOP<i>!</i></div>
+  <h1><span class="fr">API HOP! Livraison</span><span class="en">HOP! Delivery API</span></h1>
+  <p class="fr">Créer et suivre des livraisons depuis l'appli d'un restaurant ou d'un commerce, à Netanya et dans le Sharon.</p>
+  <p class="en">Create and track deliveries from a restaurant or shop app, in Netanya and the Sharon area.</p>
+</div></header>
+<main class="wrap">
+
+<section>
+  <h2><span class="fr">En bref</span><span class="en">Overview</span></h2>
+  <div class="card">
+    <p class="fr">Chaque restaurant a <b>sa propre clé secrète</b>, donnée par HOP!. Le départ est toujours le restaurant (son adresse est déjà connue de HOP!). Vous envoyez seulement le client (nom, téléphone, adresse) : HOP! calcule le prix, trouve un livreur et donne un lien de suivi pour le client. <b>Le client paie le livreur à la livraison</b> (espèces ou Bit).</p>
+    <p class="en">Each restaurant has <b>its own secret key</b>, issued by HOP!. Pickup is always the restaurant (HOP! already knows its address). You only send the customer (name, phone, address): HOP! computes the price, finds a courier and returns a tracking link for the customer. <b>The customer pays the courier on delivery</b> (cash or Bit).</p>
+    <table>
+      <tr><th><span class="fr">Adresse de base</span><span class="en">Base URL</span></th><td><code>https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/hop-api</code></td></tr>
+      <tr><th><span class="fr">Clé</span><span class="en">Key</span></th><td><code>Authorization: Bearer hop_live_…</code> <span class="muted">(<span class="fr">ou</span><span class="en">or</span> <code>X-API-Key: hop_live_…</code>)</span></td></tr>
+      <tr><th><span class="fr">Format</span><span class="en">Format</span></th><td>JSON · <code>Content-Type: application/json</code></td></tr>
+      <tr><th><span class="fr">Monnaie</span><span class="en">Currency</span></th><td>ILS (₪)</td></tr>
+    </table>
+    <p class="fr muted">La clé reste côté serveur de votre appli : ne la mettez jamais dans une appli téléphone ou une page web publique.</p>
+    <p class="en muted">Keep the key on your server: never ship it inside a mobile app or a public web page.</p>
+  </div>
+</section>
+
+<section>
+  <h2><span class="fr">1. Vérifier la clé</span><span class="en">1. Check the key</span></h2>
+  <div class="ep"><span class="m">GET</span><code>/v1/ping</code></div>
+<pre><code>curl https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/hop-api/v1/ping \
+  -H "Authorization: Bearer hop_live_xxx"
+
+{ "ok": true, "shop": "Restaurant name", "key": "…ab12" }</code></pre>
+</section>
+
+<section>
+  <h2><span class="fr">2. Connaître le prix</span><span class="en">2. Get a price</span></h2>
+  <div class="ep"><span class="m post">POST</span><code>/v1/quote</code></div>
+  <p class="fr">Le prix HOP! depuis le restaurant jusqu'à l'adresse du client (dès 25 ₪ en ville). <code>city</code> est facultatif (par défaut : la ville du restaurant) ; <code>lat</code>/<code>lon</code> facultatifs mais plus précis.</p>
+  <p class="en">HOP!'s price from the restaurant to the customer's address (from 25 ₪ in town). <code>city</code> is optional (defaults to the restaurant's city); <code>lat</code>/<code>lon</code> are optional but more accurate.</p>
+<pre><code>POST /v1/quote
+{ "address": { "street": "Herzl 12", "city": "Netanya" } }
+
+{ "price": 25, "currency": "ILS", "city": "netanya" }</code></pre>
+</section>
+
+<section>
+  <h2><span class="fr">3. Créer une livraison</span><span class="en">3. Create a delivery</span></h2>
+  <div class="ep"><span class="m post">POST</span><code>/v1/deliveries</code></div>
+<pre><code>POST /v1/deliveries
+{
+  "external_id": "ORDER-1043",            // optional: your order number
+  "customer": { "name": "Dana Levi", "phone": "052-123-4567" },
+  "address": {
+    "street": "Herzl 12", "city": "Netanya",
+    "floor": "3", "apartment": "12",       // required ("0" / "house" for a house)
+    "door_code": "1234",                   // optional
+    "lat": 32.3301, "lon": 34.8561         // optional
+  },
+  "ready_in_minutes": 15,                  // 0–180: when the order is ready at the restaurant
+  "payment_method": "cash",                // "cash" | "bit" — paid by the customer to the courier
+  "language": "he",                        // "he" (default) | "fr": messages to the customer
+  "note": "Ring twice",                    // optional, for the courier
+  "dry_run": false                         // true = check everything, create nothing
+}
+
+201 Created
+{
+  "id": "C261118-AB12", "status": "pending", "price": 25, "currency": "ILS",
+  "payment": { "payer": "customer", "method": "cash" },
+  "tracking_url": "https://hop-livraison.vercel.app/app/suivi.html?t=…"
+}</code></pre>
+  <p class="fr">Envoyez <code>tracking_url</code> au client : il suit son livreur en direct, sans appli ni compte. <b>Testez d'abord avec <code>"dry_run": true</code></b> : rien n'est créé.</p>
+  <p class="en">Send <code>tracking_url</code> to the customer: they follow the courier live, no app or account needed. <b>Test first with <code>"dry_run": true</code></b>: nothing is created.</p>
+</section>
+
+<section>
+  <h2><span class="fr">4. Suivre une livraison</span><span class="en">4. Track a delivery</span></h2>
+  <div class="ep"><span class="m">GET</span><code>/v1/deliveries/{id}</code></div>
+<pre><code>{
+  "id": "C261118-AB12", "external_id": "ORDER-1043", "status": "accepted",
+  "price": 25, "currency": "ILS", "courier_name": "Yossi", "courier_eta": "2026-11-18T17:42:00Z",
+  "ready_at": "…", "delivered_at": null, "created_at": "…", "tracking_url": "…"
+}</code></pre>
+  <table>
+    <tr><th>status</th><th><span class="fr">Signification</span><span class="en">Meaning</span></th></tr>
+    <tr><td><span class="pill">pending</span></td><td><span class="fr">On cherche un livreur</span><span class="en">Looking for a courier</span></td></tr>
+    <tr><td><span class="pill">accepted</span></td><td><span class="fr">Un livreur a pris la course, il arrive au restaurant</span><span class="en">A courier took it and is on the way to the restaurant</span></td></tr>
+    <tr><td><span class="pill">picked_up</span></td><td><span class="fr">Commande récupérée, en route vers le client</span><span class="en">Picked up, on the way to the customer</span></td></tr>
+    <tr><td><span class="pill">delivered</span></td><td><span class="fr">Livrée</span><span class="en">Delivered</span></td></tr>
+    <tr><td><span class="pill">cancelled</span></td><td><span class="fr">Annulée</span><span class="en">Cancelled</span></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="fr">5. Annuler</span><span class="en">5. Cancel</span></h2>
+  <div class="ep"><span class="m post">POST</span><code>/v1/deliveries/{id}/cancel</code></div>
+  <p class="fr">Possible tant qu'aucun livreur n'a pris la course (<code>pending</code>). Ensuite : réponse <code>409 cannot_cancel</code>, appelez HOP!.</p>
+  <p class="en">Allowed while no courier has taken it (<code>pending</code>). After that: <code>409 cannot_cancel</code>, call HOP!.</p>
+</section>
+
+<section>
+  <h2><span class="fr">6. Avertissement automatique (webhook)</span><span class="en">6. Webhook</span></h2>
+  <p class="fr">Si vous donnez à HOP! une adresse <code>https://</code>, HOP! y envoie un <code>POST</code> à chaque changement d'étape. Vérifiez l'en-tête <code>X-HOP-Webhook-Secret</code> (le secret donné avec la clé).</p>
+  <p class="en">If you give HOP! an <code>https://</code> URL, HOP! sends a <code>POST</code> on every status change. Check the <code>X-HOP-Webhook-Secret</code> header (the secret given with the key).</p>
+<pre><code>POST https://your-app.example/hop-webhook
+X-HOP-Webhook-Secret: whsec_…
+{ "event": "delivery.status", "id": "C261118-AB12", "external_id": "ORDER-1043",
+  "status": "picked_up", "courier_name": "Yossi", "tracking_url": "…", "at": "…" }</code></pre>
+</section>
+
+<section>
+  <h2><span class="fr">Erreurs</span><span class="en">Errors</span></h2>
+<pre><code>{ "error": "missing_fields", "message": "customer.phone, address.floor" }</code></pre>
+  <table>
+    <tr><th>HTTP</th><th>error</th></tr>
+    <tr><td>401</td><td><code>invalid_key</code></td></tr>
+    <tr><td>403</td><td><code>shop_unavailable</code></td></tr>
+    <tr><td>404</td><td><code>not_found</code></td></tr>
+    <tr><td>409</td><td><code>cannot_cancel</code></td></tr>
+    <tr><td>422</td><td><code>missing_fields</code> · <code>invalid_phone</code> · <code>invalid_payment_method</code> · <code>city_not_served</code></td></tr>
+    <tr><td>429</td><td><code>rate_limited</code> <span class="muted">(60 / h)</span></td></tr>
+  </table>
+</section>
+
+<section>
+  <h2><span class="fr">Exemple complet (JavaScript, côté serveur)</span><span class="en">Full example (JavaScript, server side)</span></h2>
+<pre><code>const HOP = "https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/hop-api";
+const res = await fetch(HOP + "/v1/deliveries", {
+  method: "POST",
+  headers: { "Authorization": "Bearer " + process.env.HOP_API_KEY, "Content-Type": "application/json" },
+  body: JSON.stringify({
+    external_id: order.id,
+    customer: { name: order.customerName, phone: order.customerPhone },
+    address: { street: order.street, city: "Netanya", floor: order.floor, apartment: order.apartment },
+    ready_in_minutes: 15, payment_method: "cash"
+  })
+});
+const delivery = await res.json();   // { id, status, price, tracking_url }</code></pre>
+  <p class="fr muted">Une question ? Écrivez à HOP! sur WhatsApp depuis <a href="https://hop-livraison.vercel.app/">hop-livraison.vercel.app</a>.</p>
+  <p class="en muted">Questions? Message HOP! on WhatsApp from <a href="https://hop-livraison.vercel.app/">hop-livraison.vercel.app</a>.</p>
+</section>
+</main>
+<script>
+  document.querySelectorAll("[data-l]").forEach(b => b.addEventListener("click", () => {
+    const en = b.dataset.l === "en";
+    document.body.classList.toggle("l-en", en); document.documentElement.lang = en ? "en" : "fr";
+    document.querySelectorAll("[data-l]").forEach(x => x.classList.toggle("on", x === b));
+  }));
+  if (/^(en|he)/i.test(navigator.language || "")) document.querySelector('[data-l="en"]').click();
+</script>
+</body>
+</html>

@@ -6812,3 +6812,11 @@ html.d3 #homeKinds .ch-kind.d3-mikve .k2-ic { background-color: #E3F0FB !importa
 .mk-err { grid-column: 1 / -1; margin: 4px 0 0; color: #C62828; font-size: 14px; }
 .mk-err.hidden { display: none; }
 .mk-go { grid-column: 1 / -1; margin-top: 10px; background: #E8590C !important; border: 0 !important; color: #fff !important; border-radius: 14px !important; padding: 15px !important; font: 700 17px Heebo, sans-serif !important; }
+/* Panneau patron : onglet API */
+.api-form { display: grid; gap: 10px; margin-top: 12px; }
+.api-form label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.api-new { margin: 12px 0; padding: 12px; border-radius: 12px; background: #E7F6EC; color: #14532D; }
+.api-copy { display: flex; gap: 8px; align-items: center; margin: 4px 0 10px; }
+.api-copy code { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 13px; background: #fff; color: #111418; padding: 8px; border-radius: 8px; }
+.api-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid rgba(127,127,127,.2); }
+.api-row.off { opacity: .6; }
