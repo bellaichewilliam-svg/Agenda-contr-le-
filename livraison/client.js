@@ -8898,10 +8898,12 @@ const PROMO_TIME = [[6, 11, /caf[ée]|\blait\b|c[ée]r[ée]ales|muesli|\bpain|be
 function promoOrder(list) {
   const h = new Date().getHours(), rx = (PROMO_TIME.find(([a, b]) => h >= a && h < b) || [])[2];
   const cart = new Set(Object.keys(state.cart || {}).filter(k => state.cart[k] > 0));
-  const scored = (list || []).filter(x => x && x.id && x.ph && UI.extPic(x.ph) && !cart.has(x.id))
+  // Mis en avant par le patron (« pin ») : toujours en tête, photo de l'appli (img/…) acceptée
+  const pins = (list || []).filter(x => x && x.pin && x.id && x.ph && !cart.has(x.id));
+  const scored = (list || []).filter(x => x && !x.pin && x.id && x.ph && UI.extPic(x.ph) && !cart.has(x.id))
     .map(x => ({ x, s: Number(x.off || 0) + (rx && rx.test(`${x.name} ${x.cat || ""}`) ? 25 : 0) })).sort((a, b) => b.s - a.s).map(o => o.x);
   // Pas trois fois de suite la même boutique : on intercale
-  const out = [], rest = scored.slice();
+  const out = pins.slice(), rest = scored.slice();
   while (rest.length && out.length < 20) {
     const last2 = out.slice(-2).map(x => x.code);
     let k = rest.findIndex(x => !(last2.length === 2 && last2[0] === x.code && last2[1] === x.code));
@@ -8918,9 +8920,9 @@ function renderPromos() {
   if (!list.length) { box.innerHTML = ""; box.dataset.html = ""; return; }
   const html = `<div class="pm-h"><h3 class="ch-h">🔥 ${UI.esc(t("pmTitle"))}</h3><button type="button" class="pm-all" data-pm-all>${UI.esc(t("paSee"))} ›</button></div>
     <div class="pm-row">${list.map((x, i) => `<button type="button" class="pm-card" data-promo="${UI.esc(x.code)}|${UI.esc(x.id)}" data-i="${i}">
-      <span class="pm-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" /><em class="pm-off" dir="ltr">−${Number(x.off)} %</em></span>
+      <span class="pm-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" />${x.pin ? `<em class="pm-off pm-pin">${UI.esc(I18N.lang === "he" ? x.label_he || x.label || "" : x.label || "")}</em>` : `<em class="pm-off" dir="ltr">−${Number(x.off)} %</em>`}</span>
       <span class="pm-txt"><small class="pm-shop">${UI.esc(mgShort(x.shop))}</small><b><bdi>${UI.esc(UI.bi(x.name))}</bdi></b>
-        <span class="pm-pr${Number(x.lot) > 1 ? " lot" : ""}"><strong><bdi>${UI.esc(Number(x.lot) > 1 ? t("paLot", { n: x.lot, price: money(x.price) }) : money(x.price))}</bdi></strong><s>${UI.esc(money(x.old))}</s></span>
+        <span class="pm-pr${Number(x.lot) > 1 ? " lot" : ""}"><strong><bdi>${UI.esc(Number(x.lot) > 1 ? t("paLot", { n: x.lot, price: money(x.price) }) : money(x.price))}</bdi></strong>${x.old ? `<s>${UI.esc(money(x.old))}</s>` : ""}</span>
         <span class="pm-go">${UI.esc(t("pmGo"))} <i aria-hidden="true">›</i></span></span></button>`).join("")}</div>`;
   if (box.dataset.html === html) return;
   box.innerHTML = html; box.dataset.html = html;
