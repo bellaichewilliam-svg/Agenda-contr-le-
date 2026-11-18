@@ -1,6 +1,7 @@
 # HOP! Livraison (Netanya) : consignes permanentes
 
 Le patron parle français : toujours lui répondre en **français**, simplement, sans jargon.
+**À chaque démarrage : lire `APP.md`** (le dossier de l'appli, ~200 lignes : tout ce qui existe, où, comment, ce qui attend). Le tenir à jour après chaque grosse fonction.
 Chaque demande se fait jusqu'au bout : coder, tester, PR (`claude/delivery-management-app-eccme5` → `claude/shopping-price-comparison-aAUf1`, fusion « merge »), mettre en ligne (Vercel, alias `hop-livraison.vercel.app`), base Supabase à jour.
 
 ## « Mets Hoppy » : la mascotte
