@@ -74,6 +74,10 @@
 - Commandes du catalogue, liste à préparer, « prête dans 15 min », horaires, photos, tableau de bord des ventes, avis.
 - Démo : `commerce.html?demo=resto|boulangerie|boutique`.
 
+## 6 bis. API HOP! (restaurants) et Vaisselle au mikvé (18/11)
+- **API** : fonction Edge `hop-api` (prix `/v1/quote`, créer `/v1/deliveries` avec `dry_run`, suivre, annuler) ; une clé `hop_live_…` par commerce (tables `api_keys` = empreinte seulement, `api_deliveries`) ; prix calculés avec `config.js` + `pricing.js` du site ; client qui paie le livreur ; webhook `orders_api_webhook` (en-tête `X-HOP-Webhook-Secret`). Patron : onglet « 🔌 API » (créer / copier une fois / couper). Doc : `api.html` (FR/EN). Le bac à sable ne joint pas supabase.co : tester via `extensions.http` dans la base.
+- **Vaisselle au mikvé** (tevilat kelim) : carré « Vaisselle au mikvé / טבילת כלים » (2e de « Ce qu'on livre »), page `#mikveSheet` (`mikveOpen()` dans `client.js`) : seulement l'adresse ; course aller-retour chez le client, prix fixe `config.pricing.mikve` = 35 + 50 = 85 ₪.
+
 ## 7. Prix et argent (ne rien changer sans le patron)
 - Course **en ville 25 ₪** ; même zone 25 ₪ ; **ville ↔ zone industrielle / quartier à part (Agamim, Neot Shaked, Ir Yamim…) 30 ₪** (`pricing.areas`). Dire « dès 25 ₪ / en ville ».
 - Achat : petit (makolet, cigarettes) au prix de la course ; achat en boutique = + supplément (ex. 25 + 8 = 33 ₪). Autre magasin dans la même commande : +10 ₪.

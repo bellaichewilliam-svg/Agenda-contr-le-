@@ -34,37 +34,41 @@
   .muted { color: var(--mut); }
   td code, p code { word-break: break-all; } pre { max-width: 100%; } table { table-layout: fixed; } th { width: 34%; } main { overflow-wrap: anywhere; }
   .pill { display: inline-block; background: var(--soft); border-radius: 999px; padding: 2px 10px; font-size: 13px; }
-  .en { display: none; } body.l-en .fr { display: none; } body.l-en .en { display: initial; } body.l-en div.en, body.l-en p.en, body.l-en section.en { display: block; }
+  .en, .he { display: none; } body.l-en .fr, body.l-he .fr { display: none; } body.l-en span.en, body.l-he span.he { display: inline; } body.l-en p.en, body.l-he p.he { display: block; }
+  body.l-he { direction: rtl; } body.l-he pre { direction: ltr; text-align: left; } body.l-he .lang { float: left; } body.l-he .logo { text-align: right; } body.l-he h2, body.l-he h1, body.l-he p.he { font-weight: inherit; } body.l-he h1, body.l-he h2 { font-weight: 800; }
 </style>
 </head>
 <body>
 <header><div class="wrap">
-  <div class="lang"><button type="button" data-l="fr" class="on">FR</button><button type="button" data-l="en">EN</button></div>
-  <div class="logo">HOP<i>!</i></div>
-  <h1><span class="fr">API HOP! Livraison</span><span class="en">HOP! Delivery API</span></h1>
+  <div class="lang"><button type="button" data-l="fr" class="on">FR</button><button type="button" data-l="en">EN</button><button type="button" data-l="he">עב</button></div>
+  <div class="logo" dir="ltr">HOP<i>!</i></div>
+  <h1><span class="fr">API HOP! Livraison</span><span class="en">HOP! Delivery API</span><span class="he">ה-API של הופ! משלוחים</span></h1>
   <p class="fr">Créer et suivre des livraisons depuis l'appli d'un restaurant ou d'un commerce, à Netanya et dans le Sharon.</p>
   <p class="en">Create and track deliveries from a restaurant or shop app, in Netanya and the Sharon area.</p>
+  <p class="he">יצירה ומעקב של משלוחים מתוך האפליקציה של מסעדה או עסק, בנתניה ובשרון.</p>
 </div></header>
 <main class="wrap">
 
 <section>
-  <h2><span class="fr">En bref</span><span class="en">Overview</span></h2>
+  <h2><span class="fr">En bref</span><span class="en">Overview</span><span class="he">בקצרה</span></h2>
   <div class="card">
     <p class="fr">Chaque restaurant a <b>sa propre clé secrète</b>, donnée par HOP!. Le départ est toujours le restaurant (son adresse est déjà connue de HOP!). Vous envoyez seulement le client (nom, téléphone, adresse) : HOP! calcule le prix, trouve un livreur et donne un lien de suivi pour le client. <b>Le client paie le livreur à la livraison</b> (espèces ou Bit).</p>
     <p class="en">Each restaurant has <b>its own secret key</b>, issued by HOP!. Pickup is always the restaurant (HOP! already knows its address). You only send the customer (name, phone, address): HOP! computes the price, finds a courier and returns a tracking link for the customer. <b>The customer pays the courier on delivery</b> (cash or Bit).</p>
+    <p class="he">לכל מסעדה <b>מפתח סודי משלה</b>, שהופ! נותנת. האיסוף תמיד מהמסעדה (הכתובת שלה כבר ידועה להופ!). שולחים רק את פרטי הלקוח (שם, טלפון, כתובת): הופ! מחשבת את המחיר, מוצאת שליח ומחזירה קישור מעקב ללקוח. <b>הלקוח משלם לשליח במסירה</b> (מזומן או ביט).</p>
     <table>
-      <tr><th><span class="fr">Adresse de base</span><span class="en">Base URL</span></th><td><code>https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/hop-api</code></td></tr>
-      <tr><th><span class="fr">Clé</span><span class="en">Key</span></th><td><code>Authorization: Bearer hop_live_…</code> <span class="muted">(<span class="fr">ou</span><span class="en">or</span> <code>X-API-Key: hop_live_…</code>)</span></td></tr>
-      <tr><th><span class="fr">Format</span><span class="en">Format</span></th><td>JSON · <code>Content-Type: application/json</code></td></tr>
-      <tr><th><span class="fr">Monnaie</span><span class="en">Currency</span></th><td>ILS (₪)</td></tr>
+      <tr><th><span class="fr">Adresse de base</span><span class="en">Base URL</span><span class="he">כתובת בסיס</span></th><td><code>https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/hop-api</code></td></tr>
+      <tr><th><span class="fr">Clé</span><span class="en">Key</span><span class="he">מפתח</span></th><td><code>Authorization: Bearer hop_live_…</code> <span class="muted">(<span class="fr">ou</span><span class="en">or</span><span class="he">או</span> <code>X-API-Key: hop_live_…</code>)</span></td></tr>
+      <tr><th><span class="fr">Format</span><span class="en">Format</span><span class="he">פורמט</span></th><td>JSON · <code>Content-Type: application/json</code></td></tr>
+      <tr><th><span class="fr">Monnaie</span><span class="en">Currency</span><span class="he">מטבע</span></th><td>ILS (₪)</td></tr>
     </table>
     <p class="fr muted">La clé reste côté serveur de votre appli : ne la mettez jamais dans une appli téléphone ou une page web publique.</p>
     <p class="en muted">Keep the key on your server: never ship it inside a mobile app or a public web page.</p>
+    <p class="he muted">המפתח נשאר בשרת שלכם: אף פעם לא בתוך אפליקציה בטלפון או בדף אינטרנט ציבורי.</p>
   </div>
 </section>
 
 <section>
-  <h2><span class="fr">1. Vérifier la clé</span><span class="en">1. Check the key</span></h2>
+  <h2><span class="fr">1. Vérifier la clé</span><span class="en">1. Check the key</span><span class="he">1. בדיקת המפתח</span></h2>
   <div class="ep"><span class="m">GET</span><code>/v1/ping</code></div>
 <pre><code>curl https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/hop-api/v1/ping \
   -H "Authorization: Bearer hop_live_xxx"
@@ -73,10 +77,11 @@
 </section>
 
 <section>
-  <h2><span class="fr">2. Connaître le prix</span><span class="en">2. Get a price</span></h2>
+  <h2><span class="fr">2. Connaître le prix</span><span class="en">2. Get a price</span><span class="he">2. קבלת מחיר</span></h2>
   <div class="ep"><span class="m post">POST</span><code>/v1/quote</code></div>
   <p class="fr">Le prix HOP! depuis le restaurant jusqu'à l'adresse du client (dès 25 ₪ en ville). <code>city</code> est facultatif (par défaut : la ville du restaurant) ; <code>lat</code>/<code>lon</code> facultatifs mais plus précis.</p>
   <p class="en">HOP!'s price from the restaurant to the customer's address (from 25 ₪ in town). <code>city</code> is optional (defaults to the restaurant's city); <code>lat</code>/<code>lon</code> are optional but more accurate.</p>
+  <p class="he">המחיר של הופ! מהמסעדה עד הכתובת של הלקוח (החל מ־25 ₪ בעיר). <code>city</code> לא חובה (ברירת מחדל: העיר של המסעדה); <code>lat</code>/<code>lon</code> לא חובה אבל מדויק יותר.</p>
 <pre><code>POST /v1/quote
 { "address": { "street": "Herzl 12", "city": "Netanya" } }
 
@@ -84,7 +89,7 @@
 </section>
 
 <section>
-  <h2><span class="fr">3. Créer une livraison</span><span class="en">3. Create a delivery</span></h2>
+  <h2><span class="fr">3. Créer une livraison</span><span class="en">3. Create a delivery</span><span class="he">3. יצירת משלוח</span></h2>
   <div class="ep"><span class="m post">POST</span><code>/v1/deliveries</code></div>
 <pre><code>POST /v1/deliveries
 {
@@ -111,10 +116,11 @@
 }</code></pre>
   <p class="fr">Envoyez <code>tracking_url</code> au client : il suit son livreur en direct, sans appli ni compte. <b>Testez d'abord avec <code>"dry_run": true</code></b> : rien n'est créé.</p>
   <p class="en">Send <code>tracking_url</code> to the customer: they follow the courier live, no app or account needed. <b>Test first with <code>"dry_run": true</code></b>: nothing is created.</p>
+  <p class="he">שלחו ללקוח את <code>tracking_url</code>: הוא עוקב אחרי השליח בזמן אמת, בלי אפליקציה ובלי חשבון. <b>בדקו קודם עם <code>"dry_run": true</code></b>: שום דבר לא נוצר.</p>
 </section>
 
 <section>
-  <h2><span class="fr">4. Suivre une livraison</span><span class="en">4. Track a delivery</span></h2>
+  <h2><span class="fr">4. Suivre une livraison</span><span class="en">4. Track a delivery</span><span class="he">4. מעקב אחרי משלוח</span></h2>
   <div class="ep"><span class="m">GET</span><code>/v1/deliveries/{id}</code></div>
 <pre><code>{
   "id": "C261118-AB12", "external_id": "ORDER-1043", "status": "accepted",
@@ -122,26 +128,28 @@
   "ready_at": "…", "delivered_at": null, "created_at": "…", "tracking_url": "…"
 }</code></pre>
   <table>
-    <tr><th>status</th><th><span class="fr">Signification</span><span class="en">Meaning</span></th></tr>
-    <tr><td><span class="pill">pending</span></td><td><span class="fr">On cherche un livreur</span><span class="en">Looking for a courier</span></td></tr>
-    <tr><td><span class="pill">accepted</span></td><td><span class="fr">Un livreur a pris la course, il arrive au restaurant</span><span class="en">A courier took it and is on the way to the restaurant</span></td></tr>
-    <tr><td><span class="pill">picked_up</span></td><td><span class="fr">Commande récupérée, en route vers le client</span><span class="en">Picked up, on the way to the customer</span></td></tr>
-    <tr><td><span class="pill">delivered</span></td><td><span class="fr">Livrée</span><span class="en">Delivered</span></td></tr>
-    <tr><td><span class="pill">cancelled</span></td><td><span class="fr">Annulée</span><span class="en">Cancelled</span></td></tr>
+    <tr><th>status</th><th><span class="fr">Signification</span><span class="en">Meaning</span><span class="he">משמעות</span></th></tr>
+    <tr><td><span class="pill">pending</span></td><td><span class="fr">On cherche un livreur</span><span class="en">Looking for a courier</span><span class="he">מחפשים שליח</span></td></tr>
+    <tr><td><span class="pill">accepted</span></td><td><span class="fr">Un livreur a pris la course, il arrive au restaurant</span><span class="en">A courier took it and is on the way to the restaurant</span><span class="he">שליח לקח את המשלוח ובדרך למסעדה</span></td></tr>
+    <tr><td><span class="pill">picked_up</span></td><td><span class="fr">Commande récupérée, en route vers le client</span><span class="en">Picked up, on the way to the customer</span><span class="he">נאסף, בדרך ללקוח</span></td></tr>
+    <tr><td><span class="pill">delivered</span></td><td><span class="fr">Livrée</span><span class="en">Delivered</span><span class="he">נמסר</span></td></tr>
+    <tr><td><span class="pill">cancelled</span></td><td><span class="fr">Annulée</span><span class="en">Cancelled</span><span class="he">בוטל</span></td></tr>
   </table>
 </section>
 
 <section>
-  <h2><span class="fr">5. Annuler</span><span class="en">5. Cancel</span></h2>
+  <h2><span class="fr">5. Annuler</span><span class="en">5. Cancel</span><span class="he">5. ביטול</span></h2>
   <div class="ep"><span class="m post">POST</span><code>/v1/deliveries/{id}/cancel</code></div>
   <p class="fr">Possible tant qu'aucun livreur n'a pris la course (<code>pending</code>). Ensuite : réponse <code>409 cannot_cancel</code>, appelez HOP!.</p>
   <p class="en">Allowed while no courier has taken it (<code>pending</code>). After that: <code>409 cannot_cancel</code>, call HOP!.</p>
+  <p class="he">אפשר כל עוד שום שליח לא לקח את המשלוח (<code>pending</code>). אחרי זה: תשובה <code>409 cannot_cancel</code>, התקשרו להופ!.</p>
 </section>
 
 <section>
-  <h2><span class="fr">6. Avertissement automatique (webhook)</span><span class="en">6. Webhook</span></h2>
+  <h2><span class="fr">6. Avertissement automatique (webhook)</span><span class="en">6. Webhook</span><span class="he">6. התראה אוטומטית (Webhook)</span></h2>
   <p class="fr">Si vous donnez à HOP! une adresse <code>https://</code>, HOP! y envoie un <code>POST</code> à chaque changement d'étape. Vérifiez l'en-tête <code>X-HOP-Webhook-Secret</code> (le secret donné avec la clé).</p>
   <p class="en">If you give HOP! an <code>https://</code> URL, HOP! sends a <code>POST</code> on every status change. Check the <code>X-HOP-Webhook-Secret</code> header (the secret given with the key).</p>
+  <p class="he">אם תיתנו להופ! כתובת <code>https://</code>, הופ! תשלח אליה <code>POST</code> בכל שינוי שלב. בדקו את הכותרת <code>X-HOP-Webhook-Secret</code> (הסוד שקיבלתם עם המפתח).</p>
 <pre><code>POST https://your-app.example/hop-webhook
 X-HOP-Webhook-Secret: whsec_…
 { "event": "delivery.status", "id": "C261118-AB12", "external_id": "ORDER-1043",
@@ -149,7 +157,7 @@ X-HOP-Webhook-Secret: whsec_…
 </section>
 
 <section>
-  <h2><span class="fr">Erreurs</span><span class="en">Errors</span></h2>
+  <h2><span class="fr">Erreurs</span><span class="en">Errors</span><span class="he">שגיאות</span></h2>
 <pre><code>{ "error": "missing_fields", "message": "customer.phone, address.floor" }</code></pre>
   <table>
     <tr><th>HTTP</th><th>error</th></tr>
@@ -163,7 +171,7 @@ X-HOP-Webhook-Secret: whsec_…
 </section>
 
 <section>
-  <h2><span class="fr">Exemple complet (JavaScript, côté serveur)</span><span class="en">Full example (JavaScript, server side)</span></h2>
+  <h2><span class="fr">Exemple complet (JavaScript, côté serveur)</span><span class="en">Full example (JavaScript, server side)</span><span class="he">דוגמה מלאה (JavaScript, בצד השרת)</span></h2>
 <pre><code>const HOP = "https://qwabzgmlpkazzvwhzfki.supabase.co/functions/v1/hop-api";
 const res = await fetch(HOP + "/v1/deliveries", {
   method: "POST",
@@ -178,15 +186,18 @@ const res = await fetch(HOP + "/v1/deliveries", {
 const delivery = await res.json();   // { id, status, price, tracking_url }</code></pre>
   <p class="fr muted">Une question ? Écrivez à HOP! sur WhatsApp depuis <a href="https://hop-livraison.vercel.app/">hop-livraison.vercel.app</a>.</p>
   <p class="en muted">Questions? Message HOP! on WhatsApp from <a href="https://hop-livraison.vercel.app/">hop-livraison.vercel.app</a>.</p>
+  <p class="he muted">שאלה? כתבו להופ! בוואטסאפ דרך <a href="https://hop-livraison.vercel.app/">hop-livraison.vercel.app</a>.</p>
 </section>
 </main>
 <script>
-  document.querySelectorAll("[data-l]").forEach(b => b.addEventListener("click", () => {
-    const en = b.dataset.l === "en";
-    document.body.classList.toggle("l-en", en); document.documentElement.lang = en ? "en" : "fr";
-    document.querySelectorAll("[data-l]").forEach(x => x.classList.toggle("on", x === b));
-  }));
-  if (/^(en|he)/i.test(navigator.language || "")) document.querySelector('[data-l="en"]').click();
+  const setL = l => {
+    document.body.classList.toggle("l-en", l === "en"); document.body.classList.toggle("l-he", l === "he");
+    document.documentElement.lang = l; document.documentElement.dir = l === "he" ? "rtl" : "ltr";
+    document.querySelectorAll("[data-l]").forEach(x => x.classList.toggle("on", x.dataset.l === l));
+  };
+  document.querySelectorAll("[data-l]").forEach(b => b.addEventListener("click", () => setL(b.dataset.l)));
+  const want = new URLSearchParams(location.search).get("lang") || (navigator.language || "").slice(0, 2).toLowerCase();
+  if (want === "he" || want === "iw") setL("he"); else if (want === "en") setL("en");
 </script>
 </body>
 </html>
