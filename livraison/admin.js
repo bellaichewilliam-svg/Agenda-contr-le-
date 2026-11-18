@@ -57,6 +57,11 @@ document.addEventListener("change", e => {
 }, true);
 let penalties = [];   // retenues aux livreurs (courses pas faites, pas reçues)
 let credits = { credits: [], topups: [] };   // crédit prépayé des livreurs et leurs recharges
+// Courses venues d'un partenaire (API) : n° de course → { label (nom de la clé), shop_name, external_id, key_id }
+let apiByOrder = new Map();
+const partnerOf = o => apiByOrder.get(o.id) || null;
+const partnerName = x => String(x.label || x.shop_name || "Partenaire").replace(/\s*\(désactivée après essai\)\s*/, "");
+const partnerPill = (o, cls) => { const x = partnerOf(o); return x ? `<span class="${cls || "pill"} partner-pill">🤝 Partenaire · ${UI.esc(partnerName(x))}${x.external_id ? ` · cmd ${UI.esc(x.external_id)}` : ""}</span>` : ""; };
 let accounts = [];   // comptes (inscription finie ou pas, notifications activées), voir Store.adminAccounts
 let declines = [];    // refus des 30 derniers jours (avec la raison)   // abonnements HOP! Pro payés (part du livreur qui a amené le commerce)
 let msgs = { messages: [], replies: [] };
@@ -182,6 +187,8 @@ async function load() {
     credits = (await Store.adminCredits().catch(() => null)) || credits;
     declines = (await Store.listDeclines().catch(() => null)) || declines;
     accounts = (await Store.adminAccounts().catch(() => null)) || accounts;
+    const ao = await Store.adminApiOrders().catch(() => null);
+    if (ao) apiByOrder = new Map(ao.map(x => [x.order_id, x]));
     if (sh) shops = sh;
     // Le téléphone du patron ne garde pas la clé d'un commerce ouvert depuis ici (sinon « Inscrire mon commerce » ouvrait cet espace)
     if (sh) sh.forEach(x => { if (x.token) Store.forgetShopToken(x.token); });
@@ -433,7 +440,7 @@ function bossPopup(id) {
   const list = rankedCouriers(o);
   $("#bossBody").innerHTML = `
     <h3>🔔 Nouvelle course · ${UI.money(o.price)}${o.urgency === "express" ? " · ⚡ EXPRESS" : ""}</h3>
-    <p class="small" style="margin:4px 0">n° ${UI.esc(o.ref)} · ${UI.esc(UI.whenFr(o))}${o.first_shop ? ` · <b class="new-client">🆕 Nouveau commerce</b>` : ""}${o.first_order ? ` · <b class="new-client">🆕 Nouveau client</b>` : ""}${o.addon_ref ? ` · <b class="addon-pill">➕ Ajout à n° ${UI.esc(o.addon_ref)}${(p => p && p.courier_name ? ` (livreur : ${UI.esc(p.courier_name.split(" ")[0])})` : "")(orders.find(x => x.ref === o.addon_ref))}</b>` : ""}</p>
+    ${partnerOf(o) ? `<p style="margin:4px 0">${partnerPill(o)}</p>` : ""}<p class="small" style="margin:4px 0">n° ${UI.esc(o.ref)} · ${UI.esc(UI.whenFr(o))}${o.first_shop ? ` · <b class="new-client">🆕 Nouveau commerce</b>` : ""}${o.first_order ? ` · <b class="new-client">🆕 Nouveau client</b>` : ""}${o.addon_ref ? ` · <b class="addon-pill">➕ Ajout à n° ${UI.esc(o.addon_ref)}${(p => p && p.courier_name ? ` (livreur : ${UI.esc(p.courier_name.split(" ")[0])})` : "")(orders.find(x => x.ref === o.addon_ref))}</b>` : ""}</p>
     <p style="margin:6px 0"><b>${UI.esc(o.pickup_address || UI.cityFr(o.from_city))}</b> → <b>${UI.esc(o.dropoff_address || UI.cityFr(o.to_city))}</b></p>
     <p class="small muted" style="margin:0 0 12px">${bossOnly() ? "🔒 <b>Seul vous la voyez</b> : prenez-la, ou donnez-la à un livreur (il la reçoit tout de suite dans son appli)." : !bossTakes() && nobodyTook(o) ? "⚠️ <b>Personne ne l'a prise</b> : prenez-la, ou donnez-la à un livreur (même hors ligne : appelez-le, elle l'attend dans son appli)." : !bossTakes() ? "🛵 Envoyée aux livreurs : le premier qui accepte la prend. Vous pouvez aussi la donner vous-même :" : wait > 0 ? `Les livreurs la reçoivent dans ${wait} s si vous ne faites rien.` : "Les livreurs la voient déjà : le premier qui accepte la prend."}</p>
     ${canTake(o) ? `<button type="button" class="btn btn-primary btn-block" data-boss="take">✅ Je la prends</button>` : ""}
@@ -638,6 +645,7 @@ function card(o, withDay) {
   penalties.filter(p => p.order_id === o.id && p.status !== "annulee").forEach(p => meta.push(`<span class="pill ${p.status === "regle" ? "paid" : "unpaid"}">💸 Retenue ${UI.money(p.amount)} · ${p.status === "regle" ? "déduite ✓" : "à déduire"}</span>${p.status === "du" ? `<button class="pill pill-btn" data-pen-cancel="${UI.esc(p.id)}">Annuler la retenue</button>` : ""}`));
   const partner = couriers.find(c => c.id === o.courier_id && c.role !== "admin");
   if (partner && ["confirmee", "recuperee", "livree", "annulee"].includes(o.status)) meta.push(`<button class="pill pill-btn st-annulee" data-act="penalty" title="Course pas faite ou pas reçue : retenue sur le versement de la semaine du livreur">💸 Retenue au livreur</button>`);
+  if (partnerOf(o)) meta.unshift(partnerPill(o));
   if (o.first_shop) meta.push(`<span class="pill new-client">🆕 1re livraison pour ce commerce</span>`);
   if (o.first_order) meta.push(`<span class="pill new-client">🆕 Nouveau client · 1re commande</span>`);
   if (o.addon_ref) { const p = orders.find(x => x.ref === o.addon_ref); meta.push(`<span class="pill addon-pill">➕ Ajout à la commande n° ${UI.esc(o.addon_ref)}${p && p.courier_name ? ` · à donner à ${UI.esc(p.courier_name.split(" ")[0])}` : ""}</span>`); }
@@ -3581,11 +3589,18 @@ function renderApi(view) {
       </form>
     </div>
     <div class="card"><h3>Clés existantes (${apiKeys.length})</h3>
-      ${apiKeys.length ? apiKeys.map(k => `<div class="api-row${k.active ? "" : " off"}">
-        <div><b>${e(k.shop_name)}</b> · ${e(k.label || "sans nom")} <span class="muted small">…${e(k.key_hint || "")}</span>
-          <br><small class="muted">${k.active ? "🟢 active" : "⚪ coupée"} · ${k.deliveries} course(s) · dernière utilisation : ${e(when(k.last_used_at))}${k.webhook_url ? " · avertissement : " + e(k.webhook_url) : ""}</small></div>
-        <button type="button" class="btn btn-sm${k.active ? "" : " btn-primary"}" data-api-toggle="${e(k.id)}" data-on="${k.active ? "0" : "1"}">${k.active ? "Couper" : "Rallumer"}</button>
-      </div>`).join("") : `<p class="muted small">Pas encore de clé.</p>`}
+      ${apiKeys.length ? apiKeys.map(k => { const mine = orders.filter(o => (partnerOf(o) || {}).key_id === k.id).sort((a, b) => byTime(b, a));
+        const done = mine.filter(o => o.status === "livree"), ca = done.reduce((t, o) => t + Number(o.price || 0), 0);
+        return `<details class="api-key${k.active ? "" : " off"}"><summary class="api-row">
+        <div><b>🤝 ${e(partnerName(k))}</b> <span class="muted small">· ${e(k.shop_name)} · clé …${e(k.key_hint || "")}</span>
+          <br><small class="muted">${k.active ? "🟢 active" : "⚪ coupée"} · ${k.deliveries} course(s)${done.length ? ` · ${done.length} livrée(s) · ${e(UI.money(ca))}` : ""} · dernière utilisation : ${e(when(k.last_used_at))}</small></div>
+        <span class="api-acts"><button type="button" class="btn btn-sm${k.active ? "" : " btn-primary"}" data-api-toggle="${e(k.id)}" data-on="${k.active ? "0" : "1"}">${k.active ? "Couper" : "Rallumer"}</button><i class="api-chev">›</i></span></summary>
+        ${k.webhook_url ? `<p class="small muted api-wh">Avertissement automatique : ${e(k.webhook_url)}</p>` : ""}
+        ${mine.length ? `<div class="api-orders">${mine.map(o => `<div class="api-ord"><div><b>${e(o.dropoff_contact || "Client")}</b> · <bdi>${e(o.dropoff_address || "")}</bdi>
+            <br><small class="muted">n° ${e(o.ref)}${(partnerOf(o) || {}).external_id ? ` · cmd ${e(partnerOf(o).external_id)}` : ""} · ${e(UI.fmtDateTime(o.created_at))}${o.courier_name ? ` · 🛵 ${e(String(o.courier_name).split(" ")[0])}` : ""}</small></div>
+            <div class="api-ord-r"><b>${e(UI.money(o.price))}</b><span class="pill st-${e(o.status)}">${e(I18N.forLang("fr", "st_" + o.status))}</span></div></div>`).join("")}</div>`
+          : `<p class="small muted">Pas encore de course avec cette clé.</p>`}
+      </details>`; }).join("") : `<p class="muted small">Pas encore de clé.</p>`}
     </div>`;
 }
 document.addEventListener("submit", async ev => {
@@ -3607,6 +3622,7 @@ document.addEventListener("click", async ev => {
   if (ev.target.closest("[data-api-hide]")) { apiNew = null; render(); return; }
   const b = ev.target.closest("[data-api-toggle]");
   if (!b) return;
+  ev.preventDefault();
   const on = b.dataset.on === "1";
   if (!on && !confirm("Couper cette clé ? L'appli qui l'utilise ne pourra plus créer de courses (les courses déjà créées continuent).")) return;
   b.disabled = true;
