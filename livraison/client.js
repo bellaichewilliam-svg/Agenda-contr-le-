@@ -1931,7 +1931,7 @@ function wizLabels() {
   const more = form.classList.contains("wiz-more");
   form.querySelectorAll("[data-wiz-more] b").forEach(b => { b.textContent = t(more ? "wizLess" : "wizMore"); });
   if (n < wiz.n) $("#submitBtn").textContent = t("wizNext");
-  $("#mobileGo").textContent = n < wiz.n ? t("wizNext") : t("navOrder");
+  goLabel();
 }
 // Un écran sans rien à remplir (adresse enregistrée complète, commande chez un commerce) : on passe par-dessus
 function wizStepEmpty(n) {
@@ -4227,11 +4227,33 @@ function favToggle(id) {
   try { localStorage.setItem(LS_FAV, JSON.stringify(all)); } catch (e) { /* plein ou privé */ }
   UI.track("fav_" + (cur.includes(id) ? "off" : "on"), { shop_code: k });
 }
+// Panier vide chez un commerce avec catalogue (patron, 18/11 : une cliente a appuyé 3 fois sur « Continuer » chez Roladin
+// sans rien choisir) : le bouton du bas dit « Choisir mes articles » et emmène aux produits, les « + » clignotent
+const cgNeedPick = () => wiz.on && wiz.step === 1 && !!state.shop && catalogOn() && proShopOn() && !cartCount() && (hopBuyOn() || !val("shop_order").trim());
+function goLabel() {
+  const g = $("#mobileGo"); if (!g || !wiz.on) return;
+  const need = cgNeedPick();
+  g.textContent = need ? t("cgPickGo") : wiz.step < wiz.n ? t("wizNext") : t("navOrder");
+  g.classList.toggle("go-pick", need);
+}
+function cgShowPick() {
+  const box = $("#catalogBox"); if (!box) return;
+  const first = box.querySelector(".cg-sec") || box.querySelector(".cg-grid") || box;
+  const bar = document.querySelector(".topbar"), edge = Math.max(cgEdge(), ((bar && bar.offsetHeight) || 0) + 12);
+  const y = first.getBoundingClientRect().top + window.scrollY - edge;
+  window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+  const plus = [...box.querySelectorAll(".cg-plus")].filter(x => x.getClientRects().length).slice(0, 4);
+  box.querySelectorAll(".cg-nudge").forEach(x => x.classList.remove("cg-nudge"));
+  plus.forEach(x => { void x.offsetWidth; x.classList.add("cg-nudge"); });
+  clearTimeout(cgShowPick.t); cgShowPick.t = setTimeout(() => plus.forEach(x => x.classList.remove("cg-nudge")), 5000);
+  toastCart(t("cgPickHint"), 3500);
+}
 function renderCatalog() {
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
   $("#shopOrderBox").classList.toggle("with-cg", on);
   document.body.classList.toggle("cg-cart-on", on && cartCount() > 0);
+  goLabel();
   form.shop_order.placeholder = on ? t(hopBuyOn() ? "hopNotePh" : "cgNotePh") : t("spOrderPh");
   $("#shopWa").classList.toggle("hidden", !(state.shop && hopBuyOn()) || document.documentElement.classList.contains("for-client"));
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t(hopBuyOn() ? "cgHopExtra" : (CONFIG.hopAnyItem || []).includes(String(state.shop.code || "").toUpperCase()) ? "cgAnyNote" : "cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
@@ -9519,6 +9541,7 @@ setTimeout(checkChats, 1500);
 setInterval(checkChats, 20000);
 $("#mobileGo").addEventListener("click", async e => {
   e.preventDefault();
+  if (cgNeedPick()) { if (UI.track) UI.track("order_block", { page: "e1:cartEmpty" }); return cgShowPick(); }
   if (wiz.on && wiz.step < wiz.n) { await autoPickAll(); return wizNext(); }
   $("#summary").scrollIntoView({ behavior: "smooth", block: "center" });
 });
@@ -9998,7 +10021,7 @@ if ($("#tbCart")) {
 
 
 // Boutique HOP! : les articles écrits à la main comptent tout de suite dans la jauge (articles et top case)
-form.shop_order.addEventListener("input", () => { if (!hopBuyOn()) return; clearTimeout(form.shop_order._t); form.shop_order._t = setTimeout(() => { try { renderCatalog(); } catch (e) { /* ignore */ } }, 400); });
+form.shop_order.addEventListener("input", () => { try { goLabel(); } catch (x) { /* ignore */ } if (!hopBuyOn()) return; clearTimeout(form.shop_order._t); form.shop_order._t = setTimeout(() => { try { renderCatalog(); } catch (e) { /* ignore */ } }, 400); });
 
 // ===== Vaisselle au mikvé (patron, 18/11) =====================================================================
 // « On emmène votre vaisselle au mikvé » : prix fixe (aller-retour 35 ₪ + service 50 ₪), tout est déjà défini ;
