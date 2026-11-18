@@ -998,7 +998,26 @@ function foldTitles() {
     if (h && sum.textContent !== h.textContent) sum.textContent = h.textContent;
   });
 }
+// « HOP! sur votre téléphone » (patron, 18/11) : l'espace s'installe comme une appli (icône « HOP! Commerce »), pas de
+// tablette en plus. Caché une fois installé, ou si le commerçant a touché « Plus tard » (revient au bout de 7 jours).
+function renderInstall() {
+  const box = $("#spInstall");
+  if (!box) return;
+  let later = 0; try { later = Number(localStorage.getItem("hop.spInstallLater") || 0); } catch (e) { /* ignore */ }
+  const hide = UI.isStandalone() || Date.now() - later < 7 * 86400000;
+  box.classList.toggle("hidden", hide);
+  if (hide) return;
+  const e = x => UI.esc(x).replace(/HOP! Commerce|HOP!/g, m => `<bdi dir="ltr">${m}</bdi>`), ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  box.innerHTML = `<div class="spi-head"><span class="spi-ic"></span><div><b>${e(t("spInsT"))}</b><p>${e(t("spInsS"))}</p></div></div>
+    <ol class="spi-steps"><li>${e(t(ios ? "spInsIos" : "spInsAnd"))}</li><li>${e(t(ios ? "spInsAnd" : "spInsIos"))}</li></ol>
+    <div class="spi-btns"><button type="button" class="btn btn-primary" data-spi-go>${e(t("spInsBtn"))}</button><button type="button" class="btn btn-link" data-spi-later>${e(t("spInsLater"))}</button></div>`;
+}
+document.addEventListener("click", async ev => {
+  if (ev.target.closest("[data-spi-go]")) { const ok = await UI.installApp("HOP! Commerce", "commerce.html"); if (ok) renderInstall(); return; }
+  if (ev.target.closest("[data-spi-later]")) { try { localStorage.setItem("hop.spInstallLater", String(Date.now())); } catch (e) { /* ignore */ } renderInstall(); }
+});
 function renderSpace() {
+  renderInstall();
   const { shop, orders } = state.dash;
   renderGuide(shop);
   renderPrep();
