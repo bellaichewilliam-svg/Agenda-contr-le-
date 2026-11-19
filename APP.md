@@ -44,6 +44,9 @@
 - **Hoppy (voix)** : commande à la voix, création de compte à la voix (nom, tél, rue, n°, étage, appart, code, adresse validée sur la carte), ouvre les catalogues (« montre-moi les laits chez Carrefour »). Analyse locale : **jamais de nom/adresse/tél envoyé à l'IA**.
 - **Compte** : téléphone + mot de passe (pas d'e-mail), page de création d3 « qui donne envie » + bouton voix.
 - **Promos** : page « Toutes les promos » (tous les magasins) avec recherche + micro ; le geste retour du téléphone la ferme.
+- **Les promos du moment** (19/11) : bloc juste sous la recherche de l'accueil (`#homePromos`, classes `pz-*`) : compteur, filtre par magasin (logos), grandes cartes sur fond pastel du magasin, défilement seul + barre de progression (revient au début), « + » = panier de ce magasin (`paAddItem`). Promos du patron (`home_promo_pins`) en tête.
+- **Boutiques HOP!** : en haut du catalogue, « Nos magasins sur HOP! » (le magasin en cours en bleu nuit, les autres à un toucher). Victory : rangement automatique des promos par rayon (`victory_categorize`, cron 03:58).
+- **Recherche** : `products_search_v3` lit les textes déjà normalisés de `product_search_cache` (trigger + cron horaire) ; côté téléphone, réponses gardées en mémoire, jamais d'écran vide.
 - **Suivi** : rond avec fourchette, étapes animées, scooter sur la carte, chat, paiement Bit en 3 étapes ; course programmée = « à l'heure prévue » (jamais « dans 3 min ») ; photo de livraison en grand une fois livrée.
 
 ## 4. Appli livreur (`coursier.html` + `coursier.js`)

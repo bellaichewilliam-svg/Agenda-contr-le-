@@ -4276,13 +4276,13 @@ function renderCatalog() {
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}`;
   // Le champ de recherche est posé une seule fois par commerce (il garde le clavier et ce qui est tapé)
   if (box.dataset.shell !== state.shop.code + I18N.lang) {
-    box.innerHTML = `<div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label><button type="button" class="cg-voice" data-cg-mic><span class="cv-ic">${HV_MIC}</span><span class="cv-t"><b>${UI.esc(t("cgVoice"))}</b><small>${UI.esc(t("cgVoiceS"))}</small></span><i aria-hidden="true">›</i></button><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
+    box.innerHTML = `<div class="cg-stores-w"></div><div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label><button type="button" class="cg-voice" data-cg-mic><span class="cv-ic">${HV_MIC}</span><span class="cv-t"><b>${UI.esc(t("cgVoice"))}</b><small>${UI.esc(t("cgVoiceS"))}</small></span><i aria-hidden="true">›</i></button><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
     box.dataset.shell = state.shop.code + I18N.lang; box.dataset.html = ""; box.dataset.head = "";
     state.cgQ = state.cgQNext || ""; state.cgQNext = "";
     if (state.cgQ) box.querySelector("[data-cg-q]").value = state.cgQ;
   }
   const qIn = box.querySelector("[data-cg-q]");
-  qIn.placeholder = t("cgSearch", { name: UI.bi(state.shop.name) });
+  qIn.placeholder = t("cgSearch", { name: isHopShop(state.shop) ? mgShort(state.shop.name) : UI.bi(state.shop.name) });
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   // La règle dite clairement (patron, 09/11) : la commande est chez CE magasin ; un autre magasin s'y ajoute, avec sa livraison en plus
   let rule = "";
@@ -4293,6 +4293,13 @@ function renderCatalog() {
   }
   // Laline… (patron, 15/11) : la liste montre les meilleures ventes, mais on achète tout ce que le client veut dans la boutique
   const anyTip = (CONFIG.hopAnyItem || []).includes(String(state.shop.code || "").toUpperCase()) ? `<div class="cg-any">🛍️ ${escHop(t("cgAnyItem"))}</div>` : "";
+  // Nos magasins (patron, 19/11 : « savoir que ces produits viennent de Victory, et qu'il y a plein d'autres boutiques ») :
+  // en haut du catalogue d'une boutique HOP!, le magasin où l'on est (en bleu nuit) et les autres, à un toucher
+  const stores = isHopShop(state.shop) && !cq ? (state.showcase || []).filter(x => isHopShop(x) && x.code !== "HOPLALINE") : [];
+  const storeBar = stores.length > 1 ? `<div class="cg-stores"><small>${escHop(t("cgStores"))}</small><div class="cg-st-row">${[stores.find(x => x.code === state.shop.code) || state.shop].concat(stores.filter(x => x.code !== state.shop.code)).map(x => {
+      const lg = UI.safeImg(x.logo);
+      return `<button type="button" class="cg-st${x.code === state.shop.code ? " on" : ""}" data-cg-store="${UI.esc(x.code)}"><span class="cg-st-lg">${lg ? `<img src="${lg}" alt="" />` : `<b>${UI.esc(mgShort(x.name).slice(0, 1))}</b>`}</span><bdi>${UI.esc(mgShort(x.name))}</bdi></button>`; }).join("")}</div></div>` : "";
+  const sw = box.querySelector(".cg-stores-w"); if (sw && sw.dataset.html !== storeBar) { sw.innerHTML = storeBar; sw.dataset.html = storeBar; }
   const html = `${state.boss ? bossBar() : ""}${rule}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
@@ -4503,6 +4510,12 @@ $("#catalogBox").addEventListener("click", e => {
     toastCart(t("cgElseNearAdded"));
   }
 }, true);
+$("#catalogBox").addEventListener("click", e => {
+  const st = e.target.closest("[data-cg-store]");
+  if (!st || !state.shop || st.dataset.cgStore === state.shop.code) return;
+  UI.track("store_switch", { shop_code: st.dataset.cgStore });
+  state.shopDir = ""; loadShop(st.dataset.cgStore).then(() => { const cb = $("#catalogBox"); if (cb) window.scrollTo({ top: Math.max(0, cb.getBoundingClientRect().top + window.scrollY - 140) }); });
+});
 $("#catalogBox").addEventListener("keydown", e => { if (e.key === "Enter" && e.target.matches("[data-cg-q]")) { e.preventDefault(); e.target.blur(); } });
 $("#catalogBox").addEventListener("click", e => {
   const be = e.target.closest("[data-boss-edit]"), bt = e.target.closest("[data-boss-toggle]");
@@ -6978,11 +6991,21 @@ async function homeFind(q) {
       || `<p class="fi-none">${UI.esc(t("findNone", { q }))}</p>`;
     box.classList.remove("hidden");
   };
-  render([]);
-  try { render(await Store.productsSearch(q)); } catch (e) { /* les commerces suffisent */ }
+  // Instantané (patron, 19/11 : « comme une vraie boutique, pas qu'on voie que ça cherche ») : la réponse déjà vue
+  // s'affiche tout de suite ; sinon on garde les résultats d'avant filtrés avec ce qui est tapé (jamais d'écran vide)
+  const hit = findCache.get(n);
+  if (hit) render(hit);
+  else {
+    const prev = [...findCache.keys()].filter(k => n.startsWith(k)).sort((a, b) => b.length - a.length)[0];
+    const words = n.split(/\s+/).filter(Boolean);
+    render(prev ? findCache.get(prev).filter(p => (h => words.every(w => h.includes(w)))(norm(`${p.name} ${p.category || ""}`))) : findLast);
+  }
+  try { const r = await Store.productsSearch(q); if (Array.isArray(r)) { findCache.set(n, r); if (findCache.size > 60) findCache.delete(findCache.keys().next().value); findLast = r; } render(r || []); } catch (e) { /* les commerces suffisent */ }
   UI.track("home_find", { q: q.slice(0, 40) });
 }
-$("#homeFind").addEventListener("input", e => { clearTimeout(findTimer); findTimer = setTimeout(() => homeFind(e.target.value), 250); });
+const findCache = new Map();
+let findLast = [];
+$("#homeFind").addEventListener("input", e => { clearTimeout(findTimer); findTimer = setTimeout(() => homeFind(e.target.value), 140); });
 // --- 🎤 Commander à la voix (patron, 12/11) -------------------------------------------------------------------------
 // « Je veux un Mars et un lait », « un riz tartare chez Nini Sushi, livré à la maison » : le téléphone écrit ce qui est dit,
 // l'IA (Gemini, via la base) comprend le commerce, les articles et « maison / travail ». Sans commerce : la liste de Hoppy
@@ -8512,7 +8535,9 @@ function vitFindRender(q, products, shops, staple, box) {
       return card(`data-find-ray="${UI.esc(r.id)}"`, ph ? `<img src="${ph}" alt="" loading="lazy" />` : `<i>${UI.esc(i.e || "🛒")}</i>`, true, pr ? `≈ <bdi dir="ltr">${priceTxt(pr)}</bdi>` : "&nbsp;", UI.esc(phName(i))); }).join("")}</div></section>` : "";
   const shopHtml = shops.length ? `<h5>${UI.esc(t("vitFindShops"))}</h5>` + shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${escHop(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}</small></span></button>`).join("") : "";
   // (les rayons d'abord pour les courses du quotidien : lait, eau, couches…)
-  box.innerHTML = any + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
+  // (même contenu : on ne redessine pas, les photos et le défilement restent en place)
+  const out = any + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
+  if (box._findOut !== out || !box.firstChild || box._findFirst !== box.firstChild) { box.innerHTML = out; box._findOut = out; box._findFirst = box.firstChild; }
   box.classList.remove("hidden");
 }
 // --- ✨ « Dites-le à Hoppy » : une phrase → la liste rangée, avec le vrai produit, sa photo, son prix et le total ----------
@@ -8912,7 +8937,7 @@ async function loadShowcase() {
 // qui défilent toutes seules sous les grands bandeaux ; un toucher ouvre la boutique ET la fiche du produit.
 // Intelligent : selon l'heure (matin : café, lait, pain… ; midi : pâtes, riz… ; soir : snacks, boissons…), sans ce qui
 // est déjà au panier, et jamais trois fois de suite la même boutique. Il s'arrête quand on le touche ou qu'on ne le voit pas.
-const promo = { list: [], timer: null, hold: 0, seen: false };
+const promo = { list: [], timer: null, hold: 0, seen: false, shop: "" };
 const PROMO_TIME = [[6, 11, /caf[ée]|\blait\b|c[ée]r[ée]ales|muesli|\bpain|beurre|confiture|\bth[ée]\b|yaourt|קפה|חלב|דגני|לחם|חמאה|ריבה|תה|יוגורט/i],
   [11, 16, /p[aâ]tes|\briz\b|thon|sauce|schnitzel|houmous|salade|nouilles|פסטה|אורז|טונה|רוטב|שניצל|חומוס|סלט|אטריות/i],
   [16, 24, /chips|chocolat|bonbons?|glace|boisson|coca|soda|biscuit|gaufrette|maltesers|kinder|צ'יפס|שוקולד|סוכריות|גלידה|משקה|קולה|עוגיות|במבה|וופל/i],
@@ -8934,49 +8959,120 @@ function promoOrder(list) {
   }
   return out;
 }
+// ===== Nouveau concept (patron, 19/11 : « un truc de folie, comme une vraie boutique ») ==================================
+// En haut de l'accueil : « Les promos du moment » avec le nombre de promos et de magasins, un filtre par magasin (logo),
+// de grandes cartes (photo sur le fond pastel du magasin, remise, prix barré, logo du magasin) qui défilent toutes seules
+// avec une barre de progression façon « stories », et un « + » qui ajoute tout de suite au panier de ce magasin.
+const HP_TINT = { HOPRAMILEVY: "#FDEDEE", HOPVICTORY: "#E9F6EE", HOPCARREFOUR: "#EAF0FB", HOPBOOOM: "#FFF7D9", HOPPANZER: "#F6EEE8" };
+const HP_MS = 3800;
+const deEnt = s => String(s || "").replace(/&#x27;|&#39;|&apos;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+// Toutes les promos (la liste complète « Tout voir » si on l'a, sinon celles de l'accueil), le patron d'abord
+function hpItems() {
+  const cart = new Set(Object.keys(state.cart || {}).filter(k => state.cart[k] > 0));
+  const pins = promo.list.filter(x => x.pin).map(x => ({ id: x.id, code: x.code, name: x.name, p: Number(x.price), o: x.old ? Number(x.old) : null, l: 1, ph: x.ph, pin: true, label: x.label, label_he: x.label_he }));
+  let rest;
+  if (pa.data) {
+    const h = new Date().getHours(), rx = (PROMO_TIME.find(([a, b]) => h >= a && h < b) || [])[2];
+    rest = paItems().filter(x => x.f && !cart.has(x.id) && !pins.some(y => y.id === x.id))
+      .map(x => ({ x, s: Number(x.f) + (rx && rx.test(`${x.name} ${x.cat}`) ? 25 : 0) })).sort((a, b) => b.s - a.s).map(o => o.x);
+  } else rest = promo.list.filter(x => !x.pin).map(x => ({ id: x.id, code: x.code, name: x.name, p: Number(x.price), o: x.old ? Number(x.old) : null, l: Number(x.lot) > 1 ? Number(x.lot) : 1, f: x.off, ph: x.ph }));
+  return { pins, rest };
+}
+function hpList() {
+  const { pins, rest } = hpItems(), sel = promo.shop || "";
+  const r = rest.filter(x => !sel || x.code === sel), out = pins.filter(x => !sel || x.code === sel);
+  // pas trois fois de suite le même magasin
+  while (r.length && out.length < (sel ? 16 : 24)) {
+    const l2 = out.slice(-2).map(x => x.code);
+    let k = sel ? 0 : r.findIndex(x => !(l2.length === 2 && l2[0] === x.code && l2[1] === x.code));
+    if (k < 0) k = 0;
+    out.push(r.splice(k, 1)[0]);
+  }
+  return out;
+}
+function hpShops() {
+  const all = pa.data ? paItems().filter(x => x.f) : promo.list;
+  const by = {};
+  all.forEach(x => { by[x.code] = (by[x.code] || 0) + 1; });
+  return { total: all.length, shops: Object.entries(by).sort((a, b) => b[1] - a[1]) };
+}
 function renderPromos() {
   const box = $("#homePromos");
   if (!box) return;
-  const list = promo.list;
-  box.classList.toggle("hidden", !list.length);
-  if (!list.length) { box.innerHTML = ""; box.dataset.html = ""; return; }
-  const html = `<div class="pm-h"><h3 class="ch-h">🔥 ${UI.esc(t("pmTitle"))}</h3><button type="button" class="pm-all" data-pm-all>${UI.esc(t("paSee"))} ›</button></div>
-    <div class="pm-row">${list.map((x, i) => `<button type="button" class="pm-card" data-promo="${UI.esc(x.code)}|${UI.esc(x.id)}" data-i="${i}">
-      <span class="pm-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" />${x.pin ? `<em class="pm-off pm-pin">${UI.esc(I18N.lang === "he" ? x.label_he || x.label || "" : x.label || "")}</em>` : `<em class="pm-off" dir="ltr">−${Number(x.off)} %</em>`}</span>
-      <span class="pm-txt"><small class="pm-shop">${UI.esc(mgShort(x.shop))}</small><b><bdi>${UI.esc(UI.bi(x.name))}</bdi></b>
-        <span class="pm-pr${Number(x.lot) > 1 ? " lot" : ""}"><strong><bdi>${UI.esc(Number(x.lot) > 1 ? t("paLot", { n: x.lot, price: money(x.price) }) : money(x.price))}</bdi></strong>${x.old ? `<s>${UI.esc(money(x.old))}</s>` : ""}</span>
-        <span class="pm-go">${UI.esc(t("pmGo"))} <i aria-hidden="true">›</i></span></span></button>`).join("")}</div>`;
+  const list = hpList();
+  box.classList.toggle("hidden", !promo.list.length && !pa.data);
+  if (!promo.list.length && !pa.data) { box.innerHTML = ""; box.dataset.html = ""; return; }
+  const sc = code => (state.showcase || []).find(x => x.code === code) || {};
+  const logo = code => { const l = UI.safeImg(sc(code).logo); return l ? `<img src="${l}" alt="" />` : `<b>${UI.esc(paShopName(code).slice(0, 1))}</b>`; };
+  const { total, shops } = hpShops(), sel = promo.shop || "";
+  const he = I18N.lang === "he";
+  const card = (x, i) => {
+    const badge = x.pin ? `<em class="pz-off pz-pin">${UI.esc(he ? x.label_he || x.label || "" : x.label || "")}</em>` : x.f ? `<em class="pz-off" dir="ltr">−${Number(x.f)}%</em>` : "";
+    const price = x.l > 1 ? t("paLot", { n: x.l, price: money(x.p) }) : money(x.p);
+    return `<div class="pz-card" data-promo="${UI.esc(x.code)}|${UI.esc(x.id)}" data-i="${i}" style="--t:${HP_TINT[x.code] || "#F2F3F5"}">
+      <span class="pz-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" />${badge}<span class="pz-shop">${logo(x.code)}<bdi>${UI.esc(paShopName(x.code))}</bdi></span></span>
+      <span class="pz-info"><b class="pz-name"><bdi>${UI.esc(deEnt(UI.bi(x.name)))}</bdi></b>
+        <span class="pz-pr"><strong><bdi dir="ltr">${UI.esc(price)}</bdi></strong>${x.o && x.o > x.p ? `<s dir="ltr">${UI.esc(money(x.o))}</s>` : ""}</span></span>
+      <button type="button" class="pz-add" data-pz-add="${UI.esc(x.code)}|${UI.esc(x.id)}" aria-label="${UI.esc(t("paAdd"))}">+</button></div>`;
+  };
+  const pills = [`<button type="button" class="pz-chip${sel ? "" : " on"}" data-pz-shop="">${UI.esc(t("paAll"))}</button>`]
+    .concat(shops.map(([c, n]) => `<button type="button" class="pz-chip${sel === c ? " on" : ""}" data-pz-shop="${UI.esc(c)}"><span class="pz-lg">${logo(c)}</span><bdi>${UI.esc(paShopName(c))}</bdi>${pa.data ? `<i>${n}</i>` : ""}</button>`)).join("");
+  const dots = Math.min(list.length, 8);
+  const html = `<div class="pz-h"><div class="pz-t"><h3 class="ch-h">${UI.esc(t("pmTitle"))}</h3><small>${UI.esc(pa.data ? t("hpSub", { n: total, k: shops.length }) : t("hpSub0", { k: shops.length }))}</small></div>
+      <button type="button" class="pz-all" data-pm-all>${UI.esc(t("paSee"))} ›</button></div>
+    <div class="pz-chips">${pills}</div>
+    <div class="pz-row">${list.map(card).join("")}</div>
+    <div class="pz-dots" aria-hidden="true">${Array.from({ length: dots }, (_, k) => `<span data-d="${k}"></span>`).join("")}</div>`;
   if (box.dataset.html === html) return;
-  box.innerHTML = html; box.dataset.html = html;
-  const row = box.querySelector(".pm-row");
-  // Le client touche ou fait défiler : le défilement automatique attend un peu
-  ["pointerdown", "touchstart", "wheel"].forEach(ev => row.addEventListener(ev, () => { promo.hold = Date.now() + 8000; }, { passive: true }));
-  row.addEventListener("scroll", () => { const n = box.querySelector(".pm-n b"); if (n) n.textContent = promoIndex(row) + 1; }, { passive: true });
-  if (window.IntersectionObserver) { if (promo.io) promo.io.disconnect(); promo.io = new IntersectionObserver(es => { promo.seen = es.some(e => e.isIntersecting); }, { threshold: 0.6 }); promo.io.observe(row); }
+  const keep = box.dataset.shop === sel ? (box.querySelector(".pz-row") || {}).scrollLeft || 0 : 0;
+  box.innerHTML = html; box.dataset.html = html; box.dataset.shop = sel; box.className = "pm pz";
+  const row = box.querySelector(".pz-row");
+  if (keep) row.scrollLeft = keep;
+  ["pointerdown", "touchstart", "wheel"].forEach(ev => row.addEventListener(ev, () => { promo.hold = Date.now() + 7000; }, { passive: true }));
+  row.addEventListener("scroll", () => { clearTimeout(promo.st); promo.st = setTimeout(hpDots, 80); }, { passive: true });
+  if (window.IntersectionObserver) { if (promo.io) promo.io.disconnect(); promo.io = new IntersectionObserver(es => { promo.seen = es.some(e => e.isIntersecting); }, { threshold: 0.5 }); promo.io.observe(row); }
   else promo.seen = true;
-  if (!promo.timer) promo.timer = setInterval(promoTick, 3800);
+  hpDots();
+  if (!promo.timer) promo.timer = setInterval(promoTick, HP_MS);
 }
-// La carte la plus à gauche visible (droite à gauche aussi)
+// La carte en cours (la plus près du bord de départ, droite à gauche aussi) et la barre de progression
 function promoIndex(row) {
   const r = row.getBoundingClientRect(), cards = [...row.children];
   let best = 0, d = Infinity;
   cards.forEach((c, i) => { const b = c.getBoundingClientRect(), x = I18N.lang === "he" ? Math.abs(r.right - b.right) : Math.abs(b.left - r.left); if (x < d) { d = x; best = i; } });
   return best;
 }
+const hpAtEnd = row => Math.abs(row.scrollLeft) + row.clientWidth >= row.scrollWidth - 6;
+function hpDots() {
+  const box = $("#homePromos"), row = box && box.querySelector(".pz-row"); if (!row) return;
+  const n = row.children.length, ds = [...box.querySelectorAll(".pz-dots span")]; if (!ds.length) return;
+  const i = hpAtEnd(row) ? n - 1 : promoIndex(row), on = Math.min(ds.length - 1, Math.floor(i * ds.length / n));
+  ds.forEach((d, k) => { d.classList.toggle("done", k < on); if (k === on && !d.classList.contains("on")) { d.classList.remove("on"); void d.offsetWidth; } d.classList.toggle("on", k === on); });
+  box.classList.toggle("pz-hold", Date.now() < promo.hold);
+}
+// Défilement tout seul ; arrivé au bout, on repart au début (avant, il restait bloqué sur les dernières cartes)
 function promoTick() {
-  const row = $("#homePromos .pm-row");
-  if (!row || !promo.seen || document.hidden || Date.now() < promo.hold || $("#homePromos").offsetParent === null) return;
-  const cards = row.children, i = (promoIndex(row) + 1) % cards.length, c = cards[i];
-  if (!c) return;
+  const box = $("#homePromos"), row = box && box.querySelector(".pz-row");
+  if (!row || !promo.seen || document.hidden || Date.now() < promo.hold || box.offsetParent === null) { if (box) box.classList.toggle("pz-hold", Date.now() < promo.hold); return; }
+  if (hpAtEnd(row)) { row.scrollTo({ left: 0, behavior: "smooth" }); return; }
+  const cards = row.children, i = promoIndex(row) + 1, c = cards[i];
+  if (!c) { row.scrollTo({ left: 0, behavior: "smooth" }); return; }
   const r = row.getBoundingClientRect(), b = c.getBoundingClientRect();
-  row.scrollBy({ left: I18N.lang === "he" ? b.right - r.right : b.left - r.left, behavior: i ? "smooth" : "auto" });
+  row.scrollBy({ left: I18N.lang === "he" ? b.right - r.right : b.left - r.left, behavior: "smooth" });
 }
 async function loadPromos() {
+  if (!pa.data) { const c = Store.promosAllCached && Store.promosAllCached(); if (c && Array.isArray(c.items)) pa.data = c; }
   if (!promo.list.length) { promo.list = promoOrder(Store.homePromosCached()); renderPromos(); }
   try { const l = await Store.homePromos(); if (Array.isArray(l)) { promo.list = promoOrder(l); renderPromos(); } } catch (e) { /* on garde */ }
+  // Toutes les promos (pour le filtre par magasin et les compteurs), sans gêner l'affichage de l'accueil
+  setTimeout(async () => { try { const d = await Store.promosAll(); if (d && Array.isArray(d.items)) { pa.data = d; renderPromos(); } } catch (e) { /* on garde */ } }, 1500);
 }
 $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
-  if (e.target.closest("[data-pm-all]")) return openPromosAll("");
+  if (e.target.closest("[data-pm-all]")) return openPromosAll(promo.shop || "");
+  const hs = e.target.closest("[data-pz-shop]");
+  if (hs) { promo.shop = hs.dataset.pzShop; promo.hold = Date.now() + 5000; renderPromos(); const r = $("#homePromos .pz-row"); if (r) r.scrollTo({ left: 0 }); UI.track("promo_shop", { shop_code: promo.shop || "all" }); return; }
+  const ad = e.target.closest("[data-pz-add]");
+  if (ad) { e.stopPropagation(); const [code, id] = ad.dataset.pzAdd.split("|"); promo.hold = Date.now() + 6000; if (paAddItem(code, id, hpItems())) { ad.textContent = "✓"; ad.classList.add("ok"); } else { state.shopDir = ""; await loadShop(code); if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) { state.focusAfter = id; openItem(id); } } return; }
   const c = e.target.closest("[data-promo]");
   if (!c) return;
   const [code, id] = c.dataset.promo.split("|");
@@ -9099,6 +9195,22 @@ function paMic() {
   paRec = r; b.classList.add("on"); inp.value = ""; inp.placeholder = t("micListen");
   try { r.start(); } catch (e) { off(); }
 }
+// « + » d'une promo (page « Tout voir » ou accueil) : dans le panier de ce magasin, même si on n'y est pas
+function paAddItem(code, id, hp) {
+  const x = (pa.data ? paItems() : []).find(y => y.id === id && y.code === code)
+    || (hp ? hp.pins.concat(hp.rest).find(y => y.id === id && y.code === code) : null);
+  if (!x) return false;
+  const qty = x.code === "HOPCARREFOUR" ? x.l : 1;
+  if (state.shop && state.shop.code === code && cgProducts().some(p => p.id === id)) {
+    state.cart[id] = Math.min(50, (state.cart[id] || 0) + qty); renderCatalog(); renderQuote(); saveDraft(); cartPersist(); renderCartIcon();
+  } else {
+    const unit = x.code === "HOPCARREFOUR" && x.o ? x.o / x.l : x.p;
+    multiAdd({ code, id, name: x.name, price: unit, shop: ((state.showcase || []).find(s => s.code === code) || {}).name || code }, qty);
+  }
+  toastCart(t("paAdded", { shop: paShopName(code) }));
+  UI.track("promos_all_add", { shop_code: code });
+  return true;
+}
 async function paClick(e) {
   const b = e.target;
   if (b.closest("[data-pa-mic]")) return paMic();
@@ -9108,18 +9220,8 @@ async function paClick(e) {
   const add = b.closest("[data-pa-add]");
   if (add) {
     e.stopPropagation();
-    const [code, id] = add.dataset.paAdd.split("|"), x = paItems().find(y => y.id === id && y.code === code);
-    if (!x) return;
-    const qty = x.code === "HOPCARREFOUR" ? x.l : 1;
-    if (state.shop && state.shop.code === code && cgProducts().some(p => p.id === id)) {
-      state.cart[id] = Math.min(50, (state.cart[id] || 0) + qty); renderCatalog(); renderQuote(); saveDraft(); cartPersist(); renderCartIcon();
-      toastCart(t("paAdded", { shop: paShopName(code) }));
-    } else {
-      const unit = x.code === "HOPCARREFOUR" && x.o ? x.o / x.l : x.p;
-      multiAdd({ code, id, name: x.name, price: unit, shop: ((state.showcase || []).find(s => s.code === code) || {}).name || code }, qty);
-      toastCart(t("paAdded", { shop: paShopName(code) }));
-    }
-    add.textContent = "✓"; add.classList.add("ok"); UI.track("promos_all_add", { shop_code: code });
+    const [code, id] = add.dataset.paAdd.split("|");
+    if (paAddItem(code, id)) { add.textContent = "✓"; add.classList.add("ok"); }
     return;
   }
   const op = b.closest("[data-pa-open]");
