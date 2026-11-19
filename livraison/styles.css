@@ -6905,3 +6905,7 @@ html[dir="rtl"] .pz .pz-dots span.on::after { transform-origin: right; }
 .cg-st-lg { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: #F2F3F5; display: grid; place-items: center; flex: none; }
 .cg-st-lg img { width: 100%; height: 100%; object-fit: cover; }
 .cg-st-lg b { font-size: 13px; color: #111418; }
+/* Carte « Envoyez votre liste sur WhatsApp » dans Ma commande : sur une ligne (icône, texte, flèche), pas empilée */
+#shopWa.wa-list { display: flex !important; flex-direction: row !important; align-items: center !important; text-align: start; }
+#shopWa.wa-list > span { display: grid !important; }
+html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(-1); }
