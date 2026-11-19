@@ -2185,11 +2185,11 @@ function renderClients(view) {
       <article class="order" data-client="${UI.esc(c.client_id || "")}">
         <div class="order-head">
           <span class="order-time">${UI.esc(c.name || "—")}</span>
-          ${sh ? `<span class="pill paid">🏪 Commerce partenaire</span>` : `<span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte client" : c.writer ? "📝 Inscrit, pas encore commandé" : "📞 Sans compte client"}</span>`}
+          ${sh ? `<span class="pill paid">🏪 Commerce partenaire</span>` : `<span class="pill${c.client_id ? " paid" : ""}">${c.client_id ? "👤 Compte client" : c.writer ? "📝 Inscrit, pas encore commandé" : "📞 A commandé sans s'inscrire"}</span>`}
           ${c.blocked ? `<span class="pill" style="background:#FDE2E2;color:#9B1C1C">⛔ Bloqué</span>` : ""}
           <span class="order-price">${Number(c.delivered || 0)} livrée(s)</span>
         </div>
-        <p class="small muted" style="margin:6px 0 2px">${sh ? "Un commerce n'a pas besoin de compte client : il envoie ses courses depuis son espace commerce (« Envoyer une course »)." : c.client_id ? "" : c.writer ? (c.via === "cart" ? "Inscrit avec son nom et son téléphone (laissés dans son panier), pas encore de commande : relancez-le ou envoyez-lui « Comment commander »." : "Inscrit avec son nom et son téléphone (au service client), pas encore de commande : envoyez-lui « Comment commander ».") : "Il commande avec son numéro de téléphone, sans avoir créé de compte (c'est permis)."}</p>
+        <p class="small muted" style="margin:6px 0 2px">${sh ? "Un commerce n'a pas besoin de compte client : il envoie ses courses depuis son espace commerce (« Envoyer une course »)." : c.client_id ? "" : c.writer ? (c.via === "cart" ? "Inscrit avec son nom et son téléphone (laissés dans son panier), pas encore de commande : relancez-le ou envoyez-lui « Comment commander »." : "Inscrit avec son nom et son téléphone (au service client), pas encore de commande : envoyez-lui « Comment commander ».") : "A commandé avec son prénom et son téléphone, sans créer de compte HOP! (c'est permis). Avec un compte, il retrouve ses adresses et ses commandes, et commande plus vite."}</p>
         <div class="kv">
           <div><span>📞</span><span>${tel(c.name, c.phone)}${c.email ? " · " + UI.esc(c.email) + (c.email_verified ? " ✅" : " (à vérifier)") : ""}</span></div>
           <div><span>📦</span><span>${Number(c.orders || 0)} commande(s) · ${UI.money(Number(c.spent || 0))} livrés${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
