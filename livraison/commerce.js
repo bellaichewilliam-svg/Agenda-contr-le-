@@ -322,6 +322,7 @@ async function openSpace(token) {
     return;
   }
   // Le patron qui regarde l'espace d'un commerce (?vu=1) : rien n'est gardé sur son téléphone
+  if (!params.has("vu")) shopManifest(token);
   if (!params.has("vu")) { Store.rememberShopToken(token, d.shop.code); try { localStorage.setItem("hop.shopName." + d.shop.code, d.shop.name || ""); } catch (e) { /* stockage bloqué */ } }
   // Arrivé depuis l'appli HOP! (« Envoyer une course » de son commerce) : le formulaire s'ouvre tout de suite
   if (params.has("send")) setTimeout(() => { const b = $("#spOrder"); if (b && $("#spSend").classList.contains("hidden")) b.click(); }, 400);
@@ -1284,6 +1285,19 @@ $("#spPro").addEventListener("click", e => {
 setTimeout(checkChat, 1500);
 setInterval(checkChat, 20000);
 
+// « Ajouter à l'écran d'accueil » (patron, 19/11 : le Marché français retombait sur l'inscription) : l'icône
+// ouvre l'espace de CE commerce, avec sa clé, même si le téléphone a oublié ce qui était gardé
+function shopManifest(token) {
+  try {
+    const link = document.querySelector('link[rel="manifest"]'); if (!link) return;
+    const abs = u => new URL(u, location.href).href;
+    const m = { name: "HOP! Commerce · הופ! לעסקים", short_name: "HOP! Commerce", id: "/commerce.html",
+      start_url: abs("commerce.html?k=" + encodeURIComponent(token)), scope: abs("commerce.html"), display: "standalone",
+      background_color: "#0F1F3D", theme_color: "#FFFFFF",
+      icons: [{ src: abs("icon-192.png"), sizes: "192x192", type: "image/png", purpose: "any" }, { src: abs("icon-maskable-512.png"), sizes: "512x512", type: "image/png", purpose: "maskable" }] };
+    link.href = URL.createObjectURL(new Blob([JSON.stringify(m)], { type: "application/manifest+json" }));
+  } catch (e) { /* le manifeste de base reste */ }
+}
 // Espaces déjà gardés sur ce téléphone, proposés au-dessus du formulaire d'inscription
 function showKnownShops() {
   const shops = Store.myShops();

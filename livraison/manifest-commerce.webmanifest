@@ -2,7 +2,6 @@
   "name": "HOP! Commerce · הופ! לעסקים",
   "short_name": "HOP! Commerce",
   "description": "L'espace commerce HOP! : envoyer une course à un client, suivre ses commandes",
-  "start_url": "/commerce.html",
   "scope": "/commerce.html",
   "display": "standalone",
   "background_color": "#0F1F3D",
