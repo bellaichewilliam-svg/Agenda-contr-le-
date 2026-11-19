@@ -6925,3 +6925,5 @@ html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(
 .rd-next .rn-t b { font-size: 15.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rd-next .rn-n { flex: none; display: grid; justify-items: end; gap: 2px; font-size: 12.5px; font-weight: 600; color: var(--rd-mute); }
 .rd-next .rn-n em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--rd-ink); }
+/* Fiche livreur : après la récupération, le commerce en petit (« ✓ Récupéré chez … »), l'adresse du client en grand */
+.fi-from { margin: 2px 0 4px; font-size: 13.5px; font-weight: 600; color: var(--rd-mute, #98A2B3); }

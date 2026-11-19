@@ -1578,6 +1578,7 @@ function renderFiche() {
         <small>${(() => { const st = fiStops(), k = st.findIndex(x => x.o.id === o.id && x.kind === fiche.which); return st.length > 1 && k >= 0 ? `<b class="fi-step">${k ? `Arrêt ${k + 1}` : "Arrêt en cours"} · encore ${st.length} arrêts</b> · ` : ""; })()}${pick ? "Récupération chez" : "Livraison à"} · n° ${UI.esc(o.ref)}</small>
         <h3 class="${pick ? "pick" : "drop"}"><bdi>${UI.esc(title)}</bdi></h3>
         ${!pick && firm ? `<p class="fi-firm">🏪 <bdi>${UI.esc(firm)}</bdi></p>` : ""}
+        ${!pick && o.status === "recuperee" && (o.shop_name || o.pickup_place) ? `<p class="fi-from">✓ Récupéré chez <bdi>${UI.esc(UI.bi(o.shop_name || o.pickup_place || "", "fr"))}</bdi></p>` : ""}
         <p class="fi-addr"><bdi>${UI.esc(o[pick ? "pickup_address" : "dropoff_address"] || "")}</bdi><small>, ${UI.esc(UI.cityFr(pick ? o.from_city : o.to_city))}</small></p>
         ${!pick && o.first_order ? `<span class="ow-new">🆕 Nouveau client · 1re commande</span>` : ""}${o.first_shop ? ` <span class="ow-new">🆕 1re livraison pour ce commerce</span>` : ""}
       </div>
@@ -1653,7 +1654,11 @@ function ficheOpen(id, which) {
   const was = mineOpen;
   if (mine().some(o => o.id === id)) mineOpen = id;
   if (was !== mineOpen && tab === "mine") render();
-  fiche = { id, which: which === "pickup" ? "pickup" : "dropoff", tab: "infos" };
+  // Déjà récupérée (patron, 19/11) : la fiche s'ouvre sur l'étape à faire, la livraison chez le client, jamais sur le commerce
+  const oo = mine().find(x => x.id === id);
+  let w = which === "pickup" ? "pickup" : "dropoff";
+  if (w === "pickup" && oo && fiStepDone(oo, "pickup")) w = "dropoff";
+  fiche = { id, which: w, tab: "infos" };
   if (!document.querySelector(`article.mine-card[data-id="${CSS.escape(id)}"]`) && mine().some(o => o.id === id)) { try { openPage("mine"); } catch (e) { /* la fiche s'ouvre quand même */ } }
   renderFiche();
 }
