@@ -1699,6 +1699,19 @@ async function orderWelcomeSent(id) {
   o.welcome_sent_at = new Date().toISOString(); writeJSON(LS.orders, all); return true;
 }
 // Le livreur note : « avancé » (payé au commerce en prenant la commande) ou « rendu » (rapporté après la livraison)
+// Infos gardées sur un client (code d'entrée, étage, appartement, remarque) : par téléphone + adresse, pour les livreurs
+const ciKey = o => String(o.dropoff_phone || o.contact_phone || "").replace(/\D/g, "").slice(-9) + "|" + String(o.dropoff_address || "").trim().toLowerCase().replace(/\s+/g, " ");
+async function clientInfo(o) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_client_info", { method: "POST", body: { p_order: o.id } });
+  return readJSON("livraison.clientInfos.v1", {})[ciKey(o)] || {};
+}
+async function clientInfoSet(o, v) {
+  if (ONLINE) return authRest("/rest/v1/rpc/courier_client_info_set", { method: "POST", body: { p_order: o.id, p_code: v.code || "", p_floor: v.floor || "", p_apt: v.apt || "", p_note: v.note || "" } });
+  const all = readJSON("livraison.clientInfos.v1", {});
+  all[ciKey(o)] = Object.assign({}, v, { at: new Date().toISOString() });
+  writeJSON("livraison.clientInfos.v1", all);
+  return true;
+}
 async function courierCashMark(id, mode) {
   if (ONLINE) return authRest("/rest/v1/rpc/courier_cash_mark", { method: "POST", body: { p_id: id, p_mode: mode } });
   const all = localOrders(), o = all.find(x => x.id === id);
@@ -2967,7 +2980,7 @@ window.Store = {
   appPromos, adminPromos, adminApiKeys, adminApiOrders, adminApiKeyCreate, adminApiKeyUpdate, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaPhoto, iaEcoute, placeSuggest, adminPlacesAsked, adminPlaceAskedDone, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, shopCollectSet, courierCashMark, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaPhoto, iaEcoute, placeSuggest, adminPlacesAsked, adminPlaceAskedDone, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, shopCollectSet, courierCashMark, clientInfo, clientInfoSet, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
