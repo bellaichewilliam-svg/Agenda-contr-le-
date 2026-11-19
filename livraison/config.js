@@ -56,6 +56,8 @@ window.CONFIG = {
     { id: "wingate",      fr: "Wingate",        he: "וינגייט",      lat: 32.2770, lon: 34.8340, aliases: ["מכון וינגייט", "Wingate Institute"] },
     { id: "even-yehuda",  fr: "Even Yehuda",    he: "אבן יהודה",    lat: 32.2700, lon: 34.8870, aliases: ["Even Yehuda"] },
     { id: "kadima",       fr: "Kadima-Tzoran",  he: "קדימה-צורן",   lat: 32.2780, lon: 34.9150, aliases: ["Kadima Zoran", "Kadima"] },
+    // Lev HaSharon (patron, 19/11 : demandé par une cliente) : le conseil régional et ses villages, 55 ₪ depuis Netanya
+    { id: "lev-hasharon", fr: "Lev HaSharon",   he: "לב השרון",     lat: 32.2960, lon: 34.9260, aliases: ["Lev Hasharon", "Lev HaSharon", "מועצה אזורית לב השרון", "Lev HaSharon Regional Council", "צור משה", "Tzur Moshe", "כפר יעבץ", "Kfar Yabetz", "חירות", "Herut", "עין ורד", "Ein Vered", "עין שריד", "Ein Sarid", "בני דרור", "Bnei Dror", "גאולים", "Geulim", "תנובות", "Tnuvot", "ינוב", "Yanuv", "כפר הס", "Kfar Hess"] },
     { id: "pardesia",     fr: "Pardesia",       he: "פרדסיה",       lat: 32.3060, lon: 34.9090 },
     { id: "kfar-yona",    fr: "Kfar Yona",      he: "כפר יונה",     lat: 32.3170, lon: 34.9350 },
     { id: "tel-mond",     fr: "Tel Mond",       he: "תל מונד",      lat: 32.2550, lon: 34.9180 },
@@ -132,7 +134,7 @@ window.CONFIG = {
     fixedFromHome: {
       "netanya": 25,
       "nordia": 35, "havatselet": 40, "beit-yitzhak": 40, "yakum": 40,
-      "wingate": 50, "even-yehuda": 50, "kadima": 50, "kfar-yona": 50, "pardesia": 50, "tel-mond": 50, "beit-yanai": 50,
+      "wingate": 50, "even-yehuda": 50, "kadima": 50, "lev-hasharon": 55, "kfar-yona": 50, "pardesia": 50, "tel-mond": 50, "beit-yanai": 50,
       "shefayim": 60, "emek-hefer": 70, "nitzanei-oz": 80,
       "shaar-efraim": 100, "hadera": 100, "raanana": 100, "kfar-saba": 100, "herzliya": 100, "hod-hasharon": 100,
       "ramat-hasharon": 110, "or-akiva": 120, "caesarea": 120, "kalansawe": 130, "tira": 150,
