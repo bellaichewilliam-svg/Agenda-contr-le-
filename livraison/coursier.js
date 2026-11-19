@@ -2719,17 +2719,17 @@ function renderHome() {
     const o = nextStop.o, pick = nextStop.kind === "pickup";
     const nm = pick ? (UI.bi(o.shop_name || o.pickup_place || "", "fr") || o.pickup_contact || "Départ") : (o.dropoff_contact || o.contact_name || "Client");
     return `<button type="button" class="rd-dest" data-fiche="${UI.esc(o.id)}" data-which="${pick ? "pickup" : "dropoff"}">
-      <small>${pick ? "Récupération à partir de" : "Livraison à"}</small>
-      <b class="${pick ? "pick" : "drop"}"><bdi>${UI.esc(nm)}</bdi></b>
-      <span><bdi>${UI.esc(o[pick ? "pickup_address" : "dropoff_address"] || "")}</bdi><em>, ${UI.esc(UI.cityFr(pick ? o.from_city : o.to_city))}</em></span>
-      <i>📋 Fiche · infos et articles ›</i></button>`;
+      <small class="${pick ? "pick" : "drop"}">${pick ? "Récupération" : "Livraison"}</small>
+      <b><bdi>${UI.esc(nm)}</bdi></b>
+      <span><bdi>${UI.esc(o[pick ? "pickup_address" : "dropoff_address"] || "")}</bdi>, ${UI.esc(UI.cityFr(pick ? o.from_city : o.to_city))}</span>
+      <i>Fiche · infos et articles <em aria-hidden="true">›</em></i></button>`;
   })() : "";
   $("#sheetBody").innerHTML = `${refundCards()}${cashReturnCards()}
     ${dest || `<div class="rd-title">${UI.esc(title)}</div>
     <div class="rd-demand">Demande de livraison ${lv ? `${bars(lv)} <b>${lv.label}</b>` : "…"}</div>`}
     ${dest ? (() => { const st = (() => { try { return tourStops(mine()); } catch (e) { return []; } })(), nx = st[1];
         const nm = nx ? (nx.kind === "pickup" ? (UI.bi(nx.o.shop_name || nx.o.pickup_place || "", "fr") || "Départ") : (nx.o.dropoff_contact || nx.o.contact_name || "Client")) : "";
-        return `${cur.map(giveBox).join("")}<button type="button" class="rd-line" data-tab="mine">${st.length > 1 ? `Encore ${st.length} arrêts · ensuite : ${nx.kind === "pickup" ? "📍" : "🏁"} <bdi>${UI.esc(nm)}</bdi>` : "Ma course"} · tout voir<span class="go">›</span></button>`; })() : ""}
+        return `${cur.map(giveBox).join("")}<button type="button" class="rd-next" data-tab="mine">${st.length > 1 ? `<span class="rn-t"><small>Ensuite</small><b>${nx.kind === "pickup" ? "Récupération" : "Livraison"} · <bdi>${UI.esc(nm)}</bdi></b></span><span class="rn-n">${st.length} arrêts<em>Tout voir ›</em></span>` : `<span class="rn-t"><b>Ma course</b></span><span class="rn-n"><em>Tout voir ›</em></span>`}</button>`; })() : ""}
     ${(dest ? [] : cur).map(o => `${giveBox(o)}<button type="button" class="rd-card course" data-tab="mine">
         <span><span class="rc-head"><b class="rc-amt">${UI.esc(UI.money(Store.courseValue(o)))}</b><span class="rc-who">${UI.esc(o.shop_name || o.pickup_place || o.contact_name || "")}<small>${o.first_shop ? "🆕 nouveau commerce · " : ""}${o.first_order && !(o.first_shop && isFirm(o)) ? "🆕 nouveau client · " : ""}n° ${UI.esc(o.ref)}${tripKm(o) ? ` · ${tripKm(o)}` : ""} · 👛 pour vous ${UI.esc(UI.money(Store.courseValue(o) - Number(o.commission || 0)))}</small></span></span>
           <em class="rc-step">${isLater(o) ? `⏰ PLUS TARD · ${UI.esc(dueLabel(o))} · rien à faire avant ${UI.esc(startAt(o))}` : `${UI.notBefore(o) && nbLeft(UI.notBefore(o)) > 0 ? `⏰ PAS AVANT ${UI.esc(UI.fmtTime(UI.notBefore(o)))} · ` : ""}${UI.esc(mineStep(o, o.paid_to === "hop"))}`}</em>
