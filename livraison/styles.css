@@ -6965,3 +6965,9 @@ html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(
 .cia-form input, .cia-form textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); font: inherit; font-size: 16px; }
 .cia-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
 .cia-btns { display: flex; gap: 8px; }
+/* (la règle générale « .kv div » mettait les cases du formulaire en colonnes de 26 px) */
+.kv .cia-form { width: 100%; min-width: 0; }
+.kv .cia-form .cia-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
+.kv .cia-form .cia-btns { display: flex; grid-template-columns: none; gap: 8px; }
+.kv .cia-form .cia-btns .btn { flex: 1; }
+.kv .cia-form label { min-width: 0; }
