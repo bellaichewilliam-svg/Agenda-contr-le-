@@ -961,7 +961,7 @@ function card(o, kind) {
           + (o.hop_buy && !Store.buyDone(o) ? `<button class="btn btn-sm" type="button" disabled title="Cochez chaque article">🛵 Courses récupérées</button>`
             : o.hop_buy && o.goods_spent == null ? `<button class="btn btn-sm" type="button" disabled>🧾 Rentrez d'abord le montant du ticket, puis « Courses récupérées »</button>`
             : `<button class="btn btn-sm${o.arrived_at ? " btn-primary" : ""}" data-act="recuperee">🛵 ${o.hop_buy ? "Courses récupérées" : "Colis récupéré"}</button>`)
-          + `<button class="btn btn-sm" data-act="liberer">↩︎ Je ne peux plus</button>`
+          + `<button class="btn btn-sm btn-release" data-act="liberer">↩︎ Rendre la course · un autre livreur la prend</button>`
         : o.wait_status === "a_payer"
           ? `<p class="wait-live">⏱️ Supplément d'attente : <b>${UI.money(o.wait_due)}</b> à encaisser par Bit / PayBox avant de livrer (la course est déjà payée)</p>
              <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Supplément reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`
@@ -1665,6 +1665,7 @@ function renderFiche() {
       <div class="fi-foot">${act ? `<div class="fi-slide" data-fi-slide><span class="fi-knob">›</span><b>${UI.esc(act.label)}</b></div>`
         : wait ? `<p class="fi-wait">${pick ? "✅ Commande déjà récupérée" : "D'abord : récupérer la commande au départ"}</p>`
         : `<button type="button" class="btn btn-block" data-fi-close>Étape à finir dans la course (paiement, ticket…) ›</button>`}
+        ${o.status === "confirmee" ? `<button type="button" class="fi-release" data-fi-release="${UI.esc(o.id)}">↩︎ Rendre cette course · trop d'attente, trop loin</button>` : ""}
         ${(() => { const st = fiStops(), k = st.findIndex(x => x.o.id === o.id && x.kind === fiche.which), nx = k >= 0 ? st[k + 1] : null;
           if (!nx) return "";
           const np = nx.kind === "pickup", nm = np ? (UI.bi(nx.o.shop_name || nx.o.pickup_place || "", "fr") || "Départ") : (nx.o.dropoff_contact || nx.o.contact_name || "Client");
@@ -1717,6 +1718,13 @@ document.addEventListener("click", e => {
   if (!e.target.closest("#fiche")) return;
   const tb = e.target.closest("[data-fi-tab]");
   if (tb && fiche) { fiche.tab = tb.dataset.fiTab; renderFiche(); const b = $("#fiche .fi-body"); if (b) b.scrollTop = 0; return; }
+  const rl = e.target.closest("[data-fi-release]");
+  if (rl) { const q = () => document.querySelector(`article.mine-card[data-id="${CSS.escape(rl.dataset.fiRelease)}"] [data-act="liberer"]`);
+    if (!q()) { mineOpen = rl.dataset.fiRelease; render(); }
+    const b = q() || document.querySelector(`article.mine-card[data-id="${CSS.escape(rl.dataset.fiRelease)}"] [data-act="liberer"]`) || document.querySelector(`article[data-id="${CSS.escape(rl.dataset.fiRelease)}"] [data-act="liberer"]`);
+    if (b) { b.click(); setTimeout(() => { const o = mine().find(x => x.id === rl.dataset.fiRelease); if (!o) { fiche = null; renderFiche(); } }, 1500); }
+    else alert("Ouvrez la course dans « Mes courses » puis touchez « Rendre la course ».");
+    return; }
   if (e.target.closest("[data-fi-close]")) { fiche = null; renderFiche(); }
 });
 // Toucher une course repliée : elle s'ouvre, l'autre se replie, et on remonte en haut de sa fiche
@@ -1955,7 +1963,7 @@ async function onViewClick(e) {
     const paidMe = o && o.direct_pay && o.paid_to !== "hop" && (o.payment_status === "paye" || o.client_paid_at);
     if (el.dataset.act === "liberer" && !confirm(paidMe
       ? `⚠️ Le client vous a déjà payé (ou dit l'avoir fait) ${UI.money(UI.payTotal(o))}. Si vous rendez la course, vous devez le rembourser tout de suite par Bit / PayBox, et vous ne recevrez plus de course avant. Rendre la course ?`
-      : "Remettre cette course en attente pour un autre livreur ? Le client est prévenu tout de suite.")) return;
+      : "↩︎ Rendre cette course ?\n\nTrop d'attente, trop loin… Elle repart tout de suite aux autres livreurs, le client et le commerce sont prévenus. Vos autres courses ne changent pas.")) return;
     // Récupérer pendant que le client n'a pas encore répondu à l'attente : elle ne sera pas payée
     if (el.dataset.act === "recuperee" && o && !o.shop_status && Store.waitPending(o)
       && !confirm("⏳ Le client n'a pas encore répondu à votre annonce d'attente.\n\nSi vous récupérez maintenant, cette attente ne sera pas payée. Récupérer quand même ?")) return;
