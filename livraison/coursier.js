@@ -1537,20 +1537,26 @@ function ciLoad(o) {
 function ciBlock(o) {
   ciLoad(o);
   const c = ciCache[o.id];
-  if (c === null || c === undefined) return `<h4 class="fi-h">🔑 Infos client gardées</h4><p class="ci-wait">…</p>`;
+  if (c === null || c === undefined) return "";
+  // Ce que le client a déjà donné dans sa commande : on ne le redemande pas, on ne le répète pas
+  const own = { code: fiNoCode(o.dropoff_code) ? "" : String(o.dropoff_code || "").trim(), floor: String(o.dropoff_floor || "").trim(), apt: String(o.dropoff_apt || "").trim() };
+  const same = (k, v) => String(v || "").trim().toLowerCase() === String(own[k] || "").toLowerCase();
   if (ciEdit.id === o.id) {
-    const f = (k, l, attrs) => `<label class="ci-f"><span>${l}</span><input name="${k}" value="${UI.esc(c[k] || "")}" ${attrs || ""} /></label>`;
-    return `<h4 class="fi-h">🔑 Infos client gardées</h4><form class="ci-form" data-ci-form="${UI.esc(o.id)}" action="javascript:void(0)">
+    const f = (k, l, attrs) => `<label class="ci-f"><span>${l}</span><input name="${k}" value="${UI.esc(c[k] || own[k] || "")}" ${attrs || ""} /></label>`;
+    return `<h4 class="fi-h">🔑 Pour la prochaine fois</h4><form class="ci-form" data-ci-form="${UI.esc(o.id)}" action="javascript:void(0)">
       <div class="ci-grid">${f("code", "Code d'entrée", 'dir="ltr" maxlength="40"')}${f("floor", "Étage", 'inputmode="numeric" maxlength="10"')}${f("apt", "Appart.", 'maxlength="10"')}</div>
       <label class="ci-f"><span>Remarque (porte, interphone, chien…)</span><textarea name="note" rows="2" maxlength="300">${UI.esc(c.note || "")}</textarea></label>
       <div class="ci-btns"><button type="submit" class="btn btn-primary">Enregistrer</button><button type="button" class="btn" data-ci-cancel>Annuler</button></div></form>`;
   }
-  const has = ["code", "floor", "apt", "note"].some(k => String(c[k] || "").trim());
-  return `<h4 class="fi-h">🔑 Infos client gardées</h4>${has ? `<div class="ci-box">${c.code ? `<p class="ci-code"><small>Code</small><b dir="ltr">${UI.esc(c.code)}</b></p>` : ""}
-      ${c.floor || c.apt ? `<p><small>Étage / appart.</small><b>${UI.esc([c.floor, c.apt].filter(Boolean).join(" · "))}</b></p>` : ""}
+  // Seulement ce qui apporte quelque chose de plus que la commande
+  const code = c.code && !same("code", c.code) ? c.code : "", fl = [c.floor && !same("floor", c.floor) ? c.floor : "", c.apt && !same("apt", c.apt) ? c.apt : ""].filter(Boolean).join(" · ");
+  const has = code || fl || c.note;
+  if (!has) return `<button type="button" class="ci-add" data-ci-edit="${UI.esc(o.id)}">✏️ Noter une info pour la prochaine fois <small>(interphone, porte, code…)</small></button>`;
+  return `<h4 class="fi-h">🔑 Déjà noté sur ce client</h4><div class="ci-box">${code ? `<p class="ci-code"><small>Code</small><b dir="ltr">${UI.esc(code)}</b></p>` : ""}
+      ${fl ? `<p><small>Étage / appart.</small><b>${UI.esc(fl)}</b></p>` : ""}
       ${c.note ? `<p class="ci-note"><bdi>${UI.esc(c.note)}</bdi></p>` : ""}
-      ${c.by ? `<small class="ci-by">Noté par ${UI.esc(c.by)} · ${UI.esc(c.at ? UI.fmtDay(c.at) : "")}</small>` : ""}</div>` : `<p class="ci-none">Rien de noté pour ce client. Ajoutez le code, l'étage… pour la prochaine fois.</p>`}
-    <button type="button" class="btn btn-sm ci-edit" data-ci-edit="${UI.esc(o.id)}">✏️ ${has ? "Modifier" : "Ajouter des infos"}</button>`;
+      ${c.by ? `<small class="ci-by">Noté par ${UI.esc(c.by)} · ${UI.esc(c.at ? UI.fmtDay(c.at) : "")}</small>` : ""}</div>
+    <button type="button" class="btn btn-sm ci-edit" data-ci-edit="${UI.esc(o.id)}">✏️ Modifier</button>`;
 }
 document.addEventListener("click", e => {
   const ed = e.target.closest("[data-ci-edit]");

@@ -6953,3 +6953,5 @@ html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(
 .ci-f input, .ci-f textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); background: #0F1626; color: #fff; font: inherit; font-size: 16px; }
 .ci-btns { display: flex; gap: 8px; }
 .ci-btns .btn { flex: 1; }
+.ci-add { display: block; width: 100%; margin: 14px 0 0; padding: 12px 14px; border: 1px dashed rgba(255,255,255,.25); border-radius: 12px; background: none; color: #C9D5EA; font: inherit; font-size: 14.5px; font-weight: 700; text-align: start; cursor: pointer; }
+.ci-add small { font-weight: 500; color: #98A2B3; }
