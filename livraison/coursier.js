@@ -1517,7 +1517,9 @@ function ficheInfos(o, pick) {
       ${fiRow("Type de lieu", FI_KIND[kind] || "")}
       ${fiRow(pick ? "Commerce / lieu" : "Nom du lieu", UI.bi(o[pre + "_place"] || "", "fr"))}
       ${!pick && firm ? fiRow("Nom de la société", firm) : ""}
-      ${code != null && String(code).trim() !== "" ? (fiNoCode(code) ? fiRow("Code d'entrée", "Pas de code") : fiRow("Code d'entrée", code, "fi-code")) : ""}
+      ${code != null && String(code).trim() !== "" ? (fiNoCode(code) ? fiRow("Code d'entrée", "Pas de code") : fiRow("Code d'entrée", code, "fi-code"))
+        : pick ? "" : (() => { const c = ciCache[o.id] || {}; return c.code ? fiRow("Code d'entrée", c.code, "fi-code")
+          : `<div class="fi-row fi-nocode"><small>Code d'entrée</small><span>Pas donné par le client<button type="button" class="btn btn-sm" data-ci-edit="${UI.esc(o.id)}">✏️ Ajouter le code</button></span></div>`; })()}
       ${fiRow("Entrée / bâtiment", o[pre + "_building"])}
       ${grid.some(g => String(g[1] || "").trim()) ? `<div class="fi-grid">${grid.map(([l, v]) => `<div><small>${UI.esc(l)}</small><b><bdi>${UI.esc(String(v || "").trim() || "—")}</bdi></b></div>`).join("")}</div>` : ""}
       ${fiRow("Adresse", `${o[pre + "_address"] || ""}, ${UI.cityFr(pick ? o.from_city : o.to_city)}`)}
@@ -1549,7 +1551,7 @@ function ciBlock(o) {
       <div class="ci-btns"><button type="submit" class="btn btn-primary">Enregistrer</button><button type="button" class="btn" data-ci-cancel>Annuler</button></div></form>`;
   }
   // Seulement ce qui apporte quelque chose de plus que la commande
-  const code = c.code && !same("code", c.code) ? c.code : "", fl = [c.floor && !same("floor", c.floor) ? c.floor : "", c.apt && !same("apt", c.apt) ? c.apt : ""].filter(Boolean).join(" · ");
+  const code = c.code && own.code && !same("code", c.code) ? c.code : "", fl = [c.floor && !same("floor", c.floor) ? c.floor : "", c.apt && !same("apt", c.apt) ? c.apt : ""].filter(Boolean).join(" · ");
   const has = code || fl || c.note;
   if (!has) return `<button type="button" class="ci-add" data-ci-edit="${UI.esc(o.id)}">✏️ Noter une info pour la prochaine fois <small>(interphone, porte, code…)</small></button>`;
   return `<h4 class="fi-h">🔑 Déjà noté sur ce client</h4><div class="ci-box">${code ? `<p class="ci-code"><small>Code</small><b dir="ltr">${UI.esc(code)}</b></p>` : ""}
