@@ -6957,3 +6957,11 @@ html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(
 .ci-add small { font-weight: 500; color: #98A2B3; }
 /* Fiche livreur : la ligne « Code d'entrée » toujours là ; pas donné → « Ajouter le code » (patron, 19/11) */
 .fi-nocode > span { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 15px; font-weight: 600; color: #C9D5EA; }
+/* Panneau patron : code d'entrée et infos de livraison sur la fiche client (patron, 19/11) */
+.kv .cia { align-items: start; }
+.cia-btn { margin-top: 6px; }
+.cia-form { display: grid; gap: 8px; min-width: 0; }
+.cia-form label { display: grid; gap: 3px; font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.cia-form input, .cia-form textarea { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--panel); color: var(--ink); font: inherit; font-size: 16px; }
+.cia-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; }
+.cia-btns { display: flex; gap: 8px; }

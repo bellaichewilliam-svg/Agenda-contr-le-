@@ -1523,6 +1523,56 @@ function renderWeek(view) {
   view.dataset.weekStart = start;
 }
 
+// --- Infos de livraison gardées sur un client (patron, 19/11 : « où je rajoute son code d'entrée ? ») ------------
+// Les mêmes que dans la fiche du livreur (par téléphone + adresse) : code d'entrée, étage, appartement, remarque
+const ciaCache = {};
+function ciaRows(list) {
+  const seen = new Set(), rows = [];
+  list.forEach(o => { const k = String(o.dropoff_address).trim().toLowerCase(); if (!seen.has(k) && rows.length < 3) { seen.add(k); rows.push(o); } });
+  return rows.map(o => `<div class="cia" data-cia="${UI.esc(o.id)}">${ciaHtml(o)}</div>`).join("");
+}
+const ciaEdit = { id: null, draft: {} };
+function ciaForm(o) {
+  const c = ciaCache[o.id] || {}, d = ciaEdit.draft, val = k => UI.esc(d[k] != null ? d[k] : (c[k] || o["dropoff_" + k] || ""));
+  return `<span>🔑</span><form class="cia-form" data-cia-form="${UI.esc(o.id)}" action="javascript:void(0)">
+      <b><bdi>${UI.esc(o.dropoff_address)}</bdi></b>
+      <div class="cia-grid"><label>Code d'entrée<input name="code" dir="ltr" maxlength="40" value="${val("code")}"></label><label>Étage<input name="floor" maxlength="10" value="${val("floor")}"></label><label>Appart.<input name="apt" maxlength="10" value="${val("apt")}"></label></div>
+      <label>Remarque pour le livreur<textarea name="note" rows="2" maxlength="300">${UI.esc(d.note != null ? d.note : (c.note || ""))}</textarea></label>
+      <div class="cia-btns"><button type="submit" class="btn btn-sm btn-primary">Enregistrer</button><button type="button" class="btn btn-sm" data-cia-cancel="${UI.esc(o.id)}">Annuler</button></div></form>`;
+}
+document.addEventListener("input", e => { const f = e.target.closest("[data-cia-form]"); if (f && e.target.name) ciaEdit.draft[e.target.name] = e.target.value; });
+function ciaHtml(o) {
+  if (ciaEdit.id === o.id) return ciaForm(o);
+  const c = ciaCache[o.id];
+  if (c === undefined) { ciaCache[o.id] = null; Store.clientInfo(o).then(r => { ciaCache[o.id] = r || {}; ciaPaint(o); }, () => { ciaCache[o.id] = {}; ciaPaint(o); }); }
+  const own = { code: o.dropoff_code, floor: o.dropoff_floor, apt: o.dropoff_apt };
+  const v = Object.assign({}, own, Object.fromEntries(Object.entries(c || {}).filter(([, x]) => x)));
+  const txt = [v.code ? `code <b dir="ltr">${UI.esc(v.code)}</b>` : "pas de code", v.floor ? `étage ${UI.esc(v.floor)}` : "", v.apt ? `appart. ${UI.esc(v.apt)}` : "", c && c.note ? `« ${UI.esc(c.note)} »` : ""].filter(Boolean).join(" · ");
+  return `<span>🔑</span><span><b><bdi>${UI.esc(o.dropoff_address)}</bdi></b><br><span class="small">${c === null || c === undefined ? "…" : txt}</span>
+    <button type="button" class="btn btn-sm cia-btn" data-cia-edit="${UI.esc(o.id)}">✏️ Code d'entrée et infos</button></span>`;
+}
+function ciaPaint(o) { document.querySelectorAll(`[data-cia="${CSS.escape(o.id)}"]`).forEach(el => { if (!el.querySelector("form")) el.innerHTML = ciaHtml(o); }); }
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-cia-edit]");
+  if (b) {
+    const o = orders.find(x => x.id === b.dataset.ciaEdit); if (!o) return;
+    ciaEdit.id = o.id; ciaEdit.draft = {};
+    b.closest("[data-cia]").innerHTML = ciaForm(o);
+    return;
+  }
+  const x = e.target.closest("[data-cia-cancel]");
+  if (x) { ciaEdit.id = null; ciaEdit.draft = {}; const o = orders.find(y => y.id === x.dataset.ciaCancel); const el = x.closest("[data-cia]"); if (o && el) el.innerHTML = ciaHtml(o); }
+});
+document.addEventListener("submit", async e => {
+  const f = e.target.closest("[data-cia-form]"); if (!f) return;
+  e.preventDefault();
+  const o = orders.find(x => x.id === f.dataset.ciaForm); if (!o) return;
+  const v = { code: f.elements.code.value.trim(), floor: f.elements.floor.value.trim(), apt: f.elements.apt.value.trim(), note: f.elements.note.value.trim() };
+  const btn = f.querySelector("[type=submit]"); btn.disabled = true;
+  try { const ok = await Store.clientInfoSet(o, v); if (!ok) throw new Error("no"); ciaCache[o.id] = v; ciaEdit.id = null; ciaEdit.draft = {}; f.closest("[data-cia]").innerHTML = ciaHtml(o); }
+  catch (ex) { alert("Pas enregistré, réessayez."); btn.disabled = false; }
+});
+
 // --- Commerces partenaires --------------------------------------------------------------
 const SHOP_KIND = { restaurant: "🍔 Restaurant", pressing: "👔 Pressing", boutique: "🛍️ Boutique", pharmacie: "💊 Pharmacie / beauté", bureau: "💼 Bureau / services", autre: "🏪 Autre" };
 
@@ -2145,6 +2195,7 @@ function renderClients(view) {
           <div><span>📦</span><span>${Number(c.orders || 0)} commande(s) · ${UI.money(Number(c.spent || 0))} livrés${c.city ? " · " + UI.esc(UI.cityFr(c.city)) : ""}</span></div>
           <div><span>📅</span><span>${c.client_id ? "Compte créé le " + day(c.account_at) + " · " : ""}dernière commande : ${c.orders ? day(c.last_at) + (c.last_at ? " à " + UI.fmtTime(c.last_at) : "") : "—"}</span></div>
           ${clientAddrs(c)}
+          ${ciaRows(mine.filter(o => !o.shop_sent && o.dropoff_address))}
           ${c.cart && c.cart.count ? `<div><span>🛒</span><span>Panier non commandé (${UI.esc(UI.fmtDateTime(c.cart.updated_at))}) : ${UI.esc((c.cart.items || []).map(i => i.q + " × " + i.n).join(", ").slice(0, 160))}</span></div>` : ""}
         </div>
         ${mine.length ? `<details class="client-orders" data-fold="co:${UI.esc(k)}"${foldOpen("co:" + k)}><summary>📋 Voir le détail de ses courses (${mine.length}${Number(c.orders || 0) > mine.length ? " dernières" : ""})</summary>
