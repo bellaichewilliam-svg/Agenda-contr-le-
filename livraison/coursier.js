@@ -1523,8 +1523,52 @@ function ficheInfos(o, pick) {
       ${fiRow("Adresse", `${o[pre + "_address"] || ""}, ${UI.cityFr(pick ? o.from_city : o.to_city)}`)}
     </div>
     ${notes.length ? `<h4 class="fi-h">Remarques</h4><div class="fi-notes">${notes.map(n => `<p><bdi>${UI.esc(n)}</bdi></p>`).join("")}</div>` : ""}
+    ${pick ? "" : ciBlock(o)}
     <div class="fi-btns">${callBig(who, phone)}${navBtn(o, pick ? "pickup" : "dropoff")}</div>`;
 }
+// Infos gardées sur le client (patron, 19/11 : « ajouter des infos sur les clients, comme le code d'entrée ») :
+// par téléphone + adresse ; le livreur les voit à chaque livraison chez ce client et peut les compléter
+const ciCache = {}, ciEdit = { id: null };
+function ciLoad(o) {
+  if (!o || ciCache[o.id] !== undefined) return;
+  ciCache[o.id] = null;
+  Store.clientInfo(o).then(r => { ciCache[o.id] = r || {}; const b = $("#fiche"); if (b) b._html = ""; renderFiche(); }, () => { ciCache[o.id] = {}; });
+}
+function ciBlock(o) {
+  ciLoad(o);
+  const c = ciCache[o.id];
+  if (c === null || c === undefined) return `<h4 class="fi-h">🔑 Infos client gardées</h4><p class="ci-wait">…</p>`;
+  if (ciEdit.id === o.id) {
+    const f = (k, l, attrs) => `<label class="ci-f"><span>${l}</span><input name="${k}" value="${UI.esc(c[k] || "")}" ${attrs || ""} /></label>`;
+    return `<h4 class="fi-h">🔑 Infos client gardées</h4><form class="ci-form" data-ci-form="${UI.esc(o.id)}" action="javascript:void(0)">
+      <div class="ci-grid">${f("code", "Code d'entrée", 'dir="ltr" maxlength="40"')}${f("floor", "Étage", 'inputmode="numeric" maxlength="10"')}${f("apt", "Appart.", 'maxlength="10"')}</div>
+      <label class="ci-f"><span>Remarque (porte, interphone, chien…)</span><textarea name="note" rows="2" maxlength="300">${UI.esc(c.note || "")}</textarea></label>
+      <div class="ci-btns"><button type="submit" class="btn btn-primary">Enregistrer</button><button type="button" class="btn" data-ci-cancel>Annuler</button></div></form>`;
+  }
+  const has = ["code", "floor", "apt", "note"].some(k => String(c[k] || "").trim());
+  return `<h4 class="fi-h">🔑 Infos client gardées</h4>${has ? `<div class="ci-box">${c.code ? `<p class="ci-code"><small>Code</small><b dir="ltr">${UI.esc(c.code)}</b></p>` : ""}
+      ${c.floor || c.apt ? `<p><small>Étage / appart.</small><b>${UI.esc([c.floor, c.apt].filter(Boolean).join(" · "))}</b></p>` : ""}
+      ${c.note ? `<p class="ci-note"><bdi>${UI.esc(c.note)}</bdi></p>` : ""}
+      ${c.by ? `<small class="ci-by">Noté par ${UI.esc(c.by)} · ${UI.esc(c.at ? UI.fmtDay(c.at) : "")}</small>` : ""}</div>` : `<p class="ci-none">Rien de noté pour ce client. Ajoutez le code, l'étage… pour la prochaine fois.</p>`}
+    <button type="button" class="btn btn-sm ci-edit" data-ci-edit="${UI.esc(o.id)}">✏️ ${has ? "Modifier" : "Ajouter des infos"}</button>`;
+}
+document.addEventListener("click", e => {
+  const ed = e.target.closest("[data-ci-edit]");
+  if (ed) { ciEdit.id = ed.dataset.ciEdit; const b = $("#fiche"); if (b) b._html = ""; renderFiche(); const i = document.querySelector(".ci-form input"); if (i) i.focus(); return; }
+  if (e.target.closest("[data-ci-cancel]")) { ciEdit.id = null; const b = $("#fiche"); if (b) b._html = ""; renderFiche(); }
+});
+document.addEventListener("submit", async e => {
+  const f = e.target.closest("[data-ci-form]");
+  if (!f) return;
+  e.preventDefault();
+  const o = mine().find(x => x.id === f.dataset.ciForm) || orders.find(x => x.id === f.dataset.ciForm);
+  if (!o) return;
+  const v = { code: f.elements.code.value.trim(), floor: f.elements.floor.value.trim(), apt: f.elements.apt.value.trim(), note: f.elements.note.value.trim() };
+  const btn = f.querySelector("[type=submit]"); btn.disabled = true;
+  try { const ok = await Store.clientInfoSet(o, v); if (!ok) throw new Error("no"); ciCache[o.id] = Object.assign({}, v, { by: String(me.name || "").split(" ")[0], at: new Date().toISOString() }); ciEdit.id = null; }
+  catch (ex) { alert("Pas enregistré, réessayez."); btn.disabled = false; return; }
+  const b = $("#fiche"); if (b) b._html = ""; renderFiche();
+});
 function ficheArticles(o) {
   const items = ficheItems(o), shop = UI.bi(o.shop_name || o.pickup_place || "", "fr");
   const head = `<div class="fi-shop"><b>🏪 <bdi>${UI.esc(shop || "Commerce")}</bdi></b>${o.shop_ref ? `<span>Sac n° <b>${UI.esc(o.shop_ref)}</b></span>` : ""}</div>`;
@@ -1572,6 +1616,8 @@ function renderFiche() {
   const wait = !act && (pick ? o.status === "recuperee" : o.status === "confirmee");
   // (le doigt est en train de glisser : on ne redessine pas sous lui)
   if (box.querySelector(".fi-slide.drag")) return;
+  // (le livreur écrit les infos du client : on ne redessine pas sous ses doigts)
+  if (box.querySelector(".ci-form") && box.contains(document.activeElement) && document.activeElement.matches("input, textarea")) return;
   const keepTop = box.querySelector(".fi-body") ? box.querySelector(".fi-body").scrollTop : 0;
   const html = `<div class="fi-back" data-fi-close></div>
     <div class="fi-box" role="dialog" aria-modal="true">
