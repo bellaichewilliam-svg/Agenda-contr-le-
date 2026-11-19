@@ -6849,3 +6849,59 @@ html .pm-off.pm-pin { white-space: nowrap; letter-spacing: 0; }
 /* Panier vide : les « + » des premiers articles clignotent (patron, 18/11) */
 @keyframes cgNudge { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(232, 89, 12, 0); } 50% { transform: scale(1.18); box-shadow: 0 0 0 6px rgba(232, 89, 12, .28); } }
 .cg-plus.cg-nudge { animation: cgNudge .9s ease-in-out 4; }
+/* ===== Les promos du moment, nouveau concept (patron, 19/11) : en haut de l'accueil, filtre par magasin,
+   grandes cartes sur le fond pastel du magasin, défilement tout seul avec barre de progression, « + » direct ===== */
+html.vit #accueil:not(.course) #homePromos { order: 5 !important; }
+.pm.pz { margin: 4px 0 2px; min-width: 0; }
+.pz .pz-h { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.pz .pz-t { min-width: 0; display: grid; gap: 2px; }
+.pz .pz-t .ch-h { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -.3px; color: #111418; }
+.pz .pz-t small { font-size: 13px; color: #5A6270; font-weight: 500; }
+.pz .pz-all { flex: none; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 700; color: #111418; text-decoration: underline; text-underline-offset: 3px; padding: 4px 0; cursor: pointer; }
+.pz .pz-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px 12px; padding: 0 16px; }
+.pz .pz-chips::-webkit-scrollbar { display: none; }
+.pz .pz-chip { flex: none; display: inline-flex; align-items: center; gap: 7px; height: 38px; padding: 0 14px 0 6px; border: 1px solid #E6E8EB; border-radius: 99px; background: #fff; color: #111418; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.pz .pz-chip:first-child { padding: 0 16px; }
+.pz .pz-chip i { font-style: normal; font-size: 12px; font-weight: 600; color: #5A6270; }
+.pz .pz-chip.on { background: #0F1F3D; border-color: #0F1F3D; color: #fff; }
+.pz .pz-chip.on i { color: rgba(255, 255, 255, .7); }
+.pz .pz-lg { width: 26px; height: 26px; border-radius: 50%; overflow: hidden; background: #F2F3F5; display: grid; place-items: center; flex: none; }
+.pz .pz-lg img { width: 100%; height: 100%; object-fit: cover; }
+.pz .pz-lg b { font-size: 12px; font-weight: 800; color: #111418; }
+.pz .pz-row { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 -16px; padding: 0 16px 4px; scroll-padding-inline: 16px; overscroll-behavior-x: contain; }
+.pz .pz-row::-webkit-scrollbar { display: none; }
+.pz .pz-card { position: relative; flex: none; width: 74%; max-width: 300px; scroll-snap-align: start; display: flex; flex-direction: column; border: 1px solid #E6E8EB; border-radius: 20px; background: #fff; overflow: hidden; cursor: pointer; transition: transform .15s; }
+.pz .pz-card:active { transform: scale(.98); }
+.pz .pz-pic { position: relative; flex: none; height: 200px; overflow: hidden; background: var(--t, #F2F3F5); display: grid; place-items: center; }
+.pz .pz-pic > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; padding: 24px 22px 30px; box-sizing: border-box; mix-blend-mode: multiply; }
+.pz .pz-off { position: absolute; top: 12px; inset-inline-start: 12px; font-style: normal; font-size: 15px; font-weight: 800; color: #fff; background: #111418; border-radius: 10px; padding: 5px 10px; letter-spacing: -.2px; }
+.pz .pz-off.pz-pin { font-size: 13px; }
+.pz .pz-shop { position: absolute; bottom: 10px; inset-inline-start: 10px; display: inline-flex; align-items: center; gap: 6px; max-width: calc(100% - 20px); padding: 3px 10px 3px 3px; border-radius: 99px; background: #fff; font-size: 12.5px; font-weight: 700; color: #111418; white-space: nowrap; overflow: hidden; }
+.pz .pz-shop img, .pz .pz-shop > b { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; flex: none; display: grid; place-items: center; background: #F2F3F5; font-size: 11px; }
+.pz .pz-info { display: grid; gap: 6px; padding: 12px 64px 14px 14px; min-height: 92px; align-content: start; }
+html[dir="rtl"] .pz .pz-info { padding: 12px 14px 14px 64px; }
+.pz .pz-name { font-size: 15px; line-height: 1.3; font-weight: 600; color: #111418; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pz .pz-pr { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pz .pz-pr strong { font-size: 22px; font-weight: 800; color: #111418; letter-spacing: -.3px; }
+.pz .pz-pr s { font-size: 14px; color: #5A6270; }
+.pz .pz-add { position: absolute; bottom: 14px; inset-inline-end: 14px; width: 44px; height: 44px; border-radius: 50%; border: 0; background: #E8590C; color: #fff; font-size: 26px; font-weight: 500; line-height: 1; display: grid; place-items: center; cursor: pointer; }
+.pz .pz-add.ok { background: #111418; font-size: 20px; }
+.pz .pz-dots { display: flex; gap: 6px; justify-content: center; margin-top: 12px; }
+.pz .pz-dots span { position: relative; width: 18px; height: 4px; border-radius: 4px; background: #D5D9DF; overflow: hidden; transition: width .3s; }
+.pz .pz-dots span.done { background: #0F1F3D; }
+.pz .pz-dots span.on { width: 34px; }
+.pz .pz-dots span.on::after { content: ""; position: absolute; inset: 0; background: #0F1F3D; transform-origin: left; animation: pzFill 3.8s linear forwards; }
+html[dir="rtl"] .pz .pz-dots span.on::after { transform-origin: right; }
+.pz.pz-hold .pz-dots span.on::after { animation: none; transform: scaleX(1); }
+@keyframes pzFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (min-width: 700px) { .pz .pz-card { width: 280px; } }
+/* Nos magasins en haut du catalogue d'une boutique HOP! (patron, 19/11) */
+.cg-stores { display: grid; gap: 8px; margin: 2px 0 14px; }
+.cg-stores > small { font-size: 13px; font-weight: 600; color: #5A6270; }
+.cg-st-row { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+.cg-st-row::-webkit-scrollbar { display: none; }
+.cg-st { flex: none; display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 6px; border: 1px solid #E6E8EB; border-radius: 99px; background: #fff; color: #111418; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+.cg-st.on { background: #0F1F3D; border-color: #0F1F3D; color: #fff; }
+.cg-st-lg { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; background: #F2F3F5; display: grid; place-items: center; flex: none; }
+.cg-st-lg img { width: 100%; height: 100%; object-fit: cover; }
+.cg-st-lg b { font-size: 13px; color: #111418; }
