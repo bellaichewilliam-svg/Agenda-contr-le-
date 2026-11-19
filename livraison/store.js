@@ -103,21 +103,53 @@ async function rest(path, { method = "GET", body, token, prefer } = {}) {
 
 function session() { return readJSON(sessionKey, null); }
 
-async function refreshSession() {
-  const s = session();
-  if (!s || !s.refresh_token) throw new Error("Session expirée");
-  const data = await rest("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: s.refresh_token } });
-  writeJSON(sessionKey, Object.assign({}, s, { access_token: data.access_token, refresh_token: data.refresh_token }));
+// Renouvellement du jeton : UN SEUL à la fois (patron, 19/11 : le panneau ne chargeait plus). Avant, plusieurs
+// demandes (et plusieurs onglets : panneau + appli livreur) renouvelaient en même temps avec le même jeton ; la base
+// y voit une fraude (« refresh_token_already_used »), coupe la connexion, et l'appli réessayait sans fin.
+let refreshing = null;
+async function refreshSession(failedToken) {
+  if (refreshing) return refreshing;
+  const run = async () => {
+    const s = session();
+    if (!s || !s.refresh_token) { const e = new Error("Session expirée"); e.status = 401; e.expired = true; throw e; }
+    // Un autre onglet vient de le renouveler : on prend le nouveau, sans rien redemander
+    if (failedToken && s.access_token !== failedToken) return;
+    try {
+      const data = await rest("/auth/v1/token?grant_type=refresh_token", { method: "POST", body: { refresh_token: s.refresh_token } });
+      writeJSON(sessionKey, Object.assign({}, s, { access_token: data.access_token, refresh_token: data.refresh_token }));
+    } catch (e) {
+      const now = session();
+      if (now && now.access_token !== s.access_token) return;   // renouvelé ailleurs pendant ce temps
+      if (e.status === 400 || e.status === 401 || e.status === 403) sessionDead();
+      throw e;
+    }
+  };
+  refreshing = (navigator.locks && navigator.locks.request ? navigator.locks.request("hop-auth-refresh", run) : run())
+    .finally(() => { refreshing = null; });
+  return refreshing;
+}
+// Connexion vraiment perdue : on l'oublie et on recharge une fois (l'écran de connexion s'affiche), au lieu de boucler
+function sessionDead() {
+  removeKey(sessionKey);
+  try {
+    if (sessionStorage.getItem("hop.authReload")) return;
+    sessionStorage.setItem("hop.authReload", "1");
+    setTimeout(() => location.reload(), 300);
+  } catch (e) { /* ignore */ }
 }
 
 // Requête authentifiée, avec un nouvel essai après renouvellement du jeton
 async function authRest(path, opts = {}) {
+  const s0 = session();
+  if (!s0) { const e = new Error("Session expirée"); e.status = 401; e.expired = true; throw e; }
   try {
-    return await rest(path, Object.assign({}, opts, { token: session().access_token }));
+    return await rest(path, Object.assign({}, opts, { token: s0.access_token }));
   } catch (e) {
     if (e.status !== 401) throw e;
-    await refreshSession();
-    return rest(path, Object.assign({}, opts, { token: session().access_token }));
+    await refreshSession(s0.access_token);
+    const s1 = session();
+    if (!s1) throw e;
+    return rest(path, Object.assign({}, opts, { token: s1.access_token }));
   }
 }
 
@@ -686,7 +718,7 @@ async function login(email, password) {
   }
   const data = await rest("/auth/v1/token?grant_type=password", { method: "POST", body: { email, password } })
     .catch(() => { throw new Error("Email ou mot de passe incorrect (ou email pas encore confirmé)."); });
-  writeJSON(sessionKey, { access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id });
+  writeJSON(sessionKey, { access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id }); try { sessionStorage.removeItem("hop.authReload"); } catch (e) { /* ignore */ }
   // Inscription faite avant confirmation de l'email : on crée la fiche maintenant
   const pending = readJSON(LS.pendingCourier, null);
   if (pending && pending.email === email.toLowerCase()) {
@@ -720,7 +752,7 @@ async function adoptLinkSession() {
   let claims = {};
   try { claims = JSON.parse(atob(h.get("access_token").split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))); } catch (e) { return false; }
   if (!claims.sub) return false;
-  writeJSON(sessionKey, { access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), user_id: claims.sub });
+  writeJSON(sessionKey, { access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), user_id: claims.sub }); try { sessionStorage.removeItem("hop.authReload"); } catch (e) { /* ignore */ }
   const pending = readJSON(LS.pendingCourier, null);
   if (pending && pending.email === String(claims.email || "").toLowerCase()) {
     await saveFiche(pending.profile, claims.sub);
@@ -792,7 +824,7 @@ async function signupCourier(email, password, profile, topcase, docs) {
     try { await login(email, password); return { needsConfirmation: false }; }
     catch (e) { return { needsConfirmation: true }; }
   }
-  writeJSON(sessionKey, { access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id });
+  writeJSON(sessionKey, { access_token: data.access_token, refresh_token: data.refresh_token, user_id: data.user.id }); try { sessionStorage.removeItem("hop.authReload"); } catch (e) { /* ignore */ }
   await authRest("/rest/v1/couriers", { method: "POST", body: Object.assign({}, profile, { id: data.user.id }), prefer: "return=minimal" });
   if (topcase) await sendTopcase(topcase);
   await sendDocs(docs);
