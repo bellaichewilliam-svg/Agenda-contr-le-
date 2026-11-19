@@ -10233,6 +10233,9 @@ document.addEventListener("submit", async e => {
     });
     Store.saveProfile(Object.assign({}, Store.getProfile(), { contact_name: v("name"), contact_phone: tel }));
     UI.track("mikve_order");
+    // Compte client créé tout seul, comme pour les autres commandes (patron, 19/11 : « ils doivent faire leur compte »)
+    if (Store.ONLINE && !Store.clientAccount() && !document.documentElement.classList.contains("for-client"))
+      await Promise.race([Store.clientAuto(v("name"), tel, "").catch(() => null), new Promise(r => setTimeout(r, 4000))]);
     location.href = UI.trackUrl(saved);
   } catch (ex) {
     mk.busy = false; btn.disabled = false; btn.textContent = t("mkGo", { price: UI.money(mkTotal()) });
