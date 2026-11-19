@@ -6971,3 +6971,24 @@ html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(
 .kv .cia-form .cia-btns { display: flex; grid-template-columns: none; gap: 8px; }
 .kv .cia-form .cia-btns .btn { flex: 1; }
 .kv .cia-form label { min-width: 0; }
+/* Livreur : courses livrées rangées par mois puis par jour (patron, 19/11) */
+.done-month { border: 1px solid var(--border); border-radius: 16px; background: var(--panel); overflow: hidden; }
+.done-month > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 14px 16px; cursor: pointer; list-style: none; }
+.done-month > summary::-webkit-details-marker { display: none; }
+.done-month > summary > span { display: grid; gap: 2px; }
+.done-month > summary > span b { font-size: 17px; }
+.done-month > summary small { font-size: 13px; color: var(--muted); font-weight: 600; }
+.done-month .dm-sum { font-size: 18px; white-space: nowrap; }
+.done-month[open] > summary { border-bottom: 1px solid var(--border); }
+.done-day { padding: 10px 12px 12px; display: grid; gap: 6px; }
+.done-day + .done-day { border-top: 1px solid var(--border); }
+.dd-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 2px 4px 4px; }
+.dd-h > b { font-size: 14.5px; }
+.dd-h > span { font-size: 13px; color: var(--muted); white-space: nowrap; }
+.dd-h > span b { color: var(--ink); }
+.done-day .done-row > summary { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+.done-row .dr-t { font-size: 13px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.done-row .dr-m { display: grid; gap: 1px; min-width: 0; }
+.done-row .dr-m b { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.done-row .dr-m small { font-size: 12px; color: var(--muted); }
+.done-row .dr-p { font-size: 15px; }

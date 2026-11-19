@@ -412,7 +412,7 @@ const onWayBtns = o => [["5", "🛵 J'arrive dans 5 min"], ["here", "📍 Je sui
 const openFolds = new Set();
 document.addEventListener("toggle", e => {
   const k = e.target && e.target.dataset && e.target.dataset.fold;
-  if (k) { if (e.target.open) openFolds.add(k); else openFolds.delete(k); }
+  if (k) { if (e.target.open) { openFolds.add(k); openFolds.delete("x" + k); } else { openFolds.delete(k); openFolds.add("x" + k); } }
 }, true);
 // Mes dernières courses livrées : en petit, à ouvrir (au cas où : client, adresse, paiement, reçu)
 // Tournée (2 courses ou plus) : l'ordre des arrêts — les départs qui restent, du plus proche au suivant, puis les
@@ -465,18 +465,38 @@ function tourBlock(list) {
 }
 function doneList() {
   const done = orders.filter(o => o.courier_id === me.id && o.status === "livree")
-    .sort((a, b) => new Date(b.delivered_at || b.pickup_at) - new Date(a.delivered_at || a.pickup_at)).slice(0, 15);
+    .sort((a, b) => new Date(b.delivered_at || b.pickup_at) - new Date(a.delivered_at || a.pickup_at)).slice(0, 120);
   if (!done.length) return "";
   // Coordonnées du client (nom, téléphone, adresse exacte, message) : seulement sur la dernière course,
   // pendant 30 min après la livraison ; ensuite, la fiche ne garde que le n°, le prix et le paiement
   const fresh = o => o === done[0] && Date.now() - new Date(o.delivered_at || o.pickup_at).getTime() < DONE_OPEN_MIN * 60000;
-  return `<h3 class="done-title">🕘 Mes dernières courses livrées</h3><div class="done-list">${done.map(o => `<details class="done-row" data-fold="d:${UI.esc(o.id)}"${openFolds.has("d:" + o.id) ? " open" : ""}>
-    <summary><span>✅ N° ${UI.esc(o.ref)} · ${UI.esc(UI.fmtDateTime(o.delivered_at || o.pickup_at))}</span><b>${UI.money(o.price)}</b></summary>
+  // Rangé par mois puis par jour (patron, 19/11 : « pas en vrac »), avec le nombre de courses et le total
+  const tz = CONFIG.timezone, at = o => new Date(o.delivered_at || o.pickup_at);
+  const dayKey = d => d.toLocaleDateString("fr-CA", { timeZone: tz }), monKey = d => dayKey(d).slice(0, 7);
+  const today = dayKey(new Date()), yest = dayKey(new Date(Date.now() - 86400000));
+  const sum = l => l.reduce((t, o) => t + Number(o.price || 0), 0);
+  const n = l => `${l.length} course${l.length > 1 ? "s" : ""}`;
+  const row = o => `<details class="done-row" data-fold="d:${UI.esc(o.id)}"${openFolds.has("d:" + o.id) ? " open" : ""}>
+    <summary><span class="dr-t">${UI.esc(at(o).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: tz }))}</span>
+      <span class="dr-m"><b>${UI.esc(o.shop_name ? UI.bi(o.shop_name, "fr") : UI.cityFr(o.from_city) + " → " + UI.cityFr(o.to_city))}</b><small>n° ${UI.esc(o.ref)}</small></span><b class="dr-p">${UI.money(o.price)}</b></summary>
     ${fresh(o) ? doneBody(o) : `<div class="done-body">
       <p>📍 ${UI.esc(UI.cityFr(o.from_city))} → 🏁 ${UI.esc(UI.cityFr(o.to_city))}</p>
       <p>${o.payment_method === "cash" ? "💵 Espèces" : "📱 Bit"} · ${o.payment_status === "paye" ? "✓ payé" : "⚠️ pas marqué payé"}</p>
       <p class="muted small">🔒 Les coordonnées du client ne restent visibles que 30 min après la livraison. Un souci ? Écrivez à HOP!.</p>
-    </div>`}</details>`).join("")}</div>`;
+    </div>`}</details>`;
+  const months = [];
+  done.forEach(o => { const mk = monKey(at(o)), dk = dayKey(at(o));
+    let m = months.find(x => x.k === mk); if (!m) months.push(m = { k: mk, d: at(o), days: [] });
+    let d = m.days.find(x => x.k === dk); if (!d) m.days.push(d = { k: dk, d: at(o), list: [] });
+    d.list.push(o); });
+  const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
+  const monName = d => cap(d.toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: tz }));
+  const dayName = d => { const k = dayKey(d); return k === today ? "Aujourd'hui" : k === yest ? "Hier" : cap(d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: tz })); };
+  return `<h3 class="done-title">🕘 Mes courses livrées</h3><div class="done-list">${months.map((m, i) => {
+    const all = m.days.flatMap(d => d.list), fk = "dm:" + m.k, open = openFolds.has(fk) || (i === 0 && !openFolds.has("x" + fk));
+    return `<details class="done-month" data-fold="${fk}"${open ? " open" : ""}><summary><span><b>${UI.esc(monName(m.d))}</b><small>${n(all)}</small></span><b class="dm-sum">${UI.money(sum(all))}</b></summary>
+      ${m.days.map(d => `<div class="done-day"><div class="dd-h"><b>${UI.esc(dayName(d.d))}</b><span>${n(d.list)} · <b>${UI.money(sum(d.list))}</b></span></div>${d.list.map(row).join("")}</div>`).join("")}</details>`;
+  }).join("")}</div>`;
 }
 const DONE_OPEN_MIN = 30;
 // Nouveau client livré : le bouton qui lui envoie « Vous avez été livré avec HOP! » sur WhatsApp, d'un toucher
