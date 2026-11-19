@@ -393,7 +393,7 @@ function courierPay(o) {
 }
 // Espèces : le livreur paie les articles au commerce en espèces ; le commerce le confirme (« Espèces reçues »)
 function cashLine(o) {
-  if (o.payment_method !== "cash" || !(Number(o.cash_goods) > 0)) return "";
+  if ((o.payment_method !== "cash" && !o.cash_shop_after) || !(Number(o.cash_goods) > 0)) return "";
   // Ce que le livreur a noté de son côté (avancé en prenant la commande, ou rendu après la livraison)
   const mark = o.cash_courier_mode ? `<small class="cash-mark">${UI.esc(t(o.cash_courier_mode === "avance" ? "spCashCourierAvance" : "spCashCourierRendu", { time: UI.fmtTime(o.cash_courier_at) }))}</small>` : "";
   if (o.cash_shop_at) {
@@ -402,7 +402,7 @@ function cashLine(o) {
       ${got !== Number(o.cash_goods) ? `<small>${UI.esc(t("spCashDiff", { expected: UI.money(o.cash_goods) }))}</small>` : ""}${mark}</div>`;
   }
   // Commerce partenaire : le livreur rapporte l'argent des articles après la livraison (ou paie en prenant la commande)
-  if (o.cash_shop_after) return `<div class="cash-need"><b>${UI.esc(t("spCashAfter", { amount: UI.money(o.cash_goods) }))}</b>
+  if (o.cash_shop_after) return `<div class="cash-need"><b>${UI.esc(t(o.shop_sent ? "spCollectOwed" : "spCashAfter", { amount: UI.money(o.cash_goods) }))}</b>
     ${mark}${["confirmee", "recuperee", "livree"].includes(o.status) ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}" data-after="1">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashAfterWait"))}</small>`}</div>`;
   return `<div class="cash-need"><b>${UI.esc(t("spCashDue", { amount: UI.money(o.cash_goods) }))}</b>
     ${mark}${o.status === "confirmee" ? `<button type="button" class="btn btn-primary btn-block" data-cash-ok="${UI.esc(o.id)}">${UI.esc(t("spCashBtn", { amount: UI.money(o.cash_goods) }))}</button>` : `<small>${UI.esc(t("spCashWait"))}</small>`}</div>`;
@@ -448,7 +448,7 @@ function renderPrep() {
     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
   // Espèces des articles : les commandes déjà parties (le livreur rapporte l'argent après la livraison) en attente de
   // « Espèces reçues », et celles reçues ces 7 derniers jours (le montant noté reste écrit, pour le commerce et HOP!)
-  const cashDue = orders.filter(o => o.payment_method === "cash" && Number(o.cash_goods) > 0 && !["annulee", "refusee"].includes(o.status)
+  const cashDue = orders.filter(o => (o.payment_method === "cash" || o.cash_shop_after) && Number(o.cash_goods) > 0 && !["annulee", "refusee"].includes(o.status)
       && (["recuperee", "livree"].includes(o.status) || o.cash_shop_at)
       && (!o.cash_shop_at || Date.now() - new Date(o.cash_shop_at) < 7 * 86400000))
     .sort((a, b) => (a.cash_shop_at ? 1 : 0) - (b.cash_shop_at ? 1 : 0) || new Date(b.pickup_at) - new Date(a.pickup_at));
@@ -552,6 +552,19 @@ $("#spPrep").addEventListener("change", e => {
   const r = e.target.closest("[data-pay-for] input");
   if (r) payDraft[r.closest("[data-pay-for]").dataset.payFor] = r.value;
 });
+$("#spOrders").addEventListener("click", async e => {
+  const c = e.target.closest("[data-collect]"), ok = e.target.closest("[data-cash-ok]");
+  if (ok) return cashOkClick(ok.dataset.cashOk);
+  if (!c) return;
+  const o = state.dash.orders.find(x => x.id === c.dataset.collect); if (!o) return;
+  const raw = prompt(t("spCollectAsk"), Number(o.cash_goods) > 0 ? String(Number(o.cash_goods)) : "");
+  if (raw === null) return;
+  const amount = Number(String(raw).replace(",", ".").replace(/[^\d.]/g, "") || 0);
+  if (!(amount >= 0 && amount <= 5000)) return alert(t("spCollectBad"));
+  c.disabled = true;
+  try { const r = await Store.shopCollectSet(state.dash.shop.token, o.id, amount); if (!r) alert(t("spErr")); } catch (ex) { alert(t("spErr")); }
+  refreshSpace();
+});
 $("#spPrep").addEventListener("click", async e => {
   const b = e.target.closest("button");
   if (!b) return;
@@ -574,19 +587,7 @@ $("#spPrep").addEventListener("click", async e => {
       .then(ok => { if (!ok) alert(t("spErr")); }, () => alert(t("spErr"))).then(refreshSpace);
     return;
   }
-  if (b.dataset.cashOk) {
-    const o = state.dash.orders.find(x => x.id === b.dataset.cashOk);
-    if (!o) return;
-    // Le montant reçu, noté sur la course (par défaut celui des articles) : un écart prévient HOP!
-    const raw = prompt(t("spCashAmount", { amount: UI.money(o.cash_goods) }), String(Number(o.cash_goods)));
-    if (raw === null) return;
-    const amount = Number(String(raw).replace(",", ".").replace(/[^\d.]/g, ""));
-    if (!(amount >= 0 && amount <= 5000)) return alert(t("spCashAmountBad"));
-    if (confirm(t("spCashConfirm", { amount: UI.money(amount) })))
-      return Store.shopCashReceived(state.dash.shop.token, o.id, amount).then(ok => { if (!ok) alert(t("spErr")); refreshSpace(); }, () => alert(t("spErr")));
-    return;
-    return;
-  }
+  if (b.dataset.cashOk) return cashOkClick(b.dataset.cashOk);
   if (b.dataset.bagsFor) { bagsDraft[b.dataset.bagsFor] = Number(b.dataset.n); keep("hop_shop_bags", bagsDraft); return renderPrep(); }
   if (b.dataset.ready) {
     const o = state.dash.orders.find(x => x.id === b.dataset.ready), bags = Number(bagsDraft[b.dataset.ready]) || 0;
@@ -1074,10 +1075,29 @@ function renderSpace() {
       <div class="num"><span class="pill st-${UI.esc(o.status)}">${UI.esc(t("st_" + o.status))}</span><br><b>${UI.money(o.price)}</b>
         ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<br><a class="small" href="${UI.trackUrl(o)}${o.shop_sent ? "&shop=1" : ""}">${UI.esc(t("shTrack"))}</a>` : ""}</div>
       ${o.shop_sent ? `<div class="trk-send-row">${UI.shopTrackBtn(o, state.dash && state.dash.shop && state.dash.shop.name, t)}</div>` : ""}
+      ${collectLine(o)}
     </div>`).join("") : `<p class="muted small">${UI.esc(t("shNoOrders"))}</p>`;
   foldTitles();
 }
 
+// « Espèces reçues » : le montant reçu, noté sur la course (par défaut celui des articles) ; un écart prévient HOP!
+function cashOkClick(id) {
+  const o = state.dash.orders.find(x => x.id === id);
+  if (!o) return;
+  const raw = prompt(t("spCashAmount", { amount: UI.money(o.cash_goods) }), String(Number(o.cash_goods)));
+  if (raw === null) return;
+  const amount = Number(String(raw).replace(",", ".").replace(/[^\d.]/g, ""));
+  if (!(amount >= 0 && amount <= 5000)) return alert(t("spCashAmountBad"));
+  if (confirm(t("spCashConfirm", { amount: UI.money(amount) })))
+    return Store.shopCashReceived(state.dash.shop.token, o.id, amount).then(ok => { if (!ok) alert(t("spErr")); refreshSpace(); }, () => alert(t("spErr")));
+}
+// Montant des articles à encaisser chez le client (patron, 19/11) : le commerce le note sur sa course ; ensuite il voit
+// ce que le livreur lui doit, et touche « reçu » quand l'argent est rendu
+function collectLine(o) {
+  if (!o.shop_sent || ["annulee", "refusee"].includes(o.status)) return "";
+  if (Number(o.cash_goods) > 0 && o.cash_shop_after) return `<div class="collect-row">${cashLine(o)}${o.cash_shop_at ? "" : `<button type="button" class="btn btn-sm btn-ghost" data-collect="${UI.esc(o.id)}">${UI.esc(t("spCollectEdit"))}</button>`}</div>`;
+  return `<div class="collect-row"><button type="button" class="btn btn-sm" data-collect="${UI.esc(o.id)}">${UI.esc(t("spCollectBtn"))}</button></div>`;
+}
 // Course envoyée par le commerce : qui paie ; « vous payez » → le Bit du livreur dès qu'il a pris la course
 function sentLine(o) {
   if (!o.shop_sent) return "";
@@ -1319,7 +1339,7 @@ $("#spOther").addEventListener("click", e => {
 // départ = le commerce (la base le reprend de sa fiche). La course se paie au livreur par Bit : le commerce
 // quand il prend le colis, ou le client à la livraison.
 const send = { pick: null, ac: null, ready: "0", payer: "", how: "", done: null, busy: false };
-const SEND_KEYS = ["name", "phone", "street", "city", "floor", "apt", "code", "note", "at"];
+const SEND_KEYS = ["name", "phone", "street", "city", "floor", "apt", "code", "note", "at", "collect"];
 // Quartier hors centre (Agamim, zones industrielles) : pourquoi ce prix
 function sendAreaWhy() {
   const shop = state.dash.shop, f = $("#spSend");
@@ -1380,6 +1400,7 @@ function renderSend(full) {
       ${fld("code", "sdCode", 'maxlength="20" dir="ltr"')}
     </div>
     ${fld("note", "sdNote", `maxlength="200" placeholder="${e(t("sdNotePh"))}"`)}
+    <label class="f sd-collect"><span>${e(t("sdCollect"))}</span><input name="collect" inputmode="decimal" maxlength="7" dir="ltr" placeholder="${e(t("sdCollectPh"))}" value="${e(v.collect || "")}" /><small>${e(t("sdCollectHint"))}</small></label>
     <div class="sd-block"><b class="sd-label">${e(t("sdReady"))}</b>
       <div class="choices sd-ready">${ready("0", t("sdNow"))}${ready("15", t("sdIn", { n: 15 }))}${ready("30", t("sdIn", { n: 30 }))}${ready("at", t("sdAt"))}</div>
       <label class="f sd-at${send.ready === "at" ? "" : " hidden"}"><span>${e(t("sdAtLabel"))}</span><input type="time" name="at" value="${e(v.at || "")}" dir="ltr" /></label>
@@ -1436,6 +1457,8 @@ async function sendSubmit() {
   if (!phoneOk(v.phone)) { f.elements.phone.classList.add("field-bad"); return sendErr(t("sdErrPhone"), f.elements.phone); }
   if (!send.payer) { f.querySelector(".sd-payer").classList.add("field-bad"); return sendErr(t("sdErrPayer"), f.querySelector(".sd-payer input")); }
   if (!send.how) { f.querySelector(".sd-how").classList.add("field-bad"); return sendErr(t("sdErrHow"), f.querySelector(".sd-how input")); }
+  const collect = String(v.collect || "").trim() ? Number(String(v.collect).replace(",", ".").replace(/[^\d.]/g, "")) : 0;
+  if (!(collect >= 0 && collect <= 5000)) { f.elements.collect.classList.add("field-bad"); return sendErr(t("spCollectBad"), f.elements.collect); }
   let at = new Date();
   if (send.ready === "15" || send.ready === "30") at = new Date(Date.now() + Number(send.ready) * 60000);
   if (send.ready === "at") {
@@ -1468,6 +1491,7 @@ async function sendSubmit() {
       contact_name: shop.name, contact_phone: shop.phone,
       price: sendPrice(), discount: 0, payment_method: send.how, payer: send.payer, distance_km: null
     });
+    if (collect > 0 && saved && saved.id) { try { await Store.shopCollectSet(state.token, saved.id, collect); } catch (ex) { /* le commerce peut le noter ensuite sur la course */ } }
     send.done = Object.assign({}, saved, { ready: send.ready !== "0", price: saved.price || sendPrice() });
     send.pick = null; send.ready = "0"; send.payer = ""; send.how = "";
     f.reset();
