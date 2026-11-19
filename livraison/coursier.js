@@ -385,6 +385,10 @@ function moneyBox(o) {
   if (o.payment_status === "paye") return box(true, `✅ Déjà payé · rien à encaisser`,
     [o.paid_to === "hop" ? "Payé à HOP!, qui vous reverse le montant" : `Vous avez reçu ${UI.money(total)} ${how}`, goodsPaid].filter(Boolean).join("<br>"));
   if (o.paid_to === "hop") return box(true, "✅ Rien à encaisser", "Le client paie HOP! directement, HOP! vous reverse le montant");
+  // Le commerce a noté le montant des articles à encaisser chez le client (patron, 19/11) : à rendre ensuite au commerce
+  const col = o.shop_sent && o.cash_shop_after && Number(o.cash_goods) > 0 ? Number(o.cash_goods) : 0;
+  if (col) return box(false, `💰 À encaisser chez le client : ${UI.money(col + (o.payer === "moi" ? 0 : Number(o.price)))} ${how}`,
+    `${o.payer === "moi" ? `articles ${UI.money(col)} · la livraison ${UI.money(o.price)}, ${UI.esc(o.shop_name || "le commerce")} vous la paie au départ` : `articles ${UI.money(col)} + livraison ${UI.money(o.price)}`}<br>🛍️ Les <b>${UI.money(col)}</b> des articles sont à rendre ensuite à ${UI.esc(owedTo(o))}`);
   if (o.shop_pays) return box(false, `💰 À encaisser au commerce : ${UI.money(o.price)} par Bit`,
     `${giftShop(o)} vous paie en vous donnant la commande.<br>🎁 Livraison offerte : le client ne paie rien`);
   if (o.shop_sent && o.payer === "moi") return box(false, `💰 À encaisser au commerce : ${UI.money(o.price)} ${how}`,
@@ -2755,11 +2759,16 @@ function renderHome() {
 // Remboursement à faire : en haut de l'accueil et des courses disponibles, tant qu'il n'est pas fait
 // Articles encaissés chez le client en espèces : à rapporter au commerce, tant qu'il n'a pas touché « Espèces reçues »
 function cashReturnCards() {
-  return orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at)
-    .map(o => `<div class="rd-card refund-card cash-return"><span>💵 Rapportez <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(owedTo(o))}
+  const due = orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at);
+  // Le total par commerce, en haut (patron, 19/11 : « avec beaucoup de livraisons, je ne sais plus combien rendre »)
+  const by = {};
+  due.filter(o => !o.cash_courier_mode).forEach(o => { const k = owedTo(o); by[k] = (by[k] || 0) + Number(o.cash_goods); });
+  const head = Object.keys(by).length ? `<div class="rd-card owe-sum"><span>💵 À rendre aux commerces<small>${Object.entries(by).map(([k, v]) => `<b>${UI.money(v)}</b> à ${UI.esc(k)}`).join(" · ")}</small></span></div>` : "";
+  return head + due
+    .map(o => `<div class="rd-card refund-card cash-return"><span>${o.cash_courier_mode ? `<em class="owe-st ok">✅ Payé</em>` : `<em class="owe-st">⏳ En attente de paiement</em>`}💵 Rapportez <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(owedTo(o))}
       <small>Les articles de la course n° ${UI.esc(o.ref)}, encaissés chez le client. Le commerce touche « Espèces reçues » quand c'est fait${o.pickup_phone ? ` · <a href="tel:${UI.esc(o.pickup_phone)}">appeler</a>` : ""}.</small>
       ${o.cash_courier_mode ? `<small class="cash-marked">✍️ Vous avez noté : ${o.cash_courier_mode === "avance" ? "payé en prenant la commande" : "rendu au commerce"} · ${UI.esc(UI.fmtTime(o.cash_courier_at))} · en attente de « Espèces reçues » du commerce</small>`
-        : `<span class="refund-btns"><button type="button" class="btn btn-sm btn-primary" data-cashmark="rendu" data-id="${UI.esc(o.id)}">✍️ J'ai rendu ${UI.money(o.cash_goods)} au commerce</button><button type="button" class="btn btn-sm" data-cashmark="avance" data-id="${UI.esc(o.id)}">J'avais payé en prenant la commande</button></span>`}</span></div>`).join("");
+        : `<span class="refund-btns"><button type="button" class="btn btn-sm btn-primary" data-cashmark="rendu" data-id="${UI.esc(o.id)}">✅ Payé au commerce (${UI.money(o.cash_goods)})</button><button type="button" class="btn btn-sm" data-cashmark="avance" data-id="${UI.esc(o.id)}">J'avais payé en prenant la commande</button></span>`}</span></div>`).join("");
 }
 // Le livreur note ce qu'il a fait des espèces des articles : « avancé » (payé au commerce au départ) ou « rendu » (après la livraison)
 async function onCashMarkClick(e) {
