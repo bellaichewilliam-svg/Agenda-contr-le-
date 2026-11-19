@@ -6909,3 +6909,19 @@ html[dir="rtl"] .pz .pz-dots span.on::after { transform-origin: right; }
 #shopWa.wa-list { display: flex !important; flex-direction: row !important; align-items: center !important; text-align: start; }
 #shopWa.wa-list > span { display: grid !important; }
 html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(-1); }
+/* Livreur : prochaine destination en bas de la carte, version nette (patron, 19/11 : « très moche, les phrases, les couleurs ») */
+.rd-dest { display: grid; gap: 4px; margin: 0 0 12px; padding: 2px 0 14px; border-bottom: 1px solid var(--rd-line); }
+.rd-dest small { justify-self: start; display: inline-block; font-size: 12.5px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; padding: 4px 10px; border-radius: 99px; color: #fff; background: #E8590C; }
+.rd-dest small.drop { background: #12B76A; }
+.rd-dest b { margin: 4px 0 0; font-size: 28px; line-height: 1.15; font-weight: 800; color: var(--rd-ink); letter-spacing: -.3px; }
+.rd-dest b.pick, .rd-dest b.drop { color: var(--rd-ink); }
+.rd-dest span { font-size: 17px; line-height: 1.35; font-weight: 600; color: var(--rd-mute); }
+.rd-dest span em { font-size: inherit; font-weight: inherit; color: inherit; }
+.rd-dest i { justify-self: start; display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; padding: 8px 14px; border-radius: 12px; background: var(--rd-bg2); color: var(--rd-ink); font-style: normal; font-weight: 700; font-size: 14px; }
+.rd-dest i em { font-style: normal; color: var(--rd-mute); font-size: 16px; }
+.rd-next { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin: 0 0 12px; padding: 12px 14px; border: 1px solid var(--rd-line); border-radius: 14px; background: var(--rd-bg); color: var(--rd-ink); font: inherit; text-align: start; cursor: pointer; }
+.rd-next .rn-t { display: grid; gap: 2px; min-width: 0; }
+.rd-next .rn-t small { font-size: 12px; font-weight: 700; color: var(--rd-mute); text-transform: uppercase; letter-spacing: .4px; }
+.rd-next .rn-t b { font-size: 15.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rd-next .rn-n { flex: none; display: grid; justify-items: end; gap: 2px; font-size: 12.5px; font-weight: 600; color: var(--rd-mute); }
+.rd-next .rn-n em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--rd-ink); }
