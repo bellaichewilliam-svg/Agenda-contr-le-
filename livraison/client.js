@@ -3087,7 +3087,7 @@ function validateOrder() {
   // Écran 2 : les précisions
   // Catalogue sans article : c'est le panier qu'on montre (la précision reste facultative, jamais signalée) ;
   // boutique HOP! : au moins un article du catalogue (le livreur fait les courses d'après la liste)
-  if (proShopOn() && !cartCount() && (hopBuyOn() || !val("shop_order").trim())) {
+  if (proShopOn() && !cartCount() && (hopBuyOn() ? !hopExtraUnits() : !val("shop_order").trim())) {
     if (catalogOn()) { $("#catalogBox").scrollIntoView({ block: "start", behavior: "smooth" }); return showErrorFalse(t("errCartEmpty", { name: UI.bi(state.shop.name) })); }
     form.shop_order.focus(); return showErrorFalse(t("errShopOrder", { name: UI.bi(state.shop.name) }));
   }
@@ -4229,7 +4229,7 @@ function favToggle(id) {
 }
 // Panier vide chez un commerce avec catalogue (patron, 18/11 : une cliente a appuyé 3 fois sur « Continuer » chez Roladin
 // sans rien choisir) : le bouton du bas dit « Choisir mes articles » et emmène aux produits, les « + » clignotent
-const cgNeedPick = () => wiz.on && wiz.step === 1 && !!state.shop && catalogOn() && proShopOn() && !cartCount() && (hopBuyOn() || !val("shop_order").trim());
+const cgNeedPick = () => wiz.on && wiz.step === 1 && !!state.shop && catalogOn() && proShopOn() && !cartCount() && (hopBuyOn() ? !hopExtraUnits() : !val("shop_order").trim());
 function goLabel() {
   const g = $("#mobileGo"); if (!g || !wiz.on) return;
   const need = cgNeedPick();
