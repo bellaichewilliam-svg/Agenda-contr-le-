@@ -6992,3 +6992,6 @@ html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(
 .done-row .dr-m b { font-size: 14.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .done-row .dr-m small { font-size: 12px; color: var(--muted); }
 .done-row .dr-p { font-size: 15px; }
+/* Rendre une course acceptée (patron, 20/11 : trop d'attente au départ, un autre livreur la prend) */
+.fi-release { display: block; width: 100%; margin: 10px 0 0; padding: 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 12px; background: none; color: #FFB4A2; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
+.btn-release { color: #B42318 !important; }
