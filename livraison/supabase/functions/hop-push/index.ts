@@ -79,6 +79,12 @@ async function onDuty(orderId?: string) {
     const { data: no } = await db.from("order_declines").select("courier_id").eq("order_id", orderId).gt("created_at", since5);
     const out = new Set((no || []).map(d => d.courier_id));
     ids = ids.filter(id => !out.has(id));
+    // Livreur déjà en course (patron, 20/11) : ça ne sonne chez lui que si la nouvelle course va dans son sens
+    // (public.ring_filter : mêmes règles que « sur votre chemin » dans l'appli) ; les livreurs libres entendent tout
+    if (ids.length) {
+      const { data: keep, error } = await db.rpc("ring_filter", { p_order: orderId, p_ids: ids });
+      if (!error && Array.isArray(keep)) ids = keep.map(String);
+    }
   }
   return ids;
 }
