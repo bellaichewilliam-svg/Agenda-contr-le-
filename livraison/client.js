@@ -4191,8 +4191,12 @@ function tileMeta(p, multi) {
 }
 // Contenance lue dans le nom (« 6 × 1,5 L », « 200 גרם », « 1 ק"ג ») : total en g ou ml, et un libellé court
 const PACK_RE = /(?:(\d+)\s*[×xX*]\s*)?(\d+(?:[.,]\d+)?)\s*(kg|g|gr|grammes?|ml|cl|l|litres?|ליטר|גרם|גר'?|ק[״"]ג|קילו|מ[״"]ל)(?![a-zà-ÿ])/i;
+// Pas de « prix au litre / au kilo » sur un appareil (friteuse 8 L, poêle SP3000L…) : seulement l'alimentaire et l'entretien
+const NO_PACK_RX = /friteuse|multicuiseur|mixeur|blender|bouilloire|grille-pain|gaufrier|chauffage|radiateur|ventilateur|aspirateur|fer à repasser|robot|enceinte|micro-ondes|cafeti[èe]re|po[êe]le-chemin|\b\d{3,4} ?w\b|סיר|מגהץ|בלנדר|מעבד מזון|מסחטת|רמקול|קיטורית|תנור|מאוורר|קומקום|מיקסר|שואב/i;
 function packInfo(p) {
   const raw = String(UI.bi(baseOf(p)) || ""), all = String(p.name || "");
+  const catN = (((state.catalog && state.catalog.categories) || []).find(c => c.id === p.category_id) || {}).name || "";
+  if (/électro|electro|חשמל/i.test(catN) || NO_PACK_RX.test(all)) return null;
   const m = PACK_RE.exec(raw) || PACK_RE.exec(all);
   if (!m) return null;
   const n = m[1] ? Number(m[1]) : 1, v = Number(String(m[2]).replace(",", ".")), u = m[3].toLowerCase();
@@ -4282,7 +4286,7 @@ function renderCatalog() {
     if (state.cgQ) box.querySelector("[data-cg-q]").value = state.cgQ;
   }
   const qIn = box.querySelector("[data-cg-q]");
-  qIn.placeholder = t("cgSearch", { name: isHopShop(state.shop) ? mgShort(state.shop.name) : UI.bi(state.shop.name) });
+  qIn.placeholder = t("cgSearch", { name: /^HOP/.test(state.shop.code || "") ? mgShort(state.shop.name) : UI.bi(state.shop.name) });
   if (box.dataset.head !== head) { box.querySelector(".cg-head-tabs").innerHTML = head; box.dataset.head = head; }
   // La règle dite clairement (patron, 09/11) : la commande est chez CE magasin ; un autre magasin s'y ajoute, avec sa livraison en plus
   let rule = "";
@@ -4300,7 +4304,7 @@ function renderCatalog() {
       const lg = UI.safeImg(x.logo);
       return `<button type="button" class="cg-st${x.code === state.shop.code ? " on" : ""}" data-cg-store="${UI.esc(x.code)}"><span class="cg-st-lg">${lg ? `<img src="${lg}" alt="" />` : `<b>${UI.esc(mgShort(x.name).slice(0, 1))}</b>`}</span><bdi>${UI.esc(mgShort(x.name))}</bdi></button>`; }).join("")}</div></div>` : "";
   const sw = box.querySelector(".cg-stores-w"); if (sw && sw.dataset.html !== storeBar) { sw.innerHTML = storeBar; sw.dataset.html = storeBar; }
-  const html = `${state.boss ? bossBar() : ""}${rule}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
+  const html = `${state.boss ? bossBar() : ""}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
@@ -4317,6 +4321,7 @@ function renderCatalog() {
           : `<button type="button" class="cg-plus" data-cg-plus="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">+</button>`}</div>
       </div>`;
     }).join("")}</div>`).join("")}
+    ${rule}
     ${(state.shop.pay_link || state.shop.pay_bit) && proShopOn() ? `<div class="pay2">
         <b>${UI.esc(t("pay2Title"))}</b>
         <p><i>1</i><span>${UI.esc(t("pay2Goods", { name: UI.bi(state.shop.name), amount: n ? money(cartTotal()) : "" }))}</span></p>
@@ -5117,7 +5122,7 @@ function shopMeta(s) {
         <small>${UI.esc(price)}${isHopShop(s) ? "" : ` · ${UI.esc(t("qZero"))} ${UI.esc(t("qService").toLowerCase())}`}</small></div>
       <div class="sh-meta-r">${wa ? `<a class="sh-ic sh-ic-wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t(hop ? "shWaHelloHop" : "shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener" aria-label="${UI.esc(t(hop ? "shWaHop" : "shWa"))}">${WA_SVG}</a>` : ""}
         <button type="button" class="sh-ic sh-ic-info" data-sh-info="1"><i>i</i><span>${UI.esc(t("shInfoBtn"))}</span></button></div>
-    </div>${s.paused ? `<p class="sh-paused">⏸️ ${UI.esc(t("shPaused"))}</p>` : ""}${st && (st.open || st.inDays != null) ? `<p class="sh-last15">⏰ ${UI.esc(t("shLast15"))}</p>` : ""}${hop && (wa || s.phone) ? `<p class="sh-hop-note">${UI.esc(t("shHopNote", { name: UI.bi(s.name) }))}</p>` : ""}`;
+    </div>${s.paused ? `<p class="sh-paused">⏸️ ${UI.esc(t("shPaused"))}</p>` : ""}${st && st.open ? `<p class="sh-last15">⏰ ${UI.esc(t("shLast15"))}</p>` : st && !s.paused ? `<p class="sh-closed-go">${UI.esc(t("shClosedGo"))}</p>` : ""}${hop && (wa || s.phone) ? `<p class="sh-hop-note">${UI.esc(t("shHopNote", { name: UI.bi(s.name) }))}</p>` : ""}`;
 }
 // Fiche « Infos » (s'ouvre par-dessus) : photos, présentation, adresse, horaires, WhatsApp, avis
 function shopSheet(s) {

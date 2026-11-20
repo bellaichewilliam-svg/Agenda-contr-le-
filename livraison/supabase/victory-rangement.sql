@@ -13,9 +13,12 @@ language plpgsql security definer set search_path = public as $function$
 declare sid uuid; promo uuid := md5('HOPVICTORY:cat:promo')::uuid; r record; k text; n int := 0;
 begin
   select id into sid from shops where code = 'HOPVICTORY';
-  for r in select id, name from shop_products where shop_id = sid and category_id in (promo, md5('HOPVICTORY:cat:bebe')::uuid) loop
+  -- Noms importés avec des codes à la place des signes (« צ&#x27;יפס ») : on remet les vrais signes
+  update shop_products set name = replace(replace(replace(replace(name, '&#x27;', ''''), '&#39;', ''''), '&quot;', '"'), '&amp;', '&')
+   where shop_id = sid and name ~ '&(#x27|#39|quot|amp);';
+  for r in select id, name, category_id from shop_products where shop_id = sid and category_id in (promo, md5('HOPVICTORY:cat:bebe')::uuid) loop
     k := case
-      when r.name ~* 'רמקול|מגהץ|מעבד מזון|מסחטת|בלנדר|קיטורית|מפצל|[0-9]{3,4} ?W\b|BOSS' then 'electro'
+      when r.name ~* 'רמקול|מגהץ|מעבד מזון|מסחטת|בלנדר|קיטורית|מפצל|[0-9]{3,4} ?W\M|BOSS' then 'electro'
       when r.name ~* 'במבה|bamba' then 'snacks'
       when r.name ~* 'בייביסיטר|תינוק|החתלה|חיתול|bébé|couche' then 'bebe'
       when r.name ~* 'אולוויז|תחבושות|מגן תחתון|משחת שיניים|שטיפת פה|ליסטרין|קרם ידיים|קיסמי שיניים|בריחת שתן|דאודורנט|שמפו|סבון|צמר גפן' then 'hygiene'
@@ -27,7 +30,7 @@ begin
       when r.name ~* 'משקה|פחית|סודה|לימונדה|\mXL\M|מנגו 1|גויאבה|ליטר|מ"ל' then 'boissons'
       when r.name ~* 'חטיף|ביסלי|צ.יפס|בייגלה|שוקולד|סוכרי|מסטיק|עוגי|עוגת|וופל|אפרופו|קרקר|גליליות|ממתק|חלוה|חלווה|פתי ?בר|פתיבר|פריכיות|גרנולה|Cookies' then 'snacks'
       else 'epicerie' end;
-    if md5('HOPVICTORY:cat:' || k)::uuid is distinct from (select category_id from shop_products where id = r.id) then
+    if md5('HOPVICTORY:cat:' || k)::uuid is distinct from r.category_id then
       update shop_products set category_id = md5('HOPVICTORY:cat:' || k)::uuid where id = r.id; n := n + 1;
     end if;
   end loop;
