@@ -7053,3 +7053,11 @@ html.d3 body.shop-compact #shopHero .sh-last15 { display: none !important; }
 .vit-try::-webkit-scrollbar { display: none; }
 .vit-try small { flex: none; font-size: 13px; color: #5A6270; font-weight: 600; }
 .vit-try button { flex: none; height: 34px; padding: 0 14px; border: 1px solid #E6E8EB; border-radius: 99px; background: #fff; color: #111418; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+/* 20/11 (patron, capture « Pain ») : la liste de recherche passait sous les cartes « Promos du moment » */
+.sc-find { z-index: 40; }
+.vit-hero:has(.sc-find-list:not(.hidden)) { z-index: 45; }
+.vit-top:has(.sc-find-list:not(.hidden)) { position: relative; z-index: 45; }
+/* Icônes dessinées (les émojis sont retirés en d3, il restait des carrés orange vides) */
+html.d3 .sc-find-list .fi-any { background: #fff; border: 1px solid #E6E8EB; box-shadow: none; }
+html.d3 .sc-find-list .fi-any .fi-pic, html.d3 .sc-find-list .fr-logo.hop { background: #F2F3F5; color: #111418; box-shadow: none; }
+html.d3 .sc-find-list .fi-any .fi-go { color: #111418; }
