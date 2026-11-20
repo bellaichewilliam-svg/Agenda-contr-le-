@@ -38,6 +38,11 @@ jobs:
         run: python fetch_prices.py --out ../data --verbose
         continue-on-error: true
 
+      # Boutique « HOP! chez Rami Lévy » : promos du jour (et tout le magasin une fois par semaine)
+      - name: Promos Rami Lévy (HOP!)
+        run: python scripts/ramilevy_promos.py
+        continue-on-error: true
+
       - name: Rebuild prixmalin.html
         run: bash build.sh
 
@@ -47,6 +52,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p data/raw-prices
           git add data/live-prices.json data/live-promotions.json data/raw-prices/ prixmalin.html 2>/dev/null || true
+          git add livraison/data/ramilevy-promos.json livraison/data/ramilevy-prix.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Pas de changement de prix."
           else
