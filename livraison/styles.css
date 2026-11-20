@@ -7029,3 +7029,27 @@ html.d3 body.shop-compact #shopHero .sh-last15 { display: none !important; }
 .hop-dlg-btns.col { flex-direction: column; }
 .hop-dlg-btn.pick { background: #fff; color: #111418; border: 1px solid #C9CED6; text-align: start; padding: 0 16px; }
 .hop-offline { position: fixed; top: 0; left: 0; right: 0; z-index: 99990; padding: calc(8px + env(safe-area-inset-top, 0px)) 14px 8px; background: #111418; color: #fff; font-size: 14px; font-weight: 700; text-align: center; }
+/* Fiche livreur au même style que le bas de la carte (patron, 20/11) : pastille, nom en blanc, adresse en gris clair */
+.fi-pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase; color: #fff; background: #E8590C; vertical-align: 1px; }
+.fi-pill.drop { background: #12B76A; }
+.fi-head h3.drop, .fi-head h3.pick { color: #fff; font-weight: 800; letter-spacing: -.3px; }
+.fi-addr { font-size: 19px; font-weight: 700; color: #C9D5EA; }
+.fi-addr small { font-size: inherit; font-weight: inherit; color: inherit; }
+.fi-tabs button.on { color: #fff; border-bottom-color: #E8590C; }
+.fi-row.fi-code b { color: #fff; }
+.fi-notes p { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.14); }
+.wait-long { display: grid; gap: 8px; margin: 8px 0; padding: 10px 12px; border-radius: 12px; border: 1.5px solid #E8590C; }
+.wait-long > span { display: flex; gap: 8px; flex-wrap: wrap; }
+.done-week { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 10px; }
+.done-week > div { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
+.done-week small { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.done-week b { font-size: 20px; }
+.done-week span { font-size: 12.5px; color: var(--muted); }
+.owe-days { display: block; margin-top: 6px; line-height: 1.6; }
+.fi-head small { padding-inline-end: 44px; line-height: 1.7; }
+.rd-card.refund-card { background: var(--rd-bg2); }
+/* Exemples à toucher sous la recherche de l'accueil */
+.vit-try { display: flex; align-items: center; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 10px -16px 0; padding: 0 16px; }
+.vit-try::-webkit-scrollbar { display: none; }
+.vit-try small { flex: none; font-size: 13px; color: #5A6270; font-weight: 600; }
+.vit-try button { flex: none; height: 34px; padding: 0 14px; border: 1px solid #E6E8EB; border-radius: 99px; background: #fff; color: #111418; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }

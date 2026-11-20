@@ -492,7 +492,12 @@ function doneList() {
   const cap = x => x.charAt(0).toUpperCase() + x.slice(1);
   const monName = d => cap(d.toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: tz }));
   const dayName = d => { const k = dayKey(d); return k === today ? "Aujourd'hui" : k === yest ? "Hier" : cap(d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", timeZone: tz })); };
-  return `<h3 class="done-title">🕘 Mes courses livrées</h3><div class="done-list">${months.map((m, i) => {
+  // Cette semaine (du dimanche au samedi) et la semaine d'avant, en un coup d'œil
+  const ws = new Date(); ws.setHours(0, 0, 0, 0); ws.setDate(ws.getDate() - ws.getDay());
+  const wPrev = new Date(ws.getTime() - 7 * 86400000);
+  const wk = done.filter(o => at(o) >= ws), wk0 = done.filter(o => at(o) >= wPrev && at(o) < ws);
+  const weekBox = `<div class="done-week"><div><small>Cette semaine</small><b>${UI.money(sum(wk))}</b><span>${n(wk)}</span></div><div><small>Semaine dernière</small><b>${UI.money(sum(wk0))}</b><span>${n(wk0)}</span></div></div>`;
+  return `<h3 class="done-title">🕘 Mes courses livrées</h3>${weekBox}<div class="done-list">${months.map((m, i) => {
     const all = m.days.flatMap(d => d.list), fk = "dm:" + m.k, open = openFolds.has(fk) || (i === 0 && !openFolds.has("x" + fk));
     return `<details class="done-month" data-fold="${fk}"${open ? " open" : ""}><summary><span><b>${UI.esc(monName(m.d))}</b><small>${n(all)}</small></span><b class="dm-sum">${UI.money(sum(all))}</b></summary>
       ${m.days.map(d => `<div class="done-day"><div class="dd-h"><b>${UI.esc(dayName(d.d))}</b><span>${n(d.list)} · <b>${UI.money(sum(d.list))}</b></span></div>${d.list.map(row).join("")}</div>`).join("")}</details>`;
@@ -956,7 +961,7 @@ function card(o, kind) {
       <button class="btn btn-sm btn-primary" data-act="attente_recue">✅ Reçu</button><button class="btn btn-sm" data-act="attente_refusee">❌ Le client ne paie pas</button>`;
     else actions = goodsActs(o) + (o.status === "confirmee"
         ? (o.arrived_at
-            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Store.freeMinOf(o, settings) - w.mins)} min ${o.purchase_min ? "d'achats comprises" : "encore offertes"}`}</p>${waitAnn(o)}`
+            ? `<p class="wait-live">⏱️ Sur place depuis ${w.mins} min${w.fee ? ` · attente payée : <b>+${UI.money(w.fee)}</b>` : w.unannounced ? "" : ` · ${Math.max(0, Store.freeMinOf(o, settings) - w.mins)} min ${o.purchase_min ? "d'achats comprises" : "encore offertes"}`}</p>${waitAnn(o)}${w.mins >= 10 && !o.hop_buy ? `<div class="wait-long"><b>⏳ Déjà ${w.mins} min d'attente</b><span><button type="button" class="btn btn-sm" data-wait-tell="${UI.esc(o.id)}">📣 Prévenir HOP!</button><button type="button" class="btn btn-sm btn-release" data-act="liberer">❌ Annuler la course</button></span></div>` : ""}`
             : `<button class="btn btn-sm btn-primary" data-act="arrivee">📍 Je suis arrivé au départ</button>`)
           + (o.hop_buy && !Store.buyDone(o) ? `<button class="btn btn-sm" type="button" disabled title="Cochez chaque article">🛵 Courses récupérées</button>`
             : o.hop_buy && o.goods_spent == null ? `<button class="btn btn-sm" type="button" disabled>🧾 Rentrez d'abord le montant du ticket, puis « Courses récupérées »</button>`
@@ -1653,7 +1658,7 @@ function renderFiche() {
       <button type="button" class="fi-x" data-fi-close aria-label="Fermer">✕</button>
       <div class="fi-head">
         ${fiche.flash ? `<p class="fi-flash">${UI.esc(fiche.flash)}</p>` : ""}
-        <small>${(() => { const st = fiStops(), k = st.findIndex(x => x.o.id === o.id && x.kind === fiche.which); return st.length > 1 && k >= 0 ? `<b class="fi-step">${k ? `Arrêt ${k + 1}` : "Arrêt en cours"} · encore ${st.length} arrêts</b> · ` : ""; })()}${pick ? "Récupération chez" : "Livraison à"} · n° ${UI.esc(o.ref)}</small>
+        <small><span class="fi-pill ${pick ? "pick" : "drop"}">${pick ? "Récupération" : "Livraison"}</span> ${(() => { const st = fiStops(), k = st.findIndex(x => x.o.id === o.id && x.kind === fiche.which); return st.length > 1 && k >= 0 ? `<b class="fi-step">${k ? `Arrêt ${k + 1}` : "Arrêt en cours"} · encore ${st.length} arrêts</b> · ` : ""; })()}n° ${UI.esc(o.ref)}</small>
         <h3 class="${pick ? "pick" : "drop"}"><bdi>${UI.esc(title)}</bdi></h3>
         ${!pick && firm ? `<p class="fi-firm">🏪 <bdi>${UI.esc(firm)}</bdi></p>` : ""}
         ${!pick && o.status === "recuperee" && (o.shop_name || o.pickup_place) ? `<p class="fi-from">✓ Récupéré chez <bdi>${UI.esc(UI.bi(o.shop_name || o.pickup_place || "", "fr"))}</bdi></p>` : ""}
@@ -1735,6 +1740,15 @@ document.addEventListener("click", e => {
   if (c) mineOpen = c.dataset.id;   // on agit sur cette course : elle reste ouverte
 }, true);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && fiche) { fiche = null; renderFiche(); } });
+// Longue attente au départ : « Prévenir HOP! » écrit au patron (le commerce, depuis combien de temps)
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-wait-tell]"); if (!b) return;
+  const o = mine().find(x => x.id === b.dataset.waitTell); if (!o) return;
+  const w = Store.waitFee(o, settings);
+  b.disabled = true;
+  try { await Store.chatSend("c:" + me.id, "courier", me.name, `⏳ J'attends depuis ${w.mins} min chez ${UI.bi(o.shop_name || o.pickup_place || "le départ", "fr")} · course n° ${o.ref}`); b.textContent = "✓ HOP! est prévenu"; }
+  catch (ex) { b.disabled = false; await UI.alert("Message non envoyé, réessayez."); }
+});
 // Ouverte depuis la carte : « Mes courses » passe derrière la fiche, pour que le glissé trouve le bouton de la course
 function ficheOpen(id, which) {
   const was = mineOpen;
@@ -1954,6 +1968,11 @@ async function onViewClick(e) {
       mineOpen = el.dataset.accept; mineScroll = true;   // la course qu'on vient de prendre s'ouvre, les autres se replient
       openPage("mine");
       if (duty.watch == null && (await UI.confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?"))) toggleDuty();
+      // La fiche guidée s'ouvre toute seule sur la 1re étape (patron, 20/11 : une étape à la fois, sans chercher)
+      const accId = el.dataset.accept;
+      await load();
+      try { const st = fiStops()[0] || null, mineO = mine().find(x => x.id === accId); if (mineO && !isLater(mineO)) ficheOpen(st ? st.o.id : accId, st ? st.kind : "pickup"); } catch (e) { /* la course reste ouverte dans « Mes courses » */ }
+      return;
     }
     return load();
   }
@@ -2851,7 +2870,11 @@ function cashReturnCards() {
   // Le total par commerce, en haut (patron, 19/11 : « avec beaucoup de livraisons, je ne sais plus combien rendre »)
   const by = {};
   due.filter(o => !o.cash_courier_mode).forEach(o => { const k = owedTo(o); by[k] = (by[k] || 0) + Number(o.cash_goods); });
-  const head = Object.keys(by).length ? `<div class="rd-card owe-sum"><span>💵 À rendre aux commerces<small>${Object.entries(by).map(([k, v]) => `<b>${UI.money(v)}</b> à ${UI.esc(k)}`).join(" · ")}</small></span></div>` : "";
+  // … et le détail par commerce et par jour (les plus anciens d'abord : c'est ceux-là qu'on oublie)
+  const byDay = {};
+  due.filter(o => !o.cash_courier_mode).forEach(o => { const k = owedTo(o) + "|" + UI.fmtDay(o.delivered_at || o.pickup_at); byDay[k] = (byDay[k] || 0) + Number(o.cash_goods); });
+  const detail = Object.keys(byDay).length > 1 ? `<small class="owe-days">${Object.entries(byDay).map(([k, v]) => `${UI.esc(k.split("|")[1])} · ${UI.esc(k.split("|")[0])} : <b>${UI.money(v)}</b>`).join("<br>")}</small>` : "";
+  const head = Object.keys(by).length ? `<div class="rd-card owe-sum"><span>💵 À rendre aux commerces<small>${Object.entries(by).map(([k, v]) => `<b>${UI.money(v)}</b> à ${UI.esc(k)}`).join(" · ")}</small>${detail}</span></div>` : "";
   return head + due
     .map(o => `<div class="rd-card refund-card cash-return"><span>${o.cash_courier_mode ? `<em class="owe-st ok">✅ Payé</em>` : `<em class="owe-st">⏳ En attente de paiement</em>`}💵 Rapportez <b>${UI.money(o.cash_goods)}</b> à ${UI.esc(owedTo(o))}
       <small>Les articles de la course n° ${UI.esc(o.ref)}, encaissés chez le client. Le commerce touche « Espèces reçues » quand c'est fait${o.pickup_phone ? ` · <a href="tel:${UI.esc(o.pickup_phone)}">appeler</a>` : ""}.</small>

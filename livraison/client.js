@@ -8887,6 +8887,18 @@ function magicBack() {
   renderMagic(false);
 }
 // Vitrine : dès qu'on écrit, la recherche remonte en haut de l'écran (les résultats ont toute la place)
+// Exemples à toucher sous la recherche (patron, 20/11 : 0 recherche en 24 h) : un toucher lance la recherche
+(function () {
+  if (!VIT) return;
+  const find = $("#homeFind") && $("#homeFind").closest(".sc-find"); if (!find || document.getElementById("vitTry")) return;
+  const d = document.createElement("div"); d.id = "vitTry"; d.className = "vit-try";
+  const paint = () => { d.innerHTML = `<small>${UI.esc(t("vitTry"))}</small>` + (t("vitTryList") || []).map(x => `<button type="button" data-vit-try="${UI.esc(x)}">${UI.esc(x)}</button>`).join(""); };
+  // (la recherche est déplacée dans le haut de la vitrine après le démarrage : les exemples la suivent)
+  const place = () => { if (find.nextElementSibling !== d) find.after(d); };
+  paint(); place(); [300, 1200, 3000].forEach(ms => setTimeout(place, ms));
+  window.addEventListener("hop:lang", paint);
+  d.addEventListener("click", e => { const b = e.target.closest("[data-vit-try]"); if (!b) return; const inp = $("#homeFind"); inp.value = b.dataset.vitTry; UI.track("home_try", { q: b.dataset.vitTry }); homeFind(inp.value); vitFindTop(); });
+})();
 function vitFindTop() {
   if (!VIT) return;
   const inp = $("#homeFind"), bar = document.querySelector(".topbar");
