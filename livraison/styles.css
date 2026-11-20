@@ -6995,3 +6995,25 @@ html[dir="rtl"] #shopWa.wa-list > em { display: inline-block; transform: scaleX(
 /* Rendre une course acceptée (patron, 20/11 : trop d'attente au départ, un autre livreur la prend) */
 .fi-release { display: block; width: 100%; margin: 10px 0 0; padding: 10px; border: 1px solid rgba(255,255,255,.18); border-radius: 12px; background: none; color: #FFB4A2; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; }
 .btn-release { color: #B42318 !important; }
+/* Page magasin : les produits plus haut (patron, 20/11 : 9 magasins regardés, 0 article ajouté ; le 1er article était à 1,5 écran) */
+html.d3 body.shop-compact #shopHero .sh-cover { height: 104px !important; aspect-ratio: auto !important; border-radius: 16px !important; }
+html.d3 body.shop-compact #shopHero .sh-last15, html.d3 body.shop-compact #shopHero .sh-closed-go { margin: 6px 16px 2px; padding: 0; font-size: 13.5px; line-height: 1.35; font-weight: 600; color: #5A6270; text-align: center; background: none; }
+html.d3 body.shop-compact #shopHero .sh-closed-go { color: #111418; }
+html.d3 body.shop-compact #shopHero .sh-sched { margin: 8px 0 2px !important; padding: 8px 12px !important; }
+html.d3 .cg-head .cg-voice { padding: 8px 12px !important; min-height: 0 !important; }
+html.d3 .cg-head .cg-voice .cv-t small { display: none !important; }
+html.d3 .cg-head .cg-voice .cv-t b { font-size: 16px !important; }
+html.d3 .cg-head .cg-voice .cv-ic { width: 38px !important; height: 38px !important; }
+html.d3 .cg-stores { margin: 0 0 8px !important; gap: 6px !important; }
+html.d3 .cg-st { height: 40px !important; }
+html.d3 body.shop-compact #orderForm[data-step="1"] .wiz-title { display: none !important; }
+html.d3 body.shop-compact #shopHero .sh-row { flex-direction: row !important; align-items: center !important; text-align: start !important; gap: 12px !important; margin-top: 12px !important; padding: 0 !important; }
+html.d3 body.shop-compact #shopHero .sh-logo { width: 60px !important; height: 60px !important; flex: none; }
+html.d3 body.shop-compact #shopHero .sh-txt { justify-items: start !important; text-align: start !important; min-width: 0; }
+html.d3 body.shop-compact #shopHero .sh-txt b { font-size: 24px !important; line-height: 1.15 !important; }
+html.d3 body.shop-compact #shopHero .sh-txt .k-lg { justify-self: start !important; }
+html.d3 body.shop-compact #shopHero .sh-meta { flex-direction: row !important; align-items: center !important; justify-content: space-between !important; text-align: start !important; gap: 10px !important; margin-top: 8px !important; padding: 0 !important; }
+html.d3 body.shop-compact #shopHero .sh-meta-l { justify-items: start !important; align-items: start !important; text-align: start !important; min-width: 0; }
+html.d3 body.shop-compact #shopHero .sh-sched { display: flex !important; flex-wrap: nowrap !important; align-items: center; justify-content: space-between; gap: 8px; font-size: 13.5px !important; }
+html.d3 body.shop-compact #shopHero .sh-sched .sh-sched-go { padding: 6px 12px !important; font-size: 13px !important; white-space: nowrap; }
+html.d3 body.shop-compact #shopHero .sh-last15 { display: none !important; }
