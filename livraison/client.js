@@ -6991,7 +6991,7 @@ async function homeFind(q) {
     // Les rayons HOP! (eau, couches, Acamol…) : le livreur va au magasin le plus proche
     const rayHtml = rayonHits(q, 4).map(({ r, i }) => `<button type="button" data-find-ray="${UI.esc(r.id)}"><span class="fi-pic">${UI.esc(i.e || "🛒")}</span><span><b>${UI.esc(phName(i))}</b><small>${UI.esc(t("acRayon", { rayon: phName(r.title) }))}</small></span></button>`).join("");
     // Accueil vitrine : en premier, « On vous l'apporte » (n'importe quoi, de n'importe quel commerce : le livreur l'achète)
-    const anyHtml = VIT ? `<button type="button" class="fi-any" data-find-any><span class="fi-pic">🛵</span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>` : "";
+    const anyHtml = VIT ? `<button type="button" class="fi-any" data-find-any><span class="fi-pic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h7M14 6h3l1.5 8.5M4 13h6l2 4M10 13l1-4h3"/></svg></span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>` : "";
     box.innerHTML = anyHtml + (rayHtml ? `<h5>${UI.esc(t("findRayons"))}</h5>${rayHtml}` : "") + (prodHtml ? `<h5>${UI.esc(t("findProducts"))}</h5>${prodHtml}` : "") + (shopHtml ? `<h5>${UI.esc(t("findShops"))}</h5>${shopHtml}` : "")
       || `<p class="fi-none">${UI.esc(t("findNone", { q }))}</p>`;
     box.classList.remove("hidden");
@@ -8520,7 +8520,7 @@ function vitFindRender(q, products, shops, staple, box) {
   if (ch && ch.r.kind === "tabac") products = [];
   const sc = code => (state.showcase || []).find(x => x.code === code) || {};
   const qa = UI.esc(q.trim());
-  const any = `<button type="button" class="fi-any" data-find-any><span class="fi-pic">🛵</span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>`;
+  const any = `<button type="button" class="fi-any" data-find-any><span class="fi-pic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h7M14 6h3l1.5 8.5M4 13h6l2 4M10 13l1-4h3"/></svg></span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>`;
   const groups = [];
   products.forEach(p => { let g = groups.find(x => x.code === p.code); if (!g) groups.push(g = { code: p.code, shop: p.shop, kind: p.kind, items: [] }); g.items.push(p); });
   const card = (attrs, pic, white, price, name) => `<button type="button" class="fr-card" ${attrs}><span class="fr-pic${white ? " white" : ""}">${pic}</span>
@@ -8535,7 +8535,7 @@ function vitFindRender(q, products, shops, staple, box) {
           !!ph && UI.extPic(ph), `<bdi dir="ltr">${UI.esc(money(p.price))}</bdi>`, UI.esc(UI.bi(p.name))); }).join("")}</div></section>`;
   }).join("");
   const rays = rayonHits(q, 8);
-  const rayHtml = rays.length ? `<section class="fr-group"><div class="fr-head"><span class="fr-logo hop">🛒</span><span class="fr-name"><b>${escHop(t("vitFindRay").replace(/^\P{L}+/u, ""))}</b><small>${UI.esc(t("vitFindRaySub"))}</small></span></div>
+  const rayHtml = rays.length ? `<section class="fr-group"><div class="fr-head"><span class="fr-logo hop"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 10.2a1.5 1.5 0 0 0 1.5 1.1h8.2a1.5 1.5 0 0 0 1.4-1l2-6.3H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg></span><span class="fr-name"><b>${escHop(t("vitFindRay").replace(/^\P{L}+/u, ""))}</b><small>${UI.esc(t("vitFindRaySub"))}</small></span></div>
     <div class="fr-row">${rays.map(({ r, i }) => { const ph = UI.safeImg(i.photo) || (i.img ? `img/qc/${i.img}.webp` : ""), pr = i.p || (i.opt && i.opt[0] && (i.opt[0].p || i.opt[0].pb)) || i.pb;
       return card(`data-find-ray="${UI.esc(r.id)}"`, ph ? `<img src="${ph}" alt="" loading="lazy" />` : `<i>${UI.esc(i.e || "🛒")}</i>`, true, pr ? `≈ <bdi dir="ltr">${priceTxt(pr)}</bdi>` : "&nbsp;", UI.esc(phName(i))); }).join("")}</div></section>` : "";
   const shopHtml = shops.length ? `<h5>${UI.esc(t("vitFindShops"))}</h5>` + shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${escHop(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}</small></span></button>`).join("") : "";
