@@ -4260,6 +4260,8 @@ function renderCatalog() {
   goLabel();
   form.shop_order.placeholder = on ? t(hopBuyOn() ? "hopNotePh" : "cgNotePh") : t("spOrderPh");
   $("#shopWa").classList.toggle("hidden", !(state.shop && hopBuyOn()) || document.documentElement.classList.contains("for-client"));
+  // (liste déjà écrite : la carte « Envoyez votre liste sur WhatsApp » ne sert plus, la page se raccourcit)
+  form.classList.toggle("has-list", !!val("shop_order").trim());
   if (state.shop && proShopOn()) $("#shopOrderLabel").textContent = on ? t(hopBuyOn() ? "cgHopExtra" : (CONFIG.hopAnyItem || []).includes(String(state.shop.code || "").toUpperCase()) ? "cgAnyNote" : "cgNoteLabel", { name: UI.bi(state.shop.name) }) : t("spOrderLabel", { name: UI.bi(state.shop.name) });
   if (!on) { box.innerHTML = ""; box.dataset.html = ""; box.dataset.shell = ""; return; }
   const cats = state.catalog.categories.filter(c => cgShown().some(p => p.category_id === c.id));
@@ -5145,7 +5147,7 @@ function renderShopBanner() {
     const vit = !s.pro && !s.demo && side === "from";
     // Commerce Pro : vitrine compacte (photo, logo, nom, une ligne d'infos) et les produits juste dessous
     const compact = !!s.pro;
-    const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}${s.demo ? "" : `<button type="button" class="sh-share" data-share-shop aria-label="${UI.esc(t("shareShop"))}">${SHARE_SVG}<span>${UI.esc(t("shareShop"))}</span></button>`}</div>
+    const html = `${s.demo ? `<p class="sh-demo">🎬 <span>${UI.esc(t("shDemo"))} <a href="commerce.html?demo=${UI.esc(String(s.code).split("-")[1].toLowerCase())}">${UI.esc(t("shDemoSpace"))}</a></span></p>` : ""}<div class="sh-cover pk-${UI.esc(s.kind || "autre")}${!cover && logo ? " auto" : ""}${!cover && !logo ? " empty" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}${s.demo ? "" : `<button type="button" class="sh-share" data-share-shop aria-label="${UI.esc(t("shareShop"))}">${SHARE_SVG}<span>${UI.esc(t("shareShop"))}</span></button>`}</div>
       <div class="sh-row"><span class="pc-logo sh-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
         <div class="sh-txt"><b>${UI.esc(UI.bi(s.name))}</b>${isKosher(s) ? kosherTag("k-lg") : ""}<small>${UI.esc(UI.shopText(s, "tagline") || kinds[s.kind] || "")}</small>${shopStars(s)}</div></div>
       ${compact ? shopMeta(s) : `${shopReviewsFold(s)}
