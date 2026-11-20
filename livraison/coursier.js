@@ -74,7 +74,7 @@ function showAuth(which) {
 let signupTopcase = null;
 async function readTopcase(file) {
   try { return await Chat.compress(file); }
-  catch (e) { alert(e.message === "too_big" ? "Photo trop lourde : reprenez-la de plus près." : "Cette image ne s'ouvre pas : essayez une autre photo."); return null; }
+  catch (e) { (await UI.alert(e.message === "too_big" ? "Photo trop lourde : reprenez-la de plus près." : "Cette image ne s'ouvre pas : essayez une autre photo.")); return null; }
 }
 async function onTopcasePicked(e) {
   const f = e.target.files[0];
@@ -90,7 +90,7 @@ async function onWaitTopcase(e) {
   if (!f) return;
   const data = await readTopcase(f);
   if (!data) return;
-  try { await Store.sendTopcase(data); route(); } catch (ex) { alert("Photo non envoyée, vérifiez la connexion."); }
+  try { await Store.sendTopcase(data); route(); } catch (ex) { (await UI.alert("Photo non envoyée, vérifiez la connexion.")); }
 }
 
 // Documents du livreur : une photo par document, réduite avant l'envoi ; ils arrivent sur sa fiche chez le patron
@@ -110,7 +110,7 @@ document.addEventListener("change", async e => {
   if (!data) return;
   if (inp.dataset.docs === "signup") { signupDocs[inp.dataset.doc] = data; return docsGrid($("#signupDocs"), signupDocs, "signup"); }
   try { await Store.sendCourierDoc(inp.dataset.doc, data); waitDocsSent[inp.dataset.doc] = true; docsGrid($("#waitDocsGrid"), waitDocsSent, "wait"); }
-  catch (ex) { alert("Photo non envoyée, vérifiez la connexion."); }
+  catch (ex) { (await UI.alert("Photo non envoyée, vérifiez la connexion.")); }
 });
 docsGrid($("#signupDocs"), signupDocs, "signup");
 
@@ -337,9 +337,9 @@ function cashNeedLine(o) {
 }
 async function cashOk(o) {
   if (!o || o.payment_method !== "cash" || !(Number(o.cash_need) > 0)) return true;
-  if (!confirm(`💵 Course en espèces : avez-vous bien ${UI.money(o.cash_need)} en espèces SUR VOUS, maintenant ?\n\nSi vous arrivez sans les espèces : la course repart à un autre livreur, ${UI.money(settings.cash_penalty || 10)} retenus sur votre crédit et ${settings.cash_ban_days || 7} jours sans courses en espèces.`)) return false;
+  if (!(await UI.confirm(`💵 Course en espèces : avez-vous bien ${UI.money(o.cash_need)} en espèces SUR VOUS, maintenant ?\n\nSi vous arrivez sans les espèces : la course repart à un autre livreur, ${UI.money(settings.cash_penalty || 10)} retenus sur votre crédit et ${settings.cash_ban_days || 7} jours sans courses en espèces.`))) return false;
   const r = await Store.courierCashOk(o.id).catch(e => (/cash_banned/.test(e.message) ? "ban" : false));
-  if (r === "ban") { alert("🔒 Pas de course avec espèces pour l'instant : vous n'aviez pas les espèces la dernière fois."); return false; }
+  if (r === "ban") { (await UI.alert("🔒 Pas de course avec espèces pour l'instant : vous n'aviez pas les espèces la dernière fois.")); return false; }
   return !!r;
 }
 // Livraison offerte par le commerce : c'est lui qui paie toute la course, par Bit, en remettant la commande
@@ -707,12 +707,12 @@ const giveBox = o => o.assign_status === "attente" && o.status === "confirmee"
       <div class="give-btns"><button type="button" class="btn btn-primary" data-give-ok="${UI.esc(o.id)}">✅ Je la ferai</button><button type="button" class="btn" data-give-no="${UI.esc(o.id)}">❌ Je ne peux pas</button></div></div>` : "";
 async function giveAnswer(b) {
   const id = b.dataset.giveOk || b.dataset.giveNo, ok = !!b.dataset.giveOk;
-  if (!ok && !confirm("Vous ne pouvez pas faire cette course ?\n\nElle repart chez HOP! qui la donnera à un autre livreur.")) return;
+  if (!ok && !(await UI.confirm("Vous ne pouvez pas faire cette course ?\n\nElle repart chez HOP! qui la donnera à un autre livreur."))) return;
   document.querySelectorAll(`[data-give-ok="${id}"],[data-give-no="${id}"]`).forEach(x => { x.disabled = true; });
   const r = await Store.assignAnswer(id, ok).catch(() => null);
   if (!r || r.ok === false) {
     document.querySelectorAll(`[data-give-ok="${id}"],[data-give-no="${id}"]`).forEach(x => { x.disabled = false; });
-    return alert(r && r.why === "started" ? "Course déjà commencée : écrivez à HOP! pour la rendre." : r && r.why === "gone" ? "Cette course n'est plus pour vous." : "Pas enregistré, vérifiez la connexion et réessayez.");
+    return (await UI.alert(r && r.why === "started" ? "Course déjà commencée : écrivez à HOP! pour la rendre." : r && r.why === "gone" ? "Cette course n'est plus pour vous." : "Pas enregistré, vérifiez la connexion et réessayez."));
   }
   if (ok) acceptedHere.add(id);
   const o = orders.find(x => x.id === id);
@@ -781,11 +781,11 @@ $("#askBox").addEventListener("click", async e => {
   b.disabled = true;
   if (b.dataset.askPaid) {
     const ok = await Store.courierAction(b.dataset.askPaid, "paye").catch(() => false);
-    if (!ok) { b.disabled = false; return alert("Paiement non enregistré, réessayez."); }
+    if (!ok) { b.disabled = false; return (await UI.alert("Paiement non enregistré, réessayez.")); }
   }
   if (b.dataset.askMissing) {
     const ok = await Store.payMissing(b.dataset.askMissing).then(() => true).catch(() => false);
-    if (!ok) { b.disabled = false; return alert("Pas enregistré, réessayez."); }
+    if (!ok) { b.disabled = false; return (await UI.alert("Pas enregistré, réessayez.")); }
   }
   $("#askModal").classList.add("hidden");
   load();
@@ -1145,16 +1145,16 @@ document.addEventListener("change", async e => {
   const o = orders.find(x => x.id === id);
   if (!o) return;
   const fee = o.shop_status ? 0 : Store.waitAnnPreview(o, settings, min);
-  if (!confirm(o.shop_status ? `Prévenir le client : environ ${min} min de retard (avec la photo) ?`
-    : `Annoncer ${o.wait_ann_status ? "encore " : ""}${min} min d'attente au client, avec la photo ?\n\nSupplément calculé par HOP! : ${fee > 0 ? "+" + UI.money(fee) + " au plus" : "aucun (minutes offertes)"}.\nLe client accepte ou laisse tomber (3 min pour répondre, sinon c'est accepté).`)) return;
+  if (!(await UI.confirm(o.shop_status ? `Prévenir le client : environ ${min} min de retard (avec la photo) ?`
+    : `Annoncer ${o.wait_ann_status ? "encore " : ""}${min} min d'attente au client, avec la photo ?\n\nSupplément calculé par HOP! : ${fee > 0 ? "+" + UI.money(fee) + " au plus" : "aucun (minutes offertes)"}.\nLe client accepte ou laisse tomber (3 min pour répondre, sinon c'est accepté).`))) return;
   const lbl = inp.closest("label");
   if (lbl) lbl.classList.add("busy");
   try {
     const data = await UI.docPhoto(f);
     await Store.chatSend("o:" + o.id, "courier", me.name, I18N.forLang(o.lang || "fr", "rdMsgWaitPhoto", { min: (Number(o.wait_ann_min) || 0) + min, name: String(me.name || "").split(" ")[0] }), data);
-  } catch (ex) { if (lbl) lbl.classList.remove("busy"); return alert("Photo non envoyée, vérifiez la connexion et réessayez."); }
+  } catch (ex) { if (lbl) lbl.classList.remove("busy"); return (await UI.alert("Photo non envoyée, vérifiez la connexion et réessayez.")); }
   const r = await Store.courierWaitAnnounce(o.id, min).catch(() => null);
-  if (!r || !r.ok) alert(r && r.why === "photo" ? "La photo n'est pas arrivée : reprenez la photo." : r && r.why === "fixed" ? "HOP! a déjà fixé le supplément de cette course." : "Annonce impossible, actualisez la page.");
+  if (!r || !r.ok) (await UI.alert(r && r.why === "photo" ? "La photo n'est pas arrivée : reprenez la photo." : r && r.why === "fixed" ? "HOP! a déjà fixé le supplément de cette course." : "Annonce impossible, actualisez la page."));
   load();
 });
 // Plusieurs courses à récupérer au même endroit (même commerce, à moins de 80 m) : « commande 1 sur 2 »,
@@ -1217,10 +1217,10 @@ document.addEventListener("click", async e => {
   e.preventDefault();
   const id = b.dataset.buy || b.dataset.buydone, o = orders.find(x => x.id === id);
   if (!o) return;
-  if (b.dataset.buydone != null && !confirm(`✅ Tout est dans le panier ?\n\nLe client est prévenu. Ensuite : passez en caisse, puis 🧾 photo du ticket et son montant exact.`)) return;
+  if (b.dataset.buydone != null && !(await UI.confirm(`✅ Tout est dans le panier ?\n\nLe client est prévenu. Ensuite : passez en caisse, puis 🧾 photo du ticket et son montant exact.`))) return;
   b.disabled = true;
   const r = await Store.courierBuyCheck(id, b.dataset.item || null, b.dataset.buydone != null ? "done" : b.dataset.state || "").catch(() => false);
-  if (!r || r.ok === false) { alert(r && r.error === "not_paid" ? "💳 Faites-vous d'abord payer la livraison par Bit (« 📱 Payé par Bit »)." : "Non enregistré, vérifiez la connexion et réessayez."); b.disabled = false; return; }
+  if (!r || r.ok === false) { (await UI.alert(r && r.error === "not_paid" ? "💳 Faites-vous d'abord payer la livraison par Bit (« 📱 Payé par Bit »)." : "Non enregistré, vérifiez la connexion et réessayez.")); b.disabled = false; return; }
   await load();
 });
 function goodsActs(o) {
@@ -1594,7 +1594,7 @@ document.addEventListener("submit", async e => {
   const v = { code: f.elements.code.value.trim(), floor: f.elements.floor.value.trim(), apt: f.elements.apt.value.trim(), note: f.elements.note.value.trim() };
   const btn = f.querySelector("[type=submit]"); btn.disabled = true;
   try { const ok = await Store.clientInfoSet(o, v); if (!ok) throw new Error("no"); ciCache[o.id] = Object.assign({}, v, { by: String(me.name || "").split(" ")[0], at: new Date().toISOString() }); ciEdit.id = null; }
-  catch (ex) { alert("Pas enregistré, réessayez."); btn.disabled = false; return; }
+  catch (ex) { (await UI.alert("Pas enregistré, réessayez.")); btn.disabled = false; return; }
   const b = $("#fiche"); if (b) b._html = ""; renderFiche();
 });
 function ficheArticles(o) {
@@ -1853,20 +1853,20 @@ function goodsTicket(id) {
     const f = ticketInput.files[0];
     if (!f) return;
     // Anti-retouche (patron, 15/11) : seulement une photo prise à l'instant, pas une image de la galerie (retouchée, d'un autre jour…)
-    if (f.lastModified && Date.now() - f.lastModified > 3 * 60000) return alert("📷 Prenez la photo du ticket maintenant, avec l'appareil photo (pas une image de la galerie).");
+    if (f.lastModified && Date.now() - f.lastModified > 3 * 60000) return (await UI.alert("📷 Prenez la photo du ticket maintenant, avec l'appareil photo (pas une image de la galerie)."));
     let photo;
-    try { photo = await UI.docPhoto(f); } catch (e) { return alert("Photo illisible, reprenez-la."); }
-    const a = prompt(o.hop_buy ? `🧾 Montant exact du ticket de caisse (₪) ?\nArticles prévus : ≈ ${UI.money(o.items_total)}` : `🧾 Montant total du ticket (₪) ?\n${o.payment_method === "cash" || o.goods_after ? "Maximum prévu" : "Payé d'avance"} : ${UI.money(o.goods_budget)}`);
+    try { photo = await UI.docPhoto(f); } catch (e) { return (await UI.alert("Photo illisible, reprenez-la.")); }
+    const a = (await UI.prompt(o.hop_buy ? `🧾 Montant exact du ticket de caisse (₪) ?\nArticles prévus : ≈ ${UI.money(o.items_total)}` : `🧾 Montant total du ticket (₪) ?\n${o.payment_method === "cash" || o.goods_after ? "Maximum prévu" : "Payé d'avance"} : ${UI.money(o.goods_budget)}`));
     if (a == null) return;
     const amount = Math.round(parseFloat(String(a).replace(",", ".")) * 100) / 100;
-    if (!(amount > 0)) return alert("Montant incorrect.");
+    if (!(amount > 0)) return (await UI.alert("Montant incorrect."));
     const r = await Store.courierGoodsTicket(o.id, amount, photo, !!o.hop_buy).catch(e => ({ err: e.message }));
-    if (!r || r.err) return alert(/not_paid/.test((r && r.err) || "") ? "💳 Le client doit d'abord vous payer (« 📱 Payé par Bit »)." : "Ticket non enregistré, réessayez.");
+    if (!r || r.err) return (await UI.alert(/not_paid/.test((r && r.err) || "") ? "💳 Le client doit d'abord vous payer (« 📱 Payé par Bit »)." : "Ticket non enregistré, réessayez."));
     const d = Number(r.refund);
-    if (o.hop_buy && r.after) { alert(Number(r.due) > 0 ? `✅ Ticket envoyé au client : il vous envoie ${UI.money(r.due)} par Bit${Number(r.credit) > 0 ? ` (ticket ${UI.money(amount)} − ${UI.money(r.credit)} d'article manquant, déjà payés avec la livraison)` : ""}. Touchez « Ticket reçu » dès que c'est arrivé.`
-      : `✅ Ticket envoyé : rien à encaisser.${Number(r.due) < 0 ? ` HOP! rembourse ${UI.money(-r.due)} au client.` : ""}`); return load(); }
-    alert(r.after ? `✅ Ticket envoyé au client : il vous envoie ${UI.money(amount)} par Bit. Touchez « Ticket reçu » dès que c'est arrivé, puis livrez.` : r.cash ? `✅ Ticket envoyé au client. À la livraison, encaissez ${UI.money(r.cash)} en espèces (course + ticket).` : d > 0 ? `✅ Ticket envoyé au client. Rendez-lui ${UI.money(d)} par Bit, puis « C'est rendu ».`
-      : d < 0 ? `⚠️ Il manque ${UI.money(-d)} : le client est prévenu. Attendez son complément avant de payer le magasin.` : "✅ Ticket envoyé au client : compte juste.");
+    if (o.hop_buy && r.after) { (await UI.alert(Number(r.due) > 0 ? `✅ Ticket envoyé au client : il vous envoie ${UI.money(r.due)} par Bit${Number(r.credit) > 0 ? ` (ticket ${UI.money(amount)} − ${UI.money(r.credit)} d'article manquant, déjà payés avec la livraison)` : ""}. Touchez « Ticket reçu » dès que c'est arrivé.`
+      : `✅ Ticket envoyé : rien à encaisser.${Number(r.due) < 0 ? ` HOP! rembourse ${UI.money(-r.due)} au client.` : ""}`)); return load(); }
+    (await UI.alert(r.after ? `✅ Ticket envoyé au client : il vous envoie ${UI.money(amount)} par Bit. Touchez « Ticket reçu » dès que c'est arrivé, puis livrez.` : r.cash ? `✅ Ticket envoyé au client. À la livraison, encaissez ${UI.money(r.cash)} en espèces (course + ticket).` : d > 0 ? `✅ Ticket envoyé au client. Rendez-lui ${UI.money(d)} par Bit, puis « C'est rendu ».`
+      : d < 0 ? `⚠️ Il manque ${UI.money(-d)} : le client est prévenu. Attendez son complément avant de payer le magasin.` : "✅ Ticket envoyé au client : compte juste."));
     load();
   };
   ticketInput.click();
@@ -1880,10 +1880,10 @@ async function onViewClick(e) {
   if (el.dataset.goodsTicket) return goodsTicket(el.dataset.goodsTicket);
   if (el.dataset.goodsRefund) {
     const o = orders.find(x => x.id === el.dataset.id);
-    if (!o || !confirm(el.dataset.goodsRefund === "rendu" ? `💸 Avez-vous bien rendu ${UI.money(o.goods_refund)} au client par Bit ?` : o.goods_after ? `✅ Avez-vous bien reçu ${UI.money(o.goods_refund)} du client (le ticket) sur votre Bit ?` : `✅ Avez-vous bien reçu le complément de ${UI.money(o.goods_refund)} ?`)) return;
+    if (!o || !(await UI.confirm(el.dataset.goodsRefund === "rendu" ? `💸 Avez-vous bien rendu ${UI.money(o.goods_refund)} au client par Bit ?` : o.goods_after ? `✅ Avez-vous bien reçu ${UI.money(o.goods_refund)} du client (le ticket) sur votre Bit ?` : `✅ Avez-vous bien reçu le complément de ${UI.money(o.goods_refund)} ?`))) return;
     el.disabled = true;
     const ok = await Store.courierGoodsRefund(o.id, el.dataset.goodsRefund).catch(() => false);
-    if (!ok) alert("Pas enregistré, réessayez.");
+    if (!ok) (await UI.alert("Pas enregistré, réessayez."));
     return load();
   }
   if (el.dataset.onway) {
@@ -1896,7 +1896,7 @@ async function onViewClick(e) {
       await Store.chatSend("o:" + o.id, "courier", me.name, I18N.forLang(o.lang || "fr", key, { name: String(me.name || "").split(" ")[0] }));
       onWaySent[o.id + el.dataset.onway] = 1;
       try { sessionStorage.setItem("hop.onway", JSON.stringify(onWaySent)); } catch (ex) { /* ignore */ }
-    } catch (ex) { alert("Message non envoyé, réessayez."); }
+    } catch (ex) { (await UI.alert("Message non envoyé, réessayez.")); }
     return render();
   }
   if (el.dataset.paidhow) {
@@ -1904,13 +1904,13 @@ async function onViewClick(e) {
     if (!o) return;
     el.disabled = true;
     const ok = await Store.courierPaidHow(o.id, el.dataset.paidhow).catch(() => false);
-    if (!ok) { el.disabled = false; return alert("Paiement non enregistré, réessayez."); }
+    if (!ok) { el.disabled = false; return (await UI.alert("Paiement non enregistré, réessayez.")); }
     Object.assign(o, { payment_status: "paye", payment_method: el.dataset.paidhow });
     render();
     return load();
   }
   if (el.dataset.paymissing) {
-    if (!confirm("Rien reçu sur votre Bit / PayBox ? Le client sera prévenu de vérifier son paiement.")) return;
+    if (!(await UI.confirm("Rien reçu sur votre Bit / PayBox ? Le client sera prévenu de vérifier son paiement."))) return;
     el.disabled = true;
     await Store.payMissing(el.dataset.paymissing).catch(() => alert("Pas enregistré, réessayez."));
     return load();
@@ -1918,8 +1918,8 @@ async function onViewClick(e) {
   if (el.dataset.topupPick) { topupPick = Number(el.dataset.topupPick); return render(); }
   if (el.dataset.topupSend) {
     el.disabled = true;
-    try { await Store.declareTopup(Number(el.dataset.topupSend)); topupPick = null; alert("✅ Merci ! HOP vérifie votre Bit et ajoute la recharge à votre crédit."); }
-    catch (err) { alert(/too_many/.test(err.message) ? "Vous avez déjà des recharges en attente : HOP les valide dès réception." : "Recharge non enregistrée, réessayez."); }
+    try { await Store.declareTopup(Number(el.dataset.topupSend)); topupPick = null; (await UI.alert("✅ Merci ! HOP vérifie votre Bit et ajoute la recharge à votre crédit.")); }
+    catch (err) { (await UI.alert(/too_many/.test(err.message) ? "Vous avez déjà des recharges en attente : HOP les valide dès réception." : "Recharge non enregistrée, réessayez.")); }
     return load();
   }
   if (el.dataset.decline) {
@@ -1931,29 +1931,29 @@ async function onViewClick(e) {
   if (el.dataset.bundle) {
     const [a, b] = el.dataset.bundle.split(",");
     const po = pool().find(x => x.id === a);
-    const eta = prompt("🛵 Dans combien de minutes êtes-vous au départ ? (les clients peuvent refuser si c'est trop long)", String(po ? etaGuess(po) : 15));
+    const eta = (await UI.prompt("🛵 Dans combien de minutes êtes-vous au départ ? (les clients peuvent refuser si c'est trop long)", String(po ? etaGuess(po) : 15)));
     if (eta === null) return;
     el.disabled = true;
     const ok = await acceptTwo(a, b, Math.max(1, Math.min(180, parseInt(eta, 10) || 15)));
     if (ok === "shown") { /* message déjà affiché */ }
-    else if (!ok) alert("Trop tard, un autre livreur a pris ces courses.");
+    else if (!ok) (await UI.alert("Trop tard, un autre livreur a pris ces courses."));
     else openPage("mine");
     return load();
   }
   if (el.dataset.accept) {
     const po = pool().find(x => x.id === el.dataset.accept);
     if (!(await cashOk(po))) return;
-    const eta = prompt("🛵 Dans combien de minutes êtes-vous au départ ? (le client peut refuser si c'est trop long)", String(po ? etaGuess(po) : 15));
+    const eta = (await UI.prompt("🛵 Dans combien de minutes êtes-vous au départ ? (le client peut refuser si c'est trop long)", String(po ? etaGuess(po) : 15)));
     if (eta === null) return;
     el.disabled = true;
     acceptedHere.add(el.dataset.accept);
     const ok = await Store.acceptOrder(el.dataset.accept, Math.max(1, Math.min(180, parseInt(eta, 10) || 15))).catch(e => acceptError(e));
     if (ok === "shown") { /* message déjà affiché */ }
-    else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
+    else if (!ok) (await UI.alert("Trop tard, un autre livreur a pris cette course."));
     else {
       mineOpen = el.dataset.accept; mineScroll = true;   // la course qu'on vient de prendre s'ouvre, les autres se replient
       openPage("mine");
-      if (duty.watch == null && confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?")) toggleDuty();
+      if (duty.watch == null && (await UI.confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?"))) toggleDuty();
     }
     return load();
   }
@@ -1961,12 +1961,18 @@ async function onViewClick(e) {
     const id = el.closest("article").dataset.id;
     const o = orders.find(x => x.id === id);
     const paidMe = o && o.direct_pay && o.paid_to !== "hop" && (o.payment_status === "paye" || o.client_paid_at);
-    if (el.dataset.act === "liberer" && !confirm(paidMe
+    if (el.dataset.act === "liberer" && !(await UI.confirm(paidMe
       ? `⚠️ Le client vous a déjà payé (ou dit l'avoir fait) ${UI.money(UI.payTotal(o))}. Si vous annulez la course, vous devez le rembourser tout de suite par Bit / PayBox, et vous ne recevrez plus de course avant. Annuler la course ?`
-      : "❌ Annuler cette course ?\n\nTrop d'attente, trop loin… Elle repart tout de suite aux autres livreurs, le client et le commerce sont prévenus. Vos autres courses ne changent pas.")) return;
+      : "❌ Annuler cette course ?\n\nTrop d'attente, trop loin… Elle repart tout de suite aux autres livreurs, le client et le commerce sont prévenus. Vos autres courses ne changent pas."))) return;
+    // Pourquoi il annule (patron, 20/11) : HOP! le reçoit dans sa messagerie, pour voir quel commerce fait trop attendre
+    if (el.dataset.act === "liberer") {
+      const why = await UI.choose("Pourquoi annulez-vous cette course ?", [["Trop d'attente au départ", "⏳ Trop d'attente au départ"], ["Trop loin", "📍 Trop loin"], ["Panne ou souci", "🛵 Panne ou souci"], ["Autre raison", "Autre raison"]]);
+      if (!why) return;
+      if (o) Store.chatSend("c:" + me.id, "courier", me.name, `❌ J'annule la course n° ${o.ref}${o.shop_name ? " (" + UI.bi(o.shop_name, "fr") + ")" : ""} : ${why}`).catch(() => {});
+    }
     // Récupérer pendant que le client n'a pas encore répondu à l'attente : elle ne sera pas payée
     if (el.dataset.act === "recuperee" && o && !o.shop_status && Store.waitPending(o)
-      && !confirm("⏳ Le client n'a pas encore répondu à votre annonce d'attente.\n\nSi vous récupérez maintenant, cette attente ne sera pas payée. Récupérer quand même ?")) return;
+      && !(await UI.confirm("⏳ Le client n'a pas encore répondu à votre annonce d'attente.\n\nSi vous récupérez maintenant, cette attente ne sera pas payée. Récupérer quand même ?"))) return;
     // « Je suis arrivé » : la base vérifie la dernière position, on l'envoie tout de suite
     if (el.dataset.act === "arrivee" && !o.unlocked && !freeNow()) {
       el.disabled = true;
@@ -1979,38 +1985,38 @@ async function onViewClick(e) {
     }
     // « Livré » : seulement sur place, à l'adresse de livraison (vérifié aussi par la base)
     if (el.dataset.act === "livree" && o.direct_pay && o.paid_to !== "hop" && o.payment_status !== "paye" && !o.unlocked && !freeNow()) {
-      if (o.payment_method !== "cash") return alert(`Touchez d'abord comment le client vous a payé ${UI.money(UI.payTotal(o))} : « 📱 Payé par Bit » ou « 💵 Payé en espèces ».`);
-      if (!confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`)) {
-        return alert("Le client doit vous payer avant « Livré » : espèces, ou Bit sur votre numéro (« 📱 Payé par Bit »).");
+      if (o.payment_method !== "cash") return (await UI.alert(`Touchez d'abord comment le client vous a payé ${UI.money(UI.payTotal(o))} : « 📱 Payé par Bit » ou « 💵 Payé en espèces ».`));
+      if (!(await UI.confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`))) {
+        return (await UI.alert("Le client doit vous payer avant « Livré » : espèces, ou Bit sur votre numéro (« 📱 Payé par Bit »)."));
       }
       const okPay = await Store.courierAction(id, "paye").catch(() => false);
-      if (!okPay) return alert("Paiement non enregistré, réessayez.");
+      if (!okPay) return (await UI.alert("Paiement non enregistré, réessayez."));
       o.payment_status = "paye";
     }
-    if (el.dataset.act === "pas_especes" && !confirm(`😕 Vous n'avez pas les espèces ? La course repart tout de suite à un autre livreur, ${UI.money(settings.cash_penalty || 10)} sont retenus sur votre crédit et vous n'aurez plus de course en espèces pendant ${settings.cash_ban_days || 7} jours.`)) return;
-    if (el.dataset.act === "cash_impaye" && !confirm(`❌ Le client ne vous paie pas ${UI.money(cashTotal(o))} en espèces ? Gardez la commande : HOP! est prévenu, le client est bloqué et HOP! décide.`)) return;
-    if (el.dataset.act === "paye" && o.payment_method === "cash" && !confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`)) return;
-    if (el.dataset.act === "attente_refusee" && !confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`)) return;
+    if (el.dataset.act === "pas_especes" && !(await UI.confirm(`😕 Vous n'avez pas les espèces ? La course repart tout de suite à un autre livreur, ${UI.money(settings.cash_penalty || 10)} sont retenus sur votre crédit et vous n'aurez plus de course en espèces pendant ${settings.cash_ban_days || 7} jours.`))) return;
+    if (el.dataset.act === "cash_impaye" && !(await UI.confirm(`❌ Le client ne vous paie pas ${UI.money(cashTotal(o))} en espèces ? Gardez la commande : HOP! est prévenu, le client est bloqué et HOP! décide.`))) return;
+    if (el.dataset.act === "paye" && o.payment_method === "cash" && !(await UI.confirm(`💵 Avez-vous bien encaissé ${UI.money(cashTotal(o))} en espèces ?`))) return;
+    if (el.dataset.act === "attente_refusee" && !(await UI.confirm(`Le client refuse de payer ${UI.money(o.wait_due)} ? HOP! est prévenu et s'en occupe.`))) return;
     let gpsForce = false;
     if (el.dataset.act === "livree") {
-      if (idNeeded(o)) { render(); return alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus)."); }
+      if (idNeeded(o)) { render(); return (await UI.alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus).")); }
       el.disabled = true;
       // Photo du colis obligatoire (devant la porte, ou demandée par le client) : pour tout le monde, même débloquée
-      if (needPhoto(o) && !photoDone.has(o.id) && !(await hasDoorPhoto(o))) { render(); return alert(PHOTO_MSG); }
+      if (needPhoto(o) && !photoDone.has(o.id) && !(await hasDoorPhoto(o))) { render(); return (await UI.alert(PHOTO_MSG)); }
       el.textContent = "📍 Vérification de votre position…";
       if (!o.unlocked && !freeNow()) {
         const here = await checkAtDropoff(o);
         // Le GPS ne bloque jamais un livreur sur place (règle du patron, 04/11) : il peut valider quand même, HOP! le voit
         if (!here.ok) {
-          if (!confirm(`${here.msg.replace(/ Vous pourrez valider.*$/, "")}\n\nLe GPS se trompe parfois (immeubles, parking…). Vous êtes bien chez le client ?\nOK = valider quand même (HOP! le voit sur la course)\nAnnuler = attendre`)) { render(); return; }
+          if (!(await UI.confirm(`${here.msg.replace(/ Vous pourrez valider.*$/, "")}\n\nLe GPS se trompe parfois (immeubles, parking…). Vous êtes bien chez le client ?\nOK = valider quand même (HOP! le voit sur la course)\nAnnuler = attendre`))) { render(); return; }
           gpsForce = true;
         }
         // Clés ou objet de valeur : le code de remise donné par le destinataire
         if (o.handoff && !o.handoff_ok_at) {
-          const code = prompt("🔐 Code de remise : demandez au destinataire son code à 4 chiffres.");
+          const code = (await UI.prompt("🔐 Code de remise : demandez au destinataire son code à 4 chiffres."));
           if (code == null) { render(); return; }
           const good = await Store.courierHandoff(o.id, code).catch(e => (/too_many/.test(e.message) ? "max" : false));
-          if (good !== true) { render(); return alert(good === "max" ? "🔒 Trop d'essais : appelez HOP! (HOP! peut débloquer la course)." : "❌ Code incorrect : ne remettez pas, vérifiez avec le destinataire."); }
+          if (good !== true) { render(); return (await UI.alert(good === "max" ? "🔒 Trop d'essais : appelez HOP! (HOP! peut débloquer la course)." : "❌ Code incorrect : ne remettez pas, vérifiez avec le destinataire.")); }
           o.handoff_ok_at = new Date().toISOString();
         }
       }
@@ -2021,35 +2027,35 @@ async function onViewClick(e) {
     // HOP! le voit sur la course (étape, heure, distance)
     if (["farpick", "farrecup", "far"].includes(ok)) {
       const where = ok === "far" ? "l'adresse de livraison" : "l'adresse de départ";
-      if (!confirm(`📍 Le GPS ne vous voit pas encore à ${where} (il se trompe parfois, surtout entre les immeubles).\n\nVous êtes bien sur place ?\nOK = valider quand même (HOP! le voit sur la course)\nAnnuler = attendre`)) { render(); return; }
+      if (!(await UI.confirm(`📍 Le GPS ne vous voit pas encore à ${where} (il se trompe parfois, surtout entre les immeubles).\n\nVous êtes bien sur place ?\nOK = valider quand même (HOP! le voit sur la course)\nAnnuler = attendre`))) { render(); return; }
       ok = await Store.courierActionForce(id, el.dataset.act).catch(errKey);
     }
-    if (ok === "buycheck") { render(); return alert("🛒 Cochez d'abord chaque article (ou « Manquant »), puis « ✅ Tout est dans le panier »."); }
-    if (ok === "idcheck") { idChecked.delete(id); render(); return alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus)."); }
-    if (ok === "ticket") { render(); return alert("🧾 Touchez d'abord « Ticket du magasin » : photo du ticket et son montant."); }
-    if (ok === "refund") { render(); return alert(o.goods_refund_status === "a_completer" ? (o.goods_after ? "🧾 Le client doit d'abord vous envoyer le montant du ticket : touchez « Ticket reçu »." : "⚠️ Le client doit d'abord vous envoyer le complément : touchez « Complément reçu ».") : "💸 Rendez d'abord la différence au client par Bit, puis touchez « C'est rendu »."); }
-    if (ok === "bought") { render(); return alert("🧾 Les articles sont déjà achetés : vous ne pouvez plus rendre la course. Écrivez à HOP! en cas de souci."); }
-    if (ok === "cash") { render(); return alert(`💵 ${o.shop_name || "Le commerce"} doit d'abord toucher « Espèces reçues » (vous lui payez ${UI.money(o.cash_goods)} en espèces).`); }
-    if (ok === "wait") { render(); return alert("⏱️ Touchez d'abord « Supplément reçu » (ou « Le client ne paie pas ») pour l'attente."); }
-    if (ok === "pay") { render(); return alert(el.dataset.act === "recuperee" && o && (o.shop_sent || o.shop_pays)
+    if (ok === "buycheck") { render(); return (await UI.alert("🛒 Cochez d'abord chaque article (ou « Manquant »), puis « ✅ Tout est dans le panier ».")); }
+    if (ok === "idcheck") { idChecked.delete(id); render(); return (await UI.alert("🔞 Tabac / alcool : cochez d'abord « J'ai vérifié la pièce d'identité » (18 ans ou plus).")); }
+    if (ok === "ticket") { render(); return (await UI.alert("🧾 Touchez d'abord « Ticket du magasin » : photo du ticket et son montant.")); }
+    if (ok === "refund") { render(); return (await UI.alert(o.goods_refund_status === "a_completer" ? (o.goods_after ? "🧾 Le client doit d'abord vous envoyer le montant du ticket : touchez « Ticket reçu »." : "⚠️ Le client doit d'abord vous envoyer le complément : touchez « Complément reçu ».") : "💸 Rendez d'abord la différence au client par Bit, puis touchez « C'est rendu ».")); }
+    if (ok === "bought") { render(); return (await UI.alert("🧾 Les articles sont déjà achetés : vous ne pouvez plus rendre la course. Écrivez à HOP! en cas de souci.")); }
+    if (ok === "cash") { render(); return (await UI.alert(`💵 ${o.shop_name || "Le commerce"} doit d'abord toucher « Espèces reçues » (vous lui payez ${UI.money(o.cash_goods)} en espèces).`)); }
+    if (ok === "wait") { render(); return (await UI.alert("⏱️ Touchez d'abord « Supplément reçu » (ou « Le client ne paie pas ») pour l'attente.")); }
+    if (ok === "pay") { render(); return (await UI.alert(el.dataset.act === "recuperee" && o && (o.shop_sent || o.shop_pays)
       ? `🏪 ${o.shop_name || "Le commerce"} doit vous payer ${UI.money(o.price)} par Bit avant que vous preniez le colis. Vérifiez votre Bit, puis touchez « 📱 Payé par Bit » (ou « 💵 Payé en espèces »).`
       : el.dataset.act === "recuperee"
       ? "💳 Le client doit vous payer avant que vous récupériez la commande. Attendez son paiement (Bit / PayBox), vérifiez-le, puis touchez « 📱 Payé par Bit » (ou « 💵 Payé en espèces »)."
-      : "💳 Touchez d'abord « 📱 Payé par Bit » ou « 💵 Payé en espèces » une fois que le client vous a payé."); }
-    if (ok === "handoff") { render(); return alert("🔐 Code de remise manquant : demandez-le au destinataire avant de remettre."); }
-    if (ok === "farpick") { render(); return alert("📍 Vous n'êtes pas encore au point de récupération : appuyez sur « Je suis arrivé » une fois sur place (le compteur d'attente démarre à ce moment-là)."); }
-    if (ok === "farrecup") { render(); return alert(`📍 Vous n'êtes pas au point de récupération : « Colis récupéré » se valide sur place (moins de ${Math.round(deliverRadius() * 1.5)} m), GPS activé.`); }
-    if (ok === "photo") { photoDone.delete(id); render(); return alert(PHOTO_MSG); }
-    if (ok === "far") { render(); return alert(`📍 Vous n'êtes pas à l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).`); }
-    if (!ok) alert("Action impossible, actualisez la page.");
-    else if (el.dataset.act === "livree" && o && o.paid_to !== "hop" && o.payment_status !== "paye" && confirm(`Livré ! Avez-vous encaissé ${UI.money(UI.payTotal(o))} ?`)) {
+      : "💳 Touchez d'abord « 📱 Payé par Bit » ou « 💵 Payé en espèces » une fois que le client vous a payé.")); }
+    if (ok === "handoff") { render(); return (await UI.alert("🔐 Code de remise manquant : demandez-le au destinataire avant de remettre.")); }
+    if (ok === "farpick") { render(); return (await UI.alert("📍 Vous n'êtes pas encore au point de récupération : appuyez sur « Je suis arrivé » une fois sur place (le compteur d'attente démarre à ce moment-là).")); }
+    if (ok === "farrecup") { render(); return (await UI.alert(`📍 Vous n'êtes pas au point de récupération : « Colis récupéré » se valide sur place (moins de ${Math.round(deliverRadius() * 1.5)} m), GPS activé.`)); }
+    if (ok === "photo") { photoDone.delete(id); render(); return (await UI.alert(PHOTO_MSG)); }
+    if (ok === "far") { render(); return (await UI.alert(`📍 Vous n'êtes pas à l'adresse de livraison. Vous pourrez valider « Livré » une fois sur place (moins de ${deliverRadius()} m).`)); }
+    if (!ok) (await UI.alert("Action impossible, actualisez la page."));
+    else if (el.dataset.act === "livree" && o && o.paid_to !== "hop" && o.payment_status !== "paye" && (await UI.confirm(`Livré ! Avez-vous encaissé ${UI.money(UI.payTotal(o))} ?`))) {
       await Store.courierAction(id, "paye").catch(() => alert("Encaissement non enregistré, réessayez."));
     }
     // Même client, autre enseigne : on rappelle de valider aussi l'autre commande
     if (ok && el.dataset.act === "livree" && o) {
       const left = sameClient(o).filter(t => t.status === "recuperee");
       setTimeout(() => welcomeAsk(o), 600);
-      if (left.length) alert(`✅ Commande n° ${o.ref} livrée.\n👥 Ce client a aussi : ${left.map(twinName).join(", ")}.\nTouchez « Livré » sur ${left.length > 1 ? "chacune" : "celle-ci"} aussi.`);
+      if (left.length) (await UI.alert(`✅ Commande n° ${o.ref} livrée.\n👥 Ce client a aussi : ${left.map(twinName).join(", ")}.\nTouchez « Livré » sur ${left.length > 1 ? "chacune" : "celle-ci"} aussi.`));
     }
     await load();
   }
@@ -2160,11 +2166,11 @@ const ISSUES = ["Client absent / ne répond pas", "Adresse introuvable", "Colis 
 function reportIssue(o) {
   if (!o) return;
   const send = async reason => {
-    const extra = prompt(`« ${reason} » : un détail à ajouter ? (facultatif)`, "");
+    const extra = (await UI.prompt(`« ${reason} » : un détail à ajouter ? (facultatif)`, ""));
     if (extra === null) return;
     const text = extra.trim() ? `${reason} : ${extra.trim()}` : reason;
     const ok = await Store.courierIssue(o.id, text).catch(() => false);
-    if (!ok) return alert("Souci non envoyé, vérifiez la connexion.");
+    if (!ok) return (await UI.alert("Souci non envoyé, vérifiez la connexion."));
     await load();
     // La conversation s'ouvre : photo ou précision pour HOP et le client
     openOrderChat(orders.find(x => x.id === o.id) || o);
@@ -2231,10 +2237,10 @@ document.addEventListener("change", async e => {
     const data = await UI.docPhoto(f);
     await Store.chatSend("o:" + o.id, "courier", me.name, I18N.forLang(o.lang || "fr", "rdMsgPhoto", { name: String(me.name || "").split(" ")[0] }), data);
     photoDone.add(o.id);
-  } catch (ex) { render(); return alert("Photo non envoyée, vérifiez la connexion et réessayez."); }
+  } catch (ex) { render(); return (await UI.alert("Photo non envoyée, vérifiez la connexion et réessayez.")); }
   render();
   // Photo envoyée : on valide « Livré » tout de suite (position, code de remise… comme d'habitude)
-  if (then === "livree") { const b = document.querySelector(`article[data-id="${CSS.escape(id)}"] [data-act="livree"]`); if (b && b.disabled) alert("📷 Photo envoyée. 🔞 Tabac / alcool : cochez « J'ai vérifié la pièce d'identité », puis « Livré »."); else if (b) b.click(); }
+  if (then === "livree") { const b = document.querySelector(`article[data-id="${CSS.escape(id)}"] [data-act="livree"]`); if (b && b.disabled) (await UI.alert("📷 Photo envoyée. 🔞 Tabac / alcool : cochez « J'ai vérifié la pièce d'identité », puis « Livré ».")); else if (b) b.click(); }
 });
 // Livreur débloqué par HOP jusqu'à une date
 // Libre de tout contrôle GPS : débloqué par le patron, ou le patron lui-même (règle du 04/11)
@@ -2449,12 +2455,12 @@ function checkNewMessages() {
 async function onReply(el) {
   const id = el.dataset.msg, answer = el.dataset.reply;
   el.disabled = true;
-  try { await Store.replyMessage(id, answer); } catch (e) { el.disabled = false; return alert("Réponse non envoyée, vérifiez la connexion."); }
+  try { await Store.replyMessage(id, answer); } catch (e) { el.disabled = false; return (await UI.alert("Réponse non envoyée, vérifiez la connexion.")); }
   const r = msgs.replies.find(x => x.message_id === id && x.courier_id === me.id);
   if (r) r.answer = answer; else msgs.replies.push({ message_id: id, courier_id: me.id, answer });
   $("#msgModal").classList.add("hidden");
   renderMsgs();
-  if (answer === "jarrive" && duty.watch == null && confirm("Super ! Passer en ligne maintenant ?")) toggleDuty();
+  if (answer === "jarrive" && duty.watch == null && (await UI.confirm("Super ! Passer en ligne maintenant ?"))) toggleDuty();
 }
 
 function onWorkClick(e) {
@@ -2700,7 +2706,7 @@ async function acceptTwo(id, mateId, eta) {
     // L'autre vient d'être prise (ou la base ne connaît pas encore les courses groupées) : celle-ci seule
     if (!/bundle_taken|bundle_invalid|PGRST202/.test(e.message) && e.status !== 404) return acceptError(e);
     const one = await Store.acceptOrder(id, eta).catch(x => acceptError(x));
-    if (one && one !== "shown") alert("L'autre course vient d'être prise par un autre livreur : vous avez celle-ci.");
+    if (one && one !== "shown") (await UI.alert("L'autre course vient d'être prise par un autre livreur : vous avez celle-ci."));
     return one;
   }
 }
@@ -2737,11 +2743,11 @@ async function acceptOffer(eta) {
   $("#offerAccept").disabled = false;
   closeOffer();
   if (ok === "shown") { /* message déjà affiché */ }
-  else if (!ok) alert("Trop tard, un autre livreur a pris cette course.");
+  else if (!ok) (await UI.alert("Trop tard, un autre livreur a pris cette course."));
   else {
     mineOpen = id; mineScroll = true;
     openPage("mine");
-    if (duty.watch == null && confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?")) toggleDuty();
+    if (duty.watch == null && (await UI.confirm("Course acceptée ! Rester en ligne pour que le client vous suive sur la carte ?"))) toggleDuty();
   }
   load();
 }
@@ -2858,10 +2864,10 @@ async function onCashMarkClick(e) {
   if (!b) return false;
   const o = orders.find(x => x.id === b.dataset.id), mode = b.dataset.cashmark;
   if (!o) return true;
-  if (!confirm(mode === "rendu" ? `Vous avez bien rendu ${UI.money(o.cash_goods)} à ${owedTo(o)} ? C'est noté sur la course, le commerce et HOP! le voient.`
-    : `Vous avez bien payé ${UI.money(o.cash_goods)} à ${o.shop_name || "le commerce"} en prenant la commande ? C'est noté sur la course, le commerce et HOP! le voient.`)) return true;
+  if (!(await UI.confirm(mode === "rendu" ? `Vous avez bien rendu ${UI.money(o.cash_goods)} à ${owedTo(o)} ? C'est noté sur la course, le commerce et HOP! le voient.`
+    : `Vous avez bien payé ${UI.money(o.cash_goods)} à ${o.shop_name || "le commerce"} en prenant la commande ? C'est noté sur la course, le commerce et HOP! le voient.`))) return true;
   b.disabled = true;
-  try { await Store.courierCashMark(o.id, mode); } catch (ex) { alert("Pas enregistré, réessayez."); }
+  try { await Store.courierCashMark(o.id, mode); } catch (ex) { (await UI.alert("Pas enregistré, réessayez.")); }
   await load();
   return true;
 }
@@ -2875,7 +2881,7 @@ async function onRefundClick(e) {
   const d = e.target.closest("[data-refund-done], [data-refund-none]");
   if (!d) return false;
   const done = d.hasAttribute("data-refund-done");
-  if (!confirm(done ? "Vous avez bien renvoyé l'argent au client par Bit / PayBox ?" : "Vous n'avez vraiment rien reçu de ce client ? (il pourra le contester, HOP vérifie)")) return true;
+  if (!(await UI.confirm(done ? "Vous avez bien renvoyé l'argent au client par Bit / PayBox ?" : "Vous n'avez vraiment rien reçu de ce client ? (il pourra le contester, HOP vérifie)"))) return true;
   d.disabled = true;
   await Store.refundDone(d.dataset.refundDone || d.dataset.refundNone, done).catch(() => alert("Pas enregistré, réessayez."));
   await load();
@@ -3434,7 +3440,7 @@ $("#shiftModal").addEventListener("click", async e => {
   const send = e.target.closest("[data-shift-send]");
   if (!send) return;
   const com = $("#shiftCom").value.trim();
-  if (!Object.keys(shift.rates).length && !com) return alert("Touchez au moins un 😀 😐 😕, ou écrivez un mot.");
+  if (!Object.keys(shift.rates).length && !com) return (await UI.alert("Touchez au moins un 😀 😐 😕, ou écrivez un mot."));
   const done = shiftDone(), label = { top: "😀 Top", moyen: "😐 Moyen", bof: "😕 Pas top" };
   const line = (key, title) => shift.rates[key] ? `• ${title} : ${label[shift.rates[key]]}${(shift.tags[key] || []).length ? " (" + shift.tags[key].join(", ") + ")" : ""}` : "";
   const text = [`📝 Fin de service · ${fmtDur(Date.now() - shift.since)} en ligne · ${done.length} course(s) livrée(s)`,
@@ -3445,21 +3451,21 @@ $("#shiftModal").addEventListener("click", async e => {
     await Store.chatSend("c:" + me.id, "courier", me.name, text);
     $("#shiftBox").innerHTML = `<div class="sh-thanks"><span>🙏</span><h3>Merci, c'est bien envoyé à HOP!</h3><p class="muted">Bon repos, et à très vite sur HOP!</p>
       <button type="button" class="btn btn-primary btn-block" data-shift-close>Fermer</button></div>`;
-  } catch (ex) { send.disabled = false; send.textContent = "📨 Envoyer mon avis"; alert("Non envoyé, vérifiez la connexion."); }
+  } catch (ex) { send.disabled = false; send.textContent = "📨 Envoyer mon avis"; (await UI.alert("Non envoyé, vérifiez la connexion.")); }
 });
 
 async function toggleDuty(quiet) {
   if (duty.watch != null) {
     // Des espèces d'articles encaissées chez un client et pas encore rendues au commerce : on le redit avant de partir
     const owe = orders.filter(o => o.courier_id === me.id && o.status === "livree" && o.cash_shop_after && Number(o.cash_goods) > 0 && !o.cash_shop_at && !o.cash_courier_mode);
-    if (owe.length && !quiet && !confirm(`💵 Avant de finir : vous avez ${owe.map(o => `${UI.money(o.cash_goods)} à rapporter à ${o.goods_choice ? "HOP!" : o.shop_name || "un commerce"}`).join(", ")}.
+    if (owe.length && !quiet && !(await UI.confirm(`💵 Avant de finir : vous avez ${owe.map(o => `${UI.money(o.cash_goods)} à rapporter à ${o.goods_choice ? "HOP!" : o.shop_name || "un commerce"}`).join(", ")}.
 
-Rapportez l'argent des articles, puis touchez « J'ai rendu » sur l'accueil. Terminer quand même ?`)) { renderDuty(); return; }
+Rapportez l'argent des articles, puis touchez « J'ai rendu » sur l'accueil. Terminer quand même ?`))) { renderDuty(); return; }
     navigator.geolocation.clearWatch(duty.watch);
     duty.watch = null;
     if (duty.wakeLock) { duty.wakeLock.release().catch(() => {}); duty.wakeLock = null; }
   } else {
-    if (!navigator.geolocation) return alert("La géolocalisation n'est pas disponible sur ce téléphone.");
+    if (!navigator.geolocation) return (await UI.alert("La géolocalisation n'est pas disponible sur ce téléphone."));
     duty.fresh = true; duty.lastSent = 0; duty.since = Date.now() - 5000;
     duty.watch = navigator.geolocation.watchPosition(sendPosition, err => {
       $("#dutyText").textContent = err.code === 1 ? "⚠️ Autorisez la localisation pour ce site." : "⚠️ Position GPS introuvable pour le moment…";
@@ -3568,7 +3574,7 @@ window.addEventListener("popstate", () => {
 $("#drawer").addEventListener("click", e => { if (e.target.id === "drawer") closeDrawer(); });
 $("#bellBtn").addEventListener("click", () => openPage("inbox"));
 $("#pageBack").addEventListener("click", closePage);
-$("#drawerLogout").addEventListener("click", () => { if (confirm("Se déconnecter ?")) endAndLogout(); });
+$("#drawerLogout").addEventListener("click", async () => { if ((await UI.confirm("Se déconnecter ?"))) endAndLogout(); });
 $("#locateBtn").addEventListener("click", locateMe);
 $("#installCard").addEventListener("click", e => {
   if (e.target.closest("[data-install-card]")) UI.installApp("HOP! Livreur", "livreur/").then(ok => { if (ok) showInstallCard(false); });
@@ -3654,7 +3660,7 @@ document.addEventListener("click", async e => {
   const km = roadKm(lastPos, pt(o.pickup_lat, o.pickup_lon)), travel = km == null ? 0 : Math.ceil(km * 2.5 + 2);
   b.disabled = true;
   const r = await Store.courierEtaSet(id, Number(m), travel).catch(() => null);
-  if (!r || r.ok === false) { alert("Non enregistré, vérifiez la connexion et réessayez."); b.disabled = false; return; }
+  if (!r || r.ok === false) { (await UI.alert("Non enregistré, vérifiez la connexion et réessayez.")); b.disabled = false; return; }
   b.closest(".dep-box").querySelectorAll("[data-dep]").forEach(x => x.classList.toggle("on", x === b));
   try { navigator.vibrate && navigator.vibrate(60); } catch (err) { /* ignore */ }
   await load();

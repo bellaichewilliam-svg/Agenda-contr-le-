@@ -1263,7 +1263,67 @@ function parsePostSms(txt) {
   return out;
 }
 
+// Fenêtres HOP! à la place des fenêtres grises du téléphone (patron, 20/11 : « ça fait amateur ») :
+// UI.alert(msg), UI.confirm(msg) → true / false, UI.prompt(msg, valeur) → texte ou null. Une à la fois, à la suite.
+let dlgChain = Promise.resolve();
+function hopDialog(kind, msg, def) {
+  const run = () => new Promise(res => {
+    const he = document.documentElement.lang === "he" || document.documentElement.dir === "rtl";
+    const L = he ? { ok: "אישור", yes: "כן", no: kind === "confirm" ? "לא" : kind === "choose" ? "חזרה" : "ביטול" } : { ok: "OK", yes: "Oui", no: kind === "confirm" ? "Non" : kind === "choose" ? "Retour" : "Annuler" };
+    const back = document.createElement("div");
+    back.className = "hop-dlg"; back.setAttribute("role", "dialog"); back.setAttribute("aria-modal", "true");
+    const box = document.createElement("div"); box.className = "hop-dlg-box";
+    const p = document.createElement("p"); p.className = "hop-dlg-msg"; p.textContent = String(msg == null ? "" : msg); p.dir = "auto";
+    box.appendChild(p);
+    let input = null;
+    if (kind === "prompt") { input = document.createElement("input"); input.className = "hop-dlg-in"; input.value = def == null ? "" : String(def); input.dir = "auto"; input.autocomplete = "off"; box.appendChild(input); }
+    const row = document.createElement("div"); row.className = "hop-dlg-btns";
+    const done = v => { try { document.removeEventListener("keydown", onKey, true); } catch (e) { /* ignore */ } back.remove(); res(v); };
+    let onKey = null;
+    const mk = (label, cls, v) => { const b = document.createElement("button"); b.type = "button"; b.className = "hop-dlg-btn " + cls; b.textContent = label; b.addEventListener("click", () => done(typeof v === "function" ? v() : v)); row.appendChild(b); return b; };
+    // « choose » : une liste de réponses à toucher (def = [[valeur, texte], …]) → la valeur, ou null
+    if (kind === "choose") {
+      row.classList.add("col");
+      (def || []).forEach(([v, label]) => mk(label, "pick", v));
+      mk(L.no, "ghost", null);
+      onKey = e => { if (e.key === "Escape") { e.preventDefault(); done(null); } };
+      document.addEventListener("keydown", onKey, true);
+      box.appendChild(row); back.appendChild(box); (document.body || document.documentElement).appendChild(back);
+      return;
+    }
+    if (kind !== "alert") mk(L.no, "ghost", kind === "prompt" ? null : false);
+    const okB = mk(kind === "confirm" ? L.yes : L.ok, "main", kind === "alert" ? undefined : kind === "confirm" ? true : () => input.value);
+    onKey = e => { if (e.key === "Escape") { e.preventDefault(); done(kind === "alert" ? undefined : kind === "confirm" ? false : null); } else if (e.key === "Enter" && (kind !== "prompt" || e.target === input)) { e.preventDefault(); okB.click(); } };
+    document.addEventListener("keydown", onKey, true);
+    box.appendChild(row); back.appendChild(box); (document.body || document.documentElement).appendChild(back);
+    setTimeout(() => { try { (input || okB).focus(); if (input) input.select(); } catch (e) { /* ignore */ } }, 30);
+  });
+  const p = dlgChain.then(run, run);
+  dlgChain = p.catch(() => {});
+  return p;
+}
+const hopAlert = msg => hopDialog("alert", msg), hopConfirm = msg => hopDialog("confirm", msg), hopPrompt = (msg, def) => hopDialog("prompt", msg, def), hopChoose = (msg, opts) => hopDialog("choose", msg, opts);
+// (les alert() restés dans du code non asynchrone : même fenêtre HOP!, sans bloquer)
+try { window.alert = msg => { hopAlert(msg); }; } catch (e) { /* ignore */ }
+
+// Plus de réseau (patron, 20/11 : « des choses sautent ») : un bandeau clair en haut, qui part tout seul au retour du réseau
+(function () {
+  const show = on => {
+    let b = document.getElementById("hopOffline");
+    if (!on) { if (b) b.remove(); return; }
+    if (b || !document.body) return;
+    b = document.createElement("div"); b.id = "hopOffline"; b.className = "hop-offline"; b.setAttribute("role", "status");
+    b.textContent = document.documentElement.lang === "he" ? "אין חיבור לאינטרנט · מנסים שוב לבד" : "Pas de connexion internet · on réessaie tout seul";
+    document.body.appendChild(b);
+  };
+  window.addEventListener("offline", () => show(true));
+  window.addEventListener("online", () => show(false));
+  const init = () => { if (navigator.onLine === false) show(true); };
+  if (document.body) init(); else document.addEventListener("DOMContentLoaded", init);
+})();
+
 window.UI = {
+  alert: hopAlert, confirm: hopConfirm, prompt: hopPrompt, choose: hopChoose,
   addrNote, calIcon, bi, shopText, brand, addrDetails, addrDetailsText, doorTag, doorBig,
   ringTone, ringLoad, track, swipeRow, cropPick, cropDraw, DOC_FR, docPhoto, photoViewer, proCard, safeImg, imgCors, extPic, dirLogo, demoImg, isService, KIND_ICON, itemArt, artImg, catImg, openState, nextOpenDate, hhmmOf, hoursEditor, readHours, bindHours, goodsPay,
   deliveryEta, laterStart, etaRange, ringSvg, PROGRESS, commissionText, networkText, stopsLegs, notify, dutyNotice, clearNotifs, iosInstallHint, cityZone, cityActive, zoneActive, welcomeUrl, welcomeMsg, deliveredMsg, shopTrackBtn, setZonesOpen, receiptUrl, carnetReceiptUrl, receiptNo, areaWhy, topupReceiptUrl, referralCode, clientMessage, bitFor, bitPay, payTotal, pushSubscribe, clientPushSubscribe, cartPushSubscribe, askNewPassword, forgotLink, installApp, isStandalone, inOwnApp, canInstall, markClientApp, wordmark, weekStart, addDays, fmtKey,
