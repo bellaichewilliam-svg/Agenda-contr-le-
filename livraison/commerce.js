@@ -227,7 +227,7 @@ $("#shopExtra").addEventListener("change", async e => {
   const k = e.target.dataset && e.target.dataset.sgPic;
   if (!k || !e.target.files[0]) return;
   try { extra[k] = await (k === "logo" ? cropPhoto(e.target.files[0], 320, 320, 120000, t("cropTitleLogo")) : cropPhoto(e.target.files[0], 960, 480, 260000, t("cropTitleCover"))); }
-  catch (ex) { e.target.value = ""; return ex.message === "cancel" ? null : alert(t("ctPhotoErr")); }
+  catch (ex) { e.target.value = ""; return ex.message === "cancel" ? null : (await UI.alert(t("ctPhotoErr"))); }
   renderExtra();
 });
 $("#shopExtra").addEventListener("click", e => {
@@ -297,7 +297,7 @@ async function submit(e) {
     }).catch(() => {});
     history.replaceState(null, "", location.pathname + "?k=" + r.token);
     await openSpace(r.token);
-    if (r.ref_other_city) alert(t("shRefCity", { city: I18N.cityName(r.ref_other_city) }));
+    if (r.ref_other_city) (await UI.alert(t("shRefCity", { city: I18N.cityName(r.ref_other_city) })));
     window.scrollTo(0, 0);
     // HOP! Pro choisi : la demande d'abonnement part tout de suite au patron, dans la messagerie
     if (plan === "pro" && state.dash) openShopChat(t("spPlanMsg", { name: state.dash.shop.name, code: state.dash.shop.code }));
@@ -530,9 +530,9 @@ async function refreshSpace() {
 async function prepAction(id, action, minutes, reason, ref, bags) {
   try {
     const ok = await Store.shopOrderAction(state.dash.shop.token, id, action, minutes, reason, ref, bags);
-    if (!ok) alert(t("spErr"));
+    if (!ok) (await UI.alert(t("spErr")));
     else if (action === "accepter") delete refDraft[id];
-  } catch (e) { alert(/shop_ref/.test(e.message || "") ? t("spRefNeed") : /goods_unpaid/.test(e.message || "") ? t("spErrGoods") : t("spErr")); }
+  } catch (e) { (await UI.alert(/shop_ref/.test(e.message || "") ? t("spRefNeed") : /goods_unpaid/.test(e.message || "") ? t("spErrGoods") : t("spErr"))); }
   refreshSpace();
 }
 $("#spPrep").addEventListener("change", e => {
@@ -557,12 +557,12 @@ $("#spOrders").addEventListener("click", async e => {
   if (ok) return cashOkClick(ok.dataset.cashOk);
   if (!c) return;
   const o = state.dash.orders.find(x => x.id === c.dataset.collect); if (!o) return;
-  const raw = prompt(t("spCollectAsk"), Number(o.cash_goods) > 0 ? String(Number(o.cash_goods)) : "");
+  const raw = (await UI.prompt(t("spCollectAsk"), Number(o.cash_goods) > 0 ? String(Number(o.cash_goods)) : ""));
   if (raw === null) return;
   const amount = Number(String(raw).replace(",", ".").replace(/[^\d.]/g, "") || 0);
-  if (!(amount >= 0 && amount <= 5000)) return alert(t("spCollectBad"));
+  if (!(amount >= 0 && amount <= 5000)) return (await UI.alert(t("spCollectBad")));
   c.disabled = true;
-  try { const r = await Store.shopCollectSet(state.dash.shop.token, o.id, amount); if (!r) alert(t("spErr")); } catch (ex) { alert(t("spErr")); }
+  try { const r = await Store.shopCollectSet(state.dash.shop.token, o.id, amount); if (!r) (await UI.alert(t("spErr"))); } catch (ex) { (await UI.alert(t("spErr"))); }
   refreshSpace();
 });
 $("#spPrep").addEventListener("click", async e => {
@@ -570,18 +570,18 @@ $("#spPrep").addEventListener("click", async e => {
   if (!b) return;
   if (b.dataset.prep) {
     const input = $(`#spPrep [data-ref-for="${b.dataset.id}"]`), ref = input ? input.value.trim() : "";
-    if (!/^[0-9]{3}$/.test(ref)) { alert(t("spRefNeed")); if (input) input.focus(); return; }
+    if (!/^[0-9]{3}$/.test(ref)) { (await UI.alert(t("spRefNeed"))); if (input) input.focus(); return; }
     // Qui paie la livraison de cette commande (au choix) : enregistré juste avant d'accepter
     const pick = $(`#spPrep [data-pay-for="${b.dataset.id}"] input:checked`);
     if (pick && pick.value !== "client") {
       b.disabled = true;
       const ok = await Store.shopOrderPay(state.dash.shop.token, b.dataset.id, pick.value).catch(() => false);
-      if (!ok) { b.disabled = false; return alert(t("spErr")); }
+      if (!ok) { b.disabled = false; return (await UI.alert(t("spErr"))); }
     }
     return prepAction(b.dataset.id, "accepter", Number(b.dataset.prep), null, ref);
   }
   if (b.dataset.goodsOk || b.dataset.goodsNo) {
-    if (b.dataset.goodsNo && !confirm(t("spGoodsNoConfirm"))) return;
+    if (b.dataset.goodsNo && !(await UI.confirm(t("spGoodsNoConfirm")))) return;
     b.disabled = true;
     Store.shopGoodsPay(state.dash.shop.token, b.dataset.goodsOk || b.dataset.goodsNo, !!b.dataset.goodsOk)
       .then(ok => { if (!ok) alert(t("spErr")); }, () => alert(t("spErr"))).then(refreshSpace);
@@ -591,12 +591,12 @@ $("#spPrep").addEventListener("click", async e => {
   if (b.dataset.bagsFor) { bagsDraft[b.dataset.bagsFor] = Number(b.dataset.n); keep("hop_shop_bags", bagsDraft); return renderPrep(); }
   if (b.dataset.ready) {
     const o = state.dash.orders.find(x => x.id === b.dataset.ready), bags = Number(bagsDraft[b.dataset.ready]) || 0;
-    if (!bags) { alert(t("spBagsNeed")); return; }
+    if (!bags) { (await UI.alert(t("spBagsNeed"))); return; }
     const left = o && Array.isArray(o.items) ? o.items.length - pickedCount(o) : 0;
-    if (left > 0 && !confirm(t("spPickConfirm", { n: left }))) return;
+    if (left > 0 && !(await UI.confirm(t("spPickConfirm", { n: left })))) return;
     return prepAction(b.dataset.ready, "prete", null, null, null, bags);
   }
-  if (b.dataset.refuse) { const why = prompt(t("spRefuseWhy")); if (why !== null) prepAction(b.dataset.refuse, "refuser", null, why); }
+  if (b.dataset.refuse) { const why = (await UI.prompt(t("spRefuseWhy"))); if (why !== null) prepAction(b.dataset.refuse, "refuser", null, why); }
 });
 $("#spPlan").addEventListener("click", e => {
   if (!e.target.closest("[data-plan]")) return;
@@ -656,7 +656,7 @@ $("#spBrand").addEventListener("change", async e => {
   if (!inp || !inp.files[0]) return;
   const logo = inp.dataset.br === "logo";
   try { brand[inp.dataset.br] = await cropPhoto(inp.files[0], logo ? 320 : 1200, logo ? 320 : 500, logo ? 150000 : 290000, t(logo ? "cropTitleLogo" : "cropTitleCover")); }
-  catch (ex) { inp.value = ""; return ex.message === "cancel" ? null : alert(t("ctPhotoErr")); }
+  catch (ex) { inp.value = ""; return ex.message === "cancel" ? null : (await UI.alert(t("ctPhotoErr"))); }
   renderBrand(true);
 });
 $("#spBrand").addEventListener("input", e => { if (e.target.id === "brTagline") brandPreview(); });
@@ -722,7 +722,7 @@ $("#spPage").addEventListener("change", async e => {
   const inp = e.target.closest("[data-pg-add]");
   if (!inp || !inp.files.length) return;
   for (const f of Array.from(inp.files).slice(0, 8 - page.gallery.length)) {
-    try { page.gallery.push(await galleryPhoto(f)); } catch (ex) { alert(t("ctPhotoErr")); }
+    try { page.gallery.push(await galleryPhoto(f)); } catch (ex) { (await UI.alert(t("ctPhotoErr"))); }
   }
   renderPage(true);
 });
@@ -774,8 +774,8 @@ $("#spClients").addEventListener("click", async e => {
   const b = e.target.closest("[data-cl-send]");
   if (!b) return;
   const msg = ($("#clMsg") || {}).value || "";
-  if (msg.trim().length < 5) return alert(t("clShort"));
-  if (!confirm(t("clSend", { n: clients.data.count }) + " ?\n\n« " + msg.trim() + " »")) return;
+  if (msg.trim().length < 5) return (await UI.alert(t("clShort")));
+  if (!(await UI.confirm(t("clSend", { n: clients.data.count }) + " ?\n\n« " + msg.trim() + " »"))) return;
   b.disabled = true;
   try {
     const n = await Store.shopBroadcast(state.dash.shop.token, msg.trim());
@@ -862,11 +862,11 @@ function renderCatalog() {
 }
 async function catalogDo(fn) {
   cat.busy = true;
-  try { await fn(); } catch (e) { alert(/too_big|bad_image/.test(e.message || "") ? t("ctPhotoErr") : t("ctErr")); }
+  try { await fn(); } catch (e) { (await UI.alert(/too_big|bad_image/.test(e.message || "") ? t("ctPhotoErr") : t("ctErr"))); }
   cat.busy = false;
   await loadCatalog();
 }
-$("#spCatalog").addEventListener("click", e => {
+$("#spCatalog").addEventListener("click", async e => {
   const b = e.target.closest("button");
   if (!b) return;
   const token = state.dash.shop.token;
@@ -875,17 +875,17 @@ $("#spCatalog").addEventListener("click", e => {
     return catalogDo(async () => { for (let i = 0; i < sugg.length; i++) await Store.saveCategory(token, null, sugg[i], i + 1); });
   }
   if (b.dataset.addCat != null) {
-    const name = (prompt(t("ctCatPh")) || "").trim();
+    const name = ((await UI.prompt(t("ctCatPh"))) || "").trim();
     if (name) catalogDo(() => Store.saveCategory(token, null, name, cat.data.categories.length + 1));
     return;
   }
   if (b.dataset.catRename) {
     const c = cat.data.categories.find(x => x.id === b.dataset.catRename);
-    const name = (prompt(t("ctCatPh"), c ? c.name : "") || "").trim();
+    const name = ((await UI.prompt(t("ctCatPh"), c ? c.name : "")) || "").trim();
     if (name) catalogDo(() => Store.saveCategory(token, c.id, name, c.position));
     return;
   }
-  if (b.dataset.catDel) { if (confirm(t("ctDelCat"))) catalogDo(() => Store.deleteCategory(token, b.dataset.catDel)); return; }
+  if (b.dataset.catDel) { if ((await UI.confirm(t("ctDelCat")))) catalogDo(() => Store.deleteCategory(token, b.dataset.catDel)); return; }
   if (b.dataset.addProd != null) { cat.edit = { id: null, category_id: b.dataset.addProd }; cat.photo = undefined; cat.fresh = true; return renderCatalog(); }
   if (b.dataset.edit) { cat.edit = { id: b.dataset.edit }; cat.photo = undefined; cat.fresh = true; return renderCatalog(); }
   if (b.dataset.cancel != null) { cat.edit = null; cat.photo = undefined; return renderCatalog(); }
@@ -910,12 +910,12 @@ $("#spCatalog").addEventListener("click", e => {
     return;
   }
   if (b.dataset.prodDel) {
-    if (confirm(t("ctConfirmDel"))) { cat.edit = null; catalogDo(() => Store.deleteProduct(token, b.dataset.prodDel)); }
+    if ((await UI.confirm(t("ctConfirmDel")))) { cat.edit = null; catalogDo(() => Store.deleteProduct(token, b.dataset.prodDel)); }
   }
 });
 $("#spCatalog").addEventListener("change", async e => {
   if (!e.target.matches("[data-photo]") || !e.target.files[0]) return;
-  try { cat.photo = await shrinkPhoto(e.target.files[0]); } catch (ex) { e.target.value = ""; return ex.message === "cancel" ? null : alert(t("ctPhotoErr")); }
+  try { cat.photo = await shrinkPhoto(e.target.files[0]); } catch (ex) { e.target.value = ""; return ex.message === "cancel" ? null : (await UI.alert(t("ctPhotoErr"))); }
   renderCatalog();
 });
 $("#spCatalog").addEventListener("submit", e => {
@@ -1081,14 +1081,14 @@ function renderSpace() {
 }
 
 // « Espèces reçues » : le montant reçu, noté sur la course (par défaut celui des articles) ; un écart prévient HOP!
-function cashOkClick(id) {
+async function cashOkClick(id) {
   const o = state.dash.orders.find(x => x.id === id);
   if (!o) return;
-  const raw = prompt(t("spCashAmount", { amount: UI.money(o.cash_goods) }), String(Number(o.cash_goods)));
+  const raw = (await UI.prompt(t("spCashAmount", { amount: UI.money(o.cash_goods) }), String(Number(o.cash_goods))));
   if (raw === null) return;
   const amount = Number(String(raw).replace(",", ".").replace(/[^\d.]/g, ""));
   if (!(amount >= 0 && amount <= 5000)) return alert(t("spCashAmountBad"));
-  if (confirm(t("spCashConfirm", { amount: UI.money(amount) })))
+  if ((await UI.confirm(t("spCashConfirm", { amount: UI.money(amount) }))))
     return Store.shopCashReceived(state.dash.shop.token, o.id, amount).then(ok => { if (!ok) alert(t("spErr")); refreshSpace(); }, () => alert(t("spErr")));
 }
 // Montant des articles à encaisser chez le client (patron, 19/11) : le commerce le note sur sa course ; ensuite il voit
@@ -1232,10 +1232,10 @@ $("#spDrops").addEventListener("submit", async e => {
   try {
     if (!(await Store.shopNoticeSend(state.dash.shop.token, id, at ? at.toISOString() : null, f.elements.msg.value))) throw new Error("no");
     delete dropForm[id];
-    alert(t("drOk"));
+    (await UI.alert(t("drOk")));
     await refreshSpace();
     renderDrops(true);
-  } catch (ex) { alert(t(/notice_max/.test(ex.message || "") ? "drMax" : /bad_date/.test(ex.message || "") ? "drBadDate" : "spErr")); }
+  } catch (ex) { (await UI.alert(t(/notice_max/.test(ex.message || "") ? "drMax" : /bad_date/.test(ex.message || "") ? "drBadDate" : "spErr"))); }
 });
 
 // En-tête : la vitrine du commerce telle que la voient ses clients, avec son abonnement
@@ -1326,9 +1326,9 @@ function showKnownShops() {
   box.innerHTML = shops.length ? `<span>${UI.esc(t("shHave"))}</span> ` + shops.map(x =>
     `<a class="btn btn-sm" href="commerce.html?k=${encodeURIComponent(x.token)}">${UI.esc(t("shHaveOpen", { code: x.code || "…" }))}</a>`).join(" ") : "";
 }
-$("#spOther").addEventListener("click", e => {
+$("#spOther").addEventListener("click", async e => {
   if (e.target.closest("[data-forget]")) {
-    if (!confirm(t("shForgetAsk"))) return;
+    if (!(await UI.confirm(t("shForgetAsk")))) return;
     Store.forgetShopToken(state.token);
     location.href = "commerce.html?inscription=1";
   }

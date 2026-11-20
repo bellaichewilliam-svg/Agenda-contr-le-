@@ -2520,7 +2520,7 @@ function asKindSync() {
 }
 $("#asKind").addEventListener("click", e => { const b = e.target.closest("[data-as-kind]"); if (!b) return; sheet.kind = b.dataset.asKind; asKindSync(); $("#asErr").classList.add("hidden"); if (sheet.kind !== "maison" && !$("#asFloor").value) $("#asFloor").focus(); });
 $("#asNoCode").addEventListener("change", e => { $("#asCode").disabled = e.target.checked; if (e.target.checked) $("#asCode").value = ""; });
-$("#asDel").addEventListener("click", () => { if (sheet.idx >= 0 && confirm(t("accDelete") + " ?")) { Store.deleteAddress(sheet.idx); closeAddrSheet(); renderSavedAddrs(); renderAccount(); } });
+$("#asDel").addEventListener("click", async () => { if (sheet.idx >= 0 && (await UI.confirm(t("accDelete") + " ?"))) { Store.deleteAddress(sheet.idx); closeAddrSheet(); renderSavedAddrs(); renderAccount(); } });
 $("#asPos").addEventListener("click", async () => {
   const b = $("#asPos"); b.disabled = true; b.textContent = t("geoLocating");
   try {
@@ -2684,12 +2684,12 @@ function askSaveTag(which, btn) {
   btn.classList.add("hidden");
   tools.appendChild(box);
 }
-function saveCurrentAddress(which, btn, tag) {
+async function saveCurrentAddress(which, btn, tag) {
   const p = state.pick[which];
   if (!p) { btn.closest(".addr-tools") && btn.closest(".addr-tools").querySelectorAll(".save-tags").forEach(x => x.remove()); return showError(t("asNeedAddr")); }
   let name = null;
   if (tag === "other") {
-    name = (prompt(t("tagNamePh")) || "").trim().slice(0, 30);
+    name = ((await UI.prompt(t("tagNamePh"))) || "").trim().slice(0, 30);
     if (!name) return;
   }
   if (!p) return;
@@ -3907,8 +3907,8 @@ async function onListClick(e) {
   const chat = e.target.closest("[data-chat]");
   if (chat) { const o = state.mine.find(x => x.token === chat.dataset.chat); if (o) openOrderChat(o); return; }
   const cb = e.target.closest("[data-cancel]"), token = cb && cb.dataset.cancel;
-  if (!token || !confirm(t("cancelConfirm"))) return;
-  try { await Store.cancelMyOrder(token); } catch (ex) { alert(t("cancelFail")); }
+  if (!token || !(await UI.confirm(t("cancelConfirm")))) return;
+  try { await Store.cancelMyOrder(token); } catch (ex) { (await UI.alert(t("cancelFail"))); }
   loadMine();
 }
 
@@ -6300,7 +6300,7 @@ async function reorderGo(i) {
     if (to) applySavedAddr("to", to);
     renderCatalog(); renderQuote();
     if (cartCount()) { openCart(); if (missing) setTimeout(() => alert(t(missing > 1 ? "reoMissingN" : "reoMissing1", { n: missing })), 300); }
-    else alert(t("reoAllGone"));
+    else (await UI.alert(t("reoAllGone")));
     return;
   }
   // Rayon HOP! : le rayon s'ouvre, les mêmes articles déjà choisis, l'adresse déjà là → il ne reste qu'à commander
@@ -9899,10 +9899,10 @@ function cartClearAll() {
   renderQuote(); saveDraft(); cartPersist(); cartDone();
   toastCart(t("cartCleared"));
 }
-document.addEventListener("click", e => {
+document.addEventListener("click", async e => {
   if (!e.target.closest("[data-cart-clear]")) return;
   e.preventDefault(); e.stopPropagation();
-  if (window.confirm(t("cartClearQ"))) cartClearAll();
+  if ((await UI.confirm(t("cartClearQ")))) cartClearAll();
 }, true);
 function cartDone() {
   try { localStorage.removeItem(LS_CART); } catch (e) { /* ignore */ }

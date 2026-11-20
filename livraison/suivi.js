@@ -263,7 +263,7 @@ $("#etaAsk").addEventListener("click", async e => {
   if ((!ok && !no) || !order) return;
   e.target.closest("button").disabled = true;
   const r = await Store.answerEta(token, ok).catch(() => false);
-  if (r && no) alert(t("trEtaRefused"));
+  if (r && no) (await UI.alert(t("trEtaRefused")));
   load();
 });
 setInterval(() => { if (order) { etaAsk(order); waitAsk(order); } }, 1000);
@@ -312,10 +312,10 @@ function waitAsk(o) {
 $("#waitAsk").addEventListener("click", async e => {
   const ok = !!e.target.closest("[data-wa-ok]"), drop = !!e.target.closest("[data-wa-drop]");
   if ((!ok && !drop) || !order) return;
-  if (drop && !confirm(t("waDropConfirm", { half: UI.money(Math.round(Number(order.price)) / 2) }))) return;
+  if (drop && !(await UI.confirm(t("waDropConfirm", { half: UI.money(Math.round(Number(order.price)) / 2) })))) return;
   e.target.closest("button").disabled = true;
   const r = await Store.clientWaitAnswer(token, ok).catch(() => null);
-  if (!r || !r.ok) alert(t("waTooLate"));
+  if (!r || !r.ok) (await UI.alert(t("waTooLate")));
   load();
 });
 
@@ -648,7 +648,7 @@ $("#shopRateBox").addEventListener("click", async e => {
   if (e.target.id !== "srSend" || !order) return;
   e.target.disabled = true;
   const ok = await Store.rateShop(token, srate.stars, srate.note).catch(() => false);
-  if (!ok) { e.target.disabled = false; return alert(I18N.lang === "he" ? "לא נשלח, נסו שוב." : "Non envoyé, réessayez."); }
+  if (!ok) { e.target.disabled = false; return (await UI.alert(I18N.lang === "he" ? "לא נשלח, נסו שוב." : "Non envoyé, réessayez.")); }
   srate.sent = srate.stars; order.shop_rating = srate.stars;
   renderShopRate(order);
 });
@@ -914,10 +914,10 @@ function claimBlock(o) {
 }
 $("#details").addEventListener("click", async e => {
   if (!e.target.closest("[data-claim]") || !order) return;
-  const note = prompt(t("trClaimAsk"));
+  const note = (await UI.prompt(t("trClaimAsk")));
   if (note === null) return;
   const ok = await Store.claimOrder(token, note).catch(() => false);
-  if (!ok) alert(t("trClaimErr"));
+  if (!ok) (await UI.alert(t("trClaimErr")));
   load();
 });
 $("#details").addEventListener("change", async e => {
@@ -928,7 +928,7 @@ $("#details").addEventListener("change", async e => {
   try {
     const ok = await Store.addOrderDoc(token, kind, await UI.docPhoto(inp.files[0]));
     if (!ok) throw new Error("refused");
-  } catch (ex) { alert(t("errDocPhoto")); }
+  } catch (ex) { (await UI.alert(t("errDocPhoto"))); }
   load();
 });
 
@@ -944,7 +944,7 @@ $("#photoCard").addEventListener("click", async e => {
   if (e.target.id !== "photoOn") return;
   e.target.disabled = true;
   const ok = await Store.clientPhotoWanted(token, true).catch(() => false);
-  if (!ok) { e.target.disabled = false; return alert(I18N.t("trPhotoErr")); }
+  if (!ok) { e.target.disabled = false; return (await UI.alert(I18N.t("trPhotoErr"))); }
   order.photo_wanted = true;
   renderPhotoAsk(order);
 });
@@ -952,10 +952,10 @@ $("#payBox").addEventListener("click", async e => {
   // « J'ai envoyé X ₪ » : un message au livreur dans la conversation (il vérifie son Bit, puis confirme)
   const sb = e.target.closest("[data-sent]");
   if (sb) {
-    if (!confirm(t("sentConfirm", { amount: sb.dataset.amount, name: sb.dataset.name }))) return;
+    if (!(await UI.confirm(t("sentConfirm", { amount: sb.dataset.amount, name: sb.dataset.name })))) return;
     sb.disabled = true;
     const ok = await Store.chatOrderSend(token, t("sentMsg_" + sb.dataset.what, { amount: sb.dataset.amount })).catch(() => false);
-    if (!ok) { sb.disabled = false; return alert(t("sentErr")); }
+    if (!ok) { sb.disabled = false; return (await UI.alert(t("sentErr"))); }
     try { sessionStorage.setItem("hop.sent." + token + "." + sb.dataset.what + "." + sb.dataset.amount, "1"); } catch (ex) { /* pas de stockage */ }
     sb.outerHTML = `<p class="promo-msg ok">${UI.esc(t("sentOk", { name: sb.dataset.name }))}</p>`;
     return;
