@@ -7061,3 +7061,11 @@ html.d3 body.shop-compact #shopHero .sh-last15 { display: none !important; }
 html.d3 .sc-find-list .fi-any { background: #fff; border: 1px solid #E6E8EB; box-shadow: none; }
 html.d3 .sc-find-list .fi-any .fi-pic, html.d3 .sc-find-list .fr-logo.hop { background: #F2F3F5; color: #111418; box-shadow: none; }
 html.d3 .sc-find-list .fi-any .fi-go { color: #111418; }
+/* « Ma commande » plus courte (patron, 20/11 : « fais tous les points », point 8) */
+html.d3 #shopHero .sh-cover.empty, html.d3 body.shop-compact #shopHero .sh-cover.empty { height: 40px !important; min-height: 0 !important; aspect-ratio: auto !important; background: none !important; margin-bottom: 0 !important; }
+html.d3 #shopHero .sh-cover.empty .sh-share { top: 2px; inset-inline-end: 0; }
+html.d3 #shopHero .sh-cover.empty > i { display: none; }
+#orderForm.has-list #shopWa, #orderForm.has-list .wa-list.show-achat { display: none !important; }
+html:has(#shopHero .sh-sched) #orderForm.shop-mode #whenClosed { display: none; }
+html.d3 .gc .gc-opt:not(.on) small { display: none; }
+html.d3 .gc .gc-opt:not(.on) { padding-block: 12px; }
