@@ -7095,3 +7095,15 @@ html.d3 .gc .gc-opt:not(.on) { padding-block: 12px; }
 .cg-head.has-sw ~ .cg-body .cg-stores, .cg-stores-w:has(+ .cg-head.has-sw) { display: none; }
 .cg-head.has-sw .cg-srow .cg-search { padding: 0 10px; }
 .cg-head.has-sw .cg-srow .cg-search input { padding-inline: 8px !important; min-width: 0; }
+.cg-swlist { max-height: min(60vh, 440px); overflow-y: auto; overscroll-behavior: contain; }
+.cg-swlist > small.cg-sw-h2 { margin-top: 8px; border-top: 1px solid #E6E8EB; padding-top: 10px; }
+.cg-swi bdi { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Nom long (« McDonald's Sharon ») : sur 2 lignes, sans le « Changer » dessous (jamais coupé) */
+.cg-shopsw.long .cg-sw-t small { display: none; }
+.cg-shopsw.long .cg-sw-t b { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 13.5px; line-height: 1.15; }
+.cg-shopsw.long { max-width: 50%; padding-inline-end: 8px; gap: 6px; }
+.cg-head.has-sw .cg-srow .cg-search { padding: 0 6px; }
+.cg-head.has-sw .cg-srow .cg-search input { padding-inline: 6px !important; }
+.cg-shopsw.long { max-width: 52%; }
+.cg-shopsw.long .cg-sw-t b { font-size: 13px; overflow-wrap: normal; word-break: keep-all; }
+.cg-shopsw.long .cg-st-lg { width: 30px; height: 30px; }
