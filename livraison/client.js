@@ -4328,7 +4328,8 @@ function renderCatalog() {
   // le magasin est dans la barre qui reste en haut, collé à la recherche ; un toucher ouvre la liste de nos magasins
   const swB = box.querySelector("[data-cg-sw]"), swL = box.querySelector(".cg-swlist");
   if (swB && swL) {
-    const many = stores.length > 1 || (isHopShop(state.shop) && cq);
+    const others = (state.showcase || []).filter(x => !isHopShop(x) && !x.demo && x.code !== state.shop.code);
+    const many = !state.shop.demo && (stores.length > 1 || (isHopShop(state.shop) && cq) || others.length > 0);
     swB.classList.toggle("hidden", !many);
     box.querySelector(".cg-head").classList.toggle("has-sw", many);
     if (many) {
@@ -4336,9 +4337,15 @@ function renderCatalog() {
       const lg0 = UI.safeImg(state.shop.logo);
       const bh = `<span class="cg-st-lg">${lg0 ? `<img src="${lg0}" alt="" />` : `<b>${UI.esc(mgShort(state.shop.name).slice(0, 1))}</b>`}</span><span class="cg-sw-t"><b><bdi>${UI.esc(mgShort(state.shop.name))}</bdi></b><small>${UI.esc(t("cgSwitch"))}</small></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
       if (swB.dataset.html !== bh) { swB.innerHTML = bh; swB.dataset.html = bh; }
-      const lh = `<small>${escHop(t("cgStores"))}</small>` + [all.find(x => x.code === state.shop.code) || state.shop].concat(all.filter(x => x.code !== state.shop.code)).map(x => {
+      swB.classList.toggle("long", mgShort(state.shop.name).length > 11);
+      const hopFirst = isHopShop(state.shop) ? [all.find(x => x.code === state.shop.code) || state.shop].concat(all.filter(x => x.code !== state.shop.code)) : all;
+      const lh = `<small>${escHop(t("cgStores"))}</small>` + hopFirst.map(x => {
         const lg = UI.safeImg(x.logo);
-        return `<button type="button" class="cg-swi${x.code === state.shop.code ? " on" : ""}" data-cg-store="${UI.esc(x.code)}"><span class="cg-st-lg">${lg ? `<img src="${lg}" alt="" />` : `<b>${UI.esc(mgShort(x.name).slice(0, 1))}</b>`}</span><bdi>${UI.esc(mgShort(x.name))}</bdi>${x.code === state.shop.code ? `<i aria-hidden="true">✓</i>` : ""}</button>`; }).join("");
+        return `<button type="button" class="cg-swi${x.code === state.shop.code ? " on" : ""}" data-cg-store="${UI.esc(x.code)}"><span class="cg-st-lg">${lg ? `<img src="${lg}" alt="" />` : `<b>${UI.esc(mgShort(x.name).slice(0, 1))}</b>`}</span><bdi>${UI.esc(mgShort(x.name))}</bdi>${x.code === state.shop.code ? `<i aria-hidden="true">✓</i>` : ""}</button>`; }).join("")
+        // Tous les autres commerces (patron, 21/11 : « dommage qu'on ne voie pas tous les magasins »)
+        + (others.length ? `<small class="cg-sw-h2">${UI.esc(t("cgAllShops"))}</small>` + others.map(x => {
+          const lg = UI.safeImg(x.logo);
+          return `<button type="button" class="cg-swi" data-cg-store="${UI.esc(x.code)}"><span class="cg-st-lg">${lg ? `<img src="${lg}" alt="" loading="lazy" />` : `<b>${UI.esc(mgShort(UI.bi(x.name)).slice(0, 1))}</b>`}</span><bdi>${escHop(UI.bi(x.name))}</bdi></button>`; }).join("") : "");
       if (swL.dataset.html !== lh) { swL.innerHTML = lh; swL.dataset.html = lh; }
       qIn.placeholder = t("cgFind");
     } else swL.classList.add("hidden");
