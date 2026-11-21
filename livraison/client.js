@@ -7,6 +7,8 @@
 "use strict";
 
 const $ = s => document.querySelector(s);
+// Paramètres de l'adresse au lancement (l'adresse est nettoyée ensuite : ?cart=1 de la notification « panier » s'y perdait)
+const BOOT_Q = new URLSearchParams(location.search);
 const t = I18N.t;
 const form = $("#orderForm");
 const P = CONFIG.pricing;
@@ -868,7 +870,8 @@ const shopCashOnly = () => !!(proShopOn() && state.shop && state.shop.cash_ok &&
 // Commerce non partenaire (HOP! commande pour le client, ex. McDonald's) : le client choisit comment payer ses articles :
 // 🔗 le lien de paiement du commerce (envoyé par HOP!, livraison normale), 📱 Bit à HOP! avant, ou 💵 espèces au livreur.
 // Les boutiques HOP! (code HOP…, ex. les jus) restent en espèces au livreur.
-const linkOk = () => shopCashOnly() && !/^HOP/.test(state.shop.code || "");
+// (patron, 21/11 : « le lien de paiement ne marche pour l'instant que pour McDonald's ») : seulement McDonald's
+const linkOk = () => shopCashOnly() && /^MCD/i.test(state.shop.code || "");
 const hasShopGoods = () => cartCount() > 0 || !!val("shop_order").trim();
 // Boutique HOP! (jus, Carrefour, BOOOM) : Bit au livreur (choisi d'office, demande du patron) ou espèces (pas de lien) ;
 // McDonald's : lien, Bit au livreur ou espèces
@@ -3359,6 +3362,7 @@ async function submit(e) {
     // (la base marque la livraison offerte ; l'écran de confirmation le sait déjà)
     if (q.gift) saved.shop_pays = true;
     UI.track("order_sent", { order_ref: saved.ref, amount: Number(saved.price) || 0, shop_code: state.shop ? state.shop.code : null });
+    try { localStorage.removeItem("livraison.list.v1"); } catch (e) { /* ignore */ }
     if (state.shop && order.items) { try { const m = JSON.parse(localStorage.getItem(LS_REORDER) || "{}"); m[saved.ref] = state.shop.code; localStorage.setItem(LS_REORDER, JSON.stringify(m)); } catch (e) { /* ignore */ } }
     if (order.promo_code === "PANIER") { try { localStorage.setItem(LS_GIFT, String(Date.now())); } catch (e) { /* ignore */ } cartAtStart = null; }
     try { sessionStorage.removeItem("hop.started"); } catch (e) { /* ignore */ }
@@ -8956,7 +8960,7 @@ async function loadShowcase() {
 // qui défilent toutes seules sous les grands bandeaux ; un toucher ouvre la boutique ET la fiche du produit.
 // Intelligent : selon l'heure (matin : café, lait, pain… ; midi : pâtes, riz… ; soir : snacks, boissons…), sans ce qui
 // est déjà au panier, et jamais trois fois de suite la même boutique. Il s'arrête quand on le touche ou qu'on ne le voit pas.
-const promo = { list: [], timer: null, hold: 0, seen: false, shop: "" };
+const promo = { list: [], timer: null, hold: 0, seen: false, shop: "", fixed: null, bad: new Set() };
 const PROMO_TIME = [[6, 11, /caf[ée]|\blait\b|c[ée]r[ée]ales|muesli|\bpain|beurre|confiture|\bth[ée]\b|yaourt|קפה|חלב|דגני|לחם|חמאה|ריבה|תה|יוגורט/i],
   [11, 16, /p[aâ]tes|\briz\b|thon|sauce|schnitzel|houmous|salade|nouilles|פסטה|אורז|טונה|רוטב|שניצל|חומוס|סלט|אטריות/i],
   [16, 24, /chips|chocolat|bonbons?|glace|boisson|coca|soda|biscuit|gaufrette|maltesers|kinder|צ'יפס|שוקולד|סוכריות|גלידה|משקה|קולה|עוגיות|במבה|וופל/i],
@@ -8997,9 +9001,20 @@ function hpItems() {
   } else rest = promo.list.filter(x => !x.pin).map(x => ({ id: x.id, code: x.code, name: x.name, p: Number(x.price), o: x.old ? Number(x.old) : null, l: Number(x.lot) > 1 ? Number(x.lot) : 1, f: x.off, ph: x.ph }));
   return { pins, rest };
 }
+// (patron, 21/11 : « ça met beaucoup trop de temps avant d'arriver ») : les premières cartes ont une photo rapide (photos de
+// l'appli ou de Carrefour, pas celles du site Rami Lévy, lentes), une photo qui ne charge pas retire sa carte, et l'ordre
+// affiché ne change plus quand la liste complète arrive (avant : tout se remélangeait et les photos recommençaient à charger)
+const pzSlow = x => /rami-levy\.co\.il/.test(x.ph || "");
 function hpList() {
   const { pins, rest } = hpItems(), sel = promo.shop || "";
-  const r = rest.filter(x => !sel || x.code === sel), out = pins.filter(x => !sel || x.code === sel);
+  const ok = x => x && !promo.bad.has(x.id);
+  const r = rest.filter(x => ok(x) && (!sel || x.code === sel)), out = pins.filter(x => ok(x) && (!sel || x.code === sel));
+  if (!sel && promo.fixed) {
+    promo.fixed.forEach(id => { const k = r.findIndex(x => x.id === id); if (k >= 0 && !out.some(x => x.id === id)) out.push(r.splice(k, 1)[0]); });
+  } else if (!sel) {
+    // 3 premières cartes : photos rapides
+    while (out.length < 3) { const k = r.findIndex(x => !pzSlow(x)); if (k < 0) break; out.push(r.splice(k, 1)[0]); }
+  }
   // pas trois fois de suite le même magasin
   while (r.length && out.length < (sel ? 16 : 24)) {
     const l2 = out.slice(-2).map(x => x.code);
@@ -9007,8 +9022,19 @@ function hpList() {
     if (k < 0) k = 0;
     out.push(r.splice(k, 1)[0]);
   }
+  if (!sel && !promo.fixed && out.length >= 6) promo.fixed = out.map(x => x.id);
   return out;
 }
+// Photo qui ne charge pas (le site du magasin n'a pas l'image) : la carte disparaît, plus de cadre vide
+if ($("#homePromos")) $("#homePromos").addEventListener("error", e => {
+  const im = e.target;
+  if (!im || im.tagName !== "IMG" || !im.closest(".pz-pic")) return;
+  const c = im.closest(".pz-card");
+  if (!c) return;
+  const id = String(c.dataset.promo || "").split("|")[1];
+  if (id) promo.bad.add(id);
+  c.remove();
+}, true);
 function hpShops() {
   const all = pa.data ? paItems().filter(x => x.f) : promo.list;
   const by = {};
@@ -9029,7 +9055,7 @@ function renderPromos() {
     const badge = x.pin ? `<em class="pz-off pz-pin">${UI.esc(he ? x.label_he || x.label || "" : x.label || "")}</em>` : x.f ? `<em class="pz-off" dir="ltr">−${Number(x.f)}%</em>` : "";
     const price = x.l > 1 ? t("paLot", { n: x.l, price: money(x.p) }) : money(x.p);
     return `<div class="pz-card" data-promo="${UI.esc(x.code)}|${UI.esc(x.id)}" data-i="${i}" style="--t:${HP_TINT[x.code] || "#F2F3F5"}">
-      <span class="pz-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" />${badge}<span class="pz-shop">${logo(x.code)}<bdi>${UI.esc(paShopName(x.code))}</bdi></span></span>
+      <span class="pz-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 3 ? "eager" : "lazy"}"${i === 0 ? ' fetchpriority="high"' : ""} decoding="async" />${badge}<span class="pz-shop">${logo(x.code)}<bdi>${UI.esc(paShopName(x.code))}</bdi></span></span>
       <span class="pz-info"><b class="pz-name"><bdi>${UI.esc(deEnt(UI.bi(x.name)))}</bdi></b>
         <span class="pz-pr"><strong><bdi dir="ltr">${UI.esc(price)}</bdi></strong>${x.o && x.o > x.p ? `<s dir="ltr">${UI.esc(money(x.o))}</s>` : ""}</span></span>
       <button type="button" class="pz-add" data-pz-add="${UI.esc(x.code)}|${UI.esc(x.id)}" aria-label="${UI.esc(t("paAdd"))}">+</button></div>`;
@@ -9043,6 +9069,17 @@ function renderPromos() {
     <div class="pz-row">${list.map(card).join("")}</div>
     <div class="pz-dots" aria-hidden="true">${Array.from({ length: dots }, (_, k) => `<span data-d="${k}"></span>`).join("")}</div>`;
   if (box.dataset.html === html) return;
+  // Mêmes cartes qu'à l'écran (la liste complète vient d'arriver) : on change seulement le titre et les filtres,
+  // les photos déjà affichées restent (rien ne clignote, rien ne recharge)
+  const ids = list.map(x => x.id).join(",");
+  if (box.dataset.ids === ids && box.dataset.shop === sel && box.querySelector(".pz-row")) {
+    const tmp = document.createElement("div"); tmp.innerHTML = html;
+    box.querySelector(".pz-h").replaceWith(tmp.querySelector(".pz-h"));
+    box.querySelector(".pz-chips").replaceWith(tmp.querySelector(".pz-chips"));
+    box.dataset.html = html;
+    return;
+  }
+  box.dataset.ids = ids;
   const keep = box.dataset.shop === sel ? (box.querySelector(".pz-row") || {}).scrollLeft || 0 : 0;
   box.innerHTML = html; box.dataset.html = html; box.dataset.shop = sel; box.className = "pm pz";
   const row = box.querySelector(".pz-row");
@@ -9815,10 +9852,10 @@ function cartWho(snap) {
 // 1er article : « On vous prévient ? » (une fine barre, une fois tous les 3 jours au plus). Accepté : ce téléphone recevra
 // « 🛒 Votre panier vous attend » 30 min après, même sans nom ni numéro (et ses notifications de commande ensuite)
 const LS_CN = "livraison.cartNotifAsked.v1";
-function cartNotifAsk() {
+function cartNotifAsk(force) {
   if (!window.Notification || !(CONFIG.push && CONFIG.push.publicKey)) return;
   if (Notification.permission === "granted") { UI.cartPushSubscribe(false); return; }
-  if (Notification.permission !== "default" || !cartSnap().count) return;
+  if (Notification.permission !== "default" || !(force || cartSnap().count)) return;
   let last = 0;
   try { last = Number(localStorage.getItem(LS_CN)) || 0; } catch (e) { /* ignore */ }
   if (Date.now() - last < 3 * 86400000) return;
@@ -10137,10 +10174,41 @@ if ($("#tbCart")) {
   let reopen = false;
   try { reopen = sessionStorage.getItem("hop.reopenCart") === "1"; sessionStorage.removeItem("hop.reopenCart"); } catch (e) { /* ignore */ }
   // (la notification « 🛒 Votre panier vous attend » ouvre l'appli avec ?cart=1 : le panier s'ouvre tout de suite)
-  if ((reopen || new URLSearchParams(location.search).has("cart")) && c0) setTimeout(() => openStoredCart().catch(() => {}), 600);
+  if ((reopen || BOOT_Q.has("cart")) && c0) setTimeout(() => openStoredCart().catch(() => {}), 600);
+  // (la notification « Votre commande vous attend » d'une liste écrite : on rouvre le commerce avec la liste déjà remplie)
+  if (!c0 && BOOT_Q.has("cart")) {
+    let l = null; try { l = JSON.parse(localStorage.getItem("livraison.list.v1")); } catch (e) { l = null; }
+    if (l && l.code && l.text && Date.now() - l.at < 3 * 86400000) location.replace("index.html?c=" + encodeURIComponent(l.code) + "&list=1");
+  }
+  if (BOOT_Q.has("list")) {
+    let l = null; try { l = JSON.parse(localStorage.getItem("livraison.list.v1")); } catch (e) { l = null; }
+    let n = 0;
+    const fill = () => {
+      if (!l || !l.text) return;
+      if (state.shop && state.shop.code === l.code) { if (!val("shop_order").trim()) { form.shop_order.value = l.text; form.shop_order.dispatchEvent(new Event("input", { bubbles: true })); } return; }
+      if (++n < 20) setTimeout(fill, 500);
+    };
+    setTimeout(fill, 800);
+  }
 }
 
 
+// Liste écrite à la main chez un commerce, sans panier (patron, 21/11 : « des commandes commencées, jamais envoyées ») :
+// gardée comme un panier (onglet 🛒 Paniers du patron) et relancée par notification « Votre commande vous attend »
+const LS_LIST = "livraison.list.v1";
+function listSnap() {
+  const tx = val("shop_order").trim();
+  if (!state.shop || tx.length < 3 || cartLines().length) return null;
+  return { kind: "liste", shop_code: state.shop.code, shop_name: UI.bi(state.shop.name), items: [{ n: tx.slice(0, 300), q: 1, p: null }], count: 1, total: null };
+}
+form.shop_order.addEventListener("input", () => {
+  const s = listSnap();
+  if (!s) return;
+  cartSync(s);
+  try { localStorage.setItem(LS_LIST, JSON.stringify({ code: state.shop.code, text: s.items[0].n, at: Date.now() })); } catch (x) { /* ignore */ }
+  clearTimeout(form.shop_order._ln);
+  form.shop_order._ln = setTimeout(() => { try { cartNotifAsk(true); } catch (x) { /* ignore */ } }, 5000);
+});
 // Boutique HOP! : les articles écrits à la main comptent tout de suite dans la jauge (articles et top case)
 form.shop_order.addEventListener("input", () => { try { goLabel(); } catch (x) { /* ignore */ } if (!hopBuyOn()) return; clearTimeout(form.shop_order._t); form.shop_order._t = setTimeout(() => { try { renderCatalog(); } catch (e) { /* ignore */ } }, 400); });
 
