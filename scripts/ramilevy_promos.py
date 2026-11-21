@@ -224,6 +224,15 @@ def make(c: dict, code: str, prices: dict) -> dict | None:
     return {"c": code, "p": round(c["lot"], 2), "d": d, "disc": disc}
 
 
+def photo_ok(sess: requests.Session, code: str) -> bool:
+    """La photo Rami Lévy du produit existe-t-elle ? (sinon le client voit une image cassée)"""
+    try:
+        r = sess.get(f"https://img.rami-levy.co.il/product/{code}/small.jpg", timeout=20)
+        return r.status_code == 200 and "image" in r.headers.get("content-type", "") and len(r.content) > 1500
+    except requests.RequestException:
+        return True  # site injoignable : on ne retire rien
+
+
 def base_fr(fr: str) -> str:
     return re.sub(r"\s*\(lot de \d+\)\s*$", "", fr or "").strip()
 
@@ -233,6 +242,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(Path(__file__).resolve().parent.parent / "livraison" / "data"))
     ap.add_argument("--promo-xml", help="fichier PromoFull déjà téléchargé (essais)")
     ap.add_argument("--price-xml", help="fichier PriceFull déjà téléchargé (essais)")
+    ap.add_argument("--no-photo-check", action="store_true", help="ne pas vérifier les photos (essais hors ligne)")
     a = ap.parse_args()
     out = Path(a.out)
     today = dt.datetime.now(dt.timezone(dt.timedelta(hours=2))).date()
@@ -308,6 +318,25 @@ def main() -> int:
         log("trop peu de données : on ne touche à rien")
         return 1
 
+    # Photos : un produit sans photo chez Rami Lévy prend, si possible, un autre produit de la même promo qui en a une ;
+    # sinon il est marqué « noph » (la base ne met pas de photo, l'appli dessine un panier)
+    if not a.no_photo_check:
+        import concurrent.futures
+        ps = requests.Session()
+        with concurrent.futures.ThreadPoolExecutor(12) as ex:
+            ok = dict(zip([i["c"] for i in items], ex.map(lambda c: photo_ok(ps, c), [i["c"] for i in items])))
+        for i in items:
+            if ok.get(i["c"], True):
+                continue
+            c = cands.get(i["id"])
+            alt = next((x for x in (c["codes"] if c else []) if x != i["c"] and x not in used_codes and make(c, x, prices) and photo_ok(ps, x)), None)
+            if alt and not i["fr"]:
+                m = make(c, alt, prices)
+                used_codes.add(alt)
+                i.update({"c": alt, "p": m["p"], "d": m["d"]})
+            else:
+                i["noph"] = 1
+        log(f"photos : {sum(1 for i in items if i.get('noph'))} produits sans photo")
     items.sort(key=lambda i: (-i["_disc"], i["id"]))
     for pos, i in enumerate(items):
         i.pop("_disc")

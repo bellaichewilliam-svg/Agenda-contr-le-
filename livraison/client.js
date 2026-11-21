@@ -3983,6 +3983,17 @@ document.addEventListener("load", e => {
   const el = e.target;
   if (el && el.tagName === "IMG" && el.closest(".cg-pic, .cg-tpic, .it-pic, .cs-pic")) checkWhitePic(el);
 }, true);
+// Photo d'article qui ne charge pas (le site du magasin ne l'a pas) : un panier dessiné, sobre, à la place de l'image cassée
+// (patron, 21/11 : avocats et échalotes Rami Lévy sans photo)
+document.addEventListener("error", e => {
+  const el = e.target;
+  if (!el || el.tagName !== "IMG" || el.dataset.miss || !el.closest(".cg-pic, .cg-tpic, .it-pic, .cs-pic, .ck-t, .fr-pic")) return;
+  el.dataset.miss = "1";
+  const m = document.createElement("span");
+  m.className = "pic-miss";
+  m.innerHTML = '<svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9h14l-1.4 9.2a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8L5 9z"/><path d="M9 9l3-5 3 5"/></svg>';
+  el.replaceWith(m);
+}, true);
 
 // Tailles d'un même menu (ex. McDonald's petit / moyen / grand) : des articles « Nom · שם [Grand · גדולה] » de la même rubrique.
 // Une seule carte (« dès 49 ₪ »), la taille se choisit dans la fiche de l'article ; le panier garde la taille choisie
