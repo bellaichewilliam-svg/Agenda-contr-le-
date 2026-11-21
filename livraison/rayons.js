@@ -212,6 +212,8 @@ const BAKERY = {
     { id: "bois", img: "coffee", e: "☕", fr: "Boissons", he: "שתייה" },
   ],
   items: [
+    // La baguette de Rouah Hamatok (patron, 21/11 : « notre fameuse baguette ») : en tête quand on cherche « pain » ou « baguette »
+    { id: "baguette-rouah", top: true, c: "pain", img: "baguette", e: "🥖", fr: "Baguette Rouah Hamatok (pain français)", he: "באגט רוח המתוק (לחם צרפתי)" },
     { id: "baguette", p: [10, 12], c: "pain", img: "baguette", e: "🥖", fr: "Baguette", he: "באגט" },
     { id: "challah", p: [12, 20], c: "pain", img: "bread", e: "🍞", fr: "Challah", he: "חלה", opt: V(["Nature", "רגילה"], ["Sésame", "שומשום"], ["Raisins", "צימוקים"]) },
     { id: "complet", p: [14, 22], c: "pain", img: "bread", e: "🍞", fr: "Pain complet / multicéréales", he: "לחם מלא / דגנים" },

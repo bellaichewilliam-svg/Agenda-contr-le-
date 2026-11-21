@@ -2218,7 +2218,7 @@ function rayonHits(q, max) {
     // La rubrique du produit va avec le mot cherché (rubrique « Lait » pour « lait ») : il passe devant
     const ck = r.id + ":" + i.c;
     if (!(ck in catHit)) { const c = (r.cats || []).find(x => x.id === i.c); catHit[ck] = !!c && word(synNorm(`${c.id} ${c.fr || ""} ${c.he || ""}`)) >= 0; }
-    out.push({ r, i, s: ((k >= 0 ? k : 4) * 2 + (catHit[ck] ? 0 : 1)) * 2 + (r.id === "super" ? 0 : 1) });
+    out.push({ r, i, s: i.top ? -1 : ((k >= 0 ? k : 4) * 2 + (catHit[ck] ? 0 : 1)) * 2 + (r.id === "super" ? 0 : 1) });
   }
   // Le mot est le nom d'une rubrique (« cigarettes », « bières », « vins ») : tous ses produits (patron, 12/11 : « cigarettes »
   // doit montrer le petit catalogue de cigarettes, pas des gaufrettes)
@@ -8543,7 +8543,7 @@ function vitFindRender(q, products, shops, staple, box) {
   const rays = rayonHits(q, 8);
   const rayHtml = rays.length ? `<section class="fr-group"><div class="fr-head"><span class="fr-logo hop"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 10.2a1.5 1.5 0 0 0 1.5 1.1h8.2a1.5 1.5 0 0 0 1.4-1l2-6.3H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg></span><span class="fr-name"><b>${escHop(t("vitFindRay").replace(/^\P{L}+/u, ""))}</b><small>${UI.esc(t("vitFindRaySub"))}</small></span></div>
     <div class="fr-row">${rays.map(({ r, i }) => { const ph = UI.safeImg(i.photo) || (i.img ? `img/qc/${i.img}.webp` : ""), pr = i.p || (i.opt && i.opt[0] && (i.opt[0].p || i.opt[0].pb)) || i.pb;
-      return card(`data-find-ray="${UI.esc(r.id)}"`, ph ? `<img src="${ph}" alt="" loading="lazy" />` : `<i>${UI.esc(i.e || "🛒")}</i>`, true, pr ? `≈ <bdi dir="ltr">${priceTxt(pr)}</bdi>` : "&nbsp;", UI.esc(phName(i))); }).join("")}</div></section>` : "";
+      return card(`data-find-ray="${UI.esc(r.id)}"`, ph ? `<img src="${ph}" alt="" loading="lazy" />` : `<i>${UI.esc(i.e || "🛒")}</i>`, true, pr ? `≈ <bdi dir="ltr">${priceTxt(pr)}</bdi>` : i.top ? `<small>${UI.esc(t("ryNoPrice"))}</small>` : "&nbsp;", UI.esc(phName(i))); }).join("")}</div></section>` : "";
   const shopHtml = shops.length ? `<h5>${UI.esc(t("vitFindShops"))}</h5>` + shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${escHop(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}</small></span></button>`).join("") : "";
   // (les rayons d'abord pour les courses du quotidien : lait, eau, couches…)
   // (même contenu : on ne redessine pas, les photos et le défilement restent en place)
