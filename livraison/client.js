@@ -8960,7 +8960,7 @@ async function loadShowcase() {
 // qui défilent toutes seules sous les grands bandeaux ; un toucher ouvre la boutique ET la fiche du produit.
 // Intelligent : selon l'heure (matin : café, lait, pain… ; midi : pâtes, riz… ; soir : snacks, boissons…), sans ce qui
 // est déjà au panier, et jamais trois fois de suite la même boutique. Il s'arrête quand on le touche ou qu'on ne le voit pas.
-const promo = { list: [], timer: null, hold: 0, seen: false, shop: "" };
+const promo = { list: [], timer: null, hold: 0, seen: false, shop: "", fixed: null, bad: new Set() };
 const PROMO_TIME = [[6, 11, /caf[ée]|\blait\b|c[ée]r[ée]ales|muesli|\bpain|beurre|confiture|\bth[ée]\b|yaourt|קפה|חלב|דגני|לחם|חמאה|ריבה|תה|יוגורט/i],
   [11, 16, /p[aâ]tes|\briz\b|thon|sauce|schnitzel|houmous|salade|nouilles|פסטה|אורז|טונה|רוטב|שניצל|חומוס|סלט|אטריות/i],
   [16, 24, /chips|chocolat|bonbons?|glace|boisson|coca|soda|biscuit|gaufrette|maltesers|kinder|צ'יפס|שוקולד|סוכריות|גלידה|משקה|קולה|עוגיות|במבה|וופל/i],
@@ -9001,9 +9001,20 @@ function hpItems() {
   } else rest = promo.list.filter(x => !x.pin).map(x => ({ id: x.id, code: x.code, name: x.name, p: Number(x.price), o: x.old ? Number(x.old) : null, l: Number(x.lot) > 1 ? Number(x.lot) : 1, f: x.off, ph: x.ph }));
   return { pins, rest };
 }
+// (patron, 21/11 : « ça met beaucoup trop de temps avant d'arriver ») : les premières cartes ont une photo rapide (photos de
+// l'appli ou de Carrefour, pas celles du site Rami Lévy, lentes), une photo qui ne charge pas retire sa carte, et l'ordre
+// affiché ne change plus quand la liste complète arrive (avant : tout se remélangeait et les photos recommençaient à charger)
+const pzSlow = x => /rami-levy\.co\.il/.test(x.ph || "");
 function hpList() {
   const { pins, rest } = hpItems(), sel = promo.shop || "";
-  const r = rest.filter(x => !sel || x.code === sel), out = pins.filter(x => !sel || x.code === sel);
+  const ok = x => x && !promo.bad.has(x.id);
+  const r = rest.filter(x => ok(x) && (!sel || x.code === sel)), out = pins.filter(x => ok(x) && (!sel || x.code === sel));
+  if (!sel && promo.fixed) {
+    promo.fixed.forEach(id => { const k = r.findIndex(x => x.id === id); if (k >= 0 && !out.some(x => x.id === id)) out.push(r.splice(k, 1)[0]); });
+  } else if (!sel) {
+    // 3 premières cartes : photos rapides
+    while (out.length < 3) { const k = r.findIndex(x => !pzSlow(x)); if (k < 0) break; out.push(r.splice(k, 1)[0]); }
+  }
   // pas trois fois de suite le même magasin
   while (r.length && out.length < (sel ? 16 : 24)) {
     const l2 = out.slice(-2).map(x => x.code);
@@ -9011,8 +9022,19 @@ function hpList() {
     if (k < 0) k = 0;
     out.push(r.splice(k, 1)[0]);
   }
+  if (!sel && !promo.fixed && out.length >= 6) promo.fixed = out.map(x => x.id);
   return out;
 }
+// Photo qui ne charge pas (le site du magasin n'a pas l'image) : la carte disparaît, plus de cadre vide
+if ($("#homePromos")) $("#homePromos").addEventListener("error", e => {
+  const im = e.target;
+  if (!im || im.tagName !== "IMG" || !im.closest(".pz-pic")) return;
+  const c = im.closest(".pz-card");
+  if (!c) return;
+  const id = String(c.dataset.promo || "").split("|")[1];
+  if (id) promo.bad.add(id);
+  c.remove();
+}, true);
 function hpShops() {
   const all = pa.data ? paItems().filter(x => x.f) : promo.list;
   const by = {};
@@ -9033,7 +9055,7 @@ function renderPromos() {
     const badge = x.pin ? `<em class="pz-off pz-pin">${UI.esc(he ? x.label_he || x.label || "" : x.label || "")}</em>` : x.f ? `<em class="pz-off" dir="ltr">−${Number(x.f)}%</em>` : "";
     const price = x.l > 1 ? t("paLot", { n: x.l, price: money(x.p) }) : money(x.p);
     return `<div class="pz-card" data-promo="${UI.esc(x.code)}|${UI.esc(x.id)}" data-i="${i}" style="--t:${HP_TINT[x.code] || "#F2F3F5"}">
-      <span class="pz-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 2 ? "eager" : "lazy"}" decoding="async" />${badge}<span class="pz-shop">${logo(x.code)}<bdi>${UI.esc(paShopName(x.code))}</bdi></span></span>
+      <span class="pz-pic"><img src="${UI.esc(x.ph)}" alt="" loading="${i < 3 ? "eager" : "lazy"}"${i === 0 ? ' fetchpriority="high"' : ""} decoding="async" />${badge}<span class="pz-shop">${logo(x.code)}<bdi>${UI.esc(paShopName(x.code))}</bdi></span></span>
       <span class="pz-info"><b class="pz-name"><bdi>${UI.esc(deEnt(UI.bi(x.name)))}</bdi></b>
         <span class="pz-pr"><strong><bdi dir="ltr">${UI.esc(price)}</bdi></strong>${x.o && x.o > x.p ? `<s dir="ltr">${UI.esc(money(x.o))}</s>` : ""}</span></span>
       <button type="button" class="pz-add" data-pz-add="${UI.esc(x.code)}|${UI.esc(x.id)}" aria-label="${UI.esc(t("paAdd"))}">+</button></div>`;
@@ -9047,6 +9069,17 @@ function renderPromos() {
     <div class="pz-row">${list.map(card).join("")}</div>
     <div class="pz-dots" aria-hidden="true">${Array.from({ length: dots }, (_, k) => `<span data-d="${k}"></span>`).join("")}</div>`;
   if (box.dataset.html === html) return;
+  // Mêmes cartes qu'à l'écran (la liste complète vient d'arriver) : on change seulement le titre et les filtres,
+  // les photos déjà affichées restent (rien ne clignote, rien ne recharge)
+  const ids = list.map(x => x.id).join(",");
+  if (box.dataset.ids === ids && box.dataset.shop === sel && box.querySelector(".pz-row")) {
+    const tmp = document.createElement("div"); tmp.innerHTML = html;
+    box.querySelector(".pz-h").replaceWith(tmp.querySelector(".pz-h"));
+    box.querySelector(".pz-chips").replaceWith(tmp.querySelector(".pz-chips"));
+    box.dataset.html = html;
+    return;
+  }
+  box.dataset.ids = ids;
   const keep = box.dataset.shop === sel ? (box.querySelector(".pz-row") || {}).scrollLeft || 0 : 0;
   box.innerHTML = html; box.dataset.html = html; box.dataset.shop = sel; box.className = "pm pz";
   const row = box.querySelector(".pz-row");
