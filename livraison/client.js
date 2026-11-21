@@ -4301,7 +4301,7 @@ function renderCatalog() {
       `<button type="button" class="cg-tab" data-cg-cat="${UI.esc(x.id)}">${UI.esc(x.title)}</button>`).join("")}</div>` : ""}`;
   // Le champ de recherche est posé une seule fois par commerce (il garde le clavier et ce qui est tapé)
   if (box.dataset.shell !== state.shop.code + I18N.lang) {
-    box.innerHTML = `<div class="cg-stores-w"></div><div class="cg-head"><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label><button type="button" class="cg-voice" data-cg-mic><span class="cv-ic">${HV_MIC}</span><span class="cv-t"><b>${UI.esc(t("cgVoice"))}</b><small>${UI.esc(t("cgVoiceS"))}</small></span><i aria-hidden="true">›</i></button><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
+    box.innerHTML = `<div class="cg-stores-w"></div><div class="cg-head"><div class="cg-srow"><button type="button" class="cg-shopsw hidden" data-cg-sw aria-expanded="false"></button><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label></div><div class="cg-swlist hidden"></div><button type="button" class="cg-voice" data-cg-mic><span class="cv-ic">${HV_MIC}</span><span class="cv-t"><b>${UI.esc(t("cgVoice"))}</b><small>${UI.esc(t("cgVoiceS"))}</small></span><i aria-hidden="true">›</i></button><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
     box.dataset.shell = state.shop.code + I18N.lang; box.dataset.html = ""; box.dataset.head = "";
     state.cgQ = state.cgQNext || ""; state.cgQNext = "";
     if (state.cgQ) box.querySelector("[data-cg-q]").value = state.cgQ;
@@ -4324,6 +4324,25 @@ function renderCatalog() {
   const storeBar = stores.length > 1 ? `<div class="cg-stores"><small>${escHop(t("cgStores"))}</small><div class="cg-st-row">${[stores.find(x => x.code === state.shop.code) || state.shop].concat(stores.filter(x => x.code !== state.shop.code)).map(x => {
       const lg = UI.safeImg(x.logo);
       return `<button type="button" class="cg-st${x.code === state.shop.code ? " on" : ""}" data-cg-store="${UI.esc(x.code)}"><span class="cg-st-lg">${lg ? `<img src="${lg}" alt="" />` : `<b>${UI.esc(mgShort(x.name).slice(0, 1))}</b>`}</span><bdi>${UI.esc(mgShort(x.name))}</bdi></button>`; }).join("")}</div></div>` : "";
+  // (patron, 21/11 : « si on ne remonte pas tout en haut, on ne voit pas qu'on est chez Rami Lévy ni les autres magasins ») :
+  // le magasin est dans la barre qui reste en haut, collé à la recherche ; un toucher ouvre la liste de nos magasins
+  const swB = box.querySelector("[data-cg-sw]"), swL = box.querySelector(".cg-swlist");
+  if (swB && swL) {
+    const many = stores.length > 1 || (isHopShop(state.shop) && cq);
+    swB.classList.toggle("hidden", !many);
+    box.querySelector(".cg-head").classList.toggle("has-sw", many);
+    if (many) {
+      const all = (state.showcase || []).filter(x => isHopShop(x) && x.code !== "HOPLALINE");
+      const lg0 = UI.safeImg(state.shop.logo);
+      const bh = `<span class="cg-st-lg">${lg0 ? `<img src="${lg0}" alt="" />` : `<b>${UI.esc(mgShort(state.shop.name).slice(0, 1))}</b>`}</span><span class="cg-sw-t"><b><bdi>${UI.esc(mgShort(state.shop.name))}</bdi></b><small>${UI.esc(t("cgSwitch"))}</small></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>`;
+      if (swB.dataset.html !== bh) { swB.innerHTML = bh; swB.dataset.html = bh; }
+      const lh = `<small>${escHop(t("cgStores"))}</small>` + [all.find(x => x.code === state.shop.code) || state.shop].concat(all.filter(x => x.code !== state.shop.code)).map(x => {
+        const lg = UI.safeImg(x.logo);
+        return `<button type="button" class="cg-swi${x.code === state.shop.code ? " on" : ""}" data-cg-store="${UI.esc(x.code)}"><span class="cg-st-lg">${lg ? `<img src="${lg}" alt="" />` : `<b>${UI.esc(mgShort(x.name).slice(0, 1))}</b>`}</span><bdi>${UI.esc(mgShort(x.name))}</bdi>${x.code === state.shop.code ? `<i aria-hidden="true">✓</i>` : ""}</button>`; }).join("");
+      if (swL.dataset.html !== lh) { swL.innerHTML = lh; swL.dataset.html = lh; }
+      qIn.placeholder = t("cgFind");
+    } else swL.classList.add("hidden");
+  }
   const sw = box.querySelector(".cg-stores-w"); if (sw && sw.dataset.html !== storeBar) { sw.innerHTML = storeBar; sw.dataset.html = storeBar; }
   const html = `${state.boss ? bossBar() : ""}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
@@ -4536,6 +4555,10 @@ $("#catalogBox").addEventListener("click", e => {
     toastCart(t("cgElseNearAdded"));
   }
 }, true);
+$("#catalogBox").addEventListener("click", e => {
+  const sb = e.target.closest("[data-cg-sw]");
+  if (sb) { const l = $("#catalogBox .cg-swlist"); if (l) { const open = l.classList.toggle("hidden") === false; sb.setAttribute("aria-expanded", String(open)); } return; }
+});
 $("#catalogBox").addEventListener("click", e => {
   const st = e.target.closest("[data-cg-store]");
   if (!st || !state.shop || st.dataset.cgStore === state.shop.code) return;

@@ -7073,3 +7073,25 @@ html.d3 .gc .gc-opt:not(.on) { padding-block: 12px; }
 /* Photo d'article manquante : panier dessiné, gris doux (21/11) */
 .pic-miss { position: absolute; inset: 0; display: grid; place-items: center; background: #F2F3F5; color: #9AA1AC; }
 .ck-t .pic-miss, .fr-pic .pic-miss { border-radius: inherit; }
+/* Le magasin toujours visible dans la barre collante + liste de nos magasins (patron, 21/11) */
+.cg-srow { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.cg-srow .cg-search { flex: 1; min-width: 0; }
+.cg-shopsw { flex: none; display: inline-flex; align-items: center; gap: 7px; max-width: 54%; min-height: 46px; padding: 4px 10px 4px 5px; border: 1px solid #E6E8EB; border-radius: 999px; background: #fff; color: #111418; font: inherit; cursor: pointer; }
+.cg-shopsw[aria-expanded="true"] { border-color: #0F1F3D; }
+.cg-shopsw .cg-st-lg, .cg-swi .cg-st-lg { width: 34px; height: 34px; border-radius: 50%; overflow: hidden; background: #F2F3F5; display: grid; place-items: center; flex: none; }
+.cg-shopsw .cg-st-lg img, .cg-swi .cg-st-lg img { width: 100%; height: 100%; object-fit: cover; }
+.cg-sw-t { display: grid; min-width: 0; text-align: start; line-height: 1.15; }
+.cg-sw-t b { font-size: 14.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cg-sw-t small { font-size: 11.5px; color: #5A6270; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cg-shopsw svg { flex: none; color: #5A6270; }
+.cg-swlist { display: grid; gap: 4px; padding: 8px; border: 1px solid #E6E8EB; border-radius: 16px; background: #fff; }
+.cg-swlist > small { font-size: 13px; font-weight: 600; color: #5A6270; padding: 2px 6px 4px; }
+.cg-swi { display: flex; align-items: center; gap: 10px; width: 100%; padding: 6px 8px; border: 0; border-radius: 12px; background: none; color: #111418; font: inherit; font-size: 15px; font-weight: 600; text-align: start; cursor: pointer; }
+.cg-swi bdi { flex: 1; }
+.cg-swi.on { background: #F2F3F5; }
+.cg-swi i { font-style: normal; color: #0F1F3D; font-weight: 800; }
+.cg-swi:active { background: #F2F3F5; }
+/* (la grande barre « Nos magasins » en haut du catalogue est remplacée par la pastille collante) */
+.cg-head.has-sw ~ .cg-body .cg-stores, .cg-stores-w:has(+ .cg-head.has-sw) { display: none; }
+.cg-head.has-sw .cg-srow .cg-search { padding: 0 10px; }
+.cg-head.has-sw .cg-srow .cg-search input { padding-inline: 8px !important; min-width: 0; }
