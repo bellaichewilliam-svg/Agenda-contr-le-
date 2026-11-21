@@ -7070,3 +7070,6 @@ html.d3 #shopHero .sh-cover.empty > i { display: none; }
 html:has(#shopHero .sh-sched) #orderForm.shop-mode #whenClosed { display: none; }
 html.d3 .gc .gc-opt:not(.on) small { display: none; }
 html.d3 .gc .gc-opt:not(.on) { padding-block: 12px; }
+/* Photo d'article manquante : panier dessiné, gris doux (21/11) */
+.pic-miss { position: absolute; inset: 0; display: grid; place-items: center; background: #F2F3F5; color: #9AA1AC; }
+.ck-t .pic-miss, .fr-pic .pic-miss { border-radius: inherit; }

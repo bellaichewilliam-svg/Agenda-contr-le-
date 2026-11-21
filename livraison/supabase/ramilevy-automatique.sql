@@ -43,7 +43,8 @@ begin
     continue when coalesce((p->>'p')::numeric, 0) <= 0 or (p->>'p')::numeric > 5000;
     pid := md5('HOPRAMILEVY:' || (p->>'id'))::uuid;
     url := 'https://img.rami-levy.co.il/product/' || (p->>'c') || '/small.jpg';
-    if not ext_photo_ok(url) then url := null; end if;
+    -- (21/11) photo absente du site Rami Lévy (« noph » dans le fichier) : pas de lien, l'appli dessine un panier
+    if not ext_photo_ok(url) or coalesce(p->>'noph', '') = '1' then url := null; end if;
     v_fr := btrim(coalesce(p->>'fr', ''));
     v_name := left(case when v_fr = '' then btrim(p->>'he') else hop_market_name(v_fr, p->>'he') end, 160);
     insert into shop_products (id, shop_id, category_id, name, description, price, photo_url, available, position)
