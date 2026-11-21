@@ -6851,7 +6851,8 @@ html .pm-off.pm-pin { white-space: nowrap; letter-spacing: 0; }
 .cg-plus.cg-nudge { animation: cgNudge .9s ease-in-out 4; }
 /* ===== Les promos du moment, nouveau concept (patron, 19/11) : en haut de l'accueil, filtre par magasin,
    grandes cartes sur le fond pastel du magasin, défilement tout seul avec barre de progression, « + » direct ===== */
-html.vit #accueil:not(.course) #homePromos { order: 5 !important; }
+/* 21/11 (patron) : juste sous « Ce qu'on livre » (plus tout en haut) */
+html.vit #accueil:not(.course) #homePromos { order: 6 !important; }
 .pm.pz { margin: 4px 0 2px; min-width: 0; }
 .pz .pz-h { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .pz .pz-t { min-width: 0; display: grid; gap: 2px; }
