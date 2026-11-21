@@ -7,6 +7,8 @@
 "use strict";
 
 const $ = s => document.querySelector(s);
+// Paramètres de l'adresse au lancement (l'adresse est nettoyée ensuite : ?cart=1 de la notification « panier » s'y perdait)
+const BOOT_Q = new URLSearchParams(location.search);
 const t = I18N.t;
 const form = $("#orderForm");
 const P = CONFIG.pricing;
@@ -868,7 +870,8 @@ const shopCashOnly = () => !!(proShopOn() && state.shop && state.shop.cash_ok &&
 // Commerce non partenaire (HOP! commande pour le client, ex. McDonald's) : le client choisit comment payer ses articles :
 // 🔗 le lien de paiement du commerce (envoyé par HOP!, livraison normale), 📱 Bit à HOP! avant, ou 💵 espèces au livreur.
 // Les boutiques HOP! (code HOP…, ex. les jus) restent en espèces au livreur.
-const linkOk = () => shopCashOnly() && !/^HOP/.test(state.shop.code || "");
+// (patron, 21/11 : « le lien de paiement ne marche pour l'instant que pour McDonald's ») : seulement McDonald's
+const linkOk = () => shopCashOnly() && /^MCD/i.test(state.shop.code || "");
 const hasShopGoods = () => cartCount() > 0 || !!val("shop_order").trim();
 // Boutique HOP! (jus, Carrefour, BOOOM) : Bit au livreur (choisi d'office, demande du patron) ou espèces (pas de lien) ;
 // McDonald's : lien, Bit au livreur ou espèces
@@ -3359,6 +3362,7 @@ async function submit(e) {
     // (la base marque la livraison offerte ; l'écran de confirmation le sait déjà)
     if (q.gift) saved.shop_pays = true;
     UI.track("order_sent", { order_ref: saved.ref, amount: Number(saved.price) || 0, shop_code: state.shop ? state.shop.code : null });
+    try { localStorage.removeItem("livraison.list.v1"); } catch (e) { /* ignore */ }
     if (state.shop && order.items) { try { const m = JSON.parse(localStorage.getItem(LS_REORDER) || "{}"); m[saved.ref] = state.shop.code; localStorage.setItem(LS_REORDER, JSON.stringify(m)); } catch (e) { /* ignore */ } }
     if (order.promo_code === "PANIER") { try { localStorage.setItem(LS_GIFT, String(Date.now())); } catch (e) { /* ignore */ } cartAtStart = null; }
     try { sessionStorage.removeItem("hop.started"); } catch (e) { /* ignore */ }
@@ -9815,10 +9819,10 @@ function cartWho(snap) {
 // 1er article : « On vous prévient ? » (une fine barre, une fois tous les 3 jours au plus). Accepté : ce téléphone recevra
 // « 🛒 Votre panier vous attend » 30 min après, même sans nom ni numéro (et ses notifications de commande ensuite)
 const LS_CN = "livraison.cartNotifAsked.v1";
-function cartNotifAsk() {
+function cartNotifAsk(force) {
   if (!window.Notification || !(CONFIG.push && CONFIG.push.publicKey)) return;
   if (Notification.permission === "granted") { UI.cartPushSubscribe(false); return; }
-  if (Notification.permission !== "default" || !cartSnap().count) return;
+  if (Notification.permission !== "default" || !(force || cartSnap().count)) return;
   let last = 0;
   try { last = Number(localStorage.getItem(LS_CN)) || 0; } catch (e) { /* ignore */ }
   if (Date.now() - last < 3 * 86400000) return;
@@ -10137,10 +10141,41 @@ if ($("#tbCart")) {
   let reopen = false;
   try { reopen = sessionStorage.getItem("hop.reopenCart") === "1"; sessionStorage.removeItem("hop.reopenCart"); } catch (e) { /* ignore */ }
   // (la notification « 🛒 Votre panier vous attend » ouvre l'appli avec ?cart=1 : le panier s'ouvre tout de suite)
-  if ((reopen || new URLSearchParams(location.search).has("cart")) && c0) setTimeout(() => openStoredCart().catch(() => {}), 600);
+  if ((reopen || BOOT_Q.has("cart")) && c0) setTimeout(() => openStoredCart().catch(() => {}), 600);
+  // (la notification « Votre commande vous attend » d'une liste écrite : on rouvre le commerce avec la liste déjà remplie)
+  if (!c0 && BOOT_Q.has("cart")) {
+    let l = null; try { l = JSON.parse(localStorage.getItem("livraison.list.v1")); } catch (e) { l = null; }
+    if (l && l.code && l.text && Date.now() - l.at < 3 * 86400000) location.replace("index.html?c=" + encodeURIComponent(l.code) + "&list=1");
+  }
+  if (BOOT_Q.has("list")) {
+    let l = null; try { l = JSON.parse(localStorage.getItem("livraison.list.v1")); } catch (e) { l = null; }
+    let n = 0;
+    const fill = () => {
+      if (!l || !l.text) return;
+      if (state.shop && state.shop.code === l.code) { if (!val("shop_order").trim()) { form.shop_order.value = l.text; form.shop_order.dispatchEvent(new Event("input", { bubbles: true })); } return; }
+      if (++n < 20) setTimeout(fill, 500);
+    };
+    setTimeout(fill, 800);
+  }
 }
 
 
+// Liste écrite à la main chez un commerce, sans panier (patron, 21/11 : « des commandes commencées, jamais envoyées ») :
+// gardée comme un panier (onglet 🛒 Paniers du patron) et relancée par notification « Votre commande vous attend »
+const LS_LIST = "livraison.list.v1";
+function listSnap() {
+  const tx = val("shop_order").trim();
+  if (!state.shop || tx.length < 3 || cartLines().length) return null;
+  return { kind: "liste", shop_code: state.shop.code, shop_name: UI.bi(state.shop.name), items: [{ n: tx.slice(0, 300), q: 1, p: null }], count: 1, total: null };
+}
+form.shop_order.addEventListener("input", () => {
+  const s = listSnap();
+  if (!s) return;
+  cartSync(s);
+  try { localStorage.setItem(LS_LIST, JSON.stringify({ code: state.shop.code, text: s.items[0].n, at: Date.now() })); } catch (x) { /* ignore */ }
+  clearTimeout(form.shop_order._ln);
+  form.shop_order._ln = setTimeout(() => { try { cartNotifAsk(true); } catch (x) { /* ignore */ } }, 5000);
+});
 // Boutique HOP! : les articles écrits à la main comptent tout de suite dans la jauge (articles et top case)
 form.shop_order.addEventListener("input", () => { try { goLabel(); } catch (x) { /* ignore */ } if (!hopBuyOn()) return; clearTimeout(form.shop_order._t); form.shop_order._t = setTimeout(() => { try { renderCatalog(); } catch (e) { /* ignore */ } }, 400); });
 
