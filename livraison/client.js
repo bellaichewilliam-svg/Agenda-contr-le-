@@ -1282,6 +1282,7 @@ function renderNoteTime() {
 // Produit sans photo (patron, 22/11 : « tu mets des fictifs qui ressemblent, pas le carré HOP! ») : un dessin 3D de l'appli
 // (img/qc/…) choisi d'après le nom du produit (français ou hébreu), puis d'après son rayon
 const QC_ART = [
+  [/acamol|advil|nurofen|paracétamol|paracetamol|ibupro|aspirin|optalgin|דקסמול|אקמול|אדוויל|נורופן|כדור|קפסול|comprim|sirop|סירופ|vitamine|ויטמין|antihist|pastille|לכסני/i, "pill"], [/thermom|מדחום/i, "thermometer"], [/pansement|plaster|פלסטר/i, "bandage"],
   [/avocat|avocado|אבוקדו/i, "avocado"], [/[ée]chalote|oignon|onion|בצל|שאלוט/i, "onion"], [/\bail\b|garlic|שום/i, "garlic"],
   [/tomate|tomato|עגבני|רסק/i, "tomato"], [/concombre|cornichon|מלפפון/i, "cucumber"], [/carotte|גזר/i, "carrot"], [/pomme de terre|potato|תפוח אדמה|תפו"א/i, "potato"],
   [/poivron|פלפל/i, "bellpepper"], [/champignon|פטרי/i, "mushroom"], [/brocoli|ברוקולי/i, "broccoli"], [/salade|laitue|חסה|עלים/i, "leafy"], [/ma[ïi]s|corn|תירס/i, "corn"],
@@ -1308,6 +1309,8 @@ const QC_ART = [
 const QC_CAT = [[/fruit|légume|ירק|פיר/i, "apple"], [/viande|poisson|בשר|דג/i, "meat"], [/lait|laitier|fromage|חלב/i, "milk"], [/pain|gâteau|boulang|לחם|מאפ/i, "bread"],
   [/épicerie|מזווה/i, "canned"], [/snack|douceur|חטיף|מתוק/i, "cookie"], [/boisson|café|eau|משק|מים/i, "cupstraw"], [/surgel|קפוא/i, "snowflake"],
   [/hygi|beaut|טיפוח/i, "lotion"], [/maison|ménage|ניקיון|בית/i, "bubbles"], [/bébé|תינוק/i, "baby"]];
+const qcKeyOf = nm => { const h = QC_ART.find(([rx]) => rx.test(String(nm || ""))); return h ? h[1] : ""; };
+const RAY_ART = { pharm: "pill", pharmacy: "pill", baby: "baby", home: "bubbles", bakery: "bread", shop: "cart", super: "cart" };
 function qcArt(p) {
   const nm = String((p && p.name) || ""), hit = QC_ART.find(([rx]) => rx.test(nm));
   let k = hit && hit[1];
@@ -1391,7 +1394,7 @@ function renderPharma() {
     if (rows) return `<div class="ph-line${qn ? " in" : ""}${x.hidden ? " off" : ""}">${rEdit ? `<button type="button" class="pl-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">✏️</button>` : ""}<span class="pl-txt"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${sel2}</span>
       ${pr ? `<span class="pl-price"><b>≈ ${priceTxt(pr)}</b>${x.c === "cig" && x.id !== "cartouche" ? `<small>${UI.esc(t("phPerPack"))}</small>` : ""}</span>` : ""}
       <span class="pl-act">${step}</span></div>`;
-    const src = state.boss ? rayPicSrc(x) : null;
+    const src = state.boss && rEdit ? rayPicSrc(x) : null;
     return `<div class="ph-item${qn ? " in" : ""}${x.hidden ? " off" : ""}" data-ph-open="${UI.esc(x.id)}">
       <div class="ph-pic${x.photo ? " photo" : ""}${UI.extPic(x.photo) ? " pack" : ""}">${pic(x)}
         ${rEdit ? `<button type="button" class="cg-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">✏️</button>` : ""}
