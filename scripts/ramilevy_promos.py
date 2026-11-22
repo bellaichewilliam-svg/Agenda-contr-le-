@@ -243,7 +243,13 @@ def main() -> int:
     ap.add_argument("--promo-xml", help="fichier PromoFull déjà téléchargé (essais)")
     ap.add_argument("--price-xml", help="fichier PriceFull déjà téléchargé (essais)")
     ap.add_argument("--no-photo-check", action="store_true", help="ne pas vérifier les photos (essais hors ligne)")
+    # (22/11) même robot pour d'autres magasins : Mahsanei Lahav Netanya = --user freshmarket --chain 7290876100000 --store 022 --prefix lahav
+    ap.add_argument("--user", default="RamiLevi")
+    ap.add_argument("--chain", default="7290058140886")
+    ap.add_argument("--store", default="037")
+    ap.add_argument("--prefix", default="ramilevy")
     a = ap.parse_args()
+    globals().update(USER=a.user, CHAIN=a.chain, STORE=a.store)
     out = Path(a.out)
     today = dt.datetime.now(dt.timezone(dt.timedelta(hours=2))).date()
 
@@ -260,7 +266,7 @@ def main() -> int:
     cands = candidates(promo_root, prices, today)
     log(f"{len(prices)} prix, {len(cands)} promos possibles")
 
-    old_path = out / "ramilevy-promos.json"
+    old_path = out / f"{a.prefix}-promos.json"
     old = json.loads(old_path.read_text(encoding="utf-8")) if old_path.exists() else {"items": []}
     fr_by_code = {i["c"]: (base_fr(i.get("fr", "")), i.get("cat")) for i in old["items"] if i.get("fr")}
 
@@ -350,7 +356,7 @@ def main() -> int:
         old_path.write_text(json.dumps(promos, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         log("écrit :", old_path, f"({old_path.stat().st_size // 1024} Ko)")
     # Tout le magasin : gros fichier, refait une fois par semaine seulement
-    prix_path = out / "ramilevy-prix.json"
+    prix_path = out / f"{a.prefix}-prix.json"
     try:
         last = dt.date.fromisoformat(json.loads(prix_path.read_text(encoding="utf-8")).get("at", "2000-01-01"))
     except (OSError, ValueError):

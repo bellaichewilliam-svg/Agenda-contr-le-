@@ -4597,9 +4597,11 @@ $("#catalogBox").addEventListener("input", e => {
 // « Dans tout le magasin Rami Lévy » (patron, 10/11 : rien ne doit manquer) : sous les promos, tout le magasin (prix officiels),
 // cherché côté serveur. « Ajouter » met la ligne dans la commande (le livreur l'achète au magasin, prix ≈ indiqué).
 var RL_CODE = "HOPRAMILEVY", rlAllT = null, rlAllSeq = 0;
-function isRlShop() { return !!(state.shop && state.shop.code === "HOPRAMILEVY"); }
+// Boutiques dont on a tout le magasin (prix officiels) : la recherche cherche aussi « dans tout le magasin »
+const FULL_FIND = { HOPRAMILEVY: "rlFind", HOPLAHAV: "lahavFind", HOPVICTORY: "vicFind" };
+function isRlShop() { return !!(state.shop && FULL_FIND[state.shop.code]); }
 const rlPh = c => `https://img.rami-levy.co.il/product/${encodeURIComponent(c)}/small.jpg`;
-const rlRow = (x, attr) => `<div class="cg-else-row rl-row"><span class="cr-pic"><img src="${UI.esc(rlPh(x.c))}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('🛒'))" /></span>
+const rlRow = (x, attr) => `<div class="cg-else-row rl-row"><span class="cr-pic"><img src="${UI.esc(x.ph || rlPh(x.c))}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('🛒'))" /></span>
   <span class="cg-else-txt"><b><bdi dir="rtl">${UI.esc(x.n)}</bdi></b><small>${UI.esc(x.w ? t("rlKg") : t("rlUnit"))}</small></span>
   <em>${UI.esc(money(x.p))}</em><button type="button" class="btn btn-sm" ${attr}>${UI.esc(t("cgElseAdd"))}</button></div>`;
 async function rlAllFill() {
@@ -4611,15 +4613,15 @@ async function rlAllFill() {
   if (phNorm(q).length < 2) { el.innerHTML = ""; el.dataset.q = ""; return; }
   if (el.dataset.q === q) return;
   el.innerHTML = `<p class="cg-else-wait">${UI.esc(t("cgElseWait"))}</p>`;
-  const list = await Store.rlFind(q, 20);
+  const list = await Store[FULL_FIND[state.shop.code] || "rlFind"](q, 20);
   if (seq !== rlAllSeq || !isRlShop()) return;
   el.dataset.q = q; state.rlAll = list;
-  el.innerHTML = list.length ? `<div class="cg-else"><b class="cg-else-t">🔎 ${UI.esc(t("rlAllT"))}</b><small class="rl-sub">${UI.esc(t("rlAllS"))}</small>${list.map((x, i) => rlRow(x, `data-rl-add="${i}"`)).join("")}</div>`
-    : `<p class="cg-else-wait">${UI.esc(t("rlAllNo", { q }))}</p>`;
+  el.innerHTML = list.length ? `<div class="cg-else"><b class="cg-else-t">🔎 ${UI.esc(t("rlAllT", { name: d4Nm(state.shop) }))}</b><small class="rl-sub">${UI.esc(t("rlAllS"))}</small>${list.map((x, i) => rlRow(x, `data-rl-add="${i}"`)).join("")}</div>`
+    : `<p class="cg-else-wait">${UI.esc(t("rlAllNo", { q, name: d4Nm(state.shop) }))}</p>`;
 }
 function rlAddExtra(x, btn) {
   if (!x) return;
-  state.extras = (state.extras || []).filter(Boolean).concat([{ n: x.n, q: 1, p: Number(x.p) || null, ph: rlPh(x.c), e: "🛒" }]);
+  state.extras = (state.extras || []).filter(Boolean).concat([{ n: x.n, q: 1, p: Number(x.p) || null, ph: x.ph || rlPh(x.c), e: "🛒" }]);
   extrasNote(); renderQuote(); saveDraft(); cartPersist(); renderCartIcon();
   if (btn) { btn.textContent = "✓"; btn.disabled = true; }
   toastCart(t("rlAdded", { item: x.n }));
@@ -6264,9 +6266,9 @@ function d4Tiles() {
 }
 // Ordre des magasins dans la tuile promo (le patron peut demander de le changer)
 // Nom court d'un magasin HOP! dans les deux langues (« Rami Lévy », « רמי לוי »)
-const D4_NAMES = { LAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
+const D4_NAMES = { LAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
 const d4Nm = x => (D4_NAMES[x.code] || [])[I18N.lang === "he" ? 1 : 0] || mgShort(x.name).replace(/^הופ!\u200E?\s*ב-?/, "").trim();
-const D4_PROMO_ORDER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPVICTORY", "HOPBOOOM", "HOPPANZER"];
+const D4_PROMO_ORDER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPVICTORY", "HOPLAHAV", "HOPBOOOM", "HOPPANZER"];
 function d4PromoSlides() {
   if (!pa.data) return [];
   const by = {};
@@ -8942,7 +8944,7 @@ function vitFindRender(q, products, shops, staple, box) {
   const full = (src, code, shopName, photo) => (rlHomeCache.get(src + ":" + rlKey) || []).map(x => ({ id: src + ":" + x.n, _rl: true, _src: src, bc: String(x.c || ""),
     name: x.n, price: Number(x.p) || 0, photo: photo(x), code, shop: (sc(code).name) || shopName, kind: "epicerie" }));
   const rlList = full("rl", RL_CODE, "HOP! chez Rami Lévy", x => rlPh(x.c)).concat(full("vic", "HOPVICTORY", "HOP! chez Victory", x => x.ph || ""),
-    full("lahav", "LAHAV", I18N.lang === "he" ? "מחסני להב נתניה" : "Mahsanei Lahav Netanya", x => x.ph || ""));
+    full("lahav", "HOPLAHAV", "HOP! chez Mahsanei Lahav", x => x.ph || ""));
   if (rlList.length) products = rlList.concat(products.filter(p => !rlList.some(r => r.code === p.code && phNorm(r.name) === phNorm(UI.bi(p.name)))));
   const groups = [];
   products.forEach(p => { let g = groups.find(x => x.code === p.code); if (!g) groups.push(g = { code: p.code, shop: p.shop, kind: p.kind, items: [] }); g.items.push(p); });
@@ -8964,7 +8966,7 @@ function vitFindRender(q, products, shops, staple, box) {
       <span class="fr-name"><b>${escHop(UI.bi(g.shop))}</b><small>${UI.esc(t(g.items.length === 1 ? "vitFindN1" : "vitFindN", { n: g.items.length }))}</small></span>
       ${g.code === "LAHAV" ? `<button type="button" class="fr-all" data-find-any>${UI.esc(t("vitFindAsk"))} ›</button>` : `<button type="button" class="fr-all" data-find-pro="${UI.esc(g.code)}" data-find-q="${qa}">${UI.esc(t("vitFindAll"))} ›</button>`}</div>
       <div class="fr-row">${g.items.slice(0, 12).map(p => { const ph = UI.safeImg(p.photo);
-        return card(p._src === "lahav" ? `data-find-any` : p._rl ? `data-find-pro="${UI.esc(p.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}" data-find-open="1"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : `<i>${UI.esc(UI.KIND_ICON[g.kind] || "🛍️")}</i>`,
+        return card(p._rl ? `data-find-pro="${UI.esc(p.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}" data-find-open="1"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : `<i>${UI.esc(UI.KIND_ICON[g.kind] || "🛍️")}</i>`,
           !!ph && UI.extPic(ph), `<bdi dir="ltr">${UI.esc(money(p.price))}</bdi>`, frName(p.name)); }).join("")}</div></section>`;
   }).join("");
   const rays = rayonHits(q, 8);
@@ -8984,7 +8986,7 @@ function vitFindRender(q, products, shops, staple, box) {
   const cmpHtml = cmpList.length ? `<section class="fr-cmp"><div class="fr-cmp-h"><b>${UI.esc(t("cmpT"))}</b><small>${UI.esc(t("cmpS"))}</small></div>${cmpList.map(g => {
     const ph = UI.safeImg(g.ref.photo) || UI.safeImg(g.items.map(x => x.photo).find(Boolean)), lo = Number(g.items[0].price), hi = Number(g.items[g.items.length - 1].price);
     return `<div class="fr-cmp-row"><span class="fr-cmp-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" onerror="this.remove()" />` : ""}</span><span class="fr-cmp-main"><span class="fr-cmp-nm">${frName(g.ref.name)}</span>
-      <span class="fr-cmp-pr">${g.items.map((x, i) => `<button type="button" class="${i === 0 ? "lo" : ""}" ${x._src === "lahav" ? "data-find-any" : x._rl ? `data-find-pro="${UI.esc(x.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(x.code)}" data-find-item="${UI.esc(x.id)}" data-find-open="1"`}><small>${UI.esc(d4Nm({ code: x.code, name: x.shop }))}</small><b><bdi dir="ltr">${UI.esc(money(x.price))}</bdi></b>${i === 0 && hi > lo ? `<em>${UI.esc(t("cmpLo"))}</em>` : ""}</button>`).join("")}</span></span></div>`; }).join("")}</section>` : "";
+      <span class="fr-cmp-pr">${g.items.map((x, i) => `<button type="button" class="${i === 0 ? "lo" : ""}" ${x._rl ? `data-find-pro="${UI.esc(x.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(x.code)}" data-find-item="${UI.esc(x.id)}" data-find-open="1"`}><small>${UI.esc(d4Nm({ code: x.code, name: x.shop }))}</small><b><bdi dir="ltr">${UI.esc(money(x.price))}</bdi></b>${i === 0 && hi > lo ? `<em>${UI.esc(t("cmpLo"))}</em>` : ""}</button>`).join("")}</span></span></div>`; }).join("")}</section>` : "";
   const out = any + cmpHtml + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
   if (box._findOut !== out || !box.firstChild || box._findFirst !== box.firstChild) { box.innerHTML = out; box._findOut = out; box._findFirst = box.firstChild; }
   box.classList.remove("hidden");
@@ -9603,10 +9605,10 @@ $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
 // 2 cartes par ligne (vraie photo, −xx %, « 3 pour 9 ₪ », jusqu'au…), « + » ajoute au panier de ce magasin (gardé),
 // un toucher sur la carte ouvre le magasin et la fiche du produit. Données : Store.promosAll() (promos_all, léger).
 const PA_PH = { r: "https://img.rami-levy.co.il/product/", c: "https://d226b0iufwcjmj.cloudfront.net/gs1-products/1540/medium/", b: "https://booomisrael.co.il/uploads/", v: "https://dlv1nnscfbvda.cloudfront.net/" };
-const PA_COLOR = { HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C", HOPVICTORY: "#1F9D55" };
+const PA_COLOR = { HOPLAHAV: "#0B6E4F", HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C", HOPVICTORY: "#1F9D55" };
 const pa = { data: null, shop: "", cat: -1, q: "" };
 const paPh = v => { const m = /^([rcbv]):(.*)$/.exec(v || ""); const u = m ? PA_PH[m[1]] + m[2] : v; return UI.extPic(u) ? u : ""; };
-const PA_NAMES = { HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"] };
+const PA_NAMES = { HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"] };
 const paShopName = code => { const sc = (state.showcase || []).find(x => x.code === code); return sc ? mgShort(sc.name) : (PA_NAMES[code] || [code.replace(/^HOP/, "")])[I18N.lang === "he" ? 1 : 0] || code; };
 function paItems() {
   const d = pa.data; if (!d) return [];
