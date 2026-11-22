@@ -7489,3 +7489,15 @@ html.d3 body .mini-order .btn.mo-rate { background: #FFF6E0 !important; color: #
 .pay-apps label.check input { margin-top: 1px; width: 22px; height: 22px; }
 .pay-apps label.check b { font-weight: 800; }
 .pay-apps small { font-size: 13px; line-height: 1.45; }
+/* Casher (patron 22/11) : le badge revient sur les photos des commerces ; « Casher » = petit choix dans « Restaurant » */
+html.d3 .k-on-cover { display: inline-flex !important; align-items: center; gap: 4px; position: absolute; top: 10px; bottom: auto; inset-inline-start: 10px; inset-inline-end: auto; z-index: 3;
+  background: #fff !important; color: #0F1F3D !important; border: 0 !important; border-radius: 99px; padding: 4px 9px 4px 7px; font: 700 12px/1 Heebo, sans-serif; font-style: normal; box-shadow: none; }
+html.d3 .k-on-cover .k-star { width: 13px; height: 13px; color: #1F4FA3; }
+.d4-sh-pic, .d4m-ph { position: relative; }
+html.d4 .d4-sh-pic .k-on-cover, .d4m-ph .k-on-cover { top: 8px; inset-inline-start: 8px; }
+.ch-chip.ch-sub, .d4m-chips .d4m-sub { display: inline-flex; align-items: center; gap: 5px; font-size: 13px !important; padding: 7px 12px !important; border: 1.5px dashed #9AA3AF !important; background: #fff !important; color: #111418 !important; }
+.ch-chip.ch-sub.on, .d4m-chips .d4m-sub.on { border: 1.5px solid #0F1F3D !important; background: #0F1F3D !important; color: #fff !important; }
+.ch-chip.ch-sub .k-star, .d4m-sub .k-star { width: 14px; height: 14px; }
+.d4m-chips .d4m-sub { all: unset; flex: none; cursor: pointer; border-radius: 12px; font-weight: 700; }
+html.d4 #vitStatus.hidden { display: none !important; }
+.ch-chip.ch-sub .k-star, .d4m-sub .k-star { color: currentColor !important; }
