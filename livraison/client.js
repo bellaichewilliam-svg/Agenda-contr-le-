@@ -6254,7 +6254,7 @@ function d4Tiles() {
     const card = ({ x, st }) => {
       const pic = UI.safeImg(x.cover), logo = UI.safeImg(x.logo), open = !x.paused && (!st || st.open);
       const lbl = x.paused ? t("d4ShPause") : open ? t("d4mOpen") : (st && !st.hop && st.inDays != null ? openLabel(st) : t("d4Closed"));
-      return `<button type="button" class="d4-sh" data-d4-pro="${UI.esc(x.code)}"><span class="d4-sh-pic"${pic ? ` style="background-image:url('${pic}')"` : ""}>${logo ? `<img src="${logo}" alt="" loading="lazy" />` : `<b>${UI.esc(d4Nm(x).slice(0, 1))}</b>`}</span>
+      return `<button type="button" class="d4-sh" data-d4-pro="${UI.esc(x.code)}"><span class="d4-sh-pic"${pic ? ` style="background-image:url('${pic}')"` : ""}>${isKosher(x) ? kosherTag("k-on-cover") : ""}${logo ? `<img src="${logo}" alt="" loading="lazy" />` : `<b>${UI.esc(d4Nm(x).slice(0, 1))}</b>`}</span>
         <b class="d4-sh-n"><bdi>${UI.esc(d4Nm(x))}</bdi>${d4Stars(x)}</b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(lbl)}</small></button>`;
     };
     const any = `<button type="button" class="d4-sh d4-sh-any" data-d4="anyshop"><span class="d4-sh-pic"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4-sh-n">${UI.esc(t("d4AnyShopT"))}</b><small>${UI.esc(t("d4AnyShopS"))}</small></button>`;
@@ -6316,17 +6316,20 @@ function d4MagRender() {
   const words = hvFold(d4m.q).split(/\s+/).filter(Boolean);
   const promoN = {}; if (pa.data) paItems().forEach(x => { promoN[x.code] = (promoN[x.code] || 0) + 1; });
   const list = (state.showcase || []).filter(x => !x.paused)
-    .filter(x => d4mPass(x, d4m.f))
+    .filter(x => d4mPass(x, d4m.f) && (!d4m.kosher || isKosher(x)))
     .filter(x => !words.length || (h => words.every(w => h.includes(w)))(hvFold(x.name + " " + (x.name_he || ""))))
     .map(x => ({ x, st: shopState(x) }))
     .sort((a, b) => (d4m.f === "top" ? (Number(b.x.rating) - Number(a.x.rating)) || (Number(b.x.ratings) - Number(a.x.ratings)) : 0) || (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
   // Filtres faits à partir des vrais commerces (patron 22/11 : jamais de filtre vide, aucun métier oublié)
   const pool = (state.showcase || []).filter(x => !x.paused);
   const kinds = [...new Set(pool.map(x => x.kind).filter(Boolean))].sort((a, b) => pool.filter(x => x.kind === b).length - pool.filter(x => x.kind === a).length);
-  const fl = [["", t("d4mAll")], ["top", t("d4mTop")], ["hop", t("d4mHop")], ["open", t("d4mOpenF")]].concat(kinds.flatMap(k => [["k:" + k, ((t("shKinds") || {})[k] || k).replace(/^\P{L}+/u, "")]].concat(k === "restaurant" ? [["kosher", t("scKosherR")]] : [])), kinds.includes("restaurant") ? [] : [["kosher", t("scKosherR")]])
+  const fl = [["", t("d4mAll")], ["top", t("d4mTop")], ["hop", t("d4mHop")], ["open", t("d4mOpenF")]].concat(kinds.map(k => ["k:" + k, ((t("shKinds") || {})[k] || k).replace(/^\P{L}+/u, "")]))
     .filter(([k]) => !k || pool.some(x => d4mPass(x, k)));
   if (!fl.some(([k]) => k === d4m.f)) d4m.f = "";
-  box.querySelector(".d4m-chips").innerHTML = fl.map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${escHop(l)}</button>`).join("");
+  if (d4m.f !== "k:restaurant") d4m.kosher = false;
+  const kSub = d4m.f === "k:restaurant" && pool.some(x => x.kind === "restaurant" && isKosher(x))
+    ? `<button type="button" class="d4m-sub${d4m.kosher ? " on" : ""}" data-d4m-kosher aria-pressed="${!!d4m.kosher}">${KOSHER_STAR}${UI.esc(t("kosher"))}</button>` : "";
+  box.querySelector(".d4m-chips").innerHTML = fl.map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${escHop(l)}</button>` + (k === "k:restaurant" ? kSub : "")).join("");
   // « Makolet du coin » : dans Épicerie (et Tous), on va dans n'importe quel makolet pour vous
   const mako = (d4m.f === "k:epicerie" || (!d4m.f && !words.length)) ? `<button type="button" class="d4m-card d4m-mako" data-d4m-mako><span class="d4m-ph"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4m-nm">${UI.esc(t("d4Mako"))}</b><small>${UI.esc(t("d4MakoS"))}</small></button>` : "";
   box.querySelector(".d4m-list").innerHTML = mako + (list.length ? list.map(({ x, st }) => {
@@ -6335,7 +6338,7 @@ function d4MagRender() {
     const sub = promoN[x.code] ? t("d4mPromos", { n: promoN[x.code] }) : ((t("shKinds") || {})[x.kind] || "").replace(/^\P{L}+/u, "");
     const stx = x.paused ? t("d4ShPause") : open ? t("d4mOpen") : (st && !st.hop && st.inDays != null ? openLabel(st) : t("d4Closed"));
     const nm = isHopShop(x) || /^HOP/.test(String(x.code || "")) ? d4Nm(x) : d3Name(UI.bi(x.name));
-    return `<button type="button" class="d4m-card" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-ph"${cover ? ` style="background-image:url('${cover}')"` : ""}>${logo ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />` : `<b>${UI.esc(nm.slice(0, 1))}</b>`}</span>
+    return `<button type="button" class="d4m-card" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-ph"${cover ? ` style="background-image:url('${cover}')"` : ""}>${isKosher(x) ? kosherTag("k-on-cover") : ""}${logo ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />` : `<b>${UI.esc(nm.slice(0, 1))}</b>`}</span>
 ${d4Reco(x) ? `<em class="d4-reco">${UI.esc(t("d4Reco"))}</em>` : ""}
       <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi>${d4Stars(x)}</b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
   }).join("") : mako ? "" : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`);
@@ -6347,6 +6350,7 @@ function d4MagOpen() {
     document.body.appendChild(box);
     box.addEventListener("click", e => {
       const f = e.target.closest("[data-d4m-f]"); if (f) { d4m.f = f.dataset.d4mF; d4MagRender(); return; }
+      if (e.target.closest("[data-d4m-kosher]")) { d4m.kosher = !d4m.kosher; d4MagRender(); return; }
       const r = e.target.closest("[data-d4m-pro]"); if (r) { d4MagClose(true); state.shopDir = ""; loadShop(r.dataset.d4mPro); return; }
       if (e.target.closest("[data-d4m-mako]")) { d4MagClose(true); setTimeout(() => { const kb = document.querySelector('#homeKinds [data-kind="shop"]'); if (kb) kb.click(); }, 60); return; }
       if (e.target.closest("[data-d4m-any]")) { d4MagClose(true); setTimeout(() => $("#vitCourse").click(), 60); }
@@ -7328,11 +7332,11 @@ function renderShowcase() {
   const none = !scFilter.kind && !scFilter.open && !scFilter.kosher;
   // (patron 22/11) : un seul filtre à la fois ; « Casher » = les restaurants casher, juste après « Restaurant »
   const kResto = s => s.kind === "restaurant" || s.kind === "traiteur";
-  const kosherChip = all.some(s => isKosher(s) && kResto(s)) ? chip("kosher", scFilter.kosher, t("scKosherR")) : "";
-  $("#homeFilters").innerHTML = chip("all", none, t("scAll")) + chip("open", scFilter.open, t("scOpenF"))
-    + kinds.map(k => chip("k:" + k, scFilter.kind === k, (t("shKinds") || {})[k] || k) + (k === "restaurant" ? kosherChip : "")).join("")
-    + (kinds.includes("restaurant") ? "" : kosherChip);
-  const list = all.filter(s => (!scFilter.kind || s.kind === scFilter.kind) && (!scFilter.open || isOpen(s)) && (!scFilter.kosher || (isKosher(s) && kResto(s))));
+  const kosherChip = all.some(s => isKosher(s) && kResto(s)) ? `<button type="button" class="ch-chip ch-sub${scFilter.kosher ? " on" : ""}" data-scf="kosher" aria-pressed="${scFilter.kosher}">${KOSHER_STAR}${UI.esc(t("kosher"))}</button>` : "";
+  // (patron 22/11) : « Restaurant » seul dans la rangée ; une fois choisi, un petit « Casher » à côté pour ne garder que les casher
+  $("#homeFilters").innerHTML = chip("all", none && !scFilter.kosher, t("scAll")) + chip("open", scFilter.open, t("scOpenF"))
+    + kinds.map(k => chip("k:" + k, scFilter.kind === k, (t("shKinds") || {})[k] || k) + (k === "restaurant" && scFilter.kind === "restaurant" ? kosherChip : "")).join("");
+  const list = all.filter(s => (!scFilter.kind || s.kind === scFilter.kind) && (!scFilter.open || isOpen(s)) && (!scFilter.kosher || isKosher(s)));
   const placed = list.filter(s => rk(s) < Infinity || f.includes(s.code)), rest = list.filter(s => !placed.includes(s));
   const open = placed.filter(isOpen).concat(rest.filter(isOpen)), closed = placed.filter(s => !isOpen(s)).concat(rest.filter(s => !isOpen(s)));
   const stories = `<div class="sc-stories">${all.map(s => `<button type="button" class="sc-story${isOpen(s) ? "" : " closed"}" data-pro="${UI.esc(s.code)}">
@@ -7370,7 +7374,7 @@ $("#homeFilters").addEventListener("click", e => {
   const k = b.dataset.scf;
   if (k === "all") Object.assign(scFilter, { kind: "", open: false, kosher: false });
   else if (k === "open") Object.assign(scFilter, { kind: "", open: !scFilter.open, kosher: false });
-  else if (k === "kosher") Object.assign(scFilter, { kind: "", open: false, kosher: !scFilter.kosher });
+  else if (k === "kosher") scFilter.kosher = !scFilter.kosher;
   else Object.assign(scFilter, { kind: scFilter.kind === k.slice(2) ? "" : k.slice(2), open: false, kosher: false });
   UI.track("home_filter", { f: k });
   renderShowcase();
