@@ -1,0 +1,472 @@
+{
+ "ok": true,
+ "pages": {
+  "home": {
+   "status": 200,
+   "len": 40989,
+   "selects": [
+    [
+     "0",
+     "All"
+    ],
+    [
+     "1",
+     "1 - שלי ת&quot;א- בן יהודה"
+    ],
+    [
+     "2",
+     "2 - שלי ירושלים- אגרון"
+    ],
+    [
+     "3",
+     "3 - שלי גבעתיים- סירקין"
+    ],
+    [
+     "4",
+     "4 - שלי חיפה- כרמל"
+    ],
+    [
+     "5",
+     "5 - שלי ירושלים- יובל"
+    ],
+    [
+     "7",
+     "7 - שלי ת&quot;א- ארלוזורוב"
+    ],
+    [
+     "9",
+     "9 - שלי נתניה- ויצמן"
+    ],
+    [
+     "11",
+     "11 - שלי ת&quot;א- נורדאו"
+    ],
+    [
+     "12",
+     "12 - יש בני ברק- ירושלים"
+    ],
+    [
+     "13",
+     "13 - יוניברס בית שמש- העליה"
+    ],
+    [
+     "14",
+     "14 - דיל ברנע אשקלון"
+    ],
+    [
+     "15",
+     "15 - יש פ&quot;ת- רוטשילד"
+    ],
+    [
+     "17",
+     "17 - שלי חיפה- חורב"
+    ],
+    [
+     "18",
+     "18 - דיל חולון-קרן היסוד"
+    ],
+    [
+     "19",
+     "19 - שלי חיפה- זיו"
+    ],
+    [
+     "20",
+     "20 - שלי רחובות- הרצל"
+    ],
+    [
+     "21",
+     "21 - יש מרים ירושלים-  פארן"
+    ],
+    [
+     "22",
+     "22 - שלי נתניה- סמילנסקי"
+    ],
+    [
+     "23",
+     "23 - שלי מיתר"
+    ],
+    [
+     "24",
+     "24 - שלי אשדוד- הנביאים"
+    ],
+    [
+     "26",
+     "26 - BE בלוך גבעתיים"
+    ],
+    [
+     "27",
+     "27 - שלי רעננה- אחוזה"
+    ],
+    [
+     "28",
+     "28 - שלי ת&quot;א- צה&quot;ל"
+    ],
+    [
+     "29",
+     "29 - אקספרס האודם חריש"
+    ],
+    [
+     "30",
+     "30 - שלי רמת גן- קריניצי"
+    ],
+    [
+     "32",
+     "32 - שלי רמת גן- קסם"
+    ],
+    [
+     "33",
+     "33 - שלי חיפה- סטלה"
+    ],
+    [
+     "34",
+     "34 - שלי רמת השרון- סוקולוב"
+    ],
+    [
+     "35",
+     "35 - יוניברס באר שבע וולפסון"
+    ],
+    [
+     "36",
+     "36 - שלי כ&quot;ס- רוטשילד"
+    ],
+    [
+     "38",
+     "38 - שלי חיפה- דניה"
+    ],
+    [
+     "39",
+     "39 - שלי ת&quot;א- ברזיל"
+    ],
+    [
+     "40",
+     "40 - שלי ב&quot;ש- עומר"
+    ],
+    [
+     "41",
+     "41 - BE דיזנגוף סנטר"
+    ],
+    [
+     "42",
+     "42 - שלי ירושלים- ניות"
+    ],
+    [
+     "43",
+     "43 - שלי הוד השרון- הבנים"
+    ],
+    [
+     "45",
+     "45 - דיל ירושלים- תלפיות"
+    ],
+    [
+     "50",
+     "50 - שלי מבשרת ציון"
+    ],
+    [
+     "51",
+     "51 - אקספרס הרצליה"
+    ],
+    [
+     "56",
+     "56 - אקספרס  חריש הרימון"
+    ],
+    [
+     "57",
+     "57 - שלי רמת השרון- אוסישקין"
+    ],
+    [
+     "61",
+     "61 - אקספרס צור משה"
+    ],
+    [
+     "62",
+     "62 - יש חסד רכסים"
+    ],
+    [
+     "65",
+     "65 - דיל ב&quot;ש- צ&#39;ורלי"
+    ],
+    [
+     "68",
+     "68 - דיל כורדני"
+    ],
+    [
+     "69",
+     "69 - שלי ת&quot;א- רמת אביב ב"
+    ],
+    [
+     "70",
+     "70 - שלי רמת גן- מרום נווה"
+    ],
+    [
+     "71",
+     "71 - יוניברס תל חנן  נשר"
+    ],
+    [
+     "72",
+     "72 - שלי רעות"
+    ],
+    [
+     "73",
+     "73 - יש חסד אשדוד"
+    ],
+    [
+     "76",
+     "76 - דיל אריאל"
+    ],
+    [
+     "77",
+     "77 - דיל  חריש"
+    ],
+    [
+     "78",
+     "78 - יש הר נוף ירושלים-שאולזו"
+    ],
+    [
+     "79",
+     "79 - אקספרס חריש"
+    ],
+    [
+     "80",
+     "80 - שלי ראשל&quot;צ- נווה הדרים"
+    ],
+    [
+     "81",
+     "81 - יש חסד מודיעין עלית דרום"
+    ],
+    [
+     "82",
+     "82 - אקספרס חולון"
+    ],
+    [
+     "83",
+     "83 - דיל ב&quot;ש- שאול המלך"
+    ],
+    [
+     "84",
+     "84 - אקספרס בית חשמונאי"
+    ],
+    [
+     "87",
+     "87 - דיל רעננה- החרושת"
+    ],
+    [
+     "89",
+     "89 - דיל עזריאלי - רמלה"
+    ],
+    [
+     "90",
+     "90 - אקספרס גב ים באר שבע"
+    ],
+    [
+     "91",
+     "91 - יוניברס עמק חפר- אזור תעשיה"
+    ],
+    [
+     "92",
+     "92 - דיל אשדוד- שבט לוי"
+    ],
+    [
+     "93",
+     "93 - שלי יהוד- סביונים"
+    ],
+    [
+     "95",
+     "95 - דיל חדרה- קניון אורות"
+    ],
+    [
+     "96",
+     "96 - דיל חדרה- הפרדס"
+    ],
+    [
+     "97",
+     "97 - דיל קרית שמונה- מתחם ביג"
+    ],
+    [
+     "98",
+     "98 - דיל קרית טבעון- אלונים"
+    ],
+    [
+     "101",
+     "101 - שלי הוד השרון- ק מרגלית"
+    ],
+    [
+     "102",
+     "102 - שלי פרדסיה- הנשיא"
+    ],
+    [
+     "103",
+     "103 - שלי שוהם- מרכז מסחרי"
+    ],
+    [
+     "104",
+     "104 - שלי פ&quot;ת- גד מכנס"
+    ],
+    [
+     "105",
+     "105 - דיל פ&quot;ת- אליעזר פרדימן"
+    ],
+    [
+     "106",
+     "106 - יוניברס נס ציונה - הפטיש"
+    ],
+    [
+     "109",
+     "109 - שלי ראש העין- ז&#39;בוטינסקי"
+    ],
+    [
+     "110",
+     "110 - דיל הפארק ב&quot;ש"
+    ],
+    [
+     "111",
+     "111 - יש חסד טבריה עלית-לב האג"
+    ],
+    [
+     "112",
+     "112 - BE קרית מוצקין"
+    ]
+   ]
+  }
+ },
+ "stores": [
+  {
+   "STOREID": "22",
+   "STORENAME": "שלי נתניה- סמילנסקי",
+   "ADDRESS": "סמילנסקי 13",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "9",
+   "STORENAME": "שלי נתניה- ויצמן",
+   "ADDRESS": "שד' ויצמן 27",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "396",
+   "STORENAME": "דיל הקדר נתניה",
+   "ADDRESS": "האורזים 2",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "249",
+   "STORENAME": "דיל נתניה- פולג",
+   "ADDRESS": "גיבורי ישראל 5",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "130",
+   "STORENAME": "דיל נתניה- קלאוזנר עמליה",
+   "ADDRESS": "קלאוזנר 1",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "668",
+   "STORENAME": "BE קריית השרון נתניה",
+   "ADDRESS": "קריית השרון נתניה",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "621",
+   "STORENAME": "BE סינמה סיטי נתניה",
+   "ADDRESS": "מתחם סינמה סיטי , רחוב המחקר",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "614",
+   "STORENAME": "BE נתניה",
+   "ADDRESS": "נתניה",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "201",
+   "STORENAME": "BE בריגה",
+   "ADDRESS": "שושנה דמארי10",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "198",
+   "STORENAME": "BE פארם יהלום נתניה",
+   "ADDRESS": "28 האורזים",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  },
+  {
+   "STOREID": "129",
+   "STORENAME": "יוניברס נתניה המלאכה",
+   "ADDRESS": "רח' המלאכה32",
+   "CITY": "7400",
+   "SUBCHAINNAME": "",
+   "CHAINID": ""
+  }
+ ],
+ "files": {
+  "5": {
+   "status": 200,
+   "count": 1,
+   "sample": [
+    "https://pricesprodpublic.blob.core.windows.net/stores/Stores7290027600007-000-20261122-020.gz"
+   ]
+  },
+  "2": {
+   "status": 200,
+   "count": 20,
+   "sample": [
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-001-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-002-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-003-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-004-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-005-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-007-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-009-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-011-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-017-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-019-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-020-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-022-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-023-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-024-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/pricefull/PriceFull7290027600007-001-027-20261122-133718.gz"
+   ]
+  },
+  "4": {
+   "status": 200,
+   "count": 20,
+   "sample": [
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-000-878-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-001-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-002-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-003-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-004-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-005-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-007-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-009-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-011-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-017-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-019-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-020-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-022-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-023-20261122-133718.gz",
+    "https://pricesprodpublic.blob.core.windows.net/promofull/PromoFull7290027600007-001-024-20261122-133718.gz"
+   ]
+  }
+ }
+}
