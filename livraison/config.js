@@ -107,7 +107,7 @@ window.CONFIG = {
   // puis l'attente annoncée ; 6 articles compris, puis +2 ₪ l'article). Pendant ses achats, il peut prendre d'autres commandes
   // du même magasin : 3 au plus en tout, s'il reste de la place dans le top case, et si sa plus ancienne course en cours a été
   // acceptée il y a moins de hopJoinMinutes min. Mêmes règles dans la base (supabase/hop-boutiques-achat.sql).
-  hopShops: ["HOPCARREFOUR", "HOPBOOOM", "HOPPANZER", "HOPRAMILEVY", "HOPVICTORY", "HOPLALINE", "HOPLAHAV", "HOPYOHANANOF", "HOPOSHERAD", "HOPTIVTAAM"],
+  hopShops: ["HOPCARREFOUR", "HOPBOOOM", "HOPPANZER", "HOPRAMILEVY", "HOPVICTORY", "HOPLALINE", "HOPLAHAV", "HOPYOHANANOF", "HOPOSHERAD", "HOPTIVTAAM", "HOPUNIVERSE", "HOPSHUFERSAL"],
   // Boutiques HOP! où l'on achète aussi tout ce qui n'est pas dans la liste (le client l'écrit dans la note)
   hopAnyItem: ["HOPLALINE"],
   // Commerces où l'on livre toujours sur créneau (le calendrier de la semaine s'ouvre : jour + heure)
