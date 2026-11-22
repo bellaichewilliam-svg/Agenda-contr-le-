@@ -174,38 +174,41 @@ def build_prices(root: ET.Element) -> tuple[dict, list]:
 
 
 def candidates(root: ET.Element, prices: dict, today: dt.date) -> dict:
-    out = {}
+    out, why = {}, {}
+    def no(k):  # noqa: E306  (compteur des promos écartées, affiché à la fin)
+        why[k] = why.get(k, 0) + 1
     for pr in root.iter("Promotion"):
         g = lambda n: (pr.findtext(n) or "").strip()  # noqa: E731
         pid, desc = g("PromotionID"), re.sub(r"\s+", " ", g("PromotionDescription"))
         if not pid or not desc or (g("ClubID").split(" ")[0] or "0") != "0" or g("AdditionalIsCoupon") not in ("", "0"):   # (Yohananof : « 0 - כלל הלקוחות »)
-            continue
+            no("club/coupon"); continue
         if g("AdditionalRestrictions") or BANNED.search(desc + " ") or COND.search(desc + " "):
-            continue
+            no("condition"); continue
         if any(num(x.text) > 0 for x in pr.iter("MinPurchaseAmount")):
-            continue
+            no("achat min"); continue
         try:
             start = dt.date.fromisoformat(g("PromotionStartDateTime")[:10])
             end = dt.date.fromisoformat(g("PromotionEndDateTime")[:10])
         except ValueError:
-            continue
+            no("date illisible"); continue
         if start > today or end <= today:
-            continue
+            no("dates"); continue
         items = [{c.tag: (c.text or "").strip() for c in it} for it in pr.iter("PromotionItem")]
         if not items:
-            continue
+            no("sans article"); continue
         qty, lot = int(num(items[0].get("MinQty")) or 1), num(items[0].get("DiscountedPrice"))
         if lot <= 0 or qty < 1 or qty > 12 or items[0].get("RewardType") not in ("1", "3", "10"):
-            continue
+            no(f"type {items[0].get('RewardType')} prix {lot} qte {qty}"[:40]); continue
         if any(int(num(i.get("MinQty")) or 1) != qty or abs(num(i.get("DiscountedPrice")) - lot) > 0.01
                or i.get("bIsWeighted") == "1" for i in items):
-            continue
+            no("articles differents"); continue
         codes = [i["ItemCode"] for i in items
                  if i.get("ItemCode") in prices and re.fullmatch(r"\d{8,14}", i["ItemCode"]) and not prices[i["ItemCode"]][2]]
         if not codes:
-            continue
+            no("code hors magasin"); continue
         m = re.search(r"מו\s?(\d+)", desc)
         out[pid] = {"desc": desc, "end": end, "qty": qty, "lot": lot, "codes": codes, "max": int(m.group(1)) if m else 0}
+    log("promos écartées :", dict(sorted(why.items(), key=lambda kv: -kv[1])[:12]))
     return out
 
 
@@ -283,6 +286,8 @@ def shufersal_roots(store: str):
                              ("RewardType", (it.findtext("RewardType") or rew or "1").strip()), ("bIsWeighted", "0")):
                 ET.SubElement(pi, tag).text = val
     log(f"Shufersal : {sum(1 for _ in out.iter('Promotion'))} promos lues")
+    for pr in list(raw.iter("Promotion"))[:2]:  # exemple brut (fichier public, aucun client)
+        log("exemple :", re.sub(r"\s+", " ", ET.tostring(pr, encoding="unicode"))[:1500])
     return out, price_root
 
 
