@@ -3590,6 +3590,7 @@ async function submit(e) {
 async function loadMine() {
   try { state.mine = await Store.myOrders(); state.mineError = false; }
   catch (e) { state.mineError = true; }
+  try { renderRateAsk(); } catch (e) { /* demande d'avis */ }
   // Offre de bienvenue déjà utilisée avec ce numéro / cet appareil ?
   const phone = Store.getProfile().contact_phone;
   try { state.welcomeUsed = await Store.welcomeUsed(phone || ""); } catch (e) { /* vérifié à l'envoi */ }
@@ -3839,6 +3840,7 @@ function renderMine() {
           ${o.status === "livree" && o.rating == null && Date.now() - new Date(o.pickup_at) < 7 * 86400000 ? `<a class="btn btn-sm btn-primary" href="${UI.trackUrl(o)}">${UI.esc(t("rtCta"))}</a>` : ""}
           ${o.rating != null ? `<span class="pill paid mo-stars" aria-label="${UI.esc(String(o.rating))}/5">${"★".repeat(o.rating)}</span>` : ""}
           ${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${t("receiptLink")}</a>` : ""}
+          ${rateable(o) ? `<button type="button" class="btn btn-sm mo-rate" data-rate-shop="${UI.esc(String(o.id))}">★ ${UI.esc(t("rsBtn", { name: rsName(o) }))}</button>` : ""}
           ${o.status === "livree" && againIdx(o) >= 0 ? `<button type="button" class="btn btn-sm btn-primary mo-again" data-mine-again="${UI.esc(String(o.id))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></svg>${UI.esc(t("moAgain"))}</button>` : ""}
           <button type="button" class="btn btn-sm${live(o) || chatUnread["o:" + o.id] ? " btn-wa" : " mo-help"}" data-chat="${UI.esc(o.token)}">${UI.esc(t(live(o) ? "chOpen" : "moHelp"))}${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>
           ${o.status === "nouvelle" ? `<button class="btn btn-sm btn-link" data-cancel="${UI.esc(o.token)}">${t("cancel")}</button>` : ""}
@@ -3852,6 +3854,73 @@ function renderMine() {
     ], "sw-order")).join("") + `<p class="sw-hint">${UI.esc(t("swHintOrder"))}</p>`;
 }
 
+// ===== Avis sur les commerces (patron 22/11 : notes et recommandations sur les restaurants) =====
+// Le client note le commerce : étoiles, points forts, un mot. Depuis « Mes courses » ou la carte « Comment était … ? » de l'accueil.
+const RS_TAGS = { gout: ["Très bon", "טעים מאוד"], chaud: ["Arrivé chaud", "הגיע חם"], portions: ["Belles portions", "מנות נדיבות"], emballe: ["Bien emballé", "ארוז היטב"],
+  frais: ["Bien frais", "טרי"], prix: ["Bon prix", "מחיר טוב"], choix: ["Beau choix", "מבחר יפה"], accueil: ["Service agréable", "שירות נעים"] };
+const rsTag = k => (RS_TAGS[k] || [k])[I18N.lang === "he" ? 1 : 0] || k;
+const rsShopOf = o => (state.showcase || []).find(x => o.shop_id && x.id === o.shop_id) || (state.showcase || []).find(x => String(x.name || "").trim().toLowerCase() === String(o.shop_name || "").trim().toLowerCase());
+const rsName = o => { const sc = rsShopOf(o); return sc ? (isHopShop(sc) || /^HOP/.test(String(sc.code || "")) ? d4Nm(sc) : d3Name(UI.bi(sc.name))) : d3Name(UI.bi(o.shop_name || "")); };
+const rateable = o => o && o.status === "livree" && (o.shop_id || o.shop_name) && o.shop_rating == null && !o.is_test && Date.now() - new Date(o.pickup_at || o.created_at) < 30 * 86400000;
+function rsResto(o) { const sc = rsShopOf(o); return !sc || ["restaurant", "traiteur"].includes(sc.kind); }
+function openShopRate(o, stars) {
+  let box = $("#rsSheet");
+  if (!box) { box = document.createElement("div"); box.id = "rsSheet"; box.className = "rs hidden"; box.setAttribute("role", "dialog"); document.body.appendChild(box); }
+  const tags = rsResto(o) ? ["gout", "chaud", "portions", "emballe", "prix"] : ["frais", "choix", "prix", "emballe", "accueil"];
+  const st = { stars: stars || 0, tags: new Set() };
+  const sc = rsShopOf(o), logo = sc && UI.safeImg(sc.logo);
+  box.innerHTML = `<div class="rs-card"><button type="button" class="rs-x" data-rs-x aria-label="✕">✕</button>
+    <div class="rs-head">${logo ? `<img src="${logo}" alt="" />` : ""}<b>${UI.esc(t("rsQ", { name: rsName(o) }))}</b></div>
+    <div class="rs-stars" role="radiogroup" aria-label="${UI.esc(t("rsStarsA"))}">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-rs-s="${n}" aria-label="${n}/5">★</button>`).join("")}</div>
+    <small class="rs-lbl"></small>
+    <div class="rs-tags">${tags.map(k => `<button type="button" data-rs-t="${k}">${UI.esc(rsTag(k))}</button>`).join("")}</div>
+    <textarea class="rs-note" maxlength="300" rows="2" placeholder="${UI.esc(t("rsNotePh"))}"></textarea>
+    <button type="button" class="rs-go" data-rs-go disabled>${UI.esc(t("rsGo"))}</button>
+    <p class="rs-fine">${UI.esc(t("rsFine"))}</p></div>`;
+  const paint = () => {
+    box.querySelectorAll("[data-rs-s]").forEach(b => b.classList.toggle("on", Number(b.dataset.rsS) <= st.stars));
+    box.querySelectorAll("[data-rs-t]").forEach(b => b.classList.toggle("on", st.tags.has(b.dataset.rsT)));
+    box.querySelector(".rs-lbl").textContent = st.stars ? t("rsL" + st.stars) : "";
+    box.querySelector("[data-rs-go]").disabled = !st.stars;
+  };
+  box.onclick = async e => {
+    if (e.target === box || e.target.closest("[data-rs-x]")) { box.classList.add("hidden"); return; }
+    const s1 = e.target.closest("[data-rs-s]"); if (s1) { st.stars = Number(s1.dataset.rsS); paint(); return; }
+    const t1 = e.target.closest("[data-rs-t]"); if (t1) { const k = t1.dataset.rsT; st.tags.has(k) ? st.tags.delete(k) : st.tags.add(k); paint(); return; }
+    const go = e.target.closest("[data-rs-go]"); if (!go || !st.stars) return;
+    go.disabled = true;
+    const ok = await Store.rateShopTags(o.token, st.stars, [...st.tags], box.querySelector(".rs-note").value).catch(() => false);
+    if (!ok) { go.disabled = false; return toastCart(t("rsFail"), 3000); }
+    o.shop_rating = st.stars;
+    UI.track("shop_rated", { stars: st.stars });
+    box.querySelector(".rs-card").innerHTML = `<div class="rs-done"><img src="img/hoppy-vit.webp" alt="" /><b>${UI.esc(t("rsThanks"))}</b><small>${UI.esc(t("rsThanksS"))}</small><button type="button" class="rs-go" data-rs-x>${UI.esc(t("rsClose"))}</button></div>`;
+    try { renderRateAsk(); if (document.body.dataset.view === "mine") renderMine(); } catch (err) { /* ignore */ }
+  };
+  paint(); box.classList.remove("hidden");
+}
+// Accueil : « Comment était … ? » pour la dernière commande livrée d'un commerce (7 jours), une fois par commande
+function renderRateAsk() {
+  const sheet = $("#homeSheet"); if (!sheet) return;
+  let box = $("#rateAsk");
+  const skip = id => { try { return localStorage.getItem("hop.rateAskSkip." + id) === "1"; } catch (e) { return false; } };
+  const o = (state.mine || []).filter(x => rateable(x) && Date.now() - new Date(x.pickup_at || x.created_at) < 7 * 86400000 && !skip(x.id))
+    .sort((a, b) => new Date(b.pickup_at || b.created_at) - new Date(a.pickup_at || a.created_at))[0];
+  if (!o) { if (box) box.remove(); return; }
+  if (!box) { box = document.createElement("div"); box.id = "rateAsk"; box.className = "rate-ask"; const vt = $("#vitTop"); if (vt) vt.after(box); else sheet.prepend(box); }
+  box.dataset.id = String(o.id);
+  box.innerHTML = `<span class="ra-t"><b>${UI.esc(t("rsQ", { name: rsName(o) }))}</b><small>${UI.esc(t("rsAskS"))}</small></span>
+    <span class="ra-s">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-ra-s="${n}" aria-label="${n}/5">★</button>`).join("")}</span>
+    <button type="button" class="ra-x" data-ra-x aria-label="✕">✕</button>`;
+}
+document.addEventListener("click", e => {
+  const r = e.target.closest("[data-rate-shop]");
+  if (r) { const o = (state.mine || []).find(x => String(x.id) === r.dataset.rateShop); if (o) openShopRate(o); return; }
+  const box = e.target.closest("#rateAsk"); if (!box) return;
+  const o = (state.mine || []).find(x => String(x.id) === box.dataset.id); if (!o) return;
+  if (e.target.closest("[data-ra-x]")) { try { localStorage.setItem("hop.rateAskSkip." + o.id, "1"); } catch (err) { /* ignore */ } box.remove(); return; }
+  const s1 = e.target.closest("[data-ra-s]");
+  openShopRate(o, s1 ? Number(s1.dataset.raS) : 0);
+});
 // Commande livrée (patron 22/11) : « Recommander pareil » à la place de « Écrire au livreur » (plus de livreur après la livraison)
 const againGroups = () => reorderList();
 function againIdx(o, list) {
@@ -5234,7 +5303,8 @@ $("#shopHero").addEventListener("toggle", async e => {
   d.dataset.loaded = "1";
   try {
     const r = await Store.shopReviews(d.dataset.reviews);
-    d.querySelector(".sh-rev-list").innerHTML = (r && r.list && r.list.length) ? r.list.map(v => `<div class="sh-rev"><b>${"★".repeat(v.stars)}<i>${"★".repeat(5 - v.stars)}</i></b><span>${v.note ? UI.esc(v.note) : ""}</span><small>${UI.esc(v.name || "")}${v.at ? " · " + UI.esc(UI.fmtDay(v.at)) : ""}</small></div>`).join("") : `<p class="muted small">${UI.esc(t("shReviewsNone"))}</p>`;
+    const tg = r && r.tags ? Object.entries(r.tags).filter(([k]) => RS_TAGS[k]).slice(0, 5) : [];
+    d.querySelector(".sh-rev-list").innerHTML = (tg.length ? `<div class="rs-sum">${tg.map(([k, n]) => `<span>${UI.esc(rsTag(k))} <i>${n}</i></span>`).join("")}</div>` : "") + ((r && r.list && r.list.length) ? r.list.map(v => `<div class="sh-rev"><b>${"★".repeat(v.stars)}<i>${"★".repeat(5 - v.stars)}</i></b>${(v.tags || []).filter(k => RS_TAGS[k]).length ? `<em class="rs-vt">${UI.esc(v.tags.filter(k => RS_TAGS[k]).map(rsTag).join(" · "))}</em>` : ""}<span>${v.note ? UI.esc(v.note) : ""}</span><small>${UI.esc(v.name || "")}${v.at ? " · " + UI.esc(UI.fmtDay(v.at)) : ""}</small></div>`).join("") : `<p class="muted small">${UI.esc(t("shReviewsNone"))}</p>`);
   } catch (err) { d.querySelector(".sh-rev-list").textContent = t("shReviewsNone"); }
 }, true);
 // Une seule ligne sous le nom : ouvert / fermé, prix de la livraison, et deux boutons (WhatsApp, Infos)
@@ -6183,7 +6253,7 @@ function d4Tiles() {
       const pic = UI.safeImg(x.cover), logo = UI.safeImg(x.logo), open = !x.paused && (!st || st.open);
       const lbl = x.paused ? t("d4ShPause") : open ? t("d4mOpen") : (st && !st.hop && st.inDays != null ? openLabel(st) : t("d4Closed"));
       return `<button type="button" class="d4-sh" data-d4-pro="${UI.esc(x.code)}"><span class="d4-sh-pic"${pic ? ` style="background-image:url('${pic}')"` : ""}>${logo ? `<img src="${logo}" alt="" loading="lazy" />` : `<b>${UI.esc(d4Nm(x).slice(0, 1))}</b>`}</span>
-        <b class="d4-sh-n"><bdi>${UI.esc(d4Nm(x))}</bdi></b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(lbl)}</small></button>`;
+        <b class="d4-sh-n"><bdi>${UI.esc(d4Nm(x))}</bdi>${d4Stars(x)}</b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(lbl)}</small></button>`;
     };
     const any = `<button type="button" class="d4-sh d4-sh-any" data-d4="anyshop"><span class="d4-sh-pic"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4-sh-n">${UI.esc(t("d4AnyShopT"))}</b><small>${UI.esc(t("d4AnyShopS"))}</small></button>`;
     const shHtml = `<div class="d4-sh-head"><h3 class="d4-h">${UI.esc(t("d4Shops"))}</h3><button type="button" class="d4-sh-all" data-d4="shops">${UI.esc(t("d4SeeAll"))} ${I18N.lang === "he" ? "‹" : "›"}</button></div>
@@ -6226,10 +6296,15 @@ document.addEventListener("touchend", e => {
 }, { passive: true });
 // ===== Écran « Magasins » (onglet du bas, design d4) : chercher un magasin, carte bleu ciel « On y va pour vous », la liste =====
 const d4m = { q: "", f: "" };
+// Note des clients : « ★ 4,8 (12) » ; « Recommandé » dès 4,5 sur 5 avec 5 avis ; « Les mieux notés » dès 4,5 avec 3 avis
+const d4Top = x => Number(x.ratings) >= 3 && Number(x.rating) >= 4.5;
+const d4Reco = x => Number(x.ratings) >= 5 && Number(x.rating) >= 4.5;
+const d4Stars = x => Number(x.ratings) > 0 ? `<span class="d4-rt">★ ${UI.esc(String(x.rating).replace(".", ","))} <i>(${Number(x.ratings)})</i></span>` : "";
 function d4mPass(x, f) {
   if (!f) return true;
   if (f === "hop") return isHopShop(x) || /^HOP/.test(String(x.code || ""));
   if (f === "open") { const st = shopState(x); return !st || st.open; }
+  if (f === "top") return d4Top(x);
   if (f === "kosher") return isKosher(x) && (x.kind === "restaurant" || x.kind === "traiteur");
   return x.kind === f.slice(2);
 }
@@ -6242,11 +6317,11 @@ function d4MagRender() {
     .filter(x => d4mPass(x, d4m.f))
     .filter(x => !words.length || (h => words.every(w => h.includes(w)))(hvFold(x.name + " " + (x.name_he || ""))))
     .map(x => ({ x, st: shopState(x) }))
-    .sort((a, b) => (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
+    .sort((a, b) => (d4m.f === "top" ? (Number(b.x.rating) - Number(a.x.rating)) || (Number(b.x.ratings) - Number(a.x.ratings)) : 0) || (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
   // Filtres faits à partir des vrais commerces (patron 22/11 : jamais de filtre vide, aucun métier oublié)
   const pool = (state.showcase || []).filter(x => !x.paused);
   const kinds = [...new Set(pool.map(x => x.kind).filter(Boolean))].sort((a, b) => pool.filter(x => x.kind === b).length - pool.filter(x => x.kind === a).length);
-  const fl = [["", t("d4mAll")], ["hop", t("d4mHop")], ["open", t("d4mOpenF")]].concat(kinds.flatMap(k => [["k:" + k, ((t("shKinds") || {})[k] || k).replace(/^\P{L}+/u, "")]].concat(k === "restaurant" ? [["kosher", t("scKosherR")]] : [])), kinds.includes("restaurant") ? [] : [["kosher", t("scKosherR")]])
+  const fl = [["", t("d4mAll")], ["top", t("d4mTop")], ["hop", t("d4mHop")], ["open", t("d4mOpenF")]].concat(kinds.flatMap(k => [["k:" + k, ((t("shKinds") || {})[k] || k).replace(/^\P{L}+/u, "")]].concat(k === "restaurant" ? [["kosher", t("scKosherR")]] : [])), kinds.includes("restaurant") ? [] : [["kosher", t("scKosherR")]])
     .filter(([k]) => !k || pool.some(x => d4mPass(x, k)));
   if (!fl.some(([k]) => k === d4m.f)) d4m.f = "";
   box.querySelector(".d4m-chips").innerHTML = fl.map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${escHop(l)}</button>`).join("");
@@ -6259,7 +6334,8 @@ function d4MagRender() {
     const stx = x.paused ? t("d4ShPause") : open ? t("d4mOpen") : (st && !st.hop && st.inDays != null ? openLabel(st) : t("d4Closed"));
     const nm = isHopShop(x) || /^HOP/.test(String(x.code || "")) ? d4Nm(x) : d3Name(UI.bi(x.name));
     return `<button type="button" class="d4m-card" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-ph"${cover ? ` style="background-image:url('${cover}')"` : ""}>${logo ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />` : `<b>${UI.esc(nm.slice(0, 1))}</b>`}</span>
-      <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi></b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
+${d4Reco(x) ? `<em class="d4-reco">${UI.esc(t("d4Reco"))}</em>` : ""}
+      <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi>${d4Stars(x)}</b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
   }).join("") : mako ? "" : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`);
 }
 function d4MagOpen() {
