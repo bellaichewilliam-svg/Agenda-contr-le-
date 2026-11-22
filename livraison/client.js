@@ -8917,6 +8917,14 @@ if ($("#homeFind")) {
 // Résultats de la vitrine : « On vous l'apporte », puis les produits rangés PAR COMMERCE (logo, nom, « Tout voir »)
 // en cartes avec photo et prix (un toucher ouvre la fiche du produit dans son commerce), les courses HOP! (rayons), les commerces
 const rlHomeCache = new Map();
+// Code-barres d'un produit, lu dans le lien de sa photo (Carrefour, Rami Lévy, Victory le mettent dedans)
+const prodBarcode = u => { const m = /(?:\/|^)(\d{8,14})(?=[\/_.-])/.exec(String(u || "")); return m ? m[1].replace(/^0+/, "") : ""; };
+// Nom d'un produit joliment : la marque en petit au-dessus (pour ne jamais confondre deux boissons), le produit en gras
+function frName(name) {
+  const full = String(UI.bi(name || "")), k = full.indexOf(" · ");
+  if (k > 0 && k < 28) return `<small class="fr-brand">${UI.esc(full.slice(0, k))}</small><b class="fr-prod">${UI.esc(full.slice(k + 3))}</b>`;
+  return `<b class="fr-prod">${UI.esc(full)}</b>`;
+}
 function vitFindRender(q, products, shops, staple, box) {
   if (staple) products = products.filter(p => !/restaurant|resto|cafe/i.test(p.kind || ""));
   // Rubrique tabac (« cigarettes ») : seulement les cigarettes (aucun commerce n'en vend : plus de gaufrettes « cigarettes »)
@@ -8930,7 +8938,7 @@ function vitFindRender(q, products, shops, staple, box) {
   // (les noms Rami Lévy sont en hébreu : on note aussi avec les synonymes, « lait » = « חלב »)
   const scorers = [...searchTerms(q)].filter(Boolean).slice(0, 6).map(mgScorer), rlKey = phNorm(q).trim();
   const scoreOf = p => Math.max(...scorers.map(f => f(p)));
-  const rlList = (rlHomeCache.get(rlKey) || []).map(x => ({ id: "rl:" + x.n, _rl: true, name: x.n, price: Number(x.p) || 0, photo: rlPh(x.c), code: RL_CODE,
+  const rlList = (rlHomeCache.get(rlKey) || []).map(x => ({ id: "rl:" + x.n, _rl: true, bc: String(x.c || ""), name: x.n, price: Number(x.p) || 0, photo: rlPh(x.c), code: RL_CODE,
     shop: (sc(RL_CODE).name) || "HOP! chez Rami Lévy", kind: "epicerie" }));
   if (rlList.length) products = rlList.concat(products.filter(p => !(p.code === RL_CODE && rlList.some(r => phNorm(r.name) === phNorm(UI.bi(p.name))))));
   const groups = [];
@@ -8952,7 +8960,7 @@ function vitFindRender(q, products, shops, staple, box) {
       <button type="button" class="fr-all" data-find-pro="${UI.esc(g.code)}" data-find-q="${qa}">${UI.esc(t("vitFindAll"))} ›</button></div>
       <div class="fr-row">${g.items.slice(0, 12).map(p => { const ph = UI.safeImg(p.photo);
         return card(p._rl ? `data-find-pro="${UI.esc(p.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}" data-find-open="1"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : `<i>${UI.esc(UI.KIND_ICON[g.kind] || "🛍️")}</i>`,
-          !!ph && UI.extPic(ph), `<bdi dir="ltr">${UI.esc(money(p.price))}</bdi>`, UI.esc(UI.bi(p.name))); }).join("")}</div></section>`;
+          !!ph && UI.extPic(ph), `<bdi dir="ltr">${UI.esc(money(p.price))}</bdi>`, frName(p.name)); }).join("")}</div></section>`;
   }).join("");
   const rays = rayonHits(q, 8);
   const rayHtml = rays.length ? `<section class="fr-group"><div class="fr-head"><span class="fr-logo hop"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4h2l2.4 10.2a1.5 1.5 0 0 0 1.5 1.1h8.2a1.5 1.5 0 0 0 1.4-1l2-6.3H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg></span><span class="fr-name"><b>${escHop(t("vitFindRay").replace(/^\P{L}+/u, ""))}</b><small>${UI.esc(t("vitFindRaySub"))}</small></span></div>
@@ -8961,7 +8969,18 @@ function vitFindRender(q, products, shops, staple, box) {
   const shopHtml = shops.length ? `<h5>${UI.esc(t("vitFindShops"))}</h5>` + shops.map(s => `<button type="button" data-find-pro="${UI.esc(s.code)}"><span class="fi-pic">${UI.safeImg(s.logo) ? `<img src="${UI.safeImg(s.logo)}" alt="" />` : (UI.KIND_ICON[s.kind] || "🏪")}</span><span class="fi-txt"><b>${escHop(UI.bi(s.name))}</b><small>${UI.esc((t("shKinds") || {})[s.kind] || "")}</small></span></button>`).join("") : "";
   // (les rayons d'abord pour les courses du quotidien : lait, eau, couches…)
   // (même contenu : on ne redessine pas, les photos et le défilement restent en place)
-  const out = any + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
+  // Comparateur (patron 22/11 : « on est censé être un comparateur ») : le même produit (même code-barres) dans plusieurs
+  // de nos magasins, les prix côte à côte, le moins cher en premier
+  const cmp = {};
+  products.forEach(p => { const b = p.bc || prodBarcode(p.photo); if (!b || !(Number(p.price) > 0)) return; const g = cmp[b] = cmp[b] || { b, items: [] };
+    if (!g.items.some(x => x.code === p.code)) g.items.push(p); });
+  const cmpList = Object.values(cmp).filter(g => g.items.length >= 2).map(g => { g.items.sort((a, b) => Number(a.price) - Number(b.price)); g.sc = Math.max(...g.items.map(x => x._sc != null ? x._sc : scoreOf(x))); g.ref = g.items.find(x => !x._rl) || g.items[0]; return g; })
+    .filter(g => g.sc > 0).sort((a, b) => b.sc - a.sc).slice(0, 4);
+  const cmpHtml = cmpList.length ? `<section class="fr-cmp"><div class="fr-cmp-h"><b>${UI.esc(t("cmpT"))}</b><small>${UI.esc(t("cmpS"))}</small></div>${cmpList.map(g => {
+    const ph = UI.safeImg(g.ref.photo) || UI.safeImg(g.items.map(x => x.photo).find(Boolean)), lo = Number(g.items[0].price), hi = Number(g.items[g.items.length - 1].price);
+    return `<div class="fr-cmp-row"><span class="fr-cmp-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" onerror="this.remove()" />` : ""}</span><span class="fr-cmp-main"><span class="fr-cmp-nm">${frName(g.ref.name)}</span>
+      <span class="fr-cmp-pr">${g.items.map((x, i) => `<button type="button" class="${i === 0 ? "lo" : ""}" ${x._rl ? `data-find-pro="${UI.esc(x.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(x.code)}" data-find-item="${UI.esc(x.id)}" data-find-open="1"`}><small>${UI.esc(d4Nm({ code: x.code, name: x.shop }))}</small><b><bdi dir="ltr">${UI.esc(money(x.price))}</bdi></b>${i === 0 && hi > lo ? `<em>${UI.esc(t("cmpLo"))}</em>` : ""}</button>`).join("")}</span></span></div>`; }).join("")}</section>` : "";
+  const out = any + cmpHtml + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
   if (box._findOut !== out || !box.firstChild || box._findFirst !== box.firstChild) { box.innerHTML = out; box._findOut = out; box._findFirst = box.firstChild; }
   box.classList.remove("hidden");
 }
