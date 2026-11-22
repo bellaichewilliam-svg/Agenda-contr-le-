@@ -178,7 +178,7 @@ def candidates(root: ET.Element, prices: dict, today: dt.date) -> dict:
     for pr in root.iter("Promotion"):
         g = lambda n: (pr.findtext(n) or "").strip()  # noqa: E731
         pid, desc = g("PromotionID"), re.sub(r"\s+", " ", g("PromotionDescription"))
-        if not pid or not desc or g("ClubID") != "0" or g("AdditionalIsCoupon") not in ("", "0"):
+        if not pid or not desc or (g("ClubID").split(" ")[0] or "0") != "0" or g("AdditionalIsCoupon") not in ("", "0"):   # (Yohananof : « 0 - כלל הלקוחות »)
             continue
         if g("AdditionalRestrictions") or BANNED.search(desc + " ") or COND.search(desc + " "):
             continue
@@ -248,6 +248,7 @@ def main() -> int:
     ap.add_argument("--chain", default="7290058140886")
     ap.add_argument("--store", default="037")
     ap.add_argument("--prefix", default="ramilevy")
+    ap.add_argument("--min-rows", type=int, default=8000, help="nombre minimum de produits dans le magasin (fichier cassé en dessous)")
     a = ap.parse_args()
     globals().update(USER=a.user, CHAIN=a.chain, STORE=a.store)
     out = Path(a.out)
@@ -320,7 +321,7 @@ def main() -> int:
 
     log(f"{len(items)} promos gardées ({kept} déjà en boutique, {len(items) - kept} nouvelles, "
         f"{sum(1 for i in items if not i['fr'])} à traduire) ; rayons : {per_cat}")
-    if len(items) < MIN_OK or len(rows) < 8000:
+    if len(items) < MIN_OK or len(rows) < a.min_rows:
         log("trop peu de données : on ne touche à rien")
         return 1
 
