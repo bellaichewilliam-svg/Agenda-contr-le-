@@ -1282,6 +1282,7 @@ function renderNoteTime() {
 // Produit sans photo (patron, 22/11 : « tu mets des fictifs qui ressemblent, pas le carré HOP! ») : un dessin 3D de l'appli
 // (img/qc/…) choisi d'après le nom du produit (français ou hébreu), puis d'après son rayon
 const QC_ART = [
+  [/acamol|advil|nurofen|paracétamol|paracetamol|ibupro|aspirin|optalgin|דקסמול|אקמול|אדוויל|נורופן|כדור|קפסול|comprim|sirop|סירופ|vitamine|ויטמין|antihist|pastille|לכסני/i, "pill"], [/thermom|מדחום/i, "thermometer"], [/pansement|plaster|פלסטר/i, "bandage"],
   [/avocat|avocado|אבוקדו/i, "avocado"], [/[ée]chalote|oignon|onion|בצל|שאלוט/i, "onion"], [/\bail\b|garlic|שום/i, "garlic"],
   [/tomate|tomato|עגבני|רסק/i, "tomato"], [/concombre|cornichon|מלפפון/i, "cucumber"], [/carotte|גזר/i, "carrot"], [/pomme de terre|potato|תפוח אדמה|תפו"א/i, "potato"],
   [/poivron|פלפל/i, "bellpepper"], [/champignon|פטרי/i, "mushroom"], [/brocoli|ברוקולי/i, "broccoli"], [/salade|laitue|חסה|עלים/i, "leafy"], [/ma[ïi]s|corn|תירס/i, "corn"],
@@ -1308,6 +1309,8 @@ const QC_ART = [
 const QC_CAT = [[/fruit|légume|ירק|פיר/i, "apple"], [/viande|poisson|בשר|דג/i, "meat"], [/lait|laitier|fromage|חלב/i, "milk"], [/pain|gâteau|boulang|לחם|מאפ/i, "bread"],
   [/épicerie|מזווה/i, "canned"], [/snack|douceur|חטיף|מתוק/i, "cookie"], [/boisson|café|eau|משק|מים/i, "cupstraw"], [/surgel|קפוא/i, "snowflake"],
   [/hygi|beaut|טיפוח/i, "lotion"], [/maison|ménage|ניקיון|בית/i, "bubbles"], [/bébé|תינוק/i, "baby"]];
+const qcKeyOf = nm => { const h = QC_ART.find(([rx]) => rx.test(String(nm || ""))); return h ? h[1] : ""; };
+const RAY_ART = { pharm: "pill", pharmacy: "pill", baby: "baby", home: "bubbles", bakery: "bread", shop: "cart", super: "cart" };
 function qcArt(p) {
   const nm = String((p && p.name) || ""), hit = QC_ART.find(([rx]) => rx.test(nm));
   let k = hit && hit[1];
@@ -1391,7 +1394,7 @@ function renderPharma() {
     if (rows) return `<div class="ph-line${qn ? " in" : ""}${x.hidden ? " off" : ""}">${rEdit ? `<button type="button" class="pl-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">✏️</button>` : ""}<span class="pl-txt"><b>${UI.esc(phName(x))}${x.adult ? ` <i class="ph-18">18+</i>` : ""}</b>${sel2}</span>
       ${pr ? `<span class="pl-price"><b>≈ ${priceTxt(pr)}</b>${x.c === "cig" && x.id !== "cartouche" ? `<small>${UI.esc(t("phPerPack"))}</small>` : ""}</span>` : ""}
       <span class="pl-act">${step}</span></div>`;
-    const src = state.boss ? rayPicSrc(x) : null;
+    const src = state.boss && rEdit ? rayPicSrc(x) : null;
     return `<div class="ph-item${qn ? " in" : ""}${x.hidden ? " off" : ""}" data-ph-open="${UI.esc(x.id)}">
       <div class="ph-pic${x.photo ? " photo" : ""}${UI.extPic(x.photo) ? " pack" : ""}">${pic(x)}
         ${rEdit ? `<button type="button" class="cg-boss" data-ray-edit="${UI.esc(x.id)}" aria-label="Modifier">✏️</button>` : ""}
@@ -6977,10 +6980,10 @@ const d3Name = n => (D3 ? String(n || "").replace(/^HOP!\s+(chez\s+|ב)?/, "").r
 function shopCard(s) {
   const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = shopState(s);
   const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
-  return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">
+  return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="group" tabindex="0" aria-label="${UI.esc(d3Name(UI.bi(s.name)))}">
     <span class="sc-cover${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
       ${st && !st.open ? `<em class="sc-closed"><span><b>🌙 ${UI.esc(t("scClosedShort"))}</b>${(lb => lb ? `<small>${UI.esc(lb)}</small>` : "")(openLabel(st).replace(/^[^·]*·\s*/, "").replace(/^(Fermé|סגור)$/, ""))}</span></em>` : ""}${isKosher(s) ? kosherTag("k-on-cover") : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
-    <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
+    <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="${UI.esc(t("a11yFav"))}" aria-pressed="${fav}">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(d3Name(UI.bi(s.name)))}</b>
       ${s.paused ? `<small class="sc-meta sc-paused">⏸️ ${UI.esc(t("scPaused"))}</small>` : ""}
@@ -9865,6 +9868,16 @@ UI.markClientApp();
 })();
 // Téléphone du patron : mode patron sur la page client (crayon ✏️ sur chaque produit)
 Store.amBoss().then(b => { if (!b) return; state.boss = true; if (state.shop) { renderCatalog(); bossMapLoad(state.shop.code); } if (rayonOn()) renderPharma(); }).catch(() => {});
+// Accessibilité (22/11) : noms lus par les lecteurs d'écran (bouton « Nous écrire », champs de recherche)
+function a11yNames() {
+  const fab = $("#waFab"); if (fab) fab.setAttribute("aria-label", t("chatFab"));
+  const hf = $("#homeFind"); if (hf && !hf.getAttribute("aria-label")) hf.setAttribute("aria-label", t("a11ySearch"));
+  document.querySelectorAll("[data-cg-q]").forEach(i => i.setAttribute("aria-label", t("a11ySearch")));
+}
+a11yNames();
+window.addEventListener("hop:lang", a11yNames);
+new MutationObserver(() => { const q = document.querySelector("[data-cg-q]:not([aria-label])"); if (q) q.setAttribute("aria-label", t("a11ySearch")); })
+  .observe(document.getElementById("catalogBox") || document.body, { childList: true, subtree: true });
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;
 
