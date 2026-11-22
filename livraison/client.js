@@ -6152,11 +6152,11 @@ function d4Tiles() {
   let sh = $("#d4Shops");
   if (!sh && hk) { sh = document.createElement("section"); sh.id = "d4Shops"; sh.className = "d4-shops"; (hk.nextElementSibling || hk).after(sh); }
   if (sh) {
-    const hop = (state.showcase || []).filter(isHopShop).map(x => ({ x, st: shopState(x) }))
+    const hop = (state.showcase || []).filter(x => isHopShop(x) || /^HOP/.test(String(x.code || "").toUpperCase())).map(x => ({ x, st: shopState(x) }))
       .sort((a, b) => (a.x.paused - b.x.paused) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)) || (D4_PROMO_ORDER.indexOf(a.x.code) + 1 || 99) - (D4_PROMO_ORDER.indexOf(b.x.code) + 1 || 99));
     const card = ({ x, st }) => {
       const pic = UI.safeImg(x.cover), logo = UI.safeImg(x.logo), open = !x.paused && (!st || st.open);
-      const lbl = x.paused ? t("d4ShPause") : open ? t("d4mOpen") : openLabel(st);
+      const lbl = x.paused ? t("d4ShPause") : open ? t("d4mOpen") : (st && !st.hop && st.inDays != null ? openLabel(st) : t("d4Closed"));
       return `<button type="button" class="d4-sh" data-d4-pro="${UI.esc(x.code)}"><span class="d4-sh-pic"${pic ? ` style="background-image:url('${pic}')"` : ""}>${logo ? `<img src="${logo}" alt="" loading="lazy" />` : `<b>${UI.esc(d4Nm(x).slice(0, 1))}</b>`}</span>
         <b class="d4-sh-n"><bdi>${UI.esc(d4Nm(x))}</bdi></b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(lbl)}</small></button>`;
     };
@@ -6169,7 +6169,7 @@ function d4Tiles() {
 }
 // Ordre des magasins dans la tuile promo (le patron peut demander de le changer)
 // Nom court d'un magasin HOP! dans les deux langues (« Rami Lévy », « רמי לוי »)
-const D4_NAMES = { HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
+const D4_NAMES = { HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
 const d4Nm = x => (D4_NAMES[x.code] || [])[I18N.lang === "he" ? 1 : 0] || mgShort(x.name).replace(/^הופ!\u200E?\s*ב-?/, "").trim();
 const D4_PROMO_ORDER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPVICTORY", "HOPBOOOM", "HOPPANZER"];
 function d4PromoSlides() {
@@ -6201,25 +6201,38 @@ document.addEventListener("touchend", e => {
 }, { passive: true });
 // ===== Écran « Magasins » (onglet du bas, design d4) : chercher un magasin, carte bleu ciel « On y va pour vous », la liste =====
 const d4m = { q: "", f: "" };
-const D4M_F = { courses: ["epicerie", "boutique", "autre"], resto: ["restaurant", "traiteur"], pharm: ["pharmacie"] };
+function d4mPass(x, f) {
+  if (!f) return true;
+  if (f === "hop") return isHopShop(x) || /^HOP/.test(String(x.code || ""));
+  if (f === "open") { const st = shopState(x); return !st || st.open; }
+  if (f === "kosher") return isKosher(x) && (x.kind === "restaurant" || x.kind === "traiteur");
+  return x.kind === f.slice(2);
+}
 function d4MagIsOpen() { const b = $("#d4Mag"); return !!b && !b.classList.contains("hidden"); }
 function d4MagRender() {
   const box = $("#d4Mag"); if (!box) return;
   const words = hvFold(d4m.q).split(/\s+/).filter(Boolean);
   const promoN = {}; if (pa.data) paItems().forEach(x => { promoN[x.code] = (promoN[x.code] || 0) + 1; });
   const list = (state.showcase || []).filter(x => !x.paused)
-    .filter(x => !d4m.f || (d4m.f === "courses" ? isHopShop(x) || D4M_F.courses.includes(x.kind) : D4M_F[d4m.f].includes(x.kind)))
+    .filter(x => d4mPass(x, d4m.f))
     .filter(x => !words.length || (h => words.every(w => h.includes(w)))(hvFold(x.name + " " + (x.name_he || ""))))
     .map(x => ({ x, st: shopState(x) }))
     .sort((a, b) => (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
-  box.querySelector(".d4m-chips").innerHTML = [["", "d4mAll"], ["courses", "d4mCourses"], ["resto", "d4mResto"], ["pharm", "d4mPharm"]]
-    .map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${UI.esc(t(l))}</button>`).join("");
+  // Filtres faits à partir des vrais commerces (patron 22/11 : jamais de filtre vide, aucun métier oublié)
+  const pool = (state.showcase || []).filter(x => !x.paused);
+  const kinds = [...new Set(pool.map(x => x.kind).filter(Boolean))].sort((a, b) => pool.filter(x => x.kind === b).length - pool.filter(x => x.kind === a).length);
+  const fl = [["", t("d4mAll")], ["hop", t("d4mHop")], ["open", t("d4mOpenF")]].concat(kinds.flatMap(k => [["k:" + k, ((t("shKinds") || {})[k] || k).replace(/^\P{L}+/u, "")]].concat(k === "restaurant" ? [["kosher", t("scKosherR")]] : [])), kinds.includes("restaurant") ? [] : [["kosher", t("scKosherR")]])
+    .filter(([k]) => !k || pool.some(x => d4mPass(x, k)));
+  if (!fl.some(([k]) => k === d4m.f)) d4m.f = "";
+  box.querySelector(".d4m-chips").innerHTML = fl.map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${escHop(l)}</button>`).join("");
   box.querySelector(".d4m-list").innerHTML = list.length ? list.map(({ x, st }) => {
-    const pic = UI.safeImg(x.cover) || UI.safeImg(x.logo), open = !st || st.open;
+    // (patron 22/11) : grandes cartes photo, deux par ligne, logo sur la photo, statut court
+    const cover = UI.safeImg(x.cover), logo = UI.safeImg(x.logo), open = !x.paused && (!st || st.open);
     const sub = promoN[x.code] ? t("d4mPromos", { n: promoN[x.code] }) : ((t("shKinds") || {})[x.kind] || "").replace(/^\P{L}+/u, "");
-    const stx = open ? t("d4mOpen") : openLabel(st);
-    return `<button type="button" class="d4m-row" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-pic">${pic ? `<img src="${pic}" alt="" loading="lazy" onerror="this.remove()" />` : ""}<b>${UI.esc((isHopShop(x) ? d4Nm(x) : d3Name(UI.bi(x.name))).slice(0, 1))}</b></span>
-      <span class="d4m-txt"><b><bdi>${UI.esc((isHopShop(x) ? d4Nm(x) : d3Name(UI.bi(x.name))))}</bdi></b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}${sub ? ` · ${UI.esc(sub)}` : ""}</small></span></button>`;
+    const stx = x.paused ? t("d4ShPause") : open ? t("d4mOpen") : (st && !st.hop && st.inDays != null ? openLabel(st) : t("d4Closed"));
+    const nm = isHopShop(x) || /^HOP/.test(String(x.code || "")) ? d4Nm(x) : d3Name(UI.bi(x.name));
+    return `<button type="button" class="d4m-card" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-ph"${cover ? ` style="background-image:url('${cover}')"` : ""}>${logo ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />` : `<b>${UI.esc(nm.slice(0, 1))}</b>`}</span>
+      <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi></b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
   }).join("") : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`;
 }
 function d4MagOpen() {
