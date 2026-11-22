@@ -6264,7 +6264,7 @@ function d4Tiles() {
 }
 // Ordre des magasins dans la tuile promo (le patron peut demander de le changer)
 // Nom court d'un magasin HOP! dans les deux langues (« Rami Lévy », « רמי לוי »)
-const D4_NAMES = { HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
+const D4_NAMES = { LAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
 const d4Nm = x => (D4_NAMES[x.code] || [])[I18N.lang === "he" ? 1 : 0] || mgShort(x.name).replace(/^הופ!\u200E?\s*ב-?/, "").trim();
 const D4_PROMO_ORDER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPVICTORY", "HOPBOOOM", "HOPPANZER"];
 function d4PromoSlides() {
@@ -8938,28 +8938,33 @@ function vitFindRender(q, products, shops, staple, box) {
   // (les noms Rami Lévy sont en hébreu : on note aussi avec les synonymes, « lait » = « חלב »)
   const scorers = [...searchTerms(q)].filter(Boolean).slice(0, 6).map(mgScorer), rlKey = phNorm(q).trim();
   const scoreOf = p => Math.max(...scorers.map(f => f(p)));
-  const rlList = (rlHomeCache.get(rlKey) || []).map(x => ({ id: "rl:" + x.n, _rl: true, bc: String(x.c || ""), name: x.n, price: Number(x.p) || 0, photo: rlPh(x.c), code: RL_CODE,
-    shop: (sc(RL_CODE).name) || "HOP! chez Rami Lévy", kind: "epicerie" }));
-  if (rlList.length) products = rlList.concat(products.filter(p => !(p.code === RL_CODE && rlList.some(r => phNorm(r.name) === phNorm(UI.bi(p.name))))));
+  // Magasins complets (tout le magasin, pas seulement les promos) : Rami Lévy, Victory, et Mahsanei Lahav Netanya (sans boutique HOP!)
+  const full = (src, code, shopName, photo) => (rlHomeCache.get(src + ":" + rlKey) || []).map(x => ({ id: src + ":" + x.n, _rl: true, _src: src, bc: String(x.c || ""),
+    name: x.n, price: Number(x.p) || 0, photo: photo(x), code, shop: (sc(code).name) || shopName, kind: "epicerie" }));
+  const rlList = full("rl", RL_CODE, "HOP! chez Rami Lévy", x => rlPh(x.c)).concat(full("vic", "HOPVICTORY", "HOP! chez Victory", x => x.ph || ""),
+    full("lahav", "LAHAV", I18N.lang === "he" ? "מחסני להב נתניה" : "Mahsanei Lahav Netanya", x => x.ph || ""));
+  if (rlList.length) products = rlList.concat(products.filter(p => !rlList.some(r => r.code === p.code && phNorm(r.name) === phNorm(UI.bi(p.name)))));
   const groups = [];
   products.forEach(p => { let g = groups.find(x => x.code === p.code); if (!g) groups.push(g = { code: p.code, shop: p.shop, kind: p.kind, items: [] }); g.items.push(p); });
-  const hopRank = c => { const i = D4_PROMO_ORDER.indexOf(c); return i < 0 ? ((CONFIG.hopShops || []).includes(c) ? 50 : 99) : i; };
+  const hopRank = c => { if (c === "LAHAV") return 60; const i = D4_PROMO_ORDER.indexOf(c); return i < 0 ? ((CONFIG.hopShops || []).includes(c) ? 50 : 99) : i; };
   groups.forEach(g => { g.items.forEach(p => { p._sc = scoreOf(p); }); g.items.sort((a, b) => b._sc - a._sc); g.best = g.items.length ? g.items[0]._sc : -99; });
   groups.sort((a, b) => ((b.best >= 25) - (a.best >= 25)) || (hopRank(a.code) - hopRank(b.code)) || (b.best - a.best));
-  if (rlKey.length >= 2 && !rlHomeCache.has(rlKey) && !/restaurant|resto|cafe/i.test(q)) {
-    rlHomeCache.set(rlKey, []);
-    Store.rlFind(q, 10).then(l => { if (!Array.isArray(l) || !l.length) return; rlHomeCache.set(rlKey, l); if (rlHomeCache.size > 40) rlHomeCache.delete(rlHomeCache.keys().next().value);
-      if (box.isConnected && !box.classList.contains("hidden")) vitFindRender(q, products.filter(p => !p._rl), shops, staple, box); }).catch(() => { rlHomeCache.delete(rlKey); });
-  }
+  if (rlKey.length >= 2 && !/restaurant|resto|cafe/i.test(q)) [["rl", Store.rlFind], ["vic", Store.vicFind], ["lahav", Store.lahavFind]].forEach(([src, fn]) => {
+    const key = src + ":" + rlKey;
+    if (rlHomeCache.has(key) || !fn) return;
+    rlHomeCache.set(key, []);
+    fn(q, 10).then(l => { if (!Array.isArray(l) || !l.length) return; rlHomeCache.set(key, l); if (rlHomeCache.size > 120) rlHomeCache.delete(rlHomeCache.keys().next().value);
+      if (box.isConnected && !box.classList.contains("hidden")) vitFindRender(q, products.filter(p => !p._rl), shops, staple, box); }).catch(() => { rlHomeCache.delete(key); });
+  });
   const card = (attrs, pic, white, price, name) => `<button type="button" class="fr-card" ${attrs}><span class="fr-pic${white ? " white" : ""}">${pic}</span>
     <span class="fr-price">${price}</span><span class="fr-nm">${name}</span></button>`;
   const prodHtml = groups.map(g => {
     const logo = UI.safeImg(sc(g.code).logo);
     return `<section class="fr-group"><div class="fr-head"><span class="fr-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(UI.KIND_ICON[g.kind] || "🏪")}</span>
       <span class="fr-name"><b>${escHop(UI.bi(g.shop))}</b><small>${UI.esc(t(g.items.length === 1 ? "vitFindN1" : "vitFindN", { n: g.items.length }))}</small></span>
-      <button type="button" class="fr-all" data-find-pro="${UI.esc(g.code)}" data-find-q="${qa}">${UI.esc(t("vitFindAll"))} ›</button></div>
+      ${g.code === "LAHAV" ? `<button type="button" class="fr-all" data-find-any>${UI.esc(t("vitFindAsk"))} ›</button>` : `<button type="button" class="fr-all" data-find-pro="${UI.esc(g.code)}" data-find-q="${qa}">${UI.esc(t("vitFindAll"))} ›</button>`}</div>
       <div class="fr-row">${g.items.slice(0, 12).map(p => { const ph = UI.safeImg(p.photo);
-        return card(p._rl ? `data-find-pro="${UI.esc(p.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}" data-find-open="1"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : `<i>${UI.esc(UI.KIND_ICON[g.kind] || "🛍️")}</i>`,
+        return card(p._src === "lahav" ? `data-find-any` : p._rl ? `data-find-pro="${UI.esc(p.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}" data-find-open="1"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : `<i>${UI.esc(UI.KIND_ICON[g.kind] || "🛍️")}</i>`,
           !!ph && UI.extPic(ph), `<bdi dir="ltr">${UI.esc(money(p.price))}</bdi>`, frName(p.name)); }).join("")}</div></section>`;
   }).join("");
   const rays = rayonHits(q, 8);
@@ -8979,7 +8984,7 @@ function vitFindRender(q, products, shops, staple, box) {
   const cmpHtml = cmpList.length ? `<section class="fr-cmp"><div class="fr-cmp-h"><b>${UI.esc(t("cmpT"))}</b><small>${UI.esc(t("cmpS"))}</small></div>${cmpList.map(g => {
     const ph = UI.safeImg(g.ref.photo) || UI.safeImg(g.items.map(x => x.photo).find(Boolean)), lo = Number(g.items[0].price), hi = Number(g.items[g.items.length - 1].price);
     return `<div class="fr-cmp-row"><span class="fr-cmp-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" onerror="this.remove()" />` : ""}</span><span class="fr-cmp-main"><span class="fr-cmp-nm">${frName(g.ref.name)}</span>
-      <span class="fr-cmp-pr">${g.items.map((x, i) => `<button type="button" class="${i === 0 ? "lo" : ""}" ${x._rl ? `data-find-pro="${UI.esc(x.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(x.code)}" data-find-item="${UI.esc(x.id)}" data-find-open="1"`}><small>${UI.esc(d4Nm({ code: x.code, name: x.shop }))}</small><b><bdi dir="ltr">${UI.esc(money(x.price))}</bdi></b>${i === 0 && hi > lo ? `<em>${UI.esc(t("cmpLo"))}</em>` : ""}</button>`).join("")}</span></span></div>`; }).join("")}</section>` : "";
+      <span class="fr-cmp-pr">${g.items.map((x, i) => `<button type="button" class="${i === 0 ? "lo" : ""}" ${x._src === "lahav" ? "data-find-any" : x._rl ? `data-find-pro="${UI.esc(x.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(x.code)}" data-find-item="${UI.esc(x.id)}" data-find-open="1"`}><small>${UI.esc(d4Nm({ code: x.code, name: x.shop }))}</small><b><bdi dir="ltr">${UI.esc(money(x.price))}</bdi></b>${i === 0 && hi > lo ? `<em>${UI.esc(t("cmpLo"))}</em>` : ""}</button>`).join("")}</span></span></div>`; }).join("")}</section>` : "";
   const out = any + cmpHtml + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
   if (box._findOut !== out || !box.firstChild || box._findFirst !== box.firstChild) { box.innerHTML = out; box._findOut = out; box._findFirst = box.firstChild; }
   box.classList.remove("hidden");

@@ -1,0 +1,15 @@
+-- 22/11 (patron : « oui pour Victory » + « מחסני להב de Netanya, va prendre son catalogue »)
+-- Migrations appliquées : victory_tout_le_magasin, victory_tout_par_paquets, lahav_tout_le_magasin.
+--
+-- VICTORY, tout le magasin (≈ 9 000 produits) : la base lit les 266 rayons du site victoryonline.co.il (?page=40 = tout le rayon),
+--   20 rayons toutes les 5 minutes (le site ne supporte pas tout d'un coup) le dimanche et le mercredi entre 3 h et 7 h UTC :
+--   victory_cats (rayons) → victory_all_fetch(20) → victory_all_import() → victory_all (id, nom hébreu, prix, photo, code-barres).
+--   vic_find(q, n) : même recherche que rl_find (synonymes FR/HE). Le catalogue de la boutique HOP! chez Victory ne change pas
+--   (promos seulement, toujours sous 150 Ko) : tout le magasin sert à la recherche et au comparateur.
+--
+-- MAHSANEI LAHAV NETANYA (קניון השרון, magasin 022 de Freshmarket) : fichiers officiels des prix (publishedprices, compte public
+--   « freshmarket »), lus par le robot GitHub (scripts/lahav_prix.py, une fois par semaine) → livraison/data/lahav-prix.json,
+--   chargés chaque soir par la base : lahav_fetch() (20:40 UTC) → lahav_import() (20:50 UTC) → lahav_items.
+--   lahav_find(q, n) : même recherche. Pas de boutique HOP! : dans l'appli, un toucher = « On vous l'apporte ».
+--
+-- Le comparateur de l'appli rapproche les produits par code-barres (Carrefour, Rami Lévy, Victory, Mahsanei Lahav).
