@@ -1348,6 +1348,9 @@ function renderPharma() {
   if (r.kind === "shop") { items = items.filter(x => !isCfItem(x)); cats = cats.filter(c => items.some(x => x.c === c.id)); }
   const split = false;
   const src = split ? (state.phSrc === "cf" ? "cf" : "mak") : "";
+  // (patron, 22/11 : « même disposition pour tous les magasins, comme Rami Lévy ») : cartes à grande photo, 2 par ligne ;
+  // un produit sans photo prend un dessin qui lui ressemble (le tabac reste une liste sans image : la loi)
+  if (r.id !== "tabac") items = items.map(x => (x.img || UI.safeImg(x.photo)) ? x : Object.assign({}, x, { img: qcKeyOf(`${x.fr} ${x.he}`) || RAY_ART[r.kind] || RAY_ART[r.id] || "cart" }));
   const allItems = items;
   if (src) { items = items.filter(x => (src === "cf") === isCfItem(x)); cats = cats.filter(c => items.some(x => x.c === c.id)); }
   if (!cats.some(c => c.id === state.pharmaCat)) state.pharmaCat = (cats[0] || {}).id;
@@ -1839,6 +1842,16 @@ function renderQuote() {
   $("#mobileHint").textContent = addonOn() ? t("qAddon", { ref: state.addon.ref }) : hint;
   $("#mobileHint").classList.toggle("hidden", !hint);
   $("#mobileHint").classList.toggle("mb-goods", !!(est && !unpriced && !withMax && !items && !addonOn()));
+  // (patron, 22/11, maquette validée « comme Rami Lévy ») : panier rempli = le vrai total en grand (articles + livraison),
+  // le détail dessous ; les articles restent au prix du magasin (≈), payés comme le client l'a choisi
+  const nArt = items ? cartCount() : est && !unpriced && r0 ? rayonPicked(r0).reduce((x, [, qq]) => x + qq, 0) : 0;
+  const artSum = items || (est && !unpriced ? est.mid : 0);
+  if (nArt > 0 && artSum > 0 && !withMax && !addonOn()) {
+    $("#mobileLbl").textContent = t(nArt === 1 ? "barCart1" : "barCart", { n: nArt });
+    $("#mobileTotal").textContent = "≈ " + money(Math.round((Number(q.total) + artSum) * 10) / 10);
+    $("#mobileHint").textContent = t("barCartHint", { items: money(artSum), del: (q.known ? "" : t("from") + " ") + money(q.total) });
+    $("#mobileHint").classList.remove("hidden", "mb-goods");
+  }
   $("#submitBtn").textContent = wiz.on && wiz.step < wiz.n ? t("wizNext") : t("submit", { total: money(all) });
   const notes = [];
   if (!q.known) notes.push(t("qUnknown"));
