@@ -7538,3 +7538,16 @@ html[dir="rtl"].d4 .ch-explore .xp::after { transform: scaleX(-1); }
 html.d4 .d4-promo small, html.d4 .d4-promo .d4-sl small { text-transform: none !important; letter-spacing: 0 !important; font-size: 13px !important; }
 .fr-brand { text-transform: none !important; letter-spacing: 0 !important; font-size: 12px !important; font-weight: 700 !important; }
 html.d4 #vitStatus > span > small::before { content: ", " !important; }
+/* Revue design · page magasin (22/11) */
+html.d4 .sh-cover { height: auto !important; min-height: 0 !important; aspect-ratio: 12 / 5; background-size: cover !important; background-position: center !important; }
+html.d4 .cg-srow .cg-search { background: #fff !important; box-shadow: 0 0 0 1px #E6E8EB inset !important; border: 0 !important; }
+html.d4 .cg-srow .cg-search input { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+html.d4 .cg-voice { background: #fff !important; background-image: none !important; box-shadow: 0 0 0 1px #E6E8EB inset !important; }
+html.d3 .gc-opt.on { border-color: #0F1F3D !important; box-shadow: 0 0 0 1px #0F1F3D inset !important; background: #fff !important; }
+html.d4 body #orderForm .cg-srow .cg-search input, html.d4 body .cg-srow .cg-search input { background: transparent !important; background-color: transparent !important; box-shadow: none !important; }
+/* Mes courses : une vraie icône au lieu d'un carré gris vide */
+html.d3 .mini-order .mo-ico { font-size: 0 !important; background: #F2F3F5 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111418' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8l8-4 8 4v8l-8 4-8-4z'/%3E%3Cpath d='M4 8l8 4 8-4M12 12v8'/%3E%3C/svg%3E") center / 24px no-repeat !important; }
+/* Bulle « suivre la course » : au-dessus de la barre du bas (elle passait dessous) */
+html.d3 body[data-view="home"] .eta-bubble, html.d3 body[data-view="mine"] .eta-bubble, html.d3 body:not([data-view]) .eta-bubble { bottom: calc(86px + env(safe-area-inset-bottom)) !important; }
+/* Boutons WhatsApp noirs : sans liseré vert */
+html.d3 .btn-wa { border: 0 !important; box-shadow: none !important; }
