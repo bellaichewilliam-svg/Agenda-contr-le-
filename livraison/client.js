@@ -5717,7 +5717,8 @@ function vitRenderNow() {
     const when = !busy && !paused && val("urgency") === "programmee" && pickupDate();
     const at = when && (() => { const d = new Date(when), z = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime(), diff = Math.round((z(d) - z(new Date())) / 86400000);
       return diff === 0 ? t("d3AtToday", { h: hhmm(d) }) : diff === 1 ? t("d3AtTomorrow", { h: hhmm(d) }) : t("d3AtDay", { d: (DAYS[I18N.lang] || DAYS.fr)[d.getDay()].toLowerCase(), h: hhmm(d) }); })();
-    const title = busy ? t("d3OffBusy") : t("d3OffT"), sub = busy ? t("d3OffBusyS") : at ? t("d3OffAt", { h: at }) : t("d3OffS");
+    const D4S = document.documentElement.classList.contains("d4");   // design tuiles : une ligne courte (patron 22/11)
+    const title = busy ? t("d3OffBusy") : t("d3OffT"), sub = D4S ? (busy ? t("d4OffBusyS") : at ? t("d4OffAt", { h: at }) : t("d4OffS")) : busy ? t("d3OffBusyS") : at ? t("d3OffAt", { h: at }) : t("d3OffS");
     const html = `<s class="d3-dot" aria-hidden="true"></s><span><b>${UI.esc(title)}</b><small>${UI.esc(sub)}</small></span>${busy ? `<button type="button" class="d3-off-plan" data-ob-plan>${UI.esc(t("k2PlanShort"))}</button>` : ""}`;
     if (st.dataset.html !== html) { st.innerHTML = html; st.dataset.html = html; }
     st.classList.toggle("busy", busy);
@@ -6133,9 +6134,14 @@ function d4Tiles() {
   const slides = d4PromoSlides();
   const slHtml = slides.length ? slides.map((x, i) => `<span class="d4-sl${i === 0 ? " on" : ""}" data-code="${UI.esc(x.code)}"><small>${UI.esc(t("d4PromoAt", { name: d4Nm({ code: x.code, name: paShopName(x.code) }) }))}</small><b>${UI.esc(t("d4UpA"))} <span class="d4-flash"><bdi dir="ltr">${UI.esc(I18N.lang === "he" ? `${x.max}%` : `−${x.max} %`)}</bdi></span>${t("d4UpB") ? " " + UI.esc(t("d4UpB")) : ""}</b></span>`).join("")
     : `<span class="d4-sl on" data-code=""><small>${UI.esc(t("d4Promo"))}</small><b>${UI.esc(t("d4PromoT"))}</b></span>`;
+  // Derrière Hoppy : deux vraies photos des plus belles promos du magasin affiché (patron 22/11 : « des beaux fonds de produits »)
+  const bgHtml = (slides.length ? slides : [{ code: "" }]).map((x, i) => {
+    const ph = pa.data ? paItems().filter(y => (!x.code || y.code === x.code) && y.ph && !y.b).sort((a, b) => (Number(b.f) || 0) - (Number(a.f) || 0)).slice(0, 2) : [];
+    return `<span class="d4-bg${i === 0 ? " on" : ""}" aria-hidden="true">${ph.map(y => `<img src="${UI.esc(y.ph)}" alt="" loading="lazy" decoding="async"${UI.imgCors ? UI.imgCors(y.ph) : ""} onerror="this.remove()" />`).join("")}</span>`;
+  }).join("");
   const dots = slides.length > 1 ? `<span class="d4-dots" aria-hidden="true">${slides.map((x, i) => `<i${i === 0 ? ' class="on"' : ""}></i>`).join("")}</span>` : "";
   const svc = D4_SVC.map(([k, bg]) => `<button type="button" class="d4t d4-svc" data-d4="${k}" style="--bg:${bg}"><span class="d4-blob"><svg viewBox="0 0 64 64" aria-hidden="true">${D4_IC[k]}</svg></span><span><b>${UI.esc(t("d4S_" + k))}</b><small>${UI.esc(t("d4S_" + k + "S"))}</small></span></button>`).join("");
-  const html = `<button type="button" class="d4t d4-promo" data-d4="promo"><span class="d4-sls">${slHtml}</span>${dots}<span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
+  const html = `<button type="button" class="d4t d4-promo" data-d4="promo"><span class="d4-bgs">${bgHtml}</span><span class="d4-sls">${slHtml}</span>${dots}<span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
     ${again}${svc}`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
   // Tous les autres services sous les tuiles (patron 22/11 : « on ne voit pas tout le reste que je fais »)
@@ -6178,6 +6184,7 @@ function d4Slide(dir) {
   const sl = [...tile.querySelectorAll(".d4-sl")]; if (sl.length < 2) return;
   const i = sl.findIndex(x => x.classList.contains("on")), n = (i + (dir || 1) + sl.length) % sl.length;
   sl.forEach((x, k) => { x.classList.toggle("on", k === n); x.classList.toggle("out", k === i); });
+  tile.querySelectorAll(".d4-bg").forEach((x, k) => x.classList.toggle("on", k === n));
   tile.querySelectorAll(".d4-dots i").forEach((x, k) => x.classList.toggle("on", k === n));
 }
 setInterval(() => {
@@ -6257,7 +6264,7 @@ document.addEventListener("click", e => {
   UI.track("d4_tile", { page: k });
   if (k === "promo") { const on = b.querySelector(".d4-sl.on"); return openPromosAll((on && on.dataset.code) || ""); }
   if (k === "again") return reorderGo(0);
-  if (k === "first") { const f = $("#homeFind"); if (f) { f.focus(); f.scrollIntoView({ block: "center", behavior: "smooth" }); } return; }
+  if (k === "first") return hvOpenTalk();   // « Tapez ou parlez » : le micro de Hoppy s'ouvre
   if (k === "mikve") return mikveOpen();
   if (k === "shops") return d4MagOpen();
   if (k === "anyshop") { const vc = $("#vitCourse"); if (vc) vc.click(); return; }

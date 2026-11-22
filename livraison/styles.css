@@ -7293,3 +7293,33 @@ html.d4 #vitHero .sc-find { background: #fff !important; border-radius: 16px !im
 html.d4 #vitTry { display: none !important; }
 html.d4 .d4-tiles { margin-top: 12px; }
 @media (max-width: 370px) { html.d4 #vitHero .vit-ask { font-size: 20px !important; } }
+/* d4 (patron 22/11) : derrière Hoppy le bleu ciel validé (pas d'orange), avec de vraies photos de produits en promo */
+html.d4 .d4-promo { background: #D3E9FB !important; color: #0F1F3D !important; }
+html.d4 .d4-promo::before { background: rgba(255,255,255,.5) !important; }
+html.d4 .d4-promo .d4-sl small { color: #1F4FA3 !important; }
+html.d4 .d4-promo .d4-sl b { color: #0F1F3D; }
+html.d4 .d4-promo .d4-flash { color: #E8590C; }
+html.d4 .d4-promo .d4-btn { background: #E8590C !important; color: #fff !important; }
+html.d4 .d4-dots i { background: rgba(15,31,61,.22) !important; }
+html.d4 .d4-dots i.on { background: #0F1F3D !important; }
+html.d4 .d4-promo .d4-shadow { background: rgba(15,31,61,.13) !important; }
+html.d4 .d4-bgs { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+html.d4 .d4-bg { position: absolute; inset: 0; opacity: 0; transition: opacity .5s; }
+html.d4 .d4-bg.on { opacity: 1; }
+html.d4 .d4-bg img { position: absolute; width: 74px; height: 74px; object-fit: contain; background: #fff; border-radius: 18px; padding: 6px; box-sizing: border-box; }
+html.d4 .d4-bg img:nth-child(1) { bottom: 92px; inset-inline-end: 10px; transform: rotate(8deg); }
+html.d4 .d4-bg img:nth-child(2) { bottom: 128px; inset-inline-end: 70px; width: 58px; height: 58px; transform: rotate(-9deg); opacity: .95; }
+html.d4 .d4-promo img:not(.d4-bg img) { z-index: 1; }
+/* « Tout ce qu'on fait pour vous » : une seule ligne qui glisse */
+html.d4 #homeKinds#homeKinds { display: flex !important; flex-wrap: nowrap !important; grid-template-columns: none !important; gap: 4px !important; overflow-x: auto !important; scroll-snap-type: x proximity; scrollbar-width: none; padding-bottom: 4px !important; }
+html.d4 #homeKinds#homeKinds::-webkit-scrollbar { display: none; }
+html.d4 #homeKinds#homeKinds > .ch-kind { flex: 0 0 82px !important; width: 82px !important; min-width: 0 !important; scroll-snap-align: start; }
+html.d4 #homeKinds#homeKinds > .ch-kind b, html.d4 #homeKinds#homeKinds > .ch-kind span:not([class*="ic"]) { font-size: 12px !important; line-height: 1.25 !important; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+html.d4 #d4KindsH { margin-top: 14px !important; }
+html.d4 #vitHero .vit-ask { font-size: 20px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 370px) { html.d4 #vitHero .vit-ask { font-size: 18px !important; } }
+html.d4 .d4-bg img:nth-child(1) { bottom: 66px !important; inset-inline-end: auto !important; inset-inline-start: 12px !important; width: 62px !important; height: 62px !important; transform: rotate(-7deg) !important; }
+html.d4 .d4-bg img:nth-child(2) { bottom: 74px !important; inset-inline-end: auto !important; inset-inline-start: 62px !important; width: 56px !important; height: 56px !important; transform: rotate(8deg) !important; }
+html.d4 .d4-promo > img { z-index: 2 !important; }
+html.d4 .d4-promo .d4-dots { position: absolute !important; top: 14px; inset-inline-end: 14px; margin: 0 !important; z-index: 3; }
+html.d4 .d4-promo .d4-sl small { padding-inline-end: 34px; }
