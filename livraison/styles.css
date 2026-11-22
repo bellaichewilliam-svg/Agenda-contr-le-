@@ -7122,3 +7122,9 @@ html.d3 .app-share small, html.d3 .wa-list small { opacity: 1 !important; color:
 .vit-try button, .vit-try [data-vit-try], html.d3 .d3-kall { min-height: 40px; }
 /* Contour visible au clavier (sans gêner le doigt) */
 :where(button, a, input, select, textarea, [role="button"], [tabindex]):focus-visible { outline: 3px solid #0F1F3D !important; outline-offset: 2px !important; }
+/* Commande chez un commerce : un seul lieu (pas de départ « A »), donc pas de « B » seul (22/11) */
+html.d3 #orderForm.shop-mode legend[data-i18n="s3"]::before { display: none !important; }
+/* Règle « autre magasin » : une ligne discrète */
+.cg-rule.cg-rule-1 { display: block; padding: 8px 12px; font-size: 13.5px; color: #5A6270; background: #F6F7F8; border-radius: 12px; }
+/* Ordinateur : la bulle « Nous écrire » reste un rond (le texte était coupé dedans) ; le nom est lu par les lecteurs d'écran */
+html.d3 .wa-fab.chat-fab > b, html.d3 .wa-fab.chat-fab > span { display: none !important; }

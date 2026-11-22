@@ -24,7 +24,9 @@ const ac = {};
 const VIEW_OF = { accueil: "home", commander: "order", "mes-courses": "mine" };
 const VIEW_HASH = { order: "commander", mine: "mes-courses", infos: "infos" };
 const viewOf = el => { const sec = el && el.closest && el.closest("body > section"); return sec ? VIEW_OF[sec.id] || "infos" : null; };
-const viewTitle = () => { $("#viewTitle").textContent = { order: t("ordTitle"), mine: t("navMine"), infos: t("infosTitle") }[document.body.dataset.view] || ""; };
+// (22/11) Dans un commerce, tant qu'on choisit les articles : le nom du magasin en titre (pas « Ma commande »)
+const shopTitle = () => { try { return state.shop && wiz.step === 1 && !ckOn() ? mgShort(state.shop.name) : ""; } catch (e) { return ""; } };
+const viewTitle = () => { $("#viewTitle").textContent = { order: shopTitle() || t("ordTitle"), mine: t("navMine"), infos: t("infosTitle") }[document.body.dataset.view] || ""; };
 // Retour du téléphone : chaque écran retrouve l'endroit où on l'avait laissé (pas de retour en haut, rien de perdu)
 const scrollMem = {};
 try { history.scrollRestoration = "manual"; } catch (e) { /* vieux navigateur */ }
@@ -1969,6 +1971,7 @@ function wizLabels() {
   const n = wiz.step;
   $("#wizStepTxt").textContent = t("wizStep", { n, of: wiz.n });
   $("#wizTitle").textContent = n === wiz.n && ckOn() ? t("mcTitle") : t("wizT" + n);
+  try { viewTitle(); } catch (e) { /* titre */ }
   $("#wizBack").classList.toggle("off", n === 1);
   form.querySelectorAll(".wiz-seg i").forEach((i, k) => i.classList.toggle("on", k < n));
   const more = form.classList.contains("wiz-more");
@@ -4312,6 +4315,7 @@ function cgShowPick() {
   toastCart(t("cgPickHint"), 3500);
 }
 function renderCatalog() {
+  try { viewTitle(); } catch (e) { /* titre */ }
   const box = $("#catalogBox"), on = catalogOn();
   box.classList.toggle("hidden", !on);
   $("#shopOrderBox").classList.toggle("with-cg", on);
@@ -4354,7 +4358,7 @@ function renderCatalog() {
   if (proShopOn() && !state.shop.demo && catalogOn()) {
     let oth = [];
     try { oth = multiList(); } catch (e) { oth = []; }
-    rule = `<div class="cg-rule"><b>🛒 ${escHop(t("cgRuleT", { name: mgShort(state.shop.name) }))}</b><span>${escHop(t("cgRuleS", { fee: money(addonPrice()), km: addonKm() }))}</span>${oth.length ? `<span class="cg-rule-oth">${escHop(t("cgRuleOth", { list: oth.map(m => `${mgShort(m.name)} (${m.count})`).join(", ") }))}</span>` : ""}</div>`;
+    rule = `<div class="cg-rule cg-rule-1"><span>${escHop(t("cgRuleS", { fee: money(addonPrice()), km: addonKm() }))}</span>${oth.length ? `<span class="cg-rule-oth">${escHop(t("cgRuleOth", { list: oth.map(m => `${mgShort(m.name)} (${m.count})`).join(", ") }))}</span>` : ""}</div>`;
   }
   // Laline… (patron, 15/11) : la liste montre les meilleures ventes, mais on achète tout ce que le client veut dans la boutique
   const anyTip = (CONFIG.hopAnyItem || []).includes(String(state.shop.code || "").toUpperCase()) ? `<div class="cg-any">🛍️ ${escHop(t("cgAnyItem"))}</div>` : "";
