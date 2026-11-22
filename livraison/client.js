@@ -9147,7 +9147,26 @@ function renderMagic(anim) {
       ${others.map(g => { const f = mgFeeOf(g.code, main); return `<div><span>${escHop(t("mgSumAdd", { name: mgShort(mgShopName(g.code) || (lines[g.ks[0]].cands[lines[g.ks[0]].pick] || {}).shop) }))}</span><b>+<bdi dir="ltr">${UI.esc(money(f.price))}</bdi></b></div>`; }).join("")}
       <div class="tot"><span>${UI.esc(t("gtTotal"))}</span><b>≈ <bdi dir="ltr">${UI.esc(money(r1(sum + fee + fees)))}</bdi></b></div>
       <small>${UI.esc(t("gtTicket"))}</small></div>` : "";
+  // Comparateur de toute la liste (patron 22/11 : « toute la liste chez Rami Lévy, c'est moins cher ») : pour chaque magasin,
+  // le bon produit de chaque ligne, le total, et « Tout chez … » en un toucher
+  const cmpL = (() => {
+    if (on.length < 2) return "";
+    const codes = [...new Set(on.flatMap(l => l.cands.map(c => c.code)))].filter(c => c && !/LAHAV/.test(c));
+    const rows = codes.map(code => { let tot = 0, got = 0;
+      on.forEach(l => { const c = l.cands.find(x => x.code === code); if (c && Number(c.price) > 0) { tot += Number(c.price) * l.qty; got++; } });
+      return { code, tot: Math.round(tot * 10) / 10, got }; })
+      .filter(r => r.got >= Math.max(2, Math.ceil(on.length * 0.6))).sort((a, b) => (b.got - a.got) || (a.tot - b.tot)).slice(0, 4);
+    if (rows.length < 2) return "";
+    const best = rows.filter(r => r.got === rows[0].got).sort((a, b) => a.tot - b.tot)[0];
+    return `<section class="mg-cmp"><div class="mg-cmp-h"><b>${UI.esc(t("mgCmpT"))}</b><small>${UI.esc(t("mgCmpS"))}</small></div>${rows.map(r => {
+      const sc = mgSc(r.code), logo = sc && UI.safeImg(sc.logo), cur = r.code === main;
+      return `<div class="mg-cmp-r${r === best ? " best" : ""}${cur ? " cur" : ""}"><span class="mg-gl">${logo ? `<img src="${logo}" alt="" />` : "🛒"}</span>
+        <span class="mg-cmp-t"><b>${UI.esc(d4Nm({ code: r.code, name: mgShopName(r.code) }))}</b><small>${UI.esc(t("mgCmpGot", { got: r.got, n: on.length }))}${r === best ? ` · <em>${UI.esc(t("cmpLo"))}</em>` : ""}</small></span>
+        <span class="mg-cmp-p"><bdi dir="ltr">${UI.esc(money(r.tot))}</bdi></span>
+        ${cur ? `<span class="mg-cmp-on">✓</span>` : `<button type="button" class="mg-cmp-go" data-mg-all="${UI.esc(r.code)}">${UI.esc(t("mgCmpGo"))}</button>`}</div>`; }).join("")}</section>`;
+  })();
   box.innerHTML = `<div class="mg"><div class="mg-head"><b>${UI.esc(t("mgTitle"))}</b><small>${UI.esc(t("mgN", { n }))}</small></div>
+    ${cmpL}
     <div class="mg-list">${blocks || `<p class="fi-none">${UI.esc(t("mgEmpty"))}</p>`}</div>
     <div class="mg-add" data-mg-add><input type="text" enterkeyhint="done" autocomplete="off" placeholder="${UI.esc(t("mgAddPh"))}" aria-label="${UI.esc(t("mgAddBtn"))}" /><button type="button" data-mg-add-go>${UI.esc(t("mgAddBtn"))}</button></div>
     <div class="mg-sugg hidden" data-mg-sugg></div>
@@ -9241,6 +9260,8 @@ $("#homeFindList").addEventListener("click", e => {
   if (sh) return magicToCart(sh.dataset.mgShop);
   // « Tout prendre chez Carrefour à la place » : les articles de ce 2ᵉ magasin passent chez le magasin principal (son produit,
   // sinon les courses HOP! qu'il prend là-bas) : plus de livraison en plus
+  const all = e.target.closest("[data-mg-all]");
+  if (all) { m.main = all.dataset.mgAll; m.lines.forEach(l => { l.pick = mgPickFor(l, m.main); }); UI.track("mg_all_at", { shop_code: m.main }); renderMagic(false); return; }
   const mv = e.target.closest("[data-mg-move]");
   if (mv) { m.lines.forEach(l => { if (l.on && mgCodeOf(l, m.main) === mv.dataset.mgMove) { const i = l.cands.findIndex(c => c.code === m.main); l.pick = i >= 0 ? i : l.r ? "r" : "x"; } }); renderMagic(false); return; }
   // « Entrer » dans un magasin de la liste : toute la commande est préparée (rien ne se perd), on arrive dans ce magasin

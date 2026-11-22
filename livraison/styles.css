@@ -7466,3 +7466,26 @@ html.d3 body .mini-order .btn.mo-rate { background: #FFF6E0 !important; color: #
 .fr-cmp-pr button.lo { border-color: #1F9D55; background: #EAF7EF; }
 .fr-cmp-pr button.lo b { color: #137A40; }
 .fr-cmp-pr button em { font-style: normal; font-size: 10.5px; font-weight: 800; color: #137A40; }
+/* Comparateur de toute la liste (Dites-le à Hoppy) */
+.mg-cmp { margin: 8px 0 12px; padding: 12px; border-radius: 18px; background: #F4F8FD; border: 1px solid #DCE8F5; font-family: Heebo, sans-serif; }
+.mg-cmp-h { display: flex; flex-direction: column; margin-bottom: 6px; }
+.mg-cmp-h b { font-size: 16px; font-weight: 800; color: #0F1F3D; }
+.mg-cmp-h small { font-size: 12.5px; color: #5A6270; }
+.mg-cmp-r { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 14px; background: #fff; margin-top: 6px; border: 1px solid #E6E8EB; }
+.mg-cmp-r.best { border-color: #1F9D55; background: #F1FAF4; }
+.mg-cmp-r .mg-gl { flex: none; width: 34px; height: 34px; border-radius: 50%; overflow: hidden; display: grid; place-items: center; background: #F2F3F5; }
+.mg-cmp-r .mg-gl img { width: 100%; height: 100%; object-fit: contain; }
+.mg-cmp-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mg-cmp-t b { font-size: 14.5px; font-weight: 800; color: #111418; }
+.mg-cmp-t small { font-size: 12px; color: #5A6270; }
+.mg-cmp-t em { font-style: normal; font-weight: 800; color: #137A40; }
+.mg-cmp-p { font-size: 16px; font-weight: 800; color: #111418; white-space: nowrap; }
+.mg-cmp-go { all: unset; cursor: pointer; flex: none; background: #0F1F3D; color: #fff; font-weight: 700; font-size: 13px; padding: 8px 12px; border-radius: 12px; }
+.mg-cmp-on { flex: none; width: 30px; text-align: center; font-weight: 800; color: #137A40; }
+/* Inscription livreur : Bit / PayBox propres (patron 22/11 : « très moche ») */
+.pay-apps { display: flex; flex-direction: column; gap: 12px; padding: 16px !important; border-radius: 18px !important; }
+.pay-apps .pa-t { font-size: 16px; font-weight: 800; line-height: 1.3; }
+.pay-apps label.check { align-items: flex-start; line-height: 1.4; font-weight: 500; font-size: 15px; }
+.pay-apps label.check input { margin-top: 1px; width: 22px; height: 22px; }
+.pay-apps label.check b { font-weight: 800; }
+.pay-apps small { font-size: 13px; line-height: 1.45; }
