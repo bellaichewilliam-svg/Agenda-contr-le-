@@ -7391,3 +7391,6 @@ html.d3 body #clubCards .card a.btn.btn-wa, html.d3 body .card.club a.btn.btn-wa
 html.d3 body .mini-order .btn.mo-help { background: #F2F3F5 !important; color: #111418 !important; -webkit-text-fill-color: #111418 !important; border: 0 !important; border-radius: 14px !important; font-weight: 600 !important; }
 html.d3 body .mini-order .btn.mo-again { background: #E8590C !important; color: #fff !important; -webkit-text-fill-color: #fff !important; border: 0 !important; border-radius: 14px !important; font-weight: 700 !important; }
 html.d3 .mo-stars { color: #E8A50C !important; background: #FFF6E0 !important; letter-spacing: 1px; font-size: 13px !important; }
+/* Page magasin plus compacte (patron 22/11) : pas de barre d'étape vide en haut, texte « fermé » serré */
+html.d3 #orderForm.shop-mode.wiz-s1 #wizBar { display: none !important; }
+html.d3 #orderForm.shop-mode .sh-closed-go { font-size: 13.5px !important; line-height: 1.35 !important; margin: 6px 0 !important; text-align: start !important; font-weight: 600 !important; color: #5A6270 !important; }
