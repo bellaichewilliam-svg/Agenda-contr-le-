@@ -48,6 +48,15 @@ jobs:
         run: python scripts/ramilevy_promos.py --user freshmarket --chain 7290876100000 --store 022 --prefix lahav
         continue-on-error: true
 
+      # Boutiques HOP! chez Yohananof (Netanya 030) et chez Osher Ad (Netanya 023) : même robot
+      - name: Promos Yohananof (HOP!)
+        run: python scripts/ramilevy_promos.py --user yohananof --chain 7290803800003 --store 030 --prefix yohananof
+        continue-on-error: true
+
+      - name: Promos Osher Ad (HOP!)
+        run: python scripts/ramilevy_promos.py --user osherad --chain 7290103152017 --store 023 --prefix osherad --min-rows 3000
+        continue-on-error: true
+
       - name: Rebuild prixmalin.html
         run: bash build.sh
 
@@ -57,7 +66,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p data/raw-prices
           git add data/live-prices.json data/live-promotions.json data/raw-prices/ prixmalin.html 2>/dev/null || true
-          git add livraison/data/ramilevy-promos.json livraison/data/ramilevy-prix.json livraison/data/lahav-prix.json livraison/data/lahav-promos.json 2>/dev/null || true
+          git add livraison/data/ramilevy-promos.json livraison/data/ramilevy-prix.json livraison/data/lahav-prix.json livraison/data/lahav-promos.json livraison/data/yohananof-*.json livraison/data/osherad-*.json 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Pas de changement de prix."
           else

@@ -1984,6 +1984,14 @@ async function fullFind(fn, q, limit) {
 }
 const vicFind = (q, limit) => fullFind("vic_find", q, limit);
 const lahavFind = (q, limit) => fullFind("lahav_find", q, limit);
+// (23/11) Enseignes ajoutées par la méthode générique (chain_find) : Yohananof, Osher Ad…
+async function chainFind(chain, q, limit) {
+  if (!ONLINE || String(q || "").trim().length < 2) return [];
+  try { const r = await rest("/rest/v1/rpc/chain_find", { method: "POST", body: { p_chain: chain, p_q: q, p_limit: limit || 12 } }); return Array.isArray(r) ? r : []; }
+  catch (e) { return []; }
+}
+const yohananofFind = (q, limit) => chainFind("yohananof", q, limit);
+const osheradFind = (q, limit) => chainFind("osherad", q, limit);
 async function rlFind(q, limit) {
   if (!ONLINE || String(q || "").trim().length < 2) return [];
   try { const r = await rest("/rest/v1/rpc/rl_find", { method: "POST", body: { p_q: q, p_limit: limit || 12 } }); return Array.isArray(r) ? r : []; }
@@ -3030,7 +3038,7 @@ window.Store = {
   appPromos, adminPromos, adminApiKeys, adminApiOrders, adminApiKeyCreate, adminApiKeyUpdate, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, vicFind, lahavFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaPhoto, iaEcoute, placeSuggest, adminPlacesAsked, adminPlaceAskedDone, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, shopCollectSet, courierCashMark, clientInfo, clientInfoSet, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, vicFind, lahavFind, chainFind, yohananofFind, osheradFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaPhoto, iaEcoute, placeSuggest, adminPlacesAsked, adminPlaceAskedDone, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, shopCollectSet, courierCashMark, clientInfo, clientInfoSet, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
