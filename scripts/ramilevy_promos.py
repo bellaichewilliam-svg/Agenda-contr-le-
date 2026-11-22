@@ -262,6 +262,15 @@ def shufersal_roots(store: str):
     sess.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
     price_root = _shuf_root(sess, 2, store)
     raw = _shuf_root(sess, 4, store)
+    if next(raw.iter("PromotionItem"), None) is not None:
+        # (22/11) Shufersal range déjà comme les autres enseignes (Groups > PromotionItems > PromotionItem) :
+        # on garde le fichier tel quel, sans les promos à plusieurs groupes (achète ceci, reçois cela).
+        out = ET.Element("Root")
+        for pr in raw.iter("Promotion"):
+            if sum(1 for _ in pr.iter("Group")) <= 1:
+                out.append(pr)
+        log(f"Shufersal : {sum(1 for _ in out.iter('Promotion'))} promos lues")
+        return out, price_root
     out = ET.Element("Root")
     for pr in raw.iter("Promotion"):
         g = lambda *ns: next(((pr.findtext(n) or "").strip() for n in ns if (pr.findtext(n) or "").strip()), "")  # noqa: E731
@@ -286,8 +295,6 @@ def shufersal_roots(store: str):
                              ("RewardType", (it.findtext("RewardType") or rew or "1").strip()), ("bIsWeighted", "0")):
                 ET.SubElement(pi, tag).text = val
     log(f"Shufersal : {sum(1 for _ in out.iter('Promotion'))} promos lues")
-    for pr in list(raw.iter("Promotion"))[:2]:  # exemple brut (fichier public, aucun client)
-        log("exemple :", re.sub(r"\s+", " ", ET.tostring(pr, encoding="unicode"))[:1500])
     return out, price_root
 
 
