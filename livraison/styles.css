@@ -7146,7 +7146,7 @@ html.d3 #pharmaBox .ph-tiles .ph-slot select { max-width: 100%; width: 100%; fon
 html.d3 #pharmaBox .ph-tiles .ph-item.in .ph-pic { box-shadow: inset 0 0 0 2px #0F1F3D; }
 
 /* ===== Nouveau design « tuiles » (patron 22/11, « ok go ») : html.d4, seulement avec ?design=4 pour l'instant ===== */
-html.d4 body, html.d4 #accueil, html.d4 #homeSheet, html.d4 main { background: #F4F1EC !important; }
+html.d4 body, html.d4 #accueil, html.d4 #homeSheet, html.d4 main { background: #F5F6F8 !important; }
 .d4-tiles { display: none; }
 html.d4 #homeSheet > #d4Tiles { order: 6 !important; }
 html.d4 .d4-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 18px; }
@@ -7164,7 +7164,7 @@ html.d4 .d4-promo img { position: absolute; bottom: 14px; inset-inline-end: 0; h
 html.d4 .d4-promo .d4-shadow { position: absolute; bottom: 12px; inset-inline-end: 22px; width: 70px; height: 10px; border-radius: 50%; background: rgba(0,0,0,.14); animation: d4shadow 2.4s ease-in-out .6s infinite; }
 html.d4 .d4-again { background: #fff; }
 html.d4 .d4-thumbs { display: flex; gap: 6px; margin-top: auto; }
-html.d4 .d4-thumbs i { width: 40px; height: 40px; border-radius: 12px; background: #F4F1EC; display: grid; place-items: center; }
+html.d4 .d4-thumbs i { width: 40px; height: 40px; border-radius: 12px; background: #F5F6F8; display: grid; place-items: center; }
 html.d4 .d4-thumbs img { width: 30px; height: 30px; object-fit: contain; }
 html.d4 .d4-again .d4-sub { margin-top: auto; font-size: 13px; color: #5A6270; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 html.d4 .d4-svc { background: var(--bg); justify-content: space-between; }
@@ -7248,7 +7248,7 @@ html.d4 .pa-card:nth-child(2n) .pa-off { animation-delay: .5s; } html.d4 .pa-car
   70% { opacity: .55; transform: scale(.98); } 76% { opacity: 1; transform: scale(1.06); filter: drop-shadow(0 0 8px rgba(255,255,255,.85)); }
   82% { opacity: .7; transform: scale(1); filter: none; } 88% { opacity: 1; transform: scale(1.03); } }
 /* Écran « Magasins » (onglet du bas) */
-.d4m { position: fixed; inset: 0; z-index: 60; background: #F4F1EC; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.d4m { position: fixed; inset: 0; z-index: 60; background: #F5F6F8; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 .d4m.hidden { display: none; }
 .d4m-in { max-width: 560px; margin: 0 auto; padding: 18px 16px 120px; }
 .d4m-h { font-size: 28px; font-weight: 800; color: #111418; margin: 8px 0 14px; }
@@ -7533,3 +7533,8 @@ html.d4 #vitHero .sc-find { box-shadow: 0 0 0 1px #E6E8EB inset !important; bord
 html.d4 #homePro .sc-star { font-size: 12px !important; font-weight: 700 !important; color: #B7790B !important; }
 html.d4 #homePro .sc-star::before { content: "★ "; }
 html[dir="rtl"].d4 .ch-explore .xp::after { transform: scaleX(-1); }
+
+/* frontend-design (patron 22/11 « oui ») : moins « IA » : fond gris très clair au lieu de crème, plus de petits titres en majuscules */
+html.d4 .d4-promo small, html.d4 .d4-promo .d4-sl small { text-transform: none !important; letter-spacing: 0 !important; font-size: 13px !important; }
+.fr-brand { text-transform: none !important; letter-spacing: 0 !important; font-size: 12px !important; font-weight: 700 !important; }
+html.d4 #vitStatus > span > small::before { content: ", " !important; }
