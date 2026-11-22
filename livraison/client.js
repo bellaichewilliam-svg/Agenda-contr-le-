@@ -6094,6 +6094,7 @@ function renderHomeStatic() {
       hk.appendChild(all);
     }
   }
+  try { d4Tiles(); } catch (e) { /* nouveau design : l'ancien accueil reste */ }
   loadRayonsLive();
   renderHomePharma();
   const list = Store.getAddresses().slice(0, 5);
@@ -6104,6 +6105,56 @@ function renderHomeStatic() {
     .map(c => `<button type="button" class="ch-chip" data-ens="${c.id}">${UI.esc(t("ens_" + c.id))}</button>`).join("");
 }
 
+// ===== Nouveau design « tuiles » (patron, 22/11 : « ok go ») : seulement avec ?design=4 pour l'instant =====
+// En haut de l'accueil : la tuile promo orange avec Hoppy qui saute, « Refaire mes courses » (ou « Première commande ? »),
+// une tuile par service (dessin plat, couleur douce), nos magasins ; plus bas la carte bleu ciel « On y va pour vous ».
+const D4_IC = {
+  mezouza: '<rect x="20" y="8" width="24" height="48" rx="8" fill="#43A05C"/><rect x="25" y="15" width="14" height="34" rx="4" fill="#EAF7EC"/><path d="M29 22h6M29 28h6M29 34h4" stroke="#43A05C" stroke-width="2.6" stroke-linecap="round"/>',
+  mikve: '<path d="M10 28h44v8a15 15 0 0 1-15 15H25a15 15 0 0 1-15-15z" fill="#3B7BF0"/><rect x="6" y="24" width="52" height="7" rx="3.5" fill="#2A5FCC"/><path d="M25 19c0-4 3-6 7-6s7 2 7 6" fill="none" stroke="#2A5FCC" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="12" r="3" fill="#9DC0FF"/><circle cx="44" cy="9" r="2.2" fill="#9DC0FF"/>',
+  pharm: '<rect x="11" y="15" width="42" height="38" rx="11" fill="#8B5CF6"/><rect x="23" y="9" width="18" height="8" rx="4" fill="#6D3FD8"/><rect x="28.5" y="22" width="7" height="24" rx="3" fill="#fff"/><rect x="20" y="30.5" width="24" height="7" rx="3" fill="#fff"/>',
+  poste: '<path d="M8 22l24-11 24 11v24L32 57 8 46z" fill="#E09A4E"/><path d="M8 22l24 11 24-11M32 33v24" fill="none" stroke="#B0702C" stroke-width="2.8"/><path d="M20 16l24 11" stroke="#F6D9B0" stroke-width="5"/>',
+  bakery: '<path d="M8 40c0-13 13-24 28-24s20 7 20 13-9 20-26 20c-13 0-22-2-22-9z" fill="#E5A04A"/><path d="M22 26l5 7M32 22l5 8M42 22l4 7" stroke="#B5701F" stroke-width="3.4" stroke-linecap="round"/>',
+};
+const D4_SVC = [["mezouza", "#E3F3E6"], ["mikve", "#E3EDFF"], ["pharm", "#EEE7FF"], ["poste", "#FFEEDC"], ["bakery", "#FFF3D6"]];
+function d4Tiles() {
+  if (!document.documentElement.classList.contains("d4")) return;
+  const sheet = $("#homeSheet"); if (!sheet) return;
+  let box = $("#d4Tiles");
+  if (!box) { box = document.createElement("div"); box.id = "d4Tiles"; box.className = "d4-tiles"; const vt = $("#vitTop"); if (vt) vt.after(box); else sheet.prepend(box); }
+  const last = (state.reorder || [])[0];
+  // « Refaire mes courses » : trois petites images des articles de la dernière commande (dessins plats par article)
+  const lo = last && last.o, names = !lo ? [] : lo._ray ? lo._ray.picks.map(x => x.n) : String(lo.shop_order || "").split("\n").filter(l => l && !/^💬/.test(l)).map(l => l.replace(/^\d+\s*×\s*/, ""));
+  const arts = [...new Set(names.map(qcKeyOf).filter(Boolean))].slice(0, 3);
+  const again = last ? `<button type="button" class="d4t d4-again" data-d4="again"><small>${UI.esc(t("d4Again"))}</small><b>${UI.esc(t("d4AgainT"))}</b>${arts.length
+      ? `<span class="d4-thumbs">${arts.map(k => `<i><img src="img/qc/${k}.webp" alt="" loading="lazy" /></i>`).join("")}</span>`
+      : `<span class="d4-sub">${UI.esc(UI.bi((lo && lo.shop_name) || "") || t("reoGo"))}</span>`}</button>`
+    : `<button type="button" class="d4t d4-again d4-first" data-d4="first"><small>${UI.esc(t("d4First"))}</small><b>${UI.esc(t("d4FirstT"))}</b><span class="d4-sub">${UI.esc(t("d4FirstS"))}</span></button>`;
+  // Tuile promo : « Jusqu'à −67 % » avec la vraie plus grosse promo du moment (sinon la phrase)
+  const offs = pa.data ? paItems().map(x => Number(x.f) || 0).filter(f => f > 0 && f <= 80) : [];
+  const shopsP = pa.data ? [...new Set(paItems().map(x => x.code))] : [];
+  const pTag = shopsP.length === 1 ? t("d4PromoAt", { name: paShopName(shopsP[0]) }) : t("d4Promo");
+  const pBig = offs.length ? t("d4PromoUp", { n: Math.max(...offs) }) : t("d4PromoT");
+  const svc = D4_SVC.map(([k, bg]) => `<button type="button" class="d4t d4-svc" data-d4="${k}" style="--bg:${bg}"><span class="d4-blob"><svg viewBox="0 0 64 64" aria-hidden="true">${D4_IC[k]}</svg></span><span><b>${UI.esc(t("d4S_" + k))}</b><small>${UI.esc(t("d4S_" + k + "S"))}</small></span></button>`).join("");
+  const shops = (state.showcase || []).filter(s => isHopShop(s) && !s.paused).slice(0, 3).map(s => `<span>${UI.esc(mgShort(s.name))}</span>`).join("");
+  const html = `<button type="button" class="d4t d4-promo" data-d4="promo"><small>${UI.esc(pTag)}</small><b>${UI.esc(pBig)}</b><span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
+    ${again}${svc}
+    <button type="button" class="d4t d4-wide" data-d4="shops"><b>${UI.esc(t("d4Shops"))}</b><span class="d4-chips">${shops}<span>${UI.esc(t("d4AnyShop"))}</span></span></button>`;
+  if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  // (la carte « Votre magasin n'est pas là ? On y va pour vous » est restylée en bleu ciel par le CSS)
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-d4]");
+  if (!b) return;
+  const k = b.dataset.d4;
+  UI.track("d4_tile", { page: k });
+  if (k === "promo") return openPromosAll("");
+  if (k === "again") return reorderGo(0);
+  if (k === "first") { const f = $("#homeFind"); if (f) { f.focus(); f.scrollIntoView({ block: "center", behavior: "smooth" }); } return; }
+  if (k === "mikve") return mikveOpen();
+  if (k === "shops") { const pb = $("#homeProBox") || $("#vitTrust"); if (pb) pb.scrollIntoView({ block: "start", behavior: "smooth" }); return; }
+  const kb = document.querySelector(`#homeKinds [data-kind="${k}"]`);
+  if (kb) kb.click(); else if (k === "poste") { const vc = $("#vitCourse"); if (vc) vc.click(); }
+});
 // Raccourcis d'heure : maintenant, dans 1 h, ce soir, demain matin (seulement s'ils sont possibles)
 function whenOptions() {
   const lead = CONFIG.minLeadMinutes * 60000;
@@ -6387,6 +6438,7 @@ function renderReorder() {
       <span class="ro-go">🔁 ${UI.esc(t("reoGo"))}</span></button>`;
   };
   state.reorder = list;
+  try { d4Tiles(); } catch (e) { /* ignore */ }
   const html = `<h3 class="ch-h">${UI.esc(t("reoTitle"))}</h3><div class="ro-row">${list.map(card).join("")}</div>`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
 }
@@ -9144,6 +9196,7 @@ function hpShops() {
   return { total: all.length, shops: Object.entries(by).sort((a, b) => b[1] - a[1]) };
 }
 function renderPromos() {
+  try { d4Tiles(); } catch (e) { /* ignore */ }
   const box = $("#homePromos");
   if (!box) return;
   const list = hpList();

@@ -7144,3 +7144,55 @@ html.d3 #pharmaBox .ph-tiles .ph-price { order: 1 !important; font: 800 18px/1.2
 html.d3 #pharmaBox .ph-tiles .ph-name { order: 2 !important; font: 500 14.5px/1.3 Heebo, sans-serif !important; }
 html.d3 #pharmaBox .ph-tiles .ph-slot select { max-width: 100%; width: 100%; font-size: 13.5px; margin-top: 6px; }
 html.d3 #pharmaBox .ph-tiles .ph-item.in .ph-pic { box-shadow: inset 0 0 0 2px #0F1F3D; }
+
+/* ===== Nouveau design « tuiles » (patron 22/11, « ok go ») : html.d4, seulement avec ?design=4 pour l'instant ===== */
+html.d4 body, html.d4 #accueil, html.d4 #homeSheet, html.d4 main { background: #F4F1EC !important; }
+.d4-tiles { display: none; }
+html.d4 #homeSheet > #d4Tiles { order: 6 !important; }
+html.d4 .d4-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 6px 0 18px; }
+html.d4 .d4t { position: relative; overflow: hidden; border: 0; border-radius: 26px; padding: 16px; text-align: start; font: inherit; color: #111418; cursor: pointer;
+  display: flex; flex-direction: column; gap: 4px; min-height: 118px; background: #fff; animation: d4pop .5s cubic-bezier(.2,.9,.3,1.3) both; transition: transform .15s; }
+html.d4 .d4t:active { transform: scale(.96); }
+html.d4 .d4t small { font-size: 13px; font-weight: 600; color: #5A6270; }
+html.d4 .d4t b { font-size: 18px; font-weight: 800; line-height: 1.2; }
+html.d4 .d4-promo { grid-row: span 2; background: #FF7A2E; color: #fff; min-height: 270px; padding: 16px; }
+html.d4 .d4-promo small { color: rgba(255,255,255,.92); text-transform: uppercase; letter-spacing: .04em; font-size: 12px; font-weight: 800; }
+html.d4 .d4-promo b { font-size: 25px; line-height: 1.1; position: relative; z-index: 1; }
+html.d4 .d4-promo::before { content: ""; position: absolute; width: 150px; height: 150px; border-radius: 50%; background: rgba(255,255,255,.14); bottom: -40px; inset-inline-end: -40px; }
+html.d4 .d4-promo .d4-btn { position: relative; z-index: 2; margin-top: auto; align-self: flex-start; background: #fff; color: #C2410C; font-weight: 800; font-size: 14px; padding: 9px 18px; border-radius: 99px; }
+html.d4 .d4-promo img { position: absolute; bottom: 14px; inset-inline-end: 0; height: 150px; width: auto; transform: scaleX(1); animation: d4hop 2.4s ease-in-out .6s infinite; transform-origin: 50% 100%; }
+html.d4 .d4-promo .d4-shadow { position: absolute; bottom: 12px; inset-inline-end: 22px; width: 70px; height: 10px; border-radius: 50%; background: rgba(0,0,0,.14); animation: d4shadow 2.4s ease-in-out .6s infinite; }
+html.d4 .d4-again { background: #fff; }
+html.d4 .d4-thumbs { display: flex; gap: 6px; margin-top: auto; }
+html.d4 .d4-thumbs i { width: 40px; height: 40px; border-radius: 12px; background: #F4F1EC; display: grid; place-items: center; }
+html.d4 .d4-thumbs img { width: 30px; height: 30px; object-fit: contain; }
+html.d4 .d4-again .d4-sub { margin-top: auto; font-size: 13px; color: #5A6270; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.d4 .d4-svc { background: var(--bg); justify-content: space-between; }
+html.d4 .d4-svc .d4-blob { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 18px; background: rgba(255,255,255,.75); }
+html.d4 .d4-svc .d4-blob svg { width: 40px; height: 40px; animation: d4wig 3.2s ease-in-out infinite; }
+html.d4 .d4-svc b { display: block; font-size: 16px; }
+html.d4 .d4-svc small { display: block; font-size: 12.5px; }
+html.d4 .d4-wide { grid-column: 1 / -1; background: #fff; min-height: 0; }
+html.d4 .d4-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+html.d4 .d4-chips span { background: #F2F3F5; border-radius: 99px; padding: 6px 12px; font-size: 13px; font-weight: 700; }
+html.d4 .d4-chips span:last-child { background: #0F1F3D; color: #fff; }
+html.d4 .d4-tiles > :nth-child(2) { animation-delay: .06s; } html.d4 .d4-tiles > :nth-child(3) { animation-delay: .12s; }
+html.d4 .d4-tiles > :nth-child(4) { animation-delay: .18s; } html.d4 .d4-tiles > :nth-child(5) { animation-delay: .24s; }
+html.d4 .d4-tiles > :nth-child(6) { animation-delay: .3s; } html.d4 .d4-tiles > :nth-child(7) { animation-delay: .36s; }
+html.d4 .d4-tiles > :nth-child(8) { animation-delay: .42s; }
+html.d4 .d4-svc:nth-child(4) .d4-blob svg { animation-delay: .8s; } html.d4 .d4-svc:nth-child(5) .d4-blob svg { animation-delay: 1.6s; }
+html.d4 .d4-svc:nth-child(6) .d4-blob svg { animation-delay: 2.4s; }
+/* Les anciennes rubriques en vignettes et les promos en bandeau sont remplacées par les tuiles */
+html.d4 #homeKinds, html.d4 #homeKinds + .hk-more, html.d4 .hk-all { display: none !important; }
+/* « Votre magasin n'est pas là ? On y va pour vous » : carte bleu ciel */
+html.d4 #vitCourse { background: #CFE8FB !important; border: 0 !important; border-radius: 26px !important; box-shadow: none !important; }
+html.d4 #vitCourse .vc-txt b { color: #0F1F3D; font-size: 19px; font-weight: 800; line-height: 1.2; }
+html.d4 #vitCourse .vc-txt small { color: #33486B; }
+html.d4 #vitCourse .vc-go { background: #0F1F3D !important; color: #fff !important; border-radius: 99px !important; }
+html.d4 #vitCourse img { animation: d4hop 2.8s ease-in-out 1s infinite; transform-origin: 50% 100%; }
+@keyframes d4pop { from { opacity: 0; transform: translateY(14px) scale(.94); } to { opacity: 1; transform: none; } }
+@keyframes d4hop { 0%, 55%, 100% { transform: translateY(0) scaleY(1); } 62% { transform: translateY(2px) scaleY(.94); } 72% { transform: translateY(-16px) scaleY(1.03); } 84% { transform: translateY(0) scaleY(.97); } }
+@keyframes d4shadow { 0%, 55%, 100% { transform: scale(1); opacity: 1; } 72% { transform: scale(.7); opacity: .5; } }
+@keyframes d4wig { 0%, 80%, 100% { transform: rotate(0); } 85% { transform: rotate(-8deg); } 90% { transform: rotate(7deg); } 95% { transform: rotate(-3deg); } }
+@media (prefers-reduced-motion: reduce) { html.d4 .d4t, html.d4 .d4t img, html.d4 .d4t svg, html.d4 .d4-shadow, html.d4 #vitCourse img { animation: none !important; } }
+@media (max-width: 370px) { html.d4 .d4t b { font-size: 16px; } html.d4 .d4-promo b { font-size: 20px; } html.d4 .d4-svc small { font-size: 12px; } }
