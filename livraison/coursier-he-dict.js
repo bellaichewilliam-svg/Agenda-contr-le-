@@ -1128,6 +1128,7 @@ window.COURIER_HE = [["Je possède un permis de conduire valide pour mon véhicu
 ["📲 Installez l'appli « HOP! Livreur »","📲 התקינו את האפליקציה « HOP! Livreur »"],
 ["C'est la seule appli à installer pour livrer (l'appli « HOP! » sert aux clients). Inscrivez-vous dedans : les courses sonnent même appli fermée.","זו האפליקציה היחידה שצריך כדי לשלח (האפליקציה « HOP! » היא ללקוחות). הירשמו בה: המשלוחים מצלצלים גם כשהאפליקציה סגורה."],
 ["🛵 Devenez livreur partenaire","🛵 הצטרפו כשליחים"],
+["Devenez livreur HOP!","הצטרפו לשליחי HOP!"],
 ["Je m'inscris","להירשם"],
 ["J'ai déjà un compte","כבר יש לי חשבון"],
 ["Email","אימייל"],

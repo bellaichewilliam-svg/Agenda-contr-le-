@@ -7551,3 +7551,9 @@ html.d3 .mini-order .mo-ico { font-size: 0 !important; background: #F2F3F5 url("
 html.d3 body[data-view="home"] .eta-bubble, html.d3 body[data-view="mine"] .eta-bubble, html.d3 body:not([data-view]) .eta-bubble { bottom: calc(86px + env(safe-area-inset-bottom)) !important; }
 /* Boutons WhatsApp noirs : sans liseré vert */
 html.d3 .btn-wa { border: 0 !important; box-shadow: none !important; }
+.df-logo img { border-radius: 28px; box-shadow: none !important; } /* logo de la marque : bleu nuit (pas d aplat orange) */
+/* Inscription livreur : liste avec une coche propre (plus d'émoji ✅) */
+#perks li { position: relative; padding-inline-start: 28px; line-height: 1.45; }
+#perks li::before { content: ""; position: absolute; inset-inline-start: 0; top: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: #E8F6EE url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23137A40' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; }
+.df-logo, .df-logo::before, .df-logo::after { box-shadow: none !important; background: none !important; filter: none !important; }
