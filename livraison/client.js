@@ -6267,7 +6267,7 @@ function d4Tiles() {
 // Ordre des magasins dans la tuile promo (le patron peut demander de le changer)
 // Nom court d'un magasin HOP! dans les deux langues (« Rami Lévy », « רמי לוי »)
 const D4_NAMES = { LAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
-const d4Nm = x => (D4_NAMES[x.code] || [])[I18N.lang === "he" ? 1 : 0] || mgShort(x.name).replace(/^הופ!\u200E?\s*ב-?/, "").trim();
+const d4Nm = x => (D4_NAMES[x.code] || [])[I18N.lang === "he" ? 1 : 0] || mgShort(x.name).replace(/^הופ!\u200E?\s*ב-?/, "").replace(/^(HOP!|הופ!)\u200E?\s+/, "").trim();
 const D4_PROMO_ORDER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPVICTORY", "HOPLAHAV", "HOPBOOOM", "HOPPANZER"];
 function d4PromoSlides() {
   if (!pa.data) return [];

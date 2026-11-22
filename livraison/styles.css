@@ -7501,3 +7501,8 @@ html.d4 .d4-sh-pic .k-on-cover, .d4m-ph .k-on-cover { top: 8px; inset-inline-sta
 .d4m-chips .d4m-sub { all: unset; flex: none; cursor: pointer; border-radius: 12px; font-weight: 700; }
 html.d4 #vitStatus.hidden { display: none !important; }
 .ch-chip.ch-sub .k-star, .d4m-sub .k-star { color: currentColor !important; }
+/* Tuile promo (patron 22/11) : le nom du magasin n'est jamais coupé (2 lignes au plus), plus de rond clair derrière Hoppy */
+html.d4 .d4-promo .d4-sl b bdi { white-space: normal !important; }
+html.d4 .d4-promo .d4-sl b { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+html.d4 .d4-promo .d4-sl[data-code^="shop:"] b { font-size: 21px !important; line-height: 1.12; -webkit-line-clamp: 2; }
+html.d4 .d4-promo::before { content: none !important; display: none !important; }
