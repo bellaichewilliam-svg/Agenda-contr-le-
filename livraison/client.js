@@ -3803,7 +3803,7 @@ function renderClub() {
     ${code ? `<div class="card club"><h3>🤝 ${t("refTitle")}</h3>
       <div class="ref-code" dir="ltr">${code}</div>
       <p class="muted small">${UI.esc(t("refText", { amount: money(PROMOS.referral.amount) }))}</p>
-      <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(refMsg)}">${t("refShare")}</a></div>` : ""}`;
+      <a class="btn btn-sm btn-wa" target="_blank" rel="noopener" href="${UI.waShare(refMsg)}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg>${UI.esc(t("refShare"))}</a></div>` : ""}`;
 }
 
 function whenLabel(o) {
@@ -6132,16 +6132,21 @@ function d4Tiles() {
     : `<button type="button" class="d4t d4-again d4-first" data-d4="first"><small>${UI.esc(t("d4First"))}</small><b>${UI.esc(t("d4FirstT"))}</b><span class="d4-sub">${UI.esc(t("d4FirstS"))}</span></button>`;
   // Tuile promo (patron 22/11) : un « slide » par magasin qui défile tout seul (ordre D4_PROMO_ORDER), « −X % » qui clignote doucement
   const slides = d4PromoSlides();
+  // (patron 22/11) après les promos, la tuile tourne aussi sur nos magasins
+  const shopSl = (state.showcase || []).filter(x => (isHopShop(x) || /^HOP/.test(String(x.code || ""))) && !x.paused && UI.safeImg(x.cover) && !slides.some(y => y.code === x.code))
+    .sort((a, b) => ((shopState(b) || { open: 1 }).open - (shopState(a) || { open: 1 }).open)).slice(0, 6);
   const slHtml = slides.length ? slides.map((x, i) => `<span class="d4-sl${i === 0 ? " on" : ""}" data-code="${UI.esc(x.code)}"><small>${UI.esc(t("d4PromoAt", { name: d4Nm({ code: x.code, name: paShopName(x.code) }) }))}</small><b>${UI.esc(t("d4UpA"))} <span class="d4-flash"><bdi dir="ltr">${UI.esc(I18N.lang === "he" ? `${x.max}%` : `−${x.max} %`)}</bdi></span>${t("d4UpB") ? " " + UI.esc(t("d4UpB")) : ""}</b></span>`).join("")
     : `<span class="d4-sl on" data-code=""><small>${UI.esc(t("d4Promo"))}</small><b>${UI.esc(t("d4PromoT"))}</b></span>`;
+  const slHtml2 = slHtml + shopSl.map(x => `<span class="d4-sl" data-code="shop:${UI.esc(x.code)}"><small>${UI.esc(t("d4Shops"))}</small><b><bdi>${UI.esc(d4Nm(x))}</bdi></b><em class="d4-sl-s">${UI.esc(t("d4ShopGo"))}</em></span>`).join("");
   // Derrière Hoppy : deux vraies photos des plus belles promos du magasin affiché (patron 22/11 : « des beaux fonds de produits »)
   const bgHtml = (slides.length ? slides : [{ code: "" }]).map((x, i) => {
     const ph = pa.data ? paItems().filter(y => (!x.code || y.code === x.code) && y.ph && !y.b).sort((a, b) => (Number(b.f) || 0) - (Number(a.f) || 0)).slice(0, 2) : [];
     return `<span class="d4-bg${i === 0 ? " on" : ""}" aria-hidden="true">${ph.map(y => `<img src="${UI.esc(y.ph)}" alt="" loading="lazy" decoding="async"${UI.imgCors ? UI.imgCors(y.ph) : ""} onerror="this.remove()" />`).join("")}</span>`;
-  }).join("");
-  const dots = slides.length > 1 ? `<span class="d4-dots" aria-hidden="true">${slides.map((x, i) => `<i${i === 0 ? ' class="on"' : ""}></i>`).join("")}</span>` : "";
+  }).join("") + shopSl.map(x => `<span class="d4-bg d4-bg-shop" aria-hidden="true"><img src="${UI.esc(UI.safeImg(x.cover))}" alt="" loading="lazy" onerror="this.remove()" /></span>`).join("");
+  const nSl = Math.max(1, slides.length) + shopSl.length;
+  const dots = nSl > 1 ? `<span class="d4-dots" aria-hidden="true">${Array.from({ length: nSl }, (x, i) => `<i${i === 0 ? ' class="on"' : ""}></i>`).join("")}</span>` : "";
   const svc = D4_SVC.map(([k, bg]) => `<button type="button" class="d4t d4-svc" data-d4="${k}" style="--bg:${bg}"><span class="d4-blob"><svg viewBox="0 0 64 64" aria-hidden="true">${D4_IC[k]}</svg></span><span><b>${UI.esc(t("d4S_" + k))}</b><small>${UI.esc(t("d4S_" + k + "S"))}</small></span></button>`).join("");
-  const html = `<button type="button" class="d4t d4-promo" data-d4="promo"><span class="d4-bgs">${bgHtml}</span><span class="d4-sls">${slHtml}</span>${dots}<span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
+  const html = `<button type="button" class="d4t d4-promo" data-d4="promo"><span class="d4-bgs">${bgHtml}</span><span class="d4-sls">${slHtml2}</span>${dots}<span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
     ${again}${svc}`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
   // Tous les autres services sous les tuiles (patron 22/11 : « on ne voit pas tout le reste que je fais »)
@@ -6225,7 +6230,9 @@ function d4MagRender() {
     .filter(([k]) => !k || pool.some(x => d4mPass(x, k)));
   if (!fl.some(([k]) => k === d4m.f)) d4m.f = "";
   box.querySelector(".d4m-chips").innerHTML = fl.map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${escHop(l)}</button>`).join("");
-  box.querySelector(".d4m-list").innerHTML = list.length ? list.map(({ x, st }) => {
+  // « Makolet du coin » : dans Épicerie (et Tous), on va dans n'importe quel makolet pour vous
+  const mako = (d4m.f === "k:epicerie" || (!d4m.f && !words.length)) ? `<button type="button" class="d4m-card d4m-mako" data-d4m-mako><span class="d4m-ph"><img src="img/hoppy-vit.webp" alt="" loading="lazy" /></span><b class="d4m-nm">${UI.esc(t("d4Mako"))}</b><small>${UI.esc(t("d4MakoS"))}</small></button>` : "";
+  box.querySelector(".d4m-list").innerHTML = mako + (list.length ? list.map(({ x, st }) => {
     // (patron 22/11) : grandes cartes photo, deux par ligne, logo sur la photo, statut court
     const cover = UI.safeImg(x.cover), logo = UI.safeImg(x.logo), open = !x.paused && (!st || st.open);
     const sub = promoN[x.code] ? t("d4mPromos", { n: promoN[x.code] }) : ((t("shKinds") || {})[x.kind] || "").replace(/^\P{L}+/u, "");
@@ -6233,7 +6240,7 @@ function d4MagRender() {
     const nm = isHopShop(x) || /^HOP/.test(String(x.code || "")) ? d4Nm(x) : d3Name(UI.bi(x.name));
     return `<button type="button" class="d4m-card" data-d4m-pro="${UI.esc(x.code)}"><span class="d4m-ph"${cover ? ` style="background-image:url('${cover}')"` : ""}>${logo ? `<img src="${logo}" alt="" loading="lazy" onerror="this.remove()" />` : `<b>${UI.esc(nm.slice(0, 1))}</b>`}</span>
       <b class="d4m-nm"><bdi>${UI.esc(nm)}</bdi></b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(stx)}</small>${sub ? `<small class="d4m-sub">${UI.esc(sub)}</small>` : ""}</button>`;
-  }).join("") : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`;
+  }).join("") : mako ? "" : `<p class="d4m-none">${UI.esc(t("d4mNone"))}</p>`);
 }
 function d4MagOpen() {
   let box = $("#d4Mag");
@@ -6243,6 +6250,7 @@ function d4MagOpen() {
     box.addEventListener("click", e => {
       const f = e.target.closest("[data-d4m-f]"); if (f) { d4m.f = f.dataset.d4mF; d4MagRender(); return; }
       const r = e.target.closest("[data-d4m-pro]"); if (r) { d4MagClose(true); state.shopDir = ""; loadShop(r.dataset.d4mPro); return; }
+      if (e.target.closest("[data-d4m-mako]")) { d4MagClose(true); setTimeout(() => { const kb = document.querySelector('#homeKinds [data-kind="shop"]'); if (kb) kb.click(); }, 60); return; }
       if (e.target.closest("[data-d4m-any]")) { d4MagClose(true); setTimeout(() => $("#vitCourse").click(), 60); }
     });
     box.addEventListener("input", e => { if (e.target.matches(".d4m-q")) { d4m.q = e.target.value; d4MagRender(); } });
@@ -6275,7 +6283,9 @@ document.addEventListener("click", e => {
   const k = b.dataset.d4;
   if (k === "promo" && d4Swipe.moved && Date.now() - d4Swipe.t < 600) return;
   UI.track("d4_tile", { page: k });
-  if (k === "promo") { const on = b.querySelector(".d4-sl.on"); return openPromosAll((on && on.dataset.code) || ""); }
+  if (k === "promo") { const on = b.querySelector(".d4-sl.on"), c = (on && on.dataset.code) || "";
+    if (c.startsWith("shop:")) { state.shopDir = ""; return loadShop(c.slice(5)); }
+    return openPromosAll(c); }
   if (k === "again") return reorderGo(0);
   if (k === "first") return hvOpenTalk();   // « Tapez ou parlez » : le micro de Hoppy s'ouvre
   if (k === "mikve") return mikveOpen();
