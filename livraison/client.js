@@ -1279,7 +1279,44 @@ function renderNoteTime() {
   el.textContent = d ? t("noteTime", { time: UI.fmtTime(d) }) : "";
 }
 // Article sans photo : le petit logo du commerce (jamais une illustration au hasard), sinon l'illustration par nom
+// Produit sans photo (patron, 22/11 : « tu mets des fictifs qui ressemblent, pas le carré HOP! ») : un dessin 3D de l'appli
+// (img/qc/…) choisi d'après le nom du produit (français ou hébreu), puis d'après son rayon
+const QC_ART = [
+  [/avocat|avocado|אבוקדו/i, "avocado"], [/[ée]chalote|oignon|onion|בצל|שאלוט/i, "onion"], [/\bail\b|garlic|שום/i, "garlic"],
+  [/tomate|tomato|עגבני|רסק/i, "tomato"], [/concombre|cornichon|מלפפון/i, "cucumber"], [/carotte|גזר/i, "carrot"], [/pomme de terre|potato|תפוח אדמה|תפו"א/i, "potato"],
+  [/poivron|פלפל/i, "bellpepper"], [/champignon|פטרי/i, "mushroom"], [/brocoli|ברוקולי/i, "broccoli"], [/salade|laitue|חסה|עלים/i, "leafy"], [/ma[ïi]s|corn|תירס/i, "corn"],
+  [/herbe|persil|coriandre|menthe|aneth|תבלין|פטרוזיליה|כוסברה|נענע/i, "herb"], [/citron|לימון/i, "lemon"], [/orange|clementine|mandarine|תפוז|קלמנטינה/i, "orange"],
+  [/banane|בננ/i, "banana"], [/pomme|תפוח/i, "apple"], [/raisin sec|raisin|ענב/i, "grapes"], [/fraise|תות/i, "strawberry"], [/mangue|מנגו/i, "mango"], [/past[eè]que|אבטיח/i, "watermelon"],
+  [/olive|זית/i, "olive"], [/baguette|באגט/i, "baguette"], [/croissant|קרואסון/i, "croissant"], [/bagel|בייגל/i, "bagel"], [/pita|laffa|tortilla|פית|לאפה|טורטיה/i, "flatbread"],
+  [/pain|petits pains|brioche|challah|לחם|לחמני|חלה/i, "bread"], [/cookie|biscuit|petit-beurre|עוגי|ביסקוויט/i, "cookie"], [/g[âa]teau|cake|עוג/i, "shortcake"], [/gaufre|wafer|waffle|וופל/i, "waffle"], [/c[ée]r[ée]ale|cornflakes|muesli|granola|דגני|קורנפלקס|גרנולה/i, "bowl"],
+  [/chocolat|שוקולד/i, "chocolate"], [/bonbon|candy|sucette|סוכרי|ממתק|טופי/i, "candy"], [/chips|bamba|bissli|במבה|ביסלי|צ'יפס|חטיף/i, "popcorn"], [/bretzel|pretzel|בייגלה/i, "pretzel"],
+  [/cacahu[eè]te|arachide|בוטנ/i, "peanuts"], [/noix|amande|pistache|noisette|אגוז|שקד|פיסטוק/i, "nut"], [/miel|דבש/i, "honey"], [/confiture|pâte à tartiner|ריבה|ממרח/i, "jar"],
+  [/fromage|cheddar|mozzarella|feta|bulgare|ricotta|גבינ|צפתית|מוצרלה/i, "cheese"], [/yaourt|yogourt|dessert lact|יוגורט|מעדן|דנונה/i, "yogurt"], [/beurre|חמאה/i, "butter"],
+  [/lait|milk|חלב/i, "milk"], [/[œo]uf|ביצ/i, "egg"], [/poulet|dinde|schnitzel|עוף|הודו|שניצל|פרגית/i, "chicken"], [/thon|saumon|poisson|sardine|hareng|טונה|סלמון|דג|הרינג/i, "fish"],
+  [/viande|b[œo]uf|steak|entrec[ôo]te|saucisse|kebab|בשר|בקר|אנטריקוט|נקניק|קבב/i, "meat"], [/riz|אורז/i, "rice"], [/p[âa]tes|spaghetti|nouilles|noodles|פסטה|ספגטי|אטריות|נודלס/i, "spaghetti"],
+  [/semoule|couscous|farine|flocons|avoine|quaker|קמח|סולת|קוסקוס|שיבולת/i, "bowl"], [/conserve|haricot|pois chiche|lentille|שימור|חומוס|שעועית|עדשים/i, "canned"],
+  [/huile|שמן/i, "olive"], [/sel\b|מלח/i, "salt"], [/sucre|סוכר/i, "salt"], [/[ée]pice|paprika|cumin|curcuma|תבלינ/i, "herb"],
+  [/caf[ée]|נס קפה|קפה/i, "coffee"], [/th[ée]\b|infusion|תה|חליטה/i, "tea"], [/jus|nectar|מיץ|נקטר/i, "juice"], [/eau|soda|מים|סודה/i, "water"],
+  [/cola|boisson|limonade|schweppes|sprite|fanta|משקה|קולה/i, "cupstraw"], [/vin\b|יין/i, "wine"], [/glace|גליד|ארטיק/i, "icecream"], [/surgel|קפוא/i, "snowflake"],
+  [/couche|lingette|b[ée]b[ée]|חיתול|מגבונ|תינוק/i, "baby"], [/brosse à dents|dentifrice|משחת שיניים|מברשת שיניים/i, "toothbrush"],
+  [/shampo|apr[èe]s-shampo|gel douche|cr[èe]me|lotion|d[ée]odorant|שמפו|מרכך שיער|קרם|תחליב|דאודורנט/i, "lotion"], [/savon|סבון/i, "soap"],
+  [/papier|mouchoir|essuie|serviette|טואלט|ממחטות|מגבות נייר|מפיות|טישו/i, "paper"], [/[ée]ponge|chiffon|lavette|ספוג|מטלית/i, "sponge"],
+  [/javel|nettoyant|d[ée]tergent|lessive|adoucissant|vaisselle|spray|אקונומיקה|ניקוי|כביסה|מרכך|כלים|ספריי|מסיר/i, "bubbles"],
+  [/sac poubelle|poubelle|שקיות אשפה|אשפה/i, "wastebasket"], [/bougie|נר/i, "candle"], [/pile|battery|סוללות/i, "battery"], [/ampoule|נורה/i, "bulb"],
+  [/assiette|soupi[èe]re|bol|plat|צלחת|קערה|מרקיה/i, "plate"], [/verre|tasse|gobelet|pichet|carafe|כוס|קנקן/i, "tumbler"], [/couvert|cuill|fourchette|סכו"ם|כפית|מזלג/i, "spoon"],
+  [/chat|חתול/i, "cat"], [/chien|כלב/i, "dog"], [/chaussette|גרב/i, "socks"], [/couverture|plaid|שמיכה/i, "yarn"]];
+const QC_CAT = [[/fruit|légume|ירק|פיר/i, "apple"], [/viande|poisson|בשר|דג/i, "meat"], [/lait|laitier|fromage|חלב/i, "milk"], [/pain|gâteau|boulang|לחם|מאפ/i, "bread"],
+  [/épicerie|מזווה/i, "canned"], [/snack|douceur|חטיף|מתוק/i, "cookie"], [/boisson|café|eau|משק|מים/i, "cupstraw"], [/surgel|קפוא/i, "snowflake"],
+  [/hygi|beaut|טיפוח/i, "lotion"], [/maison|ménage|ניקיון|בית/i, "bubbles"], [/bébé|תינוק/i, "baby"]];
+function qcArt(p) {
+  const nm = String((p && p.name) || ""), hit = QC_ART.find(([rx]) => rx.test(nm));
+  let k = hit && hit[1];
+  if (!k) { const c = ((state.catalog && state.catalog.categories) || []).find(x => x.id === p.category_id); const ch = c && QC_CAT.find(([rx]) => rx.test(c.name || "")); k = ch && ch[1]; }
+  return k ? `<span class="item-art qc-art"><img src="img/qc/${k}.webp" alt="" loading="lazy" /></span>` : "";
+}
 function shopArt(p) {
+  const qa = qcArt(p);
+  if (qa) return qa;
   const logo = state.shop && UI.safeImg(state.shop.logo);
   return logo ? `<span class="item-art logo-art"><img src="${logo}" alt="" loading="lazy" /></span>` : UI.itemArt(p.name, state.shop && state.shop.kind);
 }
