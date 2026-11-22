@@ -233,6 +233,59 @@ def photo_ok(sess: requests.Session, code: str) -> bool:
         return True  # site injoignable : on ne retire rien
 
 
+# --- Shufersal (et Universe, qui lui appartient) : site prices.shufersal.co.il, sans compte, autre rangement des promos ---
+SHUF = "https://prices.shufersal.co.il"
+CANON = {t.lower(): t for t in ("Item", "Items", "ItemCode", "ItemName", "ItemPrice", "bIsWeighted", "Promotion", "PromotionID", "PromotionDescription",
+         "PromotionStartDateTime", "PromotionEndDateTime", "ClubID", "AdditionalIsCoupon", "AdditionalRestrictions", "MinPurchaseAmount",
+         "PromotionItem", "MinQty", "DiscountedPrice", "RewardType")}
+
+
+def _shuf_root(sess: requests.Session, cat: int, store: str) -> ET.Element:
+    r = sess.get(f"{SHUF}/FileObject/UpdateCategory?catID={cat}&storeId={int(store)}", timeout=60)
+    r.raise_for_status()
+    links = [x.replace("&amp;", "&") for x in re.findall(r'href="(https?://[^"]+\.gz[^"]*)"', r.text)]
+    if not links:
+        raise RuntimeError(f"Shufersal : aucun fichier (cat {cat}, magasin {store})")
+    log("fichier :", re.sub(r"\?.*", "", links[0]))
+    root = ET.fromstring(gzip.decompress(sess.get(links[0], timeout=300).content).lstrip(b"\xef\xbb\xbf"))
+    for el in root.iter():
+        el.tag = CANON.get(el.tag.lower(), el.tag)
+    return root
+
+
+def shufersal_roots(store: str):
+    """Prix et promos d'un magasin Shufersal, les promos remises au même format que les autres enseignes."""
+    sess = requests.Session()
+    sess.headers["User-Agent"] = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
+    price_root = _shuf_root(sess, 2, store)
+    raw = _shuf_root(sess, 4, store)
+    out = ET.Element("Root")
+    for pr in raw.iter("Promotion"):
+        g = lambda *ns: next(((pr.findtext(n) or "").strip() for n in ns if (pr.findtext(n) or "").strip()), "")  # noqa: E731
+        p = ET.SubElement(out, "Promotion")
+        clubs = [(c.text or "").strip() for c in pr.iter() if c.tag.lower() == "clubid"]
+        for tag, val in (("PromotionID", g("PromotionID", "PromotionId")), ("PromotionDescription", g("PromotionDescription")),
+                         ("PromotionStartDateTime", g("PromotionStartDateTime") or (g("PromotionStartDate") + "T" + (g("PromotionStartHour") or "00:00"))),
+                         ("PromotionEndDateTime", g("PromotionEndDateTime") or (g("PromotionEndDate") + "T" + (g("PromotionEndHour") or "23:59"))),
+                         ("ClubID", (clubs[0] if clubs else "0").split(" ")[0]), ("AdditionalIsCoupon", g("AdditionalIsCoupon") or "0"),
+                         ("AdditionalRestrictions", g("AdditionalRestrictions")), ("MinPurchaseAmount", g("MinPurchaseAmount", "MinPurchaseAmnt"))):
+            ET.SubElement(p, tag).text = val
+        qty, disc, rew = g("MinQty"), g("DiscountedPrice"), g("RewardType")
+        for it in pr.iter():
+            if it.tag.lower() != "item":
+                continue
+            code = (it.findtext("ItemCode") or "").strip()
+            if not code:
+                continue
+            pi = ET.SubElement(p, "PromotionItem")
+            for tag, val in (("ItemCode", code), ("MinQty", (it.findtext("MinQty") or qty or "1").strip()),
+                             ("DiscountedPrice", (it.findtext("DiscountedPrice") or disc or "").strip()),
+                             ("RewardType", (it.findtext("RewardType") or rew or "1").strip()), ("bIsWeighted", "0")):
+                ET.SubElement(pi, tag).text = val
+    log(f"Shufersal : {sum(1 for _ in out.iter('Promotion'))} promos lues")
+    return out, price_root
+
+
 def base_fr(fr: str) -> str:
     return re.sub(r"\s*\(lot de \d+\)\s*$", "", fr or "").strip()
 
@@ -248,6 +301,7 @@ def main() -> int:
     ap.add_argument("--chain", default="7290058140886")
     ap.add_argument("--store", default="037")
     ap.add_argument("--prefix", default="ramilevy")
+    ap.add_argument("--source", default="publishedprices", choices=["publishedprices", "shufersal"], help="site des fichiers officiels")
     ap.add_argument("--min-rows", type=int, default=8000, help="nombre minimum de produits dans le magasin (fichier cassé en dessous)")
     a = ap.parse_args()
     globals().update(USER=a.user, CHAIN=a.chain, STORE=a.store)
@@ -257,6 +311,8 @@ def main() -> int:
     if a.promo_xml and a.price_xml:
         promo_root = ET.fromstring(Path(a.promo_xml).read_bytes().lstrip(b"\xef\xbb\xbf"))
         price_root = ET.fromstring(Path(a.price_xml).read_bytes().lstrip(b"\xef\xbb\xbf"))
+    elif a.source == "shufersal":
+        promo_root, price_root = shufersal_roots(a.store)
     else:
         s, tok = login()
         fp, fx = latest(s, tok, "PromoFull"), latest(s, tok, "PriceFull")
