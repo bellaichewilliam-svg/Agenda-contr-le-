@@ -7107,3 +7107,6 @@ html.d3 .gc .gc-opt:not(.on) { padding-block: 12px; }
 .cg-shopsw.long { max-width: 52%; }
 .cg-shopsw.long .cg-sw-t b { font-size: 13px; overflow-wrap: normal; word-break: keep-all; }
 .cg-shopsw.long .cg-st-lg { width: 30px; height: 30px; }
+/* Produit sans photo : dessin 3D du produit sur fond gris très clair, comme une photo (22/11) */
+.item-art.qc-art, html.d3 .item-art.qc-art { background: #F6F7F8 !important; }
+.item-art.qc-art img { width: 62% !important; height: 62% !important; object-fit: contain !important; }
