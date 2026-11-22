@@ -34,6 +34,7 @@
 
 ## 3. Appli client (`index.html` + `client.js`)
 - **Design clair d3** (fond blanc, noir `#111418`, un seul orange `#E8590C` pour l'action, pastels doux par rubrique, pas d'émoji). `?design=2` = ancien.
+- **Design « tuiles » d4 (test, 22/11)** : `?design=4` sur un téléphone (gardé ; `?design=3` l'enlève) → `html.d4`. Accueil : `d4Tiles()` (client.js) = grande tuile promo orange + Hoppy qui saute (« Jusqu'à −X % » d'après `pa.data`), « Refaire mes courses » (dessins `img/qc` des articles de la dernière commande) ou « Première commande ? », tuiles services pastel, nos magasins ; `#vitCourse` en bleu ciel. Styles `html.d4 …` en fin de styles.css. Pas encore pour tout le monde.
 - **Accueil vitrine** : « Livrer à » + « Quand », recherche, rubriques, bandeaux, « Commander à nouveau », carte course libre avec Hoppy et prix « dès 25 ₪ en ville », commerces.
 - Barre du bas : Accueil · Course libre · **Hoppy (voix, rond blanc au milieu)** · Commandes · Compte (cachée si un bouton Commander est à l'écran).
 - **Hors service** : carte ambre claire sur l'accueil ; « Quand : dès notre retour » ; le bouton hors ligne du patron prend le dessus sur ses horaires.
