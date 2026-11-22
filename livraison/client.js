@@ -8916,6 +8916,7 @@ if ($("#homeFind")) {
 }
 // Résultats de la vitrine : « On vous l'apporte », puis les produits rangés PAR COMMERCE (logo, nom, « Tout voir »)
 // en cartes avec photo et prix (un toucher ouvre la fiche du produit dans son commerce), les courses HOP! (rayons), les commerces
+const rlHomeCache = new Map();
 function vitFindRender(q, products, shops, staple, box) {
   if (staple) products = products.filter(p => !/restaurant|resto|cafe/i.test(p.kind || ""));
   // Rubrique tabac (« cigarettes ») : seulement les cigarettes (aucun commerce n'en vend : plus de gaufrettes « cigarettes »)
@@ -8924,8 +8925,24 @@ function vitFindRender(q, products, shops, staple, box) {
   const sc = code => (state.showcase || []).find(x => x.code === code) || {};
   const qa = UI.esc(q.trim());
   const any = `<button type="button" class="fi-any" data-find-any><span class="fi-pic"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h7M14 6h3l1.5 8.5M4 13h6l2 4M10 13l1-4h3"/></svg></span><span class="fi-txt"><b>${UI.esc(t("vitAny", { q: q.trim().slice(0, 60) }))}</b><small>${UI.esc(t("vitAnySub"))}</small></span><span class="fi-go" aria-hidden="true">›</span></button>`;
+  // (patron 22/11 : « les principaux ne ressortent pas en premier ») : le vrai produit d'abord (« Lait 3 % » avant « lait de coco »
+  // ou « lait pour le corps ») ; pour Rami Lévy, tout le magasin (13 000 produits) et pas seulement ses promos
+  // (les noms Rami Lévy sont en hébreu : on note aussi avec les synonymes, « lait » = « חלב »)
+  const scorers = [...searchTerms(q)].filter(Boolean).slice(0, 6).map(mgScorer), rlKey = phNorm(q).trim();
+  const scoreOf = p => Math.max(...scorers.map(f => f(p)));
+  const rlList = (rlHomeCache.get(rlKey) || []).map(x => ({ id: "rl:" + x.n, _rl: true, name: x.n, price: Number(x.p) || 0, photo: rlPh(x.c), code: RL_CODE,
+    shop: (sc(RL_CODE).name) || "HOP! chez Rami Lévy", kind: "epicerie" }));
+  if (rlList.length) products = rlList.concat(products.filter(p => !(p.code === RL_CODE && rlList.some(r => phNorm(r.name) === phNorm(UI.bi(p.name))))));
   const groups = [];
   products.forEach(p => { let g = groups.find(x => x.code === p.code); if (!g) groups.push(g = { code: p.code, shop: p.shop, kind: p.kind, items: [] }); g.items.push(p); });
+  const hopRank = c => { const i = D4_PROMO_ORDER.indexOf(c); return i < 0 ? ((CONFIG.hopShops || []).includes(c) ? 50 : 99) : i; };
+  groups.forEach(g => { g.items.forEach(p => { p._sc = scoreOf(p); }); g.items.sort((a, b) => b._sc - a._sc); g.best = g.items.length ? g.items[0]._sc : -99; });
+  groups.sort((a, b) => ((b.best >= 25) - (a.best >= 25)) || (hopRank(a.code) - hopRank(b.code)) || (b.best - a.best));
+  if (rlKey.length >= 2 && !rlHomeCache.has(rlKey) && !/restaurant|resto|cafe/i.test(q)) {
+    rlHomeCache.set(rlKey, []);
+    Store.rlFind(q, 10).then(l => { if (!Array.isArray(l) || !l.length) return; rlHomeCache.set(rlKey, l); if (rlHomeCache.size > 40) rlHomeCache.delete(rlHomeCache.keys().next().value);
+      if (box.isConnected && !box.classList.contains("hidden")) vitFindRender(q, products.filter(p => !p._rl), shops, staple, box); }).catch(() => { rlHomeCache.delete(rlKey); });
+  }
   const card = (attrs, pic, white, price, name) => `<button type="button" class="fr-card" ${attrs}><span class="fr-pic${white ? " white" : ""}">${pic}</span>
     <span class="fr-price">${price}</span><span class="fr-nm">${name}</span></button>`;
   const prodHtml = groups.map(g => {
@@ -8934,7 +8951,7 @@ function vitFindRender(q, products, shops, staple, box) {
       <span class="fr-name"><b>${escHop(UI.bi(g.shop))}</b><small>${UI.esc(t(g.items.length === 1 ? "vitFindN1" : "vitFindN", { n: g.items.length }))}</small></span>
       <button type="button" class="fr-all" data-find-pro="${UI.esc(g.code)}" data-find-q="${qa}">${UI.esc(t("vitFindAll"))} ›</button></div>
       <div class="fr-row">${g.items.slice(0, 12).map(p => { const ph = UI.safeImg(p.photo);
-        return card(`data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}" data-find-open="1"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : `<i>${UI.esc(UI.KIND_ICON[g.kind] || "🛍️")}</i>`,
+        return card(p._rl ? `data-find-pro="${UI.esc(p.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(p.code)}" data-find-item="${UI.esc(p.id)}" data-find-open="1"`, ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : `<i>${UI.esc(UI.KIND_ICON[g.kind] || "🛍️")}</i>`,
           !!ph && UI.extPic(ph), `<bdi dir="ltr">${UI.esc(money(p.price))}</bdi>`, UI.esc(UI.bi(p.name))); }).join("")}</div></section>`;
   }).join("");
   const rays = rayonHits(q, 8);
