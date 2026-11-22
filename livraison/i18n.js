@@ -372,7 +372,7 @@ fr: {
   errPhoneName: "Écrivez le nom sous lequel vous avez commandé.", errPhoneReady: "Dites-nous dans combien de temps la commande sera prête.", nprTitle: "Commandez et payez directement chez {name}", nprSub: "Appelez {name} : passez votre commande, payez-la chez eux, et demandez-leur dans combien de temps elle sera prête.", nprReady: "Elle sera prête dans combien de temps ?", nprHour: "1 h", nprRule: "Le livreur est envoyé pour arriver pile quand c'est prêt. S'il doit attendre : 5 min offertes, puis +1 ₪ par minute.", acRayon: "🛒 {rayon} · le livreur va au magasin le plus proche", findRayons: "🛒 Dans nos rayons", acCatalog: "⭐ Chez {shop} · {price}", errNprReady: "Dites-nous dans combien de temps votre commande sera prête (demandez-le à {name}).", spOrderNoteDirect: "Écrivez ce que vous avez commandé chez {name} : le livreur saura quoi récupérer.",
   errPhonePaid: "La commande doit être payée au commerce avant : le livreur n'avance jamais d'argent.",
   trPhoneReady: "Prête vers {time} chez le commerce : le livreur arrivera à ce moment-là.",
-  becomeCourier: "🛵 Devenir livreur partenaire", navRider: "Espace livreur", navRiderMine: "🛵 Mon espace livreur",
+  becomeCourier: "🛵 Devenir livreur", navRider: "Espace livreur", navRiderMine: "🛵 Mon espace livreur",
   msg_refusee: "Désolé {name}, nous ne pouvons pas prendre la course n° {ref} : {reason}. Vous pouvez choisir un autre horaire ici : {url}",
   reason_full: "nous sommes complets à cet horaire", reason_zone: "l'adresse est hors de notre zone",
   reason_closed: "nous sommes fermés à cet horaire", reason_size: "le colis est trop volumineux pour nous",

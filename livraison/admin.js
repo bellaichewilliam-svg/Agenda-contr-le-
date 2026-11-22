@@ -87,7 +87,7 @@ function showLogin() {
     $("#pwLabel").textContent = "Code d'accès";
     $("#loginHint").textContent = "Mode démo : le code est défini dans config.js (demoAdminPin). Seules les données de cet appareil sont visibles.";
   } else {
-    $("#loginHint").textContent = "Connectez-vous avec votre compte patron (voir README).";
+    $("#loginHint").textContent = "Connectez-vous avec votre e-mail et votre mot de passe.";
   }
 }
 

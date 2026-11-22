@@ -57,7 +57,7 @@ function renderWelcome() {
     ...(refOn() && CONFIG.pro.referrerPercent ? [`${CONFIG.pro.referrerPercent} % de l'abonnement HOP! Pro des commerces que vous faites signer, pendant ${CONFIG.pro.referrerMonths} mois.`] : []),
     "Les pourboires sont 100 % pour vous, et les codes promo sont payés par HOP, pas par vous.",
     "Pas d'abonnement, pas de frais d'inscription."
-  ].map(x => `<li>✅ ${UI.esc(x)}</li>`).join("");
+  ].map(x => `<li>${UI.esc(x)}</li>`).join("");   // (coche dessinée en CSS, plus d'émoji ✅)
   $("#citySelect").innerHTML = CONFIG.cities.map(c => `<option value="${c.id}">${UI.esc(c[CLANG] || c.fr)}</option>`).join("");
   $("#citySelect").value = CONFIG.homeCity;
   $("#terms").innerHTML = TERMS.map((t, i) =>
