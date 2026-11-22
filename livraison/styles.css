@@ -7183,7 +7183,40 @@ html.d4 .d4-tiles > :nth-child(8) { animation-delay: .42s; }
 html.d4 .d4-svc:nth-child(4) .d4-blob svg { animation-delay: .8s; } html.d4 .d4-svc:nth-child(5) .d4-blob svg { animation-delay: 1.6s; }
 html.d4 .d4-svc:nth-child(6) .d4-blob svg { animation-delay: 2.4s; }
 /* Les anciennes rubriques en vignettes et les promos en bandeau sont remplacées par les tuiles */
-html.d4 #homeKinds, html.d4 #homeKinds + .hk-more, html.d4 .hk-all { display: none !important; }
+/* (22/11) les autres services restent visibles sous les tuiles, sans doublons */
+html.d4 #homeKinds#homeKinds .d3-promo, html.d4 #homeKinds#homeKinds .d3-mikve, html.d4 #homeKinds#homeKinds .d3-kall,
+html.d4 #homeKinds#homeKinds .ch-kind[data-kind="pharm"], html.d4 #homeKinds#homeKinds .ch-kind[data-kind="bakery"], html.d4 #homeKinds#homeKinds .ch-kind[data-kind="mezouza"], html.d4 #homeKinds#homeKinds .ch-kind[data-kind="poste"] { display: none !important; }
+html.d4 #homeKinds:not(.all) .ch-kind:nth-child(n+9) { display: flex !important; }
+html.d4 #homeKinds::before { content: none !important; display: none !important; }
+html.d4 #homeKinds { order: 6 !important; }
+.d4-h, .d4-shops { display: none; }
+html.d4 #homeSheet > #d4KindsH, html.d4 #homeSheet > #d4Shops { order: 6 !important; display: block; }
+html.d4 .d4-h { font-size: 20px; font-weight: 800; color: #111418; margin: 6px 0 10px; }
+html.d4 .d4-shops { margin: 18px 0 8px; }
+html.d4 .d4-sh-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+html.d4 .d4-sh-head .d4-h { margin: 0; display: block; }
+html.d4 .d4-sh-all { all: unset; cursor: pointer; font-weight: 700; font-size: 14px; color: #111418; padding: 8px 0; }
+html.d4 .d4-sh-row { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 10px 0 0; padding: 0 0 4px; }
+html.d4 .d4-sh-row::-webkit-scrollbar { display: none; }
+html.d4 .d4-sh { all: unset; box-sizing: border-box; cursor: pointer; flex: none; width: 148px; scroll-snap-align: start; background: #fff; border-radius: 22px; padding: 8px 8px 12px; display: flex; flex-direction: column; gap: 3px; animation: d4pop .5s cubic-bezier(.2,.9,.3,1.3) both; }
+html.d4 .d4-sh:active { transform: scale(.97); }
+html.d4 .d4-sh-pic { position: relative; height: 96px; border-radius: 16px; background: #F2F3F5 center/cover no-repeat; margin-bottom: 6px; display: grid; place-items: center; }
+html.d4 .d4-sh-pic img { position: absolute; inset-inline-start: 8px; bottom: -14px; width: 40px; height: 40px; border-radius: 50%; object-fit: contain; background: #fff; border: 2px solid #fff; }
+html.d4 .d4-sh-pic:not([style]) img { position: static; width: 64px; height: 64px; border: 0; background: none; }
+html.d4 .d4-sh-pic b { font-size: 34px; font-weight: 800; color: #5A6270; }
+html.d4 .d4-sh-n { font-size: 15px; font-weight: 800; color: #111418; padding: 8px 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.d4 .d4-sh small { font-size: 12.5px; color: #5A6270; padding: 0 4px; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+html.d4 .d4-sh small i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #1F9D55; }
+html.d4 .d4-sh small i.cl { background: #B0B6BF; }
+html.d4 .d4-sh-any { background: #CFE8FB; }
+html.d4 .d4-sh-any .d4-sh-pic { background: rgba(255,255,255,.55); }
+html.d4 .d4-sh-any .d4-sh-pic img { position: static; width: auto; height: 86px; border: 0; background: none; border-radius: 0; animation: d4hop 2.8s ease-in-out 1s infinite; transform-origin: 50% 100%; }
+html.d4 .d4-sh-any small { color: #33486B; }
+html.d4 .d4-flash, html.d4 .d4-promo .d4-sl b bdi { white-space: nowrap; }
+html.d4 .d4-promo .d4-sl b { font-size: 24px; }
+.d4m-pic { position: relative; display: grid; place-items: center; }
+.d4m-pic b { font-size: 26px; font-weight: 800; color: #5A6270; }
+.d4m-pic img { position: absolute; inset: 0; }
 /* « Votre magasin n'est pas là ? On y va pour vous » : carte bleu ciel */
 html.d4 #vitCourse { background: #CFE8FB !important; border: 0 !important; border-radius: 26px !important; box-shadow: none !important; }
 html.d4 #vitCourse .vc-txt b { color: #0F1F3D; font-size: 19px; font-weight: 800; line-height: 1.2; }
@@ -7196,3 +7229,67 @@ html.d4 #vitCourse img { animation: d4hop 2.8s ease-in-out 1s infinite; transfor
 @keyframes d4wig { 0%, 80%, 100% { transform: rotate(0); } 85% { transform: rotate(-8deg); } 90% { transform: rotate(7deg); } 95% { transform: rotate(-3deg); } }
 @media (prefers-reduced-motion: reduce) { html.d4 .d4t, html.d4 .d4t img, html.d4 .d4t svg, html.d4 .d4-shadow, html.d4 #vitCourse img { animation: none !important; } }
 @media (max-width: 370px) { html.d4 .d4t b { font-size: 16px; } html.d4 .d4-promo b { font-size: 20px; } html.d4 .d4-svc small { font-size: 12px; } }
+/* d4 (22/11, suite) : la tuile promo défile d'un magasin à l'autre ; « −X % » clignote doucement */
+html.d4 .d4-promo .d4-sls { position: relative; display: block; height: 118px; z-index: 1; }
+html.d4 .d4-promo .d4-sl { position: absolute; inset: 0; display: flex; flex-direction: column; gap: 4px; opacity: 0; transform: translateX(26px); transition: opacity .45s, transform .45s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
+html.d4[dir="rtl"] .d4-promo .d4-sl, [dir="rtl"] html.d4 .d4-promo .d4-sl { transform: translateX(-26px); }
+html.d4 .d4-promo .d4-sl.out { transform: translateX(-26px); }
+html.d4[dir="rtl"] .d4-promo .d4-sl.out { transform: translateX(26px); }
+html.d4 .d4-promo .d4-sl.on { opacity: 1; transform: none; }
+html.d4 .d4-promo .d4-sl small { color: rgba(255,255,255,.92); text-transform: uppercase; letter-spacing: .04em; font-size: 12px; font-weight: 800; }
+html.d4 .d4-promo .d4-sl b { font-size: 25px; line-height: 1.1; font-weight: 800; }
+html.d4 .d4-flash { display: inline-block; animation: d4flash 2.8s ease-in-out infinite; }
+html.d4 .d4-dots { position: relative; z-index: 1; display: flex; gap: 5px; margin-top: 2px; }
+html.d4 .d4-dots i { width: 6px; height: 6px; border-radius: 99px; background: rgba(255,255,255,.45); transition: width .3s, background .3s; }
+html.d4 .d4-dots i.on { width: 16px; background: #fff; }
+html.d4 .pa-off:not(.pa-small) { animation: d4flash 2.8s ease-in-out infinite; }
+html.d4 .pa-card:nth-child(2n) .pa-off { animation-delay: .5s; } html.d4 .pa-card:nth-child(3n) .pa-off { animation-delay: 1s; }
+@keyframes d4flash { 0%, 64%, 100% { opacity: 1; transform: scale(1); filter: none; }
+  70% { opacity: .55; transform: scale(.98); } 76% { opacity: 1; transform: scale(1.06); filter: drop-shadow(0 0 8px rgba(255,255,255,.85)); }
+  82% { opacity: .7; transform: scale(1); filter: none; } 88% { opacity: 1; transform: scale(1.03); } }
+/* Écran « Magasins » (onglet du bas) */
+.d4m { position: fixed; inset: 0; z-index: 60; background: #F4F1EC; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.d4m.hidden { display: none; }
+.d4m-in { max-width: 560px; margin: 0 auto; padding: 18px 16px 120px; }
+.d4m-h { font-size: 28px; font-weight: 800; color: #111418; margin: 8px 0 14px; }
+.d4m-find { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 18px; padding: 0 16px; height: 54px; }
+.d4m-find svg { width: 20px; height: 20px; fill: none; stroke: #5A6270; stroke-width: 2; stroke-linecap: round; flex: none; }
+.d4m-find input { flex: 1; min-width: 0; border: 0; background: none; font: inherit; font-size: 16px; color: #111418; outline: none; }
+.d4m-any { position: relative; overflow: hidden; margin: 14px 0; background: #CFE8FB; border-radius: 26px; padding: 18px; padding-inline-end: 34%; display: flex; flex-direction: column; gap: 6px; }
+.d4m-any small { color: #1F4FA3; font-weight: 800; font-size: 13px; }
+.d4m-any b { color: #0F1F3D; font-size: 21px; font-weight: 800; line-height: 1.2; }
+.d4m-any span { color: #33486B; font-size: 14px; }
+.d4m-go { align-self: flex-start; margin-top: 6px; border: 0; background: #E8590C; color: #fff; font: inherit; font-weight: 800; font-size: 15px; padding: 11px 18px; border-radius: 14px; cursor: pointer; }
+.d4m-any img { position: absolute; bottom: 10px; inset-inline-end: 4px; height: 128px; width: auto; animation: d4hop 2.8s ease-in-out 1s infinite; transform-origin: 50% 100%; }
+.d4m-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; margin: 4px -16px 12px; padding: 0 16px; }
+.d4m-chips button { flex: none; border: 0; background: #fff; color: #111418; font: inherit; font-weight: 700; font-size: 14px; padding: 9px 16px; border-radius: 12px; cursor: pointer; }
+.d4m-chips button.on { background: #111418; color: #fff; }
+.d4m-list { display: flex; flex-direction: column; gap: 10px; }
+.d4m-row { display: flex; align-items: center; gap: 12px; width: 100%; border: 0; background: #fff; border-radius: 20px; padding: 10px; text-align: start; font: inherit; color: #111418; cursor: pointer; }
+.d4m-pic { flex: none; width: 84px; height: 62px; border-radius: 14px; background: #F2F3F5 center/cover; overflow: hidden; }
+.d4m-pic img { width: 100%; height: 100%; object-fit: cover; }
+.d4m-txt { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.d4m-txt b { font-size: 17px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d4m-txt small { font-size: 13px; color: #5A6270; display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.d4m-txt small i { flex: none; width: 7px; height: 7px; border-radius: 50%; background: #1F9D55; }
+.d4m-txt small i.cl { background: #B0B6BF; }
+.d4m-none { text-align: center; color: #5A6270; padding: 24px 8px; }
+html.d4m-on body { overflow: hidden; }
+html.d4m-on #d3Nav { z-index: 70; }
+@media (prefers-reduced-motion: reduce) { html.d4 .d4-flash, html.d4 .pa-off, .d4m-any img { animation: none !important; } html.d4 .d4-promo .d4-sl { transition: none; } }
+/* d4 (patron 22/11 : « 32 lignes de place ») : haut de l'accueil compact, comme la maquette */
+html.d4 #vitTop .vit-row { gap: 8px !important; }
+html.d4 #vitTop .vit-chip { min-height: 0 !important; height: auto !important; padding: 7px 12px !important; border-radius: 14px !important; }
+html.d4 #vitTop .vit-chip small { font-size: 11.5px !important; }
+html.d4 #vitTop .vit-chip b { font-size: 14.5px !important; }
+html.d4 #vitStatus { contain: inline-size; box-sizing: border-box; max-width: 100%; overflow: hidden; display: flex !important; align-items: center !important; gap: 8px !important; margin: 8px 0 0 !important; padding: 7px 12px !important; border-radius: 12px !important; min-height: 0 !important; }
+html.d4 #vitStatus > span { display: block !important; min-width: 0; flex: 1 1 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px !important; line-height: 1.3 !important; }
+html.d4 #vitStatus > span > b, html.d4 #vitStatus > span > small { display: inline !important; font-size: 13px !important; }
+html.d4 #vitStatus > span > small::before { content: " · "; }
+html.d4 #vitHero { margin-top: 12px !important; }
+html.d4 #vitHero .vit-ask { font-size: 22px !important; line-height: 1.2 !important; margin: 0 0 10px !important; letter-spacing: -.01em; }
+html.d4 #vitHero .sc-find, html.d4 #vitHero .sc-find input { height: 48px !important; min-height: 0 !important; }
+html.d4 #vitHero .sc-find { background: #fff !important; border-radius: 16px !important; }
+html.d4 #vitTry { display: none !important; }
+html.d4 .d4-tiles { margin-top: 12px; }
+@media (max-width: 370px) { html.d4 #vitHero .vit-ask { font-size: 20px !important; } }
