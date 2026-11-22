@@ -2,7 +2,8 @@
 -- Migrations appliquées : victory_tout_le_magasin, victory_tout_par_paquets, lahav_tout_le_magasin.
 --
 -- VICTORY, tout le magasin (≈ 9 000 produits) : la base lit les 266 rayons du site victoryonline.co.il (?page=40 = tout le rayon),
---   20 rayons toutes les 5 minutes (le site ne supporte pas tout d'un coup) le dimanche et le mercredi entre 3 h et 7 h UTC :
+--   ATTENTION (22/11, 08 h) : 266 pages d'un coup puis 20 toutes les 3 min ont saturé la base (connexions et logins en délai
+--   dépassé pendant ~10 min). Désormais : 3 rayons toutes les 10 minutes, la nuit seulement (0 h–4 h UTC, tâche hop-victory-all-nuit) :
 --   victory_cats (rayons) → victory_all_fetch(20) → victory_all_import() → victory_all (id, nom hébreu, prix, photo, code-barres).
 --   vic_find(q, n) : même recherche que rl_find (synonymes FR/HE). Le catalogue de la boutique HOP! chez Victory ne change pas
 --   (promos seulement, toujours sous 150 Ko) : tout le magasin sert à la recherche et au comparateur.
