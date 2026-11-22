@@ -7394,3 +7394,51 @@ html.d3 .mo-stars { color: #E8A50C !important; background: #FFF6E0 !important; l
 /* Page magasin plus compacte (patron 22/11) : pas de barre d'étape vide en haut, texte « fermé » serré */
 html.d3 #orderForm.shop-mode.wiz-s1 #wizBar { display: none !important; }
 html.d3 #orderForm.shop-mode .sh-closed-go { font-size: 13.5px !important; line-height: 1.35 !important; margin: 6px 0 !important; text-align: start !important; font-weight: 600 !important; color: #5A6270 !important; }
+/* Tuile promo : les petits points en bas, loin du titre (patron 22/11) */
+html.d4 .d4-promo .d4-dots { top: auto !important; bottom: 6px !important; inset-inline-start: 0 !important; inset-inline-end: 0 !important; justify-content: center; }
+html.d4 .d4-dots i { width: 5px !important; height: 5px !important; }
+html.d4 .d4-dots i.on { width: 12px !important; }
+html.d4 .d4-promo .d4-sl small { padding-inline-end: 0 !important; }
+/* ===== Avis sur les commerces ===== */
+.rs { position: fixed; inset: 0; z-index: 3500; background: rgba(17,20,24,.45); display: flex; align-items: flex-end; justify-content: center; }
+.rs.hidden { display: none; }
+.rs-card { position: relative; width: 100%; max-width: 520px; background: #fff; border-radius: 26px 26px 0 0; padding: 22px 18px calc(18px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 12px; font-family: Heebo, sans-serif; color: #111418; animation: d4pop .35s cubic-bezier(.2,.9,.3,1.2) both; }
+.rs-x { all: unset; cursor: pointer; position: absolute; top: 12px; inset-inline-end: 14px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: #F2F3F5; font-size: 15px; }
+.rs-head { display: flex; align-items: center; gap: 12px; padding-inline-end: 40px; }
+.rs-head img { width: 48px; height: 48px; border-radius: 50%; object-fit: contain; background: #F2F3F5; }
+.rs-head b { font-size: 20px; font-weight: 800; line-height: 1.2; }
+.rs-stars { display: flex; justify-content: center; gap: 6px; direction: ltr; }
+.rs-stars button { all: unset; cursor: pointer; font-size: 42px; line-height: 1; color: #DADDE2; transition: transform .15s, color .15s; padding: 2px; }
+.rs-stars button.on { color: #F5A70B; }
+.rs-stars button:active { transform: scale(1.2); }
+.rs-lbl { text-align: center; font-weight: 700; font-size: 14px; color: #5A6270; min-height: 18px; }
+.rs-tags { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.rs-tags button { all: unset; cursor: pointer; padding: 9px 14px; border-radius: 99px; background: #F2F3F5; font-weight: 600; font-size: 14px; }
+.rs-tags button.on { background: #0F1F3D; color: #fff; }
+.rs-note { width: 100%; box-sizing: border-box; border: 0; background: #F2F3F5; border-radius: 14px; padding: 12px 14px; font: inherit; font-size: 15px; resize: none; }
+.rs-go { all: unset; box-sizing: border-box; cursor: pointer; text-align: center; background: #E8590C; color: #fff; font-weight: 800; font-size: 16px; padding: 14px; border-radius: 16px; }
+.rs-go:disabled { opacity: .4; cursor: default; }
+.rs-fine { margin: 0; text-align: center; font-size: 12px; color: #5A6270; }
+.rs-done { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 8px 0; }
+.rs-done img { height: 120px; }
+.rs-done b { font-size: 20px; }
+.rs-done small { color: #5A6270; font-size: 14px; }
+.rs-done .rs-go { width: 100%; margin-top: 8px; }
+.rate-ask { display: flex; align-items: center; gap: 10px; background: #fff; border-radius: 18px; padding: 12px 12px 12px 14px; margin: 10px 0 0; font-family: Heebo, sans-serif; border: 1px solid #E6E8EB; }
+html.d4 .rate-ask { border: 0; }
+html.d3 #homeSheet > #rateAsk { order: 4 !important; }
+.ra-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ra-t b { font-size: 15px; font-weight: 800; color: #111418; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ra-t small { font-size: 12.5px; color: #5A6270; }
+.ra-s { display: flex; direction: ltr; flex: none; }
+.ra-s button { all: unset; cursor: pointer; font-size: 24px; color: #F5A70B; padding: 0 1px; }
+.ra-x { all: unset; cursor: pointer; flex: none; width: 28px; height: 28px; display: grid; place-items: center; color: #8A919C; font-size: 13px; }
+html.d3 body .mini-order .btn.mo-rate { background: #FFF6E0 !important; color: #8A5A00 !important; -webkit-text-fill-color: #8A5A00 !important; border: 0 !important; border-radius: 14px !important; font-weight: 700 !important; }
+.d4-rt { margin-inline-start: 6px; font-size: 13px; font-weight: 700; color: #B7790B; white-space: nowrap; }
+.d4-rt i { font-style: normal; font-weight: 500; color: #8A919C; }
+.d4m-card { position: relative; }
+.d4-reco { position: absolute; top: 16px; inset-inline-end: 16px; z-index: 1; font-style: normal; background: #fff; color: #111418; font-weight: 800; font-size: 12px; padding: 5px 10px; border-radius: 99px; }
+.rs-sum { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.rs-sum span { background: #F2F3F5; border-radius: 99px; padding: 5px 10px; font-size: 13px; font-weight: 600; }
+.rs-sum i { font-style: normal; color: #5A6270; }
+.rs-vt { display: block; font-style: normal; font-size: 12.5px; font-weight: 600; color: #5A6270; }

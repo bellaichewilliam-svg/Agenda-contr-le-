@@ -2146,6 +2146,16 @@ async function rateShop(token, stars, note) {
   saveLocalOrders(all);
   return true;
 }
+// (22/11) avis avec points forts (« Très bon », « Arrivé chaud »…) ; sans la nouvelle fonction : l'ancienne note simple
+async function rateShopTags(token, stars, tags, note) {
+  if (ONLINE) {
+    try { return await rest("/rest/v1/rpc/rate_shop_tags", { method: "POST", body: { p_token: token, p_stars: stars, p_tags: tags || [], p_note: note || null } }); }
+    catch (e) { return rateShop(token, stars, note); }
+  }
+  const ok = await rateShop(token, stars, note);
+  if (ok) { const all = localOrders(), o = all.find(x => x.token === token); if (o) { o.shop_tags = tags || []; saveLocalOrders(all); } }
+  return ok;
+}
 async function shopReviews(code) {
   if (ONLINE) return rest("/rest/v1/rpc/shop_reviews", { method: "POST", body: { p_code: code } });
   const shop = localShops().find(x => x.code === code), list = shop ? localOrders().filter(o => o.shop_id === shop.id && o.shop_rating != null) : [];
@@ -3008,7 +3018,7 @@ window.Store = {
   useSpace, session, login, logout, resetPassword, setPassword, me, signupCourier, adoptLinkSession, completeCourier, sessionEmail,
   listOrders, updateOrder, assignOrder, assignAnswer, acceptOrder, acceptBundle, pairOk, onWay, kmBetween, answerEta, courierEtaSet, etaChoice, courierAction, courierGoodsTicket, courierGoodsRefund, courierIssue, zoneDemand, ping,
   setOnline, declineOrder, listDeclines, myAcceptance, demandForecast, commissionFor,
-  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, cartPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
+  todayHours, placesSearch, placesMap, knownPlaces, knownPlaceAdd, knownPlaceKind, knownPlaceDelete, couriersNearby, rateOrder, rateShop, rateShopTags, shopReviews, tipOrder, setPayment, clientPaid, payMissing, myRefunds, refundDone, refundAnswer, pushSubscribe, clientPushSubscribe, cartPushSubscribe, clientPhotoWanted, courierPaidHow, planExtend, listPlanSales, myPlanShares, settleTips, settlePlanShares,
   appPromos, adminPromos, adminApiKeys, adminApiOrders, adminApiKeyCreate, adminApiKeyUpdate, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
