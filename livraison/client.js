@@ -4598,7 +4598,7 @@ $("#catalogBox").addEventListener("input", e => {
 // cherché côté serveur. « Ajouter » met la ligne dans la commande (le livreur l'achète au magasin, prix ≈ indiqué).
 var RL_CODE = "HOPRAMILEVY", rlAllT = null, rlAllSeq = 0;
 // Boutiques dont on a tout le magasin (prix officiels) : la recherche cherche aussi « dans tout le magasin »
-const FULL_FIND = { HOPRAMILEVY: "rlFind", HOPLAHAV: "lahavFind", HOPVICTORY: "vicFind", HOPYOHANANOF: "yohananofFind", HOPOSHERAD: "osheradFind" };
+const FULL_FIND = { HOPRAMILEVY: "rlFind", HOPLAHAV: "lahavFind", HOPVICTORY: "vicFind", HOPYOHANANOF: "yohananofFind", HOPOSHERAD: "osheradFind", HOPTIVTAAM: "tivtaamFind" };
 function isRlShop() { return !!(state.shop && FULL_FIND[state.shop.code]); }
 const rlPh = c => `https://img.rami-levy.co.il/product/${encodeURIComponent(c)}/small.jpg`;
 const rlRow = (x, attr) => `<div class="cg-else-row rl-row"><span class="cr-pic"><img src="${UI.esc(x.ph || rlPh(x.c))}" alt="" loading="lazy" onerror="this.replaceWith(document.createTextNode('🛒'))" /></span>
@@ -6266,9 +6266,9 @@ function d4Tiles() {
 }
 // Ordre des magasins dans la tuile promo (le patron peut demander de le changer)
 // Nom court d'un magasin HOP! dans les deux langues (« Rami Lévy », « רמי לוי »)
-const D4_NAMES = { LAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPYOHANANOF: ["Yohananof", "יוחננוף"], HOPOSHERAD: ["Osher Ad", "אושר עד"], HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
+const D4_NAMES = { LAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPYOHANANOF: ["Yohananof", "יוחננוף"], HOPOSHERAD: ["Osher Ad", "אושר עד"], HOPTIVTAAM: ["Tiv Taam", "טיב טעם"], HOPROLADIN: ["Roladin", "רולדין"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"], HOPLALINE: ["Laline", "ללין"] };
 const d4Nm = x => (D4_NAMES[x.code] || [])[I18N.lang === "he" ? 1 : 0] || mgShort(x.name).replace(/^הופ!\u200E?\s*ב-?/, "").replace(/^(HOP!|הופ!)\u200E?\s+/, "").trim();
-const D4_PROMO_ORDER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPYOHANANOF", "HOPOSHERAD", "HOPVICTORY", "HOPLAHAV", "HOPBOOOM", "HOPPANZER"];
+const D4_PROMO_ORDER = ["HOPRAMILEVY", "HOPCARREFOUR", "HOPYOHANANOF", "HOPOSHERAD", "HOPVICTORY", "HOPLAHAV", "HOPTIVTAAM", "HOPBOOOM", "HOPPANZER"];
 function d4PromoSlides() {
   if (!pa.data) return [];
   const by = {};
@@ -8949,14 +8949,14 @@ function vitFindRender(q, products, shops, staple, box) {
     name: x.n, price: Number(x.p) || 0, photo: photo(x), code, shop: (sc(code).name) || shopName, kind: "epicerie" }));
   const rlList = full("rl", RL_CODE, "HOP! chez Rami Lévy", x => rlPh(x.c)).concat(full("vic", "HOPVICTORY", "HOP! chez Victory", x => x.ph || ""),
     full("lahav", "HOPLAHAV", "HOP! chez Mahsanei Lahav", x => x.ph || ""), full("yoh", "HOPYOHANANOF", "HOP! chez Yohananof", x => x.ph || ""),
-    full("osher", "HOPOSHERAD", "HOP! chez Osher Ad", x => x.ph || ""));
+    full("osher", "HOPOSHERAD", "HOP! chez Osher Ad", x => x.ph || ""), full("tt", "HOPTIVTAAM", "HOP! chez Tiv Taam", x => x.ph || ""));
   if (rlList.length) products = rlList.concat(products.filter(p => !rlList.some(r => r.code === p.code && phNorm(r.name) === phNorm(UI.bi(p.name)))));
   const groups = [];
   products.forEach(p => { let g = groups.find(x => x.code === p.code); if (!g) groups.push(g = { code: p.code, shop: p.shop, kind: p.kind, items: [] }); g.items.push(p); });
   const hopRank = c => { if (c === "LAHAV") return 60; const i = D4_PROMO_ORDER.indexOf(c); return i < 0 ? ((CONFIG.hopShops || []).includes(c) ? 50 : 99) : i; };
   groups.forEach(g => { g.items.forEach(p => { p._sc = scoreOf(p); }); g.items.sort((a, b) => b._sc - a._sc); g.best = g.items.length ? g.items[0]._sc : -99; });
   groups.sort((a, b) => ((b.best >= 25) - (a.best >= 25)) || (hopRank(a.code) - hopRank(b.code)) || (b.best - a.best));
-  if (rlKey.length >= 2 && !/restaurant|resto|cafe/i.test(q)) [["rl", Store.rlFind], ["vic", Store.vicFind], ["lahav", Store.lahavFind], ["yoh", Store.yohananofFind], ["osher", Store.osheradFind]].forEach(([src, fn]) => {
+  if (rlKey.length >= 2 && !/restaurant|resto|cafe/i.test(q)) [["rl", Store.rlFind], ["vic", Store.vicFind], ["lahav", Store.lahavFind], ["yoh", Store.yohananofFind], ["osher", Store.osheradFind], ["tt", Store.tivtaamFind]].forEach(([src, fn]) => {
     const key = src + ":" + rlKey;
     if (rlHomeCache.has(key) || !fn) return;
     rlHomeCache.set(key, []);
@@ -9610,10 +9610,10 @@ $("#homePromos") && $("#homePromos").addEventListener("click", async e => {
 // 2 cartes par ligne (vraie photo, −xx %, « 3 pour 9 ₪ », jusqu'au…), « + » ajoute au panier de ce magasin (gardé),
 // un toucher sur la carte ouvre le magasin et la fiche du produit. Données : Store.promosAll() (promos_all, léger).
 const PA_PH = { r: "https://img.rami-levy.co.il/product/", c: "https://d226b0iufwcjmj.cloudfront.net/gs1-products/1540/medium/", b: "https://booomisrael.co.il/uploads/", v: "https://dlv1nnscfbvda.cloudfront.net/" };
-const PA_COLOR = { HOPYOHANANOF: "#C8102E", HOPOSHERAD: "#F2A900", HOPLAHAV: "#0B6E4F", HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C", HOPVICTORY: "#1F9D55" };
+const PA_COLOR = { HOPTIVTAAM: "#6D2077", HOPYOHANANOF: "#C8102E", HOPOSHERAD: "#F2A900", HOPLAHAV: "#0B6E4F", HOPRAMILEVY: "#E30613", HOPCARREFOUR: "#1F4FA3", HOPBOOOM: "#FFD200", HOPPANZER: "#7A2E1C", HOPVICTORY: "#1F9D55" };
 const pa = { data: null, shop: "", cat: -1, q: "" };
 const paPh = v => { const m = /^([rcbv]):(.*)$/.exec(v || ""); const u = m ? PA_PH[m[1]] + m[2] : v; return UI.extPic(u) ? u : ""; };
-const PA_NAMES = { HOPYOHANANOF: ["Yohananof", "יוחננוף"], HOPOSHERAD: ["Osher Ad", "אושר עד"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"] };
+const PA_NAMES = { HOPTIVTAAM: ["Tiv Taam", "טיב טעם"], HOPYOHANANOF: ["Yohananof", "יוחננוף"], HOPOSHERAD: ["Osher Ad", "אושר עד"], HOPLAHAV: ["Mahsanei Lahav", "מחסני להב"], HOPRAMILEVY: ["Rami Lévy", "רמי לוי"], HOPCARREFOUR: ["Carrefour", "קרפור"], HOPBOOOM: ["BOOOM", "BOOOM"], HOPPANZER: ["Panzer", "פנצר"], HOPVICTORY: ["Victory", "ויקטורי"] };
 const paShopName = code => { const sc = (state.showcase || []).find(x => x.code === code); return sc ? mgShort(sc.name) : (PA_NAMES[code] || [code.replace(/^HOP/, "")])[I18N.lang === "he" ? 1 : 0] || code; };
 function paItems() {
   const d = pa.data; if (!d) return [];
