@@ -6977,10 +6977,10 @@ const d3Name = n => (D3 ? String(n || "").replace(/^HOP!\s+(chez\s+|ב)?/, "").r
 function shopCard(s) {
   const cover = UI.safeImg(s.cover), logo = UI.safeImg(s.logo), fav = favs().includes(s.code), st = shopState(s);
   const initials = String(UI.bi(s.name) || "?").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
-  return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="button" tabindex="0">
+  return `<div class="sc-card pk-${UI.esc(s.kind || "autre")}" data-pro="${UI.esc(s.code)}" role="group" tabindex="0" aria-label="${UI.esc(d3Name(UI.bi(s.name)))}">
     <span class="sc-cover${!cover && logo ? " auto" : ""}"${cover ? ` style="background-image:url(${cover})"` : !cover && logo ? ` style="--logo:url(${logo})"` : ""}>${cover || logo ? "" : `<i>${UI.KIND_ICON[s.kind] || "🏪"}</i>`}
       ${st && !st.open ? `<em class="sc-closed"><span><b>🌙 ${UI.esc(t("scClosedShort"))}</b>${(lb => lb ? `<small>${UI.esc(lb)}</small>` : "")(openLabel(st).replace(/^[^·]*·\s*/, "").replace(/^(Fermé|סגור)$/, ""))}</span></em>` : ""}${isKosher(s) ? kosherTag("k-on-cover") : ""}${s.kind && s.kind !== "autre" && (t("shKinds") || {})[s.kind] ? `<em class="sc-kind">${UI.esc(t("shKinds")[s.kind])}</em>` : ""}</span>
-    <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="♥">${fav ? "♥" : "♡"}</button>
+    <button type="button" class="sc-fav${fav ? " on" : ""}" data-fav="${UI.esc(s.code)}" aria-label="${UI.esc(t("a11yFav"))}" aria-pressed="${fav}">${fav ? "♥" : "♡"}</button>
     <span class="sc-logo">${logo ? `<img src="${logo}" alt="" />` : UI.esc(initials)}</span>
     <span class="sc-body"><b>${UI.esc(d3Name(UI.bi(s.name)))}</b>
       ${s.paused ? `<small class="sc-meta sc-paused">⏸️ ${UI.esc(t("scPaused"))}</small>` : ""}
@@ -9865,6 +9865,16 @@ UI.markClientApp();
 })();
 // Téléphone du patron : mode patron sur la page client (crayon ✏️ sur chaque produit)
 Store.amBoss().then(b => { if (!b) return; state.boss = true; if (state.shop) { renderCatalog(); bossMapLoad(state.shop.code); } if (rayonOn()) renderPharma(); }).catch(() => {});
+// Accessibilité (22/11) : noms lus par les lecteurs d'écran (bouton « Nous écrire », champs de recherche)
+function a11yNames() {
+  const fab = $("#waFab"); if (fab) fab.setAttribute("aria-label", t("chatFab"));
+  const hf = $("#homeFind"); if (hf && !hf.getAttribute("aria-label")) hf.setAttribute("aria-label", t("a11ySearch"));
+  document.querySelectorAll("[data-cg-q]").forEach(i => i.setAttribute("aria-label", t("a11ySearch")));
+}
+a11yNames();
+window.addEventListener("hop:lang", a11yNames);
+new MutationObserver(() => { const q = document.querySelector("[data-cg-q]:not([aria-label])"); if (q) q.setAttribute("aria-label", t("a11ySearch")); })
+  .observe(document.getElementById("catalogBox") || document.body, { childList: true, subtree: true });
 // L'application a démarré : plus de bandeau « recharger » pour les erreurs suivantes
 window.hopReady = true;
 

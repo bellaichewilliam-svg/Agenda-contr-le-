@@ -7110,3 +7110,15 @@ html.d3 .gc .gc-opt:not(.on) { padding-block: 12px; }
 /* Produit sans photo : dessin 3D du produit sur fond gris très clair, comme une photo (22/11) */
 .item-art.qc-art, html.d3 .item-art.qc-art { background: #F6F7F8 !important; }
 .item-art.qc-art img { width: 62% !important; height: 62% !important; object-fit: contain !important; }
+/* ===== Accessibilité (audit WCAG 2.1 AA du 22/11) ===== */
+/* Textes gris lisibles (contraste ≥ 4,5:1) : plus de transparence sur les petits textes */
+html.d3 .app-share small, html.d3 .wa-list small { opacity: 1 !important; color: #5A6270 !important; }
+/* « Ouvert » : vert foncé lisible (le vert clair faisait 2,6:1) */
+.sh-dot.on, html.d3 .sh-dot.on { color: #067647 !important; }
+/* Choix sélectionné (jour, heure) et « Changer » : bleu nuit (le blanc sur orange vif faisait 2,9:1) */
+.slot-pick .sl-chip.on, html.d3 .slot-pick .sl-chip.on { background: #0F1F3D !important; border-color: #0F1F3D !important; color: #fff !important; }
+.shop-hero .sh-sched .sh-sched-go, html.d3 body.shop-compact #shopHero .sh-sched .sh-sched-go { background: #0F1F3D !important; color: #fff !important; }
+/* Zones de toucher : 40 px de haut au moins pour les petites pastilles */
+.vit-try button, .vit-try [data-vit-try], html.d3 .d3-kall { min-height: 40px; }
+/* Contour visible au clavier (sans gêner le doigt) */
+:where(button, a, input, select, textarea, [role="button"], [tabindex]):focus-visible { outline: 3px solid #0F1F3D !important; outline-offset: 2px !important; }
