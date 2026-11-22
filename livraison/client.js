@@ -1986,6 +1986,7 @@ function wizLabels() {
   $("#wizTitle").textContent = n === wiz.n && ckOn() ? t("mcTitle") : t("wizT" + n);
   try { viewTitle(); } catch (e) { /* titre */ }
   $("#wizBack").classList.toggle("off", n === 1);
+  form.classList.toggle("wiz-s1", n === 1);   // (patron 22/11) page magasin : pas de barre « Étape 1 sur 2 » vide en haut
   form.querySelectorAll(".wiz-seg i").forEach((i, k) => i.classList.toggle("on", k < n));
   const more = form.classList.contains("wiz-more");
   form.querySelectorAll("[data-wiz-more] b").forEach(b => { b.textContent = t(more ? "wizLess" : "wizMore"); });
@@ -4456,7 +4457,7 @@ function renderCatalog() {
       : `<p class="cg-pay">${UI.esc(t("cgPayShop", { name: UI.bi(state.shop.name) }))}</p>`}
     ${n && hopBuyOn() ? hopMeter(n) : ""}
     ${n ? `<button type="button" class="cg-cart" data-cg-go><span class="cg-cart-n">${n}</span><b>${UI.esc(t("cgSee"))}</b><span>${UI.esc(money(cartTotal()))}</span></button>`
-      : `<p class="cg-empty">${UI.esc(t("cgEmpty"))}</p>`}`;
+      : ""}`;   // (patron 22/11) plus de « Touchez + pour ajouter un article » : on gagne de la place
   // Redessiné seulement si quelque chose a changé (un toucher n'est jamais perdu)
   if (box.dataset.html !== html) { box.querySelector(".cg-body").innerHTML = html; box.dataset.html = html; }
   if (isRlShop()) { const rl = box.querySelector(".cg-rl"); if (!rl || rl.dataset.q !== String(state.cgQ || "").trim()) { clearTimeout(rlAllT); rlAllT = setTimeout(rlAllFill, 200); } }
