@@ -7386,3 +7386,8 @@ html.d4 #homeKinds#homeKinds { margin-left: 0 !important; margin-right: 0 !impor
 /* Bouton « Partager sur WhatsApp » du parrainage : texte blanc lisible (il était noir sur noir) */
 html.d3 body #clubCards .card a.btn.btn-wa, html.d3 body .card.club a.btn.btn-wa { color: #fff !important; -webkit-text-fill-color: #fff !important; display: inline-flex !important; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px !important; border-radius: 14px !important; font-weight: 700 !important; font-size: 15px !important; text-decoration: none !important; }
 .d4m-mako .d4m-ph { height: 80px !important; } .d4m-mako .d4m-ph img { height: 74px !important; }
+/* Mes courses : « Recommander pareil » + « Service client » discret sur une commande livrée */
+.mo-again { display: inline-flex !important; align-items: center; gap: 6px; }
+html.d3 body .mini-order .btn.mo-help { background: #F2F3F5 !important; color: #111418 !important; -webkit-text-fill-color: #111418 !important; border: 0 !important; border-radius: 14px !important; font-weight: 600 !important; }
+html.d3 body .mini-order .btn.mo-again { background: #E8590C !important; color: #fff !important; -webkit-text-fill-color: #fff !important; border: 0 !important; border-radius: 14px !important; font-weight: 700 !important; }
+html.d3 .mo-stars { color: #E8A50C !important; background: #FFF6E0 !important; letter-spacing: 1px; font-size: 13px !important; }

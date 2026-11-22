@@ -3836,9 +3836,10 @@ function renderMine() {
         <div class="mo-actions">
           ${["nouvelle", "confirmee", "recuperee"].includes(o.status) ? `<a class="btn btn-sm btn-primary" href="${UI.trackUrl(o)}">${t("track")}</a>` : ""}
           ${o.status === "livree" && o.rating == null && Date.now() - new Date(o.pickup_at) < 7 * 86400000 ? `<a class="btn btn-sm btn-primary" href="${UI.trackUrl(o)}">${UI.esc(t("rtCta"))}</a>` : ""}
-          ${o.rating != null ? `<span class="pill paid">${"⭐".repeat(o.rating)}</span>` : ""}
+          ${o.rating != null ? `<span class="pill paid mo-stars" aria-label="${UI.esc(String(o.rating))}/5">${"★".repeat(o.rating)}</span>` : ""}
           ${UI.receiptNo(o) ? `<a class="btn btn-sm" href="${UI.receiptUrl(o)}">${t("receiptLink")}</a>` : ""}
-          <button type="button" class="btn btn-sm btn-wa" data-chat="${UI.esc(o.token)}">${UI.esc(t("chOpen"))}${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>
+          ${o.status === "livree" && againIdx(o) >= 0 ? `<button type="button" class="btn btn-sm btn-primary mo-again" data-mine-again="${UI.esc(String(o.id))}"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15.5-6.3L21 8M21 3v5h-5M21 12a9 9 0 0 1-15.5 6.3L3 16M3 21v-5h5"/></svg>${UI.esc(t("moAgain"))}</button>` : ""}
+          <button type="button" class="btn btn-sm${live(o) || chatUnread["o:" + o.id] ? " btn-wa" : " mo-help"}" data-chat="${UI.esc(o.token)}">${UI.esc(t(live(o) ? "chOpen" : "moHelp"))}${chatUnread["o:" + o.id] ? ` <span class="chat-badge">${chatUnread["o:" + o.id]}</span>` : ""}</button>
           ${o.status === "nouvelle" ? `<button class="btn btn-sm btn-link" data-cancel="${UI.esc(o.token)}">${t("cancel")}</button>` : ""}
         </div>
       </div>
@@ -3850,6 +3851,24 @@ function renderMine() {
     ], "sw-order")).join("") + `<p class="sw-hint">${UI.esc(t("swHintOrder"))}</p>`;
 }
 
+// Commande livrée (patron 22/11) : « Recommander pareil » à la place de « Écrire au livreur » (plus de livreur après la livraison)
+const againGroups = () => reorderList();
+function againIdx(o, list) {
+  const l = list || againGroups();
+  let i = l.findIndex(g => g.o.id === o.id || (g.ids || []).includes(o.id));
+  if (i < 0 && o.shop_name) i = l.findIndex(g => g.o.shop_name === o.shop_name && g.o.service === o.service);
+  return i;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-mine-again]"); if (!b) return;
+  e.preventDefault();
+  const o = (state.mine || []).find(x => String(x.id) === b.dataset.mineAgain); if (!o) return;
+  const l = againGroups(), i = againIdx(o, l); if (i < 0) return;
+  UI.track("mine_again", { ref: o.ref });
+  state.reorder = l;
+  if ((document.body.dataset.view || "home") !== "home") setView("home", true);
+  setTimeout(() => reorderGo(i), 60);
+});
 // --- Messagerie : la course (livreur + service client) ou le service client -----------------
 let chatUnread = {};
 let chatTotal = 0;
@@ -6532,8 +6551,8 @@ function reorderList() {
     if (ray) o._ray = ray;
     const key = ray ? "r|" + ray.r.id + "|" + ray.picks.map(x => x.k + ":" + x.q).sort().join(",") : items.length && o.shop_name ? "s|" + o.shop_name + "|" + items.map(i => i.id + ":" + i.qty).sort().join(",")
       : "t|" + o.service + "|" + Number(o.pickup_lat).toFixed(4) + "," + Number(o.pickup_lon).toFixed(4) + "|" + Number(o.dropoff_lat).toFixed(4) + "," + Number(o.dropoff_lon).toFixed(4);
-    const g = groups[key] = groups[key] || { key, n: 0, o, items };
-    g.n++;
+    const g = groups[key] = groups[key] || { key, n: 0, o, items, ids: [] };
+    g.n++; g.ids.push(o.id);
     if (new Date(o.created_at || o.pickup_at) > new Date(g.o.created_at || g.o.pickup_at)) g.o = o;
   });
   const last = Object.values(groups).sort((a, b) => new Date(b.o.created_at || b.o.pickup_at) - new Date(a.o.created_at || a.o.pickup_at))[0];
