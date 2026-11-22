@@ -139,3 +139,8 @@ FR + HE partout · jamais « partenaire » côté client · aucun concurrent cit
 - Réponse du patron : prix Roladin (1/2/3) ; passer `boss_only` à faux pour que les livreurs reçoivent les courses (« oui, change le réglage »).
 - Déploiement `hop-push` (notifications « course donnée / annulée / pas remboursé ») : attend l'accord du patron.
 - Design d3 pour les applis livreur et patron ; vignettes photo des catégories (3 par ligne) ; back-office produits ; regroupement intelligent des commandes ; assistance livreur / client ; emballage Android (stores).
+
+### 22/11 (soir) : Universe et Shufersal Deal
+- Boutiques `HOPUNIVERSE` (Universe, המלאכה 32, magasin 129) et `HOPSHUFERSAL` (Shufersal Deal, האורזים 2, magasin 396) : 300 promos chacune + tout le magasin (`chain_items`, ~8 000 produits), même méthode que Yohananof / Tiv Taam.
+- Robot : `--source shufersal` (site prices.shufersal.co.il, fichiers sur blob Azure, lisible seulement depuis GitHub). Les promos Shufersal ont le même format que les autres (Groups > PromotionItem) ; promos à plusieurs groupes écartées. Le robot affiche « promos écartées : {raison: nombre} ».
+- Encore cachées (en_attente) jusqu'à la mise en ligne du 23/11 au matin.
