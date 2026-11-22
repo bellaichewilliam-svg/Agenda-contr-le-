@@ -2579,6 +2579,21 @@ function monthOrders() {
   return orders.filter(o => o.status === "livree" && !o.is_test && UI.dayKey(o.pickup_at).startsWith(billMonth));
 }
 
+// Mois proposés (22/11) : du mois de la première course livrée à ce mois-ci, le plus récent en haut
+function billMonths() {
+  const now = new Date().toISOString().slice(0, 7);
+  const first = orders.filter(o => o.status === "livree" && !o.is_test).map(o => UI.dayKey(o.pickup_at).slice(0, 7)).sort()[0] || now;
+  const out = [];
+  for (let [y, m] = now.split("-").map(Number); out.length < 60; m--) {
+    if (m < 1) { m = 12; y--; }
+    const k = `${y}-${String(m).padStart(2, "0")}`;
+    out.push(k);
+    if (k <= first) break;
+  }
+  if (!out.includes(billMonth)) out.push(billMonth);
+  return out;
+}
+
 function renderBilling(view) {
   const list = monthOrders();
   const byClient = {};
@@ -2592,7 +2607,7 @@ function renderBilling(view) {
   const bit = sum(list.filter(o => o.payment_method === "bit")), cash = sum(list.filter(o => o.payment_method === "cash"));
   const r = monthRecap();
   view.innerHTML = `<div class="toolbar">
-      <label class="small muted">Mois <input type="month" id="billMonth" value="${billMonth}" /></label>
+      <label class="small muted">Mois <select id="billMonth">${billMonths().map(m => `<option value="${m}" ${m === billMonth ? "selected" : ""}>${UI.esc(monthName(m))}</option>`).join("")}</select></label>
       <span class="small muted">💵 Espèces ${UI.money(cash)} · 📱 Bit ${UI.money(bit)} (toutes courses, livreurs compris)</span>
     </div>
     <div class="card compta-box">
@@ -2662,9 +2677,47 @@ function exportCsv() {
     ["Commission HOP! (₪)", o => isMine(o) ? 0 : Number(o.commission || 0)], ["Part HOP! Pro (₪)", o => isMine(o) ? 0 : Number(o.hop_share || 0)],
     ["Gagné par HOP! (₪)", o => hopOf(o)], ["Code promo", o => o.promo_code || ""]
   ];
-  const cell = v => `"${String(v == null ? "" : v).replace(/"/g, '""')}"`;
-  const lines = [cols.map(c => cell(c[0])).join(";")].concat(monthOrders().sort(byTime).map(o => cols.map(c => cell(c[1](o))).join(";")));
-  download(`HOP-courses-${billMonth}.csv`, "﻿" + lines.join("\r\n"), "text/csv;charset=utf-8");
+  // (22/11) Vrai fichier Excel (.xlsx) : accents et hébreu lisibles partout (Google Sheets sur téléphone compris),
+  // téléphones gardés en texte (le 0 du début ne disparaît plus), montants en vrais nombres.
+  const rows = [cols.map(c => c[0])].concat(monthOrders().sort(byTime).map(o => cols.map(c => c[1](o))));
+  download(`HOP-courses-${billMonth}.xlsx`, xlsxFile(rows, "Courses " + billMonth), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+}
+// Petit fichier .xlsx sans bibliothèque : une feuille, textes en ligne, zip sans compression
+function xlsxFile(rows, sheet) {
+  const x = v => String(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+  const col = i => { let t = ""; for (i++; i; i = Math.floor((i - 1) / 26)) t = String.fromCharCode(65 + (i - 1) % 26) + t; return t; };
+  const cellXml = (v, r, c) => {
+    const ref = col(c) + (r + 1), st = r === 0 ? ' s="1"' : "";
+    if (typeof v === "number" && isFinite(v)) return `<c r="${ref}"${st}><v>${v}</v></c>`;
+    if (v == null || v === "") return "";
+    return `<c r="${ref}" t="inlineStr"${st}><is><t xml:space="preserve">${x(v)}</t></is></c>`;
+  };
+  const widths = rows[0].map((_, c) => Math.min(40, Math.max(8, ...rows.map(r => String(r[c] == null ? "" : r[c]).length + 2))));
+  const files = {
+    "[Content_Types].xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`,
+    "_rels/.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`,
+    "xl/workbook.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${x(sheet).slice(0, 31)}" sheetId="1" r:id="rId1"/></sheets></workbook>`,
+    "xl/_rels/workbook.xml.rels": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`,
+    "xl/styles.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="2"><font><sz val="11"/><name val="Arial"/></font><font><b/><sz val="11"/><name val="Arial"/></font></fonts><fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills><borders count="1"><border/></borders><cellStyleXfs count="1"><xf/></cellStyleXfs><cellXfs count="2"><xf fontId="0"/><xf fontId="1" applyFont="1"/></cellXfs></styleSheet>`,
+    "xl/worksheets/sheet1.xml": `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><cols>${widths.map((w, i) => `<col min="${i + 1}" max="${i + 1}" width="${w}" customWidth="1"/>`).join("")}</cols><sheetData>${rows.map((r, i) => `<row r="${i + 1}">${r.map((v, c) => cellXml(v, i, c)).join("")}</row>`).join("")}</sheetData></worksheet>`
+  };
+  return zipStore(files);
+}
+function zipStore(files) {
+  const enc = new TextEncoder(), crcT = zipStore.t || (zipStore.t = Array.from({ length: 256 }, (_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; return c >>> 0; }));
+  const crc = b => { let c = 0xFFFFFFFF; for (let i = 0; i < b.length; i++) c = crcT[(c ^ b[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const parts = [], central = []; let off = 0;
+  const hdr = (n, f) => { const b = new DataView(new ArrayBuffer(n)); f(b); return new Uint8Array(b.buffer); };
+  for (const [name, text] of Object.entries(files)) {
+    const nm = enc.encode(name), data = enc.encode(text), c = crc(data), size = data.length;
+    const loc = hdr(30, d => { d.setUint32(0, 0x04034b50, true); d.setUint16(4, 20, true); d.setUint16(6, 0x0800, true); d.setUint32(14, c, true); d.setUint32(18, size, true); d.setUint32(22, size, true); d.setUint16(26, nm.length, true); });
+    parts.push(loc, nm, data);
+    central.push(hdr(46, d => { d.setUint32(0, 0x02014b50, true); d.setUint16(4, 20, true); d.setUint16(6, 20, true); d.setUint16(8, 0x0800, true); d.setUint32(16, c, true); d.setUint32(20, size, true); d.setUint32(24, size, true); d.setUint16(28, nm.length, true); d.setUint32(42, off, true); }), nm);
+    off += 30 + nm.length + size;
+  }
+  const cLen = central.reduce((a, b) => a + b.length, 0), n = Object.keys(files).length;
+  const end = hdr(22, d => { d.setUint32(0, 0x06054b50, true); d.setUint16(8, n, true); d.setUint16(10, n, true); d.setUint32(12, cLen, true); d.setUint32(16, off, true); });
+  return new Blob([...parts, ...central, end], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 function exportRecap() {
   const r = monthRecap(), m = UI.money, esc = UI.esc;
@@ -2689,7 +2742,7 @@ ${nmDisc ? row("− réductions payées par HOP! (sur les courses des livreurs)"
 ${r.plansL.length ? `<h2>Abonnements HOP! Pro</h2><table><tr><th>Date</th><th>Commerce</th><th class="n">Montant</th></tr>${r.plansL.map(p => `<tr><td>${esc(new Date(p.created_at).toLocaleDateString("fr-FR"))}</td><td>${esc(shopName(p.shop_id))}</td><td class="n">${m(p.amount)}</td></tr>`).join("")}</table>` : ""}
 <h2>Détail des courses</h2><table class="det"><tr><th>Date</th><th>N°</th><th>Client</th><th>Livreur</th><th>Paiement</th><th class="n">Prix</th><th class="n">HOP!</th></tr>
 ${r.list.slice().sort(byTime).map(o => `<tr><td>${esc(short(o.pickup_at))}</td><td>${esc(o.ref || "")}</td><td>${esc(o.company || o.contact_name || "")}</td><td>${esc(isMine(o) ? "Patron" : courierName(o.courier_id))}</td><td>${esc(pay(o))}</td><td class="n">${m(o.price)}</td><td class="n">${m(hopOf(o))}</td></tr>`).join("")}</table>
-<p><small>Montants en shekels (₪), tels que payés par les clients. Le détail complet est dans le fichier Excel « HOP-courses-${esc(billMonth)}.csv ».</small></p>
+<p><small>Montants en shekels (₪), tels que payés par les clients. Le détail complet est dans le fichier Excel « HOP-courses-${esc(billMonth)}.xlsx ».</small></p>
 <p class="noprint"><button onclick="print()" style="font-size:16px;padding:10px 18px">🖨️ Imprimer / Enregistrer en PDF</button></p>
 <script>setTimeout(function(){print()},500)<\/script></body></html>`;
   const w = window.open("", "_blank");
