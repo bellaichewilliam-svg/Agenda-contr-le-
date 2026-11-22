@@ -6201,19 +6201,30 @@ document.addEventListener("touchend", e => {
 }, { passive: true });
 // ===== Écran « Magasins » (onglet du bas, design d4) : chercher un magasin, carte bleu ciel « On y va pour vous », la liste =====
 const d4m = { q: "", f: "" };
-const D4M_F = { courses: ["epicerie", "boutique", "autre"], resto: ["restaurant", "traiteur"], pharm: ["pharmacie"] };
+function d4mPass(x, f) {
+  if (!f) return true;
+  if (f === "hop") return isHopShop(x) || /^HOP/.test(String(x.code || ""));
+  if (f === "open") { const st = shopState(x); return !st || st.open; }
+  if (f === "kosher") return isKosher(x) && (x.kind === "restaurant" || x.kind === "traiteur");
+  return x.kind === f.slice(2);
+}
 function d4MagIsOpen() { const b = $("#d4Mag"); return !!b && !b.classList.contains("hidden"); }
 function d4MagRender() {
   const box = $("#d4Mag"); if (!box) return;
   const words = hvFold(d4m.q).split(/\s+/).filter(Boolean);
   const promoN = {}; if (pa.data) paItems().forEach(x => { promoN[x.code] = (promoN[x.code] || 0) + 1; });
   const list = (state.showcase || []).filter(x => !x.paused)
-    .filter(x => !d4m.f || (d4m.f === "courses" ? isHopShop(x) || D4M_F.courses.includes(x.kind) : D4M_F[d4m.f].includes(x.kind)))
+    .filter(x => d4mPass(x, d4m.f))
     .filter(x => !words.length || (h => words.every(w => h.includes(w)))(hvFold(x.name + " " + (x.name_he || ""))))
     .map(x => ({ x, st: shopState(x) }))
     .sort((a, b) => (isHopShop(b.x) - isHopShop(a.x)) || ((b.st ? b.st.open : 1) - (a.st ? a.st.open : 1)));
-  box.querySelector(".d4m-chips").innerHTML = [["", "d4mAll"], ["courses", "d4mCourses"], ["resto", "d4mResto"], ["pharm", "d4mPharm"]]
-    .map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${UI.esc(t(l))}</button>`).join("");
+  // Filtres faits à partir des vrais commerces (patron 22/11 : jamais de filtre vide, aucun métier oublié)
+  const pool = (state.showcase || []).filter(x => !x.paused);
+  const kinds = [...new Set(pool.map(x => x.kind).filter(Boolean))].sort((a, b) => pool.filter(x => x.kind === b).length - pool.filter(x => x.kind === a).length);
+  const fl = [["", t("d4mAll")], ["hop", t("d4mHop")], ["open", t("d4mOpenF")]].concat(kinds.flatMap(k => [["k:" + k, ((t("shKinds") || {})[k] || k).replace(/^\P{L}+/u, "")]].concat(k === "restaurant" ? [["kosher", t("scKosherR")]] : [])), kinds.includes("restaurant") ? [] : [["kosher", t("scKosherR")]])
+    .filter(([k]) => !k || pool.some(x => d4mPass(x, k)));
+  if (!fl.some(([k]) => k === d4m.f)) d4m.f = "";
+  box.querySelector(".d4m-chips").innerHTML = fl.map(([k, l]) => `<button type="button" class="${d4m.f === k ? "on" : ""}" data-d4m-f="${k}">${escHop(l)}</button>`).join("");
   box.querySelector(".d4m-list").innerHTML = list.length ? list.map(({ x, st }) => {
     // (patron 22/11) : grandes cartes photo, deux par ligne, logo sur la photo, statut court
     const cover = UI.safeImg(x.cover), logo = UI.safeImg(x.logo), open = !x.paused && (!st || st.open);
