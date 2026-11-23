@@ -7261,6 +7261,9 @@ if (D3) (() => {
   mic.type = "button"; mic.className = "d3-mic";
   const micLbl = () => { mic.innerHTML = `<i><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></i><span>${UI.esc(t("d3Talk"))}</span>`; mic.setAttribute("aria-label", t("d3Talk")); };
   micLbl(); window.addEventListener("hop:lang", micLbl);
+  // (23/11, patron : « j'ai pas l'hébreu dans la barre du bas ») : les 4 onglets changent aussi de langue
+  const NAV_L = { home: "d3Home", shops: "d4NavShops", course: "d3Course", orders: "d3Orders", me: "d3Me" };
+  window.addEventListener("hop:lang", () => nav.querySelectorAll("[data-d3nav]").forEach(b => { const s = b.querySelector("span"); if (s) s.textContent = t(NAV_L[b.dataset.d3nav]); }));
   mic.addEventListener("click", e => { e.stopPropagation(); UI.track("voice_nav"); hvOpenTalk(); });
   nav.children[1].after(mic);
   document.body.appendChild(nav);
@@ -9615,10 +9618,16 @@ function promoTick() {
   const box = $("#homePromos"), row = box && box.querySelector(".pz-row");
   if (!row || !promo.seen || document.hidden || Date.now() < promo.hold || box.offsetParent === null) { if (box) box.classList.toggle("pz-hold", Date.now() < promo.hold); return; }
   if (hpAtEnd(row)) { row.scrollTo({ left: 0, behavior: "smooth" }); return; }
-  const cards = row.children, i = promoIndex(row) + 1, c = cards[i];
+  const cards = row.children, cur = promoIndex(row), i = cur + 1, c = cards[i];
   if (!c) { row.scrollTo({ left: 0, behavior: "smooth" }); return; }
+  // (23/11, patron : « ça tourne pas seul ») : sur Android, le calage des cartes annulait le petit défilement ;
+  // on vise la carte suivante elle-même, et si au tour d'avant rien n'a bougé, on y va sans animation
+  const stuck = promo.lastI === cur && promo.lastAt && Date.now() - promo.lastAt < HP_MS * 2.5;
+  promo.lastI = cur; promo.lastAt = Date.now();
   const r = row.getBoundingClientRect(), b = c.getBoundingClientRect();
-  row.scrollBy({ left: I18N.lang === "he" ? b.right - r.right : b.left - r.left, behavior: "smooth" });
+  const target = row.scrollLeft + (I18N.lang === "he" ? b.right - r.right + 16 : b.left - r.left - 16);
+  if (stuck) { row.style.scrollSnapType = "none"; row.scrollLeft = target; requestAnimationFrame(() => { row.style.scrollSnapType = ""; }); return; }
+  row.scrollTo({ left: target, behavior: "smooth" });
 }
 async function loadPromos() {
   if (!pa.data) { const c = Store.promosAllCached && Store.promosAllCached(); if (c && Array.isArray(c.items)) pa.data = c; }
