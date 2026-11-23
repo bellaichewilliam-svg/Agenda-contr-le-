@@ -144,3 +144,13 @@ FR + HE partout · jamais « partenaire » côté client · aucun concurrent cit
 - Boutiques `HOPUNIVERSE` (Universe, המלאכה 32, magasin 129) et `HOPSHUFERSAL` (Shufersal Deal, האורזים 2, magasin 396) : 300 promos chacune + tout le magasin (`chain_items`, ~8 000 produits), même méthode que Yohananof / Tiv Taam.
 - Robot : `--source shufersal` (site prices.shufersal.co.il, fichiers sur blob Azure, lisible seulement depuis GitHub). Les promos Shufersal ont le même format que les autres (Groups > PromotionItem) ; promos à plusieurs groupes écartées. Le robot affiche « promos écartées : {raison: nombre} ».
 - Encore cachées (en_attente) jusqu'à la mise en ligne du 23/11 au matin.
+
+### 23/11 (après-midi) : commandes plus faciles, appli plus légère
+- Mise en ligne : `build-min.sh` (lancé par Vercel, `vercel.json` → buildCommand) retire commentaires et espaces des .js/.css (aucun nom changé) : 661 → 503 Ko téléchargés. Les fichiers du dépôt restent lisibles.
+- JS/CSS versionnés (`?v=`) gardés un an par le téléphone (en-tête Cache-Control dans `vercel.json`).
+- Carte (Leaflet) chargée en arrière-plan (`window.hopMapReady`).
+- Panier : lignes jamais écrasées (liste en colonne qui défile), poubelle dessinée, supplément par article (6 compris, puis 2 ₪) affiché dans la livraison.
+- Adresse : position remplie toute seule si déjà autorisée sur le téléphone ; bouton « Ma position » bien en vue.
+- Boutiques de courses : cartes comme « HOP! à vos promos » (`cg-pa`, `cgPaPrice`).
+- Comparateur : `price_compare`, `list_compare`, `bc_prices`, produits de base `hop_staples` (lait, œufs, pain…).
+- Statistiques : la base ne garde que 10 sortes d'événements (`site_track`) ; l'élargir attend l'accord du patron.
