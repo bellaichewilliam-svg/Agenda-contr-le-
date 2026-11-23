@@ -1,0 +1,11 @@
+HOP! — « On fait vos courses pour vous » · film explicatif (style Tabletop App Flythrough de la bibliothèque Lemo-Opuscar)
+
+Code : écrit pour ce film à partir de la démo du style (bibliothèque Lemo-Opuscar, MIT, LemoLab) ; three.js (MIT).
+Le film appartient à HOP! (usage commercial compris). La documentation de la bibliothèque n'est pas revendue ni intégrée.
+
+Polices (SIL Open Font License 1.1, licences dans fonts/) : Heebo, IBM Plex Mono Medium et SemiBold.
+Voix off FR : Kokoro (synthèse hors ligne, licence Apache 2.0), voix ff_siwis.
+Musique : échantillons CC0 1.0 (VS Chamber Orchestra: Community Edition et Versilian Community Sample Library, Versilian Studios) ;
+  kick et bruitages synthétisés dans le code (audio/compose.py, audio/foley.py).
+Image : Hoppy = image officielle HOP! (hoppy.png, jamais redessinée). Cartes, sac en pixels, scooter, accessoires : dessinés dans le code.
+Prix et magasins à l'écran : illustratifs (comparaison d'exemple, pas des prix réels du jour).

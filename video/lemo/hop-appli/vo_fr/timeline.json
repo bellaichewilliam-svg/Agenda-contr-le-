@@ -1,0 +1,68 @@
+{
+ "dur": 40.0,
+ "lines": [
+  {
+   "id": "v01",
+   "t0": 0.4,
+   "t1": 2.546,
+   "zh": "Besoin de quelque chose à Netanya ?",
+   "en": "צריכים משהו בנתניה?"
+  },
+  {
+   "id": "v02",
+   "t0": 3.6,
+   "t1": 6.093,
+   "zh": "Avec HOP!, on fait vos courses pour vous, au meilleur prix.",
+   "en": "עם HOP!, אנחנו עושים לכם את הקניות, במחיר הכי טוב."
+  },
+  {
+   "id": "v03",
+   "t0": 8.6,
+   "t1": 10.828,
+   "zh": "Votre liste est comparée dans tous nos magasins.",
+   "en": "הרשימה שלכם מושווית בכל החנויות שלנו."
+  },
+  {
+   "id": "v04",
+   "t0": 13.4,
+   "t1": 15.732,
+   "zh": "Un toucher sur « Tout ici » : tout chez le moins cher.",
+   "en": "נגיעה אחת על «הכול כאן»: הכול בחנות הזולה ביותר."
+  },
+  {
+   "id": "v05",
+   "t0": 18.2,
+   "t1": 20.243,
+   "zh": "Toutes les promos, réunies au même endroit.",
+   "en": "כל המבצעים, במקום אחד."
+  },
+  {
+   "id": "v06",
+   "t0": 22.6,
+   "t1": 24.74,
+   "zh": "Pas envie d'écrire ? Dites-le à Hoppy.",
+   "en": "לא בא לכם לכתוב? תגידו להופי."
+  },
+  {
+   "id": "v07",
+   "t0": 27.0,
+   "t1": 30.729,
+   "zh": "Pharmacie, restos, colis : on livre tout, dès 25 ₪ en ville.",
+   "en": "בית מרקחת, מסעדות, חבילות: מביאים הכול, החל מ-25 ₪ בעיר."
+  },
+  {
+   "id": "v08",
+   "t0": 31.6,
+   "t1": 33.672,
+   "zh": "Et vous suivez votre livreur, en direct.",
+   "en": "ואתם עוקבים אחרי השליח בזמן אמת."
+  },
+  {
+   "id": "v09",
+   "t0": 35.8,
+   "t1": 36.972,
+   "zh": "HOP! Et hop, c'est livré.",
+   "en": "HOP! והופ, זה אצלכם."
+  }
+ ]
+}
