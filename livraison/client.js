@@ -8957,6 +8957,12 @@ function vitFindRender(q, products, shops, staple, box) {
   const hopRank = c => { if (c === "LAHAV") return 60; const i = D4_PROMO_ORDER.indexOf(c); return i < 0 ? ((CONFIG.hopShops || []).includes(c) ? 50 : 99) : i; };
   groups.forEach(g => { g.items.forEach(p => { p._sc = scoreOf(p); }); g.items.sort((a, b) => b._sc - a._sc); g.best = g.items.length ? g.items[0]._sc : -99; });
   groups.sort((a, b) => ((b.best >= 25) - (a.best >= 25)) || (hopRank(a.code) - hopRank(b.code)) || (b.best - a.best));
+  const cmpKey = "cmp:" + rlKey;
+  if (rlKey.length >= 2 && !/restaurant|resto|cafe/i.test(q) && !rlHomeCache.has(cmpKey) && Store.priceCompare) {
+    rlHomeCache.set(cmpKey, null);
+    Store.priceCompare(q, 5).then(l => { rlHomeCache.set(cmpKey, Array.isArray(l) ? l : []);
+      if (box.isConnected && !box.classList.contains("hidden")) vitFindRender(q, products.filter(p => !p._rl), shops, staple, box); }).catch(() => { rlHomeCache.delete(cmpKey); });
+  }
   if (rlKey.length >= 2 && !/restaurant|resto|cafe/i.test(q)) [["rl", Store.rlFind], ["vic", Store.vicFind], ["lahav", Store.lahavFind], ["yoh", Store.yohananofFind], ["osher", Store.osheradFind], ["tt", Store.tivtaamFind], ["univ", Store.universeFind], ["shuf", Store.shufersalFind]].forEach(([src, fn]) => {
     const key = src + ":" + rlKey;
     if (rlHomeCache.has(key) || !fn) return;
@@ -8993,7 +8999,20 @@ function vitFindRender(q, products, shops, staple, box) {
     const ph = UI.safeImg(g.ref.photo) || UI.safeImg(g.items.map(x => x.photo).find(Boolean)), lo = Number(g.items[0].price), hi = Number(g.items[g.items.length - 1].price);
     return `<div class="fr-cmp-row"><span class="fr-cmp-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" onerror="this.remove()" />` : ""}</span><span class="fr-cmp-main"><span class="fr-cmp-nm">${frName(g.ref.name)}</span>
       <span class="fr-cmp-pr">${g.items.map((x, i) => `<button type="button" class="${i === 0 ? "lo" : ""}" ${x._rl ? `data-find-pro="${UI.esc(x.code)}" data-find-q="${UI.esc(q.trim())}"` : `data-find-pro="${UI.esc(x.code)}" data-find-item="${UI.esc(x.id)}" data-find-open="1"`}><small>${UI.esc(d4Nm({ code: x.code, name: x.shop }))}</small><b><bdi dir="ltr">${UI.esc(money(x.price))}</bdi></b>${i === 0 && hi > lo ? `<em>${UI.esc(t("cmpLo"))}</em>` : ""}</button>`).join("")}</span></span></div>`; }).join("")}</section>` : "";
-  const out = any + cmpHtml + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
+  // (23/11, patron : « beaucoup mieux fait, et trop lent ») : comparateur venu de la base en une fois, tous nos magasins
+  // pour le même code-barres, rangés du moins cher au plus cher ; « Le moins cher » sur tous les ex aequo ; l'écart en clair
+  const cmpData = rlHomeCache.get(cmpKey);
+  const cmpBox = !Array.isArray(cmpData) ? (cmpData === null ? `<section class="fr-cmp fr-cmp2 wait"><div class="fr-cmp-h"><b>${UI.esc(t("cmpT"))}</b><small>${UI.esc(t("cmpWait"))}</small></div><i class="fr-cmp-sk"></i><i class="fr-cmp-sk"></i></section>` : cmpHtml)
+    : !cmpData.length ? cmpHtml : `<section class="fr-cmp fr-cmp2"><div class="fr-cmp-h"><b>${UI.esc(t("cmpT"))}</b><small>${UI.esc(t("cmpS"))}</small></div>${cmpData.map(g => {
+      const st = (g.st || []).filter(x => x && x.s && Number(x.p) > 0), lo = Math.min(...st.map(x => Number(x.p))), hi = Math.max(...st.map(x => Number(x.p)));
+      const ph = UI.safeImg(g.ph), nm = g.fr ? frName(g.fr) : `<b class="fr-prod">${UI.esc(g.he || "")}</b>`, gap = Math.round((hi - lo) * 100) / 100;
+      const nLo = st.filter(x => Number(x.p) === lo).length, shown = st.slice(0, Math.max(3, nLo)), more = st.length - shown.length;
+      return `<div class="fr-cmp2-row"><div class="fr-cmp2-top"><span class="fr-cmp-pic">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" onerror="this.remove()" />` : ""}</span>
+        <span class="fr-cmp-nm">${nm}<small class="fr-cmp2-sum">${UI.esc(t(gap > 0 ? "cmpSum" : "cmpSame", { n: st.length, gap: money(gap) }))}</small></span></div>
+        <div class="fr-cmp2-list">${shown.map(x => { const isLo = Number(x.p) === lo && gap > 0;
+          return `<button type="button" class="${isLo ? "lo" : ""}" data-find-pro="${UI.esc(x.s)}" data-find-q="${UI.esc((g.he || q).trim())}"><span>${UI.esc(d4Nm({ code: x.s, name: x.s }))}</span>${isLo ? `<em>${UI.esc(t(nLo > 1 ? "cmpLoEq" : "cmpLo"))}</em>` : ""}<b><bdi dir="ltr">${UI.esc(money(Number(x.p)))}</bdi></b></button>`; }).join("")}
+          ${more > 0 ? `<small class="fr-cmp2-more">${UI.esc(t("cmpMore", { n: more }))}</small>` : ""}</div></div>`; }).join("")}</section>`;
+  const out = any + cmpBox + (staple ? rayHtml + prodHtml : prodHtml + rayHtml) + shopHtml;
   if (box._findOut !== out || !box.firstChild || box._findFirst !== box.firstChild) { box.innerHTML = out; box._findOut = out; box._findFirst = box.firstChild; }
   box.classList.remove("hidden");
 }

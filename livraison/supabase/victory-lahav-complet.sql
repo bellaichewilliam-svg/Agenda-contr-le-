@@ -14,3 +14,8 @@
 --   lahav_find(q, n) : même recherche. Pas de boutique HOP! : dans l'appli, un toucher = « On vous l'apporte ».
 --
 -- Le comparateur de l'appli rapproche les produits par code-barres (Carrefour, Rami Lévy, Victory, Mahsanei Lahav).
+
+-- (23/11) Vraies photos partout + comparateur rapide (migrations photos_par_code_barres, promos_sans_photo_cachees, comparateur_rapide) :
+--  · photo_by_barcode(code) : photo du même code-barres chez Victory ou Carrefour quand Rami Lévy n'en a pas ;
+--  · promos sans vraie photo plus montrées dans les boutiques des enseignes (jamais effacées) ;
+--  · price_compare(q, n) : une seule demande, le même code-barres dans tous nos magasins (≈ 0,2 s).

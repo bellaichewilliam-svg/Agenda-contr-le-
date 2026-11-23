@@ -7557,3 +7557,20 @@ html.d3 .btn-wa { border: 0 !important; box-shadow: none !important; }
 #perks li::before { content: ""; position: absolute; inset-inline-start: 0; top: 2px; width: 18px; height: 18px; border-radius: 50%;
   background: #E8F6EE url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23137A40' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center / 12px no-repeat; }
 .df-logo, .df-logo::before, .df-logo::after { box-shadow: none !important; background: none !important; filter: none !important; }
+/* (23/11) Comparateur v2 : tous nos magasins pour le même code-barres, liste claire du moins cher au plus cher */
+.fr-cmp2 .fr-cmp2-row { padding: 12px 0; border-top: 1px solid #E3ECF6; }
+.fr-cmp2 .fr-cmp2-row:first-of-type { border-top: 0; }
+.fr-cmp2-top { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+.fr-cmp2-top .fr-cmp-nm { flex: 1; min-width: 0; }
+.fr-cmp2-top .fr-prod { font-size: 15px; font-weight: 800; color: #111418; line-height: 1.25; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.fr-cmp2-sum { display: block; margin-top: 2px; font-size: 12px; font-weight: 600; color: #5A6270; }
+.fr-cmp2-list { display: flex; flex-direction: column; gap: 4px; }
+.fr-cmp2-list button { all: unset; cursor: pointer; box-sizing: border-box; display: flex; align-items: center; gap: 8px; width: 100%; min-height: 38px; padding: 6px 12px; background: #fff; border: 1px solid #E6E8EB; border-radius: 12px; }
+.fr-cmp2-list button span { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: #111418; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fr-cmp2-list button b { font-size: 15px; font-weight: 800; color: #111418; }
+.fr-cmp2-list button em { font-style: normal; font-size: 11px; font-weight: 800; color: #137A40; background: #DDF2E5; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+.fr-cmp2-list button.lo { border-color: #1F9D55; background: #EAF7EF; }
+.fr-cmp2-list button.lo b { color: #137A40; }
+.fr-cmp2-more { font-size: 12px; color: #5A6270; padding: 2px 4px; }
+.fr-cmp2.wait .fr-cmp-sk { display: block; height: 64px; margin-top: 8px; border-radius: 14px; background: linear-gradient(90deg, #E9EEF5 0%, #F6F8FB 50%, #E9EEF5 100%); background-size: 200% 100%; animation: frSk 1.2s linear infinite; }
+@keyframes frSk { to { background-position: -200% 0; } }
