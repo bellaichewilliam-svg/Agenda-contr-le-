@@ -7647,9 +7647,9 @@ html.d3 .pa-step { background: #111418 !important; }
 .ch-line .ch-no:focus { box-shadow: 0 0 0 1.5px #111418; }
 /* ===== (23/11) Passe « unslop » de l'accueil, validée par le patron : une famille d'icônes, Hoppy une seule fois,
    gras 600, une échelle de tailles (12 · 14 · 16 · 20 · 24), l'orange réservé à l'action, des écarts réguliers ===== */
-html.d4 .d4-line { width: 26px; height: 26px; fill: none; stroke: #111418; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
-html.d4 .d4-svc .d4-blob, html.d4 .d4-sh-any .d4-blob { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: #fff; box-shadow: none !important; }
+/* (icônes des tuiles : on garde les dessins en couleur, patron 23/11) « N'importe quel commerce » : sa boutique en couleur */
 html.d4 .d4-sh-any .d4-sh-pic { display: grid; place-items: center; background: #EEF3FB; }
+html.d4 .d4-sh-any .d4-blob svg { width: 72px; height: 72px; }
 /* Les services déjà en grandes tuiles ne se répètent pas dans la rangée du dessous */
 html.d4 #homeKinds#homeKinds#homeKinds :is(.d3-mikve, .d3-promo, [data-kind="pharm"], [data-kind="poste"], [data-kind="mezouza"], [data-kind="bakery"]) { display: none !important; }
 /* Gras : 600 au plus */
