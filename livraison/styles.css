@@ -7645,3 +7645,35 @@ html.d3 .pa-step { background: #111418 !important; }
 :where(input:not([type=checkbox]):not([type=radio]), textarea, select):focus-visible { outline: none !important; }
 .ch-line:focus-within { box-shadow: inset 0 0 0 1.5px #111418; }
 .ch-line .ch-no:focus { box-shadow: 0 0 0 1.5px #111418; }
+/* ===== (23/11) Passe « unslop » de l'accueil, validée par le patron : une famille d'icônes, Hoppy une seule fois,
+   gras 600, une échelle de tailles (12 · 14 · 16 · 20 · 24), l'orange réservé à l'action, des écarts réguliers ===== */
+html.d4 .d4-line { width: 26px; height: 26px; fill: none; stroke: #111418; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+html.d4 .d4-svc .d4-blob, html.d4 .d4-sh-any .d4-blob { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: #fff; box-shadow: none !important; }
+html.d4 .d4-sh-any .d4-sh-pic { display: grid; place-items: center; background: #EEF3FB; }
+/* Les services déjà en grandes tuiles ne se répètent pas dans la rangée du dessous */
+html.d4 #homeKinds#homeKinds#homeKinds :is(.d3-mikve, .d3-promo, [data-kind="pharm"], [data-kind="poste"], [data-kind="mezouza"], [data-kind="bakery"]) { display: none !important; }
+/* Gras : 600 au plus */
+html.d4 :is(#langBtn, .vit-ask, .d4t b, .d4t small, .d4-btn, .d4-h, .d4-sh-n, .vc-tag b, .ch-h, .app-share b, .vit-wa b, .vit-wa bdi, .app-share bdi) { font-weight: 600 !important; }
+/* Tailles : 12 · 14 · 16 · 20 · 24 */
+html.d4 #vitTop#vitTop#vitTop small { font-size: 12px !important; }
+html.d4 #homeKinds#homeKinds#homeKinds > .ch-kind b { font-weight: 600 !important; }
+html.d4 #vitTop#vitTop :is(#vitAddrTxt, #vitWhenTxt) { font-size: 14px !important; }
+html.d4 .d4-promo .d4-sl b { font-size: 24px !important; }
+html.d4 :is(.d4-svc small, .d4-sh small, .vit-wa small, .d4-sh-any small) { font-size: 12px !important; }
+html.d4 .d4-sh-n { font-size: 16px !important; }
+html.d4 #vitCourse#vitCourse .vc-tag b { font-size: 20px !important; }
+html.d4 .ch-h { font-size: 20px !important; }
+html.d4 #homeSheet#homeSheet .ch-explore :is(b, bdi) { font-size: 16px !important; }
+/* L'orange reste au bouton d'action : les flèches des liens en gris */
+html.d4 .app-share em, html.d4 .vit-wa em { color: #5A6270 !important; }
+/* Écarts réguliers : 32 entre les blocs, 12 entre un titre et son contenu */
+html.d4 #d4KindsH { margin-top: 0 !important; margin-bottom: 12px !important; }
+html.d4 #vitCourse#vitCourse#vitCourse { margin-top: 0 !important; }
+html.d4 #d4Shops#d4Shops { margin-bottom: 0 !important; }
+html.d4 #homeSheet#homeSheet > h3.ch-h { margin-top: 20px !important; margin-bottom: 0 !important; }
+html.d4 #homeSheet#homeSheet > .ch-explore { margin-top: 0 !important; }
+/* Bulle de discussion rangée pendant qu'on descend */
+#waFab { transition: transform .2s cubic-bezier(.2,.8,.2,1), opacity .2s cubic-bezier(.2,.8,.2,1); }
+#waFab.fab-away { transform: translateY(16px); opacity: 0; pointer-events: none; }
+/* Hébreu : les flèches des liens pointent vers la gauche (sens de lecture) */
+html[dir="rtl"].d4 #homeSheet .ch-explore .xp::after { content: "›" !important; }
