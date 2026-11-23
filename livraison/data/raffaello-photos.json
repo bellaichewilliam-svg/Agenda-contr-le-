@@ -1,0 +1,9 @@
+{"dir": "raffaello", "items": [
+ {"url": "https://media.getmood.io/warehouse/dynamic/625554.pdf", "out": "raffaello-625554.pdf"},
+ {"url": "https://media.getmood.io/warehouse/dynamic/733322.pdf", "out": "raffaello-733322.pdf"},
+ {"url": "https://media.getmood.io/warehouse/dynamic/632834.jpg", "out": "cover.webp", "max": 1200},
+ {"url": "https://media.getmood.io/warehouse/dynamic/691186.webp", "out": "photo1.webp", "max": 1200},
+ {"url": "https://media.getmood.io/warehouse/dynamic/691187.webp", "out": "photo2.webp", "max": 1200},
+ {"url": "https://media.getmood.io/warehouse/dynamic/691188.webp", "out": "photo3.webp", "max": 1200},
+ {"url": "https://media.getmood.io/warehouse/dynamic/584483.svg", "out": "raffaello-logo.svg.pdf"}
+]}

@@ -1,0 +1,6 @@
+{"dir": "japanjapan", "items": [
+ {"url": "https://media.getmood.io/warehouse/dynamic/180039.png", "out": "logo.webp", "max": 400},
+ {"url": "https://media.getmood.io/warehouse/dynamic/181561.png", "out": "icone.webp", "max": 400},
+ {"url": "https://media.getmood.io/warehouse/dynamic/181562.jpg", "out": "cover.webp", "max": 1200},
+ {"url": "https://media.getmood.io/warehouse/dynamic/346312.jpg", "out": "cover2.webp", "max": 1200}
+]}
