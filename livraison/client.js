@@ -6332,6 +6332,8 @@ function d4Tiles() {
   const html = promoCard ? `${promoCard}${again}${svc}` : `<button type="button" class="d4t d4-promo" data-d4="promo"><span class="d4-bgs">${bgHtml}</span><span class="d4-sls">${slHtml2}</span>${dots}<span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
     ${again}${svc}`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
+  // (23/11, patron : « oui ») la carte des promos en vrais produits remplace l'ancienne rangée « Les promos du moment »
+  document.body.classList.toggle("d4-pc-on", !!promoCard);
   // Tous les autres services sous les tuiles (patron 22/11 : « on ne voit pas tout le reste que je fais »)
   const hk = $("#homeKinds");
   if (hk && !$("#d4KindsH")) { const h = document.createElement("h3"); h.id = "d4KindsH"; h.className = "d4-h"; hk.before(h); }
