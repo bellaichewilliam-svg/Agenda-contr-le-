@@ -7743,3 +7743,56 @@ html.st #bellBtn::before { content: ""; display: block; width: 22px; height: 22p
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0'/%3E%3C/svg%3E") center / 22px no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9M10 20a2 2 0 0 0 4 0'/%3E%3C/svg%3E") center / 22px no-repeat; }
 html.st #bellBtn .chat-badge { font-size: 11px; }
+/* ===== (23/11) Accueil validé par le patron (maquette « audacieuse ») + les 3 touches d'identité HOP! (A, B, C) ===== */
+/* La scène du haut : rue de Netanya, livreur HOP! et Hoppy (dessin en attendant l'image du patron), titre sur le ciel,
+   recherche posée à cheval sur le bas de l'image */
+html.d4 #vitHero { position: relative; display: flex; flex-direction: column; padding: 0 !important; margin-top: 16px; background: none !important; }
+html.d4 #vitHero#vitHero::before { content: "" !important; display: block !important; order: 1; position: static !important; inset: auto !important; z-index: auto !important; animation: none !important; opacity: 1 !important; aspect-ratio: 960 / 600; width: 100%; border-radius: 20px; background: #F2C49B url("img/hero/accueil-scene.webp") center / cover no-repeat; }
+/* (image du patron, 23/11 : coucher de soleil sur la promenade de Netanya) le titre au-dessus de l'image, la scène reste entière */
+html.d4 #vitHero#vitHero > * { order: 2; }
+html.d4 #vitHero#vitHero > .vit-ask { order: 0; }
+
+html.d4 #vitHero#vitHero .vit-ask { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; position: static; max-width: none; margin: 0 0 12px !important; padding-inline-end: 52px; font-size: 24px !important; line-height: 1.2 !important; font-weight: 600 !important; color: #111418 !important; text-align: start !important; }
+html[dir="rtl"].d4 #vitHero#vitHero .vit-ask { font-size: 28px !important; line-height: 1.25 !important; font-weight: 700 !important; }
+html.d4 #vitHero#vitHero .vit-share { position: absolute; top: 0; inset-inline-end: 0; order: 0; }
+html.d4 #vitHero#vitHero .sc-find { position: relative; z-index: 2; margin: -30px 12px 0 !important; }
+/* Les promos en vrais produits */
+html.d4 .d4-tiles .d4-pc { grid-column: 1 / -1; display: block; background: #fff !important; color: #111418 !important; border: 1px solid #E6E8EB; border-radius: 16px; padding: 14px; text-align: start; cursor: pointer; min-height: 0; }
+html.d4 .d4-pc-h { display: flex; align-items: center; gap: 10px; }
+html.d4 .d4-pc-h img { width: 36px; height: 36px; border-radius: 10px; object-fit: contain; background: #F2F3F5; }
+html.d4 .d4-pc-h > span { flex: 1; display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+html.d4 .d4-pc-h small { font-size: 12px; color: #5A6270; }
+html.d4 .d4-pc-h b { font-size: 18px; font-weight: 600; }
+html.d4 .d4-pc-h em { font-style: normal; font-size: 14px; font-weight: 600; color: #111418; white-space: nowrap; }
+html.d4 .d4-pc-l { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+html.d4 .d4-pc-i { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+html.d4 .d4-pc-ph { display: grid; place-items: center; aspect-ratio: 1; border-radius: 12px; border: 1px solid #E6E8EB; background: #fff; overflow: hidden; }
+html.d4 .d4-pc-ph img { width: 82%; height: 82%; object-fit: contain; }
+html.d4 .d4-pc-n { font-size: 13px; line-height: 1.3; color: #111418; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.6em; }
+html.d4 .d4-pc-p { display: flex; flex-direction: column; align-items: flex-start; }
+html.d4 .d4-pc-p b { font-size: 16px; font-weight: 600; }
+html.d4 .d4-pc-p s { font-size: 12px; color: #5A6270; }
+html.d4 .d4-pc-f { display: block; margin-top: 10px; padding-top: 10px; border-top: 1px solid #E6E8EB; font-size: 12px; color: #5A6270; }
+/* « Tout ce qu'on fait pour vous » en grille de carrés, « Nos magasins » 2 par ligne */
+html.d4 #homeKinds#homeKinds#homeKinds { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px !important; overflow: visible !important; }
+html.d4 #homeKinds#homeKinds#homeKinds > .ch-kind { width: auto !important; min-width: 0 !important; flex: none !important; height: 104px !important; }
+html.d4 .d4-sh-row.d4-sh-row { display: grid !important; grid-template-columns: 1fr 1fr; overflow: visible !important; scroll-snap-type: none; }
+html.d4 .d4-sh-row.d4-sh-row > .d4-sh { width: auto !important; min-width: 0 !important; flex: none !important; }
+/* Le trajet (point noir → point orange) : à un seul endroit, à côté de « Livrer à » */
+html.d4 #vitAddr#vitAddr > i { position: relative; display: inline-block !important; flex: 0 0 auto; width: 22px !important; height: 1.5px !important; border-radius: 0 !important; margin-inline: 6px 10px; background: #C4C9D0 !important; font-size: 0 !important; direction: ltr; }
+html.d4 #vitAddr#vitAddr > i::before, html.d4 #vitAddr#vitAddr > i::after { content: ""; position: absolute; top: -3px; width: 7px; height: 7px; border-radius: 50%; background: #111418; left: -2px; }
+html.d4 #vitAddr#vitAddr > i::after { left: auto; right: -2px; background: #E8590C; }
+html[dir="rtl"].d4 #vitAddr#vitAddr > i { transform: scaleX(-1); }
+/* Touche A : le « ! » orange du logo HOP! devant chaque titre de section, et sous l'onglet actif de la barre du bas */
+html.d4 :is(.d4-h, #homeSheet > h3.ch-h)::before { content: ""; display: inline-block; width: 6px; height: 17px; margin-inline-end: 8px; vertical-align: -1px; background: #E8590C;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 17'%3E%3Crect x='0.5' width='5' height='11' rx='2.5'/%3E%3Ccircle cx='3' cy='14.5' r='2.5'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 17'%3E%3Crect x='0.5' width='5' height='11' rx='2.5'/%3E%3Ccircle cx='3' cy='14.5' r='2.5'/%3E%3C/svg%3E") center / contain no-repeat; }
+html.d4 .d3-nav button.on { position: relative; }
+html.d4 .d3-nav button.on::after { content: ""; position: absolute; bottom: 4px; left: 50%; width: 14px; height: 3px; margin-left: -7px; border-radius: 2px; background: #E8590C; }
+/* Touche B : les prix et les totaux en petit ticket de caisse (bords dentelés) */
+html.d3 #cartSheet .cs-total, html.d4 .d4-pc-p { background: #F8F7F3 !important; -webkit-mask: radial-gradient(circle 4px at 50% 0, #0000 97%, #000) 50% 0 / 11px 51% repeat-x, radial-gradient(circle 4px at 50% 100%, #0000 97%, #000) 50% 100% / 11px 51% repeat-x;
+  mask: radial-gradient(circle 4px at 50% 0, #0000 97%, #000) 50% 0 / 11px 51% repeat-x, radial-gradient(circle 4px at 50% 100%, #0000 97%, #000) 50% 100% / 11px 51% repeat-x; }
+html.d3 #cartSheet .cs-total { padding: 14px 14px !important; margin-top: 8px; }
+html.d4 .d4-pc-p { padding: 7px 8px; width: 100%; }
+/* Touche C : la bande bleu nuit du sac HOP! en haut des cartes principales */
+html.d4 :is(.d4-tiles .d4-pc, .d4-sh, #vitCourse) { border-top: 4px solid #0F1F3D !important; }
