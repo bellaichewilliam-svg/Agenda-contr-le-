@@ -1,0 +1,395 @@
+{
+ "dir": "shiso",
+ "items": [
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/01/cropped-שיסו7-לוגו-270x270.png",
+   "out": "logo.webp",
+   "max": 400
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/01/OzOhayon-08754.webp",
+   "out": "cover.webp",
+   "max": 1200
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/01/695a11d5be3c8a10b890b065.webp",
+   "out": "p02.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/01/695a1209be3c8a10b890b067.webp",
+   "out": "p04.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/01/695a120ebe3c8a10b890b068.webp",
+   "out": "p05.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1214be3c8a10b890b069.webp",
+   "out": "p06.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a121bbe3c8a10b890b06a.webp",
+   "out": "p07.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a122fbe3c8a10b890b06b.webp",
+   "out": "p08.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1236be3c8a10b890b06c.webp",
+   "out": "p09.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a123dbe3c8a10b890b06d.webp",
+   "out": "p10.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1244be3c8a10b890b06e.webp",
+   "out": "p11.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a124bbe3c8a10b890b06f.webp",
+   "out": "p12.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1272be3c8a10b890b070.webp",
+   "out": "p13.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a128cbe3c8a10b890b071.webp",
+   "out": "p14.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1293be3c8a10b890b072.webp",
+   "out": "p15.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a129ebe3c8a10b890b073.webp",
+   "out": "p16.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a12a5be3c8a10b890b074.webp",
+   "out": "p17.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1da3be3c8a10b890b07a.webp",
+   "out": "p21.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1dadbe3c8a10b890b07b.webp",
+   "out": "p22.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1db5be3c8a10b890b07c.webp",
+   "out": "p23.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1dbabe3c8a10b890b07d.webp",
+   "out": "p24.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1f79be3c8a10b890b07f.webp",
+   "out": "p25.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1f8dbe3c8a10b890b080.webp",
+   "out": "p26.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1fa0be3c8a10b890b082.webp",
+   "out": "p28.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1fa7be3c8a10b890b083.webp",
+   "out": "p29.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1faebe3c8a10b890b084.webp",
+   "out": "p30.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a1fb8be3c8a10b890b085.webp",
+   "out": "p31.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2039be3c8a10b890b088.webp",
+   "out": "p34.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a204abe3c8a10b890b089.webp",
+   "out": "p35.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2053be3c8a10b890b08a.webp",
+   "out": "p36.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a20a7be3c8a10b890b08f.webp",
+   "out": "p40.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a20ecbe3c8a10b890b090.webp",
+   "out": "p41.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a20fcbe3c8a10b890b091.webp",
+   "out": "p42.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2104be3c8a10b890b092.webp",
+   "out": "p43.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a220abe3c8a10b890b094.webp",
+   "out": "p44.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2211be3c8a10b890b095.webp",
+   "out": "p45.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2218be3c8a10b890b096.webp",
+   "out": "p46.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2220be3c8a10b890b097.webp",
+   "out": "p47.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2226be3c8a10b890b098.webp",
+   "out": "p48.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a222cbe3c8a10b890b099.webp",
+   "out": "p49.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2241be3c8a10b890b09a.webp",
+   "out": "p50.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2248be3c8a10b890b09b.webp",
+   "out": "p51.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a224dbe3c8a10b890b09c.webp",
+   "out": "p52.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2253be3c8a10b890b09d.webp",
+   "out": "p53.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a22cbbe3c8a10b890b09e.webp",
+   "out": "p54.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a22d9be3c8a10b890b0a0.webp",
+   "out": "p56.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a22e5be3c8a10b890b0a1.webp",
+   "out": "p57.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a22f3be3c8a10b890b0a2.webp",
+   "out": "p58.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a22fcbe3c8a10b890b0a3.webp",
+   "out": "p59.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2311be3c8a10b890b0a5.webp",
+   "out": "p60.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a231cbe3c8a10b890b0a6.webp",
+   "out": "p61.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2326be3c8a10b890b0a7.webp",
+   "out": "p62.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2344be3c8a10b890b0a9.webp",
+   "out": "p64.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a234dbe3c8a10b890b0aa.webp",
+   "out": "p65.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2390be3c8a10b890b0ab.webp",
+   "out": "p66.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a239cbe3c8a10b890b0ac.webp",
+   "out": "p67.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23a3be3c8a10b890b0ad.webp",
+   "out": "p68.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23aabe3c8a10b890b0ae.webp",
+   "out": "p69.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23b0be3c8a10b890b0af.webp",
+   "out": "p70.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23b8be3c8a10b890b0b0.webp",
+   "out": "p71.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23ddbe3c8a10b890b0b1.webp",
+   "out": "p72.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23e4be3c8a10b890b0b2.webp",
+   "out": "p73.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23ebbe3c8a10b890b0b3.webp",
+   "out": "p74.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23f0be3c8a10b890b0b4.webp",
+   "out": "p75.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23f5be3c8a10b890b0b5.webp",
+   "out": "p76.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a23fbbe3c8a10b890b0b6.webp",
+   "out": "p77.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2401be3c8a10b890b0b7.webp",
+   "out": "p78.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2414be3c8a10b890b0b8.webp",
+   "out": "p79.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2434be3c8a10b890b0ba.webp",
+   "out": "p80.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2445be3c8a10b890b0bb.webp",
+   "out": "p81.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a244dbe3c8a10b890b0bc.webp",
+   "out": "p82.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2461be3c8a10b890b0bd.webp",
+   "out": "p83.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2467be3c8a10b890b0be.webp",
+   "out": "p84.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2474be3c8a10b890b0c0.webp",
+   "out": "p86.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2505be3c8a10b890b0c1.webp",
+   "out": "p87.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2516be3c8a10b890b0c3.webp",
+   "out": "p89.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a251ebe3c8a10b890b0c4.webp",
+   "out": "p90.webp",
+   "max": 640
+  },
+  {
+   "url": "https://shiso-natanya.co.il/wp-content/uploads/2026/02/695a2525be3c8a10b890b0c5.webp",
+   "out": "p91.webp",
+   "max": 640
+  }
+ ]
+}
