@@ -7594,3 +7594,19 @@ body #cartSheet .cs-qty button { width: 34px !important; height: 34px !important
 body #cartSheet .cs-qty button + b + button { color: #E8590C !important; }
 body #cartSheet .cs-qty b { min-width: 20px; text-align: center; font-size: 16px; }
 body #cartSheet .sw-fg { overflow: visible; }
+.cs-items-x { margin: 0 0 4px; font-size: 13px; color: #5A6270; line-height: 1.35; }
+/* (23/11, patron : « chaque boutique d'achat doit être au minimum claire comme ça ») : cartes des boutiques de courses
+   comme « HOP! à vos promos » : carte blanche bordée, photo entière, pastille −x % rose, nom puis prix, ancien prix barré,
+   lot dans un bloc rose, date de fin */
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-item { background: #fff !important; border: 1px solid #E6E8EB !important; border-radius: 18px !important; box-shadow: none !important; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-item.in { box-shadow: inset 0 0 0 2px #111418 !important; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-pic { background: #fff !important; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-pic > img { object-fit: contain !important; padding: 10px 12px !important; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-promo { position: absolute !important; top: 8px !important; bottom: auto !important; inset-inline-start: 8px !important; inset-inline-end: auto !important; width: auto !important; background: #FBE7EF !important; color: #A32A4C !important; border-radius: 99px !important; padding: 4px 10px !important; font: 800 14px/1.1 Heebo, sans-serif !important; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-info .cg-price { order: 0 !important; color: #111418 !important; font-size: 19px !important; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-paw { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-pap { font: 800 20px/1.1 Heebo, sans-serif; color: #111418; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-palot { display: inline-block; font: 800 18px/1.15 Heebo, sans-serif; color: #A32A4C; background: #FBE7EF; border-radius: 10px; padding: 5px 10px; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-paw s { font-size: 13px; color: #5A6270; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-paw.lot s { flex-basis: 100%; }
+html.d3 .cg-grid.cg-tiles.cg-pa .cg-paend { font-size: 12.5px; color: #5A6270; }
