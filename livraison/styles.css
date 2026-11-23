@@ -7640,3 +7640,8 @@ body #cartSheet .cs-pic, body #cartSheet .cs-txt { cursor: pointer; }
 .pa-step button { width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: #fff; font-size: 20px; font-weight: 800; line-height: 1; cursor: pointer; }
 .pa-step b { min-width: 18px; text-align: center; font-size: 15px; }
 html.d3 .pa-step { background: #111418 !important; }
+/* (23/11, patron : « le carré noir dans l'adresse ») Un champ où l'on tape n'a pas de gros cadre carré au toucher :
+   c'est la ligne entière (arrondie) qui se marque d'un trait fin ; le contour épais reste pour les boutons au clavier */
+:where(input:not([type=checkbox]):not([type=radio]), textarea, select):focus-visible { outline: none !important; }
+.ch-line:focus-within { box-shadow: inset 0 0 0 1.5px #111418; }
+.ch-line .ch-no:focus { box-shadow: 0 0 0 1.5px #111418; }
