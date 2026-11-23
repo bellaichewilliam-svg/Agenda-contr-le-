@@ -33,6 +33,13 @@ def main(spec_path: str) -> int:
         try:
             r = requests.get(it["url"], headers=UA, timeout=60)
             r.raise_for_status()
+            if it["out"].endswith(".pdf"):  # menu en PDF (ex. Raffaello) : gardé tel quel pour être lu ensuite
+                dest = Path(__file__).resolve().parent.parent / "livraison" / "data" / "menus" / it["out"]
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                dest.write_bytes(r.content)
+                ok += 1
+                print(f"ok {it['out']} {len(r.content) // 1024} Ko (PDF)")
+                continue
             im = Image.open(io.BytesIO(r.content))
             im.load()
             if im.mode in ("RGBA", "LA", "P"):

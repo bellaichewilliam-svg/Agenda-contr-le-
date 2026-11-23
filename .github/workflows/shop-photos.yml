@@ -36,5 +36,5 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add livraison/img/
+          git add livraison/img/ livraison/data/menus/ 2>/dev/null || git add livraison/img/
           if git diff --cached --quiet; then echo "Rien de nouveau."; else git commit -m "Photos d'un nouveau commerce" && git push; fi
