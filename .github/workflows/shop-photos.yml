@@ -1,0 +1,40 @@
+name: Photos d'un nouveau commerce
+
+# (23/11) Lancé à la main : télécharge les photos d'un commerce (liste dans livraison/data/<nom>-photos.json),
+# les met au format de l'appli et les range dans livraison/img/<dossier>/.
+on:
+  workflow_dispatch:
+    inputs:
+      spec:
+        description: "Fichier de la liste (ex. livraison/data/shiso-photos.json)"
+        required: true
+        default: "livraison/data/shiso-photos.json"
+
+permissions:
+  contents: write
+
+jobs:
+  photos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install requests pillow pillow-avif-plugin
+
+      - name: Photos
+        run: python -c "import pillow_avif" 2>/dev/null; python scripts/fetch_shop_photos.py "${{ github.event.inputs.spec }}"
+
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add livraison/img/
+          if git diff --cached --quiet; then echo "Rien de nouveau."; else git commit -m "Photos d'un nouveau commerce" && git push; fi
