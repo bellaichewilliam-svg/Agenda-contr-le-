@@ -9084,6 +9084,19 @@ async function vitMagic(q, box, seq) {
   lines.forEach(l => { l.pick = mgPickFor(l, state.magic.main); });
   renderMagic(true);
   UI.track("home_magic", { n: items.length });
+  // (23/11, patron) Toute la liste dans tous nos magasins : le même article (code-barres) chez chacun, avec son vrai prix ;
+  // ajouté aux choix de chaque ligne, le comparateur de la liste se remplit, « Tout ici » reprend la liste ailleurs en un toucher
+  const mid = state.magic.id;
+  if (Store.listCompare) Store.listCompare(items.map(i => i.name)).then(res => {
+    const m = state.magic;
+    if (!m || m.id !== mid || !Array.isArray(res)) return;
+    res.forEach((g, k) => { const l = lines[k]; if (!g || !l || !Array.isArray(g.st)) return;
+      g.st.forEach(x => { if (!x || !x.s || !(Number(x.p) > 0) || l.cands.some(c => c.code === x.s && c._full)) return;
+        l.cands.push({ _full: true, bc: g.c, id: "full:" + x.s + ":" + g.c, code: x.s, name: g.fr || g.he, price: Number(x.p), photo: g.ph || "", shop: mgShopName(x.s) || d4Nm({ code: x.s, name: x.s }), kind: "epicerie" }); });
+      if (!l.strong && !l.cands.some(c => !c._full) && l.pick !== "r") l.pick = mgPickFor(l, m.main);
+    });
+    if (box.isConnected && !box.classList.contains("hidden")) renderMagic(false);
+  }).catch(() => {});
 }
 // Le magasin principal de la liste : le 1er magasin HOP! (Carrefour) qui a au moins un article, sinon celui qui en a le plus
 function mgMainOf(lines) {
@@ -9178,14 +9191,16 @@ function renderMagic(anim) {
   // le bon produit de chaque ligne, le total, et « Tout chez … » en un toucher
   const cmpL = (() => {
     if (on.length < 2) return "";
-    const codes = [...new Set(on.flatMap(l => l.cands.map(c => c.code)))].filter(c => c && !/LAHAV/.test(c));
+    const codes = [...new Set(on.flatMap(l => l.cands.map(c => c.code)))].filter(c => c && c !== "LAHAV");
+    // (le même article partout : le produit « code-barres » d'abord, sinon le produit de ce magasin)
     const rows = codes.map(code => { let tot = 0, got = 0;
-      on.forEach(l => { const c = l.cands.find(x => x.code === code); if (c && Number(c.price) > 0) { tot += Number(c.price) * l.qty; got++; } });
+      on.forEach(l => { const c = l.cands.find(x => x.code === code && x._full) || l.cands.find(x => x.code === code); if (c && Number(c.price) > 0) { tot += Number(c.price) * l.qty; got++; } });
       return { code, tot: Math.round(tot * 10) / 10, got }; })
-      .filter(r => r.got >= Math.max(2, Math.ceil(on.length * 0.6))).sort((a, b) => (b.got - a.got) || (a.tot - b.tot)).slice(0, 4);
+      .filter(r => r.got >= Math.max(2, Math.ceil(on.length * 0.6))).sort((a, b) => (b.got - a.got) || (a.tot - b.tot)).slice(0, 5);
     if (rows.length < 2) return "";
     const best = rows.filter(r => r.got === rows[0].got).sort((a, b) => a.tot - b.tot)[0];
-    return `<section class="mg-cmp"><div class="mg-cmp-h"><b>${UI.esc(t("mgCmpT"))}</b><small>${UI.esc(t("mgCmpS"))}</small></div>${rows.map(r => {
+    const same = rows.filter(r => r.got === best.got), save = Math.round((Math.max(...same.map(r => r.tot)) - best.tot) * 10) / 10;
+    return `<section class="mg-cmp"><div class="mg-cmp-h"><b>${UI.esc(t("mgCmpT"))}</b><small>${UI.esc(save > 0 ? t("mgCmpSave", { gap: money(save), name: d4Nm({ code: best.code, name: mgShopName(best.code) }) }) : t("mgCmpS"))}</small></div>${rows.map(r => {
       const sc = mgSc(r.code), logo = sc && UI.safeImg(sc.logo), cur = r.code === main;
       return `<div class="mg-cmp-r${r === best ? " best" : ""}${cur ? " cur" : ""}"><span class="mg-gl">${logo ? `<img src="${logo}" alt="" />` : "🛒"}</span>
         <span class="mg-cmp-t"><b>${UI.esc(d4Nm({ code: r.code, name: mgShopName(r.code) }))}</b><small>${UI.esc(t("mgCmpGot", { got: r.got, n: on.length }))}${r === best ? ` · <em>${UI.esc(t("cmpLo"))}</em>` : ""}</small></span>
@@ -9288,7 +9303,7 @@ $("#homeFindList").addEventListener("click", e => {
   // « Tout prendre chez Carrefour à la place » : les articles de ce 2ᵉ magasin passent chez le magasin principal (son produit,
   // sinon les courses HOP! qu'il prend là-bas) : plus de livraison en plus
   const all = e.target.closest("[data-mg-all]");
-  if (all) { m.main = all.dataset.mgAll; m.lines.forEach(l => { l.pick = mgPickFor(l, m.main); }); UI.track("mg_all_at", { shop_code: m.main }); renderMagic(false); return; }
+  if (all) { m.main = all.dataset.mgAll; m.lines.forEach(l => { const i = l.cands.findIndex(c => c.code === m.main && c._full); l.pick = i >= 0 ? i : mgPickFor(l, m.main); }); UI.track("mg_all_at", { shop_code: m.main }); renderMagic(false); return magicToCart(m.main, true); }
   const mv = e.target.closest("[data-mg-move]");
   if (mv) { m.lines.forEach(l => { if (l.on && mgCodeOf(l, m.main) === mv.dataset.mgMove) { const i = l.cands.findIndex(c => c.code === m.main); l.pick = i >= 0 ? i : l.r ? "r" : "x"; } }); renderMagic(false); return; }
   // « Entrer » dans un magasin de la liste : toute la commande est préparée (rien ne se perd), on arrive dans ce magasin
@@ -9327,12 +9342,13 @@ async function magicToCart(code, withRest, quiet) {
   //  2. produit d'un AUTRE magasin sur HOP! → le panier de cet autre magasin (gardé : commande en plusieurs magasins) ;
   //  3. sinon (courses HOP!, rien de précis) → d'abord le catalogue de ce magasin, puis « à prendre aussi » au plus
   //     près par le livreur, avec l'équivalent trouvé, sa photo et son prix indicatif (rien ne se perd).
-  const mine = [], others = {}, left = [];
+  const mine = [], others = {}, left = [], fullMine = [];
   on.forEach(l => {
     const i = typeof l.pick === "number" && l.cands[l.pick].code === code ? l.pick : l.cands.findIndex(c => c.code === code);
+    if (i >= 0 && l.cands[i]._full) { fullMine.push({ c: l.cands[i], qty: l.qty }); return; }
     if (i >= 0) { mine.push({ id: l.cands[i].id, qty: l.qty }); return; }
     const c = withRest && typeof l.pick === "number" ? l.cands[l.pick] : null;
-    if (c && c.code && c.code !== code) { (others[c.code] = others[c.code] || []).push({ c, qty: l.qty }); return; }
+    if (c && c.code && c.code !== code && !c._full) { (others[c.code] = others[c.code] || []).push({ c, qty: l.qty }); return; }
     if (withRest) left.push(l);
   });
   // (la liste et le texte restent : un retour en arrière vers l'accueil les remontre tels quels)
@@ -9353,6 +9369,7 @@ async function magicToCart(code, withRest, quiet) {
   if (Object.keys(others).length) multiSave();
   // Le reste : d'abord dans le catalogue de ce magasin, sinon « à prendre aussi » au plus près
   const avail = cgProducts().filter(p => p.available), extra = [];
+  fullMine.forEach(({ c, qty }) => extra.push({ n: String(UI.bi(c.name)), q: qty, p: Number(c.price) * qty, ph: UI.safeImg(c.photo) || "", e: "🛒" }));
   left.forEach(l => {
     const q = String(l.name).replace(/^\d+\s*(x|×)?\s*/i, "").replace(/^(du|de la|de l'|des|un|une|le|la|les|d')\s*/i, "").trim() || l.name;
     const sc = mgScorer(q), best = avail.map(p => [p, sc(p)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1])[0];
