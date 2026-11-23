@@ -1348,3 +1348,36 @@ window.UI = {
       .observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["placeholder"] }); };
   if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
 })();
+
+// (23/11, passe « unslop » des applis Livreur et patron, demandée par le patron) Plus d'émojis dans ces écrans non plus :
+// les ronds d'état (🟢 🔴 ⚪ 🟡 🟠) deviennent un petit point de couleur, les autres émojis disparaissent. Champs jamais touchés.
+(function staffNoEmoji() {
+  if (!document.documentElement.classList.contains("st")) return;
+  const RE = /[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}]/u;
+  const DOT = { "🟢": "g", "🔴": "r", "⚪": "w", "🟡": "y", "🟠": "o", "⚫": "k", "📍": "k", "🏁": "o" };
+  const strip = v => v.replace(/[\p{Extended_Pictographic}\u{1F1E6}-\u{1F1FF}\u{1F3FB}-\u{1F3FF}\uFE0F\u200D]/gu, "").replace(/[ \u00A0]{2,}/g, " ").replace(/^[ \u00A0]+/, "");
+  const clean = n => {
+    const v = n.nodeValue; if (!v || !RE.test(v)) return;
+    const p = n.parentNode; if (!p || (p.closest && p.closest("script,style,textarea,[contenteditable]"))) return;
+    // Bouton ou lien dont l'émoji est le seul contenu (🔔, 📞, 🗑…) : on le garde, sinon le bouton devient vide
+    const host = p.closest && p.closest("button, a, [role=button]");
+    if (host && !strip(host.textContent).trim() && !/^\s*(🟢|🔴|⚪|🟡|🟠|⚫|📍|🏁)/u.test(v)) return;
+    const m = /^\s*(🟢|🔴|⚪|🟡|🟠|⚫|📍|🏁)/u.exec(v);
+    if (m && p.nodeType === 1 && !(n.previousSibling && n.previousSibling.classList && n.previousSibling.classList.contains("st-dot"))) {
+      const d = document.createElement("i"); d.className = "st-dot st-" + DOT[m[1]]; d.setAttribute("aria-hidden", "true"); p.insertBefore(d, n);
+    }
+    const c = strip(v); if (c !== v) n.nodeValue = c;
+  };
+  const walk = root => {
+    if (root.nodeType === 3) return clean(root);
+    if (root.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA)$/.test(root.tagName)) return;
+    if (root.placeholder && RE.test(root.placeholder)) root.placeholder = strip(root.placeholder);
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = []; let n; while ((n = w.nextNode())) list.push(n); list.forEach(clean);
+  };
+  const start = () => {
+    walk(document.body);
+    new MutationObserver(ms => ms.forEach(m => { if (m.type === "characterData") clean(m.target); else m.addedNodes.forEach(walk); }))
+      .observe(document.body, { childList: true, subtree: true, characterData: true });
+  };
+  if (document.body) start(); else document.addEventListener("DOMContentLoaded", start);
+})();

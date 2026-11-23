@@ -44,7 +44,7 @@ html[dir=rtl] .route { transform:scaleX(-1); }
 .chips { display:flex; gap:8px; padding:8px var(--pad) 12px; }
 .chip { display:flex; align-items:center; gap:10px; height:52px; padding:0 14px; border:1px solid var(--line); border-radius:var(--r-ctl); min-width:0; }
 .chip.addr { flex:1; }
-.chip > span { display:flex; flex-direction:column; min-width:0; line-height:1.2; }
+.chip > span:not(.route) { display:flex; flex-direction:column; min-width:0; line-height:1.2; }
 .chip small { color:var(--ink2); font-size:12px; }
 .chip b { font-weight:500; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 html[dir=rtl] .chip b { font-weight:600; }
@@ -57,6 +57,7 @@ html[dir=rtl] .chip b { font-weight:600; }
 html[dir=rtl] .scene { transform:scaleX(-1); }
 html[dir=rtl] .scene .unflip { transform-box:fill-box; transform-origin:center; transform:scaleX(-1); }
 .hoppy { position:absolute; inset-inline-end:6px; bottom:44px; height:150px; width:auto; }
+@media (max-width:370px) { .hoppy { height:134px; inset-inline-end:2px; } .hoppy-shadow { inset-inline-end:18px; } }
 .hoppy-shadow { position:absolute; inset-inline-end:26px; bottom:30px; width:52px; height:6px; border-radius:50%; background:rgba(15,31,61,.10); }
 .hero-txt { position:absolute; inset-inline-start:20px; top:20px; inset-inline-end:16px; }
 .hero h1 { max-width:240px; }
@@ -82,7 +83,7 @@ html[dir=rtl] .promo-h b { font-weight:700; }
 .pr { display:flex; flex-direction:column; min-width:0; }
 .pr-ph { aspect-ratio:1; border-radius:12px; background:#fff; border:1px solid var(--line); display:grid; place-items:center; overflow:hidden; }
 .pr-ph img { width:84%; height:84%; object-fit:contain; }
-.pr-n { margin-top:8px; font-size:12.5px; line-height:1.3; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.6em; }
+.pr-n { margin-top:8px; font-size:12.5px; line-height:1.3; color:var(--ink); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; min-height:3.9em; }
 html[dir=rtl] .pr-n { font-size:13px; font-weight:500; }
 .pr-p { display:flex; flex-direction:column; margin-top:4px; font-variant-numeric:tabular-nums; }
 .pr-p b { font-size:16px; font-weight:700; }
@@ -147,7 +148,7 @@ html[dir=rtl] .btn { font-weight:700; font-size:17px; }
 html[dir=rtl] .btn .ic { transform:scaleX(-1); }
 .prices { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
 .price { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--grey); border-radius:var(--r-ctl); }
-.price span { display:flex; flex-direction:column; line-height:1.2; min-width:0; }
+.price > span:not(.route) { display:flex; flex-direction:column; line-height:1.2; min-width:0; }
 .price b { font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; }
 .price small { font-size:12px; color:var(--ink2); }
 .price .lbl { font-size:12px; color:var(--ink2); }
@@ -256,7 +257,7 @@ html[dir=rtl] .nav button { font-size:12.5px; font-weight:500; }
     <!-- caisse HOP! -->
     <rect x="86" y="18" width="40" height="36" rx="5" fill="#0F1F3D"/>
     <rect x="86" y="18" width="40" height="5" rx="2" fill="#1C3263"/>
-    <g class="unflip"><text x="106" y="42" text-anchor="middle" font-family="Heebo, Arial, sans-serif" font-weight="800" font-size="11.5" fill="#fff" letter-spacing="0">HOP<tspan fill="#FF6A13">!</tspan></text></g>
+    <g class="unflip"><text direction="ltr" unicode-bidi="embed" x="106" y="42" text-anchor="middle" font-family="Heebo, Arial, sans-serif" font-weight="800" font-size="11.5" fill="#fff" letter-spacing="0">HOP<tspan fill="#FF6A13">!</tspan></text></g>
     <!-- carrosserie -->
     <path d="M40 72h48c8 0 14-4 16-12l2-6H62c-6 0-10 4-12 9z" fill="#FFFFFF" stroke="#D5DAE0" stroke-width="1"/>
     <path d="M60 54h52c4 0 6 3 5 6l-2 6c-2 5-6 8-12 8h-6" fill="#FFFFFF" stroke="#D5DAE0" stroke-width="1"/>
