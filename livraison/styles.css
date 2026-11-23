@@ -7796,3 +7796,4 @@ html.d3 #cartSheet .cs-total { padding: 14px 14px !important; margin-top: 8px; }
 html.d4 .d4-pc-p { padding: 7px 8px; width: 100%; }
 /* Touche C : la bande bleu nuit du sac HOP! en haut des cartes principales */
 html.d4 :is(.d4-tiles .d4-pc, .d4-sh, #vitCourse) { border-top: 4px solid #0F1F3D !important; }
+html.d4 body.d4-pc-on #homePromos { display: none !important; }
