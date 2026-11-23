@@ -7574,3 +7574,8 @@ html.d3 .btn-wa { border: 0 !important; box-shadow: none !important; }
 .fr-cmp2-more { font-size: 12px; color: #5A6270; padding: 2px 4px; }
 .fr-cmp2.wait .fr-cmp-sk { display: block; height: 64px; margin-top: 8px; border-radius: 14px; background: linear-gradient(90deg, #E9EEF5 0%, #F6F8FB 50%, #E9EEF5 100%); background-size: 200% 100%; animation: frSk 1.2s linear infinite; }
 @keyframes frSk { to { background-position: -200% 0; } }
+/* (23/11) Comparateur de la liste : le bouton « Tout ici » garde sa taille (une règle générale des boutons l'étirait) */
+body #homeFindList .mg-cmp .mg-cmp-go { all: unset; cursor: pointer; flex: none !important; width: auto !important; display: inline-flex !important; align-items: center; background: #0F1F3D !important; color: #fff !important; font: 700 13px Heebo, sans-serif !important; padding: 9px 14px !important; border-radius: 12px !important; white-space: nowrap; }
+body #homeFindList .mg-cmp .mg-cmp-t { flex: 1 1 auto; min-width: 0; }
+body #homeFindList .mg-cmp .mg-cmp-t b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+body #homeFindList .mg-cmp .mg-cmp-h small { color: #137A40; font-weight: 700; }

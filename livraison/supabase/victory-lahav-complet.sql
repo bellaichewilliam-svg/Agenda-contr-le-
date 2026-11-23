@@ -19,3 +19,5 @@
 --  · photo_by_barcode(code) : photo du même code-barres chez Victory ou Carrefour quand Rami Lévy n'en a pas ;
 --  · promos sans vraie photo plus montrées dans les boutiques des enseignes (jamais effacées) ;
 --  · price_compare(q, n) : une seule demande, le même code-barres dans tous nos magasins (≈ 0,2 s).
+--  · list_compare(articles[]) + bc_prices(code) (migration comparateur_liste) : pour une liste de courses, chaque article
+--    (même code-barres) et son prix dans tous nos magasins ; « Tout ici » reprend la liste dans le magasin choisi.
