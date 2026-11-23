@@ -5516,13 +5516,25 @@ function multiRestore(code) {
   if ((m.rlx || []).length) { state.extras = (state.extras || []).filter(Boolean).concat(m.rlx); extrasNote(); }
   delete state.multi[code]; multiSave();
 }
+// (23/11, patron : « en rentrant dans l'autre boutique, je ne retrouve plus tous mes produits ») : les articles gardés
+// dans chaque autre magasin restent visibles dans le panier (photo, nom, quantité) ; « Entrer » pour les changer
+function multiLinesHtml(m) {
+  const by = new Map();
+  (m.lines || []).forEach(l => { if (!l || !l.n) return; const k = String(UI.bi(l.n)); const x = by.get(k) || { n: k, q: 0, ph: l.ph || "" }; x.q += Number(l.q) || 1; if (!x.ph && l.ph) x.ph = l.ph; by.set(k, x); });
+  const all = [...by.values()];
+  if (!all.length) return "";
+  const show = all.slice(0, 8), more = all.length - show.length;
+  return `<ul class="mb-lines">${show.map(x => { const ph = UI.safeImg(x.ph);
+    return `<li><span class="mb-lp">${ph ? `<img src="${ph}"${UI.imgCors(ph)} alt="" loading="lazy" />` : ""}</span><bdi>${UI.esc(x.n)}</bdi><b>× ${x.q}</b></li>`; }).join("")}
+    ${more > 0 ? `<li class="mb-more"><button type="button" data-multi-go="${UI.esc(m.code)}">${UI.esc(t("multiMore", { n: more }))}</button></li>` : ""}</ul>`;
+}
 function multiHtml(withBtns) {
   const list = multiList();
   if (!list.length || !state.shop || !proShopOn()) return "";
   const q = currentQuote(), main = q && q.total != null ? money(q.total) : money(proPrice(state.shop));
   const rows = list.map((m, i) => { const f = multiFee(m);
     return `<div class="mb-row"><span><b>${i + 2}. ${UI.esc(m.short || m.name)}</b><small>${UI.esc(t("multiItems", { n: m.count, sum: money(Math.round(m.total * 10) / 10) }))}</small></span>
-      <em>+${UI.esc(money(f.price))}</em>${withBtns ? `<span class="mb-btns"><button type="button" data-multi-go="${UI.esc(m.code)}">${UI.esc(t("multiSee"))}</button><button type="button" data-multi-del="${UI.esc(m.code)}" aria-label="✕">✕</button></span>` : ""}</div>`; }).join("");
+      <em>+${UI.esc(money(f.price))}</em>${withBtns ? `<span class="mb-btns"><button type="button" data-multi-go="${UI.esc(m.code)}">${UI.esc(t("multiSee"))}</button><button type="button" data-multi-del="${UI.esc(m.code)}" aria-label="✕">✕</button></span>` : ""}</div>${withBtns ? multiLinesHtml(m) : ""}`; }).join("");
   const near = list.every(m => multiFee(m).near);
   return `<b class="mb-t">🛍️ ${UI.esc(t("multiTitle", { n: list.length + 1 }))}</b>
     <div class="mb-row"><span><b>1. ${UI.esc(shopShortName())}</b><small>${UI.esc(t("multiItems", { n: cartCount(), sum: money(cartTotal()) }))}</small></span><em>${UI.esc(main)}</em></div>${rows}
@@ -9608,7 +9620,7 @@ function renderPromos() {
   const html = `<div class="pz-h"><div class="pz-t"><h3 class="ch-h">${UI.esc(t("pmTitle"))}</h3><small>${UI.esc(pa.data ? t("hpSub", { n: total, k: shops.length }) : t("hpSub0", { k: shops.length }))}</small></div>
       <button type="button" class="pz-all" data-pm-all>${UI.esc(t("paSee"))} ›</button></div>
     <div class="pz-chips">${pills}</div>
-    <div class="pz-row">${list.map(card).join("")}</div>
+    <div class="pz-row">${list.map(card).join("")}<button type="button" class="pz-card pz-end" data-pm-all><span class="pz-end-in"><b>${UI.esc(sel ? t("pzEndShop", { name: paShopName(sel), n: shops.find(([c]) => c === sel) ? shops.find(([c]) => c === sel)[1] : "" }) : t("pzEndAll", { n: total || "" }))}</b><small>${UI.esc(t("pzEndS"))}</small><i aria-hidden="true">›</i></span></button></div>
     <div class="pz-dots" aria-hidden="true">${Array.from({ length: dots }, (_, k) => `<span data-d="${k}"></span>`).join("")}</div>`;
   if (box.dataset.html === html) return;
   // Mêmes cartes qu'à l'écran (la liste complète vient d'arriver) : on change seulement le titre et les filtres,
