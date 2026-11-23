@@ -7677,3 +7677,25 @@ html.d4 #homeSheet#homeSheet > .ch-explore { margin-top: 0 !important; }
 #waFab.fab-away { transform: translateY(16px); opacity: 0; pointer-events: none; }
 /* Hébreu : les flèches des liens pointent vers la gauche (sens de lecture) */
 html[dir="rtl"].d4 #homeSheet .ch-explore .xp::after { content: "›" !important; }
+/* ===== (23/11) Passe « unslop » du parcours de commande (page magasin, panier, Ma commande), validée par le patron :
+   l'orange seulement pour avancer (Continuer, Commander), le reste en bleu nuit / noir, gras 600, rien ne cache les champs ===== */
+/* Rubrique choisie : bleu nuit (comme les filtres de l'accueil) */
+html.d3 body #catalogBox .cg-tab.on, html.d3 body .cg-tab.on { background: #0F1F3D !important; border-color: #0F1F3D !important; color: #fff !important; }
+/* Quantité d'un article : pastille blanche, − et + noirs (l'orange reste au bouton « Continuer ») */
+html.d3 body #catalogBox .cg-qty { background: #fff !important; border: 1px solid #E6E8EB !important; box-shadow: none !important; }
+html.d3 body #catalogBox .cg-qty button { background: #F2F3F5 !important; color: #111418 !important; box-shadow: none !important; }
+html.d3 body #catalogBox .cg-qty b { color: #111418 !important; font-weight: 600 !important; }
+html.d3 body #catalogBox .cg-n, html.d3 body #catalogBox .cg-n bdi { color: #111418 !important; font-weight: 600 !important; }
+/* Gras : 600 au plus sur la page magasin et la commande */
+html.d3 body :is(#catalogBox .cg-sec, #catalogBox .cg-price, #catalogBox .cg-info b, #shopHero b, #orderForm legend, .cal-m, .cal-d, #cartSheet b, #cartSheet .cs-steps-t) { font-weight: 600 !important; }
+/* Panier : « Continuez vos courses » en encadré gris calme, « Ajouter » en bleu nuit, étapes 1 · 2 en bleu nuit */
+html.d3 body #cartSheet .cs-nav { background: #F6F7F8 !important; border: 1px solid #E6E8EB !important; box-shadow: none !important; }
+html.d3 body #cartSheet .cs-nav .btn-sm, html.d3 body #cartSheet [data-cs-addbtn] { background: #0F1F3D !important; border-color: #0F1F3D !important; color: #fff !important; }
+html.d3 body #cartSheet .cs-steps i { background: #0F1F3D !important; color: #fff !important; }
+html.d3 body #cartSheet .cs-qty button { color: #111418 !important; border-color: #E6E8EB !important; }
+/* La bulle de discussion ne se pose pas sur les champs de la commande ni sur la page magasin */
+body[data-view="order"] #waFab, body.shop-compact #waFab { display: none !important; }
+/* Mes courses (onglet Commandes) : titres en 600, tailles de l'échelle */
+html.d3 body[data-view="mine"] .title-row h2 { font-weight: 600 !important; font-size: 28px !important; }
+html.d3 body[data-view="mine"] .lgx-hero h3, html.d3 body[data-view="mine"] .lgx-hero h3 bdi { font-weight: 600 !important; }
+html.d3 body[data-view="mine"] .lgx-voice b { font-weight: 600 !important; font-size: 16px !important; }
