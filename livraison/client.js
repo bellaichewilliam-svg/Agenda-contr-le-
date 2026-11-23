@@ -4347,6 +4347,15 @@ const grocShop = () => !!(state.shop && !/restaurant/.test(String(state.shop.kin
 const tileShop = () => !!state.shop;
 // Ligne du bas des cartes (2 lignes fixes, toutes les cartes à la même hauteur) : contenance + prix au 100 g,
 // sinon les tailles à choisir, sinon (restaurant, service) le début de la description
+// (23/11, patron : « chaque boutique d'achat doit être au minimum claire comme ça ») : même présentation que
+// « HOP! à vos promos » : prix en gros, ancien prix barré, lot dans un bloc rose, date de fin de la promo
+function cgPaPrice(p) {
+  const pr = promoOf(p), end = (String(p.description || "").match(/jusqu.au (\d{2}\/\d{2})/) || [])[1];
+  if (!pr) return `<span class="cg-price">${UI.esc(groupPrice(p))}</span>`;
+  const main = pr.lot > 1 ? `<span class="cg-palot"><bdi>${UI.esc(t("paLot", { n: pr.lot, price: money(pr.price) }))}</bdi></span>` : `<strong class="cg-pap"><bdi dir="ltr">${UI.esc(money(pr.price))}</bdi></strong>`;
+  const old = pr.lot > 1 ? money(pr.old) : money(pr.old);
+  return `<span class="cg-paw${pr.lot > 1 ? " lot" : ""}">${main}<s dir="ltr">${UI.esc(old)}</s></span>${end ? `<span class="cg-paend">${UI.esc(t("paUntil", { d: end }))}</span>` : ""}`;
+}
 function tileMeta(p, multi) {
   if (grocShop() && !multi && packInfo(p)) return `<span class="cg-meta"><span dir="ltr">${UI.esc(packInfo(p).label)}</span><span dir="ltr">${UI.esc(unitPrice(p))}</span></span>`;
   if (multi && sizesOf(p).length > 1) return `<span class="cg-meta cg-mtxt">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>`;
@@ -4499,14 +4508,14 @@ function renderCatalog() {
   const sw = box.querySelector(".cg-stores-w"); if (sw && sw.dataset.html !== storeBar) { sw.innerHTML = storeBar; sw.dataset.html = storeBar; }
   const html = `${state.boss ? bossBar() : ""}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
-    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
+    ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${grocShop() ? " cg-pa" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
       const q = groupQty(p), multi = sizesOf(p).length > 1 || needsDrink(p), photo = UI.safeImg(p.photo);
       const bm = bossEditOn() && (state.bossMap || {})[p.id];
       return `<div class="cg-item${p.available ? "" : " off"}${q ? " in" : ""}${bm ? " boss-ch" : ""}" data-cg-open="${UI.esc(p.id)}">
-        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}<span class="cg-price">${UI.esc(groupPrice(p))}</span>${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
+        <div class="cg-info"><b>${q ? `<em class="cg-n"><bdi>${q}×</bdi></em> ` : ""}<bdi>${UI.esc(UI.bi(baseOf(p)))}</bdi></b>${p.description && !(grocShop() && promoOf(p)) ? `<small>${UI.esc(UI.bi(p.description))}</small>` : ""}${grocShop() && !multi ? cgPaPrice(p) : `<span class="cg-price">${UI.esc(groupPrice(p))}</span>`}${multi ? `<span class="cg-sizes">${UI.esc(sizesOf(p).map(x => UI.bi(sizeOf(x))).join(" · "))}</span>` : ""}${tileShop() ? tileMeta(p, multi) : ""}</div>
         <div class="cg-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" loading="lazy" />` : shopArt(p)}
-        ${p.available && promoOf(p) ? `<em class="cg-promo${promoOf(p).lot > 1 ? " lot" : ""}"><bdi>${UI.esc(promoTag(promoOf(p)))}</bdi></em>` : ""}
+        ${p.available && promoOf(p) ? `<em class="cg-promo${promoOf(p).lot > 1 ? " lot" : ""}"><bdi>${UI.esc(grocShop() ? `−${promoOf(p).off} %` : promoTag(promoOf(p)))}</bdi></em>` : ""}
         ${bossEditOn() ? `<button type="button" class="cg-boss" data-boss-edit="${UI.esc(p.id)}" aria-label="Modifier">✏️</button>` : ""}
         ${!p.available ? `<span class="cg-out">${bossEditOn() ? "🙈 Masqué" : UI.esc(t(UI.isService(state.shop) ? "cgOutSvc" : "cgOut"))}</span>`
           : multi ? `<button type="button" class="cg-plus" data-cg-pick="${UI.esc(p.id)}" aria-label="${UI.esc(t("cgAdd"))}">${q ? `<b>${q}</b>` : "+"}</button>`
@@ -5078,7 +5087,14 @@ function cartExtras() {
   if (!s) { box.innerHTML = ""; return; }
   const fp = firstDelivPrice(s);
   const why = isHopShop(s) && !addonOn() && buyInfo(currentQuote()) ? ` <button type="button" class="cs-why" data-buy-info>${UI.esc(t("csWhy", { fee: money(Number(CONFIG.pricing.purchase || 0)) }))} <i aria-hidden="true">ⓘ</i></button>` : "";
-  const deliv = s.shop_pays ? "" : `<p class="cs-deliv">${UI.esc(t("csDeliv", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}${fp != null ? ` · <b>${UI.esc(t("csDelivFirst", { price: money(fp) }))}</b>` : ""}${why}</p>`;
+  // (23/11, patron : « pas de calcul pour le nombre de produits ? ») : le supplément par article (déjà compté au moment de payer)
+  // est montré tout de suite dans le panier, avec le vrai total de la livraison
+  let itemsX = 0, itemsN = 0;
+  const PI = CONFIG.pricing.purchaseItems;
+  if (isHopShop(s) && !addonOn() && PI) { itemsN = Math.max(0, Math.min(cartCount() + hopExtraUnits(), PI.max) - HOP_INC); itemsX = itemsN * (PI.extraCourier + PI.extraHop); }
+  const base = addonOn() ? state.addon.price : proPrice(s);
+  const deliv = s.shop_pays ? "" : `<p class="cs-deliv">${UI.esc(t("csDeliv", { price: money(base + itemsX) }))}${fp != null ? ` · <b>${UI.esc(t("csDelivFirst", { price: money(fp) }))}</b>` : ""}${why}</p>`
+    + (itemsX ? `<p class="cs-items-x">${UI.esc(t("csItemsX", { base: money(base), n: itemsN, inc: HOP_INC, each: money(PI.extraCourier + PI.extraHop), x: money(itemsX) }))}</p>` : "");
   const st = shopState(s), shut = !!(st && st.open === false && !st.hop), closed = shut || !state.settings.accepting;
   let cl = "";
   if (closed) {
