@@ -348,44 +348,45 @@ def main() -> int:
         used_codes.add(code)
         per_cat[cat] = per_cat.get(cat, 0) + 1
 
-    # 1. les promos déjà en boutique qui existent toujours (même produit) : on les garde, prix et dates à jour
+    # (23/11, patron : « on n'a pas leurs plus grosses promos ») Avant, les promos déjà en boutique passaient toutes en
+    # premier : la boutique restait pleine (300 / 300) et les grosses promos de la semaine n'entraient jamais.
+    # Maintenant anciennes et nouvelles sont classées ensemble par réduction (une ancienne garde son nom français
+    # et a un petit avantage de 3 points pour ne pas tout changer chaque jour).
+    pool = []  # (réduction pour le classement, ancienne ?, id, promo, code, calcul, fr, he, rayon)
+    have = set()
     for i in old["items"]:
         c = cands.get(i["id"])
-        if not c or i["c"] not in c["codes"] or i["c"] in used_codes:
+        if not c or i["c"] not in c["codes"] or i["id"] in have:
             continue
         m = make(c, i["c"], prices)
         if m:
-            add(i["id"], c, i["c"], m, base_fr(i.get("fr", "")), i.get("he") or c["desc"], i.get("cat") if i.get("cat") in CATS else classify(c["desc"]))
-    kept = len(items)
-
-    # 2. on complète avec les plus grosses réductions du jour, rayon par rayon
-    fresh = []
-    have = {i["id"] for i in items}
+            have.add(i["id"])
+            cat = i.get("cat") if i.get("cat") in CATS else classify(c["desc"])
+            pool.append((m["disc"] + 0.03, 1, i["id"], c, i["c"], m, base_fr(i.get("fr", "")), i.get("he") or c["desc"], cat))
     for pid, c in cands.items():
         if pid in have:
             continue
         best = None
         for code in c["codes"]:
-            if code in used_codes:
-                continue
             m = make(c, code, prices)
             if m and (best is None or (code in fr_by_code) > (best[0] in fr_by_code)):
                 best = (code, m)
                 if code in fr_by_code:
                     break
         if best:
-            fresh.append((pid, c, best[0], best[1]))
-    fresh.sort(key=lambda t: (-t[3]["disc"], t[0]))
-    for pid, c, code, m in fresh:
+            code, m = best
+            fr, cat = fr_by_code.get(code, ("", None))
+            cat = cat if cat in CATS else classify(c["desc"] + " " + prices[code][1])
+            pool.append((m["disc"], 0, pid, c, code, m, fr, c["desc"] if fr else (clean_he(c["desc"]) or prices[code][1]), cat))
+    pool.sort(key=lambda t: (-t[0], t[2]))
+    kept = 0
+    for _, is_old, pid, c, code, m, fr, he, cat in pool:
         if len(items) >= KEEP:
             break
-        if code in used_codes:
+        if code in used_codes or per_cat.get(cat, 0) >= CAP.get(cat, 30):
             continue
-        fr, cat = fr_by_code.get(code, ("", None))
-        cat = cat if cat in CATS else classify(c["desc"] + " " + prices[code][1])
-        if per_cat.get(cat, 0) >= CAP.get(cat, 30):
-            continue
-        add(pid, c, code, m, fr, c["desc"] if fr else (clean_he(c["desc"]) or prices[code][1]), cat)
+        add(pid, c, code, m, fr, he, cat)
+        kept += is_old
 
     log(f"{len(items)} promos gardées ({kept} déjà en boutique, {len(items) - kept} nouvelles, "
         f"{sum(1 for i in items if not i['fr'])} à traduire) ; rayons : {per_cat}")
