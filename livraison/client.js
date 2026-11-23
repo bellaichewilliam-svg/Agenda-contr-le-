@@ -6281,14 +6281,14 @@ function renderHomeStatic() {
 // ===== Nouveau design « tuiles » (patron, 22/11 : « ok go ») : seulement avec ?design=4 pour l'instant =====
 // En haut de l'accueil : la tuile promo orange avec Hoppy qui saute, « Refaire mes courses » (ou « Première commande ? »),
 // une tuile par service (dessin plat, couleur douce), nos magasins ; plus bas la carte bleu ciel « On y va pour vous ».
-// (23/11, unslop validé par le patron) Une seule famille d'icônes : au trait noir, 1,6 d'épaisseur, sur les carrés pastel
+// Icônes des tuiles : dessins plats en couleur (patron, 23/11 : « garde ceux en coloris et jolis, pas les blancs »)
 const D4_IC = {
-  mezouza: '<rect x="8" y="2.5" width="8" height="19" rx="3"/><path d="M10.5 7.5h3M10.5 11h3M10.5 14.5h2"/>',
-  mikve: '<path d="M3 11h18v1.5A6.5 6.5 0 0 1 14.5 19h-5A6.5 6.5 0 0 1 3 12.5z"/><path d="M9 8c0-1.7 1.3-2.5 3-2.5s3 .8 3 2.5"/><path d="M7 4.5v.01M17.5 3.5v.01"/>',
-  pharm: '<rect x="4" y="7" width="16" height="13" rx="3"/><path d="M9 7V5h6v2M12 10.5v6M9 13.5h6"/>',
-  poste: '<path d="M12 3 4 7v10l8 4 8-4V7z"/><path d="m4 7 8 4 8-4M12 11v10M8 5l8 4"/>',
-  bakery: '<path d="M3.5 15c0-5.2 4.3-8.5 9-8.5S20.5 8.4 20.5 11c0 3.1-3.6 7.5-9 7.5-4.4 0-8-1-8-3.5z"/><path d="M9 10.5l1.8 2.6M12.8 9l1.8 2.8M16.6 9.2l1.4 2.4"/>',
-  store: '<path d="M4 9.5 5.5 4h13L20 9.5"/><path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M5.5 12v8h13v-8M10 20v-5h4v5"/>',
+  mezouza: '<rect x="20" y="8" width="24" height="48" rx="8" fill="#43A05C"/><rect x="25" y="15" width="14" height="34" rx="4" fill="#EAF7EC"/><path d="M29 22h6M29 28h6M29 34h4" stroke="#43A05C" stroke-width="2.6" stroke-linecap="round"/>',
+  mikve: '<path d="M10 28h44v8a15 15 0 0 1-15 15H25a15 15 0 0 1-15-15z" fill="#3B7BF0"/><rect x="6" y="24" width="52" height="7" rx="3.5" fill="#2A5FCC"/><path d="M25 19c0-4 3-6 7-6s7 2 7 6" fill="none" stroke="#2A5FCC" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="12" r="3" fill="#9DC0FF"/><circle cx="44" cy="9" r="2.2" fill="#9DC0FF"/>',
+  pharm: '<rect x="11" y="15" width="42" height="38" rx="11" fill="#8B5CF6"/><rect x="23" y="9" width="18" height="8" rx="4" fill="#6D3FD8"/><rect x="28.5" y="22" width="7" height="24" rx="3" fill="#fff"/><rect x="20" y="30.5" width="24" height="7" rx="3" fill="#fff"/>',
+  poste: '<path d="M8 22l24-11 24 11v24L32 57 8 46z" fill="#E09A4E"/><path d="M8 22l24 11 24-11M32 33v24" fill="none" stroke="#B0702C" stroke-width="2.8"/><path d="M20 16l24 11" stroke="#F6D9B0" stroke-width="5"/>',
+  bakery: '<path d="M8 40c0-13 13-24 28-24s20 7 20 13-9 20-26 20c-13 0-22-2-22-9z" fill="#E5A04A"/><path d="M22 26l5 7M32 22l5 8M42 22l4 7" stroke="#B5701F" stroke-width="3.4" stroke-linecap="round"/>',
+  store: '<path d="M10 26 14 12h36l4 14z" fill="#FF8A3D"/><path d="M10 26h44v4a6 6 0 0 1-11 3 6 6 0 0 1-10.5 0 6 6 0 0 1-10.5 0A6 6 0 0 1 10 30z" fill="#E8590C"/><rect x="14" y="33" width="36" height="21" rx="3" fill="#3B7BF0"/><rect x="27" y="40" width="10" height="14" rx="2" fill="#DCE8FF"/>',
 };
 const D4_SVC = [["mezouza", "#E3F3E6"], ["mikve", "#E3EDFF"], ["pharm", "#EEE7FF"], ["poste", "#FFEEDC"], ["bakery", "#FFF3D6"]];
 function d4Tiles() {
@@ -6319,7 +6319,7 @@ function d4Tiles() {
   }).join("") + shopSl.map(x => `<span class="d4-bg d4-bg-shop" aria-hidden="true"><img src="${UI.esc(UI.safeImg(x.cover))}" alt="" loading="lazy" onerror="this.remove()" /></span>`).join("");
   const nSl = Math.max(1, slides.length) + shopSl.length;
   const dots = nSl > 1 ? `<span class="d4-dots" aria-hidden="true">${Array.from({ length: nSl }, (x, i) => `<i${i === 0 ? ' class="on"' : ""}></i>`).join("")}</span>` : "";
-  const svc = D4_SVC.map(([k, bg]) => `<button type="button" class="d4t d4-svc" data-d4="${k}" style="--bg:${bg}"><span class="d4-blob"><svg class="d4-line" viewBox="0 0 24 24" aria-hidden="true">${D4_IC[k]}</svg></span><span><b>${UI.esc(t("d4S_" + k))}</b><small>${UI.esc(t("d4S_" + k + "S"))}</small></span></button>`).join("");
+  const svc = D4_SVC.map(([k, bg]) => `<button type="button" class="d4t d4-svc" data-d4="${k}" style="--bg:${bg}"><span class="d4-blob"><svg viewBox="0 0 64 64" aria-hidden="true">${D4_IC[k]}</svg></span><span><b>${UI.esc(t("d4S_" + k))}</b><small>${UI.esc(t("d4S_" + k + "S"))}</small></span></button>`).join("");
   const html = `<button type="button" class="d4t d4-promo" data-d4="promo"><span class="d4-bgs">${bgHtml}</span><span class="d4-sls">${slHtml2}</span>${dots}<span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
     ${again}${svc}`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
@@ -6339,7 +6339,7 @@ function d4Tiles() {
       return `<button type="button" class="d4-sh" data-d4-pro="${UI.esc(x.code)}"><span class="d4-sh-pic"${pic ? ` style="background-image:url('${pic}')"` : ""}>${isKosher(x) ? kosherTag("k-on-cover") : ""}${logo ? `<img src="${logo}" alt="" loading="lazy" />` : `<b>${UI.esc(d4Nm(x).slice(0, 1))}</b>`}</span>
         <b class="d4-sh-n"><bdi>${UI.esc(d4Nm(x))}</bdi>${d4Stars(x)}</b><small><i class="${open ? "op" : "cl"}"></i>${UI.esc(lbl)}</small></button>`;
     };
-    const any = `<button type="button" class="d4-sh d4-sh-any" data-d4="anyshop"><span class="d4-sh-pic"><span class="d4-blob"><svg class="d4-line" viewBox="0 0 24 24" aria-hidden="true">${D4_IC.store}</svg></span></span><b class="d4-sh-n">${UI.esc(t("d4AnyShopT"))}</b><small>${UI.esc(t("d4AnyShopS"))}</small></button>`;
+    const any = `<button type="button" class="d4-sh d4-sh-any" data-d4="anyshop"><span class="d4-sh-pic"><span class="d4-blob"><svg viewBox="0 0 64 64" aria-hidden="true">${D4_IC.store}</svg></span></span><b class="d4-sh-n">${UI.esc(t("d4AnyShopT"))}</b><small>${UI.esc(t("d4AnyShopS"))}</small></button>`;
     const shHtml = `<div class="d4-sh-head"><h3 class="d4-h">${UI.esc(t("d4Shops"))}</h3><button type="button" class="d4-sh-all" data-d4="shops">${UI.esc(t("d4SeeAll"))} ${I18N.lang === "he" ? "‹" : "›"}</button></div>
       <div class="d4-sh-row">${hop.map(card).join("")}${any}</div>`;
     if (sh.dataset.html !== shHtml) { sh.innerHTML = shHtml; sh.dataset.html = shHtml; }
