@@ -1686,7 +1686,18 @@ $("#pharmaBox").addEventListener("click", e => {
     state.pharmaCat = c.dataset.phCat;
     // Changé depuis le bas de la liste : on remonte au début du rayon
     state.phQ = ""; const qi = $("#pharmaBox [data-ph-q]"); if (qi) qi.value = "";
-    requestAnimationFrame(() => { const h = $("#pharmaBox .ph-rest"); if (h && (c.dataset.phNav || h.getBoundingClientRect().top < 0)) h.scrollIntoView({ block: "start", behavior: "smooth" }); });
+    // (23/11, patron : « Rayon suivant ne nous amène pas en haut de la liste ») : après le dessin du nouveau rayon,
+    // on remonte au début de la liste, sous la barre du haut et la bande des rayons (qui restent collées en haut)
+    setTimeout(() => {
+      const h = $("#pharmaBox .ph-rest") || $("#pharmaBox");
+      if (!h || !(c.dataset.phNav || h.getBoundingClientRect().top < 0)) return;
+      let off = 8;
+      document.querySelectorAll(".topbar, header, #pharmaBox .ph-cats, #pharmaBox .ph-tabs, .ph-sticky").forEach(el => {
+        const st = getComputedStyle(el).position, r = el.getBoundingClientRect();
+        if ((st === "sticky" || st === "fixed") && r.top < 200 && r.height < 200) off = Math.max(off, r.bottom + 8);
+      });
+      window.scrollTo({ top: Math.max(0, window.scrollY + h.getBoundingClientRect().top - off), behavior: "smooth" });
+    }, 60);
   }
   else if (plus) {
     // 24 articles au plus, et tout doit tenir dans le top case
@@ -10285,7 +10296,11 @@ $("#mobileGo").addEventListener("click", async e => {
 if ("IntersectionObserver" in window) {
   const bar = $("#mobileBar");
   let inForm = false, summaryVisible = false;
-  const update = () => bar.classList.toggle("show", inForm && !summaryVisible);
+  // (23/11, capture du patron : deux barres orange l'une sur l'autre) : quand la barre du bas est là, la barre
+  // « Voir la commande » se retire ; toucher le total de la barre du bas ouvre la commande
+  const update = () => { const on = inForm && !summaryVisible; bar.classList.toggle("show", on); document.body.classList.toggle("mbar-on", on); };
+  const sum = bar.querySelector(".mb-sum");
+  if (sum) { sum.setAttribute("role", "button"); sum.addEventListener("click", () => { try { if (state.shop && cartCount()) openCart(); } catch (e) { /* pas de panier */ } }); }
   new IntersectionObserver(es => { inForm = es[0].isIntersecting; update(); }).observe(form);
   new IntersectionObserver(es => { summaryVisible = es[0].isIntersecting; update(); }).observe($("#summary"));
 }
