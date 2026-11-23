@@ -6320,7 +6320,16 @@ function d4Tiles() {
   const nSl = Math.max(1, slides.length) + shopSl.length;
   const dots = nSl > 1 ? `<span class="d4-dots" aria-hidden="true">${Array.from({ length: nSl }, (x, i) => `<i${i === 0 ? ' class="on"' : ""}></i>`).join("")}</span>` : "";
   const svc = D4_SVC.map(([k, bg]) => `<button type="button" class="d4t d4-svc" data-d4="${k}" style="--bg:${bg}"><span class="d4-blob"><svg viewBox="0 0 64 64" aria-hidden="true">${D4_IC[k]}</svg></span><span><b>${UI.esc(t("d4S_" + k))}</b><small>${UI.esc(t("d4S_" + k + "S"))}</small></span></button>`).join("");
-  const html = `<button type="button" class="d4t d4-promo" data-d4="promo"><span class="d4-bgs">${bgHtml}</span><span class="d4-sls">${slHtml2}</span>${dots}<span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
+  // (23/11, accueil validé par le patron) Les promos en vrais produits : une carte pleine largeur avec 3 vraies photos,
+  // le prix promo et l'ancien prix barré, du magasin en tête des promos (Hoppy est désormais dans la scène du haut)
+  const pCode = (slides[0] && slides[0].code) || "HOPRAMILEVY";
+  const pItems = pa.data ? paItems().filter(y => y.code === pCode && y.ph && y.o && y.o > y.p && !y.b).sort((a2, b2) => (Number(b2.f) || 0) - (Number(a2.f) || 0)).slice(0, 3) : [];
+  const pSc = (state.showcase || []).find(x => x.code === pCode), pLogo = pSc && UI.safeImg(pSc.logo);
+  const promoCard = pItems.length === 3 ? `<div class="d4t d4-pc" data-d4="promo2" data-code="${UI.esc(pCode)}" role="button" tabindex="0">
+      <span class="d4-pc-h">${pLogo ? `<img src="${UI.esc(pLogo)}" alt="" />` : ""}<span><small>${UI.esc(t("d4Promo"))}</small><b><bdi>${UI.esc(d4Nm({ code: pCode, name: paShopName(pCode) }))}</bdi></b></span><em>${UI.esc(t("d4See"))} ${I18N.lang === "he" ? "‹" : "›"}</em></span>
+      <span class="d4-pc-l">${pItems.map(y => `<span class="d4-pc-i"><span class="d4-pc-ph"><img src="${UI.esc(y.ph)}" alt="" loading="lazy" decoding="async"${UI.imgCors ? UI.imgCors(y.ph) : ""} /></span><span class="d4-pc-n"><bdi>${UI.esc(UI.bi(y.name))}</bdi></span><span class="d4-pc-p"><b dir="ltr">${UI.esc(y.l > 1 ? t("paLot", { n: y.l, price: money(y.p) }) : money(y.p))}</b><s dir="ltr">${UI.esc(money(y.o))}</s></span></span>`).join("")}</span>
+      ${pItems[0].e ? `<span class="d4-pc-f">${UI.esc(t("paUntil", { d: pItems[0].e }))}</span>` : ""}</div>` : "";
+  const html = promoCard ? `${promoCard}${again}${svc}` : `<button type="button" class="d4t d4-promo" data-d4="promo"><span class="d4-bgs">${bgHtml}</span><span class="d4-sls">${slHtml2}</span>${dots}<span class="d4-btn">${UI.esc(t("d4See"))}</span><span class="d4-shadow" aria-hidden="true"></span><img src="img/hoppy-vit.webp" alt="" /></button>
     ${again}${svc}`;
   if (box.dataset.html !== html) { box.innerHTML = html; box.dataset.html = html; }
   // Tous les autres services sous les tuiles (patron 22/11 : « on ne voit pas tout le reste que je fais »)
@@ -6470,6 +6479,7 @@ document.addEventListener("click", e => {
   if (k === "promo") { const on = b.querySelector(".d4-sl.on"), c = (on && on.dataset.code) || "";
     if (c.startsWith("shop:")) { state.shopDir = ""; return loadShop(c.slice(5)); }
     return openPromosAll(c); }
+  if (k === "promo2") return openPromosAll(b.dataset.code || "");
   if (k === "again") return reorderGo(0);
   if (k === "first") return hvOpenTalk();   // « Tapez ou parlez » : le micro de Hoppy s'ouvre
   if (k === "mikve") return mikveOpen();
