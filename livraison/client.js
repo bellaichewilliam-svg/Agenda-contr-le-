@@ -2870,6 +2870,14 @@ function fillKnown() {
   try {
     if (forClient) return;   // (commande saisie par le patron pour un client : rien de pré-rempli)
     if (!state.pick.to && !val("dropoff_address").trim()) { const d = defaultDropAddr() || lastOrderDrop(); if (d) applySavedAddr("to", d); }
+    // (23/11, l'adresse bloquait 11 commandes en 14 jours) : nouveau client qui a déjà autorisé la position sur ce téléphone :
+    // son adresse se met toute seule (il n'a plus qu'à vérifier le numéro) ; sinon le bouton « Ma position » est bien en vue
+    if (!state.pick.to && !val("dropoff_address").trim() && !state.toCleared && navigator.permissions && navigator.geolocation && !state.autoGeoTried) {
+      state.autoGeoTried = true;
+      navigator.permissions.query({ name: "geolocation" }).then(r => {
+        if (r.state === "granted" && !state.pick.to && !val("dropoff_address").trim()) Promise.race([locateInto("to"), new Promise(x => setTimeout(x, 8000))]).catch(() => {});
+      }).catch(() => {});
+    }
     const p = Store.getProfile() || {}, last = (state.mine || []).find(x => x && x.contact_name) || {};
     if (!val("contact_name").trim() && (p.contact_name || last.contact_name)) form.contact_name.value = p.contact_name || last.contact_name;
     if (!val("contact_phone").trim() && (p.contact_phone || last.contact_phone)) form.contact_phone.value = p.contact_phone || last.contact_phone;
