@@ -539,6 +539,9 @@ function attach(input, opts) {
 
   const close = () => { box.classList.add("hidden"); active = -1; };
   const render = () => {
+    // (23/11, patron : « Aucun résultat » sous un champ vide) Une recherche finie après que le champ a été vidé
+    // (croix, ⇅, effacé) ne doit rien montrer : champ vide = les raccourcis ou rien, jamais « Aucun résultat »
+    if (!items.length && input.value.trim().length < 3) return close();
     box.innerHTML = items.length
       ? items.map((p, i) => p.quick
         // Raccourci (« Ma position », adresse enregistrée Maison / Travail…)
@@ -679,10 +682,10 @@ function attach(input, opts) {
     // Enseigne absente de la carte, nommée ailleurs (Hoppy) : le client n'a plus qu'à donner sa rue et son numéro
     askBrand(q) { notOnMap(String(q || "").trim().slice(0, 80)).apply(); },
     // Adresse reprise du carnet : considérée comme choisie sur la carte
-    setPicked(label) { input.value = shortLabel(label, opts.lang()); input.dataset.picked = input.value; input.dataset.full = label; input.classList.add("ac-ok"); fitText(input); close(); },
+    setPicked(label) { seq++; clearTimeout(timer); input.value = shortLabel(label, opts.lang()); input.dataset.picked = input.value; input.dataset.full = label; input.classList.add("ac-ok"); fitText(input); close(); },
     // Libellé complet de l'adresse choisie (la case n'en montre qu'une version courte)
     pickedLabel: () => (input.dataset.picked && input.value === input.dataset.picked ? input.dataset.full : null),
-    reset() { delete input.dataset.picked; input.style.fontSize = ""; input.classList.remove("ac-ok"); close(); }
+    reset() { seq++; clearTimeout(timer); delete input.dataset.picked; input.style.fontSize = ""; input.classList.remove("ac-ok"); close(); }
   };
 }
 
