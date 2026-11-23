@@ -7635,3 +7635,8 @@ body #cartSheet .cs-pic, body #cartSheet .cs-txt { cursor: pointer; }
 .mb-lines .mb-more button { all: unset; cursor: pointer; font-weight: 700; color: #0F1F3D; text-decoration: underline; font-size: 13.5px; }
 /* (23/11) Une seule barre en bas : « Voir la commande » se retire quand la barre du total est affichée */
 @media (max-width: 960px) { body.mbar-on .cg-cart { display: none !important; } body.mbar-on .mobile-bar .mb-sum { cursor: pointer; } }
+/* (23/11, patron) Page des promos : un article déjà pris montre sa quantité (− 2 +), même après être revenu sur la page */
+.pa-step { position: absolute; bottom: 10px; inset-inline-end: 8px; display: inline-flex; align-items: center; gap: 2px; background: #111418; color: #fff; border-radius: 999px; padding: 2px; }
+.pa-step button { width: 32px; height: 32px; border: 0; border-radius: 50%; background: transparent; color: #fff; font-size: 20px; font-weight: 800; line-height: 1; cursor: pointer; }
+.pa-step b { min-width: 18px; text-align: center; font-size: 15px; }
+html.d3 .pa-step { background: #111418 !important; }
