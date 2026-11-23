@@ -10685,7 +10685,14 @@ function renderCartIcon() {
 async function openStoredCart() {
   const c = cartStored();
   // Seulement un panier gardé dans un autre magasin : on y retourne, avec ses articles
-  if (!c) { const m = multiList()[0]; if (m) { await loadShop(m.code, true); setTimeout(() => { if (cartCount()) openCart(); }, 400); return; } emptyCartSheet(); return; }
+  if (!c) { const m = multiList()[0]; if (m) { await loadShop(m.code, true); setTimeout(() => { if (cartCount()) openCart(); }, 400); return; }
+    // (23/11, patron : « vide ? » alors que la pastille dit 1) des articles des rayons choisis sur ce téléphone mais pas
+    // encore gardés : on ouvre leur panier au lieu de dire « vide »
+    let rl = 0; try { rl = rayLines().length; } catch (e) { rl = 0; }
+    if (rl) { if (state.shop) leaveShop(true); goPharma(); setTimeout(openRayCart, 350); return; }
+    let hk = null; try { hk = hvKeepGet && hvKeepGet(); } catch (e) { hk = null; }
+    if (hk && hk.basket && hk.basket.length) return hvOpen();
+    emptyCartSheet(); renderCartIcon(); return; }
   if (c.shop) {
     if (!state.shop || state.shop.code !== c.shop.code) { state.shopDir = c.shop.dir || ""; await loadShop(c.shop.code, true); }
     const ids = cgProducts().map(p => p.id);
