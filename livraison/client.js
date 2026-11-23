@@ -4464,10 +4464,25 @@ function renderCatalog() {
   const allSecs = (favItems.length ? [{ id: "_fav", title: t("favTitle"), items: favItems }] : []).concat(cats.map(c => ({ id: c.id, title: UI.bi(c.name), items: groupFirst(cgShown().filter(p => p.category_id === c.id)) })))
     .concat(hasLoose ? [{ id: "_", title: cats.length ? t("cgOther") : "", items: groupFirst(cgShown().filter(p => !cats.some(c => c.id === p.category_id))) }] : []);
   // Recherche dans le catalogue (nom, description, français et hébreu, sans accents)
-  const cq = phNorm(state.cgQ || "");
+  let cq = phNorm(state.cgQ || "");
   // (début d'un mot : « eau » trouve « Eau minérale », pas « gâteau » ; le choix entre crochets ne compte pas)
-  const cqHit = txt => { for (let k = txt.indexOf(cq); k >= 0; k = txt.indexOf(cq, k + 1)) if (k === 0 || /[\s(/'·-]/.test(txt[k - 1])) return true; return false; };
-  const sections = cq ? allSecs.map(x => Object.assign({}, x, { items: x.items.filter(p => cqHit(phNorm(`${String(p.name).replace(/\s*\[[^\]]*\]\s*$/, "")} ${p.description || ""}`))) })).filter(x => x.items.length) : allSecs;
+  // (23/11, patron : « pourquoi je n'ai pas les autres produits ? ») chaque mot cherché séparément, dans n'importe quel
+  // ordre (« חלב תנובה 1% 1 ל׳ » trouve « Tnuva · Lait 1 % · חלב תנובה 1% ») ; les unités seules ne comptent pas
+  const wordHit = (txt, w) => { for (let k = txt.indexOf(w); k >= 0; k = txt.indexOf(w, k + 1)) if (k === 0 || /[\s(/'·-]/.test(txt[k - 1])) return true; return false; };
+  const cqWords = q => q.split(/\s+/).map(w => w.replace(/[׳'"״.,]+$/g, "")).filter(w => w.length >= 2 || /\d/.test(w)).filter(w => !/^(l|ml|g|kg|cl|ל|מל|גר|ק"ג|יח)$/.test(w));
+  const secsFor = q => { const ws = cqWords(q); if (!ws.length) return allSecs;
+    return allSecs.map(x => Object.assign({}, x, { items: x.items.filter(p => { const tx = phNorm(`${String(p.name).replace(/\s*\[[^\]]*\]\s*$/, "")} ${p.description || ""}`); return ws.every(w => wordHit(tx, w)); }) })).filter(x => x.items.length); };
+  let sections = cq ? secsFor(cq) : allSecs;
+  // Recherche posée par une autre page (Hoppy, comparateur, recherche de l'accueil) qui ne trouve rien ici : on montre
+  // tout le magasin plutôt qu'un écran vide, et on le dit
+  // (magasin de chaîne : on garde la recherche, la liste « Dans tout le magasin » juste dessous trouve l'article)
+  if (cq && state.cgQPre && isRlShop() && !state.cgQPreFilled) { state.cgQPreFilled = true; setTimeout(() => { rlAllFill(); cgElseFill(); }, 80); }
+  if (cq && !sections.length && state.cgQPre && !isRlShop()) {
+    const was = state.cgQ; state.cgQ = ""; state.cgQPre = false; cq = "";
+    const qi = box.querySelector && box.querySelector("[data-cg-q]"); if (qi) qi.value = "";
+    sections = allSecs;
+    setTimeout(() => toastCart(t("cgPreNone", { q: String(was).slice(0, 40) }), 4500), 300);
+  }
   const n = cartCount();
   // Façon appli de livraison : onglets collants, lignes d'articles avec grande image, panier flottant en bas
   // (Plus de rangée « Les incontournables » : elle répétait les premiers articles du menu, en doublon — demande du patron)
@@ -4477,7 +4492,7 @@ function renderCatalog() {
   if (box.dataset.shell !== state.shop.code + I18N.lang) {
     box.innerHTML = `<div class="cg-stores-w"></div><div class="cg-head"><div class="cg-srow"><button type="button" class="cg-shopsw hidden" data-cg-sw aria-expanded="false"></button><label class="cg-search"><span aria-hidden="true">🔍</span><input type="search" data-cg-q enterkeyhint="search" autocomplete="off" /></label></div><div class="cg-swlist hidden"></div><button type="button" class="cg-voice" data-cg-mic><span class="cv-ic">${HV_MIC}</span><span class="cv-t"><b>${UI.esc(t("cgVoice"))}</b><small>${UI.esc(t("cgVoiceS"))}</small></span><i aria-hidden="true">›</i></button><div class="cg-head-tabs"></div></div><div class="cg-body"></div>`;
     box.dataset.shell = state.shop.code + I18N.lang; box.dataset.html = ""; box.dataset.head = "";
-    state.cgQ = state.cgQNext || ""; state.cgQNext = "";
+    state.cgQ = state.cgQNext || ""; state.cgQNext = ""; state.cgQPre = !!state.cgQ; state.cgQPreFilled = false;
     if (state.cgQ) box.querySelector("[data-cg-q]").value = state.cgQ;
   }
   const qIn = box.querySelector("[data-cg-q]");
@@ -4617,7 +4632,7 @@ addEventListener("scroll", () => { if (!cgTick) cgTick = requestAnimationFrame((
 $("#catalogBox").addEventListener("input", e => {
   if (!e.target.matches("[data-cg-q]")) return;
   e.stopPropagation();
-  state.cgQ = e.target.value;
+  state.cgQ = e.target.value; state.cgQPre = false;
   renderCatalog();
   clearTimeout(cgElseT); cgElseT = setTimeout(cgElseFill, 350);
   clearTimeout(rlAllT); rlAllT = setTimeout(rlAllFill, 350);
