@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HOP! · הדמיית מסך בית</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink:#111418; --ink2:#5A6270; --ink3:#8A919C; --line:#E6E8EB; --grey:#F2F3F5; --bg:#FFFFFF;
+  --navy:#0F1F3D; --brand:#FF6A13; --act:#E8590C; --ok:#2F9E5B;
+  --r-card:16px; --r-ctl:12px; --pad:16px;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+html { -webkit-text-size-adjust:100%; }
+body { background:var(--bg); color:var(--ink); font:400 15px/1.4 Heebo, system-ui, sans-serif; padding-bottom:96px; }
+html[dir=rtl] body { font-size:16px; }
+button { font:inherit; color:inherit; background:none; border:0; cursor:pointer; text-align:start; }
+bdi.logo, .logo { font-weight:800; letter-spacing:-.02em; color:var(--navy); }
+.logo span { color:var(--brand); }
+.ic { width:20px; height:20px; flex:none; }
+html[dir=rtl] .ic-dir { transform:scaleX(-1); }
+img { display:block; }
+.wrap { max-width:480px; margin:0 auto; }
+section { padding-inline:var(--pad); }
+h2 { font-size:19px; font-weight:600; line-height:1.3; }
+html[dir=rtl] h2 { font-size:20px; font-weight:700; }
+
+/* Signature HOP! : le petit trajet point noir → point orange */
+.route { display:inline-flex; align-items:center; gap:0; flex:none; direction:ltr; }
+.route i { width:7px; height:7px; border-radius:50%; background:var(--ink); }
+.route i:last-child { background:var(--brand); }
+.route b { width:12px; height:1.5px; background:#C4C9D0; }
+html[dir=rtl] .route { transform:scaleX(-1); }
+
+/* Barre du haut */
+.top { display:flex; align-items:center; gap:8px; padding:8px var(--pad) 4px; }
+.round { width:44px; height:44px; border-radius:50%; background:var(--grey); display:grid; place-items:center; flex:none; }
+.top .logo { font-size:30px; margin-inline:auto; line-height:1; }
+.lang { height:44px; padding:0 14px; border-radius:22px; background:var(--grey); font-weight:500; font-size:14px; flex:none; }
+
+/* Livrer à / Quand */
+.chips { display:flex; gap:8px; padding:8px var(--pad) 12px; }
+.chip { display:flex; align-items:center; gap:10px; height:52px; padding:0 14px; border:1px solid var(--line); border-radius:var(--r-ctl); min-width:0; }
+.chip.addr { flex:1; }
+.chip > span { display:flex; flex-direction:column; min-width:0; line-height:1.2; }
+.chip small { color:var(--ink2); font-size:12px; }
+.chip b { font-weight:500; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+html[dir=rtl] .chip b { font-weight:600; }
+.chip .ic { color:var(--ink2); width:18px; height:18px; }
+
+/* Le grand visuel : une rue de Netanya */
+.hero { position:relative; margin:0 var(--pad); }
+.hero-pic { position:relative; height:288px; border-radius:20px; overflow:hidden; background:#EAF2F9; }
+.scene { position:absolute; inset:0; width:100%; height:100%; }
+html[dir=rtl] .scene { transform:scaleX(-1); }
+html[dir=rtl] .scene .unflip { transform-box:fill-box; transform-origin:center; transform:scaleX(-1); }
+.hoppy { position:absolute; inset-inline-end:6px; bottom:44px; height:150px; width:auto; }
+.hoppy-shadow { position:absolute; inset-inline-end:26px; bottom:30px; width:52px; height:6px; border-radius:50%; background:rgba(15,31,61,.10); }
+.hero-txt { position:absolute; inset-inline-start:20px; top:20px; inset-inline-end:16px; }
+.hero h1 { max-width:240px; }
+.hero h1 { font-size:27px; line-height:1.12; font-weight:700; letter-spacing:-.01em; color:var(--ink); }
+html[dir=rtl] .hero h1 { font-size:30px; line-height:1.2; font-weight:800; letter-spacing:0; }
+.hero-sub { white-space:nowrap; display:flex; align-items:center; gap:8px; margin-top:10px; font-size:14px; font-weight:500; color:var(--ink); }
+html[dir=rtl] .hero-sub { font-size:15px; font-weight:600; }
+.search { position:relative; margin:-28px 12px 0; display:flex; align-items:center; gap:10px; height:56px; padding:0 8px 0 16px; padding-inline:16px 8px; background:#fff; border:1px solid var(--line); border-radius:var(--r-card); }
+.search .ic { color:var(--ink2); }
+.search span { flex:1; color:var(--ink3); font-size:16px; }
+.search .mic { width:40px; height:40px; border-radius:10px; background:var(--grey); display:grid; place-items:center; color:var(--ink); }
+
+/* Promos en vrais produits */
+.promo { margin-top:20px; border:1px solid var(--line); border-radius:var(--r-card); padding:16px; }
+.promo-h { display:flex; align-items:center; gap:10px; }
+.promo-h img { width:40px; height:40px; border-radius:10px; border:1px solid var(--line); object-fit:cover; }
+.promo-h span { display:flex; flex-direction:column; flex:1; line-height:1.2; }
+.promo-h small { color:var(--ink2); font-size:13px; }
+.promo-h b { font-size:18px; font-weight:600; }
+html[dir=rtl] .promo-h b { font-weight:700; }
+.see { font-size:14px; font-weight:500; color:var(--ink); white-space:nowrap; }
+.prs { list-style:none; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+.pr { display:flex; flex-direction:column; min-width:0; }
+.pr-ph { aspect-ratio:1; border-radius:12px; background:#fff; border:1px solid var(--line); display:grid; place-items:center; overflow:hidden; }
+.pr-ph img { width:84%; height:84%; object-fit:contain; }
+.pr-n { margin-top:8px; font-size:12.5px; line-height:1.3; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.6em; }
+html[dir=rtl] .pr-n { font-size:13px; font-weight:500; }
+.pr-p { display:flex; flex-direction:column; margin-top:4px; font-variant-numeric:tabular-nums; }
+.pr-p b { font-size:16px; font-weight:700; }
+.pr-p s { font-size:12.5px; color:var(--ink3); }
+.promo-f { display:flex; align-items:center; gap:8px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); font-size:13px; color:var(--ink2); }
+.promo-f em { font-style:normal; margin-inline-start:auto; color:var(--ink3); white-space:nowrap; }
+
+/* Tuiles services (icônes en couleur gardées) */
+.tiles { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px; }
+.tile { display:flex; flex-direction:column; gap:12px; padding:14px; border-radius:var(--r-card); background:var(--bg); min-height:128px; }
+.tile.first { border:1px solid var(--line); justify-content:space-between; }
+.tile.first small.k { color:var(--ink2); font-size:13px; }
+.tile.first b { font-size:17px; font-weight:600; line-height:1.25; }
+html[dir=rtl] .tile.first b { font-weight:700; }
+.tile.first .s { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink2); }
+.blob { width:48px; height:48px; border-radius:14px; background:#fff; display:grid; place-items:center; }
+.blob svg { width:34px; height:34px; }
+.tile-t { display:flex; flex-direction:column; line-height:1.25; }
+.tile-t b { font-size:16px; font-weight:600; }
+html[dir=rtl] .tile-t b { font-weight:700; font-size:17px; }
+.tile-t small { font-size:13px; color:var(--ink2); }
+
+/* Tout ce qu'on fait */
+.sec { margin-top:28px; }
+.sec-h { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.kinds { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 8px; }
+.kind { display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; font-size:13px; line-height:1.25; font-weight:500; }
+html[dir=rtl] .kind { font-size:14px; font-weight:600; }
+.kind-ic { width:100%; height:64px; border-radius:14px; background:var(--bg); display:grid; place-items:center; }
+.kind-ic .ic { width:26px; height:26px; }
+
+/* Nos magasins */
+.shops { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.shop { display:flex; flex-direction:column; min-width:0; }
+.shop-pic { position:relative; aspect-ratio:16/10; border-radius:14px; background:#F2F3F5 center/cover; }
+.shop-pic img { position:absolute; inset-inline-start:8px; bottom:8px; width:34px; height:34px; border-radius:9px; border:2px solid #fff; object-fit:cover; background:#fff; }
+.shop b { margin-top:8px; font-size:15px; font-weight:600; }
+html[dir=rtl] .shop b { font-weight:700; }
+.shop small { display:flex; align-items:center; gap:6px; font-size:13px; color:var(--ink2); }
+.shop small i { width:6px; height:6px; border-radius:50%; background:var(--ok); }
+.any { display:flex; align-items:center; gap:12px; width:100%; margin-top:12px; padding:12px 14px; border:1px solid var(--line); border-radius:var(--r-card); }
+.any .blob { background:var(--grey); width:44px; height:44px; }
+.any span.t { display:flex; flex-direction:column; flex:1; line-height:1.25; }
+.any b { font-weight:600; } html[dir=rtl] .any b { font-weight:700; }
+.any small { font-size:13px; color:var(--ink2); }
+.any .ic { color:var(--ink3); }
+
+/* Une course, n'importe où */
+.course { border:1px solid var(--line); border-radius:var(--r-card); padding:16px; }
+.course p { color:var(--ink2); font-size:14px; margin-top:4px; }
+.legs { position:relative; margin-top:14px; border:1px solid var(--line); border-radius:var(--r-ctl); }
+.leg { display:flex; align-items:center; gap:12px; padding:10px 14px; min-height:56px; }
+.leg + .leg { border-top:1px solid var(--line); }
+.leg i { width:10px; height:10px; border-radius:50%; background:var(--ink); flex:none; position:relative; z-index:1; }
+.leg.to i { background:var(--brand); }
+.legs::before { content:""; position:absolute; inset-inline-start:18.25px; top:28px; bottom:28px; width:1.5px; background:#C4C9D0; }
+.leg span { display:flex; flex-direction:column; line-height:1.25; }
+.leg small { font-size:12px; color:var(--ink2); }
+.leg b { font-size:15px; font-weight:500; color:var(--ink3); }
+.btn { display:flex; align-items:center; justify-content:center; gap:10px; width:100%; height:52px; margin-top:12px; border-radius:var(--r-ctl); background:var(--act); color:#fff; font-weight:600; font-size:16px; }
+html[dir=rtl] .btn { font-weight:700; font-size:17px; }
+html[dir=rtl] .btn .ic { transform:scaleX(-1); }
+.prices { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+.price { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--grey); border-radius:var(--r-ctl); }
+.price span { display:flex; flex-direction:column; line-height:1.2; min-width:0; }
+.price b { font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; }
+.price small { font-size:12px; color:var(--ink2); }
+.price .lbl { font-size:12px; color:var(--ink2); }
+
+/* Et aussi */
+.links { display:flex; flex-direction:column; gap:10px; }
+.link { display:flex; align-items:center; gap:12px; width:100%; padding:14px; border:1px solid var(--line); border-radius:var(--r-card); }
+.link .lic { width:40px; height:40px; border-radius:50%; background:var(--grey); display:grid; place-items:center; flex:none; }
+.link .lic.wa { background:#25D366; color:#fff; }
+.link span.t { display:flex; flex-direction:column; flex:1; line-height:1.3; min-width:0; }
+.link b { font-weight:600; } html[dir=rtl] .link b { font-weight:700; }
+.link small { font-size:13px; color:var(--ink2); }
+.link > .ic { color:var(--ink3); }
+
+/* Barre du bas */
+.nav { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(5,1fr); padding:6px 4px 10px; z-index:5; }
+.nav button { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:11.5px; color:var(--ink2); text-align:center; }
+html[dir=rtl] .nav button { font-size:12.5px; font-weight:500; }
+.nav button.on { color:var(--navy); font-weight:600; }
+.nav .ic { width:22px; height:22px; }
+.nav-mic { margin-top:-26px; }
+.mic-r { position:relative; width:58px; height:58px; border-radius:50%; background:#fff; border:1px solid var(--line); display:grid; place-items:center; color:var(--ink); }
+.mic-r .ic { width:24px; height:24px; }
+.mic-r i { position:absolute; top:8px; inset-inline-end:9px; width:9px; height:9px; border-radius:50%; background:var(--brand); border:2px solid #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <button class="round" aria-label="Profil"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></button>
+    <bdi dir="ltr" class="logo">HOP<span>!</span></bdi>
+    <button class="round" aria-label="Panier"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.2 11h10.6L20 7H6.2"/><circle cx="9" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg></button>
+    <button class="lang">Français</button>
+  </header>
+
+  <div class="chips">
+    <button class="chip addr"><span class="route" aria-hidden="true"><i></i><b></b><i></i></span><span><small>משלוח אל</small><b>לבחור כתובת</b></span></button>
+    <button class="chip"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 7.5V12l3 2"/></svg><span><small>מתי</small><b>עכשיו</b></span></button>
+  </div>
+
+  <div class="hero">
+    <div class="hero-pic" role="img" aria-label="רחוב בנתניה ליד הים, שליח HOP! על קטנוע והופי קופץ לידו">
+      
+<svg class="scene" viewBox="0 0 358 300" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  <rect width="358" height="300" fill="#EAF2F9"/>
+  <!-- la mer au loin -->
+  <rect y="150" width="358" height="22" fill="#CFE2F0"/>
+  <path d="M0 160h358" stroke="#E4EFF7" stroke-width="1.2"/>
+  <!-- immeubles bas à gauche (place pour le titre au-dessus) -->
+  <g>
+    <rect x="-4" y="150" width="58" height="80" fill="#FFFFFF"/>
+    <rect x="54" y="160" width="44" height="70" fill="#F4ECDF"/>
+    <rect x="98" y="144" width="52" height="86" fill="#FFFFFF"/>
+    <g fill="#DCE7F0">
+      <rect x="6" y="162" width="10" height="9" rx="1"/><rect x="22" y="162" width="10" height="9" rx="1"/><rect x="38" y="162" width="10" height="9" rx="1"/>
+      <rect x="6" y="180" width="10" height="9" rx="1"/><rect x="22" y="180" width="10" height="9" rx="1"/><rect x="38" y="180" width="10" height="9" rx="1"/>
+      <rect x="6" y="198" width="10" height="9" rx="1"/><rect x="22" y="198" width="10" height="9" rx="1"/><rect x="38" y="198" width="10" height="9" rx="1"/>
+      <rect x="62" y="172" width="11" height="10" rx="1"/><rect x="80" y="172" width="11" height="10" rx="1"/>
+      <rect x="62" y="192" width="11" height="10" rx="1"/><rect x="80" y="192" width="11" height="10" rx="1"/>
+      <rect x="107" y="156" width="10" height="9" rx="1"/><rect x="124" y="156" width="10" height="9" rx="1"/>
+      <rect x="107" y="174" width="10" height="9" rx="1"/><rect x="124" y="174" width="10" height="9" rx="1"/>
+      <rect x="107" y="192" width="10" height="9" rx="1"/><rect x="124" y="192" width="10" height="9" rx="1"/>
+    </g>
+    <path d="M-4 174h58M-4 192h58M98 168h52M98 186h52" stroke="#E6E8EB" stroke-width="1"/>
+  </g>
+  <!-- immeubles plus hauts à droite -->
+  <g>
+    <rect x="150" y="140" width="56" height="90" fill="#F7F1E7"/>
+    <rect x="206" y="128" width="64" height="102" fill="#FFFFFF"/>
+    <rect x="270" y="132" width="52" height="98" fill="#EEF2F6"/>
+    <rect x="322" y="122" width="44" height="108" fill="#FFFFFF"/>
+    <g fill="#DCE7F0">
+      
+      <rect x="160" y="154" width="12" height="10" rx="1"/><rect x="184" y="154" width="12" height="10" rx="1"/>
+      <rect x="160" y="174" width="12" height="10" rx="1"/><rect x="184" y="174" width="12" height="10" rx="1"/>
+      
+      <rect x="216" y="136" width="12" height="8" rx="1"/><rect x="234" y="136" width="12" height="8" rx="1"/><rect x="252" y="136" width="10" height="8" rx="1"/>
+      <rect x="216" y="148" width="12" height="10" rx="1"/><rect x="234" y="148" width="12" height="10" rx="1"/><rect x="252" y="148" width="10" height="10" rx="1"/>
+      <rect x="216" y="168" width="12" height="10" rx="1"/><rect x="234" y="168" width="12" height="10" rx="1"/><rect x="252" y="168" width="10" height="10" rx="1"/>
+      <rect x="280" y="144" width="12" height="10" rx="1"/><rect x="300" y="144" width="12" height="10" rx="1"/>
+      <rect x="280" y="164" width="12" height="10" rx="1"/><rect x="300" y="164" width="12" height="10" rx="1"/>
+      <rect x="332" y="124" width="10" height="10" rx="1"/><rect x="348" y="124" width="10" height="10" rx="1"/>
+      <rect x="332" y="144" width="10" height="10" rx="1"/><rect x="348" y="144" width="10" height="10" rx="1"/>
+      <rect x="332" y="164" width="10" height="10" rx="1"/><rect x="348" y="164" width="10" height="10" rx="1"/>
+    </g>
+    <path d="M206 162h64M206 182h64M150 166h56M150 186h56" stroke="#E6E8EB" stroke-width="1"/>
+  </g>
+  <!-- palmiers -->
+  <g>
+    <path d="M60 230c2-22 1-40-3-58" stroke="#A88560" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <g fill="#6FA37B"><path d="M57 172c-10-6-22-6-30 1 9-1 19 0 30-1z"/><path d="M57 172c8-8 20-10 30-5-9 1-19 3-30 5z"/><path d="M57 172c-4-9-12-15-21-15 7 4 14 9 21 15z"/><path d="M57 172c3-9 10-15 19-16-6 5-12 10-19 16z"/><path d="M57 172c-7 3-13 10-14 18 5-7 9-12 14-18z"/><path d="M57 172c7 3 12 9 13 17-4-6-8-11-13-17z"/></g>
+    <path d="M318 230c-1-18 0-34 4-48" stroke="#A88560" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+    <g fill="#6FA37B"><path d="M322 182c-9-5-19-5-26 1 8-1 17 0 26-1z"/><path d="M322 182c7-7 17-9 26-4-8 1-17 3-26 4z"/><path d="M322 182c-3-8-10-13-18-13 6 4 12 8 18 13z"/><path d="M322 182c3-8 9-13 17-14-5 4-11 9-17 14z"/></g>
+  </g>
+  <!-- trottoir et route -->
+  <rect y="228" width="358" height="10" fill="#F2F3F5"/>
+  <path d="M0 238h358" stroke="#E0E3E7" stroke-width="1"/>
+  <rect y="238" width="358" height="62" fill="#E4E7EB"/>
+  <path d="M0 270h358" stroke="#F7F8F9" stroke-width="2"/>
+  <!-- le livreur HOP! en scooter (vers la gauche) -->
+  <g class="rider" transform="translate(132 168)">
+    <ellipse cx="62" cy="94" rx="58" ry="4" fill="#0F1F3D" opacity=".10"/>
+    <!-- roues -->
+    <circle cx="22" cy="78" r="15" fill="#1D232B"/><circle cx="22" cy="78" r="6" fill="#C7CDD5"/>
+    <circle cx="102" cy="78" r="15" fill="#1D232B"/><circle cx="102" cy="78" r="6" fill="#C7CDD5"/>
+    <!-- caisse HOP! -->
+    <rect x="86" y="18" width="40" height="36" rx="5" fill="#0F1F3D"/>
+    <rect x="86" y="18" width="40" height="5" rx="2" fill="#1C3263"/>
+    <g class="unflip"><text x="106" y="42" text-anchor="middle" font-family="Heebo, Arial, sans-serif" font-weight="800" font-size="11.5" fill="#fff" letter-spacing="0">HOP<tspan fill="#FF6A13">!</tspan></text></g>
+    <!-- carrosserie -->
+    <path d="M40 72h48c8 0 14-4 16-12l2-6H62c-6 0-10 4-12 9z" fill="#FFFFFF" stroke="#D5DAE0" stroke-width="1"/>
+    <path d="M60 54h52c4 0 6 3 5 6l-2 6c-2 5-6 8-12 8h-6" fill="#FFFFFF" stroke="#D5DAE0" stroke-width="1"/>
+    <path d="M16 70c2-16 8-34 14-46l7 2c-4 14-6 28-6 44z" fill="#FFFFFF" stroke="#D5DAE0" stroke-width="1"/>
+    <path d="M10 76c2-6 8-10 16-10" stroke="#FFFFFF" stroke-width="7" stroke-linecap="round" fill="none"/>
+    <rect x="22" y="20" width="16" height="4" rx="2" fill="#2A3340" transform="rotate(-12 30 22)"/>
+    <circle cx="26" cy="32" r="3" fill="#FFE7B3"/>
+    <!-- siège -->
+    <rect x="62" y="48" width="32" height="7" rx="3.5" fill="#2A3340"/>
+    <!-- pilote -->
+    <path d="M70 50 52 52l-10 22h7l9-15h16z" fill="#1C3263"/>
+    <path d="M44 74h9" stroke="#2A3340" stroke-width="5" stroke-linecap="round"/>
+    <path d="M60 20c10-2 18 5 18 14v16H60c-6 0-9-4-8-9z" fill="#0F1F3D"/>
+    <path d="M60 26 42 26" stroke="#0F1F3D" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="40" cy="26" r="3" fill="#E9C6A5"/>
+    <path d="M63 38h14" stroke="#FF6A13" stroke-width="2.4"/>
+    <!-- casque -->
+    <circle cx="66" cy="10" r="11" fill="#FFFFFF" stroke="#D5DAE0" stroke-width="1"/>
+    <path d="M55 9c1-6 6-10 11-10" stroke="#FF6A13" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M55 11h7v6h-5c-1.5 0-2.5-1-2.5-2.5z" fill="#2A3340"/>
+  </g>
+</svg>
+      <span class="hoppy-shadow"></span>
+      <img class="hoppy" src="../livraison/img/hoppy-vit.webp" alt="" width="92" height="150">
+      <div class="hero-txt">
+        <h1>מה להביא לכם?</h1>
+        <div class="hero-sub"><span class="route" aria-hidden="true"><i></i><b></b><i></i></span><span>כל נתניה · החל מ־25 ₪ בעיר</span></div>
+      </div>
+    </div>
+    <div class="search"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg><span>מטען לטלפון…</span><button class="mic" aria-label="Micro"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></button></div>
+  </div>
+
+  <section>
+    <div class="promo">
+      <div class="promo-h"><img src="../livraison/img/market/ramilevy-logo.webp" alt=""><span><small>מבצעי השבוע</small><b>רמי לוי</b></span><button class="see">לכל המבצעים ‹</button></div>
+      <ul class="prs"><li class="pr"><span class="pr-ph"><img src="https://img.rami-levy.co.il/product/7290101864127/small.jpg" alt="" loading="lazy" width="96" height="96"></span>
+      <span class="pr-n">ווניש · ספריי לכתמים 750 מ״ל</span><span class="pr-p"><b><bdi>7.90 ₪</bdi></b><s><bdi>18.50 ₪</bdi></s></span></li><li class="pr"><span class="pr-ph"><img src="https://img.rami-levy.co.il/product/7290112006011/small.jpg" alt="" loading="lazy" width="96" height="96"></span>
+      <span class="pr-n">פיניש · טבליות למדיח</span><span class="pr-p"><b><bdi>31.50 ₪</bdi></b><s><bdi>64.90 ₪</bdi></s></span></li><li class="pr"><span class="pr-ph"><img src="https://img.rami-levy.co.il/product/7290000104676/small.jpg" alt="" loading="lazy" width="96" height="96"></span>
+      <span class="pr-n">סנפרוסט · ירקות קפואים</span><span class="pr-p"><b><bdi>9.90 ₪</bdi></b><s><bdi>18.90 ₪</bdi></s></span></li></ul>
+      <div class="promo-f"><span class="route" aria-hidden="true"><i></i><b></b><i></i></span><span>עד הבית החל מ־25 ₪ בעיר</span><em>עד 30/11</em></div>
+    </div>
+
+    <div class="tiles">
+      <button class="tile first"><small class="k">הזמנה ראשונה?</small><b>תגידו, אנחנו דואגים</b><span class="s"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>כתבו או דברו</span></button>
+      <button class="tile" style="--bg:#E3F3E6"><span class="blob"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="20" y="8" width="24" height="48" rx="8" fill="#43A05C"/><rect x="25" y="15" width="14" height="34" rx="4" fill="#EAF7EC"/><path d="M29 22h6M29 28h6M29 34h4" stroke="#43A05C" stroke-width="2.6" stroke-linecap="round"/></svg></span>
+      <span class="tile-t"><b>מזוזות</b><small>לסופר וחזרה</small></span></button><button class="tile" style="--bg:#E3EDFF"><span class="blob"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 28h44v8a15 15 0 0 1-15 15H25a15 15 0 0 1-15-15z" fill="#3B7BF0"/><rect x="6" y="24" width="52" height="7" rx="3.5" fill="#2A5FCC"/><path d="M25 19c0-4 3-6 7-6s7 2 7 6" fill="none" stroke="#2A5FCC" stroke-width="4" stroke-linecap="round"/><circle cx="24" cy="12" r="3" fill="#9DC0FF"/><circle cx="44" cy="9" r="2.2" fill="#9DC0FF"/></svg></span>
+      <span class="tile-t"><b>טבילת כלים</b><small>הלוך וחזור</small></span></button><button class="tile" style="--bg:#EEE7FF"><span class="blob"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="11" y="15" width="42" height="38" rx="11" fill="#8B5CF6"/><rect x="23" y="9" width="18" height="8" rx="4" fill="#6D3FD8"/><rect x="28.5" y="22" width="7" height="24" rx="3" fill="#fff"/><rect x="20" y="30.5" width="24" height="7" rx="3" fill="#fff"/></svg></span>
+      <span class="tile-t"><b>בית מרקחת</b><small>ללא מרשם</small></span></button><button class="tile" style="--bg:#FFEEDC"><span class="blob"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 22l24-11 24 11v24L32 57 8 46z" fill="#E09A4E"/><path d="M8 22l24 11 24-11M32 33v24" fill="none" stroke="#B0702C" stroke-width="2.8"/><path d="M20 16l24 11" stroke="#F6D9B0" stroke-width="5"/></svg></span>
+      <span class="tile-t"><b>חבילות</b><small>שליחה ואיסוף</small></span></button><button class="tile" style="--bg:#FFF3D6"><span class="blob"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M8 40c0-13 13-24 28-24s20 7 20 13-9 20-26 20c-13 0-22-2-22-9z" fill="#E5A04A"/><path d="M22 26l5 7M32 22l5 8M42 22l4 7" stroke="#B5701F" stroke-width="3.4" stroke-linecap="round"/></svg></span>
+      <span class="tile-t"><b>מאפייה</b><small>באגט, חלה</small></span></button>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>כל מה שאנחנו עושים בשבילכם</h2></div>
+    <div class="kinds"><button class="kind"><span class="kind-ic" style="--bg:#E6F4EA"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10h16l-1.6 9a1.5 1.5 0 0 1-1.5 1.2H7.1A1.5 1.5 0 0 1 5.6 19z"/><path d="M8.5 10 11 4.5M15.5 10 13 4.5M9.5 14v3M14.5 14v3"/></svg></span><span>מכולת</span></button><button class="kind"><span class="kind-ic" style="--bg:#EFE9FB"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3.5h10l-1 6.5a4 4 0 0 1-8 0zM12 14v6.5M8.5 20.5h7"/></svg></span><span>סיגריות ואלכוהול</span></button><button class="kind"><span class="kind-ic" style="--bg:#FDEBF1"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3h4v2.5l1.5 2.5v11.5a1.5 1.5 0 0 1-1.5 1.5h-4a1.5 1.5 0 0 1-1.5-1.5V8L10 5.5z"/><path d="M8.5 11.5h7"/></svg></span><span>תינוקות וילדים</span></button><button class="kind"><span class="kind-ic" style="--bg:#FFF1E3"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="7" cy="10" r="1.8"/><circle cx="10.5" cy="6.5" r="1.8"/><circle cx="14.5" cy="6.5" r="1.8"/><circle cx="18" cy="10" r="1.8"/><path d="M12 12.5c-3 0-5 3.6-5 5.6 0 1.6 1.4 2.2 2.6 1.8l2.4-.7 2.4.7c1.2.4 2.6-.2 2.6-1.8 0-2-2-5.6-5-5.6z"/></svg></span><span>חיות מחמד</span></button><button class="kind"><span class="kind-ic" style="--bg:#FCEFE6"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="1.5"/><path d="M3.5 9h17M12 9v11M12 9c-1-3-5-4-5-1.5S11 9 12 9zm0 0c1-3 5-4 5-1.5S13 9 12 9z"/></svg></span><span>מתנות</span></button><button class="kind"><span class="kind-ic" style="--bg:#EDF2F7"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 3.5h7L18 11H6zM12 11v8M8 20h8"/></svg></span><span>לבית</span></button></div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>החנויות שלנו</h2><button class="see">לכל החנויות ‹</button></div>
+    <div class="shops"><button class="shop"><span class="shop-pic" style="background-image:url('../livraison/img/market/ramilevy-cover.webp')"><img src="../livraison/img/market/ramilevy-logo.webp" alt=""></span>
+      <b>רמי לוי</b><small><i></i>פתוח</small></button><button class="shop"><span class="shop-pic" style="background-image:url('../livraison/img/market/carrefour-cover.webp')"><img src="../livraison/img/market/carrefour-logo.webp" alt=""></span>
+      <b>קרפור</b><small><i></i>פתוח</small></button><button class="shop"><span class="shop-pic" style="background-image:url('../livraison/img/market/shufersal-cover.webp')"><img src="../livraison/img/market/shufersal-logo.webp" alt=""></span>
+      <b>שופרסל</b><small><i></i>פתוח</small></button><button class="shop"><span class="shop-pic" style="background-image:url('../livraison/img/market/yohananof-cover.webp')"><img src="../livraison/img/market/yohananof-logo.webp" alt=""></span>
+      <b>יוחננוף</b><small><i></i>פתוח</small></button></div>
+    <button class="any"><span class="blob"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 26 14 12h36l4 14z" fill="#FF8A3D"/><path d="M10 26h44v4a6 6 0 0 1-11 3 6 6 0 0 1-10.5 0 6 6 0 0 1-10.5 0A6 6 0 0 1 10 30z" fill="#E8590C"/><rect x="14" y="33" width="36" height="21" rx="3" fill="#3B7BF0"/><rect x="27" y="40" width="10" height="14" rx="2" fill="#DCE8FF"/></svg></span><span class="t"><b>כל עסק</b><small>אנחנו הולכים בשבילכם</small></span><svg class="ic ic-dir" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+  </section>
+
+  <section class="sec">
+    <div class="course">
+      <h2>שליח מכל מקום</h2>
+      <p>חבילה, מסמכים, עסק שלא נמצא באפליקציה: אנחנו אוספים ומביאים.</p>
+      <div class="legs">
+        <div class="leg"><i></i><span><small>מאיפה אוספים</small><b>כתובת איסוף</b></span></div>
+        <div class="leg to"><i></i><span><small>לאן מביאים</small><b>כתובת מסירה</b></span></div>
+      </div>
+      <button class="btn"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="17" r="2.5"/><circle cx="18" cy="17" r="2.5"/><path d="M8.5 17h6.5l2-6h-3M17 11l-1.5-5H13M3.5 13.5h6l1.5 3.5"/></svg>להזמין שליח</button>
+      <div class="prices">
+        <div class="price"><span class="route" aria-hidden="true"><i></i><b></b><i></i></span><span><small>החל מ־</small><b><bdi>25 ₪</bdi></b><small>בתוך העיר</small></span></div>
+        <div class="price"><span class="route" aria-hidden="true"><i></i><b></b><i></i></span><span><small>מחיר</small><b><bdi>30 ₪</bdi></b><small>עיר ↔ אזור תעשייה</small></span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><h2>ועוד</h2></div>
+    <div class="links">
+      <button class="link"><span class="lic"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/></svg></span><span class="t"><b>לשתף את <bdi dir="ltr">HOP!</bdi></b><small>שלחו לחברים: אוכל, קניות, בית מרקחת, חבילות… עד הבית</small></span><svg class="ic ic-dir" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button class="link"><span class="lic wa"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.8 11.9 11.9 0 0 0 4.6 4c1.7.7 2.4.8 3.2.7a2.8 2.8 0 0 0 1.8-1.3 2.3 2.3 0 0 0 .2-1.3c-.1-.1-.3-.2-.5-.3z"/></svg></span><span class="t"><b>מעדיפים וואטסאפ?</b><small>שלחו לנו את הרשימה, אנחנו דואגים להכול</small></span><svg class="ic ic-dir" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+    </div>
+  </section>
+</div>
+
+<nav class="nav"><button class="on"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20h-5.5v-5.5h-5V20H4z"/></svg><span>ראשי</span></button><button class=""><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5 5.5 4h13L20 9.5M4 9.5h16M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0M5.5 12v8h13v-8"/><path d="M10 20v-4.5h4V20"/></svg><span>חנויות</span></button><button class="nav-mic"><span class="mic-r"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg><i></i></span><span>דברו</span></button><button class=""><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M9 8.5h6M9 12h6M9 15.5h4"/></svg><span>הזמנות</span></button><button class=""><svg class="ic" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg><span>חשבון</span></button></nav>
+</body>
+</html>
