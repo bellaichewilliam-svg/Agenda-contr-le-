@@ -4977,8 +4977,8 @@ function renderCart() {
     // Supplément de boisson : suit tout seul la quantité des menus, pas de boutons
     if (isAddon(p)) return `<div class="cs-row cs-addon"><span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b><small>${qty} × ${UI.esc(money(p.price))} = ${UI.esc(money(Number(p.price) * qty))}</small></span></div>`;
     // On glisse la ligne : Supprimer · + 1 · Modifier (les − / + restent là pour ceux qui ne glissent pas)
-    return UI.swipeRow(`<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</span>
-      <span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b>${modText(p.id) ? `<em class="cs-mods">${UI.esc(modText(p.id))}</em>` : ""}<small>${UI.esc(money(Number(p.price) * qty))}</small></span>
+    return UI.swipeRow(`<div class="cs-row"><span class="cs-pic" data-cs-edit="${id}" role="button" aria-label="${UI.esc(pName(p))}">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</span>
+      <span class="cs-txt" data-cs-edit="${id}"><b><bdi>${UI.esc(pName(p))}</bdi></b>${modText(p.id) ? `<em class="cs-mods">${UI.esc(modText(p.id))}</em>` : ""}<small>${UI.esc(money(Number(p.price) * qty))}</small></span>
       <span class="it-qty cs-qty"><button type="button" data-cs-minus="${id}" aria-label="${qty > 1 ? "−" : UI.esc(t("swDel"))}">${qty > 1 ? "−" : TRASH_SVG}</button><b>${qty}</b><button type="button" data-cs-plus="${id}" aria-label="+">+</button></span></div>`,
       [{ icon: "🗑", label: t("swDel"), attrs: `data-cs-del="${id}"`, cls: "sw-red" }, { icon: "＋", label: t("swDup"), attrs: `data-cs-plus="${id}"` },
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
