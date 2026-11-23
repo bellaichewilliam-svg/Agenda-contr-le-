@@ -7747,7 +7747,7 @@ html.st #bellBtn .chat-badge { font-size: 11px; }
 /* La scène du haut : rue de Netanya, livreur HOP! et Hoppy (dessin en attendant l'image du patron), titre sur le ciel,
    recherche posée à cheval sur le bas de l'image */
 html.d4 #vitHero { position: relative; display: flex; flex-direction: column; padding: 0 !important; margin-top: 16px; background: none !important; }
-html.d4 #vitHero#vitHero::before { content: "" !important; display: block !important; order: 1; position: static !important; inset: auto !important; z-index: auto !important; animation: none !important; opacity: 1 !important; aspect-ratio: 960 / 600; width: 100%; border-radius: 20px; background: #F2C49B url("img/hero/accueil-scene.webp") center / cover no-repeat; }
+html.d4 #vitHero#vitHero::before { content: "" !important; display: block !important; order: 1; position: static !important; inset: auto !important; z-index: auto !important; animation: none !important; opacity: 1 !important; aspect-ratio: 5 / 4; width: 100%; border-radius: 20px; background: #F3E7DA url("img/hero/accueil-scene.webp") 88% 40% / cover no-repeat; }
 /* (image du patron, 23/11 : coucher de soleil sur la promenade de Netanya) le titre au-dessus de l'image, la scène reste entière */
 html.d4 #vitHero#vitHero > * { order: 2; }
 html.d4 #vitHero#vitHero > .vit-ask { order: 0; }
