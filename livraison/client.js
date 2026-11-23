@@ -5145,7 +5145,12 @@ document.addEventListener("click", e => {
   askWho(() => { cartSync(cartSnap()); if (!$("#cartSheet").classList.contains("hidden")) renderCart(); renderPharma(); }, "cart");
 });
 $("#cartSheet").addEventListener("click", e => {
-  if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) return $("#cartSheet").classList.add("hidden");
+  if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) {
+    $("#cartSheet").classList.add("hidden");
+    if (e.target.closest("#cartMore")) state.fromPromos = null; else backToPromosIfFrom();
+    return;
+  }
+  if (e.target.closest("[data-cs-cat], [data-cs-shops], #cartGo")) state.fromPromos = null;
   const del = e.target.closest("[data-cs-del]"), edit = e.target.closest("[data-cs-edit]");
   if (edit) { $("#cartSheet").classList.add("hidden"); state.itemFromCart = true; openItem(edit.dataset.csEdit); return; }
   // Retour dans le magasin : un rayon précis, ou tout le magasin
@@ -5205,7 +5210,7 @@ new MutationObserver(() => {
 }).observe($("#itemSheet"), { attributes: true, attributeFilter: ["class"] });
 $("#itemSheet").addEventListener("click", e => {
   // (23/11, patron) Fiche ouverte depuis « Ma commande » : en la fermant, on revient à la commande (pas au magasin)
-  if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) { $("#itemSheet").classList.add("hidden"); return backToCartIfFrom(); }
+  if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) { $("#itemSheet").classList.add("hidden"); if (state.itemFromCart) return backToCartIfFrom(); return backToPromosIfFrom(); }
   const qa = e.target.closest("[data-it-quick]");
   if (qa) return itQuickAdd(qa.dataset.itQuick);
   const io = e.target.closest("[data-it-open]");
@@ -5254,7 +5259,8 @@ $("#itemSheet").addEventListener("click", e => {
   else delete state.cartMods[item.id];
   $("#itemSheet").classList.add("hidden");
   renderCatalog(); renderQuote(); saveDraft(); cartPersist();
-  backToCartIfFrom();
+  if (state.itemFromCart) return backToCartIfFrom();
+  backToPromosIfFrom();
 });
 function backToCartIfFrom() {
   if (!state.itemFromCart) return;
@@ -9741,7 +9747,7 @@ function paRender() {
       <b class="pa-name"><bdi>${UI.esc(UI.bi(x.name))}</bdi></b>
       <span class="pa-pr${x.l > 1 ? " lot" : ""}"><strong><bdi>${UI.esc(price)}</bdi></strong>${x.o && x.o > x.p ? `<s>${UI.esc(money(x.o))}</s>` : ""}</span>
       ${x.e ? `<small class="pa-end">${UI.esc(t("paUntil", { d: x.e }))}</small>` : ""}
-      <button type="button" class="pa-add" data-pa-add="${UI.esc(x.code)}|${UI.esc(x.id)}" aria-label="${UI.esc(t("paAdd"))}">+</button></div>`;
+      ${paBtn(x.code, x.id)}</div>`;
   };
   box.querySelector(".pa-tabs").innerHTML = [["", t("paAll"), all.length], ...shops.map(c => [c, paShopName(c), all.filter(x => x.code === c).length])]
     .map(([c, n, k]) => `<button type="button" class="pa-tab${pa.shop === c ? " on" : ""}" data-pa-shop="${UI.esc(c)}" style="--c:${PA_COLOR[c] || "#FF6A13"}"><bdi>${UI.esc(n)}</bdi> <i>${k}</i></button>`).join("");
@@ -9750,6 +9756,43 @@ function paRender() {
   box.querySelector(".pa-grid").innerHTML = list.length ? list.map(card).join("") : `<p class="pa-none">${UI.esc(t(pa.data ? "paNone" : "cgElseWait"))}</p>`;
   box.querySelector(".pa-count").textContent = t("paCount", { n: list.length });
   paBar();
+}
+// (23/11, patron : « quand je retourne sur la liste, il n'enregistre pas que je l'ai déjà sélectionné ») : la carte montre
+// ce qui est déjà dans le panier de ce magasin (− 2 +), pour tout le monde et à chaque retour sur la page
+function paQty(code, id) {
+  if (state.shop && state.shop.code === code && state.catalog) return Number(state.cart[id]) || 0;
+  const m = (state.multi || {})[code]; return m && m.cart ? Number(m.cart[id]) || 0 : 0;
+}
+function paBtn(code, id) {
+  const k = `${UI.esc(code)}|${UI.esc(id)}`, q = paQty(code, id);
+  if (!q) return `<button type="button" class="pa-add" data-pa-add="${k}" aria-label="${UI.esc(t("paAdd"))}">+</button>`;
+  return `<span class="pa-step"><button type="button" data-pa-dec="${k}" aria-label="−">−</button><b>${q}</b><button type="button" data-pa-add="${k}" aria-label="${UI.esc(t("paAdd"))}">+</button></span>`;
+}
+// Un de moins (dans le magasin ouvert, ou dans le panier gardé d'un autre magasin)
+function paDecItem(code, id) {
+  if (state.shop && state.shop.code === code && state.catalog) {
+    const q = (Number(state.cart[id]) || 0) - 1; if (q > 0) state.cart[id] = q; else delete state.cart[id];
+    renderCatalog(); renderQuote(); saveDraft(); cartPersist(); renderCartIcon(); return;
+  }
+  const m = (state.multi || {})[code]; if (!m || !m.cart || !m.cart[id]) return;
+  const x = paItems().find(y => y.id === id && y.code === code), nm = x ? String(UI.bi(x.name)) : "";
+  const unit = x ? (x.code === "HOPCARREFOUR" && x.o ? x.o / x.l : x.p) : 0;
+  m.cart[id] -= 1; if (m.cart[id] <= 0) delete m.cart[id];
+  m.count = Math.max(0, (m.count || 0) - 1); m.total = Math.max(0, (Number(m.total) || 0) - unit);
+  const li = (m.lines || []).findIndex(l => l.n === nm);
+  if (li >= 0) { m.lines[li].q -= 1; if (m.lines[li].q <= 0) m.lines.splice(li, 1); }
+  if (!m.count && !Object.keys(m.cart).length && !(m.rlx || []).length) delete state.multi[code];
+  multiSave(); renderMulti(); renderCartIcon();
+}
+// (23/11, patron : « je perds cette liste et je retourne dans la boutique au lieu d'être sur les promos ») : le panier
+// ou la fiche d'un produit ouverts depuis la page des promos ramènent, à leur fermeture, sur la page des promos telle
+// qu'on l'avait laissée (même magasin, même rubrique, même recherche, même endroit)
+function paRemember() { const b = $("#paPage"); state.fromPromos = { shop: pa.shop, cat: pa.cat, q: pa.q, top: b ? b.scrollTop : 0 }; }
+function backToPromosIfFrom() {
+  const f = state.fromPromos; if (!f) return false;
+  state.fromPromos = null;
+  openPromosAll(f.shop, f);
+  return true;
 }
 // (23/11, patron : « je veux voir au fur et à mesure où j'en suis ») : en bas de la page des promos, le total de ce
 // qu'on a déjà pris, magasin par magasin, et « Voir mon panier »
@@ -9765,7 +9808,7 @@ function paBar() {
     <small>${rows.map(r => `<bdi>${UI.esc(String(UI.bi(r.nm)))}</bdi> ${r.n}`).join(" · ")} · ${UI.esc(t("paBarDel"))}</small></div>
     <button type="button" class="pa-bar-go" data-pa-cart>${UI.esc(t("paBarGo"))}</button>`;
 }
-async function openPromosAll(code) {
+async function openPromosAll(code, keep) {
   UI.track("promos_all_open", { shop_code: code || "" });
   const wasOpen = paIsOpen();
   let box = $("#paPage");
@@ -9783,14 +9826,16 @@ async function openPromosAll(code) {
     box.querySelector(".pa-q").addEventListener("input", e => { pa.q = e.target.value; paRender(); });
     box.querySelector(".pa-q").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
   }
-  pa.shop = code || ""; pa.cat = -1; pa.q = ""; box.querySelector(".pa-q").value = "";
+  state.fromPromos = null;
+  pa.shop = code || ""; pa.cat = keep ? keep.cat : -1; pa.q = keep ? keep.q || "" : ""; box.querySelector(".pa-q").value = pa.q;
   // Retour du téléphone (flèche ou glissé) : il ferme la page des promos et on retrouve l'écran d'avant
   if (!wasOpen && !(history.state && history.state.pa)) { history.pushState({ pa: 1 }, "", location.href); here = location.href; }
   box.classList.remove("hidden"); document.documentElement.classList.add("pa-on");
   // Tout de suite ce que le téléphone a gardé, puis la liste à jour (nouveaux magasins, nouvelles promos)
   if (!pa.data) pa.data = (Store.promosAllCached && Store.promosAllCached()) || null;
   paRender();
-  try { const d = await Store.promosAll(true); if (d && Array.isArray(d.items)) { pa.data = d; paRender(); } } catch (e) { /* on garde */ }
+  if (keep && keep.top) box.scrollTo({ top: keep.top });
+  try { const d = await Store.promosAll(true); if (d && Array.isArray(d.items)) { const top = box.scrollTop; pa.data = d; paRender(); box.scrollTo({ top }); } } catch (e) { /* on garde */ }
 }
 // (fermée par sa flèche : on retire aussi sa marque dans l'historique, pour que le retour suivant ne « saute » pas un écran)
 function closePromosAll(fromBack) {
@@ -9858,20 +9903,23 @@ async function paClick(e) {
   const b = e.target;
   if (b.closest("[data-pa-mic]")) return paMic();
   if (b.closest("[data-pa-close]")) return closePromosAll();
-  if (b.closest("[data-pa-cart]")) { await closePromosAll(); return openOneCart(); }
+  if (b.closest("[data-pa-cart]")) { paRemember(); await closePromosAll(); return openOneCart(); }
+  const dec = b.closest("[data-pa-dec]");
+  if (dec) { e.stopPropagation(); const [code, id] = dec.dataset.paDec.split("|"); paDecItem(code, id); paRender(); return; }
   const sh = b.closest("[data-pa-shop]"); if (sh) { pa.shop = sh.dataset.paShop; pa.cat = -1; paRender(); $("#paPage").scrollTo({ top: 0 }); return; }
   const ct = b.closest("[data-pa-cat]"); if (ct) { pa.cat = Number(ct.dataset.paCat); paRender(); return; }
   const add = b.closest("[data-pa-add]");
   if (add) {
     e.stopPropagation();
     const [code, id] = add.dataset.paAdd.split("|");
-    if (paAddItem(code, id)) { add.textContent = "✓"; add.classList.add("ok"); paBar(); }
+    if (paAddItem(code, id)) paRender();
     return;
   }
   const op = b.closest("[data-pa-open]");
   if (op) {
     const [code, id] = op.dataset.paOpen.split("|");
-    await closePromosAll(); state.shopDir = "";
+    paRemember(); const keep = state.fromPromos;
+    await closePromosAll(); state.shopDir = ""; state.fromPromos = keep;
     await loadShop(code);
     if (state.shop && state.shop.code === code && cgProducts().some(x => x.id === id)) { state.focusAfter = id; openItem(id); }
   }
