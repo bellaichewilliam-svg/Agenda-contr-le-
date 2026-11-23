@@ -5136,7 +5136,7 @@ document.addEventListener("click", e => {
 $("#cartSheet").addEventListener("click", e => {
   if (e.target.id === "cartSheet" || e.target.closest("#cartClose") || e.target.closest("#cartMore")) return $("#cartSheet").classList.add("hidden");
   const del = e.target.closest("[data-cs-del]"), edit = e.target.closest("[data-cs-edit]");
-  if (edit) { $("#cartSheet").classList.add("hidden"); openItem(edit.dataset.csEdit); return; }
+  if (edit) { $("#cartSheet").classList.add("hidden"); state.itemFromCart = true; openItem(edit.dataset.csEdit); return; }
   // Retour dans le magasin : un rayon précis, ou tout le magasin
   const cat = e.target.closest("[data-cs-cat]");
   if (cat) {
@@ -5193,7 +5193,8 @@ new MutationObserver(() => {
   setTimeout(() => el.classList.remove("cg-found"), 4000);
 }).observe($("#itemSheet"), { attributes: true, attributeFilter: ["class"] });
 $("#itemSheet").addEventListener("click", e => {
-  if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) return $("#itemSheet").classList.add("hidden");
+  // (23/11, patron) Fiche ouverte depuis « Ma commande » : en la fermant, on revient à la commande (pas au magasin)
+  if (e.target.id === "itemSheet" || e.target.closest("#itemClose")) { $("#itemSheet").classList.add("hidden"); return backToCartIfFrom(); }
   const qa = e.target.closest("[data-it-quick]");
   if (qa) return itQuickAdd(qa.dataset.itQuick);
   const io = e.target.closest("[data-it-open]");
@@ -5242,7 +5243,13 @@ $("#itemSheet").addEventListener("click", e => {
   else delete state.cartMods[item.id];
   $("#itemSheet").classList.add("hidden");
   renderCatalog(); renderQuote(); saveDraft(); cartPersist();
+  backToCartIfFrom();
 });
+function backToCartIfFrom() {
+  if (!state.itemFromCart) return;
+  state.itemFromCart = false;
+  if (cartCount()) openCart();
+}
 
 // --- Commerce partenaire (lien index.html?c=CODE) : départ rempli depuis le commerce ----------
 // HOP! Pro : le départ est un commerce abonné → le client écrit sa commande, le commerce la prépare
