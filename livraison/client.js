@@ -4948,6 +4948,8 @@ function openCart() {
   renderCart();
   $("#cartSheet").classList.remove("hidden");
 }
+// (23/11) Poubelle dessinée (l'émoji était effacé par le design épuré : le bouton paraissait vide)
+const TRASH_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>';
 function renderCart() {
   const lines = cartLines();
   if (!lines.length) { $("#cartSheet").classList.add("hidden"); return; }
@@ -4960,7 +4962,7 @@ function renderCart() {
     // On glisse la ligne : Supprimer · + 1 · Modifier (les − / + restent là pour ceux qui ne glissent pas)
     return UI.swipeRow(`<div class="cs-row"><span class="cs-pic">${photo ? `<img src="${photo}"${UI.imgCors(photo)} alt="" />` : shopArt(p)}</span>
       <span class="cs-txt"><b><bdi>${UI.esc(pName(p))}</bdi></b>${modText(p.id) ? `<em class="cs-mods">${UI.esc(modText(p.id))}</em>` : ""}<small>${UI.esc(money(Number(p.price) * qty))}</small></span>
-      <span class="it-qty cs-qty"><button type="button" data-cs-minus="${id}" aria-label="−">${qty > 1 ? "−" : "🗑"}</button><b>${qty}</b><button type="button" data-cs-plus="${id}" aria-label="+">+</button></span></div>`,
+      <span class="it-qty cs-qty"><button type="button" data-cs-minus="${id}" aria-label="${qty > 1 ? "−" : UI.esc(t("swDel"))}">${qty > 1 ? "−" : TRASH_SVG}</button><b>${qty}</b><button type="button" data-cs-plus="${id}" aria-label="+">+</button></span></div>`,
       [{ icon: "🗑", label: t("swDel"), attrs: `data-cs-del="${id}"`, cls: "sw-red" }, { icon: "＋", label: t("swDup"), attrs: `data-cs-plus="${id}"` },
         { icon: "✏️", label: t("swEdit"), attrs: `data-cs-edit="${id}"` }]);
   }).join("") + `<p class="sw-hint">${UI.esc(t("swHint"))}</p>`;
@@ -6042,6 +6044,8 @@ function initHome() {
   state.partnersReady = loadPartners();
   loadShowcase();
   initHomeMap();
+  // (23/11) la bibliothèque de la carte arrive en arrière-plan : la carte se crée dès qu'elle est là
+  window.hopMapReady = () => { if (home.map) return; initHomeMap(); if (home.map) { renderHomeMap(true); if (restos.layer) { restos.key = ""; drawRestos(); } } };
   // Position déjà autorisée : on centre la carte sur le client (sans rien lui demander)
   if (navigator.permissions && navigator.geolocation) {
     navigator.permissions.query({ name: "geolocation" }).then(r => {
@@ -9691,6 +9695,21 @@ function paRender() {
     ...cats.map((c, i) => `<button type="button" class="pa-cat${pa.cat === i ? " on" : ""}" data-pa-cat="${i}"><bdi>${UI.esc(UI.bi(c))}</bdi></button>`)].join("");
   box.querySelector(".pa-grid").innerHTML = list.length ? list.map(card).join("") : `<p class="pa-none">${UI.esc(t(pa.data ? "paNone" : "cgElseWait"))}</p>`;
   box.querySelector(".pa-count").textContent = t("paCount", { n: list.length });
+  paBar();
+}
+// (23/11, patron : « je veux voir au fur et à mesure où j'en suis ») : en bas de la page des promos, le total de ce
+// qu'on a déjà pris, magasin par magasin, et « Voir mon panier »
+function paBar() {
+  const bar = $("#paPage [data-pa-bar]"); if (!bar) return;
+  const rows = [];
+  try { multiList().forEach(m => { if (Number(m.count) > 0) rows.push({ nm: paShopName(m.code) || m.short || m.name, n: Number(m.count), tot: Number(m.total) || 0 }); }); } catch (e) { /* pas prêt */ }
+  try { if (state.shop && state.catalog && cartCount()) rows.unshift({ nm: paShopName(state.shop.code) || shopShortName(), n: cartCount(), tot: cartTotal() }); } catch (e) { /* pas prêt */ }
+  const n = rows.reduce((a, r) => a + r.n, 0), tot = Math.round(rows.reduce((a, r) => a + r.tot, 0) * 10) / 10;
+  bar.classList.toggle("hidden", !n);
+  if (!n) { bar.innerHTML = ""; return; }
+  bar.innerHTML = `<div class="pa-bar-t"><b>${UI.esc(t(n === 1 ? "paBar1" : "paBarN", { n }))} · <bdi dir="ltr">${UI.esc(money(tot))}</bdi></b>
+    <small>${rows.map(r => `<bdi>${UI.esc(String(UI.bi(r.nm)))}</bdi> ${r.n}`).join(" · ")} · ${UI.esc(t("paBarDel"))}</small></div>
+    <button type="button" class="pa-bar-go" data-pa-cart>${UI.esc(t("paBarGo"))}</button>`;
 }
 async function openPromosAll(code) {
   UI.track("promos_all_open", { shop_code: code || "" });
@@ -9703,7 +9722,8 @@ async function openPromosAll(code) {
       <div class="pa-find"><input type="search" class="pa-q" enterkeyhint="search" autocomplete="off" placeholder="${UI.esc(t("paFindPh"))}" aria-label="${UI.esc(t("paFindPh"))}" />
         <button type="button" class="pa-mic" data-pa-mic aria-label="${UI.esc(t("d3Talk"))}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg></button></div>
       <div class="pa-tabs"></div><div class="pa-cats"></div><small class="pa-count"></small><div class="pa-grid"><p class="pa-none">${UI.esc(t("cgElseWait"))}</p></div>
-      <p class="pa-foot">${UI.esc(t("paFoot"))}</p>`;
+      <p class="pa-foot">${UI.esc(t("paFoot"))}</p>
+      <div class="pa-bar hidden" data-pa-bar></div>`;
     document.body.appendChild(box);
     box.addEventListener("click", paClick);
     box.querySelector(".pa-q").addEventListener("input", e => { pa.q = e.target.value; paRender(); });
@@ -9784,13 +9804,14 @@ async function paClick(e) {
   const b = e.target;
   if (b.closest("[data-pa-mic]")) return paMic();
   if (b.closest("[data-pa-close]")) return closePromosAll();
+  if (b.closest("[data-pa-cart]")) { await closePromosAll(); return openOneCart(); }
   const sh = b.closest("[data-pa-shop]"); if (sh) { pa.shop = sh.dataset.paShop; pa.cat = -1; paRender(); $("#paPage").scrollTo({ top: 0 }); return; }
   const ct = b.closest("[data-pa-cat]"); if (ct) { pa.cat = Number(ct.dataset.paCat); paRender(); return; }
   const add = b.closest("[data-pa-add]");
   if (add) {
     e.stopPropagation();
     const [code, id] = add.dataset.paAdd.split("|");
-    if (paAddItem(code, id)) { add.textContent = "✓"; add.classList.add("ok"); }
+    if (paAddItem(code, id)) { add.textContent = "✓"; add.classList.add("ok"); paBar(); }
     return;
   }
   const op = b.closest("[data-pa-open]");

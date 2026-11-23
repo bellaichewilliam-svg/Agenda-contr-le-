@@ -7579,3 +7579,18 @@ body #homeFindList .mg-cmp .mg-cmp-go { all: unset; cursor: pointer; flex: none 
 body #homeFindList .mg-cmp .mg-cmp-t { flex: 1 1 auto; min-width: 0; }
 body #homeFindList .mg-cmp .mg-cmp-t b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 body #homeFindList .mg-cmp .mg-cmp-h small { color: #137A40; font-weight: 700; }
+/* (23/11) Page des promos : total de ce qu'on a pris, toujours visible en bas */
+.pa .pa-bar { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 12px; margin: 12px -16px 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #E6E8EB; box-shadow: 0 -6px 20px rgba(15,31,61,.08); font-family: Heebo, sans-serif; }
+.pa .pa-bar.hidden { display: none; }
+.pa .pa-bar-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.pa .pa-bar-t b { font-size: 16px; font-weight: 800; color: #111418; }
+.pa .pa-bar-t small { font-size: 12px; color: #5A6270; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pa .pa-bar-go { all: unset; cursor: pointer; flex: none; background: #E8590C; color: #fff; font-weight: 800; font-size: 14.5px; padding: 12px 16px; border-radius: 14px; white-space: nowrap; }
+/* (23/11, capture du patron) Panier : boutons − / + entiers, prix de chaque ligne bien visible */
+body #cartSheet .cs-row { grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; min-height: 64px; padding: 10px 0; overflow: visible; }
+body #cartSheet .cs-txt small { display: block !important; color: #111418 !important; font-weight: 800 !important; font-size: 14px !important; margin-top: 2px; }
+body #cartSheet .cs-qty { transform: none !important; display: inline-flex !important; align-items: center; gap: 4px !important; padding: 3px !important; height: auto !important; overflow: visible !important; border-radius: 14px; background: #F2F3F5 !important; }
+body #cartSheet .cs-qty button { width: 34px !important; height: 34px !important; min-height: 0 !important; display: grid !important; place-items: center; border-radius: 11px !important; background: #fff !important; color: #111418 !important; font-size: 20px !important; padding: 0 !important; }
+body #cartSheet .cs-qty button + b + button { color: #E8590C !important; }
+body #cartSheet .cs-qty b { min-width: 20px; text-align: center; font-size: 16px; }
+body #cartSheet .sw-fg { overflow: visible; }
