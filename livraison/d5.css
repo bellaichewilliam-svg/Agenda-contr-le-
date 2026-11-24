@@ -956,3 +956,12 @@ html.d5 body .d6-promo img, html.d5 body .d6-row img { filter: drop-shadow(0 4px
 html.d5 body #vitAddr#vitAddr > i::before { background: #fff !important; }
 html.d5 body #vitAddr#vitAddr > i::after { background: var(--c2) !important; }
 html.d5 body #vitAddr#vitAddr > i { background: rgba(255,255,255,.6) !important; }
+/* page d'un resto : le plat à côté du nom, jamais par-dessus le texte */
+html.d5 body #shopHero .d6h-name, html.d5 body #shopHero .d6h-tag { position: relative; z-index: 3; max-width: 48% !important; }
+html.d5 body #shopHero .d6h-tag { overflow-wrap: anywhere; }
+html.d5 body .d6h-pic.cut { width: 196px !important; height: 196px !important; top: 92px !important; inset-inline-end: 2px !important; }
+html.d5 body .d6-halo.h { top: 82px; width: 214px; height: 214px; inset-inline-end: -8px; }
+html.d5 body .d6-ground.h { top: 276px; width: 150px; inset-inline-end: 26px; }
+html.d5 body #shopHero .d6h-name { max-width: 56% !important; font-size: 50px !important; overflow-wrap: normal !important; word-break: keep-all !important; hyphens: none !important; }
+html.d5 body #shopHero .d6h-name.long { font-size: 40px !important; }
+html.d5 body .d6h-pic.cut { top: 116px !important; } html.d5 body .d6-halo.h { top: 106px; } html.d5 body .d6-ground.h { top: 298px; }

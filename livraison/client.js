@@ -4299,7 +4299,7 @@ function d6HeroHtml(s, logo, cover) {
   const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
   return `<div class="d6h">
     <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
-    <h1 class="d6h-name">${UI.esc(UI.bi(s.name))}</h1>
+    <h1 class="d6h-name${Math.max(...UI.bi(s.name).split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(UI.bi(s.name))}</h1>
     <p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>
     ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
     <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
