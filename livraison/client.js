@@ -4429,27 +4429,43 @@ function vtDish(i, instant) {
   old.forEach(e => e.classList.add(e.classList.contains("vt-dish") ? "out" : "gone"));
   setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 320);
   const build = () => {
-    const cx = plate.clientWidth / 2 || 190, cy = 170, off = vt.off[d.product] || [], add = vt.add[d.product] || [];
+    const cx = plate.clientWidth / 2 || 190, cy = (plate.clientHeight || 350) / 2 - 5, off = vt.off[d.product] || [], add = vt.add[d.product] || [];
     // (patron 24/11 : « la nourriture autour qui dépasse ») tout le plat rétrécit pour que chaque ingrédient reste dans l'écran
     const ext = Math.max(1, ...(d.ing || []).map(g => Math.abs(g.x) + g.w / 2)), sc = Math.min(1, (cx - 6) / ext);
     const im = new Image(); im.className = "vt-dish out"; im.src = d.img; im.alt = UI.bi(p.name); im.style.width = Math.round((d.w || 220) * sc) + "px"; plate.appendChild(im);
     (d.ing || []).map(g => Object.assign({}, g, { x: g.x * sc, y: g.y * sc, w: Math.round(g.w * sc) })).forEach((g, k) => {
       const tap = g.off || g.add, el = document.createElement(tap ? "button" : "span"), xx = rtl ? -g.x : g.x;
-      el.className = "vt-ing gone" + (g.front ? " f" : "") + (tap ? " tap" : "") + ((g.off && off.includes(g.off)) ? " x" : "") + ((g.add && add.includes(g.add)) ? " plus" : "");
+      el.className = "vt-ing gone" + (g.y < -20 ? " up" : "") + (g.front ? " f" : "") + (tap ? " tap" : "") + ((g.off && off.includes(g.off)) ? " x" : "") + ((g.add && add.includes(g.add)) ? " plus" : "");
       if (tap) { el.type = "button"; if (g.off) el.dataset.vtOff = g.off; else el.dataset.vtPlus = g.add;
         el.setAttribute("aria-label", g.off ? `${t("modNo")} ${modLbl(g.off)}` : UI.bi((vtProd(g.add) || {}).name || "")); }
       el.style.cssText = `width:${g.w}px;left:${cx + xx - g.w / 2}px;top:${cy + g.y - g.w / 2}px;--fx:${-xx}px;--fy:${-g.y}px;--r:${g.r || 0}deg`;
-      el.innerHTML = `<img src="${UI.esc(g.img)}" alt="" />${tap ? `<i>${g.off ? "−" : "+"}</i>` : ""}`;
+      el.innerHTML = `<img src="${UI.esc(g.img)}" alt="" />${tap ? `<i>${g.off ? "−" : "+"}</i>` : ""}${vtIngLbl(g) ? `<b class="vt-lbl">${UI.esc(vtIngLbl(g))}</b>` : ""}`;
       plate.appendChild(el); setTimeout(() => el.classList.remove("gone"), 110 + k * 55);
     });
     const tg = (d.tags || {})[I18N.lang] || (d.tags || {}).fr || [];
     tg.slice(0, 2).forEach((txt, k) => { const s = document.createElement("span"); s.className = "vt-tag gone" + (k ? " w" : ""); s.textContent = txt;
-      s.style.cssText = k ? `top:304px;${rtl ? "left" : "right"}:${cx - 128}px` : `top:44px;${rtl ? "right" : "left"}:${cx - 44}px`; plate.appendChild(s); setTimeout(() => s.classList.remove("gone"), 420); });
+      s.style.cssText = k ? `top:${cy + 134}px;${rtl ? "left" : "right"}:${cx - 128}px` : `top:${cy - 126}px;${rtl ? "right" : "left"}:${cx - 44}px`; plate.appendChild(s); setTimeout(() => s.classList.remove("gone"), 420); });
     requestAnimationFrame(() => requestAnimationFrame(() => im.classList.remove("out")));
+    // noms des ingrédients au bord : on les ramène dans l'écran une fois les ingrédients posés
+    setTimeout(() => { const P = plate.getBoundingClientRect(); plate.querySelectorAll(".vt-lbl").forEach(l => { l.style.marginLeft = "";
+      const r = l.getBoundingClientRect(), d = r.left < P.left + 4 ? P.left + 4 - r.left : r.right > P.right - 4 ? P.right - 4 - r.right : 0;
+      if (d) l.style.marginLeft = Math.round(d) + "px"; }); }, 1000);
     $("#vtN").textContent = UI.bi(p.name); $("#vtD").textContent = UI.bi(p.description || "");
     vtPicks();
   };
   instant ? build() : setTimeout(build, 260);
+}
+// (patron 24/11 : « que ça soit logique avec le sandwich ») chaque ingrédient porte son nom : celui du « sans … » s'il s'enlève,
+// la sauce vendue à part, sinon le nom de sa photo (img/<boutique>/<ingrédient>.webp) ; cfg.ing[].lbl {fr, he} pour un autre nom
+const VT_ING = { poulet: ["Poulet", "עוף"], saumon: ["Saumon", "סלמון"], charcuterie: ["Jambon de veau", "נקניק עגל"], mozzarella: ["Burrata", "בוראטה"],
+  huile: ["Huile d'olive", "שמן זית"], steak: ["Steak", "קציצה"], pain: ["Pain brioché", "לחמניית בריוש"], oignon: ["Oignon", "בצל"], thon: ["Thon", "טונה"], boeuf: ["Bœuf", "בקר"] };
+function vtIngLbl(g) {
+  const he = I18N.lang === "he";
+  if (g.lbl) return g.lbl[he ? "he" : "fr"] || g.lbl.fr || "";
+  if (g.off) { const l = modLbl(g.off); return l.charAt(0).toUpperCase() + l.slice(1); }
+  if (g.add) { const pr = vtProd(g.add); return pr ? UI.bi(pr.name) : ""; }
+  const k = String(g.img || "").split("/").pop().replace(/\.\w+$/, ""), v = VT_ING[k];
+  return v ? v[he ? 1 : 0] : "";
 }
 function vtPicks() {
   const d = vt.cfg.dishes[vt.cur], p = vtProd(d.product), off = vt.off[d.product] || [], add = vt.add[d.product] || [];
@@ -4536,6 +4552,15 @@ function d5Home() {
   const paint = () => dots.forEach((d, k) => d.classList.toggle("on", k === cur));
   tr.addEventListener("scroll", () => { const k = Math.round(Math.abs(tr.scrollLeft) / tr.clientWidth); if (k !== cur) { cur = k; paint(); } }, { passive: true });
   ["touchstart", "touchmove", "pointerdown"].forEach(ev => tr.addEventListener(ev, () => { user = Date.now(); }, { passive: true }));
+  // (patron 24/11 : « le scroll doit pouvoir ramener à la première image ») glisser encore après la dernière image revient
+  // à la première, et glisser en arrière sur la première va à la dernière
+  const go = k => { cur = (k + S.length) % S.length; tr.scrollTo({ left: (he ? -1 : 1) * cur * tr.clientWidth, behavior: "smooth" }); paint(); };
+  let x0 = null, k0 = 0;
+  tr.addEventListener("touchstart", e => { x0 = e.touches[0].clientX; k0 = cur; }, { passive: true });
+  tr.addEventListener("touchend", e => {
+    if (x0 == null) return; const dx = (e.changedTouches[0].clientX - x0) * (he ? -1 : 1); x0 = null;
+    setTimeout(() => { if (cur !== k0) return; if (dx < -40 && k0 === S.length - 1) go(0); else if (dx > 40 && k0 === 0) go(S.length - 1); }, 260);
+  }, { passive: true });
   clearInterval(d5Home.t);
   d5Home.t = setInterval(() => { if (Date.now() - user < 6000 || document.hidden || (document.body.dataset.view || "home") !== "home") return; cur = (cur + 1) % S.length; tr.scrollTo({ left: (he ? -1 : 1) * cur * tr.clientWidth, behavior: "smooth" }); paint(); }, 4600);
   // 2. La bande de mots : ce qu'on fait + les restos et magasins qu'il y a
@@ -4618,6 +4643,8 @@ document.addEventListener("click", e => {
   if (id === "promo") return openPromosAll("");
   if (id === "shops") return d4MagOpen();
   if (id === "mikve") return mikveOpen();
+  // (patron 24/11 : « Tous les restos ne fonctionne pas ») la liste des restaurants, directement
+  if (id === "resto") { d4m.f = "k:restaurant"; d4m.q = ""; return d4MagOpen(); }
   const kb = document.querySelector(`#homeKinds .ch-kind[data-kind="${id}"], #homeKinds [data-kind="${id}"]`);
   if (kb) return kb.click();
   const t4 = document.querySelector(`#d4Tiles [data-d4="${id}"], #d4Shops [data-d4="${id}"]`);
