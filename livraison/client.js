@@ -4292,6 +4292,7 @@ async function loadCatalogFor(shop) {
 const D6_KIND_COLOR = { restaurant: "#FF5D73", epicerie: "#1E9BF0", supermarche: "#1E9BF0", pharmacie: "#7ED9A6", boulangerie: "#FFE14A", fleurs: "#FF8FB1", cafe: "#8E6CEF" };
 // Le haut de page d'un commerce, version pleine couleur : grand nom, accroche, bulles (ouvert, livraison), la photo qui flotte,
 // boutons pilules (infos, WhatsApp, horaire choisi) — mêmes actions qu'avant (data-sh-info, data-sl-goto)
+const D6_SCOOT = `<svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="17" r="2.4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8.4 17h6.8l2.6-6h-3.6l-1.8-4H9.5M14.2 11H8.2L6 14.8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 function d6HeroHtml(s, logo, cover) {
   const st = UI.openState(s.hours), wa = shopWa(s), he = I18N.lang === "he";
   const dish = typeof vt !== "undefined" && vt && vt.cfg && vt.code === s.code && vt.cfg.dishes && vt.cfg.dishes[0] ? vt.cfg.dishes[0].img : "";
@@ -4300,11 +4301,11 @@ function d6HeroHtml(s, logo, cover) {
   const brand = typeof vt !== "undefined" && vt && vt.all && vt.code === s.code ? vt.all.brand : null;
   const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
   return `<div class="d6h${brand ? " d6h-brand" : ""}"${brand ? ` style="${brand.accent ? `--brand-ac:${UI.esc(brand.accent)};` : ""}${brand.font ? `--brand-font:'${UI.esc(brand.font)}';` : ""}${brand.fontHe ? `--brand-font-he:'${UI.esc(brand.fontHe)}';` : ""}${brand.fontLine ? `--brand-font-line:'${UI.esc(brand.fontLine)}';` : ""}"` : ""}>
-    <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
+    <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${D6_SCOOT}${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${KOSHER_STAR}${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
     ${brand && brand.logo ? `<img class="d6h-blogo" src="${UI.esc(brand.logo)}" alt="" />` : ""}
     <h1 class="d6h-name${Math.max(...UI.bi(s.name).split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(UI.bi(s.name))}</h1>
     ${brand && brand.line ? `<p class="d6h-bline">${String(brand.line[he ? "he" : "fr"] || brand.line.fr || "").split(/\s*·\s*/).map((w, i, a) => `<span>${UI.esc(w)}${i < a.length - 1 ? " ·" : ""}</span>`).join(" ")}</p>` : `<p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>`}
-    ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
+    ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>${s.kind === "restaurant" ? `<i class="d6-steam" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
     <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn2"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
   </div>${shopSheet(s)}`;
 }

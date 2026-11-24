@@ -1095,3 +1095,62 @@ html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-name { font-family: var(--brand-
 html.d5 body #shopHero .d6h-brand .d6h-bline { font-family: var(--brand-font-line), Heebo, sans-serif !important; }
 html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-bline { font-family: var(--brand-font-he), Heebo, sans-serif !important; }
 html.d5 body #shopHero .d6h-brand .d6h-bline span { white-space: nowrap; }
+
+/* =====================================================================================================================
+   (patron 24/11) pastilles « vraiment jolies, avec de beaux effets », fumée sur le plat, phrase qui s'allume
+   ===================================================================================================================== */
+/* pastilles du haut des commerces : icône, reflet lumineux qui passe, apparition en cascade, point « ouvert » qui pulse */
+html.d5 body #shopHero .d6h .d6h-b { position: relative; overflow: hidden; isolation: isolate; box-shadow: 0 6px 16px rgba(0,0,0,.18), inset 0 -2px 0 rgba(0,0,0,.08) !important; animation: d6pop .55s cubic-bezier(.2, 1.6, .4, 1) backwards; }
+html.d5 body #shopHero .d6h .d6h-b:nth-child(2) { animation-delay: .12s; } html.d5 body #shopHero .d6h .d6h-b:nth-child(3) { animation-delay: .24s; }
+html.d5 body #shopHero .d6h .d6h-b::after { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: -70%; width: 45%; background: linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.85), rgba(255,255,255,0)); transform: skewX(-20deg); animation: d6shine 5s ease-in-out infinite; }
+html.d5 body #shopHero .d6h .d6h-b:nth-child(2)::after { animation-delay: .5s; } html.d5 body #shopHero .d6h .d6h-b:nth-child(3)::after { animation-delay: 1s; }
+html.d5 body #shopHero .d6h .d6h-b .bi, html.d5 body #shopHero .d6h .d6h-b .k-star { width: 15px; height: 15px; flex: none; }
+html.d5 body #shopHero .d6h .d6h-b.on i { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: #2BC46F !important; animation: d6pulse 1.6s ease-out infinite; }
+html.d5 body #shopHero .d6h .d6h-b.off i { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: #E8574A !important; }
+@keyframes d6pop { 0% { opacity: 0; transform: translateY(8px) scale(.7); } 100% { opacity: 1; transform: none; } }
+@keyframes d6shine { 0%, 62% { left: -70%; } 82%, 100% { left: 130%; } }
+@keyframes d6pulse { 0% { box-shadow: 0 0 0 0 rgba(43,196,111,.65); } 100% { box-shadow: 0 0 0 9px rgba(43,196,111,0); } }
+
+/* pastilles de l'accueil (à côté de Hoppy et des plats) : même reflet, et elles flottent doucement */
+html.d5 body .d6-slide .d6-bub { overflow: hidden; isolation: isolate; box-shadow: 0 8px 18px rgba(0,0,0,.18), inset 0 -2px 0 rgba(0,0,0,.1) !important; animation: d6bob 3.2s ease-in-out infinite; }
+html.d5 body .d6-slide .d6-bub.b1 { animation-delay: .9s; } html.d5 body .d6-slide .d6-bub.b2 { animation-delay: 1.7s; }
+html.d5 body .d6-slide .d6-bub::after { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: -70%; width: 45%; background: linear-gradient(100deg, rgba(255,255,255,0), rgba(255,255,255,.7), rgba(255,255,255,0)); transform: skewX(-20deg); animation: d6shine 4.6s ease-in-out infinite; }
+html.d5 body .d6-slide .d6-bub.b1::after { animation-delay: .7s; } html.d5 body .d6-slide .d6-bub.b2::after { animation-delay: 1.4s; }
+@keyframes d6bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -7px; } }
+
+/* fumée qui monte du plat chaud (restaurants) */
+html.d5 body #shopHero .d6-steam { position: absolute; z-index: 3; inset-inline-end: 40px; top: 70px; width: 120px; height: 130px; pointer-events: none; }
+html.d5 body #shopHero .d6h-brand .d6-steam { top: auto; bottom: 230px; }
+html.d5 body #shopHero .d6-steam b { position: absolute; bottom: 0; width: 22px; height: 96px; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(255,255,255,.7), rgba(255,255,255,0) 68%); filter: blur(5px); opacity: 0; animation: d6steam 3.9s ease-in infinite; }
+html.d5 body #shopHero .d6-steam b:nth-child(1) { left: 18px; } html.d5 body #shopHero .d6-steam b:nth-child(2) { left: 50px; animation-delay: 1.3s; } html.d5 body #shopHero .d6-steam b:nth-child(3) { left: 82px; animation-delay: 2.6s; }
+@keyframes d6steam { 0% { transform: translate(0, 24px) scaleX(.55); opacity: 0; } 22% { opacity: .9; } 50% { transform: translate(8px, -28px) scaleX(1.05) skewX(8deg); } 100% { transform: translate(-6px, -82px) scaleX(1.6) skewX(-10deg); opacity: 0; } }
+
+/* « Sandwichs · Salades · Café » : les mots s'allument l'un après l'autre */
+html.d5 body #shopHero .d6h-brand .d6h-bline span { animation: d6glow 3.6s ease-in-out infinite; }
+html.d5 body #shopHero .d6h-brand .d6h-bline span:nth-child(2) { animation-delay: 1.2s; } html.d5 body #shopHero .d6h-brand .d6h-bline span:nth-child(3) { animation-delay: 2.4s; }
+@keyframes d6glow { 0%, 45%, 100% { opacity: .72; text-shadow: none; } 15%, 28% { opacity: 1; color: #fff; text-shadow: 0 0 12px rgba(255,236,190,.95), 0 0 2px #fff; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html.d5 body #shopHero .d6h .d6h-b, html.d5 body #shopHero .d6h .d6h-b::after, html.d5 body .d6-slide .d6-bub, html.d5 body .d6-slide .d6-bub::after,
+  html.d5 body #shopHero .d6-steam b, html.d5 body #shopHero .d6h-brand .d6h-bline span { animation: none !important; }
+}
+html.d5 body .d6-slide .d6-bub { padding: 9px 15px !important; border-radius: 22px !important; font: 800 13px Heebo, sans-serif !important; letter-spacing: .02em !important; }
+html.d5 body #shopHero .d6h .d6h-b .k-star { background: none !important; border: 0 !important; border-radius: 0 !important; padding: 0 !important; color: currentColor !important; stroke: currentColor; }
+html.d5 body #shopHero .d6h .d6h-b .k-star path { stroke: currentColor !important; fill: none !important; }
+html.d5 body #shopHero .d6h .d6h-b i { display: inline-block !important; flex: none; }
+html.d5 body #shopHero .d6h-brand .d6-steam { bottom: 205px !important; }
+html.d5 body #shopHero .d6-steam { top: 92px; }
+html.d5 body #shopHero .d6h .d6h-b .k-star { box-shadow: none !important; }
+/* pastilles du haut : passent à la ligne proprement plutôt que d'être coupées */
+html.d5 body #shopHero .d6h-bubs { flex-wrap: wrap !important; overflow: visible !important; row-gap: 8px !important; }
+/* « Vos articles se paient à … sur WhatsApp · comment ça marche » : un bloc, pas un vieux lien souligné */
+html.d5 body #catalogBox .nopay-mini { background: var(--c1) !important; color: #fff !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 16px 18px !important; margin: 0 0 12px !important; box-shadow: none !important; }
+html.d5 body #catalogBox .nopay-mini summary { list-style: none; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+html.d5 body #catalogBox .nopay-mini summary::-webkit-details-marker { display: none; }
+html.d5 body #catalogBox .nopay-mini summary i { display: none; }
+html.d5 body #catalogBox .nopay-mini summary b { display: block; font: 800 18px/1.15 var(--K) !important; color: #fff !important; text-decoration: none !important; }
+html.d5 body #catalogBox .nopay-mini summary small { display: inline-block; margin-top: 6px; padding: 6px 12px; border-radius: 16px; background: #fff; color: var(--ink) !important; font: 800 13px Heebo, sans-serif !important; text-decoration: none !important; }
+html.d5 body #catalogBox .nopay-mini[open] summary small { background: rgba(255,255,255,.25); color: #fff !important; }
+html.d5 body #catalogBox .nopay-mini > :not(summary) { margin-top: 12px; color: #fff !important; }
+html.d5 body #catalogBox .nopay-mini > :not(summary) * { color: #fff !important; }
+html.d5 body #catalogBox .nopay-mini summary, html.d5 body #catalogBox .nopay-mini summary * { text-decoration: none !important; border-bottom: 0 !important; }
