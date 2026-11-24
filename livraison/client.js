@@ -4296,36 +4296,70 @@ const D6_SCOOT = `<svg class="bi" viewBox="0 0 24 24" aria-hidden="true"><circle
 function d6HeroHtml(s, logo, cover) {
   const st = UI.openState(s.hours), wa = shopWa(s), he = I18N.lang === "he";
   const dish = typeof vt !== "undefined" && vt && vt.cfg && vt.code === s.code && vt.cfg.dishes && vt.cfg.dishes[0] ? vt.cfg.dishes[0].img : "";
-  const pic = dish || cover || "";
+  const bpic = typeof vt !== "undefined" && vt && vt.all && vt.code === s.code && vt.all.brand && vt.all.brand.pic ? vt.all.brand.pic : "";
+  // plat vedette détouré : celui de la vitrine, sinon brand.pic (cfg sans vitrine) ; à défaut la photo de couverture
+  const cut = dish || bpic, pic = cut || cover || "";
   // Identité du commerce en haut de sa page (patron 24/11, Rendez-Vous) : son logo, ses couleurs, sa phrase (cfg.brand de sa vitrine)
   const brand = typeof vt !== "undefined" && vt && vt.all && vt.code === s.code ? vt.all.brand : null;
   const at = (() => { try { return val("urgency") === "programmee" && (state.shopSched || form.classList.contains("no-now")) && pickupDate(); } catch (e) { return null; } })();
   return `<div class="d6h${brand ? " d6h-brand" : ""}"${brand ? ` style="${brand.accent ? `--brand-ac:${UI.esc(brand.accent)};` : ""}${brand.font ? `--brand-font:'${UI.esc(brand.font)}';` : ""}${brand.fontHe ? `--brand-font-he:'${UI.esc(brand.fontHe)}';` : ""}${brand.fontLine ? `--brand-font-line:'${UI.esc(brand.fontLine)}';` : ""}"` : ""}>
     <div class="d6h-bubs">${st ? `<span class="d6h-b ${st.open ? "on" : "off"}"><i></i>${UI.esc(openLabel(st))}</span>` : ""}<span class="d6h-b w">${D6_SCOOT}${UI.esc(s.shop_pays ? t("scGift") : t("proDelivery", { price: money(addonOn() ? state.addon.price : proPrice(s)) }))}</span>${isKosher(s) ? `<span class="d6h-b k">${KOSHER_STAR}${UI.esc(he ? "כשר" : "Casher")}</span>` : ""}</div>
-    ${brand && brand.logo ? `<img class="d6h-blogo" src="${UI.esc(brand.logo)}" alt="" />` : ""}
-    <h1 class="d6h-name${Math.max(...UI.bi(s.name).split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(UI.bi(s.name))}</h1>
+    ${brand && (brand.logo || logo) ? `<img class="d6h-blogo${brand.logo ? "" : " auto"}${brand.logoShape === "wide" ? " wide" : ""}" src="${UI.esc(brand.logo || logo)}" alt=""${brand.logoBg ? ` style="background:${UI.esc(brand.logoBg)}"` : ""} />` : ""}
+    ${(() => { const nm = (brand && brand.name && (brand.name[he ? "he" : "fr"] || brand.name.fr)) || UI.bi(s.name); return `<h1 class="d6h-name${Math.max(...nm.split(/\s+/).map(w => w.length)) > 6 ? " long" : ""}">${UI.esc(nm)}</h1>`; })()}
     ${brand && brand.line ? `<p class="d6h-bline">${String(brand.line[he ? "he" : "fr"] || brand.line.fr || "").split(/\s*·\s*/).map((w, i, a) => `<span>${UI.esc(w)}${i < a.length - 1 ? " ·" : ""}</span>`).join(" ")}</p>` : `<p class="d6h-tag">${UI.esc(UI.shopText(s, "tagline") || (t("shKinds") || {})[s.kind] || "")}</p>`}
-    ${pic ? `${dish ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>${s.kind === "restaurant" ? `<i class="d6-steam" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}` : ""}<img class="d6h-pic${dish ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
+    ${pic ? `${cut ? `<i class="d6-halo h" aria-hidden="true"></i><i class="d6-ground h" aria-hidden="true"></i>${s.kind === "restaurant" && !(brand && brand.steam === false) ? `<i class="d6-steam" aria-hidden="true"><b></b><b></b><b></b></i>` : ""}` : ""}<img class="d6h-pic${cut ? " cut" : ""}" src="${UI.esc(pic)}" alt="" />` : logo && !brand ? `<img class="d6h-logo" src="${UI.esc(logo)}" alt="" />` : ""}
     <div class="d6h-acts"><button type="button" class="d6h-a" data-sh-info="1">${UI.esc(t("shInfoBtn2"))}</button>${wa ? `<a class="d6h-a wa" href="https://wa.me/${UI.esc(wa)}?text=${encodeURIComponent(t("shWaHello", { name: UI.bi(s.name) }))}" target="_blank" rel="noopener">WhatsApp</a>` : ""}${at ? `<button type="button" class="d6h-a when" data-sl-goto>${UI.esc(vitWhenLong(at))} · ${UI.esc(t("slChange"))}</button>` : ""}</div>
   </div>${shopSheet(s)}`;
 }
 function d6ShopColor() {
   if (!document.documentElement.classList.contains("d5")) return;
-  const s = state.shop, cfg = typeof vt !== "undefined" && vt && vt.cfg && vt.code === (s && s.code) ? vt.cfg : null;
-  const c = (cfg && cfg.colors && cfg.colors.page) || (s && D6_KIND_COLOR[s.kind]) || "#1E9BF0";
+  const s = state.shop, cfg = typeof vt !== "undefined" && vt && vt.all && vt.code === (s && s.code) ? vt.all : null;
+  // couleur de l'enseigne : celle réglée dans sa vitrine, sinon lue dans son logo (d6LogoColor), sinon une couleur par type
+  if (s && !(cfg && cfg.colors && cfg.colors.page) && s.logo) d6LogoColor(s.code, UI.safeImg(s.logo));
+  const c = (cfg && cfg.colors && cfg.colors.page) || (s && D6_LOGO_COLOR[s.code]) || (s && D6_KIND_COLOR[s.kind]) || "#1E9BF0";
   const rgb = c.replace("#", "").match(/../g).map(x => parseInt(x, 16)), lum = (.299 * rgb[0] + .587 * rgb[1] + .114 * rgb[2]) / 255;
   document.body.style.setProperty("--shop", c); document.body.style.setProperty("--shop-ink", lum > .62 ? "#3A1E0E" : "#FFFFFF");
   document.body.classList.toggle("d6-shop", !!s);
+}
+// La couleur principale d'un logo (patron 24/11 : « faire ça pour toutes les boutiques ») : le logo réduit à 40 × 40, on garde
+// la teinte la plus présente parmi les pixels bien colorés (ni blancs, ni noirs, ni gris) ; logo noir et blanc → rien
+const D6_LOGO_COLOR = {};
+function d6LogoColor(code, src) {
+  if (!src || D6_LOGO_COLOR[code] !== undefined) return;
+  D6_LOGO_COLOR[code] = "";
+  const img = new Image();
+  img.onload = () => {
+    try {
+      const n = 40, cv = document.createElement("canvas"); cv.width = cv.height = n;
+      const g = cv.getContext("2d"); g.drawImage(img, 0, 0, n, n);
+      const d = g.getImageData(0, 0, n, n).data, bins = {};
+      for (let i = 0; i < d.length; i += 4) {
+        if (d[i + 3] < 200) continue;
+        const r = d[i], gg = d[i + 1], b = d[i + 2], mx = Math.max(r, gg, b), mn = Math.min(r, gg, b), l = (mx + mn) / 2;
+        if (mx - mn < 60 || l > 235 || l < 30) continue;
+        const k = [r, gg, b].map(v => v >> 5).join(",");
+        (bins[k] = bins[k] || { n: 0, r: 0, g: 0, b: 0 }).n++; bins[k].r += r; bins[k].g += gg; bins[k].b += b;
+      }
+      const top = Object.values(bins).sort((a, z) => z.n - a.n)[0];
+      if (!top || top.n < 12) return;
+      const hx = v => Math.round(v / top.n).toString(16).padStart(2, "0");
+      D6_LOGO_COLOR[code] = "#" + hx(top.r) + hx(top.g) + hx(top.b);
+      if (state.shop && state.shop.code === code) d6ShopColor();
+    } catch (e) { /* logo d'un autre domaine : couleur par type */ }
+  };
+  if (/^https:/.test(src)) img.crossOrigin = "anonymous";
+  img.src = src;
 }
 var vt = { cfg: null, all: null, code: "", cur: 0, off: {}, add: {}, auto: true, timer: 0 };
 async function vtLoad(code, seq) {
   vt.cfg = null; vt.all = null; vt.code = code; vt.cur = 0; vt.off = {}; vt.add = {}; vt.auto = true; vtRender();
   let cfg = null;
   try { cfg = await Store.shopVitrine(code); } catch (e) { cfg = null; }
-  if (seq !== shopSeq || !state.shop || state.shop.code !== code || !cfg || !Array.isArray(cfg.dishes)) return;
+  if (seq !== shopSeq || !state.shop || state.shop.code !== code || !cfg) return;
   const prods = cgProducts();
-  cfg.dishes = cfg.dishes.filter(d => prods.some(p => p.id === d.product && p.available !== false));
-  if (!cfg.dishes.length) return;
+  cfg.dishes = (Array.isArray(cfg.dishes) ? cfg.dishes : []).filter(d => prods.some(p => p.id === d.product && p.available !== false));
+  // sans plat vedette mais avec son identité (cfg.brand / cfg.colors) : le haut de page à ses couleurs, pas de vitrine
+  if (!cfg.dishes.length && !cfg.brand && !cfg.colors) return;
   if (!document.getElementById("vtFonts")) { const l = document.createElement("link"); l.id = "vtFonts"; l.rel = "stylesheet";
     l.href = "https://fonts.googleapis.com/css2?family=Karantina:wght@700&family=Caveat:wght@700&display=swap"; document.head.appendChild(l); }
   // police du commerce (cfg.brand.fonts : familles Google Fonts, ex. « Outfit:wght@600;700 »)
@@ -4339,7 +4373,7 @@ async function vtLoad(code, seq) {
 const vtProd = id => cgProducts().find(p => p.id === id);
 // Côté Bassari / Halavi choisi (Rendez-Vous) : la vitrine ne montre que les plats de ce côté (cfg.dishes[].side = "b" | "h")
 function vtApplySide() {
-  if (!vt.all) return;
+  if (!vt.all || !vt.all.dishes.length) return;
   const side = ((state.ksSide || {})[vt.code]) || "", list = vt.all.dishes.filter(d => !side || !d.side || d.side === side);
   vt.cfg = Object.assign({}, vt.all, { dishes: list.length ? list : vt.all.dishes }); vt.cur = 0; vtRender(true);
   try { ksRender(); } catch (e) { /* choix Bassari / Halavi */ }

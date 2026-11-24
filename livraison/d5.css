@@ -1056,13 +1056,13 @@ html.d5 body .ks-card img[src^="img/"] { width: 100% !important; inset-inline-en
 html.d5 body .ks-card { min-height: 250px !important; }
 
 /* Haut de page à l'identité du commerce (patron 24/11, Rendez-Vous : son logo, son marron, son beige) */
-html.d5 body #shopHero .d6h.d6h-brand { color: var(--brand-ac, #fff) !important; }
-html.d5 body #shopHero .d6h-brand .d6h-blogo { position: relative; z-index: 3; display: block; width: 86px; height: 86px; border-radius: 50%; object-fit: cover; margin: 6px 0 12px; box-shadow: 0 10px 22px rgba(0,0,0,.25); border: 3px solid var(--brand-ac, #fff); }
-html.d5 body #shopHero .d6h-brand .d6h-name { color: var(--brand-ac, #fff) !important; font-size: 46px !important; }
-html.d5 body #shopHero .d6h-brand .d6h-bline { position: relative; z-index: 3; max-width: 50%; margin-top: 10px; font: 700 15px/1.35 Heebo, sans-serif; letter-spacing: .02em; color: var(--brand-ac, #fff); opacity: .95; }
-html.d5 body #shopHero .d6h-brand .d6h-b { background: var(--brand-ac, #fff) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h.d6h-brand { color: var(--brand-ac, var(--shop-ink, #fff)) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-blogo { position: relative; z-index: 3; display: block; width: 86px; height: 86px; border-radius: 50%; object-fit: cover; margin: 6px 0 12px; box-shadow: 0 10px 22px rgba(0,0,0,.25); border: 3px solid var(--brand-ac, var(--shop-ink, #fff)); }
+html.d5 body #shopHero .d6h-brand .d6h-name { color: var(--brand-ac, var(--shop-ink, #fff)) !important; font-size: 46px !important; }
+html.d5 body #shopHero .d6h-brand .d6h-bline { position: relative; z-index: 3; max-width: 50%; margin-top: 10px; font: 700 15px/1.35 Heebo, sans-serif; letter-spacing: .02em; color: var(--brand-ac, var(--shop-ink, #fff)); opacity: .95; }
+html.d5 body #shopHero .d6h-brand .d6h-b { background: var(--brand-ac, var(--shop-ink, #fff)) !important; color: var(--shop, #333) !important; }
 html.d5 body #shopHero .d6h-brand .d6h-b.on i { background: #3FB56C !important; }
-html.d5 body #shopHero .d6h-brand .d6h-a { background: var(--brand-ac, #fff) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-a { background: var(--brand-ac, var(--shop-ink, #fff)) !important; color: var(--shop, #333) !important; }
 html.d5 body #shopHero .d6h-brand .d6-halo { background: radial-gradient(closest-side, rgba(233,211,166,.35), rgba(233,211,166,.12) 62%, rgba(233,211,166,0) 100%); }
 html.d5 body #shopHero .d6h-brand .d6h-pic.cut { top: 150px !important; }
 html.d5 body #shopHero .d6h-brand .d6-halo.h { top: 140px; } html.d5 body #shopHero .d6h-brand .d6-ground.h { top: 330px; }
@@ -1078,10 +1078,10 @@ html.d5 body #shopHero .d6h { padding-top: 26px !important; }
 html.d5 body #shopHero .d6h-bubs { position: relative; z-index: 4; display: flex !important; flex-wrap: wrap; gap: 8px !important; margin-bottom: 14px; }
 html.d5 body #shopHero .d6h .d6h-b { transform: none !important; padding: 9px 14px !important; border-radius: 22px !important; font: 800 13.5px/1 Heebo, sans-serif !important; white-space: nowrap; box-shadow: none !important; background: rgba(255,255,255,.92) !important; color: var(--ink) !important; }
 html.d5 body #shopHero .d6h .d6h-b.k { background: rgba(255,255,255,.92) !important; color: var(--ink) !important; }
-html.d5 body #shopHero .d6h-brand .d6h-b, html.d5 body #shopHero .d6h-brand .d6h-b.k, html.d5 body #shopHero .d6h-brand .d6h-b.w { background: var(--brand-ac, #fff) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-b, html.d5 body #shopHero .d6h-brand .d6h-b.k, html.d5 body #shopHero .d6h-brand .d6h-b.w { background: var(--brand-ac, var(--shop-ink, #fff)) !important; color: var(--shop, #333) !important; }
 html.d5 body #shopHero .d6h-acts { bottom: 20px !important; gap: 10px !important; }
 html.d5 body #shopHero .d6h .d6h-a { min-height: 48px; display: inline-flex; align-items: center; gap: 8px; padding: 0 22px !important; border-radius: 26px !important; font: 800 16px Heebo, sans-serif !important; box-shadow: 0 8px 18px rgba(0,0,0,.18) !important; }
-html.d5 body #shopHero .d6h-brand .d6h-a { background: var(--brand-ac, #fff) !important; color: var(--shop, #333) !important; }
+html.d5 body #shopHero .d6h-brand .d6h-a { background: var(--brand-ac, var(--shop-ink, #fff)) !important; color: var(--shop, #333) !important; }
 html.d5 body #shopHero .d6h .d6h-b { padding: 8px 11px !important; font-size: 12.5px !important; gap: 5px !important; }
 html.d5 body #shopHero .d6h-bubs { gap: 6px !important; flex-wrap: nowrap !important; overflow: hidden; }
 html.d5 body #shopHero .d6h-brand .d6h-bline { white-space: normal !important; max-width: 46% !important; line-height: 1.5 !important; }
@@ -1159,3 +1159,11 @@ html.d5 body .ks-row { align-items: stretch !important; grid-auto-rows: 1fr; }
 html.d5 body .ks-card { height: 260px !important; min-height: 0 !important; }
 html.d5 body .ks-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } html.d5 body .ks-card { min-width: 0 !important; width: 100% !important; }
 html.d5 body .ks-card, html.d5 body .ks-card * { color: #fff !important; }
+/* Haut de page à l'identité d'un resto sans plat détouré (patron 24/11 : « pareil pour Smash It et les autres restos ») :
+   sa photo de couverture en carte inclinée en bas à droite, le texte à gauche ne passe jamais dessous */
+html.d5 body #shopHero .d6h-brand .d6h-pic:not(.cut) { top: auto !important; bottom: 96px !important; inset-inline-end: 4px !important; width: 168px !important; height: 168px !important; border-radius: 26px; border: 4px solid var(--brand-ac, var(--shop-ink, #fff)); transform: rotate(4deg); animation: d6float 4.4s ease-in-out infinite; }
+html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-pic:not(.cut) { transform: rotate(-4deg); }
+/* logo du commerce pris dans sa fiche (fond souvent transparent) : posé sur une pastille blanche, jamais rogné ;
+   logo en longueur (brand.logoShape = "wide") : cartouche arrondi au lieu du rond */
+html.d5 body #shopHero .d6h-brand .d6h-blogo.auto { object-fit: contain; background: #fff; padding: 9px; }
+html.d5 body #shopHero .d6h-brand .d6h-blogo.wide { width: auto; max-width: 190px; height: 74px; border-radius: 20px; padding: 8px 14px; }

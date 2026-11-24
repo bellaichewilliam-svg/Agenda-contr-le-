@@ -18,6 +18,13 @@ sauf les images, qui vont dans `livraison/img/<boutique>/` (fichiers `.webp`, pa
   **sa police** (lire le CSS de son site : `font-family` des titres ; `brand.font`, `brand.fontLine`, `brand.fontHe` + `brand.fonts` pour Google Fonts),
   **sa phrase** (`brand.line`, ex. « Sandwichs · Salades · Café » : les mots s'allument l'un après l'autre).
 - Le plat vedette détouré à droite, avec halo, ombre au sol et **fumée qui monte** (automatique pour un restaurant).
+- **Sans vitrine de plats**, `cfg.brand` seul suffit (fait le 24/11 pour Smash It, Paris Texas, Pizza Crush, Nina Sushi, Shiso, McDonald's casher,
+  Nini deli, Golda, HOP! Jus). Réglages en plus :
+  - pas de `colors.page` → la couleur est **lue dans le logo** du commerce (teinte la plus présente) ;
+  - pas de `brand.logo` → le logo de sa fiche, sur pastille blanche ; `brand.logoBg` (fond du rond si le logo a du blanc),
+    `brand.logoShape: "wide"` (logo en longueur → cartouche) ;
+  - `brand.pic` = un plat détouré (`img/<boutique>/hero.webp`), sinon la photo de couverture en carte inclinée ;
+  - `brand.steam: false` pour ce qui ne fume pas (sushis, glaces, jus, salades) ; `brand.name {fr, he}` si le nom de la fiche est trop long.
 - **Rien ne doit être caché** : le texte jamais sous le plat, les pastilles jamais sous la barre du haut, rien de coupé au bord de l'écran.
 - Pastilles du haut (Ouvert · Livraison · Casher) : sur une ligne, avec icône, reflet lumineux, point vert qui pulse si c'est ouvert.
 
