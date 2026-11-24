@@ -1045,3 +1045,9 @@ html.d5 body .ks-card.on { box-shadow: 0 0 0 4px var(--ink) inset; }
 html.d5 body .ks-card:active { transform: scale(.97); }
 html.d5 body .ks-all { all: unset; cursor: pointer; display: block; margin: 10px auto 0; padding: 10px 18px; border-radius: 24px; background: #E3EFFA; color: var(--ink); font: 800 15px Heebo, sans-serif; }
 html.d5 body #catalogBox[data-ks="b"] [data-ks-sec="h"], html.d5 body #catalogBox[data-ks="h"] [data-ks-sec="b"] { display: none !important; }
+html.d5 body .pay-top { background: var(--c2) !important; border-radius: var(--blk-r) !important; padding: 18px !important; }
+html.d5 body .pay-top b { font: 800 24px/1 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; }
+html.d5 body .pay-top p { font: 700 16px/1.35 Heebo, sans-serif !important; color: var(--ink) !important; }
+html.d5 body .pay-top p i { background: var(--ink) !important; width: 28px; height: 28px; line-height: 28px; font-size: 15px; }
+html.d5 body .cs-ridepay { background: var(--c2); border-radius: 18px; padding: 12px 14px; color: var(--ink) !important; font: 800 16px/1.35 Heebo, sans-serif !important; margin: 10px 0 0 !important; }
+html.d5 body #cartNote:not(:empty) { font: 700 16px/1.4 Heebo, sans-serif !important; color: var(--ink) !important; }

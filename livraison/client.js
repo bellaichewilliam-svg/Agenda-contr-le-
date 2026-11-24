@@ -4785,6 +4785,15 @@ document.addEventListener("click", e => {
   if (tgt) { const bars = [...document.querySelectorAll(".topbar, .view-bar, #catalogBox .cg-head")].filter(x => getComputedStyle(x).position === "sticky" || getComputedStyle(x).position === "fixed").reduce((n, x) => n + x.offsetHeight, 0);
     window.scrollTo({ top: Math.max(0, tgt.getBoundingClientRect().top + scrollY - bars - 8), behavior: "smooth" }); }
 });
+// (patron, 24/11) dès l'arrivée sur un commerce : on comprend tout de suite les deux paiements,
+// les articles au commerce (en ligne quand il a son paiement) et la livraison au livreur, en espèces ou par Bit
+function rideFee() { const q = currentQuote(); return money(q && q.total != null ? Number(q.total) : proPrice(state.shop)); }
+function payTop() {
+  if (!state.shop || !proShopOn() || hopBuyOn()) return "";
+  const nm = UI.bi(state.shop.name), direct = !!(state.shop.pay_link || state.shop.pay_bit);
+  const goods = direct ? t("payTopGoods", { name: nm }) : shopNoPay() ? t("payTopGoodsShop", { name: nm }) : "";
+  return `<div class="pay-top"><b>${UI.esc(t("payTopT"))}</b>${goods ? `<p><i>1</i><span>${UI.esc(goods)}</span></p>` : ""}<p><i>${goods ? 2 : 1}</i><span>${UI.esc(t("payTopRide", { fee: rideFee() }))}</span></p></div>`;
+}
 function renderCatalog() {
   try { viewTitle(); } catch (e) { /* titre */ }
   const box = $("#catalogBox"), on = catalogOn();
@@ -4883,7 +4892,7 @@ function renderCatalog() {
     } else swL.classList.add("hidden");
   }
   const sw = box.querySelector(".cg-stores-w"); if (sw && sw.dataset.html !== storeBar) { sw.innerHTML = storeBar; sw.dataset.html = storeBar; }
-  const html = `${state.boss ? bossBar() : ""}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
+  const html = `${state.boss ? bossBar() : ""}${payTop()}${anyTip}${itemsTip()}${nearTip()}${shopNoPay() ? noPayMini() : ""}
     ${cq && !sections.length && !isRlShop() ? `<p class="cg-none">${UI.esc(t("cgNone", { q: state.cgQ.trim() }))}</p><div class="cg-else" id="cgElse" data-q="${UI.esc(state.cgQ.trim())}"></div>` : ""}
     ${sections.map(sec => `${sec.title ? `<h4 class="cg-sec" data-cg-sec="${UI.esc(sec.id)}">${UI.esc(sec.title)}</h4>` : ""}<div class="cg-grid${tileShop() ? " cg-tiles" : ""}${grocShop() ? " cg-pa" : ""}${tileShop() && sec.items.length === 1 ? " cg-one" : ""}">${sec.items.map(p => {
       // Taille ou boisson à choisir : le « + » ouvre la fiche de l'article
@@ -5368,6 +5377,7 @@ function renderCart() {
   let gb = $("#cartGrand");
   if (!gb) { gb = document.createElement("div"); gb.id = "cartGrand"; tr.after(gb); }
   gb.innerHTML = g; gb.classList.toggle("hidden", !g); tr.classList.toggle("hidden", !!g);
+  // (patron, 24/11) la livraison se paie à part, au livreur : dit dans la note du panier (csNote / csNotePrepay)
   $("#cartRest").classList.toggle("hidden", !rest);
   // (boutique HOP! : le livreur les prend dans ce magasin ; restaurant, traiteur… : au plus près, sur le trajet)
   const restK = state.shop && isHopShop(state.shop) ? "" : "Near";
