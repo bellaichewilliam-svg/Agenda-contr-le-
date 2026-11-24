@@ -1,0 +1,32 @@
+{
+ "pages": {
+  "https://laibcatalog.co.il/": {
+   "error": "HTTPSConnectionPool(host='laibcatalog.co.il', port=443): Max retries exceeded with url: / (Caused by ConnectTimeoutError(<HTTPSConnection(host='laibcatalog.co.il', port=443) at 0x79a22cd327e0>, 'Conne"
+  },
+  "https://laibcatalog.co.il/NBCompetitionRegulations.aspx": {
+   "error": "HTTPSConnectionPool(host='laibcatalog.co.il', port=443): Max retries exceeded with url: /NBCompetitionRegulations.aspx (Caused by ConnectTimeoutError(<HTTPSConnection(host='laibcatalog.co.il', port=44"
+  },
+  "http://matrixcatalog.co.il/NBCompetitionRegulations.aspx": {
+   "error": "HTTPConnectionPool(host='matrixcatalog.co.il', port=80): Max retries exceeded with url: /NBCompetitionRegulations.aspx (Caused by NameResolutionError(\"HTTPConnection(host='matrixcatalog.co.il', port=8"
+  },
+  "https://www.mck.co.il/": {
+   "status": 403,
+   "len": 5193,
+   "title": "Attention Required! | Cloudflare",
+   "chains": [],
+   "links_mck": []
+  },
+  "https://www.mck.co.il/prices": {
+   "status": 403,
+   "len": 5193,
+   "title": "Attention Required! | Cloudflare",
+   "chains": [],
+   "links_mck": []
+  },
+  "https://prices.mck.co.il/": {
+   "error": "HTTPSConnectionPool(host='prices.mck.co.il', port=443): Max retries exceeded with url: / (Caused by NameResolutionError(\"HTTPSConnection(host='prices.mck.co.il', port=443): Failed to resolve 'prices.m"
+  }
+ },
+ "files": [],
+ "stores": []
+}
