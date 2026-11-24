@@ -1167,3 +1167,127 @@ html[dir=rtl].d5 body #shopHero .d6h-brand .d6h-pic:not(.cut) { transform: rotat
    logo en longueur (brand.logoShape = "wide") : cartouche arrondi au lieu du rond */
 html.d5 body #shopHero .d6h-brand .d6h-blogo.auto { object-fit: contain; background: #fff; padding: 9px; }
 html.d5 body #shopHero .d6h-brand .d6h-blogo.wide { width: auto; max-width: 190px; height: 74px; border-radius: 20px; padding: 8px 14px; }
+/* Catalogue d'un commerce (patron 24/11 : « les blocs en haut gâchent tout l'écran, mettre les produits en valeur ») :
+   en haut une seule ligne (magasin + recherche avec micro), les rubriques en petites pastilles ; les produits en grandes cartes */
+html.d5 body #catalogBox .cg-head { gap: 8px !important; padding-top: 6px !important; padding-bottom: 8px !important; }
+html.d5 body #catalogBox .cg-voice { display: none !important; }
+html.d5 body #catalogBox .cg-srow { gap: 8px !important; }
+html.d5 body #catalogBox .cg-shopsw, html.d5 body #catalogBox .cg-search { min-height: 46px !important; }
+html.d5 body #catalogBox .cg-search { position: relative; padding-inline-end: 48px !important; }
+html.d5 body #catalogBox .cg-search input { font-size: 16px !important; }
+html.d5 body #catalogBox .cg-qmic { display: grid; place-items: center; position: absolute; inset-inline-end: 5px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border: 0; border-radius: 50%; background: var(--ink); color: #fff; padding: 0; }
+html.d5 body #catalogBox .cg-qmic svg { width: 19px; height: 19px; } html.d5 body #catalogBox .cg-qmic svg path { fill: #fff !important; stroke: none !important; }
+html.d5 body #catalogBox .cg-head-tabs button { min-height: 36px !important; padding: 6px 14px !important; font: 800 14.5px var(--K) !important; }
+/* cartes produit : la photo occupe toute la largeur de la carte, sur fond blanc, le nom en entier (2 lignes), le prix en gros */
+html.d5 body #catalogBox#catalogBox .cg-grid.cg-pa { gap: 12px !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid.cg-pa .cg-item { padding: 0 0 14px !important; overflow: hidden; border-radius: 22px !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid.cg-pa .cg-pic { border-radius: 0 !important; background: #fff !important; aspect-ratio: 1 / 1.02 !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid.cg-pa .cg-pic img { width: 94% !important; height: 94% !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid.cg-pa .cg-info { padding: 10px 12px 0 !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid.cg-pa .cg-info b { font: 800 15px/1.25 Heebo, sans-serif !important; -webkit-line-clamp: 4 !important; max-height: 5em; height: auto !important; min-height: 0 !important; overflow: hidden; }
+/* « Les promos du moment » sur l'accueil (patron 24/11 : « ça reste sans nouveau style ») : grand bloc citron, gros titre,
+   pastilles des magasins, cartes en couleur pleine qui changent de teinte, remise corail qui saute, « + » qui pulse */
+html.d5 body #homePromos.pz { position: relative; background: var(--c2) !important; margin-inline: -16px !important; padding: 34px 16px 26px !important; border-radius: 0 !important; border: 0 !important; overflow: hidden; }
+html.d5 body #homePromos.pz::before { content: ""; position: absolute; inset: auto -40px -60px auto; width: 200px; height: 200px; border-radius: 50%; background: rgba(255,255,255,.35); pointer-events: none; }
+html.d5 body #homePromos .pz-h { align-items: flex-end; margin-bottom: 16px; }
+html.d5 body #homePromos .pz-t .ch-h { font: 800 38px/.95 var(--K) !important; letter-spacing: -.04em !important; color: var(--ink) !important; }
+html.d5 body #homePromos .pz-t small { font: 700 14px/1.35 Heebo, sans-serif !important; color: var(--ink) !important; opacity: .8; margin-top: 6px; }
+html.d5 body #homePromos .pz-all { background: var(--ink) !important; color: #fff !important; text-decoration: none !important; border-radius: 22px; padding: 10px 16px !important; font: 800 14px Heebo, sans-serif !important; box-shadow: 0 6px 14px rgba(11,74,111,.25); }
+html.d5 body #homePromos .pz-chips { margin-bottom: 16px !important; }
+html.d5 body #homePromos .pz-chip { height: 44px !important; border: 0 !important; background: #fff !important; color: var(--ink) !important; font: 800 15px Heebo, sans-serif !important; box-shadow: 0 4px 10px rgba(11,74,111,.12); transition: transform .2s cubic-bezier(.2, 1.6, .4, 1); }
+html.d5 body #homePromos .pz-chip:active { transform: scale(.94); }
+html.d5 body #homePromos .pz-chip i { color: var(--ink) !important; opacity: .6; }
+html.d5 body #homePromos .pz-chip.on { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #homePromos .pz-chip.on i { color: #fff !important; }
+html.d5 body #homePromos .pz-card { border: 0 !important; border-radius: 30px !important; background: #fff !important; box-shadow: 0 14px 28px rgba(11,74,111,.16) !important; overflow: hidden; }
+html.d5 body #homePromos .pz-card:nth-child(4n+1) .pz-pic { background: #CFEAFD !important; }
+html.d5 body #homePromos .pz-card:nth-child(4n+2) .pz-pic { background: #FFD6DC !important; }
+html.d5 body #homePromos .pz-card:nth-child(4n+3) .pz-pic { background: #C8F0D9 !important; }
+html.d5 body #homePromos .pz-card:nth-child(4n) .pz-pic { background: #E6DDFB !important; }
+html.d5 body #homePromos .pz-pic { height: 210px !important; }
+html.d5 body #homePromos .pz-pic > img { mix-blend-mode: multiply; transition: transform .5s cubic-bezier(.2, 1.4, .4, 1); }
+html.d5 body #homePromos .pz-card:active .pz-pic > img { transform: scale(1.06); }
+html.d5 body #homePromos .pz-off { background: var(--c3) !important; color: #fff !important; border-radius: 16px !important; padding: 8px 14px !important; font: 800 17px var(--K) !important; transform: rotate(-5deg); box-shadow: 0 6px 14px rgba(255,93,115,.35); animation: d5pzPop .6s cubic-bezier(.2, 1.7, .4, 1) .2s backwards, d5pzWig 3.2s ease-in-out 1.2s infinite; }
+html.d5 body #homePromos .pz-off.pz-pin { background: var(--ink) !important; box-shadow: 0 6px 14px rgba(11,74,111,.3); font-size: 15px !important; }
+@keyframes d5pzPop { from { transform: rotate(-5deg) scale(0); } to { transform: rotate(-5deg) scale(1); } }
+@keyframes d5pzWig { 0%, 86%, 100% { transform: rotate(-5deg) scale(1); } 90% { transform: rotate(3deg) scale(1.08); } 95% { transform: rotate(-8deg) scale(1.04); } }
+html.d5 body #homePromos .pz-shop { border: 0 !important; background: #fff !important; box-shadow: 0 4px 10px rgba(0,0,0,.1); font: 800 13px Heebo, sans-serif !important; color: var(--ink) !important; }
+html.d5 body #homePromos .pz-info { min-height: 104px !important; }
+html.d5 body #homePromos .pz-name { font: 700 15.5px/1.3 Heebo, sans-serif !important; color: var(--ink) !important; }
+html.d5 body #homePromos .pz-pr strong { font: 800 30px/1 var(--K) !important; letter-spacing: -.03em !important; color: var(--ink) !important; }
+html.d5 body #homePromos .pz-pr s { color: var(--ink) !important; opacity: .5; font-weight: 700 !important; }
+html.d5 body #homePromos .pz-add { background: var(--ink) !important; color: #fff !important; border: 0 !important; box-shadow: 0 8px 16px rgba(11,74,111,.3) !important; animation: d5pzPulse 2.6s ease-out infinite; }
+html.d5 body #homePromos .pz-add:active { transform: scale(.9); }
+@keyframes d5pzPulse { 0%, 70%, 100% { box-shadow: 0 8px 16px rgba(11,74,111,.3), 0 0 0 0 rgba(11,74,111,.35); } 85% { box-shadow: 0 8px 16px rgba(11,74,111,.3), 0 0 0 10px rgba(11,74,111,0); } }
+html.d5 body #homePromos .pz-end { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #homePromos .pz-end * { color: #fff !important; }
+html.d5 body #homePromos .pz-end b { font: 800 26px/1.05 var(--K) !important; }
+html.d5 body #homePromos .pz-dots span { background: rgba(11,74,111,.25) !important; } html.d5 body #homePromos .pz-dots span.on, html.d5 body #homePromos .pz-dots span[class*="on"] { background: var(--ink) !important; }
+@media (prefers-reduced-motion: reduce) { html.d5 body #homePromos .pz-off, html.d5 body #homePromos .pz-add { animation: none; } }
+html.d5 body #homePromos .pz-dots span.done, html.d5 body #homePromos .pz-dots span::after, html.d5 body #homePromos .pz-dots span::before { background: var(--ink) !important; }
+/* bulles des grandes images : celles des restos sont des boutons (même look), toute l'image se touche */
+html.d5 body button.d6-bub { border: 0; cursor: pointer; font-family: Heebo, sans-serif; }
+html.d5 body .d6-slide { cursor: pointer; }
+/* Écran « Ma commande » (patron 24/11 : « très moche ») : bandeau du haut à la couleur du magasin, puis une carte blanche
+   (articles et total lisibles en bleu encre), plus de bloc de couleur avec un total illisible */
+html.d5 body #cartSheet #cartTitle { padding-bottom: 30px !important; }
+html.d5 body #cartSheet #cartTitle .ct-shop { font: 700 17px/1.2 Heebo, sans-serif !important; letter-spacing: 0 !important; color: var(--shop-ink, #fff) !important; opacity: .9; margin-top: 8px; }
+html.d5 body #cartSheet #cartBody, html.d5 body #cartSheet #cartBody .sw-fg { background: #fff !important; color: var(--ink) !important; }
+html.d5 body #cartSheet #cartBody { margin: -16px 0 0 !important; padding: 8px 18px 0 !important; border-radius: 24px 24px 0 0 !important; box-shadow: 0 10px 26px rgba(11,74,111,.10) !important; transform: none !important; }
+html.d5 body #cartSheet #cartBody .cs-row { border-bottom: 1.5px solid #E8EEF4 !important; color: var(--ink) !important; }
+html.d5 body #cartSheet #cartBody .cs-txt b, html.d5 body #cartSheet #cartBody .cs-txt bdi { font: 800 18px/1.15 Heebo, sans-serif !important; letter-spacing: 0 !important; color: var(--ink) !important; }
+html.d5 body #cartSheet #cartBody .cs-txt small { font: 800 17px var(--K) !important; color: var(--ink) !important; opacity: .75; }
+html.d5 body #cartSheet #cartBody .cs-qty { background: var(--cream) !important; }
+html.d5 body #cartSheet .cs-total, html.d5 body #cartSheet #cartGrand { margin: 0 !important; padding: 16px 18px 20px !important; background: #fff !important; color: var(--ink) !important; border-radius: 0 0 24px 24px !important; transform: none !important; box-shadow: 0 14px 26px rgba(11,74,111,.10) !important; -webkit-mask: none !important; mask: none !important; }
+html.d5 body #cartSheet .cs-total *, html.d5 body #cartSheet #cartGrand * { color: var(--ink) !important; }
+html.d5 body #cartSheet .cs-total b, html.d5 body #cartSheet #cartSum { font: 800 30px/1 var(--K) !important; color: var(--ink) !important; }
+html.d5 body #cartSheet #cartBody { box-shadow: 0 -2px 18px rgba(11,74,111,.08) !important; }
+html.d5 body #cartSheet .cs-total, html.d5 body #cartSheet #cartGrand { box-shadow: 0 16px 22px rgba(11,74,111,.10) !important; margin-top: -1px !important; }
+/* grande image des promos : 4 vrais produits en promo en cartes blanches inclinées, prix et remise, qui flottent */
+html.d5 body .d6-pg { display: none; }
+html.d5 body .d6-slide.has-pg .d6-si, html.d5 body .d6-slide.has-pg .d6-halo, html.d5 body .d6-slide.has-pg .d6-ground { display: none !important; }
+html.d5 body .d6-slide.has-pg .d6-pg { display: block; position: absolute; z-index: 2; inset-inline-end: 10px; bottom: 74px; width: 220px; height: 236px; }
+html.d5 body .d6-pi { position: absolute; width: 106px; height: 112px; border-radius: 22px; background: #fff; box-shadow: 0 14px 24px rgba(11,74,111,.22); display: grid; place-items: center; animation: d6float 4.4s ease-in-out infinite, d5piIn .6s cubic-bezier(.2, 1.6, .4, 1) backwards; }
+html.d5 body .d6-pi img { width: 78px; height: 70px; object-fit: contain; margin-top: -14px; }
+html.d5 body .d6-pi b { position: absolute; bottom: 8px; inset-inline-start: 10px; font: 800 16px/1 var(--K); color: var(--ink); letter-spacing: -.02em; }
+html.d5 body .d6-pi em { position: absolute; top: -8px; inset-inline-end: -6px; padding: 4px 8px; border-radius: 12px; background: var(--c3); color: #fff; font: 800 12px var(--K); font-style: normal; transform: rotate(8deg); box-shadow: 0 4px 10px rgba(255,93,115,.35); }
+html.d5 body .d6-pi.p0 { top: 0; inset-inline-start: 0; transform: rotate(-7deg); animation-delay: 0s, .05s; }
+html.d5 body .d6-pi.p1 { top: 14px; inset-inline-end: 0; transform: rotate(6deg); animation-delay: -1.1s, .15s; }
+html.d5 body .d6-pi.p2 { bottom: 0; inset-inline-start: 6px; transform: rotate(5deg); animation-delay: -2.2s, .25s; }
+html.d5 body .d6-pi.p3 { bottom: 12px; inset-inline-end: 4px; transform: rotate(-5deg); animation-delay: -3.3s, .35s; }
+@keyframes d5piIn { from { opacity: 0; scale: .4; } to { opacity: 1; scale: 1; } }
+html.d5 body .d6-slide.has-pg .d6-pg { width: 200px !important; height: 206px !important; bottom: 76px !important; }
+html.d5 body .d6-slide.has-pg .d6-pi { width: 94px; height: 98px; border-radius: 20px; }
+html.d5 body .d6-slide.has-pg .d6-pi img { width: 70px; height: 60px; }
+html.d5 body .d6-slide.has-pg .d6-pi b { font-size: 14.5px; }
+html.d5 body .d6-slide.has-pg .d6-bub.b0 { display: none !important; }
+html.d5 body .d6-slide.has-pg .d6-bub.b1 { top: auto !important; bottom: 150px !important; }
+/* Menu d'un resto (patron 24/11 : « trop étriqué, on ne met pas en valeur les produits ») : grande photo 4:3, puis le nom,
+   la description et le prix serrés dessous (plus de grand vide au milieu de la carte) */
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) { gap: 16px !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item { border-radius: 28px !important; overflow: hidden; min-height: 0 !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item:not(.nopic) .cg-pic { aspect-ratio: 4 / 3 !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-info { display: flex !important; flex-direction: column !important; justify-content: flex-start !important; gap: 0 !important; min-height: 0 !important; height: auto !important; padding: 14px 18px 18px !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-info b { height: auto !important; min-height: 0 !important; flex: none !important; font-size: 24px !important; line-height: 1.05 !important; -webkit-line-clamp: 3 !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-info small { order: 2; margin-top: 6px !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-price { order: 3; margin-top: 10px !important; font-size: 24px !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item .cg-plus { width: 56px !important; height: 56px !important; box-shadow: 0 8px 18px rgba(11,74,111,.3) !important; }
+/* « Autres services » (patron 24/11 : « un vrai effort d'animation, pro, avec le thème ») : petites cartes de couleur sur
+   2 colonnes, l'objet détouré qui dépasse, arrivée en cascade, objet qui se balance, appui qui rebondit */
+html.d5 body .d5-more { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; padding: 14px 16px 10px !important; }
+html.d5 body .d5-more-it { position: relative; display: flex !important; flex-direction: column !important; align-items: flex-start !important; justify-content: flex-end !important; width: auto !important; min-height: 112px !important; padding: 14px 14px 14px !important; border-radius: 26px !important; overflow: hidden; text-align: start; font: 800 15.5px/1.15 Heebo, sans-serif !important; color: var(--ink) !important; box-shadow: 0 8px 18px rgba(11,74,111,.10); transition: transform .25s cubic-bezier(.2, 1.6, .4, 1), box-shadow .25s; }
+html.d5 body .d5-more-it span { position: relative; z-index: 2; max-width: 72%; }
+html.d5 body .d5-more-it .d5-mi { position: absolute; z-index: 1; top: 8px; inset-inline-end: 8px; width: 62px; height: 62px; object-fit: contain; filter: drop-shadow(0 8px 8px rgba(0,0,0,.18)); animation: d5mBob 3.6s ease-in-out infinite; animation-delay: calc(var(--d, 0ms) * 3); }
+html.d5 body .d5-more-it i { position: absolute; z-index: 2; bottom: 12px; inset-inline-end: 12px; width: 28px; height: 28px; border-radius: 50%; background: var(--ink); color: #fff !important; display: grid; place-items: center; font: 900 15px/1 Heebo, sans-serif; font-style: normal; transition: transform .25s; }
+html.d5 body .d5-more-it:active { transform: scale(.95); box-shadow: 0 3px 8px rgba(11,74,111,.10); }
+html.d5 body .d5-more-it:active i { transform: translateX(3px); } html[dir=rtl].d5 body .d5-more-it:active i { transform: translateX(-3px); }
+html.d5 body .d5-more-it::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,.55) 50%, transparent 65%); transform: translateX(-120%); pointer-events: none; }
+html.d5 body .d5-more.in .d5-more-it::after { animation: d5mShine 1.1s ease-out forwards; animation-delay: calc(var(--d, 0ms) + 350ms); }
+html.d5 body .d5-more .d5-more-it { opacity: 0; transform: translateY(18px) scale(.94); }
+html.d5 body .d5-more.in .d5-more-it { animation: d5mIn .55s cubic-bezier(.2, 1.4, .4, 1) forwards; animation-delay: var(--d, 0ms); }
+html.d5 body .d5-more.in .d5-more-it:active { transform: scale(.95); }
+@keyframes d5mIn { to { opacity: 1; transform: none; } }
+@keyframes d5mBob { 0%, 100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-5px) rotate(4deg); } }
+@keyframes d5mShine { to { transform: translateX(120%); } }
+@media (prefers-reduced-motion: reduce) { html.d5 body .d5-more .d5-more-it { opacity: 1; transform: none; animation: none !important; } html.d5 body .d5-more-it .d5-mi { animation: none; } }
+html.d5 body .d5-more-it:last-child:nth-child(odd) { grid-column: span 2; }

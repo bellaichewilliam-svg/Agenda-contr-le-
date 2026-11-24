@@ -7869,3 +7869,6 @@ html[dir=rtl] .fi-help .fh-stops p { padding: 6px 26px 10px 0; } html[dir=rtl] .
 /* noms des ingrédients : au-dessus de la photo pour ceux du haut (jamais sous le plat), la scène un peu plus haute */
 .vt-plate:has(.vt-lbl) { height: 392px; }
 .vt-ing.up .vt-lbl { top: auto; bottom: 100%; transform: translate(-50%, -2px) rotate(calc(-1 * var(--r))); }
+/* micro dans la barre de recherche du catalogue (design 5 seulement : il remplace le gros bouton « Commander à la voix ») */
+.cg-qmic { display: none; }
+#cartTitle .ct-shop { display: block; margin-top: 4px; font-size: .62em; font-weight: 700; opacity: .85; }
