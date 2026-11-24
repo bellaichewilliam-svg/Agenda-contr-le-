@@ -541,34 +541,34 @@ html.d5 body .bv-hero .lang-btn { background: #fff !important; color: var(--ink)
    ===================================================================================================================== */
 html.d5 body { --blk-r: 28px; }
 /* ---------- pharmacie / rayons ---------- */
-html.d5 body .ph-shell .ph-top { background: var(--c4) !important; margin: 0 -16px 14px !important; padding: 26px 20px 24px !important; border: 0 !important; border-radius: 0 0 var(--blk-r) var(--blk-r) !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-head b { font: 800 40px/.92 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-head small { font: 600 15px/1.45 Heebo, sans-serif !important; color: var(--ink) !important; opacity: .85; margin-top: 10px; display: block; }
-html.d5 body .ph-shell .ph-share { background: #fff !important; border: 0 !important; }
-html.d5 body .ph-shell .ph-where { background: rgba(255,255,255,.6) !important; border: 0 !important; border-radius: 20px !important; padding: 14px 16px !important; font-size: 16px !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-meter { background: #fff !important; border: 0 !important; border-radius: 22px !important; padding: 16px !important; box-shadow: none !important; }
-html.d5 body .ph-shell .ph-meter .pm-row b { font: 800 20px/1 var(--K) !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-meter .pm-bar { background: rgba(11,74,111,.12) !important; height: 10px !important; border-radius: 5px !important; }
-html.d5 body .ph-shell .ph-search { background: #fff !important; border: 2px solid var(--ink) !important; border-radius: 30px !important; min-height: 56px; font-size: 17px; }
-html.d5 body .ph-shell .ph-search input { font-size: 17px !important; background: transparent !important; }
-html.d5 body .ph-shell .ph-cats { background: transparent !important; border: 0 !important; gap: 8px !important; padding: 12px 0 !important; }
-html.d5 body .ph-shell .ph-cat { min-height: 46px; padding: 0 18px !important; border-radius: 26px !important; background: #fff !important; border: 2px solid var(--ink) !important; color: var(--ink) !important; font: 800 17px var(--K) !important; letter-spacing: -.02em; }
-html.d5 body .ph-shell .ph-cat.on { background: var(--ink) !important; color: #fff !important; }
-html.d5 body .ph-shell .ph-cur b { font: 800 34px/.95 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-cur small { font-weight: 800 !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-list.ph-tiles { display: flex !important; flex-direction: column !important; gap: 10px !important; grid-template-columns: none !important; }
-html.d5 body .ph-shell .ph-item { display: flex !important; align-items: center !important; gap: 14px !important; border-radius: 26px !important; padding: 20px 18px !important; min-height: 100px; border: 0 !important; box-shadow: none !important; background: var(--c1) !important; color: #fff !important; }
-html.d5 body .ph-shell .ph-item:nth-child(4n+2) { background: var(--c2) !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-item:nth-child(4n+3) { background: var(--c3) !important; }
-html.d5 body .ph-shell .ph-item:nth-child(4n) { background: var(--c4) !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-pic { order: 2; background: none !important; width: auto !important; height: auto !important; aspect-ratio: auto !important; flex: 0 0 auto; position: static !important; border: 0 !important; padding: 0 !important; }
-html.d5 body .ph-shell .ph-pic img { display: none !important; }
-html.d5 body .ph-shell .ph-pic .cg-plus { position: static !important; width: 54px !important; height: 54px !important; border-radius: 27px !important; background: #fff !important; color: var(--ink) !important; font: 800 28px/1 Heebo !important; border: 0 !important; box-shadow: none !important; }
-html.d5 body .ph-shell .ph-info { order: 1; flex: 1 1 auto; min-width: 0; display: flex !important; flex-direction: column !important; gap: 6px; padding: 0 !important; }
-html.d5 body .ph-shell .ph-name { order: 1; font: 800 22px/1.02 var(--K) !important; letter-spacing: -.03em !important; color: inherit !important; -webkit-line-clamp: unset !important; display: block !important; overflow: visible !important; }
-html.d5 body .ph-shell .ph-price { order: 2; font: 800 17px Heebo, sans-serif !important; color: inherit !important; opacity: .9; }
-html.d5 body .ph-shell .ph-slot { order: 3; color: inherit !important; }
-html.d5 body .ph-shell .ph-next { min-height: 52px; border-radius: 28px !important; font: 800 17px var(--K) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-top { background: var(--c4) !important; margin: 0 -16px 14px !important; padding: 26px 20px 24px !important; border: 0 !important; border-radius: 0 0 var(--blk-r) var(--blk-r) !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-head b { font: 800 40px/.92 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-head small { font: 600 15px/1.45 Heebo, sans-serif !important; color: var(--ink) !important; opacity: .85; margin-top: 10px; display: block; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-share { background: #fff !important; border: 0 !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-where { background: rgba(255,255,255,.6) !important; border: 0 !important; border-radius: 20px !important; padding: 14px 16px !important; font-size: 16px !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter { background: #fff !important; border: 0 !important; border-radius: 22px !important; padding: 16px !important; box-shadow: none !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter .pm-row b { font: 800 20px/1 var(--K) !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter .pm-bar { background: rgba(11,74,111,.12) !important; height: 10px !important; border-radius: 5px !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-search { background: #fff !important; border: 2px solid var(--ink) !important; border-radius: 30px !important; min-height: 56px; font-size: 17px; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-search input { font-size: 17px !important; background: transparent !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cats { background: transparent !important; border: 0 !important; gap: 8px !important; padding: 12px 0 !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cat { min-height: 46px; padding: 0 18px !important; border-radius: 26px !important; background: #fff !important; border: 2px solid var(--ink) !important; color: var(--ink) !important; font: 800 17px var(--K) !important; letter-spacing: -.02em; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cat.on { background: var(--ink) !important; color: #fff !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cur b { font: 800 34px/.95 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cur small { font-weight: 800 !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-list.ph-tiles { display: flex !important; flex-direction: column !important; gap: 10px !important; grid-template-columns: none !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-item { display: flex !important; align-items: center !important; gap: 14px !important; border-radius: 26px !important; padding: 20px 18px !important; min-height: 100px; border: 0 !important; box-shadow: none !important; background: var(--c1) !important; color: #fff !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-item:nth-child(4n+2) { background: var(--c2) !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-item:nth-child(4n+3) { background: var(--c3) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-item:nth-child(4n) { background: var(--c4) !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic { order: 2; background: none !important; width: auto !important; height: auto !important; aspect-ratio: auto !important; flex: 0 0 auto; position: static !important; border: 0 !important; padding: 0 !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic img { display: none !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic .cg-plus { position: static !important; width: 54px !important; height: 54px !important; border-radius: 27px !important; background: #fff !important; color: var(--ink) !important; font: 800 28px/1 Heebo !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-info { order: 1; flex: 1 1 auto; min-width: 0; display: flex !important; flex-direction: column !important; gap: 6px; padding: 0 !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-name { order: 1; font: 800 22px/1.02 var(--K) !important; letter-spacing: -.03em !important; color: inherit !important; -webkit-line-clamp: unset !important; display: block !important; overflow: visible !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-price { order: 2; font: 800 17px Heebo, sans-serif !important; color: inherit !important; opacity: .9; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-slot { order: 3; color: inherit !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-next { min-height: 52px; border-radius: 28px !important; font: 800 17px var(--K) !important; }
 
 /* ---------- panier ---------- */
 html.d5 body #cartNote:not(:empty) { background: var(--c2) !important; border-radius: var(--blk-r) !important; padding: 22px 20px !important; margin: 14px 0 !important; color: var(--ink) !important; border: 0 !important; }
@@ -789,18 +789,18 @@ html.d5 body .btn-link { background: none !important; color: var(--ink) !importa
 /* barre du bas : micro sur fond blanc net, plus d'anneau arc-en-ciel */
 html.d5 body .d3-nav .d3-mic i::before { background: #fff !important; -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)) !important; mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3.5px)) !important; animation: none !important; }
 /* pharmacie : plus d'encadrés dans le bloc vert, rayons sur une bande bleue */
-html.d5 body .ph-shell .ph-where { background: none !important; padding: 12px 0 0 !important; font: 600 16px/1.4 Heebo !important; }
-html.d5 body .ph-shell .ph-where b { font-weight: 800 !important; }
-html.d5 body .ph-shell .ph-meter { background: none !important; padding: 14px 0 0 !important; border-top: 2px solid rgba(11,74,111,.15) !important; border-radius: 0 !important; margin-top: 14px !important; }
-html.d5 body .ph-shell .ph-meter .pm-row { align-items: baseline !important; }
-html.d5 body .ph-shell .ph-meter .pm-row b { font: 800 24px/1 var(--K) !important; }
-html.d5 body .ph-shell .ph-meter .pm-row span { font: 800 22px/1 var(--K) !important; color: var(--ink) !important; white-space: nowrap; }
-html.d5 body .ph-shell .ph-meter .pm-bar { background: rgba(255,255,255,.65) !important; height: 12px !important; margin: 10px 0 !important; }
-html.d5 body .ph-shell .ph-meter small { font: 600 14px/1.4 Heebo !important; color: var(--ink) !important; }
-html.d5 body .ph-shell .ph-search { background: #E3EFFA !important; border: 0 !important; }
-html.d5 body .ph-shell .ph-cats { background: var(--c1) !important; margin: 12px -16px !important; padding: 14px 16px !important; }
-html.d5 body .ph-shell .ph-cat { background: #fff !important; border: 0 !important; }
-html.d5 body .ph-shell .ph-cat.on { background: var(--ink) !important; color: #fff !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-where { background: none !important; padding: 12px 0 0 !important; font: 600 16px/1.4 Heebo !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-where b { font-weight: 800 !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter { background: none !important; padding: 14px 0 0 !important; border-top: 2px solid rgba(11,74,111,.15) !important; border-radius: 0 !important; margin-top: 14px !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter .pm-row { align-items: baseline !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter .pm-row b { font: 800 24px/1 var(--K) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter .pm-row span { font: 800 22px/1 var(--K) !important; color: var(--ink) !important; white-space: nowrap; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter .pm-bar { background: rgba(255,255,255,.65) !important; height: 12px !important; margin: 10px 0 !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-meter small { font: 600 14px/1.4 Heebo !important; color: var(--ink) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-search { background: #E3EFFA !important; border: 0 !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cats { background: var(--c1) !important; margin: 12px -16px !important; padding: 14px 16px !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cat { background: #fff !important; border: 0 !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cat.on { background: var(--ink) !important; color: #fff !important; }
 /* panier : la liste des articles dans la couleur du magasin (plus de ticket blanc) */
 html.d5 body #cartSheet #cartBody, html.d5 body #cartSheet .cs-total { background: var(--shop, var(--c3)) !important; -webkit-mask: none !important; mask: none !important; box-shadow: none !important; color: #fff !important; }
 html.d5 body #cartSheet #cartBody { margin-top: -2px !important; padding: 4px 20px 0 !important; border-radius: 0 !important; }
@@ -857,5 +857,75 @@ html.d5 body .track-panel .eta { background: var(--c1) !important; color: #fff !
 html.d5 body .track-panel .eta b { font: 800 30px/1 var(--K) !important; color: #fff !important; }
 html.d5 body #cartSheet #cartMore { background: #E3EFFA !important; border: 0 !important; color: var(--ink) !important; text-decoration: none !important; }
 html.d5 body #cartSheet #cartBody .sw-fg { background: var(--shop, var(--c3)) !important; }
-html.d5 body .ph-shell .ph-top { margin: 0 0 14px !important; border-radius: var(--blk-r) !important; }
-html.d5 body .ph-shell .ph-cats { margin: 12px 0 !important; border-radius: 24px !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-top { margin: 0 0 14px !important; border-radius: var(--blk-r) !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-cats { margin: 12px 0 !important; border-radius: 24px !important; }
+
+/* =====================================================================================================================
+   (patron 24/11, 3e passage) textes qui dépassent, menus avec de grandes photos, vitrine aux couleurs de la palette
+   ===================================================================================================================== */
+/* choix (Quand ?, Que faut-il faire ?) : le texte ne touche jamais le bord */
+html.d5 body #orderForm#orderForm .choice > span { padding: 12px 10px !important; text-align: center; justify-content: center; overflow: hidden; }
+html.d5 body #orderForm#orderForm .choice > span b { font-size: 15px !important; line-height: 1.12 !important; white-space: normal !important; overflow-wrap: anywhere; hyphens: auto; }
+html.d5 body #orderForm#orderForm .choices:not(.three) .choice > span { justify-content: flex-start; text-align: start; padding: 14px 16px !important; }
+html.d5 body #orderForm#orderForm .choices:not(.three) .choice > span b { font-size: 17px !important; }
+html.d5 body #orderForm#orderForm .choice > span small { white-space: normal !important; overflow-wrap: anywhere; }
+html.d5 body .ph-shell .ph-cat span, html.d5 body #pharmaBox .ph-cat span { white-space: nowrap; }
+
+/* vitrine « menu éclaté » : plus de noir */
+html.d5 body .vt-stage { color: var(--ink) !important; }
+html.d5 body .vt-tag { background: var(--ink) !important; color: #fff !important; font-family: Heebo, sans-serif !important; }
+html.d5 body .vt-tag.w { background: #fff !important; color: var(--ink) !important; }
+html.d5 body .vt-ing.tap i { background: var(--ink) !important; }
+html.d5 body .vt-ing.x i { background: var(--c3) !important; } html.d5 body .vt-ing.plus i { background: #13A88A !important; }
+html.d5 body .vt-n, html.d5 body #vtN { font: 800 44px/.92 var(--K) !important; letter-spacing: -.04em !important; text-transform: none !important; color: var(--ink) !important; }
+html.d5 body .vt-plate { overflow: hidden !important; }
+
+/* page d'un resto : barre du haut (magasin, recherche, commande à la voix) dans le style des blocs */
+html.d5 body #catalogBox .cg-head { background: var(--cream) !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body #catalogBox .cg-shopsw, html.d5 body #catalogBox .cg-search { background: #fff !important; border: 0 !important; border-radius: 30px !important; box-shadow: none !important; min-height: 54px; }
+html.d5 body #catalogBox .cg-search input { font-size: 17px !important; background: transparent !important; border: 0 !important; }
+html.d5 body #catalogBox .cg-voice { background: var(--ink) !important; color: #fff !important; border: 0 !important; border-radius: 30px !important; min-height: 58px; box-shadow: none !important; }
+html.d5 body #catalogBox .cg-voice .cv-ic { background: #fff !important; border-radius: 50%; width: 38px; height: 38px; display: grid; place-items: center; }
+html.d5 body #catalogBox .cg-voice .cv-ic { color: var(--ink) !important; }
+html.d5 body #catalogBox .cg-voice .cv-ic svg { width: 22px !important; height: 22px !important; color: var(--ink) !important; stroke: none !important; }
+html.d5 body #catalogBox .cg-voice .cv-ic svg path { fill: var(--ink) !important; stroke: none !important; }
+html.d5 body #catalogBox .cg-voice b { font: 800 18px var(--K) !important; color: #fff !important; }
+html.d5 body #catalogBox .cg-voice small, html.d5 body #catalogBox .cg-voice i { color: #fff !important; }
+html.d5 body #catalogBox .cg-head-tabs button { background: #fff !important; border: 0 !important; color: var(--ink) !important; border-radius: 26px !important; min-height: 46px; font: 800 17px var(--K) !important; }
+html.d5 body #catalogBox .cg-head-tabs button.on { background: var(--ink) !important; color: #fff !important; }
+
+/* les plats : grands blocs avec la photo en grand (patron : « on voit rien au niveau des photos ») */
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) { display: flex !important; flex-direction: column !important; gap: 14px !important; margin: 0 !important; padding: 6px 0 14px !important; background: transparent !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item { position: relative; display: flex !important; flex-direction: column !important; align-items: stretch !important; gap: 0 !important; padding: 0 !important; border-radius: var(--blk-r) !important; overflow: hidden; background: #FFE9A8 !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item:nth-child(4n+2) { background: #C8F0D9 !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item:nth-child(4n+3) { background: #CFEAFD !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item:nth-child(4n) { background: #FFD6DC !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item:not(.nopic) .cg-pic { order: 0; width: 100% !important; height: auto !important; aspect-ratio: 16 / 10; border-radius: 0 !important; overflow: hidden !important; background: #fff !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item:not(.nopic) .cg-pic img { width: 100% !important; height: 100% !important; object-fit: cover !important; border-radius: 0 !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-info { order: 1; padding: 16px 18px 20px !important; padding-inline-end: 84px !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-info b { font: 800 25px/1 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-info small { font: 600 15px/1.4 Heebo !important; color: var(--ink) !important; opacity: .8; -webkit-line-clamp: 2; margin-top: 6px; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-price { color: var(--ink) !important; font: 800 22px/1 var(--K) !important; margin-top: 10px; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item .cg-plus, html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item .cg-qty { position: absolute !important; inset-inline-end: 16px !important; bottom: 18px !important; top: auto !important; width: 56px !important; height: 56px !important; border-radius: 28px !important; background: var(--ink) !important; color: #fff !important; font: 800 28px/1 Heebo !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item .cg-qty { width: auto !important; padding: 0 6px; display: flex; align-items: center; gap: 4px; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item .cg-qty button, html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item .cg-qty b { color: #fff !important; background: transparent !important; font: 800 22px Heebo !important; border: 0 !important; min-width: 34px; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item.nopic .cg-pic { position: static !important; width: 0 !important; height: 0 !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item .cg-promo { position: absolute; top: 12px; inset-inline-start: 12px; background: var(--c3) !important; color: #fff !important; border-radius: 16px; padding: 6px 12px; font: 800 14px Heebo !important; }
+html.d5 body #catalogBox#catalogBox .cg-grid:not(.cg-pa) .cg-item .cg-out { position: absolute; inset: auto 16px 18px auto; background: #fff; color: var(--ink); border-radius: 16px; padding: 6px 12px; font-weight: 800; }
+/* titres de rubrique des plats : gros */
+html.d5 body #catalogBox#catalogBox h4.cg-sec { font: 800 32px/.95 var(--K) !important; letter-spacing: -.035em !important; padding: 18px 20px !important; border-radius: var(--blk-r) !important; margin: 14px 0 0 !important; }
+
+/* pharmacie : photo du produit quand il y en a une vraie, sinon aucune image */
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic.photo { width: 84px !important; height: 84px !important; background: #fff !important; border-radius: 20px !important; display: grid !important; place-items: center; position: relative !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic.photo img { display: block !important; width: 80% !important; height: 80% !important; object-fit: contain !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic.photo .cg-plus { position: absolute !important; bottom: -8px !important; inset-inline-end: -8px !important; width: 40px !important; height: 40px !important; font-size: 22px !important; background: var(--ink) !important; color: #fff !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic .cg-qty { position: static !important; background: #fff !important; border-radius: 26px !important; display: flex; align-items: center; gap: 2px; padding: 4px; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic .cg-qty button, html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic .cg-qty b { color: var(--ink) !important; background: transparent !important; border: 0 !important; font: 800 20px Heebo !important; min-width: 32px; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-item select { background: #fff !important; border: 0 !important; border-radius: 16px !important; min-height: 42px; font: 700 15px Heebo !important; color: var(--ink) !important; width: auto !important; max-width: 100%; padding: 0 12px !important; margin-top: 4px; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-item .ph-store { display: none !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-list .ph-item { flex-direction: row !important; text-align: start !important; align-items: center !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-list .ph-item:nth-child(4n+1) { background: #1E9BF0 !important; color: #fff !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-info { align-items: flex-start !important; text-align: start !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo)::before, html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo)::after { display: none !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo) > img, html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo) > span:not(.cg-qty) { display: none !important; }
+html.d5 body :is(.ph-shell, #pharmaBox#pharmaBox) .ph-pic:not(.photo) { aspect-ratio: auto !important; overflow: visible !important; }

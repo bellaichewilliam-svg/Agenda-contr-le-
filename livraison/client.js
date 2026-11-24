@@ -4364,8 +4364,10 @@ function vtDish(i, instant) {
   setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 320);
   const build = () => {
     const cx = plate.clientWidth / 2 || 190, cy = 170, off = vt.off[d.product] || [], add = vt.add[d.product] || [];
-    const im = new Image(); im.className = "vt-dish out"; im.src = d.img; im.alt = UI.bi(p.name); im.style.width = (d.w || 220) + "px"; plate.appendChild(im);
-    (d.ing || []).forEach((g, k) => {
+    // (patron 24/11 : « la nourriture autour qui dépasse ») tout le plat rétrécit pour que chaque ingrédient reste dans l'écran
+    const ext = Math.max(1, ...(d.ing || []).map(g => Math.abs(g.x) + g.w / 2)), sc = Math.min(1, (cx - 6) / ext);
+    const im = new Image(); im.className = "vt-dish out"; im.src = d.img; im.alt = UI.bi(p.name); im.style.width = Math.round((d.w || 220) * sc) + "px"; plate.appendChild(im);
+    (d.ing || []).map(g => Object.assign({}, g, { x: g.x * sc, y: g.y * sc, w: Math.round(g.w * sc) })).forEach((g, k) => {
       const tap = g.off || g.add, el = document.createElement(tap ? "button" : "span"), xx = rtl ? -g.x : g.x;
       el.className = "vt-ing gone" + (g.front ? " f" : "") + (tap ? " tap" : "") + ((g.off && off.includes(g.off)) ? " x" : "") + ((g.add && add.includes(g.add)) ? " plus" : "");
       if (tap) { el.type = "button"; if (g.off) el.dataset.vtOff = g.off; else el.dataset.vtPlus = g.add;
