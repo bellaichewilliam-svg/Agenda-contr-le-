@@ -4328,6 +4328,22 @@ async function vtLoad(code, seq) {
   try { const h = $("#shopHero"); if (h && document.documentElement.classList.contains("d5") && state.shop) { const html = d6HeroHtml(state.shop, UI.safeImg(state.shop.logo), UI.safeImg(state.shop.cover)); h.innerHTML = html; h.dataset.html = html; } } catch (e) { /* le haut reste */ }
 }
 const vtProd = id => cgProducts().find(p => p.id === id);
+// (patron 24/11 : « le Royal du Smash It devait avoir la sélection ») un plat qui a sa vitrine « menu éclaté » s'ouvre
+// dans la vitrine (ingrédients détourés à enlever, sauces à ajouter) au lieu de l'ancienne fiche
+function vtOpenFor(id) {
+  const box = $("#vitrineBox"), shop = state.shop;
+  if (!vt.cfg || !shop || vt.code !== shop.code || !box || box.classList.contains("hidden")) return false;
+  const p = cgProducts().find(x => x.id === id), base = p && sizesOf(p)[0];
+  const i = vt.cfg.dishes.findIndex(d => d.product === id || (base && d.product === base.id));
+  if (i < 0) return false;
+  vt.auto = false; clearInterval(vt.timer); vtDish(i);
+  const st = box.querySelector(".vt-top") || box;
+  const bars = [...document.querySelectorAll(".topbar, .view-bar")].filter(x => getComputedStyle(x).position !== "static").reduce((n, x) => Math.max(n, x.getBoundingClientRect().bottom), 0);
+  const top = st.getBoundingClientRect().top + window.scrollY - bars - 8;
+  window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+  UI.track("vt_from_list", { shop_code: shop.code });
+  return true;
+}
 function vtTorn(seed) { let d = "M0 0 L390 0 L390 10 ", x = 390, r = seed; while (x > 0) { r = (r * 9301 + 49297) % 233280; x -= 6 + (r / 233280) * 12; d += `L${Math.max(0, x).toFixed(1)} ${(6 + (r / 233280) * 14).toFixed(1)} `; } return d + "L0 10 Z"; }
 function vtRender(full) {
   const box = $("#vitrineBox"); if (!box || typeof vt === "undefined" || !vt) return;
@@ -5054,7 +5070,7 @@ $("#catalogBox").addEventListener("click", e => {
   if (be) { e.preventDefault(); e.stopPropagation(); return bossEdit(be.dataset.bossEdit); }
   if (bt) { e.preventDefault(); state.bossEdit = !bossEditOn(); return renderCatalog(); }
   const b = e.target.closest("button");
-  if (!b) { const card = e.target.closest("[data-cg-open]"); if (card) openItem(card.dataset.cgOpen); return; }
+  if (!b) { const card = e.target.closest("[data-cg-open]"); if (card && !vtOpenFor(card.dataset.cgOpen)) openItem(card.dataset.cgOpen); return; }
   // « Voir la commande » : le panier s'ouvre (articles, quantités, total), puis « Continuer »
   if (b.dataset.cgGo != null) return openCart();
   if (b.dataset.cgCat != null) {
