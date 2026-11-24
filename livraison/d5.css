@@ -14,7 +14,10 @@ html.d5 {
   --orange: var(--act); --accent: var(--act); --bg: var(--paper); --panel: var(--paper);
 }
 html.d5 body { background: var(--paper) !important; color: var(--navy); font-family: Heebo, system-ui, sans-serif; }
-html.d5 body, html.d5 body .wrap { --ink: #0F1F3D; }
+/* (patron 24/11) plus de noir ni de bleu nuit ni d'orange : les anciennes variables du design 3 (posées sur html.d3.d2.d2-day, plus fortes)
+   sont reprises ici sur body, qui les transmet à toute la page */
+html.d5 body, html.d5 body .wrap { --ink: #0B4A6F; --navy: #0B4A6F; --brand: #0B4A6F; --brand-deep: #06324C; --brand-ink: #0B4A6F; --brand-soft: #E3EFFA;
+  --orange: #0B4A6F; --accent: #0B4A6F; --act: #0B4A6F; --muted: #4F6B80; --border: rgba(11,74,111,.14); --bg: var(--cream); --bg-2: #E3EFFA; --panel: var(--cream); }
 
 /* ---------- typographie : titres en affiche ---------- */
 html.d5 body h2, html.d5 body h3:not(.vt-n), html.d5 body legend, html.d5 body .d4-h, html.d5 body h3.ch-h, html.d5 body #viewTitle, html.d5 body .cg-sec-h, html.d5 body .modal-box h3 {
@@ -519,3 +522,256 @@ html.d5 body .ch-explore .xp { background: transparent !important; border-bottom
 html.d5 body #homeSheet > #homeProBox { display: none !important; }
 html.d5 body #homeSheet > h3.ch-h, html.d5 body #homeSheet > .ch-explore { order: 25 !important; }
 html.d5 body #homeSheet > #d6End { order: 40 !important; }
+
+/* ---------- (patron 24/11) derniers restes de noir / bleu nuit / orange, partout ---------- */
+html.d5 body #homeGo, html.d5 body .lgx-go, html.d5 body .btn.btn-primary { background: var(--ink) !important; color: #fff !important; border: 0 !important; box-shadow: none !important; border-radius: 30px !important; }
+html.d5 body #homeGo svg, html.d5 body #homeGo img { filter: brightness(0) invert(1); }
+html.d5 body #homeGoPrice, html.d5 body .accent, html.d5 body #itemMinus, html.d5 body #itemPlus, html.d5 body .q-more { color: var(--ink) !important; }
+html.d5 body .ph-cat.on, html.d5 body .vc-go, html.d5 body .ph-next, html.d5 body .btn-wa,
+html.d5 body .d4m-go, html.d5 body .lgx-voice { background-color: var(--ink) !important; color: #fff !important; border-color: transparent !important; }
+html.d5 body #waFab, html.d5 body .chat-fab { background-color: var(--c1) !important; box-shadow: 0 8px 20px rgba(11,74,111,.3) !important; }
+html.d5 body .lgx-voice { background: var(--c1) !important; border-radius: 26px !important; }
+html.d5 body .lgx-voice i { background: #fff !important; }
+html.d5 body .bv-hero { background: var(--c1) !important; }
+html.d5 body .bv-hero .lang-btn { background: #fff !important; color: var(--ink) !important; }
+
+/* =====================================================================================================================
+   (patron 24/11) « que des gros blocs et de belles écritures, comme l'accueil, partout » : plus de petits carrés avec du texte.
+   Chaque rubrique = un grand bloc plein de couleur (bleu mer, citron, corail, vert), gros titre Bricolage, texte lisible.
+   ===================================================================================================================== */
+html.d5 body { --blk-r: 28px; }
+/* ---------- pharmacie / rayons ---------- */
+html.d5 body .ph-shell .ph-top { background: var(--c4) !important; margin: 0 -16px 14px !important; padding: 26px 20px 24px !important; border: 0 !important; border-radius: 0 0 var(--blk-r) var(--blk-r) !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-head b { font: 800 40px/.92 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-head small { font: 600 15px/1.45 Heebo, sans-serif !important; color: var(--ink) !important; opacity: .85; margin-top: 10px; display: block; }
+html.d5 body .ph-shell .ph-share { background: #fff !important; border: 0 !important; }
+html.d5 body .ph-shell .ph-where { background: rgba(255,255,255,.6) !important; border: 0 !important; border-radius: 20px !important; padding: 14px 16px !important; font-size: 16px !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-meter { background: #fff !important; border: 0 !important; border-radius: 22px !important; padding: 16px !important; box-shadow: none !important; }
+html.d5 body .ph-shell .ph-meter .pm-row b { font: 800 20px/1 var(--K) !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-meter .pm-bar { background: rgba(11,74,111,.12) !important; height: 10px !important; border-radius: 5px !important; }
+html.d5 body .ph-shell .ph-search { background: #fff !important; border: 2px solid var(--ink) !important; border-radius: 30px !important; min-height: 56px; font-size: 17px; }
+html.d5 body .ph-shell .ph-search input { font-size: 17px !important; background: transparent !important; }
+html.d5 body .ph-shell .ph-cats { background: transparent !important; border: 0 !important; gap: 8px !important; padding: 12px 0 !important; }
+html.d5 body .ph-shell .ph-cat { min-height: 46px; padding: 0 18px !important; border-radius: 26px !important; background: #fff !important; border: 2px solid var(--ink) !important; color: var(--ink) !important; font: 800 17px var(--K) !important; letter-spacing: -.02em; }
+html.d5 body .ph-shell .ph-cat.on { background: var(--ink) !important; color: #fff !important; }
+html.d5 body .ph-shell .ph-cur b { font: 800 34px/.95 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-cur small { font-weight: 800 !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-list.ph-tiles { display: flex !important; flex-direction: column !important; gap: 10px !important; grid-template-columns: none !important; }
+html.d5 body .ph-shell .ph-item { display: flex !important; align-items: center !important; gap: 14px !important; border-radius: 26px !important; padding: 20px 18px !important; min-height: 100px; border: 0 !important; box-shadow: none !important; background: var(--c1) !important; color: #fff !important; }
+html.d5 body .ph-shell .ph-item:nth-child(4n+2) { background: var(--c2) !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-item:nth-child(4n+3) { background: var(--c3) !important; }
+html.d5 body .ph-shell .ph-item:nth-child(4n) { background: var(--c4) !important; color: var(--ink) !important; }
+html.d5 body .ph-shell .ph-pic { order: 2; background: none !important; width: auto !important; height: auto !important; aspect-ratio: auto !important; flex: 0 0 auto; position: static !important; border: 0 !important; padding: 0 !important; }
+html.d5 body .ph-shell .ph-pic img { display: none !important; }
+html.d5 body .ph-shell .ph-pic .cg-plus { position: static !important; width: 54px !important; height: 54px !important; border-radius: 27px !important; background: #fff !important; color: var(--ink) !important; font: 800 28px/1 Heebo !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body .ph-shell .ph-info { order: 1; flex: 1 1 auto; min-width: 0; display: flex !important; flex-direction: column !important; gap: 6px; padding: 0 !important; }
+html.d5 body .ph-shell .ph-name { order: 1; font: 800 22px/1.02 var(--K) !important; letter-spacing: -.03em !important; color: inherit !important; -webkit-line-clamp: unset !important; display: block !important; overflow: visible !important; }
+html.d5 body .ph-shell .ph-price { order: 2; font: 800 17px Heebo, sans-serif !important; color: inherit !important; opacity: .9; }
+html.d5 body .ph-shell .ph-slot { order: 3; color: inherit !important; }
+html.d5 body .ph-shell .ph-next { min-height: 52px; border-radius: 28px !important; font: 800 17px var(--K) !important; }
+
+/* ---------- panier ---------- */
+html.d5 body #cartNote:not(:empty) { background: var(--c2) !important; border-radius: var(--blk-r) !important; padding: 22px 20px !important; margin: 14px 0 !important; color: var(--ink) !important; border: 0 !important; }
+html.d5 body .cs-steps-t { display: block; font: 800 25px/.98 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; margin-bottom: 12px; }
+html.d5 body .cs-steps li { font: 600 16px/1.4 Heebo !important; color: var(--ink) !important; }
+html.d5 body .cs-steps li i { background: var(--ink) !important; color: #fff !important; }
+html.d5 body .cs-smart { background: var(--c2) !important; border-radius: var(--blk-r) !important; padding: 22px 20px !important; border: 0 !important; }
+html.d5 body #cartNav .cs-nav { background: var(--c4) !important; border-radius: var(--blk-r) !important; padding: 22px 20px !important; border: 0 !important; }
+html.d5 body #cartNav .cn-t { display: block; font: 800 25px/.98 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; margin-bottom: 12px; }
+html.d5 body #cartNav .cn-cat { background: #fff !important; color: var(--ink) !important; border: 0 !important; min-height: 44px; padding: 0 18px !important; border-radius: 24px !important; font: 800 16px var(--K) !important; }
+html.d5 body #cartNav .btn { background: #fff !important; color: var(--ink) !important; border: 0 !important; min-height: 52px; border-radius: 28px !important; font-weight: 800 !important; font-size: 16px !important; }
+html.d5 body #cartNav .cn-add input { background: #fff !important; border: 0 !important; border-radius: 26px !important; min-height: 52px; font-size: 16px !important; }
+html.d5 body #cartNav .cn-add .btn { background: var(--ink) !important; color: #fff !important; }
+html.d5 body .cart-toast { background: var(--c1) !important; color: #fff !important; opacity: 1 !important; border-radius: 24px !important; font: 800 17px Heebo, sans-serif !important; box-shadow: 0 12px 30px rgba(11,74,111,.3) !important; }
+html.d5 body .cart-toast.out { opacity: 0 !important; }
+
+/* ---------- Mes courses / compte ---------- */
+html.d5 body #mes-courses .title-row h2 { font: 800 46px/.9 var(--K) !important; letter-spacing: -.04em !important; }
+html.d5 body #mes-courses > .wrap > .sub { font-size: 16px !important; color: var(--ink) !important; }
+html.d5 body #myOrders .empty { background: var(--c2) !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 28px 22px !important; font: 800 28px/1 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; text-align: start !important; box-shadow: none !important; }
+html.d5 body #myOrders .empty a { display: inline-flex; margin-top: 16px; background: var(--ink) !important; color: #fff !important; padding: 14px 22px; border-radius: 28px; font: 800 17px Heebo, sans-serif !important; text-decoration: none !important; letter-spacing: 0; }
+html.d5 body #mes-courses .app-share { background: var(--c1) !important; color: #fff !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 24px 22px !important; box-shadow: none !important; }
+html.d5 body #mes-courses .app-share i { display: none !important; }
+html.d5 body #mes-courses .app-share b { font: 800 26px/1 var(--K) !important; letter-spacing: -.03em; color: #fff !important; }
+html.d5 body #mes-courses .app-share small { font: 600 15px/1.4 Heebo !important; color: #fff !important; opacity: .9; }
+html.d5 body #mes-courses .app-share em { color: #fff !important; font-size: 28px !important; }
+html.d5 body #loginCard { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+html.d5 body #loginCard .lgx-hero { border-radius: var(--blk-r) !important; }
+html.d5 body #loginCard .lgx-hero h3 { font: 800 34px/.95 var(--K) !important; }
+html.d5 body #loginCard .lgx-hero p { font: 600 16px/1.4 Heebo !important; }
+html.d5 body #loginCard .lgx-perks { background: var(--c4) !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 10px 22px !important; margin: 12px 0 !important; }
+html.d5 body #loginCard .lgx-perks .lgx-p { border: 0 !important; border-bottom: 2px solid rgba(11,74,111,.12) !important; padding: 16px 0 !important; background: transparent !important; }
+html.d5 body #loginCard .lgx-perks .lgx-p:last-child { border-bottom: 0 !important; }
+html.d5 body #loginCard .lgx-perks b { font: 800 22px/1 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; }
+html.d5 body #loginCard .lgx-perks small { font: 600 15px/1.4 Heebo !important; color: var(--ink) !important; opacity: .85; margin-top: 4px; display: block; }
+html.d5 body #loginCard .lgx-voice b { font: 800 24px/1 var(--K) !important; letter-spacing: -.03em; color: #fff !important; }
+html.d5 body #loginCard .lgx-voice small { color: #fff !important; opacity: .9; font-size: 15px !important; }
+html.d5 body #loginCard .lgx-form { background: var(--c2) !important; border-radius: var(--blk-r) !important; padding: 22px 20px !important; }
+html.d5 body #loginCard .lgx-form .f > span { font: 800 15px Heebo !important; color: var(--ink) !important; }
+html.d5 body #loginCard .lgx-form input { background: #fff !important; border: 0 !important; border-radius: 20px !important; min-height: 54px !important; font-size: 17px !important; color: var(--ink) !important; }
+html.d5 body #loginCard .lgx-go { min-height: 58px !important; font: 800 18px Heebo !important; margin-top: 8px; }
+html.d5 body #loginCard .lgx-or span { font-weight: 800 !important; color: var(--ink) !important; }
+html.d5 body #loginCard .lgx-switch { font: 800 16px Heebo !important; color: var(--ink) !important; }
+
+/* ---------- « Ce qu'on livre » ---------- */
+html.d5 body.onlivre .topbar .logo-mark, html.d5 body.onlivre .topbar .logo-name { display: none !important; }
+html.d5 body.onlivre .topbar .logo::before { content: "HOP"; font: 900 28px/1 Heebo, sans-serif; letter-spacing: -.04em; color: #fff; }
+html.d5 body.onlivre .topbar .logo::after { content: "!"; font: 900 28px/1 Heebo, sans-serif; color: #FF6A13; }
+html.d5 body.onlivre .topbar .logo { direction: ltr; display: inline-flex; text-decoration: none; }
+html.d5 body.onlivre .topbar #olLang { background: #fff !important; color: var(--ink) !important; border: 0 !important; font-weight: 900 !important; }
+html.d5 body .ol-hero { background: var(--c1) !important; color: #fff !important; margin: -20px -16px 18px !important; padding: 30px 20px 30px !important; border-radius: 0 0 var(--blk-r) var(--blk-r) !important; border: 0 !important; }
+html.d5 body .ol-hero h1, html.d5 body #olH1 { font: 800 46px/.9 var(--K) !important; letter-spacing: -.04em !important; color: #fff !important; }
+html.d5 body .ol-hero .ol-sub { font: 600 17px/1.45 Heebo !important; color: #fff !important; opacity: .95; }
+html.d5 body .ol-steps { display: flex !important; flex-direction: column; gap: 8px; padding: 0 !important; margin-top: 16px !important; }
+html.d5 body .ol-steps li { background: rgba(255,255,255,.2) !important; border: 0 !important; border-radius: 20px !important; padding: 14px 16px !important; font: 700 17px/1.3 Heebo !important; color: #fff !important; }
+html.d5 body .ol-steps li::before, html.d5 body .ol-steps li > i, html.d5 body .ol-steps li > b:first-child { background: #fff !important; color: var(--ink) !important; }
+html.d5 body .ol-h2, html.d5 body #olPick { font: 800 34px/.95 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body .ol-grid { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+html.d5 body .ol-card { display: flex !important; align-items: flex-start; justify-content: space-between; gap: 12px; background: var(--c1) !important; color: #fff !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 22px 20px !important; box-shadow: none !important; text-decoration: none !important; min-height: 110px; }
+html.d5 body .ol-card:nth-child(4n+2) { background: var(--c2) !important; color: var(--ink) !important; }
+html.d5 body .ol-card:nth-child(4n+3) { background: var(--c3) !important; }
+html.d5 body .ol-card:nth-child(4n) { background: var(--c4) !important; color: var(--ink) !important; }
+html.d5 body .ol-card > :not(.ol-txt):not(.ol-price) { display: none !important; }
+html.d5 body .ol-card .ol-txt b { display: block; font: 800 28px/.95 var(--K) !important; letter-spacing: -.035em; color: inherit !important; }
+html.d5 body .ol-card .ol-txt small { display: block; font: 600 15px/1.4 Heebo !important; color: inherit !important; opacity: .9; margin-top: 8px; }
+html.d5 body .ol-card .ol-price { font: 800 16px Heebo !important; font-style: normal !important; color: inherit !important; background: rgba(255,255,255,.3); padding: 6px 12px; border-radius: 16px; white-space: nowrap; }
+html.d5 body .ol-perks, html.d5 body .bv-perks { background: var(--c2) !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 10px 22px !important; margin: 16px 0 !important; list-style: none; }
+html.d5 body .ol-perks li, html.d5 body .bv-perks li { font: 800 22px/1.05 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; border: 0 !important; border-bottom: 2px solid rgba(11,74,111,.12) !important; padding: 16px 0 !important; background: transparent !important; }
+html.d5 body .ol-perks li:last-child, html.d5 body .bv-perks li:last-child { border-bottom: 0 !important; }
+html.d5 body .ol-perks li i, html.d5 body .bv-perks li i, html.d5 body .ol-perks li img, html.d5 body .bv-perks li img { display: none !important; }
+html.d5 body .ol-bar { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body .ol-bar .btn { min-height: 60px !important; font: 800 18px Heebo !important; }
+
+/* ---------- « Bienvenue » ---------- */
+html.d5 body .bv-hero { border-radius: 0 0 var(--blk-r) var(--blk-r) !important; }
+html.d5 body .bv-h2 { font: 800 34px/.95 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body .bv-grid { gap: 10px !important; }
+html.d5 body .bv-tile { background: var(--c1) !important; color: #fff !important; border: 0 !important; border-radius: 26px !important; padding: 20px 18px !important; min-height: 130px; box-shadow: none !important; display: flex !important; flex-direction: column; justify-content: space-between; text-decoration: none !important; }
+html.d5 body .bv-tile:nth-child(4n+2) { background: var(--c2) !important; color: var(--ink) !important; }
+html.d5 body .bv-tile:nth-child(4n+3) { background: var(--c3) !important; }
+html.d5 body .bv-tile:nth-child(4n) { background: var(--c4) !important; color: var(--ink) !important; }
+html.d5 body .bv-tile > :not(b):not(small) { display: none !important; }
+html.d5 body .bv-tile b { font: 800 24px/.95 var(--K) !important; letter-spacing: -.035em; color: inherit !important; }
+html.d5 body .bv-tile small { font: 800 15px Heebo !important; color: inherit !important; opacity: .9; }
+html.d5 body .bv-more .btn { min-height: 54px; border-radius: 28px !important; font: 800 16px Heebo !important; }
+html.d5 body .bv-more .btn:not(.btn-wa) { background: #fff !important; color: var(--ink) !important; border: 2px solid var(--ink) !important; }
+
+/* ---------- fiche d'un article ---------- */
+html.d5 body #itemSheet .it-pic { background: var(--shop, var(--c3)) !important; border-radius: 0 !important; }
+html.d5 body #itemSheet .it-pic:has(img[src*="items/plate"]) { min-height: 110px !important; height: 110px !important; }
+html.d5 body #itemSheet img[src*="items/plate"] { display: none !important; }
+html.d5 body #itemSheet .it-txt h3 { font: 800 36px/.92 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body #itemSheet .it-prow .cg-price { font: 800 22px Heebo !important; color: var(--ink) !important; }
+html.d5 body #itemSheet .it-txt > p { font: 600 16px/1.45 Heebo !important; color: var(--ink) !important; opacity: .85; }
+html.d5 body #itemSheet .itb { background: var(--c2) !important; border-radius: var(--blk-r) !important; padding: 20px 18px !important; border: 0 !important; }
+html.d5 body #itemSheet .it-size-h, html.d5 body #itemSheet .itr h4 { font: 800 24px/1 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; text-transform: none !important; }
+html.d5 body #itemSheet .itb-row > * { background: #fff !important; border: 0 !important; border-radius: 24px !important; min-height: 46px; font-weight: 800 !important; color: var(--ink) !important; }
+html.d5 body #itemSheet .itb-row > .on, html.d5 body #itemSheet .itb-row > [aria-pressed="true"] { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #itemSheet .it-note { background: #fff !important; border: 0 !important; border-radius: 22px !important; min-height: 52px; font-size: 16px !important; }
+html.d5 body #itemSheet .itr { background: var(--c4) !important; border-radius: var(--blk-r) !important; padding: 20px 18px !important; margin-top: 12px !important; }
+html.d5 body #itemSheet .itr + .itr { background: #BFE4FB !important; }
+html.d5 body #itemSheet .itr-card { background: #fff !important; border: 0 !important; border-radius: 22px !important; box-shadow: none !important; padding: 14px !important; min-width: 150px; }
+html.d5 body #itemSheet .itr-card img[src*="items/plate"], html.d5 body #itemSheet .itr-card .item-art:has(img[src*="items/plate"]) { display: none !important; }
+html.d5 body .itr-add, html.d5 body .cg-plus { background: var(--ink) !important; color: #fff !important; border: 0 !important; box-shadow: none !important; }
+html.d5 body #itemSheet .itr-card { position: relative; }
+html.d5 body #itemSheet .itr-card b, html.d5 body #itemSheet .itr-card strong { font: 800 18px/1 var(--K) !important; color: var(--ink) !important; }
+html.d5 body #itemSheet .it-bar { background: var(--cream) !important; border: 0 !important; box-shadow: 0 -10px 30px rgba(11,74,111,.12) !important; }
+html.d5 body #itemSheet .it-add { min-height: 56px !important; border-radius: 30px !important; font: 800 18px Heebo !important; }
+
+/* ---------- commande : chaque étape = un grand bloc ---------- */
+html.d5 body #orderForm#orderForm fieldset { background: var(--c2) !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 22px 18px !important; margin: 0 0 12px !important; box-shadow: none !important; }
+html.d5 body #orderForm#orderForm fieldset:nth-of-type(2n) { background: var(--c4) !important; }
+html.d5 body #orderForm#orderForm fieldset > legend { float: left; width: 100%; padding: 0 !important; margin: 0 0 14px !important; font: 800 30px/.95 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; }
+html.d5 body #orderForm#orderForm fieldset > legend + * { clear: both; }
+html.d5 body #orderForm#orderForm .choice > span { background: #fff !important; border: 0 !important; border-radius: 22px !important; min-height: 56px; box-shadow: none !important; color: var(--ink) !important; }
+html.d5 body #orderForm#orderForm .choice > span b { font: 800 16px/1.1 var(--K) !important; color: inherit !important; }
+html.d5 body #orderForm#orderForm .choice input:checked + span { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #orderForm#orderForm .choice input:checked + span * { color: #fff !important; }
+html.d5 body #orderForm#orderForm .choice.disabled > span { opacity: .45; }
+html.d5 body #orderForm#orderForm .f > span { font: 800 14px Heebo !important; color: var(--ink) !important; }
+html.d5 body #orderForm#orderForm input:not([type=radio]):not([type=checkbox]), html.d5 body #orderForm#orderForm select, html.d5 body #orderForm#orderForm textarea {
+  background: #fff !important; border: 0 !important; border-radius: 18px !important; min-height: 54px; font-size: 17px !important; color: var(--ink) !important; box-shadow: none !important; }
+html.d5 body #orderForm#orderForm input:focus, html.d5 body #orderForm#orderForm select:focus, html.d5 body #orderForm#orderForm textarea:focus { box-shadow: 0 0 0 3px var(--ink) !important; outline: 0 !important; }
+html.d5 body #orderForm#orderForm .hop-need, html.d5 body #orderForm#orderForm .hop-need input { box-shadow: none !important; border-color: transparent !important; }
+html.d5 body #orderForm#orderForm .hop-need input { box-shadow: 0 0 0 3px var(--c1) !important; }
+html.d5 body #orderForm#orderForm .btn-sm:not(.btn-link) { background: #fff !important; color: var(--ink) !important; border: 0 !important; border-radius: 22px !important; font-weight: 800 !important; min-height: 44px; }
+html.d5 body #orderForm#orderForm .ac-list { border-radius: 20px !important; border: 0 !important; box-shadow: 0 14px 30px rgba(11,74,111,.18) !important; }
+html.d5 body #orderForm#orderForm fieldset .sub, html.d5 body #orderForm#orderForm fieldset small, html.d5 body #orderForm#orderForm fieldset p { color: var(--ink) !important; }
+html.d5 body #waFab svg, html.d5 body .chat-fab svg { stroke: #fff !important; color: #fff !important; }
+html.d5 body #waFab svg path, html.d5 body .chat-fab svg path { stroke: #fff !important; }
+
+/* ---------- liste des magasins ---------- */
+html.d5 body #d4Mag, html.d5 body #d4Mag .d4m-in { background: var(--cream) !important; }
+html.d5 body #d4Mag .d4m-h { font: 800 48px/.9 var(--K) !important; letter-spacing: -.04em !important; color: var(--ink) !important; }
+html.d5 body #d4Mag .d4m-find { background: #fff !important; border: 2px solid var(--ink) !important; border-radius: 30px !important; min-height: 56px; }
+html.d5 body #d4Mag .d4m-find input { font-size: 17px !important; background: transparent !important; }
+html.d5 body #d4Mag .d4m-any { border-radius: var(--blk-r) !important; }
+html.d5 body #d4Mag .d4m-any b { font: 800 28px/.95 var(--K) !important; letter-spacing: -.035em; }
+html.d5 body #d4Mag .d4m-any span { font: 600 15px/1.4 Heebo !important; }
+html.d5 body #d4Mag .d4m-chips button { min-height: 44px; padding: 0 18px !important; border-radius: 24px !important; background: #fff !important; border: 2px solid var(--ink) !important; color: var(--ink) !important; font: 800 16px var(--K) !important; }
+html.d5 body #d4Mag .d4m-chips button.on { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #d4Mag .d4m-list { gap: 12px !important; }
+html.d5 body #d4Mag .d4m-card { background: var(--c3) !important; color: #fff !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 12px 12px 20px !important; box-shadow: none !important; text-align: start; }
+html.d5 body #d4Mag .d4m-card:nth-child(4n+2) { background: var(--c1) !important; }
+html.d5 body #d4Mag .d4m-card:nth-child(4n+3) { background: var(--c4) !important; color: var(--ink) !important; }
+html.d5 body #d4Mag .d4m-card:nth-child(4n) { background: var(--c2) !important; color: var(--ink) !important; }
+html.d5 body #d4Mag .d4m-card .d4m-ph { border-radius: 20px !important; overflow: hidden; background: rgba(255,255,255,.25) !important; }
+html.d5 body #d4Mag .d4m-card .d4m-nm { font: 800 28px/.95 var(--K) !important; letter-spacing: -.035em; color: inherit !important; margin: 14px 6px 4px !important; display: block; }
+html.d5 body #d4Mag .d4m-card small { font: 600 15px/1.35 Heebo !important; color: inherit !important; opacity: .9; margin: 0 6px !important; display: block; }
+html.d5 body #d4Mag .d4m-card * { color: inherit; }
+
+/* ---------- petites corrections ---------- */
+html.d5 body #myOrders.orders .empty.card a, html.d5 body #myOrders .empty a:link, html.d5 body #myOrders .empty a:visited { color: #fff !important; }
+html.d5 body.onlivre .topbar .logo { gap: 0 !important; }
+/* commerce sans paiement en ligne : « Appelez… / Elle sera prête dans… » = un grand bloc corail */
+html.d5 body #noPayReady:not(.hidden) { background: var(--c3) !important; color: #fff !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 22px 18px !important; margin: 0 0 12px !important; box-shadow: none !important; }
+html.d5 body #noPayReady .npr-h { display: block; font: 800 26px/.98 var(--K) !important; letter-spacing: -.03em; color: #fff !important; margin: 4px 0 8px; }
+html.d5 body #noPayReady small { font: 600 15px/1.4 Heebo !important; color: #fff !important; opacity: .95; }
+html.d5 body #noPayReady .btn { background: #fff !important; color: var(--ink) !important; border: 0 !important; border-radius: 28px !important; min-height: 54px; font-weight: 800 !important; }
+html.d5 body #noPayReady .ch-chip { background: rgba(255,255,255,.25) !important; color: #fff !important; border: 0 !important; border-radius: 22px !important; min-height: 46px; font: 800 16px var(--K) !important; }
+html.d5 body #noPayReady .ch-chip.on { background: #fff !important; color: var(--ink) !important; }
+/* fiche article : les suggestions sans photo deviennent de simples pastilles (plus de carrés vides) */
+html.d5 body #itemSheet .itr-card .item-art, html.d5 body #itemSheet .itr-card .itr-pic, html.d5 body #itemSheet .itr-card > span:first-child:not(:only-child) { display: none !important; }
+html.d5 body #itemSheet .itr-card { min-width: 0 !important; width: auto !important; display: flex !important; flex-direction: column; gap: 6px; padding: 16px 52px 16px 16px !important; }
+html[dir=rtl].d5 body #itemSheet .itr-card { padding: 16px 16px 16px 52px !important; }
+html.d5 body #itemSheet .itr-card .itr-add { position: absolute !important; top: 50% !important; transform: translateY(-50%); inset-inline-end: 10px !important; inset-inline-start: auto !important; width: 36px; height: 36px; }
+html.d5 body #itemSheet .it-pic .item-art:has(img[src*="items/plate"]) { display: none !important; }
+html.d5 body #itemSheet .it-pic:has(img[src*="items/plate"]) { overflow: hidden; }
+html.d5 body #orderForm#orderForm fieldset:nth-of-type(n) { background: var(--c2) !important; }
+html.d5 body #orderForm#orderForm fieldset.fs-to, html.d5 body #orderForm#orderForm fieldset.fs-service, html.d5 body #orderForm#orderForm fieldset#coordsBox { background: var(--c4) !important; }
+html.d5 body #orderForm#orderForm fieldset.fs-from, html.d5 body #orderForm#orderForm fieldset.fs-size { background: #BFE4FB !important; }
+
+/* ---------- dernière étape (récapitulatif) ---------- */
+html.d5 body #wizTitle { font: 800 42px/.92 var(--K) !important; letter-spacing: -.04em !important; color: var(--ink) !important; }
+html.d5 body #wizStepTxt { font-weight: 800 !important; color: var(--ink) !important; }
+html.d5 body #wizBack { background: #fff !important; color: var(--ink) !important; border: 2px solid var(--ink) !important; border-radius: 22px !important; font-weight: 800 !important; }
+html.d5 body #ckTop .ck-card { background: var(--c1) !important; color: #fff !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 20px 18px !important; box-shadow: none !important; margin-bottom: 12px !important; }
+html.d5 body #ckTop .ck-card.ck-shop { background: var(--c2) !important; color: var(--ink) !important; }
+html.d5 body #ckTop .ck-card * { color: inherit !important; border-color: rgba(255,255,255,.25) !important; }
+html.d5 body #ckTop .ck-ico, html.d5 body #ckTop .ck-logo:empty { display: none !important; }
+html.d5 body #ckTop .ck-row { padding: 6px 0 !important; border: 0 !important; }
+html.d5 body #ckTop .ck-grow b, html.d5 body #ckTop .ck-grow strong { font: 800 22px/1 var(--K) !important; letter-spacing: -.03em; }
+html.d5 body #ckTop .ck-grow small, html.d5 body #ckTop .ck-grow span { font-weight: 700; }
+html.d5 body #ckTop .ck-price { font: 800 22px Heebo !important; }
+html.d5 body #ckTop .ck-link { background: #fff !important; color: var(--ink) !important; border-radius: 18px !important; padding: 6px 14px !important; font-weight: 800 !important; text-decoration: none !important; }
+html.d5 body #ckTop .ck-h { font: 800 30px/.95 var(--K) !important; letter-spacing: -.035em !important; color: var(--ink) !important; margin: 18px 0 10px !important; }
+html.d5 body #ckTop .ch-chip, html.d5 body #orderForm#orderForm .ch-chip { background: #fff !important; color: var(--ink) !important; border: 0 !important; border-radius: 22px !important; min-height: 44px; font-weight: 800 !important; }
+html.d5 body #orderForm#orderForm .ch-chip:has(input:checked), html.d5 body #orderForm#orderForm .ch-chip.on { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #orderForm#orderForm .kind-label { font-weight: 800 !important; color: var(--ink) !important; }
+html.d5 body #summary { background: var(--c3) !important; color: #fff !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 22px 18px !important; box-shadow: none !important; }
+html.d5 body #summary .ck-ticket, html.d5 body #summary .ck-ticket * { background: transparent !important; color: #fff !important; border-color: rgba(255,255,255,.3) !important; }
+html.d5 body #summary .ck-l { font: 700 17px Heebo !important; padding: 6px 0 !important; }
+html.d5 body #summary .ck-tot { font: 800 34px/1 var(--K) !important; letter-spacing: -.03em; padding: 14px 0 8px !important; border-top: 2px solid rgba(255,255,255,.35) !important; }
+html.d5 body #summary .ck-tot b, html.d5 body #summary .ck-tot bdi { font: 800 40px/1 var(--K) !important; }
+html.d5 body #summary .ck-safe { font: 800 16px Heebo !important; background: rgba(255,255,255,.2) !important; border-radius: 18px; padding: 12px 14px !important; }
+html.d5 body #summary #submitBtn { background: #fff !important; color: var(--ink) !important; min-height: 62px !important; font: 800 20px Heebo !important; margin-top: 14px; }
+html.d5 body #summary .ck-det-b { text-decoration: underline !important; }
+html.d5 body #orderForm#orderForm details.fold-line summary, html.d5 body #orderForm#orderForm .fold-line { font-weight: 800 !important; color: var(--ink) !important; }
+html.d5 body [data-wiz-more] { background: #BFE4FB !important; color: var(--ink) !important; border: 0 !important; border-radius: var(--blk-r) !important; padding: 18px 18px !important; margin: 0 0 12px !important; box-shadow: none !important; }
+html.d5 body [data-wiz-more] b { font: 800 22px/1 var(--K) !important; letter-spacing: -.03em; color: var(--ink) !important; }
+html.d5 body [data-wiz-more] small, html.d5 body [data-wiz-more] span { color: var(--ink) !important; }
+html.d5 body #ckTop .ck-th .ck-t:has(img[src*="items/plate"]), html.d5 body #ckTop .ck-th:not(:has(img:not([src*="items/plate"]))) { display: none !important; }
+html.d5 body #ckTop .ck-card .ch-chip, html.d5 body #ckTop .ck-card button:not(.ck-link) { background: #fff !important; color: var(--ink) !important; border: 0 !important; }
+html.d5 body #ckTop .ck-card .ch-chip *, html.d5 body #ckTop .ck-card button:not(.ck-link) * { color: var(--ink) !important; }
+html.d5 body #ckTop .ck-card .ch-chip.on, html.d5 body #ckTop .ck-card .ch-chip:has(input:checked), html.d5 body #ckTop .ck-card button.on { background: var(--ink) !important; color: #fff !important; }
+html.d5 body #ckTop .ck-card .ch-chip.on *, html.d5 body #ckTop .ck-card button.on * { color: #fff !important; }

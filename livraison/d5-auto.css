@@ -1,0 +1,239 @@
+/* Fichier fabriqué par d5-couleurs.py à partir de styles.css : ne pas modifier à la main.
+   Design 5 : les couleurs noires, bleu nuit et orange de l'ancien design deviennent la couleur --ink de la palette. */
+html.d5 body, html.d5.d2.d2-day body, html.d5.d2.d2-day body .ch, html.d5 body .ch-sheet { color: var(--ink) !important; }
+html.d5 body .topbar, html.d5 body .view-bar { color: var(--ink) !important; }
+html.d5 body .topbar .wordmark, html.d5 body .topbar .wordmark b { color: var(--ink) !important; }
+html.d5 body .tb-profile, html.d5 body .tb-cart, html.d5 body .lang-btn { color: var(--ink) !important; }
+html.d5 body .tb-profile svg, html.d5 body .tb-cart svg { color: var(--ink) !important; }
+html.d5 body .tb-profile svg circle, html.d5 body .tb-profile svg path { fill: var(--ink) !important; }
+html.d5 body .btn-primary, html.d5 body #homeGo, html.d5 body .cart-bar, html.d5 body .mobile-bar .btn-primary { background-color: var(--ink) !important; }
+html.d5 body .ch-chip, html.d5 body .vit-ideas button { color: var(--ink) !important; }
+html.d5 body .ch-chip.on { background-color: var(--ink) !important; }
+html.d5 body .vit-chip { color: var(--ink) !important; }
+html.d5 body .vit-chip b { color: var(--ink) !important; }
+html.d5 body .vit-ask { color: var(--ink) !important; }
+html.d5 body .sc-find input, html.d5 body #homeFind { color: var(--ink) !important; }
+html.d5 body .sc-mic { color: var(--ink) !important; }
+html.d5 body #homeKinds .ch-kind b { color: var(--ink) !important; }
+html.d5 body #homeKinds .ch-kind.on { background-color: var(--ink) !important; }
+html.d5 body .vit-course { color: var(--ink) !important; }
+html.d5 body .vit-course b, html.d5 body .vit-course small { color: var(--ink) !important; }
+html.d5 body .vit-course .vc-go { background-color: var(--ink) !important; }
+html.d5 body .ch-h, html.d5 body .sc-row-h, html.d5 body .sc-row-h span { color: var(--ink) !important; }
+html.d5 body .pro-row .sc-card { color: var(--ink) !important; }
+html.d5 body .sc-fav { color: var(--ink) !important; }
+html.d5 body .pro-row .sc-body b { color: var(--ink) !important; }
+html.d5 body .pro-row .sc-prog-btn { color: var(--ink) !important; }
+html.d5 body .xp, html.d5 body .app-share, html.d5 body .wa-list { color: var(--ink) !important; }
+html.d5 body .xp b, html.d5 body .app-share b, html.d5 body .wa-list b { color: var(--ink) !important; }
+html.d5 body .tb-profile { color: var(--ink) !important; }
+html.d5 body .tb-profile svg * { fill: var(--ink) !important; }
+html.d5 body .sc-fav { color: var(--ink) !important; }
+html.d5 body .chat-fab { background-color: var(--ink) !important; }
+html.d5 body .cg-promo, html.d5 body .it-promo, html.d5 body .k-badge { background-color: var(--ink) !important; }
+html.d5 body .vb-back { color: var(--ink) !important; }
+html.d5 body .sh-share { color: var(--ink) !important; }
+html.d5 body .shop-hero h2, html.d5 body .shop-hero .sh-name { color: var(--ink) !important; }
+html.d5 body .cg-voice { color: var(--ink) !important; }
+html.d5 body .cg-voice b, html.d5 body .cg-voice small, html.d5 body .cg-voice em { color: var(--ink) !important; }
+html.d5 body .cv-ic { background-color: var(--ink) !important; }
+html.d5 body .cg-rule, html.d5 body .nopay-mini, html.d5 body .nopay, html.d5 body .nopay-ready, html.d5 body .notice, html.d5 body .cg-any { color: var(--ink) !important; }
+html.d5 body .nopay b, html.d5 body .nopay-mini b, html.d5 body .nopay small, html.d5 body .nopay-mini small { color: var(--ink) !important; }
+html.d5 body .cg-price, html.d5 body .pm-pr, html.d5 body .pa-pr { color: var(--ink) !important; }
+html.d5 body .cg-plus { color: var(--ink) !important; }
+html.d5 body .btn-wa { background-color: var(--ink) !important; }
+html.d5 body .wa-fab.chat-fab { background-color: var(--ink) !important; }
+html.d5 body .steps i.on, html.d5 body .step-bar i.on { background-color: var(--ink) !important; }
+html.d5 body .cv-ic { background-color: var(--ink) !important; }
+html.d5 body .vit-course::after { border-top: 2px solid var(--ink) !important; border-inline-end: 2px solid var(--ink) !important; }
+html.d5 body .ch-gps, html.d5 body .ch-swap { color: var(--ink) !important; }
+html.d5 body .ch-dot { background-color: var(--ink) !important; }
+html.d5 body .ch-dot.from { background-color: var(--ink) !important; }
+html.d5 body #orderForm legend { color: var(--ink) !important; }
+html.d5 body .wiz-seg i.on { background-color: var(--ink) !important; }
+html.d5 body #orderForm .choice input:checked + span { border-color: var(--ink) !important; box-shadow: none !important; }
+html.d5 body #orderForm input:not([type=checkbox]):not([type=radio]), html.d5 body #orderForm select, html.d5 body #orderForm textarea { color: var(--ink) !important; }
+html.d5 body #orderForm input:not([type=checkbox]):not([type=radio]):focus, html.d5 body #orderForm select:focus, html.d5 body #orderForm textarea:focus { border-color: var(--ink) !important; }
+html.d5 body #orderForm input[type=checkbox], html.d5 body #orderForm input[type=radio] { accent-color: var(--ink) !important; }
+html.d5 body #orderForm .btn-sm:not(.btn-link):not(.btn-wa) { color: var(--ink) !important; }
+html.d5 body #orderForm .btn-link, html.d5 body #orderForm summary, html.d5 body #summary summary, html.d5 body #summary a { color: var(--ink) !important; }
+html.d5 body #summary li span:last-child { color: var(--ink) !important; }
+html.d5 body #quoteTotal, html.d5 body #mobileTotal { color: var(--ink) !important; }
+html.d5 body .d3-nav button.on { color: var(--ink) !important; }
+html.d5 body #mes-courses .card h3, html.d5 body #mes-courses .card b, html.d5 body #mes-courses .app-share b { color: var(--ink) !important; }
+html.d5 body #mes-courses a { color: var(--ink) !important; }
+html.d5 body #accueil.d3c .ch-go b, html.d5 body #accueil.d3c .ch-go strong { color: var(--ink) !important; }
+html.d5 body .trk-status .st-steps li.done::before, html.d5 body .trk-status .st-steps li.current::before, html.d5 body .trk-status .st-steps li.done i { background-color: var(--ink) !important; }
+html.d5 body .trk-status .st-steps li.current i { background-color: var(--ink) !important; }
+html.d5 body .trk-status .st-steps li.current span { color: var(--ink) !important; }
+html.d5 body .trk-status .st-ring b, html.d5 body .st-title { color: var(--ink) !important; }
+html.d5 body .st-side, html.d5 body .st-details { color: var(--ink) !important; }
+html.d5 body .track-panel .card.kv span[class], html.d5 body .track-panel .card.kv em, html.d5 body .track-panel .card.kv mark { color: var(--ink) !important; }
+html.d5 body .track-panel .promo-msg, html.d5 body .track-panel .card > p > b { color: var(--ink) !important; }
+html.d5 body .track-panel .btn-wa { background-color: var(--ink) !important; }
+html.d5 body .track-panel .btn:not(.btn-primary):not(.btn-wa):not(.btn-link) { color: var(--ink) !important; }
+html.d5 body .track-panel .btn-link { color: var(--ink) !important; }
+html.d5 body .rate-stars button.on, html.d5 body .rate-stars button.sel { color: var(--ink) !important; }
+html.d5 body #infos.info-head, html.d5 body #prix-rapide.hero { color: var(--ink) !important; }
+html.d5 body #infos.info-head h1, html.d5 body #infos.info-head h1 *, html.d5 body .hero-h2 { color: var(--ink) !important; }
+html.d5 body .info-nav a { color: var(--ink) !important; }
+html.d5 body .hero-perks span { color: var(--ink) !important; }
+html.d5 body .quick-price b, html.d5 body .quick-price strong, html.d5 body .qp-val, html.d5 body .qp-val * { color: var(--ink) !important; }
+html.d5 body .ex-price, html.d5 body .step-n { color: var(--ink) !important; }
+html.d5 body .addr-details span, html.d5 body .addr-note, html.d5 body .track-panel .card.kv .tag { color: var(--ink) !important; }
+html.d5 body .hop-ring .hr-arc { stroke: var(--ink) !important; }
+html.d5 body .onlivre .logo-name::before { color: var(--ink) !important; }
+html.d5 body .ol-hero h1 em { color: var(--ink) !important; }
+html.d5 body .ol-steps b { color: var(--ink) !important; }
+html.d5 body .ol-price { color: var(--ink) !important; }
+html.d5 body .bv-hero { background-color: var(--ink) !important; }
+html.d5 body .bv-done { color: var(--ink) !important; }
+html.d5 body .bv-main .btn:not(.btn-primary):not(.btn-wa) { color: var(--ink) !important; }
+html.d5 body .bv-main .btn-wa { background-color: var(--ink) !important; }
+html.d5 body .wiz-toast { background-color: var(--ink) !important; }
+html.d5 body #homeKinds::before { color: var(--ink) !important; }
+html.d5 body #homeKinds .ch-kind b { color: var(--ink) !important; }
+html.d5 body #homeKinds .ch-kind.on b { color: var(--ink) !important; }
+html.d5 body .d3-kall { color: var(--ink) !important; }
+html.d5 body .ph-head b { color: var(--ink) !important; }
+html.d5 body .ph-share { color: var(--ink) !important; }
+html.d5 body .ph-share svg, html.d5 body .ph-share path { color: var(--ink) !important; }
+html.d5 body .ph-meter .pm-bar > * { background-color: var(--ink) !important; }
+html.d5 body .ph-cat { color: var(--ink) !important; }
+html.d5 body .ph-cat.on { background-color: var(--ink) !important; }
+html.d5 body .ph-cur { color: var(--ink) !important; }
+html.d5 body .ph-tiles .ph-name { color: var(--ink) !important; }
+html.d5 body .ph-item .cg-plus { color: var(--ink) !important; }
+html.d5 body .ph-next { background-color: var(--ink) !important; }
+html.d5 body .ph-item .cg-qty { background-color: var(--ink) !important; }
+html.d5 body .ph-cat em, html.d5 body .ph-cat .n, html.d5 body .ph-cat b { background-color: var(--ink) !important; }
+html.d5 body .ph-sum { color: var(--ink) !important; }
+html.d5 body .ph-sum .btn { color: var(--ink) !important; }
+html.d5 body .ph-line .cg-plus, html.d5 body .ph-line button[data-ph-plus] { color: var(--ink) !important; }
+html.d5 body .ph-18 { background-color: var(--ink) !important; }
+html.d5 body .mak-more { color: var(--ink) !important; }
+html.d5 body .sc-mic { color: var(--ink) !important; }
+html.d5 body .sc-mic::before, html.d5 body .sc-mic::after { border: 2px solid var(--ink) !important; }
+html.d5 body .sc-mic.on { background-color: var(--ink) !important; }
+html.d5.d2-land body, html.d5.d2-land body .shop-landing { color: var(--ink) !important; }
+html.d5.d2-land body .topbar .wordmark, html.d5.d2-land body .topbar .wordmark * { color: var(--ink) !important; }
+html.d5.d2-land body .topbar .wordmark b { color: var(--ink) !important; }
+html.d5.d2-land body .lang-btn { color: var(--ink) !important; }
+html.d5 body .sl-hero { color: var(--ink) !important; }
+html.d5 body .sl-hero h1, html.d5 body .sl-block h2, html.d5 body .sl-plan h3, html.d5 body .sl-trust h3 { color: var(--ink) !important; }
+html.d5 body .sl-hero h1 em { color: var(--ink) !important; }
+html.d5 body .sl-kicker { color: var(--ink) !important; }
+html.d5 body .sl-ghost { color: var(--ink) !important; }
+html.d5 body .sl-stats b { color: var(--ink) !important; }
+html.d5 body .sl-phone { background-color: var(--ink) !important; }
+html.d5 body .sl-toast { background-color: var(--ink) !important; }
+html.d5 body .sl-item em { color: var(--ink) !important; }
+html.d5 body .sl-rider { color: var(--ink) !important; }
+html.d5 body .sl-plan-pro { border: 2px solid var(--ink) !important; }
+html.d5 body .sl-tag { background-color: var(--ink) !important; }
+html.d5 body .sl-plan:not(.sl-plan-pro) .sl-tag { color: var(--ink) !important; }
+html.d5 body .sl-gift { color: var(--ink) !important; }
+html.d5 body .sl-price b { color: var(--ink) !important; }
+html.d5 body .sl-plus { color: var(--ink) !important; }
+html.d5 body .sl-feats li::before { background-color: var(--ink) !important; }
+html.d5 body .sl-plan .btn:not(.btn-primary) { color: var(--ink) !important; }
+html.d5 body .sl-demo { color: var(--ink) !important; }
+html.d5 body .sl-table th, html.d5 body .sl-table td { color: var(--ink) !important; }
+html.d5 body .sl-table th.sl-col-pro { background-color: var(--ink) !important; }
+html.d5 body .sl-yes { background-color: var(--ink) !important; }
+html.d5 body .sl-range b { color: var(--ink) !important; }
+html.d5 body .sl-range input { accent-color: var(--ink) !important; }
+html.d5 body .sl-bar { color: var(--ink) !important; }
+html.d5 body .sl-bar-hop b { color: var(--ink) !important; }
+html.d5 body .sl-save { color: var(--ink) !important; }
+html.d5 body .sl-steps i { color: var(--ink) !important; }
+html.d5.d2-land body input:not([type=checkbox]):not([type=radio]):not([type=range]), html.d5.d2-land body select, html.d5.d2-land body textarea { color: var(--ink) !important; }
+html.d5.d2-land body input:focus, html.d5.d2-land body select:focus, html.d5.d2-land body textarea:focus { border-color: var(--ink) !important; }
+html.d5.d2-land body .choice input:checked + span { border-color: var(--ink) !important; box-shadow: none !important; }
+html.d5.d2-land body .wa-fab, html.d5.d2-land body .chat-fab { background-color: var(--ink) !important; }
+html.d5 body .pro-row .sc-prog-btn { color: var(--ink) !important; }
+html.d5 body #homeKinds .ch-kind.on .k2-ic { box-shadow: none !important; }
+html.d5 body #homeFilters .ch-chip.on, html.d5 body .ph-cat.on { background-color: var(--ink) !important; }
+html.d5 body .d3-nav button.on { color: var(--ink) !important; }
+html.d5 body .d3-nav .d3-mic { color: var(--ink) !important; }
+html.d5 body .d3-nav .d3-mic svg { stroke: var(--ink) !important; }
+html.d5 body .d3-nav .d3-mic i::after { background-color: var(--ink) !important; }
+html.d5 body .d3-nav .d3-mic i::before { border: 2px solid var(--ink) !important; }
+html.d5 body .hv-box { color: var(--ink) !important; }
+html.d5 body .hv-top b { color: var(--ink) !important; }
+html.d5 body .hv-lang { color: var(--ink) !important; }
+html.d5 body .hv-x, html.d5 body .hv-send, html.d5 body .hv-cam { color: var(--ink) !important; }
+html.d5 body .hv-msg.hop, html.d5 body .hv-msg.wait { color: var(--ink) !important; }
+html.d5 body .hv-msg.me { background-color: var(--ink) !important; }
+html.d5 body .hv-choices button { color: var(--ink) !important; }
+html.d5 body .hv-bar input { color: var(--ink) !important; }
+html.d5 body .hv-mic { background-color: var(--ink) !important; }
+html.d5 body .hv-mic::after { background-color: var(--ink) !important; }
+html.d5 body .hv-mic.on { background-color: var(--ink) !important; }
+html.d5 body .hv-basket, html.d5 body .hv-keep { color: var(--ink) !important; }
+html.d5 body .hv-basket span { color: var(--ink) !important; }
+html.d5 body .hv-basket .hb-alts button { color: var(--ink) !important; }
+html.d5 body .hv-call { background-color: var(--ink) !important; }
+html.d5 body .sc-mic.on { background-color: var(--ink) !important; }
+html.d5 body .cg-voice > i { background-color: var(--ink) !important; }
+html.d5 body .pa { color: var(--ink) !important; }
+html.d5 body .pa-top { color: var(--ink) !important; }
+html.d5 body .pa-x { color: var(--ink) !important; }
+html.d5 body .pa-h b { color: var(--ink) !important; }
+html.d5 body .pa-tab { color: var(--ink) !important; }
+html.d5 body .pa-tab i { color: var(--ink) !important; }
+html.d5 body .pa-tab.on { background-color: var(--ink) !important; }
+html.d5 body .pa-cat { color: var(--ink) !important; }
+html.d5 body .pa-cat.on { background-color: var(--ink) !important; border-color: var(--ink) !important; }
+html.d5 body .pa-shop { color: var(--ink) !important; }
+html.d5 body .pa-name { color: var(--ink) !important; }
+html.d5 body .pa-pr strong { color: var(--ink) !important; }
+html.d5 body .pa-add { color: var(--ink) !important; }
+html.d5 body .pa-add.ok { background-color: var(--ink) !important; }
+html.d5 body .lgx-hero h3 { color: var(--ink) !important; }
+html.d5 body .lgx-p b { color: var(--ink) !important; }
+html.d5 body .lgx-voice { background-color: var(--ink) !important; }
+html.d5 body .lgx-voice > i::after { background-color: var(--ink) !important; }
+html.d5 body .lgx-voice svg { stroke: var(--ink) !important; }
+html.d5 body .lgx-form .lgx-go { background-color: var(--ink) !important; border-color: var(--ink) !important; }
+html.d5 body .lgx-switch { color: var(--ink) !important; }
+html.d5 body #emptyCart .it-x { color: var(--ink) !important; }
+html.d5 body #emptyCart .cs-title { color: var(--ink) !important; }
+html.d5 body #emptyCart .cs-steps-t { color: var(--ink) !important; }
+html.d5 body #emptyCart .cs-steps i { background-color: var(--ink) !important; }
+html.d5 body #emptyCart [data-ec-start] { background-color: var(--ink) !important; border-color: var(--ink) !important; }
+html.d5 body #emptyCart [data-ec-shops] { color: var(--ink) !important; }
+html.d5 body .vit-status .d3-off-plan { color: var(--ink) !important; }
+html.d5 body .vit-status .d3-off-plan { background-color: var(--ink) !important; }
+html.d5 body .vit-course .vc-tag { background-color: var(--ink) !important; }
+html.d5 body-sp .bag-no, html.d5 body-sp .bag-line b { color: var(--ink) !important; }
+html.d5 body-sp .sp-tabs button.on { background-color: var(--ink) !important; }
+html.d5 body-sp .sp-badge { background-color: var(--ink) !important; }
+html.d5 body-sp .choice input:checked + span, html.d5 body-sp .choice:has(input:checked) { border-color: var(--ink) !important; box-shadow: none !important; }
+html.d5 body-sp .f input:focus, html.d5 body-sp .f select:focus { border-color: var(--ink) !important; }
+html.d5 body-sp .sp-order { background-color: var(--ink) !important; }
+html.d5 body-sp .f input:focus, html.d5 body-sp .f select:focus, html.d5 body-sp .f input.field-bad:focus { border-color: var(--ink) !important; box-shadow: none !important; }
+html.d5 body-sp .topbar .wordmark b { color: var(--ink) !important; }
+html.d5 body #pickupLegend::before { background-color: var(--ink) !important; }
+html.d5 body legend[data-i18n="s3"]::before { background-color: var(--ink) !important; }
+html.d5 body.shop-compact #shopHero .sh-closed-go { color: var(--ink) !important; }
+html.d5 body .sc-find-list .fi-any .fi-pic, html.d5 body .sc-find-list .fr-logo.hop { color: var(--ink) !important; }
+html.d5 body .sc-find-list .fi-any .fi-go { color: var(--ink) !important; }
+html.d5 body #pharmaBox .ph-tiles .ph-price { color: var(--ink) !important; }
+html.d5 body #pharmaBox .ph-tiles .ph-item.in .ph-pic { box-shadow: none !important; }
+html.d5 body .mini-order .btn.mo-help { color: var(--ink) !important; }
+html.d5 body .mini-order .btn.mo-again { background-color: var(--ink) !important; }
+html.d5 body .k-on-cover { color: var(--ink) !important; }
+html.d5 body .gc-opt.on { border-color: var(--ink) !important; box-shadow: none !important; }
+html.d5 body .cg-grid.cg-tiles.cg-pa .cg-item.in { box-shadow: none !important; }
+html.d5 body .cg-grid.cg-tiles.cg-pa .cg-info .cg-price { color: var(--ink) !important; }
+html.d5 body .cg-grid.cg-tiles.cg-pa .cg-pap { color: var(--ink) !important; }
+html.d5 body .addr-tools [data-geo] { border: 1.5px solid var(--ink) !important; color: var(--ink) !important; }
+html.d5 body .pa-step { background-color: var(--ink) !important; }
+html.d5 body #catalogBox .cg-tab.on, html.d5 body .cg-tab.on { background-color: var(--ink) !important; border-color: var(--ink) !important; }
+html.d5 body #catalogBox .cg-qty button { color: var(--ink) !important; }
+html.d5 body #catalogBox .cg-qty b { color: var(--ink) !important; }
+html.d5 body #catalogBox .cg-n, html.d5 body #catalogBox .cg-n bdi { color: var(--ink) !important; }
+html.d5 body #cartSheet .cs-nav .btn-sm, html.d5 body #cartSheet [data-cs-addbtn] { background-color: var(--ink) !important; border-color: var(--ink) !important; }
+html.d5 body #cartSheet .cs-steps i { background-color: var(--ink) !important; }
+html.d5 body #cartSheet .cs-qty button { color: var(--ink) !important; }
