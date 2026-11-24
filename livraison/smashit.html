@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Smash It · סמאש איט — sur HOP!</title>
+<meta name="theme-color" content="#16100C">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700;800;900&family=Caveat:wght@700&display=swap" rel="stylesheet">
+<style>
+/* Vitrine « menu éclaté » de Smash It (essai demandé par le patron, 24/11) : le plat détouré au centre, ses ingrédients
+   qui s'envolent autour, une couleur par plat, bords de papier déchiré, bande de mots qui défile. Casher viande : aucun mot laitier
+   (« cheddar végétal »). Commander = la vraie page Smash It de HOP! (index.html?c=SMASHIT). */
+:root { --ink: #16100C; --cream: #F6EEDF; --or: #FF6A13; --bg: #F2B21B; }
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; overflow-x: clip; }
+body { font-family: Heebo, system-ui, sans-serif; background: var(--ink); color: #fff; overflow-x: clip; }
+html[dir=rtl] .ltr { direction: ltr; unicode-bidi: isolate; }
+img { display: block; user-select: none; -webkit-user-drag: none; }
+
+/* ===== En-tête ===== */
+.top { position: fixed; inset: 0 0 auto 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; padding-top: max(14px, env(safe-area-inset-top));
+  background: linear-gradient(180deg, rgba(22,16,12,.92), rgba(22,16,12,0)); }
+.brand { font-weight: 900; font-size: 22px; letter-spacing: -.02em; line-height: 1; }
+.brand small { display: block; font-size: 12px; font-weight: 700; color: #F2B21B; letter-spacing: .02em; margin-top: 3px; }
+.top a.cta { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 30px; background: #fff; color: var(--ink); font-weight: 800; font-size: 14px; text-decoration: none; }
+.top a.cta b { color: var(--or); }
+.top .lang { margin-inline-start: 8px; width: 40px; height: 40px; border-radius: 20px; border: 1.5px solid rgba(255,255,255,.35); color: #fff; background: none; font: 800 13px Heebo; }
+
+/* ===== Haut de page sombre ===== */
+.hero { position: relative; padding: 96px 20px 110px; overflow: hidden; }
+.hero h1 { position: relative; z-index: 3; font-weight: 900; font-size: 46px; line-height: .98; letter-spacing: -.035em; max-width: 330px; }
+.hero h1 em { display: block; font-family: Caveat, cursive; font-style: normal; font-weight: 700; font-size: 44px; letter-spacing: 0; color: #F2B21B; margin-top: 6px; }
+html[dir=rtl] .hero h1 em { font-family: Heebo; font-weight: 800; font-size: 34px; }
+.hero p { position: relative; z-index: 3; margin-top: 14px; max-width: 320px; font-size: 16px; font-weight: 500; color: #D9CFC2; line-height: 1.35; }
+.hero .go { position: relative; z-index: 6; display: flex; width: max-content; margin-inline: auto; align-items: center; gap: 8px; margin-top: 20px; padding: 13px 22px; border-radius: 30px; background: #fff; color: var(--ink); font-weight: 800; font-size: 15px; text-decoration: none; }
+.stage { position: relative; z-index: 2; width: 350px; height: 330px; margin: 6px auto 0; left: 0; }
+.stage .b { position: absolute; left: 50%; top: 50%; width: 270px; transform: translate(-50%, -50%); filter: drop-shadow(0 30px 30px rgba(0,0,0,.55)); animation: float 4.2s ease-in-out infinite; }
+.fly { position: absolute; filter: drop-shadow(0 14px 14px rgba(0,0,0,.45)); animation: drift 5s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translate(-50%, -50%) rotate(-2deg); } 50% { transform: translate(-50%, -56%) rotate(2deg); } }
+@keyframes drift { 0%, 100% { transform: translate(0, 0) rotate(var(--r, 0deg)); } 50% { transform: translate(0, -10px) rotate(calc(var(--r, 0deg) + 8deg)); } }
+.tag { position: absolute; z-index: 4; padding: 7px 13px; border-radius: 20px; font-weight: 800; font-size: 12px; white-space: nowrap; box-shadow: 0 8px 18px rgba(0,0,0,.3); }
+.tag.dark { background: var(--ink); color: #fff; border: 1.5px solid rgba(255,255,255,.2); }
+.tag.or { background: var(--or); color: #fff; transform: rotate(-6deg); }
+.tag.light { background: #fff; color: var(--ink); transform: rotate(5deg); }
+.wave { position: absolute; left: 0; right: 0; bottom: -1px; height: 90px; z-index: 5; }
+
+/* ===== Crème : la phrase ===== */
+.cream { position: relative; background: var(--cream); color: var(--ink); padding: 30px 24px 60px; text-align: center; }
+.cream h2 { font-weight: 900; font-size: 36px; line-height: 1.02; letter-spacing: -.03em; position: relative; display: inline-block; }
+.cream h2 .bub { position: absolute; top: -18px; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 800; letter-spacing: 0; transform: rotate(-8deg); }
+.cream p { margin: 14px auto 0; max-width: 300px; font-family: Caveat, cursive; font-size: 24px; line-height: 1.1; color: #5B4A3A; }
+html[dir=rtl] .cream p { font-family: Heebo; font-size: 18px; font-weight: 600; }
+.cream .rider { display: inline-block; margin-top: 18px; padding: 10px 18px; border-radius: 24px; background: #0F1F3D; color: #fff; font-weight: 900; font-size: 16px; } .cream .rider i { font-style: normal; color: var(--or); }
+
+/* ===== Bande de mots ===== */
+.band { position: relative; z-index: 6; background: var(--ink); padding: 12px 0; transform: rotate(-3deg) scale(1.08); margin-top: -26px; overflow: hidden; }
+.band .row { display: flex; gap: 18px; white-space: nowrap; font-weight: 900; font-size: 26px; letter-spacing: -.02em; width: max-content; animation: slide 22s linear infinite; }
+.band .row.r2 { animation-direction: reverse; animation-duration: 26s; margin-top: 2px; }
+.band span:nth-child(5n+1) { color: #FF8A4C; } .band span:nth-child(5n+2) { color: #fff; } .band span:nth-child(5n+3) { color: #9BD27A; } .band span:nth-child(5n+4) { color: #F2B21B; } .band span:nth-child(5n) { color: #fff; }
+@keyframes slide { to { transform: translateX(-50%); } }
+html[dir=rtl] .band .row { animation-name: slideR; } @keyframes slideR { to { transform: translateX(50%); } }
+
+/* ===== Le menu éclaté ===== */
+.menu { position: relative; background: var(--bg); color: var(--ink); padding: 64px 0 70px; transition: background .6s ease; margin-top: -14px; }
+.torn { position: absolute; left: 0; right: 0; height: 26px; z-index: 2; }
+.torn.t { top: -1px; } .torn.b { bottom: -1px; transform: scaleY(-1); }
+.menu h3 { text-align: center; font-weight: 900; font-size: 34px; letter-spacing: -.03em; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 16px 16px 6px; scrollbar-width: none; scroll-snap-type: x mandatory; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; scroll-snap-align: center; display: flex; align-items: center; gap: 8px; padding: 6px 14px 6px 6px; border-radius: 30px; border: 0; background: rgba(255,255,255,.55); color: var(--ink); font: 800 13px Heebo; text-align: start; transition: background .3s, color .3s, transform .3s; }
+html[dir=rtl] .chip { padding: 6px 6px 6px 14px; }
+.chip img { width: 38px; height: 38px; object-fit: contain; }
+.chip small { display: block; font-weight: 600; font-size: 11px; opacity: .7; }
+.chip.on { background: var(--ink); color: #fff; transform: scale(1.04); }
+.dots { position: absolute; inset-inline-start: 12px; top: 200px; z-index: 3; display: flex; flex-direction: column; gap: 7px; padding: 8px 5px; border-radius: 12px; background: rgba(255,255,255,.5); }
+.dots i { width: 7px; height: 7px; border-radius: 4px; background: #fff; transition: background .3s, height .3s; } .dots i.on { background: var(--ink); height: 16px; }
+.plate { position: relative; height: 360px; margin-top: 4px; touch-action: pan-y; }
+.wm { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-8deg); font-family: Caveat, cursive; font-size: 150px; color: rgba(255,255,255,.22); white-space: nowrap; pointer-events: none; }
+.hero-dish { position: absolute; left: 50%; top: 52%; width: 230px; transform: translate(-50%, -50%); filter: drop-shadow(0 26px 24px rgba(0,0,0,.35)); z-index: 2; transition: transform .55s cubic-bezier(.2, 1.4, .4, 1), opacity .25s; }
+.hero-dish.out { transform: translate(-50%, -30%) scale(.6) rotate(-14deg); opacity: 0; transition: transform .3s ease-in, opacity .25s; }
+.ing { position: absolute; z-index: 1; filter: drop-shadow(0 12px 12px rgba(0,0,0,.28)); transition: transform .7s cubic-bezier(.2, 1.5, .35, 1), opacity .3s; will-change: transform; }
+.ing.front { z-index: 3; }
+.ing.gone { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(.2) rotate(0deg) !important; transition: transform .3s ease-in, opacity .25s; }
+.bubble { position: absolute; z-index: 4; padding: 6px 12px; border-radius: 16px; background: var(--ink); color: #fff; font-weight: 800; font-size: 11px; letter-spacing: .02em; text-transform: uppercase; white-space: nowrap; transition: transform .5s cubic-bezier(.2, 1.6, .4, 1); }
+.bubble.w { background: #fff; color: var(--ink); }
+.bubble.gone { transform: scale(0) !important; }
+.info { text-align: center; padding: 0 24px; }
+.info .n { font-weight: 900; font-size: 26px; letter-spacing: -.02em; }
+.info .d { margin: 6px auto 0; max-width: 320px; font-size: 14px; font-weight: 600; opacity: .75; line-height: 1.35; min-height: 38px; }
+.order { display: inline-flex; align-items: center; gap: 10px; margin-top: 16px; padding: 14px 26px; border-radius: 30px; background: var(--ink); color: #fff; font-weight: 800; font-size: 16px; text-decoration: none; }
+.order b { color: #F2B21B; }
+
+/* ===== Pied ===== */
+.foot { background: var(--ink); text-align: center; padding: 56px 24px 70px; }
+.foot .hop { font-weight: 900; font-size: 44px; letter-spacing: -.03em; } .foot .hop i { font-style: normal; color: var(--or); }
+.foot p { margin-top: 8px; color: #CFC5B8; font-weight: 600; }
+.foot a { display: inline-block; margin-top: 18px; padding: 14px 26px; border-radius: 30px; background: var(--or); color: #fff; font-weight: 800; text-decoration: none; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">SMASH IT<small data-t="kosher"></small></div>
+  <div style="display:flex;align-items:center"><a class="cta" href="index.html?c=SMASHIT" data-t="ctaTop"></a><button class="lang" id="lang"></button></div>
+</header>
+
+<section class="hero">
+  <h1><span data-t="h1"></span><em data-t="h1b"></em></h1>
+  <p data-t="lead"></p>
+  <div class="stage">
+    <img class="fly" src="img/smashit/tomate.webp" style="width:84px;left:12px;top:30px;--r:-18deg" alt="">
+    <img class="fly" src="img/smashit/salade.webp" style="width:96px;right:30px;top:-6px;--r:22deg;animation-delay:-1.4s" alt="">
+    <img class="fly" src="img/smashit/pickles.webp" style="width:70px;left:-4px;top:210px;--r:12deg;animation-delay:-2.2s" alt="">
+    <img class="fly" src="img/smashit/oignon.webp" style="width:78px;right:16px;top:236px;--r:-10deg;animation-delay:-.7s" alt="">
+    <img class="b" src="img/smashit/burger-royal.webp" alt="Smash It Royal">
+    <span class="tag or" style="left:40px;top:100px" data-t="tag1"></span>
+    <span class="tag light" style="right:44px;top:200px" data-t="tag2"></span>
+  </div>
+  <a class="go" href="#menu" data-t="seeMenu"></a>
+  <svg class="wave" viewBox="0 0 390 90" preserveAspectRatio="none"><path d="M0 60 C 90 10, 200 95, 390 20 L390 90 L0 90 Z" fill="#F6EEDF"/></svg>
+</section>
+
+<section class="cream">
+  <h2><span class="bub" style="left:-10px;background:#2F7D32;color:#fff" data-t="bub1"></span><span data-t="h2"></span><span class="bub" style="right:-14px;background:#FF6A13;color:#fff" data-t="bub2"></span></h2>
+  <p data-t="script"></p>
+  <div class="rider ltr">Livré par HOP<i>!</i></div>
+</section>
+
+<div class="band"><div class="row" id="w1"></div><div class="row r2" id="w2"></div></div>
+
+<section class="menu" id="menu">
+  <svg class="torn t" viewBox="0 0 390 26" preserveAspectRatio="none"><path id="tornP" d="" fill="#16100C"/></svg>
+  <h3 id="secT"></h3>
+  <div class="chips" id="chips"></div>
+  <div class="dots" id="dots"></div>
+  <div class="plate" id="plate"><div class="wm">Smash It</div></div>
+  <div class="info"><div class="n" id="dn"></div><div class="d" id="dd"></div><a class="order" id="order" href="index.html?c=SMASHIT"></a></div>
+  <svg class="torn b" viewBox="0 0 390 26" preserveAspectRatio="none"><path id="tornP2" d="" fill="#16100C"/></svg>
+</section>
+
+<footer class="foot">
+  <div class="hop ltr">HOP<i>!</i></div>
+  <p data-t="foot"></p>
+  <a href="index.html?c=SMASHIT" data-t="footGo"></a>
+</footer>
+
+<script>
+const T = {
+  fr: { kosher: 'Casher · Netanya', ctaTop: 'Commander', h1: 'Le vrai smash burger,', h1b: 'livré chez vous.', lead: 'Deux steaks écrasés sur la plancha, pain brioché, sauce maison. Commandé sur HOP!, livré au plus vite.',
+    seeMenu: 'Voir le menu ›', tag1: '2 × 110 g', tag2: 'Le préféré', bub1: 'fait maison', bub2: 'smashé', h2: 'Croustillant dehors, juteux dedans.', script: 'Il a toujours eu sa façon à lui de vous mettre de bonne humeur.',
+    words: ['Smashé', 'Croustillant', 'Juteux', 'Fait maison', 'Brioché', 'Grillé', 'Casher', 'Sauce maison', 'Généreux', 'Doré'], section: 'Le menu', order: 'Commander', foot: 'Smash It, livré par HOP! · dès 25 ₪ en ville', footGo: 'Commander sur HOP!', lang: 'עב' },
+  he: { kosher: 'כשר · נתניה', ctaTop: 'להזמנה', h1: 'סמאש בורגר אמיתי,', h1b: 'עד הבית.', lead: 'שני קציצות מעוכות על הפלאנצ׳ה, לחמניית בריוש, רוטב הבית. מזמינים ב-HOP!, מגיע הכי מהר.',
+    seeMenu: '‹ לתפריט', tag1: '2 × 110 גר׳', tag2: 'הכי אהוב', bub1: 'תוצרת בית', bub2: 'סמאש', h2: 'קריספי מבחוץ, עסיסי מבפנים.', script: 'תמיד הייתה לו דרך משלו לשפר לכם את מצב הרוח.',
+    words: ['סמאש', 'קריספי', 'עסיסי', 'תוצרת בית', 'בריוש', 'על הגריל', 'כשר', 'רוטב הבית', 'נדיב', 'זהוב'], section: 'התפריט', order: 'להזמנה', foot: 'סמאש איט, במשלוח של HOP! · החל מ־25 ₪ בעיר', footGo: 'להזמנה ב-HOP!', lang: 'FR' },
+};
+// Les plats (prix et descriptions réels du catalogue Smash It ; aucune photo inventée : celles du patron)
+const DISHES = [
+  { id: 'royal', img: 'burger-royal', bg: '#F2B21B', price: 56, w: 230,
+    fr: ['Smash It Royal', 'Pain brioché, 2 steaks 110 g, 2 tranches cheddar végétal, pickles maison et oignon.', 'Best-seller', '2 × 110 g'],
+    he: ['סמאש איט רויאל', 'לחמניית בריוש, 2 קציצות 110 גר׳, 2 פרוסות צ׳דר צמחי, חמוצים ובצל.', 'הכי נמכר', '2 × 110 גר׳'],
+    ing: [['pain', 120, -150, -110, -14], ['steak', 120, 140, -96, 10], ['tomate', 92, -150, 50, 18, 1], ['salade', 104, 150, 40, -22], ['pickles', 74, -40, 128, 8, 1], ['oignon', 82, 100, 126, -12, 1]] },
+  { id: 'rings', img: 'onion-rings', bg: '#E2552B', price: 26, w: 220,
+    fr: ['Onion rings', 'Rondelles d\'oignon en tempura croustillante, sauce maison à part.', 'Extra croustillant', 'Tempura'],
+    he: ['אוניון רינגס', 'טבעות בצל בציפוי טמפורה קריספי, רוטב הבית בצד.', 'קריספי במיוחד', 'טמפורה'],
+    ing: [['oignon', 100, -150, -96, -16], ['aioli', 100, 150, -80, 0], ['chili', 92, 140, 104, 0, 1], ['oignon', 70, -140, 110, 24, 1]] },
+  { id: 'frites', img: 'frites', bg: '#3E8E5A', price: 18, w: 230,
+    fr: ['Frites Crispy', 'Frites épaisses et croustillantes, ketchup et mayo à part.', 'Coupées épaisses', 'Crispy'],
+    he: ['צ׳יפס קריספי', 'צ׳יפס עבה במעטפת קריספית, קטשופ ומיונז בצד.', 'חתוך עבה', 'קריספי'],
+    ing: [['aioli', 100, -150, -90, 0], ['chili', 96, 150, -84, 0], ['tomate', 84, -140, 110, 20, 1]] },
+  { id: 'wings', img: 'wings', bg: '#7A3E1D', price: 48, w: 240,
+    fr: ['Smash It Wings', '10 ailes de poulet croustillantes, sauce maison à part.', '10 pièces', 'Croustillant'],
+    he: ['סמאש איט ווינגס', '10 כנפיים בציפוי קריספי, רוטב הבית בצד.', '10 יחידות', 'קריספי'],
+    ing: [['chili', 100, -150, -90, 0], ['aioli', 96, 150, -86, 0], ['salade', 96, 140, 106, -20, 1]] },
+];
+let L = new URLSearchParams(location.search).get('lang') === 'he' ? 'he' : 'fr', cur = 0, auto = true, timer = 0;
+const $ = s => document.querySelector(s);
+function torn(seed) { let d = 'M0 0 L390 0 L390 14 ', x = 390, r = seed; while (x > 0) { r = (r * 9301 + 49297) % 233280; x -= 6 + (r / 233280) * 12; d += `L${Math.max(0, x).toFixed(1)} ${(8 + (r / 233280) * 16).toFixed(1)} `; } return d + 'L0 14 Z'; }
+$('#tornP').setAttribute('d', torn(7)); $('#tornP2').setAttribute('d', torn(31));
+function apply() {
+  const t = T[L]; document.documentElement.lang = L; document.documentElement.dir = L === 'he' ? 'rtl' : 'ltr';
+  document.querySelectorAll('[data-t]').forEach(e => { e.textContent = t[e.dataset.t]; });
+  $('#lang').textContent = t.lang; $('#secT').textContent = t.section;
+  const w = [...t.words, ...t.words].map(x => `<span>${x}</span>`).join('');
+  $('#w1').innerHTML = w + w; $('#w2').innerHTML = [...t.words].reverse().map(x => `<span>${x}</span>`).join('').repeat(4);
+  $('#chips').innerHTML = DISHES.map((d, i) => `<button class="chip${i === cur ? ' on' : ''}" data-i="${i}"><img src="img/smashit/${d.img}.webp" alt=""><span>${d[L][0]}<small class="ltr">${d.price} ₪</small></span></button>`).join('');
+  $('#dots').innerHTML = DISHES.map((_, i) => `<i class="${i === cur ? 'on' : ''}"></i>`).join('');
+  show(cur, true);
+}
+function show(i, instant) {
+  const plate = $('#plate'), d = DISHES[i], rtl = L === 'he';
+  cur = i;
+  document.querySelectorAll('.chip').forEach((c, k) => c.classList.toggle('on', k === i));
+  document.querySelectorAll('#dots i').forEach((c, k) => c.classList.toggle('on', k === i));
+  const on = document.querySelector(`.chip[data-i="${i}"]`); if (on && !instant) on.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  $('#menu').style.setProperty('--bg', d.bg);
+  const old = plate.querySelectorAll('.hero-dish, .ing, .bubble');
+  old.forEach(e => e.classList.add(e.classList.contains('hero-dish') ? 'out' : 'gone'));
+  setTimeout(() => old.forEach(e => e.remove()), instant ? 0 : 320);
+  const build = () => {
+    const cx = plate.clientWidth / 2, cy = 190;
+    const dish = new Image(); dish.className = 'hero-dish out'; dish.src = `img/smashit/${d.img}.webp`; dish.style.width = d.w + 'px'; dish.alt = d[L][0]; plate.appendChild(dish);
+    d.ing.forEach(([n, w, x, y, r, front], k) => {
+      const im = new Image(); im.className = 'ing gone' + (front ? ' front' : ''); im.src = `img/smashit/${n}.webp`; im.alt = '';
+      const xx = rtl ? -x : x; im.style.width = w + 'px'; im.style.left = (cx + xx - w / 2) + 'px'; im.style.top = (cy + y - w / 2) + 'px';
+      im.style.setProperty('--fx', (-xx) + 'px'); im.style.setProperty('--fy', (-y) + 'px'); im.dataset.r = r; plate.appendChild(im);
+      setTimeout(() => { im.classList.remove('gone'); im.style.transform = `rotate(${r}deg)`; }, 120 + k * 55);
+    });
+    const b1 = document.createElement('span'); b1.className = 'bubble gone'; b1.textContent = d[L][2]; b1.style.cssText += `top:58px;${rtl ? 'right' : 'left'}:${cx - 40}px;transform:rotate(-6deg)`;
+    const b2 = document.createElement('span'); b2.className = 'bubble w gone'; b2.textContent = d[L][3]; b2.style.cssText += `top:300px;${rtl ? 'left' : 'right'}:${cx - 120}px;transform:rotate(5deg)`;
+    plate.append(b1, b2); setTimeout(() => { b1.classList.remove('gone'); b2.classList.remove('gone'); }, 420);
+    requestAnimationFrame(() => requestAnimationFrame(() => dish.classList.remove('out')));
+    $('#dn').textContent = d[L][0]; $('#dd').textContent = d[L][1];
+    $('#order').innerHTML = `${T[L].order} <b class="ltr">${d.price} ₪</b>`;
+  };
+  instant ? build() : setTimeout(build, 260);
+}
+$('#chips').addEventListener('click', e => { const c = e.target.closest('.chip'); if (!c) return; auto = false; show(+c.dataset.i); });
+let sx = 0; $('#plate').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+$('#plate').addEventListener('touchend', e => { const dx = e.changedTouches[0].clientX - sx; if (Math.abs(dx) < 40) return; auto = false; const dir = (dx < 0) !== (L === 'he') ? 1 : -1; show((cur + dir + DISHES.length) % DISHES.length); });
+$('#lang').addEventListener('click', () => { L = L === 'fr' ? 'he' : 'fr'; apply(); });
+// tant que personne n'a touché, les plats défilent tout seuls quand le menu est à l'écran
+const io = new IntersectionObserver(es => { es.forEach(en => { clearInterval(timer); if (en.isIntersecting) timer = setInterval(() => { if (auto) show((cur + 1) % DISHES.length); }, 3400); }); }, { threshold: .5 });
+io.observe($('#menu'));
+apply();
+</script>
+</body>
+</html>
