@@ -1926,6 +1926,15 @@ async function iaVoiceResult(id) {
   return rest("/rest/v1/rpc/ia_voice_result", { method: "POST", body: { p_id: id } });
 }
 // Synonymes de la recherche (pain = לחם = lehem…) : ceux de la base (le patron peut en ajouter), gardés sur le téléphone
+// Vitrine « menu éclaté » d'un restaurant (shop_vitrine) ; gardée sur le téléphone pour s'afficher tout de suite la fois suivante
+async function shopVitrine(code) {
+  const KEY = "livraison.vitrine." + String(code || "").toUpperCase();
+  if (ONLINE) {
+    const r = await rest("/rest/v1/rpc/shop_vitrine", { method: "POST", body: { p_code: code } }).catch(() => undefined);
+    if (r !== undefined) { if (r) writeJSON(KEY, r); else localStorage.removeItem(KEY); return r || null; }
+  }
+  return readJSON(KEY, null);
+}
 async function searchSynonyms() {
   const KEY = "livraison.syn.v1";
   if (ONLINE) {
@@ -3054,7 +3063,7 @@ window.Store = {
   appPromos, adminPromos, adminApiKeys, adminApiOrders, adminApiKeyCreate, adminApiKeyUpdate, promoSave, promoDelete, cartSave, adminCarts, adminIaDialog, cartMark,
   balanceOf, courseValue, courierGain, shopsDirectory, sendTopcase, courierTopcase, sendCourierDoc, courierDocs, waitFee, shopOrderAction, planActive,
   listCouriers, updateCourier, settleOrders, settleReferrals,
-  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, priceCompare, listCompare, vicFind, lahavFind, chainFind, yohananofFind, osheradFind, tivtaamFind, universeFind, shufersalFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaPhoto, iaEcoute, placeSuggest, adminPlacesAsked, adminPlaceAskedDone, iaVoiceRun, iaVoiceResult, searchSynonyms, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, shopCollectSet, courierCashMark, clientInfo, clientInfoSet, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
+  myBalance, myCredit, declareTopup, courierIdChecked, adminCredits, adminAccounts, adminAnalytics, adminFunnel, staffVisitorMark, rayonsLive, rayonsCached, adminRayonSave, adminConfirmEmail, shopEnrich, adminShopEnrich, decideTopup, addTopup, courseDue, orderReceipt, topupReceipt, myStatement, shopSignup, shopByCode, shopsShowcase, homePromos, homePromosCached, promosAll, promosAllCached, rlFind, priceCompare, listCompare, vicFind, lahavFind, chainFind, yohananofFind, osheradFind, tivtaamFind, universeFind, shufersalFind, productsSearch, productsSearchShops, iaVoice, iaAssist, iaPhoto, iaEcoute, placeSuggest, adminPlacesAsked, adminPlaceAskedDone, iaVoiceRun, iaVoiceResult, searchSynonyms, shopVitrine, saveShopBrand, shopPageSave, setShopPayMode, shopOrderPay, shopClients, shopStats, shopBroadcast, shopFicheSave, shopTextsHeSave, clientGoodsPaid, shopGoodsPay, shopCashReceived, shopCollectSet, courierCashMark, clientInfo, clientInfoSet, orderWelcomeSent, shopPaySave, shopNoticeSend, clientNotices, clientNoticeSeen, verifyKnownPlace, setShopClientPays, shopDashboard, shopCatalog, shopCatalogMine, saveCategory, deleteCategory, saveProduct, setProductAvailable, deleteProduct, orderProducts, myShopTokens, rememberShopToken, forgetShopToken, myShops, shopTokenFor, listShops, updateShop, myReferrals,
   sellCarnet, carnetReceipt, listCarnetSales,
   docsNeeded, docsFor, addOrderDoc, courierHandoff,
   claimOrder, penaltyAdd, creditRemove, courierActionForce, penaltyCancel, claimClose, listPenalties, myPenalties, settlePenalties, orderDocsSent, orderDocs, docsVerdict,
